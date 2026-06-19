@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Azure.Messaging.ServiceBus.Abstractions;
+namespace CoreEx.Azure.Messaging.ServiceBus.Abstractions;
 
 /// <summary>
 /// Provides utility methods for classifying and interpreting a <see cref="ServiceBusException"/>.
@@ -36,10 +36,15 @@ public static class ServiceBusErrorClassifier
 
                 return true;
             }
+
+            if (logger.IsEnabled(LogLevel.Error))
+                logger.LogError(sbex, "An unclassified Service Bus error occurred on entity {EntityPath} with error source {ErrorSource} and reason {Reason}.", args.EntityPath, args.ErrorSource, sbex.Reason);
+
+            return false;
         }
 
         if (logger.IsEnabled(LogLevel.Error))
-            logger.LogError(args.Exception, "An error occurred within the Service Bus Session Processor on entity {EntityPath} with error source {ErrorSource}.", args.EntityPath, args.ErrorSource);
+            logger.LogError(args.Exception, "An unclassified Service Bus error occurred on entity {EntityPath} with error source {ErrorSource}", args.EntityPath, args.ErrorSource);
 
         return false;
     }
@@ -52,7 +57,7 @@ public static class ServiceBusErrorClassifier
     /// <remarks>This can happen due to various reasons such as long processing times, network issues, or other transient conditions that cause the lock to be released by the Service Bus.</remarks>
     public static bool IsLockLost(ServiceBusException exception) => exception.Reason == ServiceBusFailureReason.MessageLockLost || exception.Reason == ServiceBusFailureReason.SessionLockLost;
 
-    /// <summary>
+    /// <summary>   
     /// Indicates whether the given <see cref="ServiceBusException"/> is considered transient, meaning it is likely to be resolved by retrying the operation after a delay.
     /// </summary>
     /// <param name="exception">The <see cref="ServiceBusException"/>.</param>

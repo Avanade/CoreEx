@@ -10,11 +10,9 @@ namespace {{Root.DotNetDataEfRepositoriesNamespace}};
 
 public partial class {{Domain}}DbContext
 {
-    /// <summary>
-    /// Adds the generated models to the <paramref name="modelBuilder"/>.
-    /// </summary>
+    /// <summary>Adds the generated models to the <paramref name="modelBuilder"/>.</summary>
     /// <param name="modelBuilder">The <see cref="Microsoft.EntityFrameworkCore.ModelBuilder"/>.</param>
-    public void AddGeneratedModels(Microsoft.EntityFrameworkCore.ModelBuilder modelBuilder)
+    partial void AddGeneratedModels(Microsoft.EntityFrameworkCore.ModelBuilder modelBuilder)
     {
 {{#each EfModels}}
   {{#unless @first}}

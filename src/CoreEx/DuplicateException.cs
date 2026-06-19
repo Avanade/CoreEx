@@ -1,4 +1,4 @@
-﻿namespace CoreEx;
+namespace CoreEx;
 
 /// <summary>
 /// Represents a data <b>Duplicate</b> exception.

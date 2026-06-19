@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Entities.Abstractions;
+namespace CoreEx.Entities.Abstractions;
 
 /// <summary>
 /// Enables a read-only <see cref="IIdentifierCore.Id"/> capability.

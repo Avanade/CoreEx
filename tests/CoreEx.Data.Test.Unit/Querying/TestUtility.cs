@@ -1,4 +1,4 @@
-﻿using CoreEx.Data.Querying;
+using CoreEx.Data.Querying;
 using CoreEx.Entities;
 using CoreEx.Http;
 

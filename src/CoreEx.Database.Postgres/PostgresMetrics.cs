@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Database.Postgres;
+namespace CoreEx.Database.Postgres;
 
 /// <summary>
 /// Provides the <see href="https://www.postgresql.org/docs/">PostgreSQL</see> metrics.

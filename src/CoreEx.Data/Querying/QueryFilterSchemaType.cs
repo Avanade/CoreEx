@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Data.Querying;
+namespace CoreEx.Data.Querying;
 
 /// <summary>
 /// Represents the schema type for a <see cref="QueryFilterFieldType"/>.

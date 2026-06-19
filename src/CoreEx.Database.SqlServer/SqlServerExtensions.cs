@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Database.SqlServer;
+namespace CoreEx.Database.SqlServer;
 
 /// <summary>
 /// Provides <see cref="SqlServerDatabase"/> and related extensions.

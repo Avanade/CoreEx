@@ -1,4 +1,4 @@
-﻿namespace Contoso.Shopping.Contracts;
+namespace Contoso.Shopping.Contracts;
 
 public partial class DiscountCoupon
 {

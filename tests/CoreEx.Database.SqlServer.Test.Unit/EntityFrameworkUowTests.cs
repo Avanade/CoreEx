@@ -1,4 +1,4 @@
-﻿using CoreEx.Data;
+using CoreEx.Data;
 using CoreEx.Database.SqlServer.Test.Unit.Repository;
 using CoreEx.Results;
 

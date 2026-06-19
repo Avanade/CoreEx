@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Data;
+namespace CoreEx.Data;
 
 /// <summary>
 /// Enables the typed <typeparamref name="TItem"/> <see cref="Items"/> (for a <see cref="IItemsResult"/>).

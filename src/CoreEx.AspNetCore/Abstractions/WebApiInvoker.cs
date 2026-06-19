@@ -1,4 +1,4 @@
-﻿namespace CoreEx.AspNetCore.Abstractions;
+namespace CoreEx.AspNetCore.Abstractions;
 
 /// <summary>
 /// Provides the base <see cref="WebApi{TResult}"/> invoker.

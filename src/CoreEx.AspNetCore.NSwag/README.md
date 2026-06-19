@@ -17,7 +17,7 @@
 - 📦 **Request body content types**: Reads `[AcceptsAttribute]` and populates the operation `RequestBody` with the declared content type(s) and NSwag-inferred JSON schema for the body type.
 - 🔑 **Idempotency-key header**: Reads `[IdempotencyKeyAttribute]` and adds an `x-idempotency-key` header parameter to the operation.
 - 🚫 **Not-found response**: Reads `[ProducesNotFoundProblemAttribute]` and adds a `404 application/problem+json` response entry.
-- ⚠️ **Standard ProblemDetails responses**: Optionally injects `400`, `422`, and `500` `application/problem+json` response entries for all operations via `OpenApiOptions.IncludeStandardProblemDetailsResponses`.
+- ⚠️ **ProblemDetails responses**: Optionally injects `application/problem+json` response entries for the HTTP status codes configured via `OpenApiOptions.IncludeProblemDetailsHttpStatusCodes` / `OpenApiOptions.IncludeValidationProblemDetailsHttpStatusCodes` and their corresponding status-code lists; `500` is only included when it is present in the configured list, not by default via a separate `IncludeStandardProblemDetailsResponses` option.
 - 📡 **Fields query string**: When `OpenApiOptions.IncludeFieldsRequestHeaders` is set, adds the `$fields` query-string parameter for response field projection.
 - 💬 **Message response headers**: When `OpenApiOptions.IncludeMessagesResponseHeaders` is set, documents `x-messages-warning` and `x-messages-info` response headers.
 - ⚙️ **STJ schema settings**: `ConfigureSchemaSettings()` aligns NSwag's JSON schema generation with `JsonDefaults.SerializerOptions` (camelCase, enum-as-string, `WhenWritingDefault`) so the generated schema matches the actual serialized output.
@@ -38,3 +38,7 @@
 ## Additional Resources
 
 - [NSwag GitHub](https://github.com/RicoSuter/NSwag) - The NSwag library this package extends.
+
+## AI Usage Guide
+
+An [`AGENTS.md`](./AGENTS.md) file is included with this package. AI coding assistants (GitHub Copilot, Claude, Cursor, etc.) that support workspace-injected package documentation will automatically surface concise usage guidance, code examples, and `Do Not` rules for this package without requiring a local CoreEx checkout.

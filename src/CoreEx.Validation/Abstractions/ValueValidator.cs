@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Validation.Abstractions;
+namespace CoreEx.Validation.Abstractions;
 
 /// <summary>
 /// Enables validation for a value.

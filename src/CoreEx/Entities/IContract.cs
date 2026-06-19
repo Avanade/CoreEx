@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Entities;
+namespace CoreEx.Entities;
 
 /// <summary>
 /// Enables the core contract capabilities.

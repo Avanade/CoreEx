@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Entities;
+namespace CoreEx.Entities;
 
 /// <summary>
 /// Enables a mutable <see cref="ETag"/> for the likes of versioning (optimistic concurrency).

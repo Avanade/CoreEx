@@ -1,4 +1,4 @@
-﻿global using Azure.Messaging.ServiceBus;
+global using Azure.Messaging.ServiceBus;
 global using CloudNative.CloudEvents;
 global using CloudNative.CloudEvents.Extensions;
 global using CoreEx;

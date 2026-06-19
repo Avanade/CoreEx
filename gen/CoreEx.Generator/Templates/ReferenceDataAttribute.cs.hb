@@ -4,9 +4,7 @@
 
 namespace CoreEx.RefData;
 
-/// <summary>
-/// Enables source generation of the <i>CoreEx</i> reference data functionality; specifically the implementation of <see cref="CoreEx.RefData.Abstractions.IReferenceData"/>.
-/// </summary>
+/// <summary>Enables source generation of the <i>CoreEx</i> reference data functionality; specifically the implementation of <see cref="CoreEx.RefData.Abstractions.IReferenceData"/>.</summary>
 [global::System.AttributeUsage(global::System.AttributeTargets.Class, AllowMultiple = false)]
 [global::System.CodeDom.Compiler.GeneratedCodeAttribute("CoreEx.Generator.ContractGenerator", "1.0.0.0")]
 internal class ReferenceDataAttribute : global::System.Attribute { }

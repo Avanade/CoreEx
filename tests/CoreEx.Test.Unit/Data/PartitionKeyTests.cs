@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Data.Test.Unit;
+namespace CoreEx.Data.Test.Unit;
 
 public class PartitionKeyTests
 {

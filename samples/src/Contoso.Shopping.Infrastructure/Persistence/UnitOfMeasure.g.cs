@@ -8,14 +8,10 @@
 
 namespace Contoso.Shopping.Infrastructure.Persistence;
 
-/// <summary>
-/// Persistence reference-data model representing the '<c>[Shopping].[UnitOfMeasure]</c>' database table.
-/// </summary>
+/// <summary>Persistence reference-data model representing the '<c>[Shopping].[UnitOfMeasure]</c>' database table.</summary>
 public partial class UnitOfMeasure : ReferenceDataModelBase<string>
 {
-    /// <summary>
-    /// Gets or sets the value of the '<c>Scale</c>' column (type '<c>INT</c>').
-    /// </summary>
+    /// <summary>Gets or sets the value of the '<c>Scale</c>' column (type '<c>INT</c>').</summary>
     public int Scale { get; set; }
 }
 

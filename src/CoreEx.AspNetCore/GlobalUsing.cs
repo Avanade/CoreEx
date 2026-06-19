@@ -1,4 +1,4 @@
-﻿global using CoreEx;
+global using CoreEx;
 global using CoreEx.Abstractions;
 global using CoreEx.AspNetCore;
 global using CoreEx.AspNetCore.Abstractions;

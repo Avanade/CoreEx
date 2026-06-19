@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Validation.Rules;
+namespace CoreEx.Validation.Rules;
 
 /// <summary>
 /// Provides a comparison validation against one or more values.

@@ -8,10 +8,8 @@
 
 namespace {{Root.ApplicationNamespace}};
 
-/// <summary>
-/// Provides the <see cref="IReferenceDataProvider"/> implementation.
-/// </summary>
-[ScopedService]
+/// <summary>Provides the <see cref="IReferenceDataProvider"/> implementation.</summary>
+[ScopedService<IReferenceDataProvider>]
 public partial class ReferenceDataService(IReferenceDataRepository repository) : IReferenceDataProvider
 {
     private readonly IReferenceDataRepository _repository = repository.ThrowIfNull();
@@ -25,7 +23,7 @@ public partial class ReferenceDataService(IReferenceDataRepository repository) :
     ];
 
     /// <inheritdoc/>
-    public async Task<IReferenceDataCollection> GetAsync(Type type, CancellationToken cancellationToken = default) => type switch
+    public virtual async Task<IReferenceDataCollection> GetAsync(Type type, CancellationToken cancellationToken = default) => type switch
     {
 {{#each Entities}}
         _ when type == typeof({{Name}}) => await _repository.GetAll{{Plural}}Async(cancellationToken).ConfigureAwait(false),

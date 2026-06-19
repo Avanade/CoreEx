@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Validation.Rules;
+namespace CoreEx.Validation.Rules;
 
 /// <summary>
 /// Provides an <i>interop</i> validation rule; intended for non-<c>CoreEx.Validation</c>.

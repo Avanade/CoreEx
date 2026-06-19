@@ -1,4 +1,4 @@
-﻿namespace Contoso.Shopping.Infrastructure.Mapping;
+namespace Contoso.Shopping.Infrastructure.Mapping;
 
 internal sealed class BasketItemIntoMapper : IntoMapper<Domain.BasketItem, Persistence.BasketItem, BasketItemIntoMapper>
 {

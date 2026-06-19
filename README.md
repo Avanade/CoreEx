@@ -14,6 +14,18 @@ The solution is composed of focused, independently consumable packages — `Core
 - **Simplify** development by eliminating the boilerplate that accumulates around every API endpoint and data operation — execution context scoping, idempotency key handling, paged query translation, outbox relay, ETag management, change-log stamping — freeing teams to focus on business logic rather than infrastructure ceremony.
 - **Enable flexibility** through opt-in modularity and composability — each package is an independent add-on, _CoreEx_ does not mandate an architectural style, and its abstractions (`IMapper`, `IUnitOfWork`, `IHybridCache`, `IEventPublisher`) are designed to be replaced or extended without disrupting the rest of the solution.
 
+## Better Together
+
+The greatest developer velocity gains come not from any single capability, but from the intersection of all three:
+
+<img src="./images/BetterTogetherVenn.png" alt="Better Together — Framework, Code-gen, and Gen AI / Copilot" width="600" />
+
+- **Framework** _(**CoreEx**, UnitTestEx, DbEx)_ — encapsulates proven patterns and complexity into tested, shared components. Every team inherits a consistent, production-hardened baseline rather than rebuilding infrastructure from scratch, maximising reuse and freeing engineers to focus on differentiated business logic.
+- **Code-generation** _(CoreEx.Generator, CoreEx.CodeGen, DbEx / OnRamp)_ — automates the translation of intent into implementation. Roslyn source generation, dev-time scaffolding, and database/entity layer generation combine to produce repetitive layers predictably and consistently every time — deterministic by design — eliminating manual error and accelerating the path from design to working code.
+- **Gen AI / Copilot** — accelerates the development of the unique business value that only your organisation can deliver. AI assistance — probabilistic and context-aware — augments engineers during coding, testing, and review, compressing the feedback loop between idea and production-ready solution.
+
+Where all three converge, the compound effect is multiplicative: the framework constrains the solution space so AI suggestions land in the right patterns; code-generation handles the deterministic heavy lifting so AI can focus on novel logic; and AI in turn accelerates how quickly teams adopt, extend, and validate both.
+
 ## Key Capabilities
 
 Here is a high-level overview of some of the key capabilities provided by _CoreEx_:
@@ -66,12 +78,16 @@ The [Pattern Catalog](./samples/docs/patterns.md) is the best entry point: it in
 
 → **[View the full pattern catalog](./samples/docs/patterns.md)**
 
-## Version 4
+## Version 4 (preview)
 
 This is a **major** version release; a re-imagine / re-invention of the existing capabilities to enable a more modern, flexible and maintainable codebase.
 - This release contains **significant breaking changes** - there is **no** upgrade path from the previous `v3.x` versions; however, the core capabilities and patterns remain largely consistent.
 - A number of capabilities have been removed as they were not widely used, considered legacy/obsolete, or there are better alternatives available.
 - Not all existing capabilities have been re-implemented in this release; the intention is to (re-)add further capabilities in future releases as required.
+
+Version 4 is currently in **preview**; the packages are published with a `-preview` suffix and may contain future breaking changes. The packages in their current state can be used for Production-based solutions. Feedback is very welcome to help shape the final release.
+
+The Copilot and Claude [AI](#ai) integrations should be considered experimental and subject to change/improvements.
 
 ## Status
 
@@ -100,6 +116,10 @@ Project/Package | Description | Source | Status
 
 The included [change log](CHANGELOG.md) details all key changes per published version.
 
+## Getting Started
+
+→ **[Getting Started Guide](./docs/getting-started.md)** — install the template pack, scaffold a new solution, start local infrastructure, add API/Relay/Subscribe hosts, and run your first build.
+
 ## Samples
 
 The repository includes [Contoso reference samples](./samples/README.md) that implement a fully working multi-domain service topology — Products, Shopping, and Orders — each with an API host, an Outbox Relay host, and an Event Subscriber host.
@@ -112,6 +132,26 @@ The repository includes [Contoso reference samples](./samples/README.md) that im
 | [Tooling Guide](./samples/docs/tooling.md) | Code generation and database lifecycle tooling |
 | [Testing Guide](./samples/docs/testing.md) | Unit, intra-domain, inter-domain, and E2E testing strategy |
 | [Aspire & E2E Guide](./samples/docs/aspire.md) | Local orchestration and cross-domain end-to-end validation |
+
+## AI
+
+The repository includes an AI workflow set in [`.github/`](./.github/) that gives GitHub Copilot and Claude Code authoritative knowledge of CoreEx patterns, conventions, and architecture — no need to explain CoreEx to the tool each time. The artefacts can also be copied into a consuming project.
+
+**Agent** — `coreex-expert` provides architecture guidance, pattern recommendations, and design reviews aligned to the sample implementations. See the [agent README](./.github/agents/README.md) for the resolution flowchart and local doc cache design.
+
+**Commands and templates** — type `/` in chat to invoke skills and prompts. Use `dotnet new` in a terminal for deterministic scaffolding.
+
+| Command | What it does | Claude Code | GitHub Copilot Chat |
+|---------|-------------|-------------|---------------------|
+| [Expert guidance](./.github/agents/README.md) | Architecture, pattern, and design advice | `@coreex-expert` | Agent mode → **CoreEx Expert** |
+| [CoreEx.Template](./src/CoreEx.Template/README.md) | Deterministic solution and host scaffolding via `dotnet new coreex*` templates | `dotnet new install CoreEx.Template` then `dotnet new coreex...` | Run the same `dotnet new` commands in the terminal |
+| [`/coreex-docs-sync`](./.github/skills/coreex-docs-sync/README.md) | Cache CoreEx docs and per-package AI guides locally | `/coreex-docs-sync` | `#file:.github/skills/coreex-docs-sync/SKILL.md` |
+| [`/acquire-codebase-knowledge`](./.github/skills/acquire-codebase-knowledge/README.md) | Map and document an existing codebase | `/acquire-codebase-knowledge` | `#file:.github/skills/acquire-codebase-knowledge/SKILL.md` |
+| [`/aspire`](./.github/skills/aspire/README.md) | Orchestrate Aspire apps locally (start, stop, logs) | `/aspire` | `#file:.github/skills/aspire/SKILL.md` |
+
+**Instructions** — 10 scoped instruction files are injected automatically when editing matching file types (contracts, services, repositories, controllers, tests, etc.). No action required.
+
+→ **[Full AI workflow overview](./.github/README.md)**
 
 ## License
 

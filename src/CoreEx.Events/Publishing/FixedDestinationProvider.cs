@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Events.Publishing;
+namespace CoreEx.Events.Publishing;
 
 /// <summary>
 /// Provides a <see cref="IDestinationProvider"/> where the same (fixed) <see cref="Destination"/> is used regardless of <see cref="EventData"/> contents; i.e. all messages are published to a single centralized destination.

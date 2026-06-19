@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Hosting.Work;
+namespace CoreEx.Hosting.Work;
 
 /// <summary>
 /// Represents the <see cref="WorkOrchestrator.CreateAsync"/> arguments.

@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Hosting.Synchronization;
+namespace CoreEx.Hosting.Synchronization;
 
 /// <summary>
 /// Provides an <see cref="IHybridCache"/>-based <see cref="ISynchronizer"/>.

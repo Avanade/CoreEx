@@ -1,4 +1,4 @@
-﻿using CoreEx.Database.SqlServer.Test.Unit.Models;
+using CoreEx.Database.SqlServer.Test.Unit.Models;
 using CoreEx.Json;
 using CoreEx.Mapping;
 using System.Text.Json;

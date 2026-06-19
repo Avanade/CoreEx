@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="AwesomeAssertions" />
+    <PackageReference Include="CoreEx.UnitTesting" />
+    <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="NUnit" />
+    <PackageReference Include="NUnit.Analyzers" />
+    <PackageReference Include="NUnit3TestAdapter" />
+    <PackageReference Include="UnitTestEx.NUnit" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\app-name.Subscribe\app-name.Subscribe.csproj" />
+    <ProjectReference Include="..\solution-name.Test.Common\solution-name.Test.Common.csproj" />
+    <!--#if (implement-sqlserver || implement-postgres)-->
+    <ProjectReference Include="..\..\tools\solution-name.Database\solution-name.Database.csproj" />
+    <!--#endif-->
+  </ItemGroup>
+  <ItemGroup>
+    <None Update="appsettings.unittest.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\**\*" />
+  </ItemGroup>
+</Project>

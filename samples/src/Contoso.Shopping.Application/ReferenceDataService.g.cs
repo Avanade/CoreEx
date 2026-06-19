@@ -8,9 +8,7 @@
 
 namespace Contoso.Shopping.Application;
 
-/// <summary>
-/// Provides the <see cref="IReferenceDataProvider"/> implementation.
-/// </summary>
+/// <summary>Provides the <see cref="IReferenceDataProvider"/> implementation.</summary>
 [ScopedService]
 public partial class ReferenceDataService(IReferenceDataRepository repository) : IReferenceDataProvider
 {
@@ -25,7 +23,7 @@ public partial class ReferenceDataService(IReferenceDataRepository repository) :
     ];
 
     /// <inheritdoc/>
-    public async Task<IReferenceDataCollection> GetAsync(Type type, CancellationToken cancellationToken = default) => type switch
+    public virtual async Task<IReferenceDataCollection> GetAsync(Type type, CancellationToken cancellationToken = default) => type switch
     {
         _ when type == typeof(BasketStatus) => await _repository.GetAllBasketStatusesAsync(cancellationToken).ConfigureAwait(false),
         _ when type == typeof(DiscountCoupon) => await _repository.GetAllDiscountCouponsAsync(cancellationToken).ConfigureAwait(false),

@@ -1,4 +1,4 @@
-﻿using CoreEx.Http;
+using CoreEx.Http;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Mime;

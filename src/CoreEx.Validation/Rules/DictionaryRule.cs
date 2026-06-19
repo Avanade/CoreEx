@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Validation.Rules;
+namespace CoreEx.Validation.Rules;
 
 /// <summary>
 /// Provides a dictionary (<see cref="IDictionary"/>) validation including item-based validation.
@@ -187,7 +187,11 @@ public sealed class DictionaryRule<TEntity, TProperty, TKey, TValue> : PropertyR
                         // Validate the value and merge the result.
                         try
                         {
-                            var r = await _getValueValidator.Invoke(args).ValidateAsync(kvp.Value, args, cancellationToken).ConfigureAwait(false);
+                            var vv = _getValueValidator.Invoke(args);
+                            var r = vv is ValidatingInlineValidator<TValue> vilv
+                                ? await vilv.ValidateEntityAsync(kvp.Value, args, cancellationToken).ConfigureAwait(false)
+                                : await vv.ValidateAsync(kvp.Value, args, cancellationToken).ConfigureAwait(false);
+
                             context.MergeResult(r);
                         }
                         finally

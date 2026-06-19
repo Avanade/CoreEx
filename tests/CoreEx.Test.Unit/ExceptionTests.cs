@@ -1,4 +1,4 @@
-﻿using CoreEx.Entities;
+using CoreEx.Entities;
 using CoreEx.Localization;
 using System.Net;
 

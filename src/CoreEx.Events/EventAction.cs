@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Events;
+namespace CoreEx.Events;
 
 /// <summary>
 /// Represents the action of an event; primarily: <see cref="Created"/>, <see cref="Updated"/>, and <see cref="Deleted"/>.

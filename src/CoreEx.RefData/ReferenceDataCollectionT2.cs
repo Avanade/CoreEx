@@ -1,4 +1,4 @@
-﻿namespace CoreEx.RefData;
+namespace CoreEx.RefData;
 
 /// <summary>
 /// Represents a generic <see cref="IReferenceDataCollection{TId, TRef}"/> implementation where the <see cref="IReferenceData.Id"/> <see cref="Type"/> is specified with the <typeparamref name="TId"/>.

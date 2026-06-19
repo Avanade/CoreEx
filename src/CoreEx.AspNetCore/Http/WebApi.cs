@@ -1,4 +1,4 @@
-﻿using AspHttp = Microsoft.AspNetCore.Http;
+using AspHttp = Microsoft.AspNetCore.Http;
 
 namespace CoreEx.AspNetCore.Http;
 

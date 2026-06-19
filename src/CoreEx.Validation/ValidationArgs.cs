@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Validation;
+namespace CoreEx.Validation;
 
 /// <summary>
 /// Represents optional arguments for a validation.

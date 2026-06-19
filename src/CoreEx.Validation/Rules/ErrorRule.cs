@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Validation.Rules;
+namespace CoreEx.Validation.Rules;
 
 /// <summary>
 /// Provides a validation rule that will always emit an error; unless, a succeeding conditional clause prevents it.

@@ -1,4 +1,4 @@
-﻿namespace CoreEx.UnitTesting.Events;
+namespace CoreEx.UnitTesting.Events;
 
 /// <summary>
 /// Provides <see cref="IEventPublisher"/>-specific expectations for unit testing.

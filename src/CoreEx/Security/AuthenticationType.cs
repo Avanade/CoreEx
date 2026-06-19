@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Security;
+namespace CoreEx.Security;
 
 /// <summary>
 /// Represents the type of authentication used.

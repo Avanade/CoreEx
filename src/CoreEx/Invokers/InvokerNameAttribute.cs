@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Invokers;
+namespace CoreEx.Invokers;
 
 /// <summary>
 /// Provides an attribute to override the <see cref="IInvoker.Name"/> name.

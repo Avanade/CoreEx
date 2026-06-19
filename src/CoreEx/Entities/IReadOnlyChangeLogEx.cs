@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Entities;
+namespace CoreEx.Entities;
 
 /// <summary>
 /// Enables a read-only <see cref="CreatedBy"/>, <see cref="CreatedOn"/>, <see cref="UpdatedBy"/>, and <see cref="UpdatedOn"/>.

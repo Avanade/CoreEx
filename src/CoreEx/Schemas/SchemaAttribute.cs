@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Schemas;
+namespace CoreEx.Schemas;
 
 /// <summary>
 /// Provides the latest schema metadata for an entity.

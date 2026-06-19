@@ -1,4 +1,4 @@
-﻿global using Contoso.Shopping.Application;
+global using Contoso.Shopping.Application;
 global using Contoso.Shopping.Application.Interfaces;
 global using Contoso.Shopping.Contracts;
 global using CoreEx;

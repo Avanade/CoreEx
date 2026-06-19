@@ -1,4 +1,4 @@
-﻿using CoreEx.Database.Postgres.Test.Unit.Repository;
+using CoreEx.Database.Postgres.Test.Unit.Repository;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 

@@ -1,4 +1,4 @@
-﻿using CoreEx.Mapping;
+using CoreEx.Mapping;
 
 namespace CoreEx.Test.Unit.Mapping;
 

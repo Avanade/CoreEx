@@ -1,4 +1,4 @@
-﻿namespace CoreEx.DomainDriven;
+namespace CoreEx.DomainDriven;
 
 /// <summary>
 /// Represents the internal persistence state of an entity.

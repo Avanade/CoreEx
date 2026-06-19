@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Database.Extended;
+namespace CoreEx.Database.Extended;
 
 /// <summary>
 /// Enables the <see cref="IDatabase"/> multi-set arguments

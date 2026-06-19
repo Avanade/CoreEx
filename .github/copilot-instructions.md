@@ -1,4 +1,5 @@
 ---
+# applyTo is intentionally omitted — this file is applied globally by VS Copilot convention for copilot-instructions.md.
 description: "Project-wide guidelines and conventions for CoreEx development"
 tags: ["guidelines", "conventions", "comments"]
 ---
@@ -25,12 +26,34 @@ CoreEx is a modular .NET framework for enterprise APIs and distributed services.
 - **Linting**: No separate `dotnet format`. Build is the lint pass (nullable, LangVersion=preview, TreatWarningsAsErrors in `src\Directory.Build.props`).
 - **Formatting**: 4 spaces for `*.cs`, 2 spaces for `*.json|*.xml|*.yaml|*.props|*.csproj|*.sln|*.sql` per `.editorconfig`.
 
+## Local Development Infrastructure
+
+All sample hosts depend on containerised infrastructure. Start it before running any host or integration test:
+
+```bash
+podman compose -f docker-compose.yml up -d   # Podman preferred; `docker compose` also works
+```
+
+| Service | Port(s) | Purpose |
+|---|---|---|
+| `db-sql-server` | 1433 | Shopping domain database; Service Bus emulator backing store |
+| `db-postgres` | 5432 | Products domain database |
+| `redis-cache` | 6379 | FusionCache Redis backplane (all domains) |
+| `servicebus-emulator` | 5672 AMQP, 5300 mgmt | Azure Service Bus emulator; namespace `sbemulatorns`; topic `contoso` with subscriptions `products` and `shopping` (both session-enabled); config at `servicebus/Config.json` |
+| `dts-emulator` | 8080, 8082 | Azure Durable Task Scheduler emulator; task hubs `default` and `order` |
+| `aspire-dashboard` | 18888 UI, 4317 OTLP | Standalone OpenTelemetry dashboard; usable without running the full Aspire AppHost |
+
+Connection strings for each service in development are in each host's `appsettings.Development.json` under the `Aspire:` configuration key hierarchy. See [`samples/docs/local-dev.md`](../samples/docs/local-dev.md) for full detail, connection string patterns, and startup sequences.
+
 ## Architecture
 - **Two roles**: framework packages (`src\`) + sample reference implementations (`samples\`).
-- **Domain layers**: `*.Contracts` → `*.Application` → `*.Infrastructure` → `*.Api`, plus `*.Database`, `*.Outbox.Relay`, `*.Subscribe` (messaging).
-- **Sample flow**: Controllers → `WebApi` helpers → Application services (validate + `IUnitOfWork`) → Infrastructure repositories (EF + explicit mappers) → outbox events → relay publishes to Service Bus → subscribers consume.
+- **Business layers** (strict inward dependency — inner layers have no knowledge of outer): `*.Contracts` → `*.Application` → `*.Domain` (optional) → `*.Infrastructure`.
+- **Host layers** (composition roots, no business logic): `*.Api`, `*.Relay`, `*.Subscribe`.
+- **Design-time tooling** (no runtime presence): `*.CodeGen` (generates reference-data layer from `ref-data.yaml`) and `*.Database` (schema, seeding, outbox infrastructure via DbEx).
+- **Sample flow**: Controllers → `WebApi` helpers → Application services (validate + `IUnitOfWork`) → Infrastructure repositories (EF + explicit mappers) → transactional outbox → relay publishes to Service Bus → subscribers consume.
+- **Polyglot data**: Products uses PostgreSQL (`CoreEx.Database.Postgres` + `CoreEx.EntityFrameworkCore`); Shopping uses SQL Server (`CoreEx.Database.SqlServer` + `CoreEx.EntityFrameworkCore`). Layers above Infrastructure are database-agnostic.
 - **Primary domains**: Products and Shopping complete; Orders WIP. See `samples\README.md` for topology.
-- **Aspire**: orchestrates sample hosts in `samples\aspire\Contoso.Aspire\AppHost.cs`.
+- **Aspire**: orchestrates all sample hosts in `samples\aspire\Contoso.Aspire\AppHost.cs` for local distributed development and E2E testing.
 
 ## Key Conventions That Matter in This Repo
 
@@ -50,19 +73,34 @@ CoreEx is a modular .NET framework for enterprise APIs and distributed services.
 - Services and repositories commonly self-register with `[ScopedService<...>]`.
 - Hosts use `AddDynamicServicesUsing<T1, T2, ...>()` to discover and register services instead of manually wiring every type.
 - Keep interface/implementation layering intact:
-  - application interfaces live in `Application\Interfaces\` or `Application\Repositories\`;
+  - application interfaces live in `Application\Interfaces\`, `Application\Repositories\`, `Application\Adapters\`, or `Application\Policies\`;
   - infrastructure implementations live in `Infrastructure\`.
+- There are two distinct mapping layers — do not conflate them:
+  - **Application-level** (`Application\Mapping\`): Domain aggregate → Contract, using `Mapper<TSource, TDest, TSelf>`; present only in domains with a Domain layer (e.g. Shopping).
+  - **Infrastructure-level** (`Infrastructure\Mapping\`): Contract ↔ Persistence model, using `BiDirectionMapper<TFrom, TTo, TSelf>`; present in all domains.
 
 ### Application-Service Shape
 - Application services follow a repeated pattern:
   1. guard/normalize inputs;
   2. validate with CoreEx validators;
   3. load current state where needed;
-  4. run mutations inside `_unitOfWork.ExecuteAsync(...)`;
-  5. add `EventData` within the same unit-of-work scope.
+  4. wrap mutations **and** event publication together inside `_unitOfWork.TransactionAsync(...)` — both the database write and the outbox event are committed atomically or not at all;
+  5. add `EventData` to `_unitOfWork.Events` inside that same transactional scope.
 - Use exception-based flows for straightforward CRUD-style services.
 - Use `Result<T>` pipelines for aggregate-oriented flows and multi-step orchestration, especially in Shopping.
-- When working in application or infrastructure code, follow `.github\instructions\application-services.instructions.md`, `.github\instructions\repositories.instructions.md`, and related scoped instruction files.
+
+### Adapters (Anti-Corruption Layer)
+- When a domain needs to interact with another domain or external service, define an **adapter interface** in `Application\Adapters\`. The Application layer depends on this domain-idiomatic abstraction — never on the remote API's schema or transport directly.
+- Infrastructure implements the adapter using a **typed HTTP client** (`Infrastructure\Clients\`) for the transport concern, keeping client and orchestration in separate focused classes.
+- Two adapter roles appear in Shopping:
+  - **Synchronous adapter** (`IProductAdapter`) — real-time calls (e.g. inventory reservation at checkout); the HTTP client is called live inside the unit of work.
+  - **Sync/replication adapter** (`IProductSyncAdapter`) — event-driven data replication; receives published domain events and maintains a local eventually-consistent copy in the domain's own store.
+- Do not call `HttpClient` directly from services — always go through the adapter interface.
+
+### Policies
+- Policies (`Application\Policies\`) encapsulate **domain-level guard logic** that requires I/O — adapter or repository calls. A policy provides a named, independently testable home for rules that depend on external state and cannot be expressed in a validator alone (synchronous) or in the domain model (no async I/O). Policies return `Result` or `Result<T>` and can be called from any point in service orchestration where the condition needs to be verified.
+- Use a policy when an invariant cannot be expressed in a validator alone (e.g. confirming a referenced entity exists before allowing a mutation).
+- Policies return `Result` or `Result<T>` and compose naturally into `Result<T>` service pipelines via `.GoAsync()` / `.ThenAsAsync()`.
 
 ### Host Composition
 - `Program.cs` files follow a predictable CoreEx host shape:
@@ -83,41 +121,57 @@ CoreEx is a modular .NET framework for enterprise APIs and distributed services.
 - OpenAPI/health endpoints standard in hosts.
 
 ### Data and Messaging
-- SQL Server + outbox + Azure Service Bus are first-class patterns.
-- Shopping: synchronous HTTP reservation + transactional outbox + async event publishing. Preserve this split.
+- Transactional outbox + Azure Service Bus are first-class messaging patterns across all domains.
+- **Products** uses PostgreSQL; **Shopping** uses SQL Server. Do not assume SQL Server when working on Products.
+- Shopping: synchronous HTTP inventory reservation + transactional outbox + async event publishing. Preserve this split.
+- Both domains use `CoreEx.Caching.FusionCache` (hybrid in-process + Redis backplane cache) for reference data and idempotency. Register via `AddFusionCache()` / `AddFusionHybridCache()` in `Program.cs`; clear via `Test.ClearFusionCacheAsync()` in test `[OneTimeSetUp]`.
 
 ### Testing
-- Framework: NUnit + FluentAssertions.
+- Framework: UnitTestEx + NUnit + AwesomeAssertions (the `AwesomeAssertions` NuGet package — not FluentAssertions).
 - Sample: `WithGenericTester<EntryPoint>` (unit) or `WithApiTester<Program>` (API/Subscribe/Relay).
-- Integration tests: `Data\data.yaml` (Test.Common) + `Resources\` JSON expectations + `ExpectSqlServerOutboxEvents(...)`.
+- Integration tests: per-class named seed files `Data\read-data.seed.yaml` / `Data\mutate-data.seed.yaml` (Products), or a single `Data\data.yaml` (Orders/Shopping), in Test.Common + `Resources\` JSON expectations.
+- **Intra-domain dependencies are real; inter-domain dependencies are always mocked.** Own database, cache, and outbox are started and seeded in `[OneTimeSetUp]`. Cross-domain HTTP calls and direct broker publishes are replaced with `MockHttpClientFactory` / `UseExpectedAzureServiceBusPublisher()`.
+- Outbox assertion helpers are database-specific: `UseExpectedPostgresOutboxPublisher()` for Products; `UseExpectedSqlServerOutboxPublisher()` for Shopping. Do not use the SQL Server helper in Products tests.
 - Mock downstream HTTP calls; do not assume live APIs.
 
 ### House Rules
 - Code comments end with a period/full stop.
-- Use `GlobalUsing.cs` per project; do not scatter `using` directives.
 - Always use `.ConfigureAwait(false)` in service/repository code.
+- `<Nullable>enable</Nullable>` and `<ImplicitUsings>enable</ImplicitUsings>` are set in `Directory.Build.props` — treat nullable warnings as errors, never suppress them with `!` without justification.
+- Every project has a single `GlobalUsing.cs` at the project root. All `using` statements go there — never in individual source files. The code generator (`*.CodeGen`) emits no `using` statements and depends on this.
+- File-scoped namespace declarations only: `namespace Foo.Bar;` — never block-scoped.
+- Single-line `if` bodies do not need braces: `if (x) return;`
+- Use expression-bodied syntax (`=>`) when the entire method or property body is a single expression.
+- Private instance fields are always prefixed with `_`.
 
 ### Generated Code
-- Do not edit generated code directly. If changes are needed, update the source templates or generation logic.
-- Generated code files are typically marked with a comment at the top indicating they are auto-generated and should not be edited manually.
-- Generated code also has the file name pattern `*.g.cs`, `*.g.sql`, `*.g.pgsql` or similar to indicate its nature.
-- Copilot should not suggest edits to generated code files. If it does, the suggestion should be rejected or redirected to the source templates.
+Never create or edit `*.g.cs`, `*.g.sql`, or `*.g.pgsql` files directly. Each generator owns its outputs:
+
+| File pattern | Generator | Change instead |
+|---|---|---|
+| `*.g.cs` (contracts, ref-data) | Roslyn source generator (`CoreEx.Generator`) | The `[Contract]`- or `[ReferenceData]`-decorated partial class |
+| `*.g.cs` (ref-data layer — controller, service, repository, mapper) | `*.CodeGen` project (CoreEx.CodeGen + `ref-data.yaml`) | `ref-data.yaml` config or the Handlebars templates in `CoreEx.CodeGen/RefData/Templates/` |
+| `*.g.sql`, `*.g.pgsql`, `*DbContext.g.cs`, `Persistence/*.g.cs` | `*.Database` project (DbEx) | DbEx YAML config or SQL migration scripts |
+
+See [INSTRUCTION_AUTHORING.md](INSTRUCTION_AUTHORING.md#generated-code) for full generator ownership detail.
 
 ## Key Docs to Read Before Large Changes
-- `README.md` for repo-level positioning and top-level commands.
-- `samples\README.md` for the runnable Contoso architecture and local setup.
-- `docs\capabilities.md` for the deeper CoreEx capability/pattern explanations.
-- `.github\instructions\*.instructions.md` for area-specific rules when editing `Program.cs`, contracts, application services, repositories, validators, subscribers, or tests.
+- `README.md` — repo-level positioning and top-level commands.
+- `samples\README.md` — runnable Contoso architecture and local setup.
+- `docs\capabilities.md` — deeper CoreEx capability and pattern explanations.
+- `samples\docs\layers.md` — full layer diagram, dependency rules, and design-time tooling overview.
+- `samples\docs\patterns.md` — pattern catalog with links to layer-specific detail for every architectural, application, messaging, and testing pattern used in the samples.
+- `samples\docs\<layer>.md` — detailed walkthrough for each layer: `contracts-layer.md`, `application-layer.md`, `domain-layer.md`, `infrastructure-layer.md`, `hosts-layer.md`, `testing.md`, `tooling.md`.
+- `.github\instructions\*.instructions.md` — area-specific rules auto-injected when editing matching files (`Program.cs`, contracts, application services, repositories, validators, subscribers, tests).
 
-## Agent Customizations (Prompts and Skills)
+## Agent Customizations (Prompts, Skills, and Templates)
 
-The following prompts and skills are available in this repository. Type `/` in chat to invoke them.
+The following prompts, skills, and templates are available in this repository. Type `/` in chat to invoke prompts and skills. Use `dotnet new` in a terminal for templates.
 
 | Command | Type | When to use |
 |---------|------|-------------|
-| `/generate-domain` | Skill | Guided scaffolding of a new CoreEx domain across all 5 layers. Use when your entity has custom fields, business rules, or you want the agent to reason about conventions, validation, and event naming. The agent will ask for inputs and generate code tailored to your domain model. |
-| `/add-capability` | Skill | Retrofit an existing CoreEx domain with additional capabilities. Use when a domain already exists and you want to add messaging/integration features such as `Outbox.Relay`, `Subscribe`, Azure Service Bus wiring, or initial subscriber scaffolding without regenerating the domain. |
-| `/scaffold-domain-from-templates` | Prompt | Fast, deterministic domain scaffolding by cloning and materializing the canonical templates in `.github\templates\domain\` with placeholder substitution. Use when your entity fits the standard template shape and you want exact output with no creative generation. |
+| `CoreEx.Template` | Template pack | Deterministic `dotnet new` scaffolding for solution, API, relay, and subscriber shapes. Use `dotnet new install CoreEx.Template` and then run `dotnet new coreex`, `coreex-api`, `coreex-relay`, or `coreex-subscribe` as needed. |
+| `CoreEx Expert` | Agent | Architecture guidance, pattern recommendations, and design review aligned to the samples and repo instructions. |
 | `/init` | Prompt | Initialize a new CoreEx solution or workspace. |
 | `/setup` | Prompt | Configure an existing CoreEx solution with standard tooling and settings. |
 

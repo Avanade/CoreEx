@@ -1,4 +1,4 @@
-﻿using CoreEx.Hosting.Synchronization;
+using CoreEx.Hosting.Synchronization;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace CoreEx.Caching.Redis.Test.Unit;

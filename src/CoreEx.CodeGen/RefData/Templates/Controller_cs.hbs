@@ -8,9 +8,7 @@
 
 namespace {{Root.ApiNamespace}}.Controllers;
 
-/// <summary>
-/// Represents the reference-data controller.
-/// </summary>
+/// <summary>Represents the reference-data controller.</summary>
 [ApiController, Route("{{Route}}")]
 public partial class ReferenceDataController(CoreEx.AspNetCore.Mvc.WebApi webApi) : ControllerBase
 {
@@ -18,11 +16,11 @@ public partial class ReferenceDataController(CoreEx.AspNetCore.Mvc.WebApi webApi
 
     private static readonly DataMap<string> _mapper = new(StringComparer.OrdinalIgnoreCase)
     {
-{{#each Entities}}
+{{#each EntitiesWithApi}}
         { "{{Route}}", nameof({{Name}}) }{{#unless @last}},{{/unless}}
 {{/each}}
     };
-{{#each Entities}}
+{{#each EntitiesWithApi}}
 
     [HttpGet("{{Route}}"), HttpHead("{{Route}}")]
     [ProducesResponseType(typeof({{Name}}[]), 200)]

@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Invokers;
+namespace CoreEx.Invokers;
 
 /// <summary>
 /// Provides a generic invoker.

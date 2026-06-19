@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Data;
+namespace CoreEx.Data;
 
 /// <summary>
 /// Enables the <see cref="Paging"/> and <see cref="Items"/> for a collection result.

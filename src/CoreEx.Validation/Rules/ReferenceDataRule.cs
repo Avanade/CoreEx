@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Validation.Rules;
+namespace CoreEx.Validation.Rules;
 
 /// <summary>
 /// Provides an <see cref="IReferenceData"/> validation.

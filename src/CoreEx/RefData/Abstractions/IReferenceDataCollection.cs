@@ -1,4 +1,4 @@
-﻿namespace CoreEx.RefData.Abstractions;
+namespace CoreEx.RefData.Abstractions;
 
 /// <summary>
 /// Enables <see cref="GetById(object)"/> and <see cref="GetByCode(string)"/> functionality for an <see cref="IReferenceData"/> collection.

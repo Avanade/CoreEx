@@ -1,4 +1,4 @@
-﻿namespace Contoso.Products.Test.Api;
+namespace Contoso.Products.Test.Api;
 
 public partial class ProductMutateTests : WithApiTester<Contoso.Products.Api.Program>
 {
@@ -42,7 +42,7 @@ public partial class ProductMutateTests : WithApiTester<Contoso.Products.Api.Pro
 
         // Act.
         Test.Http()
-            .ExpectPostgresOutboxEvents(c => c.AssertMetadata("contoso", "contoso.products.product.deleted.v1", id))
+            .ExpectPostgresOutboxEvents(c => c.AssertMetadata("contoso", "contoso.products.product.deleted", id))
             .Run(HttpMethod.Delete, $"/api/products/{id}")
             .AssertNoContent();
 

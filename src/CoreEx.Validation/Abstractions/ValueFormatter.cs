@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Validation.Abstractions;
+namespace CoreEx.Validation.Abstractions;
 
 /// <summary>
 /// Provides value formatter configuration and corresponding <see cref="ToLText{T}(T)"/>.

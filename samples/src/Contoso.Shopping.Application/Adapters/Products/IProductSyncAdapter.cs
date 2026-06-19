@@ -1,4 +1,4 @@
-﻿namespace Contoso.Shopping.Application.Adapters.Products;
+namespace Contoso.Shopping.Application.Adapters.Products;
 
 /// <summary>
 /// Enables the Products-domain data synchronization operations via evet-based subscriptions.

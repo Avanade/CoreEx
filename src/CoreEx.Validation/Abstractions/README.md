@@ -1,4 +1,4 @@
-﻿# CoreEx.Validation.Abstractions
+# CoreEx.Validation.Abstractions
 
 > Provides the core interfaces, abstract base classes, and infrastructure types that underpin the CoreEx validation framework.
 

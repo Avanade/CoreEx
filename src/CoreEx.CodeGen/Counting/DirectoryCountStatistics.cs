@@ -1,4 +1,4 @@
-﻿namespace CoreEx.CodeGen.Counting;
+namespace CoreEx.CodeGen.Counting;
 
 /// <summary>
 /// Provides <see cref="DirectoryInfo"/> count statistics.

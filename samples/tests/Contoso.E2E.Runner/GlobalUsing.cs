@@ -1,4 +1,4 @@
-﻿global using Contoso.E2E.Runner.Infrastructure;
+global using Contoso.E2E.Runner.Infrastructure;
 global using Contoso.E2E.Runner.Scenarios;
 global using Contoso.Products.Contracts;
 global using Contoso.Shopping.Contracts;

@@ -1,4 +1,4 @@
-﻿# CoreEx.Caching.FusionCache
+# CoreEx.Caching.FusionCache
 
 > Provides a `FusionHybridCache` implementation of `IHybridCache` backed by the ZiggyCreatures FusionCache library, bridging CoreEx caching contracts to FusionCache's L1/L2 hybrid and backplane capabilities.
 
@@ -32,3 +32,7 @@ The package is deliberately thin: `FusionHybridCache` delegates every cache oper
 
 - [ZiggyCreatures FusionCache](https://github.com/ZiggyCreatures/FusionCache) — the underlying caching library.
 - [FusionCache backplane documentation](https://github.com/ZiggyCreatures/FusionCache/blob/main/docs/Backplane.md) — configuring Redis or memory backplanes for multi-node coherence.
+
+## AI Usage Guide
+
+An [`AGENTS.md`](./AGENTS.md) file is included with this package. AI coding assistants (GitHub Copilot, Claude, Cursor, etc.) that support workspace-injected package documentation will automatically surface concise usage guidance, code examples, and `Do Not` rules for this package without requiring a local CoreEx checkout.

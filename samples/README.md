@@ -34,7 +34,7 @@ graph TB
         PAPP["Products Application\n─────────────────\nProductService\nMovementService\nInventoryService"]
         PINFRA["Products Infrastructure\n─────────────────\nProductRepository\nMovementRepository\nInventoryRepository\nProductsOutboxPublisher"]
         PSUBSCRIBE["Products.Subscribe\n─────────────────\nReservationConfirmSubscriber\nReservationCancelSubscriber"]
-        POUTBOX["Products.Outbox.Relay\n─────────────────\nOutbox to Service Bus\nPartitioned relay"]
+        POUTBOX["Products.Relay\n─────────────────\nOutbox to Service Bus\nPartitioned relay"]
         PDB[("SQL Server\n[Products] schema\n─────────────\nProduct\nInventory\nMovement\nOutbox / OutboxLease\nRef data")]
     end
 
@@ -45,7 +45,7 @@ graph TB
         SDOMAIN["Shopping Domain\n─────────────────\nBasket (Aggregate Root)\nBasketItem (Entity)\nItemPricing (Value Object)"]
         SINFRA["Shopping Infrastructure\n─────────────────\nBasketRepository\nShoppingOutboxPublisher\nProductAdapter (ACL)\nProductsHttpClient\nProductSyncAdapter"]
         SSUBSCRIBE["Shopping.Subscribe\n─────────────────\nProductModifySubscriber\nProductDeleteSubscriber"]
-        SOUTBOX["Shopping.Outbox.Relay\n─────────────────\nOutbox to Service Bus\nPartitioned relay"]
+        SOUTBOX["Shopping.Relay\n─────────────────\nOutbox to Service Bus\nPartitioned relay"]
         SDB[("SQL Server\n[Shopping] schema\n─────────────\nBasket\nBasketItem\nProduct (replica)\nOutbox / OutboxLease\nRef data")]
     end
 
@@ -93,11 +93,11 @@ See [Patterns](docs/patterns.md) for the full catalog of architectural patterns 
 
 | Path | Purpose |
 |---|---|
-| `src/Contoso.Products.*` | Products domain — Contracts, Application, Infrastructure, API, Outbox.Relay, Subscribe, CodeGen, Database |
+| `src/Contoso.Products.*` | Products domain — Contracts, Application, Infrastructure, API, Relay, Subscribe, CodeGen, Database |
 | `src/Contoso.Shopping.*` | Shopping domain — same layer split plus Domain aggregate |
 | `src/Contoso.Orders.*` | Orders domain (work in progress) |
 | `aspire/Contoso.Aspire` | Aspire AppHost — orchestrates all hosts for local development and E2E validation |
-| `tests/Contoso.*.Test.*` | Unit, API, Outbox.Relay, and Subscribe test projects per domain |
+| `tests/Contoso.*.Test.*` | Unit, API, Relay, and Subscribe test projects per domain |
 | `tests/Contoso.E2E.Runner` | Interactive E2E and load-simulation console runner |
 
 See [Layers](docs/layers.md) for the full layer-by-layer breakdown of each project's responsibilities.
@@ -155,12 +155,12 @@ This starts every domain API, Outbox Relay, and Subscribe host as a single distr
 ```bash
 dotnet test samples/tests/Contoso.Products.Test.Unit
 dotnet test samples/tests/Contoso.Products.Test.Api
-dotnet test samples/tests/Contoso.Products.Test.Outbox.Relay
+dotnet test samples/tests/Contoso.Products.Test.Relay
 dotnet test samples/tests/Contoso.Products.Test.Subscribe
 dotnet test samples/tests/Contoso.Shopping.Test.Api
 ```
 
-The required infrastructure (data store, Redis, Service Bus emulator) must be running for API, Outbox.Relay, and Subscribe tests.
+The required infrastructure (data store, Redis, Service Bus emulator) must be running for API, Relay, and Subscribe tests.
 
 See [Testing](docs/testing.md) for an explanation of test taxonomy, intra-domain vs inter-domain boundaries, data seeding, mock patterns, and the fluent assertion model.
 

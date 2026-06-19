@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Events;
+namespace CoreEx.Events;
 
 /// <summary>
 /// Enables the formatting (<see cref="Format"/>) and parsing (<see cref="Parse"/>) of an <see cref="EventData"/>, and its conversion to (<see cref="ConvertToCloudEvent"/>) and from (<see cref="ConvertFromCloudEvent"/>) a <see cref="CloudEvent"/>.

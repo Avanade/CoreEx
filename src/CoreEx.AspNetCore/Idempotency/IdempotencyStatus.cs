@@ -1,4 +1,4 @@
-﻿namespace CoreEx.AspNetCore.Idempotency;
+namespace CoreEx.AspNetCore.Idempotency;
 
 /// <summary>
 /// Respresents the status of the request (server-side) with respect to idempotency.

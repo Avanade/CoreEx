@@ -1,4 +1,4 @@
-﻿using CoreEx.Entities;
+using CoreEx.Entities;
 
 namespace CoreEx.Database.Postgres.Test.Unit.Contracts;
 

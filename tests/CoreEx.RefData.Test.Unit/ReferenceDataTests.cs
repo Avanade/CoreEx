@@ -1,4 +1,4 @@
-﻿using CoreEx.RefData.Abstractions;
+using CoreEx.RefData.Abstractions;
 
 namespace CoreEx.RefData.Test.Unit;
 

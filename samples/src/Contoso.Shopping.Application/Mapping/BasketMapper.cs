@@ -1,4 +1,4 @@
-﻿namespace Contoso.Shopping.Application.Mapping;
+namespace Contoso.Shopping.Application.Mapping;
 
 public class BasketMapper : Mapper<Domain.Basket, Contracts.Basket, BasketMapper>
 {

@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Entities;
+namespace CoreEx.Entities;
 
 public partial struct CompositeKey
 {

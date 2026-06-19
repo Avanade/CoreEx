@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Validation;
+namespace CoreEx.Validation;
 
 public sealed partial class ValidationContext<TEntity>
 {

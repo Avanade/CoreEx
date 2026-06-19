@@ -1,4 +1,4 @@
-﻿namespace CoreEx.RefData;
+namespace CoreEx.RefData;
 
 /// <summary>
 /// Enables <see cref="GetById(TId?)"/> functionality for an <see cref="IReferenceData{TId}"/> collection with a typed <see cref="IIdentifier{T}.Id"/>.

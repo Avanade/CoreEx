@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Results.Abstractions;
+namespace CoreEx.Results.Abstractions;
 
 /// <summary>
 /// Enables the use of a <c>Result</c> type to represent the outcome of an operation.

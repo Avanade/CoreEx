@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Hosting;
+namespace CoreEx.Hosting;
 
 /// <summary>
 /// Represents a base class for an <see cref="IHostedService"/> based on an <see cref="Interval"/> to <see cref="OnExecuteAsync(ExecutionContext, CancellationToken)"/> work.

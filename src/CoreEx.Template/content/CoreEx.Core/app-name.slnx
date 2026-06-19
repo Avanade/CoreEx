@@ -1,0 +1,28 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Packages.props" />
+    <File Path="docker-compose.yml" />
+    <File Path="README.md" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src\app-name.Contracts\app-name.Contracts.csproj" />
+    <Project Path="src\app-name.Application\app-name.Application.csproj" />
+    <!--#if domain-driven-enabled-->
+    <Project Path="src\app-name.Domain\app-name.Domain.csproj" />
+    <!--#endif-->
+    <Project Path="src\app-name.Infrastructure\app-name.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tools/">
+    <!--#if !implement-none-data-->
+    <Project Path="tools\app-name.Database\app-name.Database.csproj" />
+    <!--#endif-->
+    <!--#if (refdata-enabled && !implement-none-data)-->
+    <Project Path="tools\app-name.CodeGen\app-name.CodeGen.csproj" />
+    <!--#endif-->
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests\app-name.Test.Common\app-name.Test.Common.csproj" />
+    <Project Path="tests\app-name.Test.Unit\app-name.Test.Unit.csproj" />
+  </Folder>
+</Solution>

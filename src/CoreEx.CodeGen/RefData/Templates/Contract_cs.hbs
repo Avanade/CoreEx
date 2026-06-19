@@ -8,9 +8,7 @@
 
 namespace {{Root.ContractsNamespace}};
 
-/// <summary>
-/// Represents the '{{Text}}' reference-data contract.
-/// </summary>
+/// <summary>Represents the '{{Text}}' reference-data contract.</summary>
 [ReferenceData]
 public partial class {{Name}} : {{Inherits}} {{#ifeq ContractProperties.Count 0}}{ }{{/ifeq}}
 {{#ifne ContractProperties.Count 0}}
@@ -19,9 +17,7 @@ public partial class {{Name}} : {{Inherits}} {{#ifeq ContractProperties.Count 0}
     {{#unless @first}}
 
     {{/unless}}
-    /// <summary>
-    /// Gets or initializes the {{Text}}.
-    /// </summary>
+    /// <summary>Gets or initializes the {{Text}}.</summary>
     {{#if IsRefData}}
     [ReferenceData<{{Type}}>]
     public partial string{{#if IsNullable}}?{{/if}} {{Name}} { get; init; }

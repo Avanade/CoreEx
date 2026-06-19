@@ -1,4 +1,4 @@
-﻿# CoreEx.DomainDriven
+# CoreEx.DomainDriven
 
 > Provides the foundational Domain-Driven Design (DDD) building blocks for CoreEx: typed entities, aggregate roots with integration-event support, persistence-state tracking, and mutation-guard helpers.
 
@@ -31,8 +31,22 @@ The package intentionally stays minimal: it does not dictate a persistence strat
 | **[`PersistenceState`](./PersistenceState.cs)** | Enum: `Unknown`, `New`, `NotModified`, `Modified`, `Removed`; governs the entity lifecycle from creation through persistence to deletion. |
 | **[`DomainDrivenExtensions`](./DomainDrivenExtensions.cs)** | Extension methods on `PersistenceState`: `IsNew`, `IsNotModified`, `IsModified`, `IsRemoved`, `IsNotRemoved`, `IsNewOrModified`. |
 
+## Domain Events — Intentionally Not Supported
+
+CoreEx deliberately does not provide a native domain-event mechanism (e.g. MediatR `INotification` dispatch or an in-process event bus). This is a conscious architectural decision:
+
+- **Chatty emission** — fine-grained domain events (`PropertyChanged`, `ItemAdded`, etc.) generate high volumes of events that produce implicit, hard-to-trace side-effects throughout the application layer.
+- **Non-explicit side-effects** — handler chains driven by in-process events obscure control flow, making it difficult to reason about what happens as a result of a single aggregate mutation.
+- **Integration events are sufficient** — coarse-grained integration events via `IUnitOfWork.Events` and the transactional outbox communicate meaningful state changes to other systems in an explicit, auditable, and transactional way.
+
+A developer can extend CoreEx with a domain-event mechanism if a genuine use case exists — for example, by raising events from aggregate mutations and dispatching them via MediatR after the transaction commits. This is an opt-in extension, not a framework default.
+
 ## Related namespaces
 
 - **[`CoreEx`](../CoreEx/README.md)** - Provides `IIdentifier`, `IChangeLog`, `IETag`, `CompositeKey`, `EventData`, and `Result<T>` consumed by the DDD types.
 - **[`CoreEx.EntityFrameworkCore`](../CoreEx.EntityFrameworkCore/README.md)** - Persists `Entity<TId, TSelf>` and `Aggregate<TId, TSelf>` via `EfDbModel<TModel>`; uses `PersistenceState` to determine insert/update/delete operations.
 - **[`CoreEx.Validation`](../CoreEx.Validation/README.md)** - Validates entity state; `OnCheckCanMutate` can delegate to a CoreEx validator for pre-mutation rule checks.
+
+## AI Usage Guide
+
+An [`AGENTS.md`](./AGENTS.md) file is included with this package. AI coding assistants (GitHub Copilot, Claude, Cursor, etc.) that support workspace-injected package documentation will automatically surface concise usage guidance, code examples, and `Do Not` rules for this package without requiring a local CoreEx checkout.

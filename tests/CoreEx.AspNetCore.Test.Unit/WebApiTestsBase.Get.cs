@@ -1,4 +1,4 @@
-﻿using CoreEx.Data;
+using CoreEx.Data;
 using CoreEx.Entities;
 using CoreEx.Http;
 using System.Net.Http.Headers;

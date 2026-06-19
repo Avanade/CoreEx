@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Wildcards;
+namespace CoreEx.Wildcards;
 
 /// <summary>
 /// Defines the treatment of embedded <see cref="Wildcard.SpaceCharacter"/> within the wildcard.

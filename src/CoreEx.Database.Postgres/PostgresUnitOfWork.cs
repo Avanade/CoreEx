@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Database.Postgres;
+namespace CoreEx.Database.Postgres;
 
 /// <summary>
 /// Provides the transactional <see cref="IUnitOfWork"/> implementation for <see cref="PostgresDatabase"/> including support for a <see href="https://microservices.io/patterns/data/transactional-outbox.html">transactional outbox</see>.

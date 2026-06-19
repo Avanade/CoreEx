@@ -5,7 +5,7 @@
 ### 1) Architectural Style
 
 - Primary style: modular layered architecture for the reusable framework, plus event-driven microservice samples.
-- Why this classification: sample domains are split into Api, Application, Infrastructure, Domain, Database, Outbox.Relay, and Subscribe projects, and the runtime flow combines synchronous HTTP with outbox-driven Service Bus messaging.
+- Why this classification: sample domains are split into Api, Application, Infrastructure, Domain, Database, Relay, and Subscribe projects, and the runtime flow combines synchronous HTTP with outbox-driven Service Bus messaging.
 - Primary constraints: multi-target library packaging across net8/net9/net10; SQL Server-backed unit-of-work and outbox flows in sample hosts; CoreEx-centric patterns such as Result-based orchestration, ETag/idempotency, and dynamic service registration.
 
 ### 2) System Flow
@@ -31,7 +31,7 @@ Describe the flow in 4-6 steps using file-backed evidence.
 | Application services | Validation, orchestration, Result pipelines, unit-of-work/event creation | ASP.NET startup and EF entity tracking details | samples/src/Contoso.Products.Application/ProductService.cs; samples/src/Contoso.Shopping.Application/BasketService.cs |
 | Domain | Aggregate/entity invariants and mutation rules | Transport and infrastructure concerns | samples/src/Contoso.Shopping.Domain/Basket.cs; samples/src/Contoso.Shopping.Domain/BasketItem.cs |
 | Infrastructure | EF DbContext access, query config, mapping, typed clients, adapters | Public HTTP endpoint definitions | samples/src/Contoso.Products.Infrastructure/Repositories/ProductRepository.cs; samples/src/Contoso.Shopping.Infrastructure/Repositories/BasketRepository.cs; samples/src/Contoso.Shopping.Infrastructure/Adapters/ProductAdapter.cs |
-| Relay/subscriber hosts | Background message movement and consumption | Business orchestration for user-facing HTTP requests | samples/src/Contoso.Products.Outbox.Relay/Program.cs; samples/src/Contoso.Products.Subscribe/Program.cs |
+| Relay/subscriber hosts | Background message movement and consumption | Business orchestration for user-facing HTTP requests | samples/src/Contoso.Products.Relay/Program.cs; samples/src/Contoso.Products.Subscribe/Program.cs |
 
 ### 4) Reused Patterns
 
@@ -60,6 +60,6 @@ Describe the flow in 4-6 steps using file-backed evidence.
 - samples/src/Contoso.Products.Infrastructure/Repositories/ProductRepository.cs
 - samples/src/Contoso.Shopping.Infrastructure/Repositories/BasketRepository.cs
 - samples/src/Contoso.Shopping.Infrastructure/Adapters/ProductAdapter.cs
-- samples/src/Contoso.Products.Outbox.Relay/Program.cs
+- samples/src/Contoso.Products.Relay/Program.cs
 - samples/src/Contoso.Products.Subscribe/Program.cs
 - gen/CoreEx.Generator.csproj

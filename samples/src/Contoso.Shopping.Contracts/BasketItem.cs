@@ -1,4 +1,4 @@
-﻿namespace Contoso.Shopping.Contracts;
+namespace Contoso.Shopping.Contracts;
 
 [Contract]
 public partial class BasketItem : IIdentifier<string?>, IETag

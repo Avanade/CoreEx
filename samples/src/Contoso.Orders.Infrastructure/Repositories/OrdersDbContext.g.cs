@@ -10,11 +10,9 @@ namespace Contoso.Orders.Infrastructure.Repositories;
 
 public partial class OrdersDbContext
 {
-    /// <summary>
-    /// Adds the generated models to the <paramref name="modelBuilder"/>.
-    /// </summary>
+    /// <summary>Adds the generated models to the <paramref name="modelBuilder"/>.</summary>
     /// <param name="modelBuilder">The <see cref="Microsoft.EntityFrameworkCore.ModelBuilder"/>.</param>
-    public void AddGeneratedModels(Microsoft.EntityFrameworkCore.ModelBuilder modelBuilder)
+    partial void AddGeneratedModels(Microsoft.EntityFrameworkCore.ModelBuilder modelBuilder)
     {
         // Add the entity/model configuration for the [Orders].[OrderStatus] database table.
         modelBuilder.Entity<Contoso.Orders.Infrastructure.Persistence.OrderStatus>(e =>

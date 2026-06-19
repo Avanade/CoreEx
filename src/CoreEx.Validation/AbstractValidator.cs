@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Validation;
+namespace CoreEx.Validation;
 
 /// <summary>
 /// Provides entity validation.

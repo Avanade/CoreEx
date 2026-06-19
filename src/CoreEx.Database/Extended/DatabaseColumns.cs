@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Database.Extended;
+namespace CoreEx.Database.Extended;
 
 /// <summary>
 /// Represents the standard database column and/or parameters names.

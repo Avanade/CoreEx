@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Database;
+namespace CoreEx.Database;
 
 /// <summary>
 /// Represents a database SQL statement, including its command type and  text, for use with data access operations.

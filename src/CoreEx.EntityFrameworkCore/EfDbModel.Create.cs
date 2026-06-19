@@ -1,4 +1,4 @@
-﻿namespace CoreEx.EntityFrameworkCore;
+namespace CoreEx.EntityFrameworkCore;
 
 public partial class EfDbModel<TModel>
 {

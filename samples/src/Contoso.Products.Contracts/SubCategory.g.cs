@@ -8,15 +8,11 @@
 
 namespace Contoso.Products.Contracts;
 
-/// <summary>
-/// Represents the 'Sub Category' reference-data contract.
-/// </summary>
+/// <summary>Represents the 'Sub Category' reference-data contract.</summary>
 [ReferenceData]
 public partial class SubCategory : ReferenceData<SubCategory> 
 {
-    /// <summary>
-    /// Gets or initializes the Category Code.
-    /// </summary>
+    /// <summary>Gets or initializes the Category Code.</summary>
     [ReferenceData<Category>]
     public partial string CategoryCode { get; init; }
 }

@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Generator;
+namespace CoreEx.Generator;
 
 /// <summary>
 /// Defines the approach to code generation for a given scenario.

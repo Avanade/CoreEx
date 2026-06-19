@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Metadata;
+namespace CoreEx.Metadata;
 
 /// <summary>
 /// Provides the underlying <see cref="IPropertyRuntimeMetadata"/> capabilities.

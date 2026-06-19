@@ -1,4 +1,4 @@
-﻿namespace Contoso.E2E.Runner.Infrastructure;
+namespace Contoso.E2E.Runner.Infrastructure;
 
 /// <summary>
 /// Provides configuration options for the load simulation runner, including parallelism and delay settings between scenario iterations.

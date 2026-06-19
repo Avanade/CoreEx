@@ -1,4 +1,5 @@
-﻿using CoreEx.Entities;
+using CoreEx.Entities;
+using CoreEx.Validation;
 using System.Globalization;
 
 namespace CoreEx.Validation.Test.Unit.Rules;
@@ -251,7 +252,39 @@ public class CollectionRuleTests
         pc.Validator(c => c.Collection(w => w.WithItemValidator(iv => iv.NotFound().When(ctx => ctx.GetCollectionIndex() != 0)))).ValidateAsSuccess();
     }
 
+    [Test]
+    public void WithItemValidator_InlineConfigure_NoErrantValueSegment()
+    {
+        // Inline configure path must not inject ".value" into the error property path.
+        // Path must be "tags[2]" — NOT "tags[2].value".
+        var pv = Validator.Create<PersonWithTags>()
+            .HasProperty(p => p.Tags, c => c.Collection(c => c.WithItemValidator(v => v.MaximumLength(4))));
+        var p = new PersonWithTags { Tags = ["ok", "fine", "toolong"] };
+        pv.ValidateAsError(p, "tags[2]", "must not exceed 4 character(s) in length.");
+    }
+
+    [Test]
+    public void WithItemValidator_DirectValidator_Parity()
+    {
+        // Direct IValidatorEx<TItem> path (entity validator) must produce the same nested path as the inline configure path.
+        var av = Validator.Create<Address>().HasProperty(p => p.Street, c => c.Mandatory().MaximumLength(20));
+        var pv = Validator.Create<Person>()
+            .HasProperty(p => p.Addresses, c => c.Collection(c => c.WithItemValidator(av)));
+        var p = new Person
+        {
+            Id = "1",
+            Name = "John",
+            Addresses = [new Address { Street = "1 St" }, new Address { Street = "2 St" }, new Address()]
+        };
+        pv.ValidateAsError(p, "addresses[2].street", "Street is required.");
+    }
+
     public class PersonCollection : List<Person> { }
+
+    public class PersonWithTags
+    {
+        public List<string>? Tags { get; set; }
+    }
 
     public class Person : IIdentifier<string?>
     {

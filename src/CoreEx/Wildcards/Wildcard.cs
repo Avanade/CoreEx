@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Wildcards;
+namespace CoreEx.Wildcards;
 
 /// <summary>
 /// Provides a standardised approach to parsing and validating wildcard text.

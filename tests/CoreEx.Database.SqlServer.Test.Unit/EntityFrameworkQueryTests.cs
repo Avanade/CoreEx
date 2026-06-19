@@ -1,4 +1,4 @@
-﻿using CoreEx.Data;
+using CoreEx.Data;
 using CoreEx.Data.Querying;
 using CoreEx.Database.SqlServer.Test.Unit.Contracts;
 using CoreEx.Database.SqlServer.Test.Unit.Models;

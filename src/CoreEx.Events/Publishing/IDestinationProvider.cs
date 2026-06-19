@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Events.Publishing;
+namespace CoreEx.Events.Publishing;
 
 /// <summary>
 /// Enables a standardized means to create/provide the destination (i.e. topic) name.

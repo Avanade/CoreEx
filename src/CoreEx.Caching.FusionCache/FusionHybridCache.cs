@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Caching.FusionCache;
+namespace CoreEx.Caching.FusionCache;
 
 /// <summary>
 /// Provides the <see cref="IHybridCache"/> implementation based on <i><see href="https://github.com/ZiggyCreatures/FusionCache">FusionCache</see></i>.

@@ -1,4 +1,4 @@
-﻿namespace Contoso.Products.Test.Api;
+namespace Contoso.Products.Test.Api;
 
 public partial class ProductMutateTests : WithApiTester<Contoso.Products.Api.Program>
 {

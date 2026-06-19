@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="AwesomeAssertions" />
+    <PackageReference Include="CoreEx.UnitTesting" />
+    <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="NUnit" />
+    <PackageReference Include="NUnit.Analyzers" />
+    <PackageReference Include="NUnit3TestAdapter" />
+    <PackageReference Include="UnitTestEx.NUnit" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\app-name.Application\app-name.Application.csproj" />
+    <ProjectReference Include="..\..\src\app-name.Contracts\app-name.Contracts.csproj" />
+    <ProjectReference Include="..\app-name.Test.Common\app-name.Test.Common.csproj" />
+    <!--#if (refdata-enabled && (implement-sqlserver || implement-postgres))-->
+    <!-- Required by EntryPoint.cs: JsonDataReader.ParseYaml<app-name.Database.Program> reads the embedded ref-data seed. -->
+    <ProjectReference Include="..\..\tools\app-name.Database\app-name.Database.csproj" />
+    <!--#endif-->
+  </ItemGroup>
+</Project>

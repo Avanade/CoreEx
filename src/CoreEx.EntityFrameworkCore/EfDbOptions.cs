@@ -1,4 +1,4 @@
-﻿namespace CoreEx.EntityFrameworkCore;
+namespace CoreEx.EntityFrameworkCore;
 
 /// <summary>
 /// Provides options for the <see cref="IEfDb"/>.

@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Validation.Test.Unit.Clauses;
+namespace CoreEx.Validation.Test.Unit.Clauses;
 
 [TestFixture]
 public class DependsOnClauseTests

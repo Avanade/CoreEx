@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Entities;
+namespace CoreEx.Entities;
 
 /// <summary>
 /// Represents a transform option for a <see cref="DateTime"/> value.

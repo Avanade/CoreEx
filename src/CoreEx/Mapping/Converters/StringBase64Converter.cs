@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Mapping.Converters;
+namespace CoreEx.Mapping.Converters;
 
 /// <summary>
 /// Represents a <see cref="string"/> to <see cref="byte"/> <see cref="Array"/> converter (uses <see cref="Convert.FromBase64String(string)"/> and <see cref="Convert.ToBase64String(byte[])"/>).

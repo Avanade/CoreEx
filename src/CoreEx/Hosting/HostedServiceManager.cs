@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Hosting;
+namespace CoreEx.Hosting;
 
 /// <summary>
 /// Provides management capabilities for <see cref="HostedServiceBase"/> instances.

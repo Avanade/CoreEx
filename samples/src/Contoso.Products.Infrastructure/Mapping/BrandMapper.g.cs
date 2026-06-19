@@ -8,9 +8,7 @@
 
 namespace Contoso.Products.Infrastructure.Mapping;
 
-/// <summary>
-/// Provides mapping from <see cref="Persistence.Brand"/> to <see cref="Contracts.Brand"/>.
-/// </summary>
+/// <summary>Provides mapping from <see cref="Persistence.Brand"/> to <see cref="Contracts.Brand"/>.</summary>
 internal partial class BrandMapper : Mapper<Persistence.Brand, Contracts.Brand, BrandMapper>
 {
     /// <inheritdoc/>
@@ -33,9 +31,7 @@ internal partial class BrandMapper : Mapper<Persistence.Brand, Contracts.Brand, 
         return destination;
     }
 
-    /// <summary>
-    /// Provides the opportunity to extend the <see cref="OnMap" /> method.
-    /// </summary>
+    /// <summary>Provides the opportunity to extend the <see cref="OnMap" /> method.</summary>
     partial void OnMapExtend(Persistence.Brand source, Contracts.Brand destination);
 }
 

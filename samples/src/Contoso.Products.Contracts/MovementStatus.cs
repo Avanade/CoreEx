@@ -1,4 +1,4 @@
-﻿namespace Contoso.Products.Contracts;
+namespace Contoso.Products.Contracts;
 
 public partial class MovementStatus
 {

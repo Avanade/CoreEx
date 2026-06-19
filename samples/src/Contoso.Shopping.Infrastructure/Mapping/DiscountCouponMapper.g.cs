@@ -8,9 +8,7 @@
 
 namespace Contoso.Shopping.Infrastructure.Mapping;
 
-/// <summary>
-/// Provides mapping from <see cref="Persistence.DiscountCoupon"/> to <see cref="Contracts.DiscountCoupon"/>.
-/// </summary>
+/// <summary>Provides mapping from <see cref="Persistence.DiscountCoupon"/> to <see cref="Contracts.DiscountCoupon"/>.</summary>
 internal partial class DiscountCouponMapper : Mapper<Persistence.DiscountCoupon, Contracts.DiscountCoupon, DiscountCouponMapper>
 {
     /// <inheritdoc/>
@@ -34,9 +32,7 @@ internal partial class DiscountCouponMapper : Mapper<Persistence.DiscountCoupon,
         return destination;
     }
 
-    /// <summary>
-    /// Provides the opportunity to extend the <see cref="OnMap" /> method.
-    /// </summary>
+    /// <summary>Provides the opportunity to extend the <see cref="OnMap" /> method.</summary>
     partial void OnMapExtend(Persistence.DiscountCoupon source, Contracts.DiscountCoupon destination);
 }
 

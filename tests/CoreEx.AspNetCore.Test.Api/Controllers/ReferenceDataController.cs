@@ -1,4 +1,4 @@
-﻿using CoreEx.AspNetCore.Mvc;
+using CoreEx.AspNetCore.Mvc;
 using CoreEx.AspNetCore.Test.Api.Entities;
 using CoreEx.RefData;
 using Microsoft.AspNetCore.Mvc;

@@ -1,8 +1,9 @@
-﻿namespace CoreEx.Results;
+namespace CoreEx.Results;
 
 /// <summary>
 /// Provides the <see cref="Result"/> and <see cref="Result{T}"/> extension methods.
 /// </summary>
+[SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "Reviewed and considered OK for this use case.")]
 public static partial class ResultsExtensions
 {
     /// <summary>

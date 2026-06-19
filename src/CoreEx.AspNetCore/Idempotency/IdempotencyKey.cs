@@ -1,4 +1,4 @@
-﻿namespace CoreEx.AspNetCore.Idempotency;
+namespace CoreEx.AspNetCore.Idempotency;
 
 /// <summary>
 /// Provides <see cref="IIdempotencyProvider"/> implementation agnostic data and utility capabilities.

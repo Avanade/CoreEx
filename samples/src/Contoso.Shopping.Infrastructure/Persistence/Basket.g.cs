@@ -8,40 +8,26 @@
 
 namespace Contoso.Shopping.Infrastructure.Persistence;
 
-/// <summary>
-/// Persistence model representing the '<c>[Shopping].[Basket]</c>' database table.
-/// </summary>
+/// <summary>Persistence model representing the '<c>[Shopping].[Basket]</c>' database table.</summary>
 /// <remarks>The <see cref="Id"/> primary key column is '<c>BasketId</c>' (type '<c>NVARCHAR(50)</c>').</remarks>
 public partial class Basket : ModelBase<string>
 {
-    /// <summary>
-    /// Gets or sets the value of the '<c>CustomerId</c>' column (type '<c>NVARCHAR(50)</c>').
-    /// </summary>
+    /// <summary>Gets or sets the value of the '<c>CustomerId</c>' column (type '<c>NVARCHAR(50)</c>').</summary>
     public string CustomerId { get; set; } = default!;
 
-    /// <summary>
-    /// Gets or sets the value of the '<c>BasketStatusCode</c>' column (type '<c>NVARCHAR(50)</c>').
-    /// </summary>
+    /// <summary>Gets or sets the value of the '<c>BasketStatusCode</c>' column (type '<c>NVARCHAR(50)</c>').</summary>
     public string BasketStatusCode { get; set; } = default!;
 
-    /// <summary>
-    /// Gets or sets the value of the '<c>SubTotal</c>' column (type '<c>DECIMAL(18, 2)</c>').
-    /// </summary>
+    /// <summary>Gets or sets the value of the '<c>SubTotal</c>' column (type '<c>DECIMAL(18, 2)</c>').</summary>
     public decimal SubTotal { get; set; }
 
-    /// <summary>
-    /// Gets or sets the value of the '<c>DiscountCouponCode</c>' column (type '<c>NVARCHAR(50) NULL</c>').
-    /// </summary>
+    /// <summary>Gets or sets the value of the '<c>DiscountCouponCode</c>' column (type '<c>NVARCHAR(50) NULL</c>').</summary>
     public string? DiscountCouponCode { get; set; }
 
-    /// <summary>
-    /// Gets or sets the value of the '<c>DiscountAmount</c>' column (type '<c>DECIMAL(18, 2)</c>').
-    /// </summary>
+    /// <summary>Gets or sets the value of the '<c>DiscountAmount</c>' column (type '<c>DECIMAL(18, 2)</c>').</summary>
     public decimal DiscountAmount { get; set; }
 
-    /// <summary>
-    /// Gets or sets the value of the '<c>Total</c>' column (type '<c>DECIMAL(18, 2)</c>').
-    /// </summary>
+    /// <summary>Gets or sets the value of the '<c>Total</c>' column (type '<c>DECIMAL(18, 2)</c>').</summary>
     public decimal Total { get; set; }
 }
 

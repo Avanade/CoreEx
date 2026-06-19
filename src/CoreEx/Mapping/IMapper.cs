@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Mapping;
+namespace CoreEx.Mapping;
 
 /// <summary>
 /// Enables mapping from a source value to a new destination value.

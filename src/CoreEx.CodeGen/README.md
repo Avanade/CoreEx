@@ -1,4 +1,4 @@
-﻿# CoreEx.CodeGen
+# CoreEx.CodeGen
 
 > Provides the CoreEx development-time code-generation tooling: a deterministic, schema-driven pipeline that scaffolds the full reference-data implementation — contract, controller, service, repository interface, repository, and mapper — from a single YAML configuration file.
 
@@ -105,3 +105,7 @@ Configuration details for each of the above are as follows:
 
 - [OnRamp](https://github.com/Avanade/OnRamp) — the underlying code-generation orchestration framework used to load the script, resolve templates, and manage file output.
 - [CoreEx ref-data schema](../../schema/coreex-refdata.json) — JSON Schema for `ref-data.yaml`; use it with IDE YAML language-server support for validation and auto-complete while authoring configuration.
+
+## AI Usage Guide
+
+An [`AGENTS.md`](./AGENTS.md) file is included with this package. AI coding assistants (GitHub Copilot, Claude, Cursor, etc.) that support workspace-injected package documentation will automatically surface concise usage guidance, code examples, and `Do Not` rules for this package without requiring a local CoreEx checkout.

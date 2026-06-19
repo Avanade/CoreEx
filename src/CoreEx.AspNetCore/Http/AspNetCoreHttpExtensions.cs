@@ -1,4 +1,4 @@
-﻿using CoreEx.AspNetCore.Mvc;
+using CoreEx.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Http.Metadata;
 using Microsoft.AspNetCore.Mvc;
 

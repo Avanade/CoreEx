@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Entities.Extended;
+namespace CoreEx.Entities.Extended;
 
 /// <summary>
 /// Enables the generation of a new identifier value for <i>any</i> identifier <see cref="Type"/>.

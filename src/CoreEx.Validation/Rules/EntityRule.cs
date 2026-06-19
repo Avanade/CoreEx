@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Validation.Rules;
+namespace CoreEx.Validation.Rules;
 
 /// <summary>
 /// Provides entity validation.
@@ -53,6 +53,9 @@ public sealed class EntityRule<TEntity, TProperty> : PropertyRuleBase<TEntity, T
             _rule._validationAsync = async (context, args, cancellationToken) =>
             {
                 var value = context.Metadata.GetValue<TProperty>(context.Entity);
+                if (validator is ValidatingInlineValidator<TProperty> vilv)
+                    return await vilv.ValidateEntityAsync(value, args, cancellationToken).ConfigureAwait(false);
+
                 return await validator.ValidateAsync(value, args, cancellationToken).ConfigureAwait(false);
             };
         }

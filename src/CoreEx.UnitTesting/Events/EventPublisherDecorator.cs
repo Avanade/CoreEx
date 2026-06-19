@@ -1,4 +1,4 @@
-﻿namespace CoreEx.UnitTesting.Events;
+namespace CoreEx.UnitTesting.Events;
 
 /// <summary>
 /// Provides a decorator for an event publisher that integrates with <see cref="TestSharedState"/> enabling additional test-related behaviors while delegating event publishing operations to the actual underlying publisher.

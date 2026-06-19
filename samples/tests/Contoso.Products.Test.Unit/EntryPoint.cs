@@ -1,4 +1,4 @@
-﻿namespace Contoso.Products.Test.Unit;
+namespace Contoso.Products.Test.Unit;
 
 public class EntryPoint
 {
@@ -7,28 +7,18 @@ public class EntryPoint
         // Configure the minimum services required for the execution context and reference data orchestrator; caching will be in-memory for the unit tests.
         builder.Services.AddExecutionContext();
         builder.Services.AddMemoryCache();
-        builder.Services.AddReferenceDataOrchestrator<ReferenceDataProvider>();
+        builder.Services.AddReferenceDataOrchestrator<ReferenceDataServiceDecorator>();
 
         // Reuse the "real" database configured reference data.
-        var jdr = JsonDataReader.ParseYaml<Contoso.Products.Database.Program>("ref-data.yaml", JsonDataReaderOptions.CreateForReferenceData(JsonPropertyNamingConvention.SnakeCase));
-        builder.Services.AddSingleton(new ReferenceDataProvider(jdr));
+        var jdr = JsonDataReader.ParseYaml<Contoso.Products.Database.Program>("ref-data.seed.yaml", JsonDataReaderOptions.CreateForReferenceData(JsonPropertyNamingConvention.SnakeCase));
+        builder.Services.AddSingleton(new ReferenceDataServiceDecorator(jdr));
     }
 
-    public class ReferenceDataProvider(JsonDataReader jdr) : IReferenceDataProvider
+    public class ReferenceDataServiceDecorator(JsonDataReader jdr) : ReferenceDataService(Mock.Of<IReferenceDataRepository>())
     {
-        public IEnumerable<(Type, Type)> Types =>
-        [
-            (typeof(Category), typeof(CategoryCollection)),
-            (typeof(SubCategory), typeof(SubCategoryCollection)),
-            (typeof(UnitOfMeasure), typeof(UnitOfMeasureCollection)),
-            (typeof(Brand), typeof(BrandCollection)),
-            (typeof(MovementKind), typeof(MovementKindCollection)),
-            (typeof(MovementStatus), typeof(MovementStatusCollection)),
-        ];
-
-        public Task<IReferenceDataCollection> GetAsync(Type type, CancellationToken cancellationToken = default) => type switch
+        public override Task<IReferenceDataCollection> GetAsync(Type type, CancellationToken cancellationToken = default) => type switch
         {
-            _ when type == typeof(Category) => Task.FromResult((IReferenceDataCollection)jdr.Deserialize<CategoryCollection>("products.$^category")!),
+            _ when type == typeof(Category) => Task.FromResult((IReferenceDataCollection)jdr.Deserialize<CategoryCollection>("products.$^category")!.ExtendForTesting([new Category { Id = Runtime.NewId(), Code = "X", IsInactive = false }])),
             _ when type == typeof(SubCategory) => Task.FromResult((IReferenceDataCollection)jdr.Deserialize<SubCategoryCollection>("products.$^sub_category")!),
             _ when type == typeof(UnitOfMeasure) => Task.FromResult((IReferenceDataCollection)jdr.Deserialize<UnitOfMeasureCollection>("products.$^unit_of_measure")!),
             _ when type == typeof(Brand) => Task.FromResult((IReferenceDataCollection)jdr.Deserialize<BrandCollection>("products.$^brand")!),

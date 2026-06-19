@@ -1,4 +1,4 @@
-﻿namespace Contoso.Shopping.Application.Adapters.Products;
+namespace Contoso.Shopping.Application.Adapters.Products;
 
 [Contract]
 public partial class Product : IIdentifier<string?>

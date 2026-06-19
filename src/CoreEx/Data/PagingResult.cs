@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Data;
+namespace CoreEx.Data;
 
 /// <summary>
 /// Represents the resulting paging response including <see cref="TotalCount"/>.

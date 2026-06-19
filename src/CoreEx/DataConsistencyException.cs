@@ -1,4 +1,4 @@
-﻿namespace CoreEx;
+namespace CoreEx;
 
 /// <summary>
 /// Represents a <b>Data Consistency</b> exception.

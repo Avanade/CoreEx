@@ -1,4 +1,4 @@
-﻿namespace CoreEx;
+namespace CoreEx;
 
 public partial class ExecutionContext
 {

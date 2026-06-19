@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Validation.Rules;
+namespace CoreEx.Validation.Rules;
 
 /// <summary>
 /// Provides a numeric validation to check whether negatives are allowed (defaults to <see langword="true"/>, i.e. allowed).

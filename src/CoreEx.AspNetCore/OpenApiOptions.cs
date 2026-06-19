@@ -1,4 +1,4 @@
-﻿namespace CoreEx.AspNetCore;
+namespace CoreEx.AspNetCore;
 
 /// <summary>
 /// Provides the <i>OpenAPI</i> generated specification configuration settings.

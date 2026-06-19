@@ -1,4 +1,4 @@
-﻿using CoreEx.Entities;
+using CoreEx.Entities;
 using CoreEx.RefData;
 
 namespace CoreEx.AspNetCore.Test.Api.Entities;

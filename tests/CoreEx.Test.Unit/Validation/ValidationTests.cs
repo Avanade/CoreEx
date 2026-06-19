@@ -1,4 +1,4 @@
-﻿using CoreEx.Results;
+using CoreEx.Results;
 using CoreEx.Validation;
 
 namespace CoreEx.Test.Unit.Validation;

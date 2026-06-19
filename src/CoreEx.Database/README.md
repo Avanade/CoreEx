@@ -65,3 +65,7 @@ The outbox sub-namespace implements the [Transactional Outbox pattern](https://m
 - **[`CoreEx.Events`](../CoreEx.Events/README.md)** - `IEventPublisher` is the outbox relay's publication target; `EventData` is what the outbox table stores.
 - **[`CoreEx.Database.SqlServer`](../CoreEx.Database.SqlServer/README.md)** - SQL Server-specific `Database` implementation, `SqlServerDatabaseExtensions`, and stored-procedure conventions.
 - **[`CoreEx.Database.Postgres`](../CoreEx.Database.Postgres/README.md)** - PostgreSQL-specific `Database` implementation and Npgsql extensions.
+
+## AI Usage Guide
+
+An [`AGENTS.md`](./AGENTS.md) file is included with this package. AI coding assistants (GitHub Copilot, Claude, Cursor, etc.) that support workspace-injected package documentation will automatically surface concise usage guidance, code examples, and `Do Not` rules for this package without requiring a local CoreEx checkout.

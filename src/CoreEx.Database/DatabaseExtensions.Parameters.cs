@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Database;
+namespace CoreEx.Database;
 
 public static partial class DatabaseExtensions
 {

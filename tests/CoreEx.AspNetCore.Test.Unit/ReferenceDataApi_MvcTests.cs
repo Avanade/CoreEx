@@ -1,4 +1,4 @@
-﻿namespace CoreEx.AspNetCore.Test.Unit;
+namespace CoreEx.AspNetCore.Test.Unit;
 
 [TestFixture]
 public class ReferenceDataApi_MvcTests : ReferenceDataApi_TestsBase

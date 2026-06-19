@@ -1,4 +1,4 @@
-﻿namespace Contoso.Products.Application.Repositories;
+namespace Contoso.Products.Application.Repositories;
 
 public interface IInventoryRepository
 {

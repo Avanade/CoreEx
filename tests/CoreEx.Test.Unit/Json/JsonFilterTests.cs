@@ -20,6 +20,9 @@ public class JsonFilterTests
     [TestCase("", false, "")]
     [TestCase("$.foo[0].bar[1]", true, "$.foo.bar")]
     [TestCase("$.foo.bar", false, "$.foo.bar")]
+    [TestCase("$.entries['stackExchange.Redis'].enabled", false, "$.entries['stackExchange.Redis'].enabled")]
+    [TestCase("$.entries['stackExchange.Redis'][0].name", true, "$.entries['stackExchange.Redis'].name")]
+    [TestCase("$.entries[\"stackExchange.Redis\"]", false, "$.entries[\"stackExchange.Redis\"]")]
     public void TryRemovePathIndexes_Works(string input, bool expectedResult, string expectedPath)
     {
         var result = JsonFilter.TryRemovePathIndexes(input, out var path);
@@ -40,6 +43,22 @@ public class JsonFilterTests
         dict["$.a.b"].Should().BeFalse();
         dict["$.a"].Should().BeFalse();
         dict["$"].Should().BeFalse();
+        maxDepth.Should().Be(4);
+    }
+
+    [Test]
+    public void CreateDictionary_Include_BracketNotation_AddsIntermediaries()
+    {
+        int maxDepth = 0;
+        var dict = JsonFilter.CreateDictionary(["$.entries['stackExchange.Redis'].enabled"], JsonFilterOption.Include, StringComparison.Ordinal, ref maxDepth);
+        dict.Should().ContainKey("$");
+        dict.Should().ContainKey("$.entries");
+        dict.Should().ContainKey("$.entries['stackExchange.Redis']");
+        dict.Should().ContainKey("$.entries['stackExchange.Redis'].enabled");
+        dict["$"].Should().BeFalse();
+        dict["$.entries"].Should().BeFalse();
+        dict["$.entries['stackExchange.Redis']"].Should().BeFalse();
+        dict["$.entries['stackExchange.Redis'].enabled"].Should().BeTrue();
         maxDepth.Should().Be(4);
     }
 
@@ -499,5 +518,132 @@ public class JsonFilterTests
         var r = JsonFilter.TryJsonFilter(val, ["products.category"], out string json);
         r.Should().BeTrue();
         ObjectComparer.AssertJson(exp, json);
+    }
+
+    private const string _bracketJson = """
+        {
+            "entries": {
+                "stackExchange.Redis": {
+                    "enabled": true,
+                    "resiliency": "high"
+                },
+                "inMemory": {
+                    "enabled": false
+                }
+            }
+        }
+        """;
+
+    [Test]
+    public void TryJsonFilter_Include_BracketNotation_SingleQuote()
+    {
+        string exp = """
+            {
+                "entries": {
+                    "stackExchange.Redis": {
+                        "enabled": true
+                    }
+                }
+            }
+            """;
+
+        var r = JsonFilter.TryJsonFilter(_bracketJson, ["$.entries['stackExchange.Redis'].enabled"], out string json);
+        r.Should().BeTrue();
+        ObjectComparer.AssertJson(exp, json);
+    }
+
+    [Test]
+    public void TryJsonFilter_Include_BracketNotation_DoubleQuote()
+    {
+        string exp = """
+            {
+                "entries": {
+                    "stackExchange.Redis": {
+                        "enabled": true
+                    }
+                }
+            }
+            """;
+
+        var r = JsonFilter.TryJsonFilter(_bracketJson, ["$.entries[\"stackExchange.Redis\"].enabled"], out string json);
+        r.Should().BeTrue();
+        ObjectComparer.AssertJson(exp, json);
+    }
+
+    [Test]
+    public void TryJsonFilter_Include_BracketNotation_ObjectNode()
+    {
+        string exp = """
+            {
+                "entries": {
+                    "stackExchange.Redis": {
+                        "enabled": true,
+                        "resiliency": "high"
+                    }
+                }
+            }
+            """;
+
+        var r = JsonFilter.TryJsonFilter(_bracketJson, ["$.entries['stackExchange.Redis']"], out string json);
+        r.Should().BeTrue();
+        ObjectComparer.AssertJson(exp, json);
+    }
+
+    [Test]
+    public void TryJsonFilter_Exclude_BracketNotation()
+    {
+        string exp = """
+            {
+                "entries": {
+                    "inMemory": {
+                        "enabled": false
+                    }
+                }
+            }
+            """;
+
+        var r = JsonFilter.TryJsonFilter(_bracketJson, ["$.entries['stackExchange.Redis']"], out string json, JsonFilterOption.Exclude);
+        r.Should().BeTrue();
+        ObjectComparer.AssertJson(exp, json);
+    }
+
+    [Test]
+    public void TryJsonFilter_Include_BracketNotation_WithIndex()
+    {
+        string val = """
+            {
+                "entries": {
+                    "stackExchange.Redis": {
+                        "hosts": ["host1", "host2"]
+                    },
+                    "inMemory": {
+                        "hosts": ["host3"]
+                    }
+                }
+            }
+            """;
+
+        string exp = """
+            {
+                "entries": {
+                    "stackExchange.Redis": {
+                        "hosts": ["host2"]
+                    }
+                }
+            }
+            """;
+
+        var r = JsonFilter.TryJsonFilter(val, ["$.entries['stackExchange.Redis'].hosts[1]"], out string json);
+        r.Should().BeTrue();
+        ObjectComparer.AssertJson(exp, json);
+    }
+
+    [Test]
+    public void GetMatched_BracketNotation()
+    {
+        var node = JsonNode.Parse(_bracketJson)!;
+        var matched = JsonFilter.GetMatched(node, "$.entries['stackExchange.Redis'].enabled");
+        matched.Should().NotBeNull();
+        matched!.GetValue<bool>().Should().BeTrue();
     }
 }

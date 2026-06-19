@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Validation.Clauses;
+namespace CoreEx.Validation.Clauses;
 
 /// <summary>
 /// Enables a typed property clause for an entity.

@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Globalization;
+namespace CoreEx.Globalization;
 
 /// <summary>
 /// Provides <see cref="TextInfo"/> extension methods.

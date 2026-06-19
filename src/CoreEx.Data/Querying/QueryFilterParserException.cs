@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Data.Querying;
+namespace CoreEx.Data.Querying;
 
 /// <summary>
 /// Represents a <see cref="QueryFilterParser"/> <see cref="ValidationException"/>.

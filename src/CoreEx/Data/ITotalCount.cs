@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Data;
+namespace CoreEx.Data;
 
 /// <summary>
 /// Enables the total count capabilities for a sequence.

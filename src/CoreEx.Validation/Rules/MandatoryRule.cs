@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Validation.Rules;
+namespace CoreEx.Validation.Rules;
 
 /// <summary>
 /// Provides a mandatory validation rule; determined as mandatory when is <see langword="null"/> or it equals its default/empty state.

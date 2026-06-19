@@ -1,4 +1,4 @@
-﻿namespace CoreEx.RefData;
+namespace CoreEx.RefData;
 
 /// <summary>
 /// Enables a means to manage and group one or more <see cref="IReferenceData"/> <see cref="Types"/> for use by the centralized <see cref="ReferenceDataOrchestrator"/>.

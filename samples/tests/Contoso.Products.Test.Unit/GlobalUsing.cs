@@ -1,4 +1,5 @@
-﻿global using Contoso.Products.Contracts;
+global using Contoso.Products.Contracts;
+global using Contoso.Products.Application;
 global using Contoso.Products.Application.Validators;
 global using Contoso.Products.Application.Repositories;
 global using CoreEx;

@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Data.Querying;
+namespace CoreEx.Data.Querying;
 
 /// <summary>
 /// Represents a basic query sort order by parser and LINQ translator with explicitly defined field support.

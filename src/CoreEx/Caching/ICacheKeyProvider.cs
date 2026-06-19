@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Caching;
+namespace CoreEx.Caching;
 
 /// <summary>
 /// Enables fully-qualified key formatting of a cache key where partitioning or namespacing is required.

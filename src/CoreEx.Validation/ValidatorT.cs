@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Validation;
+namespace CoreEx.Validation;
 
 /// <summary>
 /// Provides entity validation.
@@ -17,9 +17,26 @@ public class Validator<TEntity> : ValidatorBase<TEntity, Validator<TEntity>> whe
         return context;
     }
 
+    /// <summary>
+    /// Validate the value.
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+    /// <returns>The <see cref="IValidationContext{T}"/>.</returns>
+    public Task<IValidationContext<TEntity>> ValidateAsync(TEntity value, CancellationToken cancellationToken)
+        => ValidateAsync(value, null, cancellationToken);
+
     /// <inheritdoc/>
     public async sealed override Task ValidateAndThrowAsync(TEntity value, ValidationArgs? args = null, CancellationToken cancellationToken = default)
         => (await ValidateAsync(value, args, cancellationToken).ConfigureAwait(false)).ThrowOnError();
+
+    /// <summary>
+    /// Validate the value and automatically throw a <see cref="ValidationException"/> where <see cref="IValidationResult.HasErrors"/>.
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+    public Task ValidateAndThrowAsync(TEntity value,  CancellationToken cancellationToken)
+        => ValidateAndThrowAsync(value, null, cancellationToken);
 
     /// <inheritdoc/>
     internal override Task ValidateAsync(IValidationContext<TEntity> context, CancellationToken cancellationToken)

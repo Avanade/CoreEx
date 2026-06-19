@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Schemas;
+namespace CoreEx.Schemas;
 
 /// <summary>
 /// Enables a mutable <see cref="SchemaVersion"/>.

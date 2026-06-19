@@ -8,9 +8,7 @@
 
 namespace {{Root.DataMappingNamespace}};
 
-/// <summary>
-/// Provides mapping from <see cref="{{Root.DataModelsPath}}.{{Model}}"/> to <see cref="Contracts.{{Name}}"/>.
-/// </summary>
+/// <summary>Provides mapping from <see cref="{{Root.DataModelsPath}}.{{Model}}"/> to <see cref="Contracts.{{Name}}"/>.</summary>
 internal partial class {{Mapper}} : Mapper<{{Root.DataModelsPath}}.{{Model}}, Contracts.{{Name}}, {{Mapper}}>
 {
     /// <inheritdoc/>
@@ -36,9 +34,7 @@ internal partial class {{Mapper}} : Mapper<{{Root.DataModelsPath}}.{{Model}}, Co
         return destination;
     }
 
-    /// <summary>
-    /// Provides the opportunity to extend the <see cref="OnMap" /> method.
-    /// </summary>
+    /// <summary>Provides the opportunity to extend the <see cref="OnMap" /> method.</summary>
     partial void OnMapExtend({{Root.DataModelsPath}}.{{Model}} source, Contracts.{{Name}} destination);
 }
 

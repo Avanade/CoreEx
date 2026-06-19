@@ -1,4 +1,4 @@
-﻿# CoreEx.Validation.Rules
+# CoreEx.Validation.Rules
 
 > Provides all built-in property rule implementations for the CoreEx validation framework, together with the `IPropertyRule` interfaces and `PropertyRuleBase` abstract base class that underpin them.
 

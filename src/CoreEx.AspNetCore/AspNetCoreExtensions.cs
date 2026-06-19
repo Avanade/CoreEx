@@ -1,4 +1,4 @@
-﻿namespace CoreEx.AspNetCore;
+namespace CoreEx.AspNetCore;
 
 /// <summary>
 /// Provides standard extensions.

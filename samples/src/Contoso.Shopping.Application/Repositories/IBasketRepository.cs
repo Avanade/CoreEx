@@ -1,4 +1,4 @@
-﻿namespace Contoso.Shopping.Application.Repositories;
+namespace Contoso.Shopping.Application.Repositories;
 
 public interface IBasketRepository
 {

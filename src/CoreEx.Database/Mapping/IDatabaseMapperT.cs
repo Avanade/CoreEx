@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Database.Mapping;
+namespace CoreEx.Database.Mapping;
 
 /// <summary>
 /// Enables an <see cref="IDatabase"/> mapper.

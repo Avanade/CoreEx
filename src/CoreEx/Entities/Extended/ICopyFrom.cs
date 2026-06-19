@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Entities.Extended;
+namespace CoreEx.Entities.Extended;
 
 /// <summary>
 /// Enables a <see cref="CopyFrom"/>.

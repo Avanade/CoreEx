@@ -1,4 +1,4 @@
-﻿using CoreEx.Events;
+using CoreEx.Events;
 using Microsoft.Extensions.DependencyInjection;
 using UnitTestEx.Expectations;
 

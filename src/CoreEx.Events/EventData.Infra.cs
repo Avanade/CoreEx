@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Events;
+namespace CoreEx.Events;
 
 public partial class EventData
 {
@@ -19,6 +19,22 @@ public partial class EventData
     /// <param name="action">The <see cref="Enum"/> value that represents the action.</param>
     /// <returns>The new <see cref="EventData"/>.</returns>
     public static EventData CreateEvent(string entity, Enum action) => new EventData().WithEntity(entity).WithAction(action);
+
+    /// <summary>
+    /// Creates a new event-oriented <see cref="EventData"/> instance with the specified <typeparamref name="TEntity"/> (subject) and <paramref name="action"/> (typically a verb describing an <i>event</i> in past tense).
+    /// </summary>
+    /// <typeparam name="TEntity">The entity type.</typeparam>
+    /// <param name="action">The action.</param>
+    /// <returns>The new <see cref="EventData"/>.</returns>
+    public static EventData CreateEvent<TEntity>(string? action) => new EventData { Action = action }.WithEntity<TEntity>();
+
+    /// <summary>
+    /// Creates a new event-oriented <see cref="EventData"/> instance with the specified <typeparamref name="TEntity"/> (subject) and the <paramref name="action"/> as the <see cref="Action"/> (typically a verb describing an <i>event</i> in past tense).
+    /// </summary>
+    /// <typeparam name="TEntity">The entity type.</typeparam>
+    /// <param name="action">The <see cref="Enum"/> value that represents the action.</param>
+    /// <returns>The new <see cref="EventData"/>.</returns>
+    public static EventData CreateEvent<TEntity>(Enum action) => new EventData().WithEntity<TEntity>().WithAction(action);
 
     /// <summary>
     /// Creates a new event-oriented <see cref="EventData"/> instance <see cref="WithValue{T}(T, IEnumerable{string})">with</see> the specified <paramref name="value"/> and <paramref name="action"/> (typically a verb describing an <i>event</i> in past tense).
@@ -116,6 +132,25 @@ public partial class EventData
     /// <param name="command">The <see cref="Enum"/> value that represents the command action.</param>
     /// <returns>The new <see cref="EventData"/>.</returns>
     public static EventData CreateCommand(string targetDomainName, string entity, Enum command) => new EventData { MessageType = MessageType.Command }.WithDomain(targetDomainName).WithEntity(entity).WithAction(command);
+
+    /// <summary>
+    /// Creates a new command-oriented <see cref="EventData"/> instance with the specified <typeparamref name="TEntity"/> (subject) and <paramref name="command"/> <see cref="Action"/> being requested.
+    /// </summary>
+    /// <typeparam name="TEntity">The entity type.</typeparam>
+    /// <param name="targetDomainName">The target domain name.</param>
+    /// <param name="command">The command action.</param>
+    /// <returns>The new <see cref="EventData"/>.</returns>
+    /// <remarks>The <paramref name="targetDomainName"/> represents the name of the domain that is the intended target of the command.</remarks>
+    public static EventData CreateCommand<TEntity>(string targetDomainName, string command) => new EventData { MessageType = MessageType.Command }.WithDomain(targetDomainName).WithEntity<TEntity>().WithAction(command);
+
+    /// <summary>
+    /// Creates a new command-oriented <see cref="EventData"/> instance with the specified <typeparamref name="TEntity"/> (subject) and the <paramref name="command"/> <see cref="Action"/> being requested.
+    /// </summary>
+    /// <typeparam name="TEntity">The entity type.</typeparam>
+    /// <param name="targetDomainName">The target domain name.</param>
+    /// <param name="command">The <see cref="Enum"/> value that represents the command action.</param>
+    /// <returns>The new <see cref="EventData"/>.</returns>
+    public static EventData CreateCommand<TEntity>(string targetDomainName, Enum command) => new EventData { MessageType = MessageType.Command }.WithDomain(targetDomainName).WithEntity<TEntity>().WithAction(command);
 
     /// <summary>
     /// Creates a new command-oriented <see cref="EventData"/> instance <see cref="WithValue{T}(T, IEnumerable{string})">with</see> the specified <paramref name="value"/> and <paramref name="command"/> <see cref="Action"/> being requested.

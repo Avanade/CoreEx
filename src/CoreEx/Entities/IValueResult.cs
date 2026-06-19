@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Entities;
+namespace CoreEx.Entities;
 
 /// <summary>
 /// Enables a <see cref="Value"/> result wrapper (non-error) that contains additional context.

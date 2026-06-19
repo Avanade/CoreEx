@@ -1,4 +1,4 @@
-﻿using CoreEx.Hosting.Work;
+using CoreEx.Hosting.Work;
 using CoreEx.Caching;
 
 namespace CoreEx.Test.Unit.Hosting.Work;

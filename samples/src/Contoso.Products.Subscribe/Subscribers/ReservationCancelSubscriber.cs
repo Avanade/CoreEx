@@ -1,4 +1,4 @@
-﻿namespace Contoso.Products.Subscribe.Subscribers;
+namespace Contoso.Products.Subscribe.Subscribers;
 
 [ScopedService, Subscribe("contoso.products.reservation.cancel")]
 public class ReservationCancelSubscriber : SubscribedBase

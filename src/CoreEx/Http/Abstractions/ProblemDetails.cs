@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Http.Abstractions;
+namespace CoreEx.Http.Abstractions;
 
 /// <summary>
 /// Represents a problem details for HTTP APIs based on <see href="https://tools.ietf.org/html/rfc7807"/>.

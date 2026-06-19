@@ -1,11 +1,11 @@
 {
   "solution": {
-    "path": "CoreEx.sln",
+    "path": "CoreEx.slnx",
     "projects": [
       "samples/tests/Contoso.Orders.Test.Api/Contoso.Orders.Test.Api.csproj",
       "samples/tests/Contoso.Orders.Test.Unit/Contoso.Orders.Test.Unit.csproj",
       "samples/tests/Contoso.Products.Test.Api/Contoso.Products.Test.Api.csproj",
-      "samples/tests/Contoso.Products.Test.Outbox.Relay/Contoso.Products.Test.Outbox.Relay.csproj",
+      "samples/tests/Contoso.Products.Test.Relay/Contoso.Products.Test.Relay.csproj",
       "samples/tests/Contoso.Products.Test.Subscribe/Contoso.Products.Test.Subscribe.csproj",
       "samples/tests/Contoso.Products.Test.Unit/Contoso.Products.Test.Unit.csproj",
       "samples/tests/Contoso.Shopping.Test.Api/Contoso.Shopping.Test.Api.csproj"

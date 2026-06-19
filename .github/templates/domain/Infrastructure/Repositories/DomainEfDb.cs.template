@@ -1,9 +1,0 @@
-namespace {Solution}.{Domain}.Infrastructure.Repositories;
-
-public sealed class {Domain}EfDb({Domain}DbContext dbContext) : EfDb<{Domain}DbContext>(dbContext)
-{
-    public EfDbModel<Persistence.{Entity}Status> {Entity}Statuses => Model<Persistence.{Entity}Status>();
-
-    public EfDbMappedModel<Contracts.{Entity}, Persistence.{Entity}, {Entity}Mapper> {EntityPlural}
-        => Model<Persistence.{Entity}>().ToMappedModel<Contracts.{Entity}, {Entity}Mapper>({Entity}Mapper.Default);
-}

@@ -1,4 +1,4 @@
-﻿namespace CoreEx.AspNetCore.Mvc;
+namespace CoreEx.AspNetCore.Mvc;
 
 /// <summary>
 /// Provides the attribute to indicate that the decorated operation is idempotent and should be handled accordingly.

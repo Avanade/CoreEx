@@ -1,4 +1,4 @@
-﻿namespace CoreEx.AspNetCore.Abstractions;
+namespace CoreEx.AspNetCore.Abstractions;
 
 /// <summary>
 /// Represents a result from a Web API operation.

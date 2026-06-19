@@ -1,4 +1,4 @@
-﻿namespace Contoso.Shopping.Api.Controllers;
+namespace Contoso.Shopping.Api.Controllers;
 
 [ApiController, Route("/api/baskets"), OpenApiTag("Baskets")]
 public class BasketController(WebApi webApi, IBasketService service) : ControllerBase

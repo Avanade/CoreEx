@@ -11,6 +11,9 @@
 *.sln.docstates
 *.env
 
+# Claude Code local settings (machine-specific paths and permissions — never commit)
+.claude/settings.local.json
+
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
 

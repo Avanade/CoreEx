@@ -1,4 +1,4 @@
-﻿namespace CoreEx.RefData;
+namespace CoreEx.RefData;
 
 /// <summary>
 /// Enables a special purpose <see cref="IReferenceData"/> collection specifically for managing a referenced list of <i>serialization identifiers</i>, being the underlying <see cref="IReferenceData.Code"/>.

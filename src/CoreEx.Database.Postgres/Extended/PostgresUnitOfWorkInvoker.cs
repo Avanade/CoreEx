@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Database.Postgres.Extended;
+namespace CoreEx.Database.Postgres.Extended;
 
 /// <summary>
 /// Provides the underlying <see cref="PostgresDatabase"/> <see cref="IUnitOfWork"/> invoker functionality.

@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Validation;
+namespace CoreEx.Validation;
 
 /// <summary>
 /// Provides the <typeparamref name="TEntity"/> <see cref="IValidationContext{TEntity}"/>.

@@ -1,4 +1,4 @@
-﻿namespace Contoso.Shopping.Application;
+namespace Contoso.Shopping.Application;
 
 [ScopedService<IBasketService>]
 public class BasketService(IUnitOfWork unitOfWork, IBasketRepository repository, IProductAdapter productAdapter, ILogger<BasketService> logger) : IBasketService

@@ -1,4 +1,4 @@
-﻿#pragma warning disable IDE0130 // Namespace does not match folder structure; by design.
+#pragma warning disable IDE0130 // Namespace does not match folder structure; by design.
 namespace UnitTestEx;
 #pragma warning restore IDE0130 // Namespace does not match folder structure
 
@@ -41,6 +41,37 @@ public static partial class UnitTestExExtensions
     /// <para>The <paramref name="connectionString"/> supports the retrieval of the value from <see cref="TesterBase.Configuration"/> where prefixed with '<c>config:</c>' or '<c>^</c>', or is wrapped with '<c>%</c>'.</para></remarks>
     public static Task MigrateSqlServerDataAsync<TAssembly>(this TesterBase tester, Func<MigrationArgs, MigrationArgs>? configureMigrationArgs = null, string connectionString = "^Aspire:Microsoft:Data:SqlClient:ConnectionString")
         => MigrateSqlServerDataAsync(tester, configureMigrationArgs, connectionString, typeof(TAssembly).Assembly);
+
+    /// <summary>
+    /// Execute the <see cref="SqlServerMigration"/> using the <typeparamref name="TAssembly"/> to include additional resource.
+    /// </summary>
+    /// <typeparam name="TAssembly">The <see cref="Type"/> to infer the underlying <see cref="Assembly"/>.</typeparam>
+    /// <param name="tester">The <see cref="TesterBase"/>.</param>
+    /// <param name="resourceFileNames">The resource file names to include in the data loading; see <see cref="DataParserArgs.AddNamed{TAssembly}(string[])"/>.</param>
+    /// <param name="configureMigrationArgs">The function to further configure the <see cref="MigrationArgs"/>.</param>
+    /// <param name="connectionString">The database connection string configuration key.</param>
+    /// <remarks>Where the migration is unsuccessful then an <see cref="TestFrameworkImplementor.AssertFail(string?)"/> will be automatically issued.
+    /// <para>The <paramref name="connectionString"/> supports the retrieval of the value from <see cref="TesterBase.Configuration"/> where prefixed with '<c>config:</c>' or '<c>^</c>', or is wrapped with '<c>%</c>'.</para></remarks>
+    public static Task MigrateSqlServerDataAsync<TAssembly>(this TesterBase tester, string[] resourceFileNames, Func<MigrationArgs, MigrationArgs>? configureMigrationArgs = null, string connectionString = "^Aspire:Microsoft:Data:SqlClient:ConnectionString")
+    {
+        if (configureMigrationArgs is null)
+        {
+            return MigrateSqlServerDataAsync<TAssembly>(tester, ma =>
+            {
+                ma.DataParserArgs.AddNamed<TAssembly>(resourceFileNames);
+                return ma;
+            }, connectionString);
+        }
+        else
+        {
+            return MigrateSqlServerDataAsync<TAssembly>(tester, ma =>
+            {
+                var cma = configureMigrationArgs(ma);
+                cma.DataParserArgs.AddNamed<TAssembly>(resourceFileNames);
+                return cma;
+            }, connectionString);
+        }
+    }
 
     /// <summary>
     /// Execute the <see cref="SqlServerMigration"/>.

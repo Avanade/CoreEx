@@ -4,10 +4,7 @@
 
 namespace CoreEx.RefData;
 
-/// <summary>
-/// Indicates that the corresponding property should be extended (source generation) to include the full suite of reference data properties/capabilities.
-/// </summary>
-/// <remarks></remarks>
+/// <summary>Indicates that the corresponding property should be extended (source generation) to include the full suite of reference data properties/capabilities.</summary>
 /// <remarks>This is dependent on either <see cref="CoreEx.Entities.ContractAttribute"/> or <see cref="CoreEx.Entities.ReferenceDataAttribute"/> usage.
 /// <para>Primarily, a corresponding <typeparam name="TReferenceData"/> property will be created (and linked) for non-serialized usage.</para>
 /// <para>The property must be declared as <see langword="partial"/> for this to be generated correctly.</para></remarks>
@@ -15,14 +12,10 @@ namespace CoreEx.RefData;
 [global::System.CodeDom.Compiler.GeneratedCodeAttribute("CoreEx.Generator.ContractGenerator", "1.0.0.0")]
 internal class ReferenceDataAttribute<TReferenceData> : global::System.Attribute where TReferenceData : class, CoreEx.RefData.Abstractions.IReferenceData
 {
-    /// <summary>
-    /// Indicates whether the <c>CoreEx.Refdata.Abstractions.IReferenceData.Text</c> read-only property should be included in the generated source.
-    /// </summary>
+    /// <summary>Indicates whether the <c>CoreEx.Refdata.Abstractions.IReferenceData.Text</c> read-only property should be included in the generated source.</summary>
     public bool Text { get; set; } = true;
 
-    /// <summary>
-    /// Gets or sets the JSON name override to use for the <c>CoreEx.Refdata.Abstractions.IReferenceData.Text</c> property when serializing to JSON.
-    /// </summary>
+    /// <summary>Gets or sets the JSON name override to use for the <c>CoreEx.Refdata.Abstractions.IReferenceData.Text</c> property when serializing to JSON.</summary>
     public string? TextJsonName { get; set; }
 }
 

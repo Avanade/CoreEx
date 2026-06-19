@@ -1,0 +1,6 @@
+@Contoso.Shopping.Relay_HostAddress = http://localhost:5090
+
+GET {{Contoso.Shopping.Relay_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

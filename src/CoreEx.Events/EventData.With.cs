@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Events;
+namespace CoreEx.Events;
 
 public partial class EventData
 {
@@ -8,6 +8,17 @@ public partial class EventData
     /// <param name="entity">The entity name.</param>
     /// <returns>The <see cref="EventData"/> to support fluent-style method-chaining.</returns>
     public EventData WithEntity(string entity) => this.Adjust(x => x.Entity = entity.ThrowIfNullOrEmpty());
+
+    /// <summary>
+    /// Sets the <see cref="Entity"/> based on the specified <typeparamref name="TEntity"/> (using <see cref="Schema.TryGetMetadata{TEntity}(out SchemaAttribute)"/>).
+    /// </summary>
+    /// <typeparam name="TEntity">The entity type.</typeparam>
+    /// <returns>The <see cref="EventData"/> to support fluent-style method-chaining.</returns>
+    public EventData WithEntity<TEntity>()
+    {
+        Schema.TryGetMetadata<TEntity>(out var metadata);
+        return WithEntity(metadata.Name ?? typeof(TEntity).Name);
+    }
 
     /// <summary>
     /// Sets the <paramref name="action"/> as the <see cref="Action"/>.

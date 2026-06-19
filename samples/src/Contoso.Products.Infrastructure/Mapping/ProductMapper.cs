@@ -1,4 +1,4 @@
-﻿namespace Contoso.Products.Infrastructure.Mapping;
+namespace Contoso.Products.Infrastructure.Mapping;
 
 public class ProductMapper : BiDirectionMapper<Contracts.Product, Persistence.Product, ProductMapper>
 {

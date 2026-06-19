@@ -1,4 +1,4 @@
-﻿namespace CoreEx.RefData;
+namespace CoreEx.RefData;
 
 /// <summary>
 /// Enables caching of reference data in a implementation-agnostic manner.

@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Localization;
+namespace CoreEx.Localization;
 
 /// <summary>
 /// An attribute to define the localization <see cref="LText"/> for a property.

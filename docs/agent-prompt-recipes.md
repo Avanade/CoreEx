@@ -10,7 +10,7 @@ If you want to ask one of these as a quick side question in Copilot CLI without 
 
 ```text
 Map the <Domain> area of this repo for me.
-Explain the role of Contracts, Application, Infrastructure, Api, Database, Subscribe, and Outbox.Relay if present.
+Explain the role of Contracts, Application, Infrastructure, Api, Database, Subscribe, and Relay if present.
 Use concrete file references from this repo.
 No code changes.
 ```
@@ -134,7 +134,7 @@ Explain why.
 I need to implement this:
 <describe requirement>
 
-Tell me whether I should use coreex-project-bootstrap, /generate-domain, /scaffold-domain-from-templates, or /add-capability.
+Tell me whether I should start with `dotnet new coreex`, add `coreex-api`, `coreex-relay`, or `coreex-subscribe`, or make manual changes to an existing domain.
 Explain the tradeoffs using the current repo guidance.
 ```
 
@@ -216,12 +216,12 @@ Then add the missing pieces required to consume <event/command>.
 Keep subscriber logic thin and aligned to repo conventions.
 ```
 
-### Use the retrofit skill intentionally
+### Ask for a retrofit plan explicitly
 
 ```text
-Use /add-capability for this existing domain.
-Inspect the current state first, then add <relay / subscribe / subscriber scaffolding>.
+Inspect the current state first, then add the missing pieces for <relay / subscribe / subscriber wiring>.
 Treat SQL Server and Azure Service Bus as defaults unless you find evidence otherwise.
+Do not regenerate the domain.
 ```
 
 ## 7. Review an Existing Design
@@ -328,7 +328,7 @@ For the best results, include:
 - whether the code already exists
 - whether you want **explanation**, **plan**, or **implementation**
 - whether the result should align to a specific sample
-- any constraints such as “smallest safe change”, “no new host unless necessary”, or “use current SQL Server/Service Bus defaults”
+- any constraints such as “smallest safe change”, “no new host unless necessary”, or “use current Postgres/Service Bus defaults”
 
 ## Where to Go Next
 

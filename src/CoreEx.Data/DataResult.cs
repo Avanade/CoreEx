@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Data;
+namespace CoreEx.Data;
 
 /// <summary>
 /// Represents the result of a data mutation without a value; typically, a <see cref="OperationType.Delete"/>.

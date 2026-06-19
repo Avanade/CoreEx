@@ -1,7 +1,7 @@
-﻿namespace Contoso.Shopping.Subscribe.Subscribers;
+namespace Contoso.Shopping.Subscribe.Subscribers;
 
 [ScopedService]
-[Subscribe("contoso.products.product.deleted.v1")]
+[Subscribe("contoso.products.product.deleted")]
 public class ProductDeleteSubscriber(IProductSyncAdapter adapter) : SubscribedBase
 {
     private readonly IProductSyncAdapter _adapter = adapter.ThrowIfNull();

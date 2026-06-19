@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Entities;
+namespace CoreEx.Entities;
 
 /// <summary>
 /// Provides a <see cref="IReadOnlyChangeLogEx"/> implementation.

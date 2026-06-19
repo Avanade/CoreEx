@@ -1,4 +1,4 @@
-﻿# CoreEx.Azure.Messaging.ServiceBus.Abstractions
+# CoreEx.Azure.Messaging.ServiceBus.Abstractions
 
 > Provides the foundational base classes for the Azure Service Bus receiver pipeline: `ServiceBusReceiverBase` and its typed variant, `ServiceBusReceiverOptionsBase`, `ServiceBusMessageActionsBase`, concrete message-actions adapters, and the `ServiceBusErrorClassifier` utility.
 

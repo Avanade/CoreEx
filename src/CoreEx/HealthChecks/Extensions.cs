@@ -1,4 +1,4 @@
-﻿namespace CoreEx.HealthChecks;
+namespace CoreEx.HealthChecks;
 
 /// <summary>
 /// Provides extension methods for <see cref="HealthCheckTags"/>.

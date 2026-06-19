@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Data.Querying.Expressions;
+namespace CoreEx.Data.Querying.Expressions;
 
 /// <summary>
 /// Provides a query filter expression.

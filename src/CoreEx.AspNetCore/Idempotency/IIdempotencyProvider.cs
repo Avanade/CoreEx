@@ -1,4 +1,4 @@
-﻿using CoreEx.AspNetCore.Mvc;
+using CoreEx.AspNetCore.Mvc;
 
 namespace CoreEx.AspNetCore.Idempotency;
 

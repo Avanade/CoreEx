@@ -1,4 +1,4 @@
-﻿namespace Contoso.E2E.Runner.Scenarios;
+namespace Contoso.E2E.Runner.Scenarios;
 
 /// <summary>
 /// Provides the attribute to define an executable off-off set-up scenario.

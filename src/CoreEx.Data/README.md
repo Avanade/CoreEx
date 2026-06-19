@@ -51,3 +51,7 @@
 - **[`CoreEx`](../CoreEx/README.md)** - `QueryArgs` (filter/orderby strings and paging), `PagingArgs`, and `IEventQueue` are defined in the root `CoreEx` package and consumed here.
 - **[`CoreEx.Database`](../CoreEx.Database/README.md)** - `IUnitOfWork` is implemented by the database unit-of-work; `QueryArgsConfig` is used by database query builders.
 - **[`CoreEx.EntityFrameworkCore`](../CoreEx.EntityFrameworkCore/README.md)** - EF Core `IQueryable<T>` extensions consume `QueryArgsConfig` via `Where`/`OrderBy`.
+
+## AI Usage Guide
+
+An [`AGENTS.md`](./AGENTS.md) file is included with this package. AI coding assistants (GitHub Copilot, Claude, Cursor, etc.) that support workspace-injected package documentation will automatically surface concise usage guidance, code examples, and `Do Not` rules for this package without requiring a local CoreEx checkout.

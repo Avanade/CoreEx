@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Database.Outbox;
+namespace CoreEx.Database.Outbox;
 
 /// <summary>
 /// Provides the base <see href="https://microservices.io/patterns/data/transactional-outbox.html">transactional outbox</see> <i>relay</i> using the destination <see cref="IEventPublisher"/>.

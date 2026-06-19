@@ -1,4 +1,4 @@
-﻿# CoreEx.UnitTesting
+# CoreEx.UnitTesting
 
 > Provides the complete CoreEx unit- and integration-testing toolkit: fluent expectations, event-capture assertions, JSON seed-data loading, and convenience extensions that bridge UnitTestEx with every major CoreEx subsystem.
 
@@ -60,3 +60,7 @@ A companion `Data` child namespace provides `JsonDataReader` — a JSON-to-`Json
 - [UnitTestEx](https://github.com/Avanade/UnitTestEx) - The underlying test-host framework that `CoreEx.UnitTesting` extends; provides `TesterBase`, `ApiTester`, `GenericTester`, `IExpectations`, and the framework-agnostic assertion infrastructure.
 - [AwesomeAssertions](https://github.com/AwesomeAssertions/AwesomeAssertions) - Fluent assertion library used by the validation shortcuts and internal assertion helpers.
 - [YamlDotNet](https://github.com/aaubry/YamlDotNet) - Used internally to parse `data.yaml` seed files before they are handed to `JsonDataReader`.
+
+## AI Usage Guide
+
+An [`AGENTS.md`](./AGENTS.md) file is included with this package. AI coding assistants (GitHub Copilot, Claude, Cursor, etc.) that support workspace-injected package documentation will automatically surface concise usage guidance, code examples, and `Do Not` rules for this package without requiring a local CoreEx checkout.

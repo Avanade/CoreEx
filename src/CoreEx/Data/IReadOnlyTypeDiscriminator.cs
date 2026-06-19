@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Data;
+namespace CoreEx.Data;
 
 /// <summary>
 /// Enables a read-only <see cref="TypeDiscriminator"/> to identify the underlying type of the data model.

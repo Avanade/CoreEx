@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Database.Test.Unit;
+namespace CoreEx.Database.Test.Unit;
 
 [TestFixture]
 public class SqlStatementTests

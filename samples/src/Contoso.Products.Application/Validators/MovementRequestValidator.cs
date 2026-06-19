@@ -1,4 +1,4 @@
-﻿namespace Contoso.Products.Application.Validators;
+namespace Contoso.Products.Application.Validators;
 
 public class MovementRequestValidator : Validator<Contracts.MovementRequest>
 {

@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Database.SqlServer;
+namespace CoreEx.Database.SqlServer;
 
 /// <summary>
 /// Provides the <see href="https://learn.microsoft.com/en-us/sql/">SQL Server</see> metrics.

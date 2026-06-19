@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Caching;
+namespace CoreEx.Caching;
 
 /// <summary>
 /// Provides the default implementation of <see cref="ICacheKeyProvider"/>.

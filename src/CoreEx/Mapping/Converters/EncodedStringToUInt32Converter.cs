@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Mapping.Converters;
+namespace CoreEx.Mapping.Converters;
 
 /// <summary>
 /// Represents a BASE64 encoded <see cref="string"/> to <see cref="uint"/> converter.

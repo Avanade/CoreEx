@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Data.Querying.Expressions;
+namespace CoreEx.Data.Querying.Expressions;
 
 /// <summary>
 /// Represents a query filter <see cref="QueryFilterTokenKind.OpenParenthesis"/> expression.

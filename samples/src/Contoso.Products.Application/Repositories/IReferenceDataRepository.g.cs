@@ -8,44 +8,30 @@
 
 namespace Contoso.Products.Application.Repositories;
 
-/// <summary>
-/// Enables the underlying reference-data repository.
-/// </summary>
+/// <summary>Enables the underlying reference-data repository.</summary>
 public partial interface IReferenceDataRepository
 {
-    /// <summary>
-    /// Gets all <see cref="Brand"/> items.
-    /// </summary>
+    /// <summary>Gets all <see cref="Brand"/> items.</summary>
     /// <returns>The <see cref="BrandCollection"/>.</returns>
     Task<BrandCollection> GetAllBrandsAsync(CancellationToken cancellationToken = default);
 
-    /// <summary>
-    /// Gets all <see cref="Category"/> items.
-    /// </summary>
+    /// <summary>Gets all <see cref="Category"/> items.</summary>
     /// <returns>The <see cref="CategoryCollection"/>.</returns>
     Task<CategoryCollection> GetAllCategoriesAsync(CancellationToken cancellationToken = default);
 
-    /// <summary>
-    /// Gets all <see cref="MovementKind"/> items.
-    /// </summary>
+    /// <summary>Gets all <see cref="MovementKind"/> items.</summary>
     /// <returns>The <see cref="MovementKindCollection"/>.</returns>
     Task<MovementKindCollection> GetAllMovementKindsAsync(CancellationToken cancellationToken = default);
 
-    /// <summary>
-    /// Gets all <see cref="MovementStatus"/> items.
-    /// </summary>
+    /// <summary>Gets all <see cref="MovementStatus"/> items.</summary>
     /// <returns>The <see cref="MovementStatusCollection"/>.</returns>
     Task<MovementStatusCollection> GetAllMovementStatusesAsync(CancellationToken cancellationToken = default);
 
-    /// <summary>
-    /// Gets all <see cref="SubCategory"/> items.
-    /// </summary>
+    /// <summary>Gets all <see cref="SubCategory"/> items.</summary>
     /// <returns>The <see cref="SubCategoryCollection"/>.</returns>
     Task<SubCategoryCollection> GetAllSubCategoriesAsync(CancellationToken cancellationToken = default);
 
-    /// <summary>
-    /// Gets all <see cref="UnitOfMeasure"/> items.
-    /// </summary>
+    /// <summary>Gets all <see cref="UnitOfMeasure"/> items.</summary>
     /// <returns>The <see cref="UnitOfMeasureCollection"/>.</returns>
     Task<UnitOfMeasureCollection> GetAllUnitsOfMeasureAsync(CancellationToken cancellationToken = default);
 }

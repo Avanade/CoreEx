@@ -51,9 +51,13 @@ Two concrete `WebApi` implementations ship: `Mvc.WebApi` returning `IActionResul
 
 - **[`CoreEx`](../CoreEx/README.md)** - Semantic exceptions, `ExecutionContext`, `Result<T>`, and `PagingArgs` are the domain primitives translated by this package into HTTP responses.
 - **[`CoreEx.Http`](../CoreEx.Http/README.md)** - Client-side `TypedHttpClientBase<TSelf>` consumes `ProblemDetails` responses produced by this package; `HttpNames` defines the shared header/query-string constants.
-- **[`CoreEx.Validation`](../CoreEx.Validation/README.md)** - `ValidationException` raised by validators is translated to `422 Unprocessable Entity` with a field-level `errors` extension in `ProblemDetails`.
+- **[`CoreEx.Validation`](../CoreEx.Validation/README.md)** - `ValidationException` raised by validators is translated to `400 Bad Request` with a field-level `errors` extension in `ProblemDetails`.
 
 ## Additional Resources
 
 - [RFC 7807 — Problem Details for HTTP APIs](https://tools.ietf.org/html/rfc7807) - The specification implemented by `WebApi` exception handling.
 - [ASP.NET Core Health Checks](https://learn.microsoft.com/en-us/aspnet/core/host-and-deploy/health-checks) - The underlying infrastructure extended by `HealthCheckOptions`.
+
+## AI Usage Guide
+
+An [`AGENTS.md`](./AGENTS.md) file is included with this package. AI coding assistants (GitHub Copilot, Claude, Cursor, etc.) that support workspace-injected package documentation will automatically surface concise usage guidance, code examples, and `Do Not` rules for this package without requiring a local CoreEx checkout.

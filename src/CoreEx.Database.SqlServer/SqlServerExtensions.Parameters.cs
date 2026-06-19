@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Database.SqlServer;
+namespace CoreEx.Database.SqlServer;
 
 public static partial class SqlServerExtensions
 {

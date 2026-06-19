@@ -1,4 +1,4 @@
-﻿namespace CoreEx.AspNetCore.Test.Unit;
+namespace CoreEx.AspNetCore.Test.Unit;
 
 partial class WebApiTestsBase<TWebApi, TResult>
 {

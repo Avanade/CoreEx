@@ -1,4 +1,4 @@
-﻿namespace CoreEx.EntityFrameworkCore;
+namespace CoreEx.EntityFrameworkCore;
 
 /// <summary>
 /// Enables access to the underlying <see cref="IDatabase"/> instance (see <see cref="BaseDatabase"/>).

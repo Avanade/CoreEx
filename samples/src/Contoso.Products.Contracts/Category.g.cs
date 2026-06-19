@@ -8,9 +8,7 @@
 
 namespace Contoso.Products.Contracts;
 
-/// <summary>
-/// Represents the 'Category' reference-data contract.
-/// </summary>
+/// <summary>Represents the 'Category' reference-data contract.</summary>
 [ReferenceData]
 public partial class Category : ReferenceData<Category> { }
 

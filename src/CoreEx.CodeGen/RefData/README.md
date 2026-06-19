@@ -1,4 +1,4 @@
-﻿# CoreEx.CodeGen.RefData
+# CoreEx.CodeGen.RefData
 
 > Provides the reference-data code-generation pipeline: typed configuration models, generator classes, and the embedded Handlebars templates that together produce the full reference-data layer from a `ref-data.yaml` input file.
 

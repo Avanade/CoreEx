@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Validation.Abstractions;
+namespace CoreEx.Validation.Abstractions;
 
 /// <summary>
 /// Enables the <see cref="ValueValidator{T}"/> validation.

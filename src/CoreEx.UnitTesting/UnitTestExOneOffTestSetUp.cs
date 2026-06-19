@@ -1,4 +1,4 @@
-﻿[assembly: UnitTestEx.Abstractions.OneOffTestSetUp(typeof(CoreEx.UnitTesting.UnitTestExOneOffTestSetUp))]
+[assembly: UnitTestEx.Abstractions.OneOffTestSetUp(typeof(CoreEx.UnitTesting.UnitTestExOneOffTestSetUp))]
 
 namespace CoreEx.UnitTesting;
 

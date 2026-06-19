@@ -1,4 +1,4 @@
-﻿namespace CoreEx.CodeGen;
+namespace CoreEx.CodeGen;
 
 /// <summary>
 /// Represents the command type.

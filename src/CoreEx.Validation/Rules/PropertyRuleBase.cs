@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Validation.Rules;
+namespace CoreEx.Validation.Rules;
 
 /// <summary>
 /// Provides the base <see cref="IPropertyRule{TEntity, TProperty}"/> capabilities.

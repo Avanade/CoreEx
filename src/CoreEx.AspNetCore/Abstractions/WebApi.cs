@@ -1,4 +1,4 @@
-﻿namespace CoreEx.AspNetCore.Abstractions;
+namespace CoreEx.AspNetCore.Abstractions;
 
 /// <summary>
 /// Provides the base ASP.NET Core Web API capabilities to enable both MVC and HTTP <typeparamref name="TResult"/> support in a consistent manner.

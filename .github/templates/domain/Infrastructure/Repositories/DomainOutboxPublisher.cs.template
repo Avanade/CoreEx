@@ -1,7 +1,0 @@
-namespace {Solution}.{Domain}.Infrastructure.Repositories;
-
-public class {Domain}OutboxPublisher(SqlServerDatabase database, IDestinationProvider? destinationProvider = null, IEventFormatter? formatter = null, ILogger<{Domain}OutboxPublisher>? logger = null)
-    : SqlServerOutboxPublisher(database, destinationProvider, formatter, logger)
-{
-    public override SqlStatement Statement { get; set; } = SqlStatement.StoredProcedure("[{Domain}].[spOutboxEnqueue]");
-}

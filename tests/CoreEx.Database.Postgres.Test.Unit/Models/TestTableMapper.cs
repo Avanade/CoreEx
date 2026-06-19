@@ -1,4 +1,4 @@
-﻿using CoreEx.Database.Mapping;
+using CoreEx.Database.Mapping;
 using System.Text.Json;
 
 namespace CoreEx.Database.Postgres.Test.Unit.Models;

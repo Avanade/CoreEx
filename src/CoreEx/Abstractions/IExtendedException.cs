@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Abstractions;
+namespace CoreEx.Abstractions;
 
 /// <summary>
 /// Enables the extended <see cref="Exception"/> capabilities.

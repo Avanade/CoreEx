@@ -1,4 +1,4 @@
-﻿namespace CoreEx.EntityFrameworkCore;
+namespace CoreEx.EntityFrameworkCore;
 
 /// <summary>
 /// Provides <see href="https://learn.microsoft.com/en-us/ef/core/">Entity Framework Core</see> extensions.

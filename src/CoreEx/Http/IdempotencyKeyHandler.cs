@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Http;
+namespace CoreEx.Http;
 
 /// <summary>
 /// Provides an <see cref="HttpClient"/> <see cref="DelegatingHandler"/> that adds an idempotency-key (see <see cref="HttpNames.IdempotencyKeyHeaderName"/>) to outgoing HTTP requests.

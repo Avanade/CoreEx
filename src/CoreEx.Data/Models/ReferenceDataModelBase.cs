@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Data.Models;
+namespace CoreEx.Data.Models;
 
 /// <summary>
 /// Provides a convenience base class for reference data models implementing the common <see cref="IReferenceData"/> properties (extends <see cref="ModelBase{T}"/>).

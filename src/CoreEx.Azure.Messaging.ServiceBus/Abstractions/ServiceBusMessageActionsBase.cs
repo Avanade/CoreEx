@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Azure.Messaging.ServiceBus.Abstractions;
+namespace CoreEx.Azure.Messaging.ServiceBus.Abstractions;
 
 /// <summary>
 /// Provides the base <see cref="IServiceBusMessageActions"/> implementation for Azure Service Bus, including the recording of metrics for each action.

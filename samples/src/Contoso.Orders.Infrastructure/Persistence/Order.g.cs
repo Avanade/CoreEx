@@ -8,20 +8,14 @@
 
 namespace Contoso.Orders.Infrastructure.Persistence;
 
-/// <summary>
-/// Persistence model representing the '<c>[Orders].[Order]</c>' database table.
-/// </summary>
+/// <summary>Persistence model representing the '<c>[Orders].[Order]</c>' database table.</summary>
 /// <remarks>The <see cref="Id"/> primary key column is '<c>OrderId</c>' (type '<c>NVARCHAR(50)</c>').</remarks>
 public partial class Order : ModelBase<string>
 {
-    /// <summary>
-    /// Gets or sets the value of the '<c>CustomerId</c>' column (type '<c>NVARCHAR(100)</c>').
-    /// </summary>
+    /// <summary>Gets or sets the value of the '<c>CustomerId</c>' column (type '<c>NVARCHAR(100)</c>').</summary>
     public string CustomerId { get; set; } = default!;
 
-    /// <summary>
-    /// Gets or sets the value of the '<c>StatusCode</c>' column (type '<c>NVARCHAR(50)</c>').
-    /// </summary>
+    /// <summary>Gets or sets the value of the '<c>StatusCode</c>' column (type '<c>NVARCHAR(50)</c>').</summary>
     public string StatusCode { get; set; } = default!;
 }
 

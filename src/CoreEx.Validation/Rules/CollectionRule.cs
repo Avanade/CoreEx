@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Validation.Rules;
+namespace CoreEx.Validation.Rules;
 
 /// <summary>
 /// Provides a collection (<see cref="IEnumerable{T}"/>) validation including item-based validation and duplicate checking.
@@ -177,7 +177,10 @@ public sealed class CollectionRule<TEntity, TProperty, TItem> : PropertyRuleBase
                     // Validate the item and merge the result.
                     try
                     {
-                        var r = await _getValidator.Invoke(args).ValidateAsync(item, args, cancellationToken).ConfigureAwait(false);
+                        var vi = _getValidator.Invoke(args);
+                        var r = vi is ValidatingInlineValidator<TItem> vilv
+                            ? await vilv.ValidateEntityAsync(item, args, cancellationToken).ConfigureAwait(false)
+                            : await vi.ValidateAsync(item, args, cancellationToken).ConfigureAwait(false);
 
                         context.MergeResult(r);
                         if (r.HasErrors)

@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Security;
+namespace CoreEx.Security;
 
 /// <summary>
 /// Represents a user within the system.

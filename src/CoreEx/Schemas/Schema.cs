@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Schemas;
+namespace CoreEx.Schemas;
 
 /// <summary>
 /// Provides schema metadata utility.

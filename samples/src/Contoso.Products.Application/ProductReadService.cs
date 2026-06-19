@@ -1,4 +1,4 @@
-﻿namespace Contoso.Products.Application;
+namespace Contoso.Products.Application;
 
 [ScopedService<IProductReadService>]
 public class ProductReadService(IProductRepository repository) : IProductReadService

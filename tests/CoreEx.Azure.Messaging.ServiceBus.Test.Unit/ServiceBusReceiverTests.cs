@@ -1,4 +1,4 @@
-﻿using Azure.Messaging.ServiceBus;
+using Azure.Messaging.ServiceBus;
 using CoreEx.Events;
 using CoreEx.Events.Publishing;
 using CoreEx.Hosting;

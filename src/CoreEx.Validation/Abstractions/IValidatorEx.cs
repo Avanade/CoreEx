@@ -1,4 +1,4 @@
-﻿
+
 namespace CoreEx.Validation.Abstractions;
 
 /// <summary>

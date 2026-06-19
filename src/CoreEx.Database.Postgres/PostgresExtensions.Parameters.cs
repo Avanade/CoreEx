@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Database.Postgres;
+namespace CoreEx.Database.Postgres;
 
 public static partial class PostgresExtensions
 {

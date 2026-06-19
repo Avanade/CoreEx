@@ -1,4 +1,4 @@
-﻿namespace CoreEx.AspNetCore.Idempotency;
+namespace CoreEx.AspNetCore.Idempotency;
 
 /// <summary>
 /// Provides the <see cref="IIdempotencyProvider"/> invoker.

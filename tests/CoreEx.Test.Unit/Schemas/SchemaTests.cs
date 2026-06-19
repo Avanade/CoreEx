@@ -1,4 +1,4 @@
-﻿using CoreEx.Schemas;
+using CoreEx.Schemas;
 
 namespace CoreEx.Test.Unit.Schemas;
 

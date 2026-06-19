@@ -4,7 +4,7 @@
 
 [.NET Aspire](https://learn.microsoft.com/en-us/dotnet/aspire/get-started/aspire-overview) is the local orchestration layer for the Contoso samples. It starts and manages all domain hosts simultaneously as a single distributed application, wires their OpenTelemetry signals into a central dashboard, and exposes health, log, trace, and metric views across every process in one place.
 
-Aspire is the required foundation for any activity that involves **cross-domain interaction** — because that interaction only exists when all hosts are running together. The intra-domain host tests (`*.Test.Api`, `*.Test.Subscribe`, `*.Test.Outbox.Relay`) run in isolation and do not need Aspire; the E2E Runner does.
+Aspire is the required foundation for any activity that involves **cross-domain interaction** — because that interaction only exists when all hosts are running together. The intra-domain host tests (`*.Test.Api`, `*.Test.Subscribe`, `*.Test.Relay`) run in isolation and do not need Aspire; the E2E Runner does.
 
 ---
 
@@ -15,10 +15,10 @@ The `Contoso.Aspire` AppHost (`samples/aspire/Contoso.Aspire/AppHost.cs`) regist
 | Resource name | Host project | Endpoints exposed |
 |---|---|---|
 | `products-api` | `Contoso.Products.Api` | HTTP + `/health/ready/detailed` |
-| `products-outbox-relay` | `Contoso.Products.Outbox.Relay` | HTTP + `/health/ready/detailed` + hosted-service controls |
+| `products-relay` | `Contoso.Products.Relay` | HTTP + `/health/ready/detailed` + hosted-service controls |
 | `products-subscribe` | `Contoso.Products.Subscribe` | HTTP + `/health/ready/detailed` + hosted-service controls |
 | `shopping-api` | `Contoso.Shopping.Api` | HTTP + `/health/ready/detailed` |
-| `shopping-outbox-relay` | `Contoso.Shopping.Outbox.Relay` | HTTP + `/health/ready/detailed` + hosted-service controls |
+| `shopping-relay` | `Contoso.Shopping.Relay` | HTTP + `/health/ready/detailed` + hosted-service controls |
 | `shopping-subscribe` | `Contoso.Shopping.Subscribe` | HTTP + `/health/ready/detailed` + hosted-service controls |
 | `order-workflow-worker` | `Contoso.Order.Workflow.Worker` | HTTP + `/health` + DTS Dashboard link |
 | `orders-api` | `Contoso.Orders.Api` | HTTP + `/health/ready/detailed` (waits for workflow worker) |
@@ -184,7 +184,7 @@ Press `ESC` to stop gracefully. Errors are written to `logs/load-simulation-erro
 | Layer | Aspire needed? | E2E Runner needed? |
 |---|---|---|
 | Unit tests (`*.Test.Unit`) | No | No |
-| Intra-domain host tests (`*.Test.Api`, `*.Test.Subscribe`, `*.Test.Outbox.Relay`) | No | No |
+| Intra-domain host tests (`*.Test.Api`, `*.Test.Subscribe`, `*.Test.Relay`) | No | No |
 | Cross-domain functional validation | Yes | Yes |
 | Load / concurrency simulation | Yes | Yes |
 

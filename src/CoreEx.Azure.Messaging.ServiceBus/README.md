@@ -1,4 +1,4 @@
-﻿# CoreEx.Azure.Messaging.ServiceBus
+# CoreEx.Azure.Messaging.ServiceBus
 
 > Provides Azure Service Bus integration for CoreEx: a `ServiceBusPublisher` implementing `IEventPublisher`, subscriber bases wired to `EventSubscriberBase`, and receiver hosts with built-in resiliency, metrics, and session support.
 
@@ -53,3 +53,7 @@ Resiliency is provided out-of-the-box: `ServiceBusReceiverResiliency` supplies f
 - **[`CoreEx.Events.Publishing`](../CoreEx.Events/Publishing/README.md)** - `IDestinationProvider` and `DestinationEvent` used by `ServiceBusPublisher` during batched dispatch.
 - **[`CoreEx.Events.Subscribing`](../CoreEx.Events/Subscribing/README.md)** - `ErrorHandling`, `ErrorHandler`, and subscriber exception types consumed by the receiver pipeline.
 - **[`CoreEx.Database.Outbox`](../CoreEx.Database/Outbox/README.md)** - Outbox relay publisher that produces events later consumed by a `ServiceBusReceiver`-based relay host.
+
+## AI Usage Guide
+
+An [`AGENTS.md`](./AGENTS.md) file is included with this package. AI coding assistants (GitHub Copilot, Claude, Cursor, etc.) that support workspace-injected package documentation will automatically surface concise usage guidance, code examples, and `Do Not` rules for this package without requiring a local CoreEx checkout.

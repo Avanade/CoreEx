@@ -200,7 +200,7 @@ public class BasketMapper : Mapper<Domain.Basket, Contracts.Basket, BasketMapper
 
 ## Policies
 
-Policies (`Application/Policies/`) encapsulate **domain-level guard logic** that sits above a single validator but below a full service. They are used to enforce invariants that span adapter or repository calls — for example, confirming that a referenced entity actually exists before proceeding with a mutation.
+Policies (`Application/Policies/`) encapsulate **domain-level guard logic** that requires I/O (adapter or repository calls). They provide a named, independently testable home for rules that depend on external state and cannot be expressed in a validator alone (synchronous) or enforced directly in the domain model (no async I/O). A policy can be called from any point in service orchestration where the condition needs to be verified — for example, confirming that a referenced entity actually exists before proceeding with a mutation.
 
 ```csharp
 // samples/src/Contoso.Shopping.Application/Policies/ProductPolicy.cs

@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Json;
+namespace CoreEx.Json;
 
 /// <summary>
 /// Provides <see cref="System.Text.Json"/> defaults; such as the primary <see cref="Configuration"/> and runtime <see cref="SerializerOptions"/> accessor.
@@ -37,7 +37,7 @@ public class JsonDefaults
                 WriteIndented = false, 
                 PropertyNamingPolicy = _jsonSubstituteNamingPolicy,
                 DictionaryKeyPolicy = _jsonSubstituteNamingPolicy,
-                Converters = { new JsonStringEnumConverter(), new JsonReferenceDataConverter(), new JsonDataMapConverterFactory() }
+                Converters = { new JsonStringEnumConverter(), new JsonReferenceDataConverter(), new JsonResultConverter(), new JsonDataMapConverterFactory() }
             };
         }
 

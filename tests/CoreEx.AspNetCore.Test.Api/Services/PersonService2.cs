@@ -1,4 +1,4 @@
-﻿using CoreEx.AspNetCore.Test.Api.Entities;
+using CoreEx.AspNetCore.Test.Api.Entities;
 using CoreEx.Data;
 using CoreEx.Data.Querying;
 using CoreEx.DependencyInjection;

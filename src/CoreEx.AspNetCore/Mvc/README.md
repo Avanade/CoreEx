@@ -10,7 +10,7 @@ The namespace also provides a set of small, targeted MVC attributes. These carry
 
 ## Key capabilities
 
-- 🎯 **MVC result creation**: `Mvc.WebApi.CreateResult` translates `WebApiResult<IActionResult>` to the full range of `IActionResult` types, including field-level `ValidationException` → `422` with `errors` extension, and `ConcurrencyException` → `409 Conflict`.
+- 🎯 **MVC result creation**: `Mvc.WebApi.CreateResult` translates `WebApiResult<IActionResult>` to the full range of `IActionResult` types, including field-level `ValidationException` → `400 Bad Request` with `errors` extension, and `ConcurrencyException` → `412 Precondition Failed`.
 - 📑 **Paging attribute**: `[PagingAttribute]` marks operations that accept paging arguments via query string without declaring `PagingArgs` as an explicit method parameter; NSwag reads this to add `$skip`, `$take`, `$count`, `$page` query parameters to the spec.
 - 🔍 **Query attribute**: `[QueryAttribute]` marks operations that accept OData-style `$filter` / `$orderby` query arguments; NSwag adds the corresponding parameters.
 - ✅ **Accepts attribute**: `[AcceptsAttribute<T>]` declares the request body `Content-Type` and schema type for NSwag, replacing the need for `[Consumes]` with schema inference.

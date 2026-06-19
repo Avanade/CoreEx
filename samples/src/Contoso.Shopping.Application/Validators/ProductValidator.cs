@@ -1,4 +1,4 @@
-﻿namespace Contoso.Shopping.Application.Validators;
+namespace Contoso.Shopping.Application.Validators;
 
 /// <summary>
 /// Product validator leveraging the FluentValidation API compatibility; still leverages CoreEx.Validation to perform the actual validation and error handling, but provides the FluentValidation API for

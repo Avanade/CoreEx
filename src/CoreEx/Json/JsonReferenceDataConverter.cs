@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Json;
+namespace CoreEx.Json;
 
 /// <summary>
 /// Provides an <see cref="IReferenceData"/> converter to ensure the correct type is used to serialize.

@@ -2,12 +2,12 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 // Products domain.
 builder.AddProject<Projects.Contoso_Products_Api>("products-api").AddEndpoints("/health/ready/detailed");
-builder.AddProject<Projects.Contoso_Products_Outbox_Relay>("products-outbox-relay").AddEndpoints("/health/ready/detailed").AddHostedServiceSupport();
+builder.AddProject<Projects.Contoso_Products_Relay>("products-relay").AddEndpoints("/health/ready/detailed").AddHostedServiceSupport();
 builder.AddProject<Projects.Contoso_Products_Subscribe>("products-subscribe").AddEndpoints("/health/ready/detailed").AddHostedServiceSupport();
 
 // Shopping domain.
 builder.AddProject<Projects.Contoso_Shopping_Api>("shopping-api").AddEndpoints("/health/ready/detailed");
-builder.AddProject<Projects.Contoso_Shopping_Outbox_Relay>("shopping-outbox-relay").AddEndpoints("/health/ready/detailed").AddHostedServiceSupport();
+builder.AddProject<Projects.Contoso_Shopping_Relay>("shopping-relay").AddEndpoints("/health/ready/detailed").AddHostedServiceSupport();
 builder.AddProject<Projects.Contoso_Shopping_Subscribe>("shopping-subscribe").AddEndpoints("/health/ready/detailed").AddHostedServiceSupport();
 
 // Orders domain.

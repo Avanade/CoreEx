@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\src\CoreEx.AspNetCore.NSwag\CoreEx.AspNetCore.NSwag.csproj" />

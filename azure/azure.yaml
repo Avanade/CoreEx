@@ -12,11 +12,11 @@ services:
     language: csharp
     host: appservice
   products-outbox-relay:
-    project: ../samples/src/Contoso.Products.Outbox.Relay
+    project: ../samples/src/Contoso.Products.Relay
     language: csharp
     host: appservice
   shopping-outbox-relay:
-    project: ../samples/src/Contoso.Shopping.Outbox.Relay
+    project: ../samples/src/Contoso.Shopping.Relay
     language: csharp
     host: appservice
   products-subscribe:

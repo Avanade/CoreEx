@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Events.Subscribing.Exceptions;
+namespace CoreEx.Events.Subscribing.Exceptions;
 
 /// <summary>
 /// Represents an exception that occurs when an <see cref="EventSubscriberBase"/> encounters an error that it is unable to handle bubbling it up to the host process accordingly.

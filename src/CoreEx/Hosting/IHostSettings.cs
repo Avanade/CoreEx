@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Hosting;
+namespace CoreEx.Hosting;
 
 /// <summary>
 /// Enables standardized runtime/host settings.

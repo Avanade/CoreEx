@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Azure.Messaging.ServiceBus;
+namespace CoreEx.Azure.Messaging.ServiceBus;
 
 public static partial class ServiceBusExtensions
 {

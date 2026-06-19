@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Hosting.Work;
+namespace CoreEx.Hosting.Work;
 
 /// <summary>
 /// Represents the long-running work status.

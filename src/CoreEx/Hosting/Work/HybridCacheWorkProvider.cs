@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Hosting.Work;
+namespace CoreEx.Hosting.Work;
 
 /// <summary>
 /// Provides the <see cref="IWorkProvider"/> implementation using an underlying <see cref="IHybridCache"/>.

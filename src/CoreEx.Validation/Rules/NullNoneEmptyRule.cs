@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Validation.Rules;
+namespace CoreEx.Validation.Rules;
 
 /// <summary>
 /// Provides a <paramref name="mustBeNull"/>, <paramref name="mustBeDefault"/> and <paramref name="mustBeEmpty"/> validation.

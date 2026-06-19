@@ -1,4 +1,4 @@
-﻿namespace CoreEx.RefData;
+namespace CoreEx.RefData;
 
 /// <summary>
 /// Provides the contextual validation <see cref="Date"/> for a <see cref="IReferenceData.StartsOn"/> and <see cref="IReferenceData.EndsOn"/> <see cref="IReferenceData.IsValid"/> verification.

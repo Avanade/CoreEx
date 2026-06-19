@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Database.SqlServer.Extended;
+namespace CoreEx.Database.SqlServer.Extended;
 
 /// <summary>
 /// Provides the <see cref="SqlServerDatabase"/> invoker functionality.

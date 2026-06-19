@@ -1,4 +1,4 @@
-﻿global using Contoso.Products.Application.Interfaces;
+global using Contoso.Products.Application.Interfaces;
 global using Contoso.Products.Contracts;
 global using CoreEx;
 global using CoreEx.Azure.Messaging.ServiceBus;

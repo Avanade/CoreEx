@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Json;
+namespace CoreEx.Json;
 
 /// <summary>
 /// Provides a generic JSON converter factory for <see cref="DataMap{TValue}"/> types that preserves the original casing of the underlying keys.

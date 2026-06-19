@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Data.Querying;
+namespace CoreEx.Data.Querying;
 
 /// <summary>
 /// Provides the base <see cref="QueryFilterParser"/> field configuration extending <see cref="QueryFilterFieldConfigBase"/> with fluent-style method-chaining capabilities.

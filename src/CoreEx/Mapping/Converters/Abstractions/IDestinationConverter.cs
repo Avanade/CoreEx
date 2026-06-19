@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Mapping.Converters.Abstractions;
+namespace CoreEx.Mapping.Converters.Abstractions;
 
 /// <summary>
 /// Defines the <see cref="IConverter"/> with typed <typeparamref name="TDestination"/>.

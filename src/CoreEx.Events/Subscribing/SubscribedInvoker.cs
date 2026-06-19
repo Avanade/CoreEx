@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Events.Subscribing;
+namespace CoreEx.Events.Subscribing;
 
 /// <summary>
 /// Provides the <see cref="SubscribedBase"/> invoker.

@@ -1,4 +1,4 @@
-﻿namespace Contoso.Shopping.Infrastructure.Repositories;
+namespace Contoso.Shopping.Infrastructure.Repositories;
 
 public partial class ShoppingDbContext(DbContextOptions<ShoppingDbContext> options, SqlServerDatabase database) : DbContext(options), IEfDbContext
 {
@@ -28,4 +28,8 @@ public partial class ShoppingDbContext(DbContextOptions<ShoppingDbContext> optio
             e.Navigation(r => r.Items).AutoInclude(true);
         });
     }
+
+    /// <summary>Adds the CodeGen-generated entity models to the <paramref name="modelBuilder"/>.</summary>
+    /// <param name="modelBuilder">The <see cref="ModelBuilder"/>.</param>
+    partial void AddGeneratedModels(ModelBuilder modelBuilder);
 }

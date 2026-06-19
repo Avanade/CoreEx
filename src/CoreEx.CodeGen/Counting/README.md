@@ -1,4 +1,4 @@
-﻿# CoreEx.CodeGen.Counting
+# CoreEx.CodeGen.Counting
 
 > Provides file and line counting utilities that report the proportion of generated vs. hand-authored code across the solution output directories.
 

@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Hosting;
+namespace CoreEx.Hosting;
 
 /// <summary>
 /// Represents the status of a service; for example, <see cref="HostedServiceBase"/> and <see cref="TimerHostedServiceBase"/>.

@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Azure.Messaging.ServiceBus;
+namespace CoreEx.Azure.Messaging.ServiceBus;
 
 /// <summary>
 /// Encapsulates the <see cref="ServiceBusProcessor"/> lifetime and message receiving management.

@@ -222,7 +222,7 @@ public class QueryFilterParserTests
     [Test]
     public void Config_ToString()
     {
-        var s = TestUtility.Config.FilterParser.ToString();
+        var s = TestUtility.Config.FilterParser.ToString().ReplaceLineEndings("\n");
         s.Should().NotBeNull();
 
         Console.WriteLine(s);

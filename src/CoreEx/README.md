@@ -1,4 +1,4 @@
-﻿# CoreEx
+# CoreEx
 
 > The foundational `CoreEx` package providing the core runtime primitives, patterns, and abstractions used across all other CoreEx libraries and consuming services.
 
@@ -41,20 +41,65 @@ All other CoreEx packages (`CoreEx.Events`, `CoreEx.Database`, `CoreEx.AspNetCor
 | **[`ExecutionContext`](./ExecutionContext.cs)** | `AsyncLocal`-scoped ambient context carrying user identity, tenant ID, operation type, timestamp, and attributes for the lifetime of a request. |
 | **[`Result`](./Results/Result.cs)** | Value type representing a successful or failed operation with no return value; the basis of railway-oriented programming in CoreEx. |
 | **[`Result<T>`](./Results/ResultT.cs)** | Value type representing a successful operation with a value, or a typed error — used for functional pipeline-style error propagation. |
-| **[`ValidationException`](./ValidationException.cs)** | Exception for known data validation errors (HTTP 400); carries a `MessageItemCollection` of field-level messages. |
-| **[`NotFoundException`](./NotFoundException.cs)** | Exception for missing resources (HTTP 404). |
-| **[`BusinessException`](./BusinessException.cs)** | Exception for business rule violations that are safe to surface to the consumer (HTTP 422). |
-| **[`ConcurrencyException`](./ConcurrencyException.cs)** | Exception for optimistic concurrency conflicts (HTTP 412). |
-| **[`AuthorizationException`](./AuthorizationException.cs)** | Exception for authorization failures (HTTP 403). |
-| **[`AuthenticationException`](./AuthenticationException.cs)** | Exception for authentication failures (HTTP 401). |
-| **[`ConflictException`](./ConflictException.cs)** | Exception for resource state conflicts (HTTP 409). |
-| **[`DuplicateException`](./DuplicateException.cs)** | Exception for duplicate-record violations (HTTP 409). |
-| **[`TransientException`](./TransientException.cs)** | Exception signalling a transient, retryable error with a configurable retry-after interval. |
 | **[`DataConsistencyException`](./DataConsistencyException.cs)** | Non-error exception used to signal a potential data consistency issue without treating it as an application error. |
 | **[`PrecisionTimeProvider`](./PrecisionTimeProvider.cs)** | `TimeProvider` implementation that truncates timestamps to a configurable fractional-second precision for database compatibility. |
 | **[`OperationType`](./OperationType.cs)** | Enum representing the CRUD operation type (Get, Create, Update, Delete, Query) carried on the `ExecutionContext`. |
 | _[`ExtendedException`](./Abstractions/ExtendedException.cs)_ | Abstract base for all CoreEx semantic exceptions; provides HTTP status, error type, error code, detail, and configurable logging. |
 | [`IExtendedException`](./Abstractions/IExtendedException.cs) | Interface defining the extended exception contract: `StatusCode`, `ErrorType`, `ErrorCode`, `IsError`, and `ShouldBeLogged`. |
+
+See the [Extended Exceptions](#extended-exceptions) section below for the full list of semantic exception types.
+
+## Errors vs Exceptions
+
+`CoreEx` distinguishes between expected and unexpected errors:
+
+| Aspect | **Errors** (Expected) | **Exceptions** (Unexpected) |
+|--------|------------------------|----------------------------|
+| **Use For** | Validation failures, business rules, "not found" | System failures, infrastructure errors |
+| **Types** | `CoreEx` semantic exceptions (implement [`IExtendedException`](./Abstractions/IExtendedException.cs))  | Standard .NET, and non-semantic, exceptions |
+| **Benefits** | Explicit error handling | Rich diagnostics (stack traces) |
+| **Example** | Customer not found | Database connection timeout |
+
+## Extended Exceptions
+
+Semantic (error-oriented) exception types with automatic HTTP status mapping:
+
+| Exception | Description | HTTP Status | Error Type |
+|-----------|-------------|-------------|------------|
+| [`AuthenticationException`](./AuthenticationException.cs) | User not authenticated. | 401-Unauthorized | `authentication` |
+| [`AuthorizationException`](./AuthorizationException.cs) | User lacks permissions. | 403-Forbidden | `authorization` |
+| [`BusinessException`](./BusinessException.cs) | Business rule violation (message shown to consumer). | 400-Bad Request | `business` |
+| [`ConcurrencyException`](./ConcurrencyException.cs) | Data concurrency conflict (ETag mismatch). | 412-Precondition Failed | `concurrency` |
+| [`ConflictException`](./ConflictException.cs) | Data conflict (e.g., identifier already exists on create). | 409-Conflict | `conflict` |
+| [`DuplicateException`](./DuplicateException.cs) | Duplicate value (e.g., unique code already in use). | 409-Conflict | `duplicate` |
+| [`NotFoundException`](./NotFoundException.cs) | Entity not found. | 404-Not Found | `not-found` |
+| [`TransientException`](./TransientException.cs) | Transient failure (retry candidate). | 503-Service Unavailable | `transient` |
+| [`ValidationException`](./ValidationException.cs) | Validation failure with message collection. | 400-Bad Request | `validation` |
+
+All inherit from [`ExtendedException<TSelf>`](./Abstractions/ExtendedExceptionT.cs) implementing [`IExtendedException`](./Abstractions/IExtendedException.cs).
+
+Additionally, these support `With*`-style methods to add additional context that is added to the resulting `ProblemDetails`:
+
+``` csharp
+throw new BusinessException($"Product '{movement.ProductId}' does not have sufficient quantity on hand.")
+    .WithErrorCode("insufficient-quantity")
+    .WithKey(movement.ProductId);
+```
+
+The above would result in the following `ProblemDetails`:
+
+``` json
+{
+  "type": "https://tools.ietf.org/html/rfc9110#section-15.5.1",
+  "title": "Product \u002700000001-0000-0000-0000-000000000000\u0027 does not have sufficient quantity on hand.",
+  "status": 400,
+  "traceId": "00-a8e8623ef74c2b53820d0ff5d799850d-df28b0bc787429f5-01",
+  "errorType": "business",
+  "errorCode": "insufficient-quantity",
+  "key": "00000001-0000-0000-0000-000000000000"
+}
+```
+
 
 ## Namespaces
 
@@ -90,3 +135,7 @@ All other CoreEx packages (`CoreEx.Events`, `CoreEx.Database`, `CoreEx.AspNetCor
 - **[`CoreEx.EntityFrameworkCore`](../CoreEx.EntityFrameworkCore/README.md)** - Entity Framework Core integration consuming the entity contracts and mapping types from this package.
 - **[`CoreEx.RefData`](../CoreEx.RefData/README.md)** - Full reference data implementation extending the `IReferenceData` and `ReferenceDataOrchestrator` types defined here.
 - **[`CoreEx.UnitTesting`](../CoreEx.UnitTesting/README.md)** - Test helpers and fluent assertion extensions targeting the types and patterns from this package. _(test only)_
+
+## AI Usage Guide
+
+An [`AGENTS.md`](./AGENTS.md) file is included with this package. AI coding assistants (GitHub Copilot, Claude, Cursor, etc.) that support workspace-injected package documentation will automatically surface concise usage guidance, code examples, and `Do Not` rules for this package without requiring a local CoreEx checkout.

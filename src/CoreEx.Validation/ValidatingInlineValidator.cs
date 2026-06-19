@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Validation;
+namespace CoreEx.Validation;
 
 /// <summary>
 /// Provides an implementation of the <see cref="InlineValidator{TValue}"/> that can be used directly for inline-style validation that also supports <see cref="IValidatorEx{TValue}"/>.
@@ -54,6 +54,23 @@ internal sealed class ValidatingInlineValidator<TValue>(Action<ValidatingInlineV
         // Transform the context to expose TValue.
         var vc = new ValueValidationContext(r);
         return vc;
+    }
+
+    /// <summary>
+    /// Validates the <paramref name="value"/> treating <typeparamref name="TValue"/> as the root entity at the path already established in <paramref name="args"/>, without adding a '<c>.value</c>' property path segment.
+    /// </summary>
+    /// <remarks>Used by <see cref="Rules.DictionaryRule{TEntity, TProperty, TKey, TValue}"/> and <see cref="Rules.CollectionRule{TEntity, TProperty, TItem}"/>
+    /// when the validator was configured via an inline <see cref="Action{T}"/> to avoid an errant '<c>.value</c>' segment in error property paths.</remarks>
+    internal async Task<IValidationContext<TValue>> ValidateEntityAsync(TValue value, ValidationArgs args, CancellationToken cancellationToken)
+    {
+        // Run the inline rules treating TValue as the root entity at the path already in args (no ".value" wrapper).
+        // Nulling the entity names and using the full args path as the property name means CreateFullyQualifiedPropertyName
+        // returns the name directly (null entity prefix), so FullyQualifiedPropertyName == args entity path.
+        var entityArgs = args with { FullyQualifiedEntityName = null, FullyQualifiedJsonEntityName = null };
+        var r = await new ValueValidator<TValue>(value, args.FullyQualifiedEntityName ?? Validation.ValueName, args.FullyQualifiedJsonEntityName, Validation.ValueText, c => c.Common(this), null, null)
+            .ValidateAsync(new ValidationValue<TValue>(value), entityArgs, cancellationToken).ConfigureAwait(false);
+
+        return new ValueValidationContext(r);
     }
 
     /// <inheritdoc/>

@@ -1,4 +1,4 @@
-﻿using CoreEx.Wildcards;
+using CoreEx.Wildcards;
 
 namespace CoreEx.Test.Unit.Wildcards;
 

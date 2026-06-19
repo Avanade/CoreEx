@@ -109,10 +109,9 @@ The repo already exposes several entry points. Use them intentionally.
 | Need | Best fit | Why |
 |---|---|---|
 | Understand an unfamiliar repo or area. | `acquire-codebase-knowledge` | Produces structured codebase documentation and evidence-backed discovery. |
-| Create a new solution shape. | `coreex-project-bootstrap` | Best for solution-level bootstrapping from requirements. |
-| Create a new custom domain. | `/generate-domain` | Best when the agent needs to reason about fields, validation, and event naming. |
-| Create a template-shaped domain quickly. | `/scaffold-domain-from-templates` | Best for deterministic, template-aligned output. |
-| Add capabilities to an existing domain. | `/add-capability` | Best for incremental retrofits such as relay, subscribe, and messaging alignment. |
+| Create a new solution or host shape. | `CoreEx.Template` via `dotnet new coreex*` | Deterministic scaffolding for solution, API, relay, and subscriber projects. |
+| Plan or review a new domain shape before scaffolding. | `CoreEx Expert` | Best when you want sample-aligned advice on host shape, layering, and capability choices before running `dotnet new`. |
+| Add capabilities to an existing domain. | `CoreEx Expert` or normal chat with inspect-first prompts | Best for incremental retrofits such as relay, subscribe, and messaging alignment now that scaffolding is deterministic and capability work is manual. |
 | Start local dependencies or sample runtime. | `init`, `setup`, or Aspire tooling | Best for environment and sample execution workflows. |
 
 ## A Good Question Usually Includes Four Things
@@ -147,7 +146,7 @@ Use existing CoreEx patterns and align to the Product sample.
 ### Learn the architecture
 
 - `Map the Products sample and explain the role of each project.`
-- `Explain how Contracts, Application, Infrastructure, Api, Subscribe, and Outbox.Relay fit together here.`
+- `Explain how Contracts, Application, Infrastructure, Api, Subscribe, and Relay fit together here.`
 - `Show me the request flow for a Product create in the samples.`
 
 ### Learn a practice
@@ -167,7 +166,7 @@ Use existing CoreEx patterns and align to the Product sample.
 
 - `Given this use case, do I need API only, API + relay, API + subscribe, or orchestration?`
 - `What is the smallest CoreEx shape that supports this requirement?`
-- `Should this domain use /generate-domain or /add-capability?`
+- `Which `dotnet new coreex*` templates do I actually need for this domain?`
 
 ### Prepare to implement
 
@@ -183,7 +182,7 @@ Examples:
 
 - `Compare API-only versus API + relay for this use case.`
 - `Compare subscriber host versus orchestration worker for this business flow.`
-- `Compare /generate-domain versus /scaffold-domain-from-templates for this new domain.`
+- `Compare starting with only `dotnet new coreex` versus adding relay or subscriber hosts from day one.`
 - `Compare adding capability retroactively versus scaffolding the full host shape from day one.`
 
 This helps you learn the framework decision points instead of only getting one recommendation.
@@ -236,7 +235,7 @@ Examples:
 
 - `When is outbox sufficient and when do I need orchestration?`
 - `When should I stop at API-only instead of adding subscribers?`
-- `What does /add-capability handle today, and what would still need manual work?`
+- `What do the `dotnet new coreex*` templates cover today, and what still needs manual implementation?`
 
 That helps you understand the framework’s decision boundaries instead of only the happy path.
 

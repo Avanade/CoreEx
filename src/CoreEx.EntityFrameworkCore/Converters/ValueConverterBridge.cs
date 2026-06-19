@@ -1,4 +1,4 @@
-﻿namespace CoreEx.EntityFrameworkCore.Converters;
+namespace CoreEx.EntityFrameworkCore.Converters;
 
 /// <summary>
 /// Provides <see cref="ValueConverterBridge{TModel, TProvider}"/> convenience methods.

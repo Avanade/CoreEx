@@ -1,4 +1,4 @@
-﻿using DbEx.Migration;
+using DbEx.Migration;
 using DbEx.Postgres.Console;
 
 namespace CoreEx.Database.Postgres.Test.Console;

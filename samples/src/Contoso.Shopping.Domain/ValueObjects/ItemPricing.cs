@@ -1,4 +1,4 @@
-﻿namespace Contoso.Shopping.Domain.ValueObjects;
+namespace Contoso.Shopping.Domain.ValueObjects;
 
 public sealed record class ItemPricing
 {

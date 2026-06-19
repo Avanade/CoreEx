@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Localization;
+namespace CoreEx.Localization;
 
 /// <summary>
 /// Provides the base text localization functionality for an <see cref="LText"/>.

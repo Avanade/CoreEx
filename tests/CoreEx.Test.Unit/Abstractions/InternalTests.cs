@@ -1,4 +1,4 @@
-﻿using CoreEx.Abstractions;
+using CoreEx.Abstractions;
 using Microsoft.Extensions.Configuration;
 
 namespace CoreEx.Test.Unit.Abstractions;

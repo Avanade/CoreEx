@@ -1,4 +1,4 @@
-﻿using CoreEx.RefData;
+using CoreEx.RefData;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 using UnitTestEx.Expectations;

@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Events.Subscribing.Exceptions;
+namespace CoreEx.Events.Subscribing.Exceptions;
 
 /// <summary>
 /// Represents an exception that occurs when a message/event is unable to be processed and should be either flagged as or forwarded as a <see cref="ErrorHandling.DeadLetter"/>.

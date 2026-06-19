@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Database;
+namespace CoreEx.Database;
 
 /// <summary>
 /// Extends the <see cref="IUnitOfWork"/> to provide database-specific functionality.

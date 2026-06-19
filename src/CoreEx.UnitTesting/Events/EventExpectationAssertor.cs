@@ -1,4 +1,4 @@
-﻿namespace CoreEx.UnitTesting.Events;
+namespace CoreEx.UnitTesting.Events;
 
 /// <summary>
 /// Provides assertion capabilities for an expected event.

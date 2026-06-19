@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Azure.Messaging.ServiceBus.Abstractions;
+namespace CoreEx.Azure.Messaging.ServiceBus.Abstractions;
 
 public abstract partial class ServiceBusReceiverBase
 {

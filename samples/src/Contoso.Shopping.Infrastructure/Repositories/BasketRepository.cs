@@ -1,4 +1,4 @@
-﻿namespace Contoso.Shopping.Infrastructure.Repositories;
+namespace Contoso.Shopping.Infrastructure.Repositories;
 
 [ScopedService<IBasketRepository>]
 public class BasketRepository(ShoppingEfDb ef) : IBasketRepository
@@ -49,7 +49,7 @@ public class BasketRepository(ShoppingEfDb ef) : IBasketRepository
                     break;
 
                 case PersistenceState.Modified:
-                    itemModel = model.Items!.SingleOrDefault(x => x.Id == basket.Items[i].Id) ?? throw new ConcurrencyException(/* Edge-case: item no longer found */);
+                    itemModel = model.Items!.SingleOrDefault(x => x.Id == basket.Items[i].Id) ?? throw new ConcurrencyException(/* Edge-case: item no longer exists */).WithErrorCode("item-no-longer-exists").WithKey(basket.Items[i].Id);
                     if (!ETag.TryCompare(basket.Items[i], itemModel)) // Ensure item etag matches as EF-caches/uses its own read value.
                         return Result.ConcurrencyError();
 

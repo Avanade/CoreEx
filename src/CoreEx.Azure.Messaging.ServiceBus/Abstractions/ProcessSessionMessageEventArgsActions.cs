@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Azure.Messaging.ServiceBus.Abstractions;
+namespace CoreEx.Azure.Messaging.ServiceBus.Abstractions;
 
 /// <summary>
 /// Provides an implementation of <see cref="IServiceBusMessageActions"/> for the <see cref="ProcessSessionMessageEventArgs"/>.

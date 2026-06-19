@@ -25,4 +25,8 @@ public partial class OrdersDbContext(DbContextOptions<OrdersDbContext> options, 
             e.Navigation(r => r.Items).AutoInclude(true);
         });
     }
+
+    /// <summary>Adds the CodeGen-generated entity models to the <paramref name="modelBuilder"/>.</summary>
+    /// <param name="modelBuilder">The <see cref="ModelBuilder"/>.</param>
+    partial void AddGeneratedModels(ModelBuilder modelBuilder);
 }

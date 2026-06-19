@@ -1,4 +1,4 @@
-﻿using CoreEx.AspNetCore.Idempotency;
+using CoreEx.AspNetCore.Idempotency;
 using CoreEx.Caching;
 using CoreEx.Http;
 using Microsoft.AspNetCore.Mvc;

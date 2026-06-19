@@ -42,7 +42,7 @@ This single test exercises three layers of the intra/inter boundary in one shot.
 | `*.Test.Unit` | Validators and isolated components | `WithGenericTester<EntryPoint>` | None |
 | `*.Test.Api` | Full API host, intra-domain | `WithApiTester<Program>` | DB + Cache; inter-domain HTTP mocked |
 | `*.Test.Subscribe` | Subscribe host, intra-domain | `WithApiTester<Program>` | DB; Service Bus simulated in-process |
-| `*.Test.Outbox.Relay` | Outbox relay host, intra-domain | `WithApiTester<Program>` | DB + real Service Bus |
+| `*.Test.Relay` | Outbox relay host, intra-domain | `WithApiTester<Program>` | DB + real Service Bus |
 | `*.Test.Common` | Shared test data and migration helpers | — (referenced by the above) | — |
 | `Contoso.E2E.Runner` | Cross-domain scenarios | Interactive console | All infra + all hosts running |
 
@@ -207,9 +207,9 @@ public partial class SubscriberTests : WithApiTester<Contoso.Products.Subscribe.
 
 This approach also verifies error handling — `ErrorHandling.CompleteAsSilent` for unrecognised events, `ErrorHandling.CompleteAsInformation` for not-found entities — without needing a live broker.
 
-### Outbox relay tests (`*.Test.Outbox.Relay`)
+### Outbox relay tests (`*.Test.Relay`)
 
-`WithApiTester<Outbox.Relay.Program>` boots the relay host **with its background services running**. Unlike the API and Subscribe tests, this one touches a real Service Bus because relaying *to* the broker is the entire point.
+`WithApiTester<Relay.Program>` boots the relay host **with its background services running**. Unlike the API and Subscribe tests, this one touches a real Service Bus because relaying *to* the broker is the entire point.
 
 The pattern is:
 1. Publish CloudEvents directly to the outbox table.
@@ -217,7 +217,7 @@ The pattern is:
 3. Drain the Service Bus topic subscription and assert the forwarded messages.
 
 ```csharp
-public class RelayTests : WithApiTester<Contoso.Products.Outbox.Relay.Program>
+public class RelayTests : WithApiTester<Contoso.Products.Relay.Program>
 {
     [Test]
     public async Task Outbox_Relay()
@@ -280,7 +280,7 @@ IDs in `data.yaml` are expressed as small integers and converted to GUIDs at loa
 
 ## Response expectations (`Resources/`)
 
-Each `*.Test.Api` and `*.Test.Outbox.Relay` project has a `Resources/` folder containing JSON files for two purposes:
+Each `*.Test.Api` and `*.Test.Relay` project has a `Resources/` folder containing JSON files for two purposes:
 
 | File convention | Purpose |
 |---|---|

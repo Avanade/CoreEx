@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Caching;
+namespace CoreEx.Caching;
 
 /// <summary>
 /// Enables a hybrid cache (i.e. local and/or distributed) as defined by the <see cref="CacheStrategy"/>.

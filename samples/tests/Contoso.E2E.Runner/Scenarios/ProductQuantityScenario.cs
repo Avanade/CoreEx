@@ -1,4 +1,4 @@
-﻿using Azure;
+using Azure;
 
 namespace Contoso.E2E.Runner.Scenarios;
 

@@ -1,4 +1,4 @@
-﻿namespace CoreEx;
+namespace CoreEx;
 
 /// <summary>
 /// Provides standard extensions.

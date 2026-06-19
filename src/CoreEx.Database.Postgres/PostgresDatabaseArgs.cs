@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Database.Postgres;
+namespace CoreEx.Database.Postgres;
 
 /// <summary>
 /// Provides the <see cref="PostgresDatabase"/> arguments.

@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Globalization;
+namespace CoreEx.Globalization;
 
 /// <summary>
 /// Provides the <see cref="TextInfo"/> casing selection.

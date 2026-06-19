@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Azure.Messaging.ServiceBus;
+namespace CoreEx.Azure.Messaging.ServiceBus;
 
 /// <summary>
 /// Defines the <see href="https://learn.microsoft.com/en-us/azure/service-bus-messaging/service-bus-messaging-overview">Azure Service Bus</see> metrics.

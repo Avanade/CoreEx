@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Hosting.Work;
+namespace CoreEx.Hosting.Work;
 
 /// <summary>
 /// Provides the underlying <see cref="WorkState"/> implementation services.

@@ -1,4 +1,4 @@
-﻿namespace CoreEx.AspNetCore.Abstractions;
+namespace CoreEx.AspNetCore.Abstractions;
 
 /// <summary>
 /// Enables the <see cref="WebApi{TResult}"/> request options.

@@ -1,4 +1,4 @@
-﻿# CoreEx.RefData
+# CoreEx.RefData
 
 > Provides the CoreEx reference data framework: typed base classes for reference data items and collections, a hybrid-cache-backed orchestrator, contextual date-validity checking, and a code-serialization collection.
 
@@ -44,3 +44,7 @@ Two concrete base classes cover the most common identity types: `ReferenceData<T
 
 - **[`CoreEx`](../CoreEx/README.md)** - Defines `IReferenceData`, `IReferenceDataCollection`, `IReferenceDataCache`, `ReferenceDataOrchestrator`, and `IHybridCache` consumed throughout.
 - **[`CoreEx.Caching.FusionCache`](../CoreEx.Caching.FusionCache/README.md)** - `FusionHybridCache` is the recommended `IHybridCache` implementation for backing `ReferenceDataHybridCache` in production.
+
+## AI Usage Guide
+
+An [`AGENTS.md`](./AGENTS.md) file is included with this package. AI coding assistants (GitHub Copilot, Claude, Cursor, etc.) that support workspace-injected package documentation will automatically surface concise usage guidance, code examples, and `Do Not` rules for this package without requiring a local CoreEx checkout.

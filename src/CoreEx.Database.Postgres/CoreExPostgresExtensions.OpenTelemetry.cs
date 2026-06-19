@@ -1,4 +1,4 @@
-﻿#pragma warning disable IDE0130 // Namespace does not match folder structure; by design.
+#pragma warning disable IDE0130 // Namespace does not match folder structure; by design.
 namespace OpenTelemetry.Trace;
 #pragma warning restore IDE0130 // Namespace does not match folder structure
 

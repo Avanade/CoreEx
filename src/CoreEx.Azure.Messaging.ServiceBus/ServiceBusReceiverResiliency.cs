@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Azure.Messaging.ServiceBus;
+namespace CoreEx.Azure.Messaging.ServiceBus;
 
 /// <summary>
 /// Provides factory methods for creating standardized resilience pipelines for service bus message receivers (<see cref="ServiceBusReceiverBase"/>) via either the <see cref="ServiceBusReceiverOptions"/>

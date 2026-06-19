@@ -8,9 +8,7 @@
 
 namespace Contoso.Products.Contracts;
 
-/// <summary>
-/// Represents the 'Brand' reference-data contract.
-/// </summary>
+/// <summary>Represents the 'Brand' reference-data contract.</summary>
 [ReferenceData]
 public partial class Brand : ReferenceData<Brand> { }
 

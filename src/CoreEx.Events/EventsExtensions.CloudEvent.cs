@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Events;
+namespace CoreEx.Events;
 
 public static partial class EventsExtensions
 {

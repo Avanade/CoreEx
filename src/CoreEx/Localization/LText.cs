@@ -1,4 +1,4 @@
-﻿namespace CoreEx.Localization;
+namespace CoreEx.Localization;
 
 /// <summary>
 /// Represents a localization agnostic text.
