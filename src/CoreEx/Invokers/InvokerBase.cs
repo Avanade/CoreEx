@@ -1,102 +1,77 @@
-﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
+namespace CoreEx.Invokers;
 
-using CoreEx.Results;
-using System;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Transactions;
-
-namespace CoreEx.Invokers
+/// <summary>
+/// Enables standard functionality to be added to an invocation including tracing (and logging). 
+/// </summary>
+public abstract class InvokerBase : IInvoker
 {
     /// <summary>
-    /// Adds capabilities (wraps) an <see cref="InvokerBase{TOwner, TParam}"/> enabling standard functionality to be added to all <b>business services tier</b> (backend) invocations using a <see cref="InvokerArgs"/> to configure the 
-    /// supporting capabilities (for example, <see cref="InvokerArgs.IncludeTransactionScope">transactions</see> and <see cref="InvokerArgs.EventPublisher">event publishing</see>).
+    /// Initializes a new instance of the <see cref="InvokerBase{TSelf}"/> class.
     /// </summary>
-    [System.Diagnostics.DebuggerStepThrough]
-    public abstract class InvokerBase : InvokerBase<object, InvokerArgs>
+    /// <param name="serviceProvider">The optional <i>root</i> <see cref="IServiceProvider"/> needed where there is no <see cref="ExecutionContext.Current"/> <see cref="ExecutionContext.ServiceProvider"/>.</param>
+    public InvokerBase(IServiceProvider? serviceProvider = null)
     {
-        /// <inheritdoc/>
-        protected override TResult OnInvoke<TResult>(InvokeArgs invokeArgs, object owner, Func<InvokeArgs, TResult> func, InvokerArgs args)
-        {
-            InvokerArgs bia = args;
-            TransactionScope? txn = null;
-            var ot = CoreEx.ExecutionContext.Current.OperationType;
-            if (bia.OperationType.HasValue)
-                CoreEx.ExecutionContext.Current.OperationType = bia.OperationType.Value;
-
-            try
-            {
-                // Initiate a transaction where requested.
-                if (bia.IncludeTransactionScope)
-                    txn = new TransactionScope(bia.TransactionScopeOption, TransactionScopeAsyncFlowOption.Enabled);
-
-                // Invoke the underlying logic.
-                var result = func(invokeArgs);
-
-                // Where using Railway-oriented programming, rollback the transaction where a failure has occurred.
-                if (result is IResult r && r.IsFailure)
-                    return result;
-
-                // Send any published events where applicable.
-                if (bia.EventPublisher != null)
-                    Invoker.RunSync(() => bia.EventPublisher.SendAsync(default));
-
-                // Complete the transaction where requested to orchestrate one.
-                txn?.Complete();
-                return result;
-            }
-            catch (Exception ex)
-            {
-                bia.ExceptionHandler?.Invoke(ex);
-                throw;
-            }
-            finally
-            {
-                txn?.Dispose();
-                CoreEx.ExecutionContext.Current.OperationType = ot;
-            }
-        }
-
-        /// <inheritdoc/>
-        protected async override Task<TResult> OnInvokeAsync<TResult>(InvokeArgs invokeArgs, object owner, Func<InvokeArgs, CancellationToken, Task<TResult>> func, InvokerArgs args, CancellationToken cancellationToken)
-        {
-            InvokerArgs bia = args;
-            TransactionScope? txn = null;
-            var ot = CoreEx.ExecutionContext.Current.OperationType;
-            if (bia.OperationType.HasValue)
-                CoreEx.ExecutionContext.Current.OperationType = bia.OperationType.Value;
-
-            try
-            {
-                // Initiate a transaction where requested.
-                if (bia.IncludeTransactionScope)
-                    txn = new TransactionScope(bia.TransactionScopeOption, TransactionScopeAsyncFlowOption.Enabled);
-
-                // Invoke the underlying logic.
-                var result = await func(invokeArgs, cancellationToken).ConfigureAwait(false);
-
-                // Where using Railway-oriented programming, rollback the transaction where a failure has occurred.
-                if (result is IResult r && r.IsFailure)
-                    return result;
-
-                // Send any published events where applicable.
-                if (bia.EventPublisher != null)
-                    await bia.EventPublisher.SendAsync(cancellationToken).ConfigureAwait(false);
-
-                // Complete the transaction where requested to orchestrate one.
-                txn?.Complete();
-                return result;
-            }
-            catch (Exception ex)
-            {
-                bia.ExceptionHandler?.Invoke(ex);
-                throw;
-            }
-            finally
-            {
-                txn?.Dispose();
-                CoreEx.ExecutionContext.Current.OperationType = ot;
-            }
-        }
+        Type = GetType();
+        Name = InvokerNameAttribute.GetName(Type);
+        ServiceProvider = serviceProvider;
+        Logger = serviceProvider?.GetService<ILoggerFactory>()?.CreateLogger(Type);
+        Configuration = serviceProvider?.GetService<IConfiguration>();
     }
+
+    /// <inheritdoc/>
+    public Type Type { get; }
+
+    /// <inheritdoc/>
+    public string Name { get; }
+
+    /// <summary>
+    /// Gets the optional <see cref="IServiceProvider"/>.
+    /// </summary>
+    public IServiceProvider? ServiceProvider { get; }
+
+    /// <inheritdoc/>
+    public ILogger? Logger { get; }
+
+    /// <inheritdoc/>
+    public IConfiguration? Configuration { get; }
+
+    /// <inheritdoc/>
+    /// <remarks>Defaults to <see cref="ActivityKind.Internal"/>.</remarks>
+    public virtual ActivityKind ActivityKind => ActivityKind.Internal;
+
+    /// <inheritdoc/>
+    public virtual bool IsTracingDisabled => false;
+
+    /// <inheritdoc/>
+    public virtual bool IsLoggingDisabled => false;
+
+    /// <inheritdoc/>
+    void IInvoker.OnActivityStart(InvokerTracer args) => OnActivityStart(args);
+
+    /// <inheritdoc/>
+    void IInvoker.OnActivityException(InvokerTracer args, Exception exception) => OnActivityException(args, exception);
+
+    /// <inheritdoc/>
+    void IInvoker.OnActivityComplete(InvokerTracer args) => OnActivityComplete(args);
+
+    /// <summary>
+    /// Invoked on <see cref="Activity"/> start.
+    /// </summary>
+    /// <param name="args">The <see cref="InvokerTracer"/>.</param>
+    /// <remarks>Where overriding the base <see cref="OnActivityStart"/> <b>must</b> be invoked.</remarks>
+    protected virtual void OnActivityStart(InvokerTracer args) { }
+
+    /// <summary>
+    /// Invoked where the invocation resulted in an <paramref name="exception"/> for an <see cref="Activity"/>.
+    /// </summary>
+    /// <remarks>Where overriding the base <see cref="OnActivityException"/> <b>must</b> be invoked.
+    /// <para><see cref="OnActivityComplete(InvokerTracer)"/> and <see cref="OnActivityException(InvokerTracer, Exception)"/> are mutually exclusive.</para></remarks>
+    protected virtual void OnActivityException(InvokerTracer args, Exception exception) { }
+
+    /// <summary>
+    /// Invoked where the invocation completes successfully for an <see cref="Activity"/>.
+    /// </summary>
+    /// <remarks>Where overriding the base <see cref="OnActivityComplete"/> <b>must</b> be invoked.
+    /// <para><see cref="OnActivityComplete(InvokerTracer)"/> and <see cref="OnActivityException(InvokerTracer, Exception)"/> are mutually exclusive.</para></remarks>
+    protected virtual void OnActivityComplete(InvokerTracer args) { }
 }

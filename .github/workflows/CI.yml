@@ -2,70 +2,161 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'samples/**'
+      - 'gen/**'
+      - 'servicebus/**'
+      - 'Directory.Packages.props'
+      - 'docker-compose.yml'
+      - '*.slnf'
+      - '*.slnx'
+      - '.config/dotnet-tools.json'
+      - '.github/workflows/CI.yml'
   pull_request:
-    branches: [ main ]
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'samples/**'
+      - 'gen/**'
+      - 'servicebus/**'
+      - 'Directory.Packages.props'
+      - 'docker-compose.yml'
+      - '*.slnf'
+      - '*.slnx'
+      - '.config/dotnet-tools.json'
+      - '.github/workflows/CI.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+permissions:
+  contents: read
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    # ubuntu-18.04 # cosmos emulator doesn't work on ubuntu 20 and 22: https://github.com/Qayme/qayme-action-cosmosdb-emulator
-
-    services:
-      # cosmos: # tests fail when cosmos has less than 4 CPUs assigned, but github free runners have only 2
-      #   image: mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator
-      #   ports:
-      #     - 8081:8081
-      #     - 10251:10251
-      #     - 10252:10252
-      #     - 10253:10253
-      #     - 10254:10254
-      #   env:
-      #     AZURE_COSMOS_EMULATOR_PARTITION_COUNT: 20
-      #     AZURE_COSMOS_EMULATOR_ENABLE_DATA_PERSISTENCE: false
-      #   options: -m 4g --cpus=2.0
-      
-      sql:
-       image: mcr.microsoft.com/mssql/server:2019-latest
-       ports:
-         - 1433:1433
-       env:
-         ACCEPT_EULA: Y
-         SA_PASSWORD: sAPWD23.^0
+    timeout-minutes: 60
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
+
+    - name: Start containers
+      run: docker compose up -d
 
     - name: Setup .NET
-      uses: actions/setup-dotnet@v1
+      uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: | 
-          6.0.x
-          8.0.x
-          9.0.x
+        dotnet-version: |
+          8.x
+          9.x
+          10.x
 
-    - name: Restore dependencies
-      run: dotnet restore
-      
-    - name: Build
-      run: dotnet build --no-restore
- 
-    - name: Test
-      run: dotnet test --filter "(TestCategory!=WithDB)&(TestCategory!=WithCosmos)&(TestCategory!=WithSolace)" --no-build --verbosity normal /p:CollectCoverage=true /p:Exclude="[CoreEx.TestFunction]*" /p:CoverletOutputFormat=lcov /p:CoverletOutput=./coverage/lcov.info
+    - name: Cache NuGet packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.nuget/packages
+        key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', '**/Directory.Packages.props') }}
+        restore-keys: nuget-${{ runner.os }}-
 
-    - name: Set EnvVar for Test
+    - name: Restore .NET tools
+      run: dotnet tool restore
+
+    - name: Restore (all)
+      run: dotnet restore CoreEx.slnx --verbosity minimal
+
+    # --- Core ---
+
+    - name: Build core
+      run: dotnet build CoreEx.Core.slnf --no-restore --configuration Release
+
+    - name: Test core (parallel)
+      run: dotnet test CoreEx.Core.Test.Parallel.slnf --no-build --configuration Release --logger trx --collect "XPlat Code Coverage" --results-directory coverage/core
+
+    - name: Test core (sequential)
+      run: dotnet test CoreEx.Core.Test.Sequential.slnf --no-build --configuration Release --logger trx --collect "XPlat Code Coverage" --results-directory coverage/core -m:1 -p:TestTfmsInParallel=false -p:BuildInParallel=false
+
+    - name: Upload core test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: core-test-results
+        path: "coverage/core/**/*.trx"
+        retention-days: 30
+
+    # --- Samples ---
+
+    - name: Build samples
+      run: dotnet build CoreEx.Samples.Build.slnf --no-restore --configuration Release
+
+    - name: CodeGen tool (samples/src/Contoso.Products.CodeGen)
+      working-directory: samples/src/Contoso.Products.CodeGen
+      run: dotnet run refdata --no-build --configuration Release -f net10.0 --expect-no-changes
+
+    - name: CodeGen tool (samples/src/Contoso.Shopping.CodeGen)
+      working-directory: samples/src/Contoso.Shopping.CodeGen
+      run: dotnet run refdata --no-build --configuration Release -f net10.0 --expect-no-changes
+
+    - name: Database tool (samples/src/Contoso.Products.Database)
+      working-directory: samples/src/Contoso.Products.Database
+      run: dotnet run all --no-build --configuration Release -f net10.0 --expect-no-changes
+
+    - name: Database tool (samples/src/Contoso.Shopping.Database)
+      working-directory: samples/src/Contoso.Shopping.Database
+      run: dotnet run all --no-build --configuration Release -f net10.0 --expect-no-changes
+
+    - name: Database tool (samples/src/Contoso.Orders.Database)
+      working-directory: samples/src/Contoso.Orders.Database
+      run: dotnet run all --no-build --configuration Release -f net10.0 --expect-no-changes
+
+    - name: Test samples
+      run: dotnet test CoreEx.Samples.Test.slnf --no-build --configuration Release --logger trx --collect "XPlat Code Coverage" --results-directory coverage/samples -m:1 -p:TestTfmsInParallel=false -p:BuildInParallel=false
+
+    - name: Upload samples test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: samples-test-results
+        path: "coverage/samples/**/*.trx"
+        retention-days: 30
+
+    # --- Coverage ---
+
+    - name: Merge and generate coverage report
+      if: always()
       run: |
-        echo "ConnectionStrings__Database=Data Source=localhost,1433;Initial Catalog=My.Hr;User id=sa;Password=sAPWD23.^0;TrustServerCertificate=true" >> $GITHUB_ENV
+        dotnet tool run reportgenerator \
+          -reports:"coverage/**/coverage.cobertura.xml" \
+          -targetdir:"coverage/report" \
+          -reporttypes:"HtmlInline_AzurePipelines;Cobertura;Badges" \
+          -assemblyfilters:"-*Test*;-*E2E*"
 
-    - name: Create/Migrate DB
-      run: dotnet run all --project ./samples/My.Hr/My.Hr.Database --connection-varname ConnectionStrings__Database
+    - name: Upload coverage report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report
+        path: coverage/report
+        retention-days: 30
 
-    - name: Test With DB
-      run: dotnet test --filter TestCategory=WithDB --no-build --verbosity normal /p:CollectCoverage=true /p:Exclude="[CoreEx.TestFunction]*" /p:CoverletOutputFormat=lcov /p:CoverletOutput=./coverage/lcov2.info
+    # --- Cleanup ---
 
-    - name: Test With Cosmos DB TestCategory=WithCosmos
-      run: dotnet test --filter Category=WithCosmos --no-build --verbosity normal /p:CollectCoverage=true /p:Exclude="[CoreEx.TestFunction]*" /p:CoverletOutputFormat=lcov /p:CoverletOutput=./coverage/lcov3.info
-      if: ${{ false }}
+    - name: Capture container logs on failure
+      if: failure()
+      run: docker compose logs --no-color > container-logs.txt 2>&1
 
-    #- name: Test Docker Build
-    #  run: docker-compose -f docker-compose.myHr.yml -f docker-compose.myHr.override.yml build --build-arg LOCAL=true
+    - name: Upload container logs on failure
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: container-logs
+        path: container-logs.txt
+        retention-days: 30
+
+    - name: Stop containers
+      if: always()
+      run: docker compose down

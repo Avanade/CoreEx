@@ -1,35 +1,28 @@
-﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
+namespace CoreEx.Validation.Clauses;
 
-using CoreEx.Abstractions.Reflection;
-using System;
-using System.Linq.Expressions;
-
-namespace CoreEx.Validation.Clauses
+/// <summary>
+/// Represents a depends on clause; in that specified property (<paramref name="dependsOnExpression"/>) of the entity must have a non-default value, and not have a validation error, to continue.
+/// </summary>
+/// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
+/// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
+/// <typeparam name="TDependsOnProperty">The depends on property <see cref="Type"/>.</typeparam>
+/// <param name="dependsOnExpression">The <see cref="Expression"/> to reference the depends on entity property.</param>
+public sealed class DependsOnClause<TEntity, TProperty, TDependsOnProperty>(Expression<Func<TEntity, TDependsOnProperty>> dependsOnExpression) : IPropertyClause<TEntity, TProperty> where TEntity : class
 {
-    /// <summary>
-    /// Represents a depends on test clause; in that another specified property of the entity must have a non-default value (and not have a validation error) to continue.
-    /// </summary>
-    /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
-    /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
-    /// <param name="dependsOnExpression">The <see cref="Expression"/> to reference the depends on entity property.</param>
-    public class DependsOnClause<TEntity, TProperty>(Expression<Func<TEntity, TProperty>> dependsOnExpression) : IPropertyRuleClause<TEntity, TProperty> where TEntity : class
+    private readonly IPropertyRuntimeMetadata _dependsOn = RuntimeMetadata.GetForExpression(dependsOnExpression.ThrowIfNull());
+
+    /// <inheritdoc/>
+    public Task<bool> CheckAsync(PropertyContext<TEntity, TProperty> context, CancellationToken cancellationToken)
     {
-        private readonly PropertyExpression<TEntity, TProperty> _dependsOn = PropertyExpression.Create(dependsOnExpression.ThrowIfNull(nameof(dependsOnExpression)));
+        // Make sure not the same property.
+        if (_dependsOn.Name == context.Name)
+            throw new InvalidOperationException($"The depends on property '{_dependsOn.Name}' cannot be the same as the property being validated.");
 
-        /// <summary>
-        /// Checks the clause.
-        /// </summary>
-        /// <param name="context">The <see cref="PropertyContext{TEntity, TProperty}"/>.</param>
-        /// <returns><c>true</c> where validation is to continue; otherwise, <c>false</c> to stop.</returns>
-        public bool Check(IPropertyContext context)
-        {
-            // Do not continue where the depends on property is in error.
-            if (context.ThrowIfNull(nameof(context)).Parent.HasError(context.CreateFullyQualifiedPropertyName(_dependsOn.Name)))
-                return false;
+        // Do not continue where the depends on property is in error.
+        if (context.HasError(context.CreateFullyQualifiedPropertyName(_dependsOn.Name)))
+            return Task.FromResult(false);
 
-            // Check depends on value to continue.
-            object? value = _dependsOn.GetValue((TEntity)context.Parent.Value!);
-            return !(System.Collections.Comparer.Default.Compare(value, default(TProperty)!) == 0);
-        }
+        // Check depends on value to continue.
+        return Task.FromResult(!_dependsOn.IsDefault(context.Entity));
     }
 }

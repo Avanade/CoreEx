@@ -1,138 +1,236 @@
-﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
+namespace CoreEx.Validation.Rules;
 
-using CoreEx.Abstractions.Reflection;
-using System;
-using System.Collections;
-using System.Threading;
-using System.Threading.Tasks;
-
-namespace CoreEx.Validation.Rules
+/// <summary>
+/// Provides a dictionary (<see cref="IDictionary"/>) validation including item-based validation.
+/// </summary>
+/// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
+/// <typeparam name="TProperty">The property <see cref="Type"/> (<see cref="IDictionary{TKey, TValue}"/>).</typeparam>
+/// <typeparam name="TKey">The key <see cref="Type"/>.</typeparam>
+/// <typeparam name="TValue">The value <see cref="Type"/>.</typeparam>
+/// <remarks>The dictionary validation constrains the key and value to being defined using a <see langword="notnull"/> to limit usage challenges with this library (lack of generic covariance) limits native
+/// support. However, having said that, a <see cref="Dictionary{TKey, TValue}"/> does not support null keys anyway.</remarks>
+public sealed class DictionaryRule<TEntity, TProperty, TKey, TValue> : PropertyRuleBase<TEntity, TProperty> where TEntity : class where TProperty : IDictionary<TKey, TValue> where TKey : notnull where TValue : notnull
 {
+    private readonly Func<PropertyContext<TEntity, TProperty>, int>? _minCount;
+    private readonly Func<PropertyContext<TEntity, TProperty>, int?>? _maxCount;
+    private readonly With _with;
+
     /// <summary>
-    /// Provides dictionary validation including <see cref="MinCount"/> and <see cref="MaxCount"/>.
+    /// Initializes a new instance of the <see cref="DictionaryRule{TEntity, TProperty, TKey, TValue}"/> class.
     /// </summary>
-    /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
-    /// <typeparam name="TProperty">The dictionary property <see cref="Type"/>.</typeparam>
-    public class DictionaryRule<TEntity, TProperty> : ValueRuleBase<TEntity, TProperty> where TEntity : class where TProperty : IDictionary?
+    /// <param name="minCount">The minimum count.</param>
+    /// <param name="maxCount">The maximum count.</param>
+    /// <param name="with">Extends configuration <see cref="With"/>.</param>
+    public DictionaryRule(Func<PropertyContext<TEntity, TProperty>, int>? minCount, Func<PropertyContext<TEntity, TProperty>, int?>? maxCount, Func<With, With>? with)
     {
-        private readonly Type _keyType;
-        private readonly Type _valueType;
-        private IDictionaryRuleItem? _item;
+        _minCount = minCount;
+        _maxCount = maxCount;
+
+        var w = new With(this);
+        _with = with?.Invoke(w) ?? w;
+    }
+
+    /// <inheritdoc/>
+    protected async override Task OnValidateAsync(PropertyContext<TEntity, TProperty> context, CancellationToken cancellationToken)
+    {
+        var minCount = _minCount?.Invoke(context) ?? 0;
+        var maxCount = _maxCount?.Invoke(context);
+
+        if (minCount < 0)
+            throw new InvalidOperationException("Minimum count must not be negative.");
+
+        if (maxCount.HasValue)
+        {
+            if (maxCount.Value < 0)
+                throw new InvalidOperationException("Maximum count must not be negative.");
+
+            if (maxCount.Value < minCount)
+                throw new InvalidOperationException("Maximum count must not be less than minimum count.");
+        }
+
+        await _with.ValidateAsync(context, minCount, maxCount, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Provides additional configuration options for the <see cref="DictionaryRule{TEntity, TProperty, TKey, TValue}"/>.
+    /// </summary>
+    public sealed class With
+    {
+        private readonly DictionaryRule<TEntity, TProperty, TKey, TValue> _rule;
+        private Func<ValidationArgs, IValidatorEx<TKey>>? _getKeyValidator;
+        private Func<ValidationArgs, IValidatorEx<TValue>>? _getValueValidator;
+        private bool _hasAllowNullValues;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="DictionaryRule{TEntity, TProperty}"/> class.
+        /// Initializes a new instance of the <see cref="With"/> class.
         /// </summary>
-        public DictionaryRule()
+        internal With(DictionaryRule<TEntity, TProperty, TKey, TValue> rule) => _rule = rule;
+
+        /// <summary>
+        /// Indicates that entries can have a <see langword="null"/> <see cref="DictionaryEntry.Value"/>.
+        /// </summary>
+        /// <returns>The <see cref="With"/> to support fluent-style method-chaining.</returns>
+        public With AllowNullValues()
         {
-            var (kt, vt) = TypeReflector.GetDictionaryType(typeof(TProperty));
-            _keyType = kt!;
-            _valueType = vt!;
+            _hasAllowNullValues = true;
+            return this;
         }
 
         /// <summary>
-        /// Indicates whether the underlying dictionary key can be null.
+        /// Sets the specified <b>Key</b> <paramref name="configure"/>.
         /// </summary>
-        public bool AllowNullKeys { get; set; }
+        /// <param name="configure">The action to configure the <see cref="InlineValidator{TKey}.Validator"/>.</param>
+        /// <returns>The <see cref="With"/> to support fluent-style method-chaining.</returns>
+        public With WithKeyValidator(Action<InlineValidator<TKey>.Validator>? configure) => WithKeyValidator(ValidatorStrings.KeyText, configure);
 
         /// <summary>
-        /// Indicates whether the underlying dictionary value can be null.
+        /// Sets the specified <b>Key</b> <paramref name="configure"/>.
         /// </summary>
-        public bool AllowNullValues { get; set; }
-
-        /// <summary>
-        /// Gets or sets the minimum count;
-        /// </summary>
-        public int MinCount { get; set; }
-
-        /// <summary>
-        /// Gets or sets the maximum count.
-        /// </summary>
-        public int? MaxCount { get; set; }
-
-        /// <summary>
-        /// Gets or sets the dictionary item validation configuration.
-        /// </summary>
-        public IDictionaryRuleItem? Item
+        /// <param name="text">The property text.</param>
+        /// <param name="configure">The action to configure the <see cref="InlineValidator{TKey}.Validator"/>.</param>
+        /// <returns>The <see cref="With"/> to support fluent-style method-chaining.</returns>
+        public With WithKeyValidator(LText text, Action<InlineValidator<TKey>.Validator>? configure)
         {
-            get => _item;
+            _getKeyValidator = _getKeyValidator is null
+                ? _ => new ValidatingInlineValidator<TKey>(configure).WithName(Validation.KeyName).WithText(text)
+                : throw new InvalidOperationException("The dictionary rule can only have one Key validator.");
 
-            set
-            {
-                if (value == null)
-                {
-                    _item = value;
-                    return;
-                }
-
-                if (_keyType != value.KeyType)
-                    throw new ArgumentException($"A DictionaryRule TProperty KeyType '{_keyType.Name}' must be the same as the Key {value.KeyType.Name}.");
-
-                if (_valueType != value.ValueType)
-                    throw new ArgumentException($"A DictionaryRule TProperty ValueType '{_valueType.Name}' must be the same as the Value {value.ValueType.Name}.");
-
-                _item = value;
-            }
+            return this;
         }
 
         /// <summary>
-        /// Overrides the <b>Check</b> method and will not validate where performing a shallow validation.
+        /// Sets the specified <b>Value</b> <paramref name="configure"/>.
         /// </summary>
-        /// <param name="context">The <see cref="PropertyContext{TEntity, TProperty}"/>.</param>
-        /// <returns><c>true</c> where validation is to continue; otherwise, <c>false</c> to stop.</returns>
-        protected override bool Check(PropertyContext<TEntity, TProperty> context) => !context.ThrowIfNull(nameof(context)).Parent.ShallowValidation && base.Check(context);
+        /// <returns>The <see cref="With"/> to support fluent-style method-chaining.</returns>
+        public With WithValueValidator(Action<InlineValidator<TValue>.Validator>? configure) => WithValueValidator(new ValidatingInlineValidator<TValue>(configure));
 
-        /// <inheritdoc/>
-        protected override async Task ValidateAsync(PropertyContext<TEntity, TProperty> context, CancellationToken cancellationToken = default)
+        /// <summary>
+        /// Sets the specified <b>Value</b> <paramref name="validator"/>.
+        /// </summary>
+        /// <returns>The <see cref="With"/> to support fluent-style method-chaining.</returns>
+        public With WithValueValidator(IValidatorEx<TValue> validator)
         {
-            if (context.Value == null)
-                return;
+            _getValueValidator = _getValueValidator is not null ? throw new InvalidOperationException("The dictionary rule can only have one Value validator.") : _ => validator.ThrowIfNull();
+            return this;
+        }
 
-            // Iterate through the dictionary validating each of the items.
-            var i = 0;
+        /// <summary>
+        /// Sets the specified <b>Value</b> <typeparamref name="TValidator"/> service (resolved at validation runtime).
+        /// </summary>
+        /// <typeparam name="TValidator">The property validator <see cref="Type"/>.</typeparam>
+        /// <returns>The <see cref="With"/> to support fluent-style method-chaining.</returns>
+        public With WithValueValidator<TValidator>() where TValidator : IValidatorEx<TValue>
+        {
+            _getValueValidator = _getValueValidator is not null ? throw new InvalidOperationException("The dictionary rule can only have one Value validator.") : args => CoreEx.Validation.Validator.Get<TValidator>(args.ServiceProvider);
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the specified keyed <b>Value</b> <typeparamref name="TValidator"/> service (resolved at validation runtime).
+        /// </summary>
+        /// <typeparam name="TValidator">The property validator <see cref="Type"/>.</typeparam>
+        /// <param name="serviceKey">The service key.</param>
+        /// <returns>The <see cref="With"/> to support fluent-style method-chaining.</returns>
+        public With WithValueKeyedValidator<TValidator>(object? serviceKey) where TValidator : IValidatorEx<TValue>
+        {
+            _getValueValidator = _getValueValidator is not null ? throw new InvalidOperationException("The dictionary rule can only have one Value validator.") : args => CoreEx.Validation.Validator.GetKeyed<TValidator>(serviceKey, args.ServiceProvider);
+            return this;
+        }
+
+        /// <summary>
+        /// Validates each item within the dictionary.
+        /// </summary>
+        /// <param name="context"></param>
+        /// <param name="minCount">The minimum count.</param>
+        /// <param name="maxCount">The maximum count.</param>
+        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+        internal async Task ValidateAsync(PropertyContext<TEntity, TProperty> context, int minCount, int? maxCount, CancellationToken cancellationToken)
+        {
             var hasNullKey = false;
             var hasNullValue = false;
-            foreach (var item in context.Value)
+
+            // Validate each item in the dictionary.
+            foreach (var kvp in context.Value)
             {
-                var de = (DictionaryEntry)item;
+                bool hasKeyError = false;
 
-                // Create the context args.
-                var args = context.CreateValidationArgs();
-                var indexer = $"[{de.Key}]";
-                args.FullyQualifiedEntityName += indexer;
-                args.FullyQualifiedJsonEntityName += indexer;
-                i++;
-
-                if (!AllowNullKeys && de.Key == null)
+                // Validate the key.
+                if (kvp.Key is null)
                     hasNullKey = true;
-
-                if (!AllowNullValues && de.Value == null)
-                    hasNullValue = true;
-
-                // Validate and merge.
-                if (de.Key != null && Item?.KeyValidator != null)
+                else if (_getKeyValidator is not null)
                 {
-                    var r = await Item.KeyValidator.ValidateAsync(de.Key, args, cancellationToken).ConfigureAwait(false);
+                    var args = context.CreateValidationArgs();
+
+                    // Where the key is a string, then set the name on the validator to support better error messages.
+                    var kv = _getKeyValidator.Invoke(args);
+                    if (kvp.Key is string s && !string.IsNullOrEmpty(s) && kv is ValidatingInlineValidator<TKey> vilv)
+                        vilv.WithName(s);
+
+                    // Validate the key and merge the result.
+                    var r = await kv.ValidateAsync(kvp.Key, args, cancellationToken).ConfigureAwait(false);
+                    hasKeyError = r.HasErrors;
                     context.MergeResult(r);
                 }
 
-                if (de.Value != null && Item?.ValueValidator != null)
+                // Validate the value (only where key is considered valid; i.e. not null and passes validation where a validator is specified).
+                if (!hasKeyError)
                 {
-                    var r = await Item.ValueValidator.ValidateAsync(de.Value, args, cancellationToken).ConfigureAwait(false);
-                    context.MergeResult(r);
+                    if (kvp.Value is null)
+                        hasNullValue = true;
+                    else if (_getValueValidator is not null)
+                    {
+                        var args = CreateValidationArgs(context, kvp.Key?.ToString());
+
+                        var last = context.GetDictionaryKeySafe();
+                        context.SetDictionaryKey(kvp.Key);
+
+                        // Validate the value and merge the result.
+                        try
+                        {
+                            var vv = _getValueValidator.Invoke(args);
+                            var r = vv is ValidatingInlineValidator<TValue> vilv
+                                ? await vilv.ValidateEntityAsync(kvp.Value, args, cancellationToken).ConfigureAwait(false)
+                                : await vv.ValidateAsync(kvp.Value, args, cancellationToken).ConfigureAwait(false);
+
+                            context.MergeResult(r);
+                        }
+                        finally
+                        {
+                            context.SetDictionaryKey(last);
+                        }
+                    }
                 }
             }
 
+            // Emit the key and/or value error(s).
             if (hasNullKey)
-                context.CreateErrorMessage(ErrorText ?? ValidatorStrings.DictionaryNullKeyFormat);
+                context.AddError(_rule.ErrorText ?? ValidatorStrings.DictionaryNullKeyFormat);
 
-            if (hasNullValue)
-                context.CreateErrorMessage(ErrorText ?? ValidatorStrings.DictionaryNullValueFormat);
+            if (hasNullValue && !_hasAllowNullValues)
+                context.AddError(_rule.ErrorText ?? ValidatorStrings.DictionaryNullValueFormat);
 
             // Check the length/count.
-            if (i < MinCount)
-                context.CreateErrorMessage(ErrorText ?? ValidatorStrings.MinCountFormat, MinCount);
-            else if (MaxCount.HasValue && i > MaxCount.Value)
-                context.CreateErrorMessage(ErrorText ?? ValidatorStrings.MaxCountFormat, MaxCount);
+            var count = context.Value.Count;
+            if (count < minCount)
+                context.AddError(_rule.ErrorText ?? ValidatorStrings.MinCountFormat, minCount);
+            else if (maxCount.HasValue && count > maxCount.Value)
+                context.AddError(_rule.ErrorText ?? ValidatorStrings.MaxCountFormat, maxCount);
+        }
+
+        /// <summary>
+        /// Creates the <see cref="ValidationArgs"/> for the specified <paramref name="key"/>.
+        /// </summary>
+        /// <param name="context">The <see cref="PropertyContext{TEntity, TProperty}"/>.</param>
+        /// <param name="key">The dictionary key.</param>
+        /// <returns>The <see cref="ValidationArgs"/>.</returns>
+        private static ValidationArgs CreateValidationArgs(PropertyContext<TEntity, TProperty> context, string? key)
+        {
+            var args = context.CreateValidationArgs();
+            args.FullyQualifiedEntityName += $"[{(key ?? "null")}]";
+
+            // Note: an indexer for a dictionary from a JSON perspective is simply a property name; i.e. no square brackets.
+            args.FullyQualifiedJsonEntityName += $".{key ?? "null"}";
+            return args;
         }
     }
 }

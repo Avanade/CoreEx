@@ -1,0 +1,16 @@
+@Contoso.Products.Relay_HostAddress = https://localhost:7242
+
+GET {{Contoso.Products.Relay_HostAddress}}/hosted-services/postgres-outbox-relay-00/status
+Accept: application/json
+
+###
+
+POST {{Contoso.Products.Relay_HostAddress}}/hosted-services/postgres-outbox-relay-00/pause
+
+###
+
+POST {{Contoso.Products.Relay_HostAddress}}/hosted-services/postgres-outbox-relay-00/resume
+
+###
+
+GET {{Contoso.Products.Relay_HostAddress}}/health/ready/detailed

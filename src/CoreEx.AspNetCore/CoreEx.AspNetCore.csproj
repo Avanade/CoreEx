@@ -1,25 +1,17 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>net6.0;net8.0;net9.0</TargetFrameworks>
-    <RootNamespace>CoreEx.AspNetCore</RootNamespace>
-    <Product>CoreEx</Product>
-    <Title>CoreEx ASP.NET Core backend Extensions.</Title>
-    <Description>CoreEx ASP.NET backend Extensions.</Description>
-    <PackageTags>coreex api aspnet entity microservices</PackageTags>
-    <OpenApiGenerateDocuments>false</OpenApiGenerateDocuments>
-    
+    <Title>CoreEx AspNetCore .NET extensions.</Title>
+    <Description>Core .NET extensions and abstractions for the development of backend web-api services.</Description>
+    <PackageTags>coreex microservices domain-based event-driven railway-oriented reference-data aspnet webapi mvc http idempotency etag if-match </PackageTags>
   </PropertyGroup>
-
-  <Import Project="..\..\Common.targets" />
-
+  
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <PackageReference Include="Swashbuckle.AspNetCore" Version="7.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\CoreEx\CoreEx.csproj" />
   </ItemGroup>
-
 </Project>

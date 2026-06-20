@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Roslyn": {
+      "commandName": "DebugRoslynComponent",
+      "targetProject": "..\\..\\samples\\src\\Contoso.Products.Contracts\\Contoso.Products.Contracts.csproj"
+    }
+  }
+}

@@ -1,446 +1,147 @@
-﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
+namespace CoreEx.EntityFrameworkCore;
 
-using CoreEx.Entities;
-using CoreEx.RefData;
-using CoreEx.Results;
-
-namespace CoreEx.EntityFrameworkCore
+/// <summary>
+/// Provides <see href="https://learn.microsoft.com/en-us/ef/core/">Entity Framework Core</see> extensions.
+/// </summary>
+public static partial class EfDbExtensions
 {
     /// <summary>
-    /// Provides the extended <b>Entity Framework</b> extension methods.
+    /// Creates a <typeparamref name="TColl"/> from a <typeparamref name="TSource"/> <see cref="IQueryable{TSource}"/> using the specified <paramref name="mapper"/>.
     /// </summary>
-    public static class EfDbExtensions
+    /// <typeparam name="TSource">The source <see cref="Type"/>.</typeparam>
+    /// <typeparam name="TColl">The item collection <see cref="Type"/>.</typeparam>
+    /// <typeparam name="TItem">The item <see cref="Type"/>.</typeparam>
+    /// <param name="query">The <see cref="IQueryable{TSource}"/>.</param>
+    /// <param name="mapper">The mapping <see cref="Func{TSource, TItem}"/>.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+    public static async Task<TColl> ToMappedItemsAsync<TSource, TColl, TItem>(this IQueryable<TSource> query, Func<TSource, TItem> mapper, CancellationToken cancellationToken = default) where TColl : ICollection<TItem>, new()
     {
-        /// <summary>
-        /// Creates an <see cref="EfDbQuery{TModel}"/> to enable select-like capabilities.
-        /// </summary>
-        /// <typeparam name="TModel">The entity framework model <see cref="Type"/>.</typeparam>
-        /// <param name="efDb">The <see cref="IEfDb"/>.</param>
-        /// <param name="query">The function to further define the query.</param>
-        /// <param name="noTracking">Optionally override the specified/default <see cref="EfDbArgs.QueryNoTracking"/>.</param>
-        /// <returns>A <see cref="EfDbQuery{T, TModel}"/>.</returns>
-        public static EfDbQuery<TModel> Query<TModel>(this IEfDb efDb, Func<IQueryable<TModel>, IQueryable<TModel>>? query = null, bool? noTracking = null) where TModel : class, new()
-        {
-            var ea = new EfDbArgs(efDb.DbArgs);
-            if (noTracking.HasValue)
-                ea.QueryNoTracking = noTracking.Value;
+        mapper.ThrowIfNull();
 
-            return efDb.Query<TModel>(ea, query);
+        var q = query.ThrowIfNull();
+        var items = new TColl();
+
+        await foreach (var source in q.AsAsyncEnumerable().WithCancellation(cancellationToken).ConfigureAwait(false))
+        {
+            items.Add(mapper(source));
         }
 
-        /// <summary>
-        /// Creates an <see cref="EfDbQuery{T, TModel}"/> to enable select-like capabilities.
-        /// </summary>
-        /// <typeparam name="T">The resultant <see cref="Type"/>.</typeparam>
-        /// <typeparam name="TModel">The entity framework model <see cref="Type"/>.</typeparam>
-        /// <param name="efDb">The <see cref="IEfDb"/>.</param>
-        /// <param name="query">The function to further define the query.</param>
-        /// <param name="noTracking">Optionally override the specified/default <see cref="EfDbArgs.QueryNoTracking"/>.</param>
-        /// <returns>A <see cref="EfDbQuery{T, TModel}"/>.</returns>
-        public static EfDbQuery<T, TModel> Query<T, TModel>(this IEfDb efDb, Func<IQueryable<TModel>, IQueryable<TModel>>? query = null, bool? noTracking = null) where T : class, IEntityKey, new() where TModel : class, new()
-        {
-            var ea = new EfDbArgs(efDb.DbArgs);
-            if (noTracking.HasValue)
-                ea.QueryNoTracking = noTracking.Value;
-
-            return efDb.Query<T, TModel>(ea, query);
-        }
-
-        #region Standard
-
-        /// <summary>
-        /// Gets the entity for the specified <paramref name="key"/> mapping from <typeparamref name="TModel"/> to <typeparamref name="T"/>.
-        /// </summary>
-        /// <typeparam name="T">The resultant <see cref="Type"/>.</typeparam>
-        /// <typeparam name="TModel">The entity framework model <see cref="Type"/>.</typeparam>
-        /// <param name="efDb">The <see cref="IEfDb"/>.</param>
-        /// <param name="args">The <see cref="EfDbArgs"/>.</param>
-        /// <param name="key">The key.</param>
-        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        /// <returns>The entity value where found; otherwise, <c>null</c>.</returns>
-        public static Task<T?> GetAsync<T, TModel>(this IEfDb efDb, EfDbArgs args, object? key, CancellationToken cancellationToken = default) where T : class, IEntityKey, new() where TModel : class, new() 
-            => efDb.GetAsync<T, TModel>(args, CompositeKey.Create(key), cancellationToken);
-
-        /// <summary>
-        /// Gets the entity for the specified <paramref name="key"/> mapping from <typeparamref name="TModel"/> to <typeparamref name="T"/>.
-        /// </summary>
-        /// <typeparam name="T">The resultant <see cref="Type"/>.</typeparam>
-        /// <typeparam name="TModel">The entity framework model <see cref="Type"/>.</typeparam>
-        /// <param name="efDb">The <see cref="IEfDb"/>.</param>
-        /// <param name="key">The key value.</param>
-        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        /// <returns>The entity value where found; otherwise, <c>null</c>.</returns>
-        public static Task<T?> GetAsync<T, TModel>(this IEfDb efDb, object? key, CancellationToken cancellationToken = default) where T : class, IEntityKey, new() where TModel : class, new() 
-            => efDb.GetAsync<T, TModel>(new EfDbArgs(efDb.DbArgs), CompositeKey.Create(key), cancellationToken);
-
-        /// <summary>
-        /// Gets the entity for the specified <paramref name="key"/> mapping from <typeparamref name="TModel"/> to <typeparamref name="T"/>.
-        /// </summary>
-        /// <typeparam name="T">The resultant <see cref="Type"/>.</typeparam>
-        /// <typeparam name="TModel">The entity framework model <see cref="Type"/>.</typeparam>
-        /// <param name="efDb">The <see cref="IEfDb"/>.</param>
-        /// <param name="key">The <see cref="CompositeKey"/>.</param>
-        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        /// <returns>The entity value where found; otherwise, <c>null</c>.</returns>
-        public static Task<T?> GetAsync<T, TModel>(this IEfDb efDb, CompositeKey key, CancellationToken cancellationToken = default) where T : class, IEntityKey, new() where TModel : class, new() 
-            => efDb.GetAsync<T, TModel>(new EfDbArgs(efDb.DbArgs), key, cancellationToken);
-
-        /// <summary>
-        /// Performs a create for the value (reselects and/or automatically saves changes).
-        /// </summary>
-        /// <typeparam name="T">The resultant <see cref="Type"/>.</typeparam>
-        /// <typeparam name="TModel">The entity framework model <see cref="Type"/>.</typeparam>
-        /// <param name="efDb">The <see cref="IEfDb"/>.</param>
-        /// <param name="value">The value to insert.</param>
-        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        /// <returns>The value (refreshed where specified).</returns>
-        public static Task<T> CreateAsync<T, TModel>(this IEfDb efDb, T value, CancellationToken cancellationToken = default) where T : class, IEntityKey, new() where TModel : class, new() 
-            => efDb.CreateAsync<T, TModel>(new EfDbArgs(efDb.DbArgs), value, cancellationToken);
-
-        /// <summary>
-        /// Performs an update for the value (reselects and/or automatically saves changes).
-        /// </summary>
-        /// <typeparam name="T">The resultant <see cref="Type"/>.</typeparam>
-        /// <typeparam name="TModel">The entity framework model <see cref="Type"/>.</typeparam>
-        /// <param name="efDb">The <see cref="IEfDb"/>.</param>
-        /// <param name="value">The value to insert.</param>
-        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        /// <returns>The value (refreshed where specified).</returns>
-        public static Task<T> UpdateAsync<T, TModel>(this IEfDb efDb, T value, CancellationToken cancellationToken = default) where T : class, IEntityKey, new() where TModel : class, new() 
-            => efDb.UpdateAsync<T, TModel>(new EfDbArgs(efDb.DbArgs), value, cancellationToken);
-
-        /// <summary>
-        /// Performs a delete for the specified <paramref name="key"/>.
-        /// </summary>
-        /// <typeparam name="T">The resultant <see cref="Type"/>.</typeparam>
-        /// <typeparam name="TModel">The entity framework model <see cref="Type"/>.</typeparam>
-        /// <param name="efDb">The <see cref="IEfDb"/>.</param>
-        /// <param name="args">The <see cref="EfDbArgs"/>.</param>
-        /// <param name="key">The key value.</param>
-        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        /// <remarks>Where the model implements <see cref="ILogicallyDeleted"/> then this will update the <see cref="ILogicallyDeleted.IsDeleted"/> with <c>true</c> versus perform a physical deletion.</remarks>
-        public static Task DeleteAsync<T, TModel>(this IEfDb efDb, EfDbArgs args, object? key, CancellationToken cancellationToken = default) where T : class, IEntityKey where TModel : class, new() 
-            => efDb.DeleteAsync<T, TModel>(args, CompositeKey.Create(key), cancellationToken);
-
-        /// <summary>
-        /// Performs a delete for the specified <paramref name="key"/>.
-        /// </summary>
-        /// <typeparam name="T">The resultant <see cref="Type"/>.</typeparam>
-        /// <typeparam name="TModel">The entity framework model <see cref="Type"/>.</typeparam>
-        /// <param name="efDb">The <see cref="IEfDb"/>.</param>
-        /// <param name="key">The key value.</param>
-        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        /// <remarks>Where the model implements <see cref="ILogicallyDeleted"/> then this will update the <see cref="ILogicallyDeleted.IsDeleted"/> with <c>true</c> versus perform a physical deletion.</remarks>
-        public static Task DeleteAsync<T, TModel>(this IEfDb efDb, object? key, CancellationToken cancellationToken = default) where T : class, IEntityKey where TModel : class, new() 
-            => efDb.DeleteAsync<T, TModel>(new EfDbArgs(efDb.DbArgs), CompositeKey.Create(key), cancellationToken);
-
-        /// <summary>
-        /// Performs a delete for the specified <paramref name="key"/>.
-        /// </summary>
-        /// <typeparam name="T">The resultant <see cref="Type"/>.</typeparam>
-        /// <typeparam name="TModel">The entity framework model <see cref="Type"/>.</typeparam>
-        /// <param name="efDb">The <see cref="IEfDb"/>.</param>
-        /// <param name="key">The <see cref="CompositeKey"/>.</param>
-        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        /// <remarks>Where the model implements <see cref="ILogicallyDeleted"/> then this will update the <see cref="ILogicallyDeleted.IsDeleted"/> with <c>true</c> versus perform a physical deletion.</remarks>
-        public static Task DeleteAsync<T, TModel>(this IEfDb efDb, CompositeKey key, CancellationToken cancellationToken = default) where T : class, IEntityKey where TModel : class, new() 
-            => efDb.DeleteAsync<T, TModel>(new EfDbArgs(efDb.DbArgs), key, cancellationToken);
-
-        #endregion
-
-        #region WithResult
-
-        /// <summary>
-        /// Gets the entity for the specified <paramref name="key"/> mapping from <typeparamref name="TModel"/> to <typeparamref name="T"/> with a <see cref="Result{T}"/>.
-        /// </summary>
-        /// <typeparam name="T">The resultant <see cref="Type"/>.</typeparam>
-        /// <typeparam name="TModel">The entity framework model <see cref="Type"/>.</typeparam>
-        /// <param name="efDb">The <see cref="IEfDb"/>.</param>
-        /// <param name="args">The <see cref="EfDbArgs"/>.</param>
-        /// <param name="key">The key.</param>
-        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        /// <returns>The entity value where found; otherwise, <c>null</c>.</returns>
-        public static Task<Result<T?>> GetWithResultAsync<T, TModel>(this IEfDb efDb, EfDbArgs args, object? key, CancellationToken cancellationToken = default) where T : class, IEntityKey, new() where TModel : class, new()
-            => efDb.GetWithResultAsync<T, TModel>(args, CompositeKey.Create(key), cancellationToken);
-
-        /// <summary>
-        /// Gets the entity for the specified <paramref name="key"/> mapping from <typeparamref name="TModel"/> to <typeparamref name="T"/> with a <see cref="Result{T}"/>.
-        /// </summary>
-        /// <typeparam name="T">The resultant <see cref="Type"/>.</typeparam>
-        /// <typeparam name="TModel">The entity framework model <see cref="Type"/>.</typeparam>
-        /// <param name="efDb">The <see cref="IEfDb"/>.</param>
-        /// <param name="key">The key value.</param>
-        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        /// <returns>The entity value where found; otherwise, <c>null</c>.</returns>
-        public static Task<Result<T?>> GetWithResultAsync<T, TModel>(this IEfDb efDb, object? key, CancellationToken cancellationToken = default) where T : class, IEntityKey, new() where TModel : class, new()
-            => efDb.GetWithResultAsync<T, TModel>(new EfDbArgs(efDb.DbArgs), CompositeKey.Create(key), cancellationToken);
-
-        /// <summary>
-        /// Gets the entity for the specified <paramref name="key"/> mapping from <typeparamref name="TModel"/> to <typeparamref name="T"/> with a <see cref="Result{T}"/>.
-        /// </summary>
-        /// <typeparam name="T">The resultant <see cref="Type"/>.</typeparam>
-        /// <typeparam name="TModel">The entity framework model <see cref="Type"/>.</typeparam>
-        /// <param name="efDb">The <see cref="IEfDb"/>.</param>
-        /// <param name="key">The <see cref="CompositeKey"/>.</param>
-        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        /// <returns>The entity value where found; otherwise, <c>null</c>.</returns>
-        public static Task<Result<T?>> GetWithResultAsync<T, TModel>(this IEfDb efDb, CompositeKey key, CancellationToken cancellationToken = default) where T : class, IEntityKey, new() where TModel : class, new()
-            => efDb.GetWithResultAsync<T, TModel>(new EfDbArgs(efDb.DbArgs), key, cancellationToken);
-
-        /// <summary>
-        /// Performs a create for the value (reselects and/or automatically saves changes) with a <see cref="Result{T}"/>.
-        /// </summary>
-        /// <typeparam name="T">The resultant <see cref="Type"/>.</typeparam>
-        /// <typeparam name="TModel">The entity framework model <see cref="Type"/>.</typeparam>
-        /// <param name="efDb">The <see cref="IEfDb"/>.</param>
-        /// <param name="value">The value to insert.</param>
-        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        /// <returns>The value (refreshed where specified).</returns>
-        public static Task<Result<T>> CreateWithResultAsync<T, TModel>(this IEfDb efDb, T value, CancellationToken cancellationToken = default) where T : class, IEntityKey, new() where TModel : class, new()
-            => efDb.CreateWithResultAsync<T, TModel>(new EfDbArgs(efDb.DbArgs), value, cancellationToken);
-
-        /// <summary>
-        /// Performs an update for the value (reselects and/or automatically saves changes) with a <see cref="Result{T}"/>.
-        /// </summary>
-        /// <typeparam name="T">The resultant <see cref="Type"/>.</typeparam>
-        /// <typeparam name="TModel">The entity framework model <see cref="Type"/>.</typeparam>
-        /// <param name="efDb">The <see cref="IEfDb"/>.</param>
-        /// <param name="value">The value to insert.</param>
-        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        /// <returns>The value (refreshed where specified).</returns>
-        public static Task<Result<T>> UpdateWithResultAsync<T, TModel>(this IEfDb efDb, T value, CancellationToken cancellationToken = default) where T : class, IEntityKey, new() where TModel : class, new()
-            => efDb.UpdateWithResultAsync<T, TModel>(new EfDbArgs(efDb.DbArgs), value, cancellationToken);
-
-        /// <summary>
-        /// Performs a delete for the specified <paramref name="key"/> with a <see cref="Result"/>.
-        /// </summary>
-        /// <typeparam name="T">The resultant <see cref="Type"/>.</typeparam>
-        /// <typeparam name="TModel">The entity framework model <see cref="Type"/>.</typeparam>
-        /// <param name="efDb">The <see cref="IEfDb"/>.</param>
-        /// <param name="args">The <see cref="EfDbArgs"/>.</param>
-        /// <param name="key">The key value.</param>
-        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        /// <returns>The <see cref="Result"/>.</returns>
-        /// <remarks>Where the model implements <see cref="ILogicallyDeleted"/> then this will update the <see cref="ILogicallyDeleted.IsDeleted"/> with <c>true</c> versus perform a physical deletion.</remarks>
-        public static Task<Result> DeleteWithResultAsync<T, TModel>(this IEfDb efDb, EfDbArgs args, object? key, CancellationToken cancellationToken = default) where T : class, IEntityKey where TModel : class, new()
-            => efDb.DeleteWithResultAsync<T, TModel>(args, CompositeKey.Create(key), cancellationToken);
-
-        /// <summary>
-        /// Performs a delete for the specified <paramref name="key"/> with a <see cref="Result"/>.
-        /// </summary>
-        /// <typeparam name="T">The resultant <see cref="Type"/>.</typeparam>
-        /// <typeparam name="TModel">The entity framework model <see cref="Type"/>.</typeparam>
-        /// <param name="efDb">The <see cref="IEfDb"/>.</param>
-        /// <param name="key">The key value.</param>
-        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        /// <returns>The <see cref="Result"/>.</returns>
-        /// <remarks>Where the model implements <see cref="ILogicallyDeleted"/> then this will update the <see cref="ILogicallyDeleted.IsDeleted"/> with <c>true</c> versus perform a physical deletion.</remarks>
-        public static Task<Result> DeleteWithResultAsync<T, TModel>(this IEfDb efDb, object? key, CancellationToken cancellationToken = default) where T : class, IEntityKey where TModel : class, new()
-            => efDb.DeleteWithResultAsync<T, TModel>(new EfDbArgs(efDb.DbArgs), CompositeKey.Create(key), cancellationToken);
-
-        /// <summary>
-        /// Performs a delete for the specified <paramref name="key"/> with a <see cref="Result"/>.
-        /// </summary>
-        /// <typeparam name="T">The resultant <see cref="Type"/>.</typeparam>
-        /// <typeparam name="TModel">The entity framework model <see cref="Type"/>.</typeparam>
-        /// <param name="efDb">The <see cref="IEfDb"/>.</param>
-        /// <param name="key">The <see cref="CompositeKey"/>.</param>
-        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        /// <returns>The <see cref="Result"/>.</returns>
-        /// <remarks>Where the model implements <see cref="ILogicallyDeleted"/> then this will update the <see cref="ILogicallyDeleted.IsDeleted"/> with <c>true</c> versus perform a physical deletion.</remarks>
-        public static Task<Result> DeleteWithResultAsync<T, TModel>(this IEfDb efDb, CompositeKey key, CancellationToken cancellationToken = default) where T : class, IEntityKey where TModel : class, new()
-            => efDb.DeleteWithResultAsync<T, TModel>(new EfDbArgs(efDb.DbArgs), key, cancellationToken);
-
-        #endregion
-
-        #region With
-
-        /// <summary>
-        /// Invokes the <paramref name="action"/> when the <paramref name="with"/> is not <c>null</c>.
-        /// </summary>
-        /// <param name="efDb">The <see cref="IEfDb"/>.</param>
-        /// <param name="with">The value with which to verify.</param>
-        /// <param name="action">The <see cref="Action"/> to invoke when there is a valid <paramref name="with"/> value.</param>
-        public static void With(this IEfDb efDb, string? with, Action<string> action) => efDb.With(with, () => action(with!));
-
-        /// <summary>
-        /// Invokes the <paramref name="action"/> when the <paramref name="with"/> is not <c>null</c>.
-        /// </summary>
-        /// <param name="efDb">The <see cref="IEfDb"/>.</param>
-        /// <param name="with">The value with which to verify.</param>
-        /// <param name="action">The <see cref="Action"/> to invoke when there is a valid <paramref name="with"/> value.</param>
-        public static void With(this IEfDb efDb, int? with, Action<int> action) => efDb.With(with, () => action(with!.Value));
-
-        /// <summary>
-        /// Invokes the <paramref name="action"/> when the <paramref name="with"/> is not <c>default</c>.
-        /// </summary>
-        /// <param name="efDb">The <see cref="IEfDb"/>.</param>
-        /// <param name="with">The value with which to verify.</param>
-        /// <param name="action">The <see cref="Action"/> to invoke when there is a valid <paramref name="with"/> value.</param>
-        public static void With(this IEfDb efDb, int with, Action<int> action) => efDb.With(with, () => action(with));
-
-        /// <summary>
-        /// Invokes the <paramref name="action"/> when the <paramref name="with"/> is not <c>null</c>.
-        /// </summary>
-        /// <param name="efDb">The <see cref="IEfDb"/>.</param>
-        /// <param name="with">The value with which to verify.</param>
-        /// <param name="action">The <see cref="Action"/> to invoke when there is a valid <paramref name="with"/> value.</param>
-        public static void With(this IEfDb efDb, short? with, Action<short> action) => efDb.With(with, () => action(with!.Value));
-
-        /// <summary>
-        /// Invokes the <paramref name="action"/> when the <paramref name="with"/> is not <c>default</c>.
-        /// </summary>
-        /// <param name="efDb">The <see cref="IEfDb"/>.</param>
-        /// <param name="with">The value with which to verify.</param>
-        /// <param name="action">The <see cref="Action"/> to invoke when there is a valid <paramref name="with"/> value.</param>
-        public static void With(this IEfDb efDb, short with, Action<short> action) => efDb.With(with, () => action(with));
-
-        /// <summary>
-        /// Invokes the <paramref name="action"/> when the <paramref name="with"/> is not <c>null</c>.
-        /// </summary>
-        /// <param name="efDb">The <see cref="IEfDb"/>.</param>
-        /// <param name="with">The value with which to verify.</param>
-        /// <param name="action">The <see cref="Action"/> to invoke when there is a valid <paramref name="with"/> value.</param>
-        public static void With(this IEfDb efDb, long? with, Action<long> action) => efDb.With(with, () => action(with!.Value));
-
-        /// <summary>
-        /// Invokes the <paramref name="action"/> when the <paramref name="with"/> is not <c>default</c>.
-        /// </summary>
-        /// <param name="efDb">The <see cref="IEfDb"/>.</param>
-        /// <param name="with">The value with which to verify.</param>
-        /// <param name="action">The <see cref="Action"/> to invoke when there is a valid <paramref name="with"/> value.</param>
-        public static void With(this IEfDb efDb, long with, Action<long> action) => efDb.With(with, () => action(with));
-
-        /// <summary>
-        /// Invokes the <paramref name="action"/> when the <paramref name="with"/> is not <c>null</c>.
-        /// </summary>
-        /// <param name="efDb">The <see cref="IEfDb"/>.</param>
-        /// <param name="with">The value with which to verify.</param>
-        /// <param name="action">The <see cref="Action"/> to invoke when there is a valid <paramref name="with"/> value.</param>
-        public static void With(this IEfDb efDb, decimal? with, Action<decimal> action) => efDb.With(with, () => action(with!.Value));
-
-        /// <summary>
-        /// Invokes the <paramref name="action"/> when the <paramref name="with"/> is not <c>default</c>.
-        /// </summary>
-        /// <param name="efDb">The <see cref="IEfDb"/>.</param>
-        /// <param name="with">The value with which to verify.</param>
-        /// <param name="action">The <see cref="Action"/> to invoke when there is a valid <paramref name="with"/> value.</param>
-        public static void With(this IEfDb efDb, decimal with, Action<decimal> action) => efDb.With(with, () => action(with));
-
-        /// <summary>
-        /// Invokes the <paramref name="action"/> when the <paramref name="with"/> is not <c>null</c>.
-        /// </summary>
-        /// <param name="efDb">The <see cref="IEfDb"/>.</param>
-        /// <param name="with">The value with which to verify.</param>
-        /// <param name="action">The <see cref="Action"/> to invoke when there is a valid <paramref name="with"/> value.</param>
-        public static void With(this IEfDb efDb, float? with, Action<float> action) => efDb.With(with, () => action(with!.Value));
-
-        /// <summary>
-        /// Invokes the <paramref name="action"/> when the <paramref name="with"/> is not <c>default</c>.
-        /// </summary>
-        /// <param name="efDb">The <see cref="IEfDb"/>.</param>
-        /// <param name="with">The value with which to verify.</param>
-        /// <param name="action">The <see cref="Action"/> to invoke when there is a valid <paramref name="with"/> value.</param>
-        public static void With(this IEfDb efDb, float with, Action<float> action) => efDb.With(with, () => action(with));
-
-        /// <summary>
-        /// Invokes the <paramref name="action"/> when the <paramref name="with"/> is not <c>null</c>.
-        /// </summary>
-        /// <param name="efDb">The <see cref="IEfDb"/>.</param>
-        /// <param name="with">The value with which to verify.</param>
-        /// <param name="action">The <see cref="Action"/> to invoke when there is a valid <paramref name="with"/> value.</param>
-        public static void With(this IEfDb efDb, double? with, Action<double> action) => efDb.With(with, () => action(with!.Value));
-
-        /// <summary>
-        /// Invokes the <paramref name="action"/> when the <paramref name="with"/> is not <c>default</c>.
-        /// </summary>
-        /// <param name="efDb">The <see cref="IEfDb"/>.</param>
-        /// <param name="with">The value with which to verify.</param>
-        /// <param name="action">The <see cref="Action"/> to invoke when there is a valid <paramref name="with"/> value.</param>
-        public static void With(this IEfDb efDb, double with, Action<double> action) => efDb.With(with, () => action(with));
-
-        /// <summary>
-        /// Invokes the <paramref name="action"/> when the <paramref name="with"/> is not <c>null</c>.
-        /// </summary>
-        /// <param name="efDb">The <see cref="IEfDb"/>.</param>
-        /// <param name="with">The value with which to verify.</param>
-        /// <param name="action">The <see cref="Action"/> to invoke when there is a valid <paramref name="with"/> value.</param>
-        public static void With(this IEfDb efDb, DateTime? with, Action<DateTime> action) => efDb.With(with, () => action(with!.Value));
-
-        /// <summary>
-        /// Invokes the <paramref name="action"/> when the <paramref name="with"/> is not <c>default</c>.
-        /// </summary>
-        /// <param name="efDb">The <see cref="IEfDb"/>.</param>
-        /// <param name="with">The value with which to verify.</param>
-        /// <param name="action">The <see cref="Action"/> to invoke when there is a valid <paramref name="with"/> value.</param>
-        public static void With(this IEfDb efDb, DateTime with, Action<DateTime> action) => efDb.With(with, () => action(with));
-
-        /// <summary>
-        /// Invokes the <paramref name="action"/> when the <paramref name="with"/> is not <c>null</c>.
-        /// </summary>
-        /// <param name="efDb">The <see cref="IEfDb"/>.</param>
-        /// <param name="with">The value with which to verify.</param>
-        /// <param name="action">The <see cref="Action"/> to invoke when there is a valid <paramref name="with"/> value.</param>
-        public static void With(this IEfDb efDb, TimeSpan? with, Action<TimeSpan> action) => efDb.With(with, () => action(with!.Value));
-
-        /// <summary>
-        /// Invokes the <paramref name="action"/> when the <paramref name="with"/> is not <c>default</c>.
-        /// </summary>
-        /// <param name="efDb">The <see cref="IEfDb"/>.</param>
-        /// <param name="with">The value with which to verify.</param>
-        /// <param name="action">The <see cref="Action"/> to invoke when there is a valid <paramref name="with"/> value.</param>
-        public static void With(this IEfDb efDb, TimeSpan with, Action<TimeSpan> action) => efDb.With(with, () => action(with));
-
-        /// <summary>
-        /// Invokes the <paramref name="action"/> when the <paramref name="with"/> is not <c>null</c>.
-        /// </summary>
-        /// <param name="efDb">The <see cref="IEfDb"/>.</param>
-        /// <param name="with">The value with which to verify.</param>
-        /// <param name="action">The <see cref="Action"/> to invoke when there is a valid <paramref name="with"/> value.</param>
-        public static void With(this IEfDb efDb, bool? with, Action<bool> action) => efDb.With(with, () => action(with!.Value));
-
-        /// <summary>
-        /// Invokes the <paramref name="action"/> when the <paramref name="with"/> is not <c>default</c>.
-        /// </summary>
-        /// <param name="efDb">The <see cref="IEfDb"/>.</param>
-        /// <param name="with">The value with which to verify.</param>
-        /// <param name="action">The <see cref="Action"/> to invoke when there is a valid <paramref name="with"/> value.</param>
-        public static void With(this IEfDb efDb, bool with, Action<bool> action) => efDb.With(with, () => action(with));
-
-        /// <summary>
-        /// Invokes the <paramref name="action"/> when the <paramref name="with"/> is not <c>null</c>.
-        /// </summary>
-        /// <param name="efDb">The <see cref="IEfDb"/>.</param>
-        /// <param name="with">The value with which to verify.</param>
-        /// <param name="action">The <see cref="Action"/> to invoke when there is a valid <paramref name="with"/> value.</param>
-        public static void With(this IEfDb efDb, char? with, Action<char> action) => efDb.With(with, () => action(with!.Value));
-
-        /// <summary>
-        /// Invokes the <paramref name="action"/> when the <paramref name="with"/> is not <c>default</c>.
-        /// </summary>
-        /// <param name="efDb">The <see cref="IEfDb"/>.</param>
-        /// <param name="with">The value with which to verify.</param>
-        /// <param name="action">The <see cref="Action"/> to invoke when there is a valid <paramref name="with"/> value.</param>
-        public static void With(this IEfDb efDb, char with, Action<char> action) => efDb.With(with, () => action(with));
-
-        /// <summary>
-        /// Invokes the <paramref name="action"/> when the <paramref name="with"/> is not <c>null</c>.
-        /// </summary>
-        /// <typeparam name="TRef">The <see cref="IReferenceData"/> <see cref="Type"/>.</typeparam>
-        /// <param name="efDb"></param>
-        /// <param name="with"></param>
-        /// <param name="action"></param>
-        public static void With<TRef>(this IEfDb efDb, TRef? with, Action<TRef> action) where TRef : IReferenceData => efDb.With(with, () => action(with!));
-
-        /// <summary>
-        /// Invokes the <paramref name="action"/> when the <paramref name="with"/> is not <c>null</c>.
-        /// </summary>
-        /// <typeparam name="TRef">The <see cref="IReferenceData"/> <see cref="Type"/>.</typeparam>
-        /// <param name="efDb">The <see cref="IEfDb"/>.</param>
-        /// <param name="with">The value with which to verify.</param>
-        /// <param name="action">The <see cref="Action"/> to invoke when there is a valid <paramref name="with"/> value.</param>
-        public static void With<TRef>(this IEfDb efDb, ReferenceDataCodeList<TRef>? with, Action<ReferenceDataCodeList<TRef>> action) where TRef : class, IReferenceData, new() => efDb.With(with, () => action(with!));
-
-        #endregion
+        return items;
     }
+
+    /// <summary>
+    /// Creates a <typeparamref name="TColl"/> from a <typeparamref name="TSource"/> <see cref="IQueryable{TSource}"/> using the specified <paramref name="mapper"/>.
+    /// </summary>
+    /// <typeparam name="TSource">The source <see cref="Type"/>.</typeparam>
+    /// <typeparam name="TColl">The item collection <see cref="Type"/>.</typeparam>
+    /// <typeparam name="TItem">The item <see cref="Type"/>.</typeparam>
+    /// <param name="query">The <see cref="IQueryable{TSource}"/>.</param>
+    /// <param name="mapper">The mapping <see cref="IMapper{TSource, TItem}"/>.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+    public static async Task<TColl> ToMappedItemsAsync<TSource, TColl, TItem>(this IQueryable<TSource> query, IMapper<TSource, TItem> mapper, CancellationToken cancellationToken = default) where TSource : class where TColl : ICollection<TItem>, new() where TItem : class
+        => await ToMappedItemsAsync<TSource, TColl, TItem>(query, source => mapper.Map(source)!, cancellationToken).ConfigureAwait(false);
+
+    /// <summary>
+    /// Creates a <see cref="List{TItem}"/> from a <typeparamref name="TSource"/> <see cref="IQueryable{TSource}"/> using the specified <paramref name="mapper"/>.
+    /// </summary>
+    /// <typeparam name="TSource">The source <see cref="Type"/>.</typeparam>
+    /// <typeparam name="TItem">The item <see cref="Type"/>.</typeparam>
+    /// <param name="query">The <see cref="IQueryable{TSource}"/>.</param>
+    /// <param name="mapper">The mapping <see cref="Func{TSource, TItem}"/>.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+    public static async Task<List<TItem>> ToMappedItemsAsync<TSource, TItem>(this IQueryable<TSource> query, Func<TSource, TItem> mapper, CancellationToken cancellationToken = default)
+    {
+        mapper.ThrowIfNull();
+
+        var q = query.ThrowIfNull();
+        var items = new List<TItem>();
+
+        await foreach (var source in q.AsAsyncEnumerable().WithCancellation(cancellationToken).ConfigureAwait(false))
+        {
+            items.Add(mapper(source));
+        }
+
+        return items;
+    }
+
+    /// <summary>
+    /// Creates a <see cref="List{TItem}"/> from a <typeparamref name="TSource"/> <see cref="IQueryable{TSource}"/> using the specified <paramref name="mapper"/>.
+    /// </summary>
+    /// <typeparam name="TSource">The source <see cref="Type"/>.</typeparam>
+    /// <typeparam name="TItem">The item <see cref="Type"/>.</typeparam>
+    /// <param name="query">The <see cref="IQueryable{TSource}"/>.</param>
+    /// <param name="mapper">The mapping <see cref="IMapper{TSource, TItem}"/>.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+    public static async Task<List<TItem>> ToMappedItemsAsync<TSource, TItem>(this IQueryable<TSource> query, IMapper<TSource, TItem> mapper, CancellationToken cancellationToken = default) where TSource : class where TItem : class
+        => await ToMappedItemsAsync(query, source => mapper.Map(source)!, cancellationToken).ConfigureAwait(false);
+
+    /// <summary>
+    /// Creates a <see cref="ItemsResult{TItem}"/> from an <see cref="IQueryable{TItem}"/> applying <paramref name="paging"/> (including with <see cref="PagingResult.TotalCount"/> where requested).
+    /// </summary>
+    /// <typeparam name="TItem">The item <see cref="Type"/>.</typeparam>
+    /// <param name="query">The <see cref="IQueryable{TItem}"/>.</param>
+    /// <param name="paging">The <see cref="PagingArgs"/>.</param>
+    /// <param name="autoCount">Indicates whether to perform the <see cref="PagingResult.TotalCount"/> query automatically.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+    /// <returns>The resulting <see cref="ItemsResult{TItem}"/>.</returns>
+    /// <remarks>The <paramref name="autoCount"/> indicates whether the <see cref="PagingResult.TotalCount"/> query should be automatically executed using the <paramref name="query"/> before the <paramref name="paging"/>
+    /// is applied and <see cref="PagingArgs.IsCountRequested"/>. This is opt-in as not all LINQ implementations support the reuse of the query, or allow counthing where ordering has previously been applied.</remarks>
+    public static async Task<ItemsResult<TItem>> ToItemsResultAsync<TItem>(this IQueryable<TItem> query, PagingArgs? paging = null, bool autoCount = true, CancellationToken cancellationToken = default)
+    {
+        var q = query.ThrowIfNull();
+        var ir = new ItemsResult<TItem>(paging)
+        {
+            Items = await q.WithPaging(paging).ToArrayAsync(cancellationToken).ConfigureAwait(false)
+        };
+
+        // When auto-counting and requested to do so, then execute a count.
+        if (autoCount)
+            await ir.WithTotalCountAsync(async cancellationToken => await query.LongCountAsync(cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
+
+        return ir;
+    }
+
+    /// <summary>
+    /// Creates a <see cref="ItemsResult{TItem}"/> from a <typeparamref name="TSource"/> <see cref="IQueryable{TSource}"/> applying <paramref name="paging"/> (including with <see cref="PagingResult.TotalCount"/> where requested).
+    /// </summary>
+    /// <typeparam name="TSource">The source <see cref="Type"/>.</typeparam>
+    /// <typeparam name="TItem">The item <see cref="Type"/>.</typeparam>
+    /// <param name="query">The <see cref="IQueryable{TSource}"/>.</param>
+    /// <param name="mapper">The mapping <see cref="Func{TSource, TItem}"/>.</param>
+    /// <param name="paging">The <see cref="PagingArgs"/>.</param>
+    /// <param name="autoCount">Indicates whether to perform the <see cref="PagingResult.TotalCount"/> query automatically.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+    /// <returns>The resulting <see cref="ItemsResult{TItem}"/>.</returns>
+    /// <remarks>The <paramref name="autoCount"/> indicates whether the <see cref="PagingResult.TotalCount"/> query should be automatically executed using the <paramref name="query"/> before the <paramref name="paging"/>
+    /// is applied and <see cref="PagingArgs.IsCountRequested"/>. This is opt-in as not all LINQ implementations support the reuse of the query, or allow counthing where ordering has previously been applied.</remarks>
+    public static async Task<ItemsResult<TItem>> ToMappedItemsResultAsync<TSource, TItem>(this IQueryable<TSource> query, Func<TSource, TItem> mapper, PagingArgs? paging = null, bool autoCount = true, CancellationToken cancellationToken = default)
+    {
+        var q = query.ThrowIfNull();
+        var ir = new ItemsResult<TItem>(paging)
+        {
+            Items = await ToMappedItemsAsync(q.WithPaging(paging), mapper, cancellationToken).ConfigureAwait(false)
+        };
+
+        // When auto-counting and requested to do so, then execute a count.
+        if (autoCount)
+            await ir.WithTotalCountAsync(async cancellationToken => await query.LongCountAsync(cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
+
+        return ir;
+    }
+
+    /// <summary>
+    /// Creates a <see cref="ItemsResult{TItem}"/> from a <typeparamref name="TSource"/> <see cref="IQueryable{TSource}"/> applying <paramref name="paging"/> (including with <see cref="PagingResult.TotalCount"/> where requested).
+    /// </summary>
+    /// <typeparam name="TSource">The source <see cref="Type"/>.</typeparam>
+    /// <typeparam name="TItem">The item <see cref="Type"/>.</typeparam>
+    /// <param name="query">The <see cref="IQueryable{TSource}"/>.</param>
+    /// <param name="mapper">The mapping <see cref="IMapper{TSource, TItem}"/>.</param>
+    /// <param name="paging">The <see cref="PagingArgs"/>.</param>
+    /// <param name="autoCount">Indicates whether to perform the <see cref="PagingResult.TotalCount"/> query automatically.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+    /// <returns>The resulting <see cref="ItemsResult{TItem}"/>.</returns>
+    /// <remarks>The <paramref name="autoCount"/> indicates whether the <see cref="PagingResult.TotalCount"/> query should be automatically executed using the <paramref name="query"/> before the <paramref name="paging"/>
+    /// is applied and <see cref="PagingArgs.IsCountRequested"/>. This is opt-in as not all LINQ implementations support the reuse of the query, or allow counthing where ordering has previously been applied.</remarks>
+    public static async Task<ItemsResult<TItem>> ToMappedItemsResultAsync<TSource, TItem>(this IQueryable<TSource> query, IMapper<TSource, TItem> mapper, PagingArgs? paging = null, bool autoCount = true, CancellationToken cancellationToken = default) where TSource : class where TItem : class
+        => await query.ToMappedItemsResultAsync(source => mapper.Map(source)!, paging, autoCount, cancellationToken).ConfigureAwait(false);
 }

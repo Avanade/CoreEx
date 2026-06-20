@@ -1,31 +1,36 @@
-﻿# CoreEx.Localization
+# CoreEx.Localization
 
-The `CoreEx.Localization` namespace provides additional localization capabilities.
+> Provides `LText` — a lightweight localization-agnostic text container — and `TextProvider` / `ITextProvider` for pluggable resource-key-to-string resolution used throughout CoreEx for user-facing messages.
 
-<br/>
+## Overview
 
-## Motivation
+`CoreEx.Localization` decouples user-facing string content from the code that defines it. `LText` is a readonly struct that carries either a raw string, a resource key, or both — along with optional fallback text and format arguments. At the point of display or serialization, the ambient `TextProvider.Current` is called to resolve the final string, allowing the application to plug in any localization source (resource files, databases, translation services) without changing message definitions.
 
-To enable extended (additional) localization capabilities.
+The default `TextProvider` returns `LText.KeyAndOrText` unchanged (the key itself acts as the display string), making the system work out-of-the-box without any localization infrastructure. A custom provider is registered by setting `TextProvider.SetTextProvider(ITextProvider)` at startup.
 
-<br/>
+CoreEx uses `LText` internally for all validation error messages, exception messages, and formatted user-facing text, ensuring that every system-generated message can be localized by the consuming application.
 
-## Text localization
+## Key capabilities
 
-To simplify the localization of strings a localized text struct, [`LText`](./LText.cs), has been introduced.
+- 🌐 **Localization-agnostic text**: `LText` carries a key and/or text value with optional fallback text and format arguments; resolution is deferred to the ambient `TextProvider.Current`.
+- 🔌 **Pluggable text provider**: `ITextProvider` is a single-method interface (`GetText`); any implementation can be registered as the application-wide text resolver via `TextProvider.SetTextProvider()`.
+- 📝 **Formatted messages**: `LText` supports format argument arrays; `TextProvider` applies `string.Format` after key resolution, enabling `"Field is required: {0}"` style messages with runtime values.
+- ✅ **Zero-config default**: `NullTextProvider` returns the raw `KeyAndOrText` value unchanged, so the system works without any localization setup for development and testing.
+- 🏷️ **Localization attribute**: `[LocalizationAttribute]` marks a property with a corresponding localizable `LText` definition, enabling runtime (reflection-based) discovery of localizable content.
 
-The `LText` supports a constructor that takes a `keyAndOrText` being the key and/or text used to lookup the localized value, and an optional `fallbackText` to be used where the lookup fails. Where no text is found, then the originating `keyAndOrText` will be used.
+## Key types
 
-Additionally, the `LText` supports an implicit operator to and from a `string`, which enables the casting thereof providing a natural development experience. 
+| Type | Description |
+|------|-------------|
+| **[`LText`](./LText.cs)** | Readonly struct carrying a `KeyAndOrText`, optional `FallbackText`, optional format `Args`, and `WasFallBackTextSetToNull` flag; implicitly converts from `string`. |
+| **[`TextProvider`](./TextProvider.cs)** | Static accessor for the ambient `ITextProvider`; call `TextProvider.SetTextProvider(impl)` at startup to register a custom provider; `TextProvider.Current` resolves the active provider. |
+| _[`TextProviderBase`](./TextProviderBase.cs)_ | Abstract base for `ITextProvider` implementations; handles fallback logic (key lookup → fallback text → key-as-text). |
+| **[`NullTextProvider`](./NullTextProvider.cs)** | Default `ITextProvider` that returns `LText.KeyAndOrText` unchanged — no resource lookup is performed. |
+| [`ITextProvider`](./ITextProvider.cs) | Interface with a single `GetText(LText)` method returning the resolved string. |
+| [`LocalizationAttribute`](./LocalizationAttribute.cs) | Property attribute marking the presence of a localizable `LText` definition for runtime (reflection-based) discovery. |
 
-The casting to a `string` is the action that performs the lookup. This invokes the static [`TextProvider.Current`](./TextProvider.cs) property, which is an instance of the [`ITextProvider`](./ITextProvider.cs) interface.
+## Related Namespaces
 
-<br/>
-
-## Text provider
-
-To support the `LText` lookup functionality an [`ITextProvider`](./ITextProvider.cs) implementation is required to enable. It is the responsibility of the `GetText` method to perform using the following logic, use: a) the corresponding text where found, b) the fallback text, and finally c) the key itself. 
-
-An implementation is provided within [`CoreEx.Validation`](../../CoreEx.Validation), being [`ValidationTextProvider`](../../CoreEx.Validation/ValidationTextProvider.cs) that uses embedded resources for the strings.
-
-
+- **[`CoreEx`](../README.md)** - Semantic exception types such as `ValidationException`, `BusinessException`, and `NotFoundException` carry `LText` messages that pass through `TextProvider` when rendered.
+- **[`CoreEx.Validation`](../Validation/README.md)** - All built-in validation rule error messages are defined as `LText` constants, resolved at runtime via `TextProvider.Current`.
+- **[`CoreEx.Entities`](../Entities/README.md)** - `MessageItem.Text` is of type `LText`, enabling field-level validation messages to participate in localization.

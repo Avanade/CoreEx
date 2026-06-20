@@ -1,0 +1,13 @@
+global using Contoso.Orders.Contracts;
+global using CoreEx;
+global using CoreEx.Http.Abstractions;
+global using CoreEx.Database.SqlServer.Outbox;
+global using AwesomeAssertions;
+global using NUnit.Framework;
+global using Order = Contoso.Orders.Contracts.Order;
+global using System.Net;
+global using System.Text.Json;
+global using UnitTestEx;
+global using UnitTestEx.Expectations;
+global using DbMigration = Contoso.Orders.Database.Program;
+global using TestData = Contoso.Orders.Test.Common.TestData;

@@ -1,74 +1,50 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>net6.0;net8.0;net9.0;netstandard2.1</TargetFrameworks>
-    <RootNamespace>CoreEx</RootNamespace>
-    <Product>CoreEx</Product>
-    <Title>CoreEx .NET backend Extensions.</Title>
-    <Description>CoreEx .NET backend Extensions.</Description>
-    <PackageTags>coreex entity microservices referencedata jsonserializer eventdata events httpclient settings railway-oriented</PackageTags>
-    <OpenApiGenerateDocuments>false</OpenApiGenerateDocuments>
+    <Title>CoreEx .NET extensions.</Title>
+    <Description>Core .NET extensions and abstractions for the development of backend services.</Description>
+    <PackageTags>coreex microservices domain-based event-driven railway-oriented reference-data</PackageTags>
   </PropertyGroup>
 
-  <Import Project="..\..\Common.targets" />
-
-  <ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
-    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="9.0.1" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="9.0.1" />
-    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="9.0.1" />
-    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.1" />
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.1" />
-    <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.1" />
-    <PackageReference Include="System.Collections.Immutable" Version="9.0.1" />
-    <PackageReference Include="System.Diagnostics.DiagnosticSource" Version="9.0.1" />
-    <PackageReference Include="System.Memory.Data" Version="9.0.1" />
-    <PackageReference Include="System.Text.Json" Version="9.0.1" />
+  <!-- Bundle the Roslyn source generator into this package. -->
+  <!-- ProjectReference ensures CoreEx.Generator is built before CoreEx is packed. -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\gen\CoreEx.Generator\CoreEx.Generator.csproj"
+                      ReferenceOutputAssembly="false"
+                      SetTargetFramework="TargetFramework=netstandard2.0"
+                      OutputItemType="Analyzer" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
-    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="8.0.1" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="8.0.2" />
-    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="8.0.10" />
-    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="8.0.1" />
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.1" />
-    <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.1" />
-    <PackageReference Include="System.Collections.Immutable" Version="8.0.0" />
-    <PackageReference Include="System.Diagnostics.DiagnosticSource" Version="8.0.1" />
-    <PackageReference Include="System.Memory.Data" Version="8.0.1" />
-    <PackageReference Include="System.Text.Json" Version="8.0.5" />
-  </ItemGroup>
+  <!-- Resolve generator dependency paths dynamically from CPM versions + NuGet global cache.
+       This avoids hardcoding versions that are already owned by Directory.Packages.props. -->
+  <Target Name="ResolveGeneratorDepPaths" BeforeTargets="_GetPackageFiles">
+    <PropertyGroup>
+      <!-- $(NuGetPackageRoot) is set by the .NET SDK on all platforms (~/.nuget/packages/ on Linux). -->
+      <_NuGetPackagesDir>$(NuGetPackageRoot)</_NuGetPackagesDir>
+    </PropertyGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)' == 'net6.0'">
-    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="6.0.2" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="6.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="6.0.33" />
-    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="6.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="6.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Http" Version="6.0.0" />
-    <PackageReference Include="System.Collections.Immutable" Version="6.0.0" />
-    <PackageReference Include="System.Diagnostics.DiagnosticSource" Version="6.0.1" />
-    <PackageReference Include="System.Memory.Data" Version="6.0.0" />
-    <PackageReference Include="System.Text.Json" Version="8.0.5" />
-  </ItemGroup>
+    <!-- Read versions from CPM PackageVersion items. -->
+    <ItemGroup>
+      <_HandlebarsVersion Include="@(PackageVersion)" Condition="'%(Identity)' == 'Handlebars.Net'" />
+    </ItemGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.1'">
-    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="6.0.2" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="6.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="6.0.31" />
-    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="6.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="6.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Http" Version="6.0.0" />
-    <PackageReference Include="System.Collections.Immutable" Version="6.0.0" />
-    <PackageReference Include="System.Diagnostics.DiagnosticSource" Version="6.0.1" />
-    <PackageReference Include="System.Memory.Data" Version="6.0.0" />
-    <PackageReference Include="System.Text.Json" Version="8.0.5" />
-  </ItemGroup>
+    <ItemGroup>
+      <None Include="../../gen/CoreEx.Generator/bin/$(Configuration)/netstandard2.0/CoreEx.Generator.dll"
+            Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+      <None Include="$(_NuGetPackagesDir)handlebars.net\%(_HandlebarsVersion.Version)\lib\netstandard2.0\Handlebars.dll"
+            Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+      <None Include="../../gen/CoreEx.Generator/bin/$(Configuration)/netstandard2.0/Pluralize.NET.dll"
+            Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+    </ItemGroup>
+  </Target>
 
   <ItemGroup>
-    <PackageReference Include="CloudNative.CloudEvents.SystemTextJson" Version="2.8.0" />
-    <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
-    <PackageReference Include="YamlDotNet" Version="16.3.0" />
-    <PackageReference Include="System.ComponentModel.Annotations" Version="5.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" />
+    <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.Http" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.Process" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.Runtime" />
+    <PackageReference Include="System.Memory.Data" />
   </ItemGroup>
-
 </Project>

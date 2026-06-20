@@ -1,34 +1,65 @@
-// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
+namespace CoreEx.Invokers;
 
-using System.Diagnostics;
-using System;
-using Microsoft.Extensions.Logging;
-
-namespace CoreEx.Invokers
+/// <summary>
+/// Enables standardized invocation capabilities.
+/// </summary>
+public interface IInvoker
 {
     /// <summary>
-    /// Enables the standardized invoker capabilities.
+    /// Gets the invoker <see cref="System.Type"/>.
     /// </summary>
-    public interface IInvoker
-    {
-        /// <summary>
-        /// Gets the start of an <see cref="Activity"/> action.
-        /// </summary>
-        Action<InvokeArgs>? OnActivityStart { get; }
+    Type Type { get; }
 
-        /// <summary>
-        /// Gets the <see cref="Activity"/>  <see cref="Exception"/> action.
-        /// </summary>
-        Action<InvokeArgs, Exception>? OnActivityException { get; }
+    /// <summary>
+    /// Gets the invoker name.
+    /// </summary>
+    string Name { get; }
 
-        /// <summary>
-        /// Gets the completion of an <see cref="Activity"/> action.
-        /// </summary>
-        Action<InvokeArgs>? OnActivityComplete { get; }
+    /// <summary>
+    /// Gets the optional <see cref="IServiceProvider"/>.
+    /// </summary>
+    public IServiceProvider? ServiceProvider { get; }
 
-        /// <summary>
-        /// Get the caller information <see cref="ILogger"/> formatter.
-        /// </summary>
-        Func<InvokeArgs, string> CallerLoggerFormatter { get; }
-    }
+    /// <summary>
+    /// Gets the optional <see cref="ILogger"/>.
+    /// </summary>
+    ILogger? Logger { get; }
+
+    /// <summary>
+    /// Gets the optional <see cref="IConfiguration"/>.
+    /// </summary>
+    IConfiguration? Configuration { get; }
+
+    /// <summary>
+    /// Gets the <see cref="System.Diagnostics.ActivityKind"/> associated with the invoker.
+    /// </summary>
+    ActivityKind ActivityKind { get; }
+
+    /// <summary>
+    /// Indicates whether the tracing is explicitly disabled for the invoker; i.e. will never happen regardless of configuration or other factors.
+    /// </summary>
+    bool IsTracingDisabled { get; }
+
+    /// <summary>
+    /// Indicates whether the logging is explicitly disabled for the invoker; i.e. will never happen regardless of configuration or other factors.
+    /// </summary>
+    bool IsLoggingDisabled { get; }
+
+    /// <summary>
+    /// Invoked on <see cref="Activity"/> start.
+    /// </summary>
+    /// <param name="tracer">The <see cref="InvokerTracer"/>.</param>
+    void OnActivityStart(InvokerTracer tracer);
+
+    /// <summary>
+    /// Invoked where the invocation resulted in an <paramref name="exception"/> for an <see cref="Activity"/>.
+    /// </summary>
+    /// <remarks><see cref="OnActivityComplete(InvokerTracer)"/> and <see cref="OnActivityException(InvokerTracer, Exception)"/> are mutually exclusive.</remarks>
+    void OnActivityException(InvokerTracer tracer, Exception exception);
+
+    /// <summary>
+    /// Invoked where the invocation completes successfully for an <see cref="Activity"/>.
+    /// </summary>
+    /// <remarks><see cref="OnActivityComplete(InvokerTracer)"/> and <see cref="OnActivityException(InvokerTracer, Exception)"/> are mutually exclusive.</remarks>
+    void OnActivityComplete(InvokerTracer tracer);
 }

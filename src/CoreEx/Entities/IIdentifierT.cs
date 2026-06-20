@@ -1,28 +1,41 @@
-﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
+namespace CoreEx.Entities;
 
-using System;
-using System.Text.Json.Serialization;
-
-namespace CoreEx.Entities
+/// <summary>
+/// Enables a mutable identifier (<see cref="Id"/>) capability.
+/// </summary>
+/// <typeparam name="TId">The identifier <see cref="Type"/>.</typeparam>
+/// <remarks>The <typeparamref name="TId"/> is intended for primitive types; e.g. <see cref="string"/>, <see cref="int"/>, <see cref="long"/> and <see cref="Guid"/>.
+/// <para>See also the immutable <see cref="IReadOnlyIdentifier{TId}"/>.</para></remarks>
+public interface IIdentifier<TId> : IIdentifier, IReadOnlyIdentifier<TId>
 {
+    /// <inheritdoc/>
+    TId IReadOnlyIdentifier<TId>.Id => Id;
+
     /// <summary>
-    /// Enables the identifier (<see cref="Id"/>) capability.
+    /// Gets or sets the identifier.
     /// </summary>
-    /// <typeparam name="TId">The identifier <see cref="Type"/>.</typeparam>
-    /// <remarks>The <typeparamref name="TId"/> is contrained to <see cref="IComparable{T}"/> and <see cref="IEquatable{T}"/> to largely limit the <see cref="Id"/> to primitive types; e.g. <see cref="string"/>, <see cref="int"/>,
-    /// <see cref="long"/> and <see cref="Guid"/>.</remarks>
-    public interface IIdentifier<TId> : IIdentifier where TId : IComparable<TId>, IEquatable<TId>
-    {
-        /// <inheritdoc/>
-        object? IIdentifier.Id { get => Id; set => Id = (TId)value!; }
+    new TId Id { get; set; }
 
-        /// <summary>
-        /// Gets or sets the identifier.
-        /// </summary>
-        new TId? Id { get; set; }
+    /// <inheritdoc/>
+    object? IIdentifierCore.Id => Id;
 
-        /// <inheritdoc/>
-        [JsonIgnore]
-        Type IIdentifier.IdType => typeof(TId);
-    }
+    /// <inheritdoc/>
+    object? IIdentifier.Id { get => Id; set => Id = (TId)value!; }
+
+    /// <inheritdoc/>
+    [JsonIgnore]
+    Type IIdentifierCore.IdType => typeof(TId);
+
+    /// <inheritdoc/>
+    [JsonIgnore]
+    bool IIdentifierCore.IsIdReadOnly => false;
+
+    /// <inheritdoc/>
+    void IIdentifierCore.SetIdentifier(object? id) => Id = (TId)id!;
+
+    /// <summary>
+    /// Sets (overrides) the identifier.
+    /// </summary>
+    /// <param name="id">The identifier.</param>
+    public void SetIdentifier(TId id) => Id = id;
 }

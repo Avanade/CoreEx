@@ -1,0 +1,14 @@
+global using Contoso.Shopping.Application;
+global using Contoso.Shopping.Application.Interfaces;
+global using Contoso.Shopping.Contracts;
+global using CoreEx;
+global using CoreEx.AspNetCore.Mvc;
+global using CoreEx.Entities;
+global using CoreEx.Http;
+global using CoreEx.Json;
+global using CoreEx.RefData;
+global using CoreEx.Validation;
+global using Microsoft.AspNetCore.Mvc;
+global using NSwag.Annotations;
+global using System.Net;
+global using System.Text.Json;

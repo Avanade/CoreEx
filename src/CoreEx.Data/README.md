@@ -1,187 +1,57 @@
 # CoreEx.Data
 
-The `CoreEx.Data` namespace provides extended data-related capabilities. 
+> Provides the `IUnitOfWork` transactional orchestration contract, `DataResult` mutation outcome types, data model base classes, and the `QueryArgsConfig` / `QueryFilterParser` / `QueryOrderByParser` pipeline for safe, explicitly-configured OData-style `$filter` and `$orderby` LINQ query translation.
 
-<br/>
+## Overview
 
-## Motivation
+`CoreEx.Data` sits between the domain layer and persistence backends (SQL, EF Core, Cosmos). It defines the contracts and utilities that keep application services free of storage-specific types while still enabling rich, safe dynamic querying.
 
-The motivation is to simplify and improve the data access experience.
+`IUnitOfWork` is the primary transactional boundary abstraction. Application services call `TransactionAsync` to scope a sequence of mutations and event enqueuing inside one transaction — regardless of whether the underlying store is SQL Server, PostgreSQL, or EF Core. The `Events` (`IEventQueue`) property on `IUnitOfWork` enables the transactional outbox pattern without coupling the service to any messaging infrastructure.
 
-<br/>
+`QueryArgsConfig` is a configuration object that defines which fields a caller is allowed to filter and sort on, what operators each field supports, and how each field maps to the underlying model property. At request time, `QueryExtensions.BuildQuery(IQueryable<T>, QueryArgs, QueryArgsConfig)` parses the `$filter` and `$orderby` strings, validates them against the configuration, and appends the equivalent `System.Linq.Dynamic.Core` predicates to the `IQueryable<T>` — safely, with no arbitrary field exposure.
 
-## OData-like Querying
+## Key capabilities
 
-It is not always possible to implement the likes of OData and/or GraphQL on an underlying data source. This could be related to the complexity of the implementation, the desire to hide the underlying data structure, and/or limit the types of operations performed to manage the underlying performance.
+- 🔁 **Unit-of-work contract**: `IUnitOfWork` provides `TransactionAsync` and the `Events` (`IEventQueue`) property for transactional outbox event enqueuing; storage implementations are injected and swappable.
+- 📦 **Mutation result types**: `DataResult` (no value) and `DataResult<T>` carry a `WasMutated` flag and optional mutated value, distinguishing "found and deleted" from "not found" without throwing exceptions.
+- 🗄️ **Data model base classes**: `ModelBase<TId>` and `ReferenceDataModelBase` provide ready-made persistence model types implementing `IIdentifier<T>`, `IChangeLogEx`, `IETag`, and common `IReferenceData` properties respectively.
+- 🔍 **Safe dynamic filter parsing**: `QueryFilterParser` parses OData-like `$filter` expressions against an explicit field allow-list, translates them to LINQ predicates, and rejects unknown fields or disallowed operators with structured parse errors.
+- 📐 **Safe dynamic order-by parsing**: `QueryOrderByParser` parses `$orderby` expressions against an explicit field allow-list and translates them to LINQ `.OrderBy()`/`.ThenBy()` calls.
+- ⚙️ **Field-level configuration**: Each field is configured with its CLR type, allowed operators, model property name/prefix, case normalization, null handling, and custom statement override via a fluent `QueryArgsConfig.WithFilter` / `WithOrderBy` builder.
+- 🏷️ **Reference data filter fields**: `QueryFilterReferenceDataFieldConfig<T>` maps a reference data `Code` string in the filter to its underlying `Id` for persistence queries.
+- 🔗 **IQueryable integration**: `QueryExtensions.Where` and `OrderBy` applies the filter and order-by to any `IQueryable<T>`.
 
-However, the desire to provide a similar experience to the client remains. The `CoreEx.Data.Querying` namespace enables the client to perform OData-like queries (limited to [`$filter`](https://docs.oasis-open.org/odata/odata/v4.01/cs01/part2-url-conventions/odata-v4.01-cs01-part2-url-conventions.html#sec_SystemQueryOptionfilter) and [`$orderby`](https://docs.oasis-open.org/odata/odata/v4.01/cs01/part2-url-conventions/odata-v4.01-cs01-part2-url-conventions.html#_Toc505773299)) on an underlying data source, in a structured and controlled manner.
+## Key types
 
-_Note:_ This is **not** intended to be a replacement for [OData](https://learn.microsoft.com/en-us/odata/webapi-8/overview), [GraphQL](https://github.com/graphql-dotnet/graphql-dotnet), etc. but to provide a limited, explicitly supported, dynamic capability to filter an underlying query.
+| Type | Description |
+|------|-------------|
+| **[`IUnitOfWork`](./IUnitOfWork.cs)** | Transactional unit-of-work contract: `TransactionAsync`, `ExecuteAsync`, `AreEventsSupported`, and `Events` (`IEventQueue`) for transactional outbox support. |
+| **[`DataResult`](./DataResult.cs)** | Readonly record struct carrying `WasMutated` for valueless mutation outcomes (e.g. delete). |
+| **[`DataResult<T>`](./DataResultT.cs)** | Generic variant of `DataResult` adding the mutated `Value`; returned by create/update operations. |
+| [`IDataArgs`](./IDataArgs.cs) | Marker interface for strongly-typed data argument objects passed to `IUnitOfWork` overloads. |
+| **[`QueryArgsConfig`](./Querying/QueryArgsConfig.cs)** | Root configuration builder for `$filter` and `$orderby` parsing; holds `FilterParser`, `OrderByParser`, and `ParsingConfig`; entry point via `QueryArgsConfig.Create()`. |
+| **[`QueryFilterParser`](./Querying/QueryFilterParser.cs)** | Configures and executes `$filter` parsing: `AddField<T>`, `AddNullField`, `AddReferenceDataField<T>`, `WithDefault`, `OnQuery` hooks, and `Parse(filterString)`. |
+| **[`QueryOrderByParser`](./Querying/QueryOrderByParser.cs)** | Configures and executes `$orderby` parsing: `AddField`, `WithDefault`, and `Parse(orderByString)`. |
+| **[`QueryExtensions`](./Querying/QueryExtensions.cs)** | `IQueryable<T>` extension methods `Where` and `OrderBy` apply the filter and order-by (respectively). |
+| **[`QueryArgsParseResult`](./Querying/QueryArgsParseResult.cs)** | Combined result of filter + order-by parsing: `FilterResult`, `OrderByResult`, `HasErrors`, and `QueryStatement`. |
+| [`QueryFilterParserResult`](./Querying/QueryFilterParserResult.cs) | Result of `QueryFilterParser.Parse()`: LINQ `QueryStatement`, parsed field values, and any `ParseErrors`. |
+| [`QueryOrderByParserResult`](./Querying/QueryOrderByParserResult.cs) | Result of `QueryOrderByParser.Parse()`: ordered `QueryStatement` and any parse errors. |
+| _[`ModelBase<TId>`](./Models/ModelBase.cs)_ | Abstract persistence model base implementing `IIdentifier<T>`, `IChangeLogEx`, `IETag`. |
+| _[`ReferenceDataModelBase`](./Models/ReferenceDataModelBase.cs)_ | Persistence model base for reference data tables with `Id`, `Code`, `Text`, `IsActive`, `SortOrder`, `StartDate`, `EndDate`. |
 
-Where this capability is different is that the separation from the API contract and the underlying data source schema is maintained. This is achieved by using configuration to explicitly define the fields that can be filtered and ordered, whilst also defining their relationship to the data source. This is in contrast to OData and GraphQL where the data source schema is largely exposed to the client.
+## Namespaces
 
-<br/>
+| Namespace | Description |
+|-----------|-------------|
+| [**`Models`**](./Models/) | `ModelBase<TId>` and `ReferenceDataModelBase` persistence model base classes. |
+| [**`Querying`**](./Querying/) | `QueryArgsConfig`, `QueryFilterParser`, `QueryOrderByParser`, field configuration types, expression AST types, and `QueryExtensions`. |
 
-### Features
+## Related Namespaces
 
-The following features are supported:
+- **[`CoreEx`](../CoreEx/README.md)** - `QueryArgs` (filter/orderby strings and paging), `PagingArgs`, and `IEventQueue` are defined in the root `CoreEx` package and consumed here.
+- **[`CoreEx.Database`](../CoreEx.Database/README.md)** - `IUnitOfWork` is implemented by the database unit-of-work; `QueryArgsConfig` is used by database query builders.
+- **[`CoreEx.EntityFrameworkCore`](../CoreEx.EntityFrameworkCore/README.md)** - EF Core `IQueryable<T>` extensions consume `QueryArgsConfig` via `Where`/`OrderBy`.
 
-- `$filter` - the ability to filter the underlying query based on a set of conditions. The following is supported:
-  - `eq` - equal to; expressed as `field eq 'value'`
-  - `ne` - not equal to; expressed as `field ne 'value'`
-  - `gt` - greater than; expressed as `field gt 'value'`
-  - `ge` - greater than or equal to; expressed as `field ge 'value'`
-  - `lt` - less than; expressed as `field lt 'value'`
-  - `le` - less than or equal to; expressed as `field le 'value'`
-  - `in` - in list; expressed as `field in ('value1', 'value2', ...)`
-  - `startswith` - starts with; expressed as `startswith(field, 'value')`
-  - `endswith` - ends with; expressed as `endswith(field, 'value')`
-  - `contains` - contains; expressed as `contains(field, 'value')`
-  - `and` - logical and; expressed as `field1 eq 'value1' and field2 eq 'value2'`
-  - `or` - logical or; expressed as `field1 eq 'value1' or field2 eq 'value2'`
-  - `not` - logical not; expressed as `not field eq 'value'`
-  - `null` - is null; expressed as `field eq null`
-  - `(` and `)` - grouping; expressed as `(field1 eq 'value1' and field2 eq 'value2') or field3 eq 'value3'`)`
+## AI Usage Guide
 
-- `$orderby` - the ability to order the underlying query based on a set of fields. The following is supported:
-  - `asc` - ascending; expressed as `field asc`
-  - `desc` - descending; expressed as `field desc`
-  - `,` - multiple fields; expressed as `field1 asc, field2 desc`
-
-Where the `'value'` is expressed as a string it must be enclosed in single quotes. A number, boolean, date, date and time, or `null` should be expressed as a constant, as expected for the underlying field type.
-
-The following are examples of supported queries:
-
-```
-$filter=lastname eq 'Doe' and startswith(firstname, 'a')
-$filter=salary gt 100000 and salary le 200000
-$filter=(lastname eq 'Doe' and firstname eq 'John') or (lastname eq 'Smith' and firstname eq 'Jane')
-$filter=state in ('CA', 'NY', 'TX')
-$filter=isactive eq true
-$filter=terminated eq null
-$filter=startdate ge 2020-01-01
-$orderby=lastname desc, firstname
-```
-
-<br/>
-
-### Configuration
-
-The [`QueryArgsConfig`](./Querying/QueryArgsConfig.cs) provides the means to configure the desired support; the model is an _explicit_ opt-in, versus an opt-out, of the capabilities.
-
-This contains the following key capabilities:
-
-- [`FilterParser`](./Querying/QueryFilterParser.cs) - this is the `$filter` parser and LINQ translator.
-- [`OrderByParser`](./Querying/QueryOrderByParser.cs) - this is the `$orderby` parser and LINQ translator.
-
-Each of these properties have the ability to _explicitly_ add fields and their corresponding configuration. An example is as follows:
-
-``` csharp
-private static readonly QueryArgsConfig _config = QueryArgsConfig.Create()
-    .WithFilter(filter => filter
-        .AddField<string>(nameof(Employee.LastName), c => c.WithOperators(QueryFilterOperator.AllStringOperators).WithUpperCase())
-        .AddField<string>(nameof(Employee.FirstName), c => c.WithOperators(QueryFilterOperator.AllStringOperators).WithUpperCase())
-        .AddReferenceDataField<Gender>(nameof(Employee.Gender), nameof(EfModel.Employee.GenderCode))
-        .AddField<DateTime>(nameof(Employee.StartDate))
-        .AddNullField(nameof(Employee.Termination), nameof(EfModel.Employee.TerminationDate), c => c.WithDefault(new QueryStatement($"{nameof(EfModel.Employee.TerminationDate)} == null"))))
-    .WithOrderBy(orderby => orderby
-        .AddField(nameof(Employee.LastName))
-        .AddField(nameof(Employee.FirstName))
-        .WithDefault($"{nameof(Employee.LastName)}, {nameof(Employee.FirstName)}"));
-```
-
-There are a number of different field configurations that can be added:
-
-Method | Description
-|-|-|
-`AddField<T>` | Adds a field of the specified type `T`. See [`QueryFilterFieldConfig<T>`](./Querying/QueryFilterFieldConfigT.cs).
-`AddNullField` | Adds a field that only supports `null` checking operations; limits to `EQ` and `NE`. See [`QueryFilterNullFieldConfig`](./Querying/QueryFilterNullFieldConfig.cs).
-`AddReferenceDataField<TRef>` | Adds a reference data field of the specified type `TRef`. Automatically includes the requisite `IReferenceData.Code` validation, and limits operations to `EQ`, `NE` and `IN`. See [`QueryFilterReferenceDataFieldConfig<TRef>`](./Querying/QueryFilterReferenceDataFieldConfig.cs).
-
-Each of the above methods support the following parameters:
-- `field` - the name of the field (using the correct casing) that can be referenced within the `$filter`.
-- `model` - the optional model name of the field (using the correct casing)  to be used in the underlying LINQ operation (defaults to `field`).
-- `configure` - an optional configuration action to further define the field configuration.
-
-Depending on the field type being added (as above), the following related configuration options are available:
-
-Method | Description
-|-|-|
-`AlsoCheckNotNull` | Indicates that a not-null check should also be performed when performing the operation.
-`AsNullable` | Indicates that the field is nullable and therefore supports null equality operations.
-`MustBeValid` | Indicates that the reference data field value must exist and be considered valid; i.e. it is `IReferenceData.IsValid`.
-`UseIdentifier` | Indicates that the `IReferenceData.Id` should be used in the underlying LINQ operation instead of the `IReferenceData.Code`.
-`WithConverter` | Provides the `IConverter<string, T>` to convert the filer value string to the underlying field type of `T`.
-`WithDefault` | Provides a default LINQ statement to be used for the field when no filtering is specified by the client.
-`WithHelpText` | Provides additional help text for the field to be used where help is requested.
-`WithOperators` | Overrides the supported operators for the field. See [`QueryFilterOperator`](./Querying/QueryFilterOperator.cs).
-`WithResultWriter` | Provides an opportunity to override the default result writer; i.e. LINQ expression.
-`WithUpperCase` | Indicates that the operation should be case-insensitive by performing an explicit `ToUpper()` on the field value.
-`WithValue` | Provides an opportunity to override the converted field value when the filter is applied.
-
-<br/>
-
-### Usage
-
-The configuration is then used to parse and apply the filter and/or order-by to the underlying query using the new `IQueryable<T>.Where` and `IQueryable<T>.OrderBy` extension methods.
-
-``` csharp
-var query = new QueryArgs
-{
-    Filter = "LastName eq 'Doe' and startswith(firstname, 'a')",
-    OrderBy = "LastName desc, FirstName"
-};
-
-return _dbContext.Employees.Where(_queryConfig, query).OrderBy(_queryConfig, query).ToCollectionResultAsync<EmployeeCollectionResult, EmployeeCollection, Employee>(paging);
-```
-
-The [`QueryArgs`](../CoreEx/Entities/QueryArgs.cs), demonstrated above, is a simple class that is used to house the `Filter` and `OrderBy` properties in a consistent fashion. Additionally, the [`WebApiRequestOptions`](../CoreEx.AspNetCore/CoreEx.AspNetCore.WebApis.WebApiRequestOptions) automatically creates an instance of this class from the originating query string (i.e. `$filter` and `$orderby`).
-
-``` csharp
-public Task<IActionResult> GetAllAsync()
-    => _webApi.GetAsync(Request, p => _service.GetAllAsync(p.RequestOptions.Query, p.RequestOptions.Paging));
-```
-
-<br/>
-
-### Enablement
-
-The `CoreEx.Data.Querying` capabilities described above essentially parses the OData-like syntax and then translates it into the equivalent dynamic LINQ statements. This statement is then passed through the [Dynamic LINQ](https://dynamic-linq.net/) NuGet [library](https://dynamic-linq.net/).
-
-For example, the following OData-like filters would be translated into the equivalent dynamic LINQ statements:
-
-```
-$filter: code eq 'A'
-LINQ: Where("Code == @0", ["A"])
----
-$filter: startswith(firstName, 'abc'), 
-LINQ: Where("FirstName.ToUpper().StartsWith(@0)", ["ABC"])
-```
-
-<br/>
-
-### Help
-
-To aid the consumers (clients) of the OData-like endpoints a *help* request can be issued. This is performed by using either `$filter=help` or `$orderby=help` and will result in a `400-BadRequest` with help-like contents similar to the following:
-
-``` json
-{
-  "$filter": [
-    "Filter field(s) are as follows:
-     LastName (Type: String, Null: false, Operators: EQ, NE, LT, LE, GE, GT, IN, StartsWith, Contains, EndsWith)
-     FirstName (Type: String, Null: false, Operators: EQ, NE, LT, LE, GE, GT, IN, StartsWith, Contains, EndsWith)
-     Gender (Type: Gender, Null: false, Operators: EQ, NE, IN)
-     StartDate (Type: DateTime, Null: false, Operators: EQ, NE, LT, LE, GE, GT, IN)
-     Termination (Type: <none>, Null: true, Operators: EQ, NE)"
-  ]
-}
-
-{
-  "$orderby": [
-    "Order-by field(s) are as follows:
-    LastName (Direction: Both)
-    FirstName (Direction: Both)"
-  ]
-}
-
-```
+An [`AGENTS.md`](./AGENTS.md) file is included with this package. AI coding assistants (GitHub Copilot, Claude, Cursor, etc.) that support workspace-injected package documentation will automatically surface concise usage guidance, code examples, and `Do Not` rules for this package without requiring a local CoreEx checkout.

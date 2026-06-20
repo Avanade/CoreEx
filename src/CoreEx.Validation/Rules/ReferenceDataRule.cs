@@ -1,28 +1,19 @@
-﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
+namespace CoreEx.Validation.Rules;
 
-using CoreEx.RefData;
-using System.Threading;
-using System.Threading.Tasks;
-
-namespace CoreEx.Validation.Rules
+/// <summary>
+/// Provides an <see cref="IReferenceData"/> validation.
+/// </summary>
+/// <typeparam name="TEntity">The entity <see cref="System.Type"/>.</typeparam>
+/// <typeparam name="TProperty">The property <see cref="System.Type"/>.</typeparam>
+/// <param name="allowInactive">Indicates whether to allow an <see cref="IReferenceData"/> value where <see cref="IReferenceData.IsActive"/> is set to <see langword="false"/>.</param>
+public class ReferenceDataRule<TEntity, TProperty>(bool allowInactive) : PropertyRuleBase<TEntity, TProperty> where TEntity : class where TProperty : IReferenceData
 {
-    /// <summary>
-    /// Provides validation for a <see cref="IReferenceData"/>; validates that the <see cref="IReferenceData.IsValid"/>.
-    /// </summary>
-    public class ReferenceDataRule<TEntity, TProperty> : ValueRuleBase<TEntity, TProperty> where TEntity : class where TProperty : IReferenceData?
+    /// <inheritdoc/>
+    protected override Task OnValidateAsync(PropertyContext<TEntity, TProperty> context, CancellationToken cancellationToken)
     {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ReferenceDataRule{TEntity, TProperty}"/> class.
-        /// </summary>
-        public ReferenceDataRule() => ValidateWhenDefault = false;
+        if (!context.Value.IsValid || (!allowInactive && !context.Value.IsActive))
+            context.AddError(ErrorText ?? ValidatorStrings.InvalidFormat);
 
-        /// <inheritdoc/>
-        protected override Task ValidateAsync(PropertyContext<TEntity, TProperty> context, CancellationToken cancellationToken = default)
-        {
-            if (!context.Value!.IsValid)
-                context.CreateErrorMessage(ErrorText ?? ValidatorStrings.InvalidFormat);
-
-            return Task.CompletedTask;
-        }
+        return Task.CompletedTask;
     }
 }

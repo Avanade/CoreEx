@@ -1,157 +1,43 @@
-﻿# CoreEx.RefData
+# CoreEx.RefData
 
-The `CoreEx.RefData` namespace provides a rich, first class, experience for _reference data_ given its key role within an application.
+> Provides the `ReferenceDataOrchestrator` and supporting interfaces for managing, caching, and resolving collections of reference data (look-up / code-list) types across a CoreEx application.
 
-<br/>
+## Overview
 
-## Motivation
+`CoreEx.RefData` defines the canonical pattern for reference data — think Status codes, Country lists, Gender options — within a CoreEx application. Reference data types are first-class strongly-typed entities (implementing `IReferenceData<TId>`) with `Id`, `Code`, `Text`, `IsActive`, `SortOrder`, and optional `StartDate`/`EndDate` validity windows.
 
-To provide a consistent pattern to the treatment of _reference data_ within an application, simplifying usage whilst maintaining flexibility of implementation.
+`ReferenceDataOrchestrator` is the central singleton that manages one or more `IReferenceDataProvider` implementations, loads their collections into an `IReferenceDataCache` (backed by `IHybridCache`), and exposes a unified async API for querying any reference data type by CLR type, name, or code. It also maintains an `AsyncLocal` current instance, so JSON converters and validator rules can resolve reference data without explicit orchestrator injection.
 
-<br/>
+The `IReferenceDataContext` scoping mechanism allows per-request filtering: e.g. returning only `IsActive` items for public API responses while allowing infrastructure to load all items. The `[ReferenceData<T>]` source-generator attribute on a contract property wires up the JSON code serialization and validator integration automatically.
 
-## Types of data
+## Key capabilities
 
-At a high-level a typical application deals with different types of data:
+- 📚 **Centralized collection management**: `ReferenceDataOrchestrator` manages multiple `IReferenceDataProvider` instances, loading each collection once and serving all subsequent requests from the cache.
+- 🏎️ **Cached loading**: `IReferenceDataCache` (backed by `IHybridCache`) stores loaded collections; the orchestrator reloads on cache miss and honours `LocalExpiration`/`DistributedExpiration` settings.
+- 🔍 **Multi-key lookup**: Collections are queryable by `Id`, `Code` (case-insensitive), or `Text` wildcard; `GetByTypeAsync<TRef>()` returns the full collection, and individual item resolution is available via `GetAsync<TRef>(code)`.
+- 🌐 **JSON code serialization**: `JsonReferenceDataConverter` (in `CoreEx.Json`) uses the orchestrator's `AsyncLocal` current instance to deserialize JSON code strings back to strongly typed reference data instances.
+- 🔐 **Validity filtering**: `IReferenceDataContext` filters returned collections to `IsActive` and within `StartDate`/`EndDate` windows; the context is scoped per request via `ExecutionContext`.
+- 🏷️ **Code validation**: `IReferenceDataCodeCollection` provides `ContainsCode(string)` for fast O(1) code existence checks used by validation rules.
+- 📡 **OpenTelemetry tracing**: `ReferenceDataOrchestratorInvoker` wraps every collection load with an `InvokerTracer` span, tagging the cache type, cache state, and item count.
 
-- **Reference Data** is data that is managed within an application primarily used to provide lists of valid values. These values provide contextual information that are generally used to trigger business processes, workflows and/or used for grouping / filtering.
-This data has a low level of volatility, in that it remains largely static for significant periods of time. There are low volumes of this data within an application. It is a very good candidate for the likes of caching. Reference Data is generally never deleted; instead it may become inactive. Example: Country, Gender, Payment Type, etc. 
+## Key types
 
-- **Master data** is data that is captured and continuously maintained to reflect a current known understanding; there is no historical context other than that provided by an audit process providing a version history over time. This data has a moderate level of volatility, in that changes generally occur infrequently. There are moderate volumes of this data within an application.
-Master data can be deleted (or logically deleted) as required; typically the latter. Example: Customer, Vendor, Product, GL Account, etc. 
+| Type | Description |
+|------|-------------|
+| **[`ReferenceDataOrchestrator`](./ReferenceDataOrchestrator.cs)** | Singleton managing reference data provider registration, cache-backed collection loading, and multi-key resolution via `GetByTypeAsync<TRef>()`, `GetByNameAsync()`. |
+| **[`ReferenceDataOrchestratorInvoker`](./ReferenceDataOrchestratorInvoker.cs)** | `InvokerBase<ReferenceDataOrchestrator>` wrapping collection loads with OpenTelemetry spans and structured log entries. |
+| **[`ReferenceDataMultiDictionary`](./ReferenceDataMultiDictionary.cs)** | Dictionary of reference data collections keyed by type name; the serialization-friendly result type returned by multi-type reference data API endpoints. |
+| [`IReferenceData<TId>`](./IReferenceDataT.cs) | Core reference data interface: `Id`, `Code`, `Text`, `IsActive`, `SortOrder`, `StartDate`, `EndDate`, and validity helpers. |
+| [`IReferenceDataCollectionT`](./IReferenceDataCollectionT.cs) | Strongly-typed collection interface adding `GetById`, `GetByCode`, `GetByText`, and `GetByPredicate` lookup methods. |
+| [`IReferenceDataCodeCollection`](./IReferenceDataCodeCollection.cs) | Slim interface exposing `ContainsCode(string)` for O(1) code membership tests used by validators. |
+| [`IReferenceDataProvider`](./IReferenceDataProvider.cs) | Pluggable provider interface: `GetTypes()` returns the reference data types managed by this provider; `GetAsync(Type)` loads and returns a collection. |
+| [`IReferenceDataCache`](./IReferenceDataCache.cs) | Cache interface wrapping `IHybridCache` for reference data collection storage and retrieval with configurable expiry options. |
+| [`IReferenceDataContext`](./IReferenceDataContext.cs) | Per-request scoping interface that controls which reference data items are visible (active-only vs all) for the current execution context. |
 
-- **Transactional data** is data that is recorded to capture/manage an event or action, tied to specific business rules, at a point in time. The data will typically have a high level of volatility at inception decreasing significantly over time. Once the corresponding workflow has completed the data becomes immutable and serves the purpose of providing a historical context. Transactional data is generally never deleted as it provides an auditable recording; it may be archived. There are high volumes of this type of data within an application. Example: Purchase Order, Sales Invoice, GL Posting, etc. 
+## Related Namespaces
 
-<br/>
-
-## Base capabilities
-
-The [`IReferenceData`](./IReferenceData.cs) provides for the core (standard) properties. The [`ReferenceDataBase`](./ReferenceDataBaseT.cs) or [`ReferenceDataBaseEx`](./Extended/ReferenceDataBaseEx.cs) provide the base implementation depending on the level of functionality required out-of-the-box. The latter is targeted for internal usage only with additional capabilities included that are often useful.
-
-The *primary* properties are as follows.
-
-Property | Description
--|-
-`Id` | The internal unique identifier as either an `int`, `long`, `Guid` or `string`.
-`Code` | The unique (immutable) code as a `string`. This is primarily the value that would be used by external parties (applications) to consume. Additionally, it could be used to store the reference in the underlying data source if the above `Id` is not suitable.
-`Text` | The textual `string` used for display within an application; e.g. within a drop-down. 
-`SortOrder` | Defines the sort order (integer) within the underlying reference data collection.
-`IsActive` | Indicates whether the value is active or not. It is up to the application what to do when a value is not considered active.
-
-Additional _secondary_ (largely optional) properties are as follows.
-
-Property | Description
--|-
-`Description` | A further more detailed textual `string` used for display within an application; e.g. help-style text.
-`StartDate` | The `IsValid` validity start date (`null` indicates not defined) where [`IReferenceDataContext`](./IReferenceDataContext.cs)
-`EndDate` | The `IsValid` validity end date (`null` indicates not defined).
-`ETag` | The entity tag ([`IETag`](../Entities/IETag.cs)) for optimistic concurrency and [`IF-MATCH`](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/If-Match) checking.
-
-Finally, there is a feature to enable multiple code mappings; i.e. where two (or more) systems have a different codes for the same value. The `SetMapping`, `GetMapping` and `TryGetMapping`, etc. methods enable.
-
-Additional developer-defined properties can be, and should be, added where required extending on the base class. The _reference data_ framework will then make these available within the application to enable simple usage/access by a developer. 
-
-The [`ReferenceDataCollection`](./ReferenceDataCollection.cs) provides the base capabilities for a reference data collection. Including the adding, ensuring uniqueness, sorting and additional filtering (e.g. `ActiveList`).
-
-<br/>
-
-## Orchestration and caching
-
-The [`ReferenceDataOrchestrator`](./ReferenceDataOrchestrator.cs) provides the centralized reference data orchestration. Primarily responsible for the management of one or more `IReferenceDataProvider` instances. 
-
-An [`IReferenceDataProvider`](./IReferenceDataProvider.cs) defines the list of _reference data_ `Types` that are provided/supported. The `GetAsync` method is then responsible for performing the load for the specified _reference data_ type. 
-
-Each `IReferenceDataProvider` (typically only one) instance is registered via the orchestrator's `Register` method. The orchestrator then provides a number of utility methods to access the various _reference data_ types. The orchestrator will lazy-load each type (using provider's `GetAsync`) on first access and automatically cache using an [`IMemoryCache`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.extensions.caching.memory.imemorycache) to improve performance. Out-of-the-box `IMemoryCache` policies can be set to manage cache lifetimes.
-
-<br/>
-
-### Cache policy configuration
-
-The default implementation for the `IMemoryCache` is that each _reference data_ type's collection [`ICacheEntry`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.extensions.caching.memory.icacheentry) is set in a standardized manner; being `AbsoluteExpirationRelativeToNow` and `SlidingExpiration` properties defaulted to `02:00:00` (2 hours) and `00:30:00` (30 minutes) respectively. 
-
-These defaults can be overridden within the configuration [settings](../Configuration/SettingsBase.cs); as can specific _reference data_ types. The following is an example of setting the defaults and then specifically overridding the `Gender` policy (the `Type.Name` is used as the property name).
-
-``` json
-{
-  "RefDataCache": {
-    "AbsoluteExpirationRelativeToNow": "01:45:00",
-    "SlidingExpiration": "00:15:00",
-    "Gender": {
-      "AbsoluteExpirationRelativeToNow": "03:00:00",
-      "SlidingExpiration": "00:45:00"
-    }
-  }
-}
-```
-
-This is enabled by the default [`SettingsBasedCacheEntry`](./Caching/SettingsBasedCacheEntry.cs) class. Where the above is not sufficient then a custom [`ICacheEntryConfig`](./Caching/ICacheEntryConfig.cs) can be leveraged, or the virtual `ReferencedDataOrchestrator.OnCreateCacheEntry` method can be overridden to fully customize (override) the behaviour.
-
-<br/>
-
-### Distributed cache
-
-There may be times that a [distributed cache](https://learn.microsoft.com/en-us/dotnet/core/extensions/caching#distributed-caching) may be required to support higher scale-out and/or consistent multiple app server refreshing. In this scenario it is still recommended that an `IMemoryCache` is used, albeit with a nominal (small) expiration to ensure optimal performance given potential frequency of access, then implement the likes of an [`IDistribuedCache`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.extensions.caching.distributed.idistributedcache) within the corresponding [`IReferenceDataProvider`](./IReferenceDataProvider.cs) implementation.
-
-<br/>
-
-## Reference data properties and serialization
-
-It is recommended that the rich _reference data_ types themselves where included within an entity are not JSON serialized/deserialized over the wire from the likes of an API; in these instances only the `Code` is generally used. This is to minimize the resulting payload size of the owning entity. 
-
-For example a `Person` entity would be defined with the rich `Gender` _reference data_ type:
-
-``` csharp
-public class Person
-{
-    public string? Name { get; set; }
-    public Gender? Gender { get; set; }
-}
-```
-
-The resulting serialized JSON should be as follows. By default the [`JsonSerializer`](../Text/Json/JsonSerializer.cs) will automatically detect a property of `IReferenceData` and serialize the `Code` only, whereby ensuring the minimized serialization. Where full serialization is required use the alternate [`ReferenceDataContentJsonSerializer`](../Text/Json/ReferenceDataContentJsonSerializer.cs).
-
-``` json
-{ "name": "Sarah", "gender": "F" }
-```
-
-<br/>
-
-## Reference data APIs
-
-The [orchestrator](#Orchestration-and-caching) encapsulates all the requisite functionality to enables rich API endpoints. By default only the active (`IReferenceData.IsActive`) items will be returned. To get both the active and inactive the [`$inactive=true`](../Http/HttpConsts.cs) URL query string must be used.
-
-<br/>
-
-### Per reference data endpoints
-
-Each reference data entity should have an API endpoint; similar to `/ref/Xxx`. This will by default return all of the active reference data entries. This can also be invoked passing additional URL query string parameters:
-
-Parameter | Description
--|-
-`code` | Zero or more codes can be passed; e.g: `?code=m,f` or `?code=m&code=f` (case insensitive).
-`text` | A single text with wildcards can be passed; e.g: `?text=m*` (case insensitive).
-
-To expose per _reference data_ type, [code similar to](../../../samples/My.Hr/My.Hr.Api/Controllers/ReferenceDataController.cs) the following should be adopted. The [orchestrator](#Orchestration-and-caching) encapsulates all the requisite functionality to filter, etc.
-
-``` csharp
-[HttpGet("genders")]
-[ProducesResponseType(typeof(IEnumerable<Gender>), (int)HttpStatusCode.OK)]
-public Task<IActionResult> GenderGetAll([FromQuery] IEnumerable<string>? codes = default, string? text = default) =>
-    _webApi.GetAsync(Request, x => _orchestrator.GetWithFilterAsync<Gender>(codes, text, x.RequestOptions.IncludeInactive));
-```
-
-<br/>
-
-### Root reference data endpoint
-
-Additionally, a root `/ref`-style endpoint can be used to return multiple reference data values in a single request; designed to reduce chattiness from a consuming channel to the above _per_ endpoints. This must be passed at least a single URL query string parameter to function.
-
-The parameter is either just the named reference data entity which will result in all corresponding entries being returned (e.g: `?gender` or `?gender&country`). Otherwise, specific codes can be specified (e.g" `?gender=m,f`, `?gender=m&gender=f`, `?gender=m,f&country=au,nz`). The options can be mixed and matched (e.g: `?gender&country=au,nz`).
-
-To expose, [code similar to](../../../samples/My.Hr/My.Hr.Api/Controllers/ReferenceDataController.cs) the following should be adopted. The [orchestrator](#Orchestration-and-caching) encapsulates all the requisite functionality to perform in a consistent manner.
-
-``` csharp
-[HttpGet()]
-[ProducesResponseType(typeof(IEnumerable<CoreEx.RefData.ReferenceDataMultiItem>), (int)HttpStatusCode.OK)]
-public Task<IActionResult> GetNamed() => _webApi.GetAsync(Request, p => _orchestrator.GetNamedAsync(p.RequestOptions));
-```
+- **[`CoreEx`](../README.md)** - `ExecutionContext` carries the ambient `IReferenceDataContext` and `IServiceProvider` used by the orchestrator.
+- **[`CoreEx.Caching`](../Caching/README.md)** - `IHybridCache` backs `IReferenceDataCache` for L1/L2 reference data caching.
+- **[`CoreEx.Json`](../Json/README.md)** - `JsonReferenceDataConverter` uses `ReferenceDataOrchestrator.Current` to deserialize code strings to typed reference data instances.
+- **[`CoreEx.Invokers`](../Invokers/README.md)** - `ReferenceDataOrchestratorInvoker` emits OpenTelemetry spans for every collection load.
+- **[`CoreEx.RefData`](../../CoreEx.RefData/README.md)** - The separate `CoreEx.RefData` NuGet package extends these primitives with `ReferenceDataBase<TId, TSelf>` and additional entity/collection base types.

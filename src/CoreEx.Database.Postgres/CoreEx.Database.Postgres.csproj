@@ -1,22 +1,17 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>net6.0;net8.0;net9.0</TargetFrameworks>
-    <RootNamespace>CoreEx.Database.Postgres</RootNamespace>
-    <Product>CoreEx</Product>
-    <Title>CoreEx .NET Postgres Database extras.</Title>
-    <Description>CoreEx .NET Postgres Database extras.</Description>
-    <PackageTags>coreex db database sql postgres ado.net relational</PackageTags>
+    <Title>CoreEx .NET PostgreSQL extensions.</Title>
+    <Description>Core .NET extensions and abstractions for the development of backend services.</Description>
+    <PackageTags>coreex microservices domain-based event-driven railway-oriented reference-data postgresql postgres database</PackageTags>
   </PropertyGroup>
 
-  <Import Project="..\..\Common.targets" />
-
   <ItemGroup>
-    <PackageReference Include="Npgsql" Version="9.0.2" />
+    <PackageReference Include="Aspire.Azure.Npgsql" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\CoreEx\CoreEx.csproj" />
+    <ProjectReference Include="..\CoreEx.Data\CoreEx.Data.csproj" />
     <ProjectReference Include="..\CoreEx.Database\CoreEx.Database.csproj" />
   </ItemGroup>
-
 </Project>

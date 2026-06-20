@@ -1,0 +1,84 @@
+<Project>
+
+  <!-- Targeting & Language Defaults -->
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>preview</LangVersion>
+  </PropertyGroup>
+
+  <!-- Versioning (defined in /Version.props at repo root) -->
+  <Import Project="$(MSBuildThisFileDirectory)..\Version.props" />
+
+  <!-- Build Quality -->
+  <PropertyGroup>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <!-- Strong Name Signing -->
+  <PropertyGroup>
+    <AssemblyOriginatorKeyFile>../../strong-name-key.snk</AssemblyOriginatorKeyFile>
+    <SignAssembly>true</SignAssembly>
+  </PropertyGroup>
+
+  <!-- Packaging Behavior -->
+  <PropertyGroup>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+
+    <EmbedAllSources>true</EmbedAllSources>
+    <IncludeSource>true</IncludeSource>
+
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+  </PropertyGroup>
+
+  <!-- NuGet Package Metadata -->
+  <PropertyGroup>
+    <Authors>Avanade</Authors>
+    <Company>Avanade (https://www.avanade.com/)</Company>
+    <Copyright>Copyright (c) Avanade.</Copyright>
+
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+
+    <PackageIcon>Logo256x256.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+
+    <RepositoryType>git</RepositoryType>
+    <RepositoryUrl>https://github.com/Avanade/CoreEx</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/Avanade/CoreEx</PackageProjectUrl>
+  </PropertyGroup>
+
+  <!-- Packed Assets -->
+  <ItemGroup>
+    <None Include="../../images/Logo256x256.png"
+          Pack="true"
+          PackagePath="/"
+          Visible="false" />
+
+    <!-- Per-package README.md for NuGet package details page (required for all packages). -->
+    <None Include="README.md"
+          Pack="true"
+          PackagePath="/"
+          Visible="false" />
+
+    <!-- Per-package AGENTS.md for AI tooling (e.g. VS Copilot nuget_get_package_context). -->
+    <!-- Path resolves relative to each .csproj, so picks up the local src/{Package}/AGENTS.md when present. -->
+    <None Include="AGENTS.md"
+          Pack="true"
+          PackagePath="/"
+          Visible="false"
+          Condition="Exists('AGENTS.md')" />
+  </ItemGroup>
+
+  <!-- Azure Publish -->
+  <PropertyGroup Condition="'$(TargetFramework)' == '' and '$(TargetFrameworks)' != ''">
+    <AzdPublishTargetFramework Condition="'$(AzdPublishTargetFramework)' == ''">$(AZD_DOTNET_TARGET_FRAMEWORK)</AzdPublishTargetFramework>
+    <AzdPublishTargetFramework Condition="'$(AzdPublishTargetFramework)' == ''">$(DOTNET_TARGET_FRAMEWORK)</AzdPublishTargetFramework>
+    <TargetFramework Condition="'$(AzdPublishTargetFramework)' != ''">$(AzdPublishTargetFramework)</TargetFramework>
+  </PropertyGroup>
+
+</Project>

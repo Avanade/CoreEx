@@ -1,0 +1,56 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>preview</LangVersion>
+
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="Resources\Person_GetByQuery_Default.json" />
+    <None Remove="Resources\Person_GetByQuery_FilterError.json" />
+    <None Remove="Resources\Person_GetByQuery_IncludeFields.json" />
+    <None Remove="Resources\Person_GetByQuery_Paging.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\Gender_Get_All.json" />
+    <EmbeddedResource Include="Resources\Person_GetByQuery_Default.json" />
+    <EmbeddedResource Include="Resources\Person_GetByQuery_OrderByError.json" />
+    <EmbeddedResource Include="Resources\Person_GetByQuery_FilterError.json" />
+    <EmbeddedResource Include="Resources\Person_GetByQuery_IncludeFields.json" />
+    <EmbeddedResource Include="Resources\Person_GetByQuery_Paging.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="WebApiTestsBase.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="AwesomeAssertions" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="NUnit" />
+    <PackageReference Include="NUnit.Analyzers" />
+    <PackageReference Include="NUnit3TestAdapter" />
+    <PackageReference Include="UnitTestEx.NUnit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\CoreEx.UnitTesting\CoreEx.UnitTesting.csproj" />
+    <ProjectReference Include="..\..\src\CoreEx\CoreEx.csproj" />
+    <ProjectReference Include="..\..\src\CoreEx.AspNetCore\CoreEx.AspNetCore.csproj" />
+    <ProjectReference Include="..\CoreEx.AspNetCore.Test.Api\CoreEx.AspNetCore.Test.Api.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="AwesomeAssertions" />
+    <Using Include="NUnit.Framework" />
+    <Using Include="UnitTestEx" />
+  </ItemGroup>
+
+</Project>

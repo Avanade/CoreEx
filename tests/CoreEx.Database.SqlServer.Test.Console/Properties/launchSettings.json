@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "CoreEx.Database.SqlServer.Test.Console": {
+      "commandName": "Project",
+      "commandLineArgs": "dropandall"
+    }
+  }
+}

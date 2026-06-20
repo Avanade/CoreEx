@@ -1,0 +1,51 @@
+{
+  "id": "00000bbb-0000-0000-0000-000000000000",
+  "customerId": "000003e9-0000-0000-0000-000000000000",
+  "status": "A",
+  "items": [
+    {
+      "id": "00000fa5-0000-0000-0000-000000000000",
+      "productId": "0000000c-0000-0000-0000-000000000000",
+      "sku": "SPEC-ENDURO-PRO",
+      "text": "Specialized Enduro Pro",
+      "quantity": 1.00,
+      "unitOfMeasure": "EA",
+      "unitPrice": 9500.00,
+      "total": 9500.0000,
+      "etag": "AAAAAAAADEM="
+    },
+    {
+      "id": "00000fa6-0000-0000-0000-000000000000",
+      "productId": "00000015-0000-0000-0000-000000000000",
+      "sku": "SHIMANO-XTR-M9100-CRANK",
+      "text": "Shimano XTR M9100 Crankset",
+      "quantity": 1.00,
+      "unitOfMeasure": "EA",
+      "unitPrice": 499.00,
+      "total": 499.0000,
+      "etag": "AAAAAAAADEQ="
+    },
+    {
+      "id": "0d03b2d4-c1af-4b52-9773-666c96c409ac",
+      "productId": "00000020-0000-0000-0000-000000000000",
+      "sku": "LABOR",
+      "text": "Labor",
+      "quantity": 1.5,
+      "unitOfMeasure": "HR",
+      "unitPrice": 80.00,
+      "total": 120.000,
+      "etag": "AAAAAAAADEs="
+    }
+  ],
+  "pricing": {
+    "subTotal": 10119.0000,
+    "total": 10119.0000
+  },
+  "changeLog": {
+    "createdBy": "DOMAIN-CORP\\eric.sibly",
+    "createdOn": "2026-02-22T22:58:37.3812872\u002B00:00",
+    "updatedBy": "DOMAIN-CORP\\eric.sibly",
+    "updatedOn": "2026-02-22T22:58:43.1942797\u002B00:00"
+  },
+  "etag": "AAAAAAAADEo="
+}

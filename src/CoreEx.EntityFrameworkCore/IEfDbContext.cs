@@ -1,17 +1,12 @@
-﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
+namespace CoreEx.EntityFrameworkCore;
 
-using CoreEx.Database;
-
-namespace CoreEx.EntityFrameworkCore
+/// <summary>
+/// Enables access to the underlying <see cref="IDatabase"/> instance (see <see cref="BaseDatabase"/>).
+/// </summary>
+public interface IEfDbContext
 {
     /// <summary>
-    /// Enables access to the base <see cref="IDatabase"/> instance (see <see cref="BaseDatabase"/>).
+    /// Gets the base <see cref="IDatabase"/>.
     /// </summary>
-    public interface IEfDbContext
-    {
-        /// <summary>
-        /// Gets the base <see cref="IDatabase"/>.
-        /// </summary>
-        public IDatabase BaseDatabase { get; }
-    }
+    public IDatabase BaseDatabase { get; }
 }

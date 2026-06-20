@@ -1,0 +1,22 @@
+{
+  "profiles": {
+    "http": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "dotnetRunMessages": true,
+      "applicationUrl": "http://localhost:5275"
+    },
+    "https": {
+      "commandName": "Project",
+      "launchUrl": "https://localhost:7219/swagger",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "dotnetRunMessages": true,
+      "applicationUrl": "https://localhost:7219;http://localhost:5275"
+    }
+  },
+  "$schema": "https://json.schemastore.org/launchsettings.json"
+}

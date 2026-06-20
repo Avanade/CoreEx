@@ -1,0 +1,212 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>net10.0</TargetFrameworks>
+    <Title>CoreEx 'dotnet new' template.</Title>
+    <Description>Core 'dotnet new' template for scaffolding CoreEx-based projects.</Description>
+    <PackageTags>coreex microservices domain-based event-driven railway-oriented reference-data</PackageTags>
+    <PackageType>Template</PackageType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Include all content files so VS can navigate them. -->
+    <Content Include="content\**" PackagePath="content" />
+    <!-- Un-pack the raw template.json files; version-stamped copies are packed by GenerateVersionedTemplateJson. -->
+    <Content Update="content\**\.template.config\template.json" Pack="false" />
+    <Content Update="content\CoreEx.Bootstrap\.template.config\template.json" Pack="true" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Exclude all content files from compilation; they are included as content only. -->
+    <Compile Remove="content\**" />
+  </ItemGroup>
+
+  <!-- Inline task: replace a literal string in a file and write the result to a new path. -->
+  <UsingTask TaskName="ReplaceTextInFile" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <SourceFile ParameterType="System.String" Required="true" />
+      <DestinationFile ParameterType="System.String" Required="true" />
+      <FindText ParameterType="System.String" Required="true" />
+      <ReplaceText ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Code Type="Fragment" Language="cs">
+        <![CDATA[
+          string content = System.IO.File.ReadAllText(SourceFile);
+          content = content.Replace(FindText, ReplaceText);
+          System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(DestinationFile) ?? string.Empty);
+          System.IO.File.WriteAllText(DestinationFile, content);
+        ]]>
+      </Code>
+    </Task>
+  </UsingTask>
+
+     <!-- Copy packaged AI context files from the CoreEx repo into the CoreEx.Core and CoreEx.Bootstrap templates at pack time.
+       This ensures every generated solution is immediately AI-ready without a separate sync step.
+       Files sourced:
+         - consumer-instructions/.github/copilot-instructions.md → .github/copilot-instructions.md
+        - .github/prompts/coreex-scaffold.prompt.md            → .github/prompts/coreex-scaffold.prompt.md
+        - .github/skills/solution-scaffolder/*                 → .github/skills/solution-scaffolder/
+         - .github/agents/coreex-expert.agent.md               → .github/agents/coreex-expert.agent.md
+         - .claude/commands/coreex-expert.md                    → .claude/commands/coreex-expert.md
+         - .claude/commands/coreex-docs-sync.md                 → .claude/commands/coreex-docs-sync.md
+         - .github/instructions/*.instructions.md               → .github/instructions/
+        - docs/application-scaffolding-guide.md                → .github/docs/coreex/application-scaffolding-guide.md
+         - samples/docs/*.md                                     → .github/docs/coreex/
+         - src/CoreEx.*/AGENTS.md                               → .github/docs/coreex/agents/
+  -->
+    <Target Name="CopyTemplateAiContext" BeforeTargets="_GetPackageFiles">
+    <PropertyGroup>
+      <_RepoRoot>$(MSBuildThisFileDirectory)..\..\</_RepoRoot>
+      <_AiGenRoot>$(BaseIntermediateOutputPath)generated\CoreEx.Core\</_AiGenRoot>
+    </PropertyGroup>
+
+      <!-- Clear previously generated AI assets so wildcard Bootstrap packing cannot pick up stale files. -->
+      <RemoveDir Directories="$(_AiGenRoot)" />
+
+    <!-- Single files and package AGENTS.md files (need explicit source→dest mapping) -->
+    <ItemGroup>
+      <_AiFile Include="$(_RepoRoot)consumer-instructions\.github\copilot-instructions.md" DestSubPath=".github\copilot-instructions.md" />
+      <_AiFile Include="$(_RepoRoot).github\prompts\coreex-scaffold.prompt.md" DestSubPath=".github\prompts\coreex-scaffold.prompt.md" />
+      <_AiFile Include="$(_RepoRoot).github\skills\solution-scaffolder\SKILL.md" DestSubPath=".github\skills\solution-scaffolder\SKILL.md" />
+      <_AiFile Include="$(_RepoRoot).github\skills\solution-scaffolder\README.md" DestSubPath=".github\skills\solution-scaffolder\README.md" />
+      <_AiFile Include="$(_RepoRoot).github\skills\solution-scaffolder\assets\servicebus-config.template.json" DestSubPath=".github\skills\solution-scaffolder\assets\servicebus-config.template.json" />
+      <_AiFile Include="$(_RepoRoot).github\skills\solution-scaffolder\assets\docker-compose.local.yml" DestSubPath=".github\skills\solution-scaffolder\assets\docker-compose.local.yml" />
+      <_AiFile Include="$(_RepoRoot).github\skills\solution-scaffolder\references\workflow.md" DestSubPath=".github\skills\solution-scaffolder\references\workflow.md" />
+      <_AiFile Include="$(_RepoRoot).github\agents\coreex-expert.agent.md" DestSubPath=".github\agents\coreex-expert.agent.md" />
+      <_AiFile Include="$(_RepoRoot).claude\commands\coreex-expert.md" DestSubPath=".claude\commands\coreex-expert.md" />
+      <_AiFile Include="$(_RepoRoot).claude\commands\coreex-docs-sync.md" DestSubPath=".claude\commands\coreex-docs-sync.md" />
+      <!-- Per-package AI usage guides: AGENTS.md renamed to <PackageName>.md -->
+      <_AiFile Include="$(_RepoRoot)src\CoreEx\AGENTS.md" DestSubPath=".github\docs\coreex\agents\CoreEx.md" />
+      <_AiFile Include="$(_RepoRoot)src\CoreEx.AspNetCore\AGENTS.md" DestSubPath=".github\docs\coreex\agents\CoreEx.AspNetCore.md" />
+      <_AiFile Condition="Exists('$(_RepoRoot)src\CoreEx.AspNetCore.NSwag\AGENTS.md')" Include="$(_RepoRoot)src\CoreEx.AspNetCore.NSwag\AGENTS.md" DestSubPath=".github\docs\coreex\agents\CoreEx.AspNetCore.NSwag.md" />
+      <_AiFile Include="$(_RepoRoot)src\CoreEx.Azure.Messaging.ServiceBus\AGENTS.md" DestSubPath=".github\docs\coreex\agents\CoreEx.Azure.Messaging.ServiceBus.md" />
+      <_AiFile Include="$(_RepoRoot)src\CoreEx.Caching.FusionCache\AGENTS.md" DestSubPath=".github\docs\coreex\agents\CoreEx.Caching.FusionCache.md" />
+      <_AiFile Include="$(_RepoRoot)src\CoreEx.CodeGen\AGENTS.md" DestSubPath=".github\docs\coreex\agents\CoreEx.CodeGen.md" />
+      <_AiFile Include="$(_RepoRoot)src\CoreEx.Data\AGENTS.md" DestSubPath=".github\docs\coreex\agents\CoreEx.Data.md" />
+      <_AiFile Include="$(_RepoRoot)src\CoreEx.Database\AGENTS.md" DestSubPath=".github\docs\coreex\agents\CoreEx.Database.md" />
+      <_AiFile Include="$(_RepoRoot)src\CoreEx.Database.Postgres\AGENTS.md" DestSubPath=".github\docs\coreex\agents\CoreEx.Database.Postgres.md" />
+      <_AiFile Include="$(_RepoRoot)src\CoreEx.Database.SqlServer\AGENTS.md" DestSubPath=".github\docs\coreex\agents\CoreEx.Database.SqlServer.md" />
+      <_AiFile Include="$(_RepoRoot)src\CoreEx.DomainDriven\AGENTS.md" DestSubPath=".github\docs\coreex\agents\CoreEx.DomainDriven.md" />
+      <_AiFile Include="$(_RepoRoot)src\CoreEx.EntityFrameworkCore\AGENTS.md" DestSubPath=".github\docs\coreex\agents\CoreEx.EntityFrameworkCore.md" />
+      <_AiFile Include="$(_RepoRoot)src\CoreEx.Events\AGENTS.md" DestSubPath=".github\docs\coreex\agents\CoreEx.Events.md" />
+      <_AiFile Include="$(_RepoRoot)src\CoreEx.RefData\AGENTS.md" DestSubPath=".github\docs\coreex\agents\CoreEx.RefData.md" />
+      <_AiFile Include="$(_RepoRoot)src\CoreEx.UnitTesting\AGENTS.md" DestSubPath=".github\docs\coreex\agents\CoreEx.UnitTesting.md" />
+      <_AiFile Include="$(_RepoRoot)src\CoreEx.Validation\AGENTS.md" DestSubPath=".github\docs\coreex\agents\CoreEx.Validation.md" />
+    </ItemGroup>
+
+    <!-- Capability instruction files -->
+    <ItemGroup>
+      <_AiFile Include="$(_RepoRoot).github\instructions\coreex-api-controllers.instructions.md" DestSubPath=".github\instructions\coreex-api-controllers.instructions.md" />
+      <_AiFile Include="$(_RepoRoot).github\instructions\coreex-application-services.instructions.md" DestSubPath=".github\instructions\coreex-application-services.instructions.md" />
+      <_AiFile Include="$(_RepoRoot).github\instructions\coreex-contracts.instructions.md" DestSubPath=".github\instructions\coreex-contracts.instructions.md" />
+      <_AiFile Include="$(_RepoRoot).github\instructions\coreex-conventions.instructions.md" DestSubPath=".github\instructions\coreex-conventions.instructions.md" />
+      <_AiFile Include="$(_RepoRoot).github\instructions\coreex-domain.instructions.md" DestSubPath=".github\instructions\coreex-domain.instructions.md" />
+      <_AiFile Include="$(_RepoRoot).github\instructions\coreex-event-subscribers.instructions.md" DestSubPath=".github\instructions\coreex-event-subscribers.instructions.md" />
+      <_AiFile Include="$(_RepoRoot).github\instructions\coreex-host-setup.instructions.md" DestSubPath=".github\instructions\coreex-host-setup.instructions.md" />
+      <_AiFile Include="$(_RepoRoot).github\instructions\coreex-repositories.instructions.md" DestSubPath=".github\instructions\coreex-repositories.instructions.md" />
+      <_AiFile Include="$(_RepoRoot).github\instructions\coreex-tests.instructions.md" DestSubPath=".github\instructions\coreex-tests.instructions.md" />
+      <_AiFile Include="$(_RepoRoot).github\instructions\coreex-tooling.instructions.md" DestSubPath=".github\instructions\coreex-tooling.instructions.md" />
+      <_AiFile Include="$(_RepoRoot).github\instructions\coreex-validators.instructions.md" DestSubPath=".github\instructions\coreex-validators.instructions.md" />
+    </ItemGroup>
+
+    <!-- Architecture / sample docs -->
+    <ItemGroup>
+      <_AiFile Include="$(_RepoRoot)docs\application-scaffolding-guide.md" DestSubPath=".github\docs\coreex\application-scaffolding-guide.md" />
+      <_AiFile Include="$(_RepoRoot)samples\docs\application-layer.md" DestSubPath=".github\docs\coreex\application-layer.md" />
+      <_AiFile Include="$(_RepoRoot)samples\docs\aspire.md" DestSubPath=".github\docs\coreex\aspire.md" />
+      <_AiFile Include="$(_RepoRoot)samples\docs\contracts-layer.md" DestSubPath=".github\docs\coreex\contracts-layer.md" />
+      <_AiFile Include="$(_RepoRoot)samples\docs\domain-layer.md" DestSubPath=".github\docs\coreex\domain-layer.md" />
+      <_AiFile Include="$(_RepoRoot)samples\docs\hosts-layer.md" DestSubPath=".github\docs\coreex\hosts-layer.md" />
+      <_AiFile Include="$(_RepoRoot)samples\docs\infrastructure-layer.md" DestSubPath=".github\docs\coreex\infrastructure-layer.md" />
+      <_AiFile Include="$(_RepoRoot)samples\docs\layers.md" DestSubPath=".github\docs\coreex\layers.md" />
+      <_AiFile Include="$(_RepoRoot)samples\docs\local-dev.md" DestSubPath=".github\docs\coreex\local-dev.md" />
+      <_AiFile Include="$(_RepoRoot)samples\docs\patterns.md" DestSubPath=".github\docs\coreex\patterns.md" />
+      <_AiFile Include="$(_RepoRoot)samples\docs\testing.md" DestSubPath=".github\docs\coreex\testing.md" />
+      <_AiFile Include="$(_RepoRoot)samples\docs\tooling.md" DestSubPath=".github\docs\coreex\tooling.md" />
+    </ItemGroup>
+
+    <!-- Copy all files in one batch (DestSubPath drives both the copy destination and the pack path) -->
+    <Copy SourceFiles="@(_AiFile)" DestinationFiles="@(_AiFile->'$(_AiGenRoot)%(DestSubPath)')" SkipUnchangedFiles="true" />
+
+    <!-- Add all generated AI files to the nupkg under content\CoreEx.Core\
+         Explicit items are required for renamed files (PackagePath transform in a non-Include
+         attribute produces a single joined string, not per-item values). -->
+    <ItemGroup>
+      <!-- Single files -->
+      <None Include="$(_AiGenRoot).github\copilot-instructions.md" Pack="true" PackagePath="content\CoreEx.Core\.github\copilot-instructions.md" />
+      <None Include="$(_AiGenRoot).github\prompts\coreex-scaffold.prompt.md" Pack="true" PackagePath="content\CoreEx.Core\.github\prompts\coreex-scaffold.prompt.md" />
+      <None Include="$(_AiGenRoot).github\skills\solution-scaffolder\SKILL.md" Pack="true" PackagePath="content\CoreEx.Core\.github\skills\solution-scaffolder\SKILL.md" />
+      <None Include="$(_AiGenRoot).github\skills\solution-scaffolder\README.md" Pack="true" PackagePath="content\CoreEx.Core\.github\skills\solution-scaffolder\README.md" />
+      <None Include="$(_AiGenRoot).github\skills\solution-scaffolder\assets\servicebus-config.template.json" Pack="true" PackagePath="content\CoreEx.Core\.github\skills\solution-scaffolder\assets\servicebus-config.template.json" />
+      <None Include="$(_AiGenRoot).github\skills\solution-scaffolder\assets\docker-compose.local.yml" Pack="true" PackagePath="content\CoreEx.Core\.github\skills\solution-scaffolder\assets\docker-compose.local.yml" />
+      <None Include="$(_AiGenRoot).github\skills\solution-scaffolder\references\workflow.md" Pack="true" PackagePath="content\CoreEx.Core\.github\skills\solution-scaffolder\references\workflow.md" />
+      <None Include="$(_AiGenRoot).github\agents\coreex-expert.agent.md" Pack="true" PackagePath="content\CoreEx.Core\.github\agents\coreex-expert.agent.md" />
+      <None Include="$(_AiGenRoot).claude\commands\coreex-expert.md" Pack="true" PackagePath="content\CoreEx.Core\.claude\commands\coreex-expert.md" />
+      <None Include="$(_AiGenRoot).claude\commands\coreex-docs-sync.md" Pack="true" PackagePath="content\CoreEx.Core\.claude\commands\coreex-docs-sync.md" />
+      <!-- Per-package AI usage guides -->
+      <None Include="$(_AiGenRoot).github\docs\coreex\agents\CoreEx.md" Pack="true" PackagePath="content\CoreEx.Core\.github\docs\coreex\agents\CoreEx.md" />
+      <None Include="$(_AiGenRoot).github\docs\coreex\agents\CoreEx.AspNetCore.md" Pack="true" PackagePath="content\CoreEx.Core\.github\docs\coreex\agents\CoreEx.AspNetCore.md" />
+      <None Condition="Exists('$(_AiGenRoot).github\docs\coreex\agents\CoreEx.AspNetCore.NSwag.md')" Include="$(_AiGenRoot).github\docs\coreex\agents\CoreEx.AspNetCore.NSwag.md" Pack="true" PackagePath="content\CoreEx.Core\.github\docs\coreex\agents\CoreEx.AspNetCore.NSwag.md" />
+      <None Include="$(_AiGenRoot).github\docs\coreex\agents\CoreEx.Azure.Messaging.ServiceBus.md" Pack="true" PackagePath="content\CoreEx.Core\.github\docs\coreex\agents\CoreEx.Azure.Messaging.ServiceBus.md" />
+      <None Include="$(_AiGenRoot).github\docs\coreex\agents\CoreEx.Caching.FusionCache.md" Pack="true" PackagePath="content\CoreEx.Core\.github\docs\coreex\agents\CoreEx.Caching.FusionCache.md" />
+      <None Include="$(_AiGenRoot).github\docs\coreex\agents\CoreEx.CodeGen.md" Pack="true" PackagePath="content\CoreEx.Core\.github\docs\coreex\agents\CoreEx.CodeGen.md" />
+      <None Include="$(_AiGenRoot).github\docs\coreex\agents\CoreEx.Data.md" Pack="true" PackagePath="content\CoreEx.Core\.github\docs\coreex\agents\CoreEx.Data.md" />
+      <None Include="$(_AiGenRoot).github\docs\coreex\agents\CoreEx.Database.md" Pack="true" PackagePath="content\CoreEx.Core\.github\docs\coreex\agents\CoreEx.Database.md" />
+      <None Include="$(_AiGenRoot).github\docs\coreex\agents\CoreEx.Database.Postgres.md" Pack="true" PackagePath="content\CoreEx.Core\.github\docs\coreex\agents\CoreEx.Database.Postgres.md" />
+      <None Include="$(_AiGenRoot).github\docs\coreex\agents\CoreEx.Database.SqlServer.md" Pack="true" PackagePath="content\CoreEx.Core\.github\docs\coreex\agents\CoreEx.Database.SqlServer.md" />
+      <None Include="$(_AiGenRoot).github\docs\coreex\agents\CoreEx.DomainDriven.md" Pack="true" PackagePath="content\CoreEx.Core\.github\docs\coreex\agents\CoreEx.DomainDriven.md" />
+      <None Include="$(_AiGenRoot).github\docs\coreex\agents\CoreEx.EntityFrameworkCore.md" Pack="true" PackagePath="content\CoreEx.Core\.github\docs\coreex\agents\CoreEx.EntityFrameworkCore.md" />
+      <None Include="$(_AiGenRoot).github\docs\coreex\agents\CoreEx.Events.md" Pack="true" PackagePath="content\CoreEx.Core\.github\docs\coreex\agents\CoreEx.Events.md" />
+      <None Include="$(_AiGenRoot).github\docs\coreex\agents\CoreEx.RefData.md" Pack="true" PackagePath="content\CoreEx.Core\.github\docs\coreex\agents\CoreEx.RefData.md" />
+      <None Include="$(_AiGenRoot).github\docs\coreex\agents\CoreEx.UnitTesting.md" Pack="true" PackagePath="content\CoreEx.Core\.github\docs\coreex\agents\CoreEx.UnitTesting.md" />
+      <None Include="$(_AiGenRoot).github\docs\coreex\agents\CoreEx.Validation.md" Pack="true" PackagePath="content\CoreEx.Core\.github\docs\coreex\agents\CoreEx.Validation.md" />
+      <!-- Capability instruction files (explicit — wildcards with %(Filename)%(Extension) in PackagePath
+           inside a Target use implicit None item context and map all files to the same path) -->
+      <None Include="$(_AiGenRoot).github\instructions\coreex-api-controllers.instructions.md" Pack="true" PackagePath="content\CoreEx.Core\.github\instructions\coreex-api-controllers.instructions.md" />
+      <None Include="$(_AiGenRoot).github\instructions\coreex-application-services.instructions.md" Pack="true" PackagePath="content\CoreEx.Core\.github\instructions\coreex-application-services.instructions.md" />
+      <None Include="$(_AiGenRoot).github\instructions\coreex-contracts.instructions.md" Pack="true" PackagePath="content\CoreEx.Core\.github\instructions\coreex-contracts.instructions.md" />
+      <None Include="$(_AiGenRoot).github\instructions\coreex-conventions.instructions.md" Pack="true" PackagePath="content\CoreEx.Core\.github\instructions\coreex-conventions.instructions.md" />
+      <None Include="$(_AiGenRoot).github\instructions\coreex-domain.instructions.md" Pack="true" PackagePath="content\CoreEx.Core\.github\instructions\coreex-domain.instructions.md" />
+      <None Include="$(_AiGenRoot).github\instructions\coreex-event-subscribers.instructions.md" Pack="true" PackagePath="content\CoreEx.Core\.github\instructions\coreex-event-subscribers.instructions.md" />
+      <None Include="$(_AiGenRoot).github\instructions\coreex-host-setup.instructions.md" Pack="true" PackagePath="content\CoreEx.Core\.github\instructions\coreex-host-setup.instructions.md" />
+      <None Include="$(_AiGenRoot).github\instructions\coreex-repositories.instructions.md" Pack="true" PackagePath="content\CoreEx.Core\.github\instructions\coreex-repositories.instructions.md" />
+      <None Include="$(_AiGenRoot).github\instructions\coreex-tests.instructions.md" Pack="true" PackagePath="content\CoreEx.Core\.github\instructions\coreex-tests.instructions.md" />
+      <None Include="$(_AiGenRoot).github\instructions\coreex-tooling.instructions.md" Pack="true" PackagePath="content\CoreEx.Core\.github\instructions\coreex-tooling.instructions.md" />
+      <None Include="$(_AiGenRoot).github\instructions\coreex-validators.instructions.md" Pack="true" PackagePath="content\CoreEx.Core\.github\instructions\coreex-validators.instructions.md" />
+      <!-- Architecture / sample docs (explicit) -->
+      <None Include="$(_AiGenRoot).github\docs\coreex\application-scaffolding-guide.md" Pack="true" PackagePath="content\CoreEx.Core\.github\docs\coreex\application-scaffolding-guide.md" />
+      <None Include="$(_AiGenRoot).github\docs\coreex\application-layer.md" Pack="true" PackagePath="content\CoreEx.Core\.github\docs\coreex\application-layer.md" />
+      <None Include="$(_AiGenRoot).github\docs\coreex\aspire.md" Pack="true" PackagePath="content\CoreEx.Core\.github\docs\coreex\aspire.md" />
+      <None Include="$(_AiGenRoot).github\docs\coreex\contracts-layer.md" Pack="true" PackagePath="content\CoreEx.Core\.github\docs\coreex\contracts-layer.md" />
+      <None Include="$(_AiGenRoot).github\docs\coreex\domain-layer.md" Pack="true" PackagePath="content\CoreEx.Core\.github\docs\coreex\domain-layer.md" />
+      <None Include="$(_AiGenRoot).github\docs\coreex\hosts-layer.md" Pack="true" PackagePath="content\CoreEx.Core\.github\docs\coreex\hosts-layer.md" />
+      <None Include="$(_AiGenRoot).github\docs\coreex\infrastructure-layer.md" Pack="true" PackagePath="content\CoreEx.Core\.github\docs\coreex\infrastructure-layer.md" />
+      <None Include="$(_AiGenRoot).github\docs\coreex\layers.md" Pack="true" PackagePath="content\CoreEx.Core\.github\docs\coreex\layers.md" />
+      <None Include="$(_AiGenRoot).github\docs\coreex\local-dev.md" Pack="true" PackagePath="content\CoreEx.Core\.github\docs\coreex\local-dev.md" />
+      <None Include="$(_AiGenRoot).github\docs\coreex\patterns.md" Pack="true" PackagePath="content\CoreEx.Core\.github\docs\coreex\patterns.md" />
+      <None Include="$(_AiGenRoot).github\docs\coreex\testing.md" Pack="true" PackagePath="content\CoreEx.Core\.github\docs\coreex\testing.md" />
+      <None Include="$(_AiGenRoot).github\docs\coreex\tooling.md" Pack="true" PackagePath="content\CoreEx.Core\.github\docs\coreex\tooling.md" />
+      <_BootstrapAiGenerated Include="$(_AiGenRoot)**\*" Exclude="$(_AiGenRoot).template.config\template.json" />
+      <None Include="@(_BootstrapAiGenerated)" Pack="true" PackagePath="content\CoreEx.Bootstrap\%(RecursiveDir)%(Filename)%(Extension)" />
+    </ItemGroup>
+  </Target>
+
+  <!-- Stamp the CoreEx version into each template.json before the nupkg is assembled.
+       BeforeTargets="_GetPackageFiles" ensures the items are visible when NuGet collects pack content. -->
+  <Target Name="GenerateVersionedTemplateJson" BeforeTargets="_GetPackageFiles">
+    <PropertyGroup>
+      <_GenRoot>$(BaseIntermediateOutputPath)generated\</_GenRoot>
+    </PropertyGroup>
+    <ReplaceTextInFile SourceFile="$(MSBuildThisFileDirectory)content\CoreEx.Core\.template.config\template.json" DestinationFile="$(_GenRoot)CoreEx.Core\.template.config\template.json" FindText="COREEX_VERSION" ReplaceText="$(Version)" />
+    <ReplaceTextInFile SourceFile="$(MSBuildThisFileDirectory)content\CoreEx.Api\.template.config\template.json" DestinationFile="$(_GenRoot)CoreEx.Api\.template.config\template.json" FindText="COREEX_VERSION" ReplaceText="$(Version)" />
+    <ReplaceTextInFile SourceFile="$(MSBuildThisFileDirectory)content\CoreEx.Relay\.template.config\template.json" DestinationFile="$(_GenRoot)CoreEx.Relay\.template.config\template.json" FindText="COREEX_VERSION" ReplaceText="$(Version)" />
+    <ReplaceTextInFile SourceFile="$(MSBuildThisFileDirectory)content\CoreEx.Subscribe\.template.config\template.json" DestinationFile="$(_GenRoot)CoreEx.Subscribe\.template.config\template.json" FindText="COREEX_VERSION" ReplaceText="$(Version)" />
+    <ItemGroup>
+      <None Include="$(_GenRoot)CoreEx.Core\.template.config\template.json" Pack="true" PackagePath="content\CoreEx.Core\.template.config\template.json" />
+      <None Include="$(_GenRoot)CoreEx.Api\.template.config\template.json" Pack="true" PackagePath="content\CoreEx.Api\.template.config\template.json" />
+      <None Include="$(_GenRoot)CoreEx.Relay\.template.config\template.json" Pack="true" PackagePath="content\CoreEx.Relay\.template.config\template.json" />
+      <None Include="$(_GenRoot)CoreEx.Subscribe\.template.config\template.json" Pack="true" PackagePath="content\CoreEx.Subscribe\.template.config\template.json" />
+    </ItemGroup>
+  </Target>
+
+</Project>

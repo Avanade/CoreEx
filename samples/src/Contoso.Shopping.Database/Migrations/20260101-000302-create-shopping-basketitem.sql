@@ -1,0 +1,18 @@
+-- Migration Script
+
+BEGIN TRANSACTION
+
+CREATE TABLE Shopping.BasketItem
+(
+    [BasketItemId] NVARCHAR(50) NOT NULL PRIMARY KEY,
+    [BasketId] NVARCHAR(50) NOT NULL FOREIGN KEY REFERENCES Shopping.Basket([BasketId]),
+    [ProductId] NVARCHAR(50) NOT NULL,
+    [Sku] NVARCHAR(50) NOT NULL,
+    [Text] NVARCHAR(250) NOT NULL,
+    [UnitOfMeasureCode] NVARCHAR(50) NOT NULL,
+    [UnitPrice] DECIMAL(18, 2) NOT NULL DEFAULT 0,
+    [Quantity] DECIMAL(18, 2) NOT NULL DEFAULT 0,
+    [RowVersion] TIMESTAMP NOT NULL
+);
+  
+COMMIT TRANSACTION

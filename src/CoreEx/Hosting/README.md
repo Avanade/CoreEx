@@ -1,67 +1,47 @@
-﻿# CoreEx.Hosting
+# CoreEx.Hosting
 
-The `CoreEx.Hosting` namespace provides additional [hosted service (worker)](https://learn.microsoft.com/en-us/dotnet/core/extensions/workers) runtime capabilities.
+> Provides base classes for timer-driven and synchronized hosted services, `HostSettings` for standardized host configuration, and `WorkOrchestrator` for tracking long-running distributed work state with pluggable storage.
 
-<br/>
+## Overview
 
-## Motivation
+`CoreEx.Hosting` addresses two distinct but related concerns: running background work reliably within an .NET hosted-service model, and tracking the state of long-running distributed operations that outlive a single request or host invocation.
 
-To enable improved hosted service consistency and testability, plus additional [`IHostedService`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.extensions.hosting.ihostedservice) runtime capabilities.
+The hosted service base classes (`TimerHostedServiceBase`, `SynchronizedTimerHostedServiceBase`) provide a consistent foundation for background polling workers — handling pause/resume, error-interval back-off, no-op mode for tests, DI-scoped execution, and health check integration via `HostedServiceHealthCheck`. `HostSettings` standardizes how a host, including ASP.NET Core, exposes its solution name, domain name, environment, and source URI to the rest of the application.
 
-<br/>
+`WorkOrchestrator` tracks the lifecycle of explicitly managed long-running work items (think: async job processing, background import, orchestration hand-off). Each work item has a `WorkState` record persisted via a pluggable `IWorkProvider`, with a `WorkStatus` lifecycle (Created → Started → Indeterminate/Completed/Failed/Abandoned) and automatic expiry.
 
-## Host startup
+## Key capabilities
 
-To improve consistency and testability the [`IHostStartup`](./IHostStartup.cs) and [`HostStartup`](./HostStartup) implementations are provided. By seperating out the key [Dependency Injection (DI)](https://learn.microsoft.com/en-us/dotnet/core/extensions/dependency-injection) configuration from the underlying host configuration enables the DI configuration to be tested in isolation against a _test-host_ where applicable.
+- ⏱️ **Timer hosted service**: `TimerHostedServiceBase` runs `OnExecuteAsync` on a configurable interval with randomized first-start staggering, error back-off interval, and pause-on-exception support.
+- 🔒 **Synchronized timer hosted service**: `SynchronizedTimerHostedServiceBase` wraps `TimerHostedServiceBase` with an `ISynchronizer` lock, ensuring only one instance across a multi-host deployment executes at a time.
+- ♥ **Health check integration**: `HostedServiceHealthCheck` reports `ServiceStatus` as a named health check entry; `HostedServiceManager` aggregates multiple service statuses for a single health endpoint.
+- ⚙️ **Host settings**: `HostSettings` standardizes solution name, domain name, environment name, and source URI — read from `IConfiguration` or provided explicitly — for use by caching, event naming, and logging.
+- 📋 **Work orchestration**: `WorkOrchestrator` manages the create → start → complete/fail lifecycle for long-running work items, with automatic expiry and pluggable `IWorkProvider` storage.
+- 🗄️ **Cache-backed work provider**: `HybridCacheWorkProvider` implements `IWorkProvider` using `IHybridCache`, enabling work state persistence without requiring a dedicated database.
+- 🔗 **Distributed synchronization**: `ISynchronizer` / `HybridCacheSynchronizer` provide a distributed advisory lock used by `SynchronizedTimerHostedServiceBase` to prevent concurrent execution across host replicas.
 
-The following is an example of a `HostStartup` implementation.
+## Key types
 
-```csharp
-public class Startup : HostStartup
-{
-    public override void ConfigureAppConfiguration(HostBuilderContext context, IConfigurationBuilder config)
-    {
-        config.AddEnvironmentVariables("Prefix_");
-    }
+| Type | Description |
+|------|-------------|
+| _[`HostedServiceBase`](./HostedServiceBase.cs)_ | Abstract base `IHostedService` providing `ServiceStatus` tracking, health check registration, no-op mode (via `--no-op-hosted-services` arg), and scoped DI execution. |
+| _[`TimerHostedServiceBase`](./TimerHostedServiceBase.cs)_ | Abstract timer-driven hosted service with configurable `Interval`, `FirstInterval`, error back-off, and pause/resume support. |
+| _[`SynchronizedTimerHostedServiceBase`](./SynchronizedTimerHostedServiceBase.cs)_ | Abstract timer hosted service that acquires an `ISynchronizer` lock before each execution to prevent concurrent runs across replicas. |
+| **[`HostedServiceHealthCheck`](./HostedServiceHealthCheck.cs)** | `IHealthCheck` implementation that reports the `ServiceStatus` of a registered `HostedServiceBase`. |
+| **[`HostedServiceManager`](./HostedServiceManager.cs)** | Manages registration of multiple hosted services and provides aggregated status and health-check access. |
+| **[`HostSettings`](./HostSettings.cs)** | Standardized host configuration: `SolutionName`, `DomainName`, `EnvironmentName`, `Source` URI. Created via `HostSettings.Create(IConfiguration, ...)`. |
+| **[`WorkOrchestrator`](./Work/WorkOrchestrator.cs)** | Tracks the lifecycle of long-running work items: create, start, mark indeterminate/complete/failed/abandoned, with automatic expiry. |
+| **[`WorkState`](./Work/WorkState.cs)** | Persisted record for a single work item: `Id`, `TypeName`, `Key`, `WorkStatus`, `Result`, `Reason`, trace parent/state, and timestamps. |
+| **[`HybridCacheWorkProvider`](./Work/HybridCacheWorkProvider.cs)** | `IWorkProvider` implementation backed by `IHybridCache`, storing `WorkState` entries with configurable expiry. |
+| **[`HybridCacheSynchronizer`](./Synchronization/HybridCacheSynchronizer.cs)** | `ISynchronizer` implementation using `IHybridCache` as a distributed advisory lock store. |
+| **[`ServiceStatus`](./ServiceStatus.cs)** | Enum representing hosted service lifecycle: `Initializing`, `NoOp`, `Starting`, `Sleeping`, `Running`, `Paused`, `Stopping`, `Stopped`. |
+| **[`WorkStatus`](./Work/WorkStatus.cs)** | Enum representing work item lifecycle: `Created`, `Started`, `Indeterminate`, `Completed`, `Failed`, `Abandoned`. |
+| [`IHostSettings`](./IHostSettings.cs) | Interface exposing `SolutionName`, `DomainName`, `EnvironmentName`, and `Source` from `HostSettings`. |
+| [`IWorkProvider`](./Work/IWorkProvider.cs) | Pluggable storage interface for `WorkState` persistence: get, create, update. |
+| [`ISynchronizer`](./Synchronization/ISynchronizer.cs) | Distributed advisory lock interface: `EnterAsync<T>` / `ExitAsync<T>` for type-and-name-scoped locking. |
 
-    /// <inheritdoc/>
-    public override void ConfigureServices(IServiceCollection services)
-    {
-        services
-            .AddSettings()
-            .AddExecutionContext()
-            .AddJsonSerializer();
-	}
-}
-```
+## Related Namespaces
 
-The following is an example of a `Program` implementation that initiates a host and uses the [`ConfigureHostStartup`](HostStartupExtensions.cs) extension method to integrate the `Startup` functionality. This has an added advantage of being able to add specific startup capabilities directly to a host that should not be available to the _test-host_ (as demonstrated by `ConfigureFunctionsWorkerDefaults`).
-
-```csharp
-new HostBuilder()
-    .ConfigureFunctionsWorkerDefaults()
-    .ConfigureHostStartup<Startup>()
-    .Build().Run();
-```
-
-<br/>
-
-## Hosted services
-
-The following additional [`IHostedService`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.extensions.hosting.ihostedservice) implementations are provided.
-
-Class | Description
--|-
-[`TimerHostedServiceBase`](./TimerHostedServiceBase.cs) | Provides an `IHostedService` implementation that performs _work_ at a specified `Interval`.
-[`SynchronizedTimerHostedServiceBase`](./SynchronizedTimerHostedServiceBase.cs) | Extends `TimerHostedServiceBase` adding [concurrency synchronization](#Concurrency-synchronization) to ensure only a single host can perform _work_ at a time (synchronously).
-
-<br/>
-
-## Concurrency synchronization
-
-To ensure only a single host can perform _work_ at a time concurrency implementation is required; this is enabled by implementing the `Enter` and `Exit` methods defined by the [`IServiceSynchronizer`](./IServiceSynchronizer.cs) interface. The following implementations are provided.
-
-Class | Description
--|-
-[`ConcurrentSynchronizer`](./ConcurrentSynchronizer.cs) | Performs _no_ synchronization in that `Enter` will always return `true` resulting in concurrent execution.
-[`FileLockSynchronizer`](./FileLockSynchronizer.cs) | Performs synchronization by taking an exclusive lock on a file.
+- **[`CoreEx`](../README.md)** - `ExecutionContext` is created per hosted service invocation; `HostSettings` is consumed by `DefaultCacheKeyProvider` and event naming.
+- **[`CoreEx.Caching`](../Caching/README.md)** - `IHybridCache` is the backing store for both `HybridCacheWorkProvider` and `HybridCacheSynchronizer`.
+- **[`CoreEx.Invokers`](../Invokers/README.md)** - `HostedServiceInvoker` and `WorkOrchestratorInvoker` use the invoker tracing pipeline to emit OpenTelemetry spans for hosted service and work executions.

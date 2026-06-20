@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <ItemGroup>
+    <!--#if refdata-enabled-->
+    <ProjectReference Include="..\solution-name.Application\solution-name.Application.csproj" />
+    <!--#endif-->
+    <ProjectReference Include="..\solution-name.Infrastructure\solution-name.Infrastructure.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="CoreEx.AspNetCore" />
+    <PackageReference Include="CoreEx.AspNetCore.NSwag" />
+    <PackageReference Include="CoreEx.Caching.FusionCache" />
+    <!--#if implement-sqlserver-->
+    <PackageReference Include="CoreEx.Database.SqlServer" />
+    <PackageReference Include="Aspire.Microsoft.Data.SqlClient" />
+    <!--#endif-->
+    <!--#if implement-postgres-->
+    <PackageReference Include="CoreEx.Database.Postgres" />
+    <PackageReference Include="Aspire.Azure.Npgsql" />
+    <!--#endif-->
+    <PackageReference Include="Aspire.StackExchange.Redis.DistributedCaching" />
+    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
+    <PackageReference Include="ZiggyCreatures.FusionCache.Backplane.StackExchangeRedis" />
+    <PackageReference Include="ZiggyCreatures.FusionCache.Serialization.SystemTextJson" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Update="appsettings.Development.json">
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
+</Project>

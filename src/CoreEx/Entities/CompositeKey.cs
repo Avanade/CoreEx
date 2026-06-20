@@ -1,534 +1,217 @@
-﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
+namespace CoreEx.Entities;
 
-using CoreEx.RefData;
-using System;
-using System.Collections.Immutable;
-using System.Globalization;
-using System.Text;
-
-namespace CoreEx.Entities
+/// <summary>
+/// Represents an immutable composite key.
+/// </summary>
+/// <remarks>May contain zero or more <see cref="Args"/> that represent the composite key.
+/// <para><b>NOTE:</b> For performance-critical scenarios with 1-4 arguments, use the generic <see cref="Create{T}(T)"/> overloads to avoid boxing of value types.</para>
+/// <para>The <see cref="CompositeKey"/> is largely intended for .NET code use only, as such there is no specific JSON serialization support enabled by design. The following code snippet demonstrates intended usage.</para>
+/// <code>
+/// public class SalesOrderItem
+/// {
+///     [JsonPropertyName("order")]
+///     public string? OrderNumber { get; set; }
+///     
+///     [JsonPropertyName("item")]
+///     public int ItemNumber { get; set; }
+///     
+///     [JsonIgnore()]
+///     public CompositeKey SalesOrderItemKey => CompositeKey.Create(OrderNumber, ItemNumber);
+/// }
+/// </code>
+/// </remarks>
+public readonly partial struct CompositeKey() : IEquatable<CompositeKey>
 {
+    private readonly ImmutableArray<object?> _args = [];
+    private readonly object? _fastPath = null;
+    private readonly byte _count = 0;
+
     /// <summary>
-    /// Represents an immutable composite key.
+    /// Creates a new <see cref="CompositeKey"/> from the argument values.
     /// </summary>
-    /// <remarks>May contain zero or more <see cref="Args"/> that represent the composite key. A subset of the the .NET <see href="https://docs.microsoft.com/en-us/dotnet/csharp/language-reference/builtin-types/built-in-types">built-in types</see>
-    /// are supported: <see cref="string"/>, <see cref="char"/>, <see cref="short"/>, <see cref="int"/>, <see cref="long"/>, <see cref="ushort"/>, <see cref="uint"/>, <see cref="ulong"/>, <see cref="Guid"/>, <see cref="DateTimeOffset"/> (converted to a <see cref="DateTime"/>) and <see cref="DateTime"/>.
-    /// Extended support is enabled for <see cref="IReferenceData"/> types such that the <see cref="IReferenceData.Code"/> is used.
-    /// <para>A <see cref="CompositeKey"/> is not generally intended to be a first-class JSON-serialized property type, although is supported (see <see cref="CoreEx.Text.Json.CompositeKeyConverterFactory"/>); but, to be used in a read-only non-serialized manner to group (encapsulate) other properties
-    /// into a single value. The <see cref="CompositeKey"/> is also used within the <see cref="IEntityKey"/>, <see cref="IIdentifier"/> and <see cref="IPrimaryKey"/>.</para><para>Example as follows:
-    /// <code>
-    /// public class SalesOrderItem
-    /// {
-    ///     [JsonPropertyName("order")]
-    ///     public string? OrderNumber { get; set; }
-    ///     
-    ///     [JsonPropertyName("item")]
-    ///     public int ItemNumber { get; set; }
-    ///     
-    ///     [JsonIgnore()]
-    ///     public CompositeKey SalesOrderItemKey => CompositeKey.Create(OrderNumber, ItemNumber);
-    /// }
-    /// </code></para></remarks>
-    [System.Diagnostics.DebuggerStepThrough]
-    [System.Diagnostics.DebuggerDisplay("Args = {ToString()}")]
-    public readonly struct CompositeKey : IEquatable<CompositeKey>
+    /// <param name="args">The argument values for the key.</param>
+    /// <returns>The <see cref="CompositeKey"/>.</returns>
+    public static CompositeKey Create(params IEnumerable<object?> args) => new(args);
+
+    /// <summary>
+    /// Creates a new <see cref="CompositeKey"/> from a single argument value without boxing (performance optimized).
+    /// </summary>
+    /// <typeparam name="T">The argument <see cref="Type"/>.</typeparam>
+    /// <param name="arg">The argument value for the key.</param>
+    /// <returns>The <see cref="CompositeKey"/>.</returns>
+    public static CompositeKey Create<T>(T arg) => new(ValueTuple.Create(arg), 1);
+
+    /// <summary>
+    /// Creates a new <see cref="CompositeKey"/> from two argument values without boxing (performance optimized).
+    /// </summary>
+    /// <typeparam name="T1">The first argument <see cref="Type"/>.</typeparam>
+    /// <typeparam name="T2">The second argument <see cref="Type"/>.</typeparam>
+    /// <param name="arg1">The first argument value.</param>
+    /// <param name="arg2">The second argument value.</param>
+    /// <returns>The <see cref="CompositeKey"/>.</returns>
+    public static CompositeKey Create<T1, T2>(T1 arg1, T2 arg2) => new((arg1, arg2), 2);
+
+    /// <summary>
+    /// Creates a new <see cref="CompositeKey"/> from three argument values without boxing (performance optimized).
+    /// </summary>
+    /// <typeparam name="T1">The first argument <see cref="Type"/>.</typeparam>
+    /// <typeparam name="T2">The second argument <see cref="Type"/>.</typeparam>
+    /// <typeparam name="T3">The third argument <see cref="Type"/>.</typeparam>
+    /// <param name="arg1">The first argument value.</param>
+    /// <param name="arg2">The second argument value.</param>
+    /// <param name="arg3">The third argument value.</param>
+    /// <returns>The <see cref="CompositeKey"/>.</returns>
+    public static CompositeKey Create<T1, T2, T3>(T1 arg1, T2 arg2, T3 arg3) => new((arg1, arg2, arg3), 3);
+
+    /// <summary>
+    /// Creates a new <see cref="CompositeKey"/> from four argument values without boxing (performance optimized).
+    /// </summary>
+    /// <typeparam name="T1">The first argument <see cref="Type"/>.</typeparam>
+    /// <typeparam name="T2">The second argument <see cref="Type"/>.</typeparam>
+    /// <typeparam name="T3">The third argument <see cref="Type"/>.</typeparam>
+    /// <typeparam name="T4">The fourth argument <see cref="Type"/>.</typeparam>
+    /// <param name="arg1">The first argument value.</param>
+    /// <param name="arg2">The second argument value.</param>
+    /// <param name="arg3">The third argument value.</param>
+    /// <param name="arg4">The fourth argument value.</param>
+    /// <returns>The <see cref="CompositeKey"/>.</returns>
+    public static CompositeKey Create<T1, T2, T3, T4>(T1 arg1, T2 arg2, T3 arg3, T4 arg4) => new((arg1, arg2, arg3, arg4), 4);
+
+    /// <summary>
+    /// Initializes a new <see cref="CompositeKey"/> from the argument values.
+    /// </summary>
+    /// <param name="args">The argument values for the key. Passing an explicit <see langword="null"/> creates a key with one null value; passing no arguments creates an empty key.</param>
+    public CompositeKey(params IEnumerable<object?>? args) : this() => _args = args is null ? [null] : [.. args];
+
+    /// <summary>
+    /// Initializes a new <see cref="CompositeKey"/> using fast path storage (no boxing).
+    /// </summary>
+    private CompositeKey(object? fastPath, byte count) : this([])
     {
-        private static readonly string[] _singleEmptyArray = [string.Empty];
-        private readonly ImmutableArray<object?> _args;
+        _fastPath = fastPath;
+        _count = count;
+        _args = default;
+    }
 
-        /// <summary>
-        /// Represents an empty <see cref="CompositeKey"/>.
-        /// </summary>
-        public static readonly CompositeKey Empty = new();
+    /// <summary>
+    /// Gets the argument values for the key.
+    /// </summary>
+    /// <remarks>The <see cref="Args"/> are immutable. When using fast path storage, this property materializes the arguments from the tuple.</remarks>
+    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+    public ImmutableArray<object?> Args => _count == 0 ? _args : MaterializeArgs();
 
-        /// <summary>
-        /// Creates a new <see cref="CompositeKey"/> from the argument values,
-        /// </summary>
-        /// <param name="args">The argument values for the key.</param>
-        /// <returns>The <see cref="CompositeKey"/>.</returns>
-        public static CompositeKey Create(params object?[] args) => new(args);
+    /// <summary>
+    /// Gets whether this key uses fast path storage (no boxing).
+    /// </summary>
+    internal bool IsFastPath => _count > 0;
 
-        /// <summary>
-        /// Initializes a new <see cref="CompositeKey"/> structure.
-        /// </summary>
-#if NET8_0_OR_GREATER
-        public CompositeKey() => _args = [];
-#else
-        public CompositeKey() => _args = ImmutableArray<object?>.Empty;
-#endif
+    /// <summary>
+    /// Gets the fast path storage object (tuple).
+    /// </summary>
+    internal object? FastPath => _fastPath;
 
-        /// <summary>
-        /// Initializes a new <see cref="CompositeKey"/> structure with one or more values that represent the composite key.
-        /// </summary>
-        /// <param name="args">The argument values for the key.</param>
-        public CompositeKey(params object?[] args)
+    /// <summary>
+    /// Gets the count of arguments in fast path storage.
+    /// </summary>
+    internal byte FastPathCount => _count;
+
+    /// <summary>
+    /// Materializes the arguments from fast path storage into an immutable array.
+    /// </summary>
+    private ImmutableArray<object?> MaterializeArgs()
+    {
+        if (_fastPath is not ITuple tuple)
+            return [];
+
+        return _count switch
         {
-            if (args == null)
-            {
-#if NET8_0_OR_GREATER
-                _args = [null];
-#else
-                _args = new object?[] { null }.ToImmutableArray();
-#endif
-                return;
-            }
+            1 => [tuple[0]],
+            2 => [tuple[0], tuple[1]],
+            3 => [tuple[0], tuple[1], tuple[2]],
+            4 => [tuple[0], tuple[1], tuple[2], tuple[3]],
+            _ => []
+        };
+    }
 
-#if !RELEASE
-            // Validate supported types in Debug-mode only; fast-path for Release.
-            object? temp;
-            for (int idx = 0; idx < args.Length; idx++)
-            {
-                temp = args[idx] == null ? null : args[idx] switch
-                {
-                    string str => str,
-                    char c => c,
-                    short s => s,
-                    int i => i,
-                    long l => l,
-                    Guid g => g,
-                    DateTime dt => dt,
-                    DateTimeOffset dto => dto,
-                    ushort us => us,
-                    uint ui => ui,
-                    ulong ul => ul,
-                    IReferenceData rd => rd?.Code,
-                    _ => throw new ArgumentException($"{nameof(CompositeKey)} argument Type '{args[idx]!.GetType().FullName}' is not supported; must be one of the following: "
-                        + "string, char, short, int, long, ushort, uint, ulong, Guid, DateTime and DateTimeOffset.")
-                };
-            }
-#endif
+    /// <summary>
+    /// Determines whether the current <see cref="CompositeKey"/> is equal to another <see cref="CompositeKey"/>.
+    /// </summary>
+    /// <param name="other">The other <see cref="CompositeKey"/>.</param>
+    /// <returns><see langword="true"/> if the values are equal; otherwise, <see langword="false"/>.</returns>
+    /// <remarks>Uses the <see cref="CompositeKeyComparer.Equals(CompositeKey, CompositeKey)"/>.</remarks>
+    public bool Equals(CompositeKey other) => CompositeKeyComparer.Default.Equals(this, other);
 
-#if NET8_0_OR_GREATER
-            _args = [.. args];
-#else
-            _args = args.ToImmutableArray();
-#endif
-        }
+    /// <summary>
+    /// Determines whether the current <see cref="CompositeKey"/> is equal to another <see cref="Object"/>.
+    /// </summary>
+    /// <param name="obj">The other <see cref="object"/>.</param>
+    /// <returns><see langword="true"/> if the values are equal; otherwise, <see langword="false"/>.</returns>
+    public override bool Equals(object? obj) => obj is CompositeKey key && Equals(key);
 
-        /// <summary>
-        /// Gets the argument values for the key.
-        /// </summary>
-        /// <remarks>The <see cref="Args"/> are immutable.</remarks>
-        public ImmutableArray<object?> Args => _args;
+    /// <summary>
+    /// Returns a hash code for the <see cref="CompositeKey"/>.
+    /// </summary>
+    /// <returns>A hash code for the <see cref="CompositeKey"/>.</returns>
+    /// <remarks>Uses the <see cref="CompositeKeyComparer.GetHashCode(CompositeKey)"/>.</remarks>
+    public override int GetHashCode() => CompositeKeyComparer.Default.GetHashCode(this);
 
-        /// <summary>
-        /// Asserts the <see cref="Args"/> length and throws an <see cref="ArgumentException"/> where the length is not as expected.
-        /// </summary>
-        /// <param name="length">The expected length.</param>
-        /// <returns>The <see cref="CompositeKey"/> to support fluent-style method-chaining.</returns>
-        public CompositeKey AssertLength(int length)
+    /// <summary>
+    /// Compares two <see cref="CompositeKey"/> types for equality.
+    /// </summary>
+    /// <param name="left">The left <see cref="CompositeKey"/>.</param>
+    /// <param name="right">The right <see cref="CompositeKey"/>.</param>
+    /// <returns><see langword="true"/> indicates equal; otherwise, <see langword="false"/> for not equal.</returns>
+    public static bool operator ==(CompositeKey left, CompositeKey right) => left.Equals(right);
+
+    /// <summary>
+    /// Compares two <see cref="CompositeKey"/> types for non-equality.
+    /// </summary>
+    /// <param name="left">The left <see cref="CompositeKey"/>.</param>
+    /// <param name="right">The right <see cref="CompositeKey"/>.</param>
+    /// <returns><see langword="true"/> indicates not equal; otherwise, <see langword="false"/> for equal.</returns>
+    public static bool operator !=(CompositeKey left, CompositeKey right) => !(left == right);
+
+    /// <summary>
+    /// Gets the string representation of the <see cref="CompositeKey"/>.
+    /// </summary>
+    /// <returns>The string representation.</returns>
+    /// <remarks>Uses the configured <see cref="ToStringFormatter"/>.</remarks>
+    public override string? ToString() => ToStringFormatter(this);
+
+    /// <summary>
+    /// Gets or sets the <see cref="ToString"/> formatter function.
+    /// </summary>
+    /// <remarks>The default implementation will format each argument (from the <see cref="Args"/>) to be universal, deterministic, and culture-independent.</remarks>
+    public static Func<CompositeKey, string> ToStringFormatter
+    {
+        get;
+        set => field = value.ThrowIfNull();
+    } = ck => string.Join(',', ck.Args.Select(ArgumentToString));
+
+    /// <summary>
+    /// Converts an argument into a universal, deterministic, and culture-independent <see cref="string"/>.
+    /// </summary>
+    private static string? ArgumentToString(object? arg)
+    {
+        if (arg is null)
+            return null;
+
+        return arg switch
         {
-            if (length < 0)
-                throw new ArgumentOutOfRangeException(nameof(length), "Length must be greater than or equal to zero.");
-
-            if (_args.Length != length)
-                throw new ArgumentException($"The number of arguments within the {nameof(CompositeKey)} must equal {length}.", nameof(length));
-
-            return this;
-        }
-
-        /// <summary>
-        /// Determines whether the current <see cref="CompositeKey"/> is equal to another <see cref="CompositeKey"/>.
-        /// </summary>
-        /// <param name="other">The other <see cref="CompositeKey"/>.</param>
-        /// <returns><c>true</c> if the values are equal; otherwise, <c>false</c>.</returns>
-        /// <remarks>Uses the <see cref="CompositeKeyComparer.Equals(CompositeKey, CompositeKey)"/>.</remarks>
-        public bool Equals(CompositeKey other) => CompositeKeyComparer.Default.Equals(this, other);
-
-        /// <summary>
-        /// Determines whether the current <see cref="CompositeKey"/> is equal to another <see cref="Object"/>.
-        /// </summary>
-        /// <param name="obj">The other <see cref="object"/>.</param>
-        /// <returns><c>true</c> if the values are equal; otherwise, <c>false</c>.</returns>
-        public override bool Equals(object? obj) => obj is CompositeKey key && Equals(key);
-
-        /// <summary>
-        /// Returns a hash code for the <see cref="CompositeKey"/>.
-        /// </summary>
-        /// <returns>A hash code for the <see cref="CompositeKey"/>.</returns>
-        /// <remarks>Uses the <see cref="CompositeKeyComparer.GetHashCode(CompositeKey)"/>.</remarks>
-        public override int GetHashCode() => CompositeKeyComparer.Default.GetHashCode(this);
-
-        /// <summary>
-        /// Compares two <see cref="CompositeKey"/> types for equality.
-        /// </summary>
-        /// <param name="left">The left <see cref="CompositeKey"/>.</param>
-        /// <param name="right">The right <see cref="CompositeKey"/>.</param>
-        /// <returns><c>true</c> indicates equal; otherwise, <c>false</c> for not equal.</returns>
-        public static bool operator ==(CompositeKey left, CompositeKey right) => left.Equals(right);
-
-        /// <summary>
-        /// Compares two <see cref="CompositeKey"/> types for non-equality.
-        /// </summary>
-        /// <param name="left">The left <see cref="CompositeKey"/>.</param>
-        /// <param name="right">The right <see cref="CompositeKey"/>.</param>
-        /// <returns><c>true</c> indicates not equal; otherwise, <c>false</c> for equal.</returns>
-        public static bool operator !=(CompositeKey left, CompositeKey right) => !(left == right);
-
-        /// <summary>
-        /// Determines whether the <see cref="CompositeKey"/> is considered initial; i.e. all <see cref="Args"/> have their default value.
-        /// </summary>
-        /// <returns><c>true</c> indicates that the <see cref="CompositeKey"/> is initial; otherwise, <c>false</c>.</returns>
-        public bool IsInitial
-        {
-            get
-            {
-                if (Args == null || Args.Length == 0)
-                    return true;
-
-                foreach (var arg in Args)
-                {
-                    if (arg != null && !arg.Equals(GetDefaultValue(arg.GetType())))
-                        return false;
-                }
-
-                return true;
-            }
-        }
-
-        /// <summary>
-        /// Gets the default value for a specified <paramref name="type"/>.
-        /// </summary>
-        private static object? GetDefaultValue(Type type) => type.IsValueType ? Activator.CreateInstance(type) : null;
-
-        /// <summary>
-        /// Returns the <see cref="CompositeKey"/> as a comma-separated <see cref="Args"/> <see cref="string"/>.
-        /// </summary>
-        /// <returns>The composite key as a <see cref="string"/>.</returns>
-        /// <remarks>Each <see cref="Args"/> value is formatted in an invariant manner for portability and consistency. A <c>null</c> is formatted as <see cref="string.Empty"/>. A <see cref="string"/>
-        /// is written as-is, there is no special escaping et. performed.</remarks>
-        public override string? ToString() => ToString(',');
-
-        /// <summary>
-        /// Returns the <see cref="CompositeKey"/> as a <see cref="string"/> with the <see cref="Args"/> separated by the <paramref name="separator"/>.
-        /// </summary>
-        /// <param name="separator">The seperator character.</param>
-        /// <returns>The composite key as a <see cref="string"/>.</returns>
-        public string? ToString(char separator)
-        {
-            if (Args.Length == 0 || (Args.Length == 1 && Args[0] is null))
-                return null;
-
-            if (Args.Length == 1 && Args[0] is string s)
-                return s;
-
-            var sb = new StringBuilder();
-            for (int i = 0; i < Args.Length; i++)
-            {
-                if (i > 0)
-                    sb.Append(separator);
-
-                if (Args[i] is null)
-                    continue;
-
-                switch (Args[i]!.GetType())
-                {
-                    case Type t when t == typeof(int) || t == typeof(long) || t == typeof(short) || t == typeof(uint) || t == typeof(ulong) || t == typeof(ushort):
-                        sb.AppendFormat(NumberFormatInfo.InvariantInfo, "{0}", Args[i]);
-                        break;
-
-                    case Type t when t == typeof(DateTime) || t == typeof(DateTimeOffset):
-                        sb.AppendFormat(DateTimeFormatInfo.InvariantInfo, "{0:O}", Args[i]);
-                        break;
-
-                    default:
-                        sb.Append(Args[i]);
-                        break;
-                }
-            }
-
-            return sb.ToString();
-        }
-
-        /// <summary>
-        /// Returns the <see cref="CompositeKey"/> as a JSON <see cref="string"/>.
-        /// </summary>
-        /// <returns>The composite key as a JSON <see cref="string"/>.</returns>
-        /// <remarks>Uses the <see cref="Json.JsonSerializer.Default"/> internally.</remarks>
-        public string ToJsonString() => Json.JsonSerializer.Default.Serialize(this);
-
-        /// <summary>
-        /// Creates a new <see cref="CompositeKey"/> from serialized <paramref name="json"/> (see <see cref="ToJsonString"/>);
-        /// </summary>
-        /// <param name="json">The JSON string.</param>
-        /// <returns>The <see cref="CompositeKey"/>.</returns>
-        /// <remarks>Uses the <see cref="Json.JsonSerializer.Default"/> internally.</remarks>
-        public static CompositeKey CreateFromJson(string json) => (string.IsNullOrEmpty(json) || json == "null") ? new CompositeKey() : Json.JsonSerializer.Default.Deserialize<CompositeKey>(json);
-
-        /// <summary>
-        /// Try and create a new <see cref="CompositeKey"/> from a string-based <paramref name="key"/> (<see cref="ToString()"/>) where the key is of the <see cref="Type"/> specified.
-        /// </summary>
-        /// <typeparam name="T">The key <see cref="Type"/>.</typeparam>
-        /// <param name="key">The key.</param>
-        /// <param name="compositeKey">The resulting <see cref="CompositeKey"/></param>
-        /// <returns><c>true</c> indicates that the <paramref name="compositeKey"/> was successfully created; otherwise, <c>false</c></returns>
-        /// <remarks>The types specified must represent exact match of underlying <paramref name="key"/> parts.
-        /// <para>There is no specific character escaping etc. performed automatically.</para></remarks>
-        public static bool TryCreateFromString<T>(string? key, out CompositeKey compositeKey) => TryCreateFromString(key, [typeof(T)], out compositeKey);
-
-        /// <summary>
-        /// Creates a new <see cref="CompositeKey"/> from a string-based <paramref name="key"/> (<see cref="ToString()"/>) where each underlying part is of the <see cref="Type"/> specified.
-        /// </summary>
-        /// <typeparam name="T1">The key <see cref="Type"/> for the first part.</typeparam>
-        /// <typeparam name="T2">The key <see cref="Type"/> for the second part.</typeparam>
-        /// <param name="key">The key.</param>
-        /// <param name="compositeKey">The resulting <see cref="CompositeKey"/></param>
-        /// <returns><c>true</c> indicates that the <paramref name="compositeKey"/> was successfully created; otherwise, <c>false</c></returns>
-        /// <remarks>The types specified must represent exact match of underlying <paramref name="key"/> parts.</remarks>
-        public static bool TryCreateFromString<T1, T2>(string? key, out CompositeKey compositeKey) => TryCreateFromString(key, [typeof(T1), typeof(T2)], out compositeKey);
-
-        /// <summary>
-        /// Creates a new <see cref="CompositeKey"/> from a string-based <paramref name="key"/> (<see cref="ToString()"/>) where each underlying part is of the <see cref="Type"/> specified.
-        /// </summary>
-        /// <typeparam name="T1">The key <see cref="Type"/> for the first part.</typeparam>
-        /// <typeparam name="T2">The key <see cref="Type"/> for the second part.</typeparam>
-        /// <typeparam name="T3">The key <see cref="Type"/> for the third part.</typeparam>
-        /// <param name="key">The key.</param>
-        /// <param name="compositeKey">The resulting <see cref="CompositeKey"/></param>
-        /// <returns><c>true</c> indicates that the <paramref name="compositeKey"/> was successfully created; otherwise, <c>false</c></returns>
-        /// <remarks>The types specified must represent exact match of underlying <paramref name="key"/> parts.</remarks>
-        public static bool TryCreateFromString<T1, T2, T3>(string? key, out CompositeKey compositeKey) => TryCreateFromString(key, [typeof(T1), typeof(T2), typeof(T3)], out compositeKey);
-
-        /// <summary>
-        /// Try and create a new <see cref="CompositeKey"/> from a string-based <paramref name="key"/> representation (<see cref="ToString()"/>) where each underlying part is of the <see cref="Type"/> specified.
-        /// </summary>
-        /// <param name="key">The key.</param>
-        /// <param name="types">The <see cref="Type"/> array.</param>
-        /// <param name="compositeKey">The resulting <see cref="CompositeKey"/></param>
-        /// <returns><c>true</c> indicates that the <paramref name="compositeKey"/> was successfully created; otherwise, <c>false</c></returns>
-        /// <remarks>The types specified must represent exact match of underlying <paramref name="key"/> parts.</remarks>
-        public static bool TryCreateFromString(string? key, Type[] types, out CompositeKey compositeKey) => TryCreateFromString(key, ',', types, out compositeKey);
-
-        /// <summary>
-        /// Try and create a new <see cref="CompositeKey"/> from a string-based <paramref name="key"/> (<see cref="ToString()"/>) where the key is of the <see cref="Type"/> specified.
-        /// </summary>
-        /// <typeparam name="T">The key <see cref="Type"/>.</typeparam>
-        /// <param name="key">The key.</param>
-        /// <param name="separator">The seperator character.</param>
-        /// <param name="compositeKey">The resulting <see cref="CompositeKey"/></param>
-        /// <returns><c>true</c> indicates that the <paramref name="compositeKey"/> was successfully created; otherwise, <c>false</c></returns>
-        /// <remarks>The types specified must represent exact match of underlying <paramref name="key"/> parts.</remarks>
-        public static bool TryCreateFromString<T>(string? key, char separator, out CompositeKey compositeKey) => TryCreateFromString(key, separator, [typeof(T)], out compositeKey);
-
-        /// <summary>
-        /// Creates a new <see cref="CompositeKey"/> from a string-based <paramref name="key"/> (<see cref="ToString()"/>) where each underlying part is of the <see cref="Type"/> specified.
-        /// </summary>
-        /// <typeparam name="T1">The key <see cref="Type"/> for the first part.</typeparam>
-        /// <typeparam name="T2">The key <see cref="Type"/> for the second part.</typeparam>
-        /// <param name="key">The key.</param>
-        /// <param name="separator">The seperator character.</param>
-        /// <param name="compositeKey">The resulting <see cref="CompositeKey"/></param>
-        /// <returns><c>true</c> indicates that the <paramref name="compositeKey"/> was successfully created; otherwise, <c>false</c></returns>
-        /// <remarks>The types specified must represent exact match of underlying <paramref name="key"/> parts.</remarks>
-        public static bool TryCreateFromString<T1, T2>(string? key, char separator, out CompositeKey compositeKey) => TryCreateFromString(key, separator, [typeof(T1), typeof(T2)], out compositeKey);
-
-        /// <summary>
-        /// Creates a new <see cref="CompositeKey"/> from a string-based <paramref name="key"/> (<see cref="ToString()"/>) where each underlying part is of the <see cref="Type"/> specified.
-        /// </summary>
-        /// <typeparam name="T1">The key <see cref="Type"/> for the first part.</typeparam>
-        /// <typeparam name="T2">The key <see cref="Type"/> for the second part.</typeparam>
-        /// <typeparam name="T3">The key <see cref="Type"/> for the third part.</typeparam>
-        /// <param name="key">The key.</param>
-        /// <param name="separator">The seperator character.</param>
-        /// <param name="compositeKey">The resulting <see cref="CompositeKey"/></param>
-        /// <returns><c>true</c> indicates that the <paramref name="compositeKey"/> was successfully created; otherwise, <c>false</c></returns>
-        /// <remarks>The types specified must represent exact match of underlying <paramref name="key"/> parts.</remarks>
-        public static bool TryCreateFromString<T1, T2, T3>(string? key, char separator, out CompositeKey compositeKey) => TryCreateFromString(key, separator, [typeof(T1), typeof(T2), typeof(T3)], out compositeKey);
-
-        /// <summary>
-        /// Try and create a new <see cref="CompositeKey"/> from a string-based <paramref name="key"/> representation (<see cref="ToString()"/>) where each underlying part is of the <see cref="Type"/> specified.
-        /// </summary>
-        /// <param name="key">The key.</param>
-        /// <param name="separator">The seperator character.</param>
-        /// <param name="types">The <see cref="Type"/> array.</param>
-        /// <param name="compositeKey">The resulting <see cref="CompositeKey"/></param>
-        /// <returns><c>true</c> indicates that the <paramref name="compositeKey"/> was successfully created; otherwise, <c>false</c></returns>
-        /// <remarks>The types specified must represent exact match of underlying <paramref name="key"/> parts.</remarks>
-        public static bool TryCreateFromString(string? key, char separator, Type[] types, out CompositeKey compositeKey)
-        {
-            var parts = string.IsNullOrEmpty(key) ? _singleEmptyArray : key.Split(separator, StringSplitOptions.None);
-            if (parts.Length != types.Length)
-            {
-                compositeKey = Empty;
-                return false;
-            }
-
-            var args = new object?[types.Length];
-
-            for (int i = 0; i < parts.Length; i++)
-            {
-                var part = parts[i];
-                var type = Nullable.GetUnderlyingType(types[i]);
-                if (type is not null)
-                {
-                    if (string.IsNullOrEmpty(part))
-                    {
-                        args[i] = null;
-                        continue;
-                    }
-                }
-                else
-                    type = types[i];
-
-                if (!(type switch
-                {
-                    Type t when t == typeof(string) => TryParse(args, i, () => (true, part.Length == 0 ? null : part)),
-                    Type t when t == typeof(char) => TryParse(args, i, () => part.Length == 0 ? (true, ' ') : (part.Length == 1 ? (true, part[0]) : (false, ' '))),
-                    Type t when t == typeof(short) => TryParse(args, i, () => short.TryParse(part, NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out short v) ? (true, v) : (false, 0)),
-                    Type t when t == typeof(int) => TryParse(args, i, () => int.TryParse(part, NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out int v) ? (true, v) : (false, 0)),
-                    Type t when t == typeof(long) => TryParse(args, i, () => long.TryParse(part, NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out long v) ? (true, v) : (false, 0)),
-                    Type t when t == typeof(Guid) => TryParse(args, i, () => Guid.TryParse(part, out Guid v) ? (true, v) : (false, Guid.Empty)),
-                    Type t when t == typeof(DateTime) => TryParse(args, i, () => DateTime.TryParseExact(part, "O", DateTimeFormatInfo.InvariantInfo, DateTimeStyles.RoundtripKind, out DateTime v) ? (true, v) : (false, DateTime.MinValue)),
-                    Type t when t == typeof(DateTimeOffset) => TryParse(args, i, () => DateTimeOffset.TryParseExact(part, "O", DateTimeFormatInfo.InvariantInfo, DateTimeStyles.RoundtripKind, out DateTimeOffset v) ? (true, v) : (false, DateTimeOffset.MinValue)),
-                    Type t when t == typeof(uint) => TryParse(args, i, () => uint.TryParse(part, NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out uint v) ? (true, v) : (false, 0)),
-                    Type t when t == typeof(ulong) => TryParse(args, i, () => ulong.TryParse(part, NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out ulong v) ? (true, v) : (false, 0)),
-                    Type t when t == typeof(ushort) => TryParse(args, i, () => ushort.TryParse(part, NumberStyles.Integer, NumberFormatInfo.InvariantInfo, out ushort v) ? (true, v) : (false, 0)),
-                    _ => TryParse(args, i, () => (false, part))
-                }))
-                { 
-                    compositeKey = Empty;
-                    return false;
-                }
-            }
-
-            compositeKey = new CompositeKey(args);
-            return true;
-        }
-
-        /// <summary>
-        /// Attempt parse and update the array.
-        /// </summary>
-        private static bool TryParse<T>(object?[] args, int index, Func<(bool, T)> parse)
-        {
-            (bool parsed, T value) = parse();
-            args[index] = value;
-            return parsed;
-        }
-
-        /// <summary>
-        /// Implicitly converts a <see cref="string"/> to a <see cref="CompositeKey"/>.
-        /// </summary>
-        /// <param name="identifier">The identifier.</param>
-        public static implicit operator CompositeKey(string? identifier) => new(identifier);
-
-        /// <summary>
-        /// Implicitly converts an <see cref="short"/> to a <see cref="CompositeKey"/>.
-        /// </summary>
-        /// <param name="identifier">The identifier.</param>
-        public static implicit operator CompositeKey(short identifier) => new(identifier);
-
-        /// <summary>
-        /// Implicitly converts an <see cref="short"/> to a <see cref="CompositeKey"/>.
-        /// </summary>
-        /// <param name="identifier">The identifier.</param>
-        public static implicit operator CompositeKey(short? identifier) => new(identifier);
-
-        /// <summary>
-        /// Implicitly converts an <see cref="int"/> to a <see cref="CompositeKey"/>.
-        /// </summary>
-        /// <param name="identifier">The identifier.</param>
-        public static implicit operator CompositeKey(int identifier) => new(identifier);
-
-        /// <summary>
-        /// Implicitly converts an <see cref="int"/> to a <see cref="CompositeKey"/>.
-        /// </summary>
-        /// <param name="identifier">The identifier.</param>
-        public static implicit operator CompositeKey(int? identifier) => new(identifier);
-
-        /// <summary>
-        /// Implicitly converts a <see cref="long"/> to a <see cref="CompositeKey"/>.
-        /// </summary>
-        /// <param name="identifier">The identifier.</param>
-        public static implicit operator CompositeKey(long identifier) => new(identifier);
-
-        /// <summary>
-        /// Implicitly converts a <see cref="long"/> to a <see cref="CompositeKey"/>.
-        /// </summary>
-        /// <param name="identifier">The identifier.</param>
-        public static implicit operator CompositeKey(long? identifier) => new(identifier);
-
-        /// <summary>
-        /// Implicitly converts a <see cref="Guid"/> to a <see cref="CompositeKey"/>.
-        /// </summary>
-        /// <param name="identifier">The identifier.</param>
-        public static implicit operator CompositeKey(Guid identifier) => new(identifier);
-
-        /// <summary>
-        /// Implicitly converts a <see cref="Guid"/> to a <see cref="CompositeKey"/>.
-        /// </summary>
-        /// <param name="identifier">The identifier.</param>
-        public static implicit operator CompositeKey(Guid? identifier) => new(identifier);
-
-        /// <summary>
-        /// Implicitly converts a <see cref="char"/> to a <see cref="CompositeKey"/>.
-        /// </summary>
-        /// <param name="identifier">The identifier.</param>
-        public static implicit operator CompositeKey(char? identifier) => new(identifier);
-
-        /// <summary>
-        /// Implicitly converts a <see cref="char"/> to a <see cref="CompositeKey"/>.
-        /// </summary>
-        /// <param name="identifier">The identifier.</param>
-        public static implicit operator CompositeKey(char identifier) => new(identifier);
-
-        /// <summary>
-        /// Implicitly converts a <see cref="DateTime"/> to a <see cref="CompositeKey"/>.
-        /// </summary>
-        /// <param name="identifier">The identifier.</param>
-        public static implicit operator CompositeKey(DateTime? identifier) => new(identifier);
-
-        /// <summary>
-        /// Implicitly converts a <see cref="DateTime"/> to a <see cref="CompositeKey"/>.
-        /// </summary>
-        /// <param name="identifier">The identifier.</param>
-        public static implicit operator CompositeKey(DateTime identifier) => new(identifier);
-
-        /// <summary>
-        /// Implicitly converts a <see cref="DateTimeOffset"/> to a <see cref="CompositeKey"/>.
-        /// </summary>
-        /// <param name="identifier">The identifier.</param>
-        public static implicit operator CompositeKey(DateTimeOffset? identifier) => new(identifier);
-
-        /// <summary>
-        /// Implicitly converts a <see cref="DateTimeOffset"/> to a <see cref="CompositeKey"/>.
-        /// </summary>
-        /// <param name="identifier">The identifier.</param>
-        public static implicit operator CompositeKey(DateTimeOffset identifier) => new(identifier);
-
-        /// <summary>
-        /// Implicitly converts an <see cref="ushort"/> to a <see cref="CompositeKey"/>.
-        /// </summary>
-        /// <param name="identifier">The identifier.</param>
-        public static implicit operator CompositeKey(ushort identifier) => new(identifier);
-
-        /// <summary>
-        /// Implicitly converts an <see cref="ushort"/> to a <see cref="CompositeKey"/>.
-        /// </summary>
-        /// <param name="identifier">The identifier.</param>
-        public static implicit operator CompositeKey(ushort? identifier) => new(identifier);
-
-        /// <summary>
-        /// Implicitly converts an <see cref="uint"/> to a <see cref="CompositeKey"/>.
-        /// </summary>
-        /// <param name="identifier">The identifier.</param>
-        public static implicit operator CompositeKey(uint identifier) => new(identifier);
-
-        /// <summary>
-        /// Implicitly converts an <see cref="uint"/> to a <see cref="CompositeKey"/>.
-        /// </summary>
-        /// <param name="identifier">The identifier.</param>
-        public static implicit operator CompositeKey(uint? identifier) => new(identifier);
-
-        /// <summary>
-        /// Implicitly converts a <see cref="ulong"/> to a <see cref="CompositeKey"/>.
-        /// </summary>
-        /// <param name="identifier">The identifier.</param>
-        public static implicit operator CompositeKey(ulong identifier) => new(identifier);
-
-        /// <summary>
-        /// Implicitly converts a <see cref="ulong"/> to a <see cref="CompositeKey"/>.
-        /// </summary>
-        /// <param name="identifier">The identifier.</param>
-        public static implicit operator CompositeKey(ulong? identifier) => new(identifier);
+            string s => s,
+            Guid g => g.ToString("D"),
+            DateTimeOffset dto => dto.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture),
+            DateTime dt => dt.ToString("o", CultureInfo.InvariantCulture),
+            float f => f.ToString("R", CultureInfo.InvariantCulture),
+            double d => d.ToString("R", CultureInfo.InvariantCulture),
+            decimal m => m.ToString("G", CultureInfo.InvariantCulture),
+            bool b => b ? "true" : "false",
+            byte[] bytes => Convert.ToBase64String(bytes),
+            TimeSpan ts => ts.ToString("c", CultureInfo.InvariantCulture),
+            DateOnly d => d.ToString("O", CultureInfo.InvariantCulture),
+            TimeOnly t => t.ToString("O", CultureInfo.InvariantCulture),
+            char c => c.ToString(),
+            _ => Convert.ToString(arg, CultureInfo.InvariantCulture),
+        };
     }
 }

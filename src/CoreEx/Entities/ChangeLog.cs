@@ -1,94 +1,129 @@
-﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
+namespace CoreEx.Entities;
 
-using System;
-
-namespace CoreEx.Entities
+/// <summary>
+/// Provides a <see cref="IReadOnlyChangeLogEx"/> implementation.
+/// </summary>
+public record class ChangeLog() : IReadOnlyChangeLogEx, IRuntimeMetadata, IDefault
 {
+    private static readonly ChangeLog _empty = new();
+
     /// <summary>
-    /// Provides a <see cref="IChangeLogAudit"/>.
+    /// Gets the username and timestamp information for <see cref="ChangeLog"/> usage.
     /// </summary>
-    public class ChangeLog : IChangeLogAudit
+    /// <param name="executionContext">The optional <see cref="ExecutionContext"/>.</param>
+    /// <returns>The user and timestamp information.</returns>
+    public static (string? UserName, DateTimeOffset Timestamp) GetChangeLogInfo(ExecutionContext? executionContext = null)
     {
-        /// <summary>
-        /// Gets or sets the created <see cref="DateTime"/>.
-        /// </summary>
-        public DateTime? CreatedDate { get; set; }
+        if (executionContext is null)
+            ExecutionContext.TryGetCurrent(out executionContext);
 
-        /// <summary>
-        /// Gets or sets the created by (username).
-        /// </summary>
-        public string? CreatedBy { get; set; }
-
-        /// <summary>
-        /// Gets or sets the updated <see cref="DateTime"/>.
-        /// </summary>
-        public DateTime? UpdatedDate { get; set; }
-
-        /// <summary>
-        /// Gets or sets the updated by (username).
-        /// </summary>
-        public string? UpdatedBy { get; set; }
-
-        /// <summary>
-        /// Prepares the <see cref="ChangeLog"/> by setting the <c>Created</c> properties.
-        /// </summary>
-        /// <typeparam name="T">The value <see cref="Type"/>.</typeparam>
-        /// <param name="value">The value.</param>
-        /// <param name="executionContext">The optional <see cref="ExecutionContext"/>.</param>
-        /// <remarks>Creates or updates the <see cref="ChangeLog"/> where <paramref name="value"/> implements <see cref="IChangeLog"/>.</remarks>
-        public static void PrepareCreated<T>(T value, ExecutionContext? executionContext = null)
-        {
-            if (value != null && value is IChangeLogAuditLog cl)
-                cl.ChangeLogAudit = PrepareCreated(cl.ChangeLogAudit ?? new ChangeLog(), executionContext);
-        }
-
-        /// <summary>
-        /// Prepares the <paramref name="changeLog"/> by setting the <c>Created</c> properties.
-        /// </summary>
-        /// <param name="changeLog">The <see cref="IChangeLogAudit"/>.</param>
-        /// <param name="executionContext">The optional <see cref="ExecutionContext"/>.</param>
-        /// <returns>A new or updated <see cref="ChangeLog"/> with <c>Created</c> properties set.</returns>
-        public static IChangeLogAudit PrepareCreated(IChangeLogAudit changeLog, ExecutionContext? executionContext = null)
-        {
-            changeLog.ThrowIfNull(nameof(changeLog)).CreatedBy = GetUsername(executionContext);
-            changeLog.CreatedDate = GetTimestamp(executionContext);
-            return changeLog;
-        }
-
-        /// <summary>
-        /// Prepares the <see cref="ChangeLog"/> by setting the <c>Updated</c> properties.
-        /// </summary>
-        /// <typeparam name="T">The value <see cref="Type"/>.</typeparam>
-        /// <param name="value">The value.</param>
-        /// <param name="executionContext">The optional <see cref="ExecutionContext"/>.</param>
-        /// <remarks>Creates or updates the <see cref="ChangeLog"/> where <paramref name="value"/> implements <see cref="IChangeLog"/>.</remarks>
-        public static void PrepareUpdated<T>(T value, ExecutionContext? executionContext = null)
-        {
-            if (value is not null && value is IChangeLogAuditLog cl)
-                cl.ChangeLogAudit = PrepareUpdated(cl.ChangeLogAudit ?? new ChangeLog(), executionContext);
-        }
-
-        /// <summary>
-        /// Prepares the <paramref name="changeLog"/> by setting the <c>Updated</c> properties.
-        /// </summary>
-        /// <param name="changeLog">The <see cref="ChangeLog"/>.</param>
-        /// <param name="executionContext">The optional <see cref="ExecutionContext"/>.</param>
-        /// <returns>A new or updated <see cref="ChangeLog"/> with <c>Updated</c> properties set.</returns>
-        public static IChangeLogAudit PrepareUpdated(IChangeLogAudit changeLog, ExecutionContext? executionContext = null)
-        {
-            changeLog.ThrowIfNull(nameof(changeLog)).UpdatedBy = GetUsername(executionContext);
-            changeLog.UpdatedDate = GetTimestamp(executionContext);
-            return changeLog;
-        }
-
-        /// <summary>
-        /// Gets the username.
-        /// </summary>
-        private static string GetUsername(ExecutionContext? ec) => ec != null ? ec.UserName : (ExecutionContext.HasCurrent ? ExecutionContext.Current.UserName : ExecutionContext.EnvironmentUserName);
-
-        /// <summary>
-        /// Gets the timestamp.
-        /// </summary>
-        private static DateTime GetTimestamp(ExecutionContext? ec) => ec != null ? ec.Timestamp : SystemTime.Timestamp;
+        return (executionContext?.User?.UserName ?? AuthenticationUser.EnvironmentUser.UserName, executionContext?.Timestamp ?? Runtime.UtcNow);
     }
+
+    /// <summary>
+    /// Creates a new <see cref="ChangeLog"/> setting the <see cref="ChangeLog.CreatedBy"/> and <see cref="ChangeLog.CreatedOn"/>.
+    /// </summary>
+    /// <param name="executionContext">The optional <see cref="ExecutionContext"/>.</param>
+    /// <returns>A <see cref="ChangeLog"/>.</returns>
+    public static ChangeLog CreateCreated(ExecutionContext? executionContext = null)
+    {
+        var (UserName, Timestamp) = GetChangeLogInfo(executionContext);
+
+        return new ChangeLog
+        {
+            CreatedBy = UserName,
+            CreatedOn = Timestamp
+        };
+    }
+
+    /// <summary>
+    /// Creates a <see cref="ChangeLog"/> copy (or new) setting the <see cref="ChangeLog.UpdatedBy"/> and <see cref="ChangeLog.UpdatedOn"/>.
+    /// </summary>
+    /// <param name="changeLog">The optional <see cref="ChangeLog"/> to copy from.</param>
+    /// <param name="executionContext">The optional <see cref="ExecutionContext"/>.</param>
+    /// <returns>A <see cref="ChangeLog"/>.</returns>
+    public static ChangeLog CreateChanged(ChangeLog? changeLog = null, ExecutionContext? executionContext = null)
+    {
+        var (UserName, Timestamp) = GetChangeLogInfo(executionContext);
+
+        return new ChangeLog
+        {
+            CreatedBy = changeLog?.CreatedBy,
+            CreatedOn = changeLog?.CreatedOn,
+            UpdatedBy = UserName,
+            UpdatedOn = Timestamp
+        };
+    }
+
+    /// <summary>
+    /// Creates a new <see cref="ChangeLog"/> from an <see cref="IReadOnlyChangeLogEx"/>.
+    /// </summary>
+    /// <param name="changeLog">The <see cref="IReadOnlyChangeLogEx"/>.</param>
+    /// <returns>The <see cref="ChangeLog"/> where the result is not <see cref="IsDefault"/>; otherwise, <see langword="null"/>.</returns>
+    public static ChangeLog? CreateFrom(IReadOnlyChangeLogEx? changeLog)
+    {
+        var cl = new ChangeLog(changeLog);
+        return cl.IsDefault() ? null : cl;
+    }
+
+    /// <inheritdoc/>
+    public static IEnumerable<IPropertyRuntimeMetadata> GetStaticPropertyRuntimeMetadata()
+    {
+        yield return new PropertyRuntimeMetadata<ChangeLog, string?>(nameof(CreatedBy), static e => e.CreatedBy, clean: CleanOption.CleanAndDefault);
+        yield return new PropertyRuntimeMetadata<ChangeLog, DateTimeOffset?>(nameof(CreatedOn), static e => e.CreatedOn, clean: CleanOption.CleanAndDefault);
+        yield return new PropertyRuntimeMetadata<ChangeLog, string?>(nameof(UpdatedBy), static e => e.UpdatedBy, clean: CleanOption.CleanAndDefault);
+        yield return new PropertyRuntimeMetadata<ChangeLog, DateTimeOffset?>(nameof(UpdatedOn), static e => e.UpdatedOn, clean: CleanOption.CleanAndDefault);
+    }
+
+    /// <summary>
+    /// Gets an empty <see cref="ChangeLog"/> instance.
+    /// </summary>
+    public static ChangeLog Empty => _empty;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ChangeLog"/> class with an <see cref="IReadOnlyChangeLog"/>.
+    /// </summary>
+    /// <param name="changeLog">The <see cref="IReadOnlyChangeLog"/>.</param>
+    public ChangeLog(IReadOnlyChangeLog? changeLog) : this((IReadOnlyChangeLogEx?)changeLog?.ChangeLog) { }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ChangeLog"/> class.
+    /// </summary>
+    /// <param name="changeLog">The optional <see cref="IReadOnlyChangeLogEx"/>.</param>
+    public ChangeLog(IReadOnlyChangeLogEx? changeLog) : this()
+    {
+        if (changeLog is not null)
+        {
+            CreatedBy = changeLog.CreatedBy;
+            CreatedOn = changeLog.CreatedOn;
+            UpdatedBy = changeLog.UpdatedBy;
+            UpdatedOn = changeLog.UpdatedOn;
+        }
+    }
+
+    /// <inheritdoc/>
+    [ReadOnly(true)]
+    public string? CreatedBy { get; init => field = Cleaner.Clean(value); }
+
+    /// <inheritdoc/>
+    [ReadOnly(true)]
+    public DateTimeOffset? CreatedOn { get; init; }
+
+    /// <inheritdoc/>
+    [ReadOnly(true)]
+    public string? UpdatedBy { get; init => field = Cleaner.Clean(value); }
+
+    /// <inheritdoc/>
+    [ReadOnly(true)]
+    public DateTimeOffset? UpdatedOn { get; init; }
+
+    /// <inheritdoc/>
+    public virtual IEnumerable<IPropertyRuntimeMetadata> GetPropertyRuntimeMetadata()
+    {
+        foreach (var pr in GetStaticPropertyRuntimeMetadata())
+            yield return pr;
+    }
+
+    /// <inheritdoc/>
+    public bool IsDefault() => RuntimeMetadata.IsDefault(this);
 }

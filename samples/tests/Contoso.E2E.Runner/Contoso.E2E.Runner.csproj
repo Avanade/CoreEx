@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>preview</LangVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" />
+    <PackageReference Include="Microsoft.Extensions.Http" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" />
+    <PackageReference Include="Spectre.Console" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Contoso.Products.Contracts\Contoso.Products.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\Contoso.Orders.Contracts\Contoso.Orders.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\Contoso.Shopping.Contracts\Contoso.Shopping.Contracts.csproj" />
+    <ProjectReference Include="..\Contoso.Orders.Test.Common\Contoso.Orders.Test.Common.csproj" />
+    <ProjectReference Include="..\Contoso.Products.Test.Common\Contoso.Products.Test.Common.csproj" />
+    <ProjectReference Include="..\Contoso.Shopping.Test.Common\Contoso.Shopping.Test.Common.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>

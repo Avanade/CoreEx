@@ -1,0 +1,17 @@
+global using Contoso.E2E.Runner.Infrastructure;
+global using Contoso.E2E.Runner.Scenarios;
+global using Contoso.Products.Contracts;
+global using Contoso.Shopping.Contracts;
+global using CoreEx;
+global using CoreEx.Json;
+global using DbEx;
+global using DbEx.Migration;
+global using DbEx.Postgres.Migration;
+global using DbEx.SqlServer.Migration;
+global using Microsoft.Extensions.Configuration;
+global using Spectre.Console;
+global using System.Collections.Concurrent;
+global using System.Diagnostics;
+global using System.Net.Http.Json;
+global using System.Reflection;
+global using System.Text;

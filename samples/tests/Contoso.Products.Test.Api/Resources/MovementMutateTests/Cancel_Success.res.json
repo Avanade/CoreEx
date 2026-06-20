@@ -1,0 +1,34 @@
+[
+  {
+    "id": "00000005-0000-0000-0000-000000000000",
+    "referenceId": "000003e9-0000-0000-0000-000000000000",
+    "kind": "I",
+    "status": "X",
+    "productId": "0000001c-0000-0000-0000-000000000000",
+    "quantity": -1.00,
+    "unitOfMeasure": "EA",
+    "changeLog": {
+      "createdBy": "METACORTEX\\thomas.anderson",
+      "createdOn": "2026-03-11T14:40:31.7590102\u002B00:00",
+      "updatedBy": "METACORTEX\\thomas.anderson",
+      "updatedOn": "2026-03-11T14:40:38.5301225\u002B00:00"
+    },
+    "etag": "AAAAAAAAKAQ="
+  },
+  {
+    "id": "00000004-0000-0000-0000-000000000000",
+    "referenceId": "000003e9-0000-0000-0000-000000000000",
+    "kind": "I",
+    "status": "X",
+    "productId": "00000018-0000-0000-0000-000000000000",
+    "quantity": -2.00,
+    "unitOfMeasure": "EA",
+    "changeLog": {
+      "createdBy": "METACORTEX\\thomas.anderson",
+      "createdOn": "2026-03-11T14:40:31.7590102\u002B00:00",
+      "updatedBy": "METACORTEX\\thomas.anderson",
+      "updatedOn": "2026-03-11T14:40:38.5301225\u002B00:00"
+    },
+    "etag": "AAAAAAAAKAM="
+  }
+]

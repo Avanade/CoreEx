@@ -1,0 +1,9 @@
+global using Contoso.Shopping.Application.Adapters.Products;
+global using Contoso.Shopping.Application.Validators;
+global using CoreEx;
+global using CoreEx.DependencyInjection;
+global using CoreEx.Events;
+global using CoreEx.Events.Subscribing;
+global using CoreEx.Json;
+global using CoreEx.Results;
+global using CoreEx.Validation;

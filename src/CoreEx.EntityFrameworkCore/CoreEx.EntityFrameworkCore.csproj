@@ -1,31 +1,18 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>net6.0;net8.0;net9.0</TargetFrameworks>
-    <RootNamespace>CoreEx.EntityFrameworkCore</RootNamespace>
-    <Product>CoreEx</Product>
-    <Title>CoreEx .NET Entity Framework Core (EF) extras.</Title>
-    <Description>CoreEx .NET Entity Framework (EF) Core extras.</Description>
-    <PackageTags>coreex api db database sql sqlserver ado.net entityframework entityframeworkcore ef efcore</PackageTags>
-    <ImplicitUsings>enable</ImplicitUsings>
+    <Title>CoreEx .NET Entity Framework (EF) Core extensions.</Title>
+    <Description>Core .NET extensions and abstractions for the development of backend services.</Description>
+    <PackageTags>coreex microservices domain-based event-driven railway-oriented reference-data entity-framework ef efcore</PackageTags>
   </PropertyGroup>
 
-  <Import Project="..\..\Common.targets" />
-
-  <ItemGroup Condition="'$(TargetFramework)' == 'net6.0'">
-    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="6.0.36" />
-  </ItemGroup>
-
-  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
-    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.11" />
-  </ItemGroup>
-
-  <ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
-    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.1" />
-  </ItemGroup>
-
   <ItemGroup>
+    <ProjectReference Include="..\CoreEx\CoreEx.csproj" />
+    <ProjectReference Include="..\CoreEx.Data\CoreEx.Data.csproj" />
     <ProjectReference Include="..\CoreEx.Database\CoreEx.Database.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
+  </ItemGroup>
 </Project>

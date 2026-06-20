@@ -1,0 +1,11 @@
+{
+  "solution": {
+    "path": "CoreEx.slnx",
+    "projects": [
+      "tests/CoreEx.Azure.Messaging.ServiceBus.Test.Unit/CoreEx.Azure.Messaging.ServiceBus.Test.Unit.csproj",
+      "tests/CoreEx.Caching.Redis.Test.Unit/CoreEx.Caching.Redis.Test.Unit.csproj",
+      "tests/CoreEx.Database.SqlServer.Test.Unit/CoreEx.Database.SqlServer.Test.Unit.csproj",
+      "tests/CoreEx.Database.Postgres.Test.Unit/CoreEx.Database.Postgres.Test.Unit.csproj"
+    ]
+  }
+}

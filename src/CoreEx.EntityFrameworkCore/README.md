@@ -1,138 +1,58 @@
-﻿# CoreEx.EntityFrameworkCore
+# CoreEx.EntityFrameworkCore
 
-The `CoreEx.EntityFrameworkCore` namespace provides extended [_Entity Framework Core (EF)_](https://learn.microsoft.com/en-us/ef/core/) capabilities. 
+> Provides the Entity Framework Core integration layer: `EfDb<TDbContext>` as the CoreEx-EF bridge, `EfDbModel<TModel>` and `EfDbMappedModel<TValue, TModel, TMapper>` for typed CRUD + query operations, `EfDbExtensions` for paged `IQueryable<T>` mapping helpers, `EfDbInvoker` for OpenTelemetry tracing, and EF `ValueConverter` bridges for CoreEx converter types.
 
-<br/>
+## Overview
 
-## Motivation
+`CoreEx.EntityFrameworkCore` wraps EF Core's `DbContext` with the CoreEx data conventions: `IUnitOfWork` transaction management, `ETag`/concurrency-token checking, multi-tenancy filtering, logical-delete filtering, change-log stamping, `PagingArgs` paging, `QueryArgsConfig` dynamic filter/orderby, and `Result<T>` pipeline integration.
 
-The motivation is to provide supporting EF Core capabilities for [CRUD](https://en.wikipedia.org/wiki/Create,_read,_update_and_delete) related access that support standardized _CoreEx_ data access patterns. This for the most part will simplify and unify the approach to ensure consistency of implementation where needed.
+The central type is `EfDb<TDbContext>`, which holds the `DbContext`, bridges its `IDatabase` (for transaction sharing with raw SQL), and exposes `Model<TModel>()` as the entry point for all strongly-typed CRUD. `EfDbModel<TModel>` provides `GetAsync`, `CreateAsync`, `UpdateAsync`, `DeleteAsync`, and `Query` — each applying the full CoreEx cross-cutting pipeline. `EfDbMappedModel<TValue, TModel, TMapper>` adds a `IBiDirectionMapper` layer for use cases where the EF model type differs from the domain entity type.
 
-<br/>
+`EfDbExtensions` provides `IQueryable<T>` extension methods for mapping, paging, and `ItemsResult<T>` collection building, enabling consistent paged-list patterns across all EF-backed repositories without boilerplate.
 
-## Requirements
+## Key capabilities
 
-The requirements for usage are as follows.
-- An **entity** (DTO) that represents the data that must as a minimum implement [`IEntityKey`](../CoreEx/Entities/IEntityKey.cs); generally via either the implementation of [`IIdentifier`](../CoreEx/Entities/IIdentifierT.cs) or [`IPrimaryKey`](../CoreEx/Entities/IPrimaryKey.cs).
-- A **model** being the underlying configured EF Core [data source model](https://learn.microsoft.com/en-us/ef/core/modeling/).
-- An [`IMapper`](../CoreEx/Mapping/IMapper.cs) that contains the mapping logic to map to and from the **entity** and **model**.
+- 🔗 **EF + IDatabase bridge**: `EfDb<TDbContext>` synchronizes EF Core's transaction with the underlying `IDatabase.CurrentTransaction`, so raw SQL commands and EF operations participate in the same ADO.NET transaction.
+- 📖 **Typed CRUD**: `EfDbModel<TModel>` provides `GetAsync`, `CreateAsync`, `UpdateAsync`, `DeleteAsync` with automatic ETag/concurrency-token validation, tenant isolation, logical-delete filtering, and change-log stamping.
+- 🔁 **Mapped CRUD**: `EfDbMappedModel<TValue, TModel, TMapper>` layers a `IBiDirectionMapper<TValue, TModel>` over `EfDbModel<TModel>`, mapping between the domain entity type and the EF model type transparently for all CRUD operations.
+- 🔍 **Query with dynamic filter/orderby**: `EfDbModel<TModel>.Query(args?)` returns a fluent `EfDbQuery<TModel>` that applies `QueryArgsConfig` filter and orderby, tenant and logical-delete predicates, and paging.
+- 📄 **Paged IQueryable extensions**: `EfDbExtensions.ToMappedItemsResultAsync`, `ToItemsResultAsync`, `ToMappedCollectionAsync` convert an `IQueryable<TSource>` to paged `ItemsResult<T>` or collections with a mapper function or `IMapper<T>`.
+- 🏷️ **ETag / concurrency token**: `EfDbArgs.CheckETag` compares the incoming `ETag` against the current entity's concurrency token before update/delete, throwing `ConcurrencyException` on mismatch.
+- 🔒 **Multi-tenancy filtering**: `EfDbModel` automatically adds `TenantId == executionContext.TenantId` predicates for entities implementing `IReadOnlyTenantId`.
+- 🗑️ **Logical delete**: Entities implementing `IReadOnlyLogicallyDeleted` are soft-deleted (`IsDeleted = true`) on `DeleteAsync` rather than physically removed, and filtered out of `GetAsync` / `Query`.
+- 🔌 **ValueConverter bridge**: `ValueConverterBridge<TModel, TProvider>` and `JsonElementStringEfConverter` allow CoreEx `IConverter<T, U>` implementations to be used directly as EF Core `ValueConverter` instances in `OnModelCreating`.
+- 📡 **OpenTelemetry**: `EfDbInvoker` wraps every `EfDb` operation with an `Activity` span tagged with operation type, model type, and result.
 
-The **entity** and **model** are different types to encourage separation between the externalized **entity** representation and the underlying **model**; which may be shaped differently, and have different property to column naming conventions, internalized columns, etc.
+## Key types
 
-<br/>
+| Type | Description |
+|------|-------------|
+| **[`EfDb<TDbContext>`](./EfDb.cs)** | CoreEx EF bridge: holds `DbContext`, `IDatabase`, `EfDbOptions`, `ExecutionContext`; exposes `Model<TModel>()` entry point; synchronizes EF and ADO.NET transactions. |
+| **[`EfDbModel<TModel>`](./EfDbModel.cs)** | Strongly-typed CRUD + query for a single EF model type: `GetAsync`, `CreateAsync`, `UpdateAsync`, `DeleteAsync`, `Query(args?)`; applies full CoreEx cross-cutting pipeline. |
+| **[`EfDbMappedModel<TValue, TModel, TMapper>`](./EfDbMappedModel.cs)** | Adds a `IBiDirectionMapper<TValue, TModel>` layer over `EfDbModel<TModel>` for domain entity ↔ EF model type conversion; provides `GetAsync`, `CreateAsync`, `UpdateAsync`, `DeleteAsync`. |
+| **[`EfDbExtensions`](./EfDbExtensions.cs)** | `IQueryable<T>` extensions: `ToMappedItemsResultAsync`, `ToItemsResultAsync`, `ToMappedCollectionAsync`, `BuildQuery(QueryArgs, QueryArgsConfig)`. |
+| **[`EfDbArgs`](./EfDbArgs.cs)** | Per-operation options: `OperationType`, `CheckETag`, `Paging`, `ExceptionHandler`; defaults sourced from `EfDbModelOptions<TModel>` then `EfDbOptions`. |
+| **[`EfDbOptions`](./EfDbOptions.cs)** | Instance-level options for `EfDb<TDbContext>`: default `EfDbArgs`, per-model options registry via `GetOrAddModelOptions<TModel>()`. |
+| **[`EfDbModelOptions<TModel>`](./EfDbModelOptions.cs)** | Per-model configuration: optional `EfDbArgs` override, `OnQuery` hook, tenant/logical-delete filtering enable/disable. |
+| **[`EfDbInvoker`](./EfDbInvoker.cs)** | `InvokerBase<IEfDb>` emitting OpenTelemetry spans and structured log entries for every EfDb operation; `Default` singleton used by `EfDb<TDbContext>`. |
+| **[`ValueConverterBridge<TModel, TProvider>`](./Converters/ValueConverterBridgeT2.cs)** | EF Core `ValueConverter<TModel, TProvider>` that delegates to a CoreEx `IConverter<TModel, TProvider>`, bridging CoreEx converter types into EF model configuration. |
+| **[`JsonElementStringEfConverter`](./Converters/JsonElementStringEfConverter.cs)** | EF Core `ValueConverter` serializing `JsonElement` values to/from `string` for storing JSON fragments in a text column. |
+| [`IEfDb`](./IEfDb.cs) | Interface exposing `DbContext`, `IDatabase`, `EfDbOptions`, `ExecutionContext`, and `EfDbInvoker`; implemented by `EfDb<TDbContext>`. |
+| [`IEfDbContext`](./IEfDbContext.cs) | Marker interface for `DbContext` subclasses wiring the `IDatabase` bridge via `BaseDatabase`. |
 
-## Railway-oriented programming
+## Namespaces
 
-To support [railway-oriented programming](../CoreEx/Results/README.md) whenever a method name includes `WithResult` this indicates that it will return a `Result` or `Result<T>` including the resulting success or failure information. In these instances an `Exception` will only be thrown when considered truly exceptional.
+| Namespace | Description |
+|-----------|-------------|
+| [**`Converters`**](./Converters/) | `ValueConverterBridge<TModel, TProvider>` and `JsonElementStringEfConverter` for use in EF Core model configuration. |
 
-<br/>
+## Related Namespaces
 
-## CRUD capabilities
+- **[`CoreEx.Data`](../CoreEx.Data/README.md)** - `IUnitOfWork`, `DataResult`, `QueryArgsConfig`; EF unit-of-work is typically composed using `EfDb` with an outbox publisher.
+- **[`CoreEx.Database`](../CoreEx.Database/README.md)** - `IDatabase` is bridged into `EfDb<TDbContext>` for transaction sharing and raw SQL fallback; `IDatabaseUnitOfWork` can wrap `EfDb`.
+- **[`CoreEx.Mapping`](../CoreEx/Mapping/README.md)** - `IBiDirectionMapper<TValue, TModel>` is the mapper contract used by `EfDbMappedModel`; `Mapper.MapStandardFrom` handles standard entity-contract properties.
+- **[`CoreEx.Invokers`](../CoreEx/Invokers/README.md)** - `EfDbInvoker` extends `InvokerBase<IEfDb>` using the standard OpenTelemetry tracing and logging pipeline.
 
-The [`IEfDb`](./IEfDb.cs) and corresponding [`EfDb`](./EfDb.cs) provides the base CRUD capabilities as follows.
+## AI Usage Guide
 
-<br/>
-
-### Query (read)
-
-A query is actioned using the [`EfDbQuery`](./EfDbQuery.cs) which is ostensibly a lightweight wrapper over an `IQueryable<TModel>` that automatically maps from the **model** to the **entity**.
-
-Queried entities are not tracked by default; internally uses [`AsNoTracking`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.entityframeworkcore.entityframeworkqueryableextensions.asnotracking); this behaviour can be overridden using [`EfDbArgs.QueryNoTracking`](./EfDbArgs.cs).
-
-Note: a consumer should also consider using [`IgnoreAutoIncludes`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.entityframeworkcore.entityframeworkqueryableextensions.ignoreautoincludes) to exclude related data, where not required, to improve query performance.
-
-The following methods provide additional capabilities:
-
-Method | Description
--|-
-`WithPaging` | Adds `Skip` and `Take` paging to the query.
-`SelectSingleAsync`, `SelectSingleWithResult` | Selects a single item.
-`SelectSingleOrDefaultAsync`, `SelectSingleOrDefaultWithResultAsync` | Selects a single item or default.
-`SelectFirstAsync`, `SelectFirstWithResultAsync` | Selects first item.
-`SelectFirstOrDefaultAsync`, `SelectFirstOrDefaultWithResultAsync` | Selects first item or default.
-`SelectQueryAsync`, `SelectQueryWithResultAsync` | Select items into or creating a resultant collection.
-`SelectResultAsync`, `SelectResultWithResultAsync` | Select items creating a [`ICollectionResult`](../CoreEx/Entities/ICollectionResultT2.cs) which also contains corresponding [`PagingResult`](../CoreEx/Entities/PagingResult.cs).
-
-<br/>
-
-### Get (Read)
-
-Gets (`GetAsync` or `GetWithResultAsync`) the **entity** for the specified key mapping from the **model**. Uses the [`DbContext.Find`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.entityframeworkcore.dbcontext.find) internally for the **model** and specified key.
-
-Where the data is not found, then a `null` will be returned. Where the **model** implements [`ILogicallyDeleted`](../CoreEx/Entities/ILogicallyDeleted.cs) and `IsDeleted` then this acts as if not found and returns a `null`.
-
-<br/>
-
-### Create
-
-Creates (`CreateAsync` or `CreateWithResultAsync`) the **entity** by firstly mapping to the **model**. Uses the [`DbContext.Add`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.entityframeworkcore.dbcontext.add) to begin tracking the **model** which will be inserted into the database when [`DbContext.SaveChanges`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.entityframeworkcore.dbcontext.savechanges) is called.
-
-Where the **entity** implements [`IChangeLogAuditLog`](../CoreEx/Entities/IChangeLogAuditLog.cs) generally via [`ChangeLog`](../CoreEx/Entities/IChangeLog.cs) or [`ChangeLogEx`](../CoreEx/Entities/Extended/IChangeLogEx.cs), then the `CreatedBy` and `CreatedDate` properties will be automatically set from the [`ExecutionContext`](../CoreEx/ExecutionContext.cs).
-
-Where the **entity** and/or **model** implements [`ITenantId`](../CoreEx/Entities/ITenantId.cs) then the `TenantId` property will be automatically set from the [`ExecutionContext`](../CoreEx/ExecutionContext.cs).
-
-Generally, the [`DbContext.SaveChanges`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.entityframeworkcore.dbcontext.savechanges) is called to perform the _insert_; unless [`EfDbArgs.SaveChanges`](./EfDbArgs.cs) is set to `false` (defaults to `true`).
-
-The inserted **model** is then re-mapped to the **entity** and returned where [`EfDbArgs.Refresh`](./EfDbArgs.cs) is set to `true` (default); this will ensure all properties updated as part of the _insert_ are included in the refreshed **entity**.
-
-<br/>
-
-### Update
-
-Updates (`UpdateAsync` or `UpdateWithResultAsync`) the **entity** by firstly mapping to the **model**. Uses the [`DbContext.Update`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.entityframeworkcore.dbcontext.add) to begin tracking the **model** which will be updated within the database when [`DbContext.SaveChanges`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.entityframeworkcore.dbcontext.savechanges) is called.
-
-First will check existence of the **model** by performing a [`DbContext.Find`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.entityframeworkcore.dbcontext.find). Where the data is not found, then a [`NotFoundException`](../CoreEx/NotFoundException.cs) will be thrown. Where the **model** implements [`ILogicallyDeleted`](../CoreEx/Entities/ILogicallyDeleted.cs) and `IsDeleted` then this acts as if not found and will also result in a `NotFoundException`.
-
-Where the entity implements [`IETag`](../CoreEx/Entities/IETag.cs) this will be checked against the just read version, and where not matched a  [`ConcurrencyException`](../CoreEx/ConcurrencyException.cs) will be thrown. Also, any [`DbUpdateConcurrencyException`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.entityframeworkcore.dbupdateconcurrencyexception) thrown will be converted to a corresponding `ConcurrencyException` for consistency.
-
-Where the **entity** implements [`IChangeLogAuditLog`](../CoreEx/Entities/IChangeLogAuditLog.cs) generally via [`ChangeLog`](../CoreEx/Entities/IChangeLog.cs) or [`ChangeLogEx`](../CoreEx/Entities/Extended/IChangeLogEx.cs), then the `UpdatedBy` and `UpdatedDate` properties will be automatically set from the [`ExecutionContext`](../CoreEx/ExecutionContext.cs).
-
-Where the **entity** and/or **model** implements [`ITenantId`](../CoreEx/Entities/ITenantId.cs) then the `TenantId` property will be automatically set from the [`ExecutionContext`](../CoreEx/ExecutionContext.cs).
-
-Generally, the [`DbContext.SaveChanges`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.entityframeworkcore.dbcontext.savechanges) is called to perform the _update_; unless [`EfDbArgs.SaveChanges`](./EfDbArgs.cs) is set to `false` (defaults to `true`).
-
-The updated **model** is then re-mapped to the **entity** and returned where [`EfDbArgs.Refresh`](./EfDbArgs.cs) is set to `true` (default); this will ensure all properties updated as part of the _update_ are included in the refreshed **entity**.
-
-<br/>
-
-### Delete
-
-Deletes (`DeleteAsync` or `DeleteWithResultAsync`) the **entity** either physically or logically.
-
-First will check existence of the **model** by performing a [`DbContext.Find`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.entityframeworkcore.dbcontext.find). Where the data is not found, then a [`NotFoundException`](../CoreEx/NotFoundException.cs) will be thrown. Where the **model** implements [`ILogicallyDeleted`](../CoreEx/Entities/ILogicallyDeleted.cs) and `IsDeleted` then this acts as if not found and will also result in a `NotFoundException`.
-
-Where the **model** implements [`ILogicallyDeleted`](../CoreEx/Entities/ILogicallyDeleted.cs) then an update will occur after setting `IsDeleted` to `true`. Uses the [`DbContext.Update`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.entityframeworkcore.dbcontext.add) to begin tracking the **model** which will be updated within the database when [`DbContext.SaveChanges`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.entityframeworkcore.dbcontext.savechanges) is called.
-
-Otherwise, will physically delete. Uses the [`DbContext.Remove`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.entityframeworkcore.dbcontext.remove) to begin tracking the **model** which will be deleted from the database when [`DbContext.SaveChanges`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.entityframeworkcore.dbcontext.savechanges) is called.
-
-Generally, the [`DbContext.SaveChanges`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.entityframeworkcore.dbcontext.savechanges) is called to perform the _update_; unless [`EfDbArgs.SaveChanges`](./EfDbArgs.cs) is set to `false` (defaults to `true`).
-
-<br/>
-
-## Usage
-
-To use `EfDB` relationships to the EF Core [`DbContext`](https://learn.microsoft.com/en-us/dotnet/api/microsoft.entityframeworkcore.dbcontext) must be established as follows.
-
-- [`Database`](../CoreEx.Database/Database.cs) must be defined; see [example](../../samples/My.Hr/My.Hr.Business/Data/HrDb.cs).
-- `DbContext` and [`Database`](../CoreEx.Database/Database.cs) relationship must be defined; see [example](../../samples/My.Hr/My.Hr.Business/Data/HrDbContext.cs).
-- [`EfDb`](./EfDb.cs) and `DbContext` relationship must be defined; see [example](../../samples/My.Hr/My.Hr.Business/Data/HrEfDb.cs).
-
-Alternatively, review the _Beef_ [MyEf.Hr data](https://github.com/Avanade/Beef/tree/master/samples/MyEf.Hr/MyEf.Hr.Business/Data) sample implementation.
-
-<br/>
-
-### MySql
-
-Where leveraging _MySQL_ it is recommended to use the [Pomelo.EntityFrameworkCore.MySql](https://www.nuget.org/packages/Pomelo.EntityFrameworkCore.MySql) package; this has greater uptake and community supporting than the Oracle-enabled [MySql.Data.EntityFrameworkCore](https://www.nuget.org/packages/MySql.Data.EntityFrameworkCore) package.
-
-The `DbContextOptionsBuilder` code within the `DbContext` implementation should be as follows (review version specification) to enable.
-
-```csharp
-protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-{
-    base.OnConfiguring(optionsBuilder);
-
-    if (!optionsBuilder.IsConfigured)
-        optionsBuilder.UseMySql(BaseDatabase.GetConnection(), ServerVersion.Create(new Version(8, 0, 33), Pomelo.EntityFrameworkCore.MySql.Infrastructure.ServerType.MySql));
-}
-```
+An [`AGENTS.md`](./AGENTS.md) file is included with this package. AI coding assistants (GitHub Copilot, Claude, Cursor, etc.) that support workspace-injected package documentation will automatically surface concise usage guidance, code examples, and `Do Not` rules for this package without requiring a local CoreEx checkout.

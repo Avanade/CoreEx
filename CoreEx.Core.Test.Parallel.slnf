@@ -1,0 +1,15 @@
+{
+  "solution": {
+    "path": "CoreEx.slnx",
+    "projects": [
+      "tests/CoreEx.Test.Unit/CoreEx.Test.Unit.csproj",
+      "tests/CoreEx.AspNetCore.Test.Unit/CoreEx.AspNetCore.Test.Unit.csproj",
+      "tests/CoreEx.Data.Test.Unit/CoreEx.Data.Test.Unit.csproj",
+      "tests/CoreEx.Database.Test.Unit/CoreEx.Database.Test.Unit.csproj",
+      "tests/CoreEx.DomainDriven.Test.Unit/CoreEx.DomainDriven.Test.Unit.csproj",
+      "tests/CoreEx.Events.Test.Unit/CoreEx.Events.Test.Unit.csproj",
+      "tests/CoreEx.RefData.Test.Unit/CoreEx.RefData.Test.Unit.csproj",
+      "tests/CoreEx.Validation.Test.Unit/CoreEx.Validation.Test.Unit.csproj"
+    ]
+  }
+}

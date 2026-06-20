@@ -1,68 +1,52 @@
-﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
+namespace CoreEx.Hosting;
 
-using CoreEx.Configuration;
-using CoreEx.Hosting.HealthChecks;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using System;
-using System.Threading;
-using System.Threading.Tasks;
-
-namespace CoreEx.Hosting
+/// <summary>
+/// Extends the <see cref="TimerHostedServiceBase"/> and adds <see cref="ISynchronizer"/> support to the <see cref="TimerHostedServiceBase.OnExecuteAsync(CoreEx.ExecutionContext, CancellationToken)"/> to manage synchronized concurrency of execution.
+/// </summary>
+/// <typeparam name="TSynchronizer">The <see cref="ISynchronizer"/> <see cref="Type"/>.</typeparam>
+/// <typeparam name="TSelf">The implementing (self) <see cref="Type"/>; also used for synchronization.</typeparam>
+/// <param name="serviceProvider">The <see cref="IServiceProvider"/>.</param>
+/// <param name="logger">The <see cref="ILogger"/>.</param>
+/// <remarks>Each timer-based invocation of the <see cref="SynchronizedExecuteAsync(ExecutionContext, CancellationToken)"/> will be managed within the context of a new Dependency Injection (DI)
+/// <see cref="ServiceProviderServiceExtensions.CreateScope">scope</see> and <see cref="ISynchronizer"/>. As the <see cref="ISynchronizer"/> may be scoped, it will be automatically resolved from the <i>scoped</i> <paramref name="serviceProvider"/> before use.
+/// <para>A <see cref="TimerHostedServiceBase.OneOffIntervalAdjust(TimeSpan)"/> is provided to enable a one-off change to the timer where required.</para></remarks>
+public abstract class SynchronizedTimerHostedServiceBase<TSynchronizer, TSelf>(IServiceProvider serviceProvider, ILogger logger)
+    : TimerHostedServiceBase(serviceProvider, logger) where TSynchronizer : class, ISynchronizer where TSelf : SynchronizedTimerHostedServiceBase<TSynchronizer, TSelf>
 {
     /// <summary>
-    /// Extends the <see cref="TimerHostedServiceBase"/> and adds <see cref="IServiceSynchronizer"/> to the <see cref="ExecuteAsync(IServiceProvider, CancellationToken)"/> to manage concurrency of execution.
+    /// Gets or sets the optional name to differentiate the synchronization lock.
     /// </summary>
-    /// <typeparam name="TSync">The <see cref="Type"/> in which to perform the <see cref="Synchronizer"/> <see cref="IServiceSynchronizer.Enter{T}(string?)"/> for.</typeparam>
-    /// <param name="serviceProvider">The <see cref="IServiceProvider"/>.</param>
-    /// <param name="logger">The <see cref="ILogger"/>.</param>
-    /// <param name="settings">The <see cref="SettingsBase"/>; defaults to instance from the <paramref name="serviceProvider"/> where not specified.</param>
-    /// <param name="synchronizer">The <see cref="IServiceSynchronizer"/>; defaults to <see cref="ConcurrentSynchronizer"/> where not specified.</param>
-    /// <param name="healthCheck">The optional <see cref="TimerHostedServiceHealthCheck"/> to report health.</param>
-    public abstract class SynchronizedTimerHostedServiceBase<TSync>(IServiceProvider serviceProvider, ILogger logger, SettingsBase? settings = null, IServiceSynchronizer? synchronizer = null, TimerHostedServiceHealthCheck? healthCheck = null) 
-        : TimerHostedServiceBase(serviceProvider, logger, settings, healthCheck)
+    protected string? SynchronizerName { get; set; }
+
+    /// <inheritdoc/>
+    protected sealed override async Task<bool> OnExecuteAsync(ExecutionContext executionContext, CancellationToken cancellationToken)
     {
-        /// <summary>
-        /// Gets the <see cref="IServiceSynchronizer"/>.
-        /// </summary>
-        protected IServiceSynchronizer Synchronizer { get; } = synchronizer ?? new ConcurrentSynchronizer();
+        var synchronizer = ExecutionContext.GetRequiredService<TSynchronizer>();
 
-        /// <summary>
-        /// Gets or sets the optional synchronization name (used by <see cref="IServiceSynchronizer.Enter{T}(string?)"/> and <see cref="IServiceSynchronizer.Exit{T}(string?)"/>).
-        /// </summary>
-        protected string? SynchronizationName { get; set; }
+        // Attempt to enter the synchronizer; if not successful, simply exit.
+        var entered = await synchronizer.EnterAsync<TSelf>(SynchronizerName, cancellationToken).ConfigureAwait(false);
+        if (!entered)
+            return false;
 
-        /// <summary>
-        /// Triggered to perform the work as a result of the <see cref="TimerHostedServiceBase.Interval"/> is a synchronized manner.
-        /// </summary>
-        /// <param name="scopedServiceProvider">The scoped <see cref="IServiceProvider"/>.</param>
-        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        /// <remarks><b>Note:</b> do <b>not</b> override this method as this implements the sychronization management; use <see cref="SynchronizedExecuteAsync(IServiceProvider, CancellationToken)"/> to implement desired functionality.
-        /// <para>Each timer-based invocation of the <see cref="ExecuteAsync(IServiceProvider, CancellationToken)"/> will be managed within the context of a new Dependency Injection (DI)
-        /// <see cref="ServiceProviderServiceExtensions.CreateScope">scope</see> that is passed for direct usage.</para></remarks>
-        protected async override Task ExecuteAsync(IServiceProvider scopedServiceProvider, CancellationToken cancellationToken)
+        // Execute within the synchronizer; and exit once complete (regardless of outcome).
+        try
         {
-            // Ensure we have synchronized control; if not exit immediately.
-            if (!Synchronizer.Enter<TSync>(SynchronizationName))
-                return;
-
-            try
-            {
-                await SynchronizedExecuteAsync(scopedServiceProvider, cancellationToken).ConfigureAwait(false);
-            }
-            finally
-            {
-                Synchronizer.Exit<TSync>(SynchronizationName);
-            }
+            return await SynchronizedExecuteAsync(executionContext, cancellationToken).ConfigureAwait(false);
         }
-
-        /// <summary>
-        /// Triggered to perform the work as a result of the <see cref="TimerHostedServiceBase.Interval"/> with the context of a <see cref="IServiceSynchronizer.Enter{T}(string?)"/> and <see cref="IServiceSynchronizer.Exit{T}(string?)"/>.
-        /// </summary>
-        /// <param name="scopedServiceProvider">The scoped <see cref="IServiceProvider"/>.</param>
-        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        /// <remarks>Each timer-based invocation of the <see cref="ExecuteAsync(IServiceProvider, CancellationToken)"/> will be managed within the context of a new Dependency Injection (DI)
-        /// <see cref="ServiceProviderServiceExtensions.CreateScope">scope</see> that is passed for direct usage.</remarks>
-        protected abstract Task SynchronizedExecuteAsync(IServiceProvider scopedServiceProvider, CancellationToken cancellationToken);
+        finally
+        {
+            await synchronizer.ExitAsync<TSelf>(SynchronizerName, cancellationToken).ConfigureAwait(false);
+        }
     }
+
+    /// <summary>
+    /// Triggered to perform the work as a result of the <see cref="TimerHostedServiceBase.Interval"/> within a <i>scoped</i> <see cref="ExecutionContext"/> and synchronized via the <see cref="ISynchronizer"/>.
+    /// </summary>
+    /// <param name="executionContext">The <see cref="ExecutionContext"/>.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+    /// <returns><see langword="true"/> indicates that the <see cref="OnExecuteAsync(ExecutionContext, CancellationToken)"/> should be re-executed immediately (without an interval); otherwise, 
+    /// <see langword="false"/> to re-execute after the configured <see cref="TimerHostedServiceBase.Interval"/>.</returns>
+    /// <remarks>Each timer-based invocation of the <see cref="OnExecuteAsync(ExecutionContext, CancellationToken)"/> will be managed within the context of a new Dependency Injection (DI)
+    /// <see cref="ServiceProviderServiceExtensions.CreateScope">scope</see> and corresponding <see cref="ExecutionContext"/>.</remarks>
+    protected abstract Task<bool> SynchronizedExecuteAsync(ExecutionContext executionContext, CancellationToken cancellationToken);
 }

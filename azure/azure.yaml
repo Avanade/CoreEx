@@ -1,0 +1,56 @@
+name: coreex-contoso
+metadata:
+  template: coreex-azd-infra
+
+services:
+  products-api:
+    project: ../samples/src/Contoso.Products.Api
+    language: csharp
+    host: appservice
+  shopping-api:
+    project: ../samples/src/Contoso.Shopping.Api
+    language: csharp
+    host: appservice
+  products-outbox-relay:
+    project: ../samples/src/Contoso.Products.Relay
+    language: csharp
+    host: appservice
+  shopping-outbox-relay:
+    project: ../samples/src/Contoso.Shopping.Relay
+    language: csharp
+    host: appservice
+  products-subscribe:
+    project: ../samples/src/Contoso.Products.Subscribe
+    language: csharp
+    host: appservice
+  shopping-subscribe:
+    project: ../samples/src/Contoso.Shopping.Subscribe
+    language: csharp
+    host: appservice
+
+infra:
+  provider: bicep
+  path: infra
+
+hooks:
+  preprovision:
+    - posix:
+        shell: sh
+        run: ./infra/scripts/use-dev-params.sh
+      windows:
+        shell: pwsh
+        run: ./infra/scripts/use-dev-params.ps1
+  predeploy:
+    - posix:
+        shell: sh
+        run: bash ./scripts/run-products-db-migrations.sh
+      windows:
+        shell: pwsh
+        run: ./scripts/run-products-db-migrations.ps1
+  postprovision:
+    - posix:
+        shell: sh
+        run: ./infra/scripts/store-secrets.sh
+      windows:
+        shell: pwsh
+        run: ./infra/scripts/store-secrets.ps1

@@ -1,0 +1,57 @@
+products:
+  - $^category:
+    - A: Accessories
+    - B: Bikes
+    - G: Gear
+    - P: Parts
+    - M: Maintenance
+  - $^sub_category:
+    - { code: XC, text: Cross country, category_code: B }
+    - { code: TR, text: Trail, category_code: B }
+    - { code: DH, text: Downhill, category_code: B }
+    - { code: EN, text: Enduro, category_code: B }
+    - { code: EM, text: E-MTB, category_code: B }
+    - { code: FR, text: Freeride, category_code: B }
+    - { code: HT, text: Hardtail, category_code: B }
+    - { code: DR, text: Derailleur, category_code: P }
+    - { code: CA, text: Cassette, category_code: P }
+    - { code: CR, text: Crankset, category_code: P }
+    - { code: SP, text: Seatpost, category_code: P }
+    - { code: HB, text: Handlebar, category_code: P }
+    - { code: CH, text: Chain, category_code: P }
+    - { code: TY, text: Tires, category_code: A }
+    - { code: TO, text: Tools, category_code: A }
+    - { code: CL, text: Cleaner, category_code: A }
+    - { code: SE, text: Sealant, category_code: A }
+    - { code: HE, text: Helmets, category_code: G }
+    - { code: GL, text: Gloves, category_code: G }
+    - { code: LU, text: Lubricant, category_code: A }
+    - { code: LA, text: Labor, category_code: M }
+    - { code: MS, text: Miscellaneous, category_code: M }
+  - $^unit_of_measure:
+    - EA: Each
+    - SET: Set
+    - PR: Pair
+    - PK: Pack
+    - M: Meter
+    - CM: Centimeter
+    - L: Litre
+    - { code: HR, text: Hour, scale: 2 }
+  - $^brand:
+    - YETI: Yeti Cycles
+    - CANYON: Canyon Bicycles
+    - SPEC: Specialized
+    - GIANT: Giant Bicycles
+    - SHIMANO: Shimano
+    - SRAM: SRAM Corporation
+    - ONEUP: OneUp Components
+    - MUCOFF: Muc-Off
+    - NONE: None/Not Applicable
+  - $^movement_kind:
+    - A: Adjust
+    - I: Issue
+    - R: Receive
+  - $^movement_status:
+    - C: Confirmed
+    - P: Pending
+    - X: Cancelled

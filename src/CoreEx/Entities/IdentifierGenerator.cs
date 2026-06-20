@@ -1,54 +1,51 @@
-﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
+namespace CoreEx.Entities;
 
-using System;
-using System.Threading.Tasks;
-
-namespace CoreEx.Entities
+/// <summary>
+/// Provides a <see cref="string"/> and <see cref="Guid"/> <see cref="IIdentifierGenerator"/> where each is created using a <see cref="Guid"/>.
+/// </summary>
+/// <remarks>A custom <see cref="IIdentifierGenerator"/> can be used to support different identifier generation strategies and identifier types as necessary.</remarks>
+public class IdentifierGenerator : IIdentifierGenerator
 {
+    private static readonly IIdentifierGenerator _default = new IdentifierGenerator();
+
     /// <summary>
-    /// Provides an <see cref="IIdentifierGenerator{T}"/> for both a <see cref="string"/> and <see cref="Guid"/> where each is created using <see cref="Guid.NewGuid()"/>.
+    /// Gets the current <see cref="IIdentifierGenerator"/> from the <see cref="ExecutionContext"/>, or the default <see cref="IdentifierGenerator"/> where not available.
     /// </summary>
-    public class IdentifierGenerator : IIdentifierGenerator, IIdentifierGenerator<string>, IIdentifierGenerator<Guid>
+    public static IIdentifierGenerator Current => ExecutionContext.GetService<IIdentifierGenerator>() ?? _default;
+
+    /// <inheritdoc/>
+    public Guid GenerateGuid()
+#if NET9_0_OR_GREATER
+        => Guid.CreateVersion7();
+#else
+        => Guid.NewGuid();
+#endif
+
+    /// <inheritdoc/>
+    public Task<TId> GenerateIdentifierAsync<TId>() => Task.FromResult(typeof(TId) switch
     {
-        /// <inheritdoc/>
-        public async Task<TId> GenerateIdentifierAsync<TId, TFor>() => typeof(TId) switch
-        {
-            Type _ when typeof(TId) == typeof(string) => (TId)Convert.ChangeType(await ((IIdentifierGenerator<string>)this).GenerateIdentifierAsync<TFor>().ConfigureAwait(false), typeof(TId)),
-            Type _ when typeof(TId) == typeof(Guid) => (TId)Convert.ChangeType(await ((IIdentifierGenerator<Guid>)this).GenerateIdentifierAsync<TFor>().ConfigureAwait(false), typeof(TId)),
-            _ => throw new NotSupportedException($"Identifier Type '{typeof(TId).Name}' is not supported; only String or Guid.")
-        };
+        Type _ when typeof(TId) == typeof(string) => Internal.Cast<string, TId>(GenerateGuid().ToString()),
+        Type _ when typeof(TId) == typeof(Guid) => Internal.Cast<Guid, TId>(GenerateGuid()),
+        _ => throw new NotSupportedException($"Identifier Type '{typeof(TId).Name}' is not supported; only String or Guid.")
+    });
 
-        /// <inheritdoc/>
-        public async Task AssignIdentifierAsync<TFor>(TFor value)
-        {
-            if (value is not IIdentifier ii)
-                return;
+    /// <inheritdoc/>
+    public async Task<TId> GenerateIdentifierAsync<TId, TFor>() where TFor : class => await GenerateIdentifierAsync<TId>().ConfigureAwait(false);
 
-            if (value is IIdentifier<string> iis)
-                iis.Id ??= await ((IIdentifierGenerator<string>)this).GenerateIdentifierAsync<TFor>().ConfigureAwait(false);
-            else if (value is IIdentifier<Guid> iig)
-            {
-                if (iig.Id == Guid.Empty)
-                    iig.Id = await ((IIdentifierGenerator<Guid>)this).GenerateIdentifierAsync<TFor>().ConfigureAwait(false);
-            }
-            else
-                throw new NotSupportedException($"Identifier Type '{ii.IdType.Name}' is not supported; only String or Guid.");
+    /// <inheritdoc/>
+    public async Task AssignIdentifierAsync<TFor>(TFor value) where TFor : class
+    {
+        if (value is not IReadOnlyIdentifier ii)
+            return;
+
+        if (value is IIdentifier<string> iis)
+            iis.Id ??= await GenerateIdentifierAsync<string, TFor>().ConfigureAwait(false);
+        else if (value is IIdentifier<Guid> iig)
+        {
+            if (iig.Id == Guid.Empty)
+                iig.Id = await GenerateIdentifierAsync<Guid, TFor>().ConfigureAwait(false);
         }
-
-        /// <summary>
-        /// Generate a new identifier value being a <see cref="Guid.NewGuid()"/> formatted as a <see cref="string"/>.
-        /// </summary>
-        /// <typeparam name="TFor">The <see cref="System.Type"/> to generate for.</typeparam>
-        /// <returns>The newly generated identifier.</returns>
-        /// <remarks>The <typeparamref name="TFor"/> allows for the likes of different identity sequences per <see cref="System.Type"/> for example.</remarks>
-        public Task<string> GenerateIdentifierAsync<TFor>() => Task.FromResult(Guid.NewGuid().ToString());
-
-        /// <summary>
-        /// Generate a new identifier value being a <see cref="Guid.NewGuid()"/>
-        /// </summary>
-        /// <typeparam name="TFor">The <see cref="System.Type"/> to generate for.</typeparam>
-        /// <returns>The newly generated identifier.</returns>
-        /// <remarks>The <typeparamref name="TFor"/> allows for the likes of different identity sequences per <see cref="System.Type"/> for example.</remarks>
-        Task<Guid> IIdentifierGenerator<Guid>.GenerateIdentifierAsync<TFor>() => Task.FromResult(Guid.NewGuid());
+        else
+            throw new NotSupportedException($"Identifier Type '{ii.IdType.Name}' is not supported; only String or Guid.");
     }
 }

@@ -1,0 +1,86 @@
+{
+  "type": "https://tools.ietf.org/html/rfc9110#section-15.5.1",
+  "title": "A query filter parsing error occurred.",
+  "status": 400,
+  "errors": {
+    "$filter": [
+      "Field \u0027gender\u0027 does not support the \u0027gt\u0027 operator."
+    ]
+  },
+  "errorType": "validation",
+  "traceId": "00-a981e5aedf51b7fa4cf352d897a310fe-9f5b5a1bbdd59887-01",
+  "schema": {
+    "filter": {
+      "fields": {
+        "firstname": {
+          "type": "string",
+          "operators": [
+            "eq",
+            "ne",
+            "lt",
+            "le",
+            "ge",
+            "gt",
+            "in",
+            "startswith",
+            "contains",
+            "endswith"
+          ]
+        },
+        "lastname": {
+          "type": "string",
+          "operators": [
+            "eq",
+            "ne",
+            "lt",
+            "le",
+            "ge",
+            "gt",
+            "in",
+            "startswith",
+            "contains",
+            "endswith"
+          ]
+        },
+        "birthday": {
+          "type": "string",
+          "format": "date",
+          "operators": [
+            "eq",
+            "ne",
+            "lt",
+            "le",
+            "ge",
+            "gt",
+            "in"
+          ]
+        },
+        "gender": {
+          "type": "string",
+          "operators": [
+            "eq",
+            "ne",
+            "in"
+          ]
+        }
+      }
+    },
+    "orderby": {
+      "fields": {
+        "lastname": {
+          "direction": [
+            "asc",
+            "desc"
+          ]
+        },
+        "firstname": {
+          "direction": [
+            "asc",
+            "desc"
+          ]
+        }
+      },
+      "default": "lastname asc, firstname asc"
+    }
+  }
+}

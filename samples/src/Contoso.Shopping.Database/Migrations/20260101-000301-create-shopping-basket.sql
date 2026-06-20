@@ -1,0 +1,21 @@
+-- Migration Script
+
+BEGIN TRANSACTION
+
+CREATE TABLE [Shopping].[Basket]
+(
+  [BasketId] NVARCHAR(50) NOT NULL PRIMARY KEY,
+  [CustomerId] NVARCHAR(50) NOT NULL,
+  [BasketStatusCode] NVARCHAR(50) NOT NULL,
+  [SubTotal] DECIMAL(18, 2) NOT NULL DEFAULT 0,
+  [DiscountCouponCode] NVARCHAR(50) NULL,
+  [DiscountAmount] DECIMAL(18, 2) NOT NULL DEFAULT 0,
+  [Total] DECIMAL(18, 2) NOT NULL DEFAULT 0,
+  [RowVersion] ROWVERSION NOT NULL,
+  [CreatedBy] NVARCHAR(250) NULL,
+  [CreatedOn] DATETIMEOFFSET NULL,
+  [UpdatedBy] NVARCHAR(250) NULL,
+  [UpdatedOn] DATETIMEOFFSET NULL
+);
+  
+COMMIT TRANSACTION

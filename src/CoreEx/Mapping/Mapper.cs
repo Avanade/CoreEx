@@ -1,383 +1,191 @@
-﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
+namespace CoreEx.Mapping;
 
-using CoreEx.Abstractions.Reflection;
-using System;
-using System.Collections.Concurrent;
-using System.Diagnostics.CodeAnalysis;
-using System.Linq;
-using System.Reflection;
-
-namespace CoreEx.Mapping
+/// <summary>
+/// Provides utility capabilities for mapping.
+/// </summary>
+public static class Mapper
 {
     /// <summary>
-    /// Provides the simple (explicit) value <see cref="IMapper"/> capability.  
+    /// Maps the standard properties from a <paramref name="source"/> value into a new <typeparamref name="TDestination"/> value.
     /// </summary>
-    public class Mapper : IMapper
+    /// <typeparam name="TSource">The source <see cref="Type"/>.</typeparam>
+    /// <typeparam name="TDestination">The destination <see cref="Type"/>.</typeparam>
+    /// <param name="destination">The destination value.</param>
+    /// <param name="source">The source value.</param>
+    /// <param name="mapChangeLog">Indicates whether to map the <i>change log</i> properties.</param>
+    /// <returns>The <paramref name="destination"/> to support fluent-style method-chaining.</returns>
+    /// <remarks>Standard properties are mapped based on whether both the <paramref name="source"/> and <paramref name="destination"/> implement the following respectively: 
+    ///   <list type="bullet">
+    ///     <item><see cref="IReadOnlyIdentifier"/> -> <see cref="IIdentifier"/></item>
+    ///     <item><see cref="IReadOnlyETag"/> -> <see cref="IETag"/></item>
+    ///     <item><see cref="IReadOnlyTenantId"/> -> <see cref="ITenantId"/></item>
+    ///     <item><see cref="IReadOnlyPartitionKey"/> -> <see cref="IPartitionKey"/></item>
+    ///     <item><see cref="IReadOnlyLogicallyDeleted"/> -> <see cref="ILogicallyDeleted"/></item>
+    ///     <item><see cref="IReadOnlyTypeDiscriminator"/> -> <see cref="ITypeDiscriminator"/></item>
+    ///     <item><see cref="IReadOnlyChangeLog"/> -> <see cref="IChangeLog"/> or <see cref="IChangeLogEx"/></item>
+    ///     <item><see cref="IReadOnlyChangeLogEx"/> -> <see cref="IChangeLog"/> or <see cref="IChangeLogEx"/></item>
+    ///   </list>
+    ///   <para>See also <see cref="MapChangeLogInto{TSource, TDestination}(TSource, TDestination)"/>.</para>
+    /// </remarks>
+    public static TDestination MapStandardFrom<TSource, TDestination>(this TDestination destination, TSource source, bool mapChangeLog = true) where TSource : class where TDestination : class
     {
-        private readonly ConcurrentDictionary<(Type, Type), IMapperBase> _mappers = new();
+        MapStandardInto<TSource, TDestination>(source, destination, mapChangeLog);
+        return destination;
+    }
 
-        /// <summary>
-        /// Gets an empty <see cref="IMapper"/>; i.e. one that does not perform any mapping and will always throw a <see cref="NotImplementedException"/> where a <c>Map</c> operation is invoked.
-        /// </summary>
-        public static EmptyMapper Empty { get; } = new EmptyMapper();
+    /// <summary>
+    /// Maps the standard properties from a <paramref name="source"/> value into an existing <paramref name="destination"/> value.
+    /// </summary>
+    /// <typeparam name="TSource">The source <see cref="Type"/>.</typeparam>
+    /// <typeparam name="TDestination">The destination <see cref="Type"/>.</typeparam>
+    /// <param name="source">The source value.</param>
+    /// <param name="destination">The destination value.</param>
+    /// <param name="mapChangeLog">Indicates whether to map the <i>change log</i> properties.</param>
+    /// <remarks>Standard properties are mapped based on whether both the <paramref name="source"/> and <paramref name="destination"/> implement the following respectively: 
+    ///   <list type="bullet">
+    ///     <item><see cref="IReadOnlyIdentifier"/> -> <see cref="IIdentifier"/></item>
+    ///     <item><see cref="IReadOnlyETag"/> -> <see cref="IETag"/></item>
+    ///     <item><see cref="IReadOnlyTenantId"/> -> <see cref="ITenantId"/></item>
+    ///     <item><see cref="IReadOnlyPartitionKey"/> -> <see cref="IPartitionKey"/></item>
+    ///     <item><see cref="IReadOnlyLogicallyDeleted"/> -> <see cref="ILogicallyDeleted"/></item>
+    ///     <item><see cref="IReadOnlyTypeDiscriminator"/> -> <see cref="ITypeDiscriminator"/></item>
+    ///     <item><see cref="IReadOnlyChangeLog"/> -> <see cref="IChangeLog"/> or <see cref="IChangeLogEx"/></item>
+    ///     <item><see cref="IReadOnlyChangeLogEx"/> -> <see cref="IChangeLog"/> or <see cref="IChangeLogEx"/></item>
+    ///   </list>
+    ///   <para>See also <see cref="MapChangeLogInto{TSource, TDestination}(TSource, TDestination)"/>.</para>
+    /// </remarks>
+    public static void MapStandardInto<TSource, TDestination>(TSource source, TDestination destination, bool mapChangeLog = true) where TSource : class where TDestination : class
+    {
+        if (ReferenceEquals(source.ThrowIfNull(), destination.ThrowIfNull()))
+            return;
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="Mapper"/> class.
-        /// </summary>
-        /// <remarks>Also, automatically registers the mapping Cartesian product between <see cref="Entities.ChangeLog"/> and <see cref="Entities.Extended.ChangeLogEx"/> (i.e. all combinations thereof).</remarks>
-        public Mapper()
+        if (source is IReadOnlyIdentifier si && destination is IIdentifier di && si.IdType == di.IdType)
+            di.Id = si.Id;
+
+        if (source is IReadOnlyETag setag && destination is IETag detag)
+            detag.ETag = setag.ETag;
+
+        if (source is IReadOnlyTenantId sti && destination is ITenantId dti)
+            dti.TenantId = sti.TenantId;
+
+        if (source is IReadOnlyPartitionKey spk && destination is IPartitionKey dpk)
+            dpk.PartitionKey = spk.PartitionKey;
+
+        if (source is IReadOnlyLogicallyDeleted sld && destination is ILogicallyDeleted dld)
+            dld.IsDeleted = sld.IsDeleted;
+
+        if (source is IReadOnlyTypeDiscriminator std && destination is ITypeDiscriminator dtd)
+            dtd.TypeDiscriminator = std.TypeDiscriminator;
+
+        if (mapChangeLog)
+            MapChangeLogInto<TSource, TDestination>(source, destination);
+    }
+
+    /// <summary>
+    /// Maps the standard change log properties from a <paramref name="source"/> value into an existing <paramref name="destination"/> changing shape as required.
+    /// </summary>
+    /// <typeparam name="TSource">The source <see cref="Type"/>.</typeparam>
+    /// <typeparam name="TDestination">The destination <see cref="Type"/>.</typeparam>
+    /// <param name="source">The source value.</param>
+    /// <param name="destination">The destination value.</param>
+    public static void MapChangeLogInto<TSource, TDestination>(TSource source, TDestination destination) where TSource : class where TDestination : class
+    {
+        if (ReferenceEquals(source.ThrowIfNull(), destination.ThrowIfNull()))
+            return;
+
+        if (destination is IChangeLog dcl)
+            MapChangeLogInto<TSource, TDestination>(source, dcl);
+
+        if (destination is IChangeLogEx dclex)
+            MapChangeLogInto<TSource, TDestination>(source, dclex);
+    }
+
+    /// <summary>
+    /// Maps the standard change log properties from a <paramref name="source"/> value into an existing <paramref name="destination"/> (<see cref="IChangeLog"/>) value (where applicable).
+    /// </summary>
+    private static void MapChangeLogInto<TSource, TDestination>(TSource source, IChangeLog destination) where TSource : class
+    {
+        if (source is IReadOnlyChangeLog scl)
+            destination.ChangeLog = new ChangeLog(scl);
+        else if (source is IReadOnlyChangeLogEx sclex)
+            destination.ChangeLog = new ChangeLog(sclex);
+
+        if (destination.ChangeLog?.IsDefault() ?? false)
+            destination.ChangeLog = null;
+    }
+
+    /// <summary>
+    /// Maps the standard change log properties from a <paramref name="source"/> value into an existing <paramref name="destination"/> (<see cref="IChangeLogEx"/> value (where applicable).
+    /// </summary>
+    private static void MapChangeLogInto<TSource, TDestination>(TSource source, IChangeLogEx destination) where TSource : class
+    {
+        static void MapInto(IReadOnlyChangeLogEx scl, IChangeLogEx dcl)
         {
-            Register(new Mapper<Entities.ChangeLog, Entities.ChangeLog>()
-                .Map((s, d) => d.CreatedBy = s.CreatedBy, OperationTypes.AnyExceptUpdate)
-                .Map((s, d) => d.CreatedDate = s.CreatedDate, OperationTypes.AnyExceptUpdate)
-                .Map((s, d) => d.UpdatedBy = s.UpdatedBy, OperationTypes.AnyExceptCreate)
-                .Map((s, d) => d.UpdatedDate = s.UpdatedDate, OperationTypes.AnyExceptCreate));
-
-            Register(new Mapper<Entities.Extended.ChangeLogEx, Entities.Extended.ChangeLogEx>()
-                .Map((s, d) => d.CreatedBy = s.CreatedBy, OperationTypes.AnyExceptUpdate)
-                .Map((s, d) => d.CreatedDate = s.CreatedDate, OperationTypes.AnyExceptUpdate)
-                .Map((s, d) => d.UpdatedBy = s.UpdatedBy, OperationTypes.AnyExceptCreate)
-                .Map((s, d) => d.UpdatedDate = s.UpdatedDate, OperationTypes.AnyExceptCreate));
-
-            Register(new Mapper<Entities.ChangeLog, Entities.Extended.ChangeLogEx>()
-                .Map((s, d) => d.CreatedBy = s.CreatedBy, OperationTypes.AnyExceptUpdate)
-                .Map((s, d) => d.CreatedDate = s.CreatedDate, OperationTypes.AnyExceptUpdate)
-                .Map((s, d) => d.UpdatedBy = s.UpdatedBy, OperationTypes.AnyExceptCreate)
-                .Map((s, d) => d.UpdatedDate = s.UpdatedDate, OperationTypes.AnyExceptCreate));
-
-            Register(new Mapper<Entities.Extended.ChangeLogEx, Entities.ChangeLog>()
-                .Map((s, d) => d.CreatedBy = s.CreatedBy, OperationTypes.AnyExceptUpdate)
-                .Map((s, d) => d.CreatedDate = s.CreatedDate, OperationTypes.AnyExceptUpdate)
-                .Map((s, d) => d.UpdatedBy = s.UpdatedBy, OperationTypes.AnyExceptCreate)
-                .Map((s, d) => d.UpdatedDate = s.UpdatedDate, OperationTypes.AnyExceptCreate));
+            dcl.CreatedBy = scl.CreatedBy;
+            dcl.CreatedOn = scl.CreatedOn;
+            dcl.UpdatedBy = scl.UpdatedBy;
+            dcl.UpdatedOn = scl.UpdatedOn;
         }
 
-        /// <summary>
-        /// Indicates whether to convert empty collections to <c>null</c> where supported. 
-        /// </summary>
-        /// <remarks>Defaults to <c>true</c>.</remarks>
-        public bool ConvertEmptyCollectionsToNull { get; set; } = true;
+        if (source is IReadOnlyChangeLogEx sclex)
+            MapInto(sclex, destination);
+        else if (source is IReadOnlyChangeLog scl)
+            MapInto(scl?.ChangeLog is null ? ChangeLog.Empty : scl.ChangeLog, destination);
+    }
+
+    /// <summary>
+    /// Creates a <see cref="OneOffMapper{TSource, TDestination}"/> using the specified <paramref name="map"/> function.
+    /// </summary>
+    /// <typeparam name="TSource"></typeparam>
+    /// <typeparam name="TDestination"></typeparam>
+    /// <param name="map">The mapping function.</param>
+    /// <returns>The <see cref="OneOffMapper{TSource, TDestination}"/>.</returns>
+    public static OneOffMapper<TSource, TDestination> Create<TSource, TDestination>(Func<TSource, TDestination> map) where TSource : class where TDestination : class => new(map);
+
+    /// <summary>
+    /// Provides a one-off runtime instantiated <see cref="IMapper"/>.
+    /// </summary>
+    /// <typeparam name="TSource">The source <see cref="Type"/>.</typeparam>
+    /// <typeparam name="TDestination">The destination <see cref="Type"/>.</typeparam>
+    public sealed class OneOffMapper<TSource, TDestination> : Mapper<TSource, TDestination> where TSource : class where TDestination : class
+    {
+        private readonly Func<TSource, TDestination> _map;
 
         /// <summary>
-        /// Indicates whether to allow same to same type mapping (where explicitly not registered) as always returning the source value.
+        /// Initializes a new instance of the <see cref="OneOffMapper{TSource, TDestination}"/> class.
         /// </summary>
-        /// <remarks>Defaults to <c>true</c>.
-        /// <para>Creates and registers an instance of the <see cref="SameTypeMapper{TSame}"/> on first use.</para></remarks>
-        public bool MapSameTypeWithSourceValue { get; set; } = true;
-
-        /// <summary>
-        /// Register (adds) all the <see cref="IMapper{TSource, TDestination}"/> and <see cref="IBidirectionalMapper{TFrom, TTo}"/> types (instances) from the <see cref="Assembly"/> from the specified <typeparamref name="TAssembly"/> <see cref="Type"/>.
-        /// </summary>
-        /// <typeparam name="TAssembly">The <see cref="Assembly"/> <see cref="Type"/>.</typeparam>
-        public void Register<TAssembly>() => Register(typeof(TAssembly).Assembly);
-
-        /// <summary>
-        /// Register (adds) all <see cref="IMapper{TSource, TDestination}"/> and <see cref="IBidirectionalMapper{TFrom, TTo}"/> types (instances) from the specified <paramref name="assemblies"/>.
-        /// </summary>
-        /// <param name="assemblies">The assemblies.</param>
-        public void Register(params Assembly[] assemblies)
-        {
-            foreach (var assembly in assemblies.Distinct())
-            {
-                foreach (var match in from type in assembly.GetTypes()
-                                      where !type.IsAbstract && !type.IsGenericTypeDefinition
-                                      let interfaces = type.GetInterfaces()
-                                      let genericInterfaces = interfaces.Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IMapper<,>))
-                                      let @interface = genericInterfaces.FirstOrDefault()
-                                      let sourceType = @interface?.GetGenericArguments().Length == 2 ? @interface?.GetGenericArguments()[0] : null
-                                      let destinationType = @interface?.GetGenericArguments().Length == 2 ? @interface?.GetGenericArguments()[1] : null
-                                      where @interface != null
-                                      select new { type, sourceType, destinationType })
-                {
-                    Register(match.sourceType, match.destinationType, (IMapperBase)Activator.CreateInstance(match.type)!);
-                }
-
-                foreach (var match in from type in assembly.GetTypes()
-                                      where !type.IsAbstract && !type.IsGenericTypeDefinition
-                                      let interfaces = type.GetInterfaces()
-                                      let genericInterfaces = interfaces.Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IBidirectionalMapper<,>))
-                                      let @interface = genericInterfaces.FirstOrDefault()
-                                      where @interface != null
-                                      select new { type })
-                {
-                    var bimapper = (IBidirectionalMapperBase)Activator.CreateInstance(match.type)!;
-                    _mappers.TryAdd((bimapper.MapperFromTo.SourceType, bimapper.MapperFromTo.DestinationType), bimapper.MapperFromTo);
-                    _mappers.TryAdd((bimapper.MapperToFrom.SourceType, bimapper.MapperToFrom.DestinationType), bimapper.MapperToFrom);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Perform the actual mapper registration and linking.
-        /// </summary>
-        private void Register(Type s, Type d, IMapperBase mapper)
-        {
-            mapper.Owner = this;
-            _mappers.TryAdd((s, d), mapper);
-        }
-
-        /// <summary>
-        /// Registers (adds) an individual <see cref="IMapper{TSource, TDestination}"/>.
-        /// </summary>
-        /// <typeparam name="TSource">The source <see cref="Type"/>.</typeparam>
-        /// <typeparam name="TDestination">The destination <see cref="Type"/>.</typeparam>
-        /// <param name="mapper">The <see cref="IMapper{TSource, TDestination}"/>.</param>
-        /// <remarks>Where an attempt is made to add a mapper for a <typeparamref name="TSource"/> and <typeparamref name="TDestination"/> more than once only the first will succeed; no exception will be thrown for subsequent adds.</remarks>
-        public void Register<TSource, TDestination>(IMapper<TSource, TDestination> mapper)
-            => _mappers.TryAdd(((mapper.ThrowIfNull(nameof(mapper))).SourceType, mapper.DestinationType), mapper.Adjust(x => x.Owner = this));
-
-        /// <summary>
-        /// Registers (adds) an individual <see cref="IBidirectionalMapper{TSource, TDestination}"/>.
-        /// </summary>
-        /// <typeparam name="TSource">The source <see cref="Type"/>.</typeparam>
-        /// <typeparam name="TDestination">The destination <see cref="Type"/>.</typeparam>
-        /// <param name="bidirectionalMapper">The see cref="IBidirectionalMapper{TSource, TDestination}"/>.</param>
-        /// <remarks>Where an attempt is made to add a mapper for a <typeparamref name="TSource"/> and <typeparamref name="TDestination"/> more than once only the first will succeed; no exception will be thrown for subsequent adds.</remarks>
-        public void Register<TSource, TDestination>(IBidirectionalMapper<TSource, TDestination> bidirectionalMapper)
-        {
-            var mapperFromTo = bidirectionalMapper.ThrowIfNull(nameof(bidirectionalMapper)).MapperFromTo.Adjust(x => x.Owner = this);
-            var mapperToFrom = bidirectionalMapper.MapperToFrom.Adjust(x => x.Owner = this);
-            _mappers.TryAdd((mapperFromTo.SourceType, mapperFromTo.DestinationType), mapperFromTo);
-            _mappers.TryAdd((mapperToFrom.SourceType, mapperToFrom.DestinationType), mapperToFrom);
-        }
+        /// <param name="map">The mapping function.</param>
+        internal OneOffMapper(Func<TSource, TDestination> map) => _map = map.ThrowIfNull();
 
         /// <inheritdoc/>
-        [return: NotNullIfNotNull(nameof(source))]
-        public TDestination? Map<TDestination>(object? source, OperationTypes operationType = OperationTypes.Unspecified)
-        {
-            if (source is null)
-                return default!;
+        protected override TDestination OnMap(TSource source) => _map(source);
+    }
 
-            return (TDestination)GetMapper(source.GetType(), typeof(TDestination)).Map(source, operationType)!;
-        }
+    /// <summary>
+    /// Creates a <see cref="OneOffIntoMapper{TSource, TDestination}"/> using the specified <paramref name="map"/> action.
+    /// </summary>
+    /// <typeparam name="TSource"></typeparam>
+    /// <typeparam name="TDestination"></typeparam>
+    /// <param name="map">The mapping action.</param>
+    /// <returns>The <see cref="OneOffMapper{TSource, TDestination}"/>.</returns>
+    public static OneOffIntoMapper<TSource, TDestination> CreateInto<TSource, TDestination>(Action<TSource, TDestination> map) where TSource : class where TDestination : class => new(map);
 
-        /// <summary>
-        /// Gets the <see cref="IMapperBase"/> for the specified <paramref name="source"/> and <paramref name="destination"/> types as previously <see cref="Register{TSource, TDestination}(IMapper{TSource, TDestination})">registered</see>.
-        /// </summary>
-        /// <param name="source">The source <see cref="Type"/>.</param>
-        /// <param name="destination">The destination <see cref="Type"/>.</param>
-        /// <returns>The previously registered <see cref="IMapperBase"/>.</returns>
-        /// <exception cref="InvalidOperationException">Thrown where not previously registered.</exception>
-        public IMapperBase GetMapper(Type source, Type destination)
-        { 
-            if (TryGetMapper(source, destination, out var mapper))
-                return mapper;
-
-            throw new InvalidOperationException($"No mapper has been registered for source '{source.FullName}' and destination '{destination.FullName}' types.");
-        }
+    /// <summary>
+    /// Provides a one-off runtime instantiated <see cref="IIntoMapper"/>.
+    /// </summary>
+    /// <typeparam name="TSource">The source <see cref="Type"/>.</typeparam>
+    /// <typeparam name="TDestination">The destination <see cref="Type"/>.</typeparam>
+    public sealed class OneOffIntoMapper<TSource, TDestination> : IntoMapper<TSource, TDestination> where TSource : class where TDestination : class
+    {
+        private readonly Action<TSource, TDestination> _map;
 
         /// <summary>
-        /// Gets the <see cref="IMapper{TSource, TDestination}"/> for the specified <typeparamref name="TSource"/> and <typeparamref name="TDestination"/> types as previously <see cref="Register{TSource, TDestination}(IMapper{TSource, TDestination})">registered</see>.
+        /// Initializes a new instance of the <see cref="OneOffMapper{TSource, TDestination}"/> class.
         /// </summary>
-        /// <typeparam name="TSource">The source <see cref="Type"/>.</typeparam>
-        /// <typeparam name="TDestination">The destination <see cref="Type"/>.</typeparam>
-        /// <returns>The previously registered <see cref="IMapper{TSource, TDestination}"/>.</returns>
-        /// <exception cref="InvalidOperationException">Thrown where not previously registered.</exception>
-        public IMapper<TSource, TDestination> GetMapper<TSource, TDestination>() => (IMapper<TSource, TDestination>)GetMapper(typeof(TSource), typeof(TDestination));
-
-        /// <summary>
-        /// Try and get the mapper for the <paramref name="source"/> and <paramref name="destination"/> types.
-        /// </summary>
-        /// <param name="source">The source <see cref="Type"/>.</param>
-        /// <param name="destination">The destination <see cref="Type"/>.</param>
-        /// <param name="mapper">The previously registered <see cref="IMapper{TSource, TDestination}"/>.</param>
-        /// <returns><c>true</c> where found; otherwise, <c>false</c>.</returns>
-        public bool TryGetMapper(Type source, Type destination, [NotNullWhen(true)] out IMapperBase? mapper)
-        {
-            if (_mappers.TryGetValue((source, destination), out mapper))
-                return true;
-
-            // Check if the types are collection and automatically create where possible.
-            var si = TypeReflector.GetCollectionItemType(source);
-            if (si.TypeCode == TypeReflectorTypeCode.ICollection)
-            {
-                var di = TypeReflector.GetCollectionItemType(destination);
-                if (di.TypeCode == TypeReflectorTypeCode.ICollection)
-                {
-                    mapper = _mappers.GetOrAdd((source, destination), _ =>
-                    {
-                        var t = typeof(CollectionMapper<,,,>).MakeGenericType(source, si.ItemType!, destination, di.ItemType!);
-                        var mapper = (IMapperBase)Activator.CreateInstance(t)!;
-                        mapper.Owner = this;
-                        return mapper;
-                    });
-
-                    return true;
-                }
-            }
-
-            // Check if the types are the same and automatically create where configured to do so.
-            if (MapSameTypeWithSourceValue && si.TypeCode == TypeReflectorTypeCode.Complex && source == destination)
-            {
-                mapper = _mappers.GetOrAdd((source, destination), _ =>
-                {
-                    var t = typeof(SameTypeMapper<>).MakeGenericType(source);
-                    var mapper = (IMapperBase)Activator.CreateInstance(t)!;
-                    mapper.Owner = this;
-                    return mapper;
-                });
-
-                return true;
-            }
-
-            return false;
-        }
-
-        /// <summary>
-        /// Try and get the mapper for the <typeparamref name="TSource"/> and <typeparamref name="TDestination"/> types.
-        /// </summary>
-        /// <typeparam name="TSource">The source <see cref="Type"/>.</typeparam>
-        /// <typeparam name="TDestination">The destination <see cref="Type"/>.</typeparam>
-        /// <param name="mapper">The previously registered <see cref="IMapper{TSource, TDestination}"/>.</param>
-        /// <returns><c>true</c> where found; otherwise, <c>false</c>.</returns>
-        public bool TryGetMapper<TSource, TDestination>([NotNullWhen(true)] out IMapper<TSource, TDestination>? mapper)
-        { 
-            if (TryGetMapper(typeof(TSource), typeof(TDestination), out var m))
-            {
-                mapper = (IMapper<TSource, TDestination>)m;
-                return true;
-            }
-
-            mapper = default;
-            return false;
-        }
+        /// <param name="map">The mapping action.</param>
+        internal OneOffIntoMapper(Action<TSource, TDestination> map) => _map = map.ThrowIfNull();
 
         /// <inheritdoc/>
-        [return: NotNullIfNotNull(nameof(source))]
-        public TDestination? Map<TSource, TDestination>(TSource? source, OperationTypes operationType = OperationTypes.Unspecified)
-            => GetMapper<TSource, TDestination>().Map(source, operationType)!;
-
-        /// <inheritdoc/>
-        [return: NotNullIfNotNull(nameof(source))]
-        public TDestination? Map<TSource, TDestination>(TSource? source, TDestination? destination, OperationTypes operationType = OperationTypes.Unspecified)
-            => GetMapper<TSource, TDestination>().Map(source, destination, operationType)!;
-
-        /// <summary>
-        /// Represents an empty <see cref="IMapper"/>; i.e. one that does not perform any mapping and will always throw a <see cref="NotImplementedException"/>.
-        /// </summary>
-        public class EmptyMapper : IMapper
-        {
-            /// <summary>
-            /// Initializes a new instance of the <see cref="EmptyMapper"/> class.
-            /// </summary>
-            internal EmptyMapper() { }
-
-            /// <inheritdoc/>
-            [return: NotNullIfNotNull(nameof(source))]
-            public TDestination? Map<TDestination>(object? source, OperationTypes operationType = OperationTypes.Unspecified) => throw new NotImplementedException();
-
-            /// <inheritdoc/>
-            [return: NotNullIfNotNull(nameof(source))]
-            public TDestination? Map<TSource, TDestination>(TSource? source, OperationTypes operationType = OperationTypes.Unspecified) => throw new NotImplementedException();
-
-            /// <inheritdoc/>
-            [return: NotNullIfNotNull(nameof(source))]
-            public TDestination? Map<TSource, TDestination>(TSource? source, TDestination? destination, OperationTypes operationType = OperationTypes.Unspecified) => throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// Represents a same <see cref="Type"/> <see cref="IMapper"/>; i.e. where both the source and destination <see cref="Type"/> are the same.
-        /// </summary>
-        /// <typeparam name="TSame">The source and destination <see cref="Type"/>.</typeparam>
-        public class SameTypeMapper<TSame> : IMapper<TSame, TSame>
-        {
-            private Mapper? _mapper;
-
-            /// <inheritdoc/>
-            public Mapper Owner
-            {
-                get => _mapper ?? throw new InvalidOperationException("Owner has not been set to a non-null value; this is automatically performed when registered.");
-                set => _mapper = _mapper is null ? value : throw new InvalidOperationException("Owner can not be changed once set.");
-            }
-
-            /// <inheritdoc/>
-            /// <remarks>Throws a <see cref="NotSupportedException"/>.</remarks>
-            public TSame CreateDestination() => throw new NotSupportedException();
-
-            /// <inheritdoc/>
-            /// <remarks>Throws a <see cref="NotSupportedException"/>.</remarks>
-            public TSame CreateSource() => throw new NotSupportedException();
-
-            /// <inheritdoc/>
-            public bool InitializeDestination(TSame destination) => false;
-
-            /// <inheritdoc/>
-            /// <remarks>Returns <see cref="Entities.IInitial.IsInitial"/> where implemented; otherwise, <c>false</c>.</remarks>
-            public bool IsSourceInitial(TSame source) => source is Entities.IInitial ii && ii.IsInitial;
-
-            /// <inheritdoc/>
-            /// <remarks>Always returns the <paramref name="source"/> as-is.</remarks>
-            public TSame? Map(TSame? source, OperationTypes operationType = OperationTypes.Unspecified) => source;
-
-            /// <inheritdoc/>
-            /// <remarks>Always returns the <paramref name="source"/> as-is.</remarks>
-            public TSame? Map(TSame? source, TSame? destination, OperationTypes operationType = OperationTypes.Unspecified) => source;
-
-            /// <inheritdoc/>
-            /// <remarks>Always returns the <paramref name="source"/> as-is.</remarks>
-            object? IMapperBase.Map(object? source, OperationTypes operationType) => source;
-
-            /// <inheritdoc/>
-            /// <remarks>Always returns the <paramref name="source"/> as-is.</remarks>
-            object? IMapperBase.Map(object? source, object? destination, OperationTypes operationType) => destination;
-        }
-
-        /// <summary>
-        /// When <paramref name="operationType"/> is a <see cref="OperationTypes.Get"/> then the action is invoked.
-        /// </summary>
-        /// <param name="operationType">The singular <see cref="OperationTypes"/>.</param>
-        /// <param name="action">The action to invoke.</param>
-        public static void WhenGet(OperationTypes operationType, Action action) => WhenOperationType(OperationTypes.Get, operationType, action);
-
-        /// <summary>
-        /// When <paramref name="operationType"/> is a <see cref="OperationTypes.Create"/> then the action is invoked.
-        /// </summary>
-        /// <param name="operationType">The singular <see cref="OperationTypes"/>.</param>
-        /// <param name="action">The action to invoke.</param>
-        public static void WhenCreate(OperationTypes operationType, Action action) => WhenOperationType(OperationTypes.Create, operationType, action);
-
-        /// <summary>
-        /// When <paramref name="operationType"/> is an <see cref="OperationTypes.Update"/> then the action is invoked.
-        /// </summary>
-        /// <param name="operationType">The singular <see cref="OperationTypes"/>.</param>
-        /// <param name="action">The action to invoke.</param>
-        public static void WhenUpdate(OperationTypes operationType, Action action) => WhenOperationType(OperationTypes.Update, operationType, action);
-
-        /// <summary>
-        /// When <paramref name="operationType"/> is a <see cref="OperationTypes.Delete"/> then the action is invoked.
-        /// </summary>
-        /// <param name="operationType">The singular <see cref="OperationTypes"/>.</param>
-        /// <param name="action">The action to invoke.</param>
-        public static void WhenDelete(OperationTypes operationType, Action action) => WhenOperationType(OperationTypes.Delete, operationType, action);
-
-        /// <summary>
-        /// When <paramref name="operationType"/> is a <see cref="OperationTypes.AnyExceptGet"/> then the action is invoked.
-        /// </summary>
-        /// <param name="operationType">The singular <see cref="OperationTypes"/>.</param>
-        /// <param name="action">The action to invoke.</param>
-        public static void WhenAnyExceptGet(OperationTypes operationType, Action action) => WhenOperationType(OperationTypes.AnyExceptGet, operationType, action);
-
-        /// <summary>
-        /// When <paramref name="operationType"/> is a <see cref="OperationTypes.AnyExceptCreate"/> then the action is invoked.
-        /// </summary>
-        /// <param name="operationType">The singular <see cref="OperationTypes"/>.</param>
-        /// <param name="action">The action to invoke.</param>
-        public static void WhenAnyExceptCreate(OperationTypes operationType, Action action) => WhenOperationType(OperationTypes.AnyExceptCreate, operationType, action);
-
-        /// <summary>
-        /// When <paramref name="operationType"/> is a <see cref="OperationTypes.AnyExceptUpdate"/> then the action is invoked.
-        /// </summary>
-        /// <param name="operationType">The singular <see cref="OperationTypes"/>.</param>
-        /// <param name="action">The action to invoke.</param>
-        public static void WhenAnyExceptUpdate(OperationTypes operationType, Action action) => WhenOperationType(OperationTypes.AnyExceptUpdate, operationType, action);
-
-        /// <summary>
-        /// When the <paramref name="operationType"/> matches the <paramref name="expectedOperationTypes"/> then the <paramref name="action"/> is invoked.
-        /// </summary>
-        private static void WhenOperationType(OperationTypes expectedOperationTypes, OperationTypes operationType, Action action)
-        {
-            if (expectedOperationTypes.HasFlag(operationType))
-                action?.Invoke();
-        }
+        protected override void OnMapInto(TSource source, TDestination destination) => _map(source, destination);
     }
 }

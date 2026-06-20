@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\CoreEx.Database.Postgres\CoreEx.Database.Postgres.csproj" />
+    <ProjectReference Include="..\..\..\src\CoreEx.Data\CoreEx.Data.csproj" />
+    <ProjectReference Include="..\..\..\src\CoreEx.EntityFrameworkCore\CoreEx.EntityFrameworkCore.csproj" />
+    <ProjectReference Include="..\Contoso.Products.Application\Contoso.Products.Application.csproj" />
+    <ProjectReference Include="..\Contoso.Products.Contracts\Contoso.Products.Contracts.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+  </ItemGroup>
+</Project>

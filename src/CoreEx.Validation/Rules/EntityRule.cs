@@ -1,50 +1,86 @@
-﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
+namespace CoreEx.Validation.Rules;
 
-using System;
-using System.Threading;
-using System.Threading.Tasks;
-
-namespace CoreEx.Validation.Rules
+/// <summary>
+/// Provides entity validation.
+/// </summary>
+/// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
+/// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
+public sealed class EntityRule<TEntity, TProperty> : PropertyRuleBase<TEntity, TProperty> where TEntity : class where TProperty : class?
 {
+    internal Func<PropertyContext<TEntity, TProperty>, ValidationArgs, CancellationToken, Task<IValidationContext>>? _validationAsync;
+
     /// <summary>
-    /// Provides entity validation.
+    /// Initializes a new instance of the <see cref="EntityRule{TEntity, TProperty}"/> class.
     /// </summary>
-    /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
-    /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
-    /// <typeparam name="TValidator">The property validator <see cref="Type"/>.</typeparam>
-    /// <param name="validator">The <see cref="IValidatorEx"/>.</param>
-    public class EntityRule<TEntity, TProperty, TValidator>(TValidator validator) : ValueRuleBase<TEntity, TProperty> where TEntity : class where TProperty : class? where TValidator : IValidatorEx
+    /// <param name="with">Extends configuration <see cref="With"/>.</param>
+    public EntityRule(Action<With> with)
     {
-        /// <summary>
-        /// Gets the <see cref="IValidatorEx"/>.
-        /// </summary>
-        public TValidator Validator { get; private set; } = validator.ThrowIfNull(nameof(validator));
+        var erw = new With(this);
+        with?.Invoke(erw);
+    }
+
+    /// <inheritdoc/>
+    protected override async Task OnValidateAsync(PropertyContext<TEntity, TProperty> context, CancellationToken cancellationToken)
+    {
+        var vr = await _validationAsync.ThrowIfNull().Invoke(context, context.CreateValidationArgs(), cancellationToken).ConfigureAwait(false);
+        context.MergeResult(vr);
+    }
+
+    /// <summary>
+    /// Provides additional configuration options for the <see cref="EntityRule{TEntity, TProperty}"/>.
+    /// </summary>
+    public class With
+    {
+        private readonly EntityRule<TEntity, TProperty> _rule;
 
         /// <summary>
-        /// Overrides the <b>Check</b> method and will not validate where performing a shallow validation.
+        /// Initializes a new instance of the <see cref="With"/> class.
         /// </summary>
-        /// <param name="context">The <see cref="PropertyContext{TEntity, TProperty}"/>.</param>
-        /// <returns><c>true</c> where validation is to continue; otherwise, <c>false</c> to stop.</returns>
-        protected override bool Check(PropertyContext<TEntity, TProperty> context) => !context.ThrowIfNull(nameof(context)).Parent.ShallowValidation && base.Check(context);
+        /// <param name="rule">The owning <see cref="EntityRule{TEntity, TProperty}"/>.</param>
+        internal With(EntityRule<TEntity, TProperty> rule) => _rule = rule;
 
-        /// <inheritdoc/>
-        protected override async Task ValidateAsync(PropertyContext<TEntity, TProperty> context, CancellationToken cancellationToken = default)
+        /// <summary>
+        /// Sets the specified <paramref name="configure"/>.
+        /// </summary>
+        public void WithValidator(Action<InlineValidator<TProperty>.Validator>? configure) => WithValidator(new ValidatingInlineValidator<TProperty>(configure));
+
+        /// <summary>
+        /// Sets the specified <paramref name="validator"/>.
+        /// </summary>
+        public void WithValidator(IValidatorEx<TProperty> validator)
         {
-            // Exit where nothing to validate.
-            if (context.Value == null)
-                return;
-
-            if (Validator is CommonValidator<TProperty> vp) // Common validators need the originating context for best results.
+            validator.ThrowIfNull();
+            _rule._validationAsync = async (context, args, cancellationToken) =>
             {
-                await vp.ValidateAsync(context, cancellationToken).ConfigureAwait(false);
-                return;
-            }
+                var value = context.Metadata.GetValue<TProperty>(context.Entity);
+                if (validator is ValidatingInlineValidator<TProperty> vilv)
+                    return await vilv.ValidateEntityAsync(value, args, cancellationToken).ConfigureAwait(false);
 
-            // Create the context args.
-            var args = context.CreateValidationArgs();
-
-            // Validate and merge.
-            context.MergeResult(await Validator.ValidateAsync(context.Value, args, cancellationToken).ConfigureAwait(false));
+                return await validator.ValidateAsync(value, args, cancellationToken).ConfigureAwait(false);
+            };
         }
+
+        /// <summary>
+        /// Sets the specified <typeparamref name="TValidator"/>.
+        /// </summary>
+        /// <typeparam name="TValidator">The property validator <see cref="Type"/>.</typeparam>
+        public void WithValidator<TValidator>() where TValidator : IValidatorEx<TProperty> => _rule._validationAsync = async (context, args, cancellationToken) =>
+        {
+            var validator = Validator.Get<TValidator>(args.ServiceProvider);
+            var value = context.Metadata.GetValue<TProperty>(context.Entity);
+            return await validator.ValidateAsync(value, args, cancellationToken).ConfigureAwait(false);
+        };
+
+        /// <summary>
+        /// Sets the specified keyed <typeparamref name="TValidator"/>.
+        /// </summary>
+        /// <typeparam name="TValidator">The property validator <see cref="Type"/>.</typeparam>
+        /// <param name="serviceKey">The service key.</param>
+        public void WithKeyedValidator<TValidator>(object? serviceKey) where TValidator : IValidatorEx<TProperty> => _rule._validationAsync = async (context, args, cancellationToken) =>
+        {
+            var validator = Validator.GetKeyed<TValidator>(serviceKey, args.ServiceProvider);
+            var value = context.Metadata.GetValue<TProperty>(context.Entity);
+            return await validator.ValidateAsync(value, args, cancellationToken).ConfigureAwait(false);
+        };
     }
 }

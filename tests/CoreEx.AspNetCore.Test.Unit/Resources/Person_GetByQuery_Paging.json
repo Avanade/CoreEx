@@ -1,0 +1,18 @@
+[
+  {
+    "id": "1",
+    "firstName": "John",
+    "lastName": "Doe",
+    "birthday": "1980-01-01",
+    "gender": "M",
+    "etag": "a71e3cfd-2c40-474b-b4ce-f9617d900cef"
+  },
+  {
+    "id": "4",
+    "firstName": "Bob",
+    "lastName": "Smith",
+    "birthday": "1995-04-04",
+    "gender": "M",
+    "etag": "74a9dd99-167c-4178-b92c-e89db00f4621"
+  }
+]

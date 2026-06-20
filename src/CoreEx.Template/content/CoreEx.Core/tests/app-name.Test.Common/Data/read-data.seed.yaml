@@ -1,0 +1,20 @@
+# Read test dataset for the 'domain-name' domain — loaded by the XxxReadTests classes via:
+#   MigrateXxxDataAsync<TestData>(["read-data.seed.yaml"], DbMigration.ConfigureMigrationArgs)
+#
+# Contains the STABLE rows that GET/query tests assert against. Mutate tests load the separate
+# 'mutate-data.seed.yaml' so mutations never disturb these read expectations.
+#
+# DbEx YAML format: schema (top-level) -> '- <table>:' (array item, note the leading '-') -> rows.
+#   * Identifiers and GUID foreign-keys use '^N' (deterministic: ^1 == 1.ToGuid()).
+#   * Reference data is linked by CODE (e.g. gender_code: M), never by id/FK.
+#   * Schema, table, AND column names must match the database's ACTUAL casing (what the migration created):
+#       - PostgreSQL (default): lowercase snake_case  (schema 'bar', table 'employee', column 'employee_id')
+#       - SQL Server:           PascalCase            (schema 'Bar', table 'Employee', column 'EmployeeId')
+#     A wrong-cased schema/table fails the seed with "Table '...' does not exist".
+#
+# Example (PostgreSQL — replace with your domain's schema/tables/rows):
+#
+# bar:
+#   - employee:
+#     - { employee_id: ^1, first_name: Bob, last_name: Smith, gender_code: M, salary: 50000, date_of_birth: 1990-01-01 }
+#     - { employee_id: ^2, first_name: Jane, last_name: Doe, gender_code: F, salary: 60000, date_of_birth: 1985-06-15 }

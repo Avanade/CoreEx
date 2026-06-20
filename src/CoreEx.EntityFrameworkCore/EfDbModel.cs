@@ -1,110 +1,94 @@
-﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
+namespace CoreEx.EntityFrameworkCore;
 
-using CoreEx.Entities;
-using CoreEx.Results;
-
-namespace CoreEx.EntityFrameworkCore
+/// <summary>
+/// Provides the extended <see href="https://learn.microsoft.com/en-us/ef/core/">Entity Framework Core</see> model functionality.
+/// </summary>
+/// <typeparam name="TModel">The model <see cref="Type"/>.</typeparam>
+public sealed partial class EfDbModel<TModel> where TModel : class
 {
     /// <summary>
-    /// Provides a lightweight typed <b>Entity Framework</b> wrapper over the <see cref="IEfDb"/> operations that are <typeparamref name="TModel"/>-specific.
+    /// Initializes a new instance of the <see cref="EfDbModel{TModel}"/> class.
     /// </summary>
-    /// <typeparam name="TModel">The entity framework model <see cref="Type"/>.</typeparam>
-    /// <param name="efDb">The <see cref="IEfDb"/>.</param>
-    public readonly struct EfDbModel<TModel>(IEfDb efDb) where TModel : class, new()
+    /// <param name="efDb">The owning <see cref="IEfDb"/></param>
+    /// <param name="options">The <see cref="EfDbModelOptions{TModel}"/>.</param>
+    internal EfDbModel(IEfDb efDb, EfDbModelOptions<TModel> options)
     {
-        /// <inheritdoc/>
-        public IEfDb EfDb { get; } = efDb.ThrowIfNull(nameof(efDb));
-
-        /// <summary>
-        /// Creates an <see cref="EfDbQuery{TModel}"/> to enable select-like capabilities.
-        /// </summary>
-        /// <param name="query">The function to further define the query.</param>
-        /// <returns>A <see cref="EfDbQuery{TModel}"/>.</returns>
-        public EfDbQuery<TModel> Query(Func<IQueryable<TModel>, IQueryable<TModel>>? query = null) => Query(new EfDbArgs(EfDb.DbArgs), query);
-
-        /// <summary>
-        /// Creates an <see cref="EfDbQuery{TModel}"/> to enable select-like capabilities.
-        /// </summary>
-        /// <param name="queryArgs">The <see cref="EfDbArgs"/>.</param>
-        /// <param name="query">The function to further define the query.</param>
-        /// <returns>A <see cref="EfDbQuery{TModel}"/>.</returns>
-        public EfDbQuery<TModel> Query(EfDbArgs queryArgs, Func<IQueryable<TModel>, IQueryable<TModel>>? query = null) => new(EfDb, queryArgs, query);
-
-        #region Standard
-
-        /// <summary>
-        /// Gets the model for the specified <paramref name="keys"/>.
-        /// </summary>
-        /// <param name="keys">The key values.</param>
-        /// <returns>The entity value where found; otherwise, <c>null</c>.</returns>
-        public Task<TModel?> GetAsync(params object?[] keys) => GetAsync(keys, default);
-
-        /// <summary>
-        /// Gets the model for the specified <paramref name="keys"/>.
-        /// </summary>
-        /// <param name="keys">The key values.</param>
-        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        /// <returns>The entity value where found; otherwise, <c>null</c>.</returns>
-        public Task<TModel?> GetAsync(object?[] keys, CancellationToken cancellationToken = default) => GetAsync(CompositeKey.Create(keys), cancellationToken);
-
-        /// <summary>
-        /// Gets the model for the specified <paramref name="key"/>.
-        /// </summary>
-        /// <param name="key">The <see cref="CompositeKey"/>.</param>
-        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        /// <returns>The entity value where found; otherwise, <c>null</c>.</returns>
-        /// <remarks>Where the model implements <see cref="ILogicallyDeleted"/> and <see cref="ILogicallyDeleted.IsDeleted"/> is <c>true</c> then <c>null</c> will be returned.</remarks>
-        public Task<TModel?> GetAsync(CompositeKey key, CancellationToken cancellationToken = default) => GetAsync(new EfDbArgs(EfDb.DbArgs), key, cancellationToken);
-
-        /// <summary>
-        /// Gets the model for the specified <paramref name="key"/>.
-        /// </summary>
-        /// <param name="args">The <see cref="EfDbArgs"/>.</param>
-        /// <param name="key">The <see cref="CompositeKey"/>.</param>
-        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        /// <returns>The entity value where found; otherwise, <c>null</c>.</returns>
-        /// <remarks>Where the model implements <see cref="ILogicallyDeleted"/> and <see cref="ILogicallyDeleted.IsDeleted"/> is <c>true</c> then <c>null</c> will be returned.</remarks>
-        public Task<TModel?> GetAsync(EfDbArgs args, CompositeKey key, CancellationToken cancellationToken = default)
-            => EfDb.GetAsync<TModel>(args, key, cancellationToken);
-
-        #endregion
-
-        #region WithResult
-
-        /// <summary>
-        /// Gets the model for the specified <paramref name="keys"/> with a <see cref="Result{T}"/>.
-        /// </summary>
-        /// <param name="keys">The key values.</param>
-        /// <returns>The model value where found; otherwise, <c>null</c>.</returns>
-        public Task<Result<TModel?>> GetWithResultAsync(params object?[] keys) => GetWithResultAsync(keys, default);
-
-        /// <summary>
-        /// Gets the model for the specified <paramref name="keys"/> with a <see cref="Result{T}"/>.
-        /// </summary>
-        /// <param name="keys">The key values.</param>
-        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        /// <returns>The model value where found; otherwise, <c>null</c>.</returns>
-        public Task<Result<TModel?>> GetWithResultAsync(object?[] keys, CancellationToken cancellationToken = default) => GetWithResultAsync(CompositeKey.Create(keys), cancellationToken);
-
-        /// <summary>
-        /// Gets the entity for the specified <paramref name="key"/> with a <see cref="Result{T}"/>.
-        /// </summary>
-        /// <param name="key">The <see cref="CompositeKey"/>.</param>
-        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        /// <returns>The model value where found; otherwise, <c>null</c>.</returns>
-        /// <remarks>Where the model implements <see cref="ILogicallyDeleted"/> and <see cref="ILogicallyDeleted.IsDeleted"/> is <c>true</c> then <c>null</c> will be returned.</remarks>
-        public Task<Result<TModel?>> GetWithResultAsync(CompositeKey key, CancellationToken cancellationToken = default) => GetWithResultAsync(new EfDbArgs(EfDb.DbArgs), key, cancellationToken);
-
-        /// <summary>
-        /// Gets the entity for the specified <paramref name="key"/> with a <see cref="Result{T}"/>.
-        /// </summary>
-        /// <param name="args">The <see cref="EfDbArgs"/>.</param>
-        /// <param name="key">The <see cref="CompositeKey"/>.</param>
-        /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-        /// <returns>The model value where found; otherwise, <c>null</c>.</returns>
-        /// <remarks>Where the model implements <see cref="ILogicallyDeleted"/> and <see cref="ILogicallyDeleted.IsDeleted"/> is <c>true</c> then <c>null</c> will be returned.</remarks>
-        public Task<Result<TModel?>> GetWithResultAsync(EfDbArgs args, CompositeKey key, CancellationToken cancellationToken = default) => EfDb.GetWithResultAsync<TModel>(args, key, cancellationToken);
-
-        #endregion
+        EfDb = efDb.ThrowIfNull();
+        Options = options.ThrowIfNull();
     }
+
+    /// <summary>
+    /// Gets the <see cref="IEfDb"/>.
+    /// </summary>
+    public IEfDb EfDb { get; }
+
+    /// <summary>
+    /// Gets the <see cref="EfDbModelOptions{TModel}"/>.
+    /// </summary>
+    public EfDbModelOptions<TModel> Options { get; }
+
+    /// <summary>
+    /// Gets the default <see cref="EfDbArgs"/>.
+    /// </summary>
+    /// <remarks>Uses the <see cref="EfDbModelOptions{TModel}.Args"/> where specified; otherwise, the <see cref="EfDbOptions.Args"/>.</remarks>
+    public EfDbArgs Args => Options.Args ?? EfDb.Options.Args;
+
+    /// <summary>
+    /// Checks (ensures) that the <paramref name="model"/> is valid.
+    /// </summary>
+    /// <param name="args">The <see cref="EfDbArgs"/>.</param>
+    /// <param name="model">The model.</param>
+    /// <param name="operationType">The <see cref="OperationType"/>.</param>
+    /// <param name="treatNullAsNotFound">Indicates whether to treat a <see langword="null"/> model as a not found error.</param>
+    /// <returns>The <see cref="Result"/>.</returns>
+    [return: NotNullIfNotNull(nameof(model))]
+    public Result<TModel?> CheckModel(EfDbArgs args, TModel? model, OperationType operationType, bool treatNullAsNotFound = false)
+    {
+        if (model is null)
+            return treatNullAsNotFound ? Result.NotFoundError() : Result.Ok<TModel?>(null);
+
+        // Check valid tenant where multi-tenancy is being used.
+        if (model is IReadOnlyTenantId tenant)
+        {
+            model.ThrowWhen(_ => string.IsNullOrEmpty(tenant.TenantId), $"{nameof(ITenantId.TenantId)} must be specified.");
+            if (tenant.TenantId != ExecutionContext.Current.TenantId)
+                return treatNullAsNotFound ? Result.NotFoundError() : Result.Ok<TModel?>(null);
+        }
+
+        // Check not logically deleted.
+        if (model is IReadOnlyLogicallyDeleted ld && ld.IsDeleted)
+            return treatNullAsNotFound ? Result.NotFoundError() : Result.Ok<TModel?>(null);
+
+        // Check filters.
+        return Options.CheckFilters(args, model, operationType)
+            .OnFailure(fr =>
+            {
+                if (fr.IsNotFoundError)
+                    return treatNullAsNotFound ? fr : Result.Ok<TModel?>(null);
+                else
+                    return fr;
+            });
+    }
+
+    /// <summary>
+    /// Refreshes the model post-mutation (as required).
+    /// </summary>
+    private async Task<Result<TModel>> RefreshPostMutationAsync(EfDbArgs args, TModel model, string memberName, CancellationToken cancellationToken)
+    {
+        // Refresh the model as requested.
+        if (args.Refresh && Options.GetKeyFromModel(model) is CompositeKey key)
+            return Result.Go((await GetWithResultInternalAsync(args, key, memberName, treatNullAsNotFound: true, cancellationToken).ConfigureAwait(false)).ThenAs(v => v!));
+
+        // Return the current model.
+        return Result.Ok(model);
+    }
+
+    /// <summary>
+    /// Creates a <see cref="EfDbMappedModel{T, TModel, TBiDirectionMapper}"/> that provides mapped <see href="https://en.wikipedia.org/wiki/Create,_read,_update_and_delete">CRUD</see> operations (Create, Read, Update and Delete).
+    /// </summary>
+    /// <typeparam name="T">The mapped <see cref="Type"/>.</typeparam>
+    /// <typeparam name="TBiDirectionMapper">The <see cref="IBiDirectionMapper{TSource, TDestination}"/> <see cref="Type"/>.</typeparam>
+    /// <param name="mapper">The <see cref="BiDirectionMapper{TSource, TDestination}"/>.</param>
+    /// <returns>The <see cref="EfDbMappedModel{T, TModel, TBiDirectionMapper}"/>.</returns>
+    public EfDbMappedModel<T, TModel, TBiDirectionMapper> ToMappedModel<T, TBiDirectionMapper>(TBiDirectionMapper mapper) where T : class  where TBiDirectionMapper : IBiDirectionMapper<T, TModel> => new(this, mapper);
 }

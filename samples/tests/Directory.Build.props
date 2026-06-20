@@ -1,0 +1,11 @@
+<Project>
+  <Import Project="$(MSBuildThisFileDirectory)..\Directory.Build.props" />
+
+  <PropertyGroup Condition="$([System.String]::Copy('$(MSBuildProjectName)').EndsWith('.Test.Api')) Or $([System.String]::Copy('$(MSBuildProjectName)').EndsWith('.Test.Unit')) Or $([System.String]::Copy('$(MSBuildProjectName)').EndsWith('.Test.Subscribe')) Or $([System.String]::Copy('$(MSBuildProjectName)').EndsWith('.Test.Relay'))">
+    <TestTfmsInParallel>false</TestTfmsInParallel>
+  </PropertyGroup>
+
+  <ItemGroup Condition="$([System.String]::Copy('$(MSBuildProjectName)').EndsWith('.Test.Api')) Or $([System.String]::Copy('$(MSBuildProjectName)').EndsWith('.Test.Unit')) Or $([System.String]::Copy('$(MSBuildProjectName)').EndsWith('.Test.Subscribe')) Or $([System.String]::Copy('$(MSBuildProjectName)').EndsWith('.Test.Relay'))">
+    <Compile Include="$(MSBuildThisFileDirectory)NUnitAssemblyInfo.cs" Link="NUnitAssemblyInfo.cs" />
+  </ItemGroup>
+</Project>

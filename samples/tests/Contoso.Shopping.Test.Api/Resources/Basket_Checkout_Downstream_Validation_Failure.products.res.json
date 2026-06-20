@@ -1,0 +1,12 @@
+{
+  "type": "https://tools.ietf.org/html/rfc9110#section-15.5.1",
+  "title": "A data validation error occurred.",
+  "status": 400,
+  "errors": {
+    "products.0000270f-0000-0000-0000-000000000000": [
+      "Product was not found."
+    ]
+  },
+  "traceId": "00-827ab1dc5c4ab17dda2d137d43db16d4-a9e13d892f16779b-01",
+  "errorType": "validation"
+}

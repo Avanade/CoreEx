@@ -1,0 +1,29 @@
+{
+  "id": "00000bbd-0000-0000-0000-000000000000",
+  "customerId": "000003eb-0000-0000-0000-000000000000",
+  "status": "A",
+  "items": [
+    {
+      "id": "00000fa8-0000-0000-0000-000000000000",
+      "productId": "0000001b-0000-0000-0000-000000000000",
+      "sku": "ONEUP-COMPOSITE-PEDALS",
+      "text": "OneUp Composite Pedals",
+      "quantity": 3.00,
+      "unitOfMeasure": "PR",
+      "unitPrice": 49.00,
+      "total": 147.0000,
+      "etag": "AAAAAAAADCg="
+    }
+  ],
+  "pricing": {
+    "subTotal": 147.0000,
+    "total": 147.0000
+  },
+  "changeLog": {
+    "createdBy": "AVANADE-CORP\\eric.sibly",
+    "createdOn": "2026-02-22T22:49:39.6554207\u002B00:00",
+    "updatedBy": "AVANADE-CORP\\eric.sibly",
+    "updatedOn": "2026-02-22T22:49:45.001148\u002B00:00"
+  },
+  "etag": "AAAAAAAADCc="
+}

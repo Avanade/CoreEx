@@ -1,22 +1,13 @@
-﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
+namespace CoreEx.Data.Querying;
 
-using CoreEx.Entities;
-using CoreEx.Http;
-using CoreEx.Localization;
-using System;
-
-namespace CoreEx.Data.Querying
+/// <summary>
+/// Represents a <see cref="QueryFilterParser"/> <see cref="ValidationException"/>.
+/// </summary>
+/// <param name="message">The error message.</param>
+public sealed class QueryFilterParserException(string message) : ValidationException(new MessageItem(MessageType.Error, message, HttpNames.QueryFilterQueryStringName), FallbackMessage)
 {
     /// <summary>
-    /// Represents a <see cref="QueryFilterParser"/> <see cref="ValidationException"/>.
+    /// Gets the default/fallback <see cref="Exception.Message"/>
     /// </summary>
-    /// <param name="message">The error message.</param>
-    public sealed class QueryFilterParserException(string message) 
-        : ValidationException(MessageItem.CreateErrorMessage(HttpConsts.QueryArgsFilterQueryStringName, message), new LText(typeof(QueryFilterParserException).FullName, FallbackMessage))
-    {
-        /// <summary>
-        /// Gets the <see cref="LText.FallbackText"/> <see cref="Exception.Message"/>
-        /// </summary>
-        internal const string FallbackMessage = "A query parsing error occurred.";
-    }
+    internal const string FallbackMessage = "A query filter parsing error occurred.";
 }

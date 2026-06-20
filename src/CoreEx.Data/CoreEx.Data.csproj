@@ -1,22 +1,15 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>net6.0;net8.0;net9.0;netstandard2.1</TargetFrameworks>
-    <RootNamespace>CoreEx.Data</RootNamespace>
-    <Product>CoreEx</Product>
-    <Title>CoreEx .NET Data extras.</Title>
-    <Description>CoreEx .NET Data extras.</Description>
-    <PackageTags>coreex api data odata filter order linq</PackageTags>
+    <Title>CoreEx .NET Data extensions.</Title>
+    <Description>Core .NET extensions and abstractions for the development of backend services.</Description>
+    <PackageTags>coreex microservices domain-based event-driven railway-oriented reference-data data query odata filter order paging unit-of-work</PackageTags>
   </PropertyGroup>
 
-  <Import Project="..\..\Common.targets" />
-
   <ItemGroup>
-    <PackageReference Include="System.Linq.Dynamic.Core" Version="1.6.0.1" />
+    <PackageReference Include="System.Linq.Dynamic.Core" />
   </ItemGroup>
-
+  
   <ItemGroup>
-    <ProjectReference Include="..\CoreEx\CoreEx.csproj" />
+    <ProjectReference Include="..\CoreEx.Events\CoreEx.Events.csproj" />
   </ItemGroup>
-
 </Project>

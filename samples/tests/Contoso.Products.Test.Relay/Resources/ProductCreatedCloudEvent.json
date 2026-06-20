@@ -1,0 +1,29 @@
+{
+  "specversion": "1.0",
+  "id": "019c72b9-e8e4-73aa-83fc-c5847cd4c217",
+  "type": "contoso.products.product.created.v1",
+  "source": "urn:contoso:products",
+  "subject": "019c72b9-e8d8-7d33-821b-3d18af870884",
+  "time": "2026-02-18T21:48:32.3532188Z",
+  "partitionkey": "019c72b9-e8d8-7d33-821b-3d18af870884",
+  "authtype": "user",
+  "authid": "DOMAIN-CORP\\eric.sibly",
+  "dataschemaversion": "1.0",
+  "datacontenttype": "application/json",
+  "traceparent": "00-7de3f6abfabf606dd289d93e6d118456-cc3d1971a8b15a04-01",
+  "data": {
+    "changeLog": {
+      "createdBy": "DOMAIN-CORP\\eric.sibly",
+      "createdOn": "2026-02-18T21:48:32.3532188\u002B00:00"
+    },
+    "id": "019c72b9-e8d8-7d33-821b-3d18af870884",
+    "sku": "NEW-SKU-123",
+    "text": "New Product",
+    "category": "B",
+    "subCategory": "XC",
+    "uom": "EA",
+    "brand": "YETI",
+    "price": 1000,
+    "isInactive": true
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "specversion": "1.0",
+  "id": "019c72b9-e8e4-73aa-83fc-c5847cd4c217",
+  "type": "contoso.products.test.created.v1",
+  "source": "urn:contoso:products",
+  "subject": "00000000-0000-0000-0000-000000000000",
+  "time": "2026-02-18T21:48:32.3532188Z",
+  "partitionkey": "00000000-0000-0000-0000-000000000000",
+  "authtype": "user",
+  "authid": "METACORTEX\\thomas.anderson",
+  "dataschemaversion": "1.0",
+  "datacontenttype": "application/json",
+  "traceparent": "00-7de3f6abfabf606dd289d93e6d118456-cc3d1971a8b15a04-01",
+  "data": {
+    "changeLog": {
+      "createdBy": "METACORTEX\\thomas.anderson",
+      "createdOn": "2026-02-18T21:48:32.3532188\u002B00:00"
+    },
+    "id": "00000000-0000-0000-0000-000000000000",
+    "text": "Test entity"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "id": "140d1f58-7927-47e4-a775-618b6516e2ab",
+  "sku": "NEW-SKU-123",
+  "text": "New Product",
+  "category": "B",
+  "subCategory": "XC",
+  "unitOfMeasure": "EA",
+  "brand": "YETI",
+  "price": 1000,
+  "isInactive": true,
+  "etag": "AAAAAAAACBU=",
+  "changeLog": {
+    "createdBy": "METACORTEX\\thomas.anderson",
+    "createdOn": "2026-01-18T14:10:09.3076098\u002B00:00"
+  }
+}

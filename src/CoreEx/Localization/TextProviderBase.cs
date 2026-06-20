@@ -1,30 +1,24 @@
-﻿// Copyright (c) Avanade. Licensed under the MIT License. See https://github.com/Avanade/CoreEx
+namespace CoreEx.Localization;
 
-namespace CoreEx.Localization
+/// <summary>
+/// Provides the base text localization functionality for an <see cref="LText"/>.
+/// </summary>
+public abstract class TextProviderBase : ITextProvider
 {
-    /// <summary>
-    /// Provides the localized text for a passed key.
-    /// </summary>
-    public abstract class TextProviderBase : ITextProvider
+    /// <inheritdoc/>
+    public string? GetText(LText text)
     {
-        /// <summary>
-        /// Gets the text for the passed <see cref="LText"/>.
-        /// </summary>
-        /// <param name="key">The <see cref="LText"/>.</param>
-        /// <returns>The corresponding text where found; otherwise, the <see cref="LText.FallbackText"/> where specified. Where nothing found or specified then the key itself will be returned.</returns>
-        public string? GetText(LText key)
-        {
-            if (key.KeyAndOrText == null)
-                return key.FallbackText;
+        if (text.KeyAndOrText is null)
+            return TextProvider.Format(text.FallbackText, text.Args);
 
-            return GetTextForKey(key) ?? key.FallbackText ?? key.KeyAndOrText;
-        }
-
-        /// <summary>
-        /// Gets the text for the passed <see cref="LText"/>.
-        /// </summary>
-        /// <param name="key">The <see cref="LText"/>.</param>
-        /// <returns>The corresponding text where found; otherwise, <c>null</c>.</returns>
-        protected abstract string? GetTextForKey(LText key);
+        return GetFormattedText(text) ?? TextProvider.Format(text.FallbackText ?? (text.WasFallBackTextSetToNull ? null : text.KeyAndOrText), text.Args);
     }
+
+    /// <summary>
+    /// Gets the final formatted localized text for the specified <see cref="LText"/>.
+    /// </summary>
+    /// <param name="text">The <see cref="LText"/>.</param>
+    /// <returns>The corresponding localized text where found; otherwise, <see langword="null"/> (will use the <see cref="LText.FallbackText"/> where specified).</returns>
+    /// <remarks>This should leverage the <see cref="TextProvider.Format"/> to ensure intended outcome with any included <see cref="LText.Args"/>.</remarks>
+    protected abstract string? GetFormattedText(LText text);
 }

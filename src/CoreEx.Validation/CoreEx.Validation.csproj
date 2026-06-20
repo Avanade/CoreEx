@@ -1,18 +1,11 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>net6.0;net8.0;net9.0;netstandard2.1</TargetFrameworks>
-    <RootNamespace>CoreEx.Validation</RootNamespace>
-    <Product>CoreEx</Product>
-    <Title>CoreEx .NET Validation (Alternative).</Title>
-    <Description>CoreEx .NET Validation (Alternative).</Description>
-    <PackageTags>coreex api function aspnet entity microservices referencedata validation validator validate</PackageTags>
+    <Title>CoreEx .NET Validation extensions.</Title>
+    <Description>Core .NET extensions and abstractions for the development of backend services.</Description>
+    <PackageTags>coreex microservices domain-based event-driven railway-oriented reference-data validation rules clauses fluent</PackageTags>
   </PropertyGroup>
-
-  <Import Project="..\..\Common.targets" />
 
   <ItemGroup>
     <ProjectReference Include="..\CoreEx\CoreEx.csproj" />
   </ItemGroup>
-  
 </Project>

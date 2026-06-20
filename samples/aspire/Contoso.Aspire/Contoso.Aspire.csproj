@@ -1,0 +1,23 @@
+<Project Sdk="Aspire.AppHost.Sdk/13.2.4">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <LangVersion>preview</LangVersion>
+    <UserSecretsId>6a58b94b-d2ff-413a-9e03-e9995a3de4dd</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Contoso.Orders.Api\Contoso.Orders.Api.csproj" />
+    <ProjectReference Include="..\..\src\Contoso.Order.Workflow.Worker\Contoso.Order.Workflow.Worker.csproj" />
+    <ProjectReference Include="..\..\src\Contoso.Products.Api\Contoso.Products.Api.csproj" />
+    <ProjectReference Include="..\..\src\Contoso.Products.Relay\Contoso.Products.Relay.csproj" />
+    <ProjectReference Include="..\..\src\Contoso.Products.Subscribe\Contoso.Products.Subscribe.csproj" />
+    <ProjectReference Include="..\..\src\Contoso.Shopping.Api\Contoso.Shopping.Api.csproj" />
+    <ProjectReference Include="..\..\src\Contoso.Shopping.Relay\Contoso.Shopping.Relay.csproj" />
+    <ProjectReference Include="..\..\src\Contoso.Shopping.Subscribe\Contoso.Shopping.Subscribe.csproj" />
+  </ItemGroup>
+
+</Project>

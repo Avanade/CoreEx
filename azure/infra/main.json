@@ -1,0 +1,1652 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.43.8.12551",
+      "templateHash": "11663173647746982515"
+    }
+  },
+  "parameters": {
+    "environmentType": {
+      "type": "string",
+      "allowedValues": [
+        "dev",
+        "test",
+        "prod"
+      ],
+      "metadata": {
+        "description": "Deployment environment."
+      }
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "Location for all resources."
+      }
+    },
+    "nameSuffix": {
+      "type": "string",
+      "metadata": {
+        "description": "Unique suffix for globally unique resource names. Use a short lowercase token, e.g. a1b2c3."
+      }
+    },
+    "keyVaultName": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Optional Key Vault name override. When empty, a unique Key Vault name is generated."
+      }
+    },
+    "tags": {
+      "type": "object",
+      "defaultValue": {},
+      "metadata": {
+        "description": "Tags applied to all resources."
+      }
+    },
+    "appServicePlanSkuName": {
+      "type": "string",
+      "metadata": {
+        "description": "App Service Plan SKU name."
+      }
+    },
+    "appServicePlanTier": {
+      "type": "string",
+      "metadata": {
+        "description": "App Service Plan tier."
+      }
+    },
+    "appServicePlanCapacity": {
+      "type": "int",
+      "metadata": {
+        "description": "App Service Plan instance count."
+      }
+    },
+    "appServiceLinuxFxVersion": {
+      "type": "string",
+      "metadata": {
+        "description": "App Service Linux runtime stack. Example: DOTNETCORE|10.0."
+      }
+    },
+    "serviceBusSkuName": {
+      "type": "string",
+      "metadata": {
+        "description": "Service Bus namespace SKU. Basic, Standard, or Premium."
+      }
+    },
+    "sqlAdminLogin": {
+      "type": "string",
+      "metadata": {
+        "description": "Azure SQL administrator login name."
+      }
+    },
+    "sqlAdminPassword": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Azure SQL administrator password."
+      }
+    },
+    "sqlDatabaseName": {
+      "type": "string",
+      "metadata": {
+        "description": "Azure SQL database name."
+      }
+    },
+    "sqlFirewallClientIp": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Current runner public IPv4 address to allow through the Azure SQL firewall."
+      }
+    },
+    "sqlSkuName": {
+      "type": "string",
+      "metadata": {
+        "description": "Azure SQL database SKU name. Example: GP_S_Gen5_1."
+      }
+    },
+    "sqlTier": {
+      "type": "string",
+      "metadata": {
+        "description": "Azure SQL database tier. Example: GeneralPurpose."
+      }
+    },
+    "sqlMinCapacity": {
+      "type": "string",
+      "metadata": {
+        "description": "Azure SQL minimum vCores for serverless, represented as a JSON number string (for example 0.5)."
+      }
+    },
+    "sqlAutoPauseDelay": {
+      "type": "int",
+      "metadata": {
+        "description": "Azure SQL auto-pause delay in minutes. Set to -1 to disable."
+      }
+    },
+    "postgresAdminLogin": {
+      "type": "string",
+      "metadata": {
+        "description": "Azure PostgreSQL administrator login name."
+      }
+    },
+    "postgresAdminPassword": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Azure PostgreSQL administrator password."
+      }
+    },
+    "postgresDatabaseName": {
+      "type": "string",
+      "metadata": {
+        "description": "Azure PostgreSQL database name used by Products domain."
+      }
+    },
+    "postgresFirewallClientIp": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Current runner public IPv4 address to allow through the Azure PostgreSQL firewall."
+      }
+    },
+    "postgresSkuName": {
+      "type": "string",
+      "metadata": {
+        "description": "Azure PostgreSQL flexible server SKU name. Example: Standard_B1ms."
+      }
+    },
+    "postgresSkuTier": {
+      "type": "string",
+      "metadata": {
+        "description": "Azure PostgreSQL flexible server tier. Example: Burstable."
+      }
+    },
+    "postgresVersion": {
+      "type": "string",
+      "metadata": {
+        "description": "Azure PostgreSQL major version. Example: 16."
+      }
+    },
+    "postgresStorageSizeGb": {
+      "type": "int",
+      "metadata": {
+        "description": "Azure PostgreSQL storage size in GB."
+      }
+    },
+    "redisSkuName": {
+      "type": "string",
+      "metadata": {
+        "description": "Azure Managed Redis SKU name. Example: Balanced_B0."
+      }
+    },
+    "redisHighAvailability": {
+      "type": "string",
+      "allowedValues": [
+        "Enabled",
+        "Disabled"
+      ],
+      "metadata": {
+        "description": "Azure Managed Redis high availability mode."
+      }
+    }
+  },
+  "variables": {
+    "suffix": "[toLower(parameters('nameSuffix'))]",
+    "computedKeyVaultName": "[take(format('kv{0}{1}{2}', parameters('environmentType'), variables('suffix'), uniqueString(deployment().name, resourceGroup().id)), 24)]",
+    "resolvedKeyVaultName": "[if(empty(parameters('keyVaultName')), variables('computedKeyVaultName'), parameters('keyVaultName'))]",
+    "mergedTags": "[union(parameters('tags'), createObject('environment', parameters('environmentType'), 'managedBy', 'azd', 'azd-env-name', parameters('environmentType')))]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "appInsightsDeploy",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "name": {
+            "value": "[format('appi-{0}-{1}', parameters('environmentType'), variables('suffix'))]"
+          },
+          "tags": {
+            "value": "[variables('mergedTags')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.43.8.12551",
+              "templateHash": "1054162708713925368"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "tags": {
+              "type": "object",
+              "defaultValue": {}
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Insights/components",
+              "apiVersion": "2020-02-02",
+              "name": "[parameters('name')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "kind": "web",
+              "properties": {
+                "Application_Type": "web",
+                "Flow_Type": "Bluefield",
+                "Request_Source": "rest"
+              }
+            }
+          ],
+          "outputs": {
+            "name": {
+              "type": "string",
+              "value": "[parameters('name')]"
+            },
+            "connectionString": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Insights/components', parameters('name')), '2020-02-02').ConnectionString]"
+            },
+            "id": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Insights/components', parameters('name'))]"
+            },
+            "instrumentationKey": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Insights/components', parameters('name')), '2020-02-02').InstrumentationKey]"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "keyVaultDeploy",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "name": {
+            "value": "[variables('resolvedKeyVaultName')]"
+          },
+          "tags": {
+            "value": "[variables('mergedTags')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.43.8.12551",
+              "templateHash": "6366741801556338859"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "tags": {
+              "type": "object",
+              "defaultValue": {}
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.KeyVault/vaults",
+              "apiVersion": "2023-07-01",
+              "name": "[parameters('name')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "sku": {
+                  "family": "A",
+                  "name": "standard"
+                },
+                "tenantId": "[subscription().tenantId]",
+                "enableRbacAuthorization": true,
+                "enabledForDeployment": true,
+                "enabledForTemplateDeployment": true,
+                "enabledForDiskEncryption": false,
+                "publicNetworkAccess": "Enabled"
+              }
+            }
+          ],
+          "outputs": {
+            "id": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.KeyVault/vaults', parameters('name'))]"
+            },
+            "name": {
+              "type": "string",
+              "value": "[parameters('name')]"
+            },
+            "vaultUri": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.KeyVault/vaults', parameters('name')), '2023-07-01').vaultUri]"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "appServicePlanDeploy",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "name": {
+            "value": "[format('asp-{0}-{1}', parameters('environmentType'), variables('suffix'))]"
+          },
+          "skuName": {
+            "value": "[parameters('appServicePlanSkuName')]"
+          },
+          "skuTier": {
+            "value": "[parameters('appServicePlanTier')]"
+          },
+          "capacity": {
+            "value": "[parameters('appServicePlanCapacity')]"
+          },
+          "tags": {
+            "value": "[variables('mergedTags')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.43.8.12551",
+              "templateHash": "17043110285077169943"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "skuName": {
+              "type": "string"
+            },
+            "skuTier": {
+              "type": "string"
+            },
+            "capacity": {
+              "type": "int"
+            },
+            "tags": {
+              "type": "object",
+              "defaultValue": {}
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Web/serverfarms",
+              "apiVersion": "2023-12-01",
+              "name": "[parameters('name')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "kind": "linux",
+              "sku": {
+                "name": "[parameters('skuName')]",
+                "tier": "[parameters('skuTier')]",
+                "capacity": "[parameters('capacity')]"
+              },
+              "properties": {
+                "reserved": true
+              }
+            }
+          ],
+          "outputs": {
+            "id": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Web/serverfarms', parameters('name'))]"
+            },
+            "name": {
+              "type": "string",
+              "value": "[parameters('name')]"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "serviceBusDeploy",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "namespaceName": {
+            "value": "[format('sb-{0}-{1}', parameters('environmentType'), variables('suffix'))]"
+          },
+          "skuName": {
+            "value": "[parameters('serviceBusSkuName')]"
+          },
+          "tags": {
+            "value": "[variables('mergedTags')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.43.8.12551",
+              "templateHash": "17950824884306378259"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string"
+            },
+            "namespaceName": {
+              "type": "string"
+            },
+            "skuName": {
+              "type": "string"
+            },
+            "tags": {
+              "type": "object",
+              "defaultValue": {}
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.ServiceBus/namespaces",
+              "apiVersion": "2023-01-01-preview",
+              "name": "[parameters('namespaceName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "sku": {
+                "name": "[parameters('skuName')]",
+                "tier": "[parameters('skuName')]"
+              },
+              "properties": {
+                "publicNetworkAccess": "Enabled",
+                "minimumTlsVersion": "1.2"
+              }
+            },
+            {
+              "type": "Microsoft.ServiceBus/namespaces/topics",
+              "apiVersion": "2023-01-01-preview",
+              "name": "[format('{0}/{1}', parameters('namespaceName'), 'contoso')]",
+              "properties": {
+                "defaultMessageTimeToLive": "P14D",
+                "requiresDuplicateDetection": true,
+                "duplicateDetectionHistoryTimeWindow": "PT10M"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.ServiceBus/namespaces', parameters('namespaceName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions",
+              "apiVersion": "2023-01-01-preview",
+              "name": "[format('{0}/{1}/{2}', parameters('namespaceName'), 'contoso', 'products')]",
+              "properties": {
+                "requiresSession": true,
+                "maxDeliveryCount": 10,
+                "lockDuration": "PT5M",
+                "deadLetteringOnMessageExpiration": true
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.ServiceBus/namespaces/topics', parameters('namespaceName'), 'contoso')]"
+              ]
+            },
+            {
+              "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions",
+              "apiVersion": "2023-01-01-preview",
+              "name": "[format('{0}/{1}/{2}', parameters('namespaceName'), 'contoso', 'shopping')]",
+              "properties": {
+                "requiresSession": true,
+                "maxDeliveryCount": 10,
+                "lockDuration": "PT5M",
+                "deadLetteringOnMessageExpiration": true
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.ServiceBus/namespaces/topics', parameters('namespaceName'), 'contoso')]"
+              ]
+            },
+            {
+              "type": "Microsoft.ServiceBus/namespaces/AuthorizationRules",
+              "apiVersion": "2023-01-01-preview",
+              "name": "[format('{0}/{1}', parameters('namespaceName'), 'app')]",
+              "properties": {
+                "rights": [
+                  "Listen",
+                  "Send",
+                  "Manage"
+                ]
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.ServiceBus/namespaces', parameters('namespaceName'))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "namespaceName": {
+              "type": "string",
+              "value": "[parameters('namespaceName')]"
+            },
+            "id": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.ServiceBus/namespaces', parameters('namespaceName'))]"
+            },
+            "topicName": {
+              "type": "string",
+              "value": "contoso"
+            },
+            "productsSubscriptionName": {
+              "type": "string",
+              "value": "products"
+            },
+            "shoppingSubscriptionName": {
+              "type": "string",
+              "value": "shopping"
+            },
+            "connectionString": {
+              "type": "string",
+              "value": "[listKeys(resourceId('Microsoft.ServiceBus/namespaces/AuthorizationRules', parameters('namespaceName'), 'app'), '2023-01-01-preview').primaryConnectionString]"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "redisDeploy",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "cacheName": {
+            "value": "[format('redis-{0}-{1}', parameters('environmentType'), variables('suffix'))]"
+          },
+          "skuName": {
+            "value": "[parameters('redisSkuName')]"
+          },
+          "highAvailability": {
+            "value": "[parameters('redisHighAvailability')]"
+          },
+          "tags": {
+            "value": "[variables('mergedTags')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.43.8.12551",
+              "templateHash": "4334939735410165283"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string"
+            },
+            "cacheName": {
+              "type": "string"
+            },
+            "skuName": {
+              "type": "string"
+            },
+            "highAvailability": {
+              "type": "string",
+              "allowedValues": [
+                "Enabled",
+                "Disabled"
+              ]
+            },
+            "tags": {
+              "type": "object",
+              "defaultValue": {}
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Cache/redisEnterprise",
+              "apiVersion": "2025-07-01",
+              "name": "[parameters('cacheName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "sku": {
+                "name": "[parameters('skuName')]"
+              },
+              "properties": {
+                "highAvailability": "[parameters('highAvailability')]",
+                "minimumTlsVersion": "1.2",
+                "publicNetworkAccess": "Enabled",
+                "encryption": {}
+              }
+            },
+            {
+              "type": "Microsoft.Cache/redisEnterprise/databases",
+              "apiVersion": "2025-04-01",
+              "name": "[format('{0}/{1}', parameters('cacheName'), 'default')]",
+              "properties": {
+                "clientProtocol": "Encrypted",
+                "clusteringPolicy": "OSSCluster",
+                "evictionPolicy": "VolatileLRU",
+                "modules": [],
+                "port": 10000
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Cache/redisEnterprise', parameters('cacheName'))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "id": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Cache/redisEnterprise', parameters('cacheName'))]"
+            },
+            "name": {
+              "type": "string",
+              "value": "[parameters('cacheName')]"
+            },
+            "hostName": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Cache/redisEnterprise', parameters('cacheName')), '2025-07-01').hostName]"
+            },
+            "connectionString": {
+              "type": "string",
+              "value": "[format('{0}:10000,password={1},ssl=True,abortConnect=False', reference(resourceId('Microsoft.Cache/redisEnterprise', parameters('cacheName')), '2025-07-01').hostName, listKeys(resourceId('Microsoft.Cache/redisEnterprise/databases', parameters('cacheName'), 'default'), '2025-04-01').primaryKey)]"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "sqlDeploy",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "serverName": {
+            "value": "[format('sql-{0}-{1}', parameters('environmentType'), variables('suffix'))]"
+          },
+          "databaseName": {
+            "value": "[parameters('sqlDatabaseName')]"
+          },
+          "adminLogin": {
+            "value": "[parameters('sqlAdminLogin')]"
+          },
+          "adminPassword": {
+            "value": "[parameters('sqlAdminPassword')]"
+          },
+          "clientIp": {
+            "value": "[parameters('sqlFirewallClientIp')]"
+          },
+          "skuName": {
+            "value": "[parameters('sqlSkuName')]"
+          },
+          "skuTier": {
+            "value": "[parameters('sqlTier')]"
+          },
+          "minCapacity": {
+            "value": "[parameters('sqlMinCapacity')]"
+          },
+          "autoPauseDelay": {
+            "value": "[parameters('sqlAutoPauseDelay')]"
+          },
+          "tags": {
+            "value": "[variables('mergedTags')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.43.8.12551",
+              "templateHash": "12964997318502549886"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string"
+            },
+            "serverName": {
+              "type": "string"
+            },
+            "databaseName": {
+              "type": "string"
+            },
+            "adminLogin": {
+              "type": "string"
+            },
+            "adminPassword": {
+              "type": "securestring"
+            },
+            "clientIp": {
+              "type": "string",
+              "defaultValue": ""
+            },
+            "skuName": {
+              "type": "string"
+            },
+            "skuTier": {
+              "type": "string"
+            },
+            "minCapacity": {
+              "type": "string"
+            },
+            "autoPauseDelay": {
+              "type": "int"
+            },
+            "tags": {
+              "type": "object",
+              "defaultValue": {}
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Sql/servers",
+              "apiVersion": "2023-08-01-preview",
+              "name": "[parameters('serverName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "administratorLogin": "[parameters('adminLogin')]",
+                "administratorLoginPassword": "[parameters('adminPassword')]",
+                "version": "12.0",
+                "publicNetworkAccess": "Enabled",
+                "minimalTlsVersion": "1.2"
+              }
+            },
+            {
+              "type": "Microsoft.Sql/servers/firewallRules",
+              "apiVersion": "2023-08-01-preview",
+              "name": "[format('{0}/{1}', parameters('serverName'), 'AllowAzureServices')]",
+              "properties": {
+                "startIpAddress": "0.0.0.0",
+                "endIpAddress": "0.0.0.0"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Sql/servers', parameters('serverName'))]"
+              ]
+            },
+            {
+              "condition": "[not(empty(parameters('clientIp')))]",
+              "type": "Microsoft.Sql/servers/firewallRules",
+              "apiVersion": "2023-08-01-preview",
+              "name": "[format('{0}/{1}', parameters('serverName'), format('AllowCurrentRunner-{0}', replace(parameters('clientIp'), '.', '-')))]",
+              "properties": {
+                "startIpAddress": "[parameters('clientIp')]",
+                "endIpAddress": "[parameters('clientIp')]"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Sql/servers', parameters('serverName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Sql/servers/databases",
+              "apiVersion": "2023-08-01-preview",
+              "name": "[format('{0}/{1}', parameters('serverName'), parameters('databaseName'))]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "sku": {
+                "name": "[parameters('skuName')]",
+                "tier": "[parameters('skuTier')]"
+              },
+              "properties": {
+                "collation": "SQL_Latin1_General_CP1_CI_AS",
+                "minCapacity": "[json(parameters('minCapacity'))]",
+                "autoPauseDelay": "[parameters('autoPauseDelay')]"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Sql/servers', parameters('serverName'))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "serverName": {
+              "type": "string",
+              "value": "[parameters('serverName')]"
+            },
+            "databaseName": {
+              "type": "string",
+              "value": "[parameters('databaseName')]"
+            },
+            "fullyQualifiedDomainName": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Sql/servers', parameters('serverName')), '2023-08-01-preview').fullyQualifiedDomainName]"
+            },
+            "connectionString": {
+              "type": "string",
+              "value": "[format('Data Source=tcp:{0},1433;Initial Catalog={1};User id={2};Password={3};Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;', reference(resourceId('Microsoft.Sql/servers', parameters('serverName')), '2023-08-01-preview').fullyQualifiedDomainName, parameters('databaseName'), parameters('adminLogin'), parameters('adminPassword'))]"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "postgresDeploy",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "serverName": {
+            "value": "[format('pg-{0}-{1}', parameters('environmentType'), variables('suffix'))]"
+          },
+          "databaseName": {
+            "value": "[parameters('postgresDatabaseName')]"
+          },
+          "adminLogin": {
+            "value": "[parameters('postgresAdminLogin')]"
+          },
+          "adminPassword": {
+            "value": "[parameters('postgresAdminPassword')]"
+          },
+          "clientIp": {
+            "value": "[parameters('postgresFirewallClientIp')]"
+          },
+          "skuName": {
+            "value": "[parameters('postgresSkuName')]"
+          },
+          "skuTier": {
+            "value": "[parameters('postgresSkuTier')]"
+          },
+          "version": {
+            "value": "[parameters('postgresVersion')]"
+          },
+          "storageSizeGb": {
+            "value": "[parameters('postgresStorageSizeGb')]"
+          },
+          "tags": {
+            "value": "[variables('mergedTags')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.43.8.12551",
+              "templateHash": "17061784073968427037"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string"
+            },
+            "serverName": {
+              "type": "string"
+            },
+            "databaseName": {
+              "type": "string"
+            },
+            "adminLogin": {
+              "type": "string"
+            },
+            "adminPassword": {
+              "type": "securestring"
+            },
+            "clientIp": {
+              "type": "string",
+              "defaultValue": ""
+            },
+            "skuName": {
+              "type": "string"
+            },
+            "skuTier": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            },
+            "storageSizeGb": {
+              "type": "int"
+            },
+            "tags": {
+              "type": "object",
+              "defaultValue": {}
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.DBforPostgreSQL/flexibleServers",
+              "apiVersion": "2023-12-01-preview",
+              "name": "[parameters('serverName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "sku": {
+                "name": "[parameters('skuName')]",
+                "tier": "[parameters('skuTier')]"
+              },
+              "properties": {
+                "administratorLogin": "[parameters('adminLogin')]",
+                "administratorLoginPassword": "[parameters('adminPassword')]",
+                "version": "[parameters('version')]",
+                "publicNetworkAccess": "Enabled",
+                "storage": {
+                  "storageSizeGB": "[parameters('storageSizeGb')]"
+                },
+                "highAvailability": {
+                  "mode": "Disabled"
+                },
+                "backup": {
+                  "backupRetentionDays": 7,
+                  "geoRedundantBackup": "Disabled"
+                }
+              }
+            },
+            {
+              "type": "Microsoft.DBforPostgreSQL/flexibleServers/firewallRules",
+              "apiVersion": "2023-12-01-preview",
+              "name": "[format('{0}/{1}', parameters('serverName'), 'AllowAzureServices')]",
+              "properties": {
+                "startIpAddress": "0.0.0.0",
+                "endIpAddress": "0.0.0.0"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.DBforPostgreSQL/flexibleServers', parameters('serverName'))]"
+              ]
+            },
+            {
+              "condition": "[not(empty(parameters('clientIp')))]",
+              "type": "Microsoft.DBforPostgreSQL/flexibleServers/firewallRules",
+              "apiVersion": "2023-12-01-preview",
+              "name": "[format('{0}/{1}', parameters('serverName'), format('AllowCurrentRunner-{0}', replace(parameters('clientIp'), '.', '-')))]",
+              "properties": {
+                "startIpAddress": "[parameters('clientIp')]",
+                "endIpAddress": "[parameters('clientIp')]"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.DBforPostgreSQL/flexibleServers', parameters('serverName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.DBforPostgreSQL/flexibleServers/databases",
+              "apiVersion": "2023-12-01-preview",
+              "name": "[format('{0}/{1}', parameters('serverName'), parameters('databaseName'))]",
+              "properties": {
+                "charset": "UTF8",
+                "collation": "en_US.utf8"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.DBforPostgreSQL/flexibleServers', parameters('serverName'))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "serverName": {
+              "type": "string",
+              "value": "[parameters('serverName')]"
+            },
+            "databaseName": {
+              "type": "string",
+              "value": "[parameters('databaseName')]"
+            },
+            "fullyQualifiedDomainName": {
+              "type": "string",
+              "value": "[format('{0}.postgres.database.azure.com', parameters('serverName'))]"
+            },
+            "connectionString": {
+              "type": "string",
+              "value": "[format('Server={0}.postgres.database.azure.com;Port=5432;Database={1};User Id={2};Password={3};Ssl Mode=Require;', parameters('serverName'), parameters('databaseName'), parameters('adminLogin'), parameters('adminPassword'))]"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "appServicesDeploy",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "appServicePlanId": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'appServicePlanDeploy'), '2025-04-01').outputs.id.value]"
+          },
+          "appServiceLinuxFxVersion": {
+            "value": "[parameters('appServiceLinuxFxVersion')]"
+          },
+          "environmentType": {
+            "value": "[parameters('environmentType')]"
+          },
+          "suffix": {
+            "value": "[variables('suffix')]"
+          },
+          "tags": {
+            "value": "[variables('mergedTags')]"
+          },
+          "appInsightsConnectionString": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'appInsightsDeploy'), '2025-04-01').outputs.connectionString.value]"
+          },
+          "appInsightsResourceId": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'appInsightsDeploy'), '2025-04-01').outputs.id.value]"
+          },
+          "appInsightsInstrumentationKey": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'appInsightsDeploy'), '2025-04-01').outputs.instrumentationKey.value]"
+          },
+          "sqlConnectionString": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'sqlDeploy'), '2025-04-01').outputs.connectionString.value]"
+          },
+          "postgresConnectionString": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'postgresDeploy'), '2025-04-01').outputs.connectionString.value]"
+          },
+          "serviceBusConnectionString": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'serviceBusDeploy'), '2025-04-01').outputs.connectionString.value]"
+          },
+          "redisConnectionString": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'redisDeploy'), '2025-04-01').outputs.connectionString.value]"
+          },
+          "otlpHttpEndpoint": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'aspireDashboardDeploy'), '2025-04-01').outputs.otlpHttpEndpoint.value]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.43.8.12551",
+              "templateHash": "3293862563743385029"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string"
+            },
+            "appServicePlanId": {
+              "type": "string"
+            },
+            "appServiceLinuxFxVersion": {
+              "type": "string"
+            },
+            "environmentType": {
+              "type": "string"
+            },
+            "suffix": {
+              "type": "string"
+            },
+            "tags": {
+              "type": "object",
+              "defaultValue": {}
+            },
+            "appInsightsConnectionString": {
+              "type": "string"
+            },
+            "appInsightsResourceId": {
+              "type": "string"
+            },
+            "appInsightsInstrumentationKey": {
+              "type": "string"
+            },
+            "sqlConnectionString": {
+              "type": "string"
+            },
+            "postgresConnectionString": {
+              "type": "string"
+            },
+            "serviceBusConnectionString": {
+              "type": "string"
+            },
+            "redisConnectionString": {
+              "type": "string"
+            },
+            "otlpHttpEndpoint": {
+              "type": "string"
+            }
+          },
+          "variables": {
+            "sharedAppSettings": [
+              {
+                "name": "ASPNETCORE_ENVIRONMENT",
+                "value": "Development"
+              },
+              {
+                "name": "APPLICATIONINSIGHTS_CONNECTION_STRING",
+                "value": "[parameters('appInsightsConnectionString')]"
+              },
+              {
+                "name": "APPINSIGHTS_INSTRUMENTATIONKEY",
+                "value": "[parameters('appInsightsInstrumentationKey')]"
+              },
+              {
+                "name": "ApplicationInsightsAgent_EXTENSION_VERSION",
+                "value": "~3"
+              },
+              {
+                "name": "XDT_MicrosoftApplicationInsights_Mode",
+                "value": "recommended"
+              },
+              {
+                "name": "XDT_MicrosoftApplicationInsights_PreemptSdk",
+                "value": "disabled"
+              },
+              {
+                "name": "DiagnosticServices_EXTENSION_VERSION",
+                "value": "~3"
+              },
+              {
+                "name": "APPINSIGHTS_PROFILERFEATURE_VERSION",
+                "value": "1.0.0"
+              },
+              {
+                "name": "APPINSIGHTS_SNAPSHOTFEATURE_VERSION",
+                "value": "1.0.0"
+              },
+              {
+                "name": "Aspire__StackExchange__Redis__ConnectionString",
+                "value": "[parameters('redisConnectionString')]"
+              },
+              {
+                "name": "Aspire__Azure__Messaging__ServiceBus__ConnectionString",
+                "value": "[parameters('serviceBusConnectionString')]"
+              },
+              {
+                "name": "OTEL_EXPORTER_OTLP_PROTOCOL",
+                "value": "http/protobuf"
+              },
+              {
+                "name": "OTEL_EXPORTER_OTLP_ENDPOINT",
+                "value": "[parameters('otlpHttpEndpoint')]"
+              }
+            ],
+            "sqlDbAppSettings": [
+              {
+                "name": "Aspire__Microsoft__Data__SqlClient__ConnectionString",
+                "value": "[parameters('sqlConnectionString')]"
+              }
+            ],
+            "postgresDbAppSettings": [
+              {
+                "name": "Aspire__Npgsql__ConnectionString",
+                "value": "[parameters('postgresConnectionString')]"
+              }
+            ]
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Web/sites",
+              "apiVersion": "2023-12-01",
+              "name": "[format('app-products-api-{0}-{1}', parameters('environmentType'), parameters('suffix'))]",
+              "location": "[parameters('location')]",
+              "tags": "[union(parameters('tags'), createObject('azd-service-name', 'products-api', 'hidden-link: /app-insights-resource-id', parameters('appInsightsResourceId')))]",
+              "kind": "app,linux",
+              "identity": {
+                "type": "SystemAssigned"
+              },
+              "properties": {
+                "serverFarmId": "[parameters('appServicePlanId')]",
+                "httpsOnly": true,
+                "sshEnabled": false,
+                "endToEndEncryptionEnabled": true,
+                "siteConfig": {
+                  "linuxFxVersion": "[parameters('appServiceLinuxFxVersion')]",
+                  "minTlsVersion": "1.3",
+                  "minTlsCipherSuite": "TLS_AES_256_GCM_SHA384",
+                  "scmMinTlsVersion": "1.3",
+                  "netFrameworkVersion": "",
+                  "ftpsState": "Disabled",
+                  "http20Enabled": true,
+                  "alwaysOn": true,
+                  "appSettings": "[concat(variables('sharedAppSettings'), variables('postgresDbAppSettings'))]"
+                }
+              }
+            },
+            {
+              "type": "Microsoft.Web/sites",
+              "apiVersion": "2023-12-01",
+              "name": "[format('app-shopping-api-{0}-{1}', parameters('environmentType'), parameters('suffix'))]",
+              "location": "[parameters('location')]",
+              "tags": "[union(parameters('tags'), createObject('azd-service-name', 'shopping-api', 'hidden-link: /app-insights-resource-id', parameters('appInsightsResourceId')))]",
+              "kind": "app,linux",
+              "identity": {
+                "type": "SystemAssigned"
+              },
+              "properties": {
+                "serverFarmId": "[parameters('appServicePlanId')]",
+                "httpsOnly": true,
+                "sshEnabled": false,
+                "endToEndEncryptionEnabled": true,
+                "siteConfig": {
+                  "linuxFxVersion": "[parameters('appServiceLinuxFxVersion')]",
+                  "minTlsVersion": "1.3",
+                  "minTlsCipherSuite": "TLS_AES_256_GCM_SHA384",
+                  "scmMinTlsVersion": "1.3",
+                  "netFrameworkVersion": "",
+                  "ftpsState": "Disabled",
+                  "http20Enabled": true,
+                  "alwaysOn": true,
+                  "appSettings": "[concat(variables('sharedAppSettings'), variables('sqlDbAppSettings'), createArray(createObject('name', 'ProductsApi__BaseAddress', 'value', format('https://{0}', reference(resourceId('Microsoft.Web/sites', format('app-products-api-{0}-{1}', parameters('environmentType'), parameters('suffix'))), '2023-12-01').defaultHostName))))]"
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Web/sites', format('app-products-api-{0}-{1}', parameters('environmentType'), parameters('suffix')))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Web/sites",
+              "apiVersion": "2023-12-01",
+              "name": "[format('app-products-outbox-relay-{0}-{1}', parameters('environmentType'), parameters('suffix'))]",
+              "location": "[parameters('location')]",
+              "tags": "[union(parameters('tags'), createObject('azd-service-name', 'products-outbox-relay', 'hidden-link: /app-insights-resource-id', parameters('appInsightsResourceId')))]",
+              "kind": "app,linux",
+              "identity": {
+                "type": "SystemAssigned"
+              },
+              "properties": {
+                "serverFarmId": "[parameters('appServicePlanId')]",
+                "httpsOnly": true,
+                "sshEnabled": false,
+                "endToEndEncryptionEnabled": true,
+                "siteConfig": {
+                  "linuxFxVersion": "[parameters('appServiceLinuxFxVersion')]",
+                  "minTlsVersion": "1.3",
+                  "minTlsCipherSuite": "TLS_AES_256_GCM_SHA384",
+                  "scmMinTlsVersion": "1.3",
+                  "netFrameworkVersion": "",
+                  "ftpsState": "Disabled",
+                  "http20Enabled": true,
+                  "alwaysOn": true,
+                  "appSettings": "[concat(variables('sharedAppSettings'), variables('postgresDbAppSettings'))]"
+                }
+              }
+            },
+            {
+              "type": "Microsoft.Web/sites",
+              "apiVersion": "2023-12-01",
+              "name": "[format('app-shopping-outbox-relay-{0}-{1}', parameters('environmentType'), parameters('suffix'))]",
+              "location": "[parameters('location')]",
+              "tags": "[union(parameters('tags'), createObject('azd-service-name', 'shopping-outbox-relay', 'hidden-link: /app-insights-resource-id', parameters('appInsightsResourceId')))]",
+              "kind": "app,linux",
+              "identity": {
+                "type": "SystemAssigned"
+              },
+              "properties": {
+                "serverFarmId": "[parameters('appServicePlanId')]",
+                "httpsOnly": true,
+                "sshEnabled": false,
+                "endToEndEncryptionEnabled": true,
+                "siteConfig": {
+                  "linuxFxVersion": "[parameters('appServiceLinuxFxVersion')]",
+                  "minTlsVersion": "1.3",
+                  "minTlsCipherSuite": "TLS_AES_256_GCM_SHA384",
+                  "scmMinTlsVersion": "1.3",
+                  "netFrameworkVersion": "",
+                  "ftpsState": "Disabled",
+                  "http20Enabled": true,
+                  "alwaysOn": true,
+                  "appSettings": "[concat(variables('sharedAppSettings'), variables('sqlDbAppSettings'))]"
+                }
+              }
+            },
+            {
+              "type": "Microsoft.Web/sites",
+              "apiVersion": "2023-12-01",
+              "name": "[format('app-products-subscribe-{0}-{1}', parameters('environmentType'), parameters('suffix'))]",
+              "location": "[parameters('location')]",
+              "tags": "[union(parameters('tags'), createObject('azd-service-name', 'products-subscribe', 'hidden-link: /app-insights-resource-id', parameters('appInsightsResourceId')))]",
+              "kind": "app,linux",
+              "identity": {
+                "type": "SystemAssigned"
+              },
+              "properties": {
+                "serverFarmId": "[parameters('appServicePlanId')]",
+                "httpsOnly": true,
+                "sshEnabled": false,
+                "endToEndEncryptionEnabled": true,
+                "siteConfig": {
+                  "linuxFxVersion": "[parameters('appServiceLinuxFxVersion')]",
+                  "minTlsVersion": "1.3",
+                  "minTlsCipherSuite": "TLS_AES_256_GCM_SHA384",
+                  "scmMinTlsVersion": "1.3",
+                  "netFrameworkVersion": "",
+                  "ftpsState": "Disabled",
+                  "http20Enabled": true,
+                  "alwaysOn": true,
+                  "appSettings": "[concat(variables('sharedAppSettings'), variables('postgresDbAppSettings'))]"
+                }
+              }
+            },
+            {
+              "type": "Microsoft.Web/sites",
+              "apiVersion": "2023-12-01",
+              "name": "[format('app-shopping-subscribe-{0}-{1}', parameters('environmentType'), parameters('suffix'))]",
+              "location": "[parameters('location')]",
+              "tags": "[union(parameters('tags'), createObject('azd-service-name', 'shopping-subscribe', 'hidden-link: /app-insights-resource-id', parameters('appInsightsResourceId')))]",
+              "kind": "app,linux",
+              "identity": {
+                "type": "SystemAssigned"
+              },
+              "properties": {
+                "serverFarmId": "[parameters('appServicePlanId')]",
+                "httpsOnly": true,
+                "sshEnabled": false,
+                "endToEndEncryptionEnabled": true,
+                "siteConfig": {
+                  "linuxFxVersion": "[parameters('appServiceLinuxFxVersion')]",
+                  "minTlsVersion": "1.3",
+                  "minTlsCipherSuite": "TLS_AES_256_GCM_SHA384",
+                  "scmMinTlsVersion": "1.3",
+                  "netFrameworkVersion": "",
+                  "ftpsState": "Disabled",
+                  "http20Enabled": true,
+                  "alwaysOn": true,
+                  "appSettings": "[concat(variables('sharedAppSettings'), variables('sqlDbAppSettings'))]"
+                }
+              }
+            }
+          ],
+          "outputs": {
+            "productsApiName": {
+              "type": "string",
+              "value": "[format('app-products-api-{0}-{1}', parameters('environmentType'), parameters('suffix'))]"
+            },
+            "shoppingApiName": {
+              "type": "string",
+              "value": "[format('app-shopping-api-{0}-{1}', parameters('environmentType'), parameters('suffix'))]"
+            },
+            "productsOutboxRelayName": {
+              "type": "string",
+              "value": "[format('app-products-outbox-relay-{0}-{1}', parameters('environmentType'), parameters('suffix'))]"
+            },
+            "shoppingOutboxRelayName": {
+              "type": "string",
+              "value": "[format('app-shopping-outbox-relay-{0}-{1}', parameters('environmentType'), parameters('suffix'))]"
+            },
+            "productsSubscribeName": {
+              "type": "string",
+              "value": "[format('app-products-subscribe-{0}-{1}', parameters('environmentType'), parameters('suffix'))]"
+            },
+            "shoppingSubscribeName": {
+              "type": "string",
+              "value": "[format('app-shopping-subscribe-{0}-{1}', parameters('environmentType'), parameters('suffix'))]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments', 'appInsightsDeploy')]",
+        "[resourceId('Microsoft.Resources/deployments', 'appServicePlanDeploy')]",
+        "[resourceId('Microsoft.Resources/deployments', 'aspireDashboardDeploy')]",
+        "[resourceId('Microsoft.Resources/deployments', 'postgresDeploy')]",
+        "[resourceId('Microsoft.Resources/deployments', 'redisDeploy')]",
+        "[resourceId('Microsoft.Resources/deployments', 'serviceBusDeploy')]",
+        "[resourceId('Microsoft.Resources/deployments', 'sqlDeploy')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "aspireDashboardDeploy",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "appServicePlanId": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'appServicePlanDeploy'), '2025-04-01').outputs.id.value]"
+          },
+          "environmentType": {
+            "value": "[parameters('environmentType')]"
+          },
+          "suffix": {
+            "value": "[variables('suffix')]"
+          },
+          "tags": {
+            "value": "[variables('mergedTags')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.43.8.12551",
+              "templateHash": "11051920204948211246"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string"
+            },
+            "appServicePlanId": {
+              "type": "string"
+            },
+            "environmentType": {
+              "type": "string"
+            },
+            "suffix": {
+              "type": "string"
+            },
+            "tags": {
+              "type": "object",
+              "defaultValue": {}
+            }
+          },
+          "variables": {
+            "dashboardName": "[format('app-aspire-dashboard-{0}-{1}', parameters('environmentType'), parameters('suffix'))]"
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Web/sites",
+              "apiVersion": "2023-12-01",
+              "name": "[variables('dashboardName')]",
+              "location": "[parameters('location')]",
+              "tags": "[union(parameters('tags'), createObject('role', 'aspire-dashboard'))]",
+              "kind": "app,linux,container",
+              "properties": {
+                "serverFarmId": "[parameters('appServicePlanId')]",
+                "httpsOnly": true,
+                "siteConfig": {
+                  "linuxFxVersion": "DOCKER|mcr.microsoft.com/dotnet/aspire-dashboard:latest",
+                  "ftpsState": "Disabled",
+                  "alwaysOn": true,
+                  "http20Enabled": true,
+                  "appSettings": [
+                    {
+                      "name": "WEBSITES_PORT",
+                      "value": "18888"
+                    },
+                    {
+                      "name": "ASPNETCORE_URLS",
+                      "value": "http://0.0.0.0:18888"
+                    },
+                    {
+                      "name": "ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL",
+                      "value": "http://0.0.0.0:18889"
+                    },
+                    {
+                      "name": "ASPIRE_DASHBOARD_OTLP_HTTP_ENDPOINT_URL",
+                      "value": "http://0.0.0.0:18888"
+                    },
+                    {
+                      "name": "DASHBOARD__UI__DISABLERESOURCEGRAPH",
+                      "value": "true"
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "outputs": {
+            "id": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Web/sites', variables('dashboardName'))]"
+            },
+            "appName": {
+              "type": "string",
+              "value": "[variables('dashboardName')]"
+            },
+            "dashboardUri": {
+              "type": "string",
+              "value": "[format('https://{0}', reference(resourceId('Microsoft.Web/sites', variables('dashboardName')), '2023-12-01').defaultHostName)]"
+            },
+            "otlpGrpcEndpoint": {
+              "type": "string",
+              "value": "[format('https://{0}', reference(resourceId('Microsoft.Web/sites', variables('dashboardName')), '2023-12-01').defaultHostName)]"
+            },
+            "otlpHttpEndpoint": {
+              "type": "string",
+              "value": "[format('https://{0}', reference(resourceId('Microsoft.Web/sites', variables('dashboardName')), '2023-12-01').defaultHostName)]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments', 'appServicePlanDeploy')]"
+      ]
+    }
+  ],
+  "outputs": {
+    "appServicePlanName": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'appServicePlanDeploy'), '2025-04-01').outputs.name.value]"
+    },
+    "appInsightsConnectionString": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'appInsightsDeploy'), '2025-04-01').outputs.connectionString.value]"
+    },
+    "keyVaultName": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'keyVaultDeploy'), '2025-04-01').outputs.name.value]"
+    },
+    "serviceBusNamespaceName": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'serviceBusDeploy'), '2025-04-01').outputs.namespaceName.value]"
+    },
+    "redisHostName": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'redisDeploy'), '2025-04-01').outputs.hostName.value]"
+    },
+    "sqlServerName": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'sqlDeploy'), '2025-04-01').outputs.serverName.value]"
+    },
+    "sqlDatabaseName": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'sqlDeploy'), '2025-04-01').outputs.databaseName.value]"
+    },
+    "postgresServerName": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'postgresDeploy'), '2025-04-01').outputs.serverName.value]"
+    },
+    "postgresDatabaseName": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'postgresDeploy'), '2025-04-01').outputs.databaseName.value]"
+    },
+    "productsApiAppName": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'appServicesDeploy'), '2025-04-01').outputs.productsApiName.value]"
+    },
+    "shoppingApiAppName": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'appServicesDeploy'), '2025-04-01').outputs.shoppingApiName.value]"
+    },
+    "productsOutboxRelayAppName": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'appServicesDeploy'), '2025-04-01').outputs.productsOutboxRelayName.value]"
+    },
+    "shoppingOutboxRelayAppName": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'appServicesDeploy'), '2025-04-01').outputs.shoppingOutboxRelayName.value]"
+    },
+    "productsSubscribeAppName": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'appServicesDeploy'), '2025-04-01').outputs.productsSubscribeName.value]"
+    },
+    "shoppingSubscribeAppName": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'appServicesDeploy'), '2025-04-01').outputs.shoppingSubscribeName.value]"
+    },
+    "aspireDashboardAppName": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'aspireDashboardDeploy'), '2025-04-01').outputs.appName.value]"
+    },
+    "aspireDashboardUri": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'aspireDashboardDeploy'), '2025-04-01').outputs.dashboardUri.value]"
+    },
+    "aspireDashboardOtlpGrpcEndpoint": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'aspireDashboardDeploy'), '2025-04-01').outputs.otlpGrpcEndpoint.value]"
+    }
+  }
+}

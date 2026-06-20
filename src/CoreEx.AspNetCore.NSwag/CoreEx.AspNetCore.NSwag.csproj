@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Title>CoreEx NSwag .NET extensions.</Title>
+    <Description>Core .NET extensions and abstractions for the development of backend web-api services.</Description>
+    <PackageTags>coreex microservices domain-based event-driven railway-oriented reference-data nswag aspnet webapi swagger</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+    <PackageReference Include="NSwag.AspNetCore" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CoreEx.AspNetCore\CoreEx.AspNetCore.csproj" />
+    <ProjectReference Include="..\CoreEx\CoreEx.csproj" />
+  </ItemGroup>
+</Project>

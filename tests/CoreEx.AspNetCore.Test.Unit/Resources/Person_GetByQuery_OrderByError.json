@@ -1,0 +1,86 @@
+{
+  "type": "https://tools.ietf.org/html/rfc9110#section-15.5.1",
+  "title": "A query order-by parsing error occurred.",
+  "status": 400,
+  "errors": {
+    "$orderby": [
+      "Field \u0027eyecolor\u0027 is not supported."
+    ]
+  },
+  "errorType": "validation",
+  "traceId": "00-6327ec26f7f53f956ef1a9c13f3ef61c-82a2c15e80731f97-01",
+  "schema": {
+    "filter": {
+      "fields": {
+        "firstname": {
+          "type": "string",
+          "operators": [
+            "eq",
+            "ne",
+            "lt",
+            "le",
+            "ge",
+            "gt",
+            "in",
+            "startswith",
+            "contains",
+            "endswith"
+          ]
+        },
+        "lastname": {
+          "type": "string",
+          "operators": [
+            "eq",
+            "ne",
+            "lt",
+            "le",
+            "ge",
+            "gt",
+            "in",
+            "startswith",
+            "contains",
+            "endswith"
+          ]
+        },
+        "birthday": {
+          "type": "string",
+          "format": "date",
+          "operators": [
+            "eq",
+            "ne",
+            "lt",
+            "le",
+            "ge",
+            "gt",
+            "in"
+          ]
+        },
+        "gender": {
+          "type": "string",
+          "operators": [
+            "eq",
+            "ne",
+            "in"
+          ]
+        }
+      }
+    },
+    "orderby": {
+      "fields": {
+        "lastname": {
+          "direction": [
+            "asc",
+            "desc"
+          ]
+        },
+        "firstname": {
+          "direction": [
+            "asc",
+            "desc"
+          ]
+        }
+      },
+      "default": "lastname asc, firstname asc"
+    }
+  }
+}
