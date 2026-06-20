@@ -22,7 +22,7 @@ public class Program
         builder.Services
             .AddPrecisionTimeProvider()
             .AddExecutionContext()
-            .AddReferenceDataOrchestrator<ReferenceDataService>()
+            .AddReferenceDataOrchestrator()
             .AddMvcWebApi()
             .AddHttpWebApi();
 

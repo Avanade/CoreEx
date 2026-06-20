@@ -9,7 +9,7 @@
 namespace Contoso.Shopping.Application;
 
 /// <summary>Provides the <see cref="IReferenceDataProvider"/> implementation.</summary>
-[ScopedService]
+[ScopedService<IReferenceDataProvider>]
 public partial class ReferenceDataService(IReferenceDataRepository repository) : IReferenceDataProvider
 {
     private readonly IReferenceDataRepository _repository = repository.ThrowIfNull();
