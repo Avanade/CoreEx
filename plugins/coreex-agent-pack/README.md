@@ -2,6 +2,19 @@
 
 This plugin packages CoreEx Copilot assets (agents and skills), including onboarding templates used by `coreex-onboard`.
 
+## Published vs internal skills
+
+This plugin intentionally publishes only external-facing skills:
+
+- `coreex-onboard`
+- `solution-scaffolder`
+
+The following skills are internal-only and are not published in this plugin package:
+
+- `acquire-codebase-knowledge`
+- `aspire`
+- `coreex-docs-sync`
+
 ## Source of truth
 
 The canonical CoreEx instruction files remain in the repository root under:
