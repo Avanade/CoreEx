@@ -8,7 +8,7 @@
 
 | Short name | Template | Emits |
 |---|---|---|
-| `coreex-ai` | CoreEx AI workflow assets | `.github/` instructions, prompts, and agents — run at repo root; supports `--app-folder` for monorepos |
+| `coreex-ai` | CoreEx AI workflow assets | `.github/` instructions, prompts, and agents + `.claude/` commands — run at repo root; supports `--app-folder` for monorepos |
 | `coreex-bootstrap` | CoreEx AI-ready bootstrap repository | Minimal repository shell + full packaged AI workflow assets for `/coreex-scaffold` |
 | `coreex` | CoreEx domain-based microservice application | Solution scaffold: `src/` libraries + `tools/` projects + `tests/` (Test.Common + Test.Unit) |
 | `coreex-api` | CoreEx API host | `src/[name].Api/` host project + `tests/[solution].Test.Api/` integration test project |
@@ -43,12 +43,14 @@ dotnet new uninstall CoreEx.Template
 
 ## AI-Guided Scaffolding
 
-`coreex-ai` is the primary way to install CoreEx AI workflow assets into any repository. It outputs only `.github/` artefacts and is intentionally decoupled from the implementation scaffolding:
+`coreex-ai` is the primary way to install CoreEx AI workflow assets into any repository. It outputs only `.github/` and `.claude/` artefacts and is intentionally decoupled from the implementation scaffolding:
 
 - `.github/instructions/coreex.instructions.md` -- CoreEx coding context (replaces `copilot-instructions.md`)
 - `.github/instructions/*.instructions.md` -- scoped coding conventions per layer/file type
 - `.github/prompts/coreex-scaffold.prompt.md` -- `/coreex-scaffold`: interviews for project needs and recommends the smallest safe `dotnet new coreex*` command set
 - `.github/agents/coreex-expert.agent.md` -- `/coreex-expert`: architecture guidance
+- `.claude/commands/coreex-expert.md` -- `/coreex-expert` for Claude Code
+- `.claude/commands/coreex-docs-sync.md` -- `/coreex-docs-sync`: refresh the local CoreEx doc cache after a version bump
 
 **Recommended day-1 workflow:**
 
@@ -106,7 +108,7 @@ For the **solution template** (`coreex`) the name is the three-part solution roo
 
 Installs CoreEx AI workflow assets into any repository. **Always run from the repo root** — this is where `.github/` must land for GitHub Copilot to read it.
 
-Unlike `coreex-bootstrap`, this template emits nothing but `.github/` artefacts: no `AGENTS.md`, no `README.md`, no implementation scaffolding. It is safe to run against an existing repository.
+Unlike `coreex-bootstrap`, this template emits nothing but `.github/` and `.claude/` artefacts: no `AGENTS.md`, no `README.md`, no implementation scaffolding. It is safe to run against an existing repository.
 
 ### Parameters
 
@@ -135,6 +137,10 @@ Unlike `coreex-bootstrap`, this template emits nothing but `.github/` artefacts:
     coreex-scaffold.prompt.md
   agents/
     coreex-expert.agent.md
+.claude/
+  commands/
+    coreex-expert.md               # /coreex-expert architecture guidance command
+    coreex-docs-sync.md            # /coreex-docs-sync doc cache refresh command
 ```
 
 ### `--app-folder` behaviour
