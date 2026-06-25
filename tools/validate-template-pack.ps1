@@ -348,7 +348,7 @@ try {
     Write-Header "Building CoreEx.Template package"
     if (-not $NoRebuild) {
         Push-Location $templateProjectPath
-        dotnet pack -c Release --nologo
+        dotnet pack -c Release --nologo -v:normal
         if ($LASTEXITCODE -ne 0) { throw "Failed to pack CoreEx.Template" }
         Pop-Location
         Write-Pass "Template packed successfully"
