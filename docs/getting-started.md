@@ -55,7 +55,7 @@ dotnet new list --tag CoreEx
 
 ## 3. Install AI workflow assets
 
-Run `dotnet new coreex-ai` from inside your solution folder. This installs CoreEx AI instructions, prompts, and agents into `.github/` so your AI tooling has full CoreEx context from the start:
+Run `dotnet new coreex-ai` from the **repo root**. This installs CoreEx AI instructions, prompts, and agents into `.github/` so your AI tooling has full CoreEx context from the start:
 
 ```bash
 dotnet new coreex-ai

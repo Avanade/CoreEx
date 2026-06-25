@@ -14,7 +14,9 @@ dotnet new coreex-ai --app-folder <relative-path-from-root>
 
 Once installed, run `/coreex-scaffold` to add missing hosts or `/coreex-expert` for architecture guidance.
 
-> Re-run `dotnet new coreex-ai` (or `/coreex-docs-sync`) after bumping the CoreEx NuGet version in `Directory.Packages.props`.
+> After bumping the CoreEx NuGet version in `Directory.Packages.props`:
+> - Re-run `dotnet new coreex-ai` to update instruction and prompt files to the new version.
+> - Run `/coreex-docs-sync` to refresh the local `.github/docs/coreex/` cache.
 
 ---
 
@@ -77,7 +79,7 @@ app-name/
 
 ## Relevant Docs
 
-After running `dotnet new coreex-ai` at the repo root, the following are available:
+After running `/coreex-docs-sync` (or using `coreex-bootstrap`), the following are available locally:
 
 - `.github/docs/coreex/layers.md` -- full layered architecture and dependency rules
 - `.github/docs/coreex/patterns.md` -- CoreEx request/response and event patterns

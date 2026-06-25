@@ -66,10 +66,13 @@
               var line = rawLine.TrimEnd('\r');
               if (!transformed && line.TrimStart().StartsWith("applyTo:"))
               {
-                  // When app-folder is set, scope all instruction files to that subfolder.
-                  // When absent, preserve the original per-file applyTo pattern.
+                  // When app-folder is set, prefix the original pattern with the subfolder so each
+                  // instruction file retains its own scope (e.g. **/*Validator*.cs stays targeted).
+                  // When absent, preserve the original per-file applyTo pattern unchanged.
+                  var colonIdx = line.IndexOf(':');
+                  var originalPattern = line.Substring(colonIdx + 1).Trim().Trim('"');
                   sb.AppendLine("<!-- #if hasAppFolder -->");
-                  sb.AppendLine("applyTo: \"app-folder/**\"");
+                  sb.AppendLine("applyTo: \"app-folder/" + originalPattern + "\"");
                   sb.AppendLine("<!-- #else -->");
                   sb.AppendLine(line);
                   sb.AppendLine("<!-- #endif -->");
@@ -80,7 +83,9 @@
                   sb.AppendLine(line);
               }
           }
-          System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(DestinationFile) ?? string.Empty);
+          var destDir = System.IO.Path.GetDirectoryName(DestinationFile);
+          if (!string.IsNullOrEmpty(destDir))
+              System.IO.Directory.CreateDirectory(destDir);
           System.IO.File.WriteAllText(DestinationFile, sb.ToString());
         ]]>
       </Code>
@@ -93,7 +98,7 @@
        coreex (CoreEx.Core) no longer receives any .github/ AI assets; consumers run dotnet new coreex-ai separately.
        Files sourced for Bootstrap/Ai:
          - consumer-instructions/.github/copilot-instructions.md            → .github/copilot-instructions.md  (Bootstrap only)
-         - consumer-instructions/.github/instructions/coreex.instructions.md → .github/instructions/coreex.instructions.md (Ai only, generated from copilot-instructions.md + frontmatter)
+         - consumer-instructions/.github/copilot-instructions.md            → .github/instructions/coreex.instructions.md (Ai only, generated at pack time with frontmatter prepended)
          - .github/prompts/coreex-scaffold.prompt.md                        → .github/prompts/coreex-scaffold.prompt.md
          - .github/skills/solution-scaffolder/*                             → .github/skills/solution-scaffolder/ (Bootstrap only)
          - .github/skills/coreex-docs-sync/*                                → .github/skills/coreex-docs-sync/ (Bootstrap and Ai)
