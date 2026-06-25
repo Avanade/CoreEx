@@ -64,7 +64,7 @@ dotnet new coreex-ai
 For a **monorepo** where the CoreEx application lives in a subfolder, pass `--app-folder` to scope AI instructions to that path:
 
 ```bash
-dotnet new coreex-ai --app-folder Avanade.Hr.People
+dotnet new coreex-ai --app-folder backend
 ```
 
 ---
@@ -81,7 +81,7 @@ That's it — accept all defaults. This gives you PostgreSQL, Azure Service Bus,
 
 This emits the solution file, `src/`, `tests/`, `tools/`, `docker-compose.yml`, and config files.
 
-> **Note:** The scaffold compiles cleanly straight away — `dotnet restore` and `dotnet build` will both succeed. It is, however, an intentional empty shell: the layer structure is in place but there are no entities, no API routes, no EF mappings, and no ref-data types yet. The AI agent in step 6 is what implements your first domain entity and makes the solution functional.
+> **Note:** The scaffold compiles cleanly straight away — `dotnet restore` and `dotnet build` will both succeed. It is, however, an intentional empty shell: the layer structure is in place but there are no entities, no API routes, no EF mappings, and no ref-data types yet. The AI agent in step 7 is what implements your first domain entity and makes the solution functional.
 
 ### Available options
 

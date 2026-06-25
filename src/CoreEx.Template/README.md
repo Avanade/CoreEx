@@ -8,8 +8,8 @@
 
 | Short name | Template | Emits |
 |---|---|---|
-| `coreex-ai` | CoreEx AI workflow assets | `.github/` instructions, prompts, and agents + `.claude/` commands — run at repo root; supports `--app-folder` for monorepos |
-| `coreex-bootstrap` | CoreEx AI-ready bootstrap repository | Minimal repository shell + full packaged AI workflow assets for `/coreex-scaffold` |
+| `coreex-ai` | CoreEx AI assets | `.github/` instructions, prompts, and agents + `.claude/` commands — run at repo root; supports `--app-folder` for monorepos |
+| `coreex-bootstrap` | CoreEx AI-ready bootstrap | Minimal repository shell + full packaged AI workflow assets for `/coreex-scaffold` |
 | `coreex` | CoreEx domain-based microservice application | Solution scaffold: `src/` libraries + `tools/` projects + `tests/` (Test.Common + Test.Unit) |
 | `coreex-api` | CoreEx API host | `src/[name].Api/` host project + `tests/[solution].Test.Api/` integration test project |
 | `coreex-relay` | CoreEx Outbox Relay host | `src/[name].Relay/` host project + `tests/[solution].Test.Relay/` integration test project |
