@@ -89,13 +89,14 @@
 
   <!-- Copy packaged AI context files from the CoreEx repo into the CoreEx.Bootstrap and CoreEx.Ai templates at pack time.
        CoreEx.Bootstrap receives the full set (including copilot-instructions.md and docs) for new-empty-repo scenarios.
-       CoreEx.Ai receives instructions (transformed with app-folder conditionals), prompts, agents, and Claude commands — no copilot-instructions.md.
+       CoreEx.Ai receives instructions (transformed with app-folder conditionals), prompts, agents, Claude commands, and the coreex-docs-sync skill — no copilot-instructions.md.
        coreex (CoreEx.Core) no longer receives any .github/ AI assets; consumers run dotnet new coreex-ai separately.
        Files sourced for Bootstrap/Ai:
          - consumer-instructions/.github/copilot-instructions.md            → .github/copilot-instructions.md  (Bootstrap only)
          - consumer-instructions/.github/instructions/coreex.instructions.md → .github/instructions/coreex.instructions.md (Ai only, generated from copilot-instructions.md + frontmatter)
          - .github/prompts/coreex-scaffold.prompt.md                        → .github/prompts/coreex-scaffold.prompt.md
          - .github/skills/solution-scaffolder/*                             → .github/skills/solution-scaffolder/ (Bootstrap only)
+         - .github/skills/coreex-docs-sync/*                                → .github/skills/coreex-docs-sync/ (Bootstrap and Ai)
          - .github/agents/coreex-expert.agent.md                           → .github/agents/coreex-expert.agent.md
          - .claude/commands/coreex-expert.md                               → .claude/commands/coreex-expert.md  (Bootstrap and Ai)
          - .claude/commands/coreex-docs-sync.md                            → .claude/commands/coreex-docs-sync.md (Bootstrap and Ai)
@@ -124,6 +125,8 @@
       <_AiFile Include="$(_RepoRoot).github\skills\solution-scaffolder\assets\servicebus-config.template.json" DestSubPath=".github\skills\solution-scaffolder\assets\servicebus-config.template.json" />
       <_AiFile Include="$(_RepoRoot).github\skills\solution-scaffolder\assets\docker-compose.local.yml" DestSubPath=".github\skills\solution-scaffolder\assets\docker-compose.local.yml" />
       <_AiFile Include="$(_RepoRoot).github\skills\solution-scaffolder\references\workflow.md" DestSubPath=".github\skills\solution-scaffolder\references\workflow.md" />
+      <_AiFile Include="$(_RepoRoot).github\skills\coreex-docs-sync\SKILL.md" DestSubPath=".github\skills\coreex-docs-sync\SKILL.md" />
+      <_AiFile Include="$(_RepoRoot).github\skills\coreex-docs-sync\README.md" DestSubPath=".github\skills\coreex-docs-sync\README.md" />
       <_AiFile Include="$(_RepoRoot).github\agents\coreex-expert.agent.md" DestSubPath=".github\agents\coreex-expert.agent.md" />
       <_AiFile Include="$(_RepoRoot).claude\commands\coreex-expert.md" DestSubPath=".claude\commands\coreex-expert.md" />
       <_AiFile Include="$(_RepoRoot).claude\commands\coreex-docs-sync.md" DestSubPath=".claude\commands\coreex-docs-sync.md" />
@@ -194,8 +197,8 @@
     <InjectAppFolderConditional SourceFile="$(_RepoRoot).github\instructions\coreex-tests.instructions.md" DestinationFile="$(_AiAiGenRoot).github\instructions\coreex-tests.instructions.md" />
     <InjectAppFolderConditional SourceFile="$(_RepoRoot).github\instructions\coreex-tooling.instructions.md" DestinationFile="$(_AiAiGenRoot).github\instructions\coreex-tooling.instructions.md" />
     <InjectAppFolderConditional SourceFile="$(_RepoRoot).github\instructions\coreex-validators.instructions.md" DestinationFile="$(_AiAiGenRoot).github\instructions\coreex-validators.instructions.md" />
-    <Copy SourceFiles="$(_RepoRoot).github\prompts\coreex-scaffold.prompt.md;$(_RepoRoot).github\agents\coreex-expert.agent.md;$(_RepoRoot).claude\commands\coreex-expert.md;$(_RepoRoot).claude\commands\coreex-docs-sync.md"
-          DestinationFiles="$(_AiAiGenRoot).github\prompts\coreex-scaffold.prompt.md;$(_AiAiGenRoot).github\agents\coreex-expert.agent.md;$(_AiAiGenRoot).claude\commands\coreex-expert.md;$(_AiAiGenRoot).claude\commands\coreex-docs-sync.md"
+    <Copy SourceFiles="$(_RepoRoot).github\prompts\coreex-scaffold.prompt.md;$(_RepoRoot).github\agents\coreex-expert.agent.md;$(_RepoRoot).claude\commands\coreex-expert.md;$(_RepoRoot).claude\commands\coreex-docs-sync.md;$(_RepoRoot).github\skills\coreex-docs-sync\SKILL.md;$(_RepoRoot).github\skills\coreex-docs-sync\README.md"
+          DestinationFiles="$(_AiAiGenRoot).github\prompts\coreex-scaffold.prompt.md;$(_AiAiGenRoot).github\agents\coreex-expert.agent.md;$(_AiAiGenRoot).claude\commands\coreex-expert.md;$(_AiAiGenRoot).claude\commands\coreex-docs-sync.md;$(_AiAiGenRoot).github\skills\coreex-docs-sync\SKILL.md;$(_AiAiGenRoot).github\skills\coreex-docs-sync\README.md"
           SkipUnchangedFiles="true" />
 
     <!-- CoreEx.Ai: pack all generated files into content\CoreEx.Ai\. -->
