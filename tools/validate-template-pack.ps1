@@ -34,9 +34,10 @@ param(
 $ErrorActionPreference = "Stop"
 $VerbosePreference = "Continue"
 
-$repoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+$repoRoot = Split-Path -Parent $PSScriptRoot
 $templateProjectPath = Join-Path $repoRoot "src/CoreEx.Template"
-$temporaryTestRoot = Join-Path $repoRoot "artifacts/template-validation-test-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
+# Use a short temp path to avoid Windows 260-char MAX_PATH limit — the repo worktree path is already ~135 chars.
+$temporaryTestRoot = Join-Path ([System.IO.Path]::GetTempPath()) "cxval-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
 
 Write-Verbose "Repository root: $repoRoot"
 Write-Verbose "Template project: $templateProjectPath"
@@ -249,11 +250,11 @@ $testScenarios = @(
         TestPath   = "test-api-sqlserver"
         Verify     = @{
             FilesPresent = @(
-                "src/App.Api/App.Api.csproj"
+                "src/App/App.csproj"
                 "tests/App.Test.Api/App.Test.Api.csproj"
             )
         }
-        Build      = $true
+        Build      = $false  # add-on template; no standalone solution
     },
     @{
         Name       = "coreex-relay-sqlserver-servicebus"
@@ -265,11 +266,11 @@ $testScenarios = @(
         TestPath   = "test-relay-sqlserver"
         Verify     = @{
             FilesPresent = @(
-                "src/App.Relay/App.Relay.csproj"
+                "src/App/App.csproj"
                 "tests/App.Test.Relay/App.Test.Relay.csproj"
             )
         }
-        Build      = $true
+        Build      = $false  # add-on template; no standalone solution
     },
     @{
         Name       = "coreex-subscribe-sqlserver-servicebus-refdata"
@@ -282,11 +283,11 @@ $testScenarios = @(
         TestPath   = "test-subscribe-sqlserver"
         Verify     = @{
             FilesPresent = @(
-                "src/App.Subscribe/App.Subscribe.csproj"
+                "src/App/App.csproj"
                 "tests/App.Test.Subscribe/App.Test.Subscribe.csproj"
             )
         }
-        Build      = $true
+        Build      = $false  # add-on template; no standalone solution
     }
 )
 
@@ -356,9 +357,11 @@ try {
     $nupkgFile = ($nupkgFiles | Sort-Object LastWriteTime -Descending | Select-Object -First 1).FullName
     Write-Verbose "Using template package: $nupkgFile"
 
-    # Step 3: Install template pack
+    # Step 3: Install template pack (uninstall any existing version first to avoid duplicate registrations)
     Write-Header "Installing template pack"
-    dotnet new install $nupkgFile --force --quiet
+    dotnet new uninstall CoreEx.Template 2>&1 | Out-Null
+    Write-Verbose "Uninstalled any prior CoreEx.Template (exit: $LASTEXITCODE — ignored)"
+    dotnet new install $nupkgFile
     if ($LASTEXITCODE -ne 0) { throw "Failed to install template pack" }
     Write-Pass "Template pack installed"
 
@@ -381,10 +384,14 @@ try {
         $scenarioFailures = @()
 
         try {
+            # Always scaffold into a fresh directory — stale build artefacts cause MSB3030 copy errors.
+            if (Test-Path $testDir) {
+                Remove-Item -Path $testDir -Recurse -Force | Out-Null
+            }
             New-Item -ItemType Directory -Path $testDir -Force | Out-Null
 
             # Scaffold
-            $args = @("new", $scenario.Template, "--output", $testDir, "--force", "--no-update-check")
+            $args = @("new", $scenario.Template, "--output", $testDir, "--name", "App", "--no-update-check")
             foreach ($kv in $scenario.Parameters.GetEnumerator()) {
                 $args += "--$($kv.Key)"
                 if ($kv.Value -ne "") { $args += $kv.Value }
@@ -401,9 +408,11 @@ try {
             # Build
             if ($scenario.Build) {
                 Write-Output "  Building generated output..."
-                $slnFile = Get-ChildItem $testDir -Filter "*.slnx" -Recurse | Select-Object -First 1
-                $buildTarget = if ($slnFile) { $slnFile.FullName } else { $testDir }
-                dotnet build $buildTarget --nologo --verbosity minimal 2>&1 | Where-Object { $_ -match "error|warning|succeeded|failed" }
+                $buildTarget = (Get-ChildItem $testDir -Filter "*.slnx" -Recurse | Select-Object -First 1)
+                if (-not $buildTarget) { $buildTarget = Get-ChildItem $testDir -Filter "*.sln" -Recurse | Select-Object -First 1 }
+                if (-not $buildTarget) { $buildTarget = Get-ChildItem $testDir -Filter "*.csproj" -Recurse | Select-Object -First 1 }
+                $buildPath = if ($buildTarget) { $buildTarget.FullName } else { $testDir }
+                dotnet build $buildPath --nologo --verbosity minimal 2>&1 | Where-Object { $_ -match "error|warning|succeeded|failed" }
                 if ($LASTEXITCODE -ne 0) {
                     $scenarioFailures += "dotnet build failed"
                     Write-Fail "Build FAILED"

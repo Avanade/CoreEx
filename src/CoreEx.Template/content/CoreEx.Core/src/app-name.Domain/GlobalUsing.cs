@@ -1,4 +1,3 @@
-global using app-name.Contracts;
 global using CoreEx;
 global using CoreEx.DomainDriven;
 global using CoreEx.Entities;

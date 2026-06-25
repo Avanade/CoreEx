@@ -13,7 +13,7 @@ A CoreEx microservice for the `domain-name` domain.
 <!-- #if implement-none-data -->
 - **Data provider:** None — facade over an external system (no local database)
 <!-- #endif -->
-<!-- #if (refdata-enabled && !implement-none-data) -->
+<!-- #if (refdata-enabled && has-data-provider) -->
 - **Reference data:** Enabled — `tools/app-name.CodeGen/` + `src/app-name.Application/ReferenceDataService.cs`
 <!-- #endif -->
 <!-- #if domain-driven-enabled -->
@@ -22,7 +22,7 @@ A CoreEx microservice for the `domain-name` domain.
 <!-- #if rop-enabled -->
 - **Railway-oriented programming:** Enabled — services return `Result`/`Result<T>`
 <!-- #endif -->
-<!-- #if (outbox-enabled && !implement-none-data) -->
+<!-- #if (outbox-enabled && has-data-provider) -->
 - **Transactional outbox:** Enabled — events committed atomically with data
 <!-- #endif -->
 <!-- #if implement-servicebus -->
@@ -59,9 +59,9 @@ app-name/
 │   ├── app-name.Domain/           # Aggregates, value objects, domain events
 <!-- #endif -->
 │   └── app-name.Infrastructure/   # EF Core repositories, outbox, external adapters
-<!-- #if !implement-none-data -->
+<!-- #if has-data-provider -->
 ├── tools/
-<!-- #if (refdata-enabled && !implement-none-data) -->
+<!-- #if (refdata-enabled && has-data-provider) -->
 │   ├── app-name.CodeGen/          # Reference data C# generation (reads ref-data.yaml)
 <!-- #endif -->
 │   └── app-name.Database/         # Database migrations and seeding (DbEx)
@@ -77,7 +77,7 @@ Host projects (`app-name.Api`, `app-name.Relay`, `app-name.Subscribe`) are added
 
 ## Infrastructure
 
-<!-- #if !implement-none-data -->
+<!-- #if has-data-provider -->
 Start the containers before running the solution or any integration tests:
 
 ```bash
@@ -147,7 +147,7 @@ Connection strings are in each host's `appsettings.Development.json` under the `
 <!-- #endif -->
 ---
 
-<!-- #if !implement-none-data -->
+<!-- #if has-data-provider -->
 ## Database
 
 Migrate and seed — required once on first run and after any schema change:
@@ -166,7 +166,7 @@ dotnet run --project tools/app-name.Database -- all
 See `tools/app-name.Database/Migrations/` for migration scripts and `tools/app-name.Database/Data/` for seed data.
 
 <!-- #endif -->
-<!-- #if (refdata-enabled && !implement-none-data) -->
+<!-- #if (refdata-enabled && has-data-provider) -->
 ---
 
 ## Reference data code generation
@@ -189,7 +189,7 @@ dotnet build
 dotnet test
 ```
 
-<!-- #if !implement-none-data -->
+<!-- #if has-data-provider -->
 Unit tests in `tests/app-name.Test.Unit` are fast and isolated — no infrastructure required. Integration tests (in host test projects) require the containers to be running and the database migrated.
 
 <!-- #else -->

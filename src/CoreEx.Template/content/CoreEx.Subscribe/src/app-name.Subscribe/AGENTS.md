@@ -106,7 +106,7 @@ The subscriber wires FusionCache with both in-memory (L1) and Redis distributed 
 <!-- #if implement-postgres -->
 | `CoreEx.Database.Postgres` | PostgreSQL outbox for outbound events |
 <!-- #endif -->
-<!-- #if !implement-none-data -->
+<!-- #if has-data-provider -->
 | `CoreEx.EntityFrameworkCore` | EF Core integration (`EfDb`, `IEfDbContext`) |
 <!-- #endif -->
 <!-- #if refdata-enabled -->

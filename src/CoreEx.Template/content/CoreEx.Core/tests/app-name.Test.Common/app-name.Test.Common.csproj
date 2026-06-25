@@ -3,7 +3,7 @@
     <PackageReference Include="NUnit" />
     <PackageReference Include="UnitTestEx.NUnit" />
   </ItemGroup>
-  <!--#if !implement-none-data-->
+  <!--#if has-data-provider-->
   <ItemGroup>
     <ProjectReference Include="..\..\tools\app-name.Database\app-name.Database.csproj" />
   </ItemGroup>

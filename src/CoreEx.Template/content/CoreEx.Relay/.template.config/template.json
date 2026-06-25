@@ -89,6 +89,10 @@
       "type": "computed",
       "value": "data-provider == 'None'"
     },
+    "has-data-provider": {
+      "type": "computed",
+      "value": "data-provider != 'None'"
+    },
     "messaging-provider": {
       "type": "parameter",
       "datatype": "choice",

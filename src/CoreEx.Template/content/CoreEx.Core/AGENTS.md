@@ -49,7 +49,7 @@ app-name/
 <!-- #else -->
 - **Data provider:** None -- facade solution (e.g. over Dynamics 365 via HttpClient)
 <!-- #endif -->
-<!-- #if (refdata-enabled && !implement-none-data) -->
+<!-- #if (refdata-enabled && has-data-provider) -->
 - **Reference data:** Enabled -- `src/app-name.Application/ReferenceDataService.cs` and `tools/app-name.CodeGen/`
 <!-- #else -->
 - **Reference data:** Disabled
@@ -64,7 +64,7 @@ app-name/
 <!-- #else -->
 - **Railway-Oriented Programming:** Disabled -- standard exception-based error handling
 <!-- #endif -->
-<!-- #if (outbox-enabled && !implement-none-data) -->
+<!-- #if (outbox-enabled && has-data-provider) -->
 - **Transactional outbox:** Enabled -- events committed atomically with data via the outbox table
 <!-- #else -->
 - **Transactional outbox:** Disabled
