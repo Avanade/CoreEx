@@ -46,11 +46,18 @@
     <ParameterGroup>
       <SourceFile ParameterType="System.String" Required="true" />
       <DestinationFile ParameterType="System.String" Required="true" />
+      <PrependFrontmatter ParameterType="System.Boolean" Required="false" />
+      <FrontmatterDescription ParameterType="System.String" Required="false" />
     </ParameterGroup>
     <Task>
       <Code Type="Fragment" Language="cs">
         <![CDATA[
           string content = System.IO.File.ReadAllText(SourceFile);
+          if (PrependFrontmatter)
+          {
+              string desc = string.IsNullOrEmpty(FrontmatterDescription) ? "CoreEx framework conventions for this solution" : FrontmatterDescription;
+              content = "---\napplyTo: \"**\"\ndescription: \"" + desc + "\"\n---\n\n" + content;
+          }
           var lines = content.Split('\n');
           var sb = new System.Text.StringBuilder();
           bool transformed = false;
@@ -59,7 +66,7 @@
               var line = rawLine.TrimEnd('\r');
               if (!transformed && line.TrimStart().StartsWith("applyTo:"))
               {
-                  // When --app-folder is set, scope all instruction files to that subfolder.
+                  // When app-folder is set, scope all instruction files to that subfolder.
                   // When absent, preserve the original per-file applyTo pattern.
                   sb.AppendLine("<!-- #if hasAppFolder -->");
                   sb.AppendLine("applyTo: \"app-folder/**\"");
@@ -86,7 +93,7 @@
        coreex (CoreEx.Core) no longer receives any .github/ AI assets; consumers run dotnet new coreex-ai separately.
        Files sourced for Bootstrap/Ai:
          - consumer-instructions/.github/copilot-instructions.md            → .github/copilot-instructions.md  (Bootstrap only)
-         - consumer-instructions/.github/instructions/coreex.instructions.md → .github/instructions/coreex.instructions.md (Ai only, transformed)
+         - consumer-instructions/.github/instructions/coreex.instructions.md → .github/instructions/coreex.instructions.md (Ai only, generated from copilot-instructions.md + frontmatter)
          - .github/prompts/coreex-scaffold.prompt.md                        → .github/prompts/coreex-scaffold.prompt.md
          - .github/skills/solution-scaffolder/*                             → .github/skills/solution-scaffolder/ (Bootstrap only)
          - .github/agents/coreex-expert.agent.md                           → .github/agents/coreex-expert.agent.md
@@ -175,7 +182,7 @@
 
     <!-- CoreEx.Ai: transform instruction files to inject the app-folder conditional into their applyTo frontmatter,
          then copy prompts, agents, and Claude commands directly (no conditional needed there). -->
-    <InjectAppFolderConditional SourceFile="$(_RepoRoot)consumer-instructions\.github\instructions\coreex.instructions.md" DestinationFile="$(_AiAiGenRoot).github\instructions\coreex.instructions.md" />
+    <InjectAppFolderConditional SourceFile="$(_RepoRoot)consumer-instructions\.github\copilot-instructions.md" DestinationFile="$(_AiAiGenRoot).github\instructions\coreex.instructions.md" PrependFrontmatter="true" />
     <InjectAppFolderConditional SourceFile="$(_RepoRoot).github\instructions\coreex-api-controllers.instructions.md" DestinationFile="$(_AiAiGenRoot).github\instructions\coreex-api-controllers.instructions.md" />
     <InjectAppFolderConditional SourceFile="$(_RepoRoot).github\instructions\coreex-application-services.instructions.md" DestinationFile="$(_AiAiGenRoot).github\instructions\coreex-application-services.instructions.md" />
     <InjectAppFolderConditional SourceFile="$(_RepoRoot).github\instructions\coreex-contracts.instructions.md" DestinationFile="$(_AiAiGenRoot).github\instructions\coreex-contracts.instructions.md" />
