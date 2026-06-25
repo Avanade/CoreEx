@@ -195,5 +195,5 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: template-validation-failures
-        path: artifacts/template-validation-test-*
+        path: ${{ runner.temp }}/cxval-*
         retention-days: 7

@@ -36,8 +36,11 @@ $VerbosePreference = "Continue"
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $templateProjectPath = Join-Path $repoRoot "src/CoreEx.Template"
-# Use a short temp path to avoid Windows 260-char MAX_PATH limit — the repo worktree path is already ~135 chars.
-$temporaryTestRoot = Join-Path ([System.IO.Path]::GetTempPath()) "cxval-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
+# Prefer RUNNER_TEMP (set by GitHub Actions) to stay on a well-known short path in CI.
+# Fall back to the system temp dir for local runs. Both avoid the deep repo worktree path
+# which exceeds Windows MAX_PATH (260 chars) when build output is factored in.
+$tempBase = if ($env:RUNNER_TEMP) { $env:RUNNER_TEMP } else { [System.IO.Path]::GetTempPath() }
+$temporaryTestRoot = Join-Path $tempBase "cxval-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
 
 Write-Verbose "Repository root: $repoRoot"
 Write-Verbose "Template project: $templateProjectPath"
