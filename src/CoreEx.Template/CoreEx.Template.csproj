@@ -61,7 +61,7 @@
               {
                   // When --app-folder is set, scope all instruction files to that subfolder.
                   // When absent, preserve the original per-file applyTo pattern.
-                  sb.AppendLine("<!-- #if app-folder-enabled -->");
+                  sb.AppendLine("<!-- #if hasAppFolder -->");
                   sb.AppendLine("applyTo: \"app-folder/**\"");
                   sb.AppendLine("<!-- #else -->");
                   sb.AppendLine(line);

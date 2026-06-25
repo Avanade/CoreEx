@@ -28,7 +28,7 @@
       "description": "The subfolder where the CoreEx application lives, relative to the repo root (for monorepos, e.g. 'backend' or 'services/api'). Leave blank for single-repo projects.",
       "replaces": "app-folder"
     },
-    "app-folder-enabled": {
+    "hasAppFolder": {
       "type": "computed",
       "value": "(app-folder != \"\")"
     }
