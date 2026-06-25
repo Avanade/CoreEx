@@ -1,20 +1,11 @@
-@.github/copilot-instructions.md
-@.github/instructions/coreex-conventions.instructions.md
-@.github/instructions/coreex-contracts.instructions.md
-@.github/instructions/coreex-application-services.instructions.md
-@.github/instructions/coreex-validators.instructions.md
-@.github/instructions/coreex-repositories.instructions.md
-@.github/instructions/coreex-api-controllers.instructions.md
-@.github/instructions/coreex-event-subscribers.instructions.md
-@.github/instructions/coreex-host-setup.instructions.md
-@.github/instructions/coreex-domain.instructions.md
-@.github/instructions/coreex-tests.instructions.md
-@.github/instructions/coreex-tooling.instructions.md
+# AI Context
 
-## Slash commands
+Run `dotnet new coreex-ai` at the **repo root** to install CoreEx AI workflow assets for this domain.
 
-| Command | What it does |
-|---|---|
-| `/coreex-scaffold` | Guided interview → derives and runs the right `dotnet new coreex*` commands for this solution shape |
-| `/coreex-expert` | Architecture guidance, pattern decisions, and sample-aligned implementation advice |
-| `/coreex-docs-sync` | Fetches and caches CoreEx architecture docs and per-package AI guides under `.github/docs/coreex/` |
+Once installed, the following are available in `.github/`:
+
+- `instructions/` — CoreEx coding conventions, application services, validators, repositories, host setup, tests, etc.
+- `prompts/coreex-scaffold.prompt.md` — guided solution scaffolding via `/coreex-scaffold`
+- `agents/coreex-expert.agent.md` — architecture guidance via `/coreex-expert`
+
+For monorepos where CoreEx lives under a subfolder, pass `--app-folder <relative-path>` to scope the instruction files appropriately.

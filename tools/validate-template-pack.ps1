@@ -43,6 +43,20 @@ Write-Verbose "Test root: $temporaryTestRoot"
 # Define test scenarios
 $testScenarios = @(
     @{
+        Name = "coreex-ai-single-repo"
+        Template = "coreex-ai"
+        Parameters = @{}
+        TestPath = "test-ai-single-repo"
+    },
+    @{
+        Name = "coreex-ai-monorepo"
+        Template = "coreex-ai"
+        Parameters = @{
+            "app-folder" = "backend"
+        }
+        TestPath = "test-ai-monorepo"
+    },
+    @{
         Name = "coreex-fullstack"
         Template = "coreex"
         Parameters = @{
