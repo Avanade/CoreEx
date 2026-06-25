@@ -348,8 +348,11 @@ try {
     Write-Header "Building CoreEx.Template package"
     if (-not $NoRebuild) {
         Push-Location $templateProjectPath
-        dotnet pack -c Release --nologo -v:normal
-        if ($LASTEXITCODE -ne 0) { throw "Failed to pack CoreEx.Template" }
+        # Use dotnet build rather than dotnet pack: GeneratePackageOnBuild=true (from
+        # Directory.Build.props) means the build target already produces the nupkg, and
+        # dotnet pack alone skips compilation on a clean runner (no prior bin/ output).
+        dotnet build -c Release --nologo
+        if ($LASTEXITCODE -ne 0) { throw "Failed to build CoreEx.Template" }
         Pop-Location
         Write-Pass "Template packed successfully"
     }
