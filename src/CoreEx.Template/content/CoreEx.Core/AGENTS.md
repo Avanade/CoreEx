@@ -15,7 +15,7 @@ dotnet new coreex-ai --app-folder <relative-path-from-root>
 Once installed, run `/coreex-scaffold` to add missing hosts or `/coreex-expert` for architecture guidance.
 
 > After bumping the CoreEx NuGet version in `Directory.Packages.props`:
-> - Re-run `dotnet new coreex-ai` to update instruction and prompt files to the new version.
+> - Re-run `dotnet new coreex-ai --force` to update instruction and prompt files to the new version.
 > - Run `/coreex-docs-sync` to refresh the local `.github/docs/coreex/` cache.
 
 ---
