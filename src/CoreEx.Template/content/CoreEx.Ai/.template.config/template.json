@@ -30,7 +30,7 @@
     },
     "hasAppFolder": {
       "type": "computed",
-      "value": "(app-folder != \"\")"
+      "value": "(app-folder != '')"
     }
   },
   "specialCustomOperations": {

@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env pwsh
+#!/usr/bin/env pwsh
 <#
 .SYNOPSIS
 Validates the CoreEx.Template pack by scaffolding parameter combinations and asserting expected outputs.
@@ -328,17 +328,19 @@ function Invoke-Assertion {
         }
     }
 
-    foreach ($rel in $Verify.FileContains.Keys) {
-        $full = Join-Path $TestDir $rel
-        $needle = $Verify.FileContains[$rel]
-        if (-not (Test-Path $full)) {
-            Write-Fail "MISSING (content check): $rel"
-            $Failures.Value += "File missing for content check: $rel"
-        } elseif ((Get-Content $full -Raw) -like "*$needle*") {
-            Write-Pass "Content '$needle': $rel"
-        } else {
-            Write-Fail "CONTENT NOT FOUND '$needle' in $rel"
-            $Failures.Value += "Expected '$needle' in $rel"
+    if ($Verify.FileContains) {
+        foreach ($rel in $Verify.FileContains.Keys) {
+            $full = Join-Path $TestDir $rel
+            $needle = $Verify.FileContains[$rel]
+            if (-not (Test-Path $full)) {
+                Write-Fail "MISSING (content check): $rel"
+                $Failures.Value += "File missing for content check: $rel"
+            } elseif ((Get-Content $full -Raw).Contains($needle)) {
+                Write-Pass "Content '$needle': $rel"
+            } else {
+                Write-Fail "CONTENT NOT FOUND '$needle' in $rel"
+                $Failures.Value += "Expected '$needle' in $rel"
+            }
         }
     }
 }

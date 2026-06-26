@@ -145,7 +145,7 @@ Unlike `coreex-bootstrap`, this template emits nothing but `.github/` and `.clau
 
 ### `--app-folder` behaviour
 
-When `--app-folder` is absent (single-repo), each instruction file retains its original scoped `applyTo` glob (e.g. `applyTo: "**/*.cs"`). When `--app-folder` is provided, all instruction files use `applyTo: "<app-folder>/**"` to scope Copilot context to that subfolder.
+When `--app-folder` is absent (single-repo), each instruction file retains its original scoped `applyTo` glob (e.g. `applyTo: "**/*.cs"`). When `--app-folder` is provided, each instruction file's `applyTo` glob is prefixed with the subfolder path (e.g. `applyTo: "backend/**/*Validator*.cs"`), keeping per-file instruction targeting while scoping Copilot context to that subfolder.
 
 ### Examples
 
