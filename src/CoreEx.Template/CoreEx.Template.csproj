@@ -125,6 +125,7 @@
     <ItemGroup>
       <_AiFile Include="$(_RepoRoot)consumer-instructions/.github/copilot-instructions.md" DestSubPath=".github/copilot-instructions.md" />
       <_AiFile Include="$(_RepoRoot).github/prompts/coreex-scaffold.prompt.md" DestSubPath=".github/prompts/coreex-scaffold.prompt.md" />
+      <_AiFile Include="$(_RepoRoot).github/prompts/coreex-db-migration.prompt.md" DestSubPath=".github/prompts/coreex-db-migration.prompt.md" />
       <_AiFile Include="$(_RepoRoot).github/skills/solution-scaffolder/SKILL.md" DestSubPath=".github/skills/solution-scaffolder/SKILL.md" />
       <_AiFile Include="$(_RepoRoot).github/skills/solution-scaffolder/README.md" DestSubPath=".github/skills/solution-scaffolder/README.md" />
       <_AiFile Include="$(_RepoRoot).github/skills/solution-scaffolder/assets/servicebus-config.template.json" DestSubPath=".github/skills/solution-scaffolder/assets/servicebus-config.template.json" />
@@ -132,6 +133,8 @@
       <_AiFile Include="$(_RepoRoot).github/skills/solution-scaffolder/references/workflow.md" DestSubPath=".github/skills/solution-scaffolder/references/workflow.md" />
       <_AiFile Include="$(_RepoRoot).github/skills/coreex-docs-sync/SKILL.md" DestSubPath=".github/skills/coreex-docs-sync/SKILL.md" />
       <_AiFile Include="$(_RepoRoot).github/skills/coreex-docs-sync/README.md" DestSubPath=".github/skills/coreex-docs-sync/README.md" />
+      <_AiFile Include="$(_RepoRoot).github/skills/coreex-db-migration/SKILL.md" DestSubPath=".github/skills/coreex-db-migration/SKILL.md" />
+      <_AiFile Include="$(_RepoRoot).github/skills/coreex-db-migration/references/workflow.md" DestSubPath=".github/skills/coreex-db-migration/references/workflow.md" />
       <_AiFile Include="$(_RepoRoot).github/agents/coreex-expert.agent.md" DestSubPath=".github/agents/coreex-expert.agent.md" />
       <_AiFile Include="$(_RepoRoot).claude/commands/coreex-expert.md" DestSubPath=".claude/commands/coreex-expert.md" />
       <_AiFile Include="$(_RepoRoot).claude/commands/coreex-docs-sync.md" DestSubPath=".claude/commands/coreex-docs-sync.md" />
@@ -204,6 +207,11 @@
     <InjectAppFolderConditional SourceFile="$(_RepoRoot).github/instructions/coreex-validators.instructions.md" DestinationFile="$(_AiAiGenRoot).github/instructions/coreex-validators.instructions.md" />
     <Copy SourceFiles="$(_RepoRoot).github/prompts/coreex-scaffold.prompt.md;$(_RepoRoot).github/agents/coreex-expert.agent.md;$(_RepoRoot).claude/commands/coreex-expert.md;$(_RepoRoot).claude/commands/coreex-docs-sync.md;$(_RepoRoot).github/skills/coreex-docs-sync/SKILL.md;$(_RepoRoot).github/skills/coreex-docs-sync/README.md"
           DestinationFiles="$(_AiAiGenRoot).github/prompts/coreex-scaffold.prompt.md;$(_AiAiGenRoot).github/agents/coreex-expert.agent.md;$(_AiAiGenRoot).claude/commands/coreex-expert.md;$(_AiAiGenRoot).claude/commands/coreex-docs-sync.md;$(_AiAiGenRoot).github/skills/coreex-docs-sync/SKILL.md;$(_AiAiGenRoot).github/skills/coreex-docs-sync/README.md"
+          SkipUnchangedFiles="true" />
+
+    <!-- CoreEx.Ai: copy additional skills + their prompt wrappers (prefer one block per skill for clarity). -->
+    <Copy SourceFiles="$(_RepoRoot).github/prompts/coreex-db-migration.prompt.md;$(_RepoRoot).github/skills/coreex-db-migration/SKILL.md;$(_RepoRoot).github/skills/coreex-db-migration/references/workflow.md"
+          DestinationFiles="$(_AiAiGenRoot).github/prompts/coreex-db-migration.prompt.md;$(_AiAiGenRoot).github/skills/coreex-db-migration/SKILL.md;$(_AiAiGenRoot).github/skills/coreex-db-migration/references/workflow.md"
           SkipUnchangedFiles="true" />
 
     <!-- CoreEx.Ai: pack all generated files into content\CoreEx.Ai\. -->
