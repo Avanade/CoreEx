@@ -36,6 +36,7 @@ All commands run from the `*.Database` project directory.
 | Alter existing table | `dotnet run -- script alter <schema> <table>` |
 | Non-entity schema change | `dotnet run -- script` |
 | Apply everything + regenerate | `dotnet run -- All` |
+| Drop + full rebuild (destructive, confirm first) | `dotnet run -- dropandall --accept-prompts` |
 
 ## Naming
 

@@ -100,6 +100,19 @@ Remove any `DEFAULT (NEWSEQUENTIALID())`, `IDENTITY`, or `SERIAL` unless the use
 | `DateTimeOffset` | `DATETIMEOFFSET` | `TIMESTAMPTZ` |
 | `DateTime` | `DATETIME2` | `TIMESTAMP` |
 
+### JSON columns
+
+When a column name ends with `Json` (SQL Server `PascalCase`) or `json` (PostgreSQL `snake_case`), **confirm with the developer** that the intent is serialized JSON storage. If confirmed:
+
+| Provider | Default column type | Override allowed |
+|---|---|---|
+| SQL Server | `NVARCHAR(MAX)` | Yes — e.g. `NVARCHAR(4000)` if size is bounded |
+| PostgreSQL | `jsonb` | Yes — `json` (text) if binary operators are explicitly not wanted |
+
+The `.NET` type for a JSON column is typically a **class or record**, not a string — the column stores the serialized form of that type. This is a NoSQL-within-SQL pattern: complex nested data is stored as a blob to avoid composite columns or child tables when no specific database-level operations (filtering, indexing on subfields, etc.) are needed against the content. If the developer expects to query within the JSON, flag that — `jsonb` supports operators but the design decision should be explicit.
+
+Do not add JSON column handling to the `dbex.yaml` `columns:` entry — DbEx will infer the CLR type via a registered value converter. Confirm the Infrastructure mapper (or `*.Database` CodeGen config) handles the JSON serialization; this is a hand-written concern, not auto-generated.
+
 ### Reference-data relationships
 
 For each `[ReferenceData<T>]` property on the entity (contract property is `{Name}Code`): create a `{Name}Code` column typed to match the ref-data `Code` column. **No foreign key — this is the default.** Never create a `{Name}Id` column unless the user explicitly asks.
@@ -231,7 +244,11 @@ This runs: Create → Migrate → CodeGen → Schema → Data.
 - **Scripts are immutable once applied.** Never modify a migration script that has already been run. Author a new script for any subsequent delta.
 - **Never edit `*.g.cs` files.** They are owned by DbEx CodeGen — regenerate by fixing the script or `dbex.yaml` and re-running `All`.
 - **Never add `IF NOT EXISTS` or `IF OBJECT_ID(...)` guards.** DbEx tracks applied scripts in its journal; each script runs exactly once. Conditional guards mask state mismatches — they don't fix them.
-- **Never touch the DbEx journal table.** If the live database is out of sync with the scripts, stop and ask the user. The standard clean fix for a disposable dev database is `dotnet run -- dropanddatabase` (destructive — confirm first).
+- **Never touch the DbEx journal table.** If the live database is out of sync with the scripts, stop and ask the user. For a **disposable local/dev database** that has gotten into an inconsistent state, the clean fix is to drop and fully rebuild:
+  ```
+  dotnet run -- dropandall --accept-prompts
+  ```
+  This runs: Drop → Create → Migrate → CodeGen → Schema → Data — a completely fresh slate. **This is destructive — confirm with the user before executing.** The `--accept-prompts` flag bypasses DbEx's built-in confirmation prompt for DROP commands; only pass it after the user has explicitly consented. Never use `dropandall` on a shared or production database.
 - **Path D filename limit:** full filename ≤255 characters including the timestamp prefix and extension. Keep descriptors to 3–5 words.
 - **Outbox provisioning is a separate concern** — use `dotnet run -- script outbox <schema> <name>` as described in `coreex-tooling.instructions.md`. Do not conflate it with this workflow.
 - **No schema-create script.** The `coreex` template ships the schema-create migration; never emit another `create-<schema>-schema` script unless an additional schema is explicitly requested.
