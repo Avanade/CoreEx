@@ -1,14 +1,15 @@
 # CoreEx.Template
 
-> Provides the `dotnet new` template pack for scaffolding CoreEx-based domain microservice solutions -- five composable templates, one `dotnet new install`.
+> Provides the `dotnet new` template pack for scaffolding CoreEx-based domain microservice solutions -- six composable templates, one `dotnet new install`.
 
 ## Overview
 
-`CoreEx.Template` is a `PackageType=Template` NuGet package that installs five `dotnet new` templates as a single unit. Together they cover both the AI-ready bootstrap entry point and the full project topology for a CoreEx domain-based microservice: the shared solution core (contracts, application, infrastructure, database tooling) and the independently deployable host processes (API, Outbox Relay, Subscriber).
+`CoreEx.Template` is a `PackageType=Template` NuGet package that installs six `dotnet new` templates as a single unit. Together they cover AI workflow assets, the full project topology for a CoreEx domain-based microservice (shared solution core plus independently deployable host processes), and a dedicated bootstrap entry point.
 
 | Short name | Template | Emits |
 |---|---|---|
-| `coreex-bootstrap` | CoreEx AI-ready bootstrap repository | Minimal repository shell + packaged AI workflow assets for `/coreex-scaffold` |
+| `coreex-ai` | CoreEx AI assets | `.github/` instructions, prompts, and agents + `.claude/` commands — run at repo root; supports `--app-folder` for monorepos |
+| `coreex-bootstrap` | CoreEx AI-ready bootstrap | Minimal repository shell + full packaged AI workflow assets for `/coreex-scaffold` |
 | `coreex` | CoreEx domain-based microservice application | Solution scaffold: `src/` libraries + `tools/` projects + `tests/` (Test.Common + Test.Unit) |
 | `coreex-api` | CoreEx API host | `src/[name].Api/` host project + `tests/[solution].Test.Api/` integration test project |
 | `coreex-relay` | CoreEx Outbox Relay host | `src/[name].Relay/` host project + `tests/[solution].Test.Relay/` integration test project |
@@ -42,15 +43,33 @@ dotnet new uninstall CoreEx.Template
 
 ## AI-Guided Scaffolding
 
-Every generated solution includes a small bootstrap AI workflow set under `.github/`, and the dedicated `coreex-bootstrap` template emits only that shell:
+`coreex-ai` is the primary way to install CoreEx AI workflow assets into any repository. It outputs only `.github/` and `.claude/` artefacts and is intentionally decoupled from the implementation scaffolding:
 
-- `/coreex-scaffold` -- interviews for project needs, recommends the smallest safe `dotnet new coreex*` command set, and can run the commands.
-- `.github/skills/solution-scaffolder/` -- the packaged workflow guidance for greenfield scaffolding.
-- `.github/docs/coreex/application-scaffolding-guide.md` -- the decision-oriented guide behind the workflow.
+- `.github/instructions/coreex.instructions.md` -- CoreEx coding context (replaces `copilot-instructions.md`)
+- `.github/instructions/*.instructions.md` -- scoped coding conventions per layer/file type
+- `.github/prompts/coreex-scaffold.prompt.md` -- `/coreex-scaffold`: interviews for project needs and recommends the smallest safe `dotnet new coreex*` command set
+- `.github/agents/coreex-expert.agent.md` -- `/coreex-expert`: architecture guidance
+- `.claude/commands/coreex-expert.md` -- `/coreex-expert` for Claude Code
+- `.claude/commands/coreex-docs-sync.md` -- `/coreex-docs-sync`: refresh the local CoreEx doc cache after a version bump
 
-The packaged workflow assets are sourced from the repository's canonical `.github/` set, while the generated solution still receives the consumer-specific `copilot-instructions.md` variant from `consumer-instructions/`.
+**Recommended day-1 workflow:**
 
-Typical bootstrap flow:
+```sh
+# Step 1 (always from repo root): install AI workflow assets
+dotnet new coreex-ai
+
+# For monorepos where CoreEx lives under a subfolder:
+dotnet new coreex-ai --app-folder backend
+
+# Step 2 (from the solution directory): scaffold the implementation
+dotnet new coreex -n Avanade.Erp.Sales --data-provider SqlServer ...
+```
+
+`coreex` and the host templates no longer emit any `.github/` artefacts -- run `coreex-ai` separately to get AI context. The two are independent and can be combined in any order.
+
+The `coreex-bootstrap` template provides a fuller new-empty-repo experience (root guidance files plus the complete AI set including docs), and remains useful when starting from a blank repository.
+
+Typical bootstrap-first flow:
 
 ```sh
 dotnet new coreex-bootstrap -n Avanade.Erp.Sales
@@ -85,7 +104,65 @@ For the **solution template** (`coreex`) the name is the three-part solution roo
 
 ---
 
-## Template 1 -- `coreex-bootstrap` (AI-ready bootstrap)
+## Template 1 -- `coreex-ai` (AI workflow assets)
+
+Installs CoreEx AI workflow assets into any repository. **Always run from the repo root** — this is where `.github/` must land for GitHub Copilot to read it.
+
+Unlike `coreex-bootstrap`, this template emits nothing but `.github/` and `.claude/` artefacts: no `AGENTS.md`, no `README.md`, no implementation scaffolding. It is safe to run against an existing repository.
+
+### Parameters
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `--app-folder` | string | _(empty)_ | The subfolder where the CoreEx application lives, relative to the repo root (for monorepos, e.g. `backend` or `services/api`). Leave blank for single-repo projects. |
+
+### Outputs
+
+```
+.github/
+  instructions/
+    coreex.instructions.md         # CoreEx coding context (applyTo: "**" or "<app-folder>/**")
+    coreex-api-controllers.instructions.md
+    coreex-application-services.instructions.md
+    coreex-contracts.instructions.md
+    coreex-conventions.instructions.md
+    coreex-domain.instructions.md
+    coreex-event-subscribers.instructions.md
+    coreex-host-setup.instructions.md
+    coreex-repositories.instructions.md
+    coreex-tests.instructions.md
+    coreex-tooling.instructions.md
+    coreex-validators.instructions.md
+  prompts/
+    coreex-scaffold.prompt.md
+  agents/
+    coreex-expert.agent.md
+.claude/
+  commands/
+    coreex-expert.md               # /coreex-expert architecture guidance command
+    coreex-docs-sync.md            # /coreex-docs-sync doc cache refresh command
+```
+
+### `--app-folder` behaviour
+
+When `--app-folder` is absent (single-repo), each instruction file retains its original scoped `applyTo` glob (e.g. `applyTo: "**/*.cs"`). When `--app-folder` is provided, each instruction file's `applyTo` glob is prefixed with the subfolder path (e.g. `applyTo: "backend/**/*Validator*.cs"`), keeping per-file instruction targeting while scoping Copilot context to that subfolder.
+
+### Examples
+
+```sh
+# Single-repo (most common — no args needed):
+dotnet new coreex-ai
+
+# Monorepo — CoreEx under backend/:
+dotnet new coreex-ai --app-folder backend
+
+# Monorepo — CoreEx under a nested path:
+dotnet new coreex-ai --app-folder services/shopping
+```
+
+---
+
+## Template 2 -- `coreex-bootstrap` (AI-ready bootstrap)
 
 Creates an intentionally minimal repository shell for teams that want to start with the agent workflow before committing to a CoreEx project shape. It emits root guidance and the packaged `.github/` and `.claude/` AI assets needed for `/coreex-scaffold`.
 
@@ -114,7 +191,7 @@ dotnet new coreex-bootstrap -n Avanade.Erp.Sales
 
 ---
 
-## Template 2 -- `coreex` (Solution scaffold)
+## Template 3 -- `coreex` (Solution scaffold)
 
 Scaffolds the shared solution core: the `.slnx` solution file, solution-wide configuration files (`.editorconfig`, `Directory.Build.props`, `Directory.Packages.props`), the `Contracts`, `Application`, `Infrastructure` (and optionally `Domain`) class-library projects, and the `Database` and `CodeGen` tooling projects.
 
@@ -202,7 +279,7 @@ dotnet new coreex -n Avanade.Erp.Sales --domain-driven-enabled true --rop-enable
 
 ---
 
-## Template 3 -- `coreex-api` (API host)
+## Template 4 -- `coreex-api` (API host)
 
 Scaffolds an ASP.NET Core Web API host project. Wires up CoreEx execution context, optional reference-data orchestration, FusionCache L1/L2 caching with Redis backplane, the selected database provider and EF Core, outbox publishing, NSwag OpenAPI, and OpenTelemetry.
 
@@ -283,7 +360,7 @@ dotnet new coreex-api -n Avanade.Erp.Sales.Api --data-provider None
 
 ---
 
-## Template 4 -- `coreex-relay` (Outbox Relay host)
+## Template 5 -- `coreex-relay` (Outbox Relay host)
 
 Scaffolds an ASP.NET Core background-service host that reads committed events from the transactional outbox table and forwards them to the messaging provider. Does not reference the solution's shared projects -- it is a standalone host that requires only a database connection and a messaging connection.
 
@@ -365,7 +442,7 @@ dotnet new coreex-relay -n Avanade.Erp.Sales.Relay --data-provider Postgres
 
 ---
 
-## Template 4 -- `coreex-subscribe` (Subscriber host)
+## Template 6 -- `coreex-subscribe` (Subscriber host)
 
 Scaffolds an ASP.NET Core background-service host that receives events from a messaging provider, dispatches them through the CoreEx `SubscribedManager`, and processes them via subscriber implementations. Optionally includes reference-data caching and a database connection for subscriber logic that needs persistence.
 

@@ -58,7 +58,7 @@ Consult `.github/docs/coreex/agents/CoreEx.Caching.FusionCache.md` for caching p
 <!-- #else -->
 - **Data provider:** None -- this host uses no database; services call external systems directly
 <!-- #endif -->
-<!-- #if (outbox-enabled && !implement-none-data) -->
+<!-- #if (outbox-enabled && has-data-provider) -->
 - **Transactional outbox:** Enabled -- events are written to the DB outbox by `domain-nameOutboxPublisher`; the Relay host reads and forwards them
 <!-- #else -->
 - **Transactional outbox:** Disabled -- events are published directly to the message broker
@@ -84,7 +84,7 @@ Consult `.github/docs/coreex/agents/CoreEx.Caching.FusionCache.md` for caching p
 <!-- #if implement-postgres -->
 | `CoreEx.Database.Postgres` | PostgreSQL database access |
 <!-- #endif -->
-<!-- #if !implement-none-data -->
+<!-- #if has-data-provider -->
 | `CoreEx.EntityFrameworkCore` | EF Core integration (`EfDb`, `IEfDbContext`) |
 <!-- #endif -->
 <!-- #if refdata-enabled -->
@@ -101,7 +101,7 @@ Consult `.github/docs/coreex/agents/CoreEx.Caching.FusionCache.md` for caching p
 - `.github/docs/coreex/local-dev.md` -- running locally with .NET Aspire
 - `.github/docs/coreex/agents/CoreEx.AspNetCore.md` -- Web API patterns
 - `.github/docs/coreex/agents/CoreEx.Caching.FusionCache.md` -- caching
-<!-- #if !implement-none-data -->
+<!-- #if has-data-provider -->
 - `.github/docs/coreex/agents/CoreEx.EntityFrameworkCore.md` -- EF Core patterns
 <!-- #endif -->
 <!-- #if refdata-enabled -->

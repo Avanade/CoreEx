@@ -15,6 +15,7 @@ on:
       - '*.slnx'
       - '.config/dotnet-tools.json'
       - '.github/workflows/CI.yml'
+      - 'tools/**'
   pull_request:
     paths:
       - 'src/**'
@@ -28,6 +29,7 @@ on:
       - '*.slnx'
       - '.config/dotnet-tools.json'
       - '.github/workflows/CI.yml'
+      - 'tools/**'
   workflow_dispatch:
 
 concurrency:
@@ -160,3 +162,38 @@ jobs:
     - name: Stop containers
       if: always()
       run: docker compose down
+
+  template-validation:
+    name: Template validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: |
+          8.x
+          9.x
+          10.x
+
+    - name: Cache NuGet packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.nuget/packages
+        key: nuget-${{ runner.os }}-template-${{ hashFiles('src/CoreEx.Template/**/*.csproj', '**/Directory.Packages.props') }}
+        restore-keys: nuget-${{ runner.os }}-template-
+
+    - name: Validate template pack
+      shell: pwsh
+      run: tools/validate-template-pack.ps1
+
+    - name: Upload failed test dirs on failure
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: template-validation-failures
+        path: ${{ runner.temp }}/cxval-*
+        retention-days: 7

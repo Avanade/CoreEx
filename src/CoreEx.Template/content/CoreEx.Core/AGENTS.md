@@ -2,9 +2,21 @@
 
 This represents the **CoreEx domain-based application services** for the `domain-name` domain.
 
-**AI assistance:** run `/coreex-scaffold` to choose and scaffold the right greenfield solution shape, or run `/coreex-expert` for CoreEx architecture guidance, pattern decisions, and sample-aligned implementation advice. The full CoreEx doc cache is pre-loaded in `.github/docs/coreex/` -- the expert reads it automatically.
+**AI assistance:** To install CoreEx AI workflow assets (instructions, prompts, agents) for this solution, run `dotnet new coreex-ai` at the **repo root**:
 
-> Re-run `/coreex-docs-sync` after bumping the CoreEx NuGet version in `Directory.Packages.props`.
+```bash
+# Single-repo (most common):
+dotnet new coreex-ai
+
+# Monorepo (CoreEx under a subfolder):
+dotnet new coreex-ai --app-folder <relative-path-from-root>
+```
+
+Once installed, run `/coreex-scaffold` to add missing hosts or `/coreex-expert` for architecture guidance.
+
+> After bumping the CoreEx NuGet version in `Directory.Packages.props`:
+> - Re-run `dotnet new coreex-ai --force` to update instruction and prompt files to the new version.
+> - Run `/coreex-docs-sync` to refresh the local `.github/docs/coreex/` cache.
 
 ---
 
@@ -26,8 +38,6 @@ app-name/
 +-- Directory.Packages.props       # Central NuGet version management (no versions in .csproj)
 ```
 
-See `.github/docs/coreex/layers.md` for the full layered architecture and dependency rules.
-
 ---
 
 ## Feature Configuration
@@ -39,7 +49,7 @@ See `.github/docs/coreex/layers.md` for the full layered architecture and depend
 <!-- #else -->
 - **Data provider:** None -- facade solution (e.g. over Dynamics 365 via HttpClient)
 <!-- #endif -->
-<!-- #if (refdata-enabled && !implement-none-data) -->
+<!-- #if (refdata-enabled && has-data-provider) -->
 - **Reference data:** Enabled -- `src/app-name.Application/ReferenceDataService.cs` and `tools/app-name.CodeGen/`
 <!-- #else -->
 - **Reference data:** Disabled
@@ -54,7 +64,7 @@ See `.github/docs/coreex/layers.md` for the full layered architecture and depend
 <!-- #else -->
 - **Railway-Oriented Programming:** Disabled -- standard exception-based error handling
 <!-- #endif -->
-<!-- #if (outbox-enabled && !implement-none-data) -->
+<!-- #if (outbox-enabled && has-data-provider) -->
 - **Transactional outbox:** Enabled -- events committed atomically with data via the outbox table
 <!-- #else -->
 - **Transactional outbox:** Disabled
@@ -68,6 +78,8 @@ See `.github/docs/coreex/layers.md` for the full layered architecture and depend
 ---
 
 ## Relevant Docs
+
+After running `/coreex-docs-sync` (or using `coreex-bootstrap`), the following are available locally:
 
 - `.github/docs/coreex/layers.md` -- full layered architecture and dependency rules
 - `.github/docs/coreex/patterns.md` -- CoreEx request/response and event patterns

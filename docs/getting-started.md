@@ -53,7 +53,23 @@ dotnet new list --tag CoreEx
 
 ---
 
-## 3. Scaffold the solution
+## 3. Install AI workflow assets
+
+Run `dotnet new coreex-ai` from the **repo root**. This installs CoreEx AI instructions, prompts, and agents into `.github/` so your AI tooling has full CoreEx context from the start:
+
+```bash
+dotnet new coreex-ai
+```
+
+For a **monorepo** where the CoreEx application lives in a subfolder, pass `--app-folder` to scope AI instructions to that path:
+
+```bash
+dotnet new coreex-ai --app-folder backend
+```
+
+---
+
+## 4. Scaffold the solution
 
 Run `dotnet new coreex` from inside your solution folder. The folder name is used as the solution name automatically:
 
@@ -63,9 +79,9 @@ dotnet new coreex
 
 That's it — accept all defaults. This gives you PostgreSQL, Azure Service Bus, transactional outbox, and reference data code generation out of the box.
 
-This emits the solution file, `src/`, `tests/`, `tools/`, `docker-compose.yml`, `.github/`, `.claude/`, and config files — all immediately AI-ready.
+This emits the solution file, `src/`, `tests/`, `tools/`, `docker-compose.yml`, and config files.
 
-> **Note:** The scaffold compiles cleanly straight away — `dotnet restore` and `dotnet build` will both succeed. It is, however, an intentional empty shell: the layer structure is in place but there are no entities, no API routes, no EF mappings, and no ref-data types yet. The AI agent in step 6 is what implements your first domain entity and makes the solution functional.
+> **Note:** The scaffold compiles cleanly straight away — `dotnet restore` and `dotnet build` will both succeed. It is, however, an intentional empty shell: the layer structure is in place but there are no entities, no API routes, no EF mappings, and no ref-data types yet. The AI agent in step 7 is what implements your first domain entity and makes the solution functional.
 
 ### Available options
 
@@ -82,7 +98,7 @@ If your project requires a different shape, the full option set is:
 
 ---
 
-## 4. Start the infrastructure
+## 5. Start the infrastructure
 
 The generated `docker-compose.yml` contains all local dependencies:
 
@@ -111,9 +127,9 @@ docker compose up -d
 
 ---
 
-## 5. Open your IDE and AI tooling
+## 6. Open your IDE and AI tooling
 
-Open the solution folder in your IDE. The scaffold has already wired in all AI context — no manual setup needed.
+Open the solution folder in your IDE. The `coreex-ai` step in step 3 has already installed all AI context — no manual setup needed.
 
 **GitHub Copilot Chat:**
 - Switch to **Agent** mode and select **CoreEx Expert** for architecture guidance
@@ -127,9 +143,9 @@ Open the solution folder in your IDE. The scaffold has already wired in all AI c
 
 ---
 
-## 6–8. Bring your domain to life
+## 7–9. Bring your domain to life
 
-Steps 6, 7, and 8 walk through adding an API host, an Outbox Relay host, and a Subscribe host and implementing your first domain entity end-to-end.
+Steps 7, 8, and 9 walk through adding an API host, an Outbox Relay host, and a Subscribe host and implementing your first domain entity end-to-end.
 
 The **recommended path** uses AI-assisted prompts — the AI reads `AGENTS.md`, the CoreEx instructions, and the Contoso samples to derive the correct patterns and run `dotnet new coreex-*` for you. The **manual path** lists the raw commands for each host if you prefer direct control.
 
@@ -137,7 +153,7 @@ Use the prompts in sequence. For each, ask your AI agent to work through **Plan 
 
 ---
 
-## 6. Implement your first entity and API host
+## 7. Implement your first entity and API host
 
 ### AI-assisted (recommended)
 
@@ -172,7 +188,7 @@ This adds `src/Avanade.Hr.People.Api/` and `tests/Avanade.Hr.People.Test.Api/` a
 
 ---
 
-## 7. Add an Outbox Relay host
+## 8. Add an Outbox Relay host
 
 ### AI-assisted (recommended)
 
@@ -194,7 +210,7 @@ This adds `src/Avanade.Hr.People.Relay/` and `tests/Avanade.Hr.People.Test.Relay
 
 ---
 
-## 8. Add a Subscribe host
+## 9. Add a Subscribe host
 
 ### AI-assisted (recommended)
 
@@ -216,7 +232,7 @@ This adds `src/Avanade.Hr.People.Subscribe/` and `tests/Avanade.Hr.People.Test.S
 
 ---
 
-## 9. Build and test
+## 10. Build and test
 
 ```bash
 dotnet build

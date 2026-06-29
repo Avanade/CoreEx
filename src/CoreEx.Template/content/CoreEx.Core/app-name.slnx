@@ -14,10 +14,10 @@
     <Project Path="src\app-name.Infrastructure\app-name.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/tools/">
-    <!--#if !implement-none-data-->
+    <!--#if has-data-provider-->
     <Project Path="tools\app-name.Database\app-name.Database.csproj" />
     <!--#endif-->
-    <!--#if (refdata-enabled && !implement-none-data)-->
+    <!--#if (refdata-enabled && has-data-provider)-->
     <Project Path="tools\app-name.CodeGen\app-name.CodeGen.csproj" />
     <!--#endif-->
   </Folder>

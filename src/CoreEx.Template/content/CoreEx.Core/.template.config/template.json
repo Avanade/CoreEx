@@ -126,6 +126,10 @@
       "type": "computed",
       "value": "data-provider == 'None'"
     },
+    "has-data-provider": {
+      "type": "computed",
+      "value": "data-provider != 'None'"
+    },
     "outbox-enabled": {
       "type": "parameter",
       "datatype": "bool",

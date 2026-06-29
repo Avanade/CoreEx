@@ -135,6 +135,8 @@ The repository includes [Contoso reference samples](./samples/README.md) that im
 
 ## AI
 
+> **AI agents:** see [AGENTS.md](./AGENTS.md) for a structured CoreEx summary and the consumer cold-start installation steps.
+
 The repository includes an AI workflow set in [`.github/`](./.github/) that gives GitHub Copilot and Claude Code authoritative knowledge of CoreEx patterns, conventions, and architecture — no need to explain CoreEx to the tool each time. The artefacts can also be copied into a consuming project.
 
 **Agent** — `coreex-expert` provides architecture guidance, pattern recommendations, and design reviews aligned to the sample implementations. See the [agent README](./.github/agents/README.md) for the resolution flowchart and local doc cache design.

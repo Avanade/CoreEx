@@ -84,9 +84,11 @@ Set outbox to `true` only when the user chose owned persistence and reliable pub
 
 ## Prerequisite
 
-Assume the repository is already in one of these states before this skill runs:
-- a bootstrap-only shell created earlier by `coreex-bootstrap`; or
-- an existing CoreEx solution that is missing some runtime hosts.
+Before this skill runs, the repository must already be in one of these states:
+- A bootstrap-only shell created by `coreex-bootstrap`; or
+- An existing CoreEx solution that is missing some runtime hosts.
+
+**AI assets:** If the repository does not yet have `.github/instructions/` or `.github/agents/`, the consumer should run `dotnet new coreex-ai` at the repo root first (optionally with `--app-folder <subfolder>` for monorepos). This skill will remind the user if AI assets appear to be absent.
 
 ## Naming Rules
 
@@ -181,5 +183,15 @@ dotnet new coreex-subscribe -n Company.Product.Domain.Subscribe ...
 - `../../docs/coreex/layers.md`.
 - `../../docs/coreex/patterns.md`.
 - `https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.Template/README.md`.
+
+## Related Templates
+
+| Template | Short name | Purpose |
+|---|---|---|
+| CoreEx AI workflow assets | `coreex-ai` | Installs `.github/` instructions, prompts, and agents — run at repo root before or after scaffolding |
+| CoreEx Application services | `coreex` | Scaffolds the implementation layers (Contracts, Application, Infrastructure, etc.) |
+| CoreEx API host | `coreex-api` | Adds an ASP.NET Core API host |
+| CoreEx Outbox Relay host | `coreex-relay` | Adds an outbox relay host |
+| CoreEx Subscriber host | `coreex-subscribe` | Adds an event subscriber host |
 
 

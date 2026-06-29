@@ -1,0 +1,45 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "https://github.com/avanade/coreex",
+  "classifications": [ "CoreEx", "AI", "Copilot" ],
+  "identity": "CoreEx.Ai",
+  "name": "CoreEx AI workflow assets",
+  "description": "A standalone template that installs CoreEx AI workflow assets (.github/ instructions, prompts, and agents) into any repository. Always run from the repo root.",
+  "shortName": "coreex-ai",
+  "tags": {
+    "language": "C#",
+    "type": "project"
+  },
+  "preferNameDirectory": false,
+  "symbols": {
+    "app-folder": {
+      "type": "parameter",
+      "datatype": "string",
+      "defaultValue": "",
+      "displayName": "Application folder",
+      "description": "The subfolder where the CoreEx application lives, relative to the repo root (for monorepos, e.g. 'backend' or 'services/api'). Leave blank for single-repo projects.",
+      "replaces": "app-folder"
+    },
+    "hasAppFolder": {
+      "type": "computed",
+      "value": "(app-folder != '')"
+    }
+  },
+  "specialCustomOperations": {
+    "*.md": {
+      "operations": [
+        {
+          "type": "conditional",
+          "configuration": {
+            "actionableIf": [ "<!-- #if" ],
+            "actionableElse": [ "<!-- #else" ],
+            "actionableElseif": [ "<!-- #elseif", "<!-- #elif" ],
+            "endif": [ "<!-- #endif" ],
+            "trim": true,
+            "wholeLine": true
+          }
+        }
+      ]
+    }
+  }
+}
