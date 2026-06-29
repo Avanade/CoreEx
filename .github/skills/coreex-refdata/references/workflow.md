@@ -124,8 +124,12 @@ Rules:
 - **Never include the `{Name}Id` column** in a row — `$^` generates it.
 - **Never include `SortOrder`** — DbEx assigns it positionally. Order rows by `Code` so display order is sensible.
 - **Never include `IsActive`** — defaults to active.
-- Use the `Code: Text` shorthand (sets `Code` and `Text`). Use an inline object only for extra columns: `{ code: HR, text: Hour, scale: 2 }`.
-- For a type with a navigation property (`^CategoryCode`), the inline object references the related code: `{ code: XC, text: Cross country, category_code: B }`.
+- Use the `Code: Text` shorthand (sets `Code` and `Text`). Use an inline object only for extra columns — **casing follows the provider**:
+  - PostgreSQL: `{ code: HR, text: Hour, scale: 2 }`
+  - SQL Server: `{ Code: HR, Text: Hour, Scale: 2 }`
+- For a type with a navigation property (`^CategoryCode`), the inline object references the related code — again, casing follows the provider:
+  - PostgreSQL: `{ code: XC, text: Cross country, category_code: B }`
+  - SQL Server: `{ Code: XC, Text: Cross country, CategoryCode: B }`
 
 ### A3 — Register in dbex.yaml
 
