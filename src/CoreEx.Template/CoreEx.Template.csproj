@@ -209,7 +209,7 @@
           DestinationFiles="$(_AiAiGenRoot).github/prompts/coreex-scaffold.prompt.md;$(_AiAiGenRoot).github/agents/coreex-expert.agent.md;$(_AiAiGenRoot).claude/commands/coreex-expert.md;$(_AiAiGenRoot).claude/commands/coreex-docs-sync.md;$(_AiAiGenRoot).github/skills/coreex-docs-sync/SKILL.md;$(_AiAiGenRoot).github/skills/coreex-docs-sync/README.md"
           SkipUnchangedFiles="true" />
 
-    <!-- CoreEx.Ai: copy each skill + its prompt wrapper (one block per skill). -->
+    <!-- CoreEx.Ai: copy additional skills + their prompt wrappers (prefer one block per skill for clarity). -->
     <Copy SourceFiles="$(_RepoRoot).github/prompts/coreex-db-migration.prompt.md;$(_RepoRoot).github/skills/coreex-db-migration/SKILL.md;$(_RepoRoot).github/skills/coreex-db-migration/references/workflow.md"
           DestinationFiles="$(_AiAiGenRoot).github/prompts/coreex-db-migration.prompt.md;$(_AiAiGenRoot).github/skills/coreex-db-migration/SKILL.md;$(_AiAiGenRoot).github/skills/coreex-db-migration/references/workflow.md"
           SkipUnchangedFiles="true" />
