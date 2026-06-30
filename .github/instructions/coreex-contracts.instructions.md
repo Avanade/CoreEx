@@ -39,7 +39,7 @@ Always ask the user if this is not explicit in their request.
 | `IETag` | ✅ Always (unless explicitly requested otherwise) | ❌ Omit |
 | `IChangeLog` | ✅ When audit trail is needed (ask) | ❌ Omit |
 | `[ReadOnly(true)]` on `Id`, `ETag`, `ChangeLog` | ✅ Required | N/A |
-| `[Contract]` + `partial` | ✅ Always for generated members | Only if generated members are needed |
+| `[Contract]` + `partial` | ✅ Always | ✅ By default on all hand-authored contracts (provides deep copy, cloning, and reflection-free validation); omit only when explicitly requested |
 
 **Root** — owns its own identity, is persisted independently, and is retrieved/mutated via its own API endpoint (e.g. `Product`, `Order`, `Person`).
 
@@ -77,10 +77,18 @@ Common misconceptions to avoid:
 - **Other compilation errors do not stop the generator.** Roslyn runs source generators on the parsed compilation regardless of unrelated errors; there is **no build-ordering requirement and no "circular dependency"** whereby errors elsewhere prevent generation. Do not invent such a dependency — fix the actual reported errors and rebuild.
 - **If a member is still missing after a clean build, the contract declaration is malformed**, not the build process. Check that the class has `[Contract]` and is `partial`, the property is `partial`, and the attributes are correct (see below) — then rebuild. Never substitute a hand-written implementation for the generated one.
 
-Plain value-object or request contracts that do not need generated members (equality, cloning, etc.) can be declared as ordinary, non-`partial` classes without `[Contract]`:
+Apply `[Contract]` + `partial` to **all** hand-authored contract classes by default — including plain request/response DTOs. Source-generated deep copy, cloning, and reflection-free validation members are valuable even when no `[ReferenceData<T>]` properties are present. Omit `[Contract]` only when the user explicitly requests a plain, generation-free class:
 
 ```csharp
-// No [Contract] needed — no generated members required.
+// ✅ Default — [Contract] + partial on all hand-authored contracts, including plain request types.
+[Contract]
+public partial class BasketItemAddRequest
+{
+    public string? ProductId { get; set; }
+    public decimal Quantity { get; set; }
+}
+
+// Omit only when the user explicitly asks for a plain class with no generated members.
 public class BasketItemAddRequest
 {
     public string? ProductId { get; set; }
@@ -109,10 +117,10 @@ public partial class Product : ProductBase, IETag, IChangeLog
     public string? Id { get; set; }
 
     [ReadOnly(true)]
-    public string? ETag { get; set; }
+    public ChangeLog? ChangeLog { get; set; }
 
     [ReadOnly(true)]
-    public ChangeLog? ChangeLog { get; set; }
+    public string? ETag { get; set; }
 }
 ```
 
@@ -138,11 +146,11 @@ public partial class Employee : IIdentifier<string?>, IETag, IChangeLog
 
     /// <inheritdoc/>
     [ReadOnly(true)]
-    public string? ETag { get; set; }
+    public ChangeLog? ChangeLog { get; set; }
 
     /// <inheritdoc/>
     [ReadOnly(true)]
-    public ChangeLog? ChangeLog { get; set; }
+    public string? ETag { get; set; }
 }
 ```
 
@@ -229,13 +237,13 @@ The generated code exposes a strongly-typed `SubCategory` property alongside the
 
 ## Localization Labels
 
-CoreEx automatically derives a human-friendly label from the property name (the PascalCase name is split into words — e.g. `DateOfBirth` → "Date Of Birth"). **Only** decorate a property with `[Localization("Human label")]` when that default would be wrong or undesired — typically to drop a `Code` suffix or hyphenate (e.g. `SubCategoryCode` → "Sub-category").
+CoreEx automatically derives a human-friendly label from the property name (the PascalCase name is split into words in sentence case — e.g. `DateOfBirth` → "Date of birth"). **Only** decorate a property with `[Localization("Human label")]` when that default would be wrong or undesired — typically to drop a `Code` suffix or hyphenate (e.g. `SubCategoryCode` → "Sub-category").
 
 ```csharp
-// ✅ Needed — default "Sub Category Code" is undesired
+// ✅ Needed — default "Sub category code" is undesired
 [Localization("Sub-category")]
 public partial string? SubCategoryCode { get; set; }
-// Validation error: "Sub-category is required." (not "Sub Category Code is required.")
+// Validation error: "Sub-category is required." (not "Sub category code is required.")
 
 // ❌ Redundant — the default already yields "Salary"; do not annotate
 [Localization("Salary")]
@@ -248,7 +256,7 @@ Omit `[Localization]` whenever the attribute value would equal the auto-derived 
 
 Extract shared fields into an abstract `XxxBase` class when multiple contracts share the same core properties. This keeps validation and mapping code DRY.
 
-A projection subclass that adds no source-generated behavior (no `IETag`, `IChangeLog`, etc.) does **not** need `[Contract]` or `partial`:
+A projection subclass uses `[Contract]` + `partial` by default. Omit only when the user explicitly requests a plain class:
 
 ```csharp
 [Contract]
@@ -263,8 +271,9 @@ public abstract partial class ProductBase : IIdentifier<string?>
 [Contract]
 public partial class Product : ProductBase, IETag, IChangeLog { /* additions only */ }
 
-// Projection — plain class, no generated members needed.
-public class ProductLite : ProductBase
+// ✅ Default — [Contract] + partial even for a lightweight projection.
+[Contract]
+public partial class ProductLite : ProductBase
 {
     public decimal QtyOnHand { get; set; }
 }
@@ -391,7 +400,7 @@ Never create or edit `*.g.cs` files directly.
 ## Do Not
 
 - Do not reference another domain's Contracts assembly to consume its events — declare a local adapter model instead.
-- Do not add `[Contract]` or `partial` to plain value-object or request classes that need no generated members.
+- Do not omit `[Contract]` and `partial` from hand-authored contract classes without an explicit user request — all hand-authored contracts use `[Contract]` + `partial` by default.
 - Do not implement members that the Roslyn source generator emits (equality, cloning, serialization helpers).
 - Do not place domain rules, validators, or service calls in contract classes.
 - Do not leave contract properties without a `<summary>` — every property gets one (standard `Id`/`ETag`/`ChangeLog` may use `<inheritdoc/>`). See the *Documentation Comments* section.
