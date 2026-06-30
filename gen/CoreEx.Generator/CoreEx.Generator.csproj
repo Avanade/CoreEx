@@ -40,11 +40,13 @@
     <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
     <IsRoslynComponent>true</IsRoslynComponent>
     <OutputItemType>Analyzer</OutputItemType>
-    
     <!-- Not packed standalone; bundled into CoreEx package. -->
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
     <IncludeBuildOutput>false</IncludeBuildOutput>
     <GetTargetPathDependsOn>$(GetTargetPathDependsOn);GetDependencyTargetPaths</GetTargetPathDependsOn>
+    <!-- Generator is a build-time analyzer; it has no runtime deps.json. Suppressing avoids
+         parallel-build file-lock races when multiple projects build concurrently. -->
+    <GenerateDepsFile>false</GenerateDepsFile>
   </PropertyGroup>
 
   <ItemGroup>
