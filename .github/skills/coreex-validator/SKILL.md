@@ -1,6 +1,6 @@
 ---
 name: coreex-validator
-description: "Create or modify a CoreEx validator in the Application layer. USE FOR: new Validator<T,TSelf> (no injection), new Validator<T> with constructor injection, AbstractValidator<T,TSelf> (FluentValidation-style), adding rules to an existing validator, nested collection or dictionary validators. DO NOT USE FOR: domain invariants in aggregates, FluentValidation NuGet package, Infrastructure-layer checks."
+description: "Create or modify a CoreEx validator in the Application layer. USE FOR: new Validator<T,TSelf> (no injection), new Validator<T> with constructor injection, AbstractValidator<T,TSelf> (FluentValidation-style), adding rules to an existing validator, nested entity/collection/dictionary validators. DO NOT USE FOR: domain invariants in aggregates, FluentValidation NuGet package, Infrastructure-layer checks."
 argument-hint: "Optional: contract type, validator name, list of properties to validate, any async/database checks needed"
 tags: ["validators", "validation", "application-layer", "coreex", "fluent-rules", "async"]
 ---
@@ -14,7 +14,7 @@ Guides you through creating or modifying a CoreEx validator (`Application/Valida
 - New validator for a contract or request type (no database calls needed)
 - New validator that requires a repository or other Application-layer dependency
 - Adding property rules or an async check to an existing validator
-- Nested validator for a collection or dictionary property
+- Nested validator for a sub-property (`.Entity()`), a collection, or a dictionary
 - Switching to FluentValidation-compatible `AbstractValidator` syntax
 
 ## When Not to Use
