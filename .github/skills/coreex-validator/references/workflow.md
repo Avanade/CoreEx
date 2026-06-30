@@ -14,7 +14,7 @@ Answer these questions before emitting any code. Batch all questions — do not 
 | FluentValidation-style `RuleFor` syntax preferred? | No | Yes → Path C (`AbstractValidator<T, TSelf>`) |
 | Which properties need rules? | Ask | List all upfront; resolve types before writing any rule |
 | Ref-data properties — required or optional? | Ask per field | Required: `.Mandatory().IsValid()`; optional: `.IsValid()` alone |
-| Any async checks (DB lookup, existence check)? | No | Yes → Path B, add `OnValidateAsync` |
+| Any async checks requiring a dependency (DB lookup, etc.)? | No | Yes → Path B (`Validator<T>` with injection); async-only (no dependency) → override `OnValidateAsync` on Path A |
 
 ---
 
