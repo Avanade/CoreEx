@@ -90,11 +90,11 @@ public partial class {Name} : {Base?} IIdentifier<string?>, IETag, IChangeLog
 
     /// <inheritdoc/>
     [ReadOnly(true)]
-    public string? ETag { get; set; }
+    public ChangeLog? ChangeLog { get; set; }
 
     /// <inheritdoc/>
     [ReadOnly(true)]
-    public ChangeLog? ChangeLog { get; set; }
+    public string? ETag { get; set; }
 }
 ```
 
@@ -105,7 +105,7 @@ Key assembly rules:
 - `[Localization("label")]` — only when the auto-derived sentence-case label would be wrong/undesired. Never add when value equals the default.
 - Casing transforms belong in the setter: `set => field = value?.ToUpper()`.
 - `[JsonIgnore]` on computed helpers that must not appear in the API or event payload.
-- Property order convention: Id → properties (domain fields and ref-data code properties in order specified) → ETag → ChangeLog.
+- Property order convention: Id → properties (domain fields and ref-data code properties in order specified) → ChangeLog → ETag.
 - Optional `[Schema]` for custom event schema metadata — only when user explicitly requests:
   - `[Schema("2.1")]` — override version only (default is `1.0`)
   - `[Schema("2.1", Name = "OtherName")]` — override version and name (default is `Type.Name`)
@@ -137,11 +137,11 @@ public partial class Product : ProductBase, IETag, IChangeLog
 {
     /// <inheritdoc/>
     [ReadOnly(true)]
-    public string? ETag { get; set; }
+    public ChangeLog? ChangeLog { get; set; }
 
     /// <inheritdoc/>
     [ReadOnly(true)]
-    public ChangeLog? ChangeLog { get; set; }
+    public string? ETag { get; set; }
 }
 
 /// <summary>Represents a lightweight <c>Product</c> projection.</summary>
