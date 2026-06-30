@@ -12,6 +12,7 @@ Answer these questions before emitting any code. Batch all questions — do not 
 |---|---|---|
 | Root or subordinate? | Ask if not explicit | Root = own identity + own endpoint; subordinate = accessed via parent |
 | Identifier type? | `string?` | Confirm before using any other type — never silently choose `Guid` |
+| Needs `IETag`? | Yes (root default) | Omit only on explicit request — default for root contracts |
 | Needs `IChangeLog`? | Ask (root only) | Add when created/updated audit trail is required |
 | Sub-folder? | Flat root | Only create a sub-folder if user explicitly asks |
 | Custom `[Schema]` for events? | None | Only apply on explicit request; default is version `1.0`, name = `Type.Name` |
@@ -89,11 +90,11 @@ public partial class {Name} : {Base?} IIdentifier<string?>, IETag, IChangeLog
 
     /// <inheritdoc/>
     [ReadOnly(true)]
-    public ChangeLog? ChangeLog { get; set; }
+    public string? ETag { get; set; }
 
     /// <inheritdoc/>
     [ReadOnly(true)]
-    public string? ETag { get; set; }
+    public ChangeLog? ChangeLog { get; set; }
 }
 ```
 
@@ -101,10 +102,10 @@ Key assembly rules:
 - `[Contract]` + `partial` on the class — always.
 - `[ReadOnly(true)]` on `Id`, `ETag`, `ChangeLog`, and any server-assigned/derived field.
 - Only `[ReferenceData<T>]` properties are `partial` — all others are plain auto-properties.
-- `[Localization("label")]` — only when the auto-derived label (PascalCase split) would be wrong/undesired (e.g. `SubCategoryCode` → `"Sub-category"`). Never add when value equals the default.
+- `[Localization("label")]` — only when the auto-derived sentence-case label would be wrong/undesired. Never add when value equals the default.
 - Casing transforms belong in the setter: `set => field = value?.ToUpper()`.
 - `[JsonIgnore]` on computed helpers that must not appear in the API or event payload.
-- Property order convention: Id → domain fields → ref-data code properties → ChangeLog → ETag.
+- Property order convention: Id → properties (domain fields and ref-data code properties in order specified) → ETag → ChangeLog.
 - Optional `[Schema]` for custom event schema metadata — only when user explicitly requests:
   - `[Schema("2.1")]` — override version only (default is `1.0`)
   - `[Schema("2.1", Name = "OtherName")]` — override version and name (default is `Type.Name`)
@@ -256,7 +257,7 @@ When ≥2 contracts share repeated fields, propose extracting a base class.
 - **Never hand-author generated members.** The Roslyn source generator emits serialization, equality, cloning, and change-tracking members into `*.g.cs` at build time. They are absent before a build — that is expected, not an error.
 - **Never create or edit `*.g.cs` files directly** — these are owned by the Roslyn generator (contract members) or `*.CodeGen` (ref-data contracts). If a member appears missing, rebuild first.
 - **Default identifier = `string?`.** Do not silently change it. `Guid` is not the default.
-- **`[Localization]` is noise when redundant.** PascalCase names are auto-split ("SubCategoryCode" → "Sub Category Code"). Only add `[Localization]` to change the label (e.g. `"Sub-category"`).
+- **`[Localization]` is noise when redundant.** PascalCase names are auto-split to sentence case ("SubCategoryCode" → "Sub category code"). Only add `[Localization]` to change the label. Never add when value equals the default.
 - **Same contract for API and events.** Do not create separate API and messaging DTOs for the same resource.
 - **Anti-corruption boundary.** When consuming events from another domain, declare a local adapter model in `Application\Adapters\{Domain}\`. Never take a dependency on the publishing domain's `*.Contracts` assembly.
 - **Flat root is the default.** Place contracts in the project root by default. Sub-folders are allowed when the user requests them.

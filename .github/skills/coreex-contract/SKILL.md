@@ -28,9 +28,10 @@ Guides you through creating or modifying a hand-authored contract (DTO/entity) i
 **Clarifying questions to ask before emitting any code:**
 1. Root or subordinate? (if not explicit)
 2. Identifier type? (default `string?` — confirm before using any other type)
-3. `IChangeLog` needed? (ask for root contracts)
-4. Sub-folder within `*.Contracts`? (default: flat root — only create one if requested)
-5. `[Schema]` override? (only if user explicitly requests a custom event schema name/version)
+3. `IETag` needed? (default yes for root contracts — omit only on explicit request)
+4. `IChangeLog` needed? (ask for root contracts — add when created/updated audit trail is required)
+5. Sub-folder within `*.Contracts`? (default: flat root — only create one if requested)
+6. `[Schema]` override? (only if user explicitly requests a custom event schema name/version)
 
 **Key rules at a glance:**
 - `[Contract]` + `partial` on **all** contract classes by default
