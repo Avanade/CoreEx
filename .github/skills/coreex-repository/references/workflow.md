@@ -13,7 +13,7 @@ Answer these questions before emitting any code.
 | Which entity and domain? | Ask | Products domain = PostgreSQL; Shopping domain = SQL Server |
 | New repository or adding to an existing one? | Ask | New → Path A (scaffold); Existing → Path B/C/D |
 | Operations needed? | Ask | Get / Create / Update / Delete / Query |
-| Domain layer present (DDD aggregates)? | No | Yes → use `*WithResultAsync` + `Result<T>` pipeline (Path D) |
+| Using `Result<T>` / ROP pipelines? | No | Yes → use `*WithResultAsync` + `Result<T>` pipeline (Path D); either style works at the repository level — this is a per-project or per-service choice |
 | Dynamic filtering/ordering on query? | No | Yes → `QueryArgsConfig` (Path C) |
 
 ---
@@ -206,9 +206,9 @@ public Task<JsonElement> QuerySchemaAsync() => Task.FromResult(_queryConfig.ToJs
 
 ---
 
-## Path D — Result&lt;T&gt; Pipeline (DDD / Domain Layer)
+## Path D — Result&lt;T&gt; Pipeline (ROP / Railway Oriented Programming)
 
-Use when the domain has a Domain layer (DDD aggregates) and the repository returns domain types rather than contracts. Use `*WithResultAsync` variants and compose with `.GoAsync` / `.Then` / `.ThenAs` / `.ThenAsAsync`:
+Use when the project has elected to use `Result<T>` pipelines for explicit failure propagation instead of exceptions. This is a per-project or per-service style choice — not tied to the presence of a Domain layer, though DDD aggregate domains often use it naturally because aggregate mutation methods already return `Result<T>`. Use `*WithResultAsync` variants and compose with `.GoAsync` / `.Then` / `.ThenAs` / `.ThenAsAsync`:
 
 ```csharp
 // Get — Persistence → Domain via mapper

@@ -30,7 +30,7 @@ Guides you through creating or modifying a CoreEx Infrastructure-layer repositor
 1. Which entity? Which domain (Products = PostgreSQL, Shopping = SQL Server)?
 2. New repository or adding to an existing one?
 3. Operations needed: Get / Create / Update / Delete / Query?
-4. Does the domain have a Domain layer (DDD aggregates)? (→ `Result<T>` + `*WithResultAsync`)
+4. Does the project use `Result<T>` / ROP pipelines? (→ `*WithResultAsync` — per-project style choice, not tied to DDD)
 5. Does the query need dynamic filtering/ordering? (→ `QueryArgsConfig`)
 
 **Key rules at a glance:**
@@ -38,7 +38,7 @@ Guides you through creating or modifying a CoreEx Infrastructure-layer repositor
 - Primary constructor: `public class ProductRepository(ProductsEfDb ef) : IProductRepository`; guard with `ThrowIfNull()`
 - Use EfDb delegate shortcuts (`GetAsync`, `CreateAsync`, `UpdateAsync`, `DeleteAsync`) — never write raw `DbContext` CRUD
 - `DataResult<T>` return for Create/Update; `DataResult` for Delete — includes mutation flag for event decisions
-- `*WithResultAsync` variants for `Result<T>` ROP pipelines (Shopping/DDD domains)
+- `*WithResultAsync` variants for `Result<T>` ROP pipelines (elected per project — Shopping uses this style)
 - `BiDirectionMapper`: override **both** `OnMap` overloads; map `Id` explicitly; **never** map `ETag` or `ChangeLog` — base mapper owns them
 - `QueryArgsConfig`: define once as `private static readonly`; call `.Parse(query).ThrowOnError()` before use
 - Always `.ConfigureAwait(false)` on every `await`
