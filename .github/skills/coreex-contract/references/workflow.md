@@ -67,7 +67,7 @@ namespace {Solution}.Contracts;
 
 /// <summary>Represents the <c>{Name}</c> contract.</summary>
 [Contract]
-public partial class {Name} : {Base?} IIdentifier<string?>, IETag, IChangeLog
+public partial class {Name} : IIdentifier<string?>, IETag, IChangeLog  // add base class before interfaces when using inheritance (see A5)
 {
     /// <inheritdoc/>
     [ReadOnly(true)]
