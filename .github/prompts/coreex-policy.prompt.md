@@ -1,0 +1,24 @@
+---
+description: Create or modify a CoreEx Application-layer policy class — EnsureExists guards, business rule checks, Result<T> pipeline composition
+---
+
+Guide this workspace through creating or modifying a CoreEx Application-layer policy class.
+
+Use `.github/skills/coreex-policy/SKILL.md` and its referenced workflow as the authoritative workflow when they exist.
+
+Operational contract:
+- Ask upfront: entity being guarded, guard type (EnsureExists / business-rule / state-check), adapter or repository dependency, returns entity or pass/fail only.
+- Policy lives in Application/Policies/{Name}Policy.cs — never in Infrastructure or Domain.
+- Not DI-registered — instantiate at call site: new {Name}Policy(_adapter).EnsureExistsAsync(id).
+- EnsureExists: translate r.IsNotFoundError → Result.ValidationError(MessageItem.CreateErrorMessage(...)) — never let NotFoundException propagate.
+- BusinessError for process/state violations; ValidationError for field-constraint violations.
+- Return Result<T> (entity) when the caller needs the loaded value; Result for pure pass/fail.
+- LText static field for localizable entity names within error message text — e.g. `new LText("Entity")` as the `{0}` substitution in `"{0} was not found."`. The property name is always `nameof(param)` (plain string), never `LText`.
+- Multi-method: group guards sharing the same adapter/repository in one class.
+- Pipeline composition: Result.GoAsync().ThenAsAsync() — use ThenAsAsync (As variant) when the delegate changes result type.
+- Always .ConfigureAwait(false) on every await.
+- Offer to write an isolated unit test for the policy after creation.
+- If any prompt text conflicts with the skill, the skill wins.
+
+Outcome:
+- The policy is placed correctly, not registered in DI, translates errors appropriately, composes cleanly into Result<T> pipelines, and builds without warnings.
