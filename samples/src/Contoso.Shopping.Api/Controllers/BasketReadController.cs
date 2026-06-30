@@ -9,5 +9,5 @@ public class BasketReadController(WebApi webApi, IBasketReadService service) : C
     [HttpGet("{basketId}"), HttpHead("{basketId}")]
     [ProducesResponseType(typeof(Basket), 200)]
     [ProducesNotFoundProblem()]
-    public Task<IActionResult> GetAsync(string basketId, CancellationToken cancellationToken = default) => _webApi.GetAsync(Request, (_, ct) => _service.GetAsync(basketId.Required(), ct), cancellationToken: cancellationToken);
+    public Task<IActionResult> GetAsync(string basketId, CancellationToken cancellationToken = default) => _webApi.GetWithResultAsync(Request, (_, ct) => _service.GetAsync(basketId.Required(), ct), cancellationToken: cancellationToken);
 }
