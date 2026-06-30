@@ -1,0 +1,51 @@
+---
+name: coreex-policy
+description: "Create or modify a CoreEx Application-layer policy class. USE FOR: new policy class in Application/Policies/, EnsureExists guard (referenced entity must exist), business rule guards requiring I/O, multi-method policy, composing policies in Result<T> pipelines. DO NOT USE FOR: synchronous validation rules (use coreex-validator), Infrastructure repositories (use coreex-repository), application service scaffolding (use coreex-app-service)."
+argument-hint: "Optional: entity being guarded, type of guard (exists-check / business-rule / state-check), adapter or repository the policy calls"
+tags: ["policy", "application-layer", "result", "guard", "adapter", "anti-corruption", "coreex"]
+---
+
+# CoreEx: Policy
+
+Guides you through creating or modifying a CoreEx Application-layer policy class in `Application/Policies/`. Policies encapsulate **domain-level guard logic that requires async I/O** — adapter or repository calls — providing a named, independently testable home for rules that cannot live in a synchronous validator or directly in the domain model.
+
+## When to Use
+
+- A guard check needs to call an adapter (external domain) or a repository — synchronous validators cannot do this
+- An "ensure referenced entity exists" check that must translate `NotFoundError` into a user-visible validation error
+- A business-rule check (e.g. entity is inactive, quota exceeded) that requires loading state
+- Multiple related guards that share the same adapter/repository dependency — group them in one policy class
+
+## When Not to Use
+
+- Synchronous field validation (no I/O) — use the `coreex-validator` skill
+- Guard logic that belongs entirely inside the domain aggregate — keep it in the aggregate method
+- Service scaffolding — use the `coreex-app-service` skill; it covers how to wire a policy into a service
+
+## Quick Reference
+
+**Clarifying questions before writing any code:**
+1. What entity / concept is being guarded? (names the policy class)
+2. What type of guard? EnsureExists / business rule / state check
+3. Which adapter or repository does the policy call?
+4. Should the policy return the loaded entity (`Result<T>`) or just a pass/fail (`Result`)?
+5. Multiple guard methods in one class, or one method only?
+
+**Key rules at a glance:**
+- Policy lives in `Application/Policies/{Name}Policy.cs`
+- **Not DI-registered** — instantiated at the call site: `new {Name}Policy(_adapter).EnsureExistsAsync(id)`
+- Constructor accepts adapters and/or repositories already injected into the calling service
+- Always returns `Result` or `Result<T>` — never throws (unless adapter itself throws unexpectedly)
+- **EnsureExists:** translate `r.IsNotFoundError` → `Result.ValidationError(...)` — do not let `NotFoundException` propagate as-is
+- `MessageItem.CreateErrorMessage(nameof(param), "{Entity} was not found.")` produces a field-level validation error
+- `LText` static fields for reusable friendly property names (when `nameof(param)` doesn't match the user-facing field label)
+- Guard methods can return the loaded entity as `Result<Contracts.T>` so callers can use it without a second fetch
+- Always `.ConfigureAwait(false)` on every `await`
+
+For full workflow and code examples see [`references/workflow.md`](references/workflow.md).
+
+## Key References
+
+- [`/.github/instructions/coreex-application-services.instructions.md`](/.github/instructions/coreex-application-services.instructions.md) — policies, adapters, DI registration principle, Result&lt;T&gt; pipeline operators
+- [`/samples/src/Contoso.Shopping.Application/Policies/`](/samples/src/Contoso.Shopping.Application/Policies/) — `ProductPolicy` — EnsureExists translating NotFoundError → ValidationError
+- [`/samples/src/Contoso.Shopping.Application/BasketService.cs`](/samples/src/Contoso.Shopping.Application/BasketService.cs) — `ItemAddAsync` shows policy in a `Result.GoAsync().ThenAsAsync()` pipeline
