@@ -216,22 +216,51 @@ if (pr.IsFailure)
 2. Verify the policy lives in `Application/Policies/` and is **not** added to DI.
 3. Verify call sites use `new {Name}Policy(_{dep}).MethodAsync(...)` — never inject via constructor.
 4. Verify `NotFoundError` is translated to `ValidationError` — not allowed to propagate as a 404.
-5. **Offer to write a unit test** — policies are small, pure, and ideal for isolated testing:
+5. **Offer to write a unit test** — policies are small, pure, and ideal for isolated testing. Use `WithGenericTester<EntryPoint>` as the base class and `Test.Scoped(async test => ...)` to wrap each test body, consistent with other unit tests in the project:
 
 ```csharp
-[Test]
-public async Task EnsureExistsAsync_NotFound_ReturnsValidationError()
+public class {Name}PolicyTests : WithGenericTester<EntryPoint>
 {
-    var mockAdapter = new MockHttpClientFactory(); // or Moq/NSubstitute mock
-    // configure mock to return NotFoundError
+    private readonly Mock<I{Dep}Adapter> _{dep}AdapterMock = new();
 
-    var policy = new {Name}Policy(mockAdapter);
-    var result = await policy.EnsureExistsAsync("missing-id").ConfigureAwait(false);
+    [OneTimeSetUp]
+    public void OneTimeSetUp()
+    {
+        _{dep}AdapterMock.Setup(x => x.GetAsync("existing-id"))
+            .ReturnsAsync(Result.Go(new Contracts.{Name} { Id = "existing-id" /*, ... */ }));
+        _{dep}AdapterMock.Setup(x => x.GetAsync("missing-id"))
+            .ReturnsAsync(Result.NotFoundError());
+    }
 
-    result.IsFailure.Should().BeTrue();
-    result.IsValidationError.Should().BeTrue();
+    [Test]
+    public void {Name}Policy_EnsureExistsAsync_NotFound_ReturnsValidationError() => Test.Scoped(async test =>
+    {
+        var policy = new {Name}Policy(_{dep}AdapterMock.Object);
+        var result = await policy.EnsureExistsAsync("missing-id");
+
+        result.IsFailure.Should().BeTrue();
+        result.IsValidationError.Should().BeTrue();
+        result.Error.As<ValidationException>().Messages.Should()
+            .ContainSingle(m => m.Property == "{param}" && m.Text == "{Name} was not found.");
+    });
+
+    [Test]
+    public void {Name}Policy_EnsureExistsAsync_Exists_ReturnsSuccess() => Test.Scoped(async test =>
+    {
+        var policy = new {Name}Policy(_{dep}AdapterMock.Object);
+        var result = await policy.EnsureExistsAsync("existing-id");
+
+        result.IsSuccess.Should().BeTrue();
+    });
 }
 ```
+
+**Notes on the test pattern:**
+- `Mock<I{Dep}Adapter>` — mock the adapter interface directly; `MockHttpClientFactory` is for HTTP-level mocking, not adapter interfaces.
+- `Result.Go(new Contracts.{Name}{...})` — creates a successful `Result<T>` with the given value.
+- `Result.NotFoundError()` — returns a `Result` failure; implicitly converts to `Result<T>` via `Result<T>`'s implicit operator.
+- `result.Error.As<ValidationException>()` — `As<T>()` is an AwesomeAssertions cast helper; ensure `global using AwesomeAssertions;` is in `GlobalUsing.cs`.
+- `[OneTimeSetUp]` — configures mocks once per fixture; do **not** wrap in `Test.Scoped` — mock setup needs no execution context.
 
 ---
 
