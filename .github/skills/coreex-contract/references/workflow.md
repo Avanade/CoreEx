@@ -137,11 +137,11 @@ public partial class Product : ProductBase, IETag, IChangeLog
 {
     /// <inheritdoc/>
     [ReadOnly(true)]
-    public ChangeLog? ChangeLog { get; set; }
+    public string? ETag { get; set; }
 
     /// <inheritdoc/>
     [ReadOnly(true)]
-    public string? ETag { get; set; }
+    public ChangeLog? ChangeLog { get; set; }
 }
 
 /// <summary>Represents a lightweight <c>Product</c> projection.</summary>
