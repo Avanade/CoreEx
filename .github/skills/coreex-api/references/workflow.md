@@ -51,8 +51,8 @@ public class {Name}ReadController(WebApi webApi, I{Name}ReadService service) : C
 [HttpGet("{id}"), HttpHead("{id}")]
 [ProducesResponseType(typeof({Name}), 200)]
 [ProducesNotFoundProblem()]
-public Task<IActionResult> GetAsync(string id) =>
-    _webApi.GetAsync(Request, (_, _) => _service.GetAsync(id.Required()));
+public Task<IActionResult> GetAsync(string id, CancellationToken cancellationToken = default) =>
+    _webApi.GetAsync(Request, (_, ct) => _service.GetAsync(id.Required(), ct), cancellationToken: cancellationToken);
 ```
 
 **Result&lt;T&gt;:**
@@ -60,8 +60,8 @@ public Task<IActionResult> GetAsync(string id) =>
 [HttpGet("{id}"), HttpHead("{id}")]
 [ProducesResponseType(typeof({Name}), 200)]
 [ProducesNotFoundProblem()]
-public Task<IActionResult> GetAsync(string id) =>
-    _webApi.GetWithResultAsync(Request, (_, _) => _service.GetAsync(id.Required()));
+public Task<IActionResult> GetAsync(string id, CancellationToken cancellationToken = default) =>
+    _webApi.GetWithResultAsync(Request, (_, ct) => _service.GetAsync(id.Required(), ct), cancellationToken: cancellationToken);
 ```
 
 ### Query — filtered and paged collection
@@ -70,8 +70,8 @@ public Task<IActionResult> GetAsync(string id) =>
 [HttpGet]
 [ProducesResponseType(typeof({Name}Lite[]), 200)]
 [Query(supportsOrderBy: true), Paging(supportsCount: true)]
-public Task<IActionResult> QueryAsync() =>
-    _webApi.GetAsync(Request, (ro, _) => _service.QueryAsync(ro.QueryArgs, ro.PagingArgs));
+public Task<IActionResult> QueryAsync(CancellationToken cancellationToken = default) =>
+    _webApi.GetAsync(Request, (ro, ct) => _service.QueryAsync(ro.QueryArgs, ro.PagingArgs, ct), cancellationToken: cancellationToken);
 ```
 
 Use `_webApi.GetWithResultAsync` when the service returns `Result<ItemsResult<{Name}Lite>>`.
@@ -83,8 +83,8 @@ Always pair with `QueryAsync` — returns the JSON schema for supported filter p
 ```csharp
 [HttpGet("$query")]
 [ProducesResponseType(typeof(JsonElement), 200)]
-public Task<IActionResult> QuerySchemaAsync() =>
-    _webApi.GetAsync(Request, (ro, _) => _service.QuerySchemaAsync());
+public Task<IActionResult> QuerySchemaAsync(CancellationToken cancellationToken = default) =>
+    _webApi.GetAsync(Request, (_, ct) => _service.QuerySchemaAsync(ct), cancellationToken: cancellationToken);
 ```
 
 ---
@@ -100,11 +100,11 @@ public Task<IActionResult> QuerySchemaAsync() =>
 [Accepts<{Name}>]
 [ProducesResponseType<{Name}>(201)]
 [IdempotencyKey]
-public Task<IActionResult> PostAsync() => _webApi.PostAsync<{Name}, {Name}>(Request, (ro, _) =>
+public Task<IActionResult> PostAsync(CancellationToken cancellationToken = default) => _webApi.PostAsync<{Name}, {Name}>(Request, (ro, ct) =>
 {
     ro.WithLocationUri(v => new Uri($"/api/{resources}/{v.Id}", UriKind.Relative));
-    return _service.CreateAsync(ro.Value);
-});
+    return _service.CreateAsync(ro.Value, ct);
+}, cancellationToken: cancellationToken);
 ```
 
 ### Result&lt;T&gt;
@@ -114,11 +114,11 @@ public Task<IActionResult> PostAsync() => _webApi.PostAsync<{Name}, {Name}>(Requ
 [Accepts<{Name}>]
 [ProducesResponseType<{Name}>(201)]
 [IdempotencyKey]
-public Task<IActionResult> PostAsync() => _webApi.PostWithResultAsync<{Name}, {Name}>(Request, async (ro, _) =>
+public Task<IActionResult> PostAsync(CancellationToken cancellationToken = default) => _webApi.PostWithResultAsync<{Name}, {Name}>(Request, async (ro, ct) =>
 {
     ro.WithLocationUri(v => new Uri($"/api/{resources}/{v.Id}", UriKind.Relative));
-    return await _service.CreateAsync(ro.Value).ConfigureAwait(false);
-});
+    return await _service.CreateAsync(ro.Value, ct).ConfigureAwait(false);
+}, cancellationToken: cancellationToken);
 ```
 
 `ro.WithLocationUri` sets the `Location` response header. The lambda receives the **created entity** (return value of `CreateAsync`) and constructs the URI. Set it before the service call when using a block body; the `WebApi` helper captures it after the service returns.
@@ -138,16 +138,17 @@ Expose **both** by default whenever a full-entity update is needed. `PUT` replac
 [Accepts<{Name}>]
 [ProducesResponseType(typeof({Name}), 200)]
 [ProducesNotFoundProblem()]
-public Task<IActionResult> PutAsync(string id) => _webApi.PutAsync<{Name}, {Name}>(Request, (ro, _)
-    => _service.UpdateAsync(ro.Value.Adjust(v => v.Id = id.Required())));
+public Task<IActionResult> PutAsync(string id, CancellationToken cancellationToken = default) => _webApi.PutAsync<{Name}, {Name}>(Request, (ro, ct)
+    => _service.UpdateAsync(ro.Value.Adjust(v => v.Id = id.Required()), ct), cancellationToken: cancellationToken);
 
 [HttpPatch("{id}")]
 [Accepts<{Name}>(HttpNames.MergePatchJsonMediaTypeName)]
 [ProducesResponseType(typeof({Name}), 200)]
 [ProducesNotFoundProblem()]
-public Task<IActionResult> PatchAsync(string id) => _webApi.PatchAsync<{Name}>(Request,
-    get: (ro, _) => _service.GetAsync(id.Required()),
-    put: (ro, _) => _service.UpdateAsync(ro.Value.Adjust(v => v.Id = id)));
+public Task<IActionResult> PatchAsync(string id, CancellationToken cancellationToken = default) => _webApi.PatchAsync<{Name}>(Request,
+    get: (ro, ct) => _service.GetAsync(id.Required(), ct),
+    put: (ro, ct) => _service.UpdateAsync(ro.Value.Adjust(v => v.Id = id.Required()), ct),
+    cancellationToken: cancellationToken);
 ```
 
 ### Result&lt;T&gt;
@@ -157,19 +158,20 @@ public Task<IActionResult> PatchAsync(string id) => _webApi.PatchAsync<{Name}>(R
 [Accepts<{Name}>]
 [ProducesResponseType(typeof({Name}), 200)]
 [ProducesNotFoundProblem()]
-public Task<IActionResult> PutAsync(string id) => _webApi.PutWithResultAsync<{Name}, {Name}>(Request, (ro, _)
-    => _service.UpdateAsync(ro.Value.Adjust(v => v.Id = id.Required())));
+public Task<IActionResult> PutAsync(string id, CancellationToken cancellationToken = default) => _webApi.PutWithResultAsync<{Name}, {Name}>(Request, (ro, ct)
+    => _service.UpdateAsync(ro.Value.Adjust(v => v.Id = id.Required()), ct), cancellationToken: cancellationToken);
 
 [HttpPatch("{id}")]
 [Accepts<{Name}>(HttpNames.MergePatchJsonMediaTypeName)]
 [ProducesResponseType(typeof({Name}), 200)]
 [ProducesNotFoundProblem()]
-public Task<IActionResult> PatchAsync(string id) => _webApi.PatchWithResultAsync<{Name}>(Request,
-    get: (ro, _) => _service.GetAsync(id.Required()),
-    put: (ro, _) => _service.UpdateAsync(ro.Value.Adjust(v => v.Id = id)));
+public Task<IActionResult> PatchAsync(string id, CancellationToken cancellationToken = default) => _webApi.PatchWithResultAsync<{Name}>(Request,
+    get: (ro, ct) => _service.GetAsync(id.Required(), ct),
+    put: (ro, ct) => _service.UpdateAsync(ro.Value.Adjust(v => v.Id = id.Required()), ct),
+    cancellationToken: cancellationToken);
 ```
 
-`ro.Value.Adjust(v => v.Id = id)` — binds the route id into the deserialized body so the service receives a fully populated entity.
+`ro.Value.Adjust(v => v.Id = id.Required())` — binds the route id into the deserialized body so the service receives a fully populated entity.
 
 ---
 
@@ -180,8 +182,8 @@ public Task<IActionResult> PatchAsync(string id) => _webApi.PatchWithResultAsync
 ```csharp
 [HttpDelete("{id}")]
 [ProducesResponseType(204)]
-public Task<IActionResult> DeleteAsync(string id) => _webApi.DeleteAsync(Request, (_, _)
-    => _service.DeleteAsync(id.Required()));
+public Task<IActionResult> DeleteAsync(string id, CancellationToken cancellationToken = default) => _webApi.DeleteAsync(Request, (_, ct)
+    => _service.DeleteAsync(id.Required(), ct), cancellationToken: cancellationToken);
 ```
 
 ### Result&lt;T&gt; — void delete (204 No Content)
@@ -189,8 +191,8 @@ public Task<IActionResult> DeleteAsync(string id) => _webApi.DeleteAsync(Request
 ```csharp
 [HttpDelete("{id}")]
 [ProducesResponseType(204)]
-public Task<IActionResult> DeleteAsync(string id) => _webApi.DeleteWithResultAsync(Request, (_, _)
-    => _service.DeleteAsync(id.Required()));
+public Task<IActionResult> DeleteAsync(string id, CancellationToken cancellationToken = default) => _webApi.DeleteWithResultAsync(Request, (_, ct)
+    => _service.DeleteAsync(id.Required(), ct), cancellationToken: cancellationToken);
 ```
 
 ### Result&lt;T&gt; — delete returning the deleted resource
@@ -199,8 +201,8 @@ public Task<IActionResult> DeleteAsync(string id) => _webApi.DeleteWithResultAsy
 [HttpDelete("{id}")]
 [ProducesResponseType(typeof({Name}), 200)]
 [ProducesNotFoundProblem()]
-public Task<IActionResult> DeleteAsync(string id) => _webApi.DeleteWithResultAsync<{Name}>(Request, (_, _)
-    => _service.DeleteAsync(id.Required()));
+public Task<IActionResult> DeleteAsync(string id, CancellationToken cancellationToken = default) => _webApi.DeleteWithResultAsync<{Name}>(Request, (_, ct)
+    => _service.DeleteAsync(id.Required(), ct), cancellationToken: cancellationToken);
 ```
 
 ---
@@ -215,8 +217,8 @@ Non-CRUD operations — state transitions, orchestration triggers, sub-resource 
 [HttpPost("{id}/activate")]
 [ProducesResponseType(typeof({Name}), 200)]
 [ProducesNotFoundProblem()]
-public Task<IActionResult> ActivateAsync(string id) => _webApi.PostAsync<{Name}>(Request, (_, _)
-    => _service.ActivateAsync(id.Required()), HttpStatusCode.OK);
+public Task<IActionResult> ActivateAsync(string id, CancellationToken cancellationToken = default) => _webApi.PostAsync<{Name}>(Request, (_, ct)
+    => _service.ActivateAsync(id.Required(), ct), HttpStatusCode.OK, cancellationToken: cancellationToken);
 ```
 
 Use `_webApi.PostWithResultAsync<{Name}>` when the service returns `Result<{Name}>`.
@@ -228,8 +230,8 @@ Use `_webApi.PostWithResultAsync<{Name}>` when the service returns `Result<{Name
 [IdempotencyKey]
 [Accepts<{ActionRequest}>]
 [ProducesResponseType(typeof({Name}), 200)]
-public Task<IActionResult> ActionAsync(string id) => _webApi.PostWithResultAsync<{ActionRequest}, {Name}>(Request, (ro, _)
-    => _service.ActionAsync(id.Required(), ro.Value), HttpStatusCode.OK);
+public Task<IActionResult> ActionAsync(string id, CancellationToken cancellationToken = default) => _webApi.PostWithResultAsync<{ActionRequest}, {Name}>(Request, (ro, ct)
+    => _service.ActionAsync(id.Required(), ro.Value, ct), HttpStatusCode.OK, cancellationToken: cancellationToken);
 ```
 
 ### PUT — state transition with extra route param
@@ -238,8 +240,8 @@ public Task<IActionResult> ActionAsync(string id) => _webApi.PostWithResultAsync
 [HttpPut("{id}/apply-{thing}")]
 [ProducesResponseType(typeof({Name}), 200)]
 [ProducesNotFoundProblem()]
-public Task<IActionResult> ApplyThingAsync(string id, string thing) => _webApi.PutWithResultAsync<{Name}>(Request, (_, _)
-    => _service.ApplyThingAsync(id.Required(), thing.Required()));
+public Task<IActionResult> ApplyThingAsync(string id, string thing, CancellationToken cancellationToken = default) => _webApi.PutWithResultAsync<{Name}>(Request, (_, ct)
+    => _service.ApplyThingAsync(id.Required(), thing.Required(), ct), cancellationToken: cancellationToken);
 ```
 
 ### Cross-tagged nested resource (advanced)
@@ -252,11 +254,11 @@ When an action belongs semantically to a different OpenAPI group or lives under 
 [HttpPost("/api/parents/{parentId}/{resources}")]
 [IdempotencyKey]
 [ProducesResponseType<{Name}>(201)]
-public Task<IActionResult> CreateForParentAsync(string parentId) => _webApi.PostWithResultAsync<{Name}>(Request, async (ro, _) =>
+public Task<IActionResult> CreateForParentAsync(string parentId, CancellationToken cancellationToken = default) => _webApi.PostWithResultAsync<{Name}>(Request, async (ro, ct) =>
 {
     ro.WithLocationUri(v => new Uri($"/api/{resources}/{v.Id}", UriKind.Relative));
-    return await _service.CreateForParentAsync(parentId.Required()).ConfigureAwait(false);
-});
+    return await _service.CreateForParentAsync(parentId.Required(), ct).ConfigureAwait(false);
+}, cancellationToken: cancellationToken);
 ```
 
 An absolute route path (`/api/parents/{parentId}/...`) overrides the controller's base `[Route]`.
@@ -278,45 +280,46 @@ Register `AddHttpWebApi()` in `Program.cs` instead of (or alongside) `AddMvcWebA
 ```csharp
 // GET by id
 app.MapGet("api/{resources}/{id}",
-    (HttpRequest request, WebApi webApi, I{Name}ReadService service, string id)
-        => webApi.GetWithResultAsync(request, (_, _) => service.GetAsync(id.Required())))
+    (HttpRequest request, WebApi webApi, I{Name}ReadService service, string id, CancellationToken cancellationToken)
+        => webApi.GetWithResultAsync(request, (_, ct) => service.GetAsync(id.Required(), ct), cancellationToken: cancellationToken))
     .Produces<{Name}>().ProducesNotFoundProblem();
 
 // POST — create
 app.MapPost("api/{resources}",
-    (HttpRequest request, WebApi webApi, I{Name}Service service)
-        => webApi.PostWithResultAsync<{Name}, {Name}>(request, async (ro, _) =>
+    (HttpRequest request, WebApi webApi, I{Name}Service service, CancellationToken cancellationToken)
+        => webApi.PostWithResultAsync<{Name}, {Name}>(request, async (ro, ct) =>
         {
             ro.WithLocationUri(v => new Uri($"api/{resources}/{v.Id}", UriKind.Relative));
-            return await service.CreateAsync(ro.Value).ConfigureAwait(false);
-        }))
+            return await service.CreateAsync(ro.Value, ct).ConfigureAwait(false);
+        }, cancellationToken: cancellationToken))
     .Accepts<{Name}>().ProducesCreated<{Name}>().WithIdempotencyKey();
 
 // PUT
 app.MapPut("api/{resources}/{id}",
-    (HttpRequest request, WebApi webApi, I{Name}Service service, string id)
-        => webApi.PutWithResultAsync<{Name}, {Name}>(request, (ro, _) =>
-            service.UpdateAsync(ro.Value.Adjust(v => v.Id = id))))
+    (HttpRequest request, WebApi webApi, I{Name}Service service, string id, CancellationToken cancellationToken)
+        => webApi.PutWithResultAsync<{Name}, {Name}>(request, (ro, ct) =>
+            service.UpdateAsync(ro.Value.Adjust(v => v.Id = id.Required()), ct), cancellationToken: cancellationToken))
     .Accepts<{Name}>().Produces<{Name}>().ProducesNotFoundProblem();
 
 // PATCH
 app.MapPatch("api/{resources}/{id}",
-    (HttpRequest request, WebApi webApi, I{Name}Service service, string id)
+    (HttpRequest request, WebApi webApi, I{Name}Service service, string id, CancellationToken cancellationToken)
         => webApi.PatchWithResultAsync<{Name}>(request,
-            get: (_, _) => service.GetAsync(id.Required()),
-            put: (ro, _) => service.UpdateAsync(ro.Value.Adjust(v => v.Id = id))))
+            get: (_, ct) => service.GetAsync(id.Required(), ct),
+            put: (ro, ct) => service.UpdateAsync(ro.Value.Adjust(v => v.Id = id.Required()), ct),
+            cancellationToken: cancellationToken))
     .Accepts<{Name}>(HttpNames.MergePatchJsonMediaTypeName).Produces<{Name}>().ProducesNotFoundProblem();
 
 // DELETE
 app.MapDelete("api/{resources}/{id}",
-    (HttpRequest request, WebApi webApi, I{Name}Service service, string id)
-        => webApi.DeleteWithResultAsync(request, (_, _) => service.DeleteAsync(id.Required())))
+    (HttpRequest request, WebApi webApi, I{Name}Service service, string id, CancellationToken cancellationToken)
+        => webApi.DeleteWithResultAsync(request, (_, ct) => service.DeleteAsync(id.Required(), ct), cancellationToken: cancellationToken))
     .ProducesNoContent();
 
 // Query
 app.MapGet("api/{resources}",
-    (HttpRequest request, WebApi webApi, I{Name}ReadService service)
-        => webApi.GetWithResultAsync(request, (ro, _) => service.QueryAsync(ro.QueryArgs, ro.PagingArgs)))
+    (HttpRequest request, WebApi webApi, I{Name}ReadService service, CancellationToken cancellationToken)
+        => webApi.GetWithResultAsync(request, (ro, ct) => service.QueryAsync(ro.QueryArgs, ro.PagingArgs, ct), cancellationToken: cancellationToken))
     .Produces<{Name}Lite[]>().WithQuery(supportsOrderBy: true).WithPaging(supportsCount: true);
 ```
 
@@ -348,5 +351,5 @@ All the same rules apply: `.Required()` on route params, no business logic in ha
 - **Never inject `IUnitOfWork`, `HttpClient`, adapters, or policies** into a controller — those belong in the application service.
 - **Never skip `[IdempotencyKey]` on a create-style POST without confirmation** — retried POSTs without it create duplicates.
 - **Never expose only PUT without PATCH** (or vice versa) for a full-entity update — always provide the pair unless a specialised partial endpoint is explicitly requested.
-- **Never mix standard and `WithResult` helpers** in the same controller — the style choice follows the service interface.
 - **Never put business logic in the controller** — the lambda body must be a single delegate call to the application service. If you find yourself writing `if`, `try/catch`, or multiple service calls, stop and move the logic to the service.
+- **Never mix standard and `WithResult` helpers** in the same controller — the style choice follows the service interface.

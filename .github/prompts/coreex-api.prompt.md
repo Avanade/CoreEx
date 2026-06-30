@@ -12,13 +12,14 @@ Operational contract:
 - Inherit from `ControllerBase` — never `Controller`.
 - All action methods return `Task<IActionResult>` via the WebApi helper — never `ActionResult<T>` directly.
 - Route parameters: use `.Required()` — never `.ThrowIfNull()` (wrong exception type → 500 not 400).
-- `ro.Value.Adjust(v => v.Id = id)` — bind route id into request body before passing to service.
+- `ro.Value.Adjust(v => v.Id = id.Required())` — bind route id into request body before passing to service.
 - `ro.WithLocationUri(...)` — set Location header in POST 201 responses.
 - `[IdempotencyKey]` on every create-style POST — ask the user; omit only when explicitly non-idempotent.
 - Always offer PUT + PATCH together for full-entity updates; specialised/partial endpoints only on explicit request.
 - Exception-based service → standard helpers (`GetAsync`, `PostAsync`, `PutAsync`, `PatchAsync`, `DeleteAsync`).
 - Result<T> service → `WithResult` variants (`GetWithResultAsync`, `PostWithResultAsync`, etc.). Never mix.
 - Query endpoints: `[Query(supportsOrderBy: true), Paging(supportsCount: true)]` + pair with `[HttpGet("$query")]` schema endpoint.
+- Every action method takes `CancellationToken cancellationToken = default` — pass to WebApi helper via `cancellationToken:` and to service via lambda's `ct`: `(ro, ct) => _service.XxxAsync(... , ct)`. Never discard with `(ro, _)`.
 - No business logic in controllers — delegate immediately to the application service.
 - No `IUnitOfWork`, `HttpClient`, adapters, or policies injected into controllers.
 - If any prompt text conflicts with the skill, the skill wins.

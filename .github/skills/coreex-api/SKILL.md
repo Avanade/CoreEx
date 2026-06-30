@@ -40,10 +40,11 @@ Guides you through adding or modifying HTTP API endpoints in an `*.Api` host. Co
 - **CQRS split:** `{Name}Controller` (POST/PUT/PATCH/DELETE → `I{Name}Service`) + `{Name}ReadController` (GET/query → `I{Name}ReadService`). Both use the **same route** and **same `[OpenApiTag]`** so they appear as one OpenAPI group
 - All action methods return `Task<IActionResult>` via the `WebApi` helper — never `ActionResult<T>` directly
 - Route parameter validation: use `.Required()` — **not** `.ThrowIfNull()` (wrong exception type → 500 not 400)
-- `ro.Value.Adjust(v => v.Id = id)` — bind route `id` into the deserialized body before passing to the service
+- `ro.Value.Adjust(v => v.Id = id.Required())` — bind route `id` into the deserialized body before passing to the service
 - `ro.WithLocationUri(...)` — set the `Location` response header in POST 201 responses
 - `[IdempotencyKey]` on every create-style POST — confirm with user; omit only if explicitly non-idempotent
 - Always expose **both PUT and PATCH** for full-entity updates; specialised partial-update endpoints only on request
+- Every action method takes `CancellationToken cancellationToken = default` — pass to the WebApi helper via `cancellationToken:` and to the service via the lambda's `ct`: `(ro, ct) => _service.XxxAsync(... , ct)`. Never discard with `(ro, _)`
 - Exception-based service → standard helpers (`GetAsync`, `PostAsync`, `PutAsync`, …)
 - `Result<T>` service → `WithResult` variants (`GetWithResultAsync`, `PostWithResultAsync`, `PutWithResultAsync`, …)
 - No business logic in controllers — delegate immediately to the application service

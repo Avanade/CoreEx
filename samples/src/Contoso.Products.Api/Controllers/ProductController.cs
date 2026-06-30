@@ -29,7 +29,7 @@ public class ProductController(WebApi webApi, IProductService service) : Control
     [ProducesNotFoundProblem()]
     public Task<IActionResult> PatchAsync(string id, CancellationToken cancellationToken = default) => _webApi.PatchAsync<Product>(Request,
         get: (ro, ct) => _service.GetAsync(id.Required(), ct),
-        put: (ro, ct) => _service.UpdateAsync(ro.Value.Adjust(p => p.Id = id), ct),
+        put: (ro, ct) => _service.UpdateAsync(ro.Value.Adjust(p => p.Id = id.Required()), ct),
         cancellationToken: cancellationToken);
 
     [HttpDelete("{id}")]
