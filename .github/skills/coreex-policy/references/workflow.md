@@ -44,11 +44,16 @@ public class {Name}Policy(I{Name}Repository repository)
 
 ## Step 2 — EnsureExists Guard (most common)
 
-Fetch the entity via the adapter. Translate `NotFoundError` into a user-visible field-level validation error so the caller sees a clean error at the referencing field, not a raw 404.
+Fetch the entity via the adapter and handle the `NotFoundError`. **How you translate it is a developer choice** — two patterns, different trade-offs:
+
+| Pattern | HTTP status | When to use |
+|---|---|---|
+| `Result.ValidationError(...)` | 422 | The `id` is a **property on the request body** — links the error to the field, consistent with other validation errors, allows aggregation |
+| `new NotFoundException().WithErrorCode(...)` | 404 | The `id` is a **path/query parameter** (primary resource), or the caller needs a machine-readable error code to branch on |
 
 `CreateErrorMessage(string? property, LText text)` — first arg is the **JSON property name** (`nameof(param)` or a string literal, never `LText`); second arg is the **localizable error message text**.
 
-### Returns the entity (`Result<T>`) — preferred when caller needs the loaded value
+### Validation error (request-body property reference) — default for most policies
 
 ```csharp
 public Task<Result<Contracts.{Name}>> EnsureExistsAsync(string id) => Result
@@ -60,19 +65,17 @@ public Task<Result<Contracts.{Name}>> EnsureExistsAsync(string id) => Result
 
 `OnFailure` runs only when the result is a failure. The ternary re-maps `NotFoundError` to a validation error; any other failure kind propagates unchanged (the `: r` branch).
 
-### Returns pass/fail only (`Result`) — when caller does not need the entity
+### NotFoundException with context (path parameter / primary resource)
 
 ```csharp
-public async Task<Result> EnsureExistsAsync(string id)
-{
-    var r = await _{dep}Adapter.GetAsync(id).ConfigureAwait(false);
-    return r.IsFailure
-        ? (r.IsNotFoundError
-            ? Result.ValidationError(MessageItem.CreateErrorMessage(nameof(id), "{0} was not found.", _entityText))
-            : r.AsResult())
-        : Result.Success;
-}
+public Task<Result<Contracts.{Name}>> EnsureExistsAsync(string id) => Result
+    .GoAsync(() => _{dep}Adapter.GetAsync(id))
+    .OnFailure(r => r.IsNotFoundError
+        ? new NotFoundException().WithErrorCode("{name}-not-found").WithKey(id)
+        : r);
 ```
+
+`WithErrorCode` gives the consumer a stable, machine-readable code; `WithKey` records the offending identifier for diagnostics.
 
 ---
 
@@ -149,6 +152,7 @@ public class {Name}Policy(I{Dep}Adapter {dep}Adapter)
     private readonly I{Dep}Adapter _{dep}Adapter = {dep}Adapter.ThrowIfNull();
 
     /// <summary>Ensures the {Name} exists; returns the loaded entity for reuse by the caller.</summary>
+    /// <remarks>Uses ValidationError because {Name}Id is a request-body property; swap for NotFoundException if it is a path parameter.</remarks>
     public Task<Result<Contracts.{Name}>> EnsureExistsAsync(string id) => Result
         .GoAsync(() => _{dep}Adapter.GetAsync(id))
         .OnFailure(r => r.IsNotFoundError
