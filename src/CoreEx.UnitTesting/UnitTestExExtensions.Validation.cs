@@ -68,4 +68,25 @@ public static partial class UnitTestExExtensions
 
         return vr;
     }
+
+    /// <summary>
+    /// Asserts that the <see cref="ValidationException"/> has errors and that the expected errors are present.
+    /// </summary>
+    /// <param name="validationException">The <see cref="ValidationException"/> to assert.</param>
+    /// <param name="expectedErrors">The expected errors.</param>
+    /// <returns>The <see cref="ValidationException"/> to support fluent-style method-chaining.</returns>
+    public static ValidationException AssertErrors(this ValidationException validationException, params IEnumerable<ApiError> expectedErrors)
+    {
+        if (expectedErrors == null || !expectedErrors.Any())
+            throw new ArgumentException($"At least one expected error must be provided; alternatively, use {nameof(AssertSuccess)}/{nameof(AssertSuccessAsync)} where asserting a successful validation).", nameof(expectedErrors));
+
+        validationException.ThrowIfNull();
+        validationException.Messages.Should().NotBeNull().And.HaveCountGreaterThan(0);
+
+        var actualErrors = validationException.Messages.Where(x => x.Type == CoreEx.Entities.MessageType.Error).Select(x => new ApiError(x.Property, x.Text?.ToString() ?? "none")).ToArray();
+        if (!Assertor.TryAreErrorsMatched(expectedErrors, actualErrors, out var errorMessage))
+            false.Should().BeTrue(because: errorMessage);
+
+        return validationException;
+    }
 }

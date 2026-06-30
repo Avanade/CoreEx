@@ -20,7 +20,8 @@ public class ProductPolicyTests : WithGenericTester<EntryPoint>
         var result = await policy.EnsureExistsAsync("nonexistent-product-id");
         result.IsFailure.Should().BeTrue();
         result.IsValidationError.Should().BeTrue();
-        result.Error.As<ValidationException>().Messages.Should().ContainSingle(m => m.Property == "productId" && m.Text == "Product was not found.");
+
+        result.Error.As<ValidationException>().AssertErrors(new ApiError("productId", "Product was not found."));
     });
 
     [Test]
