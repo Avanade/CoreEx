@@ -46,13 +46,15 @@ public class {Name}Policy(I{Name}Repository repository)
 
 Fetch the entity via the adapter. Translate `NotFoundError` into a user-visible field-level validation error so the caller sees a clean error at the referencing field, not a raw 404.
 
+`CreateErrorMessage(string? property, LText text)` — first arg is the **JSON property name** (`nameof(param)` or a string literal, never `LText`); second arg is the **localizable error message text**.
+
 ### Returns the entity (`Result<T>`) — preferred when caller needs the loaded value
 
 ```csharp
 public Task<Result<Contracts.{Name}>> EnsureExistsAsync(string id) => Result
     .GoAsync(() => _{dep}Adapter.GetAsync(id))
     .OnFailure(r => r.IsNotFoundError
-        ? Result.ValidationError(MessageItem.CreateErrorMessage(nameof(id), "{Name} was not found."))
+        ? Result.ValidationError(MessageItem.CreateErrorMessage(nameof(id), "{0} was not found.", _entityText))
         : r);
 ```
 
@@ -66,7 +68,7 @@ public async Task<Result> EnsureExistsAsync(string id)
     var r = await _{dep}Adapter.GetAsync(id).ConfigureAwait(false);
     return r.IsFailure
         ? (r.IsNotFoundError
-            ? Result.ValidationError(MessageItem.CreateErrorMessage(nameof(id), "{Name} was not found."))
+            ? Result.ValidationError(MessageItem.CreateErrorMessage(nameof(id), "{0} was not found.", _entityText))
             : r.AsResult())
         : Result.Success;
 }
@@ -106,25 +108,31 @@ public Task<Result> EnsureActiveAsync(string id) => Result
 
 ---
 
-## Step 4 — `LText` for Reusable Property Names
+## Step 4 — `LText` for Localizable Entity Names in Messages
 
-When the parameter name (`nameof(id)`) doesn't match the user-facing field label, declare a static `LText` field for the friendly name:
+`LText` is a **localizable text wrapper** — it holds text that may be translated at runtime via `TextProvider`. Use it for **entity names within error messages**, not for property/JSON names.
+
+Declare a `static readonly LText` field for the entity name, then substitute it into the format string via `{0}`:
 
 ```csharp
 public class {Name}Policy(I{Dep}Adapter {dep}Adapter)
 {
-    private static readonly LText _{param}Text = new("{FriendlyFieldName}");
+    private static readonly LText _entityText = new("{Name}");   // localizable entity name
     private readonly I{Dep}Adapter _{dep}Adapter = {dep}Adapter.ThrowIfNull();
 
     public Task<Result<Contracts.{Name}>> EnsureExistsAsync(string id) => Result
         .GoAsync(() => _{dep}Adapter.GetAsync(id))
         .OnFailure(r => r.IsNotFoundError
-            ? Result.ValidationError(MessageItem.CreateErrorMessage(_{param}Text, "{Name} was not found."))
+            ? Result.ValidationError(MessageItem.CreateErrorMessage(nameof(id), "{0} was not found.", _entityText))
             : r);
 }
 ```
 
-`LText` is a localizable text wrapper. Using a static field avoids repeated allocation and keeps the property label consistent across all methods in the class.
+**Two-argument vs three-argument `CreateErrorMessage`:**
+- `CreateErrorMessage(nameof(id), "{Name} was not found.")` — the whole message is one `LText`; the entity name is baked in. Simple, but the entity name cannot be independently localized.
+- `CreateErrorMessage(nameof(id), "{0} was not found.", _entityText)` — the format string is an `LText` and the entity name is a separately localizable `LText` argument. Preferred when the entity name is a shared concept.
+
+**The property name is always `string?`** — `nameof(param)` for a local parameter, or a string literal for a fixed JSON path. Never pass `LText` as the property argument.
 
 ---
 
@@ -137,14 +145,14 @@ namespace {Solution}.Application.Policies;
 
 public class {Name}Policy(I{Dep}Adapter {dep}Adapter)
 {
-    private static readonly LText _{param}Text = new("{FriendlyFieldName}");
+    private static readonly LText _entityText = new("{Name}");   // localizable entity name
     private readonly I{Dep}Adapter _{dep}Adapter = {dep}Adapter.ThrowIfNull();
 
     /// <summary>Ensures the {Name} exists; returns the loaded entity for reuse by the caller.</summary>
     public Task<Result<Contracts.{Name}>> EnsureExistsAsync(string id) => Result
         .GoAsync(() => _{dep}Adapter.GetAsync(id))
         .OnFailure(r => r.IsNotFoundError
-            ? Result.ValidationError(MessageItem.CreateErrorMessage(_{param}Text, "{Name} was not found."))
+            ? Result.ValidationError(MessageItem.CreateErrorMessage(nameof(id), "{0} was not found.", _entityText))
             : r);
 
     /// <summary>Ensures the {Name} is in active state.</summary>
@@ -240,8 +248,7 @@ public class {Name}PolicyTests : WithGenericTester<EntryPoint>
 
         result.IsFailure.Should().BeTrue();
         result.IsValidationError.Should().BeTrue();
-        result.Error.As<ValidationException>().Messages.Should()
-            .ContainSingle(m => m.Property == "{param}" && m.Text == "{Name} was not found.");
+        result.Error.As<ValidationException>().AssertErrors(new ApiError("{param}", "{Name} was not found."));
     });
 
     [Test]
@@ -259,7 +266,7 @@ public class {Name}PolicyTests : WithGenericTester<EntryPoint>
 - `Mock<I{Dep}Adapter>` — mock the adapter interface directly; `MockHttpClientFactory` is for HTTP-level mocking, not adapter interfaces.
 - `Result.Go(new Contracts.{Name}{...})` — creates a successful `Result<T>` with the given value.
 - `Result.NotFoundError()` — returns a `Result` failure; implicitly converts to `Result<T>` via `Result<T>`'s implicit operator.
-- `result.Error.As<ValidationException>()` — `As<T>()` is an AwesomeAssertions cast helper; ensure `global using AwesomeAssertions;` is in `GlobalUsing.cs`.
+- `result.Error.As<ValidationException>().AssertErrors(new ApiError(...))` — `AssertErrors` is the idiomatic CoreEx UnitTesting assertion; `ApiError(property, message)` matches the property name (string) and resolved message text.
 - `[OneTimeSetUp]` — configures mocks once per fixture; do **not** wrap in `Test.Scoped` — mock setup needs no execution context.
 
 ---

@@ -38,7 +38,7 @@ Guides you through creating or modifying a CoreEx Application-layer policy class
 - Always returns `Result` or `Result<T>` — never throws (unless adapter itself throws unexpectedly)
 - **EnsureExists:** translate `r.IsNotFoundError` → `Result.ValidationError(...)` — do not let `NotFoundException` propagate as-is
 - `MessageItem.CreateErrorMessage(nameof(param), "{Entity} was not found.")` produces a field-level validation error
-- `LText` static fields for reusable friendly property names (when `nameof(param)` doesn't match the user-facing field label)
+- `LText` static fields hold **localizable entity names** used inside message text — e.g. `new LText("Product")` as the `{0}` substitution in `"{0} was not found."`. The **property name** (`nameof(param)`) is always a plain `string?` — never `LText`
 - Guard methods can return the loaded entity as `Result<Contracts.T>` so callers can use it without a second fetch
 - Always `.ConfigureAwait(false)` on every `await`
 
