@@ -110,7 +110,7 @@ protected async override Task OnValidateAsync(ValidationContext<{Name}> context,
         return;
 
     var ids = context.Value.Products!.Keys.ToArray();
-    var products = await _repository.GetForReservationAsync(ids, cancellationToken).ConfigureAwait(false);
+    var products = await _repository.GetForReservationAsync(ids).ConfigureAwait(false);
 
     // Use ValidateFurtherAsync to compose declarative rules from runtime data.
     await context.ValidateFurtherAsync(c => c
