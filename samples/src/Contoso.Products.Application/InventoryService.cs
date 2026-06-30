@@ -5,9 +5,9 @@ public class InventoryService(IInventoryRepository repository) : IInventoryServi
 {
     private readonly IInventoryRepository _repository = repository.ThrowIfNull();
 
-    public async Task<decimal> GetOnHandAsync(string productId)
+    public async Task<decimal> GetOnHandAsync(string productId, CancellationToken ct = default)
     {
-        var qtyOnHand = await _repository.GetOnHandAsync(productId, true).ConfigureAwait(false);
+        var qtyOnHand = await _repository.GetOnHandAsync(productId, true, ct).ConfigureAwait(false);
         return qtyOnHand ?? 0m;
     }
 }

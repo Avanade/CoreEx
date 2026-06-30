@@ -11,12 +11,12 @@ public class OrderReadController(WebApi webApi, IOrderReadService service) : Con
     [HttpGet("{id}"), HttpHead("{id}")]
     [ProducesResponseType(typeof(OrderContract), StatusCodes.Status200OK)]
     [ProducesNotFoundProblem()]
-    public Task<IActionResult> GetAsync(string id) => _webApi.GetAsync(Request, (_, _)
-        => _service.GetAsync(id.Required()));
+    public Task<IActionResult> GetAsync(string id, CancellationToken cancellationToken = default) => _webApi.GetAsync(Request, (_, ct)
+        => _service.GetAsync(id.Required(), ct), cancellationToken: cancellationToken);
 
     [HttpGet]
     [ProducesResponseType(typeof(OrderLite[]), StatusCodes.Status200OK)]
     [Query(supportsOrderBy: true), Paging(supportsCount: true)]
-    public Task<IActionResult> QueryAsync() => _webApi.GetAsync(Request, (ro, _)
-        => _service.QueryAsync(ro.QueryArgs, ro.PagingArgs));
+    public Task<IActionResult> QueryAsync(CancellationToken cancellationToken = default) => _webApi.GetAsync(Request, (ro, ct)
+        => _service.QueryAsync(ro.QueryArgs, ro.PagingArgs, ct), cancellationToken: cancellationToken);
 }

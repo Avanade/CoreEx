@@ -14,27 +14,27 @@ public class OrderRepository(OrdersEfDb ef) : IOrderRepository
             .WithDefaultModelPrefix("Order")
             .AddField(nameof(Contracts.OrderBase.CustomerId), c => c.WithDefault().WithAlwaysInclude()));
 
-    public Task<Contracts.Order?> GetAsync(string id) => _ef.Orders.GetAsync(id);
+    public Task<Contracts.Order?> GetAsync(string id, CancellationToken ct = default) => _ef.Orders.GetAsync(id, ct);
 
-    public Task<DataResult<Contracts.Order>> CreateAsync(Contracts.Order order) => _ef.Orders.CreateAsync(order);
+    public Task<DataResult<Contracts.Order>> CreateAsync(Contracts.Order order, CancellationToken ct = default) => _ef.Orders.CreateAsync(order, ct);
 
-    public async Task<DataResult<Contracts.Order>> UpdateAsync(Contracts.Order order)
+    public async Task<DataResult<Contracts.Order>> UpdateAsync(Contracts.Order order, CancellationToken ct = default)
     {
         // Load the existing order with its items so EF tracks the child collection before the mapped update.
         var existing = await _ef.DbContext.Set<Persistence.Order>()
             .Include(o => o.Items)
-            .FirstOrDefaultAsync(o => o.Id == order.Id)
+            .FirstOrDefaultAsync(o => o.Id == order.Id, ct)
             .ConfigureAwait(false);
 
         if (existing is not null)
             SynchronizeItems(order, existing);
 
-        return await _ef.Orders.UpdateAsync(order).ConfigureAwait(false);
+        return await _ef.Orders.UpdateAsync(order, ct).ConfigureAwait(false);
     }
 
-    public Task<DataResult> DeleteAsync(string id) => _ef.Orders.DeleteAsync(id);
+    public Task<DataResult> DeleteAsync(string id, CancellationToken ct = default) => _ef.Orders.DeleteAsync(id, ct);
 
-    public async Task<ItemsResult<Contracts.OrderLite>> QueryAsync(QueryArgs? query, PagingArgs? paging)
+    public async Task<ItemsResult<Contracts.OrderLite>> QueryAsync(QueryArgs? query, PagingArgs? paging, CancellationToken ct = default)
     {
         var parsed = _queryConfig.Parse(query).ThrowOnError();
 
@@ -45,7 +45,7 @@ public class OrderRepository(OrdersEfDb ef) : IOrderRepository
             CustomerId = x.CustomerId,
             StatusCode = x.StatusCode,
             ChangeLog = new ChangeLog { CreatedBy = x.CreatedBy, CreatedOn = x.CreatedOn, UpdatedBy = x.UpdatedBy, UpdatedOn = x.UpdatedOn }
-        }, paging).ConfigureAwait(false);
+        }, paging, cancellationToken: ct).ConfigureAwait(false);
     }
 
     /// <summary>

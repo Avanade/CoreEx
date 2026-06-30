@@ -8,10 +8,10 @@ public class MovementService(IUnitOfWork unitOfWork, IProductRepository productR
     private readonly IMovementRepository _movementRepository = movementRepository.ThrowIfNull();
 
     /// <inheritdoc/>
-    public async Task<List<Movement>> CreateReservationAsync(MovementRequest request)
+    public async Task<List<Movement>> CreateReservationAsync(MovementRequest request, CancellationToken ct = default)
     {
         // Validate the request
-        var vr = await new MovementRequestValidator(productRepository).ValidateAsync(request);
+        var vr = await new MovementRequestValidator(productRepository).ValidateAsync(request, ct).ConfigureAwait(false);
         vr.ThrowOnError();
 
         // Build up the list of movements to create for the reservation.
@@ -34,23 +34,23 @@ public class MovementService(IUnitOfWork unitOfWork, IProductRepository productR
             return movements;
 
         // Adjust the inventory levels, create the reservations, and emit the events in a unit-of-work transaction.
-        await _unitOfWork.TransactionAsync(async () =>
+        await _unitOfWork.TransactionAsync(async tct =>
         {
             // Adjust inventory levels and persist movements.
-            movements = await _movementRepository.CreateAsync(movements).ConfigureAwait(false);
+            movements = await _movementRepository.CreateAsync(movements, tct).ConfigureAwait(false);
 
             // Emit events for the movements that were created.
             _unitOfWork.Events.Add(EventData.CreateEventsWith(movements, nameof(MovementStatus.Pending), ConfigureEvent));
-        }).ConfigureAwait(false);
+        }, ct).ConfigureAwait(false);
 
         return movements;
     }
 
     /// <inheritdoc/>
-    public Task<List<Movement>> ConfirmReservationAsync(string referenceId) => _unitOfWork.TransactionAsync(async () =>
+    public Task<List<Movement>> ConfirmReservationAsync(string referenceId, CancellationToken ct = default) => _unitOfWork.TransactionAsync(async tct =>
     {
         // Confirm all movements for the specified reservation.
-        var movements = await _movementRepository.ConfirmAsync(referenceId).ConfigureAwait(false);
+        var movements = await _movementRepository.ConfirmAsync(referenceId, tct).ConfigureAwait(false);
         if (movements.Count == 0)
             throw new NotFoundException().WithKey(referenceId).WithErrorCode("pending-reservation-not-found");
 
@@ -58,13 +58,13 @@ public class MovementService(IUnitOfWork unitOfWork, IProductRepository productR
         _unitOfWork.Events.Add(EventData.CreateEventsWith(movements, nameof(MovementStatus.Confirmed), ConfigureEvent));
 
         return movements;
-    });
+    }, ct);
 
     /// <inheritdoc/>
-    public Task<List<Movement>> CancelReservationAsync(string referenceId) => _unitOfWork.TransactionAsync(async () =>
+    public Task<List<Movement>> CancelReservationAsync(string referenceId, CancellationToken ct = default) => _unitOfWork.TransactionAsync(async tct =>
     {
         // Cancel all movements for the specified reservation.
-        var movements = await _movementRepository.CancelAsync(referenceId).ConfigureAwait(false);
+        var movements = await _movementRepository.CancelAsync(referenceId, tct).ConfigureAwait(false);
         if (movements.Count == 0)
             throw new NotFoundException().WithKey(referenceId).WithErrorCode("pending-reservation-not-found");
 
@@ -72,13 +72,13 @@ public class MovementService(IUnitOfWork unitOfWork, IProductRepository productR
         _unitOfWork.Events.Add(EventData.CreateEventsWith(movements, nameof(MovementStatus.Canceled), ConfigureEvent));
 
         return movements;
-    });
+    }, ct);
 
     /// <inheritdoc/>
-    public async Task<List<Movement>> AdjustAsync(MovementRequest request)
+    public async Task<List<Movement>> AdjustAsync(MovementRequest request, CancellationToken ct = default)
     {
         // Validate the request
-        var vr = await new MovementRequestValidator(productRepository).ValidateAsync(request);
+        var vr = await new MovementRequestValidator(productRepository).ValidateAsync(request, ct).ConfigureAwait(false);
         vr.ThrowOnError();
 
         // Build up the list of movements to create for the reservation.
@@ -101,14 +101,14 @@ public class MovementService(IUnitOfWork unitOfWork, IProductRepository productR
             return movements;
 
         // Adjust the inventory levels, and emit the events in a unit-of-work transaction.
-        await _unitOfWork.TransactionAsync(async () =>
+        await _unitOfWork.TransactionAsync(async tct =>
         {
             // Adjust inventory levels and persist movements.
-            movements = await _movementRepository.CreateAsync(movements).ConfigureAwait(false);
+            movements = await _movementRepository.CreateAsync(movements, tct).ConfigureAwait(false);
 
             // Emit events for the movements that were created.
             _unitOfWork.Events.Add(EventData.CreateEventsWith(movements, nameof(MovementStatus.Confirmed), ConfigureEvent));
-        }).ConfigureAwait(false);
+        }, ct).ConfigureAwait(false);
 
         return movements;
     }

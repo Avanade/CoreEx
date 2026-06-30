@@ -19,17 +19,17 @@ public class ProductRepository(ProductsEfDb ef) : IProductRepository
             .AddField(nameof(Contracts.ProductBase.Text))
             .AddField(nameof(Contracts.ProductBase.Brand)));
 
-    public Task<Contracts.Product?> GetAsync(string id) => _ef.Products.GetAsync(id);
+    public Task<Contracts.Product?> GetAsync(string id, CancellationToken ct = default) => _ef.Products.GetAsync(id, ct);
 
-    public Task<DataResult<Contracts.Product>> CreateAsync(Contracts.Product product) => _ef.Products.CreateAsync(product);
+    public Task<DataResult<Contracts.Product>> CreateAsync(Contracts.Product product, CancellationToken ct = default) => _ef.Products.CreateAsync(product, ct);
 
-    public Task<DataResult<Contracts.Product>> UpdateAsync(Contracts.Product product) => _ef.Products.UpdateAsync(product);
+    public Task<DataResult<Contracts.Product>> UpdateAsync(Contracts.Product product, CancellationToken ct = default) => _ef.Products.UpdateAsync(product, ct);
 
-    public Task<DataResult> DeleteAsync(string id) => _ef.Products.DeleteAsync(id);
+    public Task<DataResult> DeleteAsync(string id, CancellationToken ct = default) => _ef.Products.DeleteAsync(id, ct);
 
-    public Task<JsonElement> QuerySchemaAsync() => Task.FromResult(_queryConfig.ToJsonSchema());
+    public Task<JsonElement> QuerySchemaAsync(CancellationToken ct = default) => Task.FromResult(_queryConfig.ToJsonSchema());
 
-    public async Task<ItemsResult<Contracts.ProductLite>> QueryAsync(QueryArgs? query, PagingArgs? paging)
+    public async Task<ItemsResult<Contracts.ProductLite>> QueryAsync(QueryArgs? query, PagingArgs? paging, CancellationToken ct = default)
     {
         var parsed = _queryConfig.Parse(query).ThrowOnError();
 
@@ -67,10 +67,10 @@ public class ProductRepository(ProductsEfDb ef) : IProductRepository
             IsInactive = x.Product.IsInactive,
             IsNonStocked = x.Product.IsNonStocked,
             QtyOnHand = x.QtyOnHand
-        }, paging);
+        }, paging, cancellationToken: ct);
     }
 
-    public Task<Dictionary<string, Contracts.ProductReserve>> GetForReservationAsync(string[] ids)
+    public Task<Dictionary<string, Contracts.ProductReserve>> GetForReservationAsync(string[] ids, CancellationToken ct = default)
     {
         var products = _ef.Products.Model.Query();
         var list = ids.ToList();    // PostgreSQL EF has issues translating array.Contains, but can do list.Contains; see: https://github.com/npgsql/efcore.pg/issues/3461.
@@ -86,6 +86,6 @@ public class ProductRepository(ProductsEfDb ef) : IProductRepository
                 IsNonStocked = p.IsNonStocked
             };
 
-        return q.ToDictionaryAsync(x => x.Id, x => x);
+        return q.ToDictionaryAsync(x => x.Id, x => x, ct);
     }
 }
