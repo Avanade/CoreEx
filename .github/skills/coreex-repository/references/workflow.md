@@ -211,6 +211,8 @@ public Task<JsonElement> QuerySchemaAsync() => Task.FromResult(_queryConfig.ToJs
 
 Use when the project has elected to use `Result<T>` pipelines for explicit failure propagation instead of exceptions. This is a per-project or per-service style choice — not tied to the presence of a Domain layer, though DDD aggregate domains often use it naturally because aggregate mutation methods already return `Result<T>`. Use `*WithResultAsync` variants and compose with `.GoAsync` / `.Then` / `.ThenAs` / `.ThenAsAsync`:
 
+> **Domain aggregate vs Contract-level ROP:** The patterns below use `Domain.{Name}` and explicit `{Name}Mapper` / `{Name}IntoMapper` — this is the DDD case where `_ef.{Name}s` is `EfDbModel<Persistence.{Name}>`. For contract-level ROP (no Domain layer), use `EfDbMappedModel.*WithResultAsync` directly — `GetWithResultAsync` already returns `Result<Contracts.{Name}>` with no extra mapping step needed.
+
 ```csharp
 // Get — Persistence → Domain via mapper
 public Task<Result<Domain.{Name}>> GetAsync(string id) => Result
