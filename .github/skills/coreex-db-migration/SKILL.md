@@ -47,10 +47,12 @@ All commands run from the `*.Database` project directory.
 
 ## Polyglot Note
 
-| Domain | Provider | Script extension | Casing |
-|---|---|---|---|
-| `Contoso.Products.*` | PostgreSQL | `.pgsql` | `snake_case` |
-| `Contoso.Shopping.*`, `Contoso.Orders.*` | SQL Server | `.sql` | `PascalCase` |
+| Provider | Script extension | Casing |
+|---|---|---|
+| PostgreSQL | `.pgsql` | `snake_case` |
+| SQL Server | `.sql` | `PascalCase` |
+
+Check the project's `*.Database/Program.cs` or `appsettings.json` to confirm the provider in use.
 
 For the full step-by-step decision tree, SQL column templates, and guardrails see [`references/workflow.md`](references/workflow.md).
 

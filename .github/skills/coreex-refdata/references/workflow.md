@@ -8,7 +8,7 @@ Full step-by-step workflow for adding or modifying a reference data type. Follow
 
 Before any change, bring the database to a known good state and identify the scope.
 
-1. Identify which domain is being changed (Products = PostgreSQL, Shopping/Orders = SQL Server).
+1. Identify the database provider in use (PostgreSQL → `.pgsql` / `snake_case`; SQL Server → `.sql` / `PascalCase`). Check `*.Database/Program.cs` if unsure.
 2. From the `*.Database` project directory:
    ```
    dotnet run -- database

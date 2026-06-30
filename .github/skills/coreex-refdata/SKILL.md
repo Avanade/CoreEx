@@ -50,10 +50,12 @@ Putting entity definitions in the seed file, or seed rows in the entity file, is
 
 ## Polyglot Note
 
-| Domain | Provider | Casing | Script ext |
-|---|---|---|---|
-| `Contoso.Products.*` | PostgreSQL | `snake_case` | `.pgsql` |
-| `Contoso.Shopping.*`, `Contoso.Orders.*` | SQL Server | `PascalCase` | `.sql` |
+| Provider | Casing | Script ext |
+|---|---|---|
+| PostgreSQL | `snake_case` | `.pgsql` |
+| SQL Server | `PascalCase` | `.sql` |
+
+Check the project's `*.Database/Program.cs` to confirm the provider in use.
 
 For the full decision tree, YAML examples, seeding rules, and guardrails see [`references/workflow.md`](references/workflow.md).
 
