@@ -1,6 +1,6 @@
 ---
 name: coreex-repository
-description: "Create or modify a CoreEx Infrastructure-layer repository. USE FOR: new repository class, adding CRUD operations, adding a custom query (QueryArgsConfig), bidirectional mapper (BiDirectionMapper), EfDb model accessor, Result<T> pipeline variants. DO NOT USE FOR: Application-layer service logic, domain invariants, typed HTTP clients/adapters (use coreex-repository for the adapter wiring guidance)."
+description: "Create or modify a CoreEx Infrastructure-layer repository. USE FOR: new repository class, adding CRUD operations, adding a custom query (QueryArgsConfig), bidirectional mapper (BiDirectionMapper), EfDb model accessor, Result<T> pipeline variants. DO NOT USE FOR: Application-layer service logic, domain invariants, typed HTTP clients/adapters (those follow adapter conventions in the infrastructure instructions, not this skill)."
 argument-hint: "Optional: entity name, database type (PostgreSQL/SQL Server), operations needed (get/create/update/delete/query), new or existing repository"
 tags: ["repository", "infrastructure", "efcore", "mapping", "coreex", "data-access", "result"]
 ---

@@ -179,21 +179,22 @@ public async Task<ItemsResult<Contracts.{Name}Lite>> QueryAsync(QueryArgs? query
     var parsed = _queryConfig.Parse(query).ThrowOnError();
 
     // Compose the base query with any required joins before applying parsed filters.
+    // The anonymous-type property name must match WithDefaultModelPrefix — use {Name} in both.
     var q =
         from e in _ef.{Name}s.Model.Query()
         // optional join:
         // join r in _ef.RelatedModel.Query() on e.RelatedCode equals r.Code into rg
         // from r in rg.DefaultIfEmpty()
-        select new { Entity = e };
+        select new { {Name} = e };
 
     return await q
         .Where(parsed)
         .OrderBy(parsed)
         .ToMappedItemsResultAsync(x => new Contracts.{Name}Lite
         {
-            Id = x.Entity.Id,
+            Id = x.{Name}.Id,
             // ... project fields
-        }, paging);
+        }, paging).ConfigureAwait(false);
 }
 ```
 
@@ -242,7 +243,7 @@ public Task<Result<Domain.{Name}>> UpdateAsync(Domain.{Name} value) => Result
     .ThenAs(m => {Name}Mapper.Map(m));
 ```
 
-**`*WithResultAsync` returns `Result<DataResult<T>>`** — chain `.ThenAs(dr => dr.Value)` to unwrap if the downstream consumer needs `Result<T>` directly.
+**Return types differ by operation:** `GetWithResultAsync` returns `Result<T>` directly. `CreateWithResultAsync` / `UpdateWithResultAsync` return `Result<DataResult<T>>`; `DeleteWithResultAsync` returns `Result<DataResult>`. The `DataResult<T>` → `T` implicit operator means mapper calls like `.ThenAs(m => {Name}Mapper.Map(m))` work without explicit `.Value` unwrapping — but use `.ThenAs(dr => dr.Value)` when you need the persistence model value explicitly.
 
 **Domain ↔ Persistence mappers are one-way** (`Mapper<TPersistence, TDomain, TSelf>`) — they map from persistence to domain only; use a separate `{Name}IntoMapper` (`IntoMapper<TDomain, TPersistence, TSelf>`) for the write direction.
 
