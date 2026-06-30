@@ -255,13 +255,15 @@ For pre-flight checks (validation + adapter/policy) before the transaction:
 
 ```csharp
 var pr = await Result.GoAsync(() => {Name}Validator.Default.ValidateWithResultAsync(item))
-    .ThenAsAsync(v => new {Dep}Policy(_adapter).EnsureExistsAsync(v.{DepId}!));
+    .ThenAsAsync(v => new {Dep}Policy(_adapter).EnsureExistsAsync(v.{DepId}!))
+    .ConfigureAwait(false);
 
 if (pr.IsFailure)
     return pr.AsResult();
 
 // pr.Value carries the result of the last ThenAs
-return await OrchestrateUpdateAsync(id, entity => entity.{Action}(pr.Value));
+return await OrchestrateUpdateAsync(id, entity => entity.{Action}(pr.Value))
+    .ConfigureAwait(false);
 ```
 
 ---
@@ -367,13 +369,15 @@ Policies are instantiated with constructor arguments from the service's injected
 
 ```csharp
 // In a service method — _adapter already injected:
-var pr = await new {Name}Policy(_adapter).EnsureExistsAsync(item.{Id}!);
+var pr = await new {Name}Policy(_adapter).EnsureExistsAsync(item.{Id}!)
+    .ConfigureAwait(false);
 if (pr.IsFailure)
     return pr.AsResult();
 
 // Or inline in a Result<T> pipeline:
-var pr = await Result.GoAsync(() => BasketItemAddRequestValidator.Default.ValidateWithResultAsync(item))
-    .ThenAsAsync(item => new {Name}Policy(_adapter).EnsureExistsAsync(item.{Id}!));
+var pr = await Result.GoAsync(() => {Name}Validator.Default.ValidateWithResultAsync(item))
+    .ThenAsAsync(item => new {Name}Policy(_adapter).EnsureExistsAsync(item.{Id}!))
+    .ConfigureAwait(false);
 
 if (pr.IsFailure)
     return pr.AsResult();
