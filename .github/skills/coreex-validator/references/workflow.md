@@ -90,9 +90,8 @@ public class {Name}Validator : Validator<Contracts.{Name}>
         _repository = repository.ThrowIfNull();
 
         Property(x => x.Id).Mandatory().MaximumLength(50);
-        Property(x => x.Products).Mandatory().Dictionary(c => c
-            .WithKeyValidator(_productText, k => k.Mandatory().MaximumLength(50))
-            .WithValueValidator(v => v.Mandatory().Entity(_productValidator)));
+        Property(x => x.Text).Mandatory().MaximumLength(250);
+        Property(x => x.Status).Mandatory().IsValid();   // ref-data navigation property
     }
 }
 ```
