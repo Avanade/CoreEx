@@ -224,6 +224,18 @@ private static readonly Validator<OrderItem> _itemValidator = Validator.Create<O
 Property(x => x.Items).Collection(c => c.WithItemValidator(_itemValidator));
 ```
 
+**Accessing the collection index from an item rule:**
+When the item validator needs to know which position in the collection it is validating, use `ctx.GetCollectionIndex()`:
+
+```csharp
+private static readonly Validator<OrderItem> _itemValidator = Validator.Create<OrderItem>()
+    .HasProperty(x => x.Id, p => p.Mandatory().MaximumLength(50))
+    .HasProperty(x => x.Quantity, p => p.GreaterThanOrEqualTo(0m)
+        .Error(ctx => $"Item [{ctx.GetCollectionIndex()}]: quantity must be non-negative."));
+```
+
+`GetCollectionIndex()` returns the zero-based integer index set by `CollectionRule` during enumeration. It throws `IndexOutOfRangeException` if called outside a collection validation context — only call it inside a `WithItemValidator` rule.
+
 ### Dictionary
 
 ```csharp
