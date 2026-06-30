@@ -5,7 +5,7 @@ public class InventoryRepository(ProductsEfDb ef) : IInventoryRepository
 {
     private readonly ProductsEfDb _ef = ef.ThrowIfNull();
 
-    public async Task<decimal?> GetOnHandAsync(string productId, bool throwNotFoundException)
+    public async Task<decimal?> GetOnHandAsync(string productId, bool throwNotFoundException, CancellationToken ct = default)
     {
         var products = _ef.Products.Model.Query();
         var inventory = _ef.Inventory.Query();
@@ -21,7 +21,7 @@ public class InventoryRepository(ProductsEfDb ef) : IInventoryRepository
                 QtyOnHand = i == null ? 0m : i.QtyOnHand
             };
 
-        var res = await q.SingleOrDefaultAsync().ConfigureAwait(false);
+        var res = await q.SingleOrDefaultAsync(ct).ConfigureAwait(false);
 
         // Where existence is not considered important, return zero when not found.
         if (res is null)

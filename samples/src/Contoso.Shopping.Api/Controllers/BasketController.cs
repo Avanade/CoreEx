@@ -11,42 +11,42 @@ public class BasketController(WebApi webApi, IBasketService service) : Controlle
     [IdempotencyKey]
     [ProducesResponseType(typeof(Basket), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-    public Task<IActionResult> CreateAsync(string customerId) => _webApi.PostWithResultAsync<Basket>(Request, async (ro, _) =>
+    public Task<IActionResult> CreateAsync(string customerId, CancellationToken cancellationToken = default) => _webApi.PostWithResultAsync<Basket>(Request, async (ro, ct) =>
     {
         ro.WithLocationUri(p => new Uri($"/api/baskets/{p.Id}", UriKind.Relative));
-        return await _service.CreateAsync(customerId.Required()).ConfigureAwait(false);
-    });
+        return await _service.CreateAsync(customerId.Required(), ct).ConfigureAwait(false);
+    }, cancellationToken: cancellationToken);
 
     [HttpPut("{basketId}/apply-discount/{coupon}")]
     [ProducesResponseType(typeof(Basket), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-    public Task<IActionResult> ApplyDiscountAsync(string basketId, string coupon) => _webApi.PutWithResultAsync<Basket>(Request, (_, _)
-        => _service.ApplyDiscountAsync(basketId.Required(), coupon.Required()));
+    public Task<IActionResult> ApplyDiscountAsync(string basketId, string coupon, CancellationToken cancellationToken = default) => _webApi.PutWithResultAsync<Basket>(Request, (_, ct)
+        => _service.ApplyDiscountAsync(basketId.Required(), coupon.Required(), ct), cancellationToken: cancellationToken);
 
     [HttpPost("{basketId}/checkout")]
     [ProducesResponseType(typeof(Basket), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-    public Task<IActionResult> CheckoutAsync(string basketId) => _webApi.PostWithResultAsync<Basket>(Request, (_, _)
-        => _service.CheckoutAsync(basketId.Required()), HttpStatusCode.OK);
+    public Task<IActionResult> CheckoutAsync(string basketId, CancellationToken cancellationToken = default) => _webApi.PostWithResultAsync<Basket>(Request, (_, ct)
+        => _service.CheckoutAsync(basketId.Required(), ct), HttpStatusCode.OK, cancellationToken: cancellationToken);
 
     [HttpPost("{basketId}/items")]
     [IdempotencyKey]
     [Accepts<BasketItemAddRequest>]
     [ProducesResponseType(typeof(Basket), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-    public Task<IActionResult> ItemAddAsync(string basketId) => _webApi.PostWithResultAsync<BasketItemAddRequest, Basket>(Request, (ro, _)
-        => _service.ItemAddAsync(basketId.Required(), ro.Value), HttpStatusCode.OK);
+    public Task<IActionResult> ItemAddAsync(string basketId, CancellationToken cancellationToken = default) => _webApi.PostWithResultAsync<BasketItemAddRequest, Basket>(Request, (ro, ct)
+        => _service.ItemAddAsync(basketId.Required(), ro.Value, ct), HttpStatusCode.OK, cancellationToken: cancellationToken);
 
     [HttpPut("{basketId}/items/{basketItemId}")]
     [Accepts<BasketItemUpdateRequest>]
     [ProducesResponseType(typeof(Basket), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-    public Task<IActionResult> ItemUpdateAsync(string basketId, string basketItemId) => _webApi.PutWithResultAsync<BasketItemUpdateRequest, Basket>(Request, (ro, _)
-        => _service.ItemUpdateAsync(basketId.Required(), basketItemId.Required(), ro.Value), HttpStatusCode.OK);
+    public Task<IActionResult> ItemUpdateAsync(string basketId, string basketItemId, CancellationToken cancellationToken = default) => _webApi.PutWithResultAsync<BasketItemUpdateRequest, Basket>(Request, (ro, ct)
+        => _service.ItemUpdateAsync(basketId.Required(), basketItemId.Required(), ro.Value, ct), HttpStatusCode.OK, cancellationToken: cancellationToken);
 
     [HttpDelete("{basketId}/items/{basketItemId}")]
     [ProducesResponseType(typeof(Basket), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-    public Task<IActionResult> ItemDeleteAsync(string basketId, string basketItemId) => _webApi.DeleteWithResultAsync<Basket>(Request, (_, _)
-        => _service.ItemDeleteAsync(basketId.Required(), basketItemId.Required()));
+    public Task<IActionResult> ItemDeleteAsync(string basketId, string basketItemId, CancellationToken cancellationToken = default) => _webApi.DeleteWithResultAsync<Basket>(Request, (_, ct)
+        => _service.ItemDeleteAsync(basketId.Required(), basketItemId.Required(), ct), cancellationToken: cancellationToken);
 }

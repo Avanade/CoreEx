@@ -40,12 +40,22 @@
     <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
     <IsRoslynComponent>true</IsRoslynComponent>
     <OutputItemType>Analyzer</OutputItemType>
-    
     <!-- Not packed standalone; bundled into CoreEx package. -->
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
     <IncludeBuildOutput>false</IncludeBuildOutput>
     <GetTargetPathDependsOn>$(GetTargetPathDependsOn);GetDependencyTargetPaths</GetTargetPathDependsOn>
+    <!-- Suppress deps.json generation. The SDK defaults GenerateDependencyFile=true via
+         Microsoft.NET.Sdk.BeforeCommon.targets (Condition="'$(GenerateDependencyFile)' == ''").
+         Setting it here (in project PropertyGroup, evaluated before .targets imports) prevents
+         the default from applying. This analyzer has no runtime entry point and needs no deps.json;
+         removing it eliminates a parallel-build file-lock race on Linux CI where multiple projects
+         building the solution concurrently all try to write CoreEx.Generator.deps.json. -->
+    <GenerateDependencyFile>false</GenerateDependencyFile>
   </PropertyGroup>
+
+  <!-- Belt-and-suspenders: override the target that writes deps.json, in case anything
+       forces GenerateDependencyFile back to true after project evaluation. -->
+  <Target Name="GenerateBuildDependencyFile" />
 
   <ItemGroup>
     <EmbeddedResource Include="Templates\**\*" />
