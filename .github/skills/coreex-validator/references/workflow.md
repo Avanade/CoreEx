@@ -214,6 +214,34 @@ When adding to an existing override, respect the existing `context.HasErrors` gu
 
 ## Nested Validators
 
+### Entity
+
+Use `.Entity()` to run a separate validator against a complex sub-property. Errors from the sub-validator are merged into the parent result under the sub-property's JSON path (e.g. `"address.street"`).
+
+**Form 1 — Direct validator instance** (most common — sub-type has a `Validator<T, TSelf>` `Default` singleton):
+
+```csharp
+// OrderValidator constructor:
+Property(x => x.ShippingAddress).Mandatory().Entity(AddressValidator.Default);
+```
+
+**Form 2 — DI-resolved validator** (sub-type uses `Validator<T>` with injection — no `Default` available):
+
+```csharp
+Property(x => x.ShippingAddress).Mandatory().Entity(w => w.WithValidator<AddressValidator>());
+```
+
+This calls `Validator.Get<AddressValidator>(serviceProvider)` at validation time — the validator is resolved from the DI container scoped to the current request.
+
+**Form 3 — Inline rules** (quick one-off validation without a dedicated validator class):
+
+```csharp
+// Simple scalar property with inline length rule:
+Property(x => x.Name).Entity(w => w.WithValidator(v => v.MaximumLength(4)));
+```
+
+**Key behaviour:** validation errors propagate with the full nested path. If `ShippingAddress.Street` fails, the error key is `"shippingAddress.street"` — not `"street"` alone.
+
 ### Collection
 
 ```csharp
