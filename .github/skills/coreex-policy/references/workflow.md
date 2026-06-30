@@ -48,7 +48,7 @@ Fetch the entity via the adapter and handle the `NotFoundError`. **How you trans
 
 | Pattern | HTTP status | When to use |
 |---|---|---|
-| `Result.ValidationError(...)` | 422 | The `id` is a **property on the request body** — links the error to the field, consistent with other validation errors, allows aggregation |
+| `Result.ValidationError(...)` | 400 | The `id` is a **property on the request body** — links the error to the field, consistent with other validation errors, allows aggregation |
 | `new NotFoundException().WithErrorCode(...)` | 404 | The `id` is a **path/query parameter** (primary resource), or the caller needs a machine-readable error code to branch on |
 
 `CreateErrorMessage(string? property, LText text)` — first arg is the **JSON property name** (`nameof(param)` or a string literal, never `LText`); second arg is the **localizable error message text**.
@@ -267,7 +267,7 @@ public class {Name}PolicyTests : WithGenericTester<EntryPoint>
 ```
 
 **Notes on the test pattern:**
-- `Mock<I{Dep}Adapter>` — mock the adapter interface directly; `MockHttpClientFactory` is for HTTP-level mocking, not adapter interfaces.
+- `Mock<I{Dep}Adapter>` — mock the adapter interface directly using Moq; `MockHttpClientFactory` is for HTTP transport-level testing, not for mocking adapter interfaces.
 - `Result.Go(new Contracts.{Name}{...})` — creates a successful `Result<T>` with the given value.
 - `Result.NotFoundError()` — returns a `Result` failure; implicitly converts to `Result<T>` via `Result<T>`'s implicit operator.
 - `result.Error.As<ValidationException>().AssertErrors(new ApiError(...))` — `AssertErrors` is the idiomatic CoreEx UnitTesting assertion; `ApiError(property, message)` matches the property name (string) and resolved message text.
@@ -278,7 +278,7 @@ public class {Name}PolicyTests : WithGenericTester<EntryPoint>
 ## Guardrails
 
 - **Never register a policy in DI** — instantiate at call site only. If you find yourself registering `I{Name}Policy`, stop and reconsider.
-- **Never let `NotFoundException` propagate** from an EnsureExists method — always translate it to `ValidationError` so the HTTP layer returns 422, not 404.
+- **Never let `NotFoundException` propagate** from an EnsureExists method — translate it to either `ValidationError` (HTTP 400, for request-body property references) or a richer `NotFoundException` with `WithErrorCode`/`WithKey` (HTTP 404, for path/query parameters) — see Step 2 for the decision.
 - **`Result.BusinessError` for process/state violations; `Result.ValidationError` for field-constraint violations** — do not use `BusinessError` to signal a missing entity.
 - **Return `Result<T>` (entity)** when the caller needs the loaded value; return `Result` (pass/fail) only when the entity is not needed downstream — this avoids a duplicate fetch in the service.
 - **Always `.ConfigureAwait(false)` on every `await`** — policy methods run in service context where thread-pool continuations matter.

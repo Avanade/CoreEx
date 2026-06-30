@@ -13,7 +13,7 @@ Operational contract:
 - EnsureExists: translate r.IsNotFoundError → Result.ValidationError(MessageItem.CreateErrorMessage(...)) — never let NotFoundException propagate.
 - BusinessError for process/state violations; ValidationError for field-constraint violations.
 - Return Result<T> (entity) when the caller needs the loaded value; Result for pure pass/fail.
-- LText static field for friendly property names when nameof(param) doesn't match the user-facing label.
+- LText static field for localizable entity names within error message text — e.g. `new LText("Entity")` as the `{0}` substitution in `"{0} was not found."`. The property name is always `nameof(param)` (plain string), never `LText`.
 - Multi-method: group guards sharing the same adapter/repository in one class.
 - Pipeline composition: Result.GoAsync().ThenAsAsync() — use ThenAsAsync (As variant) when the delegate changes result type.
 - Always .ConfigureAwait(false) on every await.

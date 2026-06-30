@@ -75,7 +75,7 @@ public static partial class UnitTestExExtensions
     /// <param name="validationException">The <see cref="ValidationException"/> to assert.</param>
     /// <param name="expectedErrors">The expected errors.</param>
     /// <returns>The <see cref="ValidationException"/> to support fluent-style method-chaining.</returns>
-    public static ValidationException AssertErrors(this ValidationException validationException, params IEnumerable<ApiError> expectedErrors)
+    public static ValidationException AssertErrors(this ValidationException validationException, params ApiError[] expectedErrors)
     {
         if (expectedErrors == null || !expectedErrors.Any())
             throw new ArgumentException($"At least one expected error must be provided; alternatively, use {nameof(AssertSuccess)}/{nameof(AssertSuccessAsync)} where asserting a successful validation).", nameof(expectedErrors));
