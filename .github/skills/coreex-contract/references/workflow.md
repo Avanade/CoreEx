@@ -109,7 +109,7 @@ Key assembly rules:
 - Optional `[Schema]` for custom event schema metadata — only when user explicitly requests:
   - `[Schema("2.1")]` — override version only (default is `1.0`)
   - `[Schema("2.1", Name = "OtherName")]` — override version and name (default is `Type.Name`)
-  - `SchemaUri` — set when a specific schema URI is required: `[Schema("2.1") { SchemaUri = "..." }]`
+  - `[Schema("2.1", SchemaUri = "https://...")]` — also override schema URI
 
 ### A5 — Inheritance base class
 
