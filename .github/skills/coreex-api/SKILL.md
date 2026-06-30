@@ -1,6 +1,6 @@
 ---
 name: coreex-api
-description: "Add or modify a CoreEx API controller (or Minimal API endpoint) in an *.Api host. USE FOR: scaffolding the MVC controller pair (XxxController + XxxReadController), GET/query/schema endpoints, POST create, PUT + PATCH full-entity update, DELETE, and custom business-action endpoints. Covers both exception-based and Result<T> service styles, and Minimal API as an alternative to MVC. DO NOT USE FOR: Api host setup / Program.cs (use coreex-host-setup), application services (use coreex-app-service), API integration tests (use coreex-api-test)."
+description: "Add or modify a CoreEx API controller (or Minimal API endpoint) in an *.Api host. USE FOR: scaffolding the MVC controller pair (XxxController + XxxReadController), GET/query/schema endpoints, POST create, PUT + PATCH full-entity update, DELETE, and custom business-action endpoints. Covers both exception-based and Result<T> service styles, and Minimal API as an alternative to MVC. DO NOT USE FOR: Api host setup / Program.cs (use coreex-host-setup), application services (use coreex-app-service), API integration tests (see coreex-tests.instructions.md)."
 argument-hint: "Optional: entity name, operations needed (get/query/create/update/delete/custom), exception-based or Result<T> service style, MVC or Minimal API"
 tags: ["api", "controller", "mvc", "minimal-api", "webapi", "routing", "cqrs", "coreex"]
 ---
@@ -23,7 +23,7 @@ Guides you through adding or modifying HTTP API endpoints in an `*.Api` host. Co
 
 - Api host setup and `Program.cs` composition — use `coreex-host-setup`
 - Application service creation — use `coreex-app-service`
-- API integration tests (`WithApiTester<Program>`) — use `coreex-api-test`
+- API integration tests (`WithApiTester<Program>`) — see `coreex-tests.instructions.md`
 - Subscriber or relay hosts — controllers do not belong there
 
 ## Quick Reference

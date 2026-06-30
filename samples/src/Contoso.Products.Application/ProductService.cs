@@ -51,7 +51,7 @@ public class ProductService(IUnitOfWork unitOfWork, IProductRepository repositor
         var product = await _repository.GetAsync(id, ct).ConfigureAwait(false);
         NotFoundException.ThrowIfDefault(product);
 
-        if (product.IsInactive)
+        if (!product.IsInactive)
             return product;
 
         return await _unitOfWork.TransactionAsync(async tct =>
@@ -68,7 +68,7 @@ public class ProductService(IUnitOfWork unitOfWork, IProductRepository repositor
         var product = await _repository.GetAsync(id, ct).ConfigureAwait(false);
         NotFoundException.ThrowIfDefault(product);
 
-        if (!product.IsInactive)
+        if (product.IsInactive)
             return product;
 
         return await _unitOfWork.TransactionAsync(async tct =>

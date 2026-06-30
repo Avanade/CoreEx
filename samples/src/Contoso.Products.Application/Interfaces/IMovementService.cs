@@ -3,7 +3,7 @@ namespace Contoso.Products.Application.Interfaces;
 public interface IMovementService
 {
     /// <summary>
-    /// Creates a reservation for inventory movement(s); inventory is adjusted, bit still requires confirmation to be finalized.
+    /// Creates a reservation for inventory movement(s); inventory is adjusted, but still requires confirmation to be finalized.
     /// </summary>
     Task<List<Movement>> CreateReservationAsync(MovementRequest request, CancellationToken ct = default);
 

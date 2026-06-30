@@ -7,7 +7,7 @@ public class InventoryController(WebApi webApi, IInventoryService service) : Con
     private readonly IInventoryService _service = service.ThrowIfNull();
 
     [HttpGet("{id}/on-hand")]
-    [ProducesResponseType(typeof(Product), 200)]
+    [ProducesResponseType(typeof(decimal), 200)]
     [ProducesNotFoundProblem()]
     public Task<IActionResult> GetOnHandAsync(string id, CancellationToken cancellationToken = default) => _webApi.GetAsync(Request, (_, ct) => _service.GetOnHandAsync(id.Required(), ct), cancellationToken: cancellationToken);
 }
