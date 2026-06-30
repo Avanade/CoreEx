@@ -49,7 +49,8 @@ public class {Name}Validator : Validator<Contracts.{Name}, {Name}Validator>
 | Non-negative decimal | `.GreaterThanOrEqualTo(0, _ => "zero")` |
 | Decimal precision | `.PrecisionScale(precision, scale)` — pass `null` for precision to skip |
 | Required + precision | `.PrecisionScale(null, 2).GreaterThanOrEqualTo(0, _ => "zero")` |
-| Conditional rule | `.WhenValue(x => x.SomeFlag)` chained after the rule |
+| Run rule only when entity condition met | `.WhenEntity(e => e.StartDate.HasValue)` chained after the rule |
+| Run rule only when property value condition met | `.WhenValue(v => v != null)` chained after the rule (predicate on property value, not entity — use `WhenEntity` for entity conditions) |
 | Skip when dependent prop invalid | `.DependsOn(x => x.OtherProp)` at end of chain |
 | Runtime-computed threshold | `.LessThanOrEqualTo(_ => DateOnly.FromDateTime(Runtime.UtcNow.UtcDateTime.AddYears(-16)), _ => "the minimum age of 16")` |
 
@@ -194,7 +195,7 @@ Locate the constructor and add the rule in property declaration order:
 Property(x => x.NewField).Mandatory().MaximumLength(100);
 ```
 
-Apply the 5-step type resolution from `coreex-validator.SKILL.md` for type decisions.
+Apply the property type resolution from `coreex-contracts.instructions.md` (name-pattern inference → explicit type → ref-data check) for type decisions.
 
 ### D2 — Add an async check
 
@@ -225,16 +226,16 @@ Property(x => x.Items).Collection(c => c.WithItemValidator(_itemValidator));
 ```
 
 **Accessing the collection index from an item rule:**
-When the item validator needs to know which position in the collection it is validating, use `ctx.GetCollectionIndex()`:
+When the item validator needs to look up data keyed by position (e.g. a per-index minimum quantity), use `ctx.GetCollectionIndex()` in a rule's delegate overload:
 
 ```csharp
-private static readonly Validator<OrderItem> _itemValidator = Validator.Create<OrderItem>()
-    .HasProperty(x => x.Id, p => p.Mandatory().MaximumLength(50))
-    .HasProperty(x => x.Quantity, p => p.GreaterThanOrEqualTo(0m)
-        .Error(ctx => $"Item [{ctx.GetCollectionIndex()}]: quantity must be non-negative."));
+// minimumQuantities is captured from the outer scope (e.g. fetched in OnValidateAsync)
+var itemValidator = Validator.Create<OrderItem>()
+    .HasProperty(x => x.Quantity, p => p
+        .GreaterThanOrEqualTo(ctx => minimumQuantities[ctx.GetCollectionIndex()]));
 ```
 
-`GetCollectionIndex()` returns the zero-based integer index set by `CollectionRule` during enumeration. It throws `IndexOutOfRangeException` if called outside a collection validation context — only call it inside a `WithItemValidator` rule.
+`GetCollectionIndex()` returns the zero-based integer index set by `CollectionRule` during enumeration. It throws `IndexOutOfRangeException` if called outside a collection validation context. Note: `.Error()` takes a plain string (`LText`) — it does not accept a delegate, so dynamic index-based error messages must be composed via `context.AddError(...)` in `OnValidateAsync` instead.
 
 ### Dictionary
 
