@@ -27,7 +27,7 @@ public class MovementRequestValidator : Validator<Contracts.MovementRequest>
 
         // Get the product(s) info to determine whether request is valid.
         var ids = context.Value.Products!.Select(kvp => kvp.Key).ToArray() ?? [];
-        var products = await _repository.GetForReservationAsync(ids).ConfigureAwait(false);
+        var products = await _repository.GetForReservationAsync(ids, cancellationToken).ConfigureAwait(false);
 
         // Create extended product validator (dictionary value) that can access the product information for validating the unit of measure.
         var dv = Validator.Create<MovementRequestProduct>()

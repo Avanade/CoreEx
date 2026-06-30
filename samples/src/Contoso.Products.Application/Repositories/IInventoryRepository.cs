@@ -2,5 +2,5 @@ namespace Contoso.Products.Application.Repositories;
 
 public interface IInventoryRepository
 {
-    Task<decimal?> GetOnHandAsync(string productId, bool throwNotFoundException);
+    Task<decimal?> GetOnHandAsync(string productId, bool throwNotFoundException, CancellationToken ct = default);
 }

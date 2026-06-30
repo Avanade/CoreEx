@@ -68,16 +68,16 @@ public class OrderControllerTests : WithGenericTester<EntryPoint>
 
     private sealed class FakeOrderService : IOrderService
     {
-        public Task<Contoso.Orders.Contracts.Order> CreateAsync(Contoso.Orders.Contracts.Order order)
+        public Task<Contoso.Orders.Contracts.Order> CreateAsync(Contoso.Orders.Contracts.Order order, CancellationToken cancellationToken = default)
             => throw new NotSupportedException();
 
-        public Task DeleteAsync(string id)
+        public Task DeleteAsync(string id, CancellationToken cancellationToken = default)
             => throw new NotSupportedException();
 
-        public Task<Contoso.Orders.Contracts.Order?> GetAsync(string id)
+        public Task<Contoso.Orders.Contracts.Order?> GetAsync(string id, CancellationToken cancellationToken = default)
             => throw new NotSupportedException();
 
-        public Task<Contoso.Orders.Contracts.Order> UpdateAsync(Contoso.Orders.Contracts.Order order)
+        public Task<Contoso.Orders.Contracts.Order> UpdateAsync(Contoso.Orders.Contracts.Order order, CancellationToken cancellationToken = default)
             => throw new NotSupportedException();
     }
 }

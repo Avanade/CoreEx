@@ -5,28 +5,28 @@ public class BasketRepository(ShoppingEfDb ef) : IBasketRepository
 {
     private readonly ShoppingEfDb _ef = ef.ThrowIfNull();
 
-    public Task<Result<Domain.Basket>> GetAsync(string id) => Result
-        .GoAsync(() => _ef.Baskets.GetWithResultAsync(id))
+    public Task<Result<Domain.Basket>> GetAsync(string id, CancellationToken ct = default) => Result
+        .GoAsync(() => _ef.Baskets.GetWithResultAsync(id, ct))
         .ThenAs(model => BasketMapper.Map(model));
 
-    public Task<Result<Domain.Basket>> CreateAsync(Domain.Basket basket) => Result
+    public Task<Result<Domain.Basket>> CreateAsync(Domain.Basket basket, CancellationToken ct = default) => Result
         .Go(() =>
         {
             var model = new Persistence.Basket();
             BasketIntoMapper.MapInto(basket, model);
             return SynchronizeItems(basket, model);
         })
-        .ThenAsAsync(model => _ef.Baskets.CreateWithResultAsync(model))
+        .ThenAsAsync(model => _ef.Baskets.CreateWithResultAsync(model, ct))
         .ThenAs(b => BasketMapper.Map(b));
 
-    public Task<Result<Domain.Basket>> UpdateAsync(Domain.Basket basket) => Result
-        .GoAsync(() => _ef.Baskets.GetWithResultAsync(basket.Id))
+    public Task<Result<Domain.Basket>> UpdateAsync(Domain.Basket basket, CancellationToken ct = default) => Result
+        .GoAsync(() => _ef.Baskets.GetWithResultAsync(basket.Id, ct))
         .Then(model =>
         {
             BasketIntoMapper.MapInto(basket, model);
             return SynchronizeItems(basket, model);
         })
-        .ThenAsAsync(model => _ef.Baskets.UpdateWithResultAsync(model))
+        .ThenAsAsync(model => _ef.Baskets.UpdateWithResultAsync(model, ct))
         .ThenAs(basket => BasketMapper.Map(basket));
 
     /// <summary>

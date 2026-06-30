@@ -7,12 +7,12 @@ public interface IMovementReadService
     /// </summary>
     /// <param name="referenceId">The reference identifier.</param>
     /// <returns>The movements.</returns>
-    Task<Contracts.Movement[]> GetAsync(string referenceId);
+    Task<Contracts.Movement[]> GetAsync(string referenceId, CancellationToken ct = default);
 
     /// <summary>
     /// Gets the <see cref="QueryArgs"/> schema.
     /// </summary>
-    Task<JsonElement> QuerySchemaAsync();
+    Task<JsonElement> QuerySchemaAsync(CancellationToken ct = default);
 
     /// <summary>
     /// Queries the movements.
@@ -20,5 +20,5 @@ public interface IMovementReadService
     /// <param name="query">The <see cref="QueryArgs"/>.</param>
     /// <param name="paging">The<see cref="PagingArgs"/>.</param>
     /// <returns>The resulting movements.</returns>
-    Task<ItemsResult<Contracts.Movement>> QueryAsync(QueryArgs? query, PagingArgs? paging);
+    Task<ItemsResult<Contracts.Movement>> QueryAsync(QueryArgs? query, PagingArgs? paging, CancellationToken ct = default);
 }

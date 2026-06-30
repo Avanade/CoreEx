@@ -9,10 +9,10 @@ public class MovementReadController(WebApi webApi, IMovementReadService service)
     [HttpGet()]
     [ProducesResponseType<Movement[]>(200)]
     [Query, Paging(supportsCount: true)]
-    public Task<IActionResult> QueryAsync() => _webApi.GetAsync(Request, (ro, _)
-        => _service.QueryAsync(ro.QueryArgs, ro.PagingArgs), HttpStatusCode.OK);
+    public Task<IActionResult> QueryAsync(CancellationToken cancellationToken = default) => _webApi.GetAsync(Request, (ro, ct)
+        => _service.QueryAsync(ro.QueryArgs, ro.PagingArgs, ct), HttpStatusCode.OK, cancellationToken: cancellationToken);
 
     [HttpGet("$query")]
     [ProducesResponseType(typeof(JsonElement), 200)]
-    public Task<IActionResult> QuerySchemaAsync() => _webApi.GetAsync(Request, (ro, _) => _service.QuerySchemaAsync());
+    public Task<IActionResult> QuerySchemaAsync(CancellationToken cancellationToken = default) => _webApi.GetAsync(Request, (ro, ct) => _service.QuerySchemaAsync(ct), cancellationToken: cancellationToken);
 }

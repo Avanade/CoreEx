@@ -134,6 +134,9 @@
       <_AiFile Include="$(_RepoRoot).github/prompts/coreex-policy.prompt.md" DestSubPath=".github/prompts/coreex-policy.prompt.md" />
       <_AiFile Include="$(_RepoRoot).github/skills/coreex-policy/SKILL.md" DestSubPath=".github/skills/coreex-policy/SKILL.md" />
       <_AiFile Include="$(_RepoRoot).github/skills/coreex-policy/references/workflow.md" DestSubPath=".github/skills/coreex-policy/references/workflow.md" />
+      <_AiFile Include="$(_RepoRoot).github/prompts/coreex-api.prompt.md" DestSubPath=".github/prompts/coreex-api.prompt.md" />
+      <_AiFile Include="$(_RepoRoot).github/skills/coreex-api/SKILL.md" DestSubPath=".github/skills/coreex-api/SKILL.md" />
+      <_AiFile Include="$(_RepoRoot).github/skills/coreex-api/references/workflow.md" DestSubPath=".github/skills/coreex-api/references/workflow.md" />
       <_AiFile Include="$(_RepoRoot).github/skills/solution-scaffolder/SKILL.md" DestSubPath=".github/skills/solution-scaffolder/SKILL.md" />
       <_AiFile Include="$(_RepoRoot).github/skills/solution-scaffolder/README.md" DestSubPath=".github/skills/solution-scaffolder/README.md" />
       <_AiFile Include="$(_RepoRoot).github/skills/solution-scaffolder/assets/servicebus-config.template.json" DestSubPath=".github/skills/solution-scaffolder/assets/servicebus-config.template.json" />
@@ -248,6 +251,9 @@
           SkipUnchangedFiles="true" />
     <Copy SourceFiles="$(_RepoRoot).github/prompts/coreex-policy.prompt.md;$(_RepoRoot).github/skills/coreex-policy/SKILL.md;$(_RepoRoot).github/skills/coreex-policy/references/workflow.md"
           DestinationFiles="$(_AiAiGenRoot).github/prompts/coreex-policy.prompt.md;$(_AiAiGenRoot).github/skills/coreex-policy/SKILL.md;$(_AiAiGenRoot).github/skills/coreex-policy/references/workflow.md"
+          SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(_RepoRoot).github/prompts/coreex-api.prompt.md;$(_RepoRoot).github/skills/coreex-api/SKILL.md;$(_RepoRoot).github/skills/coreex-api/references/workflow.md"
+          DestinationFiles="$(_AiAiGenRoot).github/prompts/coreex-api.prompt.md;$(_AiAiGenRoot).github/skills/coreex-api/SKILL.md;$(_AiAiGenRoot).github/skills/coreex-api/references/workflow.md"
           SkipUnchangedFiles="true" />
 
     <!-- CoreEx.Ai: pack all generated files into content\CoreEx.Ai\. -->
