@@ -145,19 +145,19 @@ Property(x => x.DateOfBirth).Mandatory().LessThanOrEqualTo(_ => DateOnly.FromDat
 ```
 Reserve `OnValidateAsync` + `AddError` for logic that genuinely cannot be expressed as a rule (e.g. multi-field conditions or checks requiring async I/O).
 
-### B3 — DI registration
+### B3 — Invocation
 
-`Validator<T>` (no `TSelf`) does not self-register — add it to DI explicitly in the Application-layer service registration or `Program.cs`:
-
-```csharp
-services.AddScoped<{Name}Validator>();
-```
-
-Inject into the service that owns the operation:
+`Validator<T>` has no `Default` singleton. The established pattern is to instantiate at the call site, passing already-injected dependencies:
 
 ```csharp
-await _validator.ValidateAndThrowAsync(request, cancellationToken).ConfigureAwait(false);
+// Exception style
+await new {Name}Validator(_repository).ValidateAndThrowAsync(request, cancellationToken).ConfigureAwait(false);
+
+// Result style — for pipeline composition
+var result = await new {Name}Validator(_repository).ValidateWithResultAsync(request, cancellationToken).ConfigureAwait(false);
 ```
+
+DI registration (`services.AddScoped<{Name}Validator>()`) is an option when the validator needs to be mocked in tests or is shared across multiple services, but is not required by default.
 
 ---
 

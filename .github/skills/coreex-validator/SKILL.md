@@ -37,7 +37,7 @@ Guides you through creating or modifying a CoreEx validator (`Application/Valida
 | Situation | Base class | Notes |
 |---|---|---|
 | No injection needed | `Validator<T, TSelf>` | Exposes `Default` singleton; invoke via `.Default.ValidateAndThrowAsync(...)` |
-| Constructor injection needed | `Validator<T>` | No `Default`; register in DI; invoke via injected instance |
+| Constructor injection needed | `Validator<T>` | No `Default`; instantiate at the call site with already-injected dependencies: `new {Name}Validator(_dep).ValidateAndThrowAsync(...)` |
 | FluentValidation-style preferred | `AbstractValidator<T, TSelf>` | `RuleFor(x => ...)` / `NotEmpty()` / `IsValid()` — still CoreEx; has `Default` |
 
 **Key rules at a glance:**
