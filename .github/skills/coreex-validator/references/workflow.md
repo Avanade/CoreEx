@@ -74,7 +74,7 @@ var result = await {Name}Validator.Default.ValidateWithResultAsync(value, cancel
 
 ## Path B — `Validator<T>` (constructor injection)
 
-Use when the validator needs a repository or other Application-layer dependency. No `Default` singleton — register in DI and inject.
+Use when the validator needs a repository or other Application-layer dependency. No `Default` singleton — instantiate at the call site with already-injected dependencies.
 
 ### B1 — Scaffold
 
