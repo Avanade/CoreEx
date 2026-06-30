@@ -10,7 +10,7 @@ Answer these questions before emitting any code.
 
 | Question | Default | Notes |
 |---|---|---|
-| Which entity and domain? | Ask | Products domain = PostgreSQL; Shopping domain = SQL Server |
+| Which entity and database type? | Ask | PostgreSQL: `PostgresDatabase` + `UseNpgsql`; SQL Server: `SqlServerDatabase` + `UseSqlServer` — check the project's `Program.cs` |
 | New repository or adding to an existing one? | Ask | New → Path A (scaffold); Existing → Path B/C/D |
 | Operations needed? | Ask | Get / Create / Update / Delete / Query |
 | Using `Result<T>` / ROP pipelines? | No | Yes → use `*WithResultAsync` + `Result<T>` pipeline (Path D); either style works at the repository level — this is a per-project or per-service choice |
@@ -104,7 +104,8 @@ If setting up a completely new domain, the `*DbContext` is a partial class that 
 ```csharp
 namespace {Solution}.Infrastructure.Repositories;
 
-public partial class {Solution}DbContext(DbContextOptions<{Solution}DbContext> options, PostgresDatabase database) // SQL Server: SqlServerDatabase
+// PostgreSQL: replace PostgresDatabase → SqlServerDatabase and UseNpgsql → UseSqlServer for SQL Server
+public partial class {Solution}DbContext(DbContextOptions<{Solution}DbContext> options, PostgresDatabase database)
     : DbContext(options), IEfDbContext
 {
     public IDatabase BaseDatabase { get; } = database.ThrowIfNull();
@@ -113,7 +114,7 @@ public partial class {Solution}DbContext(DbContextOptions<{Solution}DbContext> o
     {
         base.OnConfiguring(optionsBuilder);
         if (!optionsBuilder.IsConfigured)
-            optionsBuilder.UseNpgsql(BaseDatabase.Connection, contextOwnsConnection: false); // SQL Server: UseSqlServer
+            optionsBuilder.UseNpgsql(BaseDatabase.Connection, contextOwnsConnection: false);
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder) => AddGeneratedModels(modelBuilder);
@@ -266,4 +267,4 @@ public Task<Result<Domain.{Name}>> UpdateAsync(Domain.{Name} value) => Result
 - **`DataResult<T>` for Create/Update, `DataResult` for Delete** — do not return `T` directly; the mutation flag is needed for event decisions.
 - **`[ScopedService<IInterface>]` on every repository** — do not add `AddScoped<>()` calls in `Program.cs` for repositories.
 - **`QueryArgsConfig` is `private static readonly`** — never instantiate per-request; parse once per call with `.Parse(query).ThrowOnError()`.
-- **Products domain = PostgreSQL** (`PostgresDatabase`, `UseNpgsql`); **Shopping domain = SQL Server** (`SqlServerDatabase`, `UseSqlServer`) — do not cross-wire.
+- **Match the database package to the project**: PostgreSQL → `CoreEx.Database.Postgres`, `PostgresDatabase`, `UseNpgsql`; SQL Server → `CoreEx.Database.SqlServer`, `SqlServerDatabase`, `UseSqlServer`. Check the project's `Program.cs` — do not introduce the wrong provider.

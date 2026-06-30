@@ -1,7 +1,7 @@
 ---
 name: coreex-repository
 description: "Create or modify a CoreEx Infrastructure-layer repository. USE FOR: new repository class, adding CRUD operations, adding a custom query (QueryArgsConfig), bidirectional mapper (BiDirectionMapper), EfDb model accessor, Result<T> pipeline variants. DO NOT USE FOR: Application-layer service logic, domain invariants, typed HTTP clients/adapters (use coreex-repository for the adapter wiring guidance)."
-argument-hint: "Optional: entity name, domain (Products/Shopping), operations needed (get/create/update/delete/query), database type (Postgres/SQL Server)"
+argument-hint: "Optional: entity name, database type (PostgreSQL/SQL Server), operations needed (get/create/update/delete/query), new or existing repository"
 tags: ["repository", "infrastructure", "efcore", "mapping", "coreex", "data-access", "result"]
 ---
 
@@ -27,7 +27,7 @@ Guides you through creating or modifying a CoreEx Infrastructure-layer repositor
 ## Quick Reference
 
 **Clarifying questions before writing any code:**
-1. Which entity? Which domain (Products = PostgreSQL, Shopping = SQL Server)?
+1. Which entity? Which database type (PostgreSQL / SQL Server)? Check the project's `Program.cs`.
 2. New repository or adding to an existing one?
 3. Operations needed: Get / Create / Update / Delete / Query?
 4. Does the project use `Result<T>` / ROP pipelines? (→ `*WithResultAsync` — per-project style choice, not tied to DDD)
@@ -38,7 +38,7 @@ Guides you through creating or modifying a CoreEx Infrastructure-layer repositor
 - Primary constructor: `public class ProductRepository(ProductsEfDb ef) : IProductRepository`; guard with `ThrowIfNull()`
 - Use EfDb delegate shortcuts (`GetAsync`, `CreateAsync`, `UpdateAsync`, `DeleteAsync`) — never write raw `DbContext` CRUD
 - `DataResult<T>` return for Create/Update; `DataResult` for Delete — includes mutation flag for event decisions
-- `*WithResultAsync` variants for `Result<T>` ROP pipelines (elected per project — Shopping uses this style)
+- `*WithResultAsync` variants for `Result<T>` ROP pipelines (per-project style choice)
 - `BiDirectionMapper`: override **both** `OnMap` overloads; map `Id` explicitly; **never** map `ETag` or `ChangeLog` — base mapper owns them
 - `QueryArgsConfig`: define once as `private static readonly`; call `.Parse(query).ThrowOnError()` before use
 - Always `.ConfigureAwait(false)` on every `await`
