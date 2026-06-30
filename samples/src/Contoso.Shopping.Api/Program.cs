@@ -1,4 +1,4 @@
-using Contoso.Shopping.Infrastructure.Clients;
+using Contoso.Shopping.Infrastructure.Clients.Products;
 using Contoso.Shopping.Infrastructure.Repositories;
 using CoreEx.Azure.Messaging.ServiceBus;
 using CoreEx.Database.SqlServer.Outbox;

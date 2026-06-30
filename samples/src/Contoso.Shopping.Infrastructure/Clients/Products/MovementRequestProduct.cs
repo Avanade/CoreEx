@@ -1,4 +1,4 @@
-namespace Contoso.Shopping.Infrastructure.Clients;
+namespace Contoso.Shopping.Infrastructure.Clients.Products;
 
 public class MovementRequestProduct
 {

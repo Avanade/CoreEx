@@ -1,4 +1,4 @@
-namespace Contoso.Shopping.Infrastructure.Clients;
+namespace Contoso.Shopping.Infrastructure.Clients.Products;
 
 /// <summary>
 /// Provides the HTTP facade for interacting with the external Products API.
