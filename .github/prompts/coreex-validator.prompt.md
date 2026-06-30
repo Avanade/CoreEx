@@ -1,0 +1,22 @@
+---
+description: Create or modify a CoreEx validator in the Application layer — Validator<T,TSelf>, Validator<T> with injection, AbstractValidator, or adding rules to an existing validator
+---
+
+Guide this workspace through creating or modifying a CoreEx validator.
+
+Use `.github/skills/coreex-validator/SKILL.md` and its referenced workflow as the authoritative workflow when they exist.
+
+Operational contract:
+- Ask upfront: injection needed (→ `Validator<T>`), FluentValidation-style (→ `AbstractValidator<T,TSelf>`), or standard (→ `Validator<T, TSelf>`).
+- List all properties before writing any rule — resolve types in batch, never interrupt per-property.
+- Ref-data: `.IsValid()` on the navigation property (`Gender`), never on the `*Code` string.
+- `Mandatory()` on a non-nullable value type errors on `default` — use a range rule if `0` is valid.
+- Runtime-computed comparisons: prefer delegate overloads over imperative `OnValidateAsync`.
+- `context.HasErrors` guard only before async I/O; `context.HasError(x => x.Prop)` for per-property guards.
+- `context.AddError` via member-access expression, never `nameof(...)`.
+- Always offer to create or update the matching `{Validator}Tests` in `*.Test.Unit/Validators/`.
+- Never use the FluentValidation NuGet package — `AbstractValidator` is `CoreEx.Validation.AbstractValidator`.
+- If any prompt text conflicts with the skill, the skill wins.
+
+Outcome:
+- The validator is declared correctly, wired to the service, builds cleanly, and has test coverage offered.
