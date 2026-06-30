@@ -103,7 +103,7 @@ Override `OnValidateAsync` for database lookups or cross-field checks requiring 
 **Guard rule:** check `context.HasErrors` first — bail if cheap validation already failed (the following logic needs the entity in a consistent state). For single-property layering, gate on `context.HasError(x => x.Prop)` instead.
 
 ```csharp
-protected async override Task OnValidateAsync(ValidationContext<{Name}> context, CancellationToken cancellationToken)
+protected async override Task OnValidateAsync(ValidationContext<Contracts.{Name}> context, CancellationToken cancellationToken)
 {
     // Bail early if prior rules already failed — I/O assumes a valid entity.
     if (context.HasErrors)
@@ -198,7 +198,9 @@ Apply the property type resolution from `coreex-contracts.instructions.md` (name
 
 ### D2 — Add an async check
 
-If the class uses `Validator<T, TSelf>` and you need to add async validation:
+**If no additional dependency is needed** (e.g. a cross-field check or conditional logic): override `OnValidateAsync` directly on the existing `Validator<T, TSelf>` class — no base class change required. Both `Validator<T, TSelf>` and `Validator<T>` support async overrides.
+
+**If the async check requires a constructor-injected dependency** (e.g. a repository):
 1. Change base class to `Validator<T>` (removes `Default` singleton — update all call sites).
 2. Add a constructor parameter and inject the dependency.
 3. Override `OnValidateAsync` and apply the B2 guard pattern.
