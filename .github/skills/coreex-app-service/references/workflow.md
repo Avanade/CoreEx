@@ -1,0 +1,406 @@
+# coreex-app-service: Workflow
+
+Full workflow for creating or modifying a CoreEx Application-layer service in `Application/`. Follow the path that matches the request.
+
+---
+
+## Phase 1 — Clarify Before Writing
+
+| Question | Default | Notes |
+|---|---|---|
+| Exception-based or `Result<T>` pipeline? | Ask | Exception → Path A; `Result<T>` → Path B; per-project style choice |
+| Operations needed? | Ask | Get / Create / Update / Delete / custom — **never assume Query** |
+| Cross-domain or external-service calls? | No | Yes → adapter interface + Path D |
+| Policy guard checks requiring I/O? | No | Yes → policy class + Path D |
+| Domain layer present? | No | Yes → `Application/Mapping/` mapper; affects Path B |
+| Read queries or collection results needed? | No | Yes → Path C (CQRS read service) |
+
+---
+
+## Path A — Exception-Based Service
+
+Use when the project uses exceptions for flow control (standard, no `Result<T>` method signatures).
+
+### A1 — Interface
+
+Create `Application/Interfaces/I{Name}Service.cs`:
+
+```csharp
+namespace {Solution}.Application.Interfaces;
+
+public interface I{Name}Service
+{
+    Task<Contracts.{Name}?> GetAsync(string id);
+    Task<Contracts.{Name}> CreateAsync(Contracts.{Name} value);
+    Task<Contracts.{Name}> UpdateAsync(Contracts.{Name} value);
+    Task DeleteAsync(string id);
+}
+```
+
+### A2 — Scaffold
+
+Create `Application/{Name}Service.cs`:
+
+```csharp
+namespace {Solution}.Application;
+
+[ScopedService<I{Name}Service>]
+public class {Name}Service(IUnitOfWork unitOfWork, I{Name}Repository repository) : I{Name}Service
+{
+    private readonly IUnitOfWork _unitOfWork = unitOfWork.ThrowIfNull();
+    private readonly I{Name}Repository _repository = repository.ThrowIfNull();
+}
+```
+
+**Only inject: repositories, unit of work, adapter interfaces, logger.** Validators, mappers, and policies are never injected into service constructors — they are called or instantiated at the point of use.
+
+### A3 — Get
+
+```csharp
+public Task<Contracts.{Name}?> GetAsync(string id) => _repository.GetAsync(id);
+```
+
+### A4 — Create
+
+```csharp
+public async Task<Contracts.{Name}> CreateAsync(Contracts.{Name} value)
+{
+    value.ThrowIfNull();
+    await {Name}Validator.Default.ValidateAndThrowAsync(value).ConfigureAwait(false);
+
+    value.Id = Runtime.NewId();         // string key; use Runtime.NewGuid() for Guid
+    // set any other server-controlled fields here
+
+    return await _unitOfWork.TransactionAsync(async () =>
+    {
+        var dr = await _repository.CreateAsync(value).ConfigureAwait(false);
+        return dr.WhereMutated(v => _unitOfWork.Events.Add(EventData.CreateEventWith(v, EventAction.Created)));
+    }).ConfigureAwait(false);
+}
+```
+
+### A5 — Update
+
+```csharp
+public async Task<Contracts.{Name}> UpdateAsync(Contracts.{Name} value)
+{
+    value.ThrowIfNull();
+    value.Id.ThrowIfNullOrEmpty();
+    await {Name}Validator.Default.ValidateAndThrowAsync(value).ConfigureAwait(false);
+
+    var current = await _repository.GetAsync(value.Id).ConfigureAwait(false);
+    NotFoundException.ThrowIfDefault(current);
+
+    // preserve server-controlled read-only fields from current:
+    // value.IsXxx = current!.IsXxx;
+
+    return await _unitOfWork.TransactionAsync(async () =>
+    {
+        var dr = await _repository.UpdateAsync(value).ConfigureAwait(false);
+        return dr.WhereMutated(v => _unitOfWork.Events.Add(EventData.CreateEventWith(v, EventAction.Updated)));
+    }).ConfigureAwait(false);
+}
+```
+
+### A6 — Delete
+
+```csharp
+public async Task DeleteAsync(string id)
+{
+    var current = await _repository.GetAsync(id).ConfigureAwait(false);
+    if (current is null)
+        return;  // idempotent — not found is not an error on delete
+
+    // optional business rule guard:
+    // if (!current.IsXxx)
+    //     throw new BusinessException("...").WithErrorCode("...");
+
+    await _unitOfWork.TransactionAsync(async () =>
+    {
+        var dr = await _repository.DeleteAsync(id).ConfigureAwait(false);
+        dr.WhereMutated(() => _unitOfWork.Events.Add(
+            EventData.CreateEvent<Contracts.{Name}>(EventAction.Deleted).WithKey(id)));
+    }).ConfigureAwait(false);
+}
+```
+
+**Delete event: `EventData.CreateEvent<T>(action).WithKey(id)` — no value body.** Never fabricate a value for a delete event.
+
+**`WhereMutated` overload matters:** `(v => ...)` for Create/Update (`DataResult<T>` carries value); `(() => ...)` for Delete (`DataResult` has no value). Using `(_ => ...)` on a delete `DataResult` is a compile-time mistake.
+
+### A7 — Custom Business Action (state-change style)
+
+```csharp
+public async Task<Contracts.{Name}> {Action}Async(string id)
+{
+    var current = await _repository.GetAsync(id).ConfigureAwait(false);
+    NotFoundException.ThrowIfDefault(current);
+
+    if (current!.IsXxx == desiredState)  // already in target state — idempotent return
+        return current;
+
+    return await _unitOfWork.TransactionAsync(async () =>
+    {
+        current.IsXxx = desiredState;
+        var dr = await _repository.UpdateAsync(current).ConfigureAwait(false);
+        return dr.WhereMutated(v => _unitOfWork.Events.Add(EventData.CreateEventWith(v, EventAction.{Action})));
+    }).ConfigureAwait(false);
+}
+```
+
+---
+
+## Path B — Result&lt;T&gt; Pipeline Service
+
+Use when the project has elected the ROP style. Method signatures return `Result<T>`. `TransactionAsync` returns `Task<Result<T>>` when its delegate returns `Result<T>`. Compose with `Result.GoAsync` / `.ThenAs` / `.ThenAsAsync`.
+
+> **Domain aggregate case:** When a Domain layer is present, repositories return `Result<Domain.T>` directly (not `DataResult<T>`). Map to contract via a `Mapper<Domain.T, Contracts.T, TSelf>` in `Application/Mapping/` — call via `{Name}Mapper.Map(aggregate)`. See Shopping samples in Key References.
+
+### B1 — Interface and scaffold
+
+Interface methods return `Task<Result<T>>`:
+
+```csharp
+public interface I{Name}Service
+{
+    Task<Result<Contracts.{Name}?>> GetAsync(string id);
+    Task<Result<Contracts.{Name}>> CreateAsync(Contracts.{Name} value);
+    Task<Result<Contracts.{Name}>> UpdateAsync(Contracts.{Name} value);
+    Task<Result> DeleteAsync(string id);
+}
+```
+
+Scaffold mirrors Path A with `Result<T>` return types.
+
+### B2 — Validation short-circuit + Create
+
+```csharp
+public async Task<Result<Contracts.{Name}>> CreateAsync(Contracts.{Name} value)
+{
+    value.ThrowIfNull();
+
+    var vr = await {Name}Validator.Default.ValidateWithResultAsync(value).ConfigureAwait(false);
+    if (vr.IsFailure)
+        return vr.AsResult();
+
+    value.Id = Runtime.NewId();
+
+    return await _unitOfWork.TransactionAsync(async () =>
+    {
+        var dr = await _repository.CreateAsync(value).ConfigureAwait(false);
+        return Result.Ok(
+            dr.WhereMutated(v => _unitOfWork.Events.Add(EventData.CreateEventWith(v, EventAction.Created))));
+    }).ConfigureAwait(false);
+}
+```
+
+### B3 — Update with not-found as Result failure
+
+```csharp
+public async Task<Result<Contracts.{Name}>> UpdateAsync(Contracts.{Name} value)
+{
+    value.ThrowIfNull();
+    value.Id.ThrowIfNullOrEmpty();
+
+    var vr = await {Name}Validator.Default.ValidateWithResultAsync(value).ConfigureAwait(false);
+    if (vr.IsFailure)
+        return vr.AsResult();
+
+    var current = await _repository.GetAsync(value.Id).ConfigureAwait(false);
+    if (current is null)
+        return Result.NotFoundError();
+
+    return await _unitOfWork.TransactionAsync(async () =>
+    {
+        var dr = await _repository.UpdateAsync(value).ConfigureAwait(false);
+        return Result.Ok(
+            dr.WhereMutated(v => _unitOfWork.Events.Add(EventData.CreateEventWith(v, EventAction.Updated))));
+    }).ConfigureAwait(false);
+}
+```
+
+### B4 — Multi-step orchestration helper pattern
+
+When multiple operations share the load-mutate-save pattern, extract a private helper:
+
+```csharp
+// Private helper: load aggregate, apply mutation, persist, emit event
+private async Task<Result<Contracts.{Name}>> OrchestrateUpdateAsync(
+    string id, Func<Contracts.{Name}, Result> mutate, EventAction action = EventAction.Updated)
+{
+    var current = await _repository.GetAsync(id).ConfigureAwait(false);
+    if (current is null)
+        return Result.NotFoundError();
+
+    var mr = mutate(current);
+    if (mr.IsFailure)
+        return mr.AsResult();
+
+    return await _unitOfWork.TransactionAsync(async () =>
+    {
+        var dr = await _repository.UpdateAsync(current).ConfigureAwait(false);
+        return Result.Ok(
+            dr.WhereMutated(v => _unitOfWork.Events.Add(EventData.CreateEventWith(v, action))));
+    }).ConfigureAwait(false);
+}
+
+// Callers — one line each:
+public Task<Result<Contracts.{Name}>> {Action}Async(string id)
+    => OrchestrateUpdateAsync(id, entity => entity.{Action}());
+```
+
+### B5 — Multi-step pipeline with early exit
+
+For pre-flight checks (validation + adapter/policy) before the transaction:
+
+```csharp
+var pr = await Result.GoAsync(() => {Name}Validator.Default.ValidateWithResultAsync(item))
+    .ThenAsAsync(v => new {Dep}Policy(_adapter).EnsureExistsAsync(v.{DepId}!));
+
+if (pr.IsFailure)
+    return pr.AsResult();
+
+// pr.Value carries the result of the last ThenAs
+return await OrchestrateUpdateAsync(id, entity => entity.{Action}(pr.Value));
+```
+
+---
+
+## Path C — CQRS Read Service
+
+Split read operations from mutation operations. Both `{Name}Service` and `{Name}ReadService` expose `GetAsync` — this is **intentional**. Mutations + `GetAsync` belong to `{Name}Service`; queries and read-model shapes belong to `{Name}ReadService`.
+
+### C1 — Interface
+
+Create `Application/Interfaces/I{Name}ReadService.cs`:
+
+```csharp
+namespace {Solution}.Application.Interfaces;
+
+public interface I{Name}ReadService
+{
+    Task<Contracts.{Name}?> GetAsync(string id);
+    Task<ItemsResult<Contracts.{Name}Lite>> QueryAsync(QueryArgs? query, PagingArgs? paging);
+    Task<JsonElement> QuerySchemaAsync();
+}
+```
+
+### C2 — Implementation
+
+```csharp
+namespace {Solution}.Application;
+
+[ScopedService<I{Name}ReadService>]
+public class {Name}ReadService(I{Name}Repository repository) : I{Name}ReadService
+{
+    private readonly I{Name}Repository _repository = repository.ThrowIfNull();
+
+    public Task<Contracts.{Name}?> GetAsync(string id) => _repository.GetAsync(id);
+
+    public Task<ItemsResult<Contracts.{Name}Lite>> QueryAsync(QueryArgs? query, PagingArgs? paging)
+        => _repository.QueryAsync(query, paging);
+
+    public Task<JsonElement> QuerySchemaAsync() => _repository.QuerySchemaAsync();
+}
+```
+
+**The repository is singular** — `{Name}Service` and `{Name}ReadService` inject the same `I{Name}Repository`. Do not split the repository to mirror the CQRS services.
+
+**Never add mutation logic to `{Name}ReadService`** and never add query operations to `{Name}Service` (the by-id `GetAsync` is the only legitimate overlap).
+
+---
+
+## Path D — Adapter Interface and Policy
+
+### D1 — Adapter interface
+
+Create `Application/Adapters/{ExternalDomain}/I{ExternalDomain}Adapter.cs`:
+
+```csharp
+namespace {Solution}.Application.Adapters.{ExternalDomain};
+
+/// <summary>Defines the external dependency boundary (anti-corruption layer) for {ExternalDomain}-related operations.</summary>
+public interface I{ExternalDomain}Adapter
+{
+    Task<Result<Contracts.{Name}>> GetAsync(string id);
+    Task<Result> {Action}Async(/* domain-idiomatic parameters */);
+}
+```
+
+The interface surface is **domain-idiomatic** — it expresses what the calling domain needs, not a mirror of the remote API. Infrastructure implements this via a typed HTTP client; the service never calls `HttpClient` directly.
+
+Inject the adapter in the service constructor alongside the repository:
+
+```csharp
+[ScopedService<I{Name}Service>]
+public class {Name}Service(IUnitOfWork unitOfWork, I{Name}Repository repository,
+    I{ExternalDomain}Adapter adapter) : I{Name}Service
+{
+    private readonly IUnitOfWork _unitOfWork = unitOfWork.ThrowIfNull();
+    private readonly I{Name}Repository _repository = repository.ThrowIfNull();
+    private readonly I{ExternalDomain}Adapter _adapter = adapter.ThrowIfNull();
+}
+```
+
+### D2 — Policy
+
+Create `Application/Policies/{Name}Policy.cs`. Policies are **not registered in DI** — instantiate at call site using dependencies already injected into the calling service:
+
+```csharp
+namespace {Solution}.Application.Policies;
+
+public class {Name}Policy(I{ExternalDomain}Adapter adapter)
+{
+    private readonly I{ExternalDomain}Adapter _adapter = adapter.ThrowIfNull();
+
+    public Task<Result<Contracts.{Name}>> EnsureExistsAsync(string id) => Result
+        .GoAsync(() => _adapter.GetAsync(id))
+        .OnFailure(r => r.IsNotFoundError
+            ? Result.ValidationError(MessageItem.CreateErrorMessage(nameof(id), "{Name} was not found."))
+            : r);
+}
+```
+
+### D3 — Using policy in the service
+
+Policies are instantiated with constructor arguments from the service's injected fields:
+
+```csharp
+// In a service method — _adapter already injected:
+var pr = await new {Name}Policy(_adapter).EnsureExistsAsync(item.{Id}!);
+if (pr.IsFailure)
+    return pr.AsResult();
+
+// Or inline in a Result<T> pipeline:
+var pr = await Result.GoAsync(() => BasketItemAddRequestValidator.Default.ValidateWithResultAsync(item))
+    .ThenAsAsync(item => new {Name}Policy(_adapter).EnsureExistsAsync(item.{Id}!));
+
+if (pr.IsFailure)
+    return pr.AsResult();
+```
+
+---
+
+## Phase 2 — Validate and Test
+
+1. `dotnet build` — no errors or warnings.
+2. Verify the interface in `Application/Interfaces/` declares all new methods.
+3. Verify every mutating method wraps the repository call in `_unitOfWork.TransactionAsync(...)` and adds an event inside that scope.
+4. Verify validators are called via `Default.ValidateAndThrowAsync` (exception style) or `Default.ValidateWithResultAsync` (ROP) — never bare `ValidateAsync`.
+5. Check `Id` is assigned via `Runtime.NewId()` / `Runtime.NewGuid()` on Create — never left to the caller or the database.
+6. **Offer to create or update the matching integration test** in `*.Test.Api/` or unit test in `*.Test.Unit/Services/`.
+
+---
+
+## Guardrails
+
+- **Never call bare `ValidateAsync`** — it returns results without throwing; use `ValidateAndThrowAsync` or `ValidateWithResultAsync`.
+- **Never inject validators, mappers, or policies** into service constructors — these are YAGNI injection points; call or instantiate at the point of use.
+- **Never publish events outside `TransactionAsync`** — the event and the database write must commit together.
+- **`WhereMutated(() => ...)` on Delete** — `DataResult` (delete) has no value; do not use `(v => ...)` or `(_ => ...)`.
+- **Delete event has no body** — use `EventData.CreateEvent<T>(action).WithKey(id)`; never pass a fabricated entity instance to `CreateEventWith` on a delete.
+- **`Runtime.NewId()` / `Runtime.NewGuid()` — not `Guid.NewGuid()`** — always use `Runtime` so the id source is test-controllable.
+- **Do not call `HttpClient` directly** — always go through an adapter interface.
+- **Do not reference Infrastructure from Application** — reach persistence and transport through Application interfaces only.
+- **Do not add Query to `{Name}Service`** — query/collection shapes belong exclusively in `{Name}ReadService`.
+- **Do not split the repository to mirror CQRS** — both services share one `I{Name}Repository` per data source.
