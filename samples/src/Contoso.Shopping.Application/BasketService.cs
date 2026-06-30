@@ -152,10 +152,19 @@ public class BasketService(IUnitOfWork unitOfWork, IBasketRepository repository,
                     _logger.LogError(ex, "An error occurred during the checkout process; the reserved inventory will be cancelled asynchronously directly bypassing the Outbox.");
 
                 // Cancel the inventory reservation directly, bypassing the Outbox, as the transaction has failed at this point and we don't want to leave the inventory in a reserved state.
-                await _productAdapter.CancelReservationAsync(basket, ct).ConfigureAwait(false);
+                // Use CancellationToken.None: the request token may already be cancelled (e.g. client disconnect), which would abort the compensation and leave inventory reserved.
+                try
+                {
+                    await _productAdapter.CancelReservationAsync(basket, CancellationToken.None).ConfigureAwait(false);
+                }
+                catch (Exception cancelEx)
+                {
+                    if (_logger.IsEnabled(LogLevel.Error))
+                        _logger.LogError(cancelEx, "Failed to cancel inventory reservation after checkout failure; manual intervention may be required.");
+                }
 
                 // It's bad, keep throwing.
-                throw; 
+                throw;
             }
         });
 }

@@ -289,7 +289,7 @@ app.MapPost("api/{resources}",
     (HttpRequest request, WebApi webApi, I{Name}Service service, CancellationToken cancellationToken)
         => webApi.PostWithResultAsync<{Name}, {Name}>(request, async (ro, ct) =>
         {
-            ro.WithLocationUri(v => new Uri($"api/{resources}/{v.Id}", UriKind.Relative));
+            ro.WithLocationUri(v => new Uri($"/api/{resources}/{v.Id}", UriKind.Relative));
             return await service.CreateAsync(ro.Value, ct).ConfigureAwait(false);
         }, cancellationToken: cancellationToken))
     .Accepts<{Name}>().ProducesCreated<{Name}>().WithIdempotencyKey();
