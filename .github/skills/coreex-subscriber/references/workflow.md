@@ -64,7 +64,7 @@ public class {Entity}{Action}Subscriber : SubscribedBase
 
 **Rules:**
 - Commands follow the same version-suffix rule as events: include `.v{n}` when the message carries a
-  payload; omit it for key-only commands. See [Subject Naming](#subject-naming).
+  payload; omit it for key-only commands. See [Step 2 — Subject Naming](#step-2--subject-naming).
 - `ErrorHandler` must be assigned in the constructor body — it is a property on the base class and
   cannot be set with a field initialiser in a primary constructor class.
 - Share the same static `ErrorHandler` instance across related command subscribers (e.g., confirm and cancel).
@@ -151,7 +151,7 @@ public class {TriggerEntity}{TriggerAction}Subscriber(I{DomainAction}Service ser
 
 ---
 
-## Subject Naming
+## Step 2 — Subject Naming
 
 Use dot-separated lowercase strings: `{solution}.{domain}.{entity}.{action}[.v{n}]`
 
@@ -169,7 +169,7 @@ with a payload would also carry a version; a key-only event would not.
 
 ---
 
-## Error Handling
+## Step 3 — Error Handling
 
 Define a static `ErrorHandler` when specific exceptions should be treated differently from the
 default retry/dead-letter behaviour. The most common case: a `NotFoundException` that is semantically
@@ -208,7 +208,7 @@ public ReservationCancelSubscriber(IMovementService service)
 
 ---
 
-## DI Discovery
+## Step 4 — DI Discovery
 
 No `Program.cs` edit is required when adding a new subscriber. `AddSubscribersUsing<T>()` in
 `Program.cs` scans the assembly containing `T` and auto-registers every class decorated with both
