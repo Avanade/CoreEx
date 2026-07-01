@@ -1,5 +1,5 @@
 using Contoso.Shopping.Application;
-using Contoso.Shopping.Infrastructure.Clients;
+using Contoso.Shopping.Infrastructure.Clients.Products;
 using Contoso.Shopping.Infrastructure.Repositories;
 using Contoso.Shopping.Subscribe.Subscribers;
 using CoreEx.Azure.Messaging.ServiceBus;
