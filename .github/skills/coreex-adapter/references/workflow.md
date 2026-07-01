@@ -128,7 +128,7 @@ Create in `Infrastructure/Adapters/{ExternalDomain}/`. Implement the Application
 
 ```csharp
 // Infrastructure/Adapters/Products/ProductAdapter.cs
-namespace {Domain}.Infrastructure.Clients.Products;
+namespace {Domain}.Infrastructure.Adapters.Products;
 
 [ScopedService<IProductAdapter>]
 public class ProductAdapter({Domain}EfDb ef, IEventPublisher eventPublisher, ProductsHttpClient client, [FromKeyedServices("AzureServiceBus")] IEventPublisher serviceBusPublisher) : IProductAdapter

@@ -15,6 +15,6 @@ public class ProductsHttpClient(HttpClient httpClient)
     public async Task<Result> CreateReservationAsync(MovementRequest request, CancellationToken ct = default)
     {
         var response = await _httpClient.PostAsJsonAsync("api/inventory/reserve", request, JsonDefaults.SerializerOptions, ct).ConfigureAwait(false);
-        return await response.ToResultAsync().ConfigureAwait(false);  // Handles the response and returns errors/exceptions as expected.
+        return await response.ToResultAsync(ct).ConfigureAwait(false);  // Handles the response and returns errors/exceptions as expected.
     }
 }
