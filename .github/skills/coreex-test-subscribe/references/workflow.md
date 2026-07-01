@@ -30,7 +30,7 @@ public partial class SubscriberTests : WithApiTester<{Domain}.Subscribe.Program>
     {
         // Always specify the seed file explicitly — read-data.seed.yaml, mutate-data.seed.yaml,
         // or a schema-only no-data.seed.yaml for plumbing/health-only tests.
-        await Test.MigrateSqlServerDataAsync<TestData>(["mutate-data.seed.yaml"], DbMigration.ConfigureMigrationArgs).ConfigureAwait(false);
+        await Test.MigrateSqlServerDataAsync<TestData>(["mutate-data.seed.yaml"], DbMigration.ConfigureMigrationArgs).ConfigureAwait(false);   // or MigratePostgresDataAsync<TestData>(...) — provider-specific
         await Test.ClearFusionCacheAsync().ConfigureAwait(false);
 
         Test.UseExpectedSqlServerOutboxPublisher();   // or UseExpectedPostgresOutboxPublisher() — provider-specific
@@ -76,7 +76,7 @@ public void {Entity}{Action}_Success() => Test.Scoped(async test =>
     items.Should().HaveCount(3);
 
     // Act — simulate the command message; assert any resulting outbox events.
-    test.ExpectSqlServerOutboxEvents(e => e.AssertCount(3))
+    test.ExpectSqlServerOutboxEvents(e => e.AssertCount(3))   // or ExpectPostgresOutboxEvents(...) — provider-specific
         .Run(async _ =>
         {
             var ed = EventData.CreateCommand("{domain}", "{entity}", "{action}").WithKey(referenceId);
@@ -163,7 +163,7 @@ behavior worth asserting once per Subscribe host:
 
 ```csharp
 [Test]
-public void Unsubscribed_Error() => Test.Scoped(test =>
+public void Unsubscribed_CompletesSilently() => Test.Scoped(test =>
 {
     var ed = EventData.CreateEvent("test", "not-subscribed").WithKey("abc");
     var ce = Test.CreateCloudEventFrom(ed);

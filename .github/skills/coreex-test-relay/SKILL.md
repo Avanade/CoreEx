@@ -45,7 +45,7 @@ public class RelayTests : WithApiTester<YourDomain.Relay.Program>
         {
             test.Run(async _ =>
             {
-                var pub = ActivatorUtilities.GetServiceOrCreateInstance<PostgresOutboxPublisher>(test.Services);
+                var pub = ActivatorUtilities.GetServiceOrCreateInstance<PostgresOutboxPublisher>(test.Services);   // or SqlServerOutboxPublisher — provider-specific
                 pub.Add("contoso", [ce1, ce2]);
                 await pub.PublishAsync();
 
