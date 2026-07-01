@@ -200,6 +200,90 @@ public sealed record class {ValueObject}
 
 ---
 
+## Unit Testing Aggregates
+
+Aggregates (and their child entities) are the best possible unit-test target in the whole codebase:
+they generally have **no injected dependencies** beyond ambient reference data, so their full logic —
+happy paths *and* business-rule rejections — can be verified with fast, isolated, traditional unit
+tests. Do not defer this coverage to host-level integration tests; those only prove wiring, not the
+domain's own branching logic.
+
+Follow the same `*.Test.Unit` conventions as validator tests (see
+`.github/instructions/coreex-tests.instructions.md`): one test class per aggregate, under
+`*.Test.Unit/Domains/`, named `{Aggregate}Tests`, extending `WithGenericTester<EntryPoint>`, with each
+`[Test]` running inside `Test.Scoped(test => { ... })` — this establishes the ambient `ExecutionContext`
+that `Runtime.NewId()`/`Runtime.UtcNow` and any `ThrowIfInactive()` reference-data check rely on.
+
+```csharp
+namespace {Domain}.Test.Unit.Domains;
+
+public class {Aggregate}Tests : WithGenericTester<EntryPoint>
+{
+    [Test]
+    public void {MutationMethod}_Succeeds_When_{Condition}() => Test.Scoped(test =>
+    {
+        // Arrange: construct the aggregate directly via CreateFrom — no repository, no persistence.
+        var aggregate = {Aggregate}.CreateFrom("{id}", {CtorArgs}, items: null, changeLog: null, etag: null);
+
+        // Act: invoke the public mutation method exactly as the Application service would.
+        aggregate.{MutationMethod}({args});
+
+        // Assert: verify resulting state directly on the aggregate.
+        aggregate.{Property}.Should().Be({expected});
+    });
+
+    [Test]
+    public void {MutationMethod}_Fails_When_{GuardCondition}() => Test.Scoped(test =>
+    {
+        // Arrange: construct the aggregate in a state that should reject the mutation.
+        var aggregate = {Aggregate}.CreateFrom("{id}", {CtorArgsForGuardedState}, items: null, changeLog: null, etag: null);
+
+        // Act: capture the guarded mutation as a delegate for exception assertion.
+        Action act = () => aggregate.{MutationMethod}({args});
+
+        // Assert: OnCheckCanMutate's failed Result throws — assert the exact exception and message.
+        act.Should().Throw<BusinessException>().WithMessage("{Expected guard message}.");
+
+        // Assert: state is unchanged — the guard rejected the mutation before it took effect.
+        aggregate.{Property}.Should().Be({unchangedValue});
+    });
+}
+```
+
+**Rules:**
+- Arrange with `CreateFrom(...)`, not `CreateNew(...)`, when the test needs a specific pre-existing
+  state (status, child items, etc.) — `CreateFrom` is the reconstruction path and lets the test set up
+  any combination of properties directly, exactly like rehydrating from a store.
+- Call the aggregate's public mutation methods directly — never go through a repository, `IUnitOfWork`,
+  or Application service in these tests; that orchestration is covered by the host-level integration
+  tests (`*.Test.Api` / `*.Test.Subscribe`), not here.
+- For a rejected mutation that goes through `OnCheckCanMutate()` (i.e., any `Modify(...)`/`Remove(...)`
+  guard failure), wrap the call in an `Action act = () => ...` delegate and assert with
+  `act.Should().Throw<BusinessException>().WithMessage(...)` — match the exact message from
+  `Result.BusinessError(...)`, since that message is part of the aggregate's observable contract. Some
+  mutation methods instead **return** a failed `Result` for expected outcomes that aren't guard
+  rejections (e.g., a not-found child item, or a business rule checked before calling `Modify` at all)
+  — assert those as a `Result` failure (`result.IsFailure.Should().BeTrue()` / assert `result.Error`),
+  not as a thrown exception.
+- Assert both the exception **and** that state was left unchanged — a guard that throws but still
+  mutates state first is a bug this style of test is specifically positioned to catch.
+- If the aggregate's properties are backed by reference data (e.g., a status `ThrowIfInactive()` guard),
+  the unit-test `EntryPoint.ConfigureApplication` needs to provide a test-backed reference-data source —
+  typically `AddReferenceDataOrchestrator<T>()` plus an in-memory decorator/provider seeded from YAML
+  (reusing the `*.Database` project's seed data is a common but not the only pattern) — this is what
+  makes the aggregate testable with zero live infrastructure.
+- Cover both the happy path (mutation succeeds, dependent state via `OnMutate()` recalculates correctly)
+  and the business-rule rejection path (`OnCheckCanMutate()` fails) for every mutation method with a
+  guard — these branches are exactly what the Domain layer exists to encode. Request-validator tests
+  (`coreex-validator`) run before the aggregate is even constructed, so they do not exercise mutation
+  guards or state transitions — the two test styles cover different layers and neither substitutes for
+  the other. (Note: `OnCheckCanMutate()` may itself delegate to a `CoreEx.Validation` validator for
+  pre-mutation checks — that validator still warrants its own unit tests in addition to this coverage.)
+- Skip re-testing framework-guaranteed behaviour (e.g., that `.ThrowIfNull()` throws for `null`) — focus
+  coverage on the aggregate's own business rules and state transitions.
+
+---
+
 ## Guard Helpers Reference
 
 These extension methods return the guarded value on success (enabling inline chaining) and throw on

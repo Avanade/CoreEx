@@ -40,6 +40,7 @@ then follows the corresponding pattern from `CoreEx.DomainDriven`.
 - Child entity mutation methods are `internal` — only the owning aggregate may invoke them
 - No async I/O in domain classes — ever. Async belongs in Application services or Policies.
 - No native domain-event dispatch (MediatR-style) — only integration events via `Aggregate<TId,TSelf>.Events`, forwarded through `IUnitOfWork.Events` in the Application layer
+- Aggregates are the best unit-test target in the codebase (no injected dependencies) — cover every mutation method's happy path and rejection path with `WithGenericTester<EntryPoint>` + `Test.Scoped(...)`, calling the aggregate directly (no repository, no Application service); assert `OnCheckCanMutate()` guard failures as thrown exceptions, and failed-`Result` returns as `Result` assertions
 
 For full workflow and code examples see [`references/workflow.md`](references/workflow.md).
 
@@ -51,3 +52,4 @@ For full workflow and code examples see [`references/workflow.md`](references/wo
 - `src/CoreEx.DomainDriven/Aggregate.cs`, `Entity.cs`, `EntityBase.cs` — actual base-class implementation (`Modify`, `Remove`, `OnCheckCanMutate`, `OnMutate`, `PersistenceState` transitions)
 - `src/CoreEx.DomainDriven/PersistenceState.cs`, `DomainDrivenExtensions.cs` — state enum and filter helpers (`IsNew`, `IsModified`, `IsNewOrModified`, `IsNotRemoved`)
 - `src/CoreEx.Template/README.md` — `--domain-driven-enabled true` template flag and generated `*.Domain` project shape
+- `.github/instructions/coreex-tests.instructions.md` — `*.Test.Unit` conventions (`WithGenericTester<EntryPoint>`, `Test.Scoped(...)`) reused for aggregate unit tests
