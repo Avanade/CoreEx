@@ -10,7 +10,7 @@ public partial class MutateTests : WithApiTester<Contoso.Shopping.Api.Program>
     public async Task OneTimeSetUpAsync()
     {
         // Migrate the database and seed it with test data before starting the test server.
-        await Test.MigrateSqlServerDataAsync<TestData>(DbMigration.ConfigureMigrationArgs).ConfigureAwait(false);
+        await Test.MigrateSqlServerDataAsync<TestData>(["mutate-data.seed.yaml"], DbMigration.ConfigureMigrationArgs).ConfigureAwait(false);
         await Test.ClearFusionCacheAsync().ConfigureAwait(false);
 
         // Use the expected SQL Server Outbox & Azure Service Bus publishers for the tests.

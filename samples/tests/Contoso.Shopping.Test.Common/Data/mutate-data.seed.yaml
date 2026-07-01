@@ -54,3 +54,4 @@ Shopping:
     - { BasketItemId: ^4011, BasketId: ^3008, ProductId: ^1, Sku: YETI-ASR-C2-2025, Text: Yeti ASR C2, UnitOfMeasureCode: EA, Quantity: 2, UnitPrice: 9850 }
     - { BasketItemId: ^4012, BasketId: ^3008, ProductId: ^20, Sku: SHIMANO-SLX-M7100-CASSETTE, Text: Shimano SLX M7100 12-speed Cassette, UnitOfMeasureCode: EA, Quantity: 1, UnitPrice: 99 }
     - { BasketItemId: ^4013, BasketId: ^3007, ProductId: ^32, Sku: LABOR, Text: Labor, UnitOfMeasureCode: HR, Quantity: 1.5, UnitPrice: 80 }
+
