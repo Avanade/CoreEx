@@ -1,6 +1,6 @@
 ---
 name: coreex-adapter
-description: "Create or modify a CoreEx Infrastructure-layer adapter (anti-corruption layer). USE FOR: new adapter interface in Application/Adapters/{ExternalDomain}/, new adapter implementation in Infrastructure/Adapters/{ExternalDomain}/, new typed HTTP client in Infrastructure/Clients/{ExternalDomain}/, event-driven sync/replication adapter (IXxxSyncAdapter), unit tests for HTTP clients with MockHttpClientFactory. DO NOT USE FOR: repositories within the same domain (use coreex-repository), application services that call adapters (use coreex-app-service), event subscriber hosts that drive sync adapters (use coreex-event-subscribers)."
+description: "Create or modify a CoreEx Infrastructure-layer adapter (anti-corruption layer). USE FOR: new adapter interface in Application/Adapters/{ExternalDomain}/, new adapter implementation in Infrastructure/Adapters/{ExternalDomain}/, new typed HTTP client in Infrastructure/Clients/{ExternalDomain}/, event-driven sync/replication adapter (IXxxSyncAdapter), unit tests for HTTP clients with MockHttpClientFactory. DO NOT USE FOR: repositories within the same domain (use coreex-repository), application services that call adapters (use coreex-app-service), event subscriber hosts that drive sync adapters (see coreex-event-subscribers.instructions.md)."
 argument-hint: "Optional: external domain name, operations needed (get/reserve/cancel/sync), synchronous vs replication role, HTTP or EF-only"
 tags: ["adapter", "anti-corruption", "http-client", "infrastructure", "integration", "coreex"]
 ---
@@ -21,7 +21,7 @@ Guides you through adding or modifying an adapter — the boundary that isolates
 
 - EF repositories within the same domain — use `coreex-repository`
 - Application services that consume the adapter — use `coreex-app-service`
-- Event subscriber hosts that drive `IXxxSyncAdapter` — use `coreex-event-subscribers`
+- Event subscriber hosts that drive `IXxxSyncAdapter` — see `.github/instructions/coreex-event-subscribers.instructions.md`
 
 ## Quick Reference
 

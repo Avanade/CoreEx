@@ -56,6 +56,6 @@ public class ProductAdapter(ShoppingEfDb ef, IEventPublisher eventPublisher, Pro
     public Task<Result> CancelReservationAsync(Domain.Basket basket, CancellationToken ct = default)
     {
         _serviceBusPublisher.Add(EventData.CreateCommand("products", "reservation", "cancel").WithKey(basket.Id));
-        return Result.GoAsync(() => _serviceBusPublisher.PublishAsync(ct));
+        return Result.GoAsync(() => _serviceBusPublisher.PublishAsync(CancellationToken.None));
     }
 }
