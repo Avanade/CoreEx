@@ -131,11 +131,7 @@ Create in `Infrastructure/Adapters/{ExternalDomain}/`. Implement the Application
 namespace {Domain}.Infrastructure.Clients.Products;
 
 [ScopedService<IProductAdapter>]
-public class ProductAdapter(
-    {Domain}EfDb ef,
-    IEventPublisher eventPublisher,
-    ProductsHttpClient client,
-    [FromKeyedServices("AzureServiceBus")] IEventPublisher serviceBusPublisher) : IProductAdapter
+public class ProductAdapter({Domain}EfDb ef, IEventPublisher eventPublisher, ProductsHttpClient client, [FromKeyedServices("AzureServiceBus")] IEventPublisher serviceBusPublisher) : IProductAdapter
 {
     private readonly {Domain}EfDb _ef = ef.ThrowIfNull();
     private readonly IEventPublisher _eventPublisher = eventPublisher.ThrowIfNull();
