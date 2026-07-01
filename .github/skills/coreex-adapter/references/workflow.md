@@ -8,7 +8,7 @@ Full workflow for adding or modifying an adapter (anti-corruption layer) in a Co
 
 | Question | Default | Notes |
 |---|---|---|
-| External domain name | — | Used as sub-folder name: `Products`, `Orders`, etc. |
+| External system name | — | Used as sub-folder name. Can be a domain (`Products`, `Orders`), a system type (`Idp`, `Erp`), or a product name (`Stripe`, `Salesforce`). Choose a name that reflects the boundary, not the transport. |
 | Adapter role | Synchronous | Synchronous = real-time HTTP call. Replication = event-driven local store sync. |
 | HTTP calls needed? | Yes | No HTTP = EF-only replication adapter; skip HTTP client steps. |
 | Multiple endpoints from the same system? | Yes | Always use sub-folder — it is the standard regardless of endpoint count. |
@@ -19,7 +19,7 @@ Full workflow for adding or modifying an adapter (anti-corruption layer) in a Co
 
 ## Step 1 — Application-Layer Interface
 
-Create one interface per adapter role in `Application/Adapters/{ExternalDomain}/`.
+Create one interface per adapter role in `Application/Adapters/{ExternalSystem}/`. The sub-folder name reflects the external system boundary — it may be a domain (`Products`), a system type (`Idp`, `Erp`), or a product name (`Stripe`, `Salesforce`).
 
 ### Synchronous adapter (real-time calls)
 
