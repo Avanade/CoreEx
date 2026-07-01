@@ -22,6 +22,7 @@ public class EntryPoint
         public override Task<IReferenceDataCollection> GetAsync(Type type, CancellationToken cancellationToken = default) => type switch
         {
             _ when type == typeof(UnitOfMeasure) => Task.FromResult((IReferenceDataCollection)jdr.Deserialize<UnitOfMeasureCollection>("Shopping.$^UnitOfMeasure")!),
+            _ when type == typeof(BasketStatus) => Task.FromResult((IReferenceDataCollection)jdr.Deserialize<BasketStatusCollection>("Shopping.$^BasketStatus")!),
             _ => throw new InvalidOperationException($"Type {type.FullName} is not a known {nameof(IReferenceData)}.")
         };
     }
