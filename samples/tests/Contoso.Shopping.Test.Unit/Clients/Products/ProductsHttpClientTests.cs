@@ -13,40 +13,40 @@ public class ProductsHttpClientTests : WithGenericTester<EntryPoint>
     }
 
     [Test]
-    public void CreateReservationAsync_Success_ReturnsSuccess() => Test.Scoped(async test =>
+    public void CreateReservationAsync_Success_ReturnsSuccess() => Test.Scoped(test =>
     {
         _mockHttpReserveRequest.WithAnyBody()
             .Respond.With(HttpStatusCode.NoContent);
 
-        test.Run(async _ =>
+        var r = test.Run(async _ =>
         {
             var client = ExecutionContext.GetRequiredService<ProductsHttpClient>();
             var result = await client.CreateReservationAsync(new MovementRequest { Id = "basket-1" }).ConfigureAwait(false);
             result.IsSuccess.Should().BeTrue();
-        });
+        }).AssertSuccess();
 
         _mockHttpReserveRequest.Verify();
     });
 
     [Test]
-    public void CreateReservationAsync_ServerError_ReturnsFailure() => Test.Scoped(async test =>
+    public void CreateReservationAsync_ServerError_ReturnsFailure() => Test.Scoped(test =>
     {
         _mockHttpReserveRequest.WithAnyBody()
             .Respond.With(HttpStatusCode.InternalServerError);
 
-        test.Run(async _ =>
+        var r = test.Run(async _ =>
         {
             var client = ExecutionContext.GetRequiredService<ProductsHttpClient>();
             var result = await client.CreateReservationAsync(new MovementRequest { Id = "basket-1" }).ConfigureAwait(false);
             result.IsFailure.Should().BeTrue();
             result.Error.Should().BeOfType<HttpRequestException>();
-        });
+        }).AssertSuccess();
 
         _mockHttpReserveRequest.Verify();
     });
 
     [Test]
-    public void CreateReservationAsync_BusinessError_ReturnsBusinessFailure() => Test.Scoped(async test =>
+    public void CreateReservationAsync_BusinessError_ReturnsBusinessFailure() => Test.Scoped(test =>
     {
         _mockHttpReserveRequest.WithAnyBody()
             .Respond.WithJson(new
@@ -57,12 +57,12 @@ public class ProductsHttpClientTests : WithGenericTester<EntryPoint>
                 code = "UnprocessableEntity"
             }, HttpStatusCode.UnprocessableContent, "application/problem+json");
 
-        test.Run(async _ =>
+        var r = test.Run(async _ =>
         {
             var client = ExecutionContext.GetRequiredService<ProductsHttpClient>();
             var result = await client.CreateReservationAsync(new MovementRequest { Id = "basket-1" }).ConfigureAwait(false);
             result.IsFailure.Should().BeTrue();
-        });
+        }).AssertSuccess();
 
         _mockHttpReserveRequest.Verify();
     });

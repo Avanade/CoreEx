@@ -278,7 +278,7 @@ public class {External}HttpClientTests : WithGenericTester<EntryPoint>
     }
 
     [Test]
-    public void CreateAsync_Success_ReturnsSuccess() => Test.Scoped(async test =>
+    public void CreateAsync_Success_ReturnsSuccess() => Test.Scoped(test =>
     {
         _mockHttpReserveRequest.WithAnyBody()
             .Respond.With(HttpStatusCode.NoContent);
@@ -288,13 +288,13 @@ public class {External}HttpClientTests : WithGenericTester<EntryPoint>
             var client = ExecutionContext.GetRequiredService<{External}HttpClient>();
             var result = await client.CreateAsync(new {External}Request { Id = "test-1" }).ConfigureAwait(false);
             result.IsSuccess.Should().BeTrue();
-        });
+        }).AssertSuccess();
 
         _mockHttpReserveRequest.Verify();
     });
 
     [Test]
-    public void CreateAsync_ServerError_ReturnsFailure() => Test.Scoped(async test =>
+    public void CreateAsync_ServerError_ReturnsFailure() => Test.Scoped(test =>
     {
         _mockHttpReserveRequest.WithAnyBody()
             .Respond.With(HttpStatusCode.InternalServerError);
@@ -305,13 +305,13 @@ public class {External}HttpClientTests : WithGenericTester<EntryPoint>
             var result = await client.CreateAsync(new {External}Request { Id = "test-1" }).ConfigureAwait(false);
             result.IsFailure.Should().BeTrue();
             result.Error.Should().BeOfType<HttpRequestException>();
-        });
+        }).AssertSuccess();
 
         _mockHttpReserveRequest.Verify();
     });
 
     [Test]
-    public void CreateAsync_BusinessError_ReturnsBusinessFailure() => Test.Scoped(async test =>
+    public void CreateAsync_BusinessError_ReturnsBusinessFailure() => Test.Scoped(test =>
     {
         _mockHttpReserveRequest.WithAnyBody()
             .Respond.WithJson(new
@@ -327,7 +327,7 @@ public class {External}HttpClientTests : WithGenericTester<EntryPoint>
             var client = ExecutionContext.GetRequiredService<{External}HttpClient>();
             var result = await client.CreateAsync(new {External}Request { Id = "test-1" }).ConfigureAwait(false);
             result.IsFailure.Should().BeTrue();
-        });
+        }).AssertSuccess();
 
         _mockHttpReserveRequest.Verify();
     });
@@ -339,7 +339,7 @@ public class {External}HttpClientTests : WithGenericTester<EntryPoint>
 - `[OneTimeSetUp]` creates the factory once and wires it into the host via `Test.ReplaceHttpClientFactory(mcf)` — the same approach used in API/mutate tests
 - `mcf.CreateClient("{ExternalService}")` without a base URI — uses the address registered in config, not a hardcoded test URI
 - Store the request mock as a field (`_mockHttpReserveRequest`) — shared across tests; set the response per-test via `WithAnyBody().Respond.With(...)`
-- `Test.Scoped(async test => { ... })` + `test.Run(async _ => { ... })` — proper UnitTestEx scoped execution; tests are `void`, not `async Task`
+- `Test.Scoped(test => { ... })` (non-async) + `test.Run(async _ => { ... }).AssertSuccess()` — non-async outer lambda avoids CS1998; `AssertSuccess()` ensures exceptions inside `test.Run` fail the test rather than being swallowed
 - `ExecutionContext.GetRequiredService<{External}HttpClient>()` — resolves the client from DI; do not `new` it directly
 
 **When to write HTTP client unit tests vs rely on integration tests:**

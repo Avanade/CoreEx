@@ -9,7 +9,7 @@
     <UserSecretsId>6a58b94b-d2ff-413a-9e03-e9995a3de4dd</UserSecretsId>
   </PropertyGroup>
 
-  <!-- Vulnerability override: MessagePack 2.5.192 (transitive via Aspire) has multiple CVEs; patched at 2.5.301. -->
+  <!-- Vulnerability override: MessagePack 2.5.192 (transitive via Aspire) has multiple CVEs; patched at >= 2.5.302. -->
   <ItemGroup>
     <PackageReference Include="MessagePack" />
   </ItemGroup>
