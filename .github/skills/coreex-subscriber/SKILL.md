@@ -1,6 +1,6 @@
 ---
 name: coreex-subscriber
-description: "Add or modify an event/command subscriber in a CoreEx Subscribe host. USE FOR: command subscriber (owns the contract, delegates to app service), event-data-sync subscriber (delegates to IXxxSyncAdapter), event-business-process subscriber (choreography step, delegates to app service). Covers SubscribedBase, SubscribedBase<T>, ValueValidator, ErrorHandler, subject naming, and Subscribe-test integration tests. DO NOT USE FOR: API controllers (use coreex-api), application services (use coreex-app-service), replication adapter implementations (use coreex-adapter), Subscribe host Program.cs setup (see coreex-host-setup.instructions.md)."
+description: "Add or modify an event/command subscriber in a CoreEx Subscribe host. USE FOR: command subscriber (owns the contract, delegates to app service), event-data-sync subscriber (delegates to IXxxSyncAdapter), event-business-process subscriber (choreography step, delegates to app service). Covers SubscribedBase, SubscribedBase<T>, ValueValidator, ErrorHandler, and subject naming. DO NOT USE FOR: API controllers (use coreex-api), application services (use coreex-app-service), replication adapter implementations (use coreex-adapter), Subscribe host Program.cs setup (see coreex-host-setup.instructions.md), Subscribe-test integration tests (use coreex-test-subscribe)."
 argument-hint: "Optional: subscriber scenario (command / event-sync / event-process), subject string, payload type, whether ErrorHandler is needed"
 tags: ["subscriber", "messaging", "service-bus", "event-handling", "choreography", "saga", "coreex"]
 ---
@@ -41,7 +41,7 @@ There are three distinct subscriber scenarios — determine which applies before
 - Subject format: `{solution}.{domain}.{entity}.{action}[.v{n}]` — include `.v{n}` only when the message carries a payload
 - `EventData.CreateCommand(...)` for commands; `EventData.CreateEvent(...)` / `new EventData().WithTitle(...)` for events
 - `ErrorHandler` for graceful not-found and retry/dead-letter control — share the same static instance across related subscribers
-- Tests use `WithApiTester<Program>` (Subscribe host); simulate receipt via `ServiceBusSubscribedSubscriber.ReceiveAsync(sbm)`
+- Integration tests use `WithApiTester<Program>` (Subscribe host); simulate receipt via `ServiceBusSubscribedSubscriber.ReceiveAsync(sbm)` — see `coreex-test-subscribe` for the full test workflow
 
 For full workflow and code examples see [`references/workflow.md`](references/workflow.md).
 
@@ -51,7 +51,6 @@ For full workflow and code examples see [`references/workflow.md`](references/wo
 - `samples/src/Contoso.Products.Subscribe/Subscribers/ReservationCancelSubscriber.cs` — command subscriber sharing an `ErrorHandler`
 - `samples/src/Contoso.Shopping.Subscribe/Subscribers/ProductModifySubscriber.cs` — typed event-sync subscriber with `ValueValidator`
 - `samples/src/Contoso.Shopping.Subscribe/Subscribers/ProductDeleteSubscriber.cs` — untyped event-sync subscriber (key-only delete)
-- `samples/tests/Contoso.Products.Test.Subscribe/SubscriberTests.ReservationConfirm.cs` — command subscriber test (outbox assertion + ErrorHandler)
-- `samples/tests/Contoso.Shopping.Test.Subscribe/SubscriberTests.ProductModify.cs` — event-sync subscriber test (state assertion)
+- `coreex-test-subscribe` — full Subscribe-test integration test workflow (test class shape, simulating message receipt, command/event-sync/event-business-process test patterns, unsubscribed-subject test)
 - `.github/instructions/coreex-event-subscribers.instructions.md` — full subscriber conventions reference
 - `.github/instructions/coreex-host-setup.instructions.md` — Subscribe host `Program.cs` shape

@@ -146,6 +146,14 @@
       <_AiFile Include="$(_RepoRoot).github/prompts/coreex-aggregate.prompt.md" DestSubPath=".github/prompts/coreex-aggregate.prompt.md" />
       <_AiFile Include="$(_RepoRoot).github/skills/coreex-aggregate/SKILL.md" DestSubPath=".github/skills/coreex-aggregate/SKILL.md" />
       <_AiFile Include="$(_RepoRoot).github/skills/coreex-aggregate/references/workflow.md" DestSubPath=".github/skills/coreex-aggregate/references/workflow.md" />
+      <_AiFile Include="$(_RepoRoot).github/prompts/coreex-test-api.prompt.md" DestSubPath=".github/prompts/coreex-test-api.prompt.md" />
+      <_AiFile Include="$(_RepoRoot).github/skills/coreex-test-api/SKILL.md" DestSubPath=".github/skills/coreex-test-api/SKILL.md" />
+      <_AiFile Include="$(_RepoRoot).github/skills/coreex-test-api/references/workflow.md" DestSubPath=".github/skills/coreex-test-api/references/workflow.md" />
+      <_AiFile Include="$(_RepoRoot).github/prompts/coreex-test-subscribe.prompt.md" DestSubPath=".github/prompts/coreex-test-subscribe.prompt.md" />
+      <_AiFile Include="$(_RepoRoot).github/skills/coreex-test-subscribe/SKILL.md" DestSubPath=".github/skills/coreex-test-subscribe/SKILL.md" />
+      <_AiFile Include="$(_RepoRoot).github/skills/coreex-test-subscribe/references/workflow.md" DestSubPath=".github/skills/coreex-test-subscribe/references/workflow.md" />
+      <_AiFile Include="$(_RepoRoot).github/prompts/coreex-test-relay.prompt.md" DestSubPath=".github/prompts/coreex-test-relay.prompt.md" />
+      <_AiFile Include="$(_RepoRoot).github/skills/coreex-test-relay/SKILL.md" DestSubPath=".github/skills/coreex-test-relay/SKILL.md" />
       <_AiFile Include="$(_RepoRoot).github/skills/solution-scaffolder/SKILL.md" DestSubPath=".github/skills/solution-scaffolder/SKILL.md" />
       <_AiFile Include="$(_RepoRoot).github/skills/solution-scaffolder/README.md" DestSubPath=".github/skills/solution-scaffolder/README.md" />
       <_AiFile Include="$(_RepoRoot).github/skills/solution-scaffolder/assets/servicebus-config.template.json" DestSubPath=".github/skills/solution-scaffolder/assets/servicebus-config.template.json" />
@@ -272,6 +280,15 @@
           SkipUnchangedFiles="true" />
     <Copy SourceFiles="$(_RepoRoot).github/prompts/coreex-aggregate.prompt.md;$(_RepoRoot).github/skills/coreex-aggregate/SKILL.md;$(_RepoRoot).github/skills/coreex-aggregate/references/workflow.md"
           DestinationFiles="$(_AiAiGenRoot).github/prompts/coreex-aggregate.prompt.md;$(_AiAiGenRoot).github/skills/coreex-aggregate/SKILL.md;$(_AiAiGenRoot).github/skills/coreex-aggregate/references/workflow.md"
+          SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(_RepoRoot).github/prompts/coreex-test-api.prompt.md;$(_RepoRoot).github/skills/coreex-test-api/SKILL.md;$(_RepoRoot).github/skills/coreex-test-api/references/workflow.md"
+          DestinationFiles="$(_AiAiGenRoot).github/prompts/coreex-test-api.prompt.md;$(_AiAiGenRoot).github/skills/coreex-test-api/SKILL.md;$(_AiAiGenRoot).github/skills/coreex-test-api/references/workflow.md"
+          SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(_RepoRoot).github/prompts/coreex-test-subscribe.prompt.md;$(_RepoRoot).github/skills/coreex-test-subscribe/SKILL.md;$(_RepoRoot).github/skills/coreex-test-subscribe/references/workflow.md"
+          DestinationFiles="$(_AiAiGenRoot).github/prompts/coreex-test-subscribe.prompt.md;$(_AiAiGenRoot).github/skills/coreex-test-subscribe/SKILL.md;$(_AiAiGenRoot).github/skills/coreex-test-subscribe/references/workflow.md"
+          SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(_RepoRoot).github/prompts/coreex-test-relay.prompt.md;$(_RepoRoot).github/skills/coreex-test-relay/SKILL.md"
+          DestinationFiles="$(_AiAiGenRoot).github/prompts/coreex-test-relay.prompt.md;$(_AiAiGenRoot).github/skills/coreex-test-relay/SKILL.md"
           SkipUnchangedFiles="true" />
 
     <!-- CoreEx.Ai: pack all generated files into content\CoreEx.Ai\. -->

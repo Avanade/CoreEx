@@ -1,6 +1,6 @@
 ---
 name: coreex-api
-description: "Add or modify a CoreEx API controller (or Minimal API endpoint) in an *.Api host. USE FOR: scaffolding the MVC controller pair (XxxController + XxxReadController), GET/query/schema endpoints, POST create, PUT + PATCH full-entity update, DELETE, and custom business-action endpoints. Covers both exception-based and Result<T> service styles, and Minimal API as an alternative to MVC. DO NOT USE FOR: Api host setup / Program.cs (use coreex-host-setup), application services (use coreex-app-service), API integration tests (see coreex-tests.instructions.md)."
+description: "Add or modify a CoreEx API controller (or Minimal API endpoint) in an *.Api host. USE FOR: scaffolding the MVC controller pair (XxxController + XxxReadController), GET/query/schema endpoints, POST create, PUT + PATCH full-entity update, DELETE, and custom business-action endpoints. Covers both exception-based and Result<T> service styles, and Minimal API as an alternative to MVC. DO NOT USE FOR: Api host setup / Program.cs (use coreex-host-setup), application services (use coreex-app-service), API integration tests (use coreex-test-api)."
 argument-hint: "Optional: entity name, operations needed (get/query/create/update/delete/custom), exception-based or Result<T> service style, MVC or Minimal API"
 tags: ["api", "controller", "mvc", "minimal-api", "webapi", "routing", "cqrs", "coreex"]
 ---
@@ -23,7 +23,7 @@ Guides you through adding or modifying HTTP API endpoints in an `*.Api` host. Co
 
 - Api host setup and `Program.cs` composition — use `coreex-host-setup`
 - Application service creation — use `coreex-app-service`
-- API integration tests (`WithApiTester<Program>`) — see `coreex-tests.instructions.md`
+- API integration tests — use `coreex-test-api` (hand off once the endpoint is implemented)
 - Subscriber or relay hosts — controllers do not belong there
 
 ## Quick Reference
@@ -49,6 +49,7 @@ Guides you through adding or modifying HTTP API endpoints in an `*.Api` host. Co
 - `Result<T>` service → `WithResult` variants (`GetWithResultAsync`, `PostWithResultAsync`, `PutWithResultAsync`, …)
 - No business logic in controllers — delegate immediately to the application service
 - `[Query(supportsOrderBy: true), Paging(supportsCount: true)]` + `[HttpGet("$query")]` schema endpoint for query operations
+- Once the endpoint is implemented, hand off to `coreex-test-api` to add/update its integration test
 
 For full workflow and code examples see [`references/workflow.md`](references/workflow.md).
 
@@ -58,3 +59,4 @@ For full workflow and code examples see [`references/workflow.md`](references/wo
 - [`/samples/src/Contoso.Products.Api/Controllers/`](/samples/src/Contoso.Products.Api/Controllers/) — `ProductController` + `ProductReadController` (exception-based, full CRUD + query + $query)
 - [`/samples/src/Contoso.Shopping.Api/Controllers/`](/samples/src/Contoso.Shopping.Api/Controllers/) — `BasketController` + `BasketReadController` (Result&lt;T&gt; style, custom business actions, cross-tagged nested route)
 - [`/samples/src/Contoso.Orders.Api/Controllers/`](/samples/src/Contoso.Orders.Api/Controllers/) — `OrderController` (exception-based, custom orchestration action returning 202 Accepted)
+- `coreex-test-api` — the integration-test workflow for the endpoints this skill scaffolds

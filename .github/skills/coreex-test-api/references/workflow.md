@@ -1,0 +1,240 @@
+# API Integration Test — Full Workflow
+
+## Phase 0 — Confirm Scope
+
+Identify: entity name, which operations need coverage (Get/Query/Create/Update/Patch/Delete), and the
+domain's database provider (check `*.Database/Program.cs` or `appsettings.json` — PostgreSQL vs SQL
+Server). The provider determines which outbox helper family to use throughout (never mix them).
+
+## Phase 1 — Seed Data First
+
+Test seed data lives under `Data/` in the `*.Test.Common` project, located via the `TestData` marker
+class (do not rename/move it). Use **one read dataset and one mutate dataset per domain**:
+`read-data.seed.yaml` / `mutate-data.seed.yaml`, shared across all entities in the domain.
+
+- Format: `schema:` → `- <table>:` → rows as **inline objects** keyed by column name (no `$`/`$^`
+  prefix — unlike production ref-data seed files).
+- **Casing must match the database exactly** for the provider:
+  - PostgreSQL (default) — lowercase `snake_case`: schema `bar`, table `employee`, columns
+    `employee_id`, `first_name`.
+  - SQL Server — `PascalCase`: schema `Bar`, table `Employee`, columns `EmployeeId`, `FirstName`.
+  A wrong-cased schema/table fails with *"Table '…' does not exist"*.
+- **`^N` is a deterministic GUID** (`^1` == `1.ToGuid()`) — use it for the identifier and any GUID
+  foreign-key reference to another seeded row.
+- Reference data is linked **by code** (`gender_code: M`), not an id/FK.
+- Set scenario flags explicitly where needed (`is_deleted: true`, `is_inactive: true`).
+
+**One seed row per destructive test — not per operation.** NUnit randomises execution order, so two
+*tests* that mutate the same row collide non-deterministically even if each *operation* nominally has
+its own row. Provision rows up front:
+
+| `^N` | Test | Notes |
+|---|---|---|
+| `^1` | `Update_Success` | `Update_NotFound` uses a non-existent id; `Update_ConcurrencyError` only reads `^1` (rolls back) so may share it |
+| `^2` | `Delete_*` | the row is removed by the test |
+| `^3` | `Patch_Success` | |
+
+Non-mutating tests (Get, Query, 304, validation) can freely share read rows.
+
+**GUID literals in resource files** (`.res.json`/`.event.json`) — when a deterministic id/FK must appear
+as a literal string, compute `N.ToGuid()` correctly: the number goes in the **first segment**, in
+**lowercase hex**, zero-padded to 8 digits — `1.ToGuid()` = `00000001-0000-0000-0000-000000000000`, not
+`...-000000000001`. Prefer excluding volatile `id` fields entirely (the `Expect*` helpers auto-exclude)
+so no literal is needed.
+
+## Phase 2 — Test Classes (per entity, read vs mutate)
+
+```
+EmployeeReadTests.cs            // [OneTimeSetUp] → read-data.seed.yaml + ClearFusionCacheAsync
+EmployeeReadTests.Get.cs
+EmployeeReadTests.Query.cs
+EmployeeMutateTests.cs          // [OneTimeSetUp] → mutate-data.seed.yaml (+ outbox publisher, HTTP mocks)
+EmployeeMutateTests.Create.cs
+EmployeeMutateTests.Update.cs
+EmployeeMutateTests.Patch.cs
+EmployeeMutateTests.Delete.cs
+```
+
+Each is a `partial class : WithApiTester<{Solution}.Api.Program>` (reference `Program` fully-qualified —
+it's `public`, no extra `using` needed). The `*.Test.Api` project's `GlobalUsing.cs` already provides
+`DbMigration` (= `{Solution}.Database.Program`) and `TestData` (= `{Solution}.Test.Common.TestData`)
+aliases — use them, don't re-derive.
+
+```csharp
+// EmployeeMutateTests.cs
+public partial class EmployeeMutateTests : WithApiTester<MyApp.Api.Program>
+{
+    [OneTimeSetUp]
+    public async Task OneTimeSetUpAsync()
+    {
+        await Test.MigrateSqlServerDataAsync<TestData>(["mutate-data.seed.yaml"], DbMigration.ConfigureMigrationArgs).ConfigureAwait(false);
+        await Test.ClearFusionCacheAsync().ConfigureAwait(false);
+        Test.UseExpectedSqlServerOutboxPublisher();   // or UseExpectedPostgresOutboxPublisher() — provider-specific
+    }
+}
+
+// EmployeeMutateTests.Create.cs
+public partial class EmployeeMutateTests
+{
+    [Test]
+    public void Create_Success() => /* Test.Http<Employee>()… .AssertCreated()… */;
+}
+```
+
+Use the **named-file** seed overload so read/mutate classes only load their own dataset — the
+no-argument overload loads every `Data/*.seed.yaml` and mixes datasets.
+
+If the domain calls another domain over HTTP, add HTTP mocking to `OneTimeSetUp` too (see Phase 5).
+
+## Phase 3 — Author Tests Per Operation
+
+Co-design seed → tests → resources **in that order** (seed rows exist before you write assertions
+against them; resources get captured from the actual run).
+
+| Operation | Must cover |
+|---|---|
+| **Get** | found, not-found, ETag/If-None-Match → 304 |
+| **Query** | filter, order, paging, field selection |
+| **Create** | success + `Location` header + outbox event; bad-data validation; duplicate/conflict; idempotency-key |
+| **Update** | success + ETag/concurrency (412); not-found (still needs a valid ETag + full body — see below) |
+| **Patch** | merge success (`.WithMergePatchJsonContentType()`); not-found |
+| **Delete** | idempotent four-step flow: get → delete → get → delete |
+
+### Fluent pattern
+
+```csharp
+// GET
+Test.Http()
+    .Run(HttpMethod.Get, $"/api/products/{1.ToGuid()}")
+    .AssertOK()
+    .AssertJsonFromResource("ReadTests.Product_Get_Found.res.json", "etag", "changelog");
+
+// POST — value-carrying create, provider-specific outbox assertion
+var created = Test.Http<Product>()
+    .ExpectIdentifier()
+    .ExpectETag()
+    .ExpectChangeLogCreated()
+    .ExpectJsonFromResource("ProductMutateTests.Create_Success.res.json")
+    .ExpectPostgresOutboxEvents(e => e.AssertWithValue("contoso", "contoso.products.product.created.v1"))
+    .Run(HttpMethod.Post, "/api/products", product)
+    .AssertCreated()
+    .AssertLocationHeader(r => new Uri($"/api/products/{r!.Id}", UriKind.Relative))
+    .Value!;
+
+// Validation error
+Test.Http()
+    .Run(HttpMethod.Post, "/api/products", invalidProduct)
+    .AssertBadRequest()
+    .AssertErrors("Text is required.", "Price must be greater than or equal to zero.");
+```
+
+`ExpectIdentifier()` / `ExpectETag()` / `ExpectChangeLogCreated()`/`Updated()` **both assert presence and
+auto-exclude from the JSON compare** — omit those fields from `.res.json`, don't list them as manual
+excludes.
+
+### ETag / concurrency (Update, Patch)
+
+```csharp
+var val = Test.Http<Product>().Run(HttpMethod.Get, $"/api/products/{1.ToGuid()}").AssertOK().Value!;
+val.Text = "Updated text";
+Test.Http<Product>()
+    .Run(HttpMethod.Put, $"/api/products/{val.Id}", val, requestModifier: r => r.WithIfMatch(val.ETag))
+    .AssertOK();
+```
+
+Stale ETag → `AssertPreconditionFailed()` (**412**, `ConcurrencyException`) — never `AssertConflict()`
+(409 is reserved for duplicate-key/business conflicts). `If-Match` header takes precedence over any body
+`ETag`, so no need to clear `val.ETag` when testing the failure path.
+
+**Update of a non-existent id → 404, but concurrency is checked first.** The test must still send a
+valid `If-Match` and a complete body — otherwise you get `428 Precondition Required` instead of the
+intended `404`.
+
+### Conditional GET (304)
+
+```csharp
+var r = Test.Http().Run(HttpMethod.Get, $"/api/products/{1.ToGuid()}").AssertOK().Response;
+Test.Http()
+    .Run(HttpMethod.Get, $"/api/products/{1.ToGuid()}", requestModifier: rm => rm.WithIfNoneMatch(r.Headers.ETag!.Tag))
+    .AssertNotModified();
+```
+
+Use `WithIfNoneMatch(...)` — never set the header by hand (`If-None-Match` requires a quoted entity-tag;
+raw `Headers.Add` throws `FormatException` on an unquoted value).
+
+### Soft-delete → 404 on read
+
+Seed a row with the delete flag set (`is_deleted: true` / `IsDeleted: true`), then assert the direct GET
+404s — this proves the filter is actually applied on read, not just present in the table.
+
+### Delete — idempotent four-step flow
+
+```csharp
+Test.Http().Run(HttpMethod.Get, $"/api/products/{2.ToGuid()}").AssertOK();                    // 1. exists
+
+Test.Http()
+    .ExpectPostgresOutboxEvents(e => e.AssertMetadata("contoso", "contoso.products.product.deleted", 2.ToGuid().ToString()))
+    .Run(HttpMethod.Delete, $"/api/products/{2.ToGuid()}")
+    .AssertNoContent();                                                                        // 2. 204 + event
+
+Test.Http().Run(HttpMethod.Get, $"/api/products/{2.ToGuid()}").AssertNotFound();                // 3. now 404
+
+Test.Http()
+    .ExpectNoPostgresOutboxEvents()
+    .Run(HttpMethod.Delete, $"/api/products/{2.ToGuid()}")
+    .AssertNoContent();                                                                        // 4. still 204, no event
+```
+
+DELETE **always** returns 204, **never** 404 — the 404 belongs to the GET. Only the first delete (where
+the row existed) emits an event.
+
+## Phase 4 — Outbox Event Assertions
+
+Pick the assertor by whether the event carries a value:
+
+- **`.AssertWithValue(destination, subject)`** — value-carrying events (Create/Update); reconstructs the
+  expected `EventData` from the API's returned value.
+- **`.AssertMetadata(destination, subject, key)`** — no-value events (Delete, any `204`); asserts
+  destination + subject + the `key` (the deleted id).
+
+Subject = `{solutionname}.{domainname}.{entity}.{action}` (all lower-case) + optional `.v{major}` suffix
+**present only when the event carries a value** (default `.v1`, or the contract's `[Schema("vX.Y")]`
+major). If unsure of the exact subject, run the test once — the assertion failure reports the actual
+subject; copy it verbatim.
+
+## Phase 5 — Inter-Domain HTTP Mocking
+
+Never call a real downstream API in a test — always mock via `MockHttpClientFactory`:
+
+```csharp
+// OneTimeSetUp
+var mcf = MockHttpClientFactory.Create();
+_mockHttpReserveRequest = mcf.CreateClient("ProductsApi").Request(HttpMethod.Post, "api/inventory/reserve");
+Test.ReplaceHttpClientFactory(mcf);
+
+// In test
+_mockHttpReserveRequest.WithJsonResourceBody("Basket_Checkout_Success.products.req.json").Respond.With(HttpStatusCode.OK);
+_mockHttpReserveRequest.Verify();
+```
+
+Configure `ReplaceHttpClientFactory()` once in `OneTimeSetUp`, never inside individual tests. Always
+call `.Verify()` after the action.
+
+## Phase 6 — Resources
+
+`.res.json`/`.req.json` live under `Resources/{TestClass}/…`. Pre-author from the seed values you
+control; expect the first run to need a small fix-up from actual output — that's normal. Reference-data
+properties serialize by their **non-`Code`** JSON name (`gender`, not `genderCode`) — real, deterministic
+values, include them; don't exclude them. The only volatile fields are `id`/`etag`/`changelog`.
+
+## Completion Checklist
+
+- [ ] Read/mutate split into separate classes with separate seed files
+- [ ] Named-file seed overload used (not the no-arg "load everything" overload)
+- [ ] One seed row per destructive test, not per operation
+- [ ] Provider-correct outbox helpers used throughout (no Postgres/SQL Server mixing)
+- [ ] Delete tested as the idempotent 4-step flow; never `AssertNotFound()` on DELETE
+- [ ] ETag concurrency asserted as 412, not 409; 428 case understood for missing-ETag scenarios
+- [ ] `.res.json` omits fields covered by `Expect*` auto-exclude helpers
+- [ ] `.Verify()` called after every `MockHttpClientRequest` use
+- [ ] Tests named `{Entity}_{Action}_{Outcome}`
