@@ -48,7 +48,7 @@ public sealed class {Aggregate} : Aggregate<{IdType}, {Aggregate}>
     private List<{ChildEntity}> _items = [];
 
     /// <summary>Creates a new {Aggregate}.</summary>
-    public static {Aggregate} CreateNew({CtorArgs}) => new {Aggregate}(Runtime.NewId())
+    public static {Aggregate} CreateNew({CtorArgs}) => new {Aggregate}({NewIdExpression})
     {
         // Set initial state for a brand-new instance.
         {Property} = {value}
@@ -91,6 +91,10 @@ public sealed class {Aggregate} : Aggregate<{IdType}, {Aggregate}>
 ```
 
 **Rules:**
+- `{NewIdExpression}` is `Runtime.NewId()` when `{IdType}` is `string`, or `Runtime.NewGuid()` when
+  `{IdType}` is `Guid` — `Runtime.NewId()` always returns a `string`, so it is **not** a generic
+  id-type-agnostic call; pick the one matching `{IdType}` (or another `IIdentifierGenerator`-based
+  helper for other id types).
 - `CreateNew(...)` calls `.AsNew()`; `CreateFrom(...)` calls `.AsNotModified()` — these are the **only**
   two public construction paths. The constructor is `private`.
 - Only expose **read-only** properties and a small set of intention-revealing **mutation methods** —
@@ -129,7 +133,7 @@ public sealed class {ChildEntity} : Entity<{IdType}, {ChildEntity}>
 {
     /// <summary>Creates a new {ChildEntity}.</summary>
     public static {ChildEntity} CreateNew({CtorArgs})
-        => new {ChildEntity}(Runtime.NewId()) { {Property} = {value} }.AsNew();
+        => new {ChildEntity}({NewIdExpression}) { {Property} = {value} }.AsNew();
 
     /// <summary>Reconstructs an existing {ChildEntity} from persisted data.</summary>
     public static {ChildEntity} CreateFrom({IdType} id, {CtorArgs}, string? etag)
@@ -150,6 +154,8 @@ public sealed class {ChildEntity} : Entity<{IdType}, {ChildEntity}>
 ```
 
 **Rules:**
+- `{NewIdExpression}` — see the same `Runtime.NewId()`/`Runtime.NewGuid()` rule as the aggregate root;
+  choose based on `{ChildEntity}`'s own `{IdType}`, which need not match the owning aggregate's.
 - Same factory-method + private-constructor pattern as the aggregate root: `CreateNew` / `CreateFrom`,
   `.AsNew()` / `.AsNotModified()`.
 - Mutation methods are **`internal`**, never `public` — this ensures only the owning aggregate can
@@ -212,7 +218,9 @@ Follow the same `*.Test.Unit` conventions as validator tests (see
 `.github/instructions/coreex-tests.instructions.md`): one test class per aggregate, under
 `*.Test.Unit/Domains/`, named `{Aggregate}Tests`, extending `WithGenericTester<EntryPoint>`, with each
 `[Test]` running inside `Test.Scoped(test => { ... })` — this establishes the ambient `ExecutionContext`
-that `Runtime.NewId()`/`Runtime.UtcNow` and any `ThrowIfInactive()` reference-data check rely on.
+that `Runtime.UtcNow` and any `ThrowIfInactive()` reference-data check rely on. (`Runtime.NewId()`/
+`Runtime.NewGuid()` do **not** need `ExecutionContext` — they resolve via `IdentifierGenerator.Current`
+— but `Test.Scoped(...)` is still the standard wrapper for every test in these projects.)
 
 ```csharp
 namespace {Domain}.Test.Unit.Domains;
@@ -223,7 +231,7 @@ public class {Aggregate}Tests : WithGenericTester<EntryPoint>
     public void {MutationMethod}_Succeeds_When_{Condition}() => Test.Scoped(test =>
     {
         // Arrange: construct the aggregate directly via CreateFrom — no repository, no persistence.
-        var aggregate = {Aggregate}.CreateFrom("{id}", {CtorArgs}, items: null, changeLog: null, etag: null);
+        var aggregate = {Aggregate}.CreateFrom({id}, {CtorArgs}, items: null, changeLog: null, etag: null);
 
         // Act: invoke the public mutation method exactly as the Application service would.
         aggregate.{MutationMethod}({args});
@@ -236,7 +244,7 @@ public class {Aggregate}Tests : WithGenericTester<EntryPoint>
     public void {MutationMethod}_Fails_When_{GuardCondition}() => Test.Scoped(test =>
     {
         // Arrange: construct the aggregate in a state that should reject the mutation.
-        var aggregate = {Aggregate}.CreateFrom("{id}", {CtorArgsForGuardedState}, items: null, changeLog: null, etag: null);
+        var aggregate = {Aggregate}.CreateFrom({id}, {CtorArgsForGuardedState}, items: null, changeLog: null, etag: null);
 
         // Act: capture the guarded mutation as a delegate for exception assertion.
         Action act = () => aggregate.{MutationMethod}({args});
