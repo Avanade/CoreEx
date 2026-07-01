@@ -1,6 +1,7 @@
 global using Contoso.Shopping.Application.Adapters.Products;
 global using Contoso.Shopping.Application.Repositories;
-global using Contoso.Shopping.Infrastructure.Clients;
+global using Contoso.Shopping.Infrastructure.Adapters.Products;
+global using Contoso.Shopping.Infrastructure.Clients.Products;
 global using Contoso.Shopping.Infrastructure.Mapping;
 global using Contoso.Shopping.Infrastructure.Repositories;
 global using CoreEx;

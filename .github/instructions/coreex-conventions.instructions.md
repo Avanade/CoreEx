@@ -1,6 +1,6 @@
 ---
 applyTo: "**/*.cs"
-description: "Universal C# coding conventions: nullable, implicit usings, GlobalUsing.cs, file-scoped namespaces, brace style, expression bodies, and private field naming"
+description: "Universal C# coding conventions: nullable, implicit usings, GlobalUsing.cs, file-scoped namespaces, brace style, expression bodies, single-line declarations (constructors/methods/delegates ≤250 chars), private field naming, CancellationToken threading, and XML doc comments"
 tags: ["conventions", "style", "nullable", "usings", "naming"]
 ---
 

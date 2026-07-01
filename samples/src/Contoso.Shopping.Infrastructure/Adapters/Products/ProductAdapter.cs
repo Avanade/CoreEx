@@ -1,4 +1,4 @@
-namespace Contoso.Shopping.Infrastructure.Adapters;
+namespace Contoso.Shopping.Infrastructure.Adapters.Products;
 
 [ScopedService<IProductAdapter>]
 public class ProductAdapter(ShoppingEfDb ef, IEventPublisher eventPublisher, ProductsHttpClient client, [FromKeyedServices("AzureServiceBus")] IEventPublisher serviceBusPublisher) : IProductAdapter
@@ -27,12 +27,12 @@ public class ProductAdapter(ShoppingEfDb ef, IEventPublisher eventPublisher, Pro
             return Result.Success;
 
         // Create the reservation request for the basket.
-        var req = new Clients.MovementRequest
+        var req = new MovementRequest
         {
             Id = basket.Id,
             Products = basket.Items.Where(i => products.Contains(i.ProductId)).ToDataMap(
                 x => x.ProductId,
-                x => new Clients.MovementRequestProduct
+                x => new MovementRequestProduct
                 {
                     Quantity = x.Pricing.Quantity,
                     UnitOfMeasure = x.Pricing.UnitOfMeasure
@@ -56,6 +56,6 @@ public class ProductAdapter(ShoppingEfDb ef, IEventPublisher eventPublisher, Pro
     public Task<Result> CancelReservationAsync(Domain.Basket basket, CancellationToken ct = default)
     {
         _serviceBusPublisher.Add(EventData.CreateCommand("products", "reservation", "cancel").WithKey(basket.Id));
-        return Result.GoAsync(() => _serviceBusPublisher.PublishAsync(ct));
+        return Result.GoAsync(() => _serviceBusPublisher.PublishAsync(CancellationToken.None));
     }
 }

@@ -9,6 +9,11 @@
     <UserSecretsId>6a58b94b-d2ff-413a-9e03-e9995a3de4dd</UserSecretsId>
   </PropertyGroup>
 
+  <!-- Vulnerability override: MessagePack 2.5.192 (transitive via Aspire) has multiple CVEs; patched at >= 2.5.302. -->
+  <ItemGroup>
+    <PackageReference Include="MessagePack" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\..\src\Contoso.Orders.Api\Contoso.Orders.Api.csproj" />
     <ProjectReference Include="..\..\src\Contoso.Order.Workflow.Worker\Contoso.Order.Workflow.Worker.csproj" />
