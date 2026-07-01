@@ -3,7 +3,7 @@ namespace Contoso.Shopping.Test.Unit.Domains;
 public class BasketTests : WithGenericTester<EntryPoint>
 {
     [Test]
-    public void Apply_Discount_To_Existing_Active_Basket() => Test.Scoped(test =>
+    public void Basket_ApplyDiscount_Success() => Test.Scoped(test =>
     {
         // Arrange: Create a basket with an item.
         var basket = Domain.Basket.CreateFrom("basket-id", "customer-id", BasketStatus.Active, null,
@@ -19,7 +19,7 @@ public class BasketTests : WithGenericTester<EntryPoint>
     });
 
     [Test]
-    public void Apply_Discount_To_Existing_CheckedOut_Basket() => Test.Scoped(test =>
+    public void Basket_ApplyDiscount_Invalid_Status() => Test.Scoped(test =>
     {
         // Arrange: Create a basket with an item.
         var basket = Domain.Basket.CreateFrom("basket-id", "customer-id", BasketStatus.CheckedOut, null,

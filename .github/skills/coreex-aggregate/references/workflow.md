@@ -220,7 +220,9 @@ Follow the same `*.Test.Unit` conventions as validator tests (see
 `[Test]` running inside `Test.Scoped(test => { ... })` — this establishes the ambient `ExecutionContext`
 that `Runtime.UtcNow` and any `ThrowIfInactive()` reference-data check rely on. (`Runtime.NewId()`/
 `Runtime.NewGuid()` do **not** need `ExecutionContext` — they resolve via `IdentifierGenerator.Current`
-— but `Test.Scoped(...)` is still the standard wrapper for every test in these projects.)
+— but `Test.Scoped(...)` is still the standard wrapper for every test in these projects.) Name test
+methods `{Aggregate}_{MutationMethod}_{Outcome}`, matching the `{Entity}_{Action}_{Outcome}` convention
+used across the rest of the test suite (e.g. `Basket_Checkout_Success`, `Basket_Checkout_Insufficient_Quantity`).
 
 ```csharp
 namespace {Domain}.Test.Unit.Domains;
@@ -228,7 +230,7 @@ namespace {Domain}.Test.Unit.Domains;
 public class {Aggregate}Tests : WithGenericTester<EntryPoint>
 {
     [Test]
-    public void {MutationMethod}_Succeeds_When_{Condition}() => Test.Scoped(test =>
+    public void {Aggregate}_{MutationMethod}_Success() => Test.Scoped(test =>
     {
         // Arrange: construct the aggregate directly via CreateFrom — no repository, no persistence.
         var aggregate = {Aggregate}.CreateFrom({id}, {CtorArgs}, items: null, changeLog: null, etag: null);
@@ -241,7 +243,7 @@ public class {Aggregate}Tests : WithGenericTester<EntryPoint>
     });
 
     [Test]
-    public void {MutationMethod}_Fails_When_{GuardCondition}() => Test.Scoped(test =>
+    public void {Aggregate}_{MutationMethod}_{GuardOutcome}() => Test.Scoped(test =>
     {
         // Arrange: construct the aggregate in a state that should reject the mutation.
         var aggregate = {Aggregate}.CreateFrom({id}, {CtorArgsForGuardedState}, items: null, changeLog: null, etag: null);
