@@ -8,7 +8,7 @@ public partial class SubscriberTests : WithApiTester<Contoso.Shopping.Subscribe.
     [OneTimeSetUp]
     public async Task OneTimeSetUpAsync()
     {
-        await Test.MigrateSqlServerDataAsync<TestData>(["data.yaml"], DbMigration.ConfigureMigrationArgs).ConfigureAwait(false);
+        await Test.MigrateSqlServerDataAsync<TestData>(["mutate-data.seed.yaml"], DbMigration.ConfigureMigrationArgs).ConfigureAwait(false);
         await Test.ClearFusionCacheAsync().ConfigureAwait(false);
 
         Test.UseExpectedSqlServerOutboxPublisher();
