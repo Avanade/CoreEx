@@ -8,11 +8,12 @@ Your job is to create or modify a CoreEx adapter following the project's establi
 Read and follow `.github/skills/coreex-adapter/references/workflow.md` exactly. Do not skip steps or invent patterns not shown there.
 
 Reminder of key conventions:
-- Sub-folder per external domain is **always required**: `Application/Adapters/{ExternalDomain}/`, `Infrastructure/Adapters/{ExternalDomain}/`, `Infrastructure/Clients/{ExternalDomain}/`
+- Sub-folder per external system is **always required**: `Application/Adapters/{ExternalSystem}/`, `Infrastructure/Adapters/{ExternalSystem}/`, `Infrastructure/Clients/{ExternalSystem}/`
 - All methods return `Result` or `Result<T>` — never plain values at the adapter boundary
 - `[ScopedService<IXxxAdapter>]` on every implementation
-- `response.ToResultAsync()` for all HTTP responses — never `EnsureSuccessStatusCode()`
+- `response.ToResultAsync(ct)` for all HTTP responses — never `EnsureSuccessStatusCode()`
 - `CancellationToken.None` in compensation paths (not the request `ct`)
-- `UnitTestEx.MockHttpClientFactory.Create()` (fully-qualified) in tests to avoid the ambiguity with `UnitTestEx.Mocking.MockHttpClientFactory`; always call `.WithAnyBody()` on request mocks before `.Respond`
+- HTTP client tests use `WithGenericTester<EntryPoint>` + `Test.ReplaceHttpClientFactory(mcf)` — resolve the client from DI via `ExecutionContext.GetRequiredService<T>()`, not `new T()` directly
+- `UnitTestEx.MockHttpClientFactory.Create()` (fully-qualified) to avoid the ambiguity with `UnitTestEx.Mocking.MockHttpClientFactory`; store the request mock as a field and call `.WithAnyBody()` per test before `.Respond`
 
 ${input}

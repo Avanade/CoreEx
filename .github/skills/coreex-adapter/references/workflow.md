@@ -237,80 +237,116 @@ The adapter is registered automatically via `[ScopedService<IXxxAdapter>]` — n
 
 ## Step 5 — Unit Tests for the HTTP Client
 
-Unit-test every distinct status code that the consuming service acts on. Use `MockHttpClientFactory` from UnitTestEx.
+Unit-test every distinct status code that the consuming service acts on. Use `WithGenericTester<EntryPoint>` from UnitTestEx — the same `MockHttpClientFactory` pattern used in API integration tests, but backed by the lightweight unit-test host.
+
+### EntryPoint — register the typed HTTP client
+
+The unit-test `EntryPoint` must register the typed HTTP client so it resolves from DI:
 
 ```csharp
-// Tests/Clients/Products/ProductsHttpClientTests.cs
-namespace {Domain}.Test.Unit.Clients.Products;
-
-public class ProductsHttpClientTests
+// Test.Unit/EntryPoint.cs
+public class EntryPoint
 {
-    [Test]
-    public async Task CreateReservationAsync_Success_ReturnsSuccess()
+    public static void ConfigureApplication(IHostApplicationBuilder builder)
     {
-        // Use fully-qualified UnitTestEx.MockHttpClientFactory.Create() to resolve the ambiguity
-        // with UnitTestEx.Mocking.MockHttpClientFactory that exists when both namespaces are in GlobalUsing.
-        var mcf = UnitTestEx.MockHttpClientFactory.Create();
-        var mockHttp = mcf.CreateClient("ProductsApi", new Uri("https://products-api/"));
-        var request = mockHttp.Request(HttpMethod.Post, "api/inventory/reserve");
-        request.WithAnyBody();
-        request.Respond.With(HttpStatusCode.NoContent);
-
-        var client = new ProductsHttpClient(mockHttp.GetHttpClient());
-        var result = await client.CreateReservationAsync(new MovementRequest { Id = "basket-1" }).ConfigureAwait(false);
-
-        result.IsSuccess.Should().BeTrue();
-        request.Verify();
-    }
-
-    [Test]
-    public async Task CreateReservationAsync_ServerError_ReturnsFailure()
-    {
-        var mcf = UnitTestEx.MockHttpClientFactory.Create();
-        var mockHttp = mcf.CreateClient("ProductsApi", new Uri("https://products-api/"));
-        var request = mockHttp.Request(HttpMethod.Post, "api/inventory/reserve");
-        request.WithAnyBody();
-        request.Respond.With(HttpStatusCode.InternalServerError);
-
-        var client = new ProductsHttpClient(mockHttp.GetHttpClient());
-        var result = await client.CreateReservationAsync(new MovementRequest { Id = "basket-1" }).ConfigureAwait(false);
-
-        result.IsFailure.Should().BeTrue();
-        result.Error.Should().BeOfType<HttpRequestException>();
-        request.Verify();
-    }
-
-    [Test]
-    public async Task CreateReservationAsync_BusinessError_ReturnsBusinessFailure()
-    {
-        var mcf = UnitTestEx.MockHttpClientFactory.Create();
-        var mockHttp = mcf.CreateClient("ProductsApi", new Uri("https://products-api/"));
-        // 422 with application/problem+json → CoreEx maps to ProblemDetailsException / BusinessException.
-        var problemDetails = new
-        {
-            type = "https://tools.ietf.org/html/rfc7231#section-6.5.1",
-            title = "Business Error",
-            status = 422,
-            code = "UnprocessableEntity"
-        };
-        var request = mockHttp.Request(HttpMethod.Post, "api/inventory/reserve");
-        request.WithAnyBody();
-        request.Respond.WithJson(problemDetails, HttpStatusCode.UnprocessableContent, "application/problem+json");
-
-        var client = new ProductsHttpClient(mockHttp.GetHttpClient());
-        var result = await client.CreateReservationAsync(new MovementRequest { Id = "basket-1" }).ConfigureAwait(false);
-
-        result.IsFailure.Should().BeTrue();
-        request.Verify();
+        builder.Services.AddExecutionContext();
+        // Register the typed HTTP client — required so tests can resolve it from DI.
+        builder.AddTypedHttpClient<{External}HttpClient>("{ExternalService}");
     }
 }
 ```
+
+### Test class
+
+```csharp
+// Tests/Clients/{External}/{External}HttpClientTests.cs
+namespace {Domain}.Test.Unit.Clients.{External};
+
+public class {External}HttpClientTests : WithGenericTester<EntryPoint>
+{
+    private UnitTestEx.Mocking.MockHttpClientRequest _mockHttpReserveRequest = null!;
+
+    [OneTimeSetUp]
+    public void OneTimeSetUp()
+    {
+        // Use fully-qualified UnitTestEx.MockHttpClientFactory.Create() to resolve the ambiguity
+        // with UnitTestEx.Mocking.MockHttpClientFactory when both namespaces are in GlobalUsing.
+        var mcf = UnitTestEx.MockHttpClientFactory.Create();
+        // CreateClient without a base URI — uses the address registered in DI/config.
+        _mockHttpReserveRequest = mcf.CreateClient("{ExternalService}").Request(HttpMethod.Post, "api/{resource}");
+        Test.ReplaceHttpClientFactory(mcf);
+    }
+
+    [Test]
+    public void CreateAsync_Success_ReturnsSuccess() => Test.Scoped(async test =>
+    {
+        _mockHttpReserveRequest.WithAnyBody()
+            .Respond.With(HttpStatusCode.NoContent);
+
+        test.Run(async _ =>
+        {
+            var client = ExecutionContext.GetRequiredService<{External}HttpClient>();
+            var result = await client.CreateAsync(new {External}Request { Id = "test-1" }).ConfigureAwait(false);
+            result.IsSuccess.Should().BeTrue();
+        });
+
+        _mockHttpReserveRequest.Verify();
+    });
+
+    [Test]
+    public void CreateAsync_ServerError_ReturnsFailure() => Test.Scoped(async test =>
+    {
+        _mockHttpReserveRequest.WithAnyBody()
+            .Respond.With(HttpStatusCode.InternalServerError);
+
+        test.Run(async _ =>
+        {
+            var client = ExecutionContext.GetRequiredService<{External}HttpClient>();
+            var result = await client.CreateAsync(new {External}Request { Id = "test-1" }).ConfigureAwait(false);
+            result.IsFailure.Should().BeTrue();
+            result.Error.Should().BeOfType<HttpRequestException>();
+        });
+
+        _mockHttpReserveRequest.Verify();
+    });
+
+    [Test]
+    public void CreateAsync_BusinessError_ReturnsBusinessFailure() => Test.Scoped(async test =>
+    {
+        _mockHttpReserveRequest.WithAnyBody()
+            .Respond.WithJson(new
+            {
+                type = "https://tools.ietf.org/html/rfc7231#section-6.5.1",
+                title = "Business Error",
+                status = 422,
+                code = "UnprocessableEntity"
+            }, HttpStatusCode.UnprocessableContent, "application/problem+json");
+
+        test.Run(async _ =>
+        {
+            var client = ExecutionContext.GetRequiredService<{External}HttpClient>();
+            var result = await client.CreateAsync(new {External}Request { Id = "test-1" }).ConfigureAwait(false);
+            result.IsFailure.Should().BeTrue();
+        });
+
+        _mockHttpReserveRequest.Verify();
+    });
+}
+```
+
+**Key patterns:**
+- `WithGenericTester<EntryPoint>` — lightweight DI host; mirrors the `WithApiTester<Program>` pattern used in API integration tests
+- `[OneTimeSetUp]` creates the factory once and wires it into the host via `Test.ReplaceHttpClientFactory(mcf)` — the same approach used in API/mutate tests
+- `mcf.CreateClient("{ExternalService}")` without a base URI — uses the address registered in config, not a hardcoded test URI
+- Store the request mock as a field (`_mockHttpReserveRequest`) — shared across tests; set the response per-test via `WithAnyBody().Respond.With(...)`
+- `Test.Scoped(async test => { ... })` + `test.Run(async _ => { ... })` — proper UnitTestEx scoped execution; tests are `void`, not `async Task`
+- `ExecutionContext.GetRequiredService<{External}HttpClient>()` — resolves the client from DI; do not `new` it directly
 
 **When to write HTTP client unit tests vs rely on integration tests:**
 
 | Scenario | Test approach |
 |---|---|
-| HTTP client with multiple endpoints or complex request shaping | Unit-test each endpoint/status code |
+| HTTP client with multiple endpoints or complex request shaping | Unit-test each endpoint/status code with `WithGenericTester` |
 | Simple adapter with only EF reads/writes (no HTTP) | Integration tests cover this via intra-domain service tests |
 | Adapter orchestration (combining EF + HTTP + events) | Mock the HTTP client via `Test.ReplaceHttpClientFactory(mcf)` in `WithApiTester` integration tests |
 
