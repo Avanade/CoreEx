@@ -76,7 +76,7 @@ Check `.github/docs/coreex/` for a local cache first (see [Local doc cache](#loc
 
 | Folder | Contents |
 |---|---|
-| `.github/docs/coreex/` | 10 sample architecture docs (layers, patterns, each layer walkthrough, testing, tooling, Aspire) |
+| `.github/docs/coreex/` | 11 sample architecture docs (layers, patterns, each layer walkthrough, testing, tooling, Aspire) |
 | `.github/docs/coreex/agents/` | AI usage guides for **all** CoreEx packages — available for guidance even on packages not yet adopted by this project |
 
 A manifest at `.github/docs/coreex/.manifest` records the sync date, CoreEx version, and which packages are currently referenced in the project.
