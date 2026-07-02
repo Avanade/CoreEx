@@ -160,6 +160,7 @@ dotnet new coreex-subscribe -n Company.Product.Domain.Subscribe ...
 - Always run the unit test project when present.
 - Run API, relay, or subscriber test projects only when their required local dependencies are available; otherwise skip them and report the reason explicitly.
 - Treat missing local infrastructure such as SQL Server, Postgres, Redis, or Service Bus as a validation skip, not as a scaffolding failure, unless the user explicitly asked for full local environment setup.
+- Once the scaffolded test projects build and run their initial templated tests, hand off to `coreex-test-api`, `coreex-test-subscribe`, or `coreex-test-relay` for authoring any further domain-specific integration tests — this skill only validates the generated shape, not test content.
 - When the user explicitly wants a first local runnable state, create any missing local dependency assets before broader validation, using bundled templates where available.
 - When `data-provider != None` and the user wants runnable local state, run the `*.Database` tool from its own project directory so `dbex.yaml` resolves correctly; prefer `dotnet run -- All` for first-run local setup.
 - When `refdata-enabled` is `true` and the user wants runnable local state, run the `*.CodeGen` tool from its own project directory so its config file resolves correctly.

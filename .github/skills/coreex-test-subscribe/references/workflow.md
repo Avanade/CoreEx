@@ -1,0 +1,193 @@
+# Subscribe Host Integration Test — Full Workflow
+
+## Phase 0 — Match the Test Shape to the Subscriber Scenario
+
+Before writing anything, confirm which of the three subscriber scenarios (see `coreex-subscriber`) the
+subscriber under test implements — it determines what you assert:
+
+| Scenario | Delegates to | What the test asserts |
+|---|---|---|
+| **Command** | Application service | Outcome (success/failure) + any outbox events published as a *result* of the command being processed |
+| **Event — Data Sync** | Replication adapter (`IXxxSyncAdapter`) | Local state reflects the incoming payload (query the adapter/repository after receipt) |
+| **Event — Business Process** | Application service (choreography step) | The downstream service ran and published its own resulting events |
+
+## Phase 1 — OneTimeSetUp (shared foundation)
+
+Subscribe tests use the **same DB/cache/outbox setup** as API tests — see
+[`../coreex-test-api/references/workflow.md`](../coreex-test-api/references/workflow.md) Phase 1 for
+seed-file authoring and Phase 4 for outbox assertion mechanics. Subscribe hosts **do** have FusionCache
+(they're full application-layer consumers needing it for reference data and idempotency) — don't skip
+`ClearFusionCacheAsync()` thinking it's API-only.
+
+```csharp
+// SubscriberTests.cs (base partial file)
+namespace {Domain}.Test.Subscribe;
+
+public partial class SubscriberTests : WithApiTester<{Domain}.Subscribe.Program>
+{
+    [OneTimeSetUp]
+    public async Task OneTimeSetUpAsync()
+    {
+        // Always specify the seed file explicitly — read-data.seed.yaml, mutate-data.seed.yaml,
+        // or a schema-only no-data.seed.yaml for plumbing/health-only tests.
+        await Test.MigrateSqlServerDataAsync<TestData>(["mutate-data.seed.yaml"], DbMigration.ConfigureMigrationArgs).ConfigureAwait(false);   // or MigratePostgresDataAsync<TestData>(...) — provider-specific
+        await Test.ClearFusionCacheAsync().ConfigureAwait(false);
+
+        Test.UseExpectedSqlServerOutboxPublisher();   // or UseExpectedPostgresOutboxPublisher() — provider-specific
+    }
+}
+```
+
+One partial file per subscriber scenario under test: `SubscriberTests.{Scenario}.cs`.
+
+## Phase 2 — Simulating Message Receipt
+
+Build the `EventData` the subscriber expects, convert it to a `ServiceBusReceivedMessage`, resolve
+`ServiceBusSubscribedSubscriber` from DI, and call `.ReceiveAsync(sbm)` — no live Service Bus connection
+needed.
+
+```csharp
+// Key-only command:
+var ed = EventData.CreateCommand("{domain}", "{entity}", "{action}").WithKey(referenceId);
+
+// Payload-carrying event:
+// var ed = new EventData().WithTitle("{solution}.{domain}.{entity}.updated.v1").WithValue(entity);
+
+var ce = Test.CreateCloudEventFrom(ed);
+var sbm = ce.ToServiceBusReceivedMessage();
+
+var sbs = test.Services.GetRequiredService<ServiceBusSubscribedSubscriber>();
+var r = await sbs.ReceiveAsync(sbm);
+r.IsSuccess.Should().BeTrue();
+```
+
+## Phase 3 — Test Patterns Per Scenario
+
+### Command — success + outbox assertion
+
+```csharp
+[Test]
+public void {Entity}{Action}_Success() => Test.Scoped(async test =>
+{
+    // Arrange — confirm pre-conditions via a service/repository.
+    var referenceId = 1000.ToGuid().ToString();
+    var svc = test.Services.GetRequiredService<I{Entity}ReadService>();
+    var items = await svc.GetAsync(referenceId);
+    items.Should().HaveCount(3);
+
+    // Act — simulate the command message; assert any resulting outbox events.
+    test.ExpectSqlServerOutboxEvents(e => e.AssertCount(3))   // or ExpectPostgresOutboxEvents(...) — provider-specific
+        .Run(async _ =>
+        {
+            var ed = EventData.CreateCommand("{domain}", "{entity}", "{action}").WithKey(referenceId);
+            var ce = Test.CreateCloudEventFrom(ed);
+            var sbm = ce.ToServiceBusReceivedMessage();
+
+            var sbs = test.Services.GetRequiredService<ServiceBusSubscribedSubscriber>();
+            var r = await sbs.ReceiveAsync(sbm);
+            r.IsSuccess.Should().BeTrue();
+        }).AssertSuccess();
+
+    // Assert — verify the resulting state change.
+    items = await svc.GetAsync(referenceId);
+    items.Should().AllSatisfy(i => i.StatusCode.Should().Be({Status}.Confirmed));
+});
+```
+
+### Command — `ErrorHandler` outcome (semantically-expected not-found)
+
+A handled exception surfaces as `EventSubscriberHandledException`, wrapping the original exception and
+carrying the resolved `ErrorHandling` outcome:
+
+```csharp
+[Test]
+public void {Entity}{Action}_NotFound() => Test.Scoped(test =>
+{
+    var ed = EventData.CreateCommand("{domain}", "{entity}", "{action}").WithKey("missing-id");
+    var ce = Test.CreateCloudEventFrom(ed);
+    var sbm = ce.ToServiceBusReceivedMessage();
+
+    test.Run(async _ =>
+    {
+        var sbs = test.Services.GetRequiredService<ServiceBusSubscribedSubscriber>();
+        var r = await sbs.ReceiveAsync(sbm);
+
+        r.IsFailure.Should().BeTrue();
+        var e = r.Error.Should().BeOfType<EventSubscriberHandledException>().Subject;
+        e.ErrorHandling.Should().Be(ErrorHandling.CompleteAsInformation);
+        e.InnerException.Should().BeOfType<NotFoundException>().Which.ErrorCode.Should().Be("{entity}-not-found");
+    }).AssertSuccess();
+});
+```
+
+### Event — Data Sync (state assertion via the adapter)
+
+```csharp
+[Test]
+public void {Entity}Modify_Success() => Test.Scoped(async test =>
+{
+    // Arrange — get current state and apply a change.
+    var adapter = test.Services.GetRequiredService<I{Entity}SyncAdapter>();
+    var result = await adapter.GetAsync(knownId);
+    result.IsSuccess.Should().BeTrue();
+    var entity = result.Value;
+    entity.Name += " modified";
+
+    var ed = new EventData().WithTitle("{solution}.{domain}.{entity}.updated.v1").WithValue(entity);
+    var ce = Test.CreateCloudEventFrom(ed);
+    var sbm = ce.ToServiceBusReceivedMessage();
+
+    // Act.
+    test.Run(async _ =>
+    {
+        var sbs = test.Services.GetRequiredService<ServiceBusSubscribedSubscriber>();
+        var r = await sbs.ReceiveAsync(sbm);
+        r.IsSuccess.Should().BeTrue();
+    }).AssertSuccess();
+
+    // Assert — verify the local store reflects the change.
+    result = await adapter.GetAsync(knownId);
+    result.Value.Name.Should().EndWith(" modified");
+});
+```
+
+### Event — Business Process (choreography step)
+
+Same shape as the command test — assert the application service ran (state change) and, if it
+publishes its own resulting events, assert those via the appropriate `ExpectXxxOutboxEvents`.
+
+## Phase 4 — Always Include: Unsubscribed Subject Test
+
+Confirms an unknown subject is consumed **silently**, not dead-lettered — this is broker-level plumbing
+behavior worth asserting once per Subscribe host:
+
+```csharp
+[Test]
+public void Unsubscribed_CompletesSilently() => Test.Scoped(test =>
+{
+    var ed = EventData.CreateEvent("test", "not-subscribed").WithKey("abc");
+    var ce = Test.CreateCloudEventFrom(ed);
+    var sbm = ce.ToServiceBusReceivedMessage();
+
+    test.Run(async _ =>
+    {
+        var sbs = test.Services.GetRequiredService<ServiceBusSubscribedSubscriber>();
+        var r = await sbs.ReceiveAsync(sbm);
+
+        r.IsFailure.Should().BeTrue();
+        var e = r.Error.Should().BeOfType<EventSubscriberHandledException>().Subject;
+        e.ErrorHandling.Should().Be(ErrorHandling.CompleteAsSilent);
+        e.InnerException.Message.Should().Be("No subscriber matched the event.");
+    }).AssertSuccess();
+});
+```
+
+## Completion Checklist
+
+- [ ] Test shape matches the subscriber scenario (command / event-data-sync / event-business-process)
+- [ ] `OneTimeSetUp` clears FusionCache — Subscribe hosts have it, don't skip it
+- [ ] Provider-correct outbox helpers used (no Postgres/SQL Server mixing)
+- [ ] `ErrorHandler` outcomes asserted where the subscriber defines one (handled exception → `.ErrorHandling` + `.InnerException`)
+- [ ] Event-data-sync tests assert via the adapter/local store, not the raw external contract
+- [ ] An "unsubscribed subject" test exists for the host
+- [ ] Seed files specified explicitly (no auto-discovery reliance)
