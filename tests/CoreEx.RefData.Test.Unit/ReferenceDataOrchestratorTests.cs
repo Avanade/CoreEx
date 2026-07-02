@@ -421,9 +421,13 @@ public partial class ReferenceDataOrchestratorTests
         var json = System.Text.Json.JsonSerializer.Serialize(coll!, JsonDefaults.SerializerOptions);
 
         var deserialColl = System.Text.Json.JsonSerializer.Deserialize<DummyRefData2Collection>(json, JsonDefaults.SerializerOptions);
-        var json2 = System.Text.Json.JsonSerializer.Serialize(deserialColl, JsonDefaults.SerializerOptions);
 
-        json.Should().Be(json2);
+        // ReferenceDataCollectionCore<TId, TRef> is backed by a ConcurrentDictionary and its remarks explicitly state there is
+        // no implied enumeration order. Comparing the raw serialized JSON strings is therefore unreliable: string ids hash
+        // differently per process (string hash randomization), so the enumerated/serialized order flips between runs. Assert
+        // via GetItems(), which returns a stable, sorted List<TRef>, rather than BeEquivalentTo on the collection directly -
+        // the latter enumerates via ICollection<TRef>.CopyTo, which this collection explicitly does not support.
+        deserialColl!.GetItems().Should().BeEquivalentTo(((DummyRefData2Collection)coll!).GetItems());
 
         deserialColl!.Should().Contain(x => x.ParentSid == "P");
     }
