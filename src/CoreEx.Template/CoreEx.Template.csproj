@@ -71,8 +71,12 @@
                   // When absent, preserve the original per-file applyTo pattern unchanged.
                   var colonIdx = line.IndexOf(':');
                   var originalPattern = line.Substring(colonIdx + 1).Trim().Trim('"');
+                  // __COREEX_AI_APP_FOLDER_TOKEN__ is a sentinel, not the literal text "app-folder": the
+                  // app-folder symbol's "replaces" value is a global text-replace across every packed file,
+                  // so using the human-readable name here would also corrupt any prose mentioning "app-folder"
+                  // (e.g. "--app-folder" in SKILL.md/README.md) elsewhere in the CoreEx.Ai bundle.
                   sb.AppendLine("<!-- #if hasAppFolder -->");
-                  sb.AppendLine("applyTo: \"app-folder/" + originalPattern + "\"");
+                  sb.AppendLine("applyTo: \"__COREEX_AI_APP_FOLDER_TOKEN__/" + originalPattern + "\"");
                   sb.AppendLine("<!-- #else -->");
                   sb.AppendLine(line);
                   sb.AppendLine("<!-- #endif -->");
@@ -94,13 +98,13 @@
 
   <!-- Copy packaged AI context files from the CoreEx repo into the CoreEx.Bootstrap and CoreEx.Ai templates at pack time.
        CoreEx.Bootstrap receives the full set (including copilot-instructions.md and docs) for new-empty-repo scenarios.
-       CoreEx.Ai receives instructions (transformed with app-folder conditionals), prompts, agents, Claude commands, the full skill suite (docs-sync, solution-scaffolder, and the L1 coreex-* skills), and the docs cache (architecture docs + per-package guides under .github/docs/coreex/) — no copilot-instructions.md.
+       CoreEx.Ai receives instructions (transformed with app-folder conditionals), prompts, agents, Claude commands, the full skill suite (docs-sync, coreex-solution-scaffolder, and the L1 coreex-* skills), and the docs cache (architecture docs + per-package guides under .github/docs/coreex/) — no copilot-instructions.md.
        coreex (CoreEx.Core) no longer receives any .github/ AI assets; consumers run dotnet new coreex-ai separately.
        Files sourced for Bootstrap/Ai:
          - consumer-instructions/.github/copilot-instructions.md            → .github/copilot-instructions.md  (Bootstrap only)
          - consumer-instructions/.github/copilot-instructions.md            → .github/instructions/coreex.instructions.md (Ai only, generated at pack time with frontmatter prepended)
          - .github/prompts/coreex-scaffold.prompt.md                        → .github/prompts/coreex-scaffold.prompt.md
-         - .github/skills/solution-scaffolder/*                             → .github/skills/solution-scaffolder/ (Bootstrap only)
+         - .github/skills/coreex-solution-scaffolder/*                             → .github/skills/coreex-solution-scaffolder/ (Bootstrap and Ai)
          - .github/skills/coreex-docs-sync/*                                → .github/skills/coreex-docs-sync/ (Bootstrap and Ai)
          - .github/agents/coreex-expert.agent.md                           → .github/agents/coreex-expert.agent.md
          - .claude/commands/coreex-expert.md                               → .claude/commands/coreex-expert.md  (Bootstrap and Ai)
@@ -154,11 +158,12 @@
       <_AiFile Include="$(_RepoRoot).github/skills/coreex-test-subscribe/references/workflow.md" DestSubPath=".github/skills/coreex-test-subscribe/references/workflow.md" />
       <_AiFile Include="$(_RepoRoot).github/prompts/coreex-test-relay.prompt.md" DestSubPath=".github/prompts/coreex-test-relay.prompt.md" />
       <_AiFile Include="$(_RepoRoot).github/skills/coreex-test-relay/SKILL.md" DestSubPath=".github/skills/coreex-test-relay/SKILL.md" />
-      <_AiFile Include="$(_RepoRoot).github/skills/solution-scaffolder/SKILL.md" DestSubPath=".github/skills/solution-scaffolder/SKILL.md" />
-      <_AiFile Include="$(_RepoRoot).github/skills/solution-scaffolder/README.md" DestSubPath=".github/skills/solution-scaffolder/README.md" />
-      <_AiFile Include="$(_RepoRoot).github/skills/solution-scaffolder/assets/servicebus-config.template.json" DestSubPath=".github/skills/solution-scaffolder/assets/servicebus-config.template.json" />
-      <_AiFile Include="$(_RepoRoot).github/skills/solution-scaffolder/assets/docker-compose.local.yml" DestSubPath=".github/skills/solution-scaffolder/assets/docker-compose.local.yml" />
-      <_AiFile Include="$(_RepoRoot).github/skills/solution-scaffolder/references/workflow.md" DestSubPath=".github/skills/solution-scaffolder/references/workflow.md" />
+      <_AiFile Include="$(_RepoRoot).github/skills/coreex-solution-scaffolder/SKILL.md" DestSubPath=".github/skills/coreex-solution-scaffolder/SKILL.md" />
+      <_AiFile Include="$(_RepoRoot).github/skills/coreex-solution-scaffolder/README.md" DestSubPath=".github/skills/coreex-solution-scaffolder/README.md" />
+      <_AiFile Include="$(_RepoRoot).github/skills/coreex-solution-scaffolder/assets/servicebus-config.template.json" DestSubPath=".github/skills/coreex-solution-scaffolder/assets/servicebus-config.template.json" />
+      <_AiFile Include="$(_RepoRoot).github/skills/coreex-solution-scaffolder/assets/docker-compose.local.yml" DestSubPath=".github/skills/coreex-solution-scaffolder/assets/docker-compose.local.yml" />
+      <_AiFile Include="$(_RepoRoot).github/skills/coreex-solution-scaffolder/assets/README.md" DestSubPath=".github/skills/coreex-solution-scaffolder/assets/README.md" />
+      <_AiFile Include="$(_RepoRoot).github/skills/coreex-solution-scaffolder/references/workflow.md" DestSubPath=".github/skills/coreex-solution-scaffolder/references/workflow.md" />
       <_AiFile Include="$(_RepoRoot).github/skills/coreex-docs-sync/SKILL.md" DestSubPath=".github/skills/coreex-docs-sync/SKILL.md" />
       <_AiFile Include="$(_RepoRoot).github/skills/coreex-docs-sync/README.md" DestSubPath=".github/skills/coreex-docs-sync/README.md" />
       <_AiFile Include="$(_RepoRoot).github/skills/coreex-db-migration/SKILL.md" DestSubPath=".github/skills/coreex-db-migration/SKILL.md" />
@@ -247,6 +252,13 @@
           DestinationFiles="$(_AiAiGenRoot).github/prompts/coreex-scaffold.prompt.md;$(_AiAiGenRoot).github/agents/coreex-expert.agent.md;$(_AiAiGenRoot).claude/commands/coreex-expert.md;$(_AiAiGenRoot).claude/commands/coreex-docs-sync.md;$(_AiAiGenRoot).github/skills/coreex-docs-sync/SKILL.md;$(_AiAiGenRoot).github/skills/coreex-docs-sync/README.md"
           SkipUnchangedFiles="true" />
 
+    <!-- CoreEx.Ai: also ship coreex-solution-scaffolder — previously Bootstrap-only despite being
+         documented (see comment above) as part of the Ai bundle; consumers adding hosts to an
+         existing dotnet-new-coreex-ai repo need this skill too, not just fresh bootstrap repos. -->
+    <Copy SourceFiles="$(_RepoRoot).github/skills/coreex-solution-scaffolder/SKILL.md;$(_RepoRoot).github/skills/coreex-solution-scaffolder/README.md;$(_RepoRoot).github/skills/coreex-solution-scaffolder/references/workflow.md;$(_RepoRoot).github/skills/coreex-solution-scaffolder/assets/servicebus-config.template.json;$(_RepoRoot).github/skills/coreex-solution-scaffolder/assets/docker-compose.local.yml;$(_RepoRoot).github/skills/coreex-solution-scaffolder/assets/README.md"
+          DestinationFiles="$(_AiAiGenRoot).github/skills/coreex-solution-scaffolder/SKILL.md;$(_AiAiGenRoot).github/skills/coreex-solution-scaffolder/README.md;$(_AiAiGenRoot).github/skills/coreex-solution-scaffolder/references/workflow.md;$(_AiAiGenRoot).github/skills/coreex-solution-scaffolder/assets/servicebus-config.template.json;$(_AiAiGenRoot).github/skills/coreex-solution-scaffolder/assets/docker-compose.local.yml;$(_AiAiGenRoot).github/skills/coreex-solution-scaffolder/assets/README.md"
+          SkipUnchangedFiles="true" />
+
     <!-- CoreEx.Ai: copy additional skills + their prompt wrappers (prefer one block per skill for clarity). -->
     <Copy SourceFiles="$(_RepoRoot).github/prompts/coreex-db-migration.prompt.md;$(_RepoRoot).github/skills/coreex-db-migration/SKILL.md;$(_RepoRoot).github/skills/coreex-db-migration/references/workflow.md"
           DestinationFiles="$(_AiAiGenRoot).github/prompts/coreex-db-migration.prompt.md;$(_AiAiGenRoot).github/skills/coreex-db-migration/SKILL.md;$(_AiAiGenRoot).github/skills/coreex-db-migration/references/workflow.md"
@@ -325,6 +337,24 @@
       <_AiDocFile Include="$(_RepoRoot)samples/docs/tooling.md" DestSubPath=".github/docs/coreex/tooling.md" />
     </ItemGroup>
     <Copy SourceFiles="@(_AiDocFile)" DestinationFiles="@(_AiDocFile->'$(_AiAiGenRoot)%(DestSubPath)')" SkipUnchangedFiles="true" />
+
+    <!-- CoreEx.Ai: bake the docs-cache manifest with a sentinel token. The template's own "coreex-version"
+         constant symbol (see content/CoreEx.Ai/.template.config/template.json) replaces the sentinel with the
+         real installed version at the consumer's `dotnet new coreex-ai` generation time — the same two-stage
+         mechanism CoreEx.Core/Api/Relay/Subscribe already use to pin _Directory.Packages.props. A dedicated
+         sentinel (not the literal words "coreex-version") is required here because the symbol's text-replace
+         scans every file in the template's content: if the manifest used "coreex-version" as both the replace
+         target AND its own human-readable field name, every other place that field name is mentioned in prose
+         (SKILL.md, README.md, coreex-expert.agent.md) would also get silently rewritten to the version number.
+         This makes the AI-asset bundle self-describing (which CoreEx.Template release populated it) without
+         requiring a first manual sync, and is what /coreex-docs-sync reads to detect a version mismatch. -->
+    <ItemGroup>
+      <_AiManifestLine Include="# Generated by 'dotnet new coreex-ai' — records which CoreEx.Template release populated" />
+      <_AiManifestLine Include="# .github/instructions, .github/skills, .github/prompts, .github/agents, and this docs cache." />
+      <_AiManifestLine Include="# Do not hand-edit — refreshed automatically by 'dotnet new coreex-ai --force'." />
+      <_AiManifestLine Include="coreex-version: __COREEX_AI_VERSION_TOKEN__" />
+    </ItemGroup>
+    <WriteLinesToFile File="$(_AiAiGenRoot).github/docs/coreex/manifest.txt" Lines="@(_AiManifestLine)" Overwrite="true" Encoding="UTF-8" />
 
     <!-- CoreEx.Ai: pack all generated files into content\CoreEx.Ai\. -->
     <ItemGroup>

@@ -12,13 +12,21 @@
   },
   "preferNameDirectory": false,
   "symbols": {
+    "coreex-version": {
+      "type": "generated",
+      "generator": "constant",
+      "parameters": {
+        "value": "COREEX_VERSION"
+      },
+      "replaces": "__COREEX_AI_VERSION_TOKEN__"
+    },
     "app-folder": {
       "type": "parameter",
       "datatype": "string",
       "defaultValue": "",
       "displayName": "Application folder",
       "description": "The subfolder where the CoreEx application lives, relative to the repo root (for monorepos, e.g. 'backend' or 'services/api'). Leave blank for single-repo projects.",
-      "replaces": "app-folder"
+      "replaces": "__COREEX_AI_APP_FOLDER_TOKEN__"
     },
     "hasAppFolder": {
       "type": "computed",

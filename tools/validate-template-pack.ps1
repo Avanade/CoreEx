@@ -70,18 +70,19 @@ $testScenarios = @(
                 ".github/prompts/coreex-scaffold.prompt.md"
                 ".github/agents/coreex-expert.agent.md"
                 ".github/skills/coreex-docs-sync/SKILL.md"
+                ".github/skills/coreex-solution-scaffolder/SKILL.md"
+                ".github/docs/coreex/manifest.txt"
                 ".claude/commands/coreex-expert.md"
                 ".claude/commands/coreex-docs-sync.md"
             )
             FilesAbsent  = @(
                 ".github/copilot-instructions.md"
-                ".github/docs"
-                ".github/skills/solution-scaffolder"
             )
             FileContains = @{
                 ".github/instructions/coreex.instructions.md"                   = 'applyTo: "**"'
                 ".github/instructions/coreex-api-controllers.instructions.md"   = "applyTo:"
                 ".github/instructions/coreex-validators.instructions.md"        = "applyTo:"
+                ".github/docs/coreex/manifest.txt"                             = "coreex-version:"
             }
         }
         Build      = $false
@@ -96,16 +97,18 @@ $testScenarios = @(
                 ".github/instructions/coreex.instructions.md"
                 ".github/instructions/coreex-validators.instructions.md"
                 ".github/skills/coreex-docs-sync/SKILL.md"
+                ".github/skills/coreex-solution-scaffolder/SKILL.md"
+                ".github/docs/coreex/manifest.txt"
                 ".claude/commands/coreex-docs-sync.md"
             )
             FilesAbsent  = @(
                 ".github/copilot-instructions.md"
-                ".github/docs"
             )
             FileContains = @{
                 ".github/instructions/coreex.instructions.md"                 = 'applyTo: "backend/'
                 ".github/instructions/coreex-validators.instructions.md"      = 'applyTo: "backend/'
                 ".github/instructions/coreex-api-controllers.instructions.md" = 'applyTo: "backend/'
+                ".github/docs/coreex/manifest.txt"                            = "coreex-version:"
             }
         }
         Build      = $false

@@ -52,14 +52,23 @@ Three artefact types cooperate, each with a distinct job:
 
 **Feature Configuration.** A CoreEx solution's project-wide choices — `data-provider`, `refdata-enabled`, `domain-driven-enabled`, `rop-enabled`, `outbox-enabled`, `messaging-provider` — are persisted in the solution-root `AGENTS.md` **Feature Configuration** block. Skills read that block before asking anything, so recorded decisions are not re-prompted from one skill to the next.
 
+### Version-pin discipline
+
+`CoreEx.Template` and the core `CoreEx` package are released from the same repo at the same version number — pinning one always means pinning the other. Every `dotnet new install CoreEx.Template` invocation — in `AGENTS.md`'s Cold Start walkthrough, `coreex-solution-scaffolder`, `coreex-docs-sync`, or anywhere else — must carry an explicit `::<version>`, resolved as follows, and must never fall through to a bare/latest install:
+
+- **Project already references a `CoreEx` NuGet package** (check `Directory.Packages.props`, `*.csproj`, `Directory.Build.props`): pin to that exact version. This is the common case for a refresh (`/coreex-docs-sync`) or adding a host to an existing solution.
+- **No `CoreEx` reference yet** (true first-time adoption): resolve the latest stable release explicitly (e.g. `dotnet package search CoreEx.Template --exact-match`, or the [NuGet.org listing](https://www.nuget.org/packages/CoreEx.Template)) and pin to that specific version rather than letting install resolve silently to "whatever is latest right now."
+
+A version mismatch between the installed AI-asset bundle (`.github/docs/coreex/manifest.txt` → `coreex-version`) and the project's actual `CoreEx` package version must be surfaced, not silently ignored — `coreex-expert` checks this every session and recommends `/coreex-docs-sync` when it finds one.
+
 ### Command catalog
 
 | Command | Type | What it does |
 |---------|------|-------------|
-| [`CoreEx.Template`](../src/CoreEx.Template/README.md) | Template pack | Deterministic `dotnet new` scaffolding for a CoreEx solution plus API, relay, and subscriber hosts. Use `dotnet new install CoreEx.Template` and then the `coreex*` templates in a terminal. `dotnet new coreex-ai` installs this full AI workflow set (instructions, prompts, skills, the `coreex-expert` agent, `.claude/commands/`, and the `.github/docs/coreex/` docs cache) into a consuming project. |
+| [`CoreEx.Template`](../src/CoreEx.Template/README.md) | Template pack | Deterministic `dotnet new` scaffolding for a CoreEx solution plus API, relay, and subscriber hosts. Always install with an explicit pinned version — `dotnet new install CoreEx.Template::<version>` (see [Version-pin discipline](#version-pin-discipline)) — then run the `coreex*` templates in a terminal. `dotnet new coreex-ai` installs the full AI workflow set (instructions, prompts, skills, the `coreex-expert` agent, `.claude/commands/`, and the `.github/docs/coreex/` docs cache, self-describing via `manifest.txt`) into a consuming project as one version-pinned bundle. |
 | [`/acquire-codebase-knowledge`](./skills/acquire-codebase-knowledge/README.md) | Skill | Maps an unfamiliar codebase and produces seven structured onboarding documents. |
-| [`/coreex-scaffold`](./skills/solution-scaffolder/README.md) · [prompt](./prompts/coreex-scaffold.prompt.md) | Skill + prompt | Guides greenfield solution scaffolding, chooses the smallest safe CoreEx.Template shape, and runs the matching `dotnet new coreex*` commands. |
-| [`/coreex-docs-sync`](./skills/coreex-docs-sync/README.md) | Skill | Fetches and caches CoreEx architecture docs and all per-package AI guides locally under `.github/docs/coreex/`. |
+| [`/coreex-scaffold`](./skills/coreex-solution-scaffolder/README.md) · [prompt](./prompts/coreex-scaffold.prompt.md) | Skill + prompt | Guides greenfield solution scaffolding, chooses the smallest safe CoreEx.Template shape, and runs the matching `dotnet new coreex*` commands. |
+| [`/coreex-docs-sync`](./skills/coreex-docs-sync/README.md) | Skill | Refreshes the whole AI asset bundle (instructions, skills, prompts, agent, `.claude/commands/`, and the `.github/docs/coreex/` docs cache) as one version-pinned `dotnet new coreex-ai --force` reinstall, matching the project's referenced `CoreEx` NuGet version. No live GitHub `main` fetch. |
 | [`/aspire`](./skills/aspire/README.md) | Skill | Orchestrates Aspire distributed apps locally: start, stop, logs, debug. |
 
 #### Per-capability skills (L1)

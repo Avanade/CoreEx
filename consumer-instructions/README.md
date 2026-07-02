@@ -16,7 +16,7 @@ The per-capability instruction files live in the repo's root [`.github/instructi
 
 1. Copy `consumer-instructions/.github/copilot-instructions.md` to your project's `.github/copilot-instructions.md`.
 2. Copy the instruction files from the repo's `.github/instructions/` that match what you're building into your project's `.github/instructions/` folder.
-3. If you want the guided greenfield scaffolding workflow in a non-template repository, copy the canonical files from the repo's [`.github/prompts/`](../.github/prompts/) and [`.github/skills/solution-scaffolder/`](../.github/skills/solution-scaffolder/) folders.
+3. If you want the guided greenfield scaffolding workflow in a non-template repository, copy the canonical files from the repo's [`.github/prompts/`](../.github/prompts/) and [`.github/skills/coreex-solution-scaffolder/`](../.github/skills/coreex-solution-scaffolder/) folders.
 
 Copilot applies the global instructions to every chat interaction and injects the file-scoped instructions automatically based on which file is open. If you copied the greenfield scaffold prompt and skill, run `/coreex-scaffold` to choose the right `CoreEx.Template` commands before generating the solution.
 
