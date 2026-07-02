@@ -87,10 +87,16 @@ dotnet new coreex-ai --app-folder <subfolder>
 
 This installs:
 - `.github/instructions/` — scoped instruction files auto-injected by Copilot for each file type
-- `.github/prompts/` — scaffolding prompt
+- `.github/prompts/` — the scaffolding prompt plus one `coreex-<capability>.prompt.md` per L1 skill
+- `.github/skills/` — the CoreEx skill suite: `coreex-docs-sync`, `solution-scaffolder`, and the L1 skills
+  (`coreex-contract`, `coreex-refdata`, `coreex-db-migration`, `coreex-repository`, `coreex-adapter`,
+  `coreex-app-service`, `coreex-validator`, `coreex-policy`, `coreex-aggregate`, `coreex-api`, `coreex-subscriber`,
+  `coreex-test-api`, `coreex-test-subscribe`, `coreex-test-relay`)
 - `.github/agents/coreex-expert.agent.md` — architecture guidance agent
-- `.github/skills/coreex-docs-sync/` — skill to cache CoreEx docs locally
+- `.github/docs/coreex/` — the architecture docs + per-package guides cache (refresh later with `/coreex-docs-sync`)
 - `.claude/commands/` — equivalent commands for Claude Code
+
+For the full catalog and how these pieces fit together, see [`.github/AI-WORKFLOWS.md`](./.github/AI-WORKFLOWS.md).
 
 ### Step 4 — Reload context and continue
 

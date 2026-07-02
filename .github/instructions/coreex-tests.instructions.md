@@ -6,6 +6,13 @@ tags: ["testing", "unit-tests", "integration-tests", "test-helpers", "nunit"]
 
 # Test Conventions
 
+> **Related skills:** to author tests, invoke the matching skill —
+> [`coreex-test-api`](/.github/skills/coreex-test-api/SKILL.md) (API host integration tests),
+> [`coreex-test-subscribe`](/.github/skills/coreex-test-subscribe/SKILL.md) (Subscribe host tests), or
+> [`coreex-test-relay`](/.github/skills/coreex-test-relay/SKILL.md) (Outbox Relay host tests). This file holds the
+> invariants that must hold on **any** test edit (project types, base classes, isolation, assertion helpers); the
+> skills drive the step-by-step creation procedure.
+
 ## NuGet / Project References
 
 | Package | Key types provided |
@@ -216,10 +223,9 @@ public partial class EmployeeMutateTests
 
 **Expected `.req.json` / `.res.json` resources** (the JSON representation of the request/response) live under `Resources/{TestClass}/…` and are referenced via `.ExpectJsonFromResource(...)` / `.AssertJsonFromResource("EmployeeReadTests.Employee_Get_Found.res.json", "etag", "changelog")` (exclude volatile fields). **Pre-author them from the seed values** — you control the seed, so you can write the expected JSON up front (remember to exclude/expect the volatile `id`/`etag`/`changelog`); then **run once and reconcile** any remaining differences from the actual output (they are intentionally copy-paste-friendly). Expect the first run to need a small fix-up; that's normal, not a failure to avoid. They scale better than inline assertions as entities grow.
 
-> **Agent instruction — co-design seed, tests, and resources together.** These three must agree, so author them in order:
-> 1. **Seed first** — add/extend the domain's `read-data.seed.yaml` / `mutate-data.seed.yaml` with the known rows the tests will reference, as object rows with deterministic **`^N` ids** (= `N.ToGuid()`); for mutate, the baselines a test needs — e.g. an existing SKU for a duplicate-conflict test, a row to update/delete.
-> 2. **Tests next** — one partial file per operation; reference seeded rows via `n.ToGuid()` / known codes; keep mutate tests independent.
-> 3. **Resources last** — capture `.res.json`/`.req.json` from the actual run; the response resource must match the seeded values.
+> **Creation procedure → skill.** Co-designing the seed, tests, and expected resources (seed first → tests next →
+> resources last, so all three agree) is driven by the [`coreex-test-api`](/.github/skills/coreex-test-api/SKILL.md)
+> skill. The coverage those tests must achieve is invariant:
 >
 > Cover, per operation: **Get** (found, not-found, ETag/not-modified); **Query** (filter, order, paging, field selection); **Create** (success + Location + outbox event, bad-data validation, duplicate/conflict, idempotency-key); **Update** (success + ETag/concurrency, not-found); **Patch** (merge success, not-found); **Delete** (idempotent — always 204, never 404): **get → delete → get → delete** = exists → 204+event → now 404 → 204 with **no** event. Assert outbox events on mutating success paths (provider-specific `ExpectXxxOutboxEvents`) and `ExpectNoXxxOutboxEvents` on failure paths.
 

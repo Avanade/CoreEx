@@ -28,6 +28,11 @@ then follows the corresponding pattern from `CoreEx.DomainDriven`.
 - Infrastructure persistence of the aggregate (EF mapping, `PersistenceState`-driven insert/update/delete) — use `coreex-repository`
 - Validating primitive request DTOs before they reach the domain — use `coreex-validator`
 
+> **Confirm this skill applies before writing any domain object.** It is gated on
+> `domain-driven-enabled`: verify both the solution-root `AGENTS.md` **Feature Configuration**
+> (`domain-driven-enabled: true`) **and** the presence of the `*.Domain` project. If either is absent,
+> the domain is CRUD-oriented — stop and use `coreex-app-service` against repository interfaces instead.
+
 ## Quick Reference
 
 - **Aggregate root** → `Aggregate<TId, TSelf>` (extends `Entity<TId, TSelf>`) — adds `Events`/`AddEvent`/`ClearEvents` for integration-event accumulation
@@ -46,10 +51,15 @@ For full workflow and code examples see [`references/workflow.md`](references/wo
 
 ## Key References
 
-- `.github/instructions/coreex-domain.instructions.md` — full Domain layer conventions (aggregates, entities, value objects, `PersistenceState`)
-- `.github/instructions/coreex-application-services.instructions.md` — how Application services construct, mutate, and map aggregates (`Domain.Xxx.CreateNew(...)`, `Application/Mapping/` `Mapper<TSource,TDest,TSelf>`)
-- `src/CoreEx.DomainDriven/README.md` — package overview, key types, and the "Domain Events — Intentionally Not Supported" rationale
-- `src/CoreEx.DomainDriven/Aggregate.cs`, `Entity.cs`, `EntityBase.cs` — actual base-class implementation (`Modify`, `Remove`, `OnCheckCanMutate`, `OnMutate`, `PersistenceState` transitions)
-- `src/CoreEx.DomainDriven/PersistenceState.cs`, `DomainDrivenExtensions.cs` — state enum and filter helpers (`IsNew`, `IsModified`, `IsNewOrModified`, `IsNotRemoved`)
-- `src/CoreEx.Template/README.md` — `--domain-driven-enabled true` template flag and generated `*.Domain` project shape
-- `.github/instructions/coreex-tests.instructions.md` — `*.Test.Unit` conventions (`WithGenericTester<EntryPoint>`, `Test.Scoped(...)`) reused for aggregate unit tests
+- [`/.github/instructions/coreex-domain.instructions.md`](/.github/instructions/coreex-domain.instructions.md) — full Domain layer conventions (aggregates, entities, value objects, `PersistenceState`)
+- [`/.github/instructions/coreex-application-services.instructions.md`](/.github/instructions/coreex-application-services.instructions.md) — how Application services construct, mutate, and map aggregates (`Domain.Xxx.CreateNew(...)`, `Application/Mapping/` `Mapper<TSource,TDest,TSelf>`)
+- [`/.github/instructions/coreex-tests.instructions.md`](/.github/instructions/coreex-tests.instructions.md) — `*.Test.Unit` conventions (`WithGenericTester<EntryPoint>`, `Test.Scoped(...)`) reused for aggregate unit tests
+- Related skills: [`coreex-contract`](../coreex-contract/SKILL.md) (maps aggregate ↔ contract), [`coreex-repository`](../coreex-repository/SKILL.md) (persists aggregates via `PersistenceState`), [`coreex-app-service`](../coreex-app-service/SKILL.md) (constructs/mutates aggregates, forwards `Events`)
+- Deep-dive (after `/coreex-docs-sync`) — the primary consumer-resolvable pointers into `CoreEx.DomainDriven`:
+  - [`/.github/docs/coreex/agents/CoreEx.DomainDriven.md`](/.github/docs/coreex/agents/CoreEx.DomainDriven.md) — package AI usage guide (key types, the "Domain Events — Intentionally Not Supported" rationale)
+  - [`/.github/docs/coreex/domain-layer.md`](/.github/docs/coreex/domain-layer.md) — Domain layer sample architecture doc
+- Illustrative examples (CoreEx sample — not present in your project):
+  - [CoreEx.DomainDriven README](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.DomainDriven/README.md) — package overview and rationale
+  - [Aggregate.cs](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.DomainDriven/Aggregate.cs), [Entity.cs](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.DomainDriven/Entity.cs), [EntityBase.cs](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.DomainDriven/EntityBase.cs) — base-class implementation (`Modify`, `Remove`, `OnCheckCanMutate`, `OnMutate`, `PersistenceState` transitions)
+  - [PersistenceState.cs](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.DomainDriven/PersistenceState.cs), [DomainDrivenExtensions.cs](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.DomainDriven/DomainDrivenExtensions.cs) — state enum and filter helpers (`IsNew`, `IsModified`, `IsNewOrModified`, `IsNotRemoved`)
+  - [CoreEx.Template README](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.Template/README.md) — `--domain-driven-enabled true` template flag and generated `*.Domain` project shape

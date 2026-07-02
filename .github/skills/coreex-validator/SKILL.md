@@ -55,6 +55,8 @@ For full workflow, rule reference, and code examples see [`references/workflow.m
 
 - [`/.github/instructions/coreex-validators.instructions.md`](/.github/instructions/coreex-validators.instructions.md) — full rule set, comparison operators, localization, DependsOn, DI registration
 - [`/.github/instructions/coreex-tests.instructions.md`](/.github/instructions/coreex-tests.instructions.md) — validator unit test conventions: `Test.Scoped`, `AssertErrors`, expected message text
-- [`/samples/src/Contoso.Products.Application/Validators/`](/samples/src/Contoso.Products.Application/Validators/) — `ProductValidator` (simple), `MovementRequestValidator` (injection + dictionary + async)
-- [`/samples/src/Contoso.Shopping.Application/Validators/`](/samples/src/Contoso.Shopping.Application/Validators/) — `AbstractValidator` style, plain request validators
-- [`/samples/src/Contoso.Orders.Application/Validators/`](/samples/src/Contoso.Orders.Application/Validators/) — `OrderValidator` (collection validator)
+- Related skills: [`coreex-app-service`](../coreex-app-service/SKILL.md) (invokes the validator), [`coreex-policy`](../coreex-policy/SKILL.md) (async I/O guard sibling for checks a validator cannot do), [`coreex-contract`](../coreex-contract/SKILL.md) (the type being validated)
+- Illustrative examples (CoreEx sample — not present in your project):
+  - [`ProductValidator` + `MovementRequestValidator`](https://github.com/Avanade/CoreEx/tree/main/samples/src/Contoso.Products.Application/Validators) — simple, plus injection + dictionary + async
+  - [Shopping validators](https://github.com/Avanade/CoreEx/tree/main/samples/src/Contoso.Shopping.Application/Validators) — `AbstractValidator` style, plain request validators
+  - [`OrderValidator`](https://github.com/Avanade/CoreEx/tree/main/samples/src/Contoso.Orders.Application/Validators) — collection validator

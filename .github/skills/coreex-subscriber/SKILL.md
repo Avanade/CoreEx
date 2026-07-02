@@ -17,9 +17,9 @@ There are three distinct subscriber scenarios — determine which applies before
 
 | Scenario | Trigger | Delegates to | Example |
 |---|---|---|---|
-| **Command** | A command addressed to _this_ domain arrives on the broker | Application service | `ReservationConfirmSubscriber` → `IMovementService` |
-| **Event — Data Sync** | An event from _another_ domain/system arrives; maintain a local cached copy | Replication adapter (`IXxxSyncAdapter`) | `ProductModifySubscriber` → `IProductSyncAdapter` |
-| **Event — Business Process** | An event from another domain arrives; trigger a choreography step in _this_ domain | Application service | e.g., `OrderPlacedSubscriber` → `IFulfillmentService` |
+| **Command** | A command addressed to _this_ domain arrives on the broker | Application service | e.g. `{Entity}ConfirmSubscriber` → `I{Entity}Service` |
+| **Event — Data Sync** | An event from _another_ domain/system arrives; maintain a local cached copy | Replication adapter (`IXxxSyncAdapter`) | e.g. `{Entity}ModifySubscriber` → `I{Entity}SyncAdapter` |
+| **Event — Business Process** | An event from another domain arrives; trigger a choreography step in _this_ domain | Application service | e.g. `{Entity}PlacedSubscriber` → `I{Entity}Service` |
 
 > **Rule:** Never subscribe to a **command addressed to another domain** — only to commands addressed
 > to this domain, or to events from any domain. Subscribing to another domain's commands means you
@@ -30,7 +30,13 @@ There are three distinct subscriber scenarios — determine which applies before
 - HTTP API controllers — use `coreex-api`
 - Application services that the subscriber calls — use `coreex-app-service`
 - Replication adapter implementations (`IXxxSyncAdapter`) — use `coreex-adapter`
-- Subscribe host `Program.cs` setup or Service Bus receiver wiring — see `.github/instructions/coreex-host-setup.instructions.md`
+- Subscribe host `Program.cs` setup or Service Bus receiver wiring — see [`/.github/instructions/coreex-host-setup.instructions.md`](/.github/instructions/coreex-host-setup.instructions.md)
+
+> **Resolve project-wide choices from state before asking.** Read the solution-root `AGENTS.md`
+> **Feature Configuration**: `messaging-provider` gates this skill (a Subscribe host exists only when a
+> messaging provider is configured); `outbox-enabled` determines whether the delegated service publishes
+> resulting events transactionally; `rop-enabled` confirms `Result`/`Result<T>` return-style pipelines.
+> Only prompt for what is unrecorded; re-state resolved values for confirmation.
 
 ## Quick Reference
 
@@ -47,10 +53,12 @@ For full workflow and code examples see [`references/workflow.md`](references/wo
 
 ## Key References
 
-- `samples/src/Contoso.Products.Subscribe/Subscribers/ReservationConfirmSubscriber.cs` — command subscriber with `ErrorHandler`
-- `samples/src/Contoso.Products.Subscribe/Subscribers/ReservationCancelSubscriber.cs` — command subscriber sharing an `ErrorHandler`
-- `samples/src/Contoso.Shopping.Subscribe/Subscribers/ProductModifySubscriber.cs` — typed event-sync subscriber with `ValueValidator`
-- `samples/src/Contoso.Shopping.Subscribe/Subscribers/ProductDeleteSubscriber.cs` — untyped event-sync subscriber (key-only delete)
-- `coreex-test-subscribe` — full Subscribe-test integration test workflow (test class shape, simulating message receipt, command/event-sync/event-business-process test patterns, unsubscribed-subject test)
-- `.github/instructions/coreex-event-subscribers.instructions.md` — full subscriber conventions reference
-- `.github/instructions/coreex-host-setup.instructions.md` — Subscribe host `Program.cs` shape
+- [`/.github/instructions/coreex-event-subscribers.instructions.md`](/.github/instructions/coreex-event-subscribers.instructions.md) — full subscriber conventions reference
+- [`/.github/instructions/coreex-host-setup.instructions.md`](/.github/instructions/coreex-host-setup.instructions.md) — Subscribe host `Program.cs` shape
+- Related skills: [`coreex-app-service`](../coreex-app-service/SKILL.md) (command/business-process subscribers delegate to it), [`coreex-adapter`](../coreex-adapter/SKILL.md) (data-sync subscribers drive `IXxxSyncAdapter`), [`coreex-api`](../coreex-api/SKILL.md) (sibling HTTP entry point), [`coreex-test-subscribe`](../coreex-test-subscribe/SKILL.md) (full Subscribe-test integration test workflow — test class shape, simulating message receipt, per-scenario patterns, unsubscribed-subject test)
+- [Hosts layer deep-dive](/.github/docs/coreex/hosts-layer.md) — optional (after `/coreex-docs-sync`)
+- Illustrative examples (CoreEx sample — not present in your project):
+  - [ReservationConfirmSubscriber](https://github.com/Avanade/CoreEx/blob/main/samples/src/Contoso.Products.Subscribe/Subscribers/ReservationConfirmSubscriber.cs) — command subscriber with `ErrorHandler`
+  - [ReservationCancelSubscriber](https://github.com/Avanade/CoreEx/blob/main/samples/src/Contoso.Products.Subscribe/Subscribers/ReservationCancelSubscriber.cs) — command subscriber sharing an `ErrorHandler`
+  - [ProductModifySubscriber](https://github.com/Avanade/CoreEx/blob/main/samples/src/Contoso.Shopping.Subscribe/Subscribers/ProductModifySubscriber.cs) — typed event-sync subscriber with `ValueValidator`
+  - [ProductDeleteSubscriber](https://github.com/Avanade/CoreEx/blob/main/samples/src/Contoso.Shopping.Subscribe/Subscribers/ProductDeleteSubscriber.cs) — untyped event-sync subscriber (key-only delete)

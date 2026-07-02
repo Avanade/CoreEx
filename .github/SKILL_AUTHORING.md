@@ -59,18 +59,36 @@ Each file stays focused on one concern. No file should exceed what is readable i
 Reusable templates and examples:
 
 - **assets/templates/** — boilerplate code, project structures (copy-and-fill files)
-- **assets/examples/** — concrete working examples from the repo (links only, no duplicates)
+- **assets/examples/** — concrete working examples (links only, no duplicates)
 
-**Important**: Never maintain duplicate copies of sample code. Always link to the canonical source in `samples/` or other repository locations.
+**Important**: Never maintain duplicate copies of sample code.
 
-## Cross-Referencing
+## Cross-Referencing (consumer-agnostic)
 
-When skills reference each other, instructions, or samples:
+> **These skills ship to consumer repositories** via `dotnet new coreex-ai` (the `CoreEx.Template` pack).
+> A consumer repo does **not** contain this repository's `samples/` or `src/CoreEx.*` source. A skill must
+> therefore be **domain-agnostic** and must not link to local paths that only exist inside the CoreEx repo.
+> A link that resolves here but is dead in a consumer repo is a defect.
 
-- **Relative paths**: `../other-skill/references/...` (for other skills)
-- **Absolute workspace paths**: `/.github/instructions/coreex-host-setup.instructions.md`, `/samples/src/Contoso.Products.Api/Program.cs`
-- Always verify links work before committing
-- Prefer workspace-relative links for durability
+Reference targets, in priority order:
+
+1. **Installed instructions** — always present in a consumer repo. Absolute workspace path, markdown link:
+   `[Application Services](/.github/instructions/coreex-application-services.instructions.md)`.
+2. **Sibling skills** — relative markdown link to the other skill: `[coreex-repository](../coreex-repository/SKILL.md)`.
+   For "invoke this skill instead" mentions, a bare backtick name (`` `coreex-repository` ``) is fine — that is how a
+   user invokes it.
+3. **Labeled illustrative examples** — concrete `samples/` or `src/CoreEx.*` code linked as a **full GitHub URL**,
+   clearly marked as an external example, e.g.
+   `[ProductController (CoreEx sample — illustrative, not in your project)](https://github.com/Avanade/CoreEx/tree/main/samples/src/Contoso.Products.Api/Controllers)`.
+4. **docs-sync cache** (`/.github/docs/coreex/*.md`, `/.github/docs/coreex/agents/*.md`) — optional, secondary.
+   Present after `dotnet new coreex-ai` (it now ships the cache) and refreshable via `/coreex-docs-sync`. Never the
+   *only* pointer, so a skill still works if the cache is absent.
+
+Rules:
+- **Never** use a bare local `samples/…` or `src/CoreEx…` path in a skill — use a GitHub URL (target 3) instead.
+- Keep skill bodies domain-agnostic: placeholders (`{solution}`, `{domain}`, `{Entity}`) in copyable code;
+  concrete sample names only in prose, clearly framed as examples ("e.g. …").
+- Verify every link before committing; prefer the always-present targets (1, 2) as the backbone.
 
 ## Frontmatter Requirements
 
@@ -132,8 +150,9 @@ For detailed step-by-step guidance, see [`references/workflow.md`](references/wo
 - [Application Services Instructions](/.github/instructions/coreex-application-services.instructions.md)
 - [Contracts Instructions](/.github/instructions/coreex-contracts.instructions.md)
 - [Host Setup Instructions](/.github/instructions/coreex-host-setup.instructions.md)
-- [CoreEx Template Pack](../src/CoreEx.Template/README.md)
-- [CoreEx Capabilities](./docs/capabilities.md)
+- [coreex-app-service](../coreex-app-service/SKILL.md) — related skill
+- [Application layer deep-dive](/.github/docs/coreex/application-layer.md) — optional (after `/coreex-docs-sync`)
+- [ProductService (CoreEx sample — illustrative)](https://github.com/Avanade/CoreEx/tree/main/samples/src/Contoso.Products.Application)
 ```
 
 ## Quality Gates
@@ -146,4 +165,6 @@ Before completing a skill:
 - [ ] YAML frontmatter is valid
 - [ ] No inline workflows or checklists in main SKILL.md
 - [ ] Cross-references to instructions are correct
-- [ ] Example links point to real, canonical code locations
+- [ ] **No bare local `samples/…` or `src/CoreEx…` paths** — illustrative examples use full GitHub URLs, labeled
+- [ ] Body is domain-agnostic — placeholders in code; sample names only as framed prose examples
+- [ ] The reference backbone (instructions + sibling skills) resolves in a consumer repo without the docs cache

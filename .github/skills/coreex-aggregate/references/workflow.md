@@ -215,7 +215,7 @@ tests. Do not defer this coverage to host-level integration tests; those only pr
 domain's own branching logic.
 
 Follow the same `*.Test.Unit` conventions as validator tests (see
-`.github/instructions/coreex-tests.instructions.md`): one test class per aggregate, under
+[`/.github/instructions/coreex-tests.instructions.md`](/.github/instructions/coreex-tests.instructions.md)): one test class per aggregate, under
 `*.Test.Unit/Domains/`, named `{Aggregate}Tests`, extending `WithGenericTester<EntryPoint>`, with each
 `[Test]` running inside `Test.Scoped(test => { ... })` — this establishes the ambient `ExecutionContext`
 that `Runtime.UtcNow` and any `ThrowIfInactive()` reference-data check rely on. (`Runtime.NewId()`/
@@ -342,7 +342,7 @@ Application layer. CoreEx deliberately does not provide in-process domain-event 
 - Add events from within a mutation method using the inherited `AddEvent(...)`.
 - The Application service is responsible for forwarding `aggregate.Events` into `_unitOfWork.Events`
   inside the same `TransactionAsync(...)` scope that persists the aggregate — see
-  `.github/instructions/coreex-application-services.instructions.md` for the Application-layer side
+  [`/.github/instructions/coreex-application-services.instructions.md`](/.github/instructions/coreex-application-services.instructions.md) for the Application-layer side
   of this handoff.
 - If a genuine in-process domain-event use case exists, that is an opt-in extension a consumer adds
   themselves (e.g., raising events dispatched via MediatR after commit) — not a CoreEx default.

@@ -26,6 +26,11 @@ Guides you through the complete end-to-end workflow for adding or modifying a re
 
 ## Quick Reference
 
+> **Resolve project-wide choices from state before asking.** Read the solution-root `AGENTS.md`
+> **Feature Configuration** for `refdata-enabled` (gates this whole skill) and `data-provider`
+> (SQL Server / PostgreSQL — drives casing and script extension). Only prompt for what is unrecorded;
+> re-state resolved values for confirmation.
+
 **Two separate `dotnet run` steps in two different projects — never conflate them.**
 
 | Task | Project | Command / File |
@@ -63,7 +68,7 @@ For the full decision tree, YAML examples, seeding rules, and guardrails see [`r
 
 - [`/.github/instructions/coreex-tooling.instructions.md`](/.github/instructions/coreex-tooling.instructions.md) — `ref-data.yaml` structure, `dbex.yaml`, seed format, `Script`/`All`/`Data` commands
 - [`/.github/instructions/coreex-contracts.instructions.md`](/.github/instructions/coreex-contracts.instructions.md) — `[ReferenceData<T>]`, `partial` properties, global usings
-- [`/samples/src/Contoso.Products.CodeGen/ref-data.yaml`](/samples/src/Contoso.Products.CodeGen/ref-data.yaml) — canonical PostgreSQL CodeGen definition
-- [`/samples/src/Contoso.Shopping.CodeGen/ref-data.yaml`](/samples/src/Contoso.Shopping.CodeGen/ref-data.yaml) — canonical SQL Server CodeGen definition
-- [`/samples/src/Contoso.Products.Database/Data/ref-data.seed.yaml`](/samples/src/Contoso.Products.Database/Data/ref-data.seed.yaml) — canonical PostgreSQL seed file
-- [`/samples/src/Contoso.Shopping.Database/Data/ref-data.seed.yaml`](/samples/src/Contoso.Shopping.Database/Data/ref-data.seed.yaml) — canonical SQL Server seed file
+- Related skills: [`coreex-contract`](../coreex-contract/SKILL.md) (wires `[ReferenceData<T>]` into contracts), [`coreex-db-migration`](../coreex-db-migration/SKILL.md) (ref-data table schema)
+- Illustrative examples (CoreEx sample — not present in your project):
+  - [PostgreSQL CodeGen definition](https://github.com/Avanade/CoreEx/blob/main/samples/src/Contoso.Products.CodeGen/ref-data.yaml) and its [seed file](https://github.com/Avanade/CoreEx/blob/main/samples/src/Contoso.Products.Database/Data/ref-data.seed.yaml)
+  - [SQL Server CodeGen definition](https://github.com/Avanade/CoreEx/blob/main/samples/src/Contoso.Shopping.CodeGen/ref-data.yaml) and its [seed file](https://github.com/Avanade/CoreEx/blob/main/samples/src/Contoso.Shopping.Database/Data/ref-data.seed.yaml)

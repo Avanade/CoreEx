@@ -11,10 +11,10 @@ Fetches the CoreEx sample architecture docs and AI usage guides for all CoreEx p
 
 ## When to Use
 
-- Setting up the local doc cache for the first time in a consuming project.
-- After bumping a CoreEx NuGet package version.
-- When the CoreEx Expert recommends a refresh (cache older than 30 days or version mismatch).
-- Any time you want to ensure local docs reflect the latest CoreEx `main` branch.
+- **Refresh** the cache after bumping a CoreEx NuGet package version.
+- When the CoreEx Expert flags the cache stale (older than 30 days, or a version mismatch).
+- To pull the latest CoreEx `main` branch docs.
+- **First-time population** only when the cache is absent — e.g. a project that installed the AI assets manually. `dotnet new coreex-ai` already ships the cache at install, so most consumers use this skill to refresh, not populate.
 
 ## When Not to Use
 

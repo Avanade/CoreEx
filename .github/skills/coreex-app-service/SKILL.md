@@ -1,6 +1,6 @@
 ---
 name: coreex-app-service
-description: "Create or modify a CoreEx Application-layer service. USE FOR: new service class (exception-based or Result<T>), adding CRUD/business operations, CQRS read service (XxxReadService), adapter interface in Application/Adapters/, policy class in Application/Policies/, application-level mapper (Domain → Contract). DO NOT USE FOR: Infrastructure repositories (use coreex-repository), validators (use coreex-validator), controller endpoints."
+description: "Create or modify a CoreEx Application-layer service. USE FOR: new service class (exception-based or Result<T>), adding CRUD/business operations, CQRS read service (XxxReadService), adapter interface in Application/Adapters/, policy class in Application/Policies/, application-level mapper (Domain → Contract). DO NOT USE FOR: Infrastructure repositories (use coreex-repository), validators (use coreex-validator), controller endpoints (use coreex-api)."
 argument-hint: "Optional: entity name, operations needed (get/create/update/delete/query/custom), exception-based or Result<T> pipeline, cross-domain calls needed"
 tags: ["application-service", "application-layer", "unit-of-work", "cqrs", "events", "adapter", "policy", "result", "coreex"]
 ---
@@ -22,12 +22,13 @@ Guides you through creating or modifying a CoreEx Application-layer service in `
 
 - Infrastructure repositories — use the `coreex-repository` skill
 - Validators — use the `coreex-validator` skill
-- Controller endpoints — see the host conventions
+- Controller endpoints — use `coreex-api`
 - Domain aggregates, entities, value objects — those belong in the Domain layer
 
 ## Quick Reference
 
 **Clarifying questions before writing any code:**
+0. Resolve `rop-enabled` (exception vs `Result<T>`), `domain-driven-enabled` (aggregate mapping) and `outbox-enabled` (event publishing) from the solution-root `AGENTS.md` **Feature Configuration** before asking the rest; only prompt for what is unrecorded and re-state resolved values for confirmation.
 1. Exception-based or `Result<T>` pipeline style? (→ Path A or B — per-project choice)
 2. Which operations? Get / Create / Update / Delete / custom business action? (**never assume Query**)
 3. Any cross-domain or external-service calls? (→ adapter interface, Path D)
@@ -55,7 +56,10 @@ For full workflow and code examples see [`references/workflow.md`](references/wo
 ## Key References
 
 - [`/.github/instructions/coreex-application-services.instructions.md`](/.github/instructions/coreex-application-services.instructions.md) — full conventions: guard clauses, events, CQRS, adapters, policies, Result&lt;T&gt; operators
-- [`/samples/src/Contoso.Products.Application/`](/samples/src/Contoso.Products.Application/) — `ProductService` (exception-based CRUD + business actions), `ProductReadService` (CQRS read)
-- [`/samples/src/Contoso.Shopping.Application/`](/samples/src/Contoso.Shopping.Application/) — `BasketService` (Result&lt;T&gt; + adapter + policy), `BasketReadService`
-- [`/samples/src/Contoso.Shopping.Application/Policies/`](/samples/src/Contoso.Shopping.Application/Policies/) — `ProductPolicy` example
-- [`/samples/src/Contoso.Shopping.Application/Adapters/`](/samples/src/Contoso.Shopping.Application/Adapters/) — `IProductAdapter` example
+- Related skills: [`coreex-repository`](../coreex-repository/SKILL.md) (persistence the service injects), [`coreex-validator`](../coreex-validator/SKILL.md) (invoked before mutations), [`coreex-policy`](../coreex-policy/SKILL.md) (I/O guard logic), [`coreex-adapter`](../coreex-adapter/SKILL.md) (cross-domain calls), [`coreex-contract`](../coreex-contract/SKILL.md) (the entity/request types), [`coreex-aggregate`](../coreex-aggregate/SKILL.md) (Domain layer + mapping), [`coreex-api`](../coreex-api/SKILL.md) (consumes the service), [`coreex-test-api`](../coreex-test-api/SKILL.md) (tests the service through the host)
+- [Application layer deep-dive](/.github/docs/coreex/application-layer.md) — optional (after `/coreex-docs-sync`)
+- Illustrative examples (CoreEx sample — not present in your project):
+  - [`ProductService` + `ProductReadService`](https://github.com/Avanade/CoreEx/tree/main/samples/src/Contoso.Products.Application) — exception-based CRUD + business actions, CQRS read
+  - [`BasketService` + `BasketReadService`](https://github.com/Avanade/CoreEx/tree/main/samples/src/Contoso.Shopping.Application) — Result&lt;T&gt; + adapter + policy
+  - [`ProductPolicy`](https://github.com/Avanade/CoreEx/tree/main/samples/src/Contoso.Shopping.Application/Policies) — policy example
+  - [`IProductAdapter`](https://github.com/Avanade/CoreEx/tree/main/samples/src/Contoso.Shopping.Application/Adapters/Products) — adapter interface example

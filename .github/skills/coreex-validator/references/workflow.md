@@ -215,6 +215,8 @@ When adding to an existing override, respect the existing `context.HasErrors` gu
 
 ## Nested Validators
 
+> Examples below use illustrative `Order`/`Address`/`Movement` domains — substitute your own entity/type names.
+
 ### Entity
 
 Use `.Entity()` to run a separate validator against a complex sub-property. Errors from the sub-validator are merged into the parent result under the sub-property's JSON path (e.g. `"address.street"`).

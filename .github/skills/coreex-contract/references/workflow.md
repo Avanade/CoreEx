@@ -115,6 +115,8 @@ Key assembly rules:
 
 When the root contract extends a base class:
 
+> Example uses an illustrative Product domain — substitute your own entity/type names.
+
 ```csharp
 /// <summary>Provides the base <c>Product</c> contract properties.</summary>
 [Contract]
@@ -157,6 +159,8 @@ public partial class ProductLite : ProductBase
 ## Path B — New Subordinate or Request Contract
 
 A subordinate is accessed only through a parent (e.g. `BasketItem`, `OrderLine`, `Address`). A request/response object has no identity (e.g. `BasketItemAddRequest`, `ProductReserve`).
+
+> Example uses an illustrative Basket domain — substitute your own entity/type names.
 
 ```csharp
 // Subordinate with identity (nested resource with its own ETag)

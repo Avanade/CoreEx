@@ -8,7 +8,12 @@ tags: ["program-cs", "host-setup", "middleware", "dependency-registration", "cac
 
 The host is a **composition root only** — no business logic. There are three host types in a CoreEx solution depending on the capabilities required. Each follows the same opening skeleton, then diverges based on its responsibilities.
 
-> **Further Reading**: [Hosts Layer Guide](https://github.com/Avanade/CoreEx/blob/main/samples/docs/hosts-layer.md) · [Layer Dependencies](https://github.com/Avanade/CoreEx/blob/main/samples/docs/layers.md) · [Pattern Catalog](https://github.com/Avanade/CoreEx/blob/main/samples/docs/patterns.md)
+> **Related skill:** to scaffold a solution or an additional host (Api / Subscribe / Relay), invoke the [`solution-scaffolder`](/.github/skills/solution-scaffolder/SKILL.md) skill.
+> This file holds the invariants that must hold on **any** edit to a host `Program.cs`; the skill drives the
+> step-by-step **creation** procedure. (The per-host "Scaffolding an … host" blocks below stay here — they carry the
+> Feature Configuration recover/record guardrails that must be honoured whenever a host is added.)
+
+> **Further Reading**: [Hosts Layer Guide](/.github/docs/coreex/hosts-layer.md) · [Layer Dependencies](/.github/docs/coreex/layers.md) · [Pattern Catalog](/.github/docs/coreex/patterns.md) (docs-sync cache; after `/coreex-docs-sync`)
 
 ---
 

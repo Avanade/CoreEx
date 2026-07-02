@@ -239,6 +239,27 @@ This runs: Create → Migrate → CodeGen → Schema → Data.
 
 ---
 
+## Outbox provisioning
+
+Provision the transactional outbox table(s) when the domain publishes events via the outbox — i.e. `outbox-enabled`
+in the solution-root `AGENTS.md` Feature Configuration, and only for a `data-provider` other than `None`. The outbox
+table(s) are created by a DbEx-generated migration script — never hand-authored.
+
+1. **Validate `dbex.yaml`** — all three must hold; if any is missing, stop and state which:
+   - `outbox: true`
+   - root-level `schema:` has a value (call it `xxx`)
+   - root-level `outboxName:` has a value (call it `yyy`)
+2. **Check for an existing create script** under `Migrations/` (`*-create-*-outbox-tables.{sql,pgsql}`). The `coreex`
+   template ships one when outbox was enabled at scaffold time — if present, **do not scaffold another**; skip to step 4.
+3. **Scaffold only when none exists:** `dotnet run -- script outbox xxx yyy`.
+4. **Apply** (on confirmation): `dotnet run -- CreateMigrateAndCodeGen`. On failure, surface the verbatim output.
+
+The outbox create script is immutable once applied — a later shape change (e.g. a DbEx version bump) needs a **new**
+`ALTER` migration, never an edit to the original. The generated outbox schema objects (stored procedures / functions)
+are owned by DbEx; see [`/.github/instructions/coreex-tooling.instructions.md`](/.github/instructions/coreex-tooling.instructions.md).
+
+---
+
 ## Guardrails
 
 - **Scripts are immutable once applied.** Never modify a migration script that has already been run. Author a new script for any subsequent delta.
@@ -250,5 +271,5 @@ This runs: Create → Migrate → CodeGen → Schema → Data.
   ```
   This runs: Drop → Create → Migrate → CodeGen → Schema → Data — a completely fresh slate. **This is destructive — confirm with the user before executing.** The `--accept-prompts` flag bypasses DbEx's built-in confirmation prompt for DROP commands; only pass it after the user has explicitly consented. Never use `dropandall` on a shared or production database.
 - **Path D filename limit:** full filename ≤255 characters including the timestamp prefix and extension. Keep descriptors to 3–5 words.
-- **Outbox provisioning is a separate concern** — use `dotnet run -- script outbox <schema> <name>` as described in `coreex-tooling.instructions.md`. Do not conflate it with this workflow.
+- **Outbox provisioning has its own flow** — see the [Outbox provisioning](#outbox-provisioning) section above; do not conflate it with a table create/alter.
 - **No schema-create script.** The `coreex` template ships the schema-create migration; never emit another `create-<schema>-schema` script unless an additional schema is explicitly requested.

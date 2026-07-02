@@ -161,8 +161,8 @@ Use dot-separated lowercase strings: `{solution}.{domain}.{entity}.{action}[.v{n
 | Key-only (no payload) → no version suffix | `contoso.products.product.deleted` |
 | Commands with payload → include `.v{n}` suffix | `contoso.products.reservation.create.v1` |
 | Commands key-only (no payload) → no version suffix | `contoso.products.reservation.confirm` |
-| `EventData.CreateCommand(...)` for commands | `EventData.CreateCommand("products", "reservation", "confirm")` |
-| `EventData.CreateEvent(...)` or `new EventData().WithTitle(...)` for events | `new EventData().WithTitle("contoso.products.product.updated.v1")` |
+| `EventData.CreateCommand(...)` for commands | `EventData.CreateCommand("{domain}", "{entity}", "{action}")` |
+| `EventData.CreateEvent(...)` or `new EventData().WithTitle(...)` for events | `new EventData().WithTitle("{solution}.{domain}.{entity}.updated.v1")` |
 
 The version reflects the payload schema — not whether the message is an event or command. A command
 with a payload would also carry a version; a key-only event would not.
@@ -185,6 +185,9 @@ internal static readonly ErrorHandler DefaultErrorHandler = new ErrorHandler()
 **Assign in the constructor:** `ErrorHandler = DefaultErrorHandler;`
 
 **Share across related subscribers:**
+
+> Example uses an illustrative Reservation domain — substitute your own entity/service/subscriber
+> names and `{solution}`/`{domain}` literals.
 
 ```csharp
 // ReservationCancelSubscriber.cs — reuses the handler defined in ReservationConfirmSubscriber
@@ -256,6 +259,9 @@ There are two coordination styles:
 
 ### Choreography with CoreEx Subscribers
 
+> Example uses an illustrative Shopping/Products reservation flow — substitute your own domains,
+> entities, subjects, and `{solution}` literals.
+
 The Shopping/Products reservation flow is a choreography saga:
 
 1. **Shopping** places an order → publishes `reservation.confirm` command via Outbox relay
@@ -273,7 +279,7 @@ restores inventory.
 - Limit cross-domain coordination where possible — every saga hop adds latency and failure surface area.
 
 > **Orchestration note:** When coordination complexity exceeds what choreography can handle cleanly,
-> consider a Durable Task-based orchestrator (the CoreEx `samples/aspire` setup includes the
+> consider a Durable Task-based orchestrator (the CoreEx samples' Aspire setup includes the
 > Durable Task emulator). Orchestration is out of scope for the subscriber skill — it lives in a
 > dedicated orchestrator service, not in subscriber classes.
 

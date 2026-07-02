@@ -4,9 +4,9 @@ Fetches the CoreEx architecture docs and per-package AI guides from GitHub and c
 
 ## When to run
 
-- **First time** setting up a consuming project — populates the cache from scratch.
-- **After bumping a CoreEx NuGet version** — keeps the guides in sync with the version in use.
+- **After bumping a CoreEx NuGet version** — refreshes the guides to match the version in use.
 - **When the CoreEx Expert recommends it** — the agent checks the manifest on every session and flags if the cache is older than 30 days or the recorded version doesn't match the project's current packages.
+- **First-time population** — `dotnet new coreex-ai` already ships the cache at install; run this only if the cache is absent (e.g. the assets were copied in manually) or to pull the latest `main`.
 
 Do not run this inside the CoreEx repository itself — the docs are already present locally at `samples/docs/` and `src/*/AGENTS.md`.
 

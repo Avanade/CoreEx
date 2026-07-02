@@ -105,11 +105,32 @@ Do not set up the local cache silently — always offer and wait for confirmatio
 
 ## Decision routing
 
-These skills are part of the CoreEx AI workflow set and live in `.github/skills/`. They can be copied from the [CoreEx repository](https://github.com/Avanade/CoreEx/tree/main/.github/skills) into a consuming project:
+These skills are part of the CoreEx AI workflow set and live in `.github/skills/` (installed into a consuming project by `dotnet new coreex-ai`). When a request maps to a skill, route to it rather than authoring changes freehand — each skill reads the solution-root `AGENTS.md` **Feature Configuration** first to avoid re-prompting for recorded project choices.
 
-- Greenfield domain or host scaffolding → advise using the [CoreEx.Template](../../src/CoreEx.Template/README.md) `dotnet new` templates.
-- Retrofit capability on an existing domain → inspect the current code and recommend the smallest manual changes aligned to the samples and instructions.
-- Repo mapping or onboarding documentation → advise using `/acquire-codebase-knowledge`.
+**Add or modify a single capability** → route to the matching per-capability (L1) skill:
+
+| Request | Skill |
+|---------|-------|
+| Contract / DTO / entity | `/coreex-contract` |
+| Reference data | `/coreex-refdata` |
+| Database table or migration | `/coreex-db-migration` |
+| Repository, mapper, query config | `/coreex-repository` |
+| External integration / adapter | `/coreex-adapter` |
+| Application service | `/coreex-app-service` |
+| Validator | `/coreex-validator` |
+| Authorization / business policy | `/coreex-policy` |
+| DDD aggregate / domain entity | `/coreex-aggregate` |
+| API controller / endpoint | `/coreex-api` |
+| Event subscriber | `/coreex-subscriber` |
+| API tests | `/coreex-test-api` |
+| Subscriber tests | `/coreex-test-subscribe` |
+| Outbox relay tests | `/coreex-test-relay` |
+
+**Broader routing:**
+
+- Greenfield solution or host scaffolding → `/coreex-scaffold` (`solution-scaffolder` skill), which runs the matching [CoreEx.Template](../../src/CoreEx.Template/README.md) `dotnet new coreex*` commands.
+- Repo mapping or onboarding documentation → `/acquire-codebase-knowledge`.
+- Retrofit that no single skill covers → inspect the current code and recommend the smallest manual changes aligned to the samples and instructions.
 
 ## Response format
 

@@ -27,6 +27,12 @@ test triggers behavior: a simulated message receipt instead of an HTTP call.
 - Outbox Relay host tests — use `coreex-test-relay`
 - Implementing the subscriber class itself — use `coreex-subscriber`
 
+> **Resolve project-wide choices from state before asking.** Read the solution-root `AGENTS.md`
+> **Feature Configuration**: `messaging-provider` gates this skill (Subscribe host tests exist only when
+> a messaging provider is configured); `data-provider` (PostgreSQL vs SQL Server) selects the
+> migrate/seed and outbox helper family used throughout — never mix them; `outbox-enabled` determines
+> whether outbox-event assertions apply. Only prompt for what is unrecorded; re-state resolved values.
+
 ## Quick Reference
 
 - **Base class**: `WithApiTester<{Domain}.Subscribe.Program>` — same DB/cache/outbox `[OneTimeSetUp]` shape as API tests (migrate + seed via named-file overload → `ClearFusionCacheAsync()` → provider-specific `UseExpected{Postgres|SqlServer}OutboxPublisher()`); Subscribe hosts **do** have FusionCache (reference data, idempotency)
@@ -44,7 +50,7 @@ shared DB/cache/outbox setup mechanics (seed data authoring, provider-specific o
 ## Key References
 
 - [`/.github/instructions/coreex-tests.instructions.md`](/.github/instructions/coreex-tests.instructions.md) — full, authoritative test conventions, "Subscribe Host Tests" section
-- `coreex-test-api` — shared integration-test setup foundations (DB migrate/seed, cache, outbox)
-- `coreex-subscriber` — the subscriber implementation this skill's tests exercise; its three scenarios (command / event-data-sync / event-business-process) map directly to this skill's test shapes
-- `samples/tests/Contoso.Products.Test.Subscribe/SubscriberTests.ReservationConfirm.cs` — command subscriber test (outbox assertion + `ErrorHandler`)
-- `samples/tests/Contoso.Shopping.Test.Subscribe/SubscriberTests.ProductModify.cs` — event-sync subscriber test (state assertion)
+- Related skills: [`coreex-subscriber`](../coreex-subscriber/SKILL.md) (the subscriber implementation under test — its command / event-data-sync / event-business-process scenarios map directly to this skill's test shapes), [`coreex-test-api`](../coreex-test-api/SKILL.md) (shared integration-test setup foundations — DB migrate/seed, cache, outbox), [`coreex-test-relay`](../coreex-test-relay/SKILL.md) (Outbox Relay host tests)
+- Illustrative examples (CoreEx sample — not present in your project):
+  - [SubscriberTests.ReservationConfirm.cs](https://github.com/Avanade/CoreEx/blob/main/samples/tests/Contoso.Products.Test.Subscribe/SubscriberTests.ReservationConfirm.cs) — command subscriber test (outbox assertion + `ErrorHandler`)
+  - [SubscriberTests.ProductModify.cs](https://github.com/Avanade/CoreEx/blob/main/samples/tests/Contoso.Shopping.Test.Subscribe/SubscriberTests.ProductModify.cs) — event-sync subscriber test (state assertion)

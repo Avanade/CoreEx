@@ -88,6 +88,9 @@ If the domain calls another domain over HTTP, add HTTP mocking to `OneTimeSetUp`
 
 ## Phase 3 — Author Tests Per Operation
 
+> Examples throughout this phase use an illustrative Product domain — substitute your own entity/type
+> names and routes, and replace the `contoso`/`products` subject literals with your `{solution}`/`{domain}`.
+
 Co-design seed → tests → resources **in that order** (seed rows exist before you write assertions
 against them; resources get captured from the actual run).
 

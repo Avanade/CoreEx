@@ -6,6 +6,11 @@ tags: ["contracts", "dto", "source-generation", "reference-data", "etag"]
 
 # Contract (DTO) Conventions
 
+> **Related skill:** to create or modify a contract/DTO, invoke the [`coreex-contract`](/.github/skills/coreex-contract/SKILL.md)
+> skill; for a **reference data** type, invoke [`coreex-refdata`](/.github/skills/coreex-refdata/SKILL.md). This file holds
+> the invariants that must hold on **any** contract edit (root-vs-subordinate classification, property type resolution,
+> marker interfaces); the skills drive the step-by-step creation procedure.
+
 ## File Placement
 
 Contracts live **flat in the root of the `*.Contracts` project** — both hand-authored (`Product.cs`) and generated (`Product.g.cs`) files. **Do not create sub-folders** such as `Entities/`, `Models/`, or `RefData/` to group them; the samples place every contract at the project root regardless of whether it is a root entity, subordinate, request/response DTO, or reference-data type. Only introduce a sub-folder if the **user explicitly asks** for one. The same flat-root convention applies to the matching files in the other layers (validators, services, repositories, mappers) unless their instructions state otherwise.
@@ -283,14 +288,11 @@ public partial class ProductLite : ProductBase
 
 Reference data contracts are **generated, not hand-authored**. The source of truth is the `entities:` section of `ref-data.yaml` in the domain's `*.CodeGen` project. Running the CodeGen generates all artefacts across every layer -- contract class, API endpoint, service method, repository interface, repository implementation, and mapper -- as `.g.cs` files that must never be edited directly.
 
-> **Agent instruction:** When asked to create or modify a reference data type:
-> 1. Edit `ref-data.yaml` in `tools/[domain].CodeGen/` -- add or update the entry under `entities:`.
-> 2. Offer to run `dotnet run` from the CodeGen directory on the user's behalf.
-> 3. If confirmed, execute it and summarise the generated artefacts on success; on failure relay the **complete output verbatim** — it provides the diagnostic needed to fix the entry.
-> 4. On failure, fix the issue in `ref-data.yaml` and offer to re-run -- do not create or edit `.g.cs` files to work around a generation error.
-> 5. If the user declines, remind them to run `dotnet run` from the `*.CodeGen` directory before the new types are available.
->
-> If the user **explicitly requests** hand-authoring instead of CodeGen, use the pattern shown in [Hand-authored contracts (explicit request only)](#hand-authored-contracts-explicit-request-only) below.
+> **Creation procedure → skill.** To create or modify a reference data type, invoke the
+> [`coreex-refdata`](/.github/skills/coreex-refdata/SKILL.md) skill — it drives the `ref-data.yaml` edit and the
+> `*.CodeGen` run across every layer. Never edit a generated `.g.cs` to work around a generation error — fix
+> `ref-data.yaml` and re-run. If the user **explicitly requests** hand-authoring instead of CodeGen, use the pattern in
+> [Hand-authored contracts (explicit request only)](#hand-authored-contracts-explicit-request-only) below.
 
 ### `ref-data.yaml` -- entity definition
 

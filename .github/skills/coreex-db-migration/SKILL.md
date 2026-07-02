@@ -23,6 +23,11 @@ Guides you through any database schema change for a CoreEx domain — from choos
 - Generating CoreEx contracts/services/repositories — that is `*.CodeGen`, not `*.Database`
 - Runtime or deployment issues
 
+> **Resolve project-wide choices from state before asking.** Read the solution-root `AGENTS.md`
+> **Feature Configuration** for `data-provider` (SQL Server / PostgreSQL — gates this whole skill; `None`
+> means no database) and `outbox-enabled`. Only prompt for what is unrecorded; re-state resolved values
+> for confirmation.
+
 ## Quick Reference
 
 All commands run from the `*.Database` project directory.
@@ -60,5 +65,7 @@ For the full step-by-step decision tree, SQL column templates, and guardrails se
 
 - [`/.github/instructions/coreex-tooling.instructions.md`](/.github/instructions/coreex-tooling.instructions.md) — DbEx command reference, `dbex.yaml` structure, SQL conventions, outbox provisioning
 - [`/.github/instructions/coreex-repositories.instructions.md`](/.github/instructions/coreex-repositories.instructions.md) — what the generated `*.g.cs` feeds into
-- [`/samples/src/Contoso.Products.Database/`](/samples/src/Contoso.Products.Database/) — canonical PostgreSQL domain example
-- [`/samples/src/Contoso.Shopping.Database/`](/samples/src/Contoso.Shopping.Database/) — canonical SQL Server domain example
+- Related skills: [`coreex-refdata`](../coreex-refdata/SKILL.md) (reference-data tables + CodeGen), [`coreex-repository`](../coreex-repository/SKILL.md) (maps the generated persistence models)
+- Illustrative examples (CoreEx sample — not present in your project):
+  - [PostgreSQL domain database project](https://github.com/Avanade/CoreEx/tree/main/samples/src/Contoso.Products.Database) — canonical `.pgsql` / `snake_case` migrations, `dbex.yaml`, seed files
+  - [SQL Server domain database project](https://github.com/Avanade/CoreEx/tree/main/samples/src/Contoso.Shopping.Database) — canonical `.sql` / `PascalCase` migrations, `dbex.yaml`, seed files

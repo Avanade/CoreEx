@@ -6,6 +6,11 @@ tags: ["repositories", "infrastructure", "data-access", "efcore", "mapping", "ad
 
 # Repository & Infrastructure Conventions
 
+> **Related skill:** to scaffold a new repository, invoke the [`coreex-repository`](/.github/skills/coreex-repository/SKILL.md) skill;
+> for an anti-corruption adapter (which also lives in Infrastructure) invoke [`coreex-adapter`](/.github/skills/coreex-adapter/SKILL.md).
+> This file holds the invariants that must hold on **any** edit to an Infrastructure-layer file; the skills drive the
+> step-by-step **creation** procedures.
+
 ## NuGet / Project References
 
 | Package | Key types provided |
@@ -328,9 +333,10 @@ Always call `.ConfigureAwait(false)` on every `await` inside repository and adap
 
 ## Further Reading
 
-- [Infrastructure Layer Guide](https://github.com/Avanade/CoreEx/blob/main/samples/docs/infrastructure-layer.md) — full walkthrough of persistence models, repositories, mapping, and external client/adapter patterns.
-- [Pattern Catalog](https://github.com/Avanade/CoreEx/blob/main/samples/docs/patterns.md) — Adapter, Repository, Mapper, Persistence, and HTTP Client pattern entries.
-- [Layer Dependencies](https://github.com/Avanade/CoreEx/blob/main/samples/docs/layers.md) — layer dependency rules and the role of the Infrastructure layer.
-- [Tooling Guide](https://github.com/Avanade/CoreEx/blob/main/samples/docs/tooling.md) — `*.Database` project: schema, persistence-model generation, and outbox provisioning.
-- [CoreEx.EntityFrameworkCore README](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.EntityFrameworkCore/README.md) — `EfDb`, `EfDbModel`, `EfDbMappedModel`, and `EfDbOptions`.
+- [Infrastructure Layer Guide](/.github/docs/coreex/infrastructure-layer.md) — full walkthrough of persistence models, repositories, mapping, and external client/adapter patterns (docs-sync cache; after `/coreex-docs-sync`).
+- [Pattern Catalog](/.github/docs/coreex/patterns.md) — Adapter, Repository, Mapper, Persistence, and HTTP Client pattern entries (docs-sync cache; after `/coreex-docs-sync`).
+- [Layer Dependencies](/.github/docs/coreex/layers.md) — layer dependency rules and the role of the Infrastructure layer (docs-sync cache; after `/coreex-docs-sync`).
+- [Tooling Guide](/.github/docs/coreex/tooling.md) — `*.Database` project: schema, persistence-model generation, and outbox provisioning (docs-sync cache; after `/coreex-docs-sync`).
+- [CoreEx.EntityFrameworkCore guide](/.github/docs/coreex/agents/CoreEx.EntityFrameworkCore.md) — `EfDb`, `EfDbModel`, `EfDbMappedModel`, and `EfDbOptions` (docs-sync cache; after `/coreex-docs-sync`). Source: [CoreEx.EntityFrameworkCore README](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.EntityFrameworkCore/README.md).
 - [CoreEx Results README](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx/Results/README.md) — `Result<T>` type, pipeline operators (`.GoAsync`, `.ThenAs`, `.ThenAsAsync`), and error propagation semantics.
+- Related skills: [`coreex-repository`](/.github/skills/coreex-repository/SKILL.md) (scaffold a repository), [`coreex-adapter`](/.github/skills/coreex-adapter/SKILL.md) (scaffold an anti-corruption adapter).

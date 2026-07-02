@@ -9,6 +9,20 @@ tags: ["guidelines", "conventions", "comments"]
 ## Purpose
 CoreEx is a modular .NET framework for enterprise APIs and distributed services. Favor CoreEx-native primitives, patterns, and extensions over ad-hoc implementations.
 
+## Project Configuration State (read before asking)
+
+A CoreEx solution scaffolded with `dotnet new coreex` records its project-wide choices in the **solution-root
+`AGENTS.md` "Feature Configuration"** block: `data-provider` (SQL Server / PostgreSQL / None), `refdata-enabled`,
+`domain-driven-enabled`, `rop-enabled` (exception vs `Result<T>`), `outbox-enabled`, and `messaging-provider`.
+
+Before asking the user a project-wide question, **resolve it from that recording first**, cross-checked against the
+real artefacts (package references, `dbex.yaml`, presence of the `*.Domain` project). Re-state the resolved values for
+confirmation rather than re-prompting; if the recording and artefacts disagree, **stop and flag** rather than guessing.
+When a change enables a feature the recording marks disabled (e.g. the first ref-data type in a `refdata-enabled:
+false` solution), update the recording. The skills and instructions rely on this — it is what keeps them from
+re-asking `data-provider`/`rop-enabled`/etc. on every task. (In this framework repository there is no such generated
+solution; the rule applies to consumer solutions where these assets are installed.)
+
 ## Repository Shape
 - `CoreEx.sln`: main solution for framework + samples.
 - `src\`: reusable CoreEx libraries (AspNetCore, Database, EntityFrameworkCore, Events, Validation, DomainDriven, RefData, Caching, etc.).
@@ -166,14 +180,18 @@ See [INSTRUCTION_AUTHORING.md](INSTRUCTION_AUTHORING.md#generated-code) for full
 
 ## Agent Customizations (Prompts, Skills, and Templates)
 
-The following prompts, skills, and templates are available in this repository. Type `/` in chat to invoke prompts and skills. Use `dotnet new` in a terminal for templates.
+The following prompts, skills, and templates are available. Type `/` in chat to invoke prompts and skills; use
+`dotnet new` in a terminal for templates. For the full catalog and the skills-vs-prompts-vs-instructions distinction,
+see [AI-WORKFLOWS.md](./AI-WORKFLOWS.md).
 
 | Command | Type | When to use |
 |---------|------|-------------|
-| `CoreEx.Template` | Template pack | Deterministic `dotnet new` scaffolding for solution, API, relay, and subscriber shapes. Use `dotnet new install CoreEx.Template` and then run `dotnet new coreex`, `coreex-api`, `coreex-relay`, or `coreex-subscribe` as needed. |
-| `CoreEx Expert` | Agent | Architecture guidance, pattern recommendations, and design review aligned to the samples and repo instructions. |
-| `/init` | Prompt | Initialize a new CoreEx solution or workspace. |
-| `/setup` | Prompt | Configure an existing CoreEx solution with standard tooling and settings. |
+| `CoreEx.Template` | Template pack | Deterministic `dotnet new` scaffolding. `dotnet new install CoreEx.Template`, then `dotnet new coreex` (solution), `coreex-api` / `coreex-relay` / `coreex-subscribe` (hosts), or `coreex-ai` (AI workflow assets). |
+| `CoreEx Expert` | Agent | Architecture guidance, pattern recommendations, and design review. Invoke via `/coreex-expert` (or `@coreex-expert`). |
+| `/coreex-scaffold` | Skill-backed prompt | Guided greenfield solution scaffolding (chooses the smallest safe shape, runs the `dotnet new coreex*` commands). |
+| `/coreex-docs-sync` | Skill | Refresh the local `.github/docs/coreex/` doc cache after a CoreEx version bump. |
+| `/coreex-<capability>` | Skills (L1) + matching prompts | Add or modify one building block: `coreex-contract`, `coreex-refdata`, `coreex-db-migration`, `coreex-repository`, `coreex-adapter`, `coreex-app-service`, `coreex-validator`, `coreex-policy`, `coreex-aggregate`, `coreex-api`, `coreex-subscriber`, and `coreex-test-api` / `coreex-test-subscribe` / `coreex-test-relay`. Each skill has a `.prompt.md` wrapper for Copilot. |
+| `/acquire-codebase-knowledge`, `/aspire` | Skills | Repo onboarding documentation; local Aspire orchestration. |
 
 ## Guidance for Authoring Instructions and Skills
 

@@ -21,7 +21,11 @@ Guides you through adding or modifying an adapter — the boundary that isolates
 
 - EF repositories within the same domain — use `coreex-repository`
 - Application services that consume the adapter — use `coreex-app-service`
-- Event subscriber hosts that drive `IXxxSyncAdapter` — see `.github/instructions/coreex-event-subscribers.instructions.md`
+- Event subscriber hosts that drive `IXxxSyncAdapter` — use `coreex-subscriber`
+
+> **Resolve project-wide choices from state before asking.** Read the solution-root `AGENTS.md`
+> **Feature Configuration** for `messaging-provider` (does this domain publish/consume events?) and `data-provider`
+> (EF-only replication vs HTTP). Only prompt for what is unrecorded; re-state resolved values for confirmation.
 
 ## Quick Reference
 
@@ -38,11 +42,10 @@ For full workflow and code examples see [`references/workflow.md`](references/wo
 
 ## Key References
 
-- `samples/src/Contoso.Shopping.Application/Adapters/Products/IProductAdapter.cs` — synchronous adapter interface
-- `samples/src/Contoso.Shopping.Application/Adapters/Products/IProductSyncAdapter.cs` — replication adapter interface
-- `samples/src/Contoso.Shopping.Infrastructure/Adapters/Products/ProductAdapter.cs` — adapter implementation (HTTP + EF + events)
-- `samples/src/Contoso.Shopping.Infrastructure/Adapters/Products/ProductSyncAdapter.cs` — replication implementation (EF upsert/delete)
-- `samples/src/Contoso.Shopping.Infrastructure/Clients/Products/ProductsHttpClient.cs` — typed HTTP client
-- `samples/tests/Contoso.Shopping.Test.Unit/Clients/Products/ProductsHttpClientTests.cs` — HTTP client unit tests
-- `.github/instructions/coreex-repositories.instructions.md` — Infrastructure conventions (adapters, clients, mapping)
-- `.github/instructions/coreex-application-services.instructions.md` — Application conventions (adapter interfaces, anti-corruption layer)
+- [`/.github/instructions/coreex-repositories.instructions.md`](/.github/instructions/coreex-repositories.instructions.md) — Infrastructure conventions (adapters, clients, mapping)
+- [`/.github/instructions/coreex-application-services.instructions.md`](/.github/instructions/coreex-application-services.instructions.md) — Application conventions (adapter interfaces, anti-corruption layer)
+- Related skills: [`coreex-repository`](../coreex-repository/SKILL.md) (same-domain persistence), [`coreex-app-service`](../coreex-app-service/SKILL.md) (consumes the adapter), [`coreex-subscriber`](../coreex-subscriber/SKILL.md) (drives `IXxxSyncAdapter`)
+- [Infrastructure layer deep-dive](/.github/docs/coreex/infrastructure-layer.md) — optional (after `/coreex-docs-sync`)
+- Illustrative examples (CoreEx sample — not present in your project):
+  - [synchronous + replication adapter interfaces](https://github.com/Avanade/CoreEx/tree/main/samples/src/Contoso.Shopping.Application/Adapters/Products) — `IProductAdapter`, `IProductSyncAdapter`
+  - [adapter + client implementations](https://github.com/Avanade/CoreEx/tree/main/samples/src/Contoso.Shopping.Infrastructure/Adapters/Products) and the [typed HTTP client](https://github.com/Avanade/CoreEx/tree/main/samples/src/Contoso.Shopping.Infrastructure/Clients/Products)

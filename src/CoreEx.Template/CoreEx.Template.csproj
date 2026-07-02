@@ -94,7 +94,7 @@
 
   <!-- Copy packaged AI context files from the CoreEx repo into the CoreEx.Bootstrap and CoreEx.Ai templates at pack time.
        CoreEx.Bootstrap receives the full set (including copilot-instructions.md and docs) for new-empty-repo scenarios.
-       CoreEx.Ai receives instructions (transformed with app-folder conditionals), prompts, agents, Claude commands, and the coreex-docs-sync skill — no copilot-instructions.md.
+       CoreEx.Ai receives instructions (transformed with app-folder conditionals), prompts, agents, Claude commands, the full skill suite (docs-sync, solution-scaffolder, and the L1 coreex-* skills), and the docs cache (architecture docs + per-package guides under .github/docs/coreex/) — no copilot-instructions.md.
        coreex (CoreEx.Core) no longer receives any .github/ AI assets; consumers run dotnet new coreex-ai separately.
        Files sourced for Bootstrap/Ai:
          - consumer-instructions/.github/copilot-instructions.md            → .github/copilot-instructions.md  (Bootstrap only)
@@ -290,6 +290,41 @@
     <Copy SourceFiles="$(_RepoRoot).github/prompts/coreex-test-relay.prompt.md;$(_RepoRoot).github/skills/coreex-test-relay/SKILL.md"
           DestinationFiles="$(_AiAiGenRoot).github/prompts/coreex-test-relay.prompt.md;$(_AiAiGenRoot).github/skills/coreex-test-relay/SKILL.md"
           SkipUnchangedFiles="true" />
+
+    <!-- CoreEx.Ai: also ship the docs cache (architecture docs + per-package guides) so `dotnet new coreex-ai`
+         populates .github/docs/coreex/ at install (refreshable later via /coreex-docs-sync). Mirrors the Bootstrap
+         doc entries in the _AiFile group above — keep the two lists in sync. -->
+    <ItemGroup>
+      <_AiDocFile Include="$(_RepoRoot)src/CoreEx/AGENTS.md" DestSubPath=".github/docs/coreex/agents/CoreEx.md" />
+      <_AiDocFile Include="$(_RepoRoot)src/CoreEx.AspNetCore/AGENTS.md" DestSubPath=".github/docs/coreex/agents/CoreEx.AspNetCore.md" />
+      <_AiDocFile Condition="Exists('$(_RepoRoot)src/CoreEx.AspNetCore.NSwag/AGENTS.md')" Include="$(_RepoRoot)src/CoreEx.AspNetCore.NSwag/AGENTS.md" DestSubPath=".github/docs/coreex/agents/CoreEx.AspNetCore.NSwag.md" />
+      <_AiDocFile Include="$(_RepoRoot)src/CoreEx.Azure.Messaging.ServiceBus/AGENTS.md" DestSubPath=".github/docs/coreex/agents/CoreEx.Azure.Messaging.ServiceBus.md" />
+      <_AiDocFile Include="$(_RepoRoot)src/CoreEx.Caching.FusionCache/AGENTS.md" DestSubPath=".github/docs/coreex/agents/CoreEx.Caching.FusionCache.md" />
+      <_AiDocFile Include="$(_RepoRoot)src/CoreEx.CodeGen/AGENTS.md" DestSubPath=".github/docs/coreex/agents/CoreEx.CodeGen.md" />
+      <_AiDocFile Include="$(_RepoRoot)src/CoreEx.Data/AGENTS.md" DestSubPath=".github/docs/coreex/agents/CoreEx.Data.md" />
+      <_AiDocFile Include="$(_RepoRoot)src/CoreEx.Database/AGENTS.md" DestSubPath=".github/docs/coreex/agents/CoreEx.Database.md" />
+      <_AiDocFile Include="$(_RepoRoot)src/CoreEx.Database.Postgres/AGENTS.md" DestSubPath=".github/docs/coreex/agents/CoreEx.Database.Postgres.md" />
+      <_AiDocFile Include="$(_RepoRoot)src/CoreEx.Database.SqlServer/AGENTS.md" DestSubPath=".github/docs/coreex/agents/CoreEx.Database.SqlServer.md" />
+      <_AiDocFile Include="$(_RepoRoot)src/CoreEx.DomainDriven/AGENTS.md" DestSubPath=".github/docs/coreex/agents/CoreEx.DomainDriven.md" />
+      <_AiDocFile Include="$(_RepoRoot)src/CoreEx.EntityFrameworkCore/AGENTS.md" DestSubPath=".github/docs/coreex/agents/CoreEx.EntityFrameworkCore.md" />
+      <_AiDocFile Include="$(_RepoRoot)src/CoreEx.Events/AGENTS.md" DestSubPath=".github/docs/coreex/agents/CoreEx.Events.md" />
+      <_AiDocFile Include="$(_RepoRoot)src/CoreEx.RefData/AGENTS.md" DestSubPath=".github/docs/coreex/agents/CoreEx.RefData.md" />
+      <_AiDocFile Include="$(_RepoRoot)src/CoreEx.UnitTesting/AGENTS.md" DestSubPath=".github/docs/coreex/agents/CoreEx.UnitTesting.md" />
+      <_AiDocFile Include="$(_RepoRoot)src/CoreEx.Validation/AGENTS.md" DestSubPath=".github/docs/coreex/agents/CoreEx.Validation.md" />
+      <_AiDocFile Include="$(_RepoRoot)docs/application-scaffolding-guide.md" DestSubPath=".github/docs/coreex/application-scaffolding-guide.md" />
+      <_AiDocFile Include="$(_RepoRoot)samples/docs/application-layer.md" DestSubPath=".github/docs/coreex/application-layer.md" />
+      <_AiDocFile Include="$(_RepoRoot)samples/docs/aspire.md" DestSubPath=".github/docs/coreex/aspire.md" />
+      <_AiDocFile Include="$(_RepoRoot)samples/docs/contracts-layer.md" DestSubPath=".github/docs/coreex/contracts-layer.md" />
+      <_AiDocFile Include="$(_RepoRoot)samples/docs/domain-layer.md" DestSubPath=".github/docs/coreex/domain-layer.md" />
+      <_AiDocFile Include="$(_RepoRoot)samples/docs/hosts-layer.md" DestSubPath=".github/docs/coreex/hosts-layer.md" />
+      <_AiDocFile Include="$(_RepoRoot)samples/docs/infrastructure-layer.md" DestSubPath=".github/docs/coreex/infrastructure-layer.md" />
+      <_AiDocFile Include="$(_RepoRoot)samples/docs/layers.md" DestSubPath=".github/docs/coreex/layers.md" />
+      <_AiDocFile Include="$(_RepoRoot)samples/docs/local-dev.md" DestSubPath=".github/docs/coreex/local-dev.md" />
+      <_AiDocFile Include="$(_RepoRoot)samples/docs/patterns.md" DestSubPath=".github/docs/coreex/patterns.md" />
+      <_AiDocFile Include="$(_RepoRoot)samples/docs/testing.md" DestSubPath=".github/docs/coreex/testing.md" />
+      <_AiDocFile Include="$(_RepoRoot)samples/docs/tooling.md" DestSubPath=".github/docs/coreex/tooling.md" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_AiDocFile)" DestinationFiles="@(_AiDocFile->'$(_AiAiGenRoot)%(DestSubPath)')" SkipUnchangedFiles="true" />
 
     <!-- CoreEx.Ai: pack all generated files into content\CoreEx.Ai\. -->
     <ItemGroup>

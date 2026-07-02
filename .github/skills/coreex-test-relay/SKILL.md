@@ -25,7 +25,13 @@ rarely need new scenarios per domain.
 
 - API host integration tests — use `coreex-test-api`
 - Subscribe host integration tests — use `coreex-test-subscribe`
-- Relay host `Program.cs` / hosted-service registration — see `.github/instructions/coreex-host-setup.instructions.md`
+- Relay host `Program.cs` / hosted-service registration — see [`/.github/instructions/coreex-host-setup.instructions.md`](/.github/instructions/coreex-host-setup.instructions.md)
+
+> **Resolve project-wide choices from state before asking.** Read the solution-root `AGENTS.md`
+> **Feature Configuration**: `messaging-provider` gates this skill (a Relay host exists only when a
+> messaging provider is configured) and `data-provider` (PostgreSQL vs SQL Server) selects the outbox
+> publisher family (`PostgresOutboxPublisher`/`SqlServerOutboxPublisher`) — never mix them. Only prompt
+> for what is unrecorded; re-state resolved values for confirmation.
 
 ## Quick Reference
 
@@ -46,14 +52,14 @@ public class RelayTests : WithApiTester<YourDomain.Relay.Program>
             test.Run(async _ =>
             {
                 var pub = ActivatorUtilities.GetServiceOrCreateInstance<PostgresOutboxPublisher>(test.Services);   // or SqlServerOutboxPublisher — provider-specific
-                pub.Add("contoso", [ce1, ce2]);
+                pub.Add("{solution}", [ce1, ce2]);
                 await pub.PublishAsync();
 
                 for (int i = 0; i < 5; i++)
                     await Task.Delay(TimeSpan.FromSeconds(1));
 
                 var list = await Test.GetAndClearAzureServiceBusAsync(
-                    ServiceBusSessionReceiverOptions.CreateForTopicSubscription("contoso", "products"));
+                    ServiceBusSessionReceiverOptions.CreateForTopicSubscription("{solution}", "{domain}"));
 
                 list.Should().HaveCount(2);
             }).AssertSuccess();
@@ -84,6 +90,7 @@ that config at startup). Do not "fix" it by editing the test, subject names, or 
 ## Key References
 
 - [`/.github/instructions/coreex-tests.instructions.md`](/.github/instructions/coreex-tests.instructions.md) — full, authoritative test conventions, "Outbox Relay Host Tests" section
-- `samples/tests/Contoso.Products.Test.Relay/RelayTests.cs` — canonical outbox-forwarding test
-- `samples/tests/Contoso.Products.Test.Relay/OtherTests.Health.cs`, `OtherTests.HostedServices.cs` — health and hosted-service management checks
 - `coreex-test-api` / `coreex-test-subscribe` — the other two integration test skills, both more likely to need per-domain extension than this one
+- Illustrative examples (CoreEx sample — not present in your project):
+  - [RelayTests.cs](https://github.com/Avanade/CoreEx/blob/main/samples/tests/Contoso.Products.Test.Relay/RelayTests.cs) — canonical outbox-forwarding test
+  - [OtherTests.Health.cs](https://github.com/Avanade/CoreEx/blob/main/samples/tests/Contoso.Products.Test.Relay/OtherTests.Health.cs), [OtherTests.HostedServices.cs](https://github.com/Avanade/CoreEx/blob/main/samples/tests/Contoso.Products.Test.Relay/OtherTests.HostedServices.cs) — health and hosted-service management checks

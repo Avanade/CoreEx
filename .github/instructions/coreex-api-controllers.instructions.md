@@ -6,6 +6,10 @@ tags: ["controllers", "api", "routing", "cqrs", "dependency-injection", "minimal
 
 # API Conventions
 
+> **Related skill:** to scaffold a new controller or endpoint, invoke the [`coreex-api`](/.github/skills/coreex-api/SKILL.md) skill.
+> This file holds the invariants that must hold on **any** edit to a controller/endpoint file; the skill drives the
+> step-by-step **creation** procedure.
+
 > **Precondition — the Api host must exist.** Controllers live in the `*.Api` host, which is **not** part of the base `coreex` solution. Before authoring a controller, confirm an Api host is present (`**/*.Api/*.Api.csproj`); if it is absent, run the scaffolding workflow first (see `coreex-host-setup.instructions.md` → "Scaffolding an API host") — which confirms creation, generates it via the `coreex-api` template using the recorded solution options, and adds the new projects to the solution (`dotnet sln add`) as the final in-session step. Also ensure the entity's application service exists (create per *Service Operations — Confirm Scope* in `coreex-application-services.instructions.md` if not).
 
 > **Maintain the API tests alongside the controller.** When you create or change a controller's operations, **offer to create or update the matching `XxxReadTests` / `XxxMutateTests`** (per-entity, one partial file per operation) in the `*.Test.Api` project — see `coreex-tests.instructions.md` → "API Tests — Structure & Generation". If accepted, co-design the seed data, tests, and `.res.json`/`.req.json` resources together; if declined, proceed but note the coverage gap.
@@ -324,7 +328,8 @@ All the same rules apply as for MVC controllers: no business logic in the handle
 
 ## Further Reading
 
-- [Hosts Layer Guide](https://github.com/Avanade/CoreEx/blob/main/samples/docs/hosts-layer.md) — API host composition, controller patterns, and `Program.cs` shape.
-- [CoreEx.AspNetCore README](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.AspNetCore/README.md) — `WebApi` helper API reference.
+- [Hosts Layer Guide](/.github/docs/coreex/hosts-layer.md) — API host composition, controller patterns, and `Program.cs` shape (docs-sync cache; after `/coreex-docs-sync`).
+- [CoreEx.AspNetCore guide](/.github/docs/coreex/agents/CoreEx.AspNetCore.md) — `WebApi` helper API reference (docs-sync cache; after `/coreex-docs-sync`). Source: [CoreEx.AspNetCore README](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.AspNetCore/README.md).
 - [CoreEx.AspNetCore Mvc README](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.AspNetCore/Mvc/README.md) — MVC `WebApi` (`IActionResult`-returning), action attributes, and controller patterns.
 - [CoreEx.AspNetCore Http README](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.AspNetCore/Http/README.md) — Minimal API `WebApi` (`IResult`-returning) and `RouteHandlerBuilder` extensions.
+- Related skill: [`coreex-api`](/.github/skills/coreex-api/SKILL.md) — invoke to scaffold a controller/endpoint.

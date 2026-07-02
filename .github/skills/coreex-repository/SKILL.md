@@ -27,6 +27,7 @@ Guides you through creating or modifying a CoreEx Infrastructure-layer repositor
 ## Quick Reference
 
 **Clarifying questions before writing any code:**
+0. **Resolve from state first.** Read the solution-root `AGENTS.md` **Feature Configuration** for `data-provider` (SQL Server / PostgreSQL — gates this skill) and `domain-driven-enabled` (Domain-mapping vs contract-mapping). Only ask for what is unrecorded; re-state resolved values for confirmation.
 1. Which entity? Which database type (PostgreSQL / SQL Server)? Check the project's `Program.cs`.
 2. New repository or adding to an existing one?
 3. Operations needed: Get / Create / Update / Delete / Query?
@@ -48,7 +49,7 @@ For full workflow and code examples see [`references/workflow.md`](references/wo
 ## Key References
 
 - [`/.github/instructions/coreex-repositories.instructions.md`](/.github/instructions/coreex-repositories.instructions.md) — full conventions: EfDb, DbContext, mappers, query config, adapters
-- [`/samples/src/Contoso.Products.Infrastructure/Repositories/`](/samples/src/Contoso.Products.Infrastructure/Repositories/) — `ProductRepository` (CRUD + query), `ProductsEfDb`, `ProductsDbContext`
-- [`/samples/src/Contoso.Products.Infrastructure/Mapping/`](/samples/src/Contoso.Products.Infrastructure/Mapping/) — `ProductMapper` (BiDirectionMapper)
-- [`/samples/src/Contoso.Shopping.Infrastructure/Repositories/`](/samples/src/Contoso.Shopping.Infrastructure/Repositories/) — `BasketRepository` (Result<T> + Domain mapping)
-- [`/samples/src/Contoso.Shopping.Infrastructure/Mapping/`](/samples/src/Contoso.Shopping.Infrastructure/Mapping/) — `BasketMapper` (Domain ↔ Persistence one-way mapper)
+- Related skills: [`coreex-db-migration`](../coreex-db-migration/SKILL.md) (generates the persistence models this maps), [`coreex-app-service`](../coreex-app-service/SKILL.md) + [`coreex-adapter`](../coreex-adapter/SKILL.md) (consumers), [`coreex-aggregate`](../coreex-aggregate/SKILL.md) (persisting aggregates)
+- Illustrative examples (CoreEx sample — not present in your project):
+  - [contract-mapping repositories](https://github.com/Avanade/CoreEx/tree/main/samples/src/Contoso.Products.Infrastructure/Repositories) — `ProductRepository` (CRUD + query), `ProductsEfDb`, `ProductsDbContext` — and [BiDirectionMapper](https://github.com/Avanade/CoreEx/tree/main/samples/src/Contoso.Products.Infrastructure/Mapping) (`ProductMapper`)
+  - [Domain-mapping repositories](https://github.com/Avanade/CoreEx/tree/main/samples/src/Contoso.Shopping.Infrastructure/Repositories) — `BasketRepository` (`Result<T>` + Domain mapping) — and [one-way Domain ↔ Persistence mappers](https://github.com/Avanade/CoreEx/tree/main/samples/src/Contoso.Shopping.Infrastructure/Mapping) (`BasketMapper`)

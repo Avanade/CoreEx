@@ -25,6 +25,7 @@ Guides you through creating or modifying a CoreEx Application-layer policy class
 ## Quick Reference
 
 **Clarifying questions before writing any code:**
+0. Resolve `rop-enabled` (`Result<T>` vs exception style — policies compose into `Result<T>` pipelines) from the solution-root `AGENTS.md` **Feature Configuration** before asking the rest; only prompt for what is unrecorded and re-state resolved values for confirmation.
 1. What entity / concept is being guarded? (names the policy class)
 2. What type of guard? EnsureExists / business rule / state check
 3. Which adapter or repository does the policy call?
@@ -47,5 +48,7 @@ For full workflow and code examples see [`references/workflow.md`](references/wo
 ## Key References
 
 - [`/.github/instructions/coreex-application-services.instructions.md`](/.github/instructions/coreex-application-services.instructions.md) — policies, adapters, DI registration principle, Result&lt;T&gt; pipeline operators
-- [`/samples/src/Contoso.Shopping.Application/Policies/`](/samples/src/Contoso.Shopping.Application/Policies/) — `ProductPolicy` — EnsureExists translating NotFoundError → ValidationError
-- [`/samples/src/Contoso.Shopping.Application/BasketService.cs`](/samples/src/Contoso.Shopping.Application/BasketService.cs) — `ItemAddAsync` shows policy in a `Result.GoAsync().ThenAsAsync()` pipeline
+- Related skills: [`coreex-app-service`](../coreex-app-service/SKILL.md) (wires the policy into a service), [`coreex-adapter`](../coreex-adapter/SKILL.md) + [`coreex-repository`](../coreex-repository/SKILL.md) (the dependencies a policy calls), [`coreex-validator`](../coreex-validator/SKILL.md) (synchronous, no-I/O guard sibling)
+- Illustrative examples (CoreEx sample — not present in your project):
+  - [`ProductPolicy`](https://github.com/Avanade/CoreEx/tree/main/samples/src/Contoso.Shopping.Application/Policies) — EnsureExists translating NotFoundError → ValidationError
+  - [`BasketService.cs`](https://github.com/Avanade/CoreEx/blob/main/samples/src/Contoso.Shopping.Application/BasketService.cs) — `ItemAddAsync` shows a policy in a `Result.GoAsync().ThenAsAsync()` pipeline

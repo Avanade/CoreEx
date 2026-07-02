@@ -1,6 +1,6 @@
 ---
 name: coreex-api
-description: "Add or modify a CoreEx API controller (or Minimal API endpoint) in an *.Api host. USE FOR: scaffolding the MVC controller pair (XxxController + XxxReadController), GET/query/schema endpoints, POST create, PUT + PATCH full-entity update, DELETE, and custom business-action endpoints. Covers both exception-based and Result<T> service styles, and Minimal API as an alternative to MVC. DO NOT USE FOR: Api host setup / Program.cs (use coreex-host-setup), application services (use coreex-app-service), API integration tests (use coreex-test-api)."
+description: "Add or modify a CoreEx API controller (or Minimal API endpoint) in an *.Api host. USE FOR: scaffolding the MVC controller pair (XxxController + XxxReadController), GET/query/schema endpoints, POST create, PUT + PATCH full-entity update, DELETE, and custom business-action endpoints. Covers both exception-based and Result<T> service styles, and Minimal API as an alternative to MVC. DO NOT USE FOR: Api host setup / Program.cs (use solution-scaffolder), application services (use coreex-app-service), API integration tests (use coreex-test-api)."
 argument-hint: "Optional: entity name, operations needed (get/query/create/update/delete/custom), exception-based or Result<T> service style, MVC or Minimal API"
 tags: ["api", "controller", "mvc", "minimal-api", "webapi", "routing", "cqrs", "coreex"]
 ---
@@ -21,7 +21,7 @@ Guides you through adding or modifying HTTP API endpoints in an `*.Api` host. Co
 
 ## When Not to Use
 
-- Api host setup and `Program.cs` composition — use `coreex-host-setup`
+- Api host setup and `Program.cs` composition — use `solution-scaffolder` (see [`/.github/instructions/coreex-host-setup.instructions.md`](/.github/instructions/coreex-host-setup.instructions.md))
 - Application service creation — use `coreex-app-service`
 - API integration tests — use `coreex-test-api` (hand off once the endpoint is implemented)
 - Subscriber or relay hosts — controllers do not belong there
@@ -29,6 +29,7 @@ Guides you through adding or modifying HTTP API endpoints in an `*.Api` host. Co
 ## Quick Reference
 
 **Clarifying questions before writing any code:**
+0. Resolve `rop-enabled` (exception vs `Result<T>` service style — selects the standard vs `WithResult` WebApi helper variant) from the solution-root `AGENTS.md` **Feature Configuration** before asking the rest; only prompt for what is unrecorded and re-state resolved values for confirmation.
 1. What entity / resource is being exposed? (names the controller and route)
 2. Which operations? GET / Query / Create / Update / Delete / custom business action?
 3. Is the application service exception-based or `Result<T>` pipeline style? (determines WebApi helper variant)
@@ -56,7 +57,9 @@ For full workflow and code examples see [`references/workflow.md`](references/wo
 ## Key References
 
 - [`/.github/instructions/coreex-api-controllers.instructions.md`](/.github/instructions/coreex-api-controllers.instructions.md) — authoritative conventions: MVC vs Minimal API, WebApi helpers, attributes, route parameter rules, CQRS split
-- [`/samples/src/Contoso.Products.Api/Controllers/`](/samples/src/Contoso.Products.Api/Controllers/) — `ProductController` + `ProductReadController` (exception-based, full CRUD + query + $query)
-- [`/samples/src/Contoso.Shopping.Api/Controllers/`](/samples/src/Contoso.Shopping.Api/Controllers/) — `BasketController` + `BasketReadController` (Result&lt;T&gt; style, custom business actions, cross-tagged nested route)
-- [`/samples/src/Contoso.Orders.Api/Controllers/`](/samples/src/Contoso.Orders.Api/Controllers/) — `OrderController` (exception-based, custom orchestration action returning 202 Accepted)
-- `coreex-test-api` — the integration-test workflow for the endpoints this skill scaffolds
+- [`/.github/instructions/coreex-host-setup.instructions.md`](/.github/instructions/coreex-host-setup.instructions.md) — Api host / `Program.cs` composition (scaffolded by `solution-scaffolder`)
+- Related skills: [`coreex-app-service`](../coreex-app-service/SKILL.md) (controllers delegate to it), [`coreex-test-api`](../coreex-test-api/SKILL.md) (integration tests for these endpoints), [`coreex-subscriber`](../coreex-subscriber/SKILL.md) (sibling host entry point), [`solution-scaffolder`](../solution-scaffolder/SKILL.md) (host setup)
+- Illustrative examples (CoreEx sample — not present in your project):
+  - [`ProductController` + `ProductReadController`](https://github.com/Avanade/CoreEx/tree/main/samples/src/Contoso.Products.Api/Controllers) — exception-based, full CRUD + query + $query
+  - [`BasketController` + `BasketReadController`](https://github.com/Avanade/CoreEx/tree/main/samples/src/Contoso.Shopping.Api/Controllers) — Result&lt;T&gt; style, custom business actions, cross-tagged nested route
+  - [`OrderController`](https://github.com/Avanade/CoreEx/tree/main/samples/src/Contoso.Orders.Api/Controllers) — exception-based, custom orchestration action returning 202 Accepted

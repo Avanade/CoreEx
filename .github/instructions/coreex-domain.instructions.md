@@ -8,6 +8,10 @@ tags: ["domain", "ddd", "aggregates", "entities", "value-objects", "result"]
 
 The Domain layer is **optional**. It is introduced only when a domain contains aggregates with meaningful business rules and invariants that must be enforced at the model level — not in orchestration code. For example, a checkout/basket domain with state-machine transitions and nested item rules benefits from this layer; a simple CRUD-oriented domain (like a product catalog) typically does not.
 
+> **Related skill:** to scaffold a new aggregate root, entity, or value object, invoke the [`coreex-aggregate`](/.github/skills/coreex-aggregate/SKILL.md) skill.
+> This file holds the invariants that must hold on **any** edit to a Domain-layer file; the skill drives the
+> step-by-step **creation** procedure.
+
 ## NuGet / Project References
 
 | Package | Key types provided |
@@ -201,8 +205,9 @@ For CRUD-oriented domains, skip the Domain layer entirely and let the Applicatio
 
 ## Further Reading
 
-- [Domain Layer Guide](https://github.com/Avanade/CoreEx/blob/main/samples/docs/domain-layer.md) — aggregates, entities, value objects, and `PersistenceState` walkthrough.
-- [Pattern Catalog](https://github.com/Avanade/CoreEx/blob/main/samples/docs/patterns.md) — Aggregate, Entity, and Value Object pattern entries with cross-links.
-- [Layer Dependencies](https://github.com/Avanade/CoreEx/blob/main/samples/docs/layers.md) — when to introduce the Domain layer and its position in the dependency graph.
-- [CoreEx.DomainDriven README](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.DomainDriven/README.md) — `Aggregate<TId,TSelf>`, `Entity<TId,TSelf>`, and `PersistenceState`.
+- [Domain Layer Guide](/.github/docs/coreex/domain-layer.md) — aggregates, entities, value objects, and `PersistenceState` walkthrough (docs-sync cache; after `/coreex-docs-sync`).
+- [Pattern Catalog](/.github/docs/coreex/patterns.md) — Aggregate, Entity, and Value Object pattern entries with cross-links (docs-sync cache; after `/coreex-docs-sync`).
+- [Layer Dependencies](/.github/docs/coreex/layers.md) — when to introduce the Domain layer and its position in the dependency graph (docs-sync cache; after `/coreex-docs-sync`).
+- [CoreEx.DomainDriven guide](/.github/docs/coreex/agents/CoreEx.DomainDriven.md) — `Aggregate<TId,TSelf>`, `Entity<TId,TSelf>`, and `PersistenceState` (docs-sync cache; after `/coreex-docs-sync`). Source: [CoreEx.DomainDriven README](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.DomainDriven/README.md).
 - [CoreEx Results README](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx/Results/README.md) — `Result<T>` type, pipeline operators (`.GoAsync`, `.ThenAs`, `.ThenAsAsync`), and error propagation semantics.
+- Related skill: [`coreex-aggregate`](/.github/skills/coreex-aggregate/SKILL.md) — invoke to scaffold an aggregate, entity, or value object.

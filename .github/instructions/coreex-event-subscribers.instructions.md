@@ -6,6 +6,10 @@ tags: ["subscribers", "messaging", "service-bus", "event-handling", "integration
 
 # Event Subscriber Conventions
 
+> **Related skill:** to scaffold a new event subscriber, invoke the [`coreex-subscriber`](/.github/skills/coreex-subscriber/SKILL.md) skill.
+> This file holds the invariants that must hold on **any** edit to a subscriber file; the skill drives the
+> step-by-step **creation** procedure.
+
 ## NuGet / Project References
 
 | Package | Key types provided |
@@ -250,6 +254,7 @@ app.Run();
 
 ## Further Reading
 
-- [Hosts Layer Guide — Subscribe Host](https://github.com/Avanade/CoreEx/blob/main/samples/docs/hosts-layer.md) — Subscribe host architecture, Program.cs shape, and subscriber patterns.
-- [Pattern Catalog](https://github.com/Avanade/CoreEx/blob/main/samples/docs/patterns.md) — Subscribe, Publish, Transactional Outbox, and Event-Driven Replication pattern entries.
-- [CoreEx.Azure.Messaging.ServiceBus README](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.Azure.Messaging.ServiceBus/README.md) — `SubscribedBase`, `ErrorHandler`, and Service Bus receiver configuration.
+- [Hosts Layer Guide — Subscribe Host](/.github/docs/coreex/hosts-layer.md) — Subscribe host architecture, Program.cs shape, and subscriber patterns (docs-sync cache; after `/coreex-docs-sync`).
+- [Pattern Catalog](/.github/docs/coreex/patterns.md) — Subscribe, Publish, Transactional Outbox, and Event-Driven Replication pattern entries (docs-sync cache; after `/coreex-docs-sync`).
+- [CoreEx.Azure.Messaging.ServiceBus guide](/.github/docs/coreex/agents/CoreEx.Azure.Messaging.ServiceBus.md) — `SubscribedBase`, `ErrorHandler`, and Service Bus receiver configuration (docs-sync cache; after `/coreex-docs-sync`). Source: [CoreEx.Azure.Messaging.ServiceBus README](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.Azure.Messaging.ServiceBus/README.md).
+- Related skill: [`coreex-subscriber`](/.github/skills/coreex-subscriber/SKILL.md) — invoke to scaffold an event subscriber.

@@ -13,6 +13,12 @@ Each domain has two developer-time tooling projects that have **no runtime prese
 | `*.CodeGen` | Generates reference-data C# artefacts across all layers from `ref-data.yaml` |
 | `*.Database` | Manages the full database lifecycle — schema, seed data, outbox provisioning, and Infrastructure C# code generation |
 
+> **Related skills:** this file holds the invariants (command reference, YAML structure, table templates, casing,
+> generated-file ownership) that must hold on **any** tooling edit. For the step-by-step **creation** procedures,
+> invoke the skills: [`coreex-db-migration`](/.github/skills/coreex-db-migration/SKILL.md) (author/apply a migration
+> script — new table, alter, outbox) and [`coreex-refdata`](/.github/skills/coreex-refdata/SKILL.md) (add/modify a
+> reference data type — `ref-data.yaml` + seed + CodeGen).
+
 ---
 
 ## Order of operations (database-first)
@@ -113,12 +119,10 @@ Key `entities:` options:
 | `properties[].type` | Yes (if any) | -- | CLR type; prefix `^` for a ref-data navigation accessor |
 | `properties[].excludeContract` | No | `false` | Exclude from the generated contract (persistence only) |
 
-> **Agent instruction:** When asked to create or modify a reference data type:
-> 1. Add or update the entry under `entities:` in `ref-data.yaml`.
-> 2. Offer to run `dotnet run` from the `*.CodeGen` directory on the user's behalf.
-> 3. If confirmed, execute it and summarise the generated artefacts on success; on failure relay the **complete output verbatim** — it provides the diagnostic needed to fix the entry.
-> 4. On failure, fix the issue in `ref-data.yaml` and offer to re-run -- do not create or edit `.g.cs` files to work around a generation error.
-> 5. If the user declines, remind them to run `dotnet run` from the `*.CodeGen` directory before the new types are available.
+> **Creation procedure → skill.** To create or modify a reference data type, invoke the
+> [`coreex-refdata`](/.github/skills/coreex-refdata/SKILL.md) skill — it drives the `ref-data.yaml` edit, the
+> `*.CodeGen` run, and the seed/contract wiring. The invariants in this file still apply on any such edit
+> (notably: never edit `.g.cs` to work around a generation error — fix `ref-data.yaml` and re-run).
 >
 > **Do not pre-create output directories.** A configured target path (e.g. `apiProjectPath`) that points to a not-yet-existing project directory does **not** cause CodeGen to fail — it simply emits a *warning* and skips that output. Never create an empty directory, stub project, or placeholder file to "unblock" code generation. If a target project is genuinely missing and its artefacts are needed, raise it with the user rather than fabricating the folder.
 
@@ -202,24 +206,11 @@ When a solution is scaffolded with outbox enabled, the `coreex` template **alrea
 
 > **Migration scripts are immutable once applied.** A create script runs exactly once and is never re-run, regenerated, or edited. If the outbox schema later needs to change (e.g. a DbEx version bump alters its shape), author a **new** timestamped `ALTER` migration script for the delta — do not modify or re-scaffold the original create script.
 
-> **Agent instruction:** When asked to create the database outbox table(s):
-> 1. **Validate `dbex.yaml` first.** All three conditions must hold:
->    - Root-level `outbox: true` is set.
->    - Root-level `schema:` has a value (call it `xxx`).
->    - Root-level `outboxName:` has a value (call it `yyy`).
->    If any condition fails, **stop and error** — state which is missing. Do not attempt to scaffold the script.
-> 2. **Check for an existing create script.** Look under `Migrations/` for a `*-create-*-outbox-tables.{sql,pgsql}` script (the template ships one when outbox is enabled). If present, **do not scaffold another** — skip to step 4 to apply it. Only when none exists, proceed to step 3.
-> 3. **Scaffold the migration script** using the extracted `schema` (`xxx`) and `outboxName` (`yyy`) values:
->    ```
->    dotnet run -- script outbox xxx yyy
->    ```
-> 4. **Ask** whether the (new or existing) script should be deployed/migrated to the database.
-> 5. **If confirmed**, run:
->    ```
->    dotnet run -- CreateMigrateAndCodeGen
->    ```
->    Summarise the output on success; on failure relay the **complete output verbatim** — it provides the diagnostic needed to resolve the issue.
-> 6. **If declined**, remind the user to run `dotnet run -- CreateMigrateAndCodeGen` before the outbox table(s) exist in the database.
+> **Creation procedure → skill.** To provision the outbox table(s), invoke the
+> [`coreex-db-migration`](/.github/skills/coreex-db-migration/SKILL.md) skill (its **Outbox provisioning** section).
+> It validates `dbex.yaml` (`outbox: true`, plus `schema:` and `outboxName:` values), reuses the template-shipped
+> create script when present or scaffolds `dotnet run -- script outbox <schema> <name>` when absent, and applies via
+> `dotnet run -- CreateMigrateAndCodeGen`. The immutability invariant above still holds.
 
 ### `dbex.yaml` structure
 
@@ -424,13 +415,17 @@ When authoring a migration script for an entity that has a corresponding .NET co
 | `DateTime` | `DATETIME2` | `TIMESTAMP` |
 | `DateTimeOffset` | `DATETIMEOFFSET` | `TIMESTAMPTZ` |
 
-> **Agent instruction:** When generating a migration script for an entity that has a .NET contract:
-> 1. **The `script` scaffold's PK is a placeholder — replace it.** `dotnet run -- script create|refdata` seeds the primary key with a generated-key placeholder: `[{Name}Id] UNIQUEIDENTIFIER NOT NULL DEFAULT (NEWSEQUENTIALID()) PRIMARY KEY` (SQL Server) or `"{name}_id" SERIAL PRIMARY KEY` (PostgreSQL). **Neither is the default to keep** — overwrite it to match the contract's identifier type.
-> 2. **Map the primary key column to the contract's identifier type.** The identifier is `string` **by default** → `[{Name}Id] NVARCHAR(50) NOT NULL PRIMARY KEY` (SQL Server) / `"{name}_id" VARCHAR(50) NOT NULL PRIMARY KEY` (PostgreSQL). Use `UNIQUEIDENTIFIER`/`UUID` **only** when the contract identifier is explicitly a `Guid`; `INT`/`INTEGER` for `int`; etc. Never leave the scaffold's `UNIQUEIDENTIFIER` (SQL Server) or `SERIAL` (PostgreSQL) for a `string` identifier.
-> 3. **Drop the scaffold's value-generation default.** Remove `DEFAULT (NEWSEQUENTIALID())` (SQL Server) and **replace `SERIAL` with the plain column type** (PostgreSQL — `SERIAL` is an auto-increment sequence, i.e. a DB-assigned value); never add `IDENTITY` / `gen_random_uuid()` either — unless explicitly requested. The application services layer assigns identifier and other values; the database should not default them.
-> 4. **Map every other column to its contract property type** per the table above, preserving nullability (`?` → nullable column). For a `[ReferenceData<T>]` property, the contract property is `{Name}Code` (a string) — so the column is `{Name}Code` (e.g. `[GenderCode] NVARCHAR(50) NULL`), **not** `{Name}Id`, and **no foreign key** (see step 4 of the create/alter workflow). Mirror the contract property name exactly.
-> 5. **Lock the agreed identifier type — never deviate, especially in fixing loops.** Once the type is agreed (the `string` default, or whatever the user explicitly specified), it is fixed for the whole task. Do **not** silently change it, and do **not** revert to the scaffold's `UNIQUEIDENTIFIER` (or flip it again) while troubleshooting a build/migration failure — a failure is never resolved by changing the PK type. If you believe the agreed type is wrong, **stop and ask** rather than changing it.
-> 6. **If in doubt about a type, nullability, or precision/length, ask** rather than guessing.
+> **Creation procedure → skill.** Authoring/applying a migration script is driven by the
+> [`coreex-db-migration`](/.github/skills/coreex-db-migration/SKILL.md) skill (inspect → script → fill columns →
+> apply). The invariants that hold whenever a script is authored — map with the table above:
+> - The `script` scaffold's PK is a **placeholder** — replace it to match the contract's identifier type
+>   (`string` default → `NVARCHAR(50)`/`VARCHAR(50)`; `UNIQUEIDENTIFIER`/`UUID` only for an explicit `Guid`).
+> - **Drop the value-generation default** (`NEWSEQUENTIALID()` / `SERIAL` / `IDENTITY` / `gen_random_uuid()`) unless
+>   explicitly requested — the application layer assigns identifiers.
+> - Map every other column to its contract property type, preserving nullability. A `[ReferenceData<T>]` property maps
+>   to a `{Name}Code` column (never `{Name}Id`), **no foreign key**.
+> - **Lock the agreed identifier type** — never flip it in a fixing loop; a failure is never resolved by changing the
+>   PK type. If you think it is wrong, stop and ask.
 
 ### Creating or altering a table for an entity
 
@@ -438,23 +433,18 @@ When asked to create or change a database table for a .NET entity (e.g. *"create
 
 > **Inspect first — this is a hard gate.** Inspection is the **first action**, ahead of authoring anything. Do **not** write (or plan to write) a `CREATE`/`ALTER` script before the `Inspect` result is in hand — the result determines *whether* a script is even needed and *which kind*. A plan that scaffolds scripts before inspecting is wrong; fix the plan, don't proceed.
 
-> **Agent instruction:**
-> 1. **Identify every table involved.** This includes the entity's own table plus any reference data tables implied by its `[ReferenceData<T>]` properties (each typed reference-data property maps to a lookup table that may need to exist).
-> 2. **Bring the database up to date, then inspect — before authoring any script.** First run `dotnet run -- database` (non-destructive: `Create` → `Migrate` → `Schema` → `Data`) so the live database reflects all authored scripts, then run `dotnet run -- inspect <schema> <table> [<table> ...]` (read-only). Only proceed to authoring once you know each table's actual state.
-> 3. **Branch per table on the `Inspect` result:**
->    - **Not found** → scaffold the script with `dotnet run -- script create <schema> <table>` (or `script refdata <schema> <table>` for a reference-data table) so it is correctly named/timestamped/cased, fill in the columns, and register the table under `tables:` in `dbex.yaml`. Map column types per [Mapping contract types to columns](#mapping-contract-types-to-columns). **Do not create a schema-create script** — the schema already exists (template-provided).
->    - **Found, Reference Data: Yes** → do **not** recreate or alter it directly. Reference it from the entity table per step 4 below. Any change to the reference data table's own shape flows through `ref-data.yaml` + CodeGen, not a hand-authored script.
->    - **Found, schema differs from the contract** → scaffold with `dotnet run -- script alter <schema> <table>` and include the **delta only** (applied scripts are immutable — never edit the original create script).
->    - **Found, schema already matches** → no script is needed; say so.
-> 4. **Reference-data relationships are stored by `Code`, with no foreign key — this is the default; do not deviate silently.** For each `[ReferenceData<T>]` property on the entity (the contract has a `{Name}Code` string property, e.g. `GenderCode`):
->    - **Default — by Code:** create a column that **mirrors the contract property** — same name `{Name}Code` (e.g. `[GenderCode] NVARCHAR(50) NULL` / `gender_code`), typed to match the reference data's `Code` column. **Do not create a foreign key.** Do **not** invent a `{Name}Id` column.
->    - **Only if the user explicitly asks for an Id reference** → name it `{Name}Id`, typed to match the reference data identifier; and even then a foreign key is **not** automatic — ask whether one is required and add it only if confirmed.
->
->    **Never** default to `{Name}Id` + a `REFERENCES` foreign key — that contradicts both the contract (whose property is `{Name}Code`) and the CoreEx convention (reference data is resolved by code, not FK-joined).
-> 5. **Confirm logical-delete support** (for root/aggregate tables). Ask whether the table should support logical (soft) deletes — **default yes**. If yes, add an infrastructure-only column: `[IsDeleted] BIT NOT NULL DEFAULT (0)` (SQL Server) / `is_deleted BOOLEAN NOT NULL DEFAULT FALSE` (PostgreSQL) — it must be **NOT NULL** and default to the DB's `false` (`0` / `FALSE`), **never nullable**. This is a persistence concern only — the .NET contract/entity must **not** declare an equivalent property.
-> 6. **Offer to apply.** Offer to run `dotnet run -- CreateMigrateAndCodeGen`. Summarise the output on success; on failure relay the **complete output verbatim**.
->
-> **On failure, do not add defensive existence-guards.** Migration scripts are plain DDL — DbEx tracks which have been applied and runs each exactly once, so a `CREATE TABLE` does **not** need `IF NOT EXISTS` / `IF OBJECT_ID(...) IS NULL` wrappers. If a script fails because an object already exists (or differs), that means the `Inspect` step was skipped or stale: **re-inspect** to learn the real state, then either remove the redundant create script (object already correct), or author a separate `ALTER` migration for the delta. Wrapping the DDL in conditional guards to make it "pass" masks the underlying state mismatch and is not the convention — never do it.
+> **Creation procedure → skill.** Creating or altering a table for an entity is driven by the
+> [`coreex-db-migration`](/.github/skills/coreex-db-migration/SKILL.md) skill, which branches per-table on the
+> `Inspect` result: **not found** → `script create`/`script refdata` + register in `dbex.yaml`; **found, reference
+> data** → do not recreate/alter directly (changes flow through `ref-data.yaml` + CodeGen); **found, schema differs**
+> → `script alter` with the **delta only** (applied scripts are immutable); **found, matches** → no script. The
+> Inspect-first gate above and these invariants always apply:
+> - Reference-data relationships are stored by `{Name}Code` (mirror the contract property), **no foreign key** — never
+>   default to `{Name}Id` + `REFERENCES`; use an Id reference only when the user explicitly asks.
+> - Logical (soft) delete on root/aggregate tables is `[IsDeleted] BIT NOT NULL DEFAULT (0)` /
+>   `is_deleted BOOLEAN NOT NULL DEFAULT FALSE` — **NOT NULL**, defaults false, no contract property (default yes; confirm).
+> - **Never** add `IF NOT EXISTS` / `IF OBJECT_ID(...)` guards to make a failing script "pass" — re-inspect and author
+>   an `ALTER` for a real delta instead.
 
 ### `Schema` — idempotent objects
 
