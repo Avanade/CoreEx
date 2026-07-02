@@ -30,8 +30,8 @@ Scaffolds CoreEx AI guidance files into a repository so Copilot behavior aligns 
 5. Write/update `.github/coreex-bootstrap.json` with source plugin and timestamp.
 6. Summarize created, skipped, and overwritten files.
 
-For step-by-step guidance, see [references/workflow.md](references/workflow.md).
-For completion gates, see [references/checklists.md](references/checklists.md).
+For step-by-step guidance, see [the workflow guide](references/workflow.md).
+For completion gates, see [the checklist guide](references/checklists.md).
 
 ## Quick Reference
 

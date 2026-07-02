@@ -107,7 +107,7 @@ Do not set up the local cache silently — always offer and wait for confirmatio
 
 These skills are part of the CoreEx AI workflow set and live in `.github/skills/`. They can be copied from the [CoreEx repository](https://github.com/Avanade/CoreEx/tree/main/.github/skills) into a consuming project:
 
-- Greenfield domain or host scaffolding → advise using the [CoreEx.Template](../../src/CoreEx.Template/README.md) `dotnet new` templates.
+- Greenfield domain or host scaffolding → advise using the [CoreEx.Template](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.Template/README.md) `dotnet new` templates.
 - Retrofit capability on an existing domain → inspect the current code and recommend the smallest manual changes aligned to the samples and instructions.
 - Repo mapping or onboarding documentation → advise using `/acquire-codebase-knowledge`.
 

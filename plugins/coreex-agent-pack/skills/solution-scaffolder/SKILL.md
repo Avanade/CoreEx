@@ -19,7 +19,7 @@ Guides a repository through the right CoreEx setup path by interviewing the user
 ## When Not to Use
 
 - You are debugging local runtime, container, Aspire, or package restore issues unrelated to project shaping.
-- You still need to create the initial bootstrap repository; run `coreex-bootstrap` before this skill is used.
+- You still need to create the initial bootstrap repository; run `dotnet new coreex-bootstrap` before this skill is used.
 - You want architectural guidance for an existing implementation beyond project setup; use `CoreEx Expert` instead.
 
 ## Workflow Overview
@@ -32,7 +32,7 @@ Guides a repository through the right CoreEx setup path by interviewing the user
 6. **Validate the scaffold.** Wire projects into the solution, then choose between shape validation and fully runnable local validation.
 7. **Summarize the result.** Show the derived inputs, commands, validations, and any deferred steps.
 
-For step-by-step guidance, see [references/workflow.md](references/workflow.md).
+For step-by-step guidance, see [the workflow guide](https://github.com/Avanade/CoreEx/blob/main/docs/application-scaffolding-guide.md).
 
 ## Interactive Interview Rules
 
@@ -85,7 +85,7 @@ Set outbox to `true` only when the user chose owned persistence and reliable pub
 ## Prerequisite
 
 Assume the repository is already in one of these states before this skill runs:
-- a bootstrap-only shell created earlier by `coreex-bootstrap`; or
+- a bootstrap-only shell created earlier by the `coreex-bootstrap` template (`dotnet new coreex-bootstrap`); or
 - an existing CoreEx solution that is missing some runtime hosts.
 
 ## Naming Rules
@@ -177,9 +177,9 @@ dotnet new coreex-subscribe -n Company.Product.Domain.Subscribe ...
 
 ## Key References
 
-- `../../docs/coreex/application-scaffolding-guide.md`.
-- `../../docs/coreex/layers.md`.
-- `../../docs/coreex/patterns.md`.
-- `https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.Template/README.md`.
+- [Application scaffolding guide](https://github.com/Avanade/CoreEx/blob/main/docs/application-scaffolding-guide.md).
+- [Layer dependencies](https://github.com/Avanade/CoreEx/blob/main/samples/docs/layers.md).
+- [Pattern catalog](https://github.com/Avanade/CoreEx/blob/main/samples/docs/patterns.md).
+- [CoreEx.Template README](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.Template/README.md).
 
 

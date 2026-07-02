@@ -43,7 +43,7 @@ podman compose -f docker-compose.yml up -d   # Podman preferred; `docker compose
 | `dts-emulator` | 8080, 8082 | Azure Durable Task Scheduler emulator; task hubs `default` and `order` |
 | `aspire-dashboard` | 18888 UI, 4317 OTLP | Standalone OpenTelemetry dashboard; usable without running the full Aspire AppHost |
 
-Connection strings for each service in development are in each host's `appsettings.Development.json` under the `Aspire:` configuration key hierarchy. See [`samples/docs/local-dev.md`](../samples/docs/local-dev.md) for full detail, connection string patterns, and startup sequences.
+Connection strings for each service in development are in each host's `appsettings.Development.json` under the `Aspire:` configuration key hierarchy. See [the local development guide](https://github.com/Avanade/CoreEx/blob/main/samples/docs/local-dev.md) for full detail, connection string patterns, and startup sequences.
 
 ## Architecture
 - **Two roles**: framework packages (`src\`) + sample reference implementations (`samples\`).
@@ -153,7 +153,7 @@ Never create or edit `*.g.cs`, `*.g.sql`, or `*.g.pgsql` files directly. Each ge
 | `*.g.cs` (ref-data layer — controller, service, repository, mapper) | `*.CodeGen` project (CoreEx.CodeGen + `ref-data.yaml`) | `ref-data.yaml` config or the Handlebars templates in `CoreEx.CodeGen/RefData/Templates/` |
 | `*.g.sql`, `*.g.pgsql`, `*DbContext.g.cs`, `Persistence/*.g.cs` | `*.Database` project (DbEx) | DbEx YAML config or SQL migration scripts |
 
-See [INSTRUCTION_AUTHORING.md](INSTRUCTION_AUTHORING.md#generated-code) for full generator ownership detail.
+See [the instruction authoring guide](https://github.com/Avanade/CoreEx/blob/main/.github/INSTRUCTION_AUTHORING.md#generated-code) for full generator ownership detail.
 
 ## Key Docs to Read Before Large Changes
 - `README.md` — repo-level positioning and top-level commands.
@@ -179,7 +179,7 @@ The following prompts, skills, and templates are available in this repository. T
 
 When creating or maintaining Copilot instruction files and skills:
 
-- **Instruction files** (`.instructions.md`) — see [INSTRUCTION_AUTHORING.md](./INSTRUCTION_AUTHORING.md) for standards on YAML frontmatter, section order, and content rules.
-- **Skill files** (`SKILL.md`) — see [SKILL_AUTHORING.md](./SKILL_AUTHORING.md) for the directory structure pattern (`references/`, `assets/`), lean main file rules (<300 lines), and cross-referencing guidelines.
+- **Instruction files** (`.instructions.md`) — see [the instruction authoring guide](https://github.com/Avanade/CoreEx/blob/main/.github/INSTRUCTION_AUTHORING.md) for standards on YAML frontmatter, section order, and content rules.
+- **Skill files** (`SKILL.md`) — see [the skill authoring guide](https://github.com/Avanade/CoreEx/blob/main/.github/SKILL_AUTHORING.md) for the directory structure pattern (`references/`, `assets/`), lean main file rules (<300 lines), and cross-referencing guidelines.
 
 Both documents define durable patterns for creating guidance that is discoverable, maintainable, and context-efficient.
