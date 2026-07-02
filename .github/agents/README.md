@@ -103,9 +103,11 @@ An earlier design synced only the packages the project already references. This 
 
 Do not copy files by hand. The whole AI workflow set — including this agent — is installed by the `coreex-ai` template. From the **repo root** of the project that references CoreEx NuGet packages:
 
+Resolve the version to pin first — **never run a bare `dotnet new install CoreEx.Template`** (it silently resolves to whatever is latest at that moment, which can desync the AI assets from the project's actual CoreEx version — see [AGENTS.md](../../AGENTS.md), Step 3, for the full resolution rule):
+
 ```bash
-# Install the template pack once (skip if already installed)
-dotnet new install CoreEx.Template
+# Install the pinned template version (skip if already installed at that version)
+dotnet new install CoreEx.Template::<version>
 
 # Single-repo project:
 dotnet new coreex-ai
@@ -121,8 +123,8 @@ dotnet new coreex-ai --app-folder <subfolder>
 - `.github/skills/` — the full skill suite (`coreex-docs-sync`, `acquire-codebase-knowledge`, `coreex-solution-scaffolder`, `aspire`, and the 14 L1 skills)
 - `.github/agents/coreex-expert.agent.md` — this agent
 - `.claude/commands/` — the Claude Code equivalents
-- `.github/docs/coreex/` — the local docs cache (architecture docs + per-package guides) the expert reads first
+- `.github/docs/coreex/` — the local docs cache (architecture docs + per-package guides) the expert reads first, already populated at the pinned version — no separate sync step needed on first install
 
-After install, run `/coreex-docs-sync` once to populate the docs cache, then re-run it whenever the CoreEx NuGet version is bumped — the agent recommends this automatically when the cached `coreex-version` no longer matches the project (see the resolution flowchart above).
+Later, when the project's `CoreEx` NuGet version is bumped, re-run `/coreex-docs-sync` to refresh the whole bundle (instructions, skills, prompts, this agent, and the docs cache) to the matching `CoreEx.Template` release — the agent recommends this automatically when the cached `coreex-version` no longer matches the project (see the resolution flowchart above).
 
 For deterministic project scaffolding, use the [CoreEx.Template](../src/CoreEx.Template/README.md) `dotnet new coreex*` template pack rather than an agent skill.

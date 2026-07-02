@@ -45,10 +45,10 @@ Never install a bare `dotnet new install CoreEx.Template` — it silently resolv
 Run (add `--app-folder <path>` if this is a monorepo, per the recorded app folder):
 
 ```bash
-dotnet new coreex-ai
+dotnet new coreex-ai --dry-run
 ```
 
-**Without** `--force`. This is a dry run — it prints the "Overwrite" list of every file that would change and applies nothing. This is the only point at which the pending change set is visible; show it to the user.
+Always include `--dry-run` explicitly — it is the only invocation guaranteed never to write anything. Omitting `--force` alone is **not** equivalent: it blocks and lists "Overwrite" conflicts only when existing files would change, but if none of the target files exist yet (e.g. a repo missing most of the bundle) it creates them for real with no confirmation. `--dry-run` prints the "Create"/"Overwrite" list of every file that would change and always applies nothing; show it to the user before proceeding.
 
 ## Step 5 — Confirm, then apply
 
