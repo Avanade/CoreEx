@@ -213,9 +213,9 @@ For CRUD-oriented domains, skip the Domain layer entirely and let the Applicatio
 
 ## Further Reading
 
-- [Domain Layer Guide](/.github/docs/coreex/domain-layer.md) — aggregates, entities, value objects, and `PersistenceState` walkthrough (docs-sync cache; after `/coreex-docs-sync`).
-- [Pattern Catalog](/.github/docs/coreex/patterns.md) — Aggregate, Entity, and Value Object pattern entries with cross-links (docs-sync cache; after `/coreex-docs-sync`).
-- [Layer Dependencies](/.github/docs/coreex/layers.md) — when to introduce the Domain layer and its position in the dependency graph (docs-sync cache; after `/coreex-docs-sync`).
+- [Domain Layer Guide](/.github/docs/coreex/domain-layer.md) — aggregates, entities, value objects, and `PersistenceState` walkthrough (docs-sync cache; after `/coreex-docs-sync`). Source: [samples/docs/domain-layer.md](https://github.com/Avanade/CoreEx/blob/main/samples/docs/domain-layer.md).
+- [Pattern Catalog](/.github/docs/coreex/patterns.md) — Aggregate, Entity, and Value Object pattern entries with cross-links (docs-sync cache; after `/coreex-docs-sync`). Source: [samples/docs/patterns.md](https://github.com/Avanade/CoreEx/blob/main/samples/docs/patterns.md).
+- [Layer Dependencies](/.github/docs/coreex/layers.md) — when to introduce the Domain layer and its position in the dependency graph (docs-sync cache; after `/coreex-docs-sync`). Source: [samples/docs/layers.md](https://github.com/Avanade/CoreEx/blob/main/samples/docs/layers.md).
 - [CoreEx.DomainDriven guide](/.github/docs/coreex/agents/CoreEx.DomainDriven.md) — `Aggregate<TId,TSelf>`, `Entity<TId,TSelf>`, and `PersistenceState` (docs-sync cache; after `/coreex-docs-sync`). Source: [CoreEx.DomainDriven README](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.DomainDriven/README.md).
 - [CoreEx Results README](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx/Results/README.md) — `Result<T>` type, pipeline operators (`.GoAsync`, `.ThenAs`, `.ThenAsAsync`), and error propagation semantics.
 - Related skill: [`coreex-aggregate`](/.github/skills/coreex-aggregate/SKILL.md) — invoke to scaffold an aggregate, entity, or value object.

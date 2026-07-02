@@ -320,7 +320,7 @@ Property(x => x.Quantity, c => c
 
 ## Further Reading
 
-- [Application Layer Guide — Validators](/.github/docs/coreex/application-layer.md) — full validator walkthrough including declarative and programmatic phases (docs-sync cache; after `/coreex-docs-sync`).
-- [Pattern Catalog](/.github/docs/coreex/patterns.md) — Validator pattern entry with cross-links (docs-sync cache; after `/coreex-docs-sync`).
+- [Application Layer Guide — Validators](/.github/docs/coreex/application-layer.md) — full validator walkthrough including declarative and programmatic phases (docs-sync cache; after `/coreex-docs-sync`). Source: [samples/docs/application-layer.md](https://github.com/Avanade/CoreEx/blob/main/samples/docs/application-layer.md).
+- [Pattern Catalog](/.github/docs/coreex/patterns.md) — Validator pattern entry with cross-links (docs-sync cache; after `/coreex-docs-sync`). Source: [samples/docs/patterns.md](https://github.com/Avanade/CoreEx/blob/main/samples/docs/patterns.md).
 - [CoreEx.Validation guide](/.github/docs/coreex/agents/CoreEx.Validation.md) — `Validator<T>`, rule set, `OnValidateAsync`, `ValidateFurtherAsync`, and `AbstractValidator` (docs-sync cache; after `/coreex-docs-sync`). Source: [CoreEx.Validation README](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.Validation/README.md).
 - Related skill: [`coreex-validator`](/.github/skills/coreex-validator/SKILL.md) — invoke to scaffold a validator.

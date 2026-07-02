@@ -186,10 +186,10 @@ see [AI-WORKFLOWS.md](./AI-WORKFLOWS.md).
 
 | Command | Type | When to use |
 |---------|------|-------------|
-| `CoreEx.Template` | Template pack | Deterministic `dotnet new` scaffolding. `dotnet new install CoreEx.Template`, then `dotnet new coreex` (solution), `coreex-api` / `coreex-relay` / `coreex-subscribe` (hosts), or `coreex-ai` (AI workflow assets). |
+| `CoreEx.Template` | Template pack | Deterministic `dotnet new` scaffolding. Pin the version — `dotnet new install CoreEx.Template::<version>` — then `dotnet new coreex` (solution), `coreex-api` / `coreex-relay` / `coreex-subscribe` (hosts), or `coreex-ai` (AI workflow assets). |
 | `CoreEx Expert` | Agent | Architecture guidance, pattern recommendations, and design review. Invoke via `/coreex-expert` (or `@coreex-expert`). |
 | `/coreex-scaffold` | Skill-backed prompt | Guided greenfield solution scaffolding (chooses the smallest safe shape, runs the `dotnet new coreex*` commands). |
-| `/coreex-docs-sync` | Skill | Refresh the local `.github/docs/coreex/` doc cache after a CoreEx version bump. |
+| `/coreex-docs-sync` | Skill | Refresh the whole AI asset bundle (instructions, skills, prompts, the `coreex-expert` agent, and the `.github/docs/coreex/` doc cache) to a new pinned CoreEx version after a version bump. |
 | `/coreex-<capability>` | Skills (L1) + matching prompts | Add or modify one building block: `coreex-contract`, `coreex-refdata`, `coreex-db-migration`, `coreex-repository`, `coreex-adapter`, `coreex-app-service`, `coreex-validator`, `coreex-policy`, `coreex-aggregate`, `coreex-api`, `coreex-subscriber`, and `coreex-test-api` / `coreex-test-subscribe` / `coreex-test-relay`. Each skill has a `.prompt.md` wrapper for Copilot. |
 | `/acquire-codebase-knowledge`, `/aspire` | Skills | Repo onboarding documentation; local Aspire orchestration. |
 

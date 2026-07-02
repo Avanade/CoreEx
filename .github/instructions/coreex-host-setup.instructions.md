@@ -21,7 +21,7 @@ The host is a **composition root only** — no business logic. There are three h
 > step-by-step **creation** procedure. (The per-host "Scaffolding an … host" blocks below stay here — they carry the
 > Feature Configuration recover/record guardrails that must be honoured whenever a host is added.)
 
-> **Further Reading**: [Hosts Layer Guide](/.github/docs/coreex/hosts-layer.md) · [Layer Dependencies](/.github/docs/coreex/layers.md) · [Pattern Catalog](/.github/docs/coreex/patterns.md) (docs-sync cache; after `/coreex-docs-sync`)
+> **Further Reading**: [Hosts Layer Guide](/.github/docs/coreex/hosts-layer.md) · [Layer Dependencies](/.github/docs/coreex/layers.md) · [Pattern Catalog](/.github/docs/coreex/patterns.md) (docs-sync cache; after `/coreex-docs-sync`). Source: [samples/docs/hosts-layer.md](https://github.com/Avanade/CoreEx/blob/main/samples/docs/hosts-layer.md) · [samples/docs/layers.md](https://github.com/Avanade/CoreEx/blob/main/samples/docs/layers.md) · [samples/docs/patterns.md](https://github.com/Avanade/CoreEx/blob/main/samples/docs/patterns.md).
 
 ---
 

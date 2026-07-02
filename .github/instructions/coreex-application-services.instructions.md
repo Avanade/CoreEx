@@ -485,9 +485,9 @@ Always call `.ConfigureAwait(false)` on every `await` inside service and reposit
 
 ## Further Reading
 
-- [Application Layer Guide](/.github/docs/coreex/application-layer.md) — full walkthrough of services, validators, adapters, policies, mapping, and the unit-of-work pattern (docs-sync cache; after `/coreex-docs-sync`).
-- [Pattern Catalog](/.github/docs/coreex/patterns.md) — CQRS, Service, Unit of Work, Validator, Policy, Adapter, and Event patterns with cross-links (docs-sync cache; after `/coreex-docs-sync`).
-- [Layer Dependencies](/.github/docs/coreex/layers.md) — layer dependency rules: Application depends inward only on Contracts and its own interfaces (docs-sync cache; after `/coreex-docs-sync`).
+- [Application Layer Guide](/.github/docs/coreex/application-layer.md) — full walkthrough of services, validators, adapters, policies, mapping, and the unit-of-work pattern (docs-sync cache; after `/coreex-docs-sync`). Source: [samples/docs/application-layer.md](https://github.com/Avanade/CoreEx/blob/main/samples/docs/application-layer.md).
+- [Pattern Catalog](/.github/docs/coreex/patterns.md) — CQRS, Service, Unit of Work, Validator, Policy, Adapter, and Event patterns with cross-links (docs-sync cache; after `/coreex-docs-sync`). Source: [samples/docs/patterns.md](https://github.com/Avanade/CoreEx/blob/main/samples/docs/patterns.md).
+- [Layer Dependencies](/.github/docs/coreex/layers.md) — layer dependency rules: Application depends inward only on Contracts and its own interfaces (docs-sync cache; after `/coreex-docs-sync`). Source: [samples/docs/layers.md](https://github.com/Avanade/CoreEx/blob/main/samples/docs/layers.md).
 - [CoreEx.Validation guide](/.github/docs/coreex/agents/CoreEx.Validation.md) — `Validator<T>`, rule set, `OnValidateAsync`, and `ValidateFurtherAsync` (docs-sync cache; after `/coreex-docs-sync`). Source: [CoreEx.Validation README](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.Validation/README.md).
 - [CoreEx guide](/.github/docs/coreex/agents/CoreEx.md) — `IUnitOfWork`, `Result<T>`, `[ScopedService]`, and CoreEx exception types (docs-sync cache; after `/coreex-docs-sync`). Source: [CoreEx README](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx/README.md).
 - [CoreEx Results README](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx/Results/README.md) — `Result<T>` type, pipeline operators (`.GoAsync`, `.ThenAs`, `.ThenAsAsync`), and error propagation semantics.

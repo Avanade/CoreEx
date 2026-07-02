@@ -78,6 +78,7 @@ $testScenarios = @(
             )
             FilesAbsent  = @(
                 ".github/copilot-instructions.md"
+                ".github/skills/solution-scaffolder"
             )
             FileContains = @{
                 ".github/instructions/coreex.instructions.md"                   = 'applyTo: "**"'
@@ -105,6 +106,7 @@ $testScenarios = @(
             )
             FilesAbsent  = @(
                 ".github/copilot-instructions.md"
+                ".github/skills/solution-scaffolder"
             )
             FileContains = @{
                 ".github/instructions/coreex.instructions.md"                 = 'applyTo: "backend/'

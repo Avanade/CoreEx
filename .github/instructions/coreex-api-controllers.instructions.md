@@ -336,7 +336,7 @@ All the same rules apply as for MVC controllers: no business logic in the handle
 
 ## Further Reading
 
-- [Hosts Layer Guide](/.github/docs/coreex/hosts-layer.md) — API host composition, controller patterns, and `Program.cs` shape (docs-sync cache; after `/coreex-docs-sync`).
+- [Hosts Layer Guide](/.github/docs/coreex/hosts-layer.md) — API host composition, controller patterns, and `Program.cs` shape (docs-sync cache; after `/coreex-docs-sync`). Source: [samples/docs/hosts-layer.md](https://github.com/Avanade/CoreEx/blob/main/samples/docs/hosts-layer.md).
 - [CoreEx.AspNetCore guide](/.github/docs/coreex/agents/CoreEx.AspNetCore.md) — `WebApi` helper API reference (docs-sync cache; after `/coreex-docs-sync`). Source: [CoreEx.AspNetCore README](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.AspNetCore/README.md).
 - [CoreEx.AspNetCore Mvc README](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.AspNetCore/Mvc/README.md) — MVC `WebApi` (`IActionResult`-returning), action attributes, and controller patterns.
 - [CoreEx.AspNetCore Http README](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.AspNetCore/Http/README.md) — Minimal API `WebApi` (`IResult`-returning) and `RouteHandlerBuilder` extensions.
