@@ -26,7 +26,7 @@ dotnet new install CoreEx.Template
 To verify:
 
 ```sh
-dotnet new list --tag CoreEx
+dotnet new details CoreEx.Template
 ```
 
 To update after a new release:
