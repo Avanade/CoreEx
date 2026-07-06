@@ -1,6 +1,6 @@
 ---
 description: "CoreEx Expert — architecture guidance, pattern decisions, and sample-aligned advice for projects using CoreEx NuGet packages."
-allowed-tools: [Read, Glob, Grep, WebFetch, WebSearch, Edit, Write]
+allowed-tools: [Read, Glob, Grep, WebFetch, WebSearch, Edit, Write, Bash]
 ---
 
 <!--
