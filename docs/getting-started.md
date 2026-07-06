@@ -48,13 +48,13 @@ dotnet new install CoreEx.Template
 This installs the latest stable release. To target a specific version (e.g. to match an existing project's CoreEx NuGet reference), use `::<version>`:
 
 ```bash
-dotnet new install CoreEx.Template::4.x.x
+dotnet new install CoreEx.Template::<version>
 ```
 
 Verify installation — you should see the `coreex*` templates listed:
 
 ```bash
-dotnet new details CoreEx.Template
+dotnet new list --tag CoreEx
 ```
 
 ---

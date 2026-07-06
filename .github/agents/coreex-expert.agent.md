@@ -137,7 +137,7 @@ These skills are part of the CoreEx AI workflow set and live in `.github/skills/
 
 **Broader routing:**
 
-- Greenfield solution or host scaffolding → `/coreex-scaffold` (`coreex-solution-scaffolder` skill), which runs the matching [CoreEx.Template](../../src/CoreEx.Template/README.md) `dotnet new coreex*` commands.
+- Greenfield solution or host scaffolding → `/coreex-scaffold` (`coreex-solution-scaffolder` skill), which runs the matching [CoreEx.Template](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.Template/README.md) `dotnet new coreex*` commands.
 - Repo mapping or onboarding documentation → `/acquire-codebase-knowledge`.
 - Retrofit that no single skill covers → inspect the current code and recommend the smallest manual changes aligned to the samples and instructions.
 
