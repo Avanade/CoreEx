@@ -306,11 +306,11 @@
           SkipUnchangedFiles="true" />
 
     <!-- CoreEx.Ai: L2 end-to-end skills (orchestrate multiple L1 skills in one guided workflow). -->
-    <Copy SourceFiles="$(_RepoRoot).github/prompts/coreex-add-api.prompt.md;$(_RepoRoot).github/skills/coreex-add-api/SKILL.md;$(_RepoRoot).github/skills/coreex-add-api/references/workflow.md"
-          DestinationFiles="$(_AiAiGenRoot).github/prompts/coreex-add-api.prompt.md;$(_AiAiGenRoot).github/skills/coreex-add-api/SKILL.md;$(_AiAiGenRoot).github/skills/coreex-add-api/references/workflow.md"
+    <Copy SourceFiles="$(_RepoRoot).github/prompts/coreex-api-e2e.prompt.md;$(_RepoRoot).github/skills/coreex-api-e2e/SKILL.md;$(_RepoRoot).github/skills/coreex-api-e2e/references/workflow.md"
+          DestinationFiles="$(_AiAiGenRoot).github/prompts/coreex-api-e2e.prompt.md;$(_AiAiGenRoot).github/skills/coreex-api-e2e/SKILL.md;$(_AiAiGenRoot).github/skills/coreex-api-e2e/references/workflow.md"
           SkipUnchangedFiles="true" />
-    <Copy SourceFiles="$(_RepoRoot).github/prompts/coreex-add-subscriber.prompt.md;$(_RepoRoot).github/skills/coreex-add-subscriber/SKILL.md;$(_RepoRoot).github/skills/coreex-add-subscriber/references/workflow.md"
-          DestinationFiles="$(_AiAiGenRoot).github/prompts/coreex-add-subscriber.prompt.md;$(_AiAiGenRoot).github/skills/coreex-add-subscriber/SKILL.md;$(_AiAiGenRoot).github/skills/coreex-add-subscriber/references/workflow.md"
+    <Copy SourceFiles="$(_RepoRoot).github/prompts/coreex-subscriber-e2e.prompt.md;$(_RepoRoot).github/skills/coreex-subscriber-e2e/SKILL.md;$(_RepoRoot).github/skills/coreex-subscriber-e2e/references/workflow.md"
+          DestinationFiles="$(_AiAiGenRoot).github/prompts/coreex-subscriber-e2e.prompt.md;$(_AiAiGenRoot).github/skills/coreex-subscriber-e2e/SKILL.md;$(_AiAiGenRoot).github/skills/coreex-subscriber-e2e/references/workflow.md"
           SkipUnchangedFiles="true" />
 
     <!-- CoreEx.Ai: also ship the docs cache (architecture docs + per-package guides) so `dotnet new coreex-ai`

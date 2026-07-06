@@ -1,5 +1,5 @@
 ---
-name: coreex-add-api
+name: coreex-api-e2e
 description: "Create a complete new entity with CRUD API endpoints end-to-end in a single guided workflow: DTO contract, database migration, EF Core repository, validator (+ unit tests), optional policy guard (+ unit tests), application service, API endpoint, and integration tests. USE FOR: adding a brand-new entity to an existing CoreEx solution where the full stack — from database table to HTTP endpoint — is needed. DO NOT USE FOR: modifying an existing entity or endpoint (use the targeted L1 skill directly), read-only façade entities backed by an external adapter with no local table (use individual L1 skills), or any partial-stack additions."
 argument-hint: "Optional: entity name, CRUD operations needed (Get/Query/Create/Update/Patch/Delete), key fields"
 tags: ["coreex", "api", "entity", "end-to-end", "crud", "vertical-slice"]

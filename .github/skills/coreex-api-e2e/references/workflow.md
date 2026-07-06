@@ -6,7 +6,7 @@
     propose the change upstream in Avanade/CoreEx instead, then refresh once it is released.
 -->
 
-# coreex-add-api: Workflow
+# coreex-api-e2e: Workflow
 
 Full step-by-step workflow for adding a new entity with CRUD API endpoints end-to-end in a CoreEx solution. The key discipline of this skill is **interview once, invoke many**: all context is gathered upfront so no L1 skill needs to re-ask a question already answered here.
 

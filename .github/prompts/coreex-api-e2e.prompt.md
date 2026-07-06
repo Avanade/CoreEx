@@ -12,7 +12,7 @@ description: Add a complete new entity with CRUD API endpoints end-to-end — co
 
 Guide this workspace through adding a complete new entity with CRUD API endpoints end-to-end.
 
-Use `.github/skills/coreex-add-api/SKILL.md` and its referenced workflow as the authoritative workflow.
+Use `.github/skills/coreex-api-e2e/SKILL.md` and its referenced workflow as the authoritative workflow.
 
 Operational contract:
 - Read the solution-root `AGENTS.md` **Feature Configuration** first (`domain-driven-enabled`, `rop-enabled`, `outbox-enabled`, `data-provider`) — do not ask questions already answered there.

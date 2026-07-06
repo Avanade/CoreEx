@@ -1,6 +1,6 @@
 ---
-name: coreex-add-subscriber
-description: "Create a complete new event or command subscriber end-to-end in a single guided workflow: event/command DTO contract (if new), subscriber handler, optional application service and repository, and integration tests. USE FOR: adding a brand-new subscriber to an existing CoreEx Subscribe host for any scenario — command handling, event-data-sync replication, or event-driven business-process choreography. DO NOT USE FOR: modifying an existing subscriber (use coreex-subscriber directly), API endpoint work (use coreex-add-api), or setting up the Subscribe host itself (use coreex-solution-scaffolder)."
+name: coreex-subscriber-e2e
+description: "Create a complete new event or command subscriber end-to-end in a single guided workflow: event/command DTO contract (if new), subscriber handler, optional application service and repository, and integration tests. USE FOR: adding a brand-new subscriber to an existing CoreEx Subscribe host for any scenario — command handling, event-data-sync replication, or event-driven business-process choreography. DO NOT USE FOR: modifying an existing subscriber (use coreex-subscriber directly), API endpoint work (use coreex-api-e2e), or setting up the Subscribe host itself (use coreex-solution-scaffolder)."
 argument-hint: "Optional: event or command subject, subscriber scenario (command / event-data-sync / business-process)"
 tags: ["coreex", "subscriber", "event", "command", "end-to-end", "vertical-slice", "messaging"]
 ---
@@ -27,7 +27,7 @@ Guides you through adding a complete new event or command subscriber in one sitt
 
 - Modifying an existing subscriber handler — invoke `coreex-subscriber` directly
 - Setting up the Subscribe host itself (it does not yet exist) — use `coreex-solution-scaffolder`
-- Building an API endpoint — use `coreex-add-api`
+- Building an API endpoint — use `coreex-api-e2e`
 
 ## Workflow Overview
 

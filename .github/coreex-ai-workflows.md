@@ -106,6 +106,6 @@ Two skills orchestrate a complete vertical slice by gathering all context upfron
 
 | Skill / prompt | What it orchestrates |
 |----------------|---------------------|
-| [`coreex-add-api`](./skills/coreex-add-api/) | New entity with CRUD API — contract → migration → repository → validator → policy (if needed) → app-service → API endpoint → integration tests |
-| [`coreex-add-subscriber`](./skills/coreex-add-subscriber/) | New event or command subscriber — contract (if new) → migration + repository (if new entity) → app-service (if needed) → subscriber handler → integration tests |
+| [`coreex-api-e2e`](./skills/coreex-api-e2e/) | New entity with CRUD API — contract → migration → repository → validator → policy (if needed) → app-service → API endpoint → integration tests |
+| [`coreex-subscriber-e2e`](./skills/coreex-subscriber-e2e/) | New event or command subscriber — contract (if new) → migration + repository (if new entity) → app-service (if needed) → subscriber handler → integration tests |
 

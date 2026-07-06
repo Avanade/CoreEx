@@ -12,7 +12,7 @@ description: Add a complete new event or command subscriber end-to-end — DTO c
 
 Guide this workspace through adding a complete new event or command subscriber end-to-end.
 
-Use `.github/skills/coreex-add-subscriber/SKILL.md` and its referenced workflow as the authoritative workflow.
+Use `.github/skills/coreex-subscriber-e2e/SKILL.md` and its referenced workflow as the authoritative workflow.
 
 Operational contract:
 - Read the solution-root `AGENTS.md` **Feature Configuration** first (`messaging-provider`, `outbox-enabled`, `data-provider`, `rop-enabled`) — do not ask questions already answered there.

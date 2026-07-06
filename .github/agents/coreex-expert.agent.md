@@ -120,8 +120,8 @@ These skills are part of the CoreEx AI workflow set and live in `.github/skills/
 
 | Request | Skill |
 |---------|-------|
-| New entity with CRUD API — full stack from database table to HTTP endpoint | `/coreex-add-api` |
-| New event or command subscriber — handler, optional orchestration, and tests | `/coreex-add-subscriber` |
+| New entity with CRUD API — full stack from database table to HTTP endpoint | `/coreex-api-e2e` |
+| New event or command subscriber — handler, optional orchestration, and tests | `/coreex-subscriber-e2e` |
 
 **Add or modify a single capability** → route to the matching per-capability (L1) skill:
 
