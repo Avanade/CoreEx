@@ -64,6 +64,8 @@ dotnet new coreex-ai --force
 
 Compare the skill folder names under `.github/skills/coreex-*/` against the current known L1 skill set (listed in [`coreex-ai-workflows.md`](/.github/coreex-ai-workflows.md)). Any extra folder is very likely left over from a prior template version and should be flagged for manual review, not assumed safe to delete automatically.
 
+Scoped to the `coreex-` prefix deliberately, not all of `.github/skills/*/`: `CoreEx.Template` only ever installs `coreex-`-prefixed skill folders, and a consumer repo may have other skills installed that this template neither writes nor owns (a personal skill, one from another tool, etc.). Comparing the full folder set would falsely flag those as CoreEx orphans.
+
 ## Step 7 — Report
 
 Summarise:

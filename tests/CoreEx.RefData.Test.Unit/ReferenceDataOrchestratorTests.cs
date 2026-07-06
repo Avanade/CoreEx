@@ -427,7 +427,7 @@ public partial class ReferenceDataOrchestratorTests
         // differently per process (string hash randomization), so the enumerated/serialized order flips between runs. Assert
         // via GetItems(), which returns a stable, sorted List<TRef>, rather than BeEquivalentTo on the collection directly -
         // the latter enumerates via ICollection<TRef>.CopyTo, which this collection explicitly does not support.
-        deserialColl!.GetItems().Should().BeEquivalentTo(((DummyRefData2Collection)coll!).GetItems());
+        deserialColl!.GetItems().Should().BeEquivalentTo(((DummyRefData2Collection)coll!).GetItems(), o => o.WithStrictOrdering());
 
         deserialColl!.Should().Contain(x => x.ParentSid == "P");
     }
