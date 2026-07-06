@@ -182,7 +182,7 @@ See [INSTRUCTION_AUTHORING.md](INSTRUCTION_AUTHORING.md#generated-code) for full
 
 The following prompts, skills, and templates are available. Type `/` in chat to invoke prompts and skills; use
 `dotnet new` in a terminal for templates. For the full catalog and the skills-vs-prompts-vs-instructions distinction,
-see [AI-WORKFLOWS.md](./AI-WORKFLOWS.md).
+see [coreex-ai-workflows.md](./coreex-ai-workflows.md).
 
 | Command | Type | When to use |
 |---------|------|-------------|

@@ -96,7 +96,7 @@ Before this skill runs, the repository must already be in one of these states:
 - A bootstrap-only shell created by `coreex-bootstrap`; or
 - An existing CoreEx solution that is missing some runtime hosts.
 
-**AI assets:** If the repository does not yet have `.github/instructions/` or `.github/agents/`, the consumer should run `dotnet new coreex-ai` at the repo root first (optionally with `--app-folder <subfolder>` for monorepos), installed from an explicitly pinned `CoreEx.Template::<version>` (see [Version-pin discipline](/.github/AI-WORKFLOWS.md#version-pin-discipline)). This skill will remind the user if AI assets appear to be absent.
+**AI assets:** If the repository does not yet have `.github/instructions/` or `.github/agents/`, the consumer should run `dotnet new coreex-ai` at the repo root first (optionally with `--app-folder <subfolder>` for monorepos), installed from an explicitly pinned `CoreEx.Template::<version>` (see [Version-pin discipline](/.github/coreex-ai-workflows.md#version-pin-discipline)). This skill will remind the user if AI assets appear to be absent.
 
 ## Naming Rules
 
@@ -155,7 +155,7 @@ dotnet new coreex-subscribe -n Company.Product.Domain.Subscribe ...
 - **Bootstrap is a prereq:** This skill assumes any bootstrap creation has already happened before the workflow starts.
 - **For retrofit work:** If the repo already contains a solution, `src/`, tooling, or tests, do not re-run the root scaffold unless the current shape is still only the bootstrap shell.
 - **Template identity conflicts:** If `dotnet new list` or template execution reports duplicate CoreEx template identities, warn the user which template source is being selected before continuing.
-- **Version-pin discipline:** If `CoreEx.Template` needs installing or updating here, never run a bare `dotnet new install CoreEx.Template` — resolve and pin an explicit `::<version>` matching the project's referenced `CoreEx` NuGet version (see [AI-WORKFLOWS.md § Version-pin discipline](/.github/AI-WORKFLOWS.md#version-pin-discipline)).
+- **Version-pin discipline:** If `CoreEx.Template` needs installing or updating here, never run a bare `dotnet new install CoreEx.Template` — resolve and pin an explicit `::<version>` matching the project's referenced `CoreEx` NuGet version (see [coreex-ai-workflows.md § Version-pin discipline](/.github/coreex-ai-workflows.md#version-pin-discipline)).
 - **Pre-flight validation:** Always run a dry-run with the intended base solution name before any real domain/host template invocation.
 - **Watch for nested roots:** If dry-run output shows paths like `src\\Company.Product.Domain.Api\\src\\Company.Product.Domain.Api\\...`, the output root is wrong; stop and change strategy.
 - **Naming mismatch:** If dry-run output shows incorrect project names because the repo uses a non-canonical root name, stop and recommend either renaming the solution first or manually creating the missing hosts.

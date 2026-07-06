@@ -111,7 +111,7 @@ This installs:
 
 Every file above comes from **one** `CoreEx.Template` release installed as **one** atomic bundle —
 never mix versions across a single install. For the full catalog and how these pieces fit together,
-see [`.github/AI-WORKFLOWS.md`](./.github/AI-WORKFLOWS.md).
+see [`.github/coreex-ai-workflows.md`](./.github/coreex-ai-workflows.md).
 
 ### Step 4 — Reload context and continue
 

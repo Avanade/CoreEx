@@ -103,7 +103,7 @@
        Files sourced for Bootstrap/Ai:
          - consumer-instructions/.github/copilot-instructions.md            → .github/copilot-instructions.md  (Bootstrap only)
          - consumer-instructions/.github/copilot-instructions.md            → .github/instructions/coreex.instructions.md (Ai only, generated at pack time with frontmatter prepended)
-         - .github/AI-WORKFLOWS.md                                          → .github/AI-WORKFLOWS.md (Bootstrap and Ai)
+         - .github/coreex-ai-workflows.md                                    → .github/coreex-ai-workflows.md (Bootstrap and Ai)
          - .github/prompts/coreex-scaffold.prompt.md                        → .github/prompts/coreex-scaffold.prompt.md
          - .github/skills/coreex-solution-scaffolder/*                             → .github/skills/coreex-solution-scaffolder/ (Bootstrap and Ai)
          - .github/skills/coreex-docs-sync/*                                → .github/skills/coreex-docs-sync/ (Bootstrap and Ai)
@@ -129,7 +129,7 @@
     <!-- Files for CoreEx.Bootstrap (full set: copilot-instructions, skills, docs, per-package agents, everything). -->
     <ItemGroup>
       <_AiFile Include="$(_RepoRoot)consumer-instructions/.github/copilot-instructions.md" DestSubPath=".github/copilot-instructions.md" />
-      <_AiFile Include="$(_RepoRoot).github/AI-WORKFLOWS.md" DestSubPath=".github/AI-WORKFLOWS.md" />
+      <_AiFile Include="$(_RepoRoot).github/coreex-ai-workflows.md" DestSubPath=".github/coreex-ai-workflows.md" />
       <_AiFile Include="$(_RepoRoot).github/prompts/coreex-scaffold.prompt.md" DestSubPath=".github/prompts/coreex-scaffold.prompt.md" />
       <_AiFile Include="$(_RepoRoot).github/prompts/coreex-db-migration.prompt.md" DestSubPath=".github/prompts/coreex-db-migration.prompt.md" />
       <_AiFile Include="$(_RepoRoot).github/prompts/coreex-refdata.prompt.md" DestSubPath=".github/prompts/coreex-refdata.prompt.md" />
@@ -250,8 +250,8 @@
     <InjectAppFolderConditional SourceFile="$(_RepoRoot).github/instructions/coreex-tests.instructions.md" DestinationFile="$(_AiAiGenRoot).github/instructions/coreex-tests.instructions.md" />
     <InjectAppFolderConditional SourceFile="$(_RepoRoot).github/instructions/coreex-tooling.instructions.md" DestinationFile="$(_AiAiGenRoot).github/instructions/coreex-tooling.instructions.md" />
     <InjectAppFolderConditional SourceFile="$(_RepoRoot).github/instructions/coreex-validators.instructions.md" DestinationFile="$(_AiAiGenRoot).github/instructions/coreex-validators.instructions.md" />
-    <Copy SourceFiles="$(_RepoRoot).github/prompts/coreex-scaffold.prompt.md;$(_RepoRoot).github/agents/coreex-expert.agent.md;$(_RepoRoot).claude/commands/coreex-expert.md;$(_RepoRoot).claude/commands/coreex-docs-sync.md;$(_RepoRoot).github/skills/coreex-docs-sync/SKILL.md;$(_RepoRoot).github/skills/coreex-docs-sync/README.md;$(_RepoRoot).github/AI-WORKFLOWS.md"
-          DestinationFiles="$(_AiAiGenRoot).github/prompts/coreex-scaffold.prompt.md;$(_AiAiGenRoot).github/agents/coreex-expert.agent.md;$(_AiAiGenRoot).claude/commands/coreex-expert.md;$(_AiAiGenRoot).claude/commands/coreex-docs-sync.md;$(_AiAiGenRoot).github/skills/coreex-docs-sync/SKILL.md;$(_AiAiGenRoot).github/skills/coreex-docs-sync/README.md;$(_AiAiGenRoot).github/AI-WORKFLOWS.md"
+    <Copy SourceFiles="$(_RepoRoot).github/prompts/coreex-scaffold.prompt.md;$(_RepoRoot).github/agents/coreex-expert.agent.md;$(_RepoRoot).claude/commands/coreex-expert.md;$(_RepoRoot).claude/commands/coreex-docs-sync.md;$(_RepoRoot).github/skills/coreex-docs-sync/SKILL.md;$(_RepoRoot).github/skills/coreex-docs-sync/README.md;$(_RepoRoot).github/coreex-ai-workflows.md"
+          DestinationFiles="$(_AiAiGenRoot).github/prompts/coreex-scaffold.prompt.md;$(_AiAiGenRoot).github/agents/coreex-expert.agent.md;$(_AiAiGenRoot).claude/commands/coreex-expert.md;$(_AiAiGenRoot).claude/commands/coreex-docs-sync.md;$(_AiAiGenRoot).github/skills/coreex-docs-sync/SKILL.md;$(_AiAiGenRoot).github/skills/coreex-docs-sync/README.md;$(_AiAiGenRoot).github/coreex-ai-workflows.md"
           SkipUnchangedFiles="true" />
 
     <!-- CoreEx.Ai: also ship coreex-solution-scaffolder — previously Bootstrap-only despite being

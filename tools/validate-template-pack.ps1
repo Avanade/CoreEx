@@ -72,7 +72,7 @@ $testScenarios = @(
                 ".github/skills/coreex-docs-sync/SKILL.md"
                 ".github/skills/coreex-solution-scaffolder/SKILL.md"
                 ".github/docs/coreex/manifest.txt"
-                ".github/AI-WORKFLOWS.md"
+                ".github/coreex-ai-workflows.md"
                 ".claude/commands/coreex-expert.md"
                 ".claude/commands/coreex-docs-sync.md"
             )
@@ -101,7 +101,7 @@ $testScenarios = @(
                 ".github/skills/coreex-docs-sync/SKILL.md"
                 ".github/skills/coreex-solution-scaffolder/SKILL.md"
                 ".github/docs/coreex/manifest.txt"
-                ".github/AI-WORKFLOWS.md"
+                ".github/coreex-ai-workflows.md"
                 ".claude/commands/coreex-docs-sync.md"
             )
             FilesAbsent  = @(
