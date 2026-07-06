@@ -101,31 +101,30 @@ An earlier design synced only the packages the project already references. This 
 
 ## Adopting the agent in a consuming project
 
-Copy the following from this repository into any project that references CoreEx NuGet packages:
+Do not copy files by hand. The whole AI workflow set — including this agent — is installed by the `coreex-ai` template. From the **repo root** of the project that references CoreEx NuGet packages:
 
-```
-.github/
-  copilot-instructions.md
-  agents/
-    coreex-expert.agent.md
-  instructions/
-    coreex-conventions.instructions.md
-    coreex-contracts.instructions.md
-    coreex-application-services.instructions.md
-    coreex-validators.instructions.md
-    coreex-repositories.instructions.md
-    coreex-api-controllers.instructions.md
-    coreex-event-subscribers.instructions.md
-    coreex-host-setup.instructions.md
-    coreex-tooling.instructions.md
-    coreex-tests.instructions.md
-    coreex-domain.instructions.md
-  skills/
-    coreex-docs-sync/
-      SKILL.md
-    acquire-codebase-knowledge/ # optional — repo onboarding docs
+Resolve the version to pin first — **never run a bare `dotnet new install CoreEx.Template`** (it silently resolves to whatever is latest at that moment, which can desync the AI assets from the project's actual CoreEx version — see [AGENTS.md](../../AGENTS.md), Step 3, for the full resolution rule):
+
+```bash
+# Install the pinned template version (skip if already installed at that version)
+dotnet new install CoreEx.Template::<version>
+
+# Single-repo project:
+dotnet new coreex-ai
+
+# Monorepo — replace <subfolder> with the CoreEx app path (e.g. backend):
+dotnet new coreex-ai --app-folder <subfolder>
 ```
 
-On first use, run `/coreex-docs-sync` to populate the local cache. Re-run whenever the CoreEx NuGet version is bumped.
+`dotnet new coreex-ai` installs everything the agent depends on:
 
-For deterministic project scaffolding, use the [CoreEx.Template](../src/CoreEx.Template/README.md) `dotnet new` template pack rather than an agent skill.
+- `.github/instructions/` — the scoped, auto-injected instruction files
+- `.github/prompts/` — the `coreex-scaffold` prompt plus one prompt per per-capability (L1) skill
+- `.github/skills/` — the full skill suite (`coreex-docs-sync`, `acquire-codebase-knowledge`, `coreex-solution-scaffolder`, `aspire`, and the 14 L1 skills)
+- `.github/agents/coreex-expert.agent.md` — this agent
+- `.claude/commands/` — the Claude Code equivalents
+- `.github/docs/coreex/` — the local docs cache (architecture docs + per-package guides) the expert reads first, already populated at the pinned version — no separate sync step needed on first install
+
+Later, when the project's `CoreEx` NuGet version is bumped, re-run `/coreex-docs-sync` to refresh the whole bundle (instructions, skills, prompts, this agent, and the docs cache) to the matching `CoreEx.Template` release — the agent recommends this automatically when the cached `coreex-version` no longer matches the project (see the resolution flowchart above).
+
+For deterministic project scaffolding, use the [CoreEx.Template](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.Template/README.md) `dotnet new coreex*` template pack rather than an agent skill.

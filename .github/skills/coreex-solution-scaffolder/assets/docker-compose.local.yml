@@ -1,3 +1,5 @@
+# Static, full-featured local-dev fallback bundled with the coreex-solution-scaffolder skill — see
+# README.md (this directory) for what this is, where it came from, and when to reconcile it.
 name: CoreEx
 
 services:

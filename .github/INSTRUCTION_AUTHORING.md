@@ -21,9 +21,46 @@ Write instruction files as you would a concise internal coding guide for a capab
 - **Be specific.** Use actual type names, package names, and method names from this codebase.
 - **Be brief.** If content cannot fit on one screen, split into a separate file or move detail to `Further Reading`.
 - **Do not restate global rules.** If `.github/copilot-instructions.md` already covers it, do not repeat it here.
+- **Invariants, not procedures.** An instruction file states the rules that must hold on *any* edit to a matching
+  file. A multi-step "how to create X from scratch" procedure belongs in a **skill** (`.github/skills/coreex-*/`),
+  which is invoked explicitly. When an instruction is tempted to describe a creation workflow, replace it with a
+  one-line pointer to the skill. See [Instructions vs. Skills](#instructions-vs-skills).
 - **Explicit negation matters.** Copilot's training data contains many common patterns that are wrong for this repo. State anti-patterns explicitly with a `## Do Not` section.
 - **Scope tightly.** An instruction that is always injected regardless of context wastes tokens. Use the narrowest `applyTo` glob that is still correct.
+- **References must resolve in a consumer repo.** Instruction files ship to consumers via `dotnet new coreex-ai`,
+  where this repo's `samples/` and `src/CoreEx.*` do not exist. For deeper reading, link the docs-sync cache
+  (`/.github/docs/coreex/<layer>.md`, present after `coreex-ai` / `/coreex-docs-sync`) or a full GitHub URL — never
+  a bare local `../../samples/…` or `../../src/CoreEx…` path.
 - **Never direct Copilot toward generated files.** Instruction files must never include guidance, examples, or `applyTo` globs that would cause Copilot to create or modify `*.g.cs`, `*.g.sql`, `*.g.pgsql`, or any other generated-output file. All generated files are owned exclusively by their corresponding tooling (Roslyn source generator, `*.Database` project, `*.CodeGen` project). Changes must be made to the source templates or generation configuration, not to the output. See [Generated Code](#generated-code) below.
+
+---
+
+## Instructions vs. Skills
+
+The AI workflow set has two complementary asset types. Keep the boundary crisp:
+
+| | Instruction (`.github/instructions/*.instructions.md`) | Skill (`.github/skills/coreex-*/`) |
+|---|---|---|
+| **Trigger** | Auto-injected when an edited file matches `applyTo` | Invoked explicitly by the developer |
+| **Content** | **Invariant rules** that must hold on *any* edit | **Step-by-step procedure** to create/modify something |
+| **Shape** | Rule + code example, no multi-step workflow | Interview → phased workflow → checklists |
+
+**When an instruction starts describing a creation procedure, extract it.** Move the steps into the matching skill's
+`references/workflow.md` and leave a one-line pointer in the instruction:
+
+```markdown
+> To scaffold a new reference data type, invoke the [`coreex-refdata`](/.github/skills/coreex-refdata/SKILL.md) skill.
+```
+
+Keep in the instruction only the invariants that must hold whenever such a file is edited (naming, types,
+generated-file ownership, decision gates like "root vs subordinate"). A single decision point ("confirm idempotency
+for every POST") is an invariant and stays; a numbered "detect → confirm → scaffold → verify" sequence is a
+procedure and moves to the skill.
+
+**Project-wide choices live in state, not in prompts.** The solution-root `AGENTS.md` "Feature Configuration"
+records `data-provider`, `rop-enabled`, `domain-driven-enabled`, `refdata-enabled`, `outbox-enabled`, and
+`messaging-provider`. Instructions and skills must **read that recording before asking** and re-state resolved
+values for confirmation rather than re-prompting (the global rule lives in `.github/copilot-instructions.md`).
 
 ---
 
@@ -63,8 +100,8 @@ tags: ["tag1", "tag2"]
 
 ## Further Reading
 
-- [`samples/docs/<layer>.md`](../../samples/docs/<layer>.md) — layer-level walkthrough with sample code references.
-- [`src/CoreEx.X/README.md`](../../src/CoreEx.X/README.md) — full API reference for the primary package.
+- [`<layer>` deep-dive](/.github/docs/coreex/<layer>.md) — layer-level walkthrough (docs-sync cache).
+- Related skill: [`coreex-<capability>`](/.github/skills/coreex-<capability>/SKILL.md) — invoke to scaffold.
 ```
 
 ---
@@ -119,13 +156,15 @@ List things Copilot must not generate for this area. Be specific: name the wrong
 
 ### `## Further Reading` — required
 
-Link to the layer-level `samples/docs/` walkthrough and any directly relevant `src/*/README.md` files. Copilot will fetch these when it needs deeper context, keeping the instruction file itself lean.
+Link the layer-level walkthrough from the docs-sync cache (`/.github/docs/coreex/<layer>.md`) and the **related
+skill** for creation workflows. These resolve in a consumer repo; a bare `../../samples/docs/…` path does not.
+Copilot/Claude fetch these for deeper context, keeping the instruction file itself lean.
 
 ```markdown
 ## Further Reading
 
-- [`samples/docs/application-layer.md`](../../samples/docs/application-layer.md) — application service patterns with sample code.
-- [`src/CoreEx/Results/README.md`](../../src/CoreEx/Results/README.md) — `Result<T>` pipeline API reference.
+- [Application layer deep-dive](/.github/docs/coreex/application-layer.md) — service patterns (docs-sync cache).
+- Related skill: [`coreex-app-service`](/.github/skills/coreex-app-service/SKILL.md) — invoke to scaffold a service.
 ```
 
 ---
@@ -241,6 +280,6 @@ public Task<IActionResult> CreateAsync([FromBody] Product product) =>
 
 ## Further Reading
 
-- [`samples/docs/hosts-layer.md`](../../samples/docs/hosts-layer.md) — API host composition and controller patterns.
-- [`src/CoreEx.AspNetCore/README.md`](../../src/CoreEx.AspNetCore/README.md) — `WebApi` helper API reference.
+- [Hosts layer deep-dive](/.github/docs/coreex/hosts-layer.md) — API host composition and controller patterns.
+- Related skill: [`coreex-api`](/.github/skills/coreex-api/SKILL.md) — invoke to scaffold a controller/endpoint.
 ```

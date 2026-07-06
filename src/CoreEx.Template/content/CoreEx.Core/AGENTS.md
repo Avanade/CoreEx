@@ -79,7 +79,7 @@ app-name/
 
 ## Relevant Docs
 
-After running `/coreex-docs-sync` (or using `coreex-bootstrap`), the following are available locally:
+`dotnet new coreex-ai` installs the following under `.github/docs/coreex/` (refresh later with `/coreex-docs-sync`):
 
 - `.github/docs/coreex/layers.md` -- full layered architecture and dependency rules
 - `.github/docs/coreex/patterns.md` -- CoreEx request/response and event patterns

@@ -153,7 +153,7 @@ The repository includes an AI workflow set in [`.github/`](./.github/) that give
 
 **Instructions** — 10 scoped instruction files are injected automatically when editing matching file types (contracts, services, repositories, controllers, tests, etc.). No action required.
 
-→ **[Full AI workflow overview](./.github/AI-WORKFLOWS.md)**
+→ **[Full AI workflow overview](./.github/coreex-ai-workflows.md)**
 
 ## License
 

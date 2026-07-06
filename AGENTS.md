@@ -72,11 +72,23 @@ Single-repo projects answer "no" (the most common case). Monorepo projects provi
 
 ### Step 3 — Install the template and AI workflow assets
 
-Run these commands from the **repo root**:
+Resolve the version to pin first — **never run a bare `dotnet new install CoreEx.Template`** (it
+silently resolves to whatever is latest at that moment and is never recorded anywhere, so a future
+session has nothing to compare against to detect drift):
+
+- If this repository already references a `CoreEx` NuGet package (check `Directory.Packages.props`,
+  `*.csproj`, or `Directory.Build.props`), use that exact version — `CoreEx.Template` and `CoreEx` are
+  released from the same repo at the same version number, so they always match.
+- Otherwise (true first-time adoption, no CoreEx reference yet), resolve the latest stable release —
+  e.g. `dotnet package search CoreEx.Template --exact-match` or check the
+  [NuGet.org listing](https://www.nuget.org/packages/CoreEx.Template) — and pin to that specific version
+  explicitly. Record it so later sessions (and `/coreex-docs-sync`) know what was installed.
+
+Run these commands from the **repo root**, substituting `<version>` for the version resolved above:
 
 ```bash
-# Install the template pack (skip if already installed)
-dotnet new install CoreEx.Template
+# Install the exact pinned template version (skip if already installed at that version)
+dotnet new install CoreEx.Template::<version>
 
 # Single-repo project:
 dotnet new coreex-ai
@@ -87,10 +99,19 @@ dotnet new coreex-ai --app-folder <subfolder>
 
 This installs:
 - `.github/instructions/` — scoped instruction files auto-injected by Copilot for each file type
-- `.github/prompts/` — scaffolding prompt
+- `.github/prompts/` — the scaffolding prompt plus one `coreex-<capability>.prompt.md` per L1 skill
+- `.github/skills/` — the CoreEx skill suite: `coreex-docs-sync`, `coreex-solution-scaffolder`, and the L1 skills
+  (`coreex-contract`, `coreex-refdata`, `coreex-db-migration`, `coreex-repository`, `coreex-adapter`,
+  `coreex-app-service`, `coreex-validator`, `coreex-policy`, `coreex-aggregate`, `coreex-api`, `coreex-subscriber`,
+  `coreex-test-api`, `coreex-test-subscribe`, `coreex-test-relay`)
 - `.github/agents/coreex-expert.agent.md` — architecture guidance agent
-- `.github/skills/coreex-docs-sync/` — skill to cache CoreEx docs locally
+- `.github/docs/coreex/` — the architecture docs + per-package guides cache, self-describing via
+  `.github/docs/coreex/manifest.txt` (refresh later, version-pinned, with `/coreex-docs-sync`)
 - `.claude/commands/` — equivalent commands for Claude Code
+
+Every file above comes from **one** `CoreEx.Template` release installed as **one** atomic bundle —
+never mix versions across a single install. For the full catalog and how these pieces fit together,
+see [`.github/coreex-ai-workflows.md`](./.github/coreex-ai-workflows.md).
 
 ### Step 4 — Reload context and continue
 

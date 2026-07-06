@@ -11,15 +11,5 @@
     "type": "project"
   },
   "sourceName": "app-name",
-  "preferNameDirectory": false,
-  "symbols": {
-    "coreex-version": {
-      "type": "generated",
-      "generator": "constant",
-      "parameters": {
-        "value": "COREEX_VERSION"
-      },
-      "replaces": "coreex-version"
-    }
-  }
+  "preferNameDirectory": false
 }
