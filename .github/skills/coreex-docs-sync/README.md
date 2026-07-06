@@ -94,5 +94,5 @@ to tell "already in use" from "you'd need to add this."
 
 - [SKILL.md](./SKILL.md) — full detail on the version-pinned refresh mechanism, guardrails (`--force`
   scoping, orphan files), and the manifest format.
-- [CoreEx Expert agent README](../agents/README.md) — how the agent uses the cache and when it
+- [CoreEx Expert agent README](../../agents/README.md) — how the agent uses the cache and when it
   flags a version mismatch.

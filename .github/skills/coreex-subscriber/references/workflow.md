@@ -241,7 +241,7 @@ builder.Services
 Always provide a test for a new or modified subscriber. Full workflow, test-class shape, message-receipt
 simulation, and per-scenario test patterns (command / event-data-sync / event-business-process, plus the
 required "unsubscribed subject" test) now live in the dedicated **`coreex-test-subscribe`** skill — see
-[`../coreex-test-subscribe/references/workflow.md`](../coreex-test-subscribe/references/workflow.md).
+[`../../coreex-test-subscribe/references/workflow.md`](../../coreex-test-subscribe/references/workflow.md).
 That skill also links back to `coreex-test-api` for the shared DB/cache/outbox `OneTimeSetUp` mechanics
 (seed authoring, provider-specific outbox helpers) common to both API and Subscribe host tests.
 

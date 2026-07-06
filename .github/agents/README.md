@@ -127,4 +127,4 @@ dotnet new coreex-ai --app-folder <subfolder>
 
 Later, when the project's `CoreEx` NuGet version is bumped, re-run `/coreex-docs-sync` to refresh the whole bundle (instructions, skills, prompts, this agent, and the docs cache) to the matching `CoreEx.Template` release — the agent recommends this automatically when the cached `coreex-version` no longer matches the project (see the resolution flowchart above).
 
-For deterministic project scaffolding, use the [CoreEx.Template](../src/CoreEx.Template/README.md) `dotnet new coreex*` template pack rather than an agent skill.
+For deterministic project scaffolding, use the [CoreEx.Template](../../src/CoreEx.Template/README.md) `dotnet new coreex*` template pack rather than an agent skill.

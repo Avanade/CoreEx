@@ -22,7 +22,7 @@ subscriber under test implements — it determines what you assert:
 ## Phase 1 — OneTimeSetUp (shared foundation)
 
 Subscribe tests use the **same DB/cache/outbox setup** as API tests — see
-[`../coreex-test-api/references/workflow.md`](../coreex-test-api/references/workflow.md) Phase 1 for
+[`../../coreex-test-api/references/workflow.md`](../../coreex-test-api/references/workflow.md) Phase 1 for
 seed-file authoring and Phase 4 for outbox assertion mechanics. Subscribe hosts **do** have FusionCache
 (they're full application-layer consumers needing it for reference data and idempotency) — don't skip
 `ClearFusionCacheAsync()` thinking it's API-only.
