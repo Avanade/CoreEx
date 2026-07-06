@@ -309,7 +309,7 @@ var dv = Validator.Create<MovementRequestProduct>()
 
 1. `dotnet build` — no errors or warnings.
 2. Verify the validator is invoked correctly from the service: exception-style (`ValidateAndThrowAsync`) or Result-style (`ValidateWithResultAsync`).
-3. **Offer to create or update the matching test class** in `*.Test.Unit/Validators/`. The test class must:
+3. **Generate or update the matching test class** in `*.Test.Unit/Validators/`. The test class must:
    - Use non-generic `Test.Scoped(test => { ... })` with `XxxValidator.Default` (or `new XxxValidator(mockDep)` for injected validators).
    - Cover **every rule** — both error and success cases.
    - Use `(jsonName, "Full expected message.")` tuples in `AssertErrors(...)`.

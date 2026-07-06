@@ -116,6 +116,13 @@ Do not run `/coreex-docs-sync` silently — always offer and wait for confirmati
 
 These skills are part of the CoreEx AI workflow set and live in `.github/skills/` (installed into a consuming project by `dotnet new coreex-ai`). When a request maps to a skill, route to it rather than authoring changes freehand — each skill reads the solution-root `AGENTS.md` **Feature Configuration** first to avoid re-prompting for recorded project choices.
 
+**Add a complete new entity or subscriber end-to-end** → route to the matching L2 skill; these gather all context upfront and orchestrate the full L1 sequence so the developer is never asked the same question twice:
+
+| Request | Skill |
+|---------|-------|
+| New entity with CRUD API — full stack from database table to HTTP endpoint | `/coreex-add-api` |
+| New event or command subscriber — handler, optional orchestration, and tests | `/coreex-add-subscriber` |
+
 **Add or modify a single capability** → route to the matching per-capability (L1) skill:
 
 | Request | Skill |

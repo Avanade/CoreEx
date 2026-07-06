@@ -305,6 +305,14 @@
           DestinationFiles="$(_AiAiGenRoot).github/prompts/coreex-test-relay.prompt.md;$(_AiAiGenRoot).github/skills/coreex-test-relay/SKILL.md"
           SkipUnchangedFiles="true" />
 
+    <!-- CoreEx.Ai: L2 end-to-end skills (orchestrate multiple L1 skills in one guided workflow). -->
+    <Copy SourceFiles="$(_RepoRoot).github/prompts/coreex-add-api.prompt.md;$(_RepoRoot).github/skills/coreex-add-api/SKILL.md;$(_RepoRoot).github/skills/coreex-add-api/references/workflow.md"
+          DestinationFiles="$(_AiAiGenRoot).github/prompts/coreex-add-api.prompt.md;$(_AiAiGenRoot).github/skills/coreex-add-api/SKILL.md;$(_AiAiGenRoot).github/skills/coreex-add-api/references/workflow.md"
+          SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(_RepoRoot).github/prompts/coreex-add-subscriber.prompt.md;$(_RepoRoot).github/skills/coreex-add-subscriber/SKILL.md;$(_RepoRoot).github/skills/coreex-add-subscriber/references/workflow.md"
+          DestinationFiles="$(_AiAiGenRoot).github/prompts/coreex-add-subscriber.prompt.md;$(_AiAiGenRoot).github/skills/coreex-add-subscriber/SKILL.md;$(_AiAiGenRoot).github/skills/coreex-add-subscriber/references/workflow.md"
+          SkipUnchangedFiles="true" />
+
     <!-- CoreEx.Ai: also ship the docs cache (architecture docs + per-package guides) so `dotnet new coreex-ai`
          populates .github/docs/coreex/ at install (refreshable later via /coreex-docs-sync). Mirrors the Bootstrap
          doc entries in the _AiFile group above — keep the two lists in sync. -->
