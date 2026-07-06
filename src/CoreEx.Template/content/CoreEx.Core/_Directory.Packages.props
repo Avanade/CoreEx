@@ -39,27 +39,27 @@
   <!-- Aspire client integration packages. -->
   <ItemGroup>
     <!--#if implement-servicebus-->
-    <PackageVersion Include="Aspire.Azure.Messaging.ServiceBus" Version="13.1.1" />
+    <PackageVersion Include="Aspire.Azure.Messaging.ServiceBus" Version="13.4.6" />
     <!--#endif-->
     <!--#if implement-postgres-->
-    <PackageVersion Include="Aspire.Azure.Npgsql" Version="13.1.1" />
+    <PackageVersion Include="Aspire.Azure.Npgsql" Version="13.4.6" />
     <!--#endif-->
     <!--#if implement-sqlserver-->
-    <PackageVersion Include="Aspire.Microsoft.Data.SqlClient" Version="13.1.1" />
+    <PackageVersion Include="Aspire.Microsoft.Data.SqlClient" Version="13.4.6" />
     <!--#endif-->
-    <PackageVersion Include="Aspire.StackExchange.Redis.DistributedCaching" Version="13.1.1" />
+    <PackageVersion Include="Aspire.StackExchange.Redis.DistributedCaching" Version="13.4.6" />
   </ItemGroup>
 
   <!-- OpenTelemetry packages. -->
   <ItemGroup>
-    <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.15.3" />
-    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.15.3" />
+    <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.16.0" />
+    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.16.0" />
   </ItemGroup>
 
   <!-- FusionCache support packages. -->
   <ItemGroup>
-    <PackageVersion Include="ZiggyCreatures.FusionCache.Backplane.StackExchangeRedis" Version="2.5.0" />
-    <PackageVersion Include="ZiggyCreatures.FusionCache.Serialization.SystemTextJson" Version="2.5.0" />
+    <PackageVersion Include="ZiggyCreatures.FusionCache.Backplane.StackExchangeRedis" Version="2.6.0" />
+    <PackageVersion Include="ZiggyCreatures.FusionCache.Serialization.SystemTextJson" Version="2.6.0" />
   </ItemGroup>
 
   <!-- Tool/Test packages. -->
@@ -77,14 +77,14 @@
     <PackageVersion Include="DbEx.SqlServer" Version="3.1.2" />
     <!--#endif-->
     <!--#if implement-sqlserver-->
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.9" />
     <!--#endif-->
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
-    <PackageVersion Include="NUnit" Version="4.3.2" />
+    <PackageVersion Include="NUnit" Version="4.6.1" />
     <PackageVersion Include="NUnit.Analyzers" Version="4.9.0" />
     <PackageVersion Include="NUnit3TestAdapter" Version="5.0.0" />
     <!--#if implement-postgres-->
-    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.1" />
+    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.2" />
     <!--#endif-->
     <PackageVersion Include="UnitTestEx.NUnit" Version="5.11.0" />
   </ItemGroup>
