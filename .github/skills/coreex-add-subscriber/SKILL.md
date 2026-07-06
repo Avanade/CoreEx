@@ -31,7 +31,7 @@ Guides you through adding a complete new event or command subscriber in one sitt
 
 ## Workflow Overview
 
-1. **Read Feature Configuration** — resolve `messaging-provider`, `outbox-enabled`, and `data-provider` from the solution-root `AGENTS.md` before asking anything.
+1. **Read Feature Configuration** — resolve `messaging-provider`, `outbox-enabled`, `data-provider`, and `rop-enabled` from the solution-root `AGENTS.md` before asking anything.
 2. **Interview** — identify the subject, scenario, DTO needs, and whether state persistence is required; batch all questions into one turn.
 3. **Execute L1 sequence** — invoke each applicable L1 skill in order, passing context resolved in steps 1–2; no repeated questions.
 4. **Validate** — `dotnet build`; confirm the subscriber is registered and integration tests are present.

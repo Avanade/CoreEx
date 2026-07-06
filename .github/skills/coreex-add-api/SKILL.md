@@ -1,7 +1,7 @@
 ---
 name: coreex-add-api
 description: "Create a complete new entity with CRUD API endpoints end-to-end in a single guided workflow: DTO contract, database migration, EF Core repository, validator (+ unit tests), optional policy guard (+ unit tests), application service, API endpoint, and integration tests. USE FOR: adding a brand-new entity to an existing CoreEx solution where the full stack — from database table to HTTP endpoint — is needed. DO NOT USE FOR: modifying an existing entity or endpoint (use the targeted L1 skill directly), read-only façade entities backed by an external adapter with no local table (use individual L1 skills), or any partial-stack additions."
-argument-hint: "Optional: entity name, CRUD operations needed (Get/Query/Create/Update/Delete), key fields"
+argument-hint: "Optional: entity name, CRUD operations needed (Get/Query/Create/Update/Patch/Delete), key fields"
 tags: ["coreex", "api", "entity", "end-to-end", "crud", "vertical-slice"]
 ---
 
@@ -32,7 +32,7 @@ Guides you through adding a complete new entity and its CRUD API in one sitting:
 ## Workflow Overview
 
 1. **Read Feature Configuration** — resolve `domain-driven-enabled`, `rop-enabled`, `outbox-enabled`, and `data-provider` from the solution-root `AGENTS.md` before asking anything.
-2. **Interview** — gather entity name, fields, operations (Get/Query/Create/Update/Delete), and whether a policy guard is needed; batch all questions into one turn.
+2. **Interview** — gather entity name, fields, operations (Get/Query/Create/Update/Patch/Delete), and whether a policy guard is needed; batch all questions into one turn.
 3. **Execute L1 sequence** — invoke each L1 skill in order, passing context resolved in steps 1–2; no repeated questions.
 4. **Validate** — `dotnet build` across all projects; confirm unit and integration test classes are present.
 
