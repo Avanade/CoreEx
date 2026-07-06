@@ -62,7 +62,7 @@ dotnet new coreex-ai --force
 
 ## Step 6 — Flag possible orphans
 
-Compare the skill folder names under `.github/skills/coreex-*/` against the current known L1 skill set (listed in [`AI-WORKFLOWS.md`](https://github.com/Avanade/CoreEx/blob/main/.github/AI-WORKFLOWS.md)). Any extra folder is very likely left over from a prior template version and should be flagged for manual review, not assumed safe to delete automatically.
+Compare the skill folder names under `.github/skills/coreex-*/` against the current known L1 skill set (listed in [`AI-WORKFLOWS.md`](/.github/AI-WORKFLOWS.md)). Any extra folder is very likely left over from a prior template version and should be flagged for manual review, not assumed safe to delete automatically.
 
 ## Step 7 — Report
 
