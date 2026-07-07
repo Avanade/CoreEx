@@ -147,11 +147,19 @@ The repository includes an AI workflow set in [`.github/`](./.github/) that give
 |---------|-------------|-------------|---------------------|
 | [Expert guidance](./.github/agents/README.md) | Architecture, pattern, and design advice | `@coreex-expert` | Agent mode → **CoreEx Expert** |
 | [CoreEx.Template](./src/CoreEx.Template/README.md) | Deterministic solution and host scaffolding via `dotnet new coreex*` templates | `dotnet new install CoreEx.Template` then `dotnet new coreex...` | Run the same `dotnet new` commands in the terminal |
+| [`/coreex-scaffold`](./.github/skills/coreex-solution-scaffolder/README.md) | Guide greenfield solution scaffolding and run the matching `dotnet new coreex*` commands | `/coreex-scaffold` | `#file:.github/skills/coreex-solution-scaffolder/SKILL.md` |
 | [`/coreex-docs-sync`](./.github/skills/coreex-docs-sync/README.md) | Cache CoreEx docs and per-package AI guides locally | `/coreex-docs-sync` | `#file:.github/skills/coreex-docs-sync/SKILL.md` |
 | [`/acquire-codebase-knowledge`](./.github/skills/acquire-codebase-knowledge/README.md) | Map and document an existing codebase | `/acquire-codebase-knowledge` | `#file:.github/skills/acquire-codebase-knowledge/SKILL.md` |
 | [`/aspire`](./.github/skills/aspire/README.md) | Orchestrate Aspire apps locally (start, stop, logs) | `/aspire` | `#file:.github/skills/aspire/SKILL.md` |
 
-**Instructions** — 10 scoped instruction files are injected automatically when editing matching file types (contracts, services, repositories, controllers, tests, etc.). No action required.
+**Building on an existing solution** — sixteen further skills add or modify one CoreEx capability or vertical slice at a time, each invoked as `/coreex-<name>` (Claude Code) or via the matching `prompts/coreex-<name>.prompt.md` (Copilot):
+
+- **Per-capability (L1)** — `coreex-contract`, `coreex-refdata`, `coreex-db-migration`, `coreex-repository`, `coreex-adapter`, `coreex-app-service`, `coreex-validator`, `coreex-policy`, `coreex-aggregate`, `coreex-api`, `coreex-subscriber`, `coreex-test-api`, `coreex-test-subscribe`, `coreex-test-relay`.
+- **End-to-end vertical slice (L2)** — `coreex-api-e2e` (new entity + CRUD API, full stack) and `coreex-subscriber-e2e` (new event/command subscriber), each orchestrating the relevant L1 skills in one guided workflow.
+
+See the [full skill catalog](./.github/coreex-ai-workflows.md#prompts-skills-and-templates) for what each one covers.
+
+**Instructions** — 11 scoped instruction files are injected automatically when editing matching file types (contracts, services, repositories, controllers, tests, etc.). No action required.
 
 → **[Full AI workflow overview](./.github/coreex-ai-workflows.md)**
 

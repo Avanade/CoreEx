@@ -102,7 +102,7 @@ Fourteen skills add or modify a single CoreEx capability on an existing solution
 
 #### End-to-end workflow skills (L2)
 
-Two skills orchestrate a complete vertical slice by gathering all context upfront and invoking the appropriate L1 skills in sequence — no repeated questions. They are **creation-only** (the `add-` prefix is intentional); modifications to an existing entity or subscriber always target the relevant L1 skill directly.
+Two skills orchestrate a complete vertical slice by gathering all context upfront and invoking the appropriate L1 skills in sequence — no repeated questions. They are **creation-only** — modifications to an existing entity or subscriber always target the relevant L1 skill directly.
 
 | Skill / prompt | What it orchestrates |
 |----------------|---------------------|
