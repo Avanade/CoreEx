@@ -95,7 +95,7 @@ Invoke [`coreex-subscriber`](../coreex-subscriber/SKILL.md).
 
 Pass: subject, DTO type (from Step 1 or the existing type), scenario type (command / event-data-sync / business-process), what the handler calls (app-service from Step 4, or `IXxxSyncAdapter` for sync scenarios), `messaging-provider` from Feature Configuration.
 
-The L1 skill generates the subscriber class, `ValueValidator`, `ErrorHandler` wiring, and DI registration in the Subscribe host `Program.cs`.
+The L1 skill generates the subscriber class, `ValueValidator`, and `ErrorHandler` wiring — no Subscribe host `Program.cs` edit is needed; `AddSubscribersUsing<T>()` discovers all `[Subscribe]`-decorated classes automatically.
 
 ---
 
@@ -110,7 +110,7 @@ Pass: subscriber class name, subject, scenario type, expected outcome (success p
 ## Phase 4 — Validate
 
 1. `dotnet build` — no errors or warnings across all projects.
-2. Confirm the subscriber is registered in the Subscribe host `Program.cs`.
+2. Confirm the subscriber is discoverable via `AddSubscribersUsing<T>()` — no manual Subscribe host `Program.cs` registration is required.
 3. Confirm `*.Test.Subscribe/` contains the scenario test class (or partial class) with at minimum a success path and an unsubscribed-subject test.
 4. Report a file-per-layer summary of everything added during this workflow.
 
