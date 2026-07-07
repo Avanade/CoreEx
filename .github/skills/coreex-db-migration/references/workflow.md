@@ -107,6 +107,10 @@ Remove any `DEFAULT (NEWSEQUENTIALID())`, `IDENTITY`, or `SERIAL` unless the use
 | `bool` | `BIT` | `BOOLEAN` |
 | `DateTimeOffset` | `DATETIMEOFFSET` | `TIMESTAMPTZ` |
 | `DateTime` | `DATETIME2` | `TIMESTAMP` |
+| `DateOnly` | `DATE` | `date` |
+| `TimeOnly` | `TIME` | `time` |
+
+`DateOnly`/`TimeOnly` map natively — no `HasConversion(...)` value converter is required on either provider (EF Core SqlServer since EF8, Npgsql since v6). See `tests/CoreEx.Database.SqlServer.Test.Unit/Repository/TestDbContext.cs` and `tests/CoreEx.Database.Postgres.Test.Unit/Repository/TestDbContext.cs` for confirmed working `HasColumnType`-only configuration.
 
 ### JSON columns
 
