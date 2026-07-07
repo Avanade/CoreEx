@@ -179,7 +179,7 @@ Use the coreex-api-e2e skill to add a new Employee entity end-to-end with the fo
   - Salary (decimal)
   - DateOfBirth (DateOnly) - must be at least 16 years of age.
 
-Operations needed: Get, Query, Create, Update, Delete. No business guard/policy is required.
+Operations needed: Get, Create, Update, Delete. No business guard/policy is required.
 
 Run all the tests and correct any failures.
 ```
