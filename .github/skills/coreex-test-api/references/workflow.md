@@ -178,7 +178,7 @@ var updated = Test.Http<Product>()
 
 // Assert the specific property that changed.
 updated.Text.Should().Be(val.Text);
-updated.ETag.Should().NotBe(p.ETag);
+updated.ETag.Should().NotBe(val.ETag);
 
 // Verify persistence — re-GET and assert it matches the mutation response.
 Test.Http<Product>()

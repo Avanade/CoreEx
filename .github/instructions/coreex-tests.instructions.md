@@ -363,14 +363,15 @@ Test.Http<Product>()
 For **PATCH**, also set the **merge-patch content type** (the request default is plain JSON):
 
 ```csharp
+var p = Test.Http<Product>().Run(HttpMethod.Get, $"/api/products/{1.ToGuid()}").AssertOK().Value!;
 var patched = Test.Http<Product>()
-    .Run(HttpMethod.Patch, $"/api/products/{p.Id}", new { text = p.Text },
-         requestModifier: r => r.WithIfMatch(val.ETag).WithMergePatchJsonContentType())
+    .Run(HttpMethod.Patch, $"/api/products/{p.Id}", new { text = "Patched text" },
+         requestModifier: r => r.WithIfMatch(p.ETag).WithMergePatchJsonContentType())
     .AssertOK()
     .Value!;
 
 // Assert the specific property that changed.
-patched.Text.Should().Be(p.Text);
+patched.Text.Should().Be("Patched text");
 
 // Assert: verify persistence with a follow-up GET.
 Test.Http<Product>()
