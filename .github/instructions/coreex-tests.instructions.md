@@ -263,6 +263,12 @@ var created = Test.Http<Product>()
     .AssertLocationHeader(r => new Uri($"/api/products/{r!.Id}", UriKind.Relative))
     .Value!;
 
+// Verify persistence — re-GET and assert it matches the mutation response, not just the echoed body.
+Test.Http<Product>()
+    .Run(HttpMethod.Get, $"/api/products/{created.Id}")
+    .AssertOK()
+    .AssertValue(created);
+
 // POST — SQL Server domain (SQL Server outbox)
 Test.Http<Basket>()
     .ExpectSqlServerOutboxEvents(e => e
@@ -293,6 +299,40 @@ These `Test.Http<T>()` expectations both **assert the value is present** and **a
 
 (For a plain GET via `.AssertJsonFromResource(...)` *without* these expectations, exclude the volatile fields manually — e.g. `"etag", "changelog"` — as in the GET example above.)
 
+### Verify persistence with a follow-up GET (Create, Update, Patch)
+
+**Every Create/Update/Patch `_Success` test (and no-op `_NoChanges` variants) ends with a second `GET`
+of the same resource, asserted against the mutation response** via `.AssertValue(response)`. The
+mutation's own response only proves the handler *echoed back* what was sent — it does not prove the
+write actually landed (a broken mapper, a no-op repository update, or an EF change that wasn't tracked
+would all still return a plausible `200`/`201` with a correct-looking body). The re-GET closes that gap.
+Delete is exempt only because its canonical four-step flow (get → delete → get → delete) already re-GETs
+to prove the row is gone — see the Delete section below.
+
+**Before the re-GET, explicitly assert the specific property (or properties) under test**, e.g.
+`updated.Salary.Should().Be(60000.00m);`. The whole-object `AssertValue(response)` only proves the GET
+matches the *mutation response* — it doesn't independently pin down that the property under test took on
+the intended value, and would still pass if both responses shared the same bug. The explicit property
+assertion verifies the change itself; the re-GET verifies it persisted.
+
+```csharp
+var created = Test.Http<Product>()
+    /* ...expectations... */
+    .Run(HttpMethod.Post, "/api/products", product)
+    .AssertCreated()
+    .Value!;
+
+// Assert the specific property values the test is about.
+created.Sku.Should().Be(product.Sku);
+created.Price.Should().Be(product.Price);
+
+// Assert: verify persistence with a follow-up GET.
+Test.Http<Product>()
+    .Run(HttpMethod.Get, $"/api/products/{created.Id}")
+    .AssertOK()
+    .AssertValue(created);
+```
+
 ### Update (PUT) and Patch with ETag (concurrency)
 
 Send the ETag for concurrency-controlled mutations. **Fetch the current entity first** to get its `ETag`, then PUT with `If-Match`:
@@ -304,19 +344,39 @@ var val = Test.Http<Product>()
 val.Text = "Updated text";
 
 // Act/Assert: PUT with If-Match.
-Test.Http<Product>()
+var updated = Test.Http<Product>()
     .Run(HttpMethod.Put, $"/api/products/{val.Id}", val, requestModifier: r => r.WithIfMatch(val.ETag))
-    .AssertOK();
+    .AssertOK()
+    .Value!;
+
+// Assert the specific property that changed.
+updated.Text.Should().Be(val.Text);
+
+// Assert: verify persistence with a follow-up GET.
+Test.Http<Product>()
+    .Run(HttpMethod.Get, $"/api/products/{val.Id}")
+    .AssertOK()
+    .AssertValue(updated);
 ```
 > If the serialized request body already contains `ETag` and no `If-Match` header is set, that body `ETag` is used as the concurrency token.
 
 For **PATCH**, also set the **merge-patch content type** (the request default is plain JSON):
 
 ```csharp
-Test.Http<Product>()
+var patched = Test.Http<Product>()
     .Run(HttpMethod.Patch, $"/api/products/{p.Id}", new { text = p.Text },
          requestModifier: r => r.WithIfMatch(val.ETag).WithMergePatchJsonContentType())
-    .AssertOK();
+    .AssertOK()
+    .Value!;
+
+// Assert the specific property that changed.
+patched.Text.Should().Be(p.Text);
+
+// Assert: verify persistence with a follow-up GET.
+Test.Http<Product>()
+    .Run(HttpMethod.Get, $"/api/products/{p.Id}")
+    .AssertOK()
+    .AssertValue(patched);
 ```
 
 **Concurrency error (stale ETag) → 412.** Supply a **wrong** `If-Match` and assert `AssertPreconditionFailed()`. The `If-Match` **header takes precedence** over any `ETag` in the body, so you do **not** need to clear `val.ETag` — the header value drives the concurrency check:

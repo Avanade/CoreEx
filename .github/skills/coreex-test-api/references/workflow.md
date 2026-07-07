@@ -106,10 +106,23 @@ against them; resources get captured from the actual run).
 |---|---|
 | **Get** | found, not-found, ETag/If-None-Match → 304 |
 | **Query** | filter, order, paging, field selection |
-| **Create** | success + `Location` header + outbox event; bad-data validation; duplicate/conflict; idempotency-key |
-| **Update** | success + ETag/concurrency (412); not-found (still needs a valid ETag + full body — see below) |
-| **Patch** | merge success (`.WithMergePatchJsonContentType()`); not-found |
-| **Delete** | idempotent four-step flow: get → delete → get → delete |
+| **Create** | success + `Location` header + outbox event + **follow-up GET verifying persistence**; bad-data validation; duplicate/conflict; idempotency-key |
+| **Update** | success + **follow-up GET verifying persistence** + ETag/concurrency (412); not-found (still needs a valid ETag + full body — see below) |
+| **Patch** | merge success (`.WithMergePatchJsonContentType()`) + **follow-up GET verifying persistence**; not-found |
+| **Delete** | idempotent four-step flow: get → delete → get → delete (the follow-up GET is inherent to this flow) |
+
+**Every Create/Update/Patch `_Success` test ends with a second `GET` of the same resource, asserted
+against the mutation response** (`.AssertValue(response)`, excluding volatile fields already covered by
+`Expect*`). The mutation's own response only proves the handler echoed back what was sent — it does not
+prove the write actually landed (a broken mapper, a no-op repository update, or an EF change not being
+tracked would all still return a plausible `200`/`201` body). The re-GET is what closes that gap. `_NoChanges`
+variants (no-op PUT/PATCH) get the same treatment since they still need to prove nothing drifted.
+
+**Before the re-GET, explicitly assert the specific property (or properties) the test is about**, e.g.
+`updated.Salary.Should().Be(60000.00m);`. The whole-object `AssertValue(response)` only proves the GET
+matches the *mutation response* — it does not independently pin down that the property under test took
+on the value you intended, and it would still pass if both responses happened to share the same bug. The
+explicit property assertion is what actually verifies the change; the re-GET then verifies it stuck.
 
 ### Fluent pattern
 
@@ -132,6 +145,16 @@ var created = Test.Http<Product>()
     .AssertLocationHeader(r => new Uri($"/api/products/{r!.Id}", UriKind.Relative))
     .Value!;
 
+// Assert the specific property values the test is about.
+created.Sku.Should().Be(product.Sku);
+created.Price.Should().Be(product.Price);
+
+// Verify persistence — re-GET and assert it matches the mutation response.
+Test.Http<Product>()
+    .Run(HttpMethod.Get, $"/api/products/{created.Id}")
+    .AssertOK()
+    .AssertValue(created);
+
 // Validation error
 Test.Http()
     .Run(HttpMethod.Post, "/api/products", invalidProduct)
@@ -148,9 +171,20 @@ excludes.
 ```csharp
 var val = Test.Http<Product>().Run(HttpMethod.Get, $"/api/products/{1.ToGuid()}").AssertOK().Value!;
 val.Text = "Updated text";
-Test.Http<Product>()
+var updated = Test.Http<Product>()
     .Run(HttpMethod.Put, $"/api/products/{val.Id}", val, requestModifier: r => r.WithIfMatch(val.ETag))
-    .AssertOK();
+    .AssertOK()
+    .Value!;
+
+// Assert the specific property that changed.
+updated.Text.Should().Be(val.Text);
+updated.ETag.Should().NotBe(p.ETag);
+
+// Verify persistence — re-GET and assert it matches the mutation response.
+Test.Http<Product>()
+    .Run(HttpMethod.Get, $"/api/products/{val.Id}")
+    .AssertOK()
+    .AssertValue(updated);
 ```
 
 Stale ETag → `AssertPreconditionFailed()` (**412**, `ConcurrencyException`) — never `AssertConflict()`
@@ -245,6 +279,7 @@ values, include them; don't exclude them. The only volatile fields are `id`/`eta
 - [ ] One seed row per destructive test, not per operation
 - [ ] Provider-correct outbox helpers used throughout (no Postgres/SQL Server mixing)
 - [ ] Delete tested as the idempotent 4-step flow; never `AssertNotFound()` on DELETE
+- [ ] Create/Update/Patch `_Success` tests assert the specific changed property/properties explicitly (`updated.Prop.Should().Be(expected)`), then re-GET and `AssertValue(...)` to verify the change persisted (not just that the response echoed it back)
 - [ ] ETag concurrency asserted as 412, not 409; 428 case understood for missing-ETag scenarios
 - [ ] `.res.json` omits fields covered by `Expect*` auto-exclude helpers
 - [ ] `.Verify()` called after every `MockHttpClientRequest` use
