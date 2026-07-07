@@ -99,11 +99,12 @@ dotnet new coreex-ai --app-folder <subfolder>
 
 This installs:
 - `.github/instructions/` — scoped instruction files auto-injected by Copilot for each file type
-- `.github/prompts/` — the scaffolding prompt plus one `coreex-<capability>.prompt.md` per L1 skill
-- `.github/skills/` — the CoreEx skill suite: `coreex-docs-sync`, `coreex-solution-scaffolder`, and the L1 skills
+- `.github/prompts/` — the scaffolding prompt plus one `coreex-<capability>.prompt.md` per L1/L2 skill
+- `.github/skills/` — the CoreEx skill suite: `coreex-docs-sync`, `coreex-solution-scaffolder`, the L1 skills
   (`coreex-contract`, `coreex-refdata`, `coreex-db-migration`, `coreex-repository`, `coreex-adapter`,
   `coreex-app-service`, `coreex-validator`, `coreex-policy`, `coreex-aggregate`, `coreex-api`, `coreex-subscriber`,
-  `coreex-test-api`, `coreex-test-subscribe`, `coreex-test-relay`)
+  `coreex-test-api`, `coreex-test-subscribe`, `coreex-test-relay`), and the L2 end-to-end skills
+  (`coreex-api-e2e`, `coreex-subscriber-e2e`)
 - `.github/agents/coreex-expert.agent.md` — architecture guidance agent
 - `.github/docs/coreex/` — the architecture docs + per-package guides cache, self-describing via
   `.github/docs/coreex/manifest.txt` (refresh later, version-pinned, with `/coreex-docs-sync`)

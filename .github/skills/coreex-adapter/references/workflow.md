@@ -243,7 +243,15 @@ The adapter is registered automatically via `[ScopedService<IXxxAdapter>]` — n
 
 ---
 
-## Step 5 — Unit Tests for the HTTP Client
+## Step 5 — Generate HTTP Client Unit Tests
+
+**When this step applies:**
+
+| Scenario | Action |
+|---|---|
+| Adapter includes a typed HTTP client (`XxxHttpClient`) | Generate `*.Test.Unit/Clients/{ExternalDomain}/{External}HttpClientTests.cs` — cover success (2xx), server error (5xx), and business error (422/ProblemDetails) per endpoint |
+| EF-only replication adapter (no HTTP) | Skip — integration tests cover this via intra-domain service tests |
+| Adapter orchestration (EF + HTTP + events combined) | Skip — mock the HTTP client via `Test.ReplaceHttpClientFactory(mcf)` in `WithApiTester` integration tests instead |
 
 Unit-test every distinct status code that the consuming service acts on. Use `WithGenericTester<EntryPoint>` from UnitTestEx — the same `MockHttpClientFactory` pattern used in API integration tests, but backed by the lightweight unit-test host.
 
@@ -349,14 +357,6 @@ public class {External}HttpClientTests : WithGenericTester<EntryPoint>
 - Store the request mock as a field (`_mockHttpReserveRequest`) — shared across tests; set the response per-test via `WithAnyBody().Respond.With(...)`
 - `Test.Scoped(test => { ... })` (non-async) + `test.Run(async _ => { ... }).AssertSuccess()` — non-async outer lambda avoids CS1998; `AssertSuccess()` ensures exceptions inside `test.Run` fail the test rather than being swallowed
 - `ExecutionContext.GetRequiredService<{External}HttpClient>()` — resolves the client from DI; do not `new` it directly
-
-**When to write HTTP client unit tests vs rely on integration tests:**
-
-| Scenario | Test approach |
-|---|---|
-| HTTP client with multiple endpoints or complex request shaping | Unit-test each endpoint/status code with `WithGenericTester` |
-| Simple adapter with only EF reads/writes (no HTTP) | Integration tests cover this via intra-domain service tests |
-| Adapter orchestration (combining EF + HTTP + events) | Mock the HTTP client via `Test.ReplaceHttpClientFactory(mcf)` in `WithApiTester` integration tests |
 
 ---
 

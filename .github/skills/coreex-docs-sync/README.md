@@ -47,7 +47,7 @@ No arguments required.
 
 ```
 .github/instructions/*.instructions.md
-.github/skills/**                        ← coreex-docs-sync, coreex-solution-scaffolder, and all L1 skills
+.github/skills/**                        ← coreex-docs-sync, coreex-solution-scaffolder, all L1 skills, and all L2 skills
 .github/prompts/*.prompt.md
 .github/agents/coreex-expert.agent.md
 .claude/commands/**

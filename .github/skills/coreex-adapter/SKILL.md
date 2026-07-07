@@ -45,6 +45,7 @@ Guides you through adding or modifying an adapter — the boundary that isolates
 - Never call `HttpClient` directly in adapter methods — always delegate to the typed client class
 - `response.ToResultAsync()` maps HTTP status to `Result` (2xx → `Success`, error + ProblemDetails → `BusinessException`/`ProblemDetailsException`, plain error → `HttpRequestException`)
 - Two distinct adapter roles in the samples — **synchronous** (real-time HTTP + events) and **replication** (event-driven local EF write); separate interfaces, separate implementations
+- **Generate `*.Test.Unit/Clients/{ExternalDomain}/{External}HttpClientTests.cs`** for a typed HTTP client used by a synchronous or replication adapter — cover success (2xx), server error (5xx), and business error (422/ProblemDetails) per endpoint; skip for EF-only replication adapters (no HTTP) and for combined EF+HTTP+events orchestration adapters (mock the client via `Test.ReplaceHttpClientFactory` in integration tests instead)
 
 For full workflow and code examples see [`references/workflow.md`](references/workflow.md).
 

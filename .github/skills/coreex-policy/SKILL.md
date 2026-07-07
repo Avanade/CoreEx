@@ -50,6 +50,7 @@ Guides you through creating or modifying a CoreEx Application-layer policy class
 - `LText` static fields hold **localizable entity names** used inside message text — e.g. `new LText("Product")` as the `{0}` substitution in `"{0} was not found."`. The **property name** (`nameof(param)`) is always a plain `string?` — never `LText`
 - Guard methods can return the loaded entity as `Result<Contracts.T>` so callers can use it without a second fetch
 - Always `.ConfigureAwait(false)` on every `await`
+- **Always generate a matching `{Name}PolicyTests.cs`** in `*.Test.Unit/Policies/` — cover the success path (expect `IsSuccess`) for each guard method, plus its failure path: `IsValidationError` for `EnsureExists`-style not-found guards, `IsBusinessError` for state/condition guards (e.g. `EnsureActive`)
 
 For full workflow and code examples see [`references/workflow.md`](references/workflow.md).
 

@@ -152,7 +152,7 @@ Open the solution folder in your IDE. The `coreex-ai` step in step 3 has already
 
 Steps 7, 8, and 9 walk through adding an API host, an Outbox Relay host, and a Subscribe host and implementing your first domain entity end-to-end.
 
-The **recommended path** uses AI-assisted prompts — the AI reads `AGENTS.md`, the CoreEx instructions, and the Contoso samples to derive the correct patterns and run `dotnet new coreex-*` for you. The **manual path** lists the raw commands for each host if you prefer direct control.
+The **recommended path** uses AI-assisted prompts built on the CoreEx skill catalog — the AI reads `AGENTS.md` and the CoreEx instructions, invokes the relevant `.github/skills/` skill (e.g. `coreex-api-e2e` for step 7), and runs `dotnet new coreex-*` for you. The **manual path** lists the raw commands for each host if you prefer direct control.
 
 Use the prompts in sequence. For each, ask your AI agent to work through **Plan → Review → Implement** phases — plan the approach first, confirm with you, then generate code. This prevents a 2,000-line diff appearing before you have a chance to course-correct.
 
@@ -162,14 +162,16 @@ Use the prompts in sequence. For each, ask your AI agent to work through **Plan 
 
 ### AI-assisted (recommended)
 
-> Paste the following into GitHub Copilot (Agent mode) or Claude Code. It will scaffold the API host, implement the entity end-to-end, and run the API tests.
+> Paste the following into GitHub Copilot (Agent mode) or Claude Code. It adds the API host, then uses the `coreex-api-e2e` skill to implement the entity end-to-end and run the API tests.
 
 ```
 The local infrastructure containers (database, redis, service bus) are already running.
 
 Work in phases: Plan your approach and present it for review before writing any code; once confirmed, implement.
 
-Add an API host. Create an entity called Employee with the following properties:
+Add an API host to the solution — it does not exist yet.
+
+Use the coreex-api-e2e skill to add a new Employee entity end-to-end with the following properties:
   - FirstName (string)
   - NickName (string) - optional
   - LastName (string)
@@ -177,11 +179,12 @@ Add an API host. Create an entity called Employee with the following properties:
   - Salary (decimal)
   - DateOfBirth (DateOnly) - must be at least 16 years of age.
 
-Implement full end-to-end CRUD API/Services/Database including validation for the properties.
-Create unit tests for the validator.
-Create API tests for all Employee endpoints. 
+Operations needed: Get, Create, Update, Delete. No business guard/policy is required.
+
 Run all the tests and correct any failures.
 ```
+
+This invokes the [`coreex-api-e2e`](https://github.com/Avanade/CoreEx/blob/main/.github/skills/coreex-api-e2e/SKILL.md) skill, which chains together the contract, migration, repository, validator, application-service, API endpoint, and integration-test L1 skills in one guided pass — instead of hand-specifying each piece.
 
 ### Manual alternative
 

@@ -236,7 +236,9 @@ if (pr.IsFailure)
 2. Verify the policy lives in `Application/Policies/` and is **not** added to DI.
 3. Verify call sites use `new {Name}Policy(_{dep}).MethodAsync(...)` — never inject via constructor.
 4. Verify `NotFoundError` is translated to `ValidationError` — not allowed to propagate as a 404.
-5. **Offer to write a unit test** — policies are small, pure, and ideal for isolated testing. Use `WithGenericTester<EntryPoint>` as the base class and `Test.Scoped(async test => ...)` to wrap each test body, consistent with other unit tests in the project:
+5. **Generate a matching unit test class** — always create `*.Test.Unit/Policies/{Name}PolicyTests.cs`. Policies have no infrastructure dependencies at test time (all I/O is mocked via the adapter/repository interface), making them ideal unit-test targets. Use `WithGenericTester<EntryPoint>` as the base class and `Test.Scoped(async test => ...)` to wrap each test body, consistent with other unit tests in the project.
+
+### EnsureExists guard test
 
 ```csharp
 public class {Name}PolicyTests : WithGenericTester<EntryPoint>
@@ -274,11 +276,44 @@ public class {Name}PolicyTests : WithGenericTester<EntryPoint>
 }
 ```
 
+### Business rule guard test
+
+When the policy also has an `EnsureActive`-style method (state/condition check), extend the **same `{Name}PolicyTests` class** — add the additional mock setups into the existing `[OneTimeSetUp]` and append the new test methods alongside the EnsureExists tests:
+
+```csharp
+// Add to the existing [OneTimeSetUp] in {Name}PolicyTests:
+_{dep}AdapterMock.Setup(x => x.GetAsync("active-id"))
+    .ReturnsAsync(Result.Go(new Contracts.{Name} { Id = "active-id", IsInactive = false }));
+_{dep}AdapterMock.Setup(x => x.GetAsync("inactive-id"))
+    .ReturnsAsync(Result.Go(new Contracts.{Name} { Id = "inactive-id", IsInactive = true }));
+
+// Add these test methods to the same {Name}PolicyTests class:
+[Test]
+public void {Name}Policy_EnsureActiveAsync_Inactive_ReturnsBusinessError() => Test.Scoped(async test =>
+{
+    var policy = new {Name}Policy(_{dep}AdapterMock.Object);
+    var result = await policy.EnsureActiveAsync("inactive-id");
+
+    result.IsFailure.Should().BeTrue();
+    result.IsBusinessError.Should().BeTrue();
+});
+
+[Test]
+public void {Name}Policy_EnsureActiveAsync_Active_ReturnsSuccess() => Test.Scoped(async test =>
+{
+    var policy = new {Name}Policy(_{dep}AdapterMock.Object);
+    var result = await policy.EnsureActiveAsync("active-id");
+
+    result.IsSuccess.Should().BeTrue();
+});
+```
+
 **Notes on the test pattern:**
 - `Mock<I{Dep}Adapter>` — mock the adapter interface directly using Moq; `MockHttpClientFactory` is for HTTP transport-level testing, not for mocking adapter interfaces.
 - `Result.Go(new Contracts.{Name}{...})` — creates a successful `Result<T>` with the given value.
 - `Result.NotFoundError()` — returns a `Result` failure; implicitly converts to `Result<T>` via `Result<T>`'s implicit operator.
 - `result.Error.As<ValidationException>().AssertErrors(new ApiError(...))` — `AssertErrors` is the idiomatic CoreEx UnitTesting assertion; `ApiError(property, message)` matches the property name (string) and resolved message text.
+- `result.IsBusinessError` — use for state/condition violations scaffolded with `Result.BusinessError`; no `AssertErrors` call needed unless you check a specific message.
 - `[OneTimeSetUp]` — configures mocks once per fixture; do **not** wrap in `Test.Scoped` — mock setup needs no execution context.
 
 ---

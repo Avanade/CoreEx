@@ -99,3 +99,13 @@ Fourteen skills add or modify a single CoreEx capability on an existing solution
 | [`coreex-test-api`](./skills/coreex-test-api/) | API tests |
 | [`coreex-test-subscribe`](./skills/coreex-test-subscribe/) | Subscriber tests |
 | [`coreex-test-relay`](./skills/coreex-test-relay/) | Outbox relay tests |
+
+#### End-to-end workflow skills (L2)
+
+Two skills orchestrate a complete vertical slice by gathering all context upfront and invoking the appropriate L1 skills in sequence — no repeated questions. They are **creation-only** — modifications to an existing entity or subscriber always target the relevant L1 skill directly.
+
+| Skill / prompt | What it orchestrates |
+|----------------|---------------------|
+| [`coreex-api-e2e`](./skills/coreex-api-e2e/) | New entity with CRUD API — contract → migration → repository → validator → policy (if needed) → app-service → API endpoint → integration tests |
+| [`coreex-subscriber-e2e`](./skills/coreex-subscriber-e2e/) | New event or command subscriber — contract (if new) → migration + repository (if new entity) → app-service (if needed) → subscriber handler → integration tests |
+

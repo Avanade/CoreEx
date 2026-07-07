@@ -55,7 +55,7 @@ Guides you through creating or modifying a CoreEx validator (`Application/Valida
 - `context.HasErrors` guard before async I/O; `context.HasError(x => x.Prop)` for per-property guards
 - `context.AddError(x => x.Prop, ...)` — member-access expression, never `nameof(...)`
 - Message text argument is a `{2}` suffix substitution — not a full sentence; use `.Error("...")` to override the whole message
-- Always offer to create or update the matching `{Validator}Tests` in `*.Test.Unit/Validators/`
+- **Always generate or update the matching `{Validator}Tests`** in `*.Test.Unit/Validators/` — cover conditional/business rules and cross-field logic thoroughly, plus a representative error/success pair for simple rules; skip dedicated boundary tests for framework-guaranteed constraints like length rules (`MaximumLength`/`MinimumLength`/`Length`/`String`)
 
 For full workflow, rule reference, and code examples see [`references/workflow.md`](references/workflow.md).
 

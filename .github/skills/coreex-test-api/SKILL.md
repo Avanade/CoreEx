@@ -50,6 +50,7 @@ setup shared with Subscribe host tests (`coreex-test-subscribe` links back here 
 - **Expectation helpers auto-exclude from JSON compare**: `ExpectIdentifier()`, `ExpectETag()`, `ExpectChangeLogCreated()`/`Updated()` — omit those fields from `.res.json`
 - **412 vs 409 vs 428**: stale ETag → `AssertPreconditionFailed()` (412); duplicate/business conflict → `AssertConflict()` (409); no ETag supplied → `428`
 - **Delete is idempotent**: always `AssertNoContent()` (204), never `AssertNotFound()` on DELETE — the 404 belongs to the follow-up GET; only the first delete emits an outbox event
+- **Verify persistence, not just the echo**: every Create/Update/Patch `_Success` test explicitly asserts the specific changed property/properties on the mutation response (e.g. `updated.Salary.Should().Be(60000.00m)`), then ends with a follow-up `GET` + `AssertValue(...)` — the mutation response alone only proves the handler echoed the value back, not that the intended value was actually written
 - **Outbox assertions are provider-specific** — `ExpectPostgresOutboxEvents`/`ExpectSqlServerOutboxEvents`; `.AssertWithValue(destination, subject)` for value-carrying events (Create/Update), `.AssertMetadata(destination, subject, key)` for no-value events (Delete)
 - **Reference-data JSON name**: non-`Code` suffix (`gender`, not `genderCode`) in `.res.json`/`.req.json`/inline bodies
 - **HTTP client mocking**: `MockHttpClientFactory` + `MockHttpClientRequest` fields configured in `OneTimeSetUp`, per-test `.Respond.With(...)`/`.Respond.WithJsonResource(...)`, always `.Verify()`
