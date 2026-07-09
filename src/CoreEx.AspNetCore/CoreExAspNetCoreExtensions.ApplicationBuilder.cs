@@ -50,7 +50,7 @@ public static partial class CoreExAspNetCoreExtensions
         => builder.ThrowIfNull().UseMiddleware<IdempotencyKeyMiddleware>();
 
     /// <summary>   
-    /// Maps health check endpoints enabling live, startup, and ready health checks with optional detailed responses as oer the specified <paramref name="options"/>.
+    /// Maps health check endpoints enabling live, startup, and ready health checks with optional detailed responses as per the specified <paramref name="options"/>.
     /// </summary>
     /// <param name="endpoints">The <see cref="IEndpointRouteBuilder"/>.</param>
     /// <param name="options">The optional <see cref="HealthCheckOptions"/>.</param>
