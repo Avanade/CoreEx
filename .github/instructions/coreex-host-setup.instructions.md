@@ -260,7 +260,7 @@ app.UseIdempotencyKey();       // After UseExecutionContext.
 app.MapControllers();
 app.UseOpenApi();
 app.UseSwaggerUi();
-app.MapHealthChecks();
+app.MapHealthChecks(detailedGroupConfigure: g => g.RequireAuthorization());
 app.Run();
 ```
 
@@ -273,6 +273,7 @@ Key points:
 - `AddSqlServerOutboxPublisher()` / `AddPostgresOutboxPublisher()` take no generic type parameter.
 - `UseIdempotencyKey()` must come **after** `UseExecutionContext()`.
 - If the domain also publishes directly to Service Bus (e.g. for cross-domain adapters), add `AddAzureServiceBusPublisher(..., addAsDefaultIEventPublisher: false)` so the outbox publisher remains the default `IEventPublisher`.
+- `MapHealthChecks()`'s **basic** `live`/`startup`/`ready` endpoints are intentionally left anonymous — they're conventionally probed by container orchestrators without credentials. Its **detailed** endpoints (`/health/*/detailed`) are different: they emit the full `HealthReport`, which can include component names and exception details, and must be secured — pass `detailedGroupConfigure: g => g.RequireAuthorization()` as shown above. This only takes effect once an authentication scheme is registered (`AddAuthentication(...)`); until then, a request to a detailed endpoint fails with a 500 rather than silently succeeding.
 
 ---
 
@@ -367,8 +368,8 @@ app.UseExecutionContext();
 app.MapControllers();
 app.UseOpenApi();
 app.UseSwaggerUi();
-app.MapHealthChecks();
-app.MapHostedServices();   // Exposes pause/resume management endpoints — must follow MapHealthChecks.
+app.MapHealthChecks(detailedGroupConfigure: g => g.RequireAuthorization());
+app.MapHostedServices(groupConfigure: g => g.RequireAuthorization());   // Exposes pause/resume management endpoints — must follow MapHealthChecks.
 app.Run();
 ```
 
@@ -380,6 +381,7 @@ Key points:
 - `AddSubscribersUsing<T>()` scans the assembly of `T` and auto-registers all `[Subscribe]`-decorated classes — no manual registration per subscriber.
 - `AddAzureServiceBusPublisher(..., addAsDefaultIEventPublisher: false)` keeps the outbox publisher as the default `IEventPublisher` for transactional writes.
 - `MapHostedServices()` must come **after** `MapHealthChecks()`.
+- `MapHealthChecks()`'s **detailed** endpoints and `MapHostedServices()`'s pause/resume endpoints are both secured via `RequireAuthorization()` above (both admin/diagnostic surfaces); the basic `live`/`startup`/`ready` health checks stay anonymous for orchestrator probes. See the equivalent API host bullet for the reasoning.
 
 ---
 
@@ -429,8 +431,8 @@ app.UseHttpsRedirection();
 // app.UseAuthentication();   // TODO: register an authentication scheme (builder.Services.AddAuthentication(...)) then uncomment.
 // app.UseAuthorization();    // TODO: register authorization services (builder.Services.AddAuthorization(...)) then uncomment.
 app.UseExecutionContext();
-app.MapHealthChecks();
-app.MapHostedServices();
+app.MapHealthChecks(detailedGroupConfigure: g => g.RequireAuthorization());
+app.MapHostedServices(groupConfigure: g => g.RequireAuthorization());
 app.Run();
 ```
 
@@ -438,5 +440,6 @@ Key points:
 - The Relay host has **no application-layer dependencies** — no `AddReferenceDataOrchestrator`, no `AddDynamicServicesUsing`, no FusionCache, no EF Core DbContext, no domain services.
 - `AddSqlServerOutboxRelay()` / `AddPostgresOutboxRelay()` take no configuration lambda.
 - `AddSqlServerOutboxRelayHostedService()` / `AddPostgresOutboxRelayHostedService()` register the background relay pump — call these on `builder`, not `builder.Services`.
-- `UseAuthentication()` / `UseAuthorization()` are present but **commented out** — the Relay host (unlike API/Subscribe) has no `AddControllers()` or other MVC registration, so calling either without first registering `builder.Services.AddAuthentication(...)` / `builder.Services.AddAuthorization(...)` throws at startup. Uncomment both together, once a scheme is configured, to protect `MapHealthChecks()` / `MapHostedServices()` — and pass `groupConfigure: g => g.RequireAuthorization()` to `MapHostedServices()` (its remarks call this out as "highly recommended" since it exposes pause/resume admin actions). Health check endpoints are conventionally left anonymous for container-orchestrator liveness/readiness probes; if they must be secured too, configure a fallback authorization policy instead.
+- `UseAuthentication()` / `UseAuthorization()` are present but **commented out** — the Relay host (unlike API/Subscribe) has no `AddControllers()` or other MVC registration, so calling `UseAuthorization()` without first registering `builder.Services.AddAuthorization()` throws at startup (confirmed: `AddControllers()` in the API/Subscribe hosts registers authorization services transitively, which is why they can call it directly). Uncomment both together, once a scheme and policy are registered, so the `detailedGroupConfigure`/`groupConfigure` calls below actually take effect.
+- `MapHealthChecks()`'s **basic** `live`/`startup`/`ready` endpoints are intentionally left anonymous for container-orchestrator probes; its **detailed** endpoints emit the full `HealthReport` (component names, exception details) and are secured via `detailedGroupConfigure: g => g.RequireAuthorization()`. `MapHostedServices()`'s pause/resume admin endpoints are secured the same way via `groupConfigure` (its remarks call this out as "highly recommended"). Both `RequireAuthorization()` calls are inert until `UseAuthorization()` above is uncommented.
 - No `AddControllers()`, no `AddOpenApiDocument()`, no `UseOpenApi()`, no `UseSwaggerUi()`, no `UseIdempotencyKey()`.

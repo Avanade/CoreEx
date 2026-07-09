@@ -109,7 +109,7 @@ public class Program
 
         app.UseOpenApi();
         app.UseSwaggerUi();
-        app.MapHealthChecks(/* Endpoints should be secured. */);
+        app.MapHealthChecks(detailedGroupConfigure: g => g.RequireAuthorization());   // Detailed endpoints expose diagnostics and must be secured; basic live/startup/ready checks stay anonymous for orchestrator probes.
 
         // Run the application.
         app.Run();

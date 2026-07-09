@@ -119,8 +119,8 @@ public class Program
 
         app.UseOpenApi();
         app.UseSwaggerUi();
-        app.MapHealthChecks();
-        app.MapHostedServices();
+        app.MapHealthChecks(detailedGroupConfigure: g => g.RequireAuthorization());   // Detailed endpoints expose diagnostics and must be secured; basic live/startup/ready checks stay anonymous for orchestrator probes.
+        app.MapHostedServices(groupConfigure: g => g.RequireAuthorization());         // Pause/resume management endpoints are admin-only and must be secured.
 
         // Run the application.
         app.Run();

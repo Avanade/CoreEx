@@ -243,8 +243,8 @@ app.MapControllers();
 
 app.UseOpenApi();
 app.UseSwaggerUi();
-app.MapHealthChecks();
-app.MapHostedServices();   // exposes pause/resume management endpoints per partition
+app.MapHealthChecks(detailedGroupConfigure: g => g.RequireAuthorization());   // Detailed endpoints expose diagnostics and must be secured; basic live/startup/ready checks stay anonymous for orchestrator probes.
+app.MapHostedServices(groupConfigure: g => g.RequireAuthorization());         // exposes pause/resume management endpoints per partition; admin-only, must be secured.
 
 app.Run();
 ```
