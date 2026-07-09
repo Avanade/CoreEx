@@ -38,7 +38,7 @@ Provides the configuration for the generated repository code.
 Property | Description
 -|-
 **`repository`** | The default repository implementation. Valid options are: `None`, `EntityFramework`. [Mandatory]
-**`entityFrameworkRepositoryName`** | The default Entity Framework (EF) repository parameter name.<br/>&dagger; This is the .NET Entity Framework (EF) repository parameter name that should be used within the generated code. Defaults to `ef`.
+**`entityFrameworkRepositoryName`** | The default Entity Framework (EF) repository identifier/name.<br/>&dagger; This is the .NET Entity Framework (EF) repository identifier/name that should be used within the generated code (often a private field). Defaults to `_ef`.
 
 ## Paths
 Provides the configuration for the paths used in code generation.

@@ -236,14 +236,15 @@ var app = builder.Build();
 
 app.UseCoreExExceptionHandler();
 app.UseHttpsRedirection();
+// app.UseAuthentication();   // TODO: register an authentication scheme (builder.Services.AddAuthentication(...)) then uncomment.
 app.UseAuthorization();
 app.UseExecutionContext();
 app.MapControllers();
 
 app.UseOpenApi();
 app.UseSwaggerUi();
-app.MapHealthChecks();
-app.MapHostedServices();   // exposes pause/resume management endpoints per partition
+app.MapHealthChecks(/* detailedGroupConfigure: g => g.RequireAuthorization() */);   // Detailed endpoints expose diagnostics; secure once an auth scheme is registered. Basic checks stay anonymous.
+app.MapHostedServices(/* groupConfigure: g => g.RequireAuthorization() */);         // exposes pause/resume management endpoints per partition; admin-only, secure once an auth scheme is registered.
 
 app.Run();
 ```

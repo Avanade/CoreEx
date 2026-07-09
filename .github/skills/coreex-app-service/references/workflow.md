@@ -38,10 +38,10 @@ namespace {Solution}.Application.Interfaces;
 
 public interface I{Name}Service
 {
-    Task<Contracts.{Name}?> GetAsync(string id);
-    Task<Contracts.{Name}> CreateAsync(Contracts.{Name} value);
-    Task<Contracts.{Name}> UpdateAsync(Contracts.{Name} value);
-    Task DeleteAsync(string id);
+    Task<Contracts.{Name}?> GetAsync(string id, CancellationToken cancellationToken = default);
+    Task<Contracts.{Name}> CreateAsync(Contracts.{Name} value, CancellationToken cancellationToken = default);
+    Task<Contracts.{Name}> UpdateAsync(Contracts.{Name} value, CancellationToken cancellationToken = default);
+    Task DeleteAsync(string id, CancellationToken cancellationToken = default);
 }
 ```
 
@@ -65,57 +65,57 @@ public class {Name}Service(IUnitOfWork unitOfWork, I{Name}Repository repository)
 ### A3 — Get
 
 ```csharp
-public Task<Contracts.{Name}?> GetAsync(string id) => _repository.GetAsync(id);
+public Task<Contracts.{Name}?> GetAsync(string id, CancellationToken cancellationToken = default) => _repository.GetAsync(id, cancellationToken);
 ```
 
 ### A4 — Create
 
 ```csharp
-public async Task<Contracts.{Name}> CreateAsync(Contracts.{Name} value)
+public async Task<Contracts.{Name}> CreateAsync(Contracts.{Name} value, CancellationToken cancellationToken = default)
 {
     value.ThrowIfNull();
-    await {Name}Validator.Default.ValidateAndThrowAsync(value).ConfigureAwait(false);
+    await {Name}Validator.Default.ValidateAndThrowAsync(value, cancellationToken).ConfigureAwait(false);
 
     value.Id = Runtime.NewId();         // string key; use Runtime.NewGuid() for Guid
     // set any other server-controlled fields here
 
-    return await _unitOfWork.TransactionAsync(async () =>
+    return await _unitOfWork.TransactionAsync(async ct =>
     {
-        var dr = await _repository.CreateAsync(value).ConfigureAwait(false);
+        var dr = await _repository.CreateAsync(value, ct).ConfigureAwait(false);
         return dr.WhereMutated(v => _unitOfWork.Events.Add(EventData.CreateEventWith(v, EventAction.Created)));
-    }).ConfigureAwait(false);
+    }, cancellationToken).ConfigureAwait(false);
 }
 ```
 
 ### A5 — Update
 
 ```csharp
-public async Task<Contracts.{Name}> UpdateAsync(Contracts.{Name} value)
+public async Task<Contracts.{Name}> UpdateAsync(Contracts.{Name} value, CancellationToken cancellationToken = default)
 {
     value.ThrowIfNull();
     value.Id.ThrowIfNullOrEmpty();
-    await {Name}Validator.Default.ValidateAndThrowAsync(value).ConfigureAwait(false);
+    await {Name}Validator.Default.ValidateAndThrowAsync(value, cancellationToken).ConfigureAwait(false);
 
-    var current = await _repository.GetAsync(value.Id).ConfigureAwait(false);
+    var current = await _repository.GetAsync(value.Id, cancellationToken).ConfigureAwait(false);
     NotFoundException.ThrowIfDefault(current);
 
     // preserve server-controlled read-only fields from current:
     // value.IsXxx = current!.IsXxx;
 
-    return await _unitOfWork.TransactionAsync(async () =>
+    return await _unitOfWork.TransactionAsync(async ct =>
     {
-        var dr = await _repository.UpdateAsync(value).ConfigureAwait(false);
+        var dr = await _repository.UpdateAsync(value, ct).ConfigureAwait(false);
         return dr.WhereMutated(v => _unitOfWork.Events.Add(EventData.CreateEventWith(v, EventAction.Updated)));
-    }).ConfigureAwait(false);
+    }, cancellationToken).ConfigureAwait(false);
 }
 ```
 
 ### A6 — Delete
 
 ```csharp
-public async Task DeleteAsync(string id)
+public async Task DeleteAsync(string id, CancellationToken cancellationToken = default)
 {
-    var current = await _repository.GetAsync(id).ConfigureAwait(false);
+    var current = await _repository.GetAsync(id, cancellationToken).ConfigureAwait(false);
     if (current is null)
         return;  // idempotent — not found is not an error on delete
 
@@ -123,12 +123,12 @@ public async Task DeleteAsync(string id)
     // if (!current.IsXxx)
     //     throw new BusinessException("...").WithErrorCode("...");
 
-    await _unitOfWork.TransactionAsync(async () =>
+    await _unitOfWork.TransactionAsync(async ct =>
     {
-        var dr = await _repository.DeleteAsync(id).ConfigureAwait(false);
+        var dr = await _repository.DeleteAsync(id, ct).ConfigureAwait(false);
         dr.WhereMutated(() => _unitOfWork.Events.Add(
             EventData.CreateEvent<Contracts.{Name}>(EventAction.Deleted).WithKey(id)));
-    }).ConfigureAwait(false);
+    }, cancellationToken).ConfigureAwait(false);
 }
 ```
 
@@ -139,20 +139,20 @@ public async Task DeleteAsync(string id)
 ### A7 — Custom Business Action (state-change style)
 
 ```csharp
-public async Task<Contracts.{Name}> {Action}Async(string id)
+public async Task<Contracts.{Name}> {Action}Async(string id, CancellationToken cancellationToken = default)
 {
-    var current = await _repository.GetAsync(id).ConfigureAwait(false);
+    var current = await _repository.GetAsync(id, cancellationToken).ConfigureAwait(false);
     NotFoundException.ThrowIfDefault(current);
 
     if (current!.IsXxx == desiredState)  // already in target state — idempotent return
         return current;
 
-    return await _unitOfWork.TransactionAsync(async () =>
+    return await _unitOfWork.TransactionAsync(async ct =>
     {
         current.IsXxx = desiredState;
-        var dr = await _repository.UpdateAsync(current).ConfigureAwait(false);
+        var dr = await _repository.UpdateAsync(current, ct).ConfigureAwait(false);
         return dr.WhereMutated(v => _unitOfWork.Events.Add(EventData.CreateEventWith(v, EventAction.{Action})));
-    }).ConfigureAwait(false);
+    }, cancellationToken).ConfigureAwait(false);
 }
 ```
 
@@ -171,10 +171,10 @@ Interface methods return `Task<Result<T>>`:
 ```csharp
 public interface I{Name}Service
 {
-    Task<Result<Contracts.{Name}?>> GetAsync(string id);
-    Task<Result<Contracts.{Name}>> CreateAsync(Contracts.{Name} value);
-    Task<Result<Contracts.{Name}>> UpdateAsync(Contracts.{Name} value);
-    Task<Result> DeleteAsync(string id);
+    Task<Result<Contracts.{Name}?>> GetAsync(string id, CancellationToken cancellationToken = default);
+    Task<Result<Contracts.{Name}>> CreateAsync(Contracts.{Name} value, CancellationToken cancellationToken = default);
+    Task<Result<Contracts.{Name}>> UpdateAsync(Contracts.{Name} value, CancellationToken cancellationToken = default);
+    Task<Result> DeleteAsync(string id, CancellationToken cancellationToken = default);
 }
 ```
 
@@ -183,47 +183,47 @@ Scaffold mirrors Path A with `Result<T>` return types.
 ### B2 — Validation short-circuit + Create
 
 ```csharp
-public async Task<Result<Contracts.{Name}>> CreateAsync(Contracts.{Name} value)
+public async Task<Result<Contracts.{Name}>> CreateAsync(Contracts.{Name} value, CancellationToken cancellationToken = default)
 {
     value.ThrowIfNull();
 
-    var vr = await {Name}Validator.Default.ValidateWithResultAsync(value).ConfigureAwait(false);
+    var vr = await {Name}Validator.Default.ValidateWithResultAsync(value, cancellationToken).ConfigureAwait(false);
     if (vr.IsFailure)
         return vr.AsResult();
 
     value.Id = Runtime.NewId();
 
-    return await _unitOfWork.TransactionAsync(async () =>
+    return await _unitOfWork.TransactionAsync(async ct =>
     {
-        var dr = await _repository.CreateAsync(value).ConfigureAwait(false);
+        var dr = await _repository.CreateAsync(value, ct).ConfigureAwait(false);
         return Result.Ok(
             dr.WhereMutated(v => _unitOfWork.Events.Add(EventData.CreateEventWith(v, EventAction.Created))));
-    }).ConfigureAwait(false);
+    }, cancellationToken).ConfigureAwait(false);
 }
 ```
 
 ### B3 — Update with not-found as Result failure
 
 ```csharp
-public async Task<Result<Contracts.{Name}>> UpdateAsync(Contracts.{Name} value)
+public async Task<Result<Contracts.{Name}>> UpdateAsync(Contracts.{Name} value, CancellationToken cancellationToken = default)
 {
     value.ThrowIfNull();
     value.Id.ThrowIfNullOrEmpty();
 
-    var vr = await {Name}Validator.Default.ValidateWithResultAsync(value).ConfigureAwait(false);
+    var vr = await {Name}Validator.Default.ValidateWithResultAsync(value, cancellationToken).ConfigureAwait(false);
     if (vr.IsFailure)
         return vr.AsResult();
 
-    var current = await _repository.GetAsync(value.Id).ConfigureAwait(false);
+    var current = await _repository.GetAsync(value.Id, cancellationToken).ConfigureAwait(false);
     if (current is null)
         return Result.NotFoundError();
 
-    return await _unitOfWork.TransactionAsync(async () =>
+    return await _unitOfWork.TransactionAsync(async ct =>
     {
-        var dr = await _repository.UpdateAsync(value).ConfigureAwait(false);
+        var dr = await _repository.UpdateAsync(value, ct).ConfigureAwait(false);
         return Result.Ok(
             dr.WhereMutated(v => _unitOfWork.Events.Add(EventData.CreateEventWith(v, EventAction.Updated))));
-    }).ConfigureAwait(false);
+    }, cancellationToken).ConfigureAwait(false);
 }
 ```
 
@@ -234,9 +234,9 @@ When multiple operations share the load-mutate-save pattern, extract a private h
 ```csharp
 // Private helper: load aggregate, apply mutation, persist, emit event
 private async Task<Result<Contracts.{Name}>> OrchestrateUpdateAsync(
-    string id, Func<Contracts.{Name}, Result> mutate, EventAction action = EventAction.Updated)
+    string id, Func<Contracts.{Name}, Result> mutate, EventAction action = EventAction.Updated, CancellationToken cancellationToken = default)
 {
-    var current = await _repository.GetAsync(id).ConfigureAwait(false);
+    var current = await _repository.GetAsync(id, cancellationToken).ConfigureAwait(false);
     if (current is null)
         return Result.NotFoundError();
 
@@ -244,17 +244,17 @@ private async Task<Result<Contracts.{Name}>> OrchestrateUpdateAsync(
     if (mr.IsFailure)
         return mr.AsResult();
 
-    return await _unitOfWork.TransactionAsync(async () =>
+    return await _unitOfWork.TransactionAsync(async ct =>
     {
-        var dr = await _repository.UpdateAsync(current).ConfigureAwait(false);
+        var dr = await _repository.UpdateAsync(current, ct).ConfigureAwait(false);
         return Result.Ok(
             dr.WhereMutated(v => _unitOfWork.Events.Add(EventData.CreateEventWith(v, action))));
-    }).ConfigureAwait(false);
+    }, cancellationToken).ConfigureAwait(false);
 }
 
 // Callers — one line each:
-public Task<Result<Contracts.{Name}>> {Action}Async(string id)
-    => OrchestrateUpdateAsync(id, entity => entity.{Action}());
+public Task<Result<Contracts.{Name}>> {Action}Async(string id, CancellationToken cancellationToken = default)
+    => OrchestrateUpdateAsync(id, entity => entity.{Action}(), cancellationToken: cancellationToken);
 ```
 
 ### B5 — Multi-step pipeline with early exit
@@ -262,8 +262,8 @@ public Task<Result<Contracts.{Name}>> {Action}Async(string id)
 For pre-flight checks (validation + adapter/policy) before the transaction:
 
 ```csharp
-var pr = await Result.GoAsync(() => {Name}Validator.Default.ValidateWithResultAsync(item))
-    .ThenAsAsync(v => new {Dep}Policy(_adapter).EnsureExistsAsync(v.{DepId}!))
+var pr = await Result.GoAsync(() => {Name}Validator.Default.ValidateWithResultAsync(item, cancellationToken))
+    .ThenAsAsync(v => new {Dep}Policy(_adapter).EnsureExistsAsync(v.{DepId}!, cancellationToken))
     .ConfigureAwait(false);
 
 if (pr.IsFailure)
@@ -289,9 +289,9 @@ namespace {Solution}.Application.Interfaces;
 
 public interface I{Name}ReadService
 {
-    Task<Contracts.{Name}?> GetAsync(string id);
-    Task<ItemsResult<Contracts.{Name}Lite>> QueryAsync(QueryArgs? query, PagingArgs? paging);
-    Task<JsonElement> QuerySchemaAsync();
+    Task<Contracts.{Name}?> GetAsync(string id, CancellationToken cancellationToken = default);
+    Task<ItemsResult<Contracts.{Name}Lite>> QueryAsync(QueryArgs? query, PagingArgs? paging, CancellationToken cancellationToken = default);
+    Task<JsonElement> QuerySchemaAsync(CancellationToken cancellationToken = default);
 }
 ```
 
@@ -305,12 +305,12 @@ public class {Name}ReadService(I{Name}Repository repository) : I{Name}ReadServic
 {
     private readonly I{Name}Repository _repository = repository.ThrowIfNull();
 
-    public Task<Contracts.{Name}?> GetAsync(string id) => _repository.GetAsync(id);
+    public Task<Contracts.{Name}?> GetAsync(string id, CancellationToken cancellationToken = default) => _repository.GetAsync(id, cancellationToken);
 
-    public Task<ItemsResult<Contracts.{Name}Lite>> QueryAsync(QueryArgs? query, PagingArgs? paging)
-        => _repository.QueryAsync(query, paging);
+    public Task<ItemsResult<Contracts.{Name}Lite>> QueryAsync(QueryArgs? query, PagingArgs? paging, CancellationToken cancellationToken = default)
+        => _repository.QueryAsync(query, paging, cancellationToken);
 
-    public Task<JsonElement> QuerySchemaAsync() => _repository.QuerySchemaAsync();
+    public Task<JsonElement> QuerySchemaAsync(CancellationToken cancellationToken = default) => _repository.QuerySchemaAsync(cancellationToken);
 }
 ```
 
@@ -332,8 +332,8 @@ namespace {Solution}.Application.Adapters.{ExternalDomain};
 /// <summary>Defines the external dependency boundary (anti-corruption layer) for {ExternalDomain}-related operations.</summary>
 public interface I{ExternalDomain}Adapter
 {
-    Task<Result<Contracts.{Name}>> GetAsync(string id);
-    Task<Result> {Action}Async(/* domain-idiomatic parameters */);
+    Task<Result<Contracts.{Name}>> GetAsync(string id, CancellationToken cancellationToken = default);
+    Task<Result> {Action}Async(/* domain-idiomatic parameters */, CancellationToken cancellationToken = default);
 }
 ```
 
@@ -363,8 +363,8 @@ public class {Name}Policy(I{ExternalDomain}Adapter adapter)
 {
     private readonly I{ExternalDomain}Adapter _adapter = adapter.ThrowIfNull();
 
-    public Task<Result<Contracts.{Name}>> EnsureExistsAsync(string id) => Result
-        .GoAsync(() => _adapter.GetAsync(id))
+    public Task<Result<Contracts.{Name}>> EnsureExistsAsync(string id, CancellationToken cancellationToken = default) => Result
+        .GoAsync(() => _adapter.GetAsync(id, cancellationToken))
         .OnFailure(r => r.IsNotFoundError
             ? Result.ValidationError(MessageItem.CreateErrorMessage(nameof(id), "{Name} was not found."))
             : r);
@@ -377,14 +377,14 @@ Policies are instantiated with constructor arguments from the service's injected
 
 ```csharp
 // In a service method — _adapter already injected:
-var pr = await new {Name}Policy(_adapter).EnsureExistsAsync(item.{Id}!)
+var pr = await new {Name}Policy(_adapter).EnsureExistsAsync(item.{Id}!, cancellationToken)
     .ConfigureAwait(false);
 if (pr.IsFailure)
     return pr.AsResult();
 
 // Or inline in a Result<T> pipeline:
-var pr = await Result.GoAsync(() => {Name}Validator.Default.ValidateWithResultAsync(item))
-    .ThenAsAsync(item => new {Name}Policy(_adapter).EnsureExistsAsync(item.{Id}!))
+var pr = await Result.GoAsync(() => {Name}Validator.Default.ValidateWithResultAsync(item, cancellationToken))
+    .ThenAsAsync(item => new {Name}Policy(_adapter).EnsureExistsAsync(item.{Id}!, cancellationToken))
     .ConfigureAwait(false);
 
 if (pr.IsFailure)

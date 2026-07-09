@@ -80,6 +80,7 @@ public class Program
         // Configure the pipeline/middleware (order is important).
         app.UseCoreExExceptionHandler();
         app.UseHttpsRedirection();
+        // app.UseAuthentication();   // TODO: register an authentication scheme (builder.Services.AddAuthentication(...)) then uncomment.
         app.UseAuthorization();
         app.UseExecutionContext();
         app.UseIdempotencyKey();
@@ -87,7 +88,7 @@ public class Program
 
         app.UseOpenApi();
         app.UseSwaggerUi();
-        app.MapHealthChecks();
+        app.MapHealthChecks(/* detailedGroupConfigure: g => g.RequireAuthorization() */);   // Detailed endpoints expose diagnostics and must be secured; basic live/startup/ready checks stay anonymous for orchestrator probes.
 
         // Run the application.
         app.Run();

@@ -50,13 +50,18 @@ public static partial class CoreExAspNetCoreExtensions
         => builder.ThrowIfNull().UseMiddleware<IdempotencyKeyMiddleware>();
 
     /// <summary>   
-    /// Maps health check endpoints enabling live, startup, and ready health checks with optional detailed responses as oer the specified <paramref name="options"/>.
+    /// Maps health check endpoints enabling live, startup, and ready health checks with optional detailed responses as per the specified <paramref name="options"/>.
     /// </summary>
     /// <param name="endpoints">The <see cref="IEndpointRouteBuilder"/>.</param>
     /// <param name="options">The optional <see cref="HealthCheckOptions"/>.</param>
+    /// <param name="detailedGroupConfigure">An optional action to further configure the <i>detailed</i> health check endpoints, such as adding an authorization policy.</param>
     /// <returns>The <paramref name="endpoints"/> to support fluent-style method-chaining.</returns>
-    /// <remarks>The <paramref name="options"/> default where not specified. Additionally, the <paramref name="options"/> are overridden using configuration settings where applicable.</remarks>
-    public static IEndpointRouteBuilder MapHealthChecks(this IEndpointRouteBuilder endpoints, HealthCheckOptions? options = null)
+    /// <remarks>The <paramref name="options"/> default where not specified. Additionally, the <paramref name="options"/> are overridden using configuration settings where applicable.
+    /// <para>The <i>live</i>, <i>startup</i>, and <i>ready</i> endpoints are intentionally left unauthorized by default, as they are conventionally probed anonymously by container orchestrators.
+    /// The <i>detailed</i> endpoints (see <see cref="HealthCheckOptions.AreDetailedEndpointsEnabled"/>) are different: they emit the full <see cref="HealthReport"/>, which can include component names,
+    /// connection details, and exception information, and should generally not be exposed publicly. Use <paramref name="detailedGroupConfigure"/> to secure them, e.g. <c>g =&gt; g.RequireAuthorization()</c>,
+    /// once an authentication scheme and authorization services are registered.</para></remarks>
+    public static IEndpointRouteBuilder MapHealthChecks(this IEndpointRouteBuilder endpoints, HealthCheckOptions? options = null, Action<IEndpointConventionBuilder>? detailedGroupConfigure = null)
     {
         endpoints.ThrowIfNull();
 
@@ -74,11 +79,13 @@ public static partial class CoreExAspNetCoreExtensions
 
             if (options.AreDetailedEndpointsEnabled)
             {
-                endpoints.MapHealthChecks($"{path.TrimEnd('/')}/{options.DetailedPathSuffix.TrimStart('/')}", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+                var detailed = endpoints.MapHealthChecks($"{path.TrimEnd('/')}/{options.DetailedPathSuffix.TrimStart('/')}", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
                 {
                     Predicate = check => CheckRegistration(check, tags),
                     ResponseWriter = options.OnWriteDetailedHealthCheckAsync
                 });
+
+                detailedGroupConfigure?.Invoke(detailed);
             }
         }
 

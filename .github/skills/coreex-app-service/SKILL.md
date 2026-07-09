@@ -56,6 +56,7 @@ Guides you through creating or modifying a CoreEx Application-layer service in `
 - Validators / Mappers / Policies: **not DI-registered** — call or instantiate at point of use
 - `Validator<T, TSelf>`: call via singleton — `{Name}Validator.Default.ValidateAndThrowAsync(...)`
 - `Validator<T>` (with injection): instantiate at call site — `new {Name}Validator(_dep).ValidateAndThrowAsync(...)`
+- All interface methods include `CancellationToken cancellationToken = default` as the last parameter; pass through to every async call and `TransactionAsync(async ct => ..., cancellationToken)`
 - CQRS: mutations + `GetAsync` → `{Name}Service`; queries + `GetAsync` → `{Name}ReadService` (both have `GetAsync`)
 - Always `.ConfigureAwait(false)` on every `await`
 

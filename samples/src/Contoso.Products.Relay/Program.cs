@@ -54,10 +54,12 @@ public class Program
         // Configure the pipeline/middleware (order is important).
         app.UseCoreExExceptionHandler();
         app.UseHttpsRedirection();
+        // app.UseAuthentication();   // TODO: register an authentication scheme (builder.Services.AddAuthentication(...)) then uncomment.
+        // app.UseAuthorization();    // TODO: register authorization services (builder.Services.AddAuthorization(...)) then uncomment.
         app.UseExecutionContext();
 
-        app.MapHealthChecks();
-        app.MapHostedServices();
+        app.MapHealthChecks(/* detailedGroupConfigure: g => g.RequireAuthorization() */);   // Detailed endpoints expose diagnostics and must be secured; basic live/startup/ready checks stay anonymous for orchestrator probes.
+        app.MapHostedServices(/* groupConfigure: g => g.RequireAuthorization() */);         // Pause/resume management endpoints are admin-only and must be secured.
 
         // Run the application.
         app.Run();

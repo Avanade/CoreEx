@@ -1,7 +1,7 @@
 ---
 name: CoreEx Expert
 description: "Use when you need to explain, understand, or decide how CoreEx works in your project. Triggers: explain CoreEx, how does CoreEx, which pattern, which capability, which shape, plan a feature, review a design, compare samples, architecture guidance, coding patterns, layering, host setup, validation, repository conventions, eventing, outbox relay, subscriber design, sample-aligned decisions."
-tools: [read/readFile, read/problems, search/codebase, search/fileSearch, search/textSearch, search/listDirectory, search/usages, search/changes, web/fetch, web/githubRepo, web/githubTextSearch, edit/editFiles, edit/createFile, execute/runInTerminal]
+tools: [read/readFile, search/fileSearch, web/fetch, edit/editFiles, edit/createFile, execute/runInTerminal]
 user-invocable: true
 argument-hint: Ask for CoreEx pattern guidance, architecture decisions, or sample-aligned implementation advice.
 ---
