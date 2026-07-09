@@ -55,6 +55,7 @@ Provides the configuration for code generation exclusion.
 
 Property | Description
 -|-
+**`excludeApi`** | Indicates whether to exclude the generation of the API.<br/>&dagger; Defaults to `false`.
 **`excludeMapper`** | Indicates whether to exclude the generation of the mapper.<br/>&dagger; Defaults to `false`.
 
 ## Collections

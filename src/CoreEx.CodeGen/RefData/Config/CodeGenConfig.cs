@@ -70,7 +70,7 @@ public class CodeGenConfig : ConfigRootBase<CodeGenConfig>
     /// Gets or sets the default Entity Framework repository parameter name.
     /// </summary>
     [JsonPropertyName("entityFrameworkRepositoryName")]
-    [CodeGenProperty("Repository", Title = "The default Entity Framework (EF) repository parameter name.", IsImportant = true, Description = "This is the .NET Entity Framework (EF) repository parameter name that should be used within the generated code. Defaults to `ef`.")]
+    [CodeGenProperty("Repository", Title = "The default Entity Framework (EF) repository parameter name.", IsImportant = true, Description = "This is the .NET Entity Framework (EF) repository parameter name that should be used within the generated code. Defaults to `_ef`.")]
     public string? EntityFrameworkRepositoryName { get; set; }
 
     #endregion
@@ -267,7 +267,7 @@ public class CodeGenConfig : ConfigRootBase<CodeGenConfig>
 
         // Default the domain name from the file path (2nd to last part) if not explicitly set.
         Domain = DefaultWhereNull(Domain, () => parts.Length >= 2 ? parts[^2] : null) ?? throw new CodeGenException(this, nameof(Domain), $"Could not be defaulted from the file path; please explicitly set the property in the configuration.");
-        EntityFrameworkRepositoryName = DefaultWhereNull(EntityFrameworkRepositoryName, () => "ef");
+        EntityFrameworkRepositoryName = DefaultWhereNull(EntityFrameworkRepositoryName, () => "_ef");
         IdType = DefaultWhereNull(IdType, () => "String");
         CollectionSortOrder = DefaultWhereNull(CollectionSortOrder, () => "Code");
         Route = DefaultWhereNull(Route, () => "/api/refdata");

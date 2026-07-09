@@ -54,6 +54,8 @@ public class Program
         // Configure the pipeline/middleware (order is important).
         app.UseCoreExExceptionHandler();
         app.UseHttpsRedirection();
+        app.UseAuthentication();
+        app.UseAuthorization();
         app.UseExecutionContext();
 
         app.MapHealthChecks();

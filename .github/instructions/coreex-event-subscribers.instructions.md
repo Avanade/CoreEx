@@ -236,6 +236,7 @@ var app = builder.Build();
 
 app.UseCoreExExceptionHandler();
 app.UseHttpsRedirection();
+app.UseAuthentication();
 app.UseAuthorization();
 app.UseExecutionContext();
 app.MapControllers();

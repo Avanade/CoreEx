@@ -125,14 +125,15 @@ public class Program
         // Configure the pipeline/middleware (order is important).
         app.UseCoreExExceptionHandler();
         app.UseHttpsRedirection();
+        app.UseAuthentication(/* No authentication configured. */);
         app.UseAuthorization();
         app.UseExecutionContext();
         app.MapControllers();
 
         app.UseOpenApi();
         app.UseSwaggerUi();
-        app.MapHealthChecks();
-        app.MapHostedServices();
+        app.MapHealthChecks(/* Endpoints should be secured. */);
+        app.MapHostedServices(/* Endpoints should be secured. */);
 
         // Run the application.
         app.Run();

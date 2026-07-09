@@ -253,6 +253,7 @@ builder.WithCoreExTelemetry().WithCoreExSqlServerTelemetry().UseOtlpExporter();
 var app = builder.Build();
 app.UseCoreExExceptionHandler();
 app.UseHttpsRedirection();
+app.UseAuthentication();
 app.UseAuthorization();
 app.UseExecutionContext();
 app.UseIdempotencyKey();       // After UseExecutionContext.
@@ -360,6 +361,7 @@ builder.WithCoreExTelemetry()
 var app = builder.Build();
 app.UseCoreExExceptionHandler();
 app.UseHttpsRedirection();
+app.UseAuthentication();
 app.UseAuthorization();
 app.UseExecutionContext();
 app.MapControllers();
@@ -424,6 +426,8 @@ builder.WithCoreExTelemetry().WithCoreExSqlServerTelemetry().WithCoreExServiceBu
 var app = builder.Build();
 app.UseCoreExExceptionHandler();
 app.UseHttpsRedirection();
+app.UseAuthentication();
+app.UseAuthorization();
 app.UseExecutionContext();
 app.MapHealthChecks();
 app.MapHostedServices();
@@ -434,4 +438,5 @@ Key points:
 - The Relay host has **no application-layer dependencies** — no `AddReferenceDataOrchestrator`, no `AddDynamicServicesUsing`, no FusionCache, no EF Core DbContext, no domain services.
 - `AddSqlServerOutboxRelay()` / `AddPostgresOutboxRelay()` take no configuration lambda.
 - `AddSqlServerOutboxRelayHostedService()` / `AddPostgresOutboxRelayHostedService()` register the background relay pump — call these on `builder`, not `builder.Services`.
-- No `AddControllers()`, no `AddOpenApiDocument()`, no `UseOpenApi()`, no `UseSwaggerUi()`, no `UseIdempotencyKey()`, no `UseAuthorization()`.
+- It **does** still call `UseAuthentication()` / `UseAuthorization()` — `MapHealthChecks()` and `MapHostedServices()` are real endpoints that warrant the same middleware protection as any other host.
+- No `AddControllers()`, no `AddOpenApiDocument()`, no `UseOpenApi()`, no `UseSwaggerUi()`, no `UseIdempotencyKey()`.
