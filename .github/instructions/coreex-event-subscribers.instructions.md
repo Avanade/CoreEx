@@ -236,7 +236,7 @@ var app = builder.Build();
 
 app.UseCoreExExceptionHandler();
 app.UseHttpsRedirection();
-app.UseAuthentication();
+// app.UseAuthentication();   // TODO: register an authentication scheme (builder.Services.AddAuthentication(...)) then uncomment.
 app.UseAuthorization();
 app.UseExecutionContext();
 app.MapControllers();

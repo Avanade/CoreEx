@@ -74,7 +74,7 @@ public class Program
         // Configure the pipeline/middleware (order is important).
         app.UseCoreExExceptionHandler();
         app.UseHttpsRedirection();
-        app.UseAuthentication(/* No authentication configured. */);
+        // app.UseAuthentication();   // TODO: register an authentication scheme (builder.Services.AddAuthentication(...)) then uncomment.
         app.UseAuthorization();
         app.UseExecutionContext();
 

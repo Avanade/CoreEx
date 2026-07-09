@@ -234,7 +234,7 @@ When multiple operations share the load-mutate-save pattern, extract a private h
 ```csharp
 // Private helper: load aggregate, apply mutation, persist, emit event
 private async Task<Result<Contracts.{Name}>> OrchestrateUpdateAsync(
-    string id, Func<Contracts.{Name}, Result> mutate, CancellationToken cancellationToken, EventAction action = EventAction.Updated)
+    string id, Func<Contracts.{Name}, Result> mutate, EventAction action = EventAction.Updated, CancellationToken cancellationToken = default)
 {
     var current = await _repository.GetAsync(id, cancellationToken).ConfigureAwait(false);
     if (current is null)
@@ -254,7 +254,7 @@ private async Task<Result<Contracts.{Name}>> OrchestrateUpdateAsync(
 
 // Callers — one line each:
 public Task<Result<Contracts.{Name}>> {Action}Async(string id, CancellationToken cancellationToken = default)
-    => OrchestrateUpdateAsync(id, entity => entity.{Action}(), cancellationToken);
+    => OrchestrateUpdateAsync(id, entity => entity.{Action}(), cancellationToken: cancellationToken);
 ```
 
 ### B5 — Multi-step pipeline with early exit
