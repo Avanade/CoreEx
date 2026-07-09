@@ -427,7 +427,7 @@ var app = builder.Build();
 app.UseCoreExExceptionHandler();
 app.UseHttpsRedirection();
 // app.UseAuthentication();   // TODO: register an authentication scheme (builder.Services.AddAuthentication(...)) then uncomment.
-app.UseAuthorization();
+// app.UseAuthorization();    // TODO: register authorization services (builder.Services.AddAuthorization(...)) then uncomment.
 app.UseExecutionContext();
 app.MapHealthChecks();
 app.MapHostedServices();
@@ -438,5 +438,5 @@ Key points:
 - The Relay host has **no application-layer dependencies** — no `AddReferenceDataOrchestrator`, no `AddDynamicServicesUsing`, no FusionCache, no EF Core DbContext, no domain services.
 - `AddSqlServerOutboxRelay()` / `AddPostgresOutboxRelay()` take no configuration lambda.
 - `AddSqlServerOutboxRelayHostedService()` / `AddPostgresOutboxRelayHostedService()` register the background relay pump — call these on `builder`, not `builder.Services`.
-- It **does** still call `UseAuthorization()` for consistency with the other hosts, with `UseAuthentication()` present but commented out until a scheme is registered — but note `UseAuthorization()` alone does **not** protect `MapHealthChecks()` / `MapHostedServices()`; neither call attaches authorization metadata. Once authentication is configured, pass `groupConfigure: g => g.RequireAuthorization()` to `MapHostedServices()` (its remarks call this out as "highly recommended" since it exposes pause/resume admin actions). Health check endpoints are conventionally left anonymous for container-orchestrator liveness/readiness probes; if they must be secured too, configure a fallback authorization policy instead.
+- `UseAuthentication()` / `UseAuthorization()` are present but **commented out** — the Relay host (unlike API/Subscribe) has no `AddControllers()` or other MVC registration, so calling either without first registering `builder.Services.AddAuthentication(...)` / `builder.Services.AddAuthorization(...)` throws at startup. Uncomment both together, once a scheme is configured, to protect `MapHealthChecks()` / `MapHostedServices()` — and pass `groupConfigure: g => g.RequireAuthorization()` to `MapHostedServices()` (its remarks call this out as "highly recommended" since it exposes pause/resume admin actions). Health check endpoints are conventionally left anonymous for container-orchestrator liveness/readiness probes; if they must be secured too, configure a fallback authorization policy instead.
 - No `AddControllers()`, no `AddOpenApiDocument()`, no `UseOpenApi()`, no `UseSwaggerUi()`, no `UseIdempotencyKey()`.

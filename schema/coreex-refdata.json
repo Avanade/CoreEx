@@ -60,8 +60,8 @@
         },
         "entityFrameworkRepositoryName": {
           "type": "string",
-          "title": "The default Entity Framework (EF) repository parameter name.",
-          "description": "This is the .NET Entity Framework (EF) repository parameter name that should be used within the generated code. Defaults to \u0060ef\u0060."
+          "title": "The default Entity Framework (EF) repository identifier/name.",
+          "description": "This is the .NET Entity Framework (EF) repository identifier/name that should be used within the generated code (often a private field). Defaults to \u0060_ef\u0060."
         },
         "contractsProjectPath": {
           "type": "string",

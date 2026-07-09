@@ -1,5 +1,5 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/Avanade/CoreEx/refs/heads/main/schema/coreex-refdata.json
-# Reference data entity definition; see https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.CodeGen for more information.
+# Reference data entity definitions; see https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.CodeGen for more information.
 apiProjectPath: ../../src/app-name.Api
 applicationProjectPath: ../../src/app-name.Application
 contractsProjectPath: ../../src/app-name.Contracts

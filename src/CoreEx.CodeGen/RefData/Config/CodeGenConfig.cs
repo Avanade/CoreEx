@@ -67,10 +67,10 @@ public class CodeGenConfig : ConfigRootBase<CodeGenConfig>
     public string? Repository { get; set; }
 
     /// <summary>
-    /// Gets or sets the default Entity Framework repository parameter name.
+    /// Gets or sets the default Entity Framework repository identifier/name.
     /// </summary>
     [JsonPropertyName("entityFrameworkRepositoryName")]
-    [CodeGenProperty("Repository", Title = "The default Entity Framework (EF) repository parameter name.", IsImportant = true, Description = "This is the .NET Entity Framework (EF) repository parameter name that should be used within the generated code. Defaults to `_ef`.")]
+    [CodeGenProperty("Repository", Title = "The default Entity Framework (EF) repository identifier/name.", IsImportant = true, Description = "This is the .NET Entity Framework (EF) repository identifier/name that should be used within the generated code (often a private field). Defaults to `_ef`.")]
     public string? EntityFrameworkRepositoryName { get; set; }
 
     #endregion

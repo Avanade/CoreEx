@@ -75,7 +75,7 @@ public class Program
         app.UseCoreExExceptionHandler();
         app.UseHttpsRedirection();
         // app.UseAuthentication();   // TODO: register an authentication scheme (builder.Services.AddAuthentication(...)) then uncomment.
-        app.UseAuthorization();
+        // app.UseAuthorization();    // TODO: register authorization services (builder.Services.AddAuthorization(...)) then uncomment.
         app.UseExecutionContext();
 
         app.MapHealthChecks(/* Endpoints should be secured. */);
