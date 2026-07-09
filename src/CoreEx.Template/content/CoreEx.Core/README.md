@@ -16,9 +16,6 @@ A CoreEx microservice for the `domain-name` domain.
 <!-- #if (refdata-enabled && has-data-provider) -->
 - **Reference data:** Enabled — `tools/app-name.CodeGen/` + `src/app-name.Application/ReferenceDataService.cs`
 <!-- #endif -->
-<!-- #if domain-driven-enabled -->
-- **Domain layer:** Enabled — `src/app-name.Domain/` (aggregates, value objects)
-<!-- #endif -->
 <!-- #if rop-enabled -->
 - **Railway-oriented programming:** Enabled — services return `Result`/`Result<T>`
 <!-- #endif -->
@@ -55,9 +52,6 @@ app-name/
 ├── src/
 │   ├── app-name.Contracts/        # Public contracts, DTOs, event schemas
 │   ├── app-name.Application/      # Services, validators, repository interfaces
-<!-- #if domain-driven-enabled -->
-│   ├── app-name.Domain/           # Aggregates, value objects, domain events
-<!-- #endif -->
 │   └── app-name.Infrastructure/   # EF Core repositories, outbox, external adapters
 <!-- #if has-data-provider -->
 ├── tools/

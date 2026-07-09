@@ -31,8 +31,8 @@ Guides you through adding a complete new entity and its CRUD API in one sitting:
 
 ## Workflow Overview
 
-1. **Read Feature Configuration** — resolve `domain-driven-enabled`, `rop-enabled`, `outbox-enabled`, and `data-provider` from the solution-root `AGENTS.md` before asking anything.
-2. **Interview** — gather entity name, fields, operations (Get/Query/Create/Update/Patch/Delete), and whether a policy guard is needed; batch all questions into one turn.
+1. **Read Feature Configuration** — resolve `rop-enabled`, `outbox-enabled`, and `data-provider` from the solution-root `AGENTS.md`, and check whether a `*.Domain` project exists, before asking anything.
+2. **Interview** — gather entity name, fields, operations (Get/Query/Create/Update/Patch/Delete), identifier type, whether a policy guard is needed, and (if any field is ref-data) whether that reference-data type already exists; batch all questions into one turn.
 3. **Execute L1 sequence** — invoke each L1 skill in order, passing context resolved in steps 1–2; no repeated questions.
 4. **Validate** — `dotnet build` across all projects; confirm unit and integration test classes are present.
 
@@ -42,7 +42,7 @@ For full step-by-step guidance see [`references/workflow.md`](references/workflo
 
 | Step | Skill | Condition |
 |---|---|---|
-| 1 | [`coreex-aggregate`](../coreex-aggregate/SKILL.md) | Only when `domain-driven-enabled = true` |
+| 1 | [`coreex-aggregate`](../coreex-aggregate/SKILL.md) | Only when `*.Domain` project exists |
 | 2 | [`coreex-contract`](../coreex-contract/SKILL.md) | Always |
 | 3 | [`coreex-db-migration`](../coreex-db-migration/SKILL.md) | Skip when `data-provider = None` |
 | 4 | [`coreex-repository`](../coreex-repository/SKILL.md) | Skip when `data-provider = None` |
@@ -58,4 +58,4 @@ For full step-by-step guidance see [`references/workflow.md`](references/workflo
 - [`/.github/instructions/coreex-application-services.instructions.md`](/.github/instructions/coreex-application-services.instructions.md) — layering rules and Result&lt;T&gt; pipeline
 - [`/.github/instructions/coreex-api-controllers.instructions.md`](/.github/instructions/coreex-api-controllers.instructions.md) — endpoint conventions
 - [`/.github/instructions/coreex-tests.instructions.md`](/.github/instructions/coreex-tests.instructions.md) — integration and unit test conventions
-- [`/.github/instructions/coreex-domain.instructions.md`](/.github/instructions/coreex-domain.instructions.md) — DDD aggregate conventions (when `domain-driven-enabled = true`)
+- [`/.github/instructions/coreex-domain.instructions.md`](/.github/instructions/coreex-domain.instructions.md) — DDD aggregate conventions (when `*.Domain` project exists)

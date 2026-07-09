@@ -23,9 +23,7 @@
     <PackageVersion Include="CoreEx.Database" Version="coreex-version" />
     <PackageVersion Include="CoreEx.Database.SqlServer" Version="coreex-version" />
     <!--#endif-->
-    <!--#if domain-driven-enabled-->
     <PackageVersion Include="CoreEx.DomainDriven" Version="coreex-version" />
-    <!--#endif-->
     <!--#if (implement-sqlserver || implement-postgres)-->
     <PackageVersion Include="CoreEx.EntityFrameworkCore" Version="coreex-version" />
     <!--#endif-->

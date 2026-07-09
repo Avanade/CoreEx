@@ -83,13 +83,6 @@
       "description": "Indicates whether Railway-oriented Programming (ROP), being Result/Result<T>, is enabled.",
       "defaultValue": "false"
     },
-    "domain-driven-enabled": {
-      "type": "parameter",
-      "datatype": "bool",
-      "displayName": "Domain-driven project enabled",
-      "description": "Indicates whether a Domain-driven project is enabled.",
-      "defaultValue": "false"
-    },
     "data-provider": {
       "type": "parameter",
       "datatype": "choice",
@@ -185,10 +178,6 @@
             "tools/app-name.CodeGen/**",
             "tools/app-name.Database/Data/ref-data.seed.yaml"
           ]
-        },
-        {
-          "condition": "(!domain-driven-enabled)",
-          "exclude": [ "src/app-name.Domain/**" ]
         },
         {
           "condition": "(implement-none-data)",

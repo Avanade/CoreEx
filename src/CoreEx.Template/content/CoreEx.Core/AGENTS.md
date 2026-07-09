@@ -27,7 +27,7 @@ app-name/
 +-- src/
 |   +-- app-name.Contracts/        # Public contracts: entities, DTOs, event schemas
 |   +-- app-name.Application/      # Business logic: services, validators, repository interfaces
-|   +-- app-name.Domain/           # (domain-driven-enabled) Aggregates, value objects, domain events
+|   +-- app-name.Domain/           # (coreex-domain addon, optional) Aggregates, value objects, domain events
 |   +-- app-name.Infrastructure/   # EF Core repositories, outbox, external integrations
 +-- tools/
 |   +-- app-name.Database/         # (data-provider != None) Database migrations (DbEx)
@@ -54,11 +54,7 @@ app-name/
 <!-- #else -->
 - **Reference data:** Disabled
 <!-- #endif -->
-<!-- #if domain-driven-enabled -->
-- **Domain project:** Enabled -- `src/app-name.Domain/` (aggregates, value objects)
-<!-- #else -->
-- **Domain project:** Disabled -- domain logic lives in Application
-<!-- #endif -->
+- **Domain project:** Optional -- add `dotnet new coreex-domain -n app-name` when domain complexity warrants DDD
 <!-- #if rop-enabled -->
 - **Railway-Oriented Programming:** Enabled -- service methods return `Result`/`Result<T>`
 <!-- #else -->

@@ -35,7 +35,7 @@ Guides you through creating or modifying a CoreEx Infrastructure-layer repositor
 ## Quick Reference
 
 **Clarifying questions before writing any code:**
-0. **Resolve from state first.** Read the solution-root `AGENTS.md` **Feature Configuration** for `data-provider` (SQL Server / PostgreSQL — gates this skill) and `domain-driven-enabled` (Domain-mapping vs contract-mapping). Only ask for what is unrecorded; re-state resolved values for confirmation.
+0. **Resolve from state first.** Read the solution-root `AGENTS.md` **Feature Configuration** for `data-provider` (SQL Server / PostgreSQL — gates this skill) and check whether a `*.Domain` project exists (Domain-mapping vs contract-mapping). Only ask for what is unresolved; re-state resolved values for confirmation.
 1. Which entity? Which database type (PostgreSQL / SQL Server)? Check the project's `Program.cs`.
 2. New repository or adding to an existing one?
 3. Operations needed: Get / Create / Update / Delete / Query?

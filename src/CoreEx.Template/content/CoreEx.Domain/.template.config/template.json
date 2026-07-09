@@ -1,0 +1,15 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "https://github.com/avanade/coreex",
+  "classifications": [ "CoreEx", "Microservice", "Domain" ],
+  "identity": "CoreEx.Domain",
+  "name": "CoreEx Domain layer",
+  "description": "A Domain layer project for a CoreEx domain-based microservice. Add when domain complexity warrants domain-driven design — run after dotnet new coreex and wire into the solution via dotnet sln add.",
+  "shortName": "coreex-domain",
+  "tags": {
+    "language": "C#",
+    "type": "project"
+  },
+  "sourceName": "app-name",
+  "preferNameDirectory": false
+}

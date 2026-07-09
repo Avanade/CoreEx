@@ -20,7 +20,7 @@ Before creating anything, confirm a Domain layer is warranted at all:
 | Question | Guidance |
 |---|---|
 | Does this concept have invariants that must be enforced at the model level (state machines, child-collection rules, cross-property constraints)? | If no → skip the Domain layer; let the Application service orchestrate directly against repository interfaces. |
-| Does the domain already have a `*.Domain` project? | If no and the answer above is yes, the solution needs `--domain-driven-enabled true` — this is a solution-scaffolding concern, not something this skill creates. Confirm with the developer before proceeding. |
+| Does the domain already have a `*.Domain` project? | If no and the answer above is yes, run `dotnet new coreex-domain -n Company.Product.Domain` and wire it in first (`dotnet sln add src/Company.Product.Domain.Domain`) — this is a solution-scaffolding concern, not something this skill creates. Confirm with the developer before proceeding. |
 | Is this a CRUD-oriented entity (simple get/create/update/delete, no business rules beyond validation)? | If yes → skip the Domain layer entirely; use `coreex-contract` + `coreex-repository` + `coreex-app-service` directly. |
 
 Only proceed past this point when a Domain layer is confirmed to exist and be warranted.

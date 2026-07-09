@@ -27,7 +27,7 @@ Guides a repository through the right CoreEx setup path by interviewing the user
 ## When Not to Use
 
 - You are debugging local runtime, container, Aspire, or package restore issues unrelated to project shaping.
-- You still need to create the initial bootstrap repository; run `coreex-bootstrap` before this skill is used.
+- You still need to create the initial bootstrap repository; run `dotnet new coreex-ai` then `/coreex-bootstrap` before this skill is used.
 - You want architectural guidance for an existing implementation beyond project setup; use `CoreEx Expert` instead.
 
 ## Workflow Overview
@@ -87,7 +87,7 @@ Set outbox to `true` only when the user chose owned persistence and reliable pub
 | "This service stores its own data in Postgres." | `--data-provider Postgres` |
 | "This is a facade. No local database." | `--data-provider None` |
 | "I need reference data." | `--refdata-enabled true` |
-| "I want a Domain layer." | `--domain-driven-enabled true` |
+| "I want a Domain layer." | Add `coreex-domain` addon after `coreex` |
 | "I want Result/ROP style pipelines." | `--rop-enabled true` |
 
 ## Prerequisite
@@ -117,7 +117,11 @@ Before this skill runs, the repository must already be in one of these states:
 
 ```text
 # Step 1: Run the solution template. If the folder is named Avanade.Product.Books, -n can be omitted.
-dotnet new coreex -n Avanade.Product.Books --data-provider SqlServer --messaging-provider ServiceBus --refdata-enabled true --outbox-enabled true --domain-driven-enabled false --rop-enabled false
+dotnet new coreex -n Avanade.Product.Books --data-provider SqlServer --messaging-provider ServiceBus --refdata-enabled true --outbox-enabled true --rop-enabled false
+
+# Step 1a (optional): Add the Domain layer when domain complexity warrants DDD.
+dotnet new coreex-domain -n Avanade.Product.Books
+dotnet sln Avanade.Product.Books.slnx add src/Avanade.Product.Books.Domain
 
 # Step 2: Add each host template using the 4-part name (base + host suffix).
 dotnet new coreex-api        -n Avanade.Product.Books.Api        --data-provider SqlServer --refdata-enabled true --outbox-enabled true
@@ -144,6 +148,7 @@ dotnet test tests/Avanade.Product.Books.Test.Unit
 # If the repo already has a bootstrap or partial scaffold, run only the missing domain/host templates.
 # Confirm the canonical three-part base name, then run coreex and/or host templates with the correct suffixes.
 dotnet new coreex            -n Company.Product.Domain ...
+dotnet new coreex-domain     -n Company.Product.Domain          # optional: only when DDD is needed
 dotnet new coreex-api        -n Company.Product.Domain.Api ...
 dotnet new coreex-relay      -n Company.Product.Domain.Relay ...
 dotnet new coreex-subscribe -n Company.Product.Domain.Subscribe ...
@@ -152,7 +157,7 @@ dotnet new coreex-subscribe -n Company.Product.Domain.Subscribe ...
 
 ## Existing Repository Guardrails
 
-- **Bootstrap is a prereq:** This skill assumes any bootstrap creation has already happened before the workflow starts.
+- **Bootstrap is a prereq:** This skill assumes `dotnet new coreex-ai` has already been run and (for a blank repo) `/coreex-bootstrap` has generated root guidance files.
 - **For retrofit work:** If the repo already contains a solution, `src/`, tooling, or tests, do not re-run the root scaffold unless the current shape is still only the bootstrap shell.
 - **Template identity conflicts:** If `dotnet new list` or template execution reports duplicate CoreEx template identities, warn the user which template source is being selected before continuing.
 - **Version-pin discipline:** If `CoreEx.Template` needs installing or updating here, never run a bare `dotnet new install CoreEx.Template` — resolve and pin an explicit `::<version>` matching the project's referenced `CoreEx` NuGet version (see [coreex-ai-workflows.md § Version-pin discipline](/.github/coreex-ai-workflows.md#version-pin-discipline)).
@@ -200,6 +205,7 @@ dotnet new coreex-subscribe -n Company.Product.Domain.Subscribe ...
 |---|---|---|
 | CoreEx AI workflow assets | `coreex-ai` | Installs `.github/` instructions, prompts, and agents — run at repo root before or after scaffolding |
 | CoreEx Application services | `coreex` | Scaffolds the implementation layers (Contracts, Application, Infrastructure, etc.) |
+| CoreEx Domain layer | `coreex-domain` | Adds a Domain project for DDD — run after `coreex`, wire via `dotnet sln add` |
 | CoreEx API host | `coreex-api` | Adds an ASP.NET Core API host |
 | CoreEx Outbox Relay host | `coreex-relay` | Adds an outbox relay host |
 | CoreEx Subscriber host | `coreex-subscribe` | Adds an event subscriber host |

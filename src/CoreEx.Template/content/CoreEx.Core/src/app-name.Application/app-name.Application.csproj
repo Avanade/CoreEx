@@ -4,9 +4,6 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="CoreEx.Data" />
-    <!--#if domain-driven-enabled-->
-    <PackageReference Include="CoreEx.DomainDriven" />
-    <!--#endif-->
     <!--#if refdata-enabled-->
     <PackageReference Include="CoreEx.RefData" />
     <!--#endif-->

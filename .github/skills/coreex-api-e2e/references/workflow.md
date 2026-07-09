@@ -18,10 +18,12 @@ Before asking the user anything, read the solution-root `AGENTS.md` **Feature Co
 
 | Feature | How it shapes the L1 sequence |
 |---|---|
-| `domain-driven-enabled` | `true` → Step 1 (`coreex-aggregate`) runs before Step 2 |
+| `*.Domain` project present | `true` → Step 1 (`coreex-aggregate`) runs before Step 2 |
 | `data-provider` | `None` → Steps 3 and 4 (migration + repository) are skipped |
 | `rop-enabled` | Passed to app-service and API steps to determine Result&lt;T&gt; pipeline shape |
 | `outbox-enabled` | Passed to app-service step to determine whether mutations publish outbox events |
+
+> **Identifier type is decided once, upfront.** Step 1 (`coreex-aggregate`, when it runs) needs a concrete `TId` for `Aggregate<TId, TSelf>` before Step 2 (`coreex-contract`) formally asks its own identifier-type question. Resolve the identifier type in Phase 2 below and pass the same value to both steps — do not let Step 1 guess and Step 2 decide independently.
 
 If any feature is absent from `AGENTS.md`, include it as a question in Phase 2 and record the answer before proceeding.
 
@@ -38,8 +40,10 @@ Gather everything needed for all downstream L1 skills in a single conversation t
 | 1 | What is the entity name? (e.g. `Product`, `Order`) | Drives all class, table, and file naming |
 | 2 | Which CRUD operations are needed? (`Get` / `Query` / `Create` / `Update` / `Patch` / `Delete`) | Shapes the app-service interface, API controller, and test pairs |
 | 3 | What are the key properties? (name, .NET type, required/optional) — list all upfront; flag any ref-data navigation properties | Passed to contract, migration, repository, validator |
-| 4 | Does the entity require a business guard? (e.g. "a referenced entity must exist", "the record must be in active state") | Determines whether Step 6 (`coreex-policy`) runs |
-| 5 | (If `domain-driven-enabled` was unrecorded) Is this a DDD aggregate with mutation methods, or a plain data entity? | Determines whether Step 1 (`coreex-aggregate`) runs |
+| 4 | What is the entity's identifier type? (default `string?`) | Needed by Step 1's `Aggregate<TId, TSelf>` (when it runs) and Step 2's `IIdentifier<T>` — decide once, pass to both |
+| 5 | Does the entity require a business guard? (e.g. "a referenced entity must exist", "the record must be in active state") | Determines whether Step 6 (`coreex-policy`) runs |
+| 6 | (If `*.Domain` project presence is unclear) Is this a DDD aggregate with mutation methods, or a plain data entity? | Determines whether Step 1 (`coreex-aggregate`) runs |
+| 7 | (If any property flagged as ref-data in Q3) Does that reference-data type already exist in `*.Contracts`, or is it brand new? | A brand-new ref-data type must be created via `coreex-refdata` **before** Step 1 — the aggregate can only reference ref-data types that already compile |
 
 **Do not ask** about `rop-enabled`, `outbox-enabled`, or `data-provider` if they are already recorded in Feature Configuration — restate the resolved values for confirmation instead.
 
@@ -51,13 +55,15 @@ Invoke each applicable L1 skill in the order below. Pass the context resolved in
 
 ---
 
-### Step 1 — `coreex-aggregate` _(only when `domain-driven-enabled = true`)_
+### Step 1 — `coreex-aggregate` _(only when `*.Domain` project exists)_
 
 Invoke [`coreex-aggregate`](../coreex-aggregate/SKILL.md).
 
-Pass: entity name, key properties, mutation methods derived from the operations list (e.g. `Create` → a factory/constructor mutation, `Update` → an `Update(...)` method, `Delete` → a `Remove()` or soft-delete mutation).
+Pass: entity name, key properties, identifier type (resolved in Phase 2, Q4), mutation methods derived from the operations list (e.g. `Create` → a factory/constructor mutation, `Update` → an `Update(...)` method, `Delete` → a `Remove()` or soft-delete mutation).
 
 The aggregate produces the domain object. Step 2 (`coreex-contract`) still runs immediately after to create the API-surface DTO.
+
+> **Dependency direction:** `*.Domain` has a real, one-directional project reference to `*.Contracts` (never the reverse — see `coreex-domain.instructions.md`). This ordering is safe only because any `Contracts` type the aggregate needs (typically a reference-data type such as `Status` or `UnitOfMeasure`) is **pre-existing** — added in an earlier `coreex-refdata` run — not the brand-new DTO Step 2 is about to create for this same entity. The aggregate never references its own sibling contract; that mapping is Application-layer work (Step 7). If Phase 2 Q7 revealed a reference-data type that does not exist yet, run `coreex-refdata` before this step — otherwise the aggregate will not compile.
 
 ---
 
@@ -143,5 +149,5 @@ Pass: entity name, operations list, seed data requirements. The seed data conver
 
 - **Never re-ask in a later step** what was answered in Phase 2 — the entire point of the upfront interview is to avoid interruptions.
 - **Steps 3 and 4 are skipped together** — never skip one without the other; a repository without a table (or vice versa) is an incomplete state.
-- **Step 1 and Step 2 are complementary, not mutually exclusive** — when `domain-driven-enabled = true`, both run: the aggregate is the domain object, the contract is the API DTO.
+- **Step 1 and Step 2 are complementary, not mutually exclusive** — when the `*.Domain` project exists, both run: the aggregate is the domain object, the contract is the API DTO.
 - **Step 6 is conditional, not optional by default** — if the developer says "no guard needed", skip it without asking again.

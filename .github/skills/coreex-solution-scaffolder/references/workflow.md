@@ -236,8 +236,8 @@ Recommended options:
 
 Interpretation:
 
-- `Yes` maps to `--domain-driven-enabled true`.
-- `No` maps to `--domain-driven-enabled false`.
+- `Yes` means run `dotnet new coreex-domain -n Company.Product.Domain` after `dotnet new coreex` and wire it into the solution.
+- `No` means skip the Domain addon.
 
 Default: `No`.
 
@@ -275,7 +275,7 @@ Build a structured decision summary before any command is run.
 | No local database | `--data-provider None` |
 | Azure Service Bus | `--messaging-provider ServiceBus` |
 | Reference data needed | `--refdata-enabled true` |
-| Domain layer needed | `--domain-driven-enabled true` |
+| Domain layer needed | `dotnet new coreex-domain -n Company.Product.Domain` + `dotnet sln add src/Company.Product.Domain.Domain` |
 | Result/ROP style needed | `--rop-enabled true` |
 
 If the user is retrofitting an existing solution, only include flags that are required for missing projects or that the user explicitly asked to change.

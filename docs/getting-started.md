@@ -99,7 +99,6 @@ If your project requires a different shape, the full option set is:
 | `--messaging-provider` | `ServiceBus` · `None` | `ServiceBus` | Azure Service Bus emulator is wired into `docker-compose.yml` when enabled |
 | `--outbox-enabled` | `true` · `false` | `true` | Transactional outbox — commit events atomically with database writes |
 | `--refdata-enabled` | `true` · `false` | `true` | Reference data code generation from `tools/[name].CodeGen/ref-data.yaml` |
-| `--domain-driven-enabled` | `true` · `false` | `false` | Adds a `*.Domain` project for aggregates and value objects |
 | `--rop-enabled` | `true` · `false` | `false` | Railway-oriented programming — services return `Result`/`Result<T>` |
 
 ---

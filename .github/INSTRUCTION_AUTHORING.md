@@ -58,8 +58,7 @@ for every POST") is an invariant and stays; a numbered "detect → confirm → s
 procedure and moves to the skill.
 
 **Project-wide choices live in state, not in prompts.** The solution-root `AGENTS.md` "Feature Configuration"
-records `data-provider`, `rop-enabled`, `domain-driven-enabled`, `refdata-enabled`, `outbox-enabled`, and
-`messaging-provider`. Instructions and skills must **read that recording before asking** and re-state resolved
+records `data-provider`, `rop-enabled`, `refdata-enabled`, `outbox-enabled`, and `messaging-provider`. Whether a Domain layer is present is inferred from the existence of `src/*.Domain/` (added via `dotnet new coreex-domain`). Instructions and skills must **read that recording before asking** and re-state resolved
 values for confirmation rather than re-prompting (the global rule lives in `.github/copilot-instructions.md`).
 
 ---

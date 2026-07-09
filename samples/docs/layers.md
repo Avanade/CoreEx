@@ -1,6 +1,6 @@
 # Layers
 
-CoreEx promotes a clean, layered architecture for building enterprise APIs and distributed services. The sample domains — **Products** (Postgres) and **Shopping** (SQL Server) — demonstrate these patterns in a polyglot setting, showing that the same architectural approach scales across different persistence technologies. Each domain is decomposed into business layers (**Contracts**, **Application**, **Domain** (optional), **Infrastructure**) and one or more host layers (**API**, **Outbox Relay**, **Subscribe**). The business layers enforce a strict inward dependency rule; the host layers act as composition roots that wire everything together and delegate to Application logic.
+CoreEx promotes a clean, layered architecture for building enterprise APIs and distributed services. The sample domains — **Products** (Postgres) and **Shopping** (SQL Server) — demonstrate these patterns in a polyglot setting, showing that the same architectural approach scales across different persistence technologies. Each domain is decomposed into business layers (**Contracts**, **Domain** (optional), **Application**, **Infrastructure**) and one or more host layers (**API**, **Outbox Relay**, **Subscribe**). The business layers enforce a strict inward dependency rule — `Domain` references only `Contracts`; `Application` references `Contracts` and `Domain`; `Infrastructure` references `Application` (and transitively `Domain`) — never the reverse; the host layers act as composition roots that wire everything together and delegate to Application logic.
 
 > **Polyglot data**: Products is backed by PostgreSQL via [`CoreEx.Database.Postgres`](../../src/CoreEx.Database.Postgres) and [`CoreEx.EntityFrameworkCore`](../../src/CoreEx.EntityFrameworkCore). Shopping uses SQL Server via [`CoreEx.Database.SqlServer`](../../src/CoreEx.Database.SqlServer) and the same EF Core integration. The layers above the Infrastructure boundary are completely unaware of the underlying database technology.
 
@@ -30,8 +30,8 @@ CoreEx promotes a clean, layered architecture for building enterprise APIs and d
 | Layer | Description | Detail |
 |---|---|---|
 | 📋 **Contracts** | Public API and messaging surface — entity contracts, reference data, and source generation. | [contracts-layer.md](contracts-layer.md) |
-| ⚙️ **Application** | Business logic orchestration — services, validators, repository interfaces, adapters, mapping, and policies. | [application-layer.md](application-layer.md) |
 | 🧩 **Domain** | Optional aggregate and value-object layer, introduced when rich domain rules require a dedicated consistency boundary. | [domain-layer.md](domain-layer.md) |
+| ⚙️ **Application** | Business logic orchestration — services, validators, repository interfaces, adapters, mapping, and policies. | [application-layer.md](application-layer.md) |
 | 🗄️**Infrastructure** | Concrete persistence, mapping, HTTP clients, and adapter implementations wired in via DI. | [infrastructure-layer.md](infrastructure-layer.md) |
 
 ## Host layers
