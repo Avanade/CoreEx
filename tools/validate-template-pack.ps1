@@ -143,6 +143,7 @@ $testScenarios = @(
             )
             FilesAbsent  = @(
                 ".github"
+                "src/App.Domain"
             )
             FileContains = @{
                 "src/App.Infrastructure/App.Infrastructure.csproj" = "CoreEx.Database.Postgres"
@@ -168,6 +169,7 @@ $testScenarios = @(
             )
             FilesAbsent  = @(
                 ".github"
+                "src/App.Domain"
             )
             FileContains = @{
                 "src/App.Infrastructure/App.Infrastructure.csproj" = "CoreEx.Database.SqlServer"
@@ -196,6 +198,7 @@ $testScenarios = @(
                 ".github"
                 "tools/App.Database"
                 "tools/App.CodeGen"
+                "src/App.Domain"
             )
         }
         Build      = $true
@@ -220,6 +223,7 @@ $testScenarios = @(
                 ".github"
                 "tools/App.CodeGen"
                 "src/App.Application/ReferenceDataService.cs"
+                "src/App.Domain"
             )
         }
         Build      = $true

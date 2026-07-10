@@ -169,7 +169,7 @@ dotnet new coreex-ai --app-folder services/shopping
 
 ## Template 2 -- `coreex` (Solution scaffold)
 
-Scaffolds the shared solution core: the `.slnx` solution file, solution-wide configuration files (`.editorconfig`, `Directory.Build.props`, `Directory.Packages.props`), the `Contracts`, `Application`, `Infrastructure` (and optionally `Domain`) class-library projects, and the `Database` and `CodeGen` tooling projects.
+Scaffolds the shared solution core: the `.slnx` solution file, solution-wide configuration files (`.editorconfig`, `Directory.Build.props`, `Directory.Packages.props`), the `Contracts`, `Application`, `Infrastructure` class-library projects, and the `Database` and `CodeGen` tooling projects. The optional `Domain` project is a separate add-on — see "Template 3 -- `coreex-domain`" below.
 
 Run this **once per domain** from the solution root directory.
 
@@ -647,7 +647,7 @@ dotnet new coreex-subscribe -n Avanade.Erp.Sales.Subscribe
 
 **Single install, five project-scaffolding templates.** All five ship inside the same NuGet package as `coreex-ai` (`PackageType=Template`). A single `dotnet new install CoreEx.Template` makes all short names available: `coreex`, `coreex-domain`, `coreex-api`, `coreex-relay`, and `coreex-subscribe`.
 
-**Version stamping.** Each `template.json` carries `COREEX_VERSION` as a placeholder. During `dotnet pack`, an inline MSBuild `ReplaceTextInFile` task stamps the actual `$(Version)` into generated copies of the four `template.json` files before they are packed. The source copies in `content/` retain the placeholder and remain editable.
+**Version stamping.** Each `template.json` carries `COREEX_VERSION` as a placeholder. During `dotnet pack`, an inline MSBuild `ReplaceTextInFile` task stamps the actual `$(Version)` into generated copies of the five `template.json` files (`CoreEx.Ai`, `CoreEx.Core`, `CoreEx.Api`, `CoreEx.Relay`, `CoreEx.Subscribe`) before they are packed. The source copies in `content/` retain the placeholder and remain editable. `CoreEx.Domain`'s `template.json` has no `COREEX_VERSION` token and is packed directly, unstamped.
 
 **Central Package Management.** All `PackageReference` entries in generated projects carry no `Version` attribute -- versions are resolved from the `Directory.Packages.props` emitted by the `coreex` solution template. The host templates therefore require that the `coreex` solution template has been applied first (since `Directory.Packages.props` lives at the solution root).
 
