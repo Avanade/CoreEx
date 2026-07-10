@@ -345,7 +345,7 @@ function Invoke-Assertion {
 }
 
 try {
-    # Step 1: Build and pack
+    # Step 1: Build and pack CoreEx.Template
     Write-Header "Building CoreEx.Template package"
     if (-not $NoRebuild) {
         Push-Location $templateProjectPath
@@ -364,7 +364,35 @@ try {
     $nupkgFile = ($nupkgFiles | Sort-Object LastWriteTime -Descending | Select-Object -First 1).FullName
     Write-Verbose "Using template package: $nupkgFile"
 
-    # Step 3: Install template pack (uninstall any existing version first to avoid duplicate registrations)
+    # Step 3: Build and collect all CoreEx library packages into a local feed so that
+    # scaffolded projects can restore without requiring the version to be published on NuGet.org.
+    New-Item -ItemType Directory -Path $temporaryTestRoot -Force | Out-Null
+    $localFeedPath = Join-Path $temporaryTestRoot "local-feed"
+    New-Item -ItemType Directory -Path $localFeedPath -Force | Out-Null
+
+    Write-Header "Building local NuGet feed"
+    # Build the solution so binaries and assets exist before packing individually.
+    dotnet build (Join-Path $repoRoot "CoreEx.sln") -c Release --nologo
+    if ($LASTEXITCODE -ne 0) { throw "Failed to build solution" }
+
+    $srcRoot = Join-Path $repoRoot "src"
+    # Only look one level deep — each package lives in its own direct subdirectory.
+    # Recursing would pick up template content files inside CoreEx.Template/content/.
+    $libraryProjects = Get-ChildItem -Path $srcRoot -Directory |
+        Where-Object { $_.Name -ne "CoreEx.Template" } |
+        ForEach-Object { Get-ChildItem -Path $_.FullName -Filter "*.csproj" | Select-Object -First 1 } |
+        Where-Object { $_ -ne $null }
+
+    foreach ($proj in $libraryProjects) {
+        Write-Verbose "Packing $($proj.Directory.Name)"
+        $packOutput = dotnet pack $proj.FullName -c Release --nologo --no-build --no-restore -o $localFeedPath 2>&1
+        $packExit = $LASTEXITCODE
+        $packOutput | Where-Object { $_ -match "error|successfully created" } | Write-Output
+        if ($packExit -ne 0) { throw "Failed to pack $($proj.Directory.Name) (exit $packExit)" }
+    }
+    Write-Pass "Local feed populated: $localFeedPath"
+
+    # Step 4: Install template pack (uninstall any existing version first to avoid duplicate registrations)
     Write-Header "Installing template pack"
     dotnet new uninstall CoreEx.Template 2>&1 | Out-Null
     Write-Verbose "Uninstalled any prior CoreEx.Template (exit: $LASTEXITCODE — ignored)"
@@ -372,8 +400,6 @@ try {
     if ($LASTEXITCODE -ne 0) { throw "Failed to install template pack" }
     Write-Pass "Template pack installed"
 
-    # Step 4: Create test root
-    New-Item -ItemType Directory -Path $temporaryTestRoot -Force | Out-Null
     Write-Verbose "Test root: $temporaryTestRoot"
 
     # Step 5: Run scenarios
@@ -414,6 +440,22 @@ try {
 
             # Build
             if ($scenario.Build) {
+                # Inject a nuget.config pointing at the local feed so restore succeeds
+                # even when the current version hasn't been published to NuGet.org yet.
+                $nugetConfigContent = @"
+<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+  <packageSources>
+    <!-- Clear inherited user/machine sources so this build only ever hits the local feed and
+         nuget.org — avoids failures against unreachable corporate/internal feeds in CI. -->
+    <clear />
+    <add key="local-coreex" value="$localFeedPath" />
+    <add key="nuget.org" value="https://api.nuget.org/v3/index.json" protocolVersion="3" />
+  </packageSources>
+</configuration>
+"@
+                Set-Content -Path (Join-Path $testDir "nuget.config") -Value $nugetConfigContent -Encoding utf8
+
                 Write-Output "  Building generated output..."
                 $buildTarget = (Get-ChildItem $testDir -Filter "*.slnx" -Recurse | Select-Object -First 1)
                 if (-not $buildTarget) { $buildTarget = Get-ChildItem $testDir -Filter "*.sln" -Recurse | Select-Object -First 1 }
