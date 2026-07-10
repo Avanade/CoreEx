@@ -249,6 +249,7 @@ Domain-driven design with ROP, Postgres, no outbox:
 dotnet new coreex -n Avanade.Erp.Sales --rop-enabled true --data-provider Postgres --outbox-enabled false
 dotnet new coreex-domain -n Avanade.Erp.Sales
 dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Domain
+dotnet add src/Avanade.Erp.Sales.Application/Avanade.Erp.Sales.Application.csproj reference src/Avanade.Erp.Sales.Domain/Avanade.Erp.Sales.Domain.csproj
 ```
 
 ---
@@ -257,7 +258,7 @@ dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Domain
 
 Scaffolds an optional `*.Domain` class-library project for solutions where domain complexity warrants domain-driven design: aggregate roots, child entities, value objects, and `PersistenceState`-driven mutation methods via `CoreEx.DomainDriven`. Most solutions do not need this -- add it only when the Application layer's CRUD-style orchestration is no longer enough.
 
-Run this **after** `coreex`, from the solution root. Unlike `coreex-api`/`coreex-relay`/`coreex-subscribe`, this template does not add itself to the `.slnx` -- wire it in yourself with `dotnet sln add`.
+Run this **after** `coreex`, from the solution root. Unlike `coreex-api`/`coreex-relay`/`coreex-subscribe`, this template does not add itself to the `.slnx` -- wire it in yourself with `dotnet sln add`. You must also add a project reference from `Application` to the new `Domain` project (`dotnet add ... reference ...`) -- `Application` is the only layer with a direct dependency on `Domain` (`Infrastructure` only reaches it transitively through `Application`), and nothing else wires that reference for you.
 
 ### Parameters
 
@@ -280,6 +281,7 @@ src/
 dotnet new coreex -n Avanade.Erp.Sales --rop-enabled true --data-provider Postgres --outbox-enabled false
 dotnet new coreex-domain -n Avanade.Erp.Sales
 dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Domain
+dotnet add src/Avanade.Erp.Sales.Application/Avanade.Erp.Sales.Application.csproj reference src/Avanade.Erp.Sales.Domain/Avanade.Erp.Sales.Domain.csproj
 ```
 
 ---
