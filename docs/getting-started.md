@@ -101,6 +101,8 @@ If your project requires a different shape, the full option set is:
 | `--refdata-enabled` | `true` · `false` | `true` | Reference data code generation from `tools/[name].CodeGen/ref-data.yaml` |
 | `--rop-enabled` | `true` · `false` | `false` | Railway-oriented programming — services return `Result`/`Result<T>` |
 
+> **Need a DDD Domain layer?** `coreex` no longer scaffolds `Domain` directly — run `dotnet new coreex-domain` afterwards to add it as a separate project, then wire it into the solution with `dotnet sln <name>.slnx add src/<name>.Domain`. Only add it when the entity has real invariants to enforce (state machines, cross-property rules) — most CRUD-style entities don't need it.
+
 ---
 
 ## 5. Start the infrastructure

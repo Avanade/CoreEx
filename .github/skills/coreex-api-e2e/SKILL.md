@@ -42,15 +42,16 @@ For full step-by-step guidance see [`references/workflow.md`](references/workflo
 
 | Step | Skill | Condition |
 |---|---|---|
-| 1 | [`coreex-aggregate`](../coreex-aggregate/SKILL.md) | Only when `*.Domain` project exists |
-| 2 | [`coreex-contract`](../coreex-contract/SKILL.md) | Always |
-| 3 | [`coreex-db-migration`](../coreex-db-migration/SKILL.md) | Skip when `data-provider = None` |
-| 4 | [`coreex-repository`](../coreex-repository/SKILL.md) | Skip when `data-provider = None` |
-| 5 | [`coreex-validator`](../coreex-validator/SKILL.md) | Always — also generates `*.Test.Unit/Validators/` unit tests |
-| 6 | [`coreex-policy`](../coreex-policy/SKILL.md) | Only if a business guard was identified in the interview — also generates `*.Test.Unit/Policies/` unit tests |
-| 7 | [`coreex-app-service`](../coreex-app-service/SKILL.md) | Always |
-| 8 | [`coreex-api`](../coreex-api/SKILL.md) | Always |
-| 9 | [`coreex-test-api`](../coreex-test-api/SKILL.md) | Always |
+| 1 | [`coreex-refdata`](../coreex-refdata/SKILL.md) | Only if a brand-new reference-data type was identified in the interview (must exist before Step 2 can compile) |
+| 2 | [`coreex-aggregate`](../coreex-aggregate/SKILL.md) | Only when `*.Domain` project exists |
+| 3 | [`coreex-contract`](../coreex-contract/SKILL.md) | Always |
+| 4 | [`coreex-db-migration`](../coreex-db-migration/SKILL.md) | Skip when `data-provider = None` |
+| 5 | [`coreex-repository`](../coreex-repository/SKILL.md) | Skip when `data-provider = None` |
+| 6 | [`coreex-validator`](../coreex-validator/SKILL.md) | Always — also generates `*.Test.Unit/Validators/` unit tests |
+| 7 | [`coreex-policy`](../coreex-policy/SKILL.md) | Only if a business guard was identified in the interview — also generates `*.Test.Unit/Policies/` unit tests |
+| 8 | [`coreex-app-service`](../coreex-app-service/SKILL.md) | Always |
+| 9 | [`coreex-api`](../coreex-api/SKILL.md) | Always |
+| 10 | [`coreex-test-api`](../coreex-test-api/SKILL.md) | Always |
 
 ## Key References
 

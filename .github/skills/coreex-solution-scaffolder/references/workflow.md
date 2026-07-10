@@ -275,7 +275,7 @@ Build a structured decision summary before any command is run.
 | No local database | `--data-provider None` |
 | Azure Service Bus | `--messaging-provider ServiceBus` |
 | Reference data needed | `--refdata-enabled true` |
-| Domain layer needed | `dotnet new coreex-domain -n Company.Product.Domain` + `dotnet sln add src/Company.Product.Domain.Domain` |
+| Domain layer needed | `dotnet new coreex-domain -n Company.Product.Domain` + `dotnet sln Company.Product.Domain.slnx add src/Company.Product.Domain.Domain` |
 | Result/ROP style needed | `--rop-enabled true` |
 
 If the user is retrofitting an existing solution, only include flags that are required for missing projects or that the user explicitly asked to change.

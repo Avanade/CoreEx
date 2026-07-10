@@ -203,7 +203,7 @@ dotnet new coreex-subscribe -n Company.Product.Domain.Subscribe ...
 
 | Template | Short name | Purpose |
 |---|---|---|
-| CoreEx AI workflow assets | `coreex-ai` | Installs `.github/` instructions, prompts, and agents — run at repo root before or after scaffolding |
+| CoreEx AI workflow assets | `coreex-ai` | Installs the `.github/` instructions, skills, prompts, agents, and docs cache, plus `.claude/` commands — run at repo root before or after scaffolding |
 | CoreEx Application services | `coreex` | Scaffolds the implementation layers (Contracts, Application, Infrastructure, etc.) |
 | CoreEx Domain layer | `coreex-domain` | Adds a Domain project for DDD — run after `coreex`, wire via `dotnet sln add` |
 | CoreEx API host | `coreex-api` | Adds an ASP.NET Core API host |
