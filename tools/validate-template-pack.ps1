@@ -370,6 +370,10 @@ try {
     New-Item -ItemType Directory -Path $localFeedPath -Force | Out-Null
 
     Write-Header "Building local NuGet feed"
+    # Restore the solution so all project.assets.json files exist before packing individually.
+    dotnet restore (Join-Path $repoRoot "CoreEx.sln") --nologo
+    if ($LASTEXITCODE -ne 0) { throw "Failed to restore solution" }
+
     $srcRoot = Join-Path $repoRoot "src"
     # Only look one level deep — each package lives in its own direct subdirectory.
     # Recursing would pick up template content files inside CoreEx.Template/content/.
@@ -380,7 +384,7 @@ try {
 
     foreach ($proj in $libraryProjects) {
         Write-Verbose "Packing $($proj.Directory.Name)"
-        $packOutput = dotnet pack $proj.FullName -c Release --nologo -o $localFeedPath 2>&1
+        $packOutput = dotnet pack $proj.FullName -c Release --nologo --no-restore -o $localFeedPath 2>&1
         $packExit = $LASTEXITCODE
         $packOutput | Where-Object { $_ -match "error|successfully created" } | Write-Output
         if ($packExit -ne 0) { throw "Failed to pack $($proj.Directory.Name) (exit $packExit)" }
