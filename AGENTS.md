@@ -97,10 +97,12 @@ dotnet new coreex-ai
 dotnet new coreex-ai --app-folder <subfolder>
 ```
 
+For a **brand-new blank repository** (no `src/`, `tests/`, or `tools/` yet), run `/coreex-bootstrap` after `dotnet new coreex-ai`. The skill generates root guidance files (`README.md`, `AGENTS.md`, `CLAUDE.md`) and immediately chains to `/coreex-scaffold` for solution shaping. For repositories that already have partial content, proceed directly to Step 4.
+
 This installs:
 - `.github/instructions/` — scoped instruction files auto-injected by Copilot for each file type
 - `.github/prompts/` — the scaffolding prompt plus one `coreex-<capability>.prompt.md` per L1/L2 skill
-- `.github/skills/` — the CoreEx skill suite: `coreex-docs-sync`, `coreex-solution-scaffolder`, the L1 skills
+- `.github/skills/` — the CoreEx skill suite: `coreex-bootstrap`, `coreex-docs-sync`, `coreex-solution-scaffolder`, the L1 skills
   (`coreex-contract`, `coreex-refdata`, `coreex-db-migration`, `coreex-repository`, `coreex-adapter`,
   `coreex-app-service`, `coreex-validator`, `coreex-policy`, `coreex-aggregate`, `coreex-api`, `coreex-subscriber`,
   `coreex-test-api`, `coreex-test-subscribe`, `coreex-test-relay`), and the L2 end-to-end skills

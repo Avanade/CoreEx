@@ -16,8 +16,8 @@ tags: ["ddd", "domain-driven-design", "aggregate", "entity", "value-object", "do
 # CoreEx: Aggregate (DDD Domain Object)
 
 Guides you through adding or modifying a domain object in a CoreEx Domain layer — aggregate roots,
-child entities, and value objects. This skill is scoped to solutions with `--domain-driven-enabled true`
-(the `*.Domain` project exists). It interviews you to determine which kind of domain object you need,
+child entities, and value objects. This skill is scoped to solutions where the `*.Domain` project exists
+(added via `dotnet new coreex-domain`). It interviews you to determine which kind of domain object you need,
 then follows the corresponding pattern from `CoreEx.DomainDriven`.
 
 ## When to Use
@@ -36,10 +36,10 @@ then follows the corresponding pattern from `CoreEx.DomainDriven`.
 - Infrastructure persistence of the aggregate (EF mapping, `PersistenceState`-driven insert/update/delete) — use `coreex-repository`
 - Validating primitive request DTOs before they reach the domain — use `coreex-validator`
 
-> **Confirm this skill applies before writing any domain object.** It is gated on
-> `domain-driven-enabled`: verify both the solution-root `AGENTS.md` **Feature Configuration**
-> (`domain-driven-enabled: true`) **and** the presence of the `*.Domain` project. If either is absent,
-> the domain is CRUD-oriented — stop and use `coreex-app-service` against repository interfaces instead.
+> **Confirm this skill applies before writing any domain object.** It is gated on the presence of the
+> `*.Domain` project (`src/*.Domain/`). If it is absent, the domain is CRUD-oriented — stop and use
+> `coreex-app-service` against repository interfaces instead. To add the Domain layer, run
+> `dotnet new coreex-domain -n Company.Product.Domain` and wire it into the solution first.
 
 ## Quick Reference
 
@@ -70,4 +70,4 @@ For full workflow and code examples see [`references/workflow.md`](references/wo
   - [CoreEx.DomainDriven README](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.DomainDriven/README.md) — package overview and rationale
   - [Aggregate.cs](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.DomainDriven/Aggregate.cs), [Entity.cs](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.DomainDriven/Entity.cs), [EntityBase.cs](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.DomainDriven/EntityBase.cs) — base-class implementation (`Modify`, `Remove`, `OnCheckCanMutate`, `OnMutate`, `PersistenceState` transitions)
   - [PersistenceState.cs](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.DomainDriven/PersistenceState.cs), [DomainDrivenExtensions.cs](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.DomainDriven/DomainDrivenExtensions.cs) — state enum and filter helpers (`IsNew`, `IsModified`, `IsNewOrModified`, `IsNotRemoved`)
-  - [CoreEx.Template README](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.Template/README.md) — `--domain-driven-enabled true` template flag and generated `*.Domain` project shape
+  - [CoreEx.Template README](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.Template/README.md) — `coreex-domain` addon template and generated `*.Domain` project shape

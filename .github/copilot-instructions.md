@@ -13,7 +13,8 @@ CoreEx is a modular .NET framework for enterprise APIs and distributed services.
 
 A CoreEx solution scaffolded with `dotnet new coreex` records its project-wide choices in the **solution-root
 `AGENTS.md` "Feature Configuration"** block: `data-provider` (SQL Server / PostgreSQL / None), `refdata-enabled`,
-`domain-driven-enabled`, `rop-enabled` (exception vs `Result<T>`), `outbox-enabled`, and `messaging-provider`.
+`rop-enabled` (exception vs `Result<T>`), `outbox-enabled`, and `messaging-provider`. Whether a Domain layer is
+present is inferred from the existence of `src/*.Domain/` (added via `dotnet new coreex-domain`).
 
 Before asking the user a project-wide question, **resolve it from that recording first**, cross-checked against the
 real artefacts (package references, `dbex.yaml`, presence of the `*.Domain` project). Re-state the resolved values for
@@ -61,7 +62,7 @@ Connection strings for each service in development are in each host's `appsettin
 
 ## Architecture
 - **Two roles**: framework packages (`src\`) + sample reference implementations (`samples\`).
-- **Business layers** (strict inward dependency — inner layers have no knowledge of outer): `*.Contracts` → `*.Application` → `*.Domain` (optional) → `*.Infrastructure`.
+- **Business layers** (strict inward dependency — inner layers have no knowledge of outer): `*.Contracts` → `*.Domain` (optional) → `*.Application` → `*.Infrastructure`. Confirmed by project references: `*.Domain` references only `*.Contracts`; `*.Application` references `*.Contracts` and `*.Domain`; `*.Infrastructure` references `*.Application` (and transitively `*.Domain`) — never the reverse in either case.
 - **Host layers** (composition roots, no business logic): `*.Api`, `*.Relay`, `*.Subscribe`.
 - **Design-time tooling** (no runtime presence): `*.CodeGen` (generates reference-data layer from `ref-data.yaml`) and `*.Database` (schema, seeding, outbox infrastructure via DbEx).
 - **Sample flow**: Controllers → `WebApi` helpers → Application services (validate + `IUnitOfWork`) → Infrastructure repositories (EF + explicit mappers) → transactional outbox → relay publishes to Service Bus → subscribers consume.

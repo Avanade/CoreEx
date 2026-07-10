@@ -99,8 +99,9 @@ If your project requires a different shape, the full option set is:
 | `--messaging-provider` | `ServiceBus` · `None` | `ServiceBus` | Azure Service Bus emulator is wired into `docker-compose.yml` when enabled |
 | `--outbox-enabled` | `true` · `false` | `true` | Transactional outbox — commit events atomically with database writes |
 | `--refdata-enabled` | `true` · `false` | `true` | Reference data code generation from `tools/[name].CodeGen/ref-data.yaml` |
-| `--domain-driven-enabled` | `true` · `false` | `false` | Adds a `*.Domain` project for aggregates and value objects |
 | `--rop-enabled` | `true` · `false` | `false` | Railway-oriented programming — services return `Result`/`Result<T>` |
+
+> **Need a DDD Domain layer?** `coreex` no longer scaffolds `Domain` directly — run `dotnet new coreex-domain` afterwards to add it as a separate project, wire it into the solution with `dotnet sln <name>.slnx add src/<name>.Domain`, and add a project reference from `Application` to the new `Domain` project: `dotnet add src/<name>.Application/<name>.Application.csproj reference src/<name>.Domain/<name>.Domain.csproj`. Without that last step, Application-layer code cannot use the aggregate types at all. Only add a Domain layer when the entity has real invariants to enforce (state machines, cross-property rules) — most CRUD-style entities don't need it.
 
 ---
 

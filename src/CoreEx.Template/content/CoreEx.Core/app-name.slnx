@@ -8,9 +8,6 @@
   <Folder Name="/src/">
     <Project Path="src\app-name.Contracts\app-name.Contracts.csproj" />
     <Project Path="src\app-name.Application\app-name.Application.csproj" />
-    <!--#if domain-driven-enabled-->
-    <Project Path="src\app-name.Domain\app-name.Domain.csproj" />
-    <!--#endif-->
     <Project Path="src\app-name.Infrastructure\app-name.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/tools/">

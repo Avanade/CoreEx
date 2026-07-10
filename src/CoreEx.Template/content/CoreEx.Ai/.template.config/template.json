@@ -3,8 +3,8 @@
   "author": "https://github.com/avanade/coreex",
   "classifications": [ "CoreEx", "AI", "Copilot" ],
   "identity": "CoreEx.Ai",
-  "name": "CoreEx AI workflow assets",
-  "description": "A standalone template that installs CoreEx AI workflow assets (.github/ instructions, prompts, and agents) into any repository. Always run from the repo root.",
+  "name": "CoreEx AI assets",
+  "description": "A standalone template that installs the CoreEx AI workflow asset bundle (.github/ instructions, skills, prompts, agents, and docs cache, plus .claude/ commands) into any repository. Always run from the repo root.",
   "shortName": "coreex-ai",
   "tags": {
     "language": "C#",

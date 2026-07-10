@@ -15,10 +15,10 @@ Guide this workspace through adding a complete new entity with CRUD API endpoint
 Use `.github/skills/coreex-api-e2e/SKILL.md` and its referenced workflow as the authoritative workflow.
 
 Operational contract:
-- Read the solution-root `AGENTS.md` **Feature Configuration** first (`domain-driven-enabled`, `rop-enabled`, `outbox-enabled`, `data-provider`) — do not ask questions already answered there.
-- Batch all interview questions into one turn: entity name, CRUD operations, key properties, and whether a business guard is needed.
-- Invoke L1 skills in sequence — `coreex-contract`, `coreex-db-migration`, `coreex-repository`, `coreex-validator`, optionally `coreex-policy`, `coreex-app-service`, `coreex-api`, `coreex-test-api` — passing resolved context so no L1 re-asks what was already answered.
-- When `domain-driven-enabled = true`, run `coreex-aggregate` before `coreex-contract`.
+- Read the solution-root `AGENTS.md` **Feature Configuration** first (`rop-enabled`, `outbox-enabled`, `data-provider`) and check whether `src/*.Domain/` exists — do not ask questions already answered there.
+- Batch all interview questions into one turn: entity name, CRUD operations, key properties, identifier type, whether a business guard is needed, and (for any ref-data property) whether that reference-data type already exists.
+- Invoke L1 skills in sequence — `coreex-refdata` (only if a brand-new reference-data type was identified), `coreex-aggregate` (only when `*.Domain` project exists), `coreex-contract`, `coreex-db-migration`, `coreex-repository`, `coreex-validator`, optionally `coreex-policy`, `coreex-app-service`, `coreex-api`, `coreex-test-api` — passing resolved context so no L1 re-asks what was already answered.
+- Decide the identifier type once, upfront — pass the same value to `coreex-aggregate` (`TId`) and `coreex-contract` (`IIdentifier<T>`).
 - Skip migration and repository when `data-provider = None`.
 - If any prompt text conflicts with the skill, the skill wins.
 

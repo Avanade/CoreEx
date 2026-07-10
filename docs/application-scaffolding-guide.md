@@ -338,7 +338,7 @@ Those answers usually determine the host set, package set, and scaffold depth mo
 | Master-data service that other domains depend on. | API + database + outbox relay. | Validation, reference data, outbox, Service Bus publisher, idempotency. |
 | Event-driven domain maintaining local replicas or reacting to commands. | API + subscribe + outbox relay. | Service Bus subscriber/publisher, outbox, reference data, cache, health/telemetry. |
 | Long-running business process or approval workflow. | API + worker/orchestration host, optionally plus outbox/subscribers. | Durable orchestration, telemetry, external-event waits, retries, compensation. |
-| Rich aggregate domain with nested rules. | `dotnet new coreex --domain-driven-enabled true` plus only the required hosts. | DomainDriven patterns, validators, Result pipelines where appropriate, explicit mapping. |
+| Rich aggregate domain with nested rules. | `dotnet new coreex` then `dotnet new coreex-domain` plus only the required hosts. | DomainDriven patterns, validators, Result pipelines where appropriate, explicit mapping. |
 | Straightforward conventional entity. | `dotnet new coreex` plus only the required hosts. | Standard contracts/application/infrastructure/API/database shape with minimal custom reasoning. |
 
 ## Where to Go Next

@@ -68,11 +68,14 @@ $testScenarios = @(
                 ".github/instructions/coreex-conventions.instructions.md"
                 ".github/instructions/coreex-validators.instructions.md"
                 ".github/prompts/coreex-scaffold.prompt.md"
+                ".github/prompts/coreex-bootstrap.prompt.md"
                 ".github/agents/coreex-expert.agent.md"
+                ".github/skills/coreex-bootstrap/SKILL.md"
                 ".github/skills/coreex-docs-sync/SKILL.md"
                 ".github/skills/coreex-solution-scaffolder/SKILL.md"
                 ".github/docs/coreex/manifest.txt"
                 ".github/coreex-ai-workflows.md"
+                ".claude/commands/coreex-bootstrap.md"
                 ".claude/commands/coreex-expert.md"
                 ".claude/commands/coreex-docs-sync.md"
             )
@@ -125,7 +128,6 @@ $testScenarios = @(
             "messaging-provider"   = "ServiceBus"
             "refdata-enabled"      = "true"
             "outbox-enabled"       = "true"
-            "domain-driven-enabled"= "false"
             "rop-enabled"          = "false"
         }
         TestPath   = "test-coreex-postgres"
@@ -157,7 +159,6 @@ $testScenarios = @(
             "messaging-provider"   = "ServiceBus"
             "refdata-enabled"      = "true"
             "outbox-enabled"       = "true"
-            "domain-driven-enabled"= "false"
             "rop-enabled"          = "false"
         }
         TestPath   = "test-coreex-sqlserver"
@@ -168,6 +169,7 @@ $testScenarios = @(
             )
             FilesAbsent  = @(
                 ".github"
+                "src/App.Domain"
             )
             FileContains = @{
                 "src/App.Infrastructure/App.Infrastructure.csproj" = "CoreEx.Database.SqlServer"
@@ -183,7 +185,6 @@ $testScenarios = @(
             "messaging-provider"   = "None"
             "refdata-enabled"      = "false"
             "outbox-enabled"       = "false"
-            "domain-driven-enabled"= "false"
             "rop-enabled"          = "false"
         }
         TestPath   = "test-coreex-none"
@@ -197,6 +198,7 @@ $testScenarios = @(
                 ".github"
                 "tools/App.Database"
                 "tools/App.CodeGen"
+                "src/App.Domain"
             )
         }
         Build      = $true
@@ -209,7 +211,6 @@ $testScenarios = @(
             "messaging-provider"   = "ServiceBus"
             "refdata-enabled"      = "false"
             "outbox-enabled"       = "true"
-            "domain-driven-enabled"= "false"
             "rop-enabled"          = "false"
         }
         TestPath   = "test-coreex-no-refdata"
@@ -222,32 +223,23 @@ $testScenarios = @(
                 ".github"
                 "tools/App.CodeGen"
                 "src/App.Application/ReferenceDataService.cs"
+                "src/App.Domain"
             )
         }
         Build      = $true
     },
     @{
-        Name       = "coreex-domain-driven"
-        Template   = "coreex"
-        Parameters = @{
-            "data-provider"        = "Postgres"
-            "messaging-provider"   = "ServiceBus"
-            "refdata-enabled"      = "true"
-            "outbox-enabled"       = "true"
-            "domain-driven-enabled"= "true"
-            "rop-enabled"          = "false"
-        }
+        Name       = "coreex-domain"
+        Template   = "coreex-domain"
+        Parameters = @{}
         TestPath   = "test-coreex-domain"
         Verify     = @{
             FilesPresent = @(
                 "src/App.Domain/App.Domain.csproj"
-                "src/App.Application/App.Application.csproj"
-            )
-            FilesAbsent  = @(
-                ".github"
+                "src/App.Domain/GlobalUsing.cs"
             )
         }
-        Build      = $true
+        Build      = $false  # add-on template; no standalone solution
     },
     @{
         Name       = "coreex-api-sqlserver-refdata"

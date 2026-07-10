@@ -16,9 +16,6 @@ global using CoreEx.Database.Postgres.Outbox;
 // #endif
 // #endif
 global using CoreEx.DependencyInjection;
-// #if domain-driven-enabled
-global using CoreEx.DomainDriven;
-// #endif
 global using CoreEx.Entities;
 // #if (implement-sqlserver || implement-postgres)
 global using CoreEx.EntityFrameworkCore;

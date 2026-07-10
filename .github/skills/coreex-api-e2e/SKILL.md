@@ -31,8 +31,8 @@ Guides you through adding a complete new entity and its CRUD API in one sitting:
 
 ## Workflow Overview
 
-1. **Read Feature Configuration** — resolve `domain-driven-enabled`, `rop-enabled`, `outbox-enabled`, and `data-provider` from the solution-root `AGENTS.md` before asking anything.
-2. **Interview** — gather entity name, fields, operations (Get/Query/Create/Update/Patch/Delete), and whether a policy guard is needed; batch all questions into one turn.
+1. **Read Feature Configuration** — resolve `rop-enabled`, `outbox-enabled`, and `data-provider` from the solution-root `AGENTS.md`, and check whether a `*.Domain` project exists, before asking anything.
+2. **Interview** — gather entity name, fields, operations (Get/Query/Create/Update/Patch/Delete), identifier type, whether a policy guard is needed, and (if any field is ref-data) whether that reference-data type already exists; batch all questions into one turn.
 3. **Execute L1 sequence** — invoke each L1 skill in order, passing context resolved in steps 1–2; no repeated questions.
 4. **Validate** — `dotnet build` across all projects; confirm unit and integration test classes are present.
 
@@ -42,15 +42,16 @@ For full step-by-step guidance see [`references/workflow.md`](references/workflo
 
 | Step | Skill | Condition |
 |---|---|---|
-| 1 | [`coreex-aggregate`](../coreex-aggregate/SKILL.md) | Only when `domain-driven-enabled = true` |
-| 2 | [`coreex-contract`](../coreex-contract/SKILL.md) | Always |
-| 3 | [`coreex-db-migration`](../coreex-db-migration/SKILL.md) | Skip when `data-provider = None` |
-| 4 | [`coreex-repository`](../coreex-repository/SKILL.md) | Skip when `data-provider = None` |
-| 5 | [`coreex-validator`](../coreex-validator/SKILL.md) | Always — also generates `*.Test.Unit/Validators/` unit tests |
-| 6 | [`coreex-policy`](../coreex-policy/SKILL.md) | Only if a business guard was identified in the interview — also generates `*.Test.Unit/Policies/` unit tests |
-| 7 | [`coreex-app-service`](../coreex-app-service/SKILL.md) | Always |
-| 8 | [`coreex-api`](../coreex-api/SKILL.md) | Always |
-| 9 | [`coreex-test-api`](../coreex-test-api/SKILL.md) | Always |
+| 1 | [`coreex-refdata`](../coreex-refdata/SKILL.md) | Only if a brand-new reference-data type was identified in the interview (must exist before Step 2 can compile) |
+| 2 | [`coreex-aggregate`](../coreex-aggregate/SKILL.md) | Only when `*.Domain` project exists |
+| 3 | [`coreex-contract`](../coreex-contract/SKILL.md) | Always |
+| 4 | [`coreex-db-migration`](../coreex-db-migration/SKILL.md) | Skip when `data-provider = None` |
+| 5 | [`coreex-repository`](../coreex-repository/SKILL.md) | Skip when `data-provider = None` |
+| 6 | [`coreex-validator`](../coreex-validator/SKILL.md) | Always — also generates `*.Test.Unit/Validators/` unit tests |
+| 7 | [`coreex-policy`](../coreex-policy/SKILL.md) | Only if a business guard was identified in the interview — also generates `*.Test.Unit/Policies/` unit tests |
+| 8 | [`coreex-app-service`](../coreex-app-service/SKILL.md) | Always |
+| 9 | [`coreex-api`](../coreex-api/SKILL.md) | Always |
+| 10 | [`coreex-test-api`](../coreex-test-api/SKILL.md) | Always |
 
 ## Key References
 
@@ -58,4 +59,4 @@ For full step-by-step guidance see [`references/workflow.md`](references/workflo
 - [`/.github/instructions/coreex-application-services.instructions.md`](/.github/instructions/coreex-application-services.instructions.md) — layering rules and Result&lt;T&gt; pipeline
 - [`/.github/instructions/coreex-api-controllers.instructions.md`](/.github/instructions/coreex-api-controllers.instructions.md) — endpoint conventions
 - [`/.github/instructions/coreex-tests.instructions.md`](/.github/instructions/coreex-tests.instructions.md) — integration and unit test conventions
-- [`/.github/instructions/coreex-domain.instructions.md`](/.github/instructions/coreex-domain.instructions.md) — DDD aggregate conventions (when `domain-driven-enabled = true`)
+- [`/.github/instructions/coreex-domain.instructions.md`](/.github/instructions/coreex-domain.instructions.md) — DDD aggregate conventions (when `*.Domain` project exists)
