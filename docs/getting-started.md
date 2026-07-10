@@ -27,6 +27,16 @@ git config --global core.autocrlf input
 
 ---
 
+## Walk-through
+
+The following video provides an example walk-through and commentary of implementing the Employee entity and API host as discussed in the steps below.
+
+_Video link to be inserted here, currently is TBA._
+
+The video is/was accurate at the time of recording, but the CoreEx template pack is updated frequently. If you notice any discrepancies, please refer to the written steps below. Also, given the probablistic nature of LLMs the AI results will vary; however, the overall solution outcome should be the same.
+
+---
+
 ## 1. Create and enter your solution folder
 
 Name the folder using the three-part `Company.Product.Domain` convention — this becomes the solution and project namespace root:
