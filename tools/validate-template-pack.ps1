@@ -345,7 +345,7 @@ function Invoke-Assertion {
 }
 
 try {
-    # Step 1: Build and pack
+    # Step 1: Build and pack CoreEx.Template
     Write-Header "Building CoreEx.Template package"
     if (-not $NoRebuild) {
         Push-Location $templateProjectPath
@@ -364,7 +364,34 @@ try {
     $nupkgFile = ($nupkgFiles | Sort-Object LastWriteTime -Descending | Select-Object -First 1).FullName
     Write-Verbose "Using template package: $nupkgFile"
 
-    # Step 3: Install template pack (uninstall any existing version first to avoid duplicate registrations)
+    # Step 3: Build and collect all CoreEx library packages into a local feed so that
+    # scaffolded projects can restore without requiring the version to be published on NuGet.org.
+    $localFeedPath = Join-Path $temporaryTestRoot "local-feed"
+    New-Item -ItemType Directory -Path $localFeedPath -Force | Out-Null
+
+    Write-Header "Building local NuGet feed"
+    $srcRoot = Join-Path $repoRoot "src"
+    # Only look one level deep — each package lives in its own direct subdirectory.
+    # Recursing would pick up template content files inside CoreEx.Template/content/.
+    $libraryProjects = Get-ChildItem -Path $srcRoot -Directory |
+        Where-Object { $_.Name -ne "CoreEx.Template" } |
+        ForEach-Object { Get-ChildItem -Path $_.FullName -Filter "*.csproj" | Select-Object -First 1 } |
+        Where-Object { $_ -ne $null }
+
+    foreach ($proj in $libraryProjects) {
+        Write-Verbose "Packing $($proj.Directory.Name)"
+        dotnet pack $proj.FullName -c Release --nologo --no-build -o $localFeedPath 2>&1 |
+            Where-Object { $_ -match "error|successfully created" }
+        if ($LASTEXITCODE -ne 0) {
+            # Attempt with build in case the project hasn't been built yet
+            dotnet pack $proj.FullName -c Release --nologo -o $localFeedPath 2>&1 |
+                Where-Object { $_ -match "error|successfully created" }
+            if ($LASTEXITCODE -ne 0) { throw "Failed to pack $($proj.Directory.Name)" }
+        }
+    }
+    Write-Pass "Local feed populated: $localFeedPath"
+
+    # Step 4: Install template pack (uninstall any existing version first to avoid duplicate registrations)
     Write-Header "Installing template pack"
     dotnet new uninstall CoreEx.Template 2>&1 | Out-Null
     Write-Verbose "Uninstalled any prior CoreEx.Template (exit: $LASTEXITCODE — ignored)"
@@ -372,11 +399,9 @@ try {
     if ($LASTEXITCODE -ne 0) { throw "Failed to install template pack" }
     Write-Pass "Template pack installed"
 
-    # Step 4: Create test root
-    New-Item -ItemType Directory -Path $temporaryTestRoot -Force | Out-Null
     Write-Verbose "Test root: $temporaryTestRoot"
 
-    # Step 5: Run scenarios
+    # Step 6: Run scenarios
     Write-Header "Running validation scenarios"
     $failedScenarios = @()
 
@@ -414,6 +439,19 @@ try {
 
             # Build
             if ($scenario.Build) {
+                # Inject a nuget.config pointing at the local feed so restore succeeds
+                # even when the current version hasn't been published to NuGet.org yet.
+                $nugetConfigContent = @"
+<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+  <packageSources>
+    <add key="local-coreex" value="$localFeedPath" />
+    <add key="nuget.org" value="https://api.nuget.org/v3/index.json" protocolVersion="3" />
+  </packageSources>
+</configuration>
+"@
+                Set-Content -Path (Join-Path $testDir "nuget.config") -Value $nugetConfigContent -Encoding utf8
+
                 Write-Output "  Building generated output..."
                 $buildTarget = (Get-ChildItem $testDir -Filter "*.slnx" -Recurse | Select-Object -First 1)
                 if (-not $buildTarget) { $buildTarget = Get-ChildItem $testDir -Filter "*.sln" -Recurse | Select-Object -First 1 }
@@ -441,7 +479,7 @@ try {
         }
     }
 
-    # Step 6: Summary
+    # Step 7: Summary
     Write-Header "Validation Summary"
     $passed = $testScenarios.Count - $failedScenarios.Count
     Write-Output "Passed: $passed / $($testScenarios.Count)"
