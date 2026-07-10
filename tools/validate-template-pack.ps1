@@ -366,6 +366,7 @@ try {
 
     # Step 3: Build and collect all CoreEx library packages into a local feed so that
     # scaffolded projects can restore without requiring the version to be published on NuGet.org.
+    New-Item -ItemType Directory -Path $temporaryTestRoot -Force | Out-Null
     $localFeedPath = Join-Path $temporaryTestRoot "local-feed"
     New-Item -ItemType Directory -Path $localFeedPath -Force | Out-Null
 
@@ -401,7 +402,7 @@ try {
 
     Write-Verbose "Test root: $temporaryTestRoot"
 
-    # Step 6: Run scenarios
+    # Step 5: Run scenarios
     Write-Header "Running validation scenarios"
     $failedScenarios = @()
 
@@ -445,6 +446,9 @@ try {
 <?xml version="1.0" encoding="utf-8"?>
 <configuration>
   <packageSources>
+    <!-- Clear inherited user/machine sources so this build only ever hits the local feed and
+         nuget.org — avoids failures against unreachable corporate/internal feeds in CI. -->
+    <clear />
     <add key="local-coreex" value="$localFeedPath" />
     <add key="nuget.org" value="https://api.nuget.org/v3/index.json" protocolVersion="3" />
   </packageSources>
@@ -479,7 +483,7 @@ try {
         }
     }
 
-    # Step 7: Summary
+    # Step 6: Summary
     Write-Header "Validation Summary"
     $passed = $testScenarios.Count - $failedScenarios.Count
     Write-Output "Passed: $passed / $($testScenarios.Count)"
