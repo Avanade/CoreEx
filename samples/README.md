@@ -1,8 +1,8 @@
 # Contoso Samples
 
-The `samples` folder contains reference implementations of two domain microservices built with CoreEx: **Products** and **Shopping**. A third, **Orders** is a work in progress, that will eventually demonstrate asynchronous workflow processing.
+The `samples` folder contains reference implementations of two domain microservices built with CoreEx: **Products** and **Shopping**. A third, **Orders**, is a work in progress that will eventually demonstrate asynchronous workflow processing.
 
-![Logo](../images/SampleArchitectureInteractions.png "Architecture")
+![Sample architecture interactions](../images/SampleArchitectureInteractions.png "Architecture")
 
 Each domain is an independently deployable unit with an API host, an Outbox Relay host, and an Event Subscriber host, backed by an applicable data repository, and connected to other domains via synchronous HTTP and asynchronous messaging over Azure Service Bus.
 

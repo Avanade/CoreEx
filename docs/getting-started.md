@@ -31,9 +31,9 @@ git config --global core.autocrlf input
 
 The following video provides an example walk-through and commentary of implementing the Employee entity and API host as discussed in the steps below.
 
-_Video link to be inserted here, currently is TBA._
+https://github.com/user-attachments/assets/6f410262-0cd8-47c3-ab7d-8ff5164c5fc2
 
-The video is/was accurate at the time of recording, but the CoreEx template pack is updated frequently. If you notice any discrepancies, please refer to the written steps below. Also, given the probablistic nature of LLMs the AI results will vary; however, the overall solution outcome should be the same.
+_Note:_ The video was accurate at the time of recording and may not reflect the latest changes in the CoreEx. If you notice any discrepancies, please refer to the written steps below. Also, given the probabilistic nature of LLMs the AI results will vary; however, the overall solution outcome should be similar.
 
 ---
 
