@@ -380,14 +380,10 @@ try {
 
     foreach ($proj in $libraryProjects) {
         Write-Verbose "Packing $($proj.Directory.Name)"
-        dotnet pack $proj.FullName -c Release --nologo --no-build -o $localFeedPath 2>&1 |
-            Where-Object { $_ -match "error|successfully created" }
-        if ($LASTEXITCODE -ne 0) {
-            # Attempt with build in case the project hasn't been built yet
-            dotnet pack $proj.FullName -c Release --nologo -o $localFeedPath 2>&1 |
-                Where-Object { $_ -match "error|successfully created" }
-            if ($LASTEXITCODE -ne 0) { throw "Failed to pack $($proj.Directory.Name)" }
-        }
+        $packOutput = dotnet pack $proj.FullName -c Release --nologo -o $localFeedPath 2>&1
+        $packExit = $LASTEXITCODE
+        $packOutput | Where-Object { $_ -match "error|successfully created" } | Write-Output
+        if ($packExit -ne 0) { throw "Failed to pack $($proj.Directory.Name) (exit $packExit)" }
     }
     Write-Pass "Local feed populated: $localFeedPath"
 
