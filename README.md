@@ -2,17 +2,43 @@
 
 ![Logo](./images/Logo256x256.png "CoreEx")
 
+**A modular .NET framework for building enterprise back-end services.**
+
+[![CI](https://github.com/Avanade/CoreEx/actions/workflows/CI.yml/badge.svg)](https://github.com/Avanade/CoreEx/actions/workflows/CI.yml) [![NuGet version](https://img.shields.io/nuget/vpre/CoreEx)](https://www.nuget.org/packages/CoreEx/absoluteLatest) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENCE)
+
 ## Introduction
 
 _CoreEx_ is a modular .NET framework for building enterprise back-end services. It addresses the recurring concerns that .NET leaves to each team to solve independently: shaping business rule failures into consistent HTTP responses, publishing and subscribing to domain events, implementing reference data with caching and validity, enforcing validation with structured error messages, and wiring data access across ADO.NET and Entity Framework Core with a shared unit-of-work model.
 
 The solution is composed of focused, independently consumable packages — `CoreEx` provides the shared runtime primitives, and each additional package (`CoreEx.AspNetCore`, `CoreEx.Events`, `CoreEx.Database`, `CoreEx.Validation`, etc.) adds a specific capability layer. Teams adopt only what they need.
 
+## Table of Contents
+
+The remainder of this README is organized into the following sections.
+
+- [Motivation](#motivation)
+- [Better Together](#better-together)
+- [Design Principles](#design-principles)
+- [Key Capabilities](#key-capabilities)
+- [Patterns in Practice](#patterns-in-practice)
+- [Version 4 (preview)](#version-4-preview)
+- [Status](#status)
+- [Getting Started](#getting-started)
+- [Samples](#samples)
+- [AI](#ai)
+- [License](#license)
+- [Contributing](#contributing)
+- [Security](#security)
+- [Who is Avanade?](#who-is-avanade)
+
 ## Motivation
 
-- **Standardize** the scenarios .NET leaves open — there is no built-in standard for mapping a `NotFoundException` to HTTP 404, expressing a concurrency conflict as a `ProblemDetails` response, or publishing a domain event transactionally alongside a database commit. _CoreEx_ provides consistent, opinionated implementations of these patterns so every service in an organization behaves the same way.
-- **Simplify** development by eliminating the boilerplate that accumulates around every API endpoint and data operation — execution context scoping, idempotency key handling, paged query translation, outbox relay, ETag management, change-log stamping — freeing teams to focus on business logic rather than infrastructure ceremony.
-- **Enable flexibility** through opt-in modularity and composability — each package is an independent add-on, _CoreEx_ does not mandate an architectural style, and its abstractions (`IMapper`, `IUnitOfWork`, `IHybridCache`, `IEventPublisher`) are designed to be replaced or extended without disrupting the rest of the solution.
+_CoreEx_ is intended to be the foundational library for any business-service implementation — the motivation for adopting it comes down to four things:
+
+- **Value** — focus on business-value delivery; stop re-inventing the same foundational plumbing on every project.
+- **Velocity** — reduce cost and time-to-market by inheriting foundational capabilities rather than building them up-front.
+- **Consistency** — encapsulate complexity behind proven patterns so every service is familiar to build and predictable to run.
+- **Confidence** — improve quality and reduce delivery risk by leaning on capabilities that are already proven and tested.
 
 ## Better Together
 
@@ -25,6 +51,15 @@ The greatest developer velocity gains come not from any single capability, but f
 - **Gen AI / Copilot** — accelerates the development of the unique business value that only your organisation can deliver. AI assistance — probabilistic and context-aware — augments engineers during coding, testing, and review, compressing the feedback loop between idea and production-ready solution.
 
 Where all three converge, the compound effect is multiplicative: the framework constrains the solution space so AI suggestions land in the right patterns; code-generation handles the deterministic heavy lifting so AI can focus on novel logic; and AI in turn accelerates how quickly teams adopt, extend, and validate both.
+
+## Design Principles
+
+The following principles shape how _CoreEx_ approaches the problem space:
+
+- **Standardize** the scenarios .NET leaves open — there is no built-in standard for mapping a `NotFoundException` to HTTP 404, expressing a concurrency conflict as a `ProblemDetails` response, or publishing a domain event transactionally alongside a database commit. _CoreEx_ provides consistent, opinionated implementations of these patterns so every service in an organization behaves the same way.
+- **Simplify** development by eliminating the boilerplate that accumulates around every API endpoint and data operation — execution context scoping, idempotency key handling, paged query translation, outbox relay, ETag management, change-log stamping — freeing teams to focus on business logic rather than infrastructure ceremony.
+- **Codify** established enterprise architectural patterns — DDD aggregates and value objects, layered/hexagonal architecture, CQRS-style read/write separation, the transactional outbox, and Railway-Oriented Programming — as first-class, reusable building blocks instead of bespoke, per-team reinventions.
+- **Enable flexibility** through opt-in modularity and composability — each package is an independent add-on, _CoreEx_ does not mandate an architectural style, and its abstractions (`IMapper`, `IUnitOfWork`, `IHybridCache`, `IEventPublisher`) are designed to be replaced or extended without disrupting the rest of the solution.
 
 ## Key Capabilities
 
@@ -118,6 +153,8 @@ The included [change log](CHANGELOG.md) details all key changes per published ve
 
 ## Getting Started
 
+**Requirements**: CoreEx targets .NET 8, 9, and 10 (`net8.0`, `net9.0`, `net10.0`). Infrastructure dependencies — SQL Server or PostgreSQL, Azure Service Bus, Redis — are opt-in per package; take only what the packages you use require.
+
 → **[Getting Started Guide](./docs/getting-started.md)** — install the template pack, scaffold a new solution, start local infrastructure, add API/Relay/Subscribe hosts, and run your first build.
 
 ## Samples
@@ -178,3 +215,5 @@ See our [security disclosure](./SECURITY.md) policy.
 ## Who is Avanade?
 
 [Avanade](https://www.avanade.com) is the leading provider of innovative digital and cloud services, business solutions and design-led experiences on the Microsoft ecosystem, and the power behind the Accenture Microsoft Business Group.
+
+Avanade has invested thousands of hours building and testing _CoreEx_ and its companion accelerators, so consuming teams can focus on their functional deliverables rather than re-building common framework capabilities from scratch.
