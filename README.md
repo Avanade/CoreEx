@@ -18,9 +18,9 @@ The solution is composed of focused, independently consumable packages — `Core
 
 ## Overview Video
 
-The following 4-minute video provides an overview of _CoreEx_ — the motivation behind it, its architectural patterns, built-in AI support, and how to get started.
+The following 3-minute video provides an overview of _CoreEx_ — the motivation behind it, its architectural patterns, built-in AI support, and how to get started.
 
-[Overview video](https://github.com/Avanade/CoreEx/releases/download/v4.0.0-preview-video/CoreEx-Intro.mp4)
+https://github.com/user-attachments/assets/7638294d-9e3c-474a-8e75-7d06cb41eb34
 
 ## Table of Contents
 
