@@ -2,15 +2,25 @@
 
 ![Logo](./images/Logo256x256.png "CoreEx")
 
-**A modular .NET framework for building enterprise back-end services.**
+**A .NET framework, re-imagined as an AI-augmented foundation for enterprise back-end services.**
 
 [![CI](https://github.com/Avanade/CoreEx/actions/workflows/CI.yml/badge.svg)](https://github.com/Avanade/CoreEx/actions/workflows/CI.yml) [![NuGet version](https://img.shields.io/nuget/vpre/CoreEx)](https://www.nuget.org/packages/CoreEx/absoluteLatest) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENCE)
 
 ## Introduction
 
-_CoreEx_ is a modular .NET framework for building enterprise back-end services. It addresses the recurring concerns that .NET leaves to each team to solve independently: shaping business rule failures into consistent HTTP responses, publishing and subscribing to domain events, implementing reference data with caching and validity, enforcing validation with structured error messages, and wiring data access across ADO.NET and Entity Framework Core with a shared unit-of-work model.
+_CoreEx_ helps teams build enterprise-grade back-end services faster — without giving up architecture, consistency, or governance.
+
+Built-in AI support already knows _CoreEx_ patterns, conventions, and architecture — powering purpose-built skills and an expert agent that guide delivery toward production-grade, best-practice outcomes, consistently, every time.
+
+_CoreEx_ also addresses the recurring concerns that .NET leaves to each team to solve independently: shaping business rule failures into consistent HTTP responses, publishing and subscribing to domain events, implementing reference data with caching and validity, enforcing validation with structured error messages, and wiring data access across ADO.NET and Entity Framework Core with a shared unit-of-work model.
 
 The solution is composed of focused, independently consumable packages — `CoreEx` provides the shared runtime primitives, and each additional package (`CoreEx.AspNetCore`, `CoreEx.Events`, `CoreEx.Database`, `CoreEx.Validation`, etc.) adds a specific capability layer. Teams adopt only what they need.
+
+## Overview Video
+
+The following 4-minute video provides an overview of _CoreEx_ — the motivation behind it, its architectural patterns, built-in AI support, and how to get started.
+
+[Overview video](https://github.com/Avanade/CoreEx/releases/download/v4.0.0-preview-video/CoreEx-Intro.mp4)
 
 ## Table of Contents
 
@@ -178,23 +188,39 @@ The repository includes an AI workflow set in [`.github/`](./.github/) that give
 
 **Agent** — `coreex-expert` provides architecture guidance, pattern recommendations, and design reviews aligned to the sample implementations. See the [agent README](./.github/agents/README.md) for the resolution flowchart and local doc cache design.
 
-**Commands and templates** — type `/` in chat to invoke skills and prompts. Use `dotnet new` in a terminal for deterministic scaffolding.
+**Getting started** — type `/` in chat to invoke skills and prompts. Use `dotnet new` in a terminal for deterministic scaffolding.
 
 | Command | What it does | Claude Code | GitHub Copilot Chat |
 |---------|-------------|-------------|---------------------|
 | [Expert guidance](./.github/agents/README.md) | Architecture, pattern, and design advice | `@coreex-expert` | Agent mode → **CoreEx Expert** |
 | [CoreEx.Template](./src/CoreEx.Template/README.md) | Deterministic solution and host scaffolding via `dotnet new coreex*` templates | `dotnet new install CoreEx.Template` then `dotnet new coreex...` | Run the same `dotnet new` commands in the terminal |
-| [`/coreex-scaffold`](./.github/skills/coreex-solution-scaffolder/README.md) | Guide greenfield solution scaffolding and run the matching `dotnet new coreex*` commands | `/coreex-scaffold` | `#file:.github/skills/coreex-solution-scaffolder/SKILL.md` |
-| [`/coreex-docs-sync`](./.github/skills/coreex-docs-sync/README.md) | Cache CoreEx docs and per-package AI guides locally | `/coreex-docs-sync` | `#file:.github/skills/coreex-docs-sync/SKILL.md` |
-| [`/acquire-codebase-knowledge`](./.github/skills/acquire-codebase-knowledge/README.md) | Map and document an existing codebase | `/acquire-codebase-knowledge` | `#file:.github/skills/acquire-codebase-knowledge/SKILL.md` |
-| [`/aspire`](./.github/skills/aspire/README.md) | Orchestrate Aspire apps locally (start, stop, logs) | `/aspire` | `#file:.github/skills/aspire/SKILL.md` |
+| [`coreex-ai`](./src/CoreEx.Template/README.md#template-1----coreex-ai-ai-workflow-assets) | Installs this AI workflow set — agents, skills, prompts, instructions — into any repository | `dotnet new coreex-ai` | Run the same `dotnet new` command in the terminal |
 
-**Building on an existing solution** — sixteen further skills add or modify one CoreEx capability or vertical slice at a time, each invoked as `/coreex-<name>` (Claude Code) or via the matching `prompts/coreex-<name>.prompt.md` (Copilot):
+**Skills — the AI-augmented building blocks** — sixteen skills codify CoreEx's architectural patterns into guided, correct-by-construction workflows: fourteen per-capability (L1) skills that add or modify a single building block, and two end-to-end (L2) skills that orchestrate a full vertical slice in one pass. Each is invoked as `/coreex-<name>` (Claude Code) or via the matching `prompts/coreex-<name>.prompt.md` (Copilot).
 
-- **Per-capability (L1)** — `coreex-contract`, `coreex-refdata`, `coreex-db-migration`, `coreex-repository`, `coreex-adapter`, `coreex-app-service`, `coreex-validator`, `coreex-policy`, `coreex-aggregate`, `coreex-api`, `coreex-subscriber`, `coreex-test-api`, `coreex-test-subscribe`, `coreex-test-relay`.
-- **End-to-end vertical slice (L2)** — `coreex-api-e2e` (new entity + CRUD API, full stack) and `coreex-subscriber-e2e` (new event/command subscriber), each orchestrating the relevant L1 skills in one guided workflow.
+| Group | Skill | What it does |
+|---|---|---|
+| **End-to-end (L2)** | `coreex-api-e2e` | New entity + full CRUD API — contract, migration, repository, validator, service, endpoint, and tests — in one guided workflow |
+| | `coreex-subscriber-e2e` | New event/command subscriber — contract, handler, service, and tests — in one guided workflow |
+| | | |
+| Contracts | `coreex-contract` | Hand-authored DTO/entity contracts — root, subordinate, or extending an existing one |
+| | `coreex-refdata` | Reference data types — new entity, extra properties, seed rows, wiring into contracts |
+| Domain | `coreex-aggregate` | DDD aggregates, entities, and value objects with enforced invariants |
+| Application | `coreex-app-service` | Application-layer services — CRUD, CQRS reads, adapters, policies |
+| | `coreex-validator` | Fluent validators with declarative rules and async predicates |
+| | `coreex-policy` | Application-layer policies enforcing I/O-dependent business guards |
+| Infrastructure | `coreex-repository` | Infrastructure-layer repositories — CRUD, custom queries, bi-directional mappers |
+| | `coreex-adapter` | Anti-corruption-layer adapters and typed HTTP clients for cross-domain or external calls |
+| | `coreex-db-migration` | Database tables and schema changes for a domain |
+| Hosts | `coreex-api` | API controllers or Minimal API endpoints — CRUD and business actions |
+| | `coreex-subscriber` | Event/command subscribers in a Subscribe host |
+| Testing | `coreex-test-api` | Integration tests for an API host |
+| | `coreex-test-subscribe` | Integration tests for a Subscribe host |
+| | `coreex-test-relay` | Integration tests for an Outbox Relay host |
 
-See the [full skill catalog](./.github/coreex-ai-workflows.md#prompts-skills-and-templates) for what each one covers.
+See the [full skill catalog](./.github/coreex-ai-workflows.md#prompts-skills-and-templates) for full detail on each.
+
+**Also available** — repo-maintenance and local-orchestration skills: [`/coreex-scaffold`](./.github/skills/coreex-solution-scaffolder/README.md) (greenfield solution scaffolding), [`/coreex-docs-sync`](./.github/skills/coreex-docs-sync/README.md) (refresh cached CoreEx docs), [`/acquire-codebase-knowledge`](./.github/skills/acquire-codebase-knowledge/README.md) (map an existing codebase), and [`/aspire`](./.github/skills/aspire/README.md) (orchestrate Aspire apps locally).
 
 **Instructions** — 11 scoped instruction files are injected automatically when editing matching file types (contracts, services, repositories, controllers, tests, etc.). No action required.
 
