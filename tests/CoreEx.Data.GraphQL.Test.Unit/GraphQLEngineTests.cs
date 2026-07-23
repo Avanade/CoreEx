@@ -136,4 +136,50 @@ public class GraphQLEngineTests
         roots.GetProperty("people").GetProperty("fields").GetProperty("address").GetProperty("street").GetString().Should().Be("String");
         roots.GetProperty("person").GetProperty("kind").GetString().Should().Be("get");
     }
+
+    [Test]
+    public async Task ExecuteAsync_TypeNameField_ResolvedAtRootAndNestedLevels()
+    {
+        var engine = CreateEngine();
+        var result = await engine.ExecuteAsync("{ people { __typename id address { __typename street } } }");
+
+        result.HasErrors.Should().BeFalse();
+        var people = result.Data!.Value.GetProperty("people");
+        people[0].GetProperty("__typename").GetString().Should().Be(nameof(Person));
+        people[0].GetProperty("address").GetProperty("__typename").GetString().Should().Be(nameof(Address));
+    }
+
+    [Test]
+    public async Task ExecuteAsync_TypeNameField_ResolvedForSingleItemRoot()
+    {
+        var engine = CreateEngine();
+        var result = await engine.ExecuteAsync("{ person(id: 2) { __typename name } }");
+
+        result.HasErrors.Should().BeFalse();
+        result.Data!.Value.GetProperty("person").GetProperty("__typename").GetString().Should().Be(nameof(Person));
+    }
+
+    [Test]
+    public async Task ExecuteAsync_NestedFieldAlias_IsHonoredInResponse()
+    {
+        var engine = CreateEngine();
+        var result = await engine.ExecuteAsync("{ people { personId: id address { streetName: street } } }");
+
+        result.HasErrors.Should().BeFalse();
+        var first = result.Data!.Value.GetProperty("people")[0];
+        first.GetProperty("personId").GetInt32().Should().Be(1);
+        first.GetProperty("address").GetProperty("streetName").GetString().Should().Be("1 Main St");
+        first.TryGetProperty("id", out _).Should().BeFalse();
+        first.GetProperty("address").TryGetProperty("street", out _).Should().BeFalse();
+    }
+
+    [Test]
+    public async Task ExecuteAsync_FragmentSpread_ProducesExplicitError()
+    {
+        var engine = CreateEngine();
+        var result = await engine.ExecuteAsync("{ people { id ...PersonFields } } fragment PersonFields on Person { name }");
+
+        result.HasErrors.Should().BeTrue();
+        result.Errors!.Should().ContainSingle(e => e.Extensions!["code"]!.Equals("FRAGMENTS_NOT_SUPPORTED"));
+    }
 }

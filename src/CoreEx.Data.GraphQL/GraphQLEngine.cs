@@ -55,10 +55,19 @@ public sealed class GraphQLEngine(GraphQLLiteOptions options) : IGraphQLEngine
         foreach (var selection in operation.SelectionSet.Selections)
         {
             if (selection is not GraphQLField field)
-                continue; // fragments/inline-fragments not supported in v1 (non-goal) - silently skipped.
+            {
+                errors.Add(NewError("Fragment spreads and inline fragments are not supported.", code: "FRAGMENTS_NOT_SUPPORTED"));
+                continue;
+            }
 
             var name = field.Name.StringValue;
             var alias = field.Alias?.Name.StringValue ?? name;
+
+            if (name == GraphQLSelectionResolver.TypeNameField)
+            {
+                dataObj[alias] = "Query";
+                continue;
+            }
 
             if (string.Equals(name, SchemaFieldName, StringComparison.Ordinal))
             {
@@ -107,7 +116,7 @@ public sealed class GraphQLEngine(GraphQLLiteOptions options) : IGraphQLEngine
 
             var itemsJson = JsonSerializer.Serialize(result.Items, jsonOptions);
             JsonFilter.TryJsonFilter(itemsJson, paths, out var filteredJson, JsonFilterOption.Include, jsonOptions);
-            dataObj[alias] = JsonNode.Parse(filteredJson);
+            dataObj[alias] = GraphQLResponseShaper.Shape(JsonNode.Parse(filteredJson), field.SelectionSet, GraphQLTypeShape.GetFieldMap(root.ItemType, jsonOptions), root.ItemType.Name);
 
             if (result.Paging is not null)
                 dataObj[$"{alias}_paging"] = new JsonObject { ["skip"] = result.Paging.Skip, ["take"] = result.Paging.Take, ["totalCount"] = result.Paging.TotalCount };
@@ -143,7 +152,7 @@ public sealed class GraphQLEngine(GraphQLLiteOptions options) : IGraphQLEngine
 
             var itemJson = JsonSerializer.Serialize(item, jsonOptions);
             JsonFilter.TryJsonFilter(itemJson, paths, out var filteredJson, JsonFilterOption.Include, jsonOptions);
-            dataObj[alias] = JsonNode.Parse(filteredJson);
+            dataObj[alias] = GraphQLResponseShaper.Shape(JsonNode.Parse(filteredJson), field.SelectionSet, GraphQLTypeShape.GetFieldMap(root.ItemType, jsonOptions), root.ItemType.Name);
         }
         catch (Exception ex)
         {

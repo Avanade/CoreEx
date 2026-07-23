@@ -6,9 +6,15 @@ namespace CoreEx.Data.GraphQL.Internal;
 /// </summary>
 /// <remarks>Selection sets may traverse arbitrarily nested <b>complex properties already present on the DTO's own object graph</b> (e.g. <c>address { street city }</c>); they cannot request a
 /// field that would require invoking a different registered root/resolver (cross-repository resolution is out of scope for v1). Fragments, inline fragments and directives are not supported in v1
-/// and are silently skipped (non-goal).</remarks>
+/// and produce a <see cref="GraphQLEngineError"/> rather than being silently skipped. The <c>__typename</c> meta-field is always accepted (see <see cref="GraphQLResponseShaper"/> for how it is
+/// populated) since standard GraphQL clients (e.g. Apollo Client, Relay) auto-inject it into every selection set.</remarks>
 internal static class GraphQLSelectionResolver
 {
+    /// <summary>
+    /// The reserved GraphQL meta-field name that resolves to the current object's type name.
+    /// </summary>
+    public const string TypeNameField = "__typename";
+
     /// <summary>
     /// Resolves the specified <paramref name="selectionSet"/> against <paramref name="itemType"/>.
     /// </summary>
@@ -26,7 +32,7 @@ internal static class GraphQLSelectionResolver
     }
 
     /// <summary>
-    /// Recursively walks the specified <paramref name="selectionSet"/> against <paramref name="fieldMap"/>, accumulating flattened <paramref name="paths"/> and unknown-field <paramref name="errors"/>.
+    /// Recursively walks the specified <paramref name="selectionSet"/> against <paramref name="fieldMap"/>, accumulating flattened <paramref name="paths"/> and unknown-field/fragment <paramref name="errors"/>.
     /// </summary>
     private static void Walk(GraphQLSelectionSet? selectionSet, IReadOnlyDictionary<string, GraphQLFieldNode> fieldMap, JsonSerializerOptions jsonOptions, string jsonPathPrefix,
         IReadOnlyList<string> errorPath, List<string> paths, List<GraphQLEngineError> errors)
@@ -36,11 +42,16 @@ internal static class GraphQLSelectionResolver
 
         foreach (var selection in selectionSet.Selections)
         {
-            // Fragments/inline-fragments are not supported in v1 (non-goal) - silently skipped.
             if (selection is not GraphQLField field)
+            {
+                errors.Add(new GraphQLEngineError("Fragment spreads and inline fragments are not supported.") { Path = [.. errorPath], Extensions = new Dictionary<string, object?> { ["code"] = "FRAGMENTS_NOT_SUPPORTED" } });
                 continue;
+            }
 
             var name = field.Name.StringValue;
+            if (name == TypeNameField)
+                continue; // No underlying property to project; populated separately by GraphQLResponseShaper.
+
             if (!fieldMap.TryGetValue(name, out var node))
             {
                 errors.Add(new GraphQLEngineError($"Unknown field '{name}'.") { Path = [.. errorPath, name], Extensions = new Dictionary<string, object?> { ["code"] = "UNKNOWN_FIELD" } });

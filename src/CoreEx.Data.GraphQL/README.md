@@ -21,8 +21,15 @@ The engine is deliberately **transport-agnostic**: it references only `CoreEx.Da
 ## Key capabilities
 
 - 🧩 **Query-only GraphQL-lite bridge**: parses a GraphQL document, resolves top-level root fields against
-  explicitly registered query/item roots — no mutations, subscriptions, fragments, or cross-repository
-  nested resolvers (dataloaders) in v1.
+  explicitly registered query/item roots — no mutations, subscriptions, cross-repository nested resolvers
+  (dataloaders), interfaces, unions, or directives in v1. Fragments and inline fragments are rejected with an
+  explicit `FRAGMENTS_NOT_SUPPORTED` error rather than being silently ignored.
+- 🏷️ **`__typename` support**: the standard `__typename` meta-field is answerable at every selection depth
+  (root and nested), since mainstream GraphQL clients (Apollo Client, Relay, urql) auto-inject it into every
+  selection set for cache normalization.
+- 🔤 **Field aliases at every depth**: `field: realName` aliasing is honored throughout the selection set, not
+  just at the root — the response is reshaped (via `GraphQLResponseShaper`) to match the client's requested
+  keys.
 - 🔁 **Reuses existing `QueryArgsConfig`**: each registered root points at an entity's existing
   `QueryArgsConfig<TSelf>` (e.g. `ProductQueryArgsConfig.Default`) for `filter`/`orderby` validation — no
   duplicate field allow-listing.
@@ -79,6 +86,12 @@ root `IServiceProvider` at registration time.
 - No cross-repository nested resolvers (dataloaders/N+1 batching) — selection sets may traverse nested
   properties already present on the DTO returned by a single `QueryAsync`/`GetAsync` call, but cannot
   request a field that would require invoking a different registered root.
-- No fragments, interfaces, unions, or directives.
+- No fragments (spreads or inline), interfaces, unions, or directives — a fragment in the document produces
+  an explicit `FRAGMENTS_NOT_SUPPORTED` error rather than being silently skipped.
+- No standard GraphQL introspection (`__schema`/`__type` per the official introspection schema) or SDL — the
+  reserved `__schema` root field returns a bespoke discovery document (see above), not the spec-defined
+  introspection shape, so tooling that relies on standard introspection (GraphiQL, Apollo Sandbox, codegen)
+  will not auto-explore this endpoint. The `__typename` meta-field *is* supported (see above) since it's
+  required for out-of-the-box compatibility with normalized-cache clients.
 - Not a replacement for the REST `$filter`/`$orderby`/`$fields` query-string endpoints — this is an
   additive bridge sharing the same underlying pipeline.
