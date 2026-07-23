@@ -3,7 +3,7 @@ namespace Contoso.Products.Infrastructure.Repositories;
 /// <summary>
 /// Provides the <see cref="QueryArgs"/> configuration for <see cref="Contracts.Product"/>.
 /// </summary>
-internal class ProductQueryArgsConfig : QueryArgsConfig<ProductQueryArgsConfig>
+public class ProductQueryArgsConfig : QueryArgsConfig<ProductQueryArgsConfig>
 {
     public ProductQueryArgsConfig()
     {

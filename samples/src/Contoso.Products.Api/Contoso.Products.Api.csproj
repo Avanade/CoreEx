@@ -4,6 +4,7 @@
     <ProjectReference Include="..\..\..\src\CoreEx.AspNetCore.NSwag\CoreEx.AspNetCore.NSwag.csproj" />
     <ProjectReference Include="..\..\..\src\CoreEx.AspNetCore\CoreEx.AspNetCore.csproj" />
     <ProjectReference Include="..\..\..\src\CoreEx.Caching.FusionCache\CoreEx.Caching.FusionCache.csproj" />
+    <ProjectReference Include="..\..\..\src\CoreEx.Data.GraphQL\CoreEx.Data.GraphQL.csproj" />
     <ProjectReference Include="..\Contoso.Products.Application\Contoso.Products.Application.csproj" />
     <ProjectReference Include="..\Contoso.Products.Contracts\Contoso.Products.Contracts.csproj" />
     <ProjectReference Include="..\Contoso.Products.Infrastructure\Contoso.Products.Infrastructure.csproj" />

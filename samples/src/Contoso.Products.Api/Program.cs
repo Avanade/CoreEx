@@ -62,6 +62,17 @@ public class Program
         // Add the ASP.NET Core services.
         builder.Services.AddControllers();
 
+        // Add the CoreEx GraphQL-lite bridge, exposing "products"/"product" roots over the existing QueryAsync/GetAsync pipeline.
+        builder.Services.AddHttpContextAccessor();
+        builder.Services.AddCoreExGraphQLLite((o, sp) =>
+        {
+            var accessor = sp.GetRequiredService<IHttpContextAccessor>();
+            IProductReadService Service() => accessor.HttpContext!.RequestServices.GetRequiredService<IProductReadService>();
+
+            o.AddQuery<ProductLite>("products", ProductQueryArgsConfig.Default, async (qa, pa, ct) => await Service().QueryAsync(qa, pa, ct).ConfigureAwait(false))
+             .AddGet<Product>("product", (args, ct) => Service().GetAsync(args["id"]!.ToString()!, ct));
+        });
+
         // Add the OpenAPI services.
         builder.Services.AddOpenApiDocument(s =>
         {
@@ -85,6 +96,7 @@ public class Program
         app.UseExecutionContext();
         app.UseIdempotencyKey();
         app.MapControllers();
+        app.MapCoreExGraphQLLite("/api/products/query"); // Additive GraphQL-lite bridge alongside the existing REST endpoints.
 
         app.UseOpenApi();
         app.UseSwaggerUi();

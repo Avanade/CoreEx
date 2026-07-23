@@ -165,7 +165,9 @@ Document the public surface with XML doc comments, and **never duplicate** a des
 - **Interfaces** — give **every** member (method, property, event) a `<summary>` describing the operation. Document parameters/returns (`<param>`, `<returns>`) where it adds clarity.
 - **Contract / DTO properties** — every property on a contract (including `[Contract]` partial classes) gets a `<summary>`. (Standard `Id`/`ETag`/`ChangeLog` members that implement `IIdentifier`/`IETag`/`IChangeLog` may use `<inheritdoc/>`.)
 - **Implementing / overriding members** — on the concrete class member that implements an interface member (or overrides a base member), use **`<inheritdoc/>`** rather than repeating the summary.
-- **Everything else** — a public type or member that is **not** an interface implementation/override gets its own `<summary>` (classes, standalone methods, properties, etc.).
+- **Public / protected / internal types and members** — a type or member at these access levels that is **not** an interface implementation/override gets its own `<summary>` (classes, standalone methods, properties, constructors, etc.), plus `<param>`/`<returns>` where applicable.
+- **Private methods** (including local functions) — still get a `<summary>` describing what they do; `<param>`/`<returns>` are not required. Private fields are exempt.
+- **Test projects (`*.Test*`)** — test fixture classes, `[Test]`/`[TestCase]` methods, and private test helpers/fixtures are exempt from this doc requirement (established convention across the repo's test suites).
 
 > **Do not invert this** (a common mistake): the `<summary>` goes on the **interface** member and on **contract properties**; the concrete class member that *implements* an interface gets **`<inheritdoc/>`**, not a fresh summary. Leaving interfaces or contract properties undocumented while summarising the implementing class is **backwards** — fix it the right way round.
 
@@ -219,3 +221,4 @@ private readonly ILogger<ProductService> _logger;
 - Do not replace a private backing field with an auto-property simply because it could be one — backing fields are a valid developer choice.
 - Do not leave interface members or contract properties undocumented — each gets a `<summary>`.
 - Do not invert the doc convention — summaries go on **interfaces and contract properties**; the **implementing** class member gets `<inheritdoc/>` (not a fresh summary). Summarising the concrete class while leaving the interface/contract undocumented is backwards.
+- Do not leave a private method undocumented — it still needs a `<summary>` (params/returns optional), unless it's a test helper in a `*.Test*` project.

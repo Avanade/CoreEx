@@ -60,6 +60,44 @@ Responsibilities that are deliberately offloaded to the `WebApi` helper include:
 
 > **See also**: [`WebApi`](../../src/CoreEx.AspNetCore/WebApis/WebApi.cs) · [`[IdempotencyKey]`](../../src/CoreEx.AspNetCore/Http/IdempotencyKeyAttribute.cs) · [Minimal APIs](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/minimal-apis)
 
+### GraphQL-lite query bridge
+
+Alongside its REST controllers, a domain's API host can additionally expose a single `/query` endpoint that
+bridges a minimal GraphQL-over-HTTP request to the *same* `QueryArgs`/`PagingArgs` → `QueryAsync` pipeline
+and `JsonFilter` field-projection already used by the REST `$query` endpoint (`CoreEx.Data.GraphQL`). This is
+additive, not a replacement — the REST endpoints and the `/query` bridge share identical filter, order-by,
+paging, and field-selection behavior because they drive the exact same underlying repository/service call.
+
+```csharp
+// samples/src/Contoso.Products.Api/Program.cs
+builder.Services.AddHttpContextAccessor(); // Root resolvers use this to obtain the current request's scoped services.
+builder.Services.AddCoreExGraphQLLite((o, sp) =>
+{
+    var accessor = sp.GetRequiredService<IHttpContextAccessor>();
+    IProductReadService Service() => accessor.HttpContext!.RequestServices.GetRequiredService<IProductReadService>();
+
+    o.AddQuery<ProductLite>("products", ProductQueryArgsConfig.Default, async (qa, pa, ct) => await Service().QueryAsync(qa, pa, ct).ConfigureAwait(false))
+     .AddGet<Product>("product", (args, ct) => Service().GetAsync(args["id"]!.ToString()!, ct));
+});
+
+// ...
+
+app.MapCoreExGraphQLLite("/api/products/query");
+```
+
+Each `AddQuery`/`AddGet` root registration is a single line referencing the entity's *existing*
+`QueryArgsConfig<TSelf>.Default` and application-service method — no new per-entity resolver code is
+authored. Because the `IGraphQLEngine` is registered as a singleton, root resolvers that need scoped
+dependencies (repositories, application services) must resolve them per-invocation from the current
+request's scope (via `IHttpContextAccessor`, as shown above) rather than capturing an instance resolved
+from the root `IServiceProvider` at registration time.
+
+> **v1 scope**: read-only (queries only, no mutations); selection sets may traverse arbitrarily nested
+> properties already present on a single resolved DTO (e.g. `person { address { street city } }`), but
+> cannot request a field that would require invoking a *different* registered root (no cross-repository
+> dataloader/N+1 resolution). See [`CoreEx.Data.GraphQL`](../../src/CoreEx.Data.GraphQL/README.md) for the
+> full capability and non-goal list.
+
 ### Program.cs composition
 
 `Program.cs` follows a predictable CoreEx shape and is the only file in the API host:
