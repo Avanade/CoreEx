@@ -67,7 +67,6 @@ public sealed class QueryOrderByParser(QueryArgsConfig owner)
 
         field.ThrowWhen(field => _fields.Any(f => f.Field.Equals(field, StringComparison.OrdinalIgnoreCase)), $"The order-by field '{field}' has already been added and must be unique.");
 
-        config.WithModelPrefix(DefaultModelPrefix);
         configure?.Invoke(config);
         _fields.Add(config);
 

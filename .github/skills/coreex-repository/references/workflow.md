@@ -250,7 +250,7 @@ internal class {Name}QueryArgsConfig : QueryArgsConfig<{Name}QueryArgsConfig>
 }
 ```
 
-**Model prefix:** use `WithDefaultModelPrefix("{Name}")` when the LINQ query projects into an anonymous type `new { {Name} = e, ... }` so that filters compile to `{Name}.Property`. Omit it (or set to `null`) when fields are accessed directly on the entity without a wrapping anonymous object. Override per-field — the override method differs by config type: on **filter fields** use `.WithModelPrefix("...")` to set or `.WithNoModelPrefix()` to clear; on **order-by fields** there is no `WithNoModelPrefix()` — clear the prefix with `.WithModelPrefix(null)` instead.
+**Model prefix:** use `WithDefaultModelPrefix("{Name}")` when the LINQ query projects into an anonymous type `new { {Name} = e, ... }` so that filters compile to `{Name}.Property`. Omit it when fields are accessed directly on the entity without a wrapping anonymous object. Override per-field with `.WithModelPrefix("...")` (set) or `.WithNoModelPrefix()` (clear) — both methods exist identically on filter-field and order-by-field configs.
 
 **`global using CoreEx.Data.Querying;` must be in `GlobalUsing.cs`** — add it if missing.
 
