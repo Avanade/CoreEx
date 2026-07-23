@@ -181,7 +181,7 @@ Choose the `AddField` overload based on the contract property type:
 
 | Method | Use when the property type is | Default operators | Key options |
 |---|---|---|---|
-| `AddField<string>(field, ...)` | `string` | Comparison + string functions | `.WithOperators(...)`, `.AsUpperCase()`, `.AsLowerCase()` |
+| `AddField<string>(field, ...)` | `string` | `ComparisonOperators` (string functions are **not** included by default — add explicitly via `.WithOperators(...)`) | `.WithOperators(...)`, `.AsUpperCase()`, `.AsLowerCase()` |
 | `AddField<T>(field, ...)` | `int`, `decimal`, `DateTime`, `DateOnly`, `Guid`, `bool`, any `IParsable<T>` | Numeric/date: `ComparisonOperators`; bool: `Equal\|NotEqual` | `.WithOperators(...)`, `.WithConverter(...)`, `.WithValue(...)` |
 | `AddField<TEnum>(field, ...)` | Any `Enum` type | `Equal\|NotEqual\|In` | `.WithOperators(...)`, `.WithConverter(...)` |
 | `AddNullField(field, ...)` | Null/not-null check only (no value comparison) | `Equal\|NotEqual` (null semantics) | `.WithModelPrefix(...)` |
