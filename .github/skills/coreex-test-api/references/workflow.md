@@ -105,11 +105,104 @@ against them; resources get captured from the actual run).
 | Operation | Must cover |
 |---|---|
 | **Get** | found, not-found, ETag/If-None-Match → 304 |
-| **Query** | filter, order, paging, field selection |
+| **Query** | no-filter baseline (total count), filter (match + no-results), order (verify sequence), paging (count, partial page), field selection; soft-delete exclusion + `$inactive` override (when entity supports logical delete) |
 | **Create** | success + `Location` header + outbox event + **follow-up GET verifying persistence**; bad-data validation; duplicate/conflict; idempotency-key |
 | **Update** | success + **follow-up GET verifying persistence** + ETag/concurrency (412); not-found (still needs a valid ETag + full body — see below) |
 | **Patch** | merge success (`.WithMergePatchJsonContentType()`) + **follow-up GET verifying persistence**; not-found |
 | **Delete** | idempotent four-step flow: get → delete → get → delete (the follow-up GET is inherent to this flow) |
+
+### Query tests — seed data and patterns
+
+**Seed data requirements** — design the read seed with query tests in mind:
+- Provide **at least 3–5 records with diverse values** across all filterable fields so each filter scenario has records that match and records that don't. A filter that matches everything (or nothing) because all seeded rows share the same value gives no meaningful coverage.
+- For paging tests: seed **more rows than the smallest `$take` value** used in tests (e.g., if tests use `$take=2`, seed at least 3 rows) so you can verify a partial last page and a correct total count.
+- For order tests: seed at least two records with different values for the orderable field so ascending vs descending results can be distinguished.
+- If the entity supports soft-delete, seed at least one row with the delete flag set — verify it is **absent** from query results by default (and present when `$inactive` is passed).
+
+**Query string format:**
+- `$filter` — OData-esque expression; string literals use **single quotes**; field names are case-insensitive:
+  - Equality/comparison: `sku eq 'ABC-001'`, `price gt 10.00`, `isActive eq true` (or boolean shorthand: `isActive`)
+  - In-list: `status in ('Active', 'Pending')`
+  - String functions: `startswith(Sku, 'spec')`, `contains(text, 'widget')`, `endswith(text, 'x')`
+  - Null check: `terminated eq null`, `terminated ne null`
+  - Logical/grouped: `subcategory eq 'xc' and brand in ('yeti', 'canyon')`, `not (isActive eq true)`
+- `$orderby` — field with direction, comma-separated for multiple: `text desc, sku asc`
+- Paging: `$skip=0&$take=2&$count=true` — **`$take`, not `$top`**; `$count` requests the total-count response header
+- `$fields=field1,field2` — include only specified fields in each result item
+- `$inactive` — include soft-deleted / inactive records (omit flag to use default active-only behaviour)
+
+**Response type and assertion style:**
+
+Use `Test.Http<{Name}Lite[]>()` to deserialise the result items. Query responses return the items array directly in the body; paging metadata is in response headers. Prefer **inline fluent assertions** (`Should().HaveCount(N).And.OnlyContain(...)`) for query tests — they are clearer and faster to write than `.res.json` files for most scenarios. Use `.res.json` only when you need to pin the exact shape of every field in the result (e.g., a field-selection test):
+
+```csharp
+// Baseline — no filter, verify total count
+var r = Test.Http<{Name}Lite[]>()
+    .Run(HttpMethod.Get, "/api/{name}s")
+    .AssertOK()
+    .Value;
+
+r.Should().NotBeNull().And.HaveCount({totalSeedCount});
+
+// Filter — equality, assert matching subset
+var r = Test.Http<{Name}Lite[]>()
+    .Run(HttpMethod.Get, "/api/{name}s?$filter=sku eq 'ABC-001'")
+    .AssertOK()
+    .Value;
+
+r.Should().NotBeNull().And.HaveCount(1).And.OnlyContain(x => x.Sku == "ABC-001");
+
+// Filter — string function + order, assert sequence
+var r = Test.Http<{Name}Lite[]>()
+    .ExpectLogContains("ORDER BY")           // optional — verifies order LINQ was applied
+    .Run(HttpMethod.Get, "/api/{name}s?$filter=startswith(Sku, 'spec')&$orderby=text desc")
+    .AssertOK()
+    .Value;
+
+r.Should().NotBeNull().And.HaveCount({expectedCount})
+    .And.OnlyContain(x => x.Sku!.StartsWith("SPEC"))
+    .And.BeInDescendingOrder(x => x.Text);
+
+// Filter — reference data field (by code, lowercase)
+var r = Test.Http<{Name}Lite[]>()
+    .Run(HttpMethod.Get, "/api/{name}s?$filter=status eq 'active'")
+    .AssertOK()
+    .Value;
+
+r.Should().NotBeNull().And.HaveCount({expectedCount}).And.OnlyContain(x => x.StatusCode == "ACTIVE");
+
+// Paging — assert item count and header values
+var r = Test.Http<{Name}Lite[]>()
+    .Run(HttpMethod.Get, "/api/{name}s?$skip=0&$take=2&$count=true")
+    .AssertOK();
+
+r.Value.Should().NotBeNull().And.HaveCount(2);
+r.Response.Headers.Should().ContainKey("X-Paging-Skip").WhoseValue.Should().ContainSingle().Which.Should().Be("0");
+r.Response.Headers.Should().ContainKey("X-Paging-Take").WhoseValue.Should().ContainSingle().Which.Should().Be("2");
+r.Response.Headers.Should().ContainKey("X-Paging-Total-Count").WhoseValue.Should().ContainSingle().Which.Should().Be("{totalSeedCount}");
+
+// Field selection — use .res.json to pin exact serialised shape
+Test.Http<{Name}Lite[]>()
+    .Run(HttpMethod.Get, "/api/{name}s?$filter=sku eq 'ABC-001'&$fields=sku,text")
+    .AssertOK()
+    .AssertJsonFromResource("{ReadTests}.{Name}_Query_FilterBySku_IncludeFields.res.json");
+
+// Soft-delete exclusion (when entity supports logical delete)
+var r = Test.Http<{Name}Lite[]>()
+    .Run(HttpMethod.Get, "/api/{name}s?$filter=sku eq 'GHOST-1'")   // seeded with is_deleted: true
+    .AssertOK()
+    .Value;
+
+r.Should().NotBeNull().And.BeEmpty();   // absent by default
+
+// $inactive — soft-deleted record appears
+var r = Test.Http<{Name}Lite[]>()
+    .Run(HttpMethod.Get, "/api/{name}s?$filter=sku eq 'GHOST-1'&$inactive")
+    .AssertOK()
+    .Value;
+
+r.Should().NotBeNull().And.HaveCount(1).And.OnlyContain(x => x.Sku == "GHOST-1");
+```
 
 **Every Create/Update/Patch `_Success` test ends with a second `GET` of the same resource, asserted
 against the mutation response** (`.AssertValue(response)`, excluding volatile fields already covered by

@@ -15,10 +15,21 @@ public abstract class QueryFilterFieldConfigBase<TSelf>(QueryFilterParser parser
     /// Sets (overrides) the optional <see cref="QueryFilterFieldConfigBase.ModelPrefix"/> to be used where referencing the underlying <see cref="IQueryable{T}"/> model.
     /// </summary>
     /// <param name="modelPrefix">The model prefix.</param>
+    /// <remarks>The model prefix is the name used to reference the underlying <see cref="IQueryable{T}"/> model, specifically where a field is being projected.</remarks>
     /// <returns>The <see cref="QueryFilterParser"/> to support fluent-style method-chaining.</returns>
-    public TSelf WithModelPrefix(string? modelPrefix = null)
+    public TSelf WithModelPrefix(string? modelPrefix)
     {
-        ModelPrefix = modelPrefix;
+        ModelPrefix = modelPrefix.ThrowIfNullOrEmpty();
+        return (TSelf)this;
+    }
+
+    /// <summary>
+    /// Clears (overrides) the optional <see cref="QueryFilterFieldConfigBase.ModelPrefix"/> to be used where referencing the underlying <see cref="IQueryable{T}"/> model.
+    /// </summary>
+    /// <returns>The <see cref="QueryFilterParser"/> to support fluent-style method-chaining.</returns>
+    public TSelf WithNoModelPrefix()
+    {
+        ModelPrefix = null;
         return (TSelf)this;
     }
 

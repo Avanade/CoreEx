@@ -5,16 +5,6 @@ public class MovementRepository(ProductsEfDb ef) : IMovementRepository
 {
     private readonly ProductsEfDb _ef = ef.ThrowIfNull();
 
-    private readonly static QueryArgsConfig _queryConfig = QueryArgsConfig.Create()
-        .WithFilter(filter => filter
-            .AddField<string>(nameof(Contracts.Movement.ReferenceId), c => c.WithOperators(QueryFilterOperator.EqualityOperators))
-            .AddField<string>(nameof(Contracts.Movement.ProductId), c => c.WithOperators(QueryFilterOperator.EqualityOperators))
-            .AddReferenceDataField<Contracts.MovementKind>(nameof(Contracts.Movement.Kind), nameof(Persistence.Movement.MovementKindCode))
-            .AddReferenceDataField<Contracts.MovementStatus>(nameof(Contracts.Movement.Status), nameof(Persistence.Movement.MovementStatusCode)))
-        .WithOrderBy(orderby => orderby
-            .AddField(nameof(Contracts.Movement.ReferenceId), c => c.WithDefault().WithAlwaysInclude())
-            .AddField(nameof(Contracts.Movement.ProductId), c => c.WithDefault().WithAlwaysInclude()));
-
     /// <inheritdoc/>
     public async Task<List<Contracts.Movement>> CreateAsync(List<Contracts.Movement> movements, CancellationToken ct = default)
     {   
@@ -40,7 +30,7 @@ public class MovementRepository(ProductsEfDb ef) : IMovementRepository
         }
 
         // Save changes and return the mutated movements.
-        return await SaveAndGetAllMutatedMovements(ct).ConfigureAwait(false);
+        return await SaveAndGetAllMutatedMovementsAsync(ct).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -93,7 +83,7 @@ public class MovementRepository(ProductsEfDb ef) : IMovementRepository
         }
 
         // Save changes and return the mutated movements.
-        return await SaveAndGetAllMutatedMovements(ct).ConfigureAwait(false);
+        return await SaveAndGetAllMutatedMovementsAsync(ct).ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
@@ -129,7 +119,7 @@ public class MovementRepository(ProductsEfDb ef) : IMovementRepository
         }
 
         // Save changes and return the mutated movements.
-        return await SaveAndGetAllMutatedMovements(ct).ConfigureAwait(false);
+        return await SaveAndGetAllMutatedMovementsAsync(ct).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -145,7 +135,7 @@ public class MovementRepository(ProductsEfDb ef) : IMovementRepository
     /// <summary>
     /// Saves all the changes and returns the mutated movements mapping to the contract version.
     /// </summary>
-    private async Task<List<Contracts.Movement>> SaveAndGetAllMutatedMovements(CancellationToken ct)
+    private async Task<List<Contracts.Movement>> SaveAndGetAllMutatedMovementsAsync(CancellationToken ct)
     {
         // Save all changes.
         await _ef.DbContext.SaveChangesAsync(ct).ConfigureAwait(false);
@@ -162,12 +152,12 @@ public class MovementRepository(ProductsEfDb ef) : IMovementRepository
     }
 
     /// <inheritdoc/>
-    public Task<JsonElement> QuerySchemaAsync(CancellationToken ct = default) => Task.FromResult(_queryConfig.ToJsonSchema());
+    public Task<JsonElement> QuerySchemaAsync(CancellationToken ct = default) => Task.FromResult(MovementQueryArgsConfig.Default.ToJsonSchema());
 
     /// <inheritdoc/>
     public async Task<ItemsResult<Contracts.Movement>> QueryAsync(QueryArgs? query, PagingArgs? paging, CancellationToken ct = default)
     {
-        var parsed = _queryConfig.Parse(query).ThrowOnError();
+        var parsed = MovementQueryArgsConfig.Default.Parse(query).ThrowOnError();
         var movements = _ef.Movements.Query();
         var q = from m in movements select m;
         return await q.Where(parsed).OrderBy(parsed).ToMappedItemsResultAsync(m => MovementMapper.From.Map(m), paging, cancellationToken: ct).ConfigureAwait(false);

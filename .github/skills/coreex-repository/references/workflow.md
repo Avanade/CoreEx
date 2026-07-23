@@ -159,39 +159,114 @@ public Task<DataResult> DeleteAsync(string id) => _ef.{Name}s.DeleteAsync(id);
 
 ## Path C — Add a Query Method with Dynamic Filtering/Ordering
 
-Define `QueryArgsConfig` once as a `private static readonly` class-level field:
+### C0 — Interview (required before writing any code)
+
+Collect the following from the developer. **AI cannot infer field selection, operators, model mappings, or structural options from the entity shape.**
+
+**Step 1 — Structural options (ask first; answers determine the shape of the config and method signature)**
+
+| Question | Default | Notes |
+|---|---|---|
+| Filtering required? | **Yes** | No → omit `WithFilter(...)` block entirely |
+| Ordering required? | **Yes** | No → omit `WithOrderBy(...)` block entirely |
+| Paging required? | **Yes** | No → omit `PagingArgs? paging` parameter from the method signature |
+| Count support? | **No** | Yes → consumer opts in with `$count=true`; adds a DB `COUNT(*)` — enable only when explicitly requested |
+
+**Step 2 — For each filter field (only if filtering = yes):**
+
+| Question | Why it matters |
+|---|---|
+| Contract property name (`nameof(...)` or plain string) | The public name used in the filter expression |
+| Property type (string / int / decimal / DateTime / DateOnly / Guid / bool / Enum / reference data) | Determines which `AddField` overload to use |
+| Allowed operators (equality only? comparison range? string functions?) | Operator set is a design decision — restrict deliberately (see operator reference in C1) |
+| Case-insensitive matching? (string fields only) | Yes → `.AsUpperCase()` (wraps both stored value and input in `ToUpperInvariant()`); use for free-text and code fields where case should be ignored |
+| Model/LINQ name if different from the contract name | Needed when the persistence column name differs (e.g., `Category` → `CategoryCode`) |
+| Model prefix (e.g., `"Product"`) if using a join projection | Required when LINQ expressions must qualify via `Product.Sku`, `Product.Text`, etc. |
+
+**Step 3 — For each order-by field (only if ordering = yes):**
+
+| Question | Why it matters |
+|---|---|
+| Contract property name | The public name used in `$orderby` |
+| Model/LINQ name if different | Same as above |
+| Default sort? (`WithDefault`) | Applies when consumer sends no `$orderby` |
+| Always append? (`WithAlwaysInclude`) | Appended to every result — useful as a stable tie-breaker |
+
+### C1 — Field type reference
+
+| Method | Use when the property type is | Default operators | Key options |
+|---|---|---|---|
+| `AddField<string>(field, ...)` | `string` | Comparison + string functions | `.WithOperators(...)`, `.AsUpperCase()`, `.AsLowerCase()` |
+| `AddField<T>(field, ...)` | `int`, `decimal`, `DateTime`, `DateOnly`, `Guid`, `bool`, any `IParsable<T>` | Numeric/date: `ComparisonOperators`; bool: `Equal\|NotEqual` | `.WithOperators(...)`, `.WithConverter(...)`, `.WithValue(...)` |
+| `AddField<TEnum>(field, ...)` | Any `Enum` type | `Equal\|NotEqual\|In` | `.WithOperators(...)`, `.WithConverter(...)` |
+| `AddNullField(field, ...)` | Null/not-null check only | `Equal\|NotEqual` (null semantics) | `.WithModelPrefix(...)` |
+| `AddReferenceDataField<TRef>(field, ...)` | Any `IReferenceData` type (resolved by code via orchestrator) | `EqualityOperators` (`eq`/`ne`/`in`) | `.MustBeActive(...)` |
+
+**Operator quick-reference** — use with `.WithOperators(...)` (combine flags with `|`):
+
+| Flag / Composite | Filter string operators enabled | Typical use |
+|---|---|---|
+| `Equal` | `eq` | Exact match |
+| `NotEqual` | `ne` | Exclusion |
+| `GreaterThan` / `GreaterThanOrEqual` | `gt` / `ge` | Numeric or date lower bound |
+| `LessThan` / `LessThanOrEqual` | `lt` / `le` | Numeric or date upper bound |
+| `In` | `in ('a', 'b')` | Multi-value match |
+| `StartsWith` / `EndsWith` / `Contains` | `startswith(f,'v')` / `endswith(f,'v')` / `contains(f,'v')` | String prefix/suffix/substring |
+| **`EqualityOperators`** *(composite)* | `eq`, `ne`, `in` | Code / ID fields — exact match only |
+| **`ComparisonOperators`** *(composite)* | `eq`, `ne`, `lt`, `le`, `gt`, `ge` | Numeric, date, or sortable fields |
+| **`StringFunctions`** *(composite)* | `startswith`, `endswith`, `contains` | Free-text / description fields |
+
+**Case sensitivity (string fields):** `.AsUpperCase()` wraps both the stored column value and the filter input in `ToUpperInvariant()`, making all string comparisons case-insensitive. `.AsLowerCase()` does the same with `ToLowerInvariant()`. Apply to any string field where case should be ignored (SKUs, codes, free-text search). Omit for fields where case is meaningful.
+
+### C2 — Create the `{Name}QueryArgsConfig` class
+
+Create `Infrastructure/Repositories/{Name}QueryArgsConfig.cs`. Extend `QueryArgsConfig<{Name}QueryArgsConfig>` (CRTP) — all configuration goes in the constructor; the base provides a thread-safe lazy `Default` singleton:
 
 ```csharp
-private static readonly QueryArgsConfig _queryConfig = QueryArgsConfig.Create()
-    .WithFilter(filter => filter
-        .WithDefaultModelPrefix("{Name}")
-        .AddField<string>(nameof(Contracts.{Base}.{Field}), c => c
-            .WithOperators(QueryFilterOperator.EqualityOperators | QueryFilterOperator.StartsWith)
-            .AsUpperCase())
-        .AddField<string>(nameof(Contracts.{Base}.Text), c => c
-            .WithOperators(QueryFilterOperator.StringFunctions)
-            .AsUpperCase())
-        .AddReferenceDataField<Contracts.{RefData}>(nameof(Contracts.{Base}.{RefData}), "{RefData}Code",
-            c => c.WithModelPrefix(null)))
-    .WithOrderBy(orderby => orderby
-        .WithDefaultModelPrefix("{Name}")
-        .AddField(nameof(Contracts.{Base}.{Field}), c => c.WithDefault().WithAlwaysInclude())
-        .AddField(nameof(Contracts.{Base}.Text)));
+namespace {Solution}.Infrastructure.Repositories;
+
+internal class {Name}QueryArgsConfig : QueryArgsConfig<{Name}QueryArgsConfig>
+{
+    public {Name}QueryArgsConfig()
+    {
+        WithFilter(filter => filter
+            .WithDefaultModelPrefix("{Name}")              // omit when there is no join projection prefix
+            .AddField<string>("{FilterField}", c => c
+                .WithOperators(QueryFilterOperator.EqualityOperators | QueryFilterOperator.StartsWith)
+                .AsUpperCase())
+            // string field with string functions:
+            // .AddField<string>("{TextField}", c => c.WithOperators(QueryFilterOperator.StringFunctions).AsUpperCase())
+            // reference data field (contract nav name → persistence column name):
+            // .AddReferenceDataField<Contracts.{RefData}>("{RefDataField}", "{RefDataCode}")
+            // reference data field without the shared model prefix:
+            // .AddReferenceDataField<Contracts.{RefData}>("{RefDataField}", "{RefDataCode}", c => c.WithNoModelPrefix())
+        );
+
+        WithOrderBy(orderby => orderby
+            .WithDefaultModelPrefix("{Name}")              // omit when there is no join projection prefix
+            .AddField("{SortField}", c => c.WithDefault().WithAlwaysInclude())
+        );
+    }
+}
 ```
 
-In the query method:
+**Model prefix:** use `WithDefaultModelPrefix("{Name}")` when the LINQ query projects into an anonymous type `new { {Name} = e, ... }` so that filters compile to `{Name}.Property`. Omit it (or set to `null`) when fields are accessed directly on the entity without a wrapping anonymous object. Override per-field with `.WithModelPrefix(...)` or `.WithNoModelPrefix()`.
+
+**`global using CoreEx.Data.Querying;` must be in `GlobalUsing.cs`** — add it if missing.
+
+### C3 — Add the query method to the repository
 
 ```csharp
-public async Task<ItemsResult<Contracts.{Name}Lite>> QueryAsync(QueryArgs? query, PagingArgs? paging)
+public async Task<ItemsResult<Contracts.{Name}Lite>> QueryAsync(QueryArgs? query, PagingArgs? paging, CancellationToken cancellationToken = default)
 {
-    var parsed = _queryConfig.Parse(query).ThrowOnError();
+    var parsed = {Name}QueryArgsConfig.Default.Parse(query).ThrowOnError();
 
-    // Compose the base query with any required joins before applying parsed filters.
-    // The anonymous-type property name must match WithDefaultModelPrefix — use {Name} in both.
+    // Compose the base query (with any required joins) before applying parsed filters.
+    // When using WithDefaultModelPrefix, the anonymous-type property name must match.
     var q =
         from e in _ef.{Name}s.Model.Query()
         // optional join:
-        // join r in _ef.RelatedModel.Query() on e.RelatedCode equals r.Code into rg
+        // join r in _ef.Related.Query() on e.RelatedCode equals r.Code into rg
         // from r in rg.DefaultIfEmpty()
         select new { {Name} = e };
 
@@ -202,17 +277,17 @@ public async Task<ItemsResult<Contracts.{Name}Lite>> QueryAsync(QueryArgs? query
         {
             Id = x.{Name}.Id,
             // ... project fields
-        }, paging).ConfigureAwait(false);
+        }, paging, cancellationToken)
+        .ConfigureAwait(false);
 }
 ```
 
 Expose the query schema for `$query` documentation endpoints:
 
 ```csharp
-public Task<JsonElement> QuerySchemaAsync() => Task.FromResult(_queryConfig.ToJsonSchema());
+public Task<JsonElement> QuerySchemaAsync(CancellationToken cancellationToken = default)
+    => Task.FromResult({Name}QueryArgsConfig.Default.ToJsonSchema());
 ```
-
-**`QueryArgsConfig` requires `global using CoreEx.Data.Querying;` in `GlobalUsing.cs`** — add it if missing.
 
 ---
 
@@ -277,5 +352,5 @@ public Task<Result<Domain.{Name}>> UpdateAsync(Domain.{Name} value) => Result
 - **`ETag` and `ChangeLog` must NOT be mapped** in `OnMap` — the base mapper owns them; the model has no `RowVersion` member.
 - **`DataResult<T>` for Create/Update, `DataResult` for Delete** — do not return `T` directly; the mutation flag is needed for event decisions.
 - **`[ScopedService<IInterface>]` on every repository** — do not add `AddScoped<>()` calls in `Program.cs` for repositories.
-- **`QueryArgsConfig` is `private static readonly`** — never instantiate per-request; parse once per call with `.Parse(query).ThrowOnError()`.
+- **`QueryArgsConfig<TSelf>`** — create one `{Name}QueryArgsConfig : QueryArgsConfig<{Name}QueryArgsConfig>` class per entity; access via `.Default`; call `.Parse(query).ThrowOnError()` before use — never instantiate per-request. Collect all field names, types, and operators from the developer before writing any code; AI cannot infer them from the entity shape.
 - **Match the database package to the project**: PostgreSQL → `CoreEx.Database.Postgres`, `PostgresDatabase`, `UseNpgsql`; SQL Server → `CoreEx.Database.SqlServer`, `SqlServerDatabase`, `UseSqlServer`. Check the project's `Program.cs` — do not introduce the wrong provider.

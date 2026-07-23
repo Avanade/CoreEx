@@ -1,7 +1,7 @@
 ---
 name: coreex-repository
 description: "Create or modify a CoreEx Infrastructure-layer repository. USE FOR: new repository class, adding CRUD operations, adding a custom query (QueryArgsConfig), bidirectional mapper (BiDirectionMapper), EfDb model accessor, Result<T> pipeline variants. DO NOT USE FOR: Application-layer service logic, domain invariants, typed HTTP clients/adapters (those follow adapter conventions in the infrastructure instructions, not this skill)."
-argument-hint: "Optional: entity name, database type (PostgreSQL/SQL Server), operations needed (get/create/update/delete/query), new or existing repository"
+argument-hint: "Optional: entity name, database type (PostgreSQL/SQL Server), operations needed (get/create/update/delete/query), new or existing repository; for query: filtering (default: yes), ordering (default: yes), paging (default: yes), count support (default: no), then per filter field: name + property type + allowed operators + case-insensitive? + model mapping if different"
 tags: ["repository", "infrastructure", "efcore", "mapping", "coreex", "data-access", "result"]
 ---
 
@@ -40,7 +40,7 @@ Guides you through creating or modifying a CoreEx Infrastructure-layer repositor
 2. New repository or adding to an existing one?
 3. Operations needed: Get / Create / Update / Delete / Query?
 4. Does the project use `Result<T>` / ROP pipelines? (→ `*WithResultAsync` — per-project style choice, not tied to DDD)
-5. Does the query need dynamic filtering/ordering? (→ `QueryArgsConfig`)
+5. Does the query need dynamic filtering/ordering? (→ `QueryArgsConfig<TSelf>`) — if yes, collect the **complete field list** from the developer before writing any code: for each filter field the name, property type, allowed operators, and model/LINQ name if it differs from the contract name; for each order-by field the name and whether it should be in the default sort or always appended. **AI cannot infer these from the entity shape.**
 
 **Key rules at a glance:**
 - `[ScopedService<IInterface>]` on every repository class — auto-registers in DI
@@ -49,7 +49,7 @@ Guides you through creating or modifying a CoreEx Infrastructure-layer repositor
 - `DataResult<T>` return for Create/Update; `DataResult` for Delete — includes mutation flag for event decisions
 - `*WithResultAsync` variants for `Result<T>` ROP pipelines (per-project style choice)
 - `BiDirectionMapper`: override **both** `OnMap` overloads; map `Id` explicitly; **never** map `ETag` or `ChangeLog` — base mapper owns them
-- `QueryArgsConfig`: define once as `private static readonly`; call `.Parse(query).ThrowOnError()` before use
+- `QueryArgsConfig<TSelf>`: create a dedicated `{Name}QueryArgsConfig : QueryArgsConfig<{Name}QueryArgsConfig>` class per entity in `Infrastructure/Repositories/`; access via `.Default`; call `.Parse(query).ThrowOnError()` before use — never instantiate per-request
 - Always `.ConfigureAwait(false)` on every `await`
 
 For full workflow and code examples see [`references/workflow.md`](references/workflow.md).

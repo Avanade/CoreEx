@@ -5,20 +5,6 @@ public class ProductRepository(ProductsEfDb ef) : IProductRepository
 {
     private readonly ProductsEfDb _ef = ef.ThrowIfNull();
 
-    private readonly static QueryArgsConfig _queryConfig = QueryArgsConfig.Create()
-        .WithFilter(filter => filter
-            .WithDefaultModelPrefix("Product")
-            .AddField<string>(nameof(Contracts.ProductBase.Sku), c => c.WithOperators(QueryFilterOperator.EqualityOperators | QueryFilterOperator.StartsWith).AsUpperCase())
-            .AddField<string>(nameof(Contracts.ProductBase.Text), c => c.WithOperators(QueryFilterOperator.StringFunctions).AsUpperCase())
-            .AddReferenceDataField<Contracts.Category>(nameof(Contracts.ProductBase.Category), "CategoryCode", c => c.WithModelPrefix(null))
-            .AddReferenceDataField<Contracts.SubCategory>(nameof(Contracts.ProductBase.SubCategory), "SubCategoryCode")
-            .AddReferenceDataField<Contracts.Brand>(nameof(Contracts.ProductBase.Brand), "BrandCode"))
-        .WithOrderBy(orderby => orderby
-            .WithDefaultModelPrefix("Product")
-            .AddField(nameof(Contracts.ProductBase.Sku), c => c.WithDefault().WithAlwaysInclude())
-            .AddField(nameof(Contracts.ProductBase.Text))
-            .AddField(nameof(Contracts.ProductBase.Brand)));
-
     public Task<Contracts.Product?> GetAsync(string id, CancellationToken ct = default) => _ef.Products.GetAsync(id, ct);
 
     public Task<DataResult<Contracts.Product>> CreateAsync(Contracts.Product product, CancellationToken ct = default) => _ef.Products.CreateAsync(product, ct);
@@ -27,11 +13,11 @@ public class ProductRepository(ProductsEfDb ef) : IProductRepository
 
     public Task<DataResult> DeleteAsync(string id, CancellationToken ct = default) => _ef.Products.DeleteAsync(id, ct);
 
-    public Task<JsonElement> QuerySchemaAsync(CancellationToken ct = default) => Task.FromResult(_queryConfig.ToJsonSchema());
+    public Task<JsonElement> QuerySchemaAsync(CancellationToken ct = default) => Task.FromResult(ProductQueryArgsConfig.Default.ToJsonSchema());
 
     public async Task<ItemsResult<Contracts.ProductLite>> QueryAsync(QueryArgs? query, PagingArgs? paging, CancellationToken ct = default)
     {
-        var parsed = _queryConfig.Parse(query).ThrowOnError();
+        var parsed = ProductQueryArgsConfig.Default.Parse(query).ThrowOnError();
 
         var products = _ef.Products.Model.Query();
         if (query?.IsIncludeInactive is false)

@@ -5,15 +5,6 @@ public class OrderRepository(OrdersEfDb ef) : IOrderRepository
 {
     private readonly OrdersEfDb _ef = ef.ThrowIfNull();
 
-    private static readonly QueryArgsConfig _queryConfig = QueryArgsConfig.Create()
-        .WithFilter(filter => filter
-            .WithDefaultModelPrefix("Order")
-            .AddField<string>(nameof(Contracts.OrderBase.CustomerId), c => c.WithOperators(QueryFilterOperator.EqualityOperators | QueryFilterOperator.StartsWith))
-            .AddReferenceDataField<Contracts.OrderStatus>(nameof(Contracts.OrderBase.Status), "StatusCode"))
-        .WithOrderBy(orderby => orderby
-            .WithDefaultModelPrefix("Order")
-            .AddField(nameof(Contracts.OrderBase.CustomerId), c => c.WithDefault().WithAlwaysInclude()));
-
     public Task<Contracts.Order?> GetAsync(string id, CancellationToken ct = default) => _ef.Orders.GetAsync(id, ct);
 
     public Task<DataResult<Contracts.Order>> CreateAsync(Contracts.Order order, CancellationToken ct = default) => _ef.Orders.CreateAsync(order, ct);
@@ -36,7 +27,7 @@ public class OrderRepository(OrdersEfDb ef) : IOrderRepository
 
     public async Task<ItemsResult<Contracts.OrderLite>> QueryAsync(QueryArgs? query, PagingArgs? paging, CancellationToken ct = default)
     {
-        var parsed = _queryConfig.Parse(query).ThrowOnError();
+        var parsed = OrderQueryArgsConfig.Default.Parse(query).ThrowOnError();
 
         var orders = _ef.Orders.Model.Query().IgnoreAutoIncludes();
         return await orders.Where(parsed).OrderBy(parsed).ToMappedItemsResultAsync(x => new Contracts.OrderLite
