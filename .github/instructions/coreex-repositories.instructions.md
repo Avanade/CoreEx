@@ -25,7 +25,7 @@ tags: ["repositories", "infrastructure", "data-access", "efcore", "mapping", "ad
 |---|---|
 | `CoreEx` | `[ScopedService<T>]`, `.ThrowIfNull()`, `ItemsResult<T>`, `Result<T>`, `.GoAsync()`, `.ThenAs()`, `.ThenAsAsync()` |
 | `CoreEx.Events` | `EventData` |
-| `CoreEx.Data` | `IUnitOfWork`, `DataResult<T>`, `QueryArgsConfig`, `QueryFilterOperator`, `.Where(parsed)`, `.OrderBy(parsed)` |
+| `CoreEx.Data` | `IUnitOfWork`, `DataResult<T>`, `QueryArgsConfig<TSelf>`, `QueryFilterOperator`, `.Where(parsed)`, `.OrderBy(parsed)` |
 | `CoreEx.EntityFrameworkCore` | `EfDb<TContext>`, `EfDbModel<T>`, `EfDbMappedModel<TContract,TModel,TMapper>`, `EfDbOptions`, `.GetAsync()`, `.CreateAsync()`, `.UpdateAsync()`, `.DeleteAsync()`, `.GetWithResultAsync()`, `.CreateWithResultAsync()`, `.UpdateWithResultAsync()`, `.Query()`, `.ToMappedItemsResultAsync()` |
 | `CoreEx.Database.SqlServer` | SQL Server outbox publisher, ADO.NET helpers |
 | `CoreEx.Database.Postgres` | PostgreSQL outbox publisher, ADO.NET helpers |
@@ -144,35 +144,83 @@ Per-model behaviour is configured on `EfDbOptions` / `EfDbModelOptions`: `WithMo
 
 ## Dynamic Query Configuration
 
-> **GlobalUsing requirement:** `QueryArgsConfig` and the related query types live in the `CoreEx.Data.Querying` namespace. When introducing query configuration, ensure `global using CoreEx.Data.Querying;` is present in the Infrastructure project's `GlobalUsing.cs` — add it if missing. This prevents avoidable compilation errors (per the Global Usings convention, imports go in `GlobalUsing.cs`, never in individual files).
+> **GlobalUsing requirement:** `QueryArgsConfig<TSelf>` and the related query types live in the `CoreEx.Data.Querying` namespace. When introducing query configuration, ensure `global using CoreEx.Data.Querying;` is present in the Infrastructure project's `GlobalUsing.cs` — add it if missing.
 
-Define a `static readonly QueryArgsConfig _queryConfig` once at class level for OData-style filtering and ordering:
+> **Interview first.** The fields to filter and order, the operators permitted per field, and the mapping from contract names to model names are **business and design decisions** — the developer must specify them. Never generate a `QueryArgsConfig` without first collecting the complete field list, types, and operators from the developer.
+
+Each entity's query configuration lives in its own dedicated class in `Infrastructure/Repositories/`, named `{Name}QueryArgsConfig`. Extend `QueryArgsConfig<{Name}QueryArgsConfig>` (CRTP) — the base provides a thread-safe lazy `Default` singleton and all `WithFilter` / `WithOrderBy` configuration is performed in the constructor:
 
 ```csharp
-private static readonly QueryArgsConfig _queryConfig = QueryArgsConfig.Create()
-    .WithFilter(filter => filter
-        .WithDefaultModelPrefix("Product")
-        .AddField<string>(nameof(ProductBase.Sku), c => c
-            .WithOperators(QueryFilterOperator.EqualityOperators | QueryFilterOperator.StartsWith)
-            .AsUpperCase())
-        .AddField<string>(nameof(ProductBase.Text), c => c
-            .WithOperators(QueryFilterOperator.StringFunctions)
-            .AsUpperCase())
-        .AddReferenceDataField<Category>(nameof(ProductBase.Category), "CategoryCode",
-            c => c.WithModelPrefix(null)))
-    .WithOrderBy(orderby => orderby
-        .WithDefaultModelPrefix("Product")
-        .AddField(nameof(ProductBase.Sku), c => c.WithDefault().WithAlwaysInclude())
-        .AddField(nameof(ProductBase.Text))
-        .AddField(nameof(ProductBase.Brand)));
+// Infrastructure/Repositories/ProductQueryArgsConfig.cs
+internal class ProductQueryArgsConfig : QueryArgsConfig<ProductQueryArgsConfig>
+{
+    public ProductQueryArgsConfig()
+    {
+        WithFilter(filter => filter
+            .WithDefaultModelPrefix("Product")
+            .AddField<string>(nameof(Contracts.ProductBase.Sku), c => c
+                .WithOperators(QueryFilterOperator.EqualityOperators | QueryFilterOperator.StartsWith)
+                .AsUpperCase())
+            .AddField<string>(nameof(Contracts.ProductBase.Text), c => c
+                .WithOperators(QueryFilterOperator.StringFunctions)
+                .AsUpperCase())
+            .AddReferenceDataField<Contracts.Category>(nameof(Contracts.ProductBase.Category), "CategoryCode",
+                c => c.WithNoModelPrefix()));
+
+        WithOrderBy(orderby => orderby
+            .WithDefaultModelPrefix("Product")
+            .AddField(nameof(Contracts.ProductBase.Sku), c => c.WithDefault().WithAlwaysInclude())
+            .AddField(nameof(Contracts.ProductBase.Text)));
+    }
+}
 ```
 
-In the query method, compose the full base query first (including any required joins), then apply `Where(parsed)` and `OrderBy(parsed)`:
+### Field type reference
+
+Choose the `AddField` overload based on the contract property type:
+
+| Method | Use when the property type is | Default operators | Key options |
+|---|---|---|---|
+| `AddField<string>(field, ...)` | `string` | `ComparisonOperators` (string functions are **not** included by default — add explicitly via `.WithOperators(...)`) | `.WithOperators(...)`, `.AsUpperCase()`, `.AsLowerCase()` |
+| `AddField<T>(field, ...)` | `int`, `decimal`, `DateTime`, `DateOnly`, `Guid`, `bool`, any `IParsable<T>` | Numeric/date: `ComparisonOperators`; bool: `Equal\|NotEqual` | `.WithOperators(...)`, `.WithConverter(...)`, `.WithValue(...)` |
+| `AddField<TEnum>(field, ...)` | Any `Enum` type | `Equal\|NotEqual\|In` | `.WithOperators(...)`, `.WithConverter(...)` |
+| `AddNullField(field, ...)` | Null/not-null check only (no value comparison) | `Equal\|NotEqual` (null semantics) | `.WithModelPrefix(...)` |
+| `AddReferenceDataField<TRef>(field, ...)` | Any `IReferenceData` type (resolved by code via orchestrator) | `EqualityOperators` (`eq`/`ne`/`in`) | `.MustBeActive(...)` |
+
+**Operator quick-reference** — use with `.WithOperators(...)` (combine flags with `|`):
+
+| Flag / Composite | Filter string operators enabled | Typical use |
+|---|---|---|
+| `Equal` | `eq` | Exact match |
+| `NotEqual` | `ne` | Exclusion |
+| `GreaterThan` / `GreaterThanOrEqual` | `gt` / `ge` | Numeric or date lower bound |
+| `LessThan` / `LessThanOrEqual` | `lt` / `le` | Numeric or date upper bound |
+| `In` | `in ('a', 'b')` | Multi-value match |
+| `StartsWith` / `EndsWith` / `Contains` | `startswith(f,'v')` / `endswith(f,'v')` / `contains(f,'v')` | String prefix/suffix/substring |
+| **`EqualityOperators`** *(composite)* | `eq`, `ne`, `in` | Code / ID fields — exact match only |
+| **`ComparisonOperators`** *(composite)* | `eq`, `ne`, `lt`, `le`, `gt`, `ge` | Numeric, date, or sortable fields |
+| **`StringFunctions`** *(composite)* | `startswith`, `endswith`, `contains` | Free-text / description fields |
+
+The **operators per field** are a design decision — restrict them deliberately. For example, `EqualityOperators` for a SKU (exact match only), `EqualityOperators | StartsWith` when prefix search is needed, `StringFunctions` for a description field.
+
+**Case sensitivity (string fields):** `.AsUpperCase()` wraps both the stored column value and the filter input in `ToUpperInvariant()`, making all string comparisons case-insensitive. `.AsLowerCase()` does the same with `ToLowerInvariant()`. Apply to any string field where case should be ignored (SKUs, codes, free-text search). Omit for fields where case is meaningful.
+
+### Contract-vs-model naming
+
+The first `field` argument is the **public contract property name**. Supply it as `nameof(Contracts.SomeType.Property)` or as a plain string literal — the developer must specify it. The optional second `model` argument is the **LINQ property name** when it differs (e.g., a ref-data navigation `Category` maps to the persistence column `CategoryCode`).
+
+`WithDefaultModelPrefix("Product")` wraps all LINQ expressions with `Product.xxx` — needed when the query projects into an anonymous type like `new { Product = p, ... }`. Override per-field with `.WithModelPrefix("...")` (set) or `.WithNoModelPrefix()` (clear) when a joined column lives at the projection root rather than under the prefixed object — both methods exist identically on filter-field and order-by-field configs.
+
+Order-by fields: `.WithDefault()` includes the field in the sort when the consumer sends no `$orderby`; `.WithAlwaysInclude()` appends it to every result regardless (useful for a stable tie-breaker).
+
+### Using the config in a repository method
+
+Access via the lazy `Default` singleton — never instantiate per-request:
 
 ```csharp
 public async Task<ItemsResult<Contracts.ProductLite>> QueryAsync(QueryArgs? query, PagingArgs? paging, CancellationToken cancellationToken = default)
 {
-    var parsed = _queryConfig.Parse(query).ThrowOnError();
+    var parsed = ProductQueryArgsConfig.Default.Parse(query).ThrowOnError();
 
     // Compose the base query with required joins before applying parsed filters.
     var q =
@@ -192,14 +240,15 @@ public async Task<ItemsResult<Contracts.ProductLite>> QueryAsync(QueryArgs? quer
             Sku = x.Product.Sku,
             CategoryCode = x.CategoryCode,
             QtyOnHand = x.QtyOnHand
-        }, paging, cancellationToken);
+        }, paging, cancellationToken)
+        .ConfigureAwait(false);
 }
 ```
 
 Expose the query schema for the `$query` endpoint via `ToJsonSchema()`:
 
 ```csharp
-public Task<JsonElement> QuerySchemaAsync(CancellationToken cancellationToken = default) => Task.FromResult(_queryConfig.ToJsonSchema());
+public Task<JsonElement> QuerySchemaAsync(CancellationToken cancellationToken = default) => Task.FromResult(ProductQueryArgsConfig.Default.ToJsonSchema());
 ```
 
 ## Result&lt;T&gt; Pipeline in Repositories
@@ -336,7 +385,7 @@ Always call `.ConfigureAwait(false)` on every `await` inside repository and adap
 - Do not conflate Application-level mapping (aggregate ↔ contract) with Infrastructure-level mapping (contract ↔ persistence model).
 - Do not write raw `DbContext` queries for standard CRUD — use the `EfDb` delegate methods.
 - Do not edit `*.g.cs` persistence or DbContext files directly — regenerate via the `*.Database` tooling project.
-- Do not add a mapper without ensuring the `<Domain>.Infrastructure.Mapping` namespace is in the Infrastructure `GlobalUsing.cs`; likewise ensure `CoreEx.Data.Querying` is present when adding `QueryArgsConfig` query configuration.
+- Do not add a mapper without ensuring the `<Domain>.Infrastructure.Mapping` namespace is in the Infrastructure `GlobalUsing.cs`; likewise ensure `CoreEx.Data.Querying` is present when adding a `QueryArgsConfig<TSelf>` query configuration class.
 - Do not mix EfDb flows — use the `...WithResultAsync` methods inside `Result<T>` pipelines and the plain `...Async` methods for exception flow; do not wrap a throwing `...Async` call to fake a `Result`.
 
 ## Further Reading

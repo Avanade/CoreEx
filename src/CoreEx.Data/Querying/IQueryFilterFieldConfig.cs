@@ -32,7 +32,7 @@ public interface IQueryFilterFieldConfig
     string Model { get; }
 
     /// <summary>
-    /// Gets the optional prefix to be used where referencing the underlying <see cref="IQueryable{T}"/> model.
+    /// Gets the optional prefix to be used where referencing the underlying <see cref="IQueryable{T}"/> model, specifically where a field is being projected.
     /// </summary>
     /// <remarks>This will default from <see cref="QueryFilterParser.DefaultModelPrefix"/> when instantiated.</remarks>
     string? ModelPrefix { get; }

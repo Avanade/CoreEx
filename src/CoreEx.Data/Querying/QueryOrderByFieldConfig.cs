@@ -30,7 +30,7 @@ public sealed class QueryOrderByFieldConfig(QueryOrderByParser parser, string fi
     /// Gets the optional prefix to be used where referencing the underlying <see cref="IQueryable{T}"/> model.
     /// </summary>
     /// <remarks>This will default from <see cref="QueryOrderByParser.DefaultModelPrefix"/> when instantiated.</remarks>
-    public string? ModelPrefix { get; private set; }
+    public string? ModelPrefix { get; private set; } = parser.DefaultModelPrefix;
 
     /// <summary>
     /// Gets the fully-qualified <see cref="Model"/> name (including any <see cref="ModelPrefix"/> where specified).
@@ -82,9 +82,19 @@ public sealed class QueryOrderByFieldConfig(QueryOrderByParser parser, string fi
     /// </summary>
     /// <param name="modelPrefix">The model prefix.</param>
     /// <returns>The <see cref="QueryOrderByFieldConfig"/> to support fluent-style method-chaining.</returns>
-    public QueryOrderByFieldConfig WithModelPrefix(string? modelPrefix = null)
+    public QueryOrderByFieldConfig WithModelPrefix(string modelPrefix)
     {
-        ModelPrefix = modelPrefix;
+        ModelPrefix = modelPrefix.ThrowIfNullOrEmpty();
+        return this;
+    }
+
+    /// <summary>
+    /// Clears (overrides) the optional <see cref="ModelPrefix"/> to be used where referencing the underlying <see cref="IQueryable{T}"/> model.
+    /// </summary>
+    /// <returns>The <see cref="QueryOrderByFieldConfig"/> to support fluent-style method-chaining.</returns>
+    public QueryOrderByFieldConfig WithNoModelPrefix()
+    {
+        ModelPrefix = null;
         return this;
     }
 
