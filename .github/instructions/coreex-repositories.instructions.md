@@ -209,7 +209,7 @@ The **operators per field** are a design decision — restrict them deliberately
 
 The first `field` argument is the **public contract property name**. Supply it as `nameof(Contracts.SomeType.Property)` or as a plain string literal — the developer must specify it. The optional second `model` argument is the **LINQ property name** when it differs (e.g., a ref-data navigation `Category` maps to the persistence column `CategoryCode`).
 
-`WithDefaultModelPrefix("Product")` wraps all LINQ expressions with `Product.xxx` — needed when the query projects into an anonymous type like `new { Product = p, ... }`. Override per-field with `.WithModelPrefix(...)` or `.WithNoModelPrefix()` when a joined column lives at the projection root rather than under the prefixed object.
+`WithDefaultModelPrefix("Product")` wraps all LINQ expressions with `Product.xxx` — needed when the query projects into an anonymous type like `new { Product = p, ... }`. Override per-field when a joined column lives at the projection root rather than under the prefixed object — the override method differs by config type: on **filter fields** use `.WithModelPrefix("...")` to set or `.WithNoModelPrefix()` to clear; on **order-by fields** (`QueryOrderByFieldConfig`) there is no `WithNoModelPrefix()` — clear the prefix with `.WithModelPrefix(null)` instead.
 
 Order-by fields: `.WithDefault()` includes the field in the sort when the consumer sends no `$orderby`; `.WithAlwaysInclude()` appends it to every result regardless (useful for a stable tie-breaker).
 
