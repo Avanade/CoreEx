@@ -76,6 +76,7 @@ Keeps `.github/instructions/`, `.github/skills/`, `.github/prompts/`, `.github/a
     CoreEx.Caching.FusionCache.md
     CoreEx.CodeGen.md
     CoreEx.Data.md
+    CoreEx.Data.GraphQL.md
     CoreEx.Database.md
     CoreEx.Database.Postgres.md
     CoreEx.Database.SqlServer.md
