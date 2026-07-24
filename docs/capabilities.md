@@ -32,6 +32,7 @@ This document provides detailed explanations of CoreEx capabilities and common p
   - [Unit-of-Work with Integrated Outbox](#unit-of-work-with-integrated-outbox)
   - [Paging & Enumeration](#paging--enumeration)
   - [Dynamic Query](#dynamic-query-odata-style)
+  - [GraphQL-lite Query Bridge](#graphql-lite-query-bridge)
   - [Multi-Tenancy](#multi-tenancy)
   - [Type Discriminators](#type-discriminators)
 - [Database Support](#database-support)
@@ -663,6 +664,31 @@ Supports:
 - Functions: `contains`, `startswith`, `endswith`
 - Ordering: `$orderby=field1,field2 desc`
 - Projection: `$fields=id,name` (response filtering)
+
+### GraphQL-lite Query Bridge
+
+**Pattern:** Offer the same dynamic query as a GraphQL surface without writing a second query engine.
+
+`CoreEx.Data.GraphQL` is a transport-agnostic bridge (`IGraphQLEngine`) that maps a GraphQL selection set's `where`/`orderBy` arguments and Relay Cursor Connections paging 1:1 onto the entity's **existing** `QueryArgsConfig` — the same config already driving `$filter`/`$orderby` above. It is not a general-purpose GraphQL server: no mutations, no N+1 dataloaders, one registered root field per queryable entity.
+
+```graphql
+{
+  products(where: { price: { gt: 100 }, category: { eq: "Bikes" } }, orderBy: [{ field: "name" }], first: 20) {
+    edges { node { id name price } cursor }
+    pageInfo { hasNextPage endCursor }
+  }
+}
+```
+
+```csharp
+builder.Services.AddCoreExGraphQLLite(o => o
+    .AddQuery<ProductLite>("products", ProductQueryArgsConfig.Default, (ro, ct) => service.QueryAsync(ro.QueryArgs, ro.PagingArgs, ct))
+    .AddGet<Product, Guid>("product", (id, ct) => service.GetAsync(id, ct)));
+
+app.MapCoreExGraphQLLite("/query");
+```
+
+**Why it matters:** teams that already have a `QueryArgsConfig`-backed REST query endpoint get an equivalent GraphQL endpoint for free — filter/orderby/paging/field-selection semantics stay identical across both surfaces, so there is exactly one place to define what's queryable. See [CoreEx.Data.GraphQL README](../src/CoreEx.Data.GraphQL/README.md) for the full operator vocabulary and Connection shape.
 
 ### Multi-Tenancy
 

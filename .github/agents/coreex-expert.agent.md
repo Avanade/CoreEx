@@ -53,6 +53,7 @@ If a guide is not cached locally, fetch from GitHub:
 - [CoreEx.Caching.FusionCache](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.Caching.FusionCache/AGENTS.md) — `IHybridCache`, Redis backplane, idempotency provider.
 - [CoreEx.CodeGen](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.CodeGen/AGENTS.md) — `CodeGenConsole`, `ref-data.yaml`, generated-file ownership.
 - [CoreEx.Data](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.Data/AGENTS.md) — `IUnitOfWork`, `TransactionAsync`, `QueryArgsConfig`, `DataResult`.
+- [CoreEx.Data.GraphQL](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.Data.GraphQL/AGENTS.md) — GraphQL-lite `IGraphQLEngine`, `where`/`orderBy` bridged to `QueryArgsConfig`, Relay Cursor Connections paging.
 - [CoreEx.Database](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.Database/AGENTS.md) — `IDatabase`, `DatabaseCommand`, outbox relay base types.
 - [CoreEx.Database.Postgres](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.Database.Postgres/AGENTS.md) — PostgreSQL `IDatabase`, outbox, error-code conventions.
 - [CoreEx.Database.SqlServer](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.Database.SqlServer/AGENTS.md) — SQL Server `IDatabase`, session context, outbox, error-code conventions.
