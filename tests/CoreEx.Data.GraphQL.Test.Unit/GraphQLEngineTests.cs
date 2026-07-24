@@ -39,7 +39,7 @@ public class GraphQLEngineTests
     }
 
     [Test]
-    public async Task ExecuteAsync_QueryRoot_ProjectsNestedSelectionAsConnection()
+    public async Task ExecuteAsync_QueryRoot_ProjectsNestedSelectionAsConnectionAsync()
     {
         var engine = CreateEngine();
         var result = await engine.ExecuteAsync("{ people { edges { node { id name address { street city } } } } }");
@@ -56,7 +56,7 @@ public class GraphQLEngineTests
     }
 
     [Test]
-    public async Task ExecuteAsync_QueryRoot_UnknownFieldProducesError()
+    public async Task ExecuteAsync_QueryRoot_UnknownFieldProducesErrorAsync()
     {
         var engine = CreateEngine();
         var result = await engine.ExecuteAsync("{ people { edges { node { id nonExistentField } } } }");
@@ -66,7 +66,7 @@ public class GraphQLEngineTests
     }
 
     [Test]
-    public async Task ExecuteAsync_QueryRoot_UnknownConnectionFieldProducesError()
+    public async Task ExecuteAsync_QueryRoot_UnknownConnectionFieldProducesErrorAsync()
     {
         var engine = CreateEngine();
         var result = await engine.ExecuteAsync("{ people { nonExistentField } }");
@@ -76,7 +76,7 @@ public class GraphQLEngineTests
     }
 
     [Test]
-    public async Task ExecuteAsync_QueryRoot_Where_EqualityShorthand_FiltersItems()
+    public async Task ExecuteAsync_QueryRoot_Where_EqualityShorthand_FiltersItemsAsync()
     {
         var engine = CreateEngine();
         var result = await engine.ExecuteAsync("{ people(where: { name: \"Bob\" }) { edges { node { id name } } } } ");
@@ -88,7 +88,7 @@ public class GraphQLEngineTests
     }
 
     [Test]
-    public async Task ExecuteAsync_QueryRoot_Where_OperatorObject_FiltersItems()
+    public async Task ExecuteAsync_QueryRoot_Where_OperatorObject_FiltersItemsAsync()
     {
         var engine = CreateEngine();
         var result = await engine.ExecuteAsync("{ people(where: { name: { startsWith: \"A\" } }) { edges { node { name } } } }");
@@ -100,7 +100,7 @@ public class GraphQLEngineTests
     }
 
     [Test]
-    public async Task ExecuteAsync_QueryRoot_Where_AndOr_ComposesCorrectly()
+    public async Task ExecuteAsync_QueryRoot_Where_AndOr_ComposesCorrectlyAsync()
     {
         var engine = CreateEngine();
         var result = await engine.ExecuteAsync(
@@ -113,7 +113,7 @@ public class GraphQLEngineTests
     }
 
     [Test]
-    public async Task ExecuteAsync_QueryRoot_Where_UnknownField_ProducesFilterParseError()
+    public async Task ExecuteAsync_QueryRoot_Where_UnknownField_ProducesFilterParseErrorAsync()
     {
         var engine = CreateEngine();
         var result = await engine.ExecuteAsync("{ people(where: { unknownField: \"x\" }) { edges { node { name } } } }");
@@ -123,7 +123,7 @@ public class GraphQLEngineTests
     }
 
     [Test]
-    public async Task ExecuteAsync_QueryRoot_OrderBy_OrdersItems()
+    public async Task ExecuteAsync_QueryRoot_OrderBy_OrdersItemsAsync()
     {
         var engine = CreateEngine();
         var result = await engine.ExecuteAsync("{ people(orderBy: [ { age: ASC } ]) { edges { node { name } } } }");
@@ -134,7 +134,7 @@ public class GraphQLEngineTests
     }
 
     [Test]
-    public async Task ExecuteAsync_QueryRoot_FirstAfter_PagesForwardWithCorrectPageInfo()
+    public async Task ExecuteAsync_QueryRoot_FirstAfter_PagesForwardWithCorrectPageInfoAsync()
     {
         var engine = CreateEngine();
         var page1 = await engine.ExecuteAsync("{ people(orderBy: [ { age: ASC } ], first: 2) { edges { node { id } cursor } pageInfo { hasNextPage hasPreviousPage startCursor endCursor } } }");
@@ -161,7 +161,7 @@ public class GraphQLEngineTests
     }
 
     [Test]
-    public async Task ExecuteAsync_QueryRoot_InvalidCursor_ProducesArgumentError()
+    public async Task ExecuteAsync_QueryRoot_InvalidCursor_ProducesArgumentErrorAsync()
     {
         var engine = CreateEngine();
         var result = await engine.ExecuteAsync("{ people(after: \"not-a-valid-cursor\") { edges { node { id } } } }");
@@ -171,7 +171,7 @@ public class GraphQLEngineTests
     }
 
     [Test]
-    public async Task ExecuteAsync_QueryRoot_BackwardPagination_IsRejected()
+    public async Task ExecuteAsync_QueryRoot_BackwardPagination_IsRejectedAsync()
     {
         var engine = CreateEngine();
         var result = await engine.ExecuteAsync("{ people(last: 2) { edges { node { id } } } }");
@@ -181,7 +181,7 @@ public class GraphQLEngineTests
     }
 
     [Test]
-    public async Task ExecuteAsync_QueryRoot_TotalCount_OnlyComputedWhenRequested()
+    public async Task ExecuteAsync_QueryRoot_TotalCount_OnlyComputedWhenRequestedAsync()
     {
         var engine = CreateEngine();
         var result = await engine.ExecuteAsync("{ people { edges { node { id } } totalCount } }");
@@ -191,7 +191,7 @@ public class GraphQLEngineTests
     }
 
     [Test]
-    public async Task ExecuteAsync_ItemRoot_ReturnsSingleItem()
+    public async Task ExecuteAsync_ItemRoot_ReturnsSingleItemAsync()
     {
         var engine = CreateEngine();
         var result = await engine.ExecuteAsync("{ person(id: 2) { id name } }");
@@ -203,7 +203,7 @@ public class GraphQLEngineTests
     }
 
     [Test]
-    public async Task ExecuteAsync_ItemRoot_NotFound_ProducesNotFoundError()
+    public async Task ExecuteAsync_ItemRoot_NotFound_ProducesNotFoundErrorAsync()
     {
         var engine = CreateEngine();
         var result = await engine.ExecuteAsync("{ person(id: 999) { id name } }");
@@ -213,7 +213,7 @@ public class GraphQLEngineTests
     }
 
     [Test]
-    public async Task ExecuteAsync_UnknownRoot_ProducesError()
+    public async Task ExecuteAsync_UnknownRoot_ProducesErrorAsync()
     {
         var engine = CreateEngine();
         var result = await engine.ExecuteAsync("{ widgets { id } }");
@@ -223,7 +223,7 @@ public class GraphQLEngineTests
     }
 
     [Test]
-    public async Task ExecuteAsync_SyntaxError_ProducesError()
+    public async Task ExecuteAsync_SyntaxError_ProducesErrorAsync()
     {
         var engine = CreateEngine();
         var result = await engine.ExecuteAsync("{ people { ");
@@ -233,7 +233,7 @@ public class GraphQLEngineTests
     }
 
     [Test]
-    public async Task ExecuteAsync_MutationOperation_Rejected()
+    public async Task ExecuteAsync_MutationOperation_RejectedAsync()
     {
         var engine = CreateEngine();
         var result = await engine.ExecuteAsync("mutation { people { edges { node { id } } } }");
@@ -243,7 +243,7 @@ public class GraphQLEngineTests
     }
 
     [Test]
-    public async Task ExecuteAsync_SchemaField_ReturnsDiscoveryDocument()
+    public async Task ExecuteAsync_SchemaField_ReturnsDiscoveryDocumentAsync()
     {
         var engine = CreateEngine();
         var result = await engine.ExecuteAsync("{ __schema }");
@@ -254,7 +254,7 @@ public class GraphQLEngineTests
     }
 
     [Test]
-    public async Task GetSchemaAsync_DescribesRegisteredRootsAndFields()
+    public async Task GetSchemaAsync_DescribesRegisteredRootsAndFieldsAsync()
     {
         var engine = CreateEngine();
         var schema = await engine.GetSchemaAsync();
@@ -269,7 +269,7 @@ public class GraphQLEngineTests
     }
 
     [Test]
-    public async Task ExecuteAsync_TypeNameField_ResolvedAtConnectionEdgeAndNodeLevels()
+    public async Task ExecuteAsync_TypeNameField_ResolvedAtConnectionEdgeAndNodeLevelsAsync()
     {
         var engine = CreateEngine();
         var result = await engine.ExecuteAsync("{ people { __typename edges { __typename node { __typename id address { __typename street } } } } }");
@@ -287,7 +287,7 @@ public class GraphQLEngineTests
     }
 
     [Test]
-    public async Task ExecuteAsync_TypeNameField_ResolvedForSingleItemRoot()
+    public async Task ExecuteAsync_TypeNameField_ResolvedForSingleItemRootAsync()
     {
         var engine = CreateEngine();
         var result = await engine.ExecuteAsync("{ person(id: 2) { __typename name } }");
@@ -297,7 +297,7 @@ public class GraphQLEngineTests
     }
 
     [Test]
-    public async Task ExecuteAsync_NestedFieldAlias_IsHonoredInResponse()
+    public async Task ExecuteAsync_NestedFieldAlias_IsHonoredInResponseAsync()
     {
         var engine = CreateEngine();
         var result = await engine.ExecuteAsync("{ people { edges { node { personId: id address { streetName: street } } } } }");
@@ -311,7 +311,7 @@ public class GraphQLEngineTests
     }
 
     [Test]
-    public async Task ExecuteAsync_FragmentSpread_ProducesExplicitError()
+    public async Task ExecuteAsync_FragmentSpread_ProducesExplicitErrorAsync()
     {
         var engine = CreateEngine();
         var result = await engine.ExecuteAsync("{ people { edges { node { id ...PersonFields } } } } fragment PersonFields on Person { name }");
