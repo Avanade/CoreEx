@@ -73,23 +73,24 @@ The engine is deliberately **transport-agnostic**: it references only `CoreEx.Da
 
 ```csharp
 // Program.cs (or a domain composition extension)
-builder.Services.AddHttpContextAccessor(); // Needed so root resolvers can obtain the current request's scoped services.
 builder.Services.AddCoreExGraphQLLite((o, sp) =>
 {
-    var accessor = sp.GetRequiredService<IHttpContextAccessor>();
-    IProductReadService Service() => accessor.HttpContext!.RequestServices.GetRequiredService<IProductReadService>();
-
-    o.AddQuery<ProductLite>("products", ProductQueryArgsConfig.Default, async (qa, pa, ct) => await Service().QueryAsync(qa, pa, ct).ConfigureAwait(false))
-     .AddGet<Product>("product", (args, ct) => Service().GetAsync(args["id"]!.ToString()!, ct));
+    o.AddQuery<ProductLite>("products", ProductQueryArgsConfig.Default, async (qa, pa, ct) => await CoreEx.ExecutionContext.GetRequiredService<IProductReadService>().QueryAsync(qa, pa, ct).ConfigureAwait(false))
+     .AddGet<Product>("product", (args, ct) => CoreEx.ExecutionContext.GetRequiredService<IProductReadService>().GetAsync(args["id"]!.ToString()!, ct));
 });
+
+// ...
+app.MapCoreExGraphQLLite("/api/products/query"); // Additive GraphQL-lite bridge alongside the existing REST endpoints.
 ```
 
 A hosting bridge (e.g. `MapCoreExGraphQLLite` in `CoreEx.AspNetCore`) resolves `IGraphQLEngine` from DI and
 calls `ExecuteAsync` with the parsed request envelope, returning `{ data, errors }` as the HTTP response
 body. Since `IGraphQLEngine` is registered as a singleton, root resolvers that need scoped dependencies
-(e.g. a repository or application service) should resolve them per-invocation from the current request's
-scope — as shown above via `IHttpContextAccessor` — rather than capturing an instance resolved from the
-root `IServiceProvider` at registration time.
+(e.g. a repository or application service) should resolve them per-invocation rather than capturing an
+instance resolved from the root `IServiceProvider` at registration time — as shown above via
+`CoreEx.ExecutionContext.GetRequiredService<T>()`, which reads from the ambient `ExecutionContext`'s scoped
+service provider (set by the `UseExecutionContext()` middleware every CoreEx host already registers), so no
+extra `IHttpContextAccessor` wiring is required.
 
 A client queries the `products` root using native GraphQL `where`/`orderBy` and `first`/`after` Relay paging
 — translated 1:1 to `ProductQueryArgsConfig`'s existing `filter`/`orderby` support:

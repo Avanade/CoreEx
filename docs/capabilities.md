@@ -673,7 +673,7 @@ Supports:
 
 ```graphql
 {
-  products(where: { price: { gt: 100 }, category: { eq: "Bikes" } }, orderBy: [{ field: "name" }], first: 20) {
+  products(where: { price: { gt: 100 }, category: { eq: "Bikes" } }, orderBy: [{ name: ASC }], first: 20) {
     edges { node { id name price } cursor }
     pageInfo { hasNextPage endCursor }
   }
@@ -681,9 +681,11 @@ Supports:
 ```
 
 ```csharp
-builder.Services.AddCoreExGraphQLLite(o => o
-    .AddQuery<ProductLite>("products", ProductQueryArgsConfig.Default, (ro, ct) => service.QueryAsync(ro.QueryArgs, ro.PagingArgs, ct))
-    .AddGet<Product, Guid>("product", (id, ct) => service.GetAsync(id, ct)));
+builder.Services.AddCoreExGraphQLLite((o, sp) =>
+{
+    o.AddQuery<ProductLite>("products", ProductQueryArgsConfig.Default, async (qa, pa, ct) => await CoreEx.ExecutionContext.GetRequiredService<IProductReadService>().QueryAsync(qa, pa, ct).ConfigureAwait(false))
+     .AddGet<Product>("product", (args, ct) => CoreEx.ExecutionContext.GetRequiredService<IProductReadService>().GetAsync(args["id"]!.ToString()!, ct));
+});
 
 app.MapCoreExGraphQLLite("/query");
 ```

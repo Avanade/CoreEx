@@ -70,14 +70,10 @@ paging, and field-selection behavior because they drive the exact same underlyin
 
 ```csharp
 // samples/src/Contoso.Products.Api/Program.cs
-builder.Services.AddHttpContextAccessor(); // Root resolvers use this to obtain the current request's scoped services.
 builder.Services.AddCoreExGraphQLLite((o, sp) =>
 {
-    var accessor = sp.GetRequiredService<IHttpContextAccessor>();
-    IProductReadService Service() => accessor.HttpContext!.RequestServices.GetRequiredService<IProductReadService>();
-
-    o.AddQuery<ProductLite>("products", ProductQueryArgsConfig.Default, async (qa, pa, ct) => await Service().QueryAsync(qa, pa, ct).ConfigureAwait(false))
-     .AddGet<Product>("product", (args, ct) => Service().GetAsync(args["id"]!.ToString()!, ct));
+    o.AddQuery<ProductLite>("products", ProductQueryArgsConfig.Default, async (qa, pa, ct) => await CoreEx.ExecutionContext.GetRequiredService<IProductReadService>().QueryAsync(qa, pa, ct).ConfigureAwait(false))
+     .AddGet<Product>("product", (args, ct) => CoreEx.ExecutionContext.GetRequiredService<IProductReadService>().GetAsync(args["id"]!.ToString()!, ct));
 });
 
 // ...
@@ -88,9 +84,11 @@ app.MapCoreExGraphQLLite("/api/products/query");
 Each `AddQuery`/`AddGet` root registration is a single line referencing the entity's *existing*
 `QueryArgsConfig<TSelf>.Default` and application-service method — no new per-entity resolver code is
 authored. Because the `IGraphQLEngine` is registered as a singleton, root resolvers that need scoped
-dependencies (repositories, application services) must resolve them per-invocation from the current
-request's scope (via `IHttpContextAccessor`, as shown above) rather than capturing an instance resolved
-from the root `IServiceProvider` at registration time.
+dependencies (repositories, application services) must resolve them per-invocation rather than capturing
+an instance resolved from the root `IServiceProvider` at registration time — as shown above via
+`CoreEx.ExecutionContext.GetRequiredService<T>()`, which reads from the ambient `ExecutionContext`'s
+scoped service provider (set by the `UseExecutionContext()` middleware every CoreEx host already
+registers), so no extra `IHttpContextAccessor` registration is needed.
 
 > **v1 scope**: read-only (queries only, no mutations); selection sets may traverse arbitrarily nested
 > properties already present on a single resolved DTO (e.g. `person { address { street city } }`), but

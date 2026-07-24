@@ -8,21 +8,17 @@ Register roots explicitly — no attribute-based auto-discovery. Each `AddQuery`
 
 ```csharp
 // Program.cs (or a domain composition extension)
-builder.Services.AddHttpContextAccessor(); // Needed so root resolvers can obtain the current request's scoped services.
 builder.Services.AddCoreExGraphQLLite((o, sp) =>
 {
-    var accessor = sp.GetRequiredService<IHttpContextAccessor>();
-    IProductReadService Service() => accessor.HttpContext!.RequestServices.GetRequiredService<IProductReadService>();
-
-    o.AddQuery<ProductLite>("products", ProductQueryArgsConfig.Default, async (qa, pa, ct) => await Service().QueryAsync(qa, pa, ct).ConfigureAwait(false))
-     .AddGet<Product>("product", (args, ct) => Service().GetAsync(args["id"]!.ToString()!, ct));
+    o.AddQuery<ProductLite>("products", ProductQueryArgsConfig.Default, async (qa, pa, ct) => await CoreEx.ExecutionContext.GetRequiredService<IProductReadService>().QueryAsync(qa, pa, ct).ConfigureAwait(false))
+     .AddGet<Product>("product", (args, ct) => CoreEx.ExecutionContext.GetRequiredService<IProductReadService>().GetAsync(args["id"]!.ToString()!, ct));
 });
 
 // ...
 app.MapCoreExGraphQLLite("/api/products/query"); // CoreEx.AspNetCore hosting bridge; defaults to "/query".
 ```
 
-Because `IGraphQLEngine` is registered as a **singleton**, resolve scoped dependencies (repositories, application services) per-invocation from the current request's scope — as shown above via `IHttpContextAccessor` — rather than capturing an instance from the root `IServiceProvider` at registration time.
+Because `IGraphQLEngine` is registered as a **singleton**, resolve scoped dependencies (repositories, application services) per-invocation rather than capturing an instance from the root `IServiceProvider` at registration time — as shown above via `CoreEx.ExecutionContext.GetRequiredService<T>()`, which reads from the ambient `ExecutionContext`'s scoped service provider (set by the `UseExecutionContext()` middleware every CoreEx host already registers), so no `IHttpContextAccessor` registration/wiring is needed.
 
 ## Query Syntax
 
