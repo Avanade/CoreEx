@@ -47,6 +47,19 @@ public partial class ReadTests : WithApiTester<Contoso.Products.Api.Program>
     }
 
     [Test]
+    public void GraphQLLite_Product_Get_Success()
+    {
+        var r = Test.Http<JsonElement>()
+            .Run(HttpMethod.Post, "/api/products/query", new { query = "{ product(id: \"" + 1.ToGuid() + "\") { sku text } }" })
+            .AssertOK()
+            .Value;
+
+        var product = r.GetProperty("data").GetProperty("product");
+        product.GetProperty("sku").GetString().Should().Be("YETI-ASR-C2-2025");
+        product.GetProperty("text").GetString().Should().Be("Yeti ASR C2");
+    }
+
+    [Test]
     public void GraphQLLite_Product_Get_NotFound()
     {
         var r = Test.Http<JsonElement>()

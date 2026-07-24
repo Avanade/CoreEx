@@ -63,14 +63,10 @@ public class Program
         builder.Services.AddControllers();
 
         // Add the CoreEx GraphQL-lite bridge, exposing "products"/"product" roots over the existing QueryAsync/GetAsync pipeline.
-        builder.Services.AddHttpContextAccessor();
         builder.Services.AddCoreExGraphQLLite((o, sp) =>
         {
-            var accessor = sp.GetRequiredService<IHttpContextAccessor>();
-            IProductReadService Service() => accessor.HttpContext!.RequestServices.GetRequiredService<IProductReadService>();
-
-            o.AddQuery<ProductLite>("products", ProductQueryArgsConfig.Default, async (qa, pa, ct) => await Service().QueryAsync(qa, pa, ct).ConfigureAwait(false))
-             .AddGet<Product>("product", (args, ct) => Service().GetAsync(args["id"]!.ToString()!, ct));
+            o.AddQuery<ProductLite>("products", ProductQueryArgsConfig.Default, async (qa, pa, ct) => await CoreEx.ExecutionContext.GetRequiredService<IProductReadService>().QueryAsync(qa, pa, ct).ConfigureAwait(false))
+             .AddGet<Product>("product", (args, ct) => CoreEx.ExecutionContext.GetRequiredService<IProductReadService>().GetAsync(args["id"]!.ToString()!, ct));
         });
 
         // Add the OpenAPI services.
