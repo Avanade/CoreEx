@@ -1,6 +1,7 @@
 using CoreEx.Data.GraphQL.Internal;
 using GraphQLParser;
 using GraphQLParser.AST;
+using System.Globalization;
 using System.Text.Json;
 
 namespace CoreEx.Data.GraphQL.Test.Unit.Internal;
@@ -65,5 +66,48 @@ public class GraphQLValueConverterTests
     {
         var args = GraphQLValueConverter.ConvertArguments(ParseArguments("{ people { id } }"), null);
         args.Should().BeEmpty();
+    }
+
+    [Test]
+    public void ConvertArguments_FloatLiteral_UsesInvariantCultureRegardlessOfCurrentCulture()
+    {
+        var original = CultureInfo.CurrentCulture;
+        try
+        {
+            // de-DE uses ',' as the decimal separator and '.' as a thousands separator; the literal must still parse as 9.99, not 999.
+            CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("de-DE");
+            var args = GraphQLValueConverter.ConvertArguments(ParseArguments("{ people(price: 9.99) { id } }"), null);
+
+            args["price"].Should().Be(9.99d);
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = original;
+        }
+    }
+
+    [Test]
+    public void ConvertArguments_UndefinedVariable_Throws()
+    {
+        var args = ParseArguments("{ people(skip: $missing) { id } }");
+
+        var act = () => GraphQLValueConverter.ConvertArguments(args, null);
+        act.Should().Throw<GraphQLArgumentTranslationException>().WithMessage("*missing*");
+    }
+
+    [Test]
+    public void GetInt_LongOutOfInt32Range_Throws()
+    {
+        var args = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase) { ["first"] = 5_000_000_000L };
+
+        var act = () => args.GetInt("first");
+        act.Should().Throw<GraphQLArgumentTranslationException>();
+    }
+
+    [Test]
+    public void GetInt_LongWithinInt32Range_ReturnsInt()
+    {
+        var args = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase) { ["first"] = 42L };
+        args.GetInt("first").Should().Be(42);
     }
 }

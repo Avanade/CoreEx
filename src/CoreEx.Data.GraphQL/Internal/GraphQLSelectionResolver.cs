@@ -21,13 +21,24 @@ internal static class GraphQLSelectionResolver
     /// <param name="selectionSet">The GraphQL selection set for the root field.</param>
     /// <param name="itemType">The DTO <see cref="Type"/> returned by the root's resolver.</param>
     /// <param name="jsonOptions">The <see cref="JsonSerializerOptions"/> used to determine JSON property names.</param>
-    /// <param name="rootFieldName">The root field name (used for error <see cref="GraphQLEngineError.Path"/>).</param>
+    /// <param name="rootFieldName">The root field name (used in error messages).</param>
+    /// <param name="errorPath">The <see cref="GraphQLEngineError.Path"/> prefix; defaults to <c>[<paramref name="rootFieldName"/>]</c> where not specified (e.g. an item root). A query root's
+    /// nested <c>node</c> selection passes the full <c>[alias, "edges", "node"]</c> path here so errors point at the correct nesting.</param>
     /// <returns>The flattened <see cref="JsonFilter"/> include paths and any unknown-field <see cref="GraphQLEngineError"/>s.</returns>
-    public static (List<string> Paths, List<GraphQLEngineError> Errors) Resolve(GraphQLSelectionSet? selectionSet, Type itemType, JsonSerializerOptions jsonOptions, string rootFieldName)
+    public static (List<string> Paths, List<GraphQLEngineError> Errors) Resolve(GraphQLSelectionSet? selectionSet, Type itemType, JsonSerializerOptions jsonOptions, string rootFieldName,
+        IReadOnlyList<string>? errorPath = null)
     {
         var paths = new List<string>();
         var errors = new List<GraphQLEngineError>();
-        Walk(selectionSet, GraphQLTypeShape.GetFieldMap(itemType, jsonOptions), jsonOptions, "$", [rootFieldName], paths, errors);
+        errorPath ??= [rootFieldName];
+
+        if (selectionSet?.Selections is not { Count: > 0 })
+        {
+            errors.Add(SelectionRequiredError(rootFieldName, errorPath));
+            return (paths, errors);
+        }
+
+        Walk(selectionSet, GraphQLTypeShape.GetFieldMap(itemType, jsonOptions), jsonOptions, "$", errorPath, paths, errors);
         return (paths, errors);
     }
 
@@ -60,9 +71,23 @@ internal static class GraphQLSelectionResolver
 
             var path = $"{jsonPathPrefix}.{node.JsonName}";
             if (node.IsComplex && node.Children is not null)
+            {
+                if (field.SelectionSet?.Selections is not { Count: > 0 })
+                {
+                    errors.Add(SelectionRequiredError(name, [.. errorPath, name]));
+                    continue;
+                }
+
                 Walk(field.SelectionSet, node.Children.Value, jsonOptions, path, [.. errorPath, name], paths, errors);
+            }
             else
                 paths.Add(path);
         }
     }
+
+    /// <summary>
+    /// Creates the <c>SELECTION_REQUIRED</c> <see cref="GraphQLEngineError"/> raised where an object-typed field (or an item/node root) is selected without a sub-selection set.
+    /// </summary>
+    private static GraphQLEngineError SelectionRequiredError(string fieldName, IReadOnlyList<string> path) =>
+        new($"Field '{fieldName}' must have a selection of subfields.") { Path = [.. path], Extensions = new Dictionary<string, object?> { ["code"] = "SELECTION_REQUIRED" } };
 }

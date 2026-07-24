@@ -8,16 +8,19 @@ internal static class GraphQLValueConverter
     /// <summary>
     /// Converts the specified <paramref name="value"/> to a plain CLR value, resolving <see cref="GraphQLVariable"/> references against <paramref name="variables"/>.
     /// </summary>
+    /// <exception cref="GraphQLArgumentTranslationException">Thrown where <paramref name="value"/> references a <see cref="GraphQLVariable"/> that is not present in <paramref name="variables"/>.</exception>
     public static object? Convert(GraphQLValue? value, IReadOnlyDictionary<string, object?>? variables) => value switch
     {
         null => null,
         GraphQLNullValue => null,
-        GraphQLVariable variable => variables is not null && variables.TryGetValue(variable.Name.StringValue, out var v) ? FromJsonElement(v) : null,
+        GraphQLVariable variable => variables is not null && variables.TryGetValue(variable.Name.StringValue, out var v)
+            ? FromJsonElement(v)
+            : throw new GraphQLArgumentTranslationException($"Variable '${variable.Name.StringValue}' was not provided."),
         GraphQLStringValue str => str.Value.ToString(),
         GraphQLEnumValue enumValue => enumValue.Name.StringValue,
         GraphQLBooleanValue boolValue => boolValue.BoolValue,
-        GraphQLIntValue intValue => int.TryParse(intValue.Value.Span, out var i) ? i : long.Parse(intValue.Value.Span),
-        GraphQLFloatValue floatValue => double.Parse(floatValue.Value.Span),
+        GraphQLIntValue intValue => int.TryParse(intValue.Value.Span, NumberStyles.Integer, CultureInfo.InvariantCulture, out var i) ? i : long.Parse(intValue.Value.Span, CultureInfo.InvariantCulture),
+        GraphQLFloatValue floatValue => double.Parse(floatValue.Value.Span, NumberStyles.Float, CultureInfo.InvariantCulture),
         GraphQLListValue listValue => listValue.Values?.Select(v => Convert(v, variables)).ToList() ?? [],
         GraphQLObjectValue objValue => objValue.Fields?.ToDictionary(f => f.Name.StringValue, f => Convert(f.Value, variables), StringComparer.OrdinalIgnoreCase) ?? new Dictionary<string, object?>(),
         _ => throw new NotSupportedException($"Unsupported GraphQL value node kind '{value.Kind}'.")
@@ -63,12 +66,21 @@ internal static class GraphQLValueConverter
     /// <summary>
     /// Gets a named argument value as an <see cref="int"/> (or <see langword="null"/> where absent).
     /// </summary>
+    /// <exception cref="GraphQLArgumentTranslationException">Thrown where the value is a <see cref="long"/> outside the range of a 32-bit integer.</exception>
     public static int? GetInt(this IReadOnlyDictionary<string, object?> args, string name)
     {
         if (!args.TryGetValue(name, out var v) || v is null)
             return null;
 
-        return v switch { int i => i, long l => (int)l, string s when int.TryParse(s, out var r) => r, _ => null };
+        return v switch
+        {
+            int i => i,
+            long l => l is >= int.MinValue and <= int.MaxValue
+                ? (int)l
+                : throw new GraphQLArgumentTranslationException($"'{name}' value '{l}' is out of range for a 32-bit integer."),
+            string s when int.TryParse(s, NumberStyles.Integer, CultureInfo.InvariantCulture, out var r) => r,
+            _ => null
+        };
     }
 
     /// <summary>

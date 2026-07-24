@@ -319,4 +319,88 @@ public class GraphQLEngineTests
         result.HasErrors.Should().BeTrue();
         result.Errors!.Should().ContainSingle(e => e.Extensions!["code"]!.Equals("FRAGMENTS_NOT_SUPPORTED"));
     }
+
+    [Test]
+    public async Task ExecuteAsync_ItemRoot_NoSelectionSet_ProducesSelectionRequiredErrorAsync()
+    {
+        var engine = CreateEngine();
+        var result = await engine.ExecuteAsync("{ person(id: 2) }");
+
+        result.HasErrors.Should().BeTrue();
+        result.Errors!.Should().ContainSingle(e => e.Extensions!["code"]!.Equals("SELECTION_REQUIRED"));
+    }
+
+    [Test]
+    public async Task ExecuteAsync_ConnectionNode_NoSelectionSet_ProducesSelectionRequiredErrorAsync()
+    {
+        var engine = CreateEngine();
+        var result = await engine.ExecuteAsync("{ people { edges { node } } }");
+
+        result.HasErrors.Should().BeTrue();
+        var error = result.Errors!.Single(e => e.Extensions!["code"]!.Equals("SELECTION_REQUIRED"));
+        error.Path.Should().Equal("people", "edges", "node");
+    }
+
+    [Test]
+    public async Task ExecuteAsync_NestedComplexField_NoSelectionSet_ProducesSelectionRequiredErrorAsync()
+    {
+        var engine = CreateEngine();
+        var result = await engine.ExecuteAsync("{ people { edges { node { id address } } } }");
+
+        result.HasErrors.Should().BeTrue();
+        var error = result.Errors!.Single(e => e.Extensions!["code"]!.Equals("SELECTION_REQUIRED"));
+        error.Path.Should().Equal("people", "edges", "node", "address");
+    }
+
+    [Test]
+    public async Task ExecuteAsync_DuplicateRootAlias_ProducesDuplicateFieldErrorAsync()
+    {
+        var engine = CreateEngine();
+        var result = await engine.ExecuteAsync("{ people { totalCount } people { edges { node { id } } } }");
+
+        result.HasErrors.Should().BeTrue();
+        result.Errors!.Should().ContainSingle(e => e.Extensions!["code"]!.Equals("DUPLICATE_FIELD"));
+    }
+
+    [Test]
+    public async Task ExecuteAsync_UndefinedVariable_ProducesArgumentErrorAsync()
+    {
+        var engine = CreateEngine();
+        var result = await engine.ExecuteAsync("{ people(first: $first) { edges { node { id } } } }");
+
+        result.HasErrors.Should().BeTrue();
+        result.Errors!.Should().ContainSingle(e => e.Extensions!["code"]!.Equals("ARGUMENT_ERROR"));
+    }
+
+    [Test]
+    public async Task ExecuteAsync_FirstArgumentOutOfInt32Range_ProducesArgumentErrorAsync()
+    {
+        var engine = CreateEngine();
+        var result = await engine.ExecuteAsync("{ people(first: 5000000000) { edges { node { id } } } }");
+
+        result.HasErrors.Should().BeTrue();
+        result.Errors!.Should().ContainSingle(e => e.Extensions!["code"]!.Equals("ARGUMENT_ERROR"));
+    }
+
+    [Test]
+    public async Task ExecuteAsync_TotalCountOnly_ReturnsCorrectCountWithoutEdgesOrPageInfoAsync()
+    {
+        var engine = CreateEngine();
+        var result = await engine.ExecuteAsync("{ people { totalCount } }");
+
+        result.HasErrors.Should().BeFalse();
+        var people = result.Data!.Value.GetProperty("people");
+        people.GetProperty("totalCount").GetInt64().Should().Be(3);
+        people.TryGetProperty("edges", out _).Should().BeFalse();
+        people.TryGetProperty("pageInfo", out _).Should().BeFalse();
+    }
+
+    [Test]
+    public void ExecuteAsync_ResolverThrowsOperationCanceled_PropagatesRatherThanBecomingAnEngineError()
+    {
+        var engine = CreateEngine(options => options.AddGet<Person>("cancelable", (_, ct) => throw new OperationCanceledException(ct)));
+
+        var act = () => engine.ExecuteAsync("{ cancelable(id: 1) { id } }");
+        act.Should().ThrowAsync<OperationCanceledException>();
+    }
 }

@@ -51,6 +51,7 @@ public sealed class GraphQLEngine(GraphQLLiteOptions options) : IGraphQLEngine
         var jsonOptions = JsonDefaults.SerializerOptions;
         var dataObj = new JsonObject();
         var errors = new List<GraphQLEngineError>();
+        var seenAliases = new HashSet<string>(StringComparer.Ordinal);
 
         foreach (var selection in operation.SelectionSet.Selections)
         {
@@ -62,6 +63,13 @@ public sealed class GraphQLEngine(GraphQLLiteOptions options) : IGraphQLEngine
 
             var name = field.Name.StringValue;
             var alias = field.Alias?.Name.StringValue ?? name;
+
+            if (!seenAliases.Add(alias))
+            {
+                // GraphQL-lite does not implement full spec field-merging for repeated response keys; reject rather than silently letting the last selection win.
+                errors.Add(NewError($"Response key '{alias}' is selected more than once at the root; use a distinct alias for each occurrence.", [alias], "DUPLICATE_FIELD"));
+                continue;
+            }
 
             if (name == GraphQLSelectionResolver.TypeNameField)
             {
@@ -75,7 +83,18 @@ public sealed class GraphQLEngine(GraphQLLiteOptions options) : IGraphQLEngine
                 continue;
             }
 
-            var args = GraphQLValueConverter.ConvertArguments(field.Arguments, variables);
+            IReadOnlyDictionary<string, object?> args;
+            try
+            {
+                args = GraphQLValueConverter.ConvertArguments(field.Arguments, variables);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                // An undefined variable reference (or other argument-shape error) is raised while converting arguments, before a root is even resolved; map it the same way as
+                // an error thrown during root invocation rather than letting it escape ExecuteAsync unhandled.
+                errors.Add(MapException(ex, alias));
+                continue;
+            }
 
             if (_options.QueryRoots.TryGetValue(name, out var queryRoot))
                 await ExecuteQueryRootAsync(queryRoot, field, alias, args, jsonOptions, dataObj, errors, cancellationToken).ConfigureAwait(false);
@@ -114,7 +133,8 @@ public sealed class GraphQLEngine(GraphQLLiteOptions options) : IGraphQLEngine
         var paths = new List<string>();
         if (connection.NodeAlias is not null)
         {
-            var (nodePaths, nodeErrors) = GraphQLSelectionResolver.Resolve(connection.NodeSelectionSet, root.ItemType, jsonOptions, alias);
+            var (nodePaths, nodeErrors) = GraphQLSelectionResolver.Resolve(connection.NodeSelectionSet, root.ItemType, jsonOptions, GraphQLConnectionResolver.NodeField,
+                [alias, GraphQLConnectionResolver.EdgesField, GraphQLConnectionResolver.NodeField]);
             if (nodeErrors.Count > 0)
             {
                 errors.AddRange(nodeErrors);
@@ -127,7 +147,8 @@ public sealed class GraphQLEngine(GraphQLLiteOptions options) : IGraphQLEngine
         try
         {
             var queryArgs = GraphQLArgsMapper.BuildQueryArgs(args);
-            var (pagingArgs, first) = GraphQLArgsMapper.BuildConnectionPagingArgs(args, connection.TotalCountAlias is not null);
+            var needsItems = connection.EdgesAlias is not null || connection.PageInfoAlias is not null;
+            var (pagingArgs, first) = GraphQLArgsMapper.BuildConnectionPagingArgs(args, connection.TotalCountAlias is not null, needsItems);
             var skip = pagingArgs.Skip;
 
             var result = await root.InvokeAsync(queryArgs, pagingArgs, cancellationToken).ConfigureAwait(false);
@@ -146,7 +167,7 @@ public sealed class GraphQLEngine(GraphQLLiteOptions options) : IGraphQLEngine
 
             dataObj[alias] = BuildConnectionObject(connection, root.ItemType.Name, pageItems.Count, skip, hasNextPage, hasPreviousPage, result.Paging?.TotalCount, shapedNodes);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             errors.Add(MapException(ex, alias));
         }
@@ -240,7 +261,7 @@ public sealed class GraphQLEngine(GraphQLLiteOptions options) : IGraphQLEngine
             JsonFilter.TryJsonFilter(itemJson, paths, out var filteredJson, JsonFilterOption.Include, jsonOptions);
             dataObj[alias] = GraphQLResponseShaper.Shape(JsonNode.Parse(filteredJson), field.SelectionSet, GraphQLTypeShape.GetFieldMap(root.ItemType, jsonOptions), root.ItemType.Name);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             errors.Add(MapException(ex, alias));
         }

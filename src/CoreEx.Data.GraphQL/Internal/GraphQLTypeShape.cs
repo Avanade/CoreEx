@@ -8,7 +8,7 @@ namespace CoreEx.Data.GraphQL.Internal;
 internal static class GraphQLTypeShape
 {
     private const int MaxDepth = 8;
-    private static readonly ConcurrentDictionary<Type, IReadOnlyDictionary<string, GraphQLFieldNode>> _cache = new();
+    private static readonly ConcurrentDictionary<(Type Type, JsonSerializerOptions Options), IReadOnlyDictionary<string, GraphQLFieldNode>> _cache = new();
 
     private static readonly HashSet<Type> _scalarTypes =
     [
@@ -19,7 +19,9 @@ internal static class GraphQLTypeShape
     /// <summary>
     /// Gets the field map for the specified <paramref name="type"/>.
     /// </summary>
-    public static IReadOnlyDictionary<string, GraphQLFieldNode> GetFieldMap(Type type, JsonSerializerOptions jsonOptions) => _cache.GetOrAdd(type, t => BuildFieldMap(t, jsonOptions, 0));
+    /// <remarks>Cached per <c>(<paramref name="type"/>, <paramref name="jsonOptions"/>)</c> pair (using <paramref name="jsonOptions"/> reference equality) so two engines registered with different
+    /// <see cref="JsonSerializerOptions"/> (e.g. different naming policies) do not share a stale field map for the same DTO <see cref="Type"/>.</remarks>
+    public static IReadOnlyDictionary<string, GraphQLFieldNode> GetFieldMap(Type type, JsonSerializerOptions jsonOptions) => _cache.GetOrAdd((type, jsonOptions), k => BuildFieldMap(k.Type, k.Options, 0));
 
     /// <summary>
     /// Builds the field map for the specified <paramref name="type"/>, recursing into complex properties up to <see cref="MaxDepth"/>.

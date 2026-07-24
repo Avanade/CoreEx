@@ -109,4 +109,25 @@ public class GraphQLArgsMapperTests
 
         act.Should().Throw<GraphQLArgumentTranslationException>().WithMessage("*not a valid cursor*");
     }
+
+    [Test]
+    public void BuildConnectionPagingArgs_NeedsItemsFalse_CapsTakeAtOne()
+    {
+        // A totalCount-only selection (neither edges nor pageInfo requested) should not over-fetch a full page of rows just to discard them.
+        var args = new Dictionary<string, object?> { ["first"] = 25 };
+        var (pa, first) = GraphQLArgsMapper.BuildConnectionPagingArgs(args, isCountRequested: true, needsItems: false);
+
+        first.Should().Be(25);
+        pa.Take.Should().Be(1);
+        pa.IsCountRequested.Should().BeTrue();
+    }
+
+    [Test]
+    public void BuildConnectionPagingArgs_NeedsItemsTrue_OverFetchesByOne()
+    {
+        var args = new Dictionary<string, object?> { ["first"] = 25 };
+        var (pa, _) = GraphQLArgsMapper.BuildConnectionPagingArgs(args, isCountRequested: false, needsItems: true);
+
+        pa.Take.Should().Be(26);
+    }
 }
