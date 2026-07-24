@@ -124,3 +124,7 @@ A client queries the `products` root using native GraphQL `where`/`orderBy` and 
   required for out-of-the-box compatibility with normalized-cache clients.
 - Not a replacement for the REST `$filter`/`$orderby`/`$fields` query-string endpoints — this is an
   additive bridge sharing the same underlying pipeline.
+
+## AI Usage Guide
+
+An [`AGENTS.md`](./AGENTS.md) file is included with this package. AI coding assistants (GitHub Copilot, Claude, Cursor, etc.) that support workspace-injected package documentation will automatically surface concise usage guidance, code examples, and `Do Not` rules for this package without requiring a local CoreEx checkout.
