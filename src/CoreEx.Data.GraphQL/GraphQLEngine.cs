@@ -96,35 +96,121 @@ public sealed class GraphQLEngine(GraphQLLiteOptions options) : IGraphQLEngine
     }
 
     /// <summary>
-    /// Executes a registered <see cref="GraphQLQueryRoot"/> (list query) and adds the resulting filtered JSON (and any paging metadata) to <paramref name="dataObj"/>.
+    /// Executes a registered <see cref="GraphQLQueryRoot"/> (list query) as a Relay <see href="https://relay.dev/graphql/connections.htm">Cursor Connection</see> and adds the
+    /// resulting <c>edges</c>/<c>pageInfo</c>/<c>totalCount</c> object to <paramref name="dataObj"/>.
     /// </summary>
     private static async Task ExecuteQueryRootAsync(GraphQLQueryRoot root, GraphQLField field, string alias, IReadOnlyDictionary<string, object?> args, JsonSerializerOptions jsonOptions,
         JsonObject dataObj, List<GraphQLEngineError> errors, CancellationToken cancellationToken)
     {
-        var (paths, selectionErrors) = GraphQLSelectionResolver.Resolve(field.SelectionSet, root.ItemType, jsonOptions, alias);
-        if (selectionErrors.Count > 0)
+        var (resolvedConnection, connectionErrors) = GraphQLConnectionResolver.Resolve(field.SelectionSet, [alias]);
+        if (connectionErrors.Count > 0 || resolvedConnection is null)
         {
-            errors.AddRange(selectionErrors);
+            errors.AddRange(connectionErrors);
             return;
+        }
+
+        var connection = resolvedConnection;
+        var itemFieldMap = GraphQLTypeShape.GetFieldMap(root.ItemType, jsonOptions);
+        var paths = new List<string>();
+        if (connection.NodeAlias is not null)
+        {
+            var (nodePaths, nodeErrors) = GraphQLSelectionResolver.Resolve(connection.NodeSelectionSet, root.ItemType, jsonOptions, alias);
+            if (nodeErrors.Count > 0)
+            {
+                errors.AddRange(nodeErrors);
+                return;
+            }
+
+            paths.AddRange(nodePaths);
         }
 
         try
         {
             var queryArgs = GraphQLArgsMapper.BuildQueryArgs(args);
-            var pagingArgs = GraphQLArgsMapper.BuildPagingArgs(args);
+            var (pagingArgs, first) = GraphQLArgsMapper.BuildConnectionPagingArgs(args, connection.TotalCountAlias is not null);
+            var skip = pagingArgs.Skip;
+
             var result = await root.InvokeAsync(queryArgs, pagingArgs, cancellationToken).ConfigureAwait(false);
+            var allItems = result.Items?.Cast<object?>().ToList() ?? [];
+            var hasNextPage = allItems.Count > first;
+            var pageItems = hasNextPage ? allItems.Take(first).ToList() : allItems;
+            var hasPreviousPage = skip > 0;
 
-            var itemsJson = JsonSerializer.Serialize(result.Items, jsonOptions);
-            JsonFilter.TryJsonFilter(itemsJson, paths, out var filteredJson, JsonFilterOption.Include, jsonOptions);
-            dataObj[alias] = GraphQLResponseShaper.Shape(JsonNode.Parse(filteredJson), field.SelectionSet, GraphQLTypeShape.GetFieldMap(root.ItemType, jsonOptions), root.ItemType.Name);
+            JsonArray? shapedNodes = null;
+            if (connection.NodeAlias is not null)
+            {
+                var pageItemsJson = JsonSerializer.Serialize(pageItems, jsonOptions);
+                JsonFilter.TryJsonFilter(pageItemsJson, paths, out var filteredJson, JsonFilterOption.Include, jsonOptions);
+                shapedNodes = GraphQLResponseShaper.Shape(JsonNode.Parse(filteredJson), connection.NodeSelectionSet, itemFieldMap, root.ItemType.Name) as JsonArray;
+            }
 
-            if (result.Paging is not null)
-                dataObj[$"{alias}_paging"] = new JsonObject { ["skip"] = result.Paging.Skip, ["take"] = result.Paging.Take, ["totalCount"] = result.Paging.TotalCount };
+            dataObj[alias] = BuildConnectionObject(connection, root.ItemType.Name, pageItems.Count, skip, hasNextPage, hasPreviousPage, result.Paging?.TotalCount, shapedNodes);
         }
         catch (Exception ex)
         {
             errors.Add(MapException(ex, alias));
         }
+    }
+
+    /// <summary>
+    /// Assembles the Relay Cursor Connection response object (<c>edges</c>/<c>pageInfo</c>/<c>totalCount</c>, plus any requested <c>__typename</c>s) per <paramref name="connection"/>.
+    /// </summary>
+    private static JsonObject BuildConnectionObject(ConnectionSelection connection, string itemTypeName, int itemCount, int skip, bool hasNextPage, bool hasPreviousPage,
+        long? totalCount, JsonArray? shapedNodes)
+    {
+        var connectionObj = new JsonObject();
+
+        if (connection.ConnectionTypeNameAlias is not null)
+            connectionObj[connection.ConnectionTypeNameAlias] = $"{itemTypeName}Connection";
+
+        if (connection.EdgesAlias is not null)
+        {
+            var edgesArray = new JsonArray();
+            for (var i = 0; i < itemCount; i++)
+            {
+                var edgeObj = new JsonObject();
+
+                if (connection.EdgeTypeNameAlias is not null)
+                    edgeObj[connection.EdgeTypeNameAlias] = $"{itemTypeName}Edge";
+
+                if (connection.NodeAlias is not null)
+                    edgeObj[connection.NodeAlias] = shapedNodes?[i]?.DeepClone();
+
+                if (connection.CursorAlias is not null)
+                    edgeObj[connection.CursorAlias] = GraphQLCursor.Encode(skip + i);
+
+                edgesArray.Add(edgeObj);
+            }
+
+            connectionObj[connection.EdgesAlias] = edgesArray;
+        }
+
+        if (connection.PageInfoAlias is not null)
+        {
+            var pageInfoObj = new JsonObject();
+
+            if (connection.PageInfoTypeNameAlias is not null)
+                pageInfoObj[connection.PageInfoTypeNameAlias] = "PageInfo";
+
+            foreach (var (fieldName, fieldAlias) in connection.PageInfoFieldAliases)
+            {
+                pageInfoObj[fieldAlias] = fieldName switch
+                {
+                    GraphQLConnectionResolver.HasNextPageField => hasNextPage,
+                    GraphQLConnectionResolver.HasPreviousPageField => hasPreviousPage,
+                    GraphQLConnectionResolver.StartCursorField => itemCount > 0 ? GraphQLCursor.Encode(skip) : null,
+                    GraphQLConnectionResolver.EndCursorField => itemCount > 0 ? GraphQLCursor.Encode(skip + itemCount - 1) : null,
+                    _ => null
+                };
+            }
+
+            connectionObj[connection.PageInfoAlias] = pageInfoObj;
+        }
+
+        if (connection.TotalCountAlias is not null)
+            connectionObj[connection.TotalCountAlias] = totalCount;
+
+        return connectionObj;
     }
 
     /// <summary>
@@ -165,6 +251,7 @@ public sealed class GraphQLEngine(GraphQLLiteOptions options) : IGraphQLEngine
     /// </summary>
     private static GraphQLEngineError MapException(Exception ex, string alias) => ex switch
     {
+        GraphQLArgumentTranslationException => NewError(ex.Message, [alias], "ARGUMENT_ERROR"),
         QueryFilterParserException => NewError(ex.Message, [alias], "FILTER_PARSE_ERROR"),
         QueryOrderByParserException => NewError(ex.Message, [alias], "ORDERBY_PARSE_ERROR"),
         NotFoundException => NewError(ex.Message, [alias], "NOT_FOUND"),

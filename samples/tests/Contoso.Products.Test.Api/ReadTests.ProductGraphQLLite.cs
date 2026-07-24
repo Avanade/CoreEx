@@ -6,27 +6,27 @@ public partial class ReadTests : WithApiTester<Contoso.Products.Api.Program>
     public void GraphQLLite_Products_All()
     {
         var r = Test.Http<JsonElement>()
-            .Run(HttpMethod.Post, "/api/products/query", new { query = "{ products { id sku } }" })
+            .Run(HttpMethod.Post, "/api/products/query", new { query = "{ products { edges { node { id sku } } } }" })
             .AssertOK()
             .Value;
 
-        r.GetProperty("data").GetProperty("products").GetArrayLength().Should().Be(25);
+        r.GetProperty("data").GetProperty("products").GetProperty("edges").GetArrayLength().Should().Be(25);
     }
 
     [Test]
-    public void GraphQLLite_Products_FilterOrderByPagingFieldSelection_MatchesRest()
+    public void GraphQLLite_Products_WhereOrderByPagingFieldSelection_MatchesRest()
     {
-        // Act: GraphQL-lite bridge.
+        // Act: GraphQL-lite bridge - native 'where'/'orderBy' syntax translated 1:1 to the same underlying QueryArgsConfig-driven query.
         var gql = Test.Http<JsonElement>()
             .Run(HttpMethod.Post, "/api/products/query", new
             {
-                query = "query($filter: String, $orderby: String, $skip: Int, $take: Int) { products(filter: $filter, orderby: $orderby, skip: $skip, take: $take) { sku text } }",
-                variables = new { filter = "startswith(Sku, 'spec')", orderby = "text desc", skip = 0, take = 10 }
+                query = "query($where: ProductWhereInput, $orderBy: [ProductOrderByInput!], $first: Int) { products(where: $where, orderBy: $orderBy, first: $first) { edges { node { sku text } } } }",
+                variables = new { where = new { sku = new { startsWith = "spec" } }, orderBy = new[] { new { text = "DESC" } }, first = 10 }
             })
             .AssertOK()
             .Value;
 
-        var gqlProducts = gql.GetProperty("data").GetProperty("products");
+        var gqlProducts = gql.GetProperty("data").GetProperty("products").GetProperty("edges");
 
         // Act: existing REST $query endpoint, over the same underlying QueryAsync pipeline.
         var rest = Test.Http<ProductLite[]>()
@@ -39,7 +39,7 @@ public partial class ReadTests : WithApiTester<Contoso.Products.Api.Program>
 
         for (var i = 0; i < rest.Length; i++)
         {
-            var item = gqlProducts[i];
+            var item = gqlProducts[i].GetProperty("node");
             item.GetProperty("sku").GetString().Should().Be(rest[i].Sku);
             item.GetProperty("text").GetString().Should().Be(rest[i].Text);
             item.TryGetProperty("id", out _).Should().BeFalse(); // Only requested fields are present - proves JsonFilter projection parity.
@@ -63,7 +63,7 @@ public partial class ReadTests : WithApiTester<Contoso.Products.Api.Program>
     public void GraphQLLite_UnknownField_ReturnsError()
     {
         var r = Test.Http<JsonElement>()
-            .Run(HttpMethod.Post, "/api/products/query", new { query = "{ products { id nope } }" })
+            .Run(HttpMethod.Post, "/api/products/query", new { query = "{ products { edges { node { id nope } } } }" })
             .AssertOK()
             .Value;
 

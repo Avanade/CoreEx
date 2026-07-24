@@ -7,9 +7,14 @@ namespace CoreEx.Data.GraphQL.Test.Unit.Internal;
 public class GraphQLArgsMapperTests
 {
     [Test]
-    public void BuildQueryArgs_MapsFilterAndOrderBy()
+    public void BuildQueryArgs_MapsWhereAndOrderBy()
     {
-        var args = new Dictionary<string, object?> { ["filter"] = "name eq 'x'", ["orderby"] = "name desc" };
+        var args = new Dictionary<string, object?>
+        {
+            ["where"] = new Dictionary<string, object?> { ["name"] = "x" },
+            ["orderBy"] = new List<object?> { new Dictionary<string, object?> { ["name"] = "DESC" } }
+        };
+
         var qa = GraphQLArgsMapper.BuildQueryArgs(args);
 
         qa.Filter.Should().Be("name eq 'x'");
@@ -38,22 +43,70 @@ public class GraphQLArgsMapperTests
     }
 
     [Test]
-    public void BuildPagingArgs_MapsSkipTakeCount()
+    public void BuildConnectionPagingArgs_MapsFirstAndCount()
     {
-        var args = new Dictionary<string, object?> { ["skip"] = 10, ["take"] = 25, ["count"] = true };
-        var pa = GraphQLArgsMapper.BuildPagingArgs(args);
+        var args = new Dictionary<string, object?> { ["first"] = 25 };
+        var (pa, first) = GraphQLArgsMapper.BuildConnectionPagingArgs(args, isCountRequested: true);
 
-        pa.Skip.Should().Be(10);
-        pa.Take.Should().Be(25);
+        first.Should().Be(25);
+        pa.Skip.Should().Be(0);
+        pa.Take.Should().Be(26); // Over-fetch by one to derive hasNextPage.
         pa.IsCountRequested.Should().BeTrue();
     }
 
     [Test]
-    public void BuildPagingArgs_NoArgs_Defaults()
+    public void BuildConnectionPagingArgs_DecodesAfterCursorIntoSkip()
     {
-        var pa = GraphQLArgsMapper.BuildPagingArgs(new Dictionary<string, object?>());
+        var args = new Dictionary<string, object?> { ["first"] = 10, ["after"] = GraphQLCursor.Encode(4) };
+        var (pa, first) = GraphQLArgsMapper.BuildConnectionPagingArgs(args, isCountRequested: false);
 
+        first.Should().Be(10);
+        pa.Skip.Should().Be(5);
+    }
+
+    [Test]
+    public void BuildConnectionPagingArgs_NoArgs_DefaultsFirstAndSkip()
+    {
+        var (pa, first) = GraphQLArgsMapper.BuildConnectionPagingArgs(new Dictionary<string, object?>(), isCountRequested: false);
+
+        first.Should().Be(PagingArgs.DefaultTake);
         pa.Skip.Should().Be(0);
         pa.IsCountRequested.Should().BeFalse();
+    }
+
+    [Test]
+    public void BuildConnectionPagingArgs_Last_ThrowsTranslationException()
+    {
+        var args = new Dictionary<string, object?> { ["last"] = 5 };
+        var act = () => GraphQLArgsMapper.BuildConnectionPagingArgs(args, isCountRequested: false);
+
+        act.Should().Throw<GraphQLArgumentTranslationException>().WithMessage("*Backward pagination*");
+    }
+
+    [Test]
+    public void BuildConnectionPagingArgs_Before_ThrowsTranslationException()
+    {
+        var args = new Dictionary<string, object?> { ["before"] = "abc" };
+        var act = () => GraphQLArgsMapper.BuildConnectionPagingArgs(args, isCountRequested: false);
+
+        act.Should().Throw<GraphQLArgumentTranslationException>().WithMessage("*Backward pagination*");
+    }
+
+    [Test]
+    public void BuildConnectionPagingArgs_FirstNotPositive_Throws()
+    {
+        var args = new Dictionary<string, object?> { ["first"] = 0 };
+        var act = () => GraphQLArgsMapper.BuildConnectionPagingArgs(args, isCountRequested: false);
+
+        act.Should().Throw<GraphQLArgumentTranslationException>().WithMessage("*greater than zero*");
+    }
+
+    [Test]
+    public void BuildConnectionPagingArgs_InvalidAfterCursor_Throws()
+    {
+        var args = new Dictionary<string, object?> { ["after"] = "not-a-valid-cursor" };
+        var act = () => GraphQLArgsMapper.BuildConnectionPagingArgs(args, isCountRequested: false);
+
+        act.Should().Throw<GraphQLArgumentTranslationException>().WithMessage("*not a valid cursor*");
     }
 }
