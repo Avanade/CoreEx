@@ -396,11 +396,11 @@ public class GraphQLEngineTests
     }
 
     [Test]
-    public void ExecuteAsync_ResolverThrowsOperationCanceled_PropagatesRatherThanBecomingAnEngineError()
+    public async Task ExecuteAsync_ResolverThrowsOperationCanceled_PropagatesRatherThanBecomingAnEngineErrorAsync()
     {
         var engine = CreateEngine(options => options.AddGet<Person>("cancelable", (_, ct) => throw new OperationCanceledException(ct)));
 
         var act = () => engine.ExecuteAsync("{ cancelable(id: 1) { id } }");
-        act.Should().ThrowAsync<OperationCanceledException>();
+        await act.Should().ThrowAsync<OperationCanceledException>();
     }
 }
