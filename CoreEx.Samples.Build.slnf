@@ -38,7 +38,9 @@
       "samples/tests/Contoso.Products.Test.Subscribe/Contoso.Products.Test.Subscribe.csproj",
       "samples/tests/Contoso.Products.Test.Unit/Contoso.Products.Test.Unit.csproj",
       "samples/tests/Contoso.Shopping.Test.Api/Contoso.Shopping.Test.Api.csproj",
-      "samples/tests/Contoso.Shopping.Test.Common/Contoso.Shopping.Test.Common.csproj"
+      "samples/tests/Contoso.Shopping.Test.Common/Contoso.Shopping.Test.Common.csproj",
+      "samples/tests/Contoso.Shopping.Test.Subscribe/Contoso.Shopping.Test.Subscribe.csproj",
+      "samples/tests/Contoso.Shopping.Test.Unit/Contoso.Shopping.Test.Unit.csproj"
     ]
   }
 }
