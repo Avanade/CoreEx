@@ -51,8 +51,11 @@ The engine is deliberately **transport-agnostic**: it references only `CoreEx.Da
   mapped to `{ message, path, extensions.code }` error objects.
 - 🔍 **Spec-compliant introspection**: `__schema`/`__type(name:)` (plus `__typename`) implement the official
   GraphQL introspection schema, built once from the registered roots (see `Internal.GraphQLIntrospectionSchemaBuilder`)
-  and exposed identically via `IGraphQLEngine.GetSchemaAsync()`. `where`/`orderBy` are declared as an opaque
-  `JSON` custom scalar (their actual dynamic wire shape); see Non-goals below for the remaining simplifications.
+  and exposed identically via `IGraphQLEngine.GetSchemaAsync()`. Each query root's `where`/`orderBy` arguments
+  are described as fully-typed `<Item>WhereInput`/`<Item>OrderByInput` `INPUT_OBJECT` graphs (`and`/`or`/`not`
+  composition, `eq`/`ne`/`gt`/`ge`/`lt`/`le`/`in`/`startsWith`/`endsWith`/`contains` operator inputs, and a shared
+  `SortDirection` enum), derived directly from the root's existing `QueryArgsConfig.ToJsonSchema()` field
+  descriptions — no extra configuration needed; see Non-goals below for the remaining simplifications.
 - 🧷 **Explicit, code-based registration**: `services.AddCoreExGraphQLLite((o, sp) => o.AddQuery(...).AddGet(...))`
   — no attribute-based auto-discovery.
 
@@ -120,11 +123,15 @@ A client queries the `products` root using native GraphQL `where`/`orderBy` and 
   only; a `last`/`before` argument produces an explicit error rather than being silently ignored.
 - No standard GraphQL SDL export — the schema is only queryable at runtime via `__schema`/`__type`
   (or the equivalent `IGraphQLEngine.GetSchemaAsync()`), not printable as a `.graphql` SDL document.
-- `where`/`orderBy` query-root arguments are declared as an opaque `JSON` custom scalar, not fully-typed
-  `INPUT_OBJECT` graphs — the runtime OData-esque filter/orderby translation is dynamic and does not derive
-  from a fixed input shape (a future enhancement could add per-entity typed `WhereInput`/`OrderByInput` types).
-- CLR `enum` and reference-data (`IReferenceData`) properties are described as the `String` scalar (matching
-  their actual JSON wire representation), not a spec `ENUM` type.
+- `where`/`orderBy` argument field names in the generated `<Item>WhereInput`/`<Item>OrderByInput` types are the
+  all-lowercase names already reported by `QueryArgsConfig.ToJsonSchema()` (e.g. `subcategory` rather than
+  `subCategory`), not the DTO's camelCase JSON naming — cosmetic only, since field matching is case-insensitive.
+- Every field of a given JSON-schema type (`string`/`integer`/`number`/`boolean`) shares one generic
+  `<Type>FilterInput` operator set (e.g. `StringFilterInput`) rather than a per-field-restricted shape, so a
+  field may advertise an operator (e.g. `gt`) its specific configuration does not actually permit —
+  `QueryFilterParser` still enforces the real legality at execution time (defense in depth).
+- CLR `enum` and reference-data (`IReferenceData`) *output* properties are described as the `String` scalar
+  (matching their actual JSON wire representation), not a spec `ENUM` type.
 - A single-item `AddGet` root only advertises an `id: ID!` argument where its registered item type implements
   `IReadOnlyIdentifier<TId>`; otherwise it advertises no arguments at all in the schema, since the `AddGet`
   registration API does not declare an argument shape today.

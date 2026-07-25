@@ -253,14 +253,39 @@ public class GraphQLEngineTests
         schema.GetProperty("queryType").GetProperty("name").GetString().Should().Be("Query");
 
         var typeNames = schema.GetProperty("types").EnumerateArray().Select(t => t.GetProperty("name").GetString()).ToList();
-        typeNames.Should().Contain(["Query", "Person", "PersonConnection", "PersonEdge", "PageInfo", "String", "Int", "Boolean", "ID", "JSON", "Long"]);
+        typeNames.Should().Contain(["Query", "Person", "PersonConnection", "PersonEdge", "PageInfo", "String", "Int", "Boolean", "ID", "JSON", "Long",
+            "PersonWhereInput", "PersonOrderByInput", "StringFilterInput", "IntFilterInput", "SortDirection"]);
 
         var queryType = FindType(schema, "Query");
         var peopleField = FindField(queryType, "people");
         peopleField.GetProperty("type").GetProperty("ofType").GetProperty("name").GetString().Should().Be("PersonConnection");
-        var peopleArgNames = peopleField.GetProperty("args").EnumerateArray().Select(a => a.GetProperty("name").GetString()).ToList();
-        peopleArgNames.Should().Contain(["first", "after", "where", "orderBy", "includeText", "includeInactive"]);
-        peopleField.GetProperty("args").EnumerateArray().First(a => a.GetProperty("name").GetString() == "where").GetProperty("type").GetProperty("name").GetString().Should().Be("JSON");
+        var peopleArgs = peopleField.GetProperty("args").EnumerateArray().ToList();
+        peopleArgs.Select(a => a.GetProperty("name").GetString()).Should().Contain(["first", "after", "where", "orderBy", "includeText", "includeInactive"]);
+
+        var whereArgType = peopleArgs.Single(a => a.GetProperty("name").GetString() == "where").GetProperty("type");
+        whereArgType.GetProperty("kind").GetString().Should().Be("INPUT_OBJECT");
+        whereArgType.GetProperty("name").GetString().Should().Be("PersonWhereInput");
+
+        // 'orderBy' is a nullable list of non-null PersonOrderByInput items.
+        var orderByArgType = peopleArgs.Single(a => a.GetProperty("name").GetString() == "orderBy").GetProperty("type");
+        orderByArgType.GetProperty("kind").GetString().Should().Be("LIST");
+        orderByArgType.GetProperty("ofType").GetProperty("kind").GetString().Should().Be("NON_NULL");
+        orderByArgType.GetProperty("ofType").GetProperty("ofType").GetProperty("name").GetString().Should().Be("PersonOrderByInput");
+
+        var whereInput = FindType(schema, "PersonWhereInput");
+        var whereInputFields = whereInput.GetProperty("inputFields").EnumerateArray().ToList();
+        whereInputFields.Select(f => f.GetProperty("name").GetString()).Should().Contain(["and", "or", "not", "name", "age"]);
+        whereInputFields.Single(f => f.GetProperty("name").GetString() == "name").GetProperty("type").GetProperty("name").GetString().Should().Be("StringFilterInput");
+        whereInputFields.Single(f => f.GetProperty("name").GetString() == "age").GetProperty("type").GetProperty("name").GetString().Should().Be("IntFilterInput");
+
+        var orderByInput = FindType(schema, "PersonOrderByInput");
+        var orderByInputFields = orderByInput.GetProperty("inputFields").EnumerateArray().ToList();
+        orderByInputFields.Select(f => f.GetProperty("name").GetString()).Should().Contain(["name", "age"]);
+        orderByInputFields.Single(f => f.GetProperty("name").GetString() == "name").GetProperty("type").GetProperty("name").GetString().Should().Be("SortDirection");
+
+        var sortDirection = FindType(schema, "SortDirection");
+        sortDirection.GetProperty("kind").GetString().Should().Be("ENUM");
+        sortDirection.GetProperty("enumValues").EnumerateArray().Select(v => v.GetProperty("name").GetString()).Should().BeEquivalentTo(["ASC", "DESC"]);
 
         // Person implements IReadOnlyIdentifier<int>, so the 'person' get-root should advertise a required 'id: ID!' argument.
         var personField = FindField(queryType, "person");

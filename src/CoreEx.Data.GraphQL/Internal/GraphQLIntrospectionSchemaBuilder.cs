@@ -5,18 +5,35 @@ namespace CoreEx.Data.GraphQL.Internal;
 /// roots registered on a <see cref="GraphQLLiteOptions"/>, exposed via the <c>__schema</c>/<c>__type</c> meta-fields.
 /// </summary>
 /// <remarks>The graph is built once (see <see cref="GraphQLEngine"/>'s lazy caching) rather than per-request: it is derived purely from registration-time information (root names, CLR item
-/// types, and each query root's item shape), which does not change for the lifetime of a registered <see cref="GraphQLLiteOptions"/> instance.
-/// <para>Known simplifications (documented in <c>AGENTS.md</c>/<c>README.md</c>): the <c>where</c>/<c>orderBy</c> query-root arguments are declared as an opaque <c>JSON</c> custom scalar
-/// rather than fully-typed <c>INPUT_OBJECT</c> graphs (the runtime OData-esque filter/orderby translation is dynamic and does not derive from a fixed input shape); CLR <see langword="enum"/>
-/// and <see cref="IReferenceData"/> properties are described as the <c>String</c> scalar (matching their actual JSON wire representation) rather than a spec <c>ENUM</c> type; and a
-/// single-item <c>AddGet</c> root only advertises an <c>id: ID!</c> argument where its registered item <see cref="Type"/> implements <see cref="IReadOnlyIdentifier{TId}"/> - otherwise it
-/// advertises no arguments at all, rather than guessing at an argument shape the registration API does not declare.</para></remarks>
+/// types, and each query root's item shape, plus each list root's <see cref="QueryArgsConfig"/>), which does not change for the lifetime of a registered <see cref="GraphQLLiteOptions"/>
+/// instance.
+/// <para>Where a query root's <see cref="QueryArgsConfig"/> has configured filter/order-by fields, its <c>where</c>/<c>orderBy</c> arguments are described as fully-typed
+/// <c>&lt;Item&gt;WhereInput</c>/<c>&lt;Item&gt;OrderByInput</c> graphs (see <see cref="BuildWhereInputType"/>/<see cref="BuildOrderByInputType"/>), derived from the same public
+/// <see cref="QueryArgsConfig.ToJsonSchema"/> already used to power the legacy REST <c>$filter</c>/<c>$orderby</c> schema description - <b>no</b> new configuration is required. Where no
+/// fields are configured, the argument is omitted entirely rather than advertising an unusable shape. The opaque <c>JSON</c> custom scalar remains defined (for any future arbitrary-JSON
+/// property use) but is no longer used for <c>where</c>/<c>orderBy</c>.</para>
+/// <para>Known simplifications (documented in <c>AGENTS.md</c>/<c>README.md</c>): every field of a given JSON-schema type (<c>string</c>/<c>integer</c>/<c>number</c>/<c>boolean</c>) shares
+/// one generic <c>&lt;Type&gt;FilterInput</c> operator set (e.g. <see cref="StringFilterInputName"/>) rather than a per-field-restricted shape, so a field may advertise an operator
+/// (e.g. <c>gt</c>) that its specific <see cref="QueryFilterParser"/> configuration does not actually permit - <see cref="QueryFilterParser"/> still enforces the real legality at execution
+/// time (defense in depth, matching the REST <c>$filter</c> behaviour); <c>&lt;Item&gt;WhereInput</c>/<c>&lt;Item&gt;OrderByInput</c> field names are the all-lowercase names already
+/// reported by <see cref="QueryArgsConfig.ToJsonSchema"/> (e.g. <c>subcategory</c> rather than <c>subCategory</c>) rather than the DTO's camelCase JSON naming, which has no effect on
+/// correctness since field name matching is case-insensitive; CLR <see langword="enum"/> and <see cref="IReferenceData"/> <i>output</i> properties are still described as the <c>String</c>
+/// scalar (matching their actual JSON wire representation) rather than a spec <c>ENUM</c> type; and a single-item <c>AddGet</c> root only advertises an <c>id: ID!</c> argument where its
+/// registered item <see cref="Type"/> implements <see cref="IReadOnlyIdentifier{TId}"/> - otherwise it advertises no arguments at all, rather than guessing at an argument shape the
+/// registration API does not declare.</para></remarks>
 internal static class GraphQLIntrospectionSchemaBuilder
 {
     private const string QueryTypeName = "Query";
     private const string PageInfoTypeName = "PageInfo";
     private const string JsonScalarName = "JSON";
     private const string LongScalarName = "Long";
+    private const string SortDirectionEnumName = "SortDirection";
+    private const string StringFilterInputName = "StringFilterInput";
+    private const string IntFilterInputName = "IntFilterInput";
+    private const string LongFilterInputName = "LongFilterInput";
+    private const string FloatFilterInputName = "FloatFilterInput";
+    private const string BooleanFilterInputName = "BooleanFilterInput";
+    private const string NullFilterInputName = "NullFilterInput";
 
     private static readonly string[] _builtInScalars = ["String", "Int", "Float", "Boolean", "ID"];
 
@@ -90,12 +107,19 @@ internal static class GraphQLIntrospectionSchemaBuilder
         var args = new JsonArray
         {
             NewArg("first", NamedRef("Int", "SCALAR")),
-            NewArg("after", NamedRef("String", "SCALAR")),
-            NewArg("where", NamedRef(JsonScalarName, "SCALAR")),
-            NewArg("orderBy", NamedRef(JsonScalarName, "SCALAR")),
-            NewArg("includeText", NamedRef("Boolean", "SCALAR")),
-            NewArg("includeInactive", NamedRef("Boolean", "SCALAR"))
+            NewArg("after", NamedRef("String", "SCALAR"))
         };
+
+        var whereTypeName = BuildWhereInputType(types, itemTypeName, root.QueryArgsConfig);
+        if (whereTypeName is not null)
+            args.Add(NewArg("where", NamedRef(whereTypeName, "INPUT_OBJECT")));
+
+        var orderByTypeName = BuildOrderByInputType(types, itemTypeName, root.QueryArgsConfig);
+        if (orderByTypeName is not null)
+            args.Add(NewArg("orderBy", ListOf(NonNullOf(NamedRef(orderByTypeName, "INPUT_OBJECT")))));
+
+        args.Add(NewArg("includeText", NamedRef("Boolean", "SCALAR")));
+        args.Add(NewArg("includeInactive", NamedRef("Boolean", "SCALAR")));
 
         return NewField(root.Name, NonNullOf(NamedRef(connectionTypeName, "OBJECT")), args);
     }
@@ -114,6 +138,165 @@ internal static class GraphQLIntrospectionSchemaBuilder
 
         return NewField(root.Name, NamedRef(itemTypeName, "OBJECT"), args);
     }
+
+    /// <summary>
+    /// Builds the <c>&lt;Item&gt;WhereInput</c> <c>INPUT_OBJECT</c> type for a query root's <see cref="QueryArgsConfig"/>, derived from its public
+    /// <see cref="QueryArgsConfig.ToJsonSchema"/> filter field descriptions.
+    /// </summary>
+    /// <param name="types">The name-keyed type registry.</param>
+    /// <param name="itemTypeName">The item type's GraphQL name (used as the <c>&lt;Item&gt;</c> prefix).</param>
+    /// <param name="config">The query root's <see cref="QueryArgsConfig"/>.</param>
+    /// <returns>The <c>&lt;Item&gt;WhereInput</c> type name, or <see langword="null"/> where no filter fields are configured (the argument is omitted rather than advertising an
+    /// unusable empty shape).</returns>
+    private static string? BuildWhereInputType(Dictionary<string, JsonObject> types, string itemTypeName, QueryArgsConfig config)
+    {
+        if (!config.HasFilterParser || !config.FilterParser.HasFields)
+            return null;
+
+        var typeName = $"{itemTypeName}WhereInput";
+        if (types.ContainsKey(typeName))
+            return typeName;
+
+        EnsureFilterInputTypes(types);
+
+        var inputFields = new JsonArray
+        {
+            NewArg("and", ListOf(NonNullOf(NamedRef(typeName, "INPUT_OBJECT")))),
+            NewArg("or", ListOf(NonNullOf(NamedRef(typeName, "INPUT_OBJECT")))),
+            NewArg("not", NamedRef(typeName, "INPUT_OBJECT"))
+        };
+
+        foreach (var field in config.FilterParser.ToJsonSchema().GetProperty("fields").EnumerateObject())
+        {
+            var schemaType = field.Value.GetProperty("type").GetString();
+            var format = field.Value.TryGetProperty("format", out var formatValue) ? formatValue.GetString() : null;
+            inputFields.Add(NewArg(field.Name, NamedRef(FilterInputTypeNameFor(schemaType, format), "INPUT_OBJECT")));
+        }
+
+        types[typeName] = NewInputObjectType(typeName, $"Filter criteria for '{itemTypeName}'.", inputFields);
+        return typeName;
+    }
+
+    /// <summary>
+    /// Builds the <c>&lt;Item&gt;OrderByInput</c> <c>INPUT_OBJECT</c> type for a query root's <see cref="QueryArgsConfig"/>, derived from its public
+    /// <see cref="QueryArgsConfig.ToJsonSchema"/> order-by field descriptions.
+    /// </summary>
+    /// <param name="types">The name-keyed type registry.</param>
+    /// <param name="itemTypeName">The item type's GraphQL name (used as the <c>&lt;Item&gt;</c> prefix).</param>
+    /// <param name="config">The query root's <see cref="QueryArgsConfig"/>.</param>
+    /// <returns>The <c>&lt;Item&gt;OrderByInput</c> type name, or <see langword="null"/> where no order-by fields are configured (the argument is omitted rather than advertising an
+    /// unusable empty shape).</returns>
+    private static string? BuildOrderByInputType(Dictionary<string, JsonObject> types, string itemTypeName, QueryArgsConfig config)
+    {
+        if (!config.HasOrderByParser || !config.OrderByParser.HasFields)
+            return null;
+
+        var typeName = $"{itemTypeName}OrderByInput";
+        if (types.ContainsKey(typeName))
+            return typeName;
+
+        EnsureSortDirectionEnum(types);
+
+        var inputFields = new JsonArray();
+        foreach (var field in config.OrderByParser.ToJsonSchema().GetProperty("fields").EnumerateObject())
+            inputFields.Add(NewArg(field.Name, NamedRef(SortDirectionEnumName, "ENUM")));
+
+        types[typeName] = NewInputObjectType(typeName, $"Sort criteria for '{itemTypeName}'.", inputFields);
+        return typeName;
+    }
+
+    /// <summary>
+    /// Ensures the shared, generic per-scalar-kind filter operator <c>INPUT_OBJECT</c> types are registered (reused across every <c>&lt;Item&gt;WhereInput</c>).
+    /// </summary>
+    private static void EnsureFilterInputTypes(Dictionary<string, JsonObject> types)
+    {
+        if (types.ContainsKey(StringFilterInputName))
+            return;
+
+        types[StringFilterInputName] = NewInputObjectType(StringFilterInputName, "String field filter operators.", new JsonArray
+        {
+            NewArg("eq", NamedRef("String", "SCALAR")),
+            NewArg("ne", NamedRef("String", "SCALAR")),
+            NewArg("in", ListOf(NonNullOf(NamedRef("String", "SCALAR")))),
+            NewArg("startsWith", NamedRef("String", "SCALAR")),
+            NewArg("endsWith", NamedRef("String", "SCALAR")),
+            NewArg("contains", NamedRef("String", "SCALAR"))
+        });
+
+        types[IntFilterInputName] = NewInputObjectType(IntFilterInputName, "Int field filter operators.", NewComparableFilterFields("Int"));
+        types[LongFilterInputName] = NewInputObjectType(LongFilterInputName, "Long field filter operators.", NewComparableFilterFields(LongScalarName));
+        types[FloatFilterInputName] = NewInputObjectType(FloatFilterInputName, "Float field filter operators.", NewComparableFilterFields("Float"));
+
+        types[BooleanFilterInputName] = NewInputObjectType(BooleanFilterInputName, "Boolean field filter operators.", new JsonArray
+        {
+            NewArg("eq", NamedRef("Boolean", "SCALAR")),
+            NewArg("ne", NamedRef("Boolean", "SCALAR"))
+        });
+
+        types[NullFilterInputName] = NewInputObjectType(NullFilterInputName,
+            "Filter operators for a null-only comparison field; only the literal 'null' value is meaningful (any other value fails at execution time).", new JsonArray
+        {
+            NewArg("eq", NamedRef("Boolean", "SCALAR")),
+            NewArg("ne", NamedRef("Boolean", "SCALAR"))
+        });
+    }
+
+    /// <summary>
+    /// Builds the shared <c>eq</c>/<c>ne</c>/<c>gt</c>/<c>ge</c>/<c>lt</c>/<c>le</c>/<c>in</c> comparison operator fields for a scalar-typed filter <c>INPUT_OBJECT</c>.
+    /// </summary>
+    /// <param name="scalarName">The GraphQL scalar name (e.g. <c>Int</c>) shared by every operator field.</param>
+    private static JsonArray NewComparableFilterFields(string scalarName) =>
+    [
+        NewArg("eq", NamedRef(scalarName, "SCALAR")),
+        NewArg("ne", NamedRef(scalarName, "SCALAR")),
+        NewArg("gt", NamedRef(scalarName, "SCALAR")),
+        NewArg("ge", NamedRef(scalarName, "SCALAR")),
+        NewArg("lt", NamedRef(scalarName, "SCALAR")),
+        NewArg("le", NamedRef(scalarName, "SCALAR")),
+        NewArg("in", ListOf(NonNullOf(NamedRef(scalarName, "SCALAR"))))
+    ];
+
+    /// <summary>
+    /// Maps a <see cref="QueryArgsConfig.ToJsonSchema"/> filter field's reported JSON-schema <paramref name="schemaType"/>/<paramref name="format"/> to the matching shared
+    /// filter <c>INPUT_OBJECT</c> type name.
+    /// </summary>
+    /// <param name="schemaType">The reported JSON-schema type (<c>string</c>/<c>integer</c>/<c>number</c>/<c>boolean</c>/<c>object</c>).</param>
+    /// <param name="format">The reported JSON-schema format (e.g. <c>int64</c>/<c>uint64</c> distinguishing a 64-bit integer field), if any.</param>
+    private static string FilterInputTypeNameFor(string? schemaType, string? format) => schemaType switch
+    {
+        "integer" => format is "int64" or "uint64" ? LongFilterInputName : IntFilterInputName,
+        "number" => FloatFilterInputName,
+        "boolean" => BooleanFilterInputName,
+        "object" => NullFilterInputName,
+        _ => StringFilterInputName
+    };
+
+    /// <summary>
+    /// Ensures the shared <c>SortDirection</c> <c>ENUM</c> type (<c>ASC</c>/<c>DESC</c>) is registered.
+    /// </summary>
+    private static void EnsureSortDirectionEnum(Dictionary<string, JsonObject> types)
+    {
+        if (types.ContainsKey(SortDirectionEnumName))
+            return;
+
+        types[SortDirectionEnumName] = new JsonObject
+        {
+            ["kind"] = "ENUM",
+            ["name"] = SortDirectionEnumName,
+            ["description"] = "A sort direction.",
+            ["fields"] = null,
+            ["inputFields"] = null,
+            ["interfaces"] = null,
+            ["enumValues"] = new JsonArray { NewEnumValue("ASC"), NewEnumValue("DESC") },
+            ["possibleTypes"] = null,
+            ["ofType"] = null
+        };
+    }
+
+    /// <summary>
+    /// Creates a new <c>__EnumValue</c> descriptor.
+    /// </summary>
+    private static JsonObject NewEnumValue(string name) => new() { ["name"] = name, ["description"] = null, ["isDeprecated"] = false, ["deprecationReason"] = null };
 
     /// <summary>
     /// Ensures an <c>OBJECT</c> type is registered for the specified <paramref name="clrType"/>, recursing into its <see cref="GraphQLTypeShape"/>-derived complex fields.
@@ -235,6 +418,22 @@ internal static class GraphQLIntrospectionSchemaBuilder
         ["fields"] = fields,
         ["inputFields"] = null,
         ["interfaces"] = new JsonArray(),
+        ["enumValues"] = null,
+        ["possibleTypes"] = null,
+        ["ofType"] = null
+    };
+
+    /// <summary>
+    /// Creates a new <c>__Type</c> descriptor for an <c>INPUT_OBJECT</c> kind.
+    /// </summary>
+    private static JsonObject NewInputObjectType(string name, string? description, JsonArray inputFields) => new()
+    {
+        ["kind"] = "INPUT_OBJECT",
+        ["name"] = name,
+        ["description"] = description,
+        ["fields"] = null,
+        ["inputFields"] = inputFields,
+        ["interfaces"] = null,
         ["enumValues"] = null,
         ["possibleTypes"] = null,
         ["ofType"] = null
