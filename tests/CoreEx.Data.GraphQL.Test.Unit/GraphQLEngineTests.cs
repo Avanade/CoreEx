@@ -407,6 +407,50 @@ public class GraphQLEngineTests
     }
 
     [Test]
+    public async Task ExecuteAsync_DuplicateConnectionFieldAlias_ProducesDuplicateFieldErrorAsync()
+    {
+        var engine = CreateEngine();
+        var result = await engine.ExecuteAsync("{ people { totalCount totalCount } }");
+
+        result.HasErrors.Should().BeTrue();
+        var error = result.Errors!.Single(e => e.Extensions!["code"]!.Equals("DUPLICATE_FIELD"));
+        error.Path.Should().Equal("people", "totalCount");
+    }
+
+    [Test]
+    public async Task ExecuteAsync_DuplicateEdgesFieldAlias_ProducesDuplicateFieldErrorAsync()
+    {
+        var engine = CreateEngine();
+        var result = await engine.ExecuteAsync("{ people { edges { node { id } node { id } } } }");
+
+        result.HasErrors.Should().BeTrue();
+        var error = result.Errors!.Single(e => e.Extensions!["code"]!.Equals("DUPLICATE_FIELD"));
+        error.Path.Should().Equal("people", "edges", "node");
+    }
+
+    [Test]
+    public async Task ExecuteAsync_DuplicatePageInfoFieldAlias_ProducesDuplicateFieldErrorAsync()
+    {
+        var engine = CreateEngine();
+        var result = await engine.ExecuteAsync("{ people { pageInfo { hasNextPage hasNextPage } } }");
+
+        result.HasErrors.Should().BeTrue();
+        var error = result.Errors!.Single(e => e.Extensions!["code"]!.Equals("DUPLICATE_FIELD"));
+        error.Path.Should().Equal("people", "pageInfo", "hasNextPage");
+    }
+
+    [Test]
+    public async Task ExecuteAsync_DuplicateNestedFieldAlias_ProducesDuplicateFieldErrorAsync()
+    {
+        var engine = CreateEngine();
+        var result = await engine.ExecuteAsync("{ people { edges { node { address { city city } } } } }");
+
+        result.HasErrors.Should().BeTrue();
+        var error = result.Errors!.Single(e => e.Extensions!["code"]!.Equals("DUPLICATE_FIELD"));
+        error.Path.Should().Equal("people", "edges", "node", "address", "city");
+    }
+
+    [Test]
     public async Task ExecuteAsync_UndefinedVariable_ProducesArgumentErrorAsync()
     {
         var engine = CreateEngine();

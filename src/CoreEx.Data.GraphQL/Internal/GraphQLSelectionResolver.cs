@@ -51,6 +51,8 @@ internal static class GraphQLSelectionResolver
         if (selectionSet?.Selections is null)
             return;
 
+        var seenAliases = new HashSet<string>(StringComparer.Ordinal);
+
         foreach (var selection in selectionSet.Selections)
         {
             if (selection is not GraphQLField field)
@@ -60,11 +62,20 @@ internal static class GraphQLSelectionResolver
             }
 
             var name = field.Name.StringValue;
-            if (name == TypeNameField)
-                continue; // No underlying property to project; populated separately by GraphQLResponseShaper.
 
             // Errors must be pathed by response key (alias, where present), not the underlying field name, so a client can locate them against the actual response JSON.
             var alias = field.Alias?.Name.StringValue ?? name;
+
+            if (!seenAliases.Add(alias))
+            {
+                // GraphQL-lite does not implement full spec field-merging for repeated response keys; reject rather than silently letting the last selection win.
+                errors.Add(new GraphQLEngineError($"Response key '{alias}' is selected more than once; use a distinct alias for each occurrence.")
+                    { Path = [.. errorPath, alias], Extensions = new Dictionary<string, object?> { ["code"] = "DUPLICATE_FIELD" } });
+                continue;
+            }
+
+            if (name == TypeNameField)
+                continue; // No underlying property to project; populated separately by GraphQLResponseShaper.
 
             if (!fieldMap.TryGetValue(name, out var node))
             {

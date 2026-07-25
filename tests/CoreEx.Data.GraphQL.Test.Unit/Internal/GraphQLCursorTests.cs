@@ -1,4 +1,5 @@
 using CoreEx.Data.GraphQL.Internal;
+using System.Globalization;
 using System.Text;
 
 namespace CoreEx.Data.GraphQL.Test.Unit.Internal;
@@ -36,4 +37,23 @@ public class GraphQLCursorTests
 
     [Test]
     public void Encode_DifferentOffsets_ProduceDifferentCursors() => GraphQLCursor.Encode(1).Should().NotBe(GraphQLCursor.Encode(2));
+
+    [Test]
+    public void Encode_TryDecode_RoundTrips_RegardlessOfCurrentCulture()
+    {
+        var originalCulture = CultureInfo.CurrentCulture;
+        try
+        {
+            // Arabic (Saudi Arabia) uses native-digit glyphs and comma-based grouping; a culture-sensitive int<->string conversion would corrupt the cursor.
+            CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("ar-SA");
+
+            var cursor = GraphQLCursor.Encode(12345);
+            GraphQLCursor.TryDecode(cursor, out var decoded).Should().BeTrue();
+            decoded.Should().Be(12345);
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = originalCulture;
+        }
+    }
 }

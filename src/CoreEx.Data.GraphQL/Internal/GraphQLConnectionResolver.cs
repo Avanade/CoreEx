@@ -73,11 +73,19 @@ internal static class GraphQLConnectionResolver
         GraphQLSelectionSet? nodeSelectionSet = null;
         var pageInfoFieldAliases = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         string? pageInfoTypeNameAlias = null;
+        var seenAliases = new HashSet<string>(StringComparer.Ordinal);
 
         foreach (var field in selections)
         {
             var name = field.Name.StringValue;
             var alias = field.Alias?.Name.StringValue ?? name;
+
+            if (!seenAliases.Add(alias))
+            {
+                // GraphQL-lite does not implement full spec field-merging for repeated response keys; reject rather than silently letting the last selection win.
+                errors.Add(NewError($"Response key '{alias}' is selected more than once; use a distinct alias for each occurrence.", [.. errorPath, alias], "DUPLICATE_FIELD"));
+                continue;
+            }
 
             if (name == GraphQLSelectionResolver.TypeNameField)
                 connectionTypeNameAlias = alias;
@@ -86,10 +94,18 @@ internal static class GraphQLConnectionResolver
                 edgesAlias = alias;
                 if (TryGetSelections(field.SelectionSet, [.. errorPath, alias], errors, out var edgeSelections))
                 {
+                    var seenEdgeAliases = new HashSet<string>(StringComparer.Ordinal);
+
                     foreach (var edgeField in edgeSelections)
                     {
                         var edgeName = edgeField.Name.StringValue;
                         var edgeAlias = edgeField.Alias?.Name.StringValue ?? edgeName;
+
+                        if (!seenEdgeAliases.Add(edgeAlias))
+                        {
+                            errors.Add(NewError($"Response key '{edgeAlias}' is selected more than once; use a distinct alias for each occurrence.", [.. errorPath, alias, edgeAlias], "DUPLICATE_FIELD"));
+                            continue;
+                        }
 
                         if (edgeName == GraphQLSelectionResolver.TypeNameField)
                             edgeTypeNameAlias = edgeAlias;
@@ -110,10 +126,18 @@ internal static class GraphQLConnectionResolver
                 pageInfoAlias = alias;
                 if (TryGetSelections(field.SelectionSet, [.. errorPath, alias], errors, out var pageInfoSelections))
                 {
+                    var seenPageInfoAliases = new HashSet<string>(StringComparer.Ordinal);
+
                     foreach (var pageInfoField in pageInfoSelections)
                     {
                         var pageInfoFieldName = pageInfoField.Name.StringValue;
                         var pageInfoFieldAlias = pageInfoField.Alias?.Name.StringValue ?? pageInfoFieldName;
+
+                        if (!seenPageInfoAliases.Add(pageInfoFieldAlias))
+                        {
+                            errors.Add(NewError($"Response key '{pageInfoFieldAlias}' is selected more than once; use a distinct alias for each occurrence.", [.. errorPath, alias, pageInfoFieldAlias], "DUPLICATE_FIELD"));
+                            continue;
+                        }
 
                         if (pageInfoFieldName == GraphQLSelectionResolver.TypeNameField)
                             pageInfoTypeNameAlias = pageInfoFieldAlias;

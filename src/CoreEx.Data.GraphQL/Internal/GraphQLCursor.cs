@@ -16,7 +16,7 @@ internal static class GraphQLCursor
     /// </summary>
     /// <param name="offset">The zero-based absolute row offset.</param>
     /// <returns>The opaque, base64-encoded cursor string.</returns>
-    public static string Encode(int offset) => Convert.ToBase64String(Encoding.UTF8.GetBytes($"{Prefix}{offset}"));
+    public static string Encode(int offset) => Convert.ToBase64String(Encoding.UTF8.GetBytes($"{Prefix}{offset.ToString(CultureInfo.InvariantCulture)}"));
 
     /// <summary>
     /// Attempts to decode the specified opaque <paramref name="cursor"/> back to its absolute row offset.
@@ -31,7 +31,7 @@ internal static class GraphQLCursor
         try
         {
             var decoded = Encoding.UTF8.GetString(Convert.FromBase64String(cursor));
-            return decoded.StartsWith(Prefix, StringComparison.Ordinal) && int.TryParse(decoded.AsSpan(Prefix.Length), out offset) && offset >= 0;
+            return decoded.StartsWith(Prefix, StringComparison.Ordinal) && int.TryParse(decoded.AsSpan(Prefix.Length), NumberStyles.Integer, CultureInfo.InvariantCulture, out offset) && offset >= 0;
         }
         catch (FormatException)
         {

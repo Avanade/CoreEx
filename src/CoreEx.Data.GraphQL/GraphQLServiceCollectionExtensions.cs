@@ -20,7 +20,7 @@ public static class GraphQLServiceCollectionExtensions
         services.ThrowIfNull();
         configure.ThrowIfNull();
 
-        services.TryAddSingleton<IGraphQLEngine>(sp =>
+        services.AddSingleton<IGraphQLEngine>(sp =>
         {
             var options = new GraphQLLiteOptions();
             configure(options, sp);
