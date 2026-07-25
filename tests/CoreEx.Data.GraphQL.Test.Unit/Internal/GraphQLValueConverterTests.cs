@@ -96,6 +96,16 @@ public class GraphQLValueConverterTests
     }
 
     [Test]
+    public void ConvertArguments_IntLiteralExceedsInt64Range_Throws()
+    {
+        // Longer than long.MaxValue's 19 digits; GraphQL's IntValue grammar has no magnitude limit, but our CLR representation does.
+        var args = ParseArguments("{ people(age: 99999999999999999999999999999999999999) { id } }");
+
+        var act = () => GraphQLValueConverter.ConvertArguments(args, null);
+        act.Should().Throw<GraphQLArgumentTranslationException>();
+    }
+
+    [Test]
     public void GetInt_LongOutOfInt32Range_Throws()
     {
         var args = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase) { ["first"] = 5_000_000_000L };

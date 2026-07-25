@@ -8,7 +8,8 @@ internal static class GraphQLValueConverter
     /// <summary>
     /// Converts the specified <paramref name="value"/> to a plain CLR value, resolving <see cref="GraphQLVariable"/> references against <paramref name="variables"/>.
     /// </summary>
-    /// <exception cref="GraphQLArgumentTranslationException">Thrown where <paramref name="value"/> references a <see cref="GraphQLVariable"/> that is not present in <paramref name="variables"/>.</exception>
+    /// <exception cref="GraphQLArgumentTranslationException">Thrown where <paramref name="value"/> references a <see cref="GraphQLVariable"/> that is not present in <paramref name="variables"/>,
+    /// or is a malformed/out-of-range <c>Int</c> or <c>Float</c> literal.</exception>
     public static object? Convert(GraphQLValue? value, IReadOnlyDictionary<string, object?>? variables) => value switch
     {
         null => null,
@@ -19,12 +20,39 @@ internal static class GraphQLValueConverter
         GraphQLStringValue str => str.Value.ToString(),
         GraphQLEnumValue enumValue => enumValue.Name.StringValue,
         GraphQLBooleanValue boolValue => boolValue.BoolValue,
-        GraphQLIntValue intValue => int.TryParse(intValue.Value.Span, NumberStyles.Integer, CultureInfo.InvariantCulture, out var i) ? i : long.Parse(intValue.Value.Span, CultureInfo.InvariantCulture),
-        GraphQLFloatValue floatValue => double.Parse(floatValue.Value.Span, NumberStyles.Float, CultureInfo.InvariantCulture),
+        GraphQLIntValue intValue => ParseInt(intValue),
+        GraphQLFloatValue floatValue => ParseFloat(floatValue),
         GraphQLListValue listValue => listValue.Values?.Select(v => Convert(v, variables)).ToList() ?? [],
         GraphQLObjectValue objValue => objValue.Fields?.ToDictionary(f => f.Name.StringValue, f => Convert(f.Value, variables), StringComparer.OrdinalIgnoreCase) ?? new Dictionary<string, object?>(),
         _ => throw new NotSupportedException($"Unsupported GraphQL value node kind '{value.Kind}'.")
     };
+
+    /// <summary>
+    /// Parses an <c>Int</c> literal as an <see cref="int"/>, widening to <see cref="long"/> where it exceeds 32-bit range.
+    /// </summary>
+    /// <param name="intValue">The <c>Int</c> literal AST node.</param>
+    /// <returns>The parsed <see cref="int"/> or <see cref="long"/> value.</returns>
+    /// <exception cref="GraphQLArgumentTranslationException">Thrown where the literal cannot be parsed as either an <see cref="int"/> or a <see cref="long"/> (e.g. it exceeds 64-bit range).</exception>
+    private static object ParseInt(GraphQLIntValue intValue)
+    {
+        if (int.TryParse(intValue.Value.Span, NumberStyles.Integer, CultureInfo.InvariantCulture, out var i))
+            return i;
+
+        if (long.TryParse(intValue.Value.Span, NumberStyles.Integer, CultureInfo.InvariantCulture, out var l))
+            return l;
+
+        throw new GraphQLArgumentTranslationException($"Int literal '{intValue.Value}' is not a valid 32-bit or 64-bit integer.");
+    }
+
+    /// <summary>
+    /// Parses a <c>Float</c> literal as a <see cref="double"/>.
+    /// </summary>
+    /// <param name="floatValue">The <c>Float</c> literal AST node.</param>
+    /// <returns>The parsed <see cref="double"/> value.</returns>
+    /// <exception cref="GraphQLArgumentTranslationException">Thrown where the literal cannot be parsed as a <see cref="double"/> (e.g. it exceeds the representable range).</exception>
+    private static object ParseFloat(GraphQLFloatValue floatValue) => double.TryParse(floatValue.Value.Span, NumberStyles.Float, CultureInfo.InvariantCulture, out var d)
+        ? d
+        : throw new GraphQLArgumentTranslationException($"Float literal '{floatValue.Value}' is not a valid floating-point number.");
 
     /// <summary>
     /// Normalizes a variable value that may have been deserialized as a <see cref="JsonElement"/> (e.g. from a JSON request body) to a plain CLR value.
