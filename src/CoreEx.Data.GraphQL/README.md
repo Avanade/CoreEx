@@ -16,7 +16,7 @@ projection mechanism `CoreEx.AspNetCore`'s `WebApi` already uses for `$fields`/`
 
 The engine is deliberately **transport-agnostic**: it references only `CoreEx.Data` (→ `CoreEx.Events` →
 `CoreEx`), has zero dependency on ASP.NET Core, and is consumed via the `IGraphQLEngine` contract
-(`CoreEx.Data` namespace, `CoreEx` project) so that hosting bridges — such as a minimal API endpoint in
+(`CoreEx.Data.GraphQL` namespace, `CoreEx` project) so that hosting bridges — such as a minimal API endpoint in
 `CoreEx.AspNetCore` — never need to reference this package's implementation types directly.
 
 ## Key capabilities
@@ -62,12 +62,12 @@ The engine is deliberately **transport-agnostic**: it references only `CoreEx.Da
 |------|-------------|
 | **[`GraphQLEngine`](./GraphQLEngine.cs)** | The concrete `IGraphQLEngine` implementation: parses the document, resolves root fields, applies `JsonFilter` projection, and assembles the `GraphQLEngineResult` (including the Relay Connection shape for query roots). |
 | **[`GraphQLLiteOptions`](./GraphQLLiteOptions.cs)** | The DI options builder: `AddQuery<TItem>` (list roots bound to a `QueryArgsConfig` + `QueryAsync`-shaped delegate) and `AddGet<TItem>` (single-item roots). |
-| **[`GraphQLServiceCollectionExtensions`](./GraphQLServiceCollectionExtensions.cs)** | `AddCoreExGraphQLLite(IServiceCollection, Action<GraphQLLiteOptions>)` registration extension. |
+| **[`GraphQLServiceCollectionExtensions`](./GraphQLServiceCollectionExtensions.cs)** | `AddCoreExGraphQLLite(IServiceCollection, Action<GraphQLLiteOptions, IServiceProvider>)` registration extension. |
 | **[`GraphQLQueryRoot`](./GraphQLQueryRoot.cs)** / **[`GraphQLItemRoot`](./GraphQLItemRoot.cs)** | Registered list-query and single-item root field descriptors. |
 | **`Internal.GraphQLFilterTranslator`** / **`Internal.GraphQLOrderByTranslator`** | Translate the GraphQL-native `where`/`orderBy` structured arguments to the OData-esque `filter`/`orderby` strings consumed by `QueryArgsConfig`. |
 | **`Internal.GraphQLCursor`** | Encodes/decodes the opaque, offset-based Relay Cursor Connections cursor. |
-| **`IGraphQLEngine`** (in `CoreEx`, namespace `CoreEx.Data`) | The transport-agnostic contract: `ExecuteAsync(document, operationName, variables, ct)` and `GetSchemaAsync(ct)`. |
-| **`GraphQLEngineResult` / `GraphQLEngineError`** (in `CoreEx`, namespace `CoreEx.Data`) | The plain result/error POCOs returned by `ExecuteAsync`, mirroring the GraphQL-over-HTTP response shape. |
+| **`IGraphQLEngine`** (in `CoreEx`, namespace `CoreEx.Data.GraphQL`) | The transport-agnostic contract: `ExecuteAsync(document, operationName, variables, ct)` and `GetSchemaAsync(ct)`. |
+| **`GraphQLEngineResult` / `GraphQLEngineError`** (in `CoreEx`, namespace `CoreEx.Data.GraphQL`) | The plain result/error POCOs returned by `ExecuteAsync`, mirroring the GraphQL-over-HTTP response shape. |
 
 ## Usage
 

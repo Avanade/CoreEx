@@ -22,7 +22,7 @@ public static partial class CoreExAspNetCoreExtensions
         endpoints.ThrowIfNull();
         pattern.ThrowIfNullOrEmpty();
 
-        endpoints.MapPost(pattern, async (HttpRequest request, HttpResponse response, IGraphQLEngine engine, CancellationToken cancellationToken) =>
+        endpoints.MapPost(pattern, async (HttpRequest request, IGraphQLEngine engine, CancellationToken cancellationToken) =>
         {
             GraphQLLiteRequest? body;
             try
