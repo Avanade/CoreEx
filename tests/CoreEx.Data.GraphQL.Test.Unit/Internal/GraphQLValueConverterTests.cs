@@ -110,4 +110,40 @@ public class GraphQLValueConverterTests
         var args = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase) { ["first"] = 42L };
         args.GetInt("first").Should().Be(42);
     }
+
+    [Test]
+    public void GetInt_NonNumericString_Throws()
+    {
+        var args = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase) { ["first"] = "abc" };
+
+        var act = () => args.GetInt("first");
+        act.Should().Throw<GraphQLArgumentTranslationException>();
+    }
+
+    [Test]
+    public void GetInt_UnsupportedValueType_Throws()
+    {
+        var args = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase) { ["first"] = true };
+
+        var act = () => args.GetInt("first");
+        act.Should().Throw<GraphQLArgumentTranslationException>();
+    }
+
+    [Test]
+    public void GetBool_NonBooleanString_Throws()
+    {
+        var args = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase) { ["active"] = "yes" };
+
+        var act = () => args.GetBool("active");
+        act.Should().Throw<GraphQLArgumentTranslationException>();
+    }
+
+    [Test]
+    public void GetBool_UnsupportedValueType_Throws()
+    {
+        var args = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase) { ["active"] = 42 };
+
+        var act = () => args.GetBool("active");
+        act.Should().Throw<GraphQLArgumentTranslationException>();
+    }
 }

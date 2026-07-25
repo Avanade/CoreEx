@@ -53,7 +53,7 @@ The engine is deliberately **transport-agnostic**: it references only `CoreEx.Da
   a reflection-derived shape of each root's selectable output fields (including the fixed Connection/
   Edge/PageInfo shape for query roots), exposed via `IGraphQLEngine.GetSchemaAsync()` or a reserved
   `__schema` root field.
-- 🧷 **Explicit, code-based registration**: `services.AddCoreExGraphQLLite(o => o.AddQuery(...).AddGet(...))`
+- 🧷 **Explicit, code-based registration**: `services.AddCoreExGraphQLLite((o, sp) => o.AddQuery(...).AddGet(...))`
   — no attribute-based auto-discovery.
 
 ## Key types

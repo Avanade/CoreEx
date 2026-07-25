@@ -133,8 +133,9 @@ public sealed class GraphQLEngine(GraphQLLiteOptions options) : IGraphQLEngine
         var paths = new List<string>();
         if (connection.NodeAlias is not null)
         {
+            // Use the client's requested aliases (not the fixed 'edges'/'node' field names) so a nested selection error's Path matches the actual response JSON.
             var (nodePaths, nodeErrors) = GraphQLSelectionResolver.Resolve(connection.NodeSelectionSet, root.ItemType, jsonOptions, GraphQLConnectionResolver.NodeField,
-                [alias, GraphQLConnectionResolver.EdgesField, GraphQLConnectionResolver.NodeField]);
+                [alias, connection.EdgesAlias ?? GraphQLConnectionResolver.EdgesField, connection.NodeAlias]);
             if (nodeErrors.Count > 0)
             {
                 errors.AddRange(nodeErrors);

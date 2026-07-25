@@ -13,7 +13,7 @@ internal static class GraphQLTypeShape
     private static readonly HashSet<Type> _scalarTypes =
     [
         typeof(string), typeof(bool), typeof(byte), typeof(sbyte), typeof(short), typeof(ushort), typeof(int), typeof(uint), typeof(long), typeof(ulong),
-        typeof(float), typeof(double), typeof(decimal), typeof(DateTime), typeof(DateTimeOffset), typeof(TimeSpan), typeof(Guid), typeof(Uri), typeof(char)
+        typeof(float), typeof(double), typeof(decimal), typeof(DateTime), typeof(DateTimeOffset), typeof(TimeSpan), typeof(DateOnly), typeof(TimeOnly), typeof(Guid), typeof(Uri), typeof(char)
     ];
 
     /// <summary>

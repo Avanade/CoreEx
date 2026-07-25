@@ -66,7 +66,8 @@ internal static class GraphQLValueConverter
     /// <summary>
     /// Gets a named argument value as an <see cref="int"/> (or <see langword="null"/> where absent).
     /// </summary>
-    /// <exception cref="GraphQLArgumentTranslationException">Thrown where the value is a <see cref="long"/> outside the range of a 32-bit integer.</exception>
+    /// <exception cref="GraphQLArgumentTranslationException">Thrown where the value is a <see cref="long"/> outside the range of a 32-bit integer, or is any other non-integer type/value
+    /// (e.g. a non-numeric string or a wrong-typed variable) that cannot be coerced to an <see cref="int"/>.</exception>
     public static int? GetInt(this IReadOnlyDictionary<string, object?> args, string name)
     {
         if (!args.TryGetValue(name, out var v) || v is null)
@@ -79,18 +80,25 @@ internal static class GraphQLValueConverter
                 ? (int)l
                 : throw new GraphQLArgumentTranslationException($"'{name}' value '{l}' is out of range for a 32-bit integer."),
             string s when int.TryParse(s, NumberStyles.Integer, CultureInfo.InvariantCulture, out var r) => r,
-            _ => null
+            _ => throw new GraphQLArgumentTranslationException($"'{name}' value '{v}' is not a valid integer.")
         };
     }
 
     /// <summary>
     /// Gets a named argument value as a <see cref="bool"/> (or <see langword="null"/> where absent).
     /// </summary>
+    /// <exception cref="GraphQLArgumentTranslationException">Thrown where the value is any non-boolean type/value (e.g. a non-boolean string or a wrong-typed variable) that cannot be
+    /// coerced to a <see cref="bool"/>.</exception>
     public static bool? GetBool(this IReadOnlyDictionary<string, object?> args, string name)
     {
         if (!args.TryGetValue(name, out var v) || v is null)
             return null;
 
-        return v switch { bool b => b, string s when bool.TryParse(s, out var r) => r, _ => null };
+        return v switch
+        {
+            bool b => b,
+            string s when bool.TryParse(s, out var r) => r,
+            _ => throw new GraphQLArgumentTranslationException($"'{name}' value '{v}' is not a valid boolean.")
+        };
     }
 }

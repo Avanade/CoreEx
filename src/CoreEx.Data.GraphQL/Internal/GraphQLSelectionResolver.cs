@@ -63,9 +63,12 @@ internal static class GraphQLSelectionResolver
             if (name == TypeNameField)
                 continue; // No underlying property to project; populated separately by GraphQLResponseShaper.
 
+            // Errors must be pathed by response key (alias, where present), not the underlying field name, so a client can locate them against the actual response JSON.
+            var alias = field.Alias?.Name.StringValue ?? name;
+
             if (!fieldMap.TryGetValue(name, out var node))
             {
-                errors.Add(new GraphQLEngineError($"Unknown field '{name}'.") { Path = [.. errorPath, name], Extensions = new Dictionary<string, object?> { ["code"] = "UNKNOWN_FIELD" } });
+                errors.Add(new GraphQLEngineError($"Unknown field '{name}'.") { Path = [.. errorPath, alias], Extensions = new Dictionary<string, object?> { ["code"] = "UNKNOWN_FIELD" } });
                 continue;
             }
 
@@ -74,11 +77,11 @@ internal static class GraphQLSelectionResolver
             {
                 if (field.SelectionSet?.Selections is not { Count: > 0 })
                 {
-                    errors.Add(SelectionRequiredError(name, [.. errorPath, name]));
+                    errors.Add(SelectionRequiredError(name, [.. errorPath, alias]));
                     continue;
                 }
 
-                Walk(field.SelectionSet, node.Children.Value, jsonOptions, path, [.. errorPath, name], paths, errors);
+                Walk(field.SelectionSet, node.Children.Value, jsonOptions, path, [.. errorPath, alias], paths, errors);
             }
             else
                 paths.Add(path);

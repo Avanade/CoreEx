@@ -15,7 +15,7 @@ public static partial class CoreExAspNetCoreExtensions
     /// <param name="pattern">The route pattern; defaults to <c>/query</c>.</param>
     /// <returns>The <paramref name="endpoints"/> to support fluent-style method-chaining.</returns>
     /// <remarks>This is intentionally a thin, transport-only bridge: all parsing, argument mapping, field-selection projection, and error mapping is performed by the registered <see cref="IGraphQLEngine"/>
-    /// implementation (see the <c>CoreEx.Data.GraphQL</c> package). Register the engine and its query/item roots via <c>services.AddCoreExGraphQLLite(o =&gt; o.AddQuery(...))</c> before calling this
+    /// implementation (see the <c>CoreEx.Data.GraphQL</c> package). Register the engine and its query/item roots via <c>services.AddCoreExGraphQLLite((o, sp) =&gt; o.AddQuery(...))</c> before calling this
     /// method. The endpoint is additive to any existing REST controllers/endpoints for the same domain — it is not a replacement.</remarks>
     public static IEndpointRouteBuilder MapCoreExGraphQLLite(this IEndpointRouteBuilder endpoints, string pattern = "/query")
     {

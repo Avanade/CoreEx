@@ -353,6 +353,50 @@ public class GraphQLEngineTests
     }
 
     [Test]
+    public async Task ExecuteAsync_AliasedConnectionRoot_UnknownFieldErrorPathUsesAliasesAsync()
+    {
+        var engine = CreateEngine();
+        var result = await engine.ExecuteAsync("{ folks: people { nonExistentField } }");
+
+        result.HasErrors.Should().BeTrue();
+        var error = result.Errors!.Single(e => e.Extensions!["code"]!.Equals("UNKNOWN_FIELD"));
+        error.Path.Should().Equal("folks", "nonExistentField");
+    }
+
+    [Test]
+    public async Task ExecuteAsync_AliasedEdgesAndNode_NoSelectionSet_ErrorPathUsesAliasesAsync()
+    {
+        var engine = CreateEngine();
+        var result = await engine.ExecuteAsync("{ folks: people { results: edges { item: node } } }");
+
+        result.HasErrors.Should().BeTrue();
+        var error = result.Errors!.Single(e => e.Extensions!["code"]!.Equals("SELECTION_REQUIRED"));
+        error.Path.Should().Equal("folks", "results", "item");
+    }
+
+    [Test]
+    public async Task ExecuteAsync_AliasedNestedComplexField_NoSelectionSet_ErrorPathUsesAliasesAsync()
+    {
+        var engine = CreateEngine();
+        var result = await engine.ExecuteAsync("{ folks: people { results: edges { item: node { id location: address } } } }");
+
+        result.HasErrors.Should().BeTrue();
+        var error = result.Errors!.Single(e => e.Extensions!["code"]!.Equals("SELECTION_REQUIRED"));
+        error.Path.Should().Equal("folks", "results", "item", "location");
+    }
+
+    [Test]
+    public async Task ExecuteAsync_AliasedUnknownFieldInsideNode_ErrorPathUsesAliasesAsync()
+    {
+        var engine = CreateEngine();
+        var result = await engine.ExecuteAsync("{ folks: people { results: edges { item: node { bogus: nonExistentField } } } }");
+
+        result.HasErrors.Should().BeTrue();
+        var error = result.Errors!.Single(e => e.Extensions!["code"]!.Equals("UNKNOWN_FIELD"));
+        error.Path.Should().Equal("folks", "results", "item", "bogus");
+    }
+
+    [Test]
     public async Task ExecuteAsync_DuplicateRootAlias_ProducesDuplicateFieldErrorAsync()
     {
         var engine = CreateEngine();

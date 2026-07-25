@@ -84,7 +84,7 @@ internal static class GraphQLConnectionResolver
             else if (string.Equals(name, EdgesField, StringComparison.OrdinalIgnoreCase))
             {
                 edgesAlias = alias;
-                if (TryGetSelections(field.SelectionSet, [.. errorPath, name], errors, out var edgeSelections))
+                if (TryGetSelections(field.SelectionSet, [.. errorPath, alias], errors, out var edgeSelections))
                 {
                     foreach (var edgeField in edgeSelections)
                     {
@@ -101,14 +101,14 @@ internal static class GraphQLConnectionResolver
                         else if (string.Equals(edgeName, CursorField, StringComparison.OrdinalIgnoreCase))
                             cursorAlias = edgeAlias;
                         else
-                            errors.Add(NewError($"Unknown field '{edgeName}'; an edge must select from 'node', 'cursor'.", [.. errorPath, name, edgeName]));
+                            errors.Add(NewError($"Unknown field '{edgeName}'; an edge must select from 'node', 'cursor'.", [.. errorPath, alias, edgeAlias]));
                     }
                 }
             }
             else if (string.Equals(name, PageInfoField, StringComparison.OrdinalIgnoreCase))
             {
                 pageInfoAlias = alias;
-                if (TryGetSelections(field.SelectionSet, [.. errorPath, name], errors, out var pageInfoSelections))
+                if (TryGetSelections(field.SelectionSet, [.. errorPath, alias], errors, out var pageInfoSelections))
                 {
                     foreach (var pageInfoField in pageInfoSelections)
                     {
@@ -120,14 +120,14 @@ internal static class GraphQLConnectionResolver
                         else if (pageInfoFieldName is HasNextPageField or HasPreviousPageField or StartCursorField or EndCursorField)
                             pageInfoFieldAliases[pageInfoFieldName] = pageInfoFieldAlias;
                         else
-                            errors.Add(NewError($"Unknown field '{pageInfoFieldName}'; 'pageInfo' must select from 'hasNextPage', 'hasPreviousPage', 'startCursor', 'endCursor'.", [.. errorPath, name, pageInfoFieldName]));
+                            errors.Add(NewError($"Unknown field '{pageInfoFieldName}'; 'pageInfo' must select from 'hasNextPage', 'hasPreviousPage', 'startCursor', 'endCursor'.", [.. errorPath, alias, pageInfoFieldAlias]));
                     }
                 }
             }
             else if (string.Equals(name, TotalCountField, StringComparison.OrdinalIgnoreCase))
                 totalCountAlias = alias;
             else
-                errors.Add(NewError($"Unknown field '{name}'; a query root must select from 'edges', 'pageInfo', 'totalCount' (Relay Cursor Connections).", [.. errorPath, name]));
+                errors.Add(NewError($"Unknown field '{name}'; a query root must select from 'edges', 'pageInfo', 'totalCount' (Relay Cursor Connections).", [.. errorPath, alias]));
         }
 
         if (errors.Count > 0)
