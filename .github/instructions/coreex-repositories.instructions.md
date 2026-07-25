@@ -152,7 +152,7 @@ Each entity's query configuration lives in its own dedicated class in `Infrastru
 
 ```csharp
 // Infrastructure/Repositories/ProductQueryArgsConfig.cs
-internal class ProductQueryArgsConfig : QueryArgsConfig<ProductQueryArgsConfig>
+public class ProductQueryArgsConfig : QueryArgsConfig<ProductQueryArgsConfig>
 {
     public ProductQueryArgsConfig()
     {
@@ -177,8 +177,8 @@ internal class ProductQueryArgsConfig : QueryArgsConfig<ProductQueryArgsConfig>
 
 ### Visibility and folder placement
 
-- Default a `{Name}QueryArgsConfig` to `internal` — it is an Infrastructure-layer implementation detail consumed only by the owning repository. Widen it to `public` **only** when an outer layer needs the concrete type at compile time — the sole known case today is a host `Program.cs` passing `{Name}QueryArgsConfig.Default` into `CoreEx.Data.GraphQL`'s `AddQuery<TLite>(rootName, config, resolver)`, which requires the config instance (not just the `QueryArgs` it produces) to drive `where`/`orderBy` argument mapping. Document the reason with a one-line comment above the `public` modifier so the exception doesn't read as a layering slip on review.
-- Keep `{Name}QueryArgsConfig.cs` colocated with `{Name}Repository.cs` in `Repositories/` — it is 1:1 owned by that one repository, unlike `Mapping/`, `Clients/`, or `Adapters/`, which are independent cross-cutting concerns spanning the whole domain. Do not create a `Repositories/Query/` (or root-level `Query/`) subfolder purely to "tidy up" — only introduce that nesting once a single domain accumulates **5 or more** `QueryArgsConfig` classes, and even then keep each one paired 1:1 with its repository by name.
+- `{Name}QueryArgsConfig` is `public`, matching every other Infrastructure-layer type (`{Name}Repository`, `{Name}EfDb`, mappers, HTTP clients, adapters) — no internal/public judgment call needed. It's also what `CoreEx.Data.GraphQL`'s `AddQuery<TLite>(rootName, config, resolver)` needs when a host wires up the GraphQL-lite bridge.
+- Default to colocating `{Name}QueryArgsConfig.cs` with `{Name}Repository.cs` in `Repositories/` — it's 1:1 owned by that one repository, unlike `Mapping/`, `Clients/`, or `Adapters/`. Whether to move query configs into a dedicated subfolder as a domain grows is a developer call; this guide doesn't prescribe a threshold.
 
 ### Field type reference
 
@@ -392,7 +392,6 @@ Always call `.ConfigureAwait(false)` on every `await` inside repository and adap
 - Do not edit `*.g.cs` persistence or DbContext files directly — regenerate via the `*.Database` tooling project.
 - Do not add a mapper without ensuring the `<Domain>.Infrastructure.Mapping` namespace is in the Infrastructure `GlobalUsing.cs`; likewise ensure `CoreEx.Data.Querying` is present when adding a `QueryArgsConfig<TSelf>` query configuration class.
 - Do not mix EfDb flows — use the `...WithResultAsync` methods inside `Result<T>` pipelines and the plain `...Async` methods for exception flow; do not wrap a throwing `...Async` call to fake a `Result`.
-- Do not widen a `QueryArgsConfig` from `internal` to `public` casually, and do not create a `Repositories/Query/` subfolder below the 5-config threshold — see "Visibility and folder placement" above.
 
 ## Further Reading
 
