@@ -7,10 +7,14 @@ namespace CoreEx.Data.GraphQL;
 public sealed class GraphQLEngine(GraphQLLiteOptions options) : IGraphQLEngine
 {
     private const string SchemaFieldName = "__schema";
+    private const string TypeFieldName = "__type";
     private readonly GraphQLLiteOptions _options = options.ThrowIfNull();
 
+    // Built once (not per-request) from the registered roots, which do not change for the lifetime of a registered GraphQLLiteOptions instance; see GraphQLIntrospectionSchemaBuilder.
+    private readonly Lazy<GraphQLIntrospectionDocument> _introspection = new(() => GraphQLIntrospectionSchemaBuilder.Build(options, JsonDefaults.SerializerOptions));
+
     /// <inheritdoc/>
-    public Task<JsonElement> GetSchemaAsync(CancellationToken cancellationToken = default) => Task.FromResult(GraphQLSchemaBuilder.Build(_options, JsonDefaults.SerializerOptions));
+    public Task<JsonElement> GetSchemaAsync(CancellationToken cancellationToken = default) => Task.FromResult(_introspection.Value.Schema.Deserialize<JsonElement>());
 
     /// <inheritdoc/>
     public async Task<GraphQLEngineResult> ExecuteAsync(string document, string? operationName = null, IReadOnlyDictionary<string, object?>? variables = null, CancellationToken cancellationToken = default)
@@ -77,12 +81,6 @@ public sealed class GraphQLEngine(GraphQLLiteOptions options) : IGraphQLEngine
                 continue;
             }
 
-            if (string.Equals(name, SchemaFieldName, StringComparison.Ordinal))
-            {
-                dataObj[alias] = JsonNode.Parse((await GetSchemaAsync(cancellationToken).ConfigureAwait(false)).GetRawText());
-                continue;
-            }
-
             IReadOnlyDictionary<string, object?> args;
             try
             {
@@ -93,6 +91,21 @@ public sealed class GraphQLEngine(GraphQLLiteOptions options) : IGraphQLEngine
                 // An undefined variable reference (or other argument-shape error) is raised while converting arguments, before a root is even resolved; map it the same way as
                 // an error thrown during root invocation rather than letting it escape ExecuteAsync unhandled.
                 errors.Add(MapException(ex, alias));
+                continue;
+            }
+
+            if (string.Equals(name, SchemaFieldName, StringComparison.Ordinal))
+            {
+                // Meta-fields describing the schema itself: the full canonical __Schema/__Type shape is returned unconditionally (over-fetch), regardless of the client's nested
+                // selection set - safe/expected for introspection, and avoids needing general fragment-spread support just for the standard client-tooling introspection query.
+                dataObj[alias] = _introspection.Value.Schema.DeepClone();
+                continue;
+            }
+
+            if (string.Equals(name, TypeFieldName, StringComparison.Ordinal))
+            {
+                var typeName = args.GetString("name");
+                dataObj[alias] = typeName is not null && _introspection.Value.TypesByName.TryGetValue(typeName, out var typeNode) ? typeNode.DeepClone() : null;
                 continue;
             }
 

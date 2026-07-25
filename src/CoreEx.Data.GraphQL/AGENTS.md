@@ -43,7 +43,7 @@ Clients use native GraphQL `where`/`orderBy` and `first`/`after` Relay paging �
 
 - Do not add mutations, subscriptions, or cross-repository nested resolvers (dataloaders) — this is a read-only, single-root-per-selection bridge by design (v1).
 - Do not expect `last`/`before` backward pagination — only `first`/`after` forward pagination is supported; a `last`/`before` argument produces an explicit `ARGUMENT_ERROR`.
-- Do not treat the reserved `__schema` root field as spec-compliant GraphQL introspection — it returns a bespoke discovery document (composed from `QueryArgsConfig.ToJsonSchema()` plus a reflection-derived field shape), not the official introspection schema, so tooling that relies on standard introspection (GraphiQL, Apollo Sandbox, codegen) will not auto-explore this endpoint.
+- Do not treat GraphQL-lite's introspection as fully spec-parity: `__schema`/`__type(name:)`/`__typename` are real, spec-compliant, and built once from the registered roots (see `Internal.GraphQLIntrospectionSchemaBuilder`) — tooling that fetches a schema (Postman, Nitro, Apollo Sandbox) will work. But `where`/`orderBy` are declared as an opaque `JSON` scalar (not typed `INPUT_OBJECT` graphs), enums/ref-data are declared as `String`, and an `AddGet` root only gets an `id: ID!` argument where its item type implements `IReadOnlyIdentifier<TId>`.
 - Do not capture a scoped service from the root `IServiceProvider` in a resolver closure — resolve it per-invocation from the current request's scope instead (see Registration above).
 - Do not bypass a `QueryArgsConfig` to add new filter/sort capability for GraphQL only — add the field/operator to the entity's existing `QueryArgsConfig` so REST and GraphQL stay in exact lockstep.
 

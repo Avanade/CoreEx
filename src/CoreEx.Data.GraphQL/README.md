@@ -49,10 +49,10 @@ The engine is deliberately **transport-agnostic**: it references only `CoreEx.Da
 - 🧾 **GraphQL-shaped errors**: `GraphQLArgumentTranslationException`, `QueryFilterParserException`,
   `QueryOrderByParserException`, `ValidationException`, `NotFoundException`, and unknown-field errors are
   mapped to `{ message, path, extensions.code }` error objects.
-- 🔍 **Schema/discovery document**: composes `QueryArgsConfig.ToJsonSchema()` (`where`/`orderBy` shapes) with
-  a reflection-derived shape of each root's selectable output fields (including the fixed Connection/
-  Edge/PageInfo shape for query roots), exposed via `IGraphQLEngine.GetSchemaAsync()` or a reserved
-  `__schema` root field.
+- 🔍 **Spec-compliant introspection**: `__schema`/`__type(name:)` (plus `__typename`) implement the official
+  GraphQL introspection schema, built once from the registered roots (see `Internal.GraphQLIntrospectionSchemaBuilder`)
+  and exposed identically via `IGraphQLEngine.GetSchemaAsync()`. `where`/`orderBy` are declared as an opaque
+  `JSON` custom scalar (their actual dynamic wire shape); see Non-goals below for the remaining simplifications.
 - 🧷 **Explicit, code-based registration**: `services.AddCoreExGraphQLLite((o, sp) => o.AddQuery(...).AddGet(...))`
   — no attribute-based auto-discovery.
 
@@ -118,11 +118,16 @@ A client queries the `products` root using native GraphQL `where`/`orderBy` and 
   an explicit `FRAGMENTS_NOT_SUPPORTED` error rather than being silently skipped.
 - No backward pagination (`last`/`before`) — Relay Cursor Connections `first`/`after` forward pagination
   only; a `last`/`before` argument produces an explicit error rather than being silently ignored.
-- No standard GraphQL introspection (`__schema`/`__type` per the official introspection schema) or SDL — the
-  reserved `__schema` root field returns a bespoke discovery document (see above), not the spec-defined
-  introspection shape, so tooling that relies on standard introspection (GraphiQL, Apollo Sandbox, codegen)
-  will not auto-explore this endpoint. The `__typename` meta-field *is* supported (see above) since it's
-  required for out-of-the-box compatibility with normalized-cache clients.
+- No standard GraphQL SDL export — the schema is only queryable at runtime via `__schema`/`__type`
+  (or the equivalent `IGraphQLEngine.GetSchemaAsync()`), not printable as a `.graphql` SDL document.
+- `where`/`orderBy` query-root arguments are declared as an opaque `JSON` custom scalar, not fully-typed
+  `INPUT_OBJECT` graphs — the runtime OData-esque filter/orderby translation is dynamic and does not derive
+  from a fixed input shape (a future enhancement could add per-entity typed `WhereInput`/`OrderByInput` types).
+- CLR `enum` and reference-data (`IReferenceData`) properties are described as the `String` scalar (matching
+  their actual JSON wire representation), not a spec `ENUM` type.
+- A single-item `AddGet` root only advertises an `id: ID!` argument where its registered item type implements
+  `IReadOnlyIdentifier<TId>`; otherwise it advertises no arguments at all in the schema, since the `AddGet`
+  registration API does not declare an argument shape today.
 - Not a replacement for the REST `$filter`/`$orderby`/`$fields` query-string endpoints — this is an
   additive bridge sharing the same underlying pipeline.
 

@@ -243,30 +243,76 @@ public class GraphQLEngineTests
     }
 
     [Test]
-    public async Task ExecuteAsync_SchemaField_ReturnsDiscoveryDocumentAsync()
+    public async Task ExecuteAsync_SchemaField_ReturnsSpecCompliantIntrospectionAsync()
     {
         var engine = CreateEngine();
-        var result = await engine.ExecuteAsync("{ __schema }");
+        var result = await engine.ExecuteAsync("{ __schema { queryType { name } types { name kind } } }");
 
         result.HasErrors.Should().BeFalse();
         var schema = result.Data!.Value.GetProperty("__schema");
-        schema.GetProperty("roots").GetProperty("people").GetProperty("kind").GetString().Should().Be("query");
+        schema.GetProperty("queryType").GetProperty("name").GetString().Should().Be("Query");
+
+        var typeNames = schema.GetProperty("types").EnumerateArray().Select(t => t.GetProperty("name").GetString()).ToList();
+        typeNames.Should().Contain(["Query", "Person", "PersonConnection", "PersonEdge", "PageInfo", "String", "Int", "Boolean", "ID", "JSON", "Long"]);
+
+        var queryType = FindType(schema, "Query");
+        var peopleField = FindField(queryType, "people");
+        peopleField.GetProperty("type").GetProperty("ofType").GetProperty("name").GetString().Should().Be("PersonConnection");
+        var peopleArgNames = peopleField.GetProperty("args").EnumerateArray().Select(a => a.GetProperty("name").GetString()).ToList();
+        peopleArgNames.Should().Contain(["first", "after", "where", "orderBy", "includeText", "includeInactive"]);
+        peopleField.GetProperty("args").EnumerateArray().First(a => a.GetProperty("name").GetString() == "where").GetProperty("type").GetProperty("name").GetString().Should().Be("JSON");
+
+        // Person implements IReadOnlyIdentifier<int>, so the 'person' get-root should advertise a required 'id: ID!' argument.
+        var personField = FindField(queryType, "person");
+        var personArgs = personField.GetProperty("args").EnumerateArray().ToList();
+        personArgs.Should().ContainSingle(a => a.GetProperty("name").GetString() == "id");
+        var idArgType = personArgs.Single(a => a.GetProperty("name").GetString() == "id").GetProperty("type");
+        idArgType.GetProperty("kind").GetString().Should().Be("NON_NULL");
+        idArgType.GetProperty("ofType").GetProperty("name").GetString().Should().Be("ID");
     }
 
     [Test]
-    public async Task GetSchemaAsync_DescribesRegisteredRootsAndFieldsAsync()
+    public async Task ExecuteAsync_TypeField_ReturnsNamedTypeAsync()
+    {
+        var engine = CreateEngine();
+        var result = await engine.ExecuteAsync("{ __type(name: \"Person\") { name kind fields { name } } }");
+
+        result.HasErrors.Should().BeFalse();
+        var type = result.Data!.Value.GetProperty("__type");
+        type.GetProperty("name").GetString().Should().Be("Person");
+        type.GetProperty("kind").GetString().Should().Be("OBJECT");
+        type.GetProperty("fields").EnumerateArray().Select(f => f.GetProperty("name").GetString()).Should().Contain(["id", "name", "age", "address"]);
+    }
+
+    [Test]
+    public async Task ExecuteAsync_TypeField_UnknownNameReturnsNullAsync()
+    {
+        var engine = CreateEngine();
+        var result = await engine.ExecuteAsync("{ __type(name: \"DoesNotExist\") { name } }");
+
+        result.HasErrors.Should().BeFalse();
+        result.Data!.Value.GetProperty("__type").ValueKind.Should().Be(JsonValueKind.Null);
+    }
+
+    [Test]
+    public async Task GetSchemaAsync_ReturnsSameSpecCompliantDocumentAsSchemaFieldAsync()
     {
         var engine = CreateEngine();
         var schema = await engine.GetSchemaAsync();
 
-        var roots = schema.GetProperty("roots");
-        var peopleFields = roots.GetProperty("people").GetProperty("fields");
-        peopleFields.GetProperty("edges").GetProperty("items").GetProperty("node").GetProperty("address").GetProperty("street").GetString().Should().Be("String");
-        peopleFields.GetProperty("pageInfo").GetProperty("hasNextPage").GetString().Should().Be("Boolean");
-        roots.GetProperty("people").TryGetProperty("where", out _).Should().BeTrue();
-        roots.GetProperty("people").TryGetProperty("orderBy", out _).Should().BeTrue();
-        roots.GetProperty("person").GetProperty("kind").GetString().Should().Be("get");
+        schema.GetProperty("queryType").GetProperty("name").GetString().Should().Be("Query");
+        schema.GetProperty("types").EnumerateArray().Select(t => t.GetProperty("name").GetString()).Should().Contain("Person");
     }
+
+    /// <summary>
+    /// Finds a named type within an already-materialized <c>__Schema.types</c> array.
+    /// </summary>
+    private static JsonElement FindType(JsonElement schema, string name) => schema.GetProperty("types").EnumerateArray().Single(t => t.GetProperty("name").GetString() == name);
+
+    /// <summary>
+    /// Finds a named field within an already-materialized <c>__Type.fields</c> array.
+    /// </summary>
+    private static JsonElement FindField(JsonElement type, string name) => type.GetProperty("fields").EnumerateArray().Single(f => f.GetProperty("name").GetString() == name);
 
     [Test]
     public async Task ExecuteAsync_TypeNameField_ResolvedAtConnectionEdgeAndNodeLevelsAsync()
