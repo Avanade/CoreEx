@@ -78,7 +78,7 @@ builder.Services.AddCoreExGraphQLLite((o, sp) =>
 
 // ...
 
-app.MapCoreExGraphQLLite("/api/products/query");
+app.MapCoreExGraphQLLite("/api/query");
 ```
 
 Each `AddQuery`/`AddGet` root registration is a single line referencing the entity's *existing*

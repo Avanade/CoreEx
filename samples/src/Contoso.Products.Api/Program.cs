@@ -92,7 +92,7 @@ public class Program
         app.UseExecutionContext();
         app.UseIdempotencyKey();
         app.MapControllers();
-        app.MapCoreExGraphQLLite("/api/products/query"); // Additive GraphQL-lite bridge alongside the existing REST endpoints.
+        app.MapCoreExGraphQLLite("/api/query"); // Additive GraphQL-lite bridge alongside the existing REST endpoints.
 
         app.UseOpenApi();
         app.UseSwaggerUi();

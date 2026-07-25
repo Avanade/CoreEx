@@ -80,7 +80,7 @@ builder.Services.AddCoreExGraphQLLite((o, sp) =>
 });
 
 // ...
-app.MapCoreExGraphQLLite("/api/products/query"); // Additive GraphQL-lite bridge alongside the existing REST endpoints.
+app.MapCoreExGraphQLLite("/api/query"); // Additive GraphQL-lite bridge alongside the existing REST endpoints.
 ```
 
 A hosting bridge (e.g. `MapCoreExGraphQLLite` in `CoreEx.AspNetCore`) resolves `IGraphQLEngine` from DI and

@@ -6,7 +6,7 @@ public partial class ReadTests : WithApiTester<Contoso.Products.Api.Program>
     public void GraphQLLite_Products_All()
     {
         var r = Test.Http<JsonElement>()
-            .Run(HttpMethod.Post, "/api/products/query", new { query = "{ products { edges { node { id sku } } } }" })
+            .Run(HttpMethod.Post, "/api/query", new { query = "{ products { edges { node { id sku } } } }" })
             .AssertOK()
             .Value;
 
@@ -18,7 +18,7 @@ public partial class ReadTests : WithApiTester<Contoso.Products.Api.Program>
     {
         // Act: GraphQL-lite bridge - native 'where'/'orderBy' syntax translated 1:1 to the same underlying QueryArgsConfig-driven query.
         var gql = Test.Http<JsonElement>()
-            .Run(HttpMethod.Post, "/api/products/query", new
+            .Run(HttpMethod.Post, "/api/query", new
             {
                 query = "query($where: ProductWhereInput, $orderBy: [ProductOrderByInput!], $first: Int) { products(where: $where, orderBy: $orderBy, first: $first) { edges { node { sku text } } } }",
                 variables = new { where = new { sku = new { startsWith = "spec" } }, orderBy = new[] { new { text = "DESC" } }, first = 10 }
@@ -50,7 +50,7 @@ public partial class ReadTests : WithApiTester<Contoso.Products.Api.Program>
     public void GraphQLLite_Product_Get_Success()
     {
         var r = Test.Http<JsonElement>()
-            .Run(HttpMethod.Post, "/api/products/query", new { query = "{ product(id: \"" + 1.ToGuid() + "\") { sku text } }" })
+            .Run(HttpMethod.Post, "/api/query", new { query = "{ product(id: \"" + 1.ToGuid() + "\") { sku text } }" })
             .AssertOK()
             .Value;
 
@@ -63,7 +63,7 @@ public partial class ReadTests : WithApiTester<Contoso.Products.Api.Program>
     public void GraphQLLite_Product_Get_NotFound()
     {
         var r = Test.Http<JsonElement>()
-            .Run(HttpMethod.Post, "/api/products/query", new { query = "{ product(id: \"" + Guid.Empty + "\") { sku } }" })
+            .Run(HttpMethod.Post, "/api/query", new { query = "{ product(id: \"" + Guid.Empty + "\") { sku } }" })
             .AssertOK()
             .Value;
 
@@ -76,7 +76,7 @@ public partial class ReadTests : WithApiTester<Contoso.Products.Api.Program>
     public void GraphQLLite_UnknownField_ReturnsError()
     {
         var r = Test.Http<JsonElement>()
-            .Run(HttpMethod.Post, "/api/products/query", new { query = "{ products { edges { node { id nope } } } }" })
+            .Run(HttpMethod.Post, "/api/query", new { query = "{ products { edges { node { id nope } } } }" })
             .AssertOK()
             .Value;
 

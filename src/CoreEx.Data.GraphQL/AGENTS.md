@@ -15,7 +15,7 @@ builder.Services.AddCoreExGraphQLLite((o, sp) =>
 });
 
 // ...
-app.MapCoreExGraphQLLite("/api/products/query"); // CoreEx.AspNetCore hosting bridge; defaults to "/query".
+app.MapCoreExGraphQLLite("/api/query"); // CoreEx.AspNetCore hosting bridge; defaults to "/query".
 ```
 
 Because `IGraphQLEngine` is registered as a **singleton**, resolve scoped dependencies (repositories, application services) per-invocation rather than capturing an instance from the root `IServiceProvider` at registration time — as shown above via `CoreEx.ExecutionContext.GetRequiredService<T>()`, which reads from the ambient `ExecutionContext`'s scoped service provider (set by the `UseExecutionContext()` middleware every CoreEx host already registers), so no `IHttpContextAccessor` registration/wiring is needed.
