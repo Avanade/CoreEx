@@ -65,7 +65,7 @@ public record class PagingArgs
     /// <summary>
     /// Gets the specified number of elements in a sequence to bypass.
     /// </summary>
-    public int Skip { get; init => CheckImmutable(field = value < 0 ? 0 : value); }
+    public int Skip { get; init => field = CheckImmutable(value < 0 ? 0 : value); }
 
     /// <summary>
     /// Gets the specified number of contiguous elements from the start of a sequence.

@@ -1,5 +1,3 @@
-using Microsoft.Extensions.Logging;
-
 namespace CoreEx.Data.GraphQL;
 
 /// <summary>
