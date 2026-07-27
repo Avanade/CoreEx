@@ -74,6 +74,17 @@ public class JsonFilterTests
     }
 
     [Test]
+    public void CreateDictionary_Include_SiblingPropertyIsRawStringPrefixOfAnother_BothRemainSpecified()
+    {
+        // Regression: '$.category' is a raw string prefix of '$.categoryText' (they are sibling scalar properties, not a nested path), so neither should be
+        // demoted to an 'intermediary' (false) entry as a result of the other being present.
+        int maxDepth = 0;
+        var dict = JsonFilter.CreateDictionary(["$.category", "$.categoryText"], JsonFilterOption.Include, StringComparison.OrdinalIgnoreCase, ref maxDepth);
+        dict["$.category"].Should().BeTrue();
+        dict["$.categoryText"].Should().BeTrue();
+    }
+
+    [Test]
     public void TryJsonFilter_Include_RemovesOtherProperties()
     {
         var json = "{\"a\":1,\"b\":2,\"c\":3}";
@@ -81,6 +92,18 @@ public class JsonFilterTests
         var result = JsonFilter.TryJsonFilter(json, paths, out var filtered, JsonFilterOption.Include);
         result.Should().BeTrue();
         filtered.Should().Be("{\"a\":1,\"c\":3}");
+    }
+
+    [Test]
+    public void TryJsonFilter_Include_SiblingPropertyIsRawStringPrefixOfAnother_BothIncluded()
+    {
+        // Regression test: requesting both 'category' and 'categoryText' (a common CoreEx ref-data Code/Text property pair) must return both - previously
+        // 'category' was incorrectly dropped because '$.categoryText' textually starts with '$.category', even though they are unrelated sibling properties.
+        var json = "{\"category\":\"CAT1\",\"categoryText\":\"Category One\",\"sku\":\"ABC\"}";
+        var paths = new[] { "category", "categoryText" };
+        var result = JsonFilter.TryJsonFilter(json, paths, out var filtered, JsonFilterOption.Include);
+        result.Should().BeTrue();
+        filtered.Should().Be("{\"category\":\"CAT1\",\"categoryText\":\"Category One\"}");
     }
 
     [Test]

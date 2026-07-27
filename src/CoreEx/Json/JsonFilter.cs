@@ -191,7 +191,7 @@ public static partial class JsonFilter
 
             foreach (var kvp in dict.ToArray())
             {
-                if (dict.Keys.Any(x => !x.Equals(kvp.Key, comparison) && x.StartsWith(kvp.Key, comparison)))
+                if (dict.Keys.Any(x => IsProperDescendantPath(kvp.Key, x, comparison)))
                     dict[kvp.Key] = false;
             }
         }
@@ -200,6 +200,14 @@ public static partial class JsonFilter
 
         return dict;
     }
+
+    /// <summary>
+    /// Determines whether <paramref name="candidate"/> is a genuine descendant of <paramref name="ancestor"/> - i.e. <paramref name="candidate"/> starts with <paramref name="ancestor"/> at a
+    /// proper path-segment boundary (the next character being <c>.</c> or <c>[</c>) - rather than merely sharing a raw string prefix (e.g. <c>$.category</c> is not a descendant of
+    /// <c>$.categoryText</c>, and vice versa, despite one being a textual prefix of the other).
+    /// </summary>
+    private static bool IsProperDescendantPath(string ancestor, string candidate, StringComparison comparison) =>
+        candidate.Length > ancestor.Length && candidate.StartsWith(ancestor, comparison) && (candidate[ancestor.Length] == '.' || candidate[ancestor.Length] == '[');
 
     /// <summary>
     /// Recursively filters the JSON <paramref name="json"/> based on the specified <paramref name="args"/> and results in true where should be excluded (removed).
