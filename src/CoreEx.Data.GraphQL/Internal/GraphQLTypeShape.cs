@@ -44,8 +44,12 @@ internal static class GraphQLTypeShape
             var jsonName = property.GetCustomAttribute<JsonPropertyNameAttribute>()?.Name ?? jsonOptions.PropertyNamingPolicy?.ConvertName(property.Name) ?? property.Name;
             var (isComplex, elementType) = Classify(property.PropertyType);
 
+            // For a non-collection complex property (elementType is null), the child field map must be built from the Nullable<T>-unwrapped type - otherwise a nullable
+            // complex struct (e.g. MyValueObject?) would incorrectly reflect over Nullable<T>'s own HasValue/Value properties rather than the underlying struct's properties.
+            var childType = elementType ?? Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType;
+
             map[jsonName] = new GraphQLFieldNode(jsonName, property, property.PropertyType, isComplex, elementType,
-                isComplex ? new Lazy<IReadOnlyDictionary<string, GraphQLFieldNode>>(() => BuildFieldMap(elementType ?? property.PropertyType, jsonOptions, depth + 1)) : null);
+                isComplex ? new Lazy<IReadOnlyDictionary<string, GraphQLFieldNode>>(() => BuildFieldMap(childType, jsonOptions, depth + 1)) : null);
         }
 
         return map;

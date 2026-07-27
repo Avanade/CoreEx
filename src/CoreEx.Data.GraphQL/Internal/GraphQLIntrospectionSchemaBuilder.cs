@@ -332,7 +332,10 @@ internal static class GraphQLIntrospectionSchemaBuilder
         JsonNode typeRef;
         if (node.IsComplex)
         {
-            var nestedTypeName = EnsureObjectType(types, node.ElementType ?? node.PropertyType, jsonOptions);
+            // Non-collection complex properties (ElementType is null) must be unwrapped from Nullable<T> before use - both to avoid registering a bogus "Nullable`1" OBJECT type,
+            // and so EnsureObjectType/GetFieldMap recurse into the underlying struct's own properties rather than Nullable<T>'s HasValue/Value.
+            var childType = node.ElementType ?? Nullable.GetUnderlyingType(node.PropertyType) ?? node.PropertyType;
+            var nestedTypeName = EnsureObjectType(types, childType, jsonOptions);
 
             // Collections are represented as a (nullable) list of non-null items; single complex references are nullable (no NRT reflection is performed, so a conservative nullable
             // default is used rather than risking an incorrectly over-claimed non-null guarantee).

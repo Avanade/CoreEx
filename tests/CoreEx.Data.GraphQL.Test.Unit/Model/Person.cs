@@ -24,3 +24,21 @@ public class Address
 
     public string? City { get; set; }
 }
+
+/// <summary>
+/// A value-type (<see langword="struct"/>) nested shape, used to prove <see cref="GraphQLTypeShape"/> correctly recurses into a <i>nullable</i> complex struct property's own
+/// properties rather than <see cref="Nullable{T}"/>'s own <c>HasValue</c>/<c>Value</c> properties.
+/// </summary>
+public readonly record struct Money(decimal Amount, string Currency);
+
+/// <summary>
+/// A test DTO with a <see langword="Money?"/> (nullable complex struct) property.
+/// </summary>
+public class Invoice
+{
+    public int Id { get; set; }
+
+    public string? Number { get; set; }
+
+    public Money? Total { get; set; }
+}

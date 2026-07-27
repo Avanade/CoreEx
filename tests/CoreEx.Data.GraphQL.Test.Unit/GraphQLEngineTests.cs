@@ -225,6 +225,23 @@ public class GraphQLEngineTests
     }
 
     [Test]
+    public async Task ExecuteAsync_ItemRoot_NullableComplexStructProperty_RecursesIntoUnderlyingPropertiesAsync()
+    {
+        // Money? (Nullable<Money>) must be shaped from the underlying Money struct's own properties, not Nullable<T>'s HasValue/Value - otherwise 'amount'/'currency'
+        // would be unresolvable and produce spurious UNKNOWN_FIELD errors.
+        var engine = CreateEngine(options => options.AddGet<Invoice>("invoice", (_, _) => Task.FromResult<Invoice?>(new Invoice { Id = 1, Number = "INV-1", Total = new Money(100m, "USD") })));
+
+        var result = await engine.ExecuteAsync("{ invoice(id: 1) { number total { amount currency } } }");
+
+        result.HasErrors.Should().BeFalse();
+        var invoice = result.Data!.Value.GetProperty("invoice");
+        invoice.GetProperty("number").GetString().Should().Be("INV-1");
+        var total = invoice.GetProperty("total");
+        total.GetProperty("amount").GetDecimal().Should().Be(100m);
+        total.GetProperty("currency").GetString().Should().Be("USD");
+    }
+
+    [Test]
     public async Task ExecuteAsync_UnknownRoot_ProducesErrorAsync()
     {
         var engine = CreateEngine();
