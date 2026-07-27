@@ -213,6 +213,18 @@ public class GraphQLEngineTests
     }
 
     [Test]
+    public async Task ExecuteAsync_ItemRoot_MalformedIncludeTextArgument_ProducesArgumentErrorRatherThanThrowingAsync()
+    {
+        // 'includeText' argument-shape translation (GraphQLArgsMapper.BuildQueryArgs) happens outside the resolver invocation for item roots; it must still be
+        // captured by the same try/catch so a bad value is reported as a per-field ARGUMENT_ERROR rather than escaping ExecuteAsync and aborting the whole request.
+        var engine = CreateEngine();
+        var result = await engine.ExecuteAsync("{ person(id: 2, includeText: \"not-a-boolean\") { id name } }");
+
+        result.HasErrors.Should().BeTrue();
+        result.Errors!.Should().ContainSingle(e => e.Extensions!["code"]!.Equals("ARGUMENT_ERROR"));
+    }
+
+    [Test]
     public async Task ExecuteAsync_UnknownRoot_ProducesErrorAsync()
     {
         var engine = CreateEngine();

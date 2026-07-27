@@ -268,10 +268,10 @@ public sealed class GraphQLEngine(GraphQLLiteOptions options) : IGraphQLEngine
             return;
         }
 
-        _ = GraphQLArgsMapper.BuildQueryArgs(args); // Required for the ExecutionContext.IncludeRelatedText functionality, but the result is not used since a single-item get does not support paging or filtering.
-
         try
         {
+            _ = GraphQLArgsMapper.BuildQueryArgs(args); // Required for the ExecutionContext.IncludeRelatedText functionality, but the result is not used since a single-item get does not support paging or filtering.
+
             var item = await root.InvokeAsync(args, cancellationToken).ConfigureAwait(false);
             if (item is null)
             {
