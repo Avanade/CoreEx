@@ -112,6 +112,17 @@ public class GraphQLArgsMapperTests
     }
 
     [Test]
+    public void BuildConnectionPagingArgs_AfterCursorDecodesToIntMaxValue_ThrowsRatherThanOverflowingAsync()
+    {
+        // GraphQLCursor.TryDecode allows offset == int.MaxValue (it only validates offset >= 0); without this guard, 'skip = offset + 1' would silently overflow to
+        // int.MinValue, which PagingArgs.Skip's setter then clamps to 0 - a crafted 'after' cursor would silently return page 1 instead of erroring.
+        var args = new Dictionary<string, object?> { ["after"] = GraphQLCursor.Encode(int.MaxValue) };
+        var act = () => GraphQLArgsMapper.BuildConnectionPagingArgs(args, isCountRequested: false);
+
+        act.Should().Throw<GraphQLArgumentTranslationException>().WithMessage("*out of range*");
+    }
+
+    [Test]
     public void BuildConnectionPagingArgs_NeedsItemsFalse_CapsTakeAtOne()
     {
         // A totalCount-only selection (neither edges nor pageInfo requested) should not over-fetch a full page of rows just to discard them.
@@ -154,5 +165,31 @@ public class GraphQLArgsMapperTests
         {
             PagingArgs.MaximumTake = originalMaximumTake;
         }
+    }
+
+    [Test]
+    public void ApplyItemRootFlags_NoArgs_DoesNotThrow()
+    {
+        var act = () => GraphQLArgsMapper.ApplyItemRootFlags(new Dictionary<string, object?>());
+
+        act.Should().NotThrow();
+    }
+
+    [Test]
+    public void ApplyItemRootFlags_WhereArgPresent_Throws()
+    {
+        var args = new Dictionary<string, object?> { ["where"] = new Dictionary<string, object?> { ["name"] = "x" } };
+        var act = () => GraphQLArgsMapper.ApplyItemRootFlags(args);
+
+        act.Should().Throw<GraphQLArgumentTranslationException>().WithMessage("*where*orderBy*");
+    }
+
+    [Test]
+    public void ApplyItemRootFlags_OrderByArgPresent_Throws()
+    {
+        var args = new Dictionary<string, object?> { ["orderBy"] = new List<object?> { new Dictionary<string, object?> { ["name"] = "DESC" } } };
+        var act = () => GraphQLArgsMapper.ApplyItemRootFlags(args);
+
+        act.Should().Throw<GraphQLArgumentTranslationException>().WithMessage("*where*orderBy*");
     }
 }

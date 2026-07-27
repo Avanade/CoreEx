@@ -1,4 +1,5 @@
 global using CoreEx;
+global using CoreEx.Abstractions;
 global using CoreEx.Data;
 global using CoreEx.Data.GraphQL.Internal;
 global using CoreEx.Data.Querying;

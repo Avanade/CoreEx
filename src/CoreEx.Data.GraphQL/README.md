@@ -146,6 +146,23 @@ A client queries the `products` root using native GraphQL `where`/`orderBy` and 
   too (see below).
 - Not a replacement for the REST `$filter`/`$orderby`/`$fields` query-string endpoints — this is an
   additive bridge sharing the same underlying pipeline.
+- **Introspection is disabled by default** (`GraphQLLiteOptions.EnableIntrospection = false`) — a request for
+  `__schema`/`__type` produces an `INTROSPECTION_DISABLED` error until explicitly enabled (e.g. so client
+  tooling like GraphiQL, Postman, or Apollo/Relay codegen can introspect the schema in development). The
+  direct `IGraphQLEngine.GetSchemaAsync()` API is unaffected by this toggle.
+- **No query-cost/complexity budget beyond `MaxRootFields`** — `GraphQLLiteOptions.MaxRootFields` (default
+  `null`, unlimited) only bounds the number of root fields (including aliased repeats) in one document; there
+  is no per-request node/complexity scoring, and nested selection depth is bounded only by the underlying
+  `GraphQL-Parser` library's own `MaxDepth` default.
+- **Introspection's advertised nesting depth is an approximation of the runtime cap** — `__type` field
+  resolution mirrors `GraphQLTypeShape`'s runtime depth cap (`MaxDepth = 8`) along each type's *first*
+  traversal path, but the introspection type registry is keyed by CLR type name and short-circuits on repeat
+  visits (cycle guard), so a type reachable both shallow and deep keeps whichever depth it was first visited
+  at — it does not perform a true per-path re-evaluation for every possible route to that type.
+- **No authorization is applied by default** — `MapCoreExGraphQLLite` mounts the endpoint anonymously unless
+  the caller supplies its own `configure` delegate (e.g. `rb => rb.RequireAuthorization()`); since this
+  endpoint can reach the same underlying data as `[Authorize]`-protected REST controllers, hosts should
+  apply equivalent authorization explicitly.
 
 ## AI Usage Guide
 

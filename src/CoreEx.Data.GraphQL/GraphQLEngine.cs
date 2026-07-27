@@ -52,6 +52,10 @@ public sealed class GraphQLEngine(GraphQLLiteOptions options) : IGraphQLEngine
         if (operation.Operation != GraphQLParser.AST.OperationType.Query)
             return GraphQLEngineResult.Failure(NewError("Only query operations are supported; mutations and subscriptions are not supported.", code: "OPERATION_NOT_SUPPORTED"));
 
+        if (_options.MaxRootFields is int maxRootFields && operation.SelectionSet.Selections.Count > maxRootFields)
+            return GraphQLEngineResult.Failure(NewError($"The document selects {operation.SelectionSet.Selections.Count} root fields, exceeding the configured maximum of {maxRootFields}.",
+                code: "TOO_MANY_ROOT_FIELDS"));
+
         var jsonOptions = JsonDefaults.SerializerOptions;
         var dataObj = new JsonObject();
         var errors = new List<GraphQLEngineError>();
@@ -91,11 +95,19 @@ public sealed class GraphQLEngine(GraphQLLiteOptions options) : IGraphQLEngine
                 // An undefined variable reference (or other argument-shape error) is raised while converting arguments, before a root is even resolved; map it the same way as
                 // an error thrown during root invocation rather than letting it escape ExecuteAsync unhandled.
                 errors.Add(MapException(ex, alias));
+                dataObj[alias] = null;
                 continue;
             }
 
             if (string.Equals(name, SchemaFieldName, StringComparison.Ordinal))
             {
+                if (!_options.EnableIntrospection)
+                {
+                    errors.Add(NewError("Introspection is disabled; enable GraphQLLiteOptions.EnableIntrospection to query '__schema'.", [alias], "INTROSPECTION_DISABLED"));
+                    dataObj[alias] = null;
+                    continue;
+                }
+
                 // Meta-fields describing the schema itself: the full canonical __Schema/__Type shape is returned unconditionally (over-fetch), regardless of the client's nested
                 // selection set - safe/expected for introspection, and avoids needing general fragment-spread support just for the standard client-tooling introspection query.
                 dataObj[alias] = _introspection.Value.Schema.DeepClone();
@@ -104,6 +116,13 @@ public sealed class GraphQLEngine(GraphQLLiteOptions options) : IGraphQLEngine
 
             if (string.Equals(name, TypeFieldName, StringComparison.Ordinal))
             {
+                if (!_options.EnableIntrospection)
+                {
+                    errors.Add(NewError("Introspection is disabled; enable GraphQLLiteOptions.EnableIntrospection to query '__type'.", [alias], "INTROSPECTION_DISABLED"));
+                    dataObj[alias] = null;
+                    continue;
+                }
+
                 var typeName = args.GetString("name");
                 dataObj[alias] = typeName is not null && _introspection.Value.TypesByName.TryGetValue(typeName, out var typeNode) ? typeNode.DeepClone() : null;
                 continue;
@@ -115,6 +134,9 @@ public sealed class GraphQLEngine(GraphQLLiteOptions options) : IGraphQLEngine
                 await ExecuteItemRootAsync(itemRoot, field, alias, args, jsonOptions, dataObj, errors, cancellationToken).ConfigureAwait(false);
             else
                 errors.Add(NewError($"Unknown root field '{name}'.", [alias], "UNKNOWN_ROOT"));
+
+            if (!dataObj.ContainsKey(alias))
+                dataObj[alias] = null;
         }
 
         var result = new GraphQLEngineResult();
@@ -270,7 +292,7 @@ public sealed class GraphQLEngine(GraphQLLiteOptions options) : IGraphQLEngine
 
         try
         {
-            _ = GraphQLArgsMapper.BuildQueryArgs(args); // Required for the ExecutionContext.IncludeRelatedText functionality, but the result is not used since a single-item get does not support paging or filtering.
+            GraphQLArgsMapper.ApplyItemRootFlags(args); // A single-item get does not support where/orderBy (rejected outright); includeText's ExecutionContext.IncludeRelatedText side-effect is still honored.
 
             var item = await root.InvokeAsync(args, cancellationToken).ConfigureAwait(false);
             if (item is null)
@@ -291,11 +313,21 @@ public sealed class GraphQLEngine(GraphQLLiteOptions options) : IGraphQLEngine
     }
 
     /// <summary>
+    /// The configuration key controlling whether an unexpected (non-<see cref="IExtendedException"/>) exception's real message/detail is surfaced to the client, mirroring the identically-named
+    /// REST convention (see <c>WebApiBase.IncludeExceptionInProblemDetailsName</c> in <c>CoreEx.AspNetCore</c>) so a single app setting governs both transports.
+    /// </summary>
+    private const string IncludeExceptionInProblemDetailsName = "CoreEx:IncludeExceptionInProblemDetails";
+
+    /// <summary>
     /// Maps a thrown exception to a <see cref="GraphQLEngineError"/> with an appropriate error code.
     /// </summary>
     /// <remarks><see cref="ArgumentException"/> (and <see cref="ArgumentNullException"/>/<see cref="KeyNotFoundException"/>) are included alongside <see cref="GraphQLArgumentTranslationException"/>
     /// as <c>ARGUMENT_ERROR</c> since a registered resolver delegate (e.g. an <c>AddGet</c> item root) commonly throws one of these standard .NET exception types itself to reject a
-    /// missing/invalid argument - without this, such resolver-thrown argument problems would be indistinguishable from a genuine server-side execution fault.</remarks>
+    /// missing/invalid argument - without this, such resolver-thrown argument problems would be indistinguishable from a genuine server-side execution fault. These, and the parser exceptions,
+    /// are considered "expected" client-argument problems and are never logged. <see cref="IExtendedException"/>-derived exceptions (known business exceptions) surface their own safe
+    /// <see cref="Exception.Message"/> and are logged only where <see cref="IExtendedException.ShouldBeLogged"/> (config-gated, default <see langword="false"/>) - mirroring the REST
+    /// <c>WebApi</c> convention. Any other (genuinely unexpected) exception is always logged, and its real message is only surfaced to the client where
+    /// <c>CoreEx:IncludeExceptionInProblemDetails</c> is explicitly enabled; otherwise a generic <see cref="UnexpectedInternalException"/> message is returned - again mirroring <c>WebApi</c>.</remarks>
     private static GraphQLEngineError MapException(Exception ex, string alias) => ex switch
     {
         GraphQLArgumentTranslationException => NewError(ex.Message, [alias], "ARGUMENT_ERROR"),
@@ -303,14 +335,97 @@ public sealed class GraphQLEngine(GraphQLLiteOptions options) : IGraphQLEngine
         KeyNotFoundException => NewError(ex.Message, [alias], "ARGUMENT_ERROR"),
         QueryFilterParserException => NewError(ex.Message, [alias], "FILTER_PARSE_ERROR"),
         QueryOrderByParserException => NewError(ex.Message, [alias], "ORDERBY_PARSE_ERROR"),
-        NotFoundException => NewError(ex.Message, [alias], "NOT_FOUND"),
-        ValidationException => NewError(ex.Message, [alias], "VALIDATION_ERROR"),
-        _ => NewError(ex.Message, [alias], "EXECUTION_ERROR")
+        ValidationException vex => MapValidationException(vex, alias),
+        NotFoundException => MapKnownExtendedException(ex, alias, "NOT_FOUND"),
+        ConflictException => MapKnownExtendedException(ex, alias, "CONFLICT_ERROR"),
+        DuplicateException => MapKnownExtendedException(ex, alias, "DUPLICATE_ERROR"),
+        ConcurrencyException => MapKnownExtendedException(ex, alias, "CONCURRENCY_ERROR"),
+        AuthenticationException => MapKnownExtendedException(ex, alias, "AUTHENTICATION_ERROR"),
+        AuthorizationException => MapKnownExtendedException(ex, alias, "AUTHORIZATION_ERROR"),
+        BusinessException => MapKnownExtendedException(ex, alias, "BUSINESS_ERROR"),
+        IExtendedException => MapKnownExtendedException(ex, alias, "EXECUTION_ERROR"),
+        _ => MapUnexpectedException(ex, alias)
     };
 
     /// <summary>
-    /// Creates a new <see cref="GraphQLEngineError"/> with the specified message, path and error code.
+    /// Maps a known/expected <see cref="IExtendedException"/> (e.g. <see cref="NotFoundException"/>, <see cref="ConflictException"/>) to a <see cref="GraphQLEngineError"/>, logging it only
+    /// where <see cref="IExtendedException.ShouldBeLogged"/> - these are "expected" business-flow exceptions, quiet by default (matching the REST <c>WebApi</c> convention).
     /// </summary>
-    private static GraphQLEngineError NewError(string message, IReadOnlyList<string>? path = null, string? code = null) =>
-        new(message) { Path = path, Extensions = code is null ? null : new Dictionary<string, object?> { ["code"] = code } };
+    private static GraphQLEngineError MapKnownExtendedException(Exception ex, string alias, string code)
+    {
+        if (ex is IExtendedException eex && eex.ShouldBeLogged)
+            LogException(ex);
+
+        return NewError(ex.Message, [alias], code);
+    }
+
+    /// <summary>
+    /// Maps a <see cref="ValidationException"/> to a <see cref="GraphQLEngineError"/>, including a per-property <c>messages</c> extension (mirroring the REST <c>ValidationProblem</c> shape)
+    /// where <see cref="ValidationException.Messages"/> is populated - so structured per-property detail is not lost behind the single top-level <see cref="Exception.Message"/>.
+    /// </summary>
+    private static GraphQLEngineError MapValidationException(ValidationException vex, string alias)
+    {
+        if (vex.ShouldBeLogged)
+            LogException(vex);
+
+        if (vex.Messages is not { Count: > 0 })
+            return NewError(vex.Message, [alias], "VALIDATION_ERROR");
+
+        var messages = new Dictionary<string, string[]>();
+        foreach (var group in from m in vex.Messages.GetMessagesForType(MessageType.Error).Where(x => x.Property is not null && x.Text is not null)
+                               group m by m.Property into g
+                               select new { Property = g.Key, Messages = g })
+        {
+            messages.Add(group.Property!, [.. group.Messages.Select(m => m.Text!.ToString()!)]);
+        }
+
+        return NewError(vex.Message, [alias], "VALIDATION_ERROR", new Dictionary<string, object?> { ["messages"] = messages });
+    }
+
+    /// <summary>
+    /// Maps a genuinely unexpected (non-<see cref="IExtendedException"/>) exception to a generic <c>EXECUTION_ERROR</c>, always logging it (unlike known/expected exceptions) and only
+    /// surfacing its real message/detail where <c>CoreEx:IncludeExceptionInProblemDetails</c> is explicitly enabled - otherwise a generic <see cref="UnexpectedInternalException"/> message is
+    /// returned, matching the REST <c>WebApi</c> convention so an unhandled fault (e.g. a <see cref="NullReferenceException"/> or database error) never leaks server internals by default.
+    /// </summary>
+    private static GraphQLEngineError MapUnexpectedException(Exception ex, string alias)
+    {
+        LogException(ex);
+
+        var includeDetail = CoreEx.Abstractions.Internal.GetConfigurationValue(IncludeExceptionInProblemDetailsName, false);
+        var message = includeDetail ? ex.Message : new UnexpectedInternalException().Message;
+        return NewError(message, [alias], "EXECUTION_ERROR");
+    }
+
+    /// <summary>
+    /// Logs the specified <paramref name="ex"/> as an error via the ambient <see cref="ILogger{GraphQLEngine}"/> (where available), using the same <see cref="CoreEx.ExecutionContext.HasCurrent"/>/
+    /// <see cref="CoreEx.ExecutionContext.GetService{T}"/> pattern established in <see cref="GraphQLQueryRoot"/>.
+    /// </summary>
+    private static void LogException(Exception ex)
+    {
+        if (!ExecutionContext.HasCurrent)
+            return;
+
+        var logger = ExecutionContext.GetService<ILogger<GraphQLEngine>>();
+        if (logger is not null && logger.IsEnabled(LogLevel.Error))
+            logger.LogError(ex, "{Error}", ex.Message);
+    }
+
+    /// <summary>
+    /// Creates a new <see cref="GraphQLEngineError"/> with the specified message, path, error code and any additional <paramref name="extraExtensions"/>.
+    /// </summary>
+    private static GraphQLEngineError NewError(string message, IReadOnlyList<string>? path = null, string? code = null, IReadOnlyDictionary<string, object?>? extraExtensions = null)
+    {
+        Dictionary<string, object?>? extensions = null;
+        if (code is not null || extraExtensions is not null)
+        {
+            extensions = code is null ? [] : new Dictionary<string, object?> { ["code"] = code };
+            if (extraExtensions is not null)
+            {
+                foreach (var kvp in extraExtensions)
+                    extensions[kvp.Key] = kvp.Value;
+            }
+        }
+
+        return new(message) { Path = path, Extensions = extensions };
+    }
 }

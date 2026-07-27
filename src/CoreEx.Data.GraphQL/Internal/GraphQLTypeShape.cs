@@ -7,7 +7,7 @@ namespace CoreEx.Data.GraphQL.Internal;
 /// struct other than <see cref="string"/> and the well-known scalar-like BCL types (<see cref="DateTime"/>, <see cref="Guid"/>, <see cref="decimal"/>, etc.) and reference data code types.</remarks>
 internal static class GraphQLTypeShape
 {
-    private const int MaxDepth = 8;
+    internal const int MaxDepth = 8;
     private static readonly ConcurrentDictionary<(Type Type, JsonSerializerOptions Options), IReadOnlyDictionary<string, GraphQLFieldNode>> _cache = new();
 
     private static readonly HashSet<Type> _scalarTypes =

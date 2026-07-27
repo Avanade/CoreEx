@@ -103,6 +103,11 @@ registers), so no extra `IHttpContextAccessor` registration is needed.
 > dataloader/N+1 resolution). See [`CoreEx.Data.GraphQL`](../../src/CoreEx.Data.GraphQL/README.md) for the
 > full capability and non-goal list.
 
+> **Secure defaults**: `GraphQLLiteOptions.EnableIntrospection` defaults to `false` — the sample above opts
+> in explicitly so Postman/GraphiQL-style tooling can introspect the schema in development. `MapCoreExGraphQLLite`
+> also applies no authorization by default; pass `configure: rb => rb.RequireAuthorization()` (or an
+> equivalent policy) in hosts where this endpoint should require the same access control as REST controllers.
+
 ### Program.cs composition
 
 `Program.cs` follows a predictable CoreEx shape and is the only file in the API host:

@@ -35,6 +35,24 @@ internal static class GraphQLArgsMapper
     }
 
     /// <summary>
+    /// Applies the <c>includeText</c> ref-data flag from the resolved GraphQL field arguments to the current <see cref="CoreEx.ExecutionContext"/>, for a single-item <c>AddGet</c> root.
+    /// </summary>
+    /// <param name="args">The resolved GraphQL field arguments.</param>
+    /// <remarks>A single-item get does not support filtering/ordering (unlike a list query root), so unlike <see cref="BuildQueryArgs"/> this does not translate <c>where</c>/<c>orderBy</c> at
+    /// all - unlike list roots, item roots never advertise those arguments via introspection (see <see cref="GraphQLIntrospectionSchemaBuilder.BuildItemRootField"/>), so a client passing
+    /// either is deliberately rejected outright, rather than the argument being silently parsed and then discarded. <c>includeInactive</c> is likewise not applicable to a single-item get
+    /// (there is no filter to apply it to) and is ignored if present.</remarks>
+    /// <exception cref="GraphQLArgumentTranslationException">Thrown where <c>where</c>/<c>orderBy</c> are specified; these are only applicable to list query roots.</exception>
+    public static void ApplyItemRootFlags(IReadOnlyDictionary<string, object?> args)
+    {
+        if (args.ContainsKey("where") || args.ContainsKey("orderBy"))
+            throw new GraphQLArgumentTranslationException("'where'/'orderBy' are not supported on single-item root fields; they are only applicable to list query roots.");
+
+        if (args.GetBool("includeText") is true && ExecutionContext.HasCurrent && !ExecutionContext.Current.IncludeRelatedText)
+            ExecutionContext.Current.IncludeRelatedText = true;
+    }
+
+    /// <summary>
     /// Builds the underlying <see cref="PagingArgs"/> for a Relay Cursor Connections query root, from the resolved <c>first</c>/<c>after</c> GraphQL field arguments.
     /// </summary>
     /// <param name="args">The resolved GraphQL field arguments.</param>
@@ -49,7 +67,7 @@ internal static class GraphQLArgsMapper
     /// small (<c>&lt;= 1</c>) that an over-fetch is structurally impossible, in which case <see cref="PagingArgs.IsCountRequested"/> is forced <see langword="true"/> so the
     /// caller can derive <c>hasNextPage</c> from <see cref="PagingResult.TotalCount"/> instead.</returns>
     /// <exception cref="GraphQLArgumentTranslationException">Thrown where <c>last</c>/<c>before</c> (backward pagination) are specified, <c>first</c> is not greater than zero,
-    /// or <c>after</c> is not a valid cursor.</exception>
+    /// <c>after</c> is not a valid cursor, or <c>after</c> decodes to <see cref="int.MaxValue"/> (which would otherwise overflow <c>skip = offset + 1</c>).</exception>
     public static (PagingArgs PagingArgs, int First, bool RequiresTotalCountForHasNextPage) BuildConnectionPagingArgs(IReadOnlyDictionary<string, object?> args, bool isCountRequested, bool needsItems = true)
     {
         if (args.ContainsKey("last") || args.ContainsKey("before"))
@@ -68,6 +86,9 @@ internal static class GraphQLArgsMapper
         {
             if (!GraphQLCursor.TryDecode(after, out var offset))
                 throw new GraphQLArgumentTranslationException("'after' is not a valid cursor.");
+
+            if (offset == int.MaxValue)
+                throw new GraphQLArgumentTranslationException("'after' cursor is out of range.");
 
             skip = offset + 1;
         }

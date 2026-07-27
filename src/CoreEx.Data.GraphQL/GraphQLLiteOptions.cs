@@ -21,6 +21,23 @@ public sealed class GraphQLLiteOptions
     public IReadOnlyDictionary<string, GraphQLItemRoot> ItemRoots => _itemRoots;
 
     /// <summary>
+    /// Gets or sets the maximum number of root fields (including repeated/aliased occurrences) permitted in a single document's selection set.
+    /// </summary>
+    /// <remarks>Defaults to <see langword="null"/> (unlimited), matching the engine's existing behavior. Each root field can independently drive a backend query, so a document with many
+    /// aliased occurrences of the same (or different) root fields can fan out to many backend calls from one inbound request; setting a cap here bounds that fan-out. See
+    /// <see cref="GraphQLEngine.ExecuteAsync(string, string?, IReadOnlyDictionary{string, object?}?, CancellationToken)"/>, which rejects a document exceeding this limit with a
+    /// <c>TOO_MANY_ROOT_FIELDS</c> error before any backend work is performed.</remarks>
+    public int? MaxRootFields { get; set; }
+
+    /// <summary>
+    /// Gets or sets whether the <c>__schema</c>/<c>__type</c> introspection meta-fields are answerable over the query endpoint.
+    /// </summary>
+    /// <remarks>Defaults to <see langword="false"/> (secure-by-default): a request for either meta-field produces an <c>INTROSPECTION_DISABLED</c> error rather than being executed. This only
+    /// gates the client-facing <c>__schema</c>/<c>__type</c> query fields - <see cref="IGraphQLEngine.GetSchemaAsync(CancellationToken)"/> (the direct API, e.g. for internal tooling or
+    /// documentation generation) is unaffected and always available. Enable this where client tooling (e.g. GraphiQL, Postman, Apollo/Relay codegen) needs to introspect the schema.</remarks>
+    public bool EnableIntrospection { get; set; }
+
+    /// <summary>
     /// Registers a list query root field (e.g. <c>products</c>) bound to an existing <see cref="QueryArgsConfig"/> and <c>QueryAsync</c>-shaped delegate.
     /// </summary>
     /// <typeparam name="TItem">The projected item <see cref="Type"/>.</typeparam>
