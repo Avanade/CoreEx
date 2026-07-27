@@ -119,7 +119,7 @@ public sealed class GraphQLEngine(GraphQLLiteOptions options) : IGraphQLEngine
 
         var result = new GraphQLEngineResult();
         if (dataObj.Count > 0)
-            result.Data = JsonSerializer.SerializeToElement(dataObj);
+            result.Data = JsonSerializer.SerializeToElement(dataObj, jsonOptions);
 
         if (errors.Count > 0)
             result.Errors = errors;
