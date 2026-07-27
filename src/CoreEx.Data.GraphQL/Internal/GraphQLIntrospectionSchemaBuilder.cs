@@ -19,8 +19,9 @@ namespace CoreEx.Data.GraphQL.Internal;
 /// reported by <see cref="QueryArgsConfig.ToJsonSchema"/> (e.g. <c>subcategory</c> rather than <c>subCategory</c>) rather than the DTO's camelCase JSON naming, which has no effect on
 /// correctness since field name matching is case-insensitive; CLR <see langword="enum"/> and <see cref="IReferenceData"/> <i>output</i> properties are still described as the <c>String</c>
 /// scalar (matching their actual JSON wire representation) rather than a spec <c>ENUM</c> type; and a single-item <c>AddGet</c> root only advertises an <c>id: ID!</c> argument where its
-/// registered item <see cref="Type"/> implements <see cref="IReadOnlyIdentifier{TId}"/> - otherwise it advertises no arguments at all, rather than guessing at an argument shape the
-/// registration API does not declare.</para></remarks>
+/// registered item <see cref="Type"/> implements <see cref="IReadOnlyIdentifier{TId}"/> - otherwise it advertises no <c>id</c> argument at all, rather than guessing at an argument shape
+/// the registration API does not declare - but always advertises <c>includeText</c>/<c>includeInactive</c> alongside it, since <see cref="GraphQLEngine"/> honours both for item roots
+/// regardless of the item type's identifier shape.</para></remarks>
 internal static class GraphQLIntrospectionSchemaBuilder
 {
     private const string QueryTypeName = "Query";
@@ -126,7 +127,8 @@ internal static class GraphQLIntrospectionSchemaBuilder
 
     /// <summary>
     /// Builds the <c>Query</c> type field descriptor for a registered <see cref="GraphQLItemRoot"/>, advertising an <c>id: ID!</c> argument only where its item <see cref="Type"/>
-    /// implements <see cref="IReadOnlyIdentifier{TId}"/>.
+    /// implements <see cref="IReadOnlyIdentifier{TId}"/>, plus the <c>includeText</c>/<c>includeInactive</c> arguments <see cref="GraphQLEngine"/> already honours for item roots
+    /// (see <see cref="GraphQLArgsMapper.BuildQueryArgs"/>).
     /// </summary>
     private static JsonObject BuildItemRootField(GraphQLItemRoot root, Dictionary<string, JsonObject> types, JsonSerializerOptions jsonOptions)
     {
@@ -135,6 +137,9 @@ internal static class GraphQLIntrospectionSchemaBuilder
 
         if (root.ItemType.GetInterfaces().Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IReadOnlyIdentifier<>)))
             args.Add(NewArg("id", NonNullOf(NamedRef("ID", "SCALAR"))));
+
+        args.Add(NewArg("includeText", NamedRef("Boolean", "SCALAR")));
+        args.Add(NewArg("includeInactive", NamedRef("Boolean", "SCALAR")));
 
         return NewField(root.Name, NamedRef(itemTypeName, "OBJECT"), args);
     }

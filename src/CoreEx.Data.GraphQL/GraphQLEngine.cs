@@ -161,6 +161,7 @@ public sealed class GraphQLEngine(GraphQLLiteOptions options) : IGraphQLEngine
         try
         {
             var queryArgs = GraphQLArgsMapper.BuildQueryArgs(args);
+            queryArgs.IncludeFields = paths.Count > 0 ? paths : null;
             var needsItems = connection.EdgesAlias is not null || connection.PageInfoAlias is not null;
             var (pagingArgs, first, requiresTotalCountForHasNextPage) = GraphQLArgsMapper.BuildConnectionPagingArgs(args, connection.TotalCountAlias is not null, needsItems);
             var skip = pagingArgs.Skip;
@@ -174,7 +175,7 @@ public sealed class GraphQLEngine(GraphQLLiteOptions options) : IGraphQLEngine
                 ? skip + allItems.Count < totalCount
                 : allItems.Count > first;
 
-            var pageItems = allItems.Count > first ? allItems.Take(first).ToList() : allItems;
+            var pageItems = allItems.Count > first ? [.. allItems.Take(first)] : allItems;
             var hasPreviousPage = skip > 0;
 
             JsonArray? shapedNodes = null;
@@ -266,6 +267,8 @@ public sealed class GraphQLEngine(GraphQLLiteOptions options) : IGraphQLEngine
             errors.AddRange(selectionErrors);
             return;
         }
+
+        _ = GraphQLArgsMapper.BuildQueryArgs(args); // Required for the ExecutionContext.IncludeRelatedText functionality, but the result is not used since a single-item get does not support paging or filtering.
 
         try
         {

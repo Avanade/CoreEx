@@ -21,7 +21,12 @@ internal static class GraphQLArgsMapper
         };
 
         if (args.GetBool("includeText") is true)
+        {
             queryArgs.IncludeText();
+
+            if (ExecutionContext.HasCurrent && !ExecutionContext.Current.IncludeRelatedText)
+                ExecutionContext.Current.IncludeRelatedText = true;
+        }
 
         if (args.GetBool("includeInactive") is true)
             queryArgs.IncludeInactive();

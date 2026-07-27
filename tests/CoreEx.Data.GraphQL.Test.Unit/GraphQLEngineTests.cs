@@ -287,10 +287,11 @@ public class GraphQLEngineTests
         sortDirection.GetProperty("kind").GetString().Should().Be("ENUM");
         sortDirection.GetProperty("enumValues").EnumerateArray().Select(v => v.GetProperty("name").GetString()).Should().BeEquivalentTo(["ASC", "DESC"]);
 
-        // Person implements IReadOnlyIdentifier<int>, so the 'person' get-root should advertise a required 'id: ID!' argument.
+        // Person implements IReadOnlyIdentifier<int>, so the 'person' get-root should advertise a required 'id: ID!' argument, plus 'includeText'/'includeInactive' since
+        // GraphQLEngine honours both for item (get) roots too.
         var personField = FindField(queryType, "person");
         var personArgs = personField.GetProperty("args").EnumerateArray().ToList();
-        personArgs.Should().ContainSingle(a => a.GetProperty("name").GetString() == "id");
+        personArgs.Select(a => a.GetProperty("name").GetString()).Should().BeEquivalentTo(["id", "includeText", "includeInactive"]);
         var idArgType = personArgs.Single(a => a.GetProperty("name").GetString() == "id").GetProperty("type");
         idArgType.GetProperty("kind").GetString().Should().Be("NON_NULL");
         idArgType.GetProperty("ofType").GetProperty("name").GetString().Should().Be("ID");

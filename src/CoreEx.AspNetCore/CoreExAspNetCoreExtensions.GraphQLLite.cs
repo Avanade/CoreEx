@@ -3,7 +3,7 @@ namespace Microsoft.AspNetCore.Builder;
 #pragma warning restore IDE0130 // Namespace does not match folder structure
 
 /// <summary>
-/// Provides the <see cref="MapCoreExGraphQLLite(IEndpointRouteBuilder, string)"/> hosting bridge for the CoreEx GraphQL-lite <see cref="IGraphQLEngine"/>.
+/// Provides the <see cref="MapCoreExGraphQLLite(IEndpointRouteBuilder, string, Action{IEndpointConventionBuilder}?)"/> hosting bridge for the CoreEx GraphQL-lite <see cref="IGraphQLEngine"/>.
 /// </summary>
 public static partial class CoreExAspNetCoreExtensions
 {
@@ -13,16 +13,17 @@ public static partial class CoreExAspNetCoreExtensions
     /// </summary>
     /// <param name="endpoints">The <see cref="IEndpointRouteBuilder"/>.</param>
     /// <param name="pattern">The route pattern; defaults to <c>/query</c>.</param>
+    /// <param name="configure">An optional <see cref="Action{T}"/> to configure the <see cref="IEndpointConventionBuilder"/>.</param>
     /// <returns>The <paramref name="endpoints"/> to support fluent-style method-chaining.</returns>
     /// <remarks>This is intentionally a thin, transport-only bridge: all parsing, argument mapping, field-selection projection, and error mapping is performed by the registered <see cref="IGraphQLEngine"/>
     /// implementation (see the <c>CoreEx.Data.GraphQL</c> package). Register the engine and its query/item roots via <c>services.AddCoreExGraphQLLite((o, sp) =&gt; o.AddQuery(...))</c> before calling this
     /// method. The endpoint is additive to any existing REST controllers/endpoints for the same domain — it is not a replacement.</remarks>
-    public static IEndpointRouteBuilder MapCoreExGraphQLLite(this IEndpointRouteBuilder endpoints, string pattern = "/query")
+    public static IEndpointRouteBuilder MapCoreExGraphQLLite(this IEndpointRouteBuilder endpoints, string pattern = "/query", Action<IEndpointConventionBuilder>? configure = null)
     {
         endpoints.ThrowIfNull();
         pattern.ThrowIfNullOrEmpty();
 
-        endpoints.MapPost(pattern, async (HttpRequest request, IGraphQLEngine engine, CancellationToken cancellationToken) =>
+        var rb = endpoints.MapPost(pattern, async (HttpRequest request, IGraphQLEngine engine, CancellationToken cancellationToken) =>
         {
             GraphQLLiteRequest? body;
             try
@@ -50,7 +51,11 @@ public static partial class CoreExAspNetCoreExtensions
             // Per the GraphQL-over-HTTP convention, the response status remains 200 regardless of field-level errors.
             await Results.Json(new GraphQLLiteResponse(result.Data, result.Errors), JsonDefaults.SerializerOptions, statusCode: (int)HttpStatusCode.OK).ExecuteAsync(request.HttpContext).ConfigureAwait(false);
         })
-        .WithName($"CoreExGraphQLLite{pattern.Replace('/', '_')}");
+        .WithName($"CoreExGraphQLLite{pattern.Replace('/', '_')}")
+        .WithDisplayName("GraphQL Lite")
+        .WithTags("GraphQL");
+
+        configure?.Invoke(rb);
 
         return endpoints;
     }

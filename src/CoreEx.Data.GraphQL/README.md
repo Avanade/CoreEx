@@ -141,8 +141,9 @@ A client queries the `products` root using native GraphQL `where`/`orderBy` and 
 - CLR `enum` and reference-data (`IReferenceData`) *output* properties are described as the `String` scalar
   (matching their actual JSON wire representation), not a spec `ENUM` type.
 - A single-item `AddGet` root only advertises an `id: ID!` argument where its registered item type implements
-  `IReadOnlyIdentifier<TId>`; otherwise it advertises no arguments at all in the schema, since the `AddGet`
-  registration API does not declare an argument shape today.
+  `IReadOnlyIdentifier<TId>`, since the `AddGet` registration API does not declare an argument shape today; it
+  always advertises `includeText`/`includeInactive` alongside it, since the engine honours both for item roots
+  too (see below).
 - Not a replacement for the REST `$filter`/`$orderby`/`$fields` query-string endpoints — this is an
   additive bridge sharing the same underlying pipeline.
 

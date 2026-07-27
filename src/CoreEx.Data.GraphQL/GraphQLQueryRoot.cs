@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+
 namespace CoreEx.Data.GraphQL;
 
 /// <summary>
@@ -45,5 +47,16 @@ public sealed class GraphQLQueryRoot
     /// <param name="pagingArgs">The <see cref="PagingArgs"/>.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
     /// <returns>The <see cref="IItemsResult"/>.</returns>
-    public Task<IItemsResult> InvokeAsync(QueryArgs? queryArgs, PagingArgs? pagingArgs, CancellationToken cancellationToken) => _resolver(queryArgs, pagingArgs, cancellationToken);
+    public async Task<IItemsResult> InvokeAsync(QueryArgs? queryArgs, PagingArgs? pagingArgs, CancellationToken cancellationToken)
+    {
+        if (ExecutionContext.HasCurrent)
+        {
+            // Where debug logging is enabled, log the invocation of the GraphQL query root arguments.
+            var logger = ExecutionContext.GetService<ILogger<GraphQLQueryRoot>>();
+            if (logger is not null && logger.IsEnabled(LogLevel.Debug))
+                logger.LogDebug("Invoking GraphQL query root '{Name}' with:\n  QueryArgs: [{QueryArgs}]\n  PagingArgs: [{PagingArgs}].", Name, queryArgs, pagingArgs);
+        }
+
+        return await _resolver(queryArgs, pagingArgs, cancellationToken).ConfigureAwait(false);
+    }
 }
