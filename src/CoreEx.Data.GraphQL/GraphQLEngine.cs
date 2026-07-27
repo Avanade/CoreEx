@@ -290,9 +290,14 @@ public sealed class GraphQLEngine(GraphQLLiteOptions options) : IGraphQLEngine
     /// <summary>
     /// Maps a thrown exception to a <see cref="GraphQLEngineError"/> with an appropriate error code.
     /// </summary>
+    /// <remarks><see cref="ArgumentException"/> (and <see cref="ArgumentNullException"/>/<see cref="KeyNotFoundException"/>) are included alongside <see cref="GraphQLArgumentTranslationException"/>
+    /// as <c>ARGUMENT_ERROR</c> since a registered resolver delegate (e.g. an <c>AddGet</c> item root) commonly throws one of these standard .NET exception types itself to reject a
+    /// missing/invalid argument - without this, such resolver-thrown argument problems would be indistinguishable from a genuine server-side execution fault.</remarks>
     private static GraphQLEngineError MapException(Exception ex, string alias) => ex switch
     {
         GraphQLArgumentTranslationException => NewError(ex.Message, [alias], "ARGUMENT_ERROR"),
+        ArgumentException => NewError(ex.Message, [alias], "ARGUMENT_ERROR"),
+        KeyNotFoundException => NewError(ex.Message, [alias], "ARGUMENT_ERROR"),
         QueryFilterParserException => NewError(ex.Message, [alias], "FILTER_PARSE_ERROR"),
         QueryOrderByParserException => NewError(ex.Message, [alias], "ORDERBY_PARSE_ERROR"),
         NotFoundException => NewError(ex.Message, [alias], "NOT_FOUND"),

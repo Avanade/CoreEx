@@ -562,4 +562,37 @@ public class GraphQLEngineTests
         var act = () => engine.ExecuteAsync("{ cancelable(id: 1) { id } }");
         await act.Should().ThrowAsync<OperationCanceledException>();
     }
+
+    [Test]
+    public async Task ExecuteAsync_ResolverThrowsArgumentException_MapsToArgumentErrorAsync()
+    {
+        var engine = CreateEngine(options => options.AddGet<Person>("missingArg", (_, _) => throw new ArgumentException("'id' argument is required.")));
+
+        var result = await engine.ExecuteAsync("{ missingArg(id: 1) { id } }");
+
+        result.HasErrors.Should().BeTrue();
+        result.Errors!.Should().ContainSingle(e => e.Extensions!["code"]!.Equals("ARGUMENT_ERROR"));
+    }
+
+    [Test]
+    public async Task ExecuteAsync_ResolverThrowsKeyNotFoundException_MapsToArgumentErrorAsync()
+    {
+        var engine = CreateEngine(options => options.AddGet<Person>("missingKey", (args, _) => throw new KeyNotFoundException("The given key 'id' was not present.")));
+
+        var result = await engine.ExecuteAsync("{ missingKey(id: 1) { id } }");
+
+        result.HasErrors.Should().BeTrue();
+        result.Errors!.Should().ContainSingle(e => e.Extensions!["code"]!.Equals("ARGUMENT_ERROR"));
+    }
+
+    [Test]
+    public async Task ExecuteAsync_ResolverThrowsUnmappedException_MapsToExecutionErrorAsync()
+    {
+        var engine = CreateEngine(options => options.AddGet<Person>("faulty", (_, _) => throw new InvalidOperationException("Something went wrong.")));
+
+        var result = await engine.ExecuteAsync("{ faulty(id: 1) { id } }");
+
+        result.HasErrors.Should().BeTrue();
+        result.Errors!.Should().ContainSingle(e => e.Extensions!["code"]!.Equals("EXECUTION_ERROR"));
+    }
 }
