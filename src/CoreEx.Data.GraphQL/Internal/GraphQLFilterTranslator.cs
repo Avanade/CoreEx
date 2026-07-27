@@ -8,9 +8,10 @@ namespace CoreEx.Data.GraphQL.Internal;
 /// object (<c>{ sku: { startsWith: "spec" } }</c>) or a bare scalar shorthand for equality (<c>{ sku: "ABC" }</c> ≡ <c>{ sku: { eq: "ABC" } }</c>); <c>and</c>/<c>or</c>/<c>not</c>
 /// keys compose nested <c>where</c> objects. Operator keys (<c>eq</c>, <c>ne</c>, <c>gt</c>, <c>ge</c>, <c>lt</c>, <c>le</c>, <c>in</c>, <c>startsWith</c>, <c>endsWith</c>,
 /// <c>contains</c>) are a 1:1, case-insensitive rename of <see cref="QueryFilterOperator"/> — <b>exact</b> compatibility with the existing REST <c>$filter</c> vocabulary.
-/// <para>This translator performs <b>no</b> field/operator legality validation of its own — by design, the resulting OData-esque string is always passed through the existing,
-/// unmodified <see cref="QueryFilterParser"/>, so any unsupported field or operator combination still fails safely as a standard <see cref="QueryFilterParserException"/>
-/// (defense in depth); this translator is responsible for syntax rewriting only.</para></remarks>
+/// <para>Beyond validating that each field name conforms to the GraphQL <c>Name</c> grammar (see <see cref="GraphQLNameValidator"/>) — required because <c>where</c> supplied
+/// via JSON variables is not guaranteed to be GraphQL-safe — this translator performs no further field/operator legality validation of its own: the resulting OData-esque
+/// string is always passed through the existing, unmodified <see cref="QueryFilterParser"/>, so any unsupported field or operator combination still fails safely as a standard
+/// <see cref="QueryFilterParserException"/> (defense in depth).</para></remarks>
 internal static class GraphQLFilterTranslator
 {
     /// <summary>
@@ -73,6 +74,8 @@ internal static class GraphQLFilterTranslator
     /// <returns>The OData-esque expression fragment.</returns>
     private static string TranslateFieldClause(string field, object? value, string path)
     {
+        GraphQLNameValidator.ValidateFieldName(field, $"{path}.{field}");
+
         if (value is not IReadOnlyDictionary<string, object?> operators)
             return $"{field} eq {FormatValue(value, $"{path}.{field}")}"; // Bare scalar shorthand for equality.
 

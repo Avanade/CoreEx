@@ -20,7 +20,7 @@ public partial class ReadTests : WithApiTester<Contoso.Products.Api.Program>
         var gql = Test.Http<JsonElement>()
             .Run(HttpMethod.Post, "/api/query", new
             {
-                query = "query($where: ProductWhereInput, $orderBy: [ProductOrderByInput!], $first: Int) { products(where: $where, orderBy: $orderBy, first: $first) { edges { node { sku text } } } }",
+                query = "query($where: ProductLiteWhereInput, $orderBy: [ProductLiteOrderByInput!], $first: Int) { products(where: $where, orderBy: $orderBy, first: $first) { edges { node { sku text } } } }",
                 variables = new { where = new { sku = new { startsWith = "spec" } }, orderBy = new[] { new { text = "DESC" } }, first = 10 }
             })
             .AssertOK()
@@ -82,5 +82,123 @@ public partial class ReadTests : WithApiTester<Contoso.Products.Api.Program>
 
         r.TryGetProperty("errors", out var errors).Should().BeTrue();
         errors.GetArrayLength().Should().BeGreaterThan(0);
+    }
+
+    // The exact document a standard GraphQL client-tooling introspection handshake sends (e.g. Postman's/Insomnia's/GraphiQL's "fetch schema" action, or Apollo's
+    // IntrospectionQuery) - see graphql-js's getIntrospectionQuery() with default options. Uses fragment spreads, which GraphQL-lite otherwise rejects when they appear
+    // in an executable field's own selection set; __schema/__type are a deliberate exception (see GraphQLEngine), so this proves client schema-discovery genuinely works
+    // end-to-end over HTTP, rather than only over the engine's unit-tested internals.
+    private const string StandardIntrospectionQuery = """
+        query IntrospectionQuery {
+          __schema {
+            queryType { name kind }
+            mutationType { name kind }
+            subscriptionType { name kind }
+            types {
+              ...FullType
+            }
+            directives {
+              name
+              description
+              locations
+              args {
+                ...InputValue
+              }
+            }
+          }
+        }
+
+        fragment FullType on __Type {
+          kind
+          name
+          description
+          fields(includeDeprecated: true) {
+            name
+            description
+            args {
+              ...InputValue
+            }
+            type {
+              ...TypeRef
+            }
+            isDeprecated
+            deprecationReason
+          }
+          inputFields {
+            ...InputValue
+          }
+          interfaces {
+            ...TypeRef
+          }
+          enumValues(includeDeprecated: true) {
+            name
+            description
+            isDeprecated
+            deprecationReason
+          }
+          possibleTypes {
+            ...TypeRef
+          }
+        }
+
+        fragment InputValue on __InputValue {
+          name
+          description
+          type { ...TypeRef }
+          defaultValue
+        }
+
+        fragment TypeRef on __Type {
+          kind
+          name
+          ofType {
+            name
+            kind
+            ofType {
+              name
+              kind
+              ofType {
+                name
+                kind
+                ofType {
+                  name
+                  kind
+                }
+              }
+            }
+          }
+        }
+        """;
+
+    [Test]
+    public void GraphQLLite_Introspection_StandardClientQuery_Succeeds()
+    {
+        var r = Test.Http<JsonElement>()
+            .Run(HttpMethod.Post, "/api/query", new { query = StandardIntrospectionQuery, operationName = "IntrospectionQuery" })
+            .AssertOK()
+            .Value;
+
+        r.TryGetProperty("errors", out _).Should().BeFalse("a standard client introspection handshake must not fail");
+
+        var schema = r.GetProperty("data").GetProperty("__schema");
+        schema.GetProperty("queryType").GetProperty("name").GetString().Should().Be("Query");
+        schema.GetProperty("mutationType").ValueKind.Should().Be(JsonValueKind.Null);
+
+        var typeNames = schema.GetProperty("types").EnumerateArray().Select(t => t.GetProperty("name").GetString()).ToArray();
+        typeNames.Should().Contain(["Query", "ProductLite", "ProductLiteConnection", "ProductLiteEdge", "ProductLiteWhereInput", "ProductLiteOrderByInput", "PageInfo"]);
+    }
+
+    [Test]
+    public void GraphQLLite_Introspection_TypeByName_ReturnsFieldShape()
+    {
+        var r = Test.Http<JsonElement>()
+            .Run(HttpMethod.Post, "/api/query", new { query = "{ __type(name: \"ProductLite\") { name kind fields { name } } }" })
+            .AssertOK()
+            .Value;
+
+        var type = r.GetProperty("data").GetProperty("__type");
+        type.GetProperty("name").GetString().Should().Be("ProductLite");
+        type.GetProperty("kind").GetString().Should().Be("OBJECT");
+        type.GetProperty("fields").EnumerateArray().Select(f => f.GetProperty("name").GetString()).Should().Contain("sku");
     }
 }

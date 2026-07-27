@@ -3,7 +3,7 @@ namespace Contoso.Products.Infrastructure.Repositories;
 /// <summary>
 /// Provides the <see cref="QueryArgs"/> configuration for <see cref="Contracts.Movement"/>.
 /// </summary>
-internal class MovementQueryArgsConfig : QueryArgsConfig<MovementQueryArgsConfig>
+public class MovementQueryArgsConfig : QueryArgsConfig<MovementQueryArgsConfig>
 {
     public MovementQueryArgsConfig()
     {

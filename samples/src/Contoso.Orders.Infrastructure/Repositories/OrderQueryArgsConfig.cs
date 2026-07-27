@@ -3,7 +3,7 @@ namespace Contoso.Orders.Infrastructure.Repositories;
 /// <summary>
 /// Provides the <see cref="QueryArgs"/> configuration for <see cref="Contracts.Order"/> queries.
 /// </summary>
-internal class OrderQueryArgsConfig : QueryArgsConfig<OrderQueryArgsConfig>
+public class OrderQueryArgsConfig : QueryArgsConfig<OrderQueryArgsConfig>
 {
     public OrderQueryArgsConfig()
     {

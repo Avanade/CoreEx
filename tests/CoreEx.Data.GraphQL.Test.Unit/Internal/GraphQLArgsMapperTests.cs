@@ -46,19 +46,20 @@ public class GraphQLArgsMapperTests
     public void BuildConnectionPagingArgs_MapsFirstAndCount()
     {
         var args = new Dictionary<string, object?> { ["first"] = 25 };
-        var (pa, first) = GraphQLArgsMapper.BuildConnectionPagingArgs(args, isCountRequested: true);
+        var (pa, first, requiresTotalCount) = GraphQLArgsMapper.BuildConnectionPagingArgs(args, isCountRequested: true);
 
         first.Should().Be(25);
         pa.Skip.Should().Be(0);
         pa.Take.Should().Be(26); // Over-fetch by one to derive hasNextPage.
         pa.IsCountRequested.Should().BeTrue();
+        requiresTotalCount.Should().BeFalse();
     }
 
     [Test]
     public void BuildConnectionPagingArgs_DecodesAfterCursorIntoSkip()
     {
         var args = new Dictionary<string, object?> { ["first"] = 10, ["after"] = GraphQLCursor.Encode(4) };
-        var (pa, first) = GraphQLArgsMapper.BuildConnectionPagingArgs(args, isCountRequested: false);
+        var (pa, first, _) = GraphQLArgsMapper.BuildConnectionPagingArgs(args, isCountRequested: false);
 
         first.Should().Be(10);
         pa.Skip.Should().Be(5);
@@ -67,7 +68,7 @@ public class GraphQLArgsMapperTests
     [Test]
     public void BuildConnectionPagingArgs_NoArgs_DefaultsFirstAndSkip()
     {
-        var (pa, first) = GraphQLArgsMapper.BuildConnectionPagingArgs(new Dictionary<string, object?>(), isCountRequested: false);
+        var (pa, first, _) = GraphQLArgsMapper.BuildConnectionPagingArgs(new Dictionary<string, object?>(), isCountRequested: false);
 
         first.Should().Be(PagingArgs.DefaultTake);
         pa.Skip.Should().Be(0);
@@ -115,19 +116,43 @@ public class GraphQLArgsMapperTests
     {
         // A totalCount-only selection (neither edges nor pageInfo requested) should not over-fetch a full page of rows just to discard them.
         var args = new Dictionary<string, object?> { ["first"] = 25 };
-        var (pa, first) = GraphQLArgsMapper.BuildConnectionPagingArgs(args, isCountRequested: true, needsItems: false);
+        var (pa, first, requiresTotalCount) = GraphQLArgsMapper.BuildConnectionPagingArgs(args, isCountRequested: true, needsItems: false);
 
         first.Should().Be(25);
         pa.Take.Should().Be(1);
         pa.IsCountRequested.Should().BeTrue();
+        requiresTotalCount.Should().BeFalse();
     }
 
     [Test]
     public void BuildConnectionPagingArgs_NeedsItemsTrue_OverFetchesByOne()
     {
         var args = new Dictionary<string, object?> { ["first"] = 25 };
-        var (pa, _) = GraphQLArgsMapper.BuildConnectionPagingArgs(args, isCountRequested: false, needsItems: true);
+        var (pa, _, _) = GraphQLArgsMapper.BuildConnectionPagingArgs(args, isCountRequested: false, needsItems: true);
 
         pa.Take.Should().Be(26);
+    }
+
+    [Test]
+    public void BuildConnectionPagingArgs_MaximumTakeOne_OverFetchImpossible_RequiresTotalCount()
+    {
+        // Where PagingArgs.MaximumTake is so small (<= 1) that the usual 'first + 1' over-fetch would itself be clamped straight back down, an over-fetch-based
+        // hasNextPage can never be derived; the total count must be forced instead so the caller can derive hasNextPage from PagingResult.TotalCount.
+        var originalMaximumTake = PagingArgs.MaximumTake;
+        try
+        {
+            PagingArgs.MaximumTake = 1;
+            var args = new Dictionary<string, object?> { ["first"] = 25 };
+            var (pa, first, requiresTotalCount) = GraphQLArgsMapper.BuildConnectionPagingArgs(args, isCountRequested: false, needsItems: true);
+
+            first.Should().Be(1);
+            pa.Take.Should().Be(1);
+            pa.IsCountRequested.Should().BeTrue("the count must be forced when an over-fetch is structurally impossible");
+            requiresTotalCount.Should().BeTrue();
+        }
+        finally
+        {
+            PagingArgs.MaximumTake = originalMaximumTake;
+        }
     }
 }

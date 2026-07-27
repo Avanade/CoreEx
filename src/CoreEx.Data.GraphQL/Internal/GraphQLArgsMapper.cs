@@ -39,10 +39,13 @@ internal static class GraphQLArgsMapper
     /// <see langword="false"/> (e.g. a <c>totalCount</c>-only query), <see cref="PagingArgs.Take"/> is capped at <c>1</c> — the smallest value <see cref="PagingArgs"/> accepts
     /// without reverting to <see cref="PagingArgs.DefaultTake"/> — since no items are projected into the response.</param>
     /// <returns>The <see cref="PagingArgs"/> to invoke the underlying query with (its <see cref="PagingArgs.Take"/> is deliberately one greater than the returned client-requested
-    /// page size — an over-fetch used to derive <c>hasNextPage</c> without a second query) and that client-requested <c>first</c> page size.</returns>
+    /// page size — an over-fetch used to derive <c>hasNextPage</c> without a second query — where that over-fetch is achievable within <see cref="PagingArgs.MaximumTake"/>),
+    /// that client-requested <c>first</c> page size, and <c>RequiresTotalCountForHasNextPage</c> indicating the rare case where <see cref="PagingArgs.MaximumTake"/> is so
+    /// small (<c>&lt;= 1</c>) that an over-fetch is structurally impossible, in which case <see cref="PagingArgs.IsCountRequested"/> is forced <see langword="true"/> so the
+    /// caller can derive <c>hasNextPage</c> from <see cref="PagingResult.TotalCount"/> instead.</returns>
     /// <exception cref="GraphQLArgumentTranslationException">Thrown where <c>last</c>/<c>before</c> (backward pagination) are specified, <c>first</c> is not greater than zero,
     /// or <c>after</c> is not a valid cursor.</exception>
-    public static (PagingArgs PagingArgs, int First) BuildConnectionPagingArgs(IReadOnlyDictionary<string, object?> args, bool isCountRequested, bool needsItems = true)
+    public static (PagingArgs PagingArgs, int First, bool RequiresTotalCountForHasNextPage) BuildConnectionPagingArgs(IReadOnlyDictionary<string, object?> args, bool isCountRequested, bool needsItems = true)
     {
         if (args.ContainsKey("last") || args.ContainsKey("before"))
             throw new GraphQLArgumentTranslationException("Backward pagination ('last'/'before') is not supported; use 'first'/'after'.");
@@ -64,6 +67,10 @@ internal static class GraphQLArgsMapper
             skip = offset + 1;
         }
 
-        return (new PagingArgs(skip, needsItems ? first + 1 : 1, isCountRequested), first);
+        // Where MaximumTake is so small (<= 1) that requesting 'first + 1' would itself be clamped back down to 'first' (or less), the over-fetch used to derive hasNextPage
+        // is structurally impossible; fall back to requesting the total count instead, so the caller can derive hasNextPage from PagingResult.TotalCount.
+        var requiresTotalCountForHasNextPage = needsItems && PagingArgs.MaximumTake <= first;
+
+        return (new PagingArgs(skip, needsItems ? first + 1 : 1, isCountRequested || requiresTotalCountForHasNextPage), first, requiresTotalCountForHasNextPage);
     }
 }

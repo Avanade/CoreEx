@@ -3,7 +3,7 @@ namespace CoreEx.Data.GraphQL;
 /// <summary>
 /// Represents a registered GraphQL-lite single-item root field (e.g. <c>product(id: "...")</c>).
 /// </summary>
-/// <remarks>Bound to an existing single-item <c>GetAsync</c>-shaped delegate; see <see cref="GraphQLLiteOptions.AddGet{TItem}(string, Func{IReadOnlyDictionary{string, object}, CancellationToken, Task{TItem}})"/>.</remarks>
+/// <remarks>Bound to an existing single-item <c>GetAsync</c>-shaped delegate; see <see cref="GraphQLLiteOptions.AddGet{TItem}"/>.</remarks>
 public sealed class GraphQLItemRoot
 {
     private readonly Func<IReadOnlyDictionary<string, object?>, CancellationToken, Task<object?>> _resolver;

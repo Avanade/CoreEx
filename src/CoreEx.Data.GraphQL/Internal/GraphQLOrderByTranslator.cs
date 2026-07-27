@@ -4,10 +4,11 @@ namespace CoreEx.Data.GraphQL.Internal;
 /// Translates the GraphQL-native <c>orderBy</c> argument (a list of field/direction input objects) into the equivalent OData-esque order-by <see cref="string"/> consumed by
 /// <see cref="QueryOrderByParser"/>.
 /// </summary>
-/// <remarks>The <c>orderBy</c> shape mirrors mainstream GraphQL sorting conventions (e.g. Hot Chocolate, Prisma): a list of single- (or multi-) key objects, each mapping a field
-/// name to a bare <c>ASC</c>/<c>DESC</c> direction token (e.g. <c>orderBy: [{ text: DESC }, { sku: ASC }]</c>), preserving field precedence via list order. This is translated
-/// 1:1 to the comma-separated <c>field asc|desc, ...</c> string already accepted by <see cref="QueryOrderByParser"/> — the translation is purely syntactic; field legality is
-/// enforced by the existing, unmodified parser (defense in depth).</remarks>
+/// <remarks>The <c>orderBy</c> shape mirrors mainstream GraphQL sorting conventions (e.g. Hot Chocolate, Prisma): a list of input objects, each mapping a field name to a bare
+/// <c>ASC</c>/<c>DESC</c> direction token (e.g. <c>orderBy: [{ text: DESC }, { sku: ASC }]</c>), preserving field precedence via list order. <b>Each object should specify a
+/// single field</b> — GraphQL input-object field order is not spec-guaranteed, so a multi-key object (e.g. <c>{ text: DESC, sku: ASC }</c>) cannot safely express relative
+/// precedence between its keys; use one object per ordered field instead. This is translated 1:1 to the comma-separated <c>field asc|desc, ...</c> string already accepted by
+/// <see cref="QueryOrderByParser"/> — the translation is purely syntactic; field legality is enforced by the existing, unmodified parser (defense in depth).</remarks>
 internal static class GraphQLOrderByTranslator
 {
     /// <summary>
@@ -48,11 +49,16 @@ internal static class GraphQLOrderByTranslator
     /// <param name="direction">The direction token (expected to be <see langword="null"/>, <c>"asc"</c> or <c>"desc"</c>, case-insensitive).</param>
     /// <param name="path">The argument path, used for translation error messages.</param>
     /// <returns>The formatted <c>field</c>, <c>field asc</c> or <c>field desc</c> clause.</returns>
-    private static string FormatClause(string field, object? direction, string path) => direction switch
+    private static string FormatClause(string field, object? direction, string path)
     {
-        null => field,
-        string s when string.Equals(s, "asc", StringComparison.OrdinalIgnoreCase) => $"{field} asc",
-        string s when string.Equals(s, "desc", StringComparison.OrdinalIgnoreCase) => $"{field} desc",
-        _ => throw new GraphQLArgumentTranslationException($"'{path}' direction must be 'ASC' or 'DESC'.")
-    };
+        GraphQLNameValidator.ValidateFieldName(field, path);
+
+        return direction switch
+        {
+            null => field,
+            string s when string.Equals(s, "asc", StringComparison.OrdinalIgnoreCase) => $"{field} asc",
+            string s when string.Equals(s, "desc", StringComparison.OrdinalIgnoreCase) => $"{field} desc",
+            _ => throw new GraphQLArgumentTranslationException($"'{path}' direction must be 'ASC' or 'DESC'.")
+        };
+    }
 }

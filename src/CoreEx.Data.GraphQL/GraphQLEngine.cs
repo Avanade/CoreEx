@@ -162,13 +162,19 @@ public sealed class GraphQLEngine(GraphQLLiteOptions options) : IGraphQLEngine
         {
             var queryArgs = GraphQLArgsMapper.BuildQueryArgs(args);
             var needsItems = connection.EdgesAlias is not null || connection.PageInfoAlias is not null;
-            var (pagingArgs, first) = GraphQLArgsMapper.BuildConnectionPagingArgs(args, connection.TotalCountAlias is not null, needsItems);
+            var (pagingArgs, first, requiresTotalCountForHasNextPage) = GraphQLArgsMapper.BuildConnectionPagingArgs(args, connection.TotalCountAlias is not null, needsItems);
             var skip = pagingArgs.Skip;
 
             var result = await root.InvokeAsync(queryArgs, pagingArgs, cancellationToken).ConfigureAwait(false);
             var allItems = result.Items?.Cast<object?>().ToList() ?? [];
-            var hasNextPage = allItems.Count > first;
-            var pageItems = hasNextPage ? allItems.Take(first).ToList() : allItems;
+
+            // Ordinarily hasNextPage is derived from the one-item over-fetch (Take = first + 1). Where PagingArgs.MaximumTake made that over-fetch impossible (see
+            // GraphQLArgsMapper.BuildConnectionPagingArgs), fall back to comparing against the forced PagingResult.TotalCount instead.
+            var hasNextPage = requiresTotalCountForHasNextPage && result.Paging?.TotalCount is long totalCount
+                ? skip + allItems.Count < totalCount
+                : allItems.Count > first;
+
+            var pageItems = allItems.Count > first ? allItems.Take(first).ToList() : allItems;
             var hasPreviousPage = skip > 0;
 
             JsonArray? shapedNodes = null;

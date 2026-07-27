@@ -4,9 +4,9 @@ namespace CoreEx.Data.GraphQL.Internal;
 /// Encodes/decodes the opaque Relay <see href="https://relay.dev/graphql/connections.htm">Cursor Connections</see> cursor used by query root pagination, backed by the
 /// underlying offset-based <see cref="PagingArgs"/>.
 /// </summary>
-/// <remarks>Mirrors the Relay reference implementation's own <c>arrayconnection:{offset}</c> convention for offset-based (non-keyset) data sources: the cursor is an opaque,
-/// base64-encoded absolute row offset. Client GraphQL libraries (Apollo Client, Relay) never inspect cursor contents — they only echo them back verbatim — so this encoding is
-/// fully interoperable despite not being a true keyset cursor.</remarks>
+/// <remarks>Uses a simpler <c>offset:{offset}</c> convention (rather than Relay's own <c>arrayconnection:{offset}</c>) for offset-based (non-keyset) data sources: the cursor is
+/// an opaque, base64-encoded absolute row offset. Client GraphQL libraries (Apollo Client, Relay) never inspect cursor contents — they only echo them back verbatim — so this
+/// encoding is fully interoperable despite not being a true keyset cursor and not matching Relay's own prefix.</remarks>
 internal static class GraphQLCursor
 {
     private const string Prefix = "offset:";

@@ -117,7 +117,7 @@ internal static class GraphQLConnectionResolver
                         else if (string.Equals(edgeName, CursorField, StringComparison.OrdinalIgnoreCase))
                             cursorAlias = edgeAlias;
                         else
-                            errors.Add(NewError($"Unknown field '{edgeName}'; an edge must select from 'node', 'cursor'.", [.. errorPath, alias, edgeAlias]));
+                            errors.Add(NewError($"Unknown field '{edgeName}'; an edge must select from 'node', 'cursor' (plus '__typename').", [.. errorPath, alias, edgeAlias]));
                     }
                 }
             }
@@ -144,14 +144,14 @@ internal static class GraphQLConnectionResolver
                         else if (pageInfoFieldName is HasNextPageField or HasPreviousPageField or StartCursorField or EndCursorField)
                             pageInfoFieldAliases[pageInfoFieldName] = pageInfoFieldAlias;
                         else
-                            errors.Add(NewError($"Unknown field '{pageInfoFieldName}'; 'pageInfo' must select from 'hasNextPage', 'hasPreviousPage', 'startCursor', 'endCursor'.", [.. errorPath, alias, pageInfoFieldAlias]));
+                            errors.Add(NewError($"Unknown field '{pageInfoFieldName}'; 'pageInfo' must select from 'hasNextPage', 'hasPreviousPage', 'startCursor', 'endCursor' (plus '__typename').", [.. errorPath, alias, pageInfoFieldAlias]));
                     }
                 }
             }
             else if (string.Equals(name, TotalCountField, StringComparison.OrdinalIgnoreCase))
                 totalCountAlias = alias;
             else
-                errors.Add(NewError($"Unknown field '{name}'; a query root must select from 'edges', 'pageInfo', 'totalCount' (Relay Cursor Connections).", [.. errorPath, alias]));
+                errors.Add(NewError($"Unknown field '{name}'; a query root must select from 'edges', 'pageInfo', 'totalCount' (plus '__typename') (Relay Cursor Connections).", [.. errorPath, alias]));
         }
 
         if (errors.Count > 0)

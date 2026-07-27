@@ -1,8 +1,8 @@
 global using CoreEx;
 global using CoreEx.Data;
 global using CoreEx.Data.GraphQL.Internal;
-global using CoreEx.Entities;
 global using CoreEx.Data.Querying;
+global using CoreEx.Entities;
 global using CoreEx.Json;
 global using CoreEx.RefData;
 global using CoreEx.RefData.Abstractions;
@@ -18,3 +18,4 @@ global using System.Text;
 global using System.Text.Json;
 global using System.Text.Json.Nodes;
 global using System.Text.Json.Serialization;
+global using System.Text.RegularExpressions;
