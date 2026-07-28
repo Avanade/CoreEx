@@ -88,4 +88,7 @@ public class QueryArgs
         IsIncludeInactive = true;
         return this;
     }
+
+    /// <inheritdoc/>
+    public override string ToString() => $"Filter={Filter}, OrderBy={OrderBy}, IncludeFields={(IncludeFields is null ? string.Empty : string.Join(',', IncludeFields))}, ExcludeFields={(ExcludeFields is null ? string.Empty : string.Join(',', ExcludeFields))}, IsIncludeText={IsIncludeText}, IsIncludeInactive={IsIncludeInactive}";
 }

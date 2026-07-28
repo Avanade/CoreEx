@@ -218,6 +218,7 @@
       <_AiDocFile Include="$(_RepoRoot)src/CoreEx.Caching.FusionCache/AGENTS.md" DestSubPath=".github/docs/coreex/agents/CoreEx.Caching.FusionCache.md" />
       <_AiDocFile Include="$(_RepoRoot)src/CoreEx.CodeGen/AGENTS.md" DestSubPath=".github/docs/coreex/agents/CoreEx.CodeGen.md" />
       <_AiDocFile Include="$(_RepoRoot)src/CoreEx.Data/AGENTS.md" DestSubPath=".github/docs/coreex/agents/CoreEx.Data.md" />
+      <_AiDocFile Include="$(_RepoRoot)src/CoreEx.Data.GraphQL/AGENTS.md" DestSubPath=".github/docs/coreex/agents/CoreEx.Data.GraphQL.md" />
       <_AiDocFile Include="$(_RepoRoot)src/CoreEx.Database/AGENTS.md" DestSubPath=".github/docs/coreex/agents/CoreEx.Database.md" />
       <_AiDocFile Include="$(_RepoRoot)src/CoreEx.Database.Postgres/AGENTS.md" DestSubPath=".github/docs/coreex/agents/CoreEx.Database.Postgres.md" />
       <_AiDocFile Include="$(_RepoRoot)src/CoreEx.Database.SqlServer/AGENTS.md" DestSubPath=".github/docs/coreex/agents/CoreEx.Database.SqlServer.md" />

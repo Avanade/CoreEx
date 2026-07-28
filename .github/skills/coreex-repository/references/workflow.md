@@ -225,7 +225,7 @@ Create `Infrastructure/Repositories/{Name}QueryArgsConfig.cs`. Extend `QueryArgs
 ```csharp
 namespace {Solution}.Infrastructure.Repositories;
 
-internal class {Name}QueryArgsConfig : QueryArgsConfig<{Name}QueryArgsConfig>
+public class {Name}QueryArgsConfig : QueryArgsConfig<{Name}QueryArgsConfig>
 {
     public {Name}QueryArgsConfig()
     {

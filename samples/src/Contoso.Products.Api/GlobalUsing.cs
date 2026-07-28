@@ -1,8 +1,11 @@
 global using Contoso.Products.Application;
 global using Contoso.Products.Application.Interfaces;
 global using Contoso.Products.Contracts;
+global using Contoso.Products.Infrastructure.Repositories;
 global using CoreEx;
 global using CoreEx.AspNetCore.Mvc;
+global using CoreEx.Data;
+global using CoreEx.Data.GraphQL;
 global using CoreEx.Entities;
 global using CoreEx.Http;
 global using CoreEx.Json;

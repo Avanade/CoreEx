@@ -88,12 +88,12 @@ The `referenced-packages` field in the manifest lets the agent distinguish betwe
 
 ---
 
-## Why sync all 16 package guides unconditionally
+## Why sync all 17 package guides unconditionally
 
 An earlier design synced only the packages the project already references. This was changed because:
 
 - The agent cannot recommend adopting a package (e.g. `CoreEx.Caching.FusionCache`) if it has no knowledge of what that package offers.
-- All 16 guides are small markdown files — the total download is negligible.
+- All 17 guides are small markdown files — the total download is negligible.
 - Syncing all unconditionally removes the need to re-run after adding a new package.
 - The `referenced-packages` manifest field preserves the "in project vs. not yet" distinction without making it a gate on what gets synced.
 

@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Title>CoreEx GraphQL-lite query engine.</Title>
+    <Description>A transport-agnostic GraphQL-lite bridge over the CoreEx.Data OData-esque dynamic filter/orderby/paging query capability and JSON field include/exclude projection.</Description>
+    <PackageTags>coreex microservices domain-based event-driven railway-oriented reference-data data query odata filter order paging graphql</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="GraphQL-Parser" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="CoreEx.Data.GraphQL.Test.Unit" Key="00240000048000009400000006020000002400005253413100040000010001007dee530af6d801902d40685e9cd0a3d8991ddbf545be3ef6147c9f79bacd7464d92fbd94fee34e885c37e3dff4ea15a4f9978f1f614798e0f48e3a3d5bf15e8b2fba9c19b6966838f97444bc247bc101454946d70ac93207cf2c611956aed59c316f81f1bf8c8486f8f0b3f9adf93c2f07e06a86745f6dc4b819c2bc2f3fdad5" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CoreEx.Data\CoreEx.Data.csproj" />
+  </ItemGroup>
+</Project>

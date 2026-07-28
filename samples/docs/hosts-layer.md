@@ -60,6 +60,61 @@ Responsibilities that are deliberately offloaded to the `WebApi` helper include:
 
 > **See also**: [`WebApi`](../../src/CoreEx.AspNetCore/WebApis/WebApi.cs) · [`[IdempotencyKey]`](../../src/CoreEx.AspNetCore/Http/IdempotencyKeyAttribute.cs) · [Minimal APIs](https://learn.microsoft.com/en-us/aspnet/core/fundamentals/minimal-apis)
 
+### GraphQL-lite query bridge
+
+Alongside its REST controllers, a domain's API host can additionally expose a single `/query` endpoint that
+bridges a minimal GraphQL-over-HTTP request to the *same* `QueryArgs`/`PagingArgs` → `QueryAsync` pipeline
+and `JsonFilter` field-projection already used by the REST `$query` endpoint (`CoreEx.Data.GraphQL`). This is
+additive, not a replacement — the REST endpoints and the `/query` bridge share identical filter, order-by,
+paging, and field-selection behavior because they drive the exact same underlying repository/service call.
+
+```csharp
+// samples/src/Contoso.Products.Api/Program.cs
+builder.Services.AddCoreExGraphQLLite((o, sp) =>
+{
+    o.AddQuery<ProductLite>("products", ProductQueryArgsConfig.Default, async (qa, pa, ct) => await CoreEx.ExecutionContext.GetRequiredService<IProductReadService>().QueryAsync(qa, pa, ct).ConfigureAwait(false))
+     .AddGet<Product>("product", (args, ct) =>
+     {
+         // Validate explicitly rather than an indexer + null-forgiving lookup, so a missing/empty 'id' throws an ArgumentException, mapped by the engine to ARGUMENT_ERROR.
+         if (!args.TryGetValue("id", out var id) || id is not string { Length: > 0 } idValue)
+             throw new ArgumentException("'id' argument is required and must be a non-empty string.", nameof(args));
+
+         return CoreEx.ExecutionContext.GetRequiredService<IProductReadService>().GetAsync(idValue, ct);
+     });
+});
+
+// ...
+
+app.MapCoreExGraphQLLite("/api/query");
+```
+
+Each `AddQuery`/`AddGet` root registration is a single line referencing the entity's *existing*
+`QueryArgsConfig<TSelf>.Default` and application-service method — no new per-entity resolver code is
+authored. Because the `IGraphQLEngine` is registered as a singleton, root resolvers that need scoped
+dependencies (repositories, application services) must resolve them per-invocation rather than capturing
+an instance resolved from the root `IServiceProvider` at registration time — as shown above via
+`CoreEx.ExecutionContext.GetRequiredService<T>()`, which reads from the ambient `ExecutionContext`'s
+scoped service provider (set by the `UseExecutionContext()` middleware every CoreEx host already
+registers), so no extra `IHttpContextAccessor` registration is needed.
+
+`MapCoreExGraphQLLite` executes through `WebApi.PostAsync<GraphQLLiteResponse>(...)` — the same
+response-shaping pipeline the REST controllers use — so `ProblemDetails`/exception-handling middleware still
+applies as a safety net for anything the engine's own exception mapping doesn't catch. Add
+`.WithCoreExGraphQLTelemetry()` alongside a host's other OpenTelemetry tracing extensions (see
+[Program.cs composition](#programcs-composition) below) to trace `GraphQLEngine.ExecuteAsync` calls the same
+way as any other CoreEx invoker.
+
+> **v1 scope**: read-only (queries only, no mutations); selection sets may traverse arbitrarily nested
+> properties already present on a single resolved DTO (e.g. `person { address { street city } }`), but
+> cannot request a field that would require invoking a *different* registered root (no cross-repository
+> dataloader/N+1 resolution). See [`CoreEx.Data.GraphQL`](../../src/CoreEx.Data.GraphQL/README.md) for the
+> full capability and non-goal list.
+
+> **Secure defaults**: `GraphQLLiteOptions.EnableIntrospection` defaults to `false` — the sample above opts
+> in explicitly so Postman/GraphiQL-style tooling can introspect the schema in development. `MapCoreExGraphQLLite`
+> also applies no authorization by default; pass `configure: rb => rb.RequireAuthorization()` (or an
+> equivalent policy) in hosts where this endpoint should require the same access control as REST controllers.
+
 ### Program.cs composition
 
 `Program.cs` follows a predictable CoreEx shape and is the only file in the API host:
@@ -70,7 +125,7 @@ Responsibilities that are deliberately offloaded to the `WebApi` helper include:
 4. Infrastructure wiring — database, EF DbContext, outbox publisher, caching (L1 in-memory + L2 Redis + FusionCache backplane).
 5. `PostConfigureAllHealthChecks()` — adds standard health-check tags.
 6. OpenAPI — NSwag document with `AddCoreExConfiguration()`.
-7. OpenTelemetry — `WithCoreExTelemetry()` and provider-specific extensions.
+7. OpenTelemetry — `WithCoreExTelemetry()`, provider-specific extensions (e.g. `WithCoreExPostgresTelemetry()`), and `WithCoreExGraphQLTelemetry()` where the GraphQL-lite bridge is mapped.
 8. Middleware pipeline — `UseCoreExExceptionHandler()` → `UseExecutionContext()` → `UseIdempotencyKey()` → `MapControllers()` → health checks.
 
 ```csharp

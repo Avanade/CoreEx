@@ -3,7 +3,8 @@ namespace Contoso.Products.Infrastructure.Repositories;
 /// <summary>
 /// Provides the <see cref="QueryArgs"/> configuration for <see cref="Contracts.Product"/>.
 /// </summary>
-internal class ProductQueryArgsConfig : QueryArgsConfig<ProductQueryArgsConfig>
+/// <remarks><c>Contoso.Products.Api</c>'s <c>Program.cs</c> passes <see cref="Default"/> directly into <c>CoreEx.Data.GraphQL</c>'s <c>AddQuery</c> to drive GraphQL <c>where</c>/<c>orderBy</c> argument mapping.</remarks>
+public class ProductQueryArgsConfig : QueryArgsConfig<ProductQueryArgsConfig>
 {
     public ProductQueryArgsConfig()
     {

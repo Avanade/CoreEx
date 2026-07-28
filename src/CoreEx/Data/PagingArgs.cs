@@ -65,12 +65,12 @@ public record class PagingArgs
     /// <summary>
     /// Gets the specified number of elements in a sequence to bypass.
     /// </summary>
-    public int Skip { get => field; init => CheckImmutable(field = value < 0 ? 0 : value); }
+    public int Skip { get; init => field = CheckImmutable(value < 0 ? 0 : value); }
 
     /// <summary>
     /// Gets the specified number of contiguous elements from the start of a sequence.
     /// </summary>
-    public int Take { get => field; init => field = CheckImmutable(value <= 0 ? DefaultTake : Math.Min(MaximumTake, value)); }
+    public int Take { get; init => field = CheckImmutable(value <= 0 ? DefaultTake : Math.Min(MaximumTake, value)); }
 
     /// <summary>
     /// Indicates whether to get the total count (see <see cref="PagingResult.TotalCount"/>) when performing the underlying query (defaults to <see langword="false"/>).
@@ -88,4 +88,7 @@ public record class PagingArgs
     /// Indicates whether the <see cref="PagingArgs"/> is the <see cref="None"/> instance.
     /// </summary>
     public bool IsNone { get; private init; }
+
+    /// <inheritdoc/>
+    public override string ToString() => $"Skip={Skip}, Take={Take}, IsCountRequested={IsCountRequested}, IsNone={IsNone}";
 }

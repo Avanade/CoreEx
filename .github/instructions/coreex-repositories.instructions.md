@@ -152,7 +152,7 @@ Each entity's query configuration lives in its own dedicated class in `Infrastru
 
 ```csharp
 // Infrastructure/Repositories/ProductQueryArgsConfig.cs
-internal class ProductQueryArgsConfig : QueryArgsConfig<ProductQueryArgsConfig>
+public class ProductQueryArgsConfig : QueryArgsConfig<ProductQueryArgsConfig>
 {
     public ProductQueryArgsConfig()
     {
@@ -174,6 +174,11 @@ internal class ProductQueryArgsConfig : QueryArgsConfig<ProductQueryArgsConfig>
     }
 }
 ```
+
+### Visibility and folder placement
+
+- `{Name}QueryArgsConfig` is `public`, matching every other Infrastructure-layer type (`{Name}Repository`, `{Name}EfDb`, mappers, HTTP clients, adapters) — no internal/public judgment call needed. It's also what `CoreEx.Data.GraphQL`'s `AddQuery<TLite>(rootName, config, resolver)` needs when a host wires up the GraphQL-lite bridge.
+- Default to colocating `{Name}QueryArgsConfig.cs` with `{Name}Repository.cs` in `Repositories/` — it's 1:1 owned by that one repository, unlike `Mapping/`, `Clients/`, or `Adapters/`. Whether to move query configs into a dedicated subfolder as a domain grows is a developer call; this guide doesn't prescribe a threshold.
 
 ### Field type reference
 

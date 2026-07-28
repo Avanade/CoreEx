@@ -1,4 +1,4 @@
-Microsoft Visual Studio Solution File, Format Version 12.00
+﻿Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 18
 VisualStudioVersion = 18.8.11904.113 insiders
 MinimumVisualStudioVersion = 10.0.40219.1
@@ -241,6 +241,10 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tools", "tools", "{07C2787E-EAC7-C090-1BA3-A61EC2A24D84}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CoreEx.Tooling.Console", "tools\CoreEx.Tooling.Console\CoreEx.Tooling.Console.csproj", "{46503D23-225E-1D7F-C8D5-60320D711B10}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CoreEx.Data.GraphQL", "src\CoreEx.Data.GraphQL\CoreEx.Data.GraphQL.csproj", "{D1079BA3-A768-49D1-8628-1370681932FF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CoreEx.Data.GraphQL.Test.Unit", "tests\CoreEx.Data.GraphQL.Test.Unit\CoreEx.Data.GraphQL.Test.Unit.csproj", "{831702B9-80AE-47D9-A0D5-012E9241A298}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -1128,6 +1132,30 @@ Global
 		{46503D23-225E-1D7F-C8D5-60320D711B10}.Release|x64.Build.0 = Release|Any CPU
 		{46503D23-225E-1D7F-C8D5-60320D711B10}.Release|x86.ActiveCfg = Release|Any CPU
 		{46503D23-225E-1D7F-C8D5-60320D711B10}.Release|x86.Build.0 = Release|Any CPU
+		{D1079BA3-A768-49D1-8628-1370681932FF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D1079BA3-A768-49D1-8628-1370681932FF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D1079BA3-A768-49D1-8628-1370681932FF}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{D1079BA3-A768-49D1-8628-1370681932FF}.Debug|x64.Build.0 = Debug|Any CPU
+		{D1079BA3-A768-49D1-8628-1370681932FF}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{D1079BA3-A768-49D1-8628-1370681932FF}.Debug|x86.Build.0 = Debug|Any CPU
+		{D1079BA3-A768-49D1-8628-1370681932FF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D1079BA3-A768-49D1-8628-1370681932FF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D1079BA3-A768-49D1-8628-1370681932FF}.Release|x64.ActiveCfg = Release|Any CPU
+		{D1079BA3-A768-49D1-8628-1370681932FF}.Release|x64.Build.0 = Release|Any CPU
+		{D1079BA3-A768-49D1-8628-1370681932FF}.Release|x86.ActiveCfg = Release|Any CPU
+		{D1079BA3-A768-49D1-8628-1370681932FF}.Release|x86.Build.0 = Release|Any CPU
+		{831702B9-80AE-47D9-A0D5-012E9241A298}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{831702B9-80AE-47D9-A0D5-012E9241A298}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{831702B9-80AE-47D9-A0D5-012E9241A298}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{831702B9-80AE-47D9-A0D5-012E9241A298}.Debug|x64.Build.0 = Debug|Any CPU
+		{831702B9-80AE-47D9-A0D5-012E9241A298}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{831702B9-80AE-47D9-A0D5-012E9241A298}.Debug|x86.Build.0 = Debug|Any CPU
+		{831702B9-80AE-47D9-A0D5-012E9241A298}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{831702B9-80AE-47D9-A0D5-012E9241A298}.Release|Any CPU.Build.0 = Release|Any CPU
+		{831702B9-80AE-47D9-A0D5-012E9241A298}.Release|x64.ActiveCfg = Release|Any CPU
+		{831702B9-80AE-47D9-A0D5-012E9241A298}.Release|x64.Build.0 = Release|Any CPU
+		{831702B9-80AE-47D9-A0D5-012E9241A298}.Release|x86.ActiveCfg = Release|Any CPU
+		{831702B9-80AE-47D9-A0D5-012E9241A298}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -1223,5 +1251,7 @@ Global
 		{83A80E50-2E50-573B-6336-4508D9E4BF30} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 		{6F99B103-83BD-C345-0B37-B1AF60DEA827} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 		{46503D23-225E-1D7F-C8D5-60320D711B10} = {07C2787E-EAC7-C090-1BA3-A61EC2A24D84}
+		{D1079BA3-A768-49D1-8628-1370681932FF} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+		{831702B9-80AE-47D9-A0D5-012E9241A298} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 	EndGlobalSection
 EndGlobal

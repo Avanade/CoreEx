@@ -55,6 +55,7 @@ param(
         "src\CoreEx.Caching.FusionCache",
         "src\CoreEx.CodeGen",
         "src\CoreEx.Data",
+        "src\CoreEx.Data.GraphQL",
         "src\CoreEx.Database",
         "src\CoreEx.Database.Postgres",
         "src\CoreEx.Database.SqlServer",

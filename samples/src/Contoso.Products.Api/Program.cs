@@ -62,6 +62,15 @@ public class Program
         // Add the ASP.NET Core services.
         builder.Services.AddControllers();
 
+        // Add the CoreEx GraphQL-lite bridge, exposing "products"/"product" roots over the existing QueryAsync/GetAsync pipeline.
+        builder.Services.AddCoreExGraphQLLite((o, sp) =>
+        {
+            o.EnableIntrospection = true; // Defaults to false (secure-by-default); enabled here so client tooling (Postman, GraphiQL, etc.) can introspect the schema.
+
+            o.AddQuery<ProductLite>("products", ProductQueryArgsConfig.Default, async (qa, pa, ct) => await CoreEx.ExecutionContext.GetRequiredService<IProductReadService>().QueryAsync(qa, pa, ct).ConfigureAwait(false))
+             .AddGet<Product>("product", (args, ct) => CoreEx.ExecutionContext.GetRequiredService<IProductReadService>().GetAsync(args.GetIdentifier<string>(), ct));
+        });
+
         // Add the OpenAPI services.
         builder.Services.AddOpenApiDocument(s =>
         {
@@ -72,6 +81,7 @@ public class Program
         // Add OpenTelemetry tracing.
         builder.WithCoreExTelemetry()
             .WithCoreExPostgresTelemetry()
+            .WithCoreExGraphQLTelemetry()
             .UseOtlpExporter();
 
         // Build the application.
@@ -85,6 +95,10 @@ public class Program
         app.UseExecutionContext();
         app.UseIdempotencyKey();
         app.MapControllers();
+        app.MapCoreExGraphQLLite("/api/query" /* , configure: rb => rb.RequireAuthorization() */); // Additive GraphQL-lite bridge alongside the existing REST endpoints; unlike the REST
+                                                                                                     // controllers above, this endpoint has no authorization applied by default - it can reach
+                                                                                                     // the same underlying data, so uncomment 'configure' once an authentication scheme is
+                                                                                                     // registered (see UseAuthentication() above).
 
         app.UseOpenApi();
         app.UseSwaggerUi();

@@ -6,6 +6,7 @@ global using CoreEx.AspNetCore.HealthChecks;
 global using CoreEx.AspNetCore.Idempotency;
 global using CoreEx.Caching;
 global using CoreEx.Data;
+global using CoreEx.Data.GraphQL;
 global using CoreEx.Entities;
 global using CoreEx.HealthChecks;
 global using CoreEx.Hosting;

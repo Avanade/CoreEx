@@ -215,6 +215,8 @@ public Task<IActionResult> QuerySchemaAsync(CancellationToken cancellationToken 
     _webApi.GetAsync(Request, (ro, ct) => _service.QuerySchemaAsync(ct), cancellationToken: cancellationToken);
 ```
 
+A `QueryAsync`/`GetAsync` pair backed by `QueryArgsConfig` can optionally also be exposed over GraphQL instead of (or alongside) the REST controller, via `CoreEx.Data.GraphQL` — a transport-agnostic bridge that maps GraphQL `where`/`orderBy` 1:1 onto the same `QueryArgsConfig`. This is additive and opt-in; do not add it unless asked. See the [`CoreEx.Data.GraphQL` AGENTS.md](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.Data.GraphQL/AGENTS.md).
+
 ### Result-Based Services
 
 When the service returns `Result<T>`, use the `WithResult` variants:
@@ -340,4 +342,5 @@ All the same rules apply as for MVC controllers: no business logic in the handle
 - [CoreEx.AspNetCore guide](/.github/docs/coreex/agents/CoreEx.AspNetCore.md) — `WebApi` helper API reference (docs-sync cache; after `/coreex-docs-sync`). Source: [CoreEx.AspNetCore README](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.AspNetCore/README.md).
 - [CoreEx.AspNetCore Mvc README](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.AspNetCore/Mvc/README.md) — MVC `WebApi` (`IActionResult`-returning), action attributes, and controller patterns.
 - [CoreEx.AspNetCore Http README](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.AspNetCore/Http/README.md) — Minimal API `WebApi` (`IResult`-returning) and `RouteHandlerBuilder` extensions.
+- [CoreEx.Data.GraphQL AGENTS.md](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.Data.GraphQL/AGENTS.md) — optional GraphQL-lite query bridge over the same `QueryArgsConfig` used by `QueryAsync`.
 - Related skill: [`coreex-api`](/.github/skills/coreex-api/SKILL.md) — invoke to scaffold a controller/endpoint.
