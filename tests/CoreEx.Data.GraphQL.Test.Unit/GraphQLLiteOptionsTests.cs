@@ -5,7 +5,7 @@ namespace CoreEx.Data.GraphQL.Test.Unit;
 [TestFixture]
 public class GraphQLLiteOptionsTests
 {
-    private static Task<Person?> GetPersonAsync(IReadOnlyDictionary<string, object?> args, CancellationToken ct) => Task.FromResult<Person?>(new Person { Id = 1 });
+    private static Task<Person?> GetPersonAsync(GraphQLLiteArgs args, CancellationToken ct) => Task.FromResult<Person?>(new Person { Id = 1 });
 
     [Test]
     public void AddGet_ReservedIntrospectionName_Throws()

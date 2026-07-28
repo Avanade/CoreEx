@@ -68,15 +68,7 @@ public class Program
             o.EnableIntrospection = true; // Defaults to false (secure-by-default); enabled here so client tooling (Postman, GraphiQL, etc.) can introspect the schema.
 
             o.AddQuery<ProductLite>("products", ProductQueryArgsConfig.Default, async (qa, pa, ct) => await CoreEx.ExecutionContext.GetRequiredService<IProductReadService>().QueryAsync(qa, pa, ct).ConfigureAwait(false))
-             .AddGet<Product>("product", (args, ct) =>
-             {
-                 // Validate explicitly (rather than an indexer + null-forgiving lookup) so a missing/empty 'id' surfaces as an ArgumentException, which the engine maps to an
-                 // ARGUMENT_ERROR GraphQL error, instead of an unhandled KeyNotFoundException/NullReferenceException surfacing as an opaque EXECUTION_ERROR.
-                 if (!args.TryGetValue("id", out var id) || id is not string { Length: > 0 } idValue)
-                     throw new ArgumentException("'id' argument is required and must be a non-empty string.", nameof(args));
-
-                 return CoreEx.ExecutionContext.GetRequiredService<IProductReadService>().GetAsync(idValue, ct);
-             });
+             .AddGet<Product>("product", (args, ct) => CoreEx.ExecutionContext.GetRequiredService<IProductReadService>().GetAsync(args.GetIdentifier<string>(), ct));
         });
 
         // Add the OpenAPI services.

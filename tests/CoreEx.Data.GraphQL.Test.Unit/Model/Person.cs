@@ -34,7 +34,7 @@ public readonly record struct Money(decimal Amount, string Currency);
 /// <summary>
 /// A test DTO with a <see langword="Money?"/> (nullable complex struct) property.
 /// </summary>
-public class Invoice
+public class Invoice : IIdentifier<int>
 {
     public int Id { get; set; }
 

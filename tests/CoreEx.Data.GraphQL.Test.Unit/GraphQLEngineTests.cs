@@ -36,7 +36,7 @@ public class GraphQLEngineTests
 
         options.AddGet<Person>("person", (args, ct) =>
         {
-            var id = args.GetInt("id");
+            var id = args.Arguments.GetInt("id");
             return Task.FromResult(_people.FirstOrDefault(p => p.Id == id));
         });
 

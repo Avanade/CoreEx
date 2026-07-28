@@ -6,7 +6,7 @@ namespace CoreEx.Data.GraphQL;
 /// <remarks>Bound to an existing single-item <c>GetAsync</c>-shaped delegate; see <see cref="GraphQLLiteOptions.AddGet{TItem}"/>.</remarks>
 public sealed class GraphQLItemRoot
 {
-    private readonly Func<IReadOnlyDictionary<string, object?>, CancellationToken, Task<object?>> _resolver;
+    private readonly Func<GraphQLLiteArgs, CancellationToken, Task<object?>> _resolver;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="GraphQLItemRoot"/> class.
@@ -14,7 +14,7 @@ public sealed class GraphQLItemRoot
     /// <param name="name">The GraphQL root field name.</param>
     /// <param name="itemType">The underlying item <see cref="Type"/>.</param>
     /// <param name="resolver">The underlying single-item resolver delegate.</param>
-    internal GraphQLItemRoot(string name, Type itemType, Func<IReadOnlyDictionary<string, object?>, CancellationToken, Task<object?>> resolver)
+    internal GraphQLItemRoot(string name, Type itemType, Func<GraphQLLiteArgs, CancellationToken, Task<object?>> resolver)
     {
         Name = name.ThrowIfNull();
         ItemType = itemType.ThrowIfNull();
@@ -37,5 +37,5 @@ public sealed class GraphQLItemRoot
     /// <param name="arguments">The resolved GraphQL field arguments.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
     /// <returns>The resulting item (or <see langword="null"/> where not found).</returns>
-    public Task<object?> InvokeAsync(IReadOnlyDictionary<string, object?> arguments, CancellationToken cancellationToken) => _resolver(arguments, cancellationToken);
+    public Task<object?> InvokeAsync(IReadOnlyDictionary<string, object?> arguments, CancellationToken cancellationToken) => _resolver(new GraphQLLiteArgs(arguments), cancellationToken);
 }

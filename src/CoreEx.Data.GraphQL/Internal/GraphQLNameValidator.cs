@@ -14,6 +14,15 @@ internal static partial class GraphQLNameValidator
     private static partial Regex NameRegex();
 
     /// <summary>
+    /// Determines whether <paramref name="name"/> conforms to the GraphQL <c>Name</c> grammar (<c>/[_A-Za-z][_0-9A-Za-z]*/</c>).
+    /// </summary>
+    /// <param name="name">The name to validate.</param>
+    /// <returns><see langword="true"/> where <paramref name="name"/> is a valid GraphQL <c>Name</c>; otherwise, <see langword="false"/>.</returns>
+    /// <remarks>Shared by <see cref="ValidateFieldName(string, string)"/> (request-time <c>where</c>/<c>orderBy</c> field names) and <see cref="GraphQLLiteOptions.AddQuery{TItem}"/>/
+    /// <see cref="GraphQLLiteOptions.AddGet{TItem}"/> (registration-time root field names), so the grammar is enforced identically wherever a GraphQL name is validated.</remarks>
+    public static bool IsValidName(string name) => NameRegex().IsMatch(name);
+
+    /// <summary>
     /// Validates that <paramref name="name"/> conforms to the GraphQL <c>Name</c> grammar (<c>/[_A-Za-z][_0-9A-Za-z]*/</c>).
     /// </summary>
     /// <param name="name">The field name to validate.</param>
@@ -21,7 +30,7 @@ internal static partial class GraphQLNameValidator
     /// <exception cref="GraphQLArgumentTranslationException">Thrown where <paramref name="name"/> does not conform to the GraphQL <c>Name</c> grammar.</exception>
     public static void ValidateFieldName(string name, string path)
     {
-        if (!NameRegex().IsMatch(name))
+        if (!IsValidName(name))
             throw new GraphQLArgumentTranslationException($"'{path}' is not a valid GraphQL field name.");
     }
 }
