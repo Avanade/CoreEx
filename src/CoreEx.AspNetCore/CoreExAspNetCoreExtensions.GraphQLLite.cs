@@ -23,41 +23,38 @@ public static partial class CoreExAspNetCoreExtensions
         endpoints.ThrowIfNull();
         pattern.ThrowIfNullOrEmpty();
 
-        var rb = endpoints.MapPost(pattern, async (HttpRequest request, IGraphQLEngine engine, CancellationToken cancellationToken) =>
-        {
-            GraphQLLiteRequest? body;
-            try
-            {
-                body = await JsonSerializer.DeserializeAsync<GraphQLLiteRequest>(request.Body, JsonDefaults.SerializerOptions, cancellationToken).ConfigureAwait(false);
-            }
-            catch (JsonException ex)
-            {
-                await Results.Json(new GraphQLLiteResponse(null, [new GraphQLEngineError($"The request body is not a valid GraphQL-over-HTTP request: {ex.Message}")]),
-                    JsonDefaults.SerializerOptions, statusCode: (int)HttpStatusCode.BadRequest).ExecuteAsync(request.HttpContext).ConfigureAwait(false);
-
-                return;
-            }
-
-            if (body is null || string.IsNullOrEmpty(body.Query))
-            {
-                await Results.Json(new GraphQLLiteResponse(null, [new GraphQLEngineError("The 'query' field is required.")]), JsonDefaults.SerializerOptions, statusCode: (int)HttpStatusCode.BadRequest)
-                    .ExecuteAsync(request.HttpContext).ConfigureAwait(false);
-
-                return;
-            }
-
-            var result = await engine.ExecuteAsync(body.Query, body.OperationName, body.Variables, cancellationToken).ConfigureAwait(false);
-
-            // Per the GraphQL-over-HTTP convention, the response status remains 200 regardless of field-level errors.
-            await Results.Json(new GraphQLLiteResponse(result.Data, result.Errors), JsonDefaults.SerializerOptions, statusCode: (int)HttpStatusCode.OK).ExecuteAsync(request.HttpContext).ConfigureAwait(false);
-        })
-        .WithName($"CoreExGraphQLLite{pattern.Replace('/', '_')}")
-        .WithDisplayName("GraphQL Lite")
-        .WithTags("GraphQL");
+        var rb = endpoints.MapPost(pattern, (HttpRequest request, CoreEx.AspNetCore.Http.WebApi webApi, IGraphQLEngine engine, CancellationToken cancellationToken)
+            => webApi.PostAsync<GraphQLLiteResponse>(request, (ro, ct) => ExecuteGraphQLLiteAsync(request, webApi.JsonSerializerOptions, engine, ct), statusCode: HttpStatusCode.OK, cancellationToken: cancellationToken))
+            .WithName($"CoreExGraphQLLite{pattern.Replace('/', '_')}")
+            .WithDisplayName("GraphQL Lite")
+            .WithTags("GraphQL");
 
         configure?.Invoke(rb);
 
         return endpoints;
+    }
+
+    /// <summary>
+    /// Executes the GraphQL-lite request.
+    /// </summary>
+    private static async Task<GraphQLLiteResponse> ExecuteGraphQLLiteAsync(HttpRequest request, JsonSerializerOptions jso, IGraphQLEngine engine, CancellationToken cancellationToken)
+    {
+        GraphQLLiteRequest? body;
+        try
+        {
+            // Self -deserializing the request body to the standard GraphQL-over-HTTP request envelope and self-handling any deserialization errors to return a GraphQL-lite error response.
+            body = await JsonSerializer.DeserializeAsync<GraphQLLiteRequest>(request.Body, jso, cancellationToken).ConfigureAwait(false);
+        }
+        catch (JsonException ex)
+        {
+            return new GraphQLLiteResponse(null, [new GraphQLEngineError($"The request body is not a valid GraphQL-over-HTTP request: {ex.Message}")]);
+        }
+
+        if (body is null || string.IsNullOrEmpty(body.Query))
+            return new GraphQLLiteResponse(null, [new GraphQLEngineError("The 'query' field is required.")]);
+
+        var result = await engine.ExecuteAsync(body.Query, body.OperationName, body.Variables, cancellationToken).ConfigureAwait(false);
+        return new GraphQLLiteResponse(result.Data, result.Errors);
     }
 }
 

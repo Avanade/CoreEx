@@ -3,7 +3,7 @@ namespace CoreEx.Data.GraphQL;
 /// <summary>
 /// Provides the explicit, DI-driven registration of GraphQL-lite query roots.
 /// </summary>
-/// <remarks>Registered via <see cref="GraphQLServiceCollectionExtensions.AddCoreExGraphQLLite(IServiceCollection, Action{GraphQLLiteOptions, IServiceProvider})"/>. Each root binds a GraphQL root field name to an
+/// <remarks>Registered via <see cref="GraphQLExtensions.AddCoreExGraphQLLite(IServiceCollection, Action{GraphQLLiteOptions, IServiceProvider})"/>. Each root binds a GraphQL root field name to an
 /// existing <see cref="QueryArgsConfig"/> (list roots) or a single-item resolver (get roots) — no attribute-based auto-discovery.</remarks>
 public sealed class GraphQLLiteOptions
 {

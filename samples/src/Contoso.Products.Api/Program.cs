@@ -81,6 +81,7 @@ public class Program
         // Add OpenTelemetry tracing.
         builder.WithCoreExTelemetry()
             .WithCoreExPostgresTelemetry()
+            .WithCoreExGraphQLTelemetry()
             .UseOtlpExporter();
 
         // Build the application.

@@ -97,6 +97,13 @@ an instance resolved from the root `IServiceProvider` at registration time — a
 scoped service provider (set by the `UseExecutionContext()` middleware every CoreEx host already
 registers), so no extra `IHttpContextAccessor` registration is needed.
 
+`MapCoreExGraphQLLite` executes through `WebApi.PostAsync<GraphQLLiteResponse>(...)` — the same
+response-shaping pipeline the REST controllers use — so `ProblemDetails`/exception-handling middleware still
+applies as a safety net for anything the engine's own exception mapping doesn't catch. Add
+`.WithCoreExGraphQLTelemetry()` alongside a host's other OpenTelemetry tracing extensions (see
+[Program.cs composition](#programcs-composition) below) to trace `GraphQLEngine.ExecuteAsync` calls the same
+way as any other CoreEx invoker.
+
 > **v1 scope**: read-only (queries only, no mutations); selection sets may traverse arbitrarily nested
 > properties already present on a single resolved DTO (e.g. `person { address { street city } }`), but
 > cannot request a field that would require invoking a *different* registered root (no cross-repository
@@ -118,7 +125,7 @@ registers), so no extra `IHttpContextAccessor` registration is needed.
 4. Infrastructure wiring — database, EF DbContext, outbox publisher, caching (L1 in-memory + L2 Redis + FusionCache backplane).
 5. `PostConfigureAllHealthChecks()` — adds standard health-check tags.
 6. OpenAPI — NSwag document with `AddCoreExConfiguration()`.
-7. OpenTelemetry — `WithCoreExTelemetry()` and provider-specific extensions.
+7. OpenTelemetry — `WithCoreExTelemetry()`, provider-specific extensions (e.g. `WithCoreExPostgresTelemetry()`), and `WithCoreExGraphQLTelemetry()` where the GraphQL-lite bridge is mapped.
 8. Middleware pipeline — `UseCoreExExceptionHandler()` → `UseExecutionContext()` → `UseIdempotencyKey()` → `MapControllers()` → health checks.
 
 ```csharp

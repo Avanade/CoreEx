@@ -4,7 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace CoreEx.Data.GraphQL.Test.Unit;
 
 [TestFixture]
-public class GraphQLServiceCollectionExtensionsTests
+public class GraphQLExtensionsTests
 {
     [Test]
     public async Task AddCoreExGraphQLLite_CalledTwice_LastRegistrationWinsAsync()

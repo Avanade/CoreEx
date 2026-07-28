@@ -1,9 +1,11 @@
 global using CoreEx;
 global using CoreEx.Abstractions;
 global using CoreEx.Data;
+global using CoreEx.Data.GraphQL;
 global using CoreEx.Data.GraphQL.Internal;
 global using CoreEx.Data.Querying;
 global using CoreEx.Entities;
+global using CoreEx.Invokers;
 global using CoreEx.Json;
 global using CoreEx.RefData;
 global using CoreEx.RefData.Abstractions;

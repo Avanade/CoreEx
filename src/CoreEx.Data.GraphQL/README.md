@@ -58,14 +58,22 @@ The engine is deliberately **transport-agnostic**: it references only `CoreEx.Da
   descriptions — no extra configuration needed; see Non-goals below for the remaining simplifications.
 - 🧷 **Explicit, code-based registration**: `services.AddCoreExGraphQLLite((o, sp) => o.AddQuery(...).AddGet(...))`
   — no attribute-based auto-discovery.
+- 🔌 **`WebApi` pipeline integration**: the `CoreEx.AspNetCore` hosting bridge (`MapCoreExGraphQLLite`) executes
+  through `CoreEx.AspNetCore.Http.WebApi.PostAsync<GraphQLLiteResponse>(...)` — the same response-shaping
+  pipeline every other CoreEx REST endpoint uses — so an unexpected bug that escapes the engine's own
+  exception mapping still surfaces as a standard CoreEx `ProblemDetails` response instead of an unhandled 500.
+- 📡 **OpenTelemetry**: `WithCoreExGraphQLTelemetry()` (in `OpenTelemetry.Trace`, `CoreEx.Data.GraphQL`
+  package) wires `GraphQLEngineInvoker`'s activity source into the OTEL tracer provider, so every
+  `ExecuteAsync` call produces a span alongside the rest of a host's CoreEx instrumentation.
 
 ## Key types
 
 | Type | Description |
 |------|-------------|
-| **[`GraphQLEngine`](./GraphQLEngine.cs)** | The concrete `IGraphQLEngine` implementation: parses the document, resolves root fields, applies `JsonFilter` projection, and assembles the `GraphQLEngineResult` (including the Relay Connection shape for query roots). |
+| **[`GraphQLEngine`](./GraphQLEngine.cs)** | The concrete `IGraphQLEngine` implementation: parses the document, resolves root fields, applies `JsonFilter` projection, and assembles the `GraphQLEngineResult` (including the Relay Connection shape for query roots). `ExecuteAsync` is wrapped by `GraphQLEngineInvoker` for OpenTelemetry tracing. |
+| **[`GraphQLEngineInvoker`](./GraphQLEngineInvoker.cs)** | `InvokerBase<GraphQLEngine>` used internally by `ExecuteAsync`; its activity source is registered via `WithCoreExGraphQLTelemetry()`. |
 | **[`GraphQLLiteOptions`](./GraphQLLiteOptions.cs)** | The DI options builder: `AddQuery<TItem>` (list roots bound to a `QueryArgsConfig` + `QueryAsync`-shaped delegate) and `AddGet<TItem>` (single-item roots). |
-| **[`GraphQLServiceCollectionExtensions`](./GraphQLServiceCollectionExtensions.cs)** | `AddCoreExGraphQLLite(IServiceCollection, Action<GraphQLLiteOptions, IServiceProvider>)` registration extension. |
+| **[`GraphQLExtensions`](./GraphQLExtensions.DependencyInjection.cs)** | `AddCoreExGraphQLLite(IServiceCollection, Action<GraphQLLiteOptions, IServiceProvider>)` registration extension, and (in [`GraphQLExtensions.OpenTelemetry.cs`](./GraphQLExtensions.OpenTelemetry.cs)) `WithCoreExGraphQLTelemetry(OpenTelemetryBuilder)`. |
 | **[`GraphQLQueryRoot`](./GraphQLQueryRoot.cs)** / **[`GraphQLItemRoot`](./GraphQLItemRoot.cs)** | Registered list-query and single-item root field descriptors. |
 | **`Internal.GraphQLFilterTranslator`** / **`Internal.GraphQLOrderByTranslator`** | Translate the GraphQL-native `where`/`orderBy` structured arguments to the OData-esque `filter`/`orderby` strings consumed by `QueryArgsConfig`. |
 | **`Internal.GraphQLCursor`** | Encodes/decodes the opaque, offset-based Relay Cursor Connections cursor. |
@@ -92,16 +100,23 @@ builder.Services.AddCoreExGraphQLLite((o, sp) =>
 
 // ...
 app.MapCoreExGraphQLLite("/api/query"); // Additive GraphQL-lite bridge alongside the existing REST endpoints.
+
+// Optional: OpenTelemetry tracing for GraphQLEngine.ExecuteAsync, alongside the rest of the host's CoreEx instrumentation.
+builder.WithCoreExTelemetry()
+    .WithCoreExGraphQLTelemetry()
+    .UseOtlpExporter();
 ```
 
 A hosting bridge (e.g. `MapCoreExGraphQLLite` in `CoreEx.AspNetCore`) resolves `IGraphQLEngine` from DI and
 calls `ExecuteAsync` with the parsed request envelope, returning `{ data, errors }` as the HTTP response
-body. Since `IGraphQLEngine` is registered as a singleton, root resolvers that need scoped dependencies
-(e.g. a repository or application service) should resolve them per-invocation rather than capturing an
-instance resolved from the root `IServiceProvider` at registration time — as shown above via
-`CoreEx.ExecutionContext.GetRequiredService<T>()`, which reads from the ambient `ExecutionContext`'s scoped
-service provider (set by the `UseExecutionContext()` middleware every CoreEx host already registers), so no
-extra `IHttpContextAccessor` wiring is required.
+body via `WebApi.PostAsync<GraphQLLiteResponse>(...)` — the same response-shaping pipeline every other CoreEx
+REST endpoint uses, so `ProblemDetails`/exception handling and logging middleware still apply as a safety net
+for anything the engine's own exception mapping doesn't catch. Since `IGraphQLEngine` is registered as a
+singleton, root resolvers that need scoped dependencies (e.g. a repository or application service) should
+resolve them per-invocation rather than capturing an instance resolved from the root `IServiceProvider` at
+registration time — as shown above via `CoreEx.ExecutionContext.GetRequiredService<T>()`, which reads from
+the ambient `ExecutionContext`'s scoped service provider (set by the `UseExecutionContext()` middleware every
+CoreEx host already registers), so no extra `IHttpContextAccessor` wiring is required.
 
 A client queries the `products` root using native GraphQL `where`/`orderBy` and `first`/`after` Relay paging
 — translated 1:1 to `ProductQueryArgsConfig`'s existing `filter`/`orderby` support:

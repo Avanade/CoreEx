@@ -1,9 +1,11 @@
-namespace CoreEx.Data.GraphQL;
+#pragma warning disable IDE0130 // Namespace does not match folder structure; by design.
+namespace Microsoft.Extensions.DependencyInjection;
+#pragma warning restore IDE0130 // Namespace does not match folder structure
 
 /// <summary>
 /// Provides <see cref="IServiceCollection"/> extension methods to register the GraphQL-lite <see cref="IGraphQLEngine"/>.
 /// </summary>
-public static class GraphQLServiceCollectionExtensions
+public static class GraphQLExtensions
 {
     /// <summary>
     /// Adds a singleton <see cref="GraphQLEngine"/> as the GraphQL-lite <see cref="IGraphQLEngine"/> and its registered query roots to the <paramref name="services"/>.

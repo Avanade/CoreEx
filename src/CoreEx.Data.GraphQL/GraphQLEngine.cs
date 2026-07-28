@@ -17,8 +17,14 @@ public sealed class GraphQLEngine(GraphQLLiteOptions options) : IGraphQLEngine
     public Task<JsonElement> GetSchemaAsync(CancellationToken cancellationToken = default) => Task.FromResult(_introspection.Value.Schema.Deserialize<JsonElement>());
 
     /// <inheritdoc/>
-    public async Task<GraphQLEngineResult> ExecuteAsync(string document, string? operationName = null, IReadOnlyDictionary<string, object?>? variables = null, CancellationToken cancellationToken = default)
-    {
+    public Task<GraphQLEngineResult> ExecuteAsync(string document, string? operationName = null, IReadOnlyDictionary<string, object?>? variables = null, CancellationToken cancellationToken = default)
+        => GraphQLEngineInvoker.Default.InvokeAsync(this, (_, ct) => ExecuteAsyncInternalAsync(document, operationName, variables, ct), cancellationToken);
+
+    /// <summary>
+    /// Executes the specified GraphQL document, returning the resulting data and any errors.
+    /// </summary>
+    private async Task<GraphQLEngineResult> ExecuteAsyncInternalAsync(string document, string? operationName = null, IReadOnlyDictionary<string, object?>? variables = null, CancellationToken cancellationToken = default)
+    { 
         document.ThrowIfNull();
 
         GraphQLDocument parsed;

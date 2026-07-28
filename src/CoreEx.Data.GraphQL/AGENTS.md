@@ -23,9 +23,14 @@ builder.Services.AddCoreExGraphQLLite((o, sp) =>
 
 // ...
 app.MapCoreExGraphQLLite("/api/query"); // CoreEx.AspNetCore hosting bridge; defaults to "/query".
+
+// Optional: OpenTelemetry tracing for GraphQLEngine.ExecuteAsync.
+builder.WithCoreExTelemetry().WithCoreExGraphQLTelemetry().UseOtlpExporter();
 ```
 
 Because `IGraphQLEngine` is registered as a **singleton**, resolve scoped dependencies (repositories, application services) per-invocation rather than capturing an instance from the root `IServiceProvider` at registration time — as shown above via `CoreEx.ExecutionContext.GetRequiredService<T>()`, which reads from the ambient `ExecutionContext`'s scoped service provider (set by the `UseExecutionContext()` middleware every CoreEx host already registers), so no `IHttpContextAccessor` registration/wiring is needed.
+
+`MapCoreExGraphQLLite` executes through `WebApi.PostAsync<GraphQLLiteResponse>(...)` — the same response pipeline every CoreEx REST endpoint uses — so an unexpected bug that escapes `GraphQLEngine`'s own exception mapping still surfaces as a standard `ProblemDetails` response (logged) rather than an unhandled 500.
 
 ## Query Syntax
 
