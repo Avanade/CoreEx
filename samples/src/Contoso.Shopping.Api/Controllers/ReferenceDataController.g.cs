@@ -17,21 +17,25 @@ public partial class ReferenceDataController(CoreEx.AspNetCore.Mvc.WebApi webApi
     [HttpGet("basket-statuses"), HttpHead("basket-statuses")]
     [ProducesResponseType(typeof(BasketStatus[]), 200)]
     [Query(supportsOrderBy: true), Paging(supportsCount: true)]
-    public Task<IActionResult> GetBasketStatusesAsync() => _webApi.GetAsync(Request, (ro, ct) => ReferenceDataOrchestrator.Current.QueryAsync<BasketStatus>(ro.QueryArgs, ro.PagingArgs, ct));
+    public Task<IActionResult> GetBasketStatusesAsync(CancellationToken cancellationToken)
+        => _webApi.GetAsync(Request, (ro, ct) => ReferenceDataOrchestrator.Current.QueryAsync<BasketStatus>(ro.QueryArgs, ro.PagingArgs, ct), cancellationToken: cancellationToken);
 
     [HttpGet("discount-coupons"), HttpHead("discount-coupons")]
     [ProducesResponseType(typeof(DiscountCoupon[]), 200)]
     [Query(supportsOrderBy: true), Paging(supportsCount: true)]
-    public Task<IActionResult> GetDiscountCouponsAsync() => _webApi.GetAsync(Request, (ro, ct) => ReferenceDataOrchestrator.Current.QueryAsync<DiscountCoupon>(ro.QueryArgs, ro.PagingArgs, ct));
+    public Task<IActionResult> GetDiscountCouponsAsync(CancellationToken cancellationToken)
+        => _webApi.GetAsync(Request, (ro, ct) => ReferenceDataOrchestrator.Current.QueryAsync<DiscountCoupon>(ro.QueryArgs, ro.PagingArgs, ct), cancellationToken: cancellationToken);
 
     [HttpGet("units-of-measure"), HttpHead("units-of-measure")]
     [ProducesResponseType(typeof(UnitOfMeasure[]), 200)]
     [Query(supportsOrderBy: true), Paging(supportsCount: true)]
-    public Task<IActionResult> GetUnitsOfMeasureAsync() => _webApi.GetAsync(Request, (ro, ct) => ReferenceDataOrchestrator.Current.QueryAsync<UnitOfMeasure>(ro.QueryArgs, ro.PagingArgs, ct));
+    public Task<IActionResult> GetUnitsOfMeasureAsync(CancellationToken cancellationToken)
+        => _webApi.GetAsync(Request, (ro, ct) => ReferenceDataOrchestrator.Current.QueryAsync<UnitOfMeasure>(ro.QueryArgs, ro.PagingArgs, ct), cancellationToken: cancellationToken);
 
     [HttpGet]
     [ProducesResponseType(typeof(ReferenceDataMultiDictionary), 200)]
-    public Task<IActionResult> GetNamedAsync([FromQuery] string[] name) => _webApi.GetAsync(Request, (ro, ct) => ReferenceDataOrchestrator.Current.GetNamedAsync(name, ro.IsIncludeInactive, ct));
+    public Task<IActionResult> GetNamedAsync([FromQuery] string[] name, CancellationToken cancellationToken)
+        => _webApi.GetAsync(Request, (ro, ct) => ReferenceDataOrchestrator.Current.GetNamedAsync(name, ro.IsIncludeInactive, ct), cancellationToken: cancellationToken);
 }
 
 #nullable restore

@@ -18,12 +18,14 @@ public partial class ReferenceDataController(CoreEx.AspNetCore.Mvc.WebApi webApi
     [HttpGet("{{Route}}"), HttpHead("{{Route}}")]
     [ProducesResponseType(typeof({{Name}}[]), 200)]
     [Query(supportsOrderBy: true), Paging(supportsCount: true)]
-    public Task<IActionResult> Get{{Plural}}Async() => _webApi.GetAsync(Request, (ro, ct) => ReferenceDataOrchestrator.Current.QueryAsync<{{Name}}>(ro.QueryArgs, ro.PagingArgs, ct));
+    public Task<IActionResult> Get{{Plural}}Async(CancellationToken cancellationToken)
+        => _webApi.GetAsync(Request, (ro, ct) => ReferenceDataOrchestrator.Current.QueryAsync<{{Name}}>(ro.QueryArgs, ro.PagingArgs, ct), cancellationToken: cancellationToken);
 {{/each}}
 
     [HttpGet]
     [ProducesResponseType(typeof(ReferenceDataMultiDictionary), 200)]
-    public Task<IActionResult> GetNamedAsync([FromQuery] string[] name) => _webApi.GetAsync(Request, (ro, ct) => ReferenceDataOrchestrator.Current.GetNamedAsync(name, ro.IsIncludeInactive, ct));
+    public Task<IActionResult> GetNamedAsync([FromQuery] string[] name, CancellationToken cancellationToken)
+        => _webApi.GetAsync(Request, (ro, ct) => ReferenceDataOrchestrator.Current.GetNamedAsync(name, ro.IsIncludeInactive, ct), cancellationToken: cancellationToken);
 }
 
 #nullable restore

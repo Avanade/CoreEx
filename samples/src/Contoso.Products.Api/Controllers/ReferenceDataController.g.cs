@@ -17,36 +17,43 @@ public partial class ReferenceDataController(CoreEx.AspNetCore.Mvc.WebApi webApi
     [HttpGet("brands"), HttpHead("brands")]
     [ProducesResponseType(typeof(Brand[]), 200)]
     [Query(supportsOrderBy: true), Paging(supportsCount: true)]
-    public Task<IActionResult> GetBrandsAsync() => _webApi.GetAsync(Request, (ro, ct) => ReferenceDataOrchestrator.Current.QueryAsync<Brand>(ro.QueryArgs, ro.PagingArgs, ct));
+    public Task<IActionResult> GetBrandsAsync(CancellationToken cancellationToken)
+        => _webApi.GetAsync(Request, (ro, ct) => ReferenceDataOrchestrator.Current.QueryAsync<Brand>(ro.QueryArgs, ro.PagingArgs, ct), cancellationToken: cancellationToken);
 
     [HttpGet("categories"), HttpHead("categories")]
     [ProducesResponseType(typeof(Category[]), 200)]
     [Query(supportsOrderBy: true), Paging(supportsCount: true)]
-    public Task<IActionResult> GetCategoriesAsync() => _webApi.GetAsync(Request, (ro, ct) => ReferenceDataOrchestrator.Current.QueryAsync<Category>(ro.QueryArgs, ro.PagingArgs, ct));
+    public Task<IActionResult> GetCategoriesAsync(CancellationToken cancellationToken)
+        => _webApi.GetAsync(Request, (ro, ct) => ReferenceDataOrchestrator.Current.QueryAsync<Category>(ro.QueryArgs, ro.PagingArgs, ct), cancellationToken: cancellationToken);
 
     [HttpGet("movement-kinds"), HttpHead("movement-kinds")]
     [ProducesResponseType(typeof(MovementKind[]), 200)]
     [Query(supportsOrderBy: true), Paging(supportsCount: true)]
-    public Task<IActionResult> GetMovementKindsAsync() => _webApi.GetAsync(Request, (ro, ct) => ReferenceDataOrchestrator.Current.QueryAsync<MovementKind>(ro.QueryArgs, ro.PagingArgs, ct));
+    public Task<IActionResult> GetMovementKindsAsync(CancellationToken cancellationToken)
+        => _webApi.GetAsync(Request, (ro, ct) => ReferenceDataOrchestrator.Current.QueryAsync<MovementKind>(ro.QueryArgs, ro.PagingArgs, ct), cancellationToken: cancellationToken);
 
     [HttpGet("movement-statuses"), HttpHead("movement-statuses")]
     [ProducesResponseType(typeof(MovementStatus[]), 200)]
     [Query(supportsOrderBy: true), Paging(supportsCount: true)]
-    public Task<IActionResult> GetMovementStatusesAsync() => _webApi.GetAsync(Request, (ro, ct) => ReferenceDataOrchestrator.Current.QueryAsync<MovementStatus>(ro.QueryArgs, ro.PagingArgs, ct));
+    public Task<IActionResult> GetMovementStatusesAsync(CancellationToken cancellationToken)
+        => _webApi.GetAsync(Request, (ro, ct) => ReferenceDataOrchestrator.Current.QueryAsync<MovementStatus>(ro.QueryArgs, ro.PagingArgs, ct), cancellationToken: cancellationToken);
 
     [HttpGet("sub-categories"), HttpHead("sub-categories")]
     [ProducesResponseType(typeof(SubCategory[]), 200)]
     [Query(supportsOrderBy: true), Paging(supportsCount: true)]
-    public Task<IActionResult> GetSubCategoriesAsync() => _webApi.GetAsync(Request, (ro, ct) => ReferenceDataOrchestrator.Current.QueryAsync<SubCategory>(ro.QueryArgs, ro.PagingArgs, ct));
+    public Task<IActionResult> GetSubCategoriesAsync(CancellationToken cancellationToken)
+        => _webApi.GetAsync(Request, (ro, ct) => ReferenceDataOrchestrator.Current.QueryAsync<SubCategory>(ro.QueryArgs, ro.PagingArgs, ct), cancellationToken: cancellationToken);
 
     [HttpGet("units-of-measure"), HttpHead("units-of-measure")]
     [ProducesResponseType(typeof(UnitOfMeasure[]), 200)]
     [Query(supportsOrderBy: true), Paging(supportsCount: true)]
-    public Task<IActionResult> GetUnitsOfMeasureAsync() => _webApi.GetAsync(Request, (ro, ct) => ReferenceDataOrchestrator.Current.QueryAsync<UnitOfMeasure>(ro.QueryArgs, ro.PagingArgs, ct));
+    public Task<IActionResult> GetUnitsOfMeasureAsync(CancellationToken cancellationToken)
+        => _webApi.GetAsync(Request, (ro, ct) => ReferenceDataOrchestrator.Current.QueryAsync<UnitOfMeasure>(ro.QueryArgs, ro.PagingArgs, ct), cancellationToken: cancellationToken);
 
     [HttpGet]
     [ProducesResponseType(typeof(ReferenceDataMultiDictionary), 200)]
-    public Task<IActionResult> GetNamedAsync([FromQuery] string[] name) => _webApi.GetAsync(Request, (ro, ct) => ReferenceDataOrchestrator.Current.GetNamedAsync(name, ro.IsIncludeInactive, ct));
+    public Task<IActionResult> GetNamedAsync([FromQuery] string[] name, CancellationToken cancellationToken)
+        => _webApi.GetAsync(Request, (ro, ct) => ReferenceDataOrchestrator.Current.GetNamedAsync(name, ro.IsIncludeInactive, ct), cancellationToken: cancellationToken);
 }
 
 #nullable restore
