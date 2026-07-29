@@ -120,7 +120,7 @@ builder.Services.AddCoreExGraphQLLite((o, sp) =>
 });
 ```
 
-Each root is named `<prefix><alternate-name>` (hyphens in the alternate name are replaced with underscores because GraphQL field names cannot contain hyphens). Types without an alternate name registered on `IReferenceDataProvider.AlternateNames` are **not** exposed — the alternate name is the GraphQL-friendly external name.
+Every reference data type known to `ReferenceDataOrchestrator` is exposed — not just types with a registered alternate name. Each root is named `<prefix><name>` (hyphens replaced with underscores, since GraphQL field names cannot contain them), where `<name>` is the type's `IReferenceDataProvider.AlternateNames` entry where one is registered, otherwise the type's own `Type.Name`. Pass `excludeTypes` to opt specific types out of this bulk registration.
 
 A hosting bridge (e.g. `MapCoreExGraphQLLite` in `CoreEx.AspNetCore`) resolves `IGraphQLEngine` from DI and
 calls `ExecuteAsync` with the parsed request envelope, returning `{ data, errors }` as the HTTP response

@@ -412,6 +412,95 @@ public partial class ReferenceDataOrchestratorTests
             .WithMessage($"*{typeof(DummyRefData).FullName}*more than one alternate name*");
     }
 
+    // ── GetNamedAsync / GetAlternateNameMappings (alias-or-primary external naming) ──
+
+    private class DummyProviderWithOneAlternateName : IReferenceDataProvider
+    {
+        public IEnumerable<(Type, Type)> Types =>
+        [
+            (typeof(DummyRefData), typeof(DummyRefDataCollection)),
+            (typeof(DummyRefData2), typeof(DummyRefData2Collection))
+        ];
+
+        // Only DummyRefData has an alternate name; DummyRefData2 falls back to its own type name.
+        public IEnumerable<(string, Type)>? AlternateNames => [("dummies", typeof(DummyRefData))];
+
+        public Task<IReferenceDataCollection> GetAsync(Type type, CancellationToken cancellationToken = default)
+            => type == typeof(DummyRefData)
+            ?
+            Task.FromResult<IReferenceDataCollection>(new DummyRefDataCollection { new DummyRefData { Id = 1, Code = "A", Text = "Alpha" } })
+            :
+            Task.FromResult<IReferenceDataCollection>(new DummyRefData2Collection { new DummyRefData2 { Id = "A-1", Code = "A", Text = "Alpha" } });
+    }
+
+    private static ReferenceDataOrchestrator CreateOrchestratorWithOneAlternateName()
+    {
+        var sc = new ServiceCollection();
+        sc.AddExecutionContext(sp => new ExecutionContext { ServiceProvider = sp });
+        sc.AddSingleton<IReferenceDataCache>(new ReferenceDataHybridCache(new Caching.MemoryOnlyHybridCache()));
+        sc.AddScoped<DummyProviderWithOneAlternateName>();
+        var sp = sc.BuildServiceProvider();
+        var ro = new ReferenceDataOrchestrator(sp, Mock.Of<ILogger<ReferenceDataOrchestrator>>());
+        return ro.Register<DummyProviderWithOneAlternateName>();
+    }
+
+    [Test]
+    public void GetAlternateNameMappings_ReturnsEntryForEveryType_AliasOrPrimary()
+    {
+        var ro = CreateOrchestratorWithOneAlternateName();
+        var mappings = ro.GetAlternateNameMappings();
+
+        // DummyRefData has a declared alias, so it appears under that alias only.
+        mappings.Should().ContainKey("dummies").WhoseValue.Should().Be(typeof(DummyRefData));
+        mappings.Should().NotContainKey(nameof(DummyRefData));
+
+        // DummyRefData2 has no alias, so it falls back to its own type name.
+        mappings.Should().ContainKey(nameof(DummyRefData2)).WhoseValue.Should().Be(typeof(DummyRefData2));
+    }
+
+    [Test]
+    public async Task GetNamedAsync_ByAlternateName_Resolves()
+    {
+        var ro = CreateOrchestratorWithOneAlternateName();
+        var mc = await ro.GetNamedAsync(["dummies"]);
+
+        mc.Should().ContainKey("dummies");
+        mc["dummies"].Should().HaveCount(1);
+    }
+
+    [Test]
+    public async Task GetNamedAsync_ByPrimaryTypeName_ForAliasedType_StillResolves_KeyedByAlias()
+    {
+        // Regression guard: once a type has an alternate name, its underlying .NET type name must still resolve
+        // (callers/consumers written before the alias existed must keep working) - the result is keyed by the
+        // canonical/alias name so downstream serialization/naming stays consistent regardless of which name was requested.
+        var ro = CreateOrchestratorWithOneAlternateName();
+        var mc = await ro.GetNamedAsync([nameof(DummyRefData)]);
+
+        mc.Should().ContainKey("dummies");
+        mc.Should().NotContainKey(nameof(DummyRefData));
+        mc["dummies"].Should().HaveCount(1);
+    }
+
+    [Test]
+    public async Task GetNamedAsync_ByPrimaryTypeName_ForNonAliasedType_Resolves()
+    {
+        var ro = CreateOrchestratorWithOneAlternateName();
+        var mc = await ro.GetNamedAsync([nameof(DummyRefData2)]);
+
+        mc.Should().ContainKey(nameof(DummyRefData2));
+        mc[nameof(DummyRefData2)].Should().HaveCount(1);
+    }
+
+    [Test]
+    public async Task GetNamedAsync_UnknownName_SilentlyIgnored()
+    {
+        var ro = CreateOrchestratorWithOneAlternateName();
+        var mc = await ro.GetNamedAsync(["not-a-real-name"]);
+
+        mc.Should().BeEmpty();
+    }
+
     // Entity source generation tests.
 
     [Test]

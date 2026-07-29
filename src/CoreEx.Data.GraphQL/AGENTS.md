@@ -41,7 +41,7 @@ builder.Services.AddCoreExGraphQLLite((o, sp) =>
 });
 ```
 
-Each root is named `<prefix><alternate-name>` (hyphens replaced with underscores). Only types that declare an `AlternateNames` entry on their `IReferenceDataProvider` are exposed — the alternate name is the GraphQL-friendly external identifier. The filter/order config defaults to `ReferenceDataQueryArgsConfig.Default` (`code`/`text` filters, `code`/`text`/`sortOrder` ordering) unless a custom `QueryArgsConfig` is passed.
+Every reference data type known to the `ReferenceDataOrchestrator` is exposed as a root — not just types that declare an `AlternateNames` entry. Each root is named `<prefix><name>` (hyphens replaced with underscores), where `<name>` is the type's registered alternate name where one exists, otherwise the type's own `Type.Name`. Use `excludeTypes` to opt specific types out. The filter/order config defaults to `ReferenceDataQueryArgsConfig.Default` (`code`/`text` filters, `code`/`text`/`sortOrder` ordering) unless a custom `QueryArgsConfig` is passed.
 
 Because `IGraphQLEngine` is registered as a **singleton**, resolve scoped dependencies (repositories, application services) per-invocation rather than capturing an instance from the root `IServiceProvider` at registration time — as shown above via `CoreEx.ExecutionContext.GetRequiredService<T>()`, which reads from the ambient `ExecutionContext`'s scoped service provider (set by the `UseExecutionContext()` middleware every CoreEx host already registers), so no `IHttpContextAccessor` registration/wiring is needed.
 

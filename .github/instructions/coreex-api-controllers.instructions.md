@@ -218,7 +218,7 @@ public Task<IActionResult> QuerySchemaAsync(CancellationToken cancellationToken 
     _webApi.GetAsync(Request, (ro, ct) => _service.QuerySchemaAsync(ct), cancellationToken: cancellationToken);
 ```
 
-A `QueryAsync`/`GetAsync` pair backed by `QueryArgsConfig` can optionally also be exposed over GraphQL instead of (or alongside) the REST controller, via `CoreEx.Data.GraphQL` — a transport-agnostic bridge that maps GraphQL `where`/`orderBy` 1:1 onto the same `QueryArgsConfig`. This is additive and opt-in; do not add it unless asked. See the [`CoreEx.Data.GraphQL` AGENTS.md](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.Data.GraphQL/AGENTS.md).
+A `QueryAsync`/`GetAsync` pair backed by `QueryArgsConfig` can optionally also be exposed over GraphQL instead of (or alongside) the REST controller, via `CoreEx.Data.GraphQL` — a transport-agnostic bridge that maps GraphQL `where`/`orderBy` 1:1 onto the same `QueryArgsConfig`. This is additive and opt-in; do not add it unless asked. Use the `coreex-graphql` skill to wire it up — see [`CoreEx.Data.GraphQL` AGENTS.md](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.Data.GraphQL/AGENTS.md) for the underlying API.
 
 ### Result-Based Services
 

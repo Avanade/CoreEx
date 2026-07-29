@@ -58,6 +58,7 @@ Guides you through adding or modifying HTTP API endpoints in an `*.Api` host. Co
 - `Result<T>` service → `WithResult` variants (`GetWithResultAsync`, `PostWithResultAsync`, `PutWithResultAsync`, …)
 - No business logic in controllers — delegate immediately to the application service
 - `[Query(supportsOrderBy: true), Paging(supportsCount: true)]` + `[HttpGet("$query")]` schema endpoint for query operations
+- After adding a GET/Query endpoint, check whether this host already has GraphQL enabled (grep `Program.cs` for `AddCoreExGraphQLLite`, or check the host's `AGENTS.md` for a `**GraphQL:**` line). If enabled, offer to add a matching root via `coreex-graphql` in the same session; if not enabled, say nothing — do not offer to enable GraphQL, that is a separate explicit ask
 - Once the endpoint is implemented, hand off to `coreex-test-api` to add/update its integration test
 
 For full workflow and code examples see [`references/workflow.md`](references/workflow.md).
@@ -66,7 +67,7 @@ For full workflow and code examples see [`references/workflow.md`](references/wo
 
 - [`/.github/instructions/coreex-api-controllers.instructions.md`](/.github/instructions/coreex-api-controllers.instructions.md) — authoritative conventions: MVC vs Minimal API, WebApi helpers, attributes, route parameter rules, CQRS split
 - [`/.github/instructions/coreex-host-setup.instructions.md`](/.github/instructions/coreex-host-setup.instructions.md) — Api host / `Program.cs` composition (scaffolded by `coreex-solution-scaffolder`)
-- Related skills: [`coreex-app-service`](../coreex-app-service/SKILL.md) (controllers delegate to it), [`coreex-test-api`](../coreex-test-api/SKILL.md) (integration tests for these endpoints), [`coreex-subscriber`](../coreex-subscriber/SKILL.md) (sibling host entry point), [`coreex-solution-scaffolder`](../coreex-solution-scaffolder/SKILL.md) (host setup)
+- Related skills: [`coreex-app-service`](../coreex-app-service/SKILL.md) (controllers delegate to it), [`coreex-test-api`](../coreex-test-api/SKILL.md) (integration tests for these endpoints), [`coreex-subscriber`](../coreex-subscriber/SKILL.md) (sibling host entry point), [`coreex-solution-scaffolder`](../coreex-solution-scaffolder/SKILL.md) (host setup), [`coreex-graphql`](../coreex-graphql/SKILL.md) (optional GraphQL-lite root alongside a query endpoint)
 - Illustrative examples (CoreEx sample — not present in your project):
   - [`ProductController` + `ProductReadController`](https://github.com/Avanade/CoreEx/tree/main/samples/src/Contoso.Products.Api/Controllers) — exception-based, full CRUD + query + $query
   - [`BasketController` + `BasketReadController`](https://github.com/Avanade/CoreEx/tree/main/samples/src/Contoso.Shopping.Api/Controllers) — Result&lt;T&gt; style, custom business actions, cross-tagged nested route

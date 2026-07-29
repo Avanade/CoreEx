@@ -10,11 +10,6 @@ namespace CoreEx.RefData;
 /// <param name="logger">The <see cref="ILogger"/>.</param>
 public sealed class ReferenceDataOrchestrator(IServiceProvider serviceProvider, ILogger<ReferenceDataOrchestrator> logger)
 {
-    /// <summary>
-    /// Gets the error message where the <see cref="IReferenceData.Text"/> <see cref="Wildcard"/> value is invalid.
-    /// </summary>
-    public const string TextWildcardErrorMessage = "Text contains invalid or unsupported wildcard selection.";
-
     private const string InvokerCacheType = "refdata.cachetype";
     private const string InvokerCacheState = "refdata.cachestate";
     private const string InvokerCacheCount = "refdata.cachecount";
@@ -31,6 +26,7 @@ public sealed class ReferenceDataOrchestrator(IServiceProvider serviceProvider, 
     private readonly ConcurrentDictionary<string, Type> _nameToType = new(StringComparer.OrdinalIgnoreCase);
     private readonly ConcurrentDictionary<Type, Type> _typeToCollType = new();
     private readonly ConcurrentDictionary<string, Type> _nameMappings = new(StringComparer.OrdinalIgnoreCase);
+    private readonly ConcurrentDictionary<Type, string> _typeToName = new();
     private IReferenceDataQuery? _referenceDataQuery;
 
     /// <summary>
@@ -136,6 +132,7 @@ public sealed class ReferenceDataOrchestrator(IServiceProvider serviceProvider, 
 
                     _nameToType.TryAdd(altName, altType);
                     _nameMappings.TryAdd(altName, altType);
+                    _typeToName.TryAdd(altType, altName);
                 }
             }
 
@@ -146,6 +143,7 @@ public sealed class ReferenceDataOrchestrator(IServiceProvider serviceProvider, 
                     continue;
 
                 _nameMappings.TryAdd(refType.Name, refType);
+                _typeToName.TryAdd(refType, refType.Name);
             }
         }
 
@@ -394,9 +392,13 @@ public sealed class ReferenceDataOrchestrator(IServiceProvider serviceProvider, 
         => _nameToType.TryGetValue(name.ThrowIfNull(), out var type) ? GetByTypeRequiredAsync(type, cancellationToken) : throw new InvalidOperationException($"Reference data collection for name '{name}' does not exist.");
 
     /// <summary>
-    /// Gets the dictionary of alternate name mappings to the corresponding <see cref="IReferenceData"/> <see cref="Type"/>.
+    /// Gets the dictionary of the single definitive external name for every registered <see cref="IReferenceData"/> <see cref="Type"/>.
     /// </summary>
-    /// <returns>The dictionary of alternate name mappings.</returns>
+    /// <returns>The dictionary of external name mappings, keyed by the external name and valued by the corresponding <see cref="IReferenceData"/> <see cref="Type"/>.</returns>
+    /// <remarks>Every registered <see cref="Type"/> has exactly one entry: its declared <see cref="IReferenceDataProvider.AlternateNames"/> value where registered; otherwise its own
+    /// <see cref="MemberInfo.Name"/>. This is <i>not</i> restricted to types that declare an alternate name - it covers every type known to the orchestrator, and is used both to
+    /// normalize the <see cref="GetNamedAsync(IEnumerable{string}, bool, CancellationToken)"/> result keys and to name the bulk-registered reference data query roots (see
+    /// <c>GraphQLLiteOptions.AddReferenceDataQueries</c> in <c>CoreEx.Data.GraphQL</c>).</remarks>
     public IReadOnlyDictionary<string, Type> GetAlternateNameMappings() => _nameMappings;
 
     /// <summary>
@@ -495,14 +497,15 @@ public sealed class ReferenceDataOrchestrator(IServiceProvider serviceProvider, 
     }
 
     /// <summary>
-    /// Replaces the specified <paramref name="names"/> to get a final definitive list.
+    /// Normalizes the specified <paramref name="names"/> - each of which may be either a <see cref="Type"/>'s own name or its registered alternate name - to their corresponding
+    /// definitive external name (see <see cref="GetAlternateNameMappings"/>), silently ignoring any unrecognized name.
     /// </summary>
     private IEnumerable<string> ReplaceNames(IEnumerable<string> names)
     {
-        foreach (var kvp in _nameMappings)
+        foreach (var name in names.Distinct(StringComparer.OrdinalIgnoreCase))
         {
-            if (names.Contains(kvp.Key, StringComparer.OrdinalIgnoreCase))
-                yield return kvp.Key;
+            if (_nameToType.TryGetValue(name, out var type) && _typeToName.TryGetValue(type, out var definitiveName))
+                yield return definitiveName;
         }
     }
 
