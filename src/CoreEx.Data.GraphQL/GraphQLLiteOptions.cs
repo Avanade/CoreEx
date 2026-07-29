@@ -118,27 +118,14 @@ public sealed class GraphQLLiteOptions
 
             ThrowIfReservedOrDuplicate(name);
 
-            // Dynamically create the typed orchestrator query resolver, wrapped so it returns Task<IItemsResult> as required by GraphQLQueryRoot.
-            var method = typeof(GraphQLLiteOptions)
-                .GetMethod(nameof(CreateReferenceDataQueryResolver), BindingFlags.NonPublic | BindingFlags.Static)!
-                .MakeGenericMethod(type);
+            var capturedType = type;
+            Task<IItemsResult> resolver(QueryArgs? qa, PagingArgs? pa, CancellationToken ct) => orchestrator.QueryAsync(capturedType, qa, pa, ct);
 
-            var resolver = (Func<QueryArgs?, PagingArgs?, CancellationToken, Task<IItemsResult>>)method.Invoke(null, [orchestrator])!;
             _queryRoots[name] = new GraphQLQueryRoot(name, type, queryArgsConfig, resolver);
         }
 
         return this;
     }
-
-    /// <summary>
-    /// Creates a strongly-typed resolver delegate that invokes <see cref="ReferenceDataOrchestrator.QueryAsync{TRef}(QueryArgs?, PagingArgs?, CancellationToken)"/> and
-    /// converts the resulting <see cref="ItemsResult{TRef}"/> up to <see cref="IItemsResult"/> to match the shape required by <see cref="GraphQLQueryRoot"/>.
-    /// </summary>
-    /// <typeparam name="TRef">The reference data <see cref="Type"/>.</typeparam>
-    /// <param name="orchestrator">The <see cref="ReferenceDataOrchestrator"/>.</param>
-    /// <returns>The resolver delegate.</returns>
-    private static Func<QueryArgs?, PagingArgs?, CancellationToken, Task<IItemsResult>> CreateReferenceDataQueryResolver<TRef>(ReferenceDataOrchestrator orchestrator) where TRef : IReferenceData
-        => async (qa, pa, ct) => await orchestrator.QueryAsync<TRef>(qa, pa, ct).ConfigureAwait(false);
 
     /// <summary>
     /// Validates that a root field name conforms to the GraphQL <c>Name</c> grammar, is not <c>__</c>-prefixed (reserved for GraphQL introspection), and has not already been

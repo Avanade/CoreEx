@@ -69,6 +69,19 @@ builder.Services.AddDynamicServicesUsing<ReferenceDataService, ReferenceDataRepo
 
 The orchestrator resolves `IHybridCache` from DI to cache loaded collections. Register FusionCache separately — see [CoreEx.Caching.FusionCache](../CoreEx.Caching.FusionCache/README.md).
 
+`AddReferenceDataOrchestrator` also auto-registers `ReferenceDataQuery.Default`, enabling `ReferenceDataOrchestrator.QueryAsync<TRef>(QueryArgs?, PagingArgs?, CancellationToken)` on all ref-data endpoints out of the box. To customise filtering/ordering per type, pass a `Func<Type, QueryArgsConfig?>` selector:
+
+```csharp
+// Custom config for one type; all others fall back to ReferenceDataQueryArgsConfig.Default.
+builder.Services.AddReferenceDataOrchestrator(sp =>
+{
+    var orch = new ReferenceDataOrchestrator(sp, sp.GetRequiredService<ILogger<ReferenceDataOrchestrator>>());
+    orch.RegisterQuery(new ReferenceDataQuery(type =>
+        type == typeof(Country) ? CountryQueryArgsConfig.Default : null));
+    return orch;
+});
+```
+
 ---
 
 ## ReferenceDataCodeCollection — Wire Serialization

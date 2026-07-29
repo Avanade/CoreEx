@@ -72,7 +72,7 @@ The engine is deliberately **transport-agnostic**: it references only `CoreEx.Da
 |------|-------------|
 | **[`GraphQLEngine`](./GraphQLEngine.cs)** | The concrete `IGraphQLEngine` implementation: parses the document, resolves root fields, applies `JsonFilter` projection, and assembles the `GraphQLEngineResult` (including the Relay Connection shape for query roots). `ExecuteAsync` is wrapped by `GraphQLEngineInvoker` for OpenTelemetry tracing. |
 | **[`GraphQLEngineInvoker`](./GraphQLEngineInvoker.cs)** | `InvokerBase<GraphQLEngine>` used internally by `ExecuteAsync`; its activity source is registered via `WithCoreExGraphQLTelemetry()`. |
-| **[`GraphQLLiteOptions`](./GraphQLLiteOptions.cs)** | The DI options builder: `AddQuery<TItem>` (list roots bound to a `QueryArgsConfig` + `QueryAsync`-shaped delegate) and `AddGet<TItem>` (single-item roots). |
+| **[`GraphQLLiteOptions`](./GraphQLLiteOptions.cs)** | The DI options builder: `AddQuery<TItem>` (list roots bound to a `QueryArgsConfig` + `QueryAsync`-shaped delegate), `AddGet<TItem>` (single-item roots), and `AddReferenceDataQueries(sp, queryArgsConfig, prefix, excludeTypes)` (bulk-registers every reference data type known to `ReferenceDataOrchestrator` as a query root, keyed by its alternate/GraphQL-friendly name). |
 | **[`GraphQLExtensions`](./GraphQLExtensions.DependencyInjection.cs)** | `AddCoreExGraphQLLite(IServiceCollection, Action<GraphQLLiteOptions, IServiceProvider>)` registration extension, and (in [`GraphQLExtensions.OpenTelemetry.cs`](./GraphQLExtensions.OpenTelemetry.cs)) `WithCoreExGraphQLTelemetry(OpenTelemetryBuilder)`. |
 | **[`GraphQLQueryRoot`](./GraphQLQueryRoot.cs)** / **[`GraphQLItemRoot`](./GraphQLItemRoot.cs)** | Registered list-query and single-item root field descriptors. |
 | **`Internal.GraphQLFilterTranslator`** / **`Internal.GraphQLOrderByTranslator`** | Translate the GraphQL-native `where`/`orderBy` structured arguments to the OData-esque `filter`/`orderby` strings consumed by `QueryArgsConfig`. |
@@ -106,6 +106,21 @@ builder.WithCoreExTelemetry()
     .WithCoreExGraphQLTelemetry()
     .UseOtlpExporter();
 ```
+
+To expose every reference data type known to `ReferenceDataOrchestrator` as a GraphQL query root (one root per type, keyed by its alternate/GraphQL-friendly name), use `AddReferenceDataQueries` instead of one `AddQuery` call per type:
+
+```csharp
+builder.Services.AddCoreExGraphQLLite((o, sp) =>
+{
+    // Bulk-register all ref-data types as query roots (prefix defaults to "ref_"; use null for no prefix).
+    o.AddReferenceDataQueries(sp, ReferenceDataQueryArgsConfig.Default, prefix: "ref_");
+
+    // Mix with regular entity roots as needed.
+    o.AddQuery<ProductLite>("products", ProductQueryArgsConfig.Default, async (qa, pa, ct) => ...);
+});
+```
+
+Each root is named `<prefix><alternate-name>` (hyphens in the alternate name are replaced with underscores because GraphQL field names cannot contain hyphens). Types without an alternate name registered on `IReferenceDataProvider.AlternateNames` are **not** exposed — the alternate name is the GraphQL-friendly external name.
 
 A hosting bridge (e.g. `MapCoreExGraphQLLite` in `CoreEx.AspNetCore`) resolves `IGraphQLEngine` from DI and
 calls `ExecuteAsync` with the parsed request envelope, returning `{ data, errors }` as the HTTP response

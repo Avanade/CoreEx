@@ -15,4 +15,15 @@ public interface IReferenceDataQuery
     /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
     /// <returns>The <see cref="ItemsResult{TItem}"/> of <typeparamref name="TRef"/>.</returns>
     Task<ItemsResult<TRef>> QueryAsync<TRef>(ReferenceDataOrchestrator referenceDataOrchestrator, QueryArgs? query, PagingArgs? paging, CancellationToken cancellationToken) where TRef : IReferenceData;
+
+    /// <summary>
+    /// Queries the <see cref="ReferenceDataOrchestrator"/> for the specified <paramref name="refType"/> using the <paramref name="query"/> and <paramref name="paging"/>.
+    /// </summary>
+    /// <param name="referenceDataOrchestrator">The <see cref="ReferenceDataOrchestrator"/> source.</param>
+    /// <param name="refType">The <see cref="IReferenceData"/> <see cref="Type"/>.</param>
+    /// <param name="query">The <see cref="QueryArgs"/>.</param>
+    /// <param name="paging">The <see cref="PagingArgs"/>.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+    /// <returns>The <see cref="IItemsResult"/>.</returns>
+    Task<IItemsResult> QueryAsync(ReferenceDataOrchestrator referenceDataOrchestrator, Type refType, QueryArgs? query, PagingArgs? paging, CancellationToken cancellationToken);
 }

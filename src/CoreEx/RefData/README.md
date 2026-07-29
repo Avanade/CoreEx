@@ -15,6 +15,7 @@ The `IReferenceDataContext` scoping mechanism allows per-request filtering: e.g.
 - 📚 **Centralized collection management**: `ReferenceDataOrchestrator` manages multiple `IReferenceDataProvider` instances, loading each collection once and serving all subsequent requests from the cache.
 - 🏎️ **Cached loading**: `IReferenceDataCache` (backed by `IHybridCache`) stores loaded collections; the orchestrator reloads on cache miss and honours `LocalExpiration`/`DistributedExpiration` settings.
 - 🔍 **Multi-key lookup**: Collections are queryable by `Id`, `Code` (case-insensitive), or `Text` wildcard; `GetByTypeAsync<TRef>()` returns the full collection, and individual item resolution is available via `GetAsync<TRef>(code)`.
+- 🔎 **OData-esque query/paging**: `QueryAsync<TRef>(QueryArgs?, PagingArgs?, CancellationToken)` filters, orders, and pages a reference data collection using the pluggable `IReferenceDataQuery` strategy. Register a custom `ReferenceDataQuery` (from `CoreEx.RefData`) via `RegisterQuery(IReferenceDataQuery)` on the orchestrator, or rely on `AddReferenceDataOrchestrator()` which auto-registers `ReferenceDataQuery.Default`.
 - 🌐 **JSON code serialization**: `JsonReferenceDataConverter` (in `CoreEx.Json`) uses the orchestrator's `AsyncLocal` current instance to deserialize JSON code strings back to strongly typed reference data instances.
 - 🔐 **Validity filtering**: `IReferenceDataContext` filters returned collections to `IsActive` and within `StartDate`/`EndDate` windows; the context is scoped per request via `ExecutionContext`.
 - 🏷️ **Code validation**: `IReferenceDataCodeCollection` provides `ContainsCode(string)` for fast O(1) code existence checks used by validation rules.
@@ -24,7 +25,8 @@ The `IReferenceDataContext` scoping mechanism allows per-request filtering: e.g.
 
 | Type | Description |
 |------|-------------|
-| **[`ReferenceDataOrchestrator`](./ReferenceDataOrchestrator.cs)** | Singleton managing reference data provider registration, cache-backed collection loading, and multi-key resolution via `GetByTypeAsync<TRef>()`, `GetByNameAsync()`. |
+| **[`ReferenceDataOrchestrator`](./ReferenceDataOrchestrator.cs)** | Singleton managing reference data provider registration, cache-backed collection loading, multi-key resolution via `GetByTypeAsync<TRef>()` / `GetByNameAsync()`, and OData-esque `QueryAsync<TRef>(QueryArgs?, PagingArgs?, CancellationToken)` / `QueryAsync(Type, QueryArgs?, PagingArgs?, CancellationToken)` via a registered `IReferenceDataQuery`. |
+| [`IReferenceDataQuery`](./Abstractions/IReferenceDataQuery.cs) | Strategy interface for orchestrator query execution; implement to replace the default filter/order/page logic. |
 | **[`ReferenceDataOrchestratorInvoker`](./ReferenceDataOrchestratorInvoker.cs)** | `InvokerBase<ReferenceDataOrchestrator>` wrapping collection loads with OpenTelemetry spans and structured log entries. |
 | **[`ReferenceDataMultiDictionary`](./ReferenceDataMultiDictionary.cs)** | Dictionary of reference data collections keyed by type name; the serialization-friendly result type returned by multi-type reference data API endpoints. |
 | [`IReferenceData<TId>`](./IReferenceDataT.cs) | Core reference data interface: `Id`, `Code`, `Text`, `IsActive`, `SortOrder`, `StartDate`, `EndDate`, and validity helpers. |

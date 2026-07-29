@@ -187,13 +187,16 @@ public Task<IActionResult> QueryAsync(CancellationToken cancellationToken = defa
 
 ### Reference Data Endpoints
 
-Delegate to `ReferenceDataOrchestrator.Current.GetWithFilterAsync<T>()`. Support `codes`, `text`, and `isIncludeInactive` filter parameters:
+Delegate to `ReferenceDataOrchestrator.Current.QueryAsync<T>()`. Decorate with `[Query]` and `[Paging]` so the OData-esque `$filter`/`$orderby` query strings and paging parameters are parsed from the request and passed through. The default `ReferenceDataQueryArgsConfig` supports filtering on `code`/`text` (all string operators, case-insensitive) and ordering by `code`/`text`/`sortOrder`:
 
 ```csharp
 [HttpGet("categories")]
-public Task<IActionResult> GetCategoriesAsync([FromQuery] IEnumerable<string>? codes = default, string? text = default, CancellationToken cancellationToken = default)
-    => _webApi.GetAsync(Request, (ro, ct) => ReferenceDataOrchestrator.Current.GetWithFilterAsync<Category>(codes, text, ro.IsIncludeInactive, ct), cancellationToken: cancellationToken);
+[Query(supportsOrderBy: true), Paging(supportsCount: true)]
+public Task<IActionResult> GetCategoriesAsync(CancellationToken cancellationToken = default)
+    => _webApi.GetAsync(Request, (ro, ct) => ReferenceDataOrchestrator.Current.QueryAsync<Category>(ro.QueryArgs, ro.PagingArgs, ct), cancellationToken: cancellationToken);
 ```
+
+Note that `ro.PagingArgs` is `PagingArgs?` — it is `null` when no `$skip`/`$take`/`$count` query-string parameters are present, in which case `QueryAsync` returns all active items (no server-side page cap is applied by default for reference data).
 
 ### Response Metadata Attributes
 

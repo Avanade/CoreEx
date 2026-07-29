@@ -116,6 +116,10 @@ public sealed class ReferenceDataOrchestrator(IServiceProvider serviceProvider, 
             // Wire up the specified alternate names.
             if (provider.AlternateNames is not null)
             {
+                var duplicateType = provider.AlternateNames.GroupBy(x => x.Item2).FirstOrDefault(g => g.Count() > 1);
+                if (duplicateType is not null)
+                    throw new InvalidOperationException($"Type '{duplicateType.Key.FullName}' cannot be added as it has more than one alternate name registered by provider '{typeof(TProvider).FullName}'.");
+
                 foreach (var (altName, altType) in provider.AlternateNames)
                 {
                     var primary = _nameToType.GetValueOrDefault(altName);
@@ -429,7 +433,24 @@ public sealed class ReferenceDataOrchestrator(IServiceProvider serviceProvider, 
     }
 
     /// <summary>
-    /// Prefetches all of the named <see cref="IReferenceData"/> items. 
+    /// Queries for the specified <paramref name="refType"/> <see cref="IReferenceData"/> type using the provided <paramref name="queryArgs"/> and <paramref name="pagingArgs"/>.
+    /// </summary>
+    /// <param name="refType">The <see cref="IReferenceData"/> <see cref="Type"/>.</param>
+    /// <param name="queryArgs">The <see cref="QueryArgs"/>.</param>
+    /// <param name="pagingArgs">The <see cref="PagingArgs"/>.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+    /// <returns>The <see cref="IItemsResult"/>.</returns>
+    /// <remarks>Where <paramref name="pagingArgs"/> is <see langword="null"/> then <see cref="PagingArgs.None"/> will be used resulting in all regardless of any configured paging size.</remarks>
+    public Task<IItemsResult> QueryAsync(Type refType, QueryArgs? queryArgs, PagingArgs? pagingArgs, CancellationToken cancellationToken = default)
+    {
+        if (_referenceDataQuery is null)
+            throw new InvalidOperationException($"The {nameof(IReferenceDataQuery)} has not been registered; use the {nameof(RegisterQuery)} method to register.");
+
+        return _referenceDataQuery.QueryAsync(this, refType.ThrowIfNull(), queryArgs, pagingArgs ?? PagingArgs.None, cancellationToken);
+    }
+
+    /// <summary>
+    /// Prefetches all of the named <see cref="IReferenceData"/> items.
     /// </summary>
     /// <param name="names">The list of <see cref="IReferenceData"/> names.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>

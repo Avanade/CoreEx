@@ -1,7 +1,7 @@
 namespace CoreEx.RefData;
 
 /// <summary>
-/// Provides the ODATA-esque dynamic LINQ queries execution configuration for <see cref="IReferenceData"/> entries with a lazy-instantiated <see cref="Default"/> instance.
+/// Provides the ODATA-esque dynamic LINQ queries execution configuration for <see cref="IReferenceData"/> entries with a <see cref="Default"/> instance.
 /// </summary>
 public sealed class ReferenceDataQueryArgsConfig : QueryArgsConfig
 {
