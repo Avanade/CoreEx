@@ -1,6 +1,8 @@
 global using CoreEx;
 global using CoreEx.Abstractions;
 global using CoreEx.Caching;
+global using CoreEx.Data;
+global using CoreEx.Data.Querying;
 global using CoreEx.Entities;
 global using CoreEx.HealthChecks;
 global using CoreEx.Localization;
@@ -16,4 +18,5 @@ global using System.Collections.Concurrent;
 global using System.Collections.ObjectModel;
 global using System.Diagnostics;
 global using System.Diagnostics.CodeAnalysis;
+global using System.Linq.Dynamic.Core;
 global using System.Text.Json.Serialization;

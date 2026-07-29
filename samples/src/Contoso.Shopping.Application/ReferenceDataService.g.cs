@@ -23,6 +23,14 @@ public partial class ReferenceDataService(IReferenceDataRepository repository) :
     ];
 
     /// <inheritdoc/>
+    public IEnumerable<(string, Type)> AlternateNames =>
+    [
+        ( "basket-statuses", typeof(BasketStatus) ),
+        ( "discount-coupons", typeof(DiscountCoupon) ),
+        ( "units-of-measure", typeof(UnitOfMeasure) )
+    ];
+
+    /// <inheritdoc/>
     public virtual async Task<IReferenceDataCollection> GetAsync(Type type, CancellationToken cancellationToken = default) => type switch
     {
         _ when type == typeof(BasketStatus) => await _repository.GetAllBasketStatusesAsync(cancellationToken).ConfigureAwait(false),

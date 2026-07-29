@@ -8,8 +8,13 @@ public interface IReferenceDataProvider
     /// <summary>
     /// Gets all the underlying <see cref="IReferenceData"/> and corresponding <see cref="IReferenceDataCollection"/> <see cref="Type"></see> pairs provided.
     /// </summary>
-    /// <returns>The <see cref="IReferenceData"/> and corresponding <see cref="IReferenceDataCollection"/> <see cref="Type"></see> pairs provided.</returns>
     IEnumerable<(Type, Type)> Types { get; }
+
+    /// <summary>
+    /// Gets any alternate name mappings for the reference data types (as declared within the supported <see cref="Types"/> list).
+    /// </summary>
+    /// <remarks>This is useful where using a friendlier external name for example. Each type is currently only allowed a single alternate name.</remarks>
+    public IEnumerable<(string, Type)>? AlternateNames => null;
 
     /// <summary>
     /// Gets the <see cref="IReferenceDataCollection"/> for the specified <see cref="IReferenceData"/> <see cref="Type"/>.

@@ -107,6 +107,22 @@ public static partial class Extensions
             .AddQuery(HttpNames.ExcludeFieldsQueryStringName, exclude is null ? null : string.Join(',', exclude.Select(e => e?.Trim()).Where(e => !string.IsNullOrEmpty(e)))));
 
     /// <summary>
+    /// Adds <see cref="QueryArgs.IsIncludeText"/> <see langword="true"/> to the <see cref="HttpRequestMessage"/> <see cref="HttpRequestMessage.RequestUri"/> by adding to the <see cref="Uri.Query"/>.
+    /// </summary>
+    /// <param name="request">The <see cref="HttpRequestMessage"/>.</param>
+    /// <returns>The <paramref name="request"/> to support fluent-style method-chaining.</returns>
+    public static HttpRequestMessage WithIncludeText(this HttpRequestMessage request)
+        => AddQuery(request, qb => qb.AddQuery(HttpNames.IncludeTextQueryStringName, "true"));
+
+    /// <summary>
+    /// Adds <see cref="QueryArgs.IsIncludeInactive"/> <see langword="true"/> to the <see cref="HttpRequestMessage"/> <see cref="HttpRequestMessage.RequestUri"/> by adding to the <see cref="Uri.Query"/>.
+    /// </summary>
+    /// <param name="request">The <see cref="HttpRequestMessage"/>.</param>
+    /// <returns>The <paramref name="request"/> to support fluent-style method-chaining.</returns>
+    public static HttpRequestMessage WithIncludeInactive(this HttpRequestMessage request)
+        => AddQuery(request, qb => qb.AddQuery(HttpNames.IncludeInactiveQueryStringName, "true"));
+
+    /// <summary>
     /// Adds <see cref="QueryArgs.IncludeFields"/> to the <see cref="HttpRequestMessage"/> <see cref="HttpRequestMessage.RequestUri"/> by adding to the <see cref="Uri.Query"/>.
     /// </summary>
     /// <param name="request">The <see cref="HttpRequestMessage"/>.</param>

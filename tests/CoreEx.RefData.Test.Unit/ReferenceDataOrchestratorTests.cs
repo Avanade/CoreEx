@@ -83,6 +83,7 @@ public partial class ReferenceDataOrchestratorTests
         var logger = Mock.Of<ILogger<ReferenceDataOrchestrator>>();
         var ro = new ReferenceDataOrchestrator(sp, logger);
         ro.Register<DummyProvider>();
+        ro.RegisterQuery(new ReferenceDataQuery());
         return ro;
     }
 
@@ -241,38 +242,58 @@ public partial class ReferenceDataOrchestratorTests
     }
 
     [Test]
-    public async Task GetWithFilterAsync_All()
+    public async Task QueryAsync_All()
     {
-        var coll = await ReferenceDataOrchestrator.Current.GetWithFilterAsync<DummyRefData>();
-        coll.Should().NotBeNull();
-        coll.Count().Should().Be(3);
+        var ir = await ReferenceDataOrchestrator.Current.QueryAsync<DummyRefData>(null, null);
+        ir.Should().NotBeNull();
+        ir.Items!.Count().Should().Be(3);
     }
 
     [Test]
-    public async Task GetWithFilterAsync_Codes()
+    public async Task QueryAsync_All_Paging()
     {
-        var coll = await ReferenceDataOrchestrator.Current.GetWithFilterAsync<DummyRefData>(["A","C","Z"]);
-        coll.Should().NotBeNull();
-        coll.Count().Should().Be(2);
-        coll.Select(x => x.Code).Should().BeEquivalentTo(["A", "C"]);
+        var ir = await ReferenceDataOrchestrator.Current.QueryAsync<DummyRefData>(null, Data.PagingArgs.Create(1, 2));
+        ir.Should().NotBeNull();
+        ir.Items!.Count().Should().Be(2);
+        ir.Items!.Select(x => x.Code).Should().BeEquivalentTo(["B", "C"]);
+        ir.Paging!.TotalCount.Should().BeNull();
     }
 
     [Test]
-    public async Task GetWithFilterAsync_Text_Wildcard()
+    public async Task QueryAsync_All_Paging_WithCount()
     {
-        var coll = await ReferenceDataOrchestrator.Current.GetWithFilterAsync<DummyRefData>(null, "*a");
-        coll.Should().NotBeNull();
-        coll.Count().Should().Be(2);
-        coll.Select(x => x.Code).Should().BeEquivalentTo(["A", "B"]);
+        var ir = await ReferenceDataOrchestrator.Current.QueryAsync<DummyRefData>(null, Data.PagingArgs.CreateWithCount(1, 2));
+        ir.Should().NotBeNull();
+        ir.Items!.Count().Should().Be(2);
+        ir.Items!.Select(x => x.Code).Should().BeEquivalentTo(["B", "C"]);
+        ir.Paging!.TotalCount.Should().Be(3);
     }
 
     [Test]
-    public async Task GetWithFilterAsync_Text_Wildcard_And_Inactive()
+    public async Task QueryAsync_Codes()
     {
-        var coll = await ReferenceDataOrchestrator.Current.GetWithFilterAsync<DummyRefData>(null, "*a", true);
-        coll.Should().NotBeNull();
-        coll.Count().Should().Be(3);
-        coll.Select(x => x.Code).Should().BeEquivalentTo(["A", "B", "D"]);
+        var ir = await ReferenceDataOrchestrator.Current.QueryAsync<DummyRefData>(Data.QueryArgs.Create("code in ('A', 'C', 'Z')"), null);
+        ir.Should().NotBeNull();
+        ir.Items!.Count().Should().Be(2);
+        ir.Items!.Select(x => x.Code).Should().BeEquivalentTo(["A", "C"]);
+    }
+
+    [Test]
+    public async Task QueryAsync_Text_Wildcard()
+    {
+        var ir = await ReferenceDataOrchestrator.Current.QueryAsync<DummyRefData>(Data.QueryArgs.Create("endswith(text, 'a')"), null);
+        ir.Should().NotBeNull();
+        ir.Items!.Count().Should().Be(2);
+        ir.Items!.Select(x => x.Code).Should().BeEquivalentTo(["A", "B"]);
+    }
+
+    [Test]
+    public async Task QueryAsync_Text_Wildcard_And_Inactive()
+    {
+        var ir = await ReferenceDataOrchestrator.Current.QueryAsync<DummyRefData>(Data.QueryArgs.Create("endswith(text, 'a')").IncludeInactive(), null);
+        ir.Should().NotBeNull();
+        ir.Items!.Count().Should().Be(3);
+        ir.Items!.Select(x => x.Code).Should().BeEquivalentTo(["A", "B", "D"]);
     }
 
     // Entity source generation tests.

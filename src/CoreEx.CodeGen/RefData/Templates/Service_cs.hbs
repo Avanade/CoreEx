@@ -23,6 +23,14 @@ public partial class ReferenceDataService(IReferenceDataRepository repository) :
     ];
 
     /// <inheritdoc/>
+    public IEnumerable<(string, Type)> AlternateNames =>
+    [
+{{#each Entities}}
+        ( "{{Route}}", typeof({{Name}}) ){{#unless @last}},{{/unless}}
+{{/each}}
+    ];
+
+    /// <inheritdoc/>
     public virtual async Task<IReferenceDataCollection> GetAsync(Type type, CancellationToken cancellationToken = default) => type switch
     {
 {{#each Entities}}

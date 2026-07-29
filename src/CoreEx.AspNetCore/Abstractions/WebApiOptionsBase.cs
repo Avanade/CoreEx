@@ -7,6 +7,7 @@ public class WebApiOptionsBase
 {
     private QueryArgs? _queryArgs;
     private PagingArgs? _pagingArgs;
+    private bool _attemptedPagingArgs;
     private bool _attemptedIncludeFields;
     private bool _attemptedExcludeFields;
     private List<string>? _includeFields;
@@ -57,6 +58,7 @@ public class WebApiOptionsBase
 
         _queryArgs = options._queryArgs;
         _pagingArgs = options._pagingArgs;
+        _attemptedPagingArgs = options._attemptedPagingArgs;
         _attemptedIncludeFields = options._attemptedIncludeFields;
         _attemptedExcludeFields = options._attemptedExcludeFields;
         _includeFields = options._includeFields;
@@ -81,7 +83,7 @@ public class WebApiOptionsBase
     /// <remarks>This is used to set (override) the <see cref="ExecutionContext.OperationType"/> per request.</remarks>
     public OperationType OperationType
     {
-        get => field;
+        get;
 
         internal set
         {
@@ -166,7 +168,20 @@ public class WebApiOptionsBase
     /// <summary>
     /// Gets the <see cref="PagingArgs"/>.
     /// </summary>
-    public PagingArgs PagingArgs => _pagingArgs ??= GetPagingArgs();
+    /// <remarks>Will return <see langword="null"/> where not specified within the query string.</remarks>
+    public PagingArgs? PagingArgs
+    {
+        get
+        {
+            if (!_attemptedPagingArgs)
+            {
+                _pagingArgs = GetPagingArgs();
+                _attemptedPagingArgs = true;
+            }
+
+            return _pagingArgs;
+        }
+    }
 
     /// <summary>
     /// Gets the <see cref="QueryArgs"/> from the <see cref="IQueryCollection"/>.
@@ -190,17 +205,17 @@ public class WebApiOptionsBase
     /// <summary>
     /// Gets the <see cref="PagingArgs"/> from the <see cref="IQueryCollection"/>.
     /// </summary>
-    private PagingArgs GetPagingArgs()
+    private PagingArgs? GetPagingArgs()
     {
         if (!HasQueryString)
-            return PagingArgs.Create();
+            return null;
 
         string? skip = GetNamedQueryString(Request.Query, HttpNames.PagingSkipQueryStringName);
         string? take = GetNamedQueryString(Request.Query, HttpNames.PagingTakeQueryStringName);
         string? count = GetNamedQueryString(Request.Query, HttpNames.PagingCountQueryStringName, "true");
 
         if (skip is null && take is null && count is null)
-            return PagingArgs.Create();
+            return null;
 
         return new PagingArgs(ParseInt32Value(skip) ?? 0, ParseInt32Value(take) ?? PagingArgs.DefaultTake, ParseBoolValue(count));
     }

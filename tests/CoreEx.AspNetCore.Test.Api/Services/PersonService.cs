@@ -95,7 +95,7 @@ public class PersonService
         return Task.CompletedTask;
     }
 
-    public Task<ItemsResult<Person>> GetByQueryAsync(QueryArgs query, PagingArgs paging)
+    public Task<ItemsResult<Person>> GetByQueryAsync(QueryArgs query, PagingArgs? paging)
     {
         var ir = new ItemsResult<Person>(paging)
         {
