@@ -105,7 +105,7 @@ public class Program
         app.MapGet("api/referencedata/genders",
             (HttpRequest request, WebApi webApi)
                 => webApi.GetAsync(request, (ro, ct) => ReferenceDataOrchestrator.Current.QueryAsync<Gender>(ro.QueryArgs, ro.PagingArgs, ct)))
-            .Produces<Gender[]>();
+            .Produces<Gender[]>().WithQuery(supportsOrderBy: true).WithPaging(supportsCount: true);
 
         app.MapPost("api/idempotency-key/test/{id}",
             (HttpRequest request, WebApi webApi, int id)

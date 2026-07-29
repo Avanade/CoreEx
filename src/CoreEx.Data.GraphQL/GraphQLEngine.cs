@@ -15,7 +15,7 @@ public sealed class GraphQLEngine(GraphQLLiteOptions options) : IGraphQLEngine
 
     /// <inheritdoc/>
     public Task<JsonElement> GetSchemaAsync(CancellationToken cancellationToken = default)
-        => GraphQLEngineInvoker.Default.InvokeAsync(this, (_, _) => Task.FromResult(_introspection.Value.Schema.Deserialize<JsonElement>()));
+        => GraphQLEngineInvoker.Default.InvokeAsync(this, (_, _) => Task.FromResult(_introspection.Value.Schema.Deserialize<JsonElement>()), cancellationToken);
 
     /// <inheritdoc/>
     public Task<GraphQLEngineResult> ExecuteAsync(string document, string? operationName = null, IReadOnlyDictionary<string, object?>? variables = null, CancellationToken cancellationToken = default)

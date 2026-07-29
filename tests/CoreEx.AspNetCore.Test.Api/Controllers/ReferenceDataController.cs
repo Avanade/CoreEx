@@ -12,6 +12,7 @@ public class ReferenceDataController(WebApi webApi) : ControllerBase
 
     [HttpGet("genders"), HttpHead("genders")]
     [ProducesResponseType(typeof(Gender[]), 200)]
+    [Query(supportsOrderBy: true), Paging(supportsCount: true)]
     public Task<IActionResult> GetGendersAsync() 
         => _webApi.GetAsync(Request, (ro, ct) => ReferenceDataOrchestrator.Current.QueryAsync<Gender>(ro.QueryArgs, ro.PagingArgs, ct));
 }

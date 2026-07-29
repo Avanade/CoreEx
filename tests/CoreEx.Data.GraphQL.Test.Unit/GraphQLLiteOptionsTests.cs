@@ -76,7 +76,7 @@ public class GraphQLLiteOptionsTests
 
     /// <summary>
     /// Builds an <see cref="IServiceProvider"/> exposing a singleton <see cref="ReferenceDataOrchestrator"/> already registered with <see cref="DummyReferenceDataProvider"/>, for use by
-    /// <see cref="GraphQLLiteOptions.AddReferenceDataQueries(IServiceProvider, QueryArgsConfig, string?, IEnumerable{Type})"/>.
+    /// <see cref="GraphQLLiteOptions.AddReferenceDataQueries(IServiceProvider, QueryArgsConfig, string?, Type[])"/>.
     /// </summary>
     private static IServiceProvider CreateOrchestratorServiceProvider()
     {
@@ -98,7 +98,7 @@ public class GraphQLLiteOptionsTests
 
     /// <summary>
     /// Declares <see cref="WidgetA"/> with the alternate (friendly) name "widgets-a" and <see cref="WidgetB"/> with no alternate name, to prove both are exposed by
-    /// <see cref="GraphQLLiteOptions.AddReferenceDataQueries(IServiceProvider, QueryArgsConfig, string?, IEnumerable{Type})"/> - the alias where declared, otherwise the bare .NET type name.
+    /// <see cref="GraphQLLiteOptions.AddReferenceDataQueries(IServiceProvider, QueryArgsConfig, string?, Type[])"/> - the alias where declared, otherwise the bare .NET type name.
     /// </summary>
     private sealed class DummyReferenceDataProvider : IReferenceDataProvider
     {

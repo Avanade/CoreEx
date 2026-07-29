@@ -104,7 +104,7 @@ public sealed class GraphQLLiteOptions
     /// <param name="prefix">The optional prefix to apply to the root field names (defaults to <c>ref_</c>) to help distinguish them.</param>
     /// <param name="excludeTypes">The reference data types to exclude.</param>
     /// <returns>The <see cref="GraphQLLiteOptions"/> to support fluent-style method-chaining.</returns>
-    public GraphQLLiteOptions AddReferenceDataQueries(IServiceProvider serviceProvider, QueryArgsConfig queryArgsConfig, string? prefix = "ref_", params IEnumerable<Type> excludeTypes)
+    public GraphQLLiteOptions AddReferenceDataQueries(IServiceProvider serviceProvider, QueryArgsConfig queryArgsConfig, string? prefix = "ref_", params Type[] excludeTypes)
     {
         queryArgsConfig.ThrowIfNull();
         var orchestrator = serviceProvider.GetRequiredService<ReferenceDataOrchestrator>();
