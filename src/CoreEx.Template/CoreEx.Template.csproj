@@ -184,6 +184,9 @@
     <Copy SourceFiles="$(_RepoRoot).github/prompts/coreex-api.prompt.md;$(_RepoRoot).github/skills/coreex-api/SKILL.md;$(_RepoRoot).github/skills/coreex-api/references/workflow.md"
           DestinationFiles="$(_AiAiGenRoot).github/prompts/coreex-api.prompt.md;$(_AiAiGenRoot).github/skills/coreex-api/SKILL.md;$(_AiAiGenRoot).github/skills/coreex-api/references/workflow.md"
           SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(_RepoRoot).github/prompts/coreex-graphql.prompt.md;$(_RepoRoot).github/skills/coreex-graphql/SKILL.md;$(_RepoRoot).github/skills/coreex-graphql/references/workflow.md"
+          DestinationFiles="$(_AiAiGenRoot).github/prompts/coreex-graphql.prompt.md;$(_AiAiGenRoot).github/skills/coreex-graphql/SKILL.md;$(_AiAiGenRoot).github/skills/coreex-graphql/references/workflow.md"
+          SkipUnchangedFiles="true" />
     <Copy SourceFiles="$(_RepoRoot).github/prompts/coreex-subscriber.prompt.md;$(_RepoRoot).github/skills/coreex-subscriber/SKILL.md;$(_RepoRoot).github/skills/coreex-subscriber/references/workflow.md"
           DestinationFiles="$(_AiAiGenRoot).github/prompts/coreex-subscriber.prompt.md;$(_AiAiGenRoot).github/skills/coreex-subscriber/SKILL.md;$(_AiAiGenRoot).github/skills/coreex-subscriber/references/workflow.md"
           SkipUnchangedFiles="true" />

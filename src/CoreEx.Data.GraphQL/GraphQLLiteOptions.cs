@@ -58,6 +58,27 @@ public sealed class GraphQLLiteOptions
     }
 
     /// <summary>
+    /// Registers a list query root field (e.g. <c>products</c>) bound to an existing <see cref="QueryArgsConfig"/> and <c>QueryAsync</c>-shaped delegate.
+    /// </summary>
+    /// <param name="type">The item <see cref="Type"/>.</param>
+    /// <param name="name">The GraphQL root field name.</param>
+    /// <param name="queryArgsConfig">The existing <see cref="QueryArgsConfig"/> used to validate/parse the <c>filter</c>/<c>orderby</c> arguments (e.g. <c>ProductQueryArgsConfig.Default</c>).</param>
+    /// <param name="resolver">The existing query delegate (e.g. <c>(qa, pa, ct) =&gt; service.QueryAsync(qa, pa, ct)</c>).</param>
+    /// <returns>The <see cref="GraphQLLiteOptions"/> to support fluent-style method-chaining.</returns>
+    /// <exception cref="ArgumentException">Thrown where <paramref name="name"/> is <c>__</c>-prefixed (reserved for GraphQL introspection) or already registered as a query or item root.</exception>
+    public GraphQLLiteOptions AddQuery(Type type, string name, QueryArgsConfig queryArgsConfig, Func<QueryArgs?, PagingArgs?, CancellationToken, Task<IItemsResult>> resolver)
+    {
+        type.ThrowIfNull();
+        name.ThrowIfNullOrEmpty();
+        queryArgsConfig.ThrowIfNull();
+        resolver.ThrowIfNull();
+        ThrowIfReservedOrDuplicate(name);
+
+        _queryRoots[name] = new GraphQLQueryRoot(name, type, queryArgsConfig, async (qa, pa, ct) => await resolver(qa, pa, ct).ConfigureAwait(false));
+        return this;
+    }
+
+    /// <summary>
     /// Registers a single-item root field (e.g. <c>product</c>) bound to an existing single-item <c>GetAsync</c>-shaped delegate.
     /// </summary>
     /// <typeparam name="TItem">The item <see cref="Type"/>.</typeparam>
@@ -72,6 +93,37 @@ public sealed class GraphQLLiteOptions
         ThrowIfReservedOrDuplicate(name);
 
         _itemRoots[name] = new GraphQLItemRoot(name, typeof(TItem), async (args, ct) => await resolver(args, ct).ConfigureAwait(false));
+        return this;
+    }
+
+    /// <summary>
+    /// Registers a list query root field for every reference data type known to the <see cref="ReferenceDataOrchestrator"/>, keyed by its alternate/GraphQL-friendly name.
+    /// </summary>
+    /// <param name="serviceProvider">The <see cref="IServiceProvider"/> used to resolve the <see cref="ReferenceDataOrchestrator"/>.</param>
+    /// <param name="queryArgsConfig">The <see cref="QueryArgsConfig"/> used to validate/parse the <c>filter</c>/<c>orderby</c> arguments.</param>
+    /// <param name="prefix">The optional prefix to apply to the root field names (defaults to <c>ref_</c>) to help distinguish them.</param>
+    /// <param name="excludeTypes">The reference data types to exclude.</param>
+    /// <returns>The <see cref="GraphQLLiteOptions"/> to support fluent-style method-chaining.</returns>
+    public GraphQLLiteOptions AddReferenceDataQueries(IServiceProvider serviceProvider, QueryArgsConfig queryArgsConfig, string? prefix = "ref_", params Type[] excludeTypes)
+    {
+        queryArgsConfig.ThrowIfNull();
+        var orchestrator = serviceProvider.GetRequiredService<ReferenceDataOrchestrator>();
+
+        foreach (var kvp in orchestrator.GetAlternateNameMappings())
+        {
+            var name = $"{prefix}{kvp.Key.Replace('-', '_')}"; // GraphQL doesn't allow hyphens in field names, so replace with underscore.
+            var type = kvp.Value;
+            if (excludeTypes.Contains(type))
+                continue;
+
+            ThrowIfReservedOrDuplicate(name);
+
+            var capturedType = type;
+            Task<IItemsResult> resolver(QueryArgs? qa, PagingArgs? pa, CancellationToken ct) => orchestrator.QueryAsync(capturedType, qa, pa, ct);
+
+            _queryRoots[name] = new GraphQLQueryRoot(name, type, queryArgsConfig, resolver);
+        }
+
         return this;
     }
 

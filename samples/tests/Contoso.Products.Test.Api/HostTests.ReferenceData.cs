@@ -49,7 +49,7 @@ public partial class HostTests
     public void RefData_Named()
     {
         var r = Test.Http<JsonElement>()
-            .Run(HttpMethod.Get, "/api/refdata?name=sub-cateGORies&name=brands&name=subcategory&name=other")
+            .Run(HttpMethod.Get, "/api/refdata?name=sub-cateGORies&name=brands&name=subcategory&name=other&name=sub-CATgories")
             .AssertOK()
             .Value;
 

@@ -14,7 +14,8 @@ public sealed class GraphQLEngine(GraphQLLiteOptions options) : IGraphQLEngine
     private readonly Lazy<GraphQLIntrospectionDocument> _introspection = new(() => GraphQLIntrospectionSchemaBuilder.Build(options, JsonDefaults.SerializerOptions));
 
     /// <inheritdoc/>
-    public Task<JsonElement> GetSchemaAsync(CancellationToken cancellationToken = default) => Task.FromResult(_introspection.Value.Schema.Deserialize<JsonElement>());
+    public Task<JsonElement> GetSchemaAsync(CancellationToken cancellationToken = default)
+        => GraphQLEngineInvoker.Default.InvokeAsync(this, (_, _) => Task.FromResult(_introspection.Value.Schema.Deserialize<JsonElement>()), cancellationToken);
 
     /// <inheritdoc/>
     public Task<GraphQLEngineResult> ExecuteAsync(string document, string? operationName = null, IReadOnlyDictionary<string, object?>? variables = null, CancellationToken cancellationToken = default)
@@ -159,74 +160,75 @@ public sealed class GraphQLEngine(GraphQLLiteOptions options) : IGraphQLEngine
     /// Executes a registered <see cref="GraphQLQueryRoot"/> (list query) as a Relay <see href="https://relay.dev/graphql/connections.htm">Cursor Connection</see> and adds the
     /// resulting <c>edges</c>/<c>pageInfo</c>/<c>totalCount</c> object to <paramref name="dataObj"/>.
     /// </summary>
-    private static async Task ExecuteQueryRootAsync(GraphQLQueryRoot root, GraphQLField field, string alias, IReadOnlyDictionary<string, object?> args, JsonSerializerOptions jsonOptions,
-        JsonObject dataObj, List<GraphQLEngineError> errors, CancellationToken cancellationToken)
-    {
-        var (resolvedConnection, connectionErrors) = GraphQLConnectionResolver.Resolve(field.SelectionSet, [alias]);
-        if (connectionErrors.Count > 0 || resolvedConnection is null)
+    private Task ExecuteQueryRootAsync(GraphQLQueryRoot root, GraphQLField field, string alias, IReadOnlyDictionary<string, object?> args, JsonSerializerOptions jsonOptions, JsonObject dataObj, List<GraphQLEngineError> errors, CancellationToken cancellationToken)
+        => GraphQLEngineInvoker.Default.InvokeAsync(this, async (tracer, ct) => 
         {
-            errors.AddRange(connectionErrors);
-            return;
-        }
+            tracer.Activity?.AddTag("graphql.operation.type", "query").AddTag("graphql.alias", alias);
 
-        var connection = resolvedConnection;
-        var itemFieldMap = GraphQLTypeShape.GetFieldMap(root.ItemType, jsonOptions);
-        var paths = new List<string>();
-        if (connection.NodeAlias is not null)
-        {
-            // Use the client's requested aliases (not the fixed 'edges'/'node' field names) so a nested selection error's Path matches the actual response JSON.
-            var (nodePaths, nodeErrors) = GraphQLSelectionResolver.Resolve(connection.NodeSelectionSet, root.ItemType, jsonOptions, GraphQLConnectionResolver.NodeField,
-                [alias, connection.EdgesAlias ?? GraphQLConnectionResolver.EdgesField, connection.NodeAlias]);
-            if (nodeErrors.Count > 0)
+            var (resolvedConnection, connectionErrors) = GraphQLConnectionResolver.Resolve(field.SelectionSet, [alias]);
+            if (connectionErrors.Count > 0 || resolvedConnection is null)
             {
-                errors.AddRange(nodeErrors);
+                errors.AddRange(connectionErrors);
                 return;
             }
 
-            paths.AddRange(nodePaths);
-        }
-
-        try
-        {
-            var queryArgs = GraphQLArgsMapper.BuildQueryArgs(args);
-            queryArgs.IncludeFields = paths.Count > 0 ? paths : null;
-            var needsItems = connection.EdgesAlias is not null || connection.PageInfoAlias is not null;
-            var (pagingArgs, first, requiresTotalCountForHasNextPage) = GraphQLArgsMapper.BuildConnectionPagingArgs(args, connection.TotalCountAlias is not null, needsItems);
-            var skip = pagingArgs.Skip;
-
-            var result = await root.InvokeAsync(queryArgs, pagingArgs, cancellationToken).ConfigureAwait(false);
-            var allItems = result.Items?.Cast<object?>().ToList() ?? [];
-
-            // Ordinarily hasNextPage is derived from the one-item over-fetch (Take = first + 1). Where PagingArgs.MaximumTake made that over-fetch impossible (see
-            // GraphQLArgsMapper.BuildConnectionPagingArgs), fall back to comparing against the forced PagingResult.TotalCount instead.
-            var hasNextPage = requiresTotalCountForHasNextPage && result.Paging?.TotalCount is long totalCount
-                ? skip + allItems.Count < totalCount
-                : allItems.Count > first;
-
-            var pageItems = allItems.Count > first ? [.. allItems.Take(first)] : allItems;
-            var hasPreviousPage = skip > 0;
-
-            JsonArray? shapedNodes = null;
+            var connection = resolvedConnection;
+            var itemFieldMap = GraphQLTypeShape.GetFieldMap(root.ItemType, jsonOptions);
+            var paths = new List<string>();
             if (connection.NodeAlias is not null)
             {
-                var pageItemsJson = JsonSerializer.Serialize(pageItems, jsonOptions);
-                JsonFilter.TryJsonFilter(pageItemsJson, paths, out var filteredJson, JsonFilterOption.Include, jsonOptions);
-                shapedNodes = GraphQLResponseShaper.Shape(JsonNode.Parse(filteredJson), connection.NodeSelectionSet, itemFieldMap, root.ItemType.Name) as JsonArray;
+                // Use the client's requested aliases (not the fixed 'edges'/'node' field names) so a nested selection error's Path matches the actual response JSON.
+                var (nodePaths, nodeErrors) = GraphQLSelectionResolver.Resolve(connection.NodeSelectionSet, root.ItemType, jsonOptions, GraphQLConnectionResolver.NodeField,
+                    [alias, connection.EdgesAlias ?? GraphQLConnectionResolver.EdgesField, connection.NodeAlias]);
+                if (nodeErrors.Count > 0)
+                {
+                    errors.AddRange(nodeErrors);
+                    return;
+                }
+
+                paths.AddRange(nodePaths);
             }
 
-            dataObj[alias] = BuildConnectionObject(connection, root.ItemType.Name, pageItems.Count, skip, hasNextPage, hasPreviousPage, result.Paging?.TotalCount, shapedNodes);
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException)
-        {
-            errors.Add(MapException(ex, alias));
-        }
-    }
+            try
+            {
+                var queryArgs = GraphQLArgsMapper.BuildQueryArgs(args);
+                queryArgs.IncludeFields = paths.Count > 0 ? paths : null;
+                var needsItems = connection.EdgesAlias is not null || connection.PageInfoAlias is not null;
+                var (pagingArgs, first, requiresTotalCountForHasNextPage) = GraphQLArgsMapper.BuildConnectionPagingArgs(args, connection.TotalCountAlias is not null, needsItems);
+                var skip = pagingArgs.Skip;
+
+                var result = await root.InvokeAsync(queryArgs, pagingArgs, cancellationToken).ConfigureAwait(false);
+                var allItems = result.Items?.Cast<object?>().ToList() ?? [];
+
+                // Ordinarily hasNextPage is derived from the one-item over-fetch (Take = first + 1). Where PagingArgs.MaximumTake made that over-fetch impossible (see
+                // GraphQLArgsMapper.BuildConnectionPagingArgs), fall back to comparing against the forced PagingResult.TotalCount instead.
+                var hasNextPage = requiresTotalCountForHasNextPage && result.Paging?.TotalCount is long totalCount
+                    ? skip + allItems.Count < totalCount
+                    : allItems.Count > first;
+
+                var pageItems = allItems.Count > first ? [.. allItems.Take(first)] : allItems;
+                var hasPreviousPage = skip > 0;
+
+                JsonArray? shapedNodes = null;
+                if (connection.NodeAlias is not null)
+                {
+                    var pageItemsJson = JsonSerializer.Serialize(pageItems, jsonOptions);
+                    JsonFilter.TryJsonFilter(pageItemsJson, paths, out var filteredJson, JsonFilterOption.Include, jsonOptions);
+                    shapedNodes = GraphQLResponseShaper.Shape(JsonNode.Parse(filteredJson), connection.NodeSelectionSet, itemFieldMap, root.ItemType.Name) as JsonArray;
+                }
+
+                dataObj[alias] = BuildConnectionObject(connection, root.ItemType.Name, pageItems.Count, skip, hasNextPage, hasPreviousPage, result.Paging?.TotalCount, shapedNodes);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                errors.Add(MapException(ex, alias));
+            }
+        }, cancellationToken);
 
     /// <summary>
     /// Assembles the Relay Cursor Connection response object (<c>edges</c>/<c>pageInfo</c>/<c>totalCount</c>, plus any requested <c>__typename</c>s) per <paramref name="connection"/>.
     /// </summary>
-    private static JsonObject BuildConnectionObject(ConnectionSelection connection, string itemTypeName, int itemCount, int skip, bool hasNextPage, bool hasPreviousPage,
-        long? totalCount, JsonArray? shapedNodes)
+    private static JsonObject BuildConnectionObject(ConnectionSelection connection, string itemTypeName, int itemCount, int skip, bool hasNextPage, bool hasPreviousPage, long? totalCount, JsonArray? shapedNodes)
     {
         var connectionObj = new JsonObject();
 
@@ -286,37 +288,39 @@ public sealed class GraphQLEngine(GraphQLLiteOptions options) : IGraphQLEngine
     /// <summary>
     /// Executes a registered <see cref="GraphQLItemRoot"/> (single-item get) and adds the resulting filtered JSON to <paramref name="dataObj"/>.
     /// </summary>
-    private static async Task ExecuteItemRootAsync(GraphQLItemRoot root, GraphQLField field, string alias, IReadOnlyDictionary<string, object?> args, JsonSerializerOptions jsonOptions,
-        JsonObject dataObj, List<GraphQLEngineError> errors, CancellationToken cancellationToken)
-    {
-        var (paths, selectionErrors) = GraphQLSelectionResolver.Resolve(field.SelectionSet, root.ItemType, jsonOptions, alias);
-        if (selectionErrors.Count > 0)
+    private Task ExecuteItemRootAsync(GraphQLItemRoot root, GraphQLField field, string alias, IReadOnlyDictionary<string, object?> args, JsonSerializerOptions jsonOptions, JsonObject dataObj, List<GraphQLEngineError> errors, CancellationToken cancellationToken)
+        => GraphQLEngineInvoker.Default.InvokeAsync(this, async (tracer, ct) =>
         {
-            errors.AddRange(selectionErrors);
-            return;
-        }
+            tracer.Activity?.AddTag("graphql.operation.type", "query").AddTag("graphql.alias", alias);
 
-        try
-        {
-            GraphQLArgsMapper.ApplyItemRootFlags(args); // A single-item get does not support where/orderBy (rejected outright); includeText's ExecutionContext.IncludeRelatedText side-effect is still honored.
-
-            var item = await root.InvokeAsync(args, cancellationToken).ConfigureAwait(false);
-            if (item is null)
+            var (paths, selectionErrors) = GraphQLSelectionResolver.Resolve(field.SelectionSet, root.ItemType, jsonOptions, alias);
+            if (selectionErrors.Count > 0)
             {
-                // Mirror CoreEx's WebApi REST convention where a null result is treated as not-found (404), rather than surfacing a bare GraphQL null.
-                errors.Add(NewError($"'{alias}' was not found.", [alias], "NOT_FOUND"));
+                errors.AddRange(selectionErrors);
                 return;
             }
 
-            var itemJson = JsonSerializer.Serialize(item, jsonOptions);
-            JsonFilter.TryJsonFilter(itemJson, paths, out var filteredJson, JsonFilterOption.Include, jsonOptions);
-            dataObj[alias] = GraphQLResponseShaper.Shape(JsonNode.Parse(filteredJson), field.SelectionSet, GraphQLTypeShape.GetFieldMap(root.ItemType, jsonOptions), root.ItemType.Name);
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException)
-        {
-            errors.Add(MapException(ex, alias));
-        }
-    }
+            try
+            {
+                GraphQLArgsMapper.ApplyItemRootFlags(args); // A single-item get does not support where/orderBy (rejected outright); includeText's ExecutionContext.IncludeRelatedText side-effect is still honored.
+
+                var item = await root.InvokeAsync(args, cancellationToken).ConfigureAwait(false);
+                if (item is null)
+                {
+                    // Mirror CoreEx's WebApi REST convention where a null result is treated as not-found (404), rather than surfacing a bare GraphQL null.
+                    errors.Add(NewError($"'{alias}' was not found.", [alias], "NOT_FOUND"));
+                    return;
+                }
+
+                var itemJson = JsonSerializer.Serialize(item, jsonOptions);
+                JsonFilter.TryJsonFilter(itemJson, paths, out var filteredJson, JsonFilterOption.Include, jsonOptions);
+                dataObj[alias] = GraphQLResponseShaper.Shape(JsonNode.Parse(filteredJson), field.SelectionSet, GraphQLTypeShape.GetFieldMap(root.ItemType, jsonOptions), root.ItemType.Name);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                errors.Add(MapException(ex, alias));
+            }
+        }, cancellationToken);
 
     /// <summary>
     /// The configuration key controlling whether an unexpected (non-<see cref="IExtendedException"/>) exception's real message/detail is surfaced to the client, mirroring the identically-named

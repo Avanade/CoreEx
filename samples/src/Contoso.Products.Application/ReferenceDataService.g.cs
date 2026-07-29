@@ -26,6 +26,17 @@ public partial class ReferenceDataService(IReferenceDataRepository repository) :
     ];
 
     /// <inheritdoc/>
+    public IEnumerable<(string, Type)> AlternateNames =>
+    [
+        ( "brands", typeof(Brand) ),
+        ( "categories", typeof(Category) ),
+        ( "movement-kinds", typeof(MovementKind) ),
+        ( "movement-statuses", typeof(MovementStatus) ),
+        ( "sub-categories", typeof(SubCategory) ),
+        ( "units-of-measure", typeof(UnitOfMeasure) )
+    ];
+
+    /// <inheritdoc/>
     public virtual async Task<IReferenceDataCollection> GetAsync(Type type, CancellationToken cancellationToken = default) => type switch
     {
         _ when type == typeof(Brand) => await _repository.GetAllBrandsAsync(cancellationToken).ConfigureAwait(false),

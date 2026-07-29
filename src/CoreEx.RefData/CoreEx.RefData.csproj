@@ -11,5 +11,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\CoreEx\CoreEx.csproj" />
+    <ProjectReference Include="..\CoreEx.Data\CoreEx.Data.csproj" />
   </ItemGroup>
 </Project>

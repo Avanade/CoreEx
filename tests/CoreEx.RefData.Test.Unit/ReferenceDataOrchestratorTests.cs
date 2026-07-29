@@ -83,6 +83,7 @@ public partial class ReferenceDataOrchestratorTests
         var logger = Mock.Of<ILogger<ReferenceDataOrchestrator>>();
         var ro = new ReferenceDataOrchestrator(sp, logger);
         ro.Register<DummyProvider>();
+        ro.RegisterQuery(new ReferenceDataQuery());
         return ro;
     }
 
@@ -241,38 +242,263 @@ public partial class ReferenceDataOrchestratorTests
     }
 
     [Test]
-    public async Task GetWithFilterAsync_All()
+    public async Task QueryAsync_All()
     {
-        var coll = await ReferenceDataOrchestrator.Current.GetWithFilterAsync<DummyRefData>();
-        coll.Should().NotBeNull();
-        coll.Count().Should().Be(3);
+        var ir = await ReferenceDataOrchestrator.Current.QueryAsync<DummyRefData>(null, null);
+        ir.Should().NotBeNull();
+        ir.Items!.Count().Should().Be(3);
     }
 
     [Test]
-    public async Task GetWithFilterAsync_Codes()
+    public async Task QueryAsync_All_Paging()
     {
-        var coll = await ReferenceDataOrchestrator.Current.GetWithFilterAsync<DummyRefData>(["A","C","Z"]);
-        coll.Should().NotBeNull();
-        coll.Count().Should().Be(2);
-        coll.Select(x => x.Code).Should().BeEquivalentTo(["A", "C"]);
+        var ir = await ReferenceDataOrchestrator.Current.QueryAsync<DummyRefData>(null, Data.PagingArgs.Create(1, 2));
+        ir.Should().NotBeNull();
+        ir.Items!.Count().Should().Be(2);
+        ir.Items!.Select(x => x.Code).Should().BeEquivalentTo(["B", "C"]);
+        ir.Paging!.TotalCount.Should().BeNull();
     }
 
     [Test]
-    public async Task GetWithFilterAsync_Text_Wildcard()
+    public async Task QueryAsync_All_Paging_WithCount()
     {
-        var coll = await ReferenceDataOrchestrator.Current.GetWithFilterAsync<DummyRefData>(null, "*a");
-        coll.Should().NotBeNull();
-        coll.Count().Should().Be(2);
-        coll.Select(x => x.Code).Should().BeEquivalentTo(["A", "B"]);
+        var ir = await ReferenceDataOrchestrator.Current.QueryAsync<DummyRefData>(null, Data.PagingArgs.CreateWithCount(1, 2));
+        ir.Should().NotBeNull();
+        ir.Items!.Count().Should().Be(2);
+        ir.Items!.Select(x => x.Code).Should().BeEquivalentTo(["B", "C"]);
+        ir.Paging!.TotalCount.Should().Be(3);
     }
 
     [Test]
-    public async Task GetWithFilterAsync_Text_Wildcard_And_Inactive()
+    public async Task QueryAsync_Codes()
     {
-        var coll = await ReferenceDataOrchestrator.Current.GetWithFilterAsync<DummyRefData>(null, "*a", true);
-        coll.Should().NotBeNull();
-        coll.Count().Should().Be(3);
-        coll.Select(x => x.Code).Should().BeEquivalentTo(["A", "B", "D"]);
+        var ir = await ReferenceDataOrchestrator.Current.QueryAsync<DummyRefData>(Data.QueryArgs.Create("code in ('A', 'C', 'Z')"), null);
+        ir.Should().NotBeNull();
+        ir.Items!.Count().Should().Be(2);
+        ir.Items!.Select(x => x.Code).Should().BeEquivalentTo(["A", "C"]);
+    }
+
+    [Test]
+    public async Task QueryAsync_Text_Wildcard()
+    {
+        var ir = await ReferenceDataOrchestrator.Current.QueryAsync<DummyRefData>(Data.QueryArgs.Create("endswith(text, 'a')"), null);
+        ir.Should().NotBeNull();
+        ir.Items!.Count().Should().Be(2);
+        ir.Items!.Select(x => x.Code).Should().BeEquivalentTo(["A", "B"]);
+    }
+
+    [Test]
+    public async Task QueryAsync_Text_Wildcard_And_Inactive()
+    {
+        var ir = await ReferenceDataOrchestrator.Current.QueryAsync<DummyRefData>(Data.QueryArgs.Create("endswith(text, 'a')").IncludeInactive(), null);
+        ir.Should().NotBeNull();
+        ir.Items!.Count().Should().Be(3);
+        ir.Items!.Select(x => x.Code).Should().BeEquivalentTo(["A", "B", "D"]);
+    }
+
+    // ── Non-generic QueryAsync(Type, ...) path (item 10) ──────────────────────
+
+    [Test]
+    public async Task QueryAsync_ByType_All()
+    {
+        var ir = await ReferenceDataOrchestrator.Current.QueryAsync(typeof(DummyRefData), null, null);
+        ir.Should().NotBeNull();
+        ir.Items!.Cast<IReferenceData>().Should().HaveCount(3);
+    }
+
+    [Test]
+    public async Task QueryAsync_ByType_Filter()
+    {
+        var ir = await ReferenceDataOrchestrator.Current.QueryAsync(typeof(DummyRefData), Data.QueryArgs.Create("code in ('A', 'C')"), null);
+        ir.Should().NotBeNull();
+        ir.Items!.Cast<IReferenceData>().Select(x => x.Code).Should().BeEquivalentTo(["A", "C"]);
+    }
+
+    [Test]
+    public async Task QueryAsync_ByType_Paging_WithCount()
+    {
+        var ir = await ReferenceDataOrchestrator.Current.QueryAsync(typeof(DummyRefData), null, Data.PagingArgs.CreateWithCount(0, 2));
+        ir.Should().NotBeNull();
+        ir.Items!.Cast<IReferenceData>().Should().HaveCount(2);
+        ir.Paging!.TotalCount.Should().Be(3);
+    }
+
+    [Test]
+    public void QueryAsync_ByType_NoQueryRegistered_Throws()
+    {
+        var sc = new ServiceCollection();
+        sc.AddExecutionContext(sp => new ExecutionContext { ServiceProvider = sp });
+        sc.AddSingleton<IReferenceDataCache>(new ReferenceDataHybridCache(new Caching.MemoryOnlyHybridCache()));
+        sc.AddScoped<DummyProvider>();
+        var sp = sc.BuildServiceProvider();
+        var ro = new ReferenceDataOrchestrator(sp, Mock.Of<ILogger<ReferenceDataOrchestrator>>());
+        ro.Register<DummyProvider>();
+        // RegisterQuery intentionally omitted
+
+        var act = async () => await ro.QueryAsync(typeof(DummyRefData), null, null);
+        act.Should().ThrowAsync<InvalidOperationException>().WithMessage("*IReferenceDataQuery*");
+    }
+
+    // ── Per-type QueryArgsConfig selector (item 11) ───────────────────────────
+
+    [Test]
+    public async Task QueryAsync_PerTypeConfig_CustomConfig_Used()
+    {
+        // Build a config that only allows filtering on Code.
+        var codeOnlyConfig = new ReferenceDataQueryArgsConfig();
+
+        var sc = new ServiceCollection();
+        sc.AddExecutionContext(sp => new ExecutionContext { ServiceProvider = sp });
+        sc.AddSingleton<IReferenceDataCache>(new ReferenceDataHybridCache(new Caching.MemoryOnlyHybridCache()));
+        sc.AddScoped<DummyProvider>();
+        var sp = sc.BuildServiceProvider();
+        var ro = new ReferenceDataOrchestrator(sp, Mock.Of<ILogger<ReferenceDataOrchestrator>>());
+        ro.Register<DummyProvider>();
+        ro.RegisterQuery(new ReferenceDataQuery(type => type == typeof(DummyRefData) ? codeOnlyConfig : null));
+
+        // Code filter works.
+        var ir = await ro.QueryAsync<DummyRefData>(Data.QueryArgs.Create("code in ('A', 'B')"), null);
+        ir.Items!.Count().Should().Be(2);
+    }
+
+    [Test]
+    public async Task QueryAsync_PerTypeConfig_FallsBackToDefault_ForOtherTypes()
+    {
+        var sc = new ServiceCollection();
+        sc.AddExecutionContext(sp => new ExecutionContext { ServiceProvider = sp });
+        sc.AddSingleton<IReferenceDataCache>(new ReferenceDataHybridCache(new Caching.MemoryOnlyHybridCache()));
+        sc.AddScoped<DummyProvider>();
+        var sp = sc.BuildServiceProvider();
+        var ro = new ReferenceDataOrchestrator(sp, Mock.Of<ILogger<ReferenceDataOrchestrator>>());
+        ro.Register<DummyProvider>();
+        ro.RegisterQuery(new ReferenceDataQuery(type => type == typeof(DummyRefData) ? null : null));  // always null → always Default
+
+        var ir = await ro.QueryAsync<DummyRefData>(Data.QueryArgs.Create("endswith(text, 'a')"), null);
+        ir.Items!.Count().Should().Be(2);
+    }
+
+    // ── AlternateNames duplicate type enforcement (item 12) ──────────────────
+
+    private class DummyProviderWithDuplicateAlternateNames : IReferenceDataProvider
+    {
+        public IEnumerable<(Type, Type)> Types =>
+        [
+            (typeof(DummyRefData), typeof(DummyRefDataCollection)),
+        ];
+
+        // Two alternate names for the same type — should be rejected.
+        public IEnumerable<(string, Type)>? AlternateNames =>
+        [
+            ("dummy-one", typeof(DummyRefData)),
+            ("dummy-two", typeof(DummyRefData)),
+        ];
+
+        public Task<IReferenceDataCollection> GetAsync(Type type, CancellationToken cancellationToken = default)
+            => Task.FromResult<IReferenceDataCollection>(new DummyRefDataCollection());
+    }
+
+    [Test]
+    public void Register_AlternateNames_DuplicateType_Throws()
+    {
+        var sc = new ServiceCollection();
+        sc.AddExecutionContext(sp => new ExecutionContext { ServiceProvider = sp });
+        sc.AddSingleton<IReferenceDataCache>(new ReferenceDataHybridCache(new Caching.MemoryOnlyHybridCache()));
+        sc.AddScoped<DummyProviderWithDuplicateAlternateNames>();
+        var sp = sc.BuildServiceProvider();
+        var ro = new ReferenceDataOrchestrator(sp, Mock.Of<ILogger<ReferenceDataOrchestrator>>());
+
+        var act = () => ro.Register<DummyProviderWithDuplicateAlternateNames>();
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage($"*{typeof(DummyRefData).FullName}*more than one alternate name*");
+    }
+
+    // ── GetNamedAsync / GetAlternateNameMappings (alias-or-primary external naming) ──
+
+    private class DummyProviderWithOneAlternateName : IReferenceDataProvider
+    {
+        public IEnumerable<(Type, Type)> Types =>
+        [
+            (typeof(DummyRefData), typeof(DummyRefDataCollection)),
+            (typeof(DummyRefData2), typeof(DummyRefData2Collection))
+        ];
+
+        // Only DummyRefData has an alternate name; DummyRefData2 falls back to its own type name.
+        public IEnumerable<(string, Type)>? AlternateNames => [("dummies", typeof(DummyRefData))];
+
+        public Task<IReferenceDataCollection> GetAsync(Type type, CancellationToken cancellationToken = default)
+            => type == typeof(DummyRefData)
+            ?
+            Task.FromResult<IReferenceDataCollection>(new DummyRefDataCollection { new DummyRefData { Id = 1, Code = "A", Text = "Alpha" } })
+            :
+            Task.FromResult<IReferenceDataCollection>(new DummyRefData2Collection { new DummyRefData2 { Id = "A-1", Code = "A", Text = "Alpha" } });
+    }
+
+    private static ReferenceDataOrchestrator CreateOrchestratorWithOneAlternateName()
+    {
+        var sc = new ServiceCollection();
+        sc.AddExecutionContext(sp => new ExecutionContext { ServiceProvider = sp });
+        sc.AddSingleton<IReferenceDataCache>(new ReferenceDataHybridCache(new Caching.MemoryOnlyHybridCache()));
+        sc.AddScoped<DummyProviderWithOneAlternateName>();
+        var sp = sc.BuildServiceProvider();
+        var ro = new ReferenceDataOrchestrator(sp, Mock.Of<ILogger<ReferenceDataOrchestrator>>());
+        return ro.Register<DummyProviderWithOneAlternateName>();
+    }
+
+    [Test]
+    public void GetAlternateNameMappings_ReturnsEntryForEveryType_AliasOrPrimary()
+    {
+        var ro = CreateOrchestratorWithOneAlternateName();
+        var mappings = ro.GetAlternateNameMappings();
+
+        // DummyRefData has a declared alias, so it appears under that alias only.
+        mappings.Should().ContainKey("dummies").WhoseValue.Should().Be(typeof(DummyRefData));
+        mappings.Should().NotContainKey(nameof(DummyRefData));
+
+        // DummyRefData2 has no alias, so it falls back to its own type name.
+        mappings.Should().ContainKey(nameof(DummyRefData2)).WhoseValue.Should().Be(typeof(DummyRefData2));
+    }
+
+    [Test]
+    public async Task GetNamedAsync_ByAlternateName_Resolves()
+    {
+        var ro = CreateOrchestratorWithOneAlternateName();
+        var mc = await ro.GetNamedAsync(["dummies"]);
+
+        mc.Should().ContainKey("dummies");
+        mc["dummies"].Should().HaveCount(1);
+    }
+
+    [Test]
+    public async Task GetNamedAsync_ByPrimaryTypeName_ForAliasedType_StillResolves_KeyedByAlias()
+    {
+        // Regression guard: once a type has an alternate name, its underlying .NET type name must still resolve
+        // (callers/consumers written before the alias existed must keep working) - the result is keyed by the
+        // canonical/alias name so downstream serialization/naming stays consistent regardless of which name was requested.
+        var ro = CreateOrchestratorWithOneAlternateName();
+        var mc = await ro.GetNamedAsync([nameof(DummyRefData)]);
+
+        mc.Should().ContainKey("dummies");
+        mc.Should().NotContainKey(nameof(DummyRefData));
+        mc["dummies"].Should().HaveCount(1);
+    }
+
+    [Test]
+    public async Task GetNamedAsync_ByPrimaryTypeName_ForNonAliasedType_Resolves()
+    {
+        var ro = CreateOrchestratorWithOneAlternateName();
+        var mc = await ro.GetNamedAsync([nameof(DummyRefData2)]);
+
+        mc.Should().ContainKey(nameof(DummyRefData2));
+        mc[nameof(DummyRefData2)].Should().HaveCount(1);
+    }
+
+    [Test]
+    public async Task GetNamedAsync_UnknownName_SilentlyIgnored()
+    {
+        var ro = CreateOrchestratorWithOneAlternateName();
+        var mc = await ro.GetNamedAsync(["not-a-real-name"]);
+
+        mc.Should().BeEmpty();
     }
 
     // Entity source generation tests.

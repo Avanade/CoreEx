@@ -81,7 +81,7 @@ A version mismatch between the installed AI-asset bundle (`.github/docs/coreex/m
 
 #### Per-capability skills (L1)
 
-Fourteen skills add or modify a single CoreEx capability on an existing solution. Each is invoked as `/coreex-<name>` in Claude Code, or via the matching [`prompts/coreex-<name>.prompt.md`](./prompts/) in Copilot (1:1 by name). Every skill reads the solution-root `AGENTS.md` **Feature Configuration** first to avoid redundant questioning.
+Fifteen skills add or modify a single CoreEx capability on an existing solution. Each is invoked as `/coreex-<name>` in Claude Code, or via the matching [`prompts/coreex-<name>.prompt.md`](./prompts/) in Copilot (1:1 by name). Every skill reads the solution-root `AGENTS.md` **Feature Configuration** first to avoid redundant questioning.
 
 | Skill / prompt | Capability |
 |----------------|-----------|
@@ -95,6 +95,7 @@ Fourteen skills add or modify a single CoreEx capability on an existing solution
 | [`coreex-policy`](./skills/coreex-policy/) | Authorization / business policy |
 | [`coreex-aggregate`](./skills/coreex-aggregate/) | DDD aggregate / domain entity |
 | [`coreex-api`](./skills/coreex-api/) | API controller / endpoint |
+| [`coreex-graphql`](./skills/coreex-graphql/) | GraphQL-lite query bridge (`CoreEx.Data.GraphQL`) on an API host |
 | [`coreex-subscriber`](./skills/coreex-subscriber/) | Event subscriber |
 | [`coreex-test-api`](./skills/coreex-test-api/) | API tests |
 | [`coreex-test-subscribe`](./skills/coreex-test-subscribe/) | Subscriber tests |

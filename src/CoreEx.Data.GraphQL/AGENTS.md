@@ -28,6 +28,21 @@ app.MapCoreExGraphQLLite("/api/query"); // CoreEx.AspNetCore hosting bridge; def
 builder.WithCoreExTelemetry().WithCoreExGraphQLTelemetry().UseOtlpExporter();
 ```
 
+To expose every reference data type registered with `ReferenceDataOrchestrator` as a query root in one call, use `AddReferenceDataQueries` instead of one `AddQuery` call per type:
+
+```csharp
+builder.Services.AddCoreExGraphQLLite((o, sp) =>
+{
+    // Bulk-register all ref-data alternate names as query roots (prefix defaults to "ref_"; use null for no prefix).
+    o.AddReferenceDataQueries(sp, ReferenceDataQueryArgsConfig.Default, prefix: "ref_");
+
+    // Mix with regular entity roots as needed.
+    o.AddQuery<ProductLite>("products", ProductQueryArgsConfig.Default, async (qa, pa, ct) => ...);
+});
+```
+
+Every reference data type known to the `ReferenceDataOrchestrator` is exposed as a root — not just types that declare an `AlternateNames` entry. Each root is named `<prefix><name>` (hyphens replaced with underscores), where `<name>` is the type's registered alternate name where one exists, otherwise the type's own `Type.Name`. Use `excludeTypes` to opt specific types out. The filter/order config defaults to `ReferenceDataQueryArgsConfig.Default` (`code`/`text` filters, `code`/`text`/`sortOrder` ordering) unless a custom `QueryArgsConfig` is passed.
+
 Because `IGraphQLEngine` is registered as a **singleton**, resolve scoped dependencies (repositories, application services) per-invocation rather than capturing an instance from the root `IServiceProvider` at registration time — as shown above via `CoreEx.ExecutionContext.GetRequiredService<T>()`, which reads from the ambient `ExecutionContext`'s scoped service provider (set by the `UseExecutionContext()` middleware every CoreEx host already registers), so no `IHttpContextAccessor` registration/wiring is needed.
 
 `MapCoreExGraphQLLite` executes through `WebApi.PostAsync<GraphQLLiteResponse>(...)` — the same response pipeline every CoreEx REST endpoint uses — so an unexpected bug that escapes `GraphQLEngine`'s own exception mapping still surfaces as a standard `ProblemDetails` response (logged) rather than an unhandled 500.

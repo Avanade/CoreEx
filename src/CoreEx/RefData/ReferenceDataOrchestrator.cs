@@ -10,11 +10,6 @@ namespace CoreEx.RefData;
 /// <param name="logger">The <see cref="ILogger"/>.</param>
 public sealed class ReferenceDataOrchestrator(IServiceProvider serviceProvider, ILogger<ReferenceDataOrchestrator> logger)
 {
-    /// <summary>
-    /// Gets the error message where the <see cref="IReferenceData.Text"/> <see cref="Wildcard"/> value is invalid.
-    /// </summary>
-    public const string TextWildcardErrorMessage = "Text contains invalid or unsupported wildcard selection.";
-
     private const string InvokerCacheType = "refdata.cachetype";
     private const string InvokerCacheState = "refdata.cachestate";
     private const string InvokerCacheCount = "refdata.cachecount";
@@ -30,6 +25,9 @@ public sealed class ReferenceDataOrchestrator(IServiceProvider serviceProvider, 
     private readonly ConcurrentDictionary<Type, Type> _typeToProvider = new();
     private readonly ConcurrentDictionary<string, Type> _nameToType = new(StringComparer.OrdinalIgnoreCase);
     private readonly ConcurrentDictionary<Type, Type> _typeToCollType = new();
+    private readonly ConcurrentDictionary<string, Type> _nameMappings = new(StringComparer.OrdinalIgnoreCase);
+    private readonly ConcurrentDictionary<Type, string> _typeToName = new();
+    private IReferenceDataQuery? _referenceDataQuery;
 
     /// <summary>
     /// Tries to get the current <see cref="ReferenceDataOrchestrator"/> for the executing thread graph (see <see cref="AsyncLocal{T}"/>), or if not set, the <see cref="ExecutionContext"/> <see cref="IServiceProvider"/> service is used.
@@ -94,10 +92,12 @@ public sealed class ReferenceDataOrchestrator(IServiceProvider serviceProvider, 
         using var scope = ServiceProvider.CreateScope();
         var provider = scope.ServiceProvider.GetRequiredService<TProvider>();
 
-        foreach (var (refType, collType) in provider.Types)
+        // Lock to ensure that the two internal dictionaries (together) are updated in a thread-safe manner
+        lock (_lock)
         {
-            // Lock to ensure that the two internal dictionaries (together) are updated in a thread-safe manner
-            lock (_lock)
+            // Wire up the primary provider types.
+            var types = provider.Types;
+            foreach (var (refType, collType) in types)
             {
                 if (_nameToType.ContainsKey(refType.Name))
                     throw new InvalidOperationException($"Type '{refType.FullName}' cannot be added as name '{refType.Name}' already associated with previously added Type '{_nameToType.GetValueOrDefault(refType.Name)?.FullName}'.");
@@ -107,6 +107,43 @@ public sealed class ReferenceDataOrchestrator(IServiceProvider serviceProvider, 
 
                 _nameToType.TryAdd(refType.Name, refType);
                 _typeToCollType.TryAdd(refType, collType);
+            }
+
+            // Wire up the specified alternate names.
+            if (provider.AlternateNames is not null)
+            {
+                var duplicateType = provider.AlternateNames.GroupBy(x => x.Item2).FirstOrDefault(g => g.Count() > 1);
+                if (duplicateType is not null)
+                    throw new InvalidOperationException($"Type '{duplicateType.Key.FullName}' cannot be added as it has more than one alternate name registered by provider '{typeof(TProvider).FullName}'.");
+
+                foreach (var (altName, altType) in provider.AlternateNames)
+                {
+                    var primary = _nameToType.GetValueOrDefault(altName);
+                    if (primary is not null)
+                    {
+                        if (altType != primary)
+                            throw new InvalidOperationException($"Alternate name '{altName}' cannot be added as already associated with previously added Type '{primary?.FullName}'.");
+
+                        continue;
+                    }
+
+                    if (!types.Any(x => x.Item1 == altType))
+                        throw new InvalidOperationException($"Alternate name '{altName}' cannot be added as the referenced name '{altType}' does not exist.");
+
+                    _nameToType.TryAdd(altName, altType);
+                    _nameMappings.TryAdd(altName, altType);
+                    _typeToName.TryAdd(altType, altName);
+                }
+            }
+
+            // Wire up the name mappings for the primary names (where no alternate name exists).
+            foreach (var (refType, _) in types)
+            {
+                if (provider.AlternateNames is not null && provider.AlternateNames.Any(x => x.Item2 == refType))
+                    continue;
+
+                _nameMappings.TryAdd(refType.Name, refType);
+                _typeToName.TryAdd(refType, refType.Name);
             }
         }
 
@@ -355,64 +392,67 @@ public sealed class ReferenceDataOrchestrator(IServiceProvider serviceProvider, 
         => _nameToType.TryGetValue(name.ThrowIfNull(), out var type) ? GetByTypeRequiredAsync(type, cancellationToken) : throw new InvalidOperationException($"Reference data collection for name '{name}' does not exist.");
 
     /// <summary>
-    /// Gets the <see cref="IReferenceData"/> list for the specified <see cref="IReferenceData"/> <see cref="Type"/> applying the <paramref name="codes"/> and <paramref name="textPattern"/> filter.
+    /// Gets the dictionary of the single definitive external name for every registered <see cref="IReferenceData"/> <see cref="Type"/>.
     /// </summary>
-    /// <typeparam name="TRef">The <see cref="IReferenceData"/> <see cref="System.Type"/>.</typeparam>
-    /// <param name="codes">The reference data code list.</param>
-    /// <param name="textPattern">The reference data text (including wildcards).</param>
-    /// <param name="includeInactive">Indicates whether to include inactive (<see cref="IReferenceData.IsInactive"/> equal <see langword="true"/>) entries.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-    /// <returns>The filtered collection.</returns>
-    public async Task<IEnumerable<TRef>> GetWithFilterAsync<TRef>(IEnumerable<string>? codes = null, string? textPattern = null, bool includeInactive = false, CancellationToken cancellationToken = default) where TRef : IReferenceData
-        => (await GetWithFilterAsync(typeof(TRef), codes, textPattern, includeInactive, cancellationToken).ConfigureAwait(false)).OfType<TRef>();
+    /// <returns>The dictionary of external name mappings, keyed by the external name and valued by the corresponding <see cref="IReferenceData"/> <see cref="Type"/>.</returns>
+    /// <remarks>Every registered <see cref="Type"/> has exactly one entry: its declared <see cref="IReferenceDataProvider.AlternateNames"/> value where registered; otherwise its own
+    /// <see cref="MemberInfo.Name"/>. This is <i>not</i> restricted to types that declare an alternate name - it covers every type known to the orchestrator, and is used both to
+    /// normalize the <see cref="GetNamedAsync(IEnumerable{string}, bool, CancellationToken)"/> result keys and to name the bulk-registered reference data query roots (see
+    /// <c>GraphQLLiteOptions.AddReferenceDataQueries</c> in <c>CoreEx.Data.GraphQL</c>).</remarks>
+    public IReadOnlyDictionary<string, Type> GetAlternateNameMappings() => _nameMappings;
 
     /// <summary>
-    /// Gets the <see cref="IReferenceData"/> list for the specified <see cref="IReferenceData"/> <see cref="Type"/> applying the <paramref name="codes"/> and <paramref name="textPattern"/> filter.
+    /// Indicates whether a <see cref="IReferenceDataQuery"/> has been registered for use with the <see cref="ReferenceDataOrchestrator"/>.
     /// </summary>
-    /// <param name="type">The <see cref="IReferenceData"/> <see cref="Type"/>.</param>
-    /// <param name="codes">The reference data code list.</param>
-    /// <param name="textPattern">The reference data text (including wildcards).</param>
-    /// <param name="includeInactive">Indicates whether to include inactive (<see cref="IReferenceData.IsInactive"/> equal <see langword="true"/>) entries.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-    /// <returns>The filtered collection.</returns>
-    public async Task<IEnumerable<IReferenceData>> GetWithFilterAsync(Type type, IEnumerable<string>? codes = null, string? textPattern = null, bool includeInactive = false, CancellationToken cancellationToken = default)
-        => GetWithFilterAsync(await GetByTypeAsync(type, cancellationToken).ConfigureAwait(false) ?? throw new InvalidOperationException($"Reference data collection for type '{type.FullName}' does not exist."), codes, textPattern, includeInactive);
+    public bool HasRegisteredQuery => _referenceDataQuery is not null;
 
     /// <summary>
-    /// Gets the <see cref="IReferenceData"/> list for the specified <see cref="IReferenceData"/> name (see <see cref="IReferenceData"/> <see cref="Type"/> <see cref="MemberInfo.Name"/>) applying the <paramref name="codes"/> and <paramref name="textPattern"/> filter.
+    /// Registers (overrides) the <see cref="IReferenceDataQuery"/> to use for the <see cref="ReferenceDataOrchestrator"/>.
     /// </summary>
-    /// <param name="name">The reference data name.</param>
-    /// <param name="codes">The reference data code list.</param>
-    /// <param name="textPattern">The reference data text (including wildcards).</param>
-    /// <param name="includeInactive">Indicates whether to include inactive (<see cref="IReferenceData.IsInactive"/> equal <see langword="true"/>) entries.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-    /// <returns>The filtered collection.</returns>
-    public async Task<IEnumerable<IReferenceData>> GetWithFilterAsync(string name, IEnumerable<string>? codes = null, string? textPattern = null, bool includeInactive = false, CancellationToken cancellationToken = default)
-        => GetWithFilterAsync(await GetByNameAsync(name, cancellationToken).ConfigureAwait(false) ?? throw new InvalidOperationException($"Reference data collection for name '{name}' does not exist."), codes, textPattern, includeInactive);
-
-    /// <summary>
-    /// Apply the selected filter to the collection.
-    /// </summary>
-    private static IEnumerable<IReferenceData> GetWithFilterAsync(IReferenceDataCollection coll, IEnumerable<string>? codes = null, string? textPattern = null, bool includeInactive = false)
+    /// <param name="query">The <see cref="IReferenceDataQuery"/> to register.</param>
+    /// <returns>The <see cref="ReferenceDataOrchestrator"/> to support fluent-style method-chaining.</returns>
+    public ReferenceDataOrchestrator RegisterQuery(IReferenceDataQuery query)
     {
-        if ((codes is null || !codes.Any()) && string.IsNullOrEmpty(textPattern) && !includeInactive)
-            return coll.ActiveItems;
-
-        // Validate the arguments.
-        if (textPattern is not null && Wildcard.Default.Parse(textPattern).HasError)
-            throw new ValidationException(TextWildcardErrorMessage);
-
-        // Apply the filter.
-        var items = includeInactive ? coll.AllItems : coll.ActiveItems;
-        var result = items
-            .WhereWhen(codes is not null && codes.Any(), x => codes!.Contains(x.Code, StringComparer.OrdinalIgnoreCase))
-            .WhereWildcard(x => x.Text, textPattern);
-
-        return result;
+        _referenceDataQuery = query.ThrowIfNull();
+        return this;
     }
 
     /// <summary>
-    /// Prefetches all of the named <see cref="IReferenceData"/> items. 
+    /// Queries for the specified <typeparamref name="TRef"/> <see cref="IReferenceData"/> type using the provided <paramref name="queryArgs"/> and <paramref name="pagingArgs"/>.
+    /// </summary>
+    /// <typeparam name="TRef">The <see cref="IReferenceData"/> <see cref="Type"/>.</typeparam>
+    /// <param name="queryArgs">The <see cref="QueryArgs"/>.</param>
+    /// <param name="pagingArgs">The <see cref="PagingArgs"/>.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+    /// <returns>The <see cref="ItemsResult{TItem}"/> of <typeparamref name="TRef"/>.</returns>
+    /// <remarks>Where <paramref name="pagingArgs"/> is <see langword="null"/> then <see cref="PagingArgs.None"/> will be used resulting in all regardless of any configured paging size.</remarks>
+    public Task<ItemsResult<TRef>> QueryAsync<TRef>(QueryArgs? queryArgs, PagingArgs? pagingArgs, CancellationToken cancellationToken = default) where TRef : IReferenceData
+    {
+        if (_referenceDataQuery is null)
+            throw new InvalidOperationException($"The {nameof(IReferenceDataQuery)} has not been registered; use the {nameof(RegisterQuery)} method to register.");
+
+        return _referenceDataQuery.QueryAsync<TRef>(this, queryArgs, pagingArgs ?? PagingArgs.None, cancellationToken);
+    }
+
+    /// <summary>
+    /// Queries for the specified <paramref name="refType"/> <see cref="IReferenceData"/> type using the provided <paramref name="queryArgs"/> and <paramref name="pagingArgs"/>.
+    /// </summary>
+    /// <param name="refType">The <see cref="IReferenceData"/> <see cref="Type"/>.</param>
+    /// <param name="queryArgs">The <see cref="QueryArgs"/>.</param>
+    /// <param name="pagingArgs">The <see cref="PagingArgs"/>.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+    /// <returns>The <see cref="IItemsResult"/>.</returns>
+    /// <remarks>Where <paramref name="pagingArgs"/> is <see langword="null"/> then <see cref="PagingArgs.None"/> will be used resulting in all regardless of any configured paging size.</remarks>
+    public Task<IItemsResult> QueryAsync(Type refType, QueryArgs? queryArgs, PagingArgs? pagingArgs, CancellationToken cancellationToken = default)
+    {
+        if (_referenceDataQuery is null)
+            throw new InvalidOperationException($"The {nameof(IReferenceDataQuery)} has not been registered; use the {nameof(RegisterQuery)} method to register.");
+
+        return _referenceDataQuery.QueryAsync(this, refType.ThrowIfNull(), queryArgs, pagingArgs ?? PagingArgs.None, cancellationToken);
+    }
+
+    /// <summary>
+    /// Prefetches all of the named <see cref="IReferenceData"/> items.
     /// </summary>
     /// <param name="names">The list of <see cref="IReferenceData"/> names.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
@@ -435,22 +475,21 @@ public sealed class ReferenceDataOrchestrator(IServiceProvider serviceProvider, 
     /// </summary>
     /// <param name="names">The reference data names.</param>
     /// <param name="includeInactive">Indicates whether to include inactive (<see cref="IReferenceData.IsInactive"/> equal <see langword="true"/>) entries.</param>
-    /// <param name="mapper">The mapping of names to their replacement.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
     /// <returns>The <see cref="ReferenceDataMultiDictionary"/>.</returns>
     /// <remarks>Will return an empty collection where no <paramref name="names"/> are specified.</remarks>
-    public async Task<ReferenceDataMultiDictionary> GetNamedAsync(IEnumerable<string> names, bool includeInactive = false, IDictionary<string, string>? mapper = null, CancellationToken cancellationToken = default)
+    public async Task<ReferenceDataMultiDictionary> GetNamedAsync(IEnumerable<string> names, bool includeInactive = false, CancellationToken cancellationToken = default)
     {
         var mc = new ReferenceDataMultiDictionary();
 
         if (names is not null)
         {
-            var list = await PrefetchAsync(ReplaceNames(names, mapper), cancellationToken).ConfigureAwait(false);
+            var list = await PrefetchAsync(ReplaceNames(names), cancellationToken).ConfigureAwait(false);
 
             foreach (var name in list)
             {
-                mc.Add(mapper?.Where(x => x.Value == name).Select(x => x.Key).FirstOrDefault() ?? _nameToType[name].Name,
-                    await GetWithFilterAsync(name, includeInactive: includeInactive, cancellationToken: cancellationToken).ConfigureAwait(false));
+                var coll = await GetByNameAsync(name, cancellationToken).ConfigureAwait(false);
+                mc.Add(name, coll is null ? [] : (includeInactive ? coll.AllItems : coll.ActiveItems));
             }
         }
 
@@ -458,16 +497,15 @@ public sealed class ReferenceDataOrchestrator(IServiceProvider serviceProvider, 
     }
 
     /// <summary>
-    /// Replaces the specified <paramref name="names"/> based on the provided <paramref name="mapper"/>.
+    /// Normalizes the specified <paramref name="names"/> - each of which may be either a <see cref="Type"/>'s own name or its registered alternate name - to their corresponding
+    /// definitive external name (see <see cref="GetAlternateNameMappings"/>), silently ignoring any unrecognized name.
     /// </summary>
-    private static IEnumerable<string> ReplaceNames(IEnumerable<string> names, IDictionary<string, string>? mapper)
+    private IEnumerable<string> ReplaceNames(IEnumerable<string> names)
     {
-        foreach (var name in names)
+        foreach (var name in names.Distinct(StringComparer.OrdinalIgnoreCase))
         {
-            if (mapper is not null && mapper.TryGetValue(name, out var mappedName))
-                yield return mappedName;
-            else
-                yield return name;
+            if (_nameToType.TryGetValue(name, out var type) && _typeToName.TryGetValue(type, out var definitiveName))
+                yield return definitiveName;
         }
     }
 

@@ -20,7 +20,7 @@ public abstract class ReferenceDataApi_TestsBase : WithApiTester<Api.Program>
     public void Gender_Get_Codes()
     {
         var v = Test.Http<Gender[]>()
-            .Run(HttpMethod.Get, $"{Route}/genders?codes=F&codes=X")
+            .Run(HttpMethod.Get, $"{Route}/genders", r => r.WithQuery("code in ('F', 'x')"))
             .AssertOK()
             .Value;
 
@@ -34,7 +34,7 @@ public abstract class ReferenceDataApi_TestsBase : WithApiTester<Api.Program>
     public void Gender_Get_Text()
     {
         var v = Test.Http<Gender[]>()
-            .Run(HttpMethod.Get, $"{Route}/genders?text=F*")
+            .Run(HttpMethod.Get, $"{Route}/genders", r => r.WithQuery("startswith(text, 'f')"))
             .AssertOK()
             .Value;
 
@@ -48,7 +48,7 @@ public abstract class ReferenceDataApi_TestsBase : WithApiTester<Api.Program>
     public void Gender_Get_Codes_IncludeInactive()
     {
         var v = Test.Http<Gender[]>()
-            .Run(HttpMethod.Get, $"{Route}/genders?codes=F&codes=X&$inactive")
+            .Run(HttpMethod.Get, $"{Route}/genders", r => r.WithQuery("code in ('F', 'X')").WithIncludeInactive())
             .AssertOK()
             .Value;
 

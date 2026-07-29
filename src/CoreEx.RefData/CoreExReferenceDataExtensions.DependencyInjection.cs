@@ -18,7 +18,18 @@ public static partial class CoreExReferenceDataExtensions
     /// <remarks>Also, registers the <see cref="ReferenceDataHybridCache"/> as the required <see cref="IReferenceDataCache"/> scoped service.</remarks>
     public static IServiceCollection AddReferenceDataOrchestrator(this IServiceCollection services, Func<IServiceProvider, ReferenceDataOrchestrator> orchestratorFactory, bool healthCheck = true, string? healthCheckName = "reference-data-orchestrator")
     {
-        services.ThrowIfNull().AddSingleton(sp => orchestratorFactory(sp));
+        services.ThrowIfNull().AddSingleton(sp =>
+        {
+            var orchestrator = orchestratorFactory(sp);
+            if (orchestrator == null)
+                throw new InvalidOperationException("The ReferenceDataOrchestrator factory returned a null value.");
+
+            if (!orchestrator.HasRegisteredQuery)
+                orchestrator.RegisterQuery(ReferenceDataQuery.Default);
+
+            return orchestrator;
+        });
+
         if (healthCheck)
             services.AddHealthChecks().AddTypeActivatedCheck<ReferenceDataOrchestratorHealthCheck>(healthCheckName ?? "reference-data-orchestrator", null, tags: HealthCheckTags.StartUpAndReadyOnly);
 

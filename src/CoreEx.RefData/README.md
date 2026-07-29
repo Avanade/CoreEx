@@ -18,7 +18,8 @@ Two concrete base classes cover the most common identity types: `ReferenceData<T
 - 📅 **Contextual date validity**: `ReferenceDataContext` supplies the reference date used to evaluate `StartsOn`/`EndsOn` on every item; the date can be set globally or overridden per type, defaulting to `Runtime.UtcNow`.
 - 🌐 **Localised text and description**: `Text` and `Description` are resolved through `LText` on every get, enabling locale-specific display strings without changing the domain model.
 - 🏷 **Code-serialization collection**: `ReferenceDataCodeCollection<TRef>` stores codes as `List<string?>` for wire serialization while presenting an `ICollection<TRef>` interface backed by the live orchestrator lookups.
-- 🔧 **DI and health-check helpers**: `AddReferenceDataOrchestrator` and related `IServiceCollection` extensions register the orchestrator and cache; `ReferenceDataOrchestratorHealthCheck` exposes a health-check endpoint reporting all registered reference data types.
+- 🔧 **DI and health-check helpers**: `AddReferenceDataOrchestrator` and related `IServiceCollection` extensions register the orchestrator, cache, and `ReferenceDataQuery.Default` (enabling `QueryAsync<TRef>()` out of the box); `ReferenceDataOrchestratorHealthCheck` exposes a health-check endpoint reporting all registered reference data types.
+- 🔎 **OData-esque query/paging**: `ReferenceDataQuery` (the default `IReferenceDataQuery` implementation) filters, orders, and pages a reference data collection via `ReferenceDataQueryArgsConfig` — OData-esque `$filter` on `code`/`text` (all string operators, case-insensitive) and `$orderby` on `code`/`text`/`sortOrder`. Supply a `Func<Type, QueryArgsConfig?>` to `ReferenceDataQuery(configSelector)` to use a different config per reference data type.
 
 ## Key types
 
@@ -32,6 +33,8 @@ Two concrete base classes cover the most common identity types: `ReferenceData<T
 | **[`ReferenceDataHybridCache`](./ReferenceDataHybridCache.cs)** | `IReferenceDataCache` implementation backed by `IHybridCache`; per-type semaphores enforce single-loader semantics on cache miss; supports per-type entry-option customisation via `OnCreateCacheEntry`. |
 | **[`ReferenceDataContext`](./ReferenceDataContext.cs)** | Supplies the contextual date used to evaluate `StartsOn`/`EndsOn` validity; settable globally or per reference data type. |
 | **[`ReferenceDataSortOrder`](./ReferenceDataSortOrder.cs)** | Enum: `SortOrder`, `Id`, `Code`, `Text`; controls the ordering returned by `GetItems`. |
+| **[`ReferenceDataQuery`](./Abstractions/ReferenceDataQuery.cs)** | Default `IReferenceDataQuery` implementation; auto-registered by `AddReferenceDataOrchestrator`. Accepts an optional per-type `Func<Type, QueryArgsConfig?>` selector via its constructor. |
+| **[`ReferenceDataQueryArgsConfig`](./ReferenceDataQueryArgsConfig.cs)** | `QueryArgsConfig` subclass pre-configured for reference data: `$filter` on `code`/`text` (all string operators, case-insensitive) and `$orderby` on `code`/`text`/`sortOrder`. Used by `ReferenceDataQuery.Default`. |
 
 ## Namespaces
 

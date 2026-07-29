@@ -191,7 +191,7 @@ see [coreex-ai-workflows.md](./coreex-ai-workflows.md).
 | `CoreEx Expert` | Agent | Architecture guidance, pattern recommendations, and design review. Invoke via `/coreex-expert` (or `@coreex-expert`). |
 | `/coreex-scaffold` | Skill-backed prompt | Guided greenfield solution scaffolding (chooses the smallest safe shape, runs the `dotnet new coreex*` commands). |
 | `/coreex-docs-sync` | Skill | Refresh the whole AI asset bundle (instructions, skills, prompts, the `coreex-expert` agent, and the `.github/docs/coreex/` doc cache) to a new pinned CoreEx version after a version bump. |
-| `/coreex-<capability>` | Skills (L1) + matching prompts | Add or modify one building block: `coreex-contract`, `coreex-refdata`, `coreex-db-migration`, `coreex-repository`, `coreex-adapter`, `coreex-app-service`, `coreex-validator`, `coreex-policy`, `coreex-aggregate`, `coreex-api`, `coreex-subscriber`, and `coreex-test-api` / `coreex-test-subscribe` / `coreex-test-relay`. Each skill has a `.prompt.md` wrapper for Copilot. |
+| `/coreex-<capability>` | Skills (L1) + matching prompts | Add or modify one building block: `coreex-contract`, `coreex-refdata`, `coreex-db-migration`, `coreex-repository`, `coreex-adapter`, `coreex-app-service`, `coreex-validator`, `coreex-policy`, `coreex-aggregate`, `coreex-api`, `coreex-graphql`, `coreex-subscriber`, and `coreex-test-api` / `coreex-test-subscribe` / `coreex-test-relay`. Each skill has a `.prompt.md` wrapper for Copilot. |
 | `/acquire-codebase-knowledge`, `/aspire` | Skills | Repo onboarding documentation; local Aspire orchestration. |
 
 ## Guidance for Authoring Instructions and Skills

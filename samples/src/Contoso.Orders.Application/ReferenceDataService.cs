@@ -10,6 +10,11 @@ public class ReferenceDataService(IReferenceDataRepository repository) : IRefere
         (typeof(OrderStatus), typeof(OrderStatusCollection)),
     ];
 
+    public IEnumerable<(string, Type)> AlternateNames =>
+    [
+        ( "order-statuses", typeof(OrderStatus) )
+    ];
+
     public async Task<IReferenceDataCollection> GetAsync(Type type, CancellationToken cancellationToken = default) => type switch
     {
         _ when type == typeof(OrderStatus) => await _repository.GetAllOrderStatusesAsync().ConfigureAwait(false),
