@@ -13,7 +13,7 @@ public class AddressMapper : BiDirectionMapper<Domain.ValueObjects.Address, Cont
 
     protected override Domain.ValueObjects.Address OnMap(Contracts.Address source) => new()
     {
-        Street1 = source.Street1,
+        Street1 = source.Street1!,
         Street2 = source.Street2,
         City = source.City!,
         PostCode = source.PostCode!,

@@ -103,6 +103,8 @@ public class {Name}Mapper : BiDirectionMapper<Contracts.{Name}, Persistence.{Nam
 
 **Never map `ETag` or `ChangeLog`** — the base `BiDirectionMapper` owns those. The persistence model exposes `ETag` (a `string?`) — there is no `RowVersion` member.
 
+**JSON-typed properties** (backed by a JSON database column) are mapped exactly like any other typed property — direct assignment, no `JsonSerializer.Serialize/Deserialize`. `TypeToJsonStringEfConverter<T>` handles the DB serialisation transparently at the EF layer. For complex object types, a hand-authored persistence POCO lives in `Infrastructure/Persistence/` alongside the generated `*.g.cs` files. See [`coreex-db-migration`](../coreex-db-migration/references/workflow.md#json-columns) for the full column setup, `dbex.yaml` `columns:` entry, and POCO conventions.
+
 Ensure `global using {Solution}.Infrastructure.Mapping;` is in `GlobalUsing.cs` so other classes can reference `{Name}Mapper.Default` without a fully-qualified name.
 
 ### A4 — DbContext (new domain only)

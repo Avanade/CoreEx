@@ -1,0 +1,11 @@
+{
+  "sku": "TAGGED-SKU-001",
+  "text": "Tagged Product",
+  "category": "B",
+  "subCategory": "XC",
+  "unitOfMeasure": "EA",
+  "brand": "YETI",
+  "price": 1500,
+  "tags": ["cross-country", "carbon", "race"],
+  "isInactive": true
+}

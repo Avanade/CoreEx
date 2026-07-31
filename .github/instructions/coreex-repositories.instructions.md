@@ -42,7 +42,7 @@ The Infrastructure project is organised into focused sub-folders. The table belo
 | `Mapping/` | Bidirectional mappers (`BiDirectionMapper<TContract, TModel, TSelf>`) between Contract types and Persistence model types. |
 | `Adapters/` | Implementations of `IXxxAdapter` interfaces defined in `Application/Adapters/`. Registered with `[ScopedService<IInterface>]`. |
 | `Clients/` | Typed HTTP client wrappers — one class per external service. Registered via `AddTypedHttpClient<T>()` in `Program.cs`. |
-| `Persistence/` | EF entity/model classes. These are **generated** (`*.g.cs`) by the `*.Database` tooling project — do not create or edit manually. |
+| `Persistence/` | EF entity/model classes. The `*.g.cs` files are **generated** by the `*.Database` tooling — do not edit them. Hand-authored POCOs for JSON-column storage (plain classes, no base class, no attributes) also live here alongside the generated files — see [Mapping](#mapping). |
 
 Repository and adapter implementations follow the same primary-constructor + guard pattern:
 
@@ -336,6 +336,24 @@ protected override Contracts.Employee OnMap(Persistence.Employee source) => new(
 > Note: the `ModelBase` change-log members are `CreatedOn`/`UpdatedOn` (`DateTimeOffset?`), **never** `CreatedDate`/`UpdatedDate` — but in a mapper the entire block is removed regardless, since the base mapper owns it.
 
 Infrastructure-level mapping covers either **Contract ↔ Persistence** (CRUD domains) or **Domain ↔ Persistence** (domains with a Domain layer, where the aggregate is mapped to/from the persistence model). Application-level mapping (Domain aggregate ↔ Contract) lives in `Application/Mapping/` and uses `Mapper<TSource, TDest, TSelf>`. Do not conflate the two.
+
+**JSON-typed properties** (backed by a `*Json` / `*_json` database column) are mapped in `OnMap` exactly like any other typed property — direct assignment, no `JsonSerializer.Serialize/Deserialize`:
+
+```csharp
+// Simple collection — the CLR type is the same on both sides; assign directly
+Tags = source.Tags,
+
+// Complex POCO — map fields from the hand-authored Persistence.Address POCO
+ShippingAddress = source.ShippingAddress is null ? null : new Persistence.Address
+{
+    Street1  = source.ShippingAddress.Street1,
+    City     = source.ShippingAddress.City,
+    PostCode = source.ShippingAddress.PostCode,
+    State    = source.ShippingAddress.State,
+}
+```
+
+`TypeToJsonStringEfConverter<T>` (auto-wired in the generated `*DbContext.g.cs`) handles serialisation transparently at the EF layer. For complex object types, the hand-authored POCO lives in `Infrastructure/Persistence/` alongside the generated `*.g.cs` files — it is a plain class, no base class, no attributes; use `required`/non-nullable for mandatory fields. See the [`coreex-db-migration`](/.github/skills/coreex-db-migration/SKILL.md#json-columns) skill for the `dbex.yaml` columns entry and full POCO conventions.
 
 ## External Clients and Adapter Implementations
 

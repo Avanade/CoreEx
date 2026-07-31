@@ -81,6 +81,41 @@ public partial class ProductMutateTests : WithApiTester<Contoso.Products.Api.Pro
     }
 
     [Test]
+    public void Create_WithTags()
+    {
+        // Arrange — create a product with tags to verify the JSONB column round-trips correctly.
+        var p = new Product
+        {
+            Sku = "TAGGED-SKU-001",
+            Text = "Tagged Product",
+            Price = 1500M,
+            SubCategoryCode = "XC",
+            UnitOfMeasureCode = "EA",
+            BrandCode = "YETI",
+            Tags = ["cross-country", "carbon", "race"]
+        };
+
+        // Act/Assert — create and verify the response includes tags.
+        var r = Test.Http<Product>()
+            .ExpectIdentifier()
+            .ExpectETag()
+            .ExpectChangeLogCreated()
+            .ExpectPostgresOutboxEvents(e => e.AssertWithValue("contoso", "contoso.products.product.created.v1"))
+            .Run(HttpMethod.Post, "/api/products", p)
+            .AssertCreated()
+            .AssertLocationHeader(r => new Uri($"/api/products/{r!.Id}", UriKind.Relative))
+            .AssertJsonFromResource("ProductMutateTests.Create_WithTags.res.json", "id", "etag", "changeLog")
+            .Value!;
+
+        // Assert tags survive a Get round-trip.
+        r.Tags.Should().BeEquivalentTo(["cross-country", "carbon", "race"]);
+        Test.Http<Product>()
+            .Run(HttpMethod.Get, $"/api/products/{r.Id}")
+            .AssertOK()
+            .AssertValue(r);
+    }
+
+    [Test]
     public void Create_IdempotencyKey()
     {
         // Arrange.

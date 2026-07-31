@@ -173,6 +173,7 @@ public partial class ProductsDbContext
             e.Property(p => p.UpdatedBy).HasColumnName("updated_by").HasColumnType("CHARACTER VARYING(250)");
             e.Property(p => p.UpdatedOn).HasColumnName("updated_on").HasColumnType("TIMESTAMP WITH TIME ZONE");
             e.Property(p => p.ETag).HasColumnName("xmin").HasColumnType("XID").IsRowVersion().HasConversion(ValueConverterBridge.Create<string?, uint>(BaseDatabase.RowVersionConverter));
+            e.Property(p => p.Tags).HasColumnName("tags_json").HasColumnType("JSONB").HasConversion(TypeToJsonStringEfConverter<List<string>?>.Default);
             e.Property(p => p.IsDeleted).HasColumnName("is_deleted").HasColumnType("BOOLEAN");
         });
     }

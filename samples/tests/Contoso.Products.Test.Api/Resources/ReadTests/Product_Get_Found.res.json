@@ -7,6 +7,7 @@
   "unitOfMeasure": "EA",
   "brand": "YETI",
   "price": 5800.00,
+  "tags": ["cross-country", "full-suspension"],
   "etag": "AAAAAAAAB9E=",
   "changeLog": {
     "createdBy": "METACORTEX\\thomas.anderson",

@@ -15,3 +15,7 @@ tables:
 - name: inventory
 - name: movement
 - name: product
+  columns:
+  - name: tags_json
+    property: Tags
+    type: List<string>?

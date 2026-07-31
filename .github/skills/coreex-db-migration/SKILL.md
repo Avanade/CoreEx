@@ -69,6 +69,21 @@ Check the project's `*.Database/Program.cs` or `appsettings.json` to confirm the
 
 For the full step-by-step decision tree, SQL column templates, and guardrails see [`references/workflow.md`](references/workflow.md).
 
+## JSON Columns
+
+A column whose name ends with `Json` (SQL Server) or `_json` (PostgreSQL) stores a serialised .NET type as JSON text. DbEx surfaces this in `Inspect` output as `Json: Yes`.
+
+Three things are required:
+
+1. **A `columns:` entry in `dbex.yaml`** — without it, DbEx generates `string?` with no converter.
+   `name:` (DB column name including the suffix), `property:` (C# name without suffix), `type:` (CLR type, e.g. `Persistence.Address?` or `List<string>?`).
+2. **A hand-authored persistence POCO** in `Infrastructure/Persistence/` when the stored type is a complex object. For natively-serialisable types (`List<string>?`, `Dictionary<K,V>?`, etc.) use the .NET type directly — no extra class needed.
+3. **No manual `.HasConversion(...)` call** — `TypeToJsonStringEfConverter<T>` is auto-wired in the generated `*DbContext.g.cs` when `type:` is non-string.
+
+Default column types (unless the user specifies otherwise): `NVARCHAR(MAX)` (SQL Server) / `JSONB` (PostgreSQL).
+
+For the full workflow, example YAML, DDD aggregate vs CRUD service guidance, and POCO class conventions see [`references/workflow.md` — JSON columns](references/workflow.md#json-columns).
+
 ## Key References
 
 - [`/.github/instructions/coreex-tooling.instructions.md`](/.github/instructions/coreex-tooling.instructions.md) — DbEx command reference, `dbex.yaml` structure, SQL conventions, outbox provisioning

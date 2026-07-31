@@ -277,6 +277,36 @@ tables:
 
 (Add `columns:`, `efModel`, `efModelName`, `includeColumns`/`excludeColumns`, or `columnName*` overrides only when a specific need arises.)
 
+### JSON columns in `dbex.yaml`
+
+A column whose name ends with `Json` (SQL Server `PascalCase`) or `_json` (PostgreSQL `snake_case`) stores a serialised JSON representation of a .NET type. DbEx surfaces this in `Inspect` output as `Json: Yes`. **A `columns:` entry is required** — without it, DbEx generates `string?` with no converter.
+
+```yaml
+# SQL Server — PascalCase
+- name: Basket
+  columns:
+  - name: ShippingAddressJson     # DB column name — must include the Json suffix
+    property: ShippingAddress     # C# property name — suffix stripped
+    type: Persistence.Address?    # CLR type: persistence POCO, List<string>?, Dictionary<K,V>?, etc.
+
+# PostgreSQL — snake_case
+- name: product
+  columns:
+  - name: tags_json
+    property: Tags
+    type: List<string>?
+```
+
+The `type:` field drives code generation:
+- **Non-string type** → DbEx auto-wires `TypeToJsonStringEfConverter<T>` in the generated `*DbContext.g.cs`. Do not add `.HasConversion(...)` by hand.
+- **`string` or `string?`** → the JSON is stored as-is with no converter (raw passthrough).
+
+When `type:` is a complex object (not `string`, `List<T>`, `Dictionary<K,V>`, or another natively-serialisable type), a **hand-authored POCO** is required in `Infrastructure/Persistence/`. It is a plain class — no base class, no `[Contract]` or other attributes, no validation logic. Use `required` / non-nullable for mandatory fields and nullable only where genuinely optional. For natively-serialisable types (`List<string>?`, `Dictionary<string,string>?`, etc.) no separate class is needed.
+
+Default column types: `NVARCHAR(MAX)` (SQL Server) / `JSONB` (PostgreSQL) — unless the user specifies a bounded size.
+
+For the full worked examples, DDD aggregate vs CRUD service guidance, and mapper conventions see the [`coreex-db-migration`](/.github/skills/coreex-db-migration/SKILL.md#json-columns) skill.
+
 ### `CodeGen` phase — generated Infrastructure C#
 
 The `CodeGen` command generates `.g.cs` files into the Infrastructure project:
@@ -422,6 +452,9 @@ When authoring a migration script for an entity that has a corresponding .NET co
 | `bool` | `BIT` | `BOOLEAN` |
 | `DateTime` | `DATETIME2` | `TIMESTAMP` |
 | `DateTimeOffset` | `DATETIMEOFFSET` | `TIMESTAMPTZ` |
+| `DateOnly` | `DATE` | `date` |
+| `TimeOnly` | `TIME` | `time` |
+| Complex type (class/record) | `NVARCHAR(MAX)` — JSON suffix convention (see [JSON columns](#json-columns-in-dbex-yaml)) | `JSONB` — JSON suffix convention (see [JSON columns](#json-columns-in-dbex-yaml)) |
 
 > **Creation procedure → skill.** Authoring/applying a migration script is driven by the
 > [`coreex-db-migration`](/.github/skills/coreex-db-migration/SKILL.md) skill (inspect → script → fill columns →
