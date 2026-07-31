@@ -431,4 +431,114 @@ public partial class RuntimeMetadataTests
         public int Id { get; } = id;
         public string? Name { get; set; }
     }
+
+    /// <summary>A contract type that can form reference cycles via its <see cref="Next"/> property.</summary>
+    [Contract]
+    private partial class NodeC
+    {
+        public string? Name { get; set; }
+        public NodeC? Next { get; set; }
+    }
+
+    // -------------------------------------------------------------------------
+    // Circular-reference safety tests (verifies the ThreadStatic visited-set fix)
+    // -------------------------------------------------------------------------
+
+    [Test]
+    public void Clean_CircularReference_DoesNotOverflow()
+    {
+        var a = new NodeC { Name = "A" };
+        var b = new NodeC { Name = "B", Next = a };
+        a.Next = b; // a → b → a
+
+        var act = () => { Cleaner.Clean(a); };
+        act.Should().NotThrow();
+
+        a.Name.Should().Be("A");
+        b.Name.Should().Be("B");
+    }
+
+    [Test]
+    public void AreEqual_CircularReference_DoesNotOverflow()
+    {
+        var a1 = new NodeC { Name = "A" };
+        var b1 = new NodeC { Name = "B", Next = a1 };
+        a1.Next = b1;
+
+        var a2 = new NodeC { Name = "A" };
+        var b2 = new NodeC { Name = "B", Next = a2 };
+        a2.Next = b2;
+
+        bool result = default;
+        var act = () => { result = RuntimeMetadata.AreEqual(a1, a2); };
+        act.Should().NotThrow();
+        result.Should().BeTrue(); // structurally equivalent cycles are equal
+    }
+
+    [Test]
+    public void AreEqual_CircularReference_NotEqual_DoesNotOverflow()
+    {
+        var a1 = new NodeC { Name = "A" };
+        var b1 = new NodeC { Name = "B", Next = a1 };
+        a1.Next = b1;
+
+        var a2 = new NodeC { Name = "X" }; // different name
+        var b2 = new NodeC { Name = "B", Next = a2 };
+        a2.Next = b2;
+
+        bool result = true;
+        var act = () => { result = RuntimeMetadata.AreEqual(a1, a2); };
+        act.Should().NotThrow();
+        result.Should().BeFalse();
+    }
+
+    [Test]
+    public void GetHashCode_CircularReference_DoesNotOverflow()
+    {
+        var a = new NodeC { Name = "A" };
+        var b = new NodeC { Name = "B", Next = a };
+        a.Next = b;
+
+        var act = () => RuntimeMetadata.GetHashCode(a);
+        act.Should().NotThrow();
+    }
+
+    [Test]
+    public void IsDefault_CircularReference_DoesNotOverflow()
+    {
+        var a = new NodeC { Name = "A" };
+        var b = new NodeC { Name = "B", Next = a };
+        a.Next = b;
+
+        bool result = default;
+        var act = () => { result = RuntimeMetadata.IsDefault(a); };
+        act.Should().NotThrow();
+        result.Should().BeFalse(); // a.Name is non-default
+    }
+
+    // -------------------------------------------------------------------------
+    // Fix 2: inverted IsReadOnly filter in plain-class Clean() path
+    // -------------------------------------------------------------------------
+
+    [Test]
+    public void Clean_PlainClass_WritablePropertyNullCollapsed()
+    {
+        // EntityE is a plain class (not IContract). With the IsReadOnly fix applied,
+        // writable properties are now correctly visited and null-collapsed.
+        var e = new EntityE(1) { Name = "" };
+        Cleaner.Clean(e);
+        e.Name.Should().BeNull(); // "" cleaned to null (CleanAndDefault null-collapse)
+        e.Id.Should().Be(1); // read-only — unchanged
+    }
+
+    [Test]
+    public void Clean_DecimalProperty_DoesNotOverflow()
+    {
+        // Decimal (and other non-DateTime value types) previously caused a StackOverflowException:
+        // RuntimeMetadata.Clean<decimal> → Cleaner.Clean<decimal> (line 196: => RuntimeMetadata.Clean<T>) → infinite loop.
+        var b = new EntityB { Amount = 1.23m };
+        Action act = () => Cleaner.Clean(b);
+        act.Should().NotThrow();
+        b.Amount.Should().Be(1.23m);
+    }
 }

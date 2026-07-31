@@ -2,6 +2,12 @@ namespace CoreEx.Metadata;
 
 public static partial class RuntimeMetadata
 {
+    // Identity hash-code pairs used to detect cycles; stored as (int, int) to avoid boxing.
+    // Collision probability per pair is ~1/2^64 (two independent 32-bit identity codes must both collide),
+    // which is negligible for typical object graphs.
+    [ThreadStatic]
+    private static HashSet<(int Left, int Right)>? _visitingForAreEqual;
+
     /// <summary>
     /// Compare two <typeparamref name="T"/> values for equality.
     /// </summary>
@@ -10,8 +16,8 @@ public static partial class RuntimeMetadata
     /// <param name="right">The right-side value.</param>
     /// <returns><see langword="true"/> indicates they are equal; otherwise, <see langword="false"/>.</returns>
     /// <remarks>This improves upon the standard <see cref="object.Equals(object?, object?)"/> which for a <see langword="class"/> generally only performs a reference equality. The following additional checks
-    /// are performed: <see cref="IEquatable{T}.Equals(T)"/> comparison, <see cref="ICollection.Count"/> comparison, <see cref="IDictionary"/> per item <see cref="IDictionaryEnumerator.Key"/> and <see cref="IDictionaryEnumerator.Value"/> comparisons, 
-    /// <see cref="IEnumerable"/> item comparisons, and nested <see cref="IRuntimeMetadataCore"/> and <see cref="IPropertyRuntimeMetadata"/> comparisons. This is to achieve a best attempt deep-equals where a contract-style 
+    /// are performed: <see cref="IEquatable{T}.Equals(T)"/> comparison, <see cref="ICollection.Count"/> comparison, <see cref="IDictionary"/> per item <see cref="IDictionaryEnumerator.Key"/> and <see cref="IDictionaryEnumerator.Value"/> comparisons,
+    /// <see cref="IEnumerable"/> item comparisons, and nested <see cref="IRuntimeMetadataCore"/> and <see cref="IPropertyRuntimeMetadata"/> comparisons. This is to achieve a best attempt deep-equals where a contract-style
     /// class (such as a <see href="https://en.wikipedia.org/wiki/Data_transfer_object"/>) constrains itself to simple and known types such as those described above, and/or overrides <see cref="object.Equals(object?)"/> accordingly.</remarks>
     public static bool AreEqual<T>(T? left, T? right)
     {
@@ -25,15 +31,33 @@ public static partial class RuntimeMetadata
         // Where metadata, then matchy-matchy each property one-by-one.
         if (left is IRuntimeMetadataCore lrm)
         {
-            var epl = lrm.GetPropertyRuntimeMetadata().GetEnumerator();
-            var epr = ((IRuntimeMetadataCore)right).GetPropertyRuntimeMetadata().GetEnumerator();
-            while (epl.MoveNext())
+            var set = _visitingForAreEqual ??= [];
+            var isRoot = set.Count == 0;
+            try
             {
-                if (!epr.MoveNext() || !AreEqual(epl.Current.GetValue(left), epr.Current.GetValue(right)))
-                    return false;
-            }
+                var pair = (RuntimeHelpers.GetHashCode((object)left!), RuntimeHelpers.GetHashCode((object)right!));
+                if (!set.Add(pair))
+                    return true; // cycle detected — assume structurally equal
 
-            return true;
+                var epl = lrm.GetPropertyRuntimeMetadata().GetEnumerator();
+                var epr = ((IRuntimeMetadataCore)right).GetPropertyRuntimeMetadata().GetEnumerator();
+                while (epl.MoveNext())
+                {
+                    if (!epr.MoveNext() || !AreEqual(epl.Current.GetValue(left), epr.Current.GetValue(right)))
+                    {
+                        set.Remove(pair);
+                        return false;
+                    }
+                }
+
+                set.Remove(pair);
+                return true;
+            }
+            finally
+            {
+                if (isRoot)
+                    set.Clear();
+            }
         }
 
         // Fast-path explicit equality implementation.
@@ -68,14 +92,33 @@ public static partial class RuntimeMetadata
             return Equals(left, right);
 
         // Must be a class so use reflection-based runtime-metadata to compare each property.
-        foreach (var p in GetCachedProperties(type).Values)
         {
-            if (!AreEqual(p.GetValue(left), p.GetValue(right)))
-                return false;
-        }
+            var set = _visitingForAreEqual ??= [];
+            var isRoot = set.Count == 0;
+            try
+            {
+                var pair = (RuntimeHelpers.GetHashCode((object)left!), RuntimeHelpers.GetHashCode((object)right!));
+                if (!set.Add(pair))
+                    return true; // cycle detected — assume structurally equal
 
-        // Well, if we got this far, then they must be equal - good job (https://www.youtube.com/watch?v=BSmliwh7D30).
-        return true;
+                foreach (var p in GetCachedProperties(type).Values)
+                {
+                    if (!AreEqual(p.GetValue(left), p.GetValue(right)))
+                    {
+                        set.Remove(pair);
+                        return false;
+                    }
+                }
+
+                set.Remove(pair);
+                // Well, if we got this far, then they must be equal - good job (https://www.youtube.com/watch?v=BSmliwh7D30).
+                return true;
+            }
+            finally
+            {
+                if (isRoot) set.Clear();
+            }
+        }
     }
 
     /// <summary>

@@ -2,6 +2,9 @@ namespace CoreEx.Metadata;
 
 public static partial class RuntimeMetadata
 {
+    [ThreadStatic]
+    private static HashSet<object>? _visitingForIsDefault;
+
     /// <summary>
     /// Indicates whether the <paramref name="value"/> is in its default state.
     /// </summary>
@@ -28,7 +31,24 @@ public static partial class RuntimeMetadata
             return AreEqual(str, Internal.Cast<T, string>(@default));
 
         if (value is IRuntimeMetadataCore rm)
-            return !rm.GetPropertyRuntimeMetadata().Any(x => !x.IsDefault(value));
+        {
+            var set = _visitingForIsDefault ??= new HashSet<object>(ReferenceEqualityComparer.Instance);
+            var isRoot = set.Count == 0;
+            try
+            {
+                if (!set.Add(value))
+                    return false; // cycle detected — a self-referential object is not considered default
+
+                bool result = !rm.GetPropertyRuntimeMetadata().Any(x => !x.IsDefault(value));
+                set.Remove(value);
+                return result;
+            }
+            finally
+            {
+                if (isRoot)
+                    set.Clear();
+            }
+        }
 
         if (value is ICollection ic && ic.Count == 0)
             return true;
@@ -37,6 +57,23 @@ public static partial class RuntimeMetadata
         if (type.IsValueType)
             return AreEqual(value, @default);
 
-        return !GetPropertyRuntimeMetadata(value.GetType()).Any(x => !x.IsDefault(value));
+        {
+            var set = _visitingForIsDefault ??= new HashSet<object>(ReferenceEqualityComparer.Instance);
+            var isRoot = set.Count == 0;
+            try
+            {
+                if (!set.Add(value))
+                    return false; // cycle detected
+
+                bool result = !GetPropertyRuntimeMetadata(type).Any(x => !x.IsDefault(value));
+                set.Remove(value);
+                return result;
+            }
+            finally
+            {
+                if (isRoot)
+                    set.Clear();
+            }
+        }
     }
 }

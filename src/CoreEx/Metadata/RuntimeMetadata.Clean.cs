@@ -2,6 +2,9 @@ namespace CoreEx.Metadata;
 
 public static partial class RuntimeMetadata
 {
+    [ThreadStatic]
+    private static HashSet<object>? _visitingForClean;
+
     /// <summary>
     /// Cleans (deep) the mutable properties of the <paramref name="value"/>.
     /// </summary>
@@ -21,62 +24,73 @@ public static partial class RuntimeMetadata
         if (value is DateTime dt)
             return Internal.Cast<DateTime, T>(Cleaner.Clean(dt, Cleaner.DefaultDateTimeTransform));
 
-        if (value is IRuntimeMetadataCore rm)
+        // All reference-type branches below can form cycles — allocate the visited set once per thread and reuse it.
+        var set = _visitingForClean ??= new HashSet<object>(ReferenceEqualityComparer.Instance);
+        var isRoot = set.Count == 0;
+        try
         {
-            foreach (var p in rm.GetPropertyRuntimeMetadata().Where(x => !x.IsReadOnly))
+            if (value is IRuntimeMetadataCore rm)
             {
-                p.Clean(value);
+                if (!set.Add(value))
+                    return value; // cycle detected — return as-is
+
+                foreach (var p in rm.GetPropertyRuntimeMetadata().Where(x => !x.IsReadOnly))
+                    p.Clean(value);
+
+                set.Remove(value); // allow re-visit from a different path (DAG support)
+                return RuntimeMetadata.IsDefault(value) ? default : value;
             }
 
+            // Zero-length collections are nulled out.
+            if (value is ICollection ic && ic.Count == 0)
+                return default;
+
+            // Clean each dictionary item (does not replace/null entry, only contents thereof); key remains unchanged.
+            if (value is IDictionary d)
+            {
+                foreach (DictionaryEntry de in d)
+                    Clean(de.Value);
+
+                return value;
+            }
+
+            // Clean each enumerable item (does not replace/null entry, only contents thereof).
+            if (value is IEnumerable e)
+            {
+                // Fast-path common/hot types to avoid boxing - can't clean anyway!
+                if (value is ICollection<string> || value is ICollection<Guid> || value is ICollection<Guid?>
+                    || value is ICollection<int> || value is ICollection<int?> || value is ICollection<long> || value is ICollection<long?>)
+                    return value;
+
+                // Get the element type to determine if boxing will occur and bail if so - can't clean anyway!
+                var elementType = GetEnumerableElementType(value);
+                if (elementType is not null && elementType.IsValueType)
+                    return value;
+
+                foreach (var item in e)
+                    Clean(item);
+
+                return value;
+            }
+
+            // Handle value or class types.
+            var type = value.GetType();
+            if (type.IsValueType)
+                return value; // value types (other than string/DateTime, handled above) have no cleaning to perform
+
+            if (!set.Add(value))
+                return value; // cycle detected — return as-is
+
+            foreach (var p in GetCachedProperties(type).Values.Where(x => !x.IsReadOnly))
+                p.Clean(value);
+
+            set.Remove(value);
             return RuntimeMetadata.IsDefault(value) ? default : value;
         }
-
-        // Zero-length collections are nulled out.
-        if (value is ICollection ic && ic.Count == 0)
-            return default;
-
-        // Clean each dictionary item (does not replace/null entry, only contents thereof); key remains unchanged.
-        if (value is IDictionary d)
+        finally
         {
-            foreach (DictionaryEntry de in d)
-            {
-                Clean(de.Value);
-            }
-
-            return value;
+            if (isRoot)
+                set.Clear();
         }
-
-        // Clean each enumerable item (does not replace/null entry, only contents thereof).
-        if (value is IEnumerable e)
-        {
-            // Fast-path common/hot types to avoid boxing - can't clean anyway!
-            if (value is ICollection<string> || value is ICollection<Guid> || value is ICollection<Guid?>
-                || value is ICollection<int> || value is ICollection<int?> || value is ICollection<long> || value is ICollection<long?>)
-                return value;
-
-            // Get the element type to determine if boxing will occur and bail if so - can't clean anyway!
-            var elementType = GetEnumerableElementType(value);
-            if (elementType is not null && elementType.IsValueType)
-                return value;
-
-            foreach (var item in e)
-            {
-                Clean(item);
-            }
-
-            return value;
-        }
-
-        // Handle value or class types.
-        var type = value.GetType();
-        if (type.IsValueType)
-            return Cleaner.Clean(value);
-
-        foreach (var p in GetCachedProperties(value.GetType()).Values.Where(x => x.IsReadOnly))
-        {
-            p.Clean(value);
-        }
-
-        return RuntimeMetadata.IsDefault(value) ? default : value;
     }
 }
