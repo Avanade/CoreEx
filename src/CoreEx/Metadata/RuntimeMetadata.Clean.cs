@@ -10,7 +10,7 @@ public static partial class RuntimeMetadata
     /// <returns>The cleaned <paramref name="value"/>.</returns>
     /// <remarks>This will walk the fully object graph, including arrays, collections, and dictionaries cleaning all mutable properties. Note that where the entry for an array, collection, or dictionary is a value type
     /// this is unable to be cleaned/replaced. An empty array, collection, or dictionary will be set to <see langword="default"/>.</remarks>
-    public static T? Clean<T>(T value)
+    public static T? Clean<T>(T? value)
     {
         if (value is string str)
             return Internal.Cast<string, T>(Cleaner.Clean(str, Cleaner.DefaultStringTrim, Cleaner.DefaultStringTransform, Cleaner.DefaultStringCase)!);

@@ -15,6 +15,9 @@ public partial class ReferenceDataOrchestratorTests
         vr = await ((DummyRefData)"A").Validator(c => c.IsValid()).ValidateAsync();
         vr.HasErrors.Should().BeFalse();
 
+        vr = await ((DummyRefData)"a").Validator(c => c.IsValid()).ValidateAsync(); // Configured to ignore case.
+        vr.HasErrors.Should().BeFalse();
+
         vr = await ((DummyRefData)"Z").Validator(c => c.IsValid()).ValidateAsync();
         vr.HasErrors.Should().BeTrue();
         vr.Messages.Should().ContainSingle().Which.Text.ToString().Should().EndWith("is invalid.");
@@ -25,6 +28,16 @@ public partial class ReferenceDataOrchestratorTests
 
         vr = await ((DummyRefData)"D").Validator(c => c.IsValid(allowInactive: true)).ValidateAsync();
         vr.HasErrors.Should().BeFalse();
+    }
+
+    [Test]
+    public async Task Validation_Casing_Matters()
+    {
+        var vr = await ((DummyRefData2)"A").Validator(c => c.IsValid()).ValidateAsync();
+        vr.HasErrors.Should().BeFalse();
+        vr = await ((DummyRefData2)"a").Validator(c => c.IsValid()).ValidateAsync();
+        vr.HasErrors.Should().BeTrue();
+        vr.Messages.Should().ContainSingle().Which.Text.ToString().Should().EndWith("is invalid.");
     }
 
     [Test]

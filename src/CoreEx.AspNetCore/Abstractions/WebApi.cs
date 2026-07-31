@@ -12,10 +12,6 @@ namespace CoreEx.AspNetCore.Abstractions;
 public abstract partial class WebApi<TResult>(WebApiInvoker<TResult> invoker, JsonSerializerOptions? jsonSerializerOptions = null, ILogger<WebApi<TResult>>? logger = null, ExecutionContext? executionContext = null)
     : WebApiBase(jsonSerializerOptions, logger, executionContext)
 {
-    private const string _requestBodyErrorType = "request-body";
-    private static readonly LText _requestBodyRequiredText = new("CoreEx.AspNetCore.WebApi.RequestBodyRequired", "Request body is required.");
-    private static readonly LText _requestBodyInvalidText = new("CoreEx.AspNetCore.WebApi.RequestBodyInvalid", "Request body is invalid: {0}");
-
     private readonly WebApiInvoker<TResult> _invoker = invoker.ThrowIfNull();
 
     /// <summary>
@@ -157,8 +153,8 @@ public abstract partial class WebApi<TResult>(WebApiInvoker<TResult> invoker, Js
     /// <returns>The corresponding <see cref="Result{T}"/>.</returns>
     protected async Task<Result<TRequest?>> GetRequestValueAsync<TRequest>(HttpRequest request, CancellationToken cancellationToken)
     {
-        if (request.ContentLength == 0)
-            return new ValidationException(_requestBodyRequiredText).WithErrorType(_requestBodyErrorType);
+        if (request.ContentLength is null || request.ContentLength == 0)
+            return Result<TRequest?>.Ok(default);
 
         try
         {
@@ -166,7 +162,7 @@ public abstract partial class WebApi<TResult>(WebApiInvoker<TResult> invoker, Js
         }
         catch (Exception ex)
         {
-            return new ValidationException(_requestBodyInvalidText.WithArgs(ex.Message)).WithErrorType(_requestBodyErrorType);
+            return new ValidationException(RequestBodyInvalidText.WithArgs(ex.Message)).WithErrorType(RequestBodyErrorType);
         }
     }
 

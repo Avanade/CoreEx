@@ -8,5 +8,9 @@ tables:
 
 # Transactional-data
 - name: Basket
+  columns:
+  - name: ShippingAddressJson
+    property: ShippingAddress
+    type: Persistence.Address?
 - name: BasketItem
 - name: Product

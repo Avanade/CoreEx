@@ -21,7 +21,12 @@ public abstract class PersonApi_MutateTestsBase : WithApiTester<Api.Program>
         Test.Http<Person>()
             .Run(HttpMethod.Post, $"{Route}")
             .AssertBadRequest()
-            .AssertProblemDetailsTitle("Request body is invalid: Unable to read the request as JSON because the request content type '' is not a known JSON content type.");
+            .AssertContentTypeProblemJson()
+            .AssertProblemDetails(p =>
+            {
+                p.Title.Should().Be("Request body is required.");
+                p.ErrorType.Should().Be("request-body");
+            });
     }
 
     [Test]

@@ -39,7 +39,7 @@ public partial class MovementMutateTests
         Test.Http()
             .Run(HttpMethod.Post, "/api/inventory/reserve", req)
             .AssertBadRequest()
-            .AssertProblemDetailsTitle($"Product '{p2}' does not have sufficient quantity on hand.");
+            .AssertProblemDetails(p => p.Title.Should().Be($"Product '{p2}' does not have sufficient quantity on hand."));
     }
 
     [Test]

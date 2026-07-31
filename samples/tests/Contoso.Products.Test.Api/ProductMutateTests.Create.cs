@@ -37,8 +37,8 @@ public partial class ProductMutateTests : WithApiTester<Contoso.Products.Api.Pro
             Text = "Yeti ASR C2",
             Price = 5800M,
             SubCategoryCode = "XC",
-            UnitOfMeasureCode = "ea",
-            BrandCode = "yeti"
+            UnitOfMeasureCode = "EA",
+            BrandCode = "YETI"
         };
 
         // Act/Assert.
@@ -57,8 +57,8 @@ public partial class ProductMutateTests : WithApiTester<Contoso.Products.Api.Pro
             Text = "New Product",
             Price = 1000M,
             SubCategoryCode = "XC",
-            UnitOfMeasureCode = "ea",
-            BrandCode = "yeti"
+            UnitOfMeasureCode = "EA",
+            BrandCode = "YETI"
         };
 
         // Act/Assert.
@@ -90,8 +90,8 @@ public partial class ProductMutateTests : WithApiTester<Contoso.Products.Api.Pro
             Text = "Another New Product",
             Price = 1200M,
             SubCategoryCode = "XC",
-            UnitOfMeasureCode = "ea",
-            BrandCode = "yeti"
+            UnitOfMeasureCode = "EA",
+            BrandCode = "YETI"
         };
 
         var ik = Guid.NewGuid().ToString();

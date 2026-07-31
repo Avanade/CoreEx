@@ -26,7 +26,7 @@ public partial class MutateTests
     public void Basket_ApplyDiscount_NotFound()
     {
         Test.Http()
-            .Run(HttpMethod.Put, $"/api/baskets/{404.ToGuid()}/apply-discount/save10")
+            .Run(HttpMethod.Put, $"/api/baskets/{404.ToGuid()}/apply-discount/SAVE10")
             .AssertNotFound();
     }
 
@@ -34,9 +34,9 @@ public partial class MutateTests
     public void Basket_ApplyDiscount_Invalid()
     {
         Test.Http()
-            .Run(HttpMethod.Put, $"/api/baskets/{404.ToGuid()}/apply-discount/save100")
+            .Run(HttpMethod.Put, $"/api/baskets/{404.ToGuid()}/apply-discount/SAVE100")
             .AssertBadRequest()
-            .AssertProblemDetailsTitle("Discount coupon either does not exist or is no longer active.");
+            .AssertProblemDetails(p => p.Title.Should().Be("Discount coupon either does not exist or is no longer active."));
     }
 
 
@@ -46,7 +46,7 @@ public partial class MutateTests
         Test.Http()
             .Run(HttpMethod.Put, $"/api/baskets/{404.ToGuid()}/apply-discount/XMAS2025")
             .AssertBadRequest()
-            .AssertProblemDetailsTitle("Discount coupon either does not exist or is no longer active.");
+            .AssertProblemDetails(p => p.Title.Should().Be("Discount coupon either does not exist or is no longer active."));
     }
 
     [Test]
@@ -65,7 +65,7 @@ public partial class MutateTests
         v = Test.Http<Basket>()
             .ExpectChangeLogUpdated()
             .ExpectSqlServerOutboxEvents(e => e.AssertWithValue("contoso", "contoso.shopping.basket.updated.v1"))
-            .Run(HttpMethod.Put, $"/api/baskets/{v.Id}/apply-discount/save10")
+            .Run(HttpMethod.Put, $"/api/baskets/{v.Id}/apply-discount/SAVE10")
             .AssertOK()
             .Value!;
 
@@ -79,6 +79,64 @@ public partial class MutateTests
             .AssertOK()
             .AssertValue(v);
     }
+
+    [Test]
+    public void Basket_Update_ShippingAddress()
+    {
+        var v = Test.Http<Basket>()
+            .ExpectSqlServerOutboxEvents()
+            .Run(HttpMethod.Post, $"/api/customers/{1004.ToGuid()}/baskets")
+            .AssertCreated()
+            .Value!;
+
+        v.ShippingAddress.Should().BeNull();
+
+        var address = new Address
+        {
+            Street1= "123 Main St",
+            City = "Anytown",
+            State = "CA",
+            PostCode = "12345"
+        };
+
+        v = Test.Http<Basket>()
+            .ExpectChangeLogUpdated()
+            .ExpectSqlServerOutboxEvents(e => e.AssertWithValue("contoso", "contoso.shopping.basket.updated.v1"))
+            .Run(HttpMethod.Put, $"/api/baskets/{v.Id}/shipping-address", address)
+            .AssertOK()
+            .Value!;
+
+        v.ShippingAddress.Should().NotBeNull();
+        v.ShippingAddress.Should().BeEquivalentTo(address);
+
+        Test.Http()
+            .Run(HttpMethod.Get, $"/api/baskets/{v.Id}")
+            .AssertOK()
+            .AssertValue(v);
+
+        /* Reset address back to null. */
+        v = Test.Http<Basket>()
+            .ExpectChangeLogUpdated()
+            .ExpectSqlServerOutboxEvents(e => e.AssertWithValue("contoso", "contoso.shopping.basket.updated.v1"))
+            .Run(HttpMethod.Put, $"/api/baskets/{v.Id}/shipping-address")
+            .AssertOK()
+            .Value!;
+
+        v.ShippingAddress.Should().BeNull();
+    }
+
+    [Test]
+    public void Basket_Checkout_NoShippingAddress()
+    {
+        Test.Http()
+            .Run(HttpMethod.Post, $"/api/baskets/{3006.ToGuid()}/checkout")
+            .AssertBadRequest()
+            .AssertProblemDetails(p =>
+            {
+                p.Title.Should().Be("A basket must have a shipping address to be checked out.");
+                p.ErrorCode.Should().Be("missing-shipping-address");
+            });
+    }   
 
     [Test]
     public void Basket_Checkout_Success()

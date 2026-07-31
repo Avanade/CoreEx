@@ -12,7 +12,7 @@ public class ReferenceDataCollection<TRef> : ReferenceDataCollectionCore<string,
     /// Initializes a new instance of the <see cref="ReferenceDataCollection{TItem, TId}"/> class.
     /// </summary>
     /// <param name="sortOrder">The <see cref="ReferenceDataSortOrder"/>. Defaults to <see cref="ReferenceDataSortOrder.SortOrder"/>.</param>
-    /// <param name="codeComparer">The <see cref="StringComparer"/> for <see cref="IReferenceData.Code"/> comparisons. Defaults to <see cref="StringComparer.OrdinalIgnoreCase"/>.</param>
+    /// <param name="codeComparer">The <see cref="StringComparer"/> for <see cref="IReferenceData.Code"/> comparisons. Defaults to <see cref="StringComparer.Ordinal"/> as casing often matters.</param>
     public ReferenceDataCollection(ReferenceDataSortOrder sortOrder = ReferenceDataSortOrder.SortOrder, StringComparer? codeComparer = null) : base(sortOrder, codeComparer) => OnInitialization();
 
     /// <summary>

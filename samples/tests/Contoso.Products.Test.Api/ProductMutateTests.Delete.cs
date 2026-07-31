@@ -27,7 +27,7 @@ public partial class ProductMutateTests : WithApiTester<Contoso.Products.Api.Pro
         Test.Http()
             .Run(HttpMethod.Delete, $"/api/products/{12.ToGuid()}")
             .AssertBadRequest()
-            .AssertProblemDetailsTitle("A product must first be deactivated before it can be deleted.");
+            .AssertProblemDetails(p => p.Title.Should().Be("A product must first be deactivated before it can be deleted."));
     }
 
     [Test]

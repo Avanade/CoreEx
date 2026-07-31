@@ -7,6 +7,8 @@ namespace CoreEx.AspNetCore;
 /// <typeparam name="TResponse">The response <see cref="Type"/>.</typeparam>
 public sealed class WebApiRequestResponseOptions<TRequest, TResponse> : WebApiOptionsBase, IWebApiRequestOptions<TRequest>, IWebApiResponseOptions<TResponse>
 {
+    private TRequest? _valueOrDefault;
+    private bool _hasBeenCleaned;
     private Func<TResponse, Uri>? _locationUri;
 
     /// <summary>
@@ -16,7 +18,7 @@ public sealed class WebApiRequestResponseOptions<TRequest, TResponse> : WebApiOp
     /// <param name="value">The deserialized request value.</param>
     public WebApiRequestResponseOptions(HttpRequest httpRequest, TRequest? value) : base(httpRequest) 
     {
-        ValueOrDefault = value;
+        _valueOrDefault = value;
 
         // Override the ETag where specified as a request IF-MATCH header.
         if (value is not null && ETag is not null && value is IETag etag)
@@ -30,7 +32,7 @@ public sealed class WebApiRequestResponseOptions<TRequest, TResponse> : WebApiOp
     /// <param name="value">The deserialized request value.</param>
     public WebApiRequestResponseOptions(WebApiOptionsBase options, TRequest? value) : base(options) 
     {
-        ValueOrDefault = value;
+        _valueOrDefault = value;
 
         // Override the ETag where specified as a request IF-MATCH header.
         if (value is not null && ETag is not null && value is IETag etag)
@@ -42,11 +44,29 @@ public sealed class WebApiRequestResponseOptions<TRequest, TResponse> : WebApiOp
     }
 
     /// <inheritdoc/>
-    public TRequest? ValueOrDefault { get; }
+    /// <remarks>Defaults to <see langword="true"/>.</remarks>
+    public bool AutoCleanValue { get; set; } = true;
+
+    /// <inheritdoc/>
+    public TRequest? ValueOrDefault
+    {
+        get
+        {
+            if (AutoCleanValue && !_hasBeenCleaned)
+            {
+                _valueOrDefault = Metadata.RuntimeMetadata.Clean(_valueOrDefault);
+                _hasBeenCleaned = true;
+            }
+
+            return _valueOrDefault;
+        }
+    }
 
     /// <inheritdoc/>
     [NotNull]
-    public TRequest Value => ValueOrDefault.Required();
+    public TRequest Value => (Comparer<TRequest?>.Default.Compare(ValueOrDefault, default!) == 0)
+        ? throw new ValidationException(WebApiBase.RequestBodyRequiredText).WithErrorType(WebApiBase.RequestBodyErrorType)
+        : ValueOrDefault!;
 
     /// <inheritdoc/>
     Func<TResponse, Uri>? IWebApiResponseOptions<TResponse>.LocationUri => _locationUri;

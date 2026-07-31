@@ -11,6 +11,21 @@ public abstract class WebApiBase(JsonSerializerOptions? jsonSerializerOptions = 
     private JsonMergePatch? _jsonMergePatch;
 
     /// <summary>
+    /// Gets the request body error type.
+    /// </summary>
+    internal const string RequestBodyErrorType = "request-body";
+
+    /// <summary>
+    /// Gets the request body required text.
+    /// </summary>
+    internal static readonly LText RequestBodyRequiredText = new("CoreEx.AspNetCore.WebApi.RequestBodyRequired", "Request body is required.");
+
+    /// <summary>
+    /// Gets the request body invalid text.
+    /// </summary>
+    internal static readonly LText RequestBodyInvalidText = new("CoreEx.AspNetCore.WebApi.RequestBodyInvalid", "Request body is invalid: {0}");
+
+    /// <summary>
     /// The configuration name to indicate whether to include exception details in the <see cref="Microsoft.AspNetCore.Mvc.ProblemDetails"/>.
     /// </summary>
     protected const string IncludeExceptionInProblemDetailsName = "CoreEx:IncludeExceptionInProblemDetails";
