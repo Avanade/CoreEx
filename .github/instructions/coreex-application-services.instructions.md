@@ -448,6 +448,36 @@ var contract = BasketMapper.Map(aggregate);
 
 Infrastructure-level mapping (Contract ↔ Persistence model) uses `BiDirectionMapper` and lives in `Infrastructure/Mapping/`. Do not conflate the two layers.
 
+### JSON-backed value object mapping
+
+A Domain value object that is persisted via a JSON column (see [`coreex-domain.instructions.md#value-objects-backed-by-a-json-column`](/.github/instructions/coreex-domain.instructions.md#value-objects-backed-by-a-json-column)) still needs an Application-layer mapper — but because the value can flow **both** directions (read back out to the contract *and* accepted as input on an update operation), use `BiDirectionMapper<TDomain, TContract, TSelf>` here instead of the uni-directional `Mapper<TSource, TDest, TSelf>` used for the root aggregate:
+
+```csharp
+// Application/Mapping/AddressMapper.cs
+public class AddressMapper : BiDirectionMapper<Domain.ValueObjects.Address, Contracts.Address, AddressMapper>
+{
+    protected override Contracts.Address OnMap(Domain.ValueObjects.Address source) => new()
+    {
+        Street1 = source.Street1,
+        Street2 = source.Street2,
+        City = source.City,
+        PostCode = source.PostCode,
+        State = source.State
+    };
+
+    protected override Domain.ValueObjects.Address OnMap(Contracts.Address source) => new()
+    {
+        Street1 = source.Street1!,
+        Street2 = source.Street2,
+        City = source.City!,
+        PostCode = source.PostCode!,
+        State = source.State!
+    };
+}
+```
+
+Call `AddressMapper.To.Map(...)` / `AddressMapper.From.Map(...)` at the point of use — e.g. the root `BasketMapper` composes it for the outbound direction (`ShippingAddress = AddressMapper.To.Map(source.ShippingAddress)`), and the service composes it for the inbound direction when accepting an update (`basket.UpdateShippingAddress(AddressMapper.From.Map(shippingAddress))`). This mapper only ever sees the Domain ↔ Contract boundary — the separate Infrastructure-layer mapper (Domain ↔ Persistence, in `Infrastructure/Mapping/`) handles the other boundary; never conflate the two or skip straight from `Contracts.{ValueObject}` to `Persistence.{ValueObject}`.
+
 ## DI Registration Principle
 
 Only register a type in DI when there is a current, concrete intent to mock or replace it. Applying YAGNI, the following Application-layer types are **not** DI-registered — they are called or instantiated directly at the point of use:

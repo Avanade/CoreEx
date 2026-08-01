@@ -80,7 +80,7 @@ Three things are required:
 2. **A hand-authored persistence POCO** in `Infrastructure/Persistence/` when the stored type is a complex object. For natively-serialisable types (`List<string>?`, `Dictionary<K,V>?`, etc.) use the .NET type directly — no extra class needed.
 3. **No manual `.HasConversion(...)` call** — `TypeToJsonStringEfConverter<T>` is auto-wired in the generated `*DbContext.g.cs` when `type:` is non-string.
 
-Default column types (unless the user specifies otherwise): `NVARCHAR(MAX)` (SQL Server) / `JSONB` (PostgreSQL).
+Default column types (unless the user explicitly opts into unbounded/native JSON storage): bounded text matching the DB's normal string-column convention — `NVARCHAR(n)` (SQL Server) / `VARCHAR(n)` (PostgreSQL), e.g. `NVARCHAR(2000)`/`VARCHAR(2000)` as a reasonable starting size. `NVARCHAR(MAX)` / native `JSONB`/`JSON` are an **override** for when unbounded storage or in-database JSON querying/indexing is deliberately wanted — see `samples/src/Contoso.Products.Database` (`tags_json` → native `JSONB`, an intentional override) vs. `samples/src/Contoso.Shopping.Database` (`ShippingAddressJson` → bounded `NVARCHAR(2000)`, the default) for both side-by-side.
 
 For the full workflow, example YAML, DDD aggregate vs CRUD service guidance, and POCO class conventions see [`references/workflow.md` — JSON columns](references/workflow.md#json-columns).
 

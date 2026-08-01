@@ -59,6 +59,7 @@ Guides you through creating or modifying a CoreEx Application-layer service in `
 - All interface methods include `CancellationToken cancellationToken = default` as the last parameter; pass through to every async call and `TransactionAsync(async ct => ..., cancellationToken)`
 - CQRS: mutations + `GetAsync` → `{Name}Service`; queries + `GetAsync` → `{Name}ReadService` (both have `GetAsync`)
 - Always `.ConfigureAwait(false)` on every `await`
+- A Domain value object persisted via a JSON column (e.g. `Basket.ShippingAddress`) is mapped with a `BiDirectionMapper<TDomain, TContract, TSelf>` in `Application/Mapping/` (not the uni-directional `Mapper<TSource,TDest,TSelf>` used for the root aggregate) — see [`coreex-application-services.instructions.md#json-backed-value-object-mapping`](/.github/instructions/coreex-application-services.instructions.md#json-backed-value-object-mapping)
 
 For full workflow and code examples see [`references/workflow.md`](references/workflow.md).
 

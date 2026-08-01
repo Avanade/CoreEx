@@ -16,6 +16,6 @@ tables:
 - name: movement
 - name: product
   columns:
-  - name: tags_json
+  - name: tags_json     # native JSONB (Postgres) — deliberate override of the bounded-text default, since Postgres JSON operators/indexing are wanted here
     property: Tags
     type: List<string>?

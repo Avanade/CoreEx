@@ -303,7 +303,7 @@ The `type:` field drives code generation:
 
 When `type:` is a complex object (not `string`, `List<T>`, `Dictionary<K,V>`, or another natively-serialisable type), a **hand-authored POCO** is required in `Infrastructure/Persistence/`. It is a plain class — no base class, no `[Contract]` or other attributes, no validation logic. Use `required` / non-nullable for mandatory fields and nullable only where genuinely optional. For natively-serialisable types (`List<string>?`, `Dictionary<string,string>?`, etc.) no separate class is needed.
 
-Default column types: `NVARCHAR(MAX)` (SQL Server) / `JSONB` (PostgreSQL) — unless the user specifies a bounded size.
+**Default column type: bounded text, matching the DB's normal string-column convention** — `NVARCHAR(n)` (SQL Server) / `VARCHAR(n)` (PostgreSQL) with an explicit maximum length (e.g. `NVARCHAR(2000)`/`VARCHAR(2000)` as a reasonable starting point), the same way any other text column in the database is sized. Do **not** default to unbounded `NVARCHAR(MAX)` / `TEXT` or the native `JSONB`/`JSON` type — those are an explicit **override**, used only when the developer deliberately wants unbounded storage or in-database JSON querying/indexing. See `samples/src/Contoso.Products.Database` (`product.tags_json` → native `JSONB`, an intentional override) vs. `samples/src/Contoso.Shopping.Database` (`basket.ShippingAddressJson` → bounded `NVARCHAR(2000)`, the default) for both patterns side-by-side.
 
 For the full worked examples, DDD aggregate vs CRUD service guidance, and mapper conventions see the [`coreex-db-migration`](/.github/skills/coreex-db-migration/SKILL.md#json-columns) skill.
 
@@ -347,6 +347,7 @@ Reading the output:
 - Branch on the `## SCHEMA.TABLE - Exists: Yes|No` header first. `No` means the table is absent and must be created.
 - Use the **Qualified Name** bullet (e.g. `"public"."contact"` or `[Test].[Contact]`) for DDL casing and quoting — not the uppercased header text.
 - Honour the **Reference Data: Yes|No** flag for routing decisions (a reference data table is maintained via `ref-data.yaml` + CodeGen, not by hand).
+- Honour the **Json: Yes|No** flag per column — it means the column is (or should be modelled as) serialised JSON content, either because it uses a native JSON database type or by the `Json`/`_json` naming convention (see [JSON columns](#json-columns-in-dbex-yaml)). A required `dbex.yaml` `columns:` entry follows from this.
 - PostgreSQL reports canonical type names (`CHARACTER VARYING(50)`, `TIMESTAMP WITH TIME ZONE`); treat these as equivalent to the `VARCHAR(50)` / `TIMESTAMPTZ` forms you would author in a script.
 - Per the disclaimer in the output, the live database remains the ultimate truth; the report is derived from system catalogs and may not capture every nuance.
 
@@ -454,7 +455,7 @@ When authoring a migration script for an entity that has a corresponding .NET co
 | `DateTimeOffset` | `DATETIMEOFFSET` | `TIMESTAMPTZ` |
 | `DateOnly` | `DATE` | `date` |
 | `TimeOnly` | `TIME` | `time` |
-| Complex type (class/record) | `NVARCHAR(MAX)` — JSON suffix convention (see [JSON columns](#json-columns-in-dbex-yaml)) | `JSONB` — JSON suffix convention (see [JSON columns](#json-columns-in-dbex-yaml)) |
+| Complex type (class/record), or collection/dictionary (`List<T>`, `Dictionary<K,V>`) | `NVARCHAR(n)` bounded by default — JSON suffix convention (see [JSON columns](#json-columns-in-dbex-yaml)); `NVARCHAR(MAX)`/native `JSON` only as an explicit override | `VARCHAR(n)` bounded by default — JSON suffix convention (see [JSON columns](#json-columns-in-dbex-yaml)); native `JSONB` only as an explicit override |
 
 > **Creation procedure → skill.** Authoring/applying a migration script is driven by the
 > [`coreex-db-migration`](/.github/skills/coreex-db-migration/SKILL.md) skill (inspect → script → fill columns →

@@ -109,7 +109,7 @@ Remove any `DEFAULT (NEWSEQUENTIALID())`, `IDENTITY`, or `SERIAL` unless the use
 | `DateTime` | `DATETIME2` | `TIMESTAMP` |
 | `DateOnly` | `DATE` | `date` |
 | `TimeOnly` | `TIME` | `time` |
-| Complex type (class/record) | `NVARCHAR(MAX)` — JSON suffix convention (see below) | `JSONB` — JSON suffix convention (see below) |
+| Complex type (class/record), or collection/dictionary (`List<T>`, `Dictionary<K,V>`) | `NVARCHAR(n)` bounded by default — JSON suffix convention (see below); `NVARCHAR(MAX)`/native `JSON` only as an explicit override | `VARCHAR(n)` bounded by default — JSON suffix convention (see below); native `JSONB` only as an explicit override |
 
 `DateOnly`/`TimeOnly` map natively — no `HasConversion(...)` value converter is required on either provider (EF Core SqlServer since EF8, Npgsql since v6). See `tests/CoreEx.Database.SqlServer.Test.Unit/Repository/TestDbContext.cs` and `tests/CoreEx.Database.Postgres.Test.Unit/Repository/TestDbContext.cs` for confirmed working `HasColumnType`-only configuration.
 
@@ -121,10 +121,12 @@ A column whose name ends with `Json` (SQL Server `PascalCase`) or `_json` (Postg
 
 | Provider | Default column type | Override |
 |---|---|---|
-| SQL Server | `NVARCHAR(MAX)` | e.g. `NVARCHAR(4000)` if size is bounded |
-| PostgreSQL | `JSONB` | `TEXT` if native JSON operators are not needed |
+| SQL Server | `NVARCHAR(n)` — bounded, e.g. `NVARCHAR(2000)` | `NVARCHAR(MAX)` if unbounded storage is deliberately wanted |
+| PostgreSQL | `VARCHAR(n)` — bounded, e.g. `VARCHAR(2000)` | native `JSONB` if in-database JSON operators/indexing are deliberately wanted (`JSON` if operators aren't needed but native typing still is) |
 
-Unless the user specifies otherwise, use the maximum-length type (`NVARCHAR(MAX)` / `JSONB`). This is a NoSQL-within-SQL pattern: complex nested data is stored as a blob when no database-level operations against the JSON content (filtering, indexing on sub-fields) are needed. If the developer expects to query within the JSON, flag that — `JSONB` (PostgreSQL) supports operators, but the design decision should be explicit.
+**Default to a bounded text type, matching how every other text column in the database is sized** — the same `NVARCHAR(n)` / `VARCHAR(n)` convention used for any other string property (see the contract-type mapping table above). Unless the user explicitly opts into unbounded storage (`NVARCHAR(MAX)`) or a native JSON type (`JSONB`/`JSON`) — typically because they want in-database JSON querying, filtering, or indexing on sub-fields — do not default to the maximum-length type. Native JSON types are a deliberate, explicit design decision, not the default.
+
+Both patterns are demonstrated side-by-side in the samples: `samples/src/Contoso.Shopping.Database` (`basket.ShippingAddressJson` → bounded `NVARCHAR(2000)`, the default) and `samples/src/Contoso.Products.Database` (`product.tags_json` → native `JSONB`, an intentional override for a Postgres-idiomatic collection column).
 
 #### `dbex.yaml` `columns:` entry (required)
 
@@ -161,7 +163,7 @@ public Persistence.Address? ShippingAddress { get; set; }   // typed POCO, not s
 ```csharp
 e.Property(p => p.ShippingAddress)
     .HasColumnName("ShippingAddressJson")
-    .HasColumnType("NVARCHAR(MAX)")                         // or "JSONB" for PostgreSQL
+    .HasColumnType("NVARCHAR(2000)")                        // bounded default; "JSONB"/"NVARCHAR(MAX)" only as an explicit override
     .HasConversion(TypeToJsonStringEfConverter<Persistence.Address?>.Default);
 ```
 
@@ -209,7 +211,7 @@ ShippingAddress = source.ShippingAddress is null ? null : new Persistence.Addres
 
 #### DDD aggregate vs CRUD service
 
-**DDD aggregate (e.g. Shopping/Basket):** Three distinct types + two mappers exist across layer boundaries. The persistence POCO (`Persistence.Address`) is hand-authored; the domain value object (`Domain.ValueObjects.Address`) is a separate record with validation; the contract DTO (`Contracts.Address`) is a `[Contract]` class. Application-layer and Infrastructure-layer mappers each handle one boundary.
+**DDD aggregate (e.g. Shopping/Basket):** Three distinct types + two mappers exist across layer boundaries. The persistence POCO (`Persistence.Address`) is hand-authored; the domain value object (`Domain.ValueObjects.Address`) is a separate record with validation; the contract DTO (`Contracts.Address`) is a `[Contract]` class. Application-layer and Infrastructure-layer mappers each handle one boundary — see [`coreex-domain.instructions.md`](/.github/instructions/coreex-domain.instructions.md) for creating the value object and wiring it into the aggregate, and [`coreex-application-services.instructions.md`](/.github/instructions/coreex-application-services.instructions.md) for the Application-layer mapper (Domain ↔ Contract). This Infrastructure-layer half of the pattern (Domain ↔ Persistence) is covered above and in [`coreex-repositories.instructions.md`](/.github/instructions/coreex-repositories.instructions.md).
 
 **CRUD service (e.g. Products/Tags):** Only two types — the persistence property (`List<string>?`) and the contract property (`List<string>?`) are the same CLR type, so the mapper simply assigns `Tags = source.Tags`. No dedicated POCO class or extra mapper class is needed.
 

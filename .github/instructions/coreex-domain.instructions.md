@@ -193,6 +193,43 @@ public sealed record class ItemPricing
 
 Place value objects in a `ValueObjects/` sub-folder within the Domain project.
 
+### Value Objects Backed by a JSON Column
+
+Some value objects are persisted as a single serialised JSON column rather than as separate scalar columns on the owning table (e.g. `Basket.ShippingAddress` → `basket.ShippingAddressJson`). This does not change how the value object itself is authored — it is still a plain `sealed record`/`record class` with invariant-enforcing `init` setters, as above — but it does introduce an extra type at each layer boundary:
+
+```csharp
+// Domain/ValueObjects/Address.cs — same conventions as any other value object
+public record class Address
+{
+    public required string Street1 { get; init => field = value.ThrowIfNullOrEmpty(); }
+    public string? Street2 { get; init => field = value.ThrowIfEmpty(); }
+    public required string City { get; init => field = value.ThrowIfNullOrEmpty(); }
+    public required string PostCode { get; init => field = value.ThrowIfNullOrEmpty(); }
+    public required string State { get; init => field = value.ThrowIfNullOrEmpty(); }
+}
+```
+
+The Domain value object sits in the **middle** of a three-type chain: `Contracts.Address` (DTO) ↔ `Domain.ValueObjects.Address` (this type, with invariants) ↔ `Persistence.Address` (hand-authored POCO, no invariants — see [`coreex-tooling.instructions.md`](/.github/instructions/coreex-tooling.instructions.md#json-columns-in-dbex-yaml) and the [`coreex-db-migration`](/.github/skills/coreex-db-migration/SKILL.md#json-columns) skill for the `dbex.yaml` column setup and Persistence POCO conventions). Two separate `BiDirectionMapper`s bridge the chain — one per layer boundary:
+
+- **Application layer** (Domain ↔ Contract) — see [`coreex-application-services.instructions.md`](/.github/instructions/coreex-application-services.instructions.md#json-backed-value-object-mapping).
+- **Infrastructure layer** (Domain ↔ Persistence) — see [`coreex-repositories.instructions.md`](/.github/instructions/coreex-repositories.instructions.md).
+
+Wire the value object into the aggregate exactly like any other property — a private setter guarded by `Modify(...)` via a dedicated update method:
+
+```csharp
+public Address? ShippingAddress { get; private set; }
+
+public Result UpdateShippingAddress(Address? shippingAddress)
+{
+    if (shippingAddress != ShippingAddress)
+        Modify(() => ShippingAddress = shippingAddress);
+
+    return Result.Success;
+}
+```
+
+The aggregate has no awareness that `ShippingAddress` is persisted as JSON — that is entirely an Infrastructure-layer (EF `ValueConverter`) concern via `TypeToJsonStringEfConverter<T>`.
+
 ## When to Introduce the Domain Layer
 
 Only introduce a Domain layer when the domain genuinely has:

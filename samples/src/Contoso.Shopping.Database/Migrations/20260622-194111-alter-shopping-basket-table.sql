@@ -3,6 +3,6 @@
 BEGIN TRANSACTION
 
 ALTER TABLE [shopping].[basket]
-  ADD [ShippingAddressJson] NVARCHAR(MAX) NULL
+  ADD [ShippingAddressJson] NVARCHAR(2000) NULL
 
 COMMIT TRANSACTION
