@@ -153,7 +153,8 @@ public abstract partial class WebApi<TResult>(WebApiInvoker<TResult> invoker, Js
     /// <returns>The corresponding <see cref="Result{T}"/>.</returns>
     protected async Task<Result<TRequest?>> GetRequestValueAsync<TRequest>(HttpRequest request, CancellationToken cancellationToken)
     {
-        if (request.ContentLength is null || request.ContentLength == 0)
+        var hasBody = request.ContentLength > 0 || request.Headers.ContainsKey("Transfer-Encoding");
+        if (!hasBody)
             return Result<TRequest?>.Ok(default);
 
         try
