@@ -54,7 +54,7 @@ Get the underlying `IQueryable<TModel>` via `Model.Query()`, apply the parsed `Q
 > **Always pass `cancellationToken` as a named argument.** `ToMappedItemsResultAsync`'s signature is `(mapper, paging = null, autoCount = true, cancellationToken = default)` — `autoCount` (`bool`) sits *before* `cancellationToken`. A bare positional `CancellationToken` argument in the third slot lands on `autoCount` and fails to compile (`CS1503`). Use `cancellationToken: cancellationToken` explicitly, every time.
 
 ```csharp
-public async Task<ItemsResult<ProductLite>> QueryAsync(QueryArgs? query, PagingArgs? paging, CancellationToken cancellationToken = default)
+public async Task<ItemsResult<Product>> QueryAsync(QueryArgs? query, PagingArgs? paging, CancellationToken cancellationToken = default)
 {
     var parsed = ProductQueryArgsConfig.Default.Parse(query).ThrowOnError();
 
@@ -65,6 +65,8 @@ public async Task<ItemsResult<ProductLite>> QueryAsync(QueryArgs? query, PagingA
         .ConfigureAwait(false);
 }
 ```
+
+> If the read side projects to a reduced "Lite" contract instead of the full entity, `ProductMapper.From.Map(m)` (an `IBiDirectionMapper<Product, ProductModel>`) still returns `Product`, not `ProductLite` — a mapper only knows its own two types. Project inline instead: `m => new ProductLite { Id = m.Id, Sku = m.Sku, ... }`.
 
 ## ValueConverter Bridge
 

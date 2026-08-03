@@ -35,7 +35,7 @@ builder.Services.AddCoreExGraphQLLite((o, sp) =>
 {
     o.AddQuery<ProductLite>("products", ProductQueryArgsConfig.Default,
             async (qa, pa, ct) => await CoreEx.ExecutionContext.GetRequiredService<IProductReadService>().QueryAsync(qa, pa, ct).ConfigureAwait(false))
-     // GetIdentifier<TId> reads/converts the named argument (default "id") and throws an ArgumentException, mapped by the engine to ARGUMENT_ERROR, if missing/empty/wrong-typed.
+     // GetIdentifier<TId> validates the named argument (default "id") for presence and type (it casts to TId, it does not convert) and throws an ArgumentException, mapped by the engine to ARGUMENT_ERROR, if missing/empty/wrong-typed.
      .AddGet<Product>("product", (args, ct) => CoreEx.ExecutionContext.GetRequiredService<IProductReadService>().GetAsync(args.GetIdentifier<string>(), ct));
 });
 
@@ -61,7 +61,7 @@ One `AddQuery<T>`/`AddGet<T>` pair per entity, bridging to its **existing** `Que
 ```csharp
 o.AddQuery<{Entity}Lite>("{entities}", {Entity}QueryArgsConfig.Default,
         async (qa, pa, ct) => await CoreEx.ExecutionContext.GetRequiredService<I{Entity}ReadService>().QueryAsync(qa, pa, ct).ConfigureAwait(false))
- // GetIdentifier<TId> reads/converts the named argument (default "id") and throws an ArgumentException, mapped by the engine to ARGUMENT_ERROR, if missing/empty/wrong-typed.
+ // GetIdentifier<TId> validates the named argument (default "id") for presence and type (it casts to TId, it does not convert) and throws an ArgumentException, mapped by the engine to ARGUMENT_ERROR, if missing/empty/wrong-typed.
  .AddGet<{Entity}>("{entity}", (args, ct) => CoreEx.ExecutionContext.GetRequiredService<I{Entity}ReadService>().GetAsync(args.GetIdentifier<string>(), ct));
 ```
 

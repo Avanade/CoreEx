@@ -11,7 +11,7 @@ Register roots explicitly — no attribute-based auto-discovery. Each `AddQuery`
 builder.Services.AddCoreExGraphQLLite((o, sp) =>
 {
     o.AddQuery<ProductLite>("products", ProductQueryArgsConfig.Default, async (qa, pa, ct) => await CoreEx.ExecutionContext.GetRequiredService<IProductReadService>().QueryAsync(qa, pa, ct).ConfigureAwait(false))
-     // GetIdentifier<TId> reads/converts the named argument (default "id") and throws an ArgumentException, mapped by the engine to ARGUMENT_ERROR, if missing/empty/wrong-typed.
+     // GetIdentifier<TId> validates the named argument (default "id") for presence and type (it casts to TId, it does not convert) and throws an ArgumentException, mapped by the engine to ARGUMENT_ERROR, if missing/empty/wrong-typed.
      .AddGet<Product>("product", (args, ct) => CoreEx.ExecutionContext.GetRequiredService<IProductReadService>().GetAsync(args.GetIdentifier<string>(), ct));
 });
 

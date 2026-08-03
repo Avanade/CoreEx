@@ -87,7 +87,7 @@ The engine is deliberately **transport-agnostic**: it references only `CoreEx.Da
 builder.Services.AddCoreExGraphQLLite((o, sp) =>
 {
     o.AddQuery<ProductLite>("products", ProductQueryArgsConfig.Default, async (qa, pa, ct) => await CoreEx.ExecutionContext.GetRequiredService<IProductReadService>().QueryAsync(qa, pa, ct).ConfigureAwait(false))
-     // GetIdentifier<TId> reads/converts the named argument (default "id") and throws an ArgumentException - mapped by the engine to an ARGUMENT_ERROR GraphQL error - if
+     // GetIdentifier<TId> validates the named argument (default "id") for presence and type (it casts to TId, it does not convert) and throws an ArgumentException - mapped by the engine to an ARGUMENT_ERROR GraphQL error - if
      // it is missing, empty, or the wrong type, instead of an unhandled KeyNotFoundException/NullReferenceException surfacing as an opaque EXECUTION_ERROR.
      .AddGet<Product>("product", (args, ct) => CoreEx.ExecutionContext.GetRequiredService<IProductReadService>().GetAsync(args.GetIdentifier<string>(), ct));
 });
