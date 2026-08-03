@@ -84,7 +84,7 @@ public partial class ShoppingDbContext
             e.Property(p => p.DiscountCouponCode).HasColumnName("DiscountCouponCode").HasColumnType("NVARCHAR(50)");
             e.Property(p => p.DiscountAmount).HasColumnName("DiscountAmount").HasColumnType("DECIMAL(18, 2)");
             e.Property(p => p.Total).HasColumnName("Total").HasColumnType("DECIMAL(18, 2)");
-            e.Property(p => p.ShippingAddress).HasColumnName("ShippingAddressJson").HasColumnType("NVARCHAR(MAX)").HasConversion(TypeToJsonStringEfConverter<Persistence.Address?>.Default);
+            e.Property(p => p.ShippingAddress).HasColumnName("ShippingAddressJson").HasColumnType("NVARCHAR(2000)").HasConversion(TypeToJsonStringEfConverter<Persistence.Address?>.Default);
             e.Property(p => p.CreatedBy).HasColumnName("CreatedBy").HasColumnType("NVARCHAR(250)");
             e.Property(p => p.CreatedOn).HasColumnName("CreatedOn").HasColumnType("DATETIMEOFFSET");
             e.Property(p => p.UpdatedBy).HasColumnName("UpdatedBy").HasColumnType("NVARCHAR(250)");
