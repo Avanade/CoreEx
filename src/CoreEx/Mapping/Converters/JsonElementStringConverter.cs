@@ -36,12 +36,6 @@ public readonly struct JsonElementStringConverter : IConverter<JsonElement?, str
     public IValueConverter<string?, JsonElement?> ToSource => _convertToSource;
 
     /// <inheritdoc />
-    public readonly object? ConvertToDestination(object? source) => ConvertToDestination((string?)source);
-
-    /// <inheritdoc />
-    public readonly object? ConvertToSource(object? destination) => ConvertToSource((JsonElement?)destination);
-
-    /// <inheritdoc />
     public readonly string? ConvertToDestination(JsonElement? source) => ToDestination.Convert(source);
 
     /// <inheritdoc />

@@ -19,6 +19,12 @@ public interface IConverter<TSource, TDestination> : ISourceConverter<TSource>, 
     /// <inheritdoc/>
     object? IDestinationConverter<TDestination>.ConvertToSource(TDestination destination) => ConvertToSource((TDestination)destination!);
 
+    /// <inheritdoc/>
+    object? IConverter.ConvertToDestination(object? source) => ConvertToDestination((TSource)source!);
+
+    /// <inheritdoc/>
+    object? IConverter.ConvertToSource(object? destination) => ConvertToSource((TDestination)destination!);
+
     /// <summary>
     /// Gets the source to destination <see cref="IValueConverter{TSource, TDestination}"/>.
     /// </summary>

@@ -56,4 +56,29 @@ public class StringToBase64ConverterTests
         Action act = () => _converter.ConvertToDestination("not_base64!");
         act.Should().Throw<FormatException>();
     }
+
+    // The following two tests exercise the non-generic IConverter object-based overloads directly (see issue #175,
+    // which found the exact same defect class in JsonElementStringConverter's non-generic overloads).
+    [Test]
+    public void IConverter_ConvertToDestination_Object_ReturnsBytes()
+    {
+        IConverter converter = _converter;
+        var text = "Hello, World!";
+        var base64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(text));
+
+        var result = (byte[]?)converter.ConvertToDestination(base64);
+
+        System.Text.Encoding.UTF8.GetString(result!).Should().Be(text);
+    }
+
+    [Test]
+    public void IConverter_ConvertToSource_Object_ReturnsBase64String()
+    {
+        IConverter converter = _converter;
+        var bytes = System.Text.Encoding.UTF8.GetBytes("Test123");
+
+        var result = converter.ConvertToSource(bytes);
+
+        result.Should().Be(Convert.ToBase64String(bytes));
+    }
 }

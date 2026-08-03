@@ -29,12 +29,6 @@ public readonly struct EncodedStringToUInt32Converter : IConverter<string?, uint
     public IValueConverter<uint, string?> ToSource => _convertToSource;
 
     /// <inheritdoc />
-    public readonly object? ConvertToDestination(object? source) => ConvertToDestination((string?)source);
-
-    /// <inheritdoc />
-    public readonly object? ConvertToSource(object? destination) => ConvertToSource((uint)destination!);
-
-    /// <inheritdoc />
     public readonly uint ConvertToDestination(string? source) => ToDestination.Convert(source);
 
     /// <inheritdoc />
