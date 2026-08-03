@@ -13,7 +13,7 @@ public class TestTable : IIdentifier<Guid>, IETag, IChangeLogEx, ITenantId, ILog
     public bool? Flag { get; set; }
     public DateOnly? Date { get; set; }
     public TimeOnly? Time { get; set; }
-    public JsonElement? Json { get; set; }
+    public JsonElement? KvpJson { get; set; }
     public string? ETag { get; set; }
     public string? CreatedBy { get; set; }
     public DateTimeOffset? CreatedOn { get; set; }

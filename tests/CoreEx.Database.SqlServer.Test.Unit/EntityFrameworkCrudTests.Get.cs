@@ -51,7 +51,7 @@ public partial class EntityFrameworkCrudTests
         tt.Flag.Should().BeTrue();
         tt.Date.Should().Be(new DateOnly(2024, 6, 20));
         tt.Time.Should().Be(new TimeOnly(14, 30, 59));
-        tt.Json.Should().NotBeNull().And.Subject.ToString().Should().Be("{\"Key\": \"Value\"}");
+        tt.KvpJson.Should().NotBeNull().And.Subject.ToString().Should().Be("{\"Key\": \"Value\"}");
         tt.CreatedBy.Should().NotBeNull();
         tt.CreatedOn.Should().NotBeNull();
         tt.UpdatedBy.Should().BeNull();

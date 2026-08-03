@@ -13,7 +13,7 @@ public static partial class ValidatorExtensions
     /// <exception cref="ValidationException">Thrown where the value is default.</exception>
     [return: NotNull()]
     public static T Required<T>(this T value, [CallerArgumentExpression(nameof(value))] string? name = null, LText? text = null)
-        => (Comparer<T?>.Default.Compare(value, default!) == 0) ? throw Validation.CreateRequiredValueResult<Result>(name, text).Error : value!;
+        => EqualityComparer<T?>.Default.Equals(value, default!) ? throw Validation.CreateRequiredValueResult<Result>(name, text).Error : value!;
 
     /// <summary>
     /// Requires (validates) that the <paramref name="value"/> is non-default and continues; otherwise, will return the <paramref name="result"/> with a corresponding <see cref="ValidationException"/>.
@@ -30,7 +30,7 @@ public static partial class ValidatorExtensions
         value.ThrowIfNull();
         name.ThrowIfNullOrEmpty();
 
-        return result.IsSuccess && Comparer<T>.Default.Compare(value(), default!) == 0 ? Validation.CreateRequiredValueResult<TResult>(name, text) : result;
+        return result.IsSuccess && EqualityComparer<T>.Default.Equals(value(), default!) ? Validation.CreateRequiredValueResult<TResult>(name, text) : result;
     }
 
     /// <summary>

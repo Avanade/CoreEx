@@ -34,7 +34,7 @@ public class TestDbContext(DbContextOptions<TestDbContext> options, SqlServerDat
             e.Property(p => p.Flag).HasColumnName("Flag").HasColumnType("BIT");
             e.Property(p => p.Date).HasColumnName("Date").HasColumnType("DATE");
             e.Property(p => p.Time).HasColumnName("Time").HasColumnType("TIME");
-            e.Property(p => p.Json).HasColumnName("Json").HasColumnType("NVARCHAR(500)").HasConversion(JsonElementStringEfConverter.Default);
+            e.Property(p => p.KvpJson).HasColumnName("KvpJson").HasColumnType("NVARCHAR(500)").HasConversion(JsonElementStringEfConverter.Default);
             e.Property(p => p.TenantId).HasColumnName("TenantId").HasColumnType("NVARCHAR(20)");
             e.Property(p => p.ETag).HasColumnName("RowVersion").HasColumnType("TIMESTAMP").IsRowVersion().HasConversion(ValueConverterBridge.Create<string?, byte[]>(BaseDatabase.RowVersionConverter));
             e.Property(p => p.CreatedBy).HasColumnName("CreatedBy").HasColumnType("NVARCHAR(250)").ValueGeneratedOnUpdate();

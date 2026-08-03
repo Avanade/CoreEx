@@ -76,5 +76,5 @@ public static partial class ValidationExtensions
     /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
     /// <returns>The <paramref name="rule"/> to support fluent-style method-chaining.</returns>
     public static IPropertyRule<TEntity, TProperty> WhenHasValue<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule) where TEntity : class
-        => AddClause(rule, new WhenClause<TEntity, TProperty>((c, _) => Task.FromResult(Comparer<TProperty>.Default.Compare(c.Value, default!) != 0)));
+        => AddClause(rule, new WhenClause<TEntity, TProperty>((c, _) => Task.FromResult(!EqualityComparer<TProperty>.Default.Equals(c.Value, default!))));
 }

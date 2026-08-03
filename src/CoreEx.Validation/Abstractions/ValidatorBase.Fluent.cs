@@ -22,7 +22,7 @@ public abstract partial class ValidatorBase<TEntity, TSelf>
         var metadata = RuntimeMetadata.GetForExpression(propertyExpression.ThrowIfNull());
         var rule = new RootPropertyRule<TEntity, TProperty?>(metadata,
             e => metadata.GetValue<TProperty?>(e).GetValueOrDefault(),
-            e => Comparer<TProperty>.Default.Compare(metadata.GetValue<TProperty?>(e).GetValueOrDefault(), default) == 0);
+            e => EqualityComparer<TProperty>.Default.Equals(metadata.GetValue<TProperty?>(e).GetValueOrDefault(), default));
 
         Rules.Add(rule);
         return rule;

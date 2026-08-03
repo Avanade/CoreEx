@@ -64,7 +64,7 @@ public sealed class WebApiRequestResponseOptions<TRequest, TResponse> : WebApiOp
 
     /// <inheritdoc/>
     [NotNull]
-    public TRequest Value => (Comparer<TRequest?>.Default.Compare(ValueOrDefault, default!) == 0)
+    public TRequest Value => (EqualityComparer<TRequest?>.Default.Equals(ValueOrDefault, default!))
         ? throw new ValidationException(WebApiBase.RequestBodyRequiredText).WithErrorType(WebApiBase.RequestBodyErrorType)
         : ValueOrDefault!;
 

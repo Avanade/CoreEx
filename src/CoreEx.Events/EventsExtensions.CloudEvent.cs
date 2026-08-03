@@ -147,7 +147,7 @@ public static partial class EventsExtensions
     /// <param name="value">The attribute value.</param>
     public static void SetExtensionAttribute<T>(this CloudEvent ce, string name, T value)
     {
-        if (Comparer<T>.Default.Compare(value, default!) == 0)
+        if (EqualityComparer<T>.Default.Equals(value, default!))
             return;
 
         ce[name] = value;

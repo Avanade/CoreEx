@@ -15,7 +15,7 @@ public class TestTableDtoMapper : BiDirectionMapper<TestTableDto, TestTable, Tes
         Amount = source.Amount,
         Date = source.Date,
         Time = source.Time,
-        Json = source.Key is null ? null : JsonSerializer.SerializeToElement(source.Key, JsonDefaults.SerializerOptions),
+        KvpJson = source.Key is null ? null : JsonSerializer.SerializeToElement(source.Key, JsonDefaults.SerializerOptions),
         Flag = true
     }.MapStandardFrom(source);
 
@@ -27,6 +27,6 @@ public class TestTableDtoMapper : BiDirectionMapper<TestTableDto, TestTable, Tes
         Amount = source.Amount,
         Date = source.Date,
         Time = source.Time,
-        Key = source.Json?.Deserialize<TestTableDto.KeyValueDto>(JsonDefaults.SerializerOptions)
+        Key = source.KvpJson?.Deserialize<TestTableDto.KeyValueDto>(JsonDefaults.SerializerOptions)
     }.MapStandardFrom(source);
 }

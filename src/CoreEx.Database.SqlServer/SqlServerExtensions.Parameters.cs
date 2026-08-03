@@ -76,7 +76,7 @@ public static partial class SqlServerExtensions
     /// <param name="direction">The <see cref="ParameterDirection"/> (default to <see cref="ParameterDirection.Input"/>).</param>
     /// <returns>The current <see cref="DatabaseParameterCollection"/> instance to support chaining (fluent interface).</returns>
     public static TSelf ParamWith<TSelf, T>(this IDatabaseParameters<TSelf> parameters, object? with, string name, Func<T> value, SqlDbType sqlDbType, ParameterDirection direction = ParameterDirection.Input)
-        => ParamWhen(parameters, with is not null && Comparer<T>.Default.Compare((T)with, default!) != 0, name, value, sqlDbType, direction);
+        => ParamWhen(parameters, with is not null && !EqualityComparer<T>.Default.Equals((T)with, default!), name, value, sqlDbType, direction);
 
     /// <summary>
     /// Adds a named parameter when invoked <paramref name="with"/> a non-default value.
@@ -91,5 +91,5 @@ public static partial class SqlServerExtensions
     /// <param name="direction">The <see cref="ParameterDirection"/> (default to <see cref="ParameterDirection.Input"/>).</param>
     /// <returns>The current <see cref="DatabaseParameterCollection"/> instance to support chaining (fluent interface).</returns>
     public static TSelf ParamWith<TSelf, T>(this IDatabaseParameters<TSelf> parameters, T? with, string name, Func<T>? value, SqlDbType sqlDbType, ParameterDirection direction = ParameterDirection.Input)
-        => ParamWhen(parameters, with is not null && Comparer<T>.Default.Compare(with, default!) != 0, name, value ?? (() => with!), sqlDbType, direction);
+        => ParamWhen(parameters, with is not null && !EqualityComparer<T>.Default.Equals(with, default!), name, value ?? (() => with!), sqlDbType, direction);
 }

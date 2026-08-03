@@ -32,7 +32,7 @@ public abstract partial class ValidatorBase<TEntity, TSelf> : IValidatorEx<TEnti
         var metadata = RuntimeMetadata.GetForExpression(propertyExpression.ThrowIfNull());
         var rule = new RootPropertyRule<TEntity, TProperty?>(metadata,
             e => metadata.GetValue<TProperty?>(e).GetValueOrDefault(),
-            e => Comparer<TProperty>.Default.Compare(metadata.GetValue<TProperty?>(e).GetValueOrDefault(), default) == 0);
+            e => EqualityComparer<TProperty>.Default.Equals(metadata.GetValue<TProperty?>(e).GetValueOrDefault(), default));
 
         Rules.Add(rule);
         return rule;
@@ -70,7 +70,7 @@ public abstract partial class ValidatorBase<TEntity, TSelf> : IValidatorEx<TEnti
         var metadata = RuntimeMetadata.GetForExpression(propertyExpression.ThrowIfNull());
         return HasPropertyInternal(metadata, configure,
             e => metadata.GetValue<TProperty?>(e).GetValueOrDefault(),
-            e => Comparer<TProperty>.Default.Compare(metadata.GetValue<TProperty?>(e).GetValueOrDefault(), default) == 0);
+            e => EqualityComparer<TProperty>.Default.Equals(metadata.GetValue<TProperty?>(e).GetValueOrDefault(), default));
     }
 
     /// <summary>
