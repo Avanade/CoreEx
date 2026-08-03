@@ -69,6 +69,21 @@ Check the project's `*.Database/Program.cs` or `appsettings.json` to confirm the
 
 For the full step-by-step decision tree, SQL column templates, and guardrails see [`references/workflow.md`](references/workflow.md).
 
+## JSON Columns
+
+A column whose name ends with `Json` (SQL Server) or `_json` (PostgreSQL) stores a serialised .NET type as JSON text. DbEx surfaces this in `Inspect` output as `Json: Yes`.
+
+Three things are required:
+
+1. **A `columns:` entry in `dbex.yaml`** — without it, DbEx generates `string?` with no converter.
+   `name:` (DB column name including the suffix), `property:` (C# name without suffix), `type:` (CLR type, e.g. `Persistence.Address?` or `List<string>?`).
+2. **A hand-authored persistence POCO** in `Infrastructure/Persistence/` when the stored type is a complex object. For natively-serialisable types (`List<string>?`, `Dictionary<K,V>?`, etc.) use the .NET type directly — no extra class needed.
+3. **No manual `.HasConversion(...)` call** — `TypeToJsonStringEfConverter<T>` is auto-wired in the generated `*DbContext.g.cs` when `type:` is non-string.
+
+Default column types (unless the user explicitly opts into unbounded/native JSON storage): bounded text matching the DB's normal string-column convention — `NVARCHAR(n)` (SQL Server) / `VARCHAR(n)` (PostgreSQL), e.g. `NVARCHAR(2000)`/`VARCHAR(2000)` as a reasonable starting size. `NVARCHAR(MAX)` / native `JSONB`/`JSON` are an **override** for when unbounded storage or in-database JSON querying/indexing is deliberately wanted — see `samples/src/Contoso.Products.Database` (`tags_json` → native `JSONB`, an intentional override) vs. `samples/src/Contoso.Shopping.Database` (`ShippingAddressJson` → bounded `NVARCHAR(2000)`, the default) for both side-by-side.
+
+For the full workflow, example YAML, DDD aggregate vs CRUD service guidance, and POCO class conventions see [`references/workflow.md` — JSON columns](references/workflow.md#json-columns).
+
 ## Key References
 
 - [`/.github/instructions/coreex-tooling.instructions.md`](/.github/instructions/coreex-tooling.instructions.md) — DbEx command reference, `dbex.yaml` structure, SQL conventions, outbox provisioning

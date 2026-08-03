@@ -277,6 +277,36 @@ tables:
 
 (Add `columns:`, `efModel`, `efModelName`, `includeColumns`/`excludeColumns`, or `columnName*` overrides only when a specific need arises.)
 
+### JSON columns in `dbex.yaml`
+
+A column whose name ends with `Json` (SQL Server `PascalCase`) or `_json` (PostgreSQL `snake_case`) stores a serialised JSON representation of a .NET type. DbEx surfaces this in `Inspect` output as `Json: Yes`. **A `columns:` entry is required** — without it, DbEx generates `string?` with no converter.
+
+```yaml
+# SQL Server — PascalCase
+- name: Basket
+  columns:
+  - name: ShippingAddressJson     # DB column name — must include the Json suffix
+    property: ShippingAddress     # C# property name — suffix stripped
+    type: Persistence.Address?    # CLR type: persistence POCO, List<string>?, Dictionary<K,V>?, etc.
+
+# PostgreSQL — snake_case
+- name: product
+  columns:
+  - name: tags_json
+    property: Tags
+    type: List<string>?
+```
+
+The `type:` field drives code generation:
+- **Non-string type** → DbEx auto-wires `TypeToJsonStringEfConverter<T>` in the generated `*DbContext.g.cs`. Do not add `.HasConversion(...)` by hand.
+- **`string` or `string?`** → the JSON is stored as-is with no converter (raw passthrough).
+
+When `type:` is a complex object (not `string`, `List<T>`, `Dictionary<K,V>`, or another natively-serialisable type), a **hand-authored POCO** is required in `Infrastructure/Persistence/`. It is a plain class — no base class, no `[Contract]` or other attributes, no validation logic. Use `required` / non-nullable for mandatory fields and nullable only where genuinely optional. For natively-serialisable types (`List<string>?`, `Dictionary<string,string>?`, etc.) no separate class is needed.
+
+**Default column type: bounded text, matching the DB's normal string-column convention** — `NVARCHAR(n)` (SQL Server) / `VARCHAR(n)` (PostgreSQL) with an explicit maximum length (e.g. `NVARCHAR(2000)`/`VARCHAR(2000)` as a reasonable starting point), the same way any other text column in the database is sized. Do **not** default to unbounded `NVARCHAR(MAX)` / `TEXT` or the native `JSONB`/`JSON` type — those are an explicit **override**, used only when the developer deliberately wants unbounded storage or in-database JSON querying/indexing. See `samples/src/Contoso.Products.Database` (`product.tags_json` → native `JSONB`, an intentional override) vs. `samples/src/Contoso.Shopping.Database` (`basket.ShippingAddressJson` → bounded `NVARCHAR(2000)`, the default) for both patterns side-by-side.
+
+For the full worked examples, DDD aggregate vs CRUD service guidance, and mapper conventions see the [`coreex-db-migration`](/.github/skills/coreex-db-migration/SKILL.md#json-columns) skill.
+
 ### `CodeGen` phase — generated Infrastructure C#
 
 The `CodeGen` command generates `.g.cs` files into the Infrastructure project:
@@ -317,6 +347,7 @@ Reading the output:
 - Branch on the `## SCHEMA.TABLE - Exists: Yes|No` header first. `No` means the table is absent and must be created.
 - Use the **Qualified Name** bullet (e.g. `"public"."contact"` or `[Test].[Contact]`) for DDL casing and quoting — not the uppercased header text.
 - Honour the **Reference Data: Yes|No** flag for routing decisions (a reference data table is maintained via `ref-data.yaml` + CodeGen, not by hand).
+- Honour the **Json: Yes|No** flag per column — it means the column is (or should be modelled as) serialised JSON content, either because it uses a native JSON database type or by the `Json`/`_json` naming convention (see [JSON columns](#json-columns-in-dbex-yaml)). A required `dbex.yaml` `columns:` entry follows from this.
 - PostgreSQL reports canonical type names (`CHARACTER VARYING(50)`, `TIMESTAMP WITH TIME ZONE`); treat these as equivalent to the `VARCHAR(50)` / `TIMESTAMPTZ` forms you would author in a script.
 - Per the disclaimer in the output, the live database remains the ultimate truth; the report is derived from system catalogs and may not capture every nuance.
 
@@ -422,6 +453,9 @@ When authoring a migration script for an entity that has a corresponding .NET co
 | `bool` | `BIT` | `BOOLEAN` |
 | `DateTime` | `DATETIME2` | `TIMESTAMP` |
 | `DateTimeOffset` | `DATETIMEOFFSET` | `TIMESTAMPTZ` |
+| `DateOnly` | `DATE` | `date` |
+| `TimeOnly` | `TIME` | `time` |
+| Complex type (class/record), or collection/dictionary (`List<T>`, `Dictionary<K,V>`) | `NVARCHAR(n)` bounded by default — JSON suffix convention (see [JSON columns](#json-columns-in-dbex-yaml)); `NVARCHAR(MAX)`/native `JSON` only as an explicit override | `VARCHAR(n)` bounded by default — JSON suffix convention (see [JSON columns](#json-columns-in-dbex-yaml)); native `JSONB` only as an explicit override |
 
 > **Creation procedure → skill.** Authoring/applying a migration script is driven by the
 > [`coreex-db-migration`](/.github/skills/coreex-db-migration/SKILL.md) skill (inspect → script → fill columns →

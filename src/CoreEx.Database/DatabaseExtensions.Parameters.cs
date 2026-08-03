@@ -188,7 +188,7 @@ public static partial class DatabaseExtensions
     /// <param name="direction">The <see cref="ParameterDirection"/> (default to <see cref="ParameterDirection.Input"/>).</param>
     /// <returns>The <paramref name="parameters"/> to support fluent-style method-chaining.</returns>
     public static TSelf ParamWith<TSelf, T>(this IDatabaseParameters<TSelf> parameters, T? with, string name, DbType? dbType = null, ParameterDirection direction = ParameterDirection.Input)
-        => ParamWhen(parameters, with is not null && Comparer<T>.Default.Compare(with, default!) != 0, name, () => with!, dbType, direction);
+        => ParamWhen(parameters, with is not null && !EqualityComparer<T>.Default.Equals(with, default!), name, () => with!, dbType, direction);
 
     /// <summary>
     /// Adds a named parameter when invoked <paramref name="with"/> a non-default value.
@@ -204,7 +204,7 @@ public static partial class DatabaseExtensions
     /// <param name="direction">The <see cref="ParameterDirection"/> (default to <see cref="ParameterDirection.Input"/>).</param>
     /// <returns>The <paramref name="parameters"/> to support fluent-style method-chaining.</returns>
     public static TSelf ParamWith<TSelf, TWith, TValue>(this IDatabaseParameters<TSelf> parameters, TWith? with, string name, Func<TValue?> value, DbType? dbType = null, ParameterDirection direction = ParameterDirection.Input)
-        => ParamWhen(parameters, with is not null && Comparer<TWith>.Default.Compare(with, default!) != 0, name, value, dbType, direction);
+        => ParamWhen(parameters, with is not null && !EqualityComparer<TWith>.Default.Equals(with, default!), name, value, dbType, direction);
 
     /// <summary>
     /// Adds a named parameter when invoked <paramref name="with"/> a non-default value serialized as a JSON <see cref="string"/>.
@@ -216,7 +216,7 @@ public static partial class DatabaseExtensions
     /// <param name="name">The parameter name.</param>
     /// <returns>The <paramref name="parameters"/> to support fluent-style method-chaining.</returns>
     public static TSelf JsonParamWith<TSelf, T>(this IDatabaseParameters<TSelf> parameters, T? with, string name)
-        => JsonParamWhen(parameters, with is not null && Comparer<T>.Default.Compare(with, default!) != 0, name, () => with);
+        => JsonParamWhen(parameters, with is not null && !EqualityComparer<T>.Default.Equals(with, default!), name, () => with);
 
     /// <summary>
     /// Adds a named parameter when invoked <paramref name="with"/> a non-default value serialized as a JSON <see cref="string"/>.
@@ -230,7 +230,7 @@ public static partial class DatabaseExtensions
     /// <param name="value">The parameter value.</param>
     /// <returns>The <paramref name="parameters"/> to support fluent-style method-chaining.</returns>
     public static TSelf JsonParamWith<TSelf, TWith, TValue>(this IDatabaseParameters<TSelf> parameters, TWith? with, string name, Func<TValue?> value)
-        => JsonParamWhen(parameters, with is not null && Comparer<TWith>.Default.Compare(with, default!) != 0, name, value);
+        => JsonParamWhen(parameters, with is not null && !EqualityComparer<TWith>.Default.Equals(with, default!), name, value);
 
     /// <summary>
     /// Adds a named parameter when invoked with a non-default <paramref name="wildcard"/> (converted for the database).
@@ -254,7 +254,7 @@ public static partial class DatabaseExtensions
     /// <param name="name">The parameter name.</param>
     /// <returns>The <paramref name="parameters"/> to support fluent-style method-chaining.</returns>
     public static TSelf WildcardParamWith<TSelf, TWith>(this IDatabaseParameters<TSelf> parameters, TWith? with, string name, Func<string?> wildcard)
-        => WildcardParamWhen(parameters, with is not null && Comparer<TWith>.Default.Compare(with, default!) != 0, name, wildcard);
+        => WildcardParamWhen(parameters, with is not null && !EqualityComparer<TWith>.Default.Equals(with, default!), name, wildcard);
 
     #endregion
 

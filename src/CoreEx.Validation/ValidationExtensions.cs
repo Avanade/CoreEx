@@ -150,5 +150,5 @@ public static partial class ValidationExtensions
     /// <remarks>The <paramref name="configure"/> should be used to further configure the validation rules, clauses, etc. 
     /// <para>Finally, the <see cref="IValueValidator{T}.ValidateAsync(CancellationToken)"/> or <see cref="IValueValidator{T}.ValidateAsync(ValidationArgs?, CancellationToken)"/>, should be invoked to execute the underlying validation.</para></remarks>
     public static IValueValidator<T?> Validator<T>(this T? value, Action<IPropertyRule<ValidationValue<T?>, T?>>? configure, [CallerArgumentExpression(nameof(value))] string? name = null, LText? text = null, string? jsonName = null) where T : struct
-        => new ValueValidator<T?>(value, name ?? Validation.ValueName, jsonName, text, configure, e => e.Value.GetValueOrDefault(), e => Comparer<T>.Default.Compare(e.Value.GetValueOrDefault(), default) == 0);
+        => new ValueValidator<T?>(value, name ?? Validation.ValueName, jsonName, text, configure, e => e.Value.GetValueOrDefault(), e => EqualityComparer<T>.Default.Equals(e.Value.GetValueOrDefault(), default));
 }

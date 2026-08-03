@@ -13,6 +13,11 @@ public interface IBasketService
     Task<Result<Contracts.Basket>> ApplyDiscountAsync(string basketId, DiscountCoupon discountCoupon, CancellationToken ct = default);
 
     /// <summary>
+    /// Updates the <paramref name="shippingAddress"/> for the specified <see cref="Contracts.Basket"/>.
+    /// </summary>
+    Task<Result<Contracts.Basket>> UpdateShippingAddressAsync(string basketId, Address? shippingAddress, CancellationToken ct = default);
+
+    /// <summary>
     /// Checkout the specified <see cref="Contracts.Basket"/>.
     /// </summary>
     Task<Result<Contracts.Basket>> CheckoutAsync(string basketId, CancellationToken ct = default);

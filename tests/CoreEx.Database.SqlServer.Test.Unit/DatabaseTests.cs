@@ -19,7 +19,7 @@ public class DatabaseTests : DatabaseTestBase
             tt.Flag.Should().BeNull();
             tt.Date.Should().BeNull();
             tt.Time.Should().BeNull();
-            tt.Json.Should().BeNull();
+            tt.KvpJson.Should().BeNull();
             tt.ETag.Should().NotBeNull();
             tt.CreatedBy.Should().NotBeNull();
             tt.CreatedOn.Should().NotBeNull();
@@ -44,7 +44,7 @@ public class DatabaseTests : DatabaseTestBase
             tt.Date.Should().Be(new DateOnly(2024, 6, 20));
             tt.Time.Should().Be(new TimeOnly(14, 30, 59));
             tt.ETag.Should().NotBeNull();
-            tt.Json.Should().NotBeNull().And.Subject.ToString().Should().Be("{\"Key\": \"Value\"}");
+            tt.KvpJson.Should().NotBeNull().And.Subject.ToString().Should().Be("{\"Key\": \"Value\"}");
             tt.CreatedBy.Should().NotBeNull();
             tt.CreatedOn.Should().NotBeNull();
             tt.UpdatedBy.Should().BeNull();

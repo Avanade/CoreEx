@@ -22,6 +22,7 @@ public class BasketMapper : Mapper<Persistence.Basket, Domain.Basket, BasketMapp
             source.CustomerId,
             source.BasketStatusCode,
             source.DiscountCouponCode,
+            AddressMapper.To.Map(source.ShippingAddress),
             items,
             ChangeLog.CreateFrom(source),
             source.ETag);

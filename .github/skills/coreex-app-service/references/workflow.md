@@ -163,6 +163,8 @@ public async Task<Contracts.{Name}> {Action}Async(string id, CancellationToken c
 Use when the project has elected the ROP style. Method signatures return `Result<T>`. `TransactionAsync` returns `Task<Result<T>>` when its delegate returns `Result<T>`. Compose with `Result.GoAsync` / `.ThenAs` / `.ThenAsAsync`.
 
 > **Domain aggregate case:** When a Domain layer is present, repositories return `Result<Domain.T>` directly (not `DataResult<T>`). Map to contract via a `Mapper<Domain.T, Contracts.T, TSelf>` in `Application/Mapping/` — call via `{Name}Mapper.Map(aggregate)`. See Shopping samples in Key References.
+>
+> **JSON-backed value object case:** If the aggregate holds a value object persisted via a JSON column (e.g. `Basket.ShippingAddress`), that value object needs its own `BiDirectionMapper<Domain.ValueObjects.T, Contracts.T, TSelf>` in `Application/Mapping/` — not the root aggregate's uni-directional `Mapper`, because the value flows both out (to the read contract) and in (as update input, e.g. `UpdateShippingAddressAsync`). Compose it in both directions: `{ValueObject}Mapper.To.Map(...)` in the root mapper's `OnMap`, and `{ValueObject}Mapper.From.Map(...)` when accepting the value as a service parameter before calling the aggregate's `UpdateXxx(...)` method. See [`coreex-application-services.instructions.md#json-backed-value-object-mapping`](/.github/instructions/coreex-application-services.instructions.md#json-backed-value-object-mapping).
 
 ### B1 — Interface and scaffold
 

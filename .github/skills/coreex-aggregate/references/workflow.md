@@ -212,6 +212,39 @@ public sealed record class {ValueObject}
   directly with object initializer syntax; there is no `PersistenceState` to track because it has
   no independent identity.
 
+### Persisted as a JSON column
+
+When the owning aggregate/entity stores this value object as serialised JSON (naming convention: a
+`{Property}Json`/`{property}_json` database column — see the [`coreex-db-migration`](/.github/skills/coreex-db-migration/SKILL.md#json-columns)
+skill), the value object itself is authored with **no changes** to the rules above — it still knows
+nothing about persistence or JSON. Three additional things fall out of this choice:
+
+1. **Three types instead of two.** The Domain value object (this type) sits between `Contracts.{ValueObject}`
+   (plain DTO) and `Persistence.{ValueObject}` (hand-authored POCO, no invariants, no base class — created
+   manually alongside the generated `.g.cs` files, since DbEx cannot generate a type with validation logic).
+2. **Two mappers instead of one.** `BiDirectionMapper<Domain.ValueObjects.{ValueObject}, Contracts.{ValueObject}, TSelf>`
+   in `Application/Mapping/` bridges Domain ↔ Contract; `BiDirectionMapper<Persistence.{ValueObject}, Domain.ValueObjects.{ValueObject}, TSelf>`
+   in `Infrastructure/Mapping/` bridges Persistence ↔ Domain. Each mapper only ever sees its own boundary — never
+   skip straight from `Persistence.{ValueObject}` to `Contracts.{ValueObject}`.
+3. **Wire it into the aggregate like any other property** — a private setter plus a dedicated
+   `Update{Property}(...)` method guarded by `Modify(...)`:
+
+```csharp
+public {ValueObject}? {Property} { get; private set; }
+
+public Result Update{Property}({ValueObject}? {property})
+{
+    if ({property} != {Property})
+        Modify(() => {Property} = {property});
+
+    return Result.Success;
+}
+```
+
+For the worked example (`Basket.ShippingAddress` / `Domain.ValueObjects.Address`) see
+[`coreex-domain.instructions.md#value-objects-backed-by-a-json-column`](/.github/instructions/coreex-domain.instructions.md#value-objects-backed-by-a-json-column).
+For the Application-layer mapper see [`coreex-application-services.instructions.md#json-backed-value-object-mapping`](/.github/instructions/coreex-application-services.instructions.md#json-backed-value-object-mapping).
+
 ---
 
 ## Unit Testing Aggregates

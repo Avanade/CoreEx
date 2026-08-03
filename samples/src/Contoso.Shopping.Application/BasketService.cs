@@ -44,6 +44,19 @@ public class BasketService(IUnitOfWork unitOfWork, IBasketRepository repository,
     }
 
     /// <inheritdoc/>
+    public async Task<Result<Contracts.Basket>> UpdateShippingAddressAsync(string basketId, Address? shippingAddress, CancellationToken ct = default)
+    {
+        if (shippingAddress is not null)
+        {
+            var vr = await AddressValidator.Default.ValidateWithResultAsync(shippingAddress, cancellationToken: ct).ConfigureAwait(false);
+            if (vr.IsFailure)
+                return vr.AsResult();
+        }
+
+        return await OrchestrateUpdateAsync(basketId, basket => basket.UpdateShippingAddress(AddressMapper.From.Map(shippingAddress)), ct, EventAction.Updated).ConfigureAwait(false);
+    }
+
+    /// <inheritdoc/>
     public async Task<Result<Basket>> ItemAddAsync(string basketId, BasketItemAddRequest item, CancellationToken ct = default)
     {
         // Validate the request, and ensure the product exists (and retrieve the product details for use in the basket item).

@@ -74,7 +74,21 @@ public class ShoppingBasketScenario : IScenario
 
         await ScenarioContext.RandomizedDelayAsync(context);
 
-        // Step 5: Checkout the basket
+        // Step 5: Update the shipping address.
+        basket = await context.StepAsync("Update shipping address.", async () =>
+        {
+            var address = new Address
+            {
+                Street1 = "123 Main St",
+                City = "Anytown",
+                State = "CA",
+                PostCode = "12345",
+            };
+            var response = await context.TestContext.ShoppingHttpClient.PutAsJsonAsync($"/api/baskets/{basket!.Id}/shipping-address", address, JsonDefaults.SerializerOptions);
+            return await response.GetValueAsync<Basket>();
+        }, b => $"Shipping address updated.");
+
+        // Step 6: Checkout the basket
         basket = await context.StepAsync("Checkout basket.", async () =>
         {
             var response = await context.TestContext.ShoppingHttpClient.PostAsync($"/api/baskets/{basket!.Id}/checkout", null);
@@ -83,7 +97,7 @@ public class ShoppingBasketScenario : IScenario
 
         await ScenarioContext.RandomizedDelayAsync(context);
 
-        // Step 6: Get the basket.
+        // Step 7: Get the basket.
         basket = await context.StepAsync("Get checked-out basket.", async () =>
         {
             var response = await context.TestContext.ShoppingHttpClient.GetAsync($"/api/baskets/{basket!.Id}");

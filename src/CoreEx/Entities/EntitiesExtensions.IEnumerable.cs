@@ -27,7 +27,7 @@ public static partial class EntitiesExtensions
     /// <remarks>Where the <paramref name="with"/> is an <see cref="IEnumerable"/> it will also ensure there is at least a single item.</remarks>
     public static IEnumerable<TSource> WhereWith<TSource, TWith>(this IEnumerable<TSource> source, TWith with, Func<TSource, bool> predicate)
     {
-        if (Comparer<TWith>.Default.Compare(with, default!) != 0)
+        if (!EqualityComparer<TWith>.Default.Equals(with, default!))
         {
             if (with is not string && with is IEnumerable ie && !ie.GetEnumerator().MoveNext())
                 return source;

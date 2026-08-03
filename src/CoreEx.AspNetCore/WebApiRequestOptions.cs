@@ -8,6 +8,9 @@ public sealed class WebApiRequestOptions<TRequest> : WebApiOptionsBase, IWebApiR
 {
     private static readonly LText _concurrencyMessage = new($"{typeof(WebApiOptionsBase).FullName}.IfMatchRequired" , "A concurrency error occurred; an ETag is required either as an IF-MATCH header (preferred) or specified within the request body (where supported).");
 
+    private TRequest? _valueOrDefault;
+    private bool _hasBeenCleaned;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="WebApiRequestOptions{T}"/> class.
     /// </summary>
@@ -15,7 +18,7 @@ public sealed class WebApiRequestOptions<TRequest> : WebApiOptionsBase, IWebApiR
     /// <param name="value">The deserialized request value.</param>
     public WebApiRequestOptions(HttpRequest httpRequest, TRequest? value) : base(httpRequest)
     {
-        ValueOrDefault = value;
+        _valueOrDefault = value;
 
         // Override the ETag where specified as a request IF-MATCH header.
         if (value is not null && ETag is not null && value is IETag etag)
@@ -29,7 +32,7 @@ public sealed class WebApiRequestOptions<TRequest> : WebApiOptionsBase, IWebApiR
     /// <param name="value">The deserialized request value.</param>
     public WebApiRequestOptions(WebApiOptionsBase options, TRequest? value) : base(options)
     {
-        ValueOrDefault = value;
+        _valueOrDefault = value;
 
         // Override the ETag where specified as a request IF-MATCH header.
         if (value is not null && ETag is not null && value is IETag etag)
@@ -37,11 +40,29 @@ public sealed class WebApiRequestOptions<TRequest> : WebApiOptionsBase, IWebApiR
     }
 
     /// <inheritdoc/>
-    public TRequest? ValueOrDefault { get; }
+    /// <remarks>Defaults to <see langword="true"/>.</remarks>
+    public bool AutoCleanValue { get; set; } = true;
+
+    /// <inheritdoc/>
+    public TRequest? ValueOrDefault
+    {
+        get
+        {
+            if (AutoCleanValue && !_hasBeenCleaned)
+            {
+                _valueOrDefault = Metadata.RuntimeMetadata.Clean(_valueOrDefault);
+                _hasBeenCleaned = true;
+            }
+
+            return _valueOrDefault;
+        }
+    }
 
     /// <inheritdoc/>
     [NotNull]
-    public TRequest Value => ValueOrDefault.Required();
+    public TRequest Value => (EqualityComparer<TRequest?>.Default.Equals(ValueOrDefault, default!))
+        ? throw new ValidationException(WebApiBase.RequestBodyRequiredText).WithErrorType(WebApiBase.RequestBodyErrorType)
+        : ValueOrDefault!;
 
     /// <inheritdoc/>
     protected internal override Result Verify() => VerifyRequest(this, ValueOrDefault).Then(() => base.Verify());

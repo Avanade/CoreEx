@@ -109,21 +109,111 @@ Remove any `DEFAULT (NEWSEQUENTIALID())`, `IDENTITY`, or `SERIAL` unless the use
 | `DateTime` | `DATETIME2` | `TIMESTAMP` |
 | `DateOnly` | `DATE` | `date` |
 | `TimeOnly` | `TIME` | `time` |
+| Complex type (class/record), or collection/dictionary (`List<T>`, `Dictionary<K,V>`) | `NVARCHAR(n)` bounded by default — JSON suffix convention (see below); `NVARCHAR(MAX)`/native `JSON` only as an explicit override | `VARCHAR(n)` bounded by default — JSON suffix convention (see below); native `JSONB` only as an explicit override |
 
 `DateOnly`/`TimeOnly` map natively — no `HasConversion(...)` value converter is required on either provider (EF Core SqlServer since EF8, Npgsql since v6). See `tests/CoreEx.Database.SqlServer.Test.Unit/Repository/TestDbContext.cs` and `tests/CoreEx.Database.Postgres.Test.Unit/Repository/TestDbContext.cs` for confirmed working `HasColumnType`-only configuration.
 
 ### JSON columns
 
-When a column name ends with `Json` (SQL Server `PascalCase`) or `json` (PostgreSQL `snake_case`), **confirm with the developer** that the intent is serialized JSON storage. If confirmed:
+A column whose name ends with `Json` (SQL Server `PascalCase`) or `_json` (PostgreSQL `snake_case`) stores a serialised JSON representation of a .NET type. DbEx surfaces this in `Inspect` output as `Json: Yes`.
 
-| Provider | Default column type | Override allowed |
+**Confirm with the developer** that the intent is JSON storage, then choose the column type:
+
+| Provider | Default column type | Override |
 |---|---|---|
-| SQL Server | `NVARCHAR(MAX)` | Yes — e.g. `NVARCHAR(4000)` if size is bounded |
-| PostgreSQL | `jsonb` | Yes — `json` (text) if binary operators are explicitly not wanted |
+| SQL Server | `NVARCHAR(n)` — bounded, e.g. `NVARCHAR(2000)` | `NVARCHAR(MAX)` if unbounded storage is deliberately wanted |
+| PostgreSQL | `VARCHAR(n)` — bounded, e.g. `VARCHAR(2000)` | native `JSONB` if in-database JSON operators/indexing are deliberately wanted (`JSON` if operators aren't needed but native typing still is) |
 
-The `.NET` type for a JSON column is typically a **class or record**, not a string — the column stores the serialized form of that type. This is a NoSQL-within-SQL pattern: complex nested data is stored as a blob to avoid composite columns or child tables when no specific database-level operations (filtering, indexing on subfields, etc.) are needed against the content. If the developer expects to query within the JSON, flag that — `jsonb` supports operators but the design decision should be explicit.
+**Default to a bounded text type, matching how every other text column in the database is sized** — the same `NVARCHAR(n)` / `VARCHAR(n)` convention used for any other string property (see the contract-type mapping table above). Unless the user explicitly opts into unbounded storage (`NVARCHAR(MAX)`) or a native JSON type (`JSONB`/`JSON`) — typically because they want in-database JSON querying, filtering, or indexing on sub-fields — do not default to the maximum-length type. Native JSON types are a deliberate, explicit design decision, not the default.
 
-Do not add JSON column handling to the `dbex.yaml` `columns:` entry — DbEx will infer the CLR type via a registered value converter. Confirm the Infrastructure mapper (or `*.Database` CodeGen config) handles the JSON serialization; this is a hand-written concern, not auto-generated.
+Both patterns are demonstrated side-by-side in the samples: `samples/src/Contoso.Shopping.Database` (`basket.ShippingAddressJson` → bounded `NVARCHAR(2000)`, the default) and `samples/src/Contoso.Products.Database` (`product.tags_json` → native `JSONB`, an intentional override for a Postgres-idiomatic collection column).
+
+#### `dbex.yaml` `columns:` entry (required)
+
+**A `columns:` entry is required for every JSON column** — without it, DbEx generates a plain `string?` property with no converter. Add it under the table entry in `dbex.yaml`:
+
+```yaml
+# SQL Server example (PascalCase)
+- name: Basket
+  columns:
+  - name: ShippingAddressJson     # DB column name — must include the Json suffix
+    property: ShippingAddress     # C# property name — without the suffix
+    type: Persistence.Address?    # CLR type: persistence POCO or any serialisable .NET type
+
+# PostgreSQL example (snake_case)
+- name: product
+  columns:
+  - name: tags_json
+    property: Tags
+    type: List<string>?
+```
+
+The `name:` + `property:` pair strips the suffix from the generated C# property. The `type:` field drives code generation:
+- A **non-string type** causes DbEx to auto-wire `TypeToJsonStringEfConverter<T>` in the generated `*DbContext.g.cs`.
+- `string` or `string?` stores the JSON as-is with no converter (raw JSON passthrough).
+
+#### What DbEx auto-generates
+
+**Persistence model** (`Infrastructure/Persistence/<Entity>.g.cs`):
+```csharp
+public Persistence.Address? ShippingAddress { get; set; }   // typed POCO, not string
+```
+
+**EF model builder** (`Infrastructure/Repositories/*DbContext.g.cs`):
+```csharp
+e.Property(p => p.ShippingAddress)
+    .HasColumnName("ShippingAddressJson")
+    .HasColumnType("NVARCHAR(2000)")                        // bounded default; "JSONB"/"NVARCHAR(MAX)" only as an explicit override
+    .HasConversion(TypeToJsonStringEfConverter<Persistence.Address?>.Default);
+```
+
+`TypeToJsonStringEfConverter<T>` (from `CoreEx.EntityFrameworkCore.Converters`) is auto-applied by the code generator — **never add `.HasConversion(...)` by hand** for a JSON column.
+
+#### Hand-authored persistence POCO (complex types only)
+
+When `type:` is a complex object (not `string`, `string?`, `List<T>`, `Dictionary<K,V>`, or another natively-serialisable type), a hand-authored POCO is required in `Infrastructure/Persistence/`. This is **not generated** — create it manually alongside the `*.g.cs` files:
+
+```csharp
+// Infrastructure/Persistence/Address.cs
+namespace Contoso.Shopping.Infrastructure.Persistence;
+
+public class Address              // plain class — NOT ModelBase, NOT [Contract], NOT partial
+{
+    public required string Street1 { get; set; }
+    public string? Street2 { get; set; }
+    public required string City    { get; set; }
+    public required string PostCode { get; set; }
+    public required string State   { get; set; }
+}
+```
+
+Properties should reflect actual data requirements — `required`/non-nullable for mandatory fields, nullable only where genuinely optional. No validation logic (domain validation enforces constraints before persistence). The class must be constructible without a parameterised constructor (required for `System.Text.Json` deserialization).
+
+For natively-serialisable types (`List<string>?`, `Dictionary<string,string>?`, etc.), no separate POCO class is needed — use the .NET type directly in `type:`.
+
+#### Mapping JSON properties
+
+In `BiDirectionMapper.OnMap`, JSON-backed properties are mapped exactly like any other typed property — direct assignment, no `JsonSerializer.Serialize/Deserialize`. `TypeToJsonStringEfConverter<T>` handles the DB serialisation transparently at the EF layer:
+
+```csharp
+// Simple collection — direct assignment (no POCO conversion needed)
+Tags = source.Tags
+
+// Complex POCO — map fields directly
+ShippingAddress = source.ShippingAddress is null ? null : new Persistence.Address
+{
+    Street1  = source.ShippingAddress.Street1,
+    City     = source.ShippingAddress.City,
+    PostCode = source.ShippingAddress.PostCode,
+    State    = source.ShippingAddress.State,
+}
+```
+
+#### DDD aggregate vs CRUD service
+
+**DDD aggregate (e.g. Shopping/Basket):** Three distinct types + two mappers exist across layer boundaries. The persistence POCO (`Persistence.Address`) is hand-authored; the domain value object (`Domain.ValueObjects.Address`) is a separate record with validation; the contract DTO (`Contracts.Address`) is a `[Contract]` class. Application-layer and Infrastructure-layer mappers each handle one boundary — see [`coreex-domain.instructions.md`](/.github/instructions/coreex-domain.instructions.md) for creating the value object and wiring it into the aggregate, and [`coreex-application-services.instructions.md`](/.github/instructions/coreex-application-services.instructions.md) for the Application-layer mapper (Domain ↔ Contract). This Infrastructure-layer half of the pattern (Domain ↔ Persistence) is covered above and in [`coreex-repositories.instructions.md`](/.github/instructions/coreex-repositories.instructions.md).
+
+**CRUD service (e.g. Products/Tags):** Only two types — the persistence property (`List<string>?`) and the contract property (`List<string>?`) are the same CLR type, so the mapper simply assigns `Tags = source.Tags`. No dedicated POCO class or extra mapper class is needed.
 
 ### Reference-data relationships
 

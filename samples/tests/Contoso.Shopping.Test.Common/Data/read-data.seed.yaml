@@ -33,7 +33,7 @@ Shopping:
     - { ProductId: ^32, Sku: LABOR, Text: Labor, UnitOfMeasureCode: HR, Price: 80.00, IsNonStocked: true }
   - Basket:
     - { BasketId: ^3001, CustomerId: ^1001, BasketStatusCode: E, SubTotal: 0, Total: 0 }
-    - { BasketId: ^3002, CustomerId: ^1002, BasketStatusCode: C, SubTotal: 9679, DiscountCouponCode: XMAS2025, DiscountAmount: 145.19, Total: 9533.81 }
+    - { BasketId: ^3002, CustomerId: ^1002, BasketStatusCode: C, SubTotal: 9679, DiscountCouponCode: XMAS2025, DiscountAmount: 145.19, Total: 9533.81, ShippingAddressJson: { street1: "123 Main St", city: "Anytown", state: "CA", postCode: "12345" } }
     - { BasketId: ^3003, CustomerId: ^1001, BasketStatusCode: A, SubTotal: 9999, Total: 9999 }
     - { BasketId: ^3004, CustomerId: ^1003, BasketStatusCode: B, SubTotal: 98, Total: 98 }
     - { BasketId: ^3005, CustomerId: ^1003, BasketStatusCode: A, SubTotal: 98, Total: 98 }

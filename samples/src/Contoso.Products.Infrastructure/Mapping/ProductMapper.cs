@@ -12,7 +12,8 @@ public class ProductMapper : BiDirectionMapper<Contracts.Product, Persistence.Pr
         BrandCode = source.Brand?.Code!,
         Price = source.Price,
         IsInactive = source.IsInactive,
-        IsNonStocked = source.IsNonStocked
+        IsNonStocked = source.IsNonStocked,
+        Tags = source.Tags
     };
 
     protected override Contracts.Product OnMap(Persistence.Product source) => new Contracts.Product()
@@ -25,6 +26,7 @@ public class ProductMapper : BiDirectionMapper<Contracts.Product, Persistence.Pr
         BrandCode = source.BrandCode,
         Price = source.Price,
         IsInactive = source.IsInactive,
-        IsNonStocked = source.IsNonStocked
+        IsNonStocked = source.IsNonStocked,
+        Tags = source.Tags
     }.Adjust(p => p.CategoryCode = p.SubCategory?.CategoryCode);
 }

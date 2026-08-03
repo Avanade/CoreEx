@@ -1,6 +1,6 @@
 products:
   - product:
-    - { product_id: ^1, sku: YETI-ASR-C2-2025, text: Yeti ASR C2, sub_category_code: XC, unit_of_measure_code: EA, price: 5800, brand_code: YETI }
+    - { product_id: ^1, sku: YETI-ASR-C2-2025, text: Yeti ASR C2, sub_category_code: XC, unit_of_measure_code: EA, price: 5800, brand_code: YETI, tags_json: '["cross-country","full-suspension"]' }
     - { product_id: ^2, sku: YETI-SB120-C2, text: Yeti SB120 C2, sub_category_code: TR, unit_of_measure_code: EA, price: 6200, brand_code: YETI }
     - { product_id: ^3, sku: YETI-SB140-LR-C2, text: Yeti SB140 LR C2, sub_category_code: TR, unit_of_measure_code: EA, price: 6600, brand_code: YETI }
     - { product_id: ^4, sku: YETI-SB165-C3, text: Yeti SB165 C3, sub_category_code: EN, unit_of_measure_code: EA, price: 7200, brand_code: YETI }

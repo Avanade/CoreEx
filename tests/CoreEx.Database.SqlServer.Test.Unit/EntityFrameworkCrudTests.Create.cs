@@ -79,7 +79,7 @@ public partial class EntityFrameworkCrudTests
             Flag = true,
             Date = new DateOnly(2024, 7, 1),
             Time = new TimeOnly(10, 20, 30),
-            Json = jd.RootElement.Clone()
+            KvpJson = jd.RootElement.Clone()
         };
 
         var created = await ef.Table.CreateAsync(m).ConfigureAwait(false);
@@ -92,7 +92,7 @@ public partial class EntityFrameworkCrudTests
         created.Value.Flag.Should().BeTrue();
         created.Value.Date.Should().Be(new DateOnly(2024, 7, 1));
         created.Value.Time.Should().Be(new TimeOnly(10, 20, 30));
-        created.Value.Json.Should().NotBeNull().And.Subject.ToString().Should().Be("{\"Key\": \"Value\"}");
+        created.Value.KvpJson.Should().NotBeNull().And.Subject.ToString().Should().Be("{\"Key\": \"Value\"}");
         created.Value.ETag.Should().NotBeNull();
         created.Value.TenantId.Should().Be("A");
         created.Value.CreatedBy.Should().NotBeNull();

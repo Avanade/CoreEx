@@ -33,7 +33,7 @@ public sealed class MandatoryRule<TEntity, TProperty>(Func<PropertyContext<TEnti
         if (mustNotBeDefault && context.IsValueNullable && context.IsNullableValueDefault())
             return AddError(context);
 
-        if (mustNotBeDefault && !context.IsValueNullable && Comparer<TProperty>.Default.Compare(context.Value, default) == 0) 
+        if (mustNotBeDefault && !context.IsValueNullable && EqualityComparer<TProperty>.Default.Equals(context.Value, default)) 
             return AddError(context);
 
         if (!mustNotBeEmpty)

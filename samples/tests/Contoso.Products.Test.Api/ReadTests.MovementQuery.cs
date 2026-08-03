@@ -18,7 +18,7 @@ public partial class ReadTests
     public void Movement_Query_Filter()
     {
         var r = Test.Http<ProductLite[]>()
-            .Run(HttpMethod.Get, $"/api/inventory/movements?$filter=referenceid eq '{1000.ToGuid()}' and productid ne '{6.ToGuid()}' and kind eq 'I' and status eq 'p'")
+            .Run(HttpMethod.Get, $"/api/inventory/movements?$filter=referenceid eq '{1000.ToGuid()}' and productid ne '{6.ToGuid()}' and kind eq 'I' and status eq 'P'")
             .AssertOK()
             .AssertJsonFromResource("Movement_Query_Filter.res.json", ["changelog", "etag"]);
     }

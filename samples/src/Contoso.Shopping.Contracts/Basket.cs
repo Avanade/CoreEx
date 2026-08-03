@@ -16,6 +16,8 @@ public partial class Basket : IIdentifier<string?>, IChangeLog, IETag
 
     public BasketPricing? Pricing { get; set; }
 
+    public Address? ShippingAddress { get; set; }
+
     [ReadOnly(true)]
     public ChangeLog? ChangeLog { get; set; }
 

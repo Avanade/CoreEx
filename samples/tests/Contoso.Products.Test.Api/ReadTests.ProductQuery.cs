@@ -78,7 +78,7 @@ public partial class ReadTests : WithApiTester<Contoso.Products.Api.Program>
     public void Product_Query_FilterByCategory()
     {
         var r = Test.Http<ProductLite[]>()
-            .Run(HttpMethod.Get, "/api/products?$filter=category eq 'm'")
+            .Run(HttpMethod.Get, "/api/products?$filter=category eq 'M'")
             .AssertOK()
             .Value;
 
@@ -91,7 +91,7 @@ public partial class ReadTests : WithApiTester<Contoso.Products.Api.Program>
     public void Product_Query_FilterByBrandAndSubCategory()
     {
         var r = Test.Http<ProductLite[]>()
-            .Run(HttpMethod.Get, "/api/products?$filter=subcategory eq 'xc' and brand in ('yeti', 'canyon')")
+            .Run(HttpMethod.Get, "/api/products?$filter=subcategory eq 'XC' and brand in ('YETI', 'CANYON')")
             .AssertOK()
             .Value;
 

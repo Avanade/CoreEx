@@ -23,11 +23,11 @@ public abstract class ReferenceDataCollectionCore<TId, TRef> : IReferenceDataCol
     /// Initializes a new instance of the <see cref="ReferenceDataCollection{TItem, TId}"/> class.
     /// </summary>
     /// <param name="sortOrder">The default <see cref="ReferenceDataSortOrder"/> for the collection. Defaults to <see cref="ReferenceDataSortOrder.SortOrder"/>.</param>
-    /// <param name="codeComparer">The <see cref="StringComparer"/> for <see cref="IReferenceData.Code"/> comparisons. Defaults to <see cref="StringComparer.OrdinalIgnoreCase"/>.</param>
+    /// <param name="codeComparer">The <see cref="StringComparer"/> for <see cref="IReferenceData.Code"/> comparisons. Defaults to <see cref="StringComparer.Ordinal"/> as casing often matters.</param>
     internal ReferenceDataCollectionCore(ReferenceDataSortOrder sortOrder = ReferenceDataSortOrder.SortOrder, StringComparer? codeComparer = null)
     {
         SortOrder = sortOrder;
-        _rdcCode = new ConcurrentDictionary<string, TRef>(codeComparer ?? StringComparer.OrdinalIgnoreCase);
+        _rdcCode = new ConcurrentDictionary<string, TRef>(codeComparer ?? StringComparer.Ordinal);
     }
 
     /// <summary>

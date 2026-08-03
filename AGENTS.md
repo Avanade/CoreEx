@@ -52,6 +52,27 @@ If you are contributing to the CoreEx framework itself, see
 commands, coding conventions, and the full contributor instruction set. That file is injected
 automatically by GitHub Copilot when working in this repo.
 
+### Generated Code
+
+Never create or edit `*.g.cs`, `*.g.sql`, or `*.g.pgsql` files directly. Each generator owns its outputs:
+
+| File pattern | Generator | Change instead |
+|---|---|---|
+| `*.g.cs` (contracts, ref-data) | Roslyn source generator (`CoreEx.Generator`) | The `[Contract]`- or `[ReferenceData]`-decorated partial class |
+| `*.g.cs` (ref-data layer — controller, service, repository, mapper) | `*.CodeGen` project (CoreEx.CodeGen + `ref-data.yaml`) | `ref-data.yaml` config or the Handlebars templates in `CoreEx.CodeGen/RefData/Templates/` |
+| `*.g.sql`, `*.g.pgsql`, `*DbContext.g.cs`, `Persistence/*.g.cs` | `*.Database` project (DbEx) | DbEx YAML config or SQL migration scripts |
+
+### House Rules
+
+Rules that are easy to violate and cause real breakage or wrong choices:
+
+- **`GlobalUsings.cs`** — every project has a single `GlobalUsings.cs` at the project root; all `using` statements go there, never in individual source files. The Roslyn code generator emits no `using` statements and depends on this.
+- **`AwesomeAssertions` not FluentAssertions** — tests use the `AwesomeAssertions` NuGet package. Do not reach for FluentAssertions.
+- **Polyglot data** — Products uses PostgreSQL (`CoreEx.Database.Postgres`); Shopping uses SQL Server (`CoreEx.Database.SqlServer`). Do not assume SQL Server when working on Products, and do not mix outbox/publisher helpers across domains.
+- **No AutoMapper** — do not introduce AutoMapper. All mapping is explicit via `Mapper<>` (application layer) or `BiDirectionMapper<>` (infrastructure layer).
+- **`.ConfigureAwait(false)`** — always use it in service and repository code.
+- **File-scoped namespaces** — `namespace Foo.Bar;` only; never block-scoped `namespace Foo.Bar { }`.
+
 ---
 
 ## Using CoreEx in a Consumer Project (Cold Start)

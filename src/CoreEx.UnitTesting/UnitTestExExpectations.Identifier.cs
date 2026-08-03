@@ -26,7 +26,7 @@ public static partial class UnitTestExExpectations
 
             if (identifier is null)
             {
-                if (System.Collections.Comparer.Default.Compare(id!.Id, id!.GetType().IsClass ? null! : Activator.CreateInstance(id!.GetType())) == 0)
+                if (System.Collections.Generic.EqualityComparer<object>.Default.Equals(id!.Id, id!.GetType().IsClass ? null! : Activator.CreateInstance(id!.GetType())))
                     args.Tester.Implementor.AssertFail($"Expected {pn} to have a non-default value.");
             }
             else

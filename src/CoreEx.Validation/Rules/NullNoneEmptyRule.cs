@@ -32,7 +32,7 @@ public sealed class NullNoneEmptyRule<TEntity, TProperty>(Func<PropertyContext<T
         if (mustBeDefault && context.IsValueNullable && !context.IsNullableValueDefault())
             return AddError(context);
 
-        if (mustBeDefault && !context.IsValueNullable && Comparer<TProperty>.Default.Compare(context.Value, default) != 0)
+        if (mustBeDefault && !context.IsValueNullable && !EqualityComparer<TProperty>.Default.Equals(context.Value, default))
             return AddError(context);
 
         if (!mustBeEmpty)

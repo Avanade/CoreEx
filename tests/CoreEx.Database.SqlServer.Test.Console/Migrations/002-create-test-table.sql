@@ -6,7 +6,7 @@ CREATE TABLE [Test].[Table] (
     [Flag] BIT NULL,
     [Date] DATE NULL,
     [Time] TIME NULL,
-    [Json] NVARCHAR (500) NULL,
+    [KvpJson] NVARCHAR (500) NULL,
     [TenantId] NVARCHAR(20) NULL,
     [RowVersion] TIMESTAMP NOT NULL,
     [CreatedBy] NVARCHAR(250) NULL,

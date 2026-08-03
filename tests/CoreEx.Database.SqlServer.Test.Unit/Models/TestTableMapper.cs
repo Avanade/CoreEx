@@ -14,6 +14,6 @@ public class TestTableMapper : DatabaseMapper<TestTable>
         Flag = r.GetValue<bool?>("Flag"),
         Date = r.GetValue<DateOnly?>("Date"),
         Time = r.GetValue<TimeOnly?>("Time"),
-        Json = r.GetValueFromJson<JsonElement?>("Json")
+        KvpJson = r.GetValueFromJson<JsonElement?>("KvpJson")
     }.MapStandardFromDb(r);
 }

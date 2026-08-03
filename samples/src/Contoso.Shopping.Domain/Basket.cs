@@ -7,14 +7,15 @@ public sealed class Basket : Aggregate<string, Basket>
     public static Basket CreateNew(string customerId) => new Basket(Runtime.NewId())
     {
         CustomerId = customerId,
-        Status = BasketStatus.Empty
+        Status = Contracts.BasketStatus.Empty
     }.AsNew();
 
-    public static Basket CreateFrom(string id, string customerId, BasketStatus status, DiscountCoupon? discountCoupon, IEnumerable<BasketItem>? items, ChangeLog? changeLog, string? etag) => new Basket(id)
+    public static Basket CreateFrom(string id, string customerId, Contracts.BasketStatus status, Contracts.DiscountCoupon? discountCoupon, Address? shippingAddress, IEnumerable<BasketItem>? items, ChangeLog? changeLog, string? etag) => new Basket(id)
     {
         CustomerId = customerId,
         Status = status,
         DiscountCoupon = discountCoupon,
+        ShippingAddress = shippingAddress,
         _items = items is null ? [] : [.. items.Select(i => i.Clone(PersistenceState.NotModified))],
         ChangeLog = changeLog,
         ETag = etag
@@ -24,9 +25,11 @@ public sealed class Basket : Aggregate<string, Basket>
 
     public string CustomerId { get; private set => field = value.ThrowIfNullOrEmpty(); } = null!;
 
-    public BasketStatus Status { get; private set => field = value.ThrowIfNull().ThrowIfInactive(); } = null!;
+    public Contracts.BasketStatus Status { get; private set => field = value.ThrowIfNull().ThrowIfInactive(); } = null!;
 
-    public DiscountCoupon? DiscountCoupon { get; private set => field = value?.ThrowIfInvalid(); }
+    public Contracts.DiscountCoupon? DiscountCoupon { get; private set => field = value?.ThrowIfInvalid(); }
+
+    public Address? ShippingAddress { get; private set; }
 
     public IReadOnlyList<BasketItem> Items => _items;
 
@@ -52,17 +55,28 @@ public sealed class Basket : Aggregate<string, Basket>
     {
         // Automatically update the status based on the items in the basket (where it can be mutated).
         if (Status.CanBeMutated)
-            Status = _items.Any(i => i.PersistenceState.IsNotRemoved) ? BasketStatus.Active : BasketStatus.Empty;
+            Status = _items.Any(i => i.PersistenceState.IsNotRemoved) ? Contracts.BasketStatus.Active : Contracts.BasketStatus.Empty;
     }
 
     /// <summary>
     /// Applies the discount coupon to the basket (where not already applied).
     /// </summary>
-    public Result ApplyDiscount(DiscountCoupon discountCoupon)
+    public Result ApplyDiscount(Contracts.DiscountCoupon discountCoupon)
     {
         discountCoupon.ThrowIfNull().ThrowIfInactive();
         if (discountCoupon != DiscountCoupon)
             Modify(() => DiscountCoupon = discountCoupon);
+
+        return Result.Success;
+    }
+
+    /// <summary>
+    /// Updates (overrides) the shipping address for the basket.
+    /// </summary>
+    public Result UpdateShippingAddress(Address? shippingAddress)
+    {
+        if (shippingAddress != ShippingAddress)
+            Modify(() => ShippingAddress = shippingAddress);
 
         return Result.Success;
     }
@@ -117,11 +131,14 @@ public sealed class Basket : Aggregate<string, Basket>
     /// </summary>
     public Result Checkout()
     {
-        if (Status == BasketStatus.Empty)
+        if (Status == Contracts.BasketStatus.Empty)
             return Result.BusinessError("An empty basket can not be checked out.", c => c.WithKey(Id).WithErrorCode("empty-basket"));
 
         if (_items.Sum(i => i.Pricing.Quantity) == 0)
             return Result.BusinessError("A basket must have at least one item with a quantity greater than zero to be checked out.", c => c.WithKey(Id).WithErrorCode("zero-quantity-basket"));
+
+        if (ShippingAddress is null)
+            return Result.BusinessError("A basket must have a shipping address to be checked out.", c => c.WithKey(Id).WithErrorCode("missing-shipping-address"));
 
         if (HasChanges)
             throw new InvalidOperationException("A basket can not be checked out where changes have not been committed.");
@@ -131,7 +148,7 @@ public sealed class Basket : Aggregate<string, Basket>
             foreach (var item in _items.Where(i => i.Pricing.Quantity == 0))
                 item.Delete();
 
-            Status = BasketStatus.CheckedOut;
+            Status = Contracts.BasketStatus.CheckedOut;
         });
 
         return Result.Success;

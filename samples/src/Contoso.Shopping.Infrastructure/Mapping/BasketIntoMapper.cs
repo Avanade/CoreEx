@@ -11,5 +11,6 @@ internal sealed class BasketIntoMapper : IntoMapper<Domain.Basket, Persistence.B
         destination.DiscountCouponCode = source.DiscountCoupon?.Code;
         destination.DiscountAmount = source.DiscountAmount;
         destination.Total = source.Total;
+        destination.ShippingAddress = AddressMapper.From.Map(source.ShippingAddress);
     }
 }

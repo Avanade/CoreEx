@@ -33,6 +33,12 @@
     "discountAmount": 1492.35,
     "total": 8456.6500
   },
+  "shippingAddress": {
+    "street1": "123 Main St",
+    "city": "Anytown",
+    "postCode": "12345",
+    "state": "CA"
+  },
   "changeLog": {
     "createdBy": "DOMAIN-CORP\\eric.sibly",
     "createdOn": "2026-02-21T17:53:32.8347127\u002B00:00"

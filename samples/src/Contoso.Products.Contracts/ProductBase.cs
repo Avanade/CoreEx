@@ -29,6 +29,8 @@ public abstract partial class ProductBase : IIdentifier<string?>
 
     public bool IsNonStocked { get; set; }
 
+    public List<string>? Tags { get; set; }
+
     [ReadOnly(true)]
     public bool IsInactive { get; set; }
 }

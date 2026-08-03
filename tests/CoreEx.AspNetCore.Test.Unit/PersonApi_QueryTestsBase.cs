@@ -146,7 +146,7 @@ public abstract class PersonApi_QueryTestsBase : WithApiTester<Api.Program>
     public void GetByQuery_Filter_Gender()
     {
         var v = Test.Http<Person[]>()
-            .Run(HttpMethod.Get, Route, r => r.WithQuery("gender in ('m')"))
+            .Run(HttpMethod.Get, Route, r => r.WithQuery("gender in ('M')"))
             .AssertOK()
             .Value;
 
@@ -160,7 +160,7 @@ public abstract class PersonApi_QueryTestsBase : WithApiTester<Api.Program>
     public void GetByQuery_OrderBy_FirstName()
     {
         var v = Test.Http<Person[]>()
-            .Run(HttpMethod.Get, Route, r => r.WithQuery(filter: "gender in ('m')", orderBy: "firstname"))
+            .Run(HttpMethod.Get, Route, r => r.WithQuery(filter: "gender in ('M')", orderBy: "firstname"))
             .AssertOK()
             .Value;
 

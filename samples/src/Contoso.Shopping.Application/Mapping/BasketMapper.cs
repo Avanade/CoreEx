@@ -15,6 +15,7 @@ public class BasketMapper : Mapper<Domain.Basket, Contracts.Basket, BasketMapper
             DiscountAmount = source.DiscountAmount,
             Total = source.Total
         },
+        ShippingAddress = AddressMapper.To.Map(source.ShippingAddress),
         Items = [.. source.Items.Select(i => BasketItemMapper.Map(i))]
     };
 

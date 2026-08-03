@@ -23,6 +23,12 @@ public class BasketController(WebApi webApi, IBasketService service) : Controlle
     public Task<IActionResult> ApplyDiscountAsync(string basketId, string coupon, CancellationToken cancellationToken = default) => _webApi.PutWithResultAsync<Basket>(Request, (_, ct)
         => _service.ApplyDiscountAsync(basketId.Required(), coupon.Required(), ct), cancellationToken: cancellationToken);
 
+    [HttpPut("{basketId}/shipping-address")]
+    [ProducesResponseType(typeof(Basket), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public Task<IActionResult> UpdateShippingAddressAsync(string basketId, CancellationToken cancellationToken = default) => _webApi.PutWithResultAsync<Address?, Basket>(Request, (ro, ct)
+        => _service.UpdateShippingAddressAsync(basketId.Required(), ro.ValueOrDefault, ct), cancellationToken: cancellationToken);
+
     [HttpPost("{basketId}/checkout")]
     [ProducesResponseType(typeof(Basket), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]

@@ -2,6 +2,10 @@ namespace CoreEx.Metadata;
 
 public static partial class RuntimeMetadata
 {
+    // Identity hash codes used to detect cycles during hash computation.
+    [ThreadStatic]
+    private static HashSet<int>? _visitingForGetHashCode;
+
     /// <summary>
     /// Gets the hash code for the <paramref name="value"/>.
     /// </summary>
@@ -20,13 +24,25 @@ public static partial class RuntimeMetadata
 
             case IRuntimeMetadataCore rm:
                 {
-                    var hash = new HashCode();
-                    foreach (var p in rm.GetPropertyRuntimeMetadata())
+                    var set = _visitingForGetHashCode ??= [];
+                    var isRoot = set.Count == 0;
+                    try
                     {
-                        hash.Add(GetHashCode(p.GetValue(value)));
-                    }
+                        var id = RuntimeHelpers.GetHashCode((object)value!);
+                        if (!set.Add(id))
+                            return 0; // cycle detected — return a neutral sentinel
 
-                    return hash.ToHashCode();
+                        var hash = new HashCode();
+                        foreach (var p in rm.GetPropertyRuntimeMetadata())
+                            hash.Add(GetHashCode(p.GetValue(value)));
+
+                        set.Remove(id);
+                        return hash.ToHashCode();
+                    }
+                    finally
+                    {
+                        if (isRoot) set.Clear();
+                    }
                 }
 
             case IDictionary d:
@@ -58,13 +74,26 @@ public static partial class RuntimeMetadata
                         return value.GetHashCode();
 
                     // Must be a class so use reflection-based runtime-metadata.
-                    var hash = new HashCode();
-                    foreach (var p in GetCachedProperties(type).Values)
+                    var set = _visitingForGetHashCode ??= [];
+                    var isRoot = set.Count == 0;
+                    try
                     {
-                        hash.Add(GetHashCode(p.GetValue(value)));
-                    }
+                        var id = RuntimeHelpers.GetHashCode((object)value!);
+                        if (!set.Add(id))
+                            return 0; // cycle detected — return a neutral sentinel
 
-                    return hash.ToHashCode();
+                        var hash = new HashCode();
+                        foreach (var p in GetCachedProperties(type).Values)
+                            hash.Add(GetHashCode(p.GetValue(value)));
+
+                        set.Remove(id);
+                        return hash.ToHashCode();
+                    }
+                    finally
+                    {
+                        if (isRoot)
+                            set.Clear();
+                    }
                 }
         }
     }

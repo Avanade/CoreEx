@@ -1,4 +1,3 @@
-global using Contoso.Shopping.Contracts;
 global using Contoso.Shopping.Domain.ValueObjects;
 global using CoreEx;
 global using CoreEx.DomainDriven;

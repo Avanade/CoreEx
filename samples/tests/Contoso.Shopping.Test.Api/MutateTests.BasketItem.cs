@@ -61,7 +61,7 @@ public partial class MutateTests
             .Run(HttpMethod.Put, $"/api/baskets/{3005.ToGuid()}/items/{4008.ToGuid()}", item)
             .AssertBadRequest()
             .AssertContentTypeProblemJson()
-            .AssertProblemDetailsTitle("Quantity decimal places exceed the specified unit-of-measure (Pair) configuration of 0.");
+            .AssertProblemDetails(p => p.Title.Should().Be("Quantity decimal places exceed the specified unit-of-measure (Pair) configuration of 0."));
     }
 
     [Test]

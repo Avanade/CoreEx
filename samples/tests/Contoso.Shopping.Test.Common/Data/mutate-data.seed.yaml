@@ -38,8 +38,8 @@ Shopping:
     - { BasketId: ^3004, CustomerId: ^1003, BasketStatusCode: B, SubTotal: 98, Total: 98 }
     - { BasketId: ^3005, CustomerId: ^1003, BasketStatusCode: A, SubTotal: 98, Total: 98 }
     - { BasketId: ^3006, CustomerId: ^1003, BasketStatusCode: A, SubTotal: 98, Total: 98 }
-    - { BasketId: ^3007, CustomerId: ^1003, BasketStatusCode: A, SubTotal: 98, Total: 98 }
-    - { BasketId: ^3008, CustomerId: ^1003, BasketStatusCode: A, SubTotal: 98, Total: 98 }
+    - { BasketId: ^3007, CustomerId: ^1003, BasketStatusCode: A, SubTotal: 98, Total: 98, ShippingAddressJson: { street1: "123 Main St", city: "Anytown", state: "CA", postCode: "12345" } }
+    - { BasketId: ^3008, CustomerId: ^1003, BasketStatusCode: A, SubTotal: 98, Total: 98, ShippingAddressJson: { street1: "123 Main St", city: "Anytown", state: "CA", postCode: "12345" } }
   - BasketItem:
     - { BasketItemId: ^4001, BasketId: ^3006, ProductId: ^27, Sku: ONEUP-COMPOSITE-PEDALS, Text: OneUp Composite Pedals, UnitOfMeasureCode: PR, Quantity: 2, UnitPrice: 49 }
     - { BasketItemId: ^4002, BasketId: ^3001, ProductId: ^1, Sku: YETI-ASR-C2-2025, Text: Yeti ASR C2, UnitOfMeasureCode: EA, Quantity: 2, UnitPrice: 129 }
