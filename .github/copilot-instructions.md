@@ -40,6 +40,7 @@ solution; the rule applies to consumer solutions where these assets are installe
 - **Samples**: docker-compose infrastructure + dotnet run for Database projects + Aspire AppHost.
 - **Linting**: No separate `dotnet format`. Build is the lint pass (nullable, LangVersion=preview, TreatWarningsAsErrors in `src\Directory.Build.props`).
 - **Formatting**: 4 spaces for `*.cs`, 2 spaces for `*.json|*.xml|*.yaml|*.props|*.csproj|*.sln|*.sql` per `.editorconfig`.
+- **Ad-hoc spike/reflection projects**: this repo uses Central Package Management (root `Directory.Packages.props`). A throwaway `dotnet new console` project scaffolded *inside* the repo tree (even outside `src\`/`tests\`) will silently inherit it and can fail to restore (`NU1008`) if it references a package/version not centrally pinned. Scaffold spike projects outside the repo tree, or set `<ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>` in the spike project's own `.csproj` to opt out locally.
 
 ## Local Development Infrastructure
 

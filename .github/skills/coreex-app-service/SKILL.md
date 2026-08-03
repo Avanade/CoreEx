@@ -58,6 +58,7 @@ Guides you through creating or modifying a CoreEx Application-layer service in `
 - `Validator<T>` (with injection): instantiate at call site — `new {Name}Validator(_dep).ValidateAndThrowAsync(...)`
 - All interface methods include `CancellationToken cancellationToken = default` as the last parameter; pass through to every async call and `TransactionAsync(async ct => ..., cancellationToken)`
 - CQRS: mutations + `GetAsync` → `{Name}Service`; queries + `GetAsync` → `{Name}ReadService` (both have `GetAsync`)
+- **Before building Path C:** confirm `I{Name}Repository` already has `QueryAsync`/`QuerySchemaAsync` backed by a `{Name}QueryArgsConfig`. If not, stop and invoke `coreex-repository` first — never add filtering/ordering logic or a hand-rolled query in the service to work around a missing repository method
 - Always `.ConfigureAwait(false)` on every `await`
 - A Domain value object persisted via a JSON column (e.g. `Basket.ShippingAddress`) is mapped with a `BiDirectionMapper<TDomain, TContract, TSelf>` in `Application/Mapping/` (not the uni-directional `Mapper<TSource,TDest,TSelf>` used for the root aggregate) — see [`coreex-application-services.instructions.md#json-backed-value-object-mapping`](/.github/instructions/coreex-application-services.instructions.md#json-backed-value-object-mapping)
 

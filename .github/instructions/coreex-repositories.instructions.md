@@ -140,6 +140,8 @@ The model accessors (`EfDbModel<T>` and `EfDbMappedModel<...>`) expose two varia
 
 Querying: `Query(...)` returns a filtered `IQueryable<TModel>` (logical-delete and tenant filters already applied); `QueryTracked(...)` is the change-tracked variant. Materialize via the extensions `ToMappedItemsResultAsync<TSource, TItem>()` (→ `ItemsResult<TItem>` with paging/count), `ToMappedItemsAsync<...>()`, or `ToItemsResultAsync<TItem>()`.
 
+> **`cancellationToken` must be a named argument on `ToMappedItemsResultAsync`/`ToItemsResultAsync`.** Both signatures are `(mapper, paging = null, autoCount = true, cancellationToken = default)` — `autoCount` (`bool`) sits **before** `cancellationToken`. A bare positional `CancellationToken` in the third slot (e.g. `.ToMappedItemsResultAsync(mapper, paging, cancellationToken)`) binds to `autoCount` and fails to compile (`CS1503`). Always write `cancellationToken: cancellationToken` explicitly.
+
 Per-model behaviour is configured on `EfDbOptions` / `EfDbModelOptions`: `WithModel<T>(...)`, `WithLogicalDeleteFilter()`, `WithTenantFilter()`, `WithFilter(...)`, `WithGetKey(...)`, `WithArgs(...)`, `WithOnBeforeCreateOrUpdate(...)`, `WithUpdateModelMapper(...)`.
 
 ## Dynamic Query Configuration
@@ -191,6 +193,8 @@ Choose the `AddField` overload based on the contract property type:
 | `AddField<TEnum>(field, ...)` | Any `Enum` type | `Equal\|NotEqual\|In` | `.WithOperators(...)`, `.WithConverter(...)` |
 | `AddNullField(field, ...)` | Null/not-null check only (no value comparison) | `Equal\|NotEqual` (null semantics) | `.WithModelPrefix(...)` |
 | `AddReferenceDataField<TRef>(field, ...)` | Any `IReferenceData` type (resolved by code via orchestrator) | `EqualityOperators` (`eq`/`ne`/`in`) | `.MustBeActive(...)` |
+
+> **Reference data fields — don't investigate, apply the rule.** `AddReferenceDataField<TRef>(field, model, ...)`'s `field` argument is **always** the contract's generated navigation property name (`{Name}`, not `{Name}Code`) — a fixed Roslyn source-generator convention (`[ReferenceData<T>] public partial string? {Name}Code { get; set; }` → generated `{Name}` nav property), documented in [`coreex-contracts.instructions.md#reference-data-properties`](/.github/instructions/coreex-contracts.instructions.md#reference-data-properties). This is never something to confirm by reading generated `.g.cs` files or exploring generator internals — it's deterministic. The `model` argument is the underlying persistence/EF column holding the code value; ask the developer only if the persistence model renames it from the `{Name}Code` default.
 
 **Operator quick-reference** — use with `.WithOperators(...)` (combine flags with `|`):
 
@@ -245,7 +249,7 @@ public async Task<ItemsResult<Contracts.ProductLite>> QueryAsync(QueryArgs? quer
             Sku = x.Product.Sku,
             CategoryCode = x.CategoryCode,
             QtyOnHand = x.QtyOnHand
-        }, paging, cancellationToken)
+        }, paging, cancellationToken: cancellationToken)      // named — `autoCount` (bool) sits before `cancellationToken` in the signature; a bare positional token there fails to compile (CS1503)
         .ConfigureAwait(false);
 }
 ```
@@ -404,6 +408,7 @@ Always call `.ConfigureAwait(false)` on every `await` inside repository and adap
 
 - Do not reference the Infrastructure project from the Application layer — Infrastructure implements Application interfaces, not the other way around.
 - Do not use AutoMapper or reflection-based mappers — use `BiDirectionMapper<TFrom, TTo, TSelf>` with explicit `OnMap` overrides.
+- Do not call the mapper via an invented member name (`MapToEntity`, `MapToDto`, `.Default.Map(...)`) — the real call sites are `{Name}Mapper.To.Map(source)` (left→right) and `{Name}Mapper.From.Map(source)` (right→left); see [`coreex-conventions.instructions.md#when-unsure-of-a-coreex-api-member`](/.github/instructions/coreex-conventions.instructions.md#when-unsure-of-a-coreex-api-member) if unsure.
 - Do not call `HttpClient` directly in adapter methods — use the typed HTTP client class in `Clients/`.
 - Do not conflate Application-level mapping (aggregate ↔ contract) with Infrastructure-level mapping (contract ↔ persistence model).
 - Do not write raw `DbContext` queries for standard CRUD — use the `EfDb` delegate methods.

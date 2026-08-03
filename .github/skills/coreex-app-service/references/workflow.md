@@ -21,7 +21,7 @@ Full workflow for creating or modifying a CoreEx Application-layer service in `A
 | Cross-domain or external-service calls? | No | Yes → adapter interface + Path D |
 | Policy guard checks requiring I/O? | No | Yes → policy class + Path D |
 | Domain layer present? | No | Yes → `Application/Mapping/` mapper; affects Path B |
-| Read queries or collection results needed? | No | Yes → Path C (CQRS read service) |
+| Read queries or collection results needed? | No | Yes → Path C (CQRS read service) — **first** confirm `I{Name}Repository.QueryAsync`/`QuerySchemaAsync` already exist; if not, stop and invoke `coreex-repository` to add the `{Name}QueryArgsConfig` before building the read service |
 
 ---
 
@@ -282,6 +282,8 @@ return await OrchestrateUpdateAsync(id, entity => entity.{Action}(pr.Value))
 
 Split read operations from mutation operations. Both `{Name}Service` and `{Name}ReadService` expose `GetAsync` — this is **intentional**. Mutations + `GetAsync` belong to `{Name}Service`; queries and read-model shapes belong to `{Name}ReadService`.
 
+**Stop-and-check before C1:** `{Name}ReadService.QueryAsync`/`QuerySchemaAsync` are thin delegations straight to the repository (see C2) — they carry no filtering/ordering logic of their own. That logic lives entirely in the repository's `{Name}QueryArgsConfig`. Confirm `I{Name}Repository` already exposes `QueryAsync(QueryArgs?, PagingArgs?, ...)` and `QuerySchemaAsync(...)` backed by a `{Name}QueryArgsConfig`. If it doesn't yet, invoke `coreex-repository` first to add it — do not stub, hand-roll, or work around a missing repository query method here.
+
 ### C1 — Interface
 
 Create `Application/Interfaces/I{Name}ReadService.cs`:
@@ -418,3 +420,4 @@ if (pr.IsFailure)
 - **Do not reference Infrastructure from Application** — reach persistence and transport through Application interfaces only.
 - **Do not add Query to `{Name}Service`** — query/collection shapes belong exclusively in `{Name}ReadService`.
 - **Do not split the repository to mirror CQRS** — both services share one `I{Name}Repository` per data source.
+- **Do not build `{Name}ReadService.QueryAsync` against a repository that lacks it** — invoke `coreex-repository` to add the `{Name}QueryArgsConfig` first; the read service has no filtering/ordering logic of its own to fall back on.

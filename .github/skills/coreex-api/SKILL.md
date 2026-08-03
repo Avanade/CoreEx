@@ -45,6 +45,7 @@ Guides you through adding or modifying HTTP API endpoints in an `*.Api` host. Co
 5. MVC controllers or Minimal API?
 
 **Key rules at a glance:**
+- **If Q4 answer is "needs to be created":** stop before scaffolding the controller pair and invoke `coreex-app-service` (Path C — CQRS Read Service) to create `I{Name}ReadService`/`{Name}ReadService` first. Never shortcut by adding query/collection methods to the existing `I{Name}Service`/`{Name}Service`.
 - Inherit from `ControllerBase` — **never** `Controller` (that adds View support)
 - **CQRS split:** `{Name}Controller` (POST/PUT/PATCH/DELETE → `I{Name}Service`) + `{Name}ReadController` (GET/query → `I{Name}ReadService`). Both use the **same route** and **same `[OpenApiTag]`** so they appear as one OpenAPI group
 - All action methods return `Task<IActionResult>` via the `WebApi` helper — never `ActionResult<T>` directly

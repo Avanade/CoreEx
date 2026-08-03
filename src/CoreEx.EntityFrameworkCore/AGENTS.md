@@ -13,7 +13,7 @@ builder.Services
 
 ## EfDb — Entry Point
 
-Inject `EfDb<TDbContext>` (or your `IEfDb<TDbContext>`) into repositories. Access typed CRUD via `Model<TModel>()`.
+Inject `EfDb<TDbContext>` (or your `IEfDb<TDbContext>`) into repositories. Access typed CRUD via `Model<TModel>()` — this is for the case where the domain/contract type **is** the EF persistence model type (no separate mapper needed); `GetAsync`/`CreateAsync`/`UpdateAsync`/`DeleteAsync` take no mapper parameter:
 
 ```csharp
 [ScopedService<IProductRepository>]
@@ -21,36 +21,49 @@ public class ProductRepository(EfDb<MyDbContext> efDb) : IProductRepository
 {
     private readonly EfDbModel<ProductModel> _model = efDb.Model<ProductModel>();
 
-    public Task<Product?> GetAsync(Guid id, CancellationToken ct = default) =>
-        _model.GetAsync(new EfDbArgs(OperationType.Get), id, ProductMapper.Default.MapToEntity, ct);
+    public Task<ProductModel?> GetAsync(Guid id, CancellationToken ct = default) => _model.GetAsync(id, ct);
 
-    public Task<Product> CreateAsync(Product product, CancellationToken ct = default) =>
-        _model.CreateAsync(new EfDbArgs(OperationType.Create), product, ProductMapper.Default, ct);
+    public Task<DataResult<ProductModel>> CreateAsync(ProductModel product, CancellationToken ct = default) => _model.CreateAsync(product, ct);
 }
 ```
 
 ## Mapped Model (Separate EF Model Type)
 
-Use `EfDbMappedModel<TValue, TModel, TMapper>` when the domain entity type differs from the EF persistence model type.
+Use `EfDbMappedModel<TValue, TModel, TMapper>` when the domain/contract type (`TValue`) differs from the EF persistence model type (`TModel`). Construct it once — typically as a property on your `EfDb<TDbContext>` subclass — via `Model<TModel>().ToMappedModel<TValue, TMapper>(mapper)`. `TMapper` must be an `IBiDirectionMapper<TValue, TModel>` (see [`CoreEx.Mapping`](../CoreEx/Mapping/README.md)); once mapped, `GetAsync`/`CreateAsync`/`UpdateAsync`/`DeleteAsync` still take **no mapper parameter** — the mapper is already bound via the generic type:
 
 ```csharp
-private readonly EfDbMappedModel<Order, OrderModel, OrderMapper> _model =
-    efDb.Model<Order, OrderModel, OrderMapper>();
+public sealed class MyEfDb(MyDbContext dbContext) : EfDb<MyDbContext>(dbContext, _options)
+{
+    private static readonly EfDbOptions _options = new EfDbOptions().WithModel<ProductModel>(m => m.WithLogicalDeleteFilter());
+
+    public EfDbMappedModel<Product, ProductModel, ProductMapper> Products => Model<ProductModel>().ToMappedModel<Product, ProductMapper>(ProductMapper.Default);
+}
+
+public class ProductRepository(MyEfDb ef) : IProductRepository
+{
+    public Task<Product?> GetAsync(Guid id, CancellationToken ct = default) => ef.Products.GetAsync(id, ct);
+
+    public Task<DataResult<Product>> CreateAsync(Product product, CancellationToken ct = default) => ef.Products.CreateAsync(product, ct);
+}
 ```
 
 ## Dynamic Query with Paging
 
-Use `Query(args)` for paged, filtered list endpoints. Combine with `EfDbExtensions.ToItemsResultAsync`.
+Get the underlying `IQueryable<TModel>` via `Model.Query()`, apply the parsed `QueryArgsConfig<TSelf>` filter/order (see [`CoreEx.Data`](../CoreEx.Data/AGENTS.md)), then materialize with `ToMappedItemsResultAsync`.
+
+> **Always pass `cancellationToken` as a named argument.** `ToMappedItemsResultAsync`'s signature is `(mapper, paging = null, autoCount = true, cancellationToken = default)` — `autoCount` (`bool`) sits *before* `cancellationToken`. A bare positional `CancellationToken` argument in the third slot lands on `autoCount` and fails to compile (`CS1503`). Use `cancellationToken: cancellationToken` explicitly, every time.
 
 ```csharp
-private static readonly QueryArgsConfig _queryConfig = QueryArgsConfig.Create()
-    .WithFilter(f => f.AddField<string>(nameof(ProductModel.Status)))
-    .WithOrderBy(o => o.AddField(nameof(ProductModel.Name)).WithDefault("Name"));
+public async Task<ItemsResult<ProductLite>> QueryAsync(QueryArgs? query, PagingArgs? paging, CancellationToken cancellationToken = default)
+{
+    var parsed = ProductQueryArgsConfig.Default.Parse(query).ThrowOnError();
 
-public Task<ItemsResult<Product>> GetAllAsync(QueryArgs? args, PagingArgs? paging,
-    CancellationToken ct = default)
-    => _model.Query(new EfDbArgs(args ?? new QueryArgs(), _queryConfig, paging))
-             .ToMappedItemsResultAsync(ProductMapper.Default.MapToEntity, ct);
+    return await ef.Products.Model.Query()
+        .Where(parsed)
+        .OrderBy(parsed)
+        .ToMappedItemsResultAsync(m => ProductMapper.From.Map(m), paging, cancellationToken: cancellationToken)
+        .ConfigureAwait(false);
+}
 ```
 
 ## ValueConverter Bridge

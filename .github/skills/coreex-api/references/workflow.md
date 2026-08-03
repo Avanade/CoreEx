@@ -22,6 +22,8 @@ Full workflow for adding or modifying HTTP API endpoints in a CoreEx `*.Api` hos
 | Read service (`I{Name}ReadService`) already exists? | Ask | Controllers cannot be written without a service to delegate to |
 | MVC controllers or Minimal API? | MVC | MVC for most projects; Minimal API for lighter hosts — see Step 7 |
 
+**Gate — do not skip:** if the CQRS split calls for a `{Name}ReadController` (any GET/query/`$query` endpoint being added or moved) and `I{Name}ReadService`/`{Name}ReadService` does not already exist, **stop before Step 1** and invoke [`coreex-app-service`](../../coreex-app-service/SKILL.md) (Path C — CQRS Read Service) to create the read service pair first. Never add query/collection methods to the existing `I{Name}Service`/`{Name}Service` as a shortcut, and never write `{Name}ReadController` against a service that doesn't exist yet — only the by-id `GetAsync` may legitimately live on both. Resume the controller work once the read service exists.
+
 ---
 
 ## Step 1 — Scaffold the Controller Pair
@@ -339,6 +341,7 @@ All the same rules apply: `.Required()` on route params, no business logic in ha
 
 1. `dotnet build` — no errors or warnings.
 2. Confirm both `{Name}Controller` and `{Name}ReadController` share the same `[Route]` and `[OpenApiTag]`.
+2a. Confirm `{Name}ReadController` delegates to a real, separately-defined `I{Name}ReadService`/`{Name}ReadService` (created via `coreex-app-service` Path C) — not a query method bolted onto the existing `I{Name}Service`/`{Name}Service`.
 3. Every route parameter uses `.Required()` — search for `.ThrowIfNull()` on route params and replace.
 4. POST endpoints have `[IdempotencyKey]` (or user has explicitly declined it).
 5. PUT + PATCH are both present for full-entity update (unless partial-update is the explicit ask).
