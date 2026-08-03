@@ -29,12 +29,6 @@ public readonly struct StringBase64Converter : IConverter<string?, byte[]?>
     public IValueConverter<byte[]?, string?> ToSource => _convertToSource;
 
     /// <inheritdoc />
-    public readonly object? ConvertToDestination(object? source) => ConvertToDestination((string?)source);
-
-    /// <inheritdoc />
-    public readonly object? ConvertToSource(object? destination) => ConvertToSource((byte[]?)destination);
-
-    /// <inheritdoc />
     public readonly byte[]? ConvertToDestination(string? source) => ToDestination.Convert(source);
 
     /// <inheritdoc />

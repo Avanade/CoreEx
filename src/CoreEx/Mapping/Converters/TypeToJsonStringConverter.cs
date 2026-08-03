@@ -30,12 +30,6 @@ public readonly struct TypeToJsonStringConverter<T> : IConverter<T, string?>
     public IValueConverter<string?, T> ToSource => _convertToSource;
 
     /// <inheritdoc />
-    public readonly object? ConvertToDestination(object? source) => ConvertToDestination((T)source!);
-
-    /// <inheritdoc />
-    public readonly object? ConvertToSource(object? destination) => ConvertToSource((string?)destination);
-
-    /// <inheritdoc />
     public readonly string? ConvertToDestination(T source) => ToDestination.Convert(source);
 
     /// <inheritdoc />
