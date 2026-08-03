@@ -30,7 +30,7 @@ public partial class Basket : ModelBase<string>
     /// <summary>Gets or sets the value of the '<c>Total</c>' column (type '<c>DECIMAL(18, 2)</c>').</summary>
     public decimal Total { get; set; }
 
-    /// <summary>Gets or sets the value of the '<c>ShippingAddressJson</c>' column (type '<c>NVARCHAR(2000) NULL</c>').</summary>
+    /// <summary>Gets or sets the value of the '<c>ShippingAddressJson</c>' column (type '<c>NVARCHAR(MAX) NULL</c>').</summary>
     public Persistence.Address? ShippingAddress { get; set; }
 }
 

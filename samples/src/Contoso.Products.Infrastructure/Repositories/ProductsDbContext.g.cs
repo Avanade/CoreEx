@@ -168,12 +168,12 @@ public partial class ProductsDbContext
             e.Property(p => p.Price).HasColumnName("price").HasColumnType("NUMERIC(18, 2)");
             e.Property(p => p.IsInactive).HasColumnName("is_inactive").HasColumnType("BOOLEAN");
             e.Property(p => p.IsNonStocked).HasColumnName("is_non_stocked").HasColumnType("BOOLEAN");
+            e.Property(p => p.Tags).HasColumnName("tags_json").HasColumnType("JSONB").HasConversion(TypeToJsonStringEfConverter<List<string>?>.Default);
             e.Property(p => p.CreatedBy).HasColumnName("created_by").HasColumnType("CHARACTER VARYING(250)");
             e.Property(p => p.CreatedOn).HasColumnName("created_on").HasColumnType("TIMESTAMP WITH TIME ZONE");
             e.Property(p => p.UpdatedBy).HasColumnName("updated_by").HasColumnType("CHARACTER VARYING(250)");
             e.Property(p => p.UpdatedOn).HasColumnName("updated_on").HasColumnType("TIMESTAMP WITH TIME ZONE");
             e.Property(p => p.ETag).HasColumnName("xmin").HasColumnType("XID").IsRowVersion().HasConversion(ValueConverterBridge.Create<string?, uint>(BaseDatabase.RowVersionConverter));
-            e.Property(p => p.Tags).HasColumnName("tags_json").HasColumnType("JSONB").HasConversion(TypeToJsonStringEfConverter<List<string>?>.Default);
             e.Property(p => p.IsDeleted).HasColumnName("is_deleted").HasColumnType("BOOLEAN");
         });
     }
