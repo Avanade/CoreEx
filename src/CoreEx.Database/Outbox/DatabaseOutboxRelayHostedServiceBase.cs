@@ -57,7 +57,7 @@ public abstract class DatabaseOutboxRelayHostedServiceBase(IServiceProvider serv
         PartitionSize = Internal.GetConfigurationValueWithFallback<int>($"CoreEx:Host:Services:{ServiceConfigurationSectionName}:OutboxRelay:PartitionSize", "CoreEx:Host:Services:OutboxRelay:PartitionSize", PartitionKey.DefaultPartitionSize, Configuration);
         PerWorkerPartitionCount = Internal.GetConfigurationValueWithFallback<int>($"CoreEx:Host:Services:{ServiceConfigurationSectionName}:OutboxRelay:PerWorkerPartitionCount", "CoreEx:Host:Services:OutboxRelay:PerWorkerPartitionCount", 6, Configuration);
 
-        _partitionPicker = new PartitionPicker(PartitionKey.DefaultPartitionSize, PerWorkerPartitionCount);
+        _partitionPicker = new PartitionPicker(PartitionSize, PerWorkerPartitionCount);
 
         if (Logger.IsEnabled(LogLevel.Information))
             Logger.LogInformation("{ServiceName} settings: BatchSize={BatchSize}, LeaseDuration={LeaseDuration}, BackOffDuration={BackOffDuration}, PartitionSize={PartitionSize}, PerWorkerPartitionCount={PerWorkerPartitionCount}",
