@@ -178,6 +178,65 @@ $testScenarios = @(
         Build      = $true
     },
     @{
+        Name        = "coreex-postgres-multiword"
+        Template    = "coreex"
+        ProjectName = "Contoso.ProductCatalog"
+        Parameters  = @{
+            "data-provider"      = "Postgres"
+            "messaging-provider" = "ServiceBus"
+            "refdata-enabled"    = "true"
+            "outbox-enabled"     = "true"
+            "rop-enabled"        = "false"
+        }
+        TestPath    = "test-coreex-postgres-multi"
+        Verify      = @{
+            # Migration filenames must be kebab-case; schema identifiers inside must be snake_case.
+            FilesPresent     = @(
+                "tools/Contoso.ProductCatalog.Database/Migrations/*-create-product-catalog-schema.pgsql"
+                "tools/Contoso.ProductCatalog.Database/Migrations/*-create-product-catalog-outbox-tables.pgsql"
+            )
+            FileContains     = @{
+                "tools/Contoso.ProductCatalog.Database/dbex.yaml"               = "schema: product_catalog"
+                "tools/Contoso.ProductCatalog.Database/Program.cs"              = '"product_catalog"'
+                "tools/Contoso.ProductCatalog.Database/Data/ref-data.seed.yaml" = "product_catalog:"
+            }
+            GlobFileContains = @{
+                "tools/Contoso.ProductCatalog.Database/Migrations/*-create-product-catalog-schema.pgsql"        = '"product_catalog"'
+                "tools/Contoso.ProductCatalog.Database/Migrations/*-create-product-catalog-outbox-tables.pgsql" = '"product_catalog"."outbox"'
+            }
+        }
+        Build       = $false
+    },
+    @{
+        Name        = "coreex-sqlserver-multiword"
+        Template    = "coreex"
+        ProjectName = "Contoso.ProductCatalog"
+        Parameters  = @{
+            "data-provider"      = "SqlServer"
+            "messaging-provider" = "ServiceBus"
+            "refdata-enabled"    = "true"
+            "outbox-enabled"     = "true"
+            "rop-enabled"        = "false"
+        }
+        TestPath    = "test-coreex-sqlserver-multi"
+        Verify      = @{
+            # Migration filenames must be kebab-case; schema identifiers inside must be PascalCase.
+            FilesPresent     = @(
+                "tools/Contoso.ProductCatalog.Database/Migrations/*-create-product-catalog-schema.sql"
+                "tools/Contoso.ProductCatalog.Database/Migrations/*-create-product-catalog-outbox-tables.sql"
+            )
+            FileContains     = @{
+                "tools/Contoso.ProductCatalog.Database/dbex.yaml"  = "schema: ProductCatalog"
+                "tools/Contoso.ProductCatalog.Database/Program.cs" = '"ProductCatalog"'
+            }
+            GlobFileContains = @{
+                "tools/Contoso.ProductCatalog.Database/Migrations/*-create-product-catalog-schema.sql"        = "[ProductCatalog]"
+                "tools/Contoso.ProductCatalog.Database/Migrations/*-create-product-catalog-outbox-tables.sql" = "[ProductCatalog].[Outbox]"
+            }
+        }
+        Build       = $false
+    },
+    @{
         Name       = "coreex-no-data-provider"
         Template   = "coreex"
         Parameters = @{
@@ -342,6 +401,23 @@ function Invoke-Assertion {
             }
         }
     }
+
+    if ($Verify.GlobFileContains) {
+        foreach ($pattern in $Verify.GlobFileContains.Keys) {
+            $fullGlob = Join-Path $TestDir $pattern
+            $matched = Get-ChildItem $fullGlob -ErrorAction SilentlyContinue | Select-Object -First 1
+            $needle = $Verify.GlobFileContains[$pattern]
+            if (-not $matched) {
+                Write-Fail "NO FILE MATCHING: $pattern"
+                $Failures.Value += "No file matching glob: $pattern"
+            } elseif ((Get-Content $matched.FullName -Raw).Contains($needle)) {
+                Write-Pass "Content '$needle': $($matched.Name)"
+            } else {
+                Write-Fail "CONTENT NOT FOUND '$needle' in $($matched.Name)"
+                $Failures.Value += "Expected '$needle' in glob-matched file: $pattern"
+            }
+        }
+    }
 }
 
 try {
@@ -424,7 +500,8 @@ try {
             New-Item -ItemType Directory -Path $testDir -Force | Out-Null
 
             # Scaffold
-            $args = @("new", $scenario.Template, "--output", $testDir, "--name", "App", "--no-update-check")
+            $projectName = if ($scenario.ProjectName) { $scenario.ProjectName } else { "App" }
+            $args = @("new", $scenario.Template, "--output", $testDir, "--name", $projectName, "--no-update-check")
             foreach ($kv in $scenario.Parameters.GetEnumerator()) {
                 $args += "--$($kv.Key)"
                 if ($kv.Value -ne "") { $args += $kv.Value }

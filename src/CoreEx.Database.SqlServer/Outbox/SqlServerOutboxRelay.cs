@@ -11,7 +11,7 @@ public class SqlServerOutboxRelay(SqlServerDatabase database, IEventPublisher ev
 {
     /// <summary><inheritdoc/></summary>
     /// <param name="schema"><inheritdoc/></param>
-    /// <remarks>The <paramref name="schema"/> is used to qualify the stored procedure names. The by-convention names used are as follows:
+    /// <remarks>The <paramref name="schema"/> (defaults to the <see cref="IHostSettings.DomainName"/>) is used to qualify the stored procedure names. The by-convention names used are as follows:
     /// <list type="bullet">
     /// <item><description><see cref="DatabaseOutboxRelayBase{TDatabase, TSelf}.ClaimBatchStatement"/> = '<c>[schema].[spOutboxBatchClaim]</c>'</description></item>
     /// <item><description><see cref="DatabaseOutboxRelayBase{TDatabase, TSelf}.CompleteBatchStatement"/> = '<c>[schema].[spOutboxBatchComplete]</c>'</description></item>

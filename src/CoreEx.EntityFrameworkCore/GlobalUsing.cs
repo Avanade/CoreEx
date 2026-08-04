@@ -1,5 +1,6 @@
 global using CoreEx;
 global using CoreEx.Abstractions;
+global using CoreEx.Json;
 global using CoreEx.Data;
 global using CoreEx.Database;
 global using CoreEx.Database.Abstractions;
