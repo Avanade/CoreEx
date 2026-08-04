@@ -50,6 +50,8 @@ Guides you through creating or modifying a CoreEx Infrastructure-layer repositor
 - `*WithResultAsync` variants for `Result<T>` ROP pipelines (per-project style choice)
 - `BiDirectionMapper`: override **both** `OnMap` overloads; map `Id` explicitly; **never** map `ETag` or `ChangeLog` — base mapper owns them
 - `QueryArgsConfig<TSelf>`: create a dedicated `{Name}QueryArgsConfig : QueryArgsConfig<{Name}QueryArgsConfig>` class per entity in `Infrastructure/Repositories/`; access via `.Default`; call `.Parse(query).ThrowOnError()` before use — never instantiate per-request
+- `AddReferenceDataField<TRef>(field, model, ...)`: `field` is always the contract's generated nav property (`{Name}`, never `{Name}Code`) — a fixed, documented source-generator convention, **not** something to verify by exploring generated code
+- `ToMappedItemsResultAsync(mapper, paging, cancellationToken: cancellationToken)`: always pass `cancellationToken` **by name** — `autoCount` (`bool`, defaults `true`) sits before it in the signature, and a bare positional token there fails to compile
 - Always `.ConfigureAwait(false)` on every `await`
 
 For full workflow and code examples see [`references/workflow.md`](references/workflow.md).

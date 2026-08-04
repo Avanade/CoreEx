@@ -29,6 +29,10 @@ since refreshing now means "re-install the matching release," not "re-fetch `mai
 Do not run this inside the CoreEx repository itself — the docs are already present locally at
 `samples/docs/` and `src/*/AGENTS.md`, and there is no NuGet-referenced version to pin to.
 
+**After a refresh that adds/removes/renames a skill, restart your AI client** (not just start a new
+session) — most clients load their skill catalog once at startup, so a newly added or renamed skill
+folder under `.github/skills/coreex-*/` may not show up until the app itself is restarted.
+
 ## How to invoke
 
 **Claude Code:**

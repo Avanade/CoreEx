@@ -35,13 +35,8 @@ builder.Services.AddCoreExGraphQLLite((o, sp) =>
 {
     o.AddQuery<ProductLite>("products", ProductQueryArgsConfig.Default,
             async (qa, pa, ct) => await CoreEx.ExecutionContext.GetRequiredService<IProductReadService>().QueryAsync(qa, pa, ct).ConfigureAwait(false))
-     .AddGet<Product>("product", (args, ct) =>
-     {
-         if (!args.TryGetValue("id", out var id) || id is not string { Length: > 0 } idValue)
-             throw new ArgumentException("'id' argument is required and must be a non-empty string.", nameof(args));
-
-         return CoreEx.ExecutionContext.GetRequiredService<IProductReadService>().GetAsync(idValue, ct);
-     });
+     // GetIdentifier<TId> validates the named argument (default "id") for presence and type (it casts to TId, it does not convert) and throws an ArgumentException, mapped by the engine to ARGUMENT_ERROR, if missing/empty/wrong-typed.
+     .AddGet<Product>("product", (args, ct) => CoreEx.ExecutionContext.GetRequiredService<IProductReadService>().GetAsync(args.GetIdentifier<string>(), ct));
 });
 
 // ... after app.MapControllers():
@@ -66,13 +61,8 @@ One `AddQuery<T>`/`AddGet<T>` pair per entity, bridging to its **existing** `Que
 ```csharp
 o.AddQuery<{Entity}Lite>("{entities}", {Entity}QueryArgsConfig.Default,
         async (qa, pa, ct) => await CoreEx.ExecutionContext.GetRequiredService<I{Entity}ReadService>().QueryAsync(qa, pa, ct).ConfigureAwait(false))
- .AddGet<{Entity}>("{entity}", (args, ct) =>
- {
-     if (!args.TryGetValue("id", out var id) || id is not string { Length: > 0 } idValue)
-         throw new ArgumentException("'id' argument is required and must be a non-empty string.", nameof(args));
-
-     return CoreEx.ExecutionContext.GetRequiredService<I{Entity}ReadService>().GetAsync(idValue, ct);
- });
+ // GetIdentifier<TId> validates the named argument (default "id") for presence and type (it casts to TId, it does not convert) and throws an ArgumentException, mapped by the engine to ARGUMENT_ERROR, if missing/empty/wrong-typed.
+ .AddGet<{Entity}>("{entity}", (args, ct) => CoreEx.ExecutionContext.GetRequiredService<I{Entity}ReadService>().GetAsync(args.GetIdentifier<string>(), ct));
 ```
 
 **When triggered from `coreex-api`:** after that skill adds a REST GET/Query endpoint pair, and the host already has GraphQL enabled, offer to add the matching root here in the same session rather than requiring a separate invocation.

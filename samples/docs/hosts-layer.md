@@ -73,14 +73,8 @@ paging, and field-selection behavior because they drive the exact same underlyin
 builder.Services.AddCoreExGraphQLLite((o, sp) =>
 {
     o.AddQuery<ProductLite>("products", ProductQueryArgsConfig.Default, async (qa, pa, ct) => await CoreEx.ExecutionContext.GetRequiredService<IProductReadService>().QueryAsync(qa, pa, ct).ConfigureAwait(false))
-     .AddGet<Product>("product", (args, ct) =>
-     {
-         // Validate explicitly rather than an indexer + null-forgiving lookup, so a missing/empty 'id' throws an ArgumentException, mapped by the engine to ARGUMENT_ERROR.
-         if (!args.TryGetValue("id", out var id) || id is not string { Length: > 0 } idValue)
-             throw new ArgumentException("'id' argument is required and must be a non-empty string.", nameof(args));
-
-         return CoreEx.ExecutionContext.GetRequiredService<IProductReadService>().GetAsync(idValue, ct);
-     });
+     // GetIdentifier<TId> validates the named argument (default "id") for presence and type (it casts to TId, it does not convert) and throws an ArgumentException, mapped by the engine to ARGUMENT_ERROR, if missing/empty/wrong-typed.
+     .AddGet<Product>("product", (args, ct) => CoreEx.ExecutionContext.GetRequiredService<IProductReadService>().GetAsync(args.GetIdentifier<string>(), ct));
 });
 
 // ...

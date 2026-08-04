@@ -185,6 +185,8 @@ Collect the following from the developer. **AI cannot infer field selection, ope
 | Model/LINQ name if different from the contract name | Needed when the persistence column name differs (e.g., `Category` → `CategoryCode`) |
 | Model prefix (e.g., `"Product"`) if using a join projection | Required when LINQ expressions must qualify via `Product.Sku`, `Product.Text`, etc. |
 
+> **Reference data fields — don't investigate, apply the rule.** For a reference-data-backed field, `AddReferenceDataField<TRef>(field, model, ...)`'s `field` argument is **always** the contract's generated navigation property name (`{Name}`, not `{Name}Code`) — a fixed Roslyn source-generator convention (`[ReferenceData<T>] public partial string? {Name}Code { get; set; }` → generated `{Name}` nav property), documented in [`coreex-contracts.instructions.md#reference-data-properties`](/.github/instructions/coreex-contracts.instructions.md#reference-data-properties). This is never something to confirm by reading generated `.g.cs` files or exploring generator internals — it's deterministic. The `model` argument is the underlying persistence/EF column holding the code value; ask the developer only if the persistence model renames it from the `{Name}Code` default.
+
 **Step 3 — For each order-by field (only if ordering = yes):**
 
 | Question | Why it matters |
@@ -279,7 +281,7 @@ public async Task<ItemsResult<Contracts.{Name}Lite>> QueryAsync(QueryArgs? query
         {
             Id = x.{Name}.Id,
             // ... project fields
-        }, paging, cancellationToken)
+        }, paging, cancellationToken: cancellationToken)      // named — ToMappedItemsResultAsync's `autoCount` (bool) sits before `cancellationToken`; a bare positional token lands on autoCount and fails to compile (CS1503)
         .ConfigureAwait(false);
 }
 ```

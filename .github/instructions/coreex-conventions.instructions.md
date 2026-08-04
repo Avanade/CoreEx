@@ -157,6 +157,7 @@ public async Task<Employee> CreateAsync(Employee value, CancellationToken cancel
 - **Controllers / Minimal-API handlers** take a `CancellationToken` parameter (ASP.NET binds/injects it), pass it to the `WebApi` helper via `cancellationToken:`, and use the helper lambda's `ct` for the service call — see `coreex-api-controllers.instructions.md`.
 - **Interfaces** declare the parameter too, so implementations and callers can honour it (`Task<T> GetAsync(string id, CancellationToken cancellationToken = default);`).
 - **Tests** are the exception — `Test.Scoped(...)` / the `WebApi` lambda supply the token; you don't manufacture one.
+- **When calling any method with more than one optional parameter after the token's usual slot, pass `cancellationToken` by name, not position.** Several CoreEx extensions (e.g. `ToMappedItemsResultAsync`/`ToItemsResultAsync` — `(mapper, paging = null, autoCount = true, cancellationToken = default)`) have a `bool` parameter sitting between the common arguments and `cancellationToken`. A bare positional token there binds to the `bool` instead and fails to compile — write `cancellationToken: cancellationToken` explicitly whenever a call has 3+ optional parameters, rather than assuming it's always last positionally.
 
 ## XML Documentation Comments
 
@@ -195,6 +196,27 @@ public class EmployeeService(IUnitOfWork unitOfWork, IEmployeeRepository reposit
 }
 ```
 
+## When Unsure of a CoreEx API Member
+
+CoreEx's singleton/static call-site patterns (`Default`, `To`/`From`, static `Map`) look similar across types but differ in real, specific ways. **Never invent a plausible-sounding member name under uncertainty** — `MapToEntity`, `MapToDto`, `OnMapToPrimary`/`OnMapToSecondary`, and similar guesses do not exist on any CoreEx mapper type, and guessing wastes a compile-fail round-trip at best and silently ships broken code at worst.
+
+**Resolution order when unsure of an exact member/signature:**
+
+1. Check the relevant `.github/instructions/coreex-*.instructions.md` file first — the call pattern for every commonly-used type is already documented with a working example (see the quick-reference table below for the most frequently guessed ones).
+2. If still unsure, **just build** — a `CS1061`/`CS0117` ("no such member") is fast, authoritative, and reflects the *actually-restored* package version. Prefer this over speculative research.
+3. Check the docs-sync cache (`.github/docs/coreex/*.md`, after `/coreex-docs-sync`) if present.
+4. Only as a last resort, inspect CoreEx source directly — either the restored NuGet package (decompile, or `~/.nuget/packages/coreex*/<version>/`) or the GitHub repo. If using GitHub, **verify the tag/branch matches the installed package version** — `main` can be ahead of or behind what's actually referenced; do not assume it's current, and do not guess at file paths (e.g. the 3-generic-argument singleton mapper base lives in `BiDirectionMapperT3.cs`, not `BiDirectionMapper.cs`).
+5. If still unresolved, ask the developer rather than fabricate a member name.
+
+**Quick reference — exact call patterns (do not substitute a guessed name):**
+
+| Type | Override | Call site |
+|---|---|---|
+| `BiDirectionMapper<TSource, TDestination, TSelf>` | Two `OnMap` overloads, same name, distinguished by source type — **not** `OnMapToPrimary`/`OnMapToSecondary` | `{Name}Mapper.To.Map(source)` (left→right), `{Name}Mapper.From.Map(source)` (right→left) — **not** `MapToEntity`/`MapToDto`/`.Default.Map(...)` |
+| `Mapper<TSource, TDestination, TSelf>` (uni-directional) | One `OnMap(TSource)` | `{Name}Mapper.Map(source)` — static, directly on the mapper class, **not** `.Default.Map(...)` |
+| `Validator<T, TSelf>` | Declarative rules / `OnValidateAsync` | `{Name}Validator.Default.ValidateAndThrowAsync(...)` / `.ValidateWithResultAsync(...)` — **never** bare `.ValidateAsync(...)` |
+| `QueryArgsConfig<TSelf>` | Constructor-only `WithFilter`/`WithOrderBy` | `{Name}QueryArgsConfig.Default.Parse(query).ThrowOnError()` — never instantiate per-request |
+
 ## Private Field Naming
 
 Private instance fields are always prefixed with `_`. No exceptions.
@@ -218,7 +240,9 @@ private readonly ILogger<ProductService> _logger;
 - Do not use `DateTime.UtcNow` or `DateTimeOffset.UtcNow` — use `Runtime.UtcNow` (or `Runtime.UtcNow.UtcDateTime` for a `DateTime`).
 - Do not use `Guid.NewGuid()` — use `Runtime.NewGuid()`.
 - Do not omit or drop `CancellationToken` — every `async`/`Task`-returning method takes one (`CancellationToken cancellationToken = default`, last parameter) and passes it to every downstream awaitable call.
+- Do not pass `cancellationToken` positionally to a method with 3+ optional parameters (e.g. `ToMappedItemsResultAsync`/`ToItemsResultAsync`) — pass it as `cancellationToken:` by name; a bare positional token can silently bind to an unrelated `bool` parameter (e.g. `autoCount`) and fail to compile.
 - Do not replace a private backing field with an auto-property simply because it could be one — backing fields are a valid developer choice.
 - Do not leave interface members or contract properties undocumented — each gets a `<summary>`.
 - Do not invert the doc convention — summaries go on **interfaces and contract properties**; the **implementing** class member gets `<inheritdoc/>` (not a fresh summary). Summarising the concrete class while leaving the interface/contract undocumented is backwards.
 - Do not leave a private method undocumented — it still needs a `<summary>` (params/returns optional), unless it's a test helper in a `*.Test*` project.
+- Do not invent a plausible-sounding CoreEx member name when unsure (`MapToEntity`, `OnMapToPrimary`/`OnMapToSecondary`, etc.) — check the relevant instructions file, then just build (a compile error is authoritative), before ever searching GitHub blind.

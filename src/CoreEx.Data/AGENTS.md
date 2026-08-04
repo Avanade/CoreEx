@@ -41,10 +41,12 @@ private static readonly QueryArgsConfig _queryConfig = QueryArgsConfig.Create()
         .WithDefault($"{nameof(Order.CreatedOn)} desc"));
 
 // In the repository
-public async Task<ItemsResult<Order>> GetAllAsync(QueryArgs args, CancellationToken ct = default)
-    => await _efDb.Model<OrderModel>()
-        .Query(new EfDbArgs(args, _queryConfig))
-        .ToItemsResultAsync(MapToEntity, ct).ConfigureAwait(false);
+public async Task<ItemsResult<Order>> GetAllAsync(QueryArgs args, PagingArgs? paging, CancellationToken cancellationToken = default)
+    => await _efDb.Model<OrderModel>().Query()
+        .Where(_queryConfig, args)
+        .OrderBy(_queryConfig, args)
+        .ToItemsResultAsync(paging, cancellationToken: cancellationToken)     // named — autoCount (bool) sits before cancellationToken
+        .ConfigureAwait(false);
 ```
 
 ## DataResult
