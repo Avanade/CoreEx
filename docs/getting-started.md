@@ -10,6 +10,35 @@ By the end you'll have a running, fully tested CoreEx microservice as a foundati
 
 ---
 
+## Contents
+
+**Setup**
+- [Prerequisites](#prerequisites)
+- [Walk-through](#walk-through)
+
+**Core walkthrough**
+- [1. Create and enter your solution folder](#1-create-and-enter-your-solution-folder)
+- [2. Install the template pack](#2-install-the-template-pack)
+- [3. Install AI workflow assets](#3-install-ai-workflow-assets)
+- [4. Scaffold the solution](#4-scaffold-the-solution)
+- [5. Start the infrastructure](#5-start-the-infrastructure)
+- [6. Open your IDE and AI tooling](#6-open-your-ide-and-ai-tooling)
+- [7–9. Bring your domain to life](#79-bring-your-domain-to-life)
+- [7. Implement your first entity and API host](#7-implement-your-first-entity-and-api-host)
+- [8. Add an Outbox Relay host](#8-add-an-outbox-relay-host)
+- [9. Add a Subscribe host](#9-add-a-subscribe-host)
+- [10. Build and test](#10-build-and-test)
+
+**Going further (optional)**
+- [11. Add an Employee query endpoint](#11-add-an-employee-query-endpoint)
+- [12. Add GraphQL query support](#12-add-graphql-query-support)
+
+**Reference**
+- [What's next](#whats-next)
+- [Alternative: AI-guided scaffold](#alternative-ai-guided-scaffold)
+
+---
+
 ## Prerequisites
 
 | Requirement | Notes |
@@ -258,6 +287,58 @@ dotnet build
 dotnet test tests/Avanade.Hr.People.Test.Unit   # fast, no infrastructure required
 dotnet test                                      # all tests — requires containers + database
 ```
+
+At this point you have a complete, fully tested CoreEx microservice — CRUD API, Outbox Relay, and Subscribe host, all green. Everything from here is optional: two further extensions that build on the Employee entity you already have.
+
+> **Note:** The [walk-through video](#walk-through) above covers steps 1–10 only; it predates steps 11 and 12 below.
+
+---
+
+## Going further (optional)
+
+## 11. Add an Employee query endpoint
+
+### AI-assisted (recommended)
+
+> Paste the following into GitHub Copilot (Agent mode) or Claude Code. It invokes the `coreex-api` skill to add a paged, filterable, sortable query endpoint for the existing Employee entity.
+
+```
+/coreex-api
+
+Create a query endpoint for the Employee.
+Support paging.
+Support the following filter properties:
+- LastName - either EQ or StartsWith (case insensitive)
+- Gender - standard
+Support the following ordering properties (use all three as the default in sequence specified):
+- LastName
+- FirstName
+- Id
+```
+
+This invokes the [`coreex-api`](https://github.com/Avanade/CoreEx/blob/main/.github/skills/coreex-api/SKILL.md) skill, which scaffolds the `{Entity}ReadService`/`{Entity}ReadController` CQRS read pair and the underlying `QueryArgsConfig<TSelf>` filter/order configuration on the repository — following the same interview-first pattern used in step 7.
+
+### Manual alternative
+
+Follow the query pattern in the [Pattern Catalog](https://github.com/Avanade/CoreEx/blob/main/samples/docs/patterns.md) by hand: add an `EmployeeQueryArgsConfig` under `Infrastructure/Repositories/`, a `QueryAsync` method on the repository and `IEmployeeReadService`, and a matching `QueryAsync` action on `EmployeeReadController`. See `ProductQueryArgsConfig`/`ProductRepository` in the [Contoso samples](https://github.com/Avanade/CoreEx/tree/main/samples) for a worked example.
+
+---
+
+## 12. Add GraphQL query support
+
+### AI-assisted (recommended)
+
+> Paste the following into GitHub Copilot (Agent mode) or Claude Code. The `coreex-graphql` skill is self-contained — no additional prompt detail is required.
+
+```
+/coreex-graphql
+```
+
+This invokes the [`coreex-graphql`](https://github.com/Avanade/CoreEx/blob/main/.github/skills/coreex-graphql/SKILL.md) skill, which wires up `AddCoreExGraphQLLite`/`MapCoreExGraphQLLite` on the API host (first-time only) and registers a GraphQL root for the Employee query endpoint added in step 11 — bridging its existing `QueryArgsConfig`, with no new filter/sort logic written.
+
+### Manual alternative
+
+Follow [`CoreEx.Data.GraphQL`'s AGENTS.md](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.Data.GraphQL/AGENTS.md) to wire `AddCoreExGraphQLLite`/`MapCoreExGraphQLLite` by hand and register an `AddQuery<EmployeeLite>` (or `AddQuery<Employee>` if there's no separate "Lite" projection) root.
 
 ---
 
