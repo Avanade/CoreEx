@@ -17,7 +17,7 @@ public partial class OtherTests
     [TestCase("/health/ready/detailed", false)]
     public void Health_Detailed(string path, bool minimal)
     {
-        string[] _requiredServices =
+        string[] requiredServices =
         [
             "sqlServer",
             "sqlserver-outbox-relay-00",
@@ -34,8 +34,8 @@ public partial class OtherTests
 
         var json = r.GetContent();
         if (minimal)
-            json.Should().NotContainAny(_requiredServices);
+            json.Should().NotContainAny(requiredServices);
         else
-            json.Should().ContainAll(_requiredServices);
+            json.Should().ContainAll(requiredServices);
     }
 }
