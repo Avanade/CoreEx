@@ -11,7 +11,7 @@ public partial class EfDbModel<TModel>
     public IQueryable<TModel> Query(EfDbArgs? args = null)
     {
         args ??= Args;
-        return Options.ApplyFilters(args, args.QueryTracking ? EfDb.DbContext.Set<TModel>() : EfDb.DbContext.Set<TModel>().AsNoTracking());
+        return Options.ApplyFilters(args, args.QueryTracking ? EfDb.DbContext.Set<TModel>() : EfDb.DbContext.Set<TModel>().AsNoTracking(), EfDb.ExecutionContext);
     }
 
     /// <summary>

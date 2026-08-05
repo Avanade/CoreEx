@@ -17,8 +17,8 @@ The outbox sub-namespace provides ready-to-use `PostgresOutboxPublisher`, `Postg
 - 🔁 **PostgresUnitOfWork**: `IDatabaseUnitOfWork` implementation wrapping `TransactionAsync` with `PostgresUnitOfWorkInvoker`; optionally accepts an `IEventPublisher` outbox for transactional event enqueuing.
 - 📤 **Outbox relay**: `PostgresOutboxPublisher` (writes to outbox table), `PostgresOutboxRelay` (polls and publishes), and `PostgresOutboxRelayHostedService` (timer-driven hosted service) — all PostgreSQL-specific subclasses of the base `CoreEx.Database.Outbox` types.
 - 📊 **Outbox metrics**: `PostgresMetrics` exposes .NET `Meter` instruments: `postgres.outbox.enqueue` (counter), `postgres.outbox.relay.batch.size` (counter), `postgres.outbox.batch.oldest_lag` and `postgres.outbox.batch.newest_lag` (histograms in ms).
-- 📡 **OpenTelemetry**: `CoreExPostgresExtensions.AddCoreExPostgresOpenTelemetry` wires `PostgresInvoker` activity sources and the outbox meter into the OTEL tracer and meter providers.
-- ⚙️ **DI registration**: `AddPostgresDatabase<TDatabase>(services, configure?)` registers `PostgresDatabase` as a scoped service; `AddPostgresUnitOfWork(services, configure?)` registers `PostgresUnitOfWork`.
+- 📡 **OpenTelemetry**: `CoreExPostgresExtensions.WithCoreExPostgresTelemetry` wires `PostgresInvoker` activity sources and the outbox meter into the OTEL tracer and meter providers.
+- ⚙️ **DI registration**: `AddPostgresDatabase<TDatabase>(services, configure?)` registers `PostgresDatabase` as a scoped service; `AddPostgresUnitOfWork(services, addAsIUnitOfWork = true)` registers `PostgresUnitOfWork`.
 
 ## Key types
 

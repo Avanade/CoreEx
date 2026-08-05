@@ -21,13 +21,18 @@ namespace CoreEx.Database.Postgres;
 /// <param name="dataSource">The <see cref="NpgsqlDataSource"/>.</param>
 /// <param name="jsonSerializerOptions">The optional <see cref="JsonSerializerOptions"/>.</param>
 /// <param name="logger">The optional <see cref="ILogger"/>.</param>
-public partial class PostgresDatabase(NpgsqlDataSource dataSource, JsonSerializerOptions? jsonSerializerOptions = null, ILogger<PostgresDatabase>? logger = null) : Database<NpgsqlConnection, PostgresCommand, PostgresDatabaseArgs, PostgresDatabaseColumns>(dataSource.CreateConnection(), PostgresInvoker.Default, PostgresDatabaseColumns.Default, jsonSerializerOptions, logger)
+public partial class PostgresDatabase(NpgsqlDataSource dataSource, JsonSerializerOptions? jsonSerializerOptions = null, ILogger<PostgresDatabase>? logger = null) : Database<NpgsqlConnection, PostgresCommand, PostgresDatabaseArgs, PostgresDatabaseColumns>(CreateConnection(dataSource), PostgresInvoker.Default, PostgresDatabaseColumns.Default, jsonSerializerOptions, logger)
 {
     /// <summary>
     /// Gets the default <see cref="DuplicateErrorNumbers"/>.
     /// </summary>
     /// <remarks>See <see href="https://www.postgresql.org/docs/current/errcodes-appendix.html"/>.</remarks>
     public static string[] DefaultDuplicateErrorNumbers { get; } = ["23505"];
+
+    /// <summary>
+    /// Creates the <see cref="NpgsqlConnection"/> from the specified <paramref name="dataSource"/>.
+    /// </summary>
+    private static NpgsqlConnection CreateConnection(NpgsqlDataSource dataSource) => dataSource.ThrowIfNull().CreateConnection();
 
     /// <inheritdoc/>
     public override ISourceConverter<string?> RowVersionConverter => EncodedStringToUInt32Converter.Default;

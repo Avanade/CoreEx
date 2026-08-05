@@ -64,9 +64,9 @@ public abstract partial class DatabaseCommand
                 }
 
                 index++;
-            } while (dr.NextResult());
+            } while (await dr.NextResultAsync(cancellationToken).ConfigureAwait(false));
 
-            if (index < multiSetList.Count && !multiSetList[index].StopOnNull)
+            if (index < multiSetList.Count && (multiSetList[index] is null || !multiSetList[index].StopOnNull))
                 throw new InvalidOperationException($"{nameof(SelectMultiSetAsync)} has returned less ({index}) record sets than expected ({multiSetList.Count}).");
         }, cancellationToken, memberName).ConfigureAwait(false);
     }

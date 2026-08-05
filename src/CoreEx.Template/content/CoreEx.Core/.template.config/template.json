@@ -43,9 +43,15 @@
     "db-name": {
       "type": "derived",
       "valueSource": "name",
-      "valueTransform": "ValueAfterLastDotDelimitedLower",
+      "valueTransform": "ValueAfterLastDotDelimitedKebabCase",
       "fileRename": "db-name",
       "replaces": "db-name"
+    },
+    "pg-schema": {
+      "type": "derived",
+      "valueSource": "name",
+      "valueTransform": "ValueAfterLastDotDelimitedSnakeCase",
+      "replaces": "pg-schema"
     },
     "solution-name": {
       "type": "derived",
@@ -319,9 +325,27 @@
     "LowerCase": {
       "identifier": "lowerCase"
     },
+    "PascalCaseToKebabCase": {
+      "identifier": "replace",
+      "pattern": "([a-z])([A-Z])", // insert hyphen at each lowercase→uppercase boundary (e.g. "ProductCatalog" → "Product-Catalog").
+      "replacement": "$1-$2"
+    },
+    "PascalCaseToSnakeCase": {
+      "identifier": "replace",
+      "pattern": "([a-z])([A-Z])", // insert underscore at each lowercase→uppercase boundary (e.g. "ProductCatalog" → "Product_Catalog").
+      "replacement": "$1_$2"
+    },
     "ValueAfterLastDotDelimitedLower": {
       "identifier": "chain",
       "steps": [ "ValueAfterLastDotDelimited", "LowerCase" ]
+    },
+    "ValueAfterLastDotDelimitedKebabCase": {
+      "identifier": "chain",
+      "steps": [ "ValueAfterLastDotDelimited", "PascalCaseToKebabCase", "LowerCase" ]
+    },
+    "ValueAfterLastDotDelimitedSnakeCase": {
+      "identifier": "chain",
+      "steps": [ "ValueAfterLastDotDelimited", "PascalCaseToSnakeCase", "LowerCase" ]
     },
     "ValueSecondToLastDotDelimitedLower": {
       "identifier": "chain",
