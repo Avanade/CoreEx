@@ -1,5 +1,6 @@
 using CoreEx.Entities;
 using CoreEx.Localization;
+using CoreEx.Security;
 using Microsoft.Extensions.DependencyInjection;
 using System.Globalization;
 
@@ -29,11 +30,11 @@ public class ExecutionContextTests
     {
         var ec = new ExecutionContext
         {
-            User = new Security.AuthenticationUser { Type = Security.AuthenticationType.AccountUser, UserName = "user1" }
+            User = new AuthenticationUser { Type = AuthenticationType.AccountUser, UserName = "user1" }
         };
         ec.User.Should().NotBeNull();
         ec.User.UserName.Should().Be("user1");
-        ec.User.Type.Should().Be(Security.AuthenticationType.AccountUser);
+        ec.User.Type.Should().Be(AuthenticationType.AccountUser);
     }
 
     [Test]
@@ -111,7 +112,7 @@ public class ExecutionContextTests
     {
         var ec = new ExecutionContext
         {
-            User = new Security.AuthenticationUser { Type = Security.AuthenticationType.AccountUser, UserName = "user" },
+            User = new AuthenticationUser { Type = AuthenticationType.AccountUser, UserName = "user" },
             TenantId = "tenant",
             UICulture = new CultureInfo("en-US"),
             OperationType = OperationType.Update,
@@ -122,7 +123,7 @@ public class ExecutionContextTests
         var copy = ec.CreateCopy();
         copy.User.Should().NotBeNull();
         copy.User.UserName.Should().Be("user");
-        copy.User.Type.Should().Be(Security.AuthenticationType.AccountUser);
+        copy.User.Type.Should().Be(AuthenticationType.AccountUser);
         copy.TenantId.Should().Be("tenant");
         copy.UICulture.Should().Be(new CultureInfo("en-US"));
         copy.OperationType.Should().Be(OperationType.Update);

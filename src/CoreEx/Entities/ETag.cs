@@ -118,7 +118,7 @@ public static class ETag
             return etag[1..^1].ToString();
 
         if (etag.StartsWith("W/\"") && etag[^1] == '\"')
-            return etag[2..^1].ToString();
+            return etag[3..^1].ToString();
 
         return etag.ToString();
     }
