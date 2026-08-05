@@ -72,6 +72,83 @@ public class ReferenceDataCollectionTests
     }
 
     [Test]
+    public void GetById_NotFound_ReturnsNull()
+    {
+        var coll = new ReferenceDataCollection<TestRefData>();
+        coll.Add(new TestRefData { Id = "1", Code = "A" });
+        coll.GetById("missing").Should().BeNull();
+    }
+
+    [Test]
+    public void GetByCode_NotFound_ReturnsNull()
+    {
+        var coll = new ReferenceDataCollection<TestRefData>();
+        coll.Add(new TestRefData { Id = "1", Code = "A" });
+        coll.GetByCode("missing").Should().BeNull();
+    }
+
+    [Test]
+    public void ContainsMapping_TryGetByMapping_GetByMapping_Work()
+    {
+        var coll = new ReferenceDataCollection<TestRefData>();
+        var item = new TestRefData { Id = "1", Code = "A" };
+        item.SetMapping("ext", 123);
+        coll.Add(item);
+
+        coll.ContainsMapping("ext", 123).Should().BeTrue();
+        coll.ContainsMapping("ext", 999).Should().BeFalse();
+
+        coll.TryGetByMapping("ext", 123, out var found).Should().BeTrue();
+        found.Should().Be(item);
+        coll.TryGetByMapping("ext", 999, out var notFound).Should().BeFalse();
+        notFound.Should().BeNull();
+
+        coll.GetByMapping("ext", 123).Should().Be(item);
+        coll.GetByMapping("ext", 999).Should().BeNull();
+    }
+
+    [Test]
+    public void ContainsMapping_NoMappingsRegistered_ReturnsFalse()
+    {
+        var coll = new ReferenceDataCollection<TestRefData>();
+        coll.Add(new TestRefData { Id = "1", Code = "A" });
+        coll.ContainsMapping("ext", 123).Should().BeFalse();
+    }
+
+    [Test]
+    public async Task ConcurrentAdd_And_MappingReads_DoNotThrow()
+    {
+        var coll = new ReferenceDataCollection<TestRefData>();
+        using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(300));
+
+        var writer = Task.Run(() =>
+        {
+            var i = 0;
+            while (!cts.IsCancellationRequested)
+            {
+                i++;
+                var item = new TestRefData { Id = $"id-{i}", Code = $"code-{i}" };
+                item.SetMapping("ext", i);
+                try { coll.Add(item); } catch (ArgumentException) { /* duplicate under race; ignore for this stress test */ }
+            }
+        });
+
+        var reader1 = Task.Run(() =>
+        {
+            while (!cts.IsCancellationRequested)
+                coll.ContainsMapping("ext", 1);
+        });
+
+        var reader2 = Task.Run(() =>
+        {
+            while (!cts.IsCancellationRequested)
+                coll.TryGetByMapping("ext", 1, out _);
+        });
+
+        await Task.WhenAll(writer, reader1, reader2);
+    }
+
+    [Test]
     public void TryGetById_And_TryGetByCode()
     {
         var coll = new ReferenceDataCollection<TestRefData>();
