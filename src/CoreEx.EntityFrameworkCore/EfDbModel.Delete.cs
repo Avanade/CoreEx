@@ -57,38 +57,30 @@ public partial class EfDbModel<TModel>
             return cmr.Bind();
 
         // Delete or logical delete as appropriate.
-        try
+        switch (Options.LogicalDeleteSupport)
         {
-            switch (Options.LogicalDeleteSupport)
-            {
-                // Physical delete.
-                case FeatureSupport.NotSupported:
-                    EfDb.DbContext.Remove(model!);
-                    break;
+            // Physical delete.
+            case FeatureSupport.NotSupported:
+                EfDb.DbContext.Remove(model!);
+                break;
 
-                // Logical delete (ambiguous exception).
-                case FeatureSupport.ReadOnly:
-                    throw new InvalidOperationException($"The '{nameof(Options)}.{nameof(Options.LogicalDeleteSupport)}' is set to '{nameof(FeatureSupport.ReadOnly)}' which is ambiguous for a delete operation; the model must implement '{nameof(ILogicallyDeleted)}' not '{nameof(IReadOnlyLogicallyDeleted)}'.");
+            // Logical delete (ambiguous exception).
+            case FeatureSupport.ReadOnly:
+                throw new InvalidOperationException($"The '{nameof(Options)}.{nameof(Options.LogicalDeleteSupport)}' is set to '{nameof(FeatureSupport.ReadOnly)}' which is ambiguous for a delete operation; the model must implement '{nameof(ILogicallyDeleted)}' not '{nameof(IReadOnlyLogicallyDeleted)}'.");
 
-                // Logical delete (update).
-                case FeatureSupport.Mutable:
-                    var ld = (ILogicallyDeleted)model!;
-                    ld.IsDeleted = true;
-                    Model.PrepareUpdate(model, EfDb.ExecutionContext);
+            // Logical delete (update).
+            case FeatureSupport.Mutable:
+                var ld = (ILogicallyDeleted)model!;
+                ld.IsDeleted = true;
+                Model.PrepareUpdate(model, EfDb.ExecutionContext);
 
-                    EfDb.DbContext.Update(model!);
-                    break;
-            }
-
-            if (args.SaveChanges)
-                await EfDb.DbContext.SaveChangesAsync(true, cancellationToken).ConfigureAwait(false);
-
-            return Result.Ok(DataResult.True);
+                EfDb.DbContext.Update(model!);
+                break;
         }
-        catch (NotFoundException)
-        {
-            // A hopefully rare, but expected and OK behavior; swallowing is intended here.
-            return Result.Ok(DataResult.False);
-        }
+
+        if (args.SaveChanges)
+            await EfDb.DbContext.SaveChangesAsync(true, cancellationToken).ConfigureAwait(false);
+
+        return Result.Ok(DataResult.True);
     }, cancellationToken, memberName).ConfigureAwait(false);
 }

@@ -84,8 +84,11 @@ public class EfDbModelOptions<TModel> where TModel : class
     /// tenant (<see cref="ITenantId"/>) checks automatically internally.</para>
     /// <para>The <see cref="EfDbArgs.BypassFilters"/> can be used to bypass these filters for queries as required.</para>
     /// <para>Each filter is applied individually in the order specified.</para>
+    /// <para>The <paramref name="filter"/> is evaluated in two different contexts and must be expressible in both: against the real <see cref="DbContext"/> query (EF-translated to SQL) for <see cref="EfDbModel{TModel}.Query"/>,
+    /// and against an in-memory, single-item <see cref="IQueryable{T}"/> (LINQ-to-Objects) for the non-query pre-check performed by <see cref="CheckFilters"/> — this is intentional, avoiding a second database round-trip to
+    /// re-verify a model already in hand, but it means the predicate cannot use EF-only constructs (e.g. <c>EF.Functions.*</c> or provider-specific translations).</para>
     /// </remarks>
-    public EfDbModelOptions<TModel> WithFilter(Func<IQueryable<TModel>, IQueryable<TModel>> filter, Func<TModel, OperationType, Result>? nonQueryResult = null, bool allowFilterBypass = true)
+    public EfDbModelOptions<TModel> WithFilter(Func<IQueryable<TModel>, IQueryable<TModel>> filter, Func<TModel, OperationType, Result>? nonQueryResult = null, bool allowFilterBypass = false)
     {
         _filters.Add((filter.ThrowIfNull(), nonQueryResult, allowFilterBypass));
         return this;
