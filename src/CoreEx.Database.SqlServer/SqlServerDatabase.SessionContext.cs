@@ -22,7 +22,7 @@ public partial class SqlServerDatabase
     {
         return Invoker.InvokeAsync(this, DbArgs, async (_, _, cancellationToken) =>
         {
-            var r = await Statement(SessionContextStatement)
+            await Statement(SessionContextStatement)
                 .Param(NamedColumns.SessionContextUsernameName, username ?? AuthenticationUser.EnvironmentUser.UserName)
                 .Param(NamedColumns.SessionContextTimestampName, timestamp ?? Runtime.UtcNow)
                 .ParamWith(tenantId, NamedColumns.SessionContextTenantIdName)

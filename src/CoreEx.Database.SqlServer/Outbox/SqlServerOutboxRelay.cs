@@ -45,7 +45,7 @@ public class SqlServerOutboxRelay(SqlServerDatabase database, IEventPublisher ev
     /// <inheritdoc/>
     protected async override Task CompleteBatchAsync(DatabaseOutboxRelayArgs args, Guid leaseId, CancellationToken cancellationToken)
     {
-        await base.CompleteBatchAsync(args, leaseId, cancellationToken);
+        await base.CompleteBatchAsync(args, leaseId, cancellationToken).ConfigureAwait(false);
 
         if (EventPublisher.IsEmpty)
             return;

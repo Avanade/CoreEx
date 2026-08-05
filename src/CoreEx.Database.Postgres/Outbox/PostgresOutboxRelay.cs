@@ -50,7 +50,7 @@ public class PostgresOutboxRelay(PostgresDatabase database, IEventPublisher even
     /// <inheritdoc/>
     protected async override Task CompleteBatchAsync(DatabaseOutboxRelayArgs args, Guid leaseId, CancellationToken cancellationToken)
     {
-        await base.CompleteBatchAsync(args, leaseId, cancellationToken);
+        await base.CompleteBatchAsync(args, leaseId, cancellationToken).ConfigureAwait(false);
 
         if (EventPublisher.IsEmpty)
             return;

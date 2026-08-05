@@ -85,6 +85,7 @@
   <Folder Name="/samples/Shopping/tests/">
     <Project Path="samples/tests/Contoso.Shopping.Test.Api/Contoso.Shopping.Test.Api.csproj" />
     <Project Path="samples/tests/Contoso.Shopping.Test.Common/Contoso.Shopping.Test.Common.csproj" />
+    <Project Path="samples/tests/Contoso.Shopping.Test.Relay/Contoso.Shopping.Test.Relay.csproj" />
     <Project Path="samples/tests/Contoso.Shopping.Test.Subscribe/Contoso.Shopping.Test.Subscribe.csproj" />
     <Project Path="samples/tests/Contoso.Shopping.Test.Unit/Contoso.Shopping.Test.Unit.csproj" />
   </Folder>
