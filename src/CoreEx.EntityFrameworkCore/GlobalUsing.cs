@@ -6,6 +6,7 @@ global using CoreEx.Database.Abstractions;
 global using CoreEx.Entities;
 global using CoreEx.EntityFrameworkCore;
 global using CoreEx.Invokers;
+global using CoreEx.Json;
 global using CoreEx.Mapping;
 global using CoreEx.Results;
 global using Microsoft.EntityFrameworkCore;

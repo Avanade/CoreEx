@@ -67,7 +67,8 @@ public static partial class SqlServerExtensions
     /// Adds a named parameter when invoked <paramref name="with"/> a non-default value.
     /// </summary>
     /// <typeparam name="TSelf">The owning <see cref="Type"/>.</typeparam>
-    /// <typeparam name="T">The parameter <see cref="Type"/>.</typeparam>
+    /// <typeparam name="TWith">The with <see cref="Type"/>.</typeparam>
+    /// <typeparam name="TValue">The parameter <see cref="Type"/>.</typeparam>
     /// <param name="parameters">The <see cref="IDatabaseParameters{TSelf}"/>.</param>
     /// <param name="with">The value <b>with</b> which to verify is non-default.</param>
     /// <param name="name">The parameter name.</param>
@@ -75,8 +76,8 @@ public static partial class SqlServerExtensions
     /// <param name="sqlDbType">The parameter <see cref="SqlDbType"/>.</param>
     /// <param name="direction">The <see cref="ParameterDirection"/> (default to <see cref="ParameterDirection.Input"/>).</param>
     /// <returns>The current <see cref="DatabaseParameterCollection"/> instance to support chaining (fluent interface).</returns>
-    public static TSelf ParamWith<TSelf, T>(this IDatabaseParameters<TSelf> parameters, object? with, string name, Func<T> value, SqlDbType sqlDbType, ParameterDirection direction = ParameterDirection.Input)
-        => ParamWhen(parameters, with is not null && !EqualityComparer<T>.Default.Equals((T)with, default!), name, value, sqlDbType, direction);
+    public static TSelf ParamWith<TSelf, TWith, TValue>(this IDatabaseParameters<TSelf> parameters, TWith? with, string name, Func<TValue> value, SqlDbType sqlDbType, ParameterDirection direction = ParameterDirection.Input)
+        => ParamWhen(parameters, with is not null && !EqualityComparer<TWith>.Default.Equals(with, default!), name, value, sqlDbType, direction);
 
     /// <summary>
     /// Adds a named parameter when invoked <paramref name="with"/> a non-default value.

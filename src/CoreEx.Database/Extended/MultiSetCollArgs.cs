@@ -13,8 +13,8 @@ public abstract class MultiSetCollArgs : IMultiSetArgs
     /// <param name="stopOnNull">Indicates whether to stop further query result set processing where the current set has resulted in a <see langword="null"/> (i.e. no records).</param>
     public MultiSetCollArgs(int minimumRows = 0, int? maximumRows = null, bool stopOnNull = false)
     {
-        if (maximumRows.HasValue && minimumRows <= maximumRows.Value)
-            throw new ArgumentException("Max Rows is less than Min Rows.", nameof(maximumRows));
+        if (maximumRows.HasValue && minimumRows > maximumRows.Value)
+            throw new ArgumentException("Min Rows is greater than Max Rows.", nameof(maximumRows));
 
         MinimumRows = minimumRows;
         MaximumRows = maximumRows;

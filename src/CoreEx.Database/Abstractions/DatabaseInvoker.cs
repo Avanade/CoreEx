@@ -135,8 +135,8 @@ public abstract class DatabaseInvoker : InvokerBase<IDatabase, DatabaseArgs>
                 var outboxEnqueued = 0;
                 if (unitOfWork.AreEventsSupported && !unitOfWork.Events.IsEmpty)
                 {
+                    outboxEnqueued = unitOfWork.Outbox!.Count;
                     await unitOfWork.Outbox!.PublishAsync(cancellationToken).ConfigureAwait(false);
-                    outboxEnqueued = unitOfWork.Outbox.Count;
                 }
 
                 // Commit the work and outbox.

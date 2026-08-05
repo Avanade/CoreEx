@@ -1,0 +1,23 @@
+{
+  "specversion": "1.0",
+  "id": "019c72b9-e8e4-73aa-83fc-c5847cd4c218",
+  "type": "contoso.shopping.basket.created.v1",
+  "source": "urn:contoso:shopping",
+  "subject": "019c72b9-e8d8-7d33-821b-3d18af870885",
+  "time": "2026-02-18T21:48:32.3532188Z",
+  "partitionkey": "019c72b9-e8d8-7d33-821b-3d18af870885",
+  "authtype": "user",
+  "authid": "DOMAIN-CORP\\eric.sibly",
+  "dataschemaversion": "1.0",
+  "datacontenttype": "application/json",
+  "traceparent": "00-7de3f6abfabf606dd289d93e6d118457-cc3d1971a8b15a05-01",
+  "data": {
+    "changeLog": {
+      "createdBy": "DOMAIN-CORP\\eric.sibly",
+      "createdOn": "2026-02-18T21:48:32.3532188+00:00"
+    },
+    "id": "019c72b9-e8d8-7d33-821b-3d18af870885",
+    "customerId": "019c72b9-e8d8-7d33-821b-3d18af870886",
+    "statusCode": "ACTIVE"
+  }
+}

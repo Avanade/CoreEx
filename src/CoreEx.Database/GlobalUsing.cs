@@ -10,6 +10,7 @@ global using CoreEx.Events.Publishing;
 global using CoreEx.Hosting;
 global using CoreEx.Invokers;
 global using CoreEx.Json;
+global using CoreEx.Mapping.Converters;
 global using CoreEx.Mapping.Converters.Abstractions;
 global using CoreEx.RefData.Abstractions;
 global using CoreEx.Results;

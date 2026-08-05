@@ -105,7 +105,7 @@ public abstract class DatabaseOutboxRelayBase<TDatabase, TSelf> : IDatabaseOutbo
 
             // Perform the relay for the partition using a new timer-based cancellation token that is based on the lease duration to ensure it completes within the lease window to minimize the risk of the batch
             // being cancelled due to exceeding the lease duration before the relay operation has had a chance to complete.
-            var leaseCancellationTokenSource = new CancellationTokenSource(args.LeaseDuration);
+            using var leaseCancellationTokenSource = new CancellationTokenSource(args.LeaseDuration);
             try
             {
                 var relay = await RelayAsync(args, partitionId, leaseCancellationTokenSource.Token).ConfigureAwait(false);
@@ -207,13 +207,21 @@ public abstract class DatabaseOutboxRelayBase<TDatabase, TSelf> : IDatabaseOutbo
             }
             catch (Exception ex)
             {
-                // Cancel the batch.
-                await CancelBatchAsync(args, leaseId, cancellationToken).ConfigureAwait(false);
+                // Cancel the batch; guard against a secondary failure masking the original exception.
+                try
+                {
+                    await CancelBatchAsync(args, leaseId, cancellationToken).ConfigureAwait(false);
 
-                if (Logger?.IsEnabled(LogLevel.Debug) is true)
-                    Logger.LogDebug("Outbox batch was cancelled due to error: {Error}", ex.Message);
+                    if (Logger?.IsEnabled(LogLevel.Debug) is true)
+                        Logger.LogDebug("Outbox batch was cancelled due to error: {Error}", ex.Message);
+                }
+                catch (Exception cancelEx)
+                {
+                    if (Logger?.IsEnabled(LogLevel.Error) is true)
+                        Logger.LogError(cancelEx, "Failed to cancel the outbox batch following the original error: {Error}", ex.Message);
+                }
 
-                // Keep bubbling the exception.
+                // Keep bubbling the original exception.
                 throw;
             }
             finally
@@ -239,8 +247,7 @@ public abstract class DatabaseOutboxRelayBase<TDatabase, TSelf> : IDatabaseOutbo
 
         // Add 10% more to ensure the lease duration is slightly longer than the cancellation token used for the relay operation to minimize the risk of the batch being cancelled due to exceeding the lease duration
         // before the relay operation has had a chance to complete.
-        var leaseDurationSeconds = ConvertDurationToSeconds(args.LeaseDuration);
-        leaseDurationSeconds += Math.Min(1, (int)Math.Round(leaseDurationSeconds * 0.1, MidpointRounding.AwayFromZero));
+        var leaseDurationSeconds = OutboxDuration.ToLeaseSecondsWithBuffer(args.LeaseDuration);
 
         try
         {
@@ -263,6 +270,9 @@ public abstract class DatabaseOutboxRelayBase<TDatabase, TSelf> : IDatabaseOutbo
         {
             if (!IsTransientException(ex))
                 throw;
+
+            if (Logger?.IsEnabled(LogLevel.Warning) is true)
+                Logger.LogWarning(ex, "Transient exception occurred whilst claiming an outbox batch for partition '{PartitionId}'; the claim will be retried on the next poll: {Error}", partitionId, ex.Message);
         }
 
         return events;
@@ -289,7 +299,7 @@ public abstract class DatabaseOutboxRelayBase<TDatabase, TSelf> : IDatabaseOutbo
     protected virtual Task CancelBatchAsync(DatabaseOutboxRelayArgs args, Guid leaseId, CancellationToken cancellationToken)
         => Database.Statement(CancelBatchStatement)
             .Param(Database.NamedColumns.OutboxLeaseIdName, leaseId)
-            .Param(Database.NamedColumns.OutboxBackoffDurationName, ConvertDurationToSeconds(args.BackOffDuration))
+            .Param(Database.NamedColumns.OutboxBackoffDurationName, OutboxDuration.ToSeconds(args.BackOffDuration))
             .NonQueryAsync(cancellationToken);
 
     /// <summary>
@@ -299,9 +309,4 @@ public abstract class DatabaseOutboxRelayBase<TDatabase, TSelf> : IDatabaseOutbo
     /// <returns><see langword="true"/> where the exception is considered transient; otherwise, <see langword="false"/>.</returns>
     /// <remarks>For example, a timeout or deadlock exception that may occur during the claim of the batch and is expected to be transient in nature.</remarks>
     protected virtual bool IsTransientException(Exception exception) => false;
-
-    /// <summary>
-    /// Converts a duration time-span into a rounded number of seconds where the minimum allowed is one second.
-    /// </summary>
-    private static int ConvertDurationToSeconds(TimeSpan duration) => Math.Min((int)Math.Round(duration.TotalSeconds, MidpointRounding.AwayFromZero), 1);
 }

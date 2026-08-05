@@ -41,7 +41,7 @@ public class Program
     public static MigrationArgs ConfigureMigrationArgs(MigrationArgs args)
     {
         args.AddAssembly<SqlStatement>().AddAssembly<Program>();   // SqlStatement = CoreEx EF code-gen templates; Program = this project's embedded migrations/data. Both REQUIRED — the API tests call ConfigureMigrationArgs directly (not via Main), so the Database assembly must be added here. Do not remove.
-        args.DataResetFilterPredicate = ts => ts.Schema == "db-name";   // Only reset data for the specified schema.
+        args.DataResetFilterPredicate = ts => ts.Schema == "pg-schema";   // Only reset data for the specified schema.
         return args;
     }
 }

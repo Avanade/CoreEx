@@ -176,6 +176,8 @@ public abstract class Database<TConnection, TCommand, TDatabaseArgs, TDatabaseCo
     /// Releases the unmanaged resources used by the <see cref="Database"/> and optionally releases the managed resources.
     /// </summary>
     /// <param name="disposing"><see langword="true"/> to release both managed and unmanaged resources; <see langword="false"/> to release only unmanaged resources.</param>
+    /// <remarks>The injected <typeparamref name="TConnection"/> is intentionally <b>not</b> disposed here; it is owned by whatever registered it in the dependency injection container (e.g. an Aspire client integration),
+    /// and may be shared with other collaborators within the same scope (e.g. an <c>EfDb</c>/<c>DbContext</c> participating in the same transaction).</remarks>
     protected virtual void Dispose(bool disposing)
     {
         if (disposing && !_disposed)

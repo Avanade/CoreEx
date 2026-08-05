@@ -32,6 +32,9 @@ public abstract partial class DatabaseCommand(IDatabase db, SqlStatement stateme
     /// <returns>The <see cref="DbCommand"/>.</returns>
     private async Task<DbCommand> CreateCommandAsync(CancellationToken cancellationToken)
     {
+        if (Statement.IsIndeterminate)
+            throw new InvalidOperationException($"Cannot execute a command where the {nameof(Statement)} is {nameof(SqlStatement.IsIndeterminate)}; the {nameof(SqlStatement)} must be set to a valid command.");
+
         var conn = await Database.GetConnectionAsync(cancellationToken).ConfigureAwait(false);
         var cmd = conn.CreateCommand();
 
