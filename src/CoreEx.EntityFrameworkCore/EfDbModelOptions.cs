@@ -9,6 +9,8 @@ public class EfDbModelOptions<TModel> where TModel : class
     private Func<TModel, CompositeKey> _getKey = m => m is IEntityKey ek ? ek.EntityKey : throw new InvalidOperationException($"The model does not implement {nameof(IEntityKey)}; as such, the {nameof(WithGetKey)} must be specified to enable.");
     private Func<TModel, OperationType, Result>? _onBeforeCreateOrUpdate;
     private Func<TModel, TModel, bool>? _updateModelMapper;
+    private bool _tenantFilterEnabled;
+    private bool _tenantFilterAllowBypass;
 
     /// <summary>
     /// Indicates whether <see cref="ILogicallyDeleted"/> and/or <see cref="IReadOnlyLogicallyDeleted"/> is supported for the <typeparamref name="TModel"/>.
@@ -114,19 +116,17 @@ public class EfDbModelOptions<TModel> where TModel : class
     /// </summary>
     /// <param name="allowFilterBypass">Indicates whether the filter can be bypassed via the <see cref="EfDbArgs.BypassFilters"/>; defaults to <see langword="false"/>.</param>
     /// <returns>The <see cref="EfDbModelOptions{TModel}"/> to support fluent-style method-chaining.</returns>
+    /// <remarks>Unlike <see cref="WithFilter"/>, this is applied directly by <see cref="ApplyFilters"/> using the <see cref="ExecutionContext"/> resolved by the owning <see cref="EfDb{TDbContext}"/> (see <see cref="IEfDb.ExecutionContext"/>)
+    /// rather than a stored predicate closure — this <see cref="EfDbModelOptions{TModel}"/> instance is commonly shared/cached across multiple <see cref="EfDb{TDbContext}"/> instances (e.g. as a singleton service), so it cannot itself
+    /// hold a reference to any one caller's <see cref="ExecutionContext"/>; a stored closure would otherwise have no choice but to fall back to the ambient <see cref="ExecutionContext.Current"/>, which does not honour an
+    /// explicitly-injected, non-ambient <see cref="ExecutionContext"/> passed to the <see cref="EfDb{TDbContext}"/> constructor.</remarks>
     public EfDbModelOptions<TModel> WithTenantFilter(bool allowFilterBypass = false)
     {
-        if (TenantSupport.IsSupported)
-        {
-            WithFilter(q =>
-            {
-                var tenantId = ExecutionContext.Current.TenantId;
-                return q.Where(m => ((IReadOnlyTenantId)m).TenantId == tenantId);
-            }, allowFilterBypass: allowFilterBypass);
-        }
-        else
+        if (!TenantSupport.IsSupported)
             throw new NotSupportedException($"{nameof(WithTenantFilter)} is not supported; model must implement {nameof(IReadOnlyTenantId)} to enable.");
 
+        _tenantFilterEnabled = true;
+        _tenantFilterAllowBypass = allowFilterBypass;
         return this;
     }
 
@@ -142,23 +142,31 @@ public class EfDbModelOptions<TModel> where TModel : class
     /// </summary>
     /// <param name="args">The <see cref="EfDbArgs"/>.</param>
     /// <param name="query">The <see cref="IQueryable{TModel}"/>.</param>
+    /// <param name="executionContext">The <see cref="ExecutionContext"/> resolved by the owning <see cref="EfDb{TDbContext}"/> (see <see cref="IEfDb.ExecutionContext"/>); used only by the <see cref="WithTenantFilter"/> predicate, where configured.</param>
     /// <returns>The filtered <see cref="IQueryable{TModel}"/>.</returns>
     /// <remarks>This applies all specified filters to the <paramref name="query"/> excluding the non-query result handling; unless, <see cref="EfDbArgs.BypassFilters"/> is set to <see langword="true"/>.
     /// <para>See <see cref="WithFilter"/> for more information.</para></remarks>
-    public IQueryable<TModel> ApplyFilters(EfDbArgs args, IQueryable<TModel> query)
+    public IQueryable<TModel> ApplyFilters(EfDbArgs args, IQueryable<TModel> query, ExecutionContext executionContext)
     {
         query.ThrowIfNull();
-        if (!HasFilters)
-            return query;
 
-        foreach (var (filter, _, allowFilterBypass) in _filters)
+        if (_tenantFilterEnabled && !(args.BypassFilters && _tenantFilterAllowBypass))
         {
-            // Bypass filter where selected to do so and allowed.
-            if (args.BypassFilters && allowFilterBypass)
-                continue;
+            var tenantId = executionContext.ThrowIfNull().TenantId;
+            query = query.Where(m => ((IReadOnlyTenantId)m).TenantId == tenantId);
+        }
 
-            // Apply the filter.
-            query = filter(query);
+        if (HasFilters)
+        {
+            foreach (var (filter, _, allowFilterBypass) in _filters)
+            {
+                // Bypass filter where selected to do so and allowed.
+                if (args.BypassFilters && allowFilterBypass)
+                    continue;
+
+                // Apply the filter.
+                query = filter(query);
+            }
         }
 
         return query;

@@ -2,6 +2,7 @@ using CoreEx.Database.SqlServer.Test.Unit.Contracts;
 using CoreEx.Database.SqlServer.Test.Unit.Models;
 using CoreEx.Database.SqlServer.Test.Unit.Repository;
 using CoreEx.EntityFrameworkCore;
+using CoreEx.EntityFrameworkCore.Converters;
 using CoreEx.Mapping;
 using CoreEx.Results;
 using Microsoft.EntityFrameworkCore;
@@ -29,6 +30,21 @@ public class EntityFrameworkBehaviorTests : DatabaseTestBase
         var got = await ef.Model<TestTable>().GetWithResultAsync(m.Id).ConfigureAwait(false);
         got.IsSuccess.Should().BeTrue();
         got.Value.TenantId.Should().Be("Z");
+    }).AssertSuccess());
+
+    [Test]
+    public void Query_TenantFilter_UsesInjectedExecutionContext_NotAmbient() => Test.ScopedType<ExecutionContext>(test => test.Run(async _ =>
+    {
+        // Ambient ExecutionContext.TenantId is "A" (see EntryPoint.cs). Construct a standalone EfDb with an explicit, different
+        // ExecutionContext and a tenant filter enabled - Query() must filter by the injected tenant, not the ambient one.
+        var dc = ExecutionContext.GetRequiredService<TestDbContext>();
+        var injectedContext = new ExecutionContext { TenantId = "B" };
+        var options = new EfDbOptions().WithModel<TestTable>(mo => mo.WithTenantFilter(allowFilterBypass: false));
+        var ef = new EfDb<TestDbContext>(dc, options, injectedContext);
+
+        // Seed data has two TenantId "B" rows (TableId 4 and 5); all others are "A" (see Data\data.yaml).
+        var count = await ef.Model<TestTable>().Query().CountAsync().ConfigureAwait(false);
+        count.Should().Be(2);
     }).AssertSuccess());
 
     [Test]
@@ -196,4 +212,71 @@ public class EntityFrameworkBehaviorTests : DatabaseTestBase
         u.Value.Text.Should().Be(m.Text);
         u.Value.Number.Should().Be(originalNumber); // Number change was ignored by the custom mapper.
     }).AssertSuccess());
+
+    [Test]
+    public void Update_Attached_StaleETag_WithoutEfConcurrencyToken_ReturnsConcurrencyError() => Test.ScopedType<ExecutionContext>(test => test.Run(async _ =>
+    {
+        // Unlike TestDbContext (which maps ETag with .IsRowVersion(), giving EF's own SaveChanges a native concurrency check),
+        // this context maps the same table/type without a concurrency token - the scenario where an attached update previously
+        // had no protection at all against a row changed by someone else between the read and the write.
+        var database = ExecutionContext.GetRequiredService<SqlServerDatabase>();
+        var dc = new NoConcurrencyTokenDbContext(new DbContextOptionsBuilder<NoConcurrencyTokenDbContext>().Options, database);
+        var ef = new EfDb<NoConcurrencyTokenDbContext>(dc, new EfDbOptions());
+
+        var id = Runtime.NewGuid();
+        var created = await ef.Model<TestTable>().CreateWithResultAsync(new TestTable { Id = id, Text = "Original", Flag = true }).ConfigureAwait(false);
+        created.IsSuccess.Should().BeTrue();
+
+        // Fetch and track it (attached, not detached) via this context.
+        var tracked = await ef.Model<TestTable>().GetAsync(id).ConfigureAwait(false);
+        tracked.Should().NotBeNull();
+
+        // Simulate another process changing the row directly; this bumps the database-generated RowVersion underneath the tracked copy.
+        await database.Statement("UPDATE [Test].[Table] SET [Text] = @Text WHERE [TableId] = @Id").Param("Text", "ChangedElsewhere").Param("Id", id).NonQueryAsync().ConfigureAwait(false);
+
+        // Mutate the now-stale tracked entity and attempt to save it.
+        tracked.Text = "MyChange";
+        var r = await ef.Model<TestTable>().UpdateWithResultAsync(tracked).ConfigureAwait(false);
+        r.IsConcurrencyError.Should().BeTrue();
+    }).AssertSuccess());
+
+    private sealed class NoConcurrencyTokenDbContext(DbContextOptions<NoConcurrencyTokenDbContext> options, SqlServerDatabase database) : DbContext(options), IEfDbContext
+    {
+        public IDatabase BaseDatabase { get; } = database.ThrowIfNull();
+
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        {
+            base.OnConfiguring(optionsBuilder);
+
+            if (!optionsBuilder.IsConfigured)
+                optionsBuilder.UseSqlServer(BaseDatabase.Connection, contextOwnsConnection: false);
+        }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<TestTable>(e =>
+            {
+                e.ToTable("Table", "Test");
+                e.HasKey(nameof(TestTable.Id));
+                e.Property(p => p.Id).HasColumnName("TableId").HasColumnType("UNIQUEIDENTIFIER");
+                e.Property(p => p.Text).HasColumnName("Text").HasColumnType("NVARCHAR(200)");
+                e.Property(p => p.TenantId).HasColumnName("TenantId").HasColumnType("NVARCHAR(20)");
+                // Deliberately no .IsConcurrencyToken()/.IsRowVersion() - only value-generation, so EF's SaveChanges performs no concurrency check of its own.
+                e.Property(p => p.ETag).HasColumnName("RowVersion").HasColumnType("TIMESTAMP").ValueGeneratedOnAddOrUpdate().HasConversion(ValueConverterBridge.Create<string?, byte[]>(BaseDatabase.RowVersionConverter));
+                e.Property(p => p.CreatedBy).HasColumnName("CreatedBy").HasColumnType("NVARCHAR(250)").ValueGeneratedOnUpdate();
+                e.Property(p => p.CreatedOn).HasColumnName("CreatedOn").HasColumnType("DATETIMEOFFSET").ValueGeneratedOnUpdate();
+                e.Property(p => p.UpdatedBy).HasColumnName("UpdatedBy").HasColumnType("NVARCHAR(250)").ValueGeneratedOnAdd();
+                e.Property(p => p.UpdatedOn).HasColumnName("UpdatedOn").HasColumnType("DATETIMEOFFSET").ValueGeneratedOnAdd();
+                e.Property(p => p.IsDeleted).HasColumnName("IsDeleted").HasColumnType("BIT").HasDefaultValue(false);
+                e.Ignore(p => p.Number);
+                e.Ignore(p => p.Amount);
+                e.Ignore(p => p.Flag);
+                e.Ignore(p => p.Date);
+                e.Ignore(p => p.Time);
+                e.Ignore(p => p.KvpJson);
+            });
+        }
+    }
 }

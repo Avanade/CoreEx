@@ -79,6 +79,22 @@ public partial class EfDbModel<TModel>
                 // Where attached and is unchanged then exit as there is nothing to do.
                 case Microsoft.EntityFrameworkCore.EntityState.Unchanged:
                     return Result.Ok(new DataResult<TModel>(model!, false));
+
+                // Where already tracked (e.g. a prior Get within the same DbContext, mutated in place), the in-memory ETag reflects
+                // only what this DbContext believes is current; it will not reveal a concurrent write made by another process/DbContext.
+                // Where the ETag is not also configured as an EF concurrency token (in which case SaveChanges will detect this natively),
+                // query the row's actual current value - without disturbing the tracked CurrentValues/pending changes - to detect it here.
+                default:
+                    if (model is IReadOnlyETag trackedEtag && EfDb.DbContext.Model.FindEntityType(typeof(TModel))?.FindProperty(nameof(IReadOnlyETag.ETag))?.IsConcurrencyToken != true)
+                    {
+                        var dbValues = await EfDb.DbContext.Entry(model).GetDatabaseValuesAsync(cancellationToken).ConfigureAwait(false);
+                        if (dbValues is null)
+                            return Result.NotFoundError();
+
+                        if (!ETag.TryCompare(trackedEtag.ETag, dbValues.GetValue<string?>(nameof(IReadOnlyETag.ETag))))
+                            return Result.ConcurrencyError();
+                    }
+                    break;
             }
 
             // Prepare the model.
