@@ -1,5 +1,7 @@
 using CoreEx.Entities;
 using CoreEx.Localization;
+using CoreEx.Security;
+using Microsoft.Extensions.DependencyInjection;
 using System.Globalization;
 
 namespace CoreEx.Test.Unit;
@@ -28,11 +30,11 @@ public class ExecutionContextTests
     {
         var ec = new ExecutionContext
         {
-            User = new Security.AuthenticationUser { Type = Security.AuthenticationType.AccountUser, UserName = "user1" }
+            User = new AuthenticationUser { Type = AuthenticationType.AccountUser, UserName = "user1" }
         };
         ec.User.Should().NotBeNull();
         ec.User.UserName.Should().Be("user1");
-        ec.User.Type.Should().Be(Security.AuthenticationType.AccountUser);
+        ec.User.Type.Should().Be(AuthenticationType.AccountUser);
     }
 
     [Test]
@@ -110,18 +112,22 @@ public class ExecutionContextTests
     {
         var ec = new ExecutionContext
         {
-            User = new Security.AuthenticationUser { Type = Security.AuthenticationType.AccountUser, UserName = "user" },
+            User = new AuthenticationUser { Type = AuthenticationType.AccountUser, UserName = "user" },
             TenantId = "tenant",
-            UICulture = new CultureInfo("en-US")
+            UICulture = new CultureInfo("en-US"),
+            OperationType = OperationType.Update,
+            IncludeRelatedText = true
         };
         ec.AddInfoMessage(new LText("msg"));
         ec.Attributes["k"] = "v";
         var copy = ec.CreateCopy();
         copy.User.Should().NotBeNull();
         copy.User.UserName.Should().Be("user");
-        copy.User.Type.Should().Be(Security.AuthenticationType.AccountUser);
+        copy.User.Type.Should().Be(AuthenticationType.AccountUser);
         copy.TenantId.Should().Be("tenant");
         copy.UICulture.Should().Be(new CultureInfo("en-US"));
+        copy.OperationType.Should().Be(OperationType.Update);
+        copy.IncludeRelatedText.Should().BeTrue();
         copy.Messages.Should().BeSameAs(ec.Messages);
         copy.Attributes.Should().NotBeNull();
         copy.Attributes["k"].Should().Be("v");
@@ -142,6 +148,31 @@ public class ExecutionContextTests
         var ec = new ExecutionContext { OperationType = OperationType.Get };
         ec.OperationType.IsRead.Should().BeTrue();
     }
+
+    [Test]
+    public void GetKeyedService_NonGeneric_ResolvesInterfaceRegisteredImplementation()
+    {
+        // The registered implementation type (FooImpl) intentionally differs from the requested service type (IFoo);
+        // this is the common case (interface-based DI) that the buggy GetType()==type comparison failed to match.
+        var sc = new ServiceCollection();
+        sc.AddKeyedSingleton<IFoo, FooImpl>("key1");
+        using var sp = sc.BuildServiceProvider();
+
+        ExecutionContext.SetCurrent(new ExecutionContext { ServiceProvider = sp });
+
+        var result = ExecutionContext.GetKeyedService(typeof(IFoo), "key1");
+
+        result.Should().NotBeNull();
+        result.Should().BeOfType<FooImpl>();
+    }
+
+    [Test]
+    public void GetKeyedService_NonGeneric_NoCurrent_ReturnsNull()
+        => ExecutionContext.GetKeyedService(typeof(IFoo), "key1").Should().BeNull();
+
+    private interface IFoo { }
+
+    private class FooImpl : IFoo { }
 
     private class TestServiceProvider : IServiceProvider
     {

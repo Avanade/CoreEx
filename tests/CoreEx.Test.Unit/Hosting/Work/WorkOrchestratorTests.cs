@@ -1,5 +1,6 @@
 using CoreEx.Hosting.Work;
 using CoreEx.Caching;
+using CoreEx.Security;
 
 namespace CoreEx.Test.Unit.Hosting.Work;
 
@@ -89,7 +90,7 @@ public class WorkOrchestratorTests
         ws.Should().BeNull();
 
         // Get correct type with same id, but different user.
-        ExecutionContext.Current.User = Security.AuthenticationUser.Anonymous;
+        ExecutionContext.Current.User = AuthenticationUser.Anonymous;
         ws = await o.GetWithTypeAsync("Test-Work", "abc");
         ws.Should().BeNull();
     }

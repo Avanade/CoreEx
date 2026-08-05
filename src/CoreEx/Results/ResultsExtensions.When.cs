@@ -129,7 +129,7 @@ public static partial class ResultsExtensions
         if (condition(result.Value))
             return func(result.Value).Combine(result);
         else
-            return otherwise is null ? result : func(result.Value).Combine(result);
+            return otherwise is null ? result : otherwise(result.Value).Combine(result);
     }
 
     /// <summary>

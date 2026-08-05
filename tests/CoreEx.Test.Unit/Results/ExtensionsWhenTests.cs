@@ -145,6 +145,56 @@ public class ExtensionsWhenTests
     }
 
     [Test]
+    public void ResultT_When_FuncResult_ConditionTrue_Success()
+    {
+        var result = new Result<int>(5);
+        var ret = result.When(i => i == 5, i => Result.Success);
+        ret.IsSuccess.Should().BeTrue();
+        ret.Value.Should().Be(5); // Value is preserved (not lost) on success.
+    }
+
+    [Test]
+    public void ResultT_When_FuncResult_ConditionFalse_InvokesOtherwise_NotFunc()
+    {
+        var result = new Result<int>(5);
+        var funcCalled = false;
+        var otherwiseCalled = false;
+
+        var ret = result.When(i => i == 0, i => { funcCalled = true; return Result.Success; }, i => { otherwiseCalled = true; return Result.Success; });
+
+        funcCalled.Should().BeFalse();
+        otherwiseCalled.Should().BeTrue();
+        ret.IsSuccess.Should().BeTrue();
+        ret.Value.Should().Be(5);
+    }
+
+    [Test]
+    public void ResultT_When_FuncResult_ConditionFalse_NoOtherwise_ReturnsOriginal()
+    {
+        var result = new Result<int>(5);
+        var ret = result.When(i => i == 0, i => Result.Success);
+        ret.Should().Be(result);
+    }
+
+    [Test]
+    public void ResultT_When_FuncResult_ConditionFalse_OtherwiseFailure_PropagatesError()
+    {
+        var result = new Result<int>(5);
+        var ex = new Exception("otherwise-fail");
+        var ret = result.When(i => i == 0, i => Result.Success, i => new Result(ex));
+        ret.IsFailure.Should().BeTrue();
+        ret.Error.Should().Be(ex);
+    }
+
+    [Test]
+    public void ResultT_When_FuncResult_Failure()
+    {
+        var result = new Result<int>(new Exception("fail"));
+        var ret = result.When(i => true, i => Result.Success, i => Result.Success);
+        ret.Should().Be(result);
+    }
+
+    [Test]
     public void ResultT_WhenAs_FuncT_ConditionTrue_Success()
     {
         var result = new Result<int>(5);

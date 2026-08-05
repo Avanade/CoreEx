@@ -16,6 +16,20 @@ public class JsonSubstituteNamingPolicyTests
         json.Should().Be("""{"id":"abc","years":55,"etag":"xyz"}""");
     }
 
+    [Test]
+    public void ConvertName_NoSubstitution_UsesFallbackPolicy_NotHardcodedCamelCase()
+    {
+        var policy = new JsonSubstituteNamingPolicy { FallbackPolicy = JsonNamingPolicy.SnakeCaseLower };
+        policy.ConvertName("FirstName").Should().Be("first_name");
+    }
+
+    [Test]
+    public void ConvertName_Substitution_TakesPrecedenceOverFallbackPolicy()
+    {
+        var policy = new JsonSubstituteNamingPolicy { FallbackPolicy = JsonNamingPolicy.SnakeCaseLower };
+        policy.ConvertName("ETag").Should().Be("etag");
+    }
+
     private class Person : IIdentifier<string?>, IReadOnlyETag
     {
         public string? Id { get; set; }

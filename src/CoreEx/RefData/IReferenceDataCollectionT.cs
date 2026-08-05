@@ -45,7 +45,7 @@ public interface IReferenceDataCollection<TId, TRef> : IReferenceDataCollection,
     }
 
     /// <inheritdoc/>
-    IReferenceData? IReferenceDataCollection.GetById(object? id) => GetById(id);
+    IReferenceData? IReferenceDataCollection.GetById(object? id) => id is TId typedId ? GetById(typedId) : null;
 
     /// <inheritdoc/>
     IReferenceData? IReferenceDataCollection.GetByCode(string code) => GetByCode(code);

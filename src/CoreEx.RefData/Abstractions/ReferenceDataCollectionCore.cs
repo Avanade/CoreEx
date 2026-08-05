@@ -17,7 +17,7 @@ public abstract class ReferenceDataCollectionCore<TId, TRef> : IReferenceDataCol
 #endif
     private readonly ConcurrentDictionary<object, TRef> _rdcId = new();
     private readonly ConcurrentDictionary<string, TRef> _rdcCode;
-    private Dictionary<(string, object?), TRef>? _mappingsDict;
+    private ConcurrentDictionary<(string, object?), TRef>? _mappingsDict;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ReferenceDataCollection{TItem, TId}"/> class.
@@ -75,7 +75,7 @@ public abstract class ReferenceDataCollectionCore<TId, TRef> : IReferenceDataCol
 
             if (item.HasMappings)
             {
-                _mappingsDict ??= [];
+                _mappingsDict ??= new();
 
                 // Make sure there are no duplicates.
                 foreach (var map in item.Mappings!)
@@ -87,7 +87,7 @@ public abstract class ReferenceDataCollectionCore<TId, TRef> : IReferenceDataCol
                 // Now add 'em in.
                 foreach (var map in item.Mappings)
                 {
-                    _mappingsDict.Add((map.Key, map.Value), item);
+                    _mappingsDict.TryAdd((map.Key, map.Value), item);
                 }
             }
 
@@ -156,7 +156,7 @@ public abstract class ReferenceDataCollectionCore<TId, TRef> : IReferenceDataCol
     }
 
     /// <inheritdoc/>
-    public TRef? GetById(TId id) => id is null ? default : _rdcId[id];
+    public TRef? GetById(TId id) => id is null ? default : _rdcId.TryGetValue(id, out var item) ? item : default;
 
     /// <inheritdoc/>
     public bool ContainsCode(string code) => _rdcCode.ContainsKey(code);
@@ -172,7 +172,7 @@ public abstract class ReferenceDataCollectionCore<TId, TRef> : IReferenceDataCol
     }
 
     /// <inheritdoc/>
-    public TRef? GetByCode(string code) => code is null ? default : _rdcCode[code];
+    public TRef? GetByCode(string code) => code is null ? default : _rdcCode.TryGetValue(code, out var item) ? item : default;
 
     /// <inheritdoc/>
     public bool ContainsMapping<T>(string name, T value) where T : IComparable<T>, IEquatable<T> => _mappingsDict is not null && _mappingsDict.ContainsKey((name, value));

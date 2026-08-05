@@ -323,14 +323,12 @@ public abstract class HostedServiceBase : IHostedService, IDisposable
     {
         lock (SyncLock)
         {
-            if (Status.IsStop)
-
             Status = ServiceStatus.Stopping;
             if (Logger.IsEnabled(LogLevel.Information))
                 Logger.LogInformation("{ServiceName} stop requested.", ServiceName);
         }
 
-        await OnStopAsync(cancellationToken);
+        await OnStopAsync(cancellationToken).ConfigureAwait(false);
 
         lock (SyncLock)
         {

@@ -55,10 +55,21 @@ public class ReferenceDataCodeCollection<TRef> : IReferenceDataCodeCollection, I
     public void Clear() => _codes.Clear();
 
     /// <inheritdoc/>
-    public bool Contains(TRef item) => ((IList)_codes).Contains(item);
+    public bool Contains(TRef item) => _codes.Contains(item?.Code);
 
     /// <inheritdoc/>
-    public void CopyTo(TRef[] array, int arrayIndex) => ((IList)_codes).CopyTo(array, arrayIndex);
+    public void CopyTo(TRef[] array, int arrayIndex)
+    {
+        array.ThrowIfNull();
+        if (arrayIndex < 0 || arrayIndex + Count > array.Length)
+            throw new ArgumentOutOfRangeException(nameof(arrayIndex));
+
+        var i = arrayIndex;
+        foreach (var item in this)
+        {
+            array[i++] = item;
+        }
+    }
 
     /// <inheritdoc/>
     public IEnumerator<TRef> GetEnumerator()

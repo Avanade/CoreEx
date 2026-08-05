@@ -28,5 +28,5 @@ public class JsonSubstituteNamingPolicy : JsonNamingPolicy
 
     /// <inheritdoc/>
     /// <remarks>Converts using the <see cref="Substitutions"/> then the <see cref="FallbackPolicy"/>.</remarks>
-    public override string ConvertName(string name) => Substitutions.TryGetValue(name, out var substitution) ? substitution : CamelCase.ConvertName(name);
+    public override string ConvertName(string name) => Substitutions.TryGetValue(name, out var substitution) ? substitution : FallbackPolicy.ConvertName(name);
 }

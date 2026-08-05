@@ -23,6 +23,7 @@ public static partial class Extensions
             if (pd is not null)
                 return new ProblemDetailsException(pd, new HttpRequestException($"{CreateMessage(response)} Problem details:{content}"));
         }
+        catch (OperationCanceledException) { throw; } // Let cancellation propagate; do not treat as "not a problem details".
         catch { } // Swallow and assume not a problem details.
 
         return null;

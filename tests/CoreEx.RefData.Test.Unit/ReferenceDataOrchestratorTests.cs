@@ -156,6 +156,22 @@ public partial class ReferenceDataOrchestratorTests
     }
 
     [Test]
+    public void NonGenericCollection_GetById_ReturnsItem_DoesNotStackOverflow()
+    {
+        // Regression guard: IReferenceDataCollection<TId, TRef>'s explicit IReferenceDataCollection.GetById(object?)
+        // implementation previously called GetById(id) unconverted, which bound back to itself (object? being an
+        // exact match vs. the typed TRef? GetById(TId) requiring a conversion), recursing infinitely and crashing
+        // the process with an uncatchable StackOverflowException. Must go through the non-generic interface here.
+        var orch = CreateOrchestrator();
+        IReferenceDataCollection coll = orch.GetByType<DummyRefData>()!;
+
+        var item = coll.GetById(1);
+
+        item.Should().NotBeNull();
+        item!.Code.Should().Be("A");
+    }
+
+    [Test]
     public void GetByName_And_GetByNameRequired()
     {
         var orch = CreateOrchestrator();
@@ -499,6 +515,91 @@ public partial class ReferenceDataOrchestratorTests
         var mc = await ro.GetNamedAsync(["not-a-real-name"]);
 
         mc.Should().BeEmpty();
+    }
+
+    // ── PrefetchAsync ──────────────────────────────────────────────────────
+
+    [Test]
+    public async Task PrefetchAsync_ReturnsKnownNames_AndPopulatesCache()
+    {
+        var orch = CreateOrchestrator();
+        var names = await orch.PrefetchAsync([nameof(DummyRefData), "Unknown", nameof(DummyRefData2)]);
+
+        names.Should().BeEquivalentTo([nameof(DummyRefData), nameof(DummyRefData2)]);
+
+        // Now retrievable synchronously without triggering a fresh (uncached) load.
+        orch.GetByType<DummyRefData>().Should().NotBeNull();
+        orch.GetByType<DummyRefData2>().Should().NotBeNull();
+    }
+
+    [Test]
+    public async Task PrefetchAsync_DuplicateNames_CaseInsensitive_ReturnsDistinct()
+    {
+        var orch = CreateOrchestrator();
+        var names = await orch.PrefetchAsync([nameof(DummyRefData), nameof(DummyRefData).ToLowerInvariant()]);
+
+        names.Should().ContainSingle().Which.Should().Be(nameof(DummyRefData));
+    }
+
+    [Test]
+    public async Task PrefetchAsync_AllUnknownNames_ReturnsEmpty()
+    {
+        var orch = CreateOrchestrator();
+        var names = await orch.PrefetchAsync(["not-a-real-name", "also-not-real"]);
+
+        names.Should().BeEmpty();
+    }
+
+    // ── ConvertFromMapping ─────────────────────────────────────────────────
+
+    private class MappingProvider(IReferenceDataCollection collection) : IReferenceDataProvider
+    {
+        public IEnumerable<(Type, Type)> Types => [(typeof(DummyRefData), typeof(DummyRefDataCollection))];
+
+        public Task<IReferenceDataCollection> GetAsync(Type type, CancellationToken cancellationToken = default) => Task.FromResult(collection);
+    }
+
+    private static ReferenceDataOrchestrator CreateOrchestratorWithMapping(out DummyRefData item)
+    {
+        // The mapping must be set BEFORE the item is added to the collection - ReferenceDataCollectionCore indexes
+        // mappings at Add() time, so mutating an already-added item's mappings would not update the index.
+        item = new DummyRefData { Id = 99, Code = "M" };
+        item.SetMapping("ext", "M-ext");
+        var collection = new DummyRefDataCollection { item };
+
+        var sc = new ServiceCollection();
+        sc.AddExecutionContext(sp => new ExecutionContext { ServiceProvider = sp });
+        sc.AddSingleton<IReferenceDataCache>(new ReferenceDataHybridCache(new Caching.MemoryOnlyHybridCache()));
+        sc.AddSingleton(new MappingProvider(collection));
+        var sp2 = sc.BuildServiceProvider();
+
+        var ro = new ReferenceDataOrchestrator(sp2, Mock.Of<ILogger<ReferenceDataOrchestrator>>());
+        ro.Register<MappingProvider>();
+        return ro;
+    }
+
+    [Test]
+    public void ConvertFromMapping_FindsItemByMapping()
+    {
+        var ro = CreateOrchestratorWithMapping(out var item);
+        ReferenceDataOrchestrator.SetCurrent(ro);
+
+        var found = ReferenceDataOrchestrator.ConvertFromMapping<DummyRefData, string>("ext", "M-ext");
+
+        found.Should().NotBeNull();
+        found.Id.Should().Be(item.Id);
+        ((IReferenceData)found).IsValid.Should().BeTrue();
+    }
+
+    [Test]
+    public void ConvertFromMapping_NotFound_ReturnsInvalidItem()
+    {
+        var ro = CreateOrchestratorWithMapping(out _);
+        ReferenceDataOrchestrator.SetCurrent(ro);
+
+        var found = ReferenceDataOrchestrator.ConvertFromMapping<DummyRefData, string>("ext", "does-not-exist");
+
+        ((IReferenceData)found).IsValid.Should().BeFalse();
     }
 
     // Entity source generation tests.

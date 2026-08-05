@@ -169,7 +169,7 @@ public static partial class Extensions
         if (sb.Length > 0)
             sb.Append('&');
 
-        sb.Append($"{name}={value}");
+        sb.Append(name).Append('=').Append(Uri.EscapeDataString(value));
         return sb;
     }
 }
