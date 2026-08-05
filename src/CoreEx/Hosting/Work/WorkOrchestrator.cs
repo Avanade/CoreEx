@@ -19,13 +19,13 @@ public class WorkOrchestrator(IWorkProvider provider, JsonSerializerOptions? jso
     /// <summary>
     /// Gets the <see cref="IWorkProvider"/>.
     /// </summary>
-    public IWorkProvider Provider = provider.ThrowIfNull(nameof(provider));
+    public IWorkProvider Provider { get; } = provider.ThrowIfNull(nameof(provider));
 
     /// <summary>
     /// Gets the <see cref="JsonSerializerOptions"/>.
     /// </summary>
     /// <remarks>Defaults to <see cref="JsonDefaults.SerializerOptions"/>.</remarks>
-    public JsonSerializerOptions JsonSerializerOptions = jsonSerializerOptions ?? JsonDefaults.SerializerOptions;
+    public JsonSerializerOptions JsonSerializerOptions { get; } = jsonSerializerOptions ?? JsonDefaults.SerializerOptions;
 
     /// <summary>
     /// Gets or sets the work expiry <see cref="TimeSpan"/>.

@@ -110,7 +110,7 @@ public static partial class CoreExExtensions
     {
         foreach (var assembly in assemblies.Distinct())
         {
-            foreach (var match in from type in assembly.GetTypes()
+            foreach (var match in from type in GetLoadableTypes(assembly)
                                   where !type.IsAbstract && !type.IsGenericTypeDefinition
                                   let sla = ServiceLifetimeAttribute.GetCustomAttribute(type)
                                   where sla is not null
@@ -121,6 +121,21 @@ public static partial class CoreExExtensions
         }
 
         return services;
+    }
+
+    /// <summary>
+    /// Gets the types from the specified <paramref name="assembly"/>, tolerating types that fail to load (e.g. due to missing dependencies).
+    /// </summary>
+    private static IEnumerable<Type> GetLoadableTypes(Assembly assembly)
+    {
+        try
+        {
+            return assembly.GetTypes();
+        }
+        catch (ReflectionTypeLoadException ex)
+        {
+            return ex.Types.Where(t => t is not null)!;
+        }
     }
 
     /// <summary>

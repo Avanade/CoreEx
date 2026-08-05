@@ -166,6 +166,19 @@ public partial class RuntimeMetadataTests
     }
 
     [Test]
+    public void AreEqual_LeftIsCollection_RightIsNotCollection_ReturnsFalse_DoesNotThrow()
+    {
+        // left (List<int>) implements ICollection; right (lazy iterator) does not. The unconditional cast of
+        // right to ICollection previously threw InvalidCastException in this mismatched-type scenario.
+        IEnumerable<int> left = [1, 2, 3];
+        IEnumerable<int> right = LazyInts(1, 2, 3);
+
+        Action act = () => RuntimeMetadata.AreEqual(left, right);
+        act.Should().NotThrow();
+        RuntimeMetadata.AreEqual(left, right).Should().BeFalse();
+    }
+
+    [Test]
     public void AreEqual_Dictionary()
     {
         var e1 = new EntityC { Kids = [] };

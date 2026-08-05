@@ -103,6 +103,8 @@ public partial class ExecutionContext : IDisposable, IReadOnlyTenantId
         ec.User = User;
         ec.TenantId = TenantId;
         ec.UICulture = UICulture;
+        ec.OperationType = OperationType;
+        ec.IncludeRelatedText = IncludeRelatedText;
         ec._isCopied = true;
 
         if (_attributes.IsValueCreated)

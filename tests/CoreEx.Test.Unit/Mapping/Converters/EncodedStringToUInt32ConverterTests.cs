@@ -23,6 +23,26 @@ public class EncodedStringToUInt32ConverterTests
     }
 
     [Test]
+    public void ConvertToDestination_DecodedValueLongerThanFourBytes_ThrowsFormatException_InsteadOfSilentlyTruncating()
+    {
+        var eightByteValue = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8 };
+        var base64 = Convert.ToBase64String(eightByteValue);
+
+        Action act = () => _converter.ConvertToDestination(base64);
+        act.Should().Throw<FormatException>();
+    }
+
+    [Test]
+    public void ConvertToDestination_DecodedValueShorterThanFourBytes_ThrowsFormatException()
+    {
+        var twoByteValue = new byte[] { 1, 2 };
+        var base64 = Convert.ToBase64String(twoByteValue);
+
+        Action act = () => _converter.ConvertToDestination(base64);
+        act.Should().Throw<FormatException>();
+    }
+
+    [Test]
     public void ConvertToSource_ValidUInt32_ReturnsBase64String()
     {
         var value = 98765u;

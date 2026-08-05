@@ -328,7 +328,7 @@ public abstract class HostedServiceBase : IHostedService, IDisposable
                 Logger.LogInformation("{ServiceName} stop requested.", ServiceName);
         }
 
-        await OnStopAsync(cancellationToken);
+        await OnStopAsync(cancellationToken).ConfigureAwait(false);
 
         lock (SyncLock)
         {

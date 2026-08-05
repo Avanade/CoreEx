@@ -113,7 +113,9 @@ public class ExecutionContextTests
         {
             User = new Security.AuthenticationUser { Type = Security.AuthenticationType.AccountUser, UserName = "user" },
             TenantId = "tenant",
-            UICulture = new CultureInfo("en-US")
+            UICulture = new CultureInfo("en-US"),
+            OperationType = OperationType.Update,
+            IncludeRelatedText = true
         };
         ec.AddInfoMessage(new LText("msg"));
         ec.Attributes["k"] = "v";
@@ -123,6 +125,8 @@ public class ExecutionContextTests
         copy.User.Type.Should().Be(Security.AuthenticationType.AccountUser);
         copy.TenantId.Should().Be("tenant");
         copy.UICulture.Should().Be(new CultureInfo("en-US"));
+        copy.OperationType.Should().Be(OperationType.Update);
+        copy.IncludeRelatedText.Should().BeTrue();
         copy.Messages.Should().BeSameAs(ec.Messages);
         copy.Attributes.Should().NotBeNull();
         copy.Attributes["k"].Should().Be("v");

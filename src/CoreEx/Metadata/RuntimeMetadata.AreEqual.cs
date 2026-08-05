@@ -67,7 +67,7 @@ public static partial class RuntimeMetadata
         // Short circuit arrays, collections, lists, and dictionaries based on count difference.
         if (left is ICollection lc)
         {
-            if (lc.Count != ((ICollection)right).Count)
+            if (right is not ICollection rc || lc.Count != rc.Count)
                 return false;
         }
 
