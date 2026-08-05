@@ -134,7 +134,7 @@ public static partial class CoreExExtensions
         }
         catch (ReflectionTypeLoadException ex)
         {
-            return ex.Types.Where(t => t is not null)!;
+            return ex.Types.OfType<Type>();
         }
     }
 

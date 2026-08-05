@@ -93,11 +93,11 @@ public class HybridCacheSynchronizerTests
     }
 
     [Test]
-    public void ExitAsync_NotEntered_ThrowsInvalidOperationException()
+    public async Task ExitAsync_NotEntered_ThrowsInvalidOperationException()
     {
         var synchronizer = new HybridCacheSynchronizer(new FakeHybridCache());
         Func<Task> act = () => synchronizer.ExitAsync<HybridCacheSynchronizerTests>();
-        act.Should().ThrowAsync<InvalidOperationException>();
+        await act.Should().ThrowAsync<InvalidOperationException>();
     }
 
     [Test]
