@@ -54,7 +54,9 @@ public abstract partial class DatabaseCommand
     private async Task<T> SelectSingleFirstInternalAsync<T>(IDatabaseMapper<T> mapper, bool throwWhereMulti, string memberName, CancellationToken cancellationToken)
     {
         var coll = new List<T>();
-        await SelectInternalAsync(coll, mapper, throwWhereMulti, false, 2, memberName, cancellationToken).ConfigureAwait(false);
+
+        // Where not required to detect/throw on multiple rows (i.e. "first" semantics), stop immediately after mapping the first row to avoid the cost of reading/mapping a redundant second row.
+        await SelectInternalAsync(coll, mapper, throwWhereMulti, !throwWhereMulti, 2, memberName, cancellationToken).ConfigureAwait(false);
         return coll.Count == 0 ? default! : coll[0];
     }
 

@@ -1,0 +1,13 @@
+global using Contoso.Shopping.Infrastructure.Repositories;
+global using CoreEx.Azure.Messaging.ServiceBus;
+global using CoreEx.Events;
+global using CoreEx.UnitTesting;
+global using AwesomeAssertions;
+global using Microsoft.Extensions.DependencyInjection;
+global using NUnit.Framework;
+global using System.Net;
+global using UnitTestEx;
+global using UnitTestEx.Expectations;
+global using DbMigration = Contoso.Shopping.Database.Program;
+global using ExecutionContext = CoreEx.ExecutionContext;
+global using TestData = Contoso.Shopping.Test.Common.TestData;

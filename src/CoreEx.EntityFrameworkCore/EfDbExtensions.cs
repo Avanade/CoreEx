@@ -39,7 +39,10 @@ public static partial class EfDbExtensions
     /// <param name="mapper">The mapping <see cref="IMapper{TSource, TItem}"/>.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
     public static async Task<TColl> ToMappedItemsAsync<TSource, TColl, TItem>(this IQueryable<TSource> query, IMapper<TSource, TItem> mapper, CancellationToken cancellationToken = default) where TSource : class where TColl : ICollection<TItem>, new() where TItem : class
-        => await ToMappedItemsAsync<TSource, TColl, TItem>(query, source => mapper.Map(source)!, cancellationToken).ConfigureAwait(false);
+    {
+        mapper.ThrowIfNull();
+        return await ToMappedItemsAsync<TSource, TColl, TItem>(query, source => mapper.Map(source)!, cancellationToken).ConfigureAwait(false);
+    }
 
     /// <summary>
     /// Creates a <see cref="List{TItem}"/> from a <typeparamref name="TSource"/> <see cref="IQueryable{TSource}"/> using the specified <paramref name="mapper"/>.
@@ -73,7 +76,10 @@ public static partial class EfDbExtensions
     /// <param name="mapper">The mapping <see cref="IMapper{TSource, TItem}"/>.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
     public static async Task<List<TItem>> ToMappedItemsAsync<TSource, TItem>(this IQueryable<TSource> query, IMapper<TSource, TItem> mapper, CancellationToken cancellationToken = default) where TSource : class where TItem : class
-        => await ToMappedItemsAsync(query, source => mapper.Map(source)!, cancellationToken).ConfigureAwait(false);
+    {
+        mapper.ThrowIfNull();
+        return await ToMappedItemsAsync(query, source => mapper.Map(source)!, cancellationToken).ConfigureAwait(false);
+    }
 
     /// <summary>
     /// Creates a <see cref="ItemsResult{TItem}"/> from an <see cref="IQueryable{TItem}"/> applying <paramref name="paging"/> (including with <see cref="PagingResult.TotalCount"/> where requested).
@@ -143,5 +149,8 @@ public static partial class EfDbExtensions
     /// <remarks>The <paramref name="autoCount"/> indicates whether the <see cref="PagingResult.TotalCount"/> query should be automatically executed using the <paramref name="query"/> before the <paramref name="paging"/>
     /// is applied and <see cref="PagingArgs.IsCountRequested"/>. This is opt-in as not all LINQ implementations support the reuse of the query, or allow counthing where ordering has previously been applied.</remarks>
     public static async Task<ItemsResult<TItem>> ToMappedItemsResultAsync<TSource, TItem>(this IQueryable<TSource> query, IMapper<TSource, TItem> mapper, PagingArgs? paging = null, bool autoCount = true, CancellationToken cancellationToken = default) where TSource : class where TItem : class
-        => await query.ToMappedItemsResultAsync(source => mapper.Map(source)!, paging, autoCount, cancellationToken).ConfigureAwait(false);
+    {
+        mapper.ThrowIfNull();
+        return await query.ToMappedItemsResultAsync(source => mapper.Map(source)!, paging, autoCount, cancellationToken).ConfigureAwait(false);
+    }
 }

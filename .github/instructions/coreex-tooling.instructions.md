@@ -367,7 +367,7 @@ dotnet run -- script outbox <schema> <name>     # transactional outbox table(s)
 
 **Naming convention** (what `Script` produces, and what any hand-named file must match): `yyyyMMdd-HHmmss-<kebab-description>.{sql|pgsql}`.
 - The leading segment is the **current UTC date *and* time** (`yyyyMMdd-HHmmss`) at the moment of creation — **not** a placeholder date (e.g. `20250101`) and **not** a per-day incrementing index (e.g. `000001`). The time component provides natural ordering and uniqueness without tracking indices.
-- The entire filename is **kebab-lower-case** — all lowercase, words separated by hyphens (e.g. `20260603-142530-create-bar-employee.sql`, never `...-create-Bar-Employee.sql`).
+- The entire filename is **kebab-lower-case** — all lowercase, words separated by hyphens (e.g. `20260603-142530-create-bar-employee.sql` for SQL Server, `20260603-142530-create-bar-employee.pgsql` for PostgreSQL — never `...-create-Bar-Employee.sql`). The extension follows the provider rule above; this section is only about the casing of the name itself.
 
 > **Do not author a schema-create script.** The `coreex` template already ships the default schema-create migration, so the schema exists from the first `Migrate`. Never emit a `create-<schema>-schema` script unless the user **explicitly** asks for an additional schema.
 

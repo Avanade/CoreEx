@@ -1,8 +1,8 @@
--- Create table: "db-name"."outbox" and "db-name"."outbox_lease"
+-- Create table: "pg-schema"."outbox" and "pg-schema"."outbox_lease"
 
 BEGIN;
 
-CREATE TABLE "db-name"."outbox" (
+CREATE TABLE "pg-schema"."outbox" (
   "outbox_id" BIGSERIAL NOT NULL PRIMARY KEY,
   "tenant_id" VARCHAR(255) NOT NULL,      -- '(none)' indicates no tenancy.
   "partition_id" INTEGER NOT NULL,        -- Partition number; computed in application from partition-key.
@@ -21,17 +21,17 @@ CREATE TABLE "db-name"."outbox" (
   "lease_until_utc" TIMESTAMPTZ NULL      -- Leased until UTC; after which assume released due to possible application crash.
 );
 
-CREATE INDEX "ix_db-name_outbox_partition_order" ON "db-name"."outbox" ("tenant_id", "partition_id", "outbox_id", "status", "available_utc", "lease_until_utc", "destination", "attempts");
-CREATE INDEX "ix_db-name_outbox_worker_pull" ON "db-name"."outbox" ("tenant_id", "partition_id", "status", "outbox_id", "available_utc");
-CREATE INDEX "ix_db-name_outbox_clean_up" ON "db-name"."outbox" ("outbox_id", "dequeued_utc") WHERE "status" = 2;
+CREATE INDEX "ix_pg-schema_outbox_partition_order" ON "pg-schema"."outbox" ("tenant_id", "partition_id", "outbox_id", "status", "available_utc", "lease_until_utc", "destination", "attempts");
+CREATE INDEX "ix_pg-schema_outbox_worker_pull" ON "pg-schema"."outbox" ("tenant_id", "partition_id", "status", "outbox_id", "available_utc");
+CREATE INDEX "ix_pg-schema_outbox_clean_up" ON "pg-schema"."outbox" ("outbox_id", "dequeued_utc") WHERE "status" = 2;
 
-CREATE TABLE "db-name"."outbox_lease" (
+CREATE TABLE "pg-schema"."outbox_lease" (
   "tenant_id" VARCHAR(255) NOT NULL,      -- '(none)' indicates no tenancy.
   "partition_id" INTEGER NOT NULL,        -- Partition number; computed in application from partition-key.
   "lease_id" UUID NULL,                   -- Unique identifier of the lessee.
   "lease_until_utc" TIMESTAMPTZ NULL,     -- Leased until UTC; after which assume released due to possible application crash.
 
-  CONSTRAINT "pk_db-name_outbox_lease" PRIMARY KEY ("tenant_id", "partition_id")
+  CONSTRAINT "pk_pg-schema_outbox_lease" PRIMARY KEY ("tenant_id", "partition_id")
 );
 
 COMMIT;

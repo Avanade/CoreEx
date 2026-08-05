@@ -50,8 +50,11 @@ public sealed partial class EfDbModel<TModel> where TModel : class
         // Check valid tenant where multi-tenancy is being used.
         if (model is IReadOnlyTenantId tenant)
         {
-            model.ThrowWhen(_ => string.IsNullOrEmpty(tenant.TenantId), $"{nameof(ITenantId.TenantId)} must be specified.");
-            if (tenant.TenantId != ExecutionContext.Current.TenantId)
+            // TenantId is stamped automatically (see Model.PrepareCreate/PrepareUpdate) and is never caller-supplied; a null/empty value is an internal data-integrity/environment problem, not a bad request from the caller.
+            if (string.IsNullOrEmpty(tenant.TenantId))
+                throw new InvalidOperationException($"The model's {nameof(ITenantId.TenantId)} is null or empty; {nameof(IReadOnlyTenantId)} requires tenant stamping to have occurred prior to this check.");
+
+            if (tenant.TenantId != EfDb.ExecutionContext.TenantId)
                 return treatNullAsNotFound ? Result.NotFoundError() : Result.Ok<TModel?>(null);
         }
 

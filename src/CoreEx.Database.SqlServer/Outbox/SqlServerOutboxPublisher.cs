@@ -20,10 +20,15 @@ public class SqlServerOutboxPublisher : DatabaseOutboxPublisherBase<SqlServerDat
     /// <param name="formatter">The optional <see cref="IEventFormatter"/>.</param>
     /// <param name="logger">The optional <see cref="ILogger"/>.</param>
     public SqlServerOutboxPublisher(SqlServerDatabase database, IDestinationProvider? destinationProvider = null, IEventFormatter? formatter = null, ILogger<SqlServerOutboxPublisher>? logger = null)
-        : base(database, destinationProvider, formatter, logger)
+        : base(database, destinationProvider, formatter, logger) => SetStatementByConvention();
+
+    /// <summary>
+    /// Sets the <see cref="DatabaseOutboxPublisherBase{TDatabase}.Statement"/> by convention, based on the <see cref="IHostSettings.DomainName"/> (if available) and the stored procedure name of <c>spOutboxEnqueue</c>.
+    /// </summary>
+    /// <param name="schema">The optional schema name.</param>
+    public void SetStatementByConvention(string? schema = null)
     {
-        // Attempt to automatically set the statement by convention, if possible.
-        var schema = ExecutionContext.GetService<IHostSettings>()?.DomainName;
+        schema ??= ExecutionContext.GetService<IHostSettings>()?.DomainName;
         if (schema is not null)
             Statement = SqlStatement.StoredProcedure($"[{schema}].[spOutboxEnqueue]");
     }

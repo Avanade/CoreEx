@@ -39,6 +39,7 @@
       "samples/tests/Contoso.Products.Test.Unit/Contoso.Products.Test.Unit.csproj",
       "samples/tests/Contoso.Shopping.Test.Api/Contoso.Shopping.Test.Api.csproj",
       "samples/tests/Contoso.Shopping.Test.Common/Contoso.Shopping.Test.Common.csproj",
+      "samples/tests/Contoso.Shopping.Test.Relay/Contoso.Shopping.Test.Relay.csproj",
       "samples/tests/Contoso.Shopping.Test.Subscribe/Contoso.Shopping.Test.Subscribe.csproj",
       "samples/tests/Contoso.Shopping.Test.Unit/Contoso.Shopping.Test.Unit.csproj"
     ]

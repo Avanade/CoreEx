@@ -88,8 +88,7 @@ public class DatabaseWildcard
     /// <returns>The SQL LIKE wildcard.</returns>
     public string? Replace(string? text)
     {
-        var wc = Wildcard ?? Wildcard.Default ?? Wildcard.MultiBasic;
-        var wr = wc.Parse(text).ThrowOnError();
+        var wr = Wildcard.Parse(text).ThrowOnError();
 
         if (wr.Selection.HasFlag(WildcardSelection.None) || wr.Selection.HasFlag(WildcardSelection.Single) && wr.Selection.HasFlag(WildcardSelection.MultiWildcard))
             return new string(MultiWildcard, 1);

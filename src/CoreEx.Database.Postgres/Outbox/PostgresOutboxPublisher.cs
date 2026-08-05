@@ -21,12 +21,17 @@ public class PostgresOutboxPublisher : DatabaseOutboxPublisherBase<PostgresDatab
     /// <param name="formatter">The optional <see cref="IEventFormatter"/>.</param>
     /// <param name="logger">The optional <see cref="ILogger"/>.</param>
     public PostgresOutboxPublisher(PostgresDatabase database, IDestinationProvider? destinationProvider = null, IEventFormatter? formatter = null, ILogger<PostgresOutboxPublisher>? logger = null)
-        : base(database, destinationProvider, formatter, logger)
+        : base(database, destinationProvider, formatter, logger) => SetStatementByConvention();
+
+    /// <summary>
+    /// Sets the <see cref="DatabaseOutboxPublisherBase{TDatabase}.Statement"/> by convention, based on the <see cref="IHostSettings.DomainName"/> (converted to <c>snake_case</c>, if available) and the function name of <c>fn_outbox_enqueue</c>.
+    /// </summary>
+    /// <param name="schema">The optional schema name; defaults to the <see cref="IHostSettings.DomainName"/> converted to <c>snake_case</c>.</param>
+    public void SetStatementByConvention(string? schema = null)
     {
-        // Attempt to automatically set the statement by convention, if possible.
-        var schema = ExecutionContext.GetService<IHostSettings>()?.DomainName;
+        schema ??= SentenceCase.ToSnakeCase(ExecutionContext.GetService<IHostSettings>()?.DomainName);
         if (schema is not null)
-            Statement = SqlStatement.FromText($"SELECT \"{SentenceCase.ToSnakeCase(schema)}\".\"fn_outbox_enqueue\"");
+            Statement = SqlStatement.FromText($"SELECT \"{schema}\".\"fn_outbox_enqueue\"");
     }
 
     /// <inheritdoc/>
