@@ -146,8 +146,8 @@ public partial class ExecutionContext
     public static object? GetKeyedService(Type type, object? serviceKey)
     {
         type.ThrowIfNull();
-        if (TryGetCurrent(out var executionContext) && executionContext.ServiceProvider is not null)
-            return executionContext.ServiceProvider.GetKeyedServices(type, serviceKey).FirstOrDefault(s => s?.GetType() == type);
+        if (TryGetCurrent(out var executionContext) && executionContext.ServiceProvider is IKeyedServiceProvider ksp)
+            return ksp.GetKeyedService(type, serviceKey);
 
         return null;
     }

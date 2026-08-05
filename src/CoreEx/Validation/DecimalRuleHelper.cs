@@ -83,8 +83,18 @@ public static class DecimalRuleHelper
         if (absValue == 0m)
             return 0;
 
-        // Use Log10 for O(1) performance; cast to double is safe here as we only need the magnitude for digit counting.
-        return (int)Math.Floor(Math.Log10((double)absValue)) + 1;
+        // Use Log10 for O(1) performance as an estimate; the cast to double can lose precision for values with 16+
+        // significant digits (decimal supports up to 29), which can round the magnitude up or down across a
+        // power-of-ten boundary (e.g. 99999999999999999m rounds to 1e17 as a double). Correct any such drift below.
+        var length = (int)Math.Floor(Math.Log10((double)absValue)) + 1;
+
+        while (length > 0 && GetPowerOf10(length - 1) > absValue)
+            length--;
+
+        while (length < 29 && GetPowerOf10(length) <= absValue)
+            length++;
+
+        return length;
     }
 
     /// <summary>

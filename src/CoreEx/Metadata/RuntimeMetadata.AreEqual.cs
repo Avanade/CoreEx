@@ -146,7 +146,8 @@ public static partial class RuntimeMetadata
                     return false;
             }
 
-            return true;
+            // Ensure the right-hand sequence does not have additional trailing elements.
+            return !er.MoveNext();
         }
 
         return (left, right) switch

@@ -323,8 +323,6 @@ public abstract class HostedServiceBase : IHostedService, IDisposable
     {
         lock (SyncLock)
         {
-            if (Status.IsStop)
-
             Status = ServiceStatus.Stopping;
             if (Logger.IsEnabled(LogLevel.Information))
                 Logger.LogInformation("{ServiceName} stop requested.", ServiceName);

@@ -81,7 +81,7 @@ public record class HybridCacheEntryOptions
     /// <returns>A <see cref="HybridCacheEntryOptions"/> instance associated with the specified type.</returns>
     /// <remarks>The <typeparamref name="T"/> <see cref="MemberInfo.Name"/> is used as the name; see <see cref="CreateForName(string, TimeSpan?, TimeSpan?, CacheStrategy?)"/>.</remarks>
     public static HybridCacheEntryOptions CreateFor<T>(TimeSpan? localExpiration = null, TimeSpan? distributedExpiration = null, CacheStrategy? strategy = null)
-        => CreateForName(nameof(T), localExpiration, distributedExpiration, strategy);
+        => CreateForName(typeof(T).Name, localExpiration, distributedExpiration, strategy);
 
     /// <summary>
     /// Gets or sets the <see cref="CacheStrategy"/>.

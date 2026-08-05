@@ -32,7 +32,7 @@ public class JsonExceptionConverterFactory : JsonConverterFactory
                     Ignore = uu.GetCustomAttribute<JsonIgnoreAttribute>(),
                     JsonName = uu.GetCustomAttribute<JsonPropertyNameAttribute>()?.Name 
                 })
-                .Where(uu => uu.Ignore is not null && uu.Name != nameof(Exception.TargetSite));
+                .Where(uu => uu.Ignore is null && uu.Name != nameof(Exception.TargetSite));
 
             if (options?.DefaultIgnoreCondition == JsonIgnoreCondition.WhenWritingNull)
                 serializableProperties = serializableProperties.Where(uu => uu.Value is not null);

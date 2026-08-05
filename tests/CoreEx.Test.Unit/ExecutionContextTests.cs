@@ -1,5 +1,6 @@
 using CoreEx.Entities;
 using CoreEx.Localization;
+using Microsoft.Extensions.DependencyInjection;
 using System.Globalization;
 
 namespace CoreEx.Test.Unit;
@@ -142,6 +143,31 @@ public class ExecutionContextTests
         var ec = new ExecutionContext { OperationType = OperationType.Get };
         ec.OperationType.IsRead.Should().BeTrue();
     }
+
+    [Test]
+    public void GetKeyedService_NonGeneric_ResolvesInterfaceRegisteredImplementation()
+    {
+        // The registered implementation type (FooImpl) intentionally differs from the requested service type (IFoo);
+        // this is the common case (interface-based DI) that the buggy GetType()==type comparison failed to match.
+        var sc = new ServiceCollection();
+        sc.AddKeyedSingleton<IFoo, FooImpl>("key1");
+        using var sp = sc.BuildServiceProvider();
+
+        ExecutionContext.SetCurrent(new ExecutionContext { ServiceProvider = sp });
+
+        var result = ExecutionContext.GetKeyedService(typeof(IFoo), "key1");
+
+        result.Should().NotBeNull();
+        result.Should().BeOfType<FooImpl>();
+    }
+
+    [Test]
+    public void GetKeyedService_NonGeneric_NoCurrent_ReturnsNull()
+        => ExecutionContext.GetKeyedService(typeof(IFoo), "key1").Should().BeNull();
+
+    private interface IFoo { }
+
+    private class FooImpl : IFoo { }
 
     private class TestServiceProvider : IServiceProvider
     {

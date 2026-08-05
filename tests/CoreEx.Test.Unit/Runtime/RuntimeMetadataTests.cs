@@ -131,6 +131,40 @@ public partial class RuntimeMetadataTests
         RuntimeMetadata.AreEqual(arr1, arr4).Should().BeFalse();
     }
 
+    // Local iterator methods (not backed by ICollection) so the AreEqual<T> ICollection.Count short-circuit is bypassed
+    // and TypedEnumerateAreEqual/EnumerateObjectAreEqual are exercised directly.
+    private static IEnumerable<int> LazyInts(params int[] values)
+    {
+        foreach (var v in values)
+            yield return v;
+    }
+
+    private static IEnumerable<EntityA> LazyEntities(params EntityA[] values)
+    {
+        foreach (var v in values)
+            yield return v;
+    }
+
+    [Test]
+    public void AreEqual_IEnumerable_NonCollection_RightLonger_ValueType_IsNotEqual()
+    {
+        // Left is a prefix of right; without a right-hand-exhaustion check this incorrectly returns true.
+        RuntimeMetadata.AreEqual(LazyInts(1, 2), LazyInts(1, 2, 3)).Should().BeFalse();
+        RuntimeMetadata.AreEqual(LazyInts(1, 2, 3), LazyInts(1, 2)).Should().BeFalse();
+        RuntimeMetadata.AreEqual(LazyInts(1, 2, 3), LazyInts(1, 2, 3)).Should().BeTrue();
+    }
+
+    [Test]
+    public void AreEqual_IEnumerable_NonCollection_RightLonger_ReferenceType_IsNotEqual()
+    {
+        var bob = new EntityA { Name = "Bob" };
+        var jen = new EntityA { Name = "Jen" };
+
+        RuntimeMetadata.AreEqual(LazyEntities(bob), LazyEntities(bob, jen)).Should().BeFalse();
+        RuntimeMetadata.AreEqual(LazyEntities(bob, jen), LazyEntities(bob)).Should().BeFalse();
+        RuntimeMetadata.AreEqual(LazyEntities(bob, jen), LazyEntities(new EntityA { Name = "Bob" }, new EntityA { Name = "Jen" })).Should().BeTrue();
+    }
+
     [Test]
     public void AreEqual_Dictionary()
     {
