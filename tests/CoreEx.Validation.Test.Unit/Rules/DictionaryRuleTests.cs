@@ -45,6 +45,15 @@ public class DictionaryRuleTests
     }
 
     [Test]
+    public void MinMaxCount_Misconfiguration()
+    {
+        var dict = new Dictionary<string, string> { { "abc", "mnop" } };
+        Assert.ThrowsAsync<InvalidOperationException>(async () => await dict.Validator(c => c.Dictionary(minCount: -1, maxCount: null)).ValidateAsync());
+        Assert.ThrowsAsync<InvalidOperationException>(async () => await dict.Validator(c => c.Dictionary(-1)).ValidateAsync());
+        Assert.ThrowsAsync<InvalidOperationException>(async () => await dict.Validator(c => c.Dictionary(minCount: 5, maxCount: 2)).ValidateAsync());
+    }
+
+    [Test]
     public void CommonValidator()
     {
         new Dictionary<string, string> { { "abc", "mnop" } }.Validator(c => c.Dictionary(c => c.WithKeyValidator(k => k.MaximumLength(3)).WithValueValidator(v => v.MaximumLength(4)))).ValidateAsSuccess();

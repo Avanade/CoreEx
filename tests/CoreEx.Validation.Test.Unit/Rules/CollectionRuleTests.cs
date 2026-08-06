@@ -64,6 +64,14 @@ public class CollectionRuleTests
     }
 
     [Test]
+    public void MinMaxCount_Misconfiguration()
+    {
+        Assert.ThrowsAsync<InvalidOperationException>(async () => await new int[] { 1 }.Validator(c => c.Collection(minCount: -1, maxCount: null)).ValidateAsync());
+        Assert.ThrowsAsync<InvalidOperationException>(async () => await new int[] { 1 }.Validator(c => c.Collection(-1)).ValidateAsync());
+        Assert.ThrowsAsync<InvalidOperationException>(async () => await new int[] { 1 }.Validator(c => c.Collection(minCount: 5, maxCount: 2)).ValidateAsync());
+    }
+
+    [Test]
     public void CommonValidator()
     {
         var ic = Validator.CreateCommon<int>(v => v.Between(10, 20));

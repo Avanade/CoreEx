@@ -42,6 +42,20 @@ public class BetweenRuleTests
     }
 
     [Test]
+    public void Between_Exclusive()
+    {
+        ((int?)null).Validator(c => c.Between(1, 3, exclusiveBetween: true)).ValidateAsSuccess();
+        2.Validator(c => c.Between(1, 3, exclusiveBetween: true)).ValidateAsSuccess();
+
+        // Boundaries themselves must fail when exclusive.
+        1.Validator(c => c.Between(1, 3, exclusiveBetween: true)).ValidateAsError(" must be between '1' and '3' (exclusive).");
+        3.Validator(c => c.Between(1, 3, exclusiveBetween: true)).ValidateAsError(" must be between '1' and '3' (exclusive).");
+
+        0.Validator(c => c.Between(1, 3, exclusiveBetween: true)).ValidateAsError(" must be between '1' and '3' (exclusive).");
+        4.Validator(c => c.Between(1, 3, exclusiveBetween: true)).ValidateAsError(" must be between '1' and '3' (exclusive).");
+    }
+
+    [Test]
     public void Between_Funcs_Args()
     {
         var args = new ValidationArgs { Parameters = new Dictionary<string, object?> { { "Min", 1 }, { "Max", 3 } } };

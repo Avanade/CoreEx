@@ -71,4 +71,37 @@ public class MandatoryRuleTests
         ((ICollection)null!).Validator(c => c.NotEmpty()).ValidateAsError(_errorIsRequired);
         ((IEnumerable)null!).Validator(c => c.NotEmpty()).ValidateAsError(_errorIsRequired);
     }
+
+    [Test]
+    public void Mandatory_DisposesEnumerator()
+    {
+        // Regression: the non-ICollection IEnumerable path must dispose its enumerator.
+        var enumerable = new DisposeTrackingEnumerable(1, 2);
+        enumerable.Validator(c => c.Mandatory()).ValidateAsSuccess();
+        enumerable.Disposed.Should().BeTrue();
+
+        var emptyEnumerable = new DisposeTrackingEnumerable();
+        emptyEnumerable.Validator(c => c.Mandatory()).ValidateAsError(_errorIsRequired);
+        emptyEnumerable.Disposed.Should().BeTrue();
+    }
+
+    public class DisposeTrackingEnumerable(params int[] items) : IEnumerable
+    {
+        public bool Disposed { get; private set; }
+
+        public IEnumerator GetEnumerator() => new Enumerator(this, items);
+
+        private sealed class Enumerator(DisposeTrackingEnumerable owner, int[] items) : IEnumerator, IDisposable
+        {
+            private int _index = -1;
+
+            public object Current => items[_index];
+
+            public bool MoveNext() => ++_index < items.Length;
+
+            public void Reset() => _index = -1;
+
+            public void Dispose() => owner.Disposed = true;
+        }
+    }
 }

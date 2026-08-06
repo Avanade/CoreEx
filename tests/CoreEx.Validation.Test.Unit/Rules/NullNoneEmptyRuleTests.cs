@@ -57,4 +57,37 @@ public class NullNoneEmptyRuleTests
         ((IEnumerable<int>)null!).Validator(c => c.Empty()).ValidateAsSuccess();
         Enumerable.Empty<int>().Validator(c => c.Empty()).ValidateAsSuccess();
     }
+
+    [Test]
+    public void Empty_DisposesEnumerator()
+    {
+        // Regression: the non-ICollection IEnumerable path must dispose its enumerator.
+        var enumerable = new DisposeTrackingEnumerable(1, 2);
+        enumerable.Validator(c => c.Empty()).ValidateAsError(_errorContains);
+        enumerable.Disposed.Should().BeTrue();
+
+        var emptyEnumerable = new DisposeTrackingEnumerable();
+        emptyEnumerable.Validator(c => c.Empty()).ValidateAsSuccess();
+        emptyEnumerable.Disposed.Should().BeTrue();
+    }
+
+    public class DisposeTrackingEnumerable(params int[] items) : System.Collections.IEnumerable
+    {
+        public bool Disposed { get; private set; }
+
+        public System.Collections.IEnumerator GetEnumerator() => new Enumerator(this, items);
+
+        private sealed class Enumerator(DisposeTrackingEnumerable owner, int[] items) : System.Collections.IEnumerator, IDisposable
+        {
+            private int _index = -1;
+
+            public object Current => items[_index];
+
+            public bool MoveNext() => ++_index < items.Length;
+
+            public void Reset() => _index = -1;
+
+            public void Dispose() => owner.Disposed = true;
+        }
+    }
 }
