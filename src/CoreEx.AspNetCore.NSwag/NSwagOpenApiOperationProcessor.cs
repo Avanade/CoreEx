@@ -42,13 +42,13 @@ internal sealed class NSwagOpenApiOperationProcessor(OpenApiOptions options) : I
         if (accepts is null)
             return;
 
-        var body = new OpenApiRequestBody();
+        var body = new OpenApiRequestBody { IsRequired = !accepts.IsOptional };
         context.OperationDescription.Operation.RequestBody = body;
 
         var schema = GetOrGenerateSchemaForType(context, accepts.BodyType);
         foreach (var contentType in new[] { accepts.ContentType }.Concat(accepts.AdditionalContentTypes ?? []))
         {
-            body.Content.Add(contentType, new OpenApiMediaType { Schema = schema });
+            body.Content[contentType] = new OpenApiMediaType { Schema = schema };
         }
     }
 
@@ -86,10 +86,10 @@ internal sealed class NSwagOpenApiOperationProcessor(OpenApiOptions options) : I
         {
             foreach (var r in context.OperationDescription.Operation.Responses.Where(r => int.TryParse(r.Key, out var code) && code >= 200 && code < 300))
             {
-                r.Value.Headers.Add(HttpNames.PagingSkipHeaderName, new OpenApiHeader { Schema = new JsonSchema { Type = JsonObjectType.Integer }, OriginalName = $"{nameof(PagingResult)}{nameof(PagingResult.Skip)}", Description = Options.PagingSkipText });
-                r.Value.Headers.Add(HttpNames.PagingTakeHeaderName, new OpenApiHeader { Schema = new JsonSchema { Type = JsonObjectType.Integer }, OriginalName = $"{nameof(PagingResult)}{nameof(PagingResult.Take)}", Description = Options.PagingTakeText });
+                r.Value.Headers[HttpNames.PagingSkipHeaderName] = new OpenApiHeader { Schema = new JsonSchema { Type = JsonObjectType.Integer }, OriginalName = $"{nameof(PagingResult)}{nameof(PagingResult.Skip)}", Description = Options.PagingSkipText };
+                r.Value.Headers[HttpNames.PagingTakeHeaderName] = new OpenApiHeader { Schema = new JsonSchema { Type = JsonObjectType.Integer }, OriginalName = $"{nameof(PagingResult)}{nameof(PagingResult.Take)}", Description = Options.PagingTakeText };
                 if (paging.SupportsCount)
-                    r.Value.Headers.Add(HttpNames.PagingTotalCountHeaderName, new OpenApiHeader { Schema = new JsonSchema { Type = JsonObjectType.Integer, IsNullableRaw = true }, OriginalName = $"{nameof(PagingResult)}{nameof(PagingResult.TotalCount)}", Description = Options.PagingTotalCountText });
+                    r.Value.Headers[HttpNames.PagingTotalCountHeaderName] = new OpenApiHeader { Schema = new JsonSchema { Type = JsonObjectType.Integer, IsNullableRaw = true }, OriginalName = $"{nameof(PagingResult)}{nameof(PagingResult.TotalCount)}", Description = Options.PagingTotalCountText };
             }
         }
     }
@@ -182,8 +182,8 @@ internal sealed class NSwagOpenApiOperationProcessor(OpenApiOptions options) : I
     {
         foreach (var r in context.OperationDescription.Operation.Responses.Where(x => int.TryParse(x.Key, out var sc) && sc < 400))
         {
-            r.Value.Headers.Add(HttpNames.WarningMessagesHeaderName, new OpenApiHeader { Schema = new JsonSchema { Type = JsonObjectType.Array, Item = new JsonSchema { Type = JsonObjectType.String } }, OriginalName = "WarningMessages", Description = Options.WarningMessagesText });
-            r.Value.Headers.Add(HttpNames.InfoMessagesHeaderName, new OpenApiHeader { Schema = new JsonSchema { Type = JsonObjectType.Array, Item = new JsonSchema { Type = JsonObjectType.String } }, OriginalName = "InfoMessages", Description = Options.InfoMessagesText });
+            r.Value.Headers[HttpNames.WarningMessagesHeaderName] = new OpenApiHeader { Schema = new JsonSchema { Type = JsonObjectType.Array, Item = new JsonSchema { Type = JsonObjectType.String } }, OriginalName = "WarningMessages", Description = Options.WarningMessagesText };
+            r.Value.Headers[HttpNames.InfoMessagesHeaderName] = new OpenApiHeader { Schema = new JsonSchema { Type = JsonObjectType.Array, Item = new JsonSchema { Type = JsonObjectType.String } }, OriginalName = "InfoMessages", Description = Options.InfoMessagesText };
         }
     }
 

@@ -109,6 +109,25 @@ public class OtherApiTests : WithApiTester<Api.Program>
         json.Should().Contain("\"etag\""); // Asserts that JsonSubstituteNamingPolicy is in effect.
     }
 
+    [Test]
+    public void Swagger_JSON_AcceptsAttribute_RequestBodyRequired()
+    {
+        // Regression: AcceptsAttribute.IsOptional previously had zero effect on the generated spec - a required body (the default, IsOptional false) was
+        // undocumented (no "required" key at all, matching OpenAPI 3's own default-omission convention for required: false), indistinguishable from an
+        // explicitly optional one.
+        var json = Test.Http()
+            .Run(HttpMethod.Get, "/swagger/v1/swagger.json")
+            .Assert(HttpStatusCode.OK)
+            .GetContent();
+
+        using var doc = JsonDocument.Parse(json!);
+        var required = doc.RootElement.GetProperty("paths").GetProperty("/api/people").GetProperty("post").GetProperty("requestBody").GetProperty("required");
+        required.GetBoolean().Should().BeTrue();
+
+        var optionalBody = doc.RootElement.GetProperty("paths").GetProperty("/api/other/optional-body").GetProperty("post").GetProperty("requestBody");
+        optionalBody.TryGetProperty("required", out _).Should().BeFalse();
+    }
+
     [TestCase("/health/live")]
     [TestCase("/health/startup")]
     [TestCase("/health/ready")]
