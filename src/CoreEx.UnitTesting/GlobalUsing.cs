@@ -1,3 +1,4 @@
+global using AwesomeAssertions;
 global using AwesomeAssertions.Execution;
 global using AwesomeAssertions.Primitives;
 global using CloudNative.CloudEvents;
@@ -24,8 +25,8 @@ global using DbEx.Migration;
 global using DbEx.Migration.Data;
 global using DbEx.Postgres.Migration;
 global using DbEx.SqlServer.Migration;
-global using AwesomeAssertions;
 global using Microsoft.Extensions.DependencyInjection;
+global using Microsoft.Extensions.Logging;
 global using System.Collections.Concurrent;
 global using System.Diagnostics.CodeAnalysis;
 global using System.Reflection;

@@ -23,6 +23,6 @@ public static partial class UnitTestExExtensions
                 : sp.GetKeyedService<IEventPublisher>(rootServiceKey) ?? throw new InvalidOperationException($"The root '{rootServiceKey}' publisher must be registered before the expected publisher can be used.");
 
             var sharedState = sp.GetService<TestSharedState>() ?? throw new InvalidOperationException($"The UnitTestEx test shared state must be registered as required by the underlying {nameof(EventPublisherDecorator)}.");
-            return new EventPublisherDecorator(serviceKey, sharedState, root);
+            return new EventPublisherDecorator(serviceKey, sharedState, root, sp.GetService<ILogger<EventPublisherDecorator>>());
         });
 }

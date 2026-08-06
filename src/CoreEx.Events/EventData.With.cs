@@ -159,7 +159,7 @@ public partial class EventData
 
         // Serialize the value data.
         jsonSerializerOptions ??= JsonDefaults.SerializerOptions;
-        if (!excludePaths?.Any() ?? false)
+        if (excludePaths is null || !excludePaths.Any())
             Data = BinaryData.FromObjectAsJson(value, jsonSerializerOptions);
         else
         {

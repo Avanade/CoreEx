@@ -72,12 +72,16 @@ public class EventFormatter : IEventFormatter
     /// <summary>
     /// Gets or sets the casing to apply to the <see cref="EventData.Title"/>.
     /// </summary>
-    /// <remarks>Defaults to <see cref="StringCase.Lower"/>.</remarks>
+    /// <remarks>Defaults to <see cref="StringCase.Lower"/>. As the <see cref="EventData.Title"/> is a wire-level routing identifier (the CloudEvents <c>type</c>, used for subscription matching) rather than user-facing
+    /// display text, the casing is applied using <see cref="CultureInfo.InvariantCulture"/> (unlike the general-purpose <see cref="Cleaner.Clean(string?, StringTrim, StringTransform, StringCase)"/> casing, which is
+    /// culture-sensitive) to ensure a deterministic result regardless of the current thread/request culture.</remarks>
     public StringCase TitleCase { get; set; } = StringCase.Lower;
 
     /// <summary>
     /// Gets or sets the casing to apply to the <see cref="EventData.Source"/>.
     /// </summary>
+    /// <remarks>As the <see cref="EventData.Source"/> is a wire-level routing identifier rather than user-facing display text, the casing is applied using <see cref="CultureInfo.InvariantCulture"/> (unlike the
+    /// general-purpose <see cref="Cleaner.Clean(string?, StringTrim, StringTransform, StringCase)"/> casing, which is culture-sensitive) to ensure a deterministic result regardless of the current thread/request culture.</remarks>
     public StringCase SourceCase { get; set; } = StringCase.Lower;
 
     /// <summary>
@@ -118,7 +122,7 @@ public class EventFormatter : IEventFormatter
 
         if (@event.Title is null)
         {
-            @event.Title = Cleaner.Clean(string.Join('.', [.. tpa, @event.DomainName ?? DomainName ?? _defaultSegment, @event.Entity ?? _defaultSegment, @event.Action ?? _defaultSegment]), casing: TitleCase);
+            @event.Title = ApplyInvariantCasing(Cleaner.Clean(string.Join('.', [.. tpa, @event.DomainName ?? DomainName ?? _defaultSegment, @event.Entity ?? _defaultSegment, @event.Action ?? _defaultSegment]), casing: StringCase.None), TitleCase);
             if (@event.DataSchemaVersion is not null)
                 @event.Title += $".v{@event.DataSchemaVersion.Major}";
         }
@@ -130,7 +134,7 @@ public class EventFormatter : IEventFormatter
                 if (SourceBaseUri is not null)
                     @event.Source = new Uri(SourceBaseUri.OriginalString);
             }
-            else if (Uri.TryCreate(SourceBaseUri, Cleaner.Clean(@event.TenantId, casing: SourceCase), out var uri))
+            else if (SourceBaseUri is not null && Uri.TryCreate(SourceBaseUri, ApplyInvariantCasing(Cleaner.Clean(@event.TenantId, casing: StringCase.None), SourceCase), out var uri))
                 @event.Source = uri;
 
             if (@event.Source is null)
@@ -166,7 +170,7 @@ public class EventFormatter : IEventFormatter
             if (title.Length <= TitlePrefix.Length + 1)
                 return @event;
 
-            if (title.StartsWith(TitlePrefix, StringComparison.OrdinalIgnoreCase))
+            if (title.StartsWith(TitlePrefix, StringComparison.OrdinalIgnoreCase) && title[TitlePrefix.Length] == '.')
                 title = title[TitlePrefix.Length..].TrimStart('.');
             else
                 return @event;
@@ -215,7 +219,7 @@ public class EventFormatter : IEventFormatter
 
         AddTracing(ce, @event.TraceParent, @event.TraceState, @event.TraceBaggage);
 
-        foreach (var kvp in @event.Attributes.Where(x => !x.Key.StartsWith('_')).OrderBy(x => x.Key))
+        foreach (var kvp in @event.Attributes.Where(x => !x.Key.StartsWith('_')).OrderBy(x => x.Key, StringComparer.Ordinal))
         {
             ce.SetExtensionAttribute(kvp.Key, kvp.Value);
         }
@@ -291,6 +295,19 @@ public class EventFormatter : IEventFormatter
 
         return @event;
     }
+
+    /// <summary>
+    /// Applies the specified <paramref name="casing"/> to the <paramref name="value"/> using <see cref="CultureInfo.InvariantCulture"/>.
+    /// </summary>
+    /// <remarks>Used for <see cref="EventData.Title"/> and <see cref="EventData.Source"/> casing specifically, as these are wire-level routing identifiers rather than user-facing display text; see <see cref="TitleCase"/>/<see cref="SourceCase"/>.</remarks>
+    [return: NotNullIfNotNull(nameof(value))]
+    protected static string? ApplyInvariantCasing(string? value, StringCase casing) => casing switch
+    {
+        StringCase.Lower => value?.ToLowerInvariant(),
+        StringCase.Upper => value?.ToUpperInvariant(),
+        StringCase.Title => value is null ? null : CultureInfo.InvariantCulture.TextInfo.ToTitleCase(value),
+        _ => value
+    };
 
     /// <summary>
     /// Flags that the initialization of the name array is required.

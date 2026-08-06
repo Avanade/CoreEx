@@ -48,10 +48,12 @@ public abstract partial class SubscribedBase
     /// <param name="separator">The segment separator.</param>
     /// <param name="options">The optional <see cref="RegexOptions"/>.</param>
     /// <returns>The wildcard <see cref="Regex"/>.</returns>
-    /// <remarks>See <see cref="SubscribeAttribute"/> for further details on the dot-based glob-like matching pattern.</remarks>
+    /// <remarks>See <see cref="SubscribeAttribute"/> for further details on the dot-based glob-like matching pattern.
+    /// <para>Defaults to case-insensitive matching using <see cref="RegexOptions.CultureInvariant"/> so that matching is deterministic regardless of the current thread/request culture (<see cref="EventData.Title"/>/<see cref="EventData.Source"/>
+    /// are wire-level routing identifiers, not culture-sensitive display text).</para></remarks>
     public static Regex CreateGlobRegex(string pattern, char separator, RegexOptions? options = null)
     {
-        options ??= RegexOptions.IgnoreCase | RegexOptions.Compiled;
+        options ??= RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled;
 
         if (string.IsNullOrEmpty(pattern))
             return _wildcardAllRegex;
