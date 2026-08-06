@@ -1,5 +1,3 @@
-using CoreEx.AspNetCore.Mvc;
-
 namespace CoreEx.AspNetCore.Idempotency;
 
 /// <summary>

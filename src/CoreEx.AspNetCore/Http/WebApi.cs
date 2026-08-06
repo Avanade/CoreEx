@@ -1,5 +1,3 @@
-using AspHttp = Microsoft.AspNetCore.Http;
-
 namespace CoreEx.AspNetCore.Http;
 
 /// <summary>

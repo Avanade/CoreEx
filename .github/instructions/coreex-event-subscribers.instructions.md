@@ -243,7 +243,7 @@ app.MapControllers();
 
 app.UseOpenApi();
 app.UseSwaggerUi();
-app.MapHealthChecks(/* detailedGroupConfigure: g => g.RequireAuthorization() */);   // Detailed endpoints expose diagnostics; secure once an auth scheme is registered. Basic checks stay anonymous.
+app.MapHealthChecks(new HealthCheckOptions { AreDetailedEndpointsEnabled = true } /*, detailedGroupConfigure: g => g.RequireAuthorization() */);   // AreDetailedEndpointsEnabled defaults to false (secure by default); opted in here since this sample secures it via RequireAuthorization() once an auth scheme is registered. Basic checks stay anonymous.
 app.MapHostedServices(/* groupConfigure: g => g.RequireAuthorization() */);         // exposes pause/resume management endpoints per partition; admin-only, secure once an auth scheme is registered.
 
 app.Run();

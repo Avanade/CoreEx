@@ -55,7 +55,7 @@ public static partial class CoreExAspNetCoreExtensions
     }
 
     /// <summary>
-    /// Adds a <b>scoped</b> a scoped <see cref="IdempotencyKeyMiddleware"/> service.
+    /// Adds a <b>scoped</b> <see cref="IdempotencyKeyMiddleware"/> service.
     /// </summary>
     /// <param name="services">The <see cref="IServiceCollection"/>.</param>
     /// <returns>The <see cref="IServiceCollection"/> for fluent-style method-chaining.</returns>

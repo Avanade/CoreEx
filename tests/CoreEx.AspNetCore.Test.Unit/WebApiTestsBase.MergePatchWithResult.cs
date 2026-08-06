@@ -14,7 +14,7 @@ partial class WebApiTestsBase<TWebApi, TResult>
         Test.Type<TWebApi>()
             .Run(async w => await w.PatchWithResultAsync<Person>(Test.CreateHttpRequest(HttpMethod.Patch, "test", r => r.ContentType = MediaTypeNames.Text.Plain), (ro, ct) => throw new InvalidOperationException(), (ro, ct) => throw new InvalidOperationException()))
             .ToHttpResponseMessageAssertor()
-            .Assert(HttpStatusCode.UnsupportedMediaType, "Unsupported 'Content-Type' for an HTTP PATCH; only JSON Merge Patch is supported using either: 'application/merge-patch+json' or 'application/json'.");
+            .Assert(HttpStatusCode.UnsupportedMediaType, "Unsupported 'Content-Type' for an HTTP PATCH; only JSON Merge Patch is supported using content type 'application/merge-patch+json'.");
     }
 
     [Test]

@@ -85,6 +85,7 @@ builder.Services
 - Do not inject `IUnitOfWork` into controllers — it belongs in the application service.
 - Do not put business logic in controllers — delegate immediately to the application service.
 - Do not call `UseIdempotencyKey()` before `UseExecutionContext()`.
+- Do not assume detailed health-check endpoints (`/health/*/detailed`) are enabled — `HealthCheckOptions.AreDetailedEndpointsEnabled` defaults to `false` (secure by default); pass `new HealthCheckOptions { AreDetailedEndpointsEnabled = true }` to `MapHealthChecks(...)` to opt in, and secure it via `detailedGroupConfigure` once an auth scheme is registered.
 
 ## Further Reading
 

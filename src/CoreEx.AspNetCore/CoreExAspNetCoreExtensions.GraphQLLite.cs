@@ -47,11 +47,11 @@ public static partial class CoreExAspNetCoreExtensions
         }
         catch (JsonException ex)
         {
-            return new GraphQLLiteResponse(null, [new GraphQLEngineError($"The request body is not a valid GraphQL-over-HTTP request: {ex.Message}")]);
+            return new GraphQLLiteResponse(null, [new GraphQLEngineError($"The request body is not a valid GraphQL-over-HTTP request: {ex.Message}") { Extensions = new Dictionary<string, object?> { ["code"] = "SYNTAX_ERROR" } }]);
         }
 
         if (body is null || string.IsNullOrEmpty(body.Query))
-            return new GraphQLLiteResponse(null, [new GraphQLEngineError("The 'query' field is required.")]);
+            return new GraphQLLiteResponse(null, [new GraphQLEngineError("The 'query' field is required.") { Extensions = new Dictionary<string, object?> { ["code"] = "QUERY_REQUIRED" } }]);
 
         var result = await engine.ExecuteAsync(body.Query, body.OperationName, body.Variables, cancellationToken).ConfigureAwait(false);
         return new GraphQLLiteResponse(result.Data, result.Errors);

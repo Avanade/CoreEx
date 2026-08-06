@@ -69,6 +69,27 @@ public static partial class CoreExAspNetCoreExtensions
         options ??= new HealthCheckOptions();
         endpoints.ServiceProvider.GetService<IConfiguration>()?.GetSection("CoreEx.AspNetCore.HealthChecks")?.Bind(options);
 
+        // Warn where detailed endpoints are enabled without an explicit means of securing them.
+        if (options.AreDetailedEndpointsEnabled && detailedGroupConfigure is null)
+        {
+            var logger = endpoints.ServiceProvider.GetService<ILoggerFactory>()?.CreateLogger("CoreEx.AspNetCore.HealthChecks");
+            if (logger?.IsEnabled(LogLevel.Warning) ?? false)
+                logger.LogWarning("Detailed health check endpoints are enabled (HealthCheckOptions.AreDetailedEndpointsEnabled) but no 'detailedGroupConfigure' was supplied to secure them; the full HealthReport " +
+                    "(component names, connection details, exception info) will be exposed anonymously.");
+        }
+
+        // Apply any registration-level configuration once, here at startup - not per-request via the Predicate below.
+        var allTags = options.LiveTags.Concat(options.StartupTags).Concat(options.ReadyTags).ToHashSet();
+        var registrations = endpoints.ServiceProvider.GetService<IOptions<Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckServiceOptions>>()?.Value.Registrations;
+        if (registrations is not null)
+        {
+            foreach (var rego in registrations)
+            {
+                if (rego.Tags is not null && rego.Tags.Any(allTags.Contains))
+                    options.OnConfigureHealthCheckRegistration(rego);
+            }
+        }
+
         // Map health checks for the specified path and tags.
         void MapHealthChecks(string path, string[] tags)
         {
@@ -89,17 +110,8 @@ public static partial class CoreExAspNetCoreExtensions
             }
         }
 
-        // Check and update the registration.
-        bool CheckRegistration(HealthCheckRegistration rego, string[] tags)
-        { 
-            if (rego.Tags is not null && rego.Tags.Any(tag => tags.Contains(tag)))
-            {
-                options.OnConfigureHealthCheckRegistration(rego);
-                return true;
-            }
-
-            return false;
-        }
+        // Check the registration - a pure filter with no side effects; registration-level configuration is applied once, above.
+        static bool CheckRegistration(HealthCheckRegistration rego, string[] tags) => rego.Tags is not null && rego.Tags.Any(tags.Contains);
 
         // Map the configured health check endpoints.
         if (options.IsLiveEndpointEnabled)

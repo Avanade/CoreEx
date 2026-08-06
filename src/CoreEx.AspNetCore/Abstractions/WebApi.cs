@@ -35,7 +35,9 @@ public abstract partial class WebApi<TResult>(WebApiInvoker<TResult> invoker, Js
         {
             return CreateResult(new WebApiResult<TResult>(request.HttpContext.Response) { Exception = ex });
         }
-        catch (Exception ex) when (ConvertUnhandledExceptionsToProblemDetails)
+        // A cancellation attributable to *this* request's own cancellationToken (e.g. a client disconnect) is intended to bubble up unclassified - even when
+        // ConvertUnhandledExceptionsToProblemDetails is enabled - rather than being logged at Error and converted into a 500 that the disconnected client can never receive.
+        catch (Exception ex) when (ConvertUnhandledExceptionsToProblemDetails && !(ex is OperationCanceledException oce && oce.CancellationToken == cancellationToken))
         {
             return CreateResult(new WebApiResult<TResult>(request.HttpContext.Response) { Exception = ex });
         }

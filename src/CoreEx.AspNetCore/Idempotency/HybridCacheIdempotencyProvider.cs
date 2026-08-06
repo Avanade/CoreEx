@@ -1,5 +1,3 @@
-using CoreEx.AspNetCore.Mvc;
-
 namespace CoreEx.AspNetCore.Idempotency;
 
 /// <summary>
@@ -7,7 +5,11 @@ namespace CoreEx.AspNetCore.Idempotency;
 /// </summary>
 /// <param name="cache">The <see cref="IHybridCache"/>.</param>
 /// <remarks>This implementation uses the <see cref="HttpNames.IdempotencyKeyHeaderName"/> header to identify idempotent requests and store/retrieve the associated response data in/from the <see cref="IHybridCache"/>.
-/// <para>This allows for efficient handling of repeated requests with the same idempotency key, ensuring that only one request is processed and the result is cached for subsequent requests.</para></remarks>
+/// <para>This allows for efficient handling of repeated requests with the same idempotency key, ensuring that only one request is processed and the result is cached for subsequent requests.</para>
+/// <para><b>Important:</b> concurrent-duplicate detection relies on the backing <see cref="IHybridCache"/>'s <see cref="IHybridCache.GetOrCreateByKeyAsync{T}(string, Func{CancellationToken, Task{T}}, HybridCacheEntryOptions?, CancellationToken)"/>
+/// single-flighting concurrent cache misses for the same key (so a "losing" concurrent caller receives the winning caller's object rather than its own) - a guarantee <see cref="IHybridCache"/>'s contract does
+/// not make explicit. FusionCache-backed implementations provide this via their own anti-stampede protection; <see cref="MemoryOnlyHybridCache"/> does <b>not</b> - pairing it with this provider would allow
+/// concurrent duplicate requests to both proceed undetected.</para></remarks>
 public class HybridCacheIdempotencyProvider(IHybridCache cache) : IIdempotencyProvider
 {
     private static readonly TimeSpan _defaultExpiration = TimeSpan.FromHours(8);
@@ -26,6 +28,13 @@ public class HybridCacheIdempotencyProvider(IHybridCache cache) : IIdempotencyPr
     /// </summary>
     /// <remarks>Should be a <i>canonical</i> list of request headers to include in fingerprinting; being important, and non-varying, to avoid errant request equality checking.</remarks>
     public List<string> HttpRequestHeadersToIncludeInFingerprint { get; } = ["Content-Type"];
+
+    /// <summary>
+    /// Gets the list of HTTP response headers to exclude when caching a response for later replay.
+    /// </summary>
+    /// <remarks>Defaults to <c>Set-Cookie</c> as it is generally computed/scoped for the original caller; caching and replaying it verbatim to a different caller on a subsequent cache hit would leak the
+    /// original caller's cookie value.</remarks>
+    public List<string> HttpResponseHeadersToExcludeFromCache { get; } = [HeaderNames.SetCookie];
 
     /// <summary>
     /// Gets or sets the <see cref="HybridCacheEntryOptions"/> to use when storing idempotency key entries.
@@ -48,13 +57,15 @@ public class HybridCacheIdempotencyProvider(IHybridCache cache) : IIdempotencyPr
                 // Get the key and ensure valid.
                 idempotencyKey = strings.FirstOrDefault();
                 idempotencyCacheKey = $"Idempotency:{idempotencyKey}";
-                tracer.Activity?.AddTag("idempotency.key", idempotencyKey);
 
                 if (!IdempotencyKey.IsIdempotencyKeyValid(idempotencyKey, out var exception))
                 {
                     tracer.Activity?.AddTag("idempotency.result", "key-is-invalid");
                     throw exception;
                 }
+
+                // Only tag the (now validated) key onto tracing once known-good; avoids putting arbitrary unvalidated client-supplied header content into telemetry.
+                tracer.Activity?.AddTag("idempotency.key", idempotencyKey);
 
                 // Check the cache for existing entry and ensure valid for this request.
                 cacheEntryOptions ??= HybridCacheEntryOptions.CreateFor<IdempotencyKey>(_defaultExpiration, _defaultExpiration, CacheStrategy.Hybrid);
@@ -153,7 +164,7 @@ public class HybridCacheIdempotencyProvider(IHybridCache cache) : IIdempotencyPr
                 if (context.Response.StatusCode >= 200 && context.Response.StatusCode < 300)
                 {
                     cached.StatusCode = context.Response.StatusCode;
-                    cached.Headers = context.Response.Headers.ToDictionary(h => h.Key, h => h.Value.ToArray());
+                    cached.Headers = context.Response.Headers.Where(h => !HttpResponseHeadersToExcludeFromCache.Contains(h.Key, StringComparer.OrdinalIgnoreCase)).ToDictionary(h => h.Key, h => h.Value.ToArray());
 
                     if (buffer.Length > MaxCachedResponseBodySize)
                     {

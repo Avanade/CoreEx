@@ -2,9 +2,11 @@ using CoreEx.AspNetCore.Http;
 using CoreEx.AspNetCore.NSwag;
 using CoreEx.AspNetCore.Test.Api.Entities;
 using CoreEx.AspNetCore.Test.Api.Services;
+using CoreEx.HealthChecks;
 using CoreEx.Http;
 using CoreEx.RefData;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using OpenTelemetry;
 
 namespace CoreEx.AspNetCore.Test.Api;
@@ -35,6 +37,9 @@ public class Program
             .AddMemoryOnlyHybridCache()
             .AddHybridCacheIdempotencyProvider();
 
+        // Add a health check so the health check endpoints have at least one registration to report/configure.
+        builder.Services.AddHealthChecks().AddCheck("test-check", () => HealthCheckResult.Healthy(), tags: [nameof(HealthCheckTags.Live), nameof(HealthCheckTags.Startup), nameof(HealthCheckTags.Ready)]);
+
         // Add the ASP.NET Core services.
         builder.Services.AddControllers();
 
@@ -63,7 +68,8 @@ public class Program
         app.UseOpenApi();
         app.UseSwaggerUi();
 
-        app.MapHealthChecks();
+        // AreDetailedEndpointsEnabled explicitly opted-in here (defaults to false/secure) to preserve the detailed-endpoint test coverage.
+        app.MapHealthChecks(new CoreEx.AspNetCore.HealthChecks.HealthCheckOptions { AreDetailedEndpointsEnabled = true }, detailedGroupConfigure: _ => { });
 
         // Minimal APIs.
         app.MapGet("api/persons/{id}",

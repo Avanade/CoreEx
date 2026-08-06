@@ -47,4 +47,38 @@ partial class WebApiTestsBase<TWebApi, TResult>
             .AssertContentType(MediaTypeNames.Application.ProblemJson)
             .AssertJson($"{{\"title\":\"{ex.Message}\",\"status\":{(int)statusCode},\"errorType\":\"{errorType}\",\"errorCode\":\"{errorCode}\"}}", pathsToIgnore: [.. paths]);
     }
+
+    [Test]
+    public void Exception_OwnTokenCancellation_BypassesConvertToProblemDetails()
+    {
+        // Regression: a cancellation attributable to *this* request's own cancellationToken (e.g. a client disconnect) must bubble up unclassified - even with
+        // ConvertUnhandledExceptionsToProblemDetails enabled - rather than being logged as an unhandled error and converted into a 500 the client can never receive.
+        using var cts = new CancellationTokenSource();
+
+        Test.Type<TWebApi>()
+            .Run(async w =>
+            {
+                w.ConvertUnhandledExceptionsToProblemDetails = true;
+                return await w.PostAsync(Test.CreateHttpRequest(HttpMethod.Post, "test"), (ro, ct) => throw new OperationCanceledException(ct), cancellationToken: cts.Token);
+            })
+            .AssertException<OperationCanceledException>();
+    }
+
+    [Test]
+    public void Exception_UnrelatedTokenCancellation_StillConvertedToProblemDetails()
+    {
+        // Regression (precision check): the own-token bypass above must not blanket-exclude every OperationCanceledException - one tied to an unrelated token
+        // (e.g. a deliberate timeout on a downstream call) is still a real error and must still be converted when the flag is enabled.
+        using var cts = new CancellationTokenSource();
+        using var unrelatedCts = new CancellationTokenSource();
+
+        Test.Type<TWebApi>()
+            .Run(async w =>
+            {
+                w.ConvertUnhandledExceptionsToProblemDetails = true;
+                return await w.PostAsync(Test.CreateHttpRequest(HttpMethod.Post, "test"), (ro, ct) => throw new OperationCanceledException(unrelatedCts.Token), cancellationToken: cts.Token);
+            })
+            .ToHttpResponseMessageAssertor()
+            .Assert(HttpStatusCode.InternalServerError);
+    }
 }

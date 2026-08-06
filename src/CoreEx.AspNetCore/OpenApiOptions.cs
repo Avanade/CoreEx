@@ -71,7 +71,7 @@ public class OpenApiOptions
     public bool IncludeMessagesResponseHeaders { get; set; } = true;
 
     /// <summary>
-    /// Indicates whether the 
+    /// Indicates whether the <see cref="HttpNames.IncludeFieldsQueryStringName"/> and <see cref="HttpNames.ExcludeFieldsQueryStringName"/> request headers should be included in the <i>OpenAPI</i> generated specification.
     /// </summary>
     public bool IncludeFieldsRequestHeaders { get; set; } = true;
 

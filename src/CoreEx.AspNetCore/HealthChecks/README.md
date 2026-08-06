@@ -12,7 +12,7 @@ The detail endpoint writes a JSON `HealthReport` body (status, duration, each en
 
 - ♥ **Standard endpoints**: Live (`/health/live`), startup (`/health/startup`), ready (`/health/ready`), and related detail (e.g. `/health/ready/detail`) are configurable via `HealthCheckOptions` properties.
 - 📋 **JSON detail report**: The detail endpoint writes a structured JSON `HealthReport` with per-entry status, description, duration, exception message, and custom data dictionary.
-- ⚙️ **Per-endpoint enable/disable**: Each endpoint can be disabled independently (`IsLiveEndpointEnabled`, `IsReadyEndpointEnabled`, `IsStartupEndpointEnabled`, `AreDetailedEndpointsEnabled`) for environments where not all probes are needed.
+- ⚙️ **Per-endpoint enable/disable**: Each endpoint can be disabled independently (`IsLiveEndpointEnabled`, `IsReadyEndpointEnabled`, `IsStartupEndpointEnabled`). `AreDetailedEndpointsEnabled` defaults to `false` (secure by default, since the detail payload can include component names, connection details, and exception information) and must be explicitly opted into.
 - 🔌 **Custom detail writer**: `OnWriteDetailedHealthCheckAsync(HttpContext, HealthReport)` is a virtual method on `HealthCheckOptions` for full control over the detail response format.
 - 🔒 **Securable detail endpoints**: `MapHealthChecks(options, detailedGroupConfigure)` accepts an optional `Action<IEndpointConventionBuilder>` applied only to the `/detailed` endpoints (e.g. `g => g.RequireAuthorization()`), so live/startup/ready probes stay anonymous while the detailed diagnostic payload is protected.
 
