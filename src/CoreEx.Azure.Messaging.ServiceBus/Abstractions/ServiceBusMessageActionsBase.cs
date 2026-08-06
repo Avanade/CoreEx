@@ -63,10 +63,10 @@ public abstract class ServiceBusMessageActionsBase : IServiceBusMessageActions
     public static LText NoneReasonText { get; } = new LText("CoreEx.Azure.Messaging.ServiceBus.None", "None.");
 
     /// <summary>
-    /// Formats the text for logging purposes, truncating to 512 characters.
+    /// Formats the text for logging purposes, truncating to <see cref="ServiceBusReceiverBase.MaxFormatTextLength"/> characters.
     /// </summary>
     /// <param name="text">The text to format.</param>
     /// <param name="default">The default where the <paramref name="text"/> is <see langword="null"/>.</param>
     /// <returns>The formatted text.</returns>
-    public static string? FormatText(string? text, string? @default = null) => text?[..Math.Min(text.Length, 512)] ?? @default;
+    public static string? FormatText(string? text, string? @default = null) => ServiceBusReceiverBase.FormatText(text, @default);
 }

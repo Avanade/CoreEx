@@ -67,25 +67,22 @@ public static partial class ServiceBusExtensions
             PartitionKey = cloudEvent.GetPartitionKey()
         };
 
-        if (includeAttributes)
-        {
-            msg.ApplicationProperties.TryAdd(CloudEventSpecVersionPropertyName, cloudEvent.SpecVersion.VersionId);
+        // The spec version must always be included (regardless of includeAttributes) so a Binary-mode message remains identifiable/reconstructable as a CloudEvent on receive (see IsCloudEvent/ToCloudEvent).
+        msg.ApplicationProperties.TryAdd(CloudEventSpecVersionPropertyName, cloudEvent.SpecVersion.VersionId);
 
-            foreach (var attr in cloudEvent.GetPopulatedAttributes())
-            {
-                msg.ApplicationProperties.TryAdd($"{CloudEventPrefix}{attr.Key.Name}", attr.Value);
-            }
-        }
-
+        // Single pass: the bulk ce_-prefixed attributes are gated by includeAttributes, but trace context is always propagated regardless.
         foreach (var attr in cloudEvent.GetPopulatedAttributes())
         {
-            if (attr.Key.Name == CloudEventTraceParentPropertyName)
+            if (includeAttributes)
+                msg.ApplicationProperties.TryAdd($"{CloudEventPrefix}{attr.Key.Name}", attr.Value);
+
+            if (attr.Key.Name == MessageTraceParentPropertyName)
                 msg.ApplicationProperties.TryAdd(MessageTraceParentPropertyName, attr.Value);
 
-            if (attr.Key.Name == CloudEventTraceStatePropertyName)
+            if (attr.Key.Name == MessageTraceStatePropertyName)
                 msg.ApplicationProperties.TryAdd(MessageTraceStatePropertyName, attr.Value);
 
-            if (attr.Key.Name == CloudEventTraceBaggagePropertyName)
+            if (attr.Key.Name == MessageTraceBaggagePropertyName)
                 msg.ApplicationProperties.TryAdd(MessageTraceBaggagePropertyName, attr.Value);
         }
 
@@ -132,13 +129,13 @@ public static partial class ServiceBusExtensions
                 }
 
                 if (ap.Key == MessageTraceParentPropertyName)
-                    ce[CloudEventTraceParentPropertyName] = ap.Value;
+                    ce[MessageTraceParentPropertyName] = ap.Value;
 
                 if (ap.Key == MessageTraceStatePropertyName)
-                    ce[CloudEventTraceStatePropertyName] = ap.Value;
+                    ce[MessageTraceStatePropertyName] = ap.Value;
 
                 if (ap.Key == MessageTraceBaggagePropertyName)
-                    ce[CloudEventTraceBaggagePropertyName] = ap.Value;
+                    ce[MessageTraceBaggagePropertyName] = ap.Value;
             }
         }
 

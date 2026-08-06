@@ -22,6 +22,9 @@ public sealed class ProcessMessageEventArgsActions(ProcessMessageEventArgs args)
         => _args.AbandonMessageAsync(_args.Message, new Dictionary<string, object> { { AbandonReasonName, FormatText(exception.Message, NoneReasonText)! } }, cancellationToken);
 
     /// <inheritdoc/>
+    /// <remarks>The dead-letter error description is intentionally left unset; the exception (including its stack trace) is already captured in full via the standard logging (see <see cref="ErrorHandler"/>),
+    /// so duplicating it onto broker-persisted message metadata (visible to anyone with dead-letter subqueue read access, which may be a broader or different audience than log readers) would add exposure without
+    /// adding diagnostic value.</remarks>
     protected override Task OnDeadLetteredMessageAsync(Exception exception, CancellationToken cancellationToken)
-        => _args.DeadLetterMessageAsync(_args.Message, FormatText(exception.Message, NoneReasonText), FormatText(exception.StackTrace), cancellationToken);
+        => _args.DeadLetterMessageAsync(_args.Message, FormatText(exception.Message, NoneReasonText), null, cancellationToken);
 }

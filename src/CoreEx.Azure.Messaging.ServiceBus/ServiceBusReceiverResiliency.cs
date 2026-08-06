@@ -56,9 +56,18 @@ public static class ServiceBusReceiverResiliency
 
                     _ = Task.Run(async () =>
                     {
-                        await owner.PauseAsync($"Service bus receiver circuit breaker has been tripped; will resume automatically at: {DateTimeOffset.UtcNow.Add(pause):R}.").ConfigureAwait(false);
-                        await Task.Delay(pause).ConfigureAwait(false);
-                        await owner.ResumeAsync().ConfigureAwait(false);
+                        try
+                        {
+                            await owner.PauseAsync($"Service bus receiver circuit breaker has been tripped; will resume automatically at: {DateTimeOffset.UtcNow.Add(pause):R}.").ConfigureAwait(false);
+                            await Task.Delay(pause).ConfigureAwait(false);
+                            await owner.ResumeAsync().ConfigureAwait(false);
+                        }
+                        catch (Exception ex)
+                        {
+                            // This pause/resume is the circuit breaker's own protective mechanism; a failure here must not be silently lost as an unobserved task exception.
+                            if (owner.Logger.IsEnabled(LogLevel.Error))
+                                owner.Logger.LogError(ex, "Service bus receiver circuit breaker pause/resume failed; the receiver may not have been paused/resumed as expected.");
+                        }
                     });
 
                     return ValueTask.CompletedTask;

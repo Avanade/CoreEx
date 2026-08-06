@@ -69,7 +69,7 @@ public abstract class ServiceBusReceiverOptionsBase
     /// <summary>
     /// Gets or sets the unhandled <see cref="ErrorHandling"/> to use as the final catch-all handling.
     /// </summary>
-    /// <remarks>Defaults to <see cref="ErrorHandling.None"/>; which indicates that unhandled exception will be rethrown allowing the receivers native exception handling to occur.
+    /// <remarks>Defaults to <see cref="ErrorHandling.None"/>; which indicates that the unhandled exception will be logged at <see cref="LogLevel.Error"/> and the message abandoned (i.e. left for redelivery).
     /// <para>This is a catch all for any <see cref="Exception"/> not explicitly handled; valid values are <see cref="ErrorHandling.Catastrophic"/>, <see cref="ErrorHandling.DeadLetter"/>,
     /// <see cref="ErrorHandling.Retry"/>, or <see cref="ErrorHandling.None"/>.</para></remarks>
     public ErrorHandling UnhandledErrorHandling
