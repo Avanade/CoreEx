@@ -3,7 +3,7 @@ namespace CoreEx.Data.Querying;
 /// <summary>
 /// Represents the resulting dynamic LINQ filter writer.
 /// </summary>
-public class QueryFilterParserWriter
+public partial class QueryFilterParserWriter
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="QueryFilterParserWriter"/> class.
@@ -88,15 +88,16 @@ public class QueryFilterParserWriter
         if (FilterBuilder.Length > 0)
             FilterBuilder.Append(" && ");
 
-        var sb = new StringBuilder(statement.Statement);
-        for (int i = 0; i < statement.Args.Length; i++)
-        {
-            sb.Replace($"@{i}", $"@{Args.Count}");
-            Args.Add(statement.Args[i]);
-        }
-
-        FilterBuilder.Append(sb);
+        // Renumber the statement's own '@n' placeholders in a single pass over the original (unmutated) text so that renumbered output can never be re-matched
+        // by a later substitution - unlike a per-index StringBuilder.Replace loop, which can corrupt/misassign args once Args.Count already overlaps the
+        // statement's own placeholder range, or once the statement has 10+ placeholders (e.g. "@1" matching the leading digits of "@10").
+        var baseIndex = Args.Count;
+        FilterBuilder.Append(PlaceholderRegex().Replace(statement.Statement, m => $"@{baseIndex + int.Parse(m.Groups[1].Value)}"));
+        Args.AddRange(statement.Args);
     }
+
+    [GeneratedRegex(@"@(\d+)")]
+    private static partial Regex PlaceholderRegex();
 
     /// <inheritdoc/>
     public override string? ToString() => FilterBuilder.Length == 0 ? null : FilterBuilder.ToString();

@@ -14,7 +14,7 @@ public class OrderService(IUnitOfWork uow, IOrderRepository repo)
         // validate first (outside the transaction)
         await _validator.ValidateAndThrowAsync(order, ct).ConfigureAwait(false);
 
-        return await uow.TransactionAsync(async () =>
+        return await uow.TransactionAsync(async ct =>
         {
             var created = await repo.CreateAsync(order, ct).ConfigureAwait(false);
 
@@ -22,7 +22,7 @@ public class OrderService(IUnitOfWork uow, IOrderRepository repo)
             uow.Events.Add(EventData.CreateEventWith(created, EventAction.Created));
 
             return created;
-        }).ConfigureAwait(false);
+        }, ct).ConfigureAwait(false);
     }
 }
 ```
