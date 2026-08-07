@@ -28,6 +28,7 @@ public class Aggregate<TId, TSelf>(TId id) : Entity<TId, TSelf>(id), IAggregateR
     /// <param name="eventData">The <see cref="EventData"/>.</param>
     protected TSelf AddEvent(EventData eventData)
     {
+        CheckReadOnly();
         _events.Add(eventData);
         return (TSelf)this;
     }
@@ -37,6 +38,7 @@ public class Aggregate<TId, TSelf>(TId id) : Entity<TId, TSelf>(id), IAggregateR
     /// </summary>
     protected TSelf ClearEvents()
     {
+        CheckReadOnly();
         _events.Clear();
         return (TSelf)this;
     }

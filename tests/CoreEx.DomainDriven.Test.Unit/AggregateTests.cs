@@ -23,6 +23,7 @@ public class AggregateTests
         public TResult PublicModifyAndMakeReadOnly<TResult>(Func<TResult> func) => ModifyAndMakeReadOnly(func);
 
         public void PublicRemove(Action? action = null) => Remove(action);
+        public TResult PublicRemove<TResult>(Func<TResult> func) => Remove(func);
     }
 
     [Test]
@@ -169,6 +170,69 @@ public class AggregateTests
 
         e.PersistenceState.Should().Be(PersistenceState.Removed);
         e.IsReadOnly.Should().BeTrue();
+    }
+
+    [Test]
+    public void Remove_Function_ReturnsValue_And_SetsRemoved_And_ReadOnly()
+    {
+        var e = new TestEntity(1);
+
+        var result = e.PublicRemove(() => "removed");
+
+        result.Should().Be("removed");
+        e.PersistenceState.Should().Be(PersistenceState.Removed);
+        e.IsReadOnly.Should().BeTrue();
+    }
+
+    [Test]
+    public void Remove_Mutated_Event_Fires_Before_ReadOnly()
+    {
+        var e = new TestEntity(1);
+        var isReadOnlyDuringEvent = true;
+
+        e.Mutated += (_, _) => isReadOnlyDuringEvent = e.IsReadOnly;
+
+        e.PublicRemove();
+
+        isReadOnlyDuringEvent.Should().BeFalse("Mutated must fire before MakeReadOnly, per the documented order");
+        e.IsReadOnly.Should().BeTrue();
+    }
+
+    [Test]
+    public void Remove_Function_Mutated_Event_Fires_Before_ReadOnly()
+    {
+        var e = new TestEntity(1);
+        var isReadOnlyDuringEvent = true;
+
+        e.Mutated += (_, _) => isReadOnlyDuringEvent = e.IsReadOnly;
+
+        e.PublicRemove(() => "removed");
+
+        isReadOnlyDuringEvent.Should().BeFalse("Mutated must fire before MakeReadOnly, per the documented order");
+        e.IsReadOnly.Should().BeTrue();
+    }
+
+    [Test]
+    public void AddEvent_Throws_When_ReadOnly()
+    {
+        var e = new TestEntity(1);
+        e.PublicMakeReadOnly();
+
+        Action act = () => e.PublicAddEvent(EventData.CreateEvent("test-event", "emitted"));
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage(EntityBase.ReadOnlyErrorMessage);
+    }
+
+    [Test]
+    public void ClearEvents_Throws_When_ReadOnly()
+    {
+        var e = new TestEntity(1);
+        e.PublicAddEvent(EventData.CreateEvent("test-event", "emitted"));
+        e.PublicMakeReadOnly();
+
+        Action act = () => e.PublicClearEvents();
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage(EntityBase.ReadOnlyErrorMessage);
     }
 
     [Test]
