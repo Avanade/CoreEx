@@ -65,12 +65,17 @@ namespace {{Namespace}};
 {{indent}}    [global::CoreEx.Localization.Localization("{{KeyAndOrText}}"{{#if HasFallbackText}}, "{{FallbackText}}"{{/if}})]
     {{/if}}
 {{indent}}    public {{RefDataType}} {{RefDataName}} { get => ({{RefDataType}}){{Name}}; {{#if IsSettable}}set => {{Name}} = value; {{/if}} }
+    {{#if IsRefDataText}}
 
 {{indent}}    /// <summary>Gets the related <see cref="{{RefDataName}}"/> text where explicitly requested.</summary>
 {{indent}}    /// <remarks>Generally, the guidance (by design) is that the text should not be initialized/set directly; only offered to support advanced, serialization, and testing scenarios.</remarks>
 {{indent}}    [global::System.Diagnostics.DebuggerBrowsable(global::System.Diagnostics.DebuggerBrowsableState.Never)]
 {{indent}}    [global::System.ComponentModel.ReadOnly(true)]
+      {{#if HasRefDataTextJsonName}}
+{{indent}}    [global::System.Text.Json.Serialization.JsonPropertyName("{{RefDataTextJsonName}}")]
+      {{/if}}
 {{indent}}    public string? {{RefDataName}}Text { get => field ?? global::CoreEx.ExecutionContext.GetRelatedText(() => {{Name}} is null ? null : {{RefDataName}}?.Text); init => field = value; }
+    {{/if}}
   {{else}}
     {{#if IsRefDataCodeCollection}}
 {{indent}}    private {{Type}} {{RefDataCodeCollectionFieldName}};

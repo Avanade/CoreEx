@@ -143,6 +143,11 @@ internal class PropertyModel
     public string? RefDataTextJsonName { get; set; }
 
     /// <summary>
+    /// Indicates whether the property has a <see cref="RefDataTextJsonName"/>.
+    /// </summary>
+    public bool HasRefDataTextJsonName => !string.IsNullOrEmpty(RefDataTextJsonName);
+
+    /// <summary>
     /// Indicates whether the property has been marked up with the <i>ReferenceDataCodeCollection&lt;TRefData&gt;</i>.
     /// </summary>
     public bool IsRefDataCodeCollection { get; set; }
@@ -226,7 +231,7 @@ internal class PropertyModel
 
     /// <inheritdoc/>
     public override int GetHashCode()
-        => Name?.GetHashCode() ?? 0
+        => (Name?.GetHashCode() ?? 0)
             ^ (Type?.GetHashCode() ?? 0)
             ^ IsNullableValueType.GetHashCode()
             ^ IsPartial.GetHashCode()

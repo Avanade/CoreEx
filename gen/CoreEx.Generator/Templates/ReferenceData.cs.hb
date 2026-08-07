@@ -22,12 +22,17 @@ namespace {{Namespace}};
 {{indent}}    [global::System.Diagnostics.DebuggerBrowsable(global::System.Diagnostics.DebuggerBrowsableState.Never)]
 {{indent}}    [global::System.Text.Json.Serialization.JsonIgnore]
 {{indent}}    public {{RefDataType}} {{RefDataName}} { get => ({{RefDataType}}){{Name}}; {{#if IsSettable}}set => {{Name}} = value; {{/if}} }
+    {{#if IsRefDataText}}
 
 {{indent}}    /// <summary>Gets the related <see cref="{{RefDataName}}"/> text where explicitly requested.</summary>
 {{indent}}    /// <remarks>Generally, the guidance (by design) is that the text should not be initialized/set directly; only offered to support advanced, serialization, and testing scenarios.</remarks>
 {{indent}}    [global::System.Diagnostics.DebuggerBrowsable(global::System.Diagnostics.DebuggerBrowsableState.Never)]
 {{indent}}    [global::System.ComponentModel.ReadOnly(true)]
+      {{#if HasRefDataTextJsonName}}
+{{indent}}    [global::System.Text.Json.Serialization.JsonPropertyName("{{RefDataTextJsonName}}")]
+      {{/if}}
 {{indent}}    public string? {{RefDataName}}Text { get => field ?? global::CoreEx.ExecutionContext.GetRelatedText(() => {{Name}} is null ? null : {{RefDataName}}?.Text); init => field = value; }
+    {{/if}}
   {{else}}
 {{indent}}    public partial {{Type}} {{Name}} { get => field;{{#unless IsReadOnly}} {{#if IsInitOnly}}init{{else}}set{{/if}} => field = global::CoreEx.Entities.Cleaner.Clean(value, {{#if IsSelfCleanedString}}global::CoreEx.Entities.StringTrim.{{StringTrim}}, global::CoreEx.Entities.StringTransform.{{StringTransform}}, global::CoreEx.Entities.StringCase.{{StringCase}}{{else}}global::CoreEx.Entities.DateTimeTransform.{{DateTimeTransform}}{{/if}});{{/unless}} }
   {{/if}}
