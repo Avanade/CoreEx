@@ -47,6 +47,7 @@ internal static class GraphQLIntrospectionSchemaBuilder
     public static GraphQLIntrospectionDocument Build(GraphQLLiteOptions options, JsonSerializerOptions jsonOptions)
     {
         var types = new Dictionary<string, JsonObject>(StringComparer.Ordinal);
+        var typeOwners = new Dictionary<string, Type>();
 
         foreach (var scalar in _builtInScalars)
             EnsureScalar(types, scalar);
@@ -58,10 +59,10 @@ internal static class GraphQLIntrospectionSchemaBuilder
         var queryFields = new JsonArray();
 
         foreach (var root in options.QueryRoots.Values)
-            queryFields.Add(BuildQueryRootField(root, types, jsonOptions));
+            queryFields.Add(BuildQueryRootField(root, types, typeOwners, jsonOptions));
 
         foreach (var root in options.ItemRoots.Values)
-            queryFields.Add(BuildItemRootField(root, types, jsonOptions));
+            queryFields.Add(BuildItemRootField(root, types, typeOwners, jsonOptions));
 
         types[QueryTypeName] = NewObjectType(QueryTypeName, "The root query type.", queryFields);
 
@@ -80,9 +81,9 @@ internal static class GraphQLIntrospectionSchemaBuilder
     /// <summary>
     /// Builds the <c>Query</c> type field descriptor for a registered <see cref="GraphQLQueryRoot"/>, registering its <c>&lt;Item&gt;Edge</c>/<c>&lt;Item&gt;Connection</c> object types.
     /// </summary>
-    private static JsonObject BuildQueryRootField(GraphQLQueryRoot root, Dictionary<string, JsonObject> types, JsonSerializerOptions jsonOptions)
+    private static JsonObject BuildQueryRootField(GraphQLQueryRoot root, Dictionary<string, JsonObject> types, Dictionary<string, Type> typeOwners, JsonSerializerOptions jsonOptions)
     {
-        var itemTypeName = EnsureObjectType(types, root.ItemType, jsonOptions);
+        var itemTypeName = EnsureObjectType(types, typeOwners, root.ItemType, jsonOptions);
         var edgeTypeName = $"{itemTypeName}Edge";
         var connectionTypeName = $"{itemTypeName}Connection";
 
@@ -131,9 +132,9 @@ internal static class GraphQLIntrospectionSchemaBuilder
     /// </summary>
     /// <remarks><c>includeText</c> is honoured for item roots (see <see cref="GraphQLArgsMapper.ApplyItemRootFlags"/>); <c>includeInactive</c> is advertised but has no effect on a
     /// single-item get (there is no filter to apply it to) - it is only meaningful on list query roots.</remarks>
-    private static JsonObject BuildItemRootField(GraphQLItemRoot root, Dictionary<string, JsonObject> types, JsonSerializerOptions jsonOptions)
+    private static JsonObject BuildItemRootField(GraphQLItemRoot root, Dictionary<string, JsonObject> types, Dictionary<string, Type> typeOwners, JsonSerializerOptions jsonOptions)
     {
-        var itemTypeName = EnsureObjectType(types, root.ItemType, jsonOptions);
+        var itemTypeName = EnsureObjectType(types, typeOwners, root.ItemType, jsonOptions);
         var args = new JsonArray();
 
         if (root.ItemType.GetInterfaces().Any(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IReadOnlyIdentifier<>)))
@@ -313,12 +314,19 @@ internal static class GraphQLIntrospectionSchemaBuilder
     /// <c>UNKNOWN_FIELD</c> once <see cref="GraphQLTypeShape.GetFieldMap"/>'s equivalent depth cap kicks in. This is only an approximation for a shared/self-referential CLR type reachable at
     /// different depths from different roots: the <paramref name="types"/> registry is keyed by type name and built once, so whichever depth first encounters a given type determines whether
     /// its fields are populated for <i>every</i> path that reaches it.</para></remarks>
-    private static string EnsureObjectType(Dictionary<string, JsonObject> types, Type clrType, JsonSerializerOptions jsonOptions, int depth = 0)
+    private static string EnsureObjectType(Dictionary<string, JsonObject> types, Dictionary<string, Type> typeOwners, Type clrType, JsonSerializerOptions jsonOptions, int depth = 0)
     {
         var typeName = clrType.Name;
-        if (types.ContainsKey(typeName))
-            return typeName;
+        if (typeOwners.TryGetValue(typeName, out var owner))
+        {
+            if (owner != clrType)
+                throw new InvalidOperationException(
+                    $"GraphQL type name '{typeName}' is already registered for CLR type '{owner.FullName}'; it cannot also be used for '{clrType.FullName}'. Registered root/item types must not share a simple type name across different namespaces.");
 
+            return typeName;
+        }
+
+        typeOwners[typeName] = clrType;
         var typeObj = NewObjectType(typeName, null, []);
         types[typeName] = typeObj;
 
@@ -326,7 +334,7 @@ internal static class GraphQLIntrospectionSchemaBuilder
         if (depth < GraphQLTypeShape.MaxDepth)
         {
             foreach (var (jsonName, node) in GraphQLTypeShape.GetFieldMap(clrType, jsonOptions))
-                fields.Add(BuildFieldDescriptor(jsonName, node, types, jsonOptions, depth));
+                fields.Add(BuildFieldDescriptor(jsonName, node, types, typeOwners, jsonOptions, depth));
         }
 
         typeObj["fields"] = fields;
@@ -336,7 +344,7 @@ internal static class GraphQLIntrospectionSchemaBuilder
     /// <summary>
     /// Builds a single <c>__Field</c> descriptor for a reflected <see cref="GraphQLFieldNode"/>.
     /// </summary>
-    private static JsonObject BuildFieldDescriptor(string jsonName, GraphQLFieldNode node, Dictionary<string, JsonObject> types, JsonSerializerOptions jsonOptions, int depth)
+    private static JsonObject BuildFieldDescriptor(string jsonName, GraphQLFieldNode node, Dictionary<string, JsonObject> types, Dictionary<string, Type> typeOwners, JsonSerializerOptions jsonOptions, int depth)
     {
         JsonNode typeRef;
         if (node.IsComplex)
@@ -344,7 +352,7 @@ internal static class GraphQLIntrospectionSchemaBuilder
             // Non-collection complex properties (ElementType is null) must be unwrapped from Nullable<T> before use - both to avoid registering a bogus "Nullable`1" OBJECT type,
             // and so EnsureObjectType/GetFieldMap recurse into the underlying struct's own properties rather than Nullable<T>'s HasValue/Value.
             var childType = node.ElementType ?? Nullable.GetUnderlyingType(node.PropertyType) ?? node.PropertyType;
-            var nestedTypeName = EnsureObjectType(types, childType, jsonOptions, depth + 1);
+            var nestedTypeName = EnsureObjectType(types, typeOwners, childType, jsonOptions, depth + 1);
 
             // Collections are represented as a (nullable) list of non-null items; single complex references are nullable (no NRT reflection is performed, so a conservative nullable
             // default is used rather than risking an incorrectly over-claimed non-null guarantee).

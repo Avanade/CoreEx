@@ -117,7 +117,18 @@ public sealed class GraphQLEngine(GraphQLLiteOptions options) : IGraphQLEngine
 
                 // Meta-fields describing the schema itself: the full canonical __Schema/__Type shape is returned unconditionally (over-fetch), regardless of the client's nested
                 // selection set - safe/expected for introspection, and avoids needing general fragment-spread support just for the standard client-tooling introspection query.
-                dataObj[alias] = _introspection.Value.Schema.DeepClone();
+                try
+                {
+                    dataObj[alias] = _introspection.Value.Schema.DeepClone();
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    // _introspection is a Lazy<T> - it caches and rethrows any factory exception on every subsequent access, so this must be guarded the same way as every
+                    // other root-field execution path rather than letting it escape ExecuteAsync as an unhandled exception.
+                    errors.Add(MapException(ex, alias));
+                    dataObj[alias] = null;
+                }
+
                 continue;
             }
 
@@ -130,8 +141,17 @@ public sealed class GraphQLEngine(GraphQLLiteOptions options) : IGraphQLEngine
                     continue;
                 }
 
-                var typeName = args.GetString("name");
-                dataObj[alias] = typeName is not null && _introspection.Value.TypesByName.TryGetValue(typeName, out var typeNode) ? typeNode.DeepClone() : null;
+                try
+                {
+                    var typeName = args.GetString("name");
+                    dataObj[alias] = typeName is not null && _introspection.Value.TypesByName.TryGetValue(typeName, out var typeNode) ? typeNode.DeepClone() : null;
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    errors.Add(MapException(ex, alias));
+                    dataObj[alias] = null;
+                }
+
                 continue;
             }
 
@@ -191,7 +211,7 @@ public sealed class GraphQLEngine(GraphQLLiteOptions options) : IGraphQLEngine
 
             try
             {
-                var queryArgs = GraphQLArgsMapper.BuildQueryArgs(args);
+                var queryArgs = GraphQLArgsMapper.BuildQueryArgs(args, root.QueryArgsConfig.HasFilterParser ? root.QueryArgsConfig.FilterParser : null);
                 queryArgs.IncludeFields = paths.Count > 0 ? paths : null;
                 var needsItems = connection.EdgesAlias is not null || connection.PageInfoAlias is not null;
                 var (pagingArgs, first, requiresTotalCountForHasNextPage) = GraphQLArgsMapper.BuildConnectionPagingArgs(args, connection.TotalCountAlias is not null, needsItems);
@@ -266,14 +286,13 @@ public sealed class GraphQLEngine(GraphQLLiteOptions options) : IGraphQLEngine
 
             foreach (var (fieldName, fieldAlias) in connection.PageInfoFieldAliases)
             {
-                pageInfoObj[fieldAlias] = fieldName switch
-                {
-                    GraphQLConnectionResolver.HasNextPageField => hasNextPage,
-                    GraphQLConnectionResolver.HasPreviousPageField => hasPreviousPage,
-                    GraphQLConnectionResolver.StartCursorField => itemCount > 0 ? GraphQLCursor.Encode(skip) : null,
-                    GraphQLConnectionResolver.EndCursorField => itemCount > 0 ? GraphQLCursor.Encode(skip + itemCount - 1) : null,
-                    _ => null
-                };
+                // fieldName retains the client's original casing (e.g. "HasNextPage") - compare case-insensitively, consistent with every other field name in the schema.
+                pageInfoObj[fieldAlias] =
+                    string.Equals(fieldName, GraphQLConnectionResolver.HasNextPageField, StringComparison.OrdinalIgnoreCase) ? hasNextPage
+                    : string.Equals(fieldName, GraphQLConnectionResolver.HasPreviousPageField, StringComparison.OrdinalIgnoreCase) ? hasPreviousPage
+                    : string.Equals(fieldName, GraphQLConnectionResolver.StartCursorField, StringComparison.OrdinalIgnoreCase) ? (itemCount > 0 ? GraphQLCursor.Encode(skip) : null)
+                    : string.Equals(fieldName, GraphQLConnectionResolver.EndCursorField, StringComparison.OrdinalIgnoreCase) ? (itemCount > 0 ? GraphQLCursor.Encode(skip + itemCount - 1) : null)
+                    : null;
             }
 
             connectionObj[connection.PageInfoAlias] = pageInfoObj;

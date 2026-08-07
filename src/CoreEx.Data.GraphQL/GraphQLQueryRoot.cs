@@ -15,13 +15,17 @@ public sealed class GraphQLQueryRoot
     /// <param name="itemType">The underlying item <see cref="Type"/> returned per row.</param>
     /// <param name="queryArgsConfig">The <see cref="QueryArgsConfig"/> used to validate/parse the <c>filter</c>/<c>orderby</c> arguments.</param>
     /// <param name="resolver">The underlying query resolver delegate.</param>
-    internal GraphQLQueryRoot(string name, Type itemType, QueryArgsConfig queryArgsConfig, Func<QueryArgs?, PagingArgs?, CancellationToken, Task<IItemsResult>> resolver)
+    /// <param name="options">The owning <see cref="GraphQLLiteOptions"/> - consulted live (not snapshotted) for <see cref="GraphQLLiteOptions.EnableSensitiveDataLogging"/> on every invocation.</param>
+    internal GraphQLQueryRoot(string name, Type itemType, QueryArgsConfig queryArgsConfig, Func<QueryArgs?, PagingArgs?, CancellationToken, Task<IItemsResult>> resolver, GraphQLLiteOptions options)
     {
         Name = name.ThrowIfNull();
         ItemType = itemType.ThrowIfNull();
         QueryArgsConfig = queryArgsConfig.ThrowIfNull();
         _resolver = resolver.ThrowIfNull();
+        _options = options.ThrowIfNull();
     }
+
+    private readonly GraphQLLiteOptions _options;
 
     /// <summary>
     /// Gets the GraphQL root field name.
@@ -49,10 +53,18 @@ public sealed class GraphQLQueryRoot
     {
         if (ExecutionContext.HasCurrent)
         {
-            // Where debug logging is enabled, log the invocation of the GraphQL query root arguments.
+            // Where debug logging is enabled, log the invocation of the GraphQL query root. By default this is structural information only (whether a filter/order-by was
+            // specified, and the paging window) - never the literal QueryArgs.Filter/OrderBy text, which embeds client-supplied filter values (e.g. "name eq 'Jane Doe'")
+            // verbatim - unless EnableSensitiveDataLogging has been explicitly opted into (mirroring EF Core's option of the same name).
             var logger = ExecutionContext.GetService<ILogger<GraphQLQueryRoot>>();
             if (logger is not null && logger.IsEnabled(LogLevel.Debug))
-                logger.LogDebug("Invoking GraphQL query root '{Name}' with:\n  QueryArgs: [{QueryArgs}]\n  PagingArgs: [{PagingArgs}].", Name, queryArgs, pagingArgs);
+            {
+                if (_options.EnableSensitiveDataLogging)
+                    logger.LogDebug("Invoking GraphQL query root '{Name}' with:\n  QueryArgs: [{QueryArgs}]\n  PagingArgs: [{PagingArgs}].", Name, queryArgs, pagingArgs);
+                else
+                    logger.LogDebug("Invoking GraphQL query root '{Name}' with: HasFilter={HasFilter}, HasOrderBy={HasOrderBy}, PagingArgs: [{PagingArgs}].",
+                        Name, queryArgs?.Filter is not null, queryArgs?.OrderBy is not null, pagingArgs);
+            }
         }
 
         return await _resolver(queryArgs, pagingArgs, cancellationToken).ConfigureAwait(false);

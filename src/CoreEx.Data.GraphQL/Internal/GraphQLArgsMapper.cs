@@ -11,12 +11,14 @@ internal static class GraphQLArgsMapper
     /// Builds the <see cref="QueryArgs"/> from the resolved GraphQL field arguments, translating <c>where</c>/<c>orderBy</c> to their OData-esque equivalents.
     /// </summary>
     /// <param name="args">The resolved GraphQL field arguments.</param>
+    /// <param name="filterParser">The owning root's <see cref="QueryFilterParser"/> (or <see langword="null"/> where the root has no filter support at all), consulted by
+    /// <see cref="GraphQLFilterTranslator"/> to determine whether a given field's value should be quoted.</param>
     /// <returns>The <see cref="QueryArgs"/>.</returns>
-    public static QueryArgs BuildQueryArgs(IReadOnlyDictionary<string, object?> args)
+    public static QueryArgs BuildQueryArgs(IReadOnlyDictionary<string, object?> args, QueryFilterParser? filterParser)
     {
         var queryArgs = new QueryArgs
         {
-            Filter = GraphQLFilterTranslator.Translate(args.TryGetValue("where", out var where) ? where : null),
+            Filter = GraphQLFilterTranslator.Translate(args.TryGetValue("where", out var where) ? where : null, filterParser),
             OrderBy = GraphQLOrderByTranslator.Translate(args.TryGetValue("orderBy", out var orderBy) ? orderBy : null)
         };
 

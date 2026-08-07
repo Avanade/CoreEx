@@ -144,9 +144,15 @@ public class QueryFilterParserTests
     [TestCase("birthday eq kiwifruit", "Field 'birthday' constant 'kiwifruit' is not considered valid.")]
     [TestCase("birthday eq 1980-13-01", "Field 'birthday' has a value '1980-13-01' that is not a valid DateTime: String '1980-13-01' was not recognized as a valid DateTime.")]
     [TestCase("birthday eq 1980-01-32", "Field 'birthday' has a value '1980-01-32' that is not a valid DateTime: String '1980-01-32' was not recognized as a valid DateTime.")]
+    // Regression: previously reused the Literal-worded message ("must not be specified as a Literal...") for a bare true/false keyword too, which is misleading since
+    // true/false is not a quoted Literal - most relevant for a null-only field (see NULL_FIELD below), whose GraphQL-lite schema advertises eq/ne as a Boolean even
+    // though only 'null' is ever actually valid.
+    [TestCase("birthday eq true", "Field 'birthday' constant 'true' must not be specified as a boolean where the underlying type is not a string or boolean.")]
 
     // NULL_FIELD...
     [TestCase("terminated eq 13", "Field 'terminated' with value '13' is invalid: Only null comparisons are supported.")]
+    [TestCase("terminated eq true", "Field 'terminated' constant 'true' must not be specified as a boolean where the underlying type is not a string or boolean.")]
+    [TestCase("terminated eq false", "Field 'terminated' constant 'false' must not be specified as a boolean where the underlying type is not a string or boolean.")]
     [TestCase("terminated gt null", "Field 'terminated' does not support the 'gt' operator.")]
     public void Parse_Error(string? filter, string expected) => TestUtility.AssertFilterError(filter, expected);
 

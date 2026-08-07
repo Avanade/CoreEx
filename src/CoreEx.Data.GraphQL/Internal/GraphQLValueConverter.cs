@@ -45,14 +45,23 @@ internal static class GraphQLValueConverter
     }
 
     /// <summary>
-    /// Parses a <c>Float</c> literal as a <see cref="double"/>.
+    /// Parses a <c>Float</c> literal as a <see cref="decimal"/> where it fits (retaining full base-10 precision for the common currency/measurement case), falling back to a
+    /// <see cref="double"/> only where the literal exceeds <see cref="decimal"/>'s representable range.
     /// </summary>
     /// <param name="floatValue">The <c>Float</c> literal AST node.</param>
-    /// <returns>The parsed <see cref="double"/> value.</returns>
-    /// <exception cref="GraphQLArgumentTranslationException">Thrown where the literal cannot be parsed as a <see cref="double"/> (e.g. it exceeds the representable range).</exception>
-    private static object ParseFloat(GraphQLFloatValue floatValue) => double.TryParse(floatValue.Value.Span, NumberStyles.Float, CultureInfo.InvariantCulture, out var d)
-        ? d
-        : throw new GraphQLArgumentTranslationException($"Float literal '{floatValue.Value}' is not a valid floating-point number.");
+    /// <returns>The parsed <see cref="decimal"/> or <see cref="double"/> value.</returns>
+    /// <exception cref="GraphQLArgumentTranslationException">Thrown where the literal cannot be parsed as either a <see cref="decimal"/> or a <see cref="double"/> (e.g. it exceeds the representable range).</exception>
+    /// <remarks>Parsing straight to <see cref="double"/> unconditionally would silently truncate precision for a <c>decimal</c>-typed filter field - <see cref="double"/>'s
+    /// ~15-17 significant digits is fewer than <see cref="decimal"/>'s 28-29 - substituting a subtly different value into the filter with no error.</remarks>
+    private static object ParseFloat(GraphQLFloatValue floatValue)
+    {
+        if (decimal.TryParse(floatValue.Value.Span, NumberStyles.Float, CultureInfo.InvariantCulture, out var dec))
+            return dec;
+
+        return double.TryParse(floatValue.Value.Span, NumberStyles.Float, CultureInfo.InvariantCulture, out var d)
+            ? d
+            : throw new GraphQLArgumentTranslationException($"Float literal '{floatValue.Value}' is not a valid floating-point number.");
+    }
 
     /// <summary>
     /// Normalizes a variable value that may have been deserialized as a <see cref="JsonElement"/> (e.g. from a JSON request body) to a plain CLR value.
@@ -64,7 +73,7 @@ internal static class GraphQLValueConverter
             JsonValueKind.String => element.GetString(),
             JsonValueKind.True => true,
             JsonValueKind.False => false,
-            JsonValueKind.Number => element.TryGetInt64(out var l) ? l : (object)element.GetDouble(),
+            JsonValueKind.Number => element.TryGetInt64(out var l) ? l : element.TryGetDecimal(out var dec) ? dec : (object)element.GetDouble(),
             JsonValueKind.Array => element.EnumerateArray().Select(e => FromJsonElement(e)).ToList(),
             JsonValueKind.Object => element.EnumerateObject().ToDictionary(p => p.Name, p => FromJsonElement(p.Value), StringComparer.OrdinalIgnoreCase),
             _ => value

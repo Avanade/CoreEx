@@ -242,6 +242,12 @@ public abstract class QueryFilterFieldConfigBase : IQueryFilterFieldConfig
         }
         else
         {
+            // A dedicated check/message for True/False - the generic "must not be specified as a Literal" message below is worded for a quoted string constant and is
+            // misleading for a bare true/false keyword (most relevant for a null-only field, whose GraphQL-lite schema advertises eq/ne as a Boolean - see
+            // GraphQLIntrospectionSchemaBuilder's NullFilterInput - even though only 'null' is ever actually valid).
+            if (constant.Kind is QueryFilterTokenKind.True or QueryFilterTokenKind.False)
+                throw new QueryFilterParserException($"Field '{field.GetRawToken(filter)}' constant '{constant.GetValueToken(filter)}' must not be specified as a boolean where the underlying type is not a string or boolean.");
+
             if (!(constant.Kind == QueryFilterTokenKind.Value || constant.Kind == QueryFilterTokenKind.Null))
                 throw new QueryFilterParserException($"Field '{field.GetRawToken(filter)}' constant '{constant.GetValueToken(filter)}' must not be specified as a {QueryFilterTokenKind.Literal} where the underlying type is not a string.");
         }

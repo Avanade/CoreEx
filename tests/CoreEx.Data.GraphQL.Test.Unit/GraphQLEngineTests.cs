@@ -403,6 +403,78 @@ public class GraphQLEngineTests
         result.Data!.Value.GetProperty("person").GetProperty("__typename").GetString().Should().Be(nameof(Person));
     }
 
+    private static GraphQLEngine CreateEngineWithIdentifierRoot()
+    {
+        var options = new GraphQLLiteOptions();
+        options.AddGet<Person>("personByIdentifier", (args, ct) => Task.FromResult(_people.FirstOrDefault(p => p.Id == args.GetIdentifier<int>())));
+        return new GraphQLEngine(options);
+    }
+
+    [Test]
+    public async Task ExecuteAsync_ItemRoot_GetIdentifier_LiteralArgument_SucceedsAsync()
+    {
+        var engine = CreateEngineWithIdentifierRoot();
+        var result = await engine.ExecuteAsync("{ personByIdentifier(id: 2) { name } }");
+
+        result.HasErrors.Should().BeFalse();
+        result.Data!.Value.GetProperty("personByIdentifier").GetProperty("name").GetString().Should().Be("Bob");
+    }
+
+    [Test]
+    public async Task ExecuteAsync_ItemRoot_GetIdentifier_VariableSuppliedArgument_SucceedsAsync()
+    {
+        // Regression: a literal Int argument boxes as `int` (GraphQLValueConverter.ParseInt), but a variable-supplied Int arriving via a real JSON request body boxes as
+        // `long` (FromJsonElement always tries TryGetInt64 first) - GetIdentifier<int>() previously did a strict `is TId` cast with no widening, so this identical
+        // logical request only failed when supplied via a variable, exactly how a real GraphQL client (Apollo, Relay, GraphiQL's variables panel) sends parameterized requests.
+        using var doc = JsonDocument.Parse("{ \"id\": 2 }");
+        var variables = new Dictionary<string, object?> { ["id"] = doc.RootElement.GetProperty("id") };
+
+        var engine = CreateEngineWithIdentifierRoot();
+        var result = await engine.ExecuteAsync("query($id: Int) { personByIdentifier(id: $id) { name } }", variables: variables);
+
+        result.HasErrors.Should().BeFalse();
+        result.Data!.Value.GetProperty("personByIdentifier").GetProperty("name").GetString().Should().Be("Bob");
+    }
+
+    [Test]
+    public async Task ExecuteAsync_PageInfo_MixedCaseFieldName_ResolvesCaseInsensitivelyAsync()
+    {
+        // Regression: the four PageInfo field names (hasNextPage/hasPreviousPage/startCursor/endCursor) were matched case-sensitively, inconsistent with every other field
+        // name in the schema (edges/node/cursor/pageInfo/totalCount, and every DTO field), which are all explicitly case-insensitive by design.
+        var engine = CreateEngine();
+        var result = await engine.ExecuteAsync("{ people(first: 2) { pageInfo { HasNextPage hasPreviousPage } } }");
+
+        result.HasErrors.Should().BeFalse();
+        var pageInfo = result.Data!.Value.GetProperty("people").GetProperty("pageInfo");
+        pageInfo.GetProperty("HasNextPage").GetBoolean().Should().BeTrue();
+        pageInfo.GetProperty("hasPreviousPage").GetBoolean().Should().BeFalse();
+    }
+
+    /// <summary>
+    /// A distinct CLR type that deliberately shares its simple name ("Person") with <see cref="Model.Person"/> but lives in a different (nested) scope, used to prove the
+    /// introspection schema builder detects and rejects a genuine type-name collision rather than silently reusing the first-registered type's shape for both.
+    /// </summary>
+    private static class OtherNamespace
+    {
+        public class Person : IReadOnlyIdentifier<int>
+        {
+            public int Id { get; set; }
+        }
+    }
+
+    [Test]
+    public void GetSchemaAsync_TwoDistinctTypesShareSimpleName_ThrowsInvalidOperationException()
+    {
+        var options = new GraphQLLiteOptions { EnableIntrospection = true };
+        options.AddGet<Person>("person", (args, ct) => Task.FromResult<Person?>(_people[0]));
+        options.AddGet<OtherNamespace.Person>("otherPerson", (args, ct) => Task.FromResult<OtherNamespace.Person?>(null));
+
+        var engine = new GraphQLEngine(options);
+        var act = async () => await engine.GetSchemaAsync();
+
+        act.Should().ThrowAsync<InvalidOperationException>().WithMessage("*'Person'*already registered*");
+    }
+
     [Test]
     public async Task ExecuteAsync_NestedFieldAlias_IsHonoredInResponseAsync()
     {
@@ -783,6 +855,45 @@ public class GraphQLEngineTests
     }
 
     [Test]
+    public async Task ExecuteAsync_QueryRoot_SensitiveDataLoggingDisabledByDefault_LogsStructuralInfoOnlyAsync()
+    {
+        var provider = new TestLoggerProvider();
+        var services = new ServiceCollection().AddLogging(b => b.AddProvider(provider).SetMinimumLevel(LogLevel.Debug)).BuildServiceProvider();
+        ExecutionContext.SetCurrent(new ExecutionContext { ServiceProvider = services });
+        try
+        {
+            var engine = CreateEngine();
+            await engine.ExecuteAsync("{ people(where: { name: \"Bob\" }) { edges { node { id } } } }");
+
+            provider.Entries.Should().ContainSingle(e => e.Message.Contains("HasFilter=True"));
+            provider.Entries.Should().NotContain(e => e.Message.Contains("Bob"), "the literal filter text must not be logged unless EnableSensitiveDataLogging is opted into");
+        }
+        finally
+        {
+            ExecutionContext.Reset();
+        }
+    }
+
+    [Test]
+    public async Task ExecuteAsync_QueryRoot_EnableSensitiveDataLogging_LogsLiteralFilterTextAsync()
+    {
+        var provider = new TestLoggerProvider();
+        var services = new ServiceCollection().AddLogging(b => b.AddProvider(provider).SetMinimumLevel(LogLevel.Debug)).BuildServiceProvider();
+        ExecutionContext.SetCurrent(new ExecutionContext { ServiceProvider = services });
+        try
+        {
+            var engine = CreateEngine(options => options.EnableSensitiveDataLogging = true);
+            await engine.ExecuteAsync("{ people(where: { name: \"Bob\" }) { edges { node { id } } } }");
+
+            provider.Entries.Should().ContainSingle(e => e.Message.Contains("name eq 'Bob'"));
+        }
+        finally
+        {
+            ExecutionContext.Reset();
+        }
+    }
+
+    [Test]
     public async Task ExecuteAsync_ResolverThrowsUnmappedException_AlwaysLogsAndSurfacesGenericMessageByDefaultAsync()
     {
         var provider = new TestLoggerProvider();
@@ -957,7 +1068,7 @@ public class GraphQLEngineTests
     /// </summary>
     private sealed class TestLoggerProvider : ILoggerProvider
     {
-        public ConcurrentBag<(LogLevel Level, Exception? Exception)> Entries { get; } = [];
+        public ConcurrentBag<(LogLevel Level, Exception? Exception, string Message)> Entries { get; } = [];
 
         public ILogger CreateLogger(string categoryName) => new TestLogger(this);
 
@@ -969,7 +1080,8 @@ public class GraphQLEngineTests
 
             public bool IsEnabled(LogLevel logLevel) => true;
 
-            public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter) => provider.Entries.Add((logLevel, exception));
+            public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+                => provider.Entries.Add((logLevel, exception, formatter(state, exception)));
         }
     }
 }
