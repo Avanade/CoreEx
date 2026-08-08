@@ -32,6 +32,7 @@
       "tests/CoreEx.Events.Test.Unit/CoreEx.Events.Test.Unit.csproj",
       "tests/CoreEx.RefData.Test.Unit/CoreEx.RefData.Test.Unit.csproj",
       "tests/CoreEx.Test.Unit/CoreEx.Test.Unit.csproj",
+      "tests/CoreEx.UnitTesting.Test.Unit/CoreEx.UnitTesting.Test.Unit.csproj",
       "tests/CoreEx.Validation.Test.Unit/CoreEx.Validation.Test.Unit.csproj"
     ]
   }

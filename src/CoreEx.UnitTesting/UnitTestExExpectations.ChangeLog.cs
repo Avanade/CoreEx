@@ -38,11 +38,13 @@ public static partial class UnitTestExExpectations
                 return Task.FromResult(true);
             }
 
-            if (cl.CreatedOn == null)
+            if (cl.CreatedBy == null)
                 args.Tester.Implementor.AssertFail($"Expected {pn}.{nameof(IReadOnlyChangeLogEx.CreatedBy)} value of '{createdBy}'; actual was null.");
             else
             {
-                if (!SubscribedBase.IsMatch(createdBy, cl.CreatedBy))
+                // An empty createdBy is an explicit expectation (match only an empty actual), not "match anything" - unlike SubscribedBase.IsMatch's
+                // routing-glob semantics where a null/empty pattern deliberately matches anything.
+                if (!(string.IsNullOrEmpty(createdBy) ? cl.CreatedBy.Length == 0 : SubscribedBase.IsMatch(createdBy, cl.CreatedBy)))
                     args.Tester.Implementor.AssertFail($"Expected {pn}.{nameof(ChangeLog.CreatedBy)} value of '{createdBy}'; actual '{cl.CreatedBy}'.");
             }
 
@@ -91,11 +93,13 @@ public static partial class UnitTestExExpectations
                 return Task.FromResult(true);
             }
 
-            if (cl.UpdatedOn == null)
+            if (cl.UpdatedBy == null)
                 args.Tester.Implementor.AssertFail($"Expected {pn}.{nameof(IReadOnlyChangeLogEx.UpdatedBy)} value of '{updatedBy}'; actual was null.");
             else
             {
-                if (!SubscribedBase.IsMatch(updatedBy, cl.UpdatedBy))
+                // An empty updatedBy is an explicit expectation (match only an empty actual), not "match anything" - unlike SubscribedBase.IsMatch's
+                // routing-glob semantics where a null/empty pattern deliberately matches anything.
+                if (!(string.IsNullOrEmpty(updatedBy) ? cl.UpdatedBy.Length == 0 : SubscribedBase.IsMatch(updatedBy, cl.UpdatedBy)))
                     args.Tester.Implementor.AssertFail($"Expected {pn}.{nameof(ChangeLog.UpdatedBy)} value of '{updatedBy}'; actual '{cl.UpdatedBy}'.");
             }
 

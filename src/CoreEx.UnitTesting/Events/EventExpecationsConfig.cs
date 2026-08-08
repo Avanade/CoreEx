@@ -95,6 +95,18 @@ public sealed class EventExpectationsConfig
     }
 
     /// <summary>
+    /// Indicates that events should have been published and asserted, in aggregate, using <see cref="AssertAllFromJsonResource(string, Assembly?, IEnumerable{string})"/>, <see cref="AssertCount(int)"/>, or <see cref="Assert(Action{DestinationEvent[]})"/>.
+    /// </summary>
+    /// <exception cref="InvalidOperationException"></exception>
+    private void ExpectAllEvents()
+    {
+        ExpectEvents();
+
+        if (_assertors.Count > 0)
+            throw new InvalidOperationException($"Cannot set to expect all events using {nameof(AssertAllFromJsonResource)}, {nameof(AssertCount)}, or {nameof(Assert)} when individual event expectations have already been configured.");
+    }
+
+    /// <summary>
     /// Gets or sets the factory function used to create new <see cref="ExecutionContext"/> instance.
     /// </summary>
     public Func<IServiceProvider, ExecutionContext> ExecutionContextFactory { get; set; } = sp => new ExecutionContext();
@@ -121,13 +133,13 @@ public sealed class EventExpectationsConfig
     /// <returns>The <see cref="EventExpectationsConfig"/> to support fluent-style method-chaining.</returns>
     public EventExpectationsConfig Assert(Action<DestinationEvent[]> events)
     {
-        ExpectEvents();
+        ExpectAllEvents();
         events.ThrowIfNull();
 
         _assertAllEvents = (_, actual) =>
         {
             events(actual);
-            Tester.Implementor.WriteLine($"    > Expected zero or more event(s) with a custom Assert; and that assertion was met.");
+            Tester.Implementor.WriteLine($"    > Expected one or more event(s) with a custom Assert; and that assertion was met.");
         };
 
         return this;
@@ -140,7 +152,7 @@ public sealed class EventExpectationsConfig
     /// <returns>The <see cref="EventExpectationsConfig"/> to support fluent-style method-chaining.</returns>
     public EventExpectationsConfig AssertCount(int count)
     {
-        ExpectEvents();
+        ExpectAllEvents();
         count.ThrowIfLessThanOrEqualToZero();
 
         _assertAllEvents = (_, actual) =>
@@ -148,7 +160,7 @@ public sealed class EventExpectationsConfig
             if (count == actual.Length)
                 Tester.Implementor.WriteLine($"    > Expected {count} event(s); and that number was found to be published.");
             else
-                Tester.Implementor.AssertFail($"Expected {_assertors.Count} '{ServiceKey}' events; however, {actual.Length} were found to be published.");
+                Tester.Implementor.AssertFail($"Expected {count} '{ServiceKey}' events; however, {actual.Length} were found to be published.");
         };
 
         return this;
@@ -185,7 +197,7 @@ public sealed class EventExpectationsConfig
     /// <remarks>The <paramref name="pathsToIgnore"/> should be from an individual <see cref="CloudEvent"/> perspective from a consistency perspective.</remarks>
     public EventExpectationsConfig AssertAllFromJsonResource(string resourceName, Assembly? assembly = null, params IEnumerable<string> pathsToIgnore)
     {
-        ExpectEvents();
+        ExpectAllEvents();
 
         assembly ??= ResourceAssembly;
         var capturedPaths = CombinePaths(pathsToIgnore).Select(x => $"event.{(x.StartsWith("$.") ? x[2..] : x)}").ToArray();
@@ -218,6 +230,34 @@ public sealed class EventExpectationsConfig
         _assertors.Add(new EventExpectationAssertor(this, destination, (assertor, args, _) =>
         {
             var ed = new EventData() { Title = title, MessageType = messageType }.WithValue(args.Value, null, assertor.JsonSerializerOptions);
+            updater?.Invoke(ed);
+            return assertor.EventFormatter.ConvertToCloudEvent(assertor.EventFormatter.Format(ed));
+        }, CombinePaths(pathsToIgnore)));
+
+        return this;
+    }
+
+    /// <summary>
+    /// Adds an expectation assertion that an event was published where the returned value from the <paramref name="valueFactory"/> will be used as the source of the <see cref="EventData.Data"/>.
+    /// </summary>
+    /// <typeparam name="TValue">The value <see cref="Type"/>.</typeparam>
+    /// <param name="valueFactory">A function to create the value.</param>
+    /// <param name="destination">The expected destination (i.e. topic) name.</param>
+    /// <param name="title">The expected <see cref="EventData.Title"/>.</param>
+    /// <param name="messageType">The expected <see cref="EventData.MessageType"/>.</param>
+    /// <param name="updater">An optional action to further update the expected <see cref="EventData"/> prior to assertion.</param>
+    /// <param name="pathsToIgnore">Any additional JSON paths to ignore from the underlying <see cref="CloudEvent"/> comparison.</param>
+    /// <returns>The <see cref="EventExpectationsConfig"/> to support fluent-style method-chaining.</returns>
+    /// <remarks>Internally this constructs the <see cref="EventData"/> and converts it to a <see cref="CloudEvent"/> for comparison.</remarks>
+    public EventExpectationsConfig AssertWithValue<TValue>(Func<TValue> valueFactory, string destination, string title, CoreEx.Events.MessageType messageType = CoreEx.Events.MessageType.Event, Action<EventData>? updater = null, params IEnumerable<string> pathsToIgnore)
+    {
+        valueFactory.ThrowIfNull();
+        ExpectEvents();
+
+        _assertors.Add(new EventExpectationAssertor(this, destination, (assertor, args, _) =>
+        {
+            var value = valueFactory();
+            var ed = new EventData() { Title = title, MessageType = messageType }.WithValue(value, null, assertor.JsonSerializerOptions);
             updater?.Invoke(ed);
             return assertor.EventFormatter.ConvertToCloudEvent(assertor.EventFormatter.Format(ed));
         }, CombinePaths(pathsToIgnore)));
@@ -284,7 +324,7 @@ public sealed class EventExpectationsConfig
     public EventExpectationsConfig AssertCloudEvent(string destination, CloudEvent cloudEvent, params IEnumerable<string> pathsToIgnore)
     {
         ExpectEvents();
-        _assertors.Add(new EventExpectationAssertor(this, destination, (_, _, _) => cloudEvent, pathsToIgnore));
+        _assertors.Add(new EventExpectationAssertor(this, destination, (_, _, _) => cloudEvent, CombinePaths(pathsToIgnore)));
         return this;
     }
 
@@ -362,7 +402,7 @@ public sealed class EventExpectationsConfig
     public EventExpectationsConfig AssertCustom(string destination, Action<EventExpectationAssertor, AssertArgs, DestinationEvent> customAssert, params IEnumerable<string> pathsToIgnore)
     {
         ExpectEvents();
-        _assertors.Add(new EventExpectationAssertor(this, destination, customAssert, pathsToIgnore));
+        _assertors.Add(new EventExpectationAssertor(this, destination, customAssert, CombinePaths(pathsToIgnore)));
         return this;
     }
 

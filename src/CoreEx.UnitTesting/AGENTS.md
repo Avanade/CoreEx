@@ -51,16 +51,47 @@ Use the database-specific expectation method that matches your domain's persiste
 .ExpectNoAzureServiceBusEvents()
 ```
 
+### Picking the per-event assertor: value vs no-value events
+
+```csharp
+// Value-carrying events (Create/Update): reconstructs the expected event payload from the tester's own
+// returned value (AssertArgs.Value).
+.ExpectSqlServerOutboxEvents(e => e.AssertWithValue("contoso", "contoso.orders.order.created.v1"))
+
+// AssertWithValue factory overload (rare): supply the expected payload directly instead of relying on the
+// tester's returned value - for a host-less GenericTester<T> (no IValueExpectations<TValue>, so there is no
+// AssertArgs.Value to reconstruct from), or when the published event's payload legitimately differs from what
+// the operation returns.
+.ExpectSqlServerOutboxEvents(e => e.AssertWithValue(() => expectedPayload, "contoso", "contoso.orders.order.created.v1"))
+
+// No-value events (Delete, or any 204 No Content): there is no returned value to reconstruct a payload from at
+// all, so AssertMetadata compares metadata only - destination + title/subject + the key (e.g. the deleted id).
+.ExpectSqlServerOutboxEvents(e => e.AssertMetadata("contoso", "contoso.orders.order.deleted", deletedId))
+```
+
+Reach for the plain `AssertWithValue(destination, subject)` first for value-carrying events; only use the `valueFactory` overload when the returned value genuinely isn't the event's payload. Use `AssertMetadata` for no-value events — `AssertWithValue` has nothing to reconstruct from in that case.
+
 ## Validation Assertions
 
 ```csharp
 // Assert validator passes
-await ProductValidator.Default.AssertSuccess(new Product { Sku = "SKU001" });
+await ProductValidator.Default.AssertSuccessAsync(new Product { Sku = "SKU001" });
 
 // Assert validator fails with specific field errors
-await ProductValidator.Default.AssertErrors(
+await ProductValidator.Default.AssertErrorsAsync(
     new Product { Sku = "" },
     ("Sku", "Sku is required."));
+```
+
+## Testing That an Expectation Fails
+
+```csharp
+// Use NUnit's Assert.Throws — NOT AwesomeAssertions' Should().Throw() — to assert that an
+// Expect*/Assert* check itself correctly fails (e.g. writing a test for a validator's negative path).
+Assert.Throws<AssertionException>(() => Test.Http<Order>()
+    .ExpectIdentifier()
+    .Run(HttpMethod.Post, "api/orders", invalidOrder)
+    .AssertCreated());
 ```
 
 ## Subscribe / Relay Host Tests
@@ -101,6 +132,7 @@ Test.ScopedType<OrderService>()
 - Do not call `PublishAsync()` in tests — the `EventPublisherDecorator` (registered by `UseExpectedEventPublisher`) captures events automatically.
 - Do not forget `await Test.ClearFusionCacheAsync()` in `[OneTimeSetUp]` for tests involving cached reference data.
 - Do not use FluentAssertions — the CoreEx test framework uses AwesomeAssertions (`AwesomeAssertions` NuGet package).
+- Do not wrap an `Expect*`/`Assert*` check in `Action act = () => ...; act.Should().Throw<Exception>();` to test that it fails — UnitTestEx's `Implementor.AssertFail` marks the NUnit test as failed the moment it fires, regardless of whether your code later catches the resulting exception. Use NUnit's `Assert.Throws<AssertionException>(...)` instead (see "Testing That an Expectation Fails" above).
 
 ## Further Reading
 

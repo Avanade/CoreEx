@@ -10,7 +10,6 @@ public static partial class UnitTestExExtensions
     /// <typeparam name="TValue">The value <see cref="Type"/>.</typeparam>
     /// <param name="validator">The <see cref="IValidator{T}"/>.</param>
     /// <param name="value">The value to validate.</param>
-    /// <returns>The <see cref="IValidationResult{T}"/>.</returns>
     /// <remarks>This is using <see cref="AwesomeAssertions"/> to assert that the validation is successful (i.e. <see cref="IValidationResult.HasErrors"/> is <see langword="false"/>).</remarks>
     public static void AssertSuccess<TValue>(this IValidator<TValue> validator, TValue value)
         => AssertSuccessAsync(validator, value).GetAwaiter().GetResult();

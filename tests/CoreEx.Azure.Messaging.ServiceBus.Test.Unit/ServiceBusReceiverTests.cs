@@ -37,6 +37,23 @@ public class ServiceBusReceiverTests : WithGenericTester<EntryPoint>
     }
 
     [Test]
+    public void GetAndClearAzureServiceBusAsync_ReturnsAllPublishedMessages() => Test.ScopedType<ExecutionContext>(async test =>
+    {
+        // Regression (against a real Service Bus emulator, not a mock): proves GetAndClearAzureServiceBusAsync's internal
+        // receive poll reliably drains every message published just beforehand, closing the gap left by CoreEx.UnitTesting's
+        // "no live infra to verify" note for this method.
+        var sp = (ServiceBusPublisher)test.Services.GetRequiredKeyedService<IEventPublisher>(ServiceBusPublisher.DefaultServiceKey);
+        for (var i = 0; i < 10; i++)
+            sp.Add(EventData.CreateEventWith(new Subscribers.Product { Id = i, Sku = $"SKU-{i}" }, "Created"));
+
+        await sp.PublishAsync();
+
+        var messages = await Test.GetAndClearAzureServiceBusAsync(ServiceBusReceiverOptions.CreateForTopicSubscription("unit-test", "default"));
+
+        messages.Should().HaveCount(10);
+    });
+
+    [Test]
     public void Receiver_Cycle_States() => Test.ScopedType<ExecutionContext>(async test =>
     {
         // Create using the root services (not scoped).

@@ -25,7 +25,7 @@ public static partial class UnitTestExExpectations
         tester.ExpectationsArranger.GetOrAdd(() => new EventExpectations<TSelf>(tester.ExpectationsArranger.Owner, (TSelf)tester, requestId, Assembly.GetCallingAssembly())).ExpectNoEvents(serviceKey);
 
         // Tag that an expectation has been added for the current request (if applicable) so that the expectations will be evaluated at the end of the request.
-        tester.ExpectationsArranger.Owner.SharedState.RequestStateData(requestId)[$"{serviceKey}_Expectations"] = null;
+        tester.ExpectationsArranger.Owner.SharedState.RequestStateData(requestId)[$"{serviceKey}{RequestStateDataKeySuffix}"] = null;
         return (TSelf)tester;
     }
 

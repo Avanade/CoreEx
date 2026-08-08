@@ -14,7 +14,7 @@ namespace CoreEx.UnitTesting.Events;
 /// only exists within the test pipeline, the same visibility here carries no such risk.</para></remarks>
 public class EventPublisherDecorator(string key, TestSharedState testSharedState, IEventPublisher innerEventPublisher, ILogger<EventPublisherDecorator>? logger = null) : IEventPublisher
 {
-    private static JsonSerializerOptions? _debugJsonSerializerOptions;
+    private static readonly JsonSerializerOptions _debugJsonSerializerOptions = new() { WriteIndented = true };
 
     private readonly TestSharedState _sharedState = testSharedState.ThrowIfNull();
     private readonly IEventPublisher _innerEventPublisher = innerEventPublisher.ThrowIfNull();
@@ -82,7 +82,7 @@ public class EventPublisherDecorator(string key, TestSharedState testSharedState
         if (_logger?.IsEnabled(LogLevel.Debug) ?? false)
         {
             var list = events.Select(de => new { destination = de.Destination, @event = de.Event.EncodeToJsonElement() });
-            _logger.LogDebug("Preparing to send {Length} event(s):{NewLine}{Json}", events.Length, Environment.NewLine, JsonSerializer.Serialize(list, _debugJsonSerializerOptions ??= new JsonSerializerOptions { WriteIndented = true }));
+            _logger.LogDebug("Preparing to send {Length} event(s):{NewLine}{Json}", events.Length, Environment.NewLine, JsonSerializer.Serialize(list, _debugJsonSerializerOptions));
         }
 
         // Publish the events using the underlying publisher.
