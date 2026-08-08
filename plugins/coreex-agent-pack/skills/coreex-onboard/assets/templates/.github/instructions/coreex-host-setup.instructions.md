@@ -1,0 +1,424 @@
+---
+applyTo: "**/Program.cs"
+description: "Host setup conventions for Program.cs: API host, Subscribe host, Outbox Relay host, middleware, service registration, and distributed caching"
+tags: ["program-cs", "host-setup", "middleware", "dependency-registration", "caching"]
+---
+
+# Host Setup Conventions (Program.cs)
+
+The host is a **composition root only** — no business logic. There are three host types in a CoreEx solution depending on the capabilities required. Each follows the same opening skeleton, then diverges based on its responsibilities.
+
+> **Further Reading**: [Hosts Layer Guide](https://github.com/Avanade/CoreEx/blob/main/samples/docs/hosts-layer.md) · [Layer Dependencies](https://github.com/Avanade/CoreEx/blob/main/samples/docs/layers.md) · [Pattern Catalog](https://github.com/Avanade/CoreEx/blob/main/samples/docs/patterns.md)
+
+---
+
+## Scaffolding an API host
+
+An API host is **not** part of the base `coreex` solution — it is added on demand when the user asks to expose functionality over HTTP (e.g. *"create a CRUD API for Employee"*, or *"create the Employee service **and** an API"*). Creating it is an **explicit-ask action** — confirm before scaffolding (per the always-on "Do Not Create Projects" rule); never auto-create it to satisfy a feature request.
+
+> **Agent instruction:** When an API is requested and no Api host exists:
+> 1. **Detect** the host: look for `**/*.Api/*.Api.csproj`. The file system is authoritative for project existence (unlike database state) — no further checking is needed.
+> 2. **If present**, skip to authoring controllers (see [coreex-api-controllers](./coreex-api-controllers.instructions.md)).
+> 3. **If absent, confirm creation** with the user — default the name to `{Solution}.Api` and the physical location to `src/` (the template default). Do not create it without confirmation.
+> 4. **Recover the original selections** from the solution-root `AGENTS.md` "Feature Configuration" (cross-check `dbex.yaml`). These default the `coreex-api` template — which takes **`data-provider`, `refdata-enabled`, `outbox-enabled`** (a subset of the solution options). Re-state the resolved values for confirmation rather than re-prompting; if `AGENTS.md` and `dbex.yaml` disagree, **stop and flag** rather than guessing.
+> 5. **Scaffold** with the recovered values, naming consistently with the solution so the derived `domain-name`/`solution-name` tokens align with the existing projects:
+>    ```
+>    dotnet new coreex-api -n {Solution}.Api --data-provider <X> --refdata-enabled <bool> --outbox-enabled <bool>
+>    ```
+>    **Run it from the solution root** — the directory that already contains `src/` and `tests/`. The template is rooted at `src/...` and `tests/...` (and uses `preferNameDirectory: false`, so it does **not** create a name-based subfolder); it merges its `src/`/`tests/` into the existing ones. Running it from inside `src/` produces nested `src/src/...` paths. If that happens, **delete the misplaced output and re-run from the solution root** — do **not** hand-move the generated files to "fix" the layout. Summarise the output on success; relay it **verbatim** on failure.
+> 6. **Author the controller(s)** for the requested entity/operations per [coreex-api-controllers](./coreex-api-controllers.instructions.md), exposing only the confirmed operations.
+> 7. **Verify by building the project directly — not the solution.** The host is not yet in the `.slnx` (that is step 9), so a *solution-wide* build would silently **skip** it and give false confidence. Build and test the new project(s) **by path** — this compiles them and their referenced projects regardless of solution membership:
+>    ```
+>    dotnet build <path/to/Api>.csproj
+>    dotnet test  <path/to/Test.Api>.csproj
+>    ```
+>    Fix any errors here, in-session, before handing off — compilation does **not** require the project to be in the solution.
+> 8. **Update the recording:** amend the solution-root `AGENTS.md` — add the Api host to the *Project Structure* block and note it under hosts. (The feature selections themselves do not change.)
+> 9. **Add the new project(s) to the solution — final step, in-session.** Once the changes are verified (step 7), wire the projects into the `.slnx` from the solution root, batched by target folder, using the **actual generated** paths:
+>    ```
+>    dotnet sln <Solution>.slnx add <path/to/Api>.csproj --solution-folder hosts
+>    dotnet sln <Solution>.slnx add <path/to/Test.Api>.csproj --solution-folder tests
+>    ```
+>    Always via `dotnet sln add` — **never hand-edit the `.slnx` XML** (manual edits are error-prone and have wiped solution files). This is the **last** action, after the code is verified and `AGENTS.md` is updated, so it cannot interrupt pending work. A final `dotnet build <Solution>.slnx` confirms the wiring.
+>    **Exception — Visual Studio with the solution open:** writing the `.slnx` triggers an IDE reload that can interrupt and discard pending changes. *Only* in that case, defer these commands to an end-of-task **Manual steps** list for the user to run instead. The default environment (Claude Code / Copilot / CLI) runs them in-session.
+
+The scaffolded `Program.cs` wiring is described below; it is generated **complete and ready-to-compile** via the option-driven `#if` blocks — there is **no post-CodeGen uncomment / "phase 2" step**.
+
+> **Reference-data wiring is automatic — nothing to uncomment.** The host wires reference data and dynamic services **without referencing any CodeGen-generated type**, so it compiles at scaffold time *and* is correct once CodeGen runs:
+> ```csharp
+> // refdata-enabled hosts only (template #if):
+> builder.Services.AddReferenceDataOrchestrator();   // non-generic — resolves the IReferenceDataProvider from DI at runtime
+> // all hosts — scans the assemblies (via the stable AssemblyMarker types) for [ScopedService] types, registering them all (incl. CodeGen-generated):
+> builder.Services.AddDynamicServicesUsing(typeof({Solution}.Application.AssemblyMarker).Assembly, typeof({Solution}.Infrastructure.AssemblyMarker).Assembly);
+> ```
+> The generated `ReferenceDataService` is `[ScopedService]`-decorated, so the assembly scan picks it up automatically and the orchestrator binds to it via `IReferenceDataProvider` — no manual step. Before CodeGen there are simply no ref-data entities to serve (requests return empty), which is correct. **Do not** add `AddReferenceDataOrchestrator<ReferenceDataService>()` or `AddDynamicServicesUsing<…generated types…>()` — that reintroduces the compile-time dependency the marker approach removes.
+
+---
+
+## Scaffolding a Subscribe host
+
+A Subscribe host is **not** part of the base `coreex` solution — it is added on demand when the user **explicitly** asks to *"add/create the subscribe host"*, *"consume events"*, or similar. Creating it is an **explicit-ask action** — confirm before scaffolding (per the always-on "Do Not Create Projects" rule); never auto-create it.
+
+Like the Relay host, the Subscribe host is **fully template-generated**: the `coreex-subscribe` template emits a complete, compilable `Program.cs` and test project with no Phase-2 / uncomment step. Unlike the Relay, the Subscribe host **does** have follow-on authoring work — subscribers are added to it over time as new event types are consumed.
+
+> **Critical naming rule — always pass `-n` with the full host-suffixed name:**
+> The `coreex-subscribe` template's `sourceName` is `app-name.Subscribe` — the `.Subscribe` suffix is **part of the template source token**, not appended automatically. The `-n` value replaces that entire token, so you **must** include the suffix:
+> ```
+> dotnet new coreex-subscribe -n {Solution}.Subscribe ...   ✓ correct
+> dotnet new coreex-subscribe -n {Solution} ...             ✗ wrong — project loses the .Subscribe suffix
+>                                                              and derived solution-name / domain-name tokens
+>                                                              resolve incorrectly, breaking cross-project references
+> ```
+> Omitting `-n` entirely is equally wrong — `dotnet new` falls back to the directory name (typically the solution root, e.g. `Foo.Bar`), which has the same effect as passing the bare solution name.
+
+> **Agent instruction:** When the user asks to add/create the Subscribe host:
+> 1. **Detect** it: look for `**/*.Subscribe/*.Subscribe.csproj`. The file system is authoritative (unlike database state) — no further checking is needed.
+> 2. **If present**, skip to authoring subscribers (see [coreex-event-subscribers](./coreex-event-subscribers.instructions.md)).
+> 3. **If absent, confirm creation** with the user — default the name to `{Solution}.Subscribe` and the physical location to `src/` (the template default). Do not create it without confirmation.
+> 4. **Recover the original selections** from the solution-root `AGENTS.md` "Feature Configuration" (cross-check `dbex.yaml`). The `coreex-subscribe` template takes **`data-provider`**, **`messaging-provider`**, and **`refdata-enabled`** — default all three from the recorded `coreex` selections. Re-state the resolved values for confirmation rather than re-prompting; if `AGENTS.md` and `dbex.yaml` disagree, **stop and flag** rather than guessing.
+> 5. **Scaffold** with the recovered values, naming consistently with the solution so the derived `domain-name`/`solution-name` tokens align with the existing projects:
+>    ```
+>    dotnet new coreex-subscribe -n {Solution}.Subscribe --data-provider <X> --messaging-provider <Y> --refdata-enabled <bool>
+>    ```
+>    **Run it from the solution root** — the directory that already contains `src/` and `tests/`. The template is rooted at `src/...`/`tests/...` (and uses `preferNameDirectory: false`, so it merges into the existing folders). Running it from inside `src/` produces nested `src/src/...` paths; if that happens, **delete the misplaced output and re-run from the solution root** — do **not** hand-move the files. Summarise the output on success; relay it **verbatim** on failure.
+> 6. **Author the subscriber(s)** for any event types the user has asked to consume, per [coreex-event-subscribers](./coreex-event-subscribers.instructions.md).
+> 7. **Verify by building the project directly — not the solution.** The host is not yet in the `.slnx` (it is added in step 9), so a *solution-wide* build would silently skip it:
+>    ```
+>    dotnet build <path/to/Subscribe>.csproj
+>    dotnet test  <path/to/Test.Subscribe>.csproj
+>    ```
+>    Fix any errors here, in-session, before handing off — compilation does **not** require the project to be in the solution.
+> 8. **Update the recording:** amend the solution-root `AGENTS.md` — add the Subscribe host to the *Project Structure* block and note it under hosts. (The feature selections themselves do not change.)
+> 9. **Add the new project(s) to the solution — final step, in-session.** Once the changes are verified (step 7), wire the projects into the `.slnx` from the solution root:
+>    ```
+>    dotnet sln <Solution>.slnx add <path/to/Subscribe>.csproj --solution-folder hosts
+>    dotnet sln <Solution>.slnx add <path/to/Test.Subscribe>.csproj --solution-folder tests
+>    ```
+>    Always via `dotnet sln add` — **never hand-edit the `.slnx` XML**. A final `dotnet build <Solution>.slnx` confirms the wiring. **Exception — Visual Studio with the solution open:** defer these to a **Manual steps** list (the IDE-reload caveat from the Api host workflow applies identically).
+
+The scaffolded Subscribe `Program.cs` wiring is described in [Subscribe Host](#subscribe-host) below; the template emits it complete via the option-driven `#if` blocks — there is **no post-CodeGen uncomment / "phase 2" step**.
+
+---
+
+## Scaffolding an Outbox Relay host
+
+An Outbox Relay host is **not** part of the base `coreex` solution — it is added on demand when the user **explicitly** asks to *"add/create the outbox relay"* (or similar). Creating it is an **explicit-ask action** — confirm before scaffolding (per the always-on "Do Not Create Projects" rule); never auto-create it.
+
+Unlike the Api host, the Relay is a **one-off, fully template-generated** host: it has **no controllers, no reference-data wiring, no application services, and no Phase-2 / uncomment step**. Once scaffolded there is **nothing further to author** — do **not** add any logic, registration, or test beyond what the `coreex-relay` template emits.
+
+> **Agent instruction:** When the user asks to add/create the Outbox Relay host:
+> 1. **Detect** it: look for `**/*.Relay/*.Relay.csproj`. The file system is authoritative (unlike database state) — no further checking is needed.
+> 2. **If present, STOP — it already exists.** The Relay is a single per-solution one-off; **immediately report it as pre-existing and do nothing else** — do not re-scaffold, modify, or "augment" it. (Contrast the Api host, where an existing host means "go author controllers"; the Relay has **no** follow-on work.)
+> 3. **If absent, confirm creation** with the user — default the name to `{Solution}.Relay` and the physical location to `src/` (the template default). Do not create it without confirmation.
+> 4. **Recover the original selections** from the solution-root `AGENTS.md` "Feature Configuration" (cross-check `dbex.yaml`). The `coreex-relay` template takes **`data-provider`** and **`messaging-provider`** — default **both** from the recorded `coreex` selections. Re-state the resolved values for confirmation rather than re-prompting; if `AGENTS.md` and `dbex.yaml` disagree, **stop and flag** rather than guessing.
+> 5. **Scaffold** with the recovered values, naming consistently with the solution so the derived `domain-name`/`solution-name` tokens align with the existing projects:
+>    ```
+>    dotnet new coreex-relay -n {Solution}.Relay --data-provider <X> --messaging-provider <Y>
+>    ```
+>    **Run it from the solution root** — the directory that already contains `src/` and `tests/`. The template is rooted at `src/...`/`tests/...` (and uses `preferNameDirectory: false`, so it merges into the existing folders). Running it from inside `src/` produces nested `src/src/...` paths; if that happens, **delete the misplaced output and re-run from the solution root** — do **not** hand-move the files. Summarise the output on success; relay it **verbatim** on failure.
+> 6. **Verify by building the project directly — not the solution.** The host is not yet in the `.slnx` (it is added in step 8), so a *solution-wide* build would silently skip it:
+>    ```
+>    dotnet build <path/to/Relay>.csproj
+>    dotnet test  <path/to/Test.Relay>.csproj
+>    ```
+>    Fix any errors here, in-session. There is **no** further wiring — the template output is complete as-is.
+> 7. **Update the recording:** amend the solution-root `AGENTS.md` — add the Relay host to the *Project Structure* block and note it under hosts. (The feature selections themselves do not change.)
+> 8. **Add the new project(s) to the solution — final step, in-session** (exactly as for the Api host), batched by target folder, using the **actual generated** paths:
+>    ```
+>    dotnet sln <Solution>.slnx add <path/to/Relay>.csproj --solution-folder hosts
+>    dotnet sln <Solution>.slnx add <path/to/Test.Relay>.csproj --solution-folder tests
+>    ```
+>    Always via `dotnet sln add` — **never hand-edit the `.slnx` XML**. A final `dotnet build <Solution>.slnx` confirms the wiring. **Exception — Visual Studio with the solution open:** defer these to a **Manual steps** list (the IDE-reload caveat from the Api host workflow applies identically).
+
+The scaffolded Relay `Program.cs` wiring is described in [Outbox Relay Host](#outbox-relay-host) below; the template emits it complete via the option-driven `#if` blocks (`data-provider` + `messaging-provider`), so a correctly-defaulted scaffold compiles and runs without any manual fix-up.
+
+---
+
+## Key Registrations by Host Type
+
+### API Host
+
+| Package | Key registrations |
+|---|---|
+| `CoreEx.AspNetCore` | `AddMvcWebApi()`, `AddHttpWebApi()`, `AddExecutionContext()`, `UseCoreExExceptionHandler()`, `UseExecutionContext()`, `UseIdempotencyKey()`, `MapHealthChecks()` |
+| `CoreEx.AspNetCore.NSwag` | `AddOpenApiDocument()`, `AddCoreExConfiguration()`, `UseOpenApi()`, `UseSwaggerUi()` |
+| `CoreEx.Caching.FusionCache` | `AddFusionCache()`, `AddFusionHybridCache()`, `AddDefaultCacheKeyProvider()`, `AddHybridCacheIdempotencyProvider()` |
+| `CoreEx.Database.SqlServer` | `AddSqlServerDatabase()`, `AddSqlServerUnitOfWork()`, `AddSqlServerOutboxPublisher()`, `AddSqlServerClient("SqlServer")` |
+| `CoreEx.Database.Postgres` | `AddPostgresDatabase()`, `AddPostgresUnitOfWork()`, `AddPostgresOutboxPublisher()`, `AddAzureNpgsqlDataSource("Postgres")` |
+| `CoreEx.EntityFrameworkCore` | `AddDbContext<T>()`, `AddEfDb<T>()` |
+| `CoreEx.Events` | `AddEventFormatter()` |
+| `CoreEx.RefData` | `AddReferenceDataOrchestrator<T>()` |
+| `Aspire.StackExchange.Redis.DistributedCaching` | `AddRedisDistributedCache("redis")` |
+| `FusionCache.Backplane.StackExchangeRedis` | `RedisBackplane`, `RedisBackplaneOptions` |
+| `OpenTelemetry.*` | `WithCoreExTelemetry()`, `WithCoreExSqlServerTelemetry()` / `WithCoreExPostgresTelemetry()`, `UseOtlpExporter()` |
+
+### Subscribe Host
+
+| Package | Key registrations |
+|---|---|
+| `CoreEx.AspNetCore` | `AddMvcWebApi()`, `AddHttpWebApi()`, `AddExecutionContext()`, `AddHostedServiceManager()`, `UseCoreExExceptionHandler()`, `UseExecutionContext()`, `MapHealthChecks()`, `MapHostedServices()` |
+| `CoreEx.Caching.FusionCache` | `AddFusionCache()`, `AddFusionHybridCache()`, `AddDefaultCacheKeyProvider()`, `AddHybridCacheIdempotencyProvider()` |
+| `CoreEx.Events` | `AddEventFormatter()`, `AddSubscribedManager()` |
+| `CoreEx.Database.SqlServer` | `AddSqlServerDatabase()`, `AddSqlServerUnitOfWork()`, `AddSqlServerOutboxPublisher()`, `AddSqlServerClient("SqlServer")` |
+| `CoreEx.Database.Postgres` | `AddPostgresDatabase()`, `AddPostgresUnitOfWork()`, `AddPostgresOutboxPublisher()`, `AddAzureNpgsqlDataSource("Postgres")` |
+| `CoreEx.EntityFrameworkCore` | `AddDbContext<T>()`, `AddEfDb<T>()` |
+| `CoreEx.RefData` | `AddReferenceDataOrchestrator<T>()` |
+| `CoreEx.Azure.Messaging.ServiceBus` | `AddAzureServiceBusClient("ServiceBus")`, `AddAzureServiceBusPublisher(..., addAsDefaultIEventPublisher: false)`, `AzureServiceBusReceiving()`, `WithCoreExServiceBusTelemetry()` |
+| `Aspire.StackExchange.Redis.DistributedCaching` | `AddRedisDistributedCache("redis")` |
+| `FusionCache.Backplane.StackExchangeRedis` | `RedisBackplane`, `RedisBackplaneOptions` |
+| `OpenTelemetry.*` | `WithCoreExTelemetry()`, `WithCoreExServiceBusTelemetry()`, `WithCoreExSqlServerTelemetry()` / `WithCoreExPostgresTelemetry()`, `UseOtlpExporter()` |
+
+### Outbox Relay Host
+
+| Package | Key registrations |
+|---|---|
+| `CoreEx.AspNetCore` | `AddMvcWebApi()`, `AddHttpWebApi()`, `AddExecutionContext()`, `AddHostedServiceManager()`, `UseCoreExExceptionHandler()`, `UseExecutionContext()`, `MapHealthChecks()`, `MapHostedServices()` |
+| `CoreEx.Database.SqlServer` | `AddSqlServerDatabase()`, `AddSqlServerUnitOfWork()`, `AddSqlServerOutboxRelay()`, `AddSqlServerOutboxRelayHostedService()` |
+| `CoreEx.Database.Postgres` | `AddPostgresDatabase()`, `AddPostgresUnitOfWork()`, `AddPostgresOutboxRelay()`, `AddPostgresOutboxRelayHostedService()` |
+| `CoreEx.Azure.Messaging.ServiceBus` | `AddAzureServiceBusClient("ServiceBus")`, `AddAzureServiceBusPublisher(...)`, `ServiceBusSessionStrategy` |
+| `OpenTelemetry.*` | `WithCoreExTelemetry()`, `WithCoreExSqlServerTelemetry()` / `WithCoreExPostgresTelemetry()`, `WithCoreExServiceBusTelemetry()`, `UseOtlpExporter()` |
+
+---
+
+## API Host
+
+The API host is the primary HTTP composition root. It exposes controllers, OpenAPI docs, reference-data endpoints, and idempotency support.
+
+```csharp
+var builder = WebApplication.CreateBuilder(args);
+builder.AddHostSettings();
+
+builder.Services
+    .AddPrecisionTimeProvider()
+    .AddExecutionContext()
+    .AddReferenceDataOrchestrator()   // non-generic — binds the IReferenceDataProvider (CodeGen-generated ReferenceDataService) from DI at runtime
+    .AddMvcWebApi()
+    .AddHttpWebApi();
+
+builder.Services.AddDynamicServicesUsing(typeof(MyApp.Application.AssemblyMarker).Assembly, typeof(MyApp.Infrastructure.AssemblyMarker).Assembly);
+
+// L1/L2 caching with FusionCache + Redis backplane.
+builder.Services.AddMemoryCache();
+builder.AddRedisDistributedCache("redis");
+builder.Services.AddFusionCache()
+    .WithRegisteredMemoryCache()
+    .WithRegisteredDistributedCache()
+    .WithBackplane(sp => new RedisBackplane(new RedisBackplaneOptions { Configuration = ... }))
+    .WithSystemTextJsonSerializer(JsonDefaults.SerializerOptions);
+builder.Services
+    .AddFusionHybridCache()
+    .AddDefaultCacheKeyProvider()
+    .AddHybridCacheIdempotencyProvider();
+
+// Database, EF, outbox publisher.
+// SQL Server variant:
+builder.AddSqlServerClient("SqlServer");
+builder.Services
+    .AddSqlServerDatabase()
+    .AddSqlServerUnitOfWork()
+    .AddEventFormatter()
+    .AddSqlServerOutboxPublisher()
+    .AddDbContext<MyDbContext>()
+    .AddEfDb<MyEfDb>();
+
+// PostgreSQL variant (use instead of SQL Server):
+// builder.AddAzureNpgsqlDataSource("Postgres");
+// builder.Services
+//     .AddPostgresDatabase()
+//     .AddPostgresUnitOfWork()
+//     .AddEventFormatter()
+//     .AddPostgresOutboxPublisher()
+//     .AddDbContext<MyDbContext>()
+//     .AddEfDb<MyEfDb>();
+
+builder.Services.PostConfigureAllHealthChecks();
+builder.Services.AddControllers();
+builder.Services.AddOpenApiDocument(s => { s.Title = builder.Environment.ApplicationName; s.AddCoreExConfiguration(); });
+
+builder.WithCoreExTelemetry().WithCoreExSqlServerTelemetry().UseOtlpExporter();
+
+var app = builder.Build();
+app.UseCoreExExceptionHandler();
+app.UseHttpsRedirection();
+app.UseAuthorization();
+app.UseExecutionContext();
+app.UseIdempotencyKey();       // After UseExecutionContext.
+app.MapControllers();
+app.UseOpenApi();
+app.UseSwaggerUi();
+app.MapHealthChecks();
+app.Run();
+```
+
+Key points:
+- **`AddDynamicServicesUsing(...)` registers per _assembly_, not per service.** It scans each supplied assembly for all `[ScopedService]`-decorated types and registers them. The template anchors each assembly on its neutral **`AssemblyMarker`** type (`typeof(MyApp.Application.AssemblyMarker).Assembly`, `…Infrastructure…`) — these are the **only** markers the clean scaffold ships, and they exist **solely** for this anchoring. Use the neutral marker, **not** a domain type like `typeof(ReferenceDataService).Assembly`: the marker reads as "scan this whole assembly," never misleads a reader into thinking the scan is scoped to one type, always exists (so there is no compile-time dependency on CodeGen output and no bootstrap/uncomment step), and survives renames. **Adding a new entity does not change this line** — the new service/repository is picked up automatically by the existing assembly scan. Add another assembly only when you introduce a **new project** containing `[ScopedService]` types (e.g. the Subscribe host passes `typeof(Program).Assembly` for its subscribers). Do **not** add per-namespace placeholder/marker types to satisfy `global using`s — those follow the code (see `coreex-conventions.instructions.md`).
+- Prefer the **non-generic `AddReferenceDataOrchestrator()`** (binds `IReferenceDataProvider` from DI at runtime) over `AddReferenceDataOrchestrator<ReferenceDataService>()` — the non-generic form needs no generated type, so it compiles from scaffold time.
+- `AddReferenceDataOrchestrator()` and `AddDynamicServicesUsing(...)` are shared with Subscribe hosts — both API and Subscribe hosts are full application-layer consumers.
+- FusionCache (L1/L2) and `AddHybridCacheIdempotencyProvider()` are shared with Subscribe hosts — both need caching for reference data and idempotency for safe duplicate handling.
+- `AddEventFormatter()` is required wherever events are published or parsed.
+- `AddSqlServerOutboxPublisher()` / `AddPostgresOutboxPublisher()` take no generic type parameter.
+- `UseIdempotencyKey()` must come **after** `UseExecutionContext()`.
+- If the domain also publishes directly to Service Bus (e.g. for cross-domain adapters), add `AddAzureServiceBusPublisher(..., addAsDefaultIEventPublisher: false)` so the outbox publisher remains the default `IEventPublisher`.
+
+---
+
+## Subscribe Host
+
+The Subscribe host receives broker messages and delegates to Application-layer services. Subscribers are **full application-layer consumers** — they invoke application services that may validate, persist data, and publish outbound events. Therefore, Subscribe hosts include reference data, caching, database, and idempotency support.
+
+```csharp
+var builder = WebApplication.CreateBuilder(args);
+builder.AddHostSettings();
+
+builder.Services
+    .AddPrecisionTimeProvider()
+    .AddExecutionContext()
+    .AddReferenceDataOrchestrator()   // non-generic — binds the IReferenceDataProvider from DI at runtime
+    .AddMvcWebApi()
+    .AddHttpWebApi()
+    .AddHostedServiceManager();
+
+builder.Services.AddDynamicServicesUsing(typeof(Program).Assembly, typeof(MyApp.Application.AssemblyMarker).Assembly, typeof(MyApp.Infrastructure.AssemblyMarker).Assembly);  // this host (subscribers) + Application + Infrastructure
+
+// L1/L2 caching with FusionCache + Redis backplane.
+builder.Services.AddMemoryCache();
+builder.AddRedisDistributedCache("redis");
+builder.Services.AddFusionCache()
+    .WithRegisteredMemoryCache()
+    .WithRegisteredDistributedCache()
+    .WithBackplane(sp => new RedisBackplane(new RedisBackplaneOptions { Configuration = ... }))
+    .WithSystemTextJsonSerializer(JsonDefaults.SerializerOptions);
+builder.Services
+    .AddFusionHybridCache()
+    .AddDefaultCacheKeyProvider()
+    .AddHybridCacheIdempotencyProvider();
+
+// Domain database + outbox publisher.
+// SQL Server variant:
+builder.AddSqlServerClient("SqlServer");
+builder.Services
+    .AddSqlServerDatabase()
+    .AddSqlServerUnitOfWork()
+    .AddSqlServerOutboxPublisher()
+    .AddDbContext<MyDbContext>()
+    .AddEfDb<MyEfDb>();
+
+// PostgreSQL variant (use instead of SQL Server):
+// builder.AddAzureNpgsqlDataSource("Postgres");
+// builder.Services
+//     .AddPostgresDatabase()
+//     .AddPostgresUnitOfWork()
+//     .AddPostgresOutboxPublisher()
+//     .AddDbContext<MyDbContext>()
+//     .AddEfDb<MyEfDb>();
+
+// Service Bus: keep outbox publisher as the default IEventPublisher.
+builder.AddAzureServiceBusClient("ServiceBus");
+builder.Services.AddAzureServiceBusPublisher((_, c) =>
+{
+    c.SessionIdStrategy = ServiceBusSessionStrategy.UsePartitionKeyConvertedToAnId;
+}, addAsDefaultIEventPublisher: false);
+
+// Subscriber wiring.
+builder.Services
+    .AddEventFormatter()
+    .AddSubscribedManager((_, c) => c.AddSubscribersUsing<MySubscriber>());
+
+builder.Services.AzureServiceBusReceiving()
+    .WithSessionReceiver(_ =>
+    {
+        var o = ServiceBusSessionReceiverOptions.CreateForTopicSubscription();
+        o.SessionProcessorOptions.MaxConcurrentSessions = 4;
+        return o;
+    })
+    .WithSubscribedSubscriber()
+    .WithHostedService()
+    .Build();
+
+builder.Services.PostConfigureAllHealthChecks();
+builder.Services.AddControllers();
+builder.Services.AddOpenApiDocument(s => { s.Title = builder.Environment.ApplicationName; s.AddCoreExConfiguration(); });
+
+builder.WithCoreExTelemetry()
+    .WithCoreExServiceBusTelemetry()
+    .WithCoreExSqlServerTelemetry()   // or .WithCoreExPostgresTelemetry() for PostgreSQL
+    .UseOtlpExporter();
+
+var app = builder.Build();
+app.UseCoreExExceptionHandler();
+app.UseHttpsRedirection();
+app.UseAuthorization();
+app.UseExecutionContext();
+app.MapControllers();
+app.UseOpenApi();
+app.UseSwaggerUi();
+app.MapHealthChecks();
+app.MapHostedServices();   // Exposes pause/resume management endpoints — must follow MapHealthChecks.
+app.Run();
+```
+
+Key points:
+- Subscribe hosts **do** include `AddReferenceDataOrchestrator()` and `AddDynamicServicesUsing(...)` — subscribers call application services that need reference data for validation and business logic. The Subscribe host passes **three** assemblies to `AddDynamicServicesUsing`: its own (`typeof(Program).Assembly`, for the subscriber types) plus the Application and Infrastructure `AssemblyMarker` assemblies.
+- Subscribe hosts **do** include FusionCache (L1/L2) and `AddHybridCacheIdempotencyProvider()` — caching is required for reference data; idempotency is required to safely handle duplicate message delivery.
+- Subscribe hosts **do** include database/EF Core and outbox publisher — subscribers persist domain data and publish outbound events.
+- `AddHostedServiceManager()` must be registered before `AzureServiceBusReceiving()`.
+- `AddSubscribersUsing<T>()` scans the assembly of `T` and auto-registers all `[Subscribe]`-decorated classes — no manual registration per subscriber.
+- `AddAzureServiceBusPublisher(..., addAsDefaultIEventPublisher: false)` keeps the outbox publisher as the default `IEventPublisher` for transactional writes.
+- `MapHostedServices()` must come **after** `MapHealthChecks()`.
+
+---
+
+## Outbox Relay Host
+
+The Outbox Relay host is minimal: it polls the outbox table and forwards committed events to Azure Service Bus. It has **no application logic** — no controllers, no OpenAPI, no FusionCache, no reference data, no EF Core DbContext. It only needs database connectivity to read the outbox table and Service Bus connectivity to publish.
+
+```csharp
+builder.Services
+    .AddPrecisionTimeProvider()
+    .AddExecutionContext()
+    .AddMvcWebApi()
+    .AddHttpWebApi()
+    .AddHostedServiceManager();
+
+// SQL Server example; use Postgres equivalents for PostgreSQL domains.
+builder.AddSqlServerClient("SqlServer");
+builder.Services
+    .AddSqlServerDatabase()
+    .AddSqlServerUnitOfWork()
+    .AddSqlServerOutboxRelay();   // No configuration lambda required.
+
+builder.AddSqlServerOutboxRelayHostedService();
+
+// PostgreSQL variant:
+// builder.AddAzureNpgsqlDataSource("Postgres");
+// builder.Services
+//     .AddPostgresDatabase()
+//     .AddPostgresUnitOfWork()
+//     .AddPostgresOutboxRelay();
+// builder.AddPostgresOutboxRelayHostedService();
+
+// Service Bus publisher — this IS the default IEventPublisher for the relay.
+builder.AddAzureServiceBusClient("ServiceBus");
+builder.Services.AddAzureServiceBusPublisher((_, c) =>
+{
+    c.SessionIdStrategy = ServiceBusSessionStrategy.UsePartitionKeyConvertedToAnId;
+});
+
+builder.Services.PostConfigureAllHealthChecks();
+
+builder.WithCoreExTelemetry().WithCoreExSqlServerTelemetry().WithCoreExServiceBusTelemetry().UseOtlpExporter();
+
+var app = builder.Build();
+app.UseCoreExExceptionHandler();
+app.UseHttpsRedirection();
+app.UseExecutionContext();
+app.MapHealthChecks();
+app.MapHostedServices();
+app.Run();
+```
+
+Key points:
+- The Relay host has **no application-layer dependencies** — no `AddReferenceDataOrchestrator`, no `AddDynamicServicesUsing`, no FusionCache, no EF Core DbContext, no domain services.
+- `AddSqlServerOutboxRelay()` / `AddPostgresOutboxRelay()` take no configuration lambda.
+- `AddSqlServerOutboxRelayHostedService()` / `AddPostgresOutboxRelayHostedService()` register the background relay pump — call these on `builder`, not `builder.Services`.
+- No `AddControllers()`, no `AddOpenApiDocument()`, no `UseOpenApi()`, no `UseSwaggerUi()`, no `UseIdempotencyKey()`, no `UseAuthorization()`.

@@ -1,0 +1,11 @@
+{
+  "name": "coreex-agent-pack",
+  "description": "CoreEx custom agent and skills for architecture guidance and scaffolding.",
+  "version": "1.1.0",
+  "author": {
+    "name": "Avanade"
+  },
+  "license": "MIT",
+  "agents": "agents/",
+  "skills": "skills/"
+}
