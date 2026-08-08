@@ -17,6 +17,9 @@ public class Program
         // Add CoreEx host settings.
         builder.AddHostSettings();
 
+        // Add authorization services - required for UseAuthorization() below; unlike the Api/Subscribe hosts, Relay has no AddControllers() to register this transitively.
+        builder.Services.AddAuthorization();
+
         // Add CoreEx services.
         builder.Services
             .AddPrecisionTimeProvider()
@@ -78,7 +81,7 @@ public class Program
         app.UseAuthorization();
         app.UseExecutionContext();
 
-        app.MapHealthChecks(new CoreEx.AspNetCore.HealthChecks.HealthCheckOptions { AreDetailedEndpointsEnabled = true } /*, detailedGroupConfigure: g => g.RequireAuthorization() */);   // Detailed endpoints expose diagnostics and must be secured; basic live/startup/ready checks stay anonymous for orchestrator probes.
+        app.MapHealthChecks();   // Secure by default: detailed endpoints are disabled unless explicitly enabled (HealthCheckOptions.AreDetailedEndpointsEnabled) and secured (detailedGroupConfigure, e.g. g => g.RequireAuthorization()); basic live/startup/ready checks stay anonymous for orchestrator probes.
         app.MapHostedServices(/* groupConfigure: g => g.RequireAuthorization() */);         // Pause/resume management endpoints are admin-only and must be secured.
 
         // Run the application.

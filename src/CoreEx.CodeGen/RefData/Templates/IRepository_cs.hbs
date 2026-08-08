@@ -11,7 +11,7 @@ namespace {{Root.ApplicationNamespace}}.{{Root.DataRepositoriesPath}};
 /// <summary>Enables the underlying reference-data repository.</summary>
 public partial interface IReferenceDataRepository
 {
-{{#each EntitiesWithRepository}}
+{{#each Entities}}
   {{#unless @first}}
 
   {{/unless}}

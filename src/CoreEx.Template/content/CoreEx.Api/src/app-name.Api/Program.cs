@@ -109,7 +109,7 @@ public class Program
 
         app.UseOpenApi();
         app.UseSwaggerUi();
-        app.MapHealthChecks(new CoreEx.AspNetCore.HealthChecks.HealthCheckOptions { AreDetailedEndpointsEnabled = true } /*, detailedGroupConfigure: g => g.RequireAuthorization() */);   // Detailed endpoints expose diagnostics and must be secured; basic live/startup/ready checks stay anonymous for orchestrator probes.
+        app.MapHealthChecks();   // Secure by default: detailed endpoints are disabled unless explicitly enabled (HealthCheckOptions.AreDetailedEndpointsEnabled) and secured (detailedGroupConfigure, e.g. g => g.RequireAuthorization()); basic live/startup/ready checks stay anonymous for orchestrator probes.
 
         // Run the application.
         app.Run();
