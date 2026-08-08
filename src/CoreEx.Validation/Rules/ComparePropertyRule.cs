@@ -47,7 +47,7 @@ public sealed class ComparePropertyRule<TEntity, TProperty, TCompareProperty>(Co
             if (!Compare(context.Value, changed))
                 CreateErrorMessage(context, changed);
         }
-        catch (Exception ex) when (ex is InvalidCastException || ex is FormatException)
+        catch (Exception ex) when (ex is InvalidCastException || ex is FormatException || ex is OverflowException)
         {
             throw new InvalidCastException($"Property '{_compareToProperty.Name}' and '{context.Name}' are incompatible for a comparison: {ex.Message}", ex);
         }

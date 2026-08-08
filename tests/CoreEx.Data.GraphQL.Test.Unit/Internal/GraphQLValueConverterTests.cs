@@ -78,12 +78,41 @@ public class GraphQLValueConverterTests
             CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("de-DE");
             var args = GraphQLValueConverter.ConvertArguments(ParseArguments("{ people(price: 9.99) { id } }"), null);
 
-            args["price"].Should().Be(9.99d);
+            args["price"].Should().Be(9.99m); // decimal, not double - see ConvertArguments_FloatLiteral_PrefersDecimalForPrecision.
         }
         finally
         {
             CultureInfo.CurrentCulture = original;
         }
+    }
+
+    [Test]
+    public void ConvertArguments_FloatLiteral_PrefersDecimalForPrecision()
+    {
+        // Regression: ParseFloat previously always parsed to double, silently truncating precision beyond double's ~15-17 significant digits for a decimal-typed filter
+        // field. decimal.TryParse is tried first (retaining full base-10 precision), falling back to double only when the literal exceeds decimal's range.
+        var args = GraphQLValueConverter.ConvertArguments(ParseArguments("{ people(price: 123456789012345.678) { id } }"), null);
+
+        args["price"].Should().Be(123456789012345.678m);
+    }
+
+    [Test]
+    public void ConvertArguments_FloatLiteral_OutOfDecimalRange_FallsBackToDouble()
+    {
+        var args = GraphQLValueConverter.ConvertArguments(ParseArguments("{ people(price: 1e300) { id } }"), null);
+
+        args["price"].Should().Be(1e300);
+    }
+
+    [Test]
+    public void ConvertArguments_FloatVariable_JsonElement_PrefersDecimalForPrecision()
+    {
+        using var doc = JsonDocument.Parse("{ \"price\": 123456789012345.678 }");
+        var variables = new Dictionary<string, object?> { ["price"] = doc.RootElement.GetProperty("price") };
+
+        var args = GraphQLValueConverter.ConvertArguments(ParseArguments("{ people(price: $price) { id } }"), variables);
+
+        args["price"].Should().Be(123456789012345.678m);
     }
 
     [Test]

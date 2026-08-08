@@ -20,7 +20,10 @@ public static partial class ValidationExtensions
     /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
     /// <param name="allowed">An optional list of allowed values.</param>
     public static IPropertyRule<TEntity, TProperty> Enum<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, IEnumerable<TProperty> allowed) where TEntity : class where TProperty : struct, Enum
-        => Chain(rule, new EnumRule<TEntity, TProperty>(_ => allowed?.ToArray()));
+    {
+        var arr = allowed?.ToArray();
+        return Chain(rule, new EnumRule<TEntity, TProperty>(_ => arr));
+    }
 
     /// <summary>
     /// Chains an <see cref="System.Enum"/> (<see cref="EnumRule{TEntity, TProperty}"/>) validation to the existing <paramref name="rule"/>.
@@ -52,7 +55,10 @@ public static partial class ValidationExtensions
     /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
     /// <param name="allowed">An optional list of allowed values.</param>
     public static IPropertyRule<TEntity, TProperty> Enum<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty?> rule, IEnumerable<TProperty> allowed) where TEntity : class where TProperty : struct, Enum
-        => Chain(rule, new EnumRule<TEntity, TProperty>.NullableRule(_ => allowed?.ToArray()));
+    {
+        var arr = allowed?.ToArray();
+        return Chain(rule, new EnumRule<TEntity, TProperty>.NullableRule(_ => arr));
+    }
 
     /// <summary>
     /// Chains an <see cref="System.Enum"/> (<see cref="EnumRule{TEntity, TProperty}.NullableRule"/>) validation to the existing <paramref name="rule"/>.

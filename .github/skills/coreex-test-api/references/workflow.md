@@ -332,6 +332,9 @@ Pick the assertor by whether the event carries a value:
 
 - **`.AssertWithValue(destination, subject)`** — value-carrying events (Create/Update); reconstructs the
   expected `EventData` from the API's returned value.
+- **`.AssertWithValue(valueFactory, destination, subject)`** — rare; use only when the published event's
+  payload isn't the API's returned value (e.g. a host-less tester with no returned value, or a projection/DTO
+  that differs from the response). Pass a `Func<TValue>` for the expected payload directly.
 - **`.AssertMetadata(destination, subject, key)`** — no-value events (Delete, any `204`); asserts
   destination + subject + the `key` (the deleted id).
 

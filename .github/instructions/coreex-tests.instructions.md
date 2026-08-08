@@ -484,7 +484,8 @@ A delete of a **non-existent** id behaves like step 4 — 204 No Content with no
 
 Assert published events with `ExpectXxxOutboxEvents(e => …)` (provider-specific). **Pick the assertor by whether the event carries a value:**
 
-- **`.AssertWithValue(destination, subject)`** — for **value-carrying** events (Create/Update). It reconstructs the expected `EventData` **from the API's returned value** and JSON-compares the event body. Only valid when the operation returns a value.
+- **`.AssertWithValue(destination, subject)`** — for **value-carrying** events (Create/Update). It reconstructs the expected `EventData` **from the API's returned value** (`AssertArgs.Value`) and JSON-compares the event body. Only valid when the operation returns a value **and** the published event's payload is that same value.
+- **`.AssertWithValue(valueFactory, destination, subject)`** (factory overload) — rare; for when the expected payload is **not** derivable from the tester's own returned value at all — e.g. a host-less `GenericTester<T>` (no `IValueExpectations<TValue>`, so there is no `AssertArgs.Value` to reconstruct from), or an operation whose published event payload legitimately differs from what it returns (a projection/DTO, or a value computed inside the service that never comes back through the response). Pass a `Func<TValue>` returning the expected payload directly instead of relying on the response. Low-usage — reach for the plain `AssertWithValue(destination, subject)` first; only use this when the returned value genuinely isn't the event's payload.
 - **`.AssertMetadata(destination, subject, key)`** — for **no-value** events (**Delete**, or any operation returning `204 No Content`). It asserts the **metadata only** — destination + subject — plus the **`key`** (the `CloudEvent.Subject`, i.e. the `EventData.Key` set via `.WithKey(id)` in the service). There is no value to compare, so `AssertWithValue` would have nothing to reconstruct from — use `AssertMetadata` and pass the deleted id (e.g. `2.ToGuid().ToString()`) as the key.
 
 The `destination` and `subject` strings:
@@ -860,6 +861,7 @@ Basket_Checkout_Insufficient_Quantity
 - Do not assert `AssertNotFound()` on a `DELETE` — delete is idempotent and always returns 204 No Content (the 404 belongs to the *GET* in a get→delete→get flow). Only the first delete emits an event; assert `ExpectNoXxxOutboxEvents()` on a repeat/non-existent delete.
 - Do not add a `.vN` version suffix to a **no-value** event subject (e.g. `…deleted`) — the version applies **only** when the event carries a value (create/update). Derive the version from the contract's `[Schema("vX.Y")]` major (default `.v1`); don't guess or hard-code it.
 - Do not use `AssertWithValue` for a **no-value** event (Delete, or any `204 No Content`) — there is no returned value to reconstruct from. Use `AssertMetadata(destination, subject, key)` and pass the entity id (e.g. `2.ToGuid().ToString()`) as the `key` (the `.WithKey(id)` value). Reserve `AssertWithValue` for value-carrying Create/Update events.
+- Do not reach for the `AssertWithValue(valueFactory, ...)` factory overload by default — it exists for the rare case where the tester has no returned value to reconstruct from (host-less `GenericTester<T>`) or the published event's payload genuinely differs from the response. If the operation returns the same value the event carries, use the plain `AssertWithValue(destination, subject)` instead.
 
 ## Further Reading
 

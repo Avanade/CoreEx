@@ -53,7 +53,14 @@ public sealed class NullNoneEmptyRule<TEntity, TProperty>(Func<PropertyContext<T
         if (context.Value is IEnumerable enumerable)
         {
             var enumerator = enumerable.GetEnumerator();
-            return !enumerator.MoveNext() ? Task.CompletedTask : AddError(context);
+            try
+            {
+                return !enumerator.MoveNext() ? Task.CompletedTask : AddError(context);
+            }
+            finally
+            {
+                (enumerator as IDisposable)?.Dispose();
+            }
         }
 
         return context.IsValueNull ? Task.CompletedTask : AddError(context);

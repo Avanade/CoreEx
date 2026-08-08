@@ -24,7 +24,9 @@ public class HealthCheckOptions
     /// <summary>
     /// Indicates whether the <i>detailed</i> health check endpoints are enabled.
     /// </summary>
-    public bool AreDetailedEndpointsEnabled { get; set; } = true;
+    /// <remarks>Defaults to <see langword="false"/> (secure by default) as the detailed endpoints emit the full <see cref="HealthReport"/>, which can include component names, connection details, and exception
+    /// information; see <see cref="Microsoft.AspNetCore.Builder.CoreExAspNetCoreExtensions.MapHealthChecks(IEndpointRouteBuilder, HealthCheckOptions, Action{IEndpointConventionBuilder})"/> for how to enable and secure them.</remarks>
+    public bool AreDetailedEndpointsEnabled { get; set; } = false;
 
     /// <summary>
     /// Gets or sets the <i>live</i> health check path.
@@ -106,5 +108,6 @@ public class HealthCheckOptions
     /// Provides an opportunity to further configure the health check <paramref name="registration"/>.
     /// </summary>
     /// <param name="registration">The <see cref="HealthCheckRegistration"/>.</param>
+    /// <remarks>Invoked once per matching <see cref="HealthCheckRegistration"/> when the health check endpoints are mapped (see <see cref="Microsoft.AspNetCore.Builder.CoreExAspNetCoreExtensions.MapHealthChecks(IEndpointRouteBuilder, HealthCheckOptions, Action{IEndpointConventionBuilder})"/>) - not on every request.</remarks>
     public virtual void OnConfigureHealthCheckRegistration(HealthCheckRegistration registration) { }
 }

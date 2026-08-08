@@ -183,6 +183,7 @@ Open the solution folder in your IDE. The `coreex-ai` step in step 3 has already
 
 **Claude Code:**
 - `CLAUDE.md` is pre-configured — all CoreEx instructions load automatically on startup
+- `/coreex-scaffold` — add missing hosts or reshape the solution
 - `/coreex-expert` — architecture guidance and pattern decisions
 - `/coreex-docs-sync` — refresh the local CoreEx doc cache after a version bump
 
@@ -357,12 +358,10 @@ Follow [`CoreEx.Data.GraphQL`'s AGENTS.md](https://github.com/Avanade/CoreEx/blo
 
 ## Alternative: AI-guided scaffold
 
-If you prefer an interactive approach rather than choosing template parameters manually, use the `/coreex-scaffold` command from **GitHub Copilot Chat** (Agent mode) after completing steps 1–2:
+If you prefer an interactive approach rather than choosing template parameters manually, use the `/coreex-scaffold` command (GitHub Copilot Chat Agent mode, or Claude Code) after completing steps 1–2:
 
 ```
 /coreex-scaffold
 ```
 
 The workflow interviews you in plain English — one question at a time — and derives and runs the correct `dotnet new coreex*` commands for the shape you describe. It also installs the template pack if not already present.
-
-> **Claude Code users:** the scaffold command is Copilot-only. Use the manual `dotnet new coreex*` commands in the steps above, or attach `.github/skills/coreex-solution-scaffolder/SKILL.md` directly in chat to run the same guided interview.

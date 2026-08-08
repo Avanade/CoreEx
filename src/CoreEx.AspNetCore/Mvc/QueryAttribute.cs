@@ -12,7 +12,7 @@ public sealed class QueryAttribute(bool supportsFilter = true, bool supportsOrde
     /// <summary>
     /// Indicates whether the <see cref="QueryArgs.Filter"/> is supported.
     /// </summary>
-    /// <remarks>Defaults to <see langword="false"/>.</remarks>
+    /// <remarks>Defaults to <see langword="true"/>.</remarks>
     public bool SupportsFilter { get; } = supportsFilter;
 
     /// <summary>

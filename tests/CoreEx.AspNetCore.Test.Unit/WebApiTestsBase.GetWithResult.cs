@@ -187,6 +187,20 @@ partial class WebApiTestsBase<TWebApi, TResult>
     }
 
     [Test]
+    public void GetWithResult_ItemsResult_Prev_Next_Paging_Links_LargeSkip_DoesNotOverflow()
+    {
+        // Regression: Skip has no upper bound (unlike Take, which is clamped to PagingArgs.MaximumTake) and can be supplied directly via the '$skip' query string, so
+        // Skip + Take must not silently overflow int (wrapping to a negative value, then clamped back to 0 by PagingArgs.Skip's setter) when computing the 'next' page -
+        // it must clamp to int.MaxValue instead.
+        var hr = Test.CreateHttpRequest(HttpMethod.Get, $"test?$skip={int.MaxValue - 1}&$take=2");
+        Test.Type<TWebApi>()
+            .Run(async w => await w.GetWithResultAsync(hr, (ro, ct) => Task.FromResult(Result.Ok(new ItemsResult<string>(["a", "b"], ro.PagingArgs)))))
+            .ToHttpResponseMessageAssertor(hr)
+            .AssertOK()
+            .Response.Headers.GetValues("Link").Should().Contain([$"</test?$skip={int.MaxValue}&$take=2>; rel=\"next\""]);
+    }
+
+    [Test]
     public void GetWithResult_Person_Default_ETag()
     {
         var hr = Test.CreateHttpRequest(HttpMethod.Get);

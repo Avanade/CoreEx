@@ -87,8 +87,9 @@ The engine is deliberately **transport-agnostic**: it references only `CoreEx.Da
 builder.Services.AddCoreExGraphQLLite((o, sp) =>
 {
     o.AddQuery<ProductLite>("products", ProductQueryArgsConfig.Default, async (qa, pa, ct) => await CoreEx.ExecutionContext.GetRequiredService<IProductReadService>().QueryAsync(qa, pa, ct).ConfigureAwait(false))
-     // GetIdentifier<TId> validates the named argument (default "id") for presence and type (it casts to TId, it does not convert) and throws an ArgumentException - mapped by the engine to an ARGUMENT_ERROR GraphQL error - if
-     // it is missing, empty, or the wrong type, instead of an unhandled KeyNotFoundException/NullReferenceException surfacing as an opaque EXECUTION_ERROR.
+     // GetIdentifier<TId> validates the named argument (default "id") for presence, converting it to TId via TId.Parse where the boxed argument value isn't already an exact
+     // match (e.g. a variable-supplied Int arrives boxed as long, not int) and throws an ArgumentException - mapped by the engine to an ARGUMENT_ERROR GraphQL error - if
+     // it is missing, empty, or not convertible to TId, instead of an unhandled KeyNotFoundException/NullReferenceException surfacing as an opaque EXECUTION_ERROR.
      .AddGet<Product>("product", (args, ct) => CoreEx.ExecutionContext.GetRequiredService<IProductReadService>().GetAsync(args.GetIdentifier<string>(), ct));
 });
 
@@ -174,6 +175,11 @@ A client queries the `products` root using native GraphQL `where`/`orderBy` and 
   `__schema`/`__type` produces an `INTROSPECTION_DISABLED` error until explicitly enabled (e.g. so client
   tooling like GraphiQL, Postman, or Apollo/Relay codegen can introspect the schema in development). The
   direct `IGraphQLEngine.GetSchemaAsync()` API is unaffected by this toggle.
+- **`Debug`-level query root logging omits literal filter values by default** — `GraphQLQueryRoot`'s `Debug`
+  log only reports whether a `where`/`orderBy` was specified, not the literal OData-esque text (which embeds
+  client-supplied filter values verbatim). Set `GraphQLLiteOptions.EnableSensitiveDataLogging = true` (mirrors
+  EF Core's option of the same name) to log the exact filter/order-by text while debugging — do not enable it
+  against a shared/production log sink.
 - **No query-cost/complexity budget beyond `MaxRootFields`** — `GraphQLLiteOptions.MaxRootFields` (default
   `null`, unlimited) only bounds the number of root fields (including aliased repeats) in one document; there
   is no per-request node/complexity scoring, and nested selection depth is bounded only by the underlying

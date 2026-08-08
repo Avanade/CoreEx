@@ -30,13 +30,16 @@ public sealed partial class IdempotencyKey
             }
         }
 
-        // Read and include the request body.
+        // Read and include the request body, hashing directly in fixed-size chunks rather than copying the whole body into a second, unbounded, always-in-memory buffer
+        // (EnableBuffering already provides the safe, disk-spilling copy needed for downstream re-reads).
         context.Request.EnableBuffering();
-        await using var ms = new MemoryStream();
-        await context.Request.Body.CopyToAsync(ms);
-        ih.AppendData(ms.ToArray());
 
-        // Rewind stream position for downstream consumption. 
+        var buffer = new byte[81920];
+        int bytesRead;
+        while ((bytesRead = await context.Request.Body.ReadAsync(buffer.AsMemory(), context.RequestAborted).ConfigureAwait(false)) > 0)
+            ih.AppendData(buffer, 0, bytesRead);
+
+        // Rewind stream position for downstream consumption.
         context.Request.Body.Position = 0;
 
         // Create and return the cached response with the computed request fingerprint.
@@ -79,14 +82,15 @@ public sealed partial class IdempotencyKey
             throw new InvalidOperationException("Response already started; cannot replay idempotent response.");
 
         context.Response.StatusCode = StatusCode ?? 200;
-        context.Response.Headers.Clear();
 
+        // Overwrite by key rather than clearing first, so headers already set by earlier middleware for *this* request (CORS, security headers, a fresh correlation id, etc.) survive; the cached
+        // headers still win for their own keys, replaying the original response faithfully.
         if (Headers is not null)
         {
             foreach (var header in Headers)
-                context.Response.Headers.TryAdd(header.Key, header.Value);
+                context.Response.Headers[header.Key] = header.Value;
         }
 
-        await context.Response.Body.WriteAsync(Body);
+        await context.Response.Body.WriteAsync(Body).ConfigureAwait(false);
     }
 }

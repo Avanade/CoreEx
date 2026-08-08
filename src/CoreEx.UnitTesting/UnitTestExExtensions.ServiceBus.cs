@@ -22,7 +22,10 @@ public static partial class UnitTestExExtensions
 
         while (true)
         {
-            var messages = await receiver.ReceiveMessagesAsync(maxMessages: 50, maxWaitTime: TimeSpan.FromMilliseconds(1));
+            // A generous maxWaitTime (rather than a near-zero poll) avoids a real broker/emulator's receive-visibility latency
+            // being mistaken for "queue is empty" - ReceiveMessagesAsync still returns as soon as messages are available, so
+            // this only adds latency on the final, genuinely-empty call that ends the loop.
+            var messages = await receiver.ReceiveMessagesAsync(maxMessages: 50, maxWaitTime: TimeSpan.FromSeconds(1));
             if (messages.Count == 0)
                 break;
 
@@ -36,7 +39,7 @@ public static partial class UnitTestExExtensions
     }
 
     /// <summary>
-    /// Gets all messages for the Azure Service Bus queue or topic subscription completing each resulting in all messages also being cleaed.
+    /// Gets all messages for the Azure Service Bus queue or topic subscription completing each resulting in all messages also being cleared.
     /// </summary>
     /// <param name="tester">The <see cref="TesterBase"/>.</param>
     /// <param name="sbo">The <see cref="ServiceBusSessionReceiverOptions"/>.</param>
@@ -73,7 +76,8 @@ public static partial class UnitTestExExtensions
             {
                 while (true)
                 {
-                    var messages = await session.ReceiveMessagesAsync(maxMessages: 50, maxWaitTime: TimeSpan.FromMilliseconds(1));
+                    // See the queue/topic overload above for why this uses a generous maxWaitTime rather than a near-zero poll.
+                    var messages = await session.ReceiveMessagesAsync(maxMessages: 50, maxWaitTime: TimeSpan.FromSeconds(1));
                     if (messages.Count == 0)
                         break;
 

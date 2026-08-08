@@ -92,6 +92,6 @@ public abstract partial class WebApi<TResult>
 
             var fr = await _invoker.InvokeAsync(this, async (_, cancellationToken) => await function(ro, cancellationToken).ConfigureAwait(false), cancellationToken, $"{nameof(DeleteAsync)}::{nameof(function)}").ConfigureAwait(false);
             return CreateResult(CreateContentForValue(ro, fr));
-        }, cancellationToken, nameof(DeleteAsync));
+        }, cancellationToken, nameof(DeleteAsync)).ConfigureAwait(false);
     }
 }

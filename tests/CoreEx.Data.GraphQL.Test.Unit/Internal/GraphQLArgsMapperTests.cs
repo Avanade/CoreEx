@@ -15,7 +15,7 @@ public class GraphQLArgsMapperTests
             ["orderBy"] = new List<object?> { new Dictionary<string, object?> { ["name"] = "DESC" } }
         };
 
-        var qa = GraphQLArgsMapper.BuildQueryArgs(args);
+        var qa = GraphQLArgsMapper.BuildQueryArgs(args, null);
 
         qa.Filter.Should().Be("name eq 'x'");
         qa.OrderBy.Should().Be("name desc");
@@ -27,7 +27,7 @@ public class GraphQLArgsMapperTests
     public void BuildQueryArgs_MapsIncludeTextAndInactive()
     {
         var args = new Dictionary<string, object?> { ["includeText"] = true, ["includeInactive"] = true };
-        var qa = GraphQLArgsMapper.BuildQueryArgs(args);
+        var qa = GraphQLArgsMapper.BuildQueryArgs(args, null);
 
         qa.IsIncludeText.Should().BeTrue();
         qa.IsIncludeInactive.Should().BeTrue();
@@ -36,7 +36,7 @@ public class GraphQLArgsMapperTests
     [Test]
     public void BuildQueryArgs_NoArgs_DefaultsEmpty()
     {
-        var qa = GraphQLArgsMapper.BuildQueryArgs(new Dictionary<string, object?>());
+        var qa = GraphQLArgsMapper.BuildQueryArgs(new Dictionary<string, object?>(), null);
 
         qa.Filter.Should().BeNull();
         qa.OrderBy.Should().BeNull();

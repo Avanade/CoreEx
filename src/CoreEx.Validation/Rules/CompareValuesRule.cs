@@ -23,17 +23,28 @@ public sealed class CompareValuesRule<TEntity, TProperty>(Func<PropertyContext<T
         if (compareToValues is null)
             return Task.CompletedTask;
 
-        // Perform the comparison.
-        if (!compareToValues.Any(v => _comparer.Equals(context.Value, v)))
+        // Perform the comparison (single enumeration to determine whether a match exists and, if so, which value matched).
+        var matched = false;
+        var match = default(TProperty)!;
+        foreach (var v in compareToValues)
+        {
+            if (_comparer.Equals(context.Value, v))
+            {
+                matched = true;
+                match = v;
+                break;
+            }
+        }
+
+        if (!matched)
+        {
             context.AddError(ErrorText ?? ValidatorStrings.InvalidFormat);
+            return Task.CompletedTask;
+        }
 
         // Override the value where matched, is requested, and is different.
-        if (_overrideValueWhereMatched)
-        {
-            var @override = compareToValues.First(v => _comparer.Equals(context.Value, v));
-            if (!EqualityComparer<TProperty>.Default.Equals(@override, context.Value))
-                context.Override(@override);
-        }
+        if (_overrideValueWhereMatched && !EqualityComparer<TProperty>.Default.Equals(match, context.Value))
+            context.Override(match);
 
         return Task.CompletedTask;
     }

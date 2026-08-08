@@ -9,8 +9,6 @@ namespace CoreEx.Events.Publishing;
 /// <remarks>The <paramref name="destinationProvider"/> <see cref="IDestinationProvider.CreateFrom(CoreEx.Events.EventData, bool)"/> is used to dynamically generate the <i>default</i> destination when adding events using <see cref="Add(IEnumerable{EventData})"/>.</remarks>
 public abstract class EventPublisherBase(IDestinationProvider? destinationProvider = null, IEventFormatter? formatter = null, ILogger<EventPublisherBase>? logger = null) : IEventPublisher
 {
-    private static JsonSerializerOptions? _debugJsonSerializerOptions;
-
     private readonly LinkedList<DestinationEvent> _queue = new();
     private readonly SemaphoreSlim _semaphore = new(1, 1);
     private EventPublisherInvoker? _invoker;
@@ -165,12 +163,6 @@ public abstract class EventPublisherBase(IDestinationProvider? destinationProvid
                 var events = _queue.ToArray();
                 foreach (var de in events)
                     Formatter.AddTracing(de.Event);
-
-                if (Logger?.IsEnabled(LogLevel.Debug) ?? false)
-                {
-                    var list = _queue.Select(kvp => new { destination = kvp.Destination, @event = kvp.Event.EncodeToJsonElement() });
-                    Logger.LogDebug("Preparing to send {Length} event(s):{NewLine}{Json}", events.Length, Environment.NewLine, JsonSerializer.Serialize(list, _debugJsonSerializerOptions ??= new JsonSerializerOptions { WriteIndented = true }));
-                }
 
                 await OnPublishAsync(events, cancellationToken).ConfigureAwait(false);
 

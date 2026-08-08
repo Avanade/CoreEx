@@ -153,6 +153,7 @@
     <Project Path="tests/CoreEx.DomainDriven.Test.Unit/CoreEx.DomainDriven.Test.Unit.csproj" />
     <Project Path="tests/CoreEx.Events.Test.Unit/CoreEx.Events.Test.Unit.csproj" />
     <Project Path="tests/CoreEx.RefData.Test.Unit/CoreEx.RefData.Test.Unit.csproj" />
+    <Project Path="tests/CoreEx.UnitTesting.Test.Unit/CoreEx.UnitTesting.Test.Unit.csproj" />
     <Project Path="tests/CoreEx.Test.Unit/CoreEx.Test.Unit.csproj" />
     <Project Path="tests/CoreEx.Validation.Test.Unit/CoreEx.Validation.Test.Unit.csproj" />
   </Folder>

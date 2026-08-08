@@ -49,7 +49,7 @@ internal sealed class ValidatingInlineValidator<TValue>(Action<ValidatingInlineV
     {
         // Validate the value.
         args ??= new ValidationArgs();
-        var r = await new ValueValidator<TValue>(value, Validation.ValueName, null, Validation.ValueText, c => c.Common(this), null, null).ValidateAsync(new ValidationValue<TValue>(value), args, cancellationToken);
+        var r = await new ValueValidator<TValue>(value, Validation.ValueName, null, Validation.ValueText, c => c.Common(this), null, null).ValidateAsync(new ValidationValue<TValue>(value), args, cancellationToken).ConfigureAwait(false);
 
         // Transform the context to expose TValue.
         var vc = new ValueValidationContext(r);

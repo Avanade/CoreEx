@@ -29,6 +29,27 @@ public class EnumRuleTests
     }
 
     [Test]
+    public void Enum_IEnumerable_Allowed_OnlyEnumeratedOnce()
+    {
+        // Regression: the IEnumerable<T> overload used to re-materialize (re-enumerate/re-allocate) the allowed
+        // sequence on every validation call instead of once at configuration time.
+        var enumerationCount = 0;
+
+        IEnumerable<DayOfWeek> Allowed()
+        {
+            enumerationCount++;
+            yield return DayOfWeek.Monday;
+            yield return DayOfWeek.Tuesday;
+        }
+
+        var v = DayOfWeek.Monday.Validator(c => c.Enum(Allowed()));
+        v.ValidateAsSuccess();
+        v.ValidateAsSuccess();
+
+        enumerationCount.Should().Be(1);
+    }
+
+    [Test]
     public void EnumString()
     {
         "Monday".Validator(c => c.Enum(e => e.With<DayOfWeek>())).ValidateAsSuccess();

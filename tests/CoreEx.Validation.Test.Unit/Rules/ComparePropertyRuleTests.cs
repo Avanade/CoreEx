@@ -39,6 +39,16 @@ public class ComparePropertyRuleTests
     }
 
     [Test]
+    public void CompareProperty_Overflow_Exception()
+    {
+        // Regression: Convert.ChangeType can throw OverflowException (not just InvalidCastException/FormatException),
+        // which must be wrapped consistently as an InvalidCastException rather than propagating unwrapped.
+        var v = Validator.Create<Ranges>().HasProperty(p => p.ToNumber, c => c.CompareProperty(CompareOperator.GreaterThanOrEqualTo, p => p.FromLong));
+        var ex = Assert.ThrowsAsync<InvalidCastException>(async () => await v.ValidateAsync(new Ranges { ToNumber = 1, FromLong = long.MaxValue }));
+        ex.Message.Should().Contain("Property 'FromLong' and 'ToNumber' are incompatible for a comparison:");
+    }
+
+    [Test]
     public void CompareProperty_WithMessage()
     {
         var v = Validator.Create<Ranges>().HasProperty(p => p.ToNumber, c => c.CompareProperty(CompareOperator.GreaterThanOrEqualTo, p => p.FromNumber).WithMessage("Oh no!"));
@@ -51,5 +61,6 @@ public class ComparePropertyRuleTests
         public int? ToNumber { get; set; }
         public string? FromText { get; set; }
         public string? ToText { get; set; }
+        public long? FromLong { get; set; }
     }
 }

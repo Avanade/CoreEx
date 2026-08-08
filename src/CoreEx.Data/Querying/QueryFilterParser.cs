@@ -65,9 +65,10 @@ public sealed class QueryFilterParser(QueryArgsConfig owner)
     /// <param name="model">The model name (defaults to <paramref name="field"/>).</param>
     /// <param name="configure">The optional action to perform further field configuration.</param>
     /// <returns>The <see cref="QueryFilterParser"/> to support fluent-style method-chaining.</returns>
-    public QueryFilterParser AddField<T>(string field, string? model, Action<QueryFilterEnumFieldConfig<T>>? configure = null) where T : notnull, Enum 
+    public QueryFilterParser AddField<T>(string field, string? model, Action<QueryFilterEnumFieldConfig<T>>? configure = null) where T : notnull, Enum
     {
         var config = new QueryFilterEnumFieldConfig<T>(this, field, model);
+        ThrowIfDuplicateField(field);
         configure?.Invoke(config);
         _fields.Add(field, config);
         return this;
@@ -91,6 +92,7 @@ public sealed class QueryFilterParser(QueryArgsConfig owner)
     public QueryFilterParser AddField<T>(string field, string? model, Action<QueryFilterParseableFieldConfig<T>>? configure = null) where T : notnull, IParsable<T>
     {
         var config = new QueryFilterParseableFieldConfig<T>(this, field, model);
+        ThrowIfDuplicateField(field);
         configure?.Invoke(config);
         _fields.Add(field, config);
         return this;
@@ -114,6 +116,7 @@ public sealed class QueryFilterParser(QueryArgsConfig owner)
     public QueryFilterParser AddNullField(string field, string? model, Action<QueryFilterNullFieldConfig>? configure = null)
     {
         var config = new QueryFilterNullFieldConfig(this, field, model);
+        ThrowIfDuplicateField(field);
         configure?.Invoke(config);
         _fields.Add(field, config);
         return this;
@@ -136,9 +139,10 @@ public sealed class QueryFilterParser(QueryArgsConfig owner)
     /// <param name="model">The model name (defaults to <paramref name="field"/>).</param>
     /// <param name="configure">The optional action to perform further field configuration.</param>
     /// <returns>The <see cref="QueryFilterParser"/> to support fluent-style method-chaining.</returns>
-    public QueryFilterParser AddReferenceDataField<TRef>(string field, string? model, Action<QueryFilterReferenceDataFieldConfig<TRef>>? configure = null) where TRef : IReferenceData, new() 
+    public QueryFilterParser AddReferenceDataField<TRef>(string field, string? model, Action<QueryFilterReferenceDataFieldConfig<TRef>>? configure = null) where TRef : IReferenceData, new()
     {
         var config = new QueryFilterReferenceDataFieldConfig<TRef>(this, field, model);
+        ThrowIfDuplicateField(field);
         configure?.Invoke(config);
         _fields.Add(field, config);
         return this;
@@ -202,10 +206,16 @@ public sealed class QueryFilterParser(QueryArgsConfig owner)
             throw new ArgumentException($"The token must have a Kind of {QueryFilterTokenKind.Field}.", nameof(token));
 
         var name = token.GetRawToken(filter).ToString();
-        return _fields.TryGetValue(name, out var config) 
-            ? config 
+        return _fields.TryGetValue(name, out var config)
+            ? config
             : throw new QueryFilterParserException($"{QueryFilterTokenKind.Field} '{name}' is not supported.");
     }
+
+    /// <summary>
+    /// Throws an <see cref="ArgumentException"/> where the <paramref name="field"/> has already been added.
+    /// </summary>
+    /// <param name="field">The field name used in the query filter.</param>
+    private void ThrowIfDuplicateField(string field) => field.ThrowWhen(field => _fields.ContainsKey(field), $"The filter field '{field}' has already been added and must be unique.");
 
     /// <summary>
     /// Parses and converts the <paramref name="filter"/> to dynamic LINQ.
@@ -390,7 +400,7 @@ public sealed class QueryFilterParser(QueryArgsConfig owner)
                 continue;
             }
 
-            if (filter[i] != ' ')
+            if (!char.IsWhiteSpace(filter[i]))
             {
                 var start = i;
                 var j = i + 1;
@@ -398,7 +408,7 @@ public sealed class QueryFilterParser(QueryArgsConfig owner)
 
                 for (; j < filter.Length; j++)
                 {
-                    if (filter[j] == ' ')
+                    if (char.IsWhiteSpace(filter[j]))
                         break;
 
                     if (filter[j] == '(' || filter[j] == ')' || filter[j] == ',')
@@ -440,7 +450,7 @@ public sealed class QueryFilterParser(QueryArgsConfig owner)
                 }
 
                 if (kind == QueryFilterTokenKind.Unspecified)
-                    kind = (token.Length == 32 && Guid.TryParse(token, out _))
+                    kind = ((token.Length == 32 || token.Length == 36) && Guid.TryParse(token, out _))
                         ? QueryFilterTokenKind.Value 
                         : (char.IsLetter(token[0]) || token[0] == '_') 
                             ? QueryFilterTokenKind.Field 
@@ -477,7 +487,7 @@ public sealed class QueryFilterParser(QueryArgsConfig owner)
 
                 inQuote = false;
             }
-            else if (filter[i] == ' ' || filter[i] == '(' || filter[i] == ')' || filter[i] == ',')
+            else if (char.IsWhiteSpace(filter[i]) || filter[i] == '(' || filter[i] == ')' || filter[i] == ',')
             {
                 if (!inQuote)
                     return i;

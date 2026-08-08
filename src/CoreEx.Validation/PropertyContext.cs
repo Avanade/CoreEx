@@ -198,6 +198,23 @@ public struct PropertyContext<TEntity, TProperty> : IPropertyContext<TEntity, TP
     }
 
     /// <summary>
+    /// Re-reads <see cref="Value"/> and <see cref="IsValueNull"/> from the underlying entity.
+    /// </summary>
+    /// <remarks>Because <see cref="PropertyContext{TEntity, TProperty}"/> is a value type that is passed by value through the rule chain (see <see cref="Rules.PropertyRuleBase{TEntity, TProperty}"/>), a call to
+    /// <see cref="Override(TProperty)"/> made by one rule only updates that rule's own copy of the context. This method allows the chain to re-synchronize its copy with the entity's current value before invoking
+    /// the next chained rule, so that an overridden value is correctly observed by subsequent rules.
+    /// <para>Skipped where the underlying metadata's declared type does not match <typeparamref name="TProperty"/> (i.e. the <see cref="Nullable{T}"/> rewrap adapter created by <see cref="Rules.PropertyRuleBase{TEntity, TProperty}"/>),
+    /// as the value cannot be safely re-read via the metadata in that case.</para></remarks>
+    internal void RefreshFromEntity()
+    {
+        if (_metadata.Type != typeof(TProperty))
+            return;
+
+        Value = _metadata.GetValue<TProperty>(Entity);
+        IsValueNull = Value is null;
+    }
+
+    /// <summary>
     /// Gets the <i>last</i> dictionary key from the validation stack.
     /// </summary>
     /// <typeparam name="TKey">The dictionary key <see cref="Type"/>.</typeparam>

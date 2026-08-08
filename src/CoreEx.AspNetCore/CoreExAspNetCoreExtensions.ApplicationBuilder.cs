@@ -60,7 +60,9 @@ public static partial class CoreExAspNetCoreExtensions
     /// <para>The <i>live</i>, <i>startup</i>, and <i>ready</i> endpoints are intentionally left unauthorized by default, as they are conventionally probed anonymously by container orchestrators.
     /// The <i>detailed</i> endpoints (see <see cref="HealthCheckOptions.AreDetailedEndpointsEnabled"/>) are different: they emit the full <see cref="HealthReport"/>, which can include component names,
     /// connection details, and exception information, and should generally not be exposed publicly. Use <paramref name="detailedGroupConfigure"/> to secure them, e.g. <c>g =&gt; g.RequireAuthorization()</c>,
-    /// once an authentication scheme and authorization services are registered.</para></remarks>
+    /// once an authentication scheme and authorization services are registered.</para>
+    /// <para>Only the <i>absence</i> of <paramref name="detailedGroupConfigure"/> is checked (logging a <see cref="LogLevel.Warning"/> - see the method implementation); this cannot verify that a supplied
+    /// delegate actually enforces authentication/authorization, only that some configuration was attempted.</para></remarks>
     public static IEndpointRouteBuilder MapHealthChecks(this IEndpointRouteBuilder endpoints, HealthCheckOptions? options = null, Action<IEndpointConventionBuilder>? detailedGroupConfigure = null)
     {
         endpoints.ThrowIfNull();
@@ -68,6 +70,27 @@ public static partial class CoreExAspNetCoreExtensions
         // Bind options with configuration; also, default options where applicable.
         options ??= new HealthCheckOptions();
         endpoints.ServiceProvider.GetService<IConfiguration>()?.GetSection("CoreEx.AspNetCore.HealthChecks")?.Bind(options);
+
+        // Warn where detailed endpoints are enabled without an explicit means of securing them.
+        if (options.AreDetailedEndpointsEnabled && detailedGroupConfigure is null)
+        {
+            var logger = endpoints.ServiceProvider.GetService<ILoggerFactory>()?.CreateLogger("CoreEx.AspNetCore.HealthChecks");
+            if (logger?.IsEnabled(LogLevel.Warning) ?? false)
+                logger.LogWarning("Detailed health check endpoints are enabled (HealthCheckOptions.AreDetailedEndpointsEnabled) but no 'detailedGroupConfigure' was supplied to secure them; the full HealthReport " +
+                    "(component names, connection details, exception info) will be exposed anonymously.");
+        }
+
+        // Apply any registration-level configuration once, here at startup - not per-request via the Predicate below.
+        var allTags = options.LiveTags.Concat(options.StartupTags).Concat(options.ReadyTags).ToHashSet();
+        var registrations = endpoints.ServiceProvider.GetService<IOptions<Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckServiceOptions>>()?.Value.Registrations;
+        if (registrations is not null)
+        {
+            foreach (var rego in registrations)
+            {
+                if (rego.Tags is not null && rego.Tags.Any(allTags.Contains))
+                    options.OnConfigureHealthCheckRegistration(rego);
+            }
+        }
 
         // Map health checks for the specified path and tags.
         void MapHealthChecks(string path, string[] tags)
@@ -89,17 +112,8 @@ public static partial class CoreExAspNetCoreExtensions
             }
         }
 
-        // Check and update the registration.
-        bool CheckRegistration(HealthCheckRegistration rego, string[] tags)
-        { 
-            if (rego.Tags is not null && rego.Tags.Any(tag => tags.Contains(tag)))
-            {
-                options.OnConfigureHealthCheckRegistration(rego);
-                return true;
-            }
-
-            return false;
-        }
+        // Check the registration - a pure filter with no side effects; registration-level configuration is applied once, above.
+        static bool CheckRegistration(HealthCheckRegistration rego, string[] tags) => rego.Tags is not null && rego.Tags.Any(tags.Contains);
 
         // Map the configured health check endpoints.
         if (options.IsLiveEndpointEnabled)
@@ -122,11 +136,23 @@ public static partial class CoreExAspNetCoreExtensions
     /// <param name="groupConfigure">An optional action to configure the <see cref="RouteGroupBuilder"/>.</param>
     /// <returns>The <see cref="IEndpointRouteBuilder"/> to support fluent-style method-chaining.</returns>
     /// <remarks>The mapped endpoints are excluded from OpenAPI documentation by default, as they are typically intended for administrative use only. The <paramref name="groupConfigure"/> allows additional
-    /// configuration, such as adding authorization policies, etc. which is highly recommended.</remarks>
+    /// configuration, such as adding authorization policies, etc., which is <b>strongly recommended</b> - without it, any anonymous caller can pause and resume live background services. Where
+    /// <paramref name="groupConfigure"/> is not supplied a <see cref="LogLevel.Warning"/> is logged to highlight the exposure.
+    /// <para>Only the <i>absence</i> of <paramref name="groupConfigure"/> is checked; this cannot verify that a supplied delegate actually enforces authentication/authorization, only that some
+    /// configuration was attempted.</para></remarks>
     public static IEndpointRouteBuilder MapHostedServices(this IEndpointRouteBuilder endpoints, string routeName = "/hosted-services", Action<RouteGroupBuilder>? groupConfigure = null)
     {
         // Map the endpoint group and hide from OpenAPI description - these are generally for admin use only!
         var group = endpoints.ThrowIfNull().MapGroup(routeName.ThrowIfNullOrEmpty()).ExcludeFromDescription();
+
+        // Warn where no means of securing the group has been supplied - unlike health checks, every endpoint here is sensitive (status disclosure and, worse, pause/resume mutation of live services).
+        if (groupConfigure is null)
+        {
+            var logger = endpoints.ServiceProvider.GetService<ILoggerFactory>()?.CreateLogger("CoreEx.AspNetCore.HostedServices");
+            if (logger?.IsEnabled(LogLevel.Warning) ?? false)
+                logger.LogWarning("Hosted service management endpoints are mapped at '{RouteName}' but no 'groupConfigure' was supplied to secure them; status, pause, and resume operations - " +
+                    "including pausing/resuming live background services - will be accessible anonymously.", routeName);
+        }
 
         // Provides the all "hosted services" status management.
         group.MapGet("/all/status", (HttpRequest request, CoreEx.AspNetCore.Http.WebApi webApi, [Microsoft.AspNetCore.Mvc.FromServices] HostedServiceManager manager, CancellationToken cancellationToken)

@@ -18,7 +18,7 @@ internal class UnitTestExOneOffTestSetUp : UnitTestEx.Abstractions.OneOffTestSet
         {
             if (assertor.Exception is ValidationException vex)
             {
-                var actual = vex.Messages?.Where(x => x.Type == Entities.MessageType.Error).Select(x => new ApiError(x.Property, x.Text.ToString() ?? string.Empty)).ToArray() ?? [];
+                var actual = vex.Messages?.Where(x => x.Type == Entities.MessageType.Error).Select(x => new ApiError(x.Property, x.Text?.ToString() ?? "none")).ToArray() ?? [];
                 if (!Assertor.TryAreErrorsMatched(errors, actual, out var errorMessage))
                     assertor.Owner.Implementor.AssertFail(errorMessage);
 

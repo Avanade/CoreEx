@@ -63,6 +63,12 @@ public abstract class ServiceBusReceiverBase<TSubscriber>(ServiceBusClient clien
                 return result;
             }
 
+            // A cancellation attributable to *this* receive's own cancellationToken (e.g. a host/processor shutdown) is intended to bubble up unclassified (see CoreEx.Events.Subscribing.EventSubscriberBase);
+            // do not log it as an unhandled error nor attempt any message action using the very token that just got cancelled (which the Azure SDK would likely reject immediately) - simply let the message be
+            // left for natural redelivery once its lock expires.
+            if (result.Error is OperationCanceledException oce && oce.CancellationToken == cancellationToken)
+                return result;
+
             // Handle the error accordingly; a) retry error conversion, b) invoke message action, then c) pause where critical.
             return await result
                 .OnFailure(r => MessageRetryErrorDetermination(r, Options, Logger))
@@ -77,7 +83,19 @@ public abstract class ServiceBusReceiverBase<TSubscriber>(ServiceBusClient clien
                         await actions.AbandonMessageAsync(r.Error, cancellationToken: cancellationToken).ConfigureAwait(false);
 
                         // Do not await the pause as we want to allow the message to be abandoned and the error logged without delay.
-                        _ = Task.Run(() => PauseAsync("A Catastrophic error occurred within the service bus receiver.", default));
+                        _ = Task.Run(async () =>
+                        {
+                            try
+                            {
+                                await PauseAsync("A Catastrophic error occurred within the service bus receiver.", default).ConfigureAwait(false);
+                            }
+                            catch (Exception ex)
+                            {
+                                // This pause is the receiver's own protective mechanism for a Catastrophic error; a failure here must not be silently lost as an unobserved task exception.
+                                if (Logger.IsEnabled(LogLevel.Error))
+                                    Logger.LogError(ex, "Service bus receiver pause following a Catastrophic error failed; the receiver may not have been paused as expected.");
+                            }
+                        });
                     }
                     else
                     {

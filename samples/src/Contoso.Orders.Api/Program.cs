@@ -75,7 +75,7 @@ public class Program
 
         app.UseOpenApi();
         app.UseSwaggerUi();
-        app.MapHealthChecks();
+        app.MapHealthChecks();   // Secure by default: detailed endpoints are disabled unless explicitly enabled (HealthCheckOptions.AreDetailedEndpointsEnabled) and secured (detailedGroupConfigure, e.g. g => g.RequireAuthorization()); basic live/startup/ready checks stay anonymous for orchestrator probes.
 
         app.Run();
     }

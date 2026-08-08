@@ -22,6 +22,13 @@ public static class ServiceBusErrorClassifier
 
                 return true;
             }
+            else if (IsSessionCannotBeLocked(sbex))
+            {
+                if (logger.IsEnabled(LogLevel.Information))
+                    logger.LogInformation(sbex, "A session could not be locked (already locked by another receiver instance) scenario occurred on entity {EntityPath} with error source {ErrorSource}.", args.EntityPath, args.ErrorSource);
+
+                return true;
+            }
             else if (IsTransient(sbex))
             {
                 if (logger.IsEnabled(LogLevel.Information))
@@ -49,7 +56,6 @@ public static class ServiceBusErrorClassifier
         return false;
     }
 
-
     /// <summary>
     /// Indicates whether the given <see cref="ServiceBusException"/> is a lock lost scenario, which typically occurs when a message lock expires before processing is completed, or when a session lock is lost.
     /// </summary>
@@ -57,7 +63,15 @@ public static class ServiceBusErrorClassifier
     /// <remarks>This can happen due to various reasons such as long processing times, network issues, or other transient conditions that cause the lock to be released by the Service Bus.</remarks>
     public static bool IsLockLost(ServiceBusException exception) => exception.Reason == ServiceBusFailureReason.MessageLockLost || exception.Reason == ServiceBusFailureReason.SessionLockLost;
 
-    /// <summary>   
+    /// <summary>
+    /// Indicates whether the given <see cref="ServiceBusException"/> occurred because a session could not be locked.
+    /// </summary>
+    /// <param name="exception">The <see cref="ServiceBusException"/>.</param>
+    /// <remarks>This typically occurs when another receiver instance already holds the session's lock; it is an expected, benign race in a session-enabled entity being processed by multiple concurrent receiver
+    /// instances competing for sessions, rather than an indication of an error.</remarks>
+    public static bool IsSessionCannotBeLocked(ServiceBusException exception) => exception.Reason == ServiceBusFailureReason.SessionCannotBeLocked;
+
+    /// <summary>
     /// Indicates whether the given <see cref="ServiceBusException"/> is considered transient, meaning it is likely to be resolved by retrying the operation after a delay.
     /// </summary>
     /// <param name="exception">The <see cref="ServiceBusException"/>.</param>

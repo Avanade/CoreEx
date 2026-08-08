@@ -53,7 +53,7 @@ public abstract partial class ServiceBusReceiverBase(ServiceBusClient serviceBus
     /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
     public async Task StartAsync(CancellationToken cancellationToken = default)
     {
-        await _semaphore.WaitAsync(cancellationToken);
+        await _semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
 
         try
         {
@@ -85,7 +85,7 @@ public abstract partial class ServiceBusReceiverBase(ServiceBusClient serviceBus
     /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
     public async Task PauseAsync(string reason, CancellationToken cancellationToken = default)
     {
-        await _semaphore.WaitAsync(cancellationToken);
+        await _semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             if (!Status.CanPause)
@@ -116,7 +116,7 @@ public abstract partial class ServiceBusReceiverBase(ServiceBusClient serviceBus
     /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
     public async Task ResumeAsync(CancellationToken cancellationToken = default)
     {
-        await _semaphore.WaitAsync(cancellationToken);
+        await _semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             if (!Status.CanResume)
@@ -146,13 +146,15 @@ public abstract partial class ServiceBusReceiverBase(ServiceBusClient serviceBus
     /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
     public async Task StopAsync(CancellationToken cancellationToken = default)
     {
-        await _semaphore.WaitAsync(cancellationToken);
+        await _semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
 
         try
         {
+            // Capture whether the receiver was ever started *before* Status is reassigned below (Stopping is never Initializing, so checking after would always be true).
+            var wasInitializing = Status.IsInitializing;
             LogStatusChange(Status = ServiceStatus.Stopping);
 
-            if (!Status.IsInitializing)
+            if (!wasInitializing)
                 await OnStopAsync(cancellationToken).ConfigureAwait(false);
 
             LogStatusChange(Status = ServiceStatus.Stopped);

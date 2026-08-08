@@ -1,11 +1,17 @@
 using CoreEx.AspNetCore.Mvc;
+using CoreEx.AspNetCore.Test.Api.Entities;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CoreEx.AspNetCore.Test.Api.Controllers;
 
 [ApiController, Route("api/other")]
-public class OtherController(WebApi webApi) : Controller
+public class OtherController(WebApi webApi) : ControllerBase
 {
+    [HttpPost("optional-body")]
+    [Accepts<Person>(IsOptional = true)]
+    [ProducesResponseType(204)]
+    public IActionResult OptionalBody() => NoContent();
+
     [HttpGet("messages")]
     [ProducesResponseType(204)]
     public IActionResult Messages()

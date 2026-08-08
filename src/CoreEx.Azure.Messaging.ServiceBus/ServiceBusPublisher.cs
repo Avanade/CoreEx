@@ -43,6 +43,25 @@ public sealed class ServiceBusPublisher(ServiceBusClient serviceBusClient, IDest
     /// <remarks>Where not specified the <see cref="PartitionKey.DefaultPartitionSize"/> is used.</remarks>
     public int? SessionIdPartitionSize { get; set; }
 
+    /// <summary>
+    /// Gets the default <see cref="NoPartitionKeySessionId"/> value: '<c>$none</c>'.
+    /// </summary>
+    public const string DefaultNoPartitionKeySessionId = "$none";
+
+    /// <summary>
+    /// Gets or sets the fixed value used to derive the <see cref="ServiceBusMessage.SessionId"/> for an event with no <see cref="EventData.PartitionKey"/>, regardless of <see cref="SessionIdStrategy"/>;
+    /// defaults to <see cref="DefaultNoPartitionKeySessionId"/>.
+    /// </summary>
+    /// <remarks>Used directly as the <see cref="ServiceBusMessage.SessionId"/> where <see cref="SessionIdStrategy"/> is <see cref="ServiceBusSessionStrategy.UsePartitionKeyAsIs"/>, or as the hash input to
+    /// <see cref="Data.PartitionKey.GetPartitionIdAsString"/> where <see cref="SessionIdStrategy"/> is <see cref="ServiceBusSessionStrategy.UsePartitionKeyConvertedToAnId"/> (in which case it consistently lands
+    /// in the same one of the configured pool of sessions, rather than being spread across the pool).
+    /// <para>Using a single fixed value (rather than a new random value per message) for <i>both</i> strategies means partition-key-less events are always funnelled through the same session/bucket, and therefore
+    /// preserve their relative publish order - a random value per message, by contrast, would give no ordering guarantee between two such events at all, even though "no key" does not imply "order doesn't matter".</para>
+    /// <para>The tradeoff: all partition-key-less events share (at most) one session and so serialize through it. If partition-key-less events are expected to represent a significant proportion of overall
+    /// throughput, that concentration may become a bottleneck (or, for <see cref="ServiceBusSessionStrategy.UsePartitionKeyConvertedToAnId"/>, a hot bucket) - in which case those events should generally be given
+    /// a real partition key rather than relying on this fallback.</para></remarks>
+    public string NoPartitionKeySessionId { get; set; } = DefaultNoPartitionKeySessionId;
+
     /// <inheritdoc/>
     protected async override Task OnPublishAsync(DestinationEvent[] events, CancellationToken cancellationToken = default)
     {
@@ -140,9 +159,20 @@ public sealed class ServiceBusPublisher(ServiceBusClient serviceBusClient, IDest
 
         return SessionIdStrategy switch
         {
-            ServiceBusSessionStrategy.UsePartitionKeyAsIs => message.Adjust(message => message.SessionId = message.PartitionKey ?? Guid.NewGuid().ToString()),
-            ServiceBusSessionStrategy.UsePartitionKeyConvertedToAnId => message.Adjust(message => message.SessionId = message.PartitionKey = PartitionKey.GetPartitionIdAsString(message.PartitionKey ?? Guid.NewGuid().ToString(), SessionIdPartitionSize ?? PartitionKey.DefaultPartitionSize)),
+            ServiceBusSessionStrategy.UsePartitionKeyAsIs => message.Adjust(message => message.SessionId = message.PartitionKey ?? LogNoPartitionKeyFallback(message, NoPartitionKeySessionId)),
+            ServiceBusSessionStrategy.UsePartitionKeyConvertedToAnId => message.Adjust(message => message.SessionId = message.PartitionKey = PartitionKey.GetPartitionIdAsString(message.PartitionKey ?? LogNoPartitionKeyFallback(message, NoPartitionKeySessionId), SessionIdPartitionSize ?? PartitionKey.DefaultPartitionSize)),
             _ => message
         };
+    }
+
+    /// <summary>
+    /// Logs (at <see cref="LogLevel.Debug"/>) that an event with no <see cref="EventData.PartitionKey"/> is falling back to the specified <paramref name="fallbackValue"/> for session assignment.
+    /// </summary>
+    private string LogNoPartitionKeyFallback(ServiceBusMessage message, string fallbackValue)
+    {
+        if (Logger?.IsEnabled(LogLevel.Debug) ?? false)
+            Logger.LogDebug("Event (Id={MessageId}) has no PartitionKey; falling back to '{FallbackValue}' for {SessionIdStrategy} session assignment.", message.MessageId, fallbackValue, SessionIdStrategy);
+
+        return fallbackValue;
     }
 }

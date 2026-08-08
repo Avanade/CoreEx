@@ -38,6 +38,15 @@ public sealed class GraphQLLiteOptions
     public bool EnableIntrospection { get; set; }
 
     /// <summary>
+    /// Gets or sets whether <see cref="GraphQLQueryRoot"/>'s <c>Debug</c>-level invocation logging includes the literal <see cref="QueryArgs.Filter"/>/<see cref="QueryArgs.OrderBy"/>
+    /// text, rather than just whether each was specified.
+    /// </summary>
+    /// <remarks>Defaults to <see langword="false"/>: the literal filter/order-by text embeds client-supplied filter values verbatim (e.g. <c>name eq 'Jane Doe'</c>), so it is not
+    /// logged by default even at <c>Debug</c> level. Mirrors EF Core's <c>EnableSensitiveDataLogging</c> - an explicit, opt-in acknowledgement that the exact query text is useful
+    /// enough while debugging to accept the values ending up in logs; do not enable this in a shared/production log sink.</remarks>
+    public bool EnableSensitiveDataLogging { get; set; }
+
+    /// <summary>
     /// Registers a list query root field (e.g. <c>products</c>) bound to an existing <see cref="QueryArgsConfig"/> and <c>QueryAsync</c>-shaped delegate.
     /// </summary>
     /// <typeparam name="TItem">The projected item <see cref="Type"/>.</typeparam>
@@ -53,7 +62,7 @@ public sealed class GraphQLLiteOptions
         resolver.ThrowIfNull();
         ThrowIfReservedOrDuplicate(name);
 
-        _queryRoots[name] = new GraphQLQueryRoot(name, typeof(TItem), queryArgsConfig, async (qa, pa, ct) => await resolver(qa, pa, ct).ConfigureAwait(false));
+        _queryRoots[name] = new GraphQLQueryRoot(name, typeof(TItem), queryArgsConfig, async (qa, pa, ct) => await resolver(qa, pa, ct).ConfigureAwait(false), this);
         return this;
     }
 
@@ -74,7 +83,7 @@ public sealed class GraphQLLiteOptions
         resolver.ThrowIfNull();
         ThrowIfReservedOrDuplicate(name);
 
-        _queryRoots[name] = new GraphQLQueryRoot(name, type, queryArgsConfig, async (qa, pa, ct) => await resolver(qa, pa, ct).ConfigureAwait(false));
+        _queryRoots[name] = new GraphQLQueryRoot(name, type, queryArgsConfig, async (qa, pa, ct) => await resolver(qa, pa, ct).ConfigureAwait(false), this);
         return this;
     }
 
@@ -121,7 +130,7 @@ public sealed class GraphQLLiteOptions
             var capturedType = type;
             Task<IItemsResult> resolver(QueryArgs? qa, PagingArgs? pa, CancellationToken ct) => orchestrator.QueryAsync(capturedType, qa, pa, ct);
 
-            _queryRoots[name] = new GraphQLQueryRoot(name, type, queryArgsConfig, resolver);
+            _queryRoots[name] = new GraphQLQueryRoot(name, type, queryArgsConfig, resolver, this);
         }
 
         return this;

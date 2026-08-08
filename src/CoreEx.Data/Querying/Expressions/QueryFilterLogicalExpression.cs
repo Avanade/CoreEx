@@ -18,7 +18,7 @@ public class QueryFilterLogicalExpression(QueryFilterParser parser, string filte
     /// <inheritdoc/>
     public override bool CanAddToken(QueryFilterToken token)
     {
-        if (TokenCount == 1)
+        if (TokenCount == 1 && _logical.Kind != QueryFilterTokenKind.Unspecified)
             return token.Kind == QueryFilterTokenKind.Not;
 
         _isComplete = token.Kind == QueryFilterTokenKind.OpenParenthesis;

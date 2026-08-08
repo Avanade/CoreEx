@@ -207,7 +207,7 @@ public sealed class SubscribedManager(SubscribedInvoker? invoker = null)
                 return Result.Go(await subscribed.ReceiveAsync(@event, args, cancellationToken).ConfigureAwait(false))
                     .OnFailure(result => subscribed.ErrorHandler is not null ? subscribed.ErrorHandler.Handle(new ErrorHandlerArgs { SubscriberArgs = args, SourceType = subscribed.GetType(), Exception = result.Error }, null) : result);
             }
-            catch (Exception ex) when (subscribed.ErrorHandler is not null && ex is not IEventSubscriberException && !ex.IsCanceled()) // Ignore IEventSubscriberException's and *CanceledException as they are intended to bubble up!
+            catch (Exception ex) when (subscribed.ErrorHandler is not null && ex is not IEventSubscriberException && !IsCanceledByToken(ex, cancellationToken)) // Ignore IEventSubscriberException's; and only ignore a cancellation attributable to *this* receive's own cancellationToken (e.g. host shutdown) as that is intended to bubble up - any other (unrelated) cancellation is classified as normal.
             {
                 return subscribed.ErrorHandler.Handle(new ErrorHandlerArgs { SubscriberArgs = args, SourceType = subscribed.GetType(), Exception = ex }, null);
             }
@@ -217,4 +217,14 @@ public sealed class SubscribedManager(SubscribedInvoker? invoker = null)
             }
         }, cancellationToken).ConfigureAwait(false);
     }
+
+    /// <summary>
+    /// Determines whether the <paramref name="ex"/> is an <see cref="OperationCanceledException"/> (including <see cref="AggregateException"/>-wrapped) attributable specifically to the given <paramref name="cancellationToken"/>.
+    /// </summary>
+    /// <remarks>Unlike the general-purpose <see cref="CoreEx.Extensions.IsCanceled(Exception)"/> (which matches <i>any</i> cancellation regardless of source), this distinguishes the receive's own cancellation
+    /// (e.g. a host/message-pump shutdown, which should bubble up unclassified) from an unrelated cancellation elsewhere in the call stack (e.g. an inner <see cref="System.Net.Http.HttpClient"/> timeout using its
+    /// own <see cref="CancellationTokenSource"/>), which should be classified normally via the <see cref="ErrorHandler"/> like any other exception.</remarks>
+    private static bool IsCanceledByToken(Exception ex, CancellationToken cancellationToken)
+        => (ex is OperationCanceledException oce && oce.CancellationToken == cancellationToken)
+        || (ex is AggregateException aex && aex.InnerException is OperationCanceledException ioce && ioce.CancellationToken == cancellationToken);
 }

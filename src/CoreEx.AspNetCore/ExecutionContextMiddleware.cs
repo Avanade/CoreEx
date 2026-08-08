@@ -45,6 +45,10 @@ public class ExecutionContextMiddleware(RequestDelegate next, Func<HttpContext, 
         context.ThrowIfNull();
         executionContext.ThrowIfNull();
 
+        // Where the response has already started then there is nothing that can be done (headers are read-only at that point).
+        if (context.Response.HasStarted)
+            return;
+
         // Where there are info and/or warning messages then add to the response.
         if (executionContext.HasMessages && context.Response.StatusCode < 400)
         {

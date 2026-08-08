@@ -32,8 +32,22 @@ public sealed class DecimalRule<TEntity, TProperty>(Func<PropertyContext<TEntity
         // Validate the scale and/or precision where specified.
         if (precision is not null || scale is not null)
         {
-            // Convert numeric to a decimal value.
-            var value = decimal.CreateChecked(context.Value);
+            // Convert numeric to a decimal value; where the value is outside of the decimal range (or is NaN/Infinity for a floating-point type) treat as a precision failure rather than an unhandled exception.
+            decimal value;
+            try
+            {
+                value = decimal.CreateChecked(context.Value);
+            }
+            catch (OverflowException)
+            {
+                if (precision.HasValue)
+                    context.AddError(ErrorText ?? ValidatorStrings.MaxDigitsFormat, precision);
+                else
+                    context.AddError(ErrorText ?? ValidatorStrings.DecimalPlacesFormat, scale);
+
+                return Task.CompletedTask;
+            }
+
             var integralLength = precision.HasValue ? DecimalRuleHelper.CalcIntegralPartLength(value) : 0;
             var fractionalLength = precision.HasValue || scale.HasValue ? DecimalRuleHelper.CalcFractionalPartLength(value) : 0;
 

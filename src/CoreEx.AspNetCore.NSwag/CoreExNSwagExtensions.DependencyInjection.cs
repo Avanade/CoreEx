@@ -11,9 +11,19 @@ public static class CoreExNSwagExtensions
     /// Adds the <i>CoreEx</i>-specific <i>OpenAPI</i> configuration.
     /// </summary>
     /// <param name="settings">The <see cref="OpenApiDocumentGeneratorSettings"/>.</param>
+    /// <param name="configure">An optional action to configure the <see cref="OpenApiOptions"/>; its <see cref="OpenApiOptions.JsonSerializerOptions"/> is also used to <see cref="ConfigureSchemaSettings(OpenApiDocumentGeneratorSettings, JsonSerializerOptions?)"/>.</param>
     /// <returns>The <see cref="OpenApiDocumentGeneratorSettings"/> for fluent-style method-chaining.</returns>
-    /// <remarks>This is a shortcut for calling both <see cref="AddOpenApiDocumentExtensions(OpenApiDocumentGeneratorSettings, Action{OpenApiOptions}?)"/> and <see cref="ConfigureSchemaSettings(OpenApiDocumentGeneratorSettings, JsonSerializerOptions?)"/>.</remarks>
-    public static OpenApiDocumentGeneratorSettings AddCoreExConfiguration(this OpenApiDocumentGeneratorSettings settings) => settings.AddOpenApiDocumentExtensions().ConfigureSchemaSettings();
+    /// <remarks>This is a shortcut for calling both <see cref="AddOpenApiDocumentExtensions(OpenApiDocumentGeneratorSettings, Action{OpenApiOptions}?)"/> and <see cref="ConfigureSchemaSettings(OpenApiDocumentGeneratorSettings, JsonSerializerOptions?)"/>, sharing a single <see cref="OpenApiOptions"/> instance between both so that <see cref="OpenApiOptions.JsonSerializerOptions"/> takes effect.</remarks>
+    public static OpenApiDocumentGeneratorSettings AddCoreExConfiguration(this OpenApiDocumentGeneratorSettings settings, Action<OpenApiOptions>? configure = null)
+    {
+        settings.ThrowIfNull();
+
+        var options = new OpenApiOptions();
+        configure?.Invoke(options);
+
+        settings.OperationProcessors.Add(new NSwagOpenApiOperationProcessor(options));
+        return settings.ConfigureSchemaSettings(options.JsonSerializerOptions);
+    }
 
     /// <summary>
     /// Adds the <i>CoreEx</i>-specific <i>OpenAPI</i> generated specification configuration extensions.

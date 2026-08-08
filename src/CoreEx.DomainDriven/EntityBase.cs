@@ -11,7 +11,7 @@ public abstract class EntityBase : IEntity
     public const string ReadOnlyErrorMessage = "The operation is not valid due to the current state being read-only.";
 
     /// <inheritdoc/>
-    object? IIdentifierCore.Id => throw new NotImplementedException();
+    object? IIdentifierCore.Id => throw new NotSupportedException();
 
     /// <inheritdoc/>
     [JsonIgnore]
@@ -19,7 +19,7 @@ public abstract class EntityBase : IEntity
 
     /// <inheritdoc/>
     [JsonIgnore]
-    Type IIdentifierCore.IdType => throw new NotImplementedException();
+    Type IIdentifierCore.IdType => throw new NotSupportedException();
 
     /// <inheritdoc/>
     [JsonIgnore]
@@ -195,8 +195,8 @@ public abstract class EntityBase : IEntity
         SetPersistenceState(PersistenceState.Removed);
 
         OnMutate();
-        MakeReadOnly();
         Mutated?.Invoke(this, EventArgs.Empty);
+        MakeReadOnly();
     }
 
     /// <summary>

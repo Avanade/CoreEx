@@ -43,37 +43,12 @@ public sealed class ErrorHandler
     /// <param name="errorHandlingFactory">The <see cref="ErrorHandling"/> factory.</param>
     /// <returns>The current <see cref="ErrorHandler"/> to support fluent-style method chaining.</returns>
     /// <remarks>Where a <see langword="null"/> is returned from the factory this indicates that the exception has not been handled and the next configured handler will be checked.
-    /// <para>Will be checked in the sequence added.</para></remarks>
+    /// <para>Will be checked in the sequence added.</para>
+    /// <para>For matching needs beyond the standard polymorphic <see langword="is"/> <typeparamref name="TException"/> check performed prior to invoking the factory (e.g. an exact type-only match), inspect
+    /// <c>typeof(TException) == exception.GetType()</c> (or similar) within the <paramref name="errorHandlingFactory"/> itself and return <see langword="null"/> to defer to the next configured handler.</para></remarks>
     public ErrorHandler Add<TException>(Func<TException, ErrorHandling?> errorHandlingFactory) where TException : Exception
     {
         _handlers.Add(new HandlerConfig { HandlingFactory = ex => ex is TException te ? errorHandlingFactory(te) : null });
-        return this;
-    }
-
-    /// <summary>
-    /// Adds the <see cref="ErrorHandling"/> for the specified <see cref="Type.IsAssignableFrom(Type?)"/> <typeparamref name="TException"/> <see cref="Type"/>.
-    /// </summary>
-    /// <typeparam name="TException">The <see cref="Exception"/> <see cref="Type"/>.</typeparam>
-    /// <param name="errorHandling">The <see cref="ErrorHandling"/>.</param>
-    /// <returns>The current <see cref="ErrorHandler"/> to support fluent-style method chaining.</returns>
-    /// <remarks>Will be checked in the sequence added.</remarks>
-    public ErrorHandler AddAssignableFrom<TException>(ErrorHandling errorHandling) where TException : Exception
-    {
-        _handlers.Add(new HandlerConfig { HandlingFactory = ex => typeof(TException).IsAssignableFrom(ex.GetType()) ? errorHandling : null });
-        return this;
-    }
-
-    /// <summary>
-    /// Adds the <paramref name="errorHandlingFactory"/> for the specified <see cref="Type.IsAssignableFrom(Type?)"/> <typeparamref name="TException"/> <see cref="Type"/>.
-    /// </summary>
-    /// <typeparam name="TException">The <see cref="Exception"/> <see cref="Type"/>.</typeparam>
-    /// <param name="errorHandlingFactory">The <see cref="ErrorHandling"/> factory.</param>
-    /// <returns>The current <see cref="ErrorHandler"/> to support fluent-style method chaining.</returns>
-    /// <remarks>Where a <see langword="null"/> is returned from the factory this indicates that the exception has not been handled and the next configured handler will be checked.
-    /// <para>Will be checked in the sequence added.</para></remarks>
-    public ErrorHandler AddAssignableFrom<TException>(Func<TException, ErrorHandling?> errorHandlingFactory) where TException : Exception
-    {
-        _handlers.Add(new HandlerConfig { HandlingFactory = ex => ex is TException te && typeof(TException).IsAssignableFrom(ex.GetType()) ? errorHandlingFactory(te) : null });
         return this;
     }
 

@@ -144,6 +144,8 @@ This template emits nothing but `.github/` and `.claude/` artefacts: no `AGENTS.
     coreex-expert.agent.md
 .claude/
   commands/
+    coreex-bootstrap.md            # /coreex-bootstrap blank-repo initialisation command
+    coreex-scaffold.md             # /coreex-scaffold guided solution scaffolding command
     coreex-expert.md               # /coreex-expert architecture guidance command
     coreex-docs-sync.md            # /coreex-docs-sync doc cache refresh command
 ```

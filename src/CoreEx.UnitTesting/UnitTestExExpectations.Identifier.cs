@@ -20,13 +20,13 @@ public static partial class UnitTestExExpectations
 
         Task<bool> extension(AssertArgs args)
         {
-            var id = args.Value as IIdentifier;
+            var id = args.Value as IIdentifierCore;
             if (id is null || id.Id is null)
                 args.Tester.Implementor.AssertFail($"Expected {pn} to have a non-null value.");
 
             if (identifier is null)
             {
-                if (System.Collections.Generic.EqualityComparer<object>.Default.Equals(id!.Id, id!.GetType().IsClass ? null! : Activator.CreateInstance(id!.GetType())))
+                if (System.Collections.Generic.EqualityComparer<object>.Default.Equals(id!.Id, id!.IdType.IsClass ? null! : Activator.CreateInstance(id!.IdType)))
                     args.Tester.Implementor.AssertFail($"Expected {pn} to have a non-default value.");
             }
             else

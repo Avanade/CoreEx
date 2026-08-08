@@ -53,6 +53,9 @@ public sealed class QueryFilterStringFunctionExpression(QueryFilterParser parser
                 break;
 
             case 2:
+                if (token.Kind != QueryFilterTokenKind.Field)
+                    throw new QueryFilterParserException($"A '{Function.GetRawToken(Filter)}' function expects a field name not a '{token.GetValueToken(Filter)}' token.");
+
                 Field = token;
                 _fieldConfig = Parser.GetFieldConfig(Field, Filter);
 

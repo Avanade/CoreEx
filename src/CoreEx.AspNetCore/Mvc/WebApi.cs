@@ -1,7 +1,3 @@
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Infrastructure;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
-
 namespace CoreEx.AspNetCore.Mvc;
 
 /// <summary>
@@ -92,7 +88,7 @@ public class WebApi(JsonSerializerOptions? jsonSerializerOptions = null, ILogger
             else
             {
                 var config = result.HttpResponse.HttpContext.RequestServices.GetRequiredService<IConfiguration>();
-                var include = Internal.GetConfigurationValue("CoreEx:AspNetCore:IncludeExceptionInProblemDetails", false, config);
+                var include = Internal.GetConfigurationValue(IncludeExceptionInProblemDetailsName, false, config);
 
                 if (include)
                     pd = pdf.CreateProblemDetails(result.HttpResponse.HttpContext, (int)HttpStatusCode.InternalServerError, title: result.Exception.Message, detail: result.Exception.ToString());

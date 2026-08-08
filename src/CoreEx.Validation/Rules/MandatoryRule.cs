@@ -51,8 +51,15 @@ public sealed class MandatoryRule<TEntity, TProperty>(Func<PropertyContext<TEnti
         if (context.Value is IEnumerable enumerable)
         {
             var enumerator = enumerable.GetEnumerator();
-            if (!enumerator.MoveNext())
-                return AddError(context);
+            try
+            {
+                if (!enumerator.MoveNext())
+                    return AddError(context);
+            }
+            finally
+            {
+                (enumerator as IDisposable)?.Dispose();
+            }
         }
 
         return Task.CompletedTask;

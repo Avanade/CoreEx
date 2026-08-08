@@ -60,6 +60,6 @@ public sealed class SubscribeAttribute(string? title = null, string? source = nu
     /// <param name="source">The event source <see cref="Uri"/> (i.e. <see cref="EventData.Source"/>.</param>
     /// <returns><see langword="true"/> indicates a successful match; otherwise, <see langword="false"/>.</returns>
     public bool IsMatch(string? title, Uri? source)
-        => SubscribedBase.IsMatch(Title ?? SubscribedBase.CreateGlobRegex(_title.ThrowIfNullOrEmpty(nameof(Title)), TitleSeparator), title)
+        => (Title is not null ? SubscribedBase.IsMatch(Title, title) : SubscribedBase.IsMatch(_title, title, TitleSeparator))
         && ((_source is null && Source is null) || SubscribedBase.IsUriMatch(Source ?? SubscribedBase.CreateGlobRegex(_source!, SourceSeparator), source));
 }

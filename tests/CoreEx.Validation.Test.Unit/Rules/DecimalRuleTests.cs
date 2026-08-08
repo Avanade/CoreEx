@@ -209,6 +209,21 @@ public class DecimalRuleTests
     }
 
     [Test]
+    public async Task PrecisionScale_Double_OutOfDecimalRange_DoesNotThrow()
+    {
+        // Regression: decimal.CreateChecked(context.Value) throws OverflowException for double/float values outside
+        // the decimal range (or NaN/Infinity); this must surface as a validation error, not an unhandled exception.
+        1.5d.Validator(c => c.PrecisionScale(5, 2)).ValidateAsSuccess();
+        double.MaxValue.Validator(c => c.PrecisionScale(5, 2)).ValidateAsError("exceeds the maximum digits (5).");
+
+        // NaN/Infinity are not JSON-serializable, so assert directly rather than via the diagnostic-logging Helper.
+        (await double.NaN.Validator(c => c.PrecisionScale(5, 2)).ValidateAsync()).HasErrors.Should().BeTrue();
+        (await double.PositiveInfinity.Validator(c => c.PrecisionScale(5, 2)).ValidateAsync()).HasErrors.Should().BeTrue();
+        (await double.NegativeInfinity.Validator(c => c.PrecisionScale(5, 2)).ValidateAsync()).HasErrors.Should().BeTrue();
+        (await double.NaN.Validator(c => c.PrecisionScale((int?)null, 2)).ValidateAsync()).HasErrors.Should().BeTrue();
+    }
+
+    [Test]
     public void CalcIntegralPartLength()
     {
         DecimalRuleHelper.CalcIntegralPartLength(0m).Should().Be(0);

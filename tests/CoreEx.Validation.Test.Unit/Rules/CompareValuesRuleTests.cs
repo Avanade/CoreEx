@@ -70,6 +70,30 @@ public class CompareValuesRuleTests
         ex.Message.Should().Be("The property 'Id' is read-only and cannot be overridden.");
     }
 
+    [Test]
+    public void CompareValues_Override_NoMatch_DoesNotThrow()
+    {
+        // Regression: overrideValueWhereMatched combined with a non-matching value must produce a normal validation
+        // error rather than crashing with "Sequence contains no matching element" from an unconditional First().
+        var vals = new[] { "A", "B", "C" };
+
+        "Z".Validator(c => c.CompareValues(vals, overrideValueWhereMatched: true)).ValidateAsError("is invalid.");
+        "Z".Validator(c => c.CompareValues(_ => vals, overrideValueWhereMatched: true)).ValidateAsError("is invalid.");
+    }
+
+    [Test]
+    public void CompareValues_Override_PropagatesToChainedRule()
+    {
+        // Regression: a rule chained after CompareValues(overrideValueWhereMatched: true) must observe the overridden
+        // value, not the stale pre-override value (PropertyContext is a struct passed by value through the chain).
+        var vals = new[] { "A", "B", "C" };
+        var v = Validator.Create<Person>()
+            .HasProperty(p => p.Code, p => p.CompareValues(vals, StringComparer.OrdinalIgnoreCase, true).CompareValues(new[] { "A" }));
+
+        var r = v.ValidateAsSuccess(new Person("A") { Code = "a" });
+        r.Value!.Code.Should().Be("A");
+    }
+
     public class Person(string id)
     {
         public string Id { get; } = id;

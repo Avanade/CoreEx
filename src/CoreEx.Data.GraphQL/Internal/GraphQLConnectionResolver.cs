@@ -141,7 +141,8 @@ internal static class GraphQLConnectionResolver
 
                         if (pageInfoFieldName == GraphQLSelectionResolver.TypeNameField)
                             pageInfoTypeNameAlias = pageInfoFieldAlias;
-                        else if (pageInfoFieldName is HasNextPageField or HasPreviousPageField or StartCursorField or EndCursorField)
+                        else if (string.Equals(pageInfoFieldName, HasNextPageField, StringComparison.OrdinalIgnoreCase) || string.Equals(pageInfoFieldName, HasPreviousPageField, StringComparison.OrdinalIgnoreCase)
+                            || string.Equals(pageInfoFieldName, StartCursorField, StringComparison.OrdinalIgnoreCase) || string.Equals(pageInfoFieldName, EndCursorField, StringComparison.OrdinalIgnoreCase))
                             pageInfoFieldAliases[pageInfoFieldName] = pageInfoFieldAlias;
                         else
                             errors.Add(NewError($"Unknown field '{pageInfoFieldName}'; 'pageInfo' must select from 'hasNextPage', 'hasPreviousPage', 'startCursor', 'endCursor' (plus '__typename').", [.. errorPath, alias, pageInfoFieldAlias]));

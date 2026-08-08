@@ -33,38 +33,53 @@ public class EventSubscriberMetrics
             string outcome;
             if (result.IsSuccess)
                 outcome = "success";
-            else if (args.UsesSubscribedManager && args.Subscriber is null)
-                outcome = "not-subscribed";
-            else
+            else if (result.Error is IEventSubscriberException iex)
             {
-                if (result.Error is EventSubscriberHandledException rex)
+                outcome = iex.ErrorHandling switch
                 {
-                    outcome = rex.ErrorHandling switch
-                    {
-                        ErrorHandling.None => ErrorUnhandledOutcome,
-                        ErrorHandling.CompleteAsSilent => "error-complete-silent",
-                        ErrorHandling.CompleteAsInformation => "error-complete-info",
-                        ErrorHandling.CompleteAsWarning => "error-complete-warning",
-                        ErrorHandling.CompleteAsError => "error-complete-error",
-                        ErrorHandling.Retry => "error-retry",
-                        ErrorHandling.DeadLetter => "error-dead-letter",
-                        ErrorHandling.Catastrophic => "error-catastrophic",
-                        _ => "error-completed"
-                    };
-                }
-                else
-                    outcome = "error-unhandled";
+                    ErrorHandling.None => ErrorUnhandledOutcome,
+                    ErrorHandling.CompleteAsSilent => "error-complete-silent",
+                    ErrorHandling.CompleteAsInformation => "error-complete-info",
+                    ErrorHandling.CompleteAsWarning => "error-complete-warning",
+                    ErrorHandling.CompleteAsError => "error-complete-error",
+                    ErrorHandling.Retry => "error-retry",
+                    ErrorHandling.DeadLetter => "error-dead-letter",
+                    ErrorHandling.Catastrophic => "error-catastrophic",
+                    _ => "error-completed"
+                };
             }
+            else
+                outcome = ErrorUnhandledOutcome;
 
-            EventSubscriberMetrics.MessagesReceived.Add(1, new KeyValuePair<string, object?>("outcome", outcome));
-            Activity.Current?.AddTag("messaging.outcome", outcome);
+            RecordOutcome(args, outcome);
             return result;
         }
         catch (Exception)
         {
-            EventSubscriberMetrics.MessagesReceived.Add(1, new KeyValuePair<string, object?>("outcome", ErrorUnhandledOutcome));
-            Activity.Current?.AddTag("messaging.outcome", ErrorUnhandledOutcome);
+            RecordOutcome(args, ErrorUnhandledOutcome);
             throw;
+        }
+    }
+
+    /// <summary>
+    /// Records the resulting <paramref name="outcome"/> against the <see cref="MessagesReceived"/> counter and the current <see cref="Activity"/>.
+    /// </summary>
+    /// <remarks>Where the <see cref="EventSubscriberArgs.UsesSubscribedManager"/> is <see langword="true"/> an additional <c>subscribed</c> tag is included to distinguish, orthogonally to <paramref name="outcome"/>,
+    /// whether a single subscriber was matched (<see cref="EventSubscriberArgs.Subscriber"/> is not <see langword="null"/>) versus not (i.e. no match, an ambiguous match, or an instantiation failure) - this
+    /// disambiguates, for example, "nobody subscribed" from "a subscriber ran and chose to complete silently" which would otherwise both report the same <c>error-complete-silent</c> outcome.</remarks>
+    private static void RecordOutcome(EventSubscriberArgs args, string outcome)
+    {
+        if (args.UsesSubscribedManager)
+        {
+            var subscribed = args.Subscriber is not null;
+            MessagesReceived.Add(1, new KeyValuePair<string, object?>("outcome", outcome), new KeyValuePair<string, object?>("subscribed", subscribed));
+            Activity.Current?.AddTag("messaging.outcome", outcome);
+            Activity.Current?.AddTag("messaging.subscribed", subscribed);
+        }
+        else
+        {
+            MessagesReceived.Add(1, new KeyValuePair<string, object?>("outcome", outcome));
+            Activity.Current?.AddTag("messaging.outcome", outcome);
         }
     }
 }

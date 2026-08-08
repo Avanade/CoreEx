@@ -28,6 +28,9 @@ public class QueryFilterParserTests
     [TestCase("isold", "IsOld")]
     [TestCase("messagetype eq 'info'", "MessageType == @0", MessageType.Info)]
 
+    // WHITESPACE...
+    [TestCase("age\teq\t100", "Age == @0", 100)]
+
     // IN...
     [TestCase("code in ('abc', 'def')", "Code in (@0, @1)", "abc", "def")]
     [TestCase("age in (20, 30, 40)", "Age in (@0, @1, @2)", 20, 30, 40)]
@@ -122,10 +125,12 @@ public class QueryFilterParserTests
     [TestCase("startswith(firstname( 'abc')", "A 'startswith' function expects a ',' separator between the field and its constant.")]
     [TestCase("startswith(firstname, null)", "A 'startswith' function references a null constant which is not supported.")]
     [TestCase("startswith(firstname, 'abc',", "A 'startswith' function expects a closing ')' not a ','.")]
+    [TestCase("contains(1, 'x')", "A 'contains' function expects a field name not a '1' token.")]
 
     // NOT...
     [TestCase("age eq 1 and not age eq 2", "A 'not' expects an opening '(' to start an expression versus a syntactically incorrect 'age' token.")]
     [TestCase("age  eq  1  not", "There is a 'not' positioning that is syntactically incorrect.")]
+    [TestCase("not not (age eq 1)", "A 'not' expects an opening '(' to start an expression versus a syntactically incorrect 'not' token.")]
 
     // LITERALS...
     [TestCase("code eq '", "A Literal has not been terminated.")]
@@ -139,9 +144,15 @@ public class QueryFilterParserTests
     [TestCase("birthday eq kiwifruit", "Field 'birthday' constant 'kiwifruit' is not considered valid.")]
     [TestCase("birthday eq 1980-13-01", "Field 'birthday' has a value '1980-13-01' that is not a valid DateTime: String '1980-13-01' was not recognized as a valid DateTime.")]
     [TestCase("birthday eq 1980-01-32", "Field 'birthday' has a value '1980-01-32' that is not a valid DateTime: String '1980-01-32' was not recognized as a valid DateTime.")]
+    // Regression: previously reused the Literal-worded message ("must not be specified as a Literal...") for a bare true/false keyword too, which is misleading since
+    // true/false is not a quoted Literal - most relevant for a null-only field (see NULL_FIELD below), whose GraphQL-lite schema advertises eq/ne as a Boolean even
+    // though only 'null' is ever actually valid.
+    [TestCase("birthday eq true", "Field 'birthday' constant 'true' must not be specified as a boolean where the underlying type is not a string or boolean.")]
 
     // NULL_FIELD...
     [TestCase("terminated eq 13", "Field 'terminated' with value '13' is invalid: Only null comparisons are supported.")]
+    [TestCase("terminated eq true", "Field 'terminated' constant 'true' must not be specified as a boolean where the underlying type is not a string or boolean.")]
+    [TestCase("terminated eq false", "Field 'terminated' constant 'false' must not be specified as a boolean where the underlying type is not a string or boolean.")]
     [TestCase("terminated gt null", "Field 'terminated' does not support the 'gt' operator.")]
     public void Parse_Error(string? filter, string expected) => TestUtility.AssertFilterError(filter, expected);
 
@@ -217,6 +228,80 @@ public class QueryFilterParserTests
             .WithFilter(filter => filter
                 .AddField<string>("LastName", c => c.WithResultWriter(LastNameWriter))
                 .AddField<string>("FirstName"));
+
+        TestUtility.AssertFilterSuccess(config, filter, expected, expectedArgs);
+    }
+
+    [Test]
+    public void Parse_Enum_WithConverter_And_WithValue_Success()
+    {
+        var config = QueryArgsConfig.Create()
+            .WithFilter(filter => filter.AddField<MessageType>("MessageType", c => c
+                .WithConverter(s => s.Equals("i", StringComparison.OrdinalIgnoreCase) ? MessageType.Info : Enum.Parse<MessageType>(s, true))
+                .WithValue(v => (int)v)));
+
+        TestUtility.AssertFilterSuccess(config, "messagetype eq 'i'", "MessageType == @0", (int)MessageType.Info);
+    }
+
+    [Test]
+    public void Parse_Parseable_WithConverter_And_WithValue_Success()
+    {
+        var config = QueryArgsConfig.Create()
+            .WithFilter(filter => filter.AddField<int>("Age", c => c
+                .WithConverter(s => int.Parse(s) * 10)
+                .WithValue(v => v + 1)));
+
+        TestUtility.AssertFilterSuccess(config, "age eq 4", "Age == @0", 41);
+    }
+
+    [Test]
+    public void Parse_WithDefault_MultiplePlaceholders_DoesNotCorruptArgs()
+    {
+        // Regression: AppendStatement previously renumbered '@n' placeholders via a per-index StringBuilder.Replace, which corrupts/misassigns args once the
+        // pre-existing arg count overlaps the appended statement's own placeholder range (here, LastName's single-placeholder default writes @0 first, so
+        // FirstName's two-placeholder default starts renumbering from a base index of 1 - exactly the collision scenario).
+        var config = QueryArgsConfig.Create()
+            .WithFilter(filter => filter
+                .AddField<string>("LastName", c => c.WithDefault(new QueryStatement("LastName == @0", "Brown")))
+                .AddField<string>("FirstName", c => c.WithDefault(new QueryStatement("FirstName == @0 && MiddleName == @1", "Zoe", "Ann"))));
+
+        TestUtility.AssertFilterSuccess(config, null, "LastName == @0 && FirstName == @1 && MiddleName == @2", "Brown", "Zoe", "Ann");
+    }
+
+    [Test]
+    public void Parse_AppendStatement_ElevenPlaceholders_DoesNotCorruptDoubleDigitArgs()
+    {
+        // Regression: replacing '@1' via StringBuilder.Replace also matches the leading two characters of '@10'..'@19' in the same statement - corrupting a
+        // double-digit placeholder mid-renumber. LastName's match writes @0 first (base index 1), so renumbering @1 in this 11-placeholder (@0..@10)
+        // statement would previously also rewrite the unrelated '@10' occurrence.
+        var config = QueryArgsConfig.Create()
+            .WithFilter(filter => filter
+                .AddField<string>("LastName")
+                .OnQuery(result => result.Writer.AppendStatement(new QueryStatement(
+                    "F0 == @0 && F1 == @1 && F2 == @2 && F3 == @3 && F4 == @4 && F5 == @5 && F6 == @6 && F7 == @7 && F8 == @8 && F9 == @9 && F10 == @10",
+                    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10))));
+
+        TestUtility.AssertFilterSuccess(config, "lastname eq 'Smith'",
+            "LastName == @0 && F0 == @1 && F1 == @2 && F2 == @3 && F3 == @4 && F4 == @5 && F5 == @6 && F6 == @7 && F7 == @8 && F8 == @9 && F9 == @10 && F10 == @11",
+            "Smith", 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+    }
+
+    [Test]
+    public void Parse_Guid_HyphenatedFormat_Success()
+    {
+        // Regression: the tokenizer only recognized Guid's 32-char "N" format (no hyphens); the default 36-char "D" format (e.g. Guid.ToString()) was
+        // misclassified as a Field whenever its leading hex nibble was a letter (a-f), making such values impossible to filter on at all.
+        var config = QueryArgsConfig.Create().WithFilter(filter => filter.AddField<Guid>("Id"));
+        var id = Guid.Parse("affe1234-5717-4562-b3fc-2c963f66afa6");
+
+        TestUtility.AssertFilterSuccess(config, $"id eq {id}", "Id == @0", id);
+    }
+
+    [Test]
+    public void AddField_Duplicate_ThrowsClearError()
+    {
+        var act = () => QueryArgsConfig.Create().WithFilter(filter => filter.AddField<string>("Code").AddField<string>("code"));
+        act.Should().Throw<ArgumentException>().WithMessage("The filter field 'code' has already been added and must be unique.*");
     }
 
     [Test]

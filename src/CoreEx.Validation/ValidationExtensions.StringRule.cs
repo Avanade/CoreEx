@@ -21,6 +21,8 @@ public static partial class ValidationExtensions
     /// <param name="maxLength">The maximum string length.</param>
     /// <param name="regex">The <see cref="Regex"/>.</param>
     /// <returns>The <see cref="StringRule{TEntity}"/>.</returns>
+    /// <remarks>The <paramref name="regex"/> is executed directly against the value being validated; where the value may originate from an untrusted source, construct the <see cref="Regex"/> with an explicit
+    /// <c>matchTimeout</c> to guard against catastrophic backtracking (ReDoS), as a timeout cannot be applied to an already-constructed <see cref="Regex"/> instance.</remarks>
     public static IPropertyRule<TEntity, string> String<TEntity>(this IPropertyRule<TEntity, string> rule, int minLength, int? maxLength, Regex? regex = null) where TEntity : class
         => Chain(rule, new StringRule<TEntity>(minLength: _ => minLength, maxLength: _ => maxLength, regex: _ => regex));
 
@@ -33,6 +35,8 @@ public static partial class ValidationExtensions
     /// <param name="maxLength">The maximum string length.</param>
     /// <param name="regex">The <see cref="Regex"/>.</param>
     /// <returns>The <see cref="StringRule{TEntity}"/>.</returns>
+    /// <remarks>The <paramref name="regex"/> is executed directly against the value being validated; where the value may originate from an untrusted source, construct the <see cref="Regex"/> with an explicit
+    /// <c>matchTimeout</c> to guard against catastrophic backtracking (ReDoS), as a timeout cannot be applied to an already-constructed <see cref="Regex"/> instance.</remarks>
     public static IPropertyRule<TEntity, string> String<TEntity>(this IPropertyRule<TEntity, string> rule, Func<PropertyContext<TEntity, string>, int>? minLength, Func<PropertyContext<TEntity, string>, int?>? maxLength, Func<PropertyContext<TEntity, string>, Regex?>? regex = null) where TEntity : class
         => Chain(rule, new StringRule<TEntity>(minLength: minLength, maxLength: maxLength, regex: regex));
 
@@ -43,6 +47,8 @@ public static partial class ValidationExtensions
     /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
     /// <param name="regex">The <see cref="Regex"/>.</param>
     /// <returns>The <see cref="StringRule{TEntity}"/>.</returns>
+    /// <remarks>The <paramref name="regex"/> is executed directly against the value being validated; where the value may originate from an untrusted source, construct the <see cref="Regex"/> with an explicit
+    /// <c>matchTimeout</c> to guard against catastrophic backtracking (ReDoS), as a timeout cannot be applied to an already-constructed <see cref="Regex"/> instance.</remarks>
     public static IPropertyRule<TEntity, string> String<TEntity>(this IPropertyRule<TEntity, string> rule, Regex regex) where TEntity : class
         => Chain(rule, new StringRule<TEntity>(regex: _ => regex));
 
@@ -53,6 +59,8 @@ public static partial class ValidationExtensions
     /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
     /// <param name="regex">The <see cref="Regex"/>.</param>
     /// <returns>The <see cref="StringRule{TEntity}"/>.</returns>
+    /// <remarks>The <paramref name="regex"/> is executed directly against the value being validated; where the value may originate from an untrusted source, construct the <see cref="Regex"/> with an explicit
+    /// <c>matchTimeout</c> to guard against catastrophic backtracking (ReDoS), as a timeout cannot be applied to an already-constructed <see cref="Regex"/> instance.</remarks>
     public static IPropertyRule<TEntity, string> Matches<TEntity>(this IPropertyRule<TEntity, string> rule, Regex regex) where TEntity : class
         => Chain(rule, new StringRule<TEntity>(regex: _ => regex));
 

@@ -50,6 +50,51 @@ public class ServiceBusMessageTests
         ObjectComparer.Assert(jce, jce2);
     }
 
+    [Test]
+    public void CloudEventToServiceBusMessage_Binary_ExcludeAttributes_PreservesTraceContext()
+    {
+        // Regression: trace context (traceparent/tracestate) must survive Binary-mode round-trip even when
+        // includeAttributes (the bulk ce_-prefixed properties) is excluded.
+        var p = new Product { Id = 1, Sku = "SKU-001" };
+        var ed = EventData.CreateEventWith(p, EventAction.Published).WithTitle("unit.test.title").WithSource(new Uri("http://unit.test.source"));
+        ed.TraceParent = "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01";
+        ed.TraceState = "vendor=prop";
+
+        var ce = new EventFormatter().ConvertToCloudEvent(ed);
+
+        var sbm = ce.ToServiceBusMessage(ContentMode.Binary, includeAttributes: false);
+        sbm.ApplicationProperties["traceparent"].Should().Be(ed.TraceParent);
+        sbm.ApplicationProperties["tracestate"].Should().Be(ed.TraceState);
+
+        var sbrm = ConvertToReceivedMessage(sbm);
+        var ce2 = sbrm.ToCloudEvent();
+
+        ce2.TryGetExtensionAttribute("traceparent", out string? traceParent).Should().BeTrue();
+        traceParent.Should().Be(ed.TraceParent);
+
+        ce2.TryGetExtensionAttribute("tracestate", out string? traceState).Should().BeTrue();
+        traceState.Should().Be(ed.TraceState);
+    }
+
+    [Test]
+    public void CloudEventToServiceBusMessage_Binary_ExcludeAttributes_PreservesCoreIdentity()
+    {
+        // Regression: Id/Type (and the ce_specversion marker that makes the message recognizable as a CloudEvent
+        // at all) must survive Binary-mode round-trip even when includeAttributes is excluded.
+        var p = new Product { Id = 1, Sku = "SKU-001" };
+        var ed = EventData.CreateEventWith(p, EventAction.Published).WithTitle("unit.test.title").WithSource(new Uri("http://unit.test.source"));
+        var ce = new EventFormatter().ConvertToCloudEvent(ed);
+
+        var sbm = ce.ToServiceBusMessage(ContentMode.Binary, includeAttributes: false);
+        var sbrm = ConvertToReceivedMessage(sbm);
+
+        sbrm.IsCloudEvent().Should().BeTrue();
+
+        var ce2 = sbrm.ToCloudEvent();
+        ce2.Id.Should().Be(ce.Id);
+        ce2.Type.Should().Be(ce.Type);
+    }
+
     public class Product : IIdentifier<int>
     {
         public int Id { get; set; }

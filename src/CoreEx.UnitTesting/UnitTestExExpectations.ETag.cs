@@ -20,7 +20,7 @@ public static partial class UnitTestExExpectations
 
         Task<bool> extension(AssertArgs args)
         {
-            var etag = args.Value as IETag;
+            var etag = args.Value as IReadOnlyETag;
             if (etag is null || etag.ETag is null)
                 args.Tester.Implementor.AssertFail($"Expected {pn} to have a non-null value.");
 

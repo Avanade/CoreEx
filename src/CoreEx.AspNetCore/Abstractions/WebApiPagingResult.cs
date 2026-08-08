@@ -30,14 +30,16 @@ internal sealed record class WebApiPagingResult : PagingResult
         if (Skip == 0)
             return null;
 
-        int skip = Skip - Take;
+        // Perform the arithmetic in long (Skip/Take are int, but TotalCount is long? and can legitimately exceed int.MaxValue); narrow to int only once, at the end, clamped -
+        // narrowing TotalCount to int before subtracting (as this used to) silently wraps for values above int.MaxValue, producing a nonsensical Skip.
+        long skip = Skip - Take;
         if (TotalCount is not null && skip >= TotalCount)
-            skip = (int)TotalCount - Take;
+            skip = TotalCount.Value - Take;
 
         if (skip < 0)
             skip = 0;
 
-        return new PagingArgs(skip, Take > Skip ? Skip : Take);
+        return new PagingArgs((int)Math.Min(skip, int.MaxValue), Take > Skip ? Skip : Take);
     }
 
     /// <summary>
@@ -49,9 +51,12 @@ internal sealed record class WebApiPagingResult : PagingResult
         if (PagedCount < Take)
             return null;
 
-        if (TotalCount is not null && (Skip + Take) >= TotalCount)
+        // Perform the arithmetic in long - Skip has no upper bound (unlike Take, which is clamped to PagingArgs.MaximumTake) and can be supplied directly by the caller/client
+        // via the query string, so Skip + Take can overflow int and silently wrap (typically negative) if computed as int.
+        long nextSkip = (long)Skip + Take;
+        if (TotalCount is not null && nextSkip >= TotalCount)
             return null;
 
-        return new PagingArgs(Skip + Take, Take);
+        return new PagingArgs((int)Math.Min(nextSkip, int.MaxValue), Take);
     }
 }

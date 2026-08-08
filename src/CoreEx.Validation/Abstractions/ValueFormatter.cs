@@ -39,8 +39,8 @@ public readonly struct ValueFormatter(string? format, IFormatProvider? formatPro
     /// <returns>The formatted <see cref="LText"/>.</returns>
     public LText ToLText<T>(T? value)
     {
-        var text = _useStringFormat 
-            ? string.Format(Format!, value) 
+        var text = _useStringFormat
+            ? string.Format(FormatProvider, Format!, value)
             : value is IFormattable f
                 ? f.ToString(Format, FormatProvider)
                 : value?.ToString();

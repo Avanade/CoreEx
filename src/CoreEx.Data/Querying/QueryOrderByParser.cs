@@ -26,7 +26,7 @@ public sealed class QueryOrderByParser(QueryArgsConfig owner)
     /// <summary>
     /// Gets the default <i>OData-like</i> <c>$orderby</c> statement.
     /// </summary>
-    public string? DefaultOrderBy => _defaultOrderBy ??= string.Join(", ", _fields.Where(f => f.DefaultDirection is not null).Select(f => f.Field.ToLowerInvariant() + (f.DefaultDirection == QueryOrderByDirection.Ascending ? " asc" : "desc")));
+    public string? DefaultOrderBy => _defaultOrderBy ??= string.Join(", ", _fields.Where(f => f.DefaultDirection is not null).Select(f => f.Field.ToLowerInvariant() + (f.DefaultDirection == QueryOrderByDirection.Ascending ? " asc" : " desc")));
 
     /// <summary>
     /// Gets the default model prefix (if any).
@@ -141,9 +141,9 @@ public sealed class QueryOrderByParser(QueryArgsConfig owner)
                 sb.Append(config.FullyQualifiedModelName);
 
                 var dir = parts.Length == 2 ? parts[1].Trim() : null;
+                var direction = QueryOrderByDirection.Ascending;
                 if (dir is not null)
                 {
-                    var direction = QueryOrderByDirection.Ascending;
                     if (dir.Length > 3 && nameof(QueryOrderByDirection.Descending).StartsWith(dir, StringComparison.OrdinalIgnoreCase))
                     {
                         sb.Append(" desc");
@@ -151,10 +151,12 @@ public sealed class QueryOrderByParser(QueryArgsConfig owner)
                     }
                     else if (!(dir.Length > 2 && nameof(QueryOrderByDirection.Ascending).StartsWith(dir, StringComparison.OrdinalIgnoreCase)))
                         throw new QueryOrderByParserException($"Field '{field}' direction '{dir}' is invalid; must be either 'asc' (ascending) or 'desc' (descending).");
-
-                    if (!config.Direction.HasFlag(direction))
-                        throw new QueryOrderByParserException($"Field '{field}' direction '{dir}' is invalid; not supported.");
                 }
+
+                // The allow-list check must run even when no direction was specified (an implicit ascending default) - otherwise a field restricted via
+                // WithDirection(Descending) could be sorted ascending simply by omitting the direction keyword.
+                if (!config.Direction.HasFlag(direction))
+                    throw new QueryOrderByParserException($"Field '{field}' direction '{dir ?? "asc"}' is invalid; not supported.");
 
                 if (fields.Contains(config.Field))
                     throw new QueryOrderByParserException($"Field '{field}' must not be specified more than once.");

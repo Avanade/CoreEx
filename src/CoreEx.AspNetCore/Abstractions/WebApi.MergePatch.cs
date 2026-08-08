@@ -45,7 +45,7 @@ public abstract partial class WebApi<TResult>
                 {
                     StatusCode = HttpStatusCode.UnsupportedMediaType,
                     ContentType = MediaTypeNames.Text.Plain,
-                    Content = $"Unsupported '{HeaderNames.ContentType}' for an HTTP {HttpMethods.Patch}; only JSON Merge Patch is supported using either: '{HttpNames.MergePatchJsonMediaTypeName}' or '{MediaTypeNames.Application.Json}'."
+                    Content = $"Unsupported '{HeaderNames.ContentType}' for an HTTP {HttpMethods.Patch}; only JSON Merge Patch is supported using content type '{HttpNames.MergePatchJsonMediaTypeName}'."
                 });
 
             // Get the JSON merge content.

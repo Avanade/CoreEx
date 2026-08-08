@@ -13,7 +13,17 @@ partial class WebApiTestsBase<TWebApi, TResult>
         Test.Type<TWebApi>()
             .Run(async w => await w.PatchAsync<Person>(Test.CreateHttpRequest(HttpMethod.Patch, "test", r => r.ContentType = MediaTypeNames.Text.Plain), (ro, ct) => throw new InvalidOperationException(), (ro, ct) => throw new InvalidOperationException()))
             .ToHttpResponseMessageAssertor()
-            .Assert(HttpStatusCode.UnsupportedMediaType, "Unsupported 'Content-Type' for an HTTP PATCH; only JSON Merge Patch is supported using either: 'application/merge-patch+json' or 'application/json'.");
+            .Assert(HttpStatusCode.UnsupportedMediaType, "Unsupported 'Content-Type' for an HTTP PATCH; only JSON Merge Patch is supported using content type 'application/merge-patch+json'.");
+    }
+
+    [Test]
+    public void MergePatch_Invalid_ContentType_PlainJson()
+    {
+        // Regression: the rejection message must not claim 'application/json' is an accepted content type - RFC 7396 JSON Merge Patch requires the dedicated media type, and plain JSON is genuinely rejected.
+        Test.Type<TWebApi>()
+            .Run(async w => await w.PatchAsync<Person>(Test.CreateHttpRequest(HttpMethod.Patch, "test", r => r.ContentType = MediaTypeNames.Application.Json), (ro, ct) => throw new InvalidOperationException(), (ro, ct) => throw new InvalidOperationException()))
+            .ToHttpResponseMessageAssertor()
+            .Assert(HttpStatusCode.UnsupportedMediaType, "Unsupported 'Content-Type' for an HTTP PATCH; only JSON Merge Patch is supported using content type 'application/merge-patch+json'.");
     }
 
     [Test]

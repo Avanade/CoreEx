@@ -1,3 +1,4 @@
+using CoreEx.Caching.FusionCache;
 using CoreEx.Entities;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
@@ -222,6 +223,86 @@ public class HybridCacheTests : WithGenericTester<EntryPoint>
             var p2 = await cache.GetOrDefaultAsync<Person>(ckey);
             p2.Should().NotBeNull().And.BeEquivalentTo(p);
         });
+    }
+
+    [Test]
+    public void RemoveByTagAsync_QualifiesTag_DoesNotCrossTenantInvalidate() => Test.ScopedType<IServiceProvider>(async test =>
+    {
+        // Regression: tags must be qualified via ICacheKeyProvider the same way keys are, otherwise two tenants/domains sharing the same
+        // underlying IFusionCache and using the same tag name would invalidate each other's entries.
+        var fusionCache = test.Services.GetRequiredService<IFusionCache>();
+
+        var cacheA = new FusionHybridCache(fusionCache, new PrefixCacheKeyProvider("tenantA"));
+        var cacheB = new FusionHybridCache(fusionCache, new PrefixCacheKeyProvider("tenantB"));
+
+        const string key = "tag-qualification-key";
+        const string tag = "shared-tag";
+
+        await cacheA.RemoveByKeyAsync(key);
+        await cacheB.RemoveByKeyAsync(key);
+
+        await cacheA.SetByKeyAsync(key, "valueA", new HybridCacheEntryOptions().WithTags(tag));
+        await cacheB.SetByKeyAsync(key, "valueB", new HybridCacheEntryOptions().WithTags(tag));
+
+        // Tenant A invalidates its own "shared-tag" entries; tenant B's same-named tag must be unaffected.
+        await cacheA.RemoveByTagAsync(tag);
+
+        var (existsA, _) = await cacheA.TryGetByKeyAsync<string>(key);
+        var (existsB, valueB) = await cacheB.TryGetByKeyAsync<string>(key);
+
+        existsA.Should().BeFalse();
+        existsB.Should().BeTrue();
+        valueB.Should().Be("valueB");
+    });
+
+    [Test]
+    public void ConfigureEntryOptions_IsPersistent_AndSeesSourceOptions() => Test.ScopedType<IServiceProvider>(async test =>
+    {
+        // ConfigureEntryOptions is a durable (not one-shot) override - it applies to every subsequent operation on this instance until
+        // changed/cleared - and is passed the source HybridCacheEntryOptions (e.g. Tags) so tag/strategy-aware policies are possible
+        // (e.g. shortening the duration only for entries carrying a specific tag).
+        var cache = (FusionHybridCache)test.Services.GetRequiredService<IHybridCache>();
+
+        var seenTags = new List<string[]?>();
+        cache.ConfigureEntryOptions((hco, fco) =>
+        {
+            seenTags.Add(hco.Tags);
+            if (hco.Tags?.Contains("short-lived") == true)
+                fco.Duration = TimeSpan.FromMilliseconds(1);
+        });
+
+        await cache.GetOrCreateByKeyAsync("persistent-configure-key-1", _ => Task.FromResult("value1"), new HybridCacheEntryOptions().WithTags("short-lived"));
+        await cache.GetOrCreateByKeyAsync("persistent-configure-key-2", _ => Task.FromResult("value2"));
+
+        // Persistent: the override fired for both calls, not just the first.
+        seenTags.Should().HaveCount(2);
+        seenTags[0].Should().BeEquivalentTo(["short-lived"]);
+        seenTags[1].Should().BeNull();
+    });
+
+    [Test]
+    public void AddFusionHybridCache_ConfigureCallback_IsInvokedOnConstructedInstance() => Test.ScopedType<IServiceProvider>(async test =>
+    {
+        // The AddFusionHybridCache configure callback gives DI registration-time access to the constructed FusionHybridCache
+        // (e.g. to call ConfigureEntryOptions there) without needing to resolve and cast IHybridCache elsewhere.
+        var services = new ServiceCollection();
+        services.AddSingleton(test.Services.GetRequiredService<IFusionCache>());
+        services.AddSingleton(test.Services.GetRequiredService<ICacheKeyProvider>());
+
+        FusionHybridCache? configuredInstance = null;
+        services.AddFusionHybridCache((_, fhc) => configuredInstance = fhc);
+
+        await using var sp = services.BuildServiceProvider();
+        var cache = sp.GetRequiredService<IHybridCache>();
+
+        configuredInstance.Should().NotBeNull().And.BeSameAs(cache);
+    });
+
+    private sealed class PrefixCacheKeyProvider(string prefix) : ICacheKeyProvider
+    {
+        public string GetFullyQualifiedCacheKey(string key) => $"{prefix}:{key}";
+
+        public string GetEntityCacheKey<T>(CompositeKey key) where T : IEntityKey => $"{typeof(T).Name}:{key}";
     }
 
     internal static async Task ClearKeyAsync(IServiceProvider sp, string key)

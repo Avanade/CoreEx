@@ -25,7 +25,7 @@
 
 | Type | Description |
 |------|-------------|
-| **[`IUnitOfWork`](./IUnitOfWork.cs)** | Transactional unit-of-work contract: `TransactionAsync`, `ExecuteAsync`, `AreEventsSupported`, and `Events` (`IEventQueue`) for transactional outbox support. |
+| **[`IUnitOfWork`](./IUnitOfWork.cs)** | Transactional unit-of-work contract: `TransactionAsync`, `AreEventsSupported`, and `Events` (`IEventQueue`) for transactional outbox support. |
 | **[`DataResult`](./DataResult.cs)** | Readonly record struct carrying `WasMutated` for valueless mutation outcomes (e.g. delete). |
 | **[`DataResult<T>`](./DataResultT.cs)** | Generic variant of `DataResult` adding the mutated `Value`; returned by create/update operations. |
 | [`IDataArgs`](./IDataArgs.cs) | Marker interface for strongly-typed data argument objects passed to `IUnitOfWork` overloads. |
@@ -37,7 +37,7 @@
 | [`QueryFilterParserResult`](./Querying/QueryFilterParserResult.cs) | Result of `QueryFilterParser.Parse()`: LINQ `QueryStatement`, parsed field values, and any `ParseErrors`. |
 | [`QueryOrderByParserResult`](./Querying/QueryOrderByParserResult.cs) | Result of `QueryOrderByParser.Parse()`: ordered `QueryStatement` and any parse errors. |
 | _[`ModelBase<TId>`](./Models/ModelBase.cs)_ | Abstract persistence model base implementing `IIdentifier<T>`, `IChangeLogEx`, `IETag`. |
-| _[`ReferenceDataModelBase`](./Models/ReferenceDataModelBase.cs)_ | Persistence model base for reference data tables with `Id`, `Code`, `Text`, `IsActive`, `SortOrder`, `StartDate`, `EndDate`. |
+| _[`ReferenceDataModelBase`](./Models/ReferenceDataModelBase.cs)_ | Persistence model base for reference data tables with `Id`, `Code`, `Text`, `Description`, `IsActive`, `SortOrder`, `StartsOn`, `EndsOn`. |
 
 ## Namespaces
 

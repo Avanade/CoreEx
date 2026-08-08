@@ -11,7 +11,8 @@ Register roots explicitly — no attribute-based auto-discovery. Each `AddQuery`
 builder.Services.AddCoreExGraphQLLite((o, sp) =>
 {
     o.AddQuery<ProductLite>("products", ProductQueryArgsConfig.Default, async (qa, pa, ct) => await CoreEx.ExecutionContext.GetRequiredService<IProductReadService>().QueryAsync(qa, pa, ct).ConfigureAwait(false))
-     // GetIdentifier<TId> validates the named argument (default "id") for presence and type (it casts to TId, it does not convert) and throws an ArgumentException, mapped by the engine to ARGUMENT_ERROR, if missing/empty/wrong-typed.
+     // GetIdentifier<TId> validates the named argument (default "id") for presence, converting to TId via TId.Parse where needed (e.g. a variable-supplied Int arrives boxed
+     // as long, not int), and throws an ArgumentException, mapped by the engine to ARGUMENT_ERROR, if missing/empty/not convertible to TId.
      .AddGet<Product>("product", (args, ct) => CoreEx.ExecutionContext.GetRequiredService<IProductReadService>().GetAsync(args.GetIdentifier<string>(), ct));
 });
 
@@ -70,6 +71,7 @@ Clients use native GraphQL `where`/`orderBy` and `first`/`after` Relay paging �
 - Do not assume introspection (`__schema`/`__type`) works out of the box — `GraphQLLiteOptions.EnableIntrospection` defaults to `false` (secure-by-default); a request produces `INTROSPECTION_DISABLED` until a host explicitly opts in (see the Contoso Products sample's `Program.cs` for the opt-in pattern). `IGraphQLEngine.GetSchemaAsync()` (the direct API) is unaffected.
 - Do not assume `MapCoreExGraphQLLite` applies authorization — the endpoint is anonymous by default; pass `configure: rb => rb.RequireAuthorization()` (or an equivalent policy) explicitly since this endpoint can reach the same data as `[Authorize]`-protected REST controllers.
 - Do not assume every unexpected resolver exception's real message reaches the client — `GraphQLEngine`'s catch-all mirrors `WebApi`'s REST contract exactly: an unexpected (non-`IExtendedException`) exception is always logged and only exposes its real message when `CoreEx:IncludeExceptionInProblemDetails` is enabled (default `false`); known `IExtendedException` types (`NotFoundException`, `ValidationException`, `ConflictException`, `DuplicateException`, `ConcurrencyException`, `AuthenticationException`, `AuthorizationException`, `BusinessException`, etc.) surface their own safe message/error code and are logged only when `ShouldBeLogged` is `true`.
+- Do not expect the literal `where`/`orderBy` text in `Debug`-level logs by default — `GraphQLQueryRoot` only logs whether a filter/order-by was specified, not its text (which embeds client-supplied values verbatim). Set `GraphQLLiteOptions.EnableSensitiveDataLogging = true` (mirrors EF Core's option of the same name) to see the exact text while debugging.
 
 ## Further Reading
 

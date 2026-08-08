@@ -73,7 +73,12 @@ public abstract class PropertyRuleBase<TEntity, TProperty> : IPropertyRuleEx<TEn
         // Next, check the clauses; if they are not satisfied then we don't execute the validation but we do execute the next chained rule (if any).
         var cr = await RootPropertyRule<TEntity, TProperty>.CheckClausesAsync(context, _clauses, cancellationToken).ConfigureAwait(false);
         if (cr)
+        {
             await OnValidateAsync(context, cancellationToken).ConfigureAwait(false);
+
+            // Re-synchronize with the entity in case a preceding rule (e.g. via Override) changed the underlying value.
+            context.RefreshFromEntity();
+        }
 
         if (_chainedRule is not null && !context.IsInError)
             await _chainedRule!.ValidateAsync(context, cancellationToken).ConfigureAwait(false);

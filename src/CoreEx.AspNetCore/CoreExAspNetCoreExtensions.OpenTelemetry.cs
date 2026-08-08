@@ -14,7 +14,7 @@ public static class CoreExAspNetCoreExtensions
     /// <returns>The <paramref name="builder"/> to support fluent-style method-chaining.</returns>
     /// <remarks>Also, includes <see cref="WithCoreExAspNetCoreSources(TracerProviderBuilder)"/>.</remarks>
     public static OpenTelemetryBuilder WithAspNetCoreTelemetry(this OpenTelemetryBuilder builder)
-        => builder.ThrowIfNull().ThrowIfNull()
+        => builder.ThrowIfNull()
             .WithTracing(t => t.AddAspNetCoreInstrumentation().WithCoreExAspNetCoreSources())
             .WithMetrics(m => m.AddAspNetCoreInstrumentation());
 

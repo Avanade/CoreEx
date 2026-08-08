@@ -22,9 +22,18 @@ public class ServiceBusReceiverInvoker : InvokerBase<ServiceBusReceiverBase, ISe
             // Execute the function within the resiliency policy.
             var r = await caller.Options.ReceiverResiliency.ExecuteAsync<Result, (ServiceBusReceiverInvoker Self, InvokerTracer Tracer, ServiceBusReceiverBase Caller, IServiceBusMessageActions Args, Func <InvokerTracer, IServiceBusMessageActions, CancellationToken, Task<TResult>> Func)>(async static (ctx, state) =>
             {
-                // Should always return a Result and never an unhandled exception.
-                var tresult = await state.Self.BaseOnInvokeAsync(state.Tracer, state.Caller, state.Args, state.Func, ctx.CancellationToken).ConfigureAwait(false);
-                var result = Internal.Cast<TResult, Result>(tresult);
+                // Should always return a Result and never an unhandled exception; however, guard against it regardless, as the circuit-breaker's ShouldHandle predicate assumes a Result-typed outcome and
+                // cannot safely evaluate an exception-typed outcome (Polly's Outcome<T>.Result throws when the outcome represents an exception rather than a value).
+                Result result;
+                try
+                {
+                    var tresult = await state.Self.BaseOnInvokeAsync(state.Tracer, state.Caller, state.Args, state.Func, ctx.CancellationToken).ConfigureAwait(false);
+                    result = Internal.Cast<TResult, Result>(tresult);
+                }
+                catch (Exception ex)
+                {
+                    result = Result.Fail(ex);
+                }
 
                 if (result.IsFailure && result.Error is EventSubscriberUnhandledException)
                     await Task.Delay(state.Caller.Options.PerUnhandledErrorDelayDuration, ctx.CancellationToken).ConfigureAwait(false);

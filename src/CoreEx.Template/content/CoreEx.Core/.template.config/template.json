@@ -60,11 +60,11 @@
       "fileRename": "solution-name",
       "replaces": "solution-name"
     },
-    "app-name-lower": {
+    "app-name-kebab-case": {
       "type": "derived",
       "valueSource": "name",
-      "valueTransform": "LowerCase",
-      "replaces": "app-name-lower"
+      "valueTransform": "KebabCase",
+      "replaces": "app-name-kebab-case"
     },
     "date-now": {
       "type": "generated",
@@ -329,6 +329,15 @@
       "identifier": "replace",
       "pattern": "([a-z])([A-Z])", // insert hyphen at each lowercase→uppercase boundary (e.g. "ProductCatalog" → "Product-Catalog").
       "replacement": "$1-$2"
+    },
+    "DotToKebabCase": {
+      "identifier": "replace",
+      "pattern": "\\.", // replace every dot-delimiter with a hyphen (e.g. "Foo.Bar.App" → "Foo-Bar-App").
+      "replacement": "-"
+    },
+    "KebabCase": {
+      "identifier": "chain",
+      "steps": [ "DotToKebabCase", "PascalCaseToKebabCase", "LowerCase" ] // e.g. "Foo.BarApp" → "Foo-BarApp" → "Foo-Bar-App" → "foo-bar-app".
     },
     "PascalCaseToSnakeCase": {
       "identifier": "replace",

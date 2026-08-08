@@ -549,6 +549,12 @@ internal class ContractModel : CodeGenContext
         model.IsPartial = true;
         model.IsRefDataJson = !propertySymbol.GetAttributes().Any(a => a.AttributeClass?.ToDisplayString()?.StartsWith("System.Text.Json.Serialization.Json") ?? false);
 
+        var textArg = att.NamedArguments.FirstOrDefault(na => na.Key == "Text");
+        model.IsRefDataText = textArg.Value.Value is not bool textValue || textValue;
+
+        var textJsonArg = att.NamedArguments.FirstOrDefault(na => na.Key == "TextJsonName");
+        model.RefDataTextJsonName = textJsonArg.Value.Value as string;
+
         // Camelcase the property name for JSON serialization.
         model.JsonName ??= model.RefDataName!.Length == 1 ? model.RefDataName.ToLowerInvariant() : char.ToLower(model.RefDataName[0], CultureInfo.InvariantCulture) + model.RefDataName.Substring(1);
     }

@@ -2,6 +2,7 @@ using CloudNative.CloudEvents;
 using CloudNative.CloudEvents.Extensions;
 using CoreEx.Hosting;
 using CoreEx.Security;
+using System.Globalization;
 
 namespace CoreEx.Events.Test.Unit;
 
@@ -58,6 +59,41 @@ public class EventFormatterTests
     }
 
     [Test]
+    public void Format_TitleAndSource_CasingIsCultureInvariant()
+    {
+        // Regression: Title/Source casing must be deterministic regardless of the current thread/request culture -
+        // e.g. under tr-TR, "Invoice".ToLower() (culture-sensitive) produces "ınvoıce" (dotless ı), not "invoice".
+        var originalCulture = CultureInfo.CurrentCulture;
+        try
+        {
+            CultureInfo.CurrentCulture = new CultureInfo("tr-TR");
+
+            var ef = new EventFormatter { SourceBaseUri = new Uri("https://base/"), PartitionKeyIsRequired = false };
+            var ed = new EventData { DomainName = "dom", Entity = "Invoice", Action = "Created", TenantId = "Invoice" };
+
+            var result = ef.Format(ed);
+            result.Title.Should().Be("dom.invoice.created");
+            result.Source.Should().Be(new Uri("https://base/invoice"));
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = originalCulture;
+        }
+    }
+
+    [Test]
+    public void Format_Source_NoSourceBaseUri_WithTenantId_StaysNull()
+    {
+        // Regression: Uri.TryCreate(null, tenantId, out uri) succeeds by parsing tenantId as a relative URI, so
+        // Source must not be derived from TenantId alone when SourceBaseUri is not configured.
+        var ef = new EventFormatter { PartitionKeyIsRequired = false };
+        var ed = new EventData { DomainName = "dom", Entity = "ent", Action = "act", TenantId = "tenant" };
+
+        var result = ef.Format(ed);
+        result.Source.Should().BeNull();
+    }
+
+    [Test]
     public void Format_Title_From_HostSettings()
     {
         var hs = new HostSettings { SolutionName = "Coreex.Test", DomainName = "Dom", EnvironmentName = "Env" };
@@ -96,6 +132,19 @@ public class EventFormatterTests
         result.Entity.Should().Be("ent");
         result.Action.Should().Be("act");
         result.DataSchemaVersion.Should().BeNull();
+    }
+
+    [Test]
+    public void Parse_Title_PrefixWithoutDelimiter_ReturnsUnchanged()
+    {
+        // Regression: a title that merely starts with TitlePrefix (no '.' delimiter immediately after) must not be
+        // treated as a prefix match; e.g. TitlePrefix "pre" must not match "prefixed.dom.ent.act".
+        var ef = new EventFormatter { TitlePrefix = "pre" };
+        var ed = new EventData { Title = "prefixed.dom.ent.act" };
+        var result = ef.Parse(ed);
+        result.DomainName.Should().BeNull();
+        result.Entity.Should().BeNull();
+        result.Action.Should().BeNull();
     }
 
     [Test]

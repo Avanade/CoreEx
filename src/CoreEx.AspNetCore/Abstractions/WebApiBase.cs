@@ -49,7 +49,7 @@ public abstract class WebApiBase(JsonSerializerOptions? jsonSerializerOptions = 
     /// <summary>
     /// Indicates whether to convert a <see cref="NotFoundException"/> to the default <see cref="HttpStatusCode"/> on <see cref="HttpMethods.Delete"/>.
     /// </summary>
-    public bool ConvertNotfoundToDefaultStatusCodeOnDelete { get; } = true;
+    public bool ConvertNotfoundToDefaultStatusCodeOnDelete { get; set; } = true;
 
     /// <summary>
     /// Indicates whether to convert unhandled exceptions to <see cref="Microsoft.AspNetCore.Mvc.ProblemDetails"/>; otherwise, allow to bubble up for middleware to handle.
