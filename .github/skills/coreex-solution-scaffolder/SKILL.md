@@ -22,6 +22,7 @@ Guides a repository through the right CoreEx setup path by interviewing the user
 - Starting a new CoreEx domain or service from a repository that already contains only the bootstrap AI assets.
 - Deciding whether the first cut should create just the API host or also include the outbox relay and/or subscriber hosts.
 - Adding missing `Api`, `Relay`, or `Subscribe` hosts to an existing scaffolded CoreEx solution.
+- Adding an Aspire AppHost so a solution's hosts can be run and debugged together locally, with a dashboard.
 - Converting plain-English project needs into either the matching `dotnet new coreex*` commands or the safest retrofit path.
 
 ## When Not to Use
@@ -73,6 +74,7 @@ When the workspace does not already prove a value, preselect the safest default 
 | Reference data | `No` |
 | Domain layer | `No` |
 | Result/ROP style | `No` |
+| Aspire AppHost | `No` |
 
 Set outbox to `true` only when the user chose owned persistence and reliable publishing. Otherwise keep it `false`.
 
@@ -89,6 +91,7 @@ Set outbox to `true` only when the user chose owned persistence and reliable pub
 | "I need reference data." | `--refdata-enabled true` |
 | "I want a Domain layer." | Add `coreex-domain` addon after `coreex` |
 | "I want Result/ROP style pipelines." | `--rop-enabled true` |
+| "I want to run everything locally with one command / a dashboard." | Add `coreex-aspire` after all chosen hosts exist, with `--has-api`/`--has-relay`/`--has-subscribe` matching what was chosen |
 
 ## Prerequisite
 
@@ -106,7 +109,9 @@ Before this skill runs, the repository must already be in one of these states:
   - `coreex-api -n Company.Product.Domain.Api`
   - `coreex-relay -n Company.Product.Domain.Relay`
   - `coreex-subscribe -n Company.Product.Domain.Subscribe`
+  - `coreex-aspire -n Company.Product.Domain.Aspire`
 - Host templates **always require `-n`** — the folder name is the 3-part base and cannot supply the host suffix automatically.
+- `coreex-aspire` also always requires `--has-api`/`--has-relay`/`--has-subscribe` set explicitly to match whichever hosts this solution actually has — unlike the other host templates, there is no shared parameter it can derive this from.
 - Do not pass the 3-part base name to host templates; doing so causes all three hosts to emit into the same `src/Company.Product.Domain/` directory, overwriting each other.
 - If the user gives only a two-part name, ask for the missing segment before running any template.
 - If the repository already exists with a non-canonical root name (e.g., `Avanade.Books`), prefer a manual retrofit unless the user explicitly wants to rename the solution first.
@@ -128,6 +133,9 @@ dotnet new coreex-api        -n Avanade.Product.Books.Api        --data-provider
 dotnet new coreex-relay      -n Avanade.Product.Books.Relay      --data-provider SqlServer --messaging-provider ServiceBus
 dotnet new coreex-subscribe -n Avanade.Product.Books.Subscribe --data-provider SqlServer --messaging-provider ServiceBus --refdata-enabled true
 
+# Step 2a (optional): Add an Aspire AppHost for local orchestration, once the hosts above exist.
+dotnet new coreex-aspire -n Avanade.Product.Books.Aspire --has-api true --has-relay true --has-subscribe true
+
 # Step 3: Add host and test projects to the solution file.
 dotnet sln Avanade.Product.Books.slnx add src/Avanade.Product.Books.Api
 dotnet sln Avanade.Product.Books.slnx add tests/Avanade.Product.Books.Test.Api
@@ -135,6 +143,7 @@ dotnet sln Avanade.Product.Books.slnx add src/Avanade.Product.Books.Relay
 dotnet sln Avanade.Product.Books.slnx add tests/Avanade.Product.Books.Test.Relay
 dotnet sln Avanade.Product.Books.slnx add src/Avanade.Product.Books.Subscribe
 dotnet sln Avanade.Product.Books.slnx add tests/Avanade.Product.Books.Test.Subscribe
+dotnet sln Avanade.Product.Books.slnx add src/Avanade.Product.Books.Aspire
 
 # Step 4: Validate the generated solution.
 dotnet build Avanade.Product.Books.slnx
@@ -152,8 +161,11 @@ dotnet new coreex-domain     -n Company.Product.Domain          # optional: only
 dotnet new coreex-api        -n Company.Product.Domain.Api ...
 dotnet new coreex-relay      -n Company.Product.Domain.Relay ...
 dotnet new coreex-subscribe -n Company.Product.Domain.Subscribe ...
+dotnet new coreex-aspire    -n Company.Product.Domain.Aspire --has-api ... --has-relay ... --has-subscribe ...   # optional: only if the repo needs local orchestration
 # Then add new projects to the solution file as in Step 3 above.
 ```
+
+**Adding an AppHost that already exists:** if `coreex-aspire` output already exists and a new host is being added, do not re-run `coreex-aspire --force` — it will overwrite any customisation already made to `AppHost.cs`/`Extensions.cs`. Instead, add the missing `<ProjectReference>` and `builder.AddProject<...>(...)` line to the existing files by hand.
 
 ## Existing Repository Guardrails
 
@@ -209,5 +221,6 @@ dotnet new coreex-subscribe -n Company.Product.Domain.Subscribe ...
 | CoreEx API host | `coreex-api` | Adds an ASP.NET Core API host |
 | CoreEx Outbox Relay host | `coreex-relay` | Adds an outbox relay host |
 | CoreEx Subscriber host | `coreex-subscribe` | Adds an event subscriber host |
+| CoreEx Aspire AppHost | `coreex-aspire` | Adds an Aspire AppHost orchestrating this solution's own hosts — run after those hosts exist |
 
 

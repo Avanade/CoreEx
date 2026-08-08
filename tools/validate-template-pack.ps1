@@ -397,6 +397,90 @@ $testScenarios = @(
             )
         }
         Build      = $false  # add-on template; no standalone solution
+    },
+    # ---------------------------------------------------------------------
+    # Composite scenarios: scaffold `coreex` + one or more host templates into the
+    # SAME directory (unlike the isolated add-on scenarios above, which have no
+    # `coreex`-generated siblings to compile against and therefore can't set
+    # Build = $true). These are what actually catch a symbol-conditional bug — an
+    # unconditional `global using`/`ProjectReference` that should have been gated
+    # behind a symbol like `has-data-provider` or `implement-servicebus` only fails
+    # to compile once the host is built inside a real solution.
+    # ---------------------------------------------------------------------
+    @{
+        Name       = "coreex-api-none-data-provider-regression"
+        # Regression guard: --data-provider None + --refdata-enabled false used to leave
+        # `global using CoreEx.Database;` and `using solution-name.Infrastructure.Repositories;`
+        # unconditional in the Api host, even though neither the package nor the Repositories
+        # folder exist in this combination (CS0234 at build time).
+        Steps      = @(
+            @{ Template = "coreex"; Name = "App"; Parameters = @{ "data-provider" = "None"; "messaging-provider" = "None"; "refdata-enabled" = "false"; "outbox-enabled" = "false"; "rop-enabled" = "false" } }
+            @{ Template = "coreex-api"; Name = "App.Api"; Parameters = @{ "data-provider" = "None"; "refdata-enabled" = "false"; "outbox-enabled" = "false" } }
+        )
+        TestPath   = "test-api-none-regression"
+        Build      = $true
+        BuildTarget = "src/App.Api/App.Api.csproj"
+    },
+    @{
+        Name       = "coreex-subscribe-none-data-provider-regression"
+        # Same regression guard as above, plus: --messaging-provider None used to leave
+        # `global using CoreEx.Azure.Messaging.ServiceBus;` unconditional even though the
+        # backing package is only referenced when implement-servicebus is true.
+        Steps      = @(
+            @{ Template = "coreex"; Name = "App"; Parameters = @{ "data-provider" = "None"; "messaging-provider" = "None"; "refdata-enabled" = "false"; "outbox-enabled" = "false"; "rop-enabled" = "false" } }
+            @{ Template = "coreex-subscribe"; Name = "App.Subscribe"; Parameters = @{ "data-provider" = "None"; "messaging-provider" = "None"; "refdata-enabled" = "false" } }
+        )
+        TestPath   = "test-subscribe-none-regression"
+        Build      = $true
+        BuildTarget = "src/App.Subscribe/App.Subscribe.csproj"
+    },
+    @{
+        Name       = "coreex-aspire-full-stack"
+        Steps      = @(
+            @{ Template = "coreex"; Name = "App"; Parameters = @{ "data-provider" = "Postgres"; "messaging-provider" = "ServiceBus"; "refdata-enabled" = "true"; "outbox-enabled" = "true"; "rop-enabled" = "false" } }
+            @{ Template = "coreex-api"; Name = "App.Api"; Parameters = @{ "data-provider" = "Postgres"; "refdata-enabled" = "true"; "outbox-enabled" = "true" } }
+            @{ Template = "coreex-relay"; Name = "App.Relay"; Parameters = @{ "data-provider" = "Postgres"; "messaging-provider" = "ServiceBus" } }
+            @{ Template = "coreex-subscribe"; Name = "App.Subscribe"; Parameters = @{ "data-provider" = "Postgres"; "messaging-provider" = "ServiceBus"; "refdata-enabled" = "true" } }
+            @{ Template = "coreex-aspire"; Name = "App.Aspire"; Parameters = @{ "has-api" = "true"; "has-relay" = "true"; "has-subscribe" = "true" } }
+        )
+        TestPath   = "test-aspire-full-stack"
+        Verify     = @{
+            FilesPresent = @(
+                "src/App.Aspire/App.Aspire.csproj"
+                "src/App.Aspire/AppHost.cs"
+                "src/App.Aspire/Extensions.cs"
+            )
+            FileContains = @{
+                "src/App.Aspire/AppHost.cs" = "Projects.App_Api"
+            }
+        }
+        Build       = $true
+        BuildTarget = "src/App.Aspire/App.Aspire.csproj"  # building the AppHost transitively builds every host it references
+    },
+    @{
+        Name       = "coreex-aspire-api-only"
+        Steps      = @(
+            @{ Template = "coreex"; Name = "App"; Parameters = @{ "data-provider" = "SqlServer"; "messaging-provider" = "None"; "refdata-enabled" = "false"; "outbox-enabled" = "false"; "rop-enabled" = "false" } }
+            @{ Template = "coreex-api"; Name = "App.Api"; Parameters = @{ "data-provider" = "SqlServer"; "refdata-enabled" = "false"; "outbox-enabled" = "false" } }
+            @{ Template = "coreex-aspire"; Name = "App.Aspire"; Parameters = @{ "has-api" = "true"; "has-relay" = "false"; "has-subscribe" = "false" } }
+        )
+        TestPath   = "test-aspire-api-only"
+        Verify     = @{
+            FilesPresent    = @(
+                "src/App.Aspire/App.Aspire.csproj"
+            )
+            FileContains    = @{
+                "src/App.Aspire/AppHost.cs" = "Projects.App_Api"
+            }
+            FileNotContains = @{
+                # has-relay/has-subscribe are false — confirms the #if stripping actually drops
+                # the other hosts' AddProject calls and ProjectReferences, not just that has-api's survive.
+                "src/App.Aspire/AppHost.cs"          = "Projects.App_Relay"
+                "src/App.Aspire/App.Aspire.csproj"   = "App.Relay"
+            }
+        }
+        Build       = $true
+        BuildTarget = "src/App.Aspire/App.Aspire.csproj"
     }
 )
 
@@ -446,6 +530,22 @@ function Invoke-Assertion {
             } else {
                 Write-Fail "CONTENT NOT FOUND '$needle' in $rel"
                 $Failures.Value += "Expected '$needle' in $rel"
+            }
+        }
+    }
+
+    if ($Verify.FileNotContains) {
+        foreach ($rel in $Verify.FileNotContains.Keys) {
+            $full = Join-Path $TestDir $rel
+            $needle = $Verify.FileNotContains[$rel]
+            if (-not (Test-Path $full)) {
+                Write-Fail "MISSING (negative content check): $rel"
+                $Failures.Value += "File missing for negative content check: $rel"
+            } elseif (-not (Get-Content $full -Raw).Contains($needle)) {
+                Write-Pass "Absent content '$needle': $rel"
+            } else {
+                Write-Fail "CONTENT SHOULD NOT BE PRESENT '$needle' in $rel"
+                $Failures.Value += "Expected '$needle' absent from $rel"
             }
         }
     }
@@ -531,10 +631,15 @@ try {
     $failedScenarios = @()
 
     foreach ($scenario in $testScenarios) {
+        $isComposite = $null -ne $scenario.Steps
         Write-Output ""
-        Write-Output "▶ $($scenario.Name) ($($scenario.Template))"
-        if ($scenario.Parameters.Count -gt 0) {
-            Write-Output "  Params: $(($scenario.Parameters | ConvertTo-Json -Compress))"
+        if ($isComposite) {
+            Write-Output "▶ $($scenario.Name) ($(($scenario.Steps | ForEach-Object { $_.Template }) -join ' + '))"
+        } else {
+            Write-Output "▶ $($scenario.Name) ($($scenario.Template))"
+            if ($scenario.Parameters.Count -gt 0) {
+                Write-Output "  Params: $(($scenario.Parameters | ConvertTo-Json -Compress))"
+            }
         }
 
         $testDir = Join-Path $temporaryTestRoot $scenario.TestPath
@@ -548,15 +653,30 @@ try {
             New-Item -ItemType Directory -Path $testDir -Force | Out-Null
 
             # Scaffold
-            $projectName = if ($scenario.ProjectName) { $scenario.ProjectName } else { "App" }
-            $args = @("new", $scenario.Template, "--output", $testDir, "--name", $projectName, "--no-update-check")
-            foreach ($kv in $scenario.Parameters.GetEnumerator()) {
-                $args += "--$($kv.Key)"
-                if ($kv.Value -ne "") { $args += $kv.Value }
+            if ($isComposite) {
+                # Multiple templates into the SAME directory — e.g. `coreex` plus one or more hosts —
+                # so the later steps have real siblings to compile against (see the composite scenarios above).
+                foreach ($step in $scenario.Steps) {
+                    $args = @("new", $step.Template, "--output", $testDir, "--name", $step.Name, "--no-update-check")
+                    foreach ($kv in $step.Parameters.GetEnumerator()) {
+                        $args += "--$($kv.Key)"
+                        if ($kv.Value -ne "") { $args += $kv.Value }
+                    }
+                    Write-Verbose "dotnet $($args -join ' ')"
+                    & dotnet @args
+                    if ($LASTEXITCODE -ne 0) { throw "dotnet new failed for step '$($step.Template)'" }
+                }
+            } else {
+                $projectName = if ($scenario.ProjectName) { $scenario.ProjectName } else { "App" }
+                $args = @("new", $scenario.Template, "--output", $testDir, "--name", $projectName, "--no-update-check")
+                foreach ($kv in $scenario.Parameters.GetEnumerator()) {
+                    $args += "--$($kv.Key)"
+                    if ($kv.Value -ne "") { $args += $kv.Value }
+                }
+                Write-Verbose "dotnet $($args -join ' ')"
+                & dotnet @args
+                if ($LASTEXITCODE -ne 0) { throw "dotnet new failed" }
             }
-            Write-Verbose "dotnet $($args -join ' ')"
-            & dotnet @args
-            if ($LASTEXITCODE -ne 0) { throw "dotnet new failed" }
 
             # Assertions
             if ($scenario.Verify) {
@@ -582,10 +702,17 @@ try {
                 Set-Content -Path (Join-Path $testDir "nuget.config") -Value $nugetConfigContent -Encoding utf8
 
                 Write-Output "  Building generated output..."
-                $buildTarget = (Get-ChildItem $testDir -Filter "*.slnx" -Recurse | Select-Object -First 1)
-                if (-not $buildTarget) { $buildTarget = Get-ChildItem $testDir -Filter "*.sln" -Recurse | Select-Object -First 1 }
-                if (-not $buildTarget) { $buildTarget = Get-ChildItem $testDir -Filter "*.csproj" -Recurse | Select-Object -First 1 }
-                $buildPath = if ($buildTarget) { $buildTarget.FullName } else { $testDir }
+                if ($scenario.BuildTarget) {
+                    # Explicit target — required for composite scenarios: later steps (hosts) are never
+                    # `dotnet sln add`-ed to the first step's .slnx, so auto-detecting the .slnx would build
+                    # only the `coreex` solution's own projects and silently skip the host being tested.
+                    $buildPath = Join-Path $testDir $scenario.BuildTarget
+                } else {
+                    $buildTarget = (Get-ChildItem $testDir -Filter "*.slnx" -Recurse | Select-Object -First 1)
+                    if (-not $buildTarget) { $buildTarget = Get-ChildItem $testDir -Filter "*.sln" -Recurse | Select-Object -First 1 }
+                    if (-not $buildTarget) { $buildTarget = Get-ChildItem $testDir -Filter "*.csproj" -Recurse | Select-Object -First 1 }
+                    $buildPath = if ($buildTarget) { $buildTarget.FullName } else { $testDir }
+                }
                 dotnet build $buildPath --nologo --verbosity minimal 2>&1 | Where-Object { $_ -match "error|warning|succeeded|failed" }
                 if ($LASTEXITCODE -ne 0) {
                     $scenarioFailures += "dotnet build failed"

@@ -1,4 +1,6 @@
+// #if (has-data-provider || refdata-enabled)
 using solution-name.Infrastructure.Repositories;
+// #endif
 // #if implement-servicebus
 using CoreEx.Azure.Messaging.ServiceBus;
 // #endif

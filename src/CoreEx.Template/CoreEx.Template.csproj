@@ -14,6 +14,8 @@
     <Content Update="content/**/.template.config/template.json" Pack="false" />
     <!-- CoreEx.Domain has no COREEX_VERSION token — pack its template.json directly. -->
     <Content Update="content/CoreEx.Domain/.template.config/template.json" Pack="true" />
+    <!-- CoreEx.Aspire has no CoreEx NuGet package dependency and no COREEX_VERSION token — pack its template.json directly. -->
+    <Content Update="content/CoreEx.Aspire/.template.config/template.json" Pack="true" />
   </ItemGroup>
 
   <ItemGroup>

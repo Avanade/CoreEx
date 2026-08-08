@@ -1,10 +1,10 @@
 # CoreEx.Template
 
-> Provides the `dotnet new` template pack for scaffolding CoreEx-based domain microservice solutions -- six composable templates, one `dotnet new install`.
+> Provides the `dotnet new` template pack for scaffolding CoreEx-based domain microservice solutions -- seven composable templates, one `dotnet new install`.
 
 ## Overview
 
-`CoreEx.Template` is a `PackageType=Template` NuGet package that installs six `dotnet new` templates as a single unit. Together they cover AI workflow assets, the full project topology for a CoreEx domain-based microservice (shared solution core plus independently deployable host processes), and an optional domain layer.
+`CoreEx.Template` is a `PackageType=Template` NuGet package that installs seven `dotnet new` templates as a single unit. Together they cover AI workflow assets, the full project topology for a CoreEx domain-based microservice (shared solution core plus independently deployable host processes), an optional domain layer, and an optional Aspire AppHost for local orchestration.
 
 | Short name | Template | Emits |
 |---|---|---|
@@ -14,6 +14,7 @@
 | `coreex-api` | CoreEx API host | `src/[name].Api/` host project + `tests/[solution].Test.Api/` integration test project |
 | `coreex-relay` | CoreEx Outbox Relay host | `src/[name].Relay/` host project + `tests/[solution].Test.Relay/` integration test project |
 | `coreex-subscribe` | CoreEx Subscriber host | `src/[name].Subscribe/` host project + `tests/[solution].Test.Subscribe/` integration test project |
+| `coreex-aspire` | CoreEx Aspire AppHost | `src/[name].Aspire/` AppHost project orchestrating this solution's own hosts — add-on, run after the hosts it references already exist |
 
 Parameters are consistent across templates -- the same `--data-provider`, `--messaging-provider`, and feature flags appear in every template that needs them, ensuring the generated code is coherent regardless of which templates you use.
 
@@ -80,7 +81,7 @@ dotnet new coreex-ai
 /coreex-bootstrap
 ```
 
-Then answer the `/coreex-scaffold` questions. The workflow derives the required `coreex`, `coreex-domain` (optional), `coreex-api`, `coreex-relay`, and `coreex-subscribe` commands.
+Then answer the `/coreex-scaffold` questions. The workflow derives the required `coreex`, `coreex-domain` (optional), `coreex-api`, `coreex-relay`, `coreex-subscribe`, and `coreex-aspire` (optional) commands.
 
 ---
 
@@ -539,6 +540,64 @@ dotnet new coreex-subscribe -n Avanade.Erp.Sales.Subscribe --data-provider None
 
 ---
 
+## Template 7 -- `coreex-aspire` (Aspire AppHost)
+
+Scaffolds a .NET Aspire AppHost project that orchestrates this solution's own `Api`/`Relay`/`Subscribe` hosts for local development, plus an `Extensions.cs` providing dashboard sugar (health-check deep links, and "Pause all services"/"Resume all services" buttons for hosts running CoreEx hosted services).
+
+Run this from the **solution root**, after the host projects it will reference already exist. Unlike `coreex-api`/`coreex-relay`/`coreex-subscribe`, host inclusion is not derived from a shared `coreex` parameter -- pass `--has-api`/`--has-relay`/`--has-subscribe` explicitly to match whichever hosts this solution actually has.
+
+> **Note:** If a new host is added to the solution *after* `coreex-aspire` has already been run, don't re-run it with `--force` -- that would overwrite any customisation already made to `AppHost.cs`/`Extensions.cs`. Add the missing `<ProjectReference>` and `builder.AddProject<...>(...)` line by hand instead.
+
+### Parameters
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `-n` / `--name` | string | _(required)_ | Full project name, e.g. `Avanade.Erp.Sales.Aspire`. |
+| `--has-api` | bool | `true` | Include a project reference and `AddProject<...>` call for this solution's `Api` host. |
+| `--has-relay` | bool | `false` | Include a project reference and `AddProject<...>` call for this solution's `Relay` host. |
+| `--has-subscribe` | bool | `false` | Include a project reference and `AddProject<...>` call for this solution's `Subscribe` host. |
+
+### Output
+
+```
+src/
+  [name].Aspire/
+    [name].Aspire.csproj
+    AppHost.cs
+    Extensions.cs
+    appsettings.json
+    appsettings.Development.json
+    Properties/launchSettings.json
+    AGENTS.md
+```
+
+**`AppHost.cs`** (illustrative, all three hosts included):
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+// Sales domain.
+builder.AddProject<Projects.Avanade_Erp_Sales_Api>("sales-api").AddEndpoints("/health/ready/detailed");
+builder.AddProject<Projects.Avanade_Erp_Sales_Relay>("sales-relay").AddEndpoints("/health/ready/detailed").AddHostedServiceSupport();
+builder.AddProject<Projects.Avanade_Erp_Sales_Subscribe>("sales-subscribe").AddEndpoints("/health/ready/detailed").AddHostedServiceSupport();
+
+builder.Build().Run();
+```
+
+### Examples
+
+API only:
+```sh
+dotnet new coreex-aspire -n Avanade.Erp.Sales.Aspire --has-api true
+```
+
+Full event-driven (API + Relay + Subscribe):
+```sh
+dotnet new coreex-aspire -n Avanade.Erp.Sales.Aspire --has-api true --has-relay true --has-subscribe true
+```
+
+---
+
 ## Typical Workflow
 
 These templates are independent -- use only the ones your solution needs (an optional `coreex-domain` add-on can be scaffolded after Step 1 when DDD complexity warrants it; see the `coreex-domain` template above). The following shows a full event-driven microservice topology:
@@ -576,6 +635,15 @@ dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Subscribe
 dotnet sln Avanade.Erp.Sales.slnx add tests/Avanade.Erp.Sales.Test.Subscribe
 ```
 
+### Step 4 -- Add an Aspire AppHost (optional)
+
+Once the hosts above exist, optionally scaffold an AppHost for local orchestration:
+
+```sh
+dotnet new coreex-aspire -n Avanade.Erp.Sales.Aspire --has-api true --has-relay true --has-subscribe true
+dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Aspire
+```
+
 ### Resulting directory structure
 
 ```
@@ -589,6 +657,7 @@ Avanade.Erp.Sales/
     Avanade.Erp.Sales.Api/
     Avanade.Erp.Sales.Relay/
     Avanade.Erp.Sales.Subscribe/
+    Avanade.Erp.Sales.Aspire/
   tools/
     Avanade.Erp.Sales.Database/
     Avanade.Erp.Sales.CodeGen/
@@ -613,6 +682,7 @@ dotnet new coreex            -n Avanade.Erp.Sales
 dotnet new coreex-api        -n Avanade.Erp.Sales.Api
 dotnet new coreex-relay      -n Avanade.Erp.Sales.Relay
 dotnet new coreex-subscribe -n Avanade.Erp.Sales.Subscribe
+dotnet new coreex-aspire     -n Avanade.Erp.Sales.Aspire --has-api true --has-relay true --has-subscribe true
 ```
 
 ### PostgreSQL variant
@@ -649,17 +719,23 @@ dotnet new coreex-subscribe -n Avanade.Erp.Sales.Subscribe
 
 ## Package Design Notes
 
-**Single install, five project-scaffolding templates.** All five ship inside the same NuGet package as `coreex-ai` (`PackageType=Template`). A single `dotnet new install CoreEx.Template` makes all short names available: `coreex`, `coreex-domain`, `coreex-api`, `coreex-relay`, and `coreex-subscribe`.
+**Single install, six project-scaffolding templates.** All six ship inside the same NuGet package as `coreex-ai` (`PackageType=Template`). A single `dotnet new install CoreEx.Template` makes all short names available: `coreex`, `coreex-domain`, `coreex-api`, `coreex-relay`, `coreex-subscribe`, and `coreex-aspire`.
 
-**Version stamping.** Each `template.json` carries `COREEX_VERSION` as a placeholder. During `dotnet pack`, an inline MSBuild `ReplaceTextInFile` task stamps the actual `$(Version)` into generated copies of the five `template.json` files (`CoreEx.Ai`, `CoreEx.Core`, `CoreEx.Api`, `CoreEx.Relay`, `CoreEx.Subscribe`) before they are packed. The source copies in `content/` retain the placeholder and remain editable. `CoreEx.Domain`'s `template.json` has no `COREEX_VERSION` token and is packed directly, unstamped.
+**Version stamping.** Each `template.json` carries `COREEX_VERSION` as a placeholder. During `dotnet pack`, an inline MSBuild `ReplaceTextInFile` task stamps the actual `$(Version)` into generated copies of the five `template.json` files (`CoreEx.Ai`, `CoreEx.Core`, `CoreEx.Api`, `CoreEx.Relay`, `CoreEx.Subscribe`) before they are packed. The source copies in `content/` retain the placeholder and remain editable. `CoreEx.Domain` and `CoreEx.Aspire` have no `COREEX_VERSION` token (neither depends on a CoreEx NuGet package) and are packed directly, unstamped.
 
-**Central Package Management.** All `PackageReference` entries in generated projects carry no `Version` attribute -- versions are resolved from the `Directory.Packages.props` emitted by the `coreex` solution template. The host templates therefore require that the `coreex` solution template has been applied first (since `Directory.Packages.props` lives at the solution root).
+**Central Package Management.** All `PackageReference` entries in generated projects carry no `Version` attribute -- versions are resolved from the `Directory.Packages.props` emitted by the `coreex` solution template. The host templates therefore require that the `coreex` solution template has been applied first (since `Directory.Packages.props` lives at the solution root). `coreex-aspire` is the one exception: its single extra package (the `MessagePack` CVE override) uses a per-project `VersionOverride` instead, since it is designed to be run standalone without requiring a `Directory.Packages.props` update.
 
 **Conditional file exclusion.** The template engine's `sources.modifiers` with glob patterns handle all conditional file output -- no empty placeholder files are emitted. The `.slnx` solution file uses `specialCustomOperations` to enable `<!--#if-->` XML-style conditionals (the template engine does not recognise `.slnx` as XML by default).
 
-**`preferNameDirectory`.** All five project-scaffolding templates set `preferNameDirectory: false` so they generate into the current directory rather than creating an extra named subdirectory. The solution template generates its content directly into the current directory. Host templates (and the `coreex-domain` add-on) generate their content into `src/[ProjectName]/` (and `tests/[solution-name].Test.X/` for hosts) subdirectories, which are created by the template itself as part of the source layout -- not by the `preferNameDirectory` mechanism.
+**`preferNameDirectory`.** All six project-scaffolding templates set `preferNameDirectory: false` so they generate into the current directory rather than creating an extra named subdirectory. The solution template generates its content directly into the current directory. Host templates (and the `coreex-domain`/`coreex-aspire` add-ons) generate their content into `src/[ProjectName]/` (and `tests/[solution-name].Test.X/` for hosts) subdirectories, which are created by the template itself as part of the source layout -- not by the `preferNameDirectory` mechanism.
 
 **`solution-name` file renaming.** The `solution-name` derived symbol (everything before the last dot-segment of the `-n` value) carries `fileRename: "solution-name"` in all host templates. This causes directory names like `solution-name.Test.Api` to be substituted at generation time, producing correctly-named test project folders (e.g. `Avanade.Erp.Sales.Test.Api`) that match the CoreEx sample naming convention.
+
+## Validating Template Changes
+
+`dotnet build`/`dotnet test` on `CoreEx.sln` never compiles anything under `content/` -- it's raw `dotnet new` template source, not a C# project. A change to a host's `Program.cs`, `GlobalUsing.cs`, `.csproj`, or a `template.json` symbol is only proven correct by actually scaffolding it and building the result. Run [`../../tools/validate-template-pack.ps1`](../../tools/validate-template-pack.ps1) (also run in CI) -- it packs and installs the template, scaffolds every parameter combination in its `$testScenarios` array into temp directories, asserts expected file presence/content, and `dotnet build`s the scenarios flagged `Build = $true`.
+
+When adding a template, a host, or a new parameter, add a matching scenario. Most existing host-template scenarios (`coreex-api-*`, `coreex-relay-*`, `coreex-subscribe-*`) scaffold in isolation and set `Build = $false` because they have no `coreex`-generated siblings to compile against -- so a symbol-conditional bug (an unconditional `global using`/`ProjectReference` that should have been gated behind `has-data-provider`, `implement-servicebus`, etc.) will only be caught by a scenario that scaffolds `coreex` plus the host together in the same directory and builds the host's own `.csproj`.
 
 ## Additional Resources
 

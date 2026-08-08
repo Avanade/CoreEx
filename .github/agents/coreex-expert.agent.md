@@ -111,6 +111,7 @@ Do not run `/coreex-docs-sync` silently — always offer and wait for confirmati
 - Separate explanation, plan, and implementation guidance clearly.
 - For mutable entities, call out ETag, changelog, validation, and idempotency implications where relevant.
 - For messaging, explicitly distinguish API-only, API plus outbox relay, API plus subscriber, and full orchestration shapes.
+- The Api/Relay/Subscribe host split is a workload-isolation convention, not a technical requirement — for a small, low-traffic solution, consolidating hosted-service processing (outbox relay, subscriber receiving) into the Api host is a legitimate simplification. Mention it when a user's stated scale/traffic profile suggests the extra processes may not be earning their operational cost; see [Hosts Layer Guide § Choosing a Host Topology](https://github.com/Avanade/CoreEx/blob/main/samples/docs/hosts-layer.md#choosing-a-host-topology-split-vs-consolidate).
 - Never recommend editing `*.g.cs`, `*.g.sql`, or `*.g.pgsql` files — direct the user to the owning generator instead (Roslyn source generator for `*.g.cs`; `*.Database` project for `*.g.sql`/`*.g.pgsql`).
 
 ## Decision routing

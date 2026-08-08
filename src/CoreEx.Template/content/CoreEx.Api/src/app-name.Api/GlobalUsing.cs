@@ -1,7 +1,9 @@
 global using CoreEx;
 global using CoreEx.AspNetCore.Mvc;
 global using CoreEx.Caching;
+// #if has-data-provider
 global using CoreEx.Database;
+// #endif
 // #if implement-sqlserver
 global using CoreEx.Database.SqlServer;
 // #elif implement-postgres

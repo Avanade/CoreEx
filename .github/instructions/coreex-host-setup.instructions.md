@@ -16,6 +16,8 @@ tags: ["program-cs", "host-setup", "middleware", "dependency-registration", "cac
 
 The host is a **composition root only** — no business logic. There are three host types in a CoreEx solution depending on the capabilities required. Each follows the same opening skeleton, then diverges based on its responsibilities.
 
+> **Split vs. consolidate:** Api/Relay/Subscribe as separate processes is a workload-isolation convention, not a technical requirement — see [Hosts Layer Guide § Choosing a Host Topology](/.github/docs/coreex/hosts-layer.md#choosing-a-host-topology-split-vs-consolidate) before assuming a small/low-traffic solution needs all three.
+
 > **Related skill:** to scaffold a solution or an additional host (Api / Subscribe / Relay), invoke the [`coreex-solution-scaffolder`](/.github/skills/coreex-solution-scaffolder/SKILL.md) skill.
 > This file holds the invariants that must hold on **any** edit to a host `Program.cs`; the skill drives the
 > step-by-step **creation** procedure. (The per-host "Scaffolding an … host" blocks below stay here — they carry the

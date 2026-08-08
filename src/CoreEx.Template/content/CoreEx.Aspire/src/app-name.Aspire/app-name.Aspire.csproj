@@ -1,0 +1,25 @@
+<Project Sdk="Aspire.AppHost.Sdk/13.4.6">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <!-- Vulnerability override: MessagePack (transitive via Aspire) has had multiple CVEs on older versions. -->
+  <ItemGroup>
+    <PackageReference Include="MessagePack" VersionOverride="2.5.302" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--#if has-api-->
+    <ProjectReference Include="..\solution-name.Api\solution-name.Api.csproj" />
+    <!--#endif-->
+    <!--#if has-relay-->
+    <ProjectReference Include="..\solution-name.Relay\solution-name.Relay.csproj" />
+    <!--#endif-->
+    <!--#if has-subscribe-->
+    <ProjectReference Include="..\solution-name.Subscribe\solution-name.Subscribe.csproj" />
+    <!--#endif-->
+  </ItemGroup>
+</Project>

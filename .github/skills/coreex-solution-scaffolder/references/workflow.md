@@ -47,6 +47,7 @@ Use these defaults when the workspace does not already prove the answer:
 | Reference data | `No` |
 | Domain layer | `No` |
 | Result/ROP style | `No` |
+| Aspire AppHost | `No` |
 
 Derive `outbox-enabled` after the interview. Default it to `false` unless the user chose owned persistence and reliable publishing.
 
@@ -260,6 +261,26 @@ Interpretation:
 
 Default: `No`.
 
+### 11. Aspire AppHost
+
+Ask this only after the HTTP API / publishing / consumption questions above are answered, so the required hosts are already known.
+
+Ask:
+
+> Do you want a .NET Aspire AppHost for running and debugging this solution's hosts together locally, with a dashboard?
+
+Recommended options:
+
+- `Yes`
+- `No`
+
+Interpretation:
+
+- `Yes` means run `dotnet new coreex-aspire -n Company.Product.Domain.Aspire` after every chosen host template, passing `--has-api`/`--has-relay`/`--has-subscribe` to match the hosts chosen in questions 3-5.
+- `No` means skip `coreex-aspire` entirely.
+
+Default: `No`.
+
 ## Phase 3: Translate Answers Into Inputs
 
 Build a structured decision summary before any command is run.
@@ -277,6 +298,7 @@ Build a structured decision summary before any command is run.
 | Reference data needed | `--refdata-enabled true` |
 | Domain layer needed | `dotnet new coreex-domain -n Company.Product.Domain` + `dotnet sln Company.Product.Domain.slnx add src/Company.Product.Domain.Domain` + `dotnet add src/Company.Product.Domain.Application/Company.Product.Domain.Application.csproj reference src/Company.Product.Domain.Domain/Company.Product.Domain.Domain.csproj` (Application must reference Domain directly -- nothing else wires this) |
 | Result/ROP style needed | `--rop-enabled true` |
+| Aspire AppHost needed | `dotnet new coreex-aspire -n Company.Product.Domain.Aspire --has-api <bool> --has-relay <bool> --has-subscribe <bool>`, where each `--has-*` flag mirrors whether that host was chosen in questions 3-5 -- run this last, after every chosen host template |
 
 If the user is retrofitting an existing solution, only include flags that are required for missing projects or that the user explicitly asked to change.
 
@@ -284,7 +306,7 @@ If the user is retrofitting an existing solution, only include flags that are re
 
 Before any real template command, summarize the inputs in plain English. Use a compact confirmation like this:
 
-> Here is the shape I derived: base name `Avanade.Product.Books`, new domain, API yes, relay yes, subscriber no, SQL Server, Service Bus, reference data yes, Domain layer no, ROP no. I will dry-run the matching `dotnet new` commands next.
+> Here is the shape I derived: base name `Avanade.Product.Books`, new domain, API yes, relay yes, subscriber no, SQL Server, Service Bus, reference data yes, Domain layer no, ROP no, Aspire AppHost no. I will dry-run the matching `dotnet new` commands next.
 
 If anything in that summary is uncertain, ask for confirmation before proceeding.
 State that the workflow will finish by wiring projects into the solution and running build/test validation.
@@ -297,8 +319,13 @@ State that the workflow will finish by wiring projects into the solution and run
 4. Stop if the dry-run shows nested root folders, incorrect host names, or a layout that conflicts with the existing repo.
 5. For bootstrap-only repos, run `coreex` first (omit `-n` when the folder name matches), then add each needed host template with the **4-part name** (`base.Api`, `base.Relay`, `base.Subscribe`).
 6. For retrofit work, add only the missing hosts unless the user explicitly asked for broader reshaping.
-7. After generating all host templates, run `dotnet sln` to add every new host project and its test project to the `.slnx` solution file.
-8. Verify that each expected generated host and test project exists on disk before moving to validation.
+7. If an Aspire AppHost was requested, run `coreex-aspire` last, after every chosen host template has already been generated -- its `--has-*` flags and generated `Projects.*` references depend on those hosts already existing.
+8. After generating all host templates (and the AppHost, if requested), run `dotnet sln` to add every new host project and its test project to the `.slnx` solution file.
+9. Verify that each expected generated host and test project exists on disk before moving to validation.
+
+### Adding a host to a solution that already has an AppHost
+
+If `coreex-aspire` has already been run and a new host is added afterward, do not re-run `coreex-aspire --force` -- it would overwrite any customisation already made to `AppHost.cs`/`Extensions.cs`. Instead, add the missing `<ProjectReference>` in the AppHost's `.csproj` and the matching `builder.AddProject<...>(...)` line in `AppHost.cs` by hand, following the pattern already used for the other hosts there.
 
 ### Critical naming rule for host templates
 
@@ -398,6 +425,7 @@ dotnet new coreex --data-provider SqlServer --messaging-provider ServiceBus --re
 dotnet new coreex-api        -n Avanade.Erp.Sales.Api        --data-provider SqlServer --refdata-enabled true --outbox-enabled true
 dotnet new coreex-relay      -n Avanade.Erp.Sales.Relay      --data-provider SqlServer --messaging-provider ServiceBus
 dotnet new coreex-subscribe -n Avanade.Erp.Sales.Subscribe --data-provider SqlServer --messaging-provider ServiceBus --refdata-enabled true
+dotnet new coreex-aspire     -n Avanade.Erp.Sales.Aspire     --has-api true --has-relay true --has-subscribe true
 
 dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Api
 dotnet sln Avanade.Erp.Sales.slnx add tests/Avanade.Erp.Sales.Test.Api
@@ -405,6 +433,7 @@ dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Relay
 dotnet sln Avanade.Erp.Sales.slnx add tests/Avanade.Erp.Sales.Test.Relay
 dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Subscribe
 dotnet sln Avanade.Erp.Sales.slnx add tests/Avanade.Erp.Sales.Test.Subscribe
+dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Aspire
 
 dotnet build Avanade.Erp.Sales.slnx
 dotnet test tests/Avanade.Erp.Sales.Test.Unit

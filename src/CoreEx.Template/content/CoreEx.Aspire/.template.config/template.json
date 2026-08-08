@@ -1,0 +1,311 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "https://github.com/avanade/coreex",
+  "classifications": [ "CoreEx", "Microservice", "Aspire" ],
+  "identity": "CoreEx.Aspire",
+  "name": "CoreEx Aspire AppHost",
+  "description": "A .NET Aspire AppHost project that orchestrates this solution's own Api/Relay/Subscribe hosts for local development. Run after the host projects it references already exist — wire into the solution via dotnet sln add.",
+  "shortName": "coreex-aspire",
+  "tags": {
+    "language": "C#",
+    "type": "project"
+  },
+  "sourceName": "app-name.Aspire",
+  "preferNameDirectory": false,
+  "symbols": {
+    "domain-name": {
+      "type": "derived",
+      "valueSource": "name",
+      "valueTransform": "ValueSecondToLastDotDelimited",
+      "fileRename": "domain-name",
+      "replaces": "domain-name"
+    },
+    "solution-name": {
+      "type": "derived",
+      "valueSource": "name",
+      "valueTransform": "ValueWithoutLastDotDelimited",
+      "fileRename": "solution-name",
+      "replaces": "solution-name"
+    },
+    "solution-name-underscore": {
+      "type": "derived",
+      "valueSource": "name",
+      "valueTransform": "SolutionNameUnderscore",
+      "replaces": "solution-name-underscore"
+    },
+    "solution-parent-name": {
+      "type": "derived",
+      "valueSource": "name",
+      "valueTransform": "ValueWithoutLastTwoDotDelimited",
+      "replaces": "solution-parent-name"
+    },
+    "domain-name-lower": {
+      "type": "derived",
+      "valueSource": "name",
+      "valueTransform": "ValueSecondToLastDotDelimitedLower",
+      "replaces": "domain-name-lower"
+    },
+    "domain-parent-lower": {
+      "type": "derived",
+      "valueSource": "name",
+      "valueTransform": "DomainParentLower",
+      "replaces": "domain-parent-lower"
+    },
+    "has-api": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "true",
+      "displayName": "Has API host",
+      "description": "Indicates this solution already has (or will have) an Api host to orchestrate."
+    },
+    "has-relay": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "false",
+      "displayName": "Has Relay host",
+      "description": "Indicates this solution already has (or will have) a Relay host to orchestrate."
+    },
+    "has-subscribe": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "false",
+      "displayName": "Has Subscribe host",
+      "description": "Indicates this solution already has (or will have) a Subscribe host to orchestrate."
+    },
+    "appHttpPort": {
+      "type": "parameter",
+      "datatype": "integer",
+      "description": "Port number to use for the AppHost's HTTP endpoint in launchSettings.json."
+    },
+    "appHttpPortGenerated": {
+      "type": "generated",
+      "generator": "port",
+      "parameters": { "low": 15000, "high": 15299 }
+    },
+    "appHttpPortReplacer": {
+      "type": "generated",
+      "generator": "coalesce",
+      "parameters": {
+        "sourceVariableName": "appHttpPort",
+        "fallbackVariableName": "appHttpPortGenerated"
+      },
+      "replaces": "15174"
+    },
+    "appHttpsPort": {
+      "type": "parameter",
+      "datatype": "integer",
+      "description": "Port number to use for the AppHost's HTTPS endpoint in launchSettings.json."
+    },
+    "appHttpsPortGenerated": {
+      "type": "generated",
+      "generator": "port",
+      "parameters": { "low": 17000, "high": 17299 }
+    },
+    "appHttpsPortReplacer": {
+      "type": "generated",
+      "generator": "coalesce",
+      "parameters": {
+        "sourceVariableName": "appHttpsPort",
+        "fallbackVariableName": "appHttpsPortGenerated"
+      },
+      "replaces": "17226"
+    },
+    "otlpHttpPort": {
+      "type": "parameter",
+      "datatype": "integer",
+      "description": "Port number to use for the Aspire dashboard's OTLP endpoint (HTTP profile) in launchSettings.json."
+    },
+    "otlpHttpPortGenerated": {
+      "type": "generated",
+      "generator": "port",
+      "parameters": { "low": 19000, "high": 19299 }
+    },
+    "otlpHttpPortReplacer": {
+      "type": "generated",
+      "generator": "coalesce",
+      "parameters": {
+        "sourceVariableName": "otlpHttpPort",
+        "fallbackVariableName": "otlpHttpPortGenerated"
+      },
+      "replaces": "19089"
+    },
+    "otlpHttpsPort": {
+      "type": "parameter",
+      "datatype": "integer",
+      "description": "Port number to use for the Aspire dashboard's OTLP endpoint (HTTPS profile) in launchSettings.json."
+    },
+    "otlpHttpsPortGenerated": {
+      "type": "generated",
+      "generator": "port",
+      "parameters": { "low": 21000, "high": 21299 }
+    },
+    "otlpHttpsPortReplacer": {
+      "type": "generated",
+      "generator": "coalesce",
+      "parameters": {
+        "sourceVariableName": "otlpHttpsPort",
+        "fallbackVariableName": "otlpHttpsPortGenerated"
+      },
+      "replaces": "21089"
+    },
+    "mcpHttpPort": {
+      "type": "parameter",
+      "datatype": "integer",
+      "description": "Port number to use for the Aspire dashboard's MCP endpoint (HTTP profile) in launchSettings.json."
+    },
+    "mcpHttpPortGenerated": {
+      "type": "generated",
+      "generator": "port",
+      "parameters": { "low": 18000, "high": 18299 }
+    },
+    "mcpHttpPortReplacer": {
+      "type": "generated",
+      "generator": "coalesce",
+      "parameters": {
+        "sourceVariableName": "mcpHttpPort",
+        "fallbackVariableName": "mcpHttpPortGenerated"
+      },
+      "replaces": "18153"
+    },
+    "mcpHttpsPort": {
+      "type": "parameter",
+      "datatype": "integer",
+      "description": "Port number to use for the Aspire dashboard's MCP endpoint (HTTPS profile) in launchSettings.json."
+    },
+    "mcpHttpsPortGenerated": {
+      "type": "generated",
+      "generator": "port",
+      "parameters": { "low": 22000, "high": 22299 }
+    },
+    "mcpHttpsPortReplacer": {
+      "type": "generated",
+      "generator": "coalesce",
+      "parameters": {
+        "sourceVariableName": "mcpHttpsPort",
+        "fallbackVariableName": "mcpHttpsPortGenerated"
+      },
+      "replaces": "22089"
+    },
+    "resourceServiceHttpPort": {
+      "type": "parameter",
+      "datatype": "integer",
+      "description": "Port number to use for the Aspire dashboard's resource-service endpoint (HTTP profile) in launchSettings.json."
+    },
+    "resourceServiceHttpPortGenerated": {
+      "type": "generated",
+      "generator": "port",
+      "parameters": { "low": 23000, "high": 23299 }
+    },
+    "resourceServiceHttpPortReplacer": {
+      "type": "generated",
+      "generator": "coalesce",
+      "parameters": {
+        "sourceVariableName": "resourceServiceHttpPort",
+        "fallbackVariableName": "resourceServiceHttpPortGenerated"
+      },
+      "replaces": "23090"
+    },
+    "resourceServiceHttpsPort": {
+      "type": "parameter",
+      "datatype": "integer",
+      "description": "Port number to use for the Aspire dashboard's resource-service endpoint (HTTPS profile) in launchSettings.json."
+    },
+    "resourceServiceHttpsPortGenerated": {
+      "type": "generated",
+      "generator": "port",
+      "parameters": { "low": 20000, "high": 20299 }
+    },
+    "resourceServiceHttpsPortReplacer": {
+      "type": "generated",
+      "generator": "coalesce",
+      "parameters": {
+        "sourceVariableName": "resourceServiceHttpsPort",
+        "fallbackVariableName": "resourceServiceHttpsPortGenerated"
+      },
+      "replaces": "20089"
+    }
+  },
+  "specialCustomOperations": {
+    "*.md": {
+      "operations": [
+        {
+          "type": "conditional",
+          "configuration": {
+            "actionableIf": [ "<!-- #if" ],
+            "actionableElse": [ "<!-- #else" ],
+            "actionableElseif": [ "<!-- #elseif", "<!-- #elif" ],
+            "endif": [ "<!-- #endif" ],
+            "trim": true,
+            "wholeLine": true
+          }
+        }
+      ]
+    },
+    "*.csproj": {
+      "operations": [
+        {
+          "type": "conditional",
+          "configuration": {
+            "actionableIf": [ "<!--#if" ],
+            "actionableElse": [ "<!--#else" ],
+            "actionableElseif": [ "<!--#elseif", "<!--#elif" ],
+            "endif": [ "<!--#endif" ],
+            "trim": true,
+            "wholeLine": true
+          }
+        }
+      ]
+    },
+    "*.cs": {
+      "operations": [
+        {
+          "type": "conditional",
+          "configuration": {
+            "actionableIf": [ "// #if" ],
+            "actionableElse": [ "// #else" ],
+            "actionableElseif": [ "// #elseif", "// #elif" ],
+            "endif": [ "// #endif" ],
+            "trim": true,
+            "wholeLine": true
+          }
+        }
+      ]
+    }
+  },
+  "forms": {
+    "ValueSecondToLastDotDelimited": {
+      "identifier": "replace",
+      "pattern": "^(?:.*\\.)?([^.]+)\\.[^.]+$",
+      "replacement": "$1"
+    },
+    "ValueWithoutLastDotDelimited": {
+      "identifier": "replace",
+      "pattern": "^(.*)\\.([^\\.]+)$",
+      "replacement": "$1"
+    },
+    "LowerCase": {
+      "identifier": "lowerCase"
+    },
+    "ValueSecondToLastDotDelimitedLower": {
+      "identifier": "chain",
+      "steps": [ "ValueSecondToLastDotDelimited", "LowerCase" ]
+    },
+    "ValueWithoutLastTwoDotDelimited": {
+      "identifier": "chain",
+      "steps": [ "ValueWithoutLastDotDelimited", "ValueWithoutLastDotDelimited" ]
+    },
+    "DomainParentLower": {
+      "identifier": "chain",
+      "steps": [ "ValueWithoutLastDotDelimited", "ValueSecondToLastDotDelimited", "LowerCase" ]
+    },
+    "UnderscoreDots": {
+      "identifier": "replace",
+      "pattern": "\\.",
+      "replacement": "_"
+    },
+    "SolutionNameUnderscore": {
+      "identifier": "chain",
+      "steps": [ "ValueWithoutLastDotDelimited", "UnderscoreDots" ]
+    }
+  }
+}
