@@ -199,6 +199,8 @@ $testScenarios = @(
                 "tools/Contoso.ProductCatalog.Database/dbex.yaml"               = "schema: product_catalog"
                 "tools/Contoso.ProductCatalog.Database/Program.cs"              = '"product_catalog"'
                 "tools/Contoso.ProductCatalog.Database/Data/ref-data.seed.yaml" = "product_catalog:"
+                # docker-compose project names reject dots (e.g. podman) - must be fully kebab-case, not just lower-cased.
+                "docker-compose.yml"                                            = "name: contoso-product-catalog"
             }
             GlobFileContains = @{
                 "tools/Contoso.ProductCatalog.Database/Migrations/*-create-product-catalog-schema.pgsql"        = '"product_catalog"'
@@ -228,6 +230,8 @@ $testScenarios = @(
             FileContains     = @{
                 "tools/Contoso.ProductCatalog.Database/dbex.yaml"  = "schema: ProductCatalog"
                 "tools/Contoso.ProductCatalog.Database/Program.cs" = '"ProductCatalog"'
+                # docker-compose project names reject dots (e.g. podman) - must be fully kebab-case, not just lower-cased.
+                "docker-compose.yml"                                = "name: contoso-product-catalog"
             }
             GlobFileContains = @{
                 "tools/Contoso.ProductCatalog.Database/Migrations/*-create-product-catalog-schema.sql"        = "[ProductCatalog]"
@@ -318,6 +322,28 @@ $testScenarios = @(
         Build      = $false  # add-on template; no standalone solution
     },
     @{
+        Name       = "coreex-api-postgres-refdata"
+        Template   = "coreex-api"
+        Parameters = @{
+            "data-provider"   = "Postgres"
+            "refdata-enabled" = "true"
+            "outbox-enabled"  = "true"
+        }
+        TestPath   = "test-api-postgres"
+        Verify     = @{
+            FilesPresent = @(
+                "src/App/App.csproj"
+                "tests/App.Test.Api/App.Test.Api.csproj"
+            )
+            FileContains = @{
+                # Regression guard: the Npgsql log-suppression entry must be gated on implement-postgres, not
+                # implement-sqlserver - a copy-paste-then-diverged bug previously left it emitted only for SqlServer.
+                "src/App/appsettings.Development.json" = '"Npgsql": "Warning"'
+            }
+        }
+        Build      = $false  # add-on template; no standalone solution
+    },
+    @{
         Name       = "coreex-relay-sqlserver-servicebus"
         Template   = "coreex-relay"
         Parameters = @{
@@ -330,6 +356,28 @@ $testScenarios = @(
                 "src/App/App.csproj"
                 "tests/App.Test.Relay/App.Test.Relay.csproj"
             )
+        }
+        Build      = $false  # add-on template; no standalone solution
+    },
+    @{
+        Name       = "coreex-subscribe-postgres-servicebus-refdata"
+        Template   = "coreex-subscribe"
+        Parameters = @{
+            "data-provider"      = "Postgres"
+            "messaging-provider" = "ServiceBus"
+            "refdata-enabled"    = "true"
+        }
+        TestPath   = "test-subscribe-postgres"
+        Verify     = @{
+            FilesPresent = @(
+                "src/App/App.csproj"
+                "tests/App.Test.Subscribe/App.Test.Subscribe.csproj"
+            )
+            FileContains = @{
+                # Regression guard: same Npgsql/implement-postgres guard bug found in coreex-api - copy-pasted
+                # into Subscribe's appsettings too.
+                "src/App/appsettings.Development.json" = '"Npgsql": "Warning"'
+            }
         }
         Build      = $false  # add-on template; no standalone solution
     },

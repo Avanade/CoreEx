@@ -75,7 +75,7 @@ public class Program
         app.UseCoreExExceptionHandler();
         app.UseHttpsRedirection();
         // app.UseAuthentication();   // TODO: register an authentication scheme (builder.Services.AddAuthentication(...)) then uncomment.
-        // app.UseAuthorization();    // TODO: register authorization services (builder.Services.AddAuthorization(...)) then uncomment.
+        app.UseAuthorization();
         app.UseExecutionContext();
 
         app.MapHealthChecks(new CoreEx.AspNetCore.HealthChecks.HealthCheckOptions { AreDetailedEndpointsEnabled = true } /*, detailedGroupConfigure: g => g.RequireAuthorization() */);   // Detailed endpoints expose diagnostics and must be secured; basic live/startup/ready checks stay anonymous for orchestrator probes.

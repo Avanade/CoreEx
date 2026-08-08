@@ -36,7 +36,7 @@ Copilot applies the global instructions to every chat interaction and injects th
 
 Add or remove `@` import lines to match which instruction files you copied. Claude Code reads `CLAUDE.md` on startup and follows the imports — no content duplication needed.
 
-If you copied the greenfield scaffold prompt and skill, you can invoke `/coreex-scaffold` directly in Claude Code as well.
+If you copied the greenfield scaffold prompt and skill, also copy [`.claude/commands/coreex-scaffold.md`](../.claude/commands/coreex-scaffold.md) into your project's `.claude/commands/` folder to invoke it as `/coreex-scaffold` directly in Claude Code as well — without this file, the skill still exists but has no slash-command alias registered for Claude Code.
 
 ## Which Instruction Files to Copy
 
