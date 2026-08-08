@@ -19,11 +19,10 @@ collectionSortOrder: Code     # default sort for all reference data collections
 
 entities:
   - name: Status
-    idType: int               # Id property type; defaults to string
+    idType: Int32              # Id property type; defaults to String. Must be one of: String, Guid, Int32, Int64.
     properties:
       - name: IsExternal
         type: bool
-        default: false
   - name: Country
   - name: Currency
 ```
@@ -34,11 +33,14 @@ Run the project (`dotnet run`) to regenerate all `.g.cs` files after changing th
 
 | Output | Layer | What changes it |
 |---|---|---|
-| `Contracts/**/*.g.cs` | Contracts | `ref-data.yaml` entity/property config |
-| `**/Controllers/**/*.g.cs` | Api | `ref-data.yaml` route/entity config |
-| `**/Services/**/*.g.cs` | Application | `ref-data.yaml` entity config |
-| `**/Repositories/**/*.g.cs` | Infrastructure | `ref-data.yaml` repository/mapper config |
-| `**/Mappers/**/*.g.cs` | Infrastructure | `ref-data.yaml` property config |
+| `{Name}.g.cs` (Contracts project root) | Contracts | `ref-data.yaml` entity/property config |
+| `Controllers/ReferenceDataController.g.cs` | Api | `ref-data.yaml` route/entity config |
+| `ReferenceDataService.g.cs` (Application project root) | Application | `ref-data.yaml` entity config |
+| `Repositories/IReferenceDataRepository.g.cs` | Application | `ref-data.yaml` entity/repository config |
+| `Repositories/ReferenceDataRepository.g.cs` | Infrastructure | `ref-data.yaml` repository config |
+| `Mapping/{Name}Mapper.g.cs` | Infrastructure | `ref-data.yaml` property/mapping config |
+
+`Repositories`/`Mapping` are the default `dataRepositoriesPath`/`dataMappingPath` folder names — both configurable in `ref-data.yaml`.
 
 ## Do Not
 

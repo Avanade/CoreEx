@@ -146,7 +146,7 @@ public class EntityConfig : ConfigBase<CodeGenConfig, CodeGenConfig>
         IdType = DefaultWhereNull(IdType, () => Root?.IdType);
         CollectionSortOrder = DefaultWhereNull(CollectionSortOrder, () => Root!.CollectionSortOrder);
         Repository = DefaultWhereNull(Repository, () => Root!.Repository);
-        IdType = DefaultWhereNull(IdType, () => Root?.IdType);
+
         Mapper = DefaultWhereNull(Mapper, () => $"{Name}Mapper");
         ExcludeMapper = DefaultWhereNull(ExcludeMapper, () => false);
 
