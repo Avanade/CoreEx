@@ -1,4 +1,4 @@
-name: app-name-lower
+name: app-name-kebab-case
 
 services:
 #if (implement-sqlserver || implement-servicebus)
