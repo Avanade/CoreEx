@@ -10,6 +10,7 @@ public static class Cleaner
     private static StringCase? _stringCase;
     private static DateTimeTransform? _dateTimeTransform;
     private static CleanOption? _cleanOption;
+    private static readonly ConcurrentDictionary<Type, CleanOption> _cleanOptions = new([new KeyValuePair<Type, CleanOption>(typeof(ChangeLog), CleanOption.CleanAndDefault)]);
 
     /// <summary>
     /// Resets the <see cref="DefaultStringTrim"/>, <see cref="DefaultStringTransform"/>, and <see cref="DefaultStringCase"/> to their respective default values.
@@ -60,13 +61,34 @@ public static class Cleaner
     }
 
     /// <summary>
-    /// Gets or sets the default <see cref="CleanOption"/> for all values unless explicitly overridden. Defaults to <see cref="CleanOption.CleanAndDefault"/>.
+    /// Gets or sets the default <see cref="CleanOption"/> for all values unless explicitly overridden. Defaults to <see cref="CleanOption.Clean"/>.
     /// </summary>
     public static CleanOption DefaultCleanOption
     {
-        get => _cleanOption ??= Internal.GetConfigurationValue("CoreEx:Entities:Cleaner:DefaultCleanOption", CleanOption.CleanAndDefault);
+        get => _cleanOption ??= Internal.GetConfigurationValue("CoreEx:Entities:Cleaner:DefaultCleanOption", CleanOption.Clean);
         set => _cleanOption = value == CleanOption.UseDefault ? throw new ArgumentException("The default cannot be set to UseDefault.", nameof(DefaultCleanOption)) : value;
     }
+
+    /// <summary>
+    /// Gets the dictionary that defines a <see cref="Type"/>'s default <see cref="CleanOption"/>. 
+    /// </summary>
+    /// <remarks>The <see cref="ChangeLog"/> is automatically registered as <see cref="CleanOption.CleanAndDefault"/>.</remarks>
+    public static ConcurrentDictionary<Type, CleanOption> CleanOptions => _cleanOptions;
+
+    /// <summary>
+    /// Gets the <see cref="CleanOption"/> for the specified <paramref name="type"/>
+    /// </summary>
+    /// <param name="type">The <see cref="Type"/> to get the <see cref="CleanOption"/> for.</param>
+    /// <returns>The <see cref="CleanOption"/> for the specified <paramref name="type"/>.</returns>
+    /// <remarks>Where not found then the <see cref="DefaultCleanOption"/> is used.</remarks>
+    public static CleanOption GetCleanOption(Type type) => _cleanOptions.TryGetValue(type.ThrowIfNull(), out var cleanOption) ? cleanOption : DefaultCleanOption;
+
+    /// <summary>
+    /// Cleans a <see cref="string"/> using the default <see cref="DefaultStringTrim"/> and <see cref="DefaultStringTransform"/>.
+    /// </summary>
+    /// <param name="value">The value to clean.</param>
+    /// <returns>The cleaned value.</returns>
+    public static string? Clean(string? value) => Clean(value, DefaultStringTrim, DefaultStringTransform, DefaultStringCase);
 
     /// <summary>
     /// Cleans a <see cref="string"/> using the specified <paramref name="trim"/> and <paramref name="transform"/>.
@@ -192,6 +214,7 @@ public static class Cleaner
     /// </summary>
     /// <typeparam name="T">The value <see cref="Type"/>.</typeparam>
     /// <param name="value">The value to clean.</param>
+    /// <param name="args">The optional <see cref="CleanArgs"/> (defaults to <see cref="CleanArgs.Default"/>).</param>
     /// <returns>The cleaned <paramref name="value"/>.</returns>
-    public static T? Clean<T>(T value) => RuntimeMetadata.Clean<T>(value);
+    public static T? Clean<T>(T value, CleanArgs args = default) => RuntimeMetadata.Clean<T>(value, args);
 }

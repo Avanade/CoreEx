@@ -30,6 +30,16 @@ public abstract class PersonApi_MutateTestsBase : WithApiTester<Api.Program>
     }
 
     [Test]
+    public void Create_EmptyValue()
+    {
+        Test.Http<Person>()
+            .Run(HttpMethod.Post, $"{Route}", new Person())
+            .AssertBadRequest()
+            .AssertContentTypeProblemJson()
+            .AssertErrors("Identifier is required.");
+    }
+
+    [Test]
     public void Create_Success()
     {
         // Create a new entity.

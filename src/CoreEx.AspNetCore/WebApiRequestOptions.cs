@@ -50,7 +50,7 @@ public sealed class WebApiRequestOptions<TRequest> : WebApiOptionsBase, IWebApiR
         {
             if (AutoCleanValue && !_hasBeenCleaned)
             {
-                _valueOrDefault = Metadata.RuntimeMetadata.Clean(_valueOrDefault);
+                _valueOrDefault = Metadata.RuntimeMetadata.Clean(_valueOrDefault, CleanArgs.Default);
                 _hasBeenCleaned = true;
             }
 

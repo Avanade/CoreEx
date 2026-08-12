@@ -27,6 +27,7 @@ The namespace also includes supporting utilities: `Cleaner` for normalizing stri
 | Type | Description |
 |------|-------------|
 | **[`ChangeLog`](./ChangeLog.cs)** | Record implementing `IReadOnlyChangeLogEx`; captures created/updated by and timestamp, populated from the ambient `ExecutionContext`. |
+| **[`CleanArgs`](./CleanArgs.cs)** | Struct passed to `Cleaner.Clean{T}(T, CleanArgs)` (and `RuntimeMetadata.Clean{T}`) controlling whether nested (`CleanAndDefaultNested`) and/or the root value itself (`CleanAndDefaultRoot`) are collapsed to `default` when fully default and registered as `CleanOption.CleanAndDefault`. |
 | **[`Cleaner`](./Cleaner.cs)** | Static utility applying configurable string trimming, transformation, casing, and `DateTime` normalization to entity values. |
 | **[`CompositeKey`](./CompositeKey.cs)** | Immutable struct representing a multi-part entity key with boxing-free generic `Create<T1,T2,...>` overloads for up to four arguments. |
 | **[`CompositeKeyComparer`](./CompositeKeyComparer.cs)** | `IEqualityComparer<CompositeKey>` for use in dictionaries and collections keyed by `CompositeKey`. |

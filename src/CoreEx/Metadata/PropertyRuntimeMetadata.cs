@@ -10,13 +10,16 @@ namespace CoreEx.Metadata;
 /// <param name="setValue">The action to set the value.</param>
 /// <param name="text">The optional <see cref="LText"/>.</param>
 /// <param name="defaultValue">The optional default value.</param>
-/// <param name="clean">The <see cref="Entities.CleanOption"/> used for <see cref="Clean(TEntity)">cleaning</see>.</param>
+/// <param name="clean">The <see cref="Entities.CleanOption"/> used for <see cref="Clean(TEntity, CleanArgs)">cleaning</see>.</param>
 /// <param name="jsonName">The optional explicit JSON name.</param>
 /// <param name="format">The optional format string.</param>
 /// <remarks>The underlying implementation does not store mutable state for an entity property; therefore, an instance can be cached and reused where applicable to improve performance, etc.</remarks>
 public readonly struct PropertyRuntimeMetadata<TEntity, TProperty>(string name, Func<TEntity, TProperty> getValue, Action<TEntity, TProperty>? setValue = null, Func<LText>? text = null, TProperty defaultValue = default!, CleanOption clean = CleanOption.UseDefault, string? jsonName = null, string? format = null) : IPropertyRuntimeMetadata
 {
     private static readonly string? _nullObject = null;
+
+    // Where the property type does not itself carry runtime metadata (i.e. is not an IContract-like graph type), Clean and CleanAndDefault have the same outcome (see CleanOption remarks).
+    private static readonly bool _isRuntimeMetadataProperty = typeof(IRuntimeMetadataCore).IsAssignableFrom(typeof(TProperty));
 
     private readonly Func<TEntity, TProperty> _getValue = getValue.ThrowIfNull();
     private readonly Action<TEntity, TProperty>? _setValue = setValue;
@@ -72,30 +75,31 @@ public readonly struct PropertyRuntimeMetadata<TEntity, TProperty>(string name, 
     public bool IsDefault(TEntity entity) => RuntimeMetadata.IsDefault(GetValue(entity), DefaultValue);
 
     /// <inheritdoc/>
-    void IPropertyRuntimeMetadata.Clean(object entity)
+    void IPropertyRuntimeMetadata.Clean(object entity, CleanArgs args)
     {
         if (entity is not null)
-            Clean((TEntity)entity);
+            Clean((TEntity)entity, args);
     }
 
     /// <summary>
     /// Cleans the property.
     /// </summary>
     /// <param name="entity">The entity value.</param>
-    public void Clean(TEntity entity)
+    /// <param name="args">The <see cref="CleanArgs"/>.</param>
+    public void Clean(TEntity entity, CleanArgs args)
     {
         if (entity is null)
             return;
 
-        var clean = CleanOption == CleanOption.UseDefault ? Cleaner.DefaultCleanOption : CleanOption;
+        var clean = CleanOption == CleanOption.UseDefault ? Cleaner.GetCleanOption(typeof(TProperty)) : CleanOption;
         if (clean == CleanOption.None)
             return;
 
-        var val = Cleaner.Clean(GetValue(entity));
+        var val = Cleaner.Clean(GetValue(entity), args);
         if (IsReadOnly)
             return;
 
-        if (clean == CleanOption.CleanAndDefault && RuntimeMetadata.AreEqual(val, DefaultValue))
+        if ((clean == CleanOption.CleanAndDefault || !_isRuntimeMetadataProperty) && RuntimeMetadata.AreEqual(val, DefaultValue))
             SetValue(entity, DefaultValue!);
     }
 

@@ -1,5 +1,5 @@
 ---
-description: Guide me through choosing and running the right CoreEx.Template dotnet new commands for a new solution
+description: Guide me through choosing and running the right CoreEx.Template dotnet new commands for a new solution, including hosts, database/messaging choices, and an optional Aspire AppHost for local orchestration
 ---
 
 <!--
