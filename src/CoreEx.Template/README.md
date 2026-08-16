@@ -250,7 +250,7 @@ dotnet new coreex -n Avanade.Erp.Sales --data-provider None --messaging-provider
 Domain-driven design with ROP, Postgres, no outbox:
 ```sh
 dotnet new coreex -n Avanade.Erp.Sales --rop-enabled true --data-provider Postgres --outbox-enabled false
-dotnet new coreex-domain -n Avanade.Erp.Sales
+dotnet new coreex-domain -n Avanade.Erp.Sales.Domain
 dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Domain
 dotnet add src/Avanade.Erp.Sales.Application/Avanade.Erp.Sales.Application.csproj reference src/Avanade.Erp.Sales.Domain/Avanade.Erp.Sales.Domain.csproj
 ```
@@ -261,13 +261,13 @@ dotnet add src/Avanade.Erp.Sales.Application/Avanade.Erp.Sales.Application.cspro
 
 Scaffolds an optional `*.Domain` class-library project for solutions where domain complexity warrants domain-driven design: aggregate roots, child entities, value objects, and `PersistenceState`-driven mutation methods via `CoreEx.DomainDriven`. Most solutions do not need this -- add it only when the Application layer's CRUD-style orchestration is no longer enough.
 
-Run this **after** `coreex`, from the solution root. Unlike `coreex-api`/`coreex-relay`/`coreex-subscribe`, this template does not add itself to the `.slnx` -- wire it in yourself with `dotnet sln add`. You must also add a project reference from `Application` to the new `Domain` project (`dotnet add ... reference ...`) -- `Application` is the only layer with a direct dependency on `Domain` (`Infrastructure` only reaches it transitively through `Application`), and nothing else wires that reference for you.
+Run this **after** `coreex`, from the solution root. Like `coreex-api`/`coreex-relay`/`coreex-subscribe`, this template requires the solution base name **with its own suffix appended** (e.g. `Avanade.Erp.Sales.Domain`, not the bare `Avanade.Erp.Sales`) -- passing the bare base name emits into the wrong folder and breaks the `Contracts` project reference. Unlike those hosts, `coreex-domain` does not add itself to the `.slnx` -- wire it in yourself with `dotnet sln add`. You must also add a project reference from `Application` to the new `Domain` project (`dotnet add ... reference ...`) -- `Application` is the only layer with a direct dependency on `Domain` (`Infrastructure` only reaches it transitively through `Application`), and nothing else wires that reference for you.
 
 ### Parameters
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `-n` / `--name` | string | _(required)_ | Solution base name, matching the `coreex` invocation, e.g. `Avanade.Erp.Sales`. |
+| `-n` / `--name` | string | _(required)_ | Solution base name **plus** the `.Domain` suffix, e.g. `Avanade.Erp.Sales.Domain`. |
 
 ### Output
 
@@ -282,7 +282,7 @@ src/
 
 ```sh
 dotnet new coreex -n Avanade.Erp.Sales --rop-enabled true --data-provider Postgres --outbox-enabled false
-dotnet new coreex-domain -n Avanade.Erp.Sales
+dotnet new coreex-domain -n Avanade.Erp.Sales.Domain
 dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Domain
 dotnet add src/Avanade.Erp.Sales.Application/Avanade.Erp.Sales.Application.csproj reference src/Avanade.Erp.Sales.Domain/Avanade.Erp.Sales.Domain.csproj
 ```
@@ -294,6 +294,11 @@ dotnet add src/Avanade.Erp.Sales.Application/Avanade.Erp.Sales.Application.cspro
 Scaffolds an ASP.NET Core Web API host project. Wires up CoreEx execution context, optional reference-data orchestration, FusionCache L1/L2 caching with Redis backplane, the selected database provider and EF Core, outbox publishing, NSwag OpenAPI, and OpenTelemetry.
 
 Run this from the **solution root** (the directory created by `coreex`). The template emits into both `src/` and `tests/` so it must be run at the root level.
+
+> **Note:** If `--refdata-enabled true` and `*.CodeGen` has already been run once (e.g. this host is being added
+> to an existing solution), re-run `dotnet run --project tools/[solution].CodeGen` afterward. CodeGen only emits
+> the reference-data controller into an `*.Api` project directory that exists at generation time -- it silently
+> skips it (a log warning, not an error) for a host added later.
 
 ### Parameters
 

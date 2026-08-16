@@ -294,6 +294,10 @@ $testScenarios = @(
     @{
         Name       = "coreex-domain"
         Template   = "coreex-domain"
+        # Must pass the name WITH the .Domain suffix - like every other add-on template
+        # (coreex-api/relay/subscribe/aspire), sourceName is "app-name.Domain" so the suffix
+        # is part of the substitutable token, not a fixed literal folder segment.
+        ProjectName = "App.Domain"
         Parameters = @{}
         TestPath   = "test-coreex-domain"
         Verify     = @{
@@ -481,6 +485,28 @@ $testScenarios = @(
         }
         Build       = $true
         BuildTarget = "src/App.Aspire/App.Aspire.csproj"
+    },
+    @{
+        Name       = "coreex-domain-regression"
+        # Regression guard: coreex-domain's ProjectReference to Contracts previously resolved only
+        # by accident, via substring overlap between the short sourceName "app-name" and the
+        # "app-name" prefix embedded in "app-name.Contracts" - a standalone scaffold (Build = $false
+        # above) can't catch this, since it never has a real Contracts sibling to compile against.
+        Steps      = @(
+            @{ Template = "coreex"; Name = "App"; Parameters = @{ "data-provider" = "Postgres"; "messaging-provider" = "None"; "refdata-enabled" = "false"; "outbox-enabled" = "false"; "rop-enabled" = "false" } }
+            @{ Template = "coreex-domain"; Name = "App.Domain"; Parameters = @{} }
+        )
+        TestPath   = "test-domain-regression"
+        Verify     = @{
+            FilesPresent = @(
+                "src/App.Domain/App.Domain.csproj"
+            )
+            FileContains = @{
+                "src/App.Domain/App.Domain.csproj" = "App.Contracts\App.Contracts.csproj"
+            }
+        }
+        Build       = $true
+        BuildTarget = "src/App.Domain/App.Domain.csproj"
     }
 )
 

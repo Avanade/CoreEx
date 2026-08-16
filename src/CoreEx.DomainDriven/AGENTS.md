@@ -2,6 +2,12 @@
 
 Provides DDD building blocks: aggregate roots (with integration events), typed entities, persistence-state tracking, and mutation-guard helpers.
 
+> **Not all-or-nothing.** Within a domain that has adopted a `*.Domain` project, use these base classes only for
+> the entities that benefit from the extra ceremony (real invariants, state transitions, integration events).
+> Simpler, CRUD-oriented entities in the same domain can bypass `Aggregate<TId, TSelf>`/`Entity<TId, TSelf>`
+> entirely and be handled directly by an Application service against a repository. Mixing and matching within a
+> single domain is expected.
+
 ## Aggregate Root
 
 `Aggregate<TId, TSelf>` is an `Entity<TId, TSelf>` with an `Events` collection for accumulating integration events. The aggregate owns its invariants; the application service is responsible for forwarding any accumulated events to `IUnitOfWork.Events` after a successful repository operation.

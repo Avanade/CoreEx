@@ -28,6 +28,13 @@ then follows the corresponding pattern from `CoreEx.DomainDriven`.
 - Add mutation methods, factory methods, or invariant guards to an existing domain object
 - Decide whether a domain concept needs a Domain layer at all, or should stay CRUD-oriented
 
+> **Mix and match within a domain.** Once a `*.Domain` project exists, adopting it is not all-or-nothing across
+> every entity in that domain. Only give an entity the full aggregate/entity/value-object ceremony (mutation
+> guards, `PersistenceState`, factory methods) when it genuinely benefits — meaningful invariants, state
+> transitions, or integration events. A simple reference/lookup-style entity in the same domain can remain
+> CRUD-oriented (Application service → repository directly), even while a sibling aggregate in the same
+> `*.Domain` project uses the full pattern.
+
 ## When Not to Use
 
 - The domain is CRUD-oriented with no meaningful invariants to protect at the model level — let the
@@ -39,7 +46,7 @@ then follows the corresponding pattern from `CoreEx.DomainDriven`.
 > **Confirm this skill applies before writing any domain object.** It is gated on the presence of the
 > `*.Domain` project (`src/*.Domain/`). If it is absent, the domain is CRUD-oriented — stop and use
 > `coreex-app-service` against repository interfaces instead. To add the Domain layer, run
-> `dotnet new coreex-domain -n Company.Product.Domain` and wire it into the solution first.
+> `dotnet new coreex-domain -n Company.Product.Books.Domain` and wire it into the solution first.
 
 ## Quick Reference
 

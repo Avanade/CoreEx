@@ -79,7 +79,7 @@ Implementation notes:
 
 Ask:
 
-> What should the base solution name be? Use `Company.Product.Domain`, for example `Avanade.Product.Books`.
+> What should the base solution name be? Use `Company.Product.Books` form (Company, Product, business Domain), for example `Avanade.Product.Books`.
 
 Default:
 
@@ -237,7 +237,7 @@ Recommended options:
 
 Interpretation:
 
-- `Yes` means run `dotnet new coreex-domain -n Company.Product.Domain` after `dotnet new coreex` and wire it into the solution.
+- `Yes` means run `dotnet new coreex-domain -n Company.Product.Books.Domain` after `dotnet new coreex` and wire it into the solution.
 - `No` means skip the Domain addon.
 
 Default: `No`.
@@ -276,7 +276,7 @@ Recommended options:
 
 Interpretation:
 
-- `Yes` means run `dotnet new coreex-aspire -n Company.Product.Domain.Aspire` after every chosen host template, passing `--has-api`/`--has-relay`/`--has-subscribe` to match the hosts chosen in questions 3-5.
+- `Yes` means run `dotnet new coreex-aspire -n Company.Product.Books.Aspire` after every chosen host template, passing `--has-api`/`--has-relay`/`--has-subscribe` to match the hosts chosen in questions 3-5.
 - `No` means skip `coreex-aspire` entirely.
 
 Default: `No`.
@@ -287,18 +287,18 @@ Build a structured decision summary before any command is run.
 
 | Interview outcome | Derived input |
 |---|---|
-| Base solution name confirmed as `Company.Product.Domain` | `-n Company.Product.Domain` for `coreex`; can be omitted if the folder is already named `Company.Product.Domain` |
-| HTTP API needed | `dotnet new coreex-api -n Company.Product.Domain.Api ...` |
-| Publish events reliably | `dotnet new coreex-relay -n Company.Product.Domain.Relay ...` |
-| Consume events | `dotnet new coreex-subscribe -n Company.Product.Domain.Subscribe ...` |
+| Base solution name confirmed as `Company.Product.Books` | `-n Company.Product.Books` for `coreex`; can be omitted if the folder is already named `Company.Product.Books` |
+| HTTP API needed | `dotnet new coreex-api -n Company.Product.Books.Api ...` |
+| Publish events reliably | `dotnet new coreex-relay -n Company.Product.Books.Relay ...` |
+| Consume events | `dotnet new coreex-subscribe -n Company.Product.Books.Subscribe ...` |
 | SQL Server | `--data-provider SqlServer` |
 | Postgres | `--data-provider Postgres` |
 | No local database | `--data-provider None` |
 | Azure Service Bus | `--messaging-provider ServiceBus` |
 | Reference data needed | `--refdata-enabled true` |
-| Domain layer needed | `dotnet new coreex-domain -n Company.Product.Domain` + `dotnet sln Company.Product.Domain.slnx add src/Company.Product.Domain.Domain` + `dotnet add src/Company.Product.Domain.Application/Company.Product.Domain.Application.csproj reference src/Company.Product.Domain.Domain/Company.Product.Domain.Domain.csproj` (Application must reference Domain directly -- nothing else wires this) |
+| Domain layer needed | `dotnet new coreex-domain -n Company.Product.Books.Domain` + `dotnet sln Company.Product.Books.slnx add src/Company.Product.Books.Domain` + `dotnet add src/Company.Product.Books.Application/Company.Product.Books.Application.csproj reference src/Company.Product.Books.Domain/Company.Product.Books.Domain.csproj` (Application must reference Domain directly -- nothing else wires this) |
 | Result/ROP style needed | `--rop-enabled true` |
-| Aspire AppHost needed | `dotnet new coreex-aspire -n Company.Product.Domain.Aspire --has-api <bool> --has-relay <bool> --has-subscribe <bool>`, where each `--has-*` flag mirrors whether that host was chosen in questions 3-5 -- run this last, after every chosen host template |
+| Aspire AppHost needed | `dotnet new coreex-aspire -n Company.Product.Books.Aspire --has-api <bool> --has-relay <bool> --has-subscribe <bool>`, where each `--has-*` flag mirrors whether that host was chosen in questions 3-5 -- run this last, after every chosen host template |
 
 If the user is retrofitting an existing solution, only include flags that are required for missing projects or that the user explicitly asked to change.
 
@@ -327,18 +327,23 @@ State that the workflow will finish by wiring projects into the solution and run
 
 If `coreex-aspire` has already been run and a new host is added afterward, do not re-run `coreex-aspire --force` -- it would overwrite any customisation already made to `AppHost.cs`/`Extensions.cs`. Instead, add the missing `<ProjectReference>` in the AppHost's `.csproj` and the matching `builder.AddProject<...>(...)` line in `AppHost.cs` by hand, following the pattern already used for the other hosts there.
 
+### Adding an API host to a solution where CodeGen has already run
+
+When `refdata-enabled` is `true`, the `*.CodeGen` tool discovers the `*.Api` project directory at generation time and only emits the reference-data controller into it if that directory already exists -- it silently skips generation (a log warning, not a build error) for an `*.Api` project added afterward. If `coreex-api` is added to a solution where `*.CodeGen` has already been run, re-run `dotnet run --project tools/[solution].CodeGen` from its own directory afterward so the new host receives its reference-data controller.
+
 ### Critical naming rule for host templates
 
-The `coreex` solution template takes the **3-part base name** (`Company.Product.Domain`).
-Each host template takes a **4-part name** with the host suffix appended. **Always pass `-n` explicitly for host templates** — the folder name alone cannot supply the suffix:
+The `coreex` solution template takes the **3-part base name** (`Company.Product.Books`).
+Every addon template — `coreex-domain` included — takes a **4-part name** with its own suffix appended. **Always pass `-n` explicitly for addon templates** — the folder name alone cannot supply the suffix:
 
 ```sh
-dotnet new coreex-api        -n Company.Product.Domain.Api
-dotnet new coreex-relay      -n Company.Product.Domain.Relay
-dotnet new coreex-subscribe -n Company.Product.Domain.Subscribe
+dotnet new coreex-domain     -n Company.Product.Books.Domain
+dotnet new coreex-api        -n Company.Product.Books.Api
+dotnet new coreex-relay      -n Company.Product.Books.Relay
+dotnet new coreex-subscribe -n Company.Product.Books.Subscribe
 ```
 
-Passing the 3-part base name to host templates causes all three to emit into the same directory and overwrite each other.
+Passing the 3-part base name to an addon template causes it to emit into `src/Company.Product.Books/` instead of its own suffixed folder, colliding with (or overwriting) sibling addons.
 
 ## Phase 6: Validate The Scaffold
 

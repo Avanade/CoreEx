@@ -16,6 +16,8 @@ tags: ["domain", "ddd", "aggregates", "entities", "value-objects", "result"]
 
 The Domain layer is **optional**. It is introduced only when a domain contains aggregates with meaningful business rules and invariants that must be enforced at the model level — not in orchestration code. For example, a checkout/basket domain with state-machine transitions and nested item rules benefits from this layer; a simple CRUD-oriented domain (like a product catalog) typically does not.
 
+**Adoption is per-aggregate, not all-or-nothing.** Once a `*.Domain` project exists for a domain, that does not obligate every entity in the domain to become a full `Aggregate<TId, TSelf>`/`Entity<TId, TSelf>` with mutation guards and `PersistenceState` tracking. Only apply the extra ceremony to the entities that benefit from it — those with real invariants, state transitions, or integration events to raise. Other entities in the same domain can remain CRUD-oriented, orchestrated directly by an Application service against a repository. It is normal and expected to mix and match within a single domain.
+
 > **Related skill:** to scaffold a new aggregate root, entity, or value object, invoke the [`coreex-aggregate`](/.github/skills/coreex-aggregate/SKILL.md) skill.
 > This file holds the invariants that must hold on **any** edit to a Domain-layer file; the skill drives the
 > step-by-step **creation** procedure.

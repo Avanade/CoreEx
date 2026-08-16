@@ -10,6 +10,44 @@
     "language": "C#",
     "type": "project"
   },
-  "sourceName": "app-name",
-  "preferNameDirectory": false
+  "sourceName": "app-name.Domain",
+  "preferNameDirectory": false,
+  "symbols": {
+    "domain-name": {
+      "type": "derived",
+      "valueSource": "name",
+      "valueTransform": "ValueSecondToLastDotDelimited",
+      "fileRename": "domain-name",
+      "replaces": "domain-name"
+    },
+    "solution-name": {
+      "type": "derived",
+      "valueSource": "name",
+      "valueTransform": "ValueWithoutLastDotDelimited",
+      "fileRename": "solution-name",
+      "replaces": "solution-name"
+    },
+    "solution-parent-name": {
+      "type": "derived",
+      "valueSource": "name",
+      "valueTransform": "ValueWithoutLastTwoDotDelimited",
+      "replaces": "solution-parent-name"
+    }
+  },
+  "forms": {
+    "ValueSecondToLastDotDelimited": {
+      "identifier": "replace",
+      "pattern": "^(?:.*\\.)?([^.]+)\\.[^.]+$",
+      "replacement": "$1"
+    },
+    "ValueWithoutLastDotDelimited": {
+      "identifier": "replace",
+      "pattern": "^(.*)\\.([^\\.]+)$",
+      "replacement": "$1"
+    },
+    "ValueWithoutLastTwoDotDelimited": {
+      "identifier": "chain",
+      "steps": [ "ValueWithoutLastDotDelimited", "ValueWithoutLastDotDelimited" ]
+    }
+  }
 }

@@ -2,6 +2,8 @@
 
 The Domain layer is **optional** and is introduced only when a domain contains aggregates with meaningful business rules that must be protected by invariants. Shopping includes this layer; Products, being a largely CRUD-oriented domain, does not.
 
+**Within a domain that has a Domain layer, adoption is per-aggregate, not all-or-nothing.** Not every entity needs to become a full `Aggregate<TId, TSelf>`/`Entity<TId, TSelf>` with mutation guards and `PersistenceState` tracking — only those that benefit from it (real invariants, state transitions, integration events). Simpler, CRUD-oriented entities can coexist in the same domain, handled directly by an Application service against a repository. Mixing and matching within a single domain is expected and fine.
+
 **Example project**
 - [`samples/src/Contoso.Shopping.Domain`](../src/Contoso.Shopping.Domain)
 
