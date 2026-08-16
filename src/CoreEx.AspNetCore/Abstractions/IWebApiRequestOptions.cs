@@ -9,7 +9,7 @@ public interface IWebApiRequestOptions<TRequest>
     /// <summary>
     /// Indicates whether to automatically <see cref="Cleaner.Clean{T}(T, CleanArgs)"/> the request body value on first access.
     /// </summary>
-    /// <remarks><see cref="CleanArgs.Default"/> will be be used to ensure the root and nested values are not defaulted (overridden) changing the request data shape.</remarks>
+    /// <remarks><see cref="CleanArgs.Default"/> will be used to ensure the root and nested values are not defaulted (overridden) changing the request data shape.</remarks>
     bool AutoCleanValue { get; set; }
 
     /// <summary>

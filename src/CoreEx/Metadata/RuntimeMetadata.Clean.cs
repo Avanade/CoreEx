@@ -39,7 +39,7 @@ public static partial class RuntimeMetadata
                     p.Clean(value, args);
 
                 set.Remove(value); // allow re-visit from a different path (DAG support)
-                return (isRoot ? args.CleanAndDefaultRoot : args.CleanAndDefaultNested) && Cleaner.GetCleanOption(typeof(T)) == CleanOption.CleanAndDefault && RuntimeMetadata.IsDefault(value) ? default : value;
+                return (isRoot ? args.CleanAndDefaultRoot : args.CleanAndDefaultNested) && Cleaner.GetCleanOption(value.GetType()) == CleanOption.CleanAndDefault && RuntimeMetadata.IsDefault(value) ? default : value;
             }
 
             // Zero-length collections are nulled out.
@@ -86,7 +86,7 @@ public static partial class RuntimeMetadata
                 p.Clean(value, args);
 
             set.Remove(value);
-            return (isRoot ? args.CleanAndDefaultRoot : args.CleanAndDefaultNested) && Cleaner.GetCleanOption(typeof(T)) == CleanOption.CleanAndDefault && RuntimeMetadata.IsDefault(value) ? default : value;
+            return (isRoot ? args.CleanAndDefaultRoot : args.CleanAndDefaultNested) && Cleaner.GetCleanOption(type) == CleanOption.CleanAndDefault && RuntimeMetadata.IsDefault(value) ? default : value;
         }
         finally
         {
