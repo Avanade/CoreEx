@@ -56,6 +56,11 @@ public partial class RuntimeMetadataTests
         [Clean(CleanOption.None)]
         public string? Description { get; set; }
 
+        // Explicitly Clean (not CleanAndDefault) on a non-IContract (plain string) property - proves Clean and CleanAndDefault
+        // have the same outcome for non-IContract types, per the CleanOption remarks, even without relying on type-default fallback.
+        [Clean(CleanOption.Clean)]
+        public string? Note { get; set; }
+
         public ChangeLog? ChangeLog { get; set; }
 
         [Clean(CleanOption.Clean)]
@@ -395,6 +400,7 @@ public partial class RuntimeMetadataTests
         {
             Code = "abc  ",
             Description = "  xyz   ",
+            Note = "",
             Date = DateTime.Now,
             ChangeLog = new ChangeLog() { CreatedBy = "" },
             ChangeLog2 = new ChangeLog() { CreatedBy = "" },
@@ -407,6 +413,23 @@ public partial class RuntimeMetadataTests
         d.Id.Should().Be("123");
         d.Code.Should().Be("ABC");
         d.Description.Should().Be("  xyz   ");
+        d.Note.Should().BeNull(); // Explicit Clean (non-CleanAndDefault) on a non-IContract type still null-collapses.
+        d.Date.Value.Kind.Should().Be(DateTimeKind.Unspecified);
+        d.Date.Value.TimeOfDay.Should().Be(TimeSpan.Zero);
+        d.ChangeLog.Should().NotBeNull();
+        d.ChangeLog.IsDefault().Should().BeTrue();
+        d.ChangeLog2.Should().NotBeNull();
+        d.ChangeLog2.IsDefault().Should().BeTrue();
+        d.Tags.Should().BeNull(); // List
+        d.Strings.Should().NotBeNull().And.HaveCount(0); // Array
+
+        // Now clean again with CleanAndDefaultNested = true, which will null-collapse the ChangeLog property; ChangeLog2 will remain as is individually defaulted.
+        Cleaner.Clean(d, new CleanArgs { CleanAndDefaultNested = true });
+
+        d.Id.Should().Be("123");
+        d.Code.Should().Be("ABC");
+        d.Description.Should().Be("  xyz   ");
+        d.Note.Should().BeNull(); // Explicit Clean (non-CleanAndDefault) on a non-IContract type still null-collapses.
         d.Date.Value.Kind.Should().Be(DateTimeKind.Unspecified);
         d.Date.Value.TimeOfDay.Should().Be(TimeSpan.Zero);
         d.ChangeLog.Should().BeNull();
@@ -414,6 +437,51 @@ public partial class RuntimeMetadataTests
         d.ChangeLog2.IsDefault().Should().BeTrue();
         d.Tags.Should().BeNull(); // List
         d.Strings.Should().NotBeNull().And.HaveCount(0); // Array
+    }
+
+    [Test]
+    public void Clean_Root_IRuntimeMetadataCore_Never_Defaulted()
+    {
+        // ChangeLog is registered as CleanAndDefault and ends up fully default after cleaning, but the root instance passed
+        // to Clean() must never itself be replaced with null/default - only nested/child properties are eligible for that collapse.
+        var cl = new ChangeLog { CreatedBy = "" };
+        var result = Cleaner.Clean(cl);
+
+        result.Should().NotBeNull();
+        ReferenceEquals(result, cl).Should().BeTrue();
+        result!.IsDefault().Should().BeTrue();
+    }
+
+    [Test]
+    public void Clean_Root_IRuntimeMetadataCore_Defaulted_With_CleanAndDefaultRoot()
+    {
+        // With CleanAndDefaultRoot = true, the root instance itself becomes eligible for the CleanAndDefault collapse.
+        var cl = new ChangeLog { CreatedBy = "" };
+        var result = Cleaner.Clean(cl, new CleanArgs { CleanAndDefaultRoot = true });
+
+        result.Should().BeNull();
+    }
+
+    [Test]
+    public void Clean_Root_PlainReflectedClass_Never_Defaulted_With_CleanAndDefaultRoot()
+    {
+        // EntityE's CleanOption is not CleanAndDefault (default is Clean), so CleanAndDefaultRoot has no effect and the root is returned as-is.
+        var e = new EntityE(0);
+        var result = Cleaner.Clean(e, new CleanArgs { CleanAndDefaultRoot = true });
+
+        result.Should().NotBeNull();
+        ReferenceEquals(result, e).Should().BeTrue();
+    }
+
+    [Test]
+    public void Clean_Root_PlainReflectedClass_Never_Defaulted()
+    {
+        // EntityE is a plain reflected (non-IContract) class; even when fully default, the root instance must be returned as-is, never null'd.
+        var e = new EntityE(0);
+        var result = Cleaner.Clean(e);
+
+        result.Should().NotBeNull();
+        ReferenceEquals(result, e).Should().BeTrue();
     }
 
     [Test]

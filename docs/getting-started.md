@@ -164,12 +164,18 @@ docker compose up -d
 | `servicebus-emulator` | 5672, 5300 | Azure Service Bus emulator |
 | `aspire-dashboard` | 18888 (UI), 4317 (OTLP) | OpenTelemetry dashboard — open at http://localhost:18888 |
 
-> **Optional — verify the scaffold before handing off to the AI agent:**
+> **If reference data is enabled, run CodeGen before your first `dotnet run` on any host — this is not optional.**
+> Until `*.CodeGen` runs, `IReferenceDataRepository` has no DI registration. `dotnet build` still succeeds, but
+> starting any host with `ASPNETCORE_ENVIRONMENT=Development` (the default for IDE launch profiles and most
+> local dev workflows) throws a DI-validation exception at startup: `Unable to resolve service for type
+> '...IReferenceDataRepository'...`. The Database step below is genuinely optional verification; the CodeGen
+> step is not, whenever reference data is enabled.
 > ```bash
-> dotnet run --project tools/Avanade.Hr.People.Database -- all  # apply initial schema
-> dotnet run --project tools/Avanade.Hr.People.CodeGen          # generate ref-data stubs
+> dotnet run --project tools/Avanade.Hr.People.Database -- all  # apply initial schema (optional — verifies the DB layer builds cleanly)
+> dotnet run --project tools/Avanade.Hr.People.CodeGen          # generate ref-data stubs (required before first `dotnet run` on any host, when refdata is enabled)
 > ```
-> The AI agent in step 5 will run both of these automatically as part of implementing the domain — you only need to run them manually if you want to confirm the scaffold builds cleanly first.
+> The AI agent in step 5 will run both of these automatically as part of implementing the domain — this only
+> matters if you (or an IDE) start a host manually before reaching that step.
 
 ---
 

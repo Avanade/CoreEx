@@ -173,6 +173,16 @@ dotnet run --project tools/app-name.CodeGen
 
 Commit the generated `*.g.cs` files alongside the `ref-data.yaml` changes. **Never edit generated files by hand** — they are overwritten on the next run.
 
+> **Run this before your first `dotnet run`, not just after editing `ref-data.yaml`.** The scaffold's
+> `ReferenceDataService` requires `IReferenceDataRepository`, which only gets a DI registration once CodeGen
+> generates it. `dotnet build` succeeds either way, but starting a host with `ASPNETCORE_ENVIRONMENT=Development`
+> (the default for IDE launch profiles) before CodeGen has ever run throws a DI-validation exception at startup.
+>
+> This also applies any time a **new API host is added to an existing solution** after CodeGen already ran:
+> CodeGen only emits the reference-data controller into an `*.Api` project that exists at generation time — it
+> silently skips it (logging a warning, not an error) for any API project added later. Re-run CodeGen after
+> adding a host, not just after editing `ref-data.yaml`.
+
 <!-- #endif -->
 ---
 

@@ -54,7 +54,7 @@ app-name/
 <!-- #else -->
 - **Reference data:** Disabled
 <!-- #endif -->
-- **Domain project:** Optional -- add `dotnet new coreex-domain -n app-name` when domain complexity warrants DDD
+- **Domain project:** Optional -- add `dotnet new coreex-domain -n app-name.Domain` when domain complexity warrants DDD
 <!-- #if rop-enabled -->
 - **Railway-Oriented Programming:** Enabled -- service methods return `Result`/`Result<T>`
 <!-- #else -->

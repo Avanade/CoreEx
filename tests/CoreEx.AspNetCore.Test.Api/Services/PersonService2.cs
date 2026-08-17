@@ -58,7 +58,7 @@ public class PersonService2
     public Task<Result<Person>> CreateAsync(Person person)
     {
         person.ETag = Guid.NewGuid().ToString();
-        if (!_people.TryAdd(person.Id!, person))
+        if (!_people.TryAdd(person.Id.Required("Identifier"), person))
             return Task.FromResult(Result<Person>.ConflictError());
 
         return Task.FromResult(Result.Ok(person));

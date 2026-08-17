@@ -14,6 +14,23 @@ The host is the **composition root** of the application. It sits above all layer
 
 ---
 
+## Choosing a Host Topology: Split vs. Consolidate
+
+The samples run API, Outbox Relay, and Subscribe as three separate deployable processes per domain, but **this is a workload-isolation convention, not a technical requirement.** `AddHostedServiceManager()`/`MapHostedServices()`, the outbox-relay hosted service (`Add{Provider}OutboxRelayHostedService()`), and the Service Bus receiver (`AzureServiceBusReceiving()...WithHostedService()`) are all plain ASP.NET Core hosted-service registrations and minimal-API endpoint mappings — none of them require a dedicated process, and all three would work identically if registered inside the API host's own `Program.cs` alongside its controllers.
+
+**Keep them split when:**
+- Request-serving and background processing need to **scale independently** (e.g. API replicas driven by request load, relay/subscriber instances driven by message/partition volume).
+- **Fault isolation** matters — a stuck outbox drain, a poison-message loop in a subscriber, or a slow downstream broker shouldn't be able to degrade or crash the process serving live HTTP traffic.
+- Each workload has a **different deployment cadence** or resource profile (CPU/memory sizing, restart policy) worth tuning independently.
+
+**Consider consolidating into a single host when:**
+- The solution is small and low-traffic, and the operational overhead of running/monitoring/deploying three processes outweighs the isolation benefit.
+- Cost matters more than blast-radius containment (one process/container instead of three).
+
+To consolidate, register the Relay's and/or Subscribe's `Program.cs` wiring directly in the API host instead of scaffolding separate `coreex-relay`/`coreex-subscribe` projects — see the [Outbox Relay Host](#outbox-relay-host) and [Subscribe Host](#subscribe-host) sections below for the exact registrations to fold in. There is nothing CoreEx-specific to unwind if a consolidated solution later needs to split a workload back out — the registrations move to their own host verbatim.
+
+---
+
 ## API host
 
 The API host exposes the domain's capabilities as HTTP endpoints. Controllers delegate immediately to Application-layer services via the CoreEx `WebApi` helper — they contain no business logic.

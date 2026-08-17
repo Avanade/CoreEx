@@ -10,10 +10,11 @@ public static partial class RuntimeMetadata
     /// </summary>
     /// <typeparam name="T">The value <see cref="Type"/>.</typeparam>
     /// <param name="value">The value.</param>
+    /// <param name="args">The optional <see cref="CleanArgs"/> (defaults to <see cref="CleanArgs.Default"/>).</param>
     /// <returns>The cleaned <paramref name="value"/>.</returns>
     /// <remarks>This will walk the fully object graph, including arrays, collections, and dictionaries cleaning all mutable properties. Note that where the entry for an array, collection, or dictionary is a value type
     /// this is unable to be cleaned/replaced. An empty array, collection, or dictionary will be set to <see langword="default"/>.</remarks>
-    public static T? Clean<T>(T? value)
+    public static T? Clean<T>(T? value, CleanArgs args = default)
     {
         if (value is string str)
             return Internal.Cast<string, T>(Cleaner.Clean(str, Cleaner.DefaultStringTrim, Cleaner.DefaultStringTransform, Cleaner.DefaultStringCase)!);
@@ -35,10 +36,10 @@ public static partial class RuntimeMetadata
                     return value; // cycle detected — return as-is
 
                 foreach (var p in rm.GetPropertyRuntimeMetadata().Where(x => !x.IsReadOnly))
-                    p.Clean(value);
+                    p.Clean(value, args);
 
                 set.Remove(value); // allow re-visit from a different path (DAG support)
-                return RuntimeMetadata.IsDefault(value) ? default : value;
+                return (isRoot ? args.CleanAndDefaultRoot : args.CleanAndDefaultNested) && Cleaner.GetCleanOption(value.GetType()) == CleanOption.CleanAndDefault && RuntimeMetadata.IsDefault(value) ? default : value;
             }
 
             // Zero-length collections are nulled out.
@@ -49,7 +50,7 @@ public static partial class RuntimeMetadata
             if (value is IDictionary d)
             {
                 foreach (DictionaryEntry de in d)
-                    Clean(de.Value);
+                    Clean(de.Value, args);
 
                 return value;
             }
@@ -68,7 +69,7 @@ public static partial class RuntimeMetadata
                     return value;
 
                 foreach (var item in e)
-                    Clean(item);
+                    Clean(item, args);
 
                 return value;
             }
@@ -82,10 +83,10 @@ public static partial class RuntimeMetadata
                 return value; // cycle detected — return as-is
 
             foreach (var p in GetCachedProperties(type).Values.Where(x => !x.IsReadOnly))
-                p.Clean(value);
+                p.Clean(value, args);
 
             set.Remove(value);
-            return RuntimeMetadata.IsDefault(value) ? default : value;
+            return (isRoot ? args.CleanAndDefaultRoot : args.CleanAndDefaultNested) && Cleaner.GetCleanOption(type) == CleanOption.CleanAndDefault && RuntimeMetadata.IsDefault(value) ? default : value;
         }
         finally
         {

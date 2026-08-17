@@ -121,6 +121,8 @@ products:
     - KG: Kilogram
 ```
 
+**Merge (`$`/`$^`) is safe only for reference/lookup-shaped tables — not transactional or master data.** The generated `MERGE` unconditionally upserts every column it's given on each run, which is fine for small `Code`/`Text`/`IsActive`/`SortOrder`-shaped reference tables but silently corrupts transactional/master tables that carry audit columns (`CreatedBy`/`CreatedDate`/`UpdatedBy`/`UpdatedDate`), concurrency tokens (`RowVersion`/ETag), `IsDeleted` soft-delete flags, or FK-heavy business columns — a re-run merge overwrites the real audit trail, bypasses optimistic concurrency, and has no notion of "this row was intentionally deleted." Seed that kind of data with a plain unprefixed INSERT instead, scoped to test/dev environments rather than the cross-environment `ref-data.seed.yaml`.
+
 ### CodeGen — C# code generation
 
 The `CodeGen` command generates `.g.cs` files into the Infrastructure project based on the tables declared in `dbex.yaml`:

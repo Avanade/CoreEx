@@ -54,7 +54,7 @@ public sealed class WebApiRequestResponseOptions<TRequest, TResponse> : WebApiOp
         {
             if (AutoCleanValue && !_hasBeenCleaned)
             {
-                _valueOrDefault = Metadata.RuntimeMetadata.Clean(_valueOrDefault);
+                _valueOrDefault = Metadata.RuntimeMetadata.Clean(_valueOrDefault, CleanArgs.Default);
                 _hasBeenCleaned = true;
             }
 

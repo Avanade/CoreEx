@@ -1,8 +1,8 @@
 ---
 name: coreex-solution-scaffolder
-description: "Guide a developer through CoreEx solution shaping after bootstrap, using a short plain-English interview that turns user answers into safe dotnet new template inputs. USE FOR: bootstrap-only repos, deciding API-only vs API plus relay vs API plus subscriber, choosing SQL Server vs Postgres vs no database, choosing refdata/outbox/DDD/ROP options, installing CoreEx.Template, checking current solution shape, adding missing Api/Relay/Subscribe hosts to an existing repo, and optionally preparing a first local runnable state with local dependency assets plus database/code-generation steps. DO NOT USE FOR: unrelated runtime debugging, bootstrap creation, or forcing root re-scaffolding over an existing solution. INVOKES: workspace inspection, ask-questions style interviews, dotnet new install/list, dry-run validation, solution wiring, optional local dependency asset creation, focused build/test validation, and either template generation or manual retrofit work depending on repo shape."
-argument-hint: "Optional: base solution name, whether this is new or retrofit, required hosts, database choice, and messaging needs."
-tags: ["coreex", "scaffolding", "retrofit", "template", "hosts"]
+description: "Guide a developer through CoreEx solution shaping after bootstrap, using a short plain-English interview that turns user answers into safe dotnet new template inputs. USE FOR: bootstrap-only repos, deciding API-only vs API plus relay vs API plus subscriber, choosing SQL Server vs Postgres vs no database, choosing refdata/outbox/DDD/ROP options, installing CoreEx.Template, checking current solution shape, adding missing Api/Relay/Subscribe hosts to an existing repo, adding a .NET Aspire AppHost for local multi-host orchestration and dashboard visibility, and optionally preparing a first local runnable state with local dependency assets plus database/code-generation steps. DO NOT USE FOR: unrelated runtime debugging, bootstrap creation, or forcing root re-scaffolding over an existing solution. INVOKES: workspace inspection, ask-questions style interviews, dotnet new install/list, dry-run validation, solution wiring, optional local dependency asset creation, focused build/test validation, and either template generation or manual retrofit work depending on repo shape."
+argument-hint: "Optional: base solution name, whether this is new or retrofit, required hosts, database choice, messaging needs, and whether to add an Aspire AppHost for local orchestration."
+tags: ["coreex", "scaffolding", "retrofit", "template", "hosts", "aspire", "apphost", "orchestration"]
 ---
 
 <!--
@@ -22,6 +22,7 @@ Guides a repository through the right CoreEx setup path by interviewing the user
 - Starting a new CoreEx domain or service from a repository that already contains only the bootstrap AI assets.
 - Deciding whether the first cut should create just the API host or also include the outbox relay and/or subscriber hosts.
 - Adding missing `Api`, `Relay`, or `Subscribe` hosts to an existing scaffolded CoreEx solution.
+- Adding an Aspire AppHost so a solution's hosts can be run and debugged together locally, with a dashboard.
 - Converting plain-English project needs into either the matching `dotnet new coreex*` commands or the safest retrofit path.
 
 ## When Not to Use
@@ -73,6 +74,7 @@ When the workspace does not already prove a value, preselect the safest default 
 | Reference data | `No` |
 | Domain layer | `No` |
 | Result/ROP style | `No` |
+| Aspire AppHost | `No` |
 
 Set outbox to `true` only when the user chose owned persistence and reliable publishing. Otherwise keep it `false`.
 
@@ -89,6 +91,7 @@ Set outbox to `true` only when the user chose owned persistence and reliable pub
 | "I need reference data." | `--refdata-enabled true` |
 | "I want a Domain layer." | Add `coreex-domain` addon after `coreex` |
 | "I want Result/ROP style pipelines." | `--rop-enabled true` |
+| "I want to run everything locally with one command / a dashboard." | Add `coreex-aspire` after all chosen hosts exist, with `--has-api`/`--has-relay`/`--has-subscribe` matching what was chosen |
 
 ## Prerequisite
 
@@ -101,13 +104,16 @@ Before this skill runs, the repository must already be in one of these states:
 ## Naming Rules
 
 - The base solution name must be in `[Company].[Product].[Domain]` form, e.g. `Avanade.Bookstore.Books`.
-- The `coreex` (solution) template takes the **3-part base name**: `-n Company.Product.Domain`. If the current directory is already named `Company.Product.Domain`, `-n` can be omitted — the template uses the folder name automatically.
-- Each **host template** takes a **4-part name** with the host suffix appended:
-  - `coreex-api -n Company.Product.Domain.Api`
-  - `coreex-relay -n Company.Product.Domain.Relay`
-  - `coreex-subscribe -n Company.Product.Domain.Subscribe`
-- Host templates **always require `-n`** — the folder name is the 3-part base and cannot supply the host suffix automatically.
-- Do not pass the 3-part base name to host templates; doing so causes all three hosts to emit into the same `src/Company.Product.Domain/` directory, overwriting each other.
+- The `coreex` (solution) template takes the **3-part base name**: `-n Company.Product.Books`. If the current directory is already named `Company.Product.Books`, `-n` can be omitted — the template uses the folder name automatically.
+- Every **addon template** — `coreex-domain` included — takes a **4-part name** with its suffix appended:
+  - `coreex-domain -n Company.Product.Books.Domain`
+  - `coreex-api -n Company.Product.Books.Api`
+  - `coreex-relay -n Company.Product.Books.Relay`
+  - `coreex-subscribe -n Company.Product.Books.Subscribe`
+  - `coreex-aspire -n Company.Product.Books.Aspire`
+- Addon templates **always require `-n`** — the folder name is the 3-part base and cannot supply the addon's suffix automatically.
+- `coreex-aspire` also always requires `--has-api`/`--has-relay`/`--has-subscribe` set explicitly to match whichever hosts this solution actually has — unlike the other host templates, there is no shared parameter it can derive this from.
+- Do not pass the 3-part base name to an addon template; doing so causes it to emit into `src/Company.Product.Books/` instead of its own suffixed folder, colliding with (or overwriting) sibling addons.
 - If the user gives only a two-part name, ask for the missing segment before running any template.
 - If the repository already exists with a non-canonical root name (e.g., `Avanade.Books`), prefer a manual retrofit unless the user explicitly wants to rename the solution first.
 
@@ -120,13 +126,16 @@ Before this skill runs, the repository must already be in one of these states:
 dotnet new coreex -n Avanade.Product.Books --data-provider SqlServer --messaging-provider ServiceBus --refdata-enabled true --outbox-enabled true --rop-enabled false
 
 # Step 1a (optional): Add the Domain layer when domain complexity warrants DDD.
-dotnet new coreex-domain -n Avanade.Product.Books
+dotnet new coreex-domain -n Avanade.Product.Books.Domain
 dotnet sln Avanade.Product.Books.slnx add src/Avanade.Product.Books.Domain
 
 # Step 2: Add each host template using the 4-part name (base + host suffix).
 dotnet new coreex-api        -n Avanade.Product.Books.Api        --data-provider SqlServer --refdata-enabled true --outbox-enabled true
 dotnet new coreex-relay      -n Avanade.Product.Books.Relay      --data-provider SqlServer --messaging-provider ServiceBus
 dotnet new coreex-subscribe -n Avanade.Product.Books.Subscribe --data-provider SqlServer --messaging-provider ServiceBus --refdata-enabled true
+
+# Step 2a (optional): Add an Aspire AppHost for local orchestration, once the hosts above exist.
+dotnet new coreex-aspire -n Avanade.Product.Books.Aspire --has-api true --has-relay true --has-subscribe true
 
 # Step 3: Add host and test projects to the solution file.
 dotnet sln Avanade.Product.Books.slnx add src/Avanade.Product.Books.Api
@@ -135,6 +144,7 @@ dotnet sln Avanade.Product.Books.slnx add src/Avanade.Product.Books.Relay
 dotnet sln Avanade.Product.Books.slnx add tests/Avanade.Product.Books.Test.Relay
 dotnet sln Avanade.Product.Books.slnx add src/Avanade.Product.Books.Subscribe
 dotnet sln Avanade.Product.Books.slnx add tests/Avanade.Product.Books.Test.Subscribe
+dotnet sln Avanade.Product.Books.slnx add src/Avanade.Product.Books.Aspire
 
 # Step 4: Validate the generated solution.
 dotnet build Avanade.Product.Books.slnx
@@ -147,13 +157,18 @@ dotnet test tests/Avanade.Product.Books.Test.Unit
 ```text
 # If the repo already has a bootstrap or partial scaffold, run only the missing domain/host templates.
 # Confirm the canonical three-part base name, then run coreex and/or host templates with the correct suffixes.
-dotnet new coreex            -n Company.Product.Domain ...
-dotnet new coreex-domain     -n Company.Product.Domain          # optional: only when DDD is needed
-dotnet new coreex-api        -n Company.Product.Domain.Api ...
-dotnet new coreex-relay      -n Company.Product.Domain.Relay ...
-dotnet new coreex-subscribe -n Company.Product.Domain.Subscribe ...
+dotnet new coreex            -n Company.Product.Books ...
+dotnet new coreex-domain     -n Company.Product.Books.Domain    # optional: only when DDD is needed
+dotnet new coreex-api        -n Company.Product.Books.Api ...
+dotnet new coreex-relay      -n Company.Product.Books.Relay ...
+dotnet new coreex-subscribe -n Company.Product.Books.Subscribe ...
+dotnet new coreex-aspire    -n Company.Product.Books.Aspire --has-api ... --has-relay ... --has-subscribe ...   # optional: only if the repo needs local orchestration
 # Then add new projects to the solution file as in Step 3 above.
 ```
+
+**Adding an AppHost that already exists:** if `coreex-aspire` output already exists and a new host is being added, do not re-run `coreex-aspire --force` — it will overwrite any customisation already made to `AppHost.cs`/`Extensions.cs`. Instead, add the missing `<ProjectReference>` and `builder.AddProject<...>(...)` line to the existing files by hand.
+
+**Adding an API host after CodeGen already ran:** when `refdata-enabled` is `true`, the `*.CodeGen` tool only emits the reference-data controller into an `*.Api` project directory that exists at generation time — it silently skips it (a log warning, not an error) for any `coreex-api` added afterward. If `coreex-api` is added to a solution where CodeGen has already been run at least once, re-run `dotnet run --project tools/[solution].CodeGen` afterward so the new host gets its reference-data controller.
 
 ## Existing Repository Guardrails
 
@@ -162,7 +177,7 @@ dotnet new coreex-subscribe -n Company.Product.Domain.Subscribe ...
 - **Template identity conflicts:** If `dotnet new list` or template execution reports duplicate CoreEx template identities, warn the user which template source is being selected before continuing.
 - **Version-pin discipline:** If `CoreEx.Template` needs installing or updating here, never run a bare `dotnet new install CoreEx.Template` — resolve and pin an explicit `::<version>` matching the project's referenced `CoreEx` NuGet version (see [coreex-ai-workflows.md § Version-pin discipline](/.github/coreex-ai-workflows.md#version-pin-discipline)).
 - **Pre-flight validation:** Always run a dry-run with the intended base solution name before any real domain/host template invocation.
-- **Watch for nested roots:** If dry-run output shows paths like `src\\Company.Product.Domain.Api\\src\\Company.Product.Domain.Api\\...`, the output root is wrong; stop and change strategy.
+- **Watch for nested roots:** If dry-run output shows paths like `src\\Company.Product.Books.Api\\src\\Company.Product.Books.Api\\...`, the output root is wrong; stop and change strategy.
 - **Naming mismatch:** If dry-run output shows incorrect project names because the repo uses a non-canonical root name, stop and recommend either renaming the solution first or manually creating the missing hosts.
 - **Force only for bootstrap replacement:** In a confirmed bootstrap-only repo, `--force` is acceptable only after dry-run validation shows the expected canonical layout. `--force` overwrites every file the current template version emits but does **not** delete files an older/superseded template version left behind — treat any such leftover as a manual-review orphan, not a safe-to-ignore artifact.
 - **No force for mismatches:** Do not use `--force` to push through a naming or layout mismatch. The mismatch itself indicates an unsafe operation.
@@ -209,5 +224,6 @@ dotnet new coreex-subscribe -n Company.Product.Domain.Subscribe ...
 | CoreEx API host | `coreex-api` | Adds an ASP.NET Core API host |
 | CoreEx Outbox Relay host | `coreex-relay` | Adds an outbox relay host |
 | CoreEx Subscriber host | `coreex-subscribe` | Adds an event subscriber host |
+| CoreEx Aspire AppHost | `coreex-aspire` | Adds an Aspire AppHost orchestrating this solution's own hosts — run after those hosts exist |
 
 

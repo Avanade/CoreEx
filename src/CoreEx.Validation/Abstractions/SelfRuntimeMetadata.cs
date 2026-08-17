@@ -37,7 +37,7 @@ internal readonly struct SelfRuntimeMetadata<TSelf>() : IPropertyRuntimeMetadata
     public string? Format => null;
 
     /// <inheritdoc/>
-    public void Clean(object entity) { }
+    public void Clean(object entity, CleanArgs args) { }
 
     /// <inheritdoc/>
     public string GetJsonName(JsonSerializerOptions? options = null) => string.Empty;

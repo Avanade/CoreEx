@@ -1,5 +1,5 @@
 ---
-description: "CoreEx Solution Scaffolder — guides solution shaping after bootstrap (hosts, database, messaging, refdata/outbox/DDD/ROP options) and turns the answers into dotnet new template commands."
+description: "CoreEx Solution Scaffolder — guides solution shaping after bootstrap (hosts, database, messaging, refdata/outbox/DDD/ROP options, and an optional Aspire AppHost for local multi-host orchestration/dashboard) and turns the answers into dotnet new template commands."
 allowed-tools: [Read, Glob, Grep, Edit, Write, Bash]
 ---
 

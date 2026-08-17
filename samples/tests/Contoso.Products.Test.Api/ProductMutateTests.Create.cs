@@ -3,6 +3,21 @@ namespace Contoso.Products.Test.Api;
 public partial class ProductMutateTests : WithApiTester<Contoso.Products.Api.Program>
 {
     [Test]
+    public void Create_Empty()
+    {
+        // Act/Assert.
+        Test.Http()
+            .Run(HttpMethod.Post, "/api/products", new Product())
+            .AssertBadRequest()
+            .AssertErrors(
+                "Sku is required.",
+                "Text is required.",
+                "Unit-of-measure is required.",
+                "Sub-category is required."
+            );
+    }
+
+    [Test]
     public void Create_Bad_Data()
     {
         // Arrange.

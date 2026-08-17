@@ -61,7 +61,8 @@ public interface IPropertyRuntimeMetadata
     /// Cleans the property value based on the <see cref="CleanOption"/>.
     /// </summary>
     /// <param name="entity">The entity value.</param>
-    void Clean(object entity);
+    /// <param name="args">The <see cref="CleanArgs"/>.</param>
+    void Clean(object entity, CleanArgs args);
 
     /// <summary>
     /// Gets the property value.

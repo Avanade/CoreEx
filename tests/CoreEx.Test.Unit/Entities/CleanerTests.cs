@@ -226,4 +226,45 @@ public class CleanerTests
         Action act = () => Cleaner.DefaultDateTimeTransform = DateTimeTransform.UseDefault;
         act.Should().Throw<ArgumentException>();
     }
+
+    [Test]
+    public void DefaultCleanOption_SetToUseDefault_Throws()
+    {
+        Action act = () => Cleaner.DefaultCleanOption = CleanOption.UseDefault;
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Test]
+    public void DefaultCleanOption_Defaults_To_Clean()
+    {
+        Cleaner.DefaultCleanOption.Should().Be(CleanOption.Clean);
+    }
+
+    [Test]
+    public void GetCleanOption_ChangeLog_Registered_As_CleanAndDefault()
+    {
+        Cleaner.GetCleanOption(typeof(ChangeLog)).Should().Be(CleanOption.CleanAndDefault);
+    }
+
+    [Test]
+    public void GetCleanOption_Unregistered_Type_Falls_Back_To_Default()
+    {
+        Cleaner.GetCleanOption(typeof(CleanerTests)).Should().Be(Cleaner.DefaultCleanOption);
+    }
+
+    [Test]
+    public void CleanOptions_Add_And_Remove_Custom_Type()
+    {
+        Cleaner.CleanOptions.TryAdd(typeof(CleanerTests), CleanOption.CleanAndDefault).Should().BeTrue();
+        try
+        {
+            Cleaner.GetCleanOption(typeof(CleanerTests)).Should().Be(CleanOption.CleanAndDefault);
+        }
+        finally
+        {
+            Cleaner.CleanOptions.TryRemove(typeof(CleanerTests), out _);
+        }
+
+        Cleaner.GetCleanOption(typeof(CleanerTests)).Should().Be(Cleaner.DefaultCleanOption);
+    }
 }

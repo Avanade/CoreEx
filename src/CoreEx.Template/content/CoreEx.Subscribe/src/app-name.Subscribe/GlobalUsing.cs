@@ -1,8 +1,12 @@
 global using CoreEx;
 global using CoreEx.AspNetCore.Mvc;
+// #if implement-servicebus
 global using CoreEx.Azure.Messaging.ServiceBus;
+// #endif
 global using CoreEx.Caching;
+// #if has-data-provider
 global using CoreEx.Database;
+// #endif
 // #if implement-sqlserver
 global using CoreEx.Database.SqlServer;
 // #elif implement-postgres
