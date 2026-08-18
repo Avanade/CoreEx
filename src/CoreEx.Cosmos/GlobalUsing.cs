@@ -1,0 +1,21 @@
+global using CoreEx;
+global using CoreEx.Abstractions;
+global using CoreEx.Cosmos;
+global using CoreEx.Data;
+global using CoreEx.Entities;
+global using CoreEx.Entities.Abstractions;
+global using CoreEx.Invokers;
+global using CoreEx.Mapping;
+global using CoreEx.Results;
+global using CoreEx.Schemas;
+global using Microsoft.Azure.Cosmos;
+global using Microsoft.Azure.Cosmos.Linq;
+// CoreEx.Data also declares a (differently-purposed, hash-partitioning) 'PartitionKey' type; alias to disambiguate in favour of the Cosmos SDK's struct throughout this package.
+global using PartitionKey = Microsoft.Azure.Cosmos.PartitionKey;
+global using Microsoft.Extensions.DependencyInjection;
+global using Microsoft.Extensions.Logging;
+global using System.Collections.Concurrent;
+global using System.Diagnostics.CodeAnalysis;
+global using System.Net;
+global using System.Runtime.CompilerServices;
+global using System.Text.Json.Serialization;

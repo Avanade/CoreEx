@@ -50,3 +50,19 @@ services:
     ports:
       - "8080:8080"
       - "8082:8082"
+
+  # Used by CoreEx.Cosmos.Test.Unit. Note: under rootless Podman this image can be flaky with the default bridge
+  # network (its TLS certificate is issued for the IP(s) it discovers at startup, which may not match the
+  # container's mapped/published address) - if `podman compose up -d cosmos-emulator` doesn't come up cleanly,
+  # try re-running with `--privileged` or host networking. Clients also need to accept the emulator's
+  # self-signed certificate (e.g. CosmosClientOptions with a permissive ServerCertificateCustomValidationCallback)
+  # rather than relying on the emulator's own IP-override/cert-export workarounds.
+  cosmos-emulator:
+    image: mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:latest
+    environment:
+      AZURE_COSMOS_EMULATOR_PARTITION_COUNT: "10"
+      AZURE_COSMOS_EMULATOR_ENABLE_DATA_PERSISTENCE: "false"
+      AZURE_COSMOS_EMULATOR_IP_ADDRESS_OVERRIDE: "127.0.0.1"
+    ports:
+      - "8081:8081"
+      - "10251-10254:10251-10254"

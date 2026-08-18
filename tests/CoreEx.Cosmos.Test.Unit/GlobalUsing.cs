@@ -1,0 +1,11 @@
+global using CoreEx;
+global using CoreEx.Cosmos;
+global using CoreEx.Data;
+global using CoreEx.Entities;
+global using CoreEx.Mapping;
+global using CoreEx.Results;
+global using Microsoft.Azure.Cosmos;
+global using Microsoft.Azure.Cosmos.Linq;
+global using Microsoft.Extensions.Configuration;
+global using System.Net;
+global using PartitionKey = Microsoft.Azure.Cosmos.PartitionKey;

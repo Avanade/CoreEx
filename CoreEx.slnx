@@ -125,6 +125,7 @@
     <Project Path="src/CoreEx.Caching.FusionCache/CoreEx.Caching.FusionCache.csproj" />
     <Project Path="src/CoreEx.CodeGen/CoreEx.CodeGen.csproj" />
     <Project Path="src/CoreEx.Data/CoreEx.Data.csproj" />
+    <Project Path="src/CoreEx.Cosmos/CoreEx.Cosmos.csproj" />
     <Project Path="src/CoreEx.Data.GraphQL/CoreEx.Data.GraphQL.csproj" />
     <Project Path="src/CoreEx.Database.Postgres/CoreEx.Database.Postgres.csproj" />
     <Project Path="src/CoreEx.Database.SqlServer/CoreEx.Database.SqlServer.csproj" />
@@ -144,6 +145,7 @@
     <Project Path="tests/CoreEx.Azure.Messaging.ServiceBus.Test.Unit/CoreEx.Azure.Messaging.ServiceBus.Test.Unit.csproj" />
     <Project Path="tests/CoreEx.Caching.Redis.Test.Unit/CoreEx.Caching.Redis.Test.Unit.csproj" />
     <Project Path="tests/CoreEx.Data.Test.Unit/CoreEx.Data.Test.Unit.csproj" />
+    <Project Path="tests/CoreEx.Cosmos.Test.Unit/CoreEx.Cosmos.Test.Unit.csproj" />
     <Project Path="tests/CoreEx.Data.GraphQL.Test.Unit/CoreEx.Data.GraphQL.Test.Unit.csproj" />
     <Project Path="tests/CoreEx.Database.Postgres.Test.Console/CoreEx.Database.Postgres.Test.Console.csproj" />
     <Project Path="tests/CoreEx.Database.Postgres.Test.Unit/CoreEx.Database.Postgres.Test.Unit.csproj" />

@@ -84,8 +84,13 @@ public static class Model
         if (model is null || model is not ITypeDiscriminator td)
             return model;
 
-        if (string.IsNullOrEmpty(typeDiscriminator) && Schema.TryGetMetadata<TModel>(out var metadata))
+        if (string.IsNullOrEmpty(typeDiscriminator))
+        {
+            // TryGetMetadata's out-param is always populated with a sensible default (SchemaAttribute.Name, or the type name where no attribute exists);
+            // its bool return only indicates whether an actual [Schema] attribute was found, so it must not gate use of the defaulted Name here.
+            Schema.TryGetMetadata<TModel>(out var metadata);
             typeDiscriminator = metadata.Name;
+        }
 
         td.TypeDiscriminator = typeDiscriminator;
         return model;
