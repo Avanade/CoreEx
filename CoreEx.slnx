@@ -124,8 +124,8 @@
     <Project Path="src/CoreEx.Azure.Messaging.ServiceBus/CoreEx.Azure.Messaging.ServiceBus.csproj" />
     <Project Path="src/CoreEx.Caching.FusionCache/CoreEx.Caching.FusionCache.csproj" />
     <Project Path="src/CoreEx.CodeGen/CoreEx.CodeGen.csproj" />
-    <Project Path="src/CoreEx.Data/CoreEx.Data.csproj" />
     <Project Path="src/CoreEx.Data.GraphQL/CoreEx.Data.GraphQL.csproj" />
+    <Project Path="src/CoreEx.Data/CoreEx.Data.csproj" />
     <Project Path="src/CoreEx.Database.Postgres/CoreEx.Database.Postgres.csproj" />
     <Project Path="src/CoreEx.Database.SqlServer/CoreEx.Database.SqlServer.csproj" />
     <Project Path="src/CoreEx.Database/CoreEx.Database.csproj" />
@@ -143,8 +143,8 @@
     <Project Path="tests/CoreEx.AspNetCore.Test.Unit/CoreEx.AspNetCore.Test.Unit.csproj" />
     <Project Path="tests/CoreEx.Azure.Messaging.ServiceBus.Test.Unit/CoreEx.Azure.Messaging.ServiceBus.Test.Unit.csproj" />
     <Project Path="tests/CoreEx.Caching.Redis.Test.Unit/CoreEx.Caching.Redis.Test.Unit.csproj" />
-    <Project Path="tests/CoreEx.Data.Test.Unit/CoreEx.Data.Test.Unit.csproj" />
     <Project Path="tests/CoreEx.Data.GraphQL.Test.Unit/CoreEx.Data.GraphQL.Test.Unit.csproj" />
+    <Project Path="tests/CoreEx.Data.Test.Unit/CoreEx.Data.Test.Unit.csproj" />
     <Project Path="tests/CoreEx.Database.Postgres.Test.Console/CoreEx.Database.Postgres.Test.Console.csproj" />
     <Project Path="tests/CoreEx.Database.Postgres.Test.Unit/CoreEx.Database.Postgres.Test.Unit.csproj" />
     <Project Path="tests/CoreEx.Database.SqlServer.Test.Console/CoreEx.Database.SqlServer.Test.Console.csproj" />
@@ -153,11 +153,12 @@
     <Project Path="tests/CoreEx.DomainDriven.Test.Unit/CoreEx.DomainDriven.Test.Unit.csproj" />
     <Project Path="tests/CoreEx.Events.Test.Unit/CoreEx.Events.Test.Unit.csproj" />
     <Project Path="tests/CoreEx.RefData.Test.Unit/CoreEx.RefData.Test.Unit.csproj" />
-    <Project Path="tests/CoreEx.UnitTesting.Test.Unit/CoreEx.UnitTesting.Test.Unit.csproj" />
     <Project Path="tests/CoreEx.Test.Unit/CoreEx.Test.Unit.csproj" />
+    <Project Path="tests/CoreEx.UnitTesting.Test.Unit/CoreEx.UnitTesting.Test.Unit.csproj" />
     <Project Path="tests/CoreEx.Validation.Test.Unit/CoreEx.Validation.Test.Unit.csproj" />
   </Folder>
   <Folder Name="/tools/">
+    <File Path="tools/validate-template-pack.ps1" />
     <Project Path="tools/CoreEx.Tooling.Console/CoreEx.Tooling.Console.csproj" />
   </Folder>
 </Solution>
