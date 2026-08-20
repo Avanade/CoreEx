@@ -14,12 +14,12 @@ This folder contains the AI artefacts that give GitHub Copilot and Claude Code a
 
 | Artefact | Path | Purpose |
 |----------|------|---------|
-| Global instructions | `copilot-instructions.md` | Auto-injected project-wide context: repo shape, conventions, house rules, generated-file ownership. Applied to every chat interaction automatically. |
+| Global instructions | In this repo: `copilot-instructions.md`. In a consumer repo generated via `dotnet new coreex-ai`: `instructions/coreex.instructions.md` (`applyTo: "**"`) — the template deliberately replaces `copilot-instructions.md` with this file; it is never generated. | Auto-injected project-wide context: repo shape, conventions, house rules, generated-file ownership. Applied to every chat interaction automatically. |
 | Area instructions | `instructions/*.instructions.md` | Scoped context injected automatically when editing a matching file type (contracts, services, repositories, controllers, tests, etc.). |
 | Agent | `agents/coreex-expert.agent.md` | Dedicated expert for CoreEx architecture and pattern guidance — explains conventions, reviews designs, and routes to the right command. |
 | Prompts | `prompts/*.prompt.md` | Deterministic, file-driven commands invoked with `/` in chat. |
 | Skills | `skills/*/SKILL.md` | Reasoning-based commands for open-ended tasks. Invoked with `/` in Claude Code; attach the `SKILL.md` via `#file:` in Copilot. |
-| Authoring guides | `INSTRUCTION_AUTHORING.md`, `SKILL_AUTHORING.md` | Standards for writing new instruction files and skills. |
+| Authoring guides | `INSTRUCTION_AUTHORING.md`, `SKILL_AUTHORING.md` — present in this repo only; not copied into consumer repos by `dotnet new coreex-ai`. | Standards for writing new instruction files and skills. |
 
 ## Agent
 
