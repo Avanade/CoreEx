@@ -31,7 +31,7 @@ Two concrete `WebApi` implementations ship: `Mvc.WebApi` returning `IActionResul
 | **[`ExecutionContextMiddleware`](./ExecutionContextMiddleware.cs)** | Per-request `ExecutionContext` scoping, optional custom configuration, and info/warning message response header propagation. |
 | **[`ExceptionHandlingMiddleware`](./ExceptionHandlingMiddleware.cs)** | `UseExceptionHandler` callback that converts unhandled exceptions to `ProblemDetails` using the ambient `WebApi` instance. |
 | **[`IdempotencyKeyMiddleware`](./Idempotency/IdempotencyKeyMiddleware.cs)** | Middleware that checks `[IdempotencyKey]`-marked endpoints and delegates to `IIdempotencyProvider` for replay/cache. |
-| **[`HybridCacheIdempotencyProvider`](./Idempotency/HybridCacheIdempotencyProvider.cs)** | `IIdempotencyProvider` backed by `IHybridCache`; stores serialized responses keyed by `x-idempotency-key` with configurable expiry. |
+| **[`HybridCacheIdempotencyProvider`](./Idempotency/HybridCacheIdempotencyProvider.cs)** | `IIdempotencyProvider` backed by `IHybridCache`; stores serialized responses keyed by `Idempotency-Key` with configurable expiry. |
 | **[`HealthCheckOptions`](./HealthChecks/HealthCheckOptions.cs)** | Configures live/startup/ready/detail health check endpoint paths, tag filters, and JSON detail writer; registered via `MapCoreExHealthChecks()`. |
 | **[`WebApiOptions`](./WebApiOptions.cs)** | Per-request options controlling response status code, `ETag`, location header, paging, and alternate status code behavior. |
 | **[`OpenApiOptions`](./OpenApiOptions.cs)** | NSwag/OpenAPI document-processor and operation-processor registration for CoreEx paging, query, accepts, and idempotency attributes. |

@@ -1,5 +1,6 @@
 using CoreEx.Results;
 using System.Net;
+using System.Net.Http.Headers;
 using System.Net.Mime;
 
 namespace CoreEx.AspNetCore.Test.Unit;
@@ -131,6 +132,47 @@ partial class WebApiTestsBase<TWebApi, TResult>
             .AssertCreated()
             .AssertJson("""{"firstName":"JohnY","lastName":"DoeX","age":40,"etag":"123456"}""")
             .AssertContentType(MediaTypeNames.Application.Json)
+            .AssertETagHeader("\"123456\"");
+    }
+
+    [Test]
+    public void Post_Body_With_Response_IfMatchRequired_Missing()
+    {
+        // No If-Match header supplied — ro.WithIfMatchRequired() must throw before the response is constructed.
+        var hr = Test.CreateJsonHttpRequest(HttpMethod.Post, "test", Person.GetPerson());
+
+        Test.Type<TWebApi>()
+            .Run(async w => await w.PostAsync<Person, Person2>(hr, (ro, ct) => Task.FromResult(new Person2 { FirstName = ro.WithIfMatchRequired().Value.FirstName }), HttpStatusCode.OK))
+            .ToHttpResponseMessageAssertor()
+            .Assert(HttpStatusCode.PreconditionRequired);
+    }
+
+    [Test]
+    public void Post_Body_With_Response_IfMatchRequired_Present()
+    {
+        var hr = Test.CreateJsonHttpRequest(HttpMethod.Post, "test", Person.GetPerson());
+        hr.Headers.IfMatch = new EntityTagHeaderValue("\"abcdefg\"", true).ToString();
+
+        Test.Type<TWebApi>()
+            .Run(async w => await w.PostAsync<Person, Person2>(hr, (ro, ct) =>
+            {
+                // The If-Match header must be captured onto ro.ETag and stamped onto the deserialized body (IETag) for POST too —
+                // not just asserted present via WithIfMatchRequired(). Mirrors the equivalent PUT/PATCH assertions.
+                ro.ETag.Should().Be("abcdefg");
+                ro.Value.ETag.Should().Be("abcdefg"); // ETag should have been overridden from the If-Match header.
+
+                return Task.FromResult(new Person2
+                {
+                    // Inline chain — matches real-world controller usage: ro.WithIfMatchRequired().Value.
+                    FirstName = ro.WithIfMatchRequired().Value.FirstName,
+                    LastName = ro.Value.LastName,
+                    Age = ro.Value.Age,
+                    ETag = "123456"
+                });
+            }, HttpStatusCode.OK))
+            .ToHttpResponseMessageAssertor(hr)
+            .AssertOK()
+            .AssertJson("""{"firstName":"John","lastName":"Doe","age":30,"etag":"123456"}""")
             .AssertETagHeader("\"123456\"");
     }
 }

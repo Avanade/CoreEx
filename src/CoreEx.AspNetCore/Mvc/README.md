@@ -11,11 +11,11 @@ The namespace also provides a set of small, targeted MVC attributes. These carry
 ## Key capabilities
 
 - 🎯 **MVC result creation**: `Mvc.WebApi.CreateResult` translates `WebApiResult<IActionResult>` to the full range of `IActionResult` types, including field-level `ValidationException` → `400 Bad Request` with `errors` extension, and `ConcurrencyException` → `412 Precondition Failed`.
-- 📑 **Paging attribute**: `[PagingAttribute]` marks operations that accept paging arguments via query string without declaring `PagingArgs` as an explicit method parameter; NSwag reads this to add `$skip`, `$take`, `$count`, `$page` query parameters to the spec.
+- 📑 **Paging attribute**: `[PagingAttribute]` marks operations that accept paging arguments via query string without declaring `PagingArgs` as an explicit method parameter; NSwag reads this to add `$skip`, `$take`, and optionally `$count` query parameters to the spec.
 - 🔍 **Query attribute**: `[QueryAttribute]` marks operations that accept OData-style `$filter` / `$orderby` query arguments; NSwag adds the corresponding parameters.
 - ✅ **Accepts attribute**: `[AcceptsAttribute<T>]` declares the request body `Content-Type` and schema type for NSwag, replacing the need for `[Consumes]` with schema inference.
 - 🚫 **Not-found response attribute**: `[ProducesNotFoundProblem]` adds a `404 application/problem+json` response entry to the NSwag spec for operations that can return `NotFoundException`.
-- 🔑 **Idempotency key attribute**: `[IdempotencyKey]` marks a `POST` action as idempotent; `IdempotencyKeyMiddleware` reads this from endpoint metadata; NSwag adds the `x-idempotency-key` header parameter to the spec.
+- 🔑 **Idempotency key attribute**: `[IdempotencyKey]` marks a `POST` action as idempotent; `IdempotencyKeyMiddleware` reads this from endpoint metadata; NSwag adds the `Idempotency-Key` header parameter to the spec.
 - 🔧 **DI registration**: `AddMvcWebApi(services, configure?)` registers `Mvc.WebApi` as a scoped service.
 
 ## Key types
@@ -28,7 +28,7 @@ The namespace also provides a set of small, targeted MVC attributes. These carry
 | **[`QueryAttribute`](./QueryAttribute.cs)** | Marks an operation as accepting OData-style query arguments; NSwag adds `$filter`/`$orderby` parameters. |
 | **[`AcceptsAttribute`](./AcceptsAttribute.cs)** | Declares the request body content type; generic `AcceptsAttribute<T>` adds schema type inference for NSwag. |
 | **[`ProducesNotFoundProblemAttribute`](./ProducesNotFoundProblemAttribute.cs)** | Adds `404 application/problem+json` to the NSwag operation response list. |
-| **[`IdempotencyKeyAttribute`](./IdempotencyKeyAttribute.cs)** | Marks a POST action as idempotent; read by `IdempotencyKeyMiddleware` and NSwag processor to add `x-idempotency-key` header. |
+| **[`IdempotencyKeyAttribute`](./IdempotencyKeyAttribute.cs)** | Marks a POST action as idempotent; read by `IdempotencyKeyMiddleware` and NSwag processor to add `Idempotency-Key` header. |
 
 ## Related Namespaces
 

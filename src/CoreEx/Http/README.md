@@ -14,8 +14,8 @@ The `Abstractions` sub-namespace defines additional lightweight types and interf
 
 - 📄 **RFC 7807 Problem Details**: `ProblemDetails` represents a typed HTTP API error with `type`, `title`, `status`, `detail`, `instance`, and an `extensions` dictionary; `GetValidationErrors()` extracts field-level error messages from the standard `errors` key.
 - 🔁 **Problem Details ↔ exception round-trip**: `ProblemDetailsException.ToException<TException>()` maps a received `ProblemDetails` back to a typed CoreEx `ExtendedException<T>`, preserving `Detail`, `StatusCode`, `ShouldBeLogged`, and optional message items.
-- 🏷️ **Standard HTTP names**: `HttpNames` provides configurable static properties for the paging query-string names (`$skip`, `$take`, `$count`, `$page`) and response-header names (`x-paging-skip`, `x-paging-take`, `x-paging-count`, `x-paging-page`), allowing application-wide renaming from a single location.
-- 🔒 **Idempotency key header**: `HttpNames.IdempotencyKeyHeaderName` (`x-idempotency-key`) is the agreed header name for idempotency key propagation between clients and the `[IdempotencyKey]` server filter.
+- 🏷️ **Standard HTTP names**: `HttpNames` provides configurable static properties for the paging query-string names (`$skip`, `$take`, `$count`) and response-header names (`X-Paging-Skip`, `X-Paging-Take`, `X-Paging-Total-Count`), allowing application-wide renaming from a single location.
+- 🔒 **Idempotency key header**: `HttpNames.IdempotencyKeyHeaderName` (`Idempotency-Key`) is the agreed header name for idempotency key propagation between clients and the `[IdempotencyKey]` server filter.
 - 🌐 **Portable HTTP result types**: `HttpResult` and `HttpResult<T>` wrap an `HttpResponseMessage` alongside a deserialized value or `ProblemDetails`, enabling clients to inspect both the raw response and the typed outcome without re-parsing.
 
 ## Key types

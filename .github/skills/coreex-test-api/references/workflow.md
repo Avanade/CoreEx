@@ -30,7 +30,7 @@ class (do not rename/move it). Use **one read dataset and one mutate dataset per
 - **`^N` is a deterministic GUID** (`^1` == `1.ToGuid()`) — use it for the identifier and any GUID
   foreign-key reference to another seeded row.
 - Reference data is linked **by code** (`gender_code: M`), not an id/FK.
-- Set scenario flags explicitly where needed (`is_deleted: true`, `is_inactive: true`).
+- Set scenario flags explicitly where needed (e.g. `is_deleted: true` for a soft-delete row).
 
 **One seed row per destructive test — not per operation.** NUnit randomises execution order, so two
 *tests* that mutate the same row collide non-deterministically even if each *operation* nominally has
@@ -43,6 +43,17 @@ its own row. Provision rows up front:
 | `^3` | `Patch_Success` | |
 
 Non-mutating tests (Get, Query, 304, validation) can freely share read rows.
+
+**Seed the precondition state directly — don't chain API calls to reach it.** For an entity with a state
+machine (e.g. a `Booking` that goes `Draft → Confirmed → Cancelled`), a test whose focus is *further
+downstream* of a transition (e.g. "a cancelled booking's segments can't be modified") should seed a row
+already in that state, not arrange it by calling `Create → Confirm → Cancel` through the API first. The
+API-orchestrated chain is slower, couples the test to every intermediate operation's behavior, and
+doesn't reflect the real-world case — production data is simply already in that state, nobody replays
+its history. Reserve calling the real endpoint for setup to three cases: the transition itself is under
+test (`Confirm_Success`, `Cancel_Success`), the value is only known at runtime (an ETag — read via `GET`
+first), or what's being asserted is a side effect of the action (an outbox event). See
+`coreex-tests.instructions.md` → "Prefer Seeded State Over API-Orchestrated Setup" for the full rule.
 
 **GUID literals in resource files** (`.res.json`/`.event.json`) — when a deterministic id/FK must appear
 as a literal string, compute `N.ToGuid()` correctly: the number goes in the **first segment**, in
@@ -80,7 +91,11 @@ public partial class EmployeeMutateTests : WithApiTester<MyApp.Api.Program>
         Test.UseExpectedSqlServerOutboxPublisher();   // or UseExpectedPostgresOutboxPublisher() — provider-specific
     }
 }
+```
 
+**This defaults to asserting zero events on any call with no explicit expectation.** Every `Test.Http()`/`Test.Http<T>()` call that legitimately publishes an event must declare `.ExpectXxxOutboxEvents(...)` or `.ExpectNoXxxOutboxEvents()` — otherwise it fails with `"Expected no {ServiceKey} events; however, N found to be published"` even though the call itself succeeded. Prefer a metadata/value assertion (confirms *which* event) over a bare `.ExpectXxxOutboxEvents(e => { })` (confirms only that *some* event was published, with zero identity check) — the bare form is for cases you deliberately can't pin down further, not a general substitute.
+
+```csharp
 // EmployeeMutateTests.Create.cs
 public partial class EmployeeMutateTests
 {
@@ -90,7 +105,13 @@ public partial class EmployeeMutateTests
 ```
 
 Use the **named-file** seed overload so read/mutate classes only load their own dataset — the
-no-argument overload loads every `Data/*.seed.yaml` and mixes datasets.
+no-argument overload loads every `Data/*.seed.yaml` and mixes datasets. The shared
+`read-data.seed.yaml`/`mutate-data.seed.yaml` pair is the **preferred default**, but the overload takes
+a **list** precisely so a class whose data is too distinct to manage cleanly inside the shared pair can
+add its own file — `["mutate-data.seed.yaml", "booking-workflow.seed.yaml"]`, or its own file alone if
+there's no overlap with the shared set. This is the intended escape hatch for a class that needs several
+precondition-state rows (e.g. a `Booking` parked at `Draft`/`Confirmed`/`Cancelled`) that would otherwise
+clutter the shared file for every other entity — not a workaround to avoid.
 
 If the domain calls another domain over HTTP, add HTTP mocking to `OneTimeSetUp` too (see Phase 5).
 
@@ -105,7 +126,7 @@ against them; resources get captured from the actual run).
 | Operation | Must cover |
 |---|---|
 | **Get** | found, not-found, ETag/If-None-Match → 304 |
-| **Query** | no-filter baseline (total count), filter (match + no-results), order (verify sequence), paging (count, partial page), field selection; soft-delete exclusion + `$inactive` override (when entity supports logical delete) |
+| **Query** | no-filter baseline (total count), filter (match + no-results), order (verify sequence), paging (count, partial page), field selection; soft-delete exclusion, with no override (when entity supports logical delete — see note below) |
 | **Create** | success + `Location` header + outbox event + **follow-up GET verifying persistence**; bad-data validation; duplicate/conflict; idempotency-key |
 | **Update** | success + **follow-up GET verifying persistence** + ETag/concurrency (412); not-found (still needs a valid ETag + full body — see below) |
 | **Patch** | merge success (`.WithMergePatchJsonContentType()`) + **follow-up GET verifying persistence**; not-found |
@@ -117,7 +138,7 @@ against them; resources get captured from the actual run).
 - Provide **at least 3–5 records with diverse values** across all filterable fields so each filter scenario has records that match and records that don't. A filter that matches everything (or nothing) because all seeded rows share the same value gives no meaningful coverage.
 - For paging tests: seed **more rows than the smallest `$take` value** used in tests (e.g., if tests use `$take=2`, seed at least 3 rows) so you can verify a partial last page and a correct total count.
 - For order tests: seed at least two records with different values for the orderable field so ascending vs descending results can be distinguished.
-- If the entity supports soft-delete, seed at least one row with the delete flag set — verify it is **absent** from query results by default (and present when `$inactive` is passed).
+- If the entity supports soft-delete, seed at least one row with the delete flag set — verify it is **absent** from query results. There is no query-string override for a normal entity's soft-delete filter (see the `$inactive` note below) — a soft-deleted row must stay absent under every query, not just the default one.
 
 **Query string format:**
 - `$filter` — OData-esque expression; string literals use **single quotes**; field names are case-insensitive:
@@ -129,7 +150,8 @@ against them; resources get captured from the actual run).
 - `$orderby` — field with direction, comma-separated for multiple: `text desc, sku asc`
 - Paging: `$skip=0&$take=2&$count=true` — **`$take`, not `$top`**; `$count` requests the total-count response header
 - `$fields=field1,field2` — include only specified fields in each result item
-- `$inactive` — include soft-deleted / inactive records (omit flag to use default active-only behaviour)
+
+> **⚠️ `$inactive` is reference-data-only — it does not apply to a normal entity's soft-delete filter.** `$inactive` (`HttpNames.IncludeInactiveQueryStringName`) is auto-wired **only** for reference-data list/named endpoints (`ro.IsIncludeInactive` → `IReferenceData.IsActive`/`IsInactive`). A generic entity query (`QueryArgsConfig`/`EfDbModelOptions.WithLogicalDeleteFilter()`) has **no** built-in query-string switch to reveal soft-deleted (`IsDeleted`) rows — the filter always applies. Do not add `$inactive` (or any other flag) to a `Query`/repository method to make a soft-deleted row reappear "for testing" — that fabricates behaviour the framework doesn't provide and defeats the point of the soft-delete exclusion test. If a genuine "show deleted" capability is wanted, it is a deliberate, developer-requested feature (e.g. `WithLogicalDeleteFilter(allowFilterBypass: true)` plus an explicit, intentional call site using `EfDbArgs.BypassFilters`) — never something to add to satisfy a test.
 
 **Response type and assertion style:**
 
@@ -193,15 +215,7 @@ var r = Test.Http<{Name}Lite[]>()
     .AssertOK()
     .Value;
 
-r.Should().NotBeNull().And.BeEmpty();   // absent by default
-
-// $inactive — soft-deleted record appears
-var r = Test.Http<{Name}Lite[]>()
-    .Run(HttpMethod.Get, "/api/{name}s?$filter=sku eq 'GHOST-1'&$inactive")
-    .AssertOK()
-    .Value;
-
-r.Should().NotBeNull().And.HaveCount(1).And.OnlyContain(x => x.Sku == "GHOST-1");
+r.Should().NotBeNull().And.BeEmpty();   // absent — and stays absent; there is no `$inactive`-style override for a normal entity's soft-delete filter (see the note above)
 ```
 
 **Every Create/Update/Patch `_Success` test ends with a second `GET` of the same resource, asserted
@@ -288,6 +302,39 @@ Stale ETag → `AssertPreconditionFailed()` (**412**, `ConcurrencyException`) �
 valid `If-Match` and a complete body — otherwise you get `428 Precondition Required` instead of the
 intended `404`.
 
+### `WithIfMatchRequired()` — conditional POST/DELETE (428)
+
+POST/DELETE don't auto-require `If-Match`. Where the controller opts in by chaining `ro.WithIfMatchRequired()`
+inline (a nested-resource mutation conditional on the parent's state, e.g. adding a segment to a booking),
+test both paths — for both the with-body (POST) and no-body (DELETE) shapes:
+
+```csharp
+// POST with a body — missing If-Match → 428, before any business logic runs.
+Test.Http()
+    .Run(HttpMethod.Post, $"/api/bookings/{bookingId}/segments", new { Origin = "SYD", Destination = "MEL" })
+    .Assert(HttpStatusCode.PreconditionRequired);
+
+// POST with a body — present If-Match → succeeds.
+var booking = Test.Http<Booking>().Run(HttpMethod.Get, $"/api/bookings/{bookingId}").AssertOK().Value!;
+Test.Http<Booking>()
+    .Run(HttpMethod.Post, $"/api/bookings/{bookingId}/segments", new { Origin = "SYD", Destination = "MEL" }, requestModifier: r => r.WithIfMatch(booking.ETag))
+    .AssertOK();
+
+// DELETE with no body — same gate, no request payload.
+Test.Http()
+    .Run(HttpMethod.Delete, $"/api/bookings/{bookingId}/segments/{segmentId}")
+    .Assert(HttpStatusCode.PreconditionRequired);
+
+Test.Http<Booking>()
+    .Run(HttpMethod.Delete, $"/api/bookings/{bookingId}/segments/{segmentId}", requestModifier: r => r.WithIfMatch(booking.ETag))
+    .AssertOK();
+```
+
+No dedicated `AssertPreconditionRequired()` helper exists — use `.Assert(HttpStatusCode.PreconditionRequired)`.
+The POST request DTO marks `ETag` `[JsonIgnore]` (not `[ReadOnly(true)]`), so — unlike the PUT/PATCH body-fallback
+above — a body `ETag` on this shape is never honored; only the header populates it. The DELETE case has no
+request DTO at all — `ro.WithIfMatchRequired().ETag` reads the header directly.
+
 ### Conditional GET (304)
 
 ```csharp
@@ -332,11 +379,18 @@ Pick the assertor by whether the event carries a value:
 
 - **`.AssertWithValue(destination, subject)`** — value-carrying events (Create/Update); reconstructs the
   expected `EventData` from the API's returned value.
-- **`.AssertWithValue(valueFactory, destination, subject)`** — rare; use only when the published event's
-  payload isn't the API's returned value (e.g. a host-less tester with no returned value, or a projection/DTO
-  that differs from the response). Pass a `Func<TValue>` for the expected payload directly.
+- **`.AssertWithValue<TValue>(valueFactory, destination, subject)`** — rare; use only when the published event's
+  payload isn't (or isn't shaped like) the API's returned value — e.g. the API returns `Order` but the event
+  carries a leaner `OrderSummary` projection, or a host-less tester with no returned value at all. Pass a
+  `Func<TValue>` for the expected payload of its own type directly:
+  ```csharp
+  e.AssertWithValue<OrderSummary>(() => new OrderSummary(newOrder.Id, newOrder.Total), "contoso", "contoso.orders.order.created.v1")
+  ```
 - **`.AssertMetadata(destination, subject, key)`** — no-value events (Delete, any `204`); asserts
   destination + subject + the `key` (the deleted id).
+- **`.AssertMetadata(destination, subject)`** — same method, `key` omitted; routing-only check (right
+  destination/subject) without pinning the key. Useful for a setup/arrange step in a multi-call workflow
+  test where you want to confirm "it's the event I expect" without asserting its exact identity.
 
 Subject = `{solutionname}.{domainname}.{entity}.{action}` (all lower-case) + optional `.v{major}` suffix
 **present only when the event carries a value** (default `.v1`, or the contract's `[Schema("vX.Y")]`

@@ -37,14 +37,69 @@ public enum EventAction
     Cancelled,
 
     /// <summary>
+    /// A <c>confirmed</c> event action.
+    /// </summary>
+    Confirmed,
+
+    /// <summary>
     /// A <c>checked-out</c> event action.
     /// </summary>
     CheckedOut,
 
     /// <summary>
+    /// A <c>started</c> event action.
+    /// </summary>
+    Started,
+
+    /// <summary>
     /// A <c>completed</c> event action.
     /// </summary>
     Completed,
+
+    /// <summary>
+    /// A <c>paused</c> event action.
+    /// </summary>
+    Paused,
+
+    /// <summary>
+    /// A <c>stopped</c> event action.
+    /// </summary>
+    Stopped,
+
+    /// <summary>
+    /// A <c>restarted</c> event action.
+    /// </summary>
+    Restarted,
+
+    /// <summary>
+    /// A <c>suspended</c> event action.
+    /// </summary>
+    Suspended,
+
+    /// <summary>
+    /// A <c>reinstated</c> event action.
+    /// </summary>
+    Reinstated,
+
+    /// <summary>
+    /// A <c>closed</c> event action.
+    /// </summary>
+    Closed,
+
+    /// <summary>
+    /// A <c>reopened</c> event action.
+    /// </summary>
+    Reopened,
+
+    /// <summary>
+    /// An <c>expired</c> event action.
+    /// </summary>
+    Expired,
+
+    /// <summary>
+    /// A <c>renewed</c> event action.
+    /// </summary>
+    Renewed,
 
     /// <summary>
     /// A <c>submitted</c> event action.
@@ -60,6 +115,16 @@ public enum EventAction
     /// A <c>rejected</c> event action.
     /// </summary>
     Rejected,
+
+    /// <summary>
+    /// An <c>acknowledged</c> event action.
+    /// </summary>
+    Acknowledged,
+
+    /// <summary>
+    /// A <c>declined</c> event action.
+    /// </summary>
+    Declined,
 
     /// <summary>
     /// A <c>sent</c> event action.
