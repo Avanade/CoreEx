@@ -135,6 +135,8 @@ public partial class {Solution}DbContext(DbContextOptions<{Solution}DbContext> o
 
 `AddGeneratedModels` is implemented in the generated `*DbContext.g.cs` — the partial method declaration compiles as a no-op until CodeGen has run.
 
+**Parent/child entity (e.g. `Basket` with many `BasketItem`)?** CodeGen never generates the EF navigation property — that's always hand-authored: a partial on the persistence model adding the collection, plus `HasMany(...).WithOne()...` + `.Navigation(...).AutoInclude(true)` in `OnModelCreating` after `AddGeneratedModels(modelBuilder)`. See `coreex-repositories.instructions.md` → "Parent/Child Navigation Properties" for the full pattern (taken from `Contoso.Shopping`'s `Basket`/`BasketItem`).
+
 ---
 
 ## Path B — Add a CRUD Operation to an Existing Repository

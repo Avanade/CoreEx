@@ -216,6 +216,8 @@ The Domain value object sits in the **middle** of a three-type chain: `Contracts
 - **Application layer** (Domain ↔ Contract) — see [`coreex-application-services.instructions.md`](/.github/instructions/coreex-application-services.instructions.md#json-backed-value-object-mapping).
 - **Infrastructure layer** (Domain ↔ Persistence) — see [`coreex-repositories.instructions.md`](/.github/instructions/coreex-repositories.instructions.md).
 
+**Naming collision, by design.** All three types in the chain share the same short name (`Address`) across different namespaces (`Contracts`, `Domain.ValueObjects`, `Persistence`) — this is intentional (each layer's `Address` genuinely represents the same concept). A file that references more than one of them in the same scope (e.g. a `BiDirectionMapper` bridging two of the three) **must fully-qualify at least the ones not covered by its own namespace/usings** — `Domain.ValueObjects.Address`, `Contracts.Address`, `Persistence.Address` — rather than aliasing one away. This applies to any same-named Domain/Contract/Persistence trio, not just value objects.
+
 Wire the value object into the aggregate exactly like any other property — a private setter guarded by `Modify(...)` via a dedicated update method:
 
 ```csharp

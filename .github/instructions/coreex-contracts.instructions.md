@@ -137,6 +137,32 @@ public partial class Product : ProductBase, IETag, IChangeLog
 }
 ```
 
+### Command / Action Request DTOs — Conditional `If-Match`
+
+The `[ReadOnly(true)]` pattern above is for an entity's **own** ETag on a full-entity PUT/PATCH — `[ReadOnly(true)]` only affects the generated OpenAPI/NSwag schema, so a client-supplied body `ETag` is still accepted as a deliberate fallback to the `If-Match` header (see `coreex-tests.instructions.md`).
+
+A **command/action request DTO** used with `ro.WithIfMatchRequired()` (see `coreex-api-controllers.instructions.md` → "POST / DELETE — Conditional on a Related Resource's State") is different: the ETag being asserted belongs to a **related/parent** resource, not to this request's own payload, so a client-supplied body value would be meaningless. Implement `IETag` but mark the property **`[JsonIgnore]`**, not `[ReadOnly(true)]`:
+
+```csharp
+/// <summary>Represents a request to add a segment to a booking.</summary>
+public class BookingSegmentAddRequest : IETag
+{
+    /// <summary>Gets or sets the origin.</summary>
+    public string? Origin { get; set; }
+
+    /// <summary>Gets or sets the destination.</summary>
+    public string? Destination { get; set; }
+
+    /// <inheritdoc/>
+    [JsonIgnore]
+    public string? ETag { get; set; }
+}
+```
+
+`[JsonIgnore]` excludes the property from (de)serialization entirely, so only the `If-Match` header can populate it. The setter must remain a normal `{ get; set; }` (not `[ReadOnly(true)]`, which is compatible with the entity pattern only) — `WebApiRequestOptions<TRequest>` stamps the header value onto the CLR property after deserialization, so a working setter is required.
+
+**No body at all (e.g. DELETE) needs no DTO change, or DTO, whatsoever.** `ro.WithIfMatchRequired()` works directly off the `If-Match` header via `WebApiOptionsBase.ETag` — it does not require an `IETag`-typed request. Chain `.ETag` after it and pass the raw string straight through to the service (see `coreex-api-controllers.instructions.md`'s `RemoveSegmentAsync` example).
+
 ## Documentation Comments
 
 Give **every contract property a `<summary>`** (and the contract class itself). The standard `Id`/`ETag`/`ChangeLog` members — which implement `IIdentifier`/`IETag`/`IChangeLog` — may use `<inheritdoc/>` instead. See [XML Documentation Comments](#) in the conventions. (Common mistake: leaving the contract properties undocumented — they each need a summary.)
@@ -420,6 +446,7 @@ Never create or edit `*.g.cs` files directly.
 - Do not invent a build-ordering or "circular dependency" excuse for missing generated code — Roslyn runs the generator even when other errors exist; fix the real errors and rebuild.
 - Do not emit `#nullable enable` or `#nullable restore` pragma directives — nullable is enabled project-wide via `Directory.Build.props`.
 - Do not create a sub-folder (e.g. `Entities/`, `Models/`, `RefData/`) to house contracts — place every contract flat in the `*.Contracts` root (see *File Placement*); only nest when the user explicitly asks.
+- Do not add a plain `public string? {Name}Code { get; set; }` property for a reference-data field on **any** contract, including a thin request/command DTO (e.g. an `XxxAddRequest`) — this compiles but is wrong: it serializes as `{name}Code` in JSON instead of the framework-standard `{name}`, and has no generated typed `{Name}` navigation for a validator's `.IsValid()` rule to bind to. A reference-data property always needs both halves of the pattern — `[Contract]` + `partial` on the class (mandatory here even if the class would otherwise skip `[Contract]`) and `[ReferenceData<T>]` + `partial` on the property — see [Reference Data Properties](#reference-data-properties).
 
 ## Further Reading
 

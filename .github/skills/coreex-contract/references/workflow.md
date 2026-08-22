@@ -168,6 +168,12 @@ public partial class ProductLite : ProductBase
 
 A subordinate is accessed only through a parent (e.g. `BasketItem`, `OrderLine`, `Address`). A request/response object has no identity (e.g. `BasketItemAddRequest`, `ProductReserve`).
 
+**Property type resolution applies here too — including reference-data properties.** Run the same [A2 5-step process](#a2--property-type-resolution-5-step-process-all-before-asking-anything) over every property, on **every** Path B contract, not just roots. A thin request/command DTO is exactly as likely to carry a reference-data field (a status, a unit-of-measure, a category) as a root contract — "it's just a request DTO" is not a reason to skip the check. If a property resolves to a reference-data type, it needs **both** halves of the pattern regardless of how disposable the DTO otherwise is:
+- the **class**: `[Contract]` + `partial` (even if you'd otherwise omit `[Contract]` for a throwaway request shape — a ref-data property overrides that default);
+- the **property**: `[ReferenceData<T>]` + `partial string? {Name}Code { get; set; }`.
+
+Never fall back to a plain `public string? {Name}Code { get; set; }` to sidestep this. It compiles and looks fine, but silently breaks two things: it serializes as `{name}Code` in JSON instead of the framework's standard `{name}` (every other ref-data property in the API loses the `Code` suffix on the wire — this one won't, which is an inconsistent, incorrect contract), and there is no generated typed `{Name}` navigation property for a validator's `.IsValid()` rule to bind to.
+
 > Example uses an illustrative Basket domain — substitute your own entity/type names.
 
 ```csharp
@@ -195,21 +201,47 @@ public partial class BasketItem : IIdentifier<string?>, IETag
     public string? ETag { get; set; }
 }
 
-// Plain request (no identity needed)
+// Plain request (no identity needed) — note UnitOfMeasureCode still follows the full ref-data pattern
+// ([Contract]+partial class, [ReferenceData<T>]+partial property) even though this is "just a request DTO".
 /// <summary>Represents a request to add a product to the basket.</summary>
 [Contract]
 public partial class BasketItemAddRequest
 {
+    /// <summary>Gets or sets the product identifier.</summary>
     public string? ProductId { get; set; }
+
+    /// <summary>Gets or sets the quantity.</summary>
     public decimal Quantity { get; set; }
+
+    /// <summary>Gets or sets the unit-of-measure (reference data).</summary>
+    [ReferenceData<UnitOfMeasure>]
+    public partial string? UnitOfMeasureCode { get; set; }
+}
+
+// Command/action request, conditional on the PARENT's (Booking's) state — not this request's own concurrency.
+// Used with ro.WithIfMatchRequired() on the controller side (see coreex-api's workflow → "nested resource, conditional on the parent's state").
+/// <summary>Represents a request to add a segment to a booking.</summary>
+public class BookingSegmentAddRequest : IETag
+{
+    /// <summary>Gets or sets the origin.</summary>
+    public string? Origin { get; set; }
+
+    /// <summary>Gets or sets the destination.</summary>
+    public string? Destination { get; set; }
+
+    /// <inheritdoc/>
+    [JsonIgnore]
+    public string? ETag { get; set; }
 }
 ```
 
 Rules:
 - `[Contract]` + `partial` by default — even for plain request types (provides deep copy, cloning, reflection-free validation).
-- Only omit `[Contract]` when user explicitly asks for a plain class with no generated members.
-- Subordinates with their own row-level concurrency can carry `IETag`.
+- Only omit `[Contract]` when user explicitly asks for a plain class with no generated members — **except** when the class has a reference-data property; then `[Contract]` + `partial` is mandatory, not optional, no matter how thin/disposable the DTO is otherwise (see the `BasketItemAddRequest` example above).
+- Subordinates with their own row-level concurrency can carry `IETag` — use `[ReadOnly(true)]` on `ETag`, matching the entity pattern (a client-supplied body `ETag` is an accepted fallback to `If-Match` for full-entity PUT/PATCH).
 - No `IChangeLog` on subordinates unless the subordinate has its own audit trail (rare — ask).
+- A command/action DTO whose POST/DELETE is conditional on a **different** (parent/related) resource's state implements `IETag` too, but marks `ETag` **`[JsonIgnore]`** instead — the value must only arrive via the `If-Match` header, never the body, since it doesn't describe this request's own payload. Skip `[Contract]` on this shape unless the user wants deep-copy/cloning support — it's usually a thin, disposable input.
+- A no-body operation (e.g. DELETE) needs **no DTO at all** — `ro.WithIfMatchRequired().ETag` reads straight off the `If-Match` header via `WebApiOptionsBase`, independent of any `IETag`-typed request.
 
 ---
 

@@ -23,9 +23,9 @@ app.UseSwaggerUi();
 
 | Attribute on action | OpenAPI artifact added |
 |---|---|
-| `[Paging]` | `$skip`, `$take`, optionally `$count`/`$page` query params |
+| `[Paging]` | `$skip`, `$take`, optionally `$count` query params |
 | `[Query]` | `$filter`, `$orderby` query params |
-| `[IdempotencyKey]` | `x-idempotency-key` header parameter |
+| `[IdempotencyKey]` | `Idempotency-Key` header parameter |
 | `[ProducesNotFoundProblem]` | `404 application/problem+json` response entry |
 | `[Accepts(typeof(T))]` | Request body content type and JSON schema |
 

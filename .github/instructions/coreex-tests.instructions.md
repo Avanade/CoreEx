@@ -103,6 +103,11 @@ public async Task OneTimeSetUpAsync()
 
 **Outbox assertion helpers are database-specific.** Use `UseExpectedPostgresOutboxPublisher` / `ExpectPostgresOutboxEvents` for PostgreSQL domains; use `UseExpectedSqlServerOutboxPublisher` / `ExpectSqlServerOutboxEvents` for SQL Server domains. Never mix them.
 
+**`UseExpectedXxxOutboxPublisher(...)` defaults to asserting *zero* events published when a test declares no explicit event expectation at all.** This is a catch-all, wired in automatically — every `Test.Http()`/`Test.Http<T>()` call that legitimately publishes an event **must** declare one (`ExpectXxxOutboxEvents(...)` or `ExpectNoXxxOutboxEvents()`), or the test fails with `"Expected no {ServiceKey} events; however, N found to be published"` even though the call itself succeeded. There are three tiers, in increasing order of assertion strength — prefer the strongest one your test can support:
+1. *(default, no call)* — asserts **zero** events.
+2. `.ExpectXxxOutboxEvents(e => { })` / bare `.ExpectEvents(serviceKey)` — asserts **at least one** event was published, with **no** identity/content check. Only reach for this when you deliberately can't or don't need to assert which event it was (e.g. an unrelated side-effect of an arrange step) — it is not a substitute for a real assertion on the event under test.
+3. `.ExpectXxxOutboxEvents(e => e.AssertMetadata(...)` / `.AssertWithValue(...))` — asserts the **specific** event (destination + subject, optionally value/key). **This is the default to reach for** — it confirms you got the event you actually expected, not just "an event".
+
 `DataResetFilterPredicate` in `DbMigration.ConfigureMigrationArgs` scopes the reset to the domain's own schema — multiple domains' test runs do not corrupt each other even when run concurrently.
 
 For the **API read/mutate test classes** (see [API Tests — Structure & Generation](#api-tests--structure--generation)), pass the class's specific dataset via the **named-file overload** so read and mutate classes load only their own data: `MigrateSqlServerDataAsync<TestData>(["read-data.seed.yaml"], …)` / `MigratePostgresDataAsync<TestData>(["mutate-data.seed.yaml"], …)`. The no-argument overload loads every `Data/*.seed.yaml`, which would mix the read and mutate datasets.
@@ -113,13 +118,25 @@ For the **API read/mutate test classes** (see [API Tests — Structure & Generat
 
 Test seed data lives under `Data/` in the `*.Test.Common` project, located via the `TestData` marker class (do not rename/move it). These are **test datasets**, distinct from the production `*.Database/Data/ref-data.seed.yaml`.
 
+### Prefer Seeded State Over API-Orchestrated Setup
+
+When a test needs a **precondition state** (e.g. testing that a cancelled booking's segments can't be modified requires a *cancelled* booking to exist), **seed that state directly** in the `.seed.yaml` rather than reaching it by chaining a sequence of API calls (`Create` → `Confirm` → `Cancel`) purely to get there. Real-world usage never replays that history — the data is simply already in that state — and orchestrating a call chain just for setup makes the test more complex than the thing it's testing, and more brittle (a change to an unrelated upstream operation used only for scaffolding can break tests that have nothing to do with it).
+
+This is already the pattern behind the seed-file/`^N`-row system throughout this document — the following makes it an explicit rule rather than something to infer from examples. There are three legitimate exceptions, not a general escape hatch:
+
+1. **The transition itself is the thing under test.** `Create_Success`, `Confirm_Success`, `Cancel_Success`, etc. must call the real endpoint — you cannot seed your way past the code you're actually testing.
+2. **The value is only knowable at runtime** — an ETag, a generated id, a server-set timestamp. A `GET` before a `PUT`/`PATCH`/`DELETE` to obtain the current ETag (see [Update (PUT) and Patch with ETag](#update-put-and-patch-with-etag-concurrency)) is reading a required *input*, not constructing state — this is not an exception to avoid, it's a different category entirely.
+3. **A side effect can only be observed by performing the action** — e.g. asserting an outbox event was published for a mutation. You cannot fake "an event fired" for a seeded row; the mutation has to actually run.
+
+Outside these three, if a test's `Data/*.seed.yaml` row could exist in that state in production, seed it there. Watch for the sharp edge: a hand-authored seed row asserting a state (e.g. `status: Confirmed`) must be a state the business logic could actually produce — don't seed a combination of columns the domain's own transitions would never leave behind, or the test silently stops reflecting reality.
+
 Use **one read dataset and one mutate dataset per domain** — `read-data.seed.yaml` and `mutate-data.seed.yaml` — shared across all of the domain's entities to avoid duplication. The relevant test class loads its dataset by name in `[OneTimeSetUp]`:
 
 ```csharp
 await Test.MigrateSqlServerDataAsync<TestData>(["read-data.seed.yaml"], DbMigration.ConfigureMigrationArgs);   // or MigratePostgresDataAsync
 ```
 
-A developer may override/extend by passing additional files in the list when a class needs bespoke data.
+The shared `read-data.seed.yaml` / `mutate-data.seed.yaml` pair is the **preferred default** — most entities' data fits there without trouble. But `MigrateSqlServerDataAsync<TestData>([...])` / `MigratePostgresDataAsync<TestData>([...])` take a **list**, not a single file, precisely so a test class with data too distinct to manage cleanly inside the shared pair can add its own file — pass it alongside the shared one (`["mutate-data.seed.yaml", "booking-workflow.seed.yaml"]`) or, if the class's data has nothing in common with the shared set, on its own. Reach for a dedicated file when a class's precondition states (see "Prefer Seeded State Over API-Orchestrated Setup" above) would otherwise clutter the shared file with rows only that one class cares about — e.g. several `Booking` rows parked at different state-machine stages (`Draft`, `Confirmed`, `Cancelled`) purely to support one workflow test class. This is the intended use of the list parameter, not a workaround.
 
 **Format** — `schema:` → `- <table>:` → rows, where each row is an **inline object** keyed by column name. Unlike the production `ref-data.seed.yaml` (which uses `$^<table>` + auto-id + `code: text` shorthand), test data uses a **plain `- <table>:`** entry (no `$`/`$^` — it is inserted into a freshly-reset DB) and rows that **list the columns explicitly**.
 
@@ -393,6 +410,34 @@ Test.Http()
 
 This is **412 Precondition Failed** (`ConcurrencyException`), not 409. Use `.AssertPreconditionFailed()`. (409/`AssertConflict()` is for duplicate-key/business conflicts only — see the HTTP assertion table.)
 
+### POST / DELETE guarded by `WithIfMatchRequired()` → 428
+
+Unlike PUT/PATCH, POST/DELETE do not auto-require `If-Match`. Where a controller action opts in by chaining `ro.WithIfMatchRequired()` inline (see `coreex-api-controllers.instructions.md`), test both the missing-header and present-header paths — for **both** the with-body (POST) and no-body (DELETE) shapes:
+
+```csharp
+// POST with a body — missing If-Match → 428, before the handler's business logic runs.
+Test.Http()
+    .Run(HttpMethod.Post, $"/api/bookings/{bookingId}/segments", new { Origin = "SYD", Destination = "MEL" })
+    .Assert(HttpStatusCode.PreconditionRequired);
+
+// POST with a body — present If-Match (matching the parent's current ETag) → succeeds.
+var booking = Test.Http<Booking>().Run(HttpMethod.Get, $"/api/bookings/{bookingId}").AssertOK().Value!;
+Test.Http<Booking>()
+    .Run(HttpMethod.Post, $"/api/bookings/{bookingId}/segments", new { Origin = "SYD", Destination = "MEL" }, requestModifier: r => r.WithIfMatch(booking.ETag))
+    .AssertOK();
+
+// DELETE with no body — same gate, no request payload at all.
+Test.Http()
+    .Run(HttpMethod.Delete, $"/api/bookings/{bookingId}/segments/{segmentId}")
+    .Assert(HttpStatusCode.PreconditionRequired);
+
+Test.Http<Booking>()
+    .Run(HttpMethod.Delete, $"/api/bookings/{bookingId}/segments/{segmentId}", requestModifier: r => r.WithIfMatch(booking.ETag))
+    .AssertOK();
+```
+
+This is `428 Precondition Required` from `ConcurrencyException`, same as the PUT/PATCH auto-check — use `.Assert(HttpStatusCode.PreconditionRequired)` (no dedicated `AssertPreconditionRequired()` helper exists). The `BookingSegmentAddRequest`-style POST DTO marks its `ETag` `[JsonIgnore]` (see `coreex-contracts.instructions.md`), so only the header can supply it — a body `ETag` on this shape is never honored, unlike the PUT/PATCH body fallback above. The DELETE case has no request DTO at all — `ro.WithIfMatchRequired().ETag` reads the header directly.
+
 ### Conditional GET with If-None-Match → 304 Not Modified
 
 For a conditional read, use the **`WithIfNoneMatch(...)`** request-modifier helper (the read-side counterpart of `WithIfMatch`) and assert `AssertNotModified()`. **Fetch once to obtain the response ETag**, then re-GET with it:
@@ -453,6 +498,8 @@ Test.Http().Run(HttpMethod.Get, $"/api/products/{9.ToGuid()}").AssertNotFound();
 
 The point of the test is that the soft-delete filter is actually applied on read — a missing filter would return the row with `200 OK` instead of `404`. (Optionally also assert the row is absent from a collection/query result.)
 
+> **`$inactive` is not soft-delete — do not conflate the two.** `$inactive` (`HttpNames.IncludeInactiveQueryStringName`) is wired up **only** for **reference-data** list/named endpoints (`ro.IsIncludeInactive`, `QueryArgs.IsIncludeInactive`/`.IncludeInactive()`) and toggles `IReferenceData.IsActive`/`IsInactive` — a reference-data-only concept, and even there it is auto-wired for those endpoints alone, not a general-purpose query switch. It has **no** relationship to `IsDeleted`/`ILogicallyDeleted` soft-delete on business entities, and no business entity should be made to key off `$inactive` to reveal deleted rows. A test (or a controller/repository change made to satisfy one) that uses `$inactive`, `IgnoreQueryFilters()`, or `EfDbArgs.BypassFilters`/`WithLogicalDeleteFilter(allowFilterBypass: true)` to make a soft-deleted row appear in a response is not proving a feature — it's routing around the logical-delete filter this very test section exists to prove. If a test expects a soft-deleted row to come back, **the test's expectation is wrong** — fix the test/seed, don't loosen or bypass the filter. `allowFilterBypass`/`BypassFilters` is a real, deliberate opt-in for a genuine business requirement (e.g. an explicit admin "show deleted" capability) that only the developer decides to introduce — never something to flip on to make a failing test pass.
+
 ### Delete — get → delete → get → delete (idempotent)
 
 The canonical delete test is a **four-step** flow that proves both the delete and its **idempotency**: GET (exists) → DELETE (204 + event) → GET (now 404) → DELETE again (204, **no** event). `DELETE` **always** returns **204 No Content** — **never 404**, even for a non-existent or already-deleted id; only the **first** delete (where the row existed) emits the event. The 404 belongs to the **GET**, not the DELETE.
@@ -485,8 +532,24 @@ A delete of a **non-existent** id behaves like step 4 — 204 No Content with no
 Assert published events with `ExpectXxxOutboxEvents(e => …)` (provider-specific). **Pick the assertor by whether the event carries a value:**
 
 - **`.AssertWithValue(destination, subject)`** — for **value-carrying** events (Create/Update). It reconstructs the expected `EventData` **from the API's returned value** (`AssertArgs.Value`) and JSON-compares the event body. Only valid when the operation returns a value **and** the published event's payload is that same value.
-- **`.AssertWithValue(valueFactory, destination, subject)`** (factory overload) — rare; for when the expected payload is **not** derivable from the tester's own returned value at all — e.g. a host-less `GenericTester<T>` (no `IValueExpectations<TValue>`, so there is no `AssertArgs.Value` to reconstruct from), or an operation whose published event payload legitimately differs from what it returns (a projection/DTO, or a value computed inside the service that never comes back through the response). Pass a `Func<TValue>` returning the expected payload directly instead of relying on the response. Low-usage — reach for the plain `AssertWithValue(destination, subject)` first; only use this when the returned value genuinely isn't the event's payload.
+- **`.AssertWithValue<TValue>(valueFactory, destination, subject)`** (generic factory overload) — rare; for when the expected payload is **not** derivable from the tester's own returned value at all, **or is a different type**. Two distinct triggers:
+  - the operation's response type and the event's payload type genuinely **differ** (e.g. the API returns `Order`, but `EventData.CreateEventWith(orderSummary, EventAction.Created)` publishes a leaner `OrderSummary` projection, not the full `Order`) — `AssertArgs.Value` is the wrong shape to JSON-compare against;
+  - a host-less `GenericTester<T>` (no `IValueExpectations<TValue>`, so there is no `AssertArgs.Value` at all to reconstruct from).
+
+  Pass a `Func<TValue>` returning the expected payload of its own type directly, instead of relying on the response:
+
+  ```csharp
+  // The API returns the full Order, but the created event carries a leaner OrderSummary projection — a
+  // JSON-compare against the returned Order (the plain AssertWithValue overload) would be the wrong shape.
+  Test.Http<Order>()
+      .ExpectPostgresOutboxEvents(e => e.AssertWithValue<OrderSummary>(() => new OrderSummary(newOrder.Id, newOrder.Total), "contoso", "contoso.orders.order.created.v1"))
+      .Run(HttpMethod.Post, "/api/orders", newOrder)
+      .AssertCreated();
+  ```
+
+  Low-usage — reach for the plain `AssertWithValue(destination, subject)` first; only use this when the event's payload genuinely isn't (or isn't shaped like) the operation's returned value.
 - **`.AssertMetadata(destination, subject, key)`** — for **no-value** events (**Delete**, or any operation returning `204 No Content`). It asserts the **metadata only** — destination + subject — plus the **`key`** (the `CloudEvent.Subject`, i.e. the `EventData.Key` set via `.WithKey(id)` in the service). There is no value to compare, so `AssertWithValue` would have nothing to reconstruct from — use `AssertMetadata` and pass the deleted id (e.g. `2.ToGuid().ToString()`) as the key.
+- **`.AssertMetadata(destination, subject)`** (`key`/`source` omitted) — the same method, called without a key. Use when a step in the test (typically **setup/arrange**, not the assertion under test) publishes an event you want to confirm the **routing** of (right destination/subject, i.e. "it's the event I think it is") without pinning down the exact key — e.g. an intermediate call in a multi-step workflow test. This is one method with optional trailing parameters (`AssertMetadata(string destination, string? title = null, string? key = null, string? source = null)`), not two separate overloads.
 
 The `destination` and `subject` strings:
 
@@ -520,7 +583,7 @@ Use the `Assert*` helper matching the expected status; for anything not listed, 
 | 404 Not Found | `.AssertNotFound()` |
 | 409 Conflict — **duplicate key / business conflict** (`DuplicateException` / `ConflictException`) | `.AssertConflict()` |
 | 412 Precondition Failed — **stale/mismatched ETag** (`ConcurrencyException`) | `.AssertPreconditionFailed()` |
-| 428 Precondition Required — **no ETag supplied** on a concurrency-controlled mutation | `.Assert(HttpStatusCode.PreconditionRequired)` |
+| 428 Precondition Required — **no ETag supplied** on a concurrency-controlled mutation (auto PUT/PATCH, or POST/DELETE opted in via `ro.WithIfMatchRequired()`) | `.Assert(HttpStatusCode.PreconditionRequired)` |
 
 > **409 vs 412 — different problems, don't conflate.** A **concurrency** failure (the supplied ETag doesn't match the current row) is **412 Precondition Failed** (`ConcurrencyException`) — use `.AssertPreconditionFailed()`. **409 Conflict** is only a **duplicate-key / unique-constraint or business conflict** (`DuplicateException`/`ConflictException`) — e.g. creating a second row with an existing SKU. A stale-ETag update is **never** 409. (And a mutation that supplies **no** ETag at all fails the precondition gate with **428**, not 412 — see "Update of a non-existent id".)
 
@@ -858,10 +921,12 @@ Basket_Checkout_Insufficient_Quantity
 - Do not include `id`/`etag`/`changelog` in a `.res.json` used with `ExpectIdentifier()`/`ExpectETag()`/`ExpectChangeLogCreated()`/`ExpectChangeLogUpdated()` (or list them as manual excludes) — those helpers assert presence and auto-exclude from the compare.
 - Do not use the `Code`-suffixed name in test JSON (`.res.json`/`.req.json`/inline bodies) for a reference-data property — use the non-`Code` JSON name (`gender`, not `genderCode`).
 - Do not omit `.WithMergePatchJsonContentType()` on a PATCH test — the request default is plain JSON, not merge-patch.
+- Do not use `$inactive`, `IgnoreQueryFilters()`, or `EfDbArgs.BypassFilters`/`WithLogicalDeleteFilter(allowFilterBypass: true)` to make a soft-deleted row visible in a test — `$inactive` is a reference-data-only `IsActive`/`IsInactive` toggle, unrelated to `IsDeleted`; if a test expects a soft-deleted row back, the test's expectation is wrong, not the filter (see "Get of a soft-deleted row → 404").
 - Do not assert `AssertNotFound()` on a `DELETE` — delete is idempotent and always returns 204 No Content (the 404 belongs to the *GET* in a get→delete→get flow). Only the first delete emits an event; assert `ExpectNoXxxOutboxEvents()` on a repeat/non-existent delete.
 - Do not add a `.vN` version suffix to a **no-value** event subject (e.g. `…deleted`) — the version applies **only** when the event carries a value (create/update). Derive the version from the contract's `[Schema("vX.Y")]` major (default `.v1`); don't guess or hard-code it.
 - Do not use `AssertWithValue` for a **no-value** event (Delete, or any `204 No Content`) — there is no returned value to reconstruct from. Use `AssertMetadata(destination, subject, key)` and pass the entity id (e.g. `2.ToGuid().ToString()`) as the `key` (the `.WithKey(id)` value). Reserve `AssertWithValue` for value-carrying Create/Update events.
 - Do not reach for the `AssertWithValue(valueFactory, ...)` factory overload by default — it exists for the rare case where the tester has no returned value to reconstruct from (host-less `GenericTester<T>`) or the published event's payload genuinely differs from the response. If the operation returns the same value the event carries, use the plain `AssertWithValue(destination, subject)` instead.
+- Do not leave a time-of-day component on fixture values for a semantically **date-only** field (e.g. a travel/booking window) — truncate to `.Date` on **both** sides of any cross-field comparison (fixture and the value under test). A stray time-of-day causes spurious validation failures that look like a business-rule bug but are really a fixture-data mismatch.
 
 ## Further Reading
 

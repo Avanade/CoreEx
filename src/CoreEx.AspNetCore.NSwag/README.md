@@ -12,10 +12,10 @@
 
 ## Key capabilities
 
-- 📋 **Paging parameters**: Reads `[PagingAttribute]` and adds `$skip`, `$take`, and optionally `$count` / `$page` query-string parameters with descriptions controlled by `OpenApiOptions.PagingSkipText`, `PagingTakeText`, etc.
+- 📋 **Paging parameters**: Reads `[PagingAttribute]` and adds `$skip`, `$take`, and optionally `$count` query-string parameters with descriptions controlled by `OpenApiOptions.PagingSkipText`, `PagingTakeText`, etc.
 - 🔍 **Query parameters**: Reads `[QueryAttribute]` and adds `$filter` and/or `$orderby` query-string parameters when `SupportsFilter` / `SupportsOrderBy` are set.
 - 📦 **Request body content types**: Reads `[AcceptsAttribute]` and populates the operation `RequestBody` with the declared content type(s) and NSwag-inferred JSON schema for the body type.
-- 🔑 **Idempotency-key header**: Reads `[IdempotencyKeyAttribute]` and adds an `x-idempotency-key` header parameter to the operation.
+- 🔑 **Idempotency-key header**: Reads `[IdempotencyKeyAttribute]` and adds an `Idempotency-Key` header parameter to the operation.
 - 🚫 **Not-found response**: Reads `[ProducesNotFoundProblemAttribute]` and adds a `404 application/problem+json` response entry.
 - ⚠️ **ProblemDetails responses**: Optionally injects `application/problem+json` response entries for the HTTP status codes configured via `OpenApiOptions.IncludeProblemDetailsHttpStatusCodes` / `OpenApiOptions.IncludeValidationProblemDetailsHttpStatusCodes` and their corresponding status-code lists; `500` is only included when it is present in the configured list, not by default via a separate `IncludeStandardProblemDetailsResponses` option.
 - 📡 **Fields query string**: When `OpenApiOptions.IncludeFieldsRequestHeaders` is set, adds the `$fields` query-string parameter for response field projection.

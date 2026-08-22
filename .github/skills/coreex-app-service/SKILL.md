@@ -52,6 +52,7 @@ Guides you through creating or modifying a CoreEx Application-layer service in `
 - All mutations in `_unitOfWork.TransactionAsync(...)` — event added inside, never outside
 - `WhereMutated(v => ...)` for Create/Update (`DataResult<T>` carries value); `WhereMutated(() => ...)` for Delete
 - Delete event: `EventData.CreateEvent<T>(EventAction.Deleted).WithKey(id)` — **no value body**
+- Check `EventAction` before reaching for `CreateEventWith(v, "string")` — most business actions (`Confirmed`, `Cancelled`, `Started`, `Completed`, `Suspended`, `Closed`, `Expired`, etc.) already have an enum member; the raw-string overload is only for genuinely novel actions
 - `NotFoundException.ThrowIfDefault(entity)` after any Get that must find the entity
 - Validators / Mappers / Policies: **not DI-registered** — call or instantiate at point of use
 - `Validator<T, TSelf>`: call via singleton — `{Name}Validator.Default.ValidateAndThrowAsync(...)`

@@ -60,7 +60,7 @@ Guides you through adding or modifying HTTP API endpoints in an `*.Api` host. Co
 - No business logic in controllers — delegate immediately to the application service
 - `[Query(supportsOrderBy: true), Paging(supportsCount: true)]` + `[HttpGet("$query")]` schema endpoint for query operations
 - After adding a GET/Query endpoint, check whether this host already has GraphQL enabled (grep `Program.cs` for `AddCoreExGraphQLLite`, or check the host's `AGENTS.md` for a `**GraphQL:**` line). If enabled, offer to add a matching root via `coreex-graphql` in the same session; if not enabled, say nothing — do not offer to enable GraphQL, that is a separate explicit ask
-- Once the endpoint is implemented, hand off to `coreex-test-api` to add/update its integration test
+- Once the endpoint is implemented, hand off to `coreex-test-api` to add/update its integration test — go straight there. Do not write a throwaway smoke test (a scratch test class, ad-hoc curl/`HttpClient` call, or manual `dotnet run` check) first "to see if it works" and then discard it; the real integration test authored by `coreex-test-api` runs against the real host/DB and **is** the verification step, so a preliminary pass is wasted effort that gets thrown away seconds later
 
 For full workflow and code examples see [`references/workflow.md`](references/workflow.md).
 

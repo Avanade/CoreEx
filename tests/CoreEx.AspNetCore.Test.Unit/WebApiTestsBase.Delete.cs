@@ -1,3 +1,6 @@
+using System.Net;
+using System.Net.Http.Headers;
+
 namespace CoreEx.AspNetCore.Test.Unit;
 
 partial class WebApiTestsBase<TWebApi, TResult>
@@ -46,5 +49,28 @@ partial class WebApiTestsBase<TWebApi, TResult>
             .ToHttpResponseMessageAssertor()
             .AssertOK()
             .AssertValue(123);
+    }
+
+    [Test]
+    public void Delete_Response_IfMatchRequired_Missing()
+    {
+        // No body, no IETag request type — matches the real-world "no body" shape: ro.WithIfMatchRequired().ETag.
+        Test.Type<TWebApi>()
+            .Run(async w => await w.DeleteAsync<string?>(Test.CreateHttpRequest(HttpMethod.Delete), (ro, ct) => Task.FromResult(ro.WithIfMatchRequired().ETag)))
+            .ToHttpResponseMessageAssertor()
+            .Assert(HttpStatusCode.PreconditionRequired);
+    }
+
+    [Test]
+    public void Delete_Response_IfMatchRequired_Present()
+    {
+        var hr = Test.CreateHttpRequest(HttpMethod.Delete);
+        hr.Headers.IfMatch = new EntityTagHeaderValue("\"abcdefg\"", true).ToString();
+
+        Test.Type<TWebApi>()
+            .Run(async w => await w.DeleteAsync<string?>(hr, (ro, ct) => Task.FromResult(ro.WithIfMatchRequired().ETag)))
+            .ToHttpResponseMessageAssertor()
+            .AssertOK()
+            .AssertValue("abcdefg");
     }
 }

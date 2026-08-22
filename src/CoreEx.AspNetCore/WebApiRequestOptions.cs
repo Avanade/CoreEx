@@ -6,8 +6,6 @@ namespace CoreEx.AspNetCore;
 /// <typeparam name="TRequest">The request <see cref="Type"/>.</typeparam>
 public sealed class WebApiRequestOptions<TRequest> : WebApiOptionsBase, IWebApiRequestOptions<TRequest>
 {
-    private static readonly LText _concurrencyMessage = new($"{typeof(WebApiOptionsBase).FullName}.IfMatchRequired" , "A concurrency error occurred; an ETag is required either as an IF-MATCH header (preferred) or specified within the request body (where supported).");
-
     private TRequest? _valueOrDefault;
     private bool _hasBeenCleaned;
 
@@ -74,12 +72,17 @@ public sealed class WebApiRequestOptions<TRequest> : WebApiOptionsBase, IWebApiR
     /// <param name="options">The <see cref="WebApiOptionsBase"/>.</param>
     /// <param name="value">The request value.</param>
     /// <returns>The <see cref="Result"/> of the verification.</returns>
+    /// <remarks>POST is intentionally excluded: it typically represents creation with no prior state to match against. Where a specific POST (or DELETE) operation is conditional on a
+    /// related resource's state (e.g. adding an item to a booking that must not have changed since it was read), the request's <see cref="WebApiOptionsBase.ETag"/> is still captured from
+    /// the <c>If-Match</c> header (see the base constructor) and stamped onto the value where it implements <see cref="IETag"/>. Call <see cref="AspNetCoreExtensions.WithIfMatchRequired{TRequestOptions}(TRequestOptions)"/>
+    /// from within the handler — before any state-changing logic — to assert it immediately and fail with a <see cref="ConcurrencyException"/> where required, without any change to
+    /// this shared verification path.</remarks>
     internal static Result VerifyRequest<TOptions>(TOptions options, TRequest? value) where TOptions : WebApiOptionsBase, IWebApiRequestOptions<TRequest>
     {
         if (HttpMethods.IsPut(options.Request.Method) || HttpMethods.IsPatch(options.Request.Method))
         {
             if (value is IETag etag && etag.ETag is null)
-                return Result.Fail(new ConcurrencyException(_concurrencyMessage).WithStatusCode(HttpStatusCode.PreconditionRequired));
+                return Result.Fail(new ConcurrencyException(ConcurrencyMessage).WithStatusCode(HttpStatusCode.PreconditionRequired));
         }
 
         return Result.Success;

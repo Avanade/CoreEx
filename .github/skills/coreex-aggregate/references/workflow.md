@@ -111,6 +111,13 @@ public sealed class {Aggregate} : Aggregate<{IdType}, {Aggregate}>
   `CheckCanMutate()` → `.ThrowOnError()` internally, so a failing guard **throws the exception carried
   by the failed `Result`** when `Modify`/`Remove` is called — typically a `BusinessException` when
   `Result.BusinessError(...)` is used, but whatever exception type the `Result` actually carries.
+- **`OnCheckCanMutate()` is one blanket gate for *every* `Modify`/`Remove` call** — it cannot vary by
+  method. Fine when every mutation shares one precondition (e.g. "can't mutate once cancelled"). Where
+  preconditions genuinely differ per mutation — e.g. "cancelled is immutable" but "cancelled can still
+  be deleted" — keep `OnCheckCanMutate()` a no-op (or covering only the truly universal rule) and check
+  the differing precondition explicitly at the top of each mutation method instead, returning
+  `Result.BusinessError(...)` before calling `Modify`/`Remove`. Don't force heterogeneous rules through
+  the one blanket gate.
 - `OnMutate()` is called automatically after every successful `Modify`/`Remove` — use it to re-derive
   dependent state (e.g., recompute a status from child-entity state), not to perform I/O.
 - Public mutation methods (e.g., `{ChildEntity}Add`) should return `Result`/`Result<T>` for consistency

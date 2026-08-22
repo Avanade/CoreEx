@@ -3,8 +3,13 @@ namespace CoreEx.AspNetCore.Abstractions;
 /// <summary>
 /// Represents the base <see cref="WebApi{TResult}"/> options.
 /// </summary>
-public class WebApiOptionsBase 
+public class WebApiOptionsBase
 {
+    /// <summary>
+    /// Gets the shared concurrency error message used where an <c>If-Match</c> header (or equivalent ETag) is required but not present.
+    /// </summary>
+    internal static readonly LText ConcurrencyMessage = new($"{typeof(WebApiOptionsBase).FullName}.IfMatchRequired", "A concurrency error occurred; an ETag is required either as an IF-MATCH header (preferred) or specified within the request body (where supported).");
+
     private QueryArgs? _queryArgs;
     private PagingArgs? _pagingArgs;
     private bool _attemptedPagingArgs;
@@ -30,7 +35,7 @@ public class WebApiOptionsBase
 
         if (HttpMethods.IsGet(httpRequest.Method) || HttpMethods.IsHead(httpRequest.Method))
             etag = rth.IfNoneMatch.FirstOrDefault()?.Tag;
-        else if (HttpMethods.IsPut(httpRequest.Method) || HttpMethods.IsPatch(httpRequest.Method))
+        else if (HttpMethods.IsPut(httpRequest.Method) || HttpMethods.IsPatch(httpRequest.Method) || HttpMethods.IsPost(httpRequest.Method) || HttpMethods.IsDelete(httpRequest.Method))
             etag = rth.IfMatch.FirstOrDefault()?.Tag;
         else
             etag = null;
@@ -94,7 +99,8 @@ public class WebApiOptionsBase
     } = OperationType.Unspecified;
 
     /// <summary>
-    /// Gets the entity tag that was passed; a) <c>If-None-Match</c> header where <see cref="HttpMethod.Get"/>, b) <c>If-Match</c> header where <see cref="HttpMethod.Put"/>, or c) otherwise, <see langword="null"/>.
+    /// Gets the entity tag that was passed; a) <c>If-None-Match</c> header where <see cref="HttpMethod.Get"/> or <see cref="HttpMethod.Head"/>, b) <c>If-Match</c> header where <see cref="HttpMethod.Put"/>,
+    /// <see cref="HttpMethod.Patch"/>, <see cref="HttpMethod.Post"/> or <see cref="HttpMethod.Delete"/>, or c) otherwise, <see langword="null"/>.
     /// </summary>
     /// <remarks>Represents the underlying raw value; i.e. is stripped of any <c>W/"xxxx"</c> formatting.</remarks>
     public string? ETag { get; }
