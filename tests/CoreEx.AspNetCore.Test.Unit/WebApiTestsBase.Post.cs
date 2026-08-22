@@ -154,14 +154,22 @@ partial class WebApiTestsBase<TWebApi, TResult>
         hr.Headers.IfMatch = new EntityTagHeaderValue("\"abcdefg\"", true).ToString();
 
         Test.Type<TWebApi>()
-            .Run(async w => await w.PostAsync<Person, Person2>(hr, (ro, ct) => Task.FromResult(new Person2
+            .Run(async w => await w.PostAsync<Person, Person2>(hr, (ro, ct) =>
             {
-                // Inline chain — matches real-world controller usage: ro.WithIfMatchRequired().Value.
-                FirstName = ro.WithIfMatchRequired().Value.FirstName,
-                LastName = ro.Value.LastName,
-                Age = ro.Value.Age,
-                ETag = "123456"
-            }), HttpStatusCode.OK))
+                // The If-Match header must be captured onto ro.ETag and stamped onto the deserialized body (IETag) for POST too —
+                // not just asserted present via WithIfMatchRequired(). Mirrors the equivalent PUT/PATCH assertions.
+                ro.ETag.Should().Be("abcdefg");
+                ro.Value.ETag.Should().Be("abcdefg"); // ETag should have been overridden from the If-Match header.
+
+                return Task.FromResult(new Person2
+                {
+                    // Inline chain — matches real-world controller usage: ro.WithIfMatchRequired().Value.
+                    FirstName = ro.WithIfMatchRequired().Value.FirstName,
+                    LastName = ro.Value.LastName,
+                    Age = ro.Value.Age,
+                    ETag = "123456"
+                });
+            }, HttpStatusCode.OK))
             .ToHttpResponseMessageAssertor(hr)
             .AssertOK()
             .AssertJson("""{"firstName":"John","lastName":"Doe","age":30,"etag":"123456"}""")
