@@ -380,8 +380,9 @@ public static partial class JsonFilter
     /// <returns><see langword="true"/> indicates that at least one JSON node was filtered (removed); otherwise, <see langword="false"/> for no changes.</returns>
     /// <remarks>Unlike <see cref="TryJsonFilter"/> and <see cref="Filter(JsonNode, IEnumerable{string}?, JsonFilterOption, StringComparison)"/>, this performs a single-pass <see cref="Utf8JsonReader"/>/
     /// <see cref="Utf8JsonWriter"/> copy and never materializes a <see cref="JsonNode"/> document object model, making it significantly faster and lower-allocation for the common case of excluding one
-    /// or more properties (e.g. <c>$..etag</c>) from an already-serialized JSON payload. Property names and values are copied verbatim from <paramref name="utf8Json"/> (no naming policy or converters
-    /// are applied, since these were already applied when it was originally serialized); <paramref name="writerOptions"/> only controls the output's whitespace/escaping formatting, not its content.</remarks>
+    /// or more properties (e.g. <c>$..etag</c>) from an already-serialized JSON payload. No naming policy or converters are (re-)applied to property names or values - those were already applied when
+    /// <paramref name="utf8Json"/> was originally serialized. Numbers are copied byte-for-byte; string property names/values are decoded and re-written via <see cref="Utf8JsonWriter"/>, so their
+    /// escaping (e.g. <c>\uXXXX</c> sequences) may be re-normalized by <paramref name="writerOptions"/>'s <see cref="JsonWriterOptions.Encoder"/> even though the decoded content is unchanged.</remarks>
     public static bool TryExcludeUtf8Json(ReadOnlySpan<byte> utf8Json, IEnumerable<string>? excludePaths, out byte[] filteredUtf8Json, JsonWriterOptions writerOptions = default, StringComparison comparison = StringComparison.OrdinalIgnoreCase)
     {
         var matcher = ExcludeMatcher.Create(excludePaths, comparison);

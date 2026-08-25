@@ -830,7 +830,7 @@ public class JsonFilterTests
     }
 
     // The following exercise TryExcludeUtf8Json (the streaming, JsonNode-free Exclude engine) both directly and via the parity check against the
-    // JsonNode-based Filter(JsonNode,...) engine, since both must produce byte-identical results for every path shape.
+    // JsonNode-based Filter(JsonNode,...) engine, since both must produce equivalent JSON output for every path shape (compared structurally via ObjectComparer.AssertJson, not byte-for-byte).
 
     [Test]
     public void TryExcludeUtf8Json_NoPatterns_ReturnsInputUnchanged()
