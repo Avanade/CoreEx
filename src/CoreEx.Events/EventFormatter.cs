@@ -113,6 +113,20 @@ public class EventFormatter : IEventFormatter
     /// <remarks>This defaults to the <see cref="IHostSettings.DomainName"/>.</remarks>
     public string? DomainName { get; set; }
 
+    /// <summary>
+    /// Gets or sets the list of JSON paths (see <see cref="Json.JsonFilter"/>) to exclude from the <see cref="EventData.Data"/> of every formatted event.
+    /// </summary>
+    /// <remarks>Applied during <see cref="Format(EventData)"/>, before <see cref="ConvertToCloudEvent(EventData)"/>, using <see cref="JsonFilterOption.Exclude"/>. Supports recursive descent paths
+    /// (e.g. <c>$..etag</c>) to remove a property irrespective of where it appears within the payload, without each call site needing to specify <c>excludePaths</c> on
+    /// <see cref="EventData.WithValue{T}(T, IEnumerable{string}, JsonSerializerOptions)"/> individually.
+    /// <para>Defaults to excluding <c>$..etag</c>: an optimistic-concurrency token has no meaning to a downstream event consumer, and is not reliably assignable in the first place for events raised
+    /// transactionally via an outbox against a NoSQL store (there is no single, post-commit <c>ETag</c> to capture at the point the event is written to the outbox). Set to <see langword="null"/> or an
+    /// empty list to opt out and retain the previous behavior of leaving <see cref="EventData.Data"/> untouched.</para>
+    /// <para>Only applied where <see cref="EventData.Data"/> is present and its <see cref="BinaryData.MediaType"/> is <see cref="MediaTypeNames.Application.Json"/>; other content types are left as-is.</para>
+    /// <para><c>CoreEx.UnitTesting</c>'s <c>EventExpectationsConfig.DefaultDataPathsToIgnore</c> already ignores <c>data.etag</c> by default when asserting on published events, independently of this setting;
+    /// where a custom path is configured here that is not already ignored there, either add it to the test's expected data or to <c>EventExpectationsConfig.PathsToIgnore</c> so comparisons are unaffected.</para></remarks>
+    public List<string>? DataExcludePaths { get; set; } = ["$..etag"];
+
     /// <inheritdoc/>
     /// <remarks>The <see cref="EventData.Title"/> is formatted by default using the following convention:
     /// <code>[{EventFormatter.TitlePrefix}.]{EventData.DomainName}.{EventData.Entity}.{EventData.Action}[.v{EventData.DataSchemaVersion.Major}]</code></remarks>
@@ -152,7 +166,27 @@ public class EventFormatter : IEventFormatter
         if (@event.PartitionKey is null && PartitionKeyIsRequired)
             throw new InvalidOperationException($"A {nameof(EventData)}.{nameof(EventData.PartitionKey)} PartitionKey is required.");
 
+        if (@event.Data is not null && DataExcludePaths is { Count: > 0 } && string.Equals(@event.Data.MediaType, MediaTypeNames.Application.Json, StringComparison.OrdinalIgnoreCase))
+            @event.Data = FilterData(@event.Data, DataExcludePaths);
+
         return @event;
+    }
+
+    /// <summary>
+    /// Applies the <see cref="DataExcludePaths"/> to the <paramref name="data"/> using <see cref="Json.JsonFilter"/>.
+    /// </summary>
+    private static BinaryData FilterData(BinaryData data, List<string> excludePaths)
+    {
+        var node = JsonNode.Parse(data.ToStream())!;
+        if (!JsonFilter.Filter(node, excludePaths, JsonFilterOption.Exclude))
+            return data;
+
+        using var ms = new MemoryStream();
+        using var jw = new Utf8JsonWriter(ms);
+        node.WriteTo(jw);
+        jw.Flush();
+        ms.Position = 0;
+        return BinaryData.FromStream(ms, MediaTypeNames.Application.Json);
     }
 
     /// <inheritdoc/>

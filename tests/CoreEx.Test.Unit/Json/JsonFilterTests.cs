@@ -669,4 +669,163 @@ public class JsonFilterTests
         matched.Should().NotBeNull();
         matched!.GetValue<bool>().Should().BeTrue();
     }
+
+    [Test]
+    public void TryJsonFilter_Exclude_RecursiveDescent_AnyDepth()
+    {
+        string val = """
+            {
+                "Name": "John",
+                "Password": "secret1",
+                "Account": {
+                    "Password": "secret2",
+                    "Username": "john"
+                },
+                "Users": [
+                    { "Name": "A", "Password": "secret3" },
+                    { "Name": "B", "Password": "secret4" }
+                ]
+            }
+            """;
+
+        string exp = """
+            {
+                "Name": "John",
+                "Account": {
+                    "Username": "john"
+                },
+                "Users": [
+                    { "Name": "A" },
+                    { "Name": "B" }
+                ]
+            }
+            """;
+
+        var r = JsonFilter.TryJsonFilter(val, ["..Password"], out string json, JsonFilterOption.Exclude);
+        r.Should().BeTrue();
+        ObjectComparer.AssertJson(exp, json);
+    }
+
+    [Test]
+    public void TryJsonFilter_Exclude_RecursiveDescent_MultiSegmentTail()
+    {
+        string val = """
+            {
+                "Foo": { "Bar": 1, "Baz": 2 },
+                "Nested": { "Foo": { "Bar": 3, "Baz": 4 } },
+                "Other": { "Bar": 5 }
+            }
+            """;
+
+        string exp = """
+            {
+                "Foo": { "Baz": 2 },
+                "Nested": { "Foo": { "Baz": 4 } },
+                "Other": { "Bar": 5 }
+            }
+            """;
+
+        var r = JsonFilter.TryJsonFilter(val, ["..Foo.Bar"], out string json, JsonFilterOption.Exclude);
+        r.Should().BeTrue();
+        ObjectComparer.AssertJson(exp, json);
+    }
+
+    [Test]
+    public void TryJsonFilter_Exclude_RecursiveDescent_DoesNotMatchRawStringSuffix()
+    {
+        // Regression: '..Text' must not match 'LongText' - the match must occur at a proper path-segment boundary, not merely as a raw string suffix.
+        string val = """
+            {
+                "LongText": "keep me",
+                "Nested": { "Text": "remove me", "LongText": "keep me too" }
+            }
+            """;
+
+        string exp = """
+            {
+                "LongText": "keep me",
+                "Nested": { "LongText": "keep me too" }
+            }
+            """;
+
+        var r = JsonFilter.TryJsonFilter(val, ["..Text"], out string json, JsonFilterOption.Exclude);
+        r.Should().BeTrue();
+        ObjectComparer.AssertJson(exp, json);
+    }
+
+    [Test]
+    public void TryJsonFilter_Exclude_RecursiveDescent_RootPrefixOptional()
+    {
+        string val = """{ "A": { "Foo": 1 }, "B": { "Foo": 2 } }""";
+        string exp = """{ "A": { }, "B": { } }""";
+
+        var r1 = JsonFilter.TryJsonFilter(val, ["..Foo"], out string json1, JsonFilterOption.Exclude);
+        var r2 = JsonFilter.TryJsonFilter(val, ["$..Foo"], out string json2, JsonFilterOption.Exclude);
+
+        r1.Should().BeTrue();
+        r2.Should().BeTrue();
+        ObjectComparer.AssertJson(exp, json1);
+        ObjectComparer.AssertJson(exp, json2);
+    }
+
+    [Test]
+    public void TryJsonFilter_Include_RecursiveDescent_AnyDepth()
+    {
+        string val = """
+            {
+                "Id": 1,
+                "Name": "root",
+                "Child": { "Id": 2, "Name": "child", "GrandChild": { "Id": 3, "Name": "grand" } },
+                "Items": [
+                    { "Id": 4, "Name": "item1" },
+                    { "Id": 5, "Name": "item2" }
+                ]
+            }
+            """;
+
+        string exp = """
+            {
+                "Id": 1,
+                "Child": { "Id": 2, "GrandChild": { "Id": 3 } },
+                "Items": [
+                    { "Id": 4 },
+                    { "Id": 5 }
+                ]
+            }
+            """;
+
+        var r = JsonFilter.TryJsonFilter(val, ["..Id"], out string json, JsonFilterOption.Include);
+        r.Should().BeTrue();
+        ObjectComparer.AssertJson(exp, json);
+    }
+
+    [Test]
+    public void TryJsonFilter_Include_RecursiveDescent_CombinedWithPlainPath()
+    {
+        string val = """
+            {
+                "Id": 1,
+                "Name": "root",
+                "Child": { "Id": 2, "Name": "child" }
+            }
+            """;
+
+        string exp = """
+            {
+                "Id": 1,
+                "Name": "root",
+                "Child": { "Id": 2 }
+            }
+            """;
+
+        var r = JsonFilter.TryJsonFilter(val, ["name", "..Id"], out string json, JsonFilterOption.Include);
+        r.Should().BeTrue();
+        ObjectComparer.AssertJson(exp, json);
+    }
+
+    [Test]
+    public void TryJsonFilter_RecursiveDescent_EmptyTail_Throws()
+    {
+        Assert.Throws<ArgumentException>(() => JsonFilter.TryJsonFilter("{}", [".."], out _, JsonFilterOption.Exclude));
+    }
 }

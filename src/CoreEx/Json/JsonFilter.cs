@@ -3,10 +3,14 @@ namespace CoreEx.Json;
 /// <summary>
 /// Provides a means to apply a filter to include or exclude JSON properties (in effect removing the unwanted properties).
 /// </summary>
-/// <remarks>The JSON path matching is exact (other than specified <see cref="StringComparison"/>) in that the path matches with no indexing or fully indexed; i.e. no mixing is supported. For example, a JSON path of 
-/// '<c>$.projects[0].technologies[1]</c>' will only match based on a filter of either '<c>$.projects[0].technologies[1]</c>' (fully indexed) or '<c>$.projects.technologies</c>' (no indexing); not on 
+/// <remarks>The JSON path matching is exact (other than specified <see cref="StringComparison"/>) in that the path matches with no indexing or fully indexed; i.e. no mixing is supported. For example, a JSON path of
+/// '<c>$.projects[0].technologies[1]</c>' will only match based on a filter of either '<c>$.projects[0].technologies[1]</c>' (fully indexed) or '<c>$.projects.technologies</c>' (no indexing); not on
 /// '<c>$.projects.technologies[1]</c>' (mixed). Property names that contain special characters such as dots may be specified using bracket notation, e.g. <c>$.entries['stackExchange.Redis']</c> or
-/// <c>$.entries["stackExchange.Redis"]</c>. Note that the '<c>$.</c>' JSON path prefix for the filter is optional.</remarks>
+/// <c>$.entries["stackExchange.Redis"]</c>. Note that the '<c>$.</c>' JSON path prefix for the filter is optional.
+/// <para>A path prefixed with a recursive descent marker, '<c>..</c>' or '<c>$..</c>' (e.g. <c>$..Foo</c> or <c>$..Foo.Bar</c>), matches the remainder of the path at <b>any</b> depth within the JSON hierarchy,
+/// for both <see cref="JsonFilterOption.Include"/> and <see cref="JsonFilterOption.Exclude"/>. For example, <c>$..Password</c> matches a property named <c>Password</c> irrespective of where it appears in the
+/// document. Only this leading (global) form of recursive descent is supported; a scoped, mid-path form (e.g. <c>$.Root..Foo</c>, matching <c>Foo</c> at any depth but only underneath <c>Root</c>) is not currently
+/// supported.</para></remarks>
 public static partial class JsonFilter
 {
     private static readonly Regex _regex = IndexesRegex();
@@ -107,13 +111,19 @@ public static partial class JsonFilter
         if (json is null)
             return false;
 
+        SplitRecursivePaths(paths, comparison, out var normalPaths, out var recursiveSuffixes);
+
         var maxDepth = 0;
-        var dict = CreateDictionary(paths, filter, comparison, ref maxDepth, true);
-        var args = new JsonFilterArgs { MaxDepth = maxDepth, Paths = dict };
+        var dict = CreateDictionary(normalPaths, filter, comparison, ref maxDepth, true);
+
+        if (filter == JsonFilterOption.Exclude && recursiveSuffixes.Count > 0)
+            maxDepth = int.MaxValue;
+
+        var args = new JsonFilterArgs { MaxDepth = maxDepth, Paths = dict, RecursiveSuffixes = recursiveSuffixes, Comparison = comparison };
 
         if (filter == JsonFilterOption.Include)
             FilterInclude(json, args);
-        else if (maxDepth > 0)
+        else if (maxDepth > 0 || recursiveSuffixes.Count > 0)
             FilterExclude(json, args, 1);
 
         return args.IsFiltered;
@@ -128,12 +138,60 @@ public static partial class JsonFilter
     /// <returns>The first matched <see cref="JsonNode"/> where found; otherwise, <see langword="null"/>.</returns>
     public static JsonNode? GetMatched(JsonNode json, string path, StringComparison comparison = StringComparison.OrdinalIgnoreCase)
     {
+        SplitRecursivePaths([path.ThrowIfNullOrEmpty()], comparison, out var normalPaths, out var recursiveSuffixes);
+
         var maxDepth = 0;
-        var dict = CreateDictionary([path.ThrowIfNullOrEmpty()], JsonFilterOption.Include, comparison, ref maxDepth, true);
-        var args = new JsonFilterArgs { MaxDepth = maxDepth, Paths = dict };
+        var dict = CreateDictionary(normalPaths, JsonFilterOption.Include, comparison, ref maxDepth, true);
+        var args = new JsonFilterArgs { MaxDepth = maxDepth, Paths = dict, RecursiveSuffixes = recursiveSuffixes, Comparison = comparison };
 
         FilterInclude(json, args);
         return args.MatchedNode;
+    }
+
+    /// <summary>
+    /// Splits the specified <paramref name="paths"/> into <paramref name="normalPaths"/> (unchanged, exact-match paths) and <paramref name="recursiveSuffixes"/> (paths prefixed with the recursive
+    /// descent marker, '<c>..</c>' or '<c>$..</c>', reduced to the trailing suffix to match at any depth).
+    /// </summary>
+    private static void SplitRecursivePaths(IEnumerable<string>? paths, StringComparison comparison, out List<string> normalPaths, out List<string> recursiveSuffixes)
+    {
+        normalPaths = [];
+        recursiveSuffixes = [];
+
+        foreach (var path in paths ?? [])
+        {
+            string? tail = null;
+            if (path.StartsWith("$..", StringComparison.Ordinal))
+                tail = path[3..];
+            else if (path.StartsWith("..", StringComparison.Ordinal))
+                tail = path[2..];
+
+            if (tail is null)
+            {
+                normalPaths.Add(path);
+                continue;
+            }
+
+            if (tail.Length == 0)
+                throw new ArgumentException($"The recursive descent path '{path}' must specify a property to match at any depth.", nameof(paths));
+
+            var suffix = NormalizeDoubleQuoteBrackets(tail.StartsWith('[') ? tail : $".{tail}");
+            if (!recursiveSuffixes.Contains(suffix, StringComparer.FromComparison(comparison)))
+                recursiveSuffixes.Add(suffix);
+        }
+    }
+
+    /// <summary>
+    /// Determines whether the specified <paramref name="path"/> matches any of the <paramref name="suffixes"/> (each of which is anchored at a proper path-segment boundary), indicating a match at any depth.
+    /// </summary>
+    private static bool MatchesAnyRecursiveSuffix(string path, List<string> suffixes, StringComparison comparison)
+    {
+        foreach (var suffix in suffixes)
+        {
+            if (path.EndsWith(suffix, comparison))
+                return true;
+        }
+
+        return false;
     }
 
     /// <summary>
@@ -226,15 +284,27 @@ public static partial class JsonFilter
         }
         else
         {
-            if (TryRemovePathIndexes(path, out var pathWithoutIndexes))
+            var hadIndexes = TryRemovePathIndexes(path, out var pathWithoutIndexes);
+            if (hadIndexes && args.Paths.TryGetValue(pathWithoutIndexes, out isSpecifiedPath) && isSpecifiedPath)
             {
-                if (args.Paths.TryGetValue(pathWithoutIndexes, out isSpecifiedPath) && isSpecifiedPath)
+                args.MatchedNode = json;
+                return false;
+            }
+
+            if (args.RecursiveSuffixes.Count > 0)
+            {
+                // Recursive Include pattern(s) present: this node's own path might match, or a descendant might; a container must therefore not be pruned without first exploring its children.
+                if (MatchesAnyRecursiveSuffix(path, args.RecursiveSuffixes, args.Comparison) ||
+                    (hadIndexes && MatchesAnyRecursiveSuffix(pathWithoutIndexes, args.RecursiveSuffixes, args.Comparison)))
                 {
                     args.MatchedNode = json;
                     return false;
                 }
+
+                if (json is not JsonObject && json is not JsonArray)
+                    return true;
             }
-            else
+            else if (!hadIndexes)
                 return true;
         }
 
@@ -286,10 +356,15 @@ public static partial class JsonFilter
         }
         else
         {
-            if (TryRemovePathIndexes(path, out var pathWithoutIndexes))
+            var hadIndexes = TryRemovePathIndexes(path, out var pathWithoutIndexes);
+            if (hadIndexes && args.Paths.TryGetValue(pathWithoutIndexes, out isSpecifiedPath) && isSpecifiedPath)
+                return true;
+
+            if (args.RecursiveSuffixes.Count > 0 &&
+                (MatchesAnyRecursiveSuffix(path, args.RecursiveSuffixes, args.Comparison) ||
+                 (hadIndexes && MatchesAnyRecursiveSuffix(pathWithoutIndexes, args.RecursiveSuffixes, args.Comparison))))
             {
-                if (args.Paths.TryGetValue(pathWithoutIndexes, out isSpecifiedPath) && isSpecifiedPath)
-                    return true;
+                return true;
             }
         }
 
@@ -416,6 +491,16 @@ public static partial class JsonFilter
         /// Gets the maximum depth of the JSON hierarchy of the <see cref="Paths"/> specified.
         /// </summary>
         public int MaxDepth { get; init; } = 0;
+
+        /// <summary>
+        /// Gets the recursive descent path suffixes (see <see cref="SplitRecursivePaths"/>) to match at any depth within the JSON hierarchy.
+        /// </summary>
+        public List<string> RecursiveSuffixes { get; init; } = [];
+
+        /// <summary>
+        /// Gets the <see cref="StringComparison"/> used to match <see cref="Paths"/> and <see cref="RecursiveSuffixes"/>.
+        /// </summary>
+        public StringComparison Comparison { get; init; }
 
         /// <summary>
         /// Indicates whether a filter took place; i.e. there was at least one JSON node removed.
