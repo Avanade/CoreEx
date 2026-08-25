@@ -123,8 +123,9 @@ public class EventFormatter : IEventFormatter
     /// transactionally via an outbox against a NoSQL store (there is no single, post-commit <c>ETag</c> to capture at the point the event is written to the outbox). Set to <see langword="null"/> or an
     /// empty list to opt out and retain the previous behavior of leaving <see cref="EventData.Data"/> untouched.</para>
     /// <para>Only applied where <see cref="EventData.Data"/> is present and its <see cref="BinaryData.MediaType"/> is <see cref="MediaTypeNames.Application.Json"/>; other content types are left as-is.</para>
-    /// <para><c>CoreEx.UnitTesting</c>'s <c>EventExpectationsConfig.DefaultDataPathsToIgnore</c> already ignores <c>data.etag</c> by default when asserting on published events, independently of this setting;
-    /// where a custom path is configured here that is not already ignored there, either add it to the test's expected data or to <c>EventExpectationsConfig.PathsToIgnore</c> so comparisons are unaffected.</para></remarks>
+    /// <para>Because <c>etag</c> is excluded by this default, <c>CoreEx.UnitTesting</c>'s <c>EventExpectationsConfig.DefaultDataPathsToIgnore</c> does <b>not</b> need to (and does not) ignore it -
+    /// there is nothing left in a captured event's <see cref="EventData.Data"/> to ignore. If this default is opted out of (see above), and <c>etag</c> can therefore reappear in published event data,
+    /// add an equivalent ignore path to <c>EventExpectationsConfig.PathsToIgnore</c> so comparisons are unaffected.</para></remarks>
     public List<string>? DataExcludePaths { get; set; } = ["$..etag"];
 
     /// <inheritdoc/>
