@@ -233,6 +233,20 @@ public class EventFormatterTests
     }
 
     [Test]
+    public void Format_DataExcludePaths_OutputIsAlwaysCompact()
+    {
+        // Regression: FilterData must always produce compact output regardless of an ambient JsonSerializerOptions.WriteIndented - an event payload sent over a message bus should never
+        // silently become indented (larger, slower to transmit) just because some unrelated JsonSerializerOptions (e.g. for indented HTTP responses in development) happens to be ambient.
+        var ef = new EventFormatter { DataExcludePaths = ["$..etag"], PartitionKeyIsRequired = false };
+        var ed = new EventData { DomainName = "dom", Entity = "ent", Action = "act" }
+            .WithValue(new { Id = "1", ETag = "abc123", Child = new { Id = "2", Name = "child" } });
+
+        var result = ef.Format(ed);
+        var json = result.Data!.ToString();
+        json.Should().NotContain("\n");
+    }
+
+    [Test]
     public void Format_DataExcludePaths_NoMatch_NoChange()
     {
         var ef = new EventFormatter { DataExcludePaths = ["$..etag"], PartitionKeyIsRequired = false };

@@ -173,20 +173,18 @@ public class EventFormatter : IEventFormatter
     }
 
     /// <summary>
-    /// Applies the <see cref="DataExcludePaths"/> to the <paramref name="data"/> using <see cref="Json.JsonFilter"/>.
+    /// Applies the <see cref="DataExcludePaths"/> to the <paramref name="data"/> using <see cref="Json.JsonFilter.TryExcludeUtf8Json"/>.
     /// </summary>
+    /// <remarks>Uses the single-pass, <see cref="JsonNode"/>-free streaming filter since <see cref="Format(EventData)"/> runs for every published event; avoiding a document object model here
+    /// meaningfully reduces both CPU and GC pressure on this hot path. Deliberately uses <see cref="Json.JsonFilter.TryExcludeUtf8Json"/>'s default (compact) <see cref="JsonWriterOptions"/> rather than
+    /// deriving one from an ambient <see cref="JsonSerializerOptions"/> - an event payload sent over a message bus should always be compact regardless of unrelated formatting preferences (e.g. indented
+    /// HTTP responses in a development environment) that might otherwise be picked up via <see cref="JsonDefaults.SerializerOptions"/>.</remarks>
     private static BinaryData FilterData(BinaryData data, List<string> excludePaths)
     {
-        var node = JsonNode.Parse(data.ToStream())!;
-        if (!JsonFilter.Filter(node, excludePaths, JsonFilterOption.Exclude))
+        if (!JsonFilter.TryExcludeUtf8Json(data.ToMemory().Span, excludePaths, out var filtered))
             return data;
 
-        using var ms = new MemoryStream();
-        using var jw = new Utf8JsonWriter(ms);
-        node.WriteTo(jw);
-        jw.Flush();
-        ms.Position = 0;
-        return BinaryData.FromStream(ms, MediaTypeNames.Application.Json);
+        return BinaryData.FromBytes(filtered, MediaTypeNames.Application.Json);
     }
 
     /// <inheritdoc/>

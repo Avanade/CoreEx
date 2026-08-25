@@ -10,7 +10,11 @@ namespace CoreEx.Json;
 /// <para>A path prefixed with a recursive descent marker, '<c>..</c>' or '<c>$..</c>' (e.g. <c>$..Foo</c> or <c>$..Foo.Bar</c>), matches the remainder of the path at <b>any</b> depth within the JSON hierarchy,
 /// for both <see cref="JsonFilterOption.Include"/> and <see cref="JsonFilterOption.Exclude"/>. For example, <c>$..Password</c> matches a property named <c>Password</c> irrespective of where it appears in the
 /// document. Only this leading (global) form of recursive descent is supported; a scoped, mid-path form (e.g. <c>$.Root..Foo</c>, matching <c>Foo</c> at any depth but only underneath <c>Root</c>) is not currently
-/// supported.</para></remarks>
+/// supported.</para>
+/// <para><see cref="JsonFilterOption.Exclude"/> never needs to know whether a container's descendants will ultimately be retained, so it is implemented as a single-pass path-segment walk (no per-node path-string
+/// allocation); <see cref="TryExcludeUtf8Json"/> takes this further by walking raw UTF-8 JSON bytes directly via <see cref="Utf8JsonReader"/>/<see cref="Utf8JsonWriter"/>, without ever materializing a
+/// <see cref="JsonNode"/> document, for the common case of excluding a property from an already-serialized payload (e.g. <c>$..etag</c>). <see cref="JsonFilterOption.Include"/> cannot do the same, since a
+/// container can only be judged empty (and therefore omittable) after all of its descendants have been visited; it remains <see cref="JsonNode"/>-based.</para></remarks>
 public static partial class JsonFilter
 {
     private static readonly Regex _regex = IndexesRegex();
@@ -57,10 +61,20 @@ public static partial class JsonFilter
     /// <returns><see langword="true"/> indicates that at least one JSON node was filtered (removed); otherwise, <see langword="false"/> for no changes.</returns>
     public static bool TryJsonFilter([StringSyntax(StringSyntaxAttribute.Json)] string value, IEnumerable<string>? paths, out string json, JsonFilterOption filter = JsonFilterOption.Include, JsonSerializerOptions? jsonSerializerOptions = null, StringComparison comparison = StringComparison.OrdinalIgnoreCase)
     {
-        var j = JsonNode.Parse(value.ThrowIfNull())!;
-        var r = Filter(j, paths, filter, comparison);
+        value.ThrowIfNull();
+
+        if (filter == JsonFilterOption.Exclude)
+        {
+            var options = jsonSerializerOptions ?? JsonDefaults.SerializerOptions;
+            var r = TryExcludeUtf8Json(Encoding.UTF8.GetBytes(value), paths, out var filteredUtf8Json, new JsonWriterOptions { Indented = options.WriteIndented, Encoder = options.Encoder }, comparison);
+            json = Encoding.UTF8.GetString(filteredUtf8Json);
+            return r;
+        }
+
+        var j = JsonNode.Parse(value)!;
+        var result = Filter(j, paths, filter, comparison);
         json = j?.ToJsonString(jsonSerializerOptions ?? JsonDefaults.SerializerOptions) ?? "null";
-        return r;
+        return result;
     }
 
     /// <summary>
@@ -76,9 +90,19 @@ public static partial class JsonFilter
     /// <returns><see langword="true"/> indicates that at least one JSON node was filtered (removed); otherwise, <see langword="false"/> for no changes.</returns>
     public static bool TryFilter<T>(T value, IEnumerable<string>? paths, out string json, JsonFilterOption filter = JsonFilterOption.Include, JsonSerializerOptions? jsonSerializerOptions = null, StringComparison comparison = StringComparison.OrdinalIgnoreCase)
     {
-        var r = TryFilter(value, paths, out JsonNode node, filter, jsonSerializerOptions, comparison);
-        json = node?.ToJsonString(jsonSerializerOptions ?? JsonDefaults.SerializerOptions) ?? "null";
-        return r;
+        jsonSerializerOptions ??= JsonDefaults.SerializerOptions;
+
+        if (filter == JsonFilterOption.Exclude)
+        {
+            var writerOptions = new JsonWriterOptions { Indented = jsonSerializerOptions.WriteIndented, Encoder = jsonSerializerOptions.Encoder };
+            var r = TryExcludeUtf8Json(JsonSerializer.SerializeToUtf8Bytes(value, jsonSerializerOptions), paths, out var filteredUtf8Json, writerOptions, comparison);
+            json = Encoding.UTF8.GetString(filteredUtf8Json);
+            return r;
+        }
+
+        var result = TryFilter(value, paths, out JsonNode node, filter, jsonSerializerOptions, comparison);
+        json = node?.ToJsonString(jsonSerializerOptions) ?? "null";
+        return result;
     }
 
     /// <summary>
@@ -111,21 +135,26 @@ public static partial class JsonFilter
         if (json is null)
             return false;
 
+        if (filter == JsonFilterOption.Exclude)
+        {
+            var matcher = ExcludeMatcher.Create(paths, comparison);
+            if (!matcher.HasPatterns)
+                return false;
+
+            var stack = new List<PathSegment>();
+            var indexDepth = 0;
+            var isFiltered = false;
+            FilterExcludeDom(json, matcher, stack, ref indexDepth, ref isFiltered);
+            return isFiltered;
+        }
+
         SplitRecursivePaths(paths, comparison, out var normalPaths, out var recursiveSuffixes);
 
         var maxDepth = 0;
         var dict = CreateDictionary(normalPaths, filter, comparison, ref maxDepth, true);
-
-        if (filter == JsonFilterOption.Exclude && recursiveSuffixes.Count > 0)
-            maxDepth = int.MaxValue;
-
         var args = new JsonFilterArgs { MaxDepth = maxDepth, Paths = dict, RecursiveSuffixes = recursiveSuffixes, Comparison = comparison };
 
-        if (filter == JsonFilterOption.Include)
-            FilterInclude(json, args);
-        else if (maxDepth > 0 || recursiveSuffixes.Count > 0)
-            FilterExclude(json, args, 1);
-
+        FilterInclude(json, args);
         return args.IsFiltered;
     }
 
@@ -340,60 +369,361 @@ public static partial class JsonFilter
     }
 
     /// <summary>
-    /// Recursively filters the JSON <paramref name="json"/> based on the specified <paramref name="args"/> and results in true where should be excluded (removed).
-    /// This is used for the <see cref="JsonFilterOption.Exclude"/> option.
+    /// Tries to apply the JSON <paramref name="excludePaths"/> filter (see <see cref="JsonFilterOption.Exclude"/>) directly against UTF-8 encoded JSON <paramref name="utf8Json"/>, resulting in the
+    /// filtered <paramref name="filteredUtf8Json"/>.
     /// </summary>
-    private static bool FilterExclude(JsonNode json, JsonFilterArgs args, int depth)
+    /// <param name="utf8Json">The UTF-8 encoded JSON.</param>
+    /// <param name="excludePaths">The list of JSON paths to exclude.</param>
+    /// <param name="filteredUtf8Json">The resulting UTF-8 encoded JSON with the filtering applied.</param>
+    /// <param name="writerOptions">The optional <see cref="JsonWriterOptions"/> used to control the output formatting; defaults to compact (not indented), matching a plain <see cref="Utf8JsonWriter"/>.</param>
+    /// <param name="comparison">The paths <see cref="StringComparison"/>; defaults to <see cref="StringComparison.OrdinalIgnoreCase"/>.</param>
+    /// <returns><see langword="true"/> indicates that at least one JSON node was filtered (removed); otherwise, <see langword="false"/> for no changes.</returns>
+    /// <remarks>Unlike <see cref="TryJsonFilter"/> and <see cref="Filter(JsonNode, IEnumerable{string}?, JsonFilterOption, StringComparison)"/>, this performs a single-pass <see cref="Utf8JsonReader"/>/
+    /// <see cref="Utf8JsonWriter"/> copy and never materializes a <see cref="JsonNode"/> document object model, making it significantly faster and lower-allocation for the common case of excluding one
+    /// or more properties (e.g. <c>$..etag</c>) from an already-serialized JSON payload. Property names and values are copied verbatim from <paramref name="utf8Json"/> (no naming policy or converters
+    /// are applied, since these were already applied when it was originally serialized); <paramref name="writerOptions"/> only controls the output's whitespace/escaping formatting, not its content.</remarks>
+    public static bool TryExcludeUtf8Json(ReadOnlySpan<byte> utf8Json, IEnumerable<string>? excludePaths, out byte[] filteredUtf8Json, JsonWriterOptions writerOptions = default, StringComparison comparison = StringComparison.OrdinalIgnoreCase)
     {
-        if (depth > args.MaxDepth)
+        var matcher = ExcludeMatcher.Create(excludePaths, comparison);
+        if (!matcher.HasPatterns)
+        {
+            filteredUtf8Json = utf8Json.ToArray();
             return false;
-
-        var path = json.GetPath();
-        if (args.Paths.TryGetValue(path, out var isSpecifiedPath))
-        {
-            if (isSpecifiedPath)
-                return true;
-        }
-        else
-        {
-            var hadIndexes = TryRemovePathIndexes(path, out var pathWithoutIndexes);
-            if (hadIndexes && args.Paths.TryGetValue(pathWithoutIndexes, out isSpecifiedPath) && isSpecifiedPath)
-                return true;
-
-            if (args.RecursiveSuffixes.Count > 0 &&
-                (MatchesAnyRecursiveSuffix(path, args.RecursiveSuffixes, args.Comparison) ||
-                 (hadIndexes && MatchesAnyRecursiveSuffix(pathWithoutIndexes, args.RecursiveSuffixes, args.Comparison))))
-            {
-                return true;
-            }
         }
 
+        var bufferWriter = new ArrayBufferWriter<byte>(utf8Json.Length);
+        var isFiltered = false;
+
+        using (var writer = new Utf8JsonWriter(bufferWriter, writerOptions))
+        {
+            var reader = new Utf8JsonReader(utf8Json, isFinalBlock: true, state: default);
+            reader.Read();
+
+            var stack = new List<PathSegment>();
+            var indexDepth = 0;
+            FilterExcludeStream(ref reader, writer, matcher, stack, ref indexDepth, ref isFiltered);
+        }
+
+        filteredUtf8Json = bufferWriter.WrittenSpan.ToArray();
+        return isFiltered;
+    }
+
+    /// <summary>
+    /// Recursively filters the JSON <paramref name="json"/> by removing any node whose path-segment stack matches the <paramref name="matcher"/>.
+    /// This is used for the <see cref="JsonFilterOption.Exclude"/> option against an in-memory <see cref="JsonNode"/>.
+    /// </summary>
+    private static void FilterExcludeDom(JsonNode json, ExcludeMatcher matcher, List<PathSegment> stack, ref int indexDepth, ref bool isFiltered)
+    {
         if (json is JsonObject jo)
         {
-            depth++;
             foreach (var jn in jo.ToArray())
             {
-                if (FilterExclude(jn.Value ?? throw new InvalidOperationException(), args, depth))
+                stack.Add(PathSegment.ForName(jn.Key));
+
+                if (matcher.IsMatch(stack, indexDepth > 0))
                 {
                     jo.Remove(jn.Key);
-                    args.IsFiltered = true;
+                    isFiltered = true;
                 }
+                else if (jn.Value is not null)
+                    FilterExcludeDom(jn.Value, matcher, stack, ref indexDepth, ref isFiltered);
+
+                stack.RemoveAt(stack.Count - 1);
             }
         }
         else if (json is JsonArray ja)
         {
             for (var i = ja.Count - 1; i >= 0; i--)
             {
-                var jn = ja[i]!;
-                if (FilterExclude(jn, args, depth))
+                var jn = ja[i];
+                stack.Add(PathSegment.ForIndex(i));
+                indexDepth++;
+
+                if (matcher.IsMatch(stack, true))
                 {
                     ja.RemoveAt(i);
-                    args.IsFiltered = true;
+                    isFiltered = true;
                 }
+                else if (jn is not null)
+                    FilterExcludeDom(jn, matcher, stack, ref indexDepth, ref isFiltered);
+
+                indexDepth--;
+                stack.RemoveAt(stack.Count - 1);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Recursively copies the current JSON value from <paramref name="reader"/> to <paramref name="writer"/>, skipping any property or array element whose path-segment stack matches the <paramref name="matcher"/>.
+    /// This is used for the <see cref="JsonFilterOption.Exclude"/> option against raw UTF-8 JSON bytes (see <see cref="TryExcludeUtf8Json"/>), without ever materializing a <see cref="JsonNode"/> document.
+    /// </summary>
+    private static void FilterExcludeStream(ref Utf8JsonReader reader, Utf8JsonWriter writer, ExcludeMatcher matcher, List<PathSegment> stack, ref int indexDepth, ref bool isFiltered)
+    {
+        switch (reader.TokenType)
+        {
+            case JsonTokenType.StartObject:
+                writer.WriteStartObject();
+                while (reader.Read() && reader.TokenType != JsonTokenType.EndObject)
+                {
+                    var name = reader.GetString()!;
+                    stack.Add(PathSegment.ForName(name));
+                    reader.Read(); // Move onto the property's value.
+
+                    if (matcher.IsMatch(stack, indexDepth > 0))
+                    {
+                        reader.Skip();
+                        isFiltered = true;
+                    }
+                    else
+                    {
+                        writer.WritePropertyName(name);
+                        FilterExcludeStream(ref reader, writer, matcher, stack, ref indexDepth, ref isFiltered);
+                    }
+
+                    stack.RemoveAt(stack.Count - 1);
+                }
+
+                writer.WriteEndObject();
+                break;
+
+            case JsonTokenType.StartArray:
+                writer.WriteStartArray();
+                var index = 0;
+                while (reader.Read() && reader.TokenType != JsonTokenType.EndArray)
+                {
+                    stack.Add(PathSegment.ForIndex(index));
+                    indexDepth++;
+
+                    if (matcher.IsMatch(stack, true))
+                    {
+                        reader.Skip();
+                        isFiltered = true;
+                    }
+                    else
+                        FilterExcludeStream(ref reader, writer, matcher, stack, ref indexDepth, ref isFiltered);
+
+                    indexDepth--;
+                    stack.RemoveAt(stack.Count - 1);
+                    index++;
+                }
+
+                writer.WriteEndArray();
+                break;
+
+            case JsonTokenType.String: writer.WriteStringValue(reader.GetString()); break;
+            case JsonTokenType.Number: writer.WriteRawValue(reader.ValueSpan, skipInputValidation: true); break;
+            case JsonTokenType.True: writer.WriteBooleanValue(true); break;
+            case JsonTokenType.False: writer.WriteBooleanValue(false); break;
+            case JsonTokenType.Null: writer.WriteNullValue(); break;
+        }
+    }
+
+    /// <summary>
+    /// Parses a normalized, root-prefixed JSON <paramref name="path"/> (see <see cref="PrependRootPath"/>/<see cref="NormalizeDoubleQuoteBrackets"/>) into its individual <see cref="PathSegment"/>s.
+    /// </summary>
+    private static PathSegment[] ParseSegments(string path)
+    {
+        var segments = new List<PathSegment>();
+        var i = 0;
+
+        if (i < path.Length && path[i] == '$')
+            i++;
+
+        while (i < path.Length)
+        {
+            var c = path[i];
+            if (c == '.')
+            {
+                var start = ++i;
+                while (i < path.Length && path[i] != '.' && path[i] != '[')
+                    i++;
+                segments.Add(PathSegment.ForName(path[start..i]));
+            }
+            else if (c == '[')
+            {
+                i++;
+                if (i < path.Length && (path[i] == '\'' || path[i] == '"'))
+                {
+                    var quote = path[i++];
+                    var start = i;
+                    while (i < path.Length && path[i] != quote)
+                        i++;
+                    segments.Add(PathSegment.ForName(path[start..i]));
+                    if (i < path.Length) i++; // Skip closing quote.
+                }
+                else
+                {
+                    var start = i;
+                    while (i < path.Length && path[i] != ']')
+                        i++;
+                    segments.Add(PathSegment.ForIndex(int.Parse(path[start..i], CultureInfo.InvariantCulture)));
+                }
+
+                if (i < path.Length && path[i] == ']')
+                    i++;
+            }
+            else
+            {
+                // Shouldn't occur for a normalized, root-prefixed path; guard against an infinite loop.
+                i++;
             }
         }
 
-        return false;
+        return [.. segments];
+    }
+
+    /// <summary>
+    /// Represents a single JSON path segment - either a named property or a numeric array index - used by <see cref="ExcludeMatcher"/> to match a traversal path without allocating path strings.
+    /// </summary>
+    private readonly struct PathSegment
+    {
+        private readonly string? _name;
+        private readonly int _index;
+
+        private PathSegment(string? name, int index)
+        {
+            _name = name;
+            _index = index;
+        }
+
+        public static PathSegment ForName(string name) => new(name, -1);
+
+        public static PathSegment ForIndex(int index) => new(null, index);
+
+        public bool IsIndex => _name is null;
+
+        public bool Matches(PathSegment other, StringComparison comparison) =>
+            IsIndex == other.IsIndex && (IsIndex ? _index == other._index : string.Equals(_name, other._name, comparison));
+    }
+
+    /// <summary>
+    /// Compiles a set of <see cref="JsonFilterOption.Exclude"/> paths (plain and recursive-descent) into <see cref="PathSegment"/> arrays, and matches them against a live traversal path-segment stack -
+    /// shared by both the <see cref="JsonNode"/>-based (<see cref="FilterExcludeDom"/>) and <see cref="Utf8JsonReader"/>-based (<see cref="FilterExcludeStream"/>) traversal engines, so both engines encode
+    /// the exact same matching semantics; only the tree-walking mechanics differ.
+    /// </summary>
+    private sealed class ExcludeMatcher
+    {
+        private readonly List<PathSegment[]> _plainPatterns = [];
+        private readonly List<PathSegment[]> _recursivePatterns = [];
+        private readonly StringComparison _comparison;
+
+        private ExcludeMatcher(StringComparison comparison) => _comparison = comparison;
+
+        /// <summary>
+        /// Gets a value indicating whether any patterns were compiled.
+        /// </summary>
+        public bool HasPatterns => _plainPatterns.Count > 0 || _recursivePatterns.Count > 0;
+
+        /// <summary>
+        /// Compiles the specified <paramref name="excludePaths"/> into an <see cref="ExcludeMatcher"/>.
+        /// </summary>
+        public static ExcludeMatcher Create(IEnumerable<string>? excludePaths, StringComparison comparison)
+        {
+            var matcher = new ExcludeMatcher(comparison);
+
+            foreach (var path in excludePaths ?? [])
+            {
+                string? tail = null;
+                if (path.StartsWith("$..", StringComparison.Ordinal))
+                    tail = path[3..];
+                else if (path.StartsWith("..", StringComparison.Ordinal))
+                    tail = path[2..];
+
+                if (tail is null)
+                {
+                    matcher._plainPatterns.Add(ParseSegments(NormalizeDoubleQuoteBrackets(PrependRootPath(path))));
+                    continue;
+                }
+
+                if (tail.Length == 0)
+                    throw new ArgumentException($"The recursive descent path '{path}' must specify a property to match at any depth.", nameof(excludePaths));
+
+                var normalizedTail = NormalizeDoubleQuoteBrackets(tail.StartsWith('[') ? tail : $".{tail}");
+                matcher._recursivePatterns.Add(ParseSegments($"{JsonRootPath}{normalizedTail}"));
+            }
+
+            return matcher;
+        }
+
+        /// <summary>
+        /// Determines whether the current traversal <paramref name="stack"/> matches any compiled exclude pattern.
+        /// </summary>
+        /// <param name="stack">The current (indexed) path-segment stack.</param>
+        /// <param name="hadIndexes">Indicates whether <paramref name="stack"/> contains at least one array-index segment (enabling the index-stripped/blanket-array comparison).</param>
+        public bool IsMatch(List<PathSegment> stack, bool hadIndexes)
+        {
+            foreach (var pattern in _plainPatterns)
+            {
+                if (SegmentsEqual(stack, pattern, _comparison))
+                    return true;
+            }
+
+            foreach (var pattern in _recursivePatterns)
+            {
+                if (EndsWithSegments(stack, pattern, _comparison))
+                    return true;
+            }
+
+            if (!hadIndexes)
+                return false;
+
+            var stripped = StripIndexes(stack);
+
+            foreach (var pattern in _plainPatterns)
+            {
+                if (SegmentsEqual(stripped, pattern, _comparison))
+                    return true;
+            }
+
+            foreach (var pattern in _recursivePatterns)
+            {
+                if (EndsWithSegments(stripped, pattern, _comparison))
+                    return true;
+            }
+
+            return false;
+        }
+
+        private static List<PathSegment> StripIndexes(List<PathSegment> stack)
+        {
+            var stripped = new List<PathSegment>(stack.Count);
+            foreach (var segment in stack)
+            {
+                if (!segment.IsIndex)
+                    stripped.Add(segment);
+            }
+
+            return stripped;
+        }
+
+        private static bool SegmentsEqual(List<PathSegment> stack, PathSegment[] pattern, StringComparison comparison)
+        {
+            if (stack.Count != pattern.Length)
+                return false;
+
+            for (var i = 0; i < pattern.Length; i++)
+            {
+                if (!stack[i].Matches(pattern[i], comparison))
+                    return false;
+            }
+
+            return true;
+        }
+
+        private static bool EndsWithSegments(List<PathSegment> stack, PathSegment[] pattern, StringComparison comparison)
+        {
+            if (stack.Count < pattern.Length)
+                return false;
+
+            var offset = stack.Count - pattern.Length;
+            for (var i = 0; i < pattern.Length; i++)
+            {
+                if (!stack[offset + i].Matches(pattern[i], comparison))
+                    return false;
+            }
+
+            return true;
+        }
     }
 
     /// <summary>

@@ -828,4 +828,107 @@ public class JsonFilterTests
     {
         Assert.Throws<ArgumentException>(() => JsonFilter.TryJsonFilter("{}", [".."], out _, JsonFilterOption.Exclude));
     }
+
+    // The following exercise TryExcludeUtf8Json (the streaming, JsonNode-free Exclude engine) both directly and via the parity check against the
+    // JsonNode-based Filter(JsonNode,...) engine, since both must produce byte-identical results for every path shape.
+
+    [Test]
+    public void TryExcludeUtf8Json_NoPatterns_ReturnsInputUnchanged()
+    {
+        var utf8 = System.Text.Encoding.UTF8.GetBytes("""{"a":1,"b":2}""");
+        var r = JsonFilter.TryExcludeUtf8Json(utf8, null, out var filtered);
+        r.Should().BeFalse();
+        filtered.Should().BeEquivalentTo(utf8);
+    }
+
+    [Test]
+    public void TryExcludeUtf8Json_RecursiveDescent_StripsAtAnyDepth()
+    {
+        var utf8 = System.Text.Encoding.UTF8.GetBytes("""{"id":1,"etag":"a","child":{"id":2,"etag":"b"},"items":[{"id":3,"etag":"c"}]}""");
+        var r = JsonFilter.TryExcludeUtf8Json(utf8, ["$..etag"], out var filtered);
+        r.Should().BeTrue();
+        ObjectComparer.AssertJson("""{"id":1,"child":{"id":2},"items":[{"id":3}]}""", System.Text.Encoding.UTF8.GetString(filtered));
+    }
+
+    [Test]
+    public void TryExcludeUtf8Json_DefaultWriterOptions_IsCompact()
+    {
+        // Regression: TryExcludeUtf8Json must default to compact output - matching a plain `new Utf8JsonWriter(stream)` - not silently pick up indentation from an ambient JsonSerializerOptions.
+        var utf8 = System.Text.Encoding.UTF8.GetBytes("""{"a":1,"etag":"x","b":{"c":2}}""");
+        JsonFilter.TryExcludeUtf8Json(utf8, ["etag"], out var filtered);
+        var json = System.Text.Encoding.UTF8.GetString(filtered);
+        json.Should().NotContain("\n");
+        json.Should().Be("""{"a":1,"b":{"c":2}}""");
+    }
+
+    [Test]
+    public void TryExcludeUtf8Json_ExplicitIndentedWriterOptions_IsIndented()
+    {
+        var utf8 = System.Text.Encoding.UTF8.GetBytes("""{"a":1,"etag":"x"}""");
+        JsonFilter.TryExcludeUtf8Json(utf8, ["etag"], out var filtered, new System.Text.Json.JsonWriterOptions { Indented = true });
+        var json = System.Text.Encoding.UTF8.GetString(filtered);
+        json.Should().Contain("\n");
+    }
+
+    [Test]
+    public void TryExcludeUtf8Json_NullPropertyValue_DoesNotThrow()
+    {
+        // Regression: a literal JSON null property/array-element value must not be treated as an error - it simply has nothing to recurse into.
+        var utf8 = System.Text.Encoding.UTF8.GetBytes("""{"a":1,"b":null,"c":{"etag":null},"items":[null,{"etag":"x"}]}""");
+        var r = JsonFilter.TryExcludeUtf8Json(utf8, ["$..etag"], out var filtered);
+        r.Should().BeTrue();
+        ObjectComparer.AssertJson("""{"a":1,"b":null,"c":{},"items":[null,{}]}""", System.Text.Encoding.UTF8.GetString(filtered));
+    }
+
+    [Test]
+    public void Filter_Exclude_NullPropertyValue_DoesNotThrow()
+    {
+        // Same regression as TryExcludeUtf8Json_NullPropertyValue_DoesNotThrow, but via the JsonNode-based Filter(JsonNode,...) engine.
+        var node = JsonNode.Parse("""{"a":1,"b":null,"c":{"etag":null},"items":[null,{"etag":"x"}]}""")!;
+        var r = JsonFilter.Filter(node, ["$..etag"], JsonFilterOption.Exclude);
+        r.Should().BeTrue();
+        ObjectComparer.AssertJson("""{"a":1,"b":null,"c":{},"items":[null,{}]}""", node.ToJsonString());
+    }
+
+    private static readonly string[] _parityJson =
+    [
+        """{"name":"John Doe","etag":"e1","password":"p1","address":{"city":"Anytown","etag":"e2"},"skills":["C#","JavaScript","Python"],"projects":[{"name":"A","year":2020,"etag":"e3","technologies":["C#","ASP.NET"]},{"name":"B","year":2021,"etag":"e4","technologies":["JavaScript","React"]}]}""",
+        """{"entries":{"stackExchange.Redis":{"enabled":true,"etag":"e5"},"inMemory":{"enabled":false}}}""",
+        """[{"name":"John Doe","age":30,"etag":"e6"},{"name":"Jane Smith","age":25,"etag":"e7"}]""",
+        """{"category":"CAT1","categoryText":"Category One","etagText":"not-an-etag","etag":"e8"}""",
+        """null""",
+        """{"a":{"b":1,"etag":"x"},"nested":{"a":{"b":2,"etag":"y"}},"other":{"b":3}}"""
+    ];
+
+    private static readonly string[][] _parityPaths =
+    [
+        ["etag"],
+        ["$..etag"],
+        ["..etag"],
+        ["address.etag"],
+        ["projects[0].etag", "projects[1].technologies[1]"],
+        ["projects.etag"],
+        ["$.entries['stackExchange.Redis'].etag"],
+        ["..etag", "categoryText"],
+        ["..a.b"]
+    ];
+
+    [Test]
+    public void Filter_Exclude_DomAndStreamingEnginesProduceIdenticalOutput()
+    {
+        foreach (var json in _parityJson)
+        {
+            foreach (var paths in _parityPaths)
+            {
+                var domNode = JsonNode.Parse(json);
+                var domResult = domNode is not null && JsonFilter.Filter(domNode, paths, JsonFilterOption.Exclude);
+                var domJson = domNode?.ToJsonString() ?? "null";
+
+                var streamResult = JsonFilter.TryJsonFilter(json, paths, out var streamJson, JsonFilterOption.Exclude);
+
+                streamResult.Should().Be(domResult, because: $"json='{json}', paths='{string.Join(",", paths)}'");
+                ObjectComparer.AssertJson(domJson, streamJson);
+            }
+        }
+    }
 }

@@ -163,13 +163,10 @@ public partial class EventData
             Data = BinaryData.FromObjectAsJson(value, jsonSerializerOptions);
         else
         {
-            JsonFilter.TryFilter(value, excludePaths, out JsonNode node, JsonFilterOption.Exclude, jsonSerializerOptions);
-            using var ms = new MemoryStream();
-            var jw = new Utf8JsonWriter(ms);
-            node.WriteTo(jw, jsonSerializerOptions);
-            jw.Flush();
-            ms.Position = 0;
-            Data = BinaryData.FromStream(ms, MediaTypeNames.Application.Json);
+            var utf8Json = JsonSerializer.SerializeToUtf8Bytes(value, jsonSerializerOptions);
+            var writerOptions = new JsonWriterOptions { Indented = jsonSerializerOptions.WriteIndented, Encoder = jsonSerializerOptions.Encoder };
+            JsonFilter.TryExcludeUtf8Json(utf8Json, excludePaths, out var filteredUtf8Json, writerOptions);
+            Data = BinaryData.FromBytes(filteredUtf8Json, MediaTypeNames.Application.Json);
         }
 
         return this;
