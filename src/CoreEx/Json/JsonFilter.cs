@@ -392,14 +392,16 @@ public static partial class JsonFilter
             return false;
         }
 
-        var bufferWriter = new ArrayBufferWriter<byte>(utf8Json.Length);
+        // Read the first token before allocating the output buffer, so that invalid/empty input (e.g. an empty or whitespace-only utf8Json) throws the same JsonException Utf8JsonReader itself
+        // would throw - rather than, for a zero-length input, hitting ArrayBufferWriter's own unrelated "initialCapacity must be positive" ArgumentException first.
+        var reader = new Utf8JsonReader(utf8Json, isFinalBlock: true, state: default);
+        reader.Read();
+
+        var bufferWriter = new ArrayBufferWriter<byte>(Math.Max(utf8Json.Length, 1));
         var isFiltered = false;
 
         using (var writer = new Utf8JsonWriter(bufferWriter, writerOptions))
         {
-            var reader = new Utf8JsonReader(utf8Json, isFinalBlock: true, state: default);
-            reader.Read();
-
             var stack = new List<PathSegment>();
             var indexDepth = 0;
             FilterExcludeStream(ref reader, writer, matcher, stack, ref indexDepth, ref isFiltered);

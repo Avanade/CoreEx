@@ -841,6 +841,24 @@ public class JsonFilterTests
         filtered.Should().BeEquivalentTo(utf8);
     }
 
+    [TestCase("")]
+    [TestCase("   ")]
+    public void TryExcludeUtf8Json_EmptyOrWhitespaceInput_ThrowsConsistentlyWithJsonNodeParse(string invalidJson)
+    {
+        // Regression: an empty/whitespace-only input must throw the same JsonException Utf8JsonReader/JsonNode.Parse would throw for the same invalid input - not some unrelated
+        // exception from ArrayBufferWriter's own "initialCapacity must be positive" guard (hit only for the zero-length case, since ArrayBufferWriter's constructor was previously
+        // called with utf8Json.Length before the reader ever got a chance to run and throw its own, consistent, "no JSON tokens" exception first).
+        var utf8 = System.Text.Encoding.UTF8.GetBytes(invalidJson);
+        Assert.Catch<System.Text.Json.JsonException>(() => JsonFilter.TryExcludeUtf8Json(utf8, ["etag"], out _));
+    }
+
+    [Test]
+    public void TryExcludeUtf8Json_MalformedInput_Throws()
+    {
+        var utf8 = System.Text.Encoding.UTF8.GetBytes("""{"a":1""");
+        Assert.Catch<System.Text.Json.JsonException>(() => JsonFilter.TryExcludeUtf8Json(utf8, ["etag"], out _));
+    }
+
     [Test]
     public void TryExcludeUtf8Json_RecursiveDescent_StripsAtAnyDepth()
     {
