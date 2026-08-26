@@ -341,27 +341,55 @@ public static partial class JsonFilter
         {
             foreach (var jn in jo.ToArray())
             {
-                if (FilterInclude(jn.Value ?? throw new InvalidOperationException(), args))
+                // A literal JSON null property value has no JsonNode representation of its own (System.Text.Json.Nodes models JSON null as a null reference), so GetPath() can't be
+                // called on it directly. Temporarily attach a placeholder node at the same position so the recursive call can compute its path via the usual GetPath() convention and
+                // apply the exact same matching logic as every other node, then restore the literal null afterward (only if it's being kept - if excluded, the key is removed regardless).
+                var wasNull = jn.Value is null;
+                var child = (wasNull ? JsonValue.Create(0) : jn.Value)!;
+                if (wasNull)
+                    jo[jn.Key] = child;
+
+                var exclude = FilterInclude(child, args);
+                if (wasNull && ReferenceEquals(args.MatchedNode, child))
+                    args.MatchedNode = null; // the placeholder must never leak out as a "matched" node - the real value there is JSON null, which GetMatched can only represent as null.
+
+                if (exclude)
                 {
                     jo.Remove(jn.Key);
                     args.IsFiltered = true;
                 }
                 else
+                {
                     isSpecifiedPath = true;
+                    if (wasNull)
+                        jo[jn.Key] = null;
+                }
             }
         }
         else if (json is JsonArray ja)
         {
             for (var i = ja.Count - 1; i >= 0; i--)
             {
-                var jn = ja[i]!;
-                if (FilterInclude(jn, args))
+                var wasNull = ja[i] is null;
+                var child = wasNull ? JsonValue.Create(0)! : ja[i]!;
+                if (wasNull)
+                    ja[i] = child;
+
+                var exclude = FilterInclude(child, args);
+                if (wasNull && ReferenceEquals(args.MatchedNode, child))
+                    args.MatchedNode = null;
+
+                if (exclude)
                 {
                     ja.RemoveAt(i);
                     args.IsFiltered = true;
                 }
                 else
+                {
                     isSpecifiedPath = true;
+                    if (wasNull)
+                        ja[i] = null;
+                }
             }
         }
 

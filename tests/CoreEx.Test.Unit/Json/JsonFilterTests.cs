@@ -928,6 +928,50 @@ public class JsonFilterTests
         ObjectComparer.AssertJson("""{"a":1,"b":null,"c":{},"items":[null,{}]}""", node.ToJsonString());
     }
 
+    [Test]
+    public void TryJsonFilter_Include_NullPropertyValue_NotIncluded_IsRemoved()
+    {
+        // Regression: a literal JSON null property value must not throw - it's a valid JSON leaf. When not included, it's removed like any other unmatched leaf.
+        var r = JsonFilter.TryJsonFilter("""{"a":1,"b":null}""", ["a"], out var json);
+        r.Should().BeTrue();
+        ObjectComparer.AssertJson("""{"a":1}""", json);
+    }
+
+    [Test]
+    public void TryJsonFilter_Include_NullPropertyValue_Included_SurvivesAsNull()
+    {
+        var r = JsonFilter.TryJsonFilter("""{"a":1,"b":null}""", ["a", "b"], out var json);
+        r.Should().BeFalse();
+        ObjectComparer.AssertJson("""{"a":1,"b":null}""", json);
+    }
+
+    [Test]
+    public void TryJsonFilter_Include_NullArrayElement_DoesNotThrow()
+    {
+        var r = JsonFilter.TryJsonFilter("""{"items":[1,null,3]}""", ["items"], out var json);
+        r.Should().BeFalse();
+        ObjectComparer.AssertJson("""{"items":[1,null,3]}""", json);
+    }
+
+    [Test]
+    public void TryJsonFilter_Include_RecursiveDescent_MatchesNullLeaf()
+    {
+        var r = JsonFilter.TryJsonFilter("""{"a":{"b":null},"c":1}""", ["..b"], out var json);
+        r.Should().BeTrue();
+        ObjectComparer.AssertJson("""{"a":{"b":null}}""", json);
+    }
+
+    [Test]
+    public void GetMatched_NullLeaf_ReturnsNullRatherThanThrowing()
+    {
+        // Regression: GetMatched (Include-based) must not throw when the matched path resolves to a literal JSON null - previously it threw InvalidOperationException. GetMatched can only
+        // represent "the value at this path is JSON null" as a null return (JsonNode has no representation of JSON null itself) - indistinguishable from "not found", an inherent, pre-existing
+        // limitation of the API's JsonNode?-based contract, not something introduced by handling nulls without throwing.
+        var node = JsonNode.Parse("""{"a":1,"b":null}""")!;
+        var matched = JsonFilter.GetMatched(node, "$.b");
+        matched.Should().BeNull();
+    }
+
     private static readonly string[] _parityJson =
     [
         """{"name":"John Doe","etag":"e1","password":"p1","address":{"city":"Anytown","etag":"e2"},"skills":["C#","JavaScript","Python"],"projects":[{"name":"A","year":2020,"etag":"e3","technologies":["C#","ASP.NET"]},{"name":"B","year":2021,"etag":"e4","technologies":["JavaScript","React"]}]}""",
