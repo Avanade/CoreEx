@@ -407,6 +407,11 @@ public static partial class JsonFilter
             FilterExcludeStream(ref reader, writer, matcher, stack, ref indexDepth, ref isFiltered);
         }
 
+        // Reject any additional non-whitespace content following the single root JSON value - matches JsonNode.Parse/JsonDocument.Parse, which require the input to contain exactly one JSON value.
+        // Utf8JsonReader.Read() throws on trailing non-whitespace content directly; it returns false where only trailing whitespace (or nothing) remains, which is valid and requires no action.
+        if (reader.Read())
+            throw new JsonException("The input contains additional content after the first JSON value; only a single JSON value is supported.");
+
         filteredUtf8Json = bufferWriter.WrittenSpan.ToArray();
         return isFiltered;
     }

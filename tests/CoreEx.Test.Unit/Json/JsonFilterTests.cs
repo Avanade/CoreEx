@@ -859,6 +859,26 @@ public class JsonFilterTests
         Assert.Catch<System.Text.Json.JsonException>(() => JsonFilter.TryExcludeUtf8Json(utf8, ["etag"], out _));
     }
 
+    [TestCase("{} true")]
+    [TestCase("{}xyz")]
+    [TestCase("""{"a":1}{"b":2}""")]
+    public void TryExcludeUtf8Json_TrailingNonWhitespaceContent_ThrowsConsistentlyWithJsonNodeParse(string invalidJson)
+    {
+        // Regression: JsonNode.Parse/JsonDocument.Parse require the input to contain exactly one JSON value - trailing non-whitespace content after it is invalid and must throw,
+        // not be silently discarded (which would hide a malformed/concatenated payload).
+        var utf8 = System.Text.Encoding.UTF8.GetBytes(invalidJson);
+        Assert.Catch<System.Text.Json.JsonException>(() => JsonFilter.TryExcludeUtf8Json(utf8, ["etag"], out _));
+    }
+
+    [Test]
+    public void TryExcludeUtf8Json_TrailingWhitespaceOnly_IsValid()
+    {
+        var utf8 = System.Text.Encoding.UTF8.GetBytes("""{"a":1,"etag":"x"}   """);
+        var r = JsonFilter.TryExcludeUtf8Json(utf8, ["etag"], out var filtered);
+        r.Should().BeTrue();
+        ObjectComparer.AssertJson("""{"a":1}""", System.Text.Encoding.UTF8.GetString(filtered));
+    }
+
     [Test]
     public void TryExcludeUtf8Json_RecursiveDescent_StripsAtAnyDepth()
     {
