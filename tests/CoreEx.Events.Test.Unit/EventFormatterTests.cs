@@ -218,6 +218,81 @@ public class EventFormatterTests
     }
 
     [Test]
+    public void Format_DataExcludePaths_RecursiveDescent_StripsEtagAtAnyDepth()
+    {
+        var ef = new EventFormatter { DataExcludePaths = ["$..etag"], PartitionKeyIsRequired = false };
+        var ed = new EventData { DomainName = "dom", Entity = "ent", Action = "act" }
+            .WithValue(new { Id = "1", ETag = "abc123", Child = new { Id = "2", ETag = "def456" } });
+
+        var result = ef.Format(ed);
+        var json = result.Data!.ToString();
+        json.Should().NotContain("abc123");
+        json.Should().NotContain("def456");
+        json.Should().Contain("\"id\":\"1\"");
+        result.Data!.MediaType.Should().Be(System.Net.Mime.MediaTypeNames.Application.Json);
+    }
+
+    [Test]
+    public void Format_DataExcludePaths_OutputIsAlwaysCompact()
+    {
+        // Regression: FilterData must always produce compact output regardless of an ambient JsonSerializerOptions.WriteIndented - an event payload sent over a message bus should never
+        // silently become indented (larger, slower to transmit) just because some unrelated JsonSerializerOptions (e.g. for indented HTTP responses in development) happens to be ambient.
+        var ef = new EventFormatter { DataExcludePaths = ["$..etag"], PartitionKeyIsRequired = false };
+        var ed = new EventData { DomainName = "dom", Entity = "ent", Action = "act" }
+            .WithValue(new { Id = "1", ETag = "abc123", Child = new { Id = "2", Name = "child" } });
+
+        var result = ef.Format(ed);
+        var json = result.Data!.ToString();
+        json.Should().NotContain("\n");
+    }
+
+    [Test]
+    public void Format_DataExcludePaths_NoMatch_NoChange()
+    {
+        var ef = new EventFormatter { DataExcludePaths = ["$..etag"], PartitionKeyIsRequired = false };
+        var ed = new EventData { DomainName = "dom", Entity = "ent", Action = "act" }
+            .WithValue(new { Id = "1", Name = "test" });
+
+        var originalData = ed.Data;
+        var result = ef.Format(ed);
+        result.Data!.ToString().Should().Be(originalData!.ToString());
+    }
+
+    [Test]
+    public void Format_DataExcludePaths_DefaultsToExcludeEtag()
+    {
+        // The default EventFormatter (DataExcludePaths not explicitly set) strips 'etag' from every published event by default - an optimistic-concurrency
+        // token has no meaning to a downstream event consumer, and cannot be reliably captured for events raised transactionally against a NoSQL outbox.
+        var ef = new EventFormatter { PartitionKeyIsRequired = false };
+        var ed = new EventData { DomainName = "dom", Entity = "ent", Action = "act" }
+            .WithValue(new { Id = "1", ETag = "abc123" });
+
+        var result = ef.Format(ed);
+        result.Data!.ToString().Should().NotContain("abc123");
+    }
+
+    [Test]
+    public void Format_DataExcludePaths_OptOut_NoChange()
+    {
+        var ef = new EventFormatter { DataExcludePaths = null, PartitionKeyIsRequired = false };
+        var ed = new EventData { DomainName = "dom", Entity = "ent", Action = "act" }
+            .WithValue(new { Id = "1", ETag = "abc123" });
+
+        var result = ef.Format(ed);
+        result.Data!.ToString().Should().Contain("abc123");
+    }
+
+    [Test]
+    public void Format_DataExcludePaths_NonJsonMediaType_NotFiltered()
+    {
+        var ef = new EventFormatter { DataExcludePaths = ["$..etag"], PartitionKeyIsRequired = false };
+        var ed = new EventData { DomainName = "dom", Entity = "ent", Action = "act", Data = new BinaryData("etag-not-json") };
+
+        var result = ef.Format(ed);
+        result.Data!.ToString().Should().Be("etag-not-json");
+    }
+
+    [Test]
     public void Convert_CloudEvent_DataNotBinary_Throws()
     {
         var ef = new EventFormatter();

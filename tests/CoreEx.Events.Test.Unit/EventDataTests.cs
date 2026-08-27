@@ -175,6 +175,18 @@ public class EventDataTests
     }
 
     [Test]
+    public void WithValue_ExcludePaths_HonorsWriteIndented()
+    {
+        // WithValue's excludePaths branch must stay consistent with its own sibling non-excludePaths branch (BinaryData.FromObjectAsJson), which already honors WriteIndented.
+        var obj = new TestValue { Id = "42", TenantId = "t1", PartitionKey = "pk1", Extra = "should-exclude" };
+        var options = new System.Text.Json.JsonSerializerOptions { WriteIndented = true };
+        var ed = new EventData().WithValue(obj, ["Extra"], options);
+        var json = ed.Data!.ToString();
+        json.Should().NotContain("should-exclude");
+        json.Should().Contain("\n");
+    }
+
+    [Test]
     public void Create_Event()
     {
         var ed = EventData.CreateEvent("Order", "Created");
