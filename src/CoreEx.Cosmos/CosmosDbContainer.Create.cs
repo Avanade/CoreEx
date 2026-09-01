@@ -59,7 +59,18 @@ public partial class CosmosDbContainer<TModel>
             if (r.IsFailure)
                 return r.Bind();
 
-            var partitionKey = Options.GetPartitionKey(model);
+            var partitionKeyValue = Options.GetPartitionKeyValue(model);
+            var partitionKey = new PartitionKey(partitionKeyValue);
+
+            // Where an ambient CosmosDbUnitOfWork transaction is active, enlist (queue) rather than execute immediately - see CosmosDbUnitOfWork for the full deferred-execution/atomicity model. The model's
+            // ETag is not yet final at this point (the batch has not executed) - see IUnitOfWork.SynchronizeETag for how a caller resolves the true, persisted ETag once the unit-of-work has committed.
+            var txn = CosmosDb.CurrentTransaction;
+            if (txn is not null)
+            {
+                txn.Enlist(Container, partitionKey, partitionKeyValue, Options.GetKeyFromModel(model), b => b.CreateItem(model));
+                return Result.Ok(new DataResult<TModel>(model, true));
+            }
+
             var response = await Container.CreateItemAsync(model, partitionKey, BuildItemRequestOptions(args), cancellationToken).ConfigureAwait(false);
 
             // Refresh as required (rarely needed given the SDK already returns the persisted resource).

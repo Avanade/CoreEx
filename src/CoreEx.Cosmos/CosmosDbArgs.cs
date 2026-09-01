@@ -7,7 +7,7 @@ namespace CoreEx.Cosmos;
 /// not any unintended side-effects.
 /// <para>There is deliberately no static/default <c>PartitionKey</c> here; the partition key is derived per-model (see <see cref="CosmosDbModelOptions{TModel}.WithPartitionKey"/>) since a
 /// <see cref="CosmosDbModelOptions{TModel}"/> instance is commonly shared/cached across callers and cannot itself close over one fixed value.</para></remarks>
-public record class CosmosDbArgs
+public record class CosmosDbArgs : IDataArgs
 {
     /// <summary>
     /// Indicates whether a <c>404 Not Found</c> response for a <b>Get</b> operation results in a <see langword="null"/> (rather than a <see cref="NotFoundException"/>) for the throwing (non-<c>WithResult</c>) method overloads.

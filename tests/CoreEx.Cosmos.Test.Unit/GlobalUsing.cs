@@ -2,6 +2,8 @@ global using CoreEx;
 global using CoreEx.Cosmos;
 global using CoreEx.Data;
 global using CoreEx.Entities;
+global using CoreEx.Events;
+global using CoreEx.Events.Publishing;
 global using CoreEx.Mapping;
 global using CoreEx.Results;
 global using Microsoft.Azure.Cosmos;

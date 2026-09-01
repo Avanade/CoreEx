@@ -48,6 +48,13 @@ public class CosmosDbModelOptions<TModel> where TModel : class, IEntityKey, new(
     public FeatureSupport TimeToLiveSupport { get; } = FeatureSupport.Determine<TModel, ITimeToLive, IReadOnlyTimeToLive>();
 
     /// <summary>
+    /// Indicates whether <see cref="IIdentifier{String}"/> and/or <see cref="IReadOnlyIdentifier{String}"/> is supported for the <typeparamref name="TModel"/>.
+    /// </summary>
+    /// <remarks>Used solely to gate the automatic outbox-document exclusion predicate applied by <see cref="ApplyFilters(CosmosDbArgs, IQueryable{TModel}, ExecutionContext)"/> — see its remarks for the
+    /// full mechanism and rationale. Unrelated to <see cref="ITypeDiscriminator"/>, which is a business-modeling concern, not an infrastructure one.</remarks>
+    public FeatureSupport IdentifierSupport { get; } = FeatureSupport.Determine<TModel, IIdentifier<string>, IReadOnlyIdentifier<string>>();
+
+    /// <summary>
     /// Gets the default <see cref="CosmosDbArgs"/>.
     /// </summary>
     public CosmosDbArgs? Args { get; private set; }
@@ -163,7 +170,17 @@ public class CosmosDbModelOptions<TModel> where TModel : class, IEntityKey, new(
     /// <para>Where an override is configured and <typeparamref name="TModel"/> implements the <i>mutable</i> <see cref="IPartitionKey"/>, the resolved value is also written back onto the
     /// <paramref name="model"/> — Cosmos DB requires the document body's value at the partition-key path to agree with the value supplied for the operation itself, so this write-back is required for a
     /// <b>Create</b>/<b>Update</b> using a configured override to succeed at all, not merely a convenience.</para></remarks>
-    public PartitionKey GetPartitionKey(TModel model)
+    public PartitionKey GetPartitionKey(TModel model) => new(GetPartitionKeyValue(model));
+
+    /// <summary>
+    /// Gets the raw partition key <see cref="string"/> value for the specified <paramref name="model"/> (see <see cref="GetPartitionKey(TModel)"/>).
+    /// </summary>
+    /// <param name="model">The model.</param>
+    /// <returns>The raw partition key <see cref="string"/> value.</returns>
+    /// <remarks>Exists (in addition to <see cref="GetPartitionKey(TModel)"/>) because the Cosmos DB SDK's <see cref="Microsoft.Azure.Cosmos.PartitionKey"/> struct exposes no public way to extract its own
+    /// value back out once constructed — a <see cref="CosmosDbUnitOfWork"/>-paired outbox-event write (see <see cref="CosmosDbEventPublisher"/>) needs the raw value to co-locate itself in the same
+    /// partition, so it is resolved and tracked once here rather than re-derived unreliably later.</remarks>
+    internal string GetPartitionKeyValue(TModel model)
     {
         model.ThrowIfNull();
 
@@ -180,11 +197,11 @@ public class CosmosDbModelOptions<TModel> where TModel : class, IEntityKey, new(
             if (PartitionKeySupport.IsMutable)
                 ((IPartitionKey)model).PartitionKey = configured;
 
-            return new PartitionKey(configured);
+            return configured;
         }
 
         if (PartitionKeySupport.IsSupported)
-            return new PartitionKey(((IReadOnlyPartitionKey)model).PartitionKey);
+            return ((IReadOnlyPartitionKey)model).PartitionKey!;
 
         throw new InvalidOperationException($"The model does not implement {nameof(IReadOnlyPartitionKey)}; as such, {nameof(WithPartitionKey)} or {nameof(WithFixedPartitionKey)} must be specified to enable.");
     }
@@ -348,17 +365,28 @@ public class CosmosDbModelOptions<TModel> where TModel : class, IEntityKey, new(
 
     /// <summary>
     /// Applies the configured query-only filters (<see cref="WithTenantFilter"/>, <see cref="WithLogicalDeleteFilter"/>, <see cref="WithTypeDiscriminatorFilter(string?)"/> and any additive
-    /// <see cref="WithFilter"/> registrations) to the <paramref name="query"/>.
+    /// <see cref="WithFilter"/> registrations), plus an automatic outbox-document exclusion predicate, to the <paramref name="query"/>.
     /// </summary>
     /// <param name="args">The <see cref="CosmosDbArgs"/>; used only to check <see cref="CosmosDbArgs.BypassFilters"/> against any bypassable <see cref="WithFilter"/> registrations.</param>
     /// <param name="query">The <see cref="IQueryable{TModel}"/>.</param>
     /// <param name="executionContext">The <see cref="ExecutionContext"/> resolved by the owning <see cref="ICosmosDb"/> (see <see cref="ICosmosDb.ExecutionContext"/>); used only by the <see cref="WithTenantFilter"/>
     /// predicate, where configured.</param>
     /// <returns>The filtered <see cref="IQueryable{TModel}"/>.</returns>
+    /// <remarks>Whenever <see cref="IdentifierSupport"/> is supported, this <b>always</b> also excludes any <see cref="CosmosDbOutboxEvent"/> documents that may be physically co-located in the same
+    /// container (a <see cref="CosmosDbUnitOfWork"/>-paired outbox write has no other choice — Cosmos DB's <c>TransactionalBatch</c> only supports a single container, so a dedicated outbox container,
+    /// like a relational store's separate table, is not possible) — no <c>WithXxx()</c> opt-in call is needed, and this applies even to a container that has never itself been used with a
+    /// <see cref="CosmosDbUnitOfWork"/>. This is intentional and safe unconditionally: no legitimate business key would ever start with <see cref="CosmosDbOutboxEvent.OutboxKeyPrefix"/>, so the predicate
+    /// can never wrongly exclude real business data, and a business developer is never required to add or even be aware of any interface/discriminator solely to accommodate this — unlike an earlier design
+    /// considered and rejected, which would have reused <see cref="ITypeDiscriminator"/> for this purpose (conflating a genuine business-modeling decision with an unrelated infrastructure concern).
+    /// <para>Uses the same cast-to-interface-in-a-LINQ-predicate shape already used above for <see cref="WithTenantFilter"/>/<see cref="WithLogicalDeleteFilter"/>/<see cref="WithTypeDiscriminatorFilter(string?)"/>,
+    /// not a new or unproven LINQ pattern.</para></remarks>
     public IQueryable<TModel> ApplyFilters(CosmosDbArgs args, IQueryable<TModel> query, ExecutionContext executionContext)
     {
         args.ThrowIfNull();
         query.ThrowIfNull();
+
+        if (IdentifierSupport.IsSupported)
+            query = query.Where(m => !((IReadOnlyIdentifier<string>)m).Id!.StartsWith(CosmosDbOutboxEvent.OutboxKeyPrefix));
 
         if (_tenantFilterEnabled)
         {

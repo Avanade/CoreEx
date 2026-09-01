@@ -78,9 +78,10 @@ public class NoTimeToLiveItem : IEntityKey, IIdentifier<string>, IETag, IPartiti
 }
 
 /// <summary>
-/// A domain "contract" value used to exercise <see cref="CosmosDbMappedContainer{TValue, TModel, TBiDirectionMapper}"/> (mapped to/from <see cref="TestItem"/>).
+/// A domain "contract" value used to exercise <see cref="CosmosDbMappedContainer{TValue, TModel, TBiDirectionMapper}"/> (mapped to/from <see cref="TestItem"/>), and <see cref="IUnitOfWork.SynchronizeETag{T}(CompositeKey, T)"/>
+/// (a distinct object instance/type from the <see cref="TestItem"/> model a <see cref="CosmosDbUnitOfWork"/> actually mutates - the scenario that mechanism exists for).
 /// </summary>
-public class TestValue
+public class TestValue : IETag
 {
     public string? Id { get; set; }
 

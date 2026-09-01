@@ -59,7 +59,8 @@ public partial class CosmosDbContainer<TModel>
             if (r.IsFailure)
                 return r.Bind();
 
-            var partitionKey = Options.GetPartitionKey(model);
+            var partitionKeyValue = Options.GetPartitionKeyValue(model);
+            var partitionKey = new PartitionKey(partitionKeyValue);
             var id = Options.FormatIdentifier(Options.GetKeyFromModel(model));
 
             // Cosmos DB's native If-Match optimistic concurrency is enforced server-side (returns a 412 directly), unlike a relational/EF detached-entity comparison; the CosmosDbInvoker maps a 412 to a
@@ -68,6 +69,16 @@ public partial class CosmosDbContainer<TModel>
             var options = BuildItemRequestOptions(args);
             if (options is null && args.AutoMapETag && model is IReadOnlyETag etag && !string.IsNullOrEmpty(etag.ETag))
                 options = new ItemRequestOptions { IfMatchEtag = etag.ETag };
+
+            // Where an ambient CosmosDbUnitOfWork transaction is active, enlist (queue) rather than execute immediately - see CosmosDbUnitOfWork for the full deferred-execution/atomicity model. The model's
+            // ETag is not yet final at this point (the batch has not executed) - see IUnitOfWork.SynchronizeETag for how a caller resolves the true, persisted ETag once the unit-of-work has committed.
+            var txn = CosmosDb.CurrentTransaction;
+            if (txn is not null)
+            {
+                var batchOptions = options is null ? null : new TransactionalBatchItemRequestOptions { IfMatchEtag = options.IfMatchEtag };
+                txn.Enlist(Container, partitionKey, partitionKeyValue, Options.GetKeyFromModel(model), b => b.ReplaceItem(id, model, batchOptions));
+                return Result.Ok(new DataResult<TModel>(model, true));
+            }
 
             var response = await Container.ReplaceItemAsync(model, id, partitionKey, options, cancellationToken).ConfigureAwait(false);
 

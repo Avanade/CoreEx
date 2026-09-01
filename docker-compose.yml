@@ -60,7 +60,11 @@ services:
   cosmos-emulator:
     image: mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:latest
     environment:
-      AZURE_COSMOS_EMULATOR_PARTITION_COUNT: "10"
+      # Caps the TOTAL number of containers the emulator can host across the whole account (not "partitions per container") - each container the test suite creates consumes one. The test suite currently
+      # creates 11 distinct containers (see `grep -rn "ContainerId = \"" tests/CoreEx.Cosmos.Test.Unit`); when this cap is hit, container creation fails with a generic, misleading "high demand"/503
+      # ServiceUnavailable that looks like transient load but is actually deterministic - confirmed by reading the container list directly and seeing exactly this many already exist. Kept with real headroom
+      # above the current count for future test additions, rather than raised just enough to limp past today's number.
+      AZURE_COSMOS_EMULATOR_PARTITION_COUNT: "25"
       AZURE_COSMOS_EMULATOR_ENABLE_DATA_PERSISTENCE: "false"
       AZURE_COSMOS_EMULATOR_IP_ADDRESS_OVERRIDE: "127.0.0.1"
     ports:

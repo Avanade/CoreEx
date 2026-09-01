@@ -53,4 +53,20 @@ public partial interface IUnitOfWork
     /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
     /// <returns>The resulting value.</returns>
     Task<T> TransactionAsync<T>(IDataArgs args, Func<CancellationToken, Task<T>> work, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Synchronizes the <paramref name="value"/>'s <see cref="IETag.ETag"/> with the true, underlying-store-persisted value for the entity identified by <paramref name="key"/>, where the implementing
+    /// provider is unable to make that value available synchronously at the point of mutation (see remarks).
+    /// </summary>
+    /// <typeparam name="T">The value <see cref="Type"/>.</typeparam>
+    /// <param name="key">The <see cref="CompositeKey"/> identifying the mutated entity within this <i>unit-of-work</i>.</param>
+    /// <param name="value">The value (typically a mapped <i>contract</i>, not necessarily the same instance/type that was created/updated) whose <see cref="IETag.ETag"/> is to be synchronized.</param>
+    /// <remarks>Most providers (e.g. a relational database via <c>IDatabaseUnitOfWork</c>) execute each statement immediately within the open transaction, so a mutated value already carries its true,
+    /// final <see cref="IETag.ETag"/> by the time it is returned — for these, an implementation of this method is expected to be a no-op (ignore, not throw); there is nothing to synchronize.
+    /// <para>A provider whose only atomic multi-operation primitive defers execution until the unit-of-work completes (e.g. Cosmos DB's <c>TransactionalBatch</c>, executed once at commit time) cannot
+    /// give a mutated value its true <see cref="IETag.ETag"/> until that point — such a provider is expected to track mutations by <paramref name="key"/> during the unit-of-work and implement this method
+    /// to resolve and assign the real value once available, throwing where <paramref name="key"/> was not part of the most recently completed unit-of-work, or where called before it has completed.</para>
+    /// <para><paramref name="key"/> (a value, not an object reference) is used rather than tracking the mutated instance itself, because the value passed here is often a separately mapped <i>contract</i>
+    /// (e.g. the value published as an event), not the same object instance the provider mutated — <paramref name="key"/> is expected to survive that mapping boundary even though object identity does not.</para></remarks>
+    void SynchronizeETag<T>(CompositeKey key, T value) where T : IETag;
 }

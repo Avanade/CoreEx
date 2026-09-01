@@ -59,6 +59,12 @@ public class CosmosDb : ICosmosDb
     protected ILogger? Logger { get; }
 
     /// <inheritdoc/>
+    public CosmosDbTransaction? CurrentTransaction { get; private set; }
+
+    /// <inheritdoc/>
+    public void UseTransaction(CosmosDbTransaction? transaction) => CurrentTransaction = transaction;
+
+    /// <inheritdoc/>
     public Container GetContainer(string containerId) => _containers.GetOrAdd(containerId.ThrowIfNull(), cid => Database.GetContainer(cid));
 
     /// <inheritdoc/>

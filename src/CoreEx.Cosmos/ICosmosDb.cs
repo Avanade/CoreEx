@@ -36,6 +36,19 @@ public interface ICosmosDb
     CosmosDbOptions Options { get; }
 
     /// <summary>
+    /// Gets the ambient ("current") <see cref="CosmosDbTransaction"/> for an active <see cref="CosmosDbUnitOfWork"/>, where one is in scope; otherwise, <see langword="null"/>.
+    /// </summary>
+    /// <remarks>Mirrors <c>IDatabase.CurrentTransaction</c> — <see cref="CosmosDbContainer{TModel}"/>'s Create/Update/Delete operations check this to transparently enlist into the ambient batch instead of
+    /// executing directly, exactly like a SQL repository enlists into an open ADO.NET transaction unchanged. Set via <see cref="UseTransaction(CosmosDbTransaction?)"/>, only by <see cref="CosmosDbUnitOfWork"/>.</remarks>
+    CosmosDbTransaction? CurrentTransaction { get; }
+
+    /// <summary>
+    /// Sets (or clears, where <see langword="null"/>) the ambient ("current") <see cref="CosmosDbTransaction"/> (see <see cref="CurrentTransaction"/>).
+    /// </summary>
+    /// <param name="transaction">The <see cref="CosmosDbTransaction"/>; <see langword="null"/> to clear.</param>
+    void UseTransaction(CosmosDbTransaction? transaction);
+
+    /// <summary>
     /// Gets (creates and caches) the underlying <see cref="Container"/> for the specified <paramref name="containerId"/>.
     /// </summary>
     /// <param name="containerId">The <see cref="Container"/> identifier.</param>

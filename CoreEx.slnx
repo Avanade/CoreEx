@@ -140,6 +140,7 @@
     <Project Path="src/CoreEx/CoreEx.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <File Path="Directory.Build.props" />
     <Project Path="tests/CoreEx.AspNetCore.Test.Api/CoreEx.AspNetCore.Test.Api.csproj" />
     <Project Path="tests/CoreEx.AspNetCore.Test.Unit/CoreEx.AspNetCore.Test.Unit.csproj" />
     <Project Path="tests/CoreEx.Azure.Messaging.ServiceBus.Test.Unit/CoreEx.Azure.Messaging.ServiceBus.Test.Unit.csproj" />

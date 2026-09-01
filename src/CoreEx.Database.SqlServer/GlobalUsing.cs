@@ -7,6 +7,7 @@ global using CoreEx.Database.Outbox;
 global using CoreEx.Database.SqlServer;
 global using CoreEx.Database.SqlServer.Extended;
 global using CoreEx.Database.SqlServer.Outbox;
+global using CoreEx.Entities;
 global using CoreEx.Events;
 global using CoreEx.Events.Publishing;
 global using CoreEx.Hosting;
