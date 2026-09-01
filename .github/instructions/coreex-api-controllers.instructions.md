@@ -138,6 +138,35 @@ public Task<IActionResult> PostAsync(CancellationToken cancellationToken = defau
 
 > **Agent instruction — confirm idempotency for every POST.** When adding a `POST`, ask whether the operation should be **idempotent** (safe to retry without creating a duplicate). A general **create-style** POST is a strong candidate — default to offering it. If confirmed, decorate the action with **`[IdempotencyKey]`** (MVC) or `.WithIdempotencyKey()` (Minimal API): a retried request carrying the same key then returns the original result instead of creating a second resource. Omit it only when the user confirms the POST is **not** idempotent (e.g. a deliberately non-repeatable command). This applies to `POST` specifically; `PUT`/`PATCH`/`DELETE` are inherently idempotent and do not take the attribute.
 
+### POST / DELETE — Conditional on a Related Resource's State
+
+`PostAsync`/`DeleteAsync` do **not** automatically require `If-Match` the way `PutAsync`/`PatchAsync` do — POST/DELETE typically have no prior state of their own to match. Where a specific POST or DELETE **is** conditional on a related resource's current state (e.g. mutating a sub-resource that must not have changed since it was read), chain **`ro.WithIfMatchRequired()`** inline at the point of use — the tidiest, most natural placement. It asserts the `If-Match` header was supplied and throws a `ConcurrencyException` (→ `428 Precondition Required`) immediately if not — regardless of method or whether the request type implements `IETag`.
+
+> **Agent instruction — do not hand-roll `If-Match` header parsing.** If a POST/DELETE needs a related-resource ETag check and this doesn't look supported at first glance, that is a signal to re-check this section — **not** to invent a manual header-parsing helper (e.g. reading `HttpRequest.Headers["If-Match"]` directly). `ro.WithIfMatchRequired()` (with `ro.ETag`/`ro.Value.ETag`) is the supported mechanism for every verb.
+
+**POST with a body** — chain straight into `.Value`:
+
+```csharp
+[HttpPost("{id}/segments")]
+[Accepts<BookingSegmentAddRequest>]
+[ProducesResponseType(typeof(Booking), 200)]
+[ProducesNotFoundProblem()]
+public Task<IActionResult> AddSegmentAsync(string id, CancellationToken cancellationToken = default) => _webApi.PostAsync<BookingSegmentAddRequest, Booking>(Request, (ro, ct)
+    => _service.AddSegmentAsync(id.Required(), ro.WithIfMatchRequired().Value, ct), HttpStatusCode.OK, cancellationToken: cancellationToken);
+```
+
+`BookingSegmentAddRequest` implements `IETag` with `[JsonIgnore]` on `ETag` (not the entity `[ReadOnly(true)]` convention) so the value can only arrive via the `If-Match` header, never the body — see `coreex-contracts.instructions.md` → "Command / Action Request DTOs — Conditional `If-Match`".
+
+**DELETE with no body** — there is no request DTO to carry `IETag` at all; chain straight into `.ETag` and pass the raw value through to the service:
+
+```csharp
+[HttpDelete("{id}/segments/{segmentId}")]
+[ProducesResponseType(typeof(Booking), 200)]
+[ProducesNotFoundProblem()]
+public Task<IActionResult> RemoveSegmentAsync(string id, string segmentId, CancellationToken cancellationToken = default) => _webApi.DeleteAsync<Booking>(Request, (ro, ct)
+    => _service.RemoveSegmentAsync(id.Required(), segmentId.Required(), ro.WithIfMatchRequired().ETag, ct), cancellationToken: cancellationToken);
+```
+
 For a **full-entity update**, expose **both** endpoints by default — they share the same write `UpdateAsync`:
 - **`PUT`** — full replace.
 - **`PATCH`** — merge-patch (RFC 7396) over the current entity.

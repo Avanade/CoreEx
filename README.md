@@ -126,7 +126,7 @@ The [Pattern Catalog](./samples/docs/patterns.md) is the best entry point: it in
 ## Version 4 (preview)
 
 This is a **major** version release; a re-imagine / re-invention of the existing capabilities to enable a more modern, flexible and maintainable codebase.
-- This release contains **significant breaking changes** - there is **no** upgrade path from the previous `v3.x` versions; however, the core capabilities and patterns remain largely consistent.
+- This release contains **significant breaking changes** - there is **no** documented upgrade path from the previous `v3.x` versions; however, the core capabilities and patterns remain largely consistent.
 - A number of capabilities have been removed as they were not widely used, considered legacy/obsolete, or there are better alternatives available.
 - Not all existing capabilities have been re-implemented in this release; the intention is to (re-)add further capabilities in future releases as required.
 

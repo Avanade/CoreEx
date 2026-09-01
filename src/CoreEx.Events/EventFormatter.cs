@@ -113,6 +113,21 @@ public class EventFormatter : IEventFormatter
     /// <remarks>This defaults to the <see cref="IHostSettings.DomainName"/>.</remarks>
     public string? DomainName { get; set; }
 
+    /// <summary>
+    /// Gets or sets the list of JSON paths (see <see cref="Json.JsonFilter"/>) to exclude from the <see cref="EventData.Data"/> of every formatted event.
+    /// </summary>
+    /// <remarks>Applied during <see cref="Format(EventData)"/>, before <see cref="ConvertToCloudEvent(EventData)"/>, using <see cref="JsonFilterOption.Exclude"/>. Supports recursive descent paths
+    /// (e.g. <c>$..etag</c>) to remove a property irrespective of where it appears within the payload, without each call site needing to specify <c>excludePaths</c> on
+    /// <see cref="EventData.WithValue{T}(T, IEnumerable{string}, JsonSerializerOptions)"/> individually.
+    /// <para>Defaults to excluding <c>$..etag</c>: an optimistic-concurrency token has no meaning to a downstream event consumer, and is not reliably assignable in the first place for events raised
+    /// transactionally via an outbox against a NoSQL store (there is no single, post-commit <c>ETag</c> to capture at the point the event is written to the outbox). Set to <see langword="null"/> or an
+    /// empty list to opt out and retain the previous behavior of leaving <see cref="EventData.Data"/> untouched.</para>
+    /// <para>Only applied where <see cref="EventData.Data"/> is present and its <see cref="BinaryData.MediaType"/> is <see cref="MediaTypeNames.Application.Json"/>; other content types are left as-is.</para>
+    /// <para>Because <c>etag</c> is excluded by this default, <c>CoreEx.UnitTesting</c>'s <c>EventExpectationsConfig.DefaultDataPathsToIgnore</c> does <b>not</b> need to (and does not) ignore it -
+    /// there is nothing left in a captured event's <see cref="EventData.Data"/> to ignore. If this default is opted out of (see above), and <c>etag</c> can therefore reappear in published event data,
+    /// add an equivalent ignore path to <c>EventExpectationsConfig.PathsToIgnore</c> so comparisons are unaffected.</para></remarks>
+    public List<string>? DataExcludePaths { get; set; } = ["$..etag"];
+
     /// <inheritdoc/>
     /// <remarks>The <see cref="EventData.Title"/> is formatted by default using the following convention:
     /// <code>[{EventFormatter.TitlePrefix}.]{EventData.DomainName}.{EventData.Entity}.{EventData.Action}[.v{EventData.DataSchemaVersion.Major}]</code></remarks>
@@ -152,7 +167,25 @@ public class EventFormatter : IEventFormatter
         if (@event.PartitionKey is null && PartitionKeyIsRequired)
             throw new InvalidOperationException($"A {nameof(EventData)}.{nameof(EventData.PartitionKey)} PartitionKey is required.");
 
+        if (@event.Data is not null && DataExcludePaths is { Count: > 0 } && string.Equals(@event.Data.MediaType, MediaTypeNames.Application.Json, StringComparison.OrdinalIgnoreCase))
+            @event.Data = FilterData(@event.Data, DataExcludePaths);
+
         return @event;
+    }
+
+    /// <summary>
+    /// Applies the <see cref="DataExcludePaths"/> to the <paramref name="data"/> using <see cref="Json.JsonFilter.TryExcludeUtf8Json"/>.
+    /// </summary>
+    /// <remarks>Uses the single-pass, <see cref="JsonNode"/>-free streaming filter since <see cref="Format(EventData)"/> runs for every published event; avoiding a document object model here
+    /// meaningfully reduces both CPU and GC pressure on this hot path. Deliberately uses <see cref="Json.JsonFilter.TryExcludeUtf8Json"/>'s default (compact) <see cref="JsonWriterOptions"/> rather than
+    /// deriving one from an ambient <see cref="JsonSerializerOptions"/> - an event payload sent over a message bus should always be compact regardless of unrelated formatting preferences (e.g. indented
+    /// HTTP responses in a development environment) that might otherwise be picked up via <see cref="JsonDefaults.SerializerOptions"/>.</remarks>
+    private static BinaryData FilterData(BinaryData data, List<string> excludePaths)
+    {
+        if (!JsonFilter.TryExcludeUtf8Json(data.ToMemory().Span, excludePaths, out var filtered))
+            return data;
+
+        return BinaryData.FromBytes(filtered, MediaTypeNames.Application.Json);
     }
 
     /// <inheritdoc/>

@@ -19,7 +19,7 @@ public sealed class EventExpectationsConfig
     /// <summary>
     /// Gets or sets the default <see cref="CloudEvent"/> data paths to ignore for comparisons.
     /// </summary>
-    public static List<string> DefaultDataPathsToIgnore { get; set => field = value.ThrowIfNull(); } = ["data.id", "data.changelog", "data.etag"];
+    public static List<string> DefaultDataPathsToIgnore { get; set => field = value.ThrowIfNull(); } = ["data.id", "data.changelog"];
 
     /// <summary>
     /// Gets the default JSON <see cref="CloudEvent"/> paths to ignore for comparisons, which is a combination of the <see cref="DefaultMetadataPathsToIgnore"/> and <see cref="DefaultDataPathsToIgnore"/>.

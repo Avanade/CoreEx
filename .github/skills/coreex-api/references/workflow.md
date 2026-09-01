@@ -273,6 +273,33 @@ public Task<IActionResult> CreateForParentAsync(string parentId, CancellationTok
 
 An absolute route path (`/api/parents/{parentId}/...`) overrides the controller's base `[Route]`.
 
+### POST/DELETE — nested resource, conditional on the parent's state (advanced)
+
+When mutating a sub-resource must fail if the **parent** has changed since it was read (not the sub-resource's own concurrency), chain `ro.WithIfMatchRequired()` inline at the point of use — it asserts `If-Match` was supplied and throws (→ `428`) immediately if not, regardless of method or whether the request type implements `IETag`.
+
+**POST with a body** — chain into `.Value`:
+
+```csharp
+[HttpPost("{id}/segments")]
+[Accepts<BookingSegmentAddRequest>]
+[ProducesResponseType(typeof(Booking), 200)]
+[ProducesNotFoundProblem()]
+public Task<IActionResult> AddSegmentAsync(string id, CancellationToken cancellationToken = default) => _webApi.PostAsync<BookingSegmentAddRequest, Booking>(Request, (ro, ct)
+    => _service.AddSegmentAsync(id.Required(), ro.WithIfMatchRequired().Value, ct), HttpStatusCode.OK, cancellationToken: cancellationToken);
+```
+
+`BookingSegmentAddRequest` implements `IETag` with `[JsonIgnore]` on `ETag` (not the entity `[ReadOnly(true)]` convention) — see `coreex-contract`'s workflow → "Command / action DTOs" — so the value can only arrive via the header, never the body.
+
+**DELETE with no body** — no request DTO exists to carry `IETag`; chain into `.ETag` and pass the raw value to the service:
+
+```csharp
+[HttpDelete("{id}/segments/{segmentId}")]
+[ProducesResponseType(typeof(Booking), 200)]
+[ProducesNotFoundProblem()]
+public Task<IActionResult> RemoveSegmentAsync(string id, string segmentId, CancellationToken cancellationToken = default) => _webApi.DeleteAsync<Booking>(Request, (ro, ct)
+    => _service.RemoveSegmentAsync(id.Required(), segmentId.Required(), ro.WithIfMatchRequired().ETag, ct), cancellationToken: cancellationToken);
+```
+
 ---
 
 ## Step 7 — Minimal API (Alternative to MVC)
@@ -349,6 +376,7 @@ All the same rules apply: `.Required()` on route params, no business logic in ha
 7. No `IUnitOfWork`, `HttpClient`, or adapter types injected into the controller.
 8. `WithResult` variants used throughout when the service style is `Result<T>`; standard variants for exception-based.
 9. `[Accepts<T>]` present on POST/PUT/PATCH actions; `[ProducesNotFoundProblem()]` on GET/PUT/PATCH/DELETE where applicable.
+10. Hand off directly to [`coreex-test-api`](../../coreex-test-api/SKILL.md) for the real integration test — do not insert a throwaway smoke test (scratch test class, manual curl/`HttpClient` call, `dotnet run` + eyeball) in between just to confirm the endpoint works before writing "the real one". That confirmation *is* what the integration test does; a preliminary pass duplicates it and is discarded moments later.
 
 ---
 
@@ -364,3 +392,4 @@ All the same rules apply: `.Required()` on route params, no business logic in ha
 - **Never expose only PUT without PATCH** (or vice versa) for a full-entity update — always provide the pair unless a specialised partial endpoint is explicitly requested.
 - **Never put business logic in the controller** — the lambda body must be a single delegate call to the application service. If you find yourself writing `if`, `try/catch`, or multiple service calls, stop and move the logic to the service.
 - **Never mix standard and `WithResult` helpers** in the same controller — the style choice follows the service interface.
+- **Never write a throwaway smoke test to verify an endpoint works before authoring the real one** — go straight to `coreex-test-api` after `dotnet build` succeeds. A scratch test class, ad-hoc `HttpClient`/curl call, or manual `dotnet run` check adds a discarded step that duplicates what the real integration test already proves against the real host/DB.

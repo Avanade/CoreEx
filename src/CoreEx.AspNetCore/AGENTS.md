@@ -45,6 +45,26 @@ public Task<IActionResult> PatchAsync(Guid id) =>
         put: product => _service.UpdateAsync(id, product));
 ```
 
+## ETag / If-Match Concurrency
+
+`PutAsync`/`PatchAsync` automatically require `If-Match` when the request type implements `IETag` (missing → `428`; stale/mismatched → `412`). `PostAsync`/`DeleteAsync` do not auto-require it — they typically have no prior state of their own to match. Where a specific POST/DELETE **is** conditional on a related resource's state (e.g. mutating a sub-resource that must not have changed since it was read), chain `ro.WithIfMatchRequired()` inline at the point of use: it asserts the header immediately and throws `ConcurrencyException` (→ `428`) if missing, regardless of method or whether the request implements `IETag`.
+
+```csharp
+// POST with a body — chain into .Value.
+[HttpPost("{id}/segments")]
+public Task<IActionResult> AddSegmentAsync(string id, CancellationToken cancellationToken = default) =>
+    _webApi.PostAsync<BookingSegmentAddRequest, Booking>(Request, (ro, ct)
+        => _service.AddSegmentAsync(id.Required(), ro.WithIfMatchRequired().Value, ct), HttpStatusCode.OK, cancellationToken: cancellationToken);
+
+// DELETE with no body — no request DTO exists, so chain into .ETag instead.
+[HttpDelete("{id}/segments/{segmentId}")]
+public Task<IActionResult> RemoveSegmentAsync(string id, string segmentId, CancellationToken cancellationToken = default) =>
+    _webApi.DeleteAsync<Booking>(Request, (ro, ct)
+        => _service.RemoveSegmentAsync(id.Required(), segmentId.Required(), ro.WithIfMatchRequired().ETag, ct), cancellationToken: cancellationToken);
+```
+
+Request DTOs for the POST-with-body shape implement `IETag` with `[JsonIgnore]` on `ETag` — not the entity `[ReadOnly(true)]` convention — so the value can only arrive via the header, never the body.
+
 ## Query / Paged List Endpoints
 
 Use `[Query]` and `[Paging]` attributes; the `WebApi` helper reads them from the request automatically.

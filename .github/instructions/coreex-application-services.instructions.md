@@ -352,6 +352,19 @@ Each has `Async` and `AsAsync` variants too (e.g. `ThenAsync`, `ThenAsAsync`). S
 
 Failure factories (return a failed result of the matching type): `Result.ValidationError(...)`, `NotFoundError(...)`, `BusinessError(...)`, `ConflictError(...)`, `ConcurrencyError(...)`, `DuplicateError(...)`, `AuthenticationError(...)`, `AuthorizationError(...)`, `TransientError(...)`. Success factories: `Result.Success`, `Result<T>.Ok(value)`. See the [CoreEx Results README](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx/Results/README.md) for the full set.
 
+**`ThrowOnError()` returns `Result<T>`, not `T`** — unwrapping to `T` happens via `Result<T>`'s implicit conversion operator, which only fires in a **target-typed** context:
+
+```csharp
+// ✅ Target-typed — the implicit operator unwraps to T.
+Product product = result.ThrowOnError();
+return result.ThrowOnError();   // method returns Task<Product> / Product
+
+// ❌ var has no target type — x is a Result<Product>, not a Product; x.Sku won't compile.
+var x = result.ThrowOnError();
+```
+
+Declare an explicit type (or return directly) when bridging a `Result<T>` pipeline back to exception-style at a boundary — don't chain `ThrowOnError()` onto a `var`.
+
 ## CQRS — Read Services
 
 Split a domain's service operations **by mutation** — this is the convention:

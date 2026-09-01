@@ -156,6 +156,8 @@ public async Task<Contracts.{Name}> {Action}Async(string id, CancellationToken c
 }
 ```
 
+**Check `EventAction` before reaching for a raw string.** `CreateEventWith(v, "some-string")` exists (`EventData.CreateEventWith<T>(T?, string?)`), but it's for actions genuinely outside the enum — most business actions already have a member. Current set: `Created`, `Updated`, `Deleted`, `Activated`, `Deactivated`, `Cancelled`, `Confirmed`, `CheckedOut`, `Started`, `Completed`, `Paused`, `Stopped`, `Restarted`, `Suspended`, `Reinstated`, `Closed`, `Reopened`, `Expired`, `Renewed`, `Submitted`, `Approved`, `Rejected`, `Acknowledged`, `Declined`, `Sent`, `Received`, `Published`, `Processed`, `Failed`. Use `EventAction.{Action}` (enum) whenever one matches; only fall back to the string overload for a genuinely novel action.
+
 ---
 
 ## Path B — Result&lt;T&gt; Pipeline Service
@@ -404,7 +406,7 @@ if (pr.IsFailure)
 3. Verify every mutating method wraps the repository call in `_unitOfWork.TransactionAsync(...)` and adds an event inside that scope.
 4. Verify validators are called via `Default.ValidateAndThrowAsync` (exception style) or `Default.ValidateWithResultAsync` (ROP) — never bare `ValidateAsync`.
 5. Check `Id` is assigned via `Runtime.NewId()` / `Runtime.NewGuid()` on Create — never left to the caller or the database.
-6. **Offer to create or update the matching integration test** in `*.Test.Api/` or unit test in `*.Test.Unit/Services/`.
+6. **Offer to create or update the matching integration test** in `*.Test.Api/` or unit test in `*.Test.Unit/Services/` — go straight there. Do not write a throwaway smoke test (a scratch console/test snippet, ad-hoc scoped call, or manual `dotnet run` check) first "to see if it works"; that confirmation is exactly what the real test proves, so a preliminary pass is discarded effort.
 
 ---
 
@@ -421,3 +423,4 @@ if (pr.IsFailure)
 - **Do not add Query to `{Name}Service`** — query/collection shapes belong exclusively in `{Name}ReadService`.
 - **Do not split the repository to mirror CQRS** — both services share one `I{Name}Repository` per data source.
 - **Do not build `{Name}ReadService.QueryAsync` against a repository that lacks it** — invoke `coreex-repository` to add the `{Name}QueryArgsConfig` first; the read service has no filtering/ordering logic of its own to fall back on.
+- **Do not write a throwaway smoke test to verify a service works before authoring the real one** — hand off straight to the integration/unit test. A scratch snippet run once and discarded duplicates what the real test already proves.

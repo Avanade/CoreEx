@@ -20,7 +20,7 @@ This document provides detailed explanations of CoreEx capabilities and common p
   - [Railway-Oriented Programming](#railway-oriented-programming-with-resultt)
 - [API & HTTP Features](#api--http-features)
   - [Web API Styles](#web-api-styles-minimal--mvc)
-  - [RFC 7386 Merge-Patch](#rfc-7386-merge-patch-applicationmerge-patchjson)
+  - [RFC 7396 Merge-Patch](#rfc-7396-merge-patch-applicationmerge-patchjson)
   - [Response JSON Filtering](#response-json-filtering)
   - [Error Handling with ProblemDetails](#error-handling-with-problemdetails)
   - [Conditional Request Semantics](#conditional-request-semantics-if-match)
@@ -298,7 +298,7 @@ var categories = await _refData.GetCollectionAsync<Category>();
 
 ### JSON Filtering & Merge-Patch
 
-**Pattern:** Dynamically exclude fields from responses and support RFC 7386 PATCH.
+**Pattern:** Dynamically exclude fields from responses and support RFC 7396 PATCH.
 
 **Response Filtering** — Control which fields appear in JSON based on query parameters or roles:
 
@@ -307,7 +307,7 @@ var categories = await _refData.GetCollectionAsync<Category>();
 // Returns only id and name, omitting price, cost, margin
 ```
 
-**Merge-Patch** — RFC 7386 PATCH for partial updates:
+**Merge-Patch** — RFC 7396 PATCH for partial updates:
 
 ```csharp
 // PATCH /api/products/123
@@ -427,7 +427,7 @@ public class ProductsController : ControllerBase
 
 Both use the same exception handling, logging, and middleware.
 
-### RFC 7386 Merge-Patch (application/merge-patch+json)
+### RFC 7396 Merge-Patch (application/merge-patch+json)
 
 **Pattern:** Partial updates with semantic merge semantics.
 
