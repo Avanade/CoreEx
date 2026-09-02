@@ -1,6 +1,6 @@
 # CoreEx.Cosmos — AI Usage Guide
 
-Azure Cosmos DB implementation of the CoreEx core CRUD + query access layer pattern (model-direct and contract-to-model), structurally mirroring `CoreEx.EntityFrameworkCore`'s `EfDb`/`EfDbModel`/`EfDbMappedModel` shape.
+Azure Cosmos DB implementation of the CoreEx core CRUD + query access layer pattern (model-direct and contract-to-model), structurally mirroring `CoreEx.EntityFrameworkCore`'s `EfDb`/`EfDbModel`/`EfDbMappedModel` shape, plus a `TransactionalBatch`-based transactional outbox and a Change Feed Processor-based outbox relay.
 
 ## Registration
 
@@ -24,7 +24,7 @@ public class OrderRepository(ICosmosDb cosmosDb)
 }
 ```
 
-- `ICosmosDb.Container<TModel>(containerId, configure?)` is cached per `containerId`; the `configure` action only runs the first time.
+- `ICosmosDb.Container<TModel>(containerId, configure?)` is cached per `(containerId, TModel)` pair - **not** `containerId` alone, since a container may legitimately host more than one type-discriminated model (see "Multi-type containers" below); the `configure` action only runs the first time for a given pair.
 - `TModel` must implement `IEntityKey` (for `EntityKey`/`CompositeKey`) — everything else (`IETag`, `IPartitionKey`, `ITenantId`, `ITypeDiscriminator`, `ILogicallyDeleted`) is duck-typed via `is` checks, exactly like `EfDbModelOptions`. Use `CosmosDbItemBase` as an optional convenience base implementing the common ones.
 - **Deviation from `EfDbModel<TModel>`**: `GetAsync`/`DeleteAsync` take an optional `PartitionKey?` parameter (in addition to the `CompositeKey`) because a Cosmos DB point-read/point-delete is fundamentally two-dimensional (`id` + partition key), unlike a relational primary-key lookup. Omit it to fall back to `WithFixedPartitionKey` (where configured) — otherwise it throws `InvalidOperationException`. `CreateAsync`/`UpdateAsync`/`UpsertAsync` derive the partition key from the model via `WithPartitionKey`, `WithFixedPartitionKey`, or the model's own `IReadOnlyPartitionKey.PartitionKey` (in that precedence — configuration always wins, and a configured value that disagrees with a non-null model value throws rather than silently overriding it).
 
@@ -91,6 +91,42 @@ Paging uses `Skip`/`Take` (translated by the Cosmos DB LINQ provider to `OFFSET�
 counterpart) routes through `CosmosDbInvoker` — the same structured logging + `CosmosException` mapping as every CRUD operation. Use `AsQueryable(args?)` for ad-hoc `IQueryable<TModel>` composition
 (e.g. within a repository method); pass `new CosmosDbArgs { BypassFilters = true }` to skip the `CosmosDbModelOptions`-configured filters entirely.
 
+## Transactional Outbox
+
+`CosmosDbUnitOfWork` implements `IUnitOfWork` directly (not a Cosmos-specific sub-interface, so application services stay provider-agnostic). Enlisted Create/Update/Delete calls made inside `TransactionAsync` accumulate into one ambient `TransactionalBatch` - Cosmos DB's only atomic multi-operation primitive, atomic only within a single container/logical partition key - and execute once, at the end. `CosmosDbEventPublisher` (an `IEventPublisher`) enlists outbox event documents into the *same* batch, so the business mutation and its event are atomic without a separate outbox table:
+
+```csharp
+// Program.cs (host builder)
+builder.Services
+    .AddCosmosDb("MyDatabaseId")
+    .AddScoped<IEventPublisher, CosmosDbEventPublisher>()
+    .AddScoped<CosmosDbUnitOfWork>();
+
+// Application service
+await unitOfWork.TransactionAsync(async ct =>
+{
+    var created = await orders.CreateAsync(order, ct);
+    unitOfWork.Events.Add(EventData.CreateEventWith(created.Value, EventAction.Created));
+});
+```
+
+Outbox documents are identified by a reserved `$outbox` `Id` prefix and auto-excluded from ordinary business queries against the same container - no opt-in filter required. A cross-container/cross-partition-key enlistment throws `InvalidOperationException` client-side, before any network call. There is no "read your own uncommitted writes" within a unit-of-work - nothing is persisted until the batch executes at the end, so a `Query()`/`GetAsync` call inside `TransactionAsync`'s `work` delegate cannot see an earlier write from the *same* unit-of-work.
+
+`IUnitOfWork.SynchronizeETag<T>(CompositeKey, T)` resolves a mapped contract's true, server-assigned `ETag` after the batch commits (correlated by `CompositeKey`, not object reference, since the object passed here is the mapped *contract* published as an event, not the *model* actually mutated) - call it only after `TransactionAsync` has completed, never from inside `work`.
+
+## Outbox Relay
+
+`CosmosDbOutboxRelay` consumes outbox event documents via a Cosmos DB [Change Feed Processor](https://learn.microsoft.com/en-us/azure/cosmos-db/nosql/change-feed-processor) - push-based and SDK-managed, not a polling loop like the SQL Server/Postgres relay - decodes/publishes/cleans up each batch, and self-pauses/self-resumes via a circuit breaker on a sustained publish-failure ratio:
+
+```csharp
+// Relay host Program.cs
+builder.Services.AddCosmosDb("MyDatabaseId");
+builder.AddCosmosDbOutboxRelayHostedService("orders");   // one call per outbox-hosting container
+builder.AddCosmosDbOutboxRelayHostedService("customers", servicesCount: 1);   // lower-volume container, fewer concurrent instances
+```
+
+Poison-message/dead-letter handling is **not yet implemented** - a permanently-failing outbox document is redelivered forever by the Change Feed Processor's own native backoff (confirmed empirically against the emulator), with no built-in give-up, and can starve delivery of other, unrelated outbox documents sharing the same physical partition-key-range/lease. To be designed as one shared pattern across the SQL Server/Postgres/Cosmos relays, not Cosmos-specific.
+
 ## Do Not
 
 - Do not construct `CosmosClient` directly in application code — resolve it from DI (Aspire's `AddAzureCosmosClient`).
@@ -98,11 +134,12 @@ counterpart) routes through `CosmosDbInvoker` — the same structured logging + 
 - Do not configure both `WithPartitionKey` and `WithFixedPartitionKey` on the same `CosmosDbModelOptions<TModel>` — they are mutually exclusive and throw `InvalidOperationException` immediately if you try. `WithPartitionKey`'s function can only ever help `CreateAsync`/`UpdateAsync` (it needs a model instance); only `WithFixedPartitionKey` also defaults `GetAsync`/`DeleteAsync`.
 - Do not mutate a caller-supplied `CosmosDbArgs.ItemRequestOptions` instance expecting `AutoMapETag` to still apply — `AutoMapETag` only synthesizes an `ItemRequestOptions` when the caller has not already supplied one; set `IfMatchEtag` explicitly if you need both.
 - Do not use `CosmosDbMappedContainer<TValue, TModel, TMapper>.Query()` — it does not exist by design; query stays model-typed (use `CosmosDbContainer<TModel>.Query()` plus `CosmosDbQuery<TModel>.ToMappedItemsResultAsync`/`ToMappedItemsAsync`).
-- Do not introduce a transactional `IUnitOfWork`/outbox here — that is a separate, not-yet-implemented concern (`ICosmosUnitOfWork`, change-feed-based relay); this package is CRUD + query only.
+- Do not call `SynchronizeETag` from inside a `TransactionAsync` `work` delegate — the batch (and therefore the true server-assigned `ETag`) has not executed yet; it throws `InvalidOperationException`.
+- Do not assume a `CosmosDbOutboxRelay`/relay hosted service durably handles a permanently-failing event — see "Outbox Relay" above; there is no dead-letter mechanism yet.
 - Do not materialize a query by defining a bare, generic-sounding `IQueryable<T>` extension method (`ToListAsync`, `ToItemsResultAsync`, etc.) — `CoreEx.EntityFrameworkCore.EfDbExtensions` already defines several identically-shaped ones, and C# extension-method resolution has no precedence rule between two equally-applicable candidates: it's a hard `CS0121` ambiguous-call compile error in any file that imports both namespaces, not just a style clash. Add materializers as instance methods on `CosmosDbQuery<TModel>` (or an equivalent package-owned wrapper type) instead — a different receiver type cannot collide, so plain names (`ToListAsync`, `ToItemsResultAsync`, ...) are safe there. Only fall back to a `To{Provider}XxxAsync`-prefixed `IQueryable<T>` extension if a package genuinely cannot own a wrapper type.
 
 ## Further Reading
 
-- [README](./README.md) — full API reference including `CosmosDb`, `CosmosDbContainer<TModel>`, `CosmosDbModelOptions<TModel>`, and `CosmosDbQuery<TModel>`.
+- [README](./README.md) — full API reference including `CosmosDb`, `CosmosDbContainer<TModel>`, `CosmosDbModelOptions<TModel>`, `CosmosDbQuery<TModel>`, `CosmosDbUnitOfWork`, and the `Outbox` sub-namespace.
 - [CoreEx.EntityFrameworkCore](../CoreEx.EntityFrameworkCore/AGENTS.md) — the closest structural analogue (`EfDb`/`EfDbModel`/`EfDbMappedModel`).
-- [CoreEx.Database.SqlServer](../CoreEx.Database.SqlServer/AGENTS.md) — the relational sibling family; compare DI/registration conventions (`AddAzureCosmosClient` vs `AddSqlServerClient`).
+- [CoreEx.Database.SqlServer](../CoreEx.Database.SqlServer/AGENTS.md) / [CoreEx.Database.Postgres](../CoreEx.Database.Postgres/AGENTS.md) — the relational sibling families; compare DI/registration conventions (`AddAzureCosmosClient` vs `AddSqlServerClient`/`AddAzureNpgsqlDataSource`) and outbox relay wiring (poll-loop vs Change Feed Processor), though metric names and trace-linking are shared unchanged.

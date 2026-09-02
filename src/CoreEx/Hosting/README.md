@@ -4,9 +4,9 @@
 
 ## Overview
 
-`CoreEx.Hosting` addresses two distinct but related concerns: running background work reliably within an .NET hosted-service model, and tracking the state of long-running distributed operations that outlive a single request or host invocation.
+`CoreEx.Hosting` addresses three distinct but related concerns: running background work reliably within an .NET hosted-service model, protecting a push/callback-driven processor (an external SDK owns the delivery loop, not a timer we control) from a sustained run of failures, and tracking the state of long-running distributed operations that outlive a single request or host invocation.
 
-The hosted service base classes (`TimerHostedServiceBase`, `SynchronizedTimerHostedServiceBase`) provide a consistent foundation for background polling workers — handling pause/resume, error-interval back-off, no-op mode for tests, DI-scoped execution, and health check integration via `HostedServiceHealthCheck`. `HostSettings` standardizes how a host, including ASP.NET Core, exposes its solution name, domain name, environment, and source URI to the rest of the application.
+The hosted service base classes (`TimerHostedServiceBase`, `SynchronizedTimerHostedServiceBase`) provide a consistent foundation for background polling workers — handling pause/resume, error-interval back-off, no-op mode for tests, DI-scoped execution, and health check integration via `HostedServiceHealthCheck`. `CircuitBreakerResiliency<TOwner>`/`RetryResiliency<TOwner>` are for the *other* shape of hosted service — one that doesn't drive its own poll loop (e.g. an Azure Service Bus `ServiceBusProcessor` or a Cosmos DB Change Feed Processor keeps calling the handler regardless of failure) - self-pausing/self-resuming (circuit breaker) or retrying a caller-classified subset of failures (retry), for any owner that exposes pause/resume semantics. `HostSettings` standardizes how a host, including ASP.NET Core, exposes its solution name, domain name, environment, and source URI to the rest of the application.
 
 `WorkOrchestrator` tracks the lifecycle of explicitly managed long-running work items (think: async job processing, background import, orchestration hand-off). Each work item has a `WorkState` record persisted via a pluggable `IWorkProvider`, with a `WorkStatus` lifecycle (Created → Started → Indeterminate/Completed/Failed/Abandoned) and automatic expiry.
 
@@ -19,6 +19,9 @@ The hosted service base classes (`TimerHostedServiceBase`, `SynchronizedTimerHos
 - 📋 **Work orchestration**: `WorkOrchestrator` manages the create → start → complete/fail lifecycle for long-running work items, with automatic expiry and pluggable `IWorkProvider` storage.
 - 🗄️ **Cache-backed work provider**: `HybridCacheWorkProvider` implements `IWorkProvider` using `IHybridCache`, enabling work state persistence without requiring a dedicated database.
 - 🔗 **Distributed synchronization**: `ISynchronizer` / `HybridCacheSynchronizer` provide a distributed advisory lock used by `SynchronizedTimerHostedServiceBase` to prevent concurrent execution across host replicas.
+- 🛡️ **Self-pausing circuit breaker**: `CircuitBreakerResiliency<TOwner>.Create(...)` builds a Polly `ResiliencePipeline<Result>` that pauses (with exponential backoff) then self-resumes any owner exposing pause/resume methods, once a sustained failure ratio is observed - for a push/callback-driven processor where an external SDK owns the delivery loop (an ASP.NET Core hosted service can't otherwise control its own retry cadence the way `TimerHostedServiceBase` can). Originally implemented for `CoreEx.Azure.Messaging.ServiceBus`'s `ServiceBusReceiverBase`, promoted here so `CoreEx.Cosmos`'s Change Feed Processor-based outbox relay (and any future processor with the same shape) shares the exact same behaviour.
+- 🔁 **Classified-failure retry**: `RetryResiliency<TOwner>.Create(shouldHandle, ...)` builds a bounded retry-with-backoff pipeline for a caller-supplied subset of failures (no "retry everything" default - unlike the circuit breaker, blindly retrying an unclassified failure risks retrying one retrying can never fix). Promoted alongside the circuit breaker for the same reason.
+- 🔑 **Shared owner-context plumbing**: `ResilienceOwner<TOwner>` flows an owning instance through a Polly `ResilienceContext` so `CircuitBreakerResiliency<TOwner>`/`RetryResiliency<TOwner>` callbacks can resolve it back out (`PropertyKey`/`GetOwner`) - the plumbing both share, split out since it isn't circuit-breaker- or retry-specific.
 
 ## Key types
 
@@ -39,9 +42,14 @@ The hosted service base classes (`TimerHostedServiceBase`, `SynchronizedTimerHos
 | [`IHostSettings`](./IHostSettings.cs) | Interface exposing `SolutionName`, `DomainName`, `EnvironmentName`, and `Source` from `HostSettings`. |
 | [`IWorkProvider`](./Work/IWorkProvider.cs) | Pluggable storage interface for `WorkState` persistence: get, create, update. |
 | [`ISynchronizer`](./Synchronization/ISynchronizer.cs) | Distributed advisory lock interface: `EnterAsync<T>` / `ExitAsync<T>` for type-and-name-scoped locking. |
+| **[`CircuitBreakerResiliency<TOwner>`](./CircuitBreakerResiliency.cs)** | Generic self-pausing/self-resuming Polly `ResiliencePipeline<Result>` factory for any owner exposing pause/resume methods; used by `CoreEx.Azure.Messaging.ServiceBus` and `CoreEx.Cosmos`'s outbox relay. |
+| **[`RetryResiliency<TOwner>`](./RetryResiliency.cs)** | Generic bounded retry-with-backoff Polly `ResiliencePipeline<Result>` factory for a caller-classified subset of failures; no "retry everything" default. |
+| **[`ResilienceOwner<TOwner>`](./ResilienceOwner.cs)** | Flows an owning `TOwner` instance through a Polly `ResilienceContext` (`PropertyKey`/`GetOwner`) so `CircuitBreakerResiliency<TOwner>`/`RetryResiliency<TOwner>` callbacks can resolve it. |
 
 ## Related Namespaces
 
 - **[`CoreEx`](../README.md)** - `ExecutionContext` is created per hosted service invocation; `HostSettings` is consumed by `DefaultCacheKeyProvider` and event naming.
 - **[`CoreEx.Caching`](../Caching/README.md)** - `IHybridCache` is the backing store for both `HybridCacheWorkProvider` and `HybridCacheSynchronizer`.
 - **[`CoreEx.Invokers`](../Invokers/README.md)** - `HostedServiceInvoker` and `WorkOrchestratorInvoker` use the invoker tracing pipeline to emit OpenTelemetry spans for hosted service and work executions.
+- **[`CoreEx.Azure.Messaging.ServiceBus`](../../CoreEx.Azure.Messaging.ServiceBus/README.md)** - `ServiceBusReceiverResiliency` is now a thin wrapper supplying the service-bus-specific pause-reason/dead-letter-exclusion/retry-classification wiring over `CircuitBreakerResiliency<TOwner>`/`RetryResiliency<TOwner>`.
+- **[`CoreEx.Cosmos`](../../CoreEx.Cosmos/README.md)** - `CosmosDbOutboxRelayResiliency` mirrors the same delegation for the Change Feed Processor-based outbox relay.
