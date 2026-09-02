@@ -156,40 +156,12 @@ public abstract class DatabaseOutboxRelayBase<TDatabase, TSelf> : IDatabaseOutbo
                 using (SuppressInstrumentationScope.Begin(!IsInstrumentationEnabledForPublishing))
                 {
                     await Invoker.InvokeAsync(this, async (tracer, cancellationToken) =>
-                    { 
+                    {
                         if (tracer.Activity is not null)
                         {
                             tracer.Activity.AddTag("outbox.partition", partitionId);
                             tracer.Activity.AddTag("outbox.events.count", events.Count);
-
-                            foreach (var e in events)
-                            {
-                                if (!e.Event.TryGetExtensionAttribute<string>("traceparent", out var traceParent) || string.IsNullOrEmpty(traceParent))
-                                    continue;
-
-                                e.Event.TryGetExtensionAttribute<string>("tracestate", out var traceState);
-                                if (ActivityContext.TryParse(traceParent, traceState, out var ac))
-                                    tracer.Activity.AddLink(new ActivityLink(ac));
-
-                                if (e.Event.TryGetExtensionAttribute<string>("baggage", out var baggageHeader) && !string.IsNullOrEmpty(baggageHeader))
-                                {
-                                    // Parse W3C Baggage format: "key1=value1,key2=value2;property1;property2"
-                                    // Note: OpenTelemetry doesn't expose a public baggage parser, so we implement per W3C spec.
-                                    foreach (var member in baggageHeader.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-                                    {
-                                        // Take only the key-value part (before any optional properties after semicolon).
-                                        var keyValue = member.Split(';', 2)[0].Trim();
-                                        var parts = keyValue.Split('=', 2);
-                                        if (parts.Length == 2 && !string.IsNullOrWhiteSpace(parts[0]))
-                                        {
-                                            // Decode URL-encoded values per W3C Baggage spec.
-                                            var key = Uri.UnescapeDataString(parts[0].Trim());
-                                            var value = Uri.UnescapeDataString(parts[1].Trim());
-                                            tracer.Activity.AddBaggage(key, value);
-                                        }
-                                    }
-                                }
-                            }
+                            tracer.Activity.LinkTraceContext(events.Select(e => e.Event));
                         }
 
                         await EventPublisher.PublishAsync(cancellationToken).ConfigureAwait(false);

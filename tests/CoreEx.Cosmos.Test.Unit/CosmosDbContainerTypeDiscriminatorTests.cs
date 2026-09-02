@@ -9,23 +9,17 @@ public class CosmosDbContainerTypeDiscriminatorTests : CosmosTestBase
 {
     private const string ContainerId = "discriminator-items";
 
-    private static async Task<CosmosDbContainer<AnimalItem>> GetAnimalsAsync()
-    {
-        await GetOrCreateContainerAsync(ContainerId).ConfigureAwait(false);
-        return CreateCosmosDb().Container<AnimalItem>(ContainerId, o => o.WithPartitionKey(m => m.PartitionKey).WithTypeDiscriminatorFilter());
-    }
-
-    private static async Task<CosmosDbContainer<PlantItem>> GetPlantsAsync()
-    {
-        await GetOrCreateContainerAsync(ContainerId).ConfigureAwait(false);
-        return CreateCosmosDb().Container<PlantItem>(ContainerId, o => o.WithPartitionKey(m => m.PartitionKey).WithTypeDiscriminatorFilter());
-    }
-
     [Test]
     public async Task Query_OnlyReturnsMatchingTypeDiscriminator_WhenTypesShareContainerAndPartition()
     {
-        var animals = await GetAnimalsAsync();
-        var plants = await GetPlantsAsync();
+        await GetOrCreateContainerAsync(ContainerId).ConfigureAwait(false);
+
+        // One SHARED CosmosDb instance for both types - matching real usage (one scoped ICosmosDb injected into application code that then asks for Container<TModel>() against the same containerId for more
+        // than one type). Using two separate CosmosDb instances here (as an earlier version of this test did) masks a real bug: CosmosDb/CosmosDbOptions used to cache per-containerId alone, so the second
+        // type sharing a containerId from the SAME instance would throw InvalidCastException trying to cast the first type's cached CosmosDbContainer<TModel>/CosmosDbModelOptions<TModel> to its own.
+        var cosmosDb = CreateCosmosDb();
+        var animals = cosmosDb.Container<AnimalItem>(ContainerId, o => o.WithPartitionKey(m => m.PartitionKey).WithTypeDiscriminatorFilter());
+        var plants = cosmosDb.Container<PlantItem>(ContainerId, o => o.WithPartitionKey(m => m.PartitionKey).WithTypeDiscriminatorFilter());
 
         var sharedPartition = NewId();
 

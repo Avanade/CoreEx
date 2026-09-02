@@ -16,17 +16,23 @@ public static class SqlServerMetrics
     public static Counter<long> OutboxEnqueued { get; } = Meter.CreateCounter<long>("sqlserver.outbox.enqueue", unit: "{message}", description: "Number of SQL Server outbox messages enqueued successfully.");
 
     /// <summary>
-    /// Gets the counter representing the total number of messages (batch) dequeued (relayed) successfully.
+    /// Gets the counter representing the total number of messages (batch) relayed (published) successfully.
     /// </summary>
-    public static Counter<long> OutboxRelayBatchSize { get; } = Meter.CreateCounter<long>("sqlserver.outbox.relay.batch.size", unit: "{message}", description: "Number of SQL Server outbox messages (batch) relayed successfully.");
+    public static Counter<long> OutboxRelayPublished { get; } = Meter.CreateCounter<long>("sqlserver.outbox.relay.publish", unit: "{message}", description: "Number of SQL Server outbox messages (batch) relayed successfully.");
+
+    /// <summary>
+    /// Gets the counter representing the total number of messages (batch) that failed to relay (publish).
+    /// </summary>
+    /// <remarks>Recorded for a batch that fails anywhere between claim and complete (publish failure, or a failure completing/cancelling the batch) - the batch is cancelled and made available for retry.</remarks>
+    public static Counter<long> OutboxRelayPublishFailed { get; } = Meter.CreateCounter<long>("sqlserver.outbox.relay.publish.failed", unit: "{message}", description: "Number of SQL Server outbox messages (batch) that failed to relay.");
 
     /// <summary>
     /// Gets the histogram that tracks the oldest lag duration (now - enqueued time of first message in batch), in milliseconds, of successful SQL Server outbox relay operations; i.e. end-to-end relay lag.
     /// </summary>
-    public static Histogram<double> OutboxRelayOldestLagDuration { get; } = Meter.CreateHistogram<double>("sqlserver.outbox.batch.oldest_lag", unit: "ms", description: "Oldest lag duration (now - enqueued time of first message in batch) of SQL Server outbox relay.");
+    public static Histogram<double> OutboxRelayOldestLagDuration { get; } = Meter.CreateHistogram<double>("sqlserver.outbox.relay.oldest_lag", unit: "ms", description: "Oldest lag duration (now - enqueued time of first message in batch) of SQL Server outbox relay.");
 
     /// <summary>
     /// Gets the histogram that tracks the newest lag duration (now - enqueued time of last message in batch), in milliseconds, of successful SQL Server outbox relay operations; i.e. end-to-end relay lag.
     /// </summary>
-    public static Histogram<double> OutboxRelayNewestLagDuration { get; } = Meter.CreateHistogram<double>("sqlserver.outbox.batch.newest_lag", unit: "ms", description: "Newest lag duration (now - enqueued time of last message in batch) of SQL Server outbox relay.");
+    public static Histogram<double> OutboxRelayNewestLagDuration { get; } = Meter.CreateHistogram<double>("sqlserver.outbox.relay.newest_lag", unit: "ms", description: "Newest lag duration (now - enqueued time of last message in batch) of SQL Server outbox relay.");
 }

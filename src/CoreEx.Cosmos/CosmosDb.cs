@@ -14,7 +14,10 @@ namespace CoreEx.Cosmos;
 public class CosmosDb : ICosmosDb
 {
     private readonly ConcurrentDictionary<string, Container> _containers = new();
-    private readonly ConcurrentDictionary<string, object> _modelContainers = new();
+
+    // Keyed by (containerId, TModel) - see the identical rationale on CosmosDbOptions._models; a container legitimately hosts multiple distinct model types (type-discriminator sharing), so containerId
+    // alone would let the first TModel requested for a given containerId "win" the cache slot, with every other type sharing that containerId throwing InvalidCastException.
+    private readonly ConcurrentDictionary<(string ContainerId, Type ModelType), object> _modelContainers = new();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CosmosDb"/> class.
@@ -69,11 +72,11 @@ public class CosmosDb : ICosmosDb
 
     /// <inheritdoc/>
     public CosmosDbContainer<TModel> Container<TModel>(string containerId, Action<CosmosDbModelOptions<TModel>>? configure = null) where TModel : class, IEntityKey, new()
-        => (CosmosDbContainer<TModel>)_modelContainers.GetOrAdd(containerId.ThrowIfNull(), cid =>
+        => (CosmosDbContainer<TModel>)_modelContainers.GetOrAdd((containerId.ThrowIfNull(), typeof(TModel)), key =>
         {
-            var options = Options.GetOrAddModelOptions<TModel>(cid);
+            var options = Options.GetOrAddModelOptions<TModel>(key.ContainerId);
             configure?.Invoke(options);
-            return new CosmosDbContainer<TModel>(this, GetContainer(cid), options);
+            return new CosmosDbContainer<TModel>(this, GetContainer(key.ContainerId), options);
         });
 
     /// <inheritdoc/>

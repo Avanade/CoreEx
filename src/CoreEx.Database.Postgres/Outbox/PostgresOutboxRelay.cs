@@ -56,8 +56,17 @@ public class PostgresOutboxRelay(PostgresDatabase database, IEventPublisher even
             return;
 
         // Capture metrics; no need to capture each as this would be diminishing returns, as the oldest and newest are the most important.
-        PostgresMetrics.OutboxRelayBatchSize.Add(EventPublisher.Count);
+        PostgresMetrics.OutboxRelayPublished.Add(EventPublisher.Count);
         PostgresMetrics.OutboxRelayOldestLagDuration.Record((DateTimeOffset.UtcNow - (EventPublisher.GetEvents()[0].Event.Time ?? default)).TotalMilliseconds);
         PostgresMetrics.OutboxRelayNewestLagDuration.Record((DateTimeOffset.UtcNow - (EventPublisher.GetEvents()[^1].Event.Time ?? default)).TotalMilliseconds);
+    }
+
+    /// <inheritdoc/>
+    protected async override Task CancelBatchAsync(DatabaseOutboxRelayArgs args, Guid leaseId, CancellationToken cancellationToken)
+    {
+        await base.CancelBatchAsync(args, leaseId, cancellationToken).ConfigureAwait(false);
+
+        if (!EventPublisher.IsEmpty)
+            PostgresMetrics.OutboxRelayPublishFailed.Add(EventPublisher.Count);
     }
 }

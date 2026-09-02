@@ -5,7 +5,10 @@ namespace CoreEx.Cosmos;
 /// </summary>
 public class CosmosDbOptions
 {
-    private readonly ConcurrentDictionary<string, object> _models = new();
+    // Keyed by (containerId, TModel) - not containerId alone - since a container is legitimately shared by multiple distinct model types (see CosmosDbModelOptions<TModel>.WithTypeDiscriminatorFilter);
+    // keying by containerId alone would let the first TModel registered for a given containerId "win" the cache slot for the lifetime of this (typically singleton) instance, with every other type
+    // sharing that containerId throwing InvalidCastException when it tries to cast the cached entry back to its own CosmosDbModelOptions<TModel>.
+    private readonly ConcurrentDictionary<(string ContainerId, Type ModelType), object> _models = new();
 
     /// <summary>
     /// Gets the default <see cref="CosmosDbArgs"/>.
@@ -30,7 +33,7 @@ public class CosmosDbOptions
     /// <param name="containerId">The <see cref="Container"/> identifier.</param>
     /// <returns>The <see cref="CosmosDbModelOptions{TModel}"/>.</returns>
     public CosmosDbModelOptions<TModel> GetOrAddModelOptions<TModel>(string containerId) where TModel : class, IEntityKey, new()
-        => (CosmosDbModelOptions<TModel>)_models.GetOrAdd(containerId.ThrowIfNull(), _ => new CosmosDbModelOptions<TModel>());
+        => (CosmosDbModelOptions<TModel>)_models.GetOrAdd((containerId.ThrowIfNull(), typeof(TModel)), _ => new CosmosDbModelOptions<TModel>());
 
     /// <summary>
     /// Tries to get the <see cref="CosmosDbModelOptions{TModel}"/> for the specified container <paramref name="containerId"/>.
@@ -41,7 +44,7 @@ public class CosmosDbOptions
     /// <returns><see langword="true"/> where the <see cref="CosmosDbModelOptions{TModel}"/> was found; otherwise, <see langword="false"/>.</returns>
     public bool TryGetModelOptions<TModel>(string containerId, [NotNullWhen(true)] out CosmosDbModelOptions<TModel>? modelOptions) where TModel : class, IEntityKey, new()
     {
-        if (_models.TryGetValue(containerId.ThrowIfNull(), out var mo))
+        if (_models.TryGetValue((containerId.ThrowIfNull(), typeof(TModel)), out var mo))
         {
             modelOptions = (CosmosDbModelOptions<TModel>)mo;
             return true;

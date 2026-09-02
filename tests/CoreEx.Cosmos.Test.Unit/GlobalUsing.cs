@@ -1,13 +1,18 @@
 global using CoreEx;
 global using CoreEx.Cosmos;
+global using CoreEx.Cosmos.Outbox;
 global using CoreEx.Data;
 global using CoreEx.Entities;
 global using CoreEx.Events;
 global using CoreEx.Events.Publishing;
+global using CoreEx.Hosting;
 global using CoreEx.Mapping;
 global using CoreEx.Results;
 global using Microsoft.Azure.Cosmos;
 global using Microsoft.Azure.Cosmos.Linq;
 global using Microsoft.Extensions.Configuration;
+global using Microsoft.Extensions.DependencyInjection;
+global using Microsoft.Extensions.Logging;
+global using Microsoft.Extensions.Logging.Abstractions;
 global using System.Net;
 global using PartitionKey = Microsoft.Azure.Cosmos.PartitionKey;

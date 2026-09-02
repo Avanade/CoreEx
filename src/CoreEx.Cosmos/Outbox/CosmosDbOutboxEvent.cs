@@ -1,4 +1,4 @@
-namespace CoreEx.Cosmos;
+namespace CoreEx.Cosmos.Outbox;
 
 /// <summary>
 /// Represents a single transactional-outbox event document, written atomically alongside its paired business mutation by <see cref="CosmosDbEventPublisher"/> and physically co-located in the same

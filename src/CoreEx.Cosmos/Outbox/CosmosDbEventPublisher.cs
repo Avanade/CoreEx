@@ -1,4 +1,4 @@
-namespace CoreEx.Cosmos;
+namespace CoreEx.Cosmos.Outbox;
 
 /// <summary>
 /// Provides the <see href="https://learn.microsoft.com/en-us/azure/cosmos-db/">Azure Cosmos DB</see> <see cref="IEventPublisher"/> to be used as a
