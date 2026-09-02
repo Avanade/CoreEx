@@ -215,9 +215,9 @@ public class ServiceBusReceiverTests : WithGenericTester<EntryPoint>
         // Act and assert.
         Test.ExpectLogContains("Received product with Id: 88 and Sku: SKU-088.")
             .ExpectLogContains("A transient error has occurred; please try again. [Source: ServiceBusSubscribedSubscriber, Handling: Retry]")
-            .ExpectLogContains("Service bus message retry attempt 1 in 333ms.")
-            .ExpectLogContains("Service bus message retry attempt 2 in 666ms.")
-            .ExpectLogContains("Service bus message retry attempt 3 in 1332ms.")
+            .ExpectLogContains("Retry attempt 1 in 333ms.")
+            .ExpectLogContains("Retry attempt 2 in 666ms.")
+            .ExpectLogContains("Retry attempt 3 in 1332ms.")
             .ExpectLogContains("DeadLetterAsync")
             .Run(async () =>
             {
@@ -345,10 +345,10 @@ public class ServiceBusReceiverTests : WithGenericTester<EntryPoint>
                 }
             }).AssertException<TaskCanceledException>();
 
-            circuitBreakerTripped = assertor.LogMessages.Any(x => x?.Contains("Service bus receiver circuit breaker has been tripped for 333ms due to unhandled errors; receiver will be paused.") == true)
-                && assertor.LogMessages.Any(x => x?.Contains("Service bus receiver circuit breaker has been tripped for 666ms due to unhandled errors; receiver will be paused.") == true)
-                && assertor.LogMessages.Any(x => x?.Contains("Service bus receiver circuit breaker has been tripped for 1332ms due to unhandled errors; receiver will be paused.") == true)
-                && assertor.LogMessages.Any(x => x?.Contains("Service bus receiver circuit breaker is attempting to recover in a limited state; receiver has been resumed.") == true);
+            circuitBreakerTripped = assertor.LogMessages.Any(x => x?.Contains("Service bus receiver circuit breaker has been tripped for 333ms due to unhandled errors; will be paused.") == true)
+                && assertor.LogMessages.Any(x => x?.Contains("Service bus receiver circuit breaker has been tripped for 666ms due to unhandled errors; will be paused.") == true)
+                && assertor.LogMessages.Any(x => x?.Contains("Service bus receiver circuit breaker has been tripped for 1332ms due to unhandled errors; will be paused.") == true)
+                && assertor.LogMessages.Any(x => x?.Contains("Service bus receiver circuit breaker is attempting to recover in a limited state; has been resumed.") == true);
         });
 
         return circuitBreakerTripped;
