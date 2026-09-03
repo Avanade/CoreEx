@@ -19,6 +19,7 @@ global using Microsoft.Extensions.Configuration;
 global using Microsoft.Extensions.DependencyInjection;
 global using Microsoft.Extensions.Diagnostics.HealthChecks;
 global using Microsoft.Extensions.Logging;
+global using Microsoft.Extensions.Logging.Abstractions;
 global using Polly;
 global using Polly.CircuitBreaker;
 global using Polly.Retry;
