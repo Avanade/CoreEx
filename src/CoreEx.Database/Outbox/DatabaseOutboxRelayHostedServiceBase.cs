@@ -3,17 +3,35 @@ namespace CoreEx.Database.Outbox;
 /// <summary>
 /// Provides the base <see cref="IDatabaseOutboxRelay.RelayAsync(CoreEx.Database.Outbox.DatabaseOutboxRelayArgs, CancellationToken)"/> execution leveraging a <see cref="TimerHostedServiceBase"/>.
 /// </summary>
-/// <param name="serviceProvider">The <see cref="IServiceProvider"/>.</param>
-/// <param name="logger">The <see cref="ILogger"/>.</param>
-public abstract class DatabaseOutboxRelayHostedServiceBase(IServiceProvider serviceProvider, ILogger logger) : TimerHostedServiceBase(serviceProvider, logger)
+/// <remarks>Each partition's relay attempt is protected by the inherited <see cref="TimerHostedServiceBase.Resiliency"/>, opted into by default here (unlike the general-purpose base, where it is
+/// opt-in) since it is the primary safety net for a sustained relay failure; <see cref="TimerHostedServiceBase.PauseOnUnhandledException"/> is disabled by default accordingly (it remains available,
+/// and overridable back on, purely as a fallback for something unexpected outside the relay call itself).
+/// <para>Applies <see cref="TimerHostedServiceBase.Resiliency"/> itself, per partition (see <see cref="DatabaseOutboxRelayArgs.ResiliencyExecutor"/>), rather than per tick - since a partition
+/// failure is already caught and logged within the tick (see <see cref="DatabaseOutboxRelayBase{TDatabase, TSelf}.RelayAsync(DatabaseOutboxRelayArgs, CancellationToken)"/>) rather than propagating
+/// out of it, the generic per-tick wrap would otherwise almost always observe success regardless of the actual per-partition failure rate, diluting the failure ratio.</para></remarks>
+public abstract class DatabaseOutboxRelayHostedServiceBase : TimerHostedServiceBase
 {
     private PartitionPicker? _partitionPicker;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DatabaseOutboxRelayHostedServiceBase"/> class.
+    /// </summary>
+    /// <param name="serviceProvider">The <see cref="IServiceProvider"/>.</param>
+    /// <param name="logger">The <see cref="ILogger"/>.</param>
+    public DatabaseOutboxRelayHostedServiceBase(IServiceProvider serviceProvider, ILogger logger) : base(serviceProvider, logger)
+    {
+        Resiliency = CreateDefaultResiliency();
+        PauseOnUnhandledException = false;
+    }
+
+    /// <inheritdoc/>
+    protected override bool IsSelfApplyingResiliency => true;
 
     /// <summary>
     /// Gets or sets the batch size.
     /// </summary>
     /// <remarks>Defaults to '<c>25</c>'.</remarks>
-    public int BatchSize { get => field; set => field = SetValueWhenStatusIsInitializedOnly(value); }
+    public int BatchSize { get; set => field = SetValueWhenStatusIsInitializedOnly(value); }
 
     /// <summary>
     /// Gets or sets the lease duration used to lock when claiming a batch.
@@ -31,7 +49,7 @@ public abstract class DatabaseOutboxRelayHostedServiceBase(IServiceProvider serv
     /// Gets or sets the partition size.
     /// </summary>
     /// <remarks>Defaults to <see cref="PartitionKey.DefaultPartitionSize"/>.</remarks>
-    public int PartitionSize { get => field; set => field = SetValueWhenStatusIsInitializedOnly(value); }
+    public int PartitionSize { get; set => field = SetValueWhenStatusIsInitializedOnly(value); }
 
     /// <summary>
     /// Gets or sets the per-worker partition count.

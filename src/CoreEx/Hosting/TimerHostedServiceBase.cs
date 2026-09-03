@@ -30,32 +30,62 @@ public abstract class TimerHostedServiceBase : HostedServiceBase
     /// Gets or sets the <i>first</i> timer start interval. 
     /// </summary>
     /// <remarks>Defaults to <see cref="Interval"/>. This is used as a maximum, in that the actual start is determined using a random value up to this value to ensure staggering of execution where multiple hosts are triggered at the same time.</remarks>
-    public TimeSpan FirstInterval { get => field; set => field = SetValueWhenStatusIsInitializedOnly(value); }
+    public TimeSpan FirstInterval { get; set => field = SetValueWhenStatusIsInitializedOnly(value); }
 
     /// <summary>
     /// Gets or sets the timer interval <see cref="TimeSpan"/>.
     /// </summary>
     /// <remarks>Defaults to 500 milliseconds.</remarks>
-    public TimeSpan Interval { get => field; set => field = SetValueWhenStatusIsInitializedOnly(value); } = TimeSpan.FromMilliseconds(500);
+    public TimeSpan Interval { get; set => field = SetValueWhenStatusIsInitializedOnly(value); } = TimeSpan.FromMilliseconds(500);
 
     /// <summary>
     /// Gets or sets the timer start interval after an unhandled <see cref="Exception"/> that occurs during the execution where <see cref="PauseOnUnhandledException"/> is <see langword="false"/>.
     /// </summary>
     /// <remarks>Defaults to <see cref="Interval"/>.</remarks>
-    public TimeSpan OnUnhandledInterval { get => field; set => field = SetValueWhenStatusIsInitializedOnly(value); }
+    public TimeSpan OnUnhandledInterval { get; set => field = SetValueWhenStatusIsInitializedOnly(value); }
 
     /// <summary>
     /// Indicates whether to automatically halt the service on an unhandled <see cref="Exception"/> that occurs during the execution of the <see cref="OnExecuteAsync(ExecutionContext, CancellationToken)"/> method.
     /// </summary>
     /// <returns><see langword="true"/> indicates that the service should be <see cref="ServiceStatus.Paused"/>; otherwise, <see langword="false"/> indicates to continue executing after the next interval.</returns>
     /// <remarks>Defaults to <see langword="true"/>.</remarks>
-    public bool PauseOnUnhandledException { get => field; set => field = SetValueWhenStatusIsInitializedOnly(value); } = true;
+    public bool PauseOnUnhandledException { get; set => field = SetValueWhenStatusIsInitializedOnly(value); } = true;
+
+    /// <summary>
+    /// Gets or sets the <see cref="ResiliencePipeline{T}"/> used to protect each <see cref="OnExecuteAsync(ExecutionContext, CancellationToken)"/> tick with a self-pausing/self-resuming circuit breaker.
+    /// </summary>
+    /// <remarks>Defaults to <see langword="null"/> - opt-in, so an existing subclass sees no behavior change unless it explicitly sets this. When set, a tick's failure is observed by the pipeline (and,
+    /// on a sustained ratio, pauses this instance via its own already-working <see cref="HostedServiceBase.PauseAsync(CancellationToken)"/>/<see cref="HostedServiceBase.ResumeAsync(CancellationToken)"/> -
+    /// no new state machine is needed) rather than being handled by <see cref="OnUnhandledException(Exception)"/>/<see cref="PauseOnUnhandledException"/>, which remains available purely as a fallback for
+    /// something unexpected outside the wrapped call. See <see cref="CreateDefaultResiliency(int, TimeSpan?, TimeSpan?, TimeSpan?, double)"/> for a convenience factory.</remarks>
+    public ResiliencePipeline<Result>? Resiliency { get; set => field = SetValueWhenStatusIsInitializedOnly(value); }
+
+    /// <summary>
+    /// Indicates whether a subclass applies <see cref="Resiliency"/> itself, at its own granularity, from within <see cref="OnExecuteAsync(ExecutionContext, CancellationToken)"/>.
+    /// </summary>
+    /// <remarks>Defaults to <see langword="false"/> (the generic per-tick wrap applies <see cref="Resiliency"/>, when set). A subclass that applies it at a finer granularity itself (e.g. per work
+    /// item within a tick, rather than per tick) should override this to return <see langword="true"/> - otherwise the same failures would be recorded twice into one pipeline's sliding window
+    /// (once per finer-grained attempt, once for the whole tick), diluting the failure ratio the finer-grained wrapping is meant to observe.</remarks>
+    protected virtual bool IsSelfApplyingResiliency => false;
+
+    /// <summary>
+    /// Creates the default-shaped <see cref="Resiliency"/> pipeline (wired to this instance's own pause/resume), with caller-overridable thresholds.
+    /// </summary>
+    /// <remarks>The <c>owner => owner.Logger</c> wiring can only be written inside this class hierarchy, since <see cref="HostedServiceBase.Logger"/> is protected - this is why the factory lives here
+    /// rather than as an external static class.</remarks>
+    protected static ResiliencePipeline<Result> CreateDefaultResiliency(int minimumThroughput = 5, TimeSpan? samplingDuration = null, TimeSpan? breakDuration = null, TimeSpan? maxBreakDuration = null, double failureRatio = 0.1)
+        => CircuitBreakerResiliency<TimerHostedServiceBase>.Create(
+            "Timer hosted service",
+            owner => owner.Logger,
+            (owner, pause, ct) => owner.PauseAsync(ct),
+            (owner, ct) => owner.ResumeAsync(ct),
+            null, minimumThroughput, samplingDuration, breakDuration, maxBreakDuration, failureRatio);
 
     /// <summary>
     /// Gets or sets the maximum number of consecutive immediate executions (i.e. without an interval) before forcing a sleep interval.
     /// </summary>
     /// <remarks>Defaults to 100. This is a safety mechanism to prevent runaway execution where the <see cref="OnExecuteAsync(ExecutionContext, CancellationToken)"/> method continually returns <see langword="true"/> indicating to execute immediately without an interval.</remarks>
-    public int MaxConsecutiveExecutions { get => field; set => field = SetValueWhenStatusIsInitializedOnly(value.ThrowIfLessThanOrEqualToZero()); } = 100;
+    public int MaxConsecutiveExecutions { get; set => field = SetValueWhenStatusIsInitializedOnly(value.ThrowIfLessThanOrEqualToZero()); } = 100;
 
     /// <summary>
     /// Gets the last execution <see cref="DateTimeOffset"/>.
@@ -233,7 +263,44 @@ public abstract class TimerHostedServiceBase : HostedServiceBase
                     // Execute the work!
                     try
                     {
-                        immediate = await OnExecuteAsync(ec, cancellationToken).ConfigureAwait(false);
+                        if (Resiliency is null || IsSelfApplyingResiliency)
+                        {
+                            immediate = await OnExecuteAsync(ec, cancellationToken).ConfigureAwait(false);
+                        }
+                        else
+                        {
+                            // Where configured, a tick's failure is observed by the resiliency pipeline (and, on a sustained ratio, self-pauses this instance) rather than by OnUnhandledException -
+                            // swallowed here (not passed to ExceptionHandling) so the two mechanisms don't both react to the same failure.
+                            var context = ResilienceContextPool.Shared.Get(cancellationToken);
+                            try
+                            {
+                                context.Properties.Set(ResilienceOwner<TimerHostedServiceBase>.PropertyKey, this);
+
+                                var result = await Resiliency.ExecuteAsync(async rc =>
+                                {
+                                    try
+                                    {
+                                        immediate = await OnExecuteAsync(ec, rc.CancellationToken).ConfigureAwait(false);
+                                        return Result.Success;
+                                    }
+                                    catch (Exception ex) when (!ex.IsCanceled())
+                                    {
+                                        return Result.Fail(ex);
+                                    }
+                                }, context).ConfigureAwait(false);
+
+                                if (result.IsFailure)
+                                {
+                                    immediate = false;
+                                    if (Logger.IsEnabled(LogLevel.Error))
+                                        Logger.LogError(result.Error, "{ServiceName} execution failed (observed by circuit breaker): {Error}", ServiceName, result.Error?.Message);
+                                }
+                            }
+                            finally
+                            {
+                                ResilienceContextPool.Shared.Return(context);
+                            }
+                        }
                     }
                     catch (Exception ex)
                     {

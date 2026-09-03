@@ -108,9 +108,26 @@ public abstract class DatabaseOutboxRelayBase<TDatabase, TSelf> : IDatabaseOutbo
             using var leaseCancellationTokenSource = new CancellationTokenSource(args.LeaseDuration);
             try
             {
-                var relay = await RelayAsync(args, partitionId, leaseCancellationTokenSource.Token).ConfigureAwait(false);
-                if (relay)
+                // The partition attempt is protected by the caller's resiliency pipeline (e.g. a circuit breaker owned by the hosted service).
+                var partitionRelayed = false;
+
+                var result = await args.ResiliencyExecutor(async ct =>
+                {
+                    try
+                    {
+                        partitionRelayed = await RelayAsync(args, partitionId, ct).ConfigureAwait(false);
+                        return Result.Success;
+                    }
+                    catch (Exception ex)
+                    {
+                        return Result.Fail(ex);
+                    }
+                }, leaseCancellationTokenSource.Token).ConfigureAwait(false);
+
+                if (partitionRelayed)
                     relayed = true;
+
+                result.ThrowOnError();
             }
             catch (Exception ex) when (ex.IsCanceled())
             {
@@ -119,6 +136,13 @@ public abstract class DatabaseOutboxRelayBase<TDatabase, TSelf> : IDatabaseOutbo
 
                 // Keep throwing as the cancellation is likely to be due to exceeding the lease duration which is a serious failure that should be surfaced and not treated as a transient exception.
                 throw;
+            }
+            catch (Exception ex)
+            {
+                // A failure for one partition must not prevent other, unrelated partitions from being attempted within the same tick - continue on to the next partition rather than aborting the
+                // whole tick. Where a resiliency pipeline was supplied, it has already observed this failure (and, on a sustained ratio, will have paused the caller for future ticks).
+                if (Logger?.IsEnabled(LogLevel.Error) is true)
+                    Logger.LogError(ex, "The relay operation for partition '{PartitionId}' failed: {Error}", partitionId, ex.Message);
             }
         }
 

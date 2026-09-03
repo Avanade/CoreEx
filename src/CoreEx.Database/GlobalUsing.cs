@@ -20,6 +20,7 @@ global using Microsoft.Extensions.Configuration;
 global using Microsoft.Extensions.Diagnostics.HealthChecks;
 global using Microsoft.Extensions.Logging;
 global using OpenTelemetry;
+global using Polly;
 global using System.Collections;
 global using System.Data;
 global using System.Data.Common;
