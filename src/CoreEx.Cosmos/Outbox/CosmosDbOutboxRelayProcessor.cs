@@ -73,17 +73,12 @@ public class CosmosDbOutboxRelayProcessor(IServiceProvider serviceProvider, stri
             }, cancellationToken).ConfigureAwait(false);
 
             CosmosMetrics.OutboxRelayPublished.Add(outboxDocs.Count, tag);
-
-            // Oldest/newest lag is computed via min/max CloudEvent.Time across the batch rather than by indexing the first/last queued event - unlike SQL Server/Postgres's claim query (which returns rows
-            // pre-ordered by enqueue time), a single Change Feed Processor delivery can span multiple logical partition keys with no guaranteed overall time ordering between them.
-            var times = eventPublisher.GetEvents().Select(de => de.Event.Time ?? default).ToList();
-            var now = DateTimeOffset.UtcNow;
-            CosmosMetrics.OutboxRelayOldestLagDuration.Record((now - times.Min()).TotalMilliseconds);
-            CosmosMetrics.OutboxRelayNewestLagDuration.Record((now - times.Max()).TotalMilliseconds);
+            RecordLagMetrics(eventPublisher);
         }
         catch (Exception ex)
         {
             CosmosMetrics.OutboxRelayPublishFailed.Add(outboxDocs.Count, tag);
+            RecordLagMetrics(eventPublisher);
             if (Logger.IsEnabled(LogLevel.Error))
                 Logger.LogError(ex, "Failed to publish {Count} outbox event(s) for container '{ContainerId}': {Error}", outboxDocs.Count, ContainerId, ex.Message);
 
@@ -96,6 +91,21 @@ public class CosmosDbOutboxRelayProcessor(IServiceProvider serviceProvider, stri
 
         var container = cosmosDb.Container<CosmosDbOutboxEvent>(ContainerId);
         await Task.WhenAll(outboxDocs.Select(d => DeleteOneAsync(container, d, tag, cancellationToken))).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Records the oldest/newest relay lag for the current batch, on both a successful and a failed publish attempt - so the histogram keeps reporting (and growing) for as long as a batch keeps
+    /// failing, rather than going silent, which is a far more useful signal to alert on than an absent metric.
+    /// </summary>
+    /// <remarks>Computed via min/max <see cref="CloudNative.CloudEvents.CloudEvent.Time"/> across the batch rather than by indexing the first/last queued event - unlike SQL Server/Postgres's claim
+    /// query (which returns rows pre-ordered by enqueue time), a single Change Feed Processor delivery can span multiple logical partition keys with no guaranteed overall time ordering between
+    /// them.</remarks>
+    private static void RecordLagMetrics(IEventPublisher eventPublisher)
+    {
+        var times = eventPublisher.GetEvents().Select(de => de.Event.Time ?? default).ToList();
+        var now = DateTimeOffset.UtcNow;
+        CosmosMetrics.OutboxRelayOldestLagDuration.Record((now - times.Min()).TotalMilliseconds);
+        CosmosMetrics.OutboxRelayNewestLagDuration.Record((now - times.Max()).TotalMilliseconds);
     }
 
     /// <summary>

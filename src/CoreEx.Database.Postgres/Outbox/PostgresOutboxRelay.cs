@@ -55,10 +55,8 @@ public class PostgresOutboxRelay(PostgresDatabase database, IEventPublisher even
         if (EventPublisher.IsEmpty)
             return;
 
-        // Capture metrics; no need to capture each as this would be diminishing returns, as the oldest and newest are the most important.
         PostgresMetrics.OutboxRelayPublished.Add(EventPublisher.Count);
-        PostgresMetrics.OutboxRelayOldestLagDuration.Record((DateTimeOffset.UtcNow - (EventPublisher.GetEvents()[0].Event.Time ?? default)).TotalMilliseconds);
-        PostgresMetrics.OutboxRelayNewestLagDuration.Record((DateTimeOffset.UtcNow - (EventPublisher.GetEvents()[^1].Event.Time ?? default)).TotalMilliseconds);
+        RecordLagMetrics();
     }
 
     /// <inheritdoc/>
@@ -66,7 +64,22 @@ public class PostgresOutboxRelay(PostgresDatabase database, IEventPublisher even
     {
         await base.CancelBatchAsync(args, leaseId, cancellationToken).ConfigureAwait(false);
 
-        if (!EventPublisher.IsEmpty)
-            PostgresMetrics.OutboxRelayPublishFailed.Add(EventPublisher.Count);
+        if (EventPublisher.IsEmpty)
+            return;
+
+        PostgresMetrics.OutboxRelayPublishFailed.Add(EventPublisher.Count);
+        RecordLagMetrics();
+    }
+
+    /// <summary>
+    /// Records the oldest/newest relay lag for the current batch, on both a successful and a failed publish attempt - so the histogram keeps reporting (and growing) for as long as a batch keeps
+    /// failing, rather than going silent, which is a far more useful signal to alert on than an absent metric.
+    /// </summary>
+    /// <remarks>Indexes the first/last queued event rather than computing min/max - unlike Cosmos DB's Change Feed Processor (which can span multiple logical partition keys with no guaranteed
+    /// overall time ordering), the claim query returns rows pre-ordered by enqueue time.</remarks>
+    private void RecordLagMetrics()
+    {
+        PostgresMetrics.OutboxRelayOldestLagDuration.Record((DateTimeOffset.UtcNow - (EventPublisher.GetEvents()[0].Event.Time ?? default)).TotalMilliseconds);
+        PostgresMetrics.OutboxRelayNewestLagDuration.Record((DateTimeOffset.UtcNow - (EventPublisher.GetEvents()[^1].Event.Time ?? default)).TotalMilliseconds);
     }
 }

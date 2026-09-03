@@ -33,15 +33,18 @@ public static class CosmosMetrics
     public static Counter<long> OutboxRelayPublishFailed { get; } = Meter.CreateCounter<long>("cosmos.outbox.relay.publish.failed", unit: "{message}", description: "Number of Cosmos DB outbox event documents that failed to publish to their destination.");
 
     /// <summary>
-    /// Gets the histogram that tracks the oldest lag duration (now - <c>CloudEvent.Time</c> of the oldest event in the batch), in milliseconds, of successful Cosmos DB outbox relay operations; i.e.
+    /// Gets the histogram that tracks the oldest lag duration (now - <c>CloudEvent.Time</c> of the oldest event in the batch), in milliseconds, of a Cosmos DB outbox relay batch attempt; i.e.
     /// end-to-end relay lag.
     /// </summary>
+    /// <remarks>Recorded on both a successful and a failed publish attempt, so this keeps climbing (rather than going silent) for as long as a batch keeps failing - a container whose relay is
+    /// stuck behind a persistently-failing item is visible as an ever-increasing oldest lag, not an absent metric.</remarks>
     public static Histogram<double> OutboxRelayOldestLagDuration { get; } = Meter.CreateHistogram<double>("cosmos.outbox.relay.oldest_lag", unit: "ms", description: "Oldest lag duration (now - enqueued time of oldest event in batch) of Cosmos DB outbox relay.");
 
     /// <summary>
-    /// Gets the histogram that tracks the newest lag duration (now - <c>CloudEvent.Time</c> of the newest event in the batch), in milliseconds, of successful Cosmos DB outbox relay operations; i.e.
+    /// Gets the histogram that tracks the newest lag duration (now - <c>CloudEvent.Time</c> of the newest event in the batch), in milliseconds, of a Cosmos DB outbox relay batch attempt; i.e.
     /// end-to-end relay lag.
     /// </summary>
+    /// <remarks>Recorded on both a successful and a failed publish attempt; see <see cref="OutboxRelayOldestLagDuration"/>.</remarks>
     public static Histogram<double> OutboxRelayNewestLagDuration { get; } = Meter.CreateHistogram<double>("cosmos.outbox.relay.newest_lag", unit: "ms", description: "Newest lag duration (now - enqueued time of newest event in batch) of Cosmos DB outbox relay.");
 
     /// <summary>

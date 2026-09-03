@@ -73,6 +73,47 @@ public class CosmosDbOutboxRelayTests : CosmosTestBase
     }
 
     [Test]
+    public async Task ProcessBatchAsync_PublishFailure_StillRecordsLagMetrics()
+    {
+        await GetOrCreateContainerAsync(ContainerId).ConfigureAwait(false);
+        var cosmosDb = CreateCosmosDb();
+        var container = cosmosDb.Container<TestItem>(ContainerId, o => o.WithPartitionKey(m => m.PartitionKey));
+        var outbox = new CosmosDbEventPublisher(cosmosDb);
+        var unitOfWork = new CosmosDbUnitOfWork(cosmosDb, outbox);
+
+        var pk = NewId();
+        await unitOfWork.TransactionAsync(async ct =>
+        {
+            var created = await container.CreateAsync(new TestItem { Id = NewId(), PartitionKey = pk, Name = "Widget" }, ct).ConfigureAwait(false);
+            unitOfWork.Events.Add(EventData.CreateEventWith(created.Value, EventAction.Created).WithSource(new Uri("https://unittest/coreex-cosmos", UriKind.Absolute)).WithPartitionKey(pk));
+        });
+
+        var rawContainer = cosmosDb.GetContainer(ContainerId);
+        var outboxDocs = await QueryOutboxDocsAsync(rawContainer, pk);
+        outboxDocs.Should().ContainSingle();
+
+        var testPublisher = new TestEventPublisher { ThrowOnPublish = true };
+        using var sp = CreateServiceProvider(testPublisher);
+        var processor = new CosmosDbOutboxRelayProcessor(sp, ContainerId, NullLogger<CosmosDbOutboxRelayProcessor>.Instance);
+
+        var oldestLagRecorded = false;
+        using var meterListener = new System.Diagnostics.Metrics.MeterListener();
+        meterListener.InstrumentPublished = (instrument, listener) =>
+        {
+            if (instrument.Meter.Name == CosmosMetrics.Meter.Name && instrument.Name == "cosmos.outbox.relay.oldest_lag")
+                listener.EnableMeasurementEvents(instrument);
+        };
+        meterListener.SetMeasurementEventCallback<double>((_, _, _, _) => oldestLagRecorded = true);
+        meterListener.Start();
+
+        // A failed publish must still propagate (feeds the circuit breaker/Change Feed's own redelivery) - but the lag metric must be recorded regardless, so a stuck relay shows up as growing
+        // lag rather than an absent metric.
+        Assert.ThrowsAsync<InvalidOperationException>(async () => await processor.ProcessBatchAsync(outboxDocs, CancellationToken.None));
+
+        oldestLagRecorded.Should().BeTrue();
+    }
+
+    [Test]
     public async Task ProcessBatchAsync_NonOutboxDocument_IsIgnored()
     {
         var testPublisher = new TestEventPublisher();

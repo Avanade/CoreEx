@@ -42,6 +42,10 @@ builder.Services
 builder.AddPostgresOutboxRelayHostedService();  // called on builder, not builder.Services
 ```
 
+Poison-message/dead-letter handling is **not yet implemented** - a permanently-failing row is cancelled and rescheduled with backoff forever, with no built-in give-up. The claim query claims a *strictly contiguous* run starting from the oldest pending row for a given tenant/partition, stopping at the first still-leased-or-unavailable row - a permanently-failing row therefore stays the oldest pending row forever and blocks every row after it in the same partition from ever being claimed, indefinitely, not just delayed.
+
+**Detecting a stuck partition:** `postgres.outbox.enqueue` continuing to climb while `postgres.outbox.relay.publish` stays flat for the same partition is the signal. `postgres.outbox.relay.oldest_lag`/`newest_lag` are recorded on both a successful and a failed publish attempt, so they keep climbing (rather than going silent) for as long as a batch keeps failing - alert on a sustained rise in `postgres.outbox.relay.oldest_lag`, not just on `postgres.outbox.relay.publish.failed`, since a low failure count can still mean one partition has been stuck for a long time.
+
 ## OpenTelemetry
 
 ```csharp

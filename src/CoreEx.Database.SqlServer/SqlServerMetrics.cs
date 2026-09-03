@@ -27,12 +27,15 @@ public static class SqlServerMetrics
     public static Counter<long> OutboxRelayPublishFailed { get; } = Meter.CreateCounter<long>("sqlserver.outbox.relay.publish.failed", unit: "{message}", description: "Number of SQL Server outbox messages (batch) that failed to relay.");
 
     /// <summary>
-    /// Gets the histogram that tracks the oldest lag duration (now - enqueued time of first message in batch), in milliseconds, of successful SQL Server outbox relay operations; i.e. end-to-end relay lag.
+    /// Gets the histogram that tracks the oldest lag duration (now - enqueued time of first message in batch), in milliseconds, of a SQL Server outbox relay batch attempt; i.e. end-to-end relay lag.
     /// </summary>
+    /// <remarks>Recorded on both a successful and a failed publish attempt, so this keeps climbing (rather than going silent) for as long as a batch keeps failing - a stuck relay is visible as an
+    /// ever-increasing oldest lag, not an absent metric.</remarks>
     public static Histogram<double> OutboxRelayOldestLagDuration { get; } = Meter.CreateHistogram<double>("sqlserver.outbox.relay.oldest_lag", unit: "ms", description: "Oldest lag duration (now - enqueued time of first message in batch) of SQL Server outbox relay.");
 
     /// <summary>
-    /// Gets the histogram that tracks the newest lag duration (now - enqueued time of last message in batch), in milliseconds, of successful SQL Server outbox relay operations; i.e. end-to-end relay lag.
+    /// Gets the histogram that tracks the newest lag duration (now - enqueued time of last message in batch), in milliseconds, of a SQL Server outbox relay batch attempt; i.e. end-to-end relay lag.
     /// </summary>
+    /// <remarks>Recorded on both a successful and a failed publish attempt; see <see cref="OutboxRelayOldestLagDuration"/>.</remarks>
     public static Histogram<double> OutboxRelayNewestLagDuration { get; } = Meter.CreateHistogram<double>("sqlserver.outbox.relay.newest_lag", unit: "ms", description: "Newest lag duration (now - enqueued time of last message in batch) of SQL Server outbox relay.");
 }
