@@ -73,7 +73,10 @@ public abstract class DatabaseOutboxRelayHostedServiceBase : TimerHostedServiceB
         LeaseDuration = Internal.GetConfigurationValueWithFallback<TimeSpan>($"CoreEx:Host:Services:{ServiceConfigurationSectionName}:OutboxRelay:LeaseDuration", "CoreEx:Host:Services:OutboxRelay:LeaseDuration", TimeSpan.FromMinutes(5), Configuration);
         BackOffDuration = Internal.GetConfigurationValueWithFallback<TimeSpan>($"CoreEx:Host:Services:{ServiceConfigurationSectionName}:OutboxRelay:BackOffDuration", "CoreEx:Host:Services:OutboxRelay:BackOffDuration", TimeSpan.FromSeconds(5), Configuration);
         PartitionSize = Internal.GetConfigurationValueWithFallback<int>($"CoreEx:Host:Services:{ServiceConfigurationSectionName}:OutboxRelay:PartitionSize", "CoreEx:Host:Services:OutboxRelay:PartitionSize", PartitionKey.DefaultPartitionSize, Configuration);
-        PerWorkerPartitionCount = Internal.GetConfigurationValueWithFallback<int>($"CoreEx:Host:Services:{ServiceConfigurationSectionName}:OutboxRelay:PerWorkerPartitionCount", "CoreEx:Host:Services:OutboxRelay:PerWorkerPartitionCount", 6, Configuration);
+
+        // Default capped at PartitionSize (whatever it resolved to above, default or configured) - PartitionPicker requires perWorkerPartitionCount <= partitionSize; an unconditional literal default
+        // here would silently throw at startup whenever it exceeds the resolved PartitionSize (e.g. the out-of-the-box defaults: PartitionSize=4 but a literal 6 here).
+        PerWorkerPartitionCount = Internal.GetConfigurationValueWithFallback<int>($"CoreEx:Host:Services:{ServiceConfigurationSectionName}:OutboxRelay:PerWorkerPartitionCount", "CoreEx:Host:Services:OutboxRelay:PerWorkerPartitionCount", Math.Min(6, PartitionSize), Configuration);
 
         _partitionPicker = new PartitionPicker(PartitionSize, PerWorkerPartitionCount);
 

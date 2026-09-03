@@ -29,13 +29,32 @@ public class DatabaseOutboxRelayHostedServiceBaseTests
     }
 
     [Test]
+    public async Task DefaultSettings_DoNotThrowOnStart()
+    {
+        // Regression: PartitionSize (default 4) and PerWorkerPartitionCount (previously an unconditional literal 6) used to be mutually incompatible out of the box - PartitionPicker's constructor
+        // throws when perWorkerPartitionCount > partitionSize, so starting with zero configuration overrides threw at startup. PerWorkerPartitionCount's default is now capped at whatever
+        // PartitionSize resolves to.
+        var sc = new ServiceCollection();
+        sc.AddSingleton<IConfiguration>(new ConfigurationBuilder().Build());
+        sc.AddExecutionContext();
+        using var sp = sc.BuildServiceProvider();
+
+        var svc = new TestOutboxRelayHostedService(sp, NullLogger.Instance)
+        {
+            RelayFactory = _ => new TestOutboxRelay(CreateDatabase(), new NoOpEventPublisher(), new TestRelayState { ThrowAlways = false })
+        };
+
+        Assert.DoesNotThrowAsync(async () => await svc.StartAsync(CancellationToken.None));
+        await svc.StopAsync(CancellationToken.None);
+    }
+
+    [Test]
     public async Task Relay_CircuitBreaker_TripsOnSustainedFailure_ThenSelfRecovers()
     {
         var state = new TestRelayState();
         var sc = new ServiceCollection();
 
-        // PartitionSize (default 4) / PerWorkerPartitionCount (default 6) are mutually incompatible out of the box (PartitionPicker requires perWorkerPartitionCount <= partitionSize) - a
-        // pre-existing configuration-defaults issue unrelated to this test, worked around here by supplying compatible values explicitly.
+        // Explicit single-partition config here for deterministic per-partition test timing - not needed to avoid the (now-fixed) incompatible-defaults bug, see DefaultSettings_DoNotThrowOnStart.
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(
             [
