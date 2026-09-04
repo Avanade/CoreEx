@@ -82,7 +82,7 @@ public class MapTests
         dest.TenantId.Should().Be("tenant");
         dest.IsDeleted.Should().BeTrue();
         dest.TypeDiscriminator.Should().Be("type");
-        dest.PartitionKey.Should().Be("pk");
+        dest.PartitionKey.Should().BeNull("PartitionKey is layer/purpose-specific and must never be auto-copied by MapStandardInto");
         dest.CreatedBy.Should().Be("cb");
         dest.CreatedOn.Should().Be(src.CreatedOn);
         dest.UpdatedBy.Should().Be("ub");
@@ -114,7 +114,7 @@ public class MapTests
         dest.TenantId.Should().Be("tenant");
         dest.IsDeleted.Should().BeTrue();
         dest.TypeDiscriminator.Should().Be("type");
-        dest.PartitionKey.Should().Be("pk");
+        dest.PartitionKey.Should().BeNull("PartitionKey is layer/purpose-specific and must never be auto-copied by MapStandardInto");
         dest.ChangeLog.Should().NotBeNull();
         dest.ChangeLog.CreatedBy.Should().Be("cb");
         dest.ChangeLog.CreatedOn.Should().Be(src.CreatedOn);
