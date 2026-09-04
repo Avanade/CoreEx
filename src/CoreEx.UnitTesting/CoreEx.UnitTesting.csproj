@@ -3,19 +3,23 @@
     <Title>CoreEx .NET Unit Testing extensions.</Title>
     <Description>Core .NET extensions and abstractions for the testing of backend services.</Description>
     <PackageTags>coreex microservices domain-based event-driven railway-oriented reference-data unit-testing integration-testing intra-domain inter-domain mocking mstest xunit nunit unittestex json-data</PackageTags>
+    <!-- Microsoft.Azure.Cosmos's default serializer is Newtonsoft.Json-based unless the caller configures UseSystemTextJsonSerializerWithOptions (as test setup, e.g. CosmosTestBase, already does) -
+         this project has no need for Newtonsoft.Json itself, so the check is disabled rather than adding an otherwise-unused package reference. -->
+    <AzureCosmosDisableNewtonsoftJsonCheck>true</AzureCosmosDisableNewtonsoftJsonCheck>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="DbEx.Postgres" />
     <PackageReference Include="DbEx.SqlServer" />
     <PackageReference Include="AwesomeAssertions" />
+    <PackageReference Include="Microsoft.Azure.Cosmos" />
     <PackageReference Include="UnitTestEx" />
-    <PackageReference Include="YamlDotNet" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\CoreEx.Azure.Messaging.ServiceBus\CoreEx.Azure.Messaging.ServiceBus.csproj" />
     <ProjectReference Include="..\CoreEx.Caching.FusionCache\CoreEx.Caching.FusionCache.csproj" />
+    <ProjectReference Include="..\CoreEx.Data\CoreEx.Data.csproj" />
     <ProjectReference Include="..\CoreEx.Database.Postgres\CoreEx.Database.Postgres.csproj" />
     <ProjectReference Include="..\CoreEx.Database.SqlServer\CoreEx.Database.SqlServer.csproj" />
     <ProjectReference Include="..\CoreEx.Events\CoreEx.Events.csproj" />

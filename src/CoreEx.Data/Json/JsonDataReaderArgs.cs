@@ -1,4 +1,4 @@
-namespace CoreEx.UnitTesting.Data;
+namespace CoreEx.Data.Json;
 
 /// <summary>
 /// Provides the runtime arguments for the <see cref="JsonDataReader"/>.

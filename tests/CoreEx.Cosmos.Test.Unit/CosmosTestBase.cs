@@ -10,7 +10,7 @@ public abstract class CosmosTestBase
 {
     private static readonly Lazy<IConfigurationRoot> _configuration = new(() => new ConfigurationBuilder().AddJsonFile("appsettings.unittest.json").Build());
     private static CosmosClient? _client;
-    private static Database? _database;
+    private static Microsoft.Azure.Cosmos.Database? _database;
     private static bool? _isAvailable;
 
     /// <summary>
@@ -28,7 +28,7 @@ public abstract class CosmosTestBase
     /// <summary>
     /// Gets the test <see cref="Database"/> (created on first use).
     /// </summary>
-    protected static Database TestDatabase => _database ?? throw new InvalidOperationException($"{nameof(TestDatabase)} is not available; ensure {nameof(EnsureAvailableOrIgnoreAsync)} has been awaited first.");
+    protected static Microsoft.Azure.Cosmos.Database TestDatabase => _database ?? throw new InvalidOperationException($"{nameof(TestDatabase)} is not available; ensure {nameof(EnsureAvailableOrIgnoreAsync)} has been awaited first.");
 
     private static string Endpoint => _configuration.Value["CosmosEmulator:Endpoint"] ?? "https://localhost:8081";
 

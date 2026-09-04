@@ -85,6 +85,6 @@
     <!--#if implement-postgres-->
     <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.2" />
     <!--#endif-->
-    <PackageVersion Include="UnitTestEx.NUnit" Version="5.11.0" />
+    <PackageVersion Include="UnitTestEx.NUnit" Version="5.11.1" />
   </ItemGroup>
 </Project>

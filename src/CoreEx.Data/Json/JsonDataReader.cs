@@ -1,4 +1,4 @@
-namespace CoreEx.UnitTesting.Data;
+namespace CoreEx.Data.Json;
 
 /// <summary>
 /// Provides a hierarchical mutating reader for JSON or YAML data with dynamic property substitution support using the venerable <see cref="JsonNode"/>.

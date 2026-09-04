@@ -1,4 +1,4 @@
-namespace CoreEx.UnitTesting.Data;
+namespace CoreEx.Data.Json;
 
 /// <summary>
 /// Provides options for the <see cref="JsonDataReader"/>.
@@ -76,6 +76,7 @@ public class JsonDataReaderOptions
     /// <summary>
     /// Adds standard properties to the root <see cref="JsonObject"/> where not already present.
     /// </summary>
+    /// <param name="includeTenantId">Indicates whether to include the '<c>TenantId</c>' property.</param>
     /// <returns>The <see cref="JsonDataReaderOptions"/> to support fluent-style method-chaining.</returns>
     /// <remarks>The following standard properties (converted based on the <see cref="NamingConvention"/>) are included:
     /// <list type="bullet">
@@ -84,11 +85,13 @@ public class JsonDataReaderOptions
     /// <item><description>'<c>TenantId</c>' - Set to '<c>^tenant_id</c>'.</description></item>
     /// </list>
     /// </remarks>
-    public JsonDataReaderOptions AddStandardProperties()
+    public JsonDataReaderOptions AddStandardProperties(bool includeTenantId = false)
     {
         Properties.TryAdd(ConvertPropertyName(nameof(ChangeLog.CreatedOn)), "^now");
         Properties.TryAdd(ConvertPropertyName(nameof(ChangeLog.CreatedBy)), "^user_name");
-        Properties.TryAdd(ConvertPropertyName(nameof(TenantId)), "^tenant_id");
+        if (includeTenantId)
+            Properties.TryAdd(ConvertPropertyName(nameof(TenantId)), "^tenant_id");
+
         return this;
     }
 
@@ -97,6 +100,7 @@ public class JsonDataReaderOptions
     /// </summary>
     /// <param name="namingConvention">The JSON property naming convention used by the <see cref="JsonDataReader"/>; defaults to <see cref="JsonPropertyNamingConvention.PascalCase"/>.</param>
     /// <param name="idGenerator">An optional function to generate the <see cref="RefData.Abstractions.IReferenceData"/> <see cref="IIdentifier.Id"/>.</param>
+    /// <param name="includeTenantId">Indicates whether to include the '<c>TenantId</c>' property.</param>
     /// <returns>The <see cref="JsonDataReaderOptions"/>.</returns>
     /// <remarks>This method will configure the <see cref="RootNodePreProcessor"/> to convert a single key/value pair into '<c>code</c>' and '<c>text</c>' properties by convention.
     /// <para>The following additional <see cref="Properties"/> are included in addition to the <see cref="AddStandardProperties"/>:
@@ -106,9 +110,9 @@ public class JsonDataReaderOptions
     /// <item><description>'<c>sortOrder</c>' - Uses the current array index where the <see cref="JsonDataReaderArgs.CurrentNode"/> is an element within a <see cref="JsonArray"/>; otherwise, zero.</description></item>
     /// </list>
     /// </para></remarks>
-    public static JsonDataReaderOptions CreateForReferenceData(JsonPropertyNamingConvention namingConvention = JsonPropertyNamingConvention.PascalCase, Func<object?>? idGenerator = null)
+    public static JsonDataReaderOptions CreateForReferenceData(JsonPropertyNamingConvention namingConvention = JsonPropertyNamingConvention.PascalCase, Func<object?>? idGenerator = null, bool includeTenantId = false)
     {
-        var o = new JsonDataReaderOptions(namingConvention).AddStandardProperties();
+        var o = new JsonDataReaderOptions(namingConvention).AddStandardProperties(includeTenantId);
         o.Properties.TryAdd(o.ConvertPropertyName(nameof(RefData.Abstractions.IReferenceData.Id)), idGenerator is null ? "^id" : "^__idGenerator");
         o.Properties.TryAdd(o.ConvertPropertyName(nameof(RefData.Abstractions.IReferenceData.IsActive)), true);
         o.Properties.TryAdd(o.ConvertPropertyName(nameof(RefData.Abstractions.IReferenceData.SortOrder)), "^index");

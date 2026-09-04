@@ -1,4 +1,4 @@
-namespace CoreEx.UnitTesting.Data;
+namespace CoreEx.Data.Json;
 
 /// <summary>
 /// Defines the JSON property naming convention used by the <see cref="JsonDataReader"/> when reading/deserializing JSON data.

@@ -1,0 +1,4 @@
+seed-read-items:
+  - { id: seed-1, partitionKey: seed-pk, name: Item-01 }
+  - { id: seed-2, partitionKey: seed-pk, name: Item-02 }
+  - { id: seed-3, partitionKey: seed-pk, name: Item-03 }
