@@ -5,7 +5,7 @@ namespace CoreEx.Cosmos;
 /// </summary>
 public class CosmosDbOptions
 {
-    // Keyed by (containerId, TModel) - not containerId alone - since a container is legitimately shared by multiple distinct model types (see CosmosDbModelOptions<TModel>.WithTypeDiscriminatorFilter);
+    // Keyed by (containerId, TModel) - not containerId alone - since a container is legitimately shared by multiple distinct model types (see CosmosDbModelOptions<TModel>.WithTypeDiscriminator);
     // keying by containerId alone would let the first TModel registered for a given containerId "win" the cache slot for the lifetime of this (typically singleton) instance, with every other type
     // sharing that containerId throwing InvalidCastException when it tries to cast the cached entry back to its own CosmosDbModelOptions<TModel>.
     private readonly ConcurrentDictionary<(string ContainerId, Type ModelType), object> _models = new();

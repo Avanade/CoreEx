@@ -64,7 +64,7 @@ public class EntityConfig : ConfigBase<CodeGenConfig, CodeGenConfig>
     /// Gets or sets the repository implementation.
     /// </summary>
     [JsonPropertyName("repository")]
-    [CodeGenProperty("Repository", Title = "The repository implementation.", IsImportant = true, Options = ["None", "EntityFramework"], Description = "Defaults to root `{Repository}`.")]
+    [CodeGenProperty("Repository", Title = "The repository implementation.", IsImportant = true, Options = ["None", "EntityFramework", "Cosmos"], Description = "Defaults to root `{Repository}`.")]
     public string? Repository { get; set; }
 
     /// <summary>
@@ -80,6 +80,20 @@ public class EntityConfig : ConfigBase<CodeGenConfig, CodeGenConfig>
     [JsonPropertyName("model")]
     [CodeGenProperty("Repository", Title = "The corresponding repository model name.", IsImportant = true, Description = "Defaults to `{Name}` (assumes same).")]
     public string? Model { get; set; }
+
+    /// <summary>
+    /// Gets or sets the pluralized entity name.
+    /// </summary>
+    [JsonPropertyName("modelPlural")]
+    [CodeGenProperty("Repository", Title = "The pluralized reference-data model (persistence) name.", IsImportant = true, Description = "Defaults to `{Model}` with the last word pluralized.")]
+    public string? ModelPlural { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the Cosmos persistence model should also be generated.
+    /// </summary>
+    [JsonPropertyName("cosmosPersistenceModel")]
+    [CodeGenProperty("Repository", Title = "Indicates whether the Cosmos persistence model should also be generated.", Description = "Defaults to root `{CosmosPersistenceModel}`.")]
+    public bool? CosmosPersistenceModel { get; set; }
 
     #endregion
 
@@ -158,11 +172,24 @@ public class EntityConfig : ConfigBase<CodeGenConfig, CodeGenConfig>
             return string.Concat(words);
         });
 
+        ModelPlural = DefaultWhereNull(ModelPlural, () =>
+        {
+            // Best guess by pluralizing the last word of the name.
+            var words = OnRamp.Utility.StringConverter.ToSentenceCase(Model!)!.Split(' ').ToList();
+            words[^1] = OnRamp.Utility.StringConverter.ToPlural(words[^1]);
+            return string.Concat(words);
+        });
+
         RepositoryName = DefaultWhereNull(RepositoryName, () => Repository switch
         {
             "EntityFramework" => Root!.EntityFrameworkRepositoryName,
+            "Cosmos" => Root!.CosmosRepositoryName,
             _ => "??"
         });
+
+        CosmosPersistenceModel = DefaultWhereNull(CosmosPersistenceModel, () => Root!.CosmosPersistenceModel);
+        if (CosmosPersistenceModel == true && Repository != "Cosmos") // If the repository is not Cosmos, then we cannot generate the persistence model.
+            CosmosPersistenceModel = false;
 
         Route = DefaultWhereNull(Route, () => Root!.RouteConvention switch
         {

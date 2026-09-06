@@ -47,11 +47,11 @@ public class OrderRepository(ICosmosDb cosmosDb)
 ## Multi-type containers (type discriminator)
 
 ```csharp
-cosmosDb.Container<RefDataTypeA>("refdata", o => o.WithTypeDiscriminatorFilter());
-cosmosDb.Container<RefDataTypeB>("refdata", o => o.WithTypeDiscriminatorFilter());
+cosmosDb.Container<RefDataTypeA>("refdata", o => o.WithTypeDiscriminator());
+cosmosDb.Container<RefDataTypeB>("refdata", o => o.WithTypeDiscriminator());
 ```
 
-`TModel` implements `ITypeDiscriminator` directly (a flat document property, auto-stamped by `Model.PrepareCreate`/`PrepareUpdate` from `SchemaAttribute.Name`); `WithTypeDiscriminatorFilter()` adds a query-time `Where` filter so several business model types can safely share one container/partition — no envelope/wrapper type is used.
+`TModel` implements `ITypeDiscriminator` directly (a flat document property, auto-stamped by `Model.PrepareCreate`/`PrepareUpdate` from `SchemaAttribute.Name`); `WithTypeDiscriminator()` adds a query-time `Where` filter so several business model types can safely share one container/partition — no envelope/wrapper type is used.
 
 ## Time-to-live
 

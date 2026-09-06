@@ -15,6 +15,15 @@
     <Project Path="samples/aspire/Contoso.Aspire/Contoso.Aspire.csproj" />
     <Project Path="samples/tests/Contoso.E2E.Runner/Contoso.E2E.Runner.csproj" />
   </Folder>
+  <Folder Name="/samples/Customers/" />
+  <Folder Name="/samples/Customers/src/">
+    <Project Path="samples/src/Contoso.Customers.Application/Contoso.Customers.Application.csproj" />
+    <Project Path="samples/src/Contoso.Customers.Contracts/Contoso.Customers.Contracts.csproj" />
+    <Project Path="samples/src/Contoso.Customers.Infrastructure/Contoso.Customers.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/samples/Customers/tools/">
+    <Project Path="samples/src/Contoso.Customers.CodeGen/Contoso.Customers.CodeGen.csproj" />
+  </Folder>
   <Folder Name="/samples/docs/">
     <File Path="samples/docs/application-layer.md" />
     <File Path="samples/docs/aspire.md" />

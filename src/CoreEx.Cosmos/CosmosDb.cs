@@ -24,16 +24,16 @@ public class CosmosDb : ICosmosDb
     /// </summary>
     /// <param name="client">The <see cref="CosmosClient"/>.</param>
     /// <param name="databaseId">The <see cref="Microsoft.Azure.Cosmos.Database"/> identifier.</param>
-    /// <param name="invoker">The optional <see cref="CosmosDbInvoker"/>.</param>
     /// <param name="options">The optional <see cref="CosmosDbOptions"/> (typically a singleton service or statically declared).</param>
+    /// <param name="invoker">The optional <see cref="CosmosDbInvoker"/>.</param>
     /// <param name="executionContext">The optional <see cref="ExecutionContext"/>.</param>
     /// <param name="logger">The optional <see cref="ILogger"/>.</param>
-    public CosmosDb(CosmosClient client, string databaseId, CosmosDbInvoker? invoker = null, CosmosDbOptions? options = null, ExecutionContext? executionContext = null, ILogger<CosmosDb>? logger = null)
+    public CosmosDb(CosmosClient client, string databaseId, CosmosDbOptions? options = null, CosmosDbInvoker? invoker = null, ExecutionContext? executionContext = null, ILogger<CosmosDb>? logger = null)
     {
         Client = client.ThrowIfNull();
         Database = Client.GetDatabase(databaseId.ThrowIfNull());
-        Invoker = invoker ?? CosmosDbInvoker.Default;
         Options = options ?? new CosmosDbOptions();
+        Invoker = invoker ?? CosmosDbInvoker.Default;
         ExecutionContext = executionContext ?? ExecutionContext.Current;
         Logger = logger;
     }

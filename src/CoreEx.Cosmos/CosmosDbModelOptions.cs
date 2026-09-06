@@ -258,7 +258,7 @@ public class CosmosDbModelOptions<TModel> where TModel : class, IEntityKey, new(
     /// <param name="nonQueryResult">The optional <see cref="Result"/> to return for non-query operations when the filter excludes.</param>
     /// <param name="allowFilterBypass">Indicates whether the filter can be bypassed via <see cref="CosmosDbArgs.BypassFilters"/>; defaults to <see langword="false"/>.</param>
     /// <returns>The <see cref="CosmosDbModelOptions{TModel}"/> to support fluent-style method-chaining.</returns>
-    /// <remarks>This is the additive extension point for filters that are not one of the built-in <see cref="WithTenantFilter"/>/<see cref="WithLogicalDeleteFilter"/>/<see cref="WithTypeDiscriminatorFilter(string?)"/>
+    /// <remarks>This is the additive extension point for filters that are not one of the built-in <see cref="WithTenantFilter"/>/<see cref="WithLogicalDeleteFilter"/>/<see cref="WithTypeDiscriminator(string?)"/>
     /// concerns — for example, an authorization-related filter that restricts which documents a given caller may see or mutate. The <paramref name="nonQueryResult"/> enables a different result to be returned for
     /// non-query operations when the filter excludes; for example, a <see cref="Result.AuthenticationError"/> could be returned for an authorization filter. Where a <paramref name="nonQueryResult"/> is <i>not</i>
     /// specified then the specified <paramref name="filter"/> is only applied for queries (see <see cref="ApplyFilters"/>) and has no effect on non-query operations (see <see cref="CheckFilters"/>).
@@ -350,10 +350,10 @@ public class CosmosDbModelOptions<TModel> where TModel : class, IEntityKey, new(
     /// <param name="typeDiscriminator">The type discriminator value to filter on; defaults to the <see cref="Schemas.SchemaAttribute.Name"/> where specified, otherwise the <typeparamref name="TModel"/> name
     /// (i.e. the same default resolution used by <c>Model.PrepareTypeDiscriminator</c> when stamping a model prior to create/update).</param>
     /// <returns>The <see cref="CosmosDbModelOptions{TModel}"/> to support fluent-style method-chaining.</returns>
-    public CosmosDbModelOptions<TModel> WithTypeDiscriminatorFilter(string? typeDiscriminator = null)
+    public CosmosDbModelOptions<TModel> WithTypeDiscriminator(string? typeDiscriminator = null)
     {
         if (!TypeDiscriminatorSupport.IsSupported)
-            throw new NotSupportedException($"{nameof(WithTypeDiscriminatorFilter)} is not supported; model must implement {nameof(IReadOnlyTypeDiscriminator)} to enable.");
+            throw new NotSupportedException($"{nameof(WithTypeDiscriminator)} is not supported; model must implement {nameof(IReadOnlyTypeDiscriminator)} to enable.");
 
         _typeDiscriminatorValue = string.IsNullOrEmpty(typeDiscriminator)
             ? (Schema.TryGetMetadata<TModel>(out var metadata) ? metadata.Name : typeof(TModel).Name)
@@ -364,7 +364,7 @@ public class CosmosDbModelOptions<TModel> where TModel : class, IEntityKey, new(
     }
 
     /// <summary>
-    /// Applies the configured query-only filters (<see cref="WithTenantFilter"/>, <see cref="WithLogicalDeleteFilter"/>, <see cref="WithTypeDiscriminatorFilter(string?)"/> and any additive
+    /// Applies the configured query-only filters (<see cref="WithTenantFilter"/>, <see cref="WithLogicalDeleteFilter"/>, <see cref="WithTypeDiscriminator(string?)"/> and any additive
     /// <see cref="WithFilter"/> registrations), plus an automatic outbox-document exclusion predicate, to the <paramref name="query"/>.
     /// </summary>
     /// <param name="args">The <see cref="CosmosDbArgs"/>; used only to check <see cref="CosmosDbArgs.BypassFilters"/> against any bypassable <see cref="WithFilter"/> registrations.</param>
@@ -378,7 +378,7 @@ public class CosmosDbModelOptions<TModel> where TModel : class, IEntityKey, new(
     /// <see cref="CosmosDbUnitOfWork"/>. This is intentional and safe unconditionally: no legitimate business key would ever start with <see cref="CosmosDbOutboxEvent.OutboxKeyPrefix"/>, so the predicate
     /// can never wrongly exclude real business data, and a business developer is never required to add or even be aware of any interface/discriminator solely to accommodate this — unlike an earlier design
     /// considered and rejected, which would have reused <see cref="ITypeDiscriminator"/> for this purpose (conflating a genuine business-modeling decision with an unrelated infrastructure concern).
-    /// <para>Uses the same cast-to-interface-in-a-LINQ-predicate shape already used above for <see cref="WithTenantFilter"/>/<see cref="WithLogicalDeleteFilter"/>/<see cref="WithTypeDiscriminatorFilter(string?)"/>,
+    /// <para>Uses the same cast-to-interface-in-a-LINQ-predicate shape already used above for <see cref="WithTenantFilter"/>/<see cref="WithLogicalDeleteFilter"/>/<see cref="WithTypeDiscriminator(string?)"/>,
     /// not a new or unproven LINQ pattern.</para></remarks>
     public IQueryable<TModel> ApplyFilters(CosmosDbArgs args, IQueryable<TModel> query, ExecutionContext executionContext)
     {

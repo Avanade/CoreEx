@@ -137,7 +137,7 @@ public class CosmosDbUnitOfWorkTests : CosmosTestBase
             unitOfWork.Events.Add(EventData.CreateEventWith(created.Value, EventAction.Created).WithSource(new Uri("https://unittest/coreex-cosmos", UriKind.Absolute)));
         });
 
-        // An ordinary business query against the SAME container/partition that now also holds an outbox event document - no WithFilter/WithTypeDiscriminatorFilter configured by this test at all.
+        // An ordinary business query against the SAME container/partition that now also holds an outbox event document - no WithFilter/WithTypeDiscriminator configured by this test at all.
         var items = await container.Query(q => q.Where(m => m.PartitionKey == pk)).ToListAsync();
 
         items.Should().ContainSingle();

@@ -3,7 +3,7 @@ namespace CoreEx.Cosmos.Test.Unit;
 /// <summary>
 /// A simple single-partition test model (partition key equals <see cref="Id"/>) used for basic CRUD/concurrency/not-found tests.
 /// </summary>
-public class TestItem : CosmosDbItemBase, IEntityKey
+public class TestItem : CosmosDbModelBase, IEntityKey
 {
     public string Name { get; set; } = string.Empty;
 
@@ -13,7 +13,7 @@ public class TestItem : CosmosDbItemBase, IEntityKey
 /// <summary>
 /// A test model implementing <see cref="ILogicallyDeleted"/> used for logical-delete tests.
 /// </summary>
-public class SoftDeleteItem : CosmosDbItemBase, IEntityKey, ILogicallyDeleted
+public class SoftDeleteItem : CosmosDbModelBase, IEntityKey, ILogicallyDeleted
 {
     public string Name { get; set; } = string.Empty;
 
@@ -25,7 +25,7 @@ public class SoftDeleteItem : CosmosDbItemBase, IEntityKey, ILogicallyDeleted
 /// <summary>
 /// A test model implementing <see cref="ITenantId"/> used for tenant-isolation tests.
 /// </summary>
-public class TenantItem : CosmosDbItemBase, IEntityKey, ITenantId
+public class TenantItem : CosmosDbModelBase, IEntityKey, ITenantId
 {
     public string Name { get; set; } = string.Empty;
 
@@ -40,7 +40,7 @@ public class TenantItem : CosmosDbItemBase, IEntityKey, ITenantId
 /// <remarks>Decorated with an explicit <see cref="Schemas.SchemaAttribute"/> so <c>Model.PrepareCreate</c> stamps a specific, readable <see cref="TypeDiscriminator"/> value - without it, <c>Model.PrepareTypeDiscriminator</c>
 /// would still stamp a value (falling back to the type name itself, per <see cref="IReadOnlyTypeDiscriminator.TypeDiscriminator"/>'s doc remarks), just the less descriptive <see cref="AnimalItem"/> default.</remarks>
 [Schemas.Schema(Name = nameof(AnimalItem))]
-public class AnimalItem : CosmosDbItemBase, IEntityKey, ITypeDiscriminator
+public class AnimalItem : CosmosDbModelBase, IEntityKey, ITypeDiscriminator
 {
     public string Name { get; set; } = string.Empty;
 
@@ -53,7 +53,7 @@ public class AnimalItem : CosmosDbItemBase, IEntityKey, ITypeDiscriminator
 /// A test model implementing <see cref="ITypeDiscriminator"/> ("plant") used, alongside <see cref="AnimalItem"/>, for multi-type container tests.
 /// </summary>
 [Schemas.Schema(Name = nameof(PlantItem))]
-public class PlantItem : CosmosDbItemBase, IEntityKey, ITypeDiscriminator
+public class PlantItem : CosmosDbModelBase, IEntityKey, ITypeDiscriminator
 {
     public string Name { get; set; } = string.Empty;
 
@@ -63,7 +63,7 @@ public class PlantItem : CosmosDbItemBase, IEntityKey, ITypeDiscriminator
 }
 
 /// <summary>
-/// A test model implementing the standard interfaces directly (not via <see cref="CosmosDbItemBase"/>) and deliberately omitting <see cref="ITimeToLive"/>, used to test the
+/// A test model implementing the standard interfaces directly (not via <see cref="CosmosDbModelBase"/>) and deliberately omitting <see cref="ITimeToLive"/>, used to test the
 /// <see cref="CosmosDbModelOptions{TModel}.WithTimeToLive"/> guard.
 /// </summary>
 public class NoTimeToLiveItem : IEntityKey, IIdentifier<string>, IETag, IPartitionKey

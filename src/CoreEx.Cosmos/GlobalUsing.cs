@@ -4,6 +4,7 @@ global using CoreEx.Cosmos;
 global using CoreEx.Cosmos.Extended;
 global using CoreEx.Cosmos.Outbox;
 global using CoreEx.Data;
+global using CoreEx.Data.Models;
 global using CoreEx.Entities;
 global using CoreEx.Entities.Abstractions;
 global using CoreEx.Events;

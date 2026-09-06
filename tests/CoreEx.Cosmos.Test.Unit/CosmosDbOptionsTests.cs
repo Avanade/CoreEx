@@ -2,7 +2,7 @@ namespace CoreEx.Cosmos.Test.Unit;
 
 /// <summary>
 /// Verifies <see cref="CosmosDbOptions"/> caches <see cref="CosmosDbModelOptions{TModel}"/> per <c>(containerId, TModel)</c> pair, not per <paramref name="containerId"/> alone - a container is legitimately
-/// shared by multiple distinct model types (see <see cref="CosmosDbModelOptions{TModel}.WithTypeDiscriminatorFilter(string?)"/>), so keying by <c>containerId</c> alone would let the first <c>TModel</c>
+/// shared by multiple distinct model types (see <see cref="CosmosDbModelOptions{TModel}.WithTypeDiscriminator(string?)"/>), so keying by <c>containerId</c> alone would let the first <c>TModel</c>
 /// registered for a given <c>containerId</c> "win" the cache slot - for the lifetime of this (typically singleton) instance - with every other type sharing that <c>containerId</c> throwing
 /// <see cref="InvalidCastException"/> when it tries to cast the cached entry back to its own <see cref="CosmosDbModelOptions{TModel}"/>.
 /// </summary>

@@ -2,7 +2,7 @@ namespace CoreEx.Cosmos.Test.Unit;
 
 /// <summary>
 /// Verifies that two distinct business model types (<see cref="AnimalItem"/> and <see cref="PlantItem"/>) can safely share the same container/partition using
-/// <see cref="CosmosDbModelOptions{TModel}.WithTypeDiscriminatorFilter(string?)"/> - no envelope/wrapper type required.
+/// <see cref="CosmosDbModelOptions{TModel}.WithTypeDiscriminator(string?)"/> - no envelope/wrapper type required.
 /// </summary>
 [TestFixture]
 public class CosmosDbContainerTypeDiscriminatorTests : CosmosTestBase
@@ -18,8 +18,8 @@ public class CosmosDbContainerTypeDiscriminatorTests : CosmosTestBase
         // than one type). Using two separate CosmosDb instances here (as an earlier version of this test did) masks a real bug: CosmosDb/CosmosDbOptions used to cache per-containerId alone, so the second
         // type sharing a containerId from the SAME instance would throw InvalidCastException trying to cast the first type's cached CosmosDbContainer<TModel>/CosmosDbModelOptions<TModel> to its own.
         var cosmosDb = CreateCosmosDb();
-        var animals = cosmosDb.Container<AnimalItem>(ContainerId, o => o.WithPartitionKey(m => m.PartitionKey).WithTypeDiscriminatorFilter());
-        var plants = cosmosDb.Container<PlantItem>(ContainerId, o => o.WithPartitionKey(m => m.PartitionKey).WithTypeDiscriminatorFilter());
+        var animals = cosmosDb.Container<AnimalItem>(ContainerId, o => o.WithPartitionKey(m => m.PartitionKey).WithTypeDiscriminator());
+        var plants = cosmosDb.Container<PlantItem>(ContainerId, o => o.WithPartitionKey(m => m.PartitionKey).WithTypeDiscriminator());
 
         var sharedPartition = NewId();
 

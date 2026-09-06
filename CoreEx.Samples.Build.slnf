@@ -3,6 +3,10 @@
     "path": "CoreEx.slnx",
     "projects": [
       "samples/aspire/Contoso.Aspire/Contoso.Aspire.csproj",
+      "samples/src/Contoso.Customers.Application/Contoso.Customers.Application.csproj",
+      "samples/src/Contoso.Customers.CodeGen/Contoso.Customers.CodeGen.csproj",
+      "samples/src/Contoso.Customers.Contracts/Contoso.Customers.Contracts.csproj",
+      "samples/src/Contoso.Customers.Infrastructure/Contoso.Customers.Infrastructure.csproj",
       "samples/src/Contoso.Order.Workflow.Client/Contoso.Order.Workflow.Client.csproj",
       "samples/src/Contoso.Order.Workflow.Worker/Contoso.Order.Workflow.Worker.csproj",
       "samples/src/Contoso.Order.Workflow.Workflow/Contoso.Order.Workflow.Workflow.csproj",
