@@ -16,10 +16,18 @@
     <Project Path="samples/tests/Contoso.E2E.Runner/Contoso.E2E.Runner.csproj" />
   </Folder>
   <Folder Name="/samples/Customers/" />
+  <Folder Name="/samples/Customers/hosts/">
+    <Project Path="samples/src/Contoso.Customers.Api/Contoso.Customers.Api.csproj" />
+  </Folder>
   <Folder Name="/samples/Customers/src/">
     <Project Path="samples/src/Contoso.Customers.Application/Contoso.Customers.Application.csproj" />
     <Project Path="samples/src/Contoso.Customers.Contracts/Contoso.Customers.Contracts.csproj" />
     <Project Path="samples/src/Contoso.Customers.Infrastructure/Contoso.Customers.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/samples/Customers/tests/">
+    <Project Path="samples/tests/Contoso.Customers.Test.Api/Contoso.Customers.Test.Api.csproj" />
+    <Project Path="samples/tests/Contoso.Customers.Test.Common/Contoso.Customers.Test.Common.csproj" />
+    <Project Path="samples/tests/Contoso.Customers.Test.Unit/Contoso.Customers.Test.Unit.csproj" />
   </Folder>
   <Folder Name="/samples/Customers/tools/">
     <Project Path="samples/src/Contoso.Customers.CodeGen/Contoso.Customers.CodeGen.csproj" />

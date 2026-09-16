@@ -1,0 +1,14 @@
+global using Contoso.Customers.Contracts;
+global using CoreEx;
+global using CoreEx.Http.Abstractions;
+global using CoreEx.UnitTesting.Cosmos;
+global using AwesomeAssertions;
+global using Microsoft.Azure.Cosmos;
+global using Microsoft.Extensions.Configuration;
+global using NUnit.Framework;
+global using System.Net;
+global using System.Net.Http;
+global using System.Text.Json;
+global using UnitTestEx;
+global using UnitTestEx.Expectations;
+global using TestData = Contoso.Customers.Test.Common.TestData;

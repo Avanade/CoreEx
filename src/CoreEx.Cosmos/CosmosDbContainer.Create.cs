@@ -60,7 +60,7 @@ public partial class CosmosDbContainer<TModel>
                 return r.Bind();
 
             var partitionKeyValue = Options.GetPartitionKeyValue(model);
-            var partitionKey = new PartitionKey(partitionKeyValue);
+            var partitionKey = CosmosDbModelOptions<TModel>.ToPartitionKey(partitionKeyValue);
 
             // Where an ambient CosmosDbUnitOfWork transaction is active, enlist (queue) rather than execute immediately - see CosmosDbUnitOfWork for the full deferred-execution/atomicity model. The model's
             // ETag is not yet final at this point (the batch has not executed) - see IUnitOfWork.SynchronizeETag for how a caller resolves the true, persisted ETag once the unit-of-work has committed.

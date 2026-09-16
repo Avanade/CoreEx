@@ -95,10 +95,28 @@ public class CosmosDbModelOptionsPartitionKeyTests
     }
 
     [Test]
-    public void GetPartitionKey_Explicit_NullAndNoFixedConfigured_Throws()
+    public void GetPartitionKey_Explicit_NullAndNoFixedConfigured_ReturnsNone()
     {
         var options = new CosmosDbModelOptions<TestItem>();
 
-        Assert.Throws<InvalidOperationException>(() => options.GetPartitionKey((PartitionKey?)null));
+        options.GetPartitionKey((PartitionKey?)null).Should().Be(PartitionKey.None);
+    }
+
+    [Test]
+    public void GetPartitionKey_Model_NoOverrideConfigured_ModelValueEmpty_ReturnsNone()
+    {
+        var options = new CosmosDbModelOptions<TestItem>();
+        var model = new TestItem { Id = "id1", Name = "X" }; // PartitionKey left null.
+
+        options.GetPartitionKey(model).Should().Be(PartitionKey.None);
+    }
+
+    [Test]
+    public void GetPartitionKey_Model_NoOverrideConfigured_NoModelSupport_ReturnsNone()
+    {
+        var options = new CosmosDbModelOptions<NoPartitionKeyItem>();
+        var model = new NoPartitionKeyItem { Id = "id1", Name = "X" };
+
+        options.GetPartitionKey(model).Should().Be(PartitionKey.None);
     }
 }

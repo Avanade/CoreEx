@@ -7,7 +7,7 @@ public partial class CosmosDbContainer<TModel>
     /// </summary>
     /// <param name="key">The <see cref="CompositeKey"/>.</param>
     /// <param name="partitionKey">The <see cref="Microsoft.Azure.Cosmos.PartitionKey"/>; where not specified, falls back to <see cref="CosmosDbModelOptions{TModel}.WithFixedPartitionKey"/>'s configured value
-    /// (see <see cref="CosmosDbModelOptions{TModel}.GetPartitionKey(PartitionKey?)"/>), throwing <see cref="InvalidOperationException"/> if neither is available.</param>
+    /// (see <see cref="CosmosDbModelOptions{TModel}.GetPartitionKey(PartitionKey?)"/>), otherwise <see cref="Microsoft.Azure.Cosmos.PartitionKey.None"/>.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
     /// <returns>A <see cref="DataResult"/>.</returns>
     /// <remarks>A delete is considered idempotent (a <c>404</c> is not treated as an error) unless logical delete is active (see <see cref="CosmosDbModelOptions{TModel}.LogicalDeleteSupport"/>), in which case a
@@ -29,7 +29,7 @@ public partial class CosmosDbContainer<TModel>
     /// <param name="args">The <see cref="CosmosDbArgs"/>.</param>
     /// <param name="key">The <see cref="CompositeKey"/>.</param>
     /// <param name="partitionKey">The <see cref="Microsoft.Azure.Cosmos.PartitionKey"/>; where not specified, falls back to <see cref="CosmosDbModelOptions{TModel}.WithFixedPartitionKey"/>'s configured value
-    /// (see <see cref="CosmosDbModelOptions{TModel}.GetPartitionKey(PartitionKey?)"/>), throwing <see cref="InvalidOperationException"/> if neither is available.</param>
+    /// (see <see cref="CosmosDbModelOptions{TModel}.GetPartitionKey(PartitionKey?)"/>), otherwise <see cref="Microsoft.Azure.Cosmos.PartitionKey.None"/>.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
     /// <returns>A <see cref="DataResult"/>.</returns>
     public async Task<DataResult> DeleteAsync(CosmosDbArgs args, CompositeKey key, PartitionKey? partitionKey = null, CancellationToken cancellationToken = default) => (await DeleteWithResultInternalAsync(args, key, Options.GetPartitionKey(partitionKey), nameof(DeleteAsync), cancellationToken).ConfigureAwait(false)).ThrowOnError();
@@ -39,7 +39,7 @@ public partial class CosmosDbContainer<TModel>
     /// </summary>
     /// <param name="key">The <see cref="CompositeKey"/>.</param>
     /// <param name="partitionKey">The <see cref="Microsoft.Azure.Cosmos.PartitionKey"/>; where not specified, falls back to <see cref="CosmosDbModelOptions{TModel}.WithFixedPartitionKey"/>'s configured value
-    /// (see <see cref="CosmosDbModelOptions{TModel}.GetPartitionKey(PartitionKey?)"/>), throwing <see cref="InvalidOperationException"/> if neither is available.</param>
+    /// (see <see cref="CosmosDbModelOptions{TModel}.GetPartitionKey(PartitionKey?)"/>), otherwise <see cref="Microsoft.Azure.Cosmos.PartitionKey.None"/>.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
     /// <returns>A <see cref="DataResult"/>.</returns>
     public Task<Result<DataResult>> DeleteWithResultAsync(CompositeKey key, PartitionKey? partitionKey = null, CancellationToken cancellationToken = default) => DeleteWithResultAsync(Args, key, partitionKey, cancellationToken);
@@ -50,7 +50,7 @@ public partial class CosmosDbContainer<TModel>
     /// <param name="args">The <see cref="CosmosDbArgs"/>.</param>
     /// <param name="key">The <see cref="CompositeKey"/>.</param>
     /// <param name="partitionKey">The <see cref="Microsoft.Azure.Cosmos.PartitionKey"/>; where not specified, falls back to <see cref="CosmosDbModelOptions{TModel}.WithFixedPartitionKey"/>'s configured value
-    /// (see <see cref="CosmosDbModelOptions{TModel}.GetPartitionKey(PartitionKey?)"/>), throwing <see cref="InvalidOperationException"/> if neither is available.</param>
+    /// (see <see cref="CosmosDbModelOptions{TModel}.GetPartitionKey(PartitionKey?)"/>), otherwise <see cref="Microsoft.Azure.Cosmos.PartitionKey.None"/>.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
     /// <returns>A <see cref="DataResult"/>.</returns>
     public Task<Result<DataResult>> DeleteWithResultAsync(CosmosDbArgs args, CompositeKey key, PartitionKey? partitionKey = null, CancellationToken cancellationToken = default) => DeleteWithResultInternalAsync(args, key, Options.GetPartitionKey(partitionKey), nameof(DeleteWithResultAsync), cancellationToken);

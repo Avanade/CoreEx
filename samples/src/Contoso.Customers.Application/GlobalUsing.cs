@@ -1,5 +1,7 @@
 global using Contoso.Customers.Application;
+global using Contoso.Customers.Application.Interfaces;
 global using Contoso.Customers.Application.Repositories;
+global using Contoso.Customers.Application.Validators;
 global using Contoso.Customers.Contracts;
 global using CoreEx;
 global using CoreEx.Data;

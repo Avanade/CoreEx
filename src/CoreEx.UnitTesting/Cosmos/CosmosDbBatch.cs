@@ -83,4 +83,61 @@ public static class CosmosDbBatch
             await ImportBatchAsync(database.GetContainer(containerId), jsonDataReader, containerId, sequential, cancellationToken).ConfigureAwait(false);
         }
     }
+
+    /// <summary>
+    /// Imports (creates) every top-level container's discriminated data found in the <paramref name="jsonDataReader"/>'s root object, treating each top-level property name as a
+    /// <see cref="Container.Id"/> within <paramref name="database"/>, and each of its child property names as an <see cref="ITypeDiscriminator.TypeDiscriminator"/> value.
+    /// </summary>
+    /// <param name="database">The <see cref="Database"/>.</param>
+    /// <param name="jsonDataReader">The <see cref="JsonDataReader"/>.</param>
+    /// <param name="sequential">Indicates whether the items are created sequentially rather than in parallel; defaults to <see langword="false"/>.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+    /// <remarks>A one-line whole-file convenience for a fixture shaped as <c>ContainerA: [{ Person: [...] }, { Organization: [...] }], ContainerB: [...]</c> - each top-level key names a
+    /// container, and its array value contains objects whose keys each name an <see cref="ITypeDiscriminator"/> value, with the corresponding array being the list of documents to import
+    /// into that container, stamped with the corresponding <see cref="ITypeDiscriminator.TypeDiscriminator"/>.
+    /// <para>Each item is created individually and is not transactional - a partial failure part-way through leaves the already-created items in place.</para></remarks>
+    public static async Task ImportDiscriminatedBatchAsync(this Microsoft.Azure.Cosmos.Database database, JsonDataReader jsonDataReader, bool sequential = false, CancellationToken cancellationToken = default)
+    {
+        database.ThrowIfNull();
+        jsonDataReader.ThrowIfNull();
+
+        // RootNode is the raw, unsubstituted tree - only used here to discover the top-level container-id keys (and their child type-discriminator keys). Each is then re-resolved via
+        // TryCreateData so dynamic parameters (e.g. '^guid', '^1') are substituted the same way the explicit-path overload already does - walking RootNode's children directly would skip
+        // substitution entirely.
+        if (jsonDataReader.RootNode is not JsonObject root)
+            return;
+
+        var typeDiscriminatorProperty = jsonDataReader.Options.ConvertPropertyName(nameof(ITypeDiscriminator.TypeDiscriminator))!;
+
+        try
+        {
+            foreach (var containerId in root.Select(kvp => kvp.Key).ToList())
+            {
+                if (root[containerId] is not JsonArray containerArray)
+                    continue;
+
+                var container = database.GetContainer(containerId);
+
+                // Only single-key objects (see also RootNodePreProcessor's identical convention for the '{ code: text }' shorthand) are treated as '$^TypeName'-style discriminator group markers - any
+                // other shape found in the same array (e.g. a flat, already-fully-formed document) is ignored here rather than silently misread as a bogus discriminator.
+                var discriminators = containerArray.OfType<JsonObject>().Where(jo => jo.Count == 1).SelectMany(jo => jo.Select(kvp => kvp.Key)).Distinct().ToList();
+
+                foreach (var discriminator in discriminators)
+                {
+                    // The discriminator key may be prefixed with '$' and/or '^' to signify additional behaviors as a JSON property name; strip these before use as the actual property value in the resulting document.
+                    jsonDataReader.Options.Properties[typeDiscriminatorProperty] = discriminator.TrimStart('$', '^');
+
+                    if (!jsonDataReader.TryCreateData($"{containerId}.{discriminator}", out var node) || node is not JsonArray array)
+                        continue;
+
+                    await ImportBatchAsync(container, array, sequential, cancellationToken).ConfigureAwait(false);
+                }
+            }
+        }
+        finally
+        {
+            // Options is caller-owned and may outlive this call (e.g. reused for further, unrelated seeding) - never leave the last-processed discriminator behind as a leaked default.
+            jsonDataReader.Options.Properties.Remove(typeDiscriminatorProperty);
+        }
+    }
 }

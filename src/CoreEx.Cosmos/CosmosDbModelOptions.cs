@@ -113,8 +113,10 @@ public class CosmosDbModelOptions<TModel> where TModel : class, IEntityKey, new(
     /// </summary>
     /// <param name="getPartitionKey">The function to get the partition key value.</param>
     /// <returns>The <see cref="CosmosDbModelOptions{TModel}"/> to support fluent-style method-chaining.</returns>
-    /// <remarks>Where not specified, and the <typeparamref name="TModel"/> implements <see cref="IReadOnlyPartitionKey"/> (see <see cref="PartitionKeySupport"/>), the <see cref="IReadOnlyPartitionKey.PartitionKey"/> is used
-    /// by default; otherwise, an <see cref="InvalidOperationException"/> will be thrown when required (i.e. for a <b>Create</b> or <b>Update</b> operation).
+    /// <remarks>Where not specified, and the <typeparamref name="TModel"/> implements <see cref="IReadOnlyPartitionKey"/> (see <see cref="PartitionKeySupport"/>) with a non-empty value, the
+    /// <see cref="IReadOnlyPartitionKey.PartitionKey"/> is used by default; otherwise (no override configured, and either the <typeparamref name="TModel"/> does not support it at all, or its value is
+    /// empty), <see cref="Microsoft.Azure.Cosmos.PartitionKey.None"/> is used for a <b>Create</b>/<b>Update</b> - the simplest possible container shape (a single default logical partition, no per-item
+    /// partitioning at all) requires zero configuration and no <see cref="IPartitionKey"/>/<see cref="IReadOnlyPartitionKey"/> implementation on the model whatsoever.
     /// <para>Only single-level (v1) Cosmos DB partition keys are supported; hierarchical (multi-level) partition keys are not currently supported.</para>
     /// <para>Because <paramref name="getPartitionKey"/> is invoked per <typeparamref name="TModel"/> instance, it can only ever apply to <b>Create</b>/<b>Update</b> (where a model instance exists) — it
     /// provides no default for <b>Get</b>/<b>Delete</b>'s point-operation <c>partitionKey</c> parameter (see <see cref="GetPartitionKey(PartitionKey?)"/>); use <see cref="WithFixedPartitionKey"/> if a
@@ -162,7 +164,8 @@ public class CosmosDbModelOptions<TModel> where TModel : class, IEntityKey, new(
     /// Gets the <see cref="Microsoft.Azure.Cosmos.PartitionKey"/> for the specified <paramref name="model"/>.
     /// </summary>
     /// <param name="model">The model.</param>
-    /// <returns>The <see cref="Microsoft.Azure.Cosmos.PartitionKey"/>.</returns>
+    /// <returns>The <see cref="Microsoft.Azure.Cosmos.PartitionKey"/> - <see cref="Microsoft.Azure.Cosmos.PartitionKey.None"/> where nothing is configured and the model itself has no (or an empty)
+    /// partition key value.</returns>
     /// <remarks><see cref="WithPartitionKey"/>'s function or <see cref="WithFixedPartitionKey"/>'s value (at most one of these can be configured — they are mutually exclusive) always wins over the
     /// <paramref name="model"/>'s own <see cref="IReadOnlyPartitionKey.PartitionKey"/>. Where the model also implements <see cref="IReadOnlyPartitionKey"/> with a non-null value that differs from the
     /// configured result, this throws <see cref="InvalidOperationException"/> rather than silently overriding it — unlike a multi-tenant "wrong tenant" lookup (which is expected, routine behaviour), there
@@ -170,17 +173,18 @@ public class CosmosDbModelOptions<TModel> where TModel : class, IEntityKey, new(
     /// <para>Where an override is configured and <typeparamref name="TModel"/> implements the <i>mutable</i> <see cref="IPartitionKey"/>, the resolved value is also written back onto the
     /// <paramref name="model"/> — Cosmos DB requires the document body's value at the partition-key path to agree with the value supplied for the operation itself, so this write-back is required for a
     /// <b>Create</b>/<b>Update</b> using a configured override to succeed at all, not merely a convenience.</para></remarks>
-    public PartitionKey GetPartitionKey(TModel model) => new(GetPartitionKeyValue(model));
+    public PartitionKey GetPartitionKey(TModel model) => ToPartitionKey(GetPartitionKeyValue(model));
 
     /// <summary>
     /// Gets the raw partition key <see cref="string"/> value for the specified <paramref name="model"/> (see <see cref="GetPartitionKey(TModel)"/>).
     /// </summary>
     /// <param name="model">The model.</param>
-    /// <returns>The raw partition key <see cref="string"/> value.</returns>
+    /// <returns>The raw partition key <see cref="string"/> value; <see langword="null"/> where nothing is configured and the model itself has no (or an empty) partition key value (translates to
+    /// <see cref="Microsoft.Azure.Cosmos.PartitionKey.None"/> - see <see cref="GetPartitionKey(TModel)"/>/<see cref="ToPartitionKey(string?)"/>).</returns>
     /// <remarks>Exists (in addition to <see cref="GetPartitionKey(TModel)"/>) because the Cosmos DB SDK's <see cref="Microsoft.Azure.Cosmos.PartitionKey"/> struct exposes no public way to extract its own
     /// value back out once constructed — a <see cref="CosmosDbUnitOfWork"/>-paired outbox-event write (see <see cref="CosmosDbEventPublisher"/>) needs the raw value to co-locate itself in the same
     /// partition, so it is resolved and tracked once here rather than re-derived unreliably later.</remarks>
-    internal string GetPartitionKeyValue(TModel model)
+    internal string? GetPartitionKeyValue(TModel model)
     {
         model.ThrowIfNull();
 
@@ -200,22 +204,39 @@ public class CosmosDbModelOptions<TModel> where TModel : class, IEntityKey, new(
             return configured;
         }
 
+        // No override configured; fall back to the model's own value where it supports IReadOnlyPartitionKey - otherwise (or where that value is itself empty), there genuinely is no partition key to
+        // use, which is not an error: it simply means the caller wants the simplest possible container shape (see ToPartitionKey - translates to PartitionKey.None).
         if (PartitionKeySupport.IsSupported)
-            return ((IReadOnlyPartitionKey)model).PartitionKey!;
+        {
+            var modelValue = ((IReadOnlyPartitionKey)model).PartitionKey;
+            return string.IsNullOrEmpty(modelValue) ? null : modelValue;
+        }
 
-        throw new InvalidOperationException($"The model does not implement {nameof(IReadOnlyPartitionKey)}; as such, {nameof(WithPartitionKey)} or {nameof(WithFixedPartitionKey)} must be specified to enable.");
+        return null;
     }
 
     /// <summary>
     /// Resolves the <see cref="Microsoft.Azure.Cosmos.PartitionKey"/> to use for a point operation (<b>Get</b>/<b>Delete</b>) given an optional caller-supplied <paramref name="partitionKey"/>.
     /// </summary>
-    /// <param name="partitionKey">The caller-supplied <see cref="Microsoft.Azure.Cosmos.PartitionKey"/>; where <see langword="null"/>, falls back to <see cref="WithFixedPartitionKey"/>'s value (where configured).</param>
+    /// <param name="partitionKey">The caller-supplied <see cref="Microsoft.Azure.Cosmos.PartitionKey"/>; where <see langword="null"/>, falls back to <see cref="WithFixedPartitionKey"/>'s value (where
+    /// configured), otherwise <see cref="Microsoft.Azure.Cosmos.PartitionKey.None"/>.</param>
     /// <returns>The <see cref="Microsoft.Azure.Cosmos.PartitionKey"/> to use.</returns>
     /// <remarks><see cref="WithPartitionKey"/>'s function cannot contribute here — a <b>Get</b>/<b>Delete</b> point operation has no <typeparamref name="TModel"/> instance to invoke it against, only a
     /// <see cref="CompositeKey"/>; only <see cref="WithFixedPartitionKey"/> can provide a default for these operations. Unlike <see cref="GetPartitionKey(TModel)"/>, there is no model to write back onto
     /// here — a <b>Get</b>/<b>Delete</b> reads/removes by key and has no document body to reconcile.</remarks>
-    public PartitionKey GetPartitionKey(PartitionKey? partitionKey)
-        => partitionKey ?? (_fixedPartitionKey is not null ? new PartitionKey(_fixedPartitionKey) : throw new InvalidOperationException($"No {nameof(PartitionKey)} was specified and no default is configured; either supply one explicitly, or configure {nameof(WithFixedPartitionKey)}."));
+    public PartitionKey GetPartitionKey(PartitionKey? partitionKey) => partitionKey ?? ToPartitionKey(_fixedPartitionKey);
+
+    /// <summary>
+    /// Converts a raw partition key <paramref name="value"/> (as resolved by <see cref="GetPartitionKeyValue(TModel)"/> or <see cref="WithFixedPartitionKey"/>) to its corresponding
+    /// <see cref="Microsoft.Azure.Cosmos.PartitionKey"/>.
+    /// </summary>
+    /// <param name="value">The raw partition key value.</param>
+    /// <returns><see cref="Microsoft.Azure.Cosmos.PartitionKey.None"/> where <paramref name="value"/> is <see langword="null"/>; otherwise, <c>new <see cref="Microsoft.Azure.Cosmos.PartitionKey"/>(value)</c>.</returns>
+    /// <remarks><see cref="Microsoft.Azure.Cosmos.PartitionKey.None"/> (no partition key at all - the simplest possible container shape) is deliberately distinct from what the SDK's own
+    /// <c>new PartitionKey((string?)null)</c> would produce (an explicit JSON <see langword="null"/> partition-key <i>value</i>, for a container that still has a defined partition key path) - this
+    /// method is the single place that distinction is made, so every caller resolving a possibly-absent partition key goes through it rather than constructing <see cref="Microsoft.Azure.Cosmos.PartitionKey"/>
+    /// directly from a nullable string.</remarks>
+    internal static PartitionKey ToPartitionKey(string? value) => value is null ? PartitionKey.None : new PartitionKey(value);
 
     /// <summary>
     /// Sets (overrides) the function to compute the <see cref="ITimeToLive.TimeToLive"/> for a <typeparamref name="TModel"/> instance (where <see cref="TimeToLiveSupport"/> is <see cref="FeatureSupport.Mutable"/>).

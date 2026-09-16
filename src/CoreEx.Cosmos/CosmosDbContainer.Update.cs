@@ -60,7 +60,7 @@ public partial class CosmosDbContainer<TModel>
                 return r.Bind();
 
             var partitionKeyValue = Options.GetPartitionKeyValue(model);
-            var partitionKey = new PartitionKey(partitionKeyValue);
+            var partitionKey = CosmosDbModelOptions<TModel>.ToPartitionKey(partitionKeyValue);
             var id = Options.FormatIdentifier(Options.GetKeyFromModel(model));
 
             // Cosmos DB's native If-Match optimistic concurrency is enforced server-side (returns a 412 directly), unlike a relational/EF detached-entity comparison; the CosmosDbInvoker maps a 412 to a

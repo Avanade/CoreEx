@@ -78,6 +78,21 @@ public class NoTimeToLiveItem : IEntityKey, IIdentifier<string>, IETag, IPartiti
 }
 
 /// <summary>
+/// A test model implementing neither <see cref="IPartitionKey"/> nor <see cref="IReadOnlyPartitionKey"/> at all, used to test <see cref="CosmosDbModelOptions{TModel}"/>'s "no configuration, no model
+/// support" fallback to <see cref="Microsoft.Azure.Cosmos.PartitionKey.None"/> - the simplest possible container shape.
+/// </summary>
+public class NoPartitionKeyItem : IEntityKey, IIdentifier<string>, IETag
+{
+    public string Id { get; set; } = string.Empty;
+
+    public string? ETag { get; set; }
+
+    public string Name { get; set; } = string.Empty;
+
+    public CompositeKey EntityKey => CompositeKey.Create(Id);
+}
+
+/// <summary>
 /// A domain "contract" value used to exercise <see cref="CosmosDbMappedContainer{TValue, TModel, TBiDirectionMapper}"/> (mapped to/from <see cref="TestItem"/>), and <see cref="IUnitOfWork.SynchronizeETag{T}(CompositeKey, T)"/>
 /// (a distinct object instance/type from the <see cref="TestItem"/> model a <see cref="CosmosDbUnitOfWork"/> actually mutates - the scenario that mechanism exists for).
 /// </summary>
