@@ -22,7 +22,7 @@ public class CosmosDbContainerCrudTests : CosmosTestBase
         created.Value.Name.Should().Be("Widget");
         created.Value.ETag.Should().NotBeNullOrEmpty();
 
-        var fetched = await container.GetAsync(CompositeKey.Create(id), new PartitionKey(id));
+        var fetched = await container.GetAsync(CompositeKey.Create(id), id);
         fetched.Should().NotBeNull();
         fetched!.Name.Should().Be("Widget");
         fetched.ETag.Should().Be(created.Value.ETag);
@@ -43,7 +43,7 @@ public class CosmosDbContainerCrudTests : CosmosTestBase
         updated.Value.Name.Should().Be("Updated");
         updated.Value.ETag.Should().NotBe(created.Value.ETag);
 
-        var fetched = await container.GetAsync(CompositeKey.Create(id), new PartitionKey(id));
+        var fetched = await container.GetAsync(CompositeKey.Create(id), id);
         fetched!.Name.Should().Be("Updated");
     }
 
@@ -54,14 +54,14 @@ public class CosmosDbContainerCrudTests : CosmosTestBase
         var id = NewId();
         await container.CreateAsync(new TestItem { Id = id, PartitionKey = id, Name = "ToDelete" });
 
-        var deleted = await container.DeleteAsync(CompositeKey.Create(id), new PartitionKey(id));
+        var deleted = await container.DeleteAsync(CompositeKey.Create(id), id);
         deleted.WasMutated.Should().BeTrue();
 
-        var fetched = await container.GetAsync(CompositeKey.Create(id), new PartitionKey(id));
+        var fetched = await container.GetAsync(CompositeKey.Create(id), id);
         fetched.Should().BeNull();
 
         // Idempotent: deleting again is not an error and reports no mutation.
-        var deletedAgain = await container.DeleteAsync(CompositeKey.Create(id), new PartitionKey(id));
+        var deletedAgain = await container.DeleteAsync(CompositeKey.Create(id), id);
         deletedAgain.WasMutated.Should().BeFalse();
     }
 
@@ -79,7 +79,7 @@ public class CosmosDbContainerCrudTests : CosmosTestBase
         var upserted2 = await container.UpsertAsync(toUpsert);
         upserted2.Value.Name.Should().Be("Second");
 
-        var fetched = await container.GetAsync(CompositeKey.Create(id), new PartitionKey(id));
+        var fetched = await container.GetAsync(CompositeKey.Create(id), id);
         fetched!.Name.Should().Be("Second");
     }
 }

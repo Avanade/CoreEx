@@ -19,8 +19,13 @@ public abstract class CosmosDbModelBase : IIdentifier<string>, IChangeLog, IETag
     public string Id { get; set; } = string.Empty;
 
     /// <inheritdoc/>
+    /// <remarks>Serialization omits this property entirely when <see langword="null"/> (<see cref="JsonIgnoreCondition.WhenWritingNull"/>) rather than writing a JSON <c>null</c> - a document with an
+    /// <i>absent</i> partition-key field resolves to <see cref="Microsoft.Azure.Cosmos.PartitionKey.None"/>, whereas one with an <i>explicit</i> JSON <c>null</c> value resolves to the distinct
+    /// <see cref="Microsoft.Azure.Cosmos.PartitionKey.Null"/> - writing the latter for a model with no configured/model-supplied partition key value would mismatch the <see cref="Microsoft.Azure.Cosmos.PartitionKey.None"/>
+    /// resolved for the operation itself (see <see cref="CosmosDbModelOptions{TModel}.ToPartitionKey(string?)"/>) and the write would fail with a raw, undiagnosable <c>BadRequest</c>.</remarks>
     [JsonPropertyName("partitionKey")]
     [JsonPropertyOrder(-998)]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? PartitionKey { get; set; }
 
     /// <inheritdoc/>

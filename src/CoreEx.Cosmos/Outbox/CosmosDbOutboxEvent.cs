@@ -23,7 +23,12 @@ public sealed class CosmosDbOutboxEvent : IIdentifier<string>, IPartitionKey, IT
     public string Id { get; set; } = string.Empty;
 
     /// <inheritdoc/>
+    /// <remarks>Serialization omits this property entirely when <see langword="null"/> (<see cref="JsonIgnoreCondition.WhenWritingNull"/>) rather than writing a JSON <c>null</c> - a document with an
+    /// <i>absent</i> partition-key field resolves to <see cref="Microsoft.Azure.Cosmos.PartitionKey.None"/>, whereas one with an <i>explicit</i> JSON <c>null</c> value resolves to the distinct
+    /// <see cref="Microsoft.Azure.Cosmos.PartitionKey.Null"/> - writing the latter here would mismatch a <see cref="TransactionalBatch"/> bound to <see cref="Microsoft.Azure.Cosmos.PartitionKey.None"/>
+    /// (the paired business mutation's own partition key, where it has none configured) and the batch would fail with a raw, undiagnosable <c>BadRequest</c>.</remarks>
     [JsonPropertyName("partitionKey")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? PartitionKey { get; set; }
 
     /// <summary>

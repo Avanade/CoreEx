@@ -3,11 +3,21 @@ namespace CoreEx.Cosmos;
 public partial class CosmosDbContainer<TModel>
 {
     /// <summary>
+    /// Deletes the model for the specified <paramref name="key"/>.
+    /// </summary>
+    /// <param name="key">The <see cref="CompositeKey"/>.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+    /// <returns>A <see cref="DataResult"/>.</returns>
+    /// <remarks>No partition key value is supplied - falls back to <see cref="CosmosDbModelOptions{TModel}.WithFixedPartitionKey"/>'s configured value where set, otherwise
+    /// <see cref="Microsoft.Azure.Cosmos.PartitionKey.None"/>. Use <see cref="DeleteAsync(CompositeKey, string, CancellationToken)"/> where a per-item partition key value is known - see its remarks for
+    /// the full delete semantics (idempotency, logical delete, unit-of-work enlistment).</remarks>
+    public Task<DataResult> DeleteAsync(CompositeKey key, CancellationToken cancellationToken = default) => DeleteAsync(Args, key, cancellationToken);
+
+    /// <summary>
     /// Deletes the model for the specified <paramref name="key"/> and <paramref name="partitionKey"/>.
     /// </summary>
     /// <param name="key">The <see cref="CompositeKey"/>.</param>
-    /// <param name="partitionKey">The <see cref="Microsoft.Azure.Cosmos.PartitionKey"/>; where not specified, falls back to <see cref="CosmosDbModelOptions{TModel}.WithFixedPartitionKey"/>'s configured value
-    /// (see <see cref="CosmosDbModelOptions{TModel}.GetPartitionKey(PartitionKey?)"/>), otherwise <see cref="Microsoft.Azure.Cosmos.PartitionKey.None"/>.</param>
+    /// <param name="partitionKey">The raw partition key value.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
     /// <returns>A <see cref="DataResult"/>.</returns>
     /// <remarks>A delete is considered idempotent (a <c>404</c> is not treated as an error) unless logical delete is active (see <see cref="CosmosDbModelOptions{TModel}.LogicalDeleteSupport"/>), in which case a
@@ -20,46 +30,84 @@ public partial class CosmosDbContainer<TModel>
     /// <para>Inside an active <see cref="CosmosDbUnitOfWork"/>, the pre-read is <b>always</b> forced, for a different reason: Cosmos DB's <c>TransactionalBatch</c> fails the <i>whole</i> batch if any
     /// enlisted operation targets a non-existent item — unlike a standalone delete, it has no tolerance for a "not found" being a benign no-op — so existence must be confirmed before a delete is safely
     /// enlisted alongside any other operations in the same unit-of-work. A useful consequence: the returned <see cref="DataResult.WasMutated"/> is known accurately and synchronously even inside a unit-of-work,
-    /// so a caller can use the same <c>DataResult.WhereMutated(v => unitOfWork.Events.Add(...))</c>-style pattern to decide whether to queue a "deleted" event, exactly as for the non-transactional path.</para></remarks>
-    public Task<DataResult> DeleteAsync(CompositeKey key, PartitionKey? partitionKey = null, CancellationToken cancellationToken = default) => DeleteAsync(Args, key, partitionKey, cancellationToken);
+    /// so a caller can use the same <c>DataResult.WhereMutated(v => unitOfWork.Events.Add(...))</c>-style pattern to decide whether to queue a "deleted" event, exactly as for the non-transactional path.</para>
+    /// <para>Since <paramref name="partitionKey"/> is a raw <see langword="string"/> (unlike the SDK's opaque <see cref="Microsoft.Azure.Cosmos.PartitionKey"/> struct), it also flows through to a paired
+    /// <see cref="CosmosDbEventPublisher"/> outbox-event write inside an active <see cref="CosmosDbUnitOfWork"/>, which otherwise has no model instance of its own to resolve one from for a delete-only
+    /// transaction.</para></remarks>
+    public Task<DataResult> DeleteAsync(CompositeKey key, string partitionKey, CancellationToken cancellationToken = default) => DeleteAsync(Args, key, partitionKey, cancellationToken);
+
+    /// <summary>
+    /// Deletes the model for the specified <paramref name="key"/>.
+    /// </summary>
+    /// <param name="args">The <see cref="CosmosDbArgs"/>.</param>
+    /// <param name="key">The <see cref="CompositeKey"/>.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+    /// <returns>A <see cref="DataResult"/>.</returns>
+    /// <remarks>No partition key value is supplied - falls back to <see cref="CosmosDbModelOptions{TModel}.WithFixedPartitionKey"/>'s configured value where set, otherwise
+    /// <see cref="Microsoft.Azure.Cosmos.PartitionKey.None"/>. Use <see cref="DeleteAsync(CosmosDbArgs, CompositeKey, string, CancellationToken)"/> where a per-item partition key value is known.</remarks>
+    public async Task<DataResult> DeleteAsync(CosmosDbArgs args, CompositeKey key, CancellationToken cancellationToken = default)
+        => (await DeleteWithResultInternalAsync(args, key, Options.GetPartitionKeyValue((string?)null), nameof(DeleteAsync), cancellationToken).ConfigureAwait(false)).ThrowOnError();
 
     /// <summary>
     /// Deletes the model for the specified <paramref name="key"/> and <paramref name="partitionKey"/>.
     /// </summary>
     /// <param name="args">The <see cref="CosmosDbArgs"/>.</param>
     /// <param name="key">The <see cref="CompositeKey"/>.</param>
-    /// <param name="partitionKey">The <see cref="Microsoft.Azure.Cosmos.PartitionKey"/>; where not specified, falls back to <see cref="CosmosDbModelOptions{TModel}.WithFixedPartitionKey"/>'s configured value
-    /// (see <see cref="CosmosDbModelOptions{TModel}.GetPartitionKey(PartitionKey?)"/>), otherwise <see cref="Microsoft.Azure.Cosmos.PartitionKey.None"/>.</param>
+    /// <param name="partitionKey">The raw partition key value.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
     /// <returns>A <see cref="DataResult"/>.</returns>
-    public async Task<DataResult> DeleteAsync(CosmosDbArgs args, CompositeKey key, PartitionKey? partitionKey = null, CancellationToken cancellationToken = default) => (await DeleteWithResultInternalAsync(args, key, Options.GetPartitionKey(partitionKey), nameof(DeleteAsync), cancellationToken).ConfigureAwait(false)).ThrowOnError();
+    public async Task<DataResult> DeleteAsync(CosmosDbArgs args, CompositeKey key, string partitionKey, CancellationToken cancellationToken = default)
+        => (await DeleteWithResultInternalAsync(args, key, Options.GetPartitionKeyValue(partitionKey.ThrowIfNull()), nameof(DeleteAsync), cancellationToken).ConfigureAwait(false)).ThrowOnError();
+
+    /// <summary>
+    /// Deletes the model for the specified <paramref name="key"/>.
+    /// </summary>
+    /// <param name="key">The <see cref="CompositeKey"/>.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+    /// <returns>A <see cref="DataResult"/>.</returns>
+    /// <remarks>No partition key value is supplied - falls back to <see cref="CosmosDbModelOptions{TModel}.WithFixedPartitionKey"/>'s configured value where set, otherwise
+    /// <see cref="Microsoft.Azure.Cosmos.PartitionKey.None"/>. Use <see cref="DeleteWithResultAsync(CompositeKey, string, CancellationToken)"/> where a per-item partition key value is known.</remarks>
+    public Task<Result<DataResult>> DeleteWithResultAsync(CompositeKey key, CancellationToken cancellationToken = default) => DeleteWithResultAsync(Args, key, cancellationToken);
 
     /// <summary>
     /// Deletes the model for the specified <paramref name="key"/> and <paramref name="partitionKey"/>.
     /// </summary>
     /// <param name="key">The <see cref="CompositeKey"/>.</param>
-    /// <param name="partitionKey">The <see cref="Microsoft.Azure.Cosmos.PartitionKey"/>; where not specified, falls back to <see cref="CosmosDbModelOptions{TModel}.WithFixedPartitionKey"/>'s configured value
-    /// (see <see cref="CosmosDbModelOptions{TModel}.GetPartitionKey(PartitionKey?)"/>), otherwise <see cref="Microsoft.Azure.Cosmos.PartitionKey.None"/>.</param>
+    /// <param name="partitionKey">The raw partition key value.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
     /// <returns>A <see cref="DataResult"/>.</returns>
-    public Task<Result<DataResult>> DeleteWithResultAsync(CompositeKey key, PartitionKey? partitionKey = null, CancellationToken cancellationToken = default) => DeleteWithResultAsync(Args, key, partitionKey, cancellationToken);
+    public Task<Result<DataResult>> DeleteWithResultAsync(CompositeKey key, string partitionKey, CancellationToken cancellationToken = default) => DeleteWithResultAsync(Args, key, partitionKey, cancellationToken);
+
+    /// <summary>
+    /// Deletes the model for the specified <paramref name="key"/>.
+    /// </summary>
+    /// <param name="args">The <see cref="CosmosDbArgs"/>.</param>
+    /// <param name="key">The <see cref="CompositeKey"/>.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+    /// <returns>A <see cref="DataResult"/>.</returns>
+    /// <remarks>No partition key value is supplied - falls back to <see cref="CosmosDbModelOptions{TModel}.WithFixedPartitionKey"/>'s configured value where set, otherwise
+    /// <see cref="Microsoft.Azure.Cosmos.PartitionKey.None"/>. Use <see cref="DeleteWithResultAsync(CosmosDbArgs, CompositeKey, string, CancellationToken)"/> where a per-item partition key value is known.</remarks>
+    public Task<Result<DataResult>> DeleteWithResultAsync(CosmosDbArgs args, CompositeKey key, CancellationToken cancellationToken = default)
+        => DeleteWithResultInternalAsync(args, key, Options.GetPartitionKeyValue((string?)null), nameof(DeleteWithResultAsync), cancellationToken);
 
     /// <summary>
     /// Deletes the model for the specified <paramref name="key"/> and <paramref name="partitionKey"/>.
     /// </summary>
     /// <param name="args">The <see cref="CosmosDbArgs"/>.</param>
     /// <param name="key">The <see cref="CompositeKey"/>.</param>
-    /// <param name="partitionKey">The <see cref="Microsoft.Azure.Cosmos.PartitionKey"/>; where not specified, falls back to <see cref="CosmosDbModelOptions{TModel}.WithFixedPartitionKey"/>'s configured value
-    /// (see <see cref="CosmosDbModelOptions{TModel}.GetPartitionKey(PartitionKey?)"/>), otherwise <see cref="Microsoft.Azure.Cosmos.PartitionKey.None"/>.</param>
+    /// <param name="partitionKey">The raw partition key value.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
     /// <returns>A <see cref="DataResult"/>.</returns>
-    public Task<Result<DataResult>> DeleteWithResultAsync(CosmosDbArgs args, CompositeKey key, PartitionKey? partitionKey = null, CancellationToken cancellationToken = default) => DeleteWithResultInternalAsync(args, key, Options.GetPartitionKey(partitionKey), nameof(DeleteWithResultAsync), cancellationToken);
+    public Task<Result<DataResult>> DeleteWithResultAsync(CosmosDbArgs args, CompositeKey key, string partitionKey, CancellationToken cancellationToken = default)
+        => DeleteWithResultInternalAsync(args, key, Options.GetPartitionKeyValue(partitionKey.ThrowIfNull()), nameof(DeleteWithResultAsync), cancellationToken);
 
     /// <summary>
     /// Deletes the model (internal).
     /// </summary>
-    private async Task<Result<DataResult>> DeleteWithResultInternalAsync(CosmosDbArgs args, CompositeKey key, PartitionKey partitionKey, string memberName, CancellationToken cancellationToken = default) => await CosmosDb.Invoker.InvokeAsync(CosmosDb, args.ThrowIfNull(), async (_, args, cancellationToken) =>
+    private async Task<Result<DataResult>> DeleteWithResultInternalAsync(CosmosDbArgs args, CompositeKey key, string? partitionKeyValue, string memberName, CancellationToken cancellationToken = default) => await CosmosDb.Invoker.InvokeAsync(CosmosDb, args.ThrowIfNull(), async (_, args, cancellationToken) =>
     {
+        var partitionKey = CosmosDbModelOptions<TModel>.ToPartitionKey(partitionKeyValue);
+
         // Logical delete (ambiguous exception) - a type-level configuration issue, not model-instance-dependent, so fail fast before fetching anything.
         if (Options.LogicalDeleteSupport.IsReadOnly)
             throw new InvalidOperationException($"The model implements {nameof(IReadOnlyLogicallyDeleted)} which is ambiguous for a delete operation; the model must implement {nameof(ILogicallyDeleted)} not {nameof(IReadOnlyLogicallyDeleted)}.");
@@ -70,16 +118,15 @@ public partial class CosmosDbContainer<TModel>
         {
             // Where an ambient CosmosDbUnitOfWork transaction is active, enlist (queue) rather than execute immediately. By the time this is reached with a txn active, existence has always already been
             // confirmed by the forced pre-read below (see the fast-path condition) - enlisting a DeleteItem for something already known to exist is safe; TransactionalBatch has no tolerance at all for
-            // deleting a non-existent item (it fails the whole batch, confirmed empirically), unlike the non-batch DeleteItemAsync call below. Unlike Create/Update, a raw partition key string is not
-            // derivable here (Delete operates purely by key/PartitionKey, with no model instance to read one back from) - this is fine for the transaction's own container/partition-key match check (a
-            // PartitionKey struct still compares equal correctly), but means a Delete-only unit-of-work cannot itself provide the partition key value a paired outbox event write would need (see
-            // CosmosDbEventPublisher); that only works where a prior Create/Update in the same unit-of-work has already bound one.
+            // deleting a non-existent item (it fails the whole batch, confirmed empirically), unlike the non-batch DeleteItemAsync call below. partitionKeyValue is the caller-supplied raw value (see
+            // DeleteAsync's partitionKey parameter) - unlike Create/Update, there is no model instance here to read one back from, so a Delete-only unit-of-work can only provide a paired outbox event
+            // write (see CosmosDbEventPublisher) with the partition key value when the caller explicitly supplies one.
             var txn = CosmosDb.CurrentTransaction;
             if (txn is not null)
             {
                 var itemOptions = BuildItemRequestOptions(args);
                 var batchOptions = itemOptions is null ? null : new TransactionalBatchItemRequestOptions { IfMatchEtag = itemOptions.IfMatchEtag };
-                txn.Enlist(Container, partitionKey, null, key, b => b.DeleteItem(id, batchOptions));
+                txn.Enlist(Container, partitionKey, partitionKeyValue, key, b => b.DeleteItem(id, batchOptions));
                 return Result.Ok(DataResult.True);
             }
 
@@ -132,13 +179,13 @@ public partial class CosmosDbContainer<TModel>
         if (options is null && args.AutoMapETag && model is IReadOnlyETag etag && !string.IsNullOrEmpty(etag.ETag))
             options = new ItemRequestOptions { IfMatchEtag = etag.ETag };
 
-        // Where an ambient CosmosDbUnitOfWork transaction is active, enlist (queue) rather than execute immediately - see the equivalent comment in PhysicalDeleteAsync above (a raw partition key string
-        // is not derived here either, for the same reason - consistency with the explicit-partitionKey resolution already used for this point operation, not a per-model one).
+        // Where an ambient CosmosDbUnitOfWork transaction is active, enlist (queue) rather than execute immediately - see the equivalent comment in PhysicalDeleteAsync above; partitionKeyValue flows
+        // through the same way here too.
         var logicalDeleteTxn = CosmosDb.CurrentTransaction;
         if (logicalDeleteTxn is not null)
         {
             var batchOptions = options is null ? null : new TransactionalBatchItemRequestOptions { IfMatchEtag = options.IfMatchEtag };
-            logicalDeleteTxn.Enlist(Container, partitionKey, null, key, b => b.ReplaceItem(id, model, batchOptions));
+            logicalDeleteTxn.Enlist(Container, partitionKey, partitionKeyValue, key, b => b.ReplaceItem(id, model, batchOptions));
             return Result.Ok(DataResult.True);
         }
 

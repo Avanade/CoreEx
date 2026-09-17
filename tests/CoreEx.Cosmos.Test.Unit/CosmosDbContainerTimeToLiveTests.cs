@@ -19,7 +19,7 @@ public class CosmosDbContainerTimeToLiveTests : CosmosTestBase
         created.Value.TimeToLive.Should().Be(3600);
 
         // Confirm it was actually persisted (not just present on the in-memory returned instance).
-        var fetched = await container.GetAsync(CompositeKey.Create(id), new PartitionKey(id));
+        var fetched = await container.GetAsync(CompositeKey.Create(id), id);
         fetched!.TimeToLive.Should().Be(3600);
     }
 

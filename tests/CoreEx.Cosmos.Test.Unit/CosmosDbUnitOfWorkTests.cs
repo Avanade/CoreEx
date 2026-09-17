@@ -23,8 +23,8 @@ public class CosmosDbUnitOfWorkTests : CosmosTestBase
             await container.CreateAsync(new TestItem { Id = id2, PartitionKey = pk, Name = "Two" }, ct).ConfigureAwait(false);
         });
 
-        var fetched1 = await container.GetAsync(CompositeKey.Create(id1), new PartitionKey(pk));
-        var fetched2 = await container.GetAsync(CompositeKey.Create(id2), new PartitionKey(pk));
+        var fetched1 = await container.GetAsync(CompositeKey.Create(id1), pk);
+        var fetched2 = await container.GetAsync(CompositeKey.Create(id2), pk);
 
         fetched1.Should().NotBeNull();
         fetched1!.Name.Should().Be("One");
@@ -54,7 +54,7 @@ public class CosmosDbUnitOfWorkTests : CosmosTestBase
         await act.Should().ThrowAsync<InvalidOperationException>();
 
         // Neither item should exist - the second (mismatched) call never even reached Cosmos DB, and the first was never executed (deferred until the whole batch commits).
-        var fetchedA = await container.GetAsync(CompositeKey.Create(idA), new PartitionKey(pkA));
+        var fetchedA = await container.GetAsync(CompositeKey.Create(idA), pkA);
         fetchedA.Should().BeNull();
     }
 
@@ -77,7 +77,7 @@ public class CosmosDbUnitOfWorkTests : CosmosTestBase
 
         result.IsFailure.Should().BeTrue();
 
-        var fetched = await container.GetAsync(CompositeKey.Create(id), new PartitionKey(pk));
+        var fetched = await container.GetAsync(CompositeKey.Create(id), pk);
         fetched.Should().BeNull();
     }
 
@@ -99,7 +99,7 @@ public class CosmosDbUnitOfWorkTests : CosmosTestBase
             unitOfWork.Events.Add(EventData.CreateEventWith(created.Value, EventAction.Created).WithSource(new Uri("https://unittest/coreex-cosmos", UriKind.Absolute)));
         });
 
-        var fetched = await container.GetAsync(CompositeKey.Create(id), new PartitionKey(pk));
+        var fetched = await container.GetAsync(CompositeKey.Create(id), pk);
         fetched.Should().NotBeNull();
 
         // Confirm the paired outbox event document exists in the SAME container/partition, findable by explicitly targeting the reserved prefix (the relay's future "internal explicit read").
@@ -117,6 +117,49 @@ public class CosmosDbUnitOfWorkTests : CosmosTestBase
         outboxDocs.Should().ContainSingle();
         outboxDocs[0].Destination.Should().NotBeNullOrEmpty();
         outboxDocs[0].TimeToLive.Should().Be(CosmosDbEventPublisher.DefaultOutboxTimeToLiveSeconds);
+    }
+
+    [Test]
+    public async Task TransactionAsync_WithOutbox_PartitionKeyNone_WritesEventDocumentAtomically()
+    {
+        // NoPartitionKeyItem implements neither IPartitionKey nor IReadOnlyPartitionKey, and no WithPartitionKey/WithFixedPartitionKey is configured here either - the business mutation's own partition
+        // key resolves to PartitionKey.None, a real, valid single logical partition (not an error) - confirms the outbox event document can still be enlisted/co-located there too (see the
+        // CosmosDbEventPublisher.OnPublishAsync fix this test guards against regressing).
+        await GetOrCreateContainerAsync(ContainerId).ConfigureAwait(false);
+        var cosmosDb = CreateCosmosDb();
+        var container = cosmosDb.Container<NoPartitionKeyItem>(ContainerId);
+        var outbox = new CosmosDbEventPublisher(cosmosDb);
+        var unitOfWork = new CosmosDbUnitOfWork(cosmosDb, outbox);
+
+        var id = NewId();
+
+        await unitOfWork.TransactionAsync(async ct =>
+        {
+            var created = await container.CreateAsync(new NoPartitionKeyItem { Id = id, Name = "Widget" }, ct).ConfigureAwait(false);
+            unitOfWork.Events.Add(EventData.CreateEventWith(created.Value, EventAction.Created).WithSource(new Uri("https://unittest/coreex-cosmos", UriKind.Absolute)));
+        });
+
+        var fetched = await container.GetAsync(CompositeKey.Create(id));
+        fetched.Should().NotBeNull();
+
+        // Confirm the paired outbox event document exists in the SAME container/PartitionKey.None partition. Filtering "PartitionKey == null" server-side would not match a truly absent field in
+        // Cosmos SQL (undefined != null), so the None-partition check is applied client-side after retrieval instead. Scoped to this run's own event via the CloudEvent "subject" (the entity id) -
+        // unlike the sibling TransactionAsync_WithOutbox_WritesEventDocumentAtomically test (scoped by a unique per-run partition key value), every run of this test shares the same PartitionKey.None
+        // partition, so leftover documents from earlier runs against this same (never-reset) container would otherwise also match.
+        var rawContainer = cosmosDb.GetContainer(ContainerId);
+        var query = rawContainer.GetItemLinqQueryable<CosmosDbOutboxEvent>()
+            .Where(e => e.Id.StartsWith(CosmosDbOutboxEvent.OutboxKeyPrefix));
+
+        var outboxDocs = new List<CosmosDbOutboxEvent>();
+        using (var iterator = query.ToFeedIterator())
+        {
+            while (iterator.HasMoreResults)
+                outboxDocs.AddRange(await iterator.ReadNextAsync());
+        }
+
+        var matchingDocs = outboxDocs.Where(d => d.PartitionKey is null && d.Event.GetProperty("subject").GetString() == id).ToList();
+        matchingDocs.Should().ContainSingle();
+        matchingDocs[0].Destination.Should().NotBeNullOrEmpty();
     }
 
     [Test]
@@ -169,8 +212,8 @@ public class CosmosDbUnitOfWorkTests : CosmosTestBase
         unitOfWork.SynchronizeETag(CompositeKey.Create(id1), contract1);
         unitOfWork.SynchronizeETag(CompositeKey.Create(id2), contract2);
 
-        var fetched1 = await container.GetAsync(CompositeKey.Create(id1), new PartitionKey(pk));
-        var fetched2 = await container.GetAsync(CompositeKey.Create(id2), new PartitionKey(pk));
+        var fetched1 = await container.GetAsync(CompositeKey.Create(id1), pk);
+        var fetched2 = await container.GetAsync(CompositeKey.Create(id2), pk);
 
         // Each contract must resolve its OWN document's true ETag (proving correlation is by key, not by position/reference) - not asserting the two ETags differ from each other, since the emulator can
         // legitimately assign the same _etag to multiple documents committed within the same physical TransactionalBatch; that's an emulator/Cosmos DB implementation detail, not part of this contract.
@@ -225,13 +268,13 @@ public class CosmosDbUnitOfWorkTests : CosmosTestBase
         await unitOfWork.TransactionAsync(async ct =>
         {
             await container.CreateAsync(new TestItem { Id = createdId, PartitionKey = pk, Name = "Survivor" }, ct).ConfigureAwait(false);
-            var result = await container.DeleteWithResultAsync(CompositeKey.Create(neverExistedId), new PartitionKey(pk), ct).ConfigureAwait(false);
+            var result = await container.DeleteWithResultAsync(CompositeKey.Create(neverExistedId), pk, ct).ConfigureAwait(false);
             deleted = result.Value;
         });
 
         deleted.WasMutated.Should().BeFalse();
 
-        var fetched = await container.GetAsync(CompositeKey.Create(createdId), new PartitionKey(pk));
+        var fetched = await container.GetAsync(CompositeKey.Create(createdId), pk);
         fetched.Should().NotBeNull();
         fetched!.Name.Should().Be("Survivor");
     }
@@ -260,10 +303,10 @@ public class CosmosDbUnitOfWorkTests : CosmosTestBase
             // than being an artificial workaround.
             await container.CreateAsync(new TestItem { Id = anchorId, PartitionKey = pk, Name = "Anchor" }, ct).ConfigureAwait(false);
 
-            var deletedExisting = await container.DeleteWithResultAsync(CompositeKey.Create(existingId), new PartitionKey(pk), ct).ConfigureAwait(false);
+            var deletedExisting = await container.DeleteWithResultAsync(CompositeKey.Create(existingId), pk, ct).ConfigureAwait(false);
             deletedExisting.Value.WhereMutated(() => unitOfWork.Events.Add(EventData.CreateEventWith(existingId, EventAction.Deleted).WithSource(new Uri("https://unittest/coreex-cosmos", UriKind.Absolute)).WithPartitionKey(pk)));
 
-            var deletedMissing = await container.DeleteWithResultAsync(CompositeKey.Create(neverExistedId), new PartitionKey(pk), ct).ConfigureAwait(false);
+            var deletedMissing = await container.DeleteWithResultAsync(CompositeKey.Create(neverExistedId), pk, ct).ConfigureAwait(false);
             deletedMissing.Value.WhereMutated(() => unitOfWork.Events.Add(EventData.CreateEventWith(neverExistedId, EventAction.Deleted).WithSource(new Uri("https://unittest/coreex-cosmos", UriKind.Absolute)).WithPartitionKey(pk)));
         });
 

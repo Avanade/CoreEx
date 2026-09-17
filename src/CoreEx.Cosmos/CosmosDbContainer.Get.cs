@@ -3,48 +3,88 @@ namespace CoreEx.Cosmos;
 public partial class CosmosDbContainer<TModel>
 {
     /// <summary>
+    /// Gets the model for the specified <paramref name="key"/>.
+    /// </summary>
+    /// <param name="key">The <see cref="CompositeKey"/>.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+    /// <returns>The model where found; otherwise, <see langword="null"/> (see <see cref="CosmosDbArgs.NullOnNotFound"/>).</returns>
+    /// <remarks>No partition key value is supplied - falls back to <see cref="CosmosDbModelOptions{TModel}.WithFixedPartitionKey"/>'s configured value where set, otherwise
+    /// <see cref="Microsoft.Azure.Cosmos.PartitionKey.None"/>. Use <see cref="GetAsync(CompositeKey, string, CancellationToken)"/> where a per-item partition key value is known.</remarks>
+    public Task<TModel?> GetAsync(CompositeKey key, CancellationToken cancellationToken = default) => GetAsync(Args, key, cancellationToken);
+
+    /// <summary>
     /// Gets the model for the specified <paramref name="key"/> and <paramref name="partitionKey"/>.
     /// </summary>
     /// <param name="key">The <see cref="CompositeKey"/>.</param>
-    /// <param name="partitionKey">The <see cref="Microsoft.Azure.Cosmos.PartitionKey"/>; where not specified, falls back to <see cref="CosmosDbModelOptions{TModel}.WithFixedPartitionKey"/>'s configured value
-    /// (see <see cref="CosmosDbModelOptions{TModel}.GetPartitionKey(PartitionKey?)"/>), otherwise <see cref="Microsoft.Azure.Cosmos.PartitionKey.None"/>.</param>
+    /// <param name="partitionKey">The raw partition key value.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
     /// <returns>The model where found; otherwise, <see langword="null"/> (see <see cref="CosmosDbArgs.NullOnNotFound"/>).</returns>
-    public Task<TModel?> GetAsync(CompositeKey key, PartitionKey? partitionKey = null, CancellationToken cancellationToken = default) => GetAsync(Args, key, partitionKey, cancellationToken);
+    public Task<TModel?> GetAsync(CompositeKey key, string partitionKey, CancellationToken cancellationToken = default) => GetAsync(Args, key, partitionKey, cancellationToken);
+
+    /// <summary>
+    /// Gets the model for the specified <paramref name="key"/>.
+    /// </summary>
+    /// <param name="args">The <see cref="CosmosDbArgs"/>.</param>
+    /// <param name="key">The <see cref="CompositeKey"/>.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+    /// <returns>The model where found; otherwise, <see langword="null"/> (see <see cref="CosmosDbArgs.NullOnNotFound"/>).</returns>
+    /// <remarks>No partition key value is supplied - falls back to <see cref="CosmosDbModelOptions{TModel}.WithFixedPartitionKey"/>'s configured value where set, otherwise
+    /// <see cref="Microsoft.Azure.Cosmos.PartitionKey.None"/>. Use <see cref="GetAsync(CosmosDbArgs, CompositeKey, string, CancellationToken)"/> where a per-item partition key value is known.</remarks>
+    public async Task<TModel?> GetAsync(CosmosDbArgs args, CompositeKey key, CancellationToken cancellationToken = default)
+        => (await GetWithResultInternalAsync(args, key, Options.GetPartitionKey((string?)null), nameof(GetAsync), treatNullAsNotFound: !args.ThrowIfNull().NullOnNotFound, cancellationToken).ConfigureAwait(false)).Value;
 
     /// <summary>
     /// Gets the model for the specified <paramref name="key"/> and <paramref name="partitionKey"/>.
     /// </summary>
     /// <param name="args">The <see cref="CosmosDbArgs"/>.</param>
     /// <param name="key">The <see cref="CompositeKey"/>.</param>
-    /// <param name="partitionKey">The <see cref="Microsoft.Azure.Cosmos.PartitionKey"/>; where not specified, falls back to <see cref="CosmosDbModelOptions{TModel}.WithFixedPartitionKey"/>'s configured value
-    /// (see <see cref="CosmosDbModelOptions{TModel}.GetPartitionKey(PartitionKey?)"/>), otherwise <see cref="Microsoft.Azure.Cosmos.PartitionKey.None"/>.</param>
+    /// <param name="partitionKey">The raw partition key value.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
     /// <returns>The model where found; otherwise, <see langword="null"/> (see <see cref="CosmosDbArgs.NullOnNotFound"/>).</returns>
-    public async Task<TModel?> GetAsync(CosmosDbArgs args, CompositeKey key, PartitionKey? partitionKey = null, CancellationToken cancellationToken = default)
-        => (await GetWithResultInternalAsync(args, key, Options.GetPartitionKey(partitionKey), nameof(GetAsync), treatNullAsNotFound: !args.ThrowIfNull().NullOnNotFound, cancellationToken).ConfigureAwait(false)).Value;
+    public async Task<TModel?> GetAsync(CosmosDbArgs args, CompositeKey key, string partitionKey, CancellationToken cancellationToken = default)
+        => (await GetWithResultInternalAsync(args, key, Options.GetPartitionKey(partitionKey.ThrowIfNull()), nameof(GetAsync), treatNullAsNotFound: !args.ThrowIfNull().NullOnNotFound, cancellationToken).ConfigureAwait(false)).Value;
+
+    /// <summary>
+    /// Gets the model for the specified <paramref name="key"/>.
+    /// </summary>
+    /// <param name="key">The <see cref="CompositeKey"/>.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+    /// <returns>The model.</returns>
+    /// <remarks>No partition key value is supplied - falls back to <see cref="CosmosDbModelOptions{TModel}.WithFixedPartitionKey"/>'s configured value where set, otherwise
+    /// <see cref="Microsoft.Azure.Cosmos.PartitionKey.None"/>. Use <see cref="GetWithResultAsync(CompositeKey, string, CancellationToken)"/> where a per-item partition key value is known.</remarks>
+    public Task<Result<TModel>> GetWithResultAsync(CompositeKey key, CancellationToken cancellationToken = default) => GetWithResultAsync(Args, key, cancellationToken);
 
     /// <summary>
     /// Gets the model for the specified <paramref name="key"/> and <paramref name="partitionKey"/>.
     /// </summary>
     /// <param name="key">The <see cref="CompositeKey"/>.</param>
-    /// <param name="partitionKey">The <see cref="Microsoft.Azure.Cosmos.PartitionKey"/>; where not specified, falls back to <see cref="CosmosDbModelOptions{TModel}.WithFixedPartitionKey"/>'s configured value
-    /// (see <see cref="CosmosDbModelOptions{TModel}.GetPartitionKey(PartitionKey?)"/>), otherwise <see cref="Microsoft.Azure.Cosmos.PartitionKey.None"/>.</param>
+    /// <param name="partitionKey">The raw partition key value.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
     /// <returns>The model.</returns>
-    public Task<Result<TModel>> GetWithResultAsync(CompositeKey key, PartitionKey? partitionKey = null, CancellationToken cancellationToken = default) => GetWithResultAsync(Args, key, partitionKey, cancellationToken);
+    public Task<Result<TModel>> GetWithResultAsync(CompositeKey key, string partitionKey, CancellationToken cancellationToken = default) => GetWithResultAsync(Args, key, partitionKey, cancellationToken);
+
+    /// <summary>
+    /// Gets the model for the specified <paramref name="key"/>.
+    /// </summary>
+    /// <param name="args">The <see cref="CosmosDbArgs"/>.</param>
+    /// <param name="key">The <see cref="CompositeKey"/>.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+    /// <returns>The model.</returns>
+    /// <remarks>No partition key value is supplied - falls back to <see cref="CosmosDbModelOptions{TModel}.WithFixedPartitionKey"/>'s configured value where set, otherwise
+    /// <see cref="Microsoft.Azure.Cosmos.PartitionKey.None"/>. Use <see cref="GetWithResultAsync(CosmosDbArgs, CompositeKey, string, CancellationToken)"/> where a per-item partition key value is known.</remarks>
+    public async Task<Result<TModel>> GetWithResultAsync(CosmosDbArgs args, CompositeKey key, CancellationToken cancellationToken = default)
+        => (await GetWithResultInternalAsync(args, key, Options.GetPartitionKey((string?)null), nameof(GetWithResultAsync), treatNullAsNotFound: true, cancellationToken).ConfigureAwait(false)).ThenAs(v => v!);
 
     /// <summary>
     /// Gets the model for the specified <paramref name="key"/> and <paramref name="partitionKey"/>.
     /// </summary>
     /// <param name="args">The <see cref="CosmosDbArgs"/>.</param>
     /// <param name="key">The <see cref="CompositeKey"/>.</param>
-    /// <param name="partitionKey">The <see cref="Microsoft.Azure.Cosmos.PartitionKey"/>; where not specified, falls back to <see cref="CosmosDbModelOptions{TModel}.WithFixedPartitionKey"/>'s configured value
-    /// (see <see cref="CosmosDbModelOptions{TModel}.GetPartitionKey(PartitionKey?)"/>), otherwise <see cref="Microsoft.Azure.Cosmos.PartitionKey.None"/>.</param>
+    /// <param name="partitionKey">The raw partition key value.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
     /// <returns>The model.</returns>
-    public async Task<Result<TModel>> GetWithResultAsync(CosmosDbArgs args, CompositeKey key, PartitionKey? partitionKey = null, CancellationToken cancellationToken = default)
-        => (await GetWithResultInternalAsync(args, key, Options.GetPartitionKey(partitionKey), nameof(GetWithResultAsync), treatNullAsNotFound: true, cancellationToken).ConfigureAwait(false)).ThenAs(v => v!);
+    public async Task<Result<TModel>> GetWithResultAsync(CosmosDbArgs args, CompositeKey key, string partitionKey, CancellationToken cancellationToken = default)
+        => (await GetWithResultInternalAsync(args, key, Options.GetPartitionKey(partitionKey.ThrowIfNull()), nameof(GetWithResultAsync), treatNullAsNotFound: true, cancellationToken).ConfigureAwait(false)).ThenAs(v => v!);
 
     /// <summary>
     /// Gets the model (internal).

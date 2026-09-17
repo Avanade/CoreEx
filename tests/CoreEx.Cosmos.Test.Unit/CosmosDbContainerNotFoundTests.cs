@@ -15,7 +15,7 @@ public class CosmosDbContainerNotFoundTests : CosmosTestBase
         var container = await GetContainerAsync();
         var id = NewId();
 
-        var result = await container.GetAsync(CompositeKey.Create(id), new PartitionKey(id));
+        var result = await container.GetAsync(CompositeKey.Create(id), id);
 
         result.Should().BeNull();
     }
@@ -26,7 +26,7 @@ public class CosmosDbContainerNotFoundTests : CosmosTestBase
         var container = await GetContainerAsync();
         var id = NewId();
 
-        Assert.ThrowsAsync<NotFoundException>(async () => await container.GetAsync(container.Args with { NullOnNotFound = false }, CompositeKey.Create(id), new PartitionKey(id)));
+        Assert.ThrowsAsync<NotFoundException>(async () => await container.GetAsync(container.Args with { NullOnNotFound = false }, CompositeKey.Create(id), id));
     }
 
     [Test]
@@ -35,7 +35,7 @@ public class CosmosDbContainerNotFoundTests : CosmosTestBase
         var container = await GetContainerAsync();
         var id = NewId();
 
-        var result = await container.GetWithResultAsync(CompositeKey.Create(id), new PartitionKey(id));
+        var result = await container.GetWithResultAsync(CompositeKey.Create(id), id);
 
         result.IsFailure.Should().BeTrue();
         result.Error.Should().BeOfType<NotFoundException>();
@@ -47,7 +47,7 @@ public class CosmosDbContainerNotFoundTests : CosmosTestBase
         var container = await GetContainerAsync();
         var id = NewId();
 
-        var result = await container.DeleteWithResultAsync(CompositeKey.Create(id), new PartitionKey(id));
+        var result = await container.DeleteWithResultAsync(CompositeKey.Create(id), id);
 
         result.IsSuccess.Should().BeTrue();
         result.Value.WasMutated.Should().BeFalse();

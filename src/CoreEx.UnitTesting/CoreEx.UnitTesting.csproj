@@ -19,6 +19,7 @@
   <ItemGroup>
     <ProjectReference Include="..\CoreEx.Azure.Messaging.ServiceBus\CoreEx.Azure.Messaging.ServiceBus.csproj" />
     <ProjectReference Include="..\CoreEx.Caching.FusionCache\CoreEx.Caching.FusionCache.csproj" />
+    <ProjectReference Include="..\CoreEx.Cosmos\CoreEx.Cosmos.csproj" />
     <ProjectReference Include="..\CoreEx.Data\CoreEx.Data.csproj" />
     <ProjectReference Include="..\CoreEx.Database.Postgres\CoreEx.Database.Postgres.csproj" />
     <ProjectReference Include="..\CoreEx.Database.SqlServer\CoreEx.Database.SqlServer.csproj" />

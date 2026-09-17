@@ -42,11 +42,11 @@ public class CosmosDbContainerFilterTests : CosmosTestBase
         // Seed directly via the raw SDK container, bypassing CoreEx.Cosmos's own filter enforcement on Create.
         await container.Container.CreateItemAsync(new TestItem { Id = id, PartitionKey = id, Name = "Hidden" }, new PartitionKey(id));
 
-        var blocked = await container.GetWithResultAsync(CompositeKey.Create(id), new PartitionKey(id));
+        var blocked = await container.GetWithResultAsync(CompositeKey.Create(id), id);
         blocked.IsFailure.Should().BeTrue();
         blocked.Error.Should().BeOfType<AuthenticationException>();
 
-        var bypassed = await container.GetWithResultAsync(new CosmosDbArgs { BypassFilters = true }, CompositeKey.Create(id), new PartitionKey(id));
+        var bypassed = await container.GetWithResultAsync(new CosmosDbArgs { BypassFilters = true }, CompositeKey.Create(id), id);
         bypassed.IsSuccess.Should().BeTrue();
         bypassed.Value.Name.Should().Be("Hidden");
     }
@@ -62,11 +62,11 @@ public class CosmosDbContainerFilterTests : CosmosTestBase
         // Seed directly via the raw SDK container, bypassing CoreEx.Cosmos's own filter enforcement on Create.
         await container.Container.CreateItemAsync(new TestItem { Id = id, PartitionKey = id, Name = "Hidden" }, new PartitionKey(id));
 
-        var blocked = await container.DeleteWithResultAsync(CompositeKey.Create(id), new PartitionKey(id));
+        var blocked = await container.DeleteWithResultAsync(CompositeKey.Create(id), id);
         blocked.IsFailure.Should().BeTrue();
         blocked.Error.Should().BeOfType<AuthenticationException>();
 
-        var bypassed = await container.DeleteWithResultAsync(new CosmosDbArgs { BypassFilters = true }, CompositeKey.Create(id), new PartitionKey(id));
+        var bypassed = await container.DeleteWithResultAsync(new CosmosDbArgs { BypassFilters = true }, CompositeKey.Create(id), id);
         bypassed.IsSuccess.Should().BeTrue();
         bypassed.Value.WasMutated.Should().BeTrue();
     }

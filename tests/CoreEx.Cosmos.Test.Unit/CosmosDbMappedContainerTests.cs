@@ -24,7 +24,7 @@ public class CosmosDbMappedContainerTests : CosmosTestBase
         created.Value.Name.Should().Be("Contract");
         created.Value.ETag.Should().NotBeNullOrEmpty();
 
-        var fetched = await mapped.GetAsync(CompositeKey.Create(id), new PartitionKey(id));
+        var fetched = await mapped.GetAsync(CompositeKey.Create(id), id);
         fetched.Should().NotBeNull();
         fetched!.Name.Should().Be("Contract");
 
@@ -32,10 +32,10 @@ public class CosmosDbMappedContainerTests : CosmosTestBase
         var updated = await mapped.UpdateAsync(fetched);
         updated.Value.Name.Should().Be("Updated Contract");
 
-        var deleted = await mapped.DeleteAsync(CompositeKey.Create(id), new PartitionKey(id));
+        var deleted = await mapped.DeleteAsync(CompositeKey.Create(id), id);
         deleted.WasMutated.Should().BeTrue();
 
-        var afterDelete = await mapped.GetAsync(CompositeKey.Create(id), new PartitionKey(id));
+        var afterDelete = await mapped.GetAsync(CompositeKey.Create(id), id);
         afterDelete.Should().BeNull();
     }
 }

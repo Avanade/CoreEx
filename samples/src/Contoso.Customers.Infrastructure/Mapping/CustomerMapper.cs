@@ -19,10 +19,6 @@ public class CustomerMapper : BiDirectionMapper<Contracts.Customer, Persistence.
         };
 
         destination.MapStandardFrom(source);
-
-        // PartitionKey defaults to Id (kept simple, per explicit direction - no LastName-based sharding) - the contract has no PartitionKey property at all, so Infrastructure alone decides it, here.
-        destination.PartitionKey = destination.Id;
-
         return destination;
     }
 

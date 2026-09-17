@@ -32,7 +32,7 @@ public class Program
             .WithSystemTextJsonSerializer(JsonDefaults.SerializerOptions);
 
         builder.Services
-            .AddFusionHybridCache()                     // Adds the CoreEx.Caching.IHybridCache for FusionCache.
+            .AddFusionHybridCache()                      // Adds the CoreEx.Caching.IHybridCache for FusionCache.
             .AddDefaultCacheKeyProvider()                // Adds the default CoreEx.Caching.ICacheKeyProvider.
             .AddHybridCacheIdempotencyProvider();        // Adds the CoreEx.Caching.Idempotency.IIdempotencyProvider.
 
@@ -52,8 +52,9 @@ public class Program
         builder.Services.AddCosmosDb<CustomersCosmosDb>("contoso");
         builder.Services
             .AddEventFormatter()                         // Adds the EventFormatter to enable message formatting for publishing.
-            .AddScoped<IEventPublisher, CosmosDbEventPublisher>()
-            .AddScoped<IUnitOfWork, CosmosDbUnitOfWork>();
+            .AddCosmosDbEventPublisher()                 // Adds the CosmosDbEventPublisher/IEventPublisher
+            .AddCosmosDbUnitOfWork()                     // Adds the CosmosDbUnitOfWork/IUnitOfWork, matching AddPostgresUnitOfWork/AddSqlServerUnitOfWork's multi-register shape.
+            .AddCosmosDbHealthCheck();                   // Adds the CosmosDbHealthCheck - Aspire's own AddAzureCosmosClient does not register one itself, unlike its Npgsql/SqlClient counterparts.
 
         // Post-configure all health-checks; adds the standard tags.
         builder.Services.PostConfigureAllHealthChecks();
@@ -69,7 +70,9 @@ public class Program
         });
 
         // Add OpenTelemetry tracing.
-        builder.WithCoreExTelemetry().UseOtlpExporter();
+        builder.WithCoreExTelemetry()
+            .WithCoreExCosmosDbTelemetry()
+            .UseOtlpExporter();
 
         // Build the application.
         var app = builder.Build();

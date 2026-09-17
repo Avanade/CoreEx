@@ -9,6 +9,7 @@ global using CoreEx.Entities;
 global using CoreEx.Entities.Abstractions;
 global using CoreEx.Events;
 global using CoreEx.Events.Publishing;
+global using CoreEx.HealthChecks;
 global using CoreEx.Hosting;
 global using CoreEx.Invokers;
 global using CoreEx.Mapping;

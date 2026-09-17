@@ -56,7 +56,11 @@ public class CosmosDbInvoker : InvokerBase<ICosmosDb, CosmosDbArgs>
     /// <remarks>This is intended to be used by <see cref="Extended.CosmosDbUnitOfWorkInvoker"/> to provide the <see cref="CosmosDbUnitOfWork"/>-specific transaction handling, mirroring
     /// <c>DatabaseInvoker.OrchestrateUnitOfWorkTransactionAsync</c>'s shape while diverging in mechanics where Cosmos DB's <see cref="TransactionalBatch"/> genuinely differs from an ADO.NET transaction
     /// (deferred, all-at-once execution rather than immediate per-statement execution with a later commit; no save-point equivalent for nesting; nothing to explicitly roll back on failure, since nothing is
-    /// ever sent to Cosmos DB before the batch executes). See <see cref="CosmosDbUnitOfWork"/>'s own remarks for the full model.</remarks>
+    /// ever sent to Cosmos DB before the batch executes). See <see cref="CosmosDbUnitOfWork"/>'s own remarks for the full model.
+    /// <para><see cref="IEventPublisher.PublishAsync(CancellationToken)"/> (below) necessarily happens <i>before</i> the batch actually executes - it is what enlists the outbox event document into the
+    /// same atomic batch as the business mutation in the first place. This means a batch that fails to commit (e.g. a concurrency conflict) does so <i>after</i> publish already completed successfully;
+    /// <see cref="IEventPublisher.RollbackAsync(CancellationToken)"/> is called in that case so a test-only capture (see <c>EventPublisherDecorator</c>) doesn't wrongly believe an event was published
+    /// when nothing was ever actually persisted.</para></remarks>
     public static async Task<TResult> OrchestrateUnitOfWorkTransactionAsync<TResult>(InvokerTracer tracer, CosmosDbUnitOfWork unitOfWork, Func<Task<TResult>> work, Action<int>? emitOutboxMetrics, CancellationToken cancellationToken)
     {
         var txn = unitOfWork.CosmosDb.CurrentTransaction;
@@ -65,6 +69,13 @@ public class CosmosDbInvoker : InvokerBase<ICosmosDb, CosmosDbArgs>
         {
             txn = new CosmosDbTransaction();
             unitOfWork.CosmosDb.UseTransaction(txn);
+        }
+
+        // Only relevant where the batch failed to commit after publish already completed (see remarks above) - a no-op (via IEventPublisher.RollbackAsync's own default) where publish never happened.
+        async Task RollbackOutboxIfPublishedAsync()
+        {
+            if (unitOfWork.Outbox is not null && unitOfWork.Outbox.HasBeenPublished)
+                await unitOfWork.Outbox.RollbackAsync(cancellationToken).ConfigureAwait(false);
         }
 
         try
@@ -107,6 +118,8 @@ public class CosmosDbInvoker : InvokerBase<ICosmosDb, CosmosDbArgs>
         }
         catch (CosmosException cex)
         {
+            await RollbackOutboxIfPublishedAsync().ConfigureAwait(false);
+
             // Mirrors OnInvokeAsync's per-call exception mapping - a raw CosmosException can still surface directly from ExecuteAsync itself (e.g. a genuine transport/service failure), distinct from a
             // "logical" failure already surfaced via the TransactionalBatchResponse and translated by CreateBatchFailureException below.
             var hex = unitOfWork.CosmosDb.HandleCosmosException(cex);
@@ -125,6 +138,8 @@ public class CosmosDbInvoker : InvokerBase<ICosmosDb, CosmosDbArgs>
         }
         catch (Exception ex)
         {
+            await RollbackOutboxIfPublishedAsync().ConfigureAwait(false);
+
             if (tracer.Logger is not null && tracer.Logger.IsEnabled(LogLevel.Error))
                 tracer.Logger.LogError(ex, "Unit-of-work transaction discarded due to an unexpected error: {Error}", ex.Message);
 
@@ -162,7 +177,7 @@ public class CosmosDbInvoker : InvokerBase<ICosmosDb, CosmosDbArgs>
                 HttpStatusCode.NotFound => new NotFoundException(),
                 HttpStatusCode.Conflict => new DuplicateException(),
                 HttpStatusCode.PreconditionFailed => new ConcurrencyException(),
-                _ => new InvalidOperationException($"The CosmosDbUnitOfWork's TransactionalBatch failed with status code '{response.StatusCode}' at operation index {i} (operation status '{opResult.StatusCode}').")
+                _ => new InvalidOperationException($"The CosmosDbUnitOfWork's TransactionalBatch failed with status code '{response.StatusCode}' at operation index {i} (operation status '{opResult.StatusCode}'): {response.ErrorMessage}")
             };
         }
 

@@ -17,11 +17,11 @@ public class CosmosDbContainerTenantTests : CosmosTestBase
 
         // Tenant B attempts to delete Tenant A's document by (known/guessed) id + partition key - the pre-read's tenant check (TenantSupport.IsSupported forces the pre-read path even with no
         // logical delete or WithFilter configured) means this is treated as not-found rather than actually deleting Tenant A's document.
-        var deleted = await containerB.DeleteAsync(CompositeKey.Create(id), new PartitionKey(id));
+        var deleted = await containerB.DeleteAsync(CompositeKey.Create(id), id);
         deleted.WasMutated.Should().BeFalse();
 
         // Confirm it still exists, untouched, for Tenant A.
-        var stillThere = await containerA.GetAsync(CompositeKey.Create(id), new PartitionKey(id));
+        var stillThere = await containerA.GetAsync(CompositeKey.Create(id), id);
         stillThere.Should().NotBeNull();
         stillThere!.Name.Should().Be("Owned by tenant-a");
     }
@@ -35,7 +35,7 @@ public class CosmosDbContainerTenantTests : CosmosTestBase
         var id = NewId();
         await containerA.CreateAsync(new TenantItem { Id = id, PartitionKey = id, Name = "Owned by tenant-a" });
 
-        var deleted = await containerA.DeleteAsync(CompositeKey.Create(id), new PartitionKey(id));
+        var deleted = await containerA.DeleteAsync(CompositeKey.Create(id), id);
         deleted.WasMutated.Should().BeTrue();
     }
 }

@@ -6,7 +6,7 @@ global using CoreEx;
 global using CoreEx.AspNetCore.Mvc;
 global using CoreEx.Cosmos;
 global using CoreEx.Cosmos.Outbox;
-global using CoreEx.Data;
+global using CoreEx.Data.Json;
 global using CoreEx.Entities;
 global using CoreEx.Events;
 global using CoreEx.Events.Publishing;

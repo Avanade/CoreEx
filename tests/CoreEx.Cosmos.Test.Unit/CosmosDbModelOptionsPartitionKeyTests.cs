@@ -83,7 +83,7 @@ public class CosmosDbModelOptionsPartitionKeyTests
     {
         var options = new CosmosDbModelOptions<TestItem>().WithFixedPartitionKey("fixed");
 
-        options.GetPartitionKey(new PartitionKey("explicit")).Should().Be(new PartitionKey("explicit"));
+        options.GetPartitionKey("explicit").Should().Be(new PartitionKey("explicit"));
     }
 
     [Test]
@@ -91,7 +91,7 @@ public class CosmosDbModelOptionsPartitionKeyTests
     {
         var options = new CosmosDbModelOptions<TestItem>().WithFixedPartitionKey("fixed");
 
-        options.GetPartitionKey((PartitionKey?)null).Should().Be(new PartitionKey("fixed"));
+        options.GetPartitionKey((string?)null).Should().Be(new PartitionKey("fixed"));
     }
 
     [Test]
@@ -99,7 +99,7 @@ public class CosmosDbModelOptionsPartitionKeyTests
     {
         var options = new CosmosDbModelOptions<TestItem>();
 
-        options.GetPartitionKey((PartitionKey?)null).Should().Be(PartitionKey.None);
+        options.GetPartitionKey((string?)null).Should().Be(PartitionKey.None);
     }
 
     [Test]

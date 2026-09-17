@@ -115,7 +115,7 @@ public class CosmosDbOutboxRelayProcessor(IServiceProvider serviceProvider, stri
     {
         try
         {
-            await container.DeleteAsync(CompositeKey.Create(doc.Id), new PartitionKey(doc.PartitionKey), cancellationToken).ConfigureAwait(false);
+            await container.DeleteAsync(CompositeKey.Create(doc.Id), doc.PartitionKey!, cancellationToken).ConfigureAwait(false);
             CosmosMetrics.OutboxRelayCleanupDeleted.Add(1, tag);
         }
         catch (Exception ex)

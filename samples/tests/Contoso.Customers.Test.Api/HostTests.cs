@@ -3,7 +3,7 @@ namespace Contoso.Customers.Test.Api;
 public partial class HostTests : WithApiTester<Contoso.Customers.Api.Program>
 {
     [OneTimeSetUp]
-    public Task OneTimeSetUpAsync() => DatabaseSetUp.SetUpAsync();
+    public Task OneTimeSetUpAsync() => Test.DatabaseSetUpAsync();
 
     [Test]
     public void Swagger_UI()
@@ -48,8 +48,8 @@ public partial class HostTests : WithApiTester<Contoso.Customers.Api.Program>
     [TestCase("/health/ready/detailed", false)]
     public void Health_Detailed(string path, bool minimal)
     {
-        // Deliberately minimal - only asserting the one entry we're certain is registered (AddReferenceDataOrchestrator); the exact Cosmos-related entry name(s) are left for validation to confirm.
-        const string referenceDataEntry = "$.entries.reference-data-orchestrator";
+        // Both registered against HealthCheckTags.StartUpAndReadyOnly (not Live), matching AddHostedService's own convention - liveness reflects the process, not downstream dependencies.
+        string[] paths = ["$.entries.reference-data-orchestrator", "$.entries.cosmos-database"];
 
         var r = Test.Http()
             .Run(HttpMethod.Get, path)
@@ -59,8 +59,8 @@ public partial class HostTests : WithApiTester<Contoso.Customers.Api.Program>
 
         var json = r.GetContent().Should().BeJson();
         if (minimal)
-            json.NotContainAny([referenceDataEntry]);
+            json.NotContainAny(paths);
         else
-            json.ContainAll([referenceDataEntry]);
+            json.ContainAll(paths);
     }
 }

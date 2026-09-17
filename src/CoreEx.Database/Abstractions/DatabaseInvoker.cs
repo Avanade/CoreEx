@@ -92,8 +92,15 @@ public abstract class DatabaseInvoker : InvokerBase<IDatabase, DatabaseArgs>
                 }
             }
 
-            // Where outbox/events are supported then also rollback any added events.
-            unitOfWork.Outbox?.Rollback(Math.Max(0, unitOfWork.Outbox.Count - eventStartCount));
+            // Where outbox/events are supported then also roll back any added events - Dequeue only functions pre-publish; where publishing already occurred (e.g. it happened successfully but the
+            // transaction/save-point itself still failed to commit afterward), use RollbackAsync instead to undo the already-captured publish.
+            if (unitOfWork.Outbox is not null)
+            {
+                if (unitOfWork.Outbox.HasBeenPublished)
+                    await unitOfWork.Outbox.RollbackAsync(cancellationToken).ConfigureAwait(false);
+                else
+                    unitOfWork.Outbox.Dequeue(Math.Max(0, unitOfWork.Outbox.Count - eventStartCount));
+            }
         }
 
         // Perform the unit-of-work within a transaction or save-point as appropriate.

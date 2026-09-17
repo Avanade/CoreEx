@@ -5,12 +5,13 @@ public class CustomersCosmosDb(CosmosClient client, string databaseId) : CosmosD
     private const string RefDataContainerId = "ref-data";
     private const string CustomersContainerId = "customers";
 
-    private static readonly CosmosDbOptions _options = new CosmosDbOptions();
+    private static readonly CosmosDbOptions _options = new();
 
     public CosmosDbContainer<Persistence.ContactMethod> ContactMethods => Container<Persistence.ContactMethod>(RefDataContainerId, o => o.WithTypeDiscriminator());
 
     public CosmosDbContainer<Persistence.CustomerType> CustomerTypes => Container<Persistence.CustomerType>(RefDataContainerId, o => o.WithTypeDiscriminator());
 
-    // PartitionKey defaults from the model's own IReadOnlyPartitionKey.PartitionKey (set to Id by CustomerMapper) - no WithPartitionKey/WithFixedPartitionKey override needed; kept deliberately simple.
-    public CosmosDbContainer<Persistence.Customer> Customers => Container<Persistence.Customer>(CustomersContainerId);
+    // The Customers container is mapped to the Contracts.Customer model using the CustomerMapper to handle the mapping between the persistence model and the contract model as the default access.
+    public CosmosDbMappedContainer<Contracts.Customer, Persistence.Customer, CustomerMapper> Customers
+        => Container<Persistence.Customer>(CustomersContainerId).ToMappedModel<Contracts.Customer, CustomerMapper>(new CustomerMapper());
 }

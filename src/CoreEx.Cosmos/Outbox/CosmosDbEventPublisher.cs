@@ -16,6 +16,12 @@ public class CosmosDbEventPublisher(ICosmosDb cosmosDb, IDestinationProvider? de
     : EventPublisherBase(destinationProvider, formatter, logger)
 {
     /// <summary>
+    /// Gets the default service key used for the underlying <see cref="IEventPublisher"/> registration.
+    /// </summary>
+    /// <remarks>See related <c>CoreExCosmosExtensions.AddCosmosDbEventPublisher(IServiceCollection, Action{IServiceProvider, CosmosDbEventPublisher}?, bool, string)</c>.</remarks>
+    public const string DefaultServiceKey = "CosmosOutbox";
+
+    /// <summary>
     /// Gets the default outbox event time-to-live, in seconds (7 days).
     /// </summary>
     /// <remarks>See <see cref="OutboxTimeToLiveSeconds"/> for the trade-off this default represents.</remarks>
@@ -48,10 +54,11 @@ public class CosmosDbEventPublisher(ICosmosDb cosmosDb, IDestinationProvider? de
             throw new InvalidOperationException($"{nameof(CosmosDbEventPublisher)} requires at least one business mutation to already be enlisted in the current unit-of-work; an outbox event document has no container/partition key to bind to otherwise.");
 
         var container = txn.BoundContainer!;
-        var partitionKeyValue = txn.BoundPartitionKeyValue
-            ?? throw new InvalidOperationException($"{nameof(CosmosDbEventPublisher)} requires the enlisted business model to expose its partition key value (see CosmosDbModelOptions<TModel>.PartitionKeySupport); it could not be resolved for the current unit-of-work.");
 
-        var partitionKey = new PartitionKey(partitionKeyValue);
+        // BoundPartitionKeyValue is null where the enlisted business mutation's own partition key resolved to PartitionKey.None - a real, valid single logical partition (not an error; the simplest
+        // possible container shape), so the outbox event document is co-located there too, exactly the same as any other partition key value.
+        var partitionKeyValue = txn.BoundPartitionKeyValue;
+        var partitionKey = partitionKeyValue is null ? PartitionKey.None : new PartitionKey(partitionKeyValue);
 
         foreach (var de in events)
         {
