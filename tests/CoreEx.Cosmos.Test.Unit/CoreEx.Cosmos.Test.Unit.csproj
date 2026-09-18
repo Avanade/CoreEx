@@ -25,7 +25,6 @@
     <ProjectReference Include="..\..\src\CoreEx.Data\CoreEx.Data.csproj" />
     <ProjectReference Include="..\..\src\CoreEx.Events\CoreEx.Events.csproj" />
     <ProjectReference Include="..\..\src\CoreEx.Cosmos\CoreEx.Cosmos.csproj" />
-    <ProjectReference Include="..\..\src\CoreEx.UnitTesting\CoreEx.UnitTesting.csproj" />
   </ItemGroup>
 
   <ItemGroup>

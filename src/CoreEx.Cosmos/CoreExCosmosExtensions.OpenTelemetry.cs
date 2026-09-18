@@ -12,7 +12,7 @@ public static class CoreExCosmosExtensions
     /// </summary>
     /// <param name="builder">The <see cref="OpenTelemetryBuilder"/>.</param>
     /// <returns>The <paramref name="builder"/> to support fluent-style method-chaining.</returns>
-    /// <remarks>Deliberately does <b>not</b> register <see cref="CoreEx.Cosmos.CosmosDbInvoker"/>/<see cref="CoreEx.Cosmos.Extended.CosmosDbUnitOfWorkInvoker"/> as tracing sources - both disable tracing
+    /// <remarks>Deliberately does <b>not</b> register <see cref="CoreEx.Cosmos.Extended.CosmosDbInvoker"/>/<see cref="CoreEx.Cosmos.Extended.CosmosDbUnitOfWorkInvoker"/> as tracing sources - both disable tracing
     /// themselves (<c>IsTracingDisabled</c>) since CRUD/unit-of-work operations are high-frequency; registering their (never-emitted) source would be dead weight. Only <see cref="CoreEx.Cosmos.Outbox.CosmosDbOutboxRelayInvoker"/>
     /// is registered, mirroring <c>WithCoreExPostgresTelemetry</c>/<c>WithCoreExSqlServerTelemetry</c>'s relay-only tracing choice.</remarks>
     public static OpenTelemetryBuilder WithCoreExCosmosDbTelemetry(this OpenTelemetryBuilder builder) => builder.ThrowIfNull()

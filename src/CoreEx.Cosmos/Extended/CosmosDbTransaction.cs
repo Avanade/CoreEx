@@ -1,4 +1,4 @@
-namespace CoreEx.Cosmos;
+namespace CoreEx.Cosmos.Extended;
 
 /// <summary>
 /// Represents the ambient ("current"), single-container/single-partition-key <see cref="TransactionalBatch"/> scope of an active <see cref="CosmosDbUnitOfWork"/>.
@@ -68,7 +68,7 @@ public sealed class CosmosDbTransaction
             _partitionKeyValue = partitionKeyValue;
             _batch = container.CreateTransactionalBatch(partitionKey);
         }
-        else if (!ReferenceEquals(_container, container) || !_partitionKey!.Value.Equals(partitionKey))
+        else if (!IsSameContainer(_container!, container) || !_partitionKey!.Value.Equals(partitionKey))
             throw new InvalidOperationException(
                 $"An operation targeting container '{container.Id}'/partition key '{partitionKey}' was attempted within the same CosmosDbUnitOfWork as an earlier operation targeting container " +
                 $"'{_container!.Id}'/partition key '{_partitionKey}'. Cosmos DB's TransactionalBatch is atomic only within a single container and a single logical partition key; all operations within " +
@@ -87,6 +87,15 @@ public sealed class CosmosDbTransaction
     /// <param name="index">The resolved zero-based operation index, where found.</param>
     /// <returns><see langword="true"/> where <paramref name="key"/> was enlisted as part of this transaction; otherwise, <see langword="false"/>.</returns>
     public bool TryGetOperationIndex(CompositeKey key, out int index) => _operationIndexByKey.TryGetValue(key, out index);
+
+    /// <summary>
+    /// Determines whether <paramref name="x"/> and <paramref name="y"/> represent the same logical container.
+    /// </summary>
+    /// <remarks>Compares <see cref="Container.Id"/>/<see cref="Database.Id"/> rather than reference equality. In practice every <see cref="Container"/> enlisted here is resolved via <c>ICosmosDb</c>'s own
+    /// per-<c>containerId</c> cache, so reference equality alone would already hold - but relying on that as an implicit invariant is fragile (e.g. a caller constructing a <see cref="Container"/> directly
+    /// from a <see cref="CosmosClient"/>/<see cref="Database"/>, bypassing that cache, would otherwise be wrongly treated as a different container to the one already bound). Comparing identifiers is just
+    /// as cheap and removes the hidden coupling.</remarks>
+    private static bool IsSameContainer(Container x, Container y) => ReferenceEquals(x, y) || (x.Id == y.Id && x.Database.Id == y.Database.Id);
 
     /// <summary>
     /// Executes the accumulated <see cref="TransactionalBatch"/> (where <see cref="HasOperations"/>); a no-op returning <see langword="null"/> otherwise.

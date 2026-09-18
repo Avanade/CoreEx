@@ -105,8 +105,10 @@ public abstract partial class WebApi<TResult>(WebApiInvoker<TResult> invoker, Js
             ? Entities.ETag.Generate(json, options.Request.QueryString.ToString())
             : value is IReadOnlyETag vetag && vetag.ETag is not null ? vetag.ETag : ETag.Generate(json);
 
-        // Where the request is a GET or HEAD and the ETag matches then return a 304 Not Modified.
-        if (options.ETag is not null && (HttpMethods.IsGet(options.Request.Method) || HttpMethods.IsHead(options.Request.Method)) && options.ETag == getag)
+        // Where the request is a GET or HEAD and the ETag matches then return a 304 Not Modified. options.ETag was already parsed (quote-bookends stripped) from the If-None-Match header by
+        // WebApiOptionsBase's constructor, but getag (above) has not been - for a provider whose native ETag is itself already quote-wrapped (e.g. Cosmos DB's raw "_etag" system property),
+        // comparing the two unnormalized would never match, even for a genuinely unmodified resource. The response's own ETag header (below) is left as getag, unnormalized, unaffected by this.
+        if (options.ETag is not null && (HttpMethods.IsGet(options.Request.Method) || HttpMethods.IsHead(options.Request.Method)) && options.ETag == Entities.ETag.ParseETag(getag))
             return new WebApiResult<TResult>(options.Request.HttpContext.Response)
             {
                 StatusCode = HttpStatusCode.NotModified,

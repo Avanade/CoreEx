@@ -1,5 +1,6 @@
 global using CoreEx;
 global using CoreEx.Cosmos;
+global using CoreEx.Cosmos.Extended;
 global using CoreEx.Cosmos.Outbox;
 global using CoreEx.Data;
 global using CoreEx.Data.Json;
@@ -9,7 +10,6 @@ global using CoreEx.Events.Publishing;
 global using CoreEx.Hosting;
 global using CoreEx.Mapping;
 global using CoreEx.Results;
-global using CoreEx.UnitTesting.Cosmos;
 global using Microsoft.Azure.Cosmos;
 global using Microsoft.Azure.Cosmos.Linq;
 global using Microsoft.Extensions.Configuration;

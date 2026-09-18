@@ -1,4 +1,4 @@
-namespace CoreEx.Cosmos;
+namespace CoreEx.Cosmos.Extended;
 
 /// <summary>
 /// Provides the standard <see cref="ICosmosDb"/> invoker functionality.

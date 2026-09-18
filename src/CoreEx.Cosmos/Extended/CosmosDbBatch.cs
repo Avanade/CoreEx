@@ -1,12 +1,12 @@
-namespace CoreEx.UnitTesting.Cosmos;
+namespace CoreEx.Cosmos.Extended;
 
 /// <summary>
-/// Provides <b>Cosmos DB</b> batch data-import extension methods, intended for test data seeding only.
+/// Provides <b>Cosmos DB</b> batch data-import extension methods over raw JSON, suitable for data seeding, bulk/one-off loads, and migrations alike.
 /// </summary>
-/// <remarks>Operates on raw JSON (<see cref="JsonArray"/>/<see cref="JsonObject"/>) rather than any <c>CoreEx.Cosmos</c> model type. A fixture author controls the exact document shape directly -
+/// <remarks>Operates on raw JSON (<see cref="JsonArray"/>/<see cref="JsonObject"/>) rather than any <c>CoreEx.Cosmos</c> model type. A caller controls the exact document shape directly -
 /// including whatever property the container's partition key path points at, and any type-discriminator value for a container hosting multiple document "types" - the same way they would for
 /// any other Cosmos document. <c>Container.CreateItemAsync</c> with no explicit partition key auto-extracts it from the item's own serialized shape (empirically confirmed against the emulator,
-/// using the same <c>UseSystemTextJsonSerializerWithOptions</c> configuration test setup already uses) - so no partition-key handling is needed here at all, unlike a naive per-batch-partition-key
+/// when the <see cref="CosmosClient"/> is configured with <c>UseSystemTextJsonSerializerWithOptions</c>) - so no partition-key handling is needed here at all, unlike a naive per-batch-partition-key
 /// approach.</remarks>
 public static class CosmosDbBatch
 {
@@ -41,7 +41,7 @@ public static class CosmosDbBatch
     /// </summary>
     /// <param name="container">The <see cref="Container"/>.</param>
     /// <param name="jsonDataReader">The <see cref="JsonDataReader"/>.</param>
-    /// <param name="path">The qualified path to the array of items within the <paramref name="jsonDataReader"/> (see <see cref="JsonDataReader.TryCreateData(string, out JsonNode?)"/>) - e.g. a fixture
+    /// <param name="path">The qualified path to the array of items within the <paramref name="jsonDataReader"/> (see <see cref="JsonDataReader.TryCreateData(string, out JsonNode?)"/>) - e.g. a payload
     /// with a grouped/nested structure such as <c>Orders: [{ Order: [...] }]</c> would use the path <c>"Orders.Order"</c>.</param>
     /// <param name="sequential">Indicates whether the items are created sequentially rather than in parallel; defaults to <see langword="false"/>.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
@@ -64,8 +64,8 @@ public static class CosmosDbBatch
     /// <param name="jsonDataReader">The <see cref="JsonDataReader"/>.</param>
     /// <param name="sequential">Indicates whether the items are created sequentially rather than in parallel; defaults to <see langword="false"/>.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-    /// <remarks>A one-line whole-file convenience for a fixture shaped flatly as <c>ContainerA: [...], ContainerB: [...]</c> - each top-level key names a container, and its array value is the list
-    /// of documents to import into it. For a fixture with a grouped/nested structure instead, use the explicit <see cref="ImportBatchAsync(Container, JsonDataReader, string, bool, CancellationToken)"/>
+    /// <remarks>A one-line whole-file convenience for a payload shaped flatly as <c>ContainerA: [...], ContainerB: [...]</c> - each top-level key names a container, and its array value is the list
+    /// of documents to import into it. For a payload with a grouped/nested structure instead, use the explicit <see cref="ImportBatchAsync(Container, JsonDataReader, string, bool, CancellationToken)"/>
     /// overload naming the exact path.
     /// <para>Each item is created individually and is not transactional - a partial failure part-way through leaves the already-created items in place.</para></remarks>
     public static async Task ImportBatchAsync(this Microsoft.Azure.Cosmos.Database database, JsonDataReader jsonDataReader, bool sequential = false, CancellationToken cancellationToken = default)
@@ -92,7 +92,7 @@ public static class CosmosDbBatch
     /// <param name="jsonDataReader">The <see cref="JsonDataReader"/>.</param>
     /// <param name="sequential">Indicates whether the items are created sequentially rather than in parallel; defaults to <see langword="false"/>.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-    /// <remarks>A one-line whole-file convenience for a fixture shaped as <c>ContainerA: [{ Person: [...] }, { Organization: [...] }], ContainerB: [...]</c> - each top-level key names a
+    /// <remarks>A one-line whole-file convenience for a payload shaped as <c>ContainerA: [{ Person: [...] }, { Organization: [...] }], ContainerB: [...]</c> - each top-level key names a
     /// container, and its array value contains objects whose keys each name an <see cref="ITypeDiscriminator"/> value, with the corresponding array being the list of documents to import
     /// into that container, stamped with the corresponding <see cref="ITypeDiscriminator.TypeDiscriminator"/>.
     /// <para>Each item is created individually and is not transactional - a partial failure part-way through leaves the already-created items in place.</para></remarks>

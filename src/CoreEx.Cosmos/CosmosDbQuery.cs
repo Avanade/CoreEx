@@ -127,8 +127,9 @@ public class CosmosDbQuery<TModel> where TModel : class, IEntityKey, new()
     /// <param name="autoCount">Indicates whether to perform the <see cref="PagingResult.TotalCount"/> query automatically.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
     /// <returns>The resulting <see cref="ItemsResult{TModel}"/>.</returns>
-    /// <remarks>Where <see cref="WithPaging(PagingArgs?)"/> was never called, defaults to <see cref="PagingArgs.None"/> (i.e. no paging is applied and the resulting <see cref="IItemsResult.Paging"/>
-    /// is <see langword="null"/>, per the standard <see cref="ItemsResult{TItem}"/> "no paging specified" convention).
+    /// <remarks>Where <see cref="WithPaging(PagingArgs?)"/> was never called, defaults to <see cref="PagingArgs.Create(int, int?, bool)"/> (i.e. <see cref="PagingArgs.DefaultTake"/> is applied) via the
+    /// shared <see cref="DataExtensions.WithPaging{TSource}(IQueryable{TSource}, PagingArgs?)"/> extension - matching <c>CoreEx.EntityFrameworkCore</c>'s own behavior; an unbounded result set requires
+    /// the caller to explicitly opt in via <see cref="PagingArgs.None"/>.
     /// <para>The <paramref name="autoCount"/> query executes a separate <c>SELECT VALUE COUNT(1)</c>-equivalent request unit cost (before paging is applied) and is opt-in given the additional RU cost;
     /// it has no effect unless paging with <see cref="PagingArgs.IsCountRequested"/> has been requested.</para></remarks>
     public async Task<ItemsResult<TModel>> ToItemsResultAsync(bool autoCount = true, CancellationToken cancellationToken = default)
@@ -149,7 +150,7 @@ public class CosmosDbQuery<TModel> where TModel : class, IEntityKey, new()
     private Task<Result<ItemsResult<TModel>>> ToItemsResultWithResultInternalAsync(bool autoCount, string memberName, CancellationToken cancellationToken)
         => Container.CosmosDb.Invoker.InvokeAsync(Container.CosmosDb, Args, async (_, _, ct) =>
         {
-            var paging = _paging ?? PagingArgs.None;
+            var paging = _paging ?? PagingArgs.Create();
             var baseQuery = AsQueryable();
             var ir = new ItemsResult<TModel>(paging) { Items = await DrainAsync(baseQuery.WithPaging(paging), ct).ConfigureAwait(false) };
 
@@ -429,7 +430,7 @@ public class CosmosDbQuery<TModel> where TModel : class, IEntityKey, new()
         mapper.ThrowIfNull();
         return Container.CosmosDb.Invoker.InvokeAsync(Container.CosmosDb, Args, async (_, _, ct) =>
         {
-            var paging = _paging ?? PagingArgs.None;
+            var paging = _paging ?? PagingArgs.Create();
             var baseQuery = AsQueryable();
             var ir = new ItemsResult<T>(paging) { Items = (await DrainAsync(baseQuery.WithPaging(paging), ct).ConfigureAwait(false)).ConvertAll(item => mapper(item)) };
 
@@ -441,9 +442,12 @@ public class CosmosDbQuery<TModel> where TModel : class, IEntityKey, new()
     }
 
     /// <summary>
-    /// Applies the <see cref="WithPaging(PagingArgs?)"/> state (where set) to the <paramref name="queryable"/>.
+    /// Applies the <see cref="WithPaging(PagingArgs?)"/> state to the <paramref name="queryable"/>.
     /// </summary>
-    private IQueryable<TModel> ApplyPagingIfSet(IQueryable<TModel> queryable) => _paging is null ? queryable : queryable.WithPaging(_paging);
+    /// <remarks>Delegates straight to the shared <see cref="DataExtensions.WithPaging{TSource}(IQueryable{TSource}, PagingArgs?)"/> extension - the same one <c>CoreEx.EntityFrameworkCore</c> calls directly -
+    /// rather than special-casing <see langword="null"/> to mean "no limit at all"; that extension already defaults an unset <see cref="PagingArgs"/> to <see cref="PagingArgs.Create(int, int?, bool)"/>
+    /// (applying <see cref="PagingArgs.DefaultTake"/>), so an unbounded result set requires the caller to explicitly opt in via <see cref="PagingArgs.None"/>.</remarks>
+    private IQueryable<TModel> ApplyPagingIfSet(IQueryable<TModel> queryable) => queryable.WithPaging(_paging);
 
     /// <summary>
     /// Guards against <see cref="WithPaging(PagingArgs?)"/> having been explicitly set prior to a <c>Single</c>/<c>First</c>-style materializer.

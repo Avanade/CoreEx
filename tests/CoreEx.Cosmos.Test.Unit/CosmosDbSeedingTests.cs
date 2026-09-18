@@ -1,7 +1,7 @@
 namespace CoreEx.Cosmos.Test.Unit;
 
 /// <summary>
-/// Proves the <c>CoreEx.UnitTesting.Cosmos</c> container-reset + YAML-driven batch-import primitives end-to-end: reset a container to a known-empty state, seed it from an embedded
+/// Proves the <c>CoreEx.Cosmos.Extended</c> container-reset + YAML-driven batch-import primitives end-to-end: reset a container to a known-empty state, seed it from an embedded
 /// <c>*.seed.yaml</c> fixture via <see cref="JsonDataReader"/> + <c>ImportBatchAsync</c>, then read/assert against the seeded data - directly analogous to the SQL Server/Postgres samples'
 /// <c>Test.MigratePostgresDataAsync</c>/<c>MigrateSqlServerDataAsync</c> seeding pattern, for containers rather than relational tables.
 /// </summary>

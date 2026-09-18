@@ -1,10 +1,10 @@
-namespace CoreEx.UnitTesting.Cosmos;
+namespace CoreEx.Cosmos.Extended;
 
 /// <summary>
-/// Provides <b>Cosmos DB</b> container lifecycle extension methods, intended for test database/container setup only.
+/// Provides <b>Cosmos DB</b> container lifecycle extension methods, suitable for provisioning or resetting a database/container from code.
 /// </summary>
-/// <remarks>Operates directly on the raw <see cref="Microsoft.Azure.Cosmos"/> SDK types - there is no dependency on <c>CoreEx.Cosmos</c> here at all, since resetting/creating a container for a test
-/// fixture needs none of that package's model-driven behavior (partition-key computation, type-discriminator stamping, etc.).</remarks>
+/// <remarks>Operates directly on the raw <see cref="Microsoft.Azure.Cosmos"/> SDK types - there is no dependency on any other <c>CoreEx.Cosmos</c> type here at all, since resetting/creating a
+/// container needs none of this package's model-driven behavior (partition-key computation, type-discriminator stamping, etc.).</remarks>
 public static class CosmosDbContainerExtensions
 {
     /// <summary>
@@ -30,8 +30,8 @@ public static class CosmosDbContainerExtensions
     /// <param name="throughput">The throughput (RU/s); where not specified, the database's shared/default throughput applies.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
     /// <returns>The newly-created <see cref="Container"/>.</returns>
-    /// <remarks>A test fixture's most common need: start each run from a known-empty container with a specific partition key path (and, optionally, a unique key policy), rather than accumulating
-    /// state across runs or assuming a container already exists with the right shape.</remarks>
+    /// <remarks>The most common need when provisioning a container from code: start from a known-empty container with a specific partition key path (and, optionally, a unique key policy), rather
+    /// than accumulating state across runs or assuming a container already exists with the right shape.</remarks>
     public static async Task<Container> ReplaceOrCreateContainerAsync(this Microsoft.Azure.Cosmos.Database database, ContainerProperties containerProperties, int? throughput = null, CancellationToken cancellationToken = default)
     {
         database.ThrowIfNull();

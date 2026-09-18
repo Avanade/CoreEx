@@ -4,7 +4,8 @@
     <Description>Core .NET extensions and abstractions for the testing of backend services.</Description>
     <PackageTags>coreex microservices domain-based event-driven railway-oriented reference-data unit-testing integration-testing intra-domain inter-domain mocking mstest xunit nunit unittestex json-data</PackageTags>
     <!-- Microsoft.Azure.Cosmos's default serializer is Newtonsoft.Json-based unless the caller configures UseSystemTextJsonSerializerWithOptions (as test setup, e.g. CosmosTestBase, already does) -
-         this project has no need for Newtonsoft.Json itself, so the check is disabled rather than adding an otherwise-unused package reference. -->
+         this project has no need for Newtonsoft.Json itself (transitively referenced via CoreEx.Cosmos, not a direct dependency here), so the check is disabled rather than adding an otherwise-unused
+         package reference. -->
     <AzureCosmosDisableNewtonsoftJsonCheck>true</AzureCosmosDisableNewtonsoftJsonCheck>
   </PropertyGroup>
 
@@ -12,7 +13,6 @@
     <PackageReference Include="DbEx.Postgres" />
     <PackageReference Include="DbEx.SqlServer" />
     <PackageReference Include="AwesomeAssertions" />
-    <PackageReference Include="Microsoft.Azure.Cosmos" />
     <PackageReference Include="UnitTestEx" />
   </ItemGroup>
 

@@ -70,9 +70,10 @@ public abstract partial class WebApi<TResult>
                         if (gv is null || gv is not IReadOnlyETag etag)
                             return gv;
 
-                        // Where there is etag support and it is null (assumes auto-generation) then generate; and finally compare etag for a match.
-                        //ETag.Compare(gro.ETag, etag.ETag ?? ETag.Generate(gv, JsonSerializerOptions));
-                        if (gro.ETag != (etag.ETag ?? ETag.Generate(gv, JsonSerializerOptions)))
+                        // Where there is etag support and it is null (assumes auto-generation) then generate; and finally compare etag for a match. gro.ETag was already parsed (quote-bookends
+                        // stripped) from the If-Match header by WebApiOptionsBase's constructor, but etag.ETag (the get result's own value) has not been - for a provider whose native ETag is
+                        // itself already quote-wrapped (e.g. Cosmos DB's raw "_etag" system property), comparing the two unnormalized would always fail, even for a genuinely matching ETag.
+                        if (gro.ETag != ETag.ParseETag(etag.ETag ?? ETag.Generate(gv, JsonSerializerOptions)))
                             return Result.ConcurrencyError();
 
                         return gv;

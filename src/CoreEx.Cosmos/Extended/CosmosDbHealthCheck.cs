@@ -1,4 +1,4 @@
-namespace CoreEx.Cosmos;
+namespace CoreEx.Cosmos.Extended;
 
 /// <summary>
 /// Provides an <see cref="IHealthCheck"/> for an <see cref="ICosmosDb"/>, verifying its configured <see cref="ICosmosDb.Database"/> is reachable and exists.

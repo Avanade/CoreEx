@@ -1,0 +1,11 @@
+# Cosmos 'customers' container rows for CustomerReadTests (Get + Query) - raw camelCase document shape (matches Contoso.Customers.Infrastructure.Persistence.Customer's JSON property names), imported
+# directly via CosmosDbBatch.ImportBatchAsync. Read-only fixture - every test here only reads, so all rows are freely shareable across tests. No 'partitionKey' property on any row (PartitionKey.None -
+# see mutate-data.seed.yaml's equivalent note). Distinct leading letters on lastName support startswith/endswith/contains filter + ordering assertions; two rows share firstName "Alice" to prove
+# multi-match filtering and the LastName tie-break order.
+customers:
+- { id: ^11, firstName: Alice, lastName: Anderson, email: alice.anderson@example.com, customerTypeCode: IND, contactMethodCode: EM, hasShopped: false }
+- { id: ^12, firstName: Bob, lastName: Brown, email: bob.brown@example.com, customerTypeCode: IND, contactMethodCode: PH, hasShopped: true }
+- { id: ^13, firstName: Charlie, lastName: Clarke, email: charlie.clarke@example.com, customerTypeCode: ORG, contactMethodCode: SMS, hasShopped: false }
+- { id: ^14, firstName: Diana, lastName: Davis, email: diana.davis@example.com, customerTypeCode: ORG, contactMethodCode: EM, hasShopped: true }
+- { id: ^15, firstName: Alice, lastName: Edwards, email: alice.edwards@example.com, customerTypeCode: IND, contactMethodCode: PO, hasShopped: false }
+- { id: ^16, firstName: Frank, lastName: Foster, email: frank.foster@example.com, customerTypeCode: IND, contactMethodCode: EM, phone: "555-0100", hasShopped: false, shippingAddress: { street1: "1 Test Street", city: Springfield, postCode: "49007", state: IL } }

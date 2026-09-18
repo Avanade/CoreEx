@@ -41,7 +41,11 @@ public record class CosmosDbArgs : IDataArgs
     /// <summary>
     /// Indicates whether to bypass any filters configured via <see cref="CosmosDbModelOptions{TModel}.WithFilter"/> that were opted in to being bypassable (<c>allowFilterBypass</c>).
     /// </summary>
-    /// <remarks>Defaults to <see langword="false"/>. Has no effect on the built-in tenant/logical-delete/type-discriminator filters, nor on a <see cref="CosmosDbModelOptions{TModel}.WithFilter"/>
-    /// registration where <c>allowFilterBypass</c> was not specified as <see langword="true"/>.</remarks>
+    /// <remarks>Defaults to <see langword="false"/>. <para><b>Important:</b> this <b>never</b> affects the built-in tenant (<see cref="CosmosDbModelOptions{TModel}.WithTenantFilter"/>), logical-delete
+    /// (<see cref="CosmosDbModelOptions{TModel}.WithLogicalDeleteFilter"/>) or type-discriminator (<see cref="CosmosDbModelOptions{TModel}.WithTypeDiscriminator(string?)"/>) checks — those are applied
+    /// unconditionally, for both queries (<see cref="CosmosDbModelOptions{TModel}.ApplyFilters"/>) and point operations (<see cref="CosmosDbContainer{TModel}.CheckModel"/>), regardless of this setting.
+    /// A caller that sets <see langword="true"/> expecting a point <c>GetAsync</c>/<c>DeleteAsync</c> to surface a soft-deleted row or another tenant's row will still get a <see langword="null"/>/
+    /// <see cref="Result.NotFoundError"/> — only an additive <see cref="CosmosDbModelOptions{TModel}.WithFilter"/> registration explicitly marked <c>allowFilterBypass: true</c> is ever actually bypassed
+    /// by this flag.</para></remarks>
     public bool BypassFilters { get; init; } = false;
 }

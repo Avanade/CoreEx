@@ -129,6 +129,22 @@ Poison-message/dead-letter handling is **not yet implemented** - a permanently-f
 
 **Detecting a stuck lease:** `cosmos.outbox.enqueue` continuing to climb while `cosmos.outbox.relay.publish` stays flat for the same container is the signal - the write side is unaffected by a stuck relay, so a sustained divergence between the two indicates a lease is blocked. `cosmos.outbox.relay.oldest_lag`/`newest_lag` are recorded on both a successful and a failed publish attempt, so they keep climbing (rather than going silent) for as long as a batch keeps failing - alert on a sustained rise in `cosmos.outbox.relay.oldest_lag`, not just on `cosmos.outbox.relay.publish.failed`, since a low failure count can still mean one lease has been stuck for a long time.
 
+## Batch import & container provisioning
+
+`CosmosDbBatch`/`CosmosDbContainerExtensions` (`Extended` namespace) operate on raw JSON/SDK types with no dependency on the rest of this package - useful for data seeding, bulk/one-off loads, and migrations, independent of any typed `CosmosDbContainer<TModel>`:
+
+```csharp
+// Provision/reset a container, then import raw JSON straight from a JsonDataReader (CoreEx.Data.Json).
+var container = await database.ReplaceOrCreateContainerAsync("orders", "/customerId");
+var jdr = JsonDataReader.ParseYaml<Program>("orders.yaml");
+await container.ImportBatchAsync(jdr, "Orders");
+
+// Or import every top-level key in a fixture as its own container id.
+await database.ImportBatchAsync(jdr);
+```
+
+`ImportBatchAsync` calls `Container.CreateItemAsync` directly per item (no `CosmosDbContainer<TModel>` involved), so none of the usual cross-cutting pipeline runs - no ETag/tenant/logical-delete/type-discriminator handling, no `Model.PrepareCreate` stamping, no outbox enlistment. The caller's JSON must already carry the correct partition-key property value and (where relevant) type-discriminator value.
+
 ## Do Not
 
 - Do not construct `CosmosClient` directly in application code — resolve it from DI (Aspire's `AddAzureCosmosClient`).
@@ -139,6 +155,7 @@ Poison-message/dead-letter handling is **not yet implemented** - a permanently-f
 - Do not call `SynchronizeETag` from inside a `TransactionAsync` `work` delegate — the batch (and therefore the true server-assigned `ETag`) has not executed yet; it throws `InvalidOperationException`.
 - Do not assume a `CosmosDbOutboxRelay`/relay hosted service durably handles a permanently-failing event — see "Outbox Relay" above; there is no dead-letter mechanism yet.
 - Do not materialize a query by defining a bare, generic-sounding `IQueryable<T>` extension method (`ToListAsync`, `ToItemsResultAsync`, etc.) — `CoreEx.EntityFrameworkCore.EfDbExtensions` already defines several identically-shaped ones, and C# extension-method resolution has no precedence rule between two equally-applicable candidates: it's a hard `CS0121` ambiguous-call compile error in any file that imports both namespaces, not just a style clash. Add materializers as instance methods on `CosmosDbQuery<TModel>` (or an equivalent package-owned wrapper type) instead — a different receiver type cannot collide, so plain names (`ToListAsync`, `ToItemsResultAsync`, ...) are safe there. Only fall back to a `To{Provider}XxxAsync`-prefixed `IQueryable<T>` extension if a package genuinely cannot own a wrapper type.
+- Do not use `CosmosDbBatch.ImportBatchAsync` for regular application writes — it bypasses `CosmosDbContainer<TModel>`'s entire cross-cutting pipeline (ETag/concurrency, tenant/logical-delete filtering, type-discriminator stamping, outbox enlistment). Use it only for data seeding, bulk/one-off loads, or migrations where that pipeline genuinely isn't wanted.
 
 ## Further Reading
 

@@ -39,7 +39,7 @@ public class EntityFrameworkBehaviorTests : DatabaseTestBase
         // ExecutionContext and a tenant filter enabled - Query() must filter by the injected tenant, not the ambient one.
         var dc = ExecutionContext.GetRequiredService<TestDbContext>();
         var injectedContext = new ExecutionContext { TenantId = "B" };
-        var options = new EfDbOptions().WithModel<TestTable>(mo => mo.WithTenantFilter(allowFilterBypass: false));
+        var options = new EfDbOptions().WithModel<TestTable>(mo => mo.WithTenantFilter());
         var ef = new EfDb<TestDbContext>(dc, options, injectedContext);
 
         // Seed data has two TenantId "B" rows (TableId 4 and 5); all others are "A" (see Data\data.yaml).
