@@ -70,6 +70,11 @@ public class CosmosDbOutboxRelayProcessor(IServiceProvider serviceProvider, stri
                 }
 
                 await eventPublisher.PublishAsync(ct).ConfigureAwait(false);
+
+                // Only now that the publish has actually succeeded, give every originating trace (e.g. the API request that raised the event) a deterministic, visible "relayed" marker - see
+                // EmitRelayMarkers remarks for why this exists alongside (not instead of) the batch-level link above. Emitting this before the publish would risk a false-positive "relayed"
+                // marker for an event whose publish subsequently throws (and is then retried as part of the whole batch's Change Feed Processor redelivery).
+                eventPublisher.GetEvents().EmitRelayMarkers(tracer.Activity);
             }, cancellationToken).ConfigureAwait(false);
 
             CosmosMetrics.OutboxRelayPublished.Add(outboxDocs.Count, tag);

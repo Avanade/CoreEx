@@ -73,6 +73,60 @@ public class CosmosDbOutboxRelayTests : CosmosTestBase
     }
 
     [Test]
+    public async Task ProcessBatchAsync_EmitsPerEventRelayMarker_ParentedToOriginatingTrace()
+    {
+        await GetOrCreateContainerAsync(ContainerId).ConfigureAwait(false);
+        var cosmosDb = CreateCosmosDb();
+        var container = cosmosDb.Container<TestItem>(ContainerId, o => o.WithPartitionKey(m => m.PartitionKey));
+        var outbox = new CosmosDbEventPublisher(cosmosDb);
+        var unitOfWork = new CosmosDbUnitOfWork(cosmosDb, outbox);
+
+        var pk = NewId();
+        var id = NewId();
+
+        // A standalone, listened-to Activity simulating the originating operation (e.g. the API request that raised the event) - independent of the test runner's own ambient activity, so its
+        // traceparent is deterministically embedded into the outbox document (via IEventFormatter.AddTracing, which uses Activity.Current when no explicit trace context has already been set).
+        using var producerSource = new System.Diagnostics.ActivitySource($"test.producer.{NewId()}");
+        using var producerListener = new System.Diagnostics.ActivityListener
+        {
+            ShouldListenTo = s => s.Name == producerSource.Name,
+            Sample = (ref System.Diagnostics.ActivityCreationOptions<System.Diagnostics.ActivityContext> _) => System.Diagnostics.ActivitySamplingResult.AllDataAndRecorded
+        };
+        System.Diagnostics.ActivitySource.AddActivityListener(producerListener);
+        using var producerActivity = producerSource.StartActivity("original-request");
+        producerActivity.Should().NotBeNull();
+
+        await unitOfWork.TransactionAsync(async ct =>
+        {
+            var created = await container.CreateAsync(new TestItem { Id = id, PartitionKey = pk, Name = "Widget" }, ct).ConfigureAwait(false);
+            unitOfWork.Events.Add(EventData.CreateEventWith(created.Value, EventAction.Created).WithSource(new Uri("https://unittest/coreex-cosmos", UriKind.Absolute)).WithPartitionKey(pk));
+        });
+
+        var rawContainer = cosmosDb.GetContainer(ContainerId);
+        var outboxDocs = await QueryOutboxDocsAsync(rawContainer, pk);
+        outboxDocs.Should().ContainSingle();
+
+        var markers = new List<System.Diagnostics.Activity>();
+        using var markerListener = new System.Diagnostics.ActivityListener
+        {
+            ShouldListenTo = s => s.Name == CoreEx.Events.CloudEventTracingExtensions.RelayMarkerActivitySourceName,
+            Sample = (ref System.Diagnostics.ActivityCreationOptions<System.Diagnostics.ActivityContext> _) => System.Diagnostics.ActivitySamplingResult.AllDataAndRecorded,
+            ActivityStopped = a => { lock (markers) markers.Add(a); }
+        };
+        System.Diagnostics.ActivitySource.AddActivityListener(markerListener);
+
+        var testPublisher = new TestEventPublisher();
+        using var sp = CreateServiceProvider(testPublisher);
+        var processor = new CosmosDbOutboxRelayProcessor(sp, ContainerId, NullLogger<CosmosDbOutboxRelayProcessor>.Instance);
+
+        await processor.ProcessBatchAsync(outboxDocs, CancellationToken.None);
+
+        markers.Should().ContainSingle();
+        markers[0].TraceId.Should().Be(producerActivity!.TraceId);
+        markers[0].ParentSpanId.Should().Be(producerActivity.SpanId);
+    }
+
+    [Test]
     public async Task ProcessBatchAsync_PublishFailure_StillRecordsLagMetrics()
     {
         await GetOrCreateContainerAsync(ContainerId).ConfigureAwait(false);

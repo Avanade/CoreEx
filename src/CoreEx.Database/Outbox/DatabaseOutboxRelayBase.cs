@@ -189,6 +189,11 @@ public abstract class DatabaseOutboxRelayBase<TDatabase, TSelf> : IDatabaseOutbo
                         }
 
                         await EventPublisher.PublishAsync(cancellationToken).ConfigureAwait(false);
+
+                        // Only now that the publish has actually succeeded, give every originating trace (e.g. the API request that raised the event) a deterministic, visible "relayed" marker - see
+                        // EmitRelayMarkers remarks for why this exists alongside (not instead of) the batch-level link above. Emitting this before the publish would risk a false-positive "relayed"
+                        // marker for an event whose publish subsequently throws (and is then retried as part of the whole batch being cancelled/re-claimed).
+                        events.EmitRelayMarkers(tracer.Activity);
                     }, cancellationToken).ConfigureAwait(false);
                 }
 
