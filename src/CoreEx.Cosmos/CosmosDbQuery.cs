@@ -57,9 +57,10 @@ public class CosmosDbQuery<TModel> where TModel : class, IEntityKey, new()
     /// <param name="args">The optional <see cref="CosmosDbArgs"/> (defaults to the <see cref="Args"/> specified at construction).</param>
     /// <returns>The <see cref="IQueryable{TModel}"/>.</returns>
     /// <remarks>Builds the base <see cref="IQueryable{TModel}"/> (using <paramref name="args"/>' <see cref="CosmosDbArgs.QueryRequestOptions"/>), applies the query composition function supplied to
-    /// <see cref="CosmosDbContainer{TModel}.Query(Func{IQueryable{TModel}, IQueryable{TModel}}?, CosmosDbArgs?)"/> (if any), and then applies the <see cref="CosmosDbModelOptions{TModel}"/>-configured
-    /// filters (see <see cref="CosmosDbModelOptions{TModel}.ApplyFilters(CosmosDbArgs, IQueryable{TModel}, ExecutionContext)"/>) unless <paramref name="args"/>' <see cref="CosmosDbArgs.BypassFilters"/>
-    /// is <see langword="true"/>.</remarks>
+    /// <see cref="CosmosDbContainer{TModel}.Query(Func{IQueryable{TModel}, IQueryable{TModel}}?, CosmosDbArgs?)"/> (if any), and then <b>always</b> applies the <see cref="CosmosDbModelOptions{TModel}"/>-configured
+    /// filters (see <see cref="CosmosDbModelOptions{TModel}.ApplyFilters(CosmosDbArgs, IQueryable{TModel}, ExecutionContext)"/>) — mirroring <c>CoreEx.EntityFrameworkCore.EfDbModel{TModel}.Query</c>, this method never
+    /// itself short-circuits on <paramref name="args"/>' <see cref="CosmosDbArgs.BypassFilters"/>; <c>ApplyFilters</c> is the single place bypass decisions are made, per-registration, so the mandatory tenant/logical-delete/
+    /// type-discriminator/outbox-exclusion predicates always apply regardless of this setting.</remarks>
     public IQueryable<TModel> AsQueryable(CosmosDbArgs? args = null)
     {
         args ??= Args;
@@ -67,7 +68,7 @@ public class CosmosDbQuery<TModel> where TModel : class, IEntityKey, new()
         IQueryable<TModel> query = Container.Container.GetItemLinqQueryable<TModel>(requestOptions: args.QueryRequestOptions);
         query = _query is null ? query : _query(query);
 
-        return args.BypassFilters ? query : Container.Options.ApplyFilters(args, query, Container.CosmosDb.ExecutionContext);
+        return Container.Options.ApplyFilters(args, query, Container.CosmosDb.ExecutionContext);
     }
 
     /// <summary>

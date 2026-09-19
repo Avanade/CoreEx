@@ -72,10 +72,10 @@ public class CosmosDbContainerFilterTests : CosmosTestBase
     }
 
     [Test]
-    public async Task AsQueryable_WithBypassFilters_SurfacesFilteredItems()
+    public async Task AsQueryable_WithBypassFilters_OnlyBypassesFiltersRegisteredAsBypassable()
     {
-        // Query-only filter (no nonQueryResult, no allowFilterBypass) - AsQueryable's own CosmosDbArgs.BypassFilters is a broader mechanism than the per-filter allowFilterBypass opt-in: it skips
-        // ApplyFilters entirely, so it surfaces items that would otherwise be excluded even when the underlying WithFilter was not itself registered as bypassable.
+        // Query-only filter registered WITHOUT allowFilterBypass (defaults to false) - CosmosDbArgs.BypassFilters must have no effect on it; matching CoreEx.EntityFrameworkCore.EfDbModelOptions.ApplyFilters,
+        // the call site (CosmosDbQuery.AsQueryable) always invokes ApplyFilters and the bypass decision is made per-registration, inside ApplyFilters, not by skipping it altogether.
         var container = await GetContainerAsync();
         var pk = NewId();
 
@@ -87,13 +87,88 @@ public class CosmosDbContainerFilterTests : CosmosTestBase
         var filteredItems = await DrainAsync(query.AsQueryable());
         filteredItems.Select(m => m.Name).Should().BeEquivalentTo(["Visible"]);
 
+        // Not registered with allowFilterBypass: true, so BypassFilters must NOT surface "Hidden".
+        var bypassedItems = await DrainAsync(query.AsQueryable(new CosmosDbArgs { BypassFilters = true }));
+        bypassedItems.Select(m => m.Name).Should().BeEquivalentTo(["Visible"]);
+    }
+
+    [Test]
+    public async Task AsQueryable_WithBypassFilters_BypassesFilterRegisteredAsBypassable()
+    {
+        // Query-only filter registered WITH allowFilterBypass: true - CosmosDbArgs.BypassFilters should surface the otherwise-excluded item, per the documented per-registration opt-in contract.
+        var container = await GetContainerAsync(allowFilterBypass: true);
+        var pk = NewId();
+
+        await container.CreateAsync(new TestItem { Id = NewId(), PartitionKey = pk, Name = "Visible" });
+        await container.CreateAsync(new TestItem { Id = NewId(), PartitionKey = pk, Name = "Hidden" });
+
+        var query = container.Query(q => q.Where(m => m.PartitionKey == pk));
+
         var bypassedItems = await DrainAsync(query.AsQueryable(new CosmosDbArgs { BypassFilters = true }));
         bypassedItems.Select(m => m.Name).Should().BeEquivalentTo(["Visible", "Hidden"]);
+    }
+
+    [Test]
+    public async Task AsQueryable_WithBypassFilters_TenantFilterStillApplies()
+    {
+        // The mandatory tenant filter (WithTenantFilter, no allowFilterBypass parameter exists for it at all) must remain applied by AsQueryable regardless of CosmosDbArgs.BypassFilters - this is
+        // the exact regression covered by the review comment: the prior implementation short-circuited ApplyFilters entirely on BypassFilters, silently exposing other tenants' documents to a query.
+        const string containerId = "tenant-filter-items";
+        await GetOrCreateContainerAsync(containerId).ConfigureAwait(false);
+
+        var containerA = CreateCosmosDb("tenant-a").Container<TenantItem>(containerId, o => o.WithPartitionKey(m => m.PartitionKey).WithTenantFilter());
+        var containerB = CreateCosmosDb("tenant-b").Container<TenantItem>(containerId, o => o.WithPartitionKey(m => m.PartitionKey).WithTenantFilter());
+
+        await containerA.CreateAsync(new TenantItem { Id = NewId(), PartitionKey = NewId(), Name = "Owned by tenant-a" });
+
+        var items = await DrainAsync(containerB.Query().AsQueryable(new CosmosDbArgs { BypassFilters = true }));
+        items.Should().BeEmpty();
+    }
+
+    [Test]
+    public async Task AsQueryable_WithBypassFilters_LogicalDeleteFilterStillApplies()
+    {
+        // The mandatory logical-delete filter (WithLogicalDeleteFilter, no allowFilterBypass parameter exists for it at all) must remain applied by AsQueryable regardless of CosmosDbArgs.BypassFilters.
+        const string containerId = "soft-delete-filter-items";
+        await GetOrCreateContainerAsync(containerId).ConfigureAwait(false);
+
+        var container = CreateCosmosDb().Container<SoftDeleteItem>(containerId, o => o.WithPartitionKey(m => m.PartitionKey).WithLogicalDeleteFilter());
+        var pk = NewId();
+
+        var deletedId = NewId();
+        await container.CreateAsync(new SoftDeleteItem { Id = NewId(), PartitionKey = pk, Name = "Visible" });
+        await container.CreateAsync(new SoftDeleteItem { Id = deletedId, PartitionKey = pk, Name = "Deleted" });
+        await container.DeleteAsync(CompositeKey.Create(deletedId), pk); // Logical delete - sets IsDeleted = true rather than physically removing the document.
+
+        var items = await DrainAsync(container.Query(q => q.Where(m => m.PartitionKey == pk)).AsQueryable(new CosmosDbArgs { BypassFilters = true }));
+        items.Select(m => m.Name).Should().BeEquivalentTo(["Visible"]);
     }
 
     private static async Task<List<TestItem>> DrainAsync(IQueryable<TestItem> queryable)
     {
         var items = new List<TestItem>();
+        using var iterator = queryable.ToFeedIterator();
+
+        while (iterator.HasMoreResults)
+            items.AddRange(await iterator.ReadNextAsync().ConfigureAwait(false));
+
+        return items;
+    }
+
+    private static async Task<List<TenantItem>> DrainAsync(IQueryable<TenantItem> queryable)
+    {
+        var items = new List<TenantItem>();
+        using var iterator = queryable.ToFeedIterator();
+
+        while (iterator.HasMoreResults)
+            items.AddRange(await iterator.ReadNextAsync().ConfigureAwait(false));
+
+        return items;
+    }
+
+    private static async Task<List<SoftDeleteItem>> DrainAsync(IQueryable<SoftDeleteItem> queryable)
+    {
+        var items = new List<SoftDeleteItem>();
         using var iterator = queryable.ToFeedIterator();
 
         while (iterator.HasMoreResults)
