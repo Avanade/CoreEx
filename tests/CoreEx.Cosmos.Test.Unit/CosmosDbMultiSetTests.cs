@@ -328,7 +328,7 @@ public class CosmosDbMultiSetTests : CosmosTestBase
     }
 
     [Test]
-    public async Task SelectMultiSetWithResultAsync_MandatorySingleNotFound_ReturnsFailure()
+    public async Task SelectMultiSetWithResultAsync_MandatorySingleNotFound_StillThrows()
     {
         await GetOrCreateContainerAsync(ContainerId).ConfigureAwait(false);
 
@@ -339,8 +339,10 @@ public class CosmosDbMultiSetTests : CosmosTestBase
         var sharedPartition = NewId();
         await animals.CreateAsync(new AnimalItem { Id = NewId(), PartitionKey = sharedPartition, Name = "Dog" });
 
-        // No PlantItem created in this partition - the mandatory MultiSetSingleArgs<PlantItem> (isMandatory defaults true, MinimumRows == 1) must fail rather than throw.
-        var result = await cosmosDb.SelectMultiSetWithResultAsync(ContainerId, new MultiSetOptions
+        // MinimumRows/MaximumRows violations are invariant/guard-clause conditions (InvalidOperationException), not business-level outcomes - they throw directly even from this Result-returning
+        // method, exactly as they do from the exception-based SelectMultiSetAsync (see this method's remarks). No PlantItem created in this partition - the mandatory MultiSetSingleArgs<PlantItem>
+        // (isMandatory defaults true, MinimumRows == 1) must throw.
+        Func<Task> act = () => cosmosDb.SelectMultiSetWithResultAsync(ContainerId, new MultiSetOptions
         {
             PartitionKey = sharedPartition,
             MultiSetArgs =
@@ -350,12 +352,11 @@ public class CosmosDbMultiSetTests : CosmosTestBase
             ]
         });
 
-        result.IsFailure.Should().BeTrue();
-        result.Error.Should().BeOfType<InvalidOperationException>().Which.Message.Should().Contain("less items");
+        await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("*less items*");
     }
 
     [Test]
-    public async Task SelectMultiSetWithResultAsync_MaximumRowsExceeded_ReturnsFailure()
+    public async Task SelectMultiSetWithResultAsync_MaximumRowsExceeded_StillThrows()
     {
         await GetOrCreateContainerAsync(ContainerId).ConfigureAwait(false);
 
@@ -366,11 +367,40 @@ public class CosmosDbMultiSetTests : CosmosTestBase
         await animals.CreateAsync(new AnimalItem { Id = NewId(), PartitionKey = sharedPartition, Name = "Dog" });
         await animals.CreateAsync(new AnimalItem { Id = NewId(), PartitionKey = sharedPartition, Name = "Cat" });
 
-        // MultiSetSingleArgs<AnimalItem> allows at most one (MaximumRows == 1) - two exist in this partition, so it must fail rather than throw.
-        var result = await cosmosDb.SelectMultiSetWithResultAsync(ContainerId, new MultiSetOptions { PartitionKey = sharedPartition, MultiSetArgs = [new MultiSetSingleArgs<AnimalItem>(_ => { })] });
+        // MultiSetSingleArgs<AnimalItem> allows at most one (MaximumRows == 1) - two exist in this partition; this is a guard-clause invariant violation, not a business outcome, so it must throw
+        // even from this Result-returning method.
+        Func<Task> act = () => cosmosDb.SelectMultiSetWithResultAsync(ContainerId, new MultiSetOptions { PartitionKey = sharedPartition, MultiSetArgs = [new MultiSetSingleArgs<AnimalItem>(_ => { })] });
+
+        await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("*more items*");
+    }
+
+    [Test]
+    public async Task SelectMultiSetWithResultAsync_AddItemFilterFailure_ReturnsFailure()
+    {
+        await GetOrCreateContainerAsync(ContainerId).ConfigureAwait(false);
+
+        var cosmosDb = CreateCosmosDb();
+
+        // A genuine business-level outcome (an authorization-style WithFilter denial via CheckModel/CheckFilters) IS surfaced as a Result.IsFailure here - unlike the guard-clause/invariant cases above.
+        var animals = cosmosDb.Container<AnimalItem>(ContainerId, o =>
+        {
+            o.WithPartitionKey(m => m.PartitionKey).WithTypeDiscriminator();
+            o.WithFilter(q => q.Where(m => !m.Name.StartsWith("Hidden")), (_, _) => Result.AuthenticationError());
+        });
+
+        var sharedPartition = NewId();
+
+        // Seed directly via the raw SDK container, bypassing CoreEx.Cosmos's own filter enforcement on Create - "Hidden" is excluded by the filter above, triggering the configured nonQueryResult.
+        await animals.Container.CreateItemAsync(new AnimalItem { Id = NewId(), PartitionKey = sharedPartition, Name = "Hidden", TypeDiscriminator = nameof(AnimalItem) }, new PartitionKey(sharedPartition));
+
+        var result = await cosmosDb.SelectMultiSetWithResultAsync(ContainerId, new MultiSetOptions
+        {
+            PartitionKey = sharedPartition,
+            MultiSetArgs = [new MultiSetCollArgs<List<AnimalItem>, AnimalItem>(_ => { }, minimumRows: 1)]
+        });
 
         result.IsFailure.Should().BeTrue();
-        result.Error.Should().BeOfType<InvalidOperationException>().Which.Message.Should().Contain("more items");
+        result.Error.Should().BeOfType<AuthenticationException>();
     }
 
     [Test]
