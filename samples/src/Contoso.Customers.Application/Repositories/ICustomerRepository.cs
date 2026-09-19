@@ -8,7 +8,7 @@ public interface ICustomerRepository
 
     Task<DataResult<Contracts.Customer>> UpdateAsync(Contracts.Customer customer, CancellationToken ct = default);
 
-    Task<DataResult> DeleteAsync(string id, CancellationToken ct = default);
+    Task<DataResult> DeleteAsync(string id, string? etag, CancellationToken ct = default);
 
     Task<JsonElement> QuerySchemaAsync(CancellationToken ct = default);
 

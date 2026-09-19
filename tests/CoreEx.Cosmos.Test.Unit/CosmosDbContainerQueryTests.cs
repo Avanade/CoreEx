@@ -71,4 +71,21 @@ public class CosmosDbContainerQueryTests : CosmosTestBase
 
         items.Items.Should().HaveCount(PagingArgs.DefaultTake);
     }
+
+    [Test]
+    public async Task ToListAsync_NoPagingSpecified_ReturnsUnboundedResultSet()
+    {
+        // Unlike ToItemsResultAsync (above), the plain list/collection/mapped-item materializers (ToListAsync/ToCollectionAsync/ToMappedItemsAsync) must NOT apply PagingArgs.DefaultTake just because
+        // WithPaging(...) was never called - that would silently truncate, e.g., a generated reference-data repository's "get all" query, diverging from CoreEx.EntityFrameworkCore's equivalent
+        // IQueryable<T>.ToMappedItemsAsync (unbounded by default). Own dedicated partition since this needs more rows than the default take.
+        var container = await GetContainerAsync();
+        var pk = NewId();
+
+        for (var i = 0; i < PagingArgs.DefaultTake + 5; i++)
+            await container.CreateAsync(new TestItem { Id = NewId(), PartitionKey = pk, Name = $"Item-{i:D3}" });
+
+        var items = await container.Query(q => q.Where(m => m.PartitionKey == pk)).ToListAsync();
+
+        items.Should().HaveCount(PagingArgs.DefaultTake + 5);
+    }
 }

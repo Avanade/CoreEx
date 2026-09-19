@@ -120,7 +120,14 @@ public class CosmosDbOutboxRelayProcessor(IServiceProvider serviceProvider, stri
     {
         try
         {
-            await container.DeleteAsync(CompositeKey.Create(doc.Id), doc.PartitionKey!, cancellationToken).ConfigureAwait(false);
+            // doc.PartitionKey is the raw partition key value as persisted alongside the event (see CosmosDbOutboxEvent/CosmosDbEventPublisher) - null there is not a missing value, it is the model
+            // genuinely having resolved to PartitionKey.None (e.g. no WithPartitionKey/WithFixedPartitionKey configured), a real, valid single logical partition. The partitionKey-taking overload
+            // ThrowIfNull()s its argument, so it must not be used for a PartitionKey.None document; the no-partition-key overload below resolves PartitionKey.None itself instead.
+            if (doc.PartitionKey is null)
+                await container.DeleteAsync(CompositeKey.Create(doc.Id), cancellationToken).ConfigureAwait(false);
+            else
+                await container.DeleteAsync(CompositeKey.Create(doc.Id), doc.PartitionKey, cancellationToken).ConfigureAwait(false);
+
             CosmosMetrics.OutboxRelayCleanupDeleted.Add(1, tag);
         }
         catch (Exception ex)

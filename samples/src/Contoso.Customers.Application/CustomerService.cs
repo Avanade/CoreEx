@@ -61,11 +61,25 @@ public class CustomerService(IUnitOfWork unitOfWork, ICustomerRepository reposit
         if (customer.HasShopped)
             throw new BusinessException("A customer that has already shopped cannot be deleted.");
 
-        await _unitOfWork.TransactionAsync(async tct =>
+        // Carries the just-read ETag into a conditional delete so a concurrent MarkAsShoppedAsync committing between the HasShopped check above and this delete is detected (as a ConcurrencyException)
+        // rather than silently allowing the delete to proceed against a now-stale "has not shopped" read.
+        try
         {
-            var dr = await _repository.DeleteAsync(id, tct).ConfigureAwait(false);
-            dr.WhereMutated(() => _unitOfWork.Events.Add(EventData.CreateEvent<Customer>(EventAction.Deleted).WithKey(id)));
-        }, ct).ConfigureAwait(false);
+            await _unitOfWork.TransactionAsync(async tct =>
+            {
+                var dr = await _repository.DeleteAsync(id, customer.ETag, tct).ConfigureAwait(false);
+                dr.WhereMutated(() => _unitOfWork.Events.Add(EventData.CreateEvent<Customer>(EventAction.Deleted).WithKey(id)));
+            }, ct).ConfigureAwait(false);
+        }
+        catch (ConcurrencyException)
+        {
+            // Re-check to surface the precise business rule where that is indeed what changed concurrently; otherwise let the concurrency conflict bubble as-is.
+            var current = await _repository.GetAsync(id, ct).ConfigureAwait(false);
+            if (current is not null && current.HasShopped)
+                throw new BusinessException("A customer that has already shopped cannot be deleted.");
+
+            throw;
+        }
     }
 
     /// <inheritdoc/>

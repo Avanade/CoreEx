@@ -60,7 +60,13 @@ public class CosmosDbInvoker : InvokerBase<ICosmosDb, CosmosDbArgs>
     /// <para><see cref="IEventPublisher.PublishAsync(CancellationToken)"/> (below) necessarily happens <i>before</i> the batch actually executes - it is what enlists the outbox event document into the
     /// same atomic batch as the business mutation in the first place. This means a batch that fails to commit (e.g. a concurrency conflict) does so <i>after</i> publish already completed successfully;
     /// <see cref="IEventPublisher.RollbackAsync(CancellationToken)"/> is called in that case so a test-only capture (see <c>EventPublisherDecorator</c>) doesn't wrongly believe an event was published
-    /// when nothing was ever actually persisted.</para></remarks>
+    /// when nothing was ever actually persisted. Where publish has not yet happened, a failure at any nesting level instead <see cref="IEventPublisher.Dequeue(int)"/>s only the events <i>that level</i>
+    /// itself added - mirroring <c>DatabaseInvoker.OrchestrateUnitOfWorkTransactionAsync</c>'s <c>eventStartCount</c> bookkeeping - so a failure inside a nested <see cref="CosmosDbUnitOfWork.TransactionAsync(Func{CancellationToken, Task}, CancellationToken)"/>
+    /// never discards events an enclosing/outer scope already queued before the nested call began.</para>
+    /// <para>A failure at any nesting level also marks the shared ambient <see cref="CosmosDbTransaction"/> <see cref="CosmosDbTransaction.Abort"/>ed. Since execution is deferred until the root call
+    /// ends, a nested failure cannot itself prevent a later root commit by simply not enlisting further operations - operations from before the failure are already enlisted. The root checks
+    /// <see cref="CosmosDbTransaction.IsAborted"/> before executing the batch, so the whole unit-of-work is still refused even where an enclosing/outer work delegate ignores a nested call's returned
+    /// failure and otherwise reports its own success - consistent with <see cref="CosmosDbUnitOfWork"/>'s documented "a nested failure discards the whole accumulated batch" nesting model.</para></remarks>
     public static async Task<TResult> OrchestrateUnitOfWorkTransactionAsync<TResult>(InvokerTracer tracer, CosmosDbUnitOfWork unitOfWork, Func<Task<TResult>> work, Action<int>? emitOutboxMetrics, CancellationToken cancellationToken)
     {
         var txn = unitOfWork.CosmosDb.CurrentTransaction;
@@ -71,11 +77,23 @@ public class CosmosDbInvoker : InvokerBase<ICosmosDb, CosmosDbArgs>
             unitOfWork.CosmosDb.UseTransaction(txn);
         }
 
-        // Only relevant where the batch failed to commit after publish already completed (see remarks above) - a no-op (via IEventPublisher.RollbackAsync's own default) where publish never happened.
-        async Task RollbackOutboxIfPublishedAsync()
+        // Events queued by an OUTER/ancestor scope (before this nesting level's work even started) must never be discarded by a failure at THIS level alone - only the events this level itself added.
+        var eventStartCount = unitOfWork.Outbox?.Count ?? 0;
+
+        // Reusable discard logic for any failure detected at this nesting level. Marks the shared ambient CosmosDbTransaction as aborted (see CosmosDbTransaction.Abort's remarks) so the root refuses to
+        // commit even where an enclosing/outer work delegate ignores this level's returned failure and otherwise reports its own success, and rolls back/dequeues only the outbox events added at this
+        // level - Dequeue only functions pre-publish (publish only ever happens once, at the very end of the root's own commit step); where it already completed, RollbackAsync undoes it instead.
+        async Task DiscardAsync()
         {
-            if (unitOfWork.Outbox is not null && unitOfWork.Outbox.HasBeenPublished)
-                await unitOfWork.Outbox.RollbackAsync(cancellationToken).ConfigureAwait(false);
+            txn!.Abort();
+
+            if (unitOfWork.Outbox is not null)
+            {
+                if (unitOfWork.Outbox.HasBeenPublished)
+                    await unitOfWork.Outbox.RollbackAsync(cancellationToken).ConfigureAwait(false);
+                else
+                    unitOfWork.Outbox.Dequeue(Math.Max(0, unitOfWork.Outbox.Count - eventStartCount));
+            }
         }
 
         try
@@ -88,11 +106,16 @@ public class CosmosDbInvoker : InvokerBase<ICosmosDb, CosmosDbArgs>
                 if (tracer.Logger is not null && tracer.Logger.IsEnabled(LogLevel.Debug))
                     tracer.Logger.LogDebug("Unit-of-work transaction discarded due to error: {Error}", ir.Error?.Message);
 
+                await DiscardAsync().ConfigureAwait(false);
                 return result;
             }
 
             if (isRoot)
             {
+                // A nested TransactionAsync failure that the enclosing work silently ignored (returned its own success despite it) must still discard the whole batch - see CosmosDbTransaction.Abort's remarks.
+                if (txn!.IsAborted)
+                    throw new InvalidOperationException("The CosmosDbUnitOfWork's transaction was aborted by a nested TransactionAsync failure that was not returned/propagated by the enclosing work; the accumulated batch has been discarded and cannot be committed.");
+
                 var outboxEnqueued = 0;
                 if (unitOfWork.AreEventsSupported && !unitOfWork.Events.IsEmpty)
                 {
@@ -100,7 +123,7 @@ public class CosmosDbInvoker : InvokerBase<ICosmosDb, CosmosDbArgs>
                     await unitOfWork.Outbox!.PublishAsync(cancellationToken).ConfigureAwait(false);
                 }
 
-                if (txn!.HasOperations)
+                if (txn.HasOperations)
                 {
                     var response = await txn.ExecuteAsync(cancellationToken).ConfigureAwait(false);
                     if (response is not null && !response.IsSuccessStatusCode)
@@ -118,7 +141,7 @@ public class CosmosDbInvoker : InvokerBase<ICosmosDb, CosmosDbArgs>
         }
         catch (CosmosException cex)
         {
-            await RollbackOutboxIfPublishedAsync().ConfigureAwait(false);
+            await DiscardAsync().ConfigureAwait(false);
 
             // Mirrors OnInvokeAsync's per-call exception mapping - a raw CosmosException can still surface directly from ExecuteAsync itself (e.g. a genuine transport/service failure), distinct from a
             // "logical" failure already surfaced via the TransactionalBatchResponse and translated by CreateBatchFailureException below.
@@ -138,7 +161,7 @@ public class CosmosDbInvoker : InvokerBase<ICosmosDb, CosmosDbArgs>
         }
         catch (Exception ex)
         {
-            await RollbackOutboxIfPublishedAsync().ConfigureAwait(false);
+            await DiscardAsync().ConfigureAwait(false);
 
             if (tracer.Logger is not null && tracer.Logger.IsEnabled(LogLevel.Error))
                 tracer.Logger.LogError(ex, "Unit-of-work transaction discarded due to an unexpected error: {Error}", ex.Message);

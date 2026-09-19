@@ -442,12 +442,16 @@ public class CosmosDbQuery<TModel> where TModel : class, IEntityKey, new()
     }
 
     /// <summary>
-    /// Applies the <see cref="WithPaging(PagingArgs?)"/> state to the <paramref name="queryable"/>.
+    /// Applies the <see cref="WithPaging(PagingArgs?)"/> state to the <paramref name="queryable"/>, only where it was explicitly set.
     /// </summary>
-    /// <remarks>Delegates straight to the shared <see cref="DataExtensions.WithPaging{TSource}(IQueryable{TSource}, PagingArgs?)"/> extension - the same one <c>CoreEx.EntityFrameworkCore</c> calls directly -
-    /// rather than special-casing <see langword="null"/> to mean "no limit at all"; that extension already defaults an unset <see cref="PagingArgs"/> to <see cref="PagingArgs.Create(int, int?, bool)"/>
-    /// (applying <see cref="PagingArgs.DefaultTake"/>), so an unbounded result set requires the caller to explicitly opt in via <see cref="PagingArgs.None"/>.</remarks>
-    private IQueryable<TModel> ApplyPagingIfSet(IQueryable<TModel> queryable) => queryable.WithPaging(_paging);
+    /// <remarks>Unlike the <see cref="ItemsResult{TModel}"/>-returning materializers (<see cref="ToItemsResultAsync"/>/<see cref="ToMappedItemsResultAsync{T}(Func{TModel, T}, bool, CancellationToken)"/>
+    /// and overloads), which default an unset <see cref="WithPaging(PagingArgs?)"/> to <see cref="PagingArgs.Create(int, int?, bool)"/> (applying <see cref="PagingArgs.DefaultTake"/>) via the shared
+    /// <see cref="DataExtensions.WithPaging{TSource}(IQueryable{TSource}, PagingArgs?)"/> extension - matching <c>CoreEx.EntityFrameworkCore</c>'s own <c>ItemsResult</c> behavior - the plain list/collection
+    /// materializers (<see cref="ToListAsync"/>/<see cref="ToCollectionAsync{TColl}"/>/<see cref="ToMappedItemsAsync{T}(Func{TModel, T}, CancellationToken)"/> and overloads) must not silently truncate
+    /// to <see cref="PagingArgs.DefaultTake"/> just because <see cref="WithPaging(PagingArgs?)"/> was never called - that would diverge from <c>CoreEx.EntityFrameworkCore</c>'s equivalent
+    /// <c>IQueryable{TSource}.ToMappedItemsAsync</c>, which is unbounded by default, and would silently truncate generated reference-data repositories to a page. Paging is therefore only applied here
+    /// where the caller explicitly called <see cref="WithPaging(PagingArgs?)"/> (including with <see cref="PagingArgs.None"/>, a no-op); leaving it unset means the whole result set is drained.</remarks>
+    private IQueryable<TModel> ApplyPagingIfSet(IQueryable<TModel> queryable) => _paging is null ? queryable : queryable.WithPaging(_paging);
 
     /// <summary>
     /// Guards against <see cref="WithPaging(PagingArgs?)"/> having been explicitly set prior to a <c>Single</c>/<c>First</c>-style materializer.

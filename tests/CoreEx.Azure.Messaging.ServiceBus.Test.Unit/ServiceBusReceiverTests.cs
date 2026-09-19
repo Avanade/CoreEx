@@ -37,6 +37,10 @@ public class ServiceBusReceiverTests : WithGenericTester<EntryPoint>
     }
 
     [Test]
+    [Order(-1)] // Forces this to run before every other (default Order(0)) test in this fixture, on every TFM. NUnit does not guarantee declaration-order execution - it depends on
+                // reflection-based method enumeration, which can differ between .NET runtime versions - so other tests here that publish-then-abandon/dead-letter/circuit-break messages
+                // (e.g. ReceiveAsync_Catastrophic_Then_Pause, ReceiveAsync_CircuitBreaker) could otherwise run first on some TFMs and leak stale messages into this count assertion,
+                // which is exactly what caused this test to flake with "expected 10, found 16" on net8.0 only (net9.0/net10.0 happened to enumerate methods in a different order).
     public void GetAndClearAzureServiceBusAsync_ReturnsAllPublishedMessages() => Test.ScopedType<ExecutionContext>(async test =>
     {
         // Regression (against a real Service Bus emulator, not a mock): proves GetAndClearAzureServiceBusAsync's internal

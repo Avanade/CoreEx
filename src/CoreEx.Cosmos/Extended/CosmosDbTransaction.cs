@@ -28,6 +28,21 @@ public sealed class CosmosDbTransaction
     public bool HasOperations => _batch is not null;
 
     /// <summary>
+    /// Indicates whether this transaction has been aborted (see <see cref="Abort"/>) by a failure detected at some nesting level, and must therefore never be committed - even where an enclosing/outer
+    /// <see cref="CosmosDbUnitOfWork.TransactionAsync(Func{CancellationToken, Task}, CancellationToken)"/> work delegate ignores a nested call's returned failure and otherwise reports its own success.
+    /// </summary>
+    public bool IsAborted { get; private set; }
+
+    /// <summary>
+    /// Marks this transaction as <see cref="IsAborted"/>.
+    /// </summary>
+    /// <remarks>Cosmos DB's <see cref="TransactionalBatch"/> has no relational save-point equivalent - a nested <see cref="CosmosDbUnitOfWork.TransactionAsync(Func{CancellationToken, Task}, CancellationToken)"/>
+    /// failure (an <see cref="IResult"/> failure returned by the nested work, or an exception converted to one) discards the <i>whole</i> accumulated batch (root and nested), per <see cref="CosmosDbUnitOfWork"/>'s
+    /// documented nesting model. Since execution is deferred until the root call ends, that discard cannot be enforced by simply not enlisting further operations (earlier ones are already enlisted) - this
+    /// flag is checked before the root actually executes the batch, so the whole unit-of-work is refused even if the nested failure's <see cref="IResult"/> was never propagated/checked by the enclosing work.</remarks>
+    public void Abort() => IsAborted = true;
+
+    /// <summary>
     /// Gets the <see cref="Container"/> bound by the first enlisted operation (see <see cref="Enlist(Container, PartitionKey, string?, CompositeKey, Action{TransactionalBatch})"/>); <see langword="null"/> where nothing has been enlisted yet.
     /// </summary>
     public Container? BoundContainer => _container;

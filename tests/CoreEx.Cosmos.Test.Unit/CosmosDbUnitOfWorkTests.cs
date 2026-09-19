@@ -323,4 +323,135 @@ public class CosmosDbUnitOfWorkTests : CosmosTestBase
         // Exactly one event - for the deletion that actually happened, not the one that was already gone.
         outboxDocs.Should().ContainSingle();
     }
+
+    [Test]
+    public async Task TransactionAsync_UpsertNewKey_CreatesItem_DoesNotFailBatch()
+    {
+        // Regression: UpsertAsync's non-transactional "try Update, retry as Create on Not Found" cannot work inside a CosmosDbUnitOfWork - ReplaceItem is only enlisted (queued), so a missing item's 404
+        // can only be observed once the whole TransactionalBatch executes, by which point retrying is too late and the entire batch fails instead. A forced pre-read must determine existence up-front.
+        await GetOrCreateContainerAsync(ContainerId).ConfigureAwait(false);
+        var cosmosDb = CreateCosmosDb();
+        var container = cosmosDb.Container<TestItem>(ContainerId, o => o.WithPartitionKey(m => m.PartitionKey));
+        var unitOfWork = new CosmosDbUnitOfWork(cosmosDb);
+
+        var pk = NewId();
+        var newId = NewId();
+
+        var upserted = default(DataResult<TestItem>);
+        await unitOfWork.TransactionAsync(async ct =>
+        {
+            upserted = await container.UpsertAsync(new TestItem { Id = newId, PartitionKey = pk, Name = "Brand New" }, ct).ConfigureAwait(false);
+        });
+
+        upserted.WasMutated.Should().BeTrue();
+
+        var fetched = await container.GetAsync(CompositeKey.Create(newId), pk);
+        fetched.Should().NotBeNull();
+        fetched!.Name.Should().Be("Brand New");
+    }
+
+    [Test]
+    public async Task TransactionAsync_UpsertExistingKey_UpdatesItem()
+    {
+        await GetOrCreateContainerAsync(ContainerId).ConfigureAwait(false);
+        var cosmosDb = CreateCosmosDb();
+        var container = cosmosDb.Container<TestItem>(ContainerId, o => o.WithPartitionKey(m => m.PartitionKey));
+
+        var pk = NewId();
+        var id = NewId();
+
+        // Seed outside any unit-of-work.
+        await container.CreateAsync(new TestItem { Id = id, PartitionKey = pk, Name = "Original" });
+
+        var unitOfWork = new CosmosDbUnitOfWork(cosmosDb);
+        await unitOfWork.TransactionAsync(async ct => await container.UpsertAsync(new TestItem { Id = id, PartitionKey = pk, Name = "Replaced" }, ct).ConfigureAwait(false));
+
+        var fetched = await container.GetAsync(CompositeKey.Create(id), pk);
+        fetched.Should().NotBeNull();
+        fetched!.Name.Should().Be("Replaced");
+    }
+
+    [Test]
+    public async Task TransactionAsync_NestedFailureIgnoredByOuterWork_AbortsWholeBatch_NothingPersists()
+    {
+        // Regression: a nested TransactionAsync failure only returns the failed IResult - it does not itself prevent a later root commit, since Cosmos DB execution is deferred until the root call ends
+        // and everything enlisted so far (root and nested) is still sitting in the same ambient TransactionalBatch. If the outer work below ignores/swallows that failure (a caller bug) and otherwise
+        // reports its own success, the whole unit-of-work must still be discarded - not partially committed - per CosmosDbUnitOfWork's documented "a nested failure discards the whole batch" model.
+        await GetOrCreateContainerAsync(ContainerId).ConfigureAwait(false);
+        var cosmosDb = CreateCosmosDb();
+        var container = cosmosDb.Container<TestItem>(ContainerId, o => o.WithPartitionKey(m => m.PartitionKey));
+        var unitOfWork = new CosmosDbUnitOfWork(cosmosDb);
+
+        var pk = NewId();
+        var outerCreatedId = NewId();
+        var nestedCreatedId = NewId();
+
+        Func<Task> act = () => unitOfWork.TransactionAsync(async ct =>
+        {
+            await container.CreateAsync(new TestItem { Id = outerCreatedId, PartitionKey = pk, Name = "Outer" }, ct).ConfigureAwait(false);
+
+            var nestedResult = await unitOfWork.TransactionAsync(async ct2 =>
+            {
+                await container.CreateAsync(new TestItem { Id = nestedCreatedId, PartitionKey = pk, Name = "Nested" }, ct2).ConfigureAwait(false);
+                return Result.AuthenticationError();
+            });
+
+            // Deliberately not checking nestedResult - simulates a caller bug that ignores a nested TransactionAsync failure and continues regardless.
+            _ = nestedResult;
+        });
+
+        await act.Should().ThrowAsync<InvalidOperationException>();
+
+        var fetchedOuter = await container.GetAsync(CompositeKey.Create(outerCreatedId), pk);
+        var fetchedNested = await container.GetAsync(CompositeKey.Create(nestedCreatedId), pk);
+        fetchedOuter.Should().BeNull();
+        fetchedNested.Should().BeNull();
+    }
+
+    [Test]
+    public async Task TransactionAsync_ReusedAfterFailure_DoesNotLeakEventFromAbandonedTransaction()
+    {
+        // Regression: an event queued inside a failed/abandoned TransactionAsync must be removed from the shared outbox queue - otherwise a later, successful reuse of the SAME CosmosDbUnitOfWork would
+        // publish it alongside (or instead of) the genuinely new event, breaking atomic outbox semantics.
+        await GetOrCreateContainerAsync(ContainerId).ConfigureAwait(false);
+        var cosmosDb = CreateCosmosDb();
+        var container = cosmosDb.Container<TestItem>(ContainerId, o => o.WithPartitionKey(m => m.PartitionKey));
+        var outbox = new CosmosDbEventPublisher(cosmosDb);
+        var unitOfWork = new CosmosDbUnitOfWork(cosmosDb, outbox);
+
+        var pk = NewId();
+        var abandonedId = NewId();
+        var succeededId = NewId();
+
+        var failResult = await unitOfWork.TransactionAsync(async ct =>
+        {
+            var created = await container.CreateAsync(new TestItem { Id = abandonedId, PartitionKey = pk, Name = "Abandoned" }, ct).ConfigureAwait(false);
+            unitOfWork.Events.Add(EventData.CreateEventWith(created.Value, EventAction.Created).WithSource(new Uri("https://unittest/coreex-cosmos", UriKind.Absolute)));
+            return Result.AuthenticationError();
+        });
+
+        failResult.IsFailure.Should().BeTrue();
+        unitOfWork.Events.IsEmpty.Should().BeTrue();
+
+        // Reuse the SAME unit-of-work for a genuinely successful transaction.
+        await unitOfWork.TransactionAsync(async ct =>
+        {
+            var created = await container.CreateAsync(new TestItem { Id = succeededId, PartitionKey = pk, Name = "Real" }, ct).ConfigureAwait(false);
+            unitOfWork.Events.Add(EventData.CreateEventWith(created.Value, EventAction.Created).WithSource(new Uri("https://unittest/coreex-cosmos", UriKind.Absolute)));
+        });
+
+        var rawContainer = cosmosDb.GetContainer(ContainerId);
+        var query = rawContainer.GetItemLinqQueryable<CosmosDbOutboxEvent>().Where(e => e.PartitionKey == pk && e.Id.StartsWith(CosmosDbOutboxEvent.OutboxKeyPrefix));
+
+        var outboxDocs = new List<CosmosDbOutboxEvent>();
+        using (var iterator = query.ToFeedIterator())
+        {
+            while (iterator.HasMoreResults)
+                outboxDocs.AddRange(await iterator.ReadNextAsync());
+        }
+
+        // Exactly one event - for the successful transaction, not a leaked one from the earlier abandoned/failed transaction.
+        outboxDocs.Should().ContainSingle();
+        outboxDocs[0].Event.GetProperty("subject").GetString().Should().Be(succeededId);
+    }
 }

@@ -73,6 +73,55 @@ public class CosmosDbOutboxRelayTests : CosmosTestBase
     }
 
     [Test]
+    public async Task ProcessBatchAsync_PartitionKeyNone_PublishesAndDeletes()
+    {
+        // Regression: DeleteOneAsync previously always called the partitionKey-taking DeleteAsync overload with a null-forgiving bang on doc.PartitionKey - which is a real, valid value (PartitionKey.None)
+        // for a model with no WithPartitionKey/WithFixedPartitionKey configured, not a missing one. That overload ThrowIfNull()s its partitionKey argument, so cleanup-delete failed for every such
+        // document (silently, per ProcessBatchAsync's remarks - caught, logged, counted - so it would linger until TTL rather than actually being removed).
+        await GetOrCreateContainerAsync(ContainerId).ConfigureAwait(false);
+        var cosmosDb = CreateCosmosDb();
+        var container = cosmosDb.Container<NoPartitionKeyItem>(ContainerId);
+        var outbox = new CosmosDbEventPublisher(cosmosDb);
+        var unitOfWork = new CosmosDbUnitOfWork(cosmosDb, outbox);
+
+        var id = NewId();
+
+        await unitOfWork.TransactionAsync(async ct =>
+        {
+            var created = await container.CreateAsync(new NoPartitionKeyItem { Id = id, Name = "Widget" }, ct).ConfigureAwait(false);
+            unitOfWork.Events.Add(EventData.CreateEventWith(created.Value, EventAction.Created).WithSource(new Uri("https://unittest/coreex-cosmos", UriKind.Absolute)));
+        });
+
+        var rawContainer = cosmosDb.GetContainer(ContainerId);
+        var query = rawContainer.GetItemLinqQueryable<CosmosDbOutboxEvent>().Where(e => e.Id.StartsWith(CosmosDbOutboxEvent.OutboxKeyPrefix));
+
+        async Task<List<CosmosDbOutboxEvent>> QueryAllNoPartitionOutboxDocsAsync()
+        {
+            var docs = new List<CosmosDbOutboxEvent>();
+            using var iterator = query.ToFeedIterator();
+            while (iterator.HasMoreResults)
+                docs.AddRange(await iterator.ReadNextAsync());
+
+            return docs.Where(d => d.PartitionKey is null && d.Event.GetProperty("subject").GetString() == id).ToList();
+        }
+
+        var outboxDocs = await QueryAllNoPartitionOutboxDocsAsync();
+        outboxDocs.Should().ContainSingle();
+
+        var testPublisher = new TestEventPublisher();
+        using var sp = CreateServiceProvider(testPublisher);
+        var processor = new CosmosDbOutboxRelayProcessor(sp, ContainerId, NullLogger<CosmosDbOutboxRelayProcessor>.Instance);
+
+        await processor.ProcessBatchAsync(outboxDocs, CancellationToken.None);
+
+        testPublisher.Published.Should().ContainSingle();
+
+        // Cleanup - the outbox document should now actually be gone, not left lingering due to a failed cleanup-delete.
+        var remaining = await QueryAllNoPartitionOutboxDocsAsync();
+        remaining.Should().BeEmpty();
+    }
+
+    [Test]
     public async Task ProcessBatchAsync_EmitsPerEventRelayMarker_ParentedToOriginatingTrace()
     {
         await GetOrCreateContainerAsync(ContainerId).ConfigureAwait(false);

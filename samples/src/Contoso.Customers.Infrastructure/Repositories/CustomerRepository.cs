@@ -11,7 +11,8 @@ public class CustomerRepository(CustomersCosmosDb cosmos) : ICustomerRepository
 
     public Task<DataResult<Contracts.Customer>> UpdateAsync(Contracts.Customer customer, CancellationToken ct = default) => _cosmos.Customers.UpdateAsync(customer, ct);
 
-    public Task<DataResult> DeleteAsync(string id, CancellationToken ct = default) => _cosmos.Customers.DeleteAsync(CompositeKey.Create(id), ct);
+    public Task<DataResult> DeleteAsync(string id, string? etag, CancellationToken ct = default) =>
+        _cosmos.Customers.DeleteAsync(string.IsNullOrEmpty(etag) ? new CosmosDbArgs() : new CosmosDbArgs { ItemRequestOptions = new ItemRequestOptions { IfMatchEtag = etag } }, CompositeKey.Create(id), ct);
 
     public Task<JsonElement> QuerySchemaAsync(CancellationToken ct = default) => Task.FromResult(CustomerQueryArgsConfig.Default.ToJsonSchema());
 
