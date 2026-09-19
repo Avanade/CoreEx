@@ -372,6 +372,33 @@ public class CosmosDbUnitOfWorkTests : CosmosTestBase
     }
 
     [Test]
+    public async Task TransactionAsync_UpsertExistingKey_PartitionKeySelectorDependsOnStampedTenantId_UpdatesItem()
+    {
+        // Regression: the transactional upsert's pre-read must resolve the partition key AFTER the tenant stamping that Model.PrepareCreate/PrepareUpdate perform, not before. Here WithPartitionKey
+        // selects off TenantId, which is auto-stamped from the ExecutionContext and never caller-supplied. Resolving the partition key from the caller's unstamped model (TenantId still null) would
+        // read under PartitionKey.None, miss the already-existing item (seeded under the real "tenant-a" partition), and wrongly enlist a Create instead of an Update - which then fails the whole
+        // batch with a conflict, since a document with that id already exists (just in a different partition than the one the buggy pre-read checked).
+        const string containerId = "uow-tenant-pk-items";
+        await GetOrCreateContainerAsync(containerId).ConfigureAwait(false);
+        var cosmosDb = CreateCosmosDb("tenant-a");
+        var container = cosmosDb.Container<TenantItem>(containerId, o => o.WithPartitionKey(m => m.TenantId));
+
+        var id = NewId();
+
+        // Seed outside any unit-of-work; TenantId (and therefore the partition key) is stamped automatically from the ExecutionContext ("tenant-a").
+        await container.CreateAsync(new TenantItem { Id = id, Name = "Original" });
+
+        var unitOfWork = new CosmosDbUnitOfWork(cosmosDb);
+
+        // The caller does not set TenantId - by design it is never caller-supplied, only auto-stamped - so the model handed to UpsertAsync starts with a null TenantId/partition key.
+        await unitOfWork.TransactionAsync(async ct => await container.UpsertAsync(new TenantItem { Id = id, Name = "Replaced" }, ct).ConfigureAwait(false));
+
+        var fetched = await container.GetAsync(CompositeKey.Create(id), "tenant-a");
+        fetched.Should().NotBeNull();
+        fetched!.Name.Should().Be("Replaced");
+    }
+
+    [Test]
     public async Task TransactionAsync_NestedFailureIgnoredByOuterWork_AbortsWholeBatch_NothingPersists()
     {
         // Regression: a nested TransactionAsync failure only returns the failed IResult - it does not itself prevent a later root commit, since Cosmos DB execution is deferred until the root call ends

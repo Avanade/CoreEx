@@ -68,6 +68,12 @@ public partial class CosmosDbContainer<TModel>
     /// </summary>
     private async Task<Result<DataResult<TModel>>> UpsertWithinTransactionAsync(CosmosDbArgs args, TModel model, string memberName, CancellationToken cancellationToken)
     {
+        // Stamp ITenantId/ITypeDiscriminator up-front - identically performed by both Model.PrepareCreate and Model.PrepareUpdate - so that a CosmosDbModelOptions<TModel>.WithPartitionKey selector based
+        // on a stamped value (e.g. TenantId) resolves the correct partition key for this pre-read, rather than a null/stale one. This is idempotent: whichever branch below is subsequently chosen re-runs
+        // the full Model.PrepareCreate/PrepareUpdate (re-stamping the same tenant/type-discriminator values and additionally applying the correct Create-vs-Update change-log semantics).
+        Model.PrepareTenantId(model, CosmosDb.ExecutionContext);
+        Model.PrepareTypeDiscriminator(model);
+
         var gr = await GetWithResultInternalAsync(args, Options.GetKeyFromModel(model), Options.GetPartitionKey(model), memberName, treatNullAsNotFound: false, cancellationToken).ConfigureAwait(false);
         if (gr.IsFailure)
             return gr.Bind();

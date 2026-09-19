@@ -89,7 +89,10 @@ var page = await cosmosDb.Container<OrderModel>("orders")
 Paging uses `Skip`/`Take` (translated by the Cosmos DB LINQ provider to `OFFSET…LIMIT`) applied via `WithPaging(PagingArgs?)`; continuation-token-based paging is not currently supported. Every
 `CosmosDbQuery<TModel>` materializer (`ToListAsync`, `ToItemsResultAsync`, `SingleAsync`/`FirstAsync`-family, `ToMappedItemsAsync`, `ToMappedItemsResultAsync`, each with a `WithResultAsync` ROP
 counterpart) routes through `CosmosDbInvoker` — the same structured logging + `CosmosException` mapping as every CRUD operation. Use `AsQueryable(args?)` for ad-hoc `IQueryable<TModel>` composition
-(e.g. within a repository method); pass `new CosmosDbArgs { BypassFilters = true }` to skip the `CosmosDbModelOptions`-configured filters entirely.
+(e.g. within a repository method); pass `new CosmosDbArgs { BypassFilters = true }` to skip only the additive `WithFilter` registrations that were themselves opted in via `allowFilterBypass: true` -
+the mandatory `WithTenantFilter`/`WithLogicalDeleteFilter`/`WithTypeDiscriminator` predicates and the automatic outbox-document exclusion are always applied by `ApplyFilters` regardless of this flag,
+matching `CoreEx.EntityFrameworkCore`'s `EfDbModelOptions.ApplyFilters` (tenant is never bypassable there either); `CosmosDbQuery<TModel>.AsQueryable` always calls `ApplyFilters` unconditionally, it
+never itself skips the call based on `BypassFilters`.
 
 ## Transactional Outbox
 
