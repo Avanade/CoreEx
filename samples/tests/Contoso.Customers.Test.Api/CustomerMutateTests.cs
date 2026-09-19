@@ -6,6 +6,7 @@ public partial class CustomerMutateTests : WithApiTester<Contoso.Customers.Api.P
     public async Task OneTimeSetUpAsync()
     {
         await Test.DatabaseSetUpAsync("mutate-data.seed.yaml").ConfigureAwait(false);
+        await Test.ClearFusionCacheAsync().ConfigureAwait(false);
 
         Test.UseExpectedCosmosDbOutboxPublisher();
     }

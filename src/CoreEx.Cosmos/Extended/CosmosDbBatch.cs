@@ -108,6 +108,7 @@ public static class CosmosDbBatch
             return;
 
         var typeDiscriminatorProperty = jsonDataReader.Options.ConvertPropertyName(nameof(ITypeDiscriminator.TypeDiscriminator))!;
+        var hadExistingTypeDiscriminatorProperty = jsonDataReader.Options.Properties.TryGetValue(typeDiscriminatorProperty, out var existingTypeDiscriminatorValue);
 
         try
         {
@@ -136,8 +137,12 @@ public static class CosmosDbBatch
         }
         finally
         {
-            // Options is caller-owned and may outlive this call (e.g. reused for further, unrelated seeding) - never leave the last-processed discriminator behind as a leaked default.
-            jsonDataReader.Options.Properties.Remove(typeDiscriminatorProperty);
+            // Options is caller-owned and may outlive this call (e.g. reused for further, unrelated seeding) - restore whatever the caller had before we mutated it (a prior value, or
+            // absence), rather than unconditionally removing the property and silently discarding a value the caller had already configured.
+            if (hadExistingTypeDiscriminatorProperty)
+                jsonDataReader.Options.Properties[typeDiscriminatorProperty] = existingTypeDiscriminatorValue;
+            else
+                jsonDataReader.Options.Properties.Remove(typeDiscriminatorProperty);
         }
     }
 }

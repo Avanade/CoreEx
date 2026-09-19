@@ -89,7 +89,7 @@ public class CosmosDbQuery<TModel> where TModel : class, IEntityKey, new()
     /// Creates the list (internal).
     /// </summary>
     private Task<Result<List<TModel>>> ToListWithResultInternalAsync(string memberName, CancellationToken cancellationToken)
-        => Container.CosmosDb.Invoker.InvokeAsync(Container.CosmosDb, Args, async (_, _, ct) => Result.Ok(await DrainAsync(ApplyPagingIfSet(AsQueryable()), ct).ConfigureAwait(false)), cancellationToken, memberName);
+        => Container.CosmosDb.Invoker.InvokeAsync(Container.CosmosDb, Args, async (tracer, _, ct) => Result.Ok(await DrainAsync(tracer, ApplyPagingIfSet(AsQueryable()), ct).ConfigureAwait(false)), cancellationToken, memberName);
 
     /// <summary>
     /// Creates a <typeparamref name="TColl"/> by fully draining the underlying <see cref="FeedIterator{T}"/>.
@@ -113,10 +113,10 @@ public class CosmosDbQuery<TModel> where TModel : class, IEntityKey, new()
     /// Creates the collection (internal).
     /// </summary>
     private Task<Result<TColl>> ToCollectionWithResultInternalAsync<TColl>(string memberName, CancellationToken cancellationToken) where TColl : ICollection<TModel>, new()
-        => Container.CosmosDb.Invoker.InvokeAsync(Container.CosmosDb, Args, async (_, _, ct) =>
+        => Container.CosmosDb.Invoker.InvokeAsync(Container.CosmosDb, Args, async (tracer, _, ct) =>
         {
             var coll = new TColl();
-            foreach (var item in await DrainAsync(ApplyPagingIfSet(AsQueryable()), ct).ConfigureAwait(false))
+            foreach (var item in await DrainAsync(tracer, ApplyPagingIfSet(AsQueryable()), ct).ConfigureAwait(false))
                 coll.Add(item);
 
             return Result.Ok(coll);
@@ -149,11 +149,11 @@ public class CosmosDbQuery<TModel> where TModel : class, IEntityKey, new()
     /// Creates the <see cref="ItemsResult{TModel}"/> (internal).
     /// </summary>
     private Task<Result<ItemsResult<TModel>>> ToItemsResultWithResultInternalAsync(bool autoCount, string memberName, CancellationToken cancellationToken)
-        => Container.CosmosDb.Invoker.InvokeAsync(Container.CosmosDb, Args, async (_, _, ct) =>
+        => Container.CosmosDb.Invoker.InvokeAsync(Container.CosmosDb, Args, async (tracer, _, ct) =>
         {
             var paging = _paging ?? PagingArgs.Create();
             var baseQuery = AsQueryable();
-            var ir = new ItemsResult<TModel>(paging) { Items = await DrainAsync(baseQuery.WithPaging(paging), ct).ConfigureAwait(false) };
+            var ir = new ItemsResult<TModel>(paging) { Items = await DrainAsync(tracer, baseQuery.WithPaging(paging), ct).ConfigureAwait(false) };
 
             if (autoCount)
                 await ir.WithTotalCountAsync(async ct2 => (long?)(await baseQuery.CountAsync(ct2).ConfigureAwait(false)).Resource, ct).ConfigureAwait(false);
@@ -185,7 +185,7 @@ public class CosmosDbQuery<TModel> where TModel : class, IEntityKey, new()
     private Task<Result<TModel>> SingleWithResultInternalAsync(string memberName, CancellationToken cancellationToken)
     {
         ThrowIfPagingSet(memberName);
-        return Container.CosmosDb.Invoker.InvokeAsync(Container.CosmosDb, Args, async (_, _, ct) => Result.Ok((await DrainAsync(AsQueryable().Skip(0).Take(2), ct).ConfigureAwait(false)).Single()), cancellationToken, memberName);
+        return Container.CosmosDb.Invoker.InvokeAsync(Container.CosmosDb, Args, async (tracer, _, ct) => Result.Ok((await DrainAsync(tracer, AsQueryable().Skip(0).Take(2), ct).ConfigureAwait(false)).Single()), cancellationToken, memberName);
     }
 
     /// <summary>
@@ -210,7 +210,7 @@ public class CosmosDbQuery<TModel> where TModel : class, IEntityKey, new()
     private Task<Result<TModel?>> SingleOrDefaultWithResultInternalAsync(string memberName, CancellationToken cancellationToken)
     {
         ThrowIfPagingSet(memberName);
-        return Container.CosmosDb.Invoker.InvokeAsync(Container.CosmosDb, Args, async (_, _, ct) => Result.Ok<TModel?>((await DrainAsync(AsQueryable().Skip(0).Take(2), ct).ConfigureAwait(false)).SingleOrDefault()), cancellationToken, memberName);
+        return Container.CosmosDb.Invoker.InvokeAsync(Container.CosmosDb, Args, async (tracer, _, ct) => Result.Ok<TModel?>((await DrainAsync(tracer, AsQueryable().Skip(0).Take(2), ct).ConfigureAwait(false)).SingleOrDefault()), cancellationToken, memberName);
     }
 
     /// <summary>
@@ -236,7 +236,7 @@ public class CosmosDbQuery<TModel> where TModel : class, IEntityKey, new()
     private Task<Result<TModel>> FirstWithResultInternalAsync(string memberName, CancellationToken cancellationToken)
     {
         ThrowIfPagingSet(memberName);
-        return Container.CosmosDb.Invoker.InvokeAsync(Container.CosmosDb, Args, async (_, _, ct) => Result.Ok((await DrainAsync(AsQueryable().Take(1), ct).ConfigureAwait(false)).First()), cancellationToken, memberName);
+        return Container.CosmosDb.Invoker.InvokeAsync(Container.CosmosDb, Args, async (tracer, _, ct) => Result.Ok((await DrainAsync(tracer, AsQueryable().Take(1), ct).ConfigureAwait(false)).First()), cancellationToken, memberName);
     }
 
     /// <summary>
@@ -261,7 +261,7 @@ public class CosmosDbQuery<TModel> where TModel : class, IEntityKey, new()
     private Task<Result<TModel?>> FirstOrDefaultWithResultInternalAsync(string memberName, CancellationToken cancellationToken)
     {
         ThrowIfPagingSet(memberName);
-        return Container.CosmosDb.Invoker.InvokeAsync(Container.CosmosDb, Args, async (_, _, ct) => Result.Ok<TModel?>((await DrainAsync(AsQueryable().Take(1), ct).ConfigureAwait(false)).FirstOrDefault()), cancellationToken, memberName);
+        return Container.CosmosDb.Invoker.InvokeAsync(Container.CosmosDb, Args, async (tracer, _, ct) => Result.Ok<TModel?>((await DrainAsync(tracer, AsQueryable().Take(1), ct).ConfigureAwait(false)).FirstOrDefault()), cancellationToken, memberName);
     }
 
     /// <summary>
@@ -310,8 +310,8 @@ public class CosmosDbQuery<TModel> where TModel : class, IEntityKey, new()
     private Task<Result<List<T>>> ToMappedItemsWithResultInternalAsync<T>(Func<TModel, T> mapper, string memberName, CancellationToken cancellationToken)
     {
         mapper.ThrowIfNull();
-        return Container.CosmosDb.Invoker.InvokeAsync(Container.CosmosDb, Args, async (_, _, ct)
-            => Result.Ok((await DrainAsync(ApplyPagingIfSet(AsQueryable()), ct).ConfigureAwait(false)).ConvertAll(item => mapper(item))), cancellationToken, memberName);
+        return Container.CosmosDb.Invoker.InvokeAsync(Container.CosmosDb, Args, async (tracer, _, ct)
+            => Result.Ok((await DrainAsync(tracer, ApplyPagingIfSet(AsQueryable()), ct).ConfigureAwait(false)).ConvertAll(item => mapper(item))), cancellationToken, memberName);
     }
 
     /// <summary>
@@ -364,10 +364,10 @@ public class CosmosDbQuery<TModel> where TModel : class, IEntityKey, new()
     private Task<Result<TColl>> ToMappedItemsWithResultInternalAsync<TColl, T>(Func<TModel, T> mapper, string memberName, CancellationToken cancellationToken) where TColl : ICollection<T>, new()
     {
         mapper.ThrowIfNull();
-        return Container.CosmosDb.Invoker.InvokeAsync(Container.CosmosDb, Args, async (_, _, ct) =>
+        return Container.CosmosDb.Invoker.InvokeAsync(Container.CosmosDb, Args, async (tracer, _, ct) =>
         {
             var coll = new TColl();
-            foreach (var item in await DrainAsync(ApplyPagingIfSet(AsQueryable()), ct).ConfigureAwait(false))
+            foreach (var item in await DrainAsync(tracer, ApplyPagingIfSet(AsQueryable()), ct).ConfigureAwait(false))
                 coll.Add(mapper(item));
 
             return Result.Ok(coll);
@@ -429,11 +429,11 @@ public class CosmosDbQuery<TModel> where TModel : class, IEntityKey, new()
     private Task<Result<ItemsResult<T>>> ToMappedItemsResultWithResultInternalAsync<T>(Func<TModel, T> mapper, bool autoCount, string memberName, CancellationToken cancellationToken)
     {
         mapper.ThrowIfNull();
-        return Container.CosmosDb.Invoker.InvokeAsync(Container.CosmosDb, Args, async (_, _, ct) =>
+        return Container.CosmosDb.Invoker.InvokeAsync(Container.CosmosDb, Args, async (tracer, _, ct) =>
         {
             var paging = _paging ?? PagingArgs.Create();
             var baseQuery = AsQueryable();
-            var ir = new ItemsResult<T>(paging) { Items = (await DrainAsync(baseQuery.WithPaging(paging), ct).ConfigureAwait(false)).ConvertAll(item => mapper(item)) };
+            var ir = new ItemsResult<T>(paging) { Items = (await DrainAsync(tracer, baseQuery.WithPaging(paging), ct).ConfigureAwait(false)).ConvertAll(item => mapper(item)) };
 
             if (autoCount)
                 await ir.WithTotalCountAsync(async ct2 => (long?)(await baseQuery.CountAsync(ct2).ConfigureAwait(false)).Resource, ct).ConfigureAwait(false);
@@ -466,8 +466,13 @@ public class CosmosDbQuery<TModel> where TModel : class, IEntityKey, new()
     /// <summary>
     /// Creates a <see cref="List{TModel}"/> from a <see cref="IQueryable{TModel}"/> by fully draining the underlying <see cref="FeedIterator{T}"/>.
     /// </summary>
-    private static async Task<List<TModel>> DrainAsync(IQueryable<TModel> queryable, CancellationToken cancellationToken)
+    /// <remarks>Where <paramref name="tracer"/>'s <see cref="InvokerTracer.Logger"/> has <see cref="LogLevel.Debug"/> enabled, the composed Cosmos DB SQL query is logged before execution. The
+    /// <c>ToQueryDefinition</c> conversion (LINQ-to-SQL translation) is only performed when debug logging is actually enabled, so there is no cost when it is not.</remarks>
+    private static async Task<List<TModel>> DrainAsync(InvokerTracer tracer, IQueryable<TModel> queryable, CancellationToken cancellationToken)
     {
+        if (tracer.Logger is not null && tracer.Logger.IsEnabled(LogLevel.Debug))
+            tracer.LogContext($"Cosmos query: {queryable.ToQueryDefinition().QueryText}");
+
         var items = new List<TModel>();
         using var iterator = queryable.ToFeedIterator();
 
