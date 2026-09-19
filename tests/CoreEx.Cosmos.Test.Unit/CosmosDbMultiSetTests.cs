@@ -251,6 +251,33 @@ public class CosmosDbMultiSetTests : CosmosTestBase
     }
 
     [Test]
+    public async Task SelectMultiSetAsync_MandatorySingle_OnlyMatchIsExcludedByCheckModel_ThrowsRatherThanSilentlySucceedingWithNoValue()
+    {
+        // Regression: IMultiSetArgs.AddItem's Result only ever signals a genuine failure (e.g. a WithFilter authorization denial) - a document silently excluded by CheckModel (e.g. logically
+        // deleted, here) still returns Result.Success. The caller must count a received row solely from the AddItem Result<bool>.Value (was it actually added?), never merely from
+        // Result.IsFailure/IsSuccess - otherwise a filtered-out document would still satisfy MinimumRows, and this mandatory MultiSetSingleArgs would silently invoke nothing (InvokeResult sees
+        // its own _value still null) rather than this method throwing to signal the mandatory item was never found.
+        await GetOrCreateContainerAsync(SoftDeleteContainerId).ConfigureAwait(false);
+
+        var cosmosDb = CreateCosmosDb();
+
+        // Deliberately omit WithLogicalDeleteFilter() - the query-level filter would exclude the deleted document before it ever reached AddItem, which would make MinimumRows fail for the
+        // wrong reason (never queried) rather than the reason under test (queried, then excluded by CheckModel's application-level logical-delete check).
+        var animals = cosmosDb.Container<SoftDeleteAnimalItem>(SoftDeleteContainerId, o => o.WithPartitionKey(m => m.PartitionKey).WithTypeDiscriminator());
+
+        var sharedPartition = NewId();
+        await animals.Container.CreateItemAsync(
+            new SoftDeleteAnimalItem { Id = NewId(), PartitionKey = sharedPartition, Name = "Cat", TypeDiscriminator = nameof(SoftDeleteAnimalItem), IsDeleted = true },
+            new PartitionKey(sharedPartition));
+
+        var invoked = false;
+        Func<Task> act = () => cosmosDb.SelectMultiSetAsync(SoftDeleteContainerId, new MultiSetOptions { PartitionKey = sharedPartition, MultiSetArgs = [new MultiSetSingleArgs<SoftDeleteAnimalItem>(_ => invoked = true)] });
+
+        await act.Should().ThrowAsync<InvalidOperationException>();
+        invoked.Should().BeFalse();
+    }
+
+    [Test]
     public async Task SelectMultiSetAsync_ArgsQueryRequestOptionsPartitionKeyMismatch_Throws()
     {
         await GetOrCreateContainerAsync(ContainerId).ConfigureAwait(false);

@@ -331,6 +331,39 @@ public class CosmosDbOutboxRelayTests : CosmosTestBase
         }
     }
 
+    private const string DisposeLeaseContainerId = "relay-items-leases";
+
+    [Test]
+    public async Task DisposeAsync_WithoutPriorStop_StopsProcessorAndIsIdempotent()
+    {
+        // Regression: DisposeAsync previously only disposed the semaphore, never stopping a running Change Feed Processor - leaving it running (with its callbacks racing disposed state/resources)
+        // if the caller disposed a started relay without an explicit preceding StopAsync. It must now stop the processor as part of disposal, and remain safe to call more than once.
+        await GetOrCreateContainerAsync(ContainerId).ConfigureAwait(false);
+        await TestDatabase.CreateContainerIfNotExistsAsync(DisposeLeaseContainerId, "/id").ConfigureAwait(false);
+
+        var cosmosDb = CreateCosmosDb();
+        using var sp = CreateServiceProvider(new TestEventPublisher());
+        var processor = new CosmosDbOutboxRelayProcessor(sp, ContainerId, NullLogger<CosmosDbOutboxRelayProcessor>.Instance);
+
+        var options = new CosmosDbOutboxRelayOptions
+        {
+            ContainerId = ContainerId,
+            LeaseContainerId = DisposeLeaseContainerId,
+            InstanceName = $"instance-{NewId()}"
+        };
+
+        var relay = new CosmosDbOutboxRelay(cosmosDb.Database, options, processor, NullLogger<CosmosDbOutboxRelay>.Instance);
+        await relay.StartAsync();
+        relay.Status.Should().Be(ServiceStatus.Running);
+
+        await relay.DisposeAsync();
+        relay.Status.Should().Be(ServiceStatus.Stopped);
+
+        // Idempotent - a second dispose must not throw (e.g. re-disposing the semaphore, or calling StopAsync again against already-disposed synchronization resources).
+        Func<Task> act = async () => await relay.DisposeAsync();
+        await act.Should().NotThrowAsync();
+    }
+
     private sealed class TestEventPublisher : EventPublisherBase
     {
         public List<DestinationEvent> Published { get; } = [];

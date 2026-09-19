@@ -236,14 +236,18 @@ public sealed class CosmosDbOutboxRelay : IAsyncDisposable
     }
 
     /// <inheritdoc/>
+    /// <remarks>Stops the underlying <see cref="ChangeFeedProcessor"/> (via <see cref="StopAsync(CancellationToken)"/>) before releasing synchronization resources - disposing a started relay without an
+    /// explicit preceding <see cref="StopAsync(CancellationToken)"/> would otherwise leave the Change Feed Processor running, with its callbacks racing against the disposed semaphore. Idempotent -
+    /// safe to call more than once (only the first call performs any work), and safe to call even where the relay was never started (<see cref="StopAsync(CancellationToken)"/> itself tolerates that,
+    /// skipping the processor call while still transitioning <see cref="Status"/>).</remarks>
     public async ValueTask DisposeAsync()
     {
         if (_disposed)
             return;
 
         _disposed = true;
+        await StopAsync().ConfigureAwait(false);
         _semaphore.Dispose();
-        await Task.CompletedTask.ConfigureAwait(false);
         GC.SuppressFinalize(this);
     }
 }

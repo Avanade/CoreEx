@@ -37,24 +37,26 @@ public class ServiceBusReceiverTests : WithGenericTester<EntryPoint>
     }
 
     [Test]
-    [Order(-1)] // Forces this to run before every other (default Order(0)) test in this fixture, on every TFM. NUnit does not guarantee declaration-order execution - it depends on
-                // reflection-based method enumeration, which can differ between .NET runtime versions - so other tests here that publish-then-abandon/dead-letter/circuit-break messages
-                // (e.g. ReceiveAsync_Catastrophic_Then_Pause, ReceiveAsync_CircuitBreaker) could otherwise run first on some TFMs and leak stale messages into this count assertion,
-                // which is exactly what caused this test to flake with "expected 10, found 16" on net8.0 only (net9.0/net10.0 happened to enumerate methods in a different order).
+    [Order(-1)] // Runs this before every other (default Order(0)) test in THIS fixture, on every TFM, as a defensive measure - see the marker-filtering below for the actual fix.
     public void GetAndClearAzureServiceBusAsync_ReturnsAllPublishedMessages() => Test.ScopedType<ExecutionContext>(async test =>
     {
         // Regression (against a real Service Bus emulator, not a mock): proves GetAndClearAzureServiceBusAsync's internal
         // receive poll reliably drains every message published just beforehand, closing the gap left by CoreEx.UnitTesting's
         // "no live infra to verify" note for this method.
+        // The "unit-test"/"default" topic/subscription is shared by other fixtures in this assembly (e.g. ServiceBusPublisherTests) that publish their own messages independently of this one -
+        // a message published elsewhere can still be "in flight" (not yet indexed by the emulator) when this test's own drain runs, then land during this test's own receive window, which is
+        // exactly what caused this test to flake with "expected 10, found 16" (an [Order(-1)]-only fix does not help here, since it only orders tests within this fixture, not across fixtures).
+        // Tagging each published item with a test-run-unique marker and filtering on it - rather than asserting the subscription's total message count - makes this immune to any such cross-fixture leakage.
+        var marker = Guid.NewGuid().ToString("N");
         var sp = (ServiceBusPublisher)test.Services.GetRequiredKeyedService<IEventPublisher>(ServiceBusPublisher.DefaultServiceKey);
         for (var i = 0; i < 10; i++)
-            sp.Add(EventData.CreateEventWith(new Subscribers.Product { Id = i, Sku = $"SKU-{i}" }, "Created"));
+            sp.Add(EventData.CreateEventWith(new Subscribers.Product { Id = i, Sku = $"{marker}-{i}" }, "Created"));
 
         await sp.PublishAsync();
 
         var messages = await Test.GetAndClearAzureServiceBusAsync(ServiceBusReceiverOptions.CreateForTopicSubscription("unit-test", "default"));
 
-        messages.Should().HaveCount(10);
+        messages.Where(m => m.Body.ToString().Contains(marker)).Should().HaveCount(10);
     });
 
     [Test]

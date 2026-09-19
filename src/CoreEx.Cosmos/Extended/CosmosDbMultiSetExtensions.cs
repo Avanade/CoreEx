@@ -147,7 +147,10 @@ public static class CosmosDbMultiSetExtensions
 
                     var addResult = msa.AddItem(cosmosDb, containerId, args, model);
                     if (addResult.IsFailure)
-                        return addResult;
+                        return (Result)addResult;
+
+                    if (!addResult.Value)
+                        continue; // Silently excluded by the per-item check (e.g. wrong tenant, logically deleted) - must not count towards MinimumRows/MaximumRows/StopOnNull.
 
                     var count = counts[msa] = counts.GetValueOrDefault(msa) + 1;
                     if (msa.MaximumRows.HasValue && count > msa.MaximumRows.Value)

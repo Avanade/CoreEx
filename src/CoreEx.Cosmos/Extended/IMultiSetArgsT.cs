@@ -24,16 +24,17 @@ public interface IMultiSetArgs<TModel> : IMultiSetArgs where TModel : class, IEn
     }
 
     /// <inheritdoc/>
-    Result IMultiSetArgs.AddItem(ICosmosDb cosmosDb, string containerId, CosmosDbArgs args, object model)
+    Result<bool> IMultiSetArgs.AddItem(ICosmosDb cosmosDb, string containerId, CosmosDbArgs args, object model)
     {
         var result = cosmosDb.ThrowIfNull().Container<TModel>(containerId.ThrowIfNullOrEmpty()).CheckModel(args.ThrowIfNull(), (TModel)model.ThrowIfNull(), OperationType.Get);
         if (result.IsFailure)
             return (Result)result;
 
-        if (result.Value is not null)
-            AddItem(result.Value);
+        if (result.Value is null)
+            return false; // Silently excluded by CheckModel (e.g. wrong tenant, logically deleted) - not added, and must not count as a received row.
 
-        return Result.Success;
+        AddItem(result.Value);
+        return true;
     }
 
     /// <inheritdoc/>

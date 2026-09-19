@@ -25,12 +25,16 @@ public interface IMultiSetArgs : IMultiSetArgsCore
     /// <param name="containerId">The <see cref="Container"/> identifier.</param>
     /// <param name="args">The <see cref="CosmosDbArgs"/>.</param>
     /// <param name="model">The deserialized model.</param>
-    /// <returns>The <see cref="Result"/>.</returns>
+    /// <returns>The <see cref="Result{T}"/>, whose <see cref="Result{T}.Value"/> indicates whether the <paramref name="model"/> was actually added (<see langword="true"/>) or was silently excluded by the
+    /// per-item check (<see langword="false"/>).</returns>
     /// <remarks>Invoked once per matching document by the multi-set query engine (see <c>CosmosDbMultiSetExtensions.SelectMultiSetAsync</c>); a model that fails the per-item check (see
     /// <c>CosmosDbContainer{TModel}.CheckModel</c>) is silently excluded (not added) where that check itself resolves to <see langword="null"/> (e.g. wrong tenant, logically deleted) - exactly as a
     /// single-item <see cref="CosmosDbContainer{TModel}.GetAsync(CompositeKey, string, CancellationToken)"/> would exclude it - as opposed to a genuine <see cref="Result.IsFailure"/> (e.g. a
-    /// <see cref="CosmosDbModelOptions{TModel}.WithFilter"/> that itself fails), which is propagated rather than swallowed.</remarks>
-    Result AddItem(ICosmosDb cosmosDb, string containerId, CosmosDbArgs args, object model);
+    /// <see cref="CosmosDbModelOptions{TModel}.WithFilter"/> that itself fails), which is propagated rather than swallowed. The caller (<c>CosmosDbMultiSetExtensions.SelectMultiSetInternalAsync</c>) relies
+    /// on the returned <see cref="Result{T}.Value"/> - not merely <see cref="Result.IsSuccess"/> - to decide whether to count the document towards <see cref="IMultiSetArgsCore.MinimumRows"/>/
+    /// <see cref="IMultiSetArgsCore.MaximumRows"/>/<see cref="IMultiSetArgsCore.StopOnNull"/>; a silently-excluded document must never count as a received row, otherwise a mandatory single-item read could
+    /// wrongly satisfy <see cref="IMultiSetArgsCore.MinimumRows"/> while never actually invoking its result callback.</remarks>
+    Result<bool> AddItem(ICosmosDb cosmosDb, string containerId, CosmosDbArgs args, object model);
 
     /// <summary>
     /// Builds an additional, defensive server-side SQL predicate (adding any required parameters into <paramref name="parameters"/>) enforcing this <see cref="IMultiSetArgs"/>'s <see cref="ModelType"/>'s
