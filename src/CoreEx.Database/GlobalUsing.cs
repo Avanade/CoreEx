@@ -1,6 +1,7 @@
 global using CloudNative.CloudEvents.Extensions;
 global using CoreEx.Abstractions;
 global using CoreEx.Data;
+global using IMultiSetArgs = CoreEx.Database.Extended.IMultiSetArgs;
 global using CoreEx.Database.Abstractions;
 global using CoreEx.Database.Extended;
 global using CoreEx.Database.Mapping;

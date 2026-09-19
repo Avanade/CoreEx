@@ -20,10 +20,11 @@ The multi-result-set types allow a single stored procedure or multi-statement SQ
 | **[`DatabaseWildcard`](./DatabaseWildcard.cs)** | Translates `WildcardResult` to a database `LIKE` pattern with configurable multi-char (`%`), single-char (`_`), and escape character; exposes `Replace(string)` for raw wildcard text. |
 | **[`MultiSetSingleArgs<T>`](./MultiSetSingleArgsT.cs)** | `IMultiSetArgs` for a single-row result set: invokes `IDatabaseMapper<T>.MapFromDb` once and stores the mapped value; supports `IsMandatory` / `StopOnNull`. |
 | **[`MultiSetCollArgs<T>`](./MultiSetCollArgsT.cs)** | `IMultiSetArgs` for a collection result set: invokes mapper for each row, accumulates into a list; supports `MinimumRows`, `MaximumRows`, `StopOnNull`. |
-| [`IMultiSetArgs`](./IMultiSetArgs.cs) | Base interface for multi-result-set descriptors: `MinimumRows`, `MaximumRows`, `StopOnNull`, `DatasetRecord(DatabaseRecord)`. |
+| [`IMultiSetArgs`](./IMultiSetArgs.cs) | Base interface for multi-result-set descriptors: extends `CoreEx.Data.IMultiSetArgsCore` (`MinimumRows`, `MaximumRows`, `StopOnNull`, `InvokeResult()`) adding `DatasetRecord(DatabaseRecord)`. |
 | [`IMultiSetArgs<T>`](./IMultiSetArgsT.cs) | Generic variant adding a `Mapper` property and `GetResult()` for retrieving the mapped output after dataset processing. |
 
 ## Related Namespaces
 
 - **[`CoreEx.Database`](../README.md)** - `DatabaseCommand.SelectMultiSetAsync` consumes `IMultiSetArgs` descriptors; `IDatabase.NamedColumns` returns a `DatabaseColumns` instance; `IDatabase.Wildcard` is a `DatabaseWildcard`.
+- **[`CoreEx.Data`](../../CoreEx.Data/README.md)** - `IMultiSetArgs` (this namespace) extends the shared, storage-agnostic `CoreEx.Data.IMultiSetArgsCore` base (`MinimumRows`, `MaximumRows`, `StopOnNull`, `InvokeResult()`); `CoreEx.Cosmos.Extended.IMultiSetArgs` is the discriminator-keyed sibling for Cosmos.
 - **[`CoreEx.Wildcards`](../../CoreEx/Wildcards/README.md)** - `WildcardResult` is the input type consumed by `DatabaseWildcard.Replace`.

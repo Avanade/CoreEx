@@ -63,6 +63,54 @@ public class PlantItem : CosmosDbModelBase, IEntityKey, ITypeDiscriminator
 }
 
 /// <summary>
+/// A test model implementing both <see cref="ITypeDiscriminator"/> and <see cref="ITenantId"/> - used, alongside <see cref="TenantPlantItem"/>, to verify that per-item tenant filtering (see
+/// <see cref="CosmosDbContainer{TModel}.CheckModel"/>) is still applied when a model is read via a multi-set query.
+/// </summary>
+[Schemas.Schema(Name = nameof(TenantAnimalItem))]
+public class TenantAnimalItem : CosmosDbModelBase, IEntityKey, ITypeDiscriminator, ITenantId
+{
+    public string Name { get; set; } = string.Empty;
+
+    public string? TypeDiscriminator { get; set; }
+
+    public string? TenantId { get; set; }
+
+    public CompositeKey EntityKey => CompositeKey.Create(Id);
+}
+
+/// <summary>
+/// A test model implementing both <see cref="ITypeDiscriminator"/> and <see cref="ITenantId"/> - used, alongside <see cref="TenantAnimalItem"/>, to verify that per-item tenant filtering (see
+/// <see cref="CosmosDbContainer{TModel}.CheckModel"/>) is still applied when a model is read via a multi-set query.
+/// </summary>
+[Schemas.Schema(Name = nameof(TenantPlantItem))]
+public class TenantPlantItem : CosmosDbModelBase, IEntityKey, ITypeDiscriminator, ITenantId
+{
+    public string Name { get; set; } = string.Empty;
+
+    public string? TypeDiscriminator { get; set; }
+
+    public string? TenantId { get; set; }
+
+    public CompositeKey EntityKey => CompositeKey.Create(Id);
+}
+
+/// <summary>
+/// A test model implementing both <see cref="ITypeDiscriminator"/> and <see cref="ILogicallyDeleted"/> - used to verify the query-level, <c>IS_DEFINED</c>-guarded logical-delete SQL optimization
+/// (see <see cref="CosmosDbModelOptions{TModel}.WithLogicalDeleteFilter"/>) applied by a multi-set query.
+/// </summary>
+[Schemas.Schema(Name = nameof(SoftDeleteAnimalItem))]
+public class SoftDeleteAnimalItem : CosmosDbModelBase, IEntityKey, ITypeDiscriminator, ILogicallyDeleted
+{
+    public string Name { get; set; } = string.Empty;
+
+    public string? TypeDiscriminator { get; set; }
+
+    public bool IsDeleted { get; set; }
+
+    public CompositeKey EntityKey => CompositeKey.Create(Id);
+}
+
+/// <summary>
 /// A test model implementing the standard interfaces directly (not via <see cref="CosmosDbModelBase"/>) and deliberately omitting <see cref="ITimeToLive"/>, used to test the
 /// <see cref="CosmosDbModelOptions{TModel}.WithTimeToLive"/> guard.
 /// </summary>

@@ -21,6 +21,8 @@ global using Microsoft.Azure.Cosmos;
 global using Microsoft.Azure.Cosmos.Linq;
 // CoreEx.Data also declares a (differently-purposed, hash-partitioning) 'PartitionKey' type; alias to disambiguate in favour of the Cosmos SDK's struct throughout this package.
 global using PartitionKey = Microsoft.Azure.Cosmos.PartitionKey;
+// CoreEx.Data also declares the shared base 'IMultiSetArgs' type; alias to disambiguate in favour of this package's discriminator-keyed variant throughout.
+global using IMultiSetArgs = CoreEx.Cosmos.Extended.IMultiSetArgs;
 global using Microsoft.Extensions.DependencyInjection;
 global using Microsoft.Extensions.Diagnostics.HealthChecks;
 global using Microsoft.Extensions.Logging;

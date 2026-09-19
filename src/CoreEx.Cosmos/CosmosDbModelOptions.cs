@@ -349,7 +349,8 @@ public class CosmosDbModelOptions<TModel> where TModel : class, IEntityKey, new(
     /// </summary>
     /// <returns>The <see cref="CosmosDbModelOptions{TModel}"/> to support fluent-style method-chaining.</returns>
     /// <remarks>Non-query operations (<c>GetAsync</c>, etc.) always check the <see cref="IReadOnlyTenantId.TenantId"/> where supported (see <c>CosmosDbContainer{TModel}.CheckModel</c>) irrespective of
-    /// whether this filter has been configured; this only controls whether <see cref="CosmosDbQuery{TModel}.AsQueryable(CosmosDbArgs?)"/> also applies the equivalent predicate.</remarks>
+    /// whether this filter has been configured; this only controls whether <see cref="CosmosDbQuery{TModel}.AsQueryable(CosmosDbArgs?)"/> also applies the equivalent predicate (and, for <c>Extended</c>
+    /// multi-set queries, an equivalent defensive server-side SQL predicate - see <see cref="IsTenantFilterEnabled"/>).</remarks>
     public CosmosDbModelOptions<TModel> WithTenantFilter()
     {
         if (!TenantSupport.IsSupported)
@@ -360,11 +361,19 @@ public class CosmosDbModelOptions<TModel> where TModel : class, IEntityKey, new(
     }
 
     /// <summary>
+    /// Indicates whether the <see cref="WithTenantFilter"/> query-only filter has been configured.
+    /// </summary>
+    /// <remarks>Consumed by <c>CoreEx.Cosmos.Extended.CosmosDbMultiSetExtensions.SelectMultiSetAsync</c> to add an equivalent, defensive (<c>IS_DEFINED</c>-guarded) server-side SQL predicate - it has no
+    /// bearing on the always-applied, per-item <c>CosmosDbContainer{TModel}.CheckModel</c> tenant check.</remarks>
+    public bool IsTenantFilterEnabled => _tenantFilterEnabled;
+
+    /// <summary>
     /// Adds a logical delete (<see cref="IReadOnlyLogicallyDeleted.IsDeleted"/>) query-only filter (where <see cref="LogicalDeleteSupport"/> is supported).
     /// </summary>
     /// <returns>The <see cref="CosmosDbModelOptions{TModel}"/> to support fluent-style method-chaining.</returns>
     /// <remarks>Non-query operations always check the <see cref="IReadOnlyLogicallyDeleted.IsDeleted"/> state where supported irrespective of whether this filter has been configured; this only controls whether
-    /// <see cref="CosmosDbQuery{TModel}.AsQueryable(CosmosDbArgs?)"/> also applies the equivalent predicate.</remarks>
+    /// <see cref="CosmosDbQuery{TModel}.AsQueryable(CosmosDbArgs?)"/> also applies the equivalent predicate (and, for <c>Extended</c> multi-set queries, an equivalent defensive server-side SQL predicate -
+    /// see <see cref="IsLogicalDeleteFilterEnabled"/>).</remarks>
     public CosmosDbModelOptions<TModel> WithLogicalDeleteFilter()
     {
         if (!LogicalDeleteSupport.IsSupported)
@@ -373,6 +382,13 @@ public class CosmosDbModelOptions<TModel> where TModel : class, IEntityKey, new(
         _logicalDeleteFilterEnabled = true;
         return this;
     }
+
+    /// <summary>
+    /// Indicates whether the <see cref="WithLogicalDeleteFilter"/> query-only filter has been configured.
+    /// </summary>
+    /// <remarks>Consumed by <c>CoreEx.Cosmos.Extended.CosmosDbMultiSetExtensions.SelectMultiSetAsync</c> to add an equivalent, defensive (<c>IS_DEFINED</c>-guarded) server-side SQL predicate - it has no
+    /// bearing on the always-applied, per-item <c>CosmosDbContainer{TModel}.CheckModel</c> logical-delete check.</remarks>
+    public bool IsLogicalDeleteFilterEnabled => _logicalDeleteFilterEnabled;
 
     /// <summary>
     /// Adds a type discriminator (<see cref="IReadOnlyTypeDiscriminator.TypeDiscriminator"/>) query-only filter (where <see cref="TypeDiscriminatorSupport"/> is supported), enabling several business model

@@ -129,6 +129,45 @@ Poison-message/dead-letter handling is **not yet implemented** - a permanently-f
 
 **Detecting a stuck lease:** `cosmos.outbox.enqueue` continuing to climb while `cosmos.outbox.relay.publish` stays flat for the same container is the signal - the write side is unaffected by a stuck relay, so a sustained divergence between the two indicates a lease is blocked. `cosmos.outbox.relay.oldest_lag`/`newest_lag` are recorded on both a successful and a failed publish attempt, so they keep climbing (rather than going silent) for as long as a batch keeps failing - alert on a sustained rise in `cosmos.outbox.relay.oldest_lag`, not just on `cosmos.outbox.relay.publish.failed`, since a low failure count can still mean one lease has been stuck for a long time.
 
+## Multi-set queries
+
+```csharp
+List<AnimalItem>? animals = null;
+PlantItem? plant = null;
+
+await cosmosDb.SelectMultiSetAsync("zoo", new MultiSetOptions
+{
+    PartitionKey = zooId,
+    MultiSetArgs =
+    [
+        new MultiSetCollArgs<List<AnimalItem>, AnimalItem>(r => animals = r, minimumRows: 1),   // at least one AnimalItem expected
+        new MultiSetSingleArgs<PlantItem>(r => plant = r, isMandatory: false)                    // PlantItem is optional
+    ]
+});
+
+// For full control (a custom CosmosDbArgs and/or a CancellationToken):
+await cosmosDb.SelectMultiSetAsync("zoo", new MultiSetOptions
+{
+    PartitionKey = zooId,
+    Args = new CosmosDbArgs { QueryRequestOptions = new QueryRequestOptions { MaxItemCount = 100 } },
+    MultiSetArgs = [new MultiSetCollArgs<List<AnimalItem>, AnimalItem>(r => animals = r, minimumRows: 1)]
+}, cancellationToken);
+```
+
+`ICosmosDb.SelectMultiSetAsync` (`Extended` namespace) reads multiple, type-discriminator-keyed sets of documents from the same container/partition in a single round-trip - the Cosmos DB equivalent of `CoreEx.Database.Extended`'s positional/ordered multi-set queries. Unlike the relational equivalent, Cosmos DB has no notion of ordered result sets: a single query instead returns a mixed stream of documents, each demuxed to its corresponding `IMultiSetArgs` by matching a server-side filter on the type-discriminator property against each `IMultiSetArgs.TypeDiscriminator` (resolved from `TModel` exactly as `WithTypeDiscriminator()` resolves its own value - see "Multi-type containers" above). Co-located outbox event documents (see "Transactional Outbox" below) are always excluded server-side via the same reserved `$outbox` `id`-prefix check used by the LINQ query path - no opt-in required. Each matching document is then also checked per-item (tenant/logical-delete/additive-filter, via `CosmosDbContainer<TModel>.CheckModel`) before being handed to the `IMultiSetArgs<TModel>.AddItem(TModel)` implementation - a model excluded by that check is silently dropped, exactly as a single-item `GetAsync` would exclude it.
+
+There is a single `SelectMultiSetAsync(containerId, MultiSetOptions, cancellationToken?)` overload. `MultiSetOptions` bundles the per-call inputs (`PartitionKey`, `Args`, `MultiSetArgs`) into one record so a future capability addition doesn't require a breaking method-contract change.
+
+`TModel` must implement `IReadOnlyTypeDiscriminator` - `MultiSetSingleArgs<TModel>`/`MultiSetCollArgs<TColl, TModel>` enforce this via a static constructor guard (`NotSupportedException` on first use of an incompatible `TModel`, not per-instance). Each supplied `IMultiSetArgs` must resolve to a *unique* `TypeDiscriminator` value within one call.
+
+`MinimumRows`/`MaximumRows` are enforced, and `InvokeResult()` is invoked, in the order the `IMultiSetArgs` were supplied - `StopOnNull` (a zero-match, optional set) short-circuits any subsequent `IMultiSetArgs` in that order, exactly as it does for the relational equivalent's positionally-subsequent result sets. `MaximumRows` is checked as each matching document streams in (fails fast, before the whole feed has been read); `MinimumRows` can only be checked once the whole feed has been consumed.
+
+The type-discriminator's underlying JSON property name is resolved **once per call** from the ambient `CosmosClientOptions.UseSystemTextJsonSerializerWithOptions.PropertyNamingPolicy` (e.g. `camelCase`) - the same naming policy that already governs how every other model property serializes to/from Cosmos DB. This requires the underlying `CosmosClient` to be configured with a `System.Text.Json`-based serializer (already a de facto requirement for this package - see `CosmosDbItemBase`'s reliance on `[JsonPropertyName]`); throws `NotSupportedException` if it isn't. An explicit per-model override of the type-discriminator's JSON property name (e.g. via `[JsonPropertyName]` on `TypeDiscriminator` itself) is **not** supported - every `TModel` within one multi-set call must rely on the one ambient naming policy.
+
+**Query-level tenant/logical-delete SQL optimization**: where a model's `CosmosDbModelOptions<TModel>.WithTenantFilter()`/`WithLogicalDeleteFilter()` is configured, `IMultiSetArgs.BuildFilterClause` adds an additional, defensive server-side predicate for that model's subset of the query - e.g. `(NOT IS_DEFINED(c["tenantId"]) OR c["tenantId"] = @f0_tenantId)` / `(NOT IS_DEFINED(c["isDeleted"]) OR c["isDeleted"] = false)`. Each predicate is `IS_DEFINED`-guarded so a document that predates the property being added at all is never silently excluded purely for that reason - it still reaches the always-applied per-item `CheckModel` check (unaffected by this optimization). This is a pure RU/bandwidth optimization, not a correctness guarantee on its own: a model with neither configured relies solely on `CheckModel`, exactly as before. Note `CheckModel` itself throws `InvalidOperationException` for a model implementing `IReadOnlyTenantId` with a null/empty `TenantId` (tenant stamping is expected to always have occurred - see "Multi-tenancy" in the root `README.md`), so the tenant guard's practical benefit is avoiding the RU cost of transferring such a (should-never-happen) document before it fails that check, not silently tolerating it; the logical-delete guard, by contrast, genuinely represents "not deleted" for a legacy document that predates `IsDeleted` being added.
+
+**`QueryRequestOptions` precedence**: `MultiSetOptions.Args.QueryRequestOptions`, where supplied, takes precedence over one freshly built from `MultiSetOptions.PartitionKey`. If it already carries a `PartitionKey` and `MultiSetOptions.PartitionKey` is also supplied, the two must agree (`.Equals`) - a genuine mismatch throws `ArgumentException` rather than silently preferring one. Where it has no `PartitionKey` set, `MultiSetOptions.PartitionKey` is layered in via a shallow clone (never mutating the caller's own, potentially shared/cached, `CosmosDbArgs`) - every other property (`MaxItemCount`, `ConsistencyLevel`, etc.) passes through unchanged.
+
 ## Batch import & container provisioning
 
 `CosmosDbBatch`/`CosmosDbContainerExtensions` (`Extended` namespace) operate on raw JSON/SDK types with no dependency on the rest of this package - useful for data seeding, bulk/one-off loads, and migrations, independent of any typed `CosmosDbContainer<TModel>`:
@@ -156,6 +195,7 @@ await database.ImportBatchAsync(jdr);
 - Do not assume a `CosmosDbOutboxRelay`/relay hosted service durably handles a permanently-failing event — see "Outbox Relay" above; there is no dead-letter mechanism yet.
 - Do not materialize a query by defining a bare, generic-sounding `IQueryable<T>` extension method (`ToListAsync`, `ToItemsResultAsync`, etc.) — `CoreEx.EntityFrameworkCore.EfDbExtensions` already defines several identically-shaped ones, and C# extension-method resolution has no precedence rule between two equally-applicable candidates: it's a hard `CS0121` ambiguous-call compile error in any file that imports both namespaces, not just a style clash. Add materializers as instance methods on `CosmosDbQuery<TModel>` (or an equivalent package-owned wrapper type) instead — a different receiver type cannot collide, so plain names (`ToListAsync`, `ToItemsResultAsync`, ...) are safe there. Only fall back to a `To{Provider}XxxAsync`-prefixed `IQueryable<T>` extension if a package genuinely cannot own a wrapper type.
 - Do not use `CosmosDbBatch.ImportBatchAsync` for regular application writes — it bypasses `CosmosDbContainer<TModel>`'s entire cross-cutting pipeline (ETag/concurrency, tenant/logical-delete filtering, type-discriminator stamping, outbox enlistment). Use it only for data seeding, bulk/one-off loads, or migrations where that pipeline genuinely isn't wanted.
+- Do not use `SelectMultiSetAsync` with a `TModel` that has an explicit `[JsonPropertyName]` override on its `TypeDiscriminator` property — the discriminator's JSON property name is resolved once per call from the ambient naming policy only; a per-model override is silently ignored (the filter/demux will not match). Do not assume `MinimumRows` is enforced incrementally like `MaximumRows` — it can only be checked once the entire feed has been consumed, since a matching document for a given `IMultiSetArgs` may still arrive later in the stream.
 
 ## Further Reading
 
