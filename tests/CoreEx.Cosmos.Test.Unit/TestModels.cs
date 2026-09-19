@@ -141,6 +141,23 @@ public class NoPartitionKeyItem : IEntityKey, IIdentifier<string>, IETag
 }
 
 /// <summary>
+/// A test model implementing <see cref="IEntityKey"/> but deliberately <b>not</b> <see cref="IIdentifier{String}"/>/<see cref="IReadOnlyIdentifier{String}"/> - its Cosmos DB <c>id</c> is instead exposed
+/// via a differently-named property decorated with <see cref="System.Text.Json.Serialization.JsonPropertyNameAttribute"/>, used to verify <see cref="CosmosDbModelOptions{TModel}.ApplyFilters"/>'s
+/// automatic outbox-document exclusion still applies (via its reflection-based fallback) even when the CoreEx identifier interfaces are not implemented.
+/// </summary>
+public class NonIdentifierKeyedItem : IEntityKey, IPartitionKey
+{
+    [System.Text.Json.Serialization.JsonPropertyName("id")]
+    public string DocumentId { get; set; } = string.Empty;
+
+    public string? PartitionKey { get; set; }
+
+    public string Name { get; set; } = string.Empty;
+
+    public CompositeKey EntityKey => CompositeKey.Create(DocumentId);
+}
+
+/// <summary>
 /// A domain "contract" value used to exercise <see cref="CosmosDbMappedContainer{TValue, TModel, TBiDirectionMapper}"/> (mapped to/from <see cref="TestItem"/>), and <see cref="IUnitOfWork.SynchronizeETag{T}(CompositeKey, T)"/>
 /// (a distinct object instance/type from the <see cref="TestItem"/> model a <see cref="CosmosDbUnitOfWork"/> actually mutates - the scenario that mechanism exists for).
 /// </summary>

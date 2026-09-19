@@ -50,9 +50,37 @@ public class CosmosDbModelOptions<TModel> where TModel : class, IEntityKey, new(
     /// <summary>
     /// Indicates whether <see cref="IIdentifier{String}"/> and/or <see cref="IReadOnlyIdentifier{String}"/> is supported for the <typeparamref name="TModel"/>.
     /// </summary>
-    /// <remarks>Used solely to gate the automatic outbox-document exclusion predicate applied by <see cref="ApplyFilters(CosmosDbArgs, IQueryable{TModel}, ExecutionContext)"/> — see its remarks for the
-    /// full mechanism and rationale. Unrelated to <see cref="ITypeDiscriminator"/>, which is a business-modeling concern, not an infrastructure one.</remarks>
+    /// <remarks>Used by <see cref="ApplyFilters(CosmosDbArgs, IQueryable{TModel}, ExecutionContext)"/> to build its automatic outbox-document exclusion predicate directly against this interface (the common
+    /// case) - see its remarks for the full mechanism and rationale, and <see cref="ResolveOutboxIdExclusion"/> for the fallback used when this is <em>not</em> supported. Unrelated to
+    /// <see cref="ITypeDiscriminator"/>, which is a business-modeling concern, not an infrastructure one.</remarks>
     public FeatureSupport IdentifierSupport { get; } = FeatureSupport.Determine<TModel, IIdentifier<string>, IReadOnlyIdentifier<string>>();
+
+    /// <summary>
+    /// Lazily resolves a fallback outbox-document exclusion predicate for a <typeparamref name="TModel"/> that does not implement <see cref="IIdentifier{String}"/>/<see cref="IReadOnlyIdentifier{String}"/>
+    /// (see <see cref="IdentifierSupport"/>), by locating whichever property is actually mapped to the reserved Cosmos DB <c>id</c> JSON property via <see cref="JsonPropertyNameAttribute"/> - the same
+    /// attribute <see cref="CosmosDbModelBase"/> itself uses. Cosmos DB requires every physical document to have an <c>id</c> regardless of which CoreEx interfaces (if any) a model implements, so a
+    /// <typeparamref name="TModel"/> using <see cref="WithFormatIdentifier"/>/a composite <see cref="IEntityKey.EntityKey"/> without also implementing <see cref="IReadOnlyIdentifier{String}"/> would
+    /// otherwise silently receive no outbox-document exclusion at all.
+    /// </summary>
+    /// <returns>A compiled <see cref="Expression{TDelegate}"/> equivalent to the <see cref="IIdentifier{String}"/> case, or <see langword="null"/> where no such property can be found (nothing further can be
+    /// done here - see <see cref="ApplyFilters(CosmosDbArgs, IQueryable{TModel}, ExecutionContext)"/> remarks).</returns>
+    private static Expression<Func<TModel, bool>>? ResolveOutboxIdExclusion()
+    {
+        var property = typeof(TModel).GetProperties(BindingFlags.Public | BindingFlags.Instance)
+            .FirstOrDefault(p => p.PropertyType == typeof(string) && p.GetCustomAttribute<JsonPropertyNameAttribute>()?.Name == "id");
+
+        if (property is null)
+            return null;
+
+        var parameter = Expression.Parameter(typeof(TModel), "m");
+        var idAccess = Expression.Property(parameter, property);
+        var startsWith = Expression.Call(idAccess, StartsWithMethod, Expression.Constant(CosmosDbOutboxEvent.OutboxKeyPrefix));
+        return Expression.Lambda<Func<TModel, bool>>(Expression.Not(startsWith), parameter);
+    }
+
+    private static readonly MethodInfo StartsWithMethod = typeof(string).GetMethod(nameof(string.StartsWith), [typeof(string)])!;
+
+    private static readonly Lazy<Expression<Func<TModel, bool>>?> _outboxIdExclusion = new(ResolveOutboxIdExclusion);
 
     /// <summary>
     /// Gets the default <see cref="CosmosDbArgs"/>.
@@ -448,7 +476,12 @@ public class CosmosDbModelOptions<TModel> where TModel : class, IEntityKey, new(
     /// can never wrongly exclude real business data, and a business developer is never required to add or even be aware of any interface/discriminator solely to accommodate this — unlike an earlier design
     /// considered and rejected, which would have reused <see cref="ITypeDiscriminator"/> for this purpose (conflating a genuine business-modeling decision with an unrelated infrastructure concern).
     /// <para>Uses the same cast-to-interface-in-a-LINQ-predicate shape already used above for <see cref="WithTenantFilter"/>/<see cref="WithLogicalDeleteFilter"/>/<see cref="WithTypeDiscriminator(string?)"/>,
-    /// not a new or unproven LINQ pattern.</para></remarks>
+    /// not a new or unproven LINQ pattern.</para>
+    /// <para>Where <see cref="IdentifierSupport"/> is <em>not</em> supported (a <typeparamref name="TModel"/> using a composite <see cref="IEntityKey.EntityKey"/>/<see cref="WithFormatIdentifier"/> without
+    /// also implementing <see cref="IReadOnlyIdentifier{String}"/>), the exclusion is not simply skipped: <see cref="ResolveOutboxIdExclusion"/> falls back to locating whichever property is actually
+    /// mapped to the reserved Cosmos DB <c>id</c> JSON property (via <see cref="JsonPropertyNameAttribute"/>) and applies the identical predicate against it directly, since Cosmos DB requires every
+    /// physical document to have an <c>id</c> regardless of which CoreEx interfaces a model implements. Only where no such property can be found at all (a working <typeparamref name="TModel"/> would
+    /// always have one, since Cosmos DB itself would otherwise reject every write) is the exclusion genuinely skipped.</para></remarks>
     public IQueryable<TModel> ApplyFilters(CosmosDbArgs args, IQueryable<TModel> query, ExecutionContext executionContext)
     {
         args.ThrowIfNull();
@@ -456,6 +489,8 @@ public class CosmosDbModelOptions<TModel> where TModel : class, IEntityKey, new(
 
         if (IdentifierSupport.IsSupported)
             query = query.Where(m => !((IReadOnlyIdentifier<string>)m).Id!.StartsWith(CosmosDbOutboxEvent.OutboxKeyPrefix));
+        else if (_outboxIdExclusion.Value is not null)
+            query = query.Where(_outboxIdExclusion.Value);
 
         if (_tenantFilterEnabled)
         {

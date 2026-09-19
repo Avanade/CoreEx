@@ -72,6 +72,26 @@ public class CosmosDbContainerFilterTests : CosmosTestBase
     }
 
     [Test]
+    public async Task Update_WithNonQueryFilter_ReturnsConfiguredErrorUnlessBypassed()
+    {
+        // Same shape as Delete's equivalent test above - HasFilters forces Update's generalized pre-read, whose CheckModel now enforces a non-query filter's configured Result against the PERSISTED
+        // document (not the incoming replace payload), rather than allowing a blind replace of a filtered-out (e.g. unauthorized) item.
+        var container = await GetContainerAsync((_, _) => Result.AuthenticationError(), allowFilterBypass: true);
+        var id = NewId();
+
+        // Seed directly via the raw SDK container, bypassing CoreEx.Cosmos's own filter enforcement on Create.
+        await container.Container.CreateItemAsync(new TestItem { Id = id, PartitionKey = id, Name = "Hidden" }, new PartitionKey(id));
+
+        var blocked = await container.UpdateWithResultAsync(new TestItem { Id = id, PartitionKey = id, Name = "Overwritten" });
+        blocked.IsFailure.Should().BeTrue();
+        blocked.Error.Should().BeOfType<AuthenticationException>();
+
+        var bypassed = await container.UpdateWithResultAsync(new CosmosDbArgs { BypassFilters = true }, new TestItem { Id = id, PartitionKey = id, Name = "Overwritten" });
+        bypassed.IsSuccess.Should().BeTrue();
+        bypassed.Value.Value.Name.Should().Be("Overwritten");
+    }
+
+    [Test]
     public async Task AsQueryable_WithBypassFilters_OnlyBypassesFiltersRegisteredAsBypassable()
     {
         // Query-only filter registered WITHOUT allowFilterBypass (defaults to false) - CosmosDbArgs.BypassFilters must have no effect on it; matching CoreEx.EntityFrameworkCore.EfDbModelOptions.ApplyFilters,
@@ -142,6 +162,26 @@ public class CosmosDbContainerFilterTests : CosmosTestBase
 
         var items = await DrainAsync(container.Query(q => q.Where(m => m.PartitionKey == pk)).AsQueryable(new CosmosDbArgs { BypassFilters = true }));
         items.Select(m => m.Name).Should().BeEquivalentTo(["Visible"]);
+    }
+
+    [Test]
+    public async Task UpdateAsync_ReturnsNotFound_WhenPersistedItemIsLogicallyDeleted()
+    {
+        // "No undelete via Update" - matching CoreEx.EntityFrameworkCore.EfDbModel's own CheckModel behavior (used as the consistency reference for this fix), LogicalDeleteSupport.IsSupported forces
+        // Update's generalized pre-read, whose CheckModel rejects a replace targeting a persisted-but-logically-deleted document, rather than silently reviving it with the incoming payload's content.
+        const string containerId = "soft-delete-update-items";
+        await GetOrCreateContainerAsync(containerId).ConfigureAwait(false);
+
+        var container = CreateCosmosDb().Container<SoftDeleteItem>(containerId, o => o.WithPartitionKey(m => m.PartitionKey).WithLogicalDeleteFilter());
+        var pk = NewId();
+        var id = NewId();
+
+        await container.CreateAsync(new SoftDeleteItem { Id = id, PartitionKey = pk, Name = "Deleted" });
+        await container.DeleteAsync(CompositeKey.Create(id), pk); // Logical delete - sets IsDeleted = true rather than physically removing the document.
+
+        var result = await container.UpdateWithResultAsync(new SoftDeleteItem { Id = id, PartitionKey = pk, Name = "Resurrected" });
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().BeOfType<NotFoundException>();
     }
 
     private static async Task<List<TestItem>> DrainAsync(IQueryable<TestItem> queryable)

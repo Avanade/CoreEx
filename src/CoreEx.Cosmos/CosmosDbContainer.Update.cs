@@ -63,23 +63,18 @@ public partial class CosmosDbContainer<TModel>
             var partitionKey = CosmosDbModelOptions<TModel>.ToPartitionKey(partitionKeyValue);
             var id = Options.FormatIdentifier(Options.GetKeyFromModel(model));
 
-            // Where a type discriminator is configured, the CheckModel call above cannot catch a cross-type id/partition collision: Model.PrepareUpdate stamps the model's own TypeDiscriminator from its
-            // own type, so it always trivially matches the container's configured value irrespective of what is actually persisted. Unlike tenant/logical-delete (self-consistency checks that mirror the
-            // caller's own intent), a type-discriminator mismatch specifically means "a different model type already occupies this id/partition" - so the existing document must be read and compared
-            // before a blind ReplaceItemAsync is allowed to silently overwrite it with a differently-typed document.
-            if (Options.IsTypeDiscriminatorFilterEnabled)
+            // The CheckModel call above only validates the incoming model, which is always self-consistent - Model.PrepareUpdate stamps its ITenantId/ITypeDiscriminator from the caller's own execution
+            // context/type before the check runs - so it cannot detect that the PERSISTED document at this id/partition actually belongs to a different tenant, is logically deleted, fails an additive
+            // WithFilter authorization rule, or belongs to a different configured type. Unless none of those are configured (mirrors the equivalent Delete fast-path condition exactly), the existing
+            // document must be read and validated first via CheckModel(OperationType.Get) - a blind ReplaceItemAsync/batch enlistment has no other way to enforce them, since Cosmos DB replaces purely by
+            // id + partition key with no awareness of these concerns. A missing document surfaces as the same Result.NotFoundError() a subsequent ReplaceItemAsync 404 would have produced anyway (unlike
+            // Delete, a missing document is not treated as an idempotent no-op for Update). Note this only reads to validate isolation - the request's own ETag (captured below from the incoming model,
+            // not this pre-read) is what still governs optimistic concurrency for the replace itself.
+            if (!Options.LogicalDeleteSupport.IsNone || Options.TenantSupport.IsSupported || Options.HasFilters || Options.IsTypeDiscriminatorFilterEnabled)
             {
-                try
-                {
-                    var existing = await Container.ReadItemAsync<TModel>(id, partitionKey, cancellationToken: cancellationToken).ConfigureAwait(false);
-                    if (Options.IsTypeDiscriminatorMismatch(existing.Resource))
-                        return Result.NotFoundError();
-                }
-                catch (CosmosException cex) when (cex.StatusCode == HttpStatusCode.NotFound)
-                {
-                    // No existing document at all - fall through to ReplaceItemAsync below, which surfaces the standard not-found outcome for a genuinely missing document (as opposed to a cross-type
-                    // id/partition collision, which is what this pre-read exists to catch).
-                }
+                var er = await GetWithResultInternalAsync(args, Options.GetKeyFromModel(model), partitionKey, memberName, treatNullAsNotFound: true, cancellationToken).ConfigureAwait(false);
+                if (er.IsFailure)
+                    return er.Bind();
             }
 
             // Cosmos DB's native If-Match optimistic concurrency is enforced server-side (returns a 412 directly), unlike a relational/EF detached-entity comparison; the CosmosDbInvoker maps a 412 to a
