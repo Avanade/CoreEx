@@ -411,6 +411,28 @@ public class CosmosDbModelOptions<TModel> where TModel : class, IEntityKey, new(
     }
 
     /// <summary>
+    /// Determines whether the specified <paramref name="model"/>'s <see cref="IReadOnlyTypeDiscriminator.TypeDiscriminator"/> disagrees with the configured <see cref="WithTypeDiscriminator(string?)"/> value.
+    /// </summary>
+    /// <param name="model">The model.</param>
+    /// <returns><see langword="true"/> where <see cref="WithTypeDiscriminator(string?)"/> is configured and the model's discriminator does not match; otherwise, <see langword="false"/> (including where
+    /// <see cref="WithTypeDiscriminator(string?)"/> was never configured, since there is then nothing to isolate against).</returns>
+    /// <remarks>Used by <see cref="CosmosDbContainer{TModel}.CheckModel"/> to apply the same type-discriminator isolation to point <c>Get</c>/<c>Delete</c>/<c>Update</c> operations that
+    /// <see cref="ApplyFilters"/> already applies to queries - without this, a shared multi-type container could deserialize, delete, or replace a same-id/partition document belonging to a different
+    /// configured type, silently bypassing the isolation <see cref="WithTypeDiscriminator(string?)"/> promises. Unlike <see cref="IsTenantFilterEnabled"/>/<see cref="IsLogicalDeleteFilterEnabled"/> (whose
+    /// equivalent <c>CheckModel</c> checks are unconditional whenever <typeparamref name="TModel"/> merely implements the relevant interface), this check is deliberately gated on
+    /// <see cref="WithTypeDiscriminator(string?)"/> having been called - there is no ambient "expected type" to compare against otherwise (tenant compares to <see cref="ExecutionContext.TenantId"/>;
+    /// logical-delete compares to a fixed <see langword="false"/>), so an ungated check could wrongly reject a document in a single-type container that never opted into discriminator isolation.</remarks>
+    internal bool IsTypeDiscriminatorMismatch(TModel model) => _typeDiscriminatorFilterEnabled && model is IReadOnlyTypeDiscriminator td && td.TypeDiscriminator != _typeDiscriminatorValue;
+
+    /// <summary>
+    /// Indicates whether the <see cref="WithTypeDiscriminator(string?)"/> filter has been configured.
+    /// </summary>
+    /// <remarks>Consumed by <see cref="CosmosDbContainer{TModel}.DeleteWithResultInternalAsync"/>'s equivalent fast-path check (alongside <see cref="IsTenantFilterEnabled"/>/<see cref="IsLogicalDeleteFilterEnabled"/>/
+    /// <see cref="HasFilters"/>) to decide whether a plain, key-based delete can skip the pre-read <c>CheckModel</c> performs - see <see cref="IsTypeDiscriminatorMismatch(TModel)"/> remarks for why, unlike
+    /// those two, this one genuinely gates <c>CheckModel</c>'s own type-discriminator check too.</remarks>
+    public bool IsTypeDiscriminatorFilterEnabled => _typeDiscriminatorFilterEnabled;
+
+    /// <summary>
     /// Applies the configured query-only filters (<see cref="WithTenantFilter"/>, <see cref="WithLogicalDeleteFilter"/>, <see cref="WithTypeDiscriminator(string?)"/> and any additive
     /// <see cref="WithFilter"/> registrations), plus an automatic outbox-document exclusion predicate, to the <paramref name="query"/>.
     /// </summary>

@@ -41,9 +41,15 @@ public class CosmosDbOutboxRelayProcessor(IServiceProvider serviceProvider, stri
     /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
     /// <exception cref="Exception">Any decode or publish failure is allowed to propagate - this is what feeds the owning <see cref="CosmosDbOutboxRelay"/>'s circuit breaker and lets the Change Feed Processor's own
     /// native redelivery/backoff continue. A cleanup-delete failure, by contrast, is always caught and never propagated (see remarks).</exception>
+    /// <exception cref="InvalidOperationException">Thrown immediately, before anything is enlisted, where the resolved default <see cref="IEventPublisher"/> is a <see cref="CosmosDbEventPublisher"/> - see remarks.</exception>
     /// <remarks>A cleanup-delete failure only ever occurs <i>after</i> a successful publish - the event has already reached its destination, so the only consequence of leaving the document behind is it sitting
     /// until its <see cref="ITimeToLive"/> expires (a bounded, self-healing storage/RU cost), not lost work. Letting such a failure propagate and pause the relay over an already-completed delivery would be
-    /// wrong, so it is caught, logged, and counted (<see cref="CosmosMetrics.OutboxRelayCleanupFailed"/>) instead.</remarks>
+    /// wrong, so it is caught, logged, and counted (<see cref="CosmosMetrics.OutboxRelayCleanupFailed"/>) instead.
+    /// <para>The resolved default <see cref="IEventPublisher"/> must be a genuine <i>destination</i> publisher (e.g. an Azure Service Bus <see cref="IEventPublisher"/> registered via
+    /// <c>CoreEx.Azure.Messaging.ServiceBus</c>'s <c>AddAzureServiceBusPublisher</c>) - nothing in this package registers one, since the choice of destination is host-specific; see the package
+    /// <c>AGENTS.md</c>/<c>README.md</c> "Outbox Relay" section for a worked registration example. <see cref="CosmosDbEventPublisher"/> is deliberately rejected up front rather than left to fail deeper
+    /// inside <see cref="IEventPublisher.PublishAsync(CancellationToken)"/> - it is the outbox <i>write-side</i> publisher (paired with <see cref="CosmosDbUnitOfWork"/>) and can only publish inside an
+    /// active <see cref="CosmosDbUnitOfWork.TransactionAsync(Func{CancellationToken, Task}, CancellationToken)"/> scope, which the relay's own per-batch scope never has.</para></remarks>
     public virtual async Task ProcessBatchAsync(IReadOnlyCollection<CosmosDbOutboxEvent> changes, CancellationToken cancellationToken)
     {
         var outboxDocs = changes.Where(c => c.Id is not null && c.Id.StartsWith(CosmosDbOutboxEvent.OutboxKeyPrefix, StringComparison.Ordinal)).ToList();
@@ -55,6 +61,14 @@ public class CosmosDbOutboxRelayProcessor(IServiceProvider serviceProvider, stri
         await using var scope = ServiceProvider.CreateAsyncScope();
         var eventPublisher = scope.ServiceProvider.GetRequiredService<IEventPublisher>();
         var cosmosDb = scope.ServiceProvider.GetRequiredService<ICosmosDb>();
+
+        // Fail fast with an actionable message rather than letting this reach CosmosDbEventPublisher.OnPublishAsync, whose "no active transaction" exception does not explain that it is the wrong
+        // publisher role entirely - see the remarks above.
+        if (eventPublisher is CosmosDbEventPublisher)
+            throw new InvalidOperationException(
+                $"The default {nameof(IEventPublisher)} resolved for container '{ContainerId}' is a {nameof(CosmosDbEventPublisher)}, which is the outbox write-side publisher (used by {nameof(CosmosDbUnitOfWork)}) and cannot " +
+                $"also serve as this relay's destination {nameof(IEventPublisher)}. Register a genuine destination publisher instead (e.g. an Azure Service Bus {nameof(IEventPublisher)} via CoreEx.Azure.Messaging.ServiceBus's " +
+                "AddAzureServiceBusPublisher) - see the package AGENTS.md/README.md \"Outbox Relay\" section for a worked example.");
 
         eventPublisher.Add(outboxDocs.Select(d => new DestinationEvent(d.Destination, d.Event.DecodeToCloudEvent())));
 
@@ -108,7 +122,7 @@ public class CosmosDbOutboxRelayProcessor(IServiceProvider serviceProvider, stri
     private static void RecordLagMetrics(IEventPublisher eventPublisher)
     {
         var times = eventPublisher.GetEvents().Select(de => de.Event.Time ?? default).ToList();
-        var now = DateTimeOffset.UtcNow;
+        var now = Runtime.UtcNow;
         CosmosMetrics.OutboxRelayOldestLagDuration.Record((now - times.Min()).TotalMilliseconds);
         CosmosMetrics.OutboxRelayNewestLagDuration.Record((now - times.Max()).TotalMilliseconds);
     }

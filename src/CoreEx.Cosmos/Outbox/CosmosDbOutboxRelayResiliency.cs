@@ -23,7 +23,7 @@ public static class CosmosDbOutboxRelayResiliency
         => CircuitBreakerResiliency<CosmosDbOutboxRelay>.Create(
             "Cosmos DB outbox relay",
             owner => owner.Logger,
-            (owner, pause, cancellationToken) => owner.PauseAsync($"Cosmos DB outbox relay circuit breaker has been tripped for container '{owner.Options.ContainerId}'; will resume automatically at: {DateTimeOffset.UtcNow.Add(pause):R}.", cancellationToken),
+            (owner, pause, cancellationToken) => owner.PauseAsync($"Cosmos DB outbox relay circuit breaker has been tripped for container '{owner.Options.ContainerId}'; will resume automatically at: {Runtime.UtcNow.Add(pause):R}.", cancellationToken),
             (owner, cancellationToken) => owner.ResumeAsync(cancellationToken),
             shouldHandle: null,
             minimumThroughput, samplingDuration, breakDuration, maxBreakDuration, failureRatio);

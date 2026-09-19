@@ -73,6 +73,40 @@ public class CosmosDbOutboxRelayTests : CosmosTestBase
     }
 
     [Test]
+    public async Task ProcessBatchAsync_CosmosDbEventPublisherRegisteredAsDestination_ThrowsClearGuidance()
+    {
+        // Regression: registering CosmosDbEventPublisher (the outbox write-side publisher) as the relay's default IEventPublisher must fail immediately with an actionable message naming the
+        // misconfiguration - not the deeper, less obvious "no active transaction" exception CosmosDbEventPublisher.OnPublishAsync would otherwise throw once actually invoked.
+        await GetOrCreateContainerAsync(ContainerId).ConfigureAwait(false);
+        var cosmosDb = CreateCosmosDb();
+        var container = cosmosDb.Container<TestItem>(ContainerId, o => o.WithPartitionKey(m => m.PartitionKey));
+        var outbox = new CosmosDbEventPublisher(cosmosDb);
+        var unitOfWork = new CosmosDbUnitOfWork(cosmosDb, outbox);
+
+        var pk = NewId();
+        await unitOfWork.TransactionAsync(async ct =>
+        {
+            var created = await container.CreateAsync(new TestItem { Id = NewId(), PartitionKey = pk, Name = "Widget" }, ct).ConfigureAwait(false);
+            unitOfWork.Events.Add(EventData.CreateEventWith(created.Value, EventAction.Created).WithSource(new Uri("https://unittest/coreex-cosmos", UriKind.Absolute)).WithPartitionKey(pk));
+        });
+
+        var rawContainer = cosmosDb.GetContainer(ContainerId);
+        var outboxDocs = await QueryOutboxDocsAsync(rawContainer, pk);
+        outboxDocs.Should().ContainSingle();
+
+        // Misconfiguration under test: CosmosDbEventPublisher (write-side) registered as the relay's own destination IEventPublisher.
+        using var sp = CreateServiceProvider(new CosmosDbEventPublisher(CreateCosmosDb()));
+        var processor = new CosmosDbOutboxRelayProcessor(sp, ContainerId, NullLogger<CosmosDbOutboxRelayProcessor>.Instance);
+
+        var ex = Assert.ThrowsAsync<InvalidOperationException>(async () => await processor.ProcessBatchAsync(outboxDocs, CancellationToken.None));
+        ex!.Message.Should().Contain(nameof(CosmosDbEventPublisher)).And.Contain(ContainerId);
+
+        // Nothing should have been deleted - the guard fires before any cleanup work is attempted.
+        var remaining = await QueryOutboxDocsAsync(rawContainer, pk);
+        remaining.Should().ContainSingle();
+    }
+
+    [Test]
     public async Task ProcessBatchAsync_PartitionKeyNone_PublishesAndDeletes()
     {
         // Regression: DeleteOneAsync previously always called the partitionKey-taking DeleteAsync overload with a null-forgiving bang on doc.PartitionKey - which is a real, valid value (PartitionKey.None)

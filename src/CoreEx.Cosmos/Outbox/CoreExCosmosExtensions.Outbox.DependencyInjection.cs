@@ -26,7 +26,12 @@ public static class CoreExCosmosOutboxExtensions
     /// <remarks>Uses the <see cref="Microsoft.Extensions.DependencyInjection.CoreExExtensions.AddHostedService{THostedService}(IServiceCollection, string, Func{IServiceProvider, THostedService}, Action{IServiceProvider, THostedService}?)"/>
     /// to enable, matching the same pattern as the SQL Server/Postgres outbox relay registrations.
     /// <para>Call this once per container that hosts outbox documents, each with its own <paramref name="servicesCount"/> (e.g. more instances for a high-volume "orders" container, fewer for a low-volume
-    /// "customers" one).</para></remarks>
+    /// "customers" one).</para>
+    /// <para>This registers the <see cref="CosmosDbOutboxRelay"/>/<see cref="CosmosDbOutboxRelayHostedService"/> only - unlike the SQL Server/Postgres equivalents' samples, it does <b>not</b> register a
+    /// destination <see cref="IEventPublisher"/>, since the choice of destination is host-specific. A destination <see cref="IEventPublisher"/> (e.g. an Azure Service Bus one, via
+    /// <c>CoreEx.Azure.Messaging.ServiceBus</c>'s <c>AddAzureServiceBusPublisher</c>) must also be registered, or every batch throws once the Change Feed Processor delivers it - see
+    /// <see cref="CosmosDbOutboxRelayProcessor.ProcessBatchAsync(IReadOnlyCollection{CosmosDbOutboxEvent}, CancellationToken)"/> remarks and the package <c>AGENTS.md</c>/<c>README.md</c> "Outbox Relay"
+    /// section for a worked example. <see cref="CosmosDbEventPublisher"/> (the outbox <i>write-side</i> publisher) must never be registered for this role.</para></remarks>
     public static IHostApplicationBuilder AddCosmosDbOutboxRelayHostedService(this IHostApplicationBuilder builder, string containerId, int? servicesCount = null, string? leaseContainerId = null, string? serviceKeyPrefix = null,
         Action<IServiceProvider, CosmosDbOutboxRelayOptions>? configureOptions = null, Action<IServiceProvider, CosmosDbOutboxRelayHostedService>? configure = null)
     {

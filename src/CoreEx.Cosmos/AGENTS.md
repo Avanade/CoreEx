@@ -119,14 +119,17 @@ Outbox documents are identified by a reserved `$outbox` `Id` prefix and auto-exc
 
 ## Outbox Relay
 
-`CosmosDbOutboxRelay` consumes outbox event documents via a Cosmos DB [Change Feed Processor](https://learn.microsoft.com/en-us/azure/cosmos-db/nosql/change-feed-processor) - push-based and SDK-managed, not a polling loop like the SQL Server/Postgres relay - decodes/publishes/cleans up each batch, and self-pauses/self-resumes via a circuit breaker on a sustained publish-failure ratio:
+`CosmosDbOutboxRelay` consumes outbox event documents via a Cosmos DB [Change Feed Processor](https://learn.microsoft.com/en-us/azure/cosmos-db/nosql/change-feed-processor) - push-based and SDK-managed, not a polling loop like the SQL Server/Postgres relay - decodes/publishes/cleans up each batch, and self-pauses/self-resumes via a circuit breaker on a sustained publish-failure ratio. Unlike `AddCosmosDbEventPublisher` (the write-side registration above), `AddCosmosDbOutboxRelayHostedService` registers **only** the relay itself - a genuine *destination* `IEventPublisher` (e.g. Azure Service Bus) must also be registered, matching the SQL Server/Postgres samples, or every batch throws as soon as the Change Feed Processor delivers it:
 
 ```csharp
 // Relay host Program.cs
 builder.Services.AddCosmosDb("MyDatabaseId");
+builder.Services.AddAzureServiceBusPublisher();          // the destination IEventPublisher - required; never register CosmosDbEventPublisher for this role (see below).
 builder.AddCosmosDbOutboxRelayHostedService("orders");   // one call per outbox-hosting container
 builder.AddCosmosDbOutboxRelayHostedService("customers", servicesCount: 1);   // lower-volume container, fewer concurrent instances
 ```
+
+`CosmosDbEventPublisher` must never be registered as this destination publisher - it is the outbox *write-side* publisher and can only publish inside an active `CosmosDbUnitOfWork.TransactionAsync` scope, which the relay's per-batch scope never has. `CosmosDbOutboxRelayProcessor.ProcessBatchAsync` detects this misconfiguration up front and throws a clear, actionable `InvalidOperationException` naming the offending container, rather than surfacing `CosmosDbEventPublisher`'s deeper "no active transaction" error.
 
 Poison-message/dead-letter handling is **not yet implemented** - a permanently-failing outbox document is redelivered forever by the Change Feed Processor's own native backoff (confirmed empirically against the emulator), with no built-in give-up, and can starve delivery of other, unrelated outbox documents sharing the same physical partition-key-range/lease. Since a Change Feed Processor lease checkpoints strictly in order, this isn't a bounded delay - it blocks every later change in that lease indefinitely, until either the underlying cause is fixed (so the same, already-captured change eventually succeeds) or an operator intervenes at the lease/checkpoint level; deleting the live document does not help, since the change feed record being retried is an immutable snapshot, not a live read. To be designed as one shared pattern across the SQL Server/Postgres/Cosmos relays, not Cosmos-specific.
 

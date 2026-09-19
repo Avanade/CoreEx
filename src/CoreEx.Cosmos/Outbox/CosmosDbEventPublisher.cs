@@ -64,7 +64,7 @@ public class CosmosDbEventPublisher(ICosmosDb cosmosDb, IDestinationProvider? de
         {
             var outboxEvent = new CosmosDbOutboxEvent
             {
-                Id = CompositeKey.Create(CosmosDbOutboxEvent.OutboxKeyPrefix, Guid.NewGuid()).ToString()!,
+                Id = CompositeKey.Create(CosmosDbOutboxEvent.OutboxKeyPrefix, Runtime.NewGuid()).ToString()!,
                 PartitionKey = partitionKeyValue,
                 Destination = de.Destination,
                 Event = de.Event.EncodeToJsonElement(),

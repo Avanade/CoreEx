@@ -37,4 +37,70 @@ public class CosmosDbContainerTypeDiscriminatorTests : CosmosTestBase
         var plantResults = await plants.Query(q => q.Where(m => m.PartitionKey == sharedPartition)).ToListAsync();
         plantResults.Select(m => m.Name).Should().BeEquivalentTo(["Fern"]);
     }
+
+    [Test]
+    public async Task GetAsync_ReturnsNotFound_WhenIdAndPartitionMatchADifferentConfiguredTypeDiscriminator()
+    {
+        await GetOrCreateContainerAsync(ContainerId).ConfigureAwait(false);
+
+        var cosmosDb = CreateCosmosDb();
+        var animals = cosmosDb.Container<AnimalItem>(ContainerId, o => o.WithPartitionKey(m => m.PartitionKey).WithTypeDiscriminator());
+        var plants = cosmosDb.Container<PlantItem>(ContainerId, o => o.WithPartitionKey(m => m.PartitionKey).WithTypeDiscriminator());
+
+        var partitionKey = NewId();
+        var id = NewId();
+        await animals.CreateAsync(new AnimalItem { Id = id, PartitionKey = partitionKey, Name = "Dog" });
+
+        // Same id + partition, but requested as a PlantItem - CheckModel must reject the cross-type read rather than deserializing/returning the AnimalItem document.
+        var result = await plants.GetWithResultAsync(CompositeKey.Create(id), partitionKey);
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().BeOfType<NotFoundException>();
+    }
+
+    [Test]
+    public async Task UpdateAsync_ReturnsNotFound_WhenIdAndPartitionMatchADifferentConfiguredTypeDiscriminator()
+    {
+        await GetOrCreateContainerAsync(ContainerId).ConfigureAwait(false);
+
+        var cosmosDb = CreateCosmosDb();
+        var animals = cosmosDb.Container<AnimalItem>(ContainerId, o => o.WithPartitionKey(m => m.PartitionKey).WithTypeDiscriminator());
+        var plants = cosmosDb.Container<PlantItem>(ContainerId, o => o.WithPartitionKey(m => m.PartitionKey).WithTypeDiscriminator());
+
+        var partitionKey = NewId();
+        var id = NewId();
+        await animals.CreateAsync(new AnimalItem { Id = id, PartitionKey = partitionKey, Name = "Dog" });
+
+        // A PlantItem replace targeting the AnimalItem's id/partition must not silently overwrite it with a differently-typed document.
+        var result = await plants.UpdateWithResultAsync(new PlantItem { Id = id, PartitionKey = partitionKey, Name = "Fern" });
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().BeOfType<NotFoundException>();
+
+        // Confirm the original AnimalItem document is untouched.
+        var animal = await animals.GetAsync(CompositeKey.Create(id), partitionKey);
+        animal.Should().NotBeNull();
+        animal!.Name.Should().Be("Dog");
+    }
+
+    [Test]
+    public async Task DeleteAsync_DoesNotDelete_WhenIdAndPartitionMatchADifferentConfiguredTypeDiscriminator()
+    {
+        await GetOrCreateContainerAsync(ContainerId).ConfigureAwait(false);
+
+        var cosmosDb = CreateCosmosDb();
+        var animals = cosmosDb.Container<AnimalItem>(ContainerId, o => o.WithPartitionKey(m => m.PartitionKey).WithTypeDiscriminator());
+        var plants = cosmosDb.Container<PlantItem>(ContainerId, o => o.WithPartitionKey(m => m.PartitionKey).WithTypeDiscriminator());
+
+        var partitionKey = NewId();
+        var id = NewId();
+        await animals.CreateAsync(new AnimalItem { Id = id, PartitionKey = partitionKey, Name = "Dog" });
+
+        // A PlantItem delete targeting the AnimalItem's id/partition must not physically delete it - WithTypeDiscriminator forces the pre-read (fast-path is disabled) so CheckModel can reject it.
+        var deleted = await plants.DeleteWithResultAsync(CompositeKey.Create(id), partitionKey);
+        deleted.Value.WasMutated.Should().BeFalse();
+
+        // Confirm the AnimalItem document still exists, untouched.
+        var animal = await animals.GetAsync(CompositeKey.Create(id), partitionKey);
+        animal.Should().NotBeNull();
+        animal!.Name.Should().Be("Dog");
+    }
 }

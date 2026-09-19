@@ -63,6 +63,25 @@ public partial class CosmosDbContainer<TModel>
             var partitionKey = CosmosDbModelOptions<TModel>.ToPartitionKey(partitionKeyValue);
             var id = Options.FormatIdentifier(Options.GetKeyFromModel(model));
 
+            // Where a type discriminator is configured, the CheckModel call above cannot catch a cross-type id/partition collision: Model.PrepareUpdate stamps the model's own TypeDiscriminator from its
+            // own type, so it always trivially matches the container's configured value irrespective of what is actually persisted. Unlike tenant/logical-delete (self-consistency checks that mirror the
+            // caller's own intent), a type-discriminator mismatch specifically means "a different model type already occupies this id/partition" - so the existing document must be read and compared
+            // before a blind ReplaceItemAsync is allowed to silently overwrite it with a differently-typed document.
+            if (Options.IsTypeDiscriminatorFilterEnabled)
+            {
+                try
+                {
+                    var existing = await Container.ReadItemAsync<TModel>(id, partitionKey, cancellationToken: cancellationToken).ConfigureAwait(false);
+                    if (Options.IsTypeDiscriminatorMismatch(existing.Resource))
+                        return Result.NotFoundError();
+                }
+                catch (CosmosException cex) when (cex.StatusCode == HttpStatusCode.NotFound)
+                {
+                    // No existing document at all - fall through to ReplaceItemAsync below, which surfaces the standard not-found outcome for a genuinely missing document (as opposed to a cross-type
+                    // id/partition collision, which is what this pre-read exists to catch).
+                }
+            }
+
             // Cosmos DB's native If-Match optimistic concurrency is enforced server-side (returns a 412 directly), unlike a relational/EF detached-entity comparison; the CosmosDbInvoker maps a 412 to a
             // ConcurrencyException/Result.ConcurrencyError automatically. Note: AutoMapETag only synthesizes an ItemRequestOptions when the caller has not already supplied one (args.ItemRequestOptions is
             // null) so as to never mutate a caller-owned/shared ItemRequestOptions instance; where a caller supplies their own ItemRequestOptions they are expected to set IfMatchEtag themselves.

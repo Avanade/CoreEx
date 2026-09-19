@@ -22,9 +22,10 @@ public partial class CosmosDbContainer<TModel>
     /// <returns>A <see cref="DataResult"/>.</returns>
     /// <remarks>A delete is considered idempotent (a <c>404</c> is not treated as an error) unless logical delete is active (see <see cref="CosmosDbModelOptions{TModel}.LogicalDeleteSupport"/>), in which case a
     /// missing document results in a <see cref="Result.NotFoundError"/> equivalent (as a read-modify-write is required to logically delete).
-    /// <para>Unless the <typeparamref name="TModel"/> has none of <see cref="CosmosDbModelOptions{TModel}.TenantSupport"/>, logical delete, or <see cref="CosmosDbModelOptions{TModel}.WithFilter"/>
-    /// registrations configured, a delete first performs a read (the same tenant-ownership/filter checks <c>GetAsync</c>/<c>UpdateAsync</c> apply) before deleting by key — a raw <c>DeleteItemAsync</c> call
-    /// has no other way to enforce them, since Cosmos DB deletes purely by id + partition key with no awareness of tenant/filter concerns. Where none of those are configured <i>and</i> there is no active
+    /// <para>Unless the <typeparamref name="TModel"/> has none of <see cref="CosmosDbModelOptions{TModel}.TenantSupport"/>, logical delete, <see cref="CosmosDbModelOptions{TModel}.WithFilter"/>
+    /// registrations, or <see cref="CosmosDbModelOptions{TModel}.WithTypeDiscriminator(string?)"/> configured, a delete first performs a read (the same tenant-ownership/filter/type-discriminator checks
+    /// <c>GetAsync</c>/<c>UpdateAsync</c> apply) before deleting by key — a raw <c>DeleteItemAsync</c> call has no other way to enforce them, since Cosmos DB deletes purely by id + partition key with no
+    /// awareness of tenant/filter/type-discriminator concerns. Where none of those are configured <i>and</i> there is no active
     /// <see cref="CosmosDbUnitOfWork"/>, there is nothing for the pre-read to catch, so it is skipped entirely and the delete goes straight to Cosmos DB — the common case for a plain, key-based, high-volume
     /// delete pays no extra read cost.</para>
     /// <para>Inside an active <see cref="CosmosDbUnitOfWork"/>, the pre-read is <b>always</b> forced, for a different reason: Cosmos DB's <c>TransactionalBatch</c> fails the <i>whole</i> batch if any
@@ -142,15 +143,15 @@ public partial class CosmosDbContainer<TModel>
             }
         }
 
-        // Fast path: nothing is configured for CheckModel to check (no ITenantId/IReadOnlyTenantId support, no logical delete, no WithFilter registrations) AND there is no active CosmosDbUnitOfWork - go
-        // straight to Cosmos DB with no pre-read at all. This is the low-cost path for the common case of a plain, key-based physical delete.
+        // Fast path: nothing is configured for CheckModel to check (no ITenantId/IReadOnlyTenantId support, no logical delete, no WithFilter registrations, no WithTypeDiscriminator configuration) AND
+        // there is no active CosmosDbUnitOfWork - go straight to Cosmos DB with no pre-read at all. This is the low-cost path for the common case of a plain, key-based physical delete.
         //
         // Inside an active unit-of-work, the pre-read is forced even when none of the above are configured, for an entirely different reason: TransactionalBatch is all-or-nothing, and deleting a
         // non-existent item inside a batch fails the WHOLE batch (confirmed empirically) - unlike a standalone DeleteItemAsync call, which tolerates a 404 as an idempotent no-op. Without confirming
         // existence first, a delete-of-something-already-gone would silently also discard any other legitimate Create/Update operations enlisted in the same unit-of-work. This pre-read is also what
         // makes the returned DataResult.WasMutated accurate for a delete performed inside a unit-of-work (see PhysicalDeleteAsync above) - a caller can use the same DataResult.WhereMutated(...)-style
         // pattern to decide whether to queue a "Deleted" event, exactly as it already does for the non-transactional path.
-        if (Options.LogicalDeleteSupport.IsNone && !Options.TenantSupport.IsSupported && !Options.HasFilters && CosmosDb.CurrentTransaction is null)
+        if (Options.LogicalDeleteSupport.IsNone && !Options.TenantSupport.IsSupported && !Options.HasFilters && !Options.IsTypeDiscriminatorFilterEnabled && CosmosDb.CurrentTransaction is null)
             return await PhysicalDeleteAsync().ConfigureAwait(false);
 
         // Fetch first (via CheckModel) so tenant ownership and any configured WithFilter checks are enforced consistently with Get/Update for both a physical and a logical delete - a physical

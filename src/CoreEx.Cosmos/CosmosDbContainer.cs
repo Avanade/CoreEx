@@ -71,6 +71,11 @@ public sealed partial class CosmosDbContainer<TModel> where TModel : class, IEnt
         if (model is IReadOnlyLogicallyDeleted ld && ld.IsDeleted)
             return treatNullAsNotFound ? Result.NotFoundError() : Result.Ok<TModel?>(null);
 
+        // Check the type discriminator agrees where configured (see CosmosDbModelOptions<TModel>.WithTypeDiscriminator) - a shared multi-type container otherwise has no other point-operation defence
+        // against deserializing/deleting/replacing a same-id/partition document belonging to a different configured type; ApplyFilters already applies the equivalent check on the query path.
+        if (Options.IsTypeDiscriminatorMismatch(model))
+            return treatNullAsNotFound ? Result.NotFoundError() : Result.Ok<TModel?>(null);
+
         // Check any additive developer-supplied filters (see CosmosDbModelOptions<TModel>.WithFilter) - e.g. authorization.
         return Options.CheckFilters(args, model, operationType);
     }
