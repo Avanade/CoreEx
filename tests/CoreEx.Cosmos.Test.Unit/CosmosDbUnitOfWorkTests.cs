@@ -162,6 +162,37 @@ public class CosmosDbUnitOfWorkTests : CosmosTestBase
         matchingDocs[0].Destination.Should().NotBeNullOrEmpty();
     }
 
+    // Regression test for a review-flagged bug: CosmosDbOutboxEvent always serializes its partition key under the fixed JSON property name "partitionKey", which is only correct where the container's
+    // actual, physical partition-key path (set at container-creation time, independent of C# property names) is literally "/partitionKey" - the convention every other test container in this fixture
+    // uses. A container configured with a different path (here "/tenantId") would otherwise silently produce an outbox document with no value at that path, and the paired TransactionalBatch would then
+    // fail with an undiagnosable BadRequest. CosmosDbEventPublisher.OnPublishAsync now validates this up front (see EnsureOutboxPartitionKeyPathAsync) and fails fast with a clear, actionable exception -
+    // and, since that check runs before anything is enlisted, the business mutation itself is never committed either.
+    [Test]
+    public async Task TransactionAsync_WithOutbox_ContainerPartitionKeyPathIsNotPartitionKey_ThrowsBeforeEnlistingAnything()
+    {
+        const string containerId = "uow-wrong-pk-path";
+        await GetOrCreateContainerAsync(containerId, "/tenantId").ConfigureAwait(false);
+        var cosmosDb = CreateCosmosDb();
+        var container = cosmosDb.Container<NoPartitionKeyItem>(containerId);
+        var outbox = new CosmosDbEventPublisher(cosmosDb);
+        var unitOfWork = new CosmosDbUnitOfWork(cosmosDb, outbox);
+
+        var id = NewId();
+
+        Func<Task> act = () => unitOfWork.TransactionAsync(async ct =>
+        {
+            var created = await container.CreateAsync(new NoPartitionKeyItem { Id = id, Name = "Widget" }, ct).ConfigureAwait(false);
+            unitOfWork.Events.Add(EventData.CreateEventWith(created.Value, EventAction.Created).WithSource(new Uri("https://unittest/coreex-cosmos", UriKind.Absolute)));
+        });
+
+        var thrown = await act.Should().ThrowAsync<InvalidOperationException>();
+        thrown.Which.Message.Should().Contain("/tenantId");
+
+        // The business mutation must not have been committed either - the pre-flight partition-key-path check runs, and throws, before anything is enlisted into the TransactionalBatch.
+        var fetched = await container.GetAsync(CompositeKey.Create(id));
+        fetched.Should().BeNull();
+    }
+
     [Test]
     public async Task Query_WithOutboxDocumentsPresent_AutomaticallyExcludesThem_NoFilterConfiguredByTest()
     {

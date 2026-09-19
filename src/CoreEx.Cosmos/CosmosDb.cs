@@ -71,13 +71,12 @@ public class CosmosDb : ICosmosDb
     public Container GetContainer(string containerId) => _containers.GetOrAdd(containerId.ThrowIfNull(), cid => Database.GetContainer(cid));
 
     /// <inheritdoc/>
+    /// <remarks>Where a <see cref="CosmosDbModelOptions{TModel}"/> does not yet exist for this <paramref name="containerId"/>/<typeparamref name="TModel"/> combination, <paramref name="configure"/> is
+    /// invoked exactly once against it (delegated to <see cref="CosmosDbOptions.GetOrAddModelOptions{TModel}(string, Action{CosmosDbModelOptions{TModel}}?)"/> - see its remarks for why this is
+    /// deliberately once-only rather than being re-invoked by every new <see cref="CosmosDb"/> instance/scope that subsequently requests the same container/model).</remarks>
     public CosmosDbContainer<TModel> Container<TModel>(string containerId, Action<CosmosDbModelOptions<TModel>>? configure = null) where TModel : class, IEntityKey, new()
-        => (CosmosDbContainer<TModel>)_modelContainers.GetOrAdd((containerId.ThrowIfNull(), typeof(TModel)), key =>
-        {
-            var options = Options.GetOrAddModelOptions<TModel>(key.ContainerId);
-            configure?.Invoke(options);
-            return new CosmosDbContainer<TModel>(this, GetContainer(key.ContainerId), options);
-        });
+        => (CosmosDbContainer<TModel>)_modelContainers.GetOrAdd((containerId.ThrowIfNull(), typeof(TModel)),
+            key => new CosmosDbContainer<TModel>(this, GetContainer(key.ContainerId), Options.GetOrAddModelOptions<TModel>(key.ContainerId, configure)));
 
     /// <inheritdoc/>
     public Exception? HandleCosmosException(CosmosException cex) => OnCosmosException(cex.ThrowIfNull());

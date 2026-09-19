@@ -41,11 +41,22 @@ public class CosmosDbEventPublisher(ICosmosDb cosmosDb, IDestinationProvider? de
     /// whatever relay eventually consumes these documents are known; it is not a fixed law.</remarks>
     public int OutboxTimeToLiveSeconds { get; set => field = value.ThrowIfLessThanOrEqualToZero(); } = DefaultOutboxTimeToLiveSeconds;
 
+    // CosmosDbOutboxEvent always serializes its partition key under the fixed JSON property name "partitionKey" (matching CosmosDbModelBase's convention). That is only correct if the container's actual,
+    // physical partition-key path (a container-creation-time setting, wholly independent of any C# property/JsonPropertyName) is literally "/partitionKey" - e.g. a model implementing IPartitionKey
+    // directly with a different [JsonPropertyName] to match a container whose real path is "/tenantId" would silently produce an outbox document with no value at that path, and TransactionalBatch
+    // (which requires every enlisted operation to agree on the exact same partition key) would then fail with an undiagnosable BadRequest. Rather than let that happen silently, the first outbox publish
+    // against a given container validates (and thereafter caches, since a container's partition-key path is immutable for its lifetime) that its actual path is "/partitionKey", failing fast with a clear,
+    // actionable exception otherwise. Keyed by (Database.Id, Container.Id) rather than the CosmosDb instance, since this reflects a physical, permanent fact about the container itself, safely shared
+    // process-wide regardless of how many CosmosDb/CosmosDbEventPublisher instances (e.g. one per request) ever touch it.
+    private static readonly ConcurrentDictionary<(string DatabaseId, string ContainerId), bool> _validatedOutboxContainers = new();
+
     /// <inheritdoc/>
     /// <exception cref="InvalidOperationException">Thrown where there is no active <see cref="CosmosDbUnitOfWork"/> <see cref="IUnitOfWork.TransactionAsync(Func{CancellationToken, Task}, CancellationToken)"/>
-    /// scope, or where no business mutation has yet been enlisted within it (an outbox event has no container/partition key to bind to otherwise — see <see cref="CosmosDbTransaction.BoundContainer"/>/
-    /// <see cref="CosmosDbTransaction.BoundPartitionKeyValue"/>).</exception>
-    protected override Task OnPublishAsync(DestinationEvent[] events, CancellationToken cancellationToken = default)
+    /// scope, where no business mutation has yet been enlisted within it (an outbox event has no container/partition key to bind to otherwise — see <see cref="CosmosDbTransaction.BoundContainer"/>/
+    /// <see cref="CosmosDbTransaction.BoundPartitionKeyValue"/>), or where the bound container's actual partition-key path is not <c>/partitionKey</c> (see remarks).</exception>
+    /// <remarks><see cref="CosmosDbOutboxEvent"/> always serializes its partition key under the fixed JSON property name <c>partitionKey</c>; this is only correct where the container's actual,
+    /// physical partition-key path is <c>/partitionKey</c> - see the container-level check performed here (once per container, cached thereafter) for what happens otherwise.</remarks>
+    protected override async Task OnPublishAsync(DestinationEvent[] events, CancellationToken cancellationToken = default)
     {
         var txn = CosmosDb.CurrentTransaction
             ?? throw new InvalidOperationException($"{nameof(CosmosDbEventPublisher)} can only publish within an active {nameof(CosmosDbUnitOfWork)} ({nameof(IUnitOfWork.TransactionAsync)}) scope.");
@@ -54,6 +65,7 @@ public class CosmosDbEventPublisher(ICosmosDb cosmosDb, IDestinationProvider? de
             throw new InvalidOperationException($"{nameof(CosmosDbEventPublisher)} requires at least one business mutation to already be enlisted in the current unit-of-work; an outbox event document has no container/partition key to bind to otherwise.");
 
         var container = txn.BoundContainer!;
+        await EnsureOutboxPartitionKeyPathAsync(container, cancellationToken).ConfigureAwait(false);
 
         // BoundPartitionKeyValue is null where the enlisted business mutation's own partition key resolved to PartitionKey.None - a real, valid single logical partition (not an error; the simplest
         // possible container shape), so the outbox event document is co-located there too, exactly the same as any other partition key value.
@@ -73,7 +85,30 @@ public class CosmosDbEventPublisher(ICosmosDb cosmosDb, IDestinationProvider? de
 
             txn.Enlist(container, partitionKey, partitionKeyValue, CompositeKey.Create(outboxEvent.Id), b => b.CreateItem(outboxEvent));
         }
+    }
 
-        return Task.CompletedTask;
+    /// <summary>
+    /// Validates (once per container, then caches the result for the remaining process lifetime) that <paramref name="container"/>'s actual, physical partition-key path is <c>/partitionKey</c> -
+    /// see the remarks on <see cref="_validatedOutboxContainers"/>/<see cref="OnPublishAsync(DestinationEvent[], CancellationToken)"/> for why this matters and why caching is safe.
+    /// </summary>
+    private static async Task EnsureOutboxPartitionKeyPathAsync(Container container, CancellationToken cancellationToken)
+    {
+        var key = (container.Database.Id, container.Id);
+        if (_validatedOutboxContainers.ContainsKey(key))
+            return;
+
+        var response = await container.ReadContainerAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+        var paths = response.Resource.PartitionKeyPaths;
+
+        if (paths.Count != 1 || paths[0] != "/partitionKey")
+        {
+            throw new InvalidOperationException(
+                $"{nameof(CosmosDbEventPublisher)} requires container '{container.Id}' to use the partition key path '/partitionKey' (matching {nameof(CosmosDbOutboxEvent)}'s fixed JSON property " +
+                $"name), but it is actually configured with partition key path(s) '{string.Join(", ", paths)}'. The transactional outbox document has no way to carry a value at a different, " +
+                "application-chosen path, so a TransactionalBatch enlisting both the business mutation and the outbox event would fail. Either recreate the container with '/partitionKey' as its " +
+                $"partition key path, or do not use {nameof(CosmosDbEventPublisher)}/{nameof(CosmosDbUnitOfWork)} against this container.");
+        }
+
+        _validatedOutboxContainers[key] = true;
     }
 }

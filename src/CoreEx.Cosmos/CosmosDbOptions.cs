@@ -31,9 +31,22 @@ public class CosmosDbOptions
     /// </summary>
     /// <typeparam name="TModel">The model <see cref="Type"/>.</typeparam>
     /// <param name="containerId">The <see cref="Container"/> identifier.</param>
+    /// <param name="configure">The optional action to configure a <b>newly created</b> <see cref="CosmosDbModelOptions{TModel}"/>; see remarks.</param>
     /// <returns>The <see cref="CosmosDbModelOptions{TModel}"/>.</returns>
-    public CosmosDbModelOptions<TModel> GetOrAddModelOptions<TModel>(string containerId) where TModel : class, IEntityKey, new()
-        => (CosmosDbModelOptions<TModel>)_models.GetOrAdd((containerId.ThrowIfNull(), typeof(TModel)), _ => new CosmosDbModelOptions<TModel>());
+    /// <remarks><paramref name="configure"/> is invoked <b>only</b> the first time a <see cref="CosmosDbModelOptions{TModel}"/> is created for this <paramref name="containerId"/>/<typeparamref name="TModel"/>
+    /// combination - deliberately, since this <see cref="CosmosDbOptions"/> is typically a long-lived singleton shared across every <see cref="CosmosDb"/> instance (e.g. one per request/scope) that calls
+    /// <see cref="CosmosDb.Container{TModel}(string, Action{CosmosDbModelOptions{TModel}}?)"/> for the same <paramref name="containerId"/>. Were <paramref name="configure"/> instead re-invoked against an
+    /// already-configured (and potentially already in-use) shared instance by every new scope, a callback appending state (e.g. <see cref="CosmosDbModelOptions{TModel}.WithFilter"/>) would keep
+    /// accumulating duplicate registrations for as long as the process runs, and concurrent first-callers could race on mutating the same shared instance. <see cref="ConcurrentDictionary{TKey, TValue}.GetOrAdd(TKey, Func{TKey, TValue})"/>'s
+    /// factory may itself run more than once under concurrent first-time access, but only ever against its own freshly-constructed (not-yet-published/not-yet-shared) candidate instance - exactly one of
+    /// which is ever actually stored and returned - so this remains safe without any additional locking.</remarks>
+    public CosmosDbModelOptions<TModel> GetOrAddModelOptions<TModel>(string containerId, Action<CosmosDbModelOptions<TModel>>? configure = null) where TModel : class, IEntityKey, new()
+        => (CosmosDbModelOptions<TModel>)_models.GetOrAdd((containerId.ThrowIfNull(), typeof(TModel)), _ =>
+        {
+            var options = new CosmosDbModelOptions<TModel>();
+            configure?.Invoke(options);
+            return options;
+        });
 
     /// <summary>
     /// Tries to get the <see cref="CosmosDbModelOptions{TModel}"/> for the specified container <paramref name="containerId"/>.

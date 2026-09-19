@@ -7,7 +7,9 @@ namespace CoreEx.Cosmos.Outbox;
 /// <remarks>Recognized (and automatically excluded from ordinary business queries against the same container) via its reserved <see cref="OutboxKeyPrefix"/>-prefixed <see cref="Id"/> -
 /// see <see cref="CosmosDbModelOptions{TModel}"/>'s automatic outbox-exclusion filter. A future relay (not built by this package) can read exactly these documents by querying for the same prefix instead of
 /// excluding it - the mirror image of the same mechanism.
-/// <para>Assumes the owning container's partition key path is <c>/partitionKey</c>, matching <see cref="CosmosDbModelBase"/>'s convention used throughout this package.</para></remarks>
+/// <para>Assumes the owning container's partition key path is <c>/partitionKey</c>, matching <see cref="CosmosDbModelBase"/>'s convention used throughout this package - a container using a different
+/// path (e.g. a model implementing <see cref="IPartitionKey"/> directly with a different <see cref="JsonPropertyNameAttribute"/>) is not supported; <see cref="CosmosDbEventPublisher"/> validates this
+/// once per container (cached thereafter) and throws a clear <see cref="InvalidOperationException"/> rather than let a mismatched write fail with an undiagnosable Cosmos DB <c>BadRequest</c>.</para></remarks>
 public sealed class CosmosDbOutboxEvent : IIdentifier<string>, IPartitionKey, ITimeToLive
 {
     /// <summary>

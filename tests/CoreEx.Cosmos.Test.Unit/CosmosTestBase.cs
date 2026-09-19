@@ -74,19 +74,19 @@ public abstract class CosmosTestBase
     }
 
     /// <summary>
-    /// Creates (if not already existing) a test container with the specified <paramref name="id"/> and <c>/partitionKey</c> partition key path.
+    /// Creates (if not already existing) a test container with the specified <paramref name="id"/> and <paramref name="partitionKeyPath"/> (defaults to <c>/partitionKey</c>).
     /// </summary>
     /// <remarks>The local emulator occasionally responds with a transient <c>503 ServiceUnavailable</c> ("high demand") when several containers are created in quick succession; a short retry-with-backoff
     /// smooths over this. Note: this exact response is also what the emulator returns when its <c>AZURE_COSMOS_EMULATOR_PARTITION_COUNT</c> (the cap on the total number of containers it can host, not
     /// "partitions per container") has been exhausted - that failure mode is deterministic, not transient, and no amount of retrying fixes it (confirmed the hard way); see the setting's own comment in
     /// <c>docker-compose.yml</c>. If this retry starts failing consistently for a new container, check whether the count needs raising before assuming it is another transient blip.</remarks>
-    protected static async Task<Container> GetOrCreateContainerAsync(string id)
+    protected static async Task<Container> GetOrCreateContainerAsync(string id, string partitionKeyPath = "/partitionKey")
     {
         for (var attempt = 1; ; attempt++)
         {
             try
             {
-                var response = await TestDatabase.CreateContainerIfNotExistsAsync(id, "/partitionKey").ConfigureAwait(false);
+                var response = await TestDatabase.CreateContainerIfNotExistsAsync(id, partitionKeyPath).ConfigureAwait(false);
                 return response.Container;
             }
             catch (CosmosException cex) when (cex.StatusCode == HttpStatusCode.ServiceUnavailable && attempt < 5)
