@@ -24,11 +24,16 @@ public interface IMultiSetArgs<TModel> : IMultiSetArgs where TModel : class, IEn
     }
 
     /// <inheritdoc/>
-    void IMultiSetArgs.AddItem(ICosmosDb cosmosDb, string containerId, CosmosDbArgs args, object model)
+    Result IMultiSetArgs.AddItem(ICosmosDb cosmosDb, string containerId, CosmosDbArgs args, object model)
     {
-        var checkedModel = cosmosDb.ThrowIfNull().Container<TModel>(containerId.ThrowIfNullOrEmpty()).CheckModel(args.ThrowIfNull(), (TModel)model.ThrowIfNull(), OperationType.Get).Value;
-        if (checkedModel is not null)
-            AddItem(checkedModel);
+        var result = cosmosDb.ThrowIfNull().Container<TModel>(containerId.ThrowIfNullOrEmpty()).CheckModel(args.ThrowIfNull(), (TModel)model.ThrowIfNull(), OperationType.Get);
+        if (result.IsFailure)
+            return (Result)result;
+
+        if (result.Value is not null)
+            AddItem(result.Value);
+
+        return Result.Success;
     }
 
     /// <inheritdoc/>

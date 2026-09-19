@@ -1,8 +1,9 @@
 namespace CoreEx.Cosmos.Test.Unit;
 
 /// <summary>
-/// Verifies <see cref="CosmosDbMultiSetExtensions.SelectMultiSetAsync(ICosmosDb, string, MultiSetOptions, CancellationToken)"/> - reading multiple, type-discriminator-keyed sets of documents from the same
-/// container/partition in a single round-trip - mirroring the same shared-container setup as <see cref="CosmosDbContainerTypeDiscriminatorTests"/>.
+/// Verifies <see cref="CosmosDbMultiSetExtensions.SelectMultiSetAsync(ICosmosDb, string, MultiSetOptions, CancellationToken)"/> and its <see cref="Result"/> (Railway-Oriented Programming) counterpart
+/// <see cref="CosmosDbMultiSetExtensions.SelectMultiSetWithResultAsync(ICosmosDb, string, MultiSetOptions, CancellationToken)"/> - reading multiple, type-discriminator-keyed sets of documents from the
+/// same container/partition in a single round-trip - mirroring the same shared-container setup as <see cref="CosmosDbContainerTypeDiscriminatorTests"/>.
 /// </summary>
 [TestFixture]
 public class CosmosDbMultiSetTests : CosmosTestBase
@@ -291,6 +292,85 @@ public class CosmosDbMultiSetTests : CosmosTestBase
 
         animalResults.Should().NotBeNull();
         animalResults!.Select(a => a.Name).Should().BeEquivalentTo(["Dog"]);
+    }
+
+    [Test]
+    public async Task SelectMultiSetWithResultAsync_ReturnsMatchingTypes_FromSharedContainerAndPartition()
+    {
+        await GetOrCreateContainerAsync(ContainerId).ConfigureAwait(false);
+
+        var cosmosDb = CreateCosmosDb();
+        var animals = cosmosDb.Container<AnimalItem>(ContainerId, o => o.WithPartitionKey(m => m.PartitionKey).WithTypeDiscriminator());
+        var plants = cosmosDb.Container<PlantItem>(ContainerId, o => o.WithPartitionKey(m => m.PartitionKey).WithTypeDiscriminator());
+
+        var sharedPartition = NewId();
+        await animals.CreateAsync(new AnimalItem { Id = NewId(), PartitionKey = sharedPartition, Name = "Dog" });
+        await plants.CreateAsync(new PlantItem { Id = NewId(), PartitionKey = sharedPartition, Name = "Fern" });
+
+        List<AnimalItem>? animalResults = null;
+        PlantItem? plantResult = null;
+
+        var result = await cosmosDb.SelectMultiSetWithResultAsync(ContainerId, new MultiSetOptions
+        {
+            PartitionKey = sharedPartition,
+            MultiSetArgs =
+            [
+                new MultiSetCollArgs<List<AnimalItem>, AnimalItem>(r => animalResults = r, minimumRows: 1),
+                new MultiSetSingleArgs<PlantItem>(r => plantResult = r)
+            ]
+        });
+
+        result.IsSuccess.Should().BeTrue();
+        animalResults.Should().NotBeNull();
+        animalResults!.Select(a => a.Name).Should().BeEquivalentTo(["Dog"]);
+        plantResult.Should().NotBeNull();
+        plantResult!.Name.Should().Be("Fern");
+    }
+
+    [Test]
+    public async Task SelectMultiSetWithResultAsync_MandatorySingleNotFound_ReturnsFailure()
+    {
+        await GetOrCreateContainerAsync(ContainerId).ConfigureAwait(false);
+
+        var cosmosDb = CreateCosmosDb();
+        var animals = cosmosDb.Container<AnimalItem>(ContainerId, o => o.WithPartitionKey(m => m.PartitionKey).WithTypeDiscriminator());
+        cosmosDb.Container<PlantItem>(ContainerId, o => o.WithPartitionKey(m => m.PartitionKey).WithTypeDiscriminator());
+
+        var sharedPartition = NewId();
+        await animals.CreateAsync(new AnimalItem { Id = NewId(), PartitionKey = sharedPartition, Name = "Dog" });
+
+        // No PlantItem created in this partition - the mandatory MultiSetSingleArgs<PlantItem> (isMandatory defaults true, MinimumRows == 1) must fail rather than throw.
+        var result = await cosmosDb.SelectMultiSetWithResultAsync(ContainerId, new MultiSetOptions
+        {
+            PartitionKey = sharedPartition,
+            MultiSetArgs =
+            [
+                new MultiSetCollArgs<List<AnimalItem>, AnimalItem>(_ => { }),
+                new MultiSetSingleArgs<PlantItem>(_ => { })
+            ]
+        });
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().BeOfType<InvalidOperationException>().Which.Message.Should().Contain("less items");
+    }
+
+    [Test]
+    public async Task SelectMultiSetWithResultAsync_MaximumRowsExceeded_ReturnsFailure()
+    {
+        await GetOrCreateContainerAsync(ContainerId).ConfigureAwait(false);
+
+        var cosmosDb = CreateCosmosDb();
+        var animals = cosmosDb.Container<AnimalItem>(ContainerId, o => o.WithPartitionKey(m => m.PartitionKey).WithTypeDiscriminator());
+
+        var sharedPartition = NewId();
+        await animals.CreateAsync(new AnimalItem { Id = NewId(), PartitionKey = sharedPartition, Name = "Dog" });
+        await animals.CreateAsync(new AnimalItem { Id = NewId(), PartitionKey = sharedPartition, Name = "Cat" });
+
+        // MultiSetSingleArgs<AnimalItem> allows at most one (MaximumRows == 1) - two exist in this partition, so it must fail rather than throw.
+        var result = await cosmosDb.SelectMultiSetWithResultAsync(ContainerId, new MultiSetOptions { PartitionKey = sharedPartition, MultiSetArgs = [new MultiSetSingleArgs<AnimalItem>(_ => { })] });
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().BeOfType<InvalidOperationException>().Which.Message.Should().Contain("more items");
     }
 
     [Test]

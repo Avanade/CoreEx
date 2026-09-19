@@ -3,7 +3,8 @@ namespace CoreEx.Cosmos.Extended;
 /// <summary>
 /// Provides <see cref="ICosmosDb"/> multi-set query extension methods; enabling multiple, type-discriminator-keyed sets of documents to be read from the same container/partition in a single round-trip.
 /// </summary>
-/// <remarks>See the remarks on <see cref="SelectMultiSetAsync(ICosmosDb, string, MultiSetOptions, CancellationToken)"/> for the full mechanism.</remarks>
+/// <remarks>See the remarks on <see cref="SelectMultiSetWithResultAsync(ICosmosDb, string, MultiSetOptions, CancellationToken)"/> (or its <see cref="SelectMultiSetAsync(ICosmosDb, string, MultiSetOptions, CancellationToken)"/>
+/// exception-based counterpart) for the full mechanism.</remarks>
 public static class CosmosDbMultiSetExtensions
 {
     /// <summary>
@@ -13,7 +14,8 @@ public static class CosmosDbMultiSetExtensions
     /// <param name="containerId">The <see cref="Container"/> identifier.</param>
     /// <param name="options">The <see cref="MultiSetOptions"/>.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-    /// <remarks>
+    /// <remarks>See <see cref="SelectMultiSetWithResultAsync(ICosmosDb, string, MultiSetOptions, CancellationToken)"/> for the <see cref="Result"/> (Railway-Oriented Programming) counterpart of this method -
+    /// an <see cref="Exception"/> is thrown here only where that counterpart would return a corresponding <see cref="Result.IsFailure"/>.
     /// <para>Each <see cref="MultiSetOptions.MultiSetArgs"/> must resolve to a unique <see cref="IMultiSetArgs.TypeDiscriminator"/>.</para>
     /// <para>Unlike the relational <c>CoreEx.Database.Extended</c> equivalent - where result sets are positional/ordered within a single multi-statement query - Cosmos DB has no equivalent construct; a single
     /// query instead returns a mixed stream of documents from the same container/partition, each demuxed to its corresponding <see cref="IMultiSetArgs"/> via a server-side <c>WHERE ... IN (...)</c> filter on
@@ -39,13 +41,54 @@ public static class CosmosDbMultiSetExtensions
     /// its own <see cref="QueryRequestOptions.PartitionKey"/>, if already set, must either agree with a non-<see langword="null"/> <see cref="MultiSetOptions.PartitionKey"/> or the latter must be omitted
     /// (<see langword="null"/>) - a genuine mismatch between the two throws <see cref="ArgumentException"/> rather than silently preferring one. The caller's <see cref="CosmosDbArgs"/> is never mutated (it is
     /// expected to be immutable/shareable - see <see cref="CosmosDbArgs"/>'s own remarks); a partition key is layered in via a shallow clone where required.</para></remarks>
-    public static Task SelectMultiSetAsync(this ICosmosDb cosmosDb, string containerId, MultiSetOptions options, CancellationToken cancellationToken = default)
+    public static async Task SelectMultiSetAsync(this ICosmosDb cosmosDb, string containerId, MultiSetOptions options, CancellationToken cancellationToken = default)
+        => (await SelectMultiSetWithResultAsync(cosmosDb, containerId, options, cancellationToken).ConfigureAwait(false)).ThrowOnError();
+
+    /// <summary>
+    /// Executes a multi-set query with the specified <paramref name="options"/> against the specified <paramref name="containerId"/>, with a <see cref="Result"/> (Railway-Oriented Programming).
+    /// </summary>
+    /// <param name="cosmosDb">The <see cref="ICosmosDb"/>.</param>
+    /// <param name="containerId">The <see cref="Container"/> identifier.</param>
+    /// <param name="options">The <see cref="MultiSetOptions"/>.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+    /// <remarks>Each <see cref="MultiSetOptions.MultiSetArgs"/> must resolve to a unique <see cref="IMultiSetArgs.TypeDiscriminator"/>.
+    /// <para>Unlike the relational <c>CoreEx.Database.Extended</c> equivalent - where result sets are positional/ordered within a single multi-statement query - Cosmos DB has no equivalent construct; a single
+    /// query instead returns a mixed stream of documents from the same container/partition, each demuxed to its corresponding <see cref="IMultiSetArgs"/> via a server-side <c>WHERE ... IN (...)</c> filter on
+    /// the type-discriminator property (see <see cref="CosmosDbModelOptions{TModel}.WithTypeDiscriminator(string?)"/>), then further checked per-item (tenant/logical-delete/additive-filter - see
+    /// <c>CosmosDbContainer{TModel}.CheckModel</c>) before being handed to the corresponding <see cref="IMultiSetArgs"/>.</para>
+    /// <para>The type-discriminator's underlying JSON property name is resolved once per call from the ambient <see cref="System.Text.Json.JsonSerializerOptions.PropertyNamingPolicy"/> configured via
+    /// <see cref="CosmosClientOptions.UseSystemTextJsonSerializerWithOptions"/> (e.g. <c>camelCase</c>) - the same naming policy that already governs how <see cref="IReadOnlyTypeDiscriminator.TypeDiscriminator"/>
+    /// (and every other model property) is serialized to/from Cosmos DB. This requires the underlying <see cref="CosmosClient"/> to be configured with a <see cref="System.Text.Json"/>-based serializer (the
+    /// de facto requirement for this package - see <see cref="CosmosDbModelBase"/>'s reliance on <see cref="System.Text.Json.Serialization.JsonPropertyNameAttribute"/>); an explicit per-model override of the
+    /// type-discriminator's JSON property name (e.g. via <see cref="System.Text.Json.Serialization.JsonPropertyNameAttribute"/>) is <b>not</b> supported - all <c>TModel</c>s within a single multi-set call must
+    /// rely on the one ambient naming policy.</para>
+    /// <para>The number of <see cref="IMultiSetArgs"/> specified has no relationship to the number of documents returned (unlike the relational equivalent's positional result sets) - each is matched
+    /// independently by its own <see cref="IMultiSetArgs.TypeDiscriminator"/>, and <see cref="IMultiSetArgsCore.MinimumRows"/>/<see cref="IMultiSetArgsCore.MaximumRows"/> are enforced, and
+    /// <see cref="IMultiSetArgsCore.InvokeResult"/> is invoked, in the order the <see cref="IMultiSetArgs"/> were supplied - honoring <see cref="IMultiSetArgsCore.StopOnNull"/> to short-circuit
+    /// subsequent invocations, exactly as the relational equivalent does for its (positionally) subsequent result sets.</para>
+    /// <para>Any co-located <see cref="CosmosDbOutboxEvent"/> documents (see <see cref="CosmosDbModelOptions{TModel}.ApplyFilters"/>'s equivalent automatic exclusion for the LINQ query path) are
+    /// always excluded server-side via the same reserved <see cref="CosmosDbOutboxEvent.OutboxKeyPrefix"/> <c>id</c>-prefix check - no opt-in required. Similarly, where an individual <see cref="IMultiSetArgs"/>'s
+    /// model has <see cref="CosmosDbModelOptions{TModel}.WithTenantFilter"/> and/or <see cref="CosmosDbModelOptions{TModel}.WithLogicalDeleteFilter"/> configured, an equivalent - but defensively
+    /// <c>IS_DEFINED</c>-guarded - predicate is added for that model's subset of the query as a server-side (RU/bandwidth) optimization; see <see cref="IMultiSetArgs.BuildFilterClause"/> for the exact
+    /// predicate shape and why it never excludes a document purely for predating the property. This is additive to, not a replacement for, the always-applied per-item <c>CheckModel</c> check - a model with
+    /// neither configured still relies solely on that per-item check, exactly as before.</para>
+    /// <para><see cref="CosmosDbArgs.QueryRequestOptions"/> (see <see cref="MultiSetOptions.Args"/>), where supplied, takes precedence over one freshly constructed from <see cref="MultiSetOptions.PartitionKey"/>;
+    /// its own <see cref="QueryRequestOptions.PartitionKey"/>, if already set, must either agree with a non-<see langword="null"/> <see cref="MultiSetOptions.PartitionKey"/> or the latter must be omitted
+    /// (<see langword="null"/>) - a genuine mismatch between the two throws <see cref="ArgumentException"/> (an argument/guard-clause violation, not a <see cref="Result.IsFailure"/>) rather than silently
+    /// preferring one. The caller's <see cref="CosmosDbArgs"/> is never mutated (it is expected to be immutable/shareable - see <see cref="CosmosDbArgs"/>'s own remarks); a partition key is layered in via a
+    /// shallow clone where required.</para>
+    /// <para>Only a genuinely unexpected/business-level outcome (e.g. <see cref="IMultiSetArgsCore.MinimumRows"/>/<see cref="IMultiSetArgsCore.MaximumRows"/> violated, a malformed Cosmos DB response, or an
+    /// <see cref="IMultiSetArgs.AddItem(ICosmosDb, string, CosmosDbArgs, object)"/> failure surfaced from a <see cref="CosmosDbModelOptions{TModel}.WithFilter"/>) results in <see cref="Result.IsFailure"/> -
+    /// an argument/guard-clause violation (an empty/duplicate-discriminator <see cref="MultiSetOptions.MultiSetArgs"/>, a partition key mismatch, or a <see cref="CosmosClient"/> not configured with
+    /// <see cref="CosmosClientOptions.UseSystemTextJsonSerializerWithOptions"/>) always throws directly instead, exactly as it does from the exception-based
+    /// <see cref="SelectMultiSetAsync(ICosmosDb, string, MultiSetOptions, CancellationToken)"/> counterpart.</para></remarks>
+    public static Task<Result> SelectMultiSetWithResultAsync(this ICosmosDb cosmosDb, string containerId, MultiSetOptions options, CancellationToken cancellationToken = default)
         => SelectMultiSetInternalAsync(cosmosDb.ThrowIfNull(), containerId.ThrowIfNullOrEmpty(), options.ThrowIfNull(), cancellationToken);
 
     /// <summary>
     /// Executes a multi-set query with the specified <paramref name="options"/> (internal).
     /// </summary>
-    private static async Task SelectMultiSetInternalAsync(ICosmosDb cosmosDb, string containerId, MultiSetOptions options, CancellationToken cancellationToken)
+    private static async Task<Result> SelectMultiSetInternalAsync(ICosmosDb cosmosDb, string containerId, MultiSetOptions options, CancellationToken cancellationToken)
     {
         var multiSetList = options.MultiSetArgs?.ToList();
         if (multiSetList is null || multiSetList.Count == 0)
@@ -67,7 +110,7 @@ public static class CosmosDbMultiSetExtensions
         var partitionKeyValue = options.PartitionKey is null ? PartitionKey.None : new PartitionKey(options.PartitionKey);
         var requestOptions = ResolveQueryRequestOptions(args.QueryRequestOptions, options.PartitionKey, partitionKeyValue);
 
-        await cosmosDb.Invoker.InvokeAsync(cosmosDb, args, async (_, args, cancellationToken) =>
+        return await cosmosDb.Invoker.InvokeAsync(cosmosDb, args, async (_, args, cancellationToken) =>
         {
             // Build a per-discriminator predicate honoring any configured tenant/logical-delete query filter (see IMultiSetArgs.BuildFilterClause) - a model with neither configured falls back to a
             // plain discriminator-equality predicate, so the overall query text is unchanged from before this optimization existed where no IMultiSetArgs configures either filter.
@@ -106,7 +149,7 @@ public static class CosmosDbMultiSetExtensions
 
                 using var doc = await JsonDocument.ParseAsync(response.Content, cancellationToken: cancellationToken).ConfigureAwait(false);
                 if (!doc.RootElement.TryGetProperty("Documents", out var documents) || documents.ValueKind != JsonValueKind.Array)
-                    throw new InvalidOperationException($"{nameof(SelectMultiSetAsync)} response JSON 'Documents' property either not found in result or is not an array.");
+                    return Result.Fail(new InvalidOperationException($"{nameof(SelectMultiSetAsync)} response JSON 'Documents' property either not found in result or is not an array."));
 
                 foreach (var item in documents.EnumerateArray())
                 {
@@ -117,14 +160,17 @@ public static class CosmosDbMultiSetExtensions
                     if (discriminator is null || !byDiscriminator.TryGetValue(discriminator, out var msa))
                         continue; // Not one of the requested types - ignore.
 
-                    var model = item.Deserialize(msa.ModelType, jsonSerializerOptions)
-                        ?? throw new InvalidOperationException($"{nameof(SelectMultiSetAsync)} failed to deserialize a document with {nameof(IMultiSetArgs.TypeDiscriminator)} '{discriminator}' into '{msa.ModelType.Name}'.");
+                    var model = item.Deserialize(msa.ModelType, jsonSerializerOptions);
+                    if (model is null)
+                        return Result.Fail(new InvalidOperationException($"{nameof(SelectMultiSetAsync)} failed to deserialize a document with {nameof(IMultiSetArgs.TypeDiscriminator)} '{discriminator}' into '{msa.ModelType.Name}'."));
 
-                    msa.AddItem(cosmosDb, containerId, args, model);
+                    var addResult = msa.AddItem(cosmosDb, containerId, args, model);
+                    if (addResult.IsFailure)
+                        return addResult;
 
                     var count = counts[msa] = counts.GetValueOrDefault(msa) + 1;
                     if (msa.MaximumRows.HasValue && count > msa.MaximumRows.Value)
-                        throw new InvalidOperationException($"{nameof(SelectMultiSetAsync)} ({nameof(IMultiSetArgs.TypeDiscriminator)} '{discriminator}') has returned more items ({count}) than expected ({msa.MaximumRows.Value}).");
+                        return Result.Fail(new InvalidOperationException($"{nameof(SelectMultiSetAsync)} ({nameof(IMultiSetArgs.TypeDiscriminator)} '{discriminator}') has returned more items ({count}) than expected ({msa.MaximumRows.Value})."));
                 }
             }
 
@@ -133,13 +179,15 @@ public static class CosmosDbMultiSetExtensions
             {
                 var count = counts.GetValueOrDefault(msa);
                 if (count < msa.MinimumRows)
-                    throw new InvalidOperationException($"{nameof(SelectMultiSetAsync)} ({nameof(IMultiSetArgs.TypeDiscriminator)} '{msa.TypeDiscriminator}') has returned less items ({count}) than expected ({msa.MinimumRows}).");
+                    return Result.Fail(new InvalidOperationException($"{nameof(SelectMultiSetAsync)} ({nameof(IMultiSetArgs.TypeDiscriminator)} '{msa.TypeDiscriminator}') has returned less items ({count}) than expected ({msa.MinimumRows})."));
 
                 if (count == 0 && msa.StopOnNull)
-                    return;
+                    return Result.Success;
 
                 msa.InvokeResult();
             }
+
+            return Result.Success;
         }, cancellationToken, nameof(SelectMultiSetAsync)).ConfigureAwait(false);
     }
 

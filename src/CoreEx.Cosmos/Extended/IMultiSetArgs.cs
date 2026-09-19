@@ -25,9 +25,12 @@ public interface IMultiSetArgs : IMultiSetArgsCore
     /// <param name="containerId">The <see cref="Container"/> identifier.</param>
     /// <param name="args">The <see cref="CosmosDbArgs"/>.</param>
     /// <param name="model">The deserialized model.</param>
-    /// <remarks>Invoked once per matching document by the multi-set query engine (see <c>CosmosDbMultiSetExtensions.SelectMultiSetAsync</c>); a model that fails the per-item check is silently
-    /// excluded (not added), exactly as a single-item <see cref="CosmosDbContainer{TModel}.GetAsync(CompositeKey, string, CancellationToken)"/> would exclude it.</remarks>
-    void AddItem(ICosmosDb cosmosDb, string containerId, CosmosDbArgs args, object model);
+    /// <returns>The <see cref="Result"/>.</returns>
+    /// <remarks>Invoked once per matching document by the multi-set query engine (see <c>CosmosDbMultiSetExtensions.SelectMultiSetAsync</c>); a model that fails the per-item check (see
+    /// <c>CosmosDbContainer{TModel}.CheckModel</c>) is silently excluded (not added) where that check itself resolves to <see langword="null"/> (e.g. wrong tenant, logically deleted) - exactly as a
+    /// single-item <see cref="CosmosDbContainer{TModel}.GetAsync(CompositeKey, string, CancellationToken)"/> would exclude it - as opposed to a genuine <see cref="Result.IsFailure"/> (e.g. a
+    /// <see cref="CosmosDbModelOptions{TModel}.WithFilter"/> that itself fails), which is propagated rather than swallowed.</remarks>
+    Result AddItem(ICosmosDb cosmosDb, string containerId, CosmosDbArgs args, object model);
 
     /// <summary>
     /// Builds an additional, defensive server-side SQL predicate (adding any required parameters into <paramref name="parameters"/>) enforcing this <see cref="IMultiSetArgs"/>'s <see cref="ModelType"/>'s
