@@ -114,7 +114,7 @@ public class EventPublisherBaseTests
     }
 
     [Test]
-    public async Task Rollback_ShouldRemoveSpecifiedCountOfEvents()
+    public async Task Dequeue_ShouldRemoveSpecifiedCountOfEvents()
     {
         var e1 = new EventData { Id = "X" };
         var e2 = new EventData();
@@ -123,10 +123,10 @@ public class EventPublisherBaseTests
         _publisher.Add(e1, e2, e3);
         _publisher.Count.Should().Be(3);
 
-        Action act = () => _publisher.Rollback(4);
+        Action act = () => _publisher.Dequeue(4);
         act.Should().Throw<ArgumentException>();
 
-        _publisher.Rollback(2);
+        _publisher.Dequeue(2);
         _publisher.Count.Should().Be(1);
 
         await _publisher.PublishAsync();
@@ -135,8 +135,21 @@ public class EventPublisherBaseTests
         _publisher.PublishedEvents!.Length.Should().Be(1);
         _publisher.PublishedEvents![0].Event.Id.Should().Be("X");
 
-        Action act2 = () => _publisher.Rollback(1);
+        Action act2 = () => _publisher.Dequeue(1);
         act2.Should().Throw<InvalidOperationException>();
+    }
+
+    [Test]
+    public async Task RollbackAsync_IsNoOpByDefault()
+    {
+        _publisher.Add(new EventData { Id = "X" });
+        await _publisher.PublishAsync();
+
+        // A no-op by default (see EventPublisherBase.RollbackAsync's remarks) - the base publisher has no captured test state of its own to undo; HasBeenPublished is left untouched.
+        await _publisher.RollbackAsync();
+
+        _publisher.HasBeenPublished.Should().BeTrue();
+        _publisher.PublishCallCount.Should().Be(1);
     }
 
     [Test]

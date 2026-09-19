@@ -48,4 +48,9 @@ public sealed class SqlServerUnitOfWork(SqlServerDatabase database, IEventPublis
     /// <inheritdoc/>
     public Task<T> TransactionAsync<T>(IDataArgs args, Func<CancellationToken, Task<T>> work, CancellationToken cancellationToken = default)
         => UnitOfWorkInvoker.InvokeAsync(this, (SqlServerDatabaseArgs)args, async (_, _, cancellationToken) => await work(cancellationToken).ConfigureAwait(false), cancellationToken);
+
+    /// <inheritdoc/>
+    /// <remarks>A no-op — a SQL Server-mutated value already carries its true, final <see cref="IETag.ETag"/> by the time it is created/updated (each statement executes immediately within the open
+    /// transaction), so there is nothing to synchronize.</remarks>
+    public void SynchronizeETag<T>(CompositeKey key, T value) where T : IETag { }
 }

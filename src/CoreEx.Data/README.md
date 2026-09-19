@@ -20,6 +20,7 @@
 - ⚙️ **Field-level configuration**: Each field is configured with its CLR type, allowed operators, model property name/prefix, case normalization, null handling, and custom statement override via a fluent `QueryArgsConfig.WithFilter` / `WithOrderBy` builder.
 - 🏷️ **Reference data filter fields**: `QueryFilterReferenceDataFieldConfig<T>` maps a reference data `Code` string in the filter to its underlying `Id` for persistence queries.
 - 🔗 **IQueryable integration**: `QueryExtensions.Where` and `OrderBy` applies the filter and order-by to any `IQueryable<T>`.
+- 🧩 **Multi-set query contract**: `IMultiSetArgsCore` is the minimal, provider-agnostic base for a single result-set within a multi-set query (`MinimumRows`, `MaximumRows`, `StopOnNull`, `InvokeResult()`) - `CoreEx.Database.Extended.IMultiSetArgs` (positional/ordered relational result sets) and `CoreEx.Cosmos.Extended.IMultiSetArgs` (discriminator-keyed Cosmos DB document sets) each extend it with their own provider-specific matching mechanism, so a future NoSQL provider (e.g. Mongo) can reuse the same base contract and row-count semantics.
 
 ## Key types
 
@@ -38,6 +39,7 @@
 | [`QueryOrderByParserResult`](./Querying/QueryOrderByParserResult.cs) | Result of `QueryOrderByParser.Parse()`: ordered `QueryStatement` and any parse errors. |
 | _[`ModelBase<TId>`](./Models/ModelBase.cs)_ | Abstract persistence model base implementing `IIdentifier<T>`, `IChangeLogEx`, `IETag`. |
 | _[`ReferenceDataModelBase`](./Models/ReferenceDataModelBase.cs)_ | Persistence model base for reference data tables with `Id`, `Code`, `Text`, `Description`, `IsActive`, `SortOrder`, `StartsOn`, `EndsOn`. |
+| **[`IMultiSetArgsCore`](./IMultiSetArgsCore.cs)** | Provider-agnostic base contract for one result-set within a multi-set query: `MinimumRows`, `MaximumRows`, `StopOnNull`, `InvokeResult()`. Extended by `CoreEx.Database.Extended.IMultiSetArgs` (relational, positional) and `CoreEx.Cosmos.Extended.IMultiSetArgs` (Cosmos DB, discriminator-keyed); deliberately excludes any provider-specific matching mechanism (e.g. relational's `DatasetRecord()`, Cosmos's `TypeDiscriminator`/`AddItem`). |
 
 ## Namespaces
 
@@ -49,7 +51,8 @@
 ## Related Namespaces
 
 - **[`CoreEx`](../CoreEx/README.md)** - `QueryArgs` (filter/orderby strings and paging), `PagingArgs`, and `IEventQueue` are defined in the root `CoreEx` package and consumed here.
-- **[`CoreEx.Database`](../CoreEx.Database/README.md)** - `IUnitOfWork` is implemented by the database unit-of-work; `QueryArgsConfig` is used by database query builders.
+- **[`CoreEx.Database`](../CoreEx.Database/README.md)** - `IUnitOfWork` is implemented by the database unit-of-work; `QueryArgsConfig` is used by database query builders; `Extended.IMultiSetArgs`/`IMultiSetArgs<T>`/`MultiSetSingleArgs`/`MultiSetCollArgs` extend `IMultiSetArgsCore` for positional, ordered relational multi-set queries.
+- **[`CoreEx.Cosmos`](../CoreEx.Cosmos/README.md)** - `Extended.IMultiSetArgs`/`IMultiSetArgs<TModel>`/`MultiSetSingleArgs<TModel>`/`MultiSetCollArgs<TColl, TModel>` extend `IMultiSetArgsCore` for discriminator-keyed Cosmos DB multi-set queries.
 - **[`CoreEx.EntityFrameworkCore`](../CoreEx.EntityFrameworkCore/README.md)** - EF Core `IQueryable<T>` extensions consume `QueryArgsConfig` via `Where`/`OrderBy`.
 
 ## AI Usage Guide

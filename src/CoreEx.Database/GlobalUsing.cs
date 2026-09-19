@@ -1,6 +1,7 @@
 global using CloudNative.CloudEvents.Extensions;
 global using CoreEx.Abstractions;
 global using CoreEx.Data;
+global using IMultiSetArgs = CoreEx.Database.Extended.IMultiSetArgs;
 global using CoreEx.Database.Abstractions;
 global using CoreEx.Database.Extended;
 global using CoreEx.Database.Mapping;
@@ -20,6 +21,7 @@ global using Microsoft.Extensions.Configuration;
 global using Microsoft.Extensions.Diagnostics.HealthChecks;
 global using Microsoft.Extensions.Logging;
 global using OpenTelemetry;
+global using Polly;
 global using System.Collections;
 global using System.Data;
 global using System.Data.Common;

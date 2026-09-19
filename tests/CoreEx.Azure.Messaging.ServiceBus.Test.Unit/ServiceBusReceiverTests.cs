@@ -37,6 +37,10 @@ public class ServiceBusReceiverTests : WithGenericTester<EntryPoint>
     }
 
     [Test]
+    [Order(-1)] // Forces this to run before every other (default Order(0)) test in this fixture, on every TFM. NUnit does not guarantee declaration-order execution - it depends on
+                // reflection-based method enumeration, which can differ between .NET runtime versions - so other tests here that publish-then-abandon/dead-letter/circuit-break messages
+                // (e.g. ReceiveAsync_Catastrophic_Then_Pause, ReceiveAsync_CircuitBreaker) could otherwise run first on some TFMs and leak stale messages into this count assertion,
+                // which is exactly what caused this test to flake with "expected 10, found 16" on net8.0 only (net9.0/net10.0 happened to enumerate methods in a different order).
     public void GetAndClearAzureServiceBusAsync_ReturnsAllPublishedMessages() => Test.ScopedType<ExecutionContext>(async test =>
     {
         // Regression (against a real Service Bus emulator, not a mock): proves GetAndClearAzureServiceBusAsync's internal
@@ -215,9 +219,9 @@ public class ServiceBusReceiverTests : WithGenericTester<EntryPoint>
         // Act and assert.
         Test.ExpectLogContains("Received product with Id: 88 and Sku: SKU-088.")
             .ExpectLogContains("A transient error has occurred; please try again. [Source: ServiceBusSubscribedSubscriber, Handling: Retry]")
-            .ExpectLogContains("Service bus message retry attempt 1 in 333ms.")
-            .ExpectLogContains("Service bus message retry attempt 2 in 666ms.")
-            .ExpectLogContains("Service bus message retry attempt 3 in 1332ms.")
+            .ExpectLogContains("Retry attempt 1 in 333ms.")
+            .ExpectLogContains("Retry attempt 2 in 666ms.")
+            .ExpectLogContains("Retry attempt 3 in 1332ms.")
             .ExpectLogContains("DeadLetterAsync")
             .Run(async () =>
             {
@@ -345,10 +349,10 @@ public class ServiceBusReceiverTests : WithGenericTester<EntryPoint>
                 }
             }).AssertException<TaskCanceledException>();
 
-            circuitBreakerTripped = assertor.LogMessages.Any(x => x?.Contains("Service bus receiver circuit breaker has been tripped for 333ms due to unhandled errors; receiver will be paused.") == true)
-                && assertor.LogMessages.Any(x => x?.Contains("Service bus receiver circuit breaker has been tripped for 666ms due to unhandled errors; receiver will be paused.") == true)
-                && assertor.LogMessages.Any(x => x?.Contains("Service bus receiver circuit breaker has been tripped for 1332ms due to unhandled errors; receiver will be paused.") == true)
-                && assertor.LogMessages.Any(x => x?.Contains("Service bus receiver circuit breaker is attempting to recover in a limited state; receiver has been resumed.") == true);
+            circuitBreakerTripped = assertor.LogMessages.Any(x => x?.Contains("Service bus receiver circuit breaker has been tripped for 333ms due to unhandled errors; will be paused.") == true)
+                && assertor.LogMessages.Any(x => x?.Contains("Service bus receiver circuit breaker has been tripped for 666ms due to unhandled errors; will be paused.") == true)
+                && assertor.LogMessages.Any(x => x?.Contains("Service bus receiver circuit breaker has been tripped for 1332ms due to unhandled errors; will be paused.") == true)
+                && assertor.LogMessages.Any(x => x?.Contains("Service bus receiver circuit breaker is attempting to recover in a limited state; has been resumed.") == true);
         });
 
         return circuitBreakerTripped;

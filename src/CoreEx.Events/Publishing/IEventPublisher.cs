@@ -28,11 +28,22 @@ public interface IEventPublisher : IEventQueue
     void Reset();
 
     /// <summary>
-    /// Rollback (i.e. dequeue) the specified number of previous <i>Add</i> operations.
+    /// Dequeues the specified number of previous <i>Add</i> operations.
     /// </summary>
-    /// <param name="count">The number of <i>Add</i> operations to roll back.</param>
-    /// <remarks>The rollback will only function where <see cref="HasBeenPublished"/> is <see langword="false"/>.</remarks>
-    void Rollback(int count);
+    /// <param name="count">The number of <i>Add</i> operations to dequeue.</param>
+    /// <remarks>This will only function where <see cref="HasBeenPublished"/> is <see langword="false"/>; see <see cref="RollbackAsync(CancellationToken)"/> for the equivalent once already published.</remarks>
+    void Dequeue(int count);
+
+    /// <summary>
+    /// Rolls back a previous <see cref="PublishAsync(CancellationToken)"/> that has turned out not to have actually taken effect (e.g. a surrounding unit-of-work transaction it was enlisted within
+    /// subsequently failed to commit).
+    /// </summary>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+    /// <remarks>A no-op by default (see <see cref="EventPublisherBase"/>) - a real publisher's underlying send is typically already irreversible (or, for a deferred-commit provider such as
+    /// <c>CosmosDbEventPublisher</c>, was never actually sent in the first place if the surrounding batch failed to commit), so there is usually nothing to undo. This exists purely so a
+    /// test-only decorator (see <c>CoreEx.UnitTesting.Events.EventPublisherDecorator</c>) can be told "the publish you just captured didn't really happen" and correct its own captured state
+    /// accordingly - only ever called after <see cref="PublishAsync(CancellationToken)"/> has already completed (i.e. <see cref="HasBeenPublished"/> is <see langword="true"/>), never before.</remarks>
+    Task RollbackAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Gets all destination events currently available.

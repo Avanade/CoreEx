@@ -167,7 +167,6 @@ public readonly struct InvokerTracer : IDisposable
                 Activity.SetTag(InvokerResultName, CompleteStateText);
                 Invoker.OnActivityComplete(this);
                 Activity.SetStatus(ActivityStatusCode.Ok);
-                Activity.Stop();
             }
 
             if (Logger?.IsEnabled(LogLevel.Debug) ?? false)
@@ -177,6 +176,7 @@ public readonly struct InvokerTracer : IDisposable
             }
         }
 
+        // Sole Activity.Stop() call for both the success (above) and error/exception (TraceException, which does not stop) paths.
         Activity?.Stop();
     }
 

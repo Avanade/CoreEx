@@ -63,7 +63,18 @@ public class EventPublisherDecorator(string key, TestSharedState testSharedState
     public void Reset() => _innerEventPublisher.Reset();
 
     /// <inheritdoc/>
-    public void Rollback(int count) => _innerEventPublisher.Rollback(count);
+    public void Dequeue(int count) => _innerEventPublisher.Dequeue(count);
+
+    /// <inheritdoc/>
+    /// <remarks>Removes this decorator's own captured "published" events from <see cref="TestSharedState"/> for the current request - called where a surrounding unit-of-work transaction enlisted these
+    /// events atomically alongside a business mutation (e.g. <c>CosmosDbUnitOfWork</c>), then subsequently failed to actually commit; from the test's perspective, nothing was really published.</remarks>
+    public async Task RollbackAsync(CancellationToken cancellationToken = default)
+    {
+        var requestId = _sharedState.GetHttpRequestId();
+        _sharedState.RequestStateData(requestId).TryRemove(Key, out _);
+
+        await _innerEventPublisher.RollbackAsync(cancellationToken).ConfigureAwait(false);
+    }
 
     /// <inheritdoc/>
     public DestinationEvent[] GetEvents() => _innerEventPublisher.GetEvents();

@@ -1,0 +1,11 @@
+# Reference-data seed fixture, in the same $^TypeName-grouped shorthand convention used across the relational domains (e.g. Contoso.Products.Database/Data/ref-data.seed.yaml) - just code/text pairs,
+# no id/isActive/sortOrder/typeDiscriminator per row.
+ref-data:
+- $^CustomerType:
+  - IND: Individual
+  - ORG: Organisation
+- $^ContactMethod:
+  - EM: Email
+  - PH: Phone
+  - SMS: SMS
+  - PO: Postal mail

@@ -1,0 +1,10 @@
+# Cosmos 'customers' container precondition rows for CustomerMutateTests - raw camelCase document shape (matches Contoso.Customers.Infrastructure.Persistence.Customer's JSON property names), imported
+# directly via CosmosDbBatch.ImportBatchAsync (no TModel typing involved). No 'partitionKey' property on any row - CustomersCosmosDb configures neither WithPartitionKey nor WithFixedPartitionKey, so every
+# document resolves to PartitionKey.None (the simplest possible container shape - deliberate, see the PartitionKey.None work).
+customers:
+- { id: ^1, firstName: Existing, lastName: Customer, email: existing.customer@example.com, customerTypeCode: IND, contactMethodCode: EM, hasShopped: false }
+- { id: ^2, firstName: Loyal, lastName: Shopper, email: loyal.shopper@example.com, customerTypeCode: IND, contactMethodCode: EM, hasShopped: true }
+- { id: ^3, firstName: ToBe, lastName: Deleted, email: tobe.deleted@example.com, customerTypeCode: ORG, contactMethodCode: PH, hasShopped: false }
+- { id: ^4, firstName: Concurrency, lastName: Test, email: concurrency.test@example.com, customerTypeCode: IND, contactMethodCode: SMS, hasShopped: false }
+- { id: ^5, firstName: ToBe, lastName: PrePatch, email: tobe.patched@example.com, customerTypeCode: IND, contactMethodCode: EM, hasShopped: false }
+- { id: ^6, firstName: NoChanges, lastName: Patch, email: nochanges.patch@example.com, customerTypeCode: IND, contactMethodCode: EM, hasShopped: false }

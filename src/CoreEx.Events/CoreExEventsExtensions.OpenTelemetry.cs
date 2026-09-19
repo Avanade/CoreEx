@@ -15,7 +15,8 @@ public static class CoreExEventsExtensions
     public static OpenTelemetryBuilder WithCoreExEventsSources(this OpenTelemetryBuilder builder) => builder.ThrowIfNull()
         .WithTracing(t => t
             .AddInvokerAsSource<CoreEx.Events.Publishing.EventPublisherInvoker>()
-            .AddInvokerAsSource<CoreEx.Events.Subscribing.SubscribedInvoker>())
+            .AddInvokerAsSource<CoreEx.Events.Subscribing.SubscribedInvoker>()
+            .AddSource(CoreEx.Events.CloudEventTracingExtensions.RelayMarkerActivitySourceName))
         .WithMetrics(m => m
             .AddMeter(CoreEx.Events.Subscribing.EventSubscriberMetrics.Meter.Name));
 }

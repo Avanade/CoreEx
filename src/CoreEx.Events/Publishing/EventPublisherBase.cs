@@ -127,9 +127,9 @@ public abstract class EventPublisherBase(IDestinationProvider? destinationProvid
     }, false);
 
     /// <inheritdoc/>
-    public void Rollback(int count) => Synchronize(() =>
+    public void Dequeue(int count) => Synchronize(() =>
     {
-        count.ThrowWhen(count => count > _queue.Count, $"A {nameof(Rollback)} count cannot exceed the current queue length/count.");
+        count.ThrowWhen(count => count > _queue.Count, $"A {nameof(Dequeue)} count cannot exceed the current queue length/count.");
 
         if (count > 0)
         {
@@ -139,6 +139,10 @@ public abstract class EventPublisherBase(IDestinationProvider? destinationProvid
             }
         }
     });
+
+    /// <inheritdoc/>
+    /// <remarks>A no-op by default; see <see cref="IEventPublisher.RollbackAsync(CancellationToken)"/> for the rationale.</remarks>
+    public virtual Task RollbackAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
 
     /// <inheritdoc/>
     /// <remarks>This will also <see cref="IEventFormatter.AddTracing"/> prior to the underlying <see cref="OnPublishAsync(DestinationEvent[], CancellationToken)"/>.</remarks>

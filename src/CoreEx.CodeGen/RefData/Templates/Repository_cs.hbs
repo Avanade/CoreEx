@@ -21,6 +21,9 @@ public partial class ReferenceDataRepository : IReferenceDataRepository
   {{#ifeq Repository 'EntityFramework'}}
         => {{RepositoryName}}.ThrowIfNull().Model<{{Root.DataModelsPath}}.{{Name}}>().Query().ToMappedItemsAsync<{{Root.DataModelsPath}}.{{Name}}, Contracts.{{Name}}Collection, Contracts.{{Name}}>({{Mapper}}.Map, cancellationToken);
   {{/ifeq}}
+  {{#ifeq Repository 'Cosmos'}}
+        => {{RepositoryName}}.{{ModelPlural}}.Query().ToMappedItemsAsync<Contracts.{{Name}}Collection, Contracts.{{Name}}>({{Mapper}}.Map, cancellationToken);
+  {{/ifeq}}
 {{/each}}
 }
 

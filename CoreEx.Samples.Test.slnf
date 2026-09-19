@@ -2,6 +2,8 @@
   "solution": {
     "path": "CoreEx.slnx",
     "projects": [
+      "samples/tests/Contoso.Customers.Test.Api/Contoso.Customers.Test.Api.csproj",
+      "samples/tests/Contoso.Customers.Test.Unit/Contoso.Customers.Test.Unit.csproj",
       "samples/tests/Contoso.Orders.Test.Api/Contoso.Orders.Test.Api.csproj",
       "samples/tests/Contoso.Orders.Test.Unit/Contoso.Orders.Test.Unit.csproj",
       "samples/tests/Contoso.Products.Test.Api/Contoso.Products.Test.Api.csproj",

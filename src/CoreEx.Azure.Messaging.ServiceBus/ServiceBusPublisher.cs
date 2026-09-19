@@ -12,6 +12,12 @@ namespace CoreEx.Azure.Messaging.ServiceBus;
 /// <para>Where <see href="https://learn.microsoft.com/en-us/azure/service-bus-messaging/message-sessions"></see> are required then the <see cref="ServiceBusSessionStrategy"/> must be configured accordingly.</para></remarks>
 public sealed class ServiceBusPublisher(ServiceBusClient serviceBusClient, IDestinationProvider? destinationProvider = null, IEventFormatter? formatter = null, ILogger<ServiceBusPublisher>? logger = null) : EventPublisherBase(destinationProvider, formatter, logger)
 {
+    /// <summary>
+    /// The default <see cref="SendResiliency"/>, built once and shared across every instance - since <see cref="ServiceBusPublisher"/> is typically registered scoped (a new instance per DI scope),
+    /// building a fresh <see cref="ResiliencePipeline{T}"/> per instance would be wasted, avoidable allocation on what can be a busy path.
+    /// </summary>
+    private static readonly ResiliencePipeline<Result> DefaultSendResiliency = ServiceBusPublisherResiliency.CreateSendRetryResiliency();
+
     private readonly ServiceBusClient _serviceBusClient = serviceBusClient.ThrowIfNull();
 
     /// <summary>
@@ -61,6 +67,13 @@ public sealed class ServiceBusPublisher(ServiceBusClient serviceBusClient, IDest
     /// throughput, that concentration may become a bottleneck (or, for <see cref="ServiceBusSessionStrategy.UsePartitionKeyConvertedToAnId"/>, a hot bucket) - in which case those events should generally be given
     /// a real partition key rather than relying on this fallback.</para></remarks>
     public string NoPartitionKeySessionId { get; set; } = DefaultNoPartitionKeySessionId;
+
+    /// <summary>
+    /// Gets or sets the <see cref="ResiliencePipeline{T}"/> applied around each send within <see cref="SendBatchAsync"/>; defaults to <see cref="ServiceBusPublisherResiliency.CreateSendRetryResiliency"/>.
+    /// </summary>
+    /// <remarks>Consider using <see cref="ServiceBusPublisherResiliency.CreateSendRetryResiliency(TimeSpan?, int, DelayBackoffType)"/> to adjust the retry timing/attempts while keeping the same
+    /// transient-failure classification, rather than constructing a pipeline from scratch.</remarks>
+    public ResiliencePipeline<Result> SendResiliency { get; set => field = value.ThrowIfNull(); } = DefaultSendResiliency;
 
     /// <inheritdoc/>
     protected async override Task OnPublishAsync(DestinationEvent[] events, CancellationToken cancellationToken = default)
@@ -129,7 +142,32 @@ public sealed class ServiceBusPublisher(ServiceBusClient serviceBusClient, IDest
 
                 try
                 {
-                    await sender.SendMessagesAsync(batch, cancellationToken).ConfigureAwait(false);
+                    // Transient send failures (throttling, a momentary service timeout, etc.) are retried silently within this pipeline; only a genuinely sustained/permanent failure propagates.
+                    var ctx = ResilienceContextPool.Shared.Get(cancellationToken);
+                    try
+                    {
+                        ctx.Properties.Set(ResilienceOwner<ServiceBusPublisher>.PropertyKey, this);
+
+                        var result = await SendResiliency.ExecuteAsync(static async (rc, state) =>
+                        {
+                            try
+                            {
+                                await state.sender.SendMessagesAsync(state.batch, rc.CancellationToken).ConfigureAwait(false);
+                                return Result.Success;
+                            }
+                            catch (Exception ex)
+                            {
+                                return Result.Fail(ex);
+                            }
+                        }, ctx, (sender, batch)).ConfigureAwait(false);
+
+                        result.ThrowOnError();
+                    }
+                    finally
+                    {
+                        ResilienceContextPool.Shared.Return(ctx);
+                    }
+
                     ServiceBusMetrics.MessagesSendSent.Add(batch.Count, [ new (ServiceBusMetrics.DestinationTagName, destination) ]);
                 }
                 catch (Exception)

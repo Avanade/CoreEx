@@ -1,0 +1,17 @@
+global using Contoso.Customers.Application.Repositories;
+global using Contoso.Customers.Infrastructure.Mapping;
+global using CoreEx;
+global using CoreEx.Cosmos;
+global using CoreEx.Cosmos.Outbox;
+global using CoreEx.Data;
+global using CoreEx.Data.Querying;
+global using CoreEx.DependencyInjection;
+global using CoreEx.Entities;
+global using CoreEx.Events;
+global using CoreEx.Events.Publishing;
+global using CoreEx.Mapping;
+global using CoreEx.RefData;
+global using Microsoft.Azure.Cosmos;
+global using Microsoft.Extensions.Logging;
+global using System.Text.Json;
+global using PartitionKey = Microsoft.Azure.Cosmos.PartitionKey;
