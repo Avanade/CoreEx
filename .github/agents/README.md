@@ -43,7 +43,7 @@ Use local cache (always preferred over live GitHub fetches)
    │
    ├── .github/docs/coreex/*.md           ← 10 architecture docs
    │
-   └── .github/docs/coreex/agents/*.md   ← 16 per-package AI guides
+   └── .github/docs/coreex/agents/*.md   ← 17 per-package AI guides
               │
     read manifest referenced-packages
     to distinguish:
@@ -74,7 +74,7 @@ The `referenced-packages` field in the manifest lets the agent distinguish betwe
 | `tooling.md` | CodeGen and Database project run order, generated-file ownership |
 | `aspire.md` | Aspire orchestration for local distributed development and E2E testing |
 
-**`.github/docs/coreex/agents/`** — 16 per-package AI usage guides, one per CoreEx NuGet package. All 16 are synced unconditionally so the agent can guide on any package — including ones the project hasn't adopted yet.
+**`.github/docs/coreex/agents/`** — 17 per-package AI usage guides, one per `src/CoreEx.*` package (including `CoreEx.Cosmos`, which is currently work-in-progress and not yet published to NuGet — its guide still syncs so the agent can advise on it ahead of release). All 17 are synced unconditionally so the agent can guide on any package — including ones the project hasn't adopted yet.
 
 **`.github/docs/coreex/.manifest`** — records `synced` date, `coreex-version`, and `referenced-packages`.
 
@@ -120,7 +120,7 @@ dotnet new coreex-ai --app-folder <subfolder>
 
 - `.github/instructions/` — the scoped, auto-injected instruction files
 - `.github/prompts/` — the `coreex-scaffold` prompt plus one prompt per per-capability (L1) skill
-- `.github/skills/` — the full skill suite (`coreex-docs-sync`, `acquire-codebase-knowledge`, `coreex-solution-scaffolder`, `aspire`, and the 14 L1 skills)
+- `.github/skills/` — the full skill suite (`coreex-docs-sync`, `acquire-codebase-knowledge`, `coreex-scaffold`, `aspire`, and the 14 L1 skills)
 - `.github/agents/coreex-expert.agent.md` — this agent
 - `.claude/commands/` — the Claude Code equivalents
 - `.github/docs/coreex/` — the local docs cache (architecture docs + per-package guides) the expert reads first, already populated at the pinned version — no separate sync step needed on first install

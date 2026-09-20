@@ -9,7 +9,7 @@ namespace CoreEx.Generator.Utility;
 /// </summary>
 public class HandlebarsCodeGenerator
 {
-    private readonly HandlebarsTemplate<object?, object?> _template;
+    private readonly HandlebarsTemplate<object, object> _template;
 
     /// <summary>
     /// Static constructor.
@@ -61,5 +61,5 @@ public class HandlebarsCodeGenerator
     /// <param name="context">The primary context value referenced within the template.</param>
     /// <param name="data">The optional secondary data.</param>
     /// <returns>The resulting generated output.</returns>
-    public string Generate(CodeGenContext context, object? data = null) => _template(context, data);
+    public string Generate(CodeGenContext context, object? data = null) => _template(context, data!);
 }

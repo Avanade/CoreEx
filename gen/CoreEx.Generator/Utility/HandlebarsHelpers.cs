@@ -28,21 +28,21 @@ public static class HandlebarsHelpers
             // Increments indent only!
             Handlebars.RegisterHelper("indent++", (in w, in options, in context, in args) =>
             {
-                var hc = (CodeGenContext)options.Data["Root"];
+                var hc = (CodeGenContext)options.Data["Root"]!;
                 hc.IncrementIndent();
             });
 
             // Decrements indent only!
             Handlebars.RegisterHelper("indent--", (in w, in options, in context, in args) =>
             {
-                var hc = (CodeGenContext)options.Data["Root"];
+                var hc = (CodeGenContext)options.Data["Root"]!;
                 hc.DecrementIndent();
             });
 
             // Writes the current indent string.
             Handlebars.RegisterHelper("indent", (in w, in options, in context, in args) =>
             {
-                var hc = (CodeGenContext)options.Data["Root"];
+                var hc = (CodeGenContext)options.Data["Root"]!;
                 w.WriteSafeString(hc.GetIndentString());
             });
 

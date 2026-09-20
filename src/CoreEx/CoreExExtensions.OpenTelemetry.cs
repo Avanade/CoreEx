@@ -13,9 +13,21 @@ public static class CoreExExtensions
     /// <param name="builder">The <see cref="OpenTelemetryBuilder"/>.</param>
     /// <returns>The <paramref name="builder"/> to support fluent-style method-chaining.</returns>
     public static OpenTelemetryBuilder WithCoreExTelemetry(this OpenTelemetryBuilder builder)
-        => builder.ThrowIfNull().ThrowIfNull()
+    {
+        builder.ThrowIfNull();
+
+#if !NET9_0_OR_GREATER
+        // .NET 8's non-backtracking regex engine defaults to a 1,000-node safe automata size (raised to 10,000 in .NET 9+; see dotnet/runtime SymbolicRegexThresholds). OpenTelemetry's
+        // WildcardHelper builds a NonBacktracking regex from every registered ActivitySource name/pattern (including wildcards such as "Azure.Messaging.ServiceBus.*"), and with enough
+        // registered sources the resulting automata can exceed net8.0's lower cap, throwing NotSupportedException when the TracerProvider is constructed at host startup. Align net8.0
+        // with the .NET 9+ default so this does not fail solely due to running on an older target framework.
+        AppContext.SetData("REGEX_NONBACKTRACKING_MAX_AUTOMATA_SIZE", 10_000);
+#endif
+
+        return builder
             .WithTracing(t => t.AddHttpClientInstrumentation().WithCoreExSources())
-            .WithMetrics(m => m.AddHttpClientInstrumentation().AddRuntimeInstrumentation().AddProcessInstrumentation().AddMeter("Polly"));
+            .WithMetrics(m => m.AddHttpClientInstrumentation().AddRuntimeInstrumentation().AddMeter("Polly"));
+    }
 
     /// <summary>
     /// Enables (adds) the <i>CoreEx</i>-specified OpenTelemetry tracing sources.

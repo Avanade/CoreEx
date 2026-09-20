@@ -23,10 +23,12 @@ Each domain has a `*.CodeGen` console project (e.g. `Contoso.Products.CodeGen`, 
 | `*.g.cs` controller route | API host | HTTP endpoint exposing the entity collection. |
 | `*.g.cs` service method | Application | Service-layer method delegating to the repository. |
 | `*.g.cs` repository interface | Application | Interface declaration for the entity repository. |
-| `*.g.cs` repository | Infrastructure | EF Core repository implementation. |
-| `*.g.cs` mapper | Infrastructure | Bidirectional EF Core mapper for the entity. |
+| `*.g.cs` repository | Infrastructure | Repository implementation (EF Core, or Cosmos DB for a Cosmos-backed domain such as Customers — see `CosmosPersistenceModelGenerator`). |
+| `*.g.cs` mapper | Infrastructure | Bidirectional mapper for the entity (EF Core `BiDirectionMapper`, or the equivalent Cosmos mapper). |
 
 All generated files carry the `.g.cs` suffix, clearly distinguishing them from hand-authored code and excluding them from manual maintenance.
+
+> Customers (Cosmos DB) uses the same `*.CodeGen` mechanism, but its templates target Cosmos containers instead of an EF Core `DbContext` — there is no persistence-model/`DbContext` generation step because Customers has no `*.Database` project (see [Database Management](#database-management-database) below).
 
 ### `ref-data.yaml` structure
 
@@ -59,6 +61,8 @@ Running `dotnet run -- count` invokes the `Count` command, which walks all solut
 Each domain has a `*.Database` console project (e.g. `Contoso.Products.Database`, `Contoso.Shopping.Database`) that drives the [DbEx](https://github.com/Avanade/DbEx) database management framework. It is the **primary tool for deploying and managing the domain database across all environments** — local development, CI/CD pipelines, and production — providing a consistent, repeatable, command-driven lifecycle.
 
 Products uses `DbEx.Postgres` (PostgreSQL); Shopping uses `DbEx.SqlServer` (SQL Server), demonstrating that the same tooling approach is database-agnostic. A MySQL variant (`DbEx.MySql`) is also available.
+
+> Customers has no `*.Database` project. Cosmos DB is schemaless, so there is no schema to migrate — its containers are created (or reset) code-first at test/run time via `ReplaceOrCreateContainerAsync` (see [`Contoso.Customers.Test.Api/DatabaseSetUp.cs`](../tests/Contoso.Customers.Test.Api/DatabaseSetUp.cs)), and reference data is seeded directly into its containers rather than via DbEx's `Data` command.
 
 ### DbEx commands
 

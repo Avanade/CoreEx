@@ -90,6 +90,24 @@ Rules:
   concrete sample names only in prose, clearly framed as examples ("e.g. …").
 - Verify every link before committing; prefer the always-present targets (1, 2) as the backbone.
 
+## Shipping a New `coreex-*` Skill
+
+Every `coreex-*` skill that ships to consumer repos needs three more pieces kept in sync by name (`coreex-<name>`),
+none of which live under `skills/`:
+
+1. **Claude command wrapper** — `.claude/commands/coreex-<name>.md`: frontmatter `description` copied verbatim from
+   the skill's `description`, plus `allowed-tools: [Read, Glob, Grep, Edit, Write, Bash]`, then a one-line body
+   ("Read `.github/skills/coreex-<name>/SKILL.md` and follow the instructions in that file."). This is required
+   because Claude Code only exposes `/` commands from `.claude/commands/`, not `.github/skills/`.
+2. **Copilot prompt** — `.github/prompts/coreex-<name>.prompt.md` (see existing prompts for the thin-delegate shape).
+3. **`CoreEx.Template.csproj` Copy block** — add the skill's files (and its `.claude/commands/coreex-<name>.md`
+   wrapper) to the `CopyTemplateAiContext` target's `SourceFiles`/`DestinationFiles` lists so `dotnet new coreex-ai`
+   actually ships it. Add matching `FilesPresent` assertions to `tools/validate-template-pack.ps1`.
+
+A skill missing any of these three is invocable in this repo but silently absent, or Claude-Code-invisible, in every
+consumer repo — a gap this checklist exists to prevent recurring (see `coreex-scaffold` and the 17 L1/L2 skills that
+originally shipped without a `.claude/commands` wrapper).
+
 ## Frontmatter Requirements
 
 All SKILL.md files must include:

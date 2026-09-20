@@ -31,7 +31,7 @@ Guides a developer through selecting the right `CoreEx.Template` scaffolding sha
 If the prompt file is not present, attach the skill file directly in Copilot Chat:
 
 ```
-#file:.github/skills/coreex-solution-scaffolder/SKILL.md scaffold a new CoreEx solution for my requirements
+#file:.github/skills/coreex-scaffold/SKILL.md scaffold a new CoreEx solution for my requirements
 ```
 
 ## What it will do

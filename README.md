@@ -123,18 +123,7 @@ The [Pattern Catalog](./samples/docs/patterns.md) is the best entry point: it in
 
 → **[View the full pattern catalog](./samples/docs/patterns.md)**
 
-## Version 4 (preview)
-
-This is a **major** version release; a re-imagine / re-invention of the existing capabilities to enable a more modern, flexible and maintainable codebase.
-- This release contains **significant breaking changes** - there is **no** documented upgrade path from the previous `v3.x` versions; however, the core capabilities and patterns remain largely consistent.
-- A number of capabilities have been removed as they were not widely used, considered legacy/obsolete, or there are better alternatives available.
-- Not all existing capabilities have been re-implemented in this release; the intention is to (re-)add further capabilities in future releases as required.
-
-Version 4 is currently in **preview**; the packages are published with a `-preview` suffix and may contain future breaking changes. The packages in their current state can be used for Production-based solutions. Feedback is very welcome to help shape the final release.
-
-The Copilot and Claude [AI](#ai) integrations should be considered experimental and subject to change/improvements.
-
-## Status
+## Build and Package Status
 
 The build status is [![CI](https://github.com/Avanade/CoreEx/actions/workflows/CI.yml/badge.svg)](https://github.com/Avanade/CoreEx/actions/workflows/CI.yml) with the NuGet package status as follows, including links to the underlying source code and documentation:
 
@@ -145,6 +134,7 @@ Project/Package | Description | Source
 `CoreEx.AspNetCore.NSwag`<br/><sub>&nbsp;</sub><br/>[![NuGet version](https://img.shields.io/nuget/vpre/CoreEx.AspNetCore.NSwag)](https://www.nuget.org/packages/CoreEx.AspNetCore.NSwag/absoluteLatest) | Provides the NSwag `IOperationProcessor` integration that reads CoreEx MVC attributes (`[Paging]`, `[Query]`, `[Accepts]`, `[IdempotencyKey]`, `[ProducesNotFoundProblem]`) and injects the corresponding parameters, request bodies, and response entries into the generated OpenAPI specification. | [Link](./src/CoreEx.AspNetCore.NSwag)
 `CoreEx.Azure.Messaging.ServiceBus`<br/><sub>&nbsp;</sub><br/>[![NuGet version](https://img.shields.io/nuget/vpre/CoreEx.Azure.Messaging.ServiceBus)](https://www.nuget.org/packages/CoreEx.Azure.Messaging.ServiceBus/absoluteLatest) | Provides Azure Service Bus integration for CoreEx: a `ServiceBusPublisher` implementing `IEventPublisher`, subscriber bases wired to `EventSubscriberBase`, and receiver hosts with built-in resiliency, metrics, and session support. | [Link](./src/CoreEx.Azure.Messaging.ServiceBus)
 `CoreEx.Caching.FusionCache`<br/><sub>&nbsp;</sub><br/>[![NuGet version](https://img.shields.io/nuget/vpre/CoreEx.Caching.FusionCache)](https://www.nuget.org/packages/CoreEx.Caching.FusionCache/absoluteLatest) | Provides a `FusionHybridCache` implementation of `IHybridCache` backed by the ZiggyCreatures FusionCache library, bridging CoreEx caching contracts to FusionCache's L1/L2 hybrid and backplane capabilities. | [Link](./src/CoreEx.Caching.FusionCache)
+`CoreEx.Cosmos` | **Work in progress; not packaged.** Provides the core Azure Cosmos DB access layer: `ICosmosDb`/`CosmosDb` as the CoreEx-Cosmos bridge, `CosmosDbContainer<TModel>` and `CosmosDbMappedContainer<TValue, TModel, TMapper>` for typed CRUD + query operations with ETag/concurrency, multi-tenancy, logical-delete, and type-discriminator support, a `TransactionalBatch`-based transactional outbox (`CosmosDbUnitOfWork`), and a Change Feed Processor-based outbox relay. | [Link](./src/CoreEx.Cosmos)
 `CoreEx.Data`<br/><sub>&nbsp;</sub><br/>[![NuGet version](https://img.shields.io/nuget/vpre/CoreEx.Data)](https://www.nuget.org/packages/CoreEx.Data/absoluteLatest) | Provides the `IUnitOfWork` transactional orchestration contract, `DataResult` mutation outcome types, data model base classes, and the `QueryArgsConfig` / `QueryFilterParser` / `QueryOrderByParser` pipeline for safe, explicitly-configured OData-style `$filter` and `$orderby` LINQ query translation. | [Link](./src/CoreEx.Data)
 `CoreEx.Data.GraphQL`<br/><sub>&nbsp;</sub><br/>[![NuGet version](https://img.shields.io/nuget/vpre/CoreEx.Data.GraphQL)](https://www.nuget.org/packages/CoreEx.Data.GraphQL/absoluteLatest) | Provides a transport-agnostic "GraphQL-lite" bridge (`IGraphQLEngine`) over the existing `CoreEx.Data` querying pipeline: a single registered root field maps a GraphQL selection set to `QueryArgs`/`PagingArgs` and `JsonFilter` field projection, reusing each entity's existing `QueryArgsConfig` — no new per-entity resolver code required. | [Link](./src/CoreEx.Data.GraphQL)
 `CoreEx.Database`<br/><sub>&nbsp;</sub><br/>[![NuGet version](https://img.shields.io/nuget/vpre/CoreEx.Database)](https://www.nuget.org/packages/CoreEx.Database/absoluteLatest) | Provides the `IDatabase` / `Database` ADO.NET abstraction, `DatabaseCommand` fluent query builder, `DatabaseRecord` row reader, multi-result-set support, convention-based column mapping, database wildcard translation, typed mapper contracts, and the transactional outbox relay infrastructure for publishing events from a relational database. | [Link](./src/CoreEx.Database)
@@ -221,7 +211,7 @@ The repository includes an AI workflow set in [`.github/`](./.github/) that give
 
 See the [full skill catalog](./.github/coreex-ai-workflows.md#prompts-skills-and-templates) for full detail on each.
 
-**Also available** — repo-maintenance and local-orchestration skills: [`/coreex-scaffold`](./.github/skills/coreex-solution-scaffolder/README.md) (greenfield solution scaffolding), [`/coreex-docs-sync`](./.github/skills/coreex-docs-sync/README.md) (refresh cached CoreEx docs), [`/acquire-codebase-knowledge`](./.github/skills/acquire-codebase-knowledge/README.md) (map an existing codebase), and [`/aspire`](./.github/skills/aspire/README.md) (orchestrate Aspire apps locally).
+**Also available** — repo-maintenance and local-orchestration skills: [`/coreex-scaffold`](./.github/skills/coreex-scaffold/README.md) (greenfield solution scaffolding), [`/coreex-docs-sync`](./.github/skills/coreex-docs-sync/README.md) (refresh cached CoreEx docs), [`/acquire-codebase-knowledge`](./.github/skills/acquire-codebase-knowledge/README.md) (map an existing codebase), and [`/aspire`](./.github/skills/aspire/README.md) (orchestrate Aspire apps locally).
 
 **Instructions** — 11 scoped instruction files are injected automatically when editing matching file types (contracts, services, repositories, controllers, tests, etc.). No action required.
 

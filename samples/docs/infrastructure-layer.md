@@ -5,6 +5,7 @@ The Infrastructure layer provides the **concrete implementations** of all abstra
 **Example projects**
 - [`samples/src/Contoso.Products.Infrastructure`](../src/Contoso.Products.Infrastructure)
 - [`samples/src/Contoso.Shopping.Infrastructure`](../src/Contoso.Shopping.Infrastructure)
+- [`samples/src/Contoso.Customers.Infrastructure`](../src/Contoso.Customers.Infrastructure) (Cosmos DB — see [Cosmos DB repositories](#cosmos-db-repositories) below)
 
 ---
 
@@ -58,6 +59,42 @@ public sealed class ProductsEfDb(ProductsDbContext dbContext) : EfDb<ProductsDbC
 ```
 
 > **See also**: [`EfDb<TContext>`](../../src/CoreEx.EntityFrameworkCore/EfDb.cs) · [`EfDbModel<T>`](../../src/CoreEx.EntityFrameworkCore/EfDbModel.cs) · [`EfDbMappedModel<TContract,TModel,TMapper>`](../../src/CoreEx.EntityFrameworkCore/EfDbMappedModel.cs)
+
+---
+
+## Cosmos DB repositories
+
+> ⚠️ **Work in progress**: [`CoreEx.Cosmos`](../../src/CoreEx.Cosmos) is not yet published to NuGet — see [`CoreEx.Cosmos/AGENTS.md`](../../src/CoreEx.Cosmos/AGENTS.md) for current status.
+
+Customers is schemaless and code-first — there is no `*.Database`/DbEx migration project, no EF Core `DbContext`, and no generated persistence model. Instead, `CosmosDb` (from `CoreEx.Cosmos`) is sub-classed once per domain to declare its containers, each exposed as a typed `CosmosDbContainer<TModel>` (same contract/model type) or `CosmosDbMappedContainer<TValue,TModel,TMapper>` (contract mapped to a distinct persistence model), analogous in role to an `EfDb<TContext>` unit-of-work facade:
+
+```csharp
+// samples/src/Contoso.Customers.Infrastructure/Repositories/CustomersCosmosDb.cs
+public class CustomersCosmosDb(CosmosClient client, string databaseId) : CosmosDb(client, databaseId, _options)
+{
+    public CosmosDbContainer<Persistence.ContactMethod> ContactMethods => Container<Persistence.ContactMethod>("ref-data", o => o.WithTypeDiscriminator());
+
+    public CosmosDbMappedContainer<Contracts.Customer, Persistence.Customer, CustomerMapper> Customers
+        => Container<Persistence.Customer>("customers").ToMappedModel<Contracts.Customer, CustomerMapper>(new CustomerMapper());
+}
+```
+
+The repository then delegates to the container's typed CRUD (`GetAsync`, `CreateAsync`, `UpdateAsync`, `DeleteAsync`) and LINQ-style `Query(...)` for listing, returning the same CoreEx `DataResult<T>`/`ItemsResult<T>` shapes used by the EF Core repositories above:
+
+```csharp
+// samples/src/Contoso.Customers.Infrastructure/Repositories/CustomerRepository.cs
+[ScopedService<ICustomerRepository>]
+public class CustomerRepository(CustomersCosmosDb cosmos) : ICustomerRepository
+{
+    public Task<Contracts.Customer?> GetAsync(string id, CancellationToken ct = default) => _cosmos.Customers.GetAsync(CompositeKey.Create(id), ct);
+    public Task<DataResult<Contracts.Customer>> CreateAsync(Contracts.Customer customer, CancellationToken ct = default) => _cosmos.Customers.CreateAsync(customer, ct);
+    // ...
+}
+```
+
+Multi-document writes (e.g. an entity plus its outbox event) go through `CosmosDbUnitOfWork`, which uses `TransactionalBatch` to commit atomically within a partition — the Cosmos analogue of the EF Core `IUnitOfWork`/outbox pattern used by Products and Shopping. Because Customers has no Relay host yet, published events accumulate in the outbox container but are not currently forwarded to Service Bus.
+
+> **See also**: [`CosmosDb`](../../src/CoreEx.Cosmos/CosmosDb.cs) · [`CosmosDbContainer<TModel>`](../../src/CoreEx.Cosmos/CosmosDbContainer.cs) · [`CosmosDbMappedContainer<TValue,TModel,TMapper>`](../../src/CoreEx.Cosmos/CosmosDbMappedContainer.cs) · [`CosmosDbUnitOfWork`](../../src/CoreEx.Cosmos/CosmosDbUnitOfWork.cs)
 
 ---
 

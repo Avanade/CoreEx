@@ -1,5 +1,5 @@
 ---
-description: "CoreEx Solution Scaffolder — guides solution shaping after bootstrap (hosts, database, messaging, refdata/outbox/DDD/ROP options, and an optional Aspire AppHost for local multi-host orchestration/dashboard) and turns the answers into dotnet new template commands."
+description: "Add or modify a reference data type in a CoreEx domain. USE FOR: new ref-data entity (new table + seed rows + CodeGen), adding extra properties to an existing type, adding seed rows for an existing type, wiring an existing ref-data type into a contract. DO NOT USE FOR: non-reference-data entity tables (use coreex-db-migration), hand-authoring generated .g.cs contracts (always use CodeGen)."
 allowed-tools: [Read, Glob, Grep, Edit, Write, Bash]
 ---
 
@@ -11,4 +11,4 @@ allowed-tools: [Read, Glob, Grep, Edit, Write, Bash]
     propose the change upstream in Avanade/CoreEx instead, then refresh once it is released.
 -->
 
-Read `.github/skills/coreex-scaffold/SKILL.md` and follow the instructions in that file.
+Read `.github/skills/coreex-refdata/SKILL.md` and follow the instructions in that file.
