@@ -431,6 +431,32 @@ public class CosmosDbMultiSetTests : CosmosTestBase
     }
 
     [Test]
+    public async Task SelectMultiSetAsync_ModelWithQueryOnlyFilter_ThrowsNotSupported()
+    {
+        await GetOrCreateContainerAsync(ContainerId).ConfigureAwait(false);
+
+        var cosmosDb = CreateCosmosDb();
+
+        // Regression: a WithFilter registered WITHOUT a nonQueryResult is "query-only" - applied server-side by a normal CosmosDbQuery<TModel> (via ApplyFilters), but NOT checked per-item by
+        // CheckFilters/CheckModel (by design), and cannot be safely translated into a multi-set query's raw SQL text (an arbitrary Func<IQueryable<TModel>, IQueryable<TModel>> has no such translation
+        // outside of a real Cosmos LINQ query). Previously, using such a model in a multi-set query silently ignored the filter entirely, returning documents an equivalent single-set query would have
+        // excluded. It must now fail fast with NotSupportedException instead.
+        cosmosDb.Container<AnimalItem>(ContainerId, o =>
+        {
+            o.WithPartitionKey(m => m.PartitionKey).WithTypeDiscriminator();
+            o.WithFilter(q => q.Where(m => !m.Name.StartsWith("Hidden")));
+        });
+
+        Func<Task> act = () => cosmosDb.SelectMultiSetAsync(ContainerId, new MultiSetOptions
+        {
+            PartitionKey = NewId(),
+            MultiSetArgs = [new MultiSetCollArgs<List<AnimalItem>, AnimalItem>(_ => { })]
+        });
+
+        await act.Should().ThrowAsync<NotSupportedException>().WithMessage("*query-only*");
+    }
+
+    [Test]
     public async Task SelectMultiSetAsync_PreservesOtherQueryRequestOptionsSettings_WhenLayeringInPartitionKey()
     {
         await GetOrCreateContainerAsync(ContainerId).ConfigureAwait(false);

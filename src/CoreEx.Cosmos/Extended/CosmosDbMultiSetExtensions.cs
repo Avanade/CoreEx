@@ -47,7 +47,10 @@ public static class CosmosDbMultiSetExtensions
     /// model has <see cref="CosmosDbModelOptions{TModel}.WithTenantFilter"/> and/or <see cref="CosmosDbModelOptions{TModel}.WithLogicalDeleteFilter"/> configured, an equivalent - but defensively
     /// <c>IS_DEFINED</c>-guarded - predicate is added for that model's subset of the query as a server-side (RU/bandwidth) optimization; see <see cref="IMultiSetArgs.BuildFilterClause"/> for the exact
     /// predicate shape and why it never excludes a document purely for predating the property. This is additive to, not a replacement for, the always-applied per-item <c>CheckModel</c> check - a model with
-    /// neither configured still relies solely on that per-item check, exactly as before.</para>
+    /// neither configured still relies solely on that per-item check, exactly as before. A model with a <see cref="CosmosDbModelOptions{TModel}.WithFilter"/> registered <i>without</i> a <c>nonQueryResult</c>
+    /// (a query-only filter - see <see cref="CosmosDbModelOptions{TModel}.HasQueryOnlyFilters"/>) is not supported here at all: unlike the tenant/logical-delete filters, an arbitrary filter predicate cannot
+    /// be safely translated into this query's raw SQL text, so <see cref="IMultiSetArgs.BuildFilterClause"/> throws <see cref="NotSupportedException"/> for it rather than risk silently returning documents
+    /// an equivalent <see cref="CosmosDbQuery{TModel}"/> would have excluded.</para>
     /// <para><see cref="CosmosDbArgs.QueryRequestOptions"/> (see <see cref="MultiSetOptions.Args"/>), where supplied, takes precedence over one freshly constructed from <see cref="MultiSetOptions.PartitionKey"/>;
     /// its own <see cref="QueryRequestOptions.PartitionKey"/>, if already set, must either agree with a non-<see langword="null"/> <see cref="MultiSetOptions.PartitionKey"/> or the latter must be omitted
     /// (<see langword="null"/>) - a genuine mismatch between the two throws <see cref="ArgumentException"/> (an argument/guard-clause violation, not a <see cref="Result.IsFailure"/>) rather than silently

@@ -20,7 +20,7 @@ public abstract class CosmosTestBase
     {
         ConnectionMode = ConnectionMode.Gateway,
         HttpClientFactory = () => new HttpClient(new HttpClientHandler { ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator }),
-        // CosmosDbItemBase uses System.Text.Json's [JsonPropertyName] to map the id/_etag/ttl reserved properties; the SDK's default serializer is Newtonsoft.Json-based and would not honour those
+        // CosmosDbModelBase uses System.Text.Json's [JsonPropertyName] to map the id/_etag/ttl reserved properties; the SDK's default serializer is Newtonsoft.Json-based and would not honour those
         // attributes, so opt into the SDK's System.Text.Json serializer explicitly (camelCase for everything else, matching typical Cosmos DB document conventions).
         UseSystemTextJsonSerializerWithOptions = new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase }
     });

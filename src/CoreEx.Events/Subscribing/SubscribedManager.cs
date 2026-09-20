@@ -185,10 +185,11 @@ public sealed class SubscribedManager(SubscribedInvoker? invoker = null)
     /// <summary>
     /// Suppresses distributed-tracing export for the current "not subscribed" event (see <see cref="IsTracingEnabledForUnsubscribed"/>).
     /// </summary>
-    /// <remarks>Marks the current <see cref="Activity"/> - typically the transport receiver's own invoker span (e.g. <c>ServiceBusReceiverInvoker</c>) - as not requiring data collection, and does the same for
-    /// its immediate parent (typically the underlying transport's own native receive/process span, e.g. Azure Service Bus' <c>ServiceBusProcessor.ProcessMessage</c>), additionally clearing the parent's
-    /// <see cref="ActivityTraceFlags.Recorded"/> flag so that any sibling activity the transport subsequently creates (e.g. a settle/complete span, created only <i>after</i> this method returns) is also
-    /// excluded by the ambient OpenTelemetry <c>ParentBasedSampler</c> (the OpenTelemetry SDK's own default), which otherwise defaults every child's sampling decision to its parent's <see cref="Activity.Recorded"/> state.
+    /// <remarks>Marks the current <see cref="Activity"/> - typically the transport receiver's own invoker span (e.g. <c>ServiceBusReceiverInvoker</c>) - and its immediate parent (typically the underlying
+    /// transport's own native receive/process span, e.g. Azure Service Bus' <c>ServiceBusProcessor.ProcessMessage</c>) as not requiring data collection, additionally clearing <see cref="ActivityTraceFlags.Recorded"/>
+    /// on <b>both</b> so that any further activity the transport (or CoreEx itself, e.g. an explicit message-completion call made <i>before</i> the current activity stops) subsequently creates as a child of
+    /// either one (e.g. a settle/complete span) is also excluded by the ambient OpenTelemetry <c>ParentBasedSampler</c> (the OpenTelemetry SDK's own default), which otherwise defaults every child's sampling
+    /// decision to its immediate parent's live <see cref="Activity.Recorded"/> state at the moment the child is created - not necessarily the state of the activity that was current when this method ran.
     /// <para>Both <see cref="Activity.IsAllDataRequested"/> and <see cref="Activity.ActivityTraceFlags"/> are ordinary, publicly mutable properties - the OpenTelemetry SDK re-checks <see cref="Activity.IsAllDataRequested"/>
     /// live when an activity stops (not a value cached at start), so setting it to <see langword="false"/> here reliably drops an activity from being forwarded to any processor/exporter, even one that was
     /// already started (and, for the current activity, possibly already tagged) by the time this determination is made.</para>
@@ -201,6 +202,7 @@ public sealed class SubscribedManager(SubscribedInvoker? invoker = null)
             return;
 
         current.IsAllDataRequested = false;
+        current.ActivityTraceFlags &= ~ActivityTraceFlags.Recorded;
 
         var parent = current.Parent;
         if (parent is null)

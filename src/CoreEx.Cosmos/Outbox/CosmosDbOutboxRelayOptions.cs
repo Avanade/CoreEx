@@ -16,6 +16,13 @@ public sealed class CosmosDbOutboxRelayOptions
     public required string LeaseContainerId { get; init; }
 
     /// <summary>
+    /// Gets or sets the manually provisioned throughput (RU/s) to request when the <see cref="LeaseContainerId"/> container does not already exist and is auto-provisioned by <see cref="CosmosDbOutboxRelay"/>;
+    /// where not specified, no throughput is requested (the account/database default applies - e.g. serverless, or a database-level shared throughput).
+    /// </summary>
+    /// <remarks>Only consulted the first time a given <see cref="LeaseContainerId"/> is auto-provisioned - see <see cref="CosmosDbOutboxRelay"/>'s constructor remarks.</remarks>
+    public int? LeaseContainerThroughput { get; set; }
+
+    /// <summary>
     /// Gets or sets the Change Feed Processor instance name; must be distinct per concurrently-running instance for the same <see cref="ContainerId"/>/<see cref="LeaseContainerId"/> pair.
     /// </summary>
     public required string InstanceName { get; init; }

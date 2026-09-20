@@ -364,6 +364,51 @@ public class CosmosDbOutboxRelayTests : CosmosTestBase
         await act.Should().NotThrowAsync();
     }
 
+    private const string AutoProvisionContainerId = "relay-autoprovision-items";
+    private const string AutoProvisionLeaseContainerId = "relay-autoprovision-items-leases";
+
+    [Test]
+    public async Task StartAsync_LeaseContainerDoesNotAlreadyExist_IsAutoProvisioned()
+    {
+        // Regression: StartAsync previously only ever resolved the lease container via Database.GetContainer (a proxy reference, not a create) - against a fresh Cosmos DB database where the lease
+        // container had never been created, the underlying ChangeFeedProcessor.StartAsync would fail trying to acquire leases against a container that does not exist. Deliberately does NOT pre-create
+        // the lease container here (unlike every other test in this fixture), to prove StartAsync itself now provisions it.
+        await GetOrCreateContainerAsync(AutoProvisionContainerId).ConfigureAwait(false);
+
+        // Confirm the lease container genuinely does not exist yet - a stale container from a prior interrupted run would invalidate this test's premise.
+        try
+        {
+            await TestDatabase.GetContainer(AutoProvisionLeaseContainerId).DeleteContainerAsync().ConfigureAwait(false);
+        }
+        catch (CosmosException cex) when (cex.StatusCode == HttpStatusCode.NotFound)
+        {
+            // Expected - already absent.
+        }
+
+        var cosmosDb = CreateCosmosDb();
+        using var sp = CreateServiceProvider(new TestEventPublisher());
+        var processor = new CosmosDbOutboxRelayProcessor(sp, AutoProvisionContainerId, NullLogger<CosmosDbOutboxRelayProcessor>.Instance);
+
+        var options = new CosmosDbOutboxRelayOptions
+        {
+            ContainerId = AutoProvisionContainerId,
+            LeaseContainerId = AutoProvisionLeaseContainerId,
+            InstanceName = $"instance-{NewId()}"
+        };
+
+        await using var relay = new CosmosDbOutboxRelay(cosmosDb.Database, options, processor, NullLogger<CosmosDbOutboxRelay>.Instance);
+
+        Func<Task> act = async () => await relay.StartAsync();
+        await act.Should().NotThrowAsync();
+        relay.Status.Should().Be(ServiceStatus.Running);
+
+        // The lease container must now actually exist (StartAsync provisioned it) - ReadContainerAsync throws CosmosException(NotFound) otherwise.
+        var readResponse = await TestDatabase.GetContainer(AutoProvisionLeaseContainerId).ReadContainerAsync().ConfigureAwait(false);
+        readResponse.Resource.Id.Should().Be(AutoProvisionLeaseContainerId);
+
+        await relay.StopAsync();
+    }
+
     private sealed class TestEventPublisher : EventPublisherBase
     {
         public List<DestinationEvent> Published { get; } = [];

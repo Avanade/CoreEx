@@ -326,7 +326,11 @@ public class CosmosDbModelOptions<TModel> where TModel : class, IEntityKey, new(
     /// <para>The <paramref name="filter"/> is evaluated in two different contexts and must be expressible in both: against the real Cosmos DB LINQ query (translated to a Cosmos DB SQL query) for
     /// <see cref="CosmosDbQuery{TModel}.AsQueryable(CosmosDbArgs?)"/>, and against an in-memory, single-item <see cref="IQueryable{T}"/> (LINQ-to-Objects) for the non-query pre-check performed by
     /// <see cref="CheckFilters"/> — this is intentional, avoiding a second round-trip to re-verify a model already in hand, but it means the predicate cannot use Cosmos-LINQ-only constructs that have
-    /// no meaning against an in-memory sequence.</para></remarks>
+    /// no meaning against an in-memory sequence.</para>
+    /// <para>A query-only <paramref name="filter"/> (no <paramref name="nonQueryResult"/> — see <see cref="HasQueryOnlyFilters"/>) is <b>not</b> supported for a <typeparamref name="TModel"/> used in a
+    /// <c>CoreEx.Cosmos.Extended.CosmosDbMultiSetExtensions.SelectMultiSetAsync</c> multi-set query — an arbitrary <paramref name="filter"/> cannot be safely translated into that query's raw SQL text, so
+    /// doing so throws <see cref="NotSupportedException"/> rather than silently returning documents an equivalent single-set query would have excluded. Supply a <paramref name="nonQueryResult"/> to make
+    /// the filter also enforced per-item (consistent with multi-set's own per-item <c>CheckModel</c> check) if it needs to be usable there.</para></remarks>
     public CosmosDbModelOptions<TModel> WithFilter(Func<IQueryable<TModel>, IQueryable<TModel>> filter, Func<TModel, OperationType, Result>? nonQueryResult = null, bool allowFilterBypass = false)
     {
         _filters.Add((filter.ThrowIfNull(), nonQueryResult, allowFilterBypass));
@@ -337,6 +341,16 @@ public class CosmosDbModelOptions<TModel> where TModel : class, IEntityKey, new(
     /// Indicates whether any <see cref="WithFilter"/> filters have been specified.
     /// </summary>
     public bool HasFilters => _filters.Count > 0;
+
+    /// <summary>
+    /// Indicates whether any <see cref="WithFilter"/> filter has been specified <i>without</i> a <c>nonQueryResult</c> (i.e. a filter that only affects <see cref="ApplyFilters"/> and has no effect on
+    /// <see cref="CheckFilters"/>/non-query operations).
+    /// </summary>
+    /// <remarks>Consumed by <c>CoreEx.Cosmos.Extended.IMultiSetArgs.BuildFilterClause</c> to guard against a multi-set query silently disagreeing with the equivalent <see cref="CosmosDbQuery{TModel}"/>:
+    /// unlike <see cref="WithTenantFilter"/>/<see cref="WithLogicalDeleteFilter"/>, an arbitrary <see cref="WithFilter"/> predicate cannot be safely translated into the raw SQL text a multi-set query
+    /// requires, so a <typeparamref name="TModel"/> with a query-only filter configured is not supported for multi-set use - see <see cref="WithFilter"/> remarks for why registering a <c>nonQueryResult</c>
+    /// (making the filter also enforced per-item via <see cref="CheckFilters"/>, exactly as multi-set's own per-item <c>CheckModel</c> call already requires) is the supported alternative.</remarks>
+    public bool HasQueryOnlyFilters => _filters.Any(f => f.NonQueryResult is null);
 
     /// <summary>
     /// Checks the non-query <see cref="WithFilter"/> filters against the <paramref name="model"/>.

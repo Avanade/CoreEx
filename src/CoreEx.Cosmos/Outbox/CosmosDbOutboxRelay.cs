@@ -8,7 +8,12 @@ namespace CoreEx.Cosmos.Outbox;
 /// state machine below deliberately mirrors <c>ServiceBusReceiverBase</c>'s (which cannot be shared directly - it lives in <c>CoreEx.Azure.Messaging.ServiceBus</c>, a package this one must not depend on).
 /// <para>Constructed with the raw SDK <see cref="Microsoft.Azure.Cosmos.Database"/> rather than <see cref="ICosmosDb"/> deliberately - <see cref="ICosmosDb"/> is registered scoped, and an instance of this class
 /// is built once and lives for the process lifetime, so capturing a scoped service here would be a captive-dependency bug. The <see cref="Microsoft.Azure.Cosmos.Database"/> proxy, like a <see cref="Container"/>
-/// or <see cref="CosmosClient"/>, is stable and safe to hold long-term.</para></remarks>
+/// or <see cref="CosmosClient"/>, is stable and safe to hold long-term.</para>
+/// <para>The lease container (<see cref="CosmosDbOutboxRelayOptions.LeaseContainerId"/>) is auto-provisioned (via <see cref="Microsoft.Azure.Cosmos.Database.CreateContainerIfNotExistsAsync(string, string, int?, Microsoft.Azure.Cosmos.RequestOptions?, System.Threading.CancellationToken)"/>,
+/// partitioned on <c>/id</c> - the Change Feed Processor's own lease-document convention) the first time <see cref="StartAsync(CancellationToken)"/> is called; a fresh Cosmos DB database would otherwise have no
+/// lease container yet, and <see cref="ChangeFeedProcessor.StartAsync"/> throws attempting to acquire leases against a container that does not exist. Concurrent hosted-service instances sharing the same
+/// <see cref="CosmosDbOutboxRelayOptions.LeaseContainerId"/> (see <see cref="Microsoft.Extensions.Hosting.CoreExCosmosOutboxExtensions.AddCosmosDbOutboxRelayHostedService"/>'s <c>servicesCount</c>) each call this
+/// independently at their own startup; <c>CreateContainerIfNotExistsAsync</c> is idempotent/safe for this, so no additional coordination is required.</para></remarks>
 public sealed class CosmosDbOutboxRelay : IAsyncDisposable
 {
 #if NET9_0_OR_GREATER
@@ -17,6 +22,7 @@ public sealed class CosmosDbOutboxRelay : IAsyncDisposable
     private readonly object _syncLock = new();
 #endif
     private readonly SemaphoreSlim _semaphore = new(1, 1);
+    private readonly Database _database;
     private readonly ChangeFeedProcessor _processor;
     private bool _disposed;
 
@@ -34,7 +40,7 @@ public sealed class CosmosDbOutboxRelay : IAsyncDisposable
         Logger = logger.ThrowIfNull();
         Resiliency = options.Resiliency ?? CosmosDbOutboxRelayResiliency.CreateRelayCircuitBreakerResiliency();
 
-        database.ThrowIfNull();
+        _database = database.ThrowIfNull();
         var container = database.GetContainer(options.ContainerId);
         var leaseContainer = database.GetContainer(options.LeaseContainerId);
 
@@ -89,6 +95,7 @@ public sealed class CosmosDbOutboxRelay : IAsyncDisposable
     /// Starts the underlying <see cref="ChangeFeedProcessor"/>.
     /// </summary>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+    /// <remarks>Provisions <see cref="CosmosDbOutboxRelayOptions.LeaseContainerId"/> (partitioned on <c>/id</c>) first, where it does not already exist - see this type's own remarks.</remarks>
     public async Task StartAsync(CancellationToken cancellationToken = default)
     {
         await _semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
@@ -98,6 +105,7 @@ public sealed class CosmosDbOutboxRelay : IAsyncDisposable
                 return;
 
             LogStatusChange(Status = ServiceStatus.Starting);
+            await _database.CreateContainerIfNotExistsAsync(Options.LeaseContainerId, "/id", Options.LeaseContainerThroughput, cancellationToken: cancellationToken).ConfigureAwait(false);
             await _processor.StartAsync().ConfigureAwait(false);
             LogStatusChange(Status = ServiceStatus.Running);
         }

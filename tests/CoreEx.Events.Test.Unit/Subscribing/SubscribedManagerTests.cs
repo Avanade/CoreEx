@@ -80,8 +80,30 @@ public class SubscribedManagerTests
 
         result.IsFailure.Should().BeTrue();
         current.IsAllDataRequested.Should().BeFalse();
+        current.Recorded.Should().BeFalse();
         parent.IsAllDataRequested.Should().BeFalse();
         parent.Recorded.Should().BeFalse();
+    }
+
+    [Test]
+    public void Match_NoSubscriberFound_Default_SuppressesChildCreatedOnCurrentBeforeItStops()
+    {
+        // Regression: a transport can complete/settle a message (e.g. CoreEx's own ServiceBusReceiverBaseT calling actions.CompleteMessageAsync) *inside* the current activity's own scope, i.e. before it
+        // stops - meaning that "settle" span parents on `current` (the receiver invoker span), not on `current.Parent` (the transport's native process span). A ParentBasedSampler decides that child's
+        // sampling purely from its immediate parent's live Recorded flag, so clearing Recorded only on the parent (and not on current itself) would let such a child leak through unsuppressed.
+        using var source = new ActivitySource(nameof(Match_NoSubscriberFound_Default_SuppressesChildCreatedOnCurrentBeforeItStops));
+        using var listener = CreateParentBasedListener(source.Name);
+
+        using var parent = source.StartActivity("parent")!;
+        using var current = source.StartActivity("current")!;
+
+        var (manager, executionContext, args) = CreateManager();
+        var result = manager.Match(executionContext, args, "unmatched.event.subject");
+        result.IsFailure.Should().BeTrue();
+
+        // Simulate the transport creating a "settle" span as a child of `current`, before `current` stops.
+        using var settle = source.StartActivity("settle");
+        settle.Should().BeNull("a ParentBasedSampler must drop this child once current's Recorded flag has been cleared");
     }
 
     [Test]
@@ -138,6 +160,26 @@ public class SubscribedManagerTests
         {
             ShouldListenTo = s => s.Name == sourceName,
             Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllDataAndRecorded
+        };
+
+        ActivitySource.AddActivityListener(listener);
+        return listener;
+    }
+
+    /// <summary>
+    /// Creates an <see cref="ActivityListener"/> that mimics OpenTelemetry's own default <c>ParentBasedSampler</c>: a root activity (no parent context) is always sampled, and any child activity's sampling
+    /// decision is derived purely from whether its immediate parent's <see cref="ActivityContext.TraceFlags"/> currently has <see cref="ActivityTraceFlags.Recorded"/> set - exercising the real mechanism
+    /// <see cref="SubscribedManager"/> relies on to suppress not-yet-created sibling/child activities, rather than the simpler "always record" listener used by the other tests in this fixture.
+    /// </summary>
+    private static ActivityListener CreateParentBasedListener(string sourceName)
+    {
+        var listener = new ActivityListener
+        {
+            ShouldListenTo = s => s.Name == sourceName,
+            Sample = (ref ActivityCreationOptions<ActivityContext> options) =>
+                options.Parent == default || options.Parent.TraceFlags.HasFlag(ActivityTraceFlags.Recorded)
+                    ? ActivitySamplingResult.AllDataAndRecorded
+                    : ActivitySamplingResult.None
         };
 
         ActivitySource.AddActivityListener(listener);
