@@ -224,6 +224,7 @@
       <_AiDocFile Include="$(_RepoRoot)src/CoreEx.Azure.Messaging.ServiceBus/AGENTS.md" DestSubPath=".github/docs/coreex/agents/CoreEx.Azure.Messaging.ServiceBus.md" />
       <_AiDocFile Include="$(_RepoRoot)src/CoreEx.Caching.FusionCache/AGENTS.md" DestSubPath=".github/docs/coreex/agents/CoreEx.Caching.FusionCache.md" />
       <_AiDocFile Include="$(_RepoRoot)src/CoreEx.CodeGen/AGENTS.md" DestSubPath=".github/docs/coreex/agents/CoreEx.CodeGen.md" />
+      <_AiDocFile Include="$(_RepoRoot)src/CoreEx.Cosmos/AGENTS.md" DestSubPath=".github/docs/coreex/agents/CoreEx.Cosmos.md" />
       <_AiDocFile Include="$(_RepoRoot)src/CoreEx.Data/AGENTS.md" DestSubPath=".github/docs/coreex/agents/CoreEx.Data.md" />
       <_AiDocFile Include="$(_RepoRoot)src/CoreEx.Data.GraphQL/AGENTS.md" DestSubPath=".github/docs/coreex/agents/CoreEx.Data.GraphQL.md" />
       <_AiDocFile Include="$(_RepoRoot)src/CoreEx.Database/AGENTS.md" DestSubPath=".github/docs/coreex/agents/CoreEx.Database.md" />

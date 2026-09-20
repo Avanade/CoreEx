@@ -28,7 +28,7 @@ Each domain has a `*.CodeGen` console project (e.g. `Contoso.Products.CodeGen`, 
 
 All generated files carry the `.g.cs` suffix, clearly distinguishing them from hand-authored code and excluding them from manual maintenance.
 
-> Customers (Cosmos DB) uses the same `*.CodeGen` mechanism, but its templates target Cosmos containers instead of an EF Core `DbContext` — there is no persistence-model/`DbContext` generation step because Customers has no `*.Database` project (see [Database Management](#database-management-database) below).
+> Customers (Cosmos DB) uses the same `*.CodeGen` mechanism, but its templates target Cosmos containers instead of an EF Core `DbContext` — persistence models are still generated (via `CosmosPersistenceModelGenerator`), there is just no `DbContext`/database-migration generation step, because Customers has no `*.Database` project (see [Database Management](#database-management-database) below).
 
 ### `ref-data.yaml` structure
 

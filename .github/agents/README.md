@@ -43,7 +43,7 @@ Use local cache (always preferred over live GitHub fetches)
    │
    ├── .github/docs/coreex/*.md           ← 10 architecture docs
    │
-   └── .github/docs/coreex/agents/*.md   ← 17 per-package AI guides
+   └── .github/docs/coreex/agents/*.md   ← 18 per-package AI guides
               │
     read manifest referenced-packages
     to distinguish:
@@ -74,7 +74,7 @@ The `referenced-packages` field in the manifest lets the agent distinguish betwe
 | `tooling.md` | CodeGen and Database project run order, generated-file ownership |
 | `aspire.md` | Aspire orchestration for local distributed development and E2E testing |
 
-**`.github/docs/coreex/agents/`** — 17 per-package AI usage guides, one per `src/CoreEx.*` package (including `CoreEx.Cosmos`, which is newly published as a preview-quality package — its API surface may still change without following strict semver until it stabilizes). All 17 are synced unconditionally so the agent can guide on any package — including ones the project hasn't adopted yet.
+**`.github/docs/coreex/agents/`** — 18 per-package AI usage guides: the base `CoreEx` package plus one per `src/CoreEx.*` package (including `CoreEx.Cosmos`, which is newly published as a preview-quality package — its API surface may still change without following strict semver until it stabilizes). All 18 are synced unconditionally so the agent can guide on any package — including ones the project hasn't adopted yet.
 
 **`.github/docs/coreex/.manifest`** — records `synced` date, `coreex-version`, and `referenced-packages`.
 
@@ -88,12 +88,12 @@ The `referenced-packages` field in the manifest lets the agent distinguish betwe
 
 ---
 
-## Why sync all 17 package guides unconditionally
+## Why sync all 18 package guides unconditionally
 
 An earlier design synced only the packages the project already references. This was changed because:
 
 - The agent cannot recommend adopting a package (e.g. `CoreEx.Caching.FusionCache`) if it has no knowledge of what that package offers.
-- All 17 guides are small markdown files — the total download is negligible.
+- All 18 guides are small markdown files — the total download is negligible.
 - Syncing all unconditionally removes the need to re-run after adding a new package.
 - The `referenced-packages` manifest field preserves the "in project vs. not yet" distinction without making it a gate on what gets synced.
 
