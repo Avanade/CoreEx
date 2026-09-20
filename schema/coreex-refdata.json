@@ -55,13 +55,24 @@
           "title": "The default repository implementation.",
           "enum": [
             "None",
-            "EntityFramework"
+            "EntityFramework",
+            "Cosmos"
           ]
         },
         "entityFrameworkRepositoryName": {
           "type": "string",
           "title": "The default Entity Framework (EF) repository identifier/name.",
           "description": "This is the .NET Entity Framework (EF) repository identifier/name that should be used within the generated code (often a private field). Defaults to \u0060_ef\u0060."
+        },
+        "cosmosRepositoryName": {
+          "type": "string",
+          "title": "The default Cosmos repository identifier/name.",
+          "description": "This is the .NET Cosmos repository identifier/name that should be used within the generated code (often a private field). Defaults to \u0060_cosmos\u0060."
+        },
+        "cosmosPersistenceModel": {
+          "type": "boolean",
+          "title": "Indicates whether the Cosmos persistence model should also be generated.",
+          "description": "Defaults to \u0060true\u0060."
         },
         "contractsProjectPath": {
           "type": "string",
@@ -165,7 +176,8 @@
           "description": "Defaults to root \u0060{Repository}\u0060.",
           "enum": [
             "None",
-            "EntityFramework"
+            "EntityFramework",
+            "Cosmos"
           ]
         },
         "repositoryName": {
@@ -177,6 +189,16 @@
           "type": "string",
           "title": "The corresponding repository model name.",
           "description": "Defaults to \u0060{Name}\u0060 (assumes same)."
+        },
+        "modelPlural": {
+          "type": "string",
+          "title": "The pluralized reference-data model (persistence) name.",
+          "description": "Defaults to \u0060{Model}\u0060 with the last word pluralized."
+        },
+        "cosmosPersistenceModel": {
+          "type": "boolean",
+          "title": "Indicates whether the Cosmos persistence model should also be generated.",
+          "description": "Defaults to root \u0060{CosmosPersistenceModel}\u0060."
         },
         "mapper": {
           "type": "string",

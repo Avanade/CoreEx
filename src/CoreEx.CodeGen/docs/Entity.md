@@ -39,9 +39,11 @@ Provides the configuration for the generated repository code.
 
 Property | Description
 -|-
-**`repository`** | The repository implementation. Valid options are: `None`, `EntityFramework`.<br/>&dagger; Defaults to root `{Repository}`.
+**`repository`** | The repository implementation. Valid options are: `None`, `EntityFramework`, `Cosmos`.<br/>&dagger; Defaults to root `{Repository}`.
 **`repositoryName`** | The repository parameter name.<br/>&dagger; This is the .NET repository parameter name that should be used within the generated code. Defaults from root `{Repository}` and related configuration.
 **`model`** | The corresponding repository model name.<br/>&dagger; Defaults to `{Name}` (assumes same).
+**`modelPlural`** | The pluralized reference-data model (persistence) name.<br/>&dagger; Defaults to `{Model}` with the last word pluralized.
+`cosmosPersistenceModel` | Indicates whether the Cosmos persistence model should also be generated.<br/>&dagger; Defaults to root `{CosmosPersistenceModel}`.
 
 ## Mapping
 Provides the configuration for the generated mapping code.
