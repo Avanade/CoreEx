@@ -42,9 +42,10 @@ public class Program
         // Post-configure all health-checks; adds the standard tags.
         builder.Services.PostConfigureAllHealthChecks();
 
-        // Add OpenTelemetry tracing; explicitly opt in to the net8.0 regex-automata cap increase as WithCoreExServiceBusTelemetry's wildcard ActivitySource pattern exceeds the net8.0 default (see remarks).
+        // Add OpenTelemetry tracing.
 #if NET8_0
-        OpenTelemetry.Trace.CoreExExtensions.IncreaseNet8RegexNonBacktrackingAutomataLimit();
+        // Workaround: net8.0's regex automata cap is too low for the combined ActivitySource patterns below; remove once net8.0 support is dropped.
+        AppContext.SetData("REGEX_NONBACKTRACKING_MAX_AUTOMATA_SIZE", 10_000);
 #endif
         builder.WithCoreExTelemetry()
             .WithCoreExSqlServerTelemetry()
