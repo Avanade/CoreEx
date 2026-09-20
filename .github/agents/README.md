@@ -74,7 +74,7 @@ The `referenced-packages` field in the manifest lets the agent distinguish betwe
 | `tooling.md` | CodeGen and Database project run order, generated-file ownership |
 | `aspire.md` | Aspire orchestration for local distributed development and E2E testing |
 
-**`.github/docs/coreex/agents/`** — 17 per-package AI usage guides, one per `src/CoreEx.*` package (including `CoreEx.Cosmos`, which is currently work-in-progress and not yet published to NuGet — its guide still syncs so the agent can advise on it ahead of release). All 17 are synced unconditionally so the agent can guide on any package — including ones the project hasn't adopted yet.
+**`.github/docs/coreex/agents/`** — 17 per-package AI usage guides, one per `src/CoreEx.*` package (including `CoreEx.Cosmos`, which is newly published as a preview-quality package — its API surface may still change without following strict semver until it stabilizes). All 17 are synced unconditionally so the agent can guide on any package — including ones the project hasn't adopted yet.
 
 **`.github/docs/coreex/.manifest`** — records `synced` date, `coreex-version`, and `referenced-packages`.
 
