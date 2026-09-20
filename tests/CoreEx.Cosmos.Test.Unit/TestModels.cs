@@ -158,6 +158,23 @@ public class NonIdentifierKeyedItem : IEntityKey, IPartitionKey
 }
 
 /// <summary>
+/// A test model implementing <see cref="IEntityKey"/> but deliberately <b>not</b> <see cref="IIdentifier{String}"/>/<see cref="IReadOnlyIdentifier{String}"/> - unlike <see cref="NonIdentifierKeyedItem"/>,
+/// its Cosmos DB <c>id</c> property has <b>no</b> <see cref="System.Text.Json.Serialization.JsonPropertyNameAttribute"/> at all, relying purely on the conventional <c>Id</c> property name (as a serializer
+/// configured with a naming policy, e.g. <c>JsonNamingPolicy.CamelCase</c>, would map it). Used to verify <see cref="CosmosDbModelOptions{TModel}.ApplyFilters"/>'s reflection-based fallback also covers this
+/// unannotated-convention case, not just the explicit-attribute one.
+/// </summary>
+public class ConventionIdKeyedItem : IEntityKey, IPartitionKey
+{
+    public string Id { get; set; } = string.Empty;
+
+    public string? PartitionKey { get; set; }
+
+    public string Name { get; set; } = string.Empty;
+
+    public CompositeKey EntityKey => CompositeKey.Create(Id);
+}
+
+/// <summary>
 /// A domain "contract" value used to exercise <see cref="CosmosDbMappedContainer{TValue, TModel, TBiDirectionMapper}"/> (mapped to/from <see cref="TestItem"/>), and <see cref="IUnitOfWork.SynchronizeETag{T}(CompositeKey, T)"/>
 /// (a distinct object instance/type from the <see cref="TestItem"/> model a <see cref="CosmosDbUnitOfWork"/> actually mutates - the scenario that mechanism exists for).
 /// </summary>

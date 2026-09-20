@@ -247,6 +247,34 @@ public class CosmosDbUnitOfWorkTests : CosmosTestBase
     }
 
     [Test]
+    public async Task Query_WithOutboxDocumentsPresent_AutomaticallyExcludesThem_ModelWithConventionalUnannotatedIdProperty()
+    {
+        // ConventionIdKeyedItem deliberately implements neither IIdentifier<string> nor IReadOnlyIdentifier<string>, and its "Id" property carries no [JsonPropertyName] attribute at all - regression test
+        // for CosmosDbModelOptions<TModel>.ApplyFilters' reflection-based fallback, confirming the automatic outbox-document exclusion also applies to a plain, conventionally-named "Id" property (as a
+        // serializer configured with a naming policy, e.g. camelCase, would map to Cosmos DB's reserved "id"), not just one carrying an explicit [JsonPropertyName("id")] attribute.
+        await GetOrCreateContainerAsync(ContainerId).ConfigureAwait(false);
+        var cosmosDb = CreateCosmosDb();
+        var container = cosmosDb.Container<ConventionIdKeyedItem>(ContainerId, o => o.WithPartitionKey(m => m.PartitionKey));
+        var outbox = new CosmosDbEventPublisher(cosmosDb);
+        var unitOfWork = new CosmosDbUnitOfWork(cosmosDb, outbox);
+
+        var pk = NewId();
+        var id = NewId();
+
+        await unitOfWork.TransactionAsync(async ct =>
+        {
+            var created = await container.CreateAsync(new ConventionIdKeyedItem { Id = id, PartitionKey = pk, Name = "Gadget" }, ct).ConfigureAwait(false);
+            unitOfWork.Events.Add(EventData.CreateEventWith(created.Value.Id, EventAction.Created).WithSource(new Uri("https://unittest/coreex-cosmos", UriKind.Absolute)).WithPartitionKey(pk));
+        });
+
+        // An ordinary business query against the SAME container/partition that now also holds an outbox event document.
+        var items = await container.Query(q => q.Where(m => m.PartitionKey == pk)).ToListAsync();
+
+        items.Should().ContainSingle();
+        items[0].Name.Should().Be("Gadget");
+    }
+
+    [Test]
     public async Task SynchronizeETag_MultipleEntities_ResolvesEachByKey_NotReference()
     {
         await GetOrCreateContainerAsync(ContainerId).ConfigureAwait(false);

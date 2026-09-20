@@ -57,17 +57,23 @@ public class CosmosDbModelOptions<TModel> where TModel : class, IEntityKey, new(
 
     /// <summary>
     /// Lazily resolves a fallback outbox-document exclusion predicate for a <typeparamref name="TModel"/> that does not implement <see cref="IIdentifier{String}"/>/<see cref="IReadOnlyIdentifier{String}"/>
-    /// (see <see cref="IdentifierSupport"/>), by locating whichever property is actually mapped to the reserved Cosmos DB <c>id</c> JSON property via <see cref="JsonPropertyNameAttribute"/> - the same
-    /// attribute <see cref="CosmosDbModelBase"/> itself uses. Cosmos DB requires every physical document to have an <c>id</c> regardless of which CoreEx interfaces (if any) a model implements, so a
-    /// <typeparamref name="TModel"/> using <see cref="WithFormatIdentifier"/>/a composite <see cref="IEntityKey.EntityKey"/> without also implementing <see cref="IReadOnlyIdentifier{String}"/> would
-    /// otherwise silently receive no outbox-document exclusion at all.
+    /// (see <see cref="IdentifierSupport"/>), by locating whichever property is actually mapped to the reserved Cosmos DB <c>id</c> JSON property - either explicitly via <see cref="JsonPropertyNameAttribute"/>
+    /// (the same attribute <see cref="CosmosDbModelBase"/> itself uses), or, failing that, a conventionally-named public <c>string Id</c> property (case-insensitive) that has neither an explicit
+    /// <see cref="JsonPropertyNameAttribute"/> (which would mean it is deliberately mapped to a <i>different</i> JSON name) nor a <see cref="JsonIgnoreAttribute"/>, covering a serializer configured with a
+    /// naming policy (e.g. <c>JsonNamingPolicy.CamelCase</c>) that maps it to <c>id</c> without requiring an explicit attribute. Cosmos DB requires every physical document to have an <c>id</c> regardless
+    /// of which CoreEx interfaces (if any) a model implements, so a <typeparamref name="TModel"/> using
+    /// <see cref="WithFormatIdentifier"/>/a composite <see cref="IEntityKey.EntityKey"/> without also implementing <see cref="IReadOnlyIdentifier{String}"/> would otherwise silently receive no
+    /// outbox-document exclusion at all.
     /// </summary>
     /// <returns>A compiled <see cref="Expression{TDelegate}"/> equivalent to the <see cref="IIdentifier{String}"/> case, or <see langword="null"/> where no such property can be found (nothing further can be
     /// done here - see <see cref="ApplyFilters(CosmosDbArgs, IQueryable{TModel}, ExecutionContext)"/> remarks).</returns>
     private static Expression<Func<TModel, bool>>? ResolveOutboxIdExclusion()
     {
-        var property = typeof(TModel).GetProperties(BindingFlags.Public | BindingFlags.Instance)
-            .FirstOrDefault(p => p.PropertyType == typeof(string) && p.GetCustomAttribute<JsonPropertyNameAttribute>()?.Name == "id");
+        var stringProperties = typeof(TModel).GetProperties(BindingFlags.Public | BindingFlags.Instance).Where(p => p.PropertyType == typeof(string));
+
+        var property = stringProperties.FirstOrDefault(p => p.GetCustomAttribute<JsonPropertyNameAttribute>()?.Name == "id")
+            ?? stringProperties.FirstOrDefault(p => string.Equals(p.Name, "Id", StringComparison.OrdinalIgnoreCase)
+                && p.GetCustomAttribute<JsonPropertyNameAttribute>() is null && p.GetCustomAttribute<JsonIgnoreAttribute>() is null);
 
         if (property is null)
             return null;
