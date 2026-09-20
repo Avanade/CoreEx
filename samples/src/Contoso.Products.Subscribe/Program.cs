@@ -91,7 +91,10 @@ public class Program
             s.AddCoreExConfiguration();
         });
 
-        // Add OpenTelemetry tracing.
+        // Add OpenTelemetry tracing; explicitly opt in to the net8.0 regex-automata cap increase as WithCoreExServiceBusTelemetry's wildcard ActivitySource pattern exceeds the net8.0 default (see remarks).
+#if NET8_0
+        OpenTelemetry.Trace.CoreExExtensions.IncreaseNet8RegexNonBacktrackingAutomataLimit();
+#endif
         builder.WithCoreExTelemetry()
             .WithCoreExServiceBusTelemetry()
             .WithCoreExPostgresTelemetry()
