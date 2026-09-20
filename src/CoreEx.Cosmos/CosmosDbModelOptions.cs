@@ -448,19 +448,32 @@ public class CosmosDbModelOptions<TModel> where TModel : class, IEntityKey, new(
     /// <remarks>An explicit <paramref name="typeDiscriminator"/> override is enforced end-to-end: <see cref="ApplyTypeDiscriminator(TModel)"/> re-stamps it onto the model on every Create/Update/Upsert
     /// <i>after</i> <c>Model.PrepareCreate</c>/<c>PrepareUpdate</c>/<c>PrepareTypeDiscriminator</c> have already stamped their own default (<see cref="Schemas.SchemaAttribute.Name"/>/type name) - without
     /// this, a model persisted with an explicit override here would instead be written with the default discriminator, immediately fail <see cref="IsTypeDiscriminatorMismatch(TModel)"/>'s check against
-    /// this configured value, and become invisible to this container's own queries/point reads.</remarks>
+    /// this configured value, and become invisible to this container's own queries/point reads. <see cref="EffectiveTypeDiscriminator"/> exposes this same resolved value (override or default) for a
+    /// multi-set query (see <c>CoreEx.Cosmos.Extended.IMultiSetArgs</c>) to demux against, so the two never disagree either.</remarks>
     public CosmosDbModelOptions<TModel> WithTypeDiscriminator(string? typeDiscriminator = null)
     {
         if (!TypeDiscriminatorSupport.IsSupported)
             throw new NotSupportedException($"{nameof(WithTypeDiscriminator)} is not supported; model must implement {nameof(IReadOnlyTypeDiscriminator)} to enable.");
 
-        _typeDiscriminatorValue = string.IsNullOrEmpty(typeDiscriminator)
-            ? (Schema.TryGetMetadata<TModel>(out var metadata) ? metadata.Name : typeof(TModel).Name)
-            : typeDiscriminator;
-
+        _typeDiscriminatorValue = string.IsNullOrEmpty(typeDiscriminator) ? ResolveDefaultTypeDiscriminator() : typeDiscriminator;
         _typeDiscriminatorFilterEnabled = true;
         return this;
     }
+
+    /// <summary>
+    /// Gets the effective type discriminator value for <typeparamref name="TModel"/> - the explicit <see cref="WithTypeDiscriminator(string?)"/> override where configured, otherwise the same
+    /// schema/CLR-type-name default that <c>Model.PrepareTypeDiscriminator</c> stamps automatically (irrespective of whether <see cref="WithTypeDiscriminator(string?)"/> has ever been called).
+    /// </summary>
+    /// <remarks>Used by <c>CoreEx.Cosmos.Extended.IMultiSetArgs&lt;TModel&gt;</c> to resolve the value a multi-set query demuxes documents against - it must always agree with whatever value is actually
+    /// persisted on <typeparamref name="TModel"/> instances (see <see cref="ApplyTypeDiscriminator(TModel)"/>/<see cref="IsTypeDiscriminatorMismatch(TModel)"/>), not merely the unconfigured default,
+    /// otherwise a model configured with an explicit override would never be found by its own multi-set query.</remarks>
+    public string EffectiveTypeDiscriminator => _typeDiscriminatorValue ?? ResolveDefaultTypeDiscriminator();
+
+    /// <summary>
+    /// Resolves the default type discriminator value (<see cref="Schemas.SchemaAttribute.Name"/> where specified, otherwise the <typeparamref name="TModel"/> name) - the same default resolution used by
+    /// <c>Model.PrepareTypeDiscriminator</c> when stamping a model prior to create/update.
+    /// </summary>
+    private static string ResolveDefaultTypeDiscriminator() => Schema.TryGetMetadata<TModel>(out var metadata) ? (metadata.Name ?? typeof(TModel).Name) : typeof(TModel).Name;
 
     /// <summary>
     /// Applies the configured <see cref="WithTypeDiscriminator(string?)"/> value (where configured and <typeparamref name="TModel"/> supports the <i>mutable</i> <see cref="ITypeDiscriminator"/>) to the

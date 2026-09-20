@@ -484,4 +484,33 @@ public class CosmosDbMultiSetTests : CosmosTestBase
         animalResults.Should().NotBeNull();
         animalResults!.Should().HaveCount(5);
     }
+
+    [Test]
+    public async Task SelectMultiSetAsync_FindsModelConfiguredWithExplicitTypeDiscriminatorOverride()
+    {
+        await GetOrCreateContainerAsync(ContainerId).ConfigureAwait(false);
+
+        var cosmosDb = CreateCosmosDb();
+
+        // Regression: CosmosDbModelOptions<TModel>.ApplyTypeDiscriminator stamps an explicit WithTypeDiscriminator(value) override onto every created/updated document (overriding whatever default
+        // Model.PrepareCreate/PrepareUpdate/PrepareTypeDiscriminator already stamped) - see CosmosDbContainerTypeDiscriminatorTests. Previously, IMultiSetArgs.TypeDiscriminator always resolved the
+        // unconfigured schema/CLR-name default regardless of any such override, so a multi-set query would build its SQL predicate using the wrong discriminator value and never find these documents
+        // (a mandatory MultiSetSingleArgs<AnimalItem> would incorrectly throw "less items than expected"). It must now resolve the same EffectiveTypeDiscriminator value that was actually persisted.
+        var animals = cosmosDb.Container<AnimalItem>(ContainerId, o => o.WithPartitionKey(m => m.PartitionKey).WithTypeDiscriminator("custom-animal"));
+        cosmosDb.Container<PlantItem>(ContainerId, o => o.WithPartitionKey(m => m.PartitionKey).WithTypeDiscriminator());
+
+        var sharedPartition = NewId();
+        await animals.CreateAsync(new AnimalItem { Id = NewId(), PartitionKey = sharedPartition, Name = "Dog" });
+
+        AnimalItem? animalResult = null;
+
+        await cosmosDb.SelectMultiSetAsync(ContainerId, new MultiSetOptions
+        {
+            PartitionKey = sharedPartition,
+            MultiSetArgs = [new MultiSetSingleArgs<AnimalItem>(r => animalResult = r)]
+        });
+
+        animalResult.Should().NotBeNull();
+        animalResult!.Name.Should().Be("Dog");
+    }
 }

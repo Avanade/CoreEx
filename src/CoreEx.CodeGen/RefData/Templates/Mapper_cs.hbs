@@ -16,7 +16,7 @@ internal partial class {{Mapper}} : Mapper<{{Root.DataModelsPath}}.{{Model}}, Co
     {
         var destination = new Contracts.{{Name}}
         {
-            Id = source.Id!,
+            Id = {{MapperIdExpression}},
             Code = source.Code,
             Text = source.Text,
             Description = source.Description,

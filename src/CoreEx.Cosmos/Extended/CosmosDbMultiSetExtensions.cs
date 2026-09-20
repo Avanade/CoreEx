@@ -27,7 +27,7 @@ public static class CosmosDbMultiSetExtensions
     /// <param name="containerId">The <see cref="Container"/> identifier.</param>
     /// <param name="options">The <see cref="MultiSetOptions"/>.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-    /// <remarks>Each <see cref="MultiSetOptions.MultiSetArgs"/> must resolve to a unique <see cref="IMultiSetArgs.TypeDiscriminator"/>.
+    /// <remarks>Each <see cref="MultiSetOptions.MultiSetArgs"/> must resolve to a unique <see cref="IMultiSetArgs.ResolveTypeDiscriminator(ICosmosDb, string)"/> value.
     /// <para>Unlike the relational <c>CoreEx.Database.Extended</c> equivalent - where result sets are positional/ordered within a single multi-statement query - Cosmos DB has no equivalent construct; a single
     /// query instead returns a mixed stream of documents from the same container/partition, each demuxed to its corresponding <see cref="IMultiSetArgs"/> via a server-side <c>WHERE ... IN (...)</c> filter on
     /// the type-discriminator property (see <see cref="CosmosDbModelOptions{TModel}.WithTypeDiscriminator(string?)"/>), then further checked per-item (tenant/logical-delete/additive-filter - see
@@ -39,7 +39,7 @@ public static class CosmosDbMultiSetExtensions
     /// type-discriminator's JSON property name (e.g. via <see cref="System.Text.Json.Serialization.JsonPropertyNameAttribute"/>) is <b>not</b> supported - all <c>TModel</c>s within a single multi-set call must
     /// rely on the one ambient naming policy.</para>
     /// <para>The number of <see cref="IMultiSetArgs"/> specified has no relationship to the number of documents returned (unlike the relational equivalent's positional result sets) - each is matched
-    /// independently by its own <see cref="IMultiSetArgs.TypeDiscriminator"/>, and <see cref="IMultiSetArgsCore.MinimumRows"/>/<see cref="IMultiSetArgsCore.MaximumRows"/> are enforced, and
+    /// independently by its own <see cref="IMultiSetArgs.ResolveTypeDiscriminator(ICosmosDb, string)"/> value, and <see cref="IMultiSetArgsCore.MinimumRows"/>/<see cref="IMultiSetArgsCore.MaximumRows"/> are enforced, and
     /// <see cref="IMultiSetArgsCore.InvokeResult"/> is invoked, in the order the <see cref="IMultiSetArgs"/> were supplied - honoring <see cref="IMultiSetArgsCore.StopOnNull"/> to short-circuit
     /// subsequent invocations, exactly as the relational equivalent does for its (positionally) subsequent result sets.</para>
     /// <para>Any co-located <see cref="CosmosDbOutboxEvent"/> documents (see <see cref="CosmosDbModelOptions{TModel}.ApplyFilters"/>'s equivalent automatic exclusion for the LINQ query path) are
@@ -80,10 +80,13 @@ public static class CosmosDbMultiSetExtensions
             throw new ArgumentException($"At least one {nameof(IMultiSetArgs)} must be supplied.", $"{nameof(options)}.{nameof(MultiSetOptions.MultiSetArgs)}");
 
         var byDiscriminator = new Dictionary<string, IMultiSetArgs>();
+        var discriminators = new Dictionary<IMultiSetArgs, string>();
         foreach (var msa in multiSetList)
         {
-            if (!byDiscriminator.TryAdd(msa.TypeDiscriminator, msa))
-                throw new ArgumentException($"Multiple {nameof(IMultiSetArgs)} resolve to the same {nameof(IMultiSetArgs.TypeDiscriminator)} '{msa.TypeDiscriminator}'; each must be unique.", $"{nameof(options)}.{nameof(MultiSetOptions.MultiSetArgs)}");
+            var discriminator = msa.ResolveTypeDiscriminator(cosmosDb, containerId);
+            discriminators[msa] = discriminator;
+            if (!byDiscriminator.TryAdd(discriminator, msa))
+                throw new ArgumentException($"Multiple {nameof(IMultiSetArgs)} resolve to the same {nameof(IMultiSetArgs.ResolveTypeDiscriminator)} '{discriminator}'; each must be unique.", $"{nameof(options)}.{nameof(MultiSetOptions.MultiSetArgs)}");
         }
 
         var args = options.Args ?? cosmosDb.DbArgs;
@@ -119,7 +122,7 @@ public static class CosmosDbMultiSetExtensions
                 .WithParameter("@outboxKeyPrefix", CosmosDbOutboxEvent.OutboxKeyPrefix);
 
             for (var i = 0; i < multiSetList.Count; i++)
-                query = query.WithParameter($"@p{i}", multiSetList[i].TypeDiscriminator);
+                query = query.WithParameter($"@p{i}", discriminators[multiSetList[i]]);
 
             foreach (var (parameterName, value) in extraParameters)
                 query = query.WithParameter(parameterName, value);
@@ -146,7 +149,7 @@ public static class CosmosDbMultiSetExtensions
                         continue; // Not one of the requested types - ignore.
 
                     var model = item.Deserialize(msa.ModelType, jsonSerializerOptions)
-                        ?? throw new InvalidOperationException($"{nameof(SelectMultiSetAsync)} failed to deserialize a document with {nameof(IMultiSetArgs.TypeDiscriminator)} '{discriminator}' into '{msa.ModelType.Name}'.");
+                        ?? throw new InvalidOperationException($"{nameof(SelectMultiSetAsync)} failed to deserialize a document with {nameof(IMultiSetArgs.ResolveTypeDiscriminator)} '{discriminator}' into '{msa.ModelType.Name}'.");
 
                     var addResult = msa.AddItem(cosmosDb, containerId, args, model);
                     if (addResult.IsFailure)
@@ -157,7 +160,7 @@ public static class CosmosDbMultiSetExtensions
 
                     var count = counts[msa] = counts.GetValueOrDefault(msa) + 1;
                     if (msa.MaximumRows.HasValue && count > msa.MaximumRows.Value)
-                        throw new InvalidOperationException($"{nameof(SelectMultiSetAsync)} ({nameof(IMultiSetArgs.TypeDiscriminator)} '{discriminator}') has returned more items ({count}) than expected ({msa.MaximumRows.Value}).");
+                        throw new InvalidOperationException($"{nameof(SelectMultiSetAsync)} ({nameof(IMultiSetArgs.ResolveTypeDiscriminator)} '{discriminator}') has returned more items ({count}) than expected ({msa.MaximumRows.Value}).");
                 }
             }
 
@@ -166,7 +169,7 @@ public static class CosmosDbMultiSetExtensions
             {
                 var count = counts.GetValueOrDefault(msa);
                 if (count < msa.MinimumRows)
-                    throw new InvalidOperationException($"{nameof(SelectMultiSetAsync)} ({nameof(IMultiSetArgs.TypeDiscriminator)} '{msa.TypeDiscriminator}') has returned less items ({count}) than expected ({msa.MinimumRows}).");
+                    throw new InvalidOperationException($"{nameof(SelectMultiSetAsync)} ({nameof(IMultiSetArgs.ResolveTypeDiscriminator)} '{discriminators[msa]}') has returned less items ({count}) than expected ({msa.MinimumRows}).");
 
                 if (count == 0 && msa.StopOnNull)
                     return Result.Success;

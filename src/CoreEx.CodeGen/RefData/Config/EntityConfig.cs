@@ -152,6 +152,23 @@ public class EntityConfig : ConfigBase<CodeGenConfig, CodeGenConfig>
     /// </summary>
     public string? Inherits { get; set; }
 
+    /// <summary>
+    /// Gets or sets the contract collection's base class name.
+    /// </summary>
+    /// <remarks>Must agree with <see cref="Inherits"/>'s <see cref="IdType"/>: <c>CoreEx.RefData.ReferenceDataCollection&lt;TRef&gt;</c> (single type parameter) only accepts a <c>TRef</c> implementing
+    /// <c>IReferenceData&lt;string&gt;</c>, so a non-<c>String</c> <see cref="IdType"/> must instead use the two-type-parameter <c>CoreEx.RefData.ReferenceDataCollection&lt;TId, TRef&gt;</c> - otherwise
+    /// the generated collection fails to compile (<c>CS0311</c>) against its own entity's <see cref="Inherits"/> base.</remarks>
+    public string? CollectionInherits { get; set; }
+
+    /// <summary>
+    /// Gets the C# expression the generated mapper uses to convert the persistence model's <c>Id</c> to the contract's <c>Id</c>.
+    /// </summary>
+    /// <remarks>A Cosmos DB document <c>id</c> is always a <see cref="string"/> (see <c>CosmosDbModelBase.Id</c>) - independent of the configured <see cref="IdType"/> - so a <see cref="Repository"/> of
+    /// <c>Cosmos</c> with a non-<c>String</c> <see cref="IdType"/> requires parsing the persistence model's <c>string</c> <c>Id</c> into the contract's actual <see cref="IdType"/>; a straight assignment
+    /// would otherwise fail to compile (e.g. assigning a <see cref="string"/> to a <see cref="Guid"/>-typed <c>Id</c>). Every other combination (including all <c>EntityFramework</c>-backed entities, whose
+    /// persistence model's <c>Id</c> column type is expected to already agree with <see cref="IdType"/>) is a direct assignment.</remarks>
+    public string? MapperIdExpression { get; set; }
+
     /// <inheritdoc/>
     protected override async Task PrepareAsync()
     {
@@ -206,6 +223,24 @@ public class EntityConfig : ConfigBase<CodeGenConfig, CodeGenConfig>
             "Guid" => $"ReferenceData<Guid, {Name}>",
             _ => $"ReferenceData<{Name}>"
         };
+
+        CollectionInherits = IdType switch
+        {
+            "Int32" => $"ReferenceDataCollection<int, {Name}>",
+            "Int64" => $"ReferenceDataCollection<long, {Name}>",
+            "Guid" => $"ReferenceDataCollection<Guid, {Name}>",
+            _ => $"ReferenceDataCollection<{Name}>"
+        };
+
+        MapperIdExpression = Repository == "Cosmos"
+            ? IdType switch
+            {
+                "Guid" => "global::System.Guid.Parse(source.Id!)",
+                "Int32" => "int.Parse(source.Id!, global::System.Globalization.CultureInfo.InvariantCulture)",
+                "Int64" => "long.Parse(source.Id!, global::System.Globalization.CultureInfo.InvariantCulture)",
+                _ => "source.Id!"
+            }
+            : "source.Id!";
 
         // Load the properties configuration.
         Properties = await PrepareCollectionAsync(Properties).ConfigureAwait(false);

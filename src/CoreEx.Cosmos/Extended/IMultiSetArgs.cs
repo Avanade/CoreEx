@@ -5,7 +5,7 @@ namespace CoreEx.Cosmos.Extended;
 /// </summary>
 /// <remarks>Unlike the relational <c>CoreEx.Database.Extended.IMultiSetArgs</c> - where each result set is identified purely by its <i>position</i> within a single multi-statement query - a
 /// Cosmos DB multi-set query has no equivalent notion of ordered result sets; instead, a single round-trip returns a mixed stream of documents from the same container/partition, each demuxed to
-/// its corresponding <see cref="IMultiSetArgs{TModel}"/> via its <see cref="TypeDiscriminator"/> (see <see cref="CosmosDbModelOptions{TModel}.WithTypeDiscriminator(string?)"/>).</remarks>
+/// its corresponding <see cref="IMultiSetArgs{TModel}"/> via its resolved <see cref="ResolveTypeDiscriminator(ICosmosDb, string)"/> value (see <see cref="CosmosDbModelOptions{TModel}.WithTypeDiscriminator(string?)"/>).</remarks>
 public interface IMultiSetArgs : IMultiSetArgsCore
 {
     /// <summary>
@@ -14,9 +14,14 @@ public interface IMultiSetArgs : IMultiSetArgsCore
     Type ModelType { get; }
 
     /// <summary>
-    /// Gets the <see cref="IReadOnlyTypeDiscriminator.TypeDiscriminator"/> value used to demux a document to this <see cref="IMultiSetArgs"/>.
+    /// Resolves the <see cref="IReadOnlyTypeDiscriminator.TypeDiscriminator"/> value used to demux a document to this <see cref="IMultiSetArgs"/>.
     /// </summary>
-    string TypeDiscriminator { get; }
+    /// <param name="cosmosDb">The <see cref="ICosmosDb"/>.</param>
+    /// <param name="containerId">The <see cref="Container"/> identifier.</param>
+    /// <remarks>Resolved from the target <see cref="ModelType"/>'s own <c>CosmosDbModelOptions{TModel}.EffectiveTypeDiscriminator</c> - the explicit <see cref="CosmosDbModelOptions{TModel}.WithTypeDiscriminator(string?)"/>
+    /// override where configured, otherwise the same schema/CLR-type-name default <c>Model.PrepareTypeDiscriminator</c> stamps automatically - so this always agrees with whatever value is actually
+    /// persisted on documents of this type, never merely the unconfigured default.</remarks>
+    string ResolveTypeDiscriminator(ICosmosDb cosmosDb, string containerId);
 
     /// <summary>
     /// Adds the <paramref name="model"/> - having first been checked (see <c>CosmosDbContainer{TModel}.CheckModel</c>) for tenant/logical-delete/additive-filter eligibility - to the underlying result.

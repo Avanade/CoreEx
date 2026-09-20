@@ -4,9 +4,10 @@ namespace CoreEx.Cosmos.Extended;
 /// Enables the <see cref="ICosmosDb"/> multi-set arguments for a specific <typeparamref name="TModel"/>.
 /// </summary>
 /// <typeparam name="TModel">The model <see cref="Type"/>.</typeparam>
-/// <remarks><see cref="IMultiSetArgs.ModelType"/> and <see cref="IMultiSetArgs.TypeDiscriminator"/> are resolved purely from <typeparamref name="TModel"/> - via <see cref="Schemas.Schema.TryGetMetadata{TEntity}(out Schemas.SchemaAttribute)"/>,
-/// falling back to <c>typeof(TModel).Name</c> - mirroring <see cref="CosmosDbModelOptions{TModel}.WithTypeDiscriminator(string?)"/>'s own default resolution exactly, since both need to agree on the same value for
-/// a given <typeparamref name="TModel"/>. A <typeparamref name="TModel"/> that does not implement <see cref="IReadOnlyTypeDiscriminator"/> cannot be used in a multi-set query; concrete implementations
+/// <remarks><see cref="IMultiSetArgs.ModelType"/> is resolved purely from <typeparamref name="TModel"/>; <see cref="IMultiSetArgs.ResolveTypeDiscriminator(ICosmosDb, string)"/> resolves the
+/// <typeparamref name="TModel"/>'s <see cref="CosmosDbModelOptions{TModel}"/>-configured <c>EffectiveTypeDiscriminator</c> (its explicit <see cref="CosmosDbModelOptions{TModel}.WithTypeDiscriminator(string?)"/>
+/// override where configured, otherwise the same schema/CLR-name default <c>Model.PrepareTypeDiscriminator</c> stamps automatically), so both always agree on the same value actually persisted for a given
+/// <typeparamref name="TModel"/>. A <typeparamref name="TModel"/> that does not implement <see cref="IReadOnlyTypeDiscriminator"/> cannot be used in a multi-set query; concrete implementations
 /// (see <see cref="MultiSetSingleArgs{TModel}"/>/<see cref="MultiSetCollArgs{TColl, TModel}"/>) enforce this via a static guard.</remarks>
 public interface IMultiSetArgs<TModel> : IMultiSetArgs where TModel : class, IEntityKey, new()
 {
@@ -14,14 +15,7 @@ public interface IMultiSetArgs<TModel> : IMultiSetArgs where TModel : class, IEn
     Type IMultiSetArgs.ModelType => typeof(TModel);
 
     /// <inheritdoc/>
-    string IMultiSetArgs.TypeDiscriminator
-    {
-        get
-        {
-            Schema.TryGetMetadata<TModel>(out var metadata);
-            return metadata.Name ?? typeof(TModel).Name;
-        }
-    }
+    string IMultiSetArgs.ResolveTypeDiscriminator(ICosmosDb cosmosDb, string containerId) => cosmosDb.ThrowIfNull().Container<TModel>(containerId.ThrowIfNullOrEmpty()).Options.EffectiveTypeDiscriminator;
 
     /// <inheritdoc/>
     Result<bool> IMultiSetArgs.AddItem(ICosmosDb cosmosDb, string containerId, CosmosDbArgs args, object model)
