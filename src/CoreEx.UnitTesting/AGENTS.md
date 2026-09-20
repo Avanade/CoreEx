@@ -111,10 +111,17 @@ public class OrderSubscriberTest : UnitTestBase
 
 ## JSON Seed Data
 
+`JsonDataReader` (in `CoreEx.Data.Json`, a transitive dependency — not owned by this package) parses YAML/JSON with `^token` placeholder substitution. Relational providers seed via `Migrate*DataAsync`; Cosmos DB seeds via `CosmosDbBatch.ImportBatchAsync` (in `CoreEx.Cosmos.Extended`, likewise transitive) against the host's own `ICosmosDb`-resolved database:
+
 ```csharp
-// Load seed data from embedded YAML with token substitution
-var data = await JsonDataReader.ParseYamlAsync("Resources/data.yaml");
-await db.SeedAsync(data);
+// SQL Server / PostgreSQL - migrate + seed from an embedded resource
+await Test.MigrateSqlServerDataAsync<Program>(["data.yaml"]);
+await Test.MigratePostgresDataAsync<Program>(["data.yaml"]);
+
+// Cosmos DB - reset/provision a container, then import raw JSON
+var database = await Test.GetCosmosDatabaseAsync();
+var container = await database.ReplaceOrCreateContainerAsync("orders", "/customerId");
+await container.ImportBatchAsync(JsonDataReader.ParseYaml<Program>("data.yaml"), "Orders");
 ```
 
 ## ExecutionContext Scoping

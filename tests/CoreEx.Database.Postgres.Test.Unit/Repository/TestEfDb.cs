@@ -8,7 +8,7 @@ public class TestEfDb(TestDbContext dbContext) : EfDb<TestDbContext>(dbContext, 
 {
     private static readonly EfDbOptions _options = new EfDbOptions()
         .WithModel<Models.TestTable>(mo => mo
-            .WithTenantFilter(allowFilterBypass: false)
+            .WithTenantFilter()
             .WithLogicalDeleteFilter(allowFilterBypass: true)
             .WithFilter(q => q.Where(x => x.Flag != null && x.Flag == true), (_, _) => Result.AuthorizationError(), allowFilterBypass: true));
 

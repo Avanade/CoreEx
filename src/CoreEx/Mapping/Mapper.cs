@@ -19,12 +19,15 @@ public static class Mapper
     ///     <item><see cref="IReadOnlyIdentifier"/> -> <see cref="IIdentifier"/></item>
     ///     <item><see cref="IReadOnlyETag"/> -> <see cref="IETag"/></item>
     ///     <item><see cref="IReadOnlyTenantId"/> -> <see cref="ITenantId"/></item>
-    ///     <item><see cref="IReadOnlyPartitionKey"/> -> <see cref="IPartitionKey"/></item>
     ///     <item><see cref="IReadOnlyLogicallyDeleted"/> -> <see cref="ILogicallyDeleted"/></item>
     ///     <item><see cref="IReadOnlyTypeDiscriminator"/> -> <see cref="ITypeDiscriminator"/></item>
     ///     <item><see cref="IReadOnlyChangeLog"/> -> <see cref="IChangeLog"/> or <see cref="IChangeLogEx"/></item>
     ///     <item><see cref="IReadOnlyChangeLogEx"/> -> <see cref="IChangeLog"/> or <see cref="IChangeLogEx"/></item>
     ///   </list>
+    ///   <para>Deliberately excludes <see cref="IReadOnlyPartitionKey"/>/<see cref="IPartitionKey"/> - unlike the properties above, a partition key's meaning is layer/purpose-specific rather than
+    ///   invariant (e.g. a Cosmos DB physical partition/shard key versus an event's ordering/session key are routinely different values for the same logical entity), so silently copying it across
+    ///   a mapping would conflate two unrelated concerns rather than merely duplicate one. Set it deliberately at each destination instead (e.g. <c>CosmosDbModelOptions{TModel}.WithPartitionKey</c>
+    ///   for Cosmos, or explicitly on the contract/<c>EventData</c> for events).</para>
     ///   <para>See also <see cref="MapChangeLogInto{TSource, TDestination}(TSource, TDestination)"/>.</para>
     /// </remarks>
     public static TDestination MapStandardFrom<TSource, TDestination>(this TDestination destination, TSource source, bool mapChangeLog = true) where TSource : class where TDestination : class
@@ -46,12 +49,15 @@ public static class Mapper
     ///     <item><see cref="IReadOnlyIdentifier"/> -> <see cref="IIdentifier"/></item>
     ///     <item><see cref="IReadOnlyETag"/> -> <see cref="IETag"/></item>
     ///     <item><see cref="IReadOnlyTenantId"/> -> <see cref="ITenantId"/></item>
-    ///     <item><see cref="IReadOnlyPartitionKey"/> -> <see cref="IPartitionKey"/></item>
     ///     <item><see cref="IReadOnlyLogicallyDeleted"/> -> <see cref="ILogicallyDeleted"/></item>
     ///     <item><see cref="IReadOnlyTypeDiscriminator"/> -> <see cref="ITypeDiscriminator"/></item>
     ///     <item><see cref="IReadOnlyChangeLog"/> -> <see cref="IChangeLog"/> or <see cref="IChangeLogEx"/></item>
     ///     <item><see cref="IReadOnlyChangeLogEx"/> -> <see cref="IChangeLog"/> or <see cref="IChangeLogEx"/></item>
     ///   </list>
+    ///   <para>Deliberately excludes <see cref="IReadOnlyPartitionKey"/>/<see cref="IPartitionKey"/> - unlike the properties above, a partition key's meaning is layer/purpose-specific rather than
+    ///   invariant (e.g. a Cosmos DB physical partition/shard key versus an event's ordering/session key are routinely different values for the same logical entity), so silently copying it across
+    ///   a mapping would conflate two unrelated concerns rather than merely duplicate one. Set it deliberately at each destination instead (e.g. <c>CosmosDbModelOptions{TModel}.WithPartitionKey</c>
+    ///   for Cosmos, or explicitly on the contract/<c>EventData</c> for events).</para>
     ///   <para>See also <see cref="MapChangeLogInto{TSource, TDestination}(TSource, TDestination)"/>.</para>
     /// </remarks>
     public static void MapStandardInto<TSource, TDestination>(TSource source, TDestination destination, bool mapChangeLog = true) where TSource : class where TDestination : class
@@ -67,9 +73,6 @@ public static class Mapper
 
         if (source is IReadOnlyTenantId sti && destination is ITenantId dti)
             dti.TenantId = sti.TenantId;
-
-        if (source is IReadOnlyPartitionKey spk && destination is IPartitionKey dpk)
-            dpk.PartitionKey = spk.PartitionKey;
 
         if (source is IReadOnlyLogicallyDeleted sld && destination is ILogicallyDeleted dld)
             dld.IsDeleted = sld.IsDeleted;

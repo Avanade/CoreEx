@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\CoreEx.Cosmos\CoreEx.Cosmos.csproj" />
+    <ProjectReference Include="..\..\..\src\CoreEx.Data\CoreEx.Data.csproj" />
+    <ProjectReference Include="..\Contoso.Customers.Application\Contoso.Customers.Application.csproj" />
+    <ProjectReference Include="..\Contoso.Customers.Contracts\Contoso.Customers.Contracts.csproj" />
+  </ItemGroup>
+</Project>

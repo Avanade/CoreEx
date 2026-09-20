@@ -63,7 +63,7 @@ public class CodeGenConfig : ConfigRootBase<CodeGenConfig>
     /// Gets or sets the default repository implementation.
     /// </summary>
     [JsonPropertyName("repository")]
-    [CodeGenProperty("Repository", Title = "The default repository implementation.", IsMandatory = true, Options = ["None", "EntityFramework"])]
+    [CodeGenProperty("Repository", Title = "The default repository implementation.", IsMandatory = true, Options = ["None", "EntityFramework", "Cosmos"])]
     public string? Repository { get; set; }
 
     /// <summary>
@@ -72,6 +72,20 @@ public class CodeGenConfig : ConfigRootBase<CodeGenConfig>
     [JsonPropertyName("entityFrameworkRepositoryName")]
     [CodeGenProperty("Repository", Title = "The default Entity Framework (EF) repository identifier/name.", IsImportant = true, Description = "This is the .NET Entity Framework (EF) repository identifier/name that should be used within the generated code (often a private field). Defaults to `_ef`.")]
     public string? EntityFrameworkRepositoryName { get; set; }
+
+    /// <summary>
+    /// Gets or sets the default Cosmos repository identifier/name.
+    /// </summary>
+    [JsonPropertyName("cosmosRepositoryName")]
+    [CodeGenProperty("Repository", Title = "The default Cosmos repository identifier/name.", IsImportant = true, Description = "This is the .NET Cosmos repository identifier/name that should be used within the generated code (often a private field). Defaults to `_cosmos`.")]
+    public string? CosmosRepositoryName { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the Cosmos persistence model should also be generated.
+    /// </summary>
+    [JsonPropertyName("cosmosPersistenceModel")]
+    [CodeGenProperty("Repository", Title = "Indicates whether the Cosmos persistence model should also be generated.", IsImportant = true, Description = "Defaults to `true`.")]
+    public bool? CosmosPersistenceModel { get; set; }
 
     #endregion
 
@@ -147,6 +161,11 @@ public class CodeGenConfig : ConfigRootBase<CodeGenConfig>
     /// </summary>
     public List<EntityConfig>? EntitiesWithApi => Entities?.Where(x => !(x.ExcludeApi ?? false)).ToList();
 
+    /// <summary>
+    /// Gets the list of configured entities that require a Cosmos persistence model to be generated.
+    /// </summary>
+    public List<EntityConfig>? CosmosPersistenceModels => Entities?.Where(x => x.CosmosPersistenceModel ?? false).ToList();
+
     #endregion
 
     /// <summary>
@@ -198,6 +217,11 @@ public class CodeGenConfig : ConfigRootBase<CodeGenConfig>
     /// Gets or sets the .NET namespace for the generated data mapping code.
     /// </summary>
     public string? DataMappingNamespace { get; set; }
+
+    /// <summary>
+    /// Gets or sets the .NET namespace for the generated data models code.
+    /// </summary>
+    public string? DataModelsNamespace { get; set; }
 
     /// <inheritdoc/>
     protected override async Task PrepareAsync()
@@ -264,10 +288,13 @@ public class CodeGenConfig : ConfigRootBase<CodeGenConfig>
 
         DataRepositoriesNamespace = $"{DataDirectory.Name}.{DataRepositoriesPath}";
         DataMappingNamespace = $"{DataDirectory.Name}.{DataMappingPath}";
+        DataModelsNamespace = $"{DataDirectory.Name}.{DataModelsPath}";
 
         // Default the domain name from the file path (2nd to last part) if not explicitly set.
         Domain = DefaultWhereNull(Domain, () => parts.Length >= 2 ? parts[^2] : null) ?? throw new CodeGenException(this, nameof(Domain), $"Could not be defaulted from the file path; please explicitly set the property in the configuration.");
         EntityFrameworkRepositoryName = DefaultWhereNull(EntityFrameworkRepositoryName, () => "_ef");
+        CosmosRepositoryName = DefaultWhereNull(CosmosRepositoryName, () => "_cosmos");
+        CosmosPersistenceModel = DefaultWhereNull(CosmosPersistenceModel, () => true);
         IdType = DefaultWhereNull(IdType, () => "String");
         CollectionSortOrder = DefaultWhereNull(CollectionSortOrder, () => "Code");
         Route = DefaultWhereNull(Route, () => "/api/refdata");

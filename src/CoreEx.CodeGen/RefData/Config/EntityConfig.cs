@@ -64,7 +64,7 @@ public class EntityConfig : ConfigBase<CodeGenConfig, CodeGenConfig>
     /// Gets or sets the repository implementation.
     /// </summary>
     [JsonPropertyName("repository")]
-    [CodeGenProperty("Repository", Title = "The repository implementation.", IsImportant = true, Options = ["None", "EntityFramework"], Description = "Defaults to root `{Repository}`.")]
+    [CodeGenProperty("Repository", Title = "The repository implementation.", IsImportant = true, Options = ["None", "EntityFramework", "Cosmos"], Description = "Defaults to root `{Repository}`.")]
     public string? Repository { get; set; }
 
     /// <summary>
@@ -80,6 +80,20 @@ public class EntityConfig : ConfigBase<CodeGenConfig, CodeGenConfig>
     [JsonPropertyName("model")]
     [CodeGenProperty("Repository", Title = "The corresponding repository model name.", IsImportant = true, Description = "Defaults to `{Name}` (assumes same).")]
     public string? Model { get; set; }
+
+    /// <summary>
+    /// Gets or sets the pluralized entity name.
+    /// </summary>
+    [JsonPropertyName("modelPlural")]
+    [CodeGenProperty("Repository", Title = "The pluralized reference-data model (persistence) name.", IsImportant = true, Description = "Defaults to `{Model}` with the last word pluralized.")]
+    public string? ModelPlural { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the Cosmos persistence model should also be generated.
+    /// </summary>
+    [JsonPropertyName("cosmosPersistenceModel")]
+    [CodeGenProperty("Repository", Title = "Indicates whether the Cosmos persistence model should also be generated.", Description = "Defaults to root `{CosmosPersistenceModel}`.")]
+    public bool? CosmosPersistenceModel { get; set; }
 
     #endregion
 
@@ -138,6 +152,23 @@ public class EntityConfig : ConfigBase<CodeGenConfig, CodeGenConfig>
     /// </summary>
     public string? Inherits { get; set; }
 
+    /// <summary>
+    /// Gets or sets the contract collection's base class name.
+    /// </summary>
+    /// <remarks>Must agree with <see cref="Inherits"/>'s <see cref="IdType"/>: <c>CoreEx.RefData.ReferenceDataCollection&lt;TRef&gt;</c> (single type parameter) only accepts a <c>TRef</c> implementing
+    /// <c>IReferenceData&lt;string&gt;</c>, so a non-<c>String</c> <see cref="IdType"/> must instead use the two-type-parameter <c>CoreEx.RefData.ReferenceDataCollection&lt;TId, TRef&gt;</c> - otherwise
+    /// the generated collection fails to compile (<c>CS0311</c>) against its own entity's <see cref="Inherits"/> base.</remarks>
+    public string? CollectionInherits { get; set; }
+
+    /// <summary>
+    /// Gets the C# expression the generated mapper uses to convert the persistence model's <c>Id</c> to the contract's <c>Id</c>.
+    /// </summary>
+    /// <remarks>A Cosmos DB document <c>id</c> is always a <see cref="string"/> (see <c>CosmosDbModelBase.Id</c>) - independent of the configured <see cref="IdType"/> - so a <see cref="Repository"/> of
+    /// <c>Cosmos</c> with a non-<c>String</c> <see cref="IdType"/> requires parsing the persistence model's <c>string</c> <c>Id</c> into the contract's actual <see cref="IdType"/>; a straight assignment
+    /// would otherwise fail to compile (e.g. assigning a <see cref="string"/> to a <see cref="Guid"/>-typed <c>Id</c>). Every other combination (including all <c>EntityFramework</c>-backed entities, whose
+    /// persistence model's <c>Id</c> column type is expected to already agree with <see cref="IdType"/>) is a direct assignment.</remarks>
+    public string? MapperIdExpression { get; set; }
+
     /// <inheritdoc/>
     protected override async Task PrepareAsync()
     {
@@ -158,11 +189,24 @@ public class EntityConfig : ConfigBase<CodeGenConfig, CodeGenConfig>
             return string.Concat(words);
         });
 
+        ModelPlural = DefaultWhereNull(ModelPlural, () =>
+        {
+            // Best guess by pluralizing the last word of the name.
+            var words = OnRamp.Utility.StringConverter.ToSentenceCase(Model!)!.Split(' ').ToList();
+            words[^1] = OnRamp.Utility.StringConverter.ToPlural(words[^1]);
+            return string.Concat(words);
+        });
+
         RepositoryName = DefaultWhereNull(RepositoryName, () => Repository switch
         {
             "EntityFramework" => Root!.EntityFrameworkRepositoryName,
+            "Cosmos" => Root!.CosmosRepositoryName,
             _ => "??"
         });
+
+        CosmosPersistenceModel = DefaultWhereNull(CosmosPersistenceModel, () => Root!.CosmosPersistenceModel);
+        if (CosmosPersistenceModel == true && Repository != "Cosmos") // If the repository is not Cosmos, then we cannot generate the persistence model.
+            CosmosPersistenceModel = false;
 
         Route = DefaultWhereNull(Route, () => Root!.RouteConvention switch
         {
@@ -179,6 +223,24 @@ public class EntityConfig : ConfigBase<CodeGenConfig, CodeGenConfig>
             "Guid" => $"ReferenceData<Guid, {Name}>",
             _ => $"ReferenceData<{Name}>"
         };
+
+        CollectionInherits = IdType switch
+        {
+            "Int32" => $"ReferenceDataCollection<int, {Name}>",
+            "Int64" => $"ReferenceDataCollection<long, {Name}>",
+            "Guid" => $"ReferenceDataCollection<Guid, {Name}>",
+            _ => $"ReferenceDataCollection<{Name}>"
+        };
+
+        MapperIdExpression = Repository == "Cosmos"
+            ? IdType switch
+            {
+                "Guid" => "global::System.Guid.Parse(source.Id!)",
+                "Int32" => "int.Parse(source.Id!, global::System.Globalization.CultureInfo.InvariantCulture)",
+                "Int64" => "long.Parse(source.Id!, global::System.Globalization.CultureInfo.InvariantCulture)",
+                _ => "source.Id!"
+            }
+            : "source.Id!";
 
         // Load the properties configuration.
         Properties = await PrepareCollectionAsync(Properties).ConfigureAwait(false);

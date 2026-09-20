@@ -197,6 +197,15 @@ app.MapHostedServices();  // Exposes pause/resume management endpoints.
 
 > The `Program.cs` for the Outbox Relay is intentionally minimal — no controllers, no OpenAPI document, no application-layer services. Its sole concern is shuttling committed outbox records to the broker reliably.
 
+### Distributed tracing: why the relay's own span is not the originating trace's parent/child
+
+A relayed event's outgoing message keeps the **original producer's** W3C `traceparent`/`tracestate` untouched — `IEventFormatter.AddTracing` is idempotent and skips an event that already carries trace context, so a Subscriber's span correlates directly back to the request that raised the event (e.g. an API `PUT`), never to the relay. This is intentional, not a gap: a single relay poll can pull a batch of events raised by many causally-unrelated originating traces, so there is no one valid "parent" for the relay's own batch-level span — reparenting it into a single trace only when a batch happens to contain one trace would make the relay's visibility a runtime accident (present for batch-of-one in dev, silently gone for real multi-event batches in production).
+
+Instead, every relay (SQL Server/Postgres via `DatabaseOutboxRelayBase`, and Cosmos DB via `CosmosDbOutboxRelayProcessor`) emits **two** complementary signals per batch, both from [`CloudEventTracingExtensions`](../../src/CoreEx.Events/CloudEventTracingExtensions.cs):
+
+- **`LinkTraceContext`** — adds one [`ActivityLink`](https://learn.microsoft.com/en-us/dotnet/core/diagnostics/distributed-tracing-instrumentation-walkthroughs#activity-and-activitylink) per distinct originating trace onto the relay's own batch-level span — the correct W3C/OTel mechanism for a many-to-one, causally-related-but-not-nested fan-in operation.
+- **`EmitRelayMarkers`** — in addition, starts and immediately ends a small `outbox.relay.publish` marker `Activity` **per relayed event**, parented directly to that event's own originating `ActivityContext` (via `ActivitySource.StartActivity(name, kind, parentContext)`, not the relay's ambient activity) and tagged with `outbox.destination`/`outbox.event.id`/`outbox.event.type`. Each marker also carries a back-link to the batch-level relay span. This is what makes the relay hop deterministically visible from *within* the originating trace regardless of batch size — the piece that was previously missing from a PUT's own trace view. Markers are emitted on the dedicated `CoreEx.Events.Outbox.Relay` `ActivitySource`, registered via `WithCoreExEventsSources()` - named to sit alongside the batch-span sources `CoreEx.Database.Outbox.Relay` and `CoreEx.Cosmos.Outbox.Relay` as the `*.Outbox.Relay` family.
+
 > **See also**: [`PostgresOutboxRelay`](../../src/CoreEx.Database.Postgres/PostgresOutboxRelay.cs) · [`SqlServerOutboxRelay`](../../src/CoreEx.Database.SqlServer/SqlServerOutboxRelay.cs) · [Transactional Outbox pattern](https://learn.microsoft.com/en-us/azure/architecture/best-practices/transactional-outbox-cosmos) · [`MapHostedServices`](../../src/CoreEx.AspNetCore/WebApis/WebApiServiceCollectionExtensions.cs)
 
 ---
@@ -284,3 +293,25 @@ app.MapHostedServices();  // Exposes pause/resume management endpoints.
 `AddSubscribersUsing<T>()` scans the assembly containing `T` and auto-registers every class decorated with `[Subscribe]`, so adding a new subscriber requires only creating the class — no `Program.cs` edits are needed.
 
 > **See also**: [`SubscribedBase`](../../src/CoreEx.Events/Subscribing/SubscribedBase.cs) · [`SubscribedBase<T>`](../../src/CoreEx.Events/Subscribing/SubscribedBase.cs) · [`ErrorHandler`](../../src/CoreEx.Events/Subscribing/ErrorHandler.cs) · [`AddSubscribedManager`](../../src/CoreEx.Azure.Messaging.ServiceBus) · [Competing Consumers pattern](https://learn.microsoft.com/en-us/azure/architecture/patterns/competing-consumers)
+
+### Filtering Azure SDK background-polling telemetry noise
+
+The Azure SDK raises several of its own background/infrastructure activities that carry no business signal and are pure volume in a trace view:
+
+- `ServiceBusReceiver.RenewMessageLock`/`ServiceBusSessionReceiver.RenewSessionLock` — for session-enabled subscriptions (as above, via `WithSessionReceiver`), and for any long-running message
+  processing under the standard auto-lock-renewal window, these fire on a timer for as long as a lock is held — one pair per lock-renewal interval, for every concurrently held lock.
+- `ServiceBusReceiver.Receive` — a `CLIENT`-kind span the `ServiceBusProcessor`/`ServiceBusSessionProcessor` background pump creates on *every* underlying receive poll, whether or not a message
+  comes back. It is not correlated to any specific message's trace context (that correlation is carried separately by `ServiceBusProcessor.ProcessMessage`/
+  `ServiceBusSessionProcessor.ProcessSessionMessage`, which remain visible), so it typically shows up as several detail-less, single-span traces per delivered message.
+
+`WithCoreExServiceBusTelemetry()` (called from `Program.cs` wherever CoreEx OpenTelemetry tracing is configured, e.g. `builder.WithCoreExTelemetry().WithCoreExServiceBusTelemetry()`) drops all
+three activities **by default** using a custom `Sampler`, so they never reach an exporter (Aspire dashboard, OTLP, etc.), while leaving every other activity's sampling behaviour untouched. Pass
+`includeBackgroundPollingTelemetry: true` to restore them — useful when actively diagnosing lock-expiry/session-timeout behaviour, or receive-call latency/batch-size:
+
+```csharp
+builder.WithCoreExTelemetry()
+    .WithCoreExServiceBusTelemetry(includeBackgroundPollingTelemetry: true)  // Opt back in only while diagnosing lock-expiry/session-timeout or receive-poll behaviour.
+    .UseOtlpExporter();
+```
+
+> **See also**: [`CoreExServiceBusExtensions.WithCoreExServiceBusTelemetry`](../../src/CoreEx.Azure.Messaging.ServiceBus/CoreExServiceBusExtensions.OpenTelemetry.cs) · [OpenTelemetry `Sampler`](https://learn.microsoft.com/en-us/dotnet/api/opentelemetry.trace.sampler)

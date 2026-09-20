@@ -48,4 +48,9 @@ public sealed class PostgresUnitOfWork(PostgresDatabase database, IEventPublishe
     /// <inheritdoc/>
     public Task<T> TransactionAsync<T>(IDataArgs args, Func<CancellationToken, Task<T>> work, CancellationToken cancellationToken = default)
         => UnitOfWorkInvoker.InvokeAsync(this, (PostgresDatabaseArgs)args, async (_, _, cancellationToken) => await work(cancellationToken).ConfigureAwait(false), cancellationToken);
+
+    /// <inheritdoc/>
+    /// <remarks>A no-op — a Postgres-mutated value already carries its true, final <see cref="IETag.ETag"/> by the time it is created/updated (each statement executes immediately within the open
+    /// transaction), so there is nothing to synchronize.</remarks>
+    public void SynchronizeETag<T>(CompositeKey key, T value) where T : IETag { }
 }

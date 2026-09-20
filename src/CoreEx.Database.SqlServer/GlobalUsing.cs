@@ -1,12 +1,14 @@
 global using CloudNative.CloudEvents.Extensions;
 global using CoreEx;
 global using CoreEx.Data;
+global using IMultiSetArgs = CoreEx.Database.Extended.IMultiSetArgs;
 global using CoreEx.Database.Abstractions;
 global using CoreEx.Database.Extended;
 global using CoreEx.Database.Outbox;
 global using CoreEx.Database.SqlServer;
 global using CoreEx.Database.SqlServer.Extended;
 global using CoreEx.Database.SqlServer.Outbox;
+global using CoreEx.Entities;
 global using CoreEx.Events;
 global using CoreEx.Events.Publishing;
 global using CoreEx.Hosting;

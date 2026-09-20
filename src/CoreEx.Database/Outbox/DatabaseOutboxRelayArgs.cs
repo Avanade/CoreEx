@@ -24,4 +24,11 @@ public class DatabaseOutboxRelayArgs
     /// Gets the backoff duration used to push out availability of the underlying event within the outbox when cancelling a batch.
     /// </summary>
     public TimeSpan BackOffDuration { get; init; }
+
+    /// <summary>
+    /// Gets the <see cref="DatabaseOutboxRelayResiliencyExecutor"/> used to protect each partition's relay attempt.
+    /// </summary>
+    /// <remarks><see cref="DatabaseOutboxRelayHostedServiceBase"/> always supplies one (backed by its inherited <see cref="TimerHostedServiceBase.Resiliency"/>); a direct/test caller that constructs
+    /// <see cref="DatabaseOutboxRelayArgs"/> itself must supply one too - e.g. <c>(work, ct) =&gt; work(ct)</c> for an unprotected pass-through.</remarks>
+    public required DatabaseOutboxRelayResiliencyExecutor ResiliencyExecutor { get; init; }
 }

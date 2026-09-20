@@ -37,20 +37,26 @@ public class ServiceBusReceiverTests : WithGenericTester<EntryPoint>
     }
 
     [Test]
+    [Order(-1)] // Runs this before every other (default Order(0)) test in THIS fixture, on every TFM, as a defensive measure - see the marker-filtering below for the actual fix.
     public void GetAndClearAzureServiceBusAsync_ReturnsAllPublishedMessages() => Test.ScopedType<ExecutionContext>(async test =>
     {
         // Regression (against a real Service Bus emulator, not a mock): proves GetAndClearAzureServiceBusAsync's internal
         // receive poll reliably drains every message published just beforehand, closing the gap left by CoreEx.UnitTesting's
         // "no live infra to verify" note for this method.
+        // The "unit-test"/"default" topic/subscription is shared by other fixtures in this assembly (e.g. ServiceBusPublisherTests) that publish their own messages independently of this one -
+        // a message published elsewhere can still be "in flight" (not yet indexed by the emulator) when this test's own drain runs, then land during this test's own receive window, which is
+        // exactly what caused this test to flake with "expected 10, found 16" (an [Order(-1)]-only fix does not help here, since it only orders tests within this fixture, not across fixtures).
+        // Tagging each published item with a test-run-unique marker and filtering on it - rather than asserting the subscription's total message count - makes this immune to any such cross-fixture leakage.
+        var marker = Guid.NewGuid().ToString("N");
         var sp = (ServiceBusPublisher)test.Services.GetRequiredKeyedService<IEventPublisher>(ServiceBusPublisher.DefaultServiceKey);
         for (var i = 0; i < 10; i++)
-            sp.Add(EventData.CreateEventWith(new Subscribers.Product { Id = i, Sku = $"SKU-{i}" }, "Created"));
+            sp.Add(EventData.CreateEventWith(new Subscribers.Product { Id = i, Sku = $"{marker}-{i}" }, "Created"));
 
         await sp.PublishAsync();
 
         var messages = await Test.GetAndClearAzureServiceBusAsync(ServiceBusReceiverOptions.CreateForTopicSubscription("unit-test", "default"));
 
-        messages.Should().HaveCount(10);
+        messages.Where(m => m.Body.ToString().Contains(marker)).Should().HaveCount(10);
     });
 
     [Test]
@@ -215,9 +221,9 @@ public class ServiceBusReceiverTests : WithGenericTester<EntryPoint>
         // Act and assert.
         Test.ExpectLogContains("Received product with Id: 88 and Sku: SKU-088.")
             .ExpectLogContains("A transient error has occurred; please try again. [Source: ServiceBusSubscribedSubscriber, Handling: Retry]")
-            .ExpectLogContains("Service bus message retry attempt 1 in 333ms.")
-            .ExpectLogContains("Service bus message retry attempt 2 in 666ms.")
-            .ExpectLogContains("Service bus message retry attempt 3 in 1332ms.")
+            .ExpectLogContains("Retry attempt 1 in 333ms.")
+            .ExpectLogContains("Retry attempt 2 in 666ms.")
+            .ExpectLogContains("Retry attempt 3 in 1332ms.")
             .ExpectLogContains("DeadLetterAsync")
             .Run(async () =>
             {
@@ -345,10 +351,10 @@ public class ServiceBusReceiverTests : WithGenericTester<EntryPoint>
                 }
             }).AssertException<TaskCanceledException>();
 
-            circuitBreakerTripped = assertor.LogMessages.Any(x => x?.Contains("Service bus receiver circuit breaker has been tripped for 333ms due to unhandled errors; receiver will be paused.") == true)
-                && assertor.LogMessages.Any(x => x?.Contains("Service bus receiver circuit breaker has been tripped for 666ms due to unhandled errors; receiver will be paused.") == true)
-                && assertor.LogMessages.Any(x => x?.Contains("Service bus receiver circuit breaker has been tripped for 1332ms due to unhandled errors; receiver will be paused.") == true)
-                && assertor.LogMessages.Any(x => x?.Contains("Service bus receiver circuit breaker is attempting to recover in a limited state; receiver has been resumed.") == true);
+            circuitBreakerTripped = assertor.LogMessages.Any(x => x?.Contains("Service bus receiver circuit breaker has been tripped for 333ms due to unhandled errors; will be paused.") == true)
+                && assertor.LogMessages.Any(x => x?.Contains("Service bus receiver circuit breaker has been tripped for 666ms due to unhandled errors; will be paused.") == true)
+                && assertor.LogMessages.Any(x => x?.Contains("Service bus receiver circuit breaker has been tripped for 1332ms due to unhandled errors; will be paused.") == true)
+                && assertor.LogMessages.Any(x => x?.Contains("Service bus receiver circuit breaker is attempting to recover in a limited state; has been resumed.") == true);
         });
 
         return circuitBreakerTripped;

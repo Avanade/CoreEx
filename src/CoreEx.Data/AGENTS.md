@@ -64,6 +64,15 @@ public async Task<DataResult> DeleteAsync(Guid id, CancellationToken ct = defaul
     }).ConfigureAwait(false);
 ```
 
+## IMultiSetArgs — Shared Multi-Set Query Base
+
+`IMultiSetArgsCore` (`MinimumRows`, `MaximumRows`, `StopOnNull`, `InvokeResult()`) is a minimal, provider-agnostic base for one result-set within a "multi-set" query — reading several related sets of data in a single round-trip. It is not used directly; each provider extends it with its own matching mechanism and concrete `MultiSetSingleArgs`/`MultiSetCollArgs` implementations:
+
+- `CoreEx.Database.Extended.IMultiSetArgs` — relational, **positional**: result sets are matched to args by the order they're declared in `DatabaseCommand.SelectMultiSetAsync`'s `params` array (adds `DatasetRecord()` to build a raw-record-to-model mapper per set).
+- `CoreEx.Cosmos.Extended.IMultiSetArgs` — Cosmos DB, **discriminator-keyed**: result documents are matched to args by a type-discriminator value rather than position, since Cosmos DB has no notion of an ordered multiple-result-set query (adds `ModelType`/`TypeDiscriminator`/`AddItem`).
+
+Do not implement `IMultiSetArgsCore` directly in application code — use a provider's concrete `MultiSetSingleArgs`/`MultiSetCollArgs` types.
+
 ## Do Not
 
 - Prefer enqueuing events inside `TransactionAsync` so they are committed or rolled back atomically with the database write. Events added outside a transaction scope are still published but will not be rolled back if a subsequent operation fails — only do this intentionally when at-least-once delivery without rollback is the desired behaviour.
@@ -73,6 +82,7 @@ public async Task<DataResult> DeleteAsync(Guid id, CancellationToken ct = defaul
 
 - [README](./README.md) — full `IUnitOfWork`, `QueryArgsConfig`, and `DataResult` API reference.
 - [CoreEx.Database.SqlServer](../CoreEx.Database.SqlServer/README.md) / [CoreEx.Database.Postgres](../CoreEx.Database.Postgres/README.md) — concrete `IUnitOfWork` implementations.
+- [CoreEx.Database](../CoreEx.Database/README.md#key-capabilities) / [CoreEx.Cosmos](../CoreEx.Cosmos/AGENTS.md#multi-set-queries) — concrete `IMultiSetArgs` providers (relational positional, Cosmos DB discriminator-keyed).
 - [CoreEx.EntityFrameworkCore](../CoreEx.EntityFrameworkCore/README.md) — `QueryArgsConfig` consumption via `EfDbModel`.
 - [Application layer](../../samples/docs/application-layer.md) — real-world `TransactionAsync` usage, event enqueuing inside the unit-of-work, and service orchestration patterns.
 - [Patterns](../../samples/docs/patterns.md) — transactional outbox, atomic commit with event publishing, and dynamic query patterns.

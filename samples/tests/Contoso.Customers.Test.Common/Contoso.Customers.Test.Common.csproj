@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <!-- Microsoft.Azure.Cosmos's default serializer is Newtonsoft.Json-based unless the caller configures UseSystemTextJsonSerializerWithOptions (as CosmosTestBase already does) - this project has no
+         need for Newtonsoft.Json itself (transitively referenced via CoreEx.UnitTesting), so the check is disabled rather than adding an otherwise-unused package reference. -->
+    <AzureCosmosDisableNewtonsoftJsonCheck>true</AzureCosmosDisableNewtonsoftJsonCheck>
+  </PropertyGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Data\**\*" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\CoreEx.Azure.Messaging.ServiceBus\CoreEx.Azure.Messaging.ServiceBus.csproj" />
+    <ProjectReference Include="..\..\..\src\CoreEx.Caching.FusionCache\CoreEx.Caching.FusionCache.csproj" />
+    <ProjectReference Include="..\..\..\src\CoreEx.UnitTesting\CoreEx.UnitTesting.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="NUnit" />
+    <PackageReference Include="UnitTestEx.NUnit" />
+  </ItemGroup>
+</Project>

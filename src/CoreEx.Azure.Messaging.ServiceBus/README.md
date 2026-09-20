@@ -10,7 +10,7 @@
 
 **Subscribing** is layered: `ServiceBusSubscriberBase` extends `EventSubscriberBase` to accept a raw `ServiceBusReceivedMessage`, converting it to a `CloudEvent` before delegating upward. `ServiceBusSubscribedSubscriber` adds `SubscribedManager` dispatch so that `[Subscribe]`-decorated handlers are resolved automatically from the message subject and source. The `ServiceBusReceiver<TSubscriber>` and `ServiceBusSessionReceiver<TSubscriber>` classes wrap the SDK `ServiceBusProcessor` / `ServiceBusSessionProcessor` lifetimes, and `ServiceBusReceiverHostedService<TReceiver>` integrates them with the .NET hosted-service model including pause/resume and health-check support.
 
-Resiliency is provided out-of-the-box: `ServiceBusReceiverResiliency` supplies factory methods for a receiver-level circuit breaker and a per-message retry pipeline (via Polly), both of which are applied by default in `ServiceBusReceiverOptionsBase`.
+Resiliency is provided out-of-the-box: `ServiceBusReceiverResiliency` supplies factory methods for a receiver-level circuit breaker and a per-message retry pipeline (via Polly), both of which are applied by default in `ServiceBusReceiverOptionsBase`. Both factories are now thin wrappers over `CoreEx.Hosting`'s generic `CircuitBreakerResiliency<TOwner>`/`RetryResiliency<TOwner>` (promoted there so `CoreEx.Cosmos`'s Change Feed Processor-based outbox relay shares the exact same self-pause/self-resume behaviour) - this package supplies only the Service-Bus-specific pause-reason/dead-letter-exclusion/retry-classification wiring.
 
 ## Key capabilities
 
@@ -19,7 +19,7 @@ Resiliency is provided out-of-the-box: `ServiceBusReceiverResiliency` supplies f
 - 📥 **Subscriber dispatch**: `ServiceBusSubscribedSubscriber` uses `SubscribedManager` to route each received message to the correct `[Subscribe]`-decorated handler by subject and source.
 - 🔄 **Session support**: `ServiceBusSessionReceiver<TSubscriber>` wraps `ServiceBusSessionProcessor`; `ServiceBusSessionStrategy` controls how `EventData.PartitionKey` is mapped to a `SessionId` (none, as-is, or converted to a bounded partition ID).
 - 🔧 **Hosted-service lifecycle**: `ServiceBusReceiverHostedService<TReceiver>` integrates the receiver with `IHostedService`, forwarding start/pause/resume/stop to the underlying processor and reporting degraded health during pause.
-- 🛡 **Built-in resiliency**: `ServiceBusReceiverResiliency` provides a circuit-breaker pipeline (`ReceiverResiliency`) and a per-message retry pipeline (`MessageResiliency`) pre-wired into every `ServiceBusReceiverOptionsBase` instance.
+- 🛡 **Built-in resiliency**: `ServiceBusReceiverResiliency` provides a circuit-breaker pipeline (`ReceiverResiliency`) and a per-message retry pipeline (`MessageResiliency`) pre-wired into every `ServiceBusReceiverOptionsBase` instance - both delegate to `CoreEx.Hosting`'s generic `CircuitBreakerResiliency<TOwner>`/`RetryResiliency<TOwner>`.
 - 📊 **OpenTelemetry metrics**: `ServiceBusMetrics` exposes a `CoreEx.Azure.Messaging.ServiceBus` meter with counters for sent, failed, completed, dead-lettered, and abandoned messages, plus a send-duration histogram; `ServiceBusReceiverInvoker` wraps receive operations in activity spans.
 - 📡 **Dependency injection helpers**: `CoreExServiceBusExtensions` (`AddAzureServiceBusPublisher`, `AddAzureServiceBusSubscribedSubscriber`, `AzureServiceBusReceiving()`) and `CoreExServiceBusExtensions.AddAzureServiceBusOpenTelemetry` wire everything into the DI container with a single fluent call each.
 
@@ -35,7 +35,7 @@ Resiliency is provided out-of-the-box: `ServiceBusReceiverResiliency` supplies f
 | **[`ServiceBusReceiverHostedService<TReceiver>`](./ServiceBusReceiverHostedService.cs)** | `IHostedService` adapter for any `ServiceBusReceiverBase`; supports pause/resume and reports degraded health while paused. |
 | **[`ServiceBusReceiverOptions`](./ServiceBusReceiverOptions.cs)** | Options for `ServiceBusReceiver<TSubscriber>`; factory methods `CreateForQueue` / `CreateForTopicSubscription`; defaults to `PeekLock`, `AutoCompleteMessages=false`, `MaxConcurrentCalls=1`. |
 | **[`ServiceBusSessionReceiverOptions`](./ServiceBusSessionReceiverOptions.cs)** | Session-specific options for `ServiceBusSessionReceiver<TSubscriber>`. |
-| **[`ServiceBusReceiverResiliency`](./ServiceBusReceiverResiliency.cs)** | Factory for Polly `ResiliencePipeline<Result>` — `CreateReceiverCircuitBreakerResiliency` and `CreateMessageRetryResiliency`; applied by default in `ServiceBusReceiverOptionsBase`. |
+| **[`ServiceBusReceiverResiliency`](./ServiceBusReceiverResiliency.cs)** | Factory for Polly `ResiliencePipeline<Result>` — `CreateReceiverCircuitBreakerResiliency` and `CreateMessageRetryResiliency`; applied by default in `ServiceBusReceiverOptionsBase`. Thin wrappers over `CoreEx.Hosting.CircuitBreakerResiliency<TOwner>`/`RetryResiliency<TOwner>`. |
 | **[`ServiceBusSessionStrategy`](./ServiceBusSessionStrategy.cs)** | Enum: `None`, `UsePartitionKeyAsIs`, `UsePartitionKeyConvertedToAnId`; controls how the publisher assigns a `SessionId` to each outbound message. |
 | [IServiceBusMessageActions](./IServiceBusMessageActions.cs) | Defines complete/abandon/dead-letter/defer actions for a received message; implemented by `ProcessMessageEventArgsActions` and `ProcessSessionMessageEventArgsActions` in the Abstractions folder. |
 | **[`ServiceBusMetrics`](./ServiceBusMetrics.cs)** | Static class exposing the `CoreEx.Azure.Messaging.ServiceBus` `Meter` with send/receive counters and a send-duration histogram. |
@@ -53,6 +53,7 @@ Resiliency is provided out-of-the-box: `ServiceBusReceiverResiliency` supplies f
 - **[`CoreEx.Events.Publishing`](../CoreEx.Events/Publishing/README.md)** - `IDestinationProvider` and `DestinationEvent` used by `ServiceBusPublisher` during batched dispatch.
 - **[`CoreEx.Events.Subscribing`](../CoreEx.Events/Subscribing/README.md)** - `ErrorHandling`, `ErrorHandler`, and subscriber exception types consumed by the receiver pipeline.
 - **[`CoreEx.Database.Outbox`](../CoreEx.Database/Outbox/README.md)** - Outbox relay publisher that produces events later consumed by a `ServiceBusReceiver`-based relay host.
+- **[`CoreEx.Hosting`](../CoreEx/Hosting/README.md)** - `CircuitBreakerResiliency<TOwner>`/`RetryResiliency<TOwner>` are the generic self-pausing/retry pipelines that `ServiceBusReceiverResiliency` now delegates to; originally implemented here, promoted for reuse by `CoreEx.Cosmos`'s outbox relay.
 
 ## AI Usage Guide
 

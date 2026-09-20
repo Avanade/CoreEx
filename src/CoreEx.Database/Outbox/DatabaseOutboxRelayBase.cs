@@ -108,9 +108,26 @@ public abstract class DatabaseOutboxRelayBase<TDatabase, TSelf> : IDatabaseOutbo
             using var leaseCancellationTokenSource = new CancellationTokenSource(args.LeaseDuration);
             try
             {
-                var relay = await RelayAsync(args, partitionId, leaseCancellationTokenSource.Token).ConfigureAwait(false);
-                if (relay)
+                // The partition attempt is protected by the caller's resiliency pipeline (e.g. a circuit breaker owned by the hosted service).
+                var partitionRelayed = false;
+
+                var result = await args.ResiliencyExecutor(async ct =>
+                {
+                    try
+                    {
+                        partitionRelayed = await RelayAsync(args, partitionId, ct).ConfigureAwait(false);
+                        return Result.Success;
+                    }
+                    catch (Exception ex)
+                    {
+                        return Result.Fail(ex);
+                    }
+                }, leaseCancellationTokenSource.Token).ConfigureAwait(false);
+
+                if (partitionRelayed)
                     relayed = true;
+
+                result.ThrowOnError();
             }
             catch (Exception ex) when (ex.IsCanceled())
             {
@@ -119,6 +136,13 @@ public abstract class DatabaseOutboxRelayBase<TDatabase, TSelf> : IDatabaseOutbo
 
                 // Keep throwing as the cancellation is likely to be due to exceeding the lease duration which is a serious failure that should be surfaced and not treated as a transient exception.
                 throw;
+            }
+            catch (Exception ex)
+            {
+                // A failure for one partition must not prevent other, unrelated partitions from being attempted within the same tick - continue on to the next partition rather than aborting the
+                // whole tick. Where a resiliency pipeline was supplied, it has already observed this failure (and, on a sustained ratio, will have paused the caller for future ticks).
+                if (Logger?.IsEnabled(LogLevel.Error) is true)
+                    Logger.LogError(ex, "The relay operation for partition '{PartitionId}' failed: {Error}", partitionId, ex.Message);
             }
         }
 
@@ -156,43 +180,20 @@ public abstract class DatabaseOutboxRelayBase<TDatabase, TSelf> : IDatabaseOutbo
                 using (SuppressInstrumentationScope.Begin(!IsInstrumentationEnabledForPublishing))
                 {
                     await Invoker.InvokeAsync(this, async (tracer, cancellationToken) =>
-                    { 
+                    {
                         if (tracer.Activity is not null)
                         {
                             tracer.Activity.AddTag("outbox.partition", partitionId);
                             tracer.Activity.AddTag("outbox.events.count", events.Count);
-
-                            foreach (var e in events)
-                            {
-                                if (!e.Event.TryGetExtensionAttribute<string>("traceparent", out var traceParent) || string.IsNullOrEmpty(traceParent))
-                                    continue;
-
-                                e.Event.TryGetExtensionAttribute<string>("tracestate", out var traceState);
-                                if (ActivityContext.TryParse(traceParent, traceState, out var ac))
-                                    tracer.Activity.AddLink(new ActivityLink(ac));
-
-                                if (e.Event.TryGetExtensionAttribute<string>("baggage", out var baggageHeader) && !string.IsNullOrEmpty(baggageHeader))
-                                {
-                                    // Parse W3C Baggage format: "key1=value1,key2=value2;property1;property2"
-                                    // Note: OpenTelemetry doesn't expose a public baggage parser, so we implement per W3C spec.
-                                    foreach (var member in baggageHeader.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-                                    {
-                                        // Take only the key-value part (before any optional properties after semicolon).
-                                        var keyValue = member.Split(';', 2)[0].Trim();
-                                        var parts = keyValue.Split('=', 2);
-                                        if (parts.Length == 2 && !string.IsNullOrWhiteSpace(parts[0]))
-                                        {
-                                            // Decode URL-encoded values per W3C Baggage spec.
-                                            var key = Uri.UnescapeDataString(parts[0].Trim());
-                                            var value = Uri.UnescapeDataString(parts[1].Trim());
-                                            tracer.Activity.AddBaggage(key, value);
-                                        }
-                                    }
-                                }
-                            }
+                            tracer.Activity.LinkTraceContext(events.Select(e => e.Event));
                         }
 
                         await EventPublisher.PublishAsync(cancellationToken).ConfigureAwait(false);
+
+                        // Only now that the publish has actually succeeded, give every originating trace (e.g. the API request that raised the event) a deterministic, visible "relayed" marker - see
+                        // EmitRelayMarkers remarks for why this exists alongside (not instead of) the batch-level link above. Emitting this before the publish would risk a false-positive "relayed"
+                        // marker for an event whose publish subsequently throws (and is then retried as part of the whole batch being cancelled/re-claimed).
+                        events.EmitRelayMarkers(tracer.Activity);
                     }, cancellationToken).ConfigureAwait(false);
                 }
 

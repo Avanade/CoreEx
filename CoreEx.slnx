@@ -15,6 +15,23 @@
     <Project Path="samples/aspire/Contoso.Aspire/Contoso.Aspire.csproj" />
     <Project Path="samples/tests/Contoso.E2E.Runner/Contoso.E2E.Runner.csproj" />
   </Folder>
+  <Folder Name="/samples/Customers/" />
+  <Folder Name="/samples/Customers/hosts/">
+    <Project Path="samples/src/Contoso.Customers.Api/Contoso.Customers.Api.csproj" />
+  </Folder>
+  <Folder Name="/samples/Customers/src/">
+    <Project Path="samples/src/Contoso.Customers.Application/Contoso.Customers.Application.csproj" />
+    <Project Path="samples/src/Contoso.Customers.Contracts/Contoso.Customers.Contracts.csproj" />
+    <Project Path="samples/src/Contoso.Customers.Infrastructure/Contoso.Customers.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/samples/Customers/tests/">
+    <Project Path="samples/tests/Contoso.Customers.Test.Api/Contoso.Customers.Test.Api.csproj" />
+    <Project Path="samples/tests/Contoso.Customers.Test.Common/Contoso.Customers.Test.Common.csproj" />
+    <Project Path="samples/tests/Contoso.Customers.Test.Unit/Contoso.Customers.Test.Unit.csproj" />
+  </Folder>
+  <Folder Name="/samples/Customers/tools/">
+    <Project Path="samples/src/Contoso.Customers.CodeGen/Contoso.Customers.CodeGen.csproj" />
+  </Folder>
   <Folder Name="/samples/docs/">
     <File Path="samples/docs/application-layer.md" />
     <File Path="samples/docs/aspire.md" />
@@ -124,6 +141,7 @@
     <Project Path="src/CoreEx.Azure.Messaging.ServiceBus/CoreEx.Azure.Messaging.ServiceBus.csproj" />
     <Project Path="src/CoreEx.Caching.FusionCache/CoreEx.Caching.FusionCache.csproj" />
     <Project Path="src/CoreEx.CodeGen/CoreEx.CodeGen.csproj" />
+    <Project Path="src/CoreEx.Cosmos/CoreEx.Cosmos.csproj" />
     <Project Path="src/CoreEx.Data.GraphQL/CoreEx.Data.GraphQL.csproj" />
     <Project Path="src/CoreEx.Data/CoreEx.Data.csproj" />
     <Project Path="src/CoreEx.Database.Postgres/CoreEx.Database.Postgres.csproj" />
@@ -139,10 +157,12 @@
     <Project Path="src/CoreEx/CoreEx.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <File Path="Directory.Build.props" />
     <Project Path="tests/CoreEx.AspNetCore.Test.Api/CoreEx.AspNetCore.Test.Api.csproj" />
     <Project Path="tests/CoreEx.AspNetCore.Test.Unit/CoreEx.AspNetCore.Test.Unit.csproj" />
     <Project Path="tests/CoreEx.Azure.Messaging.ServiceBus.Test.Unit/CoreEx.Azure.Messaging.ServiceBus.Test.Unit.csproj" />
     <Project Path="tests/CoreEx.Caching.Redis.Test.Unit/CoreEx.Caching.Redis.Test.Unit.csproj" />
+    <Project Path="tests/CoreEx.Cosmos.Test.Unit/CoreEx.Cosmos.Test.Unit.csproj" />
     <Project Path="tests/CoreEx.Data.GraphQL.Test.Unit/CoreEx.Data.GraphQL.Test.Unit.csproj" />
     <Project Path="tests/CoreEx.Data.Test.Unit/CoreEx.Data.Test.Unit.csproj" />
     <Project Path="tests/CoreEx.Database.Postgres.Test.Console/CoreEx.Database.Postgres.Test.Console.csproj" />

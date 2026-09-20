@@ -51,6 +51,10 @@ public abstract class DatabaseInvoker : InvokerBase<IDatabase, DatabaseArgs>
         var savePoint = isRootTxn ? string.Empty : unitOfWork.Database.GetNextSavePointName();
         var eventStartCount = unitOfWork.Outbox?.Count ?? 0;
 
+        // Tracks whether THIS invocation is the one that actually called Outbox.PublishAsync - see its remarks (below) for why this cannot rely on Outbox.HasBeenPublished, which is global to the
+        // (typically request-scoped, reused-across-calls) Outbox instance, not scoped to this invocation.
+        var publishedByThisInvocation = false;
+
         tracer.Activity?.AddTag("database.id", unitOfWork.Database.DatabaseId);
 
         // Reusable rollback logic.
@@ -92,8 +96,24 @@ public abstract class DatabaseInvoker : InvokerBase<IDatabase, DatabaseArgs>
                 }
             }
 
-            // Where outbox/events are supported then also rollback any added events.
-            unitOfWork.Outbox?.Rollback(Math.Max(0, unitOfWork.Outbox.Count - eventStartCount));
+            // Where outbox/events are supported then also roll back any added events - Dequeue only functions pre-publish; where THIS invocation itself already published (e.g. it happened successfully
+            // but the transaction/save-point itself still failed to commit afterward), use RollbackAsync instead to undo that already-captured publish. This deliberately checks publishedByThisInvocation
+            // rather than Outbox.HasBeenPublished: the latter is a one-way, publisher-lifetime flag (see IEventPublisher.HasBeenPublished) that stays true for as long as the same Outbox instance is
+            // reused across multiple, entirely independent OrchestrateUnitOfWorkTransactionAsync calls within one scope (e.g. a request-scoped IUnitOfWork used for several sequential TransactionAsync
+            // calls) - relying on it here would wrongly invoke RollbackAsync for a later, unrelated failed invocation that never itself published anything, undoing an earlier invocation's genuinely
+            // successful and already-committed publish. Dequeue itself also refuses to run at all once HasBeenPublished is (globally) true - regardless of count - so it must only be called when THIS
+            // invocation actually added events of its own to remove; a later, unrelated failed invocation that added none has nothing to dequeue and must not touch the Outbox at all.
+            if (unitOfWork.Outbox is not null)
+            {
+                if (publishedByThisInvocation)
+                    await unitOfWork.Outbox.RollbackAsync(cancellationToken).ConfigureAwait(false);
+                else
+                {
+                    var addedByThisInvocation = Math.Max(0, unitOfWork.Outbox.Count - eventStartCount);
+                    if (addedByThisInvocation > 0)
+                        unitOfWork.Outbox.Dequeue(addedByThisInvocation);
+                }
+            }
         }
 
         // Perform the unit-of-work within a transaction or save-point as appropriate.
@@ -137,6 +157,7 @@ public abstract class DatabaseInvoker : InvokerBase<IDatabase, DatabaseArgs>
                 {
                     outboxEnqueued = unitOfWork.Outbox!.Count;
                     await unitOfWork.Outbox!.PublishAsync(cancellationToken).ConfigureAwait(false);
+                    publishedByThisInvocation = true;
                 }
 
                 // Commit the work and outbox.

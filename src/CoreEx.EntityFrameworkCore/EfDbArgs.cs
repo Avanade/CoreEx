@@ -32,7 +32,13 @@ public record class EfDbArgs : DatabaseArgsBase
     /// <summary>
     /// Indicates whether to bypass all configured filters (where allowed).
     /// </summary>
-    /// <remarks>This is an advanced feature that should only be used where specifically desired, and/or applying the filtering manually, to avoid unintended side-effects.</remarks>
+    /// <remarks>This is an advanced feature that should only be used where specifically desired, and/or applying the filtering manually, to avoid unintended side-effects.
+    /// <para><b>Important:</b> this <b>never</b> affects the built-in tenant (<see cref="EfDbModelOptions{TModel}.WithTenantFilter"/>) or logical-delete (<see cref="EfDbModelOptions{TModel}.WithLogicalDeleteFilter"/>-backed
+    /// non-query) checks — <see cref="EfDbModel{TModel}.CheckModel"/> applies both unconditionally, for point operations, regardless of this setting. A caller that sets <see langword="true"/> expecting a point
+    /// <c>GetAsync</c>/<c>DeleteAsync</c> to surface a soft-deleted row or another tenant's row will still get a <see langword="null"/>/<see cref="Result.NotFoundError"/>. Only an additive
+    /// <see cref="EfDbModelOptions{TModel}.WithFilter"/> registration (including the one <see cref="EfDbModelOptions{TModel}.WithLogicalDeleteFilter"/> itself adds) explicitly marked <c>allowFilterBypass: true</c>
+    /// is ever actually bypassed by this flag, and then only for <see cref="EfDbModelOptions{TModel}.ApplyFilters"/> (queries) — <see cref="EfDbModelOptions{TModel}.WithFilter"/> registrations only affect
+    /// non-query operations when a <c>nonQueryResult</c> is supplied.</para></remarks>
     public bool BypassFilters { get; init; } = false;
 
     /// <summary>

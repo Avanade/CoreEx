@@ -12,7 +12,8 @@
 
 ## Key capabilities
 
-- 🔄 **`EventData` ↔ CloudEvents bridge**: `IEventFormatter` / `EventFormatter` convert between the CoreEx `EventData` envelope and the CloudNative CloudEvents spec, including distributed-tracing header propagation (`traceparent`, `tracestate`, baggage).
+- 🔄 **`EventData` ↔ CloudEvents bridge**: `IEventFormatter` / `EventFormatter` convert between the CoreEx `EventData` envelope and the CloudNative CloudEvents spec, including distributed-tracing header propagation (`traceparent`, `tracestate`, baggage) attached when an event is *published*.
+- 🔗 **Outbox relay trace-linking**: `CloudEventTracingExtensions.LinkTraceContext` reads a *previously-stored* event's `traceparent`/`tracestate` extension attributes back out and adds them as an `ActivityLink` on the current `Activity` - used by an outbox relay to connect its own publish span back to each original producer's trace (deliberately does not propagate `baggage`; see the XML doc remarks for why a batched, fan-in relay can't do that safely). Shared unchanged by `CoreEx.Database.Outbox` and `CoreEx.Cosmos.Outbox`'s relays.
 - 🧹 **App-wide payload redaction**: `EventFormatter.DataExcludePaths` applies a `CoreEx.Json.JsonFilter` exclude (recursive descent, e.g. `$..etag`) to every event's `Data` during `Format()`, so a property can be stripped from all published events in one place rather than at every `EventData.WithValue()` call site. Defaults to excluding `$..etag` — an optimistic-concurrency token that has no meaning to a downstream consumer and cannot be reliably captured for events raised transactionally via an outbox against a NoSQL store; set to `null`/empty to opt out.
 - 📤 **Queue-then-publish pipeline**: Events are buffered in-process and dispatched atomically via `PublishAsync()`; `Rollback(count)` and `Reset()` support outbox and retry patterns.
 - 📍 **Destination resolution**: `IDestinationProvider` dynamically generates topic/queue names from an `EventData`, an explicit destination string, or from `MessageType` and domain name.
@@ -28,6 +29,7 @@
 | [`IEventFormatter`](./IEventFormatter.cs) | Formats/parses `EventData`, converts to/from `CloudEvent`, adds distributed-tracing headers. |
 | **[`EventFormatter`](./EventFormatter.cs)** | Default `IEventFormatter` implementation; handles CloudEvents attribute mapping, trace propagation, and (via `DataExcludePaths`) app-wide `JsonFilter`-based redaction of the event `Data` payload. |
 | **[`MessageType`](./MessageType.cs)** | Enum: `Event`, `Command`, `ReplyTo` — used in destination-name generation. |
+| **[`CloudEventTracingExtensions`](./CloudEventTracingExtensions.cs)** | `LinkTraceContext(Activity?, IEnumerable<CloudEvent>)` - links an activity to each event's originating W3C trace context; used by an outbox relay's publish span, not by ordinary publishing. |
 
 ## Namespaces
 
@@ -39,7 +41,7 @@
 ## Related namespaces
 
 - **[`CoreEx`](../CoreEx/README.md)** - Defines `EventData`, `CloudEvent` interop, `ExecutionContext`, and `Result<T>` used throughout the events pipeline.
-- **[`CoreEx.Database.Outbox`](../CoreEx.Database/Outbox/README.md)** - Outbox-pattern publisher that wraps `IEventPublisher`; persists events transactionally and relays them via a background relay host.
+- **[`CoreEx.Database.Outbox`](../CoreEx.Database/Outbox/README.md)** / **[`CoreEx.Cosmos.Outbox`](../CoreEx.Cosmos/README.md#namespaces)** - Outbox-pattern publishers that wrap `IEventPublisher`; persist events transactionally (relational outbox table / Cosmos DB `TransactionalBatch`) and relay them via a background host (poll-loop / Change Feed Processor), sharing the same `CloudEventTracingExtensions` and harmonized metric naming.
 - **[`CoreEx.DomainDriven`](../CoreEx.DomainDriven/README.md)** - `Aggregate<TId, TSelf>` accumulates `EventData` internally; the application layer forwards those to the publishing queue within the same unit-of-work.
 - **[`CoreEx.Invokers`](../CoreEx/Invokers/README.md)** - `EventPublisherInvoker` and `SubscribedInvoker` provide OpenTelemetry activity wrapping for publish and receive operations.
 

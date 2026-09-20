@@ -1,0 +1,16 @@
+global using Contoso.Customers.Application;
+global using Contoso.Customers.Application.Interfaces;
+global using Contoso.Customers.Application.Repositories;
+global using Contoso.Customers.Application.Validators;
+global using Contoso.Customers.Contracts;
+global using CoreEx;
+global using CoreEx.Data;
+global using CoreEx.DependencyInjection;
+global using CoreEx.Entities;
+global using CoreEx.Events;
+global using CoreEx.Localization;
+global using CoreEx.RefData;
+global using CoreEx.RefData.Abstractions;
+global using CoreEx.Results;
+global using CoreEx.Validation;
+global using System.Text.Json;

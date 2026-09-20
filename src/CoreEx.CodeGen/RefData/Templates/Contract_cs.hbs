@@ -31,6 +31,6 @@ public partial class {{Name}} : {{Inherits}} {{#ifeq ContractProperties.Count 0}
 /// <summary>
 /// Represents the '{{Name}}' reference-data contract collection.
 /// </summary>
-public partial class {{Name}}Collection() : ReferenceDataCollection<{{Name}}>(ReferenceDataSortOrder.{{CollectionSortOrder}}) { }
+public partial class {{Name}}Collection() : {{CollectionInherits}}(ReferenceDataSortOrder.{{CollectionSortOrder}}) { }
 
 #nullable restore

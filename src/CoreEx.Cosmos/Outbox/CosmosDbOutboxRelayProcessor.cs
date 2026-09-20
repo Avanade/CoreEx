@@ -1,0 +1,154 @@
+namespace CoreEx.Cosmos.Outbox;
+
+/// <summary>
+/// Provides the pure filter/decode/publish/cleanup-delete batch logic for a <see cref="CosmosDbOutboxRelay"/>, with no knowledge of the underlying Change Feed Processor SDK - directly unit-testable by handing
+/// it an <see cref="IReadOnlyCollection{T}"/> of <see cref="CosmosDbOutboxEvent"/> without any live Cosmos DB dependency for the publish path.
+/// </summary>
+/// <param name="serviceProvider">The root <see cref="IServiceProvider"/> - a new scope is created per <see cref="ProcessBatchAsync(IReadOnlyCollection{CosmosDbOutboxEvent}, CancellationToken)"/> call.</param>
+/// <param name="containerId">The <see cref="Microsoft.Azure.Cosmos.Container"/> identifier being relayed (used for the cleanup-delete container lookup and metric tagging).</param>
+/// <param name="logger">The <see cref="ILogger"/>.</param>
+/// <param name="invoker">The optional <see cref="CosmosDbOutboxRelayInvoker"/>; defaults to <see cref="CosmosDbOutboxRelayInvoker.Default"/>.</param>
+/// <remarks>Mirrors the role of <c>DatabaseOutboxRelayBase</c>'s per-partition relay body (filter/decode → publish → cleanup), minus the claim/lease-partition machinery SQL needs and Cosmos DB's Change Feed
+/// Processor already handles via its own checkpointing.
+/// <para>A fresh <see cref="IServiceScope"/> is created per batch to resolve <see cref="IEventPublisher"/> and <see cref="ICosmosDb"/> (both registered scoped) - the Change Feed Processor can invoke concurrent
+/// batches for different leases, so nothing scoped can be safely captured once at construction; this also means no shared mutable publisher state exists across concurrent batches at all.</para></remarks>
+public class CosmosDbOutboxRelayProcessor(IServiceProvider serviceProvider, string containerId, ILogger<CosmosDbOutboxRelayProcessor> logger, CosmosDbOutboxRelayInvoker? invoker = null)
+{
+    /// <summary>
+    /// Gets the root <see cref="IServiceProvider"/>.
+    /// </summary>
+    protected IServiceProvider ServiceProvider { get; } = serviceProvider.ThrowIfNull();
+
+    /// <summary>
+    /// Gets the <see cref="Microsoft.Azure.Cosmos.Container"/> identifier being relayed.
+    /// </summary>
+    public string ContainerId { get; } = containerId.ThrowIfNullOrEmpty();
+
+    /// <summary>
+    /// Gets the <see cref="ILogger"/>.
+    /// </summary>
+    protected ILogger Logger { get; } = logger.ThrowIfNull();
+
+    /// <summary>
+    /// Gets the <see cref="CosmosDbOutboxRelayInvoker"/>.
+    /// </summary>
+    protected CosmosDbOutboxRelayInvoker Invoker { get; } = invoker ?? CosmosDbOutboxRelayInvoker.Default;
+
+    /// <summary>
+    /// Processes a single batch of changes as delivered by the Change Feed Processor.
+    /// </summary>
+    /// <param name="changes">The changed documents (may include co-located business documents - only <see cref="CosmosDbOutboxEvent.OutboxKeyPrefix"/>-prefixed ones are relayed).</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+    /// <exception cref="Exception">Any decode or publish failure is allowed to propagate - this is what feeds the owning <see cref="CosmosDbOutboxRelay"/>'s circuit breaker and lets the Change Feed Processor's own
+    /// native redelivery/backoff continue. A cleanup-delete failure, by contrast, is always caught and never propagated (see remarks).</exception>
+    /// <exception cref="InvalidOperationException">Thrown immediately, before anything is enlisted, where the resolved default <see cref="IEventPublisher"/> is a <see cref="CosmosDbEventPublisher"/> - see remarks.</exception>
+    /// <remarks>A cleanup-delete failure only ever occurs <i>after</i> a successful publish - the event has already reached its destination, so the only consequence of leaving the document behind is it sitting
+    /// until its <see cref="ITimeToLive"/> expires (a bounded, self-healing storage/RU cost), not lost work. Letting such a failure propagate and pause the relay over an already-completed delivery would be
+    /// wrong, so it is caught, logged, and counted (<see cref="CosmosMetrics.OutboxRelayCleanupFailed"/>) instead.
+    /// <para>The resolved default <see cref="IEventPublisher"/> must be a genuine <i>destination</i> publisher (e.g. an Azure Service Bus <see cref="IEventPublisher"/> registered via
+    /// <c>CoreEx.Azure.Messaging.ServiceBus</c>'s <c>AddAzureServiceBusPublisher</c>) - nothing in this package registers one, since the choice of destination is host-specific; see the package
+    /// <c>AGENTS.md</c>/<c>README.md</c> "Outbox Relay" section for a worked registration example. <see cref="CosmosDbEventPublisher"/> is deliberately rejected up front rather than left to fail deeper
+    /// inside <see cref="IEventPublisher.PublishAsync(CancellationToken)"/> - it is the outbox <i>write-side</i> publisher (paired with <see cref="CosmosDbUnitOfWork"/>) and can only publish inside an
+    /// active <see cref="CosmosDbUnitOfWork.TransactionAsync(Func{CancellationToken, Task}, CancellationToken)"/> scope, which the relay's own per-batch scope never has.</para></remarks>
+    public virtual async Task ProcessBatchAsync(IReadOnlyCollection<CosmosDbOutboxEvent> changes, CancellationToken cancellationToken)
+    {
+        var outboxDocs = changes.Where(c => c.Id is not null && c.Id.StartsWith(CosmosDbOutboxEvent.OutboxKeyPrefix, StringComparison.Ordinal)).ToList();
+        if (outboxDocs.Count == 0)
+            return;
+
+        var tag = new KeyValuePair<string, object?>(CosmosMetrics.ContainerTagName, ContainerId);
+
+        await using var scope = ServiceProvider.CreateAsyncScope();
+        var eventPublisher = scope.ServiceProvider.GetRequiredService<IEventPublisher>();
+        var cosmosDb = scope.ServiceProvider.GetRequiredService<ICosmosDb>();
+
+        // Fail fast with an actionable message rather than letting this reach CosmosDbEventPublisher.OnPublishAsync, whose "no active transaction" exception does not explain that it is the wrong
+        // publisher role entirely - see the remarks above.
+        if (eventPublisher is CosmosDbEventPublisher)
+            throw new InvalidOperationException(
+                $"The default {nameof(IEventPublisher)} resolved for container '{ContainerId}' is a {nameof(CosmosDbEventPublisher)}, which is the outbox write-side publisher (used by {nameof(CosmosDbUnitOfWork)}) and cannot " +
+                $"also serve as this relay's destination {nameof(IEventPublisher)}. Register a genuine destination publisher instead (e.g. an Azure Service Bus {nameof(IEventPublisher)} via CoreEx.Azure.Messaging.ServiceBus's " +
+                "AddAzureServiceBusPublisher) - see the package AGENTS.md/README.md \"Outbox Relay\" section for a worked example.");
+
+        eventPublisher.Add(outboxDocs.Select(d => new DestinationEvent(d.Destination, d.Event.DecodeToCloudEvent())));
+
+        try
+        {
+            await Invoker.InvokeAsync(this, async (tracer, ct) =>
+            {
+                if (tracer.Activity is not null)
+                {
+                    tracer.Activity.AddTag("outbox.container", ContainerId);
+                    tracer.Activity.AddTag("outbox.events.count", outboxDocs.Count);
+                    tracer.Activity.LinkTraceContext(eventPublisher.GetEvents().Select(de => de.Event));
+                }
+
+                await eventPublisher.PublishAsync(ct).ConfigureAwait(false);
+
+                // Only now that the publish has actually succeeded, give every originating trace (e.g. the API request that raised the event) a deterministic, visible "relayed" marker - see
+                // EmitRelayMarkers remarks for why this exists alongside (not instead of) the batch-level link above. Emitting this before the publish would risk a false-positive "relayed"
+                // marker for an event whose publish subsequently throws (and is then retried as part of the whole batch's Change Feed Processor redelivery).
+                eventPublisher.GetEvents().EmitRelayMarkers(tracer.Activity);
+            }, cancellationToken).ConfigureAwait(false);
+
+            CosmosMetrics.OutboxRelayPublished.Add(outboxDocs.Count, tag);
+            RecordLagMetrics(eventPublisher);
+        }
+        catch (Exception ex)
+        {
+            CosmosMetrics.OutboxRelayPublishFailed.Add(outboxDocs.Count, tag);
+            RecordLagMetrics(eventPublisher);
+            if (Logger.IsEnabled(LogLevel.Error))
+                Logger.LogError(ex, "Failed to publish {Count} outbox event(s) for container '{ContainerId}': {Error}", outboxDocs.Count, ContainerId, ex.Message);
+
+            throw;
+        }
+        finally
+        {
+            eventPublisher.Reset();
+        }
+
+        var container = cosmosDb.Container<CosmosDbOutboxEvent>(ContainerId);
+        await Task.WhenAll(outboxDocs.Select(d => DeleteOneAsync(container, d, tag, cancellationToken))).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Records the oldest/newest relay lag for the current batch, on both a successful and a failed publish attempt - so the histogram keeps reporting (and growing) for as long as a batch keeps
+    /// failing, rather than going silent, which is a far more useful signal to alert on than an absent metric.
+    /// </summary>
+    /// <remarks>Computed via min/max <see cref="CloudNative.CloudEvents.CloudEvent.Time"/> across the batch rather than by indexing the first/last queued event - unlike SQL Server/Postgres's claim
+    /// query (which returns rows pre-ordered by enqueue time), a single Change Feed Processor delivery can span multiple logical partition keys with no guaranteed overall time ordering between
+    /// them.</remarks>
+    private static void RecordLagMetrics(IEventPublisher eventPublisher)
+    {
+        var times = eventPublisher.GetEvents().Select(de => de.Event.Time ?? default).ToList();
+        var now = Runtime.UtcNow;
+        CosmosMetrics.OutboxRelayOldestLagDuration.Record((now - times.Min()).TotalMilliseconds);
+        CosmosMetrics.OutboxRelayNewestLagDuration.Record((now - times.Max()).TotalMilliseconds);
+    }
+
+    /// <summary>
+    /// Deletes a single, already-published outbox event document; never throws (see <see cref="ProcessBatchAsync(IReadOnlyCollection{CosmosDbOutboxEvent}, CancellationToken)"/> remarks).
+    /// </summary>
+    private async Task DeleteOneAsync(CosmosDbContainer<CosmosDbOutboxEvent> container, CosmosDbOutboxEvent doc, KeyValuePair<string, object?> tag, CancellationToken cancellationToken)
+    {
+        try
+        {
+            // doc.PartitionKey is the raw partition key value as persisted alongside the event (see CosmosDbOutboxEvent/CosmosDbEventPublisher) - null there is not a missing value, it is the model
+            // genuinely having resolved to PartitionKey.None (e.g. no WithPartitionKey/WithFixedPartitionKey configured), a real, valid single logical partition. The partitionKey-taking overload
+            // ThrowIfNull()s its argument, so it must not be used for a PartitionKey.None document; the no-partition-key overload below resolves PartitionKey.None itself instead.
+            if (doc.PartitionKey is null)
+                await container.DeleteAsync(CompositeKey.Create(doc.Id), cancellationToken).ConfigureAwait(false);
+            else
+                await container.DeleteAsync(CompositeKey.Create(doc.Id), doc.PartitionKey, cancellationToken).ConfigureAwait(false);
+
+            CosmosMetrics.OutboxRelayCleanupDeleted.Add(1, tag);
+        }
+        catch (Exception ex)
+        {
+            CosmosMetrics.OutboxRelayCleanupFailed.Add(1, tag);
+            if (Logger.IsEnabled(LogLevel.Warning))
+                Logger.LogWarning(ex, "Failed to delete outbox event document '{Id}' after successful publish for container '{ContainerId}'; it will be removed automatically once its time-to-live expires: {Error}", doc.Id, ContainerId, ex.Message);
+        }
+    }
+}
