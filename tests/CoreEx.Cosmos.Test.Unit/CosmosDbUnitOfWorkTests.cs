@@ -568,4 +568,59 @@ public class CosmosDbUnitOfWorkTests : CosmosTestBase
         outboxDocs.Should().ContainSingle();
         outboxDocs[0].Event.GetProperty("subject").GetString().Should().Be(succeededId);
     }
+
+    [Test]
+    public async Task TransactionAsync_ReusedAfterSuccessfulPublish_SubsequentUnrelatedFailure_DoesNotRollBackEarlierPublish()
+    {
+        // Regression: IEventPublisher.HasBeenPublished is a one-way, publisher-lifetime flag (see EventPublisherBase) - it stays true for as long as the same Outbox instance is reused across multiple,
+        // entirely independent TransactionAsync calls on the SAME CosmosDbUnitOfWork (a typical request-scoped lifetime). Previously, CosmosDbInvoker.OrchestrateUnitOfWorkTransactionAsync's DiscardAsync
+        // checked Outbox.HasBeenPublished to decide whether to call Outbox.RollbackAsync() - so a LATER, unrelated failed transaction (that itself never published anything) would still wrongly invoke
+        // RollbackAsync(), incorrectly undoing an EARLIER transaction's genuinely successful and already-committed publish. It must now only do so when THIS invocation is the one that actually published.
+        await GetOrCreateContainerAsync(ContainerId).ConfigureAwait(false);
+        var cosmosDb = CreateCosmosDb();
+        var container = cosmosDb.Container<TestItem>(ContainerId, o => o.WithPartitionKey(m => m.PartitionKey));
+        var outbox = new RollbackTrackingEventPublisher();
+        var unitOfWork = new CosmosDbUnitOfWork(cosmosDb, outbox);
+
+        var pk = NewId();
+        var succeededId = NewId();
+
+        // First transaction: genuinely publishes successfully.
+        await unitOfWork.TransactionAsync(async ct =>
+        {
+            var created = await container.CreateAsync(new TestItem { Id = succeededId, PartitionKey = pk, Name = "Real" }, ct).ConfigureAwait(false);
+            unitOfWork.Events.Add(EventData.CreateEventWith(created.Value, EventAction.Created).WithSource(new Uri("https://unittest/coreex-cosmos", UriKind.Absolute)));
+        });
+
+        outbox.HasBeenPublished.Should().BeTrue();
+        outbox.RollbackCallCount.Should().Be(0);
+
+        // Second, later transaction on the SAME (reused) unit-of-work: adds no events of its own and fails - must NOT roll back the earlier, already-committed publish.
+        var failResult = await unitOfWork.TransactionAsync(async ct =>
+        {
+            await container.CreateAsync(new TestItem { Id = NewId(), PartitionKey = pk, Name = "Unrelated" }, ct).ConfigureAwait(false);
+            return Result.AuthenticationError();
+        });
+
+        failResult.IsFailure.Should().BeTrue();
+        outbox.RollbackCallCount.Should().Be(0);
+        outbox.HasBeenPublished.Should().BeTrue();
+    }
+
+    /// <summary>
+    /// A minimal <see cref="IEventPublisher"/> that never actually sends anything (a no-op <see cref="OnPublishAsync"/>) but tracks how many times <see cref="RollbackAsync"/> is invoked - used to assert
+    /// that a later, unrelated failed <see cref="CosmosDbUnitOfWork.TransactionAsync(Func{CancellationToken, Task}, CancellationToken)"/> does not wrongly roll back an earlier invocation's genuine publish.
+    /// </summary>
+    private sealed class RollbackTrackingEventPublisher : EventPublisherBase
+    {
+        public int RollbackCallCount { get; private set; }
+
+        protected override Task OnPublishAsync(DestinationEvent[] events, CancellationToken cancellationToken = default) => Task.CompletedTask;
+
+        public override Task RollbackAsync(CancellationToken cancellationToken = default)
+        {
+            RollbackCallCount++;
+            return base.RollbackAsync(cancellationToken);
+        }
+    }
 }

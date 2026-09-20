@@ -80,19 +80,33 @@ public class CosmosDbInvoker : InvokerBase<ICosmosDb, CosmosDbArgs>
         // Events queued by an OUTER/ancestor scope (before this nesting level's work even started) must never be discarded by a failure at THIS level alone - only the events this level itself added.
         var eventStartCount = unitOfWork.Outbox?.Count ?? 0;
 
+        // Tracks whether THIS invocation is the one that actually called Outbox.PublishAsync (only ever set within the isRoot branch, below) - see DiscardAsync's remarks for why this cannot rely on
+        // Outbox.HasBeenPublished, which is global to the (typically request-scoped, reused-across-calls) Outbox instance, not scoped to this invocation.
+        var publishedByThisInvocation = false;
+
         // Reusable discard logic for any failure detected at this nesting level. Marks the shared ambient CosmosDbTransaction as aborted (see CosmosDbTransaction.Abort's remarks) so the root refuses to
         // commit even where an enclosing/outer work delegate ignores this level's returned failure and otherwise reports its own success, and rolls back/dequeues only the outbox events added at this
-        // level - Dequeue only functions pre-publish (publish only ever happens once, at the very end of the root's own commit step); where it already completed, RollbackAsync undoes it instead.
+        // level - Dequeue only functions pre-publish (publish only ever happens once, at the very end of the root's own commit step); where THIS invocation's own root already completed it, RollbackAsync
+        // undoes it instead. This deliberately checks publishedByThisInvocation rather than Outbox.HasBeenPublished: the latter is a one-way, publisher-lifetime flag (see IEventPublisher.HasBeenPublished)
+        // that stays true for as long as the same Outbox instance is reused across multiple, entirely independent OrchestrateUnitOfWorkTransactionAsync calls within one scope (e.g. a request-scoped
+        // CosmosDbUnitOfWork used for several sequential TransactionAsync calls) - relying on it here would wrongly invoke RollbackAsync for a later, unrelated failed invocation that never itself
+        // published anything, undoing an earlier invocation's genuinely successful and already-committed publish. Dequeue itself also refuses to run at all once HasBeenPublished is (globally) true -
+        // regardless of count - so it is only called when THIS invocation actually added events of its own to remove; a later, unrelated failed invocation that added none has nothing to dequeue and
+        // must not touch the Outbox at all.
         async Task DiscardAsync()
         {
             txn!.Abort();
 
             if (unitOfWork.Outbox is not null)
             {
-                if (unitOfWork.Outbox.HasBeenPublished)
+                if (publishedByThisInvocation)
                     await unitOfWork.Outbox.RollbackAsync(cancellationToken).ConfigureAwait(false);
                 else
-                    unitOfWork.Outbox.Dequeue(Math.Max(0, unitOfWork.Outbox.Count - eventStartCount));
+                {
+                    var addedByThisInvocation = Math.Max(0, unitOfWork.Outbox.Count - eventStartCount);
+                    if (addedByThisInvocation > 0)
+                        unitOfWork.Outbox.Dequeue(addedByThisInvocation);
+                }
             }
         }
 
@@ -121,6 +135,7 @@ public class CosmosDbInvoker : InvokerBase<ICosmosDb, CosmosDbArgs>
                 {
                     outboxEnqueued = unitOfWork.Outbox!.Count;
                     await unitOfWork.Outbox!.PublishAsync(cancellationToken).ConfigureAwait(false);
+                    publishedByThisInvocation = true;
                 }
 
                 if (txn.HasOperations)
