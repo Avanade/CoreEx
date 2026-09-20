@@ -51,6 +51,10 @@ public partial class CosmosDbContainer<TModel>
             // Prepare the model (stamps ITenantId/ITypeDiscriminator/IChangeLog as applicable).
             Model.PrepareUpdate(model, CosmosDb.ExecutionContext);
 
+            // Override with an explicit WithTypeDiscriminator value where configured (see CosmosDbModelOptions<TModel>.ApplyTypeDiscriminator) - a no-op otherwise; must run after PrepareUpdate above,
+            // which otherwise leaves its own default (Schema/type name) stamped instead.
+            Options.ApplyTypeDiscriminator(model);
+
             // Apply a computed time-to-live where configured (see CosmosDbModelOptions<TModel>.WithTimeToLive) - a no-op otherwise.
             Options.ApplyTimeToLive(model);
 

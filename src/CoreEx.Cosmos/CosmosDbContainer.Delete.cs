@@ -176,6 +176,10 @@ public partial class CosmosDbContainer<TModel>
         ((ILogicallyDeleted)model).IsDeleted = true;
         Model.PrepareUpdate(model, CosmosDb.ExecutionContext);
 
+        // Override with an explicit WithTypeDiscriminator value where configured (see CosmosDbModelOptions<TModel>.ApplyTypeDiscriminator) - a no-op otherwise; must run after PrepareUpdate above,
+        // which otherwise leaves its own default (Schema/type name) stamped instead.
+        Options.ApplyTypeDiscriminator(model);
+
         var options = BuildItemRequestOptions(args);
         if (options is null && args.AutoMapETag && model is IReadOnlyETag etag && !string.IsNullOrEmpty(etag.ETag))
             options = new ItemRequestOptions { IfMatchEtag = etag.ETag };

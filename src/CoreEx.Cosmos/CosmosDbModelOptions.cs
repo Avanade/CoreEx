@@ -445,6 +445,10 @@ public class CosmosDbModelOptions<TModel> where TModel : class, IEntityKey, new(
     /// <param name="typeDiscriminator">The type discriminator value to filter on; defaults to the <see cref="Schemas.SchemaAttribute.Name"/> where specified, otherwise the <typeparamref name="TModel"/> name
     /// (i.e. the same default resolution used by <c>Model.PrepareTypeDiscriminator</c> when stamping a model prior to create/update).</param>
     /// <returns>The <see cref="CosmosDbModelOptions{TModel}"/> to support fluent-style method-chaining.</returns>
+    /// <remarks>An explicit <paramref name="typeDiscriminator"/> override is enforced end-to-end: <see cref="ApplyTypeDiscriminator(TModel)"/> re-stamps it onto the model on every Create/Update/Upsert
+    /// <i>after</i> <c>Model.PrepareCreate</c>/<c>PrepareUpdate</c>/<c>PrepareTypeDiscriminator</c> have already stamped their own default (<see cref="Schemas.SchemaAttribute.Name"/>/type name) - without
+    /// this, a model persisted with an explicit override here would instead be written with the default discriminator, immediately fail <see cref="IsTypeDiscriminatorMismatch(TModel)"/>'s check against
+    /// this configured value, and become invisible to this container's own queries/point reads.</remarks>
     public CosmosDbModelOptions<TModel> WithTypeDiscriminator(string? typeDiscriminator = null)
     {
         if (!TypeDiscriminatorSupport.IsSupported)
@@ -456,6 +460,22 @@ public class CosmosDbModelOptions<TModel> where TModel : class, IEntityKey, new(
 
         _typeDiscriminatorFilterEnabled = true;
         return this;
+    }
+
+    /// <summary>
+    /// Applies the configured <see cref="WithTypeDiscriminator(string?)"/> value (where configured and <typeparamref name="TModel"/> supports the <i>mutable</i> <see cref="ITypeDiscriminator"/>) to the
+    /// <paramref name="model"/>, overriding whatever default value <c>Model.PrepareCreate</c>/<c>PrepareUpdate</c>/<c>PrepareTypeDiscriminator</c> already stamped.
+    /// </summary>
+    /// <param name="model">The model.</param>
+    /// <remarks>Must be called on every Create/Update/Upsert path <b>after</b> <c>Model.PrepareCreate</c>/<c>PrepareUpdate</c>/<c>PrepareTypeDiscriminator</c> - see <see cref="WithTypeDiscriminator(string?)"/>
+    /// remarks for why. A no-op where <see cref="WithTypeDiscriminator(string?)"/> has not been configured, or where <typeparamref name="TModel"/> only supports the read-only <see cref="IReadOnlyTypeDiscriminator"/>
+    /// (nothing to write back to in that case) - the value already stamped by <c>Model.PrepareCreate</c>/<c>PrepareUpdate</c>/<c>PrepareTypeDiscriminator</c> (its own default resolution) is then left as-is.</remarks>
+    public void ApplyTypeDiscriminator(TModel model)
+    {
+        if (!_typeDiscriminatorFilterEnabled || model.ThrowIfNull() is not ITypeDiscriminator td)
+            return;
+
+        td.TypeDiscriminator = _typeDiscriminatorValue;
     }
 
     /// <summary>

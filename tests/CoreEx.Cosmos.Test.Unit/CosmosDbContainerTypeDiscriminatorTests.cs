@@ -103,4 +103,53 @@ public class CosmosDbContainerTypeDiscriminatorTests : CosmosTestBase
         animal.Should().NotBeNull();
         animal!.Name.Should().Be("Dog");
     }
+
+    [Test]
+    public async Task CreateAsync_StampsExplicitTypeDiscriminatorOverride_WhenConfigured()
+    {
+        await GetOrCreateContainerAsync(ContainerId).ConfigureAwait(false);
+
+        var cosmosDb = CreateCosmosDb();
+        const string explicitDiscriminator = "CustomAnimal";
+        var animals = cosmosDb.Container<AnimalItem>(ContainerId, o => o.WithPartitionKey(m => m.PartitionKey).WithTypeDiscriminator(explicitDiscriminator));
+
+        var partitionKey = NewId();
+        var id = NewId();
+
+        // Model.PrepareCreate's own default resolution (nameof(AnimalItem)) must be overridden by the explicit WithTypeDiscriminator value configured above - not left as the default.
+        var created = await animals.CreateAsync(new AnimalItem { Id = id, PartitionKey = partitionKey, Name = "Dog" });
+        created.Value.TypeDiscriminator.Should().Be(explicitDiscriminator);
+
+        // The persisted document must also be retrievable via this same container - i.e. it must not have been stamped with the default value that CheckModel would then reject.
+        var fetched = await animals.GetAsync(CompositeKey.Create(id), partitionKey);
+        fetched.Should().NotBeNull();
+        fetched!.TypeDiscriminator.Should().Be(explicitDiscriminator);
+
+        var queried = await animals.Query(q => q.Where(m => m.PartitionKey == partitionKey)).ToListAsync();
+        queried.Should().ContainSingle();
+        queried[0].TypeDiscriminator.Should().Be(explicitDiscriminator);
+    }
+
+    [Test]
+    public async Task UpdateAsync_StampsExplicitTypeDiscriminatorOverride_WhenConfigured()
+    {
+        await GetOrCreateContainerAsync(ContainerId).ConfigureAwait(false);
+
+        var cosmosDb = CreateCosmosDb();
+        const string explicitDiscriminator = "CustomAnimal";
+        var animals = cosmosDb.Container<AnimalItem>(ContainerId, o => o.WithPartitionKey(m => m.PartitionKey).WithTypeDiscriminator(explicitDiscriminator));
+
+        var partitionKey = NewId();
+        var id = NewId();
+        await animals.CreateAsync(new AnimalItem { Id = id, PartitionKey = partitionKey, Name = "Dog" });
+
+        // An update round-trip must also re-stamp the explicit override, not Model.PrepareUpdate's own default.
+        var updated = await animals.UpdateAsync(new AnimalItem { Id = id, PartitionKey = partitionKey, Name = "Puppy" });
+        updated.Value.TypeDiscriminator.Should().Be(explicitDiscriminator);
+
+        var fetched = await animals.GetAsync(CompositeKey.Create(id), partitionKey);
+        fetched.Should().NotBeNull();
+        fetched!.Name.Should().Be("Puppy");
+        fetched.TypeDiscriminator.Should().Be(explicitDiscriminator);
+    }
 }

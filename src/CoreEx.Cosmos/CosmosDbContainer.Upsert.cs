@@ -73,6 +73,7 @@ public partial class CosmosDbContainer<TModel>
         // the full Model.PrepareCreate/PrepareUpdate (re-stamping the same tenant/type-discriminator values and additionally applying the correct Create-vs-Update change-log semantics).
         Model.PrepareTenantId(model, CosmosDb.ExecutionContext);
         Model.PrepareTypeDiscriminator(model);
+        Options.ApplyTypeDiscriminator(model);
 
         var gr = await GetWithResultInternalAsync(args, Options.GetKeyFromModel(model), Options.GetPartitionKey(model), memberName, treatNullAsNotFound: false, cancellationToken).ConfigureAwait(false);
         if (gr.IsFailure)
