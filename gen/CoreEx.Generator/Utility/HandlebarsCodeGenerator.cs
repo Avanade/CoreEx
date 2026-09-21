@@ -61,5 +61,7 @@ public class HandlebarsCodeGenerator
     /// <param name="context">The primary context value referenced within the template.</param>
     /// <param name="data">The optional secondary data.</param>
     /// <returns>The resulting generated output.</returns>
+    /// <remarks>The underlying <see cref="HandlebarsTemplate{TContext, TData}"/> delegate declares <c>TData</c> as non-nullable, but Handlebars.Net accepts and correctly handles a
+    /// <see langword="null"/> secondary <paramref name="data"/> value at runtime (e.g. when none is supplied); the null-forgiving operator below is therefore intentional and safe.</remarks>
     public string Generate(CodeGenContext context, object? data = null) => _template(context, data!);
 }

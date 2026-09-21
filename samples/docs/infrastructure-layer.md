@@ -72,6 +72,8 @@ Customers is schemaless and code-first — there is no `*.Database`/DbEx migrati
 // samples/src/Contoso.Customers.Infrastructure/Repositories/CustomersCosmosDb.cs
 public class CustomersCosmosDb(CosmosClient client, string databaseId) : CosmosDb(client, databaseId, _options)
 {
+    private static readonly CosmosDbOptions _options = new();
+
     public CosmosDbContainer<Persistence.ContactMethod> ContactMethods => Container<Persistence.ContactMethod>("ref-data", o => o.WithTypeDiscriminator());
 
     public CosmosDbMappedContainer<Contracts.Customer, Persistence.Customer, CustomerMapper> Customers

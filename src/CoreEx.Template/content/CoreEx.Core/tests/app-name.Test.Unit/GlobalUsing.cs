@@ -1,5 +1,6 @@
 global using AwesomeAssertions;
 global using CoreEx;
+global using CoreEx.Data.Json;
 // #if refdata-enabled
 global using CoreEx.RefData;
 global using CoreEx.RefData.Abstractions;
@@ -8,7 +9,6 @@ global using CoreEx.RefData.Abstractions;
 global using CoreEx.Results;
 // #endif
 global using CoreEx.UnitTesting;
-global using CoreEx.Data.Json;
 global using CoreEx.Validation;
 global using Microsoft.Extensions.DependencyInjection;
 global using Microsoft.Extensions.Hosting;

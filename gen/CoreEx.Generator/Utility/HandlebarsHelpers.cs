@@ -26,25 +26,13 @@ public static class HandlebarsHelpers
             _areRegistered = true;
 
             // Increments indent only!
-            Handlebars.RegisterHelper("indent++", (in w, in options, in context, in args) =>
-            {
-                var hc = (CodeGenContext)options.Data["Root"]!;
-                hc.IncrementIndent();
-            });
+            Handlebars.RegisterHelper("indent++", (in w, in options, in context, in args) => GetRootContext(options).IncrementIndent());
 
             // Decrements indent only!
-            Handlebars.RegisterHelper("indent--", (in w, in options, in context, in args) =>
-            {
-                var hc = (CodeGenContext)options.Data["Root"]!;
-                hc.DecrementIndent();
-            });
+            Handlebars.RegisterHelper("indent--", (in w, in options, in context, in args) => GetRootContext(options).DecrementIndent());
 
             // Writes the current indent string.
-            Handlebars.RegisterHelper("indent", (in w, in options, in context, in args) =>
-            {
-                var hc = (CodeGenContext)options.Data["Root"]!;
-                w.WriteSafeString(hc.GetIndentString());
-            });
+            Handlebars.RegisterHelper("indent", (in w, in options, in context, in args) => w.WriteSafeString(GetRootContext(options).GetIndentString()));
 
             Handlebars.RegisterHelper("bo", (w, _, __) => w.WriteSafeString("{"));
             Handlebars.RegisterHelper("bc", (w, _, __) => w.WriteSafeString("}"));
@@ -68,6 +56,12 @@ public static class HandlebarsHelpers
             });
         }
     }
+
+    /// <summary>
+    /// Gets the root <see cref="CodeGenContext"/> from the Handlebars helper <paramref name="options"/>, validating that it is present and correctly typed rather than blindly trusting it.
+    /// </summary>
+    private static CodeGenContext GetRootContext(in HelperOptions options)
+        => options.Data["Root"] as CodeGenContext ?? throw new InvalidOperationException("The Handlebars 'Root' data value must be a non-null CodeGenContext; this indicates the template was invoked outside of the expected CodeGenContext-based execution pipeline.");
 
     /// <summary>
     /// Perform the actual IfEq equality check.

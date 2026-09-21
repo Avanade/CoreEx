@@ -120,7 +120,7 @@ dotnet new coreex-ai --app-folder <subfolder>
 
 - `.github/instructions/` — the scoped, auto-injected instruction files
 - `.github/prompts/` — the `coreex-scaffold` prompt plus one prompt per per-capability (L1) skill
-- `.github/skills/` — the full skill suite (`coreex-docs-sync`, `acquire-codebase-knowledge`, `coreex-scaffold`, `aspire`, and the 14 L1 skills)
+- `.github/skills/` — the full skill suite (`coreex-docs-sync`, `acquire-codebase-knowledge`, `coreex-scaffold`, `aspire`, and the 15 L1 skills)
 - `.github/agents/coreex-expert.agent.md` — this agent
 - `.claude/commands/` — the Claude Code equivalents
 - `.github/docs/coreex/` — the local docs cache (architecture docs + per-package guides) the expert reads first, already populated at the pinned version — no separate sync step needed on first install
