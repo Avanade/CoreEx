@@ -72,16 +72,34 @@ $testScenarios = @(
                 ".github/agents/coreex-expert.agent.md"
                 ".github/skills/coreex-bootstrap/SKILL.md"
                 ".github/skills/coreex-docs-sync/SKILL.md"
-                ".github/skills/coreex-solution-scaffolder/SKILL.md"
+                ".github/skills/coreex-scaffold/SKILL.md"
                 ".github/docs/coreex/manifest.txt"
                 ".github/coreex-ai-workflows.md"
                 ".claude/commands/coreex-bootstrap.md"
                 ".claude/commands/coreex-expert.md"
                 ".claude/commands/coreex-docs-sync.md"
+                ".claude/commands/coreex-scaffold.md"
+                ".claude/commands/coreex-adapter.md"
+                ".claude/commands/coreex-aggregate.md"
+                ".claude/commands/coreex-api.md"
+                ".claude/commands/coreex-api-e2e.md"
+                ".claude/commands/coreex-app-service.md"
+                ".claude/commands/coreex-contract.md"
+                ".claude/commands/coreex-db-migration.md"
+                ".claude/commands/coreex-graphql.md"
+                ".claude/commands/coreex-policy.md"
+                ".claude/commands/coreex-refdata.md"
+                ".claude/commands/coreex-repository.md"
+                ".claude/commands/coreex-subscriber.md"
+                ".claude/commands/coreex-subscriber-e2e.md"
+                ".claude/commands/coreex-test-api.md"
+                ".claude/commands/coreex-test-relay.md"
+                ".claude/commands/coreex-test-subscribe.md"
+                ".claude/commands/coreex-validator.md"
             )
             FilesAbsent  = @(
                 ".github/copilot-instructions.md"
-                ".github/skills/solution-scaffolder"
+                ".github/skills/coreex-solution-scaffolder"
             )
             FileContains = @{
                 ".github/instructions/coreex.instructions.md"                   = 'applyTo: "**"'
@@ -102,14 +120,14 @@ $testScenarios = @(
                 ".github/instructions/coreex.instructions.md"
                 ".github/instructions/coreex-validators.instructions.md"
                 ".github/skills/coreex-docs-sync/SKILL.md"
-                ".github/skills/coreex-solution-scaffolder/SKILL.md"
+                ".github/skills/coreex-scaffold/SKILL.md"
                 ".github/docs/coreex/manifest.txt"
                 ".github/coreex-ai-workflows.md"
                 ".claude/commands/coreex-docs-sync.md"
             )
             FilesAbsent  = @(
                 ".github/copilot-instructions.md"
-                ".github/skills/solution-scaffolder"
+                ".github/skills/coreex-solution-scaffolder"
             )
             FileContains = @{
                 ".github/instructions/coreex.instructions.md"                 = 'applyTo: "backend/'

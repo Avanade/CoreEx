@@ -1,5 +1,5 @@
 ---
-description: "CoreEx Solution Scaffolder — guides solution shaping after bootstrap (hosts, database, messaging, refdata/outbox/DDD/ROP options, and an optional Aspire AppHost for local multi-host orchestration/dashboard) and turns the answers into dotnet new template commands."
+description: "Guide a developer through CoreEx solution shaping after bootstrap, using a short plain-English interview that turns user answers into safe dotnet new template inputs. USE FOR: bootstrap-only repos, deciding API-only vs API plus relay vs API plus subscriber, choosing SQL Server vs Postgres vs no database, choosing refdata/outbox/DDD/ROP options, installing CoreEx.Template, checking current solution shape, adding missing Api/Relay/Subscribe hosts to an existing repo, adding a .NET Aspire AppHost for local multi-host orchestration and dashboard visibility, and optionally preparing a first local runnable state with local dependency assets plus database/code-generation steps. DO NOT USE FOR: unrelated runtime debugging, bootstrap creation, or forcing root re-scaffolding over an existing solution. INVOKES: workspace inspection, ask-questions style interviews, dotnet new install/list, dry-run validation, solution wiring, optional local dependency asset creation, focused build/test validation, and either template generation or manual retrofit work depending on repo shape."
 allowed-tools: [Read, Glob, Grep, Edit, Write, Bash]
 ---
 
@@ -11,4 +11,4 @@ allowed-tools: [Read, Glob, Grep, Edit, Write, Bash]
     propose the change upstream in Avanade/CoreEx instead, then refresh once it is released.
 -->
 
-Read `.github/skills/coreex-solution-scaffolder/SKILL.md` and follow the instructions in that file.
+Read `.github/skills/coreex-scaffold/SKILL.md` and follow the instructions in that file.

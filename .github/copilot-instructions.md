@@ -58,6 +58,7 @@ podman compose -f docker-compose.yml up -d   # Podman preferred; `docker compose
 | `redis-cache` | 6379 | FusionCache Redis backplane (all domains) |
 | `servicebus-emulator` | 5672 AMQP, 5300 mgmt | Azure Service Bus emulator; namespace `sbemulatorns`; topic `contoso` with subscriptions `products` and `shopping` (both session-enabled); config at `servicebus/Config.json` |
 | `dts-emulator` | 8080, 8082 | Azure Durable Task Scheduler emulator; task hubs `default` and `order` |
+| `cosmos-emulator` | 8081, 10251-10254 | Azure Cosmos DB emulator; backs the Customers domain database and `CoreEx.Cosmos.Test.Unit`; under rootless Podman prefer `--privileged` or host networking if it doesn't come up cleanly (see `docker-compose.yml` comment) |
 | `aspire-dashboard` | 18888 UI, 4317 OTLP | Standalone OpenTelemetry dashboard; usable without running the full Aspire AppHost |
 
 Connection strings for each service in development are in each host's `appsettings.Development.json` under the `Aspire:` configuration key hierarchy. See [`samples/docs/local-dev.md`](../samples/docs/local-dev.md) for full detail, connection string patterns, and startup sequences.
@@ -68,8 +69,8 @@ Connection strings for each service in development are in each host's `appsettin
 - **Host layers** (composition roots, no business logic): `*.Api`, `*.Relay`, `*.Subscribe`.
 - **Design-time tooling** (no runtime presence): `*.CodeGen` (generates reference-data layer from `ref-data.yaml`) and `*.Database` (schema, seeding, outbox infrastructure via DbEx).
 - **Sample flow**: Controllers → `WebApi` helpers → Application services (validate + `IUnitOfWork`) → Infrastructure repositories (EF + explicit mappers) → transactional outbox → relay publishes to Service Bus → subscribers consume.
-- **Polyglot data**: Products uses PostgreSQL (`CoreEx.Database.Postgres` + `CoreEx.EntityFrameworkCore`); Shopping uses SQL Server (`CoreEx.Database.SqlServer` + `CoreEx.EntityFrameworkCore`). Layers above Infrastructure are database-agnostic.
-- **Primary domains**: Products and Shopping complete; Orders WIP. See `samples\README.md` for topology.
+- **Polyglot data**: Products uses PostgreSQL (`CoreEx.Database.Postgres` + `CoreEx.EntityFrameworkCore`); Shopping uses SQL Server (`CoreEx.Database.SqlServer` + `CoreEx.EntityFrameworkCore`); Customers uses Azure Cosmos DB (`CoreEx.Cosmos` — preview, API surface may still change without following strict semver until it stabilizes; direct SDK access, no EF Core, no `*.Database` project; containers are code-first via `ReplaceOrCreateContainerAsync`). Layers above Infrastructure are database-agnostic.
+- **Primary domains**: Products and Shopping complete; Customers (Cosmos DB) demonstrates typed CRUD + transactional outbox but has no Relay/Subscribe host yet; Orders WIP. See `samples\README.md` for topology.
 - **Aspire**: orchestrates all sample hosts in `samples\aspire\Contoso.Aspire\AppHost.cs` for local distributed development and E2E testing.
 
 ## Key Conventions That Matter in This Repo

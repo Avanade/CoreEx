@@ -1,6 +1,6 @@
 ---
 name: coreex-graphql
-description: "Add or extend GraphQL-lite query support (CoreEx.Data.GraphQL) on a CoreEx *.Api host. USE FOR: first-time AddCoreExGraphQLLite/MapCoreExGraphQLLite wiring in Program.cs, registering AddQuery/AddGet roots over an entity's existing QueryArgsConfig, bulk-exposing reference data via AddReferenceDataQueries, adding a matching GraphQL root for an endpoint coreex-api just scaffolded, recording GraphQL enablement in the host's AGENTS.md. DO NOT USE FOR: REST controller endpoints (use coreex-api), defining or changing a QueryArgsConfig itself (use coreex-repository or coreex-refdata), general Program.cs setup unrelated to GraphQL (use coreex-solution-scaffolder)."
+description: "Add or extend GraphQL-lite query support (CoreEx.Data.GraphQL) on a CoreEx *.Api host. USE FOR: first-time AddCoreExGraphQLLite/MapCoreExGraphQLLite wiring in Program.cs, registering AddQuery/AddGet roots over an entity's existing QueryArgsConfig, bulk-exposing reference data via AddReferenceDataQueries, adding a matching GraphQL root for an endpoint coreex-api just scaffolded, recording GraphQL enablement in the host's AGENTS.md. DO NOT USE FOR: REST controller endpoints (use coreex-api), defining or changing a QueryArgsConfig itself (use coreex-repository or coreex-refdata), general Program.cs setup unrelated to GraphQL (use coreex-scaffold)."
 argument-hint: "Optional: host name, entity/entities to expose, whether to bulk-expose reference data"
 tags: ["graphql", "query", "api", "webapi", "coreex"]
 ---
@@ -28,7 +28,7 @@ Guides you through adding `CoreEx.Data.GraphQL` (GraphQL-lite) to an `*.Api` hos
 
 - REST controller/endpoint work — use `coreex-api`
 - Defining or changing a `QueryArgsConfig` itself — use `coreex-repository` (entity queries) or `coreex-refdata` (reference data queries). GraphQL-lite only bridges to the existing config; it never adds new filter/sort capability of its own
-- General host `Program.cs` setup unrelated to GraphQL — use `coreex-solution-scaffolder`
+- General host `Program.cs` setup unrelated to GraphQL — use `coreex-scaffold`
 - Subscribe/Relay hosts — GraphQL-lite is a REST-adjacent query surface for `*.Api` hosts only
 
 ## Quick Reference
@@ -61,6 +61,6 @@ For full workflow and code examples see [`references/workflow.md`](references/wo
 
 - [`/.github/instructions/coreex-host-setup.instructions.md`](/.github/instructions/coreex-host-setup.instructions.md) — `Program.cs` composition, GraphQL registration pattern
 - [`/.github/instructions/coreex-api-controllers.instructions.md`](/.github/instructions/coreex-api-controllers.instructions.md) — `QueryArgsConfig`/`QueryAsync` conventions that GraphQL-lite bridges to
-- Related skills: [`coreex-api`](../coreex-api/SKILL.md) (REST alternative/companion — hand off here after adding a REST query endpoint), [`coreex-repository`](../coreex-repository/SKILL.md) and [`coreex-refdata`](../coreex-refdata/SKILL.md) (own the `QueryArgsConfig` that GraphQL-lite bridges to), [`coreex-solution-scaffolder`](../coreex-solution-scaffolder/SKILL.md) (host setup)
+- Related skills: [`coreex-api`](../coreex-api/SKILL.md) (REST alternative/companion — hand off here after adding a REST query endpoint), [`coreex-repository`](../coreex-repository/SKILL.md) and [`coreex-refdata`](../coreex-refdata/SKILL.md) (own the `QueryArgsConfig` that GraphQL-lite bridges to), [`coreex-scaffold`](../coreex-scaffold/SKILL.md) (host setup)
 - [`CoreEx.Data.GraphQL` AGENTS.md (CoreEx sample — illustrative, not in your project)](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.Data.GraphQL/AGENTS.md) — full registration API, query syntax, and non-goals
 - [Products sample `Program.cs` (CoreEx sample — illustrative)](https://github.com/Avanade/CoreEx/blob/main/samples/src/Contoso.Products.Api/Program.cs) — working `AddCoreExGraphQLLite`/`MapCoreExGraphQLLite` example

@@ -54,6 +54,7 @@ param(
         "src\CoreEx.Azure.Messaging.ServiceBus",
         "src\CoreEx.Caching.FusionCache",
         "src\CoreEx.CodeGen",
+        "src\CoreEx.Cosmos",
         "src\CoreEx.Data",
         "src\CoreEx.Data.GraphQL",
         "src\CoreEx.Database",

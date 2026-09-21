@@ -101,7 +101,7 @@
 
   <!-- Copy packaged AI context files from the CoreEx repo into the CoreEx.Ai template at pack time.
        CoreEx.Ai receives instructions (transformed with app-folder conditionals), prompts, agents, Claude commands,
-       the full skill suite (coreex-bootstrap, coreex-docs-sync, coreex-solution-scaffolder, and all L1/L2 coreex-* skills),
+       the full skill suite (coreex-bootstrap, coreex-docs-sync, coreex-scaffold, and all L1/L2 coreex-* skills),
        and the docs cache (architecture docs + per-package guides under .github/docs/coreex/).
        coreex (CoreEx.Core) no longer receives any .github/ AI assets; consumers run dotnet new coreex-ai separately.
        The coreex-bootstrap template has been retired; its role is now fulfilled by the /coreex-bootstrap skill
@@ -112,12 +112,14 @@
          - .github/prompts/coreex-bootstrap.prompt.md                      → .github/prompts/coreex-bootstrap.prompt.md
          - .github/skills/coreex-bootstrap/SKILL.md                        → .github/skills/coreex-bootstrap/SKILL.md
          - .github/prompts/coreex-scaffold.prompt.md                        → .github/prompts/coreex-scaffold.prompt.md
-         - .github/skills/coreex-solution-scaffolder/*                     → .github/skills/coreex-solution-scaffolder/
+         - .github/skills/coreex-scaffold/*                     → .github/skills/coreex-scaffold/
          - .github/skills/coreex-docs-sync/*                                → .github/skills/coreex-docs-sync/
          - .github/agents/coreex-expert.agent.md                           → .github/agents/coreex-expert.agent.md
          - .claude/commands/coreex-bootstrap.md                            → .claude/commands/coreex-bootstrap.md
          - .claude/commands/coreex-expert.md                               → .claude/commands/coreex-expert.md
          - .claude/commands/coreex-docs-sync.md                            → .claude/commands/coreex-docs-sync.md
+         - .claude/commands/coreex-scaffold.md                             → .claude/commands/coreex-scaffold.md
+         - .claude/commands/coreex-<name>.md (one per L1/L2 skill below)   → .claude/commands/coreex-<name>.md (thin delegate wrapper, full Claude Code/Copilot parity)
          - .github/instructions/*.instructions.md                           → .github/instructions/ (transformed with app-folder conditionals)
          - docs/application-scaffolding-guide.md                           → .github/docs/coreex/...
          - samples/docs/*.md                                                 → .github/docs/coreex/
@@ -153,64 +155,64 @@
           DestinationFiles="$(_AiAiGenRoot).github/prompts/coreex-bootstrap.prompt.md;$(_AiAiGenRoot).github/skills/coreex-bootstrap/SKILL.md"
           SkipUnchangedFiles="true" />
 
-    <!-- CoreEx.Ai: ship coreex-solution-scaffolder — consumers adding hosts to an existing repo need this. -->
-    <Copy SourceFiles="$(_RepoRoot).github/skills/coreex-solution-scaffolder/SKILL.md;$(_RepoRoot).github/skills/coreex-solution-scaffolder/README.md;$(_RepoRoot).github/skills/coreex-solution-scaffolder/references/workflow.md;$(_RepoRoot).github/skills/coreex-solution-scaffolder/assets/servicebus-config.template.json;$(_RepoRoot).github/skills/coreex-solution-scaffolder/assets/docker-compose.local.yml;$(_RepoRoot).github/skills/coreex-solution-scaffolder/assets/README.md;$(_RepoRoot).claude/commands/coreex-scaffold.md"
-          DestinationFiles="$(_AiAiGenRoot).github/skills/coreex-solution-scaffolder/SKILL.md;$(_AiAiGenRoot).github/skills/coreex-solution-scaffolder/README.md;$(_AiAiGenRoot).github/skills/coreex-solution-scaffolder/references/workflow.md;$(_AiAiGenRoot).github/skills/coreex-solution-scaffolder/assets/servicebus-config.template.json;$(_AiAiGenRoot).github/skills/coreex-solution-scaffolder/assets/docker-compose.local.yml;$(_AiAiGenRoot).github/skills/coreex-solution-scaffolder/assets/README.md;$(_AiAiGenRoot).claude/commands/coreex-scaffold.md"
+    <!-- CoreEx.Ai: ship coreex-scaffold — consumers adding hosts to an existing repo need this. -->
+    <Copy SourceFiles="$(_RepoRoot).github/skills/coreex-scaffold/SKILL.md;$(_RepoRoot).github/skills/coreex-scaffold/README.md;$(_RepoRoot).github/skills/coreex-scaffold/references/workflow.md;$(_RepoRoot).github/skills/coreex-scaffold/assets/servicebus-config.template.json;$(_RepoRoot).github/skills/coreex-scaffold/assets/docker-compose.local.yml;$(_RepoRoot).github/skills/coreex-scaffold/assets/README.md;$(_RepoRoot).claude/commands/coreex-scaffold.md"
+          DestinationFiles="$(_AiAiGenRoot).github/skills/coreex-scaffold/SKILL.md;$(_AiAiGenRoot).github/skills/coreex-scaffold/README.md;$(_AiAiGenRoot).github/skills/coreex-scaffold/references/workflow.md;$(_AiAiGenRoot).github/skills/coreex-scaffold/assets/servicebus-config.template.json;$(_AiAiGenRoot).github/skills/coreex-scaffold/assets/docker-compose.local.yml;$(_AiAiGenRoot).github/skills/coreex-scaffold/assets/README.md;$(_AiAiGenRoot).claude/commands/coreex-scaffold.md"
           SkipUnchangedFiles="true" />
 
     <!-- CoreEx.Ai: copy additional skills + their prompt wrappers (prefer one block per skill for clarity). -->
-    <Copy SourceFiles="$(_RepoRoot).github/prompts/coreex-db-migration.prompt.md;$(_RepoRoot).github/skills/coreex-db-migration/SKILL.md;$(_RepoRoot).github/skills/coreex-db-migration/references/workflow.md"
-          DestinationFiles="$(_AiAiGenRoot).github/prompts/coreex-db-migration.prompt.md;$(_AiAiGenRoot).github/skills/coreex-db-migration/SKILL.md;$(_AiAiGenRoot).github/skills/coreex-db-migration/references/workflow.md"
+    <Copy SourceFiles="$(_RepoRoot).github/prompts/coreex-db-migration.prompt.md;$(_RepoRoot).github/skills/coreex-db-migration/SKILL.md;$(_RepoRoot).github/skills/coreex-db-migration/references/workflow.md;$(_RepoRoot).claude/commands/coreex-db-migration.md"
+          DestinationFiles="$(_AiAiGenRoot).github/prompts/coreex-db-migration.prompt.md;$(_AiAiGenRoot).github/skills/coreex-db-migration/SKILL.md;$(_AiAiGenRoot).github/skills/coreex-db-migration/references/workflow.md;$(_AiAiGenRoot).claude/commands/coreex-db-migration.md"
           SkipUnchangedFiles="true" />
-    <Copy SourceFiles="$(_RepoRoot).github/prompts/coreex-refdata.prompt.md;$(_RepoRoot).github/skills/coreex-refdata/SKILL.md;$(_RepoRoot).github/skills/coreex-refdata/references/workflow.md"
-          DestinationFiles="$(_AiAiGenRoot).github/prompts/coreex-refdata.prompt.md;$(_AiAiGenRoot).github/skills/coreex-refdata/SKILL.md;$(_AiAiGenRoot).github/skills/coreex-refdata/references/workflow.md"
+    <Copy SourceFiles="$(_RepoRoot).github/prompts/coreex-refdata.prompt.md;$(_RepoRoot).github/skills/coreex-refdata/SKILL.md;$(_RepoRoot).github/skills/coreex-refdata/references/workflow.md;$(_RepoRoot).claude/commands/coreex-refdata.md"
+          DestinationFiles="$(_AiAiGenRoot).github/prompts/coreex-refdata.prompt.md;$(_AiAiGenRoot).github/skills/coreex-refdata/SKILL.md;$(_AiAiGenRoot).github/skills/coreex-refdata/references/workflow.md;$(_AiAiGenRoot).claude/commands/coreex-refdata.md"
           SkipUnchangedFiles="true" />
-    <Copy SourceFiles="$(_RepoRoot).github/prompts/coreex-contract.prompt.md;$(_RepoRoot).github/skills/coreex-contract/SKILL.md;$(_RepoRoot).github/skills/coreex-contract/references/workflow.md"
-          DestinationFiles="$(_AiAiGenRoot).github/prompts/coreex-contract.prompt.md;$(_AiAiGenRoot).github/skills/coreex-contract/SKILL.md;$(_AiAiGenRoot).github/skills/coreex-contract/references/workflow.md"
+    <Copy SourceFiles="$(_RepoRoot).github/prompts/coreex-contract.prompt.md;$(_RepoRoot).github/skills/coreex-contract/SKILL.md;$(_RepoRoot).github/skills/coreex-contract/references/workflow.md;$(_RepoRoot).claude/commands/coreex-contract.md"
+          DestinationFiles="$(_AiAiGenRoot).github/prompts/coreex-contract.prompt.md;$(_AiAiGenRoot).github/skills/coreex-contract/SKILL.md;$(_AiAiGenRoot).github/skills/coreex-contract/references/workflow.md;$(_AiAiGenRoot).claude/commands/coreex-contract.md"
           SkipUnchangedFiles="true" />
-    <Copy SourceFiles="$(_RepoRoot).github/prompts/coreex-validator.prompt.md;$(_RepoRoot).github/skills/coreex-validator/SKILL.md;$(_RepoRoot).github/skills/coreex-validator/references/workflow.md"
-          DestinationFiles="$(_AiAiGenRoot).github/prompts/coreex-validator.prompt.md;$(_AiAiGenRoot).github/skills/coreex-validator/SKILL.md;$(_AiAiGenRoot).github/skills/coreex-validator/references/workflow.md"
+    <Copy SourceFiles="$(_RepoRoot).github/prompts/coreex-validator.prompt.md;$(_RepoRoot).github/skills/coreex-validator/SKILL.md;$(_RepoRoot).github/skills/coreex-validator/references/workflow.md;$(_RepoRoot).claude/commands/coreex-validator.md"
+          DestinationFiles="$(_AiAiGenRoot).github/prompts/coreex-validator.prompt.md;$(_AiAiGenRoot).github/skills/coreex-validator/SKILL.md;$(_AiAiGenRoot).github/skills/coreex-validator/references/workflow.md;$(_AiAiGenRoot).claude/commands/coreex-validator.md"
           SkipUnchangedFiles="true" />
-    <Copy SourceFiles="$(_RepoRoot).github/prompts/coreex-repository.prompt.md;$(_RepoRoot).github/skills/coreex-repository/SKILL.md;$(_RepoRoot).github/skills/coreex-repository/references/workflow.md"
-          DestinationFiles="$(_AiAiGenRoot).github/prompts/coreex-repository.prompt.md;$(_AiAiGenRoot).github/skills/coreex-repository/SKILL.md;$(_AiAiGenRoot).github/skills/coreex-repository/references/workflow.md"
+    <Copy SourceFiles="$(_RepoRoot).github/prompts/coreex-repository.prompt.md;$(_RepoRoot).github/skills/coreex-repository/SKILL.md;$(_RepoRoot).github/skills/coreex-repository/references/workflow.md;$(_RepoRoot).claude/commands/coreex-repository.md"
+          DestinationFiles="$(_AiAiGenRoot).github/prompts/coreex-repository.prompt.md;$(_AiAiGenRoot).github/skills/coreex-repository/SKILL.md;$(_AiAiGenRoot).github/skills/coreex-repository/references/workflow.md;$(_AiAiGenRoot).claude/commands/coreex-repository.md"
           SkipUnchangedFiles="true" />
-    <Copy SourceFiles="$(_RepoRoot).github/prompts/coreex-app-service.prompt.md;$(_RepoRoot).github/skills/coreex-app-service/SKILL.md;$(_RepoRoot).github/skills/coreex-app-service/references/workflow.md"
-          DestinationFiles="$(_AiAiGenRoot).github/prompts/coreex-app-service.prompt.md;$(_AiAiGenRoot).github/skills/coreex-app-service/SKILL.md;$(_AiAiGenRoot).github/skills/coreex-app-service/references/workflow.md"
+    <Copy SourceFiles="$(_RepoRoot).github/prompts/coreex-app-service.prompt.md;$(_RepoRoot).github/skills/coreex-app-service/SKILL.md;$(_RepoRoot).github/skills/coreex-app-service/references/workflow.md;$(_RepoRoot).claude/commands/coreex-app-service.md"
+          DestinationFiles="$(_AiAiGenRoot).github/prompts/coreex-app-service.prompt.md;$(_AiAiGenRoot).github/skills/coreex-app-service/SKILL.md;$(_AiAiGenRoot).github/skills/coreex-app-service/references/workflow.md;$(_AiAiGenRoot).claude/commands/coreex-app-service.md"
           SkipUnchangedFiles="true" />
-    <Copy SourceFiles="$(_RepoRoot).github/prompts/coreex-policy.prompt.md;$(_RepoRoot).github/skills/coreex-policy/SKILL.md;$(_RepoRoot).github/skills/coreex-policy/references/workflow.md"
-          DestinationFiles="$(_AiAiGenRoot).github/prompts/coreex-policy.prompt.md;$(_AiAiGenRoot).github/skills/coreex-policy/SKILL.md;$(_AiAiGenRoot).github/skills/coreex-policy/references/workflow.md"
+    <Copy SourceFiles="$(_RepoRoot).github/prompts/coreex-policy.prompt.md;$(_RepoRoot).github/skills/coreex-policy/SKILL.md;$(_RepoRoot).github/skills/coreex-policy/references/workflow.md;$(_RepoRoot).claude/commands/coreex-policy.md"
+          DestinationFiles="$(_AiAiGenRoot).github/prompts/coreex-policy.prompt.md;$(_AiAiGenRoot).github/skills/coreex-policy/SKILL.md;$(_AiAiGenRoot).github/skills/coreex-policy/references/workflow.md;$(_AiAiGenRoot).claude/commands/coreex-policy.md"
           SkipUnchangedFiles="true" />
-    <Copy SourceFiles="$(_RepoRoot).github/prompts/coreex-adapter.prompt.md;$(_RepoRoot).github/skills/coreex-adapter/SKILL.md;$(_RepoRoot).github/skills/coreex-adapter/references/workflow.md"
-          DestinationFiles="$(_AiAiGenRoot).github/prompts/coreex-adapter.prompt.md;$(_AiAiGenRoot).github/skills/coreex-adapter/SKILL.md;$(_AiAiGenRoot).github/skills/coreex-adapter/references/workflow.md"
+    <Copy SourceFiles="$(_RepoRoot).github/prompts/coreex-adapter.prompt.md;$(_RepoRoot).github/skills/coreex-adapter/SKILL.md;$(_RepoRoot).github/skills/coreex-adapter/references/workflow.md;$(_RepoRoot).claude/commands/coreex-adapter.md"
+          DestinationFiles="$(_AiAiGenRoot).github/prompts/coreex-adapter.prompt.md;$(_AiAiGenRoot).github/skills/coreex-adapter/SKILL.md;$(_AiAiGenRoot).github/skills/coreex-adapter/references/workflow.md;$(_AiAiGenRoot).claude/commands/coreex-adapter.md"
           SkipUnchangedFiles="true" />
-    <Copy SourceFiles="$(_RepoRoot).github/prompts/coreex-api.prompt.md;$(_RepoRoot).github/skills/coreex-api/SKILL.md;$(_RepoRoot).github/skills/coreex-api/references/workflow.md"
-          DestinationFiles="$(_AiAiGenRoot).github/prompts/coreex-api.prompt.md;$(_AiAiGenRoot).github/skills/coreex-api/SKILL.md;$(_AiAiGenRoot).github/skills/coreex-api/references/workflow.md"
+    <Copy SourceFiles="$(_RepoRoot).github/prompts/coreex-api.prompt.md;$(_RepoRoot).github/skills/coreex-api/SKILL.md;$(_RepoRoot).github/skills/coreex-api/references/workflow.md;$(_RepoRoot).claude/commands/coreex-api.md"
+          DestinationFiles="$(_AiAiGenRoot).github/prompts/coreex-api.prompt.md;$(_AiAiGenRoot).github/skills/coreex-api/SKILL.md;$(_AiAiGenRoot).github/skills/coreex-api/references/workflow.md;$(_AiAiGenRoot).claude/commands/coreex-api.md"
           SkipUnchangedFiles="true" />
-    <Copy SourceFiles="$(_RepoRoot).github/prompts/coreex-graphql.prompt.md;$(_RepoRoot).github/skills/coreex-graphql/SKILL.md;$(_RepoRoot).github/skills/coreex-graphql/references/workflow.md"
-          DestinationFiles="$(_AiAiGenRoot).github/prompts/coreex-graphql.prompt.md;$(_AiAiGenRoot).github/skills/coreex-graphql/SKILL.md;$(_AiAiGenRoot).github/skills/coreex-graphql/references/workflow.md"
+    <Copy SourceFiles="$(_RepoRoot).github/prompts/coreex-graphql.prompt.md;$(_RepoRoot).github/skills/coreex-graphql/SKILL.md;$(_RepoRoot).github/skills/coreex-graphql/references/workflow.md;$(_RepoRoot).claude/commands/coreex-graphql.md"
+          DestinationFiles="$(_AiAiGenRoot).github/prompts/coreex-graphql.prompt.md;$(_AiAiGenRoot).github/skills/coreex-graphql/SKILL.md;$(_AiAiGenRoot).github/skills/coreex-graphql/references/workflow.md;$(_AiAiGenRoot).claude/commands/coreex-graphql.md"
           SkipUnchangedFiles="true" />
-    <Copy SourceFiles="$(_RepoRoot).github/prompts/coreex-subscriber.prompt.md;$(_RepoRoot).github/skills/coreex-subscriber/SKILL.md;$(_RepoRoot).github/skills/coreex-subscriber/references/workflow.md"
-          DestinationFiles="$(_AiAiGenRoot).github/prompts/coreex-subscriber.prompt.md;$(_AiAiGenRoot).github/skills/coreex-subscriber/SKILL.md;$(_AiAiGenRoot).github/skills/coreex-subscriber/references/workflow.md"
+    <Copy SourceFiles="$(_RepoRoot).github/prompts/coreex-subscriber.prompt.md;$(_RepoRoot).github/skills/coreex-subscriber/SKILL.md;$(_RepoRoot).github/skills/coreex-subscriber/references/workflow.md;$(_RepoRoot).claude/commands/coreex-subscriber.md"
+          DestinationFiles="$(_AiAiGenRoot).github/prompts/coreex-subscriber.prompt.md;$(_AiAiGenRoot).github/skills/coreex-subscriber/SKILL.md;$(_AiAiGenRoot).github/skills/coreex-subscriber/references/workflow.md;$(_AiAiGenRoot).claude/commands/coreex-subscriber.md"
           SkipUnchangedFiles="true" />
-    <Copy SourceFiles="$(_RepoRoot).github/prompts/coreex-aggregate.prompt.md;$(_RepoRoot).github/skills/coreex-aggregate/SKILL.md;$(_RepoRoot).github/skills/coreex-aggregate/references/workflow.md"
-          DestinationFiles="$(_AiAiGenRoot).github/prompts/coreex-aggregate.prompt.md;$(_AiAiGenRoot).github/skills/coreex-aggregate/SKILL.md;$(_AiAiGenRoot).github/skills/coreex-aggregate/references/workflow.md"
+    <Copy SourceFiles="$(_RepoRoot).github/prompts/coreex-aggregate.prompt.md;$(_RepoRoot).github/skills/coreex-aggregate/SKILL.md;$(_RepoRoot).github/skills/coreex-aggregate/references/workflow.md;$(_RepoRoot).claude/commands/coreex-aggregate.md"
+          DestinationFiles="$(_AiAiGenRoot).github/prompts/coreex-aggregate.prompt.md;$(_AiAiGenRoot).github/skills/coreex-aggregate/SKILL.md;$(_AiAiGenRoot).github/skills/coreex-aggregate/references/workflow.md;$(_AiAiGenRoot).claude/commands/coreex-aggregate.md"
           SkipUnchangedFiles="true" />
-    <Copy SourceFiles="$(_RepoRoot).github/prompts/coreex-test-api.prompt.md;$(_RepoRoot).github/skills/coreex-test-api/SKILL.md;$(_RepoRoot).github/skills/coreex-test-api/references/workflow.md"
-          DestinationFiles="$(_AiAiGenRoot).github/prompts/coreex-test-api.prompt.md;$(_AiAiGenRoot).github/skills/coreex-test-api/SKILL.md;$(_AiAiGenRoot).github/skills/coreex-test-api/references/workflow.md"
+    <Copy SourceFiles="$(_RepoRoot).github/prompts/coreex-test-api.prompt.md;$(_RepoRoot).github/skills/coreex-test-api/SKILL.md;$(_RepoRoot).github/skills/coreex-test-api/references/workflow.md;$(_RepoRoot).claude/commands/coreex-test-api.md"
+          DestinationFiles="$(_AiAiGenRoot).github/prompts/coreex-test-api.prompt.md;$(_AiAiGenRoot).github/skills/coreex-test-api/SKILL.md;$(_AiAiGenRoot).github/skills/coreex-test-api/references/workflow.md;$(_AiAiGenRoot).claude/commands/coreex-test-api.md"
           SkipUnchangedFiles="true" />
-    <Copy SourceFiles="$(_RepoRoot).github/prompts/coreex-test-subscribe.prompt.md;$(_RepoRoot).github/skills/coreex-test-subscribe/SKILL.md;$(_RepoRoot).github/skills/coreex-test-subscribe/references/workflow.md"
-          DestinationFiles="$(_AiAiGenRoot).github/prompts/coreex-test-subscribe.prompt.md;$(_AiAiGenRoot).github/skills/coreex-test-subscribe/SKILL.md;$(_AiAiGenRoot).github/skills/coreex-test-subscribe/references/workflow.md"
+    <Copy SourceFiles="$(_RepoRoot).github/prompts/coreex-test-subscribe.prompt.md;$(_RepoRoot).github/skills/coreex-test-subscribe/SKILL.md;$(_RepoRoot).github/skills/coreex-test-subscribe/references/workflow.md;$(_RepoRoot).claude/commands/coreex-test-subscribe.md"
+          DestinationFiles="$(_AiAiGenRoot).github/prompts/coreex-test-subscribe.prompt.md;$(_AiAiGenRoot).github/skills/coreex-test-subscribe/SKILL.md;$(_AiAiGenRoot).github/skills/coreex-test-subscribe/references/workflow.md;$(_AiAiGenRoot).claude/commands/coreex-test-subscribe.md"
           SkipUnchangedFiles="true" />
-    <Copy SourceFiles="$(_RepoRoot).github/prompts/coreex-test-relay.prompt.md;$(_RepoRoot).github/skills/coreex-test-relay/SKILL.md"
-          DestinationFiles="$(_AiAiGenRoot).github/prompts/coreex-test-relay.prompt.md;$(_AiAiGenRoot).github/skills/coreex-test-relay/SKILL.md"
+    <Copy SourceFiles="$(_RepoRoot).github/prompts/coreex-test-relay.prompt.md;$(_RepoRoot).github/skills/coreex-test-relay/SKILL.md;$(_RepoRoot).claude/commands/coreex-test-relay.md"
+          DestinationFiles="$(_AiAiGenRoot).github/prompts/coreex-test-relay.prompt.md;$(_AiAiGenRoot).github/skills/coreex-test-relay/SKILL.md;$(_AiAiGenRoot).claude/commands/coreex-test-relay.md"
           SkipUnchangedFiles="true" />
 
     <!-- CoreEx.Ai: L2 end-to-end skills (orchestrate multiple L1 skills in one guided workflow). -->
-    <Copy SourceFiles="$(_RepoRoot).github/prompts/coreex-api-e2e.prompt.md;$(_RepoRoot).github/skills/coreex-api-e2e/SKILL.md;$(_RepoRoot).github/skills/coreex-api-e2e/references/workflow.md"
-          DestinationFiles="$(_AiAiGenRoot).github/prompts/coreex-api-e2e.prompt.md;$(_AiAiGenRoot).github/skills/coreex-api-e2e/SKILL.md;$(_AiAiGenRoot).github/skills/coreex-api-e2e/references/workflow.md"
+    <Copy SourceFiles="$(_RepoRoot).github/prompts/coreex-api-e2e.prompt.md;$(_RepoRoot).github/skills/coreex-api-e2e/SKILL.md;$(_RepoRoot).github/skills/coreex-api-e2e/references/workflow.md;$(_RepoRoot).claude/commands/coreex-api-e2e.md"
+          DestinationFiles="$(_AiAiGenRoot).github/prompts/coreex-api-e2e.prompt.md;$(_AiAiGenRoot).github/skills/coreex-api-e2e/SKILL.md;$(_AiAiGenRoot).github/skills/coreex-api-e2e/references/workflow.md;$(_AiAiGenRoot).claude/commands/coreex-api-e2e.md"
           SkipUnchangedFiles="true" />
-    <Copy SourceFiles="$(_RepoRoot).github/prompts/coreex-subscriber-e2e.prompt.md;$(_RepoRoot).github/skills/coreex-subscriber-e2e/SKILL.md;$(_RepoRoot).github/skills/coreex-subscriber-e2e/references/workflow.md"
-          DestinationFiles="$(_AiAiGenRoot).github/prompts/coreex-subscriber-e2e.prompt.md;$(_AiAiGenRoot).github/skills/coreex-subscriber-e2e/SKILL.md;$(_AiAiGenRoot).github/skills/coreex-subscriber-e2e/references/workflow.md"
+    <Copy SourceFiles="$(_RepoRoot).github/prompts/coreex-subscriber-e2e.prompt.md;$(_RepoRoot).github/skills/coreex-subscriber-e2e/SKILL.md;$(_RepoRoot).github/skills/coreex-subscriber-e2e/references/workflow.md;$(_RepoRoot).claude/commands/coreex-subscriber-e2e.md"
+          DestinationFiles="$(_AiAiGenRoot).github/prompts/coreex-subscriber-e2e.prompt.md;$(_AiAiGenRoot).github/skills/coreex-subscriber-e2e/SKILL.md;$(_AiAiGenRoot).github/skills/coreex-subscriber-e2e/references/workflow.md;$(_AiAiGenRoot).claude/commands/coreex-subscriber-e2e.md"
           SkipUnchangedFiles="true" />
 
     <!-- CoreEx.Ai: also ship the docs cache (architecture docs + per-package guides) so `dotnet new coreex-ai`
@@ -222,6 +224,7 @@
       <_AiDocFile Include="$(_RepoRoot)src/CoreEx.Azure.Messaging.ServiceBus/AGENTS.md" DestSubPath=".github/docs/coreex/agents/CoreEx.Azure.Messaging.ServiceBus.md" />
       <_AiDocFile Include="$(_RepoRoot)src/CoreEx.Caching.FusionCache/AGENTS.md" DestSubPath=".github/docs/coreex/agents/CoreEx.Caching.FusionCache.md" />
       <_AiDocFile Include="$(_RepoRoot)src/CoreEx.CodeGen/AGENTS.md" DestSubPath=".github/docs/coreex/agents/CoreEx.CodeGen.md" />
+      <_AiDocFile Include="$(_RepoRoot)src/CoreEx.Cosmos/AGENTS.md" DestSubPath=".github/docs/coreex/agents/CoreEx.Cosmos.md" />
       <_AiDocFile Include="$(_RepoRoot)src/CoreEx.Data/AGENTS.md" DestSubPath=".github/docs/coreex/agents/CoreEx.Data.md" />
       <_AiDocFile Include="$(_RepoRoot)src/CoreEx.Data.GraphQL/AGENTS.md" DestSubPath=".github/docs/coreex/agents/CoreEx.Data.GraphQL.md" />
       <_AiDocFile Include="$(_RepoRoot)src/CoreEx.Database/AGENTS.md" DestSubPath=".github/docs/coreex/agents/CoreEx.Database.md" />

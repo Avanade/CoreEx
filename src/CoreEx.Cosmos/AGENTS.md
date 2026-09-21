@@ -1,5 +1,7 @@
 # CoreEx.Cosmos — AI Usage Guide
 
+> 🚧 **Preview**: newly added in this release. The API surface may still change in a future release without following strict semver until it stabilizes.
+
 Azure Cosmos DB implementation of the CoreEx core CRUD + query access layer pattern (model-direct and contract-to-model), structurally mirroring `CoreEx.EntityFrameworkCore`'s `EfDb`/`EfDbModel`/`EfDbMappedModel` shape, plus a `TransactionalBatch`-based transactional outbox and a Change Feed Processor-based outbox relay.
 
 ## Registration

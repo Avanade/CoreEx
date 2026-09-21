@@ -13,9 +13,13 @@ public static class CoreExExtensions
     /// <param name="builder">The <see cref="OpenTelemetryBuilder"/>.</param>
     /// <returns>The <paramref name="builder"/> to support fluent-style method-chaining.</returns>
     public static OpenTelemetryBuilder WithCoreExTelemetry(this OpenTelemetryBuilder builder)
-        => builder.ThrowIfNull().ThrowIfNull()
+    {
+        builder.ThrowIfNull();
+
+        return builder
             .WithTracing(t => t.AddHttpClientInstrumentation().WithCoreExSources())
-            .WithMetrics(m => m.AddHttpClientInstrumentation().AddRuntimeInstrumentation().AddProcessInstrumentation().AddMeter("Polly"));
+            .WithMetrics(m => m.AddHttpClientInstrumentation().AddRuntimeInstrumentation().AddMeter("Polly"));
+    }
 
     /// <summary>
     /// Enables (adds) the <i>CoreEx</i>-specified OpenTelemetry tracing sources.

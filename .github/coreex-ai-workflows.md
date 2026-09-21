@@ -18,7 +18,7 @@ This folder contains the AI artefacts that give GitHub Copilot and Claude Code a
 | Area instructions | `instructions/*.instructions.md` | Scoped context injected automatically when editing a matching file type (contracts, services, repositories, controllers, tests, etc.). |
 | Agent | `agents/coreex-expert.agent.md` | Dedicated expert for CoreEx architecture and pattern guidance — explains conventions, reviews designs, and routes to the right command. |
 | Prompts | `prompts/*.prompt.md` | Deterministic, file-driven commands invoked with `/` in chat. |
-| Skills | `skills/*/SKILL.md` | Reasoning-based commands for open-ended tasks. Invoked with `/` in Claude Code; attach the `SKILL.md` via `#file:` in Copilot. |
+| Skills | `skills/*/SKILL.md` | Reasoning-based commands for open-ended tasks. GitHub Copilot auto-discovers `.github/skills/*/SKILL.md` directly. Claude Code does not — it only exposes `/` commands from `.claude/commands/*.md` — so every `coreex-*` skill ships a matching thin-delegate wrapper there (`.claude/commands/coreex-<name>.md`, "Read `.github/skills/coreex-<name>/SKILL.md` and follow it") for true `/coreex-<name>` invocation in Claude Code. |
 | Authoring guides | `INSTRUCTION_AUTHORING.md`, `SKILL_AUTHORING.md` — present in this repo only; not copied into consumer repos by `dotnet new coreex-ai`. | Standards for writing new instruction files and skills. |
 
 ## Agent
@@ -28,7 +28,7 @@ This folder contains the AI artefacts that give GitHub Copilot and Claude Code a
 - Claude Code: `@coreex-expert`
 - Copilot Chat: switch to **Agent** mode and select **CoreEx Expert**
 
-The agent uses a local doc cache (populated by `/coreex-docs-sync`) to avoid live GitHub fetches on every question. It covers all 17 CoreEx packages, distinguishing those already in the project from ones the project could adopt. See the [agent README](./agents/README.md) for the resolution flowchart, cache structure, and adoption guide.
+The agent uses a local doc cache (populated by `/coreex-docs-sync`) to avoid live GitHub fetches on every question. It covers all 18 CoreEx packages, distinguishing those already in the project from ones the project could adopt. See the [agent README](./agents/README.md) for the resolution flowchart, cache structure, and adoption guide.
 
 ## Instructions
 
@@ -55,14 +55,15 @@ Instructions are passive — no action is needed to activate them. The global fi
 Three artefact types cooperate, each with a distinct job:
 
 - **Instruction** (`instructions/*.instructions.md`) — invariant rules that are *auto-injected* whenever an edited file matches the instruction's `applyTo` glob. You never invoke them; they passively shape every edit to a matching file.
-- **Skill** (`skills/coreex-*/`) — a reasoning *workflow* you invoke explicitly (`/coreex-<x>` in Claude Code) to create or modify something. Each skill owns a `SKILL.md` and a `references/workflow.md` that drive the interaction.
-- **Prompt** (`prompts/coreex-*.prompt.md`) — the GitHub Copilot entry point that *delegates to the matching skill's workflow*. Skills and prompts map 1:1 by name, so `/coreex-contract` (Claude Code skill) and `coreex-contract.prompt.md` (Copilot prompt) run the same workflow.
+- **Skill** (`skills/coreex-*/`) — a reasoning *workflow* you invoke explicitly to create or modify something. Each skill owns a `SKILL.md` and a `references/workflow.md` that drive the interaction. GitHub Copilot invokes a skill directly by reading `SKILL.md`; Claude Code requires the matching `.claude/commands/coreex-<x>.md` thin wrapper (see below) for `/coreex-<x>` to work.
+- **Prompt** (`prompts/coreex-*.prompt.md`) — the GitHub Copilot entry point that *delegates to the matching skill's workflow*. Skills and prompts map 1:1 by name, so `/coreex-contract` and `coreex-contract.prompt.md` run the same workflow.
+- **Claude command** (`.claude/commands/coreex-*.md`) — the Claude Code entry point, mirroring the prompt's role: a thin wrapper ("Read `.github/skills/coreex-<x>/SKILL.md` and follow it") that makes `/coreex-<x>` work in Claude Code. Every `coreex-*` skill ships one, 1:1 by name — this is what gives Claude Code and Copilot equivalent slash-command coverage over the same skill catalog.
 
 **Feature Configuration.** A CoreEx solution's project-wide choices — `data-provider`, `refdata-enabled`, `rop-enabled`, `outbox-enabled`, `messaging-provider` — are persisted in the solution-root `AGENTS.md` **Feature Configuration** block. Skills read that block before asking anything, so recorded decisions are not re-prompted from one skill to the next. Whether a Domain layer is present is inferred from the existence of the `src/*.Domain/` project rather than a flag, since the Domain layer is now an independent addon template (`coreex-domain`).
 
 ### Version-pin discipline
 
-`CoreEx.Template` and the core `CoreEx` package are released from the same repo at the same version number — pinning one always means pinning the other. Every `dotnet new install CoreEx.Template` invocation — in `AGENTS.md`'s Cold Start walkthrough, `coreex-solution-scaffolder`, `coreex-docs-sync`, or anywhere else — must carry an explicit `::<version>`, resolved as follows, and must never fall through to a bare/latest install:
+`CoreEx.Template` and the core `CoreEx` package are released from the same repo at the same version number — pinning one always means pinning the other. Every `dotnet new install CoreEx.Template` invocation — in `AGENTS.md`'s Cold Start walkthrough, `coreex-scaffold`, `coreex-docs-sync`, or anywhere else — must carry an explicit `::<version>`, resolved as follows, and must never fall through to a bare/latest install:
 
 - **Project already references a `CoreEx` NuGet package** (check `Directory.Packages.props`, `*.csproj`, `Directory.Build.props`): pin to that exact version. This is the common case for a refresh (`/coreex-docs-sync`) or adding a host to an existing solution.
 - **No `CoreEx` reference yet** (true first-time adoption): resolve the latest stable release explicitly (e.g. `dotnet package search CoreEx.Template --exact-match`, or the [NuGet.org listing](https://www.nuget.org/packages/CoreEx.Template)) and pin to that specific version rather than letting install resolve silently to "whatever is latest right now."
@@ -74,14 +75,14 @@ A version mismatch between the installed AI-asset bundle (`.github/docs/coreex/m
 | Command | Type | What it does |
 |---------|------|-------------|
 | [`CoreEx.Template`](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.Template/README.md) | Template pack | Deterministic `dotnet new` scaffolding for a CoreEx solution plus API, relay, and subscriber hosts. Always install with an explicit pinned version — `dotnet new install CoreEx.Template::<version>` (see [Version-pin discipline](#version-pin-discipline)) — then run the `coreex*` templates in a terminal. `dotnet new coreex-ai` installs the full AI workflow set (instructions, prompts, skills, the `coreex-expert` agent, `.claude/commands/`, and the `.github/docs/coreex/` docs cache, self-describing via `manifest.txt`) into a consuming project as one version-pinned bundle. |
-| [`/acquire-codebase-knowledge`](./skills/acquire-codebase-knowledge/README.md) | Skill | Maps an unfamiliar codebase and produces seven structured onboarding documents. |
-| [`/coreex-scaffold`](./skills/coreex-solution-scaffolder/README.md) · [prompt](./prompts/coreex-scaffold.prompt.md) | Skill + prompt | Guides greenfield solution scaffolding, chooses the smallest safe CoreEx.Template shape, and runs the matching `dotnet new coreex*` commands. |
+| [`/acquire-codebase-knowledge`](./skills/acquire-codebase-knowledge/README.md) | Skill | Maps an unfamiliar codebase and produces seven structured onboarding documents. Generic (no CoreEx dependency) and framework-repo-only — not copied into consumer repos by `dotnet new coreex-ai`. |
+| [`/coreex-scaffold`](./skills/coreex-scaffold/README.md) · [prompt](./prompts/coreex-scaffold.prompt.md) | Skill + prompt | Guides greenfield solution scaffolding, chooses the smallest safe CoreEx.Template shape, and runs the matching `dotnet new coreex*` commands. |
 | [`/coreex-docs-sync`](./skills/coreex-docs-sync/README.md) | Skill | Refreshes the whole AI asset bundle (instructions, skills, prompts, agent, `.claude/commands/`, and the `.github/docs/coreex/` docs cache) as one version-pinned `dotnet new coreex-ai --force` reinstall, matching the project's referenced `CoreEx` NuGet version. No live GitHub `main` fetch. |
-| [`/aspire`](./skills/aspire/README.md) | Skill | Orchestrates Aspire distributed apps locally: start, stop, logs, debug. |
+| [`/aspire`](./skills/aspire/README.md) | Skill | Orchestrates Aspire distributed apps locally: start, stop, logs, debug. Generic (wraps the Aspire CLI, no CoreEx dependency) and framework-repo-only — not copied into consumer repos by `dotnet new coreex-ai`. |
 
 #### Per-capability skills (L1)
 
-Fifteen skills add or modify a single CoreEx capability on an existing solution. Each is invoked as `/coreex-<name>` in Claude Code, or via the matching [`prompts/coreex-<name>.prompt.md`](./prompts/) in Copilot (1:1 by name). Every skill reads the solution-root `AGENTS.md` **Feature Configuration** first to avoid redundant questioning.
+Fifteen skills add or modify a single CoreEx capability on an existing solution. Each is invoked as `/coreex-<name>` in Claude Code (via its `.claude/commands/coreex-<name>.md` thin wrapper) or via the matching [`prompts/coreex-<name>.prompt.md`](./prompts/) in Copilot — 1:1 by name across all three (skill, prompt, Claude command). Every skill reads the solution-root `AGENTS.md` **Feature Configuration** first to avoid redundant questioning.
 
 | Skill / prompt | Capability |
 |----------------|-----------|

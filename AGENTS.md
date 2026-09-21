@@ -33,6 +33,7 @@ reference data, validation, and data access — into a consistent, composable ba
 | `CoreEx.EntityFrameworkCore` | EF Core integration, typed CRUD, `ValueConverter` bridges |
 | `CoreEx.RefData` | Typed reference data with hybrid-cache-backed orchestrator |
 | `CoreEx.Caching.FusionCache` | `IHybridCache` backed by ZiggyCreatures FusionCache (L1/L2 + Redis backplane) |
+| `CoreEx.Cosmos` | **Preview — newly added; API surface may still change without following strict semver until it stabilizes.** Typed Azure Cosmos DB access: `CosmosDbContainer<TModel>`/`CosmosDbMappedContainer<TValue,TModel,TMapper>` for CRUD + query with ETag/multi-tenancy/logical-delete support, a `TransactionalBatch`-based transactional outbox, and a Change Feed Processor-based outbox relay |
 | `CoreEx.Data` | OData-esque dynamic querying (`QueryArgs`/`PagingArgs`/`QueryArgsConfig`), `ItemsResult<T>` |
 | `CoreEx.Data.GraphQL` | Transport-agnostic GraphQL-lite bridge (`IGraphQLEngine`) over `CoreEx.Data` querying + `JsonFilter` field projection; hosted via `CoreEx.AspNetCore`'s `MapCoreExGraphQLLite` |
 | `CoreEx.UnitTesting` | Fluent test toolkit: event assertions, outbox assertions, JSON seed data |
@@ -126,7 +127,7 @@ For a **brand-new blank repository** (no `src/`, `tests/`, or `tools/` yet), run
 This installs:
 - `.github/instructions/` — scoped instruction files auto-injected by Copilot for each file type
 - `.github/prompts/` — the scaffolding prompt plus one `coreex-<capability>.prompt.md` per L1/L2 skill
-- `.github/skills/` — the CoreEx skill suite: `coreex-bootstrap`, `coreex-docs-sync`, `coreex-solution-scaffolder`, the L1 skills
+- `.github/skills/` — the CoreEx skill suite: `coreex-bootstrap`, `coreex-docs-sync`, `coreex-scaffold`, the L1 skills
   (`coreex-contract`, `coreex-refdata`, `coreex-db-migration`, `coreex-repository`, `coreex-adapter`,
   `coreex-app-service`, `coreex-validator`, `coreex-policy`, `coreex-aggregate`, `coreex-api`, `coreex-subscriber`,
   `coreex-test-api`, `coreex-test-subscribe`, `coreex-test-relay`), and the L2 end-to-end skills

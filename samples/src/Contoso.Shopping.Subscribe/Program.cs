@@ -101,6 +101,10 @@ public class Program
         });
 
         // Add OpenTelemetry tracing.
+#if NET8_0
+        // Workaround: net8.0's regex automata cap is too low for the combined ActivitySource patterns below; remove once net8.0 support is dropped.
+        AppContext.SetData("REGEX_NONBACKTRACKING_MAX_AUTOMATA_SIZE", 10_000);
+#endif
         builder.WithCoreExTelemetry()
             .WithCoreExServiceBusTelemetry()
             .WithCoreExSqlServerTelemetry()

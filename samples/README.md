@@ -1,10 +1,10 @@
 # Contoso Samples
 
-The `samples` folder contains reference implementations of two domain microservices built with CoreEx: **Products** and **Shopping**. A third, **Orders**, is a work in progress that will eventually demonstrate asynchronous workflow processing.
+The `samples` folder contains reference implementations of domain microservices built with CoreEx: **Products** (PostgreSQL) and **Shopping** (SQL Server) are complete; **Customers** (Azure Cosmos DB) demonstrates typed CRUD, reference data, and a transactional outbox against a schemaless store, but has no Outbox Relay/Subscribe host yet. A fourth, **Orders**, is a work in progress that will eventually demonstrate asynchronous workflow processing.
 
 ![Sample architecture interactions](../images/SampleArchitectureInteractions.png "Architecture")
 
-Each domain is an independently deployable unit with an API host, an Outbox Relay host, and an Event Subscriber host, backed by an applicable data repository, and connected to other domains via synchronous HTTP and asynchronous messaging over Azure Service Bus.
+Each of Products and Shopping is an independently deployable unit with an API host, an Outbox Relay host, and an Event Subscriber host, backed by an applicable data repository, and connected to other domains via synchronous HTTP and asynchronous messaging over Azure Service Bus. Customers is API-only for now — no Relay or Subscribe host — and is not wired into the inter-domain messaging shown below.
 
 > **Documentation** — detailed guides for layers, patterns, tooling, and testing are in [`samples/docs`](docs/).
 >
@@ -97,6 +97,7 @@ See [Patterns](docs/patterns.md) for the full catalog of architectural patterns 
 |---|---|
 | `src/Contoso.Products.*` | Products domain — Contracts, Application, Infrastructure, API, Relay, Subscribe, CodeGen, Database |
 | `src/Contoso.Shopping.*` | Shopping domain — same layer split plus Domain aggregate |
+| `src/Contoso.Customers.*` | Customers domain (Cosmos DB) — Contracts, Application, Infrastructure, API, CodeGen; no Relay/Subscribe/Database project (schemaless, code-first containers) |
 | `src/Contoso.Orders.*` | Orders domain (work in progress) |
 | `aspire/Contoso.Aspire` | Aspire AppHost — orchestrates all hosts for local development and E2E validation |
 | `tests/Contoso.*.Test.*` | Unit, API, Relay, and Subscribe test projects per domain |
@@ -140,6 +141,8 @@ dotnet run --project samples/src/Contoso.Shopping.Database -- All
 dotnet run --project samples/src/Contoso.Orders.Database   -- All
 ```
 
+> Customers (Cosmos DB) has no `*.Database` project — it is schemaless, and its containers are created/reset code-first at test/run time via `ReplaceOrCreateContainerAsync` (see [`Contoso.Customers.Test.Api/DatabaseSetUp.cs`](tests/Contoso.Customers.Test.Api/DatabaseSetUp.cs)); no separate migration step is required.
+
 > The E2E runner's **Database Migration and Base Data Refresh** option can also apply pending migrations across all domains without restarting hosts. See [Aspire & E2E](docs/aspire.md) for details.
 
 See [Tooling](docs/tooling.md) for the full list of database commands and what each does.
@@ -160,9 +163,11 @@ dotnet test samples/tests/Contoso.Products.Test.Api
 dotnet test samples/tests/Contoso.Products.Test.Relay
 dotnet test samples/tests/Contoso.Products.Test.Subscribe
 dotnet test samples/tests/Contoso.Shopping.Test.Api
+dotnet test samples/tests/Contoso.Customers.Test.Unit
+dotnet test samples/tests/Contoso.Customers.Test.Api
 ```
 
-The required infrastructure (data store, Redis, Service Bus emulator) must be running for API, Relay, and Subscribe tests.
+The required infrastructure (data store, Redis, Service Bus emulator) must be running for API, Relay, and Subscribe tests. Customers' API tests require the `cosmos-emulator` container instead of a SQL Server/Postgres store.
 
 See [Testing](docs/testing.md) for an explanation of test taxonomy, intra-domain vs inter-domain boundaries, data seeding, mock patterns, and the fluent assertion model.
 

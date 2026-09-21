@@ -6,7 +6,7 @@
     directly — propose the change upstream in Avanade/CoreEx instead, then refresh once it is released.
 -->
 
-# coreex-solution-scaffolder assets
+# coreex-scaffold assets
 
 Static local-dev infrastructure fallbacks bundled with this skill: `docker-compose.local.yml` and
 `servicebus-config.template.json`.

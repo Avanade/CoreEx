@@ -76,6 +76,7 @@ Keeps `.github/instructions/`, `.github/skills/`, `.github/prompts/`, `.github/a
     CoreEx.Azure.Messaging.ServiceBus.md
     CoreEx.Caching.FusionCache.md
     CoreEx.CodeGen.md
+    CoreEx.Cosmos.md
     CoreEx.Data.md
     CoreEx.Data.GraphQL.md
     CoreEx.Database.md

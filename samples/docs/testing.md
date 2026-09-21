@@ -25,6 +25,8 @@ Understanding this distinction is the key to understanding every test setup deci
 | Products API (`POST /api/inventory/reserve`) | Shopping | **Inter** | Mocked — `MockHttpClientFactory` intercepts the outbound call |
 | Azure Service Bus (direct publish) | Shopping | **Inter** | Captured via `UseExpectedAzureServiceBusPublisher()` |
 | Azure Service Bus (relay) | Products Outbox Relay | **Inter** | Real — drained and asserted via `GetAndClearAzureServiceBusAsync` |
+| Customers Cosmos DB (containers) | Customers | **Intra** | Real — created/reset code-first via `ReplaceOrCreateContainerAsync` in `[OneTimeSetUp]` |
+| Customers outbox (Cosmos DB) | Customers | **Intra** | Real — captured via `UseExpectedCosmosDbOutboxPublisher()`; asserted via `ExpectCosmosDbOutboxEvents(...)` / `ExpectNoCosmosDbOutboxEvents()`. No Relay host yet, so captured events are never actually forwarded to Service Bus. |
 
 The Shopping `Basket_Checkout_Save_Failure` test is the sharpest illustration of the boundary: when the outbox write fails mid-checkout, Shopping falls back to publishing a `reservation.cancel` command *directly* to Service Bus (bypassing the outbox, since the DB transaction has already rolled back). The test asserts that:
 - No outbox events are published (intra-domain write failed, as injected).

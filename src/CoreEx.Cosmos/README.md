@@ -1,5 +1,7 @@
 # CoreEx.Cosmos
 
+> 🚧 **Preview**: newly added in this release. The API surface may still change in a future release without following strict semver until it stabilizes.
+
 > Provides the core [Azure Cosmos DB](https://learn.microsoft.com/en-us/azure/cosmos-db/) access layer: `ICosmosDb`/`CosmosDb` as the CoreEx-Cosmos bridge, `CosmosDbContainer<TModel>` and `CosmosDbMappedContainer<TValue, TModel, TMapper>` for typed CRUD + query operations, `CosmosDbQuery<TModel>` as the composable, invoker-wrapped query/materialization type, `CosmosDbInvoker` for structured operation logging and exception mapping, a `CosmosDbUnitOfWork` transactional outbox (`TransactionalBatch`-based), and a Change Feed Processor-based outbox relay.
 
 ## Overview

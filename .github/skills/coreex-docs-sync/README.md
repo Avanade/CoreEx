@@ -51,7 +51,7 @@ No arguments required.
 
 ```
 .github/instructions/*.instructions.md
-.github/skills/**                        ← coreex-docs-sync, coreex-solution-scaffolder, all L1 skills, and all L2 skills
+.github/skills/**                        ← coreex-docs-sync, coreex-scaffold, all L1 skills, and all L2 skills
 .github/prompts/*.prompt.md
 .github/agents/coreex-expert.agent.md
 .claude/commands/**
@@ -76,6 +76,7 @@ No arguments required.
     CoreEx.Azure.Messaging.ServiceBus.md
     CoreEx.Caching.FusionCache.md
     CoreEx.CodeGen.md
+    CoreEx.Cosmos.md
     CoreEx.Data.md
     CoreEx.Data.GraphQL.md
     CoreEx.Database.md
@@ -90,7 +91,7 @@ No arguments required.
 ```
 
 All of the above are part of the one `dotnet new coreex-ai --force` bundle — none are fetched or
-written independently. All 17 package guides are always present regardless of which packages the
+written independently. All 18 package guides are always present regardless of which packages the
 project currently references, so the expert can recommend adopting a new one with full knowledge of
 what it offers; it reads the project's actual package references live each session (no longer cached)
 to tell "already in use" from "you'd need to add this."
