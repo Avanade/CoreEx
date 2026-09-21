@@ -39,7 +39,10 @@ public static partial class UnitTestExExtensions
     /// <remarks>Deliberately resolves <see cref="ICosmosDb"/> from <see cref="TesterBase.Services"/> (the actual running host's DI container) rather than constructing a new, test-owned <see cref="CosmosClient"/>
     /// from configuration - unlike a relational connection string, a Cosmos DB database identifier is typically a host-owned literal (e.g. <c>services.AddCosmosDb&lt;TCosmosDb&gt;("contoso")</c>), not
     /// something re-derivable from configuration alone; resolving the host's own <see cref="ICosmosDb"/> guarantees test seeding always targets the exact same database the host itself reads/writes,
-    /// structurally ruling out a test/host database-name mismatch rather than merely avoiding it by convention.</remarks>
+    /// structurally ruling out a test/host database-name mismatch rather than merely avoiding it by convention.
+    /// <para>This is the first call made against the local Cosmos DB emulator for each running test host, and the emulator is known to intermittently drop the TLS handshake (<see cref="System.Net.Http.HttpRequestException"/>
+    /// wrapping a connection-reset) under sustained load (e.g. repeated cross-TFM test passes in CI) - a small bounded retry-with-backoff is applied here, scoped purely to this test-setup call, rather than
+    /// altering any production <see cref="CosmosClient"/>/<see cref="CosmosDbOptions"/> configuration.</para></remarks>
     public static async Task<Database> GetCosmosDatabaseAsync(this TesterBase tester, CancellationToken cancellationToken = default)
     {
         // ICosmosDb is registered scoped (see CoreExCosmosExtensions.AddCosmosDb), so it cannot be resolved directly from the host's root IServiceProvider - a short-lived scope is created purely to
@@ -47,7 +50,25 @@ public static partial class UnitTestExExtensions
         // it, remain perfectly usable after this scope is disposed.
         using var scope = tester.ThrowIfNull().Services.CreateScope();
         var cosmosDb = scope.ServiceProvider.GetRequiredService<ICosmosDb>();
-        await cosmosDb.Client.CreateDatabaseIfNotExistsAsync(cosmosDb.Database.Id, cancellationToken: cancellationToken).ConfigureAwait(false);
-        return cosmosDb.Database;
+
+        const int maxAttempts = 4;
+        for (var attempt = 1; ; attempt++)
+        {
+            try
+            {
+                await cosmosDb.Client.CreateDatabaseIfNotExistsAsync(cosmosDb.Database.Id, cancellationToken: cancellationToken).ConfigureAwait(false);
+                return cosmosDb.Database;
+            }
+            catch (Exception ex) when (attempt < maxAttempts && IsTransientCosmosConnectionFailure(ex))
+            {
+                await Task.Delay(TimeSpan.FromSeconds(attempt), cancellationToken).ConfigureAwait(false);
+            }
+        }
     }
+
+    /// <summary>
+    /// Determines whether the <paramref name="exception"/> represents a transient connection failure (e.g. a dropped TLS handshake) rather than a genuine configuration or data error.
+    /// </summary>
+    private static bool IsTransientCosmosConnectionFailure(Exception exception) => exception is System.Net.Http.HttpRequestException or IOException or System.Net.Sockets.SocketException
+        || exception.InnerException is not null && IsTransientCosmosConnectionFailure(exception.InnerException);
 }
