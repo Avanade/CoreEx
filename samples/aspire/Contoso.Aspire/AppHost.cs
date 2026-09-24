@@ -1,18 +1,30 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
+// External infrastructure (SQL Server, Postgres, Redis, Service Bus emulator) runs via docker-compose.yml, not
+// Aspire orchestration. These are modelled as connection-string resources - matching the connection name each host
+// passes to its own Aspire client-integration package (e.g. AddAzureNpgsqlDataSource("Postgres")) - purely so the
+// dashboard graph reflects the real dependencies. Aspire does not start/stop/health-check these resources; each
+// host's client-integration package already wires up its own OTLP telemetry and health checks regardless.
+// Icon names match what Aspire's own AddPostgres/AddSqlServer/AddRedis/AddAzureServiceBus hosting integrations
+// assign to the equivalent managed resource, so these look identical to the "real" ones in the dashboard.
+var postgres = builder.AddConnectionString("Postgres").WithIconName("DatabaseMultiple");
+var sqlServer = builder.AddConnectionString("SqlServer").WithIconName("DatabaseMultiple");
+var redis = builder.AddConnectionString("redis").WithIconName("Database");
+var serviceBus = builder.AddConnectionString("ServiceBus").WithIconName("MailMultiple");
+
 // Products domain.
-builder.AddProject<Projects.Contoso_Products_Api>("products-api").AddEndpoints("/health/ready/detailed");
-builder.AddProject<Projects.Contoso_Products_Relay>("products-relay").AddEndpoints("/health/ready/detailed").AddHostedServiceSupport();
-builder.AddProject<Projects.Contoso_Products_Subscribe>("products-subscribe").AddEndpoints("/health/ready/detailed").AddHostedServiceSupport();
+builder.AddProject<Projects.Contoso_Products_Api>("products-api").WithReference(postgres).WithReference(redis).AddEndpoints("/health/ready/detailed");
+builder.AddProject<Projects.Contoso_Products_Relay>("products-relay").WithReference(postgres).WithReference(serviceBus).AddEndpoints("/health/ready/detailed").AddHostedServiceSupport();
+builder.AddProject<Projects.Contoso_Products_Subscribe>("products-subscribe").WithReference(postgres).WithReference(redis).WithReference(serviceBus).AddEndpoints("/health/ready/detailed").AddHostedServiceSupport();
 
 // Shopping domain.
-builder.AddProject<Projects.Contoso_Shopping_Api>("shopping-api").AddEndpoints("/health/ready/detailed");
-builder.AddProject<Projects.Contoso_Shopping_Relay>("shopping-relay").AddEndpoints("/health/ready/detailed").AddHostedServiceSupport();
-builder.AddProject<Projects.Contoso_Shopping_Subscribe>("shopping-subscribe").AddEndpoints("/health/ready/detailed").AddHostedServiceSupport();
+builder.AddProject<Projects.Contoso_Shopping_Api>("shopping-api").WithReference(sqlServer).WithReference(redis).WithReference(serviceBus).AddEndpoints("/health/ready/detailed");
+builder.AddProject<Projects.Contoso_Shopping_Relay>("shopping-relay").WithReference(sqlServer).WithReference(serviceBus).AddEndpoints("/health/ready/detailed").AddHostedServiceSupport();
+builder.AddProject<Projects.Contoso_Shopping_Subscribe>("shopping-subscribe").WithReference(sqlServer).WithReference(redis).WithReference(serviceBus).AddEndpoints("/health/ready/detailed").AddHostedServiceSupport();
 
 // Orders domain.
 var orderWorkflowWorker = builder.AddProject<Projects.Contoso_Order_Workflow_Worker>("order-workflow-worker").AddEndpoints("/health").WithUrlForEndpoint("https", ep => { ep.Url = "http://localhost:8082"; ep.DisplayText = "DTS Dashboard"; });
-builder.AddProject<Projects.Contoso_Orders_Api>("orders-api").WaitFor(orderWorkflowWorker).AddEndpoints("/health/ready/detailed");
+builder.AddProject<Projects.Contoso_Orders_Api>("orders-api").WithReference(sqlServer).WithReference(redis).WaitFor(orderWorkflowWorker).AddEndpoints("/health/ready/detailed");
 
 builder.Build().Run();
 

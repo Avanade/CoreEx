@@ -115,6 +115,7 @@
   </Folder>
   <Folder Name="/servicebus/">
     <File Path="servicebus/Config.json" />
+    <File Path="servicebus/Reset-ServiceBusEmulator.ps1" />
   </Folder>
   <Folder Name="/Solution Items/">
     <File Path=".editorconfig" />
