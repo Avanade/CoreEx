@@ -13,14 +13,17 @@ var redis = builder.AddConnectionString("redis").WithIconName("Database");
 var serviceBus = builder.AddConnectionString("ServiceBus").WithIconName("MailMultiple");
 
 // Products domain.
-builder.AddProject<Projects.Contoso_Products_Api>("products-api").WithReference(postgres).WithReference(redis).AddEndpoints("/health/ready/detailed");
+var productsApi = builder.AddProject<Projects.Contoso_Products_Api>("products-api").WithReference(postgres).WithReference(redis).AddEndpoints("/health/ready/detailed");
 builder.AddProject<Projects.Contoso_Products_Relay>("products-relay").WithReference(postgres).WithReference(serviceBus).AddEndpoints("/health/ready/detailed").AddHostedServiceSupport();
 builder.AddProject<Projects.Contoso_Products_Subscribe>("products-subscribe").WithReference(postgres).WithReference(redis).WithReference(serviceBus).AddEndpoints("/health/ready/detailed").AddHostedServiceSupport();
 
 // Shopping domain.
-builder.AddProject<Projects.Contoso_Shopping_Api>("shopping-api").WithReference(sqlServer).WithReference(redis).WithReference(serviceBus).AddEndpoints("/health/ready/detailed");
+// Note: shopping-api and shopping-subscribe call Products synchronously (see ProductsHttpClient) - WithReference populates the
+// "Services:products-api:*" configuration used by CoreEx's service-discovery-aware AddTypedHttpClient, so the resolved address
+// always matches whichever endpoint/port products-api actually binds to (regardless of launch profile), rather than a static guess.
+builder.AddProject<Projects.Contoso_Shopping_Api>("shopping-api").WithReference(sqlServer).WithReference(redis).WithReference(serviceBus).WithReference(productsApi).AddEndpoints("/health/ready/detailed");
 builder.AddProject<Projects.Contoso_Shopping_Relay>("shopping-relay").WithReference(sqlServer).WithReference(serviceBus).AddEndpoints("/health/ready/detailed").AddHostedServiceSupport();
-builder.AddProject<Projects.Contoso_Shopping_Subscribe>("shopping-subscribe").WithReference(sqlServer).WithReference(redis).WithReference(serviceBus).AddEndpoints("/health/ready/detailed").AddHostedServiceSupport();
+builder.AddProject<Projects.Contoso_Shopping_Subscribe>("shopping-subscribe").WithReference(sqlServer).WithReference(redis).WithReference(serviceBus).WithReference(productsApi).AddEndpoints("/health/ready/detailed").AddHostedServiceSupport();
 
 // Orders domain.
 var orderWorkflowWorker = builder.AddProject<Projects.Contoso_Order_Workflow_Worker>("order-workflow-worker").AddEndpoints("/health").WithUrlForEndpoint("https", ep => { ep.Url = "http://localhost:8082"; ep.DisplayText = "DTS Dashboard"; });

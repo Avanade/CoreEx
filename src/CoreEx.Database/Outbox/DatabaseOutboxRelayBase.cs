@@ -308,6 +308,8 @@ public abstract class DatabaseOutboxRelayBase<TDatabase, TSelf> : IDatabaseOutbo
     /// </summary>
     /// <param name="exception">The <see cref="Exception"/>.</param>
     /// <returns><see langword="true"/> where the exception is considered transient; otherwise, <see langword="false"/>.</returns>
-    /// <remarks>For example, a timeout or deadlock exception that may occur during the claim of the batch and is expected to be transient in nature.</remarks>
-    protected virtual bool IsTransientException(Exception exception) => false;
+    /// <remarks>For example, a timeout or deadlock exception that may occur during the claim of the batch and is expected to be transient in nature.
+    /// <para>Defaults to <see cref="IDatabase.IsTransientException(Exception)"/> so the classification is reused wherever the <see cref="Database"/> is used, not just here; override to add relay-specific
+    /// classification in addition.</para></remarks>
+    protected virtual bool IsTransientException(Exception exception) => Database.IsTransientException(exception);
 }

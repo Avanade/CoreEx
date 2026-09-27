@@ -29,20 +29,6 @@ public class SqlServerOutboxRelay(SqlServerDatabase database, IEventPublisher ev
     }
 
     /// <inheritdoc/>
-    protected override bool IsTransientException(Exception exception)
-    {
-        if (exception is SqlException sex && sex.Errors.Count > 0)
-        {
-            switch (sex.Errors[0].Number)
-            {
-                case 1205: return true;  // Deadlock: https://learn.microsoft.com/en-us/sql/relational-databases/errors-events/mssqlserver-1205-database-engine-error
-            }
-        }
-
-        return base.IsTransientException(exception);
-    }
-
-    /// <inheritdoc/>
     protected async override Task CompleteBatchAsync(DatabaseOutboxRelayArgs args, Guid leaseId, CancellationToken cancellationToken)
     {
         await base.CompleteBatchAsync(args, leaseId, cancellationToken).ConfigureAwait(false);

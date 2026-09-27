@@ -10,6 +10,7 @@ public partial class SubscriberTests : WithApiTester<Contoso.Shopping.Subscribe.
     {
         await Test.MigrateSqlServerDataAsync<TestData>(["mutate-data.seed.yaml"], DbMigration.ConfigureMigrationArgs).ConfigureAwait(false);
         await Test.ClearFusionCacheAsync().ConfigureAwait(false);
+        await Test.ResetAzureServiceBusAsync(Common.ServiceBus.GetQueues(), Common.ServiceBus.GetTopicsAndSubscriptions()).ConfigureAwait(false);
 
         Test.UseExpectedSqlServerOutboxPublisher();
     }

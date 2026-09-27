@@ -5,6 +5,27 @@ namespace UnitTestEx;
 public static partial class UnitTestExExtensions
 {
     /// <summary>
+    /// Resets the Azure Service Bus queues and topics/subscriptions to an initial state by deleting and recreating them.
+    /// </summary>
+    /// <param name="tester">The <see cref="TesterBase"/>.</param>
+    /// <param name="queues">The queues to reset.</param>
+    /// <param name="topicsAndSubscriptions">The topics and their subscriptions to reset.</param>
+    /// <param name="connectionName">The named connection string/configuration section as used by <c>AddAzureServiceBusClient</c>/<c>AddKeyedAzureServiceBusClient</c> to configure the underlying <see cref="Asb.ServiceBusClient"/>; defaults to <c>"ServiceBus"</c>.</param>
+    /// <param name="adminPort">The port to use for the administration client.</param>
+    /// <remarks>The <see cref="Asb.ServiceBusClient"/> registered by Aspire does not retain the connection string it was created from, so this reads it directly from configuration instead - first
+    /// the standard Aspire-orchestrated <c>ConnectionStrings:{connectionName}</c> key, then falling back to the <c>Aspire:Azure:Messaging:ServiceBus:ConnectionString</c> section used when the
+    /// connection string is configured directly (e.g. via <c>appsettings.Development.json</c>).</remarks>
+    public static async Task ResetAzureServiceBusAsync(this TesterBase tester, CreateQueueOptions[]? queues = null, (CreateTopicOptions Topic, CreateSubscriptionOptions[] Subscriptions)[]? topicsAndSubscriptions = null, string connectionName = "ServiceBus", int adminPort = 5300)
+    {
+        var config = tester.ThrowIfNull().Configuration;
+        var cs = config.GetConnectionString(connectionName.ThrowIfNullOrEmpty())
+            ?? config[$"Aspire:Azure:Messaging:ServiceBus:ConnectionString"]
+            ?? throw new InvalidOperationException($"The '{connectionName}' Azure Service Bus connection string was not found in configuration.");
+
+        await ResetAzureServiceBusAsync(CreateAzureServiceBusAdminConnectionString(cs, adminPort), queues, topicsAndSubscriptions).ConfigureAwait(false);
+    }
+
+    /// <summary>
     /// Gets all messages for the Azure Service Bus queue or topic subscription completing each resulting in all messages also being cleared.
     /// </summary>
     /// <param name="tester">The <see cref="TesterBase"/>.</param>
@@ -161,4 +182,85 @@ public static partial class UnitTestExExtensions
             enqueuedTime: DateTimeOffset.UtcNow
         );
     }
+
+    #region Aspire
+
+    /// <summary>
+    /// Resets the Azure Service Bus queues and topics/subscriptions to an initial state by deleting and recreating them.
+    /// </summary>
+    /// <param name="tester">The <see cref="UnitTestEx.Aspire.AspireTesterBase"/>.</param>
+    /// <param name="aspireResourceName">The name of the Aspire resource to retrieve the connection string for.</param>
+    /// <param name="queues">The queues to reset.</param>
+    /// <param name="topicsAndSubscriptions">The topics and their subscriptions to reset.</param>
+    /// <param name="adminPort">The port to use for the administration client.</param>
+    public static async Task ResetAzureServiceBusAsync(this UnitTestEx.Aspire.AspireTesterBase tester, string aspireResourceName, CreateQueueOptions[]? queues = null, (CreateTopicOptions Topic, CreateSubscriptionOptions[] Subscriptions)[]? topicsAndSubscriptions = null, int adminPort = 5300)
+    {
+        var app = await tester.GetDistributedApplicationAsync();
+        var cs = (await app.GetConnectionStringAsync(aspireResourceName.ThrowIfNullOrEmpty())) ?? throw new InvalidOperationException($"The '{aspireResourceName}' connection string not found.");
+        await ResetAzureServiceBusAsync(CreateAzureServiceBusAdminConnectionString(cs, adminPort), queues, topicsAndSubscriptions).ConfigureAwait(false);
+    }
+
+    #endregion
+
+    #region Admin
+
+    /// <summary>
+    /// Creates an Azure Service Bus connection string for the administration client by replacing the port in the Endpoint with the specified <paramref name="adminPort"/>.
+    /// </summary>
+    /// <param name="connectionString">The original Azure Service Bus connection string.</param>
+    /// <param name="adminPort">The port to use for the administration client.</param>
+    /// <returns>The modified Azure Service Bus connection string for the administration client.</returns>
+    public static string CreateAzureServiceBusAdminConnectionString(string connectionString, int adminPort = 5300)
+    {
+        var parts = connectionString.ThrowIfNullOrEmpty().Split(';', StringSplitOptions.RemoveEmptyEntries);
+        for (var i = 0; i < parts.Length; i++)
+        {
+            var eq = parts[i].IndexOf('=');
+            if (eq < 0 || !parts[i][..eq].Equals("Endpoint", StringComparison.OrdinalIgnoreCase))
+                continue;
+            var uri = new Uri(parts[i][(eq + 1)..], UriKind.Absolute);
+            parts[i] = $"Endpoint={new UriBuilder(uri) { Port = adminPort }.Uri}";
+        }
+
+        return string.Join(";", parts) + ";";
+    }
+
+    /// <summary>
+    /// Resets the Azure Service Bus queues and topics/subscriptions to an initial state by deleting and recreating them.
+    /// </summary>
+    /// <param name="adminConnectionString">The Azure Service Bus administration connection string.</param>
+    /// <param name="queues">The queues to reset.</param>
+    /// <param name="topicsAndSubscriptions">The topics and their subscriptions to reset.</param>
+    public static async Task ResetAzureServiceBusAsync(string adminConnectionString, CreateQueueOptions[]? queues = null, (CreateTopicOptions Topic, CreateSubscriptionOptions[] Subscriptions)[]? topicsAndSubscriptions = null)
+    {
+        var admin = new ServiceBusAdministrationClient(adminConnectionString);
+
+        // Recreate each queue fresh - deleting first (if present) so the outcome is identical regardless of prior state.
+        foreach (var queue in queues ?? [])
+        {
+            if (await admin.QueueExistsAsync(queue.Name).ConfigureAwait(false))
+                await admin.DeleteQueueAsync(queue.Name).ConfigureAwait(false);
+
+            await admin.CreateQueueAsync(queue).ConfigureAwait(false);
+        }
+
+        // Recreate each topic (and its subscriptions) fresh - deleting the topic first (if present), which also removes any stale subscriptions.
+        foreach (var (topic, subscriptions) in topicsAndSubscriptions ?? [])
+        {
+            if (await admin.TopicExistsAsync(topic.Name).ConfigureAwait(false))
+                await admin.DeleteTopicAsync(topic.Name).ConfigureAwait(false);
+
+            await admin.CreateTopicAsync(topic).ConfigureAwait(false);
+
+            foreach (var subscription in subscriptions)
+            {
+                if (subscription.TopicName != topic.Name)
+                    throw new InvalidOperationException($"The subscription '{subscription.SubscriptionName}' TopicName '{subscription.TopicName}' does not match the corresponding topic '{topic.Name}'.");
+
+                await admin.CreateSubscriptionAsync(subscription).ConfigureAwait(false);
+            }
+        }
+    }
+
+    #endregion
 }

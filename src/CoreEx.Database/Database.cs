@@ -153,6 +153,18 @@ public abstract class Database<TConnection, TCommand, TDatabaseArgs, TDatabaseCo
     /// <para>Where overriding and the <see cref="DbException"/> is not specifically handled then invoke the base to ensure any standard handling is executed.</para></remarks>
     protected virtual Exception? OnDbException(DbException dbex) => null;
 
+    /// <inheritdoc/>
+    public bool IsTransientException(Exception exception) => OnIsTransientException(exception);
+
+    /// <summary>
+    /// Provides the transient <see cref="Exception"/> classification as a result of <see cref="IsTransientException(Exception)"/>.
+    /// </summary>
+    /// <param name="exception">The <see cref="Exception"/>.</param>
+    /// <returns><see langword="true"/> where the <paramref name="exception"/> is considered transient (retryable); otherwise, <see langword="false"/>.</returns>
+    /// <remarks>Provides an opportunity to classify provider-specific error codes as transient.
+    /// <para>Where overriding and the <see cref="Exception"/> is not specifically classified then invoke the base to ensure any standard handling is executed.</para></remarks>
+    protected virtual bool OnIsTransientException(Exception exception) => false;
+
     /// <summary>
     /// Gets the next (monotonic counter) save-point name.
     /// </summary>

@@ -8,7 +8,7 @@ public class RelayTests : WithApiTester<Contoso.Shopping.Relay.Program>
     public async Task OneTimeSetUpAsync()
     {
         await Test.MigrateSqlServerDataAsync<TestData>(["no-data.seed.yaml"], DbMigration.ConfigureMigrationArgs).ConfigureAwait(false);
-        await Test.GetAndClearAzureServiceBusAsync(ServiceBusSessionReceiverOptions.CreateForTopicSubscription("contoso", "shopping"));
+        await Test.ResetAzureServiceBusAsync(Common.ServiceBus.GetQueues(), Common.ServiceBus.GetTopicsAndSubscriptions()).ConfigureAwait(false);
     }
 
     [Test]

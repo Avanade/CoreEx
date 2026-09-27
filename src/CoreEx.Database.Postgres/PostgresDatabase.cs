@@ -15,6 +15,7 @@ namespace CoreEx.Database.Postgres;
 ///   <item><c>56010</c> -> <see cref="DataConsistencyException"/>.</item>
 ///  </list>
 ///  <para>This is in addition to the <see cref="CheckDuplicateErrorNumbers"/> with the corresponding <see cref="DuplicateErrorNumbers"/> that will also result in a <see cref="DuplicateException"/>.</para>
+///  <para>The <see cref="OnIsTransientException(Exception)"/> override additionally classifies deadlock, lock timeout, and Azure Database for PostgreSQL maintenance/failover/connection-limit error codes as transient (retryable).</para>
 ///  <para>This class also implements the <see cref="IUnitOfWork"/> including a <see href="https://microservices.io/patterns/data/transactional-outbox.html">transactional outbox</see>. The <see cref="IUnitOfWork"/> 
 ///  functionality is enabled by the <see cref="PostgresUnitOfWorkInvoker"/>; note, this is not thread-safe.</para>
 /// </remarks>
@@ -83,6 +84,37 @@ public partial class PostgresDatabase(NpgsqlDataSource dataSource, JsonSerialize
         }
 
         return base.OnDbException(dbex);
+    }
+
+    /// <inheritdoc/>
+    /// <remarks><see cref="NpgsqlException.IsTransient"/> only flags network-layer failures (dropped socket/timeout) - it does not consider a server-returned <see cref="PostgresException"/>/<see
+    /// cref="PostgresException.SqlState"/> at all, so every code relevant to a genuine server error (deadlock, lock timeout, failover, connection limits) must be listed explicitly here. Includes
+    /// well-known concurrency errors (deadlock, lock timeout), plus the codes commonly returned by Azure Database for PostgreSQL during planned maintenance/failover and connection-limit throttling
+    /// - relevant because Azure Database for PostgreSQL is a supported production target.</remarks>
+    protected override bool OnIsTransientException(Exception exception)
+    {
+        if (exception is NpgsqlException nex)
+        {
+            if (nex.IsTransient)
+                return true;
+
+            switch (nex.SqlState)
+            {
+                case "40P01": return true;  // deadlock_detected: https://www.postgresql.org/docs/current/errcodes-appendix.html
+                case "55P03": return true;  // lock_not_available: raised by an explicit 'SET LOCAL lock_timeout'.
+                case "57014": return true;  // query_canceled: statement_timeout (or explicit cancellation) mid-operation.
+                case "40001": return true;  // serialization_failure: defensive - relevant under higher isolation levels or advisory-lock contention.
+
+                // Azure Database for PostgreSQL planned maintenance/failover and connection-limit throttling.
+                case "57P01": return true;  // admin_shutdown: connection terminated by planned maintenance/failover.
+                case "57P02": return true;  // crash_shutdown.
+                case "57P03": return true;  // cannot_connect_now: server starting up/in recovery (e.g. just after a failover).
+                case "53300": return true;  // too_many_connections.
+                case "53400": return true;  // configuration_limit_exceeded.
+            }
+        }
+
+        return base.OnIsTransientException(exception);
     }
 
     /// <inheritdoc/>
