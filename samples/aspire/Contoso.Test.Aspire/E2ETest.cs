@@ -73,13 +73,6 @@ public class E2ETest : WithAspireTester<Projects.Contoso_Aspire>
             .AssertOK()
             .Value!;
 
-        Test.Checkpoint("Add the new Product to the Basket; should have sync'd by now.");
-
-        basket = Test.Http<Basket>(_shoppingApi)
-            .Run(HttpMethod.Post, $"/api/baskets/{basket.Id}/items", new BasketItemAddRequest { ProductId = product.Id, Quantity = 1m }, r => r.WithIdempotencyKey())
-            .AssertOK()
-            .Value!;
-
         Test.Checkpoint("Apply a discount to the Basket");
 
         basket = Test.Http<Basket>(_shoppingApi)
@@ -102,6 +95,13 @@ public class E2ETest : WithAspireTester<Projects.Contoso_Aspire>
 
         basket = Test.Http<Basket>(_shoppingApi)
             .Run(HttpMethod.Put, $"/api/baskets/{basket.Id}/shipping-address", address)
+            .AssertOK()
+            .Value!;
+
+        Test.Checkpoint("Add the new Product to the Basket; should have sync'd by now.");
+
+        basket = Test.Http<Basket>(_shoppingApi)
+            .Run(HttpMethod.Post, $"/api/baskets/{basket.Id}/items", new BasketItemAddRequest { ProductId = product.Id, Quantity = 1m }, r => r.WithIdempotencyKey())
             .AssertOK()
             .Value!;
 

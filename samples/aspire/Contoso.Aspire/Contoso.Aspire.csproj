@@ -28,6 +28,10 @@
     <PackageReference Include="MessagePack" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="UnitTestEx.Aspire" />
+  </ItemGroup>
+
   <!-- To smoke-test the orchestrated sample projects against a specific TFM without multi-targeting this AppHost
        (see the TargetFramework note above), pass e.g. `-p:SampleTargetFramework=net8.0` to `dotnet build`/`dotnet test`
        on this project or Contoso.Test.Aspire (the property propagates down the ProjectReference graph). Defaults to
@@ -45,6 +49,7 @@
     <ProjectReference Include="..\..\src\Contoso.Shopping.Api\Contoso.Shopping.Api.csproj" SetTargetFramework="TargetFramework=$(SampleTargetFramework)" />
     <ProjectReference Include="..\..\src\Contoso.Shopping.Relay\Contoso.Shopping.Relay.csproj" SetTargetFramework="TargetFramework=$(SampleTargetFramework)" />
     <ProjectReference Include="..\..\src\Contoso.Shopping.Subscribe\Contoso.Shopping.Subscribe.csproj" SetTargetFramework="TargetFramework=$(SampleTargetFramework)" />
+    <ProjectReference Include="..\Contoso.Aspire.MockHost\Contoso.Aspire.MockHost.csproj" />
   </ItemGroup>
 
 </Project>

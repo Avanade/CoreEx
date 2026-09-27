@@ -1,4 +1,19 @@
+using Microsoft.Extensions.DependencyInjection;
+
 var builder = DistributedApplication.CreateBuilder(args);
+
+// dotnet dev-certs https --trust is not fully supported on Linux, so the ASP.NET Core dev cert used by the
+// "api" resource's https endpoint is not OS-trusted on Linux CI runners. Both the health check probe above and
+// AspireTesterBase's CreateHttpClient() resolve their HttpClient via this same DI container's IHttpClientFactory,
+// so disabling certificate validation here (dev/test-only AppHost, never shipped) covers both.
+builder.Services.ConfigureHttpClientDefaults(http =>
+    http.ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+    {
+        ServerCertificateCustomValidationCallback = (_, _, _, _) => true
+    }));
+
+// IsRunMode: never surface this test-only resource in a published manifest (per the self-hosted WireMock.Net housekeeping note - see AppHost.cs's header comment).
+var mockhost = builder.AddMockHostProject<Projects.Contoso_Aspire_MockHost>("mock-host");
 
 // External infrastructure (SQL Server, Postgres, Redis, Service Bus emulator) runs via docker-compose.yml, not
 // Aspire orchestration. These are modelled as connection-string resources - matching the connection name each host
