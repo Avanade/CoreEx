@@ -123,6 +123,57 @@ public partial class ReferenceDataOrchestratorTests
         protected override void OnCreateCacheEntry(Type type, Caching.HybridCacheEntryOptions entry) => CreatedFor.Add(type);
     }
 
+    /// <summary>
+    /// An <see cref="IHybridCache"/> stand-in that records the generic type argument used for each call, simulating a serializing (e.g. distributed) cache implementation where the
+    /// generic argument determines the type the underlying serializer must construct.
+    /// </summary>
+    private class TypeRecordingHybridCache : IHybridCache
+    {
+        private readonly Dictionary<string, object?> _store = [];
+
+        public List<Type> ObservedTypes { get; } = [];
+
+        public ICacheKeyProvider KeyProvider { get; } = new DefaultCacheKeyProvider();
+
+        public Task<(bool Exists, T? Value)> TryGetByKeyAsync<T>(string key, Caching.HybridCacheEntryOptions? options = null, CancellationToken cancellationToken = default)
+        {
+            ObservedTypes.Add(typeof(T));
+            return Task.FromResult(_store.TryGetValue(key, out var value) ? (true, (T?)value) : (false, default));
+        }
+
+        public async Task<T> GetOrCreateByKeyAsync<T>(string key, Func<CancellationToken, Task<T>> factory, Caching.HybridCacheEntryOptions? options = null, CancellationToken cancellationToken = default)
+        {
+            ObservedTypes.Add(typeof(T));
+            if (_store.TryGetValue(key, out var existing))
+                return (T)existing!;
+
+            var value = await factory(cancellationToken).ConfigureAwait(false);
+            _store[key] = value;
+            return value;
+        }
+
+        public Task<T?> GetOrDefaultByKeyAsync<T>(string key, Caching.HybridCacheEntryOptions? options = null, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task SetByKeyAsync<T>(string key, T value, Caching.HybridCacheEntryOptions? options = null, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task RemoveByKeyAsync(string key, Caching.HybridCacheEntryOptions? options = null, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task RemoveByTagAsync(string tag, Caching.HybridCacheEntryOptions? options = null, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task RemoveByTagAsync(IEnumerable<string> tags, Caching.HybridCacheEntryOptions? options = null, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+    }
+
+    [Test]
+    public async Task GetOrCreateAsync_CacheMiss_NeverUsesInterfaceAsUnderlyingCacheGenericType()
+    {
+        // This proves the fix for the FUSION [DC] deserialization bug: the slow (semaphore-protected) path must invoke the underlying IHybridCache using the concrete collection type
+        // (e.g. DummyRefDataCollection), never the IReferenceDataCollection interface - a serializing cache (e.g. FusionCache's distributed tier) cannot construct an interface/abstract type.
+        var backing = new TypeRecordingHybridCache();
+        var cache = new ReferenceDataHybridCache(backing);
+
+        var coll = await cache.GetOrCreateAsync(typeof(DummyRefDataCollection), (t, ct) => Task.FromResult<IReferenceDataCollection>(new DummyRefDataCollection { new DummyRefData { Id = 1, Code = "A" } }));
+
+        coll.Should().BeOfType<DummyRefDataCollection>();
+        backing.ObservedTypes.Should().NotContain(typeof(IReferenceDataCollection));
+        backing.ObservedTypes.Should().Contain(typeof(DummyRefDataCollection));
+    }
+
     [Test]
     public async Task OnCreateCacheEntry_InvokedOnce_ForNewType()
     {
