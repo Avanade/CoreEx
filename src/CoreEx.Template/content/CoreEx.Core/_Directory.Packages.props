@@ -85,6 +85,8 @@
     <!--#if implement-postgres-->
     <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
     <!--#endif-->
+    <PackageVersion Include="UnitTestEx.Aspire" Version="5.12.0" />
     <PackageVersion Include="UnitTestEx.NUnit" Version="5.12.0" />
+    <PackageVersion Include="WireMock.Net" Version="2.18.0" />
   </ItemGroup>
 </Project>

@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- This project is UnitTestEx's recommended, self-hosted pattern for Aspire multi-host WireMock.Net mocking - see the README's "Aspire multi-host testing" section. It runs
+       WireMock.Net as an ordinary Aspire *project* resource (AddProject) rather than the official WireMock.Net.Aspire *container* resource (AddWireMock). A container resource can
+       only run a published, off-the-shelf WireMock.Net binary - it has no way to load a custom .NET IMatcher type. A project resource is just our own process, so it can register
+       UnitTestEx.Aspire's JsonElementComparerMatcher (see that type) via WireMockServerSettings.CustomMatcherMappings, giving Tier 2/3 JSON body matching genuine parity with UnitTestEx's
+       own JsonElementComparer (semantic date/GUID/decimal coercion, etc.) instead of WireMock.Net's own textual JSON comparison. As a bonus, this also drops the Docker/Podman
+       requirement entirely - this test suite's AppHost has no container-based WireMock.Net resource at all.
+
+       This project is deliberately kept small and test-only. It references UnitTestEx.Aspire itself for JsonElementComparerMatcher and WireMockConsole (which encapsulates all the
+       port/custom-matcher/graceful-shutdown boilerplate), so there is no matcher code - or boilerplate - left to copy; Program.cs is a one-liner. The official WireMock.Net.Aspire
+       container resource remains fully supported as an alternative for teams already invested in that ecosystem. -->
+  
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="WireMock.Net" />
+    <PackageReference Include="UnitTestEx.Aspire" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="UnitTestEx.Aspire" />
+    <Using Include="WireMock.Server" />
+  </ItemGroup>
+
+</Project>

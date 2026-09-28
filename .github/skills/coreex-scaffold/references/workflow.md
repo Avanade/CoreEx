@@ -276,7 +276,7 @@ Recommended options:
 
 Interpretation:
 
-- `Yes` means run `dotnet new coreex-aspire -n Company.Product.Books.Aspire` after every chosen host template, passing `--has-api`/`--has-relay`/`--has-subscribe` to match the hosts chosen in questions 3-5.
+- `Yes` means run `dotnet new coreex-aspire -n Company.Product.Books.Aspire` after every chosen host template, passing `--has-api`/`--has-relay`/`--has-subscribe` to match the hosts chosen in questions 3-5, and `--data-provider`/`--messaging-provider` to match questions 6/7.
 - `No` means skip `coreex-aspire` entirely.
 
 Default: `No`.
@@ -298,7 +298,7 @@ Build a structured decision summary before any command is run.
 | Reference data needed | `--refdata-enabled true` |
 | Domain layer needed | `dotnet new coreex-domain -n Company.Product.Books.Domain` + `dotnet sln Company.Product.Books.slnx add src/Company.Product.Books.Domain` + `dotnet add src/Company.Product.Books.Application/Company.Product.Books.Application.csproj reference src/Company.Product.Books.Domain/Company.Product.Books.Domain.csproj` (Application must reference Domain directly -- nothing else wires this) |
 | Result/ROP style needed | `--rop-enabled true` |
-| Aspire AppHost needed | `dotnet new coreex-aspire -n Company.Product.Books.Aspire --has-api <bool> --has-relay <bool> --has-subscribe <bool>`, where each `--has-*` flag mirrors whether that host was chosen in questions 3-5 -- run this last, after every chosen host template |
+| Aspire AppHost needed | `dotnet new coreex-aspire -n Company.Product.Books.Aspire --has-api <bool> --has-relay <bool> --has-subscribe <bool> --data-provider <SqlServer\|Postgres\|None> --messaging-provider <ServiceBus\|None>`, where each `--has-*` flag mirrors whether that host was chosen in questions 3-5 and the provider flags mirror questions 6-7 -- run this last, after every chosen host template |
 
 If the user is retrofitting an existing solution, only include flags that are required for missing projects or that the user explicitly asked to change.
 
@@ -325,7 +325,7 @@ State that the workflow will finish by wiring projects into the solution and run
 
 ### Adding a host to a solution that already has an AppHost
 
-If `coreex-aspire` has already been run and a new host is added afterward, do not re-run `coreex-aspire --force` -- it would overwrite any customisation already made to `AppHost.cs`/`Extensions.cs`. Instead, add the missing `<ProjectReference>` in the AppHost's `.csproj` and the matching `builder.AddProject<...>(...)` line in `AppHost.cs` by hand, following the pattern already used for the other hosts there.
+If `coreex-aspire` has already been run and a new host is added afterward, do not re-run `coreex-aspire --force` -- it would overwrite any customisation already made to `AppHost.cs`. Instead, add the missing `<ProjectReference>` in the AppHost's `.csproj` and the matching `builder.AddProject<...>(...)` line in `AppHost.cs` by hand, following the pattern already used for the other hosts there.
 
 ### Adding an API host to a solution where CodeGen has already run
 
@@ -430,7 +430,7 @@ dotnet new coreex --data-provider SqlServer --messaging-provider ServiceBus --re
 dotnet new coreex-api        -n Avanade.Erp.Sales.Api        --data-provider SqlServer --refdata-enabled true --outbox-enabled true
 dotnet new coreex-relay      -n Avanade.Erp.Sales.Relay      --data-provider SqlServer --messaging-provider ServiceBus
 dotnet new coreex-subscribe -n Avanade.Erp.Sales.Subscribe --data-provider SqlServer --messaging-provider ServiceBus --refdata-enabled true
-dotnet new coreex-aspire     -n Avanade.Erp.Sales.Aspire     --has-api true --has-relay true --has-subscribe true
+dotnet new coreex-aspire     -n Avanade.Erp.Sales.Aspire     --has-api true --has-relay true --has-subscribe true --data-provider SqlServer --messaging-provider ServiceBus
 
 dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Api
 dotnet sln Avanade.Erp.Sales.slnx add tests/Avanade.Erp.Sales.Test.Api
@@ -438,7 +438,9 @@ dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Relay
 dotnet sln Avanade.Erp.Sales.slnx add tests/Avanade.Erp.Sales.Test.Relay
 dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Subscribe
 dotnet sln Avanade.Erp.Sales.slnx add tests/Avanade.Erp.Sales.Test.Subscribe
-dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Aspire
+dotnet sln Avanade.Erp.Sales.slnx add aspire/Avanade.Erp.Sales.Aspire
+dotnet sln Avanade.Erp.Sales.slnx add aspire/Avanade.Erp.Sales.Aspire.MockHost
+dotnet sln Avanade.Erp.Sales.slnx add aspire/Avanade.Erp.Sales.Test.Aspire
 
 dotnet build Avanade.Erp.Sales.slnx
 dotnet test tests/Avanade.Erp.Sales.Test.Unit

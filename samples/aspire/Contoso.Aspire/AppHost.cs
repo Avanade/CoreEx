@@ -1,16 +1,10 @@
-using Microsoft.Extensions.DependencyInjection;
-
 var builder = DistributedApplication.CreateBuilder(args);
 
-// dotnet dev-certs https --trust is not fully supported on Linux, so the ASP.NET Core dev cert used by the
-// "api" resource's https endpoint is not OS-trusted on Linux CI runners. Both the health check probe above and
-// AspireTesterBase's CreateHttpClient() resolve their HttpClient via this same DI container's IHttpClientFactory,
-// so disabling certificate validation here (dev/test-only AppHost, never shipped) covers both.
-builder.Services.ConfigureHttpClientDefaults(http =>
-    http.ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
-    {
-        ServerCertificateCustomValidationCallback = (_, _, _, _) => true
-    }));
+// dotnet dev-certs https --trust is not fully supported on Linux, so the ASP.NET Core dev cert used by each
+// project resource's https endpoint is not OS-trusted on Linux CI runners. Both the health check probes (via
+// AddEndpoints) and AspireTesterBase's CreateHttpClient() resolve their HttpClient via this same DI container's
+// IHttpClientFactory, so disabling certificate validation here (dev/test-only AppHost, never shipped) covers both.
+builder.DisableHttpCertificateValidation();
 
 // IsRunMode: never surface this test-only resource in a published manifest (per the self-hosted WireMock.Net housekeeping note - see AppHost.cs's header comment).
 var mockhost = builder.AddMockHostProject<Projects.Contoso_Aspire_MockHost>("mock-host");
@@ -45,34 +39,3 @@ var orderWorkflowWorker = builder.AddProject<Projects.Contoso_Order_Workflow_Wor
 builder.AddProject<Projects.Contoso_Orders_Api>("orders-api").WithReference(sqlServer).WithReference(redis).WaitFor(orderWorkflowWorker).AddEndpoints("/health/ready/detailed");
 
 builder.Build().Run();
-
-
-internal static class Extensions
-{
-    public static IResourceBuilder<ProjectResource> AddEndpoints(this IResourceBuilder<ProjectResource> builder, params string[] urls)
-    {
-        var httpEndpoint = builder.GetEndpoint("http");
-        foreach (var url in urls)
-        {
-            builder.WithAnnotation(new ResourceUrlAnnotation { Endpoint = httpEndpoint, Url = url });
-        }
-
-        return builder;
-    }
-
-    // Icons: https://storybooks.fluentui.dev/react/?path=/docs/icons-catalog--docs
-    public static IResourceBuilder<ProjectResource> AddCommand(this IResourceBuilder<ProjectResource> builder, HttpMethod method, string path, string displayName, string? iconName)
-        => builder.WithHttpCommand(
-            path: path,
-            displayName: displayName,
-            commandOptions: new HttpCommandOptions()
-            {
-                Method = method,
-                IconName = iconName
-            });
-
-    public static IResourceBuilder<ProjectResource> AddHostedServiceSupport(this IResourceBuilder<ProjectResource> builder)
-        => builder.AddEndpoints("/hosted-services/all/status")
-            .AddCommand(HttpMethod.Post, "/hosted-services/all/pause", "Pause all services", "Pause")
-            .AddCommand(HttpMethod.Post, "/hosted-services/all/resume", "Resume all services", "PauseOff");
-}

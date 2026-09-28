@@ -14,7 +14,7 @@
 | `coreex-api` | CoreEx API host | `src/[name].Api/` host project + `tests/[solution].Test.Api/` integration test project |
 | `coreex-relay` | CoreEx Outbox Relay host | `src/[name].Relay/` host project + `tests/[solution].Test.Relay/` integration test project |
 | `coreex-subscribe` | CoreEx Subscriber host | `src/[name].Subscribe/` host project + `tests/[solution].Test.Subscribe/` integration test project |
-| `coreex-aspire` | CoreEx Aspire AppHost | `src/[name].Aspire/` AppHost project orchestrating this solution's own hosts — add-on, run after the hosts it references already exist |
+| `coreex-aspire` | CoreEx Aspire AppHost | `aspire/[name].Aspire/` AppHost project orchestrating this solution's own hosts — add-on, run after the hosts it references already exist |
 
 Parameters are consistent across templates -- the same `--data-provider`, `--messaging-provider`, and feature flags appear in every template that needs them, ensuring the generated code is coherent regardless of which templates you use.
 
@@ -547,11 +547,11 @@ dotnet new coreex-subscribe -n Avanade.Erp.Sales.Subscribe --data-provider None
 
 ## Template 7 -- `coreex-aspire` (Aspire AppHost)
 
-Scaffolds a .NET Aspire AppHost project that orchestrates this solution's own `Api`/`Relay`/`Subscribe` hosts for local development, plus an `Extensions.cs` providing dashboard sugar (health-check deep links, and "Pause all services"/"Resume all services" buttons for hosts running CoreEx hosted services).
+Scaffolds a .NET Aspire AppHost project that orchestrates this solution's own `Api`/`Relay`/`Subscribe` hosts for local development, plus two sibling projects: `[name].Aspire.MockHost` (a WireMock.Net-based console host for stubbing external dependencies) and `[solution-name].Test.Aspire` (an NUnit project that spins up the whole AppHost via `WithAspireTester<...>` for smoke/integration testing). Dashboard sugar (health-check deep links, and "Pause all services"/"Resume all services" buttons for hosts running CoreEx hosted services) and Aspire test helpers come from the `CoreEx.UnitTesting` package (`<Using Include="UnitTestEx" />` in `[name].Aspire.csproj`) -- there is no local `Extensions.cs`.
 
-Run this from the **solution root**, after the host projects it will reference already exist. Unlike `coreex-api`/`coreex-relay`/`coreex-subscribe`, host inclusion is not derived from a shared `coreex` parameter -- pass `--has-api`/`--has-relay`/`--has-subscribe` explicitly to match whichever hosts this solution actually has.
+Run this from the **solution root**, after the host projects it will reference already exist. Unlike `coreex-api`/`coreex-relay`/`coreex-subscribe`, host inclusion is not derived from a shared `coreex` parameter -- pass `--has-api`/`--has-relay`/`--has-subscribe` explicitly to match whichever hosts this solution actually has. `--data-provider`/`--messaging-provider` should match the values used when scaffolding those hosts, so `AppHost.cs` declares the right connection-string resources.
 
-> **Note:** If a new host is added to the solution *after* `coreex-aspire` has already been run, don't re-run it with `--force` -- that would overwrite any customisation already made to `AppHost.cs`/`Extensions.cs`. Add the missing `<ProjectReference>` and `builder.AddProject<...>(...)` line by hand instead.
+> **Note:** If a new host is added to the solution *after* `coreex-aspire` has already been run, don't re-run it with `--force` -- that would overwrite any customisation already made to `AppHost.cs`. Add the missing `<ProjectReference>` and `builder.AddProject<...>(...)` line by hand instead.
 
 ### Parameters
 
@@ -561,30 +561,44 @@ Run this from the **solution root**, after the host projects it will reference a
 | `--has-api` | bool | `true` | Include a project reference and `AddProject<...>` call for this solution's `Api` host. |
 | `--has-relay` | bool | `false` | Include a project reference and `AddProject<...>` call for this solution's `Relay` host. |
 | `--has-subscribe` | bool | `false` | Include a project reference and `AddProject<...>` call for this solution's `Subscribe` host. |
+| `--data-provider` | `SqlServer` \| `Postgres` \| `None` | `Postgres` | Database technology; determines which connection-string resource (`SqlServer`/`Postgres`) `AppHost.cs` declares and each host references. |
+| `--messaging-provider` | `ServiceBus` \| `None` | `ServiceBus` | Messaging technology; determines whether `AppHost.cs` declares a `ServiceBus` connection-string resource for the Relay/Subscribe hosts. |
 
 ### Output
 
 ```
-src/
+aspire/
   [name].Aspire/
     [name].Aspire.csproj
     AppHost.cs
-    Extensions.cs
     appsettings.json
     appsettings.Development.json
     Properties/launchSettings.json
     AGENTS.md
+  [name].Aspire.MockHost/
+    [name].Aspire.MockHost.csproj
+    Program.cs
+  [solution-name].Test.Aspire/
+    [solution-name].Test.Aspire.csproj
+    GlobalUsing.cs
+    HostTests.cs
 ```
 
-**`AppHost.cs`** (illustrative, all three hosts included):
+**`AppHost.cs`** (illustrative, all three hosts included, Postgres + Service Bus):
 
 ```csharp
 var builder = DistributedApplication.CreateBuilder(args);
 
+builder.DisableHttpCertificateValidation();
+
+var db = builder.AddConnectionString("Postgres").WithIconName("DatabaseMultiple");
+var redis = builder.AddConnectionString("redis").WithIconName("Database");
+var serviceBus = builder.AddConnectionString("ServiceBus").WithIconName("MailMultiple");
+
 // Sales domain.
-builder.AddProject<Projects.Avanade_Erp_Sales_Api>("sales-api").AddEndpoints("/health/ready/detailed");
-builder.AddProject<Projects.Avanade_Erp_Sales_Relay>("sales-relay").AddEndpoints("/health/ready/detailed").AddHostedServiceSupport();
-builder.AddProject<Projects.Avanade_Erp_Sales_Subscribe>("sales-subscribe").AddEndpoints("/health/ready/detailed").AddHostedServiceSupport();
+builder.AddProject<Projects.Avanade_Erp_Sales_Api>("sales-api").WithReference(db).WithReference(redis).AddEndpoints("/health/ready/detailed");
+builder.AddProject<Projects.Avanade_Erp_Sales_Relay>("sales-relay").WithReference(db).WithReference(serviceBus).AddEndpoints("/health/ready/detailed").AddHostedServiceSupport();
+builder.AddProject<Projects.Avanade_Erp_Sales_Subscribe>("sales-subscribe").WithReference(db).WithReference(redis).WithReference(serviceBus).AddEndpoints("/health/ready/detailed").AddHostedServiceSupport();
 
 builder.Build().Run();
 ```
@@ -598,7 +612,7 @@ dotnet new coreex-aspire -n Avanade.Erp.Sales.Aspire --has-api true
 
 Full event-driven (API + Relay + Subscribe):
 ```sh
-dotnet new coreex-aspire -n Avanade.Erp.Sales.Aspire --has-api true --has-relay true --has-subscribe true
+dotnet new coreex-aspire -n Avanade.Erp.Sales.Aspire --has-api true --has-relay true --has-subscribe true --data-provider Postgres --messaging-provider ServiceBus
 ```
 
 ---
@@ -645,8 +659,10 @@ dotnet sln Avanade.Erp.Sales.slnx add tests/Avanade.Erp.Sales.Test.Subscribe
 Once the hosts above exist, optionally scaffold an AppHost for local orchestration:
 
 ```sh
-dotnet new coreex-aspire -n Avanade.Erp.Sales.Aspire --has-api true --has-relay true --has-subscribe true
-dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Aspire
+dotnet new coreex-aspire -n Avanade.Erp.Sales.Aspire --has-api true --has-relay true --has-subscribe true --data-provider SqlServer --messaging-provider ServiceBus
+dotnet sln Avanade.Erp.Sales.slnx add aspire/Avanade.Erp.Sales.Aspire
+dotnet sln Avanade.Erp.Sales.slnx add aspire/Avanade.Erp.Sales.Aspire.MockHost
+dotnet sln Avanade.Erp.Sales.slnx add aspire/Avanade.Erp.Sales.Test.Aspire
 ```
 
 ### Resulting directory structure
@@ -662,7 +678,6 @@ Avanade.Erp.Sales/
     Avanade.Erp.Sales.Api/
     Avanade.Erp.Sales.Relay/
     Avanade.Erp.Sales.Subscribe/
-    Avanade.Erp.Sales.Aspire/
   tools/
     Avanade.Erp.Sales.Database/
     Avanade.Erp.Sales.CodeGen/
@@ -672,6 +687,10 @@ Avanade.Erp.Sales/
     Avanade.Erp.Sales.Test.Api/
     Avanade.Erp.Sales.Test.Relay/
     Avanade.Erp.Sales.Test.Subscribe/
+  aspire/
+    Avanade.Erp.Sales.Aspire/
+    Avanade.Erp.Sales.Aspire.MockHost/
+    Avanade.Erp.Sales.Test.Aspire/
 ```
 
 ---
@@ -687,7 +706,7 @@ dotnet new coreex            -n Avanade.Erp.Sales
 dotnet new coreex-api        -n Avanade.Erp.Sales.Api
 dotnet new coreex-relay      -n Avanade.Erp.Sales.Relay
 dotnet new coreex-subscribe -n Avanade.Erp.Sales.Subscribe
-dotnet new coreex-aspire     -n Avanade.Erp.Sales.Aspire --has-api true --has-relay true --has-subscribe true
+dotnet new coreex-aspire     -n Avanade.Erp.Sales.Aspire --has-api true --has-relay true --has-subscribe true --data-provider SqlServer --messaging-provider ServiceBus
 ```
 
 ### PostgreSQL variant

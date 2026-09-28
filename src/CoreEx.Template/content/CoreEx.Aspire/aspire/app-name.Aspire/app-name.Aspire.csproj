@@ -1,4 +1,4 @@
-<Project Sdk="Aspire.AppHost.Sdk/13.4.6">
+<Project Sdk="Aspire.AppHost.Sdk/13.5.4">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -12,14 +12,23 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="CoreEx.UnitTesting" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="UnitTestEx" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\app-name.Aspire.MockHost\app-name.Aspire.MockHost.csproj" />
     <!--#if has-api-->
-    <ProjectReference Include="..\solution-name.Api\solution-name.Api.csproj" />
+    <ProjectReference Include="..\..\src\solution-name.Api\solution-name.Api.csproj" />
     <!--#endif-->
     <!--#if has-relay-->
-    <ProjectReference Include="..\solution-name.Relay\solution-name.Relay.csproj" />
+    <ProjectReference Include="..\..\src\solution-name.Relay\solution-name.Relay.csproj" />
     <!--#endif-->
     <!--#if has-subscribe-->
-    <ProjectReference Include="..\solution-name.Subscribe\solution-name.Subscribe.csproj" />
+    <ProjectReference Include="..\..\src\solution-name.Subscribe\solution-name.Subscribe.csproj" />
     <!--#endif-->
   </ItemGroup>
 </Project>

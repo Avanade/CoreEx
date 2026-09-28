@@ -72,6 +72,73 @@
       "displayName": "Has Subscribe host",
       "description": "Indicates this solution already has (or will have) a Subscribe host to orchestrate."
     },
+    "data-provider": {
+      "type": "parameter",
+      "datatype": "choice",
+      "choices": [
+        {
+          "choice": "SqlServer",
+          "displayName": "SQL Server",
+          "description": "Indicates to use SQL Server as the data provider."
+        },
+        {
+          "choice": "Postgres",
+          "displayName": "PostgreSQL",
+          "description": "Indicates to use PostgreSQL as the data provider."
+        },
+        {
+          "choice": "None",
+          "displayName": "None",
+          "description": "Indicates no data provider is used (e.g. a facade over an external system such as Dynamics 365)."
+        }
+      ],
+      "defaultValue": "Postgres",
+      "displayName": "Data provider",
+      "description": "Determines the data provider technology to use."
+    },
+    "implement-sqlserver": {
+      "type": "computed",
+      "value": "data-provider == 'SqlServer'"
+    },
+    "implement-postgres": {
+      "type": "computed",
+      "value": "data-provider == 'Postgres'"
+    },
+    "implement-none-data": {
+      "type": "computed",
+      "value": "data-provider == 'None'"
+    },
+    "has-data-provider": {
+      "type": "computed",
+      "value": "data-provider != 'None'"
+    },
+    "messaging-provider": {
+      "type": "parameter",
+      "datatype": "choice",
+      "choices": [
+        {
+          "choice": "ServiceBus",
+          "displayName": "Azure Service Bus",
+          "description": "Indicates to use Azure Service Bus as the messaging provider."
+        },
+        {
+          "choice": "None",
+          "displayName": "None",
+          "description": "Indicates no messaging provider is used."
+        }
+      ],
+      "defaultValue": "ServiceBus",
+      "displayName": "Messaging provider",
+      "description": "Determines the messaging provider technology to use."
+    },
+    "implement-servicebus": {
+      "type": "computed",
+      "value": "messaging-provider == 'ServiceBus'"
+    },
+    "implement-none-messaging": {
+      "type": "computed",
+      "value": "messaging-provider == 'None'"
+    },
     "appHttpPort": {
       "type": "parameter",
       "datatype": "integer",

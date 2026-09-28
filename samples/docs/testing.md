@@ -296,4 +296,6 @@ Each `*.Test.Api` and `*.Test.Relay` project has a `Resources/` folder containin
 
 `Contoso.E2E.Runner` is an interactive console runner for cross-domain scenarios. Unlike the host tests above it requires **all** infrastructure and **all** hosts to be running simultaneously — orchestrated via Aspire. It tests the complete inter-domain flow end-to-end: basket checkout triggers a real HTTP call to Products, which publishes a real event to Service Bus, which is consumed by the real subscriber. It also supports a parallel load-simulation mode for concurrency and performance validation.
 
-See [aspire.md](aspire.md) for the full Aspire setup, E2E Runner usage, scenario descriptions, load-simulation configuration, and the recommended first-run order.
+`Contoso.Test.Aspire` is the automated, CI-friendly counterpart — an NUnit test that self-hosts the whole `Contoso.Aspire` AppHost via `WithAspireTester<...>` (no need for Aspire to already be running) and asserts the same cross-domain flow as a single deterministic pass/fail test.
+
+See [aspire.md](aspire.md) for the full Aspire setup, `Contoso.Test.Aspire`, E2E Runner usage, scenario descriptions, load-simulation configuration, and the recommended first-run order.

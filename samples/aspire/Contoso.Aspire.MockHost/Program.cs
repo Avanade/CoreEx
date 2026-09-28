@@ -1,1 +1,1 @@
-﻿Console.WriteLine("Hello, World!");
+﻿await WireMockConsole.RunAsync(settings => WireMockServer.Start(settings));

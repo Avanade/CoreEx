@@ -1,3 +1,4 @@
+global using Aspire.Hosting;
 global using Aspire.Hosting.Testing;
 global using AwesomeAssertions;
 global using AwesomeAssertions.Execution;
@@ -49,5 +50,7 @@ global using UnitTestEx.AspNetCore;
 global using UnitTestEx.Assertors;
 global using UnitTestEx.Expectations;
 global using UnitTestEx.Hosting;
+global using Aha = Aspire.Hosting.ApplicationModel; /* "take on me..." https://www.youtube.com/watch?v=djV11Xbc914&list=RDdjV11Xbc914 */
 global using Asb = Azure.Messaging.ServiceBus;
 global using ExecutionContext = CoreEx.ExecutionContext;
+

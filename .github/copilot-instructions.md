@@ -30,7 +30,7 @@ solution; the rule applies to consumer solutions where these assets are installe
 - `gen\CoreEx.Generator\`: Roslyn source generator for contracts.
 - `tests\`: framework-level tests.
 - `samples\src\Contoso.*\`: sample domains split by layer/host.
-- `samples\aspire\AppHost.cs`: orchestration entrypoint.
+- `samples\aspire\Contoso.Aspire\AppHost.cs`: orchestration entrypoint (plus `Contoso.Aspire.MockHost` for stub dependencies and `Contoso.Test.Aspire` for automated cross-domain smoke testing).
 - `coreex-starter\`: separate starter template repo — ignore unless user wants starter changes.
 
 ## Build, Test, and Run

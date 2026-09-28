@@ -10,10 +10,11 @@ Aspire is the required foundation for any activity that involves **cross-domain 
 
 ## What Aspire orchestrates
 
-The `Contoso.Aspire` AppHost (`samples/aspire/Contoso.Aspire/AppHost.cs`) registers all six production hosts and the Orders workflow worker:
+The `Contoso.Aspire` AppHost (`samples/aspire/Contoso.Aspire/AppHost.cs`) registers all six production hosts, the Orders workflow worker, and a WireMock.Net stub host:
 
 | Resource name | Host project | Endpoints exposed |
 |---|---|---|
+| `mock-host` | `Contoso.Aspire.MockHost` | WireMock.Net stub server (see [MockHost](#mockhost-stubbing-external-dependencies) below) |
 | `products-api` | `Contoso.Products.Api` | HTTP + `/health/ready/detailed` |
 | `products-relay` | `Contoso.Products.Relay` | HTTP + `/health/ready/detailed` + hosted-service controls |
 | `products-subscribe` | `Contoso.Products.Subscribe` | HTTP + `/health/ready/detailed` + hosted-service controls |
@@ -23,7 +24,19 @@ The `Contoso.Aspire` AppHost (`samples/aspire/Contoso.Aspire/AppHost.cs`) regist
 | `order-workflow-worker` | `Contoso.Order.Workflow.Worker` | HTTP + `/health` + DTS Dashboard link |
 | `orders-api` | `Contoso.Orders.Api` | HTTP + `/health/ready/detailed` (waits for workflow worker) |
 
+The `AddEndpoints(...)`/`AddHostedServiceSupport()`/`DisableHttpCertificateValidation()`/`AddMockHostProject<...>(...)` calls used to wire up the resources above are extension methods on `IDistributedApplicationBuilder`/`IResourceBuilder<ProjectResource>` provided by the `CoreEx.UnitTesting` package's Aspire support (`<Using Include="UnitTestEx.Aspire" />` in `Contoso.Aspire.csproj`) — there is no local `Extensions.cs`.
+
 Hosted-service resources (outbox relays and subscribers) also get **Pause all services** and **Resume all services** commands surfaced as buttons in the Aspire Dashboard, backed by the `/hosted-services/all/pause` and `/hosted-services/all/resume` management endpoints. This allows controlled simulation of relay downtime or subscriber lag without restarting the process.
+
+### MockHost — stubbing external dependencies
+
+`Contoso.Aspire.MockHost` (`samples/aspire/Contoso.Aspire.MockHost/Program.cs`) is a plain console host that starts a [WireMock.Net](https://github.com/WireMock-Net/WireMock.Net) server and keeps it running for the lifetime of the AppHost:
+
+```csharp
+await WireMockConsole.RunAsync(settings => WireMockServer.Start(settings));
+```
+
+`WireMockConsole.RunAsync` (from `UnitTestEx.Aspire`) wires up graceful shutdown and console logging around the server; `WireMockServer.Start(settings)` is WireMock.Net's own entry point. It is registered in `AppHost.cs` via `builder.AddMockHostProject<Projects.Contoso_Aspire_MockHost>("mock-host")` so it shows up as a normal resource in the dashboard. It currently has no request/response mappings configured and no domain host references it yet — it exists as the ready-to-use seam for stubbing a *third-party* HTTP dependency (something outside this repo, unlike Products/Shopping which are real intra-repo domains) once one needs to be added to a cross-domain flow.
 
 ---
 
@@ -67,6 +80,16 @@ The dashboard (default: `http://localhost:15174`) provides:
 - **Metrics** — runtime and custom metrics per resource.
 
 The hosted-service command buttons (Pause / Resume) are also surfaced here, making it easy to pause the outbox relay on one domain and observe the effect on the other.
+
+---
+
+## Contoso.Test.Aspire — automated smoke test
+
+`Contoso.Test.Aspire` (`samples/aspire/Contoso.Test.Aspire/E2ETest.cs`) is an NUnit project that provides an **automated, CI-friendly** counterpart to the interactive E2E Runner described below. Unlike the E2E Runner, it does not require Aspire to already be running — its single test class derives from `WithAspireTester<Projects.Contoso_Aspire>` (from `CoreEx.UnitTesting`'s Aspire support), which starts the whole `Contoso.Aspire` AppHost itself for the duration of the test run.
+
+Its `[OneTimeSetUp]` migrates and seeds the Products (Postgres) and Shopping (SQL Server) databases, clears the Redis cache, and resets the Service Bus emulator's queues/topics/subscriptions to a known state, then waits for `products-api`/`shopping-api` to report healthy — all via `Test.*` helpers (`MigratePostgresDataAsync`, `MigrateSqlServerDataAsync`, `ClearRedisCacheAsync`, `ResetAzureServiceBusAsync`, `WaitForResourceAsync`) resolved against the live AppHost's resources by name. The single `[Test]` (`CreateOrderAndConfirm`) then drives the same cross-domain flow as the E2E Runner's **Shopping Basket Lifecycle** scenario — create/activate a Product, adjust inventory, create a Basket, add items, apply a discount, checkout, then poll until the async inventory reservation is confirmed via the outbox/Service Bus/Subscribe path — asserting each step instead of just reporting success/failure interactively.
+
+Use `Contoso.Test.Aspire` when you want a single deterministic pass/fail signal (e.g. in CI, or as a quick local smoke test after a change) — `dotnet test samples/aspire/Contoso.Test.Aspire`. Use the E2E Runner (below) when you want to explore interactively, run load simulations, or watch traces build up live in the Aspire Dashboard against a long-running AppHost.
 
 ---
 
@@ -185,7 +208,8 @@ Press `ESC` to stop gracefully. Errors are written to `logs/load-simulation-erro
 |---|---|---|
 | Unit tests (`*.Test.Unit`) | No | No |
 | Intra-domain host tests (`*.Test.Api`, `*.Test.Subscribe`, `*.Test.Relay`) | No | No |
-| Cross-domain functional validation | Yes | Yes |
-| Load / concurrency simulation | Yes | Yes |
+| Automated cross-domain smoke test (`Contoso.Test.Aspire`) | Self-hosted (`WithAspireTester`) | No |
+| Cross-domain functional validation (interactive) | Yes (already running) | Yes |
+| Load / concurrency simulation | Yes (already running) | Yes |
 
-See [testing.md](testing.md) for the intra-domain testing guide. The E2E Runner is the complement to that guide — it covers the inter-domain surface that intra-domain tests deliberately leave mocked.
+See [testing.md](testing.md) for the intra-domain testing guide. `Contoso.Test.Aspire` and the E2E Runner are both complements to that guide — they cover the inter-domain surface that intra-domain tests deliberately leave mocked, one as an automated pass/fail test and the other as an interactive/load-simulation tool.

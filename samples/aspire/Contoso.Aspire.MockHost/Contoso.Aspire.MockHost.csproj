@@ -13,4 +13,9 @@
     <PackageReference Include="UnitTestEx.Aspire" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Using Include="UnitTestEx.Aspire" />
+    <Using Include="WireMock.Server" />
+  </ItemGroup>
+
 </Project>
