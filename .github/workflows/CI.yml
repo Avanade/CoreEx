@@ -92,6 +92,10 @@ jobs:
 
     # --- Samples ---
 
+    # The core Cosmos tests churn the emulator's containers; restart it (no persistence, so it comes back clean) and let it warm up while the samples build.
+    - name: Restart Cosmos emulator
+      run: docker compose restart cosmos-emulator
+
     - name: Build samples
       run: dotnet build CoreEx.Samples.Build.slnf --no-restore --configuration Release
 
@@ -114,6 +118,13 @@ jobs:
     - name: Database tool (samples/src/Contoso.Orders.Database)
       working-directory: samples/src/Contoso.Orders.Database
       run: dotnet run all --no-build --configuration Release -f net10.0 --expect-no-changes
+
+    - name: Wait for Cosmos emulator
+      timeout-minutes: 6
+      run: |
+        until curl -ksf https://localhost:8081/_explorer/emulator.pem -o /dev/null; do
+          echo "Waiting for the Cosmos emulator..."; sleep 10
+        done
 
     - name: Test samples
       run: dotnet test CoreEx.Samples.Test.slnf --no-build --configuration Release --logger trx --collect "XPlat Code Coverage" --results-directory coverage/samples -m:1 -p:TestTfmsInParallel=false -p:BuildInParallel=false
