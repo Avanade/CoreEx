@@ -30,7 +30,7 @@ Understanding this distinction is the key to understanding every test setup deci
 
 The Shopping `Basket_Checkout_Save_Failure` test is the sharpest illustration of the boundary: when the outbox write fails mid-checkout, Shopping falls back to publishing a `reservation.cancel` command *directly* to Service Bus (bypassing the outbox, since the DB transaction has already rolled back). The test asserts that:
 - No outbox events are published (intra-domain write failed, as injected).
-- One direct Service Bus event *is* published (inter-domain cancel, asserted via `ExpectAzureServiceBusEvents`).
+- One direct Service Bus command *is* published (inter-domain cancel, asserted via `ExpectAzureServiceBusEvents`) - addressed to the `contoso-products` command queue (the `NamedDestinationProvider` routes events to the shared `contoso` topic and commands to `{topic}-{domain}` queues).
 - The basket remains `Active` (state was correctly rolled back).
 
 This single test exercises three layers of the intra/inter boundary in one shot.
@@ -162,7 +162,7 @@ var v = Test.Http<Basket>()
     .ExpectChangeLogUpdated()
     .ExpectSqlServerOutboxEvents(e => e
         .AssertWithValue("contoso", "contoso.shopping.basket.checkedout.v1")
-        .AssertMetadata("contoso", "contoso.products.reservation.confirm", basket.Id))
+        .AssertMetadata("contoso-products", "contoso.products.reservation.confirm", basket.Id))
     .Run(HttpMethod.Post, $"/api/baskets/{basket.Id}/checkout")
     .AssertOK()
     .Value!;
@@ -176,7 +176,7 @@ Test.Http()
     .OnEventPublish(SqlServerOutboxPublisher.DefaultServiceKey,
         () => throw new InvalidOperationException("Simulated outbox failure"))
     .ExpectNoSqlServerOutboxEvents()
-    .ExpectAzureServiceBusEvents(e => e.AssertMetadata("contoso", "contoso.products.reservation.cancel", id))
+    .ExpectAzureServiceBusEvents(e => e.AssertMetadata("contoso-products", "contoso.products.reservation.cancel", id))
     .Run(HttpMethod.Post, $"/api/baskets/{id}/checkout")
     .AssertInternalServerError();
 ```

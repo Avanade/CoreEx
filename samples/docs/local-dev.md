@@ -63,9 +63,10 @@ The emulator is pre-configured by `servicebus/Config.json`. Key values the sampl
 | Topic | `contoso` |
 | Subscription — Products | `products` (session-enabled) |
 | Subscription — Shopping | `shopping` (session-enabled) |
+| Queue — Products commands | `contoso-products` (session-enabled; Shopping → Products `reservation.confirm`/`reservation.cancel` commands) |
 | Unit test topics | `unit-test`, `unit-test-2` (used by integration tests) |
 
-The `contoso` topic is shared across both domains. Session-enabled subscriptions ensure ordered, per-entity processing of events.
+The `contoso` topic is shared across both domains for **events**. Session-enabled subscriptions ensure ordered, per-entity processing of events. **Commands** are single-consumer: the `NamedDestinationProvider` routes each command to a per-target-domain queue (`contoso-{domain}`, e.g. `contoso-products`) so only the addressed domain sees it. Any new command target needs a matching queue in `servicebus/Config.json` (and in the tests' `ServiceBus.GetQueues()`), and the emulator container must be restarted to pick it up.
 
 ---
 
@@ -115,7 +116,7 @@ All sample hosts use the Aspire component configuration key hierarchy in `appset
 
 ### Azure Service Bus emulator
 
-All hosts that publish or subscribe add the same base connection string. Subscribe hosts additionally set `QueueOrTopicName` and `SubscriptionName`:
+All hosts that publish or subscribe add the same base connection string. Subscribe hosts consuming a topic additionally set `QueueOrTopicName` and `SubscriptionName` (a command queue receiver, e.g. `contoso-products`, is named explicitly via `CreateForQueue("contoso-products")`):
 
 ```json
 "Aspire": {

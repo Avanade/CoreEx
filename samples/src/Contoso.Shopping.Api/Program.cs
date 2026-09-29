@@ -58,6 +58,7 @@ public class Program
             .AddSqlServerDatabase()                     // Adds the SqlServerDatabase.
             .AddSqlServerUnitOfWork()                   // Adds the SqlServerUnitOfWork for the SqlServerDatabase.
             .AddEventFormatter()                        // Adds the EventFormatter to enable message formatting for publishing.
+            .AddNamedDestinationProvider()                 // Adds the NamedDestinationProvider; events to the shared topic, commands to per-domain queues.
             .AddSqlServerOutboxPublisher()              // Adds the SqlServerOutboxPublisher/IEventPublisher.
             .AddDbContext<ShoppingDbContext>()          // Adds the standard EF DbContext.
             .AddEfDb<ShoppingEfDb>();                   // Adds the CoreEx extended EF service.

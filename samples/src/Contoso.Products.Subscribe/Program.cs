@@ -56,6 +56,7 @@ public class Program
             .AddPostgresDatabase()                      // Adds the PostgresDatabase.
             .AddPostgresUnitOfWork()                    // Adds the PostgresUnitOfWork for the PostgresDatabase.
             .AddEventFormatter()                        // Adds the EventFormatter to enable message formatting for publishing.
+            .AddNamedDestinationProvider()                 // Adds the NamedDestinationProvider; events to the shared topic, commands to per-domain queues.
             .AddPostgresOutboxPublisher()               // Adds the ProductsOutboxPublisher as the PostgresOutboxPublisher/IEventPublisher.
             .AddDbContext<ProductsDbContext>()          // Adds the standard EF DbContext.
             .AddEfDb<ProductsEfDb>();                   // Adds the CoreEx extended EF service.
@@ -66,17 +67,30 @@ public class Program
         // Add event formatter and subscribed-manager.
         builder.Services.AddSubscribedManager((_, c) => c.AddSubscribersUsing<ReservationConfirmSubscriber>()); // Adds the SubscribedManager and dynamically links to the individual Subscribers.
 
-        // Builds and creates the Azure Service Bus receiving services.
+        // Builds and creates the Azure Service Bus receiving services; each receiver (and subscriber/hosted service) requires its own service key.
+        // Receiver 1: the shared 'contoso' topic 'products' subscription (events).
         builder.Services.AzureServiceBusReceiving()                                      
             .WithSessionReceiver(_ =>
             {                                                                                          // Adds the service bus receiver to pump messages to the subscriber.
                 var o = ServiceBusSessionReceiverOptions.CreateForTopicSubscription();                 // Set the topic and subscription from configuration. 
                 o.SessionProcessorOptions.MaxConcurrentSessions = 4;                                   // Set the maximum number of concurrent sessions to process.
                 return o;
-            })   
-            .WithSubscribedSubscriber()                                                                // Adds the service bus subscriber using the ^ SubscribedManager.
-            .WithHostedService()                                                                       // Adds the ^ service bus receiver as a hosted service.
+            }, "receiver-events")
+            .WithKeyedSubscribedSubscriber("subscriber-events")                                        // Adds the service bus subscriber using the ^ SubscribedManager.
+            .WithHostedService("hosted-events")                                                        // Adds the ^ service bus receiver as a hosted service.
             .Build();                                                                                  // Builds all the ^ services and adds to the service collection.
+
+        // Receiver 2: the 'contoso-products' command queue (commands are addressed to a single consuming domain via the NamedDestinationProvider).
+        builder.Services.AzureServiceBusReceiving()
+            .WithSessionReceiver(_ =>
+            {
+                var o = ServiceBusSessionReceiverOptions.CreateForQueue("contoso-products");           // Set the queue name; this must match the NamedDestinationProvider command destination.
+                o.SessionProcessorOptions.MaxConcurrentSessions = 4;
+                return o;
+            }, "receiver-commands")
+            .WithKeyedSubscribedSubscriber("subscriber-commands")
+            .WithHostedService("hosted-commands")
+            .Build();
 
         // Post-configure all health-checks; adds the standard tags.
         builder.Services.PostConfigureAllHealthChecks();

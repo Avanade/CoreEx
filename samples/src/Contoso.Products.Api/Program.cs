@@ -52,6 +52,7 @@ public class Program
             .AddPostgresDatabase()                      // Adds the PostgresDatabase.
             .AddPostgresUnitOfWork()                    // Adds the PostgresUnitOfWork for the PostgresDatabase.
             .AddEventFormatter()                        // Adds the EventFormatter to enable message formatting for publishing.
+            .AddNamedDestinationProvider()                 // Adds the NamedDestinationProvider; events to the shared topic, commands to per-domain queues.
             .AddPostgresOutboxPublisher()               // Adds the PostgresOutboxPublisher/IEventPublisher.
             .AddDbContext<ProductsDbContext>()          // Adds the standard EF DbContext.
             .AddEfDb<ProductsEfDb>();                   // Adds the CoreEx extended EF service.

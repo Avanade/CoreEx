@@ -72,6 +72,7 @@ public class Program
         // Add event formatter and subscribed-manager.
         builder.Services
             .AddEventFormatter()                                                               // Adds the EventFormatter to enable message parsing.
+            .AddNamedDestinationProvider()                 // Adds the NamedDestinationProvider; events to the shared topic, commands to per-domain queues.
             .AddSubscribedManager((_, c) => c.AddSubscribersUsing<ProductModifySubscriber>()); // Adds the SubscribedManager and dynamically links to the individual Subscribers.
 
         // Creates the Azure Service Bus receiving services builder.

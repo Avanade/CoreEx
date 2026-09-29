@@ -4,7 +4,10 @@ namespace Contoso.Shopping.Test.Common;
 
 public static class ServiceBus
 {
-    public static CreateQueueOptions[]? GetQueues() => [];
+    public static CreateQueueOptions[]? GetQueues() =>
+    [
+        new CreateQueueOptions("contoso-products") { RequiresSession = true }
+    ];
 
     public static (CreateTopicOptions Topic, CreateSubscriptionOptions[] Subscriptions)[]? GetTopicsAndSubscriptions() =>
     [

@@ -281,14 +281,23 @@ builder.Services.AzureServiceBusReceiving()
         var o = ServiceBusSessionReceiverOptions.CreateForTopicSubscription();
         o.SessionProcessorOptions.MaxConcurrentSessions = 4;
         return o;
-    })
-    .WithSubscribedSubscriber()   // Routes received messages through the SubscribedManager.
-    .WithHostedService()          // Runs the receiver as a BackgroundService.
+    }, "receiver-events")                       // Keyed so more than one receiver can coexist.
+    .WithKeyedSubscribedSubscriber("subscriber-events")   // Routes received messages through the SubscribedManager.
+    .WithHostedService("hosted-events")         // Runs the receiver as a BackgroundService.
+    .Build();
+
+// A second receiver for the domain's command queue (commands are addressed to a single consuming domain by the NamedDestinationProvider).
+builder.Services.AzureServiceBusReceiving()
+    .WithSessionReceiver(_ => ServiceBusSessionReceiverOptions.CreateForQueue("contoso-products"), "receiver-commands")
+    .WithKeyedSubscribedSubscriber("subscriber-commands")
+    .WithHostedService("hosted-commands")
     .Build();
 
 app.MapHealthChecks();
 app.MapHostedServices();  // Exposes pause/resume management endpoints.
 ```
+
+A single host can consume both a topic subscription and a command queue; each receiver, subscriber and hosted service needs its own service key (the optional `serviceKey` on `WithReceiver`/`WithSessionReceiver`). Publishing hosts register `AddNamedDestinationProvider()` so events go to the shared topic and commands to `{topic}-{domain}` queues; relay hosts need no provider as the destination is persisted in the outbox.
 
 `AddSubscribersUsing<T>()` scans the assembly containing `T` and auto-registers every class decorated with `[Subscribe]`, so adding a new subscriber requires only creating the class — no `Program.cs` edits are needed.
 
