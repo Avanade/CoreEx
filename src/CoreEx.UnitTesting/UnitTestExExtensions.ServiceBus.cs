@@ -188,15 +188,14 @@ public static partial class UnitTestExExtensions
     /// <summary>
     /// Resets the Azure Service Bus queues and topics/subscriptions to an initial state by deleting and recreating them.
     /// </summary>
-    /// <param name="tester">The <see cref="UnitTestEx.Aspire.AspireTesterBase"/>.</param>
+    /// <param name="app">The <see cref="DistributedApplication"/>.</param>
     /// <param name="aspireResourceName">The name of the Aspire resource to retrieve the connection string for.</param>
     /// <param name="queues">The queues to reset.</param>
     /// <param name="topicsAndSubscriptions">The topics and their subscriptions to reset.</param>
     /// <param name="adminPort">The port to use for the administration client.</param>
-    public static async Task ResetAzureServiceBusAsync(this UnitTestEx.Aspire.AspireTesterBase tester, string aspireResourceName, CreateQueueOptions[]? queues = null, (CreateTopicOptions Topic, CreateSubscriptionOptions[] Subscriptions)[]? topicsAndSubscriptions = null, int adminPort = 5300)
+    public static async Task ResetAzureServiceBusAsync(this DistributedApplication app, string aspireResourceName, CreateQueueOptions[]? queues = null, (CreateTopicOptions Topic, CreateSubscriptionOptions[] Subscriptions)[]? topicsAndSubscriptions = null, int adminPort = 5300)
     {
-        var app = await tester.GetDistributedApplicationAsync();
-        var cs = (await app.GetConnectionStringAsync(aspireResourceName.ThrowIfNullOrEmpty())) ?? throw new InvalidOperationException($"The '{aspireResourceName}' connection string not found.");
+        var cs = (await AspireTesterBase.GetConnectionStringAsync(app.ThrowIfNull(), aspireResourceName.ThrowIfNullOrEmpty()).ConfigureAwait(false)) ?? throw new InvalidOperationException($"The '{aspireResourceName}' connection string not found.");
         await ResetAzureServiceBusAsync(CreateAzureServiceBusAdminConnectionString(cs, adminPort), queues, topicsAndSubscriptions).ConfigureAwait(false);
     }
 

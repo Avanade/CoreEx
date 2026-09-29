@@ -1,3 +1,4 @@
+using Aspire.Hosting;
 using Contoso.Products.Contracts;
 using Contoso.Shopping.Contracts;
 using CoreEx;
@@ -9,21 +10,26 @@ public class E2ETest : WithAspireTester<Projects.Contoso_Aspire>
     private readonly string _productsApi = "products-api";
     private readonly string _shoppingApi = "shopping-api";
 
-    [OneTimeSetUp]
-    public async Task OneTimeSetUpAsync()
+    protected override async Task OnBeforeStartAsync(DistributedApplication app)
     {
         // Migrate the Products and Shopping relational databases and seed each with test data.
-        await Test.MigratePostgresDataAsync<Contoso.Products.Test.Common.TestData>("Postgres", ["mutate-data.seed.yaml"], Contoso.Products.Database.Program.ConfigureMigrationArgs);
-        await Test.MigrateSqlServerDataAsync<Contoso.Shopping.Test.Common.TestData>("SqlServer", ["mutate-data.seed.yaml"], Contoso.Shopping.Database.Program.ConfigureMigrationArgs);
+        await app.MigratePostgresDataAsync<Contoso.Products.Test.Common.TestData>("Postgres", ["mutate-data.seed.yaml"], Contoso.Products.Database.Program.ConfigureMigrationArgs);
+        await app.MigrateSqlServerDataAsync<Contoso.Shopping.Test.Common.TestData>("SqlServer", ["mutate-data.seed.yaml"], Contoso.Shopping.Database.Program.ConfigureMigrationArgs);
 
         // Clear the Redis cache.
-        await Test.ClearRedisCacheAsync("redis");
+        await app.ClearRedisCacheAsync("redis");
 
         // Reset the Azure Service Bus queues and topics/subscriptions to an initial state.
-        await Test.ResetAzureServiceBusAsync("servicebus", ServiceBus.GetQueues(), ServiceBus.GetTopicsAndSubscriptions());
+        await app.ResetAzureServiceBusAsync("servicebus", ServiceBus.GetQueues(), ServiceBus.GetTopicsAndSubscriptions());
+    }
 
-        // Hang about until the Products and Shopping APIs are available.
-        await Test.WaitForResourceAsync([_productsApi, _shoppingApi]);
+    protected override async Task OnAfterStartAsync(DistributedApplication app)
+    {
+        // Wait for the Products and Shopping APIs to be ready before running the tests.
+        await app.WaitForResourceAsync([_productsApi, _shoppingApi]);
+
+        // Mock the SendGrid API so that the Shopping domain's Subscribe project can send emails without actually sending them.
+        await app.HttpMock("mock-host", "http").Request(HttpMethod.Post, "/v3/mail/send").WithAnyBody().Respond.WithAsync(HttpStatusCode.Accepted);
     }
 
     [Test]
@@ -137,6 +143,9 @@ public class E2ETest : WithAspireTester<Projects.Contoso_Aspire>
                 Assert.Fail("The Product's inventory movement was not confirmed after 10 attempts.");
         }
 
-        Test.Checkpoint("COMPLETE: The Product's inventory movement was successfully confirmed - you little beauty!");
+        Test.Checkpoint("The Product's inventory movement was successfully confirmed - you little beauty!");
+
+        Test.Delay(2000, "Wait long enough for any asynchronous processes to complete.");
+        Test.AssertLogContains("UnitTestEx > Sending HTTP request", "mock-host");
     }
 }

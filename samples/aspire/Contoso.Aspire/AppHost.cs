@@ -1,3 +1,6 @@
+using Microsoft.Extensions.Hosting;
+using System.Net;
+
 var builder = DistributedApplication.CreateBuilder(args);
 
 // dotnet dev-certs https --trust is not fully supported on Linux, so the ASP.NET Core dev cert used by each
@@ -32,10 +35,24 @@ builder.AddProject<Projects.Contoso_Products_Subscribe>("products-subscribe").Wi
 // always matches whichever endpoint/port products-api actually binds to (regardless of launch profile), rather than a static guess.
 builder.AddProject<Projects.Contoso_Shopping_Api>("shopping-api").WithReference(sqlServer).WithReference(redis).WithReference(serviceBus).WithReference(productsApi).AddEndpoints("/health/ready/detailed");
 builder.AddProject<Projects.Contoso_Shopping_Relay>("shopping-relay").WithReference(sqlServer).WithReference(serviceBus).AddEndpoints("/health/ready/detailed").AddHostedServiceSupport();
-builder.AddProject<Projects.Contoso_Shopping_Subscribe>("shopping-subscribe").WithReference(sqlServer).WithReference(redis).WithReference(serviceBus).WithReference(productsApi).AddEndpoints("/health/ready/detailed").AddHostedServiceSupport();
+
+builder.AddProject<Projects.Contoso_Shopping_Subscribe>("shopping-subscribe")
+    .WithReference(sqlServer)
+    .WithReference(redis)
+    .WithReference(serviceBus)
+    .WithReference(productsApi)
+    .AddEndpoints("/health/ready/detailed")
+    .AddHostedServiceSupport()
+    .WithMockHostEnvironment("SendGrid__BaseAddress", mockhost, "http");
 
 // Orders domain.
 var orderWorkflowWorker = builder.AddProject<Projects.Contoso_Order_Workflow_Worker>("order-workflow-worker").AddEndpoints("/health").WithUrlForEndpoint("https", ep => { ep.Url = "http://localhost:8082"; ep.DisplayText = "DTS Dashboard"; });
 builder.AddProject<Projects.Contoso_Orders_Api>("orders-api").WithReference(sqlServer).WithReference(redis).WaitFor(orderWorkflowWorker).AddEndpoints("/health/ready/detailed");
 
-builder.Build().Run();
+var app = builder.Build();
+await app.StartAsync();
+
+await app.HttpMock("mock-host", "http")
+    .Request(HttpMethod.Post, "v3/mail/send").WithAnyBody().Respond.WithAsync(HttpStatusCode.Accepted);
+
+await app.WaitForShutdownAsync();

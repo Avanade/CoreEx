@@ -14,13 +14,12 @@ public static partial class UnitTestExExtensions
     /// <summary>
     /// Clears the underlying Redis cache by executing the <see cref="StackExchange.Redis.IServer.FlushDatabaseAsync"/> operation.
     /// </summary>
-    /// <param name="tester">The <see cref="AspireTesterBase"/>.</param>
+    /// <param name="app">The <see cref="DistributedApplication"/>.</param>
     /// <param name="aspireResourceName">The name of the Aspire resource to retrieve the connection string for.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
-    public static async Task ClearRedisCacheAsync(this AspireTesterBase tester, string aspireResourceName)
+    public static async Task ClearRedisCacheAsync(this DistributedApplication app, string aspireResourceName)
     {
-        var app = await tester.GetDistributedApplicationAsync();
-        var cs = (await app.GetConnectionStringAsync(aspireResourceName.ThrowIfNullOrEmpty())) ?? throw new InvalidOperationException($"The '{aspireResourceName}' connection string not found.");
+        var cs = (await AspireTesterBase.GetConnectionStringAsync(app.ThrowIfNull(), aspireResourceName.ThrowIfNullOrEmpty()).ConfigureAwait(false)) ?? throw new InvalidOperationException($"The '{aspireResourceName}' connection string not found.");
 
         var options = ConfigurationOptions.Parse(cs);
         options.AllowAdmin = true;

@@ -1,7 +1,9 @@
+global using Contoso.Shopping.Application.Adapters.Notifications;
 global using Contoso.Shopping.Application.Adapters.Products;
 global using Contoso.Shopping.Application.Repositories;
 global using Contoso.Shopping.Infrastructure.Adapters.Products;
 global using Contoso.Shopping.Infrastructure.Clients.Products;
+global using Contoso.Shopping.Infrastructure.Clients.SendGrid;
 global using Contoso.Shopping.Infrastructure.Mapping;
 global using Contoso.Shopping.Infrastructure.Repositories;
 global using CoreEx;
@@ -22,5 +24,6 @@ global using CoreEx.Results;
 global using Microsoft.EntityFrameworkCore;
 global using Microsoft.Extensions.DependencyInjection;
 global using Microsoft.Extensions.Logging;
+global using Microsoft.Extensions.Options;
 global using System.Net.Http.Json;
 global using System.Text.Json.Serialization;

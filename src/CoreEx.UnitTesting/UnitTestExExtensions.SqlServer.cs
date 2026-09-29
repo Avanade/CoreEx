@@ -108,18 +108,18 @@ public static partial class UnitTestExExtensions
     /// Execute the <see cref="SqlServerMigration"/> using the specified <paramref name="aspireResourceName"/> to retrieve the connection string from the distributed application.
     /// </summary>
     /// <typeparam name="TAssembly">The <see cref="Type"/> to infer the underlying <see cref="Assembly"/>.</typeparam>
-    /// <param name="tester">The <see cref="UnitTestEx.Aspire.AspireTesterBase"/>.</param>
+    /// <param name="app">The <see cref="DistributedApplication"/>.</param>
     /// <param name="aspireResourceName">The name of the Aspire resource to retrieve the connection string for.</param>
     /// <param name="resourceFileNames">The resource file names to include in the data loading; see <see cref="DataParserArgs.AddNamed{TAssembly}(string[])"/>.</param>
     /// <param name="configureMigrationArgs">An optional function to configure the <see cref="MigrationArgs"/>.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
-    public static Task MigrateSqlServerDataAsync<TAssembly>(this UnitTestEx.Aspire.AspireTesterBase tester, string aspireResourceName, string[]? resourceFileNames = null, Func<MigrationArgs, MigrationArgs>? configureMigrationArgs = null)
+    public static Task MigrateSqlServerDataAsync<TAssembly>(this DistributedApplication app, string aspireResourceName, string[]? resourceFileNames = null, Func<MigrationArgs, MigrationArgs>? configureMigrationArgs = null)
     {
         resourceFileNames ??= [];
 
         if (configureMigrationArgs is null)
         {
-            return MigrateSqlServerDataAsync(tester, aspireResourceName, ma =>
+            return MigrateSqlServerDataAsync(app, aspireResourceName, ma =>
             {
                 ma.DataParserArgs.AddNamed<TAssembly>(resourceFileNames);
                 return ma;
@@ -127,7 +127,7 @@ public static partial class UnitTestExExtensions
         }
         else
         {
-            return MigrateSqlServerDataAsync(tester, aspireResourceName, ma =>
+            return MigrateSqlServerDataAsync(app, aspireResourceName, ma =>
             {
                 var cma = configureMigrationArgs(ma);
                 cma.DataParserArgs.AddNamed<TAssembly>(resourceFileNames);
@@ -139,14 +139,13 @@ public static partial class UnitTestExExtensions
     /// <summary>
     /// Execute the <see cref="SqlServerMigration"/> using the specified <paramref name="aspireResourceName"/> to retrieve the connection string from the distributed application.
     /// </summary>
-    /// <param name="tester">The <see cref="UnitTestEx.Aspire.AspireTesterBase"/>.</param>
+    /// <param name="app">The <see cref="DistributedApplication"/>.</param>
     /// <param name="aspireResourceName">The name of the Aspire resource to retrieve the connection string for.</param>
     /// <param name="configureMigrationArgs">An optional function to configure the <see cref="MigrationArgs"/>.</param>
     /// <param name="assemblies">An optional array of assemblies to include in the migration.</param>
-    public static async Task MigrateSqlServerDataAsync(this UnitTestEx.Aspire.AspireTesterBase tester, string aspireResourceName, Func<MigrationArgs, MigrationArgs>? configureMigrationArgs = null, params Assembly[] assemblies)
+    public static async Task MigrateSqlServerDataAsync(this DistributedApplication app, string aspireResourceName, Func<MigrationArgs, MigrationArgs>? configureMigrationArgs = null, params Assembly[] assemblies)
     {
-        var app = await tester.GetDistributedApplicationAsync();
-        var cs = (await app.GetConnectionStringAsync(aspireResourceName.ThrowIfNullOrEmpty())) ?? throw new InvalidOperationException($"The '{aspireResourceName}' connection string not found.");
+        var cs = (await AspireTesterBase.GetConnectionStringAsync(app.ThrowIfNull(), aspireResourceName.ThrowIfNullOrEmpty()).ConfigureAwait(false)) ?? throw new InvalidOperationException($"The '{aspireResourceName}' connection string not found.");
         var ma = new MigrationArgs(MigrationCommand.All | MigrationCommand.ResetAndData, cs);
 
         if (configureMigrationArgs is not null)
@@ -160,7 +159,7 @@ public static partial class UnitTestExExtensions
         var (Success, Output) = await m.MigrateAndLogAsync().ConfigureAwait(false);
 
         if (!Success)
-            tester.Implementor.AssertFail("SqlServerMigration failed:" + Environment.NewLine + Output);
+            throw new InvalidOperationException("SqlServerMigration failed:" + Environment.NewLine + Output);
     }
 
     #endregion
