@@ -199,7 +199,7 @@ public partial class SubscriberTests : WithApiTester<Contoso.Products.Subscribe.
                 var ce = Test.CreateCloudEventFrom(ed);
                 var sbm = ce.ToServiceBusReceivedMessage();
 
-                var sbs = test.Services.GetRequiredService<ServiceBusSubscribedSubscriber>();
+                var sbs = test.Services.GetRequiredKeyedService<ServiceBusSubscribedSubscriber>("subscriber-commands");
                 var r = await sbs.ReceiveAsync(sbm);
                 r.IsSuccess.Should().BeTrue();
             }).AssertSuccess();

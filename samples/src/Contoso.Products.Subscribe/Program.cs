@@ -77,7 +77,7 @@ public class Program
                 return o;
             }, "receiver-events")
             .WithKeyedSubscribedSubscriber("subscriber-events")                                        // Adds the service bus subscriber using the ^ SubscribedManager.
-            .WithHostedService("hosted-events")                                                        // Adds the ^ service bus receiver as a hosted service.
+            .WithHostedService("hosted-subscriber-events")                                                        // Adds the ^ service bus receiver as a hosted service.
             .Build();                                                                                  // Builds all the ^ services and adds to the service collection.
 
         // Receiver 2: the 'contoso-products' command queue (commands are addressed to a single consuming domain via the NamedDestinationProvider).
@@ -89,7 +89,7 @@ public class Program
                 return o;
             }, "receiver-commands")
             .WithKeyedSubscribedSubscriber("subscriber-commands")
-            .WithHostedService("hosted-commands")
+            .WithHostedService("hosted-subscriber-commands")
             .Build();
 
         // Post-configure all health-checks; adds the standard tags.

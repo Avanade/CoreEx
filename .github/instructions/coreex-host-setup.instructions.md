@@ -349,9 +349,9 @@ builder.Services.AzureServiceBusReceiving()
         var o = ServiceBusSessionReceiverOptions.CreateForTopicSubscription();
         o.SessionProcessorOptions.MaxConcurrentSessions = 4;
         return o;
-    })
-    .WithSubscribedSubscriber()
-    .WithHostedService()
+    }, "receiver-events")
+    .WithKeyedSubscribedSubscriber("subscriber-events")
+    .WithHostedService("hosted-subscriber-events")
     .Build();
 
 builder.Services.PostConfigureAllHealthChecks();

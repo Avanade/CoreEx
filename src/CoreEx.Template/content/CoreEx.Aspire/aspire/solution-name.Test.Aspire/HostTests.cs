@@ -2,28 +2,27 @@ namespace solution-name.Test.Aspire;
 
 public class HostTests : WithAspireTester<Projects.solution-name-underscore_Aspire>
 {
-    [OneTimeSetUp]
-    public async Task OneTimeSetUpAsync()
+    protected override async Task OnBeforeStartAsync(DistributedApplication app)
     {
 // #if implement-sqlserver
-        await Test.MigrateSqlServerDataAsync<TestData>("SqlServer", ["no-data.seed.yaml"], DbMigration.ConfigureMigrationArgs);
+        await app.MigrateSqlServerDataAsync<TestData>("SqlServer", ["no-data.seed.yaml"], DbMigration.ConfigureMigrationArgs);
 // #elif implement-postgres
-        await Test.MigratePostgresDataAsync<TestData>("Postgres", ["no-data.seed.yaml"], DbMigration.ConfigureMigrationArgs);
+        await app.MigratePostgresDataAsync<TestData>("Postgres", ["no-data.seed.yaml"], DbMigration.ConfigureMigrationArgs);
 // #endif
 
         // Clear the Redis cache.
-        await Test.ClearRedisCacheAsync("redis");
+        await app.ClearRedisCacheAsync("redis");
 
 // #if implement-servicebus
-        // Reset the Azure Service Bus topic/subscription to an initial state.
-        await Test.ResetAzureServiceBusAsync("ServiceBus", null,
-        [
-            (new CreateTopicOptions("domain-parent-lower"), [new CreateSubscriptionOptions("domain-parent-lower", "domain-name-lower") { RequiresSession = true }])
-        ]);
+        // Reset the Azure Service Bus queues and topics/subscriptions to an initial state (see the Test.Common ServiceBus).
+        await app.ResetAzureServiceBusAsync("ServiceBus", Common.ServiceBus.GetQueues(), Common.ServiceBus.GetTopicsAndSubscriptions());
 // #endif
+    }
 
+    protected override async Task OnAfterStartAsync(DistributedApplication app)
+    {
         // Hang about until the host(s) are available.
-        await Test.WaitForResourceAsync([
+        await app.WaitForResourceAsync([
 // #if has-api
             "domain-name-lower-api",
 // #endif

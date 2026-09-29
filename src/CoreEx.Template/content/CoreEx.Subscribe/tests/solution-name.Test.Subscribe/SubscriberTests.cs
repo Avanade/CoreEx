@@ -11,6 +11,9 @@ public partial class SubscriberTests : WithApiTester<solution-name.Subscribe.Pro
         await Test.MigratePostgresDataAsync<TestData>(["mutate-data.seed.yaml"], DbMigration.ConfigureMigrationArgs).ConfigureAwait(false);
         // #endif
         await Test.ClearFusionCacheAsync().ConfigureAwait(false);
+        // #if implement-servicebus
+        await Test.ResetAzureServiceBusAsync(Common.ServiceBus.GetQueues(), Common.ServiceBus.GetTopicsAndSubscriptions()).ConfigureAwait(false);
+        // #endif
 
         // #if implement-sqlserver
         Test.UseExpectedSqlServerOutboxPublisher();
@@ -28,7 +31,7 @@ public partial class SubscriberTests : WithApiTester<solution-name.Subscribe.Pro
 
         test.Run(async _ =>
         {
-            var sbs = test.Services.GetRequiredService<ServiceBusSubscribedSubscriber>();
+            var sbs = test.Services.GetRequiredKeyedService<ServiceBusSubscribedSubscriber>("subscriber-events");
             var r = await sbs.ReceiveAsync(sbm);
 
             r.IsFailure.Should().BeTrue();

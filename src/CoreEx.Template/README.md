@@ -225,6 +225,8 @@ tests/
   [name].Test.Common/
     [name].Test.Common.csproj
     TestData.cs
+    ServiceBus.cs                        (messaging-provider == ServiceBus -- code-based topic/queue topology for tests; servicebus/Config.json is empty)
+    GlobalUsing.cs                       (messaging-provider == ServiceBus)
     Data/                                (data-provider != None -- embedded seed data for DbEx)
   [name].Test.Unit/
     [name].Test.Unit.csproj

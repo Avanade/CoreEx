@@ -24,6 +24,7 @@ public class Program
         builder.Services
             .AddPrecisionTimeProvider()
             .AddExecutionContext()
+            .AddNamedDestinationProvider()              // Adds the NamedDestinationProvider (default); events go to the shared topic, commands to a per-domain queue.
 // #if refdata-enabled
             .AddReferenceDataOrchestrator()              // Resolves the (CodeGen-generated) IReferenceDataProvider from DI at runtime — no compile-time dependency on the generated type.
 // #endif

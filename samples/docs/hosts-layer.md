@@ -283,14 +283,14 @@ builder.Services.AzureServiceBusReceiving()
         return o;
     }, "receiver-events")                       // Keyed so more than one receiver can coexist.
     .WithKeyedSubscribedSubscriber("subscriber-events")   // Routes received messages through the SubscribedManager.
-    .WithHostedService("hosted-events")         // Runs the receiver as a BackgroundService.
+    .WithHostedService("hosted-subscriber-events")         // Runs the receiver as a BackgroundService.
     .Build();
 
 // A second receiver for the domain's command queue (commands are addressed to a single consuming domain by the NamedDestinationProvider).
 builder.Services.AzureServiceBusReceiving()
     .WithSessionReceiver(_ => ServiceBusSessionReceiverOptions.CreateForQueue("contoso-products"), "receiver-commands")
     .WithKeyedSubscribedSubscriber("subscriber-commands")
-    .WithHostedService("hosted-commands")
+    .WithHostedService("hosted-subscriber-commands")
     .Build();
 
 app.MapHealthChecks();

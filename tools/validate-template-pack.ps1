@@ -475,10 +475,14 @@ $testScenarios = @(
                 "aspire/App.Test.Aspire/App.Test.Aspire.csproj"
                 "aspire/App.Test.Aspire/GlobalUsing.cs"
                 "aspire/App.Test.Aspire/HostTests.cs"
+                "tests/App.Test.Common/ServiceBus.cs"
             )
             FileContains = @{
                 "aspire/App.Aspire/AppHost.cs"    = "Projects.App_Api"
                 "aspire/App.Aspire/App.Aspire.csproj" = "CoreEx.UnitTesting"
+                "src/App.Api/Program.cs"          = "AddNamedDestinationProvider"
+                "src/App.Subscribe/Program.cs"    = "WithKeyedSubscribedSubscriber"
+                "tests/App.Test.Common/ServiceBus.cs" = "CreateTopicOptions"
             }
             FilesAbsent = @(
                 # Extensions.cs was superseded by CoreEx.UnitTesting's Aspire extension methods (UnitTestExExtensions.Aspire.cs).
@@ -489,6 +493,8 @@ $testScenarios = @(
         BuildTargets = @(
             "aspire/App.Aspire/App.Aspire.csproj"           # transitively builds every host it references
             "aspire/App.Test.Aspire/App.Test.Aspire.csproj" # AppHost doesn't reference this, so build it explicitly
+            "tests/App.Test.Subscribe/App.Test.Subscribe.csproj" # Compiles the keyed-subscriber tests and the Test.Common ServiceBus reset.
+            "tests/App.Test.Relay/App.Test.Relay.csproj"
         )
     },
     @{

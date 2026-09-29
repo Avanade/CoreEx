@@ -209,7 +209,7 @@
         },
         {
           "condition": "(!implement-servicebus)",
-          "exclude": [ "servicebus/**" ]
+          "exclude": [ "servicebus/**", "tests/app-name.Test.Common/ServiceBus.cs", "tests/app-name.Test.Common/GlobalUsing.cs" ]
         }
       ]
     }

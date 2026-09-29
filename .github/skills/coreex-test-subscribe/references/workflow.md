@@ -40,6 +40,7 @@ public partial class SubscriberTests : WithApiTester<{Domain}.Subscribe.Program>
         // or a schema-only no-data.seed.yaml for plumbing/health-only tests.
         await Test.MigrateSqlServerDataAsync<TestData>(["mutate-data.seed.yaml"], DbMigration.ConfigureMigrationArgs).ConfigureAwait(false);   // or MigratePostgresDataAsync<TestData>(...) — provider-specific
         await Test.ClearFusionCacheAsync().ConfigureAwait(false);
+        await Test.ResetAzureServiceBusAsync(Common.ServiceBus.GetQueues(), Common.ServiceBus.GetTopicsAndSubscriptions()).ConfigureAwait(false);   // Test.Common ServiceBus: the code-based topology.
 
         Test.UseExpectedSqlServerOutboxPublisher();   // or UseExpectedPostgresOutboxPublisher() — provider-specific
     }
@@ -51,7 +52,7 @@ One partial file per subscriber scenario under test: `SubscriberTests.{Scenario}
 ## Phase 2 — Simulating Message Receipt
 
 Build the `EventData` the subscriber expects, convert it to a `ServiceBusReceivedMessage`, resolve
-`ServiceBusSubscribedSubscriber` from DI, and call `.ReceiveAsync(sbm)` — no live Service Bus connection
+the keyed `ServiceBusSubscribedSubscriber` (key `"subscriber-events"`, as registered by the templated Subscribe host) from DI, and call `.ReceiveAsync(sbm)` — no live Service Bus connection
 needed.
 
 ```csharp
@@ -64,7 +65,7 @@ var ed = EventData.CreateCommand("{domain}", "{entity}", "{action}").WithKey(ref
 var ce = Test.CreateCloudEventFrom(ed);
 var sbm = ce.ToServiceBusReceivedMessage();
 
-var sbs = test.Services.GetRequiredService<ServiceBusSubscribedSubscriber>();
+var sbs = test.Services.GetRequiredKeyedService<ServiceBusSubscribedSubscriber>("subscriber-events");
 var r = await sbs.ReceiveAsync(sbm);
 r.IsSuccess.Should().BeTrue();
 ```
@@ -91,7 +92,7 @@ public void {Entity}{Action}_Success() => Test.Scoped(async test =>
             var ce = Test.CreateCloudEventFrom(ed);
             var sbm = ce.ToServiceBusReceivedMessage();
 
-            var sbs = test.Services.GetRequiredService<ServiceBusSubscribedSubscriber>();
+            var sbs = test.Services.GetRequiredKeyedService<ServiceBusSubscribedSubscriber>("subscriber-events");
             var r = await sbs.ReceiveAsync(sbm);
             r.IsSuccess.Should().BeTrue();
         }).AssertSuccess();
@@ -117,7 +118,7 @@ public void {Entity}{Action}_NotFound() => Test.Scoped(test =>
 
     test.Run(async _ =>
     {
-        var sbs = test.Services.GetRequiredService<ServiceBusSubscribedSubscriber>();
+        var sbs = test.Services.GetRequiredKeyedService<ServiceBusSubscribedSubscriber>("subscriber-events");
         var r = await sbs.ReceiveAsync(sbm);
 
         r.IsFailure.Should().BeTrue();
@@ -148,7 +149,7 @@ public void {Entity}Modify_Success() => Test.Scoped(async test =>
     // Act.
     test.Run(async _ =>
     {
-        var sbs = test.Services.GetRequiredService<ServiceBusSubscribedSubscriber>();
+        var sbs = test.Services.GetRequiredKeyedService<ServiceBusSubscribedSubscriber>("subscriber-events");
         var r = await sbs.ReceiveAsync(sbm);
         r.IsSuccess.Should().BeTrue();
     }).AssertSuccess();
@@ -179,7 +180,7 @@ public void Unsubscribed_CompletesSilently() => Test.Scoped(test =>
 
     test.Run(async _ =>
     {
-        var sbs = test.Services.GetRequiredService<ServiceBusSubscribedSubscriber>();
+        var sbs = test.Services.GetRequiredKeyedService<ServiceBusSubscribedSubscriber>("subscriber-events");
         var r = await sbs.ReceiveAsync(sbm);
 
         r.IsFailure.Should().BeTrue();

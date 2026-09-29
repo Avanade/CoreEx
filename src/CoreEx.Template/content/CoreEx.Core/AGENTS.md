@@ -33,7 +33,7 @@ app-name/
 |   +-- app-name.Database/         # (data-provider != None) Database migrations (DbEx)
 |   +-- app-name.CodeGen/          # (refdata-enabled && data-provider != None) Ref-data code gen
 +-- tests/
-|   +-- app-name.Test.Common/      # Shared test infrastructure: TestData marker, embedded seed data
+|   +-- app-name.Test.Common/      # Shared test infrastructure: TestData marker, embedded seed data, ServiceBus (code-based topic/queue configuration)
 |   +-- app-name.Test.Unit/        # Fast isolated unit tests (validators, services, no I/O)
 +-- Directory.Packages.props       # Central NuGet version management (no versions in .csproj)
 ```

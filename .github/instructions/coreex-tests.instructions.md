@@ -843,6 +843,13 @@ Relay tests extend `WithApiTester<Program>` over the relay host. Use `Test.Scope
 ```csharp
 public class RelayTests : WithApiTester<YourDomain.Relay.Program>
 {
+    [OneTimeSetUp]
+    public async Task OneTimeSetUpAsync()
+    {
+        // Reset the Service Bus entities to the code-based configuration in the shared Test.Common ServiceBus class.
+        await Test.ResetAzureServiceBusAsync(Common.ServiceBus.GetQueues(), Common.ServiceBus.GetTopicsAndSubscriptions());
+    }
+
     [Test]
     public async Task Outbox_Relay()
     {
@@ -879,7 +886,7 @@ Test.Http()
 > ```
 > The messaging entity 'sb://sbemulatorns.servicebus.onebox.windows-int.net/<topic>/subscriptions/<subscription>' could not be found.
 > ```
-> (the topic/subscription path varies), the test host is reaching the emulator but the requested topic/subscription does not exist in it. **Emit to the chat output:** *"Check that the Service Bus emulator (container) is executing with the correct `/servicebus/Config.json` file."* — the emulator provisions its topics/subscriptions from that config at startup, so a missing or mismatched `Config.json` (or a container started without it) is the usual cause. This is an **environment** problem, not a test-code defect — do not "fix" it by editing the test, the subjects, or the emulator entity names.
+> (the topic/subscription path varies), the test host is reaching the emulator but the requested topic/subscription does not exist in it. **Emit to the chat output:** *"Check that the Service Bus emulator (container) is running, and that the test `[OneTimeSetUp]` calls `Test.ResetAzureServiceBusAsync(Common.ServiceBus.GetQueues(), Common.ServiceBus.GetTopicsAndSubscriptions())` and that entity is defined in the Test.Common `ServiceBus` class (or in `/servicebus/Config.json` where the solution provisions entities there)."* — in a templated solution the emulator `Config.json` is intentionally empty and the entities are created by the reset call, so a missing reset (or a missing definition in `ServiceBus`) is the usual cause. This is an **environment** problem, not a test-code defect — do not "fix" it by editing the test, the subjects, or the emulator entity names.
 
 ---
 

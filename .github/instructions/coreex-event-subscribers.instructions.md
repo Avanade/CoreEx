@@ -197,7 +197,7 @@ builder.Services.AddAzureServiceBusPublisher((_, c) =>
     c.SessionIdStrategy = ServiceBusSessionStrategy.UsePartitionKeyConvertedToAnId;
 }, addAsDefaultIEventPublisher: false);  // false because outbox publisher is already the default
 
-// 5. Event formatter + subscriber manager
+// 5. Event formatter + subscriber manager (AddNamedDestinationProvider() is registered with the other CoreEx services: events to the shared topic, commands to `{topic}-{domain}` queues)
 builder.Services
     .AddEventFormatter()
     .AddSubscribedManager((_, c) => c.AddSubscribersUsing<MySubscriber>());
@@ -209,9 +209,9 @@ builder.Services.AzureServiceBusReceiving()
         var o = ServiceBusSessionReceiverOptions.CreateForTopicSubscription();
         o.SessionProcessorOptions.MaxConcurrentSessions = 4;
         return o;
-    })
-    .WithSubscribedSubscriber()    // routes received messages through the SubscribedManager
-    .WithHostedService()           // runs the receiver as a BackgroundService
+    }, "receiver-events")                               // keyed by default so further receivers (e.g. a command queue) can be added alongside
+    .WithKeyedSubscribedSubscriber("subscriber-events") // routes received messages through the SubscribedManager
+    .WithHostedService("hosted-subscriber-events")                 // runs the receiver as a BackgroundService (also the health-check/hosted-service management name)
     .Build();
 
 // 7. External API clients (if needed — for domains with inter-domain HTTP calls)

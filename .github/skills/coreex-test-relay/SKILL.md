@@ -52,6 +52,10 @@ rarely need new scenarios per domain.
 ```csharp
 public class RelayTests : WithApiTester<YourDomain.Relay.Program>
 {
+    [OneTimeSetUp]
+    public async Task OneTimeSetUpAsync()
+        => await Test.ResetAzureServiceBusAsync(Common.ServiceBus.GetQueues(), Common.ServiceBus.GetTopicsAndSubscriptions());   // Test.Common ServiceBus: the code-based topology.
+
     [Test]
     public async Task Outbox_Relay()
     {
@@ -92,8 +96,8 @@ The messaging entity 'sb://sbemulatorns.servicebus.onebox.windows-int.net/<topic
 
 the test host reached the emulator but the topic/subscription doesn't exist in it. **This is an
 environment problem, not a test-code defect** — check that the Service Bus emulator container is
-running with the correct `/servicebus/Config.json` (the emulator provisions topics/subscriptions from
-that config at startup). Do not "fix" it by editing the test, subject names, or emulator entity names.
+running, and that the test resets the entities via `Test.ResetAzureServiceBusAsync(Common.ServiceBus.GetQueues(), Common.ServiceBus.GetTopicsAndSubscriptions())`
+(in a templated solution the emulator `/servicebus/Config.json` is intentionally empty; the entities are defined in the Test.Common `ServiceBus` class). Do not "fix" it by editing the test, subject names, or emulator entity names.
 
 ## Key References
 

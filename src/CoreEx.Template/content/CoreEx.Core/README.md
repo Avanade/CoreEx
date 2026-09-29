@@ -61,7 +61,7 @@ app-name/
 │   └── app-name.Database/         # Database migrations and seeding (DbEx)
 <!-- #endif -->
 └── tests/
-    ├── app-name.Test.Common/      # Shared test infrastructure and seed data
+    ├── app-name.Test.Common/      # Shared test infrastructure, seed data and (Service Bus) topology
     └── app-name.Test.Unit/        # Fast isolated unit tests (no I/O)
 ```
 
