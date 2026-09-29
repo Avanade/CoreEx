@@ -36,7 +36,7 @@ Gather everything needed for all downstream L1 skills in a single conversation t
 | # | Question | Why needed |
 |---|---|---|
 | 1 | What is the event or command subject? (e.g. `products.product.modified`, `shopping.basket.checkout`) | Drives subscriber subject registration and test assertions |
-| 2 | Which scenario does this subscriber implement? — **Command handler** (inbound command triggers a direct action), **Event-data-sync** (inbound event replicates data to a local store via `IXxxSyncAdapter`), or **Business-process** (inbound event triggers multi-step orchestration) | Determines which L1 steps run |
+| 2 | Which scenario does this subscriber implement? — **Command handler** (inbound command triggers a direct action — for commands prefer [`coreex-command-subscribe-e2e`](../coreex-command-subscribe-e2e/SKILL.md), which also covers the dedicated queue receiver, topology and Aspire), **Event-data-sync** (inbound event replicates data to a local store via `IXxxSyncAdapter`), or **Business-process** (inbound event triggers multi-step orchestration) | Determines which L1 steps run |
 | 3 | Does a new DTO contract need to be created for the event/command payload, or does one already exist? | Gates Step 1 (`coreex-contract`) |
 | 4 | (Business-process and command scenarios) Does the handler need to persist state to a new local entity table? | Gates Steps 2 and 3 (migration + repository) |
 | 5 | (If `data-provider` was unrecorded) Does this solution have local persistence (SqlServer / Postgres)? | Required before Steps 2–3 can be evaluated |

@@ -1,5 +1,5 @@
 ---
-description: Add a complete new event or command subscriber end-to-end — DTO contract (if new), subscriber handler, optional app-service and repository, and integration tests in one guided workflow
+description: Add a complete new event subscriber (for commands use coreex-command-subscribe-e2e) end-to-end — DTO contract (if new), subscriber handler, optional app-service and repository, and integration tests in one guided workflow
 ---
 
 <!--

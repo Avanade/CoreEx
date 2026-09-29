@@ -130,8 +130,8 @@ This installs:
 - `.github/skills/` — the CoreEx skill suite: `coreex-bootstrap`, `coreex-docs-sync`, `coreex-scaffold`, the L1 skills
   (`coreex-contract`, `coreex-refdata`, `coreex-db-migration`, `coreex-repository`, `coreex-adapter`,
   `coreex-app-service`, `coreex-validator`, `coreex-policy`, `coreex-aggregate`, `coreex-api`, `coreex-subscriber`,
-  `coreex-test-api`, `coreex-test-subscribe`, `coreex-test-relay`), and the L2 end-to-end skills
-  (`coreex-api-e2e`, `coreex-subscriber-e2e`)
+  `coreex-test-api`, `coreex-test-subscribe`, `coreex-test-relay`, `coreex-aspire`), and the L2 end-to-end skills
+  (`coreex-api-e2e`, `coreex-subscriber-e2e`, `coreex-command-publish-e2e`, `coreex-command-subscribe-e2e`)
 - `.github/agents/coreex-expert.agent.md` — architecture guidance agent
 - `.github/docs/coreex/` — the architecture docs + per-package guides cache, self-describing via
   `.github/docs/coreex/manifest.txt` (refresh later, version-pinned, with `/coreex-docs-sync`)

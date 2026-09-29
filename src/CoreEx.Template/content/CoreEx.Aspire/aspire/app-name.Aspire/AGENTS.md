@@ -44,6 +44,10 @@ This solution was generated with:
 - `solution-name.Test.Aspire` -- an NUnit project that spins up this AppHost via `WithAspireTester<Projects.solution-name-underscore_Aspire>`
   for smoke/integration testing across all orchestrated hosts together.
 
+## Guidance
+
+For AppHost wiring, service-bus topology, third-party HTTP (MockHost) versus in-AppHost domains (`WithReference`), and the `Test.Aspire` `OnBeforeStartAsync` / `OnAfterStartAsync` lifecycle, see the `coreex-aspire` skill (`.github/skills/coreex-aspire/SKILL.md`) and `.github/instructions/coreex-aspire.instructions.md` when installed via `dotnet new coreex-ai`.
+
 ## Adding a Host Later
 
 If a new `Api`, `Relay`, or `Subscribe` host is added to this solution *after* this AppHost was generated, do not

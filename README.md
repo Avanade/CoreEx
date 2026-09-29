@@ -186,12 +186,14 @@ The repository includes an AI workflow set in [`.github/`](./.github/) that give
 | [CoreEx.Template](./src/CoreEx.Template/README.md) | Deterministic solution and host scaffolding via `dotnet new coreex*` templates | `dotnet new install CoreEx.Template` then `dotnet new coreex...` | Run the same `dotnet new` commands in the terminal |
 | [`coreex-ai`](./src/CoreEx.Template/README.md#template-1----coreex-ai-ai-workflow-assets) | Installs this AI workflow set — agents, skills, prompts, instructions — into any repository | `dotnet new coreex-ai` | Run the same `dotnet new` command in the terminal |
 
-**Skills — the AI-augmented building blocks** — sixteen skills codify CoreEx's architectural patterns into guided, correct-by-construction workflows: fourteen per-capability (L1) skills that add or modify a single building block, and two end-to-end (L2) skills that orchestrate a full vertical slice in one pass. Each is invoked as `/coreex-<name>` (Claude Code) or via the matching `prompts/coreex-<name>.prompt.md` (Copilot).
+**Skills — the AI-augmented building blocks** — twenty skills codify CoreEx's architectural patterns into guided, correct-by-construction workflows: sixteen per-capability (L1) skills that add or modify a single building block, and four end-to-end (L2) skills that orchestrate a full vertical slice in one pass. Each is invoked as `/coreex-<name>` (Claude Code) or via the matching `prompts/coreex-<name>.prompt.md` (Copilot).
 
 | Group | Skill | What it does |
 |---|---|---|
 | **End-to-end (L2)** | `coreex-api-e2e` | New entity + full CRUD API — contract, migration, repository, validator, service, endpoint, and tests — in one guided workflow |
-| | `coreex-subscriber-e2e` | New event/command subscriber — contract, handler, service, and tests — in one guided workflow |
+| | `coreex-subscriber-e2e` | New event subscriber (data-sync or business-process) — contract, handler, service, and tests — in one guided workflow |
+| | `coreex-command-publish-e2e` | Send a **command** to another domain — adapter, outbox/direct call site, queue routing, Service Bus topology, API + Relay tests, and Aspire E2E |
+| | `coreex-command-subscribe-e2e` | Handle a **command** addressed to this domain — contract, subscriber, dedicated command-queue receiver, topology, Subscribe tests, and Aspire E2E |
 | | | |
 | Contracts | `coreex-contract` | Hand-authored DTO/entity contracts — root, subordinate, or extending an existing one |
 | | `coreex-refdata` | Reference data types — new entity, extra properties, seed rows, wiring into contracts |
@@ -203,16 +205,18 @@ The repository includes an AI workflow set in [`.github/`](./.github/) that give
 | | `coreex-adapter` | Anti-corruption-layer adapters and typed HTTP clients for cross-domain or external calls |
 | | `coreex-db-migration` | Database tables and schema changes for a domain |
 | Hosts | `coreex-api` | API controllers or Minimal API endpoints — CRUD and business actions |
+| | `coreex-graphql` | GraphQL-lite query bridge (`CoreEx.Data.GraphQL`) on an API host |
 | | `coreex-subscriber` | Event/command subscribers in a Subscribe host |
 | Testing | `coreex-test-api` | Integration tests for an API host |
 | | `coreex-test-subscribe` | Integration tests for a Subscribe host |
 | | `coreex-test-relay` | Integration tests for an Outbox Relay host |
+| | `coreex-aspire` | Aspire AppHost wiring, service-bus topology, MockHost stubs for third-party HTTP, and `Test.Aspire` E2E tests |
 
 See the [full skill catalog](./.github/coreex-ai-workflows.md#prompts-skills-and-templates) for full detail on each.
 
 **Also available** — repo-maintenance and local-orchestration skills: [`/coreex-scaffold`](./.github/skills/coreex-scaffold/README.md) (greenfield solution scaffolding), [`/coreex-docs-sync`](./.github/skills/coreex-docs-sync/README.md) (refresh cached CoreEx docs), [`/acquire-codebase-knowledge`](./.github/skills/acquire-codebase-knowledge/README.md) (map an existing codebase), and [`/aspire`](./.github/skills/aspire/README.md) (orchestrate Aspire apps locally).
 
-**Instructions** — 11 scoped instruction files are injected automatically when editing matching file types (contracts, services, repositories, controllers, tests, etc.). No action required.
+**Instructions** — 12 scoped instruction files are injected automatically when editing matching file types (contracts, services, repositories, controllers, tests, etc.). No action required.
 
 → **[Full AI workflow overview](./.github/coreex-ai-workflows.md)**
 

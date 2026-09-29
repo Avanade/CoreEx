@@ -47,6 +47,7 @@ Instructions are passive — no action is needed to activate them. The global fi
 | `coreex-tooling.instructions.md` | CodeGen and Database projects — `ref-data.yaml`, DbEx, generated-file ownership |
 | `coreex-tests.instructions.md` | Test files — UnitTestEx, NUnit, AwesomeAssertions, outbox/event assertions |
 | `coreex-domain.instructions.md` | Domain files — aggregates, mutation guards, `Result<T>` pipelines |
+| `coreex-aspire.instructions.md` | Aspire files — AppHost wiring, service-bus topology, MockHost/third-party HTTP, `Test.Aspire` lifecycle |
 
 ## Prompts, Skills, and Templates
 
@@ -82,7 +83,7 @@ A version mismatch between the installed AI-asset bundle (`.github/docs/coreex/m
 
 #### Per-capability skills (L1)
 
-Fifteen skills add or modify a single CoreEx capability on an existing solution. Each is invoked as `/coreex-<name>` in Claude Code (via its `.claude/commands/coreex-<name>.md` thin wrapper) or via the matching [`prompts/coreex-<name>.prompt.md`](./prompts/) in Copilot — 1:1 by name across all three (skill, prompt, Claude command). Every skill reads the solution-root `AGENTS.md` **Feature Configuration** first to avoid redundant questioning.
+Sixteen skills add or modify a single CoreEx capability on an existing solution. Each is invoked as `/coreex-<name>` in Claude Code (via its `.claude/commands/coreex-<name>.md` thin wrapper) or via the matching [`prompts/coreex-<name>.prompt.md`](./prompts/) in Copilot — 1:1 by name across all three (skill, prompt, Claude command). Every skill reads the solution-root `AGENTS.md` **Feature Configuration** first to avoid redundant questioning.
 
 | Skill / prompt | Capability |
 |----------------|-----------|
@@ -101,13 +102,16 @@ Fifteen skills add or modify a single CoreEx capability on an existing solution.
 | [`coreex-test-api`](./skills/coreex-test-api/) | API tests |
 | [`coreex-test-subscribe`](./skills/coreex-test-subscribe/) | Subscriber tests |
 | [`coreex-test-relay`](./skills/coreex-test-relay/) | Outbox relay tests |
+| [`coreex-aspire`](./skills/coreex-aspire/) | Aspire AppHost wiring, service-bus topology, MockHost stubs, and `Test.Aspire` E2E tests |
 
 #### End-to-end workflow skills (L2)
 
-Two skills orchestrate a complete vertical slice by gathering all context upfront and invoking the appropriate L1 skills in sequence — no repeated questions. They are **creation-only** — modifications to an existing entity or subscriber always target the relevant L1 skill directly.
+Four skills orchestrate a complete vertical slice by gathering all context upfront and invoking the appropriate L1 skills in sequence — no repeated questions. They are **creation-only** — modifications to an existing entity or subscriber always target the relevant L1 skill directly.
 
 | Skill / prompt | What it orchestrates |
 |----------------|---------------------|
 | [`coreex-api-e2e`](./skills/coreex-api-e2e/) | New entity with CRUD API — contract → migration → repository → validator → policy (if needed) → app-service → API endpoint → integration tests |
-| [`coreex-subscriber-e2e`](./skills/coreex-subscriber-e2e/) | New event or command subscriber — contract (if new) → migration + repository (if new entity) → app-service (if needed) → subscriber handler → integration tests |
+| [`coreex-subscriber-e2e`](./skills/coreex-subscriber-e2e/) | New event subscriber (data-sync / business-process; for **commands** use the two command skills below) — contract (if new) → migration + repository (if new entity) → app-service (if needed) → subscriber handler → integration tests |
+| [`coreex-command-publish-e2e`](./skills/coreex-command-publish-e2e/) | Send a **command** to another domain — adapter → transactional call site (outbox vs direct) → `NamedDestinationProvider` queue routing → Test.Common `ServiceBus` queue → API + Relay tests → Aspire E2E |
+| [`coreex-command-subscribe-e2e`](./skills/coreex-command-subscribe-e2e/) | Handle a **command** addressed to this domain — contract (if payload) → migration + repository (if new state) → app-service → subscriber → dedicated keyed command-queue receiver → `ServiceBus` queue → Subscribe tests → Aspire E2E |
 

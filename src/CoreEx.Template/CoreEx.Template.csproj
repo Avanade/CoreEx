@@ -137,6 +137,7 @@
     <!-- CoreEx.Ai: transform instruction files to inject the app-folder conditional into their applyTo frontmatter,
          then copy prompts, agents, and Claude commands directly (no conditional needed there). -->
     <InjectAppFolderConditional SourceFile="$(_RepoRoot)consumer-instructions/.github/copilot-instructions.md" DestinationFile="$(_AiAiGenRoot).github/instructions/coreex.instructions.md" PrependFrontmatter="true" />
+    <InjectAppFolderConditional SourceFile="$(_RepoRoot).github/instructions/coreex-aspire.instructions.md" DestinationFile="$(_AiAiGenRoot).github/instructions/coreex-aspire.instructions.md" />
     <InjectAppFolderConditional SourceFile="$(_RepoRoot).github/instructions/coreex-api-controllers.instructions.md" DestinationFile="$(_AiAiGenRoot).github/instructions/coreex-api-controllers.instructions.md" />
     <InjectAppFolderConditional SourceFile="$(_RepoRoot).github/instructions/coreex-application-services.instructions.md" DestinationFile="$(_AiAiGenRoot).github/instructions/coreex-application-services.instructions.md" />
     <InjectAppFolderConditional SourceFile="$(_RepoRoot).github/instructions/coreex-contracts.instructions.md" DestinationFile="$(_AiAiGenRoot).github/instructions/coreex-contracts.instructions.md" />
@@ -210,6 +211,15 @@
     <!-- CoreEx.Ai: L2 end-to-end skills (orchestrate multiple L1 skills in one guided workflow). -->
     <Copy SourceFiles="$(_RepoRoot).github/prompts/coreex-api-e2e.prompt.md;$(_RepoRoot).github/skills/coreex-api-e2e/SKILL.md;$(_RepoRoot).github/skills/coreex-api-e2e/references/workflow.md;$(_RepoRoot).claude/commands/coreex-api-e2e.md"
           DestinationFiles="$(_AiAiGenRoot).github/prompts/coreex-api-e2e.prompt.md;$(_AiAiGenRoot).github/skills/coreex-api-e2e/SKILL.md;$(_AiAiGenRoot).github/skills/coreex-api-e2e/references/workflow.md;$(_AiAiGenRoot).claude/commands/coreex-api-e2e.md"
+          SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(_RepoRoot).github/prompts/coreex-aspire.prompt.md;$(_RepoRoot).github/skills/coreex-aspire/SKILL.md;$(_RepoRoot).github/skills/coreex-aspire/references/workflow.md;$(_RepoRoot).claude/commands/coreex-aspire.md"
+          DestinationFiles="$(_AiAiGenRoot).github/prompts/coreex-aspire.prompt.md;$(_AiAiGenRoot).github/skills/coreex-aspire/SKILL.md;$(_AiAiGenRoot).github/skills/coreex-aspire/references/workflow.md;$(_AiAiGenRoot).claude/commands/coreex-aspire.md"
+          SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(_RepoRoot).github/prompts/coreex-command-publish-e2e.prompt.md;$(_RepoRoot).github/skills/coreex-command-publish-e2e/SKILL.md;$(_RepoRoot).github/skills/coreex-command-publish-e2e/references/workflow.md;$(_RepoRoot).claude/commands/coreex-command-publish-e2e.md"
+          DestinationFiles="$(_AiAiGenRoot).github/prompts/coreex-command-publish-e2e.prompt.md;$(_AiAiGenRoot).github/skills/coreex-command-publish-e2e/SKILL.md;$(_AiAiGenRoot).github/skills/coreex-command-publish-e2e/references/workflow.md;$(_AiAiGenRoot).claude/commands/coreex-command-publish-e2e.md"
+          SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(_RepoRoot).github/prompts/coreex-command-subscribe-e2e.prompt.md;$(_RepoRoot).github/skills/coreex-command-subscribe-e2e/SKILL.md;$(_RepoRoot).github/skills/coreex-command-subscribe-e2e/references/workflow.md;$(_RepoRoot).claude/commands/coreex-command-subscribe-e2e.md"
+          DestinationFiles="$(_AiAiGenRoot).github/prompts/coreex-command-subscribe-e2e.prompt.md;$(_AiAiGenRoot).github/skills/coreex-command-subscribe-e2e/SKILL.md;$(_AiAiGenRoot).github/skills/coreex-command-subscribe-e2e/references/workflow.md;$(_AiAiGenRoot).claude/commands/coreex-command-subscribe-e2e.md"
           SkipUnchangedFiles="true" />
     <Copy SourceFiles="$(_RepoRoot).github/prompts/coreex-subscriber-e2e.prompt.md;$(_RepoRoot).github/skills/coreex-subscriber-e2e/SKILL.md;$(_RepoRoot).github/skills/coreex-subscriber-e2e/references/workflow.md;$(_RepoRoot).claude/commands/coreex-subscriber-e2e.md"
           DestinationFiles="$(_AiAiGenRoot).github/prompts/coreex-subscriber-e2e.prompt.md;$(_AiAiGenRoot).github/skills/coreex-subscriber-e2e/SKILL.md;$(_AiAiGenRoot).github/skills/coreex-subscriber-e2e/references/workflow.md;$(_AiAiGenRoot).claude/commands/coreex-subscriber-e2e.md"

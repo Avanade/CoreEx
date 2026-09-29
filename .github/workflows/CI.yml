@@ -118,12 +118,16 @@ jobs:
     - name: Test samples
       run: dotnet test CoreEx.Samples.Test.slnf --no-build --configuration Release --logger trx --collect "XPlat Code Coverage" --results-directory coverage/samples -m:1 -p:TestTfmsInParallel=false -p:BuildInParallel=false
 
+    # The Aspire end-to-end tests orchestrate every sample host together, so they run last (after all the intra-domain sample tests) and on .NET 10 only (the AppHost is single-TFM).
+    - name: Test samples (Aspire end-to-end, net10.0 only)
+      timeout-minutes: 20
+      run: dotnet test CoreEx.Samples.Test.E2E.slnf --no-build --configuration Release --logger trx --results-directory coverage/samples-e2e -m:1 -p:TestTfmsInParallel=false -p:BuildInParallel=false
     - name: Upload samples test results
       if: always()
       uses: actions/upload-artifact@v4
       with:
         name: samples-test-results
-        path: "coverage/samples/**/*.trx"
+        path: "coverage/samples*/**/*.trx"
         retention-days: 30
 
     # --- Coverage ---
