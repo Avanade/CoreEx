@@ -129,6 +129,15 @@ jobs:
     - name: Test samples
       run: dotnet test CoreEx.Samples.Test.slnf --no-build --configuration Release --logger trx --collect "XPlat Code Coverage" --results-directory coverage/samples -m:1 -p:TestTfmsInParallel=false -p:BuildInParallel=false
 
+    # The E2E hosts call each other over https using the ASP.NET Core dev certificate, which 'dotnet dev-certs https --trust' can't trust on Linux; add it to the system store instead.
+    - name: Trust ASP.NET Core dev certificate
+      run: |
+        dotnet dev-certs https
+        dotnet dev-certs https --export-path aspnetcore-dev.pem --format Pem --no-password
+        sudo cp aspnetcore-dev.pem /usr/local/share/ca-certificates/aspnetcore-dev.crt
+        sudo update-ca-certificates
+        rm aspnetcore-dev.pem
+
     # The Aspire end-to-end tests orchestrate every sample host together, so they run last (after all the intra-domain sample tests) and on .NET 10 only (the AppHost is single-TFM).
     - name: Test samples (Aspire end-to-end, net10.0 only)
       timeout-minutes: 20
