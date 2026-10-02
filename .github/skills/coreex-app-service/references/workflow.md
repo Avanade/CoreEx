@@ -261,6 +261,8 @@ public Task<Result<Contracts.{Name}>> {Action}Async(string id, CancellationToken
     => OrchestrateUpdateAsync(id, entity => entity.{Action}(), cancellationToken: cancellationToken);
 ```
 
+> **Failure propagation:** the guard clauses above hand the existing result straight back (`return mr.AsResult();`, or `return r;` when it is a `Result` / same-type `Result<T>`). Never rebuild a failure from `.Error` (`Result<X>.Fail(r.Error!)`, `return r.Error!;`) — and a `Then*` chain (`.Then(x => Check(x)).ThenAs(...)`) avoids the guard clauses altogether. Full rules: [`coreex-application-services.instructions.md`](/.github/instructions/coreex-application-services.instructions.md).
+
 ### B5 — Multi-step pipeline with early exit
 
 For pre-flight checks (validation + adapter/policy) before the transaction:
