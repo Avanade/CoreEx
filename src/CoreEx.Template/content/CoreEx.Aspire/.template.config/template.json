@@ -292,6 +292,13 @@
       "replaces": "20089"
     }
   },
+  "sources": [
+    {
+      "rename": {
+        "aspire/_Directory.Build.props": "aspire/Directory.Build.props"
+      }
+    }
+  ],
   "specialCustomOperations": {
     "*.md": {
       "operations": [

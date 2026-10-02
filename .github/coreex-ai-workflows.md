@@ -114,4 +114,3 @@ Four skills orchestrate a complete vertical slice by gathering all context upfro
 | [`coreex-subscriber-e2e`](./skills/coreex-subscriber-e2e/) | New event subscriber (data-sync / business-process; for **commands** use the two command skills below) — contract (if new) → migration + repository (if new entity) → app-service (if needed) → subscriber handler → integration tests |
 | [`coreex-command-publish-e2e`](./skills/coreex-command-publish-e2e/) | Send a **command** to another domain — adapter → transactional call site (outbox vs direct) → `NamedDestinationProvider` queue routing → Test.Common `ServiceBus` queue → API + Relay tests → Aspire E2E |
 | [`coreex-command-subscribe-e2e`](./skills/coreex-command-subscribe-e2e/) | Handle a **command** addressed to this domain — contract (if payload) → migration + repository (if new state) → app-service → subscriber → dedicated keyed command-queue receiver → `ServiceBus` queue → Subscribe tests → Aspire E2E |
-

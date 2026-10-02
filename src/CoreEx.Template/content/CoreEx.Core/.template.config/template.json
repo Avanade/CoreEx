@@ -169,6 +169,7 @@
       "rename": {
         "_Directory.Build.props": "Directory.Build.props",
         "_Directory.Packages.props": "Directory.Packages.props",
+        "tests/_Directory.Build.props": "tests/Directory.Build.props",
         "_editorconfig": ".editorconfig",
         "_gitattributes": ".gitattributes",
         "_gitignore": ".gitignore",

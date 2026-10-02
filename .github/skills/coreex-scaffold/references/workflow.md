@@ -470,4 +470,3 @@ dotnet sln Avanade.Erp.Sales.slnx add tests/Avanade.Erp.Sales.Test.Subscribe
 dotnet build Avanade.Erp.Sales.slnx
 dotnet test tests/Avanade.Erp.Sales.Test.Unit
 ```
-

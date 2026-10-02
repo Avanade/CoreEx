@@ -58,4 +58,3 @@ These are design-time console projects that feed the layer stack but have no run
 Tests are organised by host boundary — each `*.Test.*` project tests one deployable unit in isolation. Intra-domain dependencies (database, cache, outbox) are real; inter-domain calls (HTTP to other domains, direct broker publishes) are mocked. See [testing.md](testing.md) for the full testing guide.
 
 For cross-domain end-to-end validation and load simulation, all hosts are run together under [Aspire](aspire.md), and the [E2E Runner](aspire.md#e2e-runner) drives real workloads across the full system.
-

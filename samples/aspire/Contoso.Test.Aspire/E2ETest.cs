@@ -33,7 +33,7 @@ public class E2ETest : WithAspireTester<Projects.Contoso_Aspire>
     }
 
     [Test]
-    public void CreateOrderAndConfirm()
+    public async Task CreateOrderAndConfirm()
     {
         Test.Checkpoint("Create and activate a new Product; this should sync to the Shopping domain via the Products domain's outbox and Service Bus.");
 
@@ -145,7 +145,22 @@ public class E2ETest : WithAspireTester<Projects.Contoso_Aspire>
 
         Test.Checkpoint("The Product's inventory movement was successfully confirmed - you little beauty!");
 
-        Test.Delay(2000, "Wait long enough for any asynchronous processes to complete.");
-        Test.AssertLogContains("UnitTestEx > Sending HTTP request", "mock-host");
+        Test.Checkpoint("Poll the stand-in SendGrid endpoint for a mail-send request addressed to the Customer's e-mail.");
+
+        var email = $"{basket.CustomerId}@customer.contoso.local";
+        var api = await Test.HttpMock("mock-host", "http").GetAdminApiAsync().ConfigureAwait(false);
+        for (attempt = 1; !await SendReceivedAsync(api, email).ConfigureAwait(false); attempt++)
+        {
+            if (attempt > 30)
+                Assert.Fail($"No SendGrid mail-send request addressed to '{email}' was received after 30 attempts; the Basket.CheckedOut event did not result in a send.");
+
+            Test.Delay(1000, $"Waiting for the mail-send request; iteration {attempt}.");
+        }
+    }
+
+    private static async Task<bool> SendReceivedAsync(WireMock.Client.IWireMockAdminApi api, string email)
+    {
+        var requests = await api.GetRequestsAsync().ConfigureAwait(false);
+        return requests.Any(r => r.Request?.Path == "/v3/mail/send" && r.Request.Body?.Contains(email, StringComparison.OrdinalIgnoreCase) == true);
     }
 }

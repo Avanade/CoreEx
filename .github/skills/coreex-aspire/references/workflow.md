@@ -126,14 +126,25 @@ public void Checkout_ConfirmsReservation()
         movements = GetMovements(basket.Id!);
     }
 
-    // Third-party stub only: prove the MockHost actually received the call.
-    Test.AssertLogContains("UnitTestEx > Sending HTTP request", "mock-host");
+    // Third-party stub only: poll the MockHost's WireMock journal for a call to *this* route addressed to *this* recipient.
+    var api = await Test.HttpMock("mock-host", "http").GetAdminApiAsync().ConfigureAwait(false);
+    for (var attempt = 1; !await SendReceivedAsync(api, email).ConfigureAwait(false); attempt++)
+    {
+        if (attempt > 30) Assert.Fail($"No mail-send request addressed to '{email}' was received after 30 attempts.");
+        Test.Delay(1000, $"Waiting for the mail-send request; iteration {attempt}.");
+    }
+}
+
+private static async Task<bool> SendReceivedAsync(WireMock.Client.IWireMockAdminApi api, string email)
+{
+    var requests = await api.GetRequestsAsync().ConfigureAwait(false);
+    return requests.Any(r => r.Request?.Path == "/v3/mail/send" && r.Request.Body?.Contains(email, StringComparison.OrdinalIgnoreCase) == true);
 }
 ```
 
 - Bounded loop of `Test.Delay(ms, reason)` (e.g. 10 x 1 s), failing with `Assert.Fail` — never an unbounded wait or an unexplained `Thread.Sleep`.
 - `Test.Checkpoint(...)` narrates each step in the output; use it as the sample E2E does.
-- `Test.AssertLogContains(text, "mock-host")` asserts a stubbed third-party route was really called.
+- `Test.HttpMock("mock-host", "http").GetAdminApiAsync()` + `GetRequestsAsync()` inspects the WireMock request journal to prove a stubbed third-party route was really called. Match on the request `Path` **and** a body fragment unique to the flow (e.g. the recipient) — path alone proves nothing once other flows hit the same stub. This replaces log scraping (`AssertLogContains`), which is fragile. The test method becomes `async Task`.
 - Assert the **effect in the consuming host** (via its API), not the broker: the Aspire tester has no peek helper. Broker delivery of a specific message is a `*.Test.Relay` concern.
 - Where the consumer is *outside* the AppHost there is no effect to poll — keep the E2E to publishing health (host ready, relay hosted service healthy) and leave delivery to `Test.Relay`.
 

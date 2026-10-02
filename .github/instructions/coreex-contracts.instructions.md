@@ -318,6 +318,27 @@ public partial class ProductLite : ProductBase
 }
 ```
 
+### Patch / subset contracts — do not inherit
+
+Inheritance is for genuine supersets only: every inherited property must remain meaningful on the derived type. Do **not** inherit a sibling contract for a merge-patch or partial-update request merely because field names overlap. If the contract only needs a subset of the other contract's properties, author a **standalone** class containing just those properties (plus `IETag` where concurrency applies). Never inherit and then suppress the unwanted members with `new` / `[JsonIgnore]` / `[ReadOnly]` — the contract then advertises (in OpenAPI, validation and the patch surface) fields that are silently ignored, and inherited non-nullable members (e.g. `decimal`) take default values that a merge-patch can mistake for intent.
+
+```csharp
+// ❌ Inherits everything, then has to ignore most of it.
+public partial class BookingTravellerNotesPatch : BookingTraveller { /* hides/ignores the rest */ }
+
+// ✅ Standalone — only what the patch actually changes.
+[Contract]
+public partial class BookingTravellerNotesPatch : IETag
+{
+    /// <summary>Gets or sets the notes.</summary>
+    public string? Notes { get; set; }
+
+    /// <inheritdoc/>
+    [ReadOnly(true)]
+    public string? ETag { get; set; }
+}
+```
+
 ## Reference Data Contracts
 
 Reference data contracts are **generated, not hand-authored**. The source of truth is the `entities:` section of `ref-data.yaml` in the domain's `*.CodeGen` project. Running the CodeGen generates all artefacts across every layer -- contract class, API endpoint, service method, repository interface, repository implementation, and mapper -- as `.g.cs` files that must never be edited directly.
@@ -437,6 +458,7 @@ Never create or edit `*.g.cs` files directly.
 
 - Do not reference another domain's Contracts assembly to consume its events — declare a local adapter model instead.
 - Do not omit `[Contract]` and `partial` from hand-authored contract classes without an explicit user request — all hand-authored contracts use `[Contract]` + `partial` by default.
+- Do not inherit a sibling contract for a patch/partial-update/subset request and then hide or ignore the unwanted members (`new`, `[JsonIgnore]`) — author a standalone class with only the needed properties (+ `IETag` if applicable). See *Patch / subset contracts — do not inherit*.
 - Do not implement members that the Roslyn source generator emits (equality, cloning, serialization helpers).
 - Do not place domain rules, validators, or service calls in contract classes.
 - Do not leave contract properties without a `<summary>` — every property gets one (standard `Id`/`ETag`/`ChangeLog` may use `<inheritdoc/>`). See the *Documentation Comments* section.

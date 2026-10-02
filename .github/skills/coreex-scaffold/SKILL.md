@@ -227,5 +227,3 @@ dotnet new coreex-aspire    -n Company.Product.Books.Aspire --has-api ... --has-
 | CoreEx Outbox Relay host | `coreex-relay` | Adds an outbox relay host |
 | CoreEx Subscriber host | `coreex-subscribe` | Adds an event subscriber host |
 | CoreEx Aspire AppHost | `coreex-aspire` | Adds an Aspire AppHost orchestrating this solution's own hosts — run after those hosts exist |
-
-

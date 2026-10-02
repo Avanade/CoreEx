@@ -169,13 +169,16 @@ $testScenarios = @(
                 "tools/App.CodeGen/App.CodeGen.csproj"
                 "tests/App.Test.Common/App.Test.Common.csproj"
                 "tests/App.Test.Unit/App.Test.Unit.csproj"
+                "tests/Directory.Build.props"
             )
             FilesAbsent  = @(
                 ".github"
                 "src/App.Domain"
+                "tests/_Directory.Build.props"
             )
             FileContains = @{
                 "src/App.Infrastructure/App.Infrastructure.csproj" = "CoreEx.Database.Postgres"
+                "tests/Directory.Build.props" = "IDE1006"
             }
         }
         Build      = $true
@@ -486,9 +489,11 @@ $testScenarios = @(
                 "aspire/App.Test.Aspire/App.Test.Aspire.csproj"
                 "aspire/App.Test.Aspire/GlobalUsing.cs"
                 "aspire/App.Test.Aspire/HostTests.cs"
+                "aspire/Directory.Build.props"
                 "tests/App.Test.Common/ServiceBus.cs"
             )
             FileContains = @{
+                "aspire/Directory.Build.props"    = "IDE1006"
                 "aspire/App.Aspire/AppHost.cs"    = "Projects.App_Api"
                 "aspire/App.Aspire/App.Aspire.csproj" = "CoreEx.UnitTesting"
                 "src/App.Api/Program.cs"          = "AddNamedDestinationProvider"
@@ -498,6 +503,7 @@ $testScenarios = @(
             FilesAbsent = @(
                 # Extensions.cs was superseded by CoreEx.UnitTesting's Aspire extension methods (UnitTestExExtensions.Aspire.cs).
                 "aspire/App.Aspire/Extensions.cs"
+                "aspire/_Directory.Build.props"
             )
         }
         Build        = $true
