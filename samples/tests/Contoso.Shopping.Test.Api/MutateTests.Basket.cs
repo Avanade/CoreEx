@@ -156,7 +156,7 @@ public partial class MutateTests
         v = Test.Http<Basket>()
             .ExpectChangeLogUpdated()
             .ExpectSqlServerOutboxEvents(e => e.AssertWithValue("contoso", "contoso.shopping.basket.checkedout.v1")
-                                               .AssertMetadata("contoso", "contoso.products.reservation.confirm", v.Id))
+                                               .AssertMetadata("contoso-products", "contoso.products.reservation.confirm", v.Id))
             .Run(HttpMethod.Post, $"/api/baskets/{v.Id}/checkout")
             .AssertOK()
             .Value!;
@@ -219,7 +219,7 @@ public partial class MutateTests
         Test.Http()
             .OnEventPublish(SqlServerOutboxPublisher.DefaultServiceKey, () => throw new InvalidOperationException("Simulated failure during save; oh no, we all ready reserved inventory!"))
             .ExpectNoSqlServerOutboxEvents()
-            .ExpectAzureServiceBusEvents(e => e.AssertMetadata("contoso", "contoso.products.reservation.cancel", id))
+            .ExpectAzureServiceBusEvents(e => e.AssertMetadata("contoso-products", "contoso.products.reservation.cancel", id))
             .Run(HttpMethod.Post, $"/api/baskets/{id}/checkout")
             .AssertInternalServerError();
 

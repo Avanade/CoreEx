@@ -30,6 +30,7 @@
 | CloudNative.CloudEvents.SystemTextJson | 2.8.0 | CloudEvent interoperability | Directory.Packages.props |
 | Microsoft.DurableTask.* | 1.17.1 | Order workflow sample orchestration and worker runtime | Directory.Packages.props; samples/src/Contoso.Order.Workflow.Worker/Program.cs; samples/src/Contoso.Order.Workflow.Workflow/Contoso.Order.Workflow.Workflow.csproj |
 | DbEx.SqlServer | 3.0.0-preview-3 | Database migration/data console utilities in samples/tests | Directory.Packages.props; samples/src/Contoso.Products.Database/Program.cs |
+| UnitTestEx.Aspire + WireMock.Net | 5.12.0 / 2.18.0 | Aspire end-to-end testing (`WithAspireTester`) and the HTTP-stubbing `MockHost` | Directory.Packages.props; samples/aspire/Contoso.Test.Aspire/Contoso.Test.Aspire.csproj; samples/aspire/Contoso.Aspire.MockHost/Contoso.Aspire.MockHost.csproj |
 
 ### 3) Development Toolchain
 
@@ -48,6 +49,7 @@
 dotnet build CoreEx.sln
 dotnet test CoreEx.sln
 dotnet run --project samples/aspire/Contoso.Aspire
+dotnet test CoreEx.Samples.Test.E2E.slnf   # Aspire end-to-end tests (net10.0)
 docker compose up -d db-sql-server redis-cache servicebus-emulator aspire-dashboard dts-emulator
 ```
 

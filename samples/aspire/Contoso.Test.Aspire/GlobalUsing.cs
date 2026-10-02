@@ -1,0 +1,11 @@
+//global using Contoso.Shopping.Contracts;
+//global using CoreEx;
+//global using CoreEx.Database.SqlServer.Outbox;
+global using AwesomeAssertions;
+global using Azure.Messaging.ServiceBus.Administration;
+global using NUnit.Framework;
+global using System.Net;
+global using UnitTestEx;
+global using UnitTestEx.Expectations;
+//global using DbMigration = Contoso.Shopping.Database.Program;
+//global using TestData = Contoso.Shopping.Test.Common.TestData;

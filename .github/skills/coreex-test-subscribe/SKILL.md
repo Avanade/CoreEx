@@ -45,6 +45,7 @@ test triggers behavior: a simulated message receipt instead of an HTTP call.
 
 - **Base class**: `WithApiTester<{Domain}.Subscribe.Program>` — same DB/cache/outbox `[OneTimeSetUp]` shape as API tests (migrate + seed via named-file overload → `ClearFusionCacheAsync()` → provider-specific `UseExpected{Postgres|SqlServer}OutboxPublisher()`); Subscribe hosts **do** have FusionCache (reference data, idempotency)
 - **Simulate receipt**: build an `EventData` → `Test.CreateCloudEventFrom(ed)` → `.ToServiceBusReceivedMessage()` → resolve `ServiceBusSubscribedSubscriber` from DI → `.ReceiveAsync(sbm)`
+- **Key matters**: event subscribers resolve the key `"subscriber-events"`; **command** subscribers (dedicated queue receiver) resolve `"subscriber-commands"` — see `coreex-command-subscribe-e2e`. Resolving the wrong key throws or hits the wrong receiver
 - **One partial file per subscriber scenario** — `SubscriberTests.{Scenario}.cs`
 - **Match the test shape to the subscriber scenario**: command → assert outcome + outbox events published as a result; event-data-sync → assert local state/adapter reflects the payload; event-business-process → assert the downstream service ran and published its own events
 - **`ErrorHandler` outcomes are assertable** — a handled exception surfaces as `EventSubscriberHandledException` with `.ErrorHandling` and `.InnerException` to check

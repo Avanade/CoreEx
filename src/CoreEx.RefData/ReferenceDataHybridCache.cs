@@ -55,11 +55,10 @@ public partial class ReferenceDataHybridCache(IHybridCache cache) : IReferenceDa
         await semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            // Does a get or create as it may have been added as we went to lock.
-            return (await Cache.GetOrCreateByKeyAsync(key, async cancellationToken =>
-            {
-                return await factory(type, cancellationToken).ConfigureAwait(false) ?? throw new InvalidOperationException($"The '{type.Name}' (reference data) collection returned from the factory must not be null.");
-            }, options, cancellationToken).ConfigureAwait(false))!;
+            // Does a get or create as it may have been added as we went to lock; use the typed invoker (as opposed to relying on C# generic type inference) to ensure the concrete type,
+            // rather than the IReferenceDataCollection interface, is used as the underlying cache generic type argument (see GetOrCreateInvokerForType remarks).
+            var getOrCreateInvoker = GetOrCreateInvokerForType(type);
+            return await getOrCreateInvoker(Cache, key, factory, type, options, cancellationToken).ConfigureAwait(false);
         }
         finally
         {

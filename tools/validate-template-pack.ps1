@@ -73,6 +73,10 @@ $testScenarios = @(
                 ".github/skills/coreex-bootstrap/SKILL.md"
                 ".github/skills/coreex-docs-sync/SKILL.md"
                 ".github/skills/coreex-scaffold/SKILL.md"
+                ".github/skills/coreex-aspire/SKILL.md"
+                ".github/skills/coreex-command-publish-e2e/SKILL.md"
+                ".github/skills/coreex-command-subscribe-e2e/SKILL.md"
+                ".github/instructions/coreex-aspire.instructions.md"
                 ".github/docs/coreex/manifest.txt"
                 ".github/coreex-ai-workflows.md"
                 ".claude/commands/coreex-bootstrap.md"
@@ -80,6 +84,9 @@ $testScenarios = @(
                 ".claude/commands/coreex-docs-sync.md"
                 ".claude/commands/coreex-scaffold.md"
                 ".claude/commands/coreex-adapter.md"
+                ".claude/commands/coreex-aspire.md"
+                ".claude/commands/coreex-command-publish-e2e.md"
+                ".claude/commands/coreex-command-subscribe-e2e.md"
                 ".claude/commands/coreex-aggregate.md"
                 ".claude/commands/coreex-api.md"
                 ".claude/commands/coreex-api-e2e.md"
@@ -121,6 +128,10 @@ $testScenarios = @(
                 ".github/instructions/coreex-validators.instructions.md"
                 ".github/skills/coreex-docs-sync/SKILL.md"
                 ".github/skills/coreex-scaffold/SKILL.md"
+                ".github/skills/coreex-aspire/SKILL.md"
+                ".github/skills/coreex-command-publish-e2e/SKILL.md"
+                ".github/skills/coreex-command-subscribe-e2e/SKILL.md"
+                ".github/instructions/coreex-aspire.instructions.md"
                 ".github/docs/coreex/manifest.txt"
                 ".github/coreex-ai-workflows.md"
                 ".claude/commands/coreex-docs-sync.md"
@@ -158,13 +169,16 @@ $testScenarios = @(
                 "tools/App.CodeGen/App.CodeGen.csproj"
                 "tests/App.Test.Common/App.Test.Common.csproj"
                 "tests/App.Test.Unit/App.Test.Unit.csproj"
+                "tests/Directory.Build.props"
             )
             FilesAbsent  = @(
                 ".github"
                 "src/App.Domain"
+                "tests/_Directory.Build.props"
             )
             FileContains = @{
                 "src/App.Infrastructure/App.Infrastructure.csproj" = "CoreEx.Database.Postgres"
+                "tests/Directory.Build.props" = "IDE1006"
             }
         }
         Build      = $true
@@ -468,41 +482,71 @@ $testScenarios = @(
         TestPath   = "test-aspire-full-stack"
         Verify     = @{
             FilesPresent = @(
-                "src/App.Aspire/App.Aspire.csproj"
-                "src/App.Aspire/AppHost.cs"
-                "src/App.Aspire/Extensions.cs"
+                "aspire/App.Aspire/App.Aspire.csproj"
+                "aspire/App.Aspire/AppHost.cs"
+                "aspire/App.Aspire.MockHost/App.Aspire.MockHost.csproj"
+                "aspire/App.Aspire.MockHost/Program.cs"
+                "aspire/App.Test.Aspire/App.Test.Aspire.csproj"
+                "aspire/App.Test.Aspire/GlobalUsing.cs"
+                "aspire/App.Test.Aspire/HostTests.cs"
+                "aspire/Directory.Build.props"
+                "tests/App.Test.Common/ServiceBus.cs"
             )
             FileContains = @{
-                "src/App.Aspire/AppHost.cs" = "Projects.App_Api"
+                "aspire/Directory.Build.props"    = "IDE1006"
+                "aspire/App.Aspire/AppHost.cs"    = "Projects.App_Api"
+                "aspire/App.Aspire/App.Aspire.csproj" = "CoreEx.UnitTesting"
+                "src/App.Api/Program.cs"          = "AddNamedDestinationProvider"
+                "src/App.Subscribe/Program.cs"    = "WithKeyedSubscribedSubscriber"
+                "tests/App.Test.Common/ServiceBus.cs" = "CreateTopicOptions"
             }
+            FilesAbsent = @(
+                # Extensions.cs was superseded by CoreEx.UnitTesting's Aspire extension methods (UnitTestExExtensions.Aspire.cs).
+                "aspire/App.Aspire/Extensions.cs"
+                "aspire/_Directory.Build.props"
+            )
         }
-        Build       = $true
-        BuildTarget = "src/App.Aspire/App.Aspire.csproj"  # building the AppHost transitively builds every host it references
+        Build        = $true
+        BuildTargets = @(
+            "aspire/App.Aspire/App.Aspire.csproj"           # transitively builds every host it references
+            "aspire/App.Test.Aspire/App.Test.Aspire.csproj" # AppHost doesn't reference this, so build it explicitly
+            "tests/App.Test.Subscribe/App.Test.Subscribe.csproj" # Compiles the keyed-subscriber tests and the Test.Common ServiceBus reset.
+            "tests/App.Test.Relay/App.Test.Relay.csproj"
+        )
     },
     @{
         Name       = "coreex-aspire-api-only"
         Steps      = @(
             @{ Template = "coreex"; Name = "App"; Parameters = @{ "data-provider" = "SqlServer"; "messaging-provider" = "None"; "refdata-enabled" = "false"; "outbox-enabled" = "false"; "rop-enabled" = "false" } }
             @{ Template = "coreex-api"; Name = "App.Api"; Parameters = @{ "data-provider" = "SqlServer"; "refdata-enabled" = "false"; "outbox-enabled" = "false" } }
-            @{ Template = "coreex-aspire"; Name = "App.Aspire"; Parameters = @{ "has-api" = "true"; "has-relay" = "false"; "has-subscribe" = "false" } }
+            @{ Template = "coreex-aspire"; Name = "App.Aspire"; Parameters = @{ "has-api" = "true"; "has-relay" = "false"; "has-subscribe" = "false"; "data-provider" = "SqlServer"; "messaging-provider" = "None" } }
         )
         TestPath   = "test-aspire-api-only"
         Verify     = @{
             FilesPresent    = @(
-                "src/App.Aspire/App.Aspire.csproj"
+                "aspire/App.Aspire/App.Aspire.csproj"
+                "aspire/App.Aspire.MockHost/App.Aspire.MockHost.csproj"
+                "aspire/App.Test.Aspire/App.Test.Aspire.csproj"
+            )
+            FilesAbsent     = @(
+                # Extensions.cs was superseded by CoreEx.UnitTesting's Aspire extension methods (UnitTestExExtensions.Aspire.cs).
+                "aspire/App.Aspire/Extensions.cs"
             )
             FileContains    = @{
-                "src/App.Aspire/AppHost.cs" = "Projects.App_Api"
+                "aspire/App.Aspire/AppHost.cs" = "Projects.App_Api"
             }
             FileNotContains = @{
                 # has-relay/has-subscribe are false — confirms the #if stripping actually drops
                 # the other hosts' AddProject calls and ProjectReferences, not just that has-api's survive.
-                "src/App.Aspire/AppHost.cs"          = "Projects.App_Relay"
-                "src/App.Aspire/App.Aspire.csproj"   = "App.Relay"
+                "aspire/App.Aspire/AppHost.cs"          = "Projects.App_Relay"
+                "aspire/App.Aspire/App.Aspire.csproj"   = "App.Relay"
             }
         }
-        Build       = $true
-        BuildTarget = "src/App.Aspire/App.Aspire.csproj"
+        Build        = $true
+        BuildTargets = @(
+            "aspire/App.Aspire/App.Aspire.csproj"
+            "aspire/App.Test.Aspire/App.Test.Aspire.csproj"
+        )
     },
     @{
         Name       = "coreex-domain-regression"
@@ -660,6 +704,56 @@ try {
     }
     Write-Pass "Local feed populated: $localFeedPath"
 
+    # NuGet's global-packages cache is keyed purely by package id + version. Every package here is
+    # packed at whatever version is currently in Directory.Build.props (typically unchanged between
+    # local runs), so once a version has been restored once, NuGet will happily keep serving that
+    # STALE cached copy to every future scaffold — silently ignoring the freshly-packed content above
+    # and making local source changes invisible to validation. Evict exactly these package ids from
+    # the global cache before anything restores from the local feed, so each run reflects current source.
+    $globalPackagesFolder = (dotnet nuget locals global-packages --list) -replace '^global-packages:\s*', ''
+    $globalPackagesFolder = $globalPackagesFolder.Trim()
+    if ($globalPackagesFolder -and (Test-Path $globalPackagesFolder)) {
+        foreach ($proj in $libraryProjects) {
+            $packageId = $proj.BaseName.ToLowerInvariant()
+            $cachedPackagePath = Join-Path $globalPackagesFolder $packageId
+            if (Test-Path $cachedPackagePath) {
+                Write-Verbose "Evicting stale cached package: $cachedPackagePath"
+                Remove-Item -Path $cachedPackagePath -Recurse -Force
+            }
+        }
+        Write-Pass "Evicted stale CoreEx.* packages from the global NuGet cache"
+    }
+
+    # Some CoreEx package versions depend on a paired prerelease of a third-party package (e.g. UnitTestEx.Aspire)
+    # that may not be published on NuGet.org yet, only in a developer's own private local NuGet source. Adding
+    # that whole source to the generated nuget.config is dangerous: if it also happens to hold an older, stale
+    # copy of a CoreEx.* package at the SAME version this script just packed fresh (very possible — it's the
+    # same developer machine, same unchanged version numbers), NuGet may resolve that stale copy instead of the
+    # one in $localFeedPath, silently re-introducing the exact staleness bug evicted from the global cache above.
+    # So instead of adding the source, copy only the packages it holds that this script does NOT itself own
+    # (i.e. not one of $libraryProjects) into $localFeedPath — this keeps a single trusted source of truth for
+    # every CoreEx.* package while still filling in missing third-party prerelease dependencies.
+    $libraryPackageIds = [System.Collections.Generic.HashSet[string]]::new([string[]]($libraryProjects | ForEach-Object { $_.BaseName.ToLowerInvariant() }))
+    $localFileSources = @(dotnet nuget list source --format short) | ForEach-Object {
+        if ($_ -match '^(?<flags>\S+)\s+(?<value>.+)$') {
+            $flags = $Matches.flags
+            $value = $Matches.value.Trim()
+            if ($flags -notmatch 'D' -and $value -notmatch '^https?://' -and (Test-Path $value)) { $value }
+        }
+    }
+    foreach ($source in $localFileSources) {
+        Get-ChildItem -Path $source -Filter "*.nupkg" -ErrorAction SilentlyContinue | ForEach-Object {
+            if ($_.Name -match '^(?<id>.+?)\.(?<version>\d+\.\d+\.\d+(\.\d+)?(-[0-9A-Za-z.]+)?)\.nupkg$') {
+                $id = $Matches.id.ToLowerInvariant()
+                $destination = Join-Path $localFeedPath $_.Name
+                if (-not $libraryPackageIds.Contains($id) -and -not (Test-Path $destination)) {
+                    Write-Verbose "Pulling in third-party package from private local source: $($_.Name)"
+                    Copy-Item -Path $_.FullName -Destination $destination
+                }
+            }
+        }
+    }
+
     # Step 4: Install template pack (uninstall any existing version first to avoid duplicate registrations)
     Write-Header "Installing template pack"
     dotnet new uninstall CoreEx.Template 2>&1 | Out-Null
@@ -736,7 +830,9 @@ try {
 <configuration>
   <packageSources>
     <!-- Clear inherited user/machine sources so this build only ever hits the local feed and
-         nuget.org — avoids failures against unreachable corporate/internal feeds in CI. -->
+         nuget.org — avoids failures against unreachable corporate/internal feeds in CI. Any
+         third-party prerelease dependency only available on a developer's private local source
+         (e.g. UnitTestEx.Aspire) has already been copied into local-coreex above. -->
     <clear />
     <add key="local-coreex" value="$localFeedPath" />
     <add key="nuget.org" value="https://api.nuget.org/v3/index.json" protocolVersion="3" />
@@ -746,23 +842,31 @@ try {
                 Set-Content -Path (Join-Path $testDir "nuget.config") -Value $nugetConfigContent -Encoding utf8
 
                 Write-Output "  Building generated output..."
-                if ($scenario.BuildTarget) {
-                    # Explicit target — required for composite scenarios: later steps (hosts) are never
-                    # `dotnet sln add`-ed to the first step's .slnx, so auto-detecting the .slnx would build
-                    # only the `coreex` solution's own projects and silently skip the host being tested.
-                    $buildPath = Join-Path $testDir $scenario.BuildTarget
+                # Explicit target(s) — required for composite scenarios: later steps (hosts) are never
+                # `dotnet sln add`-ed to the first step's .slnx, so auto-detecting the .slnx would build
+                # only the `coreex` solution's own projects and silently skip the host being tested.
+                # BuildTargets (plural) lets a scenario build more than one entry point — e.g. the Aspire
+                # scenarios build both the AppHost (which transitively builds every host it references) and
+                # the Test.Aspire project (which the AppHost does NOT reference, so it would otherwise never compile).
+                $buildTargets = if ($scenario.BuildTargets) { $scenario.BuildTargets } elseif ($scenario.BuildTarget) { @($scenario.BuildTarget) } else { $null }
+
+                if ($buildTargets) {
+                    $buildPaths = $buildTargets | ForEach-Object { Join-Path $testDir $_ }
                 } else {
                     $buildTarget = (Get-ChildItem $testDir -Filter "*.slnx" -Recurse | Select-Object -First 1)
                     if (-not $buildTarget) { $buildTarget = Get-ChildItem $testDir -Filter "*.sln" -Recurse | Select-Object -First 1 }
                     if (-not $buildTarget) { $buildTarget = Get-ChildItem $testDir -Filter "*.csproj" -Recurse | Select-Object -First 1 }
-                    $buildPath = if ($buildTarget) { $buildTarget.FullName } else { $testDir }
+                    $buildPaths = @(if ($buildTarget) { $buildTarget.FullName } else { $testDir })
                 }
-                dotnet build $buildPath --nologo --verbosity minimal 2>&1 | Where-Object { $_ -match "error|warning|succeeded|failed" }
-                if ($LASTEXITCODE -ne 0) {
-                    $scenarioFailures += "dotnet build failed"
-                    Write-Fail "Build FAILED"
-                } else {
-                    Write-Pass "Build succeeded"
+
+                foreach ($buildPath in $buildPaths) {
+                    dotnet build $buildPath --nologo --verbosity minimal 2>&1 | Where-Object { $_ -match "error|warning|succeeded|failed" }
+                    if ($LASTEXITCODE -ne 0) {
+                        $scenarioFailures += "dotnet build failed for '$buildPath'"
+                        Write-Fail "Build FAILED ($buildPath)"
+                    } else {
+                        Write-Pass "Build succeeded ($buildPath)"
+                    }
                 }
             }
 

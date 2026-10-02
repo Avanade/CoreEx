@@ -23,7 +23,7 @@ tags: ["subscribers", "messaging", "service-bus", "event-handling", "integration
 | Package | Key types provided |
 |---|---|
 | `CoreEx.Events` | `SubscribedBase`, `SubscribedBase<TValue>`, `[Subscribe(...)]`, `EventSubscriberArgs`, `ErrorHandler`, `ErrorHandling`, `EventData`, `.Key` |
-| `CoreEx.Azure.Messaging.ServiceBus` | `ServiceBusSessionReceiverOptions`, `.AzureServiceBusReceiving()`, `.WithSessionReceiver()`, `.WithSubscribedSubscriber()`, `.WithHostedService()` |
+| `CoreEx.Azure.Messaging.ServiceBus` | `ServiceBusSessionReceiverOptions`, `.AzureServiceBusReceiving()`, `.WithSessionReceiver()`, `.WithSubscribedSubscriber()`, `.WithKeyedSubscribedSubscriber()`, `.WithHostedService()` |
 | `CoreEx` | `[ScopedService]`, `.ThrowIfNull()`, `.Required()`, `Result`, `Result.Success`, `IValidator<T>` |
 
 ## Subscriber Structure
@@ -197,7 +197,7 @@ builder.Services.AddAzureServiceBusPublisher((_, c) =>
     c.SessionIdStrategy = ServiceBusSessionStrategy.UsePartitionKeyConvertedToAnId;
 }, addAsDefaultIEventPublisher: false);  // false because outbox publisher is already the default
 
-// 5. Event formatter + subscriber manager
+// 5. Event formatter + subscriber manager (AddNamedDestinationProvider() is registered with the other CoreEx services: events to the shared topic, commands to `{topic}-{domain}` queues)
 builder.Services
     .AddEventFormatter()
     .AddSubscribedManager((_, c) => c.AddSubscribersUsing<MySubscriber>());
@@ -209,9 +209,9 @@ builder.Services.AzureServiceBusReceiving()
         var o = ServiceBusSessionReceiverOptions.CreateForTopicSubscription();
         o.SessionProcessorOptions.MaxConcurrentSessions = 4;
         return o;
-    })
-    .WithSubscribedSubscriber()    // routes received messages through the SubscribedManager
-    .WithHostedService()           // runs the receiver as a BackgroundService
+    }, "receiver-events")                               // keyed by default so further receivers (e.g. a command queue) can be added alongside
+    .WithKeyedSubscribedSubscriber("subscriber-events") // routes received messages through the SubscribedManager
+    .WithHostedService("hosted-subscriber-events")                 // runs the receiver as a BackgroundService (also the health-check/hosted-service management name)
     .Build();
 
 // 7. External API clients (if needed — for domains with inter-domain HTTP calls)
@@ -253,6 +253,24 @@ app.Run();
 
 `MapHostedServices()` exposes runtime management endpoints to **pause and resume** the receiver per partition without restarting the process.
 
+## Command Subscribers (Queue)
+
+A command is addressed to **one** domain and travels on that domain's **queue** (`{CoreEx:Events:Destination}-{domain}`, e.g. `contoso-products`), not the shared event topic. The `NamedDestinationProvider` (`AddNamedDestinationProvider()`) does the routing on the publishing side; the consuming Subscribe host needs its **own** receiver for that queue:
+
+```csharp
+builder.Services.AzureServiceBusReceiving()
+    .WithSessionReceiver(_ => ServiceBusSessionReceiverOptions.CreateForQueue("{destination}-{domain}"), "receiver-commands")
+    .WithKeyedSubscribedSubscriber("subscriber-commands")
+    .WithHostedService("hosted-subscriber-commands")
+    .Build();
+```
+
+- Each receiver, subscriber and hosted service needs its own **service key**; the event receiver uses `receiver-events` / `subscriber-events` / `hosted-subscriber-events`. Tests resolve `GetRequiredKeyedService<ServiceBusSubscribedSubscriber>("subscriber-commands")`.
+- The queue name must equal the `NamedDestinationProvider` result exactly and must exist (Test.Common `ServiceBus.GetQueues()`, session-enabled; Aspire topology class), otherwise the hosted service fails to start.
+- The **consuming domain owns the command contract** and subject (`{parent}.{this-domain}.{entity}.{action}[.v{n}]`). Never subscribe to another domain's command.
+- Commands are at-least-once: handlers must be idempotent; map only *expected* outcomes in the `ErrorHandler`.
+- Full slice (contract, wiring, topology, tests, Aspire): [`coreex-command-subscribe-e2e`](/.github/skills/coreex-command-subscribe-e2e/SKILL.md). Publishing side: [`coreex-command-publish-e2e`](/.github/skills/coreex-command-publish-e2e/SKILL.md).
+
 ## Do Not
 
 - Do not embed business logic in subscriber classes — delegate immediately to an Application-layer service or adapter.
@@ -266,4 +284,4 @@ app.Run();
 - [Hosts Layer Guide — Subscribe Host](/.github/docs/coreex/hosts-layer.md) — Subscribe host architecture, Program.cs shape, and subscriber patterns (docs-sync cache; after `/coreex-docs-sync`). Source: [samples/docs/hosts-layer.md](https://github.com/Avanade/CoreEx/blob/main/samples/docs/hosts-layer.md).
 - [Pattern Catalog](/.github/docs/coreex/patterns.md) — Subscribe, Publish, Transactional Outbox, and Event-Driven Replication pattern entries (docs-sync cache; after `/coreex-docs-sync`). Source: [samples/docs/patterns.md](https://github.com/Avanade/CoreEx/blob/main/samples/docs/patterns.md).
 - [CoreEx.Azure.Messaging.ServiceBus guide](/.github/docs/coreex/agents/CoreEx.Azure.Messaging.ServiceBus.md) — `SubscribedBase`, `ErrorHandler`, and Service Bus receiver configuration (docs-sync cache; after `/coreex-docs-sync`). Source: [CoreEx.Azure.Messaging.ServiceBus README](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.Azure.Messaging.ServiceBus/README.md).
-- Related skill: [`coreex-subscriber`](/.github/skills/coreex-subscriber/SKILL.md) — invoke to scaffold an event subscriber.
+- Related skill: [`coreex-subscriber`](/.github/skills/coreex-subscriber/SKILL.md) — invoke to scaffold a subscriber; [`coreex-command-subscribe-e2e`](/.github/skills/coreex-command-subscribe-e2e/SKILL.md) for a command end-to-end.

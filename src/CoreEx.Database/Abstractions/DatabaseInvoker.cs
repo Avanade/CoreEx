@@ -4,7 +4,13 @@ namespace CoreEx.Database.Abstractions;
 /// Provides the standard <see cref="IDatabase"/> invoker functionality.
 /// </summary>
 /// <remarks>Catches any unhandled <see cref="DbException"/> and invokes <see cref="IDatabase.HandleDbException(DbException)"/> to handle (where <see cref="DatabaseArgsBase.TransformException"/>) is <see langword="true"/>
-/// before bubbling up.</remarks>
+/// before bubbling up.
+/// <para>Where <see cref="DatabaseArgsBase.RetryOnTransient"/> is <see langword="true"/>, also retries the invocation - via <see cref="DatabaseArgsBase.RetryResiliencePipeline"/> where supplied, otherwise a
+/// default <see cref="DatabaseInvokerResiliency"/> pipeline - for any exception <see cref="IDatabase.IsTransientException(Exception)"/> classifies as transient. Where retries are exhausted and the
+/// invocation's result type is itself an <see cref="IResult"/> (ROP), the conversion is applied directly and returned as a failure with <b>no exception thrown at all</b> - avoiding both the cost of an
+/// unnecessary throw/catch round-trip and any need to synthesize a wrapping exception purely to carry the converted (e.g. <see cref="NotFoundException"/>/<see cref="ConcurrencyException"/>) error back out;
+/// only a non-ROP result type, or one where no conversion applies, results in a single unwrapped throw (never an <see cref="AggregateException"/>) of the final (possibly retried)
+/// exception.</para></remarks>
 public abstract class DatabaseInvoker : InvokerBase<IDatabase, DatabaseArgs>
 {
     /// <inheritdoc/>
@@ -12,7 +18,9 @@ public abstract class DatabaseInvoker : InvokerBase<IDatabase, DatabaseArgs>
     {
         try
         {
-            return await base.OnInvokeAsync(tracer, database, dbArgs, func, cancellationToken).ConfigureAwait(false);
+            return dbArgs.RetryOnTransient
+                ? await InvokeWithRetryAsync(tracer, database, dbArgs, func, cancellationToken).ConfigureAwait(false)
+                : await base.OnInvokeAsync(tracer, database, dbArgs, func, cancellationToken).ConfigureAwait(false);
         }
         catch (DbException dbex) when (dbArgs.TransformException)
         {
@@ -31,6 +39,114 @@ public abstract class DatabaseInvoker : InvokerBase<IDatabase, DatabaseArgs>
 
             throw;
         }
+    }
+
+    /// <summary>
+    /// Executes <paramref name="func"/> under the <see cref="DatabaseArgsBase.RetryOnTransient"/> retry pipeline - the caller-supplied <see cref="DatabaseArgsBase.RetryResiliencePipeline"/> where
+    /// specified; otherwise a cached-per-<typeparamref name="TResult"/> <see cref="DatabaseInvokerResiliency.CreateDefaultRetry{TResult}(TimeSpan?, int, DelayBackoffType)"/> default.
+    /// </summary>
+    /// <remarks>Only a <see cref="DbException"/> that <see cref="IDatabase.IsTransientException(Exception)"/> classifies as transient is ever retried; any other exception is rethrown immediately,
+    /// unretried, and handled by the existing <see cref="DatabaseArgsBase.TransformException"/> logic in <see cref="OnInvokeAsync{TResult}"/> as before.</remarks>
+    private static async Task<TResult> InvokeWithRetryAsync<TResult>(InvokerTracer tracer, IDatabase database, DatabaseArgs dbArgs, Func<InvokerTracer, DatabaseArgs, CancellationToken, Task<TResult>> func, CancellationToken cancellationToken)
+    {
+        var context = ResilienceContextPool.Shared.Get(cancellationToken);
+
+        try
+        {
+            context.Properties.Set(ResilienceOwner<IDatabase>.PropertyKey, database);
+
+            // Where an explicit (non-generic, payload-less) pipeline has been supplied, carry the successful value out via a captured local as Result itself carries no payload.
+            if (dbArgs.RetryResiliencePipeline is not null)
+            {
+                TResult? value = default;
+
+                var result = await dbArgs.RetryResiliencePipeline.ExecuteAsync(async rc =>
+                {
+                    try
+                    {
+                        value = await func(tracer, dbArgs, rc.CancellationToken).ConfigureAwait(false);
+                        return Result.Success;
+                    }
+                    catch (DbException dbex) when (database.IsTransientException(dbex))
+                    {
+                        return Result.Fail(dbex);
+                    }
+                }, context).ConfigureAwait(false);
+
+                if (result.IsFailure)
+                {
+                    if (TryConvertExhaustedRetryToResult(result.Error, database, dbArgs, tracer, out TResult? res))
+                        return res;
+
+                    ExceptionDispatchInfo.Capture(result.Error).Throw();
+                }
+
+                return value!;
+            }
+
+            // Otherwise, use the default, cached-per-TResult pipeline.
+            var typedResult = await DefaultRetryPipeline<TResult>.Instance.ExecuteAsync(async rc =>
+            {
+                try
+                {
+                    return new Result<TResult>(await func(tracer, dbArgs, rc.CancellationToken).ConfigureAwait(false));
+                }
+                catch (DbException dbex) when (database.IsTransientException(dbex))
+                {
+                    return new Result<TResult>(dbex);
+                }
+            }, context).ConfigureAwait(false);
+
+            if (typedResult.IsFailure)
+            {
+                if (TryConvertExhaustedRetryToResult(typedResult.Error, database, dbArgs, tracer, out TResult? res))
+                    return res;
+
+                ExceptionDispatchInfo.Capture(typedResult.Error).Throw();
+            }
+
+            return typedResult.Value;
+        }
+        finally
+        {
+            ResilienceContextPool.Shared.Return(context);
+        }
+    }
+
+    /// <summary>
+    /// Attempts to convert an exhausted-retry <see cref="DbException"/> directly into a <typeparamref name="TResult"/> failure - without throwing/catching - where <see cref="DatabaseArgsBase.TransformException"/>
+    /// applies, <see cref="IDatabase.HandleDbException(DbException)"/> converts it, and <typeparamref name="TResult"/> is itself an <see cref="IResult"/> (ROP) capable of carrying that conversion as a failure.
+    /// </summary>
+    /// <remarks>This exists specifically to avoid an otherwise unnecessary throw/catch round-trip back through <see cref="OnInvokeAsync{TResult}"/> purely to reapply a conversion that can be performed
+    /// here directly - Result's entire reason for being is to avoid the cost (and, for <see cref="IExtendedException"/> types, the loss of a natural returned-vs-thrown distinction) of exceptions for
+    /// anticipated/expected failure paths, so an exhausted-retry failure destined for a <see cref="Result"/>-shaped <typeparamref name="TResult"/> should never need to be thrown at all.
+    /// <para>Returns <see langword="false"/> - leaving the caller to throw <paramref name="error"/> unwrapped (see <see cref="ExceptionDispatchInfo"/>) - for every other case: a non-<see cref="DbException"/>
+    /// error, <see cref="DatabaseArgsBase.TransformException"/> disabled, no conversion available, or a non-ROP <typeparamref name="TResult"/>; that single throw is then handled identically to a
+    /// non-retried failure by the existing <see cref="DbException"/> handling in <see cref="OnInvokeAsync{TResult}"/>.</para></remarks>
+    private static bool TryConvertExhaustedRetryToResult<TResult>(Exception error, IDatabase database, DatabaseArgs dbArgs, InvokerTracer tracer, [NotNullWhen(true)] out TResult? result)
+    {
+        result = default;
+
+        if (!dbArgs.TransformException || error is not DbException dbex)
+            return false;
+
+        var hex = database.HandleDbException(dbex);
+        if (hex is null)
+            return false;
+
+        if (tracer.Logger is not null && tracer.Logger.IsEnabled(LogLevel.Debug))
+            tracer.Logger.LogDebug(dbex, "Database exception converted to '{ExceptionType}': {Message} [DatabaseId: {DatabaseId}]", hex.GetType().Name, hex.Message, database.DatabaseId);
+
+        return ExtendedException.TryConvertExceptionToResult(hex, out result);
+    }
+
+    /// <summary>
+    /// Caches the <see cref="DatabaseInvokerResiliency.CreateDefaultRetry{TResult}(TimeSpan?, int, DelayBackoffType)"/> pipeline per closed <typeparamref name="TResult"/>, avoiding rebuilding it on
+    /// every retry-enabled invocation.
+    /// </summary>
+    private static class DefaultRetryPipeline<TResult>
+    {
+        public static readonly ResiliencePipeline<Result<TResult>> Instance = DatabaseInvokerResiliency.CreateDefaultRetry<TResult>();
     }
 
     /// <summary>

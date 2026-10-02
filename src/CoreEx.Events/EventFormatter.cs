@@ -110,7 +110,7 @@ public class EventFormatter : IEventFormatter
     /// <summary>
     /// Gets or sets the default Domain (DDD) name to be used where not specified on the <see cref="EventData"/> (see <see cref="EventData.DomainName"/>).
     /// </summary>
-    /// <remarks>This defaults to the <see cref="IHostSettings.DomainName"/>.</remarks>
+    /// <remarks>This defaults to the <see cref="IHostSettings.DomainName"/>; therefore an event defaults to being owned by the publishing (current) domain, and a <see cref="MessageType.Command"/> without a domain is self-addressed.</remarks>
     public string? DomainName { get; set; }
 
     /// <summary>
@@ -137,7 +137,11 @@ public class EventFormatter : IEventFormatter
 
         if (@event.Title is null)
         {
-            @event.Title = ApplyInvariantCasing(Cleaner.Clean(string.Join('.', [.. tpa, @event.DomainName ?? DomainName ?? _defaultSegment, @event.Entity ?? _defaultSegment, @event.Action ?? _defaultSegment]), casing: StringCase.None), TitleCase);
+            var domainName = string.IsNullOrEmpty(@event.DomainName) ? DomainName : @event.DomainName;
+            if (string.IsNullOrEmpty(domainName) && @event.MessageType == MessageType.Command)
+                throw new InvalidOperationException($"A {nameof(EventData)}.{nameof(EventData.DomainName)} is required for a '{nameof(MessageType.Command)}' where the {nameof(EventFormatter)}.{nameof(DomainName)} is not available to default the (self-addressed) target domain.");
+
+            @event.Title = ApplyInvariantCasing(Cleaner.Clean(string.Join('.', [.. tpa, domainName ?? _defaultSegment, @event.Entity ?? _defaultSegment, @event.Action ?? _defaultSegment]), casing: StringCase.None), TitleCase);
             if (@event.DataSchemaVersion is not null)
                 @event.Title += $".v{@event.DataSchemaVersion.Major}";
         }
@@ -214,9 +218,9 @@ public class EventFormatter : IEventFormatter
             return @event;
 
         // At this point we believe we have at least 3 segments: DomainName, Entity, Action - which is enough to carry on.
-        @event.DomainName = segments[0];
-        @event.Entity = segments[1];
-        @event.Action = segments[2];
+        @event.DomainName ??= segments[0];
+        @event.Entity ??= segments[1];
+        @event.Action ??= segments[2];
 
         // The fourth segment is optional and represents the DataSchemaVersion.
         if (segments.Length >= 4)

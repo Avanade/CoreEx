@@ -27,6 +27,7 @@ Guides you through adding or modifying an adapter — the boundary that isolates
 
 ## When Not to Use
 
+- Sending a command end-to-end (call site, queue topology, tests, Aspire) — use `coreex-command-publish-e2e`, which invokes this skill for the adapter step
 - EF repositories within the same domain — use `coreex-repository`
 - Application services that consume the adapter — use `coreex-app-service`
 - Event subscriber hosts that drive `IXxxSyncAdapter` — use `coreex-subscriber`

@@ -66,15 +66,17 @@ public static class CoreExServiceBusExtensions
         /// Adds a <b>singleton</b> Azure <see cref="ServiceBusReceiver"/> service enabling ongoing fluent-style method-chaining registration.
         /// </summary>
         /// <param name="optionsFactory">The factory to create the required <see cref="CoreEx.Azure.Messaging.ServiceBus.ServiceBusReceiverOptions"/>.</param>
+        /// <param name="serviceKey">The optional service key for the receiver; required to be unique where more than one receiver of the same <see cref="ServiceBusSubscriberBase"/> type is registered (e.g. a topic subscription and a queue).</param>
         /// <returns>The <see cref="AzureServiceBusReceiverService"/> for fluent-style method-chaining.</returns>
-        public AzureServiceBusReceiverService WithReceiver(Func<IServiceProvider, CoreEx.Azure.Messaging.ServiceBus.ServiceBusReceiverOptions> optionsFactory) => new(new(_services, null, optionsFactory));
+        public AzureServiceBusReceiverService WithReceiver(Func<IServiceProvider, CoreEx.Azure.Messaging.ServiceBus.ServiceBusReceiverOptions> optionsFactory, object? serviceKey = null) => new(new(_services, serviceKey, optionsFactory));
 
         /// <summary>
         /// Adds a <b>singleton</b> Azure <see cref="ServiceBusSessionReceiver"/> service enabling ongoing fluent-style method-chaining registration.
         /// </summary>
         /// <param name="optionsFactory">The factory to create the required <see cref="CoreEx.Azure.Messaging.ServiceBus.ServiceBusSessionReceiverOptions"/>.</param>
+        /// <param name="serviceKey">The optional service key for the receiver; required to be unique where more than one receiver of the same <see cref="ServiceBusSubscriberBase"/> type is registered (e.g. a topic subscription and a queue).</param>
         /// <returns>The <see cref="AzureServiceBusSessionReceiverService"/> for fluent-style method-chaining.</returns>
-        public AzureServiceBusSessionReceiverService WithSessionReceiver(Func<IServiceProvider, CoreEx.Azure.Messaging.ServiceBus.ServiceBusSessionReceiverOptions> optionsFactory) => new(new(_services, null, optionsFactory));
+        public AzureServiceBusSessionReceiverService WithSessionReceiver(Func<IServiceProvider, CoreEx.Azure.Messaging.ServiceBus.ServiceBusSessionReceiverOptions> optionsFactory, object? serviceKey = null) => new(new(_services, serviceKey, optionsFactory));
 
         /// <summary>
         /// Holds the state (<see cref="IServiceCollection"/>, service key and options factory) shared by both the queue/topic and session receiver-service registration builders, so it is captured once rather

@@ -30,7 +30,7 @@ solution; the rule applies to consumer solutions where these assets are installe
 - `gen\CoreEx.Generator\`: Roslyn source generator for contracts.
 - `tests\`: framework-level tests.
 - `samples\src\Contoso.*\`: sample domains split by layer/host.
-- `samples\aspire\AppHost.cs`: orchestration entrypoint.
+- `samples\aspire\Contoso.Aspire\AppHost.cs`: orchestration entrypoint (plus `Contoso.Aspire.MockHost` for stub dependencies and `Contoso.Test.Aspire` for automated cross-domain smoke testing).
 - `coreex-starter\`: separate starter template repo — ignore unless user wants starter changes.
 
 ## Build, Test, and Run
@@ -41,6 +41,7 @@ solution; the rule applies to consumer solutions where these assets are installe
 - **`CoreEx.Template` changes**: `dotnet build`/`dotnet test` do **not** exercise `src/CoreEx.Template/content/**` — that's raw `dotnet new` template content, not compiled C#. Any change under `src/CoreEx.Template/content/` (a host's `Program.cs`/`GlobalUsing.cs`/`.csproj`, a `template.json` symbol, etc.) must be validated by actually scaffolding it: run [`tools/validate-template-pack.ps1`](../tools/validate-template-pack.ps1), which packs the template, installs it, scaffolds every parameter combination it knows about into temp directories, and `dotnet build`s the ones flagged `Build = $true`. It also runs in CI (`.github/workflows/CI.yml`). If you add a new template, host, or parameter combination, add a matching scenario to the script's `$testScenarios` array — parameter-conditional bugs (an unconditional `global using`/`ProjectReference` that should have been gated behind a symbol like `has-data-provider` or `implement-servicebus`) only surface when the generated code is actually compiled, which most existing host-template scenarios don't yet do since they scaffold in isolation without their `coreex` solution siblings.
 - **Linting**: No separate `dotnet format`. Build is the lint pass (nullable, LangVersion=preview, TreatWarningsAsErrors in `src\Directory.Build.props`).
 - **Formatting**: 4 spaces for `*.cs`, 2 spaces for `*.json|*.xml|*.yaml|*.props|*.csproj|*.sln|*.sql` per `.editorconfig`.
+- **Line endings**: `.editorconfig` (`end_of_line = lf`) and `.gitattributes` (`* text=auto eol=lf`) both mandate LF. Tooling (`dotnet new` templating, Roslyn/Handlebars code generators, and file-writing AI tools) does not consult either file and can emit CRLF on Windows regardless. Before finishing any task that created or edited files, run `git add --renormalize <changed paths>` (or `.` if changes are broad) as a closing step — it is a no-op if nothing drifted, so always safe to run. Do this in addition to, not instead of, `run_build`.
 - **Ad-hoc spike/reflection projects**: this repo uses Central Package Management (root `Directory.Packages.props`). A throwaway `dotnet new console` project scaffolded *inside* the repo tree (even outside `src\`/`tests\`) will silently inherit it and can fail to restore (`NU1008`) if it references a package/version not centrally pinned. Scaffold spike projects outside the repo tree, or set `<ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>` in the spike project's own `.csproj` to opt out locally.
 
 ## Local Development Infrastructure
@@ -56,7 +57,7 @@ podman compose -f docker-compose.yml up -d   # Podman preferred; `docker compose
 | `db-sql-server` | 1433 | Shopping domain database; Service Bus emulator backing store |
 | `db-postgres` | 5432 | Products domain database |
 | `redis-cache` | 6379 | FusionCache Redis backplane (all domains) |
-| `servicebus-emulator` | 5672 AMQP, 5300 mgmt | Azure Service Bus emulator; namespace `sbemulatorns`; topic `contoso` with subscriptions `products` and `shopping` (both session-enabled); config at `servicebus/Config.json` |
+| `servicebus-emulator` | 5672 AMQP, 5300 mgmt | Azure Service Bus emulator; namespace `sbemulatorns`; topic `contoso` with subscriptions `products` and `shopping` (both session-enabled) plus session-enabled command queue `contoso-products`; config at `servicebus/Config.json` |
 | `dts-emulator` | 8080, 8082 | Azure Durable Task Scheduler emulator; task hubs `default` and `order` |
 | `cosmos-emulator` | 8081, 10251-10254 | Azure Cosmos DB emulator; backs the Customers domain database and `CoreEx.Cosmos.Test.Unit`; under rootless Podman prefer `--privileged` or host networking if it doesn't come up cleanly (see `docker-compose.yml` comment) |
 | `aspire-dashboard` | 18888 UI, 4317 OTLP | Standalone OpenTelemetry dashboard; usable without running the full Aspire AppHost |
@@ -162,6 +163,7 @@ Connection strings for each service in development are in each host's `appsettin
 - Single-line `if` bodies do not need braces: `if (x) return;`
 - Use expression-bodied syntax (`=>`) when the entire method or property body is a single expression.
 - Private instance fields are always prefixed with `_`.
+- Files end with exactly one trailing newline — never extra blank lines after the last line of content (check the tail of every file you create or edit).
 
 ### Generated Code
 Never create or edit `*.g.cs`, `*.g.sql`, or `*.g.pgsql` files directly. Each generator owns its outputs:
@@ -195,7 +197,7 @@ see [coreex-ai-workflows.md](./coreex-ai-workflows.md).
 | `CoreEx Expert` | Agent | Architecture guidance, pattern recommendations, and design review. Invoke via `/coreex-expert` (or `@coreex-expert`). |
 | `/coreex-scaffold` | Skill-backed prompt | Guided greenfield solution scaffolding (chooses the smallest safe shape, runs the `dotnet new coreex*` commands). |
 | `/coreex-docs-sync` | Skill | Refresh the whole AI asset bundle (instructions, skills, prompts, the `coreex-expert` agent, and the `.github/docs/coreex/` doc cache) to a new pinned CoreEx version after a version bump. |
-| `/coreex-<capability>` | Skills (L1) + matching prompts | Add or modify one building block: `coreex-contract`, `coreex-refdata`, `coreex-db-migration`, `coreex-repository`, `coreex-adapter`, `coreex-app-service`, `coreex-validator`, `coreex-policy`, `coreex-aggregate`, `coreex-api`, `coreex-graphql`, `coreex-subscriber`, and `coreex-test-api` / `coreex-test-subscribe` / `coreex-test-relay`. Each skill has a `.prompt.md` wrapper for Copilot. |
+| `/coreex-<capability>` | Skills (L1) + matching prompts | Add or modify one building block: `coreex-contract`, `coreex-refdata`, `coreex-db-migration`, `coreex-repository`, `coreex-adapter`, `coreex-app-service`, `coreex-validator`, `coreex-policy`, `coreex-aggregate`, `coreex-api`, `coreex-graphql`, `coreex-subscriber`, `coreex-aspire`, and `coreex-test-api` / `coreex-test-subscribe` / `coreex-test-relay`. End-to-end command skills: `coreex-command-publish-e2e` (send a command) and `coreex-command-subscribe-e2e` (handle a command). Each skill has a `.prompt.md` wrapper for Copilot. |
 | `/acquire-codebase-knowledge`, `/aspire` | Skills | Repo onboarding documentation; local Aspire orchestration. |
 
 ## Guidance for Authoring Instructions and Skills

@@ -36,4 +36,3 @@ Property | Description
 -|-
 `excludeContract` | Indicates whether to exclude the property from the generated contract code.<br/>&dagger; Defaults to `false`.
 `excludeMapping` | Indicates whether to exclude the property from the generated mapping code.<br/>&dagger; Defaults to `false`.
-

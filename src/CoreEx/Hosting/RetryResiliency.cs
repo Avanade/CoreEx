@@ -21,11 +21,32 @@ public static class RetryResiliency<TOwner>
     /// <param name="backoffType">The <see cref="DelayBackoffType"/> strategy.</param>
     /// <returns>A configured <see cref="ResiliencePipeline{T}"/> instance.</returns>
     /// <remarks>The caller is responsible for flowing the owning <typeparamref name="TOwner"/> instance into the <see cref="ResilienceContext"/> via <see cref="ResilienceOwner{TOwner}.PropertyKey"/> before
-    /// executing the pipeline.</remarks>
+    /// executing the pipeline.
+    /// <para>This is a convenience overload of <see cref="Create{TResult}(Func{TResult, bool}, Func{TOwner, ILogger}, TimeSpan?, int, DelayBackoffType)"/> for the common case where the underlying operation
+    /// has no value to carry through a retry (see <see cref="Result"/>); where a value must be carried through (e.g. the outcome of a query), use <see cref="Result{T}"/> with that overload instead.</para></remarks>
     public static ResiliencePipeline<Result> Create(Func<Result, bool> shouldHandle, Func<TOwner, ILogger> logger, TimeSpan? delay = null, int maxRetryAttempts = 3, DelayBackoffType backoffType = DelayBackoffType.Exponential)
+        => Create<Result>(shouldHandle, logger, delay, maxRetryAttempts, backoffType);
+
+    /// <summary>
+    /// Creates a standardized <see cref="ResiliencePipeline{T}"/> with retry capabilities for a caller-classified subset of failures, for any <typeparamref name="TResult"/> <see cref="IResult"/> (e.g.
+    /// <see cref="Result"/> or <see cref="Result{T}"/>).
+    /// </summary>
+    /// <typeparam name="TResult">The <see cref="IResult"/> <see cref="Type"/> (typically <see cref="Result"/> or a closed <see cref="Result{T}"/>).</typeparam>
+    /// <param name="shouldHandle">The predicate a failing <typeparamref name="TResult"/> must satisfy to be retried (e.g. a specific, known-transient exception type); a failure that does not satisfy this is never
+    /// retried and is allowed straight through. Unlike <see cref="CircuitBreakerResiliency{TOwner}"/>, there is no "retry everything" default - blindly retrying an unclassified failure risks retrying one
+    /// that retrying can never fix, so the caller must always specify what is worth retrying.</param>
+    /// <param name="logger">Accessor for the owning <typeparamref name="TOwner"/>'s <see cref="ILogger"/>, used to log each retry attempt.</param>
+    /// <param name="delay">The delay between retry attempts.</param>
+    /// <param name="maxRetryAttempts">The maximum number of retry attempts.</param>
+    /// <param name="backoffType">The <see cref="DelayBackoffType"/> strategy.</param>
+    /// <returns>A configured <see cref="ResiliencePipeline{T}"/> instance.</returns>
+    /// <remarks>The caller is responsible for flowing the owning <typeparamref name="TOwner"/> instance into the <see cref="ResilienceContext"/> via <see cref="ResilienceOwner{TOwner}.PropertyKey"/> before
+    /// executing the pipeline.</remarks>
+    public static ResiliencePipeline<TResult> Create<TResult>(Func<TResult, bool> shouldHandle, Func<TOwner, ILogger> logger, TimeSpan? delay = null, int maxRetryAttempts = 3, DelayBackoffType backoffType = DelayBackoffType.Exponential)
+        where TResult : struct, IResult
     {
-        return new ResiliencePipelineBuilder<Result>()
-            .AddRetry(new RetryStrategyOptions<Result>()
+        return new ResiliencePipelineBuilder<TResult>()
+            .AddRetry(new RetryStrategyOptions<TResult>()
             {
                 ShouldHandle = args => ValueTask.FromResult(args.Outcome.Result.IsFailure && shouldHandle(args.Outcome.Result)),
                 Delay = delay ?? TimeSpan.FromSeconds(2),

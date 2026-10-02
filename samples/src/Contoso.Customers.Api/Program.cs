@@ -52,6 +52,7 @@ public class Program
         builder.Services.AddCosmosDb<CustomersCosmosDb>("contoso");
         builder.Services
             .AddEventFormatter()                         // Adds the EventFormatter to enable message formatting for publishing.
+            .AddNamedDestinationProvider()                 // Adds the NamedDestinationProvider; events to the shared topic, commands to per-domain queues.
             .AddCosmosDbEventPublisher()                 // Adds the CosmosDbEventPublisher/IEventPublisher
             .AddCosmosDbUnitOfWork()                     // Adds the CosmosDbUnitOfWork/IUnitOfWork, matching AddPostgresUnitOfWork/AddSqlServerUnitOfWork's multi-register shape.
             .AddCosmosDbHealthCheck();                   // Adds the CosmosDbHealthCheck - Aspire's own AddAzureCosmosClient does not register one itself, unlike its Npgsql/SqlClient counterparts.

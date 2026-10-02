@@ -72,17 +72,22 @@ public class PartitionPickerTests
     }
 
     [Test]
-    public void TwoPickers_ShouldHaveLowIntersection()
+    public void TwoPickers_ShouldHaveLowAverageIntersection()
     {
-        // Collision reduction heuristic
-        var a = new PartitionPicker(32, 6, 5);
-        var b = new PartitionPicker(32, 6, 5);
+        // Collision reduction heuristic; each picker has a random worker-id so any single pair can legitimately overlap heavily (about 2% of pairs share 4+ of 6), hence assert on the average
+        // over many pairs (statistically expected to be ~1.1 for random 6-of-32 selections; the threshold leaves a very wide margin so this is not flaky).
         var now = DateTimeOffset.UtcNow;
+        const int pairs = 1000;
+        var total = 0;
 
-        var pa = a.GetNextPartitions(now);
-        var pb = b.GetNextPartitions(now);
+        for (int i = 0; i < pairs; i++)
+        {
+            var pa = new PartitionPicker(32, 6, 5).GetNextPartitions(now);
+            var pb = new PartitionPicker(32, 6, 5).GetNextPartitions(now);
+            total += pa.Intersect(pb).Count();
+        }
 
-        pa.Intersect(pb).Count().Should().BeLessThanOrEqualTo(3);
+        ((double)total / pairs).Should().BeLessThanOrEqualTo(1.5);
     }
 
     [TestCase(32, 10)]

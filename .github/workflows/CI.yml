@@ -92,6 +92,10 @@ jobs:
 
     # --- Samples ---
 
+    # The core Cosmos tests churn the emulator's containers; restart it (no persistence, so it comes back clean) and let it warm up while the samples build.
+    - name: Restart Cosmos emulator
+      run: docker compose restart cosmos-emulator
+
     - name: Build samples
       run: dotnet build CoreEx.Samples.Build.slnf --no-restore --configuration Release
 
@@ -115,15 +119,35 @@ jobs:
       working-directory: samples/src/Contoso.Orders.Database
       run: dotnet run all --no-build --configuration Release -f net10.0 --expect-no-changes
 
+    - name: Wait for Cosmos emulator
+      timeout-minutes: 6
+      run: |
+        until curl -ksf https://localhost:8081/_explorer/emulator.pem -o /dev/null; do
+          echo "Waiting for the Cosmos emulator..."; sleep 10
+        done
+
     - name: Test samples
       run: dotnet test CoreEx.Samples.Test.slnf --no-build --configuration Release --logger trx --collect "XPlat Code Coverage" --results-directory coverage/samples -m:1 -p:TestTfmsInParallel=false -p:BuildInParallel=false
 
+    # The E2E hosts call each other over https using the ASP.NET Core dev certificate, which 'dotnet dev-certs https --trust' can't trust on Linux; add it to the system store instead.
+    - name: Trust ASP.NET Core dev certificate
+      run: |
+        dotnet dev-certs https
+        dotnet dev-certs https --export-path aspnetcore-dev.pem --format Pem --no-password
+        sudo cp aspnetcore-dev.pem /usr/local/share/ca-certificates/aspnetcore-dev.crt
+        sudo update-ca-certificates
+        rm aspnetcore-dev.pem
+
+    # The Aspire end-to-end tests orchestrate every sample host together, so they run last (after all the intra-domain sample tests) and on .NET 10 only (the AppHost is single-TFM).
+    - name: Test samples (Aspire end-to-end, net10.0 only)
+      timeout-minutes: 20
+      run: dotnet test CoreEx.Samples.Test.E2E.slnf --no-build --configuration Release --logger trx --results-directory coverage/samples-e2e -m:1 -p:TestTfmsInParallel=false -p:BuildInParallel=false
     - name: Upload samples test results
       if: always()
       uses: actions/upload-artifact@v4
       with:
         name: samples-test-results
-        path: "coverage/samples/**/*.trx"
+        path: "coverage/samples*/**/*.trx"
         retention-days: 30
 
     # --- Coverage ---

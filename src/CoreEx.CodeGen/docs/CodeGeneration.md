@@ -61,4 +61,3 @@ Provides the collections configuration.
 Property | Description
 -|-
 **`entities`** | The corresponding [`Entity`](Entity.md) collection.
-

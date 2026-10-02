@@ -8,7 +8,7 @@ public class RelayTests : WithApiTester<Contoso.Shopping.Relay.Program>
     public async Task OneTimeSetUpAsync()
     {
         await Test.MigrateSqlServerDataAsync<TestData>(["no-data.seed.yaml"], DbMigration.ConfigureMigrationArgs).ConfigureAwait(false);
-        await Test.GetAndClearAzureServiceBusAsync(ServiceBusSessionReceiverOptions.CreateForTopicSubscription("contoso", "shopping"));
+        await Test.ResetAzureServiceBusAsync(Common.ServiceBus.GetQueues(), Common.ServiceBus.GetTopicsAndSubscriptions()).ConfigureAwait(false);
     }
 
     [Test]
@@ -40,6 +40,35 @@ public class RelayTests : WithApiTester<Contoso.Shopping.Relay.Program>
                 var ce2Msg = list.Should().ContainSingle(x => x.MessageId == ce2.Id).Subject;
                 ObjectComparer.AssertJson(ce1.EncodeToJsonElement().ToString(), ce1Msg.Body.ToString());
                 ObjectComparer.AssertJson(ce2.EncodeToJsonElement().ToString(), ce2Msg.Body.ToString());
+            }).AssertSuccess();
+        });
+    }
+
+    [Test]
+    public void Outbox_Relay_Command_Queue()
+    {
+        // Arrange the two commands to publish and relay to the per-domain command queue.
+        var ce1 = Test.CreateCloudEventFromJsonResource("BasketCreatedCloudEvent.json");
+        var ce2 = Test.CreateCloudEventFromJsonResource("BasketUpdatedCloudEvent.json");
+
+        Test.ScopedType<ExecutionContext>(test =>
+        {
+            test.Run(async _ =>
+            {
+                // Publish to the queue destination (as resolved by the NamedDestinationProvider for a command to the products domain).
+                var pub = ActivatorUtilities.GetServiceOrCreateInstance<SqlServerOutboxPublisher>(test.Services);
+                pub.Add("contoso-products", [ce1, ce2]);
+                await pub.PublishAsync();
+
+                for (int i = 0; i < 5; i++)
+                    await Task.Delay(TimeSpan.FromSeconds(1));
+
+                // Receive the messages from the queue and assert; the relay uses the persisted destination so needs no destination provider.
+                var list = await Test.GetAndClearAzureServiceBusAsync(ServiceBusSessionReceiverOptions.CreateForQueue("contoso-products"));
+
+                list.Should().NotBeNull().And.HaveCount(2);
+                list.Should().ContainSingle(x => x.MessageId == ce1.Id);
+                list.Should().ContainSingle(x => x.MessageId == ce2.Id);
             }).AssertSuccess();
         });
     }

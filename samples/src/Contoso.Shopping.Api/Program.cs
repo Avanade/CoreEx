@@ -1,4 +1,5 @@
 using Contoso.Shopping.Infrastructure.Clients.Products;
+using Contoso.Shopping.Infrastructure.Clients.SendGrid;
 using Contoso.Shopping.Infrastructure.Repositories;
 using CoreEx.Azure.Messaging.ServiceBus;
 using CoreEx.Database.SqlServer.Outbox;
@@ -7,6 +8,7 @@ using Microsoft.Extensions.Options;
 using OpenTelemetry;
 using OpenTelemetry.Trace;
 using StackExchange.Redis;
+using System.Net.Http.Headers;
 using ZiggyCreatures.Caching.Fusion;
 using ZiggyCreatures.Caching.Fusion.Backplane.StackExchangeRedis;
 
@@ -56,6 +58,7 @@ public class Program
             .AddSqlServerDatabase()                     // Adds the SqlServerDatabase.
             .AddSqlServerUnitOfWork()                   // Adds the SqlServerUnitOfWork for the SqlServerDatabase.
             .AddEventFormatter()                        // Adds the EventFormatter to enable message formatting for publishing.
+            .AddNamedDestinationProvider()                 // Adds the NamedDestinationProvider; events to the shared topic, commands to per-domain queues.
             .AddSqlServerOutboxPublisher()              // Adds the SqlServerOutboxPublisher/IEventPublisher.
             .AddDbContext<ShoppingDbContext>()          // Adds the standard EF DbContext.
             .AddEfDb<ShoppingEfDb>();                   // Adds the CoreEx extended EF service.
@@ -69,6 +72,8 @@ public class Program
 
         // Add external API services.
         builder.AddTypedHttpClient<ProductsHttpClient>("ProductsApi");
+        builder.AddTypedHttpClient<SendGridHttpClient>("SendGrid", client => client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", builder.Configuration["SendGrid:ApiKey"]));
+        builder.Services.Configure<SendGridOptions>(builder.Configuration.GetSection("SendGrid"));
 
         // Post-configure all health-checks; adds the standard tags.
         builder.Services.PostConfigureAllHealthChecks();

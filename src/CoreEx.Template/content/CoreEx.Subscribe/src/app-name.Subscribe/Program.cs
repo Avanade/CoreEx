@@ -27,6 +27,7 @@ public class Program
         builder.Services
             .AddPrecisionTimeProvider()
             .AddExecutionContext()
+            .AddNamedDestinationProvider()              // Adds the NamedDestinationProvider (default); events go to the shared topic, commands to a per-domain queue.
 // #if refdata-enabled
             .AddReferenceDataOrchestrator()             // Resolves the (CodeGen-generated) IReferenceDataProvider from DI at runtime — no compile-time dependency on the generated type.
 // #endif
@@ -88,12 +89,12 @@ public class Program
             .AddEventFormatter()                                                // Adds the EventFormatter to enable message parsing/formatting.
             .AddSubscribedManager((_, c) => c.AddSubscribersUsing<Program>());  // Add all subscribers from this assembly.
 
-        // Build and create the Azure Service Bus receiving services.
+        // Build and create the Azure Service Bus receiving services; the receiver, subscriber and hosted service are keyed so that additional receivers (e.g. a command queue) can be added alongside.
         builder.Services.AzureServiceBusReceiving()
-            .WithSessionReceiver(_ => ServiceBusSessionReceiverOptions.CreateForTopicSubscription())    // Set the topic and subscription, etc. from configuration.
-            .WithSubscribedSubscriber()                 // Adds the service bus subscriber using the SubscribedManager.
-            .WithHostedService()                        // Adds the service bus receiver as a hosted service.
-            .Build();                                   // Builds all the services and adds to the service collection.
+            .WithSessionReceiver(_ => ServiceBusSessionReceiverOptions.CreateForTopicSubscription(), "receiver-events")    // Set the topic and subscription, etc. from configuration.
+            .WithKeyedSubscribedSubscriber("subscriber-events")     // Adds the service bus subscriber using the SubscribedManager.
+            .WithHostedService("hosted-subscriber-events")                     // Adds the service bus receiver as a hosted service (this key is also the health-check and hosted-service management name).
+            .Build();                                               // Builds all the services and adds to the service collection.
 // #endif
 
         // Post-configure all health-checks; adds the standard tags.

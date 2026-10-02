@@ -135,7 +135,7 @@ dotnet new coreex-relay      -n Avanade.Product.Books.Relay      --data-provider
 dotnet new coreex-subscribe -n Avanade.Product.Books.Subscribe --data-provider SqlServer --messaging-provider ServiceBus --refdata-enabled true
 
 # Step 2a (optional): Add an Aspire AppHost for local orchestration, once the hosts above exist.
-dotnet new coreex-aspire -n Avanade.Product.Books.Aspire --has-api true --has-relay true --has-subscribe true
+dotnet new coreex-aspire -n Avanade.Product.Books.Aspire --has-api true --has-relay true --has-subscribe true --data-provider SqlServer --messaging-provider ServiceBus
 
 # Step 3: Add host and test projects to the solution file.
 dotnet sln Avanade.Product.Books.slnx add src/Avanade.Product.Books.Api
@@ -144,7 +144,9 @@ dotnet sln Avanade.Product.Books.slnx add src/Avanade.Product.Books.Relay
 dotnet sln Avanade.Product.Books.slnx add tests/Avanade.Product.Books.Test.Relay
 dotnet sln Avanade.Product.Books.slnx add src/Avanade.Product.Books.Subscribe
 dotnet sln Avanade.Product.Books.slnx add tests/Avanade.Product.Books.Test.Subscribe
-dotnet sln Avanade.Product.Books.slnx add src/Avanade.Product.Books.Aspire
+dotnet sln Avanade.Product.Books.slnx add aspire/Avanade.Product.Books.Aspire
+dotnet sln Avanade.Product.Books.slnx add aspire/Avanade.Product.Books.Aspire.MockHost
+dotnet sln Avanade.Product.Books.slnx add aspire/Avanade.Product.Books.Test.Aspire
 
 # Step 4: Validate the generated solution.
 dotnet build Avanade.Product.Books.slnx
@@ -166,7 +168,7 @@ dotnet new coreex-aspire    -n Company.Product.Books.Aspire --has-api ... --has-
 # Then add new projects to the solution file as in Step 3 above.
 ```
 
-**Adding an AppHost that already exists:** if `coreex-aspire` output already exists and a new host is being added, do not re-run `coreex-aspire --force` — it will overwrite any customisation already made to `AppHost.cs`/`Extensions.cs`. Instead, add the missing `<ProjectReference>` and `builder.AddProject<...>(...)` line to the existing files by hand.
+**Adding an AppHost that already exists:** if `coreex-aspire` output already exists and a new host is being added, do not re-run `coreex-aspire --force` — it will overwrite any customisation already made to `AppHost.cs`. Instead, add the missing `<ProjectReference>` and `builder.AddProject<...>(...)` line to the existing files by hand.
 
 **Adding an API host after CodeGen already ran:** when `refdata-enabled` is `true`, the `*.CodeGen` tool only emits the reference-data controller into an `*.Api` project directory that exists at generation time — it silently skips it (a log warning, not an error) for any `coreex-api` added afterward. If `coreex-api` is added to a solution where CodeGen has already been run at least once, re-run `dotnet run --project tools/[solution].CodeGen` afterward so the new host gets its reference-data controller.
 
@@ -225,5 +227,3 @@ dotnet new coreex-aspire    -n Company.Product.Books.Aspire --has-api ... --has-
 | CoreEx Outbox Relay host | `coreex-relay` | Adds an outbox relay host |
 | CoreEx Subscriber host | `coreex-subscribe` | Adds an event subscriber host |
 | CoreEx Aspire AppHost | `coreex-aspire` | Adds an Aspire AppHost orchestrating this solution's own hosts — run after those hosts exist |
-
-

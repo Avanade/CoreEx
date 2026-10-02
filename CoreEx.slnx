@@ -12,7 +12,9 @@
     <File Path="samples/README.md" />
   </Folder>
   <Folder Name="/samples/Aspire/">
+    <Project Path="samples/aspire/Contoso.Aspire.MockHost/Contoso.Aspire.MockHost.csproj" Id="5e4e8582-0ef4-4be5-87f9-feac22118b91" />
     <Project Path="samples/aspire/Contoso.Aspire/Contoso.Aspire.csproj" />
+    <Project Path="samples/aspire/Contoso.Test.Aspire/Contoso.Test.Aspire.csproj" Id="2ed6e1e3-e15d-4797-b76c-d96142602cbd" />
     <Project Path="samples/tests/Contoso.E2E.Runner/Contoso.E2E.Runner.csproj" />
   </Folder>
   <Folder Name="/samples/Customers/" />
@@ -115,6 +117,7 @@
   </Folder>
   <Folder Name="/servicebus/">
     <File Path="servicebus/Config.json" />
+    <File Path="servicebus/Reset-ServiceBusEmulator.ps1" />
   </Folder>
   <Folder Name="/Solution Items/">
     <File Path=".editorconfig" />

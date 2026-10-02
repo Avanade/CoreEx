@@ -5,13 +5,22 @@ namespace Contoso.Shopping.Test.Subscribe;
 /// </summary>
 public partial class SubscriberTests : WithApiTester<Contoso.Shopping.Subscribe.Program>
 {
+    private MockHttpClientRequest _mockHttpSendMailRequest = null!;
+
     [OneTimeSetUp]
     public async Task OneTimeSetUpAsync()
     {
         await Test.MigrateSqlServerDataAsync<TestData>(["mutate-data.seed.yaml"], DbMigration.ConfigureMigrationArgs).ConfigureAwait(false);
         await Test.ClearFusionCacheAsync().ConfigureAwait(false);
+        await Test.ResetAzureServiceBusAsync(Common.ServiceBus.GetQueues(), Common.ServiceBus.GetTopicsAndSubscriptions()).ConfigureAwait(false);
 
         Test.UseExpectedSqlServerOutboxPublisher();
+
+        // Mock the HTTP clients (SendGrid is exercised in tests; ProductsApi is registered so IProductAdapter can still be resolved by other tests in this suite).
+        var mcf = UnitTestEx.MockHttpClientFactory.Create();
+        mcf.CreateClient("ProductsApi");
+        _mockHttpSendMailRequest = mcf.CreateClient("SendGrid").Request(HttpMethod.Post, "v3/mail/send");
+        Test.ReplaceHttpClientFactory(mcf);
     }
 
     [Test]

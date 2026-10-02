@@ -23,7 +23,7 @@ Guides you through creating or modifying a hand-authored contract (DTO/entity) i
 - New subordinate, line-item, or request/response contract (accessed via a parent — may still carry its own identifier)
 - Adding or changing properties on an existing contract
 - Wiring a ref-data navigation property (`[ReferenceData<T>]`) on an existing contract
-- Extracting a shared base class when ≥2 contracts repeat the same fields
+- Extracting a shared base class when ≥2 contracts repeat the same fields **and** every shared field is meaningful on each (genuine superset) — not for patch/subset request contracts
 
 ## When Not to Use
 
@@ -48,6 +48,7 @@ Guides you through creating or modifying a hand-authored contract (DTO/entity) i
 - `[ReadOnly(true)]` on all server-assigned fields (`Id`, `ETag`, `ChangeLog`, computed/derived)
 - Every property needs a `<summary>` XML doc comment
 - Same contract type for both API response and event payload — never split them
+- Patch/subset contracts (merge-patch, partial-update requests): standalone class with only the needed fields (+ `IETag`) — never inherit a sibling and suppress the rest; inheritance is for genuine supersets only
 
 For full workflow, decision trees, and code examples see [`references/workflow.md`](references/workflow.md).
 

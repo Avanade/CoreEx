@@ -11,6 +11,9 @@ public partial class HostTests : WithApiTester<solution-name.Subscribe.Program>
         await Test.MigratePostgresDataAsync<TestData>(["no-data.seed.yaml"], DbMigration.ConfigureMigrationArgs).ConfigureAwait(false);
 // #endif
         await Test.ClearFusionCacheAsync().ConfigureAwait(false);
+// #if implement-servicebus
+        await Test.ResetAzureServiceBusAsync(Common.ServiceBus.GetQueues(), Common.ServiceBus.GetTopicsAndSubscriptions()).ConfigureAwait(false);
+// #endif
     }
 
     [TestCase("/health/live")]
@@ -40,7 +43,7 @@ public partial class HostTests : WithApiTester<solution-name.Subscribe.Program>
             "$.entries.postgreSql",
 // #endif
 // #if implement-servicebus
-            "$.entries.azure-service-bus-session-receiver"
+            "$.entries.hosted-subscriber-events"
 // #endif
         ];
 
@@ -61,7 +64,7 @@ public partial class HostTests : WithApiTester<solution-name.Subscribe.Program>
     public void HostedService_Pause_And_Resume()
     {
 // #if implement-servicebus
-        const string Service = "azure-service-bus-session-receiver";
+        const string Service = "hosted-subscriber-events";
 // #endif
 
         Test.Http<string>()

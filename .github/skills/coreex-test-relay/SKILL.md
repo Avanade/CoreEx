@@ -45,13 +45,17 @@ rarely need new scenarios per domain.
 
 - **Base class**: `WithApiTester<{Domain}.Relay.Program>` — relay hosts have **no** FusionCache; do not call `ClearFusionCacheAsync()` here
 - **No DB/cache seeding needed for the core forwarding test** — it writes directly to the outbox via `Test.ScopedType<ExecutionContext>` and a provider-specific outbox publisher (`PostgresOutboxPublisher`/`SqlServerOutboxPublisher`), then waits for the background relay service to forward it
-- **Assert delivery** via `Test.GetAndClearAzureServiceBusAsync(...)` against the expected topic/subscription
+- **Assert delivery** via `Test.GetAndClearAzureServiceBusAsync(...)` against the expected topic/subscription — or, for a **command**, the target domain queue: `Test.GetAndClearAzureServiceBusAsync(ServiceBusSessionReceiverOptions.CreateForQueue("{destination}-{target}"))` (the queue must exist in Test.Common `ServiceBus.GetQueues()`; see `coreex-command-publish-e2e`)
 - **Hosted-service management endpoints** are also testable over plain HTTP — `/hosted-services/{name}/pause`, `/resume`, etc.
 - **A domain rarely needs more than the templated `RelayTests.cs` + `OtherTests.Health.cs` + `OtherTests.HostedServices.cs`** — check what already exists before writing something new
 
 ```csharp
 public class RelayTests : WithApiTester<YourDomain.Relay.Program>
 {
+    [OneTimeSetUp]
+    public async Task OneTimeSetUpAsync()
+        => await Test.ResetAzureServiceBusAsync(Common.ServiceBus.GetQueues(), Common.ServiceBus.GetTopicsAndSubscriptions());   // Test.Common ServiceBus: the code-based topology.
+
     [Test]
     public async Task Outbox_Relay()
     {
@@ -92,8 +96,8 @@ The messaging entity 'sb://sbemulatorns.servicebus.onebox.windows-int.net/<topic
 
 the test host reached the emulator but the topic/subscription doesn't exist in it. **This is an
 environment problem, not a test-code defect** — check that the Service Bus emulator container is
-running with the correct `/servicebus/Config.json` (the emulator provisions topics/subscriptions from
-that config at startup). Do not "fix" it by editing the test, subject names, or emulator entity names.
+running, and that the test resets the entities via `Test.ResetAzureServiceBusAsync(Common.ServiceBus.GetQueues(), Common.ServiceBus.GetTopicsAndSubscriptions())`
+(in a templated solution the emulator `/servicebus/Config.json` is intentionally empty; the entities are defined in the Test.Common `ServiceBus` class). Do not "fix" it by editing the test, subject names, or emulator entity names.
 
 ## Key References
 

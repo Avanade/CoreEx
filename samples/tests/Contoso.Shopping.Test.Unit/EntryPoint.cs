@@ -12,6 +12,10 @@ public class EntryPoint
         // Configure the products http client.
         builder.AddTypedHttpClient<ProductsHttpClient>("ProductsApi");
 
+        // Configure the SendGrid http client.
+        builder.AddTypedHttpClient<SendGridHttpClient>("SendGrid");
+        builder.Services.Configure<SendGridOptions>(builder.Configuration.GetSection("SendGrid"));
+
         // Reuse the "real" database configured reference data.
         var jdr = JsonDataReader.ParseYaml<Contoso.Shopping.Database.Program>("ref-data.seed.yaml", JsonDataReaderOptions.CreateForReferenceData(JsonPropertyNamingConvention.SnakeCase));
         builder.Services.AddSingleton(new ReferenceDataServiceDecorator(jdr));

@@ -108,6 +108,15 @@ public interface IDatabase
     Exception? HandleDbException(DbException dbex);
 
     /// <summary>
+    /// Determines whether the specified <paramref name="exception"/> represents a transient (retryable) database failure.
+    /// </summary>
+    /// <param name="exception">The <see cref="Exception"/>.</param>
+    /// <returns><see langword="true"/> where the <paramref name="exception"/> is considered transient, that is, a retry of the same operation could reasonably be expected to succeed
+    /// (e.g. a deadlock, lock timeout, or a provider-specific throttling/failover condition); otherwise, <see langword="false"/>.</returns>
+    /// <remarks>Defaults to <see langword="false"/> so that only providers (or callers) that have explicitly classified their own transient error codes will opt in.</remarks>
+    bool IsTransientException(Exception exception) => false;
+
+    /// <summary>
     /// Creates a new database parameter.
     /// </summary>
     /// <returns>The <see cref="DbParameter"/>.</returns>

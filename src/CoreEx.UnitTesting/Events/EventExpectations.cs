@@ -11,12 +11,15 @@ public class EventExpectations<TTester> : ExpectationsBase<TTester>
     /// <summary>
     /// Initializes a new instance of the <see cref="EventExpectations{TTester}"/> class.
     /// </summary>
-    /// <param name="owner">The owning <see cref="TesterBase"/>.</param>
+    /// <param name="owner">The owning <see cref="TesterBaseCore"/>.</param>
     /// <param name="tester">The initiating tester.</param>
     /// <param name="requestId">The request identifier.</param>
     /// <param name="assembly">The assembly to use for resource resolution.</param>
-    internal EventExpectations(TesterBase owner, TTester tester, string? requestId, Assembly assembly) : base(owner, tester)
+    internal EventExpectations(TesterBaseCore owner, TTester tester, string? requestId, Assembly assembly) : base(owner, tester)
     {
+        if (owner is not TesterBase)
+            throw new ArgumentException($"The {nameof(owner)} must be of type {nameof(TesterBase)} for event {nameof(EventExpectations<>)}.", nameof(owner));
+
         RequestId = requestId;
         ResourceAssembly = assembly;
     }
@@ -68,7 +71,7 @@ public class EventExpectations<TTester> : ExpectationsBase<TTester>
     {
         if (!_expectations.TryGetValue(serviceKey.ThrowIfNullOrEmpty(), out var config))
         {
-            config = new EventExpectationsConfig(Owner, serviceKey, RequestId, ResourceAssembly);
+            config = new EventExpectationsConfig((TesterBase)Owner, serviceKey, RequestId, ResourceAssembly);
             _expectations[serviceKey] = config;
         }
 

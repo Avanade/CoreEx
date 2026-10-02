@@ -2,7 +2,9 @@
   "solution": {
     "path": "CoreEx.slnx",
     "projects": [
+      "samples/aspire/Contoso.Aspire.MockHost/Contoso.Aspire.MockHost.csproj",
       "samples/aspire/Contoso.Aspire/Contoso.Aspire.csproj",
+      "samples/aspire/Contoso.Test.Aspire/Contoso.Test.Aspire.csproj",
       "samples/src/Contoso.Customers.Api/Contoso.Customers.Api.csproj",
       "samples/src/Contoso.Customers.Application/Contoso.Customers.Application.csproj",
       "samples/src/Contoso.Customers.CodeGen/Contoso.Customers.CodeGen.csproj",

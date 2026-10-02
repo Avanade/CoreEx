@@ -6,6 +6,7 @@ global using Contoso.Shopping.Application.Repositories;
 global using Contoso.Shopping.Application.Validators;
 global using Contoso.Shopping.Contracts;
 global using Contoso.Shopping.Infrastructure.Clients.Products;
+global using Contoso.Shopping.Infrastructure.Clients.SendGrid;
 global using CoreEx;
 global using CoreEx.RefData;
 global using CoreEx.RefData.Abstractions;

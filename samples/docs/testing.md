@@ -30,7 +30,7 @@ Understanding this distinction is the key to understanding every test setup deci
 
 The Shopping `Basket_Checkout_Save_Failure` test is the sharpest illustration of the boundary: when the outbox write fails mid-checkout, Shopping falls back to publishing a `reservation.cancel` command *directly* to Service Bus (bypassing the outbox, since the DB transaction has already rolled back). The test asserts that:
 - No outbox events are published (intra-domain write failed, as injected).
-- One direct Service Bus event *is* published (inter-domain cancel, asserted via `ExpectAzureServiceBusEvents`).
+- One direct Service Bus command *is* published (inter-domain cancel, asserted via `ExpectAzureServiceBusEvents`) - addressed to the `contoso-products` command queue (the `NamedDestinationProvider` routes events to the shared `contoso` topic and commands to `{topic}-{domain}` queues).
 - The basket remains `Active` (state was correctly rolled back).
 
 This single test exercises three layers of the intra/inter boundary in one shot.
@@ -162,7 +162,7 @@ var v = Test.Http<Basket>()
     .ExpectChangeLogUpdated()
     .ExpectSqlServerOutboxEvents(e => e
         .AssertWithValue("contoso", "contoso.shopping.basket.checkedout.v1")
-        .AssertMetadata("contoso", "contoso.products.reservation.confirm", basket.Id))
+        .AssertMetadata("contoso-products", "contoso.products.reservation.confirm", basket.Id))
     .Run(HttpMethod.Post, $"/api/baskets/{basket.Id}/checkout")
     .AssertOK()
     .Value!;
@@ -176,7 +176,7 @@ Test.Http()
     .OnEventPublish(SqlServerOutboxPublisher.DefaultServiceKey,
         () => throw new InvalidOperationException("Simulated outbox failure"))
     .ExpectNoSqlServerOutboxEvents()
-    .ExpectAzureServiceBusEvents(e => e.AssertMetadata("contoso", "contoso.products.reservation.cancel", id))
+    .ExpectAzureServiceBusEvents(e => e.AssertMetadata("contoso-products", "contoso.products.reservation.cancel", id))
     .Run(HttpMethod.Post, $"/api/baskets/{id}/checkout")
     .AssertInternalServerError();
 ```
@@ -199,7 +199,7 @@ public partial class SubscriberTests : WithApiTester<Contoso.Products.Subscribe.
                 var ce = Test.CreateCloudEventFrom(ed);
                 var sbm = ce.ToServiceBusReceivedMessage();
 
-                var sbs = test.Services.GetRequiredService<ServiceBusSubscribedSubscriber>();
+                var sbs = test.Services.GetRequiredKeyedService<ServiceBusSubscribedSubscriber>("subscriber-commands");
                 var r = await sbs.ReceiveAsync(sbm);
                 r.IsSuccess.Should().BeTrue();
             }).AssertSuccess();
@@ -296,4 +296,6 @@ Each `*.Test.Api` and `*.Test.Relay` project has a `Resources/` folder containin
 
 `Contoso.E2E.Runner` is an interactive console runner for cross-domain scenarios. Unlike the host tests above it requires **all** infrastructure and **all** hosts to be running simultaneously — orchestrated via Aspire. It tests the complete inter-domain flow end-to-end: basket checkout triggers a real HTTP call to Products, which publishes a real event to Service Bus, which is consumed by the real subscriber. It also supports a parallel load-simulation mode for concurrency and performance validation.
 
-See [aspire.md](aspire.md) for the full Aspire setup, E2E Runner usage, scenario descriptions, load-simulation configuration, and the recommended first-run order.
+`Contoso.Test.Aspire` is the automated, CI-friendly counterpart — an NUnit test that self-hosts the whole `Contoso.Aspire` AppHost via `WithAspireTester<...>` (no need for Aspire to already be running) and asserts the same cross-domain flow as a single deterministic pass/fail test.
+
+See [aspire.md](aspire.md) for the full Aspire setup, `Contoso.Test.Aspire`, E2E Runner usage, scenario descriptions, load-simulation configuration, and the recommended first-run order.

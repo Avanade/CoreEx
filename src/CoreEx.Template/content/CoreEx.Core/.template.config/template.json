@@ -169,6 +169,7 @@
       "rename": {
         "_Directory.Build.props": "Directory.Build.props",
         "_Directory.Packages.props": "Directory.Packages.props",
+        "tests/_Directory.Build.props": "tests/Directory.Build.props",
         "_editorconfig": ".editorconfig",
         "_gitattributes": ".gitattributes",
         "_gitignore": ".gitignore",
@@ -209,7 +210,7 @@
         },
         {
           "condition": "(!implement-servicebus)",
-          "exclude": [ "servicebus/**" ]
+          "exclude": [ "servicebus/**", "tests/app-name.Test.Common/ServiceBus.cs", "tests/app-name.Test.Common/GlobalUsing.cs" ]
         }
       ]
     }

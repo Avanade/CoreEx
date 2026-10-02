@@ -123,7 +123,9 @@ These skills are part of the CoreEx AI workflow set and live in `.github/skills/
 | Request | Skill |
 |---------|-------|
 | New entity with CRUD API — full stack from database table to HTTP endpoint | `/coreex-api-e2e` |
-| New event or command subscriber — handler, optional orchestration, and tests | `/coreex-subscriber-e2e` |
+| New event subscriber (event-data-sync or business-process) — handler, optional orchestration, and tests | `/coreex-subscriber-e2e` |
+| **Send a command** to another domain (not an event) — adapter, outbox/direct call site, queue routing, topology, tests, Aspire | `/coreex-command-publish-e2e` |
+| **Handle a command** addressed to this domain (not an event) — contract, subscriber, dedicated command-queue receiver, topology, tests, Aspire | `/coreex-command-subscribe-e2e` |
 
 **Add or modify a single capability** → route to the matching per-capability (L1) skill:
 
@@ -143,6 +145,7 @@ These skills are part of the CoreEx AI workflow set and live in `.github/skills/
 | API tests | `/coreex-test-api` |
 | Subscriber tests | `/coreex-test-subscribe` |
 | Outbox relay tests | `/coreex-test-relay` |
+| Aspire AppHost, service-bus topology, MockHost stubs, E2E tests | `/coreex-aspire` |
 
 **Broader routing:**
 
