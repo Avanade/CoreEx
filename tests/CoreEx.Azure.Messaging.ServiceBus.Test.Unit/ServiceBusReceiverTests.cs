@@ -204,6 +204,7 @@ public class ServiceBusReceiverTests : WithGenericTester<EntryPoint>
         // Regression: a cancellation attributable to the receiver's own cancellationToken (simulating a host/processor
         // shutdown while a message is in flight) must not be logged as "An unhandled error has occurred" and must not
         // throw attempting to abandon the message with the already-cancelled token.
+        var processing = Subscribers.ProductSubscriber.Id200Processing = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var sp = (ServiceBusPublisher)test.Services.GetRequiredKeyedService<IEventPublisher>(ServiceBusPublisher.DefaultServiceKey);
         sp.Add(EventData.CreateEventWith(new Subscribers.Product { Id = 200, Sku = "SKU-200" }, "Created"));
         await sp.PublishAsync();
@@ -221,7 +222,7 @@ public class ServiceBusReceiverTests : WithGenericTester<EntryPoint>
                 try
                 {
                     await sbr.StartAsync(cts.Token).ConfigureAwait(false);
-                    await Task.Delay(200, cts.Token).ConfigureAwait(false); // Allow the message to be received and start processing (blocking on cts.Token).
+                    await processing.Task.WaitAsync(cts.Token).ConfigureAwait(false); // Wait until the message is received and processing has started (blocking on cts.Token).
                     cts.Cancel(); // Simulate host/processor shutdown while the message is in flight.
                     await Task.Delay(Timeout.Infinite, cts.Token).ConfigureAwait(false);
                 }

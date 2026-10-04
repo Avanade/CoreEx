@@ -449,6 +449,60 @@ public partial class ReferenceDataOrchestratorTests
     public async Task InvalidateAsync_UnregisteredType_IsNoOp()
         => await ReferenceDataOrchestrator.Current.InvalidateAsync<InvalidRefData>();
 
+    [Test]
+    public async Task TryInvalidateAsync_RemovesCachedCollection_ReloadedOnNextAccess()
+    {
+        var data = new MutableData();
+        var sc = new ServiceCollection();
+        sc.AddExecutionContext(sp => new ExecutionContext { ServiceProvider = sp });
+        sc.AddSingleton<IReferenceDataCache>(new ReferenceDataHybridCache(new Caching.MemoryOnlyHybridCache()));
+        sc.AddSingleton(data);
+        sc.AddScoped<DummyMutableProvider>();
+        var sp = sc.BuildServiceProvider();
+
+        var orch = new ReferenceDataOrchestrator(sp, Mock.Of<ILogger<ReferenceDataOrchestrator>>());
+        orch.Register<DummyMutableProvider>();
+        ReferenceDataOrchestrator.SetCurrent(orch);
+        _ = sp.GetRequiredService<ExecutionContext>();
+
+        (await orch.GetByTypeAsync<DummyRefData>())!.AllItems.Should().HaveCount(1);
+        data.Items.Add(new DummyRefData { Id = 2, Code = "B", Text = "Beta" });
+
+        (await orch.TryInvalidateAsync<DummyRefData>()).Should().BeTrue();
+        (await orch.GetByTypeAsync<DummyRefData>())!.AllItems.Should().HaveCount(2);
+    }
+
+    [Test]
+    public async Task TryInvalidateAsync_CacheFails_LogsWarningAndReturnsFalse()
+    {
+        var cache = new Mock<IReferenceDataCache>();
+        cache.Setup(c => c.RemoveAsync(It.IsAny<Type>(), It.IsAny<CancellationToken>())).ThrowsAsync(new InvalidOperationException("Redis is down."));
+
+        var logger = new Mock<ILogger<ReferenceDataOrchestrator>>();
+        var sc = new ServiceCollection();
+        sc.AddExecutionContext(sp => new ExecutionContext { ServiceProvider = sp });
+        sc.AddSingleton(cache.Object);
+        sc.AddSingleton(new MutableData());
+        sc.AddScoped<DummyMutableProvider>();
+        var sp = sc.BuildServiceProvider();
+
+        var orch = new ReferenceDataOrchestrator(sp, logger.Object);
+        orch.Register<DummyMutableProvider>();
+        ReferenceDataOrchestrator.SetCurrent(orch);
+        _ = sp.GetRequiredService<ExecutionContext>();
+
+        // The strict variant surfaces the failure; the try variant swallows (and logs) it.
+        Func<Task> strict = () => orch.InvalidateAsync<DummyRefData>();
+        await strict.Should().ThrowAsync<InvalidOperationException>();
+
+        (await orch.TryInvalidateAsync<DummyRefData>()).Should().BeFalse();
+
+        logger.Verify(l => l.Log(LogLevel.Warning, It.IsAny<EventId>(), It.IsAny<It.IsAnyType>(), It.IsAny<InvalidOperationException>(), It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+    }
+
+    [Test]
+    public async Task TryInvalidateAsync_UnregisteredType_ReturnsTrue()
+        => (await ReferenceDataOrchestrator.Current.TryInvalidateAsync<InvalidRefData>()).Should().BeTrue();
     // ── AlternateNames duplicate type enforcement (item 12) ──────────────────
 
     private class DummyProviderWithDuplicateAlternateNames : IReferenceDataProvider

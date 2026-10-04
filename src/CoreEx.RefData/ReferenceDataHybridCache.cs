@@ -51,13 +51,7 @@ public partial class ReferenceDataHybridCache(IHybridCache cache) : IReferenceDa
         if (Exists)
             return (IReferenceDataCollection)Value!;
 
-        // A lock is also needed to absolutely ensure only a single semaphore is _ever_ created per type/key.
-        SemaphoreSlim semaphore;
-        lock (_lock)
-        {
-            // Get or add a new semaphore for the cache key so we can manage single concurrency for *this* key only.
-            semaphore = _semaphores.GetOrAdd(key, _ => new SemaphoreSlim(1, 1));
-        }
+        var semaphore = GetSemaphore(key);
 
         // Use the semaphore to manage a single thread to perform the "expensive" get operation.
         await semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
@@ -75,8 +69,34 @@ public partial class ReferenceDataHybridCache(IHybridCache cache) : IReferenceDa
     }
 
     /// <inheritdoc/>
-    public Task RemoveAsync(Type type, CancellationToken cancellationToken = default)
-        => Cache.RemoveByKeyAsync($"RefData:{(Internal.GetNamespaceFormattedName(type))}", GetOrCreateEntryOptions(type), cancellationToken);
+    /// <remarks>The removal is performed under the same per-key semaphore as the load, so any in-flight load completes (and is then evicted) rather than repopulating the cache with stale data after the removal.</remarks>
+    public async Task RemoveAsync(Type type, CancellationToken cancellationToken = default)
+    {
+        var key = $"RefData:{(Internal.GetNamespaceFormattedName(type))}";
+        var semaphore = GetSemaphore(key);
+
+        await semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            await Cache.RemoveByKeyAsync(key, GetOrCreateEntryOptions(type), cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            semaphore.Release();
+        }
+    }
+
+    /// <summary>
+    /// Gets or adds the <see cref="SemaphoreSlim"/> used to manage single concurrency for the specified cache <paramref name="key"/>.
+    /// </summary>
+    private SemaphoreSlim GetSemaphore(string key)
+    {
+        // A lock is also needed to absolutely ensure only a single semaphore is _ever_ created per type/key.
+        lock (_lock)
+        {
+            return _semaphores.GetOrAdd(key, _ => new SemaphoreSlim(1, 1));
+        }
+    }
 
     /// <summary>
     /// Registers the <see cref="HybridCacheEntryOptions"/> for the specified <typeparamref name="TRefColl"/>.

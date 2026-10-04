@@ -141,14 +141,14 @@ The list endpoint continues to exclude inactive items unless `$inactive=true` is
 - **`code` is immutable** — update (PATCH — there is no PUT endpoint) keeps the existing `id`, `code` and active state; use activate/deactivate to change the latter.
 - **Transactional** — each operation runs inside `IUnitOfWork.TransactionAsync`; the change and its outbox event commit atomically.
 - **Events** — added to the unit of work's outbox only when the operation actually changed something: `{domain}.{entity}.created.v1`, `.updated.v1`, `.activated.v1`, `.deactivated.v1` (carrying the value) and `.deleted` (key only).
-- **Cache** — after a successful mutation the service calls `ReferenceDataOrchestrator.Current.InvalidateAsync<T>()`, so the next read reloads the collection (and, with a distributed cache, the shared entry is removed too).
+- **Cache** — after a successful mutation the service calls `ReferenceDataOrchestrator.Current.TryInvalidateAsync<T>()` (post-commit), so the next read reloads the collection (and, with a distributed cache, the shared entry is removed too). The try variant is awaited but best-effort: a cache failure is logged as a warning and does not fail the already-committed write; the stale entry then expires per its TTL. Use the strict `InvalidateAsync<T>()` only where an eviction failure must surface, and never invoke either inside the transaction.
 - **Validation** — failures surface as a standard 400 validation `ProblemDetails`.
 
 ### Referential integrity and pre-checks
 
 **CodeGen does not check whether a reference-data value is in use.** Delete, deactivate (and the `code` that other tables store) carry no cascade or usage check, and consumers typically hold the *code* (e.g. `Product.BrandCode`), usually without a database foreign key. Deleting a value, or deactivating one that is still referenced, therefore leaves existing data pointing at a missing or inactive value — it does not fail, and the data is now quietly invalid. Whether that is acceptable, and what to do about it, is **the consumer's responsibility**. The only built-in guard is that an *active* value cannot be deleted (`cannot-delete-active`), which merely forces deactivate-then-delete; it does nothing about usage.
 
-Where a rule is needed, the generated `ReferenceDataService` provides a `PreCheckAsync` hook (a `Func<IReferenceData, EventAction, CancellationToken, Task<Result>>`; default is a no-op success). It is a **private** property, so set it from the hand-written side of the `partial` class via the `OnInitialization()` partial method:
+Where a rule is needed, the generated `ReferenceDataService` provides a `PreCheckAsync` hook. **Its intent is deliberately narrow: a lightweight veto (allow/deny) before the mutation — nothing more.** It is not a place for side effects, cascades or other data changes. If the operation needs more than a veto (e.g. reassigning or deactivating dependents atomically with the change, locking reads, or any extra writes), do not stretch the hook: implement that data/repository logic yourself (a hand-written service or repository method inside your own unit of work) rather than using the generated mutation for that entity. The hook is a `Func<IReferenceData, EventAction, CancellationToken, Task<Result>>` (default is a no-op success) exposed as a **private** property, so set it from the hand-written side of the `partial` class via the `OnInitialization()` partial method:
 
 ```csharp
 public partial class ReferenceDataService
@@ -172,7 +172,7 @@ How the hook behaves:
 | **Invoked for** | `Activated`, `Deactivated`, `Deleted` only — **not** create or update. |
 | **Single hook** | One delegate for all mutable entities; switch on the value's type (and `action`) to target specific entities. |
 | **Ordering** | Runs after the value is loaded and **before** the transaction opens. Deactivate/activate run it even when the value is already in that state. Delete runs it only if the value exists (a missing value is an idempotent 204), and before the `cannot-delete-active` check. |
-| **Not atomic** | The check and the write are not in the same transaction, so a concurrent insert can still slip in between. Back it with a database constraint if you need a hard guarantee. |
+| **Not atomic (by design)** | The check and the write are not in the same transaction, so a concurrent insert can still slip in between. Back it with a database constraint if you need a hard guarantee; if you need the check and the change to be atomic, hand-write that logic instead. |
 | **Failure** | The returned failure surfaces as a normal error response (a `BusinessError` becomes a 400) and no event or cache invalidation occurs. |
 ### Prerequisites and gotchas
 

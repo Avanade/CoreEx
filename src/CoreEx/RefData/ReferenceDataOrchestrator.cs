@@ -422,6 +422,38 @@ public sealed class ReferenceDataOrchestrator(IServiceProvider serviceProvider, 
     }
 
     /// <summary>
+    /// Attempts a best-effort invalidation of the cached <see cref="IReferenceDataCollection"/> for the specified <see cref="IReferenceData"/> <see cref="Type"/>.
+    /// </summary>
+    /// <typeparam name="TRef">The <see cref="IReferenceData"/> <see cref="Type"/>.</typeparam>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+    /// <returns><see langword="true"/> where the invalidation succeeded (or there was nothing to invalidate); otherwise, <see langword="false"/> where it failed.</returns>
+    /// <remarks>See <see cref="TryInvalidateAsync(Type, CancellationToken)"/>.</remarks>
+    public Task<bool> TryInvalidateAsync<TRef>(CancellationToken cancellationToken = default) where TRef : IReferenceData => TryInvalidateAsync(typeof(TRef), cancellationToken);
+
+    /// <summary>
+    /// Attempts a best-effort invalidation of the cached <see cref="IReferenceDataCollection"/> for the specified <see cref="IReferenceData"/> <see cref="Type"/>.
+    /// </summary>
+    /// <param name="type">The <see cref="IReferenceData"/> <see cref="Type"/>.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+    /// <returns><see langword="true"/> where the invalidation succeeded (or there was nothing to invalidate); otherwise, <see langword="false"/> where it failed.</returns>
+    /// <remarks>Unlike <see cref="InvalidateAsync(Type, CancellationToken)"/>, any failure (including cancellation) is logged as a warning and swallowed; the invalidation is still awaited so that read-after-write is preserved.
+    /// <para>This is intended to be invoked <i>after</i> the underlying data change has been committed, where the change is permanent and a failure to evict must not be surfaced as a failure of the operation; the cached
+    /// collection will then remain stale until it expires. Do <b>not</b> invoke within the transaction as a concurrent reader could re-cache the pre-commit data.</para></remarks>
+    public async Task<bool> TryInvalidateAsync(Type type, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            await InvalidateAsync(type, cancellationToken).ConfigureAwait(false);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Reference data type {RefDataType} cache invalidation failed; the cached collection will remain stale until it expires: {Message}", type?.FullName, ex.Message);
+            return false;
+        }
+    }
+
+    /// <summary>
     /// Gets the dictionary of the single definitive external name for every registered <see cref="IReferenceData"/> <see cref="Type"/>.
     /// </summary>
     /// <returns>The dictionary of external name mappings, keyed by the external name and valued by the corresponding <see cref="IReferenceData"/> <see cref="Type"/>.</returns>

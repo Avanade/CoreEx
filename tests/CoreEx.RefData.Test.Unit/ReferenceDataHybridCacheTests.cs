@@ -193,4 +193,41 @@ public partial class ReferenceDataOrchestratorTests
 
         cache.CreatedFor.Should().BeEmpty();
     }
+
+    [Test]
+    public async Task RemoveAsync_WaitsForInFlightLoad_ThenEvictsStaleValue()
+    {
+        // A removal must be serialized with an in-flight load, otherwise the load completes after the removal and repopulates the cache with stale data.
+        var cache = new ReferenceDataHybridCache(new Caching.MemoryOnlyHybridCache());
+        var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var callCount = 0;
+
+        async Task<IReferenceDataCollection> Factory(Type t, CancellationToken ct)
+        {
+            callCount++;
+            started.TrySetResult();
+            await release.Task.ConfigureAwait(false);
+            return new DummyRefDataCollection { new DummyRefData { Id = 1, Code = "A" } };
+        }
+
+        var load = cache.GetOrCreateAsync(typeof(DummyRefDataCollection), Factory);
+        await started.Task;
+
+        var remove = cache.RemoveAsync(typeof(DummyRefDataCollection));
+        await Task.Delay(100);
+        remove.IsCompleted.Should().BeFalse("the removal must wait for the in-flight load");
+
+        release.SetResult();
+        await load;
+        await remove;
+
+        await cache.GetOrCreateAsync(typeof(DummyRefDataCollection), (t, ct) =>
+        {
+            callCount++;
+            return Task.FromResult<IReferenceDataCollection>(new DummyRefDataCollection { new DummyRefData { Id = 1, Code = "A" } });
+        });
+
+        callCount.Should().Be(2, "the stale value loaded before the removal must have been evicted");
+    }
 }

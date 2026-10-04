@@ -30,10 +30,11 @@ builder.AddProject<Projects.Contoso_Products_Relay>("products-relay").WithRefere
 builder.AddProject<Projects.Contoso_Products_Subscribe>("products-subscribe").WithReference(postgres).WithReference(redis).WithReference(serviceBus).AddEndpoints("/health/ready/detailed").AddHostedServiceSupport();
 
 // Shopping domain.
-// Note: shopping-api and shopping-subscribe call Products synchronously (see ProductsHttpClient) - WithReference populates the
+// Note: shopping-api and shopping-subscribe call Products synchronously (see ProductsHttpClient). The appsettings default is the standalone
+// "https://localhost:7200"; here the logical "https+http://products-api" is injected instead, and WithReference populates the
 // "Services:products-api:*" configuration used by CoreEx's service-discovery-aware AddTypedHttpClient, so the resolved address
 // always matches whichever endpoint/port products-api actually binds to (regardless of launch profile), rather than a static guess.
-builder.AddProject<Projects.Contoso_Shopping_Api>("shopping-api").WithReference(sqlServer).WithReference(redis).WithReference(serviceBus).WithReference(productsApi).AddEndpoints("/health/ready/detailed");
+builder.AddProject<Projects.Contoso_Shopping_Api>("shopping-api").WithReference(sqlServer).WithReference(redis).WithReference(serviceBus).WithReference(productsApi).WithEnvironment("ProductsApi__BaseAddress", "https+http://products-api").AddEndpoints("/health/ready/detailed");
 builder.AddProject<Projects.Contoso_Shopping_Relay>("shopping-relay").WithReference(sqlServer).WithReference(serviceBus).AddEndpoints("/health/ready/detailed").AddHostedServiceSupport();
 
 builder.AddProject<Projects.Contoso_Shopping_Subscribe>("shopping-subscribe")
@@ -41,6 +42,7 @@ builder.AddProject<Projects.Contoso_Shopping_Subscribe>("shopping-subscribe")
     .WithReference(redis)
     .WithReference(serviceBus)
     .WithReference(productsApi)
+    .WithEnvironment("ProductsApi__BaseAddress", "https+http://products-api")
     .AddEndpoints("/health/ready/detailed")
     .AddHostedServiceSupport()
     .WithMockHostEnvironment("SendGrid__BaseAddress", mockhost, "http");

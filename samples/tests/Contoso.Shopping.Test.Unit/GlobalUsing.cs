@@ -13,6 +13,7 @@ global using CoreEx.RefData.Abstractions;
 global using CoreEx.Results;
 global using CoreEx.UnitTesting;
 global using CoreEx.Data.Json;
+global using CoreEx.Http;
 global using CoreEx.Validation;
 global using Microsoft.Extensions.DependencyInjection;
 global using Microsoft.Extensions.Hosting;

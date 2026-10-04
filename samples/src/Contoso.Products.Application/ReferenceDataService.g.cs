@@ -94,7 +94,7 @@ public partial class ReferenceDataService : IReferenceDataService
                 return Result.GoAsync(() => create(value, ct))
                     .ThenAs(dr => dr.WhereMutatedAnd(v => _unitOfWork.Events.Add(EventData.CreateEventWith(v, EventAction.Created))));
             }, cancellationToken))
-            .ThenAsAsync(dr => dr.WhereMutatedAsync((v, ct) => ReferenceDataOrchestrator.Current.InvalidateAsync<TRef>(ct), cancellationToken));
+            .ThenAsAsync(dr => dr.WhereMutatedAsync((v, ct) => ReferenceDataOrchestrator.Current.TryInvalidateAsync<TRef>(ct), cancellationToken));
 
     /// <summary>
     /// Updates the reference data of type <typeparamref name="TRef"/> using the specified <paramref name="updateFunc"/>.
@@ -115,7 +115,7 @@ public partial class ReferenceDataService : IReferenceDataService
                 return Result.GoAsync(() => update(id, value, ct))
                     .ThenAs(dr => dr.WhereMutatedAnd(v => _unitOfWork.Events.Add(EventData.CreateEventWith(v, EventAction.Updated))));
             }, cancellationToken))
-            .ThenAsAsync(dr => dr.WhereMutatedAsync((v, ct) => ReferenceDataOrchestrator.Current.InvalidateAsync<TRef>(ct), cancellationToken));
+            .ThenAsAsync(dr => dr.WhereMutatedAsync((v, ct) => ReferenceDataOrchestrator.Current.TryInvalidateAsync<TRef>(ct), cancellationToken));
 
     /// <summary>
     /// Activates the reference data of type <typeparamref name="TRef"/> using the specified <paramref name="activateFunc"/>.
@@ -136,7 +136,7 @@ public partial class ReferenceDataService : IReferenceDataService
                 return Result.GoAsync(() => activate(id, ct))
                     .ThenAs(dr => dr.WhereMutatedAnd(v => _unitOfWork.Events.Add(EventData.CreateEventWith(v, EventAction.Activated))));
             }, cancellationToken))
-            .ThenAsAsync(dr => dr.WhereMutatedAsync((v, ct) => ReferenceDataOrchestrator.Current.InvalidateAsync<TRef>(ct), cancellationToken));
+            .ThenAsAsync(dr => dr.WhereMutatedAsync((v, ct) => ReferenceDataOrchestrator.Current.TryInvalidateAsync<TRef>(ct), cancellationToken));
 
     /// <summary>
     /// Deactivates the reference data of type <typeparamref name="TRef"/> using the specified <paramref name="deactivateFunc"/>.
@@ -157,7 +157,7 @@ public partial class ReferenceDataService : IReferenceDataService
                 return Result.GoAsync(() => deactivate(id, ct))
                     .ThenAs(dr => dr.WhereMutatedAnd(v => _unitOfWork.Events.Add(EventData.CreateEventWith(v, EventAction.Deactivated))));
             }, cancellationToken))
-            .ThenAsAsync(dr => dr.WhereMutatedAsync((v, ct) => ReferenceDataOrchestrator.Current.InvalidateAsync<TRef>(ct), cancellationToken));
+            .ThenAsAsync(dr => dr.WhereMutatedAsync((v, ct) => ReferenceDataOrchestrator.Current.TryInvalidateAsync<TRef>(ct), cancellationToken));
 
     /// <summary>
     /// Deletes the reference data of type <typeparamref name="TRef"/> using the specified <paramref name="delete"/>.
@@ -182,7 +182,7 @@ public partial class ReferenceDataService : IReferenceDataService
                 return Result.GoAsync(() => delete(id, ct))
                     .Then(dr => dr.WhereMutatedAnd(() => _unitOfWork.Events.Add(EventData.CreateEvent<TRef>(EventAction.Deleted).WithKey(CompositeKey.Create(id)))));
             }, cancellationToken))
-            .ThenAsAsync(dr => dr.WhereMutatedAsync(ct => ReferenceDataOrchestrator.Current.InvalidateAsync<TRef>(ct), cancellationToken)).ConfigureAwait(false);
+            .ThenAsAsync(dr => dr.WhereMutatedAsync(ct => ReferenceDataOrchestrator.Current.TryInvalidateAsync<TRef>(ct), cancellationToken)).ConfigureAwait(false);
     }
 
     #endregion
