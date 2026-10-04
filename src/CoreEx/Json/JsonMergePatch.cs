@@ -52,9 +52,13 @@ public sealed class JsonMergePatch(JsonMergePatchOptions? options = null)
     /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
     /// <returns>The <see cref="JsonMergePatchResult{T}"/> <see cref="Result{T}"/>.</returns>
     /// <remarks>Provides the opportunity to validate the JSON before getting the value where this execution order is important; i.e. get operation is expensive (latency). A <paramref name="getTarget"/> that returns <see langword="null"/>
-    /// will immediately exit without performing any merge.</remarks>
+    /// will return a not found result.</remarks>
     public Task<Result<JsonMergePatchResult<T>>> MergeAsync<T>(BinaryData patch, Func<CancellationToken, Task<T?>> getTarget, CancellationToken cancellationToken = default)
-        => MergeWithResultAsync(patch, async ct => Result.Ok(await getTarget.ThrowIfNull()(ct).ConfigureAwait(false)), cancellationToken);
+        => MergeWithResultAsync(patch, async ct =>
+        {
+            var v = await getTarget.ThrowIfNull()(ct).ConfigureAwait(false);
+            return v is null ? Result.NotFoundError() : Result.Ok(v);
+        }, cancellationToken);
 
     /// <summary>
     /// Merges the <paramref name="patch"/> content into the value returned by the <paramref name="getTarget"/> function.
@@ -66,7 +70,7 @@ public sealed class JsonMergePatch(JsonMergePatchOptions? options = null)
     /// <returns>The <see cref="JsonMergePatchResult{T}"/> <see cref="Result{T}"/>.</returns>
     /// <remarks>Provides the opportunity to validate the JSON before getting the value where this execution order is important; i.e. get operation is expensive (latency). A <paramref name="getTarget"/> that returns <see langword="null"/>
     /// will immediately exit without performing any merge.</remarks>
-    public async Task<Result<JsonMergePatchResult<T>>> MergeWithResultAsync<T>(BinaryData patch, Func<CancellationToken, Task<Result<T?>>> getTarget, CancellationToken cancellationToken = default)
+    public async Task<Result<JsonMergePatchResult<T>>> MergeWithResultAsync<T>(BinaryData patch, Func<CancellationToken, Task<Result<T>>> getTarget, CancellationToken cancellationToken = default)
     {
         // Parse ensuring the JSON is valid for the type and can be navigated.
         if (!TryParseJson<T>(patch.ThrowIfNull(), out var r))
@@ -75,7 +79,7 @@ public sealed class JsonMergePatch(JsonMergePatchOptions? options = null)
         // Get the value and exit where nothing to merge into.
         var target = await getTarget.ThrowIfNull().Invoke(cancellationToken).ConfigureAwait(false);
         if (target.IsFailure)
-            return target.Error;
+            return target.AsResult();
 
         if (target.Value is null)
             return new JsonMergePatchResult<T>();

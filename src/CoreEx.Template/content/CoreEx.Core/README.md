@@ -14,7 +14,7 @@ A CoreEx microservice for the `domain-name` domain.
 - **Data provider:** None — facade over an external system (no local database)
 <!-- #endif -->
 <!-- #if (refdata-enabled && has-data-provider) -->
-- **Reference data:** Enabled — `tools/app-name.CodeGen/` + `src/app-name.Application/ReferenceDataService.cs`
+- **Reference data:** Enabled — `tools/app-name.CodeGen/` + `src/app-name.Application/ReferenceDataProvider.g.cs`
 <!-- #endif -->
 <!-- #if rop-enabled -->
 - **Railway-oriented programming:** Enabled — services return `Result`/`Result<T>`
@@ -174,7 +174,7 @@ dotnet run --project tools/app-name.CodeGen
 Commit the generated `*.g.cs` files alongside the `ref-data.yaml` changes. **Never edit generated files by hand** — they are overwritten on the next run.
 
 > **Run this before your first `dotnet run`, not just after editing `ref-data.yaml`.** The scaffold's
-> `ReferenceDataService` requires `IReferenceDataRepository`, which only gets a DI registration once CodeGen
+> `ReferenceDataProvider` requires `IReferenceDataRepository`, which only gets a DI registration once CodeGen
 > generates it. `dotnet build` succeeds either way, but starting a host with `ASPNETCORE_ENVIRONMENT=Development`
 > (the default for IDE launch profiles) before CodeGen has ever run throws a DI-validation exception at startup.
 >

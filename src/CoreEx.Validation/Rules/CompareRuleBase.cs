@@ -47,10 +47,11 @@ public abstract class CompareRuleBase<TEntity, TProperty>(CompareOperator compar
     /// </summary>
     /// <param name="context">The <see cref="PropertyContext{TEntity, TProperty}"/>.</param>
     /// <param name="compareToValue">The compare-to value.</param>
-    protected void CreateErrorMessage(PropertyContext<TEntity, TProperty> context, TProperty compareToValue)
+    /// <param name="compareToTextBackup">The optional compare-to text backup.</param>
+    protected void CreateErrorMessage(PropertyContext<TEntity, TProperty> context, TProperty compareToValue, LText? compareToTextBackup = null)
     {
         context.ThrowIfNull();
-        var compareToText = CompareToText?.Invoke(compareToValue) ?? context.FormatValue(compareToValue);
+        var compareToText = CompareToText?.Invoke(compareToValue) ?? compareToTextBackup ?? context.FormatValue(compareToValue);
 
         switch (Operator)
         {

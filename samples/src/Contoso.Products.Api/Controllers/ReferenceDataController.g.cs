@@ -14,37 +14,37 @@ public partial class ReferenceDataController(CoreEx.AspNetCore.Mvc.WebApi webApi
 {
     private readonly CoreEx.AspNetCore.Mvc.WebApi _webApi = webApi.ThrowIfNull();
 
-    [HttpGet("brands"), HttpHead("brands")]
+    [HttpGet("brands")]
     [ProducesResponseType(typeof(Brand[]), 200)]
     [Query(supportsOrderBy: true), Paging(supportsCount: true)]
     public Task<IActionResult> GetBrandsAsync(CancellationToken cancellationToken)
         => _webApi.GetAsync(Request, (ro, ct) => ReferenceDataOrchestrator.Current.QueryAsync<Brand>(ro.QueryArgs, ro.PagingArgs, ct), cancellationToken: cancellationToken);
 
-    [HttpGet("categories"), HttpHead("categories")]
+    [HttpGet("categories")]
     [ProducesResponseType(typeof(Category[]), 200)]
     [Query(supportsOrderBy: true), Paging(supportsCount: true)]
     public Task<IActionResult> GetCategoriesAsync(CancellationToken cancellationToken)
         => _webApi.GetAsync(Request, (ro, ct) => ReferenceDataOrchestrator.Current.QueryAsync<Category>(ro.QueryArgs, ro.PagingArgs, ct), cancellationToken: cancellationToken);
 
-    [HttpGet("movement-kinds"), HttpHead("movement-kinds")]
+    [HttpGet("movement-kinds")]
     [ProducesResponseType(typeof(MovementKind[]), 200)]
     [Query(supportsOrderBy: true), Paging(supportsCount: true)]
     public Task<IActionResult> GetMovementKindsAsync(CancellationToken cancellationToken)
         => _webApi.GetAsync(Request, (ro, ct) => ReferenceDataOrchestrator.Current.QueryAsync<MovementKind>(ro.QueryArgs, ro.PagingArgs, ct), cancellationToken: cancellationToken);
 
-    [HttpGet("movement-statuses"), HttpHead("movement-statuses")]
+    [HttpGet("movement-statuses")]
     [ProducesResponseType(typeof(MovementStatus[]), 200)]
     [Query(supportsOrderBy: true), Paging(supportsCount: true)]
     public Task<IActionResult> GetMovementStatusesAsync(CancellationToken cancellationToken)
         => _webApi.GetAsync(Request, (ro, ct) => ReferenceDataOrchestrator.Current.QueryAsync<MovementStatus>(ro.QueryArgs, ro.PagingArgs, ct), cancellationToken: cancellationToken);
 
-    [HttpGet("sub-categories"), HttpHead("sub-categories")]
+    [HttpGet("sub-categories")]
     [ProducesResponseType(typeof(SubCategory[]), 200)]
     [Query(supportsOrderBy: true), Paging(supportsCount: true)]
     public Task<IActionResult> GetSubCategoriesAsync(CancellationToken cancellationToken)
         => _webApi.GetAsync(Request, (ro, ct) => ReferenceDataOrchestrator.Current.QueryAsync<SubCategory>(ro.QueryArgs, ro.PagingArgs, ct), cancellationToken: cancellationToken);
 
-    [HttpGet("units-of-measure"), HttpHead("units-of-measure")]
+    [HttpGet("units-of-measure")]
     [ProducesResponseType(typeof(UnitOfMeasure[]), 200)]
     [Query(supportsOrderBy: true), Paging(supportsCount: true)]
     public Task<IActionResult> GetUnitsOfMeasureAsync(CancellationToken cancellationToken)

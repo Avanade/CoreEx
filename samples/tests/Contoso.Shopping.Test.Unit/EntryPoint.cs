@@ -7,7 +7,7 @@ public class EntryPoint
         // Configure the minimum services required for the execution context and reference data orchestrator; caching will be in-memory for the unit tests.
         builder.Services.AddExecutionContext();
         builder.Services.AddMemoryCache();
-        builder.Services.AddReferenceDataOrchestrator<ReferenceDataServiceDecorator>();
+        builder.Services.AddReferenceDataOrchestrator<ReferenceDataProviderDecorator>();
 
         // Configure the products http client.
         builder.AddTypedHttpClient<ProductsHttpClient>("ProductsApi");
@@ -18,10 +18,10 @@ public class EntryPoint
 
         // Reuse the "real" database configured reference data.
         var jdr = JsonDataReader.ParseYaml<Contoso.Shopping.Database.Program>("ref-data.seed.yaml", JsonDataReaderOptions.CreateForReferenceData(JsonPropertyNamingConvention.SnakeCase));
-        builder.Services.AddSingleton(new ReferenceDataServiceDecorator(jdr));
+        builder.Services.AddSingleton(new ReferenceDataProviderDecorator(jdr));
     }
 
-    public class ReferenceDataServiceDecorator(JsonDataReader jdr) : ReferenceDataService(Mock.Of<IReferenceDataRepository>())
+    public class ReferenceDataProviderDecorator(JsonDataReader jdr) : ReferenceDataProvider(Mock.Of<IReferenceDataRepository>())
     {
         public override Task<IReferenceDataCollection> GetAsync(Type type, CancellationToken cancellationToken = default) => type switch
         {

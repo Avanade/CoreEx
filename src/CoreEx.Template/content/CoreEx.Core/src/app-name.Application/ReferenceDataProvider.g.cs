@@ -6,7 +6,7 @@ namespace app-name.Application;
 
 /// <summary>Provides the <see cref="IReferenceDataProvider"/> implementation.</summary>
 [ScopedService<IReferenceDataProvider>]
-public partial class ReferenceDataService(IReferenceDataRepository repository) : IReferenceDataProvider
+public partial class ReferenceDataProvider(IReferenceDataRepository repository) : IReferenceDataProvider
 {
     private readonly IReferenceDataRepository _repository = repository.ThrowIfNull();
 

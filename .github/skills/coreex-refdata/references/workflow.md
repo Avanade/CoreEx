@@ -283,6 +283,8 @@ Key `entities:` options:
 | `properties[].name` | — | Additional property name |
 | `properties[].type` | — | CLR type; prefix `^` for navigation accessor |
 | `properties[].excludeContract` | `false` | Persistence model only |
+| `mutability` | `None` | `None` (read-only), `CreateUpdate` or `CreateUpdateDelete` — opts the type in to generated write endpoints; see [Mutable types](#mutable-types-optional) |
+| `mutableAttribute` | — | Attribute(s) applied to the generated `{Name}Controller` (e.g. `'[Authorize]'`) — `attribute` does **not** cover write endpoints |
 
 ### Run CodeGen
 
@@ -297,11 +299,22 @@ On success, CodeGen emits `.g.cs` files across all layers:
 | Artefact | Layer |
 |---|---|
 | `<Entity>.g.cs` | Contracts |
-| `<Entity>Controller.g.cs` | API host |
-| `<Entity>Service.g.cs` | Application |
-| `I<Entity>Repository.g.cs` | Application |
-| `<Entity>Repository.g.cs` | Infrastructure |
+| `ReferenceDataController.g.cs` (read-only GETs, all entities) | API host |
+| `ReferenceDataProvider.g.cs` (`IReferenceDataProvider`) | Application |
+| `ReferenceDataRepository.g.cs` / `IReferenceDataRepository.g.cs` | Infrastructure / Application |
 | `<Entity>Mapper.g.cs` | Infrastructure |
+| `<Entity>Controller.g.cs` — **mutable entities only** | API host |
+| `IReferenceDataService.g.cs` + `ReferenceDataService.g.cs` — **only if any entity is mutable** | Application |
+
+### Mutable types (optional)
+
+Types are **read-only by default**. Only set `mutability` when the user explicitly wants the type to be maintained through the API; ask if unclear.
+
+- **EF-only** — requires `repository: EntityFramework`; CodeGen fails fast otherwise. The persistence model needs columns for any optional property clients set (`Description`, `StartsOn`, `EndsOn`) or the request is rejected with a 400 (`not-supported`).
+- Generates `POST`, `PATCH {id}` (no PUT), `POST {id}/activate`, `POST {id}/deactivate` and — for `CreateUpdateDelete` — `DELETE {id}` under `/api/refdata/{route}`. Create always yields an inactive item; `code` is immutable; an active item cannot be deleted. Offer `mutableAttribute: '[Authorize]'` (or the project's policy) — write endpoints are otherwise open.
+- **No usage/cascade check.** Delete and deactivate do not verify the value is unreferenced, and other tables usually store the code — removing or deactivating an in-use value silently invalidates that data. **Always warn the user**, and offer to add the check via the `PreCheckAsync` hook in a hand-written `partial class ReferenceDataService` (`partial void OnInitialization()`; runs for activate/deactivate/delete only, before the transaction, one delegate for all mutable types). Never edit the `.g.cs`.
+- Add API tests (`coreex-test-api`) for the write endpoints, including the `PreCheckAsync` veto.
+- Detail: `src/CoreEx.CodeGen/README.md` → "Readonly vs Mutation" (CoreEx repo).
 
 **On failure, relay verbatim error output — do not create or edit `.g.cs` files to work around it. Fix `ref-data.yaml` and re-run.**
 
@@ -332,7 +345,7 @@ Do **not** pre-add empty-namespace usings — wait until the generated code that
 
 ## Guardrails
 
-- **Never edit `.g.cs` files** — they are owned by `*.CodeGen` (contract, controller, service, repository, mapper) or `*.Database` (persistence model). Regenerate instead.
+- **Never edit `.g.cs` files** — they are owned by `*.CodeGen` (contract, controllers, provider, service, repository, mapper) or `*.Database` (persistence model). Regenerate instead.
 - **Two separate YAML files** — `*.CodeGen/ref-data.yaml` (entity definitions) vs `*.Database/Data/ref-data.seed.yaml` (seed rows). Wrong file = runtime failure.
 - **Never include `{Name}Id` in seed rows** — `$^` auto-generates the id. Including it is always a bug.
 - **Always use `$^` on ref-data table entries** — regardless of identifier type (`string`, `Guid`, `int`).

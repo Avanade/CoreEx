@@ -8,6 +8,7 @@ namespace CoreEx.CodeGen.RefData.Config;
 [CodeGenCategory("API", Title = "Provides the configuration for the generated API code.")]
 [CodeGenCategory("Repository", Title = "Provides the configuration for the generated repository code.")]
 [CodeGenCategory("Mapping", Title = "Provides the configuration for the generated mapping code.")]
+[CodeGenCategory("Mutable", Title = "Provides the configuration for the generated mutability code.")]
 [CodeGenCategory("Exclude", Title = "Provides the configuration for code generation exclusion.")]
 [CodeGenCategory("Collections", Title = "Provides the collections configuration.")]
 public class EntityConfig : ConfigBase<CodeGenConfig, CodeGenConfig>
@@ -37,14 +38,14 @@ public class EntityConfig : ConfigBase<CodeGenConfig, CodeGenConfig>
     /// Gets or sets the identifier type.
     /// </summary>
     [JsonPropertyName("idType")]
-    [CodeGenProperty("Primary", Title = "The reference-data identifier type.", IsImportant = true, Options = ["String", "Guid", "Int32", "Int64"], Description = "Defaults to root `{IdType}`.")]
+    [CodeGenProperty("Primary", Title = "The reference-data identifier type.", Options = ["String", "Guid", "Int32", "Int64"], Description = "Defaults to root `{IdType}`.")]
     public string? IdType { get; set; }
 
     /// <summary>
     /// Gets or sets the default collection sort order.
     /// </summary>
     [JsonPropertyName("collectionSortOrder")]
-    [CodeGenProperty("Primary", Title = "The collection sort order.", IsImportant = true, Options = ["Code", "Id", "Text", "SortOrder"], Description = "This is the collection sort order. Defaults to root `{CollectionSortOrder}`.")]
+    [CodeGenProperty("Primary", Title = "The collection sort order.", Options = ["Code", "Id", "Text", "SortOrder"], Description = "This is the collection sort order. Defaults to root `{CollectionSortOrder}`.")]
     public string? CollectionSortOrder { get; set; }
 
     #region API
@@ -55,6 +56,13 @@ public class EntityConfig : ConfigBase<CodeGenConfig, CodeGenConfig>
     [JsonPropertyName("route")]
     [CodeGenProperty("API", Title = "The route suffix.", IsImportant = true, Description = "Defaults to `{Plural}` and root `{RouteConvention}` configuration.")]
     public string? Route { get; set; }
+
+    /// <summary>
+    /// Gets or sets the optional attribute.
+    /// </summary>
+    [JsonPropertyName("attribute")]
+    [CodeGenProperty("API", Title = "The optional API controller operation attribute.", Description = "This is the attribute applied as-is to the generated `ReferenceDataController` operation. This is useful for adding the likes of `[Authorize]`.")]
+    public string? Attribute { get; set; }
 
     #endregion
 
@@ -108,6 +116,31 @@ public class EntityConfig : ConfigBase<CodeGenConfig, CodeGenConfig>
 
     #endregion
 
+    #region Mutable
+
+    /// <summary>
+    /// Gets or sets the reference-data entity mutability.
+    /// </summary>
+    [JsonPropertyName("mutability")]
+    [CodeGenProperty("Mutable", Title = "The reference-data entity mutability.", Options = ["None", "CreateUpdate", "CreateUpdateDelete"], Description = "Defaults to `None`.")]
+    public string? Mutability { get; set; }
+
+    /// <summary>
+    /// Gets or sets the validator type name.
+    /// </summary>
+    [JsonPropertyName("validator")]
+    [CodeGenProperty("Mutable", Title = "The validator type name used during mutability operations.", Description = "Defaults to `ReferenceDataValidator<{Name}>`. Must have a default constructor.")]
+    public string? Validator { get; set; }
+
+    /// <summary>
+    /// Gets or sets the optional attribute.
+    /// </summary>
+    [JsonPropertyName("mutableAttribute")]
+    [CodeGenProperty("API", Title = "The optional mutable API controller class attribute.", Description = "This is the attribute applied as-is to the generated `{Name}Controller` class. This is useful for adding the likes of `[Authorize]`.")]
+    public string? MutableAttribute { get; set; }
+
+    #endregion
+
     #region Exclude
 
     /// <summary>
@@ -148,6 +181,11 @@ public class EntityConfig : ConfigBase<CodeGenConfig, CodeGenConfig>
     #endregion
 
     /// <summary>
+    /// Gets or sets the .NET type of the identifier.
+    /// </summary>
+    public string? IdDotNetType { get; set; }
+
+    /// <summary>
     /// Gets or sets the contract inherits base class name.
     /// </summary>
     public string? Inherits { get; set; }
@@ -169,6 +207,16 @@ public class EntityConfig : ConfigBase<CodeGenConfig, CodeGenConfig>
     /// persistence model's <c>Id</c> column type is expected to already agree with <see cref="IdType"/>) is a direct assignment.</remarks>
     public string? MapperIdExpression { get; set; }
 
+    /// <summary>
+    /// Indicates whether the entity is mutable; see <see cref="Mutability"/>.
+    /// </summary>
+    public bool IsMutable => Mutability switch
+    {
+        "CreateUpdate" => true,
+        "CreateUpdateDelete" => true,
+        _ => false
+    };
+
     /// <inheritdoc/>
     protected override async Task PrepareAsync()
     {
@@ -177,9 +225,13 @@ public class EntityConfig : ConfigBase<CodeGenConfig, CodeGenConfig>
         IdType = DefaultWhereNull(IdType, () => Root?.IdType);
         CollectionSortOrder = DefaultWhereNull(CollectionSortOrder, () => Root!.CollectionSortOrder);
         Repository = DefaultWhereNull(Repository, () => Root!.Repository);
-
+        Mutability = DefaultWhereNull(Mutability, () => "None");
         Mapper = DefaultWhereNull(Mapper, () => $"{Name}Mapper");
         ExcludeMapper = DefaultWhereNull(ExcludeMapper, () => false);
+        Validator = DefaultWhereNull(Validator, () => $"ReferenceDataValidator<{Name}>");
+
+        if (IsMutable && Repository != "EntityFramework")
+            throw new CodeGenException(this, nameof(Mutability), $"Mutability '{Mutability}' requires a '{nameof(Repository)}' of 'EntityFramework'; '{Repository}' is not supported.");
 
         Plural = DefaultWhereNull(Plural, () =>
         {
@@ -215,6 +267,14 @@ public class EntityConfig : ConfigBase<CodeGenConfig, CodeGenConfig>
             "CamelCase" => OnRamp.Utility.StringConverter.ToCamelCase(Plural!),
             _ => Plural!.ToLower(),
         });
+
+        IdDotNetType = IdType switch
+        {
+            "Int32" => "int",
+            "Int64" => "long",
+            "Guid" => "Guid",
+            _ => "string"
+        };
 
         Inherits = IdType switch
         {

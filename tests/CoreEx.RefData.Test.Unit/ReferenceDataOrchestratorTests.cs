@@ -393,6 +393,62 @@ public partial class ReferenceDataOrchestratorTests
         ir.Items!.Count().Should().Be(2);
     }
 
+    // ── InvalidateAsync ──────────────────────────────────────────────────────
+
+    private class MutableData
+    {
+        public List<DummyRefData> Items { get; } = [new DummyRefData { Id = 1, Code = "A", Text = "Alpha" }];
+    }
+
+    private class DummyMutableProvider(MutableData data) : IReferenceDataProvider
+    {
+        public IEnumerable<(Type, Type)> Types => [(typeof(DummyRefData), typeof(DummyRefDataCollection))];
+
+        public Task<IReferenceDataCollection> GetAsync(Type type, CancellationToken cancellationToken = default)
+        {
+            var coll = new DummyRefDataCollection();
+            foreach (var item in data.Items)
+                coll.Add(new DummyRefData { Id = item.Id, Code = item.Code, Text = item.Text });
+
+            return Task.FromResult<IReferenceDataCollection>(coll);
+        }
+    }
+
+    [Test]
+    public async Task InvalidateAsync_RemovesCachedCollection_ReloadedOnNextAccess()
+    {
+        var data = new MutableData();
+        var sc = new ServiceCollection();
+        sc.AddExecutionContext(sp => new ExecutionContext { ServiceProvider = sp });
+        sc.AddSingleton<IReferenceDataCache>(new ReferenceDataHybridCache(new Caching.MemoryOnlyHybridCache()));
+        sc.AddSingleton(data);
+        sc.AddScoped<DummyMutableProvider>();
+        var sp = sc.BuildServiceProvider();
+
+        var orch = new ReferenceDataOrchestrator(sp, Mock.Of<ILogger<ReferenceDataOrchestrator>>());
+        orch.Register<DummyMutableProvider>();
+        ReferenceDataOrchestrator.SetCurrent(orch);
+        _ = sp.GetRequiredService<ExecutionContext>();
+
+        // Load and cache the collection.
+        var coll = await orch.GetByTypeAsync<DummyRefData>();
+        coll!.AllItems.Should().HaveCount(1);
+
+        // The underlying data changes; the cached collection remains until invalidated.
+        data.Items.Add(new DummyRefData { Id = 2, Code = "B", Text = "Beta" });
+        coll = await orch.GetByTypeAsync<DummyRefData>();
+        coll!.AllItems.Should().HaveCount(1);
+
+        // Invalidate by the reference data type (not the collection type); the next access must reload.
+        await orch.InvalidateAsync<DummyRefData>();
+        coll = await orch.GetByTypeAsync<DummyRefData>();
+        coll!.AllItems.Should().HaveCount(2);
+    }
+
+    [Test]
+    public async Task InvalidateAsync_UnregisteredType_IsNoOp()
+        => await ReferenceDataOrchestrator.Current.InvalidateAsync<InvalidRefData>();
+
     // ── AlternateNames duplicate type enforcement (item 12) ──────────────────
 
     private class DummyProviderWithDuplicateAlternateNames : IReferenceDataProvider

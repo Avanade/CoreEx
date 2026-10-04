@@ -14,11 +14,11 @@ public partial class ReferenceDataRepository : IReferenceDataRepository
 {
     /// <inheritdoc/>
     public Task<Contracts.CustomerTypeCollection> GetAllCustomerTypesAsync(CancellationToken cancellationToken = default)
-        => _cosmos.CustomerTypes.Query().ToMappedItemsAsync<Contracts.CustomerTypeCollection, Contracts.CustomerType>(CustomerTypeMapper.Map, cancellationToken);
+        => _cosmos.CustomerTypes.Query().ToMappedItemsAsync<Contracts.CustomerTypeCollection, Contracts.CustomerType>(CustomerTypeMapper.From, cancellationToken);
 
     /// <inheritdoc/>
     public Task<Contracts.ContactMethodCollection> GetAllContactMethodsAsync(CancellationToken cancellationToken = default)
-        => _cosmos.ContactMethods.Query().ToMappedItemsAsync<Contracts.ContactMethodCollection, Contracts.ContactMethod>(ContactMethodMapper.Map, cancellationToken);
+        => _cosmos.ContactMethods.Query().ToMappedItemsAsync<Contracts.ContactMethodCollection, Contracts.ContactMethod>(ContactMethodMapper.From, cancellationToken);
 }
 
 #nullable restore

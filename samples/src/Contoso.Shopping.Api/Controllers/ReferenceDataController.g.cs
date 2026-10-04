@@ -14,28 +14,23 @@ public partial class ReferenceDataController(CoreEx.AspNetCore.Mvc.WebApi webApi
 {
     private readonly CoreEx.AspNetCore.Mvc.WebApi _webApi = webApi.ThrowIfNull();
 
-    [HttpGet("basket-statuses"), HttpHead("basket-statuses")]
+    [HttpGet("basket-statuses")]
     [ProducesResponseType(typeof(BasketStatus[]), 200)]
     [Query(supportsOrderBy: true), Paging(supportsCount: true)]
     public Task<IActionResult> GetBasketStatusesAsync(CancellationToken cancellationToken)
         => _webApi.GetAsync(Request, (ro, ct) => ReferenceDataOrchestrator.Current.QueryAsync<BasketStatus>(ro.QueryArgs, ro.PagingArgs, ct), cancellationToken: cancellationToken);
 
-    [HttpGet("discount-coupons"), HttpHead("discount-coupons")]
+    [HttpGet("discount-coupons")]
     [ProducesResponseType(typeof(DiscountCoupon[]), 200)]
     [Query(supportsOrderBy: true), Paging(supportsCount: true)]
     public Task<IActionResult> GetDiscountCouponsAsync(CancellationToken cancellationToken)
         => _webApi.GetAsync(Request, (ro, ct) => ReferenceDataOrchestrator.Current.QueryAsync<DiscountCoupon>(ro.QueryArgs, ro.PagingArgs, ct), cancellationToken: cancellationToken);
 
-    [HttpGet("units-of-measure"), HttpHead("units-of-measure")]
+    [HttpGet("units-of-measure")]
     [ProducesResponseType(typeof(UnitOfMeasure[]), 200)]
     [Query(supportsOrderBy: true), Paging(supportsCount: true)]
     public Task<IActionResult> GetUnitsOfMeasureAsync(CancellationToken cancellationToken)
         => _webApi.GetAsync(Request, (ro, ct) => ReferenceDataOrchestrator.Current.QueryAsync<UnitOfMeasure>(ro.QueryArgs, ro.PagingArgs, ct), cancellationToken: cancellationToken);
-
-    [HttpGet]
-    [ProducesResponseType(typeof(ReferenceDataMultiDictionary), 200)]
-    public Task<IActionResult> GetNamedAsync([FromQuery] string[] name, CancellationToken cancellationToken)
-        => _webApi.GetAsync(Request, (ro, ct) => ReferenceDataOrchestrator.Current.GetNamedAsync(name, ro.IsIncludeInactive, ct), cancellationToken: cancellationToken);
 }
 
 #nullable restore

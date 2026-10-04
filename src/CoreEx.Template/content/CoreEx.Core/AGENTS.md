@@ -50,7 +50,7 @@ app-name/
 - **Data provider:** None -- facade solution (e.g. over Dynamics 365 via HttpClient)
 <!-- #endif -->
 <!-- #if (refdata-enabled && has-data-provider) -->
-- **Reference data:** Enabled -- `src/app-name.Application/ReferenceDataService.cs` and `tools/app-name.CodeGen/`
+- **Reference data:** Enabled -- `src/app-name.Application/ReferenceDataProvider.g.cs` and `tools/app-name.CodeGen/`
 <!-- #else -->
 - **Reference data:** Disabled
 <!-- #endif -->

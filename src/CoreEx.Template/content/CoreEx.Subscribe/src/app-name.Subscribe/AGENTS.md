@@ -86,7 +86,7 @@ The subscriber wires FusionCache with both in-memory (L1) and Redis distributed 
 - **Database:** None -- no database configured; subscribers do not persist data directly
 <!-- #endif -->
 <!-- #if refdata-enabled -->
-- **Reference data:** Enabled -- `ReferenceDataOrchestrator<ReferenceDataService>` is registered; reference data is available in subscriber logic
+- **Reference data:** Enabled -- the non-generic `AddReferenceDataOrchestrator()` is registered and binds the CodeGen-generated `ReferenceDataProvider` (`IReferenceDataProvider`) from DI at runtime; reference data is available in subscriber logic
 <!-- #else -->
 - **Reference data:** Disabled
 <!-- #endif -->

@@ -60,6 +60,7 @@ public class {Name}Validator : Validator<Contracts.{Name}, {Name}Validator>
 | Run rule only when entity condition met | `.WhenEntity(e => e.StartDate.HasValue)` chained after the rule |
 | Run rule only when property value condition met | `.WhenValue(v => v != null)` chained after the rule (predicate on property value, not entity — use `WhenEntity` for entity conditions) |
 | Skip when dependent prop invalid | `.DependsOn(x => x.OtherProp)` at end of chain |
+| Compare to another property on the same entity | `.CompareProperty(CompareOperator.GreaterThanOrEqualTo, x => x.StartsOn)` — compares only when both have a value and are valid; add `.Mandatory()` first to require it |
 | Runtime-computed threshold | `.LessThanOrEqualTo(_ => DateOnly.FromDateTime(Runtime.UtcNow.UtcDateTime.AddYears(-16)), _ => "the minimum age of 16")` |
 
 **Mandatory() on non-nullable value types:**
@@ -315,7 +316,7 @@ var dv = Validator.Create<MovementRequestProduct>()
    - Use `(jsonName, "Full expected message.")` tuples in `AssertErrors(...)`.
    - Use camelCase JSON property path; ref-data rules key on the navigation name (`"gender"`, not `"genderCode"`).
    - Use sentence-case labels in expected messages (`"First name is required."` not `"FirstName is required."`).
-4. If a ref-data type is used in the test host that is not yet registered, add the corresponding case to `EntryPoint.ReferenceDataServiceDecorator.GetAsync`.
+4. If a ref-data type is used in the test host that is not yet registered, add the corresponding case to `EntryPoint.ReferenceDataProviderDecorator.GetAsync`.
 
 ---
 

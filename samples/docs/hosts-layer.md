@@ -131,7 +131,7 @@ way as any other CoreEx invoker.
 `Program.cs` follows a predictable CoreEx shape and is the only file in the API host:
 
 1. `builder.AddHostSettings()` — loads CoreEx host configuration.
-2. Core services — `AddExecutionContext()`, `AddReferenceDataOrchestrator<T>()`, `AddMvcWebApi()`, `AddHttpWebApi()`.
+2. Core services — `AddExecutionContext()`, `AddReferenceDataOrchestrator()` (non-generic; binds the CodeGen-generated `IReferenceDataProvider` from DI at runtime), `AddMvcWebApi()`, `AddHttpWebApi()`.
 3. Dynamic service registration — `AddDynamicServicesUsing<T…>()` auto-discovers all `[ScopedService]`-decorated types.
 4. Infrastructure wiring — database, EF DbContext, outbox publisher, caching (L1 in-memory + L2 Redis + FusionCache backplane).
 5. `PostConfigureAllHealthChecks()` — adds standard health-check tags.
@@ -143,7 +143,7 @@ way as any other CoreEx invoker.
 // samples/src/Contoso.Products.Api/Program.cs  (abridged)
 builder.Services
     .AddExecutionContext()
-    .AddReferenceDataOrchestrator<ReferenceDataService>()
+    .AddReferenceDataOrchestrator()
     .AddMvcWebApi()
     .AddHttpWebApi();
 

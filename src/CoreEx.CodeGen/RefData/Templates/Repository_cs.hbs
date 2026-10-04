@@ -19,11 +19,43 @@ public partial class ReferenceDataRepository : IReferenceDataRepository
     /// <inheritdoc/>
     public Task<Contracts.{{Name}}Collection> GetAll{{Plural}}Async(CancellationToken cancellationToken = default)
   {{#ifeq Repository 'EntityFramework'}}
-        => {{RepositoryName}}.ThrowIfNull().Model<{{Root.DataModelsPath}}.{{Name}}>().Query().ToMappedItemsAsync<{{Root.DataModelsPath}}.{{Name}}, Contracts.{{Name}}Collection, Contracts.{{Name}}>({{Mapper}}.Map, cancellationToken);
+        => {{RepositoryName}}.ThrowIfNull().Model<{{Root.DataModelsPath}}.{{Name}}>().Query().ToMappedItemsAsync<{{Root.DataModelsPath}}.{{Name}}, Contracts.{{Name}}Collection, Contracts.{{Name}}>({{Mapper}}.From, cancellationToken);
   {{/ifeq}}
   {{#ifeq Repository 'Cosmos'}}
-        => {{RepositoryName}}.{{ModelPlural}}.Query().ToMappedItemsAsync<Contracts.{{Name}}Collection, Contracts.{{Name}}>({{Mapper}}.Map, cancellationToken);
+        => {{RepositoryName}}.{{ModelPlural}}.Query().ToMappedItemsAsync<Contracts.{{Name}}Collection, Contracts.{{Name}}>({{Mapper}}.From, cancellationToken);
   {{/ifeq}}
+{{/each}}
+{{#each EntitiesThatAreMutableWithRepository}}
+
+    #region {{Name}}
+
+    /// <inheritdoc/>
+    public Task<Result<Contracts.{{Name}}>> Get{{Name}}Async({{IdDotNetType}} id, CancellationToken cancellationToken = default)
+        => {{RepositoryName}}.ThrowIfNull().Model<Persistence.{{Name}}>().GetWithResultAsync(id, cancellationToken).ThenAs(model => {{Name}}Mapper.From.Map(model));
+
+    /// <inheritdoc/>
+    public Task<Result<DataResult<Contracts.{{Name}}>>> Create{{Name}}Async(Contracts.{{Name}} value, CancellationToken cancellationToken = default)
+        => EfDbReferenceData.CreateAsync<{{IdDotNetType}}, Contracts.{{Name}}, Persistence.{{Name}}, {{Name}}Mapper>({{RepositoryName}}.ThrowIfNull().Model<Persistence.{{Name}}>(), value, {{Name}}Mapper.Default, cancellationToken);
+
+    /// <inheritdoc/>
+    public Task<Result<DataResult<Contracts.{{Name}}>>> Update{{Name}}Async({{IdDotNetType}} id, Contracts.{{Name}} value, CancellationToken cancellationToken = default)
+        => EfDbReferenceData.UpdateAsync<{{IdDotNetType}}, Contracts.{{Name}}, Persistence.{{Name}}, {{Name}}Mapper>({{RepositoryName}}.ThrowIfNull().Model<Persistence.{{Name}}>(), id, value, {{Name}}Mapper.Default, cancellationToken);
+
+    /// <inheritdoc />
+    public Task<Result<DataResult<Contracts.{{Name}}>>> Activate{{Name}}Async({{IdDotNetType}} id, CancellationToken cancellationToken = default)
+        => EfDbReferenceData.ActivateAsync<{{IdDotNetType}}, Contracts.{{Name}}, Persistence.{{Name}}, {{Name}}Mapper>({{RepositoryName}}.ThrowIfNull().Model<Persistence.{{Name}}>(), id, {{Name}}Mapper.Default, cancellationToken);
+
+    /// <inheritdoc />
+    public Task<Result<DataResult<Contracts.{{Name}}>>> Deactivate{{Name}}Async({{IdDotNetType}} id, CancellationToken cancellationToken = default)
+        => EfDbReferenceData.DeactivateAsync<{{IdDotNetType}}, Contracts.{{Name}}, Persistence.{{Name}}, {{Name}}Mapper>({{RepositoryName}}.ThrowIfNull().Model<Persistence.{{Name}}>(), id, {{Name}}Mapper.Default, cancellationToken);
+
+{{#ifeq Mutability 'CreateUpdateDelete'}}
+    /// <inheritdoc/>
+    public Task<Result<DataResult>> Delete{{Name}}Async({{IdDotNetType}} id, CancellationToken cancellationToken = default)
+        => EfDbReferenceData.DeleteAsync<{{IdDotNetType}}, Contracts.{{Name}}, Persistence.{{Name}}>({{RepositoryName}}.ThrowIfNull().Model<Persistence.{{Name}}>(), id, cancellationToken);
+
+{{/ifeq}}
+    #endregion
 {{/each}}
 }
 

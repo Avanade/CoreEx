@@ -392,6 +392,36 @@ public sealed class ReferenceDataOrchestrator(IServiceProvider serviceProvider, 
         => _nameToType.TryGetValue(name.ThrowIfNull(), out var type) ? GetByTypeRequiredAsync(type, cancellationToken) : throw new InvalidOperationException($"Reference data collection for name '{name}' does not exist.");
 
     /// <summary>
+    /// Invalidates the cached <see cref="IReferenceDataCollection"/> for the specified <see cref="IReferenceData"/> <see cref="Type"/>.
+    /// </summary>
+    /// <typeparam name="TRef">The <see cref="IReferenceData"/> <see cref="Type"/>.</typeparam>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+    /// <remarks>This will result in the cached <see cref="IReferenceDataCollection"/> being removed, and then re-cached on next access.</remarks>
+    public Task InvalidateAsync<TRef>(CancellationToken cancellationToken = default) where TRef : IReferenceData => InvalidateAsync(typeof(TRef), cancellationToken);
+
+    /// <summary>
+    /// Invalidates the cached <see cref="IReferenceDataCollection"/> for the specified <see cref="IReferenceData"/> <see cref="Type"/>.
+    /// </summary>
+    /// <param name="type">The <see cref="IReferenceData"/> <see cref="Type"/>.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+    /// <remarks>This will result in the cached <see cref="IReferenceDataCollection"/> being removed, and then re-cached on next access.</remarks>
+    public async Task InvalidateAsync(Type type, CancellationToken cancellationToken = default)
+    {
+        if (!_typeToProvider.TryGetValue(type.ThrowIfNull(), out var providerType))
+            return;
+
+        if (!ExecutionContext.HasCurrent)
+            throw new InvalidOperationException($"The {nameof(ReferenceDataOrchestrator)} requires an active {nameof(ExecutionContext)} to support underlying scoped service resolution.");
+
+        // Get the underlying scoped cache.
+        var cache = ExecutionContext.GetRequiredService<IReferenceDataCache>();
+
+        // The cache is keyed by the reference data collection type (see GetByTypeAsync), so the corresponding collection type is required for the removal.
+        await cache.RemoveAsync(_typeToCollType[type], cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
     /// Gets the dictionary of the single definitive external name for every registered <see cref="IReferenceData"/> <see cref="Type"/>.
     /// </summary>
     /// <returns>The dictionary of external name mappings, keyed by the external name and valued by the corresponding <see cref="IReferenceData"/> <see cref="Type"/>.</returns>

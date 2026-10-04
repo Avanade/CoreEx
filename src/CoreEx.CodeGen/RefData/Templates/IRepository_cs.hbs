@@ -16,8 +16,33 @@ public partial interface IReferenceDataRepository
 
   {{/unless}}
     /// <summary>Gets all <see cref="{{Name}}"/> items.</summary>
-    /// <returns>The <see cref="{{Name}}Collection"/>.</returns>
     Task<{{Name}}Collection> GetAll{{Plural}}Async(CancellationToken cancellationToken = default);
+{{/each}}
+{{#each EntitiesThatAreMutable}}
+
+    #region {{Name}}
+
+    /// <summary>Gets the specified <see cref="{{Name}}"/>.</summary>
+    Task<Result<Contracts.{{Name}}>> Get{{Name}}Async({{IdDotNetType}} id, CancellationToken cancellationToken = default);
+
+    /// <summary>Creates the <see cref="{{Name}}"/>.</summary>
+    Task<Result<DataResult<Contracts.{{Name}}>>> Create{{Name}}Async(Contracts.{{Name}} value, CancellationToken cancellationToken = default);
+
+    /// <summary>Updates the <see cref="{{Name}}"/>.</summary>
+    Task<Result<DataResult<Contracts.{{Name}}>>> Update{{Name}}Async({{IdDotNetType}} id, Contracts.{{Name}} value, CancellationToken cancellationToken = default);
+
+    /// <summary>Activates the <see cref="{{Name}}"/>.</summary>
+    Task<Result<DataResult<Contracts.{{Name}}>>> Activate{{Name}}Async({{IdDotNetType}} id, CancellationToken cancellationToken = default);
+
+    /// <summary>Deactivates the <see cref="{{Name}}"/>.</summary>
+    Task<Result<DataResult<Contracts.{{Name}}>>> Deactivate{{Name}}Async({{IdDotNetType}} id, CancellationToken cancellationToken = default);
+  {{#ifeq Mutability 'CreateUpdateDelete'}}
+
+    /// <summary>Deletes the specified <see cref="{{Name}}"/>.</summary>
+    Task<Result<DataResult>> Delete{{Name}}Async({{IdDotNetType}} id, CancellationToken cancellationToken = default);
+  {{/ifeq}}
+
+    #endregion
 {{/each}}
 }
     

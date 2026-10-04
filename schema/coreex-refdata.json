@@ -50,6 +50,16 @@
             "Lowercase"
           ]
         },
+        "attribute": {
+          "type": "string",
+          "title": "The optional API controller class attribute.",
+          "description": "This is the attribute applied as-is to the generated \u0060ReferenceDataController\u0060 class. This is useful for adding the likes of \u0060[Authorize]\u0060."
+        },
+        "getNamed": {
+          "type": "boolean",
+          "title": "Indicates whether the API controller emits the \u0060GetNamed\u0060 operation.",
+          "description": "Defaults to \u0060false\u0060."
+        },
         "repository": {
           "type": "string",
           "title": "The default repository implementation.",
@@ -170,6 +180,11 @@
           "title": "The route suffix.",
           "description": "Defaults to \u0060{Plural}\u0060 and root \u0060{RouteConvention}\u0060 configuration."
         },
+        "attribute": {
+          "type": "string",
+          "title": "The optional API controller operation attribute.",
+          "description": "This is the attribute applied as-is to the generated \u0060ReferenceDataController\u0060 operation. This is useful for adding the likes of \u0060[Authorize]\u0060."
+        },
         "repository": {
           "type": "string",
           "title": "The repository implementation.",
@@ -204,6 +219,26 @@
           "type": "string",
           "title": "The mapper name.",
           "description": "This is the .NET mapper name used within the generated code. Defaults to root \u0060{Name}Mapper\u0060."
+        },
+        "mutability": {
+          "type": "string",
+          "title": "The reference-data entity mutability.",
+          "description": "Defaults to \u0060None\u0060.",
+          "enum": [
+            "None",
+            "CreateUpdate",
+            "CreateUpdateDelete"
+          ]
+        },
+        "validator": {
+          "type": "string",
+          "title": "The validator type name used during mutability operations.",
+          "description": "Defaults to \u0060ReferenceDataValidator\u003C{Name}\u003E\u0060. Must have a default constructor."
+        },
+        "mutableAttribute": {
+          "type": "string",
+          "title": "The optional mutable API controller class attribute.",
+          "description": "This is the attribute applied as-is to the generated \u0060{Name}Controller\u0060 class. This is useful for adding the likes of \u0060[Authorize]\u0060."
         },
         "excludeApi": {
           "type": "boolean",

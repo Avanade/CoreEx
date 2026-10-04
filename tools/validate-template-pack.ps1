@@ -317,7 +317,7 @@ $testScenarios = @(
             FilesAbsent  = @(
                 ".github"
                 "tools/App.CodeGen"
-                "src/App.Application/ReferenceDataService.cs"
+                "src/App.Application/ReferenceDataProvider.g.cs"
                 "src/App.Domain"
             )
         }

@@ -23,6 +23,7 @@ Guides you through the complete end-to-end workflow for adding or modifying a re
 - Adding extra stored properties to an existing type (beyond the standard `IReferenceData` fields)
 - Adding or amending seed rows for an existing type
 - Modifying an existing type's pluralization or identifier type
+- Making a type mutable (`mutability` — generated create/patch/activate/deactivate/delete endpoints and service)
 - Wiring an existing ref-data type into a new or existing contract via `[ReferenceData<T>]`
 
 ## When Not to Use
@@ -51,6 +52,8 @@ Guides you through the complete end-to-end workflow for adding or modifying a re
 | Apply DB + regenerate EF models | `*.Database` | `dotnet run -- All` |
 | Add/update entity definition | `*.CodeGen` | Edit `ref-data.yaml` → `entities:` |
 | Generate all ref-data artefacts | `*.CodeGen` | `dotnet run` |
+
+> **Mutability is opt-in and has no referential-integrity protection.** `mutability` (EF-only) generates write endpoints; delete/deactivate never check whether the code is still referenced elsewhere. Warn the user and point them at the `PreCheckAsync` hook — see "Mutable types" in `references/workflow.md`.
 
 ## The Two YAML Files — Never Confuse Them
 

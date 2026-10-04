@@ -40,7 +40,7 @@ Author the test per `coreex-tests.instructions.md` → "Validator unit tests" an
 - **Expected messages are exact** — use the message table in `coreex-tests.instructions.md` (`Mandatory()` → `"{Label} is required."`, `MaximumLength` → `"… character(s) in length."`, `PrecisionScale` → `"… exceeds the maximum decimal places (n)."`, etc.) with sentence-cased labels (`FirstName` → "First name").
 - **Ignore `ExecutionContext` in tests** — `Test.Scoped(...)` sets it up for you; do not construct, inject, or mock it. Ambient `Runtime` and any `ExecutionContext`-dependent rule work automatically inside the scope.
 
-> **Agent instruction:** When you create or modify a validator, **offer to also create or update the matching `{Validator}Tests`** in the `*.Test.Unit/Validators/` project (covering the new/changed rules — both error and success cases). If the user accepts, author it per `coreex-tests.instructions.md`; if the validator uses a reference-data type the test host does not yet handle, also add the corresponding case to `EntryPoint.ReferenceDataServiceDecorator.GetAsync`. If the user declines or defers, proceed with the validator change but note that its unit-test coverage is now missing/stale.
+> **Agent instruction:** When you create or modify a validator, **offer to also create or update the matching `{Validator}Tests`** in the `*.Test.Unit/Validators/` project (covering the new/changed rules — both error and success cases). If the user accepts, author it per `coreex-tests.instructions.md`; if the validator uses a reference-data type the test host does not yet handle, also add the corresponding case to `EntryPoint.ReferenceDataProviderDecorator.GetAsync`. If the user declines or defers, proceed with the validator change but note that its unit-test coverage is now missing/stale.
 
 ## Base Class
 
@@ -168,6 +168,20 @@ Property(x => x.Salary).CompareValue(CompareOperator.GreaterThanEqual, 0m, "zero
 ```
 
 The extension is **`Compare`** (not `CompareValue`), and the `CompareOperator` members are `Equal`, `NotEqual`, `LessThan`, `LessThanOrEqualTo`, `GreaterThan`, `GreaterThanOrEqualTo` (there is no `GreaterThanEqual`).
+
+#### Comparing two properties of the same entity
+
+Use **`CompareProperty(op, x => x.Other)`** — the preferred way to compare one property with another on the same entity (e.g. an end date against a start date). It compares only when **both values are present and valid**: it is skipped when either value is `null` or the compare-to property already has an error, so it never produces cascading errors. Chain `Mandatory()` first where the value must also be supplied. The error message names the other property's label (e.g. `"Ends on must be greater than or equal to Starts on."`).
+
+```csharp
+// ✅ Optional — compared only when both StartsOn and EndsOn have a value.
+Property(p => p.EndsOn).CompareProperty(CompareOperator.GreaterThanOrEqualTo, p => p.StartsOn);
+
+// ✅ Required — EndsOn must be supplied, then compared.
+Property(p => p.EndsOn).Mandatory().CompareProperty(CompareOperator.GreaterThanOrEqualTo, p => p.StartsOn);
+```
+
+The two properties must be different and of compatible types (same-type comparisons take a fast path; otherwise the compare-to value is converted). `ReferenceDataValidator<TRef>` (the CodeGen default for mutable reference data) already applies `EndsOn >= StartsOn`.
 
 #### Runtime-computed values (delegate overloads)
 
@@ -314,6 +328,7 @@ Property(x => x.Quantity, c => c
 - Do not pass a property-name string (e.g. `nameof(...)`) to `context.AddError` — use the member-access expression overload, `context.AddError(x => x.Property, ...)`.
 - Do not apply `.IsValid()` to a `*Code` string property — validate the typed reference-data navigation property instead (e.g. `Gender`, not `GenderCode`).
 - Do not use `CompareValue(...)` or a `CompareOperator.GreaterThanEqual` value — the extension is `.Compare(...)` and the operator is `CompareOperator.GreaterThanOrEqualTo` (or use the dedicated `.GreaterThanOrEqualTo(...)` rule).
+- Do not hand-write a cross-property comparison (e.g. end date vs start date) in `OnValidateAsync` — use `CompareProperty(op, x => x.Other)`.
 - Do not hand-write logic in `OnValidateAsync` for something expressible as a rule — use the delegate overloads for runtime-computed values (e.g. `.LessThanOrEqualTo(_ => DateOnly.FromDateTime(Runtime.UtcNow.UtcDateTime.AddYears(-16)), _ => "the minimum age of 16")`). Sanity-check the comparison direction so the rule fails on the *invalid* case.
 - Do not put a full sentence in a rule's text argument — it is only the `{2}` value substitution in the standard message template; override the whole message with `.Error("...")`, and consult `ValidatorStrings.cs` for the defaults.
 - Do not add a redundant `[Localization]` whose value equals the auto-derived label (e.g. `[Localization("Salary")]` on `Salary`) — only annotate to change the label.

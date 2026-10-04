@@ -10,6 +10,7 @@ namespace CoreEx.Validation.Rules;
 /// <param name="compareToPropertyExpression">>The <see cref="Expression"/> to reference the compare-to entity property.</param>
 /// <param name="compareToText">The value text formatter (used in the error message); otherwise, uses the resulting compare-to value.</param>
 /// <param name="comparer">The optional <see cref="IComparer{T}"/>.</param>
+/// <remarks>Where the <paramref name="compareToText"/> is null then then <see cref="RuntimeMetadata.GetForExpression{TEntity, TProperty}(Expression{Func{TEntity, TProperty}})"/> <see cref="IPropertyRuntimeMetadata.Text"/> is used.</remarks>
 public sealed class ComparePropertyRule<TEntity, TProperty, TCompareProperty>(CompareOperator compareOperator, Expression<Func<TEntity, TCompareProperty>> compareToPropertyExpression, Func<TProperty, LText?>? compareToText = null, IComparer<TProperty>? comparer = null)
     : CompareRuleBase<TEntity, TProperty>(compareOperator, compareToText, comparer) where TEntity : class where TProperty : IComparable<TProperty>
 {
@@ -35,7 +36,7 @@ public sealed class ComparePropertyRule<TEntity, TProperty, TCompareProperty>(Co
         if (compareTo is TProperty casted)
         {
             if (!Compare(context.Value, casted))
-                CreateErrorMessage(context, casted);
+                CreateErrorMessage(context, casted, _compareToProperty.Text);
 
             return Task.CompletedTask;
         }
@@ -45,7 +46,7 @@ public sealed class ComparePropertyRule<TEntity, TProperty, TCompareProperty>(Co
         {
             var changed = (TProperty)Convert.ChangeType(compareTo, typeof(TProperty));
             if (!Compare(context.Value, changed))
-                CreateErrorMessage(context, changed);
+                CreateErrorMessage(context, changed, _compareToProperty.Text);
         }
         catch (Exception ex) when (ex is InvalidCastException || ex is FormatException || ex is OverflowException)
         {

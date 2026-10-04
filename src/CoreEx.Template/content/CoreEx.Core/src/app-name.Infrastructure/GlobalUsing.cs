@@ -26,8 +26,10 @@ global using CoreEx.Mapping;
 // #if refdata-enabled
 global using CoreEx.RefData;
 // #endif
+global using CoreEx.Results;
 // #if (implement-sqlserver || implement-postgres)
 global using Microsoft.EntityFrameworkCore;
 // #endif
 global using Microsoft.Extensions.DependencyInjection;
 global using System.Text.Json.Serialization;
+global using ExecutionContext = CoreEx.ExecutionContext;

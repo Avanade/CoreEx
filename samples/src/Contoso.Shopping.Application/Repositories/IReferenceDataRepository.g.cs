@@ -12,15 +12,12 @@ namespace Contoso.Shopping.Application.Repositories;
 public partial interface IReferenceDataRepository
 {
     /// <summary>Gets all <see cref="BasketStatus"/> items.</summary>
-    /// <returns>The <see cref="BasketStatusCollection"/>.</returns>
     Task<BasketStatusCollection> GetAllBasketStatusesAsync(CancellationToken cancellationToken = default);
 
     /// <summary>Gets all <see cref="DiscountCoupon"/> items.</summary>
-    /// <returns>The <see cref="DiscountCouponCollection"/>.</returns>
     Task<DiscountCouponCollection> GetAllDiscountCouponsAsync(CancellationToken cancellationToken = default);
 
     /// <summary>Gets all <see cref="UnitOfMeasure"/> items.</summary>
-    /// <returns>The <see cref="UnitOfMeasureCollection"/>.</returns>
     Task<UnitOfMeasureCollection> GetAllUnitsOfMeasureAsync(CancellationToken cancellationToken = default);
 }
     

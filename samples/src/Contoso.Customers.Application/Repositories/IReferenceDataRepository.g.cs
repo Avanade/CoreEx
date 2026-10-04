@@ -12,11 +12,9 @@ namespace Contoso.Customers.Application.Repositories;
 public partial interface IReferenceDataRepository
 {
     /// <summary>Gets all <see cref="CustomerType"/> items.</summary>
-    /// <returns>The <see cref="CustomerTypeCollection"/>.</returns>
     Task<CustomerTypeCollection> GetAllCustomerTypesAsync(CancellationToken cancellationToken = default);
 
     /// <summary>Gets all <see cref="ContactMethod"/> items.</summary>
-    /// <returns>The <see cref="ContactMethodCollection"/>.</returns>
     Task<ContactMethodCollection> GetAllContactMethodsAsync(CancellationToken cancellationToken = default);
 }
     

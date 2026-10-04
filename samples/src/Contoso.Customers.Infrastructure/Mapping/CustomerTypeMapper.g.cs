@@ -8,8 +8,8 @@
 
 namespace Contoso.Customers.Infrastructure.Mapping;
 
-/// <summary>Provides mapping from <see cref="Persistence.CustomerType"/> to <see cref="Contracts.CustomerType"/>.</summary>
-internal partial class CustomerTypeMapper : Mapper<Persistence.CustomerType, Contracts.CustomerType, CustomerTypeMapper>
+/// <summary>Provides mapping from <see cref="Contracts.CustomerType"/> to <see cref="Persistence.CustomerType"/>.</summary>
+internal partial class CustomerTypeMapper : BiDirectionMapper<Contracts.CustomerType, Persistence.CustomerType, CustomerTypeMapper>
 {
     /// <inheritdoc/>
     protected override Contracts.CustomerType OnMap(Persistence.CustomerType source)
@@ -31,8 +31,11 @@ internal partial class CustomerTypeMapper : Mapper<Persistence.CustomerType, Con
         return destination;
     }
 
-    /// <summary>Provides the opportunity to extend the <see cref="OnMap" /> method.</summary>
+    /// <summary>Provides the opportunity to extend the <b>To</b> mapping.</summary>
     partial void OnMapExtend(Persistence.CustomerType source, Contracts.CustomerType destination);
+
+    /// <inheritdoc/>
+    protected override Persistence.CustomerType OnMap(Contracts.CustomerType destination) => throw new NotSupportedException();
 }
 
 #nullable restore

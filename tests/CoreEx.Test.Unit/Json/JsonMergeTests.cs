@@ -1,4 +1,5 @@
 using CoreEx.Json;
+using CoreEx.Results;
 
 namespace CoreEx.Test.Unit.Json;
 
@@ -305,9 +306,8 @@ public class JsonMergeTests
         var p = new JsonMergePatch();
         var r = await p.MergeAsync<Person>(new BinaryData("""{"name":"bob","age":30}"""), _ => Task.FromResult<Person?>(null));
         r.Should().NotBeNull();
-        r.IsSuccess.Should().BeTrue();
-        r.Value.HasChanges.Should().BeFalse();
-        r.Value.Merged.Should().BeNull();
+        r.IsSuccess.Should().BeFalse();
+        r.IsNotFoundError.Should().BeTrue();
     }
 
     public class Person

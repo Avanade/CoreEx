@@ -29,6 +29,14 @@ public partial class ReferenceDataHybridCache(IHybridCache cache) : IReferenceDa
         return options;
     });
 
+
+    /// <summary>
+    /// Provides an opportunity to further configure the <see cref="HybridCacheEntryOptions"/>.
+    /// </summary>
+    /// <param name="type">The <see cref="IReferenceData"/> <see cref="Type"/>.</param>
+    /// <param name="entry">The <see cref="HybridCacheEntryOptions"/>.</param>
+    protected virtual void OnCreateCacheEntry(Type type, HybridCacheEntryOptions entry) { }
+
     /// <inheritdoc/>
     public async Task<IReferenceDataCollection> GetOrCreateAsync(Type type, Func<Type, CancellationToken, Task<IReferenceDataCollection>> factory, CancellationToken cancellationToken = default)
     {
@@ -66,12 +74,9 @@ public partial class ReferenceDataHybridCache(IHybridCache cache) : IReferenceDa
         }
     }
 
-    /// <summary>
-    /// Provides an opportunity to further configure the <see cref="HybridCacheEntryOptions"/>.
-    /// </summary>
-    /// <param name="type">The <see cref="IReferenceData"/> <see cref="Type"/>.</param>
-    /// <param name="entry">The <see cref="HybridCacheEntryOptions"/>.</param>
-    protected virtual void OnCreateCacheEntry(Type type, HybridCacheEntryOptions entry) { }
+    /// <inheritdoc/>
+    public Task RemoveAsync(Type type, CancellationToken cancellationToken = default)
+        => Cache.RemoveByKeyAsync($"RefData:{(Internal.GetNamespaceFormattedName(type))}", GetOrCreateEntryOptions(type), cancellationToken);
 
     /// <summary>
     /// Registers the <see cref="HybridCacheEntryOptions"/> for the specified <typeparamref name="TRefColl"/>.

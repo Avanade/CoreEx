@@ -9,16 +9,16 @@ public class EntryPoint
         // Configure the minimum services required for the execution context and reference data orchestrator; caching will be in-memory for the unit tests.
         builder.Services.AddExecutionContext();
         builder.Services.AddMemoryCache();
-        builder.Services.AddReferenceDataOrchestrator<ReferenceDataServiceDecorator>();
+        builder.Services.AddReferenceDataOrchestrator<ReferenceDataProviderDecorator>();
 
         // Reuse the "test" configured reference data.
         var jdr = JsonDataReader.ParseYaml<Contoso.Customers.Test.Common.TestData>("ref-data.seed.yaml", JsonDataReaderOptions.CreateForReferenceData(JsonPropertyNamingConvention.CamelCase));
-        builder.Services.AddSingleton(new ReferenceDataServiceDecorator(jdr));
+        builder.Services.AddSingleton(new ReferenceDataProviderDecorator(jdr));
 
     }
 
     // TODO: temporary hard-coded stand-in values only, pending the real Cosmos-backed seed data fixture (see CustomersCosmosDb/ReferenceDataRepository) - replace once that seed data exists.
-    public class ReferenceDataServiceDecorator(JsonDataReader jdr) : ReferenceDataService(Mock.Of<IReferenceDataRepository>())
+    public class ReferenceDataProviderDecorator(JsonDataReader jdr) : ReferenceDataProvider(Mock.Of<IReferenceDataRepository>())
     {
         public override Task<IReferenceDataCollection> GetAsync(Type type, CancellationToken cancellationToken = default) => type switch
         {

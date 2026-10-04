@@ -26,10 +26,12 @@ public abstract class ReferenceDataCore<TId> : IReferenceData<TId>
 
     /// <inheritdoc/>
     [JsonPropertyOrder(-999)]
+    [ReadOnly(true)]
     public TId Id { get; init; }
 
     /// <inheritdoc/>
     [JsonPropertyOrder(-998)]
+    [ReadOnly(true)]
     public string? Code { get; init; }
 
     /// <inheritdoc/>
@@ -51,6 +53,7 @@ public abstract class ReferenceDataCore<TId> : IReferenceData<TId>
 
     /// <inheritdoc/>
     [JsonPropertyOrder(-994)]
+    [ReadOnly(true)]
     public virtual bool IsInactive
     {
         get
@@ -89,6 +92,7 @@ public abstract class ReferenceDataCore<TId> : IReferenceData<TId>
     public DateTimeOffset? EndsOn { get; init; }
 
     /// <inheritdoc/>
+    [ReadOnly(true)]
     public string? ETag { get; init; }
 
     /// <inheritdoc/>

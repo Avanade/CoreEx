@@ -34,7 +34,7 @@ public class Program
             .AddHostedServiceManager();
 
         // Add all the dynamically registered services.
-        builder.Services.AddDynamicServicesUsing<ProductModifySubscriber, ReferenceDataService, ReferenceDataRepository>();
+        builder.Services.AddDynamicServicesUsing<ProductModifySubscriber, ReferenceDataProvider, ReferenceDataRepository>();
 
         // Add L1/L2 caching services.
         builder.Services.AddMemoryCache();              // Adds the in-memory cache - L1.

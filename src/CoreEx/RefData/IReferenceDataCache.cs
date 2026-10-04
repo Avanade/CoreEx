@@ -13,4 +13,11 @@ public interface IReferenceDataCache
     /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
     /// <returns>The <see cref="IReferenceDataCollection"/> from the cache.</returns>
     Task<IReferenceDataCollection> GetOrCreateAsync(Type type, Func<Type, CancellationToken, Task<IReferenceDataCollection>> factory, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Removes the <see cref="IReferenceDataCollection"/> for the specified <paramref name="type"/> from the cache.
+    /// </summary>
+    /// <param name="type">The <see cref="IReferenceData"/> <see cref="Type"/>.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+    Task RemoveAsync(Type type, CancellationToken cancellationToken = default);
 }

@@ -64,15 +64,17 @@ Running `dotnet run` reads `ref-data.yaml`, validates it against the CoreEx JSON
 | Artefact | Target layer | Description |
 |---|---|---|
 | `*.g.cs` contract class | Contracts | Typed reference-data entity contract extending `ReferenceData<TSelf>`, decorated with `[ReferenceData]` which triggers the Roslyn source generator to emit additional members at compile time |
-| `*.g.cs` controller route | API host | HTTP GET endpoint exposing the entity collection |
-| `*.g.cs` service method | Application | Service method delegating to the repository |
+| `ReferenceDataController.g.cs` | API host | Read-only HTTP GET endpoints for every entity (always generated) |
+| `ReferenceDataProvider.g.cs` | Application | `IReferenceDataProvider` implementation delegating to the repositories (always generated; this is what the orchestrator binds to) |
+| `{Name}Controller.g.cs` — **mutable entities only** | API host | Create / patch / activate / deactivate (/ delete) endpoints for that entity |
+| `IReferenceDataService.g.cs` + `ReferenceDataService.g.cs` — **only if any entity is mutable** | Application | The write service (validation, unit of work, events, cache invalidation) |
 | `*.g.cs` repository interface | Application | `IXxxRepository` interface declaration |
 | `*.g.cs` repository | Infrastructure | EF Core repository implementation |
 | `*.g.cs` mapper | Infrastructure | `BiDirectionMapper` for the entity |
 
 All outputs carry the `.g.cs` suffix and must never be edited directly — regenerate by re-running `dotnet run`.
 
-> **Add the global usings the generated code depends on — the clean scaffold does not pre-import own-project namespaces.** The `coreex` scaffold ships **clean**: it does **not** carry `global using {Solution}.Contracts;` / `{Solution}.Application;` / `{Solution}.Application.Repositories;` in the `GlobalUsing.cs` files, because those namespaces are empty until code/CodeGen populates them (a `global using` of an empty namespace is **CS0234**). The generated artefacts reference these types **unqualified** (e.g. `ReferenceDataService.g.cs` and `IXxxRepository.g.cs` use `IReferenceDataRepository`, `GenderCollection`, `Gender`), so **as you create the code, add the matching `global using` to each consuming project's `GlobalUsing.cs`**:
+> **Add the global usings the generated code depends on — the clean scaffold does not pre-import own-project namespaces.** The `coreex` scaffold ships **clean**: it does **not** carry `global using {Solution}.Contracts;` / `{Solution}.Application;` / `{Solution}.Application.Repositories;` in the `GlobalUsing.cs` files, because those namespaces are empty until code/CodeGen populates them (a `global using` of an empty namespace is **CS0234**). The generated artefacts reference these types **unqualified** (e.g. `ReferenceDataProvider.g.cs` and `IXxxRepository.g.cs` use `IReferenceDataRepository`, `GenderCollection`, `Gender`), so **as you create the code, add the matching `global using` to each consuming project's `GlobalUsing.cs`**:
 > - First **contract** created → add `global using {Solution}.Contracts;` to **Application**, **Infrastructure** (mappers), and **Api** (controllers).
 > - After **CodeGen** emits repository interfaces → add `global using {Solution}.Application.Repositories;` to **Application** (services) and **Infrastructure** (repositories).
 > - First **controller** referencing a service → add `global using {Solution}.Application;` to **Api**.
@@ -114,6 +116,25 @@ entities:
 
 Add the `$schema` annotation to the file for IDE YAML validation and auto-complete.
 
+Root-level `getNamed` (default `false`) opts in to the `GetNamedAsync` endpoint on `ReferenceDataController`; omit it and the endpoint is not generated.
+
+#### Readonly vs Mutation
+
+Entities are **read-only by default**. Set `mutability` on an entity to also generate write endpoints and the write service:
+
+```yaml
+entities:
+- name: Brand
+  mutability: CreateUpdateDelete   # None (default) | CreateUpdate | CreateUpdateDelete
+  mutableAttribute: '[Authorize]'  # optional; guard the write endpoints
+```
+
+- **EF-only.** A mutable entity requires `repository: EntityFramework` — CodeGen fails fast otherwise.
+- Endpoints (`/api/refdata/{route}`): `GET {id}`, `POST`, `PATCH {id}` (merge-patch; **no PUT**), `POST {id}/activate`, `POST {id}/deactivate`, and `DELETE {id}` (`CreateUpdateDelete` only). `code` is immutable after create; create always yields an inactive item; a non-inactive value cannot be deleted.
+- **No usage/cascade check.** Delete and deactivate do **not** verify whether the value is referenced elsewhere; tables typically store the code, so removing or deactivating an in-use value silently leaves that data invalid. This is the consumer's responsibility — set the `PreCheckAsync` hook from a hand-written `partial class ReferenceDataService` (via `partial void OnInitialization()`) to veto Activate/Deactivate/Delete. Never edit the `.g.cs`.
+- The persistence model must have the columns for any optional `IReferenceData` property a client sets (`Description`, `StartsOn`, `EndsOn`); otherwise the request is rejected with a 400 (`not-supported`).
+- Full detail (options, outputs, `PreCheckAsync` example, gotchas): `src/CoreEx.CodeGen/README.md` → "Readonly vs Mutation".
+
 The standard `IReferenceData` properties (`Id`, `Code`, `Text`, `Description`, `SortOrder`, `IsActive`, etc.) are automatically included in every generated type — do not declare them under `properties:`. Only additional domain-specific columns need to be listed; most reference data entities require no `properties:` entry at all.
 
 Key `entities:` options:
@@ -123,6 +144,10 @@ Key `entities:` options:
 | `name` | Yes | -- | Entity name (PascalCase) |
 | `plural` | No | Auto-pluralized | Override when pluralization is irregular |
 | `idType` | No | `string` | Identifier type override (e.g. `Guid`, `int`) |
+| `mutability` | No | `None` | `None` (read-only), `CreateUpdate` or `CreateUpdateDelete` — see [Readonly vs Mutation](#readonly-vs-mutation) |
+| `validator` | No | `ReferenceDataValidator<{Name}>` | Validator type used by the write service (mutable only) |
+| `mutableAttribute` | No | -- | Attribute(s) applied as-is to the generated `{Name}Controller` (e.g. `'[Authorize]'`) |
+| `attribute` | No | -- | Attribute(s) applied to the read-only `ReferenceDataController` only — **not** the write endpoints |
 | `properties[].name` | Yes (if any) | -- | Additional stored property name |
 | `properties[].type` | Yes (if any) | -- | CLR type; prefix `^` for a ref-data navigation accessor |
 | `properties[].excludeContract` | No | `false` | Exclude from the generated contract (persistence only) |

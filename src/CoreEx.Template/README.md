@@ -181,7 +181,7 @@ Run this **once per domain** from the solution root directory.
 | Parameter | Type | Default | Description |
 |---|---|---|---|
 | `-n` / `--name` | string | _(required)_ | Solution base name, e.g. `Avanade.Erp.Sales`. Drives all file names and namespaces. Format: `[Company].[Product].[Domain]`. |
-| `--refdata-enabled` | bool | `true` | Includes the reference-data pattern: `IReferenceDataRepository` (Application), `ReferenceDataService` (Application), `ReferenceDataRepository` (Infrastructure), and the `CodeGen` tool project. |
+| `--refdata-enabled` | bool | `true` | Includes the reference-data pattern: `IReferenceDataRepository` (Application), `ReferenceDataProvider` (Application), `ReferenceDataRepository` (Infrastructure), and the `CodeGen` tool project. |
 | `--rop-enabled` | bool | `false` | Enables Railway-Oriented Programming -- `Result`/`Result<T>` return types throughout the solution. |
 | `--data-provider` | `SqlServer` \| `Postgres` \| `None` | `SqlServer` | The data persistence technology. `None` is for facade scenarios (e.g. over Dynamics 365) where there is no local database -- the `Database` tool project, EF Core packages, DbContext, and EfDb are all omitted. |
 | `--outbox-enabled` | bool | `true` | Includes transactional-outbox wiring in the Infrastructure project. Has no effect when `--data-provider None`. |
@@ -203,7 +203,7 @@ src/
   [name].Application/
     [name].Application.csproj
     GlobalUsing.cs
-    ReferenceDataService.cs              (refdata-enabled only)
+    ReferenceDataProvider.g.cs           (refdata-enabled only)
     Repositories/
       IReferenceDataRepository.cs        (refdata-enabled only)
   [name].Infrastructure/

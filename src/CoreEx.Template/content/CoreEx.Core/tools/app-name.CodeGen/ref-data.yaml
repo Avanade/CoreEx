@@ -5,5 +5,7 @@ applicationProjectPath: ../../src/app-name.Application
 contractsProjectPath: ../../src/app-name.Contracts
 dataProjectPath: ../../src/app-name.Infrastructure
 collectionSortOrder: Code
+route: /ref
+routeConvention: KebabCase
 repository: EntityFramework
 entities:

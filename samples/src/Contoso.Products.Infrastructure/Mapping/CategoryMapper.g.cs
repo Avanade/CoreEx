@@ -8,8 +8,8 @@
 
 namespace Contoso.Products.Infrastructure.Mapping;
 
-/// <summary>Provides mapping from <see cref="Persistence.Category"/> to <see cref="Contracts.Category"/>.</summary>
-internal partial class CategoryMapper : Mapper<Persistence.Category, Contracts.Category, CategoryMapper>
+/// <summary>Provides mapping from <see cref="Contracts.Category"/> to <see cref="Persistence.Category"/>.</summary>
+internal partial class CategoryMapper : BiDirectionMapper<Contracts.Category, Persistence.Category, CategoryMapper>
 {
     /// <inheritdoc/>
     protected override Contracts.Category OnMap(Persistence.Category source)
@@ -31,8 +31,11 @@ internal partial class CategoryMapper : Mapper<Persistence.Category, Contracts.C
         return destination;
     }
 
-    /// <summary>Provides the opportunity to extend the <see cref="OnMap" /> method.</summary>
+    /// <summary>Provides the opportunity to extend the <b>To</b> mapping.</summary>
     partial void OnMapExtend(Persistence.Category source, Contracts.Category destination);
+
+    /// <inheritdoc/>
+    protected override Persistence.Category OnMap(Contracts.Category destination) => throw new NotSupportedException();
 }
 
 #nullable restore

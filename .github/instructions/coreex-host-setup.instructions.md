@@ -66,7 +66,7 @@ The scaffolded `Program.cs` wiring is described below; it is generated **complet
 > // all hosts — scans the assemblies (via the stable AssemblyMarker types) for [ScopedService] types, registering them all (incl. CodeGen-generated):
 > builder.Services.AddDynamicServicesUsing(typeof({Solution}.Application.AssemblyMarker).Assembly, typeof({Solution}.Infrastructure.AssemblyMarker).Assembly);
 > ```
-> The generated `ReferenceDataService` is `[ScopedService]`-decorated, so the assembly scan picks it up automatically and the orchestrator binds to it via `IReferenceDataProvider` — no manual step. Before CodeGen there are simply no ref-data entities to serve (requests return empty), which is correct. **Do not** add `AddReferenceDataOrchestrator<ReferenceDataService>()` or `AddDynamicServicesUsing<…generated types…>()` — that reintroduces the compile-time dependency the marker approach removes.
+> The generated `ReferenceDataProvider` is `[ScopedService]`-decorated, so the assembly scan picks it up automatically and the orchestrator binds to it via `IReferenceDataProvider` — no manual step. Before CodeGen there are simply no ref-data entities to serve (requests return empty), which is correct. **Do not** add `AddReferenceDataOrchestrator<ReferenceDataProvider>()` or `AddDynamicServicesUsing<…generated types…>()` — that reintroduces the compile-time dependency the marker approach removes.
 
 ---
 
@@ -207,7 +207,7 @@ builder.AddHostSettings();
 builder.Services
     .AddPrecisionTimeProvider()
     .AddExecutionContext()
-    .AddReferenceDataOrchestrator()   // non-generic — binds the IReferenceDataProvider (CodeGen-generated ReferenceDataService) from DI at runtime
+    .AddReferenceDataOrchestrator()   // non-generic — binds the IReferenceDataProvider (CodeGen-generated ReferenceDataProvider) from DI at runtime
     .AddMvcWebApi()
     .AddHttpWebApi();
 
@@ -268,8 +268,8 @@ app.Run();
 ```
 
 Key points:
-- **`AddDynamicServicesUsing(...)` registers per _assembly_, not per service.** It scans each supplied assembly for all `[ScopedService]`-decorated types and registers them. The template anchors each assembly on its neutral **`AssemblyMarker`** type (`typeof(MyApp.Application.AssemblyMarker).Assembly`, `…Infrastructure…`) — these are the **only** markers the clean scaffold ships, and they exist **solely** for this anchoring. Use the neutral marker, **not** a domain type like `typeof(ReferenceDataService).Assembly`: the marker reads as "scan this whole assembly," never misleads a reader into thinking the scan is scoped to one type, always exists (so there is no compile-time dependency on CodeGen output and no bootstrap/uncomment step), and survives renames. **Adding a new entity does not change this line** — the new service/repository is picked up automatically by the existing assembly scan. Add another assembly only when you introduce a **new project** containing `[ScopedService]` types (e.g. the Subscribe host passes `typeof(Program).Assembly` for its subscribers). Do **not** add per-namespace placeholder/marker types to satisfy `global using`s — those follow the code (see `coreex-conventions.instructions.md`).
-- Prefer the **non-generic `AddReferenceDataOrchestrator()`** (binds `IReferenceDataProvider` from DI at runtime) over `AddReferenceDataOrchestrator<ReferenceDataService>()` — the non-generic form needs no generated type, so it compiles from scaffold time. It also auto-registers `ReferenceDataQuery.Default`, enabling `ReferenceDataOrchestrator.QueryAsync<TRef>(QueryArgs?, PagingArgs?, CancellationToken)` on all ref-data endpoints out of the box.
+- **`AddDynamicServicesUsing(...)` registers per _assembly_, not per service.** It scans each supplied assembly for all `[ScopedService]`-decorated types and registers them. The template anchors each assembly on its neutral **`AssemblyMarker`** type (`typeof(MyApp.Application.AssemblyMarker).Assembly`, `…Infrastructure…`) — these are the **only** markers the clean scaffold ships, and they exist **solely** for this anchoring. Use the neutral marker, **not** a domain type like `typeof(ReferenceDataProvider).Assembly`: the marker reads as "scan this whole assembly," never misleads a reader into thinking the scan is scoped to one type, always exists (so there is no compile-time dependency on CodeGen output and no bootstrap/uncomment step), and survives renames. **Adding a new entity does not change this line** — the new service/repository is picked up automatically by the existing assembly scan. Add another assembly only when you introduce a **new project** containing `[ScopedService]` types (e.g. the Subscribe host passes `typeof(Program).Assembly` for its subscribers). Do **not** add per-namespace placeholder/marker types to satisfy `global using`s — those follow the code (see `coreex-conventions.instructions.md`).
+- Prefer the **non-generic `AddReferenceDataOrchestrator()`** (binds `IReferenceDataProvider` from DI at runtime) over `AddReferenceDataOrchestrator<ReferenceDataProvider>()` — the non-generic form needs no generated type, so it compiles from scaffold time. It also auto-registers `ReferenceDataQuery.Default`, enabling `ReferenceDataOrchestrator.QueryAsync<TRef>(QueryArgs?, PagingArgs?, CancellationToken)` on all ref-data endpoints out of the box.
 - `AddReferenceDataOrchestrator()` and `AddDynamicServicesUsing(...)` are shared with Subscribe hosts — both API and Subscribe hosts are full application-layer consumers.
 - FusionCache (L1/L2) and `AddHybridCacheIdempotencyProvider()` are shared with Subscribe hosts — both need caching for reference data and idempotency for safe duplicate handling.
 - `AddEventFormatter()` is required wherever events are published or parsed.

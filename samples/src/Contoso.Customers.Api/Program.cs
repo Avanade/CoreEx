@@ -23,7 +23,7 @@ public class Program
             .AddHttpWebApi();
 
         // Add all the dynamically registered services.
-        builder.Services.AddDynamicServicesUsing<ReferenceDataService, CustomerRepository>();
+        builder.Services.AddDynamicServicesUsing<ReferenceDataProvider, CustomerRepository>();
 
         // Add caching services - in-memory (L1) only for this sample; no distributed (L2)/Redis, kept deliberately simple.
         builder.Services.AddMemoryCache();

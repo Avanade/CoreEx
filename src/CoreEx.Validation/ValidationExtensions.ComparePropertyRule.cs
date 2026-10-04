@@ -13,6 +13,7 @@ public static partial class ValidationExtensions
     /// <param name="compareToPropertyExpression">>The <see cref="Expression"/> to reference the compare-to entity property.</param>
     /// <param name="compareToText">The compare-to value text formatter (used in the error message); otherwise, uses the resulting compare-to value.</param>
     /// <param name="comparer">The optional <see cref="IComparer{T}"/>.</param>
+    /// <remarks>Where the <paramref name="compareToText"/> is null then then <see cref="RuntimeMetadata.GetForExpression{TEntity, TProperty}(Expression{Func{TEntity, TProperty}})"/> <see cref="IPropertyRuntimeMetadata.Text"/> is used.</remarks>
     public static IPropertyRule<TEntity, TProperty> CompareProperty<TEntity, TProperty, TCompareProperty>(this IPropertyRule<TEntity, TProperty> rule, CompareOperator compareOperator, Expression<Func<TEntity, TCompareProperty>> compareToPropertyExpression, Func<TProperty, LText?>? compareToText = null, IComparer<TProperty>? comparer = null) where TEntity : class where TProperty : IComparable<TProperty>
         => Chain(rule, new ComparePropertyRule<TEntity, TProperty, TCompareProperty>(compareOperator, compareToPropertyExpression, compareToText, comparer));
 
@@ -27,6 +28,7 @@ public static partial class ValidationExtensions
     /// <param name="compareToPropertyExpression">>The <see cref="Expression"/> to reference the compare-to entity property.</param>
     /// <param name="compareToText">The compare-to value text formatter (used in the error message); otherwise, uses the resulting compare-to value.</param>
     /// <param name="comparer">The optional <see cref="IComparer{T}"/>.</param>
+    /// <remarks>Where the <paramref name="compareToText"/> is null then then <see cref="RuntimeMetadata.GetForExpression{TEntity, TProperty}(Expression{Func{TEntity, TProperty}})"/> <see cref="IPropertyRuntimeMetadata.Text"/> is used.</remarks>
     public static IPropertyRule<TEntity, TProperty> CompareProperty<TEntity, TProperty, TCompareProperty>(this IPropertyRule<TEntity, TProperty?> rule, CompareOperator compareOperator, Expression<Func<TEntity, TCompareProperty>> compareToPropertyExpression, Func<TProperty, LText?>? compareToText = null, IComparer<TProperty>? comparer = null) where TEntity : class where TProperty : struct, IComparable<TProperty>
         => Chain(rule, new ComparePropertyRule<TEntity, TProperty, TCompareProperty>(compareOperator, compareToPropertyExpression, compareToText, comparer));
 }

@@ -64,7 +64,7 @@ Consult `.github/docs/coreex/agents/CoreEx.Caching.FusionCache.md` for caching p
 - **Transactional outbox:** Disabled -- events are published directly to the message broker
 <!-- #endif -->
 <!-- #if refdata-enabled -->
-- **Reference data:** Enabled -- `ReferenceDataOrchestrator<ReferenceDataService>` is registered; reference data is hydrated via `ReferenceDataRepository`
+- **Reference data:** Enabled -- the non-generic `AddReferenceDataOrchestrator()` is registered and binds the CodeGen-generated `ReferenceDataProvider` (`IReferenceDataProvider`) from DI at runtime; reference data is hydrated via `ReferenceDataRepository`
 <!-- #else -->
 - **Reference data:** Disabled
 <!-- #endif -->

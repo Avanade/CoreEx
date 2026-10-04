@@ -737,6 +737,7 @@ Error text derives from the standard templates in [`ValidatorStrings.cs`](https:
 > | `GreaterThanOrEqualTo(v)` | `CompareGreaterThanEqualFormat` | `{Label} must be greater than or equal to {v}.` |
 > | `LessThan(v)` | `CompareLessThanFormat` | `{Label} must be less than {v}.` |
 > | `LessThanOrEqualTo(v)` | `CompareLessThanEqualFormat` | `{Label} must be less than or equal to {v}.` |
+> | `CompareProperty(op, x => x.Other)` | same `Compare*Format` as the operator | `{Label} must be greater than or equal to {Other label}.` — `{v}` is the other property's label; test both the failing and the skipped (either value `null`) cases |
 > | `Between(min,max)` / `InclusiveBetween` | `BetweenInclusiveFormat` | `{Label} must be between {min} and {max}.` |
 > | `ExclusiveBetween(min,max)` | `BetweenExclusiveFormat` | `{Label} must be between {min} and {max} (exclusive).` |
 > | `MaximumLength(n)` | `MaxLengthFormat` | `{Label} must not exceed {n} character(s) in length.` |
@@ -760,7 +761,7 @@ Error text derives from the standard templates in [`ValidatorStrings.cs`](https:
 
 ### Reference data in unit tests
 
-Validators that use reference data (`.IsValid()`, etc.) resolve it through `EntryPoint.ReferenceDataServiceDecorator`, which loads the **real seeded data** so tests use representative values rather than invented ones. When a validator under test needs a ref-data type the decorator does not yet handle, **add a new arm to** its `GetAsync` switch — inserting it **before** the final `_ => throw …` catch-all:
+Validators that use reference data (`.IsValid()`, etc.) resolve it through `EntryPoint.ReferenceDataProviderDecorator`, which loads the **real seeded data** so tests use representative values rather than invented ones. When a validator under test needs a ref-data type the decorator does not yet handle, **add a new arm to** its `GetAsync` switch — inserting it **before** the final `_ => throw …` catch-all:
 
 ```csharp
 public override Task<IReferenceDataCollection> GetAsync(Type type, CancellationToken cancellationToken = default) => type switch
@@ -773,7 +774,7 @@ public override Task<IReferenceDataCollection> GetAsync(Type type, CancellationT
 
 **Never remove or replace the final `_ => throw …` catch-all arm** — only add arms above it. It is the guard that surfaces an unhandled ref-data type; dropping it (e.g. "replacing the throw-only body") would silently break the decorator.
 
-**Mirror `ReferenceDataService.g.cs` exactly — dispatch on the item type, not the collection.** The decorator's `switch` must match the generated `ReferenceDataService.g.cs` `GetAsync(Type type)`: it keys on the **reference-data item type** — `typeof(Gender)` — **not** the collection type `typeof(GenderCollection)`. (The collection appears only as the `Deserialize<GenderCollection>(...)` target.) Copy the case keys from the generated file rather than guessing; using `typeof(GenderCollection)` as the key means the arm never matches and the catch-all throws.
+**Mirror `ReferenceDataProvider.g.cs` exactly — dispatch on the item type, not the collection.** The decorator's `switch` must match the generated `ReferenceDataProvider.g.cs` `GetAsync(Type type)`: it keys on the **reference-data item type** — `typeof(Gender)` — **not** the collection type `typeof(GenderCollection)`. (The collection appears only as the `Deserialize<GenderCollection>(...)` target.) Copy the case keys from the generated file rather than guessing; using `typeof(GenderCollection)` as the key means the arm never matches and the catch-all throws.
 
 `Gender` is the reference-data **contract type**; `"Bar.$^Gender"` is the `{schema}.$^{Table}` key into the pre-configured seed data. **The key must mirror the seed YAML's schema and `$^Table` entry exactly, including casing** — it is case-sensitive. So it follows the **provider's casing**: PascalCase for SQL Server (e.g. `"Bar.$^Gender"`, `"Orders.$^OrderStatus"`), lower/snake_case for PostgreSQL (e.g. `"products.$^category"`). Copy the casing from the actual seed `$^<Table>` rather than assuming lower-case.
 
@@ -919,7 +920,7 @@ Basket_Checkout_Insufficient_Quantity
 - Do not omit `.Verify()` after a `MockHttpClientRequest` action — it confirms the mock was actually invoked.
 - Do not set a typed reference-data navigation property (e.g. `Gender`) when arranging a test input — set the `{Name}Code` string (e.g. `GenderCode = "M"`); the typed property depends on the `ReferenceDataOrchestrator`, which is not set during arrange.
 - Do not write validator tests for reference-data `IsActive`/`IsInactive` — assert only valid vs not-valid via `.IsValid()` (a not-valid case just uses an unseeded code); active/inactive is trusted framework behaviour. Reserve `ExtendForTesting` for rules that depend on a ref-data **extended property**.
-- Do not remove or replace the final `_ => throw …` catch-all arm of `ReferenceDataServiceDecorator.GetAsync` when adding a ref-data type — insert the new arm **above** it; the catch-all must remain.
+- Do not remove or replace the final `_ => throw …` catch-all arm of `ReferenceDataProviderDecorator.GetAsync` when adding a ref-data type — insert the new arm **above** it; the catch-all must remain.
 - Do not write validator tests for **length** rules (`MaximumLength`/`MinimumLength`/`Length`/`String`) — assume the declared length logic works (framework-guaranteed, like reference-data active/inactive); test conditional/business logic instead.
 - Do not put an entity's read and mutate API tests in one class — split into `XxxReadTests` (seeds `read-data.seed.yaml`) and `XxxMutateTests` (seeds `mutate-data.seed.yaml`), one partial sub-file per operation (`Xxx{Read|Mutate}Tests.{Operation}.cs`).
 - Do not load the whole dataset in an API read/mutate class — use the named-file `MigrateXxxDataAsync<TestData>(["read-data.seed.yaml"|"mutate-data.seed.yaml"], …)` overload so the class loads only its dataset.

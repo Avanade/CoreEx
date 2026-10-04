@@ -122,6 +122,17 @@ public class ReferenceDataCacheTests : WithGenericTester<EntryPoint>
                     colors.Should().NotBeNull().And.BeOfType<ColorCollection>().Which.Should().HaveCount(3);
                 }).AssertSuccess();
         });
+
+        // Remove the cache.
+        Test.ScopedType<ExecutionContext>(test =>
+        {
+            test.ExpectLogContains("[DC] removing distributed entry")
+                .Run(async _ =>
+                {
+                    var rdo = test.Services.GetRequiredService<ReferenceDataOrchestrator>();
+                    await rdo.InvalidateAsync<Color>();
+                }).AssertSuccess();
+        });
     }
 
     public class Color : ReferenceData<int, Color> { }

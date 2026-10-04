@@ -31,6 +31,8 @@ Property | Description
 -|-
 **`route`** | The route prefix.<br/>&dagger; Defaults to `/api/refdata`.
 **`routeConvention`** | The route naming convention where not directly specified. Valid options are: `KebabCase`, `SnakeCase`, `CamelCase`, `Lowercase`.<br/>&dagger; Defaults to `KebabCase`.
+`attribute` | The optional API controller class attribute.<br/>&dagger; This is the attribute applied as-is to the generated `ReferenceDataController` class. This is useful for adding the likes of `[Authorize]`.
+`getNamed` | Indicates whether the API controller emits the `GetNamed` operation.<br/>&dagger; Defaults to `false`.
 
 ## Repository
 Provides the configuration for the generated repository code.
@@ -61,3 +63,4 @@ Provides the collections configuration.
 Property | Description
 -|-
 **`entities`** | The corresponding [`Entity`](Entity.md) collection.
+
