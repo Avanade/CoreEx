@@ -126,6 +126,51 @@ public partial class EntityFrameworkCrudTests
     }).AssertSuccess());
 
     [Test]
+    public void Update_Success_FreshModel_PreservesCreated() => Test.ScopedType<ExecutionContext>(test => test.Run(async _ =>
+    {
+        var id = 8.ToGuid();
+        var ef = ExecutionContext.GetRequiredService<TestEfDb>();
+        var dc = ExecutionContext.GetRequiredService<TestDbContext>();
+
+        var e = await ef.Table.GetAsync(id).ConfigureAwait(false);
+        e.Should().NotBeNull();
+        e.CreatedBy.Should().NotBeNull();
+        e.CreatedOn.Should().NotBeNull();
+        var (createdBy, createdOn) = (e.CreatedBy, e.CreatedOn);
+        dc.ChangeTracker.Clear();
+
+        // A fresh (detached) model that carries no audit information, with a modified value.
+        var m = new TestTable { Id = e.Id, Text = e.Text + "FFF", Number = e.Number, Amount = e.Amount, Flag = e.Flag, Date = e.Date, Time = e.Time, Json = e.Json, ETag = e.ETag, TenantId = e.TenantId };
+        var u = await ef.Table.UpdateAsync(m).ConfigureAwait(false);
+        u.WasMutated.Should().BeTrue();
+
+        dc.ChangeTracker.Clear();
+        var r = await ef.Table.GetAsync(id).ConfigureAwait(false);
+        r.Should().NotBeNull();
+        r.Text.Should().Be(m.Text);
+        r.CreatedBy.Should().Be(createdBy);
+        r.CreatedOn.Should().Be(createdOn);
+        r.UpdatedBy.Should().NotBeNull();
+        r.UpdatedOn.Should().NotBeNull();
+    }).AssertSuccess());
+
+    [Test]
+    public void Update_Success_FreshModel_NoChange() => Test.ScopedType<ExecutionContext>(test => test.Run(async _ =>
+    {
+        var id = 8.ToGuid();
+        var ef = ExecutionContext.GetRequiredService<TestEfDb>();
+        var dc = ExecutionContext.GetRequiredService<TestDbContext>();
+
+        var e = await ef.Table.GetAsync(id).ConfigureAwait(false);
+        e.Should().NotBeNull();
+        dc.ChangeTracker.Clear();
+
+        // A fresh (detached) model that carries no audit information, with no modified values; the audit information must not be seen as a change.
+        var m = new TestTable { Id = e.Id, Text = e.Text, Number = e.Number, Amount = e.Amount, Flag = e.Flag, Date = e.Date, Time = e.Time, Json = e.Json, ETag = e.ETag, TenantId = e.TenantId };
+        var u = await ef.Table.UpdateAsync(m).ConfigureAwait(false);
+        u.WasMutated.Should().BeFalse();
+    }).AssertSuccess());
+    [Test]
     public void Update_Mapped_Success() => Test.ScopedType<ExecutionContext>(test => test.Run(async _ =>
     {
         var id = 8.ToGuid();
