@@ -16,6 +16,28 @@ public partial interface IReferenceDataRepository
 
     /// <summary>Gets all <see cref="ContactMethod"/> items.</summary>
     Task<ContactMethodCollection> GetAllContactMethodsAsync(CancellationToken cancellationToken = default);
+
+    #region CustomerType
+
+    /// <summary>Gets the specified <see cref="CustomerType"/>.</summary>
+    Task<Result<Contracts.CustomerType>> GetCustomerTypeAsync(string id, CancellationToken cancellationToken = default);
+
+    /// <summary>Creates the <see cref="CustomerType"/>.</summary>
+    Task<Result<DataResult<Contracts.CustomerType>>> CreateCustomerTypeAsync(Contracts.CustomerType value, CancellationToken cancellationToken = default);
+
+    /// <summary>Updates the <see cref="CustomerType"/>.</summary>
+    Task<Result<DataResult<Contracts.CustomerType>>> UpdateCustomerTypeAsync(string id, Contracts.CustomerType value, CancellationToken cancellationToken = default);
+
+    /// <summary>Activates the <see cref="CustomerType"/>.</summary>
+    Task<Result<DataResult<Contracts.CustomerType>>> ActivateCustomerTypeAsync(string id, CancellationToken cancellationToken = default);
+
+    /// <summary>Deactivates the <see cref="CustomerType"/>.</summary>
+    Task<Result<DataResult<Contracts.CustomerType>>> DeactivateCustomerTypeAsync(string id, CancellationToken cancellationToken = default);
+
+    /// <summary>Deletes the specified <see cref="CustomerType"/>.</summary>
+    Task<Result<DataResult>> DeleteCustomerTypeAsync(string id, CancellationToken cancellationToken = default);
+
+    #endregion
 }
     
 #nullable restore

@@ -36,7 +36,8 @@ internal static class DatabaseSetUp
         }
 
         // Replace or create "ref-data" container used by the API. Reuse the "test" configured reference data and import. A unique key policy on "/typeDiscriminator" and "/code" enforces
-        // (per logical partition) that no two documents share the same discriminator/code combination - the closest Cosmos DB equivalent to a unique index.
+        // (per logical partition) that no two documents share the same discriminator/code combination - the closest Cosmos DB equivalent to a unique index. The co-located outbox events carry
+        // a unique "code" (see CosmosDbContainerOptions.WithReferenceDataOutboxEvent) so that they do not collide with each other.
         var refDataContainerProperties = new ContainerProperties("ref-data", "/partitionKey");
         refDataContainerProperties.UniqueKeyPolicy.UniqueKeys.Add(new UniqueKey { Paths = { "/typeDiscriminator", "/code" } });
 

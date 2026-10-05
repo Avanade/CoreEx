@@ -14,6 +14,7 @@ global using CoreEx.HealthChecks;
 global using CoreEx.Hosting;
 global using CoreEx.Invokers;
 global using CoreEx.Mapping;
+global using CoreEx.RefData;
 global using CoreEx.Results;
 global using CoreEx.Results.Abstractions;
 global using CoreEx.Schemas;

@@ -68,7 +68,7 @@ entities:
 | Events (`created/updated/activated/deactivated` `.v1`, `deleted`) + orchestrator cache invalidation | — | ✅ | ✅ |
 
 - Service and service interface are generated **only when at least one entity is mutable**.
-- A mutable entity **requires `repository: EntityFramework`** — codegen throws otherwise (`Cosmos`/`None` are read-only only).
+- A mutable entity **requires `repository: EntityFramework` or `Cosmos`** — codegen throws otherwise (`None` is read-only only). `Cosmos` uses `CosmosDbReferenceData` (duplicate codes rely on a `/typeDiscriminator` + `/code` unique key on the container, which must also be registered with `CosmosDbContainerOptions.WithReferenceDataOutboxEvent()` so the co-located outbox events — which carry neither path — do not collide with each other) and the generated service re-gets the item after the transaction so the returned `ETag` is final.
 - `code` is immutable after create; create always yields an inactive item; activate/deactivate are no-ops (no event) if already in that state.
 - `attribute` (root/entity) decorates only the read-only `ReferenceDataController`; use `mutableAttribute` for the write endpoints.
 - The host needs `IUnitOfWork` registered; the generated service wraps each write and its outbox event in one transaction.
@@ -79,7 +79,7 @@ entities:
 ## Do Not
 
 - Do not edit `*.g.cs` files — they are overwritten on every generation run. Edit `ref-data.yaml` or the Handlebars templates in the `CoreEx.CodeGen` package instead.
-- Do not set `mutability` on an entity whose `repository` is not `EntityFramework`, and do not hand-write mutation endpoints/services that duplicate the generated ones — turn on `mutability` instead.
+- Do not set `mutability` on an entity whose `repository` is not `EntityFramework` or `Cosmos`, and do not hand-write mutation endpoints/services that duplicate the generated ones — turn on `mutability` instead.
 - Do not assume delete/deactivate protects referenced data — add the checks yourself in `PreCheckAsync` (never in the `.g.cs`).
 - Do not add `CoreEx.CodeGen` as a runtime dependency — it is a development tool only.
 

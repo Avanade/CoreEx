@@ -47,16 +47,16 @@ public partial class ReferenceDataService : IReferenceDataService
     public Task<Result<{{Name}}>> Get{{Name}}Async({{IdDotNetType}} id, CancellationToken cancellationToken) => GetAsync(id, _repository.Get{{Name}}Async, cancellationToken);
 
     /// <inheritdoc/>
-    public Task<Result<{{Name}}>> Create{{Name}}Async({{Name}} value, CancellationToken cancellationToken) => CreateAsync<{{Name}}, {{Validator}}>(value, _repository.Create{{Name}}Async, cancellationToken);
+    public Task<Result<{{Name}}>> Create{{Name}}Async({{Name}} value, CancellationToken cancellationToken) => CreateAsync<{{Name}}, {{Validator}}>(value, _repository.Create{{Name}}Async, cancellationToken{{#ifeq Repository 'Cosmos'}}, refresh: (v, ct) => _repository.Get{{Name}}Async(v.Id, ct){{/ifeq}});
 
     /// <inheritdoc/>
-    public Task<Result<{{Name}}>> Update{{Name}}Async({{IdDotNetType}} id, {{Name}} value, CancellationToken cancellationToken) => UpdateAsync<{{IdDotNetType}}, {{Name}}, {{Validator}}>(id, value, _repository.Update{{Name}}Async, cancellationToken);
+    public Task<Result<{{Name}}>> Update{{Name}}Async({{IdDotNetType}} id, {{Name}} value, CancellationToken cancellationToken) => UpdateAsync<{{IdDotNetType}}, {{Name}}, {{Validator}}>(id, value, _repository.Update{{Name}}Async, cancellationToken{{#ifeq Repository 'Cosmos'}}, refresh: (v, ct) => _repository.Get{{Name}}Async(v.Id, ct){{/ifeq}});
 
     /// <inheritdoc/>
-    public Task<Result<{{Name}}>> Activate{{Name}}Async({{IdDotNetType}} id, CancellationToken cancellationToken) => ActivateAsync(id, _repository.Get{{Name}}Async, _repository.Activate{{Name}}Async, cancellationToken);
+    public Task<Result<{{Name}}>> Activate{{Name}}Async({{IdDotNetType}} id, CancellationToken cancellationToken) => ActivateAsync(id, _repository.Get{{Name}}Async, _repository.Activate{{Name}}Async, cancellationToken{{#ifeq Repository 'Cosmos'}}, refresh: (v, ct) => _repository.Get{{Name}}Async(v.Id, ct){{/ifeq}});
 
     /// <inheritdoc/>
-    public Task<Result<{{Name}}>> Deactivate{{Name}}Async({{IdDotNetType}} id, CancellationToken cancellationToken) => DeactivateAsync(id, _repository.Get{{Name}}Async, _repository.Deactivate{{Name}}Async, cancellationToken);
+    public Task<Result<{{Name}}>> Deactivate{{Name}}Async({{IdDotNetType}} id, CancellationToken cancellationToken) => DeactivateAsync(id, _repository.Get{{Name}}Async, _repository.Deactivate{{Name}}Async, cancellationToken{{#ifeq Repository 'Cosmos'}}, refresh: (v, ct) => _repository.Get{{Name}}Async(v.Id, ct){{/ifeq}});
   {{#ifeq Mutability 'CreateUpdateDelete'}}
 
     /// <inheritdoc/>
@@ -89,8 +89,9 @@ public partial class ReferenceDataService : IReferenceDataService
     /// <param name="value">The reference data value.</param>
     /// <param name="create">The function to create the reference data.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
+    /// <param name="refresh">The optional function to re-get the reference data after a mutation; required where the underlying data store only finalizes the <see cref="IETag.ETag"/> once the unit of work has completed.</param>
     /// <returns>The result.</returns>
-    private Task<Result<TRef>> CreateAsync<TRef, TValidator>(TRef value, Func<TRef, CancellationToken, Task<Result<DataResult<TRef>>>> create, CancellationToken cancellationToken)
+    private Task<Result<TRef>> CreateAsync<TRef, TValidator>(TRef value, Func<TRef, CancellationToken, Task<Result<DataResult<TRef>>>> create, CancellationToken cancellationToken, Func<TRef, CancellationToken, Task<Result<TRef>>>? refresh = null)
         where TRef : class, IReferenceData where TValidator : IValidator<TRef>, new()
         => Result.GoAsync(async () => (await new TValidator().ValidateAsync(value, cancellationToken).ConfigureAwait(false)).ToResult())
             .ThenAsAsync(() => _unitOfWork.TransactionAsync(ct =>
@@ -98,6 +99,7 @@ public partial class ReferenceDataService : IReferenceDataService
                 return Result.GoAsync(() => create(value, ct))
                     .ThenAs(dr => dr.WhereMutatedAnd(v => _unitOfWork.Events.Add(EventData.CreateEventWith(v, EventAction.Created))));
             }, cancellationToken))
+            .ThenAsAsync(dr => RefreshAsync(dr, refresh, cancellationToken))
             .ThenAsAsync(dr => dr.WhereMutatedAsync((v, ct) => ReferenceDataOrchestrator.Current.TryInvalidateAsync<TRef>(ct), cancellationToken));
 
     /// <summary>
@@ -110,8 +112,9 @@ public partial class ReferenceDataService : IReferenceDataService
     /// <param name="value">The reference data value.</param>
     /// <param name="update">The function to update the reference data.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
+    /// <param name="refresh">The optional function to re-get the reference data after a mutation; required where the underlying data store only finalizes the <see cref="IETag.ETag"/> once the unit of work has completed.</param>
     /// <returns>The result.</returns>
-    private Task<Result<TRef>> UpdateAsync<TId, TRef, TValidator>(TId id, TRef value, Func<TId, TRef, CancellationToken, Task<Result<DataResult<TRef>>>> update, CancellationToken cancellationToken)
+    private Task<Result<TRef>> UpdateAsync<TId, TRef, TValidator>(TId id, TRef value, Func<TId, TRef, CancellationToken, Task<Result<DataResult<TRef>>>> update, CancellationToken cancellationToken, Func<TRef, CancellationToken, Task<Result<TRef>>>? refresh = null)
         where TRef : class, IReferenceData where TValidator : IValidator<TRef>, new()
         => Result.GoAsync(async () => (await new TValidator().ValidateAsync(value, cancellationToken).ConfigureAwait(false)).ToResult())
             .ThenAsAsync(() => _unitOfWork.TransactionAsync(ct =>
@@ -119,6 +122,7 @@ public partial class ReferenceDataService : IReferenceDataService
                 return Result.GoAsync(() => update(id, value, ct))
                     .ThenAs(dr => dr.WhereMutatedAnd(v => _unitOfWork.Events.Add(EventData.CreateEventWith(v, EventAction.Updated))));
             }, cancellationToken))
+            .ThenAsAsync(dr => RefreshAsync(dr, refresh, cancellationToken))
             .ThenAsAsync(dr => dr.WhereMutatedAsync((v, ct) => ReferenceDataOrchestrator.Current.TryInvalidateAsync<TRef>(ct), cancellationToken));
 
     /// <summary>
@@ -130,8 +134,9 @@ public partial class ReferenceDataService : IReferenceDataService
     /// <param name="get">The function to get the reference data.</param>
     /// <param name="activate">The function to activate the reference data.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
+    /// <param name="refresh">The optional function to re-get the reference data after a mutation; required where the underlying data store only finalizes the <see cref="IETag.ETag"/> once the unit of work has completed.</param>
     /// <returns>The result.</returns>
-    private Task<Result<TRef>> ActivateAsync<TId, TRef>(TId id, Func<TId, CancellationToken, Task<Result<TRef>>> get, Func<TId, CancellationToken, Task<Result<DataResult<TRef>>>> activate, CancellationToken cancellationToken)
+    private Task<Result<TRef>> ActivateAsync<TId, TRef>(TId id, Func<TId, CancellationToken, Task<Result<TRef>>> get, Func<TId, CancellationToken, Task<Result<DataResult<TRef>>>> activate, CancellationToken cancellationToken, Func<TRef, CancellationToken, Task<Result<TRef>>>? refresh = null)
         where TRef : class, IReferenceData
         => Result.GoAsync(() => get(id, cancellationToken))
             .ThenAsAsync(v => PreCheckAsync(v, EventAction.Activated, cancellationToken))
@@ -140,6 +145,7 @@ public partial class ReferenceDataService : IReferenceDataService
                 return Result.GoAsync(() => activate(id, ct))
                     .ThenAs(dr => dr.WhereMutatedAnd(v => _unitOfWork.Events.Add(EventData.CreateEventWith(v, EventAction.Activated))));
             }, cancellationToken))
+            .ThenAsAsync(dr => RefreshAsync(dr, refresh, cancellationToken))
             .ThenAsAsync(dr => dr.WhereMutatedAsync((v, ct) => ReferenceDataOrchestrator.Current.TryInvalidateAsync<TRef>(ct), cancellationToken));
 
     /// <summary>
@@ -151,8 +157,9 @@ public partial class ReferenceDataService : IReferenceDataService
     /// <param name="get">The function to get the reference data.</param>
     /// <param name="deactivate">The function to deactivate the reference data.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
+    /// <param name="refresh">The optional function to re-get the reference data after a mutation; required where the underlying data store only finalizes the <see cref="IETag.ETag"/> once the unit of work has completed.</param>
     /// <returns>The result.</returns>
-    private Task<Result<TRef>> DeactivateAsync<TId, TRef>(TId id, Func<TId, CancellationToken, Task<Result<TRef>>> get, Func<TId, CancellationToken, Task<Result<DataResult<TRef>>>> deactivate, CancellationToken cancellationToken)
+    private Task<Result<TRef>> DeactivateAsync<TId, TRef>(TId id, Func<TId, CancellationToken, Task<Result<TRef>>> get, Func<TId, CancellationToken, Task<Result<DataResult<TRef>>>> deactivate, CancellationToken cancellationToken, Func<TRef, CancellationToken, Task<Result<TRef>>>? refresh = null)
         where TRef : class, IReferenceData
         => Result.GoAsync(() => get(id, cancellationToken))
             .ThenAsAsync(v => PreCheckAsync(v, EventAction.Deactivated, cancellationToken))
@@ -161,8 +168,20 @@ public partial class ReferenceDataService : IReferenceDataService
                 return Result.GoAsync(() => deactivate(id, ct))
                     .ThenAs(dr => dr.WhereMutatedAnd(v => _unitOfWork.Events.Add(EventData.CreateEventWith(v, EventAction.Deactivated))));
             }, cancellationToken))
+            .ThenAsAsync(dr => RefreshAsync(dr, refresh, cancellationToken))
             .ThenAsAsync(dr => dr.WhereMutatedAsync((v, ct) => ReferenceDataOrchestrator.Current.TryInvalidateAsync<TRef>(ct), cancellationToken));
 
+    /// <summary>
+    /// Re-gets the mutated reference data using the <paramref name="refresh"/> function (where specified) so that the final persisted <see cref="IReferenceData.ETag"/> is returned.
+    /// </summary>
+    private static async Task<Result<DataResult<TRef>>> RefreshAsync<TRef>(DataResult<TRef> dr, Func<TRef, CancellationToken, Task<Result<TRef>>>? refresh, CancellationToken cancellationToken)
+        where TRef : class, IReferenceData
+    {
+        if (refresh is null || !dr.WasMutated)
+            return dr;
+
+        return (await refresh(dr.Value, cancellationToken).ConfigureAwait(false)).ThenAs(v => new DataResult<TRef>(v, true));
+    }
     /// <summary>
     /// Deletes the reference data of type <typeparamref name="TRef"/> using the specified <paramref name="delete"/>.
     /// </summary>

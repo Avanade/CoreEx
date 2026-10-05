@@ -232,6 +232,44 @@ public class RefDataMutateTests : WithApiTester<Contoso.Products.Api.Program>
     }
 
     [Test]
+    public void Patch_Success_PreservesCreatedAudit()
+    {
+        // Created audit is not exposed by the contract, so the database row is checked directly; the update maps a new model so these columns must be protected (ValueGeneratedOnUpdate).
+        var b = CreateBrand("PATCH-AUDIT");
+        var (createdBy, createdOn, _, _) = GetAudit(b.Code!);
+        createdBy.Should().NotBeNullOrEmpty();
+        createdOn.Should().NotBeNull();
+
+        Test.Http<Brand>()
+            .ExpectPostgresOutboxEvents()
+            .Run(HttpMethod.Patch, $"{_brandsUrl}/{b.Id}", new { text = "Patched Text" }, requestModifier: r => r.WithIfMatch(b.ETag).WithMergePatchJsonContentType())
+            .AssertOK();
+
+        var (cb, co, ub, uo) = GetAudit(b.Code!);
+        cb.Should().Be(createdBy);
+        co.Should().Be(createdOn);
+        ub.Should().NotBeNullOrEmpty();
+        uo.Should().NotBeNull();
+    }
+
+    private (string? CreatedBy, DateTimeOffset? CreatedOn, string? UpdatedBy, DateTimeOffset? UpdatedOn) GetAudit(string code)
+    {
+        using var scope = Test.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<Contoso.Products.Infrastructure.Repositories.ProductsDbContext>();
+        using var cmd = db.Database.GetDbConnection().CreateCommand();
+        db.Database.OpenConnection();
+        cmd.CommandText = "select created_by, created_on, updated_by, updated_on from products.brand where code = @code";
+        var p = cmd.CreateParameter();
+        p.ParameterName = "code";
+        p.Value = code;
+        cmd.Parameters.Add(p);
+
+        using var r = cmd.ExecuteReader();
+        r.Read().Should().BeTrue();
+        return (r.IsDBNull(0) ? null : r.GetString(0), r.IsDBNull(1) ? null : r.GetFieldValue<DateTimeOffset>(1), r.IsDBNull(2) ? null : r.GetString(2), r.IsDBNull(3) ? null : r.GetFieldValue<DateTimeOffset>(3));
+    }
+
+    [Test]
     public void Patch_Code_Immutable()
     {
         var b = CreateBrand("PATCH-CODE");

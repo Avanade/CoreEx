@@ -3,4 +3,5 @@ collectionSortOrder: Code
 repository: Cosmos
 entities:
 - name: CustomerType
+  mutability: CreateUpdateDelete
 - name: ContactMethod

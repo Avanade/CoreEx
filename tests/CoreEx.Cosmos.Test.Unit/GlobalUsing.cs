@@ -9,6 +9,7 @@ global using CoreEx.Events;
 global using CoreEx.Events.Publishing;
 global using CoreEx.Hosting;
 global using CoreEx.Mapping;
+global using CoreEx.RefData;
 global using CoreEx.Results;
 global using Microsoft.Azure.Cosmos;
 global using Microsoft.Azure.Cosmos.Linq;

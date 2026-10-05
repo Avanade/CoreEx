@@ -93,7 +93,7 @@ Reference data is **read-only by default**: entities are loaded through the `Ref
 | `mutableAttribute` | Entity | _none_ | Attribute applied as-is to the generated `{Name}Controller` class, e.g. `'[Authorize(Roles = "Admin")]'`. |
 | `attribute` | Root / Entity | _none_ | Attribute applied to the read-only `ReferenceDataController` (root) or that entity's read operation (entity). Does **not** apply to mutable endpoints. |
 | `getNamed` | Root | `false` | Emits the read-only `GetNamedAsync` endpoint. Applies to read-only and mutable entities alike. |
-| `repository` | Root / Entity | root value | **Must be `EntityFramework` for a mutable entity** — generation fails fast otherwise. `Cosmos` and `None` are read-only only. |
+| `repository` | Root / Entity | root value | **Must be `EntityFramework` or `Cosmos` for a mutable entity** — generation fails fast otherwise. `None` is read-only only. `Cosmos` uses `CosmosDbReferenceData`; duplicate codes are rejected by a `/typeDiscriminator` + `/code` unique key on the container, which must also use `CosmosDbContainerOptions.WithReferenceDataOutboxEvent()` so co-located outbox events do not collide. |
 
 ```yaml
 collectionSortOrder: Code

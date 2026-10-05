@@ -9,3 +9,5 @@ global using UnitTestEx;
 global using UnitTestEx.Expectations;
 global using DbMigration = Contoso.Products.Database.Program;
 global using TestData = Contoso.Products.Test.Common.TestData;
+global using Microsoft.EntityFrameworkCore;
+global using Microsoft.Extensions.DependencyInjection;

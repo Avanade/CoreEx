@@ -35,7 +35,26 @@ internal partial class CustomerTypeMapper : BiDirectionMapper<Contracts.Customer
     partial void OnMapExtend(Persistence.CustomerType source, Contracts.CustomerType destination);
 
     /// <inheritdoc/>
-    protected override Persistence.CustomerType OnMap(Contracts.CustomerType destination) => throw new NotSupportedException();
+    protected override Persistence.CustomerType OnMap(Contracts.CustomerType destination)
+    {
+        var source = new Persistence.CustomerType
+        {
+            Code = destination.Code!,
+            Text = destination.Text,
+            Description = destination.Description,
+            SortOrder = destination.SortOrder,
+            IsActive = !destination.IsInactive,
+            StartsOn = destination.StartsOn,
+            EndsOn = destination.EndsOn,
+            ETag = destination.ETag
+        };
+
+        OnMapExtend(destination, source);
+        return source;
+    }
+
+    /// <summary>Provides the opportunity to extend the <b>From</b> mapping.</summary>
+    partial void OnMapExtend(Contracts.CustomerType destination, Persistence.CustomerType source);
 }
 
 #nullable restore

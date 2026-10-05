@@ -48,7 +48,10 @@ public class CosmosDbEventPublisher(ICosmosDb cosmosDb, IDestinationProvider? de
     // against a given container validates (and thereafter caches, since a container's partition-key path is immutable for its lifetime) that its actual path is "/partitionKey", failing fast with a clear,
     // actionable exception otherwise. Keyed by (Database.Id, Container.Id) rather than the CosmosDb instance, since this reflects a physical, permanent fact about the container itself, safely shared
     // process-wide regardless of how many CosmosDb/CosmosDbEventPublisher instances (e.g. one per request) ever touch it.
-    private static readonly ConcurrentDictionary<(string DatabaseId, string ContainerId), bool> _validatedOutboxContainers = new();
+    // The container's unique key policy (also immutable) is cached alongside, as the paths of each unique key, to support the one-off check that outbox events populate it (see ValidateUniqueKeys).
+    private static readonly ConcurrentDictionary<(string DatabaseId, string ContainerId), string[][]> _validatedOutboxContainers = new();
+
+    private static readonly ConcurrentDictionary<(string DatabaseId, string ContainerId), bool> _validatedUniqueKeys = new();
 
     /// <inheritdoc/>
     /// <exception cref="InvalidOperationException">Thrown where there is no active <see cref="CosmosDbUnitOfWork"/> <see cref="IUnitOfWork.TransactionAsync(Func{CancellationToken, Task}, CancellationToken)"/>
@@ -65,7 +68,9 @@ public class CosmosDbEventPublisher(ICosmosDb cosmosDb, IDestinationProvider? de
             throw new InvalidOperationException($"{nameof(CosmosDbEventPublisher)} requires at least one business mutation to already be enlisted in the current unit-of-work; an outbox event document has no container/partition key to bind to otherwise.");
 
         var container = txn.BoundContainer!;
-        await EnsureOutboxPartitionKeyPathAsync(container, cancellationToken).ConfigureAwait(false);
+        var uniqueKeys = await EnsureOutboxPartitionKeyPathAsync(container, cancellationToken).ConfigureAwait(false);
+
+        CosmosDb.Options.TryGetContainerOptions(container.Id, out var containerOptions);
 
         // BoundPartitionKeyValue is null where the enlisted business mutation's own partition key resolved to PartitionKey.None - a real, valid single logical partition (not an error; the simplest
         // possible container shape), so the outbox event document is co-located there too, exactly the same as any other partition key value.
@@ -83,6 +88,10 @@ public class CosmosDbEventPublisher(ICosmosDb cosmosDb, IDestinationProvider? de
                 TimeToLive = OutboxTimeToLiveSeconds
             };
 
+            var serializerOptions = CosmosDb.Client.ClientOptions.UseSystemTextJsonSerializerWithOptions;
+            containerOptions?.ApplyOutboxEventUpdater(outboxEvent, serializerOptions);
+            ValidateUniqueKeys(container, uniqueKeys, outboxEvent, serializerOptions);
+
             txn.Enlist(container, partitionKey, partitionKeyValue, CompositeKey.Create(outboxEvent.Id), b => b.CreateItem(outboxEvent));
         }
     }
@@ -91,11 +100,11 @@ public class CosmosDbEventPublisher(ICosmosDb cosmosDb, IDestinationProvider? de
     /// Validates (once per container, then caches the result for the remaining process lifetime) that <paramref name="container"/>'s actual, physical partition-key path is <c>/partitionKey</c> -
     /// see the remarks on <see cref="_validatedOutboxContainers"/>/<see cref="OnPublishAsync(DestinationEvent[], CancellationToken)"/> for why this matters and why caching is safe.
     /// </summary>
-    private static async Task EnsureOutboxPartitionKeyPathAsync(Container container, CancellationToken cancellationToken)
+    private static async Task<string[][]> EnsureOutboxPartitionKeyPathAsync(Container container, CancellationToken cancellationToken)
     {
         var key = (container.Database.Id, container.Id);
-        if (_validatedOutboxContainers.ContainsKey(key))
-            return;
+        if (_validatedOutboxContainers.TryGetValue(key, out var cached))
+            return cached;
 
         var response = await container.ReadContainerAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
         var paths = response.Resource.PartitionKeyPaths;
@@ -109,6 +118,46 @@ public class CosmosDbEventPublisher(ICosmosDb cosmosDb, IDestinationProvider? de
                 $"partition key path, or do not use {nameof(CosmosDbEventPublisher)}/{nameof(CosmosDbUnitOfWork)} against this container.");
         }
 
-        _validatedOutboxContainers[key] = true;
+        var uniqueKeys = response.Resource.UniqueKeyPolicy?.UniqueKeys.Select(uk => uk.Paths.ToArray()).ToArray() ?? [];
+        _validatedOutboxContainers[key] = uniqueKeys;
+        return uniqueKeys;
+    }
+
+    /// <summary>
+    /// Validates (once per container) that the outbox event populates at least one path of every unique key defined on the container. Cosmos DB treats a missing unique key path as <c>null</c>, so an
+    /// outbox event populating none of them would share the <c>(null, ...)</c> tuple with every other outbox event, and the second would fail the whole <c>TransactionalBatch</c> with a 409 that surfaces
+    /// as a (misleading) <see cref="DuplicateException"/> on the business mutation. Failing fast here is far easier to diagnose. See <see cref="CosmosDbContainerOptions.WithReferenceDataOutboxEvent"/>.
+    /// </summary>
+    private static void ValidateUniqueKeys(Container container, string[][] uniqueKeys, CosmosDbOutboxEvent outboxEvent, JsonSerializerOptions? serializerOptions)
+    {
+        if (uniqueKeys.Length == 0)
+            return;
+
+        var key = (container.Database.Id, container.Id);
+        if (_validatedUniqueKeys.ContainsKey(key))
+            return;
+
+        var json = JsonSerializer.SerializeToElement(outboxEvent, serializerOptions ?? Json.JsonDefaults.SerializerOptions);
+        foreach (var paths in uniqueKeys)
+        {
+            if (!paths.Any(path => HasValue(json, path)))
+                throw new InvalidOperationException(
+                    $"Container '{container.Id}' has a unique key policy ({string.Join(", ", paths)}) that no outbox event document populates. Cosmos DB treats a missing unique key path as null, so every outbox event " +
+                    $"would collide on the same key and the second would fail the unit-of-work with a duplicate (409) error. Configure the container using {nameof(CosmosDbOptions)}.{nameof(CosmosDbOptions.Container)}(...) with " +
+                    $"{nameof(CosmosDbContainerOptions.WithReferenceDataOutboxEvent)} (or {nameof(CosmosDbContainerOptions.WithOutboxEventUpdater)}) so that each outbox event carries a unique value for at least one of the paths.");
+        }
+
+        _validatedUniqueKeys[key] = true;
+    }
+
+    private static bool HasValue(JsonElement element, string path)
+    {
+        foreach (var segment in path.Split('/', StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (element.ValueKind != JsonValueKind.Object || !element.TryGetProperty(segment, out element))
+                return false;
+        }
+
+        return element.ValueKind is not (JsonValueKind.Null or JsonValueKind.Undefined);
     }
 }

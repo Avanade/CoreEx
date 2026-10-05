@@ -10,6 +10,8 @@ public class CosmosDbOptions
     // sharing that containerId throwing InvalidCastException when it tries to cast the cached entry back to its own CosmosDbModelOptions<TModel>.
     private readonly ConcurrentDictionary<(string ContainerId, Type ModelType), object> _models = new();
 
+    private readonly ConcurrentDictionary<string, CosmosDbContainerOptions> _containers = new();
+
     /// <summary>
     /// Gets the default <see cref="CosmosDbArgs"/>.
     /// </summary>
@@ -65,5 +67,57 @@ public class CosmosDbOptions
 
         modelOptions = null;
         return false;
+    }
+
+    /// <summary>
+    /// Gets or adds the <see cref="CosmosDbContainerOptions"/> for the specified container <paramref name="containerId"/>.
+    /// </summary>
+    /// <param name="containerId">The <see cref="Container"/> identifier.</param>
+    /// <param name="configure">An optional action to configure the <see cref="CosmosDbContainerOptions"/>.</param>
+    /// <returns>The <see cref="CosmosDbContainerOptions"/> for the specified container.</returns>
+    /// <remarks><paramref name="configure"/> is invoked <b>only</b> the first time a <see cref="CosmosDbContainerOptions"/> is created for this <paramref name="containerId"/> - deliberately,
+    /// since this <see cref="CosmosDbOptions"/> is typically a long-lived singleton shared across every <see cref="CosmosDb"/> instance (e.g. one per request/scope) that calls
+    /// <see cref="CosmosDb.Container{TModel}(string, Action{CosmosDbModelOptions{TModel}}?)"/> for the same <paramref name="containerId"/>.</remarks>
+    public CosmosDbContainerOptions GetOrAddContainerOptions(string containerId, Action<CosmosDbContainerOptions>? configure = null)
+    {
+        return _containers.GetOrAdd(containerId.ThrowIfNull(), _ =>
+        {
+            var options = new CosmosDbContainerOptions();
+            configure?.Invoke(options);
+            return options;
+        });
+    }
+
+    /// <summary>
+    /// Tries to get the <see cref="CosmosDbContainerOptions"/> for the specified container <paramref name="containerId"/>.
+    /// </summary>
+    /// <param name="containerId">The <see cref="Container"/> identifier.</param>
+    /// <param name="containerOptions">The <see cref="CosmosDbContainerOptions"/> where found.</param>
+    /// <returns><see langword="true"/> where the <see cref="CosmosDbContainerOptions"/> was found; otherwise, <see langword="false"/>.</returns>
+    public bool TryGetContainerOptions(string containerId, [NotNullWhen(true)] out CosmosDbContainerOptions? containerOptions)
+    {
+        if (_containers.TryGetValue(containerId.ThrowIfNull(), out var co))
+        {
+            containerOptions = co;
+            return true;
+        }
+
+        containerOptions = null;
+        return false;
+    }
+
+    /// <summary>
+    /// Adds the specified <paramref name="containerId"/> to the <see cref="CosmosDbOptions"/> with optional configuration.
+    /// </summary>
+    /// <param name="containerId">The <see cref="Container"/> identifier.</param>
+    /// <param name="configure">An optional action to configure the <see cref="CosmosDbContainerOptions"/>.</param>
+    /// <returns>The <see cref="CosmosDbOptions"/> to support fluent-style method-chaining.</returns>
+    /// <remarks><paramref name="configure"/> is invoked <b>only</b> the first time a <see cref="CosmosDbContainerOptions"/> is created for this <paramref name="containerId"/> - deliberately,
+    /// since this <see cref="CosmosDbOptions"/> is typically a long-lived singleton shared across every <see cref="CosmosDb"/> instance (e.g. one per request/scope) that calls
+    /// <see cref="CosmosDb.Container{TModel}(string, Action{CosmosDbModelOptions{TModel}}?)"/> for the same <paramref name="containerId"/>.</remarks>
+    public CosmosDbOptions Container(string containerId, Action<CosmosDbContainerOptions>? configure = null)
+    {
+        GetOrAddContainerOptions(containerId, configure);
+        return this;
     }
 }

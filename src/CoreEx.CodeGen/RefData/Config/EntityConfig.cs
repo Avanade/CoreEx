@@ -122,7 +122,7 @@ public class EntityConfig : ConfigBase<CodeGenConfig, CodeGenConfig>
     /// Gets or sets the reference-data entity mutability.
     /// </summary>
     [JsonPropertyName("mutability")]
-    [CodeGenProperty("Mutable", Title = "The reference-data entity mutability.", Options = ["None", "CreateUpdate", "CreateUpdateDelete"], Description = "Defaults to `None`.")]
+    [CodeGenProperty("Mutable", Title = "The reference-data entity mutability.", Options = ["None", "CreateUpdate", "CreateUpdateDelete"], Description = "Defaults to `None`. Requires a `Repository` of `EntityFramework` or `Cosmos`.")]
     public string? Mutability { get; set; }
 
     /// <summary>
@@ -230,8 +230,8 @@ public class EntityConfig : ConfigBase<CodeGenConfig, CodeGenConfig>
         ExcludeMapper = DefaultWhereNull(ExcludeMapper, () => false);
         Validator = DefaultWhereNull(Validator, () => $"ReferenceDataValidator<{Name}>");
 
-        if (IsMutable && Repository != "EntityFramework")
-            throw new CodeGenException(this, nameof(Mutability), $"Mutability '{Mutability}' requires a '{nameof(Repository)}' of 'EntityFramework'; '{Repository}' is not supported.");
+        if (IsMutable && Repository is not ("EntityFramework" or "Cosmos"))
+            throw new CodeGenException(this, nameof(Mutability), $"Mutability '{Mutability}' requires a '{nameof(Repository)}' of 'EntityFramework' or 'Cosmos'; '{Repository}' is not supported.");
 
         Plural = DefaultWhereNull(Plural, () =>
         {

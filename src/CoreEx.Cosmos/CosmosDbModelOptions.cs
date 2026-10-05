@@ -6,6 +6,9 @@ namespace CoreEx.Cosmos;
 /// <typeparam name="TModel">The model <see cref="Type"/>.</typeparam>
 public class CosmosDbModelOptions<TModel> where TModel : class, IEntityKey, new()
 {
+    private static readonly MethodInfo _startsWithMethod = typeof(string).GetMethod(nameof(string.StartsWith), [typeof(string)])!;
+    private static readonly Lazy<Expression<Func<TModel, bool>>?> _outboxIdExclusion = new(ResolveOutboxIdExclusion);
+
     private readonly List<(Func<IQueryable<TModel>, IQueryable<TModel>> Filter, Func<TModel, OperationType, Result>? NonQueryResult, bool AllowFilterBypass)> _filters = [];
     private Func<TModel, CompositeKey> _getKey = m => m.EntityKey;
     private Func<CompositeKey, string> _formatIdentifier = key => key.ToString() ?? string.Empty;
@@ -80,13 +83,9 @@ public class CosmosDbModelOptions<TModel> where TModel : class, IEntityKey, new(
 
         var parameter = Expression.Parameter(typeof(TModel), "m");
         var idAccess = Expression.Property(parameter, property);
-        var startsWith = Expression.Call(idAccess, StartsWithMethod, Expression.Constant(CosmosDbOutboxEvent.OutboxKeyPrefix));
+        var startsWith = Expression.Call(idAccess, _startsWithMethod, Expression.Constant(CosmosDbOutboxEvent.OutboxKeyPrefix));
         return Expression.Lambda<Func<TModel, bool>>(Expression.Not(startsWith), parameter);
     }
-
-    private static readonly MethodInfo StartsWithMethod = typeof(string).GetMethod(nameof(string.StartsWith), [typeof(string)])!;
-
-    private static readonly Lazy<Expression<Func<TModel, bool>>?> _outboxIdExclusion = new(ResolveOutboxIdExclusion);
 
     /// <summary>
     /// Gets the default <see cref="CosmosDbArgs"/>.

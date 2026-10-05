@@ -223,7 +223,7 @@
         "mutability": {
           "type": "string",
           "title": "The reference-data entity mutability.",
-          "description": "Defaults to \u0060None\u0060.",
+          "description": "Defaults to \u0060None\u0060. Requires a \u0060Repository\u0060 of \u0060EntityFramework\u0060 or \u0060Cosmos\u0060.",
           "enum": [
             "None",
             "CreateUpdate",

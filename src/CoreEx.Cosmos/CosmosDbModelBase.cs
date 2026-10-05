@@ -46,4 +46,10 @@ public abstract class CosmosDbModelBase : IIdentifier<string>, IChangeLog, IETag
     [JsonPropertyOrder(100002)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public int? TimeToLive { get; set; }
+
+    /// <summary>
+    /// Gets or sets the additional properties bag.
+    /// </summary>
+    [JsonExtensionData]
+    public Dictionary<string, object?>? AdditionalProperties { get; set; }
 }

@@ -60,7 +60,7 @@ Provides the configuration for the generated mutability code.
 
 Property | Description
 -|-
-`mutability` | The reference-data entity mutability. Valid options are: `None`, `CreateUpdate`, `CreateUpdateDelete`.<br/>&dagger; Defaults to `None`.
+`mutability` | The reference-data entity mutability. Valid options are: `None`, `CreateUpdate`, `CreateUpdateDelete`.<br/>&dagger; Defaults to `None`. Requires a `Repository` of `EntityFramework` or `Cosmos`.
 `validator` | The validator type name used during mutability operations.<br/>&dagger; Defaults to `ReferenceDataValidator<{Name}>`. Must have a default constructor.
 
 ## Exclude

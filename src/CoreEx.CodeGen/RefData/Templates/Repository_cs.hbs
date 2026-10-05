@@ -29,6 +29,7 @@ public partial class ReferenceDataRepository : IReferenceDataRepository
 
     #region {{Name}}
 
+  {{#ifeq Repository 'EntityFramework'}}
     /// <inheritdoc/>
     public Task<Result<Contracts.{{Name}}>> Get{{Name}}Async({{IdDotNetType}} id, CancellationToken cancellationToken = default)
         => {{RepositoryName}}.ThrowIfNull().Model<Persistence.{{Name}}>().GetWithResultAsync(id, cancellationToken).ThenAs(model => {{Name}}Mapper.From.Map(model));
@@ -49,12 +50,41 @@ public partial class ReferenceDataRepository : IReferenceDataRepository
     public Task<Result<DataResult<Contracts.{{Name}}>>> Deactivate{{Name}}Async({{IdDotNetType}} id, CancellationToken cancellationToken = default)
         => EfDbReferenceData.DeactivateAsync<{{IdDotNetType}}, Contracts.{{Name}}, Persistence.{{Name}}, {{Name}}Mapper>({{RepositoryName}}.ThrowIfNull().Model<Persistence.{{Name}}>(), id, {{Name}}Mapper.Default, cancellationToken);
 
-{{#ifeq Mutability 'CreateUpdateDelete'}}
+    {{#ifeq Mutability 'CreateUpdateDelete'}}
     /// <inheritdoc/>
     public Task<Result<DataResult>> Delete{{Name}}Async({{IdDotNetType}} id, CancellationToken cancellationToken = default)
         => EfDbReferenceData.DeleteAsync<{{IdDotNetType}}, Contracts.{{Name}}, Persistence.{{Name}}>({{RepositoryName}}.ThrowIfNull().Model<Persistence.{{Name}}>(), id, cancellationToken);
 
-{{/ifeq}}
+    {{/ifeq}}
+  {{/ifeq}}
+  {{#ifeq Repository 'Cosmos'}}
+    /// <inheritdoc/>
+    public Task<Result<Contracts.{{Name}}>> Get{{Name}}Async({{IdDotNetType}} id, CancellationToken cancellationToken = default)
+        => {{RepositoryName}}.ThrowIfNull().{{ModelPlural}}.GetWithResultAsync(CompositeKey.Create(id), cancellationToken).ThenAs(model => {{Name}}Mapper.From.Map(model));
+
+    /// <inheritdoc/>
+    public Task<Result<DataResult<Contracts.{{Name}}>>> Create{{Name}}Async(Contracts.{{Name}} value, CancellationToken cancellationToken = default)
+        => CosmosDbReferenceData.CreateAsync<{{IdDotNetType}}, Contracts.{{Name}}, Persistence.{{Name}}, {{Name}}Mapper>({{RepositoryName}}.ThrowIfNull().{{ModelPlural}}, value, {{Name}}Mapper.Default, cancellationToken);
+
+    /// <inheritdoc/>
+    public Task<Result<DataResult<Contracts.{{Name}}>>> Update{{Name}}Async({{IdDotNetType}} id, Contracts.{{Name}} value, CancellationToken cancellationToken = default)
+        => CosmosDbReferenceData.UpdateAsync<{{IdDotNetType}}, Contracts.{{Name}}, Persistence.{{Name}}, {{Name}}Mapper>({{RepositoryName}}.ThrowIfNull().{{ModelPlural}}, id, value, {{Name}}Mapper.Default, cancellationToken);
+
+    /// <inheritdoc />
+    public Task<Result<DataResult<Contracts.{{Name}}>>> Activate{{Name}}Async({{IdDotNetType}} id, CancellationToken cancellationToken = default)
+        => CosmosDbReferenceData.ActivateAsync<{{IdDotNetType}}, Contracts.{{Name}}, Persistence.{{Name}}, {{Name}}Mapper>({{RepositoryName}}.ThrowIfNull().{{ModelPlural}}, id, {{Name}}Mapper.Default, cancellationToken);
+
+    /// <inheritdoc />
+    public Task<Result<DataResult<Contracts.{{Name}}>>> Deactivate{{Name}}Async({{IdDotNetType}} id, CancellationToken cancellationToken = default)
+        => CosmosDbReferenceData.DeactivateAsync<{{IdDotNetType}}, Contracts.{{Name}}, Persistence.{{Name}}, {{Name}}Mapper>({{RepositoryName}}.ThrowIfNull().{{ModelPlural}}, id, {{Name}}Mapper.Default, cancellationToken);
+
+    {{#ifeq Mutability 'CreateUpdateDelete'}}
+    /// <inheritdoc/>
+    public Task<Result<DataResult>> Delete{{Name}}Async({{IdDotNetType}} id, CancellationToken cancellationToken = default)
+        => CosmosDbReferenceData.DeleteAsync<{{IdDotNetType}}, Contracts.{{Name}}, Persistence.{{Name}}>({{RepositoryName}}.ThrowIfNull().{{ModelPlural}}, id, cancellationToken);
+
+    {{/ifeq}}
+  {{/ifeq}}
     #endregion
 {{/each}}
 }

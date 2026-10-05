@@ -46,4 +46,10 @@ public sealed class CosmosDbOutboxEvent : IIdentifier<string>, IPartitionKey, IT
     /// <inheritdoc/>
     [JsonPropertyName("ttl")]
     public int? TimeToLive { get; set; }
+
+    /// <summary>
+    /// Gets or sets the additional properties bag.
+    /// </summary>
+    [JsonExtensionData]
+    public Dictionary<string, object?>? AdditionalProperties { get; set; }
 }
