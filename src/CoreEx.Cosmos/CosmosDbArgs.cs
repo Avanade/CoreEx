@@ -29,6 +29,13 @@ public record class CosmosDbArgs : IDataArgs
     public bool Refresh { get; init; } = false;
 
     /// <summary>
+    /// Indicates whether the <see cref="ICosmosDb.ChangeTracker"/> is bypassed (not read from, not stored to, and any existing entry evicted) for a <b>Get</b> operation.
+    /// </summary>
+    /// <remarks>Defaults to <see langword="false"/>; i.e. the persisted document read is snapshotted so that a subsequent <b>Get</b> within the same scope is served from the snapshot (a fresh instance each time)
+    /// and an <b>Update</b> can use it. Set to <see langword="true"/> to always read from Cosmos DB. Named for parity with the Entity Framework equivalent.</remarks>
+    public bool ClearChangeTrackerAfterGet { get; init; } = false;
+
+    /// <summary>
     /// Gets or sets the <see cref="Microsoft.Azure.Cosmos.ItemRequestOptions"/> applied to point operations (Get/Create/Update/Delete).
     /// </summary>
     public ItemRequestOptions? ItemRequestOptions { get; init; }

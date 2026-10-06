@@ -39,8 +39,15 @@ public partial class CustomerTypeController(CoreEx.AspNetCore.Mvc.WebApi webApi,
     [ProducesNotFoundProblem()]
     public Task<IActionResult> PatchAsync(string id, CancellationToken cancellationToken = default) => _webApi.PatchWithResultAsync<CustomerType>(Request,
         get: (ro, ct) => _service.GetCustomerTypeAsync(id.Required(), ct),
-        put: (ro, ct) => _service.UpdateCustomerTypeAsync(id.Required(), ro.Value, ct),
+        put: (ro, ct) => _service.UpdateCustomerTypeAsync(id, ro.Value, ct),
         cancellationToken: cancellationToken);
+
+    [HttpPut("{id}")]
+    [Accepts<CustomerType>]
+    [ProducesResponseType(typeof(CustomerType), 200)]
+    [ProducesNotFoundProblem()]
+    public Task<IActionResult> PutAsync(string id, CancellationToken cancellationToken = default)
+        => _webApi.PutWithResultAsync<CustomerType, CustomerType>(Request, (ro, ct) => _service.UpdateCustomerTypeAsync(id.Required(), ro.Value, ct), cancellationToken: cancellationToken);
 
     [HttpPost("{id}/activate")]
     [ProducesResponseType(typeof(CustomerType), 200)]

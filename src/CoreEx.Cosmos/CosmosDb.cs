@@ -62,6 +62,9 @@ public class CosmosDb : ICosmosDb
     protected ILogger? Logger { get; }
 
     /// <inheritdoc/>
+    public CosmosDbChangeTracker ChangeTracker { get; } = new();
+
+    /// <inheritdoc/>
     public CosmosDbTransaction? CurrentTransaction { get; private set; }
 
     /// <inheritdoc/>

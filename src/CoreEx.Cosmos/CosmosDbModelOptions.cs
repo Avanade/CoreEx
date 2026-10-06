@@ -302,6 +302,11 @@ public class CosmosDbModelOptions<TModel> where TModel : class, IEntityKey, new(
     }
 
     /// <summary>
+    /// Indicates whether <see cref="WithTimeToLive"/> has been configured.
+    /// </summary>
+    public bool HasTimeToLive => _getTimeToLive is not null;
+
+    /// <summary>
     /// Applies the <see cref="WithTimeToLive"/>-computed time-to-live (where configured) to the <paramref name="model"/>.
     /// </summary>
     /// <param name="model">The model.</param>

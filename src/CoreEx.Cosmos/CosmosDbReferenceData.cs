@@ -63,8 +63,6 @@ public static class CosmosDbReferenceData
 
         var model = mapper.To.Map(value)!;
         model.Id = existing.Value.Id;
-        model.PartitionKey = existing.Value.PartitionKey;
-        model.ChangeLog = existing.Value.ChangeLog;   // Retained so that the created audit information is not lost.
         model.Code = existing.Value.Code;             // Code is immutable and cannot be updated.
         model.IsActive = existing.Value.IsActive;     // IsActive can only be updated via specific methods.
 

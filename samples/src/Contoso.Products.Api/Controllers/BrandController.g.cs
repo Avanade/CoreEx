@@ -39,8 +39,15 @@ public partial class BrandController(CoreEx.AspNetCore.Mvc.WebApi webApi, IRefer
     [ProducesNotFoundProblem()]
     public Task<IActionResult> PatchAsync(string id, CancellationToken cancellationToken = default) => _webApi.PatchWithResultAsync<Brand>(Request,
         get: (ro, ct) => _service.GetBrandAsync(id.Required(), ct),
-        put: (ro, ct) => _service.UpdateBrandAsync(id.Required(), ro.Value, ct),
+        put: (ro, ct) => _service.UpdateBrandAsync(id, ro.Value, ct),
         cancellationToken: cancellationToken);
+
+    [HttpPut("{id}")]
+    [Accepts<Brand>]
+    [ProducesResponseType(typeof(Brand), 200)]
+    [ProducesNotFoundProblem()]
+    public Task<IActionResult> PutAsync(string id, CancellationToken cancellationToken = default)
+        => _webApi.PutWithResultAsync<Brand, Brand>(Request, (ro, ct) => _service.UpdateBrandAsync(id.Required(), ro.Value, ct), cancellationToken: cancellationToken);
 
     [HttpPost("{id}/activate")]
     [ProducesResponseType(typeof(Brand), 200)]

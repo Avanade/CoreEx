@@ -319,6 +319,105 @@ public class RefDataMutateTests : WithApiTester<Contoso.Products.Api.Program>
 
     #endregion
 
+    #region Put
+
+    [Test]
+    public void Put_NotFound()
+    {
+        Test.Http()
+            .Run(HttpMethod.Put, $"{_brandsUrl}/404", new { code = "PUT-404", text = "abc" }, requestModifier: r => r.WithIfMatch("abc"))
+            .AssertNotFound();
+    }
+
+    [Test]
+    public void Put_MissingETag()
+    {
+        Test.Http()
+            .Run(HttpMethod.Put, $"{_brandsUrl}/404", new { code = "PUT-404", text = "abc" })
+            .Assert(System.Net.HttpStatusCode.PreconditionRequired);
+    }
+
+    [Test]
+    public void Put_Concurrency()
+    {
+        var b = CreateBrand("PUT-CONC");
+
+        Test.Http()
+            .Run(HttpMethod.Put, $"{_brandsUrl}/{b.Id}", new { code = b.Code, text = "Changed" }, requestModifier: r => r.WithIfMatch("AAAAAAAA"))
+            .AssertPreconditionFailed();
+    }
+
+    [Test]
+    public void Put_Validation()
+    {
+        var b = CreateBrand("PUT-VAL");
+
+        Test.Http()
+            .Run(HttpMethod.Put, $"{_brandsUrl}/{b.Id}", new { code = b.Code, text = string.Empty }, requestModifier: r => r.WithIfMatch(b.ETag))
+            .AssertBadRequest()
+            .AssertErrors("Text is required.");
+    }
+
+    [Test]
+    public void Put_Success()
+    {
+        var b = CreateBrand("PUT-OK");
+
+        // Act/Assert.
+        var u = Test.Http<Brand>()
+            .ExpectPostgresOutboxEvents(e => e.AssertWithValue("contoso", "contoso.products.brand.updated.v1"))
+            .Run(HttpMethod.Put, $"{_brandsUrl}/{b.Id}", new { code = b.Code, text = "Put Text", sortOrder = 9 }, requestModifier: r => r.WithIfMatch(b.ETag))
+            .AssertOK()
+            .Value!;
+
+        u.Id.Should().Be(b.Id);
+        u.Code.Should().Be(b.Code);
+        u.Text.Should().Be("Put Text");
+        u.SortOrder.Should().Be(9);
+        u.IsInactive.Should().BeTrue();
+        u.ETag.Should().NotBe(b.ETag);
+
+        // Assert.
+        Test.Http<Brand>()
+            .Run(HttpMethod.Get, $"{_brandsUrl}/{b.Id}")
+            .AssertOK()
+            .AssertValue(u);
+    }
+
+    [Test]
+    public void Put_Code_And_IsInactive_Ignored()
+    {
+        // The code is immutable and the active state can only be changed via activate/deactivate.
+        var b = CreateBrand("PUT-IGNORED");
+
+        var u = Test.Http<Brand>()
+            .ExpectPostgresOutboxEvents()
+            .Run(HttpMethod.Put, $"{_brandsUrl}/{b.Id}", new { code = "PUT-IGNORED-CHANGED", text = "Retained", isInactive = false }, requestModifier: r => r.WithIfMatch(b.ETag))
+            .AssertOK()
+            .Value!;
+
+        u.Code.Should().Be("PUT-IGNORED");
+        u.IsInactive.Should().BeTrue();
+        u.Text.Should().Be("Retained");
+    }
+
+    [Test]
+    public void Put_NoChanges()
+    {
+        var b = CreateBrand("PUT-NONE");
+
+        // Act/Assert - nothing changed so no event and the etag remains.
+        var u = Test.Http<Brand>()
+            .ExpectNoPostgresOutboxEvents()
+            .Run(HttpMethod.Put, $"{_brandsUrl}/{b.Id}", new { code = b.Code, text = b.Text, sortOrder = b.SortOrder }, requestModifier: r => r.WithIfMatch(b.ETag))
+            .AssertOK()
+            .Value!;
+
+        u.ETag.Should().Be(b.ETag);
+    }
+
+    #endregion
+
     #region Activate
 
     [Test]

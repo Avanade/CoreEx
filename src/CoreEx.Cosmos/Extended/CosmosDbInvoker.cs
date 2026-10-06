@@ -193,6 +193,9 @@ public class CosmosDbInvoker : InvokerBase<ICosmosDb, CosmosDbArgs>
                 // Retained (independent of the ambient scope, which is always cleared here) so IUnitOfWork.SynchronizeETag can resolve against it after this call returns.
                 unitOfWork.LastTransaction = txn;
                 unitOfWork.CosmosDb.UseTransaction(null);
+
+                // The batch may have caused any number of server-side effects, so no snapshot read within this unit-of-work can be trusted afterwards.
+                unitOfWork.CosmosDb.ChangeTracker.Clear();
             }
         }
     }

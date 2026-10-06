@@ -67,19 +67,20 @@ public partial class CosmosDbContainer<TModel>
             var partitionKey = CosmosDbModelOptions<TModel>.ToPartitionKey(partitionKeyValue);
             var id = Options.FormatIdentifier(Options.GetKeyFromModel(model));
 
-            // The CheckModel call above only validates the incoming model, which is always self-consistent - Model.PrepareUpdate stamps its ITenantId/ITypeDiscriminator from the caller's own execution
-            // context/type before the check runs - so it cannot detect that the PERSISTED document at this id/partition actually belongs to a different tenant, is logically deleted, fails an additive
-            // WithFilter authorization rule, or belongs to a different configured type. Unless none of those are configured (mirrors the equivalent Delete fast-path condition exactly), the existing
-            // document must be read and validated first via CheckModel(OperationType.Get) - a blind ReplaceItemAsync/batch enlistment has no other way to enforce them, since Cosmos DB replaces purely by
-            // id + partition key with no awareness of these concerns. A missing document surfaces as the same Result.NotFoundError() a subsequent ReplaceItemAsync 404 would have produced anyway (unlike
-            // Delete, a missing document is not treated as an idempotent no-op for Update). Note this only reads to validate isolation - the request's own ETag (captured below from the incoming model,
-            // not this pre-read) is what still governs optimistic concurrency for the replace itself.
-            if (!Options.LogicalDeleteSupport.IsNone || Options.TenantSupport.IsSupported || Options.HasFilters || Options.IsTypeDiscriminatorFilterEnabled)
-            {
-                var er = await GetWithResultInternalAsync(args, Options.GetKeyFromModel(model), partitionKey, memberName, treatNullAsNotFound: true, cancellationToken).ConfigureAwait(false);
-                if (er.IsFailure)
-                    return er.Bind();
-            }
+            // The existing (persisted) document is always read (a change tracker hit where already read within this scope) for the following reasons:
+            //  - The CheckModel call above only validates the incoming model, which is always self-consistent (Model.PrepareUpdate stamps its ITenantId/ITypeDiscriminator from the caller's own execution
+            //    context/type before the check runs), so it cannot detect that the PERSISTED document at this id/partition actually belongs to a different tenant, is logically deleted, fails an additive
+            //    WithFilter authorization rule, or belongs to a different configured type.
+            //  - The server-managed values (change-log created, additional properties not known to the model) must be copied back as a Cosmos DB replace overwrites the whole document.
+            //  - A no-op update (nothing but server-managed values differ) can be detected and skipped.
+            // A missing document surfaces as the same Result.NotFoundError() a subsequent ReplaceItemAsync 404 would have produced anyway (unlike Delete, a missing document is not treated as an idempotent no-op
+            // for Update). The request's own ETag (captured below from the incoming model, not this pre-read) is what still governs optimistic concurrency for the replace itself.
+            var er = await GetWithResultInternalAsync(args, Options.GetKeyFromModel(model), partitionKey, memberName, treatNullAsNotFound: true, cancellationToken).ConfigureAwait(false);
+            if (er.IsFailure)
+                return er.Bind();
+
+            var existing = er.Value!;
+            CopyServerManagedValues(existing, model);
 
             // Cosmos DB's native If-Match optimistic concurrency is enforced server-side (returns a 412 directly), unlike a relational/EF detached-entity comparison; the CosmosDbInvoker maps a 412 to a
             // ConcurrencyException/Result.ConcurrencyError automatically. Note: AutoMapETag only synthesizes an ItemRequestOptions when the caller has not already supplied one (args.ItemRequestOptions is
@@ -87,6 +88,13 @@ public partial class CosmosDbContainer<TModel>
             var options = BuildItemRequestOptions(args);
             if (options is null && args.AutoMapETag && model is IReadOnlyETag etag && !string.IsNullOrEmpty(etag.ETag))
                 options = new ItemRequestOptions { IfMatchEtag = etag.ETag };
+
+            // Skip the replace where nothing has changed - unless an ETag is being asserted that differs from the persisted one, in which case the server must be allowed to fail it (412) as it otherwise would. The ETags are compared
+            // normalized (quote-bookends stripped) as the persisted value is Cosmos DB's native quote-wrapped "_etag" whereas one arriving via an If-Match header has already been parsed.
+            if (AreEquivalent(existing, model) && (string.IsNullOrEmpty(options?.IfMatchEtag) || ETag.ParseETag(options.IfMatchEtag) == ETag.ParseETag((existing as IReadOnlyETag)?.ETag ?? string.Empty)))
+                return Result.Ok(new DataResult<TModel>(existing, false));
+
+            EvictFromChangeTracker(partitionKey, id);
 
             // Where an ambient CosmosDbUnitOfWork transaction is active, enlist (queue) rather than execute immediately - see CosmosDbUnitOfWork for the full deferred-execution/atomicity model. The model's
             // ETag is not yet final at this point (the batch has not executed) - see IUnitOfWork.SynchronizeETag for how a caller resolves the true, persisted ETag once the unit-of-work has committed.

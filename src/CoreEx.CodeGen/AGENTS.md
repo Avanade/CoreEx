@@ -62,7 +62,7 @@ entities:
 | | `None` | `CreateUpdate` | `CreateUpdateDelete` |
 |---|:-:|:-:|:-:|
 | List via `ReferenceDataController` (cached orchestrator) | ✅ | ✅ | ✅ |
-| `{Name}Controller`: GET `{id}`, POST (inactive), PATCH, POST `{id}/activate`, POST `{id}/deactivate` | — | ✅ | ✅ |
+| `{Name}Controller`: GET `{id}`, POST (inactive), PUT, PATCH, POST `{id}/activate`, POST `{id}/deactivate` | — | ✅ | ✅ |
 | DELETE `{id}` (204; active values rejected with 400 — deactivate first) | — | — | ✅ |
 | `IReferenceDataService`/`ReferenceDataService` methods, repository write ops, bidirectional mapper | — | ✅ | ✅ (+ delete) |
 | Events (`created/updated/activated/deactivated` `.v1`, `deleted`) + orchestrator cache invalidation | — | ✅ | ✅ |

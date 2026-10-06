@@ -36,6 +36,13 @@ public interface ICosmosDb
     CosmosDbOptions Options { get; }
 
     /// <summary>
+    /// Gets the scoped <see cref="CosmosDbChangeTracker"/> (snapshot cache of persisted documents read by point <b>Get</b> operations).
+    /// </summary>
+    /// <remarks>Cleared automatically when the root <see cref="CosmosDbUnitOfWork"/> transaction ends; use <see cref="CosmosDbChangeTracker.Clear"/> to do so explicitly (e.g. long-lived scopes or tests), or
+    /// <see cref="CosmosDbArgs.ClearChangeTrackerAfterGet"/> to opt a single call out.</remarks>
+    CosmosDbChangeTracker ChangeTracker { get; }
+
+    /// <summary>
     /// Gets the ambient ("current") <see cref="CosmosDbTransaction"/> for an active <see cref="CosmosDbUnitOfWork"/>, where one is in scope; otherwise, <see langword="null"/>.
     /// </summary>
     /// <remarks>Mirrors <c>IDatabase.CurrentTransaction</c> — <see cref="CosmosDbContainer{TModel}"/>'s Create/Update/Delete operations check this to transparently enlist into the ambient batch instead of

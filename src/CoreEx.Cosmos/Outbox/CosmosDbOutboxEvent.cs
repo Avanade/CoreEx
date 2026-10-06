@@ -51,5 +51,5 @@ public sealed class CosmosDbOutboxEvent : IIdentifier<string>, IPartitionKey, IT
     /// Gets or sets the additional properties bag.
     /// </summary>
     [JsonExtensionData]
-    public Dictionary<string, object?>? AdditionalProperties { get; set; }
+    public Dictionary<string, object?>? ExtensionData { get; set; }
 }

@@ -129,6 +129,7 @@ Generated per mutable entity into `{Name}Controller`, routed at the root `route`
 |---|---|---|---|
 | `GET {id}` | any mutable | 200 | Includes inactive items. |
 | `POST` | any mutable | 201 + `Location` | `[IdempotencyKey]`; generated `id`, always created **inactive**. |
+| `PUT {id}` | any mutable | 200 | Full replace; `If-Match` required (428 if absent); `id`, `code` and `isActive` in the body are ignored. |
 | `PATCH {id}` | any mutable | 200 | `application/merge-patch+json`; ETag-checked. |
 | `POST {id}/activate` | any mutable | 200 | No-op (no event, no cache invalidation) if already active. |
 | `POST {id}/deactivate` | any mutable | 200 | No-op if already inactive. |
@@ -138,7 +139,7 @@ The list endpoint continues to exclude inactive items unless `$inactive=true` is
 
 ### Runtime behaviour
 
-- **`code` is immutable** — update (PATCH — there is no PUT endpoint) keeps the existing `id`, `code` and active state; use activate/deactivate to change the latter.
+- **`code` is immutable** — update (PUT or PATCH) keeps the existing `id`, `code` and active state; use activate/deactivate to change the latter.
 - **Transactional** — each operation runs inside `IUnitOfWork.TransactionAsync`; the change and its outbox event commit atomically.
 - **Events** — added to the unit of work's outbox only when the operation actually changed something: `{domain}.{entity}.created.v1`, `.updated.v1`, `.activated.v1`, `.deactivated.v1` (carrying the value) and `.deleted` (key only).
 - **Cache** — after a successful mutation the service calls `ReferenceDataOrchestrator.Current.TryInvalidateAsync<T>()` (post-commit), so the next read reloads the collection (and, with a distributed cache, the shared entry is removed too). The try variant is awaited but best-effort: a cache failure is logged as a warning and does not fail the already-committed write; the stale entry then expires per its TTL. Use the strict `InvalidateAsync<T>()` only where an eviction failure must surface, and never invoke either inside the transaction.

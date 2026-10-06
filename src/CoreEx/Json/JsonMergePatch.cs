@@ -234,11 +234,7 @@ public sealed class JsonMergePatch(JsonMergePatchOptions? options = null)
             case JsonValueKind.Array:
                 // An array is always a replacement.
                 patch.WriteTo(writer);
-#if NET8_0
-                if (patch.GetArrayLength() != target.GetArrayLength() || !DeepEquals(patch, target))
-#else
-                if (patch.GetArrayLength() != target.GetArrayLength() || !JsonElement.DeepEquals(patch, target))
-#endif
+                if (!DeepEquals(patch, target))
                     changed = true;
 
                 break;
@@ -246,11 +242,7 @@ public sealed class JsonMergePatch(JsonMergePatchOptions? options = null)
             default:
                 // Accept merge as-is.
                 patch.WriteTo(writer);
-#if NET8_0
                 if (!DeepEquals(patch, target))
-#else
-                if (!JsonElement.DeepEquals(patch, target))
-#endif
                     changed = true;
 
                 break;
@@ -327,29 +319,36 @@ public sealed class JsonMergePatch(JsonMergePatchOptions? options = null)
         return false;
     }
 
-#if NET8_0
     /// <summary>
-    /// Provides a deep equals for two <see cref="JsonElement"/> instances.
+    /// Provides a deep equals for two <see cref="JsonElement"/> instances; property order is not significant, array order is, numbers are compared by value, and strings are compared after unescaping.
     /// </summary>
     /// <param name="left">The left <see cref="JsonElement"/>.</param>
     /// <param name="right">The right <see cref="JsonElement"/>.</param>
+    /// <remarks>This is deliberately a single implementation for all target frameworks, as <c>JsonElement.DeepEquals</c> is not available prior to .NET 9 and <c>JsonNode.DeepEquals</c> compares numbers by their raw text on .NET 8 but by value from .NET 9.</remarks>
     internal static bool DeepEquals(JsonElement left, JsonElement right)
     {
         if (left.ValueKind != right.ValueKind)
-        {
             return false;
-        }
 
         switch (left.ValueKind)
         {
+            case JsonValueKind.Undefined:
             case JsonValueKind.Null:
             case JsonValueKind.False:
             case JsonValueKind.True:
                 // These are the same by kind, so carry on!
                 return true;
 
-            case JsonValueKind.Number:
             case JsonValueKind.String:
+                return left.GetString() == right.GetString();
+
+            case JsonValueKind.Number:
+                if (left.TryGetDecimal(out var ld) && right.TryGetDecimal(out var rd))
+                    return ld == rd;
+
+                if (left.TryGetDouble(out var ldbl) && right.TryGetDouble(out var rdbl))
+                    return ldbl == rdbl;
+
                 return left.GetRawText() == right.GetRawText();
 
             case JsonValueKind.Array:
@@ -369,21 +368,17 @@ public sealed class JsonMergePatch(JsonMergePatchOptions? options = null)
             default:
                 foreach (var l in left.EnumerateObject())
                 {
-                    if (!right.TryGetProperty(l.Name, out var r))
-                    {
-                        if (!DeepEquals(l.Value, r))
-                            return false;
-                    }
+                    if (!right.TryGetProperty(l.Name, out var r) || !DeepEquals(l.Value, r))
+                        return false;
                 }
 
                 foreach (var r in right.EnumerateObject())
                 {
-                    if (!left.TryGetProperty(r.Name, out var _))
+                    if (!left.TryGetProperty(r.Name, out _))
                         return false;
                 }
 
                 return true;
         }
     }
-#endif
 }

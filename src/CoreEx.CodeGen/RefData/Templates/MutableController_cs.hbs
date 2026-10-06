@@ -42,8 +42,15 @@ public partial class {{Name}}Controller(CoreEx.AspNetCore.Mvc.WebApi webApi, IRe
     [ProducesNotFoundProblem()]
     public Task<IActionResult> PatchAsync({{IdDotNetType}} id, CancellationToken cancellationToken = default) => _webApi.PatchWithResultAsync<{{Name}}>(Request,
         get: (ro, ct) => _service.Get{{Name}}Async(id.Required(), ct),
-        put: (ro, ct) => _service.Update{{Name}}Async(id.Required(), ro.Value, ct),
+        put: (ro, ct) => _service.Update{{Name}}Async(id, ro.Value, ct),
         cancellationToken: cancellationToken);
+
+    [HttpPut("{id}")]
+    [Accepts<{{Name}}>]
+    [ProducesResponseType(typeof({{Name}}), 200)]
+    [ProducesNotFoundProblem()]
+    public Task<IActionResult> PutAsync({{IdDotNetType}} id, CancellationToken cancellationToken = default)
+        => _webApi.PutWithResultAsync<{{Name}}, {{Name}}>(Request, (ro, ct) => _service.Update{{Name}}Async(id.Required(), ro.Value, ct), cancellationToken: cancellationToken);
 
     [HttpPost("{id}/activate")]
     [ProducesResponseType(typeof({{Name}}), 200)]
