@@ -5,7 +5,7 @@ public partial class CustomerReadTests : WithApiTester<Contoso.Customers.Api.Pro
     [OneTimeSetUp]
     public async Task OneTimeSetUpAsync()
     {
-        await Test.DatabaseSetUpAsync("read-data.seed.yaml").ConfigureAwait(false);
+        await Test.MigrateCosmosDataAsync<TestData>(["read-data.seed.yaml"], Contoso.Customers.Database.Program.ConfigureProvisionArgs).ConfigureAwait(false);
         await Test.ClearFusionCacheAsync().ConfigureAwait(false);
     }
 }

@@ -211,6 +211,27 @@ await database.ImportBatchAsync(jdr);
 
 `ImportBatchAsync` calls `Container.CreateItemAsync` directly per item (no `CosmosDbContainer<TModel>` involved), so none of the usual cross-cutting pipeline runs - no ETag/tenant/logical-delete/type-discriminator handling, no `Model.PrepareCreate` stamping, no outbox enlistment. The caller's JSON must already carry the correct partition-key property value and (where relevant) type-discriminator value.
 
+### Provisioning engine & console (`CoreEx.Cosmos.Provisioning`)
+
+`CosmosDbProvisioner` + `CosmosDbConsole` are the Cosmos counterpart to DbEx's `*.Database` console - dev/test only (production provisioning is IaC's job):
+
+```csharp
+// Program.cs of a *.Database console project.
+public static Task<int> Main(string[] args) => CosmosDbConsole.Create<Program>(connectionString, "contoso").Configure(c => ConfigureProvisionArgs(c.Args)).RunAsync(args);
+
+public static CosmosDbProvisionArgs ConfigureProvisionArgs(CosmosDbProvisionArgs args) => args
+    .AddAssembly<Program>()
+    .Container("customers", configure: cp => { /* indexing policy etc. */ })
+    .ReferenceDataContainer("ref-data");```
+
+- Commands (comma-separable): `Drop`, `Create`, `Reset`, `Data`, `All` (Create+Data), `ResetAndData`, `DropAndAll` - run in the order Drop → Reset/Create → Data. Options: `-cs|--connection-string`, `-d|--database`.
+- **Data convention:** embedded resources in `Args.Assemblies` whose name contains `.Data.` and ends `.yaml|.yml|.json` are imported in ordinal order. Each top-level key **is the container id** and must match a declared container (otherwise it throws).
+- `ReferenceDataContainer` adds a unique key on `/typeDiscriminator` + `/code` and imports through `ImportDiscriminatedBatchAsync` (discriminator derived from the YAML key).
+- **Seed-data reader options are overridable** (`JsonDataReaderOptions`: standard properties, `TenantId`, parameters, `RootNodePreProcessor`, ...). Resolution per container per file: the data resource's factory (`AddDataResource(..., dataOptions)`; receives `CosmosDbDataContext`: resource name + container + naming convention) → the container's own `dataOptions` factory (`Container(..., dataOptions:)`/`ReferenceDataContainer(..., dataOptions:)`) → default (`CreateForReferenceData` for ref-data; otherwise a plain reader). A factory returning `null` defers to the next level. Factories must return a **new** instance each call (options are mutable/stateful). There is deliberately no args-level override (last-wins is hard to reason about across `Program.cs` and tests) and no `idGenerator`/`includeTenantId` shortcuts (use `JsonDataReaderOptions.CreateForReferenceData(...)` in a factory). Adding the same resource twice throws; a resource that is also found by the assembly `Data` scan is imported once using its options.
+- Loopback endpoints (the emulator) use Gateway mode with the certificate check relaxed; remote endpoints are untouched.
+- Container creation retries on 503/`HttpRequestException`. The emulator has a ~35 container cap, which also surfaces as a 503.
+- **Stale cache:** a `CosmosClient` that has cached a container/database that is then replaced or dropped+recreated can throw 404/1003 "stale cache" errors. Use a fresh client (and, in tests, a unique database id) after a reset; `UnitTestEx` glue `MigrateCosmosDataAsync<TAssembly>(...)` (CoreEx.UnitTesting) runs the provisioner (`ResetAndData`) using the host's own client.
+
 ## Do Not
 
 - Do not construct `CosmosClient` directly in application code — resolve it from DI (Aspire's `AddAzureCosmosClient`).

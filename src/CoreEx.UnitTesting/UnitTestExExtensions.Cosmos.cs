@@ -71,4 +71,60 @@ public static partial class UnitTestExExtensions
     /// </summary>
     private static bool IsTransientCosmosConnectionFailure(Exception exception) => exception is System.Net.Http.HttpRequestException or IOException or System.Net.Sockets.SocketException
         || exception.InnerException is not null && IsTransientCosmosConnectionFailure(exception.InnerException);
+
+    /// <summary>
+    /// Provisions (resets) the host's Cosmos DB database containers and imports the seed data using the <see cref="CosmosDbProvisioner"/>; the Cosmos DB equivalent of <c>MigratePostgresDataAsync</c>.
+    /// </summary>
+    /// <typeparam name="TAssembly">The <see cref="Type"/> to infer the <see cref="Assembly"/> containing the named <paramref name="resourceFileNames"/>; only these named resources are loaded from it (add the assembly holding the default <c>Data</c> folder resources using <see cref="CosmosDbProvisionArgs.AddAssembly(Assembly[])"/> within <paramref name="configure"/>).</typeparam>
+    /// <param name="tester">The <see cref="TesterBase"/>.</param>
+    /// <param name="resourceFileNames">The named resource files to include in the data loading; imported after the default <c>Data</c> folder resources.</param>
+    /// <param name="configure">An optional function to configure the <see cref="CosmosDbProvisionArgs"/> (e.g. to declare the containers).</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+    /// <remarks>The database is resolved using <see cref="GetCosmosDatabaseAsync(TesterBase, CancellationToken)"/> so the host's own <see cref="CosmosClient"/> and database identifier are used. The command is <see cref="CosmosDbProvisionCommand.ResetAndData"/>.</remarks>
+    public static async Task MigrateCosmosDataAsync<TAssembly>(this TesterBase tester, string[]? resourceFileNames = null, Func<CosmosDbProvisionArgs, CosmosDbProvisionArgs>? configure = null, CancellationToken cancellationToken = default)
+    {
+        var database = await tester.GetCosmosDatabaseAsync(cancellationToken).ConfigureAwait(false);
+        await ProvisionCosmosAsync<TAssembly>(database.Client, database.Id, resourceFileNames, configure, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Provisions (resets) the Cosmos DB database containers and imports the seed data using the <see cref="CosmosDbProvisioner"/>, using the specified <paramref name="aspireResourceName"/> to retrieve the connection string from the distributed application.
+    /// </summary>
+    /// <typeparam name="TAssembly">The <see cref="Type"/> to infer the <see cref="Assembly"/> containing the named <paramref name="resourceFileNames"/>; only these named resources are loaded from it (add the assembly holding the default <c>Data</c> folder resources using <see cref="CosmosDbProvisionArgs.AddAssembly(Assembly[])"/> within <paramref name="configure"/>).</typeparam>
+    /// <param name="app">The <see cref="DistributedApplication"/>.</param>
+    /// <param name="aspireResourceName">The name of the Aspire resource to retrieve the connection string for.</param>
+    /// <param name="databaseId">The <see cref="Database.Id"/>.</param>
+    /// <param name="resourceFileNames">The named resource files to include in the data loading; imported after the default <c>Data</c> folder resources.</param>
+    /// <param name="configure">An optional function to configure the <see cref="CosmosDbProvisionArgs"/> (e.g. to declare the containers).</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+    public static async Task MigrateCosmosDataAsync<TAssembly>(this DistributedApplication app, string aspireResourceName, string databaseId, string[]? resourceFileNames = null, Func<CosmosDbProvisionArgs, CosmosDbProvisionArgs>? configure = null, CancellationToken cancellationToken = default)
+    {
+        var cs = (await AspireTesterBase.GetConnectionStringAsync(app.ThrowIfNull(), aspireResourceName.ThrowIfNullOrEmpty()).ConfigureAwait(false)) ?? throw new InvalidOperationException($"The '{aspireResourceName}' connection string not found.");
+        using var client = CosmosDbClientFactory.Create(cs);
+        await ProvisionCosmosAsync<TAssembly>(client, databaseId, resourceFileNames, configure, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Runs the <see cref="CosmosDbProvisionCommand.ResetAndData"/> and throws including the captured output on failure.
+    /// </summary>
+    private static async Task ProvisionCosmosAsync<TAssembly>(CosmosClient client, string databaseId, string[]? resourceFileNames, Func<CosmosDbProvisionArgs, CosmosDbProvisionArgs>? configure, CancellationToken cancellationToken)
+    {
+        var output = new StringWriter();
+        var args = new CosmosDbProvisionArgs { DatabaseId = databaseId, Output = output };
+
+        if (configure is not null)
+            args = configure(args);
+
+        if (resourceFileNames is { Length: > 0 })
+            args.AddDataResource<TAssembly>(resourceFileNames);
+
+        try
+        {
+            await new CosmosDbProvisioner(client, args).RunAsync(CosmosDbProvisionCommand.ResetAndData, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException("CosmosDbProvisioner failed:" + Environment.NewLine + output + ex.Message, ex);
+        }
+    }
 }

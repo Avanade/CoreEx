@@ -33,6 +33,7 @@
   </Folder>
   <Folder Name="/samples/Customers/tools/">
     <Project Path="samples/src/Contoso.Customers.CodeGen/Contoso.Customers.CodeGen.csproj" />
+      <Project Path="samples/src/Contoso.Customers.Database/Contoso.Customers.Database.csproj" />
   </Folder>
   <Folder Name="/samples/docs/">
     <File Path="samples/docs/application-layer.md" />

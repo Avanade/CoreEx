@@ -2,6 +2,7 @@ global using CoreEx;
 global using CoreEx.Cosmos;
 global using CoreEx.Cosmos.Extended;
 global using CoreEx.Cosmos.Outbox;
+global using CoreEx.Cosmos.Provisioning;
 global using CoreEx.Data;
 global using CoreEx.Data.Json;
 global using CoreEx.Entities;

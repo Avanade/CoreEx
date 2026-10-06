@@ -3,7 +3,7 @@ namespace Contoso.Customers.Test.Api;
 public partial class HostTests : WithApiTester<Contoso.Customers.Api.Program>
 {
     [OneTimeSetUp]
-    public Task OneTimeSetUpAsync() => Test.DatabaseSetUpAsync();
+    public Task OneTimeSetUpAsync() => Test.MigrateCosmosDataAsync<TestData>(configure: Contoso.Customers.Database.Program.ConfigureProvisionArgs);
 
     [Test]
     public void Swagger_UI()

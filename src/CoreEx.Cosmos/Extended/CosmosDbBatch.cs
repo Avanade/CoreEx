@@ -101,38 +101,56 @@ public static class CosmosDbBatch
         database.ThrowIfNull();
         jsonDataReader.ThrowIfNull();
 
-        // RootNode is the raw, unsubstituted tree - only used here to discover the top-level container-id keys (and their child type-discriminator keys). Each is then re-resolved via
-        // TryCreateData so dynamic parameters (e.g. '^guid', '^1') are substituted the same way the explicit-path overload already does - walking RootNode's children directly would skip
-        // substitution entirely.
+        // RootNode is the raw, unsubstituted tree - only used here to discover the top-level container-id keys; each is then re-resolved (with substitution) by the per-container overload.
         if (jsonDataReader.RootNode is not JsonObject root)
             return;
+
+        foreach (var containerId in root.Select(kvp => kvp.Key).ToList())
+        {
+            await ImportDiscriminatedBatchAsync(database.GetContainer(containerId), jsonDataReader, containerId, sequential, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>
+    /// Imports (creates) the discriminated data found at the top-level <paramref name="path"/> of the <paramref name="jsonDataReader"/> into the <paramref name="container"/>, treating each child
+    /// property name as an <see cref="ITypeDiscriminator.TypeDiscriminator"/> value.
+    /// </summary>
+    /// <param name="container">The <see cref="Container"/>.</param>
+    /// <param name="jsonDataReader">The <see cref="JsonDataReader"/>.</param>
+    /// <param name="path">The top-level property name whose array value is shaped as <c>[{ Person: [...] }, { Organization: [...] }]</c>.</param>
+    /// <param name="sequential">Indicates whether the items are created sequentially rather than in parallel; defaults to <see langword="false"/>.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+    /// <returns><see langword="true"/> indicates that the <paramref name="path"/> was found and processed; otherwise, <see langword="false"/>.</returns>
+    /// <remarks>Each item is created individually and is not transactional - a partial failure part-way through leaves the already-created items in place.</remarks>
+    public static async Task<bool> ImportDiscriminatedBatchAsync(this Container container, JsonDataReader jsonDataReader, string path, bool sequential = false, CancellationToken cancellationToken = default)
+    {
+        container.ThrowIfNull();
+        jsonDataReader.ThrowIfNull();
+        path.ThrowIfNullOrEmpty();
+
+        // RootNode is the raw, unsubstituted tree - only used here to discover the child type-discriminator keys. Each is then re-resolved via TryCreateData so dynamic parameters
+        // (e.g. '^guid', '^1') are substituted the same way the explicit-path overload already does - walking RootNode's children directly would skip substitution entirely.
+        if (jsonDataReader.RootNode is not JsonObject root || root[path] is not JsonArray containerArray)
+            return false;
 
         var typeDiscriminatorProperty = jsonDataReader.Options.ConvertPropertyName(nameof(ITypeDiscriminator.TypeDiscriminator))!;
         var hadExistingTypeDiscriminatorProperty = jsonDataReader.Options.Properties.TryGetValue(typeDiscriminatorProperty, out var existingTypeDiscriminatorValue);
 
         try
         {
-            foreach (var containerId in root.Select(kvp => kvp.Key).ToList())
+            // Only single-key objects (see also RootNodePreProcessor's identical convention for the '{ code: text }' shorthand) are treated as '$^TypeName'-style discriminator group markers - any
+            // other shape found in the same array (e.g. a flat, already-fully-formed document) is ignored here rather than silently misread as a bogus discriminator.
+            var discriminators = containerArray.OfType<JsonObject>().Where(jo => jo.Count == 1).SelectMany(jo => jo.Select(kvp => kvp.Key)).Distinct().ToList();
+
+            foreach (var discriminator in discriminators)
             {
-                if (root[containerId] is not JsonArray containerArray)
+                // The discriminator key may be prefixed with '$' and/or '^' to signify additional behaviors as a JSON property name; strip these before use as the actual property value in the resulting document.
+                jsonDataReader.Options.Properties[typeDiscriminatorProperty] = discriminator.TrimStart('$', '^');
+
+                if (!jsonDataReader.TryCreateData($"{path}.{discriminator}", out var node) || node is not JsonArray array)
                     continue;
 
-                var container = database.GetContainer(containerId);
-
-                // Only single-key objects (see also RootNodePreProcessor's identical convention for the '{ code: text }' shorthand) are treated as '$^TypeName'-style discriminator group markers - any
-                // other shape found in the same array (e.g. a flat, already-fully-formed document) is ignored here rather than silently misread as a bogus discriminator.
-                var discriminators = containerArray.OfType<JsonObject>().Where(jo => jo.Count == 1).SelectMany(jo => jo.Select(kvp => kvp.Key)).Distinct().ToList();
-
-                foreach (var discriminator in discriminators)
-                {
-                    // The discriminator key may be prefixed with '$' and/or '^' to signify additional behaviors as a JSON property name; strip these before use as the actual property value in the resulting document.
-                    jsonDataReader.Options.Properties[typeDiscriminatorProperty] = discriminator.TrimStart('$', '^');
-
-                    if (!jsonDataReader.TryCreateData($"{containerId}.{discriminator}", out var node) || node is not JsonArray array)
-                        continue;
-
-                    await ImportBatchAsync(container, array, sequential, cancellationToken).ConfigureAwait(false);
-                }
+                await ImportBatchAsync(container, array, sequential, cancellationToken).ConfigureAwait(false);
             }
         }
         finally
@@ -144,5 +162,7 @@ public static class CosmosDbBatch
             else
                 jsonDataReader.Options.Properties.Remove(typeDiscriminatorProperty);
         }
+
+        return true;
     }
 }

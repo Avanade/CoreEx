@@ -20,6 +20,7 @@
     <ProjectReference Include="..\..\..\src\CoreEx.UnitTesting\CoreEx.UnitTesting.csproj" />
     <ProjectReference Include="..\..\src\Contoso.Customers.Api\Contoso.Customers.Api.csproj" />
     <ProjectReference Include="..\Contoso.Customers.Test.Common\Contoso.Customers.Test.Common.csproj" />
+    <ProjectReference Include="..\..\src\Contoso.Customers.Database\Contoso.Customers.Database.csproj" />
   </ItemGroup>
 
   <ItemGroup>

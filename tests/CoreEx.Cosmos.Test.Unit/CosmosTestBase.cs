@@ -16,7 +16,13 @@ public abstract class CosmosTestBase
     /// <summary>
     /// Gets the shared <see cref="CosmosClient"/> (Gateway mode, pointed at the local emulator, accepting its self-signed certificate).
     /// </summary>
-    protected static CosmosClient Client => _client ??= new CosmosClient(Endpoint, Key, new CosmosClientOptions
+    protected static CosmosClient Client => _client ??= CreateClient();
+
+    /// <summary>
+    /// Creates a new, independent <see cref="CosmosClient"/> (own metadata caches) configured as per <see cref="Client"/>; the caller owns (and must dispose) it.
+    /// </summary>
+    /// <remarks>Useful where a test drops/replaces databases or containers, as a client that has cached the replaced resource can otherwise surface stale-cache failures.</remarks>
+    protected static CosmosClient CreateClient() => new(Endpoint, Key, new CosmosClientOptions
     {
         ConnectionMode = ConnectionMode.Gateway,
         HttpClientFactory = () => new HttpClient(new HttpClientHandler { ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator }),

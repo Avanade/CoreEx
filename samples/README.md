@@ -97,7 +97,7 @@ See [Patterns](docs/patterns.md) for the full catalog of architectural patterns 
 |---|---|
 | `src/Contoso.Products.*` | Products domain — Contracts, Application, Infrastructure, API, Relay, Subscribe, CodeGen, Database |
 | `src/Contoso.Shopping.*` | Shopping domain — same layer split plus Domain aggregate |
-| `src/Contoso.Customers.*` | Customers domain (Cosmos DB) — Contracts, Application, Infrastructure, API, CodeGen; no Relay/Subscribe/Database project (schemaless, code-first containers) |
+| `src/Contoso.Customers.*` | Customers domain (Cosmos DB) — Contracts, Application, Infrastructure, API, CodeGen, Database (Cosmos provisioning console); no Relay/Subscribe project |
 | `src/Contoso.Orders.*` | Orders domain (work in progress) |
 | `aspire/Contoso.Aspire` | Aspire AppHost — orchestrates all hosts for local development and E2E validation |
 | `tests/Contoso.*.Test.*` | Unit, API, Relay, and Subscribe test projects per domain |
@@ -141,7 +141,7 @@ dotnet run --project samples/src/Contoso.Shopping.Database -- All
 dotnet run --project samples/src/Contoso.Orders.Database   -- All
 ```
 
-> Customers (Cosmos DB) has no `*.Database` project — it is schemaless, and its containers are created/reset code-first at test/run time via `ReplaceOrCreateContainerAsync` (see [`Contoso.Customers.Test.Api/DatabaseSetUp.cs`](tests/Contoso.Customers.Test.Api/DatabaseSetUp.cs)); no separate migration step is required.
+> Customers (Cosmos DB) is schemaless, so `Contoso.Customers.Database` is not a schema migration tool: it declares the containers and seed data and runs them through the reusable `CoreEx.Cosmos.Provisioning` console (`dotnet run --project samples/src/Contoso.Customers.Database -- ResetAndData`). Tests reuse the same definition via `Test.MigrateCosmosDataAsync<TestData>(...)`.
 
 > The E2E runner's **Database Migration and Base Data Refresh** option can also apply pending migrations across all domains without restarting hosts. See [Aspire & E2E](docs/aspire.md) for details.
 

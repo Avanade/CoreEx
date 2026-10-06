@@ -9,6 +9,7 @@ global using CoreEx;
 global using CoreEx.Azure.Messaging.ServiceBus;
 global using CoreEx.Cosmos;
 global using CoreEx.Cosmos.Outbox;
+global using CoreEx.Cosmos.Provisioning;
 global using CoreEx.Data;
 global using CoreEx.Data.Json;
 global using CoreEx.Database.Postgres.Outbox;
