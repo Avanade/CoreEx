@@ -125,6 +125,8 @@ jobs:
         until curl -ksf https://localhost:8081/_explorer/emulator.pem -o /dev/null; do
           echo "Waiting for the Cosmos emulator..."; sleep 10
         done
+        # The certificate endpoint answers before the emulator's partitions are ready; it has crashed (SIGHUP) when hit by the first tests too early.
+        sleep 60
 
     - name: Test samples
       run: dotnet test CoreEx.Samples.Test.slnf --no-build --configuration Release --logger trx --collect "XPlat Code Coverage" --results-directory coverage/samples -m:1 -p:TestTfmsInParallel=false -p:BuildInParallel=false

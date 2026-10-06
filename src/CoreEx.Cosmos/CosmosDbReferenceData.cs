@@ -150,6 +150,8 @@ public static class CosmosDbReferenceData
         if (existing.Value.IsActive)
             return Result<DataResult>.Fail("An active reference data value cannot be deleted.", c => c.WithErrorCode("cannot-delete-active"));
 
-        return await container.DeleteWithResultAsync(CompositeKey.Create(id), cancellationToken).ConfigureAwait(false);
+        // Carry the ETag of the read above so that a concurrent change (e.g. activation) results in a precondition failure rather than deleting an item that is no longer inactive.
+        var args = container.Args with { ItemRequestOptions = new ItemRequestOptions { IfMatchEtag = existing.Value.ETag } };
+        return await container.DeleteWithResultAsync(args, CompositeKey.Create(id), cancellationToken).ConfigureAwait(false);
     }
 }

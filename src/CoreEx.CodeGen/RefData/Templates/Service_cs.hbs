@@ -99,7 +99,7 @@ public partial class ReferenceDataService : IReferenceDataService
                 return Result.GoAsync(() => create(value, ct))
                     .ThenAs(dr => dr.WhereMutatedAnd(v => _unitOfWork.Events.Add(EventData.CreateEventWith(v, EventAction.Created))));
             }, cancellationToken))
-            .ThenAsAsync(dr => RefreshAsync(dr, refresh, cancellationToken))
+            .ThenAsAsync(dr => RefreshAsync(dr, refresh))
             .ThenAsAsync(dr => dr.WhereMutatedAsync((v, ct) => ReferenceDataOrchestrator.Current.TryInvalidateAsync<TRef>(ct), cancellationToken));
 
     /// <summary>
@@ -122,7 +122,7 @@ public partial class ReferenceDataService : IReferenceDataService
                 return Result.GoAsync(() => update(id, value, ct))
                     .ThenAs(dr => dr.WhereMutatedAnd(v => _unitOfWork.Events.Add(EventData.CreateEventWith(v, EventAction.Updated))));
             }, cancellationToken))
-            .ThenAsAsync(dr => RefreshAsync(dr, refresh, cancellationToken))
+            .ThenAsAsync(dr => RefreshAsync(dr, refresh))
             .ThenAsAsync(dr => dr.WhereMutatedAsync((v, ct) => ReferenceDataOrchestrator.Current.TryInvalidateAsync<TRef>(ct), cancellationToken));
 
     /// <summary>
@@ -145,7 +145,7 @@ public partial class ReferenceDataService : IReferenceDataService
                 return Result.GoAsync(() => activate(id, ct))
                     .ThenAs(dr => dr.WhereMutatedAnd(v => _unitOfWork.Events.Add(EventData.CreateEventWith(v, EventAction.Activated))));
             }, cancellationToken))
-            .ThenAsAsync(dr => RefreshAsync(dr, refresh, cancellationToken))
+            .ThenAsAsync(dr => RefreshAsync(dr, refresh))
             .ThenAsAsync(dr => dr.WhereMutatedAsync((v, ct) => ReferenceDataOrchestrator.Current.TryInvalidateAsync<TRef>(ct), cancellationToken));
 
     /// <summary>
@@ -168,19 +168,28 @@ public partial class ReferenceDataService : IReferenceDataService
                 return Result.GoAsync(() => deactivate(id, ct))
                     .ThenAs(dr => dr.WhereMutatedAnd(v => _unitOfWork.Events.Add(EventData.CreateEventWith(v, EventAction.Deactivated))));
             }, cancellationToken))
-            .ThenAsAsync(dr => RefreshAsync(dr, refresh, cancellationToken))
+            .ThenAsAsync(dr => RefreshAsync(dr, refresh))
             .ThenAsAsync(dr => dr.WhereMutatedAsync((v, ct) => ReferenceDataOrchestrator.Current.TryInvalidateAsync<TRef>(ct), cancellationToken));
 
     /// <summary>
     /// Re-gets the mutated reference data using the <paramref name="refresh"/> function (where specified) so that the final persisted <see cref="IReferenceData.ETag"/> is returned.
     /// </summary>
-    private static async Task<Result<DataResult<TRef>>> RefreshAsync<TRef>(DataResult<TRef> dr, Func<TRef, CancellationToken, Task<Result<TRef>>>? refresh, CancellationToken cancellationToken)
+    /// <remarks>This occurs after the mutation has been committed, so it is deliberately not cancellable and a refresh failure is swallowed; i.e. it must never turn a committed success into an error, which would encourage a retry of a completed operation (the ETag is then simply as per the mutation).</remarks>
+    private static async Task<Result<DataResult<TRef>>> RefreshAsync<TRef>(DataResult<TRef> dr, Func<TRef, CancellationToken, Task<Result<TRef>>>? refresh)
         where TRef : class, IReferenceData
     {
         if (refresh is null || !dr.WasMutated)
             return dr;
 
-        return (await refresh(dr.Value, cancellationToken).ConfigureAwait(false)).ThenAs(v => new DataResult<TRef>(v, true));
+        try
+        {
+            var r = await refresh(dr.Value, CancellationToken.None).ConfigureAwait(false);
+            return r.IsSuccess ? new DataResult<TRef>(r.Value, true) : dr;
+        }
+        catch (Exception)
+        {
+            return dr;
+        }
     }
     /// <summary>
     /// Deletes the reference data of type <typeparamref name="TRef"/> using the specified <paramref name="delete"/>.

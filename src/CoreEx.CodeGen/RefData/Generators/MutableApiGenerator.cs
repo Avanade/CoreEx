@@ -6,5 +6,5 @@ namespace CoreEx.CodeGen.RefData.Generators;
 public class MutableApiGenerator : CodeGeneratorBase<CodeGenConfig, EntityConfig>
 {
     /// <inheritdoc/>
-    protected override IEnumerable<EntityConfig> SelectGenConfig(CodeGenConfig config) => (config.ApiDirectory?.Exists ?? false) ? config.EntitiesThatAreMutable ?? [] : [];
+    protected override IEnumerable<EntityConfig> SelectGenConfig(CodeGenConfig config) => (config.ApiDirectory?.Exists ?? false) ? config.EntitiesThatAreMutable?.Where(x => !(x.ExcludeApi ?? false)) ?? [] : [];
 }
