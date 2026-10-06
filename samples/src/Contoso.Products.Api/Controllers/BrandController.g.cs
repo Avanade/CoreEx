@@ -20,14 +20,14 @@ public partial class BrandController(CoreEx.AspNetCore.Mvc.WebApi webApi, IRefer
     [HttpGet("{id}"), HttpHead("{id}")]
     [ProducesResponseType(typeof(Brand), 200)]
     [ProducesNotFoundProblem()]
-    public Task<IActionResult> GetAsync(string id,CancellationToken cancellationToken)
+    public Task<IActionResult> GetAsync(string id, CancellationToken cancellationToken = default)
         => _webApi.GetWithResultAsync(Request, (_, ct) => _service.GetBrandAsync(id.Required(), ct), cancellationToken: cancellationToken);
 
     [HttpPost]
     [Accepts<Brand>]
     [ProducesResponseType<Brand>(201)]
     [IdempotencyKey]
-    public Task<IActionResult> CreateAsync(CancellationToken cancellationToken) => _webApi.PostWithResultAsync<Brand, Brand>(Request, (ro, ct) =>
+    public Task<IActionResult> CreateAsync(CancellationToken cancellationToken = default) => _webApi.PostWithResultAsync<Brand, Brand>(Request, (ro, ct) =>
     {
         ro.WithLocationUri(v => new Uri($"/api/refdata/brands/{v.Id}", UriKind.Relative));
         return _service.CreateBrandAsync(ro.Value, ct);

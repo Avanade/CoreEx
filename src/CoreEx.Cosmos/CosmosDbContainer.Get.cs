@@ -96,8 +96,8 @@ public partial class CosmosDbContainer<TModel>
             var serializerOptions = ChangeTrackerSerializerOptions;
             var tracker = CosmosDb.ChangeTracker;
 
-            // Serve from the change tracker snapshot (a fresh instance each time) unless bypassed; CheckModel is always re-run as the args (e.g. filters) can differ per call.
-            if (serializerOptions is not null && !args.ClearChangeTrackerAfterGet && tracker.TryGet<TModel>(serializerOptions, Container.Id, partitionKey, id, out var tracked))
+            // Serve from the change tracker snapshot (a fresh instance each time) unless bypassed (refresh, or caller-supplied ItemRequestOptions such as a conditional read or consistency/session option, which must reach Cosmos DB); CheckModel is always re-run as the args (e.g. filters) can differ per call.
+            if (serializerOptions is not null && !args.ClearChangeTrackerAfterGet && args.ItemRequestOptions is null && tracker.TryGet<TModel>(serializerOptions, Container.Id, partitionKey, id, out var tracked))
                 return CheckModel(args, tracked, OperationType.Get, treatNullAsNotFound);
 
             try

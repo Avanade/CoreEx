@@ -60,11 +60,13 @@ public class RelayTests : WithApiTester<Contoso.Shopping.Relay.Program>
                 pub.Add("contoso-products", [ce1, ce2]);
                 await pub.PublishAsync();
 
-                for (int i = 0; i < 5; i++)
+                // Poll (rather than sleep a fixed time) as the hosted-service relay latency varies; receive the messages from the queue and assert. The relay uses the persisted destination so needs no destination provider.
+                var list = new List<Azure.Messaging.ServiceBus.ServiceBusReceivedMessage>();
+                for (int i = 0; i < 30 && list.Count < 2; i++)
+                {
                     await Task.Delay(TimeSpan.FromSeconds(1));
-
-                // Receive the messages from the queue and assert; the relay uses the persisted destination so needs no destination provider.
-                var list = await Test.GetAndClearAzureServiceBusAsync(ServiceBusSessionReceiverOptions.CreateForQueue("contoso-products"));
+                    list.AddRange(await Test.GetAndClearAzureServiceBusAsync(ServiceBusSessionReceiverOptions.CreateForQueue("contoso-products")));
+                }
 
                 list.Should().NotBeNull().And.HaveCount(2);
                 list.Should().ContainSingle(x => x.MessageId == ce1.Id);

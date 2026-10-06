@@ -23,14 +23,14 @@ public partial class {{Name}}Controller(CoreEx.AspNetCore.Mvc.WebApi webApi, IRe
     [HttpGet("{id}"), HttpHead("{id}")]
     [ProducesResponseType(typeof({{Name}}), 200)]
     [ProducesNotFoundProblem()]
-    public Task<IActionResult> GetAsync({{IdDotNetType}} id,CancellationToken cancellationToken)
+    public Task<IActionResult> GetAsync({{IdDotNetType}} id, CancellationToken cancellationToken = default)
         => _webApi.GetWithResultAsync(Request, (_, ct) => _service.Get{{Name}}Async(id.Required(), ct), cancellationToken: cancellationToken);
 
     [HttpPost]
     [Accepts<{{Name}}>]
     [ProducesResponseType<{{Name}}>(201)]
     [IdempotencyKey]
-    public Task<IActionResult> CreateAsync(CancellationToken cancellationToken) => _webApi.PostWithResultAsync<{{Name}}, {{Name}}>(Request, (ro, ct) =>
+    public Task<IActionResult> CreateAsync(CancellationToken cancellationToken = default) => _webApi.PostWithResultAsync<{{Name}}, {{Name}}>(Request, (ro, ct) =>
     {
         ro.WithLocationUri(v => new Uri($"{{Root.Route}}/{{Route}}/{v.Id}", UriKind.Relative));
         return _service.Create{{Name}}Async(ro.Value, ct);
