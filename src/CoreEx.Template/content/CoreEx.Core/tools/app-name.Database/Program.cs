@@ -73,9 +73,11 @@ public class Program
     public static CosmosDbProvisionArgs ConfigureProvisionArgs(CosmosDbProvisionArgs args) => args
         .AddAssembly<Program>()   // Program = this project's embedded data. REQUIRED — the tests call ConfigureProvisionArgs directly (not via Main), so the Database assembly must be added here. Do not remove.
 // #if refdata-enabled
-        .ReferenceDataContainer("ref-data");   // Add further containers here (using Container(...)), including any indexing policy required.
-// #else
-        ;   // Add containers here (using Container(...)), including any indexing policy required.
+        .ReferenceDataContainer("ref-data")
 // #endif
+// #if outbox-enabled
+        .OutboxLeaseContainer()   // The Change Feed Processor lease container shared by the Relay host(s); the relay never creates it (see AddCosmosDbOutboxRelayHostedService).
+// #endif
+        ;   // Add further containers here (using Container(...)), including any indexing policy required.
 }
 // #endif

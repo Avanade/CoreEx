@@ -17,7 +17,8 @@ public static class CoreExCosmosOutboxExtensions
     /// <param name="servicesCount">The number of hosted services to start to enable concurrency of processing for this <paramref name="containerId"/> (each gets its own Change Feed Processor instance, sharing
     /// the same lease container for coordination). Where not specified, attempts to get the value from configuration using '<c>CoreEx:Host:Services:CosmosOutboxRelay:{containerId}:ServicesCount</c>' as the
     /// key (namespaced by <paramref name="containerId"/> so different containers can have independent concurrency); otherwise, defaults to '<c>4</c>'.</param>
-    /// <param name="leaseContainerId">The lease <see cref="Container"/> identifier; where not specified, defaults to <c>"{containerId}-leases"</c>.</param>
+    /// <param name="leaseContainerId">The lease <see cref="Container"/> identifier; where not specified, defaults to <see cref="CosmosDbOutboxRelayOptions.DefaultLeaseContainerId"/> (a single container shared by all relays). The relay never creates it - it must
+    /// already exist (see <c>CosmosDbProvisionArgs.OutboxLeaseContainer</c>), otherwise starting the relay fails.</param>
     /// <param name="serviceKeyPrefix">The keyed singleton and health check key prefix, and the basis for each instance's distinct Change Feed Processor instance name; where not specified, defaults to
     /// <c>"cosmos-outbox-relay-{containerId}-"</c>.</param>
     /// <param name="configureOptions">An optional action to configure each <see cref="CosmosDbOutboxRelayOptions"/> instance before its <see cref="CosmosDbOutboxRelay"/> is built.</param>
@@ -41,7 +42,7 @@ public static class CoreExCosmosOutboxExtensions
         servicesCount ??= CoreEx.Abstractions.Internal.GetConfigurationValue<int>($"CoreEx:Host:Services:CosmosOutboxRelay:{containerId}:ServicesCount", 4, builder.Configuration);
         servicesCount.ThrowWhen(c => c <= 0 || c > 32);
 
-        leaseContainerId ??= $"{containerId}-leases";
+        leaseContainerId ??= CosmosDbOutboxRelayOptions.DefaultLeaseContainerId;
         serviceKeyPrefix ??= $"cosmos-outbox-relay-{containerId}-";
 
         for (var i = 0; i < servicesCount; i++)

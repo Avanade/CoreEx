@@ -28,6 +28,7 @@ public class Program
     /// <returns>The <paramref name="args"/>.</returns>
     public static CosmosDbProvisionArgs ConfigureProvisionArgs(CosmosDbProvisionArgs args) => args
         .AddAssembly<Program>()
+        .OutboxLeaseContainer()
         .Container("customers", configure: cp =>
         {
             // CustomerQueryArgsConfig's "LastName" order-by field is configured WithAlwaysInclude() (always appended, in its own default ascending direction, regardless of what the caller actually

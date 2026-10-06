@@ -158,6 +158,19 @@ public class CosmosDbProvisionArgs
         => Add(new CosmosDbContainerDefinition(id, partitionKeyPath, true, configure, dataOptions));
 
     /// <summary>
+    /// Declares the Change Feed Processor lease container shared by the outbox relay(s) (see <c>AddCosmosDbOutboxRelayHostedService</c>).
+    /// </summary>
+    /// <param name="leaseContainerId">The lease <see cref="Container.Id"/>; where not specified, defaults to <see cref="CosmosDbOutboxRelayOptions.DefaultLeaseContainerId"/> (the same default used by the relay).</param>
+    /// <param name="configure">An optional action to further configure the <see cref="ContainerProperties"/>.</param>
+    /// <returns>The <see cref="CosmosDbProvisionArgs"/> to support fluent-style method-chaining.</returns>
+    /// <remarks>The outbox relay never creates its lease container; it fails fast where it does not exist. Creating a container is a control-plane operation that a production host identity (e.g. Entra ID data-plane RBAC)
+    /// is not expected to be permitted, so it must be provisioned up front - here (for dev/test/CI and admin-run migrations) or via infrastructure-as-code. The lease container is partitioned on <c>/id</c> (the Change Feed Processor's
+    /// own lease-document convention), and is created, reset and dropped (as part of the database) with the other declared containers. A single lease container is safely shared by all relays (each Change Feed Processor
+    /// is uniquely named per monitored container, and leases are further scoped to the monitored container's resource identity).</remarks>
+    public CosmosDbProvisionArgs OutboxLeaseContainer(string? leaseContainerId = null, Action<ContainerProperties>? configure = null)
+        => Add(new CosmosDbContainerDefinition(leaseContainerId ?? CosmosDbOutboxRelayOptions.DefaultLeaseContainerId, "/id", false, configure, null, true));
+
+    /// <summary>
     /// Adds the <paramref name="definition"/> to the declared <see cref="Containers"/>.
     /// </summary>
     private CosmosDbProvisionArgs Add(CosmosDbContainerDefinition definition)

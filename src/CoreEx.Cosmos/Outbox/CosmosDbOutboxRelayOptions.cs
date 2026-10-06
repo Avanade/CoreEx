@@ -13,14 +13,13 @@ public sealed class CosmosDbOutboxRelayOptions
     /// <summary>
     /// Gets or sets the lease <see cref="Container"/> identifier.
     /// </summary>
+    /// <remarks>The container must already exist (partitioned on <c>/id</c>); the relay never creates it. See <c>CosmosDbProvisionArgs.OutboxLeaseContainer</c>.</remarks>
     public required string LeaseContainerId { get; init; }
 
     /// <summary>
-    /// Gets or sets the manually provisioned throughput (RU/s) to request when the <see cref="LeaseContainerId"/> container does not already exist and is auto-provisioned by <see cref="CosmosDbOutboxRelay"/>;
-    /// where not specified, no throughput is requested (the account/database default applies - e.g. serverless, or a database-level shared throughput).
+    /// The default lease <see cref="Container"/> identifier (<c>$outbox-leases</c>); a single container shared by all outbox relays (processors are uniquely named per monitored container).
     /// </summary>
-    /// <remarks>Only consulted the first time a given <see cref="LeaseContainerId"/> is auto-provisioned - see <see cref="CosmosDbOutboxRelay"/>'s constructor remarks.</remarks>
-    public int? LeaseContainerThroughput { get; set; }
+    public const string DefaultLeaseContainerId = "$outbox-leases";
 
     /// <summary>
     /// Gets or sets the Change Feed Processor instance name; must be distinct per concurrently-running instance for the same <see cref="ContainerId"/>/<see cref="LeaseContainerId"/> pair.

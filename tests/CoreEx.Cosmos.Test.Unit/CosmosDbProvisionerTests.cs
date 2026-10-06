@@ -70,6 +70,48 @@ public class CosmosDbProvisionerTests : CosmosTestBase
     }
 
     [Test]
+    public async Task OutboxLeaseContainer_Create_IsProvisionedAndLogged()
+    {
+        var output = new StringWriter();
+        var args = CreateArgs(output).OutboxLeaseContainer();
+        args.Containers.Single(x => x.IsOutboxLease).Id.Should().Be(CosmosDbOutboxRelayOptions.DefaultLeaseContainerId).And.Be("$outbox-leases");
+
+        var p = CreateProvisioner(args);
+        await p.RunAsync(CosmosDbProvisionCommand.Create);
+
+        var lease = await Client.GetContainer(DatabaseId, "$outbox-leases").ReadContainerAsync();
+        lease.Resource.PartitionKeyPath.Should().Be("/id");
+        output.ToString().Should().Contain($"Outbox lease container '$outbox-leases' created.");
+
+        output.GetStringBuilder().Clear();
+        await p.RunAsync(CosmosDbProvisionCommand.Create);
+        output.ToString().Should().Contain("already exists and therefore not created.");
+    }
+
+    [Test]
+    public async Task OutboxLeaseContainer_Reset_IsReplacedAndLogged()
+    {
+        var output = new StringWriter();
+        var p = CreateProvisioner(CreateArgs(output).OutboxLeaseContainer());
+        await p.RunAsync(CosmosDbProvisionCommand.Create);
+        var lease = Client.GetContainer(DatabaseId, "$outbox-leases");
+        await lease.CreateItemAsync(new { id = "lease1" }, new PartitionKey("lease1"));
+
+        await p.RunAsync(CosmosDbProvisionCommand.Reset);
+
+        using var iterator = lease.GetItemQueryIterator<int>("SELECT VALUE COUNT(1) FROM c");
+        (await iterator.ReadNextAsync()).Single().Should().Be(0);
+        output.ToString().Should().Contain($"Outbox lease container '$outbox-leases' replaced (empty).");
+    }
+
+    [Test]
+    public void OutboxLeaseContainer_CustomId_AndDuplicate()
+    {
+        new CosmosDbProvisionArgs().OutboxLeaseContainer("custom").Containers.Single().Id.Should().Be("custom");
+        FluentActions.Invoking(() => new CosmosDbProvisionArgs().OutboxLeaseContainer().Container("$outbox-leases")).Should().Throw<InvalidOperationException>();
+    }
+
+    [Test]
     public async Task Reset_EmptiesContainers()
     {
         var p = CreateProvisioner(CreateArgs());

@@ -1,1 +1,1 @@
-﻿await WireMockConsole.RunAsync(settings => WireMockServer.Start(settings));
+await WireMockConsole.RunAsync(settings => WireMockServer.Start(settings));

@@ -9,7 +9,8 @@ namespace CoreEx.Cosmos.Provisioning;
 /// <param name="configure">An optional action to further configure the <see cref="ContainerProperties"/> (e.g. indexing policy, unique keys, time-to-live).</param>
 /// <param name="dataOptions">An optional factory for the <see cref="JsonDataReaderOptions"/> used to import this container's seed data; a new instance must be returned on each invocation (the options are mutable and may be stateful).
 /// Returning <see langword="null"/> uses the default (<see cref="JsonDataReaderOptions.CreateForReferenceData"/> for <paramref name="isReferenceData"/>; otherwise, a plain <see cref="JsonDataReaderOptions"/>).</param>
-public sealed class CosmosDbContainerDefinition(string id, string partitionKeyPath, bool isReferenceData = false, Action<ContainerProperties>? configure = null, Func<CosmosDbDataContext, JsonDataReaderOptions?>? dataOptions = null)
+/// <param name="isOutboxLease">Indicates that this container is the Change Feed Processor lease container shared by the outbox relay(s) (see <see cref="IsOutboxLease"/>).</param>
+public sealed class CosmosDbContainerDefinition(string id, string partitionKeyPath, bool isReferenceData = false, Action<ContainerProperties>? configure = null, Func<CosmosDbDataContext, JsonDataReaderOptions?>? dataOptions = null, bool isOutboxLease = false)
 {
     /// <summary>
     /// Gets the <see cref="Container.Id"/>.
@@ -25,6 +26,11 @@ public sealed class CosmosDbContainerDefinition(string id, string partitionKeyPa
     /// Indicates whether the container hosts type-discriminated reference data.
     /// </summary>
     public bool IsReferenceData { get; } = isReferenceData;
+
+    /// <summary>
+    /// Indicates whether this container is the outbox relay lease container.
+    /// </summary>
+    public bool IsOutboxLease { get; } = isOutboxLease;
 
     /// <summary>
     /// Gets the optional <see cref="JsonDataReaderOptions"/> factory.

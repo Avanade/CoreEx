@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <!-- References the single-TargetFramework Contoso.Aspire AppHost (see its csproj for why) - must match to be referenceable.

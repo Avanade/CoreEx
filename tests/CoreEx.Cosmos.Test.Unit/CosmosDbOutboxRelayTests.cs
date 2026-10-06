@@ -363,21 +363,18 @@ public class CosmosDbOutboxRelayTests : CosmosTestBase
         await act.Should().NotThrowAsync();
     }
 
-    private const string AutoProvisionContainerId = "relay-autoprovision-items";
-    private const string AutoProvisionLeaseContainerId = "relay-autoprovision-items-leases";
+    private const string MissingLeaseContainerId = "relay-missing-lease-items";
 
     [Test]
-    public async Task StartAsync_LeaseContainerDoesNotAlreadyExist_IsAutoProvisioned()
+    public async Task StartAsync_LeaseContainerDoesNotExist_FailsFastAndDoesNotCreateIt()
     {
-        // Regression: StartAsync previously only ever resolved the lease container via Database.GetContainer (a proxy reference, not a create) - against a fresh Cosmos DB database where the lease
-        // container had never been created, the underlying ChangeFeedProcessor.StartAsync would fail trying to acquire leases against a container that does not exist. Deliberately does NOT pre-create
-        // the lease container here (unlike every other test in this fixture), to prove StartAsync itself now provisions it.
-        await GetOrCreateContainerAsync(AutoProvisionContainerId).ConfigureAwait(false);
+        // The relay must never create its lease container (a control-plane operation a production identity is not permitted); it fails fast with actionable guidance instead.
+        await GetOrCreateContainerAsync(MissingLeaseContainerId).ConfigureAwait(false);
+        const string leaseContainerId = "relay-missing-lease-items-leases";
 
-        // Confirm the lease container genuinely does not exist yet - a stale container from a prior interrupted run would invalidate this test's premise.
         try
         {
-            await TestDatabase.GetContainer(AutoProvisionLeaseContainerId).DeleteContainerAsync().ConfigureAwait(false);
+            await TestDatabase.GetContainer(leaseContainerId).DeleteContainerAsync().ConfigureAwait(false);
         }
         catch (CosmosException cex) when (cex.StatusCode == HttpStatusCode.NotFound)
         {
@@ -386,26 +383,22 @@ public class CosmosDbOutboxRelayTests : CosmosTestBase
 
         var cosmosDb = CreateCosmosDb();
         using var sp = CreateServiceProvider(new TestEventPublisher());
-        var processor = new CosmosDbOutboxRelayProcessor(sp, AutoProvisionContainerId, NullLogger<CosmosDbOutboxRelayProcessor>.Instance);
+        var processor = new CosmosDbOutboxRelayProcessor(sp, MissingLeaseContainerId, NullLogger<CosmosDbOutboxRelayProcessor>.Instance);
 
         var options = new CosmosDbOutboxRelayOptions
         {
-            ContainerId = AutoProvisionContainerId,
-            LeaseContainerId = AutoProvisionLeaseContainerId,
+            ContainerId = MissingLeaseContainerId,
+            LeaseContainerId = leaseContainerId,
             InstanceName = $"instance-{NewId()}"
         };
 
         await using var relay = new CosmosDbOutboxRelay(cosmosDb.Database, options, processor, NullLogger<CosmosDbOutboxRelay>.Instance);
 
         Func<Task> act = async () => await relay.StartAsync();
-        await act.Should().NotThrowAsync();
-        relay.Status.Should().Be(ServiceStatus.Running);
-
-        // The lease container must now actually exist (StartAsync provisioned it) - ReadContainerAsync throws CosmosException(NotFound) otherwise.
-        var readResponse = await TestDatabase.GetContainer(AutoProvisionLeaseContainerId).ReadContainerAsync().ConfigureAwait(false);
-        readResponse.Resource.Id.Should().Be(AutoProvisionLeaseContainerId);
-
-        await relay.StopAsync();
+        (await act.Should().ThrowAsync<InvalidOperationException>()).WithMessage($"*'{leaseContainerId}'*OutboxLeaseContainer*");
+        relay.Status.Should().Be(ServiceStatus.Initializing); // Unchanged; remains startable once the lease container is provisioned.
+        Func<Task> read = async () => await TestDatabase.GetContainer(leaseContainerId).ReadContainerAsync();
+        (await read.Should().ThrowAsync<CosmosException>()).Which.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
     private sealed class TestEventPublisher : EventPublisherBase

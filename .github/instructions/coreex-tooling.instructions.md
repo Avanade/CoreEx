@@ -179,10 +179,12 @@ public static CosmosDbProvisionArgs ConfigureProvisionArgs(CosmosDbProvisionArgs
     {
         // optional indexing / unique-key customisation
     })
-    .ReferenceDataContainer("ref-data");
+    .ReferenceDataContainer("ref-data")
+    .OutboxLeaseContainer();   // Only where a Relay host runs.
 ```
 
 - Use `ReferenceDataContainer("ref-data")` for type-discriminated reference data. It provisions the `/typeDiscriminator` + `/code` unique-key shape the generated ref-data repository expects.
+- Use `OutboxLeaseContainer()` to declare the Change Feed Processor lease container (`$outbox-leases`, partition key `/id`) shared by outbox relay host(s). The relay never creates it (production identities cannot create containers) and fails fast at startup if it is missing.
 - Add one `.Container(id, partitionKeyPath, configure, dataOptions)` (or the convenience overloads) per transactional container. The default partition-key path is `/partitionKey`; use a deliberate override only when the model/container shape requires it.
 - The typed Infrastructure accessor mirrors these ids exactly: `Container<Persistence.Customer>("customers")`, `Container<Persistence.CustomerType>("ref-data", o => o.WithTypeDiscriminator())`, etc.
 

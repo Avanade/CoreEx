@@ -223,7 +223,7 @@ public sealed class CosmosDbConsole
             o.WriteLine("Containers:");
             foreach (var c in Args.Containers)
             {
-                o.WriteLine($"  {c.Id}  (partition key: {c.PartitionKeyPath}{(c.IsReferenceData ? ", reference data" : string.Empty)})");
+                o.WriteLine($"  {c.Id}  (partition key: {c.PartitionKeyPath}{(c.IsReferenceData ? ", reference data" : string.Empty)}{(c.IsOutboxLease ? ", outbox lease" : string.Empty)})");
             }
         }
 

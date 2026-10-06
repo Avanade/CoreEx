@@ -89,9 +89,10 @@ public class CosmosDbProvisioner(CosmosClient client, CosmosDbProvisionArgs args
 
         foreach (var c in _args.Containers)
         {
-            _args.Output.WriteLine($"  Create container '{c.Id}'...");
+            var label = Label(c);
+            _args.Output.WriteLine($"  Create {label}...");
             var response = await RetryAsync(() => database.CreateContainerIfNotExistsAsync(c.CreateProperties(), _args.Throughput, cancellationToken: cancellationToken), cancellationToken).ConfigureAwait(false);
-            _args.Output.WriteLine(response.StatusCode == HttpStatusCode.Created ? $"    Container '{c.Id}' created." : $"    Container '{c.Id}' already exists and therefore not created.");
+            _args.Output.WriteLine(response.StatusCode == HttpStatusCode.Created ? $"    {Capitalize(label)} created." : $"    {Capitalize(label)} already exists and therefore not created.");
         }
     }
 
@@ -114,11 +115,22 @@ public class CosmosDbProvisioner(CosmosClient client, CosmosDbProvisionArgs args
 
         foreach (var c in _args.Containers)
         {
-            _args.Output.WriteLine($"  Reset container '{c.Id}'...");
+            var label = Label(c);
+            _args.Output.WriteLine($"  Reset {label}...");
             await RetryAsync(() => database.ReplaceOrCreateContainerAsync(c.CreateProperties(), _args.Throughput, cancellationToken), cancellationToken).ConfigureAwait(false);
-            _args.Output.WriteLine($"    Container '{c.Id}' replaced (empty).");
+            _args.Output.WriteLine($"    {Capitalize(label)} replaced (empty).");
         }
     }
+
+    /// <summary>
+    /// Gets the output label for the container (identifying the outbox relay lease container).
+    /// </summary>
+    private static string Label(CosmosDbContainerDefinition c) => c.IsOutboxLease ? $"outbox lease container '{c.Id}'" : $"container '{c.Id}'";
+
+    /// <summary>
+    /// Capitalizes the first character.
+    /// </summary>
+    private static string Capitalize(string text) => char.ToUpperInvariant(text[0]) + text[1..];
 
     /// <summary>
     /// Imports the seed data; the <see cref="CosmosDbProvisionArgs.Assemblies"/> <c>Data</c> resources first, followed by any remaining <see cref="CosmosDbProvisionArgs.DataResources"/>.

@@ -9,11 +9,10 @@ namespace CoreEx.Cosmos.Outbox;
 /// <para>Constructed with the raw SDK <see cref="Microsoft.Azure.Cosmos.Database"/> rather than <see cref="ICosmosDb"/> deliberately - <see cref="ICosmosDb"/> is registered scoped, and an instance of this class
 /// is built once and lives for the process lifetime, so capturing a scoped service here would be a captive-dependency bug. The <see cref="Microsoft.Azure.Cosmos.Database"/> proxy, like a <see cref="Container"/>
 /// or <see cref="CosmosClient"/>, is stable and safe to hold long-term.</para>
-/// <para>The lease container (<see cref="CosmosDbOutboxRelayOptions.LeaseContainerId"/>) is auto-provisioned (via <see cref="Microsoft.Azure.Cosmos.Database.CreateContainerIfNotExistsAsync(string, string, int?, Microsoft.Azure.Cosmos.RequestOptions?, System.Threading.CancellationToken)"/>,
-/// partitioned on <c>/id</c> - the Change Feed Processor's own lease-document convention) the first time <see cref="StartAsync(CancellationToken)"/> is called; a fresh Cosmos DB database would otherwise have no
-/// lease container yet, and <see cref="ChangeFeedProcessor.StartAsync"/> throws attempting to acquire leases against a container that does not exist. Concurrent hosted-service instances sharing the same
-/// <see cref="CosmosDbOutboxRelayOptions.LeaseContainerId"/> (see <see cref="Microsoft.Extensions.Hosting.CoreExCosmosOutboxExtensions.AddCosmosDbOutboxRelayHostedService"/>'s <c>servicesCount</c>) each call this
-/// independently at their own startup; <c>CreateContainerIfNotExistsAsync</c> is idempotent/safe for this, so no additional coordination is required.</para></remarks>
+/// <para>The lease container (<see cref="CosmosDbOutboxRelayOptions.LeaseContainerId"/>, partitioned on <c>/id</c> - the Change Feed Processor's own lease-document convention) is <b>never</b> created by the relay: creating
+/// a container is a control-plane operation that a production host identity (e.g. Entra ID data-plane RBAC) is not expected to be permitted. It must be provisioned up front (see <c>CosmosDbProvisionArgs.OutboxLeaseContainer</c>,
+/// or infrastructure-as-code); <see cref="StartAsync(CancellationToken)"/> fails fast with an <see cref="InvalidOperationException"/> where it does not exist (reading its metadata is permitted by data-plane roles).
+/// Concurrent hosted-service instances (see <see cref="Microsoft.Extensions.Hosting.CoreExCosmosOutboxExtensions.AddCosmosDbOutboxRelayHostedService"/>'s <c>servicesCount</c>) share the same lease container for coordination.</para></remarks>
 public sealed class CosmosDbOutboxRelay : IAsyncDisposable
 {
 #if NET9_0_OR_GREATER
@@ -95,7 +94,7 @@ public sealed class CosmosDbOutboxRelay : IAsyncDisposable
     /// Starts the underlying <see cref="ChangeFeedProcessor"/>.
     /// </summary>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-    /// <remarks>Provisions <see cref="CosmosDbOutboxRelayOptions.LeaseContainerId"/> (partitioned on <c>/id</c>) first, where it does not already exist - see this type's own remarks.</remarks>
+    /// <exception cref="InvalidOperationException">The <see cref="CosmosDbOutboxRelayOptions.LeaseContainerId"/> container does not exist - see this type's own remarks.</exception>
     public async Task StartAsync(CancellationToken cancellationToken = default)
     {
         await _semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
@@ -104,14 +103,31 @@ public sealed class CosmosDbOutboxRelay : IAsyncDisposable
             if (!Status.CanStart)
                 return;
 
+            await EnsureLeaseContainerExistsAsync(cancellationToken).ConfigureAwait(false);
+
             LogStatusChange(Status = ServiceStatus.Starting);
-            await _database.CreateContainerIfNotExistsAsync(Options.LeaseContainerId, "/id", Options.LeaseContainerThroughput, cancellationToken: cancellationToken).ConfigureAwait(false);
             await _processor.StartAsync().ConfigureAwait(false);
             LogStatusChange(Status = ServiceStatus.Running);
         }
         finally
         {
             _semaphore.Release();
+        }
+    }
+
+    /// <summary>
+    /// Verifies that the lease container exists (a metadata read; the relay never creates it).
+    /// </summary>
+    private async Task EnsureLeaseContainerExistsAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _database.GetContainer(Options.LeaseContainerId).ReadContainerAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+        }
+        catch (CosmosException cex) when (cex.StatusCode == HttpStatusCode.NotFound)
+        {
+            throw new InvalidOperationException($"The outbox relay lease container '{Options.LeaseContainerId}' does not exist in database '{_database.Id}'; the relay never creates it. " +
+                $"Provision it up front (partition key '/id') - e.g. 'CosmosDbProvisionArgs.OutboxLeaseContainer()' in the Database project, or infrastructure-as-code.", cex);
         }
     }
 

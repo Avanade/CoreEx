@@ -653,6 +653,7 @@ $testScenarios = @(
                 "src/App.Api/Program.cs"        = "AddCosmosDbEventPublisher"
                 "src/App.Relay/Program.cs"      = "AddCosmosDbOutboxRelayHostedService"
                 "src/App.Subscribe/Program.cs"  = "AddCosmosDbEventPublisher"
+                "tools/App.Database/Program.cs" = "OutboxLeaseContainer"
             }
             FileNotContains = @{
                 # The write-side publisher must never be registered on the Relay host.

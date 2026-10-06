@@ -20,7 +20,7 @@ All commands run from the `*.Database` project directory for the target domain. 
 
 ## Phase 1A: Cosmos baseline
 
-1. Open `*.Database/Program.cs` and identify the current `ConfigureProvisionArgs(CosmosDbProvisionArgs)` declarations (`.Container(...)`, `.ReferenceDataContainer("ref-data")`, indexing/unique-key customisation).
+1. Open `*.Database/Program.cs` and identify the current `ConfigureProvisionArgs(CosmosDbProvisionArgs)` declarations (`.Container(...)`, `.ReferenceDataContainer("ref-data")`, `.OutboxLeaseContainer()` (shared relay lease container; must be declared wherever a Relay host runs), indexing/unique-key customisation).
 2. Review the existing `Data/*.seed.yaml` / `*.json` resources. Top-level keys must equal declared container ids. Transactional containers use raw camelCase document bodies; `ref-data` keeps the grouped `$^TypeName` shorthand.
 3. Decide whether the change is:
    - a **new container** (declare it in `ConfigureProvisionArgs`, then wire the matching `Container<TModel>(...)` or `ToMappedModel(...)` accessor in `*CosmosDb.cs`),
