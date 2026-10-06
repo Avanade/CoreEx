@@ -176,7 +176,7 @@ public class CosmosDbProvisioner(CosmosClient client, CosmosDbProvisionArgs args
     /// <summary>
     /// The local emulator occasionally responds with a transient <c>503 ServiceUnavailable</c> ("high demand") when several containers are created in quick succession, and intermittently drops the TLS handshake.
     /// </summary>
-    /// <remarks>Note: a <c>503</c> is also what the emulator returns when its container-count cap (<c>AZURE_COSMOS_EMULATOR_PARTITION_COUNT</c>) is exhausted; that is deterministic and retrying will not resolve it.</remarks>
+    /// <remarks>Note: the legacy emulator image also returned a <c>503</c> once its container-count cap was exhausted; that was deterministic and retrying would not resolve it (the vNext emulator has no such cap).</remarks>
     private static async Task<T> RetryAsync<T>(Func<Task<T>> action, CancellationToken cancellationToken)
     {
         const int maxAttempts = 5;

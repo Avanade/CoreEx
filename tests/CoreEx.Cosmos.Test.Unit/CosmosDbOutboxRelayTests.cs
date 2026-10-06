@@ -265,8 +265,7 @@ public class CosmosDbOutboxRelayTests : CosmosTestBase
         testPublisher.Published.Should().BeEmpty();
     }
 
-    // Fixed (not per-run GUID-suffixed) container names, matching every other fixture in this project - the local emulator caps the TOTAL number of containers across the whole account
-    // (AZURE_COSMOS_EMULATOR_PARTITION_COUNT, see docker-compose.yml), and a new container pair per test run/rerun burns through that budget fast for no benefit (confirmed the hard way this session).
+    // Fixed (not per-run GUID-suffixed) container names, matching every other fixture in this project - a new container pair per test run/rerun just accumulates emulator state for no benefit.
     private const string CircuitBreakerContainerId = "relay-cb-items";
     private const string CircuitBreakerLeaseContainerId = "relay-cb-items-leases";
 

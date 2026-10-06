@@ -179,7 +179,7 @@ public class RefDataMutateTests : WithApiTester<Contoso.Customers.Api.Program>
         var b = CreateCustomerType("PATCH-CONC");
 
         Test.Http()
-            .Run(HttpMethod.Patch, $"{_url}/{b.Id}", new { text = "Changed" }, requestModifier: r => r.WithIfMatch("AAAAAAAA").WithMergePatchJsonContentType())
+            .Run(HttpMethod.Patch, $"{_url}/{b.Id}", new { text = "Changed" }, requestModifier: r => r.WithIfMatch("00000000-0000-0000-0000-000000000000").WithMergePatchJsonContentType())
             .AssertPreconditionFailed();
     }
 
@@ -294,7 +294,7 @@ public class RefDataMutateTests : WithApiTester<Contoso.Customers.Api.Program>
         var b = CreateCustomerType("PUT-CONC");
 
         Test.Http()
-            .Run(HttpMethod.Put, $"{_url}/{b.Id}", new { code = b.Code, text = "Changed" }, requestModifier: r => r.WithIfMatch("AAAAAAAA"))
+            .Run(HttpMethod.Put, $"{_url}/{b.Id}", new { code = b.Code, text = "Changed" }, requestModifier: r => r.WithIfMatch("00000000-0000-0000-0000-000000000000"))
             .AssertPreconditionFailed();
     }
 

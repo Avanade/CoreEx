@@ -22,7 +22,7 @@ public partial class CustomerMutateTests : WithApiTester<Contoso.Customers.Api.P
 
         // Act/Assert.
         Test.Http()
-            .Run(HttpMethod.Patch, $"/api/customers/{c.Id}", new { lastName = "Updated" }, requestModifier: r => r.WithIfMatch("AAAAAAAA").WithMergePatchJsonContentType())
+            .Run(HttpMethod.Patch, $"/api/customers/{c.Id}", new { lastName = "Updated" }, requestModifier: r => r.WithIfMatch("00000000-0000-0000-0000-000000000000").WithMergePatchJsonContentType())
             .AssertPreconditionFailed();
     }
 

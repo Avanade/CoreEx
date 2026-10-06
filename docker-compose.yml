@@ -51,22 +51,13 @@ services:
       - "8080:8080"
       - "8082:8082"
 
-  # Used by CoreEx.Cosmos.Test.Unit. Note: under rootless Podman this image can be flaky with the default bridge
-  # network (its TLS certificate is issued for the IP(s) it discovers at startup, which may not match the
-  # container's mapped/published address) - if `podman compose up -d cosmos-emulator` doesn't come up cleanly,
-  # try re-running with `--privileged` or host networking. Clients also need to accept the emulator's
-  # self-signed certificate (e.g. CosmosClientOptions with a permissive ServerCertificateCustomValidationCallback)
-  # rather than relying on the emulator's own IP-override/cert-export workarounds.
+  # Used by CoreEx.Cosmos.Test.Unit and the Customers domain. This is the Linux "vNext" emulator (the legacy
+  # image with its ~35 container cap and long-uptime wedging is no longer used). The .NET SDK only speaks HTTPS, and
+  # vNext defaults to HTTP, hence `--protocol https` (self-signed certificate; clients must accept it).
+  # The health probe defaults to 8080 which clashes with dts-emulator, so it is moved to 8083 (/ready).
+  # Host networking is used because rootless Podman on Windows (WSL) does not forward the TLS gateway port
+  # correctly via published ports (the TLS handshake is aborted); it also works as-is with Docker on Linux (CI).
   cosmos-emulator:
-    image: mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:latest
-    environment:
-      # Caps the TOTAL number of containers the emulator can host across the whole account (not "partitions per container") - each container the test suite creates consumes one. The test suite currently
-      # creates 24 distinct containers (see `grep -rn "ContainerId = \"\|const string containerId = \"" tests/CoreEx.Cosmos.Test.Unit`); when this cap is hit, container creation fails with a generic,
-      # misleading "high demand"/503 ServiceUnavailable that looks like transient load but is actually deterministic - confirmed by reading the container list directly and seeing exactly this many
-      # already exist. Kept with real headroom above the current count for future test additions, rather than raised just enough to limp past today's number.
-      AZURE_COSMOS_EMULATOR_PARTITION_COUNT: "35"
-      AZURE_COSMOS_EMULATOR_ENABLE_DATA_PERSISTENCE: "false"
-      AZURE_COSMOS_EMULATOR_IP_ADDRESS_OVERRIDE: "127.0.0.1"
-    ports:
-      - "8081:8081"
-      - "10251-10254:10251-10254"
+    image: mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:vnext-latest
+    command: ["--protocol", "https", "--health-port", "8083"]
+    network_mode: host

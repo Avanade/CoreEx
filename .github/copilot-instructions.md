@@ -59,7 +59,7 @@ podman compose -f docker-compose.yml up -d   # Podman preferred; `docker compose
 | `redis-cache` | 6379 | FusionCache Redis backplane (all domains) |
 | `servicebus-emulator` | 5672 AMQP, 5300 mgmt | Azure Service Bus emulator; namespace `sbemulatorns`; topic `contoso` with subscriptions `products` and `shopping` (both session-enabled) plus session-enabled command queue `contoso-products`; config at `servicebus/Config.json` |
 | `dts-emulator` | 8080, 8082 | Azure Durable Task Scheduler emulator; task hubs `default` and `order` |
-| `cosmos-emulator` | 8081, 10251-10254 | Azure Cosmos DB emulator; backs the Customers domain database and `CoreEx.Cosmos.Test.Unit`; under rootless Podman prefer `--privileged` or host networking if it doesn't come up cleanly (see `docker-compose.yml` comment) |
+| `cosmos-emulator` | 8081 (HTTPS gateway), 8083 (health, `/ready`), 1234 (Data Explorer) | Azure Cosmos DB **vNext** (Linux) emulator, host networking; backs the Customers domain database and `CoreEx.Cosmos.Test.Unit`; no container cap (see `docker-compose.yml` comment) |
 | `aspire-dashboard` | 18888 UI, 4317 OTLP | Standalone OpenTelemetry dashboard; usable without running the full Aspire AppHost |
 
 Connection strings for each service in development are in each host's `appsettings.Development.json` under the `Aspire:` configuration key hierarchy. See [`samples/docs/local-dev.md`](../samples/docs/local-dev.md) for full detail, connection string patterns, and startup sequences.
