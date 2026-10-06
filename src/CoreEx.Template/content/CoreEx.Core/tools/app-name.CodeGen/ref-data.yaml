@@ -7,5 +7,9 @@ dataProjectPath: ../../src/app-name.Infrastructure
 collectionSortOrder: Code
 route: /ref
 routeConvention: KebabCase
+# #if implement-cosmos
+repository: Cosmos
+# #else
 repository: EntityFramework
+# #endif
 entities:

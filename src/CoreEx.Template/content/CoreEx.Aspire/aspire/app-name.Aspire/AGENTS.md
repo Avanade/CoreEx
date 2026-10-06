@@ -11,7 +11,7 @@ orchestrates this solution's own runtime hosts for local development and exposes
 
 ## What This Project Does
 
-`AppHost.cs` first declares shared connection-string resources (SQL Server/Postgres, Redis, Service Bus -- whichever
+`AppHost.cs` first declares shared connection-string resources (SQL Server/Postgres/Cosmos DB, Redis, Service Bus -- whichever
 apply per `data-provider`/`messaging-provider`), matching the connection name each host passes to its own Aspire
 client-integration package (e.g. `AddAzureNpgsqlDataSource("Postgres")`). It then calls
 `builder.AddProject<Projects.X>(...)` once per runtime host this solution has, chaining `.WithReference(...)` for

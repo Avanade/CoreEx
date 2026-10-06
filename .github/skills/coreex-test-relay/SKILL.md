@@ -37,17 +37,17 @@ rarely need new scenarios per domain.
 
 > **Resolve project-wide choices from state before asking.** Read the solution-root `AGENTS.md`
 > **Feature Configuration**: `messaging-provider` gates this skill (a Relay host exists only when a
-> messaging provider is configured) and `data-provider` (PostgreSQL vs SQL Server) selects the outbox
-> publisher family (`PostgresOutboxPublisher`/`SqlServerOutboxPublisher`) — never mix them. Only prompt
+> messaging provider is configured) and `data-provider` (PostgreSQL vs SQL Server vs Cosmos) selects the outbox
+> publisher family (`PostgresOutboxPublisher`/`SqlServerOutboxPublisher`/`CosmosDbEventPublisher`) — never mix them. Only prompt
 > for what is unrecorded; re-state resolved values for confirmation.
 
 ## Quick Reference
 
 - **Base class**: `WithApiTester<{Domain}.Relay.Program>` — relay hosts have **no** FusionCache; do not call `ClearFusionCacheAsync()` here
-- **No DB/cache seeding needed for the core forwarding test** — it writes directly to the outbox via `Test.ScopedType<ExecutionContext>` and a provider-specific outbox publisher (`PostgresOutboxPublisher`/`SqlServerOutboxPublisher`), then waits for the background relay service to forward it
+- **No DB/cache seeding needed for the core forwarding test** — relational relay tests write directly to the outbox via `Test.ScopedType<ExecutionContext>` and a provider-specific outbox publisher (`PostgresOutboxPublisher`/`SqlServerOutboxPublisher`), then wait for the background relay service to forward it. Cosmos relay coverage is currently best-effort until a dedicated sample Relay host exists.
 - **Assert delivery** via `Test.GetAndClearAzureServiceBusAsync(...)` against the expected topic/subscription — or, for a **command**, the target domain queue: `Test.GetAndClearAzureServiceBusAsync(ServiceBusSessionReceiverOptions.CreateForQueue("{destination}-{target}"))` (the queue must exist in Test.Common `ServiceBus.GetQueues()`; see `coreex-command-publish-e2e`)
 - **Hosted-service management endpoints** are also testable over plain HTTP — `/hosted-services/{name}/pause`, `/resume`, etc.
-- **A domain rarely needs more than the templated `RelayTests.cs` + `OtherTests.Health.cs` + `OtherTests.HostedServices.cs`** — check what already exists before writing something new
+- **A domain rarely needs more than the templated `RelayTests.cs` + `OtherTests.Health.cs` + `OtherTests.HostedServices.cs`** — check what already exists before writing something new. For Cosmos domains, prefer health/hosted-service checks unless the solution already has a working Cosmos relay flow you can exercise end-to-end.
 
 ```csharp
 public class RelayTests : WithApiTester<YourDomain.Relay.Program>
@@ -63,7 +63,7 @@ public class RelayTests : WithApiTester<YourDomain.Relay.Program>
         {
             test.Run(async _ =>
             {
-                var pub = ActivatorUtilities.GetServiceOrCreateInstance<PostgresOutboxPublisher>(test.Services);   // or SqlServerOutboxPublisher — provider-specific
+                var pub = ActivatorUtilities.GetServiceOrCreateInstance<PostgresOutboxPublisher>(test.Services);   // or SqlServerOutboxPublisher — provider-specific relational example
                 pub.Add("{solution}", [ce1, ce2]);
                 await pub.PublishAsync();
 
@@ -85,6 +85,8 @@ Test.Http()
     .Run(HttpMethod.Post, "/hosted-services/postgres-outbox-relay-03/pause")
     .Response.StatusCode.Should().Be(HttpStatusCode.Accepted);
 ```
+
+For **Cosmos** relay tests, publish via `CosmosDbEventPublisher` inside `CosmosDbUnitOfWork.TransactionAsync(...)` only when the solution already exposes that flow; otherwise treat the relay host's health/hosted-service endpoints as the safe minimum validation until a dedicated Cosmos Relay sample exists.
 
 ## Troubleshooting — Service Bus Emulator "Entity Not Found"
 

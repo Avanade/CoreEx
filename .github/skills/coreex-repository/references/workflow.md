@@ -18,7 +18,7 @@ Answer these questions before emitting any code.
 
 | Question | Default | Notes |
 |---|---|---|
-| Which entity and database type? | Ask | PostgreSQL: `PostgresDatabase` + `UseNpgsql`; SQL Server: `SqlServerDatabase` + `UseSqlServer` — check the project's `Program.cs` |
+| Which entity and database type? | Ask | PostgreSQL: `PostgresDatabase` + `UseNpgsql`; SQL Server: `SqlServerDatabase` + `UseSqlServer`; Cosmos: `AddAzureCosmosClient("Cosmos")` + `AddCosmosDb<TCosmosDb>("{db-id}")` — check the project's `Program.cs` |
 | New repository or adding to an existing one? | Ask | New → Path A (scaffold); Existing → Path B/C/D |
 | Operations needed? | Ask | Get / Create / Update / Delete / Query |
 | Using `Result<T>` / ROP pipelines? | No | Yes → use `*WithResultAsync` + `Result<T>` pipeline (Path D); either style works at the repository level — this is a per-project or per-service choice |
@@ -27,6 +27,45 @@ Answer these questions before emitting any code.
 ---
 
 ## Path A — New Repository Class
+
+### A0 — Branch on provider
+
+- **Relational (`SqlServer` / `Postgres`)** → follow A1–A4 exactly.
+- **Cosmos** → use the Cosmos path below for the accessor and repository shape; there is no `DbContext` / `EfDb`.
+
+### A0a — Cosmos repository scaffold
+
+```csharp
+[ScopedService<ICustomerRepository>]
+public class CustomerRepository(CustomersCosmosDb cosmos) : ICustomerRepository
+{
+    private readonly CustomersCosmosDb _cosmos = cosmos.ThrowIfNull();
+
+    public Task<Contracts.Customer?> GetAsync(string id, CancellationToken ct = default)
+        => _cosmos.Customers.GetAsync(CompositeKey.Create(id), ct);
+
+    public Task<DataResult<Contracts.Customer>> CreateAsync(Contracts.Customer value, CancellationToken ct = default)
+        => _cosmos.Customers.CreateAsync(value, ct);
+
+    public Task<DataResult<Contracts.Customer>> UpdateAsync(Contracts.Customer value, CancellationToken ct = default)
+        => _cosmos.Customers.UpdateAsync(value, ct);
+}
+```
+
+The typed accessor lives on `*CosmosDb.cs`, not `*EfDb.cs`:
+
+```csharp
+public class CustomersCosmosDb(CosmosClient client, string databaseId) : CosmosDb(client, databaseId, _options)
+{
+    private static readonly CosmosDbOptions _options = new CosmosDbOptions().Container("ref-data", c => c.WithReferenceDataOutboxEvent());
+
+    public CosmosDbMappedContainer<Contracts.Customer, Persistence.Customer, CustomerMapper> Customers
+        => Container<Persistence.Customer>("customers").ToMappedModel<Contracts.Customer, CustomerMapper>(new CustomerMapper());
+}
+```
+
+Use `Container<Persistence.X>(...)` / `.ToMappedModel<...>()` per container. Query through `_cosmos.Customers.Container.Query(...)` and materialize from the returned `CosmosDbQuery<TModel>` instance methods.
+
 
 ### A1 — Scaffold repository
 
@@ -50,7 +89,7 @@ public class {Name}Repository({Solution}EfDb ef) : I{Name}Repository
 
 `[ScopedService<I{Name}Repository>]` auto-registers via `AddDynamicServicesUsing<T>()` — no manual DI wiring needed.
 
-### A2 — Add EfDb accessor
+### A2 — Add EfDb accessor (relational only)
 
 In `*EfDb.cs`, add a strongly-typed property for the new entity. Use `EfDbMappedModel` when the mapper already exists; `EfDbModel` for plain models (ref-data, read-only joins):
 
@@ -107,7 +146,7 @@ public class {Name}Mapper : BiDirectionMapper<Contracts.{Name}, Persistence.{Nam
 
 Ensure `global using {Solution}.Infrastructure.Mapping;` is in `GlobalUsing.cs` so other classes can reference `{Name}Mapper.Default` without a fully-qualified name.
 
-### A4 — DbContext (new domain only)
+### A4 — DbContext (new domain only, relational only)
 
 If setting up a completely new domain, the `*DbContext` is a partial class that ties EF Core to `IDatabase`:
 
@@ -141,7 +180,7 @@ public partial class {Solution}DbContext(DbContextOptions<{Solution}DbContext> o
 
 ## Path B — Add a CRUD Operation to an Existing Repository
 
-Locate the repository class and add the method using the EfDb delegate shortcuts. No raw `DbContext` queries for simple CRUD:
+Locate the repository class and add the method using the provider's typed accessors. For relational domains, use the EfDb delegate shortcuts below. For Cosmos domains, call the mapped container methods (`_cosmos.Customers.CreateAsync(...)`, `_cosmos.Customers.UpdateAsync(...)`, etc.) and use `CosmosDbArgs` where you need request options such as `IfMatchEtag`. No raw `DbContext` queries for simple CRUD, and never instantiate a `CosmosClient` inside the repository.
 
 ```csharp
 // Get by key — returns null when not found; service checks

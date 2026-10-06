@@ -1,5 +1,5 @@
 ---
-description: Create or modify a CoreEx Infrastructure-layer repository — EfDb CRUD delegates, QueryArgsConfig queries, BiDirectionMapper, and Result<T> pipelines
+description: Create or modify a CoreEx Infrastructure-layer repository — EfDb/CosmosDb CRUD delegates, QueryArgsConfig queries, BiDirectionMapper, and Result<T> pipelines
 ---
 
 <!--
@@ -15,7 +15,7 @@ Guide this workspace through creating or modifying a CoreEx Infrastructure-layer
 Use `.github/skills/coreex-repository/SKILL.md` and its referenced workflow as the authoritative workflow when they exist.
 
 Operational contract:
-- Ask upfront: entity name, database type (PostgreSQL/SQL Server — check Program.cs), new or existing, operations needed, whether the project uses Result<T> pipelines.
+- Ask upfront: entity name, database type (PostgreSQL/SQL Server/Cosmos — check Program.cs), new or existing, operations needed, whether the project uses Result<T> pipelines.
 - Use EfDb delegate shortcuts (GetAsync/CreateAsync/UpdateAsync/DeleteAsync) — never write raw DbContext CRUD.
 - DataResult<T> return for Create/Update; DataResult for Delete — includes mutation flag for event decisions.
 - Use *WithResultAsync variants + Result<T> pipelines when the project has elected the ROP pattern (per-project style choice, not tied to DDD).

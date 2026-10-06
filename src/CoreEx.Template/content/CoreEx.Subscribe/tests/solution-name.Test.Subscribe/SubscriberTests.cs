@@ -7,6 +7,8 @@ public partial class SubscriberTests : WithApiTester<solution-name.Subscribe.Pro
     {
         // #if implement-sqlserver
         await Test.MigrateSqlServerDataAsync<TestData>(["mutate-data.seed.yaml"], DbMigration.ConfigureMigrationArgs).ConfigureAwait(false);
+        // #elif implement-cosmos
+        await Test.MigrateCosmosDataAsync<TestData>(["mutate-data.seed.yaml"], DbMigration.ConfigureProvisionArgs).ConfigureAwait(false);
         // #elif implement-postgres
         await Test.MigratePostgresDataAsync<TestData>(["mutate-data.seed.yaml"], DbMigration.ConfigureMigrationArgs).ConfigureAwait(false);
         // #endif
@@ -15,9 +17,11 @@ public partial class SubscriberTests : WithApiTester<solution-name.Subscribe.Pro
         await Test.ResetAzureServiceBusAsync(Common.ServiceBus.GetQueues(), Common.ServiceBus.GetTopicsAndSubscriptions()).ConfigureAwait(false);
         // #endif
 
-        // #if implement-sqlserver
+        // #if (outbox-enabled && implement-sqlserver)
         Test.UseExpectedSqlServerOutboxPublisher();
-        // #elif implement-postgres
+        // #elif (outbox-enabled && implement-cosmos)
+        Test.UseExpectedCosmosDbOutboxPublisher();
+        // #elif (outbox-enabled && implement-postgres)
         Test.UseExpectedPostgresOutboxPublisher();
         // #endif
     }

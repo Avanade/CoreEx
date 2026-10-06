@@ -62,16 +62,41 @@ public class Program
             .AddSqlServerDatabase()                     // Adds the SqlServerDatabase.
             .AddSqlServerUnitOfWork()                   // Adds the SqlServerUnitOfWork for the SqlServerDatabase.
             .AddEventFormatter()                        // Adds the EventFormatter to enable message formatting for publishing.
+// #if outbox-enabled
             .AddSqlServerOutboxPublisher()              // Adds the SqlServerOutboxPublisher as the IEventPublisher.
+// #endif
             .AddDbContext<domain-nameDbContext>()       // Adds the standard EF DbContext.
             .AddEfDb<domain-nameEfDb>();                // Adds the CoreEx extended EF service.
+// #elif implement-cosmos
+        // Add the Cosmos DB client (Aspire); in Development, accept the local emulator's self-signed certificate and use Gateway mode.
+        builder.AddAzureCosmosClient("Cosmos", configureClientOptions: o =>
+        {
+            o.UseSystemTextJsonSerializerWithOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+
+            if (builder.Environment.IsDevelopment())
+            {
+                o.ConnectionMode = ConnectionMode.Gateway;
+                o.HttpClientFactory = () => new HttpClient(new HttpClientHandler { ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator });
+            }
+        });
+
+        builder.Services.AddCosmosDb<domain-nameCosmosDb>("domain-name-lower");     // Adds the CoreEx extended Cosmos DB service for the database.
+        builder.Services
+            .AddEventFormatter()                        // Adds the EventFormatter to enable message formatting for publishing.
+// #if outbox-enabled
+            .AddCosmosDbEventPublisher()                // Adds the CosmosDbEventPublisher as the IEventPublisher.
+// #endif
+            .AddCosmosDbUnitOfWork()                    // Adds the CosmosDbUnitOfWork as the IUnitOfWork.
+            .AddCosmosDbHealthCheck();                  // Adds the CosmosDbHealthCheck; Aspire's AddAzureCosmosClient does not register one.
 // #elif implement-postgres
         builder.AddAzureNpgsqlDataSource("Postgres");   // Adds the NpgsqlDataSource (using Aspire library).
         builder.Services
             .AddPostgresDatabase()                      // Adds the PostgresDatabase.
             .AddPostgresUnitOfWork()                    // Adds the PostgresUnitOfWork for the PostgresDatabase.
             .AddEventFormatter()                        // Adds the EventFormatter to enable message formatting for publishing.
+// #if outbox-enabled
             .AddPostgresOutboxPublisher()               // Adds the PostgresOutboxPublisher as the IEventPublisher.
+// #endif
             .AddDbContext<domain-nameDbContext>()       // Adds the standard EF DbContext.
             .AddEfDb<domain-nameEfDb>();                // Adds the CoreEx extended EF service.
 // #endif
@@ -82,7 +107,11 @@ public class Program
         builder.Services.AddAzureServiceBusPublisher((_, c) =>  // Adds the service bus as the IEventPublisher.
         {
             c.SessionIdStrategy = ServiceBusSessionStrategy.UsePartitionKeyConvertedToAnId;  // Use a partition-id as the session-id.
+// #if (outbox-enabled && has-data-provider)
         }, addAsDefaultIEventPublisher: false);                                              // Add as a named IEventPublisher, not the default (as the default is the OutboxPublisher).
+// #else
+        });
+// #endif
 
         // Add event formatter and subscribed-manager.
         builder.Services
@@ -114,6 +143,8 @@ public class Program
         builder.WithCoreExTelemetry()
 // #if implement-sqlserver
             .WithCoreExSqlServerTelemetry()
+// #elif implement-cosmos
+            .WithCoreExCosmosDbTelemetry()
 // #elif implement-postgres
             .WithCoreExPostgresTelemetry()
 // #endif

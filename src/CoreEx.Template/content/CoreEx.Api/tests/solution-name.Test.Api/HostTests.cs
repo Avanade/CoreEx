@@ -7,6 +7,8 @@ public partial class HostTests : WithApiTester<solution-name.Api.Program>
     {
 // #if implement-sqlserver
         await Test.MigrateSqlServerDataAsync<TestData>(["no-data.seed.yaml"], DbMigration.ConfigureMigrationArgs).ConfigureAwait(false);
+// #elif implement-cosmos
+        await Test.MigrateCosmosDataAsync<TestData>(["no-data.seed.yaml"], DbMigration.ConfigureProvisionArgs).ConfigureAwait(false);
 // #elif implement-postgres
         await Test.MigratePostgresDataAsync<TestData>(["no-data.seed.yaml"], DbMigration.ConfigureMigrationArgs).ConfigureAwait(false);
 // #endif
@@ -64,6 +66,8 @@ public partial class HostTests : WithApiTester<solution-name.Api.Program>
             "$.entries['stackExchange.Redis']",
 // #if implement-sqlserver
             "$.entries.sqlServer"
+// #elif implement-cosmos
+            "$.entries.cosmos-database"
 // #elif implement-postgres
             "$.entries.postgreSql"
 // #endif

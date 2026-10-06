@@ -16,6 +16,9 @@
     <PackageVersion Include="CoreEx.Caching.FusionCache" Version="coreex-version" />
     <PackageVersion Include="CoreEx.Data" Version="coreex-version" />
     <PackageVersion Include="CoreEx.Data.GraphQL" Version="coreex-version" />
+    <!--#if implement-cosmos-->
+    <PackageVersion Include="CoreEx.Cosmos" Version="coreex-version" />
+    <!--#endif-->
     <!--#if implement-postgres-->
     <PackageVersion Include="CoreEx.Database" Version="coreex-version" />
     <PackageVersion Include="CoreEx.Database.Postgres" Version="coreex-version" />
@@ -39,6 +42,9 @@
   <ItemGroup>
     <!--#if implement-servicebus-->
     <PackageVersion Include="Aspire.Azure.Messaging.ServiceBus" Version="13.5.4" />
+    <!--#endif-->
+    <!--#if implement-cosmos-->
+    <PackageVersion Include="Aspire.Microsoft.Azure.Cosmos" Version="13.5.4" />
     <!--#endif-->
     <!--#if implement-postgres-->
     <PackageVersion Include="Aspire.Azure.Npgsql" Version="13.5.4" />

@@ -1,7 +1,7 @@
 ---
 name: coreex-test-api
 description: "Write or update an integration test in a CoreEx *.Test.Api project. USE FOR: new XxxReadTests/XxxMutateTests partial classes, per-operation test files (Get/Query/Create/Update/Patch/Delete), OneTimeSetUp seeding + cache + outbox wiring, seed data (read-data.seed.yaml/mutate-data.seed.yaml), .res.json/.req.json resources, ETag/concurrency and soft-delete scenarios, outbox event assertions, inter-domain HTTP mocking. DO NOT USE FOR: Subscribe host tests (use coreex-test-subscribe), Outbox Relay host tests (use coreex-test-relay), pure unit tests with no infrastructure (validators/aggregates/adapters already cover their own Test.Unit guidance), the controller/endpoint implementation itself (use coreex-api)."
-argument-hint: "Entity/endpoint name, operations to cover (Get/Query/Create/Update/Patch/Delete), database provider (PostgreSQL/SQL Server)"
+argument-hint: "Entity/endpoint name, operations to cover (Get/Query/Create/Update/Patch/Delete), database provider (PostgreSQL/SQL Server/Cosmos)"
 tags: ["testing", "integration-tests", "api", "unittestex", "coreex"]
 ---
 
@@ -35,7 +35,7 @@ setup shared with Subscribe host tests (`coreex-test-subscribe` links back here 
 - Implementing the controller/endpoint itself — use `coreex-api`
 
 > **Resolve project-wide choices from state before asking.** Read the solution-root `AGENTS.md`
-> **Feature Configuration**: `data-provider` (PostgreSQL vs SQL Server) selects the migrate/seed and
+> **Feature Configuration**: `data-provider` (PostgreSQL vs SQL Server vs Cosmos) selects the migrate/seed and
 > outbox helper family used throughout — never mix them; `outbox-enabled` and `messaging-provider`
 > determine whether outbox-event assertions (`ExpectXxxOutboxEvents`) apply at all. Only prompt for
 > what is unrecorded; re-state resolved values for confirmation.
@@ -43,7 +43,7 @@ setup shared with Subscribe host tests (`coreex-test-subscribe` links back here 
 ## Quick Reference
 
 - **One class pair per entity**: `XxxReadTests` (seeds `read-data.seed.yaml`) / `XxxMutateTests` (seeds `mutate-data.seed.yaml`) — each a `partial class`, one operation per sub-file: `Xxx{Read|Mutate}Tests.{Operation}.cs`
-- **`[OneTimeSetUp]`** lives in the base partial file: migrate + seed (named-file overload) → `Test.ClearFusionCacheAsync()` → provider-specific `Test.UseExpected{Postgres|SqlServer}OutboxPublisher()` → HTTP mocks if the domain has adapters
+- **`[OneTimeSetUp]`** lives in the base partial file: migrate + seed (named-file overload — `MigratePostgresDataAsync`, `MigrateSqlServerDataAsync`, or `MigrateCosmosDataAsync`) → `Test.ClearFusionCacheAsync()` → provider-specific `Test.UseExpected{Postgres|SqlServer|CosmosDb}OutboxPublisher()` → HTTP mocks if the domain has adapters
 - **Seed → Tests → Resources**, in that order — seed known `^N` rows first, write tests referencing them, capture `.res.json`/`.req.json` from the actual run
 - **Seed the precondition state directly — don't chain API calls to reach it.** A test needing e.g. a *cancelled* booking should seed a row with that status, not `Create → Confirm → Cancel` through the API just to arrange it. Exceptions: the transition itself is under test (`Cancel_Success`), the value is only known at runtime (ETag — read via `GET` first), or the thing being asserted is a side effect of the action (an outbox event). See `coreex-tests.instructions.md` → "Prefer Seeded State Over API-Orchestrated Setup"
 - **`read-data.seed.yaml`/`mutate-data.seed.yaml` are the preferred default, not the only option** — the seed overload takes a list, so a class with data too distinct to fit cleanly (e.g. several precondition-state rows for one workflow) can add its own file alongside or instead of the shared pair
@@ -53,7 +53,7 @@ setup shared with Subscribe host tests (`coreex-test-subscribe` links back here 
 - **412 vs 409 vs 428**: stale ETag → `AssertPreconditionFailed()` (412); duplicate/business conflict → `AssertConflict()` (409); no ETag supplied → `428` (auto on PUT/PATCH, or POST/DELETE opted in via `ro.WithIfMatchRequired()`) — assert with `.Assert(HttpStatusCode.PreconditionRequired)`, no dedicated helper exists
 - **Delete is idempotent**: always `AssertNoContent()` (204), never `AssertNotFound()` on DELETE — the 404 belongs to the follow-up GET; only the first delete emits an outbox event
 - **Verify persistence, not just the echo**: every Create/Update/Patch `_Success` test explicitly asserts the specific changed property/properties on the mutation response (e.g. `updated.Salary.Should().Be(60000.00m)`), then ends with a follow-up `GET` + `AssertValue(...)` — the mutation response alone only proves the handler echoed the value back, not that the intended value was actually written
-- **Outbox assertions are provider-specific** — `ExpectPostgresOutboxEvents`/`ExpectSqlServerOutboxEvents`; `.AssertWithValue(destination, subject)` for value-carrying events (Create/Update), `.AssertMetadata(destination, subject, key)` for no-value events (Delete) — `key` is optional (`AssertMetadata(destination, subject)` checks routing only). If the event's payload type differs from the API's returned type (e.g. a leaner projection), use `.AssertWithValue<TValue>(() => expectedPayload, destination, subject)` instead of the plain form
+- **Outbox assertions are provider-specific** — `ExpectPostgresOutboxEvents`/`ExpectSqlServerOutboxEvents`/`ExpectCosmosDbOutboxEvents`; `.AssertWithValue(destination, subject)` for value-carrying events (Create/Update), `.AssertMetadata(destination, subject, key)` for no-value events (Delete) — `key` is optional (`AssertMetadata(destination, subject)` checks routing only). If the event's payload type differs from the API's returned type (e.g. a leaner projection), use `.AssertWithValue<TValue>(() => expectedPayload, destination, subject)` instead of the plain form
 - **Every event-publishing call needs an explicit expectation** — `UseExpectedXxxOutboxPublisher` defaults to asserting **zero** events when none is declared; omitting it on a call that legitimately publishes fails the test. Prefer `AssertMetadata`/`AssertWithValue` (confirms *which* event) over a bare `ExpectXxxOutboxEvents()` (confirms only that *some* event was published)
 - **Reference-data JSON name**: non-`Code` suffix (`gender`, not `genderCode`) in `.res.json`/`.req.json`/inline bodies
 - **HTTP client mocking**: `MockHttpClientFactory` + `MockHttpClientRequest` fields configured in `OneTimeSetUp`, per-test `.Respond.With(...)`/`.Respond.WithJsonResource(...)`, always `.Verify()`
@@ -69,3 +69,4 @@ For full workflow, decision trees, and code patterns see [`references/workflow.m
 - Illustrative examples (CoreEx sample — not present in your project):
   - [Contoso.Products.Test.Api](https://github.com/Avanade/CoreEx/tree/main/samples/tests/Contoso.Products.Test.Api) — PostgreSQL domain example (outbox + HTTP mock adapter)
   - [Contoso.Shopping.Test.Api](https://github.com/Avanade/CoreEx/tree/main/samples/tests/Contoso.Shopping.Test.Api) — SQL Server domain example (outbox + ETag/concurrency)
+  - [Contoso.Customers.Test.Api](https://github.com/Avanade/CoreEx/tree/main/samples/tests/Contoso.Customers.Test.Api) — Cosmos domain example (`MigrateCosmosDataAsync`, `UseExpectedCosmosDbOutboxPublisher`)

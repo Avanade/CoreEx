@@ -1,3 +1,25 @@
+# #if implement-cosmos
+# Mutate test dataset for the 'domain-name' domain — loaded by the XxxMutateTests classes via:
+#   Test.MigrateCosmosDataAsync<TestData>(["mutate-data.seed.yaml"], DbMigration.ConfigureProvisionArgs)
+#
+# Contains the BASELINE documents that POST/PUT/PATCH/DELETE tests act on — e.g. a document to update, a document
+# to delete, an existing key for a duplicate-conflict test. Kept separate from 'read-data.seed.yaml' so
+# mutations never disturb read expectations.
+#
+# Cosmos DB YAML format: container id (top-level) -> array of documents.
+#   * The top-level key MUST match a container declared in Database/Program.cs 'ConfigureProvisionArgs' (otherwise the seed fails).
+#   * Identifiers use '^N' (deterministic: ^1 == 1.ToGuid()).
+#   * Property names are camelCase (the CosmosClient serializer naming policy), e.g. 'firstName'.
+#   * Reference data is linked by CODE (e.g. genderCode: M), never by id.
+#   * Set scenario flags explicitly where a test needs them (e.g. isDeleted: true).
+#   * Give each DESTRUCTIVE test its own '^N' document (Update/Delete/Patch target different ids; NUnit randomises order).
+#
+# Example (replace with your domain's containers/documents):
+#
+# employees:
+# - { id: ^1, firstName: Bob, lastName: Smith, genderCode: M, salary: 50000, dateOfBirth: 1990-01-01 }
+# - { id: ^2, firstName: Jane, lastName: Doe, genderCode: F, salary: 60000, dateOfBirth: 1985-06-15 }
+# #else
 # Mutate test dataset for the 'domain-name' domain — loaded by the XxxMutateTests classes via:
 #   MigrateXxxDataAsync<TestData>(["mutate-data.seed.yaml"], DbMigration.ConfigureMigrationArgs)
 #
@@ -21,3 +43,4 @@
 #   - employee:
 #     - { employee_id: ^1, first_name: Bob, last_name: Smith, gender_code: M, salary: 50000, date_of_birth: 1990-01-01 }
 #     - { employee_id: ^2, first_name: Jane, last_name: Doe, gender_code: F, salary: 60000, date_of_birth: 1985-06-15 }
+# #endif

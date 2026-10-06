@@ -89,7 +89,7 @@ public class E2ETest : WithAspireTester<Projects.Acme_Aspire>
 {
     protected override async Task OnBeforeStartAsync(DistributedApplication app)
     {
-        await app.MigratePostgresDataAsync<TestData>("Postgres", ["mutate-data.seed.yaml"], DbMigration.ConfigureMigrationArgs);  // or MigrateSqlServerDataAsync
+        await app.MigratePostgresDataAsync<TestData>("Postgres", ["mutate-data.seed.yaml"], DbMigration.ConfigureMigrationArgs);  // or MigrateSqlServerDataAsync / MigrateCosmosDataAsync provider-specifically
         await app.ClearRedisCacheAsync("redis");
         await app.ResetAzureServiceBusAsync("ServiceBus", ServiceBus.GetQueues(), ServiceBus.GetTopicsAndSubscriptions());
     }
@@ -103,7 +103,7 @@ public class E2ETest : WithAspireTester<Projects.Acme_Aspire>
 }
 ```
 
-- Hooks, not `[OneTimeSetUp]`. `Test.*` intra-domain helpers do not exist on the Aspire tester; use `app.*`.
+- Hooks, not `[OneTimeSetUp]`. `Test.*` intra-domain helpers do not exist on the Aspire tester; use `app.*`. For Cosmos, always go through `app.MigrateCosmosDataAsync(..., DbMigration.ConfigureProvisionArgs)` rather than resetting containers manually, so the declared container topology and the client state stay aligned.
 - Add `using`/`global using` for `Aspire.Hosting` (`DistributedApplication`) in the project's single `GlobalUsing.cs`.
 - Stubs use `WithAnyBody()` unless the body matters; assert stub usage only when the flow's correctness depends on the request shape.
 

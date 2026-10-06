@@ -25,7 +25,7 @@ tags: ["testing", "unit-tests", "integration-tests", "test-helpers", "nunit"]
 
 | Package | Key types provided |
 |---|---|
-| `CoreEx.UnitTesting` | Base testers and common helpers: `WithApiTester<T>`, `WithGenericTester<T>`, `Test.Http()`, `Test.Http<T>()`, `Test.Scoped()`, `Test.ScopedType<T>()`, `Test.ClearFusionCacheAsync()`, `Test.ReplaceHttpClientFactory()`; database helpers: `Test.MigrateSqlServerDataAsync<T>()`, `Test.UseExpectedSqlServerOutboxPublisher()`, `.ExpectSqlServerOutboxEvents()`, `.ExpectNoSqlServerOutboxEvents()`, `Test.MigratePostgresDataAsync<T>()`, `Test.UseExpectedPostgresOutboxPublisher()`, `.ExpectPostgresOutboxEvents()`, `.ExpectNoPostgresOutboxEvents()`; messaging helpers: `Test.UseExpectedAzureServiceBusPublisher()`, `Test.GetAndClearAzureServiceBusAsync()`; ASP.NET Core assertions: `.ExpectIdentifier()`, `.ExpectETag()`, `.ExpectChangeLogCreated()`, `.ExpectJsonFromResource()`, `.AssertCreated()`, `.AssertOK()`, `.AssertBadRequest()`, `.AssertErrors()`, `.AssertJsonFromResource()`, `.AssertLocationHeader()` |
+| `CoreEx.UnitTesting` | Base testers and common helpers: `WithApiTester<T>`, `WithGenericTester<T>`, `Test.Http()`, `Test.Http<T>()`, `Test.Scoped()`, `Test.ScopedType<T>()`, `Test.ClearFusionCacheAsync()`, `Test.ReplaceHttpClientFactory()`; database helpers: `Test.MigrateSqlServerDataAsync<T>()`, `Test.UseExpectedSqlServerOutboxPublisher()`, `.ExpectSqlServerOutboxEvents()`, `.ExpectNoSqlServerOutboxEvents()`, `Test.MigratePostgresDataAsync<T>()`, `Test.UseExpectedPostgresOutboxPublisher()`, `.ExpectPostgresOutboxEvents()`, `.ExpectNoPostgresOutboxEvents()`, `Test.MigrateCosmosDataAsync<T>()`, `Test.UseExpectedCosmosDbOutboxPublisher()`, `.ExpectCosmosDbOutboxEvents()`, `.ExpectNoCosmosDbOutboxEvents()`; messaging helpers: `Test.UseExpectedAzureServiceBusPublisher()`, `Test.GetAndClearAzureServiceBusAsync()`; ASP.NET Core assertions: `.ExpectIdentifier()`, `.ExpectETag()`, `.ExpectChangeLogCreated()`, `.ExpectJsonFromResource()`, `.AssertCreated()`, `.AssertOK()`, `.AssertBadRequest()`, `.AssertErrors()`, `.AssertJsonFromResource()`, `.AssertLocationHeader()` |
 | `UnitTestEx` | `MockHttpClientFactory`, `MockHttpClientRequest`, `.WithJsonResourceBody()`, `.WithAnyBody()`, `.Respond.With()`, `.Respond.WithJsonResource()`, `.Verify()` |
 | `NUnit` | `[TestFixture]`, `[Test]`, `[OneTimeSetUp]` |
 | `AwesomeAssertions` | `.Should()`, `.Be()`, `.HaveCount()` |
@@ -101,7 +101,19 @@ public async Task OneTimeSetUpAsync()
 }
 ```
 
-**Outbox assertion helpers are database-specific.** Use `UseExpectedPostgresOutboxPublisher` / `ExpectPostgresOutboxEvents` for PostgreSQL domains; use `UseExpectedSqlServerOutboxPublisher` / `ExpectSqlServerOutboxEvents` for SQL Server domains. Never mix them.
+**(Cosmos example):**
+```csharp
+[OneTimeSetUp]
+public async Task OneTimeSetUpAsync()
+{
+    await Test.MigrateCosmosDataAsync<TestData>(["mutate-data.seed.yaml"], DbMigration.ConfigureProvisionArgs).ConfigureAwait(false);
+    await Test.ClearFusionCacheAsync().ConfigureAwait(false);
+
+    Test.UseExpectedCosmosDbOutboxPublisher();
+}
+```
+
+**Outbox assertion helpers are database-specific.** Use `UseExpectedPostgresOutboxPublisher` / `ExpectPostgresOutboxEvents` for PostgreSQL domains; `UseExpectedSqlServerOutboxPublisher` / `ExpectSqlServerOutboxEvents` for SQL Server domains; and `UseExpectedCosmosDbOutboxPublisher` / `ExpectCosmosDbOutboxEvents` for Cosmos domains. Never mix them.
 
 **`UseExpectedXxxOutboxPublisher(...)` defaults to asserting *zero* events published when a test declares no explicit event expectation at all.** This is a catch-all, wired in automatically — every `Test.Http()`/`Test.Http<T>()` call that legitimately publishes an event **must** declare one (`ExpectXxxOutboxEvents(...)` or `ExpectNoXxxOutboxEvents()`), or the test fails with `"Expected no {ServiceKey} events; however, N found to be published"` even though the call itself succeeded. There are three tiers, in increasing order of assertion strength — prefer the strongest one your test can support:
 1. *(default, no call)* — asserts **zero** events.
@@ -133,16 +145,17 @@ Outside these three, if a test's `Data/*.seed.yaml` row could exist in that stat
 Use **one read dataset and one mutate dataset per domain** — `read-data.seed.yaml` and `mutate-data.seed.yaml` — shared across all of the domain's entities to avoid duplication. The relevant test class loads its dataset by name in `[OneTimeSetUp]`:
 
 ```csharp
-await Test.MigrateSqlServerDataAsync<TestData>(["read-data.seed.yaml"], DbMigration.ConfigureMigrationArgs);   // or MigratePostgresDataAsync
+await Test.MigrateSqlServerDataAsync<TestData>(["read-data.seed.yaml"], DbMigration.ConfigureMigrationArgs);   // or MigratePostgresDataAsync / MigrateCosmosDataAsync provider-specifically
 ```
 
-The shared `read-data.seed.yaml` / `mutate-data.seed.yaml` pair is the **preferred default** — most entities' data fits there without trouble. But `MigrateSqlServerDataAsync<TestData>([...])` / `MigratePostgresDataAsync<TestData>([...])` take a **list**, not a single file, precisely so a test class with data too distinct to manage cleanly inside the shared pair can add its own file — pass it alongside the shared one (`["mutate-data.seed.yaml", "booking-workflow.seed.yaml"]`) or, if the class's data has nothing in common with the shared set, on its own. Reach for a dedicated file when a class's precondition states (see "Prefer Seeded State Over API-Orchestrated Setup" above) would otherwise clutter the shared file with rows only that one class cares about — e.g. several `Booking` rows parked at different state-machine stages (`Draft`, `Confirmed`, `Cancelled`) purely to support one workflow test class. This is the intended use of the list parameter, not a workaround.
+The shared `read-data.seed.yaml` / `mutate-data.seed.yaml` pair is the **preferred default** — most entities' data fits there without trouble. But `MigrateSqlServerDataAsync<TestData>([...])` / `MigratePostgresDataAsync<TestData>([...])` / `MigrateCosmosDataAsync<TestData>([...])` take a **list**, not a single file, precisely so a test class with data too distinct to manage cleanly inside the shared pair can add its own file — pass it alongside the shared one (`["mutate-data.seed.yaml", "booking-workflow.seed.yaml"]`) or, if the class's data has nothing in common with the shared set, on its own. Reach for a dedicated file when a class's precondition states (see "Prefer Seeded State Over API-Orchestrated Setup" above) would otherwise clutter the shared file with rows only that one class cares about — e.g. several `Booking` rows parked at different state-machine stages (`Draft`, `Confirmed`, `Cancelled`) purely to support one workflow test class. This is the intended use of the list parameter, not a workaround.
 
-**Format** — `schema:` → `- <table>:` → rows, where each row is an **inline object** keyed by column name. Unlike the production `ref-data.seed.yaml` (which uses `$^<table>` + auto-id + `code: text` shorthand), test data uses a **plain `- <table>:`** entry (no `$`/`$^` — it is inserted into a freshly-reset DB) and rows that **list the columns explicitly**.
+**Format** — relational providers use `schema:` → `- <table>:` → rows, where each row is an **inline object** keyed by column name. Unlike the production `ref-data.seed.yaml` (which uses `$^<table>` + auto-id + `code: text` shorthand), relational test data uses a **plain `- <table>:`** entry (no `$`/`$^` — it is inserted into a freshly-reset DB) and rows that **list the columns explicitly**. Cosmos test data instead uses the **container id** as the top-level key, with raw camelCase document bodies matching the persistence model (`customers: - { id: ^1, firstName: Existing, ... }`); the reference-data container still uses the grouped `ref-data: - $^TypeName:` shorthand.
 
-> **⚠️ All identifiers — schema, table, AND column names — must match the database's actual casing for the chosen provider** (i.e. exactly what the migration scripts created). DbEx does not case-fold them, so a wrong-cased schema/table fails the seed with *"Table '…' does not exist"*:
+> **⚠️ All identifiers must match the provider's actual persisted shape.** For relational providers that means the schema, table, **and** column names created by the migration scripts; DbEx does not case-fold them, so a wrong-cased schema/table fails the seed with *"Table '…' does not exist"*. For Cosmos it means the **container id** top-level key and the document's camelCase JSON property names must match the persistence model exactly:
 > - **PostgreSQL (the default provider)** → **lowercase `snake_case`**: schema `bar`, table `employee`, columns `employee_id`, `first_name`, `gender_code`.
 > - **SQL Server** → **`PascalCase`**: schema `Bar`, table `Employee`, columns `EmployeeId`, `FirstName`, `GenderCode`.
+> - **Cosmos** → top-level container key such as `customers`, document properties such as `firstName`, `customerTypeCode`, and nested JSON that already matches the persisted document shape.
 
 ```yaml
 # PostgreSQL (default) — lowercase schema/table, snake_case columns
@@ -157,6 +170,12 @@ bar:
 Bar:
   - Employee:
     - { EmployeeId: ^1, FirstName: Bob, LastName: Smith, GenderCode: M, Salary: 50000, DateOfBirth: 1990-01-01 }
+```
+
+```yaml
+# Cosmos — top-level container id, raw camelCase document bodies
+customers:
+- { id: ^1, firstName: Bob, lastName: Smith, email: bob.smith@example.com, customerTypeCode: IND }
 ```
 
 - **`^N` is a deterministic GUID** — `^1` equals `1.ToGuid()`. Use it for the **identifier** and for any **GUID foreign-key reference** to another seeded row (e.g. a `movement` row with `{ product_id: ^1 }` points at the product seeded as `^1`). This is what lets a test target a specific row by the same `N.ToGuid()`.
@@ -827,10 +846,10 @@ public class ProductModifySubscriberTests : WithApiTester<YourDomain.Subscribe.P
     [OneTimeSetUp]
     public async Task OneTimeSetUpAsync()
     {
-        await Test.MigrateSqlServerDataAsync<TestData>(DbMigration.ConfigureMigrationArgs).ConfigureAwait(false);
+        await Test.MigrateSqlServerDataAsync<TestData>(DbMigration.ConfigureMigrationArgs).ConfigureAwait(false);   // or MigratePostgresDataAsync / MigrateCosmosDataAsync provider-specifically
         await Test.ClearFusionCacheAsync().ConfigureAwait(false);
 
-        Test.UseExpectedSqlServerOutboxPublisher();
+        Test.UseExpectedSqlServerOutboxPublisher();   // or UseExpectedPostgresOutboxPublisher / UseExpectedCosmosDbOutboxPublisher() provider-specifically
     }
 }
 ```
@@ -858,7 +877,7 @@ public class RelayTests : WithApiTester<YourDomain.Relay.Program>
         {
             test.Run(async _ =>
             {
-                var pub = ActivatorUtilities.GetServiceOrCreateInstance<PostgresOutboxPublisher>(test.Services);
+                var pub = ActivatorUtilities.GetServiceOrCreateInstance<PostgresOutboxPublisher>(test.Services);   // or SqlServerOutboxPublisher for relational providers; Cosmos relay coverage is best-effort until a dedicated sample relay host exists.
                 pub.Add("contoso", [ce1, ce2]);
                 await pub.PublishAsync();
 
@@ -876,6 +895,9 @@ public class RelayTests : WithApiTester<YourDomain.Relay.Program>
 ```
 
 The relay host exposes hosted-service management endpoints that can also be exercised in tests:
+
+For **Cosmos** domains there is no sample Relay host yet. Treat Cosmos relay validation as best-effort: where a solution has a Cosmos relay, publish the outbox document through `CosmosDbEventPublisher` inside `CosmosDbUnitOfWork.TransactionAsync(...)` and poll the downstream effect; if that flow is not yet available in the solution, fall back to health/hosted-service checks rather than inventing a fake relational-style test harness.
+
 
 ```csharp
 Test.Http()
@@ -911,8 +933,9 @@ Basket_Checkout_Insufficient_Quantity
 ## Do Not
 
 - Do not use `[TestCase]` for integration tests — create separate named test methods for each scenario.
-- Do not use `UseExpectedSqlServerOutboxPublisher` / `ExpectSqlServerOutboxEvents` in PostgreSQL domain tests — use the Postgres equivalents.
-- Do not use `UseExpectedPostgresOutboxPublisher` / `ExpectPostgresOutboxEvents` in SQL Server domain tests — use the SQL Server equivalents.
+- Do not use `UseExpectedSqlServerOutboxPublisher` / `ExpectSqlServerOutboxEvents` in PostgreSQL or Cosmos domain tests — use the provider-correct helpers.
+- Do not use `UseExpectedPostgresOutboxPublisher` / `ExpectPostgresOutboxEvents` in SQL Server or Cosmos domain tests — use the provider-correct helpers.
+- Do not use `UseExpectedCosmosDbOutboxPublisher` / `ExpectCosmosDbOutboxEvents` in relational tests — use the SQL Server/Postgres helpers instead.
 - Do not call `ClearFusionCacheAsync()` in Outbox Relay host tests — relay hosts have no cache.
 - Do not test inter-domain HTTP calls against a real API — always mock with `MockHttpClientFactory`.
 - Do not call `Test.ReplaceHttpClientFactory()` inside individual tests — configure it once in `[OneTimeSetUp]`.

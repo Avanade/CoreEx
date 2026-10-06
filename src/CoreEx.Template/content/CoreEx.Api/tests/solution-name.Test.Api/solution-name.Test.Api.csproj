@@ -12,7 +12,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\app-name.Api\app-name.Api.csproj" />
     <ProjectReference Include="..\solution-name.Test.Common\solution-name.Test.Common.csproj" />
-    <!--#if (implement-sqlserver || implement-postgres)-->
+    <!--#if has-data-provider-->
     <ProjectReference Include="..\..\tools\solution-name.Database\solution-name.Database.csproj" />
     <!--#endif-->
   </ItemGroup>

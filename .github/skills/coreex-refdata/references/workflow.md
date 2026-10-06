@@ -14,21 +14,21 @@ Full step-by-step workflow for adding or modifying a reference data type. Follow
 
 ## Phase 1 — Establish Baseline
 
-Before any change, bring the database to a known good state and identify the scope.
+Before any change, bring the persistence baseline to a known good state and identify the scope.
 
-1. Identify the database provider in use (PostgreSQL → `.pgsql` / `snake_case`; SQL Server → `.sql` / `PascalCase`). Check `*.Database/Program.cs` if unsure.
+1. Identify the data provider in use: PostgreSQL (`.pgsql` / `snake_case`), SQL Server (`.sql` / `PascalCase`), or Cosmos (`ConfigureProvisionArgs(...)` + container-keyed seed data). Check `*.Database/Program.cs` if unsure.
 2. From the `*.Database` project directory:
-   ```
-   dotnet run -- database
-   ```
-   This is non-destructive (`Create` → `Migrate` → `Schema` → `Data`). **If it fails, stop and surface the verbatim error — do not continue.**
-3. Identify all tables involved: the ref-data entity's own table, plus any ref-data tables referenced via `^Type` properties.
+   - **Relational**: run `dotnet run -- database`. This is non-destructive (`Create` → `Migrate` → `Schema` → `Data`). **If it fails, stop and surface the verbatim error — do not continue.**
+   - **Cosmos**: review `Program.ConfigureProvisionArgs(CosmosDbProvisionArgs)` and the existing `Data/*.seed.yaml` resources, then run `dotnet run -- All` if the baseline needs provisioning/importing.
+3. Identify the persistence artefacts involved:
+   - **Relational**: the ref-data entity's own table, plus any ref-data tables referenced via `^Type` properties.
+   - **Cosmos**: the `ref-data` container, plus any generated repository/accessor expectations that depend on its discriminator entries.
 
 ---
 
 ## Phase 2 — Choose Your Path
 
-Inspect the table(s) to determine which path applies:
+For **relational** providers, inspect the table(s) to determine which path applies:
 
 ```
 dotnet run -- inspect <schema> <table>
@@ -41,6 +41,8 @@ dotnet run -- inspect <schema> <table>
 | Table exists but no CodeGen entry yet (table was created externally) | **Path C** — seed + dbex.yaml + CodeGen only |
 | Seed rows only, no schema change | **Path D** — seed rows only |
 | Wire existing type into a contract | **Path E** — contract wiring only |
+
+For **Cosmos**, the persistence path is simpler: keep the `ref-data` container declaration, update its grouped seed data, and set `repository: Cosmos` in `ref-data.yaml` when the generated repository should target Cosmos. There is no table-inspect/dbex path.
 
 ---
 
@@ -254,7 +256,7 @@ Add or update the entry under `entities:`. The standard `IReferenceData` propert
 ```yaml
 # yaml-language-server: $schema=https://raw.githubusercontent.com/Avanade/CoreEx/refs/heads/main/schema/coreex-refdata.json
 collectionSortOrder: Code
-repository: EntityFramework
+repository: EntityFramework      # use `Cosmos` in Cosmos-backed domains
 entities:
 - name: Brand                   # minimal — no extra properties
 - name: SubCategory

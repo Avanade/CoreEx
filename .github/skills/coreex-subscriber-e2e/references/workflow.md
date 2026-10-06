@@ -20,7 +20,7 @@ Before asking the user anything, read the solution-root `AGENTS.md` **Feature Co
 |---|---|
 | `messaging-provider` | Confirms the broker (ServiceBus) and subject naming conventions |
 | `outbox-enabled` | Passed to app-service step for mutation event publication |
-| `data-provider` | `None` → Steps 2 and 3 (migration + repository) are never applicable |
+| `data-provider` | `None` → Steps 2 and 3 (migration + repository) are never applicable; `Cosmos` still runs them, but via container provisioning and Cosmos repositories instead of DbEx/EF |
 | `rop-enabled` | Passed to app-service step to determine Result&lt;T&gt; pipeline shape |
 
 If any feature is absent from `AGENTS.md`, include it as a question in Phase 2 and record the answer before proceeding.
@@ -38,8 +38,8 @@ Gather everything needed for all downstream L1 skills in a single conversation t
 | 1 | What is the event or command subject? (e.g. `products.product.modified`, `shopping.basket.checkout`) | Drives subscriber subject registration and test assertions |
 | 2 | Which scenario does this subscriber implement? — **Command handler** (inbound command triggers a direct action — for commands prefer [`coreex-command-subscribe-e2e`](../coreex-command-subscribe-e2e/SKILL.md), which also covers the dedicated queue receiver, topology and Aspire), **Event-data-sync** (inbound event replicates data to a local store via `IXxxSyncAdapter`), or **Business-process** (inbound event triggers multi-step orchestration) | Determines which L1 steps run |
 | 3 | Does a new DTO contract need to be created for the event/command payload, or does one already exist? | Gates Step 1 (`coreex-contract`) |
-| 4 | (Business-process and command scenarios) Does the handler need to persist state to a new local entity table? | Gates Steps 2 and 3 (migration + repository) |
-| 5 | (If `data-provider` was unrecorded) Does this solution have local persistence (SqlServer / Postgres)? | Required before Steps 2–3 can be evaluated |
+| 4 | (Business-process and command scenarios) Does the handler need to persist state to a new local store shape (relational table or Cosmos container)? | Gates Steps 2 and 3 (migration + repository) |
+| 5 | (If `data-provider` was unrecorded) Does this solution have local persistence (`SqlServer` / `Postgres` / `Cosmos`)? | Required before Steps 2–3 can be evaluated |
 
 **Do not ask** about `messaging-provider`, `outbox-enabled`, or `rop-enabled` if already recorded in Feature Configuration — restate the resolved values for confirmation instead.
 
@@ -61,11 +61,11 @@ Skip this step if the event/command DTO type already exists in the Contracts pro
 
 ---
 
-### Step 2 — `coreex-db-migration` _(business-process scenario only, when `data-provider ≠ None` and a new local entity table is needed)_
+### Step 2 — `coreex-db-migration` _(business-process scenario only, when `data-provider ≠ None` and a new local persistence shape is needed — relational table or Cosmos container)_
 
 Invoke [`coreex-db-migration`](../coreex-db-migration/SKILL.md).
 
-Pass: table name, columns derived from the entity properties. This step is only needed when the business-process scenario creates a new locally-owned entity that does not yet have a table.
+Pass: relational table name + columns, or the Cosmos container/persistence-model shape derived from the entity properties. This step is only needed when the business-process scenario creates a new locally-owned entity that does not yet have a persistence home.
 
 ---
 

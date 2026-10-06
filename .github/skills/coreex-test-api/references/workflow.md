@@ -12,7 +12,7 @@
 
 Identify: entity name, which operations need coverage (Get/Query/Create/Update/Patch/Delete), and the
 domain's database provider (check `*.Database/Program.cs` or `appsettings.json` — PostgreSQL vs SQL
-Server). The provider determines which outbox helper family to use throughout (never mix them).
+Server vs Cosmos). The provider determines which migrate/seed and outbox helper family to use throughout (never mix them).
 
 ## Phase 1 — Seed Data First
 
@@ -86,9 +86,9 @@ public partial class EmployeeMutateTests : WithApiTester<MyApp.Api.Program>
     [OneTimeSetUp]
     public async Task OneTimeSetUpAsync()
     {
-        await Test.MigrateSqlServerDataAsync<TestData>(["mutate-data.seed.yaml"], DbMigration.ConfigureMigrationArgs).ConfigureAwait(false);   // or MigratePostgresDataAsync<TestData>(...) — provider-specific
+        await Test.MigrateSqlServerDataAsync<TestData>(["mutate-data.seed.yaml"], DbMigration.ConfigureMigrationArgs).ConfigureAwait(false);   // or MigratePostgresDataAsync<TestData>(...) / MigrateCosmosDataAsync<TestData>(..., DbMigration.ConfigureProvisionArgs) — provider-specific
         await Test.ClearFusionCacheAsync().ConfigureAwait(false);
-        Test.UseExpectedSqlServerOutboxPublisher();   // or UseExpectedPostgresOutboxPublisher() — provider-specific
+        Test.UseExpectedSqlServerOutboxPublisher();   // or UseExpectedPostgresOutboxPublisher() / UseExpectedCosmosDbOutboxPublisher() — provider-specific
     }
 }
 ```
@@ -427,7 +427,7 @@ values, include them; don't exclude them. The only volatile fields are `id`/`eta
 - [ ] Read/mutate split into separate classes with separate seed files
 - [ ] Named-file seed overload used (not the no-arg "load everything" overload)
 - [ ] One seed row per destructive test, not per operation
-- [ ] Provider-correct outbox helpers used throughout (no Postgres/SQL Server mixing)
+- [ ] Provider-correct outbox helpers used throughout (no Postgres/SQL Server/Cosmos mixing)
 - [ ] Delete tested as the idempotent 4-step flow; never `AssertNotFound()` on DELETE
 - [ ] Create/Update/Patch `_Success` tests assert the specific changed property/properties explicitly (`updated.Prop.Should().Be(expected)`), then re-GET and `AssertValue(...)` to verify the change persisted (not just that the response echoed it back)
 - [ ] ETag concurrency asserted as 412, not 409; 428 case understood for missing-ETag scenarios

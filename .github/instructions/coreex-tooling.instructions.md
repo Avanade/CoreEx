@@ -1,7 +1,7 @@
 ---
 applyTo: "**/*.CodeGen/Program.cs;**/*.CodeGen/ref-data.yaml;**/*.Database/Program.cs;**/*.Database/dbex.yaml;**/*.Database/Migrations/**;**/*.Database/Data/**;**/*.Database/Schema/**;!**/*.Database/Schema/**/*.g.*"
-description: "Developer tooling conventions: *.CodeGen reference-data C# code generation and *.Database schema migration, DbEx commands, seed data, and outbox provisioning"
-tags: ["tooling", "codegen", "database", "migrations", "dbex", "reference-data", "outbox"]
+description: "Developer tooling conventions: *.CodeGen reference-data C# code generation and *.Database relational migration or Cosmos provisioning, seed data, and outbox provisioning"
+tags: ["tooling", "codegen", "database", "migrations", "dbex", "cosmos", "reference-data", "outbox"]
 ---
 
 <!--
@@ -14,12 +14,12 @@ tags: ["tooling", "codegen", "database", "migrations", "dbex", "reference-data",
 
 # Developer Tooling Conventions
 
-Each domain has two developer-time tooling projects that have **no runtime presence**. They run locally during development and in CI/CD pipelines to generate code and manage the database schema.
+Each domain has two developer-time tooling projects that have **no runtime presence**. They run locally during development and in CI/CD pipelines to generate code and manage the persistence baseline.
 
 | Project | Purpose |
 |---|---|
 | `*.CodeGen` | Generates reference-data C# artefacts across all layers from `ref-data.yaml` |
-| `*.Database` | Manages the full database lifecycle — schema, seed data, outbox provisioning, and Infrastructure C# code generation |
+| `*.Database` | For relational providers: manages schema, seed data, outbox provisioning, and Infrastructure C# code generation via DbEx. For Cosmos: provisions the database/containers, imports seed data, and keeps the declared container topology in code. |
 
 > **Related skills:** this file holds the invariants (command reference, YAML structure, table templates, casing,
 > generated-file ownership) that must hold on **any** tooling edit. For the step-by-step **creation** procedures,
@@ -161,7 +161,66 @@ Key `entities:` options:
 
 ---
 
-## `*.Database` — Database Lifecycle Management
+## `*.Database` — Cosmos Provisioning Lifecycle
+
+For **Cosmos** domains, `*.Database` is **not** a DbEx project. It is a `CosmosDbConsole` provisioning app that declares containers in code and imports `Data/*.seed.yaml` resources directly into those containers. There is no `dbex.yaml`, no `Migrations/`, and no SQL schema scripts.
+
+### Cosmos `Program.cs` pattern
+
+```csharp
+public static Task<int> Main(string[] args)
+    => CosmosDbConsole.Create<Program>(DefaultConnectionString, DefaultDatabaseId)
+        .Configure(c => ConfigureProvisionArgs(c.Args))
+        .RunAsync(args);
+
+public static CosmosDbProvisionArgs ConfigureProvisionArgs(CosmosDbProvisionArgs args) => args
+    .AddAssembly<Program>()
+    .Container("customers", configure: cp =>
+    {
+        // optional indexing / unique-key customisation
+    })
+    .ReferenceDataContainer("ref-data");
+```
+
+- Use `ReferenceDataContainer("ref-data")` for type-discriminated reference data. It provisions the `/typeDiscriminator` + `/code` unique-key shape the generated ref-data repository expects.
+- Add one `.Container(id, partitionKeyPath, configure, dataOptions)` (or the convenience overloads) per transactional container. The default partition-key path is `/partitionKey`; use a deliberate override only when the model/container shape requires it.
+- The typed Infrastructure accessor mirrors these ids exactly: `Container<Persistence.Customer>("customers")`, `Container<Persistence.CustomerType>("ref-data", o => o.WithTypeDiscriminator())`, etc.
+
+### Cosmos commands
+
+Run with `dotnet run -- <command>`. Default (no arguments) runs `All`.
+
+| Command | Description |
+|---|---|
+| `Create` | Creates the database (if absent) and any missing declared containers |
+| `Data` | Imports the embedded `Data/*.seed.yaml` / `*.json` resources into the declared containers |
+| `All` | `Create` → `Data` |
+| `ResetAndData` | Replaces every declared container, then re-imports seed data |
+| `Drop` | Drops the database |
+| `DropAndAll` | `Drop` → `All` |
+
+### Cosmos seed data
+
+- Transactional container seed files use the **container id** as the top-level key and raw camelCase document bodies matching the persistence model, for example:
+
+```yaml
+customers:
+- { id: ^1, firstName: Existing, lastName: Customer, email: existing.customer@example.com }
+```
+
+- The reference-data container keeps the grouped shorthand under its container id:
+
+```yaml
+ref-data:
+- $^CustomerType:
+  - IND: Individual
+  - ORG: Organisation
+```
+
+- Container ids are the authoritative keys. A top-level key that does not match a declared container fails the import.
+- Seed documents must already match the stored JSON shape (camelCase names, partition-key property if the container requires one). There is no relational casing translation step.
+
+## `*.Database` — Relational Database Lifecycle Management
 
 ### NuGet / Project References
 

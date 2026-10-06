@@ -15,7 +15,7 @@ Guide this workspace through adding a complete new event or command subscriber e
 Use `.github/skills/coreex-subscriber-e2e/SKILL.md` and its referenced workflow as the authoritative workflow.
 
 Operational contract:
-- Read the solution-root `AGENTS.md` **Feature Configuration** first (`messaging-provider`, `outbox-enabled`, `data-provider`, `rop-enabled`) — do not ask questions already answered there.
+- Read the solution-root `AGENTS.md` **Feature Configuration** first (`messaging-provider`, `outbox-enabled`, `data-provider` — `SqlServer` / `Postgres` / `Cosmos` / `None`, `rop-enabled`) — do not ask questions already answered there.
 - Batch all interview questions into one turn: event/command subject, subscriber scenario (command handler / event-data-sync / business-process), whether a new DTO is needed, and whether state persistence is required.
 - Invoke L1 skills in sequence based on the resolved scenario — `coreex-contract` (if new DTO), `coreex-db-migration` + `coreex-repository` (if new local entity), `coreex-app-service` (if orchestration needed), `coreex-subscriber`, `coreex-test-subscribe` — passing resolved context so no L1 re-asks what was already answered.
 - Skip migration and repository for event-data-sync scenarios — the SyncAdapter owns local persistence.

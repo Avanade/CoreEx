@@ -1,4 +1,7 @@
 global using CoreEx;
+// #if implement-cosmos
+global using CoreEx.Cosmos;
+// #endif
 global using CoreEx.Data;
 global using CoreEx.Data.Models;
 // #if (implement-sqlserver || implement-postgres)
@@ -27,9 +30,15 @@ global using CoreEx.Mapping;
 global using CoreEx.RefData;
 // #endif
 global using CoreEx.Results;
+// #if implement-cosmos
+global using Microsoft.Azure.Cosmos;
+// #endif
 // #if (implement-sqlserver || implement-postgres)
 global using Microsoft.EntityFrameworkCore;
 // #endif
 global using Microsoft.Extensions.DependencyInjection;
 global using System.Text.Json.Serialization;
 global using ExecutionContext = CoreEx.ExecutionContext;
+// #if implement-cosmos
+global using PartitionKey = Microsoft.Azure.Cosmos.PartitionKey;
+// #endif

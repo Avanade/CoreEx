@@ -36,6 +36,8 @@ The relay connects to the same database as the API host -- use the **same Aspire
 - `builder.AddSqlServerClient("SqlServer")` -- matches the Aspire SQL Server resource
 <!-- #elif implement-postgres -->
 - `builder.AddAzureNpgsqlDataSource("Postgres")` -- matches the Aspire PostgreSQL resource
+<!-- #elif implement-cosmos -->
+- `builder.AddAzureCosmosClient("Cosmos")` -- matches the Aspire Cosmos DB connection string (`ConnectionStrings:Cosmos`); the database id is `domain-name-lower`
 <!-- #else -->
 - No database configured -- this relay has no data provider
 <!-- #endif -->
@@ -53,6 +55,8 @@ Relay timing and retry settings are configured via `appsettings.json` -- read `.
 - **Database:** SQL Server outbox (`AddSqlServerOutboxRelay()` + `AddSqlServerOutboxRelayHostedService()`)
 <!-- #elif implement-postgres -->
 - **Database:** PostgreSQL outbox (`AddPostgresOutboxRelay()` + `AddPostgresOutboxRelayHostedService()`)
+<!-- #elif implement-cosmos -->
+- **Database:** Azure Cosmos DB outbox -- a Change Feed Processor per outbox-hosting container (`AddCosmosDbOutboxRelayHostedService("<container-id>")`; push-based, not a polling loop). Outbox event documents are co-located in the same container/partition as the business data, so **call it once per container that hosts outbox documents** (e.g. add `builder.AddCosmosDbOutboxRelayHostedService("customer")` when a new entity container is added); concurrency is set per container via `CoreEx:Host:Services:CosmosOutboxRelay:{containerId}:ServicesCount`. The lease container (`{containerId}-leases`) is auto-provisioned. Poison-message/dead-letter handling is not yet implemented for Cosmos.
 <!-- #else -->
 - **Database:** None -- this relay has no database outbox configured
 <!-- #endif -->
@@ -74,6 +78,9 @@ Relay timing and retry settings are configured via `appsettings.json` -- read `.
 <!-- #if implement-postgres -->
 | `CoreEx.Database.Postgres` | PostgreSQL outbox relay implementation |
 <!-- #endif -->
+<!-- #if implement-cosmos -->
+| `CoreEx.Cosmos` | Cosmos DB Change Feed Processor outbox relay implementation |
+<!-- #endif -->
 <!-- #if implement-servicebus -->
 | `CoreEx.Azure.Messaging.ServiceBus` | Azure Service Bus publisher |
 <!-- #endif -->
@@ -91,6 +98,9 @@ Relay timing and retry settings are configured via `appsettings.json` -- read `.
 <!-- #endif -->
 <!-- #if implement-postgres -->
 - `.github/docs/coreex/agents/CoreEx.Database.Postgres.md` -- PostgreSQL outbox details
+<!-- #endif -->
+<!-- #if implement-cosmos -->
+- `.github/docs/coreex/agents/CoreEx.Cosmos.md` -- Cosmos DB outbox relay details
 <!-- #endif -->
 <!-- #if implement-servicebus -->
 - `.github/docs/coreex/agents/CoreEx.Azure.Messaging.ServiceBus.md` -- Service Bus publisher

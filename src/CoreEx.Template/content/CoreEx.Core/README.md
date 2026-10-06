@@ -10,6 +10,9 @@ A CoreEx microservice for the `domain-name` domain.
 <!-- #if implement-postgres -->
 - **Data provider:** PostgreSQL (`CoreEx.Database.Postgres`, `CoreEx.EntityFrameworkCore`)
 <!-- #endif -->
+<!-- #if implement-cosmos -->
+- **Data provider:** Azure Cosmos DB (`CoreEx.Cosmos`)
+<!-- #endif -->
 <!-- #if implement-none-data -->
 - **Data provider:** None — facade over an external system (no local database)
 <!-- #endif -->
@@ -52,13 +55,17 @@ app-name/
 ├── src/
 │   ├── app-name.Contracts/        # Public contracts, DTOs, event schemas
 │   ├── app-name.Application/      # Services, validators, repository interfaces
-│   └── app-name.Infrastructure/   # EF Core repositories, outbox, external adapters
+│   └── app-name.Infrastructure/   # EF Core / Cosmos DB repositories, outbox, external adapters
 <!-- #if has-data-provider -->
 ├── tools/
 <!-- #if (refdata-enabled && has-data-provider) -->
 │   ├── app-name.CodeGen/          # Reference data C# generation (reads ref-data.yaml)
 <!-- #endif -->
+<!-- #if implement-cosmos -->
+│   └── app-name.Database/         # Cosmos DB database/container provisioning and seeding
+<!-- #else -->
 │   └── app-name.Database/         # Database migrations and seeding (DbEx)
+<!-- #endif -->
 <!-- #endif -->
 └── tests/
     ├── app-name.Test.Common/      # Shared test infrastructure, seed data and (Service Bus) topology
@@ -87,6 +94,9 @@ docker compose up -d   # Docker
 <!-- #if implement-postgres -->
 | `db-postgres` | 5432 | PostgreSQL — domain schema and data |
 <!-- #endif -->
+<!-- #if implement-cosmos -->
+| `cosmos-emulator` | 8081 (HTTPS) | Azure Cosmos DB (vNext) emulator — domain database and containers |
+<!-- #endif -->
 | `redis-cache` | 6379 | Redis — FusionCache distributed backplane |
 <!-- #if implement-servicebus -->
 | `servicebus-emulator` | 5672 (AMQP), 5300 (mgmt) | Azure Service Bus emulator |
@@ -104,6 +114,18 @@ This solution is a facade (no local database). Start Redis for caching and the d
 
 ```bash
 podman compose up -d
+```
+
+<!-- #endif -->
+<!-- #if implement-cosmos -->
+### Connection strings
+
+The connection string is in each host's `appsettings.Development.json` under `ConnectionStrings:Cosmos` (the well-known local emulator account key). The database identifier is `domain-name-lower`:
+
+```json
+"ConnectionStrings": {
+  "Cosmos": "AccountEndpoint=https://localhost:8081/;AccountKey=C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw=="
+}
 ```
 
 <!-- #endif -->
@@ -141,7 +163,25 @@ Connection strings are in each host's `appsettings.Development.json` under the `
 <!-- #endif -->
 ---
 
-<!-- #if has-data-provider -->
+<!-- #if implement-cosmos -->
+## Database
+
+The Cosmos DB database and containers are provisioned (not migrated) from code, then seeded — required once on first run and after any container change:
+
+```bash
+dotnet run --project tools/app-name.Database -- All
+```
+
+| Command | Effect |
+|---|---|
+| `-- All` | Create the database and containers, then import the seed data |
+| `-- DropAndAll` | Drop the database, then create, provision and seed it |
+| `-- ResetAndData` | Empty the containers and re-import the seed data (the database must exist) |
+| `--help` | List all commands and options |
+
+Containers are declared in `tools/app-name.Database/Program.cs` (`ConfigureProvisionArgs`) and must match `src/app-name.Infrastructure/Repositories/domain-nameCosmosDb.cs`; seed data is in `tools/app-name.Database/Data/` (top-level key = container id).
+
+<!-- #elif has-data-provider -->
 ## Database
 
 Migrate and seed — required once on first run and after any schema change:

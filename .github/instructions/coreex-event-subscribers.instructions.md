@@ -170,13 +170,13 @@ builder.Services
     .AddDefaultCacheKeyProvider()
     .AddHybridCacheIdempotencyProvider();
 
-// 3. Infrastructure — database, EF, outbox publisher (for transactional writes inside subscribers)
+// 3. Infrastructure — database, relational EF or Cosmos, and (only when outbox-enabled) the default outbox publisher for transactional writes inside subscribers.
 // SQL Server variant:
 builder.AddSqlServerClient("SqlServer");
 builder.Services
     .AddSqlServerDatabase()
     .AddSqlServerUnitOfWork()
-    .AddSqlServerOutboxPublisher()              // outbox publisher becomes the default IEventPublisher
+    .AddSqlServerOutboxPublisher()              // only when outbox-enabled; becomes the default IEventPublisher when registered
     .AddDbContext<MyDbContext>()
     .AddEfDb<MyEfDb>();
 
@@ -186,16 +186,32 @@ builder.Services
 //     .AddPostgresDatabase()
 //     .AddPostgresUnitOfWork()
 //     .AddEventFormatter()
-//     .AddPostgresOutboxPublisher()
+//     .AddPostgresOutboxPublisher()            // only when outbox-enabled; becomes the default IEventPublisher when registered
 //     .AddDbContext<MyDbContext>()
 //     .AddEfDb<MyEfDb>();
+
+// Cosmos variant (use instead of the relational block):
+// builder.AddAzureCosmosClient("Cosmos", configureClientOptions: o =>
+// {
+//     o.UseSystemTextJsonSerializerWithOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+//     if (builder.Environment.IsDevelopment())
+//     {
+//         o.ConnectionMode = ConnectionMode.Gateway;
+//         o.HttpClientFactory = () => new HttpClient(new HttpClientHandler { ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator });
+//     }
+// });
+// builder.Services
+//     .AddCosmosDb<MyCosmosDb>("my-database-id")
+//     .AddCosmosDbUnitOfWork()
+//     .AddCosmosDbEventPublisher()             // only when outbox-enabled; becomes the default IEventPublisher when registered
+//     .AddCosmosDbHealthCheck();
 
 // 4. Azure Service Bus publisher — direct publish capability (not the default IEventPublisher)
 builder.AddAzureServiceBusClient("ServiceBus");
 builder.Services.AddAzureServiceBusPublisher((_, c) =>
 {
     c.SessionIdStrategy = ServiceBusSessionStrategy.UsePartitionKeyConvertedToAnId;
-}, addAsDefaultIEventPublisher: false);  // false because outbox publisher is already the default
+}, addAsDefaultIEventPublisher: false);  // false because, when outbox-enabled, the database-backed outbox publisher remains the default
 
 // 5. Event formatter + subscriber manager (AddNamedDestinationProvider() is registered with the other CoreEx services: events to the shared topic, commands to `{topic}-{domain}` queues)
 builder.Services
@@ -228,7 +244,7 @@ builder.Services.AddOpenApiDocument(s =>
 
 builder.WithCoreExTelemetry()
     .WithCoreExServiceBusTelemetry()
-    .WithCoreExSqlServerTelemetry()  // or .WithCoreExPostgresTelemetry() for PostgreSQL
+    .WithCoreExSqlServerTelemetry()  // or .WithCoreExPostgresTelemetry() / .WithCoreExCosmosDbTelemetry() for the chosen provider
     .UseOtlpExporter();
 
 // 9. Build and middleware pipeline
@@ -277,7 +293,7 @@ builder.Services.AzureServiceBusReceiving()
 - Do not use MediatR or in-process event dispatchers — subscribers react to integration events from the broker only.
 - Do not manually register subscriber classes in DI — `AddSubscribersUsing<T>()` discovers them automatically via `[ScopedService]`.
 - Do not omit `AddEventFormatter()` from `Program.cs` — it is required for message parsing and deserialization.
-- Do not set `addAsDefaultIEventPublisher: true` for the Service Bus publisher when the outbox publisher is the intended default `IEventPublisher`.
+- Do not set `addAsDefaultIEventPublisher: true` for the Service Bus publisher when an outbox publisher is registered (all providers, and only when `outbox-enabled` is true) and is the intended default `IEventPublisher`.
 
 ## Further Reading
 

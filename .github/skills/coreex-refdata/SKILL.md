@@ -15,7 +15,7 @@ tags: ["refdata", "codegen", "database", "contracts", "reference-data", "coreex"
 
 # CoreEx: Reference Data
 
-Guides you through the complete end-to-end workflow for adding or modifying a reference data (Code/Text lookup) type in a CoreEx domain — covering both the database side (`*.Database`) and the CodeGen side (`*.CodeGen`).
+Guides you through the complete end-to-end workflow for adding or modifying a reference data (Code/Text lookup) type in a CoreEx domain — covering both the persistence side (`*.Database`, relational DbEx or Cosmos provisioning) and the CodeGen side (`*.CodeGen`).
 
 ## When to Use
 
@@ -37,19 +37,19 @@ Guides you through the complete end-to-end workflow for adding or modifying a re
 
 > **Resolve project-wide choices from state before asking.** Read the solution-root `AGENTS.md`
 > **Feature Configuration** for `refdata-enabled` (gates this whole skill) and `data-provider`
-> (SQL Server / PostgreSQL — drives casing and script extension). Only prompt for what is unrecorded;
+> (`SqlServer` / `Postgres` / `Cosmos` — drives whether the database step is DbEx or Cosmos provisioning, plus casing/seed shape). Only prompt for what is unrecorded;
 > re-state resolved values for confirmation.
 
 **Two separate `dotnet run` steps in two different projects — never conflate them.**
 
 | Task | Project | Command / File |
 |---|---|---|
-| Bring DB up to date (inspect-safe baseline) | `*.Database` | `dotnet run -- database` |
-| Inspect table state | `*.Database` | `dotnet run -- inspect <schema> <table>` |
-| New ref-data migration script | `*.Database` | `dotnet run -- script refdata <schema> <table>` |
-| Add/amend seed rows | `*.Database` | Edit `Data/ref-data.seed.yaml` |
-| Register table in EF model | `*.Database` | Edit `dbex.yaml` → `tables:` |
-| Apply DB + regenerate EF models | `*.Database` | `dotnet run -- All` |
+| Bring persistence baseline up to date | `*.Database` | Relational: `dotnet run -- database`; Cosmos: inspect `Program.ConfigureProvisionArgs(...)` + run `dotnet run -- All` |
+| Inspect table/container state | `*.Database` | Relational: `dotnet run -- inspect <schema> <table>`; Cosmos: review declared container ids + seed files |
+| New ref-data persistence shape | `*.Database` | Relational: `dotnet run -- script refdata <schema> <table>`; Cosmos: keep `ReferenceDataContainer("ref-data")` and update its seed data / accessors |
+| Add/amend seed rows | `*.Database` | Edit `Data/ref-data.seed.yaml` (relational or Cosmos `ref-data` container) |
+| Register table in EF model | `*.Database` | Relational only: edit `dbex.yaml` → `tables:` |
+| Apply persistence + regenerate EF models/accessors | `*.Database` | Relational: `dotnet run -- All`; Cosmos: `dotnet run -- All` (provisions/imports; no EF generation) |
 | Add/update entity definition | `*.CodeGen` | Edit `ref-data.yaml` → `entities:` |
 | Generate all ref-data artefacts | `*.CodeGen` | `dotnet run` |
 
@@ -66,10 +66,11 @@ Putting entity definitions in the seed file, or seed rows in the entity file, is
 
 ## Polyglot Note
 
-| Provider | Casing | Script ext |
+| Provider | Persistence shape | Seed shape |
 |---|---|---|
-| PostgreSQL | `snake_case` | `.pgsql` |
-| SQL Server | `PascalCase` | `.sql` |
+| PostgreSQL | `snake_case` tables + `.pgsql` scripts | `Data/ref-data.seed.yaml` under the schema key |
+| SQL Server | `PascalCase` tables + `.sql` scripts | `Data/ref-data.seed.yaml` under the schema key |
+| Cosmos | `ReferenceDataContainer("ref-data")` in `ConfigureProvisionArgs(...)` | `Data/ref-data.seed.yaml` keyed by `ref-data`, with grouped `$^TypeName` entries |
 
 Check the project's `*.Database/Program.cs` to confirm the provider in use.
 
@@ -83,3 +84,4 @@ For the full decision tree, YAML examples, seeding rules, and guardrails see [`r
 - Illustrative examples (CoreEx sample — not present in your project):
   - [PostgreSQL CodeGen definition](https://github.com/Avanade/CoreEx/blob/main/samples/src/Contoso.Products.CodeGen/ref-data.yaml) and its [seed file](https://github.com/Avanade/CoreEx/blob/main/samples/src/Contoso.Products.Database/Data/ref-data.seed.yaml)
   - [SQL Server CodeGen definition](https://github.com/Avanade/CoreEx/blob/main/samples/src/Contoso.Shopping.CodeGen/ref-data.yaml) and its [seed file](https://github.com/Avanade/CoreEx/blob/main/samples/src/Contoso.Shopping.Database/Data/ref-data.seed.yaml)
+  - [Cosmos CodeGen definition](https://github.com/Avanade/CoreEx/blob/main/samples/src/Contoso.Customers.CodeGen/ref-data.yaml) and its [seed file](https://github.com/Avanade/CoreEx/blob/main/samples/src/Contoso.Customers.Database/Data/ref-data.seed.yaml)

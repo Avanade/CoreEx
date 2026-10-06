@@ -183,7 +183,7 @@ Run this **once per domain** from the solution root directory.
 | `-n` / `--name` | string | _(required)_ | Solution base name, e.g. `Avanade.Erp.Sales`. Drives all file names and namespaces. Format: `[Company].[Product].[Domain]`. |
 | `--refdata-enabled` | bool | `true` | Includes the reference-data pattern: `IReferenceDataRepository` (Application), `ReferenceDataProvider` (Application), `ReferenceDataRepository` (Infrastructure), and the `CodeGen` tool project. |
 | `--rop-enabled` | bool | `false` | Enables Railway-Oriented Programming -- `Result`/`Result<T>` return types throughout the solution. |
-| `--data-provider` | `SqlServer` \| `Postgres` \| `None` | `SqlServer` | The data persistence technology. `None` is for facade scenarios (e.g. over Dynamics 365) where there is no local database -- the `Database` tool project, EF Core packages, DbContext, and EfDb are all omitted. |
+| `--data-provider` | `SqlServer` \| `Postgres` \| `Cosmos` \| `None` | `SqlServer` | The data persistence technology. `SqlServer`/`Postgres` use EF Core (`DbContext`/`EfDb`) with a DbEx `Database` tool project; `Cosmos` (Azure Cosmos DB) uses `CoreEx.Cosmos` directly (a `[Domain]CosmosDb` class, no EF Core, no SQL migrations) and provisions containers code-first from the `Database` tool project (`ConfigureProvisionArgs` plus seed data) -- a fresh solution ships a single `ref-data` container (when `--refdata-enabled`), with entity containers added later. `None` is for facade scenarios (e.g. over Dynamics 365) where there is no local database -- the `Database` tool project, data-access packages and persistence classes are all omitted. |
 | `--outbox-enabled` | bool | `true` | Includes transactional-outbox wiring in the Infrastructure project. Has no effect when `--data-provider None`. |
 | `--messaging-provider` | `ServiceBus` \| `None` | `ServiceBus` | The messaging technology. `None` omits all messaging configuration. |
 
@@ -210,11 +210,12 @@ src/
     [name].Infrastructure.csproj
     GlobalUsing.cs
     Repositories/
-      [Domain]DbContext.cs               (data-provider != None)
-      [Domain]EfDb.cs                    (data-provider != None)
+      [Domain]DbContext.cs               (data-provider == SqlServer | Postgres)
+      [Domain]EfDb.cs                    (data-provider == SqlServer | Postgres)
+      [Domain]CosmosDb.cs                (data-provider == Cosmos -- the CosmosDb with the `ref-data` container and outbox event wiring)
       ReferenceDataRepository.cs         (refdata-enabled && data-provider != None)
 tools/
-  [name].Database/                       (data-provider != None)
+  [name].Database/                       (data-provider != None; Cosmos: no dbex.yaml/Migrations -- containers are provisioned code-first)
     [name].Database.csproj
     Program.cs
   [name].CodeGen/                        (refdata-enabled && data-provider != None)
@@ -227,7 +228,7 @@ tests/
     TestData.cs
     ServiceBus.cs                        (messaging-provider == ServiceBus -- code-based topic/queue topology for tests; servicebus/Config.json is empty)
     GlobalUsing.cs                       (messaging-provider == ServiceBus)
-    Data/                                (data-provider != None -- embedded seed data for DbEx)
+    Data/                                (data-provider != None -- embedded seed data for DbEx / the Cosmos provisioner)
   [name].Test.Unit/
     [name].Test.Unit.csproj
 ```
@@ -308,8 +309,8 @@ Run this from the **solution root** (the directory created by `coreex`). The tem
 |---|---|---|---|
 | `-n` / `--name` | string | _(required)_ | Full project name, e.g. `Avanade.Erp.Sales.Api`. Must match the solution name with `.Api` appended. |
 | `--refdata-enabled` | bool | `true` | Wires up `ReferenceDataOrchestrator` and dynamic service registration for reference-data caching. Match the value used with `coreex`. |
-| `--data-provider` | `SqlServer` \| `Postgres` \| `None` | `SqlServer` | Database technology. Selects the Aspire connection, CoreEx database, unit-of-work, and outbox publisher registration. |
-| `--outbox-enabled` | bool | `true` | Registers the outbox publisher (`SqlServerOutboxPublisher` or `PostgresOutboxPublisher`) as the `IEventPublisher`. Has no effect when `--data-provider None`. |
+| `--data-provider` | `SqlServer` \| `Postgres` \| `Cosmos` \| `None` | `SqlServer` | Database technology. Selects the Aspire connection, CoreEx database (or `AddCosmosDb<T>` for Cosmos), unit-of-work, health check and outbox publisher registration. |
+| `--outbox-enabled` | bool | `true` | Registers the outbox publisher (`SqlServerOutboxPublisher`, `PostgresOutboxPublisher` or `CosmosDbEventPublisher`) as the `IEventPublisher`. Has no effect when `--data-provider None`. |
 
 ### Output
 
@@ -353,6 +354,7 @@ tests/
     "Microsoft": { "Data": { "SqlClient": { "ConnectionString": "Data Source=127.0.0.1,1433;Initial Catalog=Sales;..." } } },
     // OR PostgreSQL (implement-postgres):
     "Npgsql": { "ConnectionString": "Server=127.0.0.1;Database=sales;..." },
+    // (Cosmos (implement-cosmos) uses a top-level "ConnectionStrings": { "Cosmos": "AccountEndpoint=https://localhost:8081/;AccountKey=..." } entry instead.)
     "StackExchange": { "Redis": { "ConnectionString": "localhost:6379" } }
   }
 }
@@ -383,14 +385,15 @@ Scaffolds an ASP.NET Core background-service host that reads committed events fr
 
 Run this from the **solution root** (the directory created by `coreex`). The template emits into both `src/` and `tests/` so it must be run at the root level.
 
-> **Note:** When `--data-provider None` is selected the outbox relay has nothing to relay. Scaffold this host only when your solution uses the outbox pattern (i.e. `--data-provider` is `SqlServer` or `Postgres` and `--outbox-enabled true`).
+> **Note:** When `--data-provider None` is selected the outbox relay has nothing to relay. Scaffold this host only when your solution uses the outbox pattern (i.e. `--data-provider` is `SqlServer`, `Postgres` or `Cosmos` and `--outbox-enabled true`).
 
 ### Parameters
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
 | `-n` / `--name` | string | _(required)_ | Full project name, e.g. `Avanade.Erp.Sales.Relay`. |
-| `--data-provider` | `SqlServer` \| `Postgres` \| `None` | `SqlServer` | Database technology used for reading the outbox. |
+| `--data-provider` | `SqlServer` \| `Postgres` \| `Cosmos` \| `None` | `SqlServer` | Database technology used for reading the outbox. For `Cosmos` the outbox is relayed from the Change Feed, one `AddCosmosDbOutboxRelayHostedService("<container>")` call per outbox-hosting container (a fresh solution ships `ref-data`). |
+| `--refdata-enabled` | bool | `true` | Cosmos only: a fresh Cosmos solution's only container is `ref-data`, so the relay hosted service (and its health checks/tests) are only emitted when this is `true`. Match the value used with `coreex`. |
 | `--messaging-provider` | `ServiceBus` \| `None` | `ServiceBus` | Messaging provider to publish forwarded events to. |
 
 ### Output
@@ -436,7 +439,7 @@ tests/
 ```jsonc
 {
   "Aspire": {
-    // SQL Server or PostgreSQL connection (same pattern as coreex-api)
+    // SQL Server, PostgreSQL or Cosmos connection (same pattern as coreex-api)
     "Azure": {
       // implement-servicebus only:
       "Messaging": { "ServiceBus": { "ConnectionString": "Endpoint=sb://localhost;..." } }
@@ -457,6 +460,11 @@ PostgreSQL outbox -> Azure Service Bus:
 dotnet new coreex-relay -n Avanade.Erp.Sales.Relay --data-provider Postgres
 ```
 
+Cosmos DB outbox (Change Feed) -> Azure Service Bus:
+```sh
+dotnet new coreex-relay -n Avanade.Erp.Sales.Relay --data-provider Cosmos
+```
+
 ---
 
 ## Template 6 -- `coreex-subscribe` (Subscriber host)
@@ -471,7 +479,8 @@ Run this from the **solution root** (the directory created by `coreex`). The tem
 |---|---|---|---|
 | `-n` / `--name` | string | _(required)_ | Full project name, e.g. `Avanade.Erp.Sales.Subscribe`. |
 | `--refdata-enabled` | bool | `true` | Wires up `ReferenceDataOrchestrator` and dynamic service registration for reference-data caching. Match the value used with `coreex`. |
-| `--data-provider` | `SqlServer` \| `Postgres` \| `None` | `SqlServer` | Database technology. When not `None`, EF Core and outbox publisher are wired so subscriber logic can persist state and emit its own events. |
+| `--data-provider` | `SqlServer` \| `Postgres` \| `Cosmos` \| `None` | `SqlServer` | Database technology. When not `None`, the data-access services (EF Core, or `CoreEx.Cosmos`) and, when `--outbox-enabled`, the outbox publisher are wired so subscriber logic can persist state and emit its own events. |
+| `--outbox-enabled` | bool | `true` | Registers the outbox publisher as the `IEventPublisher` (Service Bus is then a named, non-default publisher). When `false`, Service Bus is the default `IEventPublisher`. Match the value used with `coreex`. |
 | `--messaging-provider` | `ServiceBus` \| `None` | `ServiceBus` | Messaging provider to receive events from. When `None`, no receiver is configured. |
 
 ### Output
@@ -512,7 +521,7 @@ tests/
 ```jsonc
 {
   "Aspire": {
-    // SQL Server or PostgreSQL connection (same pattern as coreex-api)
+    // SQL Server, PostgreSQL or Cosmos connection (same pattern as coreex-api)
     "Azure": {
       // implement-servicebus only:
       "Messaging": {
@@ -563,7 +572,7 @@ Run this from the **solution root**, after the host projects it will reference a
 | `--has-api` | bool | `true` | Include a project reference and `AddProject<...>` call for this solution's `Api` host. |
 | `--has-relay` | bool | `false` | Include a project reference and `AddProject<...>` call for this solution's `Relay` host. |
 | `--has-subscribe` | bool | `false` | Include a project reference and `AddProject<...>` call for this solution's `Subscribe` host. |
-| `--data-provider` | `SqlServer` \| `Postgres` \| `None` | `Postgres` | Database technology; determines which connection-string resource (`SqlServer`/`Postgres`) `AppHost.cs` declares and each host references. |
+| `--data-provider` | `SqlServer` \| `Postgres` \| `Cosmos` \| `None` | `Postgres` | Database technology; determines which connection-string resource (`SqlServer`/`Postgres`/`Cosmos`) `AppHost.cs` declares and each host references. |
 | `--messaging-provider` | `ServiceBus` \| `None` | `ServiceBus` | Messaging technology; determines whether `AppHost.cs` declares a `ServiceBus` connection-string resource for the Relay/Subscribe hosts. |
 
 ### Output
@@ -709,6 +718,18 @@ dotnet new coreex-api        -n Avanade.Erp.Sales.Api
 dotnet new coreex-relay      -n Avanade.Erp.Sales.Relay
 dotnet new coreex-subscribe -n Avanade.Erp.Sales.Subscribe
 dotnet new coreex-aspire     -n Avanade.Erp.Sales.Aspire --has-api true --has-relay true --has-subscribe true --data-provider SqlServer --messaging-provider ServiceBus
+```
+
+### Cosmos DB variant
+
+Cosmos needs no SQL migrations; the `Database` tool provisions the `ref-data` container code-first (and the test projects do the same against the emulator).
+
+```sh
+dotnet new coreex           -n Avanade.Erp.Sales --data-provider Cosmos
+dotnet new coreex-api       -n Avanade.Erp.Sales.Api        --data-provider Cosmos
+dotnet new coreex-relay     -n Avanade.Erp.Sales.Relay      --data-provider Cosmos
+dotnet new coreex-subscribe -n Avanade.Erp.Sales.Subscribe  --data-provider Cosmos
+dotnet new coreex-aspire    -n Avanade.Erp.Sales.Aspire --has-api true --has-relay true --has-subscribe true --data-provider Cosmos --messaging-provider ServiceBus
 ```
 
 ### PostgreSQL variant

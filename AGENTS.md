@@ -15,7 +15,7 @@ reference data, validation, and data access — into a consistent, composable ba
 - ✅ Multi-domain .NET service topologies (microservices, event-driven, hexagonal architecture)
 - ✅ Teams that want opinionated, pattern-aligned scaffolding from day one
 - ✅ Organisations that need consistent HTTP/event behaviour across many services
-- ✅ Projects using Entity Framework Core + SQL Server or PostgreSQL
+- ✅ Projects using Entity Framework Core + SQL Server or PostgreSQL, or Azure Cosmos DB
 - ✅ Solutions that publish domain events with transactional guarantees (outbox pattern)
 - ⚠️ Not a general-purpose framework — CoreEx is intentionally opinionated; teams wanting full
   flexibility over error handling, HTTP response shaping, and event publishing will be constrained
@@ -33,7 +33,7 @@ reference data, validation, and data access — into a consistent, composable ba
 | `CoreEx.EntityFrameworkCore` | EF Core integration, typed CRUD, `ValueConverter` bridges |
 | `CoreEx.RefData` | Typed reference data with hybrid-cache-backed orchestrator |
 | `CoreEx.Caching.FusionCache` | `IHybridCache` backed by ZiggyCreatures FusionCache (L1/L2 + Redis backplane) |
-| `CoreEx.Cosmos` | **Preview — newly added; API surface may still change without following strict semver until it stabilizes.** Typed Azure Cosmos DB access: `CosmosDbContainer<TModel>`/`CosmosDbMappedContainer<TValue,TModel,TMapper>` for CRUD + query with ETag/multi-tenancy/logical-delete support, a `TransactionalBatch`-based transactional outbox, and a Change Feed Processor-based outbox relay |
+| `CoreEx.Cosmos` | Typed Azure Cosmos DB access: `CosmosDbContainer<TModel>`/`CosmosDbMappedContainer<TValue,TModel,TMapper>` for CRUD + query with ETag/multi-tenancy/logical-delete support, a `TransactionalBatch`-based transactional outbox, and a Change Feed Processor-based outbox relay |
 | `CoreEx.Data` | OData-esque dynamic querying (`QueryArgs`/`PagingArgs`/`QueryArgsConfig`), `ItemsResult<T>` |
 | `CoreEx.Data.GraphQL` | Transport-agnostic GraphQL-lite bridge (`IGraphQLEngine`) over `CoreEx.Data` querying + `JsonFilter` field projection; hosted via `CoreEx.AspNetCore`'s `MapCoreExGraphQLLite` |
 | `CoreEx.UnitTesting` | Fluent test toolkit: event assertions, outbox assertions, JSON seed data |
@@ -69,7 +69,7 @@ Rules that are easy to violate and cause real breakage or wrong choices:
 
 - **`GlobalUsings.cs`** — every project has a single `GlobalUsings.cs` at the project root; all `using` statements go there, never in individual source files. The Roslyn code generator emits no `using` statements and depends on this.
 - **`AwesomeAssertions` not FluentAssertions** — tests use the `AwesomeAssertions` NuGet package. Do not reach for FluentAssertions.
-- **Polyglot data** — Products uses PostgreSQL (`CoreEx.Database.Postgres`); Shopping uses SQL Server (`CoreEx.Database.SqlServer`). Do not assume SQL Server when working on Products, and do not mix outbox/publisher helpers across domains.
+- **Polyglot data** — Products uses PostgreSQL (`CoreEx.Database.Postgres`); Shopping uses SQL Server (`CoreEx.Database.SqlServer`); Customers uses Azure Cosmos DB (`CoreEx.Cosmos`). Do not assume SQL Server when working on Products, do not assume EF Core/DbEx in Cosmos domains, and do not mix outbox/publisher helpers across domains.
 - **No AutoMapper** — do not introduce AutoMapper. All mapping is explicit via `Mapper<>` (application layer) or `BiDirectionMapper<>` (infrastructure layer).
 - **`.ConfigureAwait(false)`** — always use it in service and repository code.
 - **File-scoped namespaces** — `namespace Foo.Bar;` only; never block-scoped `namespace Foo.Bar { }`.

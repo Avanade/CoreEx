@@ -2,4 +2,6 @@
 domain-name: []
 # #elif implement-postgres
 pg-schema: []
+# #elif implement-cosmos
+ref-data: []
 # #endif

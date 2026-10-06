@@ -32,8 +32,7 @@ tags: ["aspire", "apphost", "mockhost", "e2e", "service-bus", "http", "wiremock"
 
 ## AppHost wiring
 
-Infrastructure (databases, Redis, Service Bus emulator) runs from `docker-compose.yml`, **not** Aspire. Model it as connection-string resources whose
-names match what each host passes to its client-integration package; then add one `AddProject` per host, referencing only what it needs.
+Infrastructure (relational databases, the Cosmos emulator, Redis, and the Service Bus emulator) runs from `docker-compose.yml`, **not** Aspire. Model each dependency as the connection-string resource the host already expects (`SqlServer`, `Postgres`, or `Cosmos`; plus `redis` / `ServiceBus`), then add one `AddProject` per host, referencing only what it needs.
 
 ```csharp
 var serviceBus = builder.AddConnectionString("ServiceBus").WithIconName("MailMultiple");
@@ -48,7 +47,7 @@ builder.AddProject<Projects.Contoso_Products_Subscribe>("products-subscribe")
 
 - Resource names are kebab-case `{domain}-{host}` (`products-api`, `shopping-subscribe`). They are the names used by `Test.Http("products-api")`, `WaitForResourceAsync`, and service discovery — never rename casually.
 - Each new host needs a `<ProjectReference>` in the AppHost csproj (this is what generates `Projects.X`).
-- Relay: data provider + Service Bus. Subscribe: data provider + Redis + Service Bus. Api: data provider + Redis (+ Service Bus only if it publishes directly, not via outbox).
+- Relay: data provider + Service Bus. Subscribe: data provider + Redis + Service Bus. Api: data provider + Redis (+ Service Bus only if it publishes directly, not via outbox). For Cosmos domains, the data-provider reference is `builder.AddConnectionString("Cosmos")`; relational domains keep their existing SQL Server/Postgres connection-string resource.
 
 ## HTTP calls outside the domain
 
@@ -93,6 +92,7 @@ public class E2ETest : WithAspireTester<Projects.Contoso_Aspire>
     {
         // Runs BEFORE any host starts: seed state and create broker entities so receivers/relays find them on startup.
         await app.MigratePostgresDataAsync<Products.Test.Common.TestData>("Postgres", ["mutate-data.seed.yaml"], Products.Database.Program.ConfigureMigrationArgs);
+        // Cosmos variant: await app.MigrateCosmosDataAsync<Customers.Test.Common.TestData>("Cosmos", "contoso", ["no-data.seed.yaml"], Customers.Database.Program.ConfigureProvisionArgs);
         await app.ClearRedisCacheAsync("redis");
         await app.ResetAzureServiceBusAsync("ServiceBus", ServiceBus.GetQueues(), ServiceBus.GetTopicsAndSubscriptions());
     }
@@ -103,13 +103,14 @@ public class E2ETest : WithAspireTester<Projects.Contoso_Aspire>
 ```
 
 - **Service Bus topology is code**, in a static `ServiceBus` class (`GetQueues()` / `GetTopicsAndSubscriptions()`). A single-domain solution reuses its `Test.Common` `ServiceBus`; a multi-domain AppHost owns one **union** class listing every domain's topic, subscriptions **and command queues**. A queue that is missing here makes the relay fail to send and the command receiver fail to start.
+- **Cosmos test state is also provisioned through code.** Use `app.MigrateCosmosDataAsync(..., DbMigration.ConfigureProvisionArgs)` to create/reset containers and import the named `Data/*.seed.yaml` resources; do not drop containers manually between Aspire tests, because `MigrateCosmosDataAsync` also avoids the stale-client-cache issues that follow an out-of-band reset.
 - Command queues are `RequiresSession = true` (the receivers are session receivers); topic subscriptions likewise.
 - Drive flows over real HTTP with `Test.Http<T>("resource-name")`. For anything asynchronous (outbox → relay → broker → subscriber) **poll with a bounded loop** (`Test.Delay(1000, "reason")` up to N attempts, then `Assert.Fail`) until the observable effect appears; assert a stubbed third-party call by polling the MockHost's WireMock admin API (`await Test.HttpMock("mock-host", "http").GetAdminApiAsync()` then `GetRequestsAsync()`) for a request matching the path (`/v3/mail/send`) **and** a body fragment unique to the flow (e.g. the recipient e-mail) — never scrape logs, and never match on path alone (it can't tell your request from someone else's).
 - The Aspire tester has no broker-peek helper. A command's delivery to its queue is proven in `*.Test.Relay` (`GetAndClearAzureServiceBusAsync`); Aspire proves the *effect* in the consuming host.
 
 ## Do Not
 
-- Do not run infrastructure through Aspire (`AddPostgres`, `AddRedis`, `AddAzureServiceBus`) — the emulators come from `docker-compose.yml`.
+- Do not run infrastructure through Aspire (`AddPostgres`, `AddRedis`, `AddAzureServiceBus`, or Cosmos-provisioning resources) — the emulators come from `docker-compose.yml`.
 - Do not hard-code ports or URLs in tests or `BaseAddress` — use resource names / service discovery.
 - Do not put business logic, migrations or seed data in the AppHost.
 - Do not use `[OneTimeSetUp]` for AppHost preparation — the hooks are `OnBeforeStartAsync` / `OnAfterStartAsync`.

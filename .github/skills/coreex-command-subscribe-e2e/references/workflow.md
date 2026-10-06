@@ -19,7 +19,7 @@ Read the solution-root `AGENTS.md` **Feature Configuration** block and cross-che
 | Feature | How it shapes the sequence |
 |---|---|
 | `messaging-provider` | Must be `ServiceBus` (commands need a broker queue). Otherwise stop and flag. |
-| `data-provider` | `None` → no migration/repository. Also selects the outbox helpers in tests. |
+| `data-provider` | `None` → no migration/repository. Otherwise it selects the persistence path (`DbEx`/EF vs Cosmos provisioning/containers) and the outbox helpers in tests. |
 | `rop-enabled` | Exception vs `Result<T>` in the app service. |
 | `outbox-enabled` | If the handler itself emits events, they go through the outbox inside the unit of work. |
 

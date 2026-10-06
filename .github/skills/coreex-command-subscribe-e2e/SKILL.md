@@ -42,7 +42,7 @@ A domain **never** subscribes to another domain's command queue. If the message 
 
 ## Workflow Overview
 
-1. **Read Feature Configuration** — `messaging-provider`, `data-provider`, `rop-enabled`, `outbox-enabled`.
+1. **Read Feature Configuration** — `messaging-provider`, `data-provider` (`SqlServer` / `Postgres` / `Cosmos` / `None`), `rop-enabled`, `outbox-enabled`.
 2. **Inspect the host** — is the existing event receiver already keyed? Is there already a command receiver? (Retrofit rules in the workflow.)
 3. **Interview** — command shape, action, persistence, publisher location; one batched turn.
 4. **Execute L1 sequence** (table below).

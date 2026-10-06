@@ -80,6 +80,8 @@ The subscriber wires FusionCache with both in-memory (L1) and Redis distributed 
 <!-- #endif -->
 <!-- #if implement-sqlserver -->
 - **Database:** SQL Server -- used for outbox publishing when subscribers need to emit their own events
+<!-- #elif implement-cosmos -->
+- **Database:** Azure Cosmos DB -- `builder.AddAzureCosmosClient("Cosmos")` plus `AddCosmosDb<domain-nameCosmosDb>("domain-name-lower")`; used for outbox publishing when subscribers need to emit their own events
 <!-- #elif implement-postgres -->
 - **Database:** PostgreSQL -- used for outbox publishing when subscribers need to emit their own events
 <!-- #else -->
@@ -108,7 +110,10 @@ The subscriber wires FusionCache with both in-memory (L1) and Redis distributed 
 <!-- #if implement-postgres -->
 | `CoreEx.Database.Postgres` | PostgreSQL outbox for outbound events |
 <!-- #endif -->
-<!-- #if has-data-provider -->
+<!-- #if implement-cosmos -->
+| `CoreEx.Cosmos` | Cosmos DB access and transactional outbox (`CosmosDbEventPublisher`) for outbound events |
+<!-- #endif -->
+<!-- #if implement-relational -->
 | `CoreEx.EntityFrameworkCore` | EF Core integration (`EfDb`, `IEfDbContext`) |
 <!-- #endif -->
 <!-- #if refdata-enabled -->

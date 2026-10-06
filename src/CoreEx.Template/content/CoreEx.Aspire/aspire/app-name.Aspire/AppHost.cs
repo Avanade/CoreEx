@@ -9,7 +9,7 @@ builder.DisableHttpCertificateValidation();
 // IsRunMode: never surface this test-only resource in a published manifest (per the self-hosted WireMock.Net housekeeping note - see AppHost.cs's header comment).
 //var mockhost = builder.AddMockHostProject<Projects.solution-name-underscore_Aspire_MockHost>("mock-host");
 
-// External infrastructure (SQL Server, Postgres, Redis, Service Bus emulator) runs via docker-compose.yml, not
+// External infrastructure (SQL Server, Postgres, Cosmos DB, Redis, Service Bus emulator) runs via docker-compose.yml, not
 // Aspire orchestration. These are modelled as connection-string resources - matching the connection name each host
 // passes to its own Aspire client-integration package (e.g. AddAzureNpgsqlDataSource("Postgres")) - purely so the
 // dashboard graph reflects the real dependencies. Aspire does not start/stop/health-check these resources; each
@@ -18,6 +18,8 @@ builder.DisableHttpCertificateValidation();
 // assign to the equivalent managed resource, so these look identical to the "real" ones in the dashboard.
 // #if implement-postgres
 var db = builder.AddConnectionString("Postgres").WithIconName("DatabaseMultiple");
+// #elif implement-cosmos
+var db = builder.AddConnectionString("Cosmos").WithIconName("DatabaseMultiple");
 // #elif implement-sqlserver
 var db = builder.AddConnectionString("SqlServer").WithIconName("DatabaseMultiple");
 // #endif

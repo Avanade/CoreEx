@@ -64,8 +64,6 @@ public sealed class ProductsEfDb(ProductsDbContext dbContext) : EfDb<ProductsDbC
 
 ## Cosmos DB repositories
 
-> ⚠️ **Preview**: [`CoreEx.Cosmos`](../../src/CoreEx.Cosmos) is newly added in this release — treat its API surface as subject to change without following strict semver until it stabilizes.
-
 Customers is schemaless and code-first — there is no `*.Database`/DbEx migration project and no EF Core `DbContext`. `ref-data.yaml`-driven CodeGen still produces the generated persistence models (`Infrastructure/Persistence/*.g.cs`), same as the relational domains. Instead, `CosmosDb` (from `CoreEx.Cosmos`) is sub-classed once per domain to declare its containers, each exposed as a typed `CosmosDbContainer<TModel>` (same contract/model type) or `CosmosDbMappedContainer<TValue,TModel,TMapper>` (contract mapped to a distinct persistence model), analogous in role to an `EfDb<TContext>` unit-of-work facade:
 
 ```csharp

@@ -84,7 +84,7 @@ After adding an integration, restart the app with `aspire start` for the new res
 
 ### Using resource MCP tools
 
-Some resources expose MCP tools (e.g. `WithPostgresMcp()` adds SQL query tools). Discover and call them via CLI:
+Some resources expose MCP tools (for example, resources that opt into Aspire's MCP integrations). Discover and call them via CLI:
 
 ```bash
 aspire mcp tools                                              # list available tools

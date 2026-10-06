@@ -21,7 +21,7 @@ Read the solution-root `AGENTS.md` **Feature Configuration** block and cross-che
 | `messaging-provider` | Must be `ServiceBus`. Anything else: stop and flag — commands rely on broker queues. |
 | `outbox-enabled` | `true` → the command is added to the default (outbox) `IEventPublisher`. `false` → the direct broker publisher is the default; there is no atomic guarantee. |
 | `rop-enabled` | Exception flow vs `Result<T>` at the call site. |
-| `data-provider` | Selects the outbox helpers used by the tests (`ExpectSqlServerOutboxEvents` vs `ExpectPostgresOutboxEvents`). |
+| `data-provider` | Selects the outbox helpers used by the tests (`ExpectSqlServerOutboxEvents` vs `ExpectPostgresOutboxEvents` vs `ExpectCosmosDbOutboxEvents`). |
 
 Then verify **routing** (this is the most common trap):
 
@@ -92,7 +92,7 @@ public static CreateQueueOptions[]? GetQueues() =>
 Invoke [`coreex-test-api`](../coreex-test-api/SKILL.md). For the triggering operation assert:
 
 ```csharp
-.ExpectSqlServerOutboxEvents(e => e.AssertMetadata("{destination}-{target}", "{parent}.{target}.{entity}.{action}", id));   // ExpectPostgresOutboxEvents for PostgreSQL.
+.ExpectSqlServerOutboxEvents(e => e.AssertMetadata("{destination}-{target}", "{parent}.{target}.{entity}.{action}", id));   // ExpectPostgresOutboxEvents / ExpectCosmosDbOutboxEvents provider-specifically.
 ```
 
 - The first argument is the **queue** destination (not the topic) — this is the assertion that proves routing.

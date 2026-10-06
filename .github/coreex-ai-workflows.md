@@ -40,11 +40,11 @@ Instructions are passive — no action is needed to activate them. The global fi
 | `coreex-contracts.instructions.md` | Contract files — `[Contract]`, `[ReferenceData]`, source generation |
 | `coreex-application-services.instructions.md` | Application services — `TransactionAsync`, validation, event enqueuing |
 | `coreex-validators.instructions.md` | Validator files — `Validator<T,TSelf>`, rule chains |
-| `coreex-repositories.instructions.md` | Repository files — `EfDbModel`, mappers, `QueryArgsConfig`, paging |
+| `coreex-repositories.instructions.md` | Repository files — `EfDb`/`CosmosDb`, mappers, `QueryArgsConfig`, paging |
 | `coreex-api-controllers.instructions.md` | Controller files — `WebApi` helpers, `[IdempotencyKey]`, PATCH |
 | `coreex-event-subscribers.instructions.md` | Subscriber files — `[Subscribe]`, `SubscribedManager`, error handling |
 | `coreex-host-setup.instructions.md` | `Program.cs` files — middleware order, service registration, outbox relay |
-| `coreex-tooling.instructions.md` | CodeGen and Database projects — `ref-data.yaml`, DbEx, generated-file ownership |
+| `coreex-tooling.instructions.md` | CodeGen and Database projects — `ref-data.yaml`, DbEx or Cosmos provisioning, generated-file ownership |
 | `coreex-tests.instructions.md` | Test files — UnitTestEx, NUnit, AwesomeAssertions, outbox/event assertions |
 | `coreex-domain.instructions.md` | Domain files — aggregates, mutation guards, `Result<T>` pipelines |
 | `coreex-aspire.instructions.md` | Aspire files — AppHost wiring, service-bus topology, MockHost/third-party HTTP, `Test.Aspire` lifecycle |
@@ -89,7 +89,7 @@ Sixteen skills add or modify a single CoreEx capability on an existing solution.
 |----------------|-----------|
 | [`coreex-contract`](./skills/coreex-contract/) | Hand-authored contract (DTO/entity) — root, subordinate, request/response, base class |
 | [`coreex-refdata`](./skills/coreex-refdata/) | Reference data type + `ref-data.yaml` entry |
-| [`coreex-db-migration`](./skills/coreex-db-migration/) | Database table / DbEx migration |
+| [`coreex-db-migration`](./skills/coreex-db-migration/) | Database table change or Cosmos container provisioning change |
 | [`coreex-repository`](./skills/coreex-repository/) | EF Core repository, mapper, and query configuration |
 | [`coreex-adapter`](./skills/coreex-adapter/) | External-integration adapter |
 | [`coreex-app-service`](./skills/coreex-app-service/) | Application service orchestration |

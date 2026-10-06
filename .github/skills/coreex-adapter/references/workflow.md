@@ -18,9 +18,9 @@ Full workflow for adding or modifying an adapter (anti-corruption layer) in a Co
 |---|---|---|
 | External system name | — | Used as sub-folder name. Can be a domain (`Products`, `Orders`), a system type (`Idp`, `Erp`), or a product name (`Stripe`, `Salesforce`). Choose a name that reflects the boundary, not the transport. |
 | Adapter role | Synchronous | Synchronous = real-time HTTP call. Replication = event-driven local store sync. |
-| HTTP calls needed? | Yes | No HTTP = EF-only replication adapter; skip HTTP client steps. |
+| HTTP calls needed? | Yes | No HTTP = local-store-only replication adapter; skip HTTP client steps. |
 | Multiple endpoints from the same system? | Yes | Always use sub-folder — it is the standard regardless of endpoint count. |
-| Needs local EF read alongside HTTP? | Ask | Adapter may combine local replicated data + live HTTP (see `ProductAdapter`). |
+| Needs local store read alongside HTTP? | Ask | Adapter may combine local replicated data + live HTTP (see `ProductAdapter`). Relational domains typically use `EfDb`; Cosmos domains use the typed `*CosmosDb` accessors. |
 | Unit tests for HTTP client? | Yes for any HTTP | Test each distinct response code the service depends on. |
 
 ---
@@ -132,7 +132,10 @@ public class MovementRequestProduct
 
 Create in `Infrastructure/Adapters/{ExternalDomain}/`. Implement the Application interface; register with `[ScopedService<IXxxAdapter>]`.
 
-### Synchronous adapter (HTTP + local EF + event publication)
+### Synchronous adapter (HTTP + local store + event publication)
+
+> **Provider note:** relational domains inject `{Domain}EfDb` and query `_ef.{Entity}s`; Cosmos domains inject `{Domain}CosmosDb` and use the mapped container accessors (`_cosmos.{Entity}s.GetAsync(...)`, `_cosmos.{Entity}s.Container.Query(...)`, etc.). Keep the adapter surface the same; only the local-store implementation differs.
+
 
 ```csharp
 // Infrastructure/Adapters/Products/ProductAdapter.cs
@@ -185,7 +188,7 @@ public class ProductAdapter({Domain}EfDb ef, IEventPublisher eventPublisher, Pro
 }
 ```
 
-### Replication adapter (EF upsert/delete only)
+### Replication adapter (local upsert/delete only)
 
 ```csharp
 // Infrastructure/Adapters/Products/ProductSyncAdapter.cs
@@ -208,6 +211,7 @@ public class ProductSyncAdapter({Domain}EfDb ef) : IProductSyncAdapter
 
 **Rules:**
 - `[ScopedService<IXxxAdapter>]` on every implementation — picked up by `AddDynamicServicesUsing<T>()` in `Program.cs`.
+- For Cosmos-backed local stores, replace the `EfDb` calls in the examples with the equivalent mapped-container operations on your typed `*CosmosDb` accessor.
 - Never call `HttpClient` directly in the adapter — always delegate to the typed client class.
 - Use `CancellationToken.None` (not the request `ct`) for **compensation paths** (e.g., rolling back a reservation after a checkout failure) — the request token may already be cancelled and must not abort the compensation.
 - Event publication inside a `TransactionAsync` uses the transactional `IEventPublisher` (Outbox). Bypass-Outbox paths use the Service Bus publisher directly and call `PublishAsync()` explicitly.
@@ -250,7 +254,7 @@ The adapter is registered automatically via `[ScopedService<IXxxAdapter>]` — n
 | Scenario | Action |
 |---|---|
 | Adapter includes a typed HTTP client (`XxxHttpClient`) | Generate `*.Test.Unit/Clients/{ExternalDomain}/{External}HttpClientTests.cs` — cover success (2xx), server error (5xx), and business error (422/ProblemDetails) per endpoint |
-| EF-only replication adapter (no HTTP) | Skip — integration tests cover this via intra-domain service tests |
+| Local-store-only replication adapter (no HTTP) | Skip — integration tests cover this via intra-domain service tests |
 | Adapter orchestration (EF + HTTP + events combined) | Skip — mock the HTTP client via `Test.ReplaceHttpClientFactory(mcf)` in `WithApiTester` integration tests instead |
 
 Unit-test every distinct status code that the consuming service acts on. Use `WithGenericTester<EntryPoint>` from UnitTestEx — the same `MockHttpClientFactory` pattern used in API integration tests, but backed by the lightweight unit-test host.

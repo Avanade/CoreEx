@@ -8,11 +8,27 @@
 
 # DB Migration Workflow
 
-All commands run from the `*.Database` project directory for the target domain.
+All commands run from the `*.Database` project directory for the target domain. Branch immediately on the recorded `data-provider`.
 
 ---
 
-## Phase 1: Establish Baseline
+## Phase 0: Provider gate
+
+- **`SqlServer` / `Postgres`** → follow the relational workflow below (DbEx migration scripts, `dbex.yaml`, generated EF models).
+- **`Cosmos`** → skip `dbex.yaml`, `Migrations/`, and SQL scripts entirely. Use the Cosmos path in Phase 1A/2A below: update `Program.ConfigureProvisionArgs(...)`, keep seed data keyed by container id, and align the typed `*CosmosDb` accessor/repository expectations with the container ids you declare.
+- **`None`** → this skill is not applicable.
+
+## Phase 1A: Cosmos baseline
+
+1. Open `*.Database/Program.cs` and identify the current `ConfigureProvisionArgs(CosmosDbProvisionArgs)` declarations (`.Container(...)`, `.ReferenceDataContainer("ref-data")`, indexing/unique-key customisation).
+2. Review the existing `Data/*.seed.yaml` / `*.json` resources. Top-level keys must equal declared container ids. Transactional containers use raw camelCase document bodies; `ref-data` keeps the grouped `$^TypeName` shorthand.
+3. Decide whether the change is:
+   - a **new container** (declare it in `ConfigureProvisionArgs`, then wire the matching `Container<TModel>(...)` or `ToMappedModel(...)` accessor in `*CosmosDb.cs`),
+   - an **existing container shape change** (indexing, partition key, seed shape, or mapped model expectations), or
+   - **seed data only**.
+4. Apply via `dotnet run -- All` (or `ResetAndData` when you need to recreate declared containers).
+
+## Phase 1B: Relational baseline
 
 1. **Bring the database up to date** (non-destructive — Create → Migrate → Schema → Data):
    ```
@@ -30,7 +46,20 @@ All commands run from the `*.Database` project directory for the target domain.
 
 ---
 
-## Phase 2: Choose Script Type
+## Phase 2A: Cosmos path
+
+For `data-provider = Cosmos`, there is no `inspect`/`script` step. Use this decision tree instead:
+
+| Need | Action |
+|---|---|
+| New transactional container | Add `.Container("<id>", ...)` to `ConfigureProvisionArgs`, add/update the matching `Container<Persistence.X>("<id>")` or `.ToMappedModel<...>()` accessor on `*CosmosDb`, seed with `Data/*.seed.yaml`, then run `dotnet run -- All` |
+| Existing container shape/indexing change | Update the `.Container(...)` configuration and any matching persistence/repository assumptions, then `dotnet run -- ResetAndData` if the container must be recreated |
+| Reference-data container change | Update `ReferenceDataContainer("ref-data")`-adjacent seed data and any `WithTypeDiscriminator()` accessors; keep the container id stable unless the developer explicitly wants to migrate data |
+| Seed data only | Edit `Data/*.seed.yaml` / `*.json`, then run `dotnet run -- Data` |
+
+When a Cosmos change introduces a new container, the repository/accessor follow-on work is part of the same task: declare the container in `ConfigureProvisionArgs`, expose it from `*CosmosDb`, and align tests/seed files to the same id.
+
+## Phase 2B: Choose Script Type (relational)
 
 Branch on the combination of what the developer needs and the inspect result.
 

@@ -6,6 +6,8 @@ public class HostTests : WithAspireTester<Projects.solution-name-underscore_Aspi
     {
 // #if implement-sqlserver
         await app.MigrateSqlServerDataAsync<TestData>("SqlServer", ["no-data.seed.yaml"], DbMigration.ConfigureMigrationArgs);
+// #elif implement-cosmos
+        await app.MigrateCosmosDataAsync<TestData>("Cosmos", "domain-name-lower", ["no-data.seed.yaml"], DbMigration.ConfigureProvisionArgs);
 // #elif implement-postgres
         await app.MigratePostgresDataAsync<TestData>("Postgres", ["no-data.seed.yaml"], DbMigration.ConfigureMigrationArgs);
 // #endif

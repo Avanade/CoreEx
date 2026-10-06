@@ -1,7 +1,7 @@
 ---
 name: coreex-adapter
 description: "Create or modify a CoreEx Infrastructure-layer adapter (anti-corruption layer). USE FOR: new adapter interface in Application/Adapters/{ExternalDomain}/, new adapter implementation in Infrastructure/Adapters/{ExternalDomain}/, new typed HTTP client in Infrastructure/Clients/{ExternalDomain}/, event-driven sync/replication adapter (IXxxSyncAdapter), unit tests for HTTP clients with MockHttpClientFactory. DO NOT USE FOR: repositories within the same domain (use coreex-repository), application services that call adapters (use coreex-app-service), event subscriber hosts that drive sync adapters (see coreex-event-subscribers.instructions.md)."
-argument-hint: "Optional: external domain name, operations needed (get/reserve/cancel/sync), synchronous vs replication role, HTTP or EF-only"
+argument-hint: "Optional: external domain name, operations needed (get/reserve/cancel/sync), synchronous vs replication role, HTTP or local-store-only"
 tags: ["adapter", "anti-corruption", "http-client", "infrastructure", "integration", "coreex"]
 ---
 
@@ -20,7 +20,7 @@ Guides you through adding or modifying an adapter — the boundary that isolates
 ## When to Use
 
 - Add an `IXxxAdapter` interface for a new external-domain dependency
-- Add a synchronous real-time adapter (HTTP call + optional local EF read/event publish)
+- Add a synchronous real-time adapter (HTTP call + optional local store read/event publish)
 - Add a replication adapter (`IXxxSyncAdapter`) for event-driven data sync into your local store
 - Add or extend a typed HTTP client (`XxxHttpClient`) in `Infrastructure/Clients/{ExternalDomain}/`
 - Unit-test HTTP client response-code handling with `MockHttpClientFactory`
@@ -33,8 +33,8 @@ Guides you through adding or modifying an adapter — the boundary that isolates
 - Event subscriber hosts that drive `IXxxSyncAdapter` — use `coreex-subscriber`
 
 > **Resolve project-wide choices from state before asking.** Read the solution-root `AGENTS.md`
-> **Feature Configuration** for `messaging-provider` (does this domain publish/consume events?) and `data-provider`
-> (EF-only replication vs HTTP). Only prompt for what is unrecorded; re-state resolved values for confirmation.
+> **Feature Configuration** for `messaging-provider` (does this domain publish/consume events?) and `data-provider` (`SqlServer` / `Postgres` / `Cosmos` / `None`)
+> (provider-specific local-store replication vs HTTP). Only prompt for what is unrecorded; re-state resolved values for confirmation.
 
 ## Quick Reference
 
@@ -45,8 +45,8 @@ Guides you through adding or modifying an adapter — the boundary that isolates
 - Typed HTTP client registered via `builder.AddTypedHttpClient<XxxHttpClient>("ServiceName")` in `Program.cs`
 - Never call `HttpClient` directly in adapter methods — always delegate to the typed client class
 - `response.ToResultAsync()` maps HTTP status to `Result` (2xx → `Success`, error + ProblemDetails → `BusinessException`/`ProblemDetailsException`, plain error → `HttpRequestException`)
-- Two distinct adapter roles in the samples — **synchronous** (real-time HTTP + events) and **replication** (event-driven local EF write); separate interfaces, separate implementations
-- **Generate `*.Test.Unit/Clients/{ExternalDomain}/{External}HttpClientTests.cs`** for a typed HTTP client used by a synchronous or replication adapter — cover success (2xx), server error (5xx), and business error (422/ProblemDetails) per endpoint; skip for EF-only replication adapters (no HTTP) and for combined EF+HTTP+events orchestration adapters (mock the client via `Test.ReplaceHttpClientFactory` in integration tests instead)
+- Two distinct adapter roles in the samples — **synchronous** (real-time HTTP + events) and **replication** (event-driven local-store write; EF in relational domains, `CosmosDb` containers in Cosmos domains); separate interfaces, separate implementations
+- **Generate `*.Test.Unit/Clients/{ExternalDomain}/{External}HttpClientTests.cs`** for a typed HTTP client used by a synchronous or replication adapter — cover success (2xx), server error (5xx), and business error (422/ProblemDetails) per endpoint; skip for store-only replication adapters (no HTTP) and for combined local-store+HTTP+events orchestration adapters (mock the client via `Test.ReplaceHttpClientFactory` in integration tests instead)
 
 For full workflow and code examples see [`references/workflow.md`](references/workflow.md).
 

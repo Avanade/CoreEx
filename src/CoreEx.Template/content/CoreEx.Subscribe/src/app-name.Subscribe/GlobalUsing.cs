@@ -4,7 +4,10 @@ global using CoreEx.AspNetCore.Mvc;
 global using CoreEx.Azure.Messaging.ServiceBus;
 // #endif
 global using CoreEx.Caching;
-// #if has-data-provider
+// #if implement-cosmos
+global using CoreEx.Cosmos;
+// #endif
+// #if implement-relational
 global using CoreEx.Database;
 // #endif
 // #if implement-sqlserver
@@ -24,6 +27,9 @@ global using CoreEx.RefData;
 // #endif
 global using CoreEx.Validation;
 global using Microsoft.AspNetCore.Mvc;
+// #if implement-cosmos
+global using Microsoft.Azure.Cosmos;
+// #endif
 global using Microsoft.Extensions.Options;
 global using OpenTelemetry;
 global using OpenTelemetry.Trace;

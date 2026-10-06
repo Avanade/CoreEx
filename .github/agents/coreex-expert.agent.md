@@ -33,11 +33,11 @@ These files are present when the CoreEx AI workflow set has been copied into the
 - `.github/instructions/coreex-domain.instructions.md` — DDD aggregates, `Entity<TId,TSelf>`, mutation guards, `Result<T>` pipelines.
 - `.github/instructions/coreex-application-services.instructions.md` — service shape, `TransactionAsync`, validation-before-transaction, event enqueuing.
 - `.github/instructions/coreex-validators.instructions.md` — `Validator<T, TSelf>`, rule chains, `CommonValidator`, `ValidateAndThrowAsync`.
-- `.github/instructions/coreex-repositories.instructions.md` — `EfDbModel`, `IBiDirectionMapper`, `QueryArgsConfig`, paging.
+- `.github/instructions/coreex-repositories.instructions.md` — `EfDb`/`CosmosDb`, `IBiDirectionMapper`, `QueryArgsConfig`, paging.
 - `.github/instructions/coreex-api-controllers.instructions.md` — controller shape, `WebApi` helpers, `[IdempotencyKey]`, PATCH.
 - `.github/instructions/coreex-event-subscribers.instructions.md` — subscriber classes, `[Subscribe]`, `SubscribedManager`, error handling.
 - `.github/instructions/coreex-host-setup.instructions.md` — `Program.cs` shape, middleware order, service registration, outbox relay hosts.
-- `.github/instructions/coreex-tooling.instructions.md` — `*.CodeGen` and `*.Database` projects, `ref-data.yaml`, DbEx, generated-file ownership.
+- `.github/instructions/coreex-tooling.instructions.md` — `*.CodeGen` and `*.Database` projects, `ref-data.yaml`, DbEx or Cosmos provisioning, generated-file ownership.
 - `.github/instructions/coreex-tests.instructions.md` — `UnitTestEx`, `NUnit`, `AwesomeAssertions`, outbox/event expectations, seed data.
 
 ### Per-package AI usage guides
@@ -51,6 +51,7 @@ If a guide is not cached locally, fetch from GitHub:
 - [CoreEx.AspNetCore.NSwag](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.AspNetCore.NSwag/AGENTS.md) — NSwag/OpenAPI integration.
 - [CoreEx.Azure.Messaging.ServiceBus](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.Azure.Messaging.ServiceBus/AGENTS.md) — Service Bus publisher, subscribers, error handling.
 - [CoreEx.Caching.FusionCache](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.Caching.FusionCache/AGENTS.md) — `IHybridCache`, Redis backplane, idempotency provider.
+- [CoreEx.Cosmos](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.Cosmos/AGENTS.md) — `CosmosDb`, `CosmosDbContainer<TModel>`, transactional-batch outbox, Change Feed relay, provisioning.
 - [CoreEx.CodeGen](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.CodeGen/AGENTS.md) — `CodeGenConsole`, `ref-data.yaml`, generated-file ownership.
 - [CoreEx.Data](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.Data/AGENTS.md) — `IUnitOfWork`, `TransactionAsync`, `QueryArgsConfig`, `DataResult`.
 - [CoreEx.Data.GraphQL](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.Data.GraphQL/AGENTS.md) — GraphQL-lite `IGraphQLEngine`, `where`/`orderBy` bridged to `QueryArgsConfig`, Relay Cursor Connections paging.

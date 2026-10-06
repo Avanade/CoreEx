@@ -104,6 +104,11 @@
           "description": "Indicates to use PostgreSQL as the data provider."
         },
         {
+          "choice": "Cosmos",
+          "displayName": "Azure Cosmos DB",
+          "description": "Indicates to use Azure Cosmos DB as the data provider."
+        },
+        {
           "choice": "None",
           "displayName": "None",
           "description": "Indicates no data provider is used (e.g. a facade over an external system such as Dynamics 365)."
@@ -120,6 +125,14 @@
     "implement-postgres": {
       "type": "computed",
       "value": "data-provider == 'Postgres'"
+    },
+    "implement-cosmos": {
+      "type": "computed",
+      "value": "data-provider == 'Cosmos'"
+    },
+    "implement-relational": {
+      "type": "computed",
+      "value": "(data-provider == 'SqlServer' || data-provider == 'Postgres')"
     },
     "implement-none-data": {
       "type": "computed",
@@ -193,8 +206,22 @@
             "tools/app-name.CodeGen/**",
             "src/app-name.Infrastructure/Repositories/domain-nameDbContext.cs",
             "src/app-name.Infrastructure/Repositories/domain-nameEfDb.cs",
+            "src/app-name.Infrastructure/Repositories/domain-nameCosmosDb.cs",
             "tests/app-name.Test.Common/Data/**"
           ]
+        },
+        {
+          "condition": "(implement-cosmos)",
+          "exclude": [
+            "tools/app-name.Database/dbex.yaml",
+            "tools/app-name.Database/Migrations/**",
+            "src/app-name.Infrastructure/Repositories/domain-nameDbContext.cs",
+            "src/app-name.Infrastructure/Repositories/domain-nameEfDb.cs"
+          ]
+        },
+        {
+          "condition": "(!implement-cosmos)",
+          "exclude": [ "src/app-name.Infrastructure/Repositories/domain-nameCosmosDb.cs" ]
         },
         {
           "condition": "(implement-sqlserver)",

@@ -549,6 +549,171 @@ $testScenarios = @(
         )
     },
     @{
+        Name       = "coreex-cosmos"
+        Template   = "coreex"
+        Parameters = @{
+            "data-provider"        = "Cosmos"
+            "messaging-provider"   = "ServiceBus"
+            "refdata-enabled"      = "true"
+            "outbox-enabled"       = "true"
+            "rop-enabled"          = "false"
+        }
+        TestPath   = "test-coreex-cosmos"
+        Verify     = @{
+            FilesPresent = @(
+                "src/App.Infrastructure/App.Infrastructure.csproj"
+                "src/App.Infrastructure/Repositories/AppCosmosDb.cs"
+                "tools/App.Database/App.Database.csproj"
+                "tools/App.Database/Data/ref-data.seed.yaml"
+                "tools/App.CodeGen/App.CodeGen.csproj"
+            )
+            FilesAbsent  = @(
+                ".github"
+                "src/App.Domain"
+                "tools/App.Database/dbex.yaml"
+                "tools/App.Database/Migrations"
+            )
+            FileContains = @{
+                "src/App.Infrastructure/App.Infrastructure.csproj" = "CoreEx.Cosmos"
+                "docker-compose.yml"                               = "cosmos-emulator"
+                "tools/App.CodeGen/ref-data.yaml"                  = "repository: Cosmos"
+            }
+            FileNotContains = @{
+                "src/App.Infrastructure/App.Infrastructure.csproj" = "EntityFrameworkCore"
+            }
+        }
+        Build      = $true
+    },
+    @{
+        Name       = "coreex-cosmos-no-refdata"
+        Template   = "coreex"
+        Parameters = @{
+            "data-provider"        = "Cosmos"
+            "messaging-provider"   = "ServiceBus"
+            "refdata-enabled"      = "false"
+            "outbox-enabled"       = "true"
+            "rop-enabled"          = "false"
+        }
+        TestPath   = "test-coreex-cosmos-no-refdata"
+        Verify     = @{
+            FilesPresent = @(
+                "src/App.Infrastructure/App.Infrastructure.csproj"
+                "tools/App.Database/App.Database.csproj"
+            )
+            FilesAbsent  = @(
+                ".github"
+                "tools/App.CodeGen"
+                "src/App.Domain"
+            )
+        }
+        Build      = $true
+    },
+    @{
+        Name       = "coreex-cosmos-no-outbox"
+        Template   = "coreex"
+        Parameters = @{
+            "data-provider"        = "Cosmos"
+            "messaging-provider"   = "ServiceBus"
+            "refdata-enabled"      = "true"
+            "outbox-enabled"       = "false"
+            "rop-enabled"          = "false"
+        }
+        TestPath   = "test-coreex-cosmos-no-outbox"
+        Verify     = @{
+            FilesPresent = @(
+                "src/App.Infrastructure/App.Infrastructure.csproj"
+                "tools/App.Database/App.Database.csproj"
+            )
+        }
+        Build      = $true
+    },
+    @{
+        Name       = "coreex-cosmos-full-stack"
+        Steps      = @(
+            @{ Template = "coreex"; Name = "App"; Parameters = @{ "data-provider" = "Cosmos"; "messaging-provider" = "ServiceBus"; "refdata-enabled" = "true"; "outbox-enabled" = "true"; "rop-enabled" = "false" } }
+            @{ Template = "coreex-api"; Name = "App.Api"; Parameters = @{ "data-provider" = "Cosmos"; "refdata-enabled" = "true"; "outbox-enabled" = "true" } }
+            @{ Template = "coreex-relay"; Name = "App.Relay"; Parameters = @{ "data-provider" = "Cosmos"; "messaging-provider" = "ServiceBus"; "refdata-enabled" = "true" } }
+            @{ Template = "coreex-subscribe"; Name = "App.Subscribe"; Parameters = @{ "data-provider" = "Cosmos"; "messaging-provider" = "ServiceBus"; "refdata-enabled" = "true"; "outbox-enabled" = "true" } }
+            @{ Template = "coreex-aspire"; Name = "App.Aspire"; Parameters = @{ "has-api" = "true"; "has-relay" = "true"; "has-subscribe" = "true"; "data-provider" = "Cosmos"; "messaging-provider" = "ServiceBus" } }
+        )
+        TestPath   = "test-cosmos-full-stack"
+        Verify     = @{
+            FilesPresent = @(
+                "aspire/App.Aspire/AppHost.cs"
+                "src/App.Api/Program.cs"
+                "src/App.Relay/Program.cs"
+                "tests/App.Test.Relay/HostTests.cs"
+            )
+            FilesAbsent  = @(
+                # The Cosmos relay test is health-only: a fresh solution has no business mutation to enlist in the outbox transaction.
+                "tests/App.Test.Relay/RelayTests.cs"
+            )
+            FileContains = @{
+                "aspire/App.Aspire/AppHost.cs"  = 'AddConnectionString("Cosmos")'
+                "src/App.Api/Program.cs"        = "AddCosmosDbEventPublisher"
+                "src/App.Relay/Program.cs"      = "AddCosmosDbOutboxRelayHostedService"
+                "src/App.Subscribe/Program.cs"  = "AddCosmosDbEventPublisher"
+            }
+            FileNotContains = @{
+                # The write-side publisher must never be registered on the Relay host.
+                "src/App.Relay/Program.cs"      = "AddCosmosDbEventPublisher"
+            }
+        }
+        Build        = $true
+        BuildTargets = @(
+            "aspire/App.Aspire/App.Aspire.csproj"
+            "aspire/App.Test.Aspire/App.Test.Aspire.csproj"
+            "tests/App.Test.Api/App.Test.Api.csproj"
+            "tests/App.Test.Subscribe/App.Test.Subscribe.csproj"
+            "tests/App.Test.Relay/App.Test.Relay.csproj"
+        )
+    },
+    @{
+        Name       = "coreex-cosmos-hosts-no-refdata-no-outbox"
+        # Regression guard: with refdata disabled a fresh Cosmos solution has no containers, so the relay hosted service
+        # and the relay tests that depend on it must be gated out; with the outbox disabled the Subscribe host must not
+        # register a Cosmos event publisher and Service Bus becomes the default IEventPublisher.
+        Steps      = @(
+            @{ Template = "coreex"; Name = "App"; Parameters = @{ "data-provider" = "Cosmos"; "messaging-provider" = "ServiceBus"; "refdata-enabled" = "false"; "outbox-enabled" = "false"; "rop-enabled" = "false" } }
+            @{ Template = "coreex-api"; Name = "App.Api"; Parameters = @{ "data-provider" = "Cosmos"; "refdata-enabled" = "false"; "outbox-enabled" = "false" } }
+            @{ Template = "coreex-relay"; Name = "App.Relay"; Parameters = @{ "data-provider" = "Cosmos"; "messaging-provider" = "ServiceBus"; "refdata-enabled" = "false" } }
+            @{ Template = "coreex-subscribe"; Name = "App.Subscribe"; Parameters = @{ "data-provider" = "Cosmos"; "messaging-provider" = "ServiceBus"; "refdata-enabled" = "false"; "outbox-enabled" = "false" } }
+        )
+        TestPath   = "test-cosmos-hosts-minimal"
+        Verify     = @{
+            FileNotContains = @{
+                "src/App.Subscribe/Program.cs"  = "AddCosmosDbEventPublisher"
+                "src/App.Relay/Program.cs"      = "AddCosmosDbOutboxRelayHostedService"
+            }
+        }
+        Build        = $true
+        BuildTargets = @(
+            "tests/App.Test.Api/App.Test.Api.csproj"
+            "tests/App.Test.Subscribe/App.Test.Subscribe.csproj"
+            "tests/App.Test.Relay/App.Test.Relay.csproj"
+        )
+    },
+    @{
+        Name       = "coreex-subscribe-no-outbox-regression"
+        # Regression guard: the Subscribe host used to register the SQL Server/Postgres outbox publisher unconditionally,
+        # and Service Bus as a non-default publisher, even when --outbox-enabled false.
+        Steps      = @(
+            @{ Template = "coreex"; Name = "App"; Parameters = @{ "data-provider" = "SqlServer"; "messaging-provider" = "ServiceBus"; "refdata-enabled" = "false"; "outbox-enabled" = "false"; "rop-enabled" = "false" } }
+            @{ Template = "coreex-subscribe"; Name = "App.Subscribe"; Parameters = @{ "data-provider" = "SqlServer"; "messaging-provider" = "ServiceBus"; "refdata-enabled" = "false"; "outbox-enabled" = "false" } }
+        )
+        TestPath   = "test-subscribe-no-outbox-sqlserver"
+        Verify     = @{
+            FileNotContains = @{
+                "src/App.Subscribe/Program.cs" = "AddSqlServerOutboxPublisher"
+            }
+        }
+        Build       = $true
+        BuildTargets = @(
+            "src/App.Subscribe/App.Subscribe.csproj"
+            "tests/App.Test.Subscribe/App.Test.Subscribe.csproj"
+        )
+    },
+    @{
         Name       = "coreex-domain-regression"
         # Regression guard: coreex-domain's ProjectReference to Contracts previously resolved only
         # by accident, via substring overlap between the short sourceName "app-name" and the

@@ -15,7 +15,7 @@ Guide this workspace through adding the subscribing to (handling of) a command (
 Use `.github/skills/coreex-command-subscribe-e2e/SKILL.md` and its referenced workflow as the authoritative workflow.
 
 Operational contract:
-- Read the solution-root `AGENTS.md` **Feature Configuration** first (`messaging-provider`, `outbox-enabled`, `data-provider`, `rop-enabled`).
+- Read the solution-root `AGENTS.md` **Feature Configuration** first (`messaging-provider`, `outbox-enabled`, `data-provider` — `SqlServer` / `Postgres` / `Cosmos` / `None`, `rop-enabled`).
 - Inspect the Subscribe host: if the event receiver is unkeyed, retrofit it to the keyed pattern before adding the command receiver.
 - Batch all interview questions into one turn: command entity/action, key-only or payload, triggered action, persistence, expected error outcomes, publisher location, outbound HTTP.
 - Invoke `coreex-contract` (if payload), `coreex-db-migration` + `coreex-repository` (if new state), `coreex-app-service`, `coreex-subscriber`, wire `receiver-commands` / `subscriber-commands` / `hosted-subscriber-commands`, add the queue to Test.Common `ServiceBus`, then `coreex-test-subscribe` and `coreex-aspire`.

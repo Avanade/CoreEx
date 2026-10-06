@@ -37,13 +37,13 @@ test triggers behavior: a simulated message receipt instead of an HTTP call.
 
 > **Resolve project-wide choices from state before asking.** Read the solution-root `AGENTS.md`
 > **Feature Configuration**: `messaging-provider` gates this skill (Subscribe host tests exist only when
-> a messaging provider is configured); `data-provider` (PostgreSQL vs SQL Server) selects the
+> a messaging provider is configured); `data-provider` (PostgreSQL vs SQL Server vs Cosmos) selects the
 > migrate/seed and outbox helper family used throughout — never mix them; `outbox-enabled` determines
 > whether outbox-event assertions apply. Only prompt for what is unrecorded; re-state resolved values.
 
 ## Quick Reference
 
-- **Base class**: `WithApiTester<{Domain}.Subscribe.Program>` — same DB/cache/outbox `[OneTimeSetUp]` shape as API tests (migrate + seed via named-file overload → `ClearFusionCacheAsync()` → provider-specific `UseExpected{Postgres|SqlServer}OutboxPublisher()`); Subscribe hosts **do** have FusionCache (reference data, idempotency)
+- **Base class**: `WithApiTester<{Domain}.Subscribe.Program>` — same DB/cache/outbox `[OneTimeSetUp]` shape as API tests (migrate + seed via named-file overload → `ClearFusionCacheAsync()` → provider-specific `UseExpected{Postgres|SqlServer|CosmosDb}OutboxPublisher()`); Subscribe hosts **do** have FusionCache (reference data, idempotency)
 - **Simulate receipt**: build an `EventData` → `Test.CreateCloudEventFrom(ed)` → `.ToServiceBusReceivedMessage()` → resolve `ServiceBusSubscribedSubscriber` from DI → `.ReceiveAsync(sbm)`
 - **Key matters**: event subscribers resolve the key `"subscriber-events"`; **command** subscribers (dedicated queue receiver) resolve `"subscriber-commands"` — see `coreex-command-subscribe-e2e`. Resolving the wrong key throws or hits the wrong receiver
 - **One partial file per subscriber scenario** — `SubscriberTests.{Scenario}.cs`
