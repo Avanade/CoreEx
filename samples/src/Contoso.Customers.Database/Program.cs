@@ -3,7 +3,7 @@ namespace Contoso.Customers.Database;
 /// <summary>
 /// Provisions the Customers Cosmos DB database and containers, and imports the seed data; the Cosmos DB equivalent of the relational domains' <c>*.Database</c> (DbEx) projects.
 /// </summary>
-/// <remarks>Run using <c>dotnet run -- ResetAndData</c> (see <c>--help</c> for all commands). The container identifiers declared here must match those used by <c>CustomersCosmosDb</c>.</remarks>
+/// <remarks>Run using <c>dotnet run -- All</c> (or <c>DropAndAll</c>; <c>ResetAndData</c> requires the database to already exist) (see <c>--help</c> for all commands). The container identifiers declared here must match those used by <c>CustomersCosmosDb</c>.</remarks>
 public class Program
 {
     /// <summary>

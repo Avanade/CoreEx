@@ -6,7 +6,7 @@ namespace CoreEx.Cosmos.Provisioning;
 /// <remarks>Seed data is YAML (<c>.yaml</c>/<c>.yml</c>) or JSON embedded resources where each top-level key is a <see cref="Container.Id"/> and its array value the documents to import. Resources located
 /// in a <c>Data</c> folder of any <see cref="Assemblies"/> are always imported (in resource-name order); additional named resources (optionally with their own <see cref="JsonDataReaderOptions"/>) are added via <see cref="AddDataResource(Assembly, string, Func{CosmosDbDataContext, JsonDataReaderOptions?}?)"/> and are imported afterwards.
 /// <para>Seeding creates documents directly (see <see cref="CosmosDbBatch"/>), so the JSON must already carry the partition key and, for a <see cref="CosmosDbContainerDefinition.IsReferenceData"/> container, the
-/// <c>$^TypeName</c> grouped shorthand is used (see <see cref="CosmosDbBatch.ImportDiscriminatedBatchAsync(Container, JsonDataReader, string, bool, CancellationToken)"/>).</para></remarks>
+/// <c>$^TypeName</c> grouped shorthand is used (<c>$</c> merges (upserts) rather than inserts, making the import re-runnable; <c>^</c> generates the identifier where not specified) (see <see cref="CosmosDbBatch.ImportDiscriminatedBatchAsync(Container, JsonDataReader, string, bool, CancellationToken)"/>).</para></remarks>
 public class CosmosDbProvisionArgs
 {
     private readonly List<CosmosDbContainerDefinition> _containers = [];
@@ -31,6 +31,16 @@ public class CosmosDbProvisionArgs
     /// Gets or sets the <see cref="TextWriter"/> that progress is written to; defaults to <see cref="TextWriter.Null"/>.
     /// </summary>
     public TextWriter Output { get; set; } = TextWriter.Null;
+
+    /// <summary>
+    /// Indicates whether confirmation prompts (for the destructive <see cref="CosmosDbProvisionCommand.Drop"/> and <see cref="CosmosDbProvisionCommand.Reset"/> commands) are accepted automatically; used by the <see cref="CosmosDbConsole"/>.
+    /// </summary>
+    public bool AcceptPrompts { get; set; }
+
+    /// <summary>
+    /// Gets the name/value parameters made available to the seed data parser (referenced as <c>^Name</c>, or <c>(^Name)</c> where embedded within a value); these override any same-named parameter configured by the <see cref="JsonDataReaderOptions"/>.
+    /// </summary>
+    public Dictionary<string, string?> Parameters { get; } = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// Gets the <see cref="Assembly"/> list that is scanned for embedded <c>Data</c> resources.

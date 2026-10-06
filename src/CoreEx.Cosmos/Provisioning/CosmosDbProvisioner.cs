@@ -17,25 +17,49 @@ public class CosmosDbProvisioner(CosmosClient client, CosmosDbProvisionArgs args
     /// </summary>
     public CosmosDbProvisionArgs Args => _args;
 
+    /// <summary>
+    /// The horizontal rule written between sections.
+    /// </summary>
+    internal static readonly string Rule = new('-', 80);
+
     private string DatabaseId => _args.DatabaseId.ThrowIfNullOrEmpty(nameof(CosmosDbProvisionArgs.DatabaseId));
 
     /// <summary>
-    /// Runs the <paramref name="command"/> in the order <see cref="CosmosDbProvisionCommand.Drop"/>, <see cref="CosmosDbProvisionCommand.Reset"/> (or <see cref="CosmosDbProvisionCommand.Create"/>), then <see cref="CosmosDbProvisionCommand.Data"/>.
+    /// Runs the <paramref name="command"/> in the order <see cref="CosmosDbProvisionCommand.Drop"/>, <see cref="CosmosDbProvisionCommand.Create"/>, <see cref="CosmosDbProvisionCommand.Reset"/>, then <see cref="CosmosDbProvisionCommand.Data"/>.
     /// </summary>
     /// <param name="command">The <see cref="CosmosDbProvisionCommand"/>.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
     public async Task RunAsync(CosmosDbProvisionCommand command, CancellationToken cancellationToken = default)
     {
+        _args.Output.WriteLine(Rule);
+        _args.Output.WriteLine();
+
         if (command.HasFlag(CosmosDbProvisionCommand.Drop))
-            await DropAsync(cancellationToken).ConfigureAwait(false);
+            await SectionAsync("DATABASE DROP: Dropping the database where found...", () => DropAsync(cancellationToken)).ConfigureAwait(false);
+
+        if (command.HasFlag(CosmosDbProvisionCommand.Create))
+            await SectionAsync("DATABASE CREATE: Checking database and container existence and creating where not found...", () => CreateAsync(cancellationToken)).ConfigureAwait(false);
 
         if (command.HasFlag(CosmosDbProvisionCommand.Reset))
-            await ResetAsync(cancellationToken).ConfigureAwait(false);
-        else if (command.HasFlag(CosmosDbProvisionCommand.Create))
-            await CreateAsync(cancellationToken).ConfigureAwait(false);
+            await SectionAsync("CONTAINER RESET: Replacing (emptying) the declared containers...", () => ResetAsync(cancellationToken)).ConfigureAwait(false);
 
         if (command.HasFlag(CosmosDbProvisionCommand.Data))
-            await DataAsync(cancellationToken).ConfigureAwait(false);
+            await SectionAsync("DATABASE DATA: Insert or merge the embedded data [yaml|json]..", () => DataAsync(cancellationToken)).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Runs the <paramref name="action"/> as a titled, timed section followed by a rule.
+    /// </summary>
+    private async Task SectionAsync(string title, Func<Task> action)
+    {
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        _args.Output.WriteLine(title);
+        await action().ConfigureAwait(false);
+        _args.Output.WriteLine();
+        _args.Output.WriteLine($"Complete. [{sw.Elapsed.TotalMilliseconds:0.0}ms]");
+        _args.Output.WriteLine();
+        _args.Output.WriteLine(Rule);
+        _args.Output.WriteLine();
     }
 
     /// <summary>
@@ -43,15 +67,16 @@ public class CosmosDbProvisioner(CosmosClient client, CosmosDbProvisionArgs args
     /// </summary>
     public async Task DropAsync(CancellationToken cancellationToken = default)
     {
-        _args.Output.WriteLine($"Dropping database '{DatabaseId}'...");
+        _args.Output.WriteLine("  Drop database...");
 
         try
         {
             await _client.GetDatabase(DatabaseId).DeleteAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+            _args.Output.WriteLine($"    Database '{DatabaseId}' dropped.");
         }
         catch (CosmosException cex) when (cex.StatusCode == HttpStatusCode.NotFound)
         {
-            _args.Output.WriteLine("  Database does not exist.");
+            _args.Output.WriteLine($"    Database '{DatabaseId}' does not exist and therefore not dropped.");
         }
     }
 
@@ -64,22 +89,34 @@ public class CosmosDbProvisioner(CosmosClient client, CosmosDbProvisionArgs args
 
         foreach (var c in _args.Containers)
         {
-            _args.Output.WriteLine($"Creating container '{c.Id}' (where not existing)...");
-            await RetryAsync(() => database.CreateContainerIfNotExistsAsync(c.CreateProperties(), _args.Throughput, cancellationToken: cancellationToken), cancellationToken).ConfigureAwait(false);
+            _args.Output.WriteLine($"  Create container '{c.Id}'...");
+            var response = await RetryAsync(() => database.CreateContainerIfNotExistsAsync(c.CreateProperties(), _args.Throughput, cancellationToken: cancellationToken), cancellationToken).ConfigureAwait(false);
+            _args.Output.WriteLine(response.StatusCode == HttpStatusCode.Created ? $"    Container '{c.Id}' created." : $"    Container '{c.Id}' already exists and therefore not created.");
         }
     }
 
     /// <summary>
-    /// Replaces (deletes and recreates; therefore empty) every declared container, creating the database where required.
+    /// Replaces (deletes and recreates; therefore empty) every declared container; the database must already exist (as per <c>DbEx</c>, a reset does not implicitly create it - include <see cref="CosmosDbProvisionCommand.Create"/>).
     /// </summary>
+    /// <exception cref="InvalidOperationException">The database does not exist.</exception>
     public async Task ResetAsync(CancellationToken cancellationToken = default)
     {
-        var database = await CreateDatabaseAsync(cancellationToken).ConfigureAwait(false);
+        var database = _client.GetDatabase(DatabaseId);
+
+        try
+        {
+            await RetryAsync(() => database.ReadAsync(cancellationToken: cancellationToken), cancellationToken).ConfigureAwait(false);
+        }
+        catch (CosmosException cex) when (cex.StatusCode == HttpStatusCode.NotFound)
+        {
+            throw new InvalidOperationException($"Database '{DatabaseId}' does not exist; a reset does not create it (use the Create command, e.g. 'All' or 'Create,ResetAndData').", cex);
+        }
 
         foreach (var c in _args.Containers)
         {
-            _args.Output.WriteLine($"Resetting container '{c.Id}'...");
+            _args.Output.WriteLine($"  Reset container '{c.Id}'...");
             await RetryAsync(() => database.ReplaceOrCreateContainerAsync(c.CreateProperties(), _args.Throughput, cancellationToken), cancellationToken).ConfigureAwait(false);
+            _args.Output.WriteLine($"    Container '{c.Id}' replaced (empty).");
         }
     }
 
@@ -89,33 +126,71 @@ public class CosmosDbProvisioner(CosmosClient client, CosmosDbProvisionArgs args
     public async Task DataAsync(CancellationToken cancellationToken = default)
     {
         var database = _client.GetDatabase(DatabaseId);
+        _args.Output.WriteLine($"  Probing for embedded resources: {string.Join(", ", _args.Assemblies.Select(a => $"{a.GetName().Name}.Data.*"))}");
 
         foreach (var (name, content, resourceOptions) in GetDataResources())
         {
-            _args.Output.WriteLine($"Importing data '{name}'...");
+            _args.Output.WriteLine();
+            _args.Output.WriteLine($"** Parsing and executing: {name}");
             var isJson = name.EndsWith(".json", StringComparison.OrdinalIgnoreCase);
 
-            JsonDataReader Parse(JsonDataReaderOptions options) => isJson ? JsonDataReader.ParseJson(content, options) : JsonDataReader.ParseYaml(content, options);
-
             // A plain reader is used only to discover the top-level container keys; each container is then imported using its own resolved options.
-            if (Parse(new JsonDataReaderOptions(_args.NamingConvention)).RootNode is not JsonObject root)
+            if ((isJson ? JsonDataReader.ParseJson(content, new JsonDataReaderOptions(_args.NamingConvention)) : JsonDataReader.ParseYaml(content, new JsonDataReaderOptions(_args.NamingConvention))).RootNode is not JsonObject root)
                 continue;
 
-            foreach (var key in root.Select(kvp => kvp.Key).ToList())
+            // As per DbEx, a '$' prefix indicates merge (upsert) rather than insert; for a reference data container it is the type discriminator groups that carry the prefix instead. A leading '$' is not
+            // addressable in a JSON path (it denotes the root) so the prefix is removed from the top-level keys, noting which were merges, before the data is re-parsed.
+            var merges = root.Where(kvp => kvp.Key.StartsWith('$')).Select(kvp => kvp.Key.TrimStart('$')).ToHashSet();
+            var normalized = new JsonObject();
+            foreach (var kvp in root)
             {
-                var definition = _args.Containers.FirstOrDefault(c => c.Id == key)
-                    ?? throw new InvalidOperationException($"Data '{name}' top-level key '{key}' does not match a declared container ({string.Join(", ", _args.Containers.Select(c => $"'{c.Id}'"))}).");
+                normalized[kvp.Key.TrimStart('$')] = kvp.Value?.DeepClone();
+            }
+
+            var json = normalized.ToJsonString();
+            JsonDataReader Parse(JsonDataReaderOptions options) => JsonDataReader.ParseJson(json, options);
+
+            foreach (var containerId in normalized.Select(kvp => kvp.Key).ToList())
+            {
+                var merge = merges.Contains(containerId);
+                var definition = _args.Containers.FirstOrDefault(c => c.Id == containerId)
+                    ?? throw new InvalidOperationException($"Data '{name}' top-level key '{containerId}' does not match a declared container ({string.Join(", ", _args.Containers.Select(c => $"'{c.Id}'"))}).");
 
                 var container = database.GetContainer(definition.Id);
                 var jdr = Parse(ResolveDataOptions(name, resourceOptions, definition));
-                if (definition.IsReferenceData)
-                    await container.ImportDiscriminatedBatchAsync(jdr, key, cancellationToken: cancellationToken).ConfigureAwait(false);
-                else
-                    await container.ImportBatchAsync(jdr, key, cancellationToken: cancellationToken).ConfigureAwait(false);
+                var verb = merge ? "Merging" : "Inserting";
 
-                _args.Output.WriteLine($"  Container '{key}' imported.");
+                if (definition.IsReferenceData)
+                {
+                    await CosmosDbBatch.ImportDiscriminatedBatchAsync(container, jdr, containerId, (group, groupMerge, created, replaced) => WriteResult($"{(groupMerge ? "Merging" : "Inserting")} '{containerId}' / {group}", groupMerge, created, replaced), false, cancellationToken).ConfigureAwait(false);
+                    continue;
+                }
+
+                if (!jdr.TryCreateData(containerId, out var node) || node is not JsonArray array)
+                    continue;
+
+                if (merge)
+                {
+                    var (created, replaced) = await container.MergeBatchAsync(array, cancellationToken: cancellationToken).ConfigureAwait(false);
+                    WriteResult($"{verb} '{containerId}'", true, created, replaced);
+                }
+                else
+                {
+                    var (created, replaced) = await container.ImportBatchCountAsync(array, cancellationToken).ConfigureAwait(false);
+                    WriteResult($"{verb} '{containerId}'", false, created, replaced);
+                }
             }
         }
+    }
+
+    /// <summary>
+    /// Writes the result of an import or merge.
+    /// </summary>
+    private void WriteResult(string title, bool merge, int created, int replaced)
+    {
+        _args.Output.WriteLine();
+        _args.Output.WriteLine($"---- {title}:");
+        _args.Output.WriteLine(merge ? $"Result: {created + replaced} item(s) ({created} created, {replaced} replaced)." : $"Result: {created} item(s) created.");
     }
 
     /// <summary>
@@ -124,9 +199,16 @@ public class CosmosDbProvisioner(CosmosClient client, CosmosDbProvisionArgs args
     private JsonDataReaderOptions ResolveDataOptions(string resourceName, Func<CosmosDbDataContext, JsonDataReaderOptions?>? resourceOptions, CosmosDbContainerDefinition definition)
     {
         var context = new CosmosDbDataContext(resourceName, definition, _args.NamingConvention);
-        return resourceOptions?.Invoke(context)
+        var options = resourceOptions?.Invoke(context)
             ?? definition.DataOptions?.Invoke(context)
             ?? (definition.IsReferenceData ? JsonDataReaderOptions.CreateForReferenceData(_args.NamingConvention) : new JsonDataReaderOptions(_args.NamingConvention));
+
+        foreach (var (name, value) in _args.Parameters)
+        {
+            options.Parameters[name] = _ => value;
+        }
+
+        return options;
     }
 
     /// <summary>
@@ -157,6 +239,7 @@ public class CosmosDbProvisioner(CosmosClient client, CosmosDbProvisionArgs args
             yield return (resource.ResourceName, sr.ReadToEnd(), resource.DataOptions);
         }
     }
+
     /// <summary>
     /// Determines whether the manifest resource name is a <c>Data</c> folder YAML or JSON file.
     /// </summary>
@@ -168,8 +251,9 @@ public class CosmosDbProvisioner(CosmosClient client, CosmosDbProvisionArgs args
     /// </summary>
     private async Task<Microsoft.Azure.Cosmos.Database> CreateDatabaseAsync(CancellationToken cancellationToken)
     {
-        _args.Output.WriteLine($"Creating database '{DatabaseId}' (where not existing)...");
+        _args.Output.WriteLine("  Create database...");
         var response = await RetryAsync(() => _client.CreateDatabaseIfNotExistsAsync(DatabaseId, cancellationToken: cancellationToken), cancellationToken).ConfigureAwait(false);
+        _args.Output.WriteLine(response.StatusCode == HttpStatusCode.Created ? $"    Database '{DatabaseId}' created." : $"    Database '{DatabaseId}' already exists and therefore not created.");
         return response.Database;
     }
 

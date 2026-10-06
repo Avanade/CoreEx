@@ -4,6 +4,8 @@ namespace UnitTestEx;
 
 public static partial class UnitTestExExtensions
 {
+    private static readonly ConcurrentDictionary<string, byte> _cosmosDatabases = new();
+
     /// <summary>
     /// Replaces the registered <see cref="IEventPublisher"/> with a decorator (<see cref="EventPublisherDecorator"/>) that also captures the published events for expectation assertions.
     /// </summary>
@@ -80,15 +82,24 @@ public static partial class UnitTestExExtensions
     /// <param name="resourceFileNames">The named resource files to include in the data loading; imported after the default <c>Data</c> folder resources.</param>
     /// <param name="configure">An optional function to configure the <see cref="CosmosDbProvisionArgs"/> (e.g. to declare the containers).</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-    /// <remarks>The database is resolved using <see cref="GetCosmosDatabaseAsync(TesterBase, CancellationToken)"/> so the host's own <see cref="CosmosClient"/> and database identifier are used. The command is <see cref="CosmosDbProvisionCommand.ResetAndData"/>.</remarks>
+    /// <remarks>The host's own <see cref="CosmosClient"/> and database identifier are used (see <see cref="GetCosmosDatabaseAsync(TesterBase, CancellationToken)"/>). As per <c>MigratePostgresDataAsync</c>, the first call per account endpoint and database
+    /// is <see cref="CosmosDbProvisionCommand.Create"/> | <see cref="CosmosDbProvisionCommand.ResetAndData"/> (the database is only created where explicitly requested; a reset on its own fails where it does not exist), with all subsequent calls being <see cref="CosmosDbProvisionCommand.ResetAndData"/>.</remarks>
     public static async Task MigrateCosmosDataAsync<TAssembly>(this TesterBase tester, string[]? resourceFileNames = null, Func<CosmosDbProvisionArgs, CosmosDbProvisionArgs>? configure = null, CancellationToken cancellationToken = default)
     {
-        var database = await tester.GetCosmosDatabaseAsync(cancellationToken).ConfigureAwait(false);
-        await ProvisionCosmosAsync<TAssembly>(database.Client, database.Id, resourceFileNames, configure, cancellationToken).ConfigureAwait(false);
+        // The ICosmosDb is scoped so a short-lived scope is used purely to resolve it (see GetCosmosDatabaseAsync); the underlying CosmosClient is independently registered and remains usable.
+        using var scope = tester.ThrowIfNull().Services.CreateScope();
+        var cosmosDb = scope.ServiceProvider.GetRequiredService<ICosmosDb>();
+        var client = cosmosDb.Client;
+        var databaseId = cosmosDb.Database.Id;
+
+        var key = $"{client.Endpoint}|{databaseId}";
+        var first = !_cosmosDatabases.ContainsKey(key);
+        await ProvisionCosmosAsync<TAssembly>(client, databaseId, resourceFileNames, configure, first ? CosmosDbProvisionCommand.Create | CosmosDbProvisionCommand.ResetAndData : CosmosDbProvisionCommand.ResetAndData, cancellationToken).ConfigureAwait(false);
+        _cosmosDatabases.TryAdd(key, 0);
     }
 
     /// <summary>
-    /// Provisions (resets) the Cosmos DB database containers and imports the seed data using the <see cref="CosmosDbProvisioner"/>, using the specified <paramref name="aspireResourceName"/> to retrieve the connection string from the distributed application.
+    /// Provisions (creates and resets) the Cosmos DB database containers and imports the seed data using the <see cref="CosmosDbProvisioner"/>, using the specified <paramref name="aspireResourceName"/> to retrieve the connection string from the distributed application; always <see cref="CosmosDbProvisionCommand.Create"/> | <see cref="CosmosDbProvisionCommand.ResetAndData"/>.
     /// </summary>
     /// <typeparam name="TAssembly">The <see cref="Type"/> to infer the <see cref="Assembly"/> containing the named <paramref name="resourceFileNames"/>; only these named resources are loaded from it (add the assembly holding the default <c>Data</c> folder resources using <see cref="CosmosDbProvisionArgs.AddAssembly(Assembly[])"/> within <paramref name="configure"/>).</typeparam>
     /// <param name="app">The <see cref="DistributedApplication"/>.</param>
@@ -99,15 +110,15 @@ public static partial class UnitTestExExtensions
     /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
     public static async Task MigrateCosmosDataAsync<TAssembly>(this DistributedApplication app, string aspireResourceName, string databaseId, string[]? resourceFileNames = null, Func<CosmosDbProvisionArgs, CosmosDbProvisionArgs>? configure = null, CancellationToken cancellationToken = default)
     {
-        var cs = (await AspireTesterBase.GetConnectionStringAsync(app.ThrowIfNull(), aspireResourceName.ThrowIfNullOrEmpty()).ConfigureAwait(false)) ?? throw new InvalidOperationException($"The '{aspireResourceName}' connection string not found.");
+        var cs = (await AspireTesterBase.GetConnectionStringAsync(app.ThrowIfNull(), aspireResourceName.ThrowIfNullOrEmpty(), cancellationToken).ConfigureAwait(false)) ?? throw new InvalidOperationException($"The '{aspireResourceName}' connection string not found.");
         using var client = CosmosDbClientFactory.Create(cs);
-        await ProvisionCosmosAsync<TAssembly>(client, databaseId, resourceFileNames, configure, cancellationToken).ConfigureAwait(false);
+        await ProvisionCosmosAsync<TAssembly>(client, databaseId, resourceFileNames, configure, CosmosDbProvisionCommand.Create | CosmosDbProvisionCommand.ResetAndData, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
-    /// Runs the <see cref="CosmosDbProvisionCommand.ResetAndData"/> and throws including the captured output on failure.
+    /// Runs the <paramref name="command"/> and throws including the captured output on failure.
     /// </summary>
-    private static async Task ProvisionCosmosAsync<TAssembly>(CosmosClient client, string databaseId, string[]? resourceFileNames, Func<CosmosDbProvisionArgs, CosmosDbProvisionArgs>? configure, CancellationToken cancellationToken)
+    private static async Task ProvisionCosmosAsync<TAssembly>(CosmosClient client, string databaseId, string[]? resourceFileNames, Func<CosmosDbProvisionArgs, CosmosDbProvisionArgs>? configure, CosmosDbProvisionCommand command, CancellationToken cancellationToken)
     {
         var output = new StringWriter();
         var args = new CosmosDbProvisionArgs { DatabaseId = databaseId, Output = output };
@@ -120,7 +131,7 @@ public static partial class UnitTestExExtensions
 
         try
         {
-            await new CosmosDbProvisioner(client, args).RunAsync(CosmosDbProvisionCommand.ResetAndData, cancellationToken).ConfigureAwait(false);
+            await new CosmosDbProvisioner(client, args).RunAsync(command, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {

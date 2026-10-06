@@ -22,12 +22,12 @@ public enum CosmosDbProvisionCommand
     Create = 2,
 
     /// <summary>
-    /// Replaces (deletes and recreates, so is therefore empty) every declared container, creating the database where required. Supersedes <see cref="Create"/>.
+    /// Replaces (deletes and recreates, so is therefore empty) every declared container. The database must already exist (it is not implicitly created; as per <c>DbEx</c> the creation must be specifically requested, e.g. <c>Create | Reset</c>); runs after <see cref="Create"/>.
     /// </summary>
     Reset = 4,
 
     /// <summary>
-    /// Imports the seed data.
+    /// Imports the seed data; a $-prefixed key is merged (upserted, re-runnable), otherwise inserted (a re-run conflicts).
     /// </summary>
     Data = 8,
 

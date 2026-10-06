@@ -61,7 +61,7 @@ public class CosmosDbProvisionerTests : CosmosTestBase
     public async Task Create_IsIdempotent_AndPreservesExistingData()
     {
         var p = CreateProvisioner(CreateArgs());
-        await p.RunAsync(CosmosDbProvisionCommand.Reset);
+        await p.RunAsync(CosmosDbProvisionCommand.Create);
         await Client.GetContainer(DatabaseId, ItemsId).CreateItemAsync(new { id = "keep", partitionKey = "pk" }, new PartitionKey("pk"));
 
         await p.RunAsync(CosmosDbProvisionCommand.Create);
@@ -73,7 +73,7 @@ public class CosmosDbProvisionerTests : CosmosTestBase
     public async Task Reset_EmptiesContainers()
     {
         var p = CreateProvisioner(CreateArgs());
-        await p.RunAsync(CosmosDbProvisionCommand.Reset);
+        await p.RunAsync(CosmosDbProvisionCommand.Create);
         await Client.GetContainer(DatabaseId, ItemsId).CreateItemAsync(new { id = "gone", partitionKey = "pk" }, new PartitionKey("pk"));
         (await CountAsync(ItemsId)).Should().Be(1);
 
@@ -83,10 +83,18 @@ public class CosmosDbProvisionerTests : CosmosTestBase
     }
 
     [Test]
+    public async Task Reset_DatabaseNotExisting_FailsAndDoesNotCreate()
+    {
+        await FluentActions.Awaiting(() => CreateProvisioner(CreateArgs()).RunAsync(CosmosDbProvisionCommand.ResetAndData)).Should().ThrowAsync<InvalidOperationException>().WithMessage("*does not exist*");
+
+        await FluentActions.Awaiting(() => Client.GetDatabase(DatabaseId).ReadAsync()).Should().ThrowAsync<CosmosException>().Where(x => x.StatusCode == HttpStatusCode.NotFound);
+    }
+
+    [Test]
     public async Task ResetAndData_ImportsPlainAndDiscriminatedData()
     {
         var args = CreateArgs().AddDataResource<CosmosDbProvisionerTests>("provisioning.seed.yaml");
-        await CreateProvisioner(args).RunAsync(CosmosDbProvisionCommand.ResetAndData);
+        await CreateProvisioner(args).RunAsync(CosmosDbProvisionCommand.Create | CosmosDbProvisionCommand.ResetAndData);
 
         (await CountAsync(ItemsId)).Should().Be(2);
         (await CountAsync(RefId)).Should().Be(3);
@@ -104,7 +112,7 @@ public class CosmosDbProvisionerTests : CosmosTestBase
     [Test]
     public async Task ReferenceDataContainer_RejectsDuplicateTypeDiscriminatorAndCode()
     {
-        await CreateProvisioner(CreateArgs()).RunAsync(CosmosDbProvisionCommand.Reset);
+        await CreateProvisioner(CreateArgs()).RunAsync(CosmosDbProvisionCommand.Create);
         var container = Client.GetContainer(DatabaseId, RefId);
 
         await container.CreateItemAsync(new { id = "a", partitionKey = "pk", typeDiscriminator = "Colour", code = "R" }, new PartitionKey("pk"));
@@ -118,7 +126,7 @@ public class CosmosDbProvisionerTests : CosmosTestBase
     {
         var args = CreateArgs().AddDataResource<CosmosDbProvisionerTests>("provisioning-unknown.seed.yaml");
         var p = CreateProvisioner(args);
-        await p.RunAsync(CosmosDbProvisionCommand.Reset);
+        await p.RunAsync(CosmosDbProvisionCommand.Create);
 
         await FluentActions.Awaiting(() => p.RunAsync(CosmosDbProvisionCommand.Data)).Should().ThrowAsync<InvalidOperationException>().WithMessage("*unknown-container*");
     }
@@ -127,7 +135,7 @@ public class CosmosDbProvisionerTests : CosmosTestBase
     public async Task Drop_RemovesDatabase_AndIsSafeWhenMissing()
     {
         var p = CreateProvisioner(CreateArgs());
-        await p.RunAsync(CosmosDbProvisionCommand.Reset);
+        await p.RunAsync(CosmosDbProvisionCommand.Create);
 
         await p.RunAsync(CosmosDbProvisionCommand.Drop);
         await p.RunAsync(CosmosDbProvisionCommand.Drop);
@@ -168,6 +176,67 @@ public class CosmosDbProvisionerTests : CosmosTestBase
         (await console.RunAsync([])).Should().Be(1);
         (await console.RunAsync(["NotACommand"])).Should().Be(1);
         (await console.RunAsync(["Create", "-d"])).Should().Be(1);
+        (await console.RunAsync(["Create", "-p", "NoEquals"])).Should().Be(1);
+        (await console.RunAsync(["Create", "-cv", "COREEX_COSMOS_TEST_UNSET_VARNAME"])).Should().Be(1);
+        (await console.RunAsync(["Create", "--not-an-option"])).Should().Be(1);
+    }
+
+    [Test]
+    public async Task Console_DestructiveCommands_RequireConfirmation()
+    {
+        var originalIn = Console.In;
+        var originalError = Console.Error;
+        try
+        {
+            // Not confirmed: stops before any connection is made, so nothing is executed.
+            var error = new StringWriter();
+            Console.SetError(error);
+            var console = CosmosDbConsole.Create<CosmosDbProvisionerTests>("AccountEndpoint=https://localhost:1/;AccountKey=abc", DatabaseId);
+
+            Console.SetIn(new StringReader("n"));
+            (await console.RunAsync(["Drop"])).Should().Be(1);
+            error.ToString().Should().Contain("Database drop was not confirmed");
+
+            error.GetStringBuilder().Clear();
+            Console.SetIn(new StringReader(string.Empty));
+            (await console.RunAsync(["ResetAndData"])).Should().Be(1);
+            error.ToString().Should().Contain("Container reset was not confirmed");
+        }
+        finally
+        {
+            Console.SetIn(originalIn);
+            Console.SetError(originalError);
+        }
+    }
+
+    [Test]
+    public async Task Console_ConnectionVarName_AndParams_AreApplied()
+    {
+        var varName = $"COREEX_COSMOS_TEST_{Guid.NewGuid():N}";
+        Environment.SetEnvironmentVariable(varName, "AccountEndpoint=https://localhost:1/;AccountKey=abc");
+        try
+        {
+            var console = CosmosDbConsole.Create<CosmosDbProvisionerTests>("AccountEndpoint=https://localhost:8081/;AccountKey=abc", DatabaseId);
+            await console.RunAsync(["Create", "-cv", varName, "-p", "A=1", "--param", "B=x=y", "--accept-prompts"]);
+
+            console.ConnectionString.Should().Contain("localhost:1");
+            console.Args.AcceptPrompts.Should().BeTrue();
+            console.Args.Parameters.Should().BeEquivalentTo(new Dictionary<string, string?> { ["A"] = "1", ["B"] = "x=y" });
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(varName, null);
+        }
+    }
+
+    [Test]
+    public async Task Data_Parameters_AreSubstituted()
+    {
+        var args = CreateArgs().AddDataResource<CosmosDbProvisionerTests>("provisioning-param.seed.yaml");
+        args.Parameters["Who"] = "Eric";
+        await CreateProvisioner(args).RunAsync(CosmosDbProvisionCommand.Create | CosmosDbProvisionCommand.ResetAndData);
+
+        (await QueryAsync<string>(ItemsId, "SELECT VALUE c.name FROM c")).Should().Equal("Eric");
     }
 
     private async Task<List<T>> QueryAsync<T>(string containerId, string sql)
@@ -190,7 +259,7 @@ public class CosmosDbProvisionerTests : CosmosTestBase
             .ReferenceDataContainer(RefId)
             .AddDataResource<CosmosDbProvisionerTests>("provisioning.seed.yaml");
 
-        await CreateProvisioner(args).RunAsync(CosmosDbProvisionCommand.ResetAndData);
+        await CreateProvisioner(args).RunAsync(CosmosDbProvisionCommand.Create | CosmosDbProvisionCommand.ResetAndData);
 
         (await QueryAsync<string>(ItemsId, "SELECT VALUE c.tag FROM c")).Should().Equal("container", "container");
         (await QueryAsync<string>(RefId, "SELECT VALUE c.tag FROM c")).Should().BeEmpty();
@@ -212,7 +281,7 @@ public class CosmosDbProvisionerTests : CosmosTestBase
                 return o;
             });
 
-        await CreateProvisioner(args).RunAsync(CosmosDbProvisionCommand.ResetAndData);
+        await CreateProvisioner(args).RunAsync(CosmosDbProvisionCommand.Create | CosmosDbProvisionCommand.ResetAndData);
 
         (await QueryAsync<string>(ItemsId, "SELECT VALUE c.tag FROM c")).Should().Equal("resource", "resource");
         (await QueryAsync<string>(RefId, "SELECT VALUE c.tag FROM c")).Should().Equal("refcontainer", "refcontainer", "refcontainer");
@@ -227,9 +296,75 @@ public class CosmosDbProvisionerTests : CosmosTestBase
             .ReferenceDataContainer(RefId, dataOptions: ctx => JsonDataReaderOptions.CreateForReferenceData(ctx.NamingConvention, () => $"gen-{Interlocked.Increment(ref n)}"))
             .AddDataResource<CosmosDbProvisionerTests>("provisioning.seed.yaml");
 
-        await CreateProvisioner(args).RunAsync(CosmosDbProvisionCommand.ResetAndData);
+        await CreateProvisioner(args).RunAsync(CosmosDbProvisionCommand.Create | CosmosDbProvisionCommand.ResetAndData);
 
         (await QueryAsync<string>(RefId, "SELECT VALUE c.id FROM c ORDER BY c.id")).Should().Equal("gen-1", "gen-2", "gen-3");
+    }
+
+    [Test]
+    public async Task Data_DollarPrefix_Merges_AndIsRerunnableWithStableIds()
+    {
+        var args = CreateArgs().AddDataResource<CosmosDbProvisionerTests>("provisioning-merge.seed.yaml");
+        await CreateProvisioner(args).RunAsync(CosmosDbProvisionCommand.Create | CosmosDbProvisionCommand.ResetAndData);
+
+        var ids = await RefIdsAsync();
+        ids.Should().HaveCount(2);
+
+        await CreateProvisioner(args).RunAsync(CosmosDbProvisionCommand.All);
+
+        (await CountAsync(ItemsId)).Should().Be(1);
+        (await CountAsync(RefId)).Should().Be(2);
+        (await RefIdsAsync()).Should().Equal(ids);
+    }
+
+    [Test]
+    public async Task Data_NoDollarPrefix_Inserts_SoRerunConflicts()
+    {
+        var args = CreateArgs().AddDataResource<CosmosDbProvisionerTests>("provisioning-insert.seed.yaml");
+        await CreateProvisioner(args).RunAsync(CosmosDbProvisionCommand.Create | CosmosDbProvisionCommand.ResetAndData);
+        (await CountAsync(RefId)).Should().Be(1);
+
+        var act = () => CreateProvisioner(args).RunAsync(CosmosDbProvisionCommand.Data);
+        (await act.Should().ThrowAsync<CosmosException>()).Which.StatusCode.Should().Be(System.Net.HttpStatusCode.Conflict);
+
+        var plain = CreateArgs().AddDataResource<CosmosDbProvisionerTests>("provisioning-insert-plain.seed.yaml");
+        await CreateProvisioner(plain).RunAsync(CosmosDbProvisionCommand.Data);
+        var act2 = () => CreateProvisioner(plain).RunAsync(CosmosDbProvisionCommand.Data);
+        (await act2.Should().ThrowAsync<CosmosException>()).Which.StatusCode.Should().Be(System.Net.HttpStatusCode.Conflict);
+    }
+
+    private async Task<List<string>> RefIdsAsync()
+    {
+        using var iterator = Client.GetContainer(DatabaseId, RefId).GetItemQueryIterator<string>("SELECT VALUE c.id FROM c ORDER BY c.code", requestOptions: new QueryRequestOptions { PartitionKey = PartitionKey.None });
+        var ids = new List<string>();
+        while (iterator.HasMoreResults)
+        {
+            ids.AddRange(await iterator.ReadNextAsync());
+        }
+
+        return ids;
+    }
+
+    [Test]
+    public async Task Output_WritesSections_AndMergeCounts()
+    {
+        var first = new StringWriter();
+        var args = CreateArgs(first).AddDataResource<CosmosDbProvisionerTests>("provisioning-merge.seed.yaml");
+        await CreateProvisioner(args).RunAsync(CosmosDbProvisionCommand.Create | CosmosDbProvisionCommand.ResetAndData);
+
+        var text = first.ToString();
+        text.Should().Contain("DATABASE CREATE:").And.Contain("CONTAINER RESET:").And.Contain("DATABASE DATA:");
+        text.Should().Contain("** Parsing and executing: ").And.Contain("provisioning-merge.seed.yaml");
+        text.Should().Contain("Result: 2 item(s) (2 created, 0 replaced).").And.Contain("Complete. [");
+        text.Should().Contain(new string('-', 80));
+
+        var second = new StringWriter();
+        args.Output = second;
+        await CreateProvisioner(args).RunAsync(CosmosDbProvisionCommand.All);
+
+        text = second.ToString();
+        text.Should().Contain("DATABASE CREATE:").And.Contain("already exists and therefore not created.");
+        text.Should().Contain("Result: 2 item(s) (0 created, 2 replaced).");
     }
 
     [Test]

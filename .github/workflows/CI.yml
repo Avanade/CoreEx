@@ -107,6 +107,10 @@ jobs:
       working-directory: samples/src/Contoso.Shopping.CodeGen
       run: dotnet run refdata --no-build --configuration Release -f net10.0 --expect-no-changes
 
+    - name: CodeGen tool (samples/src/Contoso.Customers.CodeGen)
+      working-directory: samples/src/Contoso.Customers.CodeGen
+      run: dotnet run refdata --no-build --configuration Release -f net10.0 --expect-no-changes
+
     - name: Database tool (samples/src/Contoso.Products.Database)
       working-directory: samples/src/Contoso.Products.Database
       run: dotnet run all --no-build --configuration Release -f net10.0 --expect-no-changes
@@ -126,6 +130,10 @@ jobs:
         until curl -sf http://localhost:8083/ready -o /dev/null; do
           echo "Waiting for the Cosmos emulator..."; sleep 5
         done
+
+    - name: Database tool (samples/src/Contoso.Customers.Database)
+      working-directory: samples/src/Contoso.Customers.Database
+      run: dotnet run all --no-build --configuration Release -f net10.0
 
     - name: Test samples
       run: dotnet test CoreEx.Samples.Test.slnf --no-build --configuration Release --logger trx --collect "XPlat Code Coverage" --results-directory coverage/samples -m:1 -p:TestTfmsInParallel=false -p:BuildInParallel=false
