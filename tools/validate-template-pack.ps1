@@ -294,6 +294,8 @@ $testScenarios = @(
                 "tools/App.Database"
                 "tools/App.CodeGen"
                 "src/App.Domain"
+                "tests/App.Test.Common/ServiceBus.cs"
+                "tests/App.Test.Common/GlobalUsing.cs"
             )
         }
         Build      = $true
