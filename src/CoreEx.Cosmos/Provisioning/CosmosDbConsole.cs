@@ -299,7 +299,7 @@ public sealed class CosmosDbConsole
         }
 
         lines.Add(line);
-        Console.Out.WriteLine($"  {item.PadRight(column - 2)}{lines[0]}");
+        Console.Out.WriteLine($"  {item,-(column - 2)}{lines[0]}");
         foreach (var l in lines.Skip(1))
         {
             Console.Out.WriteLine($"{new string(' ', column)}{l}");
