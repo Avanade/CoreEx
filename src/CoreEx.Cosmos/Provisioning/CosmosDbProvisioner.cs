@@ -48,6 +48,38 @@ public class CosmosDbProvisioner(CosmosClient client, CosmosDbProvisionArgs args
     }
 
     /// <summary>
+    /// Runs the <paramref name="command"/> (see <see cref="RunAsync(CosmosDbProvisionCommand, CancellationToken)"/>) capturing the output, and reports the outcome rather than throwing; the <b>Cosmos DB</b> equivalent of the <c>DbEx</c> <c>MigrateAndLogAsync</c>.
+    /// </summary>
+    /// <param name="command">The <see cref="CosmosDbProvisionCommand"/>.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+    /// <returns>The <c>Success</c> indicator and the captured <c>Output</c>; where unsuccessful the <c>Output</c> is appended with the failure message.</returns>
+    /// <remarks>The <see cref="CosmosDbProvisionArgs.Output"/> is replaced for the duration of the run (so the instance must not be run concurrently) and then restored, with the captured output also written to it. A <see cref="OperationCanceledException"/> is not
+    /// treated as a failure and is therefore thrown.</remarks>
+    public async Task<(bool Success, string Output)> RunAndLogAsync(CosmosDbProvisionCommand command, CancellationToken cancellationToken = default)
+    {
+        var original = _args.Output;
+        var captured = new StringWriter();
+        _args.Output = captured;
+
+        try
+        {
+            await RunAsync(command, cancellationToken).ConfigureAwait(false);
+            return (true, captured.ToString());
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            captured.WriteLine($"Failed: {ex.Message}");
+            return (false, captured.ToString());
+        }
+        finally
+        {
+            _args.Output = original;
+            original.Write(captured.ToString());
+            original.Flush();
+        }
+    }
+
+    /// <summary>
     /// Runs the <paramref name="action"/> as a titled, timed section followed by a rule.
     /// </summary>
     private async Task SectionAsync(string title, Func<Task> action)

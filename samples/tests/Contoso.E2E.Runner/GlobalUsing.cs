@@ -3,6 +3,8 @@ global using Contoso.E2E.Runner.Scenarios;
 global using Contoso.Products.Contracts;
 global using Contoso.Shopping.Contracts;
 global using CoreEx;
+global using CoreEx.Cosmos;
+global using CoreEx.Cosmos.Provisioning;
 global using CoreEx.Json;
 global using DbEx;
 global using DbEx.Migration;

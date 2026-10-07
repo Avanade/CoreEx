@@ -112,6 +112,34 @@ public class CosmosDbProvisionerTests : CosmosTestBase
     }
 
     [Test]
+    public async Task RunAndLogAsync_Success_ReturnsCapturedOutput_AndRestoresOutput()
+    {
+        var original = new StringWriter();
+        var args = CreateArgs(original);
+
+        var (success, output) = await CreateProvisioner(args).RunAndLogAsync(CosmosDbProvisionCommand.Create);
+
+        success.Should().BeTrue();
+        output.Should().Contain("DATABASE CREATE");
+        args.Output.Should().BeSameAs(original);
+        original.ToString().Should().Be(output);
+        (await Client.GetContainer(DatabaseId, ItemsId).ReadContainerAsync()).StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [Test]
+    public async Task RunAndLogAsync_Failure_ReturnsFalse_WithMessage_AndDoesNotThrow()
+    {
+        var args = CreateArgs();
+        var original = args.Output;
+
+        var (success, output) = await CreateProvisioner(args).RunAndLogAsync(CosmosDbProvisionCommand.ResetAndData);
+
+        success.Should().BeFalse();
+        output.Should().Contain("Failed:").And.Contain("does not exist");
+        args.Output.Should().BeSameAs(original);
+    }
+
+    [Test]
     public async Task Reset_EmptiesContainers()
     {
         var p = CreateProvisioner(CreateArgs());
