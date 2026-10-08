@@ -13,9 +13,9 @@ public sealed class DatabaseMigrationSetup : IScenario
         await context.StepAsync("Products database migration.", async () =>
         {
             var cs = context.TestContext.Config.GetValue<string>("E2E:Products:ConnectionString") ?? throw new InvalidOperationException("E2E:Products:ConnectionString configuration value is missing.");
-            var ma = new MigrationArgs(MigrationCommand.All | MigrationCommand.ResetAndData, cs);
+            var ma = new MigrationArgs(MigrationCommand.ResetAndDatabase, cs);
             Contoso.Products.Database.Program.ConfigureMigrationArgs(ma);
-            ma.DataParserArgs.AddNamed<Products.Test.Common.TestData>("mutate-data.seed.yaml");
+            ma.AddAssembly<Products.Test.Common.TestData>().DataParserArgs.AddNamed<Products.Test.Common.TestData>("mutate-data.seed.yaml");
 
             using var m = new PostgresMigration(ma);
             var (Success, Output) = await m.MigrateAndLogAsync().ConfigureAwait(false);
@@ -27,9 +27,9 @@ public sealed class DatabaseMigrationSetup : IScenario
         await context.StepAsync("Shopping database migration.", async () =>
         {
             var cs = context.TestContext.Config.GetValue<string>("E2E:Shopping:ConnectionString") ?? throw new InvalidOperationException("E2E:Shopping:ConnectionString configuration value is missing.");
-            var ma = new MigrationArgs(MigrationCommand.All | MigrationCommand.ResetAndData, cs);
+            var ma = new MigrationArgs(MigrationCommand.ResetAndDatabase, cs);
             Contoso.Shopping.Database.Program.ConfigureMigrationArgs(ma);
-            ma.DataParserArgs.AddNamed<Shopping.Test.Common.TestData>("mutate-data.seed.yaml");
+            ma.AddAssembly<Shopping.Test.Common.TestData>().DataParserArgs.AddNamed<Shopping.Test.Common.TestData>("mutate-data.seed.yaml");
 
             using var m = new SqlServerMigration(ma);
             var (Success, Output) = await m.MigrateAndLogAsync().ConfigureAwait(false);

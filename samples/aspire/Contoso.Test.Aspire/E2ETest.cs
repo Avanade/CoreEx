@@ -163,7 +163,7 @@ public class E2ETest : WithAspireTester<Projects.Contoso_Aspire>
         movements.Should().HaveCount(2);    // One of the items is not stocked, so only two movements should be created for the two items that were successfully reserved.
 
         var attempt = 0;
-        while (movements.Single(m => m.ProductId == product.Id).Status != MovementStatus.Confirmed)
+        while (movements.Single(m => m.ProductId == product.Id).StatusCode != MovementStatus.Confirmed)
         {
             Test.Delay(1000, $"Waiting for the Product's inventory movement to be confirmed (via the Products domain's outbox and Service Bus); iteration {attempt + 1}.");
             movements = Test.Http<Movement[]>(_productsApi)
