@@ -26,7 +26,8 @@
 | **[`HybridCacheEntryOptions`](./HybridCacheEntryOptions.cs)** | Per-entry options record specifying `CacheStrategy`, `LocalExpiration`, `DistributedExpiration`, and `Tags`; reads global defaults from `IConfiguration`. |
 | **[`MemoryOnlyHybridCache`](./MemoryOnlyHybridCache.cs)** | `IHybridCache` implementation backed by `IMemoryCache`; ignores the `Strategy` setting and always stores locally. |
 | **[`CacheStrategy`](./CacheStrategy.cs)** | Flags enum: `Local` (in-process), `Distributed`, or `Hybrid` (both). |
-| [`IHybridCache`](./IHybridCache.cs) | Core cache interface: `TryGetByKeyAsync`, `GetOrCreateByKeyAsync`, `GetOrDefaultByKeyAsync`, `SetByKeyAsync`, `RemoveByKeyAsync`, and tag-based `RemoveByTagAsync`. |
+| [`IHybridCache`](./IHybridCache.cs) | Core cache interface: `TryGetByKeyAsync`, `GetOrCreateByKeyAsync`, `GetOrCreateByKeyWithResultAsync` (default interface method; caches successful `Result<T>` only), `GetOrDefaultByKeyAsync`, `SetByKeyAsync`, `RemoveByKeyAsync`, and tag-based `RemoveByTagAsync`. |
+| [`Extensions.IHybridCache`](../Extensions.IHybridCache.cs) | Result-aware helpers: `GetOrCreateByKeyWithResultAsync<T>` is an `IHybridCache` member (default: non-atomic get-then-set; `FusionHybridCache` overrides it with FusionCache's single-flight so concurrent misses invoke the factory once per key per node, or once cluster-wide where a FusionCache distributed locker is configured). `GetOrCreateWithResultAsync<T>` is the `CompositeKey` extension. Both take a `Func<CancellationToken, Task<Result<T>>>` factory and cache **only on success** (failures pass through uncached). Ideal for one-line cached adapter lookups. |
 | [`ICacheKeyProvider`](./ICacheKeyProvider.cs) | Interface for producing fully-qualified string cache keys from raw keys or `IEntityKey` / `CompositeKey` pairs. |
 
 ## Related Namespaces

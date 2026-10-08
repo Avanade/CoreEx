@@ -125,7 +125,7 @@ The `[OneTimeSetUp]` pattern for all API test classes:
 1. **Migrate and seed** — `MigratePostgresDataAsync` / `MigrateSqlServerDataAsync` resets the domain schema to the contents of `Data/data.yaml` in `*.Test.Common`. A `DataResetFilterPredicate` scopes the reset to the domain's own schema so Products and Shopping test runs cannot affect each other.
 2. **Clear cache** — `ClearFusionCacheAsync()` flushes L1 (in-process) and L2 (Redis) so tests start from a known state.
 3. **Capture events** — `UseExpectedOutboxPublisher()` wraps the outbox publisher with a capture decorator; tests can then assert published events inline.
-4. **Mock inter-domain HTTP** (Shopping only) — `MockHttpClientFactory` intercepts `POST api/inventory/reserve` so the Shopping API can be tested without a running Products API.
+4. **Mock inter-domain HTTP** (Shopping only) — `MockHttpClientFactory` intercepts `POST api/inventory/reserve` (Products) and `GET api/customers/{id}` (Customers) so the Shopping API can be tested without running either API. Customer ids used in Shopping tests are the golden values from the Customers domain's `read-data.seed.yaml` (e.g. `^11` Alice with no address, `^16` Frank with an address).
 
 ```csharp
 // Contoso.Shopping.Test.Api — intra-domain real, inter-domain mocked

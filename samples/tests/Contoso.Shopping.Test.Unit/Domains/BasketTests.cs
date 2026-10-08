@@ -37,6 +37,19 @@ public class BasketTests : WithGenericTester<EntryPoint>
     });
 
     [Test]
+    public void Basket_CreateNew_WithShippingAddress() => Test.Scoped(test =>
+    {
+        var address = new Domain.ValueObjects.Address { Street1 = "1 Main St", City = "Sydney", PostCode = "2000", State = "NSW" };
+
+        var basket = Domain.Basket.CreateNew("customer-id", address);
+
+        basket.ShippingAddress.Should().Be(address);
+        basket.Status.Should().Be(BasketStatus.Empty);
+        basket.HasChanges.Should().BeTrue();
+        Domain.Basket.CreateNew("customer-id").ShippingAddress.Should().BeNull();
+    });
+
+    [Test]
     public void Basket_UpdateShippingAddress_Success() => Test.Scoped(test =>
     {
         // Arrange: Create a basket with no shipping address.

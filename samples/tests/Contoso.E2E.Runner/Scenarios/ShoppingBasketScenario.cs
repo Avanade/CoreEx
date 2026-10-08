@@ -31,10 +31,10 @@ public class ShoppingBasketScenario : IScenario
             _semaphore.Release();
         }
 
-        // Step 2: Create a new basket
+        // Step 2: Create a new basket (for the Customers domain's golden customer ^16 - Frank Foster, who has a shipping address that is defaulted).
         var basket = await context.StepAsync("Create new basket.", async () =>
         {
-            var response = await context.TestContext.ShoppingHttpClient.PostAsync($"/api/customers/test/baskets", null);
+            var response = await context.TestContext.ShoppingHttpClient.PostAsync($"/api/customers/{16.ToGuid()}/baskets", null);
             return await response.GetValueAsync<Basket>();
         }, b => $"Basket '{b!.Id}' created.");
 
@@ -101,7 +101,7 @@ public class ShoppingBasketScenario : IScenario
         basket = await context.StepAsync("Get checked-out basket.", async () =>
         {
             var response = await context.TestContext.ShoppingHttpClient.GetAsync($"/api/baskets/{basket!.Id}");
-            return await response.GetValueAsync<Basket>() ?? throw new NotFoundException();
+            return await response.GetValueAsync<Basket>();
         }, b => $"Basket retrieved.");
     }
 }

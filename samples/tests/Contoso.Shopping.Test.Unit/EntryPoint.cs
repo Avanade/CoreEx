@@ -7,10 +7,14 @@ public class EntryPoint
         // Configure the minimum services required for the execution context and reference data orchestrator; caching will be in-memory for the unit tests.
         builder.Services.AddExecutionContext();
         builder.Services.AddMemoryCache();
+        builder.Services.AddMemoryOnlyHybridCache();
         builder.Services.AddReferenceDataOrchestrator<ReferenceDataProviderDecorator>();
 
         // Configure the products http client.
         builder.AddTypedHttpClient<ProductsHttpClient>("ProductsApi");
+
+        // Configure the customers http client.
+        builder.AddTypedHttpClient<CustomersHttpClient>("CustomersApi");
 
         // Configure the SendGrid http client.
         builder.AddTypedHttpClient<SendGridHttpClient>("SendGrid");

@@ -54,6 +54,33 @@ public interface IHybridCache
     Task<T> GetOrCreateByKeyAsync<T>(string key, Func<CancellationToken, Task<T>> factory, HybridCacheEntryOptions? options = null, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Gets the cached value for the specified key using the <paramref name="factory"/> to create and set <i>only where successful</i>, where not found.
+    /// </summary>
+    /// <typeparam name="T">The cache value <see cref="Type"/>.</typeparam>
+    /// <param name="key">The cache key.</param>
+    /// <param name="factory">The function used to create the <see cref="Result{T}"/> (e.g. a remote call) where not cached.</param>
+    /// <param name="options">The optional <see cref="HybridCacheEntryOptions"/>.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+    /// <returns>The cached (or created) value as a successful <see cref="Result{T}"/>; otherwise, the failure from the <paramref name="factory"/> (which is never cached).</returns>
+    /// <remarks>Failures (e.g. a not-found) are returned as-is and never cached; no exception is thrown for them.
+    /// <para>The default implementation performs a get followed by a set, which is <b>not</b> atomic; i.e. concurrent cache misses may each invoke the <paramref name="factory"/> (no stampede protection).
+    /// Implementations that support it (e.g. <i>FusionCache</i>) override this to invoke the <paramref name="factory"/> at most once per key concurrently (per node by default).</para></remarks>
+    async Task<Result<T>> GetOrCreateByKeyWithResultAsync<T>(string key, Func<CancellationToken, Task<Result<T>>> factory, HybridCacheEntryOptions? options = null, CancellationToken cancellationToken = default)
+    {
+        factory.ThrowIfNull();
+
+        var (exists, value) = await TryGetByKeyAsync<T>(key, options, cancellationToken).ConfigureAwait(false);
+        if (exists)
+            return value!;
+
+        var result = await factory(cancellationToken).ConfigureAwait(false);
+        if (result.IsSuccess)
+            await SetByKeyAsync(key, result.Value, options, cancellationToken).ConfigureAwait(false);
+
+        return result;
+    }
+
+    /// <summary>
     /// Removes the cached value for the specified key.
     /// </summary>
     /// <param name="key">The cache key.</param>

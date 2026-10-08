@@ -10,11 +10,12 @@ Aspire is the required foundation for any activity that involves **cross-domain 
 
 ## What Aspire orchestrates
 
-The `Contoso.Aspire` AppHost (`samples/aspire/Contoso.Aspire/AppHost.cs`) registers all six production hosts, the Orders workflow worker, and a WireMock.Net stub host:
+The `Contoso.Aspire` AppHost (`samples/aspire/Contoso.Aspire/AppHost.cs`) registers all six Products/Shopping hosts, the Customers API, the Orders workflow worker, and a WireMock.Net stub host:
 
 | Resource name | Host project | Endpoints exposed |
 |---|---|---|
 | `mock-host` | `Contoso.Aspire.MockHost` | WireMock.Net stub server (see [MockHost](#mockhost-stubbing-external-dependencies) below) |
+| `customers-api` | `Contoso.Customers.Api` | HTTP + `/health/ready/detailed` (called by `shopping-api` and `shopping-subscribe`) |
 | `products-api` | `Contoso.Products.Api` | HTTP + `/health/ready/detailed` |
 | `products-relay` | `Contoso.Products.Relay` | HTTP + `/health/ready/detailed` + hosted-service controls |
 | `products-subscribe` | `Contoso.Products.Subscribe` | HTTP + `/health/ready/detailed` + hosted-service controls |
@@ -87,7 +88,7 @@ The hosted-service command buttons (Pause / Resume) are also surfaced here, maki
 
 `Contoso.Test.Aspire` (`samples/aspire/Contoso.Test.Aspire/E2ETest.cs`) is an NUnit project that provides an **automated, CI-friendly** counterpart to the interactive E2E Runner described below. Unlike the E2E Runner, it does not require Aspire to already be running — its single test class derives from `WithAspireTester<Projects.Contoso_Aspire>` (from `CoreEx.UnitTesting`'s Aspire support), which starts the whole `Contoso.Aspire` AppHost itself for the duration of the test run.
 
-Its `OnBeforeStartAsync` override migrates and seeds the Products (Postgres) and Shopping (SQL Server) databases, clears the Redis cache, and resets the Service Bus emulator's queues/topics/subscriptions to a known state (the topology is the code-based `ServiceBus` class), then `OnAfterStartAsync` waits for `products-api`/`shopping-api` to report healthy — all via `app.*` helpers (`MigratePostgresDataAsync`, `MigrateSqlServerDataAsync`, `ClearRedisCacheAsync`, `ResetAzureServiceBusAsync`, `WaitForResourceAsync`) resolved against the live AppHost's resources by name. The single `[Test]` (`CreateOrderAndConfirm`) then drives the same cross-domain flow as the E2E Runner's **Shopping Basket Lifecycle** scenario — create/activate a Product, adjust inventory, create a Basket, add items, apply a discount, checkout, then poll until the async inventory reservation is confirmed via the outbox/Service Bus/Subscribe path — asserting each step instead of just reporting success/failure interactively.
+Its `OnBeforeStartAsync` override migrates and seeds the Products (Postgres), Shopping (SQL Server) and Customers (Cosmos DB) databases, clears the Redis cache, and resets the Service Bus emulator's queues/topics/subscriptions to a known state (the topology is the code-based `ServiceBus` class), then `OnAfterStartAsync` waits for `products-api`/`shopping-api`/`customers-api` to report healthy — all via `app.*` helpers (`MigratePostgresDataAsync`, `MigrateSqlServerDataAsync`, `MigrateCosmosDataAsync`, `ClearRedisCacheAsync`, `ResetAzureServiceBusAsync`, `WaitForResourceAsync`) resolved against the live AppHost's resources by name. The single `[Test]` (`CreateOrderAndConfirm`) then drives the same cross-domain flow as the E2E Runner's **Shopping Basket Lifecycle** scenario — create/activate a Product, adjust inventory, create a Customer (with a shipping address), create a Basket for that Customer (validated in real time against `customers-api`, with the address defaulted), add items, apply a discount, checkout, then poll until the async inventory reservation is confirmed via the outbox/Service Bus/Subscribe path and the confirmation email addressed to the Customer's real email address reaches the stubbed SendGrid — asserting each step instead of just reporting success/failure interactively.
 
 Use `Contoso.Test.Aspire` when you want a single deterministic pass/fail signal (e.g. in CI, or as a quick local smoke test after a change) — `dotnet test samples/aspire/Contoso.Test.Aspire`. Use the E2E Runner (below) when you want to explore interactively, run load simulations, or watch traces build up live in the Aspire Dashboard against a long-running AppHost.
 

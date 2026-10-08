@@ -1,12 +1,15 @@
+global using Contoso.Shopping.Application.Adapters.Customers;
 global using Contoso.Shopping.Application.Adapters.Notifications;
 global using Contoso.Shopping.Application.Adapters.Products;
 global using Contoso.Shopping.Application.Repositories;
 global using Contoso.Shopping.Infrastructure.Adapters.Products;
+global using Contoso.Shopping.Infrastructure.Clients.Customers;
 global using Contoso.Shopping.Infrastructure.Clients.Products;
 global using Contoso.Shopping.Infrastructure.Clients.SendGrid;
 global using Contoso.Shopping.Infrastructure.Mapping;
 global using Contoso.Shopping.Infrastructure.Repositories;
 global using CoreEx;
+global using CoreEx.Caching;
 global using CoreEx.Data.Models;
 global using CoreEx.Database;
 global using CoreEx.Database.SqlServer;

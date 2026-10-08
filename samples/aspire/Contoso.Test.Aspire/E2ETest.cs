@@ -9,12 +9,14 @@ public class E2ETest : WithAspireTester<Projects.Contoso_Aspire>
 {
     private readonly string _productsApi = "products-api";
     private readonly string _shoppingApi = "shopping-api";
+    private readonly string _customersApi = "customers-api";
 
     protected override async Task OnBeforeStartAsync(DistributedApplication app)
     {
-        // Migrate the Products and Shopping relational databases and seed each with test data.
+        // Migrate the Products, Shopping and Customers databases and seed each with test data.
         await app.MigratePostgresDataAsync<Contoso.Products.Test.Common.TestData>("Postgres", ["mutate-data.seed.yaml"], Contoso.Products.Database.Program.ConfigureMigrationArgs);
         await app.MigrateSqlServerDataAsync<Contoso.Shopping.Test.Common.TestData>("SqlServer", ["mutate-data.seed.yaml"], Contoso.Shopping.Database.Program.ConfigureMigrationArgs);
+        await app.MigrateCosmosDataAsync<Contoso.Customers.Test.Common.TestData>("Cosmos", "contoso", ["mutate-data.seed.yaml"], Contoso.Customers.Database.Program.ConfigureProvisionArgs);
 
         // Clear the Redis cache.
         await app.ClearRedisCacheAsync("redis");
@@ -25,15 +27,15 @@ public class E2ETest : WithAspireTester<Projects.Contoso_Aspire>
 
     protected override async Task OnAfterStartAsync(DistributedApplication app)
     {
-        // Wait for the Products and Shopping APIs to be ready before running the tests.
-        await app.WaitForResourceAsync([_productsApi, _shoppingApi]);
+        // Wait for the Products, Shopping and Customers APIs to be ready before running the tests.
+        await app.WaitForResourceAsync([_productsApi, _shoppingApi, _customersApi]);
 
         // Mock the SendGrid API so that the Shopping domain's Subscribe project can send emails without actually sending them.
         await app.HttpMock("mock-host", "http").Request(HttpMethod.Post, "/v3/mail/send").WithAnyBody().Respond.WithAsync(HttpStatusCode.Accepted);
     }
 
     [Test]
-    public async Task CreateOrderAndConfirm()
+    public async Task CreateOrderAndConfirmAsync()
     {
         Test.Checkpoint("Create and activate a new Product; this should sync to the Shopping domain via the Products domain's outbox and Service Bus.");
 
@@ -60,12 +62,40 @@ public class E2ETest : WithAspireTester<Projects.Contoso_Aspire>
             })
             .AssertOK();
 
-        Test.Checkpoint("Create a new Basket for a Customer.");
+        Test.Checkpoint("Create a new Customer (with a shipping address) in the Customers domain.");
 
-        var basket = Test.Http<Basket>(_shoppingApi)
-            .Run(HttpMethod.Post, $"/api/customers/{1004.ToGuid()}/baskets", r => r.WithIdempotencyKey())
+        var customer = Test.Http<Contoso.Customers.Contracts.Customer>(_customersApi)
+            .Run(HttpMethod.Post, "/api/customers", new Contoso.Customers.Contracts.Customer
+            {
+                FirstName = "Gina",
+                LastName = "Garcia",
+                Email = "gina.garcia@example.com",
+                CustomerTypeCode = "IND",
+                ContactMethodCode = "EM",
+                ShippingAddress = new Contoso.Customers.Contracts.Address { Street1 = "42 Wallaby Way", City = "Sydney", State = "NSW", PostCode = "2000" }
+            }, r => r.WithIdempotencyKey())
             .AssertCreated()
             .Value!;
+
+        Test.Checkpoint("Create a new Basket for the Customer; the Customer is validated in real-time (via the Customers API) and the shipping address is defaulted from it.");
+
+        var basket = Test.Http<Basket>(_shoppingApi)
+            .Run(HttpMethod.Post, $"/api/customers/{customer.Id}/baskets", r => r.WithIdempotencyKey())
+            .AssertCreated()
+            .Value!;
+
+        basket.CustomerId.Should().Be(customer.Id);
+        basket.ShippingAddress.Should().NotBeNull();
+        basket.ShippingAddress.Street1.Should().Be("42 Wallaby Way");
+        basket.ShippingAddress.City.Should().Be("Sydney");
+        basket.ShippingAddress.State.Should().Be("NSW");
+        basket.ShippingAddress.PostCode.Should().Be("2000");
+
+        Test.Checkpoint("Creating a Basket for a Customer that does not exist should fail validation.");
+
+        Test.Http(_shoppingApi)
+            .Run(HttpMethod.Post, $"/api/customers/{Guid.NewGuid()}/baskets", r => r.WithIdempotencyKey())
+            .AssertBadRequest();
 
         Test.Checkpoint("Add two existing Products to the Basket.");
 
@@ -89,7 +119,7 @@ public class E2ETest : WithAspireTester<Projects.Contoso_Aspire>
         basket.Pricing.Should().NotBeNull();
         basket.Pricing.DiscountPercentage.Should().Be(10m);
 
-        Test.Checkpoint("Update the Basket's shipping address.");
+        Test.Checkpoint("Update the Basket's shipping address (overriding the address defaulted from the Customer).");
 
         var address = new Address
         {
@@ -103,6 +133,9 @@ public class E2ETest : WithAspireTester<Projects.Contoso_Aspire>
             .Run(HttpMethod.Put, $"/api/baskets/{basket.Id}/shipping-address", address)
             .AssertOK()
             .Value!;
+
+        basket.ShippingAddress.Should().NotBeNull();
+        basket.ShippingAddress.Street1.Should().Be("123 Main St");
 
         Test.Checkpoint("Add the new Product to the Basket; should have sync'd by now.");
 
@@ -147,7 +180,7 @@ public class E2ETest : WithAspireTester<Projects.Contoso_Aspire>
 
         Test.Checkpoint("Poll the stand-in SendGrid endpoint for a mail-send request addressed to the Customer's e-mail.");
 
-        var email = $"{basket.CustomerId}@customer.contoso.local";
+        var email = customer.Email!;
         var api = await Test.HttpMock("mock-host", "http").GetAdminApiAsync().ConfigureAwait(false);
         for (attempt = 1; !await SendReceivedAsync(api, email).ConfigureAwait(false); attempt++)
         {

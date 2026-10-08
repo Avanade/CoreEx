@@ -1,3 +1,4 @@
+using Contoso.Shopping.Infrastructure.Clients.Customers;
 using Contoso.Shopping.Infrastructure.Clients.Products;
 using Contoso.Shopping.Infrastructure.Clients.SendGrid;
 using Contoso.Shopping.Infrastructure.Repositories;
@@ -72,6 +73,7 @@ public class Program
 
         // Add external API services.
         builder.AddTypedHttpClient<ProductsHttpClient>("ProductsApi");
+        builder.AddTypedHttpClient<CustomersHttpClient>("CustomersApi");
         builder.AddTypedHttpClient<SendGridHttpClient>("SendGrid", client => client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", builder.Configuration["SendGrid:ApiKey"]));
         builder.Services.Configure<SendGridOptions>(builder.Configuration.GetSection("SendGrid"));
 

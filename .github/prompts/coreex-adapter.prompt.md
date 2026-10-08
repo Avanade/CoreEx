@@ -19,7 +19,8 @@ Reminder of key conventions:
 - Sub-folder per external system is **always required**: `Application/Adapters/{ExternalSystem}/`, `Infrastructure/Adapters/{ExternalSystem}/`, `Infrastructure/Clients/{ExternalSystem}/`
 - All methods return `Result` or `Result<T>` — never plain values at the adapter boundary
 - `[ScopedService<IXxxAdapter>]` on every implementation
-- `response.ToResultAsync(ct)` for all HTTP responses — never `EnsureSuccessStatusCode()`
+- `response.ToResultAsync(ct)` for all HTTP responses — never `EnsureSuccessStatusCode()`; `ToResultAsync<T>(ct)` for value-returning calls (non-null `T`; null/empty body fails — `ToResultOrDefaultAsync<T>` only if a missing body is valid)
+- Real-time read adapters cache successes only via `IHybridCache.GetOrCreateWithResultAsync<T>` (one line, short expiry); tests clear the cache per test and the unit host registers `AddMemoryOnlyHybridCache()`
 - `CancellationToken.None` in compensation paths (not the request `ct`)
 - HTTP client tests use `WithGenericTester<EntryPoint>` + `Test.ReplaceHttpClientFactory(mcf)` — resolve the client from DI via `ExecutionContext.GetRequiredService<T>()`, not `new T()` directly
 - `UnitTestEx.MockHttpClientFactory.Create()` (fully-qualified) to avoid the ambiguity with `UnitTestEx.Mocking.MockHttpClientFactory`; store the request mock as a field and call `.WithAnyBody()` per test before `.Respond`

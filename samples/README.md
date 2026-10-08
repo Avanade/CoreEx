@@ -4,7 +4,7 @@ The `samples` folder contains reference implementations of domain microservices 
 
 ![Sample architecture interactions](../images/SampleArchitectureInteractions.png "Architecture")
 
-Each of Products and Shopping is an independently deployable unit with an API host, an Outbox Relay host, and an Event Subscriber host, backed by an applicable data repository, and connected to other domains via synchronous HTTP and asynchronous messaging over Azure Service Bus. Customers is API-only for now — no Relay or Subscribe host — and is not wired into the inter-domain messaging shown below.
+Each of Products and Shopping is an independently deployable unit with an API host, an Outbox Relay host, and an Event Subscriber host, backed by an applicable data repository, and connected to other domains via synchronous HTTP and asynchronous messaging over Azure Service Bus. Customers is API-only for now — no Relay or Subscribe host — and is not wired into the inter-domain messaging shown below; Shopping consumes it only via synchronous HTTP (see flow ⑧).
 
 > **Documentation** — detailed guides for layers, patterns, tooling, and testing are in [`samples/docs`](docs/).
 >
@@ -40,12 +40,17 @@ graph TB
         PDB[("SQL Server\n[Products] schema\n─────────────\nProduct\nInventory\nMovement\nOutbox / OutboxLease\nRef data")]
     end
 
+    subgraph CUSTOMERS["Contoso.Customers Domain"]
+        direction TB
+        CAPI["Customers API\n─────────────────\nGET/POST/PUT/PATCH/DELETE /customers\nGET /refdata"]
+    end
+
     subgraph SHOPPING["Contoso.Shopping Domain"]
         direction TB
         SAPI["Shopping API\n─────────────────\nPOST /customers/{id}/baskets\nPOST /{id}/checkout\nPUT /{id}/apply-discount\nPOST/PUT/DELETE /{id}/items\nGET /baskets"]
         SAPP["Shopping Application\n─────────────────\nBasketService\nBasketReadService"]
         SDOMAIN["Shopping Domain\n─────────────────\nBasket (Aggregate Root)\nBasketItem (Entity)\nItemPricing (Value Object)"]
-        SINFRA["Shopping Infrastructure\n─────────────────\nBasketRepository\nShoppingOutboxPublisher\nProductAdapter (ACL)\nProductsHttpClient\nProductSyncAdapter"]
+        SINFRA["Shopping Infrastructure\n─────────────────\nBasketRepository\nShoppingOutboxPublisher\nProductAdapter (ACL)\nProductsHttpClient\nProductSyncAdapter\nCustomerAdapter (ACL)\nCustomersHttpClient"]
         SSUBSCRIBE["Shopping.Subscribe\n─────────────────\nProductModifySubscriber\nProductDeleteSubscriber"]
         SOUTBOX["Shopping.Relay\n─────────────────\nOutbox to Service Bus\nPartitioned relay"]
         SDB[("SQL Server\n[Shopping] schema\n─────────────\nBasket\nBasketItem\nProduct (replica)\nOutbox / OutboxLease\nRef data")]
@@ -64,6 +69,7 @@ graph TB
     SINFRA -->|"L1/L2 Hybrid Cache"| REDIS
 
     SINFRA -->|"① HTTP POST /api/inventory/reserve\nReserve inventory at checkout"| PAPI
+    SINFRA -->|"⑧ HTTP GET /api/customers/{id}\nValidate customer + default address"| CAPI
 
     POUTBOX -->|"② Publish product.created/updated/deleted"| ASB
     ASB -->|"③ Consume product events (replication)"| SSUBSCRIBE
@@ -88,6 +94,7 @@ graph TB
 | ① Inventory reservation | Shopping → Products | Synchronous HTTP — `ProductAdapter` calls `POST /api/inventory/reserve` at basket checkout. |
 | ② – ④ Product replication | Products → Shopping | Products Outbox → Relay → Service Bus → `Shopping.Subscribe` keeps a local product replica in sync. |
 | ⑤ – ⑦ Reservation commands | Shopping → Products | On checkout success the outbox enqueues `reservation.confirm`; on failure Shopping publishes `reservation.cancel` directly to Service Bus (the transaction has already rolled back). |
+| ⑧ Customer lookup | Shopping → Customers | Synchronous HTTP — `CustomerAdapter` calls `GET /api/customers/{id}` when a basket is created (the `customerId` is validated and the shipping address defaulted from the customer) and when the checkout confirmation email is addressed. Unlike Products there is no replication: this is the alternate, real-time adapter pattern (with successful lookups held briefly in the `IHybridCache`). |
 
 See [Patterns](docs/patterns.md) for the full catalog of architectural patterns demonstrated across the samples.
 

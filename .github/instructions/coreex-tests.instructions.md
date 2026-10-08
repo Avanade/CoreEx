@@ -122,6 +122,8 @@ public async Task OneTimeSetUpAsync()
 
 `DataResetFilterPredicate` in `DbMigration.ConfigureMigrationArgs` scopes the reset to the domain's own schema — multiple domains' test runs do not corrupt each other even when run concurrently.
 
+**Adapters that cache (`IHybridCache`) need a per-test cache clear.** The `[OneTimeSetUp]` clear is not enough when a test class exercises a cached adapter: API and Subscribe hosts share a real Redis, so a cached remote lookup survives between tests *and* between runs, and a later test whose HTTP mock expects to be invoked (or expects a not-found/different payload) silently gets the stale entry. Add `[SetUp] public Task SetUpAsync() => Test.ClearFusionCacheAsync();` to those classes. Unit-test hosts instead register `builder.Services.AddMemoryCache(); builder.Services.AddMemoryOnlyHybridCache();` in `EntryPoint` (the `IMemoryCache` is a singleton, so entries persist across scopes — use a distinct key per test).
+
 For the **API read/mutate test classes** (see [API Tests — Structure & Generation](#api-tests--structure--generation)), pass the class's specific dataset via the **named-file overload** so read and mutate classes load only their own data: `MigrateSqlServerDataAsync<TestData>(["read-data.seed.yaml"], …)` / `MigratePostgresDataAsync<TestData>(["mutate-data.seed.yaml"], …)`. The no-argument overload loads every `Data/*.seed.yaml`, which would mix the read and mutate datasets.
 
 ---

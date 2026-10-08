@@ -1,10 +1,13 @@
 global using AwesomeAssertions;
 global using Contoso.Shopping.Application;
+global using Contoso.Shopping.Application.Adapters.Customers;
 global using Contoso.Shopping.Application.Adapters.Products;
 global using Contoso.Shopping.Application.Policies;
 global using Contoso.Shopping.Application.Repositories;
 global using Contoso.Shopping.Application.Validators;
 global using Contoso.Shopping.Contracts;
+global using Contoso.Shopping.Infrastructure.Adapters.Customers;
+global using Contoso.Shopping.Infrastructure.Clients.Customers;
 global using Contoso.Shopping.Infrastructure.Clients.Products;
 global using Contoso.Shopping.Infrastructure.Clients.SendGrid;
 global using CoreEx;

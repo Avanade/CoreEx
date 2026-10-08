@@ -26,10 +26,13 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\src\CoreEx.UnitTesting\CoreEx.UnitTesting.csproj" />
     <ProjectReference Include="..\..\..\src\CoreEx\CoreEx.csproj" />
+    <ProjectReference Include="..\..\src\Contoso.Customers.Contracts\Contoso.Customers.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\Contoso.Customers.Database\Contoso.Customers.Database.csproj" />
     <ProjectReference Include="..\..\src\Contoso.Products.Contracts\Contoso.Products.Contracts.csproj" />
     <ProjectReference Include="..\..\src\Contoso.Products.Database\Contoso.Products.Database.csproj" />
     <ProjectReference Include="..\..\src\Contoso.Shopping.Contracts\Contoso.Shopping.Contracts.csproj" />
     <ProjectReference Include="..\..\src\Contoso.Shopping.Database\Contoso.Shopping.Database.csproj" />
+    <ProjectReference Include="..\..\tests\Contoso.Customers.Test.Common\Contoso.Customers.Test.Common.csproj" />
     <ProjectReference Include="..\..\tests\Contoso.Products.Test.Common\Contoso.Products.Test.Common.csproj" />
     <ProjectReference Include="..\..\tests\Contoso.Shopping.Test.Common\Contoso.Shopping.Test.Common.csproj" />
     <ProjectReference Include="..\Contoso.Aspire\Contoso.Aspire.csproj" />

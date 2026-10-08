@@ -1,23 +1,27 @@
 namespace Contoso.Shopping.Application;
 
 [ScopedService<IBasketService>]
-public class BasketService(IUnitOfWork unitOfWork, IBasketRepository repository, IProductAdapter productAdapter, ILogger<BasketService> logger) : IBasketService
+public class BasketService(IUnitOfWork unitOfWork, IBasketRepository repository, IProductAdapter productAdapter, ICustomerAdapter customerAdapter, ILogger<BasketService> logger) : IBasketService
 {
     private readonly IUnitOfWork _unitOfWork = unitOfWork.ThrowIfNull();
     private readonly IBasketRepository _repository = repository.ThrowIfNull();
     private readonly IProductAdapter _productAdapter = productAdapter.ThrowIfNull();
+    private readonly ICustomerAdapter _customerAdapter = customerAdapter.ThrowIfNull();
     private readonly ILogger _logger = logger.ThrowIfNull();
 
     /// <inheritdoc/>
-    public Task<Result<Basket>> CreateAsync(string customerId, CancellationToken ct = default)
+    public async Task<Result<Basket>> CreateAsync(string customerId, CancellationToken ct = default)
     {
-        // No validation for customerId is performed here, but could be added as required (e.g. check for valid format, or existence of the customer in the system).
+        // Ensure the customer exists; this is a real-time call to the Customers domain (via the adapter).
+        var cr = await new CustomerPolicy(_customerAdapter).EnsureExistsAsync(customerId.ThrowIfNullOrEmpty(), ct).ConfigureAwait(false);
+        if (cr.IsFailure)
+            return cr.AsResult();
 
-        // Create the aggregate representation.
-        var aggregate = Domain.Basket.CreateNew(customerId.ThrowIfNullOrEmpty());
+        // Default the shipping address from the customer where one exists (a null address maps to null); the basket address can subsequently be overridden.
+        var aggregate = Domain.Basket.CreateNew(customerId, AddressMapper.From.Map(cr.Value.ShippingAddress));
 
         // Orchestrate the creation of the basket within a transaction, ensuring that any events are only published if the transaction is successful.
-        return _unitOfWork.TransactionAsync(async tct =>
+        return await _unitOfWork.TransactionAsync(async tct =>
         {
             // Create the aggregate in the repository, which will return the created aggregate with any updates (e.g. Id).
             var br = await _repository.CreateAsync(aggregate, tct).ConfigureAwait(false);
@@ -31,7 +35,7 @@ public class BasketService(IUnitOfWork unitOfWork, IBasketRepository repository,
 
                 return contract;
             });
-        }, ct);
+        }, ct).ConfigureAwait(false);
     }
 
     /// <inheritdoc/>

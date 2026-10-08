@@ -6,6 +6,10 @@ namespace Contoso.Shopping.Test.Subscribe;
 public partial class SubscriberTests : WithApiTester<Contoso.Shopping.Subscribe.Program>
 {
     private MockHttpClientRequest _mockHttpSendMailRequest = null!;
+    private MockHttpClientRequest _mockHttpGetCustomerRequest = null!;
+
+    [SetUp]
+    public Task SetUpAsync() => Test.ClearFusionCacheAsync(); // Customers are cached by the adapter; ensure each test starts clean so the Customers mock is invoked as expected.
 
     [OneTimeSetUp]
     public async Task OneTimeSetUpAsync()
@@ -16,9 +20,10 @@ public partial class SubscriberTests : WithApiTester<Contoso.Shopping.Subscribe.
 
         Test.UseExpectedSqlServerOutboxPublisher();
 
-        // Mock the HTTP clients (SendGrid is exercised in tests; ProductsApi is registered so IProductAdapter can still be resolved by other tests in this suite).
+        // Mock the HTTP clients (SendGrid and CustomersApi are exercised in tests; ProductsApi is registered so IProductAdapter can still be resolved by other tests in this suite).
         var mcf = UnitTestEx.MockHttpClientFactory.Create();
         mcf.CreateClient("ProductsApi");
+        _mockHttpGetCustomerRequest = mcf.CreateClient("CustomersApi").Request(HttpMethod.Get, $"api/customers/{16.ToGuid()}");
         _mockHttpSendMailRequest = mcf.CreateClient("SendGrid").Request(HttpMethod.Post, "v3/mail/send");
         Test.ReplaceHttpClientFactory(mcf);
     }

@@ -23,6 +23,10 @@ var postgres = builder.AddConnectionString("Postgres").WithIconName("DatabaseMul
 var sqlServer = builder.AddConnectionString("SqlServer").WithIconName("DatabaseMultiple");
 var redis = builder.AddConnectionString("redis").WithIconName("Database");
 var serviceBus = builder.AddConnectionString("ServiceBus").WithIconName("MailMultiple");
+var cosmos = builder.AddConnectionString("Cosmos").WithIconName("DatabaseMultiple");
+
+// Customers domain.
+var customersApi = builder.AddProject<Projects.Contoso_Customers_Api>("customers-api").WithReference(cosmos).AddEndpoints("/health/ready/detailed");
 
 // Products domain.
 var productsApi = builder.AddProject<Projects.Contoso_Products_Api>("products-api").WithReference(postgres).WithReference(redis).AddEndpoints("/health/ready/detailed");
@@ -30,11 +34,20 @@ builder.AddProject<Projects.Contoso_Products_Relay>("products-relay").WithRefere
 builder.AddProject<Projects.Contoso_Products_Subscribe>("products-subscribe").WithReference(postgres).WithReference(redis).WithReference(serviceBus).AddEndpoints("/health/ready/detailed").AddHostedServiceSupport();
 
 // Shopping domain.
-// Note: shopping-api and shopping-subscribe call Products synchronously (see ProductsHttpClient). The appsettings default is the standalone
-// "https://localhost:7200"; here the logical "https+http://products-api" is injected instead, and WithReference populates the
-// "Services:products-api:*" configuration used by CoreEx's service-discovery-aware AddTypedHttpClient, so the resolved address
-// always matches whichever endpoint/port products-api actually binds to (regardless of launch profile), rather than a static guess.
-builder.AddProject<Projects.Contoso_Shopping_Api>("shopping-api").WithReference(sqlServer).WithReference(redis).WithReference(serviceBus).WithReference(productsApi).WithEnvironment("ProductsApi__BaseAddress", "https+http://products-api").AddEndpoints("/health/ready/detailed");
+// Note: shopping-api and shopping-subscribe call Products and Customers synchronously (see ProductsHttpClient and CustomersHttpClient). The appsettings default is the standalone
+// "https://localhost:7200" (Products) / "https://localhost:7320" (Customers); here the logical "https+http://products-api" / "https+http://customers-api" is injected instead, and WithReference populates the
+// "Services:products-api:*" / "Services:customers-api:*" configuration used by CoreEx's service-discovery-aware AddTypedHttpClient, so the resolved address
+// always matches whichever endpoint/port the target actually binds to (regardless of launch profile), rather than a static guess.
+builder.AddProject<Projects.Contoso_Shopping_Api>("shopping-api")
+    .WithReference(sqlServer)
+    .WithReference(redis)
+    .WithReference(serviceBus)
+    .WithReference(productsApi)
+    .WithEnvironment("ProductsApi__BaseAddress", "https+http://products-api")
+    .WithReference(customersApi)
+    .WithEnvironment("CustomersApi__BaseAddress", "https+http://customers-api")
+    .AddEndpoints("/health/ready/detailed");
+
 builder.AddProject<Projects.Contoso_Shopping_Relay>("shopping-relay").WithReference(sqlServer).WithReference(serviceBus).AddEndpoints("/health/ready/detailed").AddHostedServiceSupport();
 
 builder.AddProject<Projects.Contoso_Shopping_Subscribe>("shopping-subscribe")
@@ -43,6 +56,8 @@ builder.AddProject<Projects.Contoso_Shopping_Subscribe>("shopping-subscribe")
     .WithReference(serviceBus)
     .WithReference(productsApi)
     .WithEnvironment("ProductsApi__BaseAddress", "https+http://products-api")
+    .WithReference(customersApi)
+    .WithEnvironment("CustomersApi__BaseAddress", "https+http://customers-api")
     .AddEndpoints("/health/ready/detailed")
     .AddHostedServiceSupport()
     .WithMockHostEnvironment("SendGrid__BaseAddress", mockhost, "http");

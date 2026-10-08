@@ -96,6 +96,22 @@ public class ProductsHttpClient(HttpClient httpClient)
 }
 ```
 
+### Client method returning a value
+
+```csharp
+// Infrastructure/Clients/Customers/CustomersHttpClient.cs
+public async Task<Result<Customer>> GetAsync(string id, CancellationToken ct = default)
+{
+    var response = await _httpClient.GetAsync($"api/customers/{Uri.EscapeDataString(id)}", ct).ConfigureAwait(false);
+    if (response.StatusCode == HttpStatusCode.NotFound)
+        return Result.NotFoundError();
+
+    return await response.ToResultAsync<Customer>(ct).ConfigureAwait(false);
+}
+```
+
+`ToResultAsync<T>()` returns a non-null `T`: a successful response with a null/empty body (including 204) is an `HttpRequestException` failure, so no `?? throw` is needed. Use `ToResultOrDefaultAsync<T>()` (→ `Result<T?>`) only where an absent body is a valid outcome. Map 404 yourself when "not found" is an expected business outcome (surface it as `Result.NotFoundError()`; the Application-layer policy decides how to present it).
+
 ### Local request/response DTOs
 
 Keep HTTP-transport DTOs in the same `Clients/{ExternalDomain}/` sub-folder — they are infrastructure concerns, invisible to the Application layer.
@@ -188,6 +204,36 @@ public class ProductAdapter({Domain}EfDb ef, IEventPublisher eventPublisher, Pro
 }
 ```
 
+### Caching a real-time adapter
+
+A read-only real-time adapter (no local replica) should cache **successful** lookups so repeated calls in a request burst don't hammer the remote API. The pattern is one line, using the `IHybridCache` result-aware extension:
+
+```csharp
+// Infrastructure/Adapters/Customers/CustomerAdapter.cs
+[ScopedService<ICustomerAdapter>]
+public class CustomerAdapter(CustomersHttpClient client, IHybridCache cache) : ICustomerAdapter
+{
+    private readonly CustomersHttpClient _client = client.ThrowIfNull();
+    private readonly IHybridCache _cache = cache.ThrowIfNull();
+
+    // Short expiry; overridable through configuration: CoreEx:Caching:Customer:*.
+    private static readonly HybridCacheEntryOptions _cacheOptions = HybridCacheEntryOptions.CreateFor<Customer>(
+        localExpiration: TimeSpan.FromMinutes(1), distributedExpiration: TimeSpan.FromMinutes(5));
+
+    /// <inheritdoc/>
+    public Task<Result<Customer>> GetAsync(string id, CancellationToken ct = default)
+        => _cache.GetOrCreateWithResultAsync<Customer>(id, c => _client.GetAsync(id, c), _cacheOptions, ct);
+}
+```
+
+**Rules:**
+- `GetOrCreateWithResultAsync<T>` (and `GetOrCreateByKeyWithResultAsync` for a raw string key) caches **only** when the factory result `IsSuccess`; failures (e.g. not-found, 5xx) are returned as-is and never cached — there is deliberately no negative caching.
+- `T` must be `IEntityKey` for the entity-key overload (contracts with `IIdentifier<T>` are); otherwise use `GetOrCreateByKeyWithResultAsync` with your own key.
+- The factory runs at most once per key at a time with `FusionHybridCache` (single-flight / request coalescing, **per node** by default; to coalesce across nodes sharing Redis, opt in to a FusionCache distributed locker via `.WithDistributedLocker(...)` — usually not worth the cost for cheap idempotent reads, and it is an efficiency measure, not a correctness guarantee); other `IHybridCache` implementations (e.g. `MemoryOnlyHybridCache`) fall back to a non-atomic get-then-set, so concurrent misses may each call the factory. Keep factories idempotent.
+- Keep expiry short — the remote data is owned elsewhere and is not invalidated by an event. If staleness is unacceptable, use the replication (event-sync) pattern instead.
+- The cached type is serialized to the distributed cache — use the adapter's own contract (Application-layer DTO), not the transport DTO.
+- Add `global using CoreEx.Caching;` to the Infrastructure `GlobalUsing.cs`.
+
 ### Replication adapter (local upsert/delete only)
 
 ```csharp
@@ -256,6 +302,7 @@ The adapter is registered automatically via `[ScopedService<IXxxAdapter>]` — n
 | Adapter includes a typed HTTP client (`XxxHttpClient`) | Generate `*.Test.Unit/Clients/{ExternalDomain}/{External}HttpClientTests.cs` — cover success (2xx), server error (5xx), and business error (422/ProblemDetails) per endpoint |
 | Local-store-only replication adapter (no HTTP) | Skip — integration tests cover this via intra-domain service tests |
 | Adapter orchestration (EF + HTTP + events combined) | Skip — mock the HTTP client via `Test.ReplaceHttpClientFactory(mcf)` in `WithApiTester` integration tests instead |
+| Cached real-time adapter (`IHybridCache`) | Add `*.Test.Unit/Adapters/{ExternalDomain}/{External}AdapterTests.cs` — assert a success is cached (second call does not hit the mock) and a failure (not-found) is **not** cached; see "Testing a cached adapter" below |
 
 Unit-test every distinct status code that the consuming service acts on. Use `WithGenericTester<EntryPoint>` from UnitTestEx — the same `MockHttpClientFactory` pattern used in API integration tests, but backed by the lightweight unit-test host.
 
@@ -362,6 +409,12 @@ public class {External}HttpClientTests : WithGenericTester<EntryPoint>
 - `Test.Scoped(test => { ... })` (non-async) + `test.Run(async _ => { ... }).AssertSuccess()` — non-async outer lambda avoids CS1998; `AssertSuccess()` ensures exceptions inside `test.Run` fail the test rather than being swallowed
 - `ExecutionContext.GetRequiredService<{External}HttpClient>()` — resolves the client from DI; do not `new` it directly
 
+### Testing a cached adapter
+
+- **Unit host**: register an in-memory hybrid cache in the unit-test `EntryPoint` — `builder.Services.AddMemoryCache(); builder.Services.AddMemoryOnlyHybridCache();` (the `IMemoryCache` is a singleton, so cached entries persist across scopes within a test run — use a distinct key/id per test).
+- **Adapter unit tests**: construct the adapter from DI (`new {External}Adapter(client, ExecutionContext.GetRequiredService<IHybridCache>())`), mock the HTTP response, call `GetAsync` twice and assert the second call is served from cache (switch the mock to an error/404 between calls — still succeeds); and assert a 404 is **not** cached (switch the mock to 200 afterwards — now succeeds).
+- **API / Subscribe integration tests** share a real Redis, so cached entries survive between tests and between runs and will starve mocks that expect to be invoked. Add a per-test `[SetUp] => Test.ClearFusionCacheAsync()` (in addition to the `[OneTimeSetUp]` call) in any test class that exercises a cached adapter, and use `.Respond` replacement mid-test to prove caching where that is the behaviour under test.
+
 ---
 
 ## Guardrails
@@ -369,7 +422,8 @@ public class {External}HttpClientTests : WithGenericTester<EntryPoint>
 - **Sub-folder is always required** — never put adapter or client files directly in `Adapters/` or `Clients/` without a domain sub-folder
 - **Interface surface is domain-idiomatic** — method names and parameter types use your domain's language, not the remote API's
 - **No `HttpClient` in adapter methods** — the adapter delegates to the typed client; the typed client owns the HTTP concern
-- **`response.ToResultAsync()`** — always use this; never call `EnsureSuccessStatusCode()`; never swallow non-success responses silently
+- **`response.ToResultAsync()` / `ToResultAsync<T>()`** — always use these; never call `EnsureSuccessStatusCode()`; never swallow non-success responses silently. `ToResultAsync<T>()` guarantees a non-null `T` on success (null/empty body is a failure) — use `ToResultOrDefaultAsync<T>()` only for genuinely optional bodies
+- **Cache successes only** — a real-time read adapter caches via `IHybridCache.GetOrCreateWithResultAsync<T>`; never hand-roll try-get/set, never cache failures
 - **`CancellationToken.None` in compensation paths** — a cancelled request token must never abort a compensation operation (e.g., rolling back a reservation after a failed checkout)
 - **Two separate interface files** for synchronous vs replication roles — do not combine them into one interface
 - **Local DTOs stay in `Clients/{ExternalDomain}/`** — never expose them in the Application layer; map at the adapter boundary

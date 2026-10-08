@@ -465,6 +465,8 @@ public class ProductAdapter(ShoppingEfDb ef, ProductsHttpClient client, IEventPu
 
 Keep the typed HTTP client and the adapter orchestration in separate, independently testable classes.
 
+**Value-returning clients and real-time caching.** A client method that returns a body uses `response.ToResultAsync<T>(ct)` — it yields a non-null `T` on success and fails (`HttpRequestException`) on a null/empty body; use `ToResultOrDefaultAsync<T>(ct)` only for genuinely optional bodies. A real-time read adapter (no replica) should cache successful lookups in one line with `IHybridCache.GetOrCreateWithResultAsync<T>(key, ct => client.GetAsync(...), options, ct)` — failures are never cached, expiry should be short, and concurrent misses collapse to one factory call per key per node with `FusionHybridCache` (cross-node needs an opt-in FusionCache distributed locker). Tests sharing Redis must clear the cache per test. Full pattern: [`coreex-adapter` workflow](/.github/skills/coreex-adapter/references/workflow.md#caching-a-real-time-adapter).
+
 Cosmos-backed adapters inject the typed `*CosmosDb` accessor instead of `*EfDb` and read through its mapped containers (`_cosmos.Products.GetAsync(...)`, `_cosmos.Products.Container.Query(...)`, etc.), but keep the same adapter/interface split and typed HTTP client pattern.
 
 ## Generated Code
@@ -481,6 +483,7 @@ Always call `.ConfigureAwait(false)` on every `await` inside repository and adap
 - Do not use AutoMapper or reflection-based mappers — use `BiDirectionMapper<TFrom, TTo, TSelf>` with explicit `OnMap` overrides.
 - Do not call the mapper via an invented member name (`MapToEntity`, `MapToDto`, `.Default.Map(...)`) — the real call sites are `{Name}Mapper.To.Map(source)` (left→right) and `{Name}Mapper.From.Map(source)` (right→left); see [`coreex-conventions.instructions.md#when-unsure-of-a-coreex-api-member`](/.github/instructions/coreex-conventions.instructions.md#when-unsure-of-a-coreex-api-member) if unsure.
 - Do not call `HttpClient` directly in adapter methods — use the typed HTTP client class in `Clients/`.
+- Do not hand-roll try-get/set caching around a `Result<T>` call, or cache failures — use `IHybridCache.GetOrCreateWithResultAsync<T>` (successes only); do not add `?? throw` null handling after `ToResultAsync<T>()` (it already fails on a null/empty body).
 - Do not conflate Application-level mapping (aggregate ↔ contract) with Infrastructure-level mapping (contract ↔ persistence model).
 - Do not write raw `DbContext` queries for standard CRUD — use the `EfDb` delegate methods.
 - Do not edit `*.g.cs` persistence or DbContext files directly — regenerate via the `*.Database` tooling project.
