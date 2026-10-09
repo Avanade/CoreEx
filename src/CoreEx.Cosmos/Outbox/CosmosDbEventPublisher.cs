@@ -46,12 +46,13 @@ public class CosmosDbEventPublisher(ICosmosDb cosmosDb, IDestinationProvider? de
     // directly with a different [JsonPropertyName] to match a container whose real path is "/tenantId" would silently produce an outbox document with no value at that path, and TransactionalBatch
     // (which requires every enlisted operation to agree on the exact same partition key) would then fail with an undiagnosable BadRequest. Rather than let that happen silently, the first outbox publish
     // against a given container validates (and thereafter caches, since a container's partition-key path is immutable for its lifetime) that its actual path is "/partitionKey", failing fast with a clear,
-    // actionable exception otherwise. Keyed by (Database.Id, Container.Id) rather than the CosmosDb instance, since this reflects a physical, permanent fact about the container itself, safely shared
-    // process-wide regardless of how many CosmosDb/CosmosDbEventPublisher instances (e.g. one per request) ever touch it.
+    // actionable exception otherwise. Keyed by (AccountEndpoint, Database.Id, Container.Id) rather than the CosmosDb instance, since this reflects a physical, permanent fact about the container itself, safely shared
+    // process-wide regardless of how many CosmosDb/CosmosDbEventPublisher instances (e.g. one per request) ever touch it. The key includes the account endpoint because database and container
+    // identifiers are only unique within a Cosmos account.
     // The container's unique key policy (also immutable) is cached alongside, as the paths of each unique key, to support the one-off check that outbox events populate it (see ValidateUniqueKeys).
-    private static readonly ConcurrentDictionary<(string DatabaseId, string ContainerId), string[][]> _validatedOutboxContainers = new();
+    private static readonly ConcurrentDictionary<(string AccountEndpoint, string DatabaseId, string ContainerId), string[][]> _validatedOutboxContainers = new();
 
-    private static readonly ConcurrentDictionary<(string DatabaseId, string ContainerId), bool> _validatedUniqueKeys = new();
+    private static readonly ConcurrentDictionary<(string AccountEndpoint, string DatabaseId, string ContainerId), bool> _validatedUniqueKeys = new();
 
     /// <inheritdoc/>
     /// <exception cref="InvalidOperationException">Thrown where there is no active <see cref="CosmosDbUnitOfWork"/> <see cref="IUnitOfWork.TransactionAsync(Func{CancellationToken, Task}, CancellationToken)"/>
@@ -68,7 +69,8 @@ public class CosmosDbEventPublisher(ICosmosDb cosmosDb, IDestinationProvider? de
             throw new InvalidOperationException($"{nameof(CosmosDbEventPublisher)} requires at least one business mutation to already be enlisted in the current unit-of-work; an outbox event document has no container/partition key to bind to otherwise.");
 
         var container = txn.BoundContainer!;
-        var uniqueKeys = await EnsureOutboxPartitionKeyPathAsync(container, cancellationToken).ConfigureAwait(false);
+        var accountEndpoint = CosmosDb.Client.Endpoint.AbsoluteUri;
+        var uniqueKeys = await EnsureOutboxPartitionKeyPathAsync(container, accountEndpoint, cancellationToken).ConfigureAwait(false);
 
         CosmosDb.Options.TryGetContainerOptions(container.Id, out var containerOptions);
 
@@ -90,7 +92,7 @@ public class CosmosDbEventPublisher(ICosmosDb cosmosDb, IDestinationProvider? de
 
             var serializerOptions = CosmosDb.Client.ClientOptions.UseSystemTextJsonSerializerWithOptions;
             containerOptions?.ApplyOutboxEventUpdater(outboxEvent, serializerOptions);
-            ValidateUniqueKeys(container, uniqueKeys, outboxEvent, serializerOptions);
+            ValidateUniqueKeys(container, accountEndpoint, uniqueKeys, outboxEvent, serializerOptions);
 
             txn.Enlist(container, partitionKey, partitionKeyValue, CompositeKey.Create(outboxEvent.Id), b => b.CreateItem(outboxEvent));
         }
@@ -100,9 +102,9 @@ public class CosmosDbEventPublisher(ICosmosDb cosmosDb, IDestinationProvider? de
     /// Validates (once per container, then caches the result for the remaining process lifetime) that <paramref name="container"/>'s actual, physical partition-key path is <c>/partitionKey</c> -
     /// see the remarks on <see cref="_validatedOutboxContainers"/>/<see cref="OnPublishAsync(DestinationEvent[], CancellationToken)"/> for why this matters and why caching is safe.
     /// </summary>
-    private static async Task<string[][]> EnsureOutboxPartitionKeyPathAsync(Container container, CancellationToken cancellationToken)
+    private static async Task<string[][]> EnsureOutboxPartitionKeyPathAsync(Container container, string accountEndpoint, CancellationToken cancellationToken)
     {
-        var key = (container.Database.Id, container.Id);
+        var key = (accountEndpoint, container.Database.Id, container.Id);
         if (_validatedOutboxContainers.TryGetValue(key, out var cached))
             return cached;
 
@@ -128,12 +130,12 @@ public class CosmosDbEventPublisher(ICosmosDb cosmosDb, IDestinationProvider? de
     /// outbox event populating none of them would share the <c>(null, ...)</c> tuple with every other outbox event, and the second would fail the whole <c>TransactionalBatch</c> with a 409 that surfaces
     /// as a (misleading) <see cref="DuplicateException"/> on the business mutation. Failing fast here is far easier to diagnose. See <see cref="CosmosDbContainerOptions.WithReferenceDataOutboxEvent"/>.
     /// </summary>
-    private static void ValidateUniqueKeys(Container container, string[][] uniqueKeys, CosmosDbOutboxEvent outboxEvent, JsonSerializerOptions? serializerOptions)
+    private static void ValidateUniqueKeys(Container container, string accountEndpoint, string[][] uniqueKeys, CosmosDbOutboxEvent outboxEvent, JsonSerializerOptions? serializerOptions)
     {
         if (uniqueKeys.Length == 0)
             return;
 
-        var key = (container.Database.Id, container.Id);
+        var key = (accountEndpoint, container.Database.Id, container.Id);
         if (_validatedUniqueKeys.ContainsKey(key))
             return;
 

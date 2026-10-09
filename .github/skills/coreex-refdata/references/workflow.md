@@ -286,7 +286,7 @@ Key `entities:` options:
 | `properties[].type` | — | CLR type; prefix `^` for navigation accessor |
 | `properties[].excludeContract` | `false` | Persistence model only |
 | `mutability` | `None` | `None` (read-only), `CreateUpdate` or `CreateUpdateDelete` — opts the type in to generated write endpoints; see [Mutable types](#mutable-types-optional) |
-| `mutableAttribute` | — | Attribute(s) applied to the generated `{Name}Controller` (e.g. `'[Authorize]'`) — `attribute` does **not** cover write endpoints |
+| `mutableAttribute` | `[Authorize]` | Replaces the default attribute on the generated `{Name}Controller`; set a policy/role or `[AllowAnonymous]` only when intended — `attribute` does **not** cover write endpoints |
 
 ### Run CodeGen
 
@@ -313,7 +313,7 @@ On success, CodeGen emits `.g.cs` files across all layers:
 Types are **read-only by default**. Only set `mutability` when the user explicitly wants the type to be maintained through the API; ask if unclear.
 
 - **EF or Cosmos only** — requires `repository: EntityFramework` or `Cosmos`; CodeGen fails fast otherwise. For Cosmos the ref-data container must be dedicated, have a `/typeDiscriminator` + `/code` unique key, and be registered with `new CosmosDbOptions().Container("<id>", c => c.WithReferenceDataOutboxEvent())` (duplicate codes surface as a 409). The persistence model needs columns for any optional property clients set (`Description`, `StartsOn`, `EndsOn`) or the request is rejected with a 400 (`not-supported`).
-- Generates `POST`, `PUT {id}`, `PATCH {id}`, `POST {id}/activate`, `POST {id}/deactivate` and — for `CreateUpdateDelete` — `DELETE {id}` under `/api/refdata/{route}`. Create always yields an inactive item; `code` is immutable; an active item cannot be deleted. Offer `mutableAttribute: '[Authorize]'` (or the project's policy) — write endpoints are otherwise open.
+- Generates `POST`, `PUT {id}`, `PATCH {id}`, `POST {id}/activate`, `POST {id}/deactivate` and — for `CreateUpdateDelete` — `DELETE {id}` under `/api/refdata/{route}`. Create always yields an inactive item; `code` is immutable; an active item cannot be deleted. Mutable controllers default to `[Authorize]`; recommend a project-specific policy/role through `mutableAttribute` where available. Use `[AllowAnonymous]` only when the API is deliberately public (as in the Products and Customers sample configurations).
 - **No usage/cascade check.** Delete and deactivate do not verify the value is unreferenced, and other tables usually store the code — removing or deactivating an in-use value silently invalidates that data. **Always warn the user**, and offer to add a veto-only check via the `PreCheckAsync` hook (a lightweight allow/deny guard — never side effects or cascades; if the user needs more, e.g. atomic reassignment of dependents, hand-write that repository/service logic instead of using the generated mutation) in a hand-written `partial class ReferenceDataService` (`partial void OnInitialization()`; runs for activate/deactivate/delete only, before the transaction, one delegate for all mutable types). Never edit the `.g.cs`.
 - Add API tests (`coreex-test-api`) for the write endpoints, including the `PreCheckAsync` veto.
 - Detail: `src/CoreEx.CodeGen/README.md` → "Readonly vs Mutation" (CoreEx repo).

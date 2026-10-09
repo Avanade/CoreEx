@@ -35,7 +35,7 @@ Property | Description
 -|-
 **`route`** | The route suffix.<br/>&dagger; Defaults to `{Plural}` and root `{RouteConvention}` configuration.
 `attribute` | The optional API controller operation attribute.<br/>&dagger; This is the attribute applied as-is to the generated `ReferenceDataController` operation. This is useful for adding the likes of `[Authorize]`.
-`mutableAttribute` | The optional mutable API controller class attribute.<br/>&dagger; This is the attribute applied as-is to the generated `{Name}Controller` class. This is useful for adding the likes of `[Authorize]`.
+`mutableAttribute` | The mutable API controller class attribute; defaults to `[Authorize]`.<br/>&dagger; A configured value replaces the default and is applied as-is to the generated `{Name}Controller` class. Use a policy/role or `[AllowAnonymous]` only when intentionally public.
 
 ## Repository
 Provides the configuration for the generated repository code.
@@ -77,4 +77,3 @@ Provides the collections configuration.
 Property | Description
 -|-
 `properties` | The corresponding [`Property`](Property.md) collection.
-

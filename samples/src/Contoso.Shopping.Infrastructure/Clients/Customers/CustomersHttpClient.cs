@@ -9,7 +9,7 @@ public class CustomersHttpClient(HttpClient httpClient)
     private readonly HttpClient _httpClient = httpClient.ThrowIfNull();
 
     /// <summary>
-    /// Gets the customer; results in a <see cref="NotFoundException"/> where the customer does not exist.
+    /// Gets the customer, or returns a not-found result when the customer does not exist.
     /// </summary>
     /// <param name="id">The customer identifier.</param>
     public async Task<Result<Customer>> GetAsync(string id, CancellationToken ct = default)

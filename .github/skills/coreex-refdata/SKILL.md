@@ -53,7 +53,7 @@ Guides you through the complete end-to-end workflow for adding or modifying a re
 | Add/update entity definition | `*.CodeGen` | Edit `ref-data.yaml` → `entities:` |
 | Generate all ref-data artefacts | `*.CodeGen` | `dotnet run` |
 
-> **Mutability is opt-in and has no referential-integrity protection.** `mutability` (EF or Cosmos) generates write endpoints; delete/deactivate never check whether the code is still referenced elsewhere. Warn the user and point them at the `PreCheckAsync` hook — see "Mutable types" in `references/workflow.md`.
+> **Mutability is opt-in and secured by default, but has no referential-integrity protection.** Mutable endpoints require authorization by default (`[Authorize]`); use `mutableAttribute` to apply a specific policy/role or `[AllowAnonymous]` only when intentionally public. Delete/deactivate never check whether the code is still referenced elsewhere. Warn the user and point them at the `PreCheckAsync` hook — see "Mutable types" in `references/workflow.md`.
 
 ## The Two YAML Files — Never Confuse Them
 

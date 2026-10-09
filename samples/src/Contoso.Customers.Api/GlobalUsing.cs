@@ -14,6 +14,7 @@ global using CoreEx.Http;
 global using CoreEx.Json;
 global using CoreEx.RefData;
 global using CoreEx.Validation;
+global using Microsoft.AspNetCore.Authorization;
 global using Microsoft.AspNetCore.Mvc;
 global using Microsoft.Azure.Cosmos;
 global using NSwag.Annotations;

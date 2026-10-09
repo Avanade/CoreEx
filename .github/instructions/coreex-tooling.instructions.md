@@ -126,7 +126,8 @@ Entities are **read-only by default**. Set `mutability` on an entity to also gen
 entities:
 - name: Brand
   mutability: CreateUpdateDelete   # None (default) | CreateUpdate | CreateUpdateDelete
-  mutableAttribute: '[Authorize]'  # optional; guard the write endpoints
+  # Mutable controllers default to [Authorize]; override only when intentionally public or to add a policy.
+  mutableAttribute: '[Authorize(Policy = "ReferenceDataAdmin")]'
 ```
 
 - **EF or Cosmos only.** A mutable entity requires `repository: EntityFramework` or `Cosmos` — CodeGen fails fast otherwise. Cosmos duplicate-code detection relies on a `/typeDiscriminator` + `/code` unique key on the ref-data container; register the container with `new CosmosDbOptions().Container("<id>", c => c.WithReferenceDataOutboxEvent())` so the co-located outbox events (which carry neither path) get a unique `code` and do not collide.
@@ -146,7 +147,7 @@ Key `entities:` options:
 | `idType` | No | `string` | Identifier type override (e.g. `Guid`, `int`) |
 | `mutability` | No | `None` | `None` (read-only), `CreateUpdate` or `CreateUpdateDelete` — see [Readonly vs Mutation](#readonly-vs-mutation) |
 | `validator` | No | `ReferenceDataValidator<{Name}>` | Validator type used by the write service (mutable only) |
-| `mutableAttribute` | No | -- | Attribute(s) applied as-is to the generated `{Name}Controller` (e.g. `'[Authorize]'`) |
+| `mutableAttribute` | No | `[Authorize]` | Replaces the default attribute applied to the generated `{Name}Controller`; use a policy/role or `[AllowAnonymous]` when intentionally public |
 | `attribute` | No | -- | Attribute(s) applied to the read-only `ReferenceDataController` only — **not** the write endpoints |
 | `properties[].name` | Yes (if any) | -- | Additional stored property name |
 | `properties[].type` | Yes (if any) | -- | CLR type; prefix `^` for a ref-data navigation accessor |

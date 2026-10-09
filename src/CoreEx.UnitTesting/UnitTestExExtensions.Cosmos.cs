@@ -5,6 +5,7 @@ namespace UnitTestEx;
 public static partial class UnitTestExExtensions
 {
     private static readonly ConcurrentDictionary<string, byte> _cosmosDatabases = new();
+    private static readonly ConcurrentDictionary<string, SemaphoreSlim> _cosmosDatabaseLocks = new();
 
     /// <summary>
     /// Replaces the registered <see cref="IEventPublisher"/> with a decorator (<see cref="EventPublisherDecorator"/>) that also captures the published events for expectation assertions.
@@ -93,9 +94,18 @@ public static partial class UnitTestExExtensions
         var databaseId = cosmosDb.Database.Id;
 
         var key = $"{client.Endpoint}|{databaseId}";
-        var first = !_cosmosDatabases.ContainsKey(key);
-        await ProvisionCosmosAsync<TAssembly>(client, databaseId, resourceFileNames, configure, first ? CosmosDbProvisionCommand.Create | CosmosDbProvisionCommand.ResetAndData : CosmosDbProvisionCommand.ResetAndData, cancellationToken).ConfigureAwait(false);
-        _cosmosDatabases.TryAdd(key, 0);
+        var semaphore = _cosmosDatabaseLocks.GetOrAdd(key, static _ => new SemaphoreSlim(1, 1));
+        await semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            var first = !_cosmosDatabases.ContainsKey(key);
+            await ProvisionCosmosAsync<TAssembly>(client, databaseId, resourceFileNames, configure, first ? CosmosDbProvisionCommand.Create | CosmosDbProvisionCommand.ResetAndData : CosmosDbProvisionCommand.ResetAndData, cancellationToken).ConfigureAwait(false);
+            _cosmosDatabases.TryAdd(key, 0);
+        }
+        finally
+        {
+            semaphore.Release();
+        }
     }
 
     /// <summary>

@@ -55,7 +55,7 @@ entities:
 - name: Brand
   mutability: CreateUpdateDelete     # None (default) | CreateUpdate | CreateUpdateDelete
   validator: BrandValidator          # Optional; default ReferenceDataValidator<Brand>; needs a default constructor.
-  mutableAttribute: '[Authorize]'    # Optional; applied as-is to the generated BrandController class.
+  mutableAttribute: '[Authorize(Policy = "ReferenceDataAdmin")]' # Replaces the default [Authorize].
 - name: Category                     # Read-only.
 ```
 
@@ -70,6 +70,7 @@ entities:
 - Service and service interface are generated **only when at least one entity is mutable**.
 - A mutable entity **requires `repository: EntityFramework` or `Cosmos`** — codegen throws otherwise (`None` is read-only only). `Cosmos` uses `CosmosDbReferenceData` (duplicate codes rely on a `/typeDiscriminator` + `/code` unique key on the container, which must also be registered with `CosmosDbContainerOptions.WithReferenceDataOutboxEvent()` so the co-located outbox events — which carry neither path — do not collide with each other) and the generated service re-gets the item after the transaction so the returned `ETag` is final.
 - `code` is immutable after create; create always yields an inactive item; activate/deactivate are no-ops (no event) if already in that state.
+- Mutable controllers default to `[Authorize]`. Set `mutableAttribute` to a project-specific authorization policy/role, or to `[AllowAnonymous]` only when the write API is intentionally public; this replaces the default attribute. Ensure the API project's `GlobalUsing.cs` imports `Microsoft.AspNetCore.Authorization`.
 - `attribute` (root/entity) decorates only the read-only `ReferenceDataController`; use `mutableAttribute` for the write endpoints.
 - The host needs `IUnitOfWork` registered; the generated service wraps each write and its outbox event in one transaction.
 - **No usage/cascade check on delete or deactivate.** Other tables usually store the code (e.g. Product.BrandCode), so deleting or deactivating a value still in use leaves that data silently invalid. This is the consumer's responsibility — use the PreCheckAsync hook on the generated ReferenceDataService to veto the operation.

@@ -237,8 +237,8 @@
         },
         "mutableAttribute": {
           "type": "string",
-          "title": "The optional mutable API controller class attribute.",
-          "description": "This is the attribute applied as-is to the generated \u0060{Name}Controller\u0060 class. This is useful for adding the likes of \u0060[Authorize]\u0060."
+          "title": "The mutable API controller class attribute.",
+          "description": "Defaults to \u0060[Authorize]\u0060. A configured value replaces the default attribute applied as-is to the generated \u0060{Name}Controller\u0060 class; use a policy/role or \u0060[AllowAnonymous]\u0060 only when intentionally public."
         },
         "excludeApi": {
           "type": "boolean",

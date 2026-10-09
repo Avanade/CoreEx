@@ -4,4 +4,5 @@ repository: Cosmos
 entities:
 - name: CustomerType
   mutability: CreateUpdateDelete
+  mutableAttribute: '[AllowAnonymous]' # This sample API has no authentication; production APIs should retain the default [Authorize].
 - name: ContactMethod

@@ -12,6 +12,7 @@ namespace Contoso.Products.Api.Controllers;
 
 /// <summary>Represents the <see cref="Brand"/> reference-data controller.</summary>
 [ApiController, Route("/api/refdata/brands")]
+[AllowAnonymous]
 public partial class BrandController(CoreEx.AspNetCore.Mvc.WebApi webApi, IReferenceDataService service) : ControllerBase
 {
     private readonly CoreEx.AspNetCore.Mvc.WebApi _webApi = webApi.ThrowIfNull();

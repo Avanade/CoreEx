@@ -19,6 +19,7 @@ global using CoreEx.Json;
 global using CoreEx.RefData;
 // #endif
 global using CoreEx.Validation;
+global using Microsoft.AspNetCore.Authorization;
 global using Microsoft.AspNetCore.Mvc;
 // #if implement-cosmos
 global using Microsoft.Azure.Cosmos;

@@ -12,6 +12,7 @@ namespace Contoso.Customers.Api.Controllers;
 
 /// <summary>Represents the <see cref="CustomerType"/> reference-data controller.</summary>
 [ApiController, Route("/api/refdata/customer-types")]
+[AllowAnonymous]
 public partial class CustomerTypeController(CoreEx.AspNetCore.Mvc.WebApi webApi, IReferenceDataService service) : ControllerBase
 {
     private readonly CoreEx.AspNetCore.Mvc.WebApi _webApi = webApi.ThrowIfNull();

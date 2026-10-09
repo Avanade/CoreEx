@@ -114,7 +114,7 @@ public static partial class Extensions
             return result.Error;
 
         return result.Value is null
-            ? Result.Fail(new HttpRequestException($"{CreateMessage(response)} The response content was empty or null; a value of type '{typeof(T).Name}' was expected.", null, response.StatusCode))
+            ? Result.Fail(new HttpRequestException($"The response content was empty or null; a value of type '{typeof(T).Name}' was expected.", null, response.StatusCode))
             : result.Value;
     }
 

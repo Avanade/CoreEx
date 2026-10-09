@@ -90,7 +90,7 @@ Reference data is **read-only by default**: entities are loaded through the `Ref
 |---|---|---|---|
 | `mutability` | Entity | `None` | `None` (read-only), `CreateUpdate` (create, update, activate, deactivate) or `CreateUpdateDelete` (adds delete). |
 | `validator` | Entity | `ReferenceDataValidator<{Name}>` | Validator type used on create/update. Must have a default constructor. The default enforces `code` (mandatory, max 50), `text` (mandatory, max 250), `description` (max 1000) and `endsOn >= startsOn`. |
-| `mutableAttribute` | Entity | _none_ | Attribute applied as-is to the generated `{Name}Controller` class, e.g. `'[Authorize(Roles = "Admin")]'`. |
+| `mutableAttribute` | Entity | `[Authorize]` | Replaces the default attribute on the generated `{Name}Controller`; use a policy/role (e.g. `'[Authorize(Roles = "Admin")]'`) or `[AllowAnonymous]` only when intentionally public. |
 | `attribute` | Root / Entity | _none_ | Attribute applied to the read-only `ReferenceDataController` (root) or that entity's read operation (entity). Does **not** apply to mutable endpoints. |
 | `getNamed` | Root | `false` | Emits the read-only `GetNamedAsync` endpoint. Applies to read-only and mutable entities alike. |
 | `repository` | Root / Entity | root value | **Must be `EntityFramework` or `Cosmos` for a mutable entity** — generation fails fast otherwise. `None` is read-only only. `Cosmos` uses `CosmosDbReferenceData`; duplicate codes are rejected by a `/typeDiscriminator` + `/code` unique key on the container, which must also use `CosmosDbContainerOptions.WithReferenceDataOutboxEvent()` so co-located outbox events do not collide. |
@@ -101,9 +101,11 @@ repository: EntityFramework
 entities:
 - name: Brand
   mutability: CreateUpdateDelete
-  mutableAttribute: '[Authorize(Roles = "Admin")]'
+  mutableAttribute: '[Authorize(Roles = "Admin")]' # Replaces the default [Authorize].
 - name: Category                    # Read-only (default).
 ```
+
+Mutable controllers require authorization by default. Set `mutableAttribute` to a project-specific policy or role as needed; the value replaces `[Authorize]`. For intentionally public sample/dev APIs, set it to `'[AllowAnonymous]'` (as in the Products and Customers sample `ref-data.yaml` files). The API project's `GlobalUsing.cs` must include `Microsoft.AspNetCore.Authorization` when using these attributes; the CoreEx API template includes it.
 
 ### Outputs by mode
 
@@ -179,7 +181,7 @@ How the hook behaves:
 
 - The host must register `IUnitOfWork` (and the outbox, where events are required) — the generated service takes `IUnitOfWork` and `IReferenceDataRepository`.
 - The generated reverse mapper writes `Code`, `Text`, `Description`, `SortOrder`, `IsActive`, `StartsOn`, `EndsOn`, `ETag` and any extra properties. If the table has no `Description`/`StartsOn`/`EndsOn` columns (the DbEx generated `DbContext` then `Ignore`s them, as for the sample `Brand`), create/update **rejects** any non-null value for them with a 400 (`not-supported`, e.g. "Starts on is not currently supported and as such cannot be set.") — add the columns if you need them.
-- Per-entity authorization is **not** generated beyond `mutableAttribute`; apply a policy there or in a hand-written partial.
+- Authorization is required by default on mutable controllers via `[Authorize]`. Per-entity policies/roles are not inferred; configure them through `mutableAttribute` or a hand-written partial. Do not override with `[AllowAnonymous]` unless anonymous writes are an explicit requirement.
 - Never edit the `.g.cs` outputs — change `ref-data.yaml` or the templates and regenerate.
 
 ## Key types

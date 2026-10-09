@@ -62,6 +62,8 @@ public class HttpResponseMessageExtensionsTests
         var r = await Empty(HttpStatusCode.NoContent).ToResultAsync<Widget>();
         r.IsFailure.Should().BeTrue();
         r.Error.Should().BeOfType<HttpRequestException>();
+        r.Error.Message.Should().Contain("The response content was empty or null");
+        r.Error.Message.Should().NotContain("Response status code does not indicate success");
     }
 
     [Test]

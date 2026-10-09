@@ -136,7 +136,7 @@ public class EntityConfig : ConfigBase<CodeGenConfig, CodeGenConfig>
     /// Gets or sets the optional attribute.
     /// </summary>
     [JsonPropertyName("mutableAttribute")]
-    [CodeGenProperty("API", Title = "The optional mutable API controller class attribute.", Description = "This is the attribute applied as-is to the generated `{Name}Controller` class. This is useful for adding the likes of `[Authorize]`.")]
+    [CodeGenProperty("Mutable", Title = "The mutable API controller class attribute.", Description = "Defaults to `[Authorize]`. A configured value replaces the default attribute applied as-is to the generated `{Name}Controller` class.")]
     public string? MutableAttribute { get; set; }
 
     #endregion
@@ -229,6 +229,7 @@ public class EntityConfig : ConfigBase<CodeGenConfig, CodeGenConfig>
         Mapper = DefaultWhereNull(Mapper, () => $"{Name}Mapper");
         ExcludeMapper = DefaultWhereNull(ExcludeMapper, () => false);
         Validator = DefaultWhereNull(Validator, () => $"ReferenceDataValidator<{Name}>");
+        MutableAttribute = DefaultWhereNull(MutableAttribute, () => "[Authorize]");
 
         if (IsMutable && Repository is not ("EntityFramework" or "Cosmos"))
             throw new CodeGenException(this, nameof(Mutability), $"Mutability '{Mutability}' requires a '{nameof(Repository)}' of 'EntityFramework' or 'Cosmos'; '{Repository}' is not supported.");
