@@ -197,6 +197,29 @@ public partial class Employee : IIdentifier<string?>, IETag, IChangeLog
 
 Decorate server-assigned properties with `[ReadOnly(true)]` to signal that clients cannot supply them. Common examples: `Id`, `ETag`, `ChangeLog`, `CategoryCode` (derived from SubCategory). NSwag/OpenAPI automatically excludes these from inbound request schemas.
 
+## NonNullable Properties
+
+Contract properties are routinely declared nullable (`string?`, `int?`, `DateOnly?`) for DTO flexibility — partial payloads, merge-patch, and validation that reports a missing value rather than failing deserialization. Where a property is nevertheless **mandatory/required (ultimately not nullable)** in the contract, decorate it with `[NonNullable]` (`CoreEx.Entities.NonNullableAttribute`). The NSwag operation processor then emits it as `nullable: false` in the OpenAPI schema regardless of the CLR nullability. The C# type and validation are unaffected — `[NonNullable]` is documentation of the contract only, so keep the matching validator rule (e.g. `.Mandatory()`).
+
+```csharp
+[Contract]
+public partial class Person
+{
+    /// <summary>Gets or sets the first name.</summary>
+    [NonNullable]
+    public string? FirstName { get; set; }   // Mandatory; nullable in code only for DTO flexibility.
+
+    /// <summary>Gets or sets the middle name.</summary>
+    public string? MiddleName { get; set; }  // Genuinely optional — no attribute.
+}
+```
+
+Do **not** apply it to optional properties, and do not use `System.Diagnostics.CodeAnalysis.NotNull` for this purpose (that is a compiler flow-analysis attribute with no OpenAPI effect).
+
+### `[ReadOnly]` properties and `[NonNullable]`
+
+Contracts are commonly shared between request and response bodies, so a server-assigned property is legitimately null on create. Never mark `Id`, `ETag` or `ChangeLog` with `[NonNullable]` — they are lifecycle fields that are null in requests, and non-nullable members in generated clients cause confusion. For any other `[ReadOnly]` property, apply `[NonNullable]` only when its containing type is never used as a request body (e.g. `BasketItem`, which is only returned within the read-only `Basket.Items`); otherwise leave it unmarked (e.g. `ProductBase.CategoryCode`).
+
 ## Reference Data Properties
 
 Use `[ReferenceData<TRefData>]` on code properties that back a reference data relationship. Two conditions must both be met for the source generator to emit the navigation accessor:

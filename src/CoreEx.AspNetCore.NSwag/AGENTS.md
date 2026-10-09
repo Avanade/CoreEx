@@ -28,6 +28,7 @@ app.UseSwaggerUi();
 | `[IdempotencyKey]` | `Idempotency-Key` header parameter |
 | `[ProducesNotFoundProblem]` | `404 application/problem+json` response entry |
 | `[Accepts(typeof(T))]` | Request body content type and JSON schema |
+| `[NonNullable]` (on a DTO property) | Schema property emitted as `nullable: false`, even if declared `string?` / `int?` |
 
 ## Do Not
 

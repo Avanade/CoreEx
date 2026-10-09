@@ -6,8 +6,10 @@ public abstract partial class ProductBase : IIdentifier<string?>
     [ReadOnly(true)]
     public string? Id { get; set; }
 
+    [NonNullable]
     public string? Sku { get; set => field = value?.ToUpper(); }
 
+    [NonNullable]
     public string? Text { get; set; }
 
     [ReadOnly(true)]
@@ -16,10 +18,12 @@ public abstract partial class ProductBase : IIdentifier<string?>
 
     [ReferenceData<SubCategory>]
     [Localization("Sub-category")]
+    [NonNullable]
     public partial string? SubCategoryCode { get; set; }
 
     [ReferenceData<UnitOfMeasure>()]
     [Localization("Unit-of-measure")]
+    [NonNullable]
     public partial string? UnitOfMeasureCode { get; set; }
 
     [ReferenceData<Brand>()]

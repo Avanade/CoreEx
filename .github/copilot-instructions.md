@@ -84,6 +84,7 @@ Connection strings for each service in development are in each host's `appsettin
 ### Contracts and Source Generation
 - Contracts are commonly declared as `[Contract] public partial class ...`.
 - Mutable contracts often implement `IIdentifier<T>`, `IETag`, and `IChangeLog`.
+- Use `[NonNullable]` for properties that are mandatory/required but declared nullable (`string?`, `int?`) for DTO flexibility, so OpenAPI reports them as non-nullable.
 - Use `[ReadOnly(true)]` for server-managed fields and `[ReferenceData<T>]` for reference-data-backed code properties.
 - Canonical casing transformations belong in property setters when already established by the model (for example `Sku` uppercasing in `ProductBase`).
 - Favor the existing source-generation approach; do not hand-write members that are meant to be generated.

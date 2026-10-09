@@ -128,6 +128,23 @@ public class OtherApiTests : WithApiTester<Api.Program>
         optionalBody.TryGetProperty("required", out _).Should().BeFalse();
     }
 
+    [Test]
+    public void Swagger_JSON_NonNullableAttribute_NotNullable()
+    {
+        // Properties marked [NonNullable] are non-nullable in the spec even though declared nullable (string? / DateOnly?); unmarked ones remain nullable.
+        var json = Test.Http()
+            .Run(HttpMethod.Get, "/swagger/v1/swagger.json")
+            .Assert(HttpStatusCode.OK)
+            .GetContent();
+
+        using var doc = JsonDocument.Parse(json!);
+        var props = doc.RootElement.GetProperty("components").GetProperty("schemas").GetProperty("Person").GetProperty("properties");
+
+        props.GetProperty("firstName").GetProperty("nullable").GetBoolean().Should().BeFalse();
+        props.GetProperty("birthday").GetProperty("nullable").GetBoolean().Should().BeFalse();
+        props.GetProperty("lastName").GetProperty("nullable").GetBoolean().Should().BeTrue();
+    }
+
     [TestCase("/health/live")]
     [TestCase("/health/startup")]
     [TestCase("/health/ready")]

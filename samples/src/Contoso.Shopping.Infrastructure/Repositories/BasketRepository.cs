@@ -36,7 +36,7 @@ public class BasketRepository(ShoppingEfDb ef) : IBasketRepository
     public async Task<ItemsResult<Contracts.Basket>> QueryAsync(string customerId, QueryArgs? query, PagingArgs? paging, CancellationToken ct = default)
     {
         var parsed = BasketQueryArgsConfig.Default.Parse(query).ThrowOnError();
-        var baskets = _ef.Baskets.Query().Where(b => b.CustomerId == customerId);
+        var baskets = _ef.Baskets.Query().IgnoreAutoIncludes().Where(b => b.CustomerId == customerId);
         return await baskets.Where(parsed).OrderBy(parsed).ToMappedItemsResultAsync(b => BasketSummaryMapper.Map(b), paging, cancellationToken: ct).ConfigureAwait(false);
     }
 

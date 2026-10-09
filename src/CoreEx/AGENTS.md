@@ -88,6 +88,8 @@ public class Product : IIdentifier<Guid>, IETag, IChangeLog
 
 Server-managed fields (e.g. `ETag`, `ChangeLog`) should be marked `[ReadOnly(true)]` on generated contracts so they are excluded from inbound deserialization.
 
+Properties that are mandatory/required but declared nullable (`string?`, `int?`) for DTO flexibility should be marked `[NonNullable]` (`CoreEx.Entities`) so OpenAPI (via `CoreEx.AspNetCore.NSwag`) reports them as `nullable: false`. Do not confuse it with `System.Diagnostics.CodeAnalysis.NotNull`.
+
 ## Dependency Injection Attributes
 
 Mark implementation classes with `[ScopedService]`, `[SingletonService]`, or `[TransientService]` and register them all at once via `AddDynamicServicesUsing<T>()`.
