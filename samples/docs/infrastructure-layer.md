@@ -146,4 +146,13 @@ This split — client for transport, adapter for orchestration — keeps each cl
 
 `CustomersHttpClient` / `CustomerAdapter` are the purely real-time variant: no local replica, the adapter delegates to the client (`GET api/customers/{id}`), mapping a 404 to `Result.NotFoundError()`. The lookup is wrapped in a single `IHybridCache.GetOrCreateWithResultAsync<Customer>(...)` call: only successful results are cached (short, configurable expiry via `CoreEx:Caching:Customer:*`), failures such as not-found are never cached. The lookup is single-flight per key (per node) under FusionCache, so concurrent misses make one remote call; coalescing across nodes sharing Redis would need an opt-in FusionCache distributed locker, which isn't worth it for this cheap read. The client is registered in the Api and Subscribe hosts with `AddTypedHttpClient<CustomersHttpClient>("CustomersApi")`, the `CustomersApi:BaseAddress` setting being overridden with service discovery under Aspire.
 
+Before returning a successful lookup, `CustomersHttpClient` uses
+`response.WithValidator(_validator).ToResultAsync(ct)` to require an email with valid format.
+The response-specific rules are defined once in a private static readonly `Validator<Customer>`
+inside the client using `Validator.Create<Customer>().HasProperty(...)`, leaving other details unrestricted rather
+than applying create/update rules to a read response. Customer identity is trusted, not validated
+or compared with the requested identifier. Invalid successful responses become
+`HttpRequestException` failures with structured validation diagnostics, so they are not cached
+or mistaken for caller validation errors. The client disposes the HTTP response after consumption.
+
 > **See also**: [`ToResultAsync`](../../src/CoreEx/Extensions.HttpResponseMessage.cs) · [`JsonDefaults`](../../src/CoreEx/Json/JsonDefaults.cs) · [Strangler Fig / ACL patterns](https://learn.microsoft.com/en-us/azure/architecture/patterns/strangler-fig)

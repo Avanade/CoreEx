@@ -24,6 +24,7 @@ tags: ["repositories", "infrastructure", "data-access", "efcore", "cosmos", "map
 | Package | Key types provided |
 |---|---|
 | `CoreEx` | `[ScopedService<T>]`, `.ThrowIfNull()`, `ItemsResult<T>`, `Result<T>`, `.GoAsync()`, `.ThenAs()`, `.ThenAsAsync()` |
+| `CoreEx.Validation` | `Validator<T>`, `Validator.Create<T>()`, `.HasProperty(...)`, `.Mandatory()`, `.Email()` for inline response-contract rules |
 | `CoreEx.Events` | `EventData` |
 | `CoreEx.Data` | `IUnitOfWork`, `DataResult<T>`, `QueryArgsConfig<TSelf>`, `QueryFilterOperator`, `.Where(parsed)`, `.OrderBy(parsed)` |
 | `CoreEx.Cosmos` | `CosmosDb`, `CosmosDbContainer<TModel>`, `CosmosDbMappedContainer<TValue,TModel,TMapper>`, `CosmosDbArgs`, `CosmosDbQuery<TModel>`, `.GetAsync()`, `.CreateAsync()`, `.UpdateAsync()`, `.DeleteAsync()`, `.Query()`, `.ToMappedItemsResultAsync()` |
@@ -465,7 +466,33 @@ public class ProductAdapter(ShoppingEfDb ef, ProductsHttpClient client, IEventPu
 
 Keep the typed HTTP client and the adapter orchestration in separate, independently testable classes.
 
-**Value-returning clients and real-time caching.** A client method that returns a body uses `response.ToResultAsync<T>(ct)` — it yields a non-null `T` on success and fails (`HttpRequestException`) on a null/empty body; use `ToResultOrDefaultAsync<T>(ct)` only for genuinely optional bodies. A real-time read adapter (no replica) should cache successful lookups in one line with `IHybridCache.GetOrCreateWithResultAsync<T>(key, ct => client.GetAsync(...), options, ct)` — failures are never cached, expiry should be short, and concurrent misses collapse to one factory call per key per node with `FusionHybridCache` (cross-node needs an opt-in FusionCache distributed locker). Tests sharing Redis must clear the cache per test. Full pattern: [`coreex-adapter` workflow](/.github/skills/coreex-adapter/references/workflow.md#caching-a-real-time-adapter).
+### Client response validation
+
+Keep response-contract rules in the typed client, not Application business/request validators.
+For small rule sets, configure a private static readonly validator once; extract a colocated
+validator under `Clients/{ExternalDomain}/` only for substantial rules or genuine reuse.
+
+```csharp
+private static readonly Validator<Customer> _validator = Validator.Create<Customer>()
+    .HasProperty(x => x.Email, c => c.Mandatory().Email());
+
+// Inside the asynchronous client method; handle expected statuses before conversion.
+using var response = await _httpClient.GetAsync($"api/customers/{Uri.EscapeDataString(id)}", ct).ConfigureAwait(false);
+return await response.WithValidator(_validator).ToResultAsync(ct).ConfigureAwait(false);
+```
+
+Validate only fields the consumer needs; do not impose create/update rules or identifier matching
+by default. Do not capture request state/scoped dependencies in a shared validator.
+The wrapper validates successful non-null values and returns the validation result's `Value`.
+Reported errors become `HttpRequestException` with inner validation diagnostics: failed `ToResult*`,
+throwing `GetValue*`, standard internal 500 rather than caller 400. Required methods reject null;
+`OrDefault` methods allow null and skip validation for absent values. HTTP/ProblemDetails handling,
+deserialization exceptions, unexpected validator exceptions, and cancellation remain unchanged.
+Dispose the response at the call site; the wrapper does not own it.
+Test inline rules through the client, including invalid 2xx responses, exact inner messages, and
+valid minimal responses; do not expose private validators just for tests.
+
+**Value-returning clients and real-time caching.** A client method that returns a body uses `response.ToResultAsync<T>(ct)` (or `response.WithValidator(_validator).ToResultAsync(ct)` when response validation is needed) — it yields a non-null `T` on success and fails (`HttpRequestException`) on a null/empty body; use `ToResultOrDefaultAsync<T>(ct)` only for genuinely optional bodies. A real-time read adapter (no replica) should cache successful lookups in one line with `IHybridCache.GetOrCreateWithResultAsync<T>(key, ct => client.GetAsync(...), options, ct)` — failures, including invalid 2xx responses, are never cached; prove this by replacing an invalid payload with a valid one and retrying. Expiry should be short, and concurrent misses collapse to one factory call per key per node with `FusionHybridCache` (cross-node needs an opt-in FusionCache distributed locker). Tests sharing Redis must clear the cache per test. Full pattern: [`coreex-adapter` workflow](/.github/skills/coreex-adapter/references/workflow.md#caching-a-real-time-adapter).
 
 Cosmos-backed adapters inject the typed `*CosmosDb` accessor instead of `*EfDb` and read through its mapped containers (`_cosmos.Products.GetAsync(...)`, `_cosmos.Products.Container.Query(...)`, etc.), but keep the same adapter/interface split and typed HTTP client pattern.
 

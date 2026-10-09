@@ -94,8 +94,8 @@ HasRuleFor(p => p.Sku).Common(SkuValidator);
 
 - Do not compare two properties of the same entity imperatively in `OnValidateAsync` — use `CompareProperty(op, p => p.Other)`; it already handles nulls and cascading errors.
 - Do not use `CompareValue(...)` — no such extension exists; use `Compare(op, value)` or the dedicated `GreaterThan`/`LessThan`/etc. rules.
-- Do not call `ValidateAsync` and ignore errors — always call `ValidateAndThrowAsync` or check `HasErrors` and throw `ValidationException` explicitly.
-- Do not add try/catch around `ValidateAndThrowAsync` to rethrow as a different exception type — `ValidationException` maps to HTTP 400 automatically.
+- Do not call `ValidateAsync` and ignore errors — use `ValidateAndThrowAsync` or inspect and handle the validation result.
+- Do not add try/catch around application `ValidateAndThrowAsync` to rethrow as a different exception type — `ValidationException` maps to HTTP 400 automatically.
 - Do not validate inside `TransactionAsync` — validate first (before the transaction) so failed validation never opens a database transaction.
 - Do not use `DataAnnotations` attributes alongside CoreEx validators — pick one approach per entity and stay consistent.
 - Do not use FluentValidation alongside CoreEx validators unless bridging with `InteropRule` is explicitly needed.

@@ -26,6 +26,7 @@ global using CoreEx.Events.Publishing;
 global using CoreEx.Json;
 global using CoreEx.Mapping;
 global using CoreEx.Results;
+global using CoreEx.Validation;
 global using Microsoft.EntityFrameworkCore;
 global using Microsoft.Extensions.DependencyInjection;
 global using Microsoft.Extensions.Logging;

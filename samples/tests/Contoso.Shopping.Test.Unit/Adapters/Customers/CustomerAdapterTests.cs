@@ -4,6 +4,7 @@ public class CustomerAdapterTests : WithGenericTester<EntryPoint>
 {
     private UnitTestEx.Mocking.MockHttpClientRequest _mockHttpFoundRequest = null!;
     private UnitTestEx.Mocking.MockHttpClientRequest _mockHttpNotFoundRequest = null!;
+    private UnitTestEx.Mocking.MockHttpClientRequest _mockHttpInvalidRequest = null!;
 
     [OneTimeSetUp]
     public void OneTimeSetUp()
@@ -12,10 +13,30 @@ public class CustomerAdapterTests : WithGenericTester<EntryPoint>
         var client = mcf.CreateClient("CustomersApi");
         _mockHttpFoundRequest = client.Request(HttpMethod.Get, "api/customers/cache-found");
         _mockHttpNotFoundRequest = client.Request(HttpMethod.Get, "api/customers/cache-notfound");
+        _mockHttpInvalidRequest = client.Request(HttpMethod.Get, "api/customers/cache-invalid");
         Test.ReplaceHttpClientFactory(mcf);
     }
 
     private static CustomerAdapter CreateAdapter() => new(ExecutionContext.GetRequiredService<CustomersHttpClient>(), ExecutionContext.GetRequiredService<CoreEx.Caching.IHybridCache>());
+
+    [Test]
+    public void GetAsync_InvalidResponse_IsNotCached() => Test.Scoped(test =>
+    {
+        _mockHttpInvalidRequest.Respond.WithJson(new { id = "cache-invalid", email = "not-an-email" });
+
+        test.Run(async _ =>
+        {
+            var adapter = CreateAdapter();
+            var invalid = await adapter.GetAsync("cache-invalid").ConfigureAwait(false);
+            invalid.IsFailure.Should().BeTrue();
+            invalid.Error.Should().BeOfType<HttpRequestException>().Subject.InnerException.Should().BeOfType<ValidationException>();
+
+            _mockHttpInvalidRequest.Respond.WithJson(new { id = "cache-invalid", email = "new.customer@example.com" });
+            var valid = await adapter.GetAsync("cache-invalid").ConfigureAwait(false);
+            valid.IsSuccess.Should().BeTrue();
+            valid.Value.Email.Should().Be("new.customer@example.com");
+        }).AssertSuccess();
+    });
 
     [Test]
     public void GetAsync_Found_IsCached() => Test.Scoped(test =>

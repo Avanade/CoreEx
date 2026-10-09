@@ -90,7 +90,7 @@ public class ProductsHttpClient(HttpClient httpClient)
     /// <summary>Creates a new inventory reservation.</summary>
     public async Task<Result> CreateReservationAsync(MovementRequest request, CancellationToken ct = default)
     {
-        var response = await _httpClient.PostAsJsonAsync("api/inventory/reserve", request, JsonDefaults.SerializerOptions, ct).ConfigureAwait(false);
+        using var response = await _httpClient.PostAsJsonAsync("api/inventory/reserve", request, JsonDefaults.SerializerOptions, ct).ConfigureAwait(false);
         return await response.ToResultAsync(ct).ConfigureAwait(false);
     }
 }
@@ -99,18 +99,57 @@ public class ProductsHttpClient(HttpClient httpClient)
 ### Client method returning a value
 
 ```csharp
-// Infrastructure/Clients/Customers/CustomersHttpClient.cs
-public async Task<Result<Customer>> GetAsync(string id, CancellationToken ct = default)
+// Infrastructure/Clients/{ExternalDomain}/{External}HttpClient.cs
+public class ExternalHttpClient(HttpClient httpClient)
 {
-    var response = await _httpClient.GetAsync($"api/customers/{Uri.EscapeDataString(id)}", ct).ConfigureAwait(false);
-    if (response.StatusCode == HttpStatusCode.NotFound)
-        return Result.NotFoundError();
+    private static readonly Validator<ExternalResponse> _validator = Validator.Create<ExternalResponse>()
+        .HasProperty(x => x.Email, c => c.Mandatory().Email());
 
-    return await response.ToResultAsync<Customer>(ct).ConfigureAwait(false);
+    private readonly HttpClient _httpClient = httpClient.ThrowIfNull();
+
+    public async Task<Result<ExternalResponse>> GetAsync(string id, CancellationToken ct = default)
+    {
+        using var response = await _httpClient.GetAsync($"api/entities/{Uri.EscapeDataString(id)}", ct).ConfigureAwait(false);
+        if (response.StatusCode == HttpStatusCode.NotFound)
+            return Result.NotFoundError();
+
+        return await response.WithValidator(_validator).ToResultAsync(ct).ConfigureAwait(false);
+    }
 }
 ```
 
 `ToResultAsync<T>()` returns a non-null `T`: a successful response with a null/empty body (including 204) is an `HttpRequestException` failure, so no `?? throw` is needed. Use `ToResultOrDefaultAsync<T>()` (→ `Result<T?>`) only where an absent body is a valid outcome. Map 404 yourself when "not found" is an expected business outcome (surface it as `Result.NotFoundError()`; the Application-layer policy decides how to present it).
+
+### Response-contract validation
+
+Choose rules for fields the consuming operation actually requires; the example assumes an email is needed.
+Do not blindly reuse request/create/update validators, require every DTO property, or compare response
+identifiers with request identifiers by default. Validate identifiers only when explicitly required.
+
+Keep small, client-only rules in a private static readonly `Validator<T>` built once with
+`Validator.Create<T>().HasProperty(...)` (`CoreEx.Validation`). Do not construct rules per request
+or capture request-specific state/scoped dependencies in a shared validator. Extract a separate
+validator alongside the client in `Infrastructure/Clients/{ExternalDomain}/` only for substantial
+rules or genuine reuse. Application business/request validation remains in `Application/Validators/`,
+even when both validators target an Application-owned type.
+
+`WithValidator` binds the value type; terminal methods need no repeated type argument. Validation
+runs only after successful HTTP handling and non-null deserialization, and returns the validation
+result's `Value` (including normalization/replacement). Reported errors become `HttpRequestException`
+with the validation exception as its inner diagnostic: `ToResult*` returns failure; `GetValue*`
+throws. Standard CoreEx API handling treats the outer exception as internal 500, not caller 400.
+Do not include raw response bodies or sensitive values in outer error messages.
+
+`ToResultAsync`/`GetValueAsync` reject missing content and null validated values.
+`ToResultOrDefaultAsync`/`GetValueOrDefaultAsync` allow null and skip validation for absent response
+values. Serializer options and cancellation tokens are supported; cancellation, deserialization
+exceptions, and unexpected validator exceptions propagate unchanged. The wrapper does not dispose,
+buffer, or cache the response; retain `using var` at the call site.
+
+Test private inline rules through `{External}HttpClientTests`, not reflection or a new public
+validator solely for testing. Cover missing required fields, invalid format, valid minimal/full
+responses, exact structured inner messages, and existing HTTP error handling. For cached adapters,
+prove an invalid 2xx response is not cached by replacing it with a valid response and retrying.
 
 ### Local request/response DTOs
 
@@ -413,6 +452,7 @@ public class {External}HttpClientTests : WithGenericTester<EntryPoint>
 
 - **Unit host**: register an in-memory hybrid cache in the unit-test `EntryPoint` — `builder.Services.AddMemoryCache(); builder.Services.AddMemoryOnlyHybridCache();` (the `IMemoryCache` is a singleton, so cached entries persist across scopes within a test run — use a distinct key/id per test).
 - **Adapter unit tests**: construct the adapter from DI (`new {External}Adapter(client, ExecutionContext.GetRequiredService<IHybridCache>())`), mock the HTTP response, call `GetAsync` twice and assert the second call is served from cache (switch the mock to an error/404 between calls — still succeeds); and assert a 404 is **not** cached (switch the mock to 200 afterwards — now succeeds).
+- When response validation is enabled, also assert an invalid 2xx response is **not** cached: replace the invalid payload with a valid one and confirm the next lookup succeeds.
 - **API / Subscribe integration tests** share a real Redis, so cached entries survive between tests and between runs and will starve mocks that expect to be invoked. Add a per-test `[SetUp] => Test.ClearFusionCacheAsync()` (in addition to the `[OneTimeSetUp]` call) in any test class that exercises a cached adapter, and use `.Respond` replacement mid-test to prove caching where that is the behaviour under test.
 
 ---

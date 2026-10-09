@@ -92,7 +92,7 @@ public async Task<Product> UpdateAsync(Product product, CancellationToken cancel
 
 ## Validation
 
-Validators live in `Application/Validators/` and are **not registered in DI** — they are not injected into services (see [DI Registration Principle](#di-registration-principle) below). Choose the base class based on whether the validator needs injected dependencies:
+Application business/request validators live in `Application/Validators/` and are **not registered in DI** — they are not injected into services (see [DI Registration Principle](#di-registration-principle) below). External HTTP response-contract rules belong in the Infrastructure client instead; see [client response validation](/.github/instructions/coreex-repositories.instructions.md#client-response-validation). Choose the base class based on whether the application validator needs injected dependencies:
 
 **`Validator<T, TSelf>`** — use when no constructor injection is required. Exposes a static `Default` singleton; always call via the singleton:
 

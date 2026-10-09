@@ -28,7 +28,8 @@ Guides you through creating or modifying a CoreEx validator (`Application/Valida
 ## When Not to Use
 
 - Domain invariants (aggregates, entities, value objects) — those belong in the Domain layer
-- Infrastructure-level data checks that are not accessed via an Application-layer interface
+- External HTTP response-contract validation — use `coreex-adapter`; small client-only rules belong inline in the Infrastructure client, not `Application/Validators/`
+- Other Infrastructure-level data checks that are not accessed via an Application-layer interface
 - `FluentValidation` NuGet package — `AbstractValidator` here is `CoreEx.Validation.AbstractValidator`
 
 ## Quick Reference

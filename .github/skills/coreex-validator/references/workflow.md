@@ -10,6 +10,12 @@
 
 Full workflow for creating or modifying a CoreEx validator in `Application/Validators/`. Follow the path that matches the request.
 
+For external HTTP response-contract rules, use the
+[coreex-adapter workflow](../../coreex-adapter/references/workflow.md#response-contract-validation)
+instead. Prefer a private static readonly inline `Validator<T>` in the Infrastructure client;
+test it through client unit tests. This workflow's standalone Application-validator paths do not
+apply to that boundary-specific pattern.
+
 ---
 
 ## Phase 1 — Clarify Before Writing

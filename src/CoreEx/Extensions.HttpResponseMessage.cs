@@ -3,6 +3,15 @@ namespace CoreEx;
 public static partial class Extensions
 {
     /// <summary>
+    /// Configures validation of a successful, non-null deserialized HTTP response value.
+    /// </summary>
+    /// <typeparam name="T">The response value type.</typeparam>
+    /// <param name="response">The response, whose lifetime remains the caller's responsibility.</param>
+    /// <param name="validator">The response value validator.</param>
+    /// <returns>A typed wrapper that validates when a value is consumed.</returns>
+    public static ValidatedHttpResponse<T> WithValidator<T>(this HttpResponseMessage response, Validation.IValidator<T> validator) => new(response, validator);
+
+    /// <summary>
     /// Converts the <see cref="HttpResponseMessage"/> into a <see cref="ProblemDetailsException"/> where not <see cref="HttpResponseMessage.IsSuccessStatusCode"/> and the content media type is <see cref="MediaTypeNames.Application.ProblemJson"/>.
     /// </summary>
     /// <param name="response">The <see cref="HttpResponseMessage"/>.</param>

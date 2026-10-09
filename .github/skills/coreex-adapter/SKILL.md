@@ -23,6 +23,7 @@ Guides you through adding or modifying an adapter — the boundary that isolates
 - Add a synchronous real-time adapter (HTTP call + optional local store read/event publish)
 - Add a replication adapter (`IXxxSyncAdapter`) for event-driven data sync into your local store
 - Add or extend a typed HTTP client (`XxxHttpClient`) in `Infrastructure/Clients/{ExternalDomain}/`
+- Validate consumed response fields inside a typed HTTP client using `WithValidator`
 - Unit-test HTTP client response-code handling with `MockHttpClientFactory`
 
 ## When Not to Use
@@ -44,6 +45,8 @@ Guides you through adding or modifying an adapter — the boundary that isolates
 - `[ScopedService<IXxxAdapter>]` on the implementation — auto-discovered via `AddDynamicServicesUsing<T>()`
 - Typed HTTP client registered via `builder.AddTypedHttpClient<XxxHttpClient>("ServiceName")` in `Program.cs`
 - Never call `HttpClient` directly in adapter methods — always delegate to the typed client class
+- **Response validation belongs to the client**, not `Application/Validators/`. For small, client-only rules use a private static readonly `Validator<T>` configured once with `Validator.Create<T>().HasProperty(...)`, then `response.WithValidator(_validator).ToResultAsync(ct)`. Validate fields the consumer requires; do not copy create/update rules or add identifier matching by default. Extract a colocated validator only when complexity or genuine reuse warrants it; see the workflow.
+- Dispose the response with `using var`; `WithValidator` does not own it. Reported validation errors become `HttpRequestException` failures with inner diagnostics, not caller validation errors. Test inline rules through the client, including invalid 2xx responses and success; cached adapters must not cache invalid responses.
 - `response.ToResultAsync()` maps HTTP status to `Result` (2xx → `Success`, error + ProblemDetails → `BusinessException`/`ProblemDetailsException`, plain error → `HttpRequestException`)
 - `response.ToResultAsync<T>()` is for responses that **must** carry a value — a null/empty body (including 204) is an `HttpRequestException` failure, so the result is `Result<T>` with a non-null `T` and callers need no null handling. Use `ToResultOrDefaultAsync<T>()` (→ `Result<T?>`) only where a missing body is genuinely valid; `GetValueAsync<T>()`/`GetValueOrDefaultAsync<T>()` are the throwing equivalents. Map a 404 yourself before calling (`Result.NotFoundError()`) when "not found" is an expected outcome
 - **Real-time read adapters should cache successes** with `IHybridCache.GetOrCreateWithResultAsync<T>(key, factory, options, ct)` — the adapter method becomes one line; only successful results are cached (failures such as not-found are never cached). Use short expiry via `HybridCacheEntryOptions.CreateFor<T>(...)` (overridable through `CoreEx:Caching:{Type}:*`). Concurrent cache misses are collapsed to one factory call per key per node with `FusionHybridCache` (cross-node needs an opt-in FusionCache distributed locker; non-FusionCache implementations such as `MemoryOnlyHybridCache` don't collapse them) — keep the factory an idempotent read. Tests must then clear the cache per test and register a hybrid cache in the unit-test host (see `references/workflow.md` → "Caching a real-time adapter")

@@ -28,11 +28,23 @@ tags: ["validators", "validation", "fluent-api", "rules", "error-handling", "app
 
 ## Placement
 
-Validators live in `Application/Validators/`. They belong to the Application layer and may inject Application-layer dependencies (e.g., `IProductRepository`) — they must not reference Infrastructure directly.
+Application business/request validators live in `Application/Validators/` and may inject
+Application-layer dependencies (e.g., `IProductRepository`), never Infrastructure dependencies.
+External-response validation is integration-owned: prefer a private static readonly `Validator<T>`
+inside the typed client, configured once with `Validator.Create<T>().HasProperty(...)` and consumed
+via `response.WithValidator(_validator).ToResultAsync(ct)`. Extract substantial/shared response
+rules beside the client in `Infrastructure/Clients/{ExternalDomain}/`, not Application.
+See [client response validation](/.github/instructions/coreex-repositories.instructions.md#client-response-validation).
 
 ## Unit Tests (maintain alongside the validator)
 
 Validators are the primary unit-test target, so a validator and its test are maintained together. Validator rules are proven **exhaustively here** (every rule, error + success) — the API integration tests do **not** re-enumerate them; they assert only one representative bad-request to confirm the validator is wired into the pipeline. See the test-responsibility split in `coreex-tests.instructions.md`.
+
+For private inline client validators, cover rules through `*.Test.Unit/Clients/{ExternalDomain}/{External}HttpClientTests.cs`.
+Do not expose the validator, use reflection, or create standalone `{Validator}Tests` for a nonexistent
+validator class. Assert invalid 2xx responses fail with `HttpRequestException` and structured inner
+validation messages, and valid responses succeed. The standalone-validator guidance below applies
+to named validator classes.
 
 Author the test per `coreex-tests.instructions.md` → "Validator unit tests" and "Expected message text". Three things that cause repeated discover-by-running loops if missed:
 - **Invoke via `Test.Scoped(test => { XxxValidator.Default.AssertErrors(...); })`** — the **non-generic** `Test.Scoped` (no type parameter) + the validator's `Default` (or `new XxxValidator(deps)`). **Never** `Test.Scoped<XxxValidator>(...)` — validators are not in DI, so the generic (DI-resolving) overload fails.
@@ -40,7 +52,7 @@ Author the test per `coreex-tests.instructions.md` → "Validator unit tests" an
 - **Expected messages are exact** — use the message table in `coreex-tests.instructions.md` (`Mandatory()` → `"{Label} is required."`, `MaximumLength` → `"… character(s) in length."`, `PrecisionScale` → `"… exceeds the maximum decimal places (n)."`, etc.) with sentence-cased labels (`FirstName` → "First name").
 - **Ignore `ExecutionContext` in tests** — `Test.Scoped(...)` sets it up for you; do not construct, inject, or mock it. Ambient `Runtime` and any `ExecutionContext`-dependent rule work automatically inside the scope.
 
-> **Agent instruction:** When you create or modify a validator, **offer to also create or update the matching `{Validator}Tests`** in the `*.Test.Unit/Validators/` project (covering the new/changed rules — both error and success cases). If the user accepts, author it per `coreex-tests.instructions.md`; if the validator uses a reference-data type the test host does not yet handle, also add the corresponding case to `EntryPoint.ReferenceDataProviderDecorator.GetAsync`. If the user declines or defers, proceed with the validator change but note that its unit-test coverage is now missing/stale.
+> **Agent instruction:** When you create or modify a named Application validator, **offer to also create or update the matching `{Validator}Tests`** in the `*.Test.Unit/Validators/` project (covering the new/changed rules — both error and success cases). For inline response validators, maintain the corresponding client tests instead. If the user accepts, author it per `coreex-tests.instructions.md`; if the validator uses a reference-data type the test host does not yet handle, also add the corresponding case to `EntryPoint.ReferenceDataProviderDecorator.GetAsync`. If the user declines or defers, proceed with the validator change but note that its unit-test coverage is now missing/stale.
 
 ## Base Class
 
@@ -322,7 +334,7 @@ Property(x => x.Quantity, c => c
 
 - Do not use the `FluentValidation` NuGet package — `AbstractValidator` here is `CoreEx.Validation.AbstractValidator`, not FluentValidation.
 - Do not perform I/O in `OnValidateAsync` without first checking `context.HasErrors` — always fail fast.
-- Do not reference Infrastructure assemblies from validators — inject Application-layer repository interfaces only.
+- Do not reference Infrastructure assemblies from Application validators — inject Application-layer repository interfaces only. Client-owned response validators remain in Infrastructure.
 - Do not instantiate validators with `new` at the call site when a `Default` singleton is available.
 - Do not add logic that requires async I/O to the constructor — use `OnValidateAsync` for that.
 - Do not pass a property-name string (e.g. `nameof(...)`) to `context.AddError` — use the member-access expression overload, `context.AddError(x => x.Property, ...)`.

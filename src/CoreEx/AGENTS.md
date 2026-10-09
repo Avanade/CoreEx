@@ -53,6 +53,35 @@ return await GetOrderAsync(id)
     .ConfigureAwait(false);
 ```
 
+## Validating HTTP Response Values
+
+Use `response.WithValidator(validator).ToResultAsync(ct)` to validate a successful,
+non-null deserialized dependency response. The typed wrapper returns the validation result's
+`Value`; reported validation errors become failed results containing `HttpRequestException`
+with structured inner validation diagnostics. `GetValueAsync(ct)` is the throwing equivalent.
+Standard API handling treats these as internal 500 errors, not caller 400 validation errors.
+
+Required methods reject missing content and null validated values; `OrDefault` methods allow
+null and skip validation for absent response values. Existing HTTP/ProblemDetails handling,
+deserialization exceptions, unexpected validator exceptions, and cancellation are unchanged.
+Dispose the response at the call site; the wrapper does not own it.
+
+For small client-only rules, configure a private static readonly `Validator<T>` once with
+`Validator.Create<T>().HasProperty(...)` from the `CoreEx.Validation` package. Keep these rules
+inside the Infrastructure HTTP client, not Application validators; validate consumed fields,
+not create/update requirements or identifier matching by default. Test through the client.
+
+```csharp
+private static readonly Validator<Customer> _validator = Validator.Create<Customer>()
+    .HasProperty(x => x.Email, c => c.Mandatory().Email());
+
+// Inside the asynchronous HTTP client method.
+using var response = await _httpClient.GetAsync($"api/customers/{Uri.EscapeDataString(id)}", ct).ConfigureAwait(false);
+return await response.WithValidator(_validator).ToResultAsync(ct).ConfigureAwait(false);
+```
+
+See [usage, inline examples, and semantics](./README.md#validating-http-response-values).
+
 ## Entity Contracts
 
 Use the standard interfaces on your contracts so the framework's ETag, paging, and change-log handling works automatically.
@@ -112,7 +141,7 @@ builder.Services.AddPrecisionTimeProvider();
 
 ## Do Not
 
-- Do not catch `IExtendedException` types to re-wrap them — let the framework middleware translate them.
+- Do not catch application `IExtendedException` types to re-wrap them — let the framework middleware translate them. For reported external-response validation failures, use `WithValidator` to classify them as dependency failures instead.
 - Do not use `AutoMapper` — use explicit `Mapper<TSource, TDest>` or `BiDirectionMapper<TFrom, TTo>`.
 - Do not use `DateTime.UtcNow` directly — use `Runtime.UtcNow`, which returns `ExecutionContext.Timestamp` when a context is active and falls back to `TimeProvider.System.GetUtcNow()` otherwise.
 

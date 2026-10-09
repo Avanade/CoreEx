@@ -25,9 +25,19 @@ The `Abstractions` sub-namespace defines additional lightweight types and interf
 | **[`ProblemDetails`](./Abstractions/ProblemDetails.cs)** | RFC 7807 problem-details record with `Type`, `Title`, `Status`, `Detail`, `Instance`, and an `Extensions` dictionary; includes `GetValidationErrors(string? key)`. |
 | **[`ProblemDetailsException`](./ProblemDetailsException.cs)** | Exception wrapping a `ProblemDetails`; provides `ToException<TException>()` to convert it back to a typed CoreEx semantic exception. |
 | **[`HttpNames`](./HttpNames.cs)** | Static class of configurable string properties for all standard paging query-string names, response-header names, and the idempotency-key header name. |
+| **[`ValidatedHttpResponse<T>`](./ValidatedHttpResponseT.cs)** | Thin wrapper returned by `HttpResponseMessage.WithValidator(validator)`; validates successful non-null response values when consumed via `ToResult*` or `GetValue*`. Does not own the response. |
 | **[`HttpResult`](./HttpResult.cs)** | Readonly struct pairing an `HttpResponseMessage` with either a deserialized value or a `ProblemDetails` from the response; exposes `IsSuccess`, `StatusCode`, and `ThrowOnError()`. |
 | **[`HttpResult<T>`](./HttpResultT.cs)** | Typed variant of `HttpResult` adding a strongly-typed `Value` property for the deserialized response body. |
 | [`IExtendedHttpClient`](./Abstractions/IExtendedHttpClient.cs) | Interface implemented by `TypedHttpClientBase<TSelf>` for type-safe HTTP client wrappers; exposes `SendAsync`, `GetAsync`, `PostAsync`, `PutAsync`, `PatchAsync`, `DeleteAsync` returning `HttpResult<T>`. |
+
+## Validating response values
+
+Use `response.WithValidator(validator).ToResultAsync(ct)` for opt-in response-contract validation.
+The wrapper returns the validation result's `Value`; reported failures contain an
+`HttpRequestException` with inner validation diagnostics. `GetValueAsync(ct)` throws on failure.
+Required methods reject null, while `OrDefault` methods allow null and skip validation for absent
+values. HTTP status handling remains unchanged, and the caller retains response ownership.
+See [the full usage guide and inline client example](../README.md#validating-http-response-values).
 
 ## Related Namespaces
 
