@@ -1,6 +1,3 @@
-using Microsoft.Extensions.Hosting;
-using System.Net;
-
 var builder = DistributedApplication.CreateBuilder(args);
 
 // dotnet dev-certs https --trust is not fully supported on Linux, so the ASP.NET Core dev cert used by each
@@ -12,21 +9,17 @@ builder.DisableHttpCertificateValidation();
 // IsRunMode: never surface this test-only resource in a published manifest (per the self-hosted WireMock.Net housekeeping note - see AppHost.cs's header comment).
 var mockhost = builder.AddMockHostProject<Projects.Contoso_Aspire_MockHost>("mock-host");
 
-// External infrastructure (SQL Server, Postgres, Redis, Service Bus emulator) runs via docker-compose.yml, not
-// Aspire orchestration. These are modelled as connection-string resources - matching the connection name each host
-// passes to its own Aspire client-integration package (e.g. AddAzureNpgsqlDataSource("Postgres")) - purely so the
-// dashboard graph reflects the real dependencies. Aspire does not start/stop/health-check these resources; each
-// host's client-integration package already wires up its own OTLP telemetry and health checks regardless.
-// Icon names match what Aspire's own AddPostgres/AddSqlServer/AddRedis/AddAzureServiceBus hosting integrations
-// assign to the equivalent managed resource, so these look identical to the "real" ones in the dashboard.
-var postgres = builder.AddConnectionString("Postgres").WithIconName("DatabaseMultiple");
-var sqlServer = builder.AddConnectionString("SqlServer").WithIconName("DatabaseMultiple");
-var redis = builder.AddConnectionString("redis").WithIconName("Database");
-var serviceBus = builder.AddConnectionString("ServiceBus").WithIconName("MailMultiple");
-var cosmos = builder.AddConnectionString("Cosmos").WithIconName("DatabaseMultiple");
+// Compose owns the infrastructure lifecycle; visible connection-string resources expose graph dependencies.
+// The secret parameters retain the existing ConnectionStrings configuration and are not graph nodes.
+var postgres = builder.AddExternalConnectionString("Postgres").WithIconName("DatabaseMultiple");
+var sqlServer = builder.AddExternalConnectionString("SqlServer").WithIconName("DatabaseMultiple");
+var redis = builder.AddExternalConnectionString("redis").WithIconName("Database");
+var serviceBus = builder.AddExternalConnectionString("ServiceBus").WithIconName("MailMultiple");
+var cosmos = builder.AddExternalConnectionString("Cosmos", endpointKey: "AccountEndpoint").WithIconName("DatabaseMultiple");
 
 // Customers domain.
-var customersApi = builder.AddProject<Projects.Contoso_Customers_Api>("customers-api").WithReference(cosmos).AddEndpoints("/health/ready/detailed");
+var customersApi = builder.AddProject<Projects.Contoso_Customers_Api>("customers-api").WithReference(cosmos).WithReference(redis).AddEndpoints("/health/ready/detailed");
+builder.AddProject<Projects.Contoso_Customers_Relay>("customers-relay").WithReference(cosmos).WithReference(serviceBus).AddEndpoints("/health/ready/detailed").AddHostedServiceSupport();
 
 // Products domain.
 var productsApi = builder.AddProject<Projects.Contoso_Products_Api>("products-api").WithReference(postgres).WithReference(redis).AddEndpoints("/health/ready/detailed");

@@ -48,6 +48,7 @@
     <ProjectReference Include="..\..\..\src\CoreEx.UnitTesting\CoreEx.UnitTesting.csproj" IsAspireProjectResource="false" />
     <ProjectReference Include="..\Contoso.Aspire.MockHost\Contoso.Aspire.MockHost.csproj" />
     <ProjectReference Include="..\..\src\Contoso.Customers.Api\Contoso.Customers.Api.csproj" SetTargetFramework="TargetFramework=$(SampleTargetFramework)" />
+    <ProjectReference Include="..\..\src\Contoso.Customers.Relay\Contoso.Customers.Relay.csproj" SetTargetFramework="TargetFramework=$(SampleTargetFramework)" />
     <ProjectReference Include="..\..\src\Contoso.Orders.Api\Contoso.Orders.Api.csproj" SetTargetFramework="TargetFramework=$(SampleTargetFramework)" />
     <ProjectReference Include="..\..\src\Contoso.Order.Workflow.Worker\Contoso.Order.Workflow.Worker.csproj" SetTargetFramework="TargetFramework=$(SampleTargetFramework)" />
     <ProjectReference Include="..\..\src\Contoso.Products.Api\Contoso.Products.Api.csproj" SetTargetFramework="TargetFramework=$(SampleTargetFramework)" />

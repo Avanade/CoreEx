@@ -21,10 +21,12 @@ public abstract class CosmosTestBase
     /// <summary>
     /// Creates a new, independent <see cref="CosmosClient"/> (own metadata caches) configured as per <see cref="Client"/>; the caller owns (and must dispose) it.
     /// </summary>
+    /// <param name="enableTracing">Whether to enable the SDK's distributed tracing for telemetry assertions.</param>
     /// <remarks>Useful where a test drops/replaces databases or containers, as a client that has cached the replaced resource can otherwise surface stale-cache failures.</remarks>
-    protected static CosmosClient CreateClient() => new(Endpoint, Key, new CosmosClientOptions
+    protected static CosmosClient CreateClient(bool enableTracing = false) => new(Endpoint, Key, new CosmosClientOptions
     {
         ConnectionMode = ConnectionMode.Gateway,
+        CosmosClientTelemetryOptions = new CosmosClientTelemetryOptions { DisableDistributedTracing = !enableTracing },
         HttpClientFactory = () => new HttpClient(new HttpClientHandler { ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator }),
         // CosmosDbModelBase uses System.Text.Json's [JsonPropertyName] to map the id/_etag/ttl reserved properties; the SDK's default serializer is Newtonsoft.Json-based and would not honour those
         // attributes, so opt into the SDK's System.Text.Json serializer explicitly (camelCase for everything else, matching typical Cosmos DB document conventions).

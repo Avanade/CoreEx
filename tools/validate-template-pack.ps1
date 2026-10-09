@@ -505,6 +505,8 @@ $testScenarios = @(
             FilesAbsent = @(
                 # Extensions.cs was superseded by CoreEx.UnitTesting's Aspire extension methods (UnitTestExExtensions.Aspire.cs).
                 "aspire/App.Aspire/Extensions.cs"
+                "aspire/App.Aspire/InfrastructureResourceExtensions.cs"
+                "aspire/App.Test.Aspire/InfrastructureResourceTests.cs"
                 "aspire/_Directory.Build.props"
             )
         }
@@ -542,6 +544,32 @@ $testScenarios = @(
                 # the other hosts' AddProject calls and ProjectReferences, not just that has-api's survive.
                 "aspire/App.Aspire/AppHost.cs"          = "Projects.App_Relay"
                 "aspire/App.Aspire/App.Aspire.csproj"   = "App.Relay"
+            }
+        }
+        Build        = $true
+        BuildTargets = @(
+            "aspire/App.Aspire/App.Aspire.csproj"
+            "aspire/App.Test.Aspire/App.Test.Aspire.csproj"
+        )
+    },
+    @{
+        Name       = "coreex-aspire-no-data"
+        Steps      = @(
+            @{ Template = "coreex"; Name = "App"; Parameters = @{ "data-provider" = "None"; "messaging-provider" = "None"; "refdata-enabled" = "false"; "outbox-enabled" = "false"; "rop-enabled" = "false" } }
+            @{ Template = "coreex-api"; Name = "App.Api"; Parameters = @{ "data-provider" = "None"; "refdata-enabled" = "false"; "outbox-enabled" = "false" } }
+            @{ Template = "coreex-aspire"; Name = "App.Aspire"; Parameters = @{ "has-api" = "true"; "has-relay" = "false"; "has-subscribe" = "false"; "data-provider" = "None"; "messaging-provider" = "None" } }
+        )
+        TestPath   = "test-aspire-no-data"
+        Verify     = @{
+            FilesAbsent = @(
+                "aspire/App.Test.Aspire/InfrastructureResourceTests.cs"
+                "aspire/App.Aspire/InfrastructureResourceExtensions.cs"
+            )
+            FileContains = @{
+                "aspire/App.Aspire/AppHost.cs" = 'AddExternalConnectionString("redis")'
+            }
+            FileNotContains = @{
+                "aspire/App.Aspire/AppHost.cs" = ".WithReference(db)"
             }
         }
         Build        = $true
@@ -651,7 +679,7 @@ $testScenarios = @(
                 "tests/App.Test.Relay/RelayTests.cs"
             )
             FileContains = @{
-                "aspire/App.Aspire/AppHost.cs"  = 'AddConnectionString("Cosmos")'
+                "aspire/App.Aspire/AppHost.cs"  = 'AddExternalConnectionString("Cosmos", endpointKey: "AccountEndpoint")'
                 "src/App.Api/Program.cs"        = "AddCosmosDbEventPublisher"
                 "src/App.Relay/Program.cs"      = "AddCosmosDbOutboxRelayHostedService"
                 "src/App.Subscribe/Program.cs"  = "AddCosmosDbEventPublisher"
@@ -832,7 +860,7 @@ try {
         # Use dotnet build rather than dotnet pack: GeneratePackageOnBuild=true (from
         # Directory.Build.props) means the build target already produces the nupkg, and
         # dotnet pack alone skips compilation on a clean runner (no prior bin/ output).
-        dotnet build -c Release --nologo
+        dotnet build -c Release --nologo -m:1
         if ($LASTEXITCODE -ne 0) { throw "Failed to build CoreEx.Template" }
         Pop-Location
         Write-Pass "Template packed successfully"
@@ -852,7 +880,7 @@ try {
 
     Write-Header "Building local NuGet feed"
     # Build the solution so binaries and assets exist before packing individually.
-    dotnet build (Join-Path $repoRoot "CoreEx.sln") -c Release --nologo
+    dotnet build (Join-Path $repoRoot "CoreEx.sln") -c Release --nologo -m:1
     if ($LASTEXITCODE -ne 0) { throw "Failed to build solution" }
 
     $srcRoot = Join-Path $repoRoot "src"
@@ -1028,7 +1056,7 @@ try {
                 }
 
                 foreach ($buildPath in $buildPaths) {
-                    dotnet build $buildPath --nologo --verbosity minimal 2>&1 | Where-Object { $_ -match "error|warning|succeeded|failed" }
+                    dotnet build $buildPath --nologo --verbosity minimal -m:1 2>&1 | Where-Object { $_ -match "error|warning|succeeded|failed" }
                     if ($LASTEXITCODE -ne 0) {
                         $scenarioFailures += "dotnet build failed for '$buildPath'"
                         Write-Fail "Build FAILED ($buildPath)"

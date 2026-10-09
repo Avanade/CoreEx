@@ -881,7 +881,7 @@ public class RelayTests : WithApiTester<YourDomain.Relay.Program>
         {
             test.Run(async _ =>
             {
-                var pub = ActivatorUtilities.GetServiceOrCreateInstance<PostgresOutboxPublisher>(test.Services);   // or SqlServerOutboxPublisher for relational providers; Cosmos relay coverage is best-effort until a dedicated sample relay host exists.
+                var pub = ActivatorUtilities.GetServiceOrCreateInstance<PostgresOutboxPublisher>(test.Services);   // Or SqlServerOutboxPublisher for SQL Server.
                 pub.Add("contoso", [ce1, ce2]);
                 await pub.PublishAsync();
 
@@ -900,7 +900,7 @@ public class RelayTests : WithApiTester<YourDomain.Relay.Program>
 
 The relay host exposes hosted-service management endpoints that can also be exercised in tests:
 
-For **Cosmos** domains there is no sample Relay host yet. Treat Cosmos relay validation as best-effort: where a solution has a Cosmos relay, publish the outbox document through `CosmosDbEventPublisher` inside `CosmosDbUnitOfWork.TransactionAsync(...)` and poll the downstream effect; if that flow is not yet available in the solution, fall back to health/hosted-service checks rather than inventing a fake relational-style test harness.
+For **Cosmos** domains, publish through `CosmosDbEventPublisher` inside `CosmosDbUnitOfWork.TransactionAsync(...)`, paired with a business mutation in the monitored container, then poll actual broker delivery and outbox cleanup. The relay's destination publisher stays Service Bus; never replace it with the Cosmos write-side publisher. Provision business and lease containers **before accessing the tester** (even `Test.Configuration` constructs the host and captures its first-start boundary). Test every outbox-hosting container and the configured first-start/checkpoint policy; use an isolated observation subscription rather than draining a running consumer's subscription. See [Customers RelayTests (CoreEx sample — illustrative)](https://github.com/Avanade/CoreEx/blob/main/samples/tests/Contoso.Customers.Test.Relay/RelayTests.cs).
 
 
 ```csharp

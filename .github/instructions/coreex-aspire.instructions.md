@@ -32,10 +32,10 @@ tags: ["aspire", "apphost", "mockhost", "e2e", "service-bus", "http", "wiremock"
 
 ## AppHost wiring
 
-Infrastructure (relational databases, the Cosmos emulator, Redis, and the Service Bus emulator) runs from `docker-compose.yml`, **not** Aspire. Model each dependency as the connection-string resource the host already expects (`SqlServer`, `Postgres`, or `Cosmos`; plus `redis` / `ServiceBus`), then add one `AddProject` per host, referencing only what it needs.
+Infrastructure (relational databases, the Cosmos emulator, Redis, and the Service Bus emulator) runs from `docker-compose.yml`, **not** Aspire. Model each dependency as a visible connection-string resource with the name the host already expects (`SqlServer`, `Postgres`, or `Cosmos`; plus `redis` / `ServiceBus`), then add one `AddProject` per host, referencing only what it needs. `AddExternalConnectionString` is supplied by `CoreEx.UnitTesting` in the `UnitTestEx` namespace alongside the other Aspire helpers; do not duplicate it locally.
 
 ```csharp
-var serviceBus = builder.AddConnectionString("ServiceBus").WithIconName("MailMultiple");
+var serviceBus = builder.AddExternalConnectionString("ServiceBus").WithIconName("MailMultiple");
 
 var productsApi = builder.AddProject<Projects.Contoso_Products_Api>("products-api")
     .WithReference(postgres).WithReference(redis).AddEndpoints("/health/ready/detailed");
@@ -47,7 +47,9 @@ builder.AddProject<Projects.Contoso_Products_Subscribe>("products-subscribe")
 
 - Resource names are kebab-case `{domain}-{host}` (`products-api`, `shopping-subscribe`). They are the names used by `Test.Http("products-api")`, `WaitForResourceAsync`, and service discovery — never rename casually.
 - Each new host needs a `<ProjectReference>` in the AppHost csproj (this is what generates `Projects.X`).
-- Relay: data provider + Service Bus. Subscribe: data provider + Redis + Service Bus. Api: data provider + Redis (+ Service Bus only if it publishes directly, not via outbox). For Cosmos domains, the data-provider reference is `builder.AddConnectionString("Cosmos")`; relational domains keep their existing SQL Server/Postgres connection-string resource.
+- Relay: data provider + Service Bus. Subscribe: data provider + Redis + Service Bus. Api: data provider + Redis (+ Service Bus only if it publishes directly, not via outbox). For Cosmos domains, use `builder.AddExternalConnectionString("Cosmos", endpointKey: "AccountEndpoint")`; relational domains keep their existing SQL Server/Postgres connection names.
+- The helper wraps secret `ConnectionStrings:{name}` parameters in visible `ConnectionStringResource` nodes. Plain `AddConnectionString(name)` creates parameter-only resources excluded from Aspire 13.5.4's Graph/Table views. Older AppHosts should update `CoreEx.UnitTesting` and adopt the scaffold pattern without overwriting custom wiring.
+- A running connection-string node means configuration resolved, not infrastructure health; host readiness checks still probe dependencies. Cosmos needs its configured endpoint URL for peer matching because the dashboard parser does not recognise `AccountEndpoint`. Keep credentials out of URLs, use explicit relational ports, and inspect `server.address`/`server.port`/`peer.service` before attributing a mislabelled span to a provider.
 
 ## HTTP calls outside the domain
 

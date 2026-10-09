@@ -9,23 +9,18 @@ builder.DisableHttpCertificateValidation();
 // IsRunMode: never surface this test-only resource in a published manifest (per the self-hosted WireMock.Net housekeeping note - see AppHost.cs's header comment).
 //var mockhost = builder.AddMockHostProject<Projects.solution-name-underscore_Aspire_MockHost>("mock-host");
 
-// External infrastructure (SQL Server, Postgres, Cosmos DB, Redis, Service Bus emulator) runs via docker-compose.yml, not
-// Aspire orchestration. These are modelled as connection-string resources - matching the connection name each host
-// passes to its own Aspire client-integration package (e.g. AddAzureNpgsqlDataSource("Postgres")) - purely so the
-// dashboard graph reflects the real dependencies. Aspire does not start/stop/health-check these resources; each
-// host's client-integration package already wires up its own OTLP telemetry and health checks regardless.
-// Icon names match what Aspire's own AddPostgres/AddSqlServer/AddRedis/AddAzureServiceBus hosting integrations
-// assign to the equivalent managed resource, so these look identical to the "real" ones in the dashboard.
+// Compose owns the infrastructure lifecycle; visible connection-string resources expose graph dependencies.
+// Secret parameters retain the existing ConnectionStrings configuration and are not graph nodes.
 // #if implement-postgres
-var db = builder.AddConnectionString("Postgres").WithIconName("DatabaseMultiple");
+var db = builder.AddExternalConnectionString("Postgres").WithIconName("DatabaseMultiple");
 // #elif implement-cosmos
-var db = builder.AddConnectionString("Cosmos").WithIconName("DatabaseMultiple");
+var db = builder.AddExternalConnectionString("Cosmos", endpointKey: "AccountEndpoint").WithIconName("DatabaseMultiple");
 // #elif implement-sqlserver
-var db = builder.AddConnectionString("SqlServer").WithIconName("DatabaseMultiple");
+var db = builder.AddExternalConnectionString("SqlServer").WithIconName("DatabaseMultiple");
 // #endif
-var redis = builder.AddConnectionString("redis").WithIconName("Database");
+var redis = builder.AddExternalConnectionString("redis").WithIconName("Database");
 // #if implement-servicebus
-var serviceBus = builder.AddConnectionString("ServiceBus").WithIconName("MailMultiple");
+var serviceBus = builder.AddExternalConnectionString("ServiceBus").WithIconName("MailMultiple");
 // #endif
 // domain-name domain.
 // #if has-api

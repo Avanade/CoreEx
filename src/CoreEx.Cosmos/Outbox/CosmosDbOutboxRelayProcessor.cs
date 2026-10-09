@@ -35,6 +35,12 @@ public class CosmosDbOutboxRelayProcessor(IServiceProvider serviceProvider, stri
     protected CosmosDbOutboxRelayInvoker Invoker { get; } = invoker ?? CosmosDbOutboxRelayInvoker.Default;
 
     /// <summary>
+    /// Gets or sets whether instrumentation is enabled for publishing.
+    /// </summary>
+    /// <remarks>Defaults to <see langword="true"/> to retain delivery spans and originating-trace relay markers, matching the relational outbox relays.</remarks>
+    public bool IsInstrumentationEnabledForPublishing { get; set; } = true;
+
+    /// <summary>
     /// Processes a single batch of changes as delivered by the Change Feed Processor.
     /// </summary>
     /// <param name="changes">The changed documents (may include co-located business documents - only <see cref="CosmosDbOutboxEvent.OutboxKeyPrefix"/>-prefixed ones are relayed).</param>
@@ -74,6 +80,7 @@ public class CosmosDbOutboxRelayProcessor(IServiceProvider serviceProvider, stri
 
         try
         {
+            using var instrumentation = SuppressInstrumentationScope.Begin(!IsInstrumentationEnabledForPublishing);
             await Invoker.InvokeAsync(this, async (tracer, ct) =>
             {
                 if (tracer.Activity is not null)

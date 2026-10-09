@@ -10,12 +10,13 @@ Aspire is the required foundation for any activity that involves **cross-domain 
 
 ## What Aspire orchestrates
 
-The `Contoso.Aspire` AppHost (`samples/aspire/Contoso.Aspire/AppHost.cs`) registers all six Products/Shopping hosts, the Customers API, the Orders workflow worker, and a WireMock.Net stub host:
+The `Contoso.Aspire` AppHost (`samples/aspire/Contoso.Aspire/AppHost.cs`) registers all six Products/Shopping hosts, the Customers API and Cosmos relay, the Orders workflow worker, and a WireMock.Net stub host:
 
 | Resource name | Host project | Endpoints exposed |
 |---|---|---|
 | `mock-host` | `Contoso.Aspire.MockHost` | WireMock.Net stub server (see [MockHost](#mockhost-stubbing-external-dependencies) below) |
 | `customers-api` | `Contoso.Customers.Api` | HTTP + `/health/ready/detailed` (called by `shopping-api` and `shopping-subscribe`) |
+| `customers-relay` | `Contoso.Customers.Relay` | Cosmos + Service Bus; HTTP + `/health/ready/detailed` + hosted-service controls |
 | `products-api` | `Contoso.Products.Api` | HTTP + `/health/ready/detailed` |
 | `products-relay` | `Contoso.Products.Relay` | HTTP + `/health/ready/detailed` + hosted-service controls |
 | `products-subscribe` | `Contoso.Products.Subscribe` | HTTP + `/health/ready/detailed` + hosted-service controls |
@@ -27,7 +28,13 @@ The `Contoso.Aspire` AppHost (`samples/aspire/Contoso.Aspire/AppHost.cs`) regist
 
 The `AddEndpoints(...)`/`AddHostedServiceSupport()`/`DisableHttpCertificateValidation()`/`AddMockHostProject<...>(...)` calls used to wire up the resources above are extension methods on `IDistributedApplicationBuilder`/`IResourceBuilder<ProjectResource>` provided by the `CoreEx.UnitTesting` package's Aspire support (`<Using Include="UnitTestEx.Aspire" />` in `Contoso.Aspire.csproj`) — there is no local `Extensions.cs`.
 
+`AddExternalConnectionString(...)` is also provided by `CoreEx.UnitTesting` (`UnitTestEx` namespace), in `UnitTestExExtensions.Aspire.cs`; AppHosts should not maintain their own copies.
+
 Hosted-service resources (outbox relays and subscribers) also get **Pause all services** and **Resume all services** commands surfaced as buttons in the Aspire Dashboard, backed by the `/hosted-services/all/pause` and `/hosted-services/all/resume` management endpoints. This allows controlled simulation of relay downtime or subscriber lag without restarting the process.
+
+Customers API uses Cosmos DB and Redis-backed FusionCache (L1 memory, L2 Redis, and a Redis backplane), matching the relational APIs' caching configuration. Its readiness check probes both Cosmos and Redis. The API enables `Azure.Experimental.EnableActivitySource` in its runtime configuration so Cosmos SDK operations appear as dependency spans; missing spans do not imply that readiness skipped the database check. Shopping and Orders use SQL Server, while Products uses PostgreSQL; dashboard peer labels are inferred from endpoint attributes, not from the domain's database provider.
+
+External infrastructure is represented by visible **connection-string resources** (`Postgres`, `SqlServer`, `redis`, `ServiceBus`, and `Cosmos`), so the Graph view includes these nodes and their host dependencies. Each wraps a secret parameter backed by the existing `ConnectionStrings` configuration; parameters alone are excluded from Aspire 13.5.4's Graph and Table views. Compose still owns the actual infrastructure processes, and host readiness checks remain responsible for probing them; a running connection-string resource only means its configuration resolved. Cosmos additionally exposes the configured `AccountEndpoint` as a resource URL because the dashboard's connection-string parser does not recognise that key, preventing correct HTTP peer attribution otherwise.
 
 ### MockHost — stubbing external dependencies
 
@@ -56,6 +63,7 @@ And databases must have been migrated and seeded at least once (see [tooling.md 
 ```bash
 dotnet run --project samples/src/Contoso.Products.Database -- all
 dotnet run --project samples/src/Contoso.Shopping.Database -- all
+dotnet run --project samples/src/Contoso.Customers.Database -f net10.0 -- All
 ```
 
 ### Start all hosts
@@ -88,7 +96,9 @@ The hosted-service command buttons (Pause / Resume) are also surfaced here, maki
 
 `Contoso.Test.Aspire` (`samples/aspire/Contoso.Test.Aspire/E2ETest.cs`) is an NUnit project that provides an **automated, CI-friendly** counterpart to the interactive E2E Runner described below. Unlike the E2E Runner, it does not require Aspire to already be running — its single test class derives from `WithAspireTester<Projects.Contoso_Aspire>` (from `CoreEx.UnitTesting`'s Aspire support), which starts the whole `Contoso.Aspire` AppHost itself for the duration of the test run.
 
-Its `OnBeforeStartAsync` override migrates and seeds the Products (Postgres), Shopping (SQL Server) and Customers (Cosmos DB) databases, clears the Redis cache, and resets the Service Bus emulator's queues/topics/subscriptions to a known state (the topology is the code-based `ServiceBus` class), then `OnAfterStartAsync` waits for `products-api`/`shopping-api`/`customers-api` to report healthy — all via `app.*` helpers (`MigratePostgresDataAsync`, `MigrateSqlServerDataAsync`, `MigrateCosmosDataAsync`, `ClearRedisCacheAsync`, `ResetAzureServiceBusAsync`, `WaitForResourceAsync`) resolved against the live AppHost's resources by name. The single `[Test]` (`CreateOrderAndConfirm`) then drives the same cross-domain flow as the E2E Runner's **Shopping Basket Lifecycle** scenario — create/activate a Product, adjust inventory, create a Customer (with a shipping address), create a Basket for that Customer (validated in real time against `customers-api`, with the address defaulted), add items, apply a discount, checkout, then poll until the async inventory reservation is confirmed via the outbox/Service Bus/Subscribe path and the confirmation email addressed to the Customer's real email address reaches the stubbed SendGrid — asserting each step instead of just reporting success/failure interactively.
+Its `OnBeforeStartAsync` override migrates and seeds the Products (Postgres), Shopping (SQL Server) and Customers (Cosmos DB) databases, clears the Redis cache, and resets the Service Bus emulator's queues/topics/subscriptions to a known state (the topology is the code-based `ServiceBus` class), then `OnAfterStartAsync` waits for `products-api`/`shopping-api`/`customers-api` and `customers-relay` to report healthy. The `CreateOrderAndConfirmAsync` test drives the same cross-domain flow as the E2E Runner's **Shopping Basket Lifecycle** scenario: checkout, async inventory confirmation, and the stubbed SendGrid email.
+
+`Customers_Api_Outbox_Relay_PublishesEvents` additionally drives customer create/update/delete and reference-data create/update/activate/deactivate/delete through the real Customers API. It receives the resulting events on the isolated, session-enabled `customers-relay` subscription using the Service Bus SDK and the AppHost's resolved connection string. Bounded polling correlates messages to this test's entity identifiers and event types; it does not drain Products/Shopping subscriptions or assume exactly-once delivery. No Customers subscriber or replication flow is introduced.
 
 Use `Contoso.Test.Aspire` when you want a single deterministic pass/fail signal (e.g. in CI, or as a quick local smoke test after a change) — `dotnet test samples/aspire/Contoso.Test.Aspire`. Use the E2E Runner (below) when you want to explore interactively, run load simulations, or watch traces build up live in the Aspire Dashboard against a long-running AppHost.
 

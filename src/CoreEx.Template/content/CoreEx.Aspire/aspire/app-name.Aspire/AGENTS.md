@@ -11,7 +11,7 @@ orchestrates this solution's own runtime hosts for local development and exposes
 
 ## What This Project Does
 
-`AppHost.cs` first declares shared connection-string resources (SQL Server/Postgres/Cosmos DB, Redis, Service Bus -- whichever
+`AppHost.cs` first declares visible connection-string resources (SQL Server/Postgres/Cosmos DB, Redis, Service Bus -- whichever
 apply per `data-provider`/`messaging-provider`), matching the connection name each host passes to its own Aspire
 client-integration package (e.g. `AddAzureNpgsqlDataSource("Postgres")`). It then calls
 `builder.AddProject<Projects.X>(...)` once per runtime host this solution has, chaining `.WithReference(...)` for
@@ -22,6 +22,15 @@ business logic or DI registrations for the hosts themselves -- those live in eac
 sugar (`AddEndpoints`/`AddCommand`/`AddHostedServiceSupport`/`DisableHttpCertificateValidation`, provided by the
 `CoreEx.UnitTesting` package referenced by this project -- see `<Using Include="UnitTestEx" />` in
 `app-name.Aspire.csproj`).
+
+`AddExternalConnectionString` is supplied by `CoreEx.UnitTesting` in the `UnitTestEx` namespace, alongside
+the other Aspire helpers; do not duplicate it locally. It wraps secret parameters from `ConnectionStrings:{name}` in visible `ConnectionStringResource`
+nodes; plain `AddConnectionString(name)` creates parameters excluded from Aspire's Graph/Table views.
+Keep the existing connection names and `.WithReference(...)` chains. Compose owns the infrastructure lifecycle;
+the node's running status indicates resolved configuration, not a successful connectivity probe. Hosts own readiness
+checks. Cosmos exposes its configured `AccountEndpoint` as a resource URL for peer matching; never include credentials
+in dashboard URLs. Use explicit PostgreSQL/SQL Server ports and inspect span endpoint attributes before diagnosing
+mislabelled dependencies; shared localhost addresses do not identify the database provider.
 
 This solution was generated with:
 

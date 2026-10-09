@@ -10,6 +10,17 @@ The single test-support package for the entire CoreEx ecosystem. One `<PackageRe
 
 No additional CoreEx test packages are needed — this package covers everything.
 
+## Aspire External Infrastructure
+
+Use `builder.AddExternalConnectionString("Postgres")` / `"SqlServer"` / `"redis"` / `"ServiceBus"` to expose
+Compose-owned dependencies as visible graph nodes. For Cosmos use
+`builder.AddExternalConnectionString("Cosmos", endpointKey: "AccountEndpoint")`.
+The extension is in `UnitTestExExtensions.Aspire.cs` (`UnitTestEx` namespace), alongside the other Aspire helpers;
+do not duplicate it in an AppHost. Existing `ConnectionStrings:{name}` values are read through secret parameters.
+Node status means configuration resolved, not service health; hosts own readiness probes. Endpoint URLs must be
+absolute HTTP/HTTPS and contain no credentials. Plain `AddConnectionString(name)` creates parameter-only resources
+excluded from Aspire 13.5.4's Graph/Table views.
+
 ## Test Class Shape (NUnit)
 
 ```csharp

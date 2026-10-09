@@ -63,10 +63,11 @@ The emulator is pre-configured by `servicebus/Config.json`. Key values the sampl
 | Topic | `contoso` |
 | Subscription — Products | `products` (session-enabled) |
 | Subscription — Shopping | `shopping` (session-enabled) |
+| Subscription — Customers relay tests | `customers-relay` (session-enabled observation subscription; no Customers Subscribe host) |
 | Queue — Products commands | `contoso-products` (session-enabled; Shopping → Products `reservation.confirm`/`reservation.cancel` commands) |
 | Unit test topics | `unit-test`, `unit-test-2` (used by integration tests) |
 
-The `contoso` topic is shared across both domains for **events**. Session-enabled subscriptions ensure ordered, per-entity processing of events. **Commands** are single-consumer: the `NamedDestinationProvider` routes each command to a per-target-domain queue (`contoso-{domain}`, e.g. `contoso-products`) so only the addressed domain sees it. Any new command target needs a matching queue in `servicebus/Config.json` (and in the tests' `ServiceBus.GetQueues()`), and the emulator container must be restarted to pick it up.
+The `contoso` topic is shared across Products, Shopping, and Customers for **events**. The `customers-relay` subscription is test-owned observation, not a business consumer. Session-enabled subscriptions ensure ordered, per-entity processing of events. **Commands** are single-consumer: the `NamedDestinationProvider` routes each command to a per-target-domain queue (`contoso-{domain}`, e.g. `contoso-products`) so only the addressed domain sees it. Any new command target needs a matching queue in `servicebus/Config.json` (and in the tests' `ServiceBus.GetQueues()`), and the emulator container must be restarted to pick it up.
 
 ---
 
@@ -164,6 +165,11 @@ Use this when working on a single domain or running intra-domain integration tes
 dotnet run --project samples/src/Contoso.Products.Api
 dotnet run --project samples/src/Contoso.Products.Relay
 dotnet run --project samples/src/Contoso.Products.Subscribe
+
+# Customers (provision both business containers and $outbox-leases first)
+dotnet run --project samples/src/Contoso.Customers.Database -f net10.0 -- All
+dotnet run --project samples/src/Contoso.Customers.Api -f net10.0
+dotnet run --project samples/src/Contoso.Customers.Relay -f net10.0
 
 # Shopping
 dotnet run --project samples/src/Contoso.Shopping.Api

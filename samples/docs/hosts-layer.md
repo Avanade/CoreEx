@@ -6,11 +6,11 @@ The host is the **composition root** of the application. It sits above all layer
 
 **Example projects**
 
-| Host type | Products | Shopping |
-|---|---|---|
-| API | [`Contoso.Products.Api`](../src/Contoso.Products.Api) | [`Contoso.Shopping.Api`](../src/Contoso.Shopping.Api) |
-| Outbox Relay | [`Contoso.Products.Relay`](../src/Contoso.Products.Relay) | [`Contoso.Shopping.Relay`](../src/Contoso.Shopping.Relay) |
-| Subscribe | [`Contoso.Products.Subscribe`](../src/Contoso.Products.Subscribe) | [`Contoso.Shopping.Subscribe`](../src/Contoso.Shopping.Subscribe) |
+| Host type | Products | Shopping | Customers |
+|---|---|---|---|
+| API | [`Contoso.Products.Api`](../src/Contoso.Products.Api) | [`Contoso.Shopping.Api`](../src/Contoso.Shopping.Api) | [`Contoso.Customers.Api`](../src/Contoso.Customers.Api) |
+| Outbox Relay | [`Contoso.Products.Relay`](../src/Contoso.Products.Relay) | [`Contoso.Shopping.Relay`](../src/Contoso.Shopping.Relay) | [`Contoso.Customers.Relay`](../src/Contoso.Customers.Relay) |
+| Subscribe | [`Contoso.Products.Subscribe`](../src/Contoso.Products.Subscribe) | [`Contoso.Shopping.Subscribe`](../src/Contoso.Shopping.Subscribe) | Not implemented |
 
 ---
 
@@ -196,6 +196,18 @@ app.MapHostedServices();  // Exposes pause/resume management endpoints.
 ```
 
 > The `Program.cs` for the Outbox Relay is intentionally minimal — no controllers, no OpenAPI document, no application-layer services. Its sole concern is shuttling committed outbox records to the broker reliably.
+
+### Customers Cosmos relay
+
+[`Contoso.Customers.Relay`](../src/Contoso.Customers.Relay) uses `AddCosmosDbOutboxRelayHostedService` once for `customers` and once for `ref-data` in database `contoso`. Outbox documents are committed beside business documents in the same container/partition; there is no separate Cosmos outbox container. Both processor groups share the `$outbox-leases` container, provisioned by `Contoso.Customers.Database` with partition key `/id`. The relay never creates that container and fails startup if it is missing.
+
+`CoreEx:Host:Services:CosmosOutboxRelay:{containerId}` controls `ServicesCount`, `PollInterval`, and `BatchSize` independently for each container. The sample defaults to two processors per container, named `cosmos-outbox-relay-customers-00/01` and `cosmos-outbox-relay-ref-data-00/01`. Each exposes the standard status/pause/resume endpoints. Pausing retains pending events and resuming continues from the saved change-feed position.
+
+**First-start policy:** a single live UTC host-start boundary is supplied to both processor groups. With no existing checkpoint, older pending outbox documents are intentionally skipped and left to expire under their existing seven-day TTL. This is not a historical replay. On later restarts, saved checkpoints take precedence, so downtime does not reset the feed to the new startup time. Deleting the lease state resets this behavior and can skip pending events again. The boundary uses Cosmos change-feed timestamps, not the event's application timestamp.
+
+Service Bus is the relay's destination `IEventPublisher`, never the Cosmos write-side publisher. CloudEvent payloads and metadata are preserved, and partition keys map to session identifiers consistently with the other relays. Delivery is **at-least-once**: publish retries or replay from a checkpoint can duplicate messages; consumers must tolerate duplicates. Events expire if an outage exceeds their outbox TTL.
+
+Tracing follows the relational relay defaults: idle change-feed polling, lease maintenance, and cleanup SDK/HTTP spans are suppressed, while actual publishing spans and originating-trace relay markers remain enabled. Metrics and warning/error logs are retained. Set `CosmosDbOutboxRelayOptions.IsInstrumentationEnabledForPolling` to `true` through `configureOptions` before start/resume when investigating processor internals. The Customers relay additionally constructs its singleton Cosmos client under an instrumentation-suppression scope: the SDK starts account discovery and its five-minute account-refresh timer during client construction, before the change-feed processor's lifecycle scopes exist. Foreground health checks remain instrumented after the construction scope is disposed.
 
 ### Distributed tracing: why the relay's own span is not the originating trace's parent/child
 

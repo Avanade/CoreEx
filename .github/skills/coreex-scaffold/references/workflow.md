@@ -322,7 +322,7 @@ State that the workflow will finish by wiring projects into the solution and run
 4. Stop if the dry-run shows nested root folders, incorrect host names, or a layout that conflicts with the existing repo.
 5. For bootstrap-only repos, run `coreex` first (omit `-n` when the folder name matches), then add each needed host template with the **4-part name** (`base.Api`, `base.Relay`, `base.Subscribe`).
 6. For retrofit work, add only the missing hosts unless the user explicitly asked for broader reshaping.
-7. If an Aspire AppHost was requested, run `coreex-aspire` last, after every chosen host template has already been generated -- its `--has-*` flags and generated `Projects.*` references depend on those hosts already existing.
+7. If an Aspire AppHost was requested, run `coreex-aspire` last, after every chosen host template has already been generated -- its `--has-*` flags and generated `Projects.*` references depend on those hosts already existing. Preserve its visible external resources using `CoreEx.UnitTesting`'s `AddExternalConnectionString`; do not replace them with parameter-only `AddConnectionString(name)` calls or duplicate the helper locally. Configure `ConnectionStrings` in the AppHost; Cosmos's resource URL is derived from `AccountEndpoint`, while Compose retains infrastructure lifecycle ownership.
 8. After generating all host templates (and the AppHost, if requested), run `dotnet sln` to add every new host project and its test project to the `.slnx` solution file.
 9. Verify that each expected generated host and test project exists on disk before moving to validation.
 

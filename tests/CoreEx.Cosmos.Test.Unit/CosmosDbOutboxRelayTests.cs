@@ -332,6 +332,115 @@ public class CosmosDbOutboxRelayTests : CosmosTestBase
 
     private const string DisposeLeaseContainerId = "relay-items-leases";
 
+    [TestCase(false, true)]
+    [TestCase(true, true)]
+    [TestCase(false, false)]
+    public async Task Relay_Instrumentation_SuppressesPollingButPreservesPublishing(bool pollingEnabled, bool publishingEnabled)
+    {
+        const string containerId = "relay-telemetry-items";
+        const string leaseContainerId = "relay-telemetry-leases";
+        await GetOrCreateContainerAsync(containerId).ConfigureAwait(false);
+        await TestDatabase.CreateContainerIfNotExistsAsync(leaseContainerId, "/id").ConfigureAwait(false);
+
+        var activities = new ConcurrentQueue<Activity>();
+        using var telemetry = Sdk.CreateTracerProviderBuilder()
+            .AddSource("Azure.Cosmos.Operation", "test.outbox.*", CloudEventTracingExtensions.RelayMarkerActivitySourceName)
+            .AddInvokerAsSource<CosmosDbOutboxRelayInvoker>().AddHttpClientInstrumentation()
+            .SetSampler(new AlwaysOnSampler())
+            .AddProcessor(new CaptureActivityProcessor(activities)).Build();
+        CosmosClient client;
+        // The client starts its own account-discovery work during construction, outside the relay's lifecycle.
+        using (SuppressInstrumentationScope.Begin(!pollingEnabled))
+            client = CreateClient(enableTracing: true);
+        using var ownedClient = client;
+        var cosmosDb = new CosmosDb(client, TestDatabase.Id);
+        var publisher = new TestEventPublisher();
+        using var sp = new ServiceCollection()
+            .AddScoped<ICosmosDb>(_ => new CosmosDb(client, TestDatabase.Id))
+            .AddSingleton<IEventPublisher>(publisher).BuildServiceProvider();
+        var processor = new CosmosDbOutboxRelayProcessor(sp, containerId, NullLogger<CosmosDbOutboxRelayProcessor>.Instance)
+        {
+            IsInstrumentationEnabledForPublishing = publishingEnabled
+        };
+        var options = new CosmosDbOutboxRelayOptions
+        {
+            ContainerId = containerId,
+            LeaseContainerId = leaseContainerId,
+            InstanceName = $"instance-{NewId()}",
+            PollInterval = TimeSpan.FromMilliseconds(200),
+            IsInstrumentationEnabledForPolling = pollingEnabled
+        };
+        await using var relay = new CosmosDbOutboxRelay(cosmosDb.Database, options, processor, NullLogger<CosmosDbOutboxRelay>.Instance);
+
+        await relay.StartAsync().ConfigureAwait(false);
+        await Task.Delay(TimeSpan.FromSeconds(2)).ConfigureAwait(false);
+        AssertPollingActivities();
+
+        await relay.PauseAsync("Verify instrumentation after resume.").ConfigureAwait(false);
+        activities.Clear();
+        await relay.ResumeAsync().ConfigureAwait(false);
+        await Task.Delay(TimeSpan.FromSeconds(2)).ConfigureAwait(false);
+        AssertPollingActivities();
+
+        var id = NewId();
+        using var producerSource = new ActivitySource("test.outbox.producer");
+        ActivityContext origin;
+        using (var producer = producerSource.StartActivity("original-request"))
+        {
+            producer.Should().NotBeNull();
+            origin = producer!.Context;
+            var outbox = new CosmosDbEventPublisher(cosmosDb);
+            var unitOfWork = new CosmosDbUnitOfWork(cosmosDb, outbox);
+            await unitOfWork.TransactionAsync(async ct =>
+            {
+                var created = await cosmosDb.Container<TestItem>(containerId, o => o.WithPartitionKey(m => m.PartitionKey))
+                    .CreateAsync(new TestItem { Id = id, PartitionKey = id, Name = "Telemetry" }, ct).ConfigureAwait(false);
+                unitOfWork.Events.Add(EventData.CreateEventWith(created.Value, EventAction.Created).WithSource(new Uri("https://unittest/coreex-cosmos")).WithPartitionKey(id));
+            }).ConfigureAwait(false);
+        }
+
+        await WaitUntilAsync(() =>
+        {
+            lock (publisher.Published)
+                return publisher.Published.Any(e => e.Event.Subject == id);
+        }, TimeSpan.FromSeconds(15)).ConfigureAwait(false);
+        await relay.StopAsync().ConfigureAwait(false);
+        publisher.Published.Should().Contain(e => e.Event.Subject == id);
+
+        var cleanup = activities.Where(a => a.Source.Name == "Azure.Cosmos.Operation" && a.DisplayName.StartsWith("delete_item", StringComparison.Ordinal)).ToArray();
+        if (pollingEnabled)
+            cleanup.Should().NotBeEmpty();
+        else
+            cleanup.Should().BeEmpty("cleanup uses the suppressed polling context, not the publishing context");
+
+        var delivery = activities.Where(a => a.OperationName == "test-publish").ToArray();
+        var markers = activities.Where(a => a.Source.Name == CloudEventTracingExtensions.RelayMarkerActivitySourceName && a.TraceId == origin.TraceId).ToArray();
+        if (publishingEnabled)
+        {
+            delivery.Should().NotBeEmpty();
+            activities.Should().Contain(a => a.GetTagItem("outbox.container") as string == containerId);
+            markers.Should().NotBeEmpty();
+            markers.Should().OnlyContain(a => a.ParentSpanId == origin.SpanId);
+        }
+        else
+        {
+            delivery.Should().BeEmpty();
+            markers.Should().BeEmpty();
+            activities.Should().NotContain(a => a.GetTagItem("outbox.container") as string == containerId);
+        }
+
+        void AssertPollingActivities()
+        {
+            if (pollingEnabled)
+            {
+                activities.Select(a => $"{a.Source.Name}: {a.DisplayName}").Should().Contain(s => s.StartsWith("Azure.Cosmos", StringComparison.Ordinal));
+                activities.Select(a => a.Source.Name).Should().Contain("System.Net.Http");
+            }
+            else
+                activities.Should().BeEmpty("idle change-feed and lease maintenance must not emit SDK or HTTP spans");
+        }
+    }
+
     [Test]
     public async Task DisposeAsync_WithoutPriorStop_StopsProcessorAndIsIdempotent()
     {
@@ -403,12 +512,15 @@ public class CosmosDbOutboxRelayTests : CosmosTestBase
 
     private sealed class TestEventPublisher : EventPublisherBase
     {
+        private static readonly ActivitySource _source = new("test.outbox.publisher");
+
         public List<DestinationEvent> Published { get; } = [];
 
         public bool ThrowOnPublish { get; set; }
 
         protected override Task OnPublishAsync(DestinationEvent[] events, CancellationToken cancellationToken = default)
         {
+            using var activity = _source.StartActivity("test-publish");
             if (ThrowOnPublish)
                 throw new InvalidOperationException("Simulated publish failure.");
 
@@ -417,5 +529,10 @@ public class CosmosDbOutboxRelayTests : CosmosTestBase
 
             return Task.CompletedTask;
         }
+    }
+
+    private sealed class CaptureActivityProcessor(ConcurrentQueue<Activity> activities) : BaseProcessor<Activity>
+    {
+        public override void OnEnd(Activity data) => activities.Enqueue(data);
     }
 }

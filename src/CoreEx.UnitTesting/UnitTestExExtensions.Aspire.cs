@@ -5,6 +5,40 @@ namespace UnitTestEx;
 public static partial class UnitTestExExtensions
 {
     /// <summary>
+    /// Models externally managed infrastructure as a visible connection-string resource backed by secret configuration.
+    /// </summary>
+    /// <param name="builder">The <see cref="IDistributedApplicationBuilder"/>.</param>
+    /// <param name="name">The existing connection-string name.</param>
+    /// <param name="endpointKey">An optional connection-string key containing an absolute HTTP or HTTPS endpoint URL for dashboard peer matching.</param>
+    /// <returns>The visible resource, without taking ownership of the infrastructure lifecycle.</returns>
+    /// <remarks>Reads <c>ConnectionStrings:{name}</c> through a secret parameter. Unlike parameter-only <c>AddConnectionString(name)</c>,
+    /// this resource appears in Aspire's Graph/Table views. Its running status indicates resolved configuration, not service health;
+    /// hosts remain responsible for readiness probes. For Cosmos DB, specify <c>endpointKey: "AccountEndpoint"</c> because Aspire's
+    /// connection-string parser does not recognise that key. Credentials are not permitted in the endpoint URL.</remarks>
+    public static Aha.IResourceBuilder<ConnectionStringResource> AddExternalConnectionString(this IDistributedApplicationBuilder builder, string name, string? endpointKey = null)
+    {
+        builder.ThrowIfNull();
+        name.ThrowIfNullOrEmpty();
+        var parameter = builder.AddParameterFromConfiguration($"{name}-connection", $"ConnectionStrings:{name}", secret: true);
+        var resource = builder.AddConnectionString(name, Aha.ReferenceExpression.Create($"{parameter}"));
+
+        if (endpointKey is not null)
+        {
+            endpointKey.ThrowIfNullOrEmpty();
+            var connectionString = builder.Configuration.GetConnectionString(name) ?? throw new InvalidOperationException($"Connection string '{name}' is required.");
+            var properties = new DbConnectionStringBuilder { ConnectionString = connectionString };
+
+            if (!properties.TryGetValue(endpointKey, out var endpoint) || endpoint is not string url || !Uri.TryCreate(url, UriKind.Absolute, out var uri)
+                || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps) || !string.IsNullOrEmpty(uri.UserInfo))
+                throw new InvalidOperationException($"Connection string '{name}' must contain an absolute HTTP or HTTPS '{endpointKey}' URL without credentials.");
+
+            resource.WithUrl(uri.GetLeftPart(UriPartial.Authority));
+        }
+
+        return resource;
+    }
+
+    /// <summary>
     /// Annotates the resource's <c>http</c> endpoint with one or more relative <paramref name="urls"/> so they appear as clickable links in the Aspire dashboard.
     /// </summary>
     /// <param name="builder">The <see cref="Aha.IResourceBuilder{T}"/> of <see cref="Aha.ProjectResource"/>.</param>

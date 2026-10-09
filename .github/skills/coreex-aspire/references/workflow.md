@@ -35,6 +35,30 @@ Do not ask what Phase 1 already answered.
 
 ## Phase 3 — AppHost
 
+### External infrastructure
+
+Use **`CoreEx.UnitTesting`'s** `AddExternalConnectionString` helper in the `UnitTestEx` namespace, alongside
+`AddEndpoints` and the other Aspire helpers. Keep existing connection names and references:
+
+```csharp
+var db = builder.AddExternalConnectionString("Cosmos", endpointKey: "AccountEndpoint").WithIconName("DatabaseMultiple");
+var redis = builder.AddExternalConnectionString("redis").WithIconName("Database");
+var serviceBus = builder.AddExternalConnectionString("ServiceBus").WithIconName("MailMultiple");
+```
+
+For relational providers use `"Postgres"` or `"SqlServer"` without `endpointKey`. The helper wraps secret
+parameters from `ConnectionStrings:{name}` in visible connection-string nodes. Plain `AddConnectionString(name)`
+is parameter-only and absent from Aspire 13.5.4's Graph/Table views. For older AppHosts, update the pinned
+`CoreEx.UnitTesting` package to a release containing the helper, then change the declarations manually;
+do not regenerate with `--force` or add a duplicate local implementation.
+
+Compose retains lifecycle ownership. Node status means configuration resolved; hosts still perform readiness
+probes. Derive Cosmos's URL from `AccountEndpoint`, not a hard-coded emulator port, and never expose credentials
+in URLs. Set explicit relational ports (`5432`/`1433` for default local services). Dashboard trace attribution
+uses endpoint attributes, not provider names; inspect `server.address`, `server.port`, and `peer.service` if a span
+is mislabelled. Secret backing parameters can also participate in matching, so do not promise that graph visibility
+alone fixes all trace labels.
+
 ### New host
 
 ```csharp

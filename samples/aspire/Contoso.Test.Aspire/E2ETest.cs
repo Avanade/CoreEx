@@ -1,18 +1,17 @@
-using Aspire.Hosting;
-using Contoso.Products.Contracts;
-using Contoso.Shopping.Contracts;
-using CoreEx;
-
 namespace Contoso.Test.Aspire;
 
-public class E2ETest : WithAspireTester<Projects.Contoso_Aspire>
+public partial class E2ETest : WithAspireTester<Projects.Contoso_Aspire>
 {
     private readonly string _productsApi = "products-api";
     private readonly string _shoppingApi = "shopping-api";
     private readonly string _customersApi = "customers-api";
+    private string _serviceBusConnectionString = string.Empty;
 
     protected override async Task OnBeforeStartAsync(DistributedApplication app)
     {
+        _serviceBusConnectionString = await AspireTesterBase.GetConnectionStringAsync(app, "ServiceBus").ConfigureAwait(false)
+            ?? throw new InvalidOperationException("The ServiceBus resource has no connection string.");
+
         // Migrate the Products, Shopping and Customers databases and seed each with test data.
         await app.MigratePostgresDataAsync<Contoso.Products.Test.Common.TestData>("Postgres", ["mutate-data.seed.yaml"], Contoso.Products.Database.Program.ConfigureMigrationArgs);
         await app.MigrateSqlServerDataAsync<Contoso.Shopping.Test.Common.TestData>("SqlServer", ["mutate-data.seed.yaml"], Contoso.Shopping.Database.Program.ConfigureMigrationArgs);
@@ -28,7 +27,7 @@ public class E2ETest : WithAspireTester<Projects.Contoso_Aspire>
     protected override async Task OnAfterStartAsync(DistributedApplication app)
     {
         // Wait for the Products, Shopping and Customers APIs to be ready before running the tests.
-        await app.WaitForResourceAsync([_productsApi, _shoppingApi, _customersApi]);
+        await app.WaitForResourceAsync([_productsApi, _shoppingApi, _customersApi, "customers-relay"]);
 
         // Mock the SendGrid API so that the Shopping domain's Subscribe project can send emails without actually sending them.
         await app.HttpMock("mock-host", "http").Request(HttpMethod.Post, "/v3/mail/send").WithAnyBody().Respond.WithAsync(HttpStatusCode.Accepted);

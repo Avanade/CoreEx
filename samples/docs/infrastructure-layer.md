@@ -94,7 +94,7 @@ public class CustomerRepository(CustomersCosmosDb cosmos) : ICustomerRepository
 }
 ```
 
-Multi-document writes (e.g. an entity plus its outbox event) go through `CosmosDbUnitOfWork`, which uses `TransactionalBatch` to commit atomically within a partition — the Cosmos analogue of the EF Core `IUnitOfWork`/outbox pattern used by Products and Shopping. Because Customers has no Relay host yet, published events accumulate in the outbox container but are not currently forwarded to Service Bus.
+Multi-document writes (e.g. an entity plus its outbox event) go through `CosmosDbUnitOfWork`, which uses `TransactionalBatch` to commit atomically within a partition — the Cosmos analogue of the EF Core `IUnitOfWork`/outbox pattern used by Products and Shopping. Outbox documents are co-located with their business mutations in `customers` or `ref-data`. `Contoso.Customers.Relay` monitors both change feeds, publishes to Service Bus, and deletes successfully relayed documents. Its first-start policy excludes older pending events; subsequent restarts resume saved checkpoints (see [Customers Cosmos relay](hosts-layer.md#customers-cosmos-relay)).
 
 > **See also**: [`CosmosDb`](../../src/CoreEx.Cosmos/CosmosDb.cs) · [`CosmosDbContainer<TModel>`](../../src/CoreEx.Cosmos/CosmosDbContainer.cs) · [`CosmosDbMappedContainer<TValue,TModel,TMapper>`](../../src/CoreEx.Cosmos/CosmosDbMappedContainer.cs) · [`CosmosDbUnitOfWork`](../../src/CoreEx.Cosmos/CosmosDbUnitOfWork.cs)
 

@@ -20,6 +20,7 @@
   <Folder Name="/samples/Customers/" />
   <Folder Name="/samples/Customers/hosts/">
     <Project Path="samples/src/Contoso.Customers.Api/Contoso.Customers.Api.csproj" />
+    <Project Path="samples/src/Contoso.Customers.Relay/Contoso.Customers.Relay.csproj" />
   </Folder>
   <Folder Name="/samples/Customers/src/">
     <Project Path="samples/src/Contoso.Customers.Application/Contoso.Customers.Application.csproj" />
@@ -29,6 +30,7 @@
   <Folder Name="/samples/Customers/tests/">
     <Project Path="samples/tests/Contoso.Customers.Test.Api/Contoso.Customers.Test.Api.csproj" />
     <Project Path="samples/tests/Contoso.Customers.Test.Common/Contoso.Customers.Test.Common.csproj" />
+    <Project Path="samples/tests/Contoso.Customers.Test.Relay/Contoso.Customers.Test.Relay.csproj" />
     <Project Path="samples/tests/Contoso.Customers.Test.Unit/Contoso.Customers.Test.Unit.csproj" />
   </Folder>
   <Folder Name="/samples/Customers/tools/">

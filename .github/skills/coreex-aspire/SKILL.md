@@ -50,7 +50,7 @@ Get this wrong and the E2E either hides a real integration (stubbing an in-AppHo
 
 1. **Inspect** — read AppHost, MockHost, Test.Aspire, Test.Common `ServiceBus`, the calling host's `Program.cs` + `appsettings.Development.json`.
 2. **Interview** — what changed; where each callee lives; which async effect the E2E should prove.
-3. **AppHost** — add/adjust `AddProject` + `WithReference` (+ `ProjectReference`); service-discovery `BaseAddress`; MockHost wiring.
+3. **AppHost** — add/adjust visible external resources via `CoreEx.UnitTesting`'s `AddExternalConnectionString`, `AddProject` + `WithReference` (+ `ProjectReference`); service-discovery `BaseAddress`; MockHost wiring.
 4. **Topology** — add queues/topics/subscriptions to the `ServiceBus` class used by Test.Aspire (union class if multi-domain).
 5. **Test.Aspire** — `OnBeforeStartAsync` (migrate, cache, broker reset) / `OnAfterStartAsync` (wait, stubs); E2E test with bounded polling.
 6. **Validate** — `dotnet build` the AppHost + Test.Aspire; `dotnet test` when infrastructure is up.

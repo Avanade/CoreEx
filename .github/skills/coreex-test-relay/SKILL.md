@@ -44,10 +44,10 @@ rarely need new scenarios per domain.
 ## Quick Reference
 
 - **Base class**: `WithApiTester<{Domain}.Relay.Program>` — relay hosts have **no** FusionCache; do not call `ClearFusionCacheAsync()` here
-- **No DB/cache seeding needed for the core forwarding test** — relational relay tests write directly to the outbox via `Test.ScopedType<ExecutionContext>` and a provider-specific outbox publisher (`PostgresOutboxPublisher`/`SqlServerOutboxPublisher`), then wait for the background relay service to forward it. Cosmos relay coverage is currently best-effort until a dedicated sample Relay host exists.
+- **No business-data seeding needed for relational forwarding tests** — write directly to the outbox via `Test.ScopedType<ExecutionContext>` and a provider-specific outbox publisher (`PostgresOutboxPublisher`/`SqlServerOutboxPublisher`). Cosmos requires provisioned business/lease containers and an outbox event paired with a business mutation in the same transaction.
 - **Assert delivery** via `Test.GetAndClearAzureServiceBusAsync(...)` against the expected topic/subscription — or, for a **command**, the target domain queue: `Test.GetAndClearAzureServiceBusAsync(ServiceBusSessionReceiverOptions.CreateForQueue("{destination}-{target}"))` (the queue must exist in Test.Common `ServiceBus.GetQueues()`; see `coreex-command-publish-e2e`)
 - **Hosted-service management endpoints** are also testable over plain HTTP — `/hosted-services/{name}/pause`, `/resume`, etc.
-- **A domain rarely needs more than the templated `RelayTests.cs` + `OtherTests.Health.cs` + `OtherTests.HostedServices.cs`** — check what already exists before writing something new. For Cosmos domains, prefer health/hosted-service checks unless the solution already has a working Cosmos relay flow you can exercise end-to-end.
+- **Check existing coverage before extending it** — relational hosts usually need only `RelayTests.cs` + `OtherTests.Health.cs` + `OtherTests.HostedServices.cs`. Cosmos tests should cover every outbox-hosting container, cleanup, the first-start/checkpoint policy, and pause/resume.
 
 ```csharp
 public class RelayTests : WithApiTester<YourDomain.Relay.Program>
@@ -86,7 +86,7 @@ Test.Http()
     .Response.StatusCode.Should().Be(HttpStatusCode.Accepted);
 ```
 
-For **Cosmos** relay tests, publish via `CosmosDbEventPublisher` inside `CosmosDbUnitOfWork.TransactionAsync(...)` only when the solution already exposes that flow; otherwise treat the relay host's health/hosted-service endpoints as the safe minimum validation until a dedicated Cosmos Relay sample exists.
+For **Cosmos** relay tests, publish via `CosmosDbEventPublisher` inside `CosmosDbUnitOfWork.TransactionAsync(...)`, paired with a real business mutation, and use bounded polling to assert broker delivery and outbox cleanup. Keep the relay's default `IEventPublisher` registered as its broker destination. Provision containers before accessing the tester: even `Test.Configuration` constructs the host and captures its first-start boundary. Use a test-owned observation subscription and do not reset containers beneath a running change-feed processor. The Customers sample below demonstrates both `PartitionKey.None` and explicit partition keys.
 
 ## Troubleshooting — Service Bus Emulator "Entity Not Found"
 
@@ -107,4 +107,5 @@ running, and that the test resets the entities via `Test.ResetAzureServiceBusAsy
 - `coreex-test-api` / `coreex-test-subscribe` — the other two integration test skills, both more likely to need per-domain extension than this one
 - Illustrative examples (CoreEx sample — not present in your project):
   - [RelayTests.cs](https://github.com/Avanade/CoreEx/blob/main/samples/tests/Contoso.Products.Test.Relay/RelayTests.cs) — canonical outbox-forwarding test
+  - [Customers RelayTests.cs](https://github.com/Avanade/CoreEx/blob/main/samples/tests/Contoso.Customers.Test.Relay/RelayTests.cs) — Cosmos two-container forwarding, cleanup, first-start exclusion, and management checks
   - [OtherTests.Health.cs](https://github.com/Avanade/CoreEx/blob/main/samples/tests/Contoso.Products.Test.Relay/OtherTests.Health.cs), [OtherTests.HostedServices.cs](https://github.com/Avanade/CoreEx/blob/main/samples/tests/Contoso.Products.Test.Relay/OtherTests.HostedServices.cs) — health and hosted-service management checks

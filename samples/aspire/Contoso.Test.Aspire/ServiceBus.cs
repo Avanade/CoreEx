@@ -12,7 +12,8 @@ public static class ServiceBus
         (new CreateTopicOptions("contoso"),
         [
             new CreateSubscriptionOptions("contoso", "shopping") { RequiresSession = true },
-            new CreateSubscriptionOptions("contoso", "products") { RequiresSession = true }
+            new CreateSubscriptionOptions("contoso", "products") { RequiresSession = true },
+            new CreateSubscriptionOptions("contoso", Contoso.Customers.Test.Common.ServiceBus.ObservationSubscription) { RequiresSession = true }
         ])
     ];
 }

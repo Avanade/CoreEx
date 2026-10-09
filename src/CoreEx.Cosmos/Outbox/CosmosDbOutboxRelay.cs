@@ -103,6 +103,8 @@ public sealed class CosmosDbOutboxRelay : IAsyncDisposable
             if (!Status.CanStart)
                 return;
 
+            // SDK background tasks inherit this scope; publishing explicitly restores instrumentation in the batch processor.
+            using var instrumentation = SuppressInstrumentationScope.Begin(!Options.IsInstrumentationEnabledForPolling);
             await EnsureLeaseContainerExistsAsync(cancellationToken).ConfigureAwait(false);
 
             LogStatusChange(Status = ServiceStatus.Starting);
@@ -145,6 +147,7 @@ public sealed class CosmosDbOutboxRelay : IAsyncDisposable
             if (!Status.CanPause)
                 return;
 
+            using var instrumentation = SuppressInstrumentationScope.Begin(!Options.IsInstrumentationEnabledForPolling);
             StatusReason = reason;
             LogStatusChange(Status = ServiceStatus.Pausing);
             await _processor.StopAsync().ConfigureAwait(false);
@@ -168,6 +171,7 @@ public sealed class CosmosDbOutboxRelay : IAsyncDisposable
             if (!Status.CanResume)
                 return;
 
+            using var instrumentation = SuppressInstrumentationScope.Begin(!Options.IsInstrumentationEnabledForPolling);
             LogStatusChange(Status = ServiceStatus.Resuming);
             await _processor.StartAsync().ConfigureAwait(false);
             LogStatusChange(Status = ServiceStatus.Running);
@@ -187,6 +191,7 @@ public sealed class CosmosDbOutboxRelay : IAsyncDisposable
         await _semaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
+            using var instrumentation = SuppressInstrumentationScope.Begin(!Options.IsInstrumentationEnabledForPolling);
             var wasInitializing = Status.IsInitializing;
             LogStatusChange(Status = ServiceStatus.Stopping);
 

@@ -32,6 +32,12 @@ public sealed class CosmosDbOutboxRelayOptions
     public TimeSpan? PollInterval { get; set; }
 
     /// <summary>
+    /// Gets or sets whether instrumentation is enabled for change-feed polling and lease maintenance.
+    /// </summary>
+    /// <remarks>Defaults to <see langword="false"/> to suppress frequent background SDK and HTTP spans, matching the relational outbox relays. Applied when the processor starts or resumes.</remarks>
+    public bool IsInstrumentationEnabledForPolling { get; set; }
+
+    /// <summary>
     /// Gets or sets the maximum number of items returned per batch; where not specified, the Change Feed Processor default applies.
     /// </summary>
     /// <remarks>Named to match the equivalent SQL Server/Postgres outbox relay hosted service configuration (<c>DatabaseOutboxRelayHostedServiceBase.BatchSize</c>) rather than the underlying Change Feed

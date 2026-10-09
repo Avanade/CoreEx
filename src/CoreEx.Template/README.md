@@ -602,9 +602,9 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 builder.DisableHttpCertificateValidation();
 
-var db = builder.AddConnectionString("Postgres").WithIconName("DatabaseMultiple");
-var redis = builder.AddConnectionString("redis").WithIconName("Database");
-var serviceBus = builder.AddConnectionString("ServiceBus").WithIconName("MailMultiple");
+var db = builder.AddExternalConnectionString("Postgres").WithIconName("DatabaseMultiple");
+var redis = builder.AddExternalConnectionString("redis").WithIconName("Database");
+var serviceBus = builder.AddExternalConnectionString("ServiceBus").WithIconName("MailMultiple");
 
 // Sales domain.
 builder.AddProject<Projects.Avanade_Erp_Sales_Api>("sales-api").WithReference(db).WithReference(redis).AddEndpoints("/health/ready/detailed");
@@ -613,6 +613,20 @@ builder.AddProject<Projects.Avanade_Erp_Sales_Subscribe>("sales-subscribe").With
 
 builder.Build().Run();
 ```
+
+`AddExternalConnectionString` is supplied by **CoreEx.UnitTesting** in the `UnitTestEx` namespace,
+alongside `AddEndpoints` and the other Aspire helpers; there is no local implementation. It wraps secret parameters from
+`ConnectionStrings:{name}` in visible `ConnectionStringResource` nodes. Aspire 13.5.4 excludes parameter-only
+`AddConnectionString(name)` resources from Graph/Table views. Existing connection names and host references are
+preserved; Compose still owns the actual infrastructure lifecycle. A node's running status means configuration
+resolved, not that its service is healthy; host readiness checks perform those probes.
+
+For Cosmos the scaffold passes `endpointKey: "AccountEndpoint"` and derives a credential-free resource URL from
+that connection string, correcting dashboard peer matching. Relational connection strings should include explicit
+ports. Shared localhost addresses and missing span ports can still cause misattribution; inspect
+`server.address`, `server.port`, and `peer.service` rather than treating a dashboard label as proof of provider wiring.
+For an existing AppHost, update its pinned CoreEx package version and resource declarations manually; do not overwrite custom wiring
+with `dotnet new coreex-aspire --force`.
 
 ### Examples
 

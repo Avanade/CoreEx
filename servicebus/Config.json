@@ -50,6 +50,16 @@
             },
             "Subscriptions": [
               {
+                "Name": "customers-relay",
+                "Properties": {
+                  "DefaultMessageTimeToLive": "PT1H",
+                  "LockDuration": "PT1M",
+                  "MaxDeliveryCount": 10,
+                  "DeadLetteringOnMessageExpiration": false,
+                  "RequiresSession": true
+                }
+              },
+              {
                 "Name": "products",
                 "Properties": {
                   "DefaultMessageTimeToLive": "PT1H",
