@@ -28,6 +28,7 @@ Then verify **routing** (this is the most common trap):
 - Every host that publishes commands (Api, Subscribe) must call `AddNamedDestinationProvider()`. **`AddFixedDestinationProvider` sends everything — including commands — to the one shared topic**; if found, replace it (events are unaffected, they still go to `CoreEx:Events:Destination`).
 - `CoreEx:Events:Destination` and the host's `DomainName` (from `IHostSettings`) must be set. The command queue name is derived as `{Destination}-{target-domain}` (used verbatim, so mind the case) — e.g. `contoso` + `products` → `contoso-products`.
 - The relay needs **no** destination provider: the destination is persisted in the outbox row when the command is added.
+- If the session routing profile differs from the publisher-wide default, configure `CoreEx:Host:ServiceBus:Destinations:{exact-queue-name}` in each host that can publish the command directly and in the Relay that publishes its outbox row. `SessionIdPartitionSize` controls producer key-to-session bucketing; the target receiver's `MaxConcurrentSessions` is independent.
 
 ---
 

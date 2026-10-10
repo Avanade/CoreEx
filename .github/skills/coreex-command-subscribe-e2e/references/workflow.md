@@ -83,6 +83,7 @@ builder.Services.AzureServiceBusReceiving()
 ```
 
 - The hosted-service key is also the **health-check name** and the `/hosted-services/<key>/...` pause/resume name — keep it descriptive.
+- The queue must be session-enabled in topology. Its publisher may use `CoreEx:Host:ServiceBus:Destinations:{exact-queue-name}` for a destination-specific session strategy or bucket count; that producer-side setting is independent of this receiver's `MaxConcurrentSessions`.
 - A missing queue makes the hosted service fail to start (health check goes unhealthy) — that is the symptom to expect if topology is skipped.
 - The receiving Subscribe host does **not** need an outbound publisher unless the handler emits events.
 

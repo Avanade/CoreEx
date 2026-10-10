@@ -195,6 +195,10 @@ app.MapHealthChecks();
 app.MapHostedServices();  // Exposes pause/resume management endpoints.
 ```
 
+Relational outbox writers and relay hosts must configure the same `CoreEx:Host:Outbox:PartitionSize` value (default `4`, valid range `1`–`256`). The relay's startup log and detailed health data report the resolved size. Service Bus session bucketing is a separate boundary and can be tuned independently with `CoreEx:Host:ServiceBus:SessionIdPartitionSize`; do not wire it to the outbox value, since a host such as Shopping API can publish directly to Service Bus without passing through the outbox.
+
+The Service Bus size is a publisher-wide default. When destinations need different session profiles, use `CoreEx:Host:ServiceBus:Destinations:{destination}` with the exact resolved name (for example, Shopping targets the `contoso-products` command queue, so its override belongs under `Destinations:contoso-products`). Apply the profile in every host that publishes to the destination, including an outbox Relay. The bucket count groups producer keys; it does not set broker partitions or consumer concurrency. Keep `MaxConcurrentSessions` on the receiving host independently tuned.
+
 > The `Program.cs` for the Outbox Relay is intentionally minimal — no controllers, no OpenAPI document, no application-layer services. Its sole concern is shuttling committed outbox records to the broker reliably.
 
 ### Customers Cosmos relay

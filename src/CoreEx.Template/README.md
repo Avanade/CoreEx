@@ -434,6 +434,8 @@ tests/
 }
 ```
 
+For relational outbox hosts, configure `CoreEx:Host:Outbox:PartitionSize` identically in every API/Subscribe writer and Relay host. The default is `4` and the supported range is `1`–`256`. The former relay-only `CoreEx:Host:Services:OutboxRelay:PartitionSize` key is removed; move its value to the shared `Outbox:PartitionSize` setting. When Service Bus sessions are used, `CoreEx:Host:ServiceBus:SessionIdPartitionSize` is an independent publisher-wide default (default `4`), not coupled to the outbox partition count. Override a destination's `SessionIdStrategy` or bucket count under `CoreEx:Host:ServiceBus:Destinations:{exact-destination-name}` when its ordering/concurrency profile warrants it. This bucket count maps producer keys to sessions; the receiver's `MaxConcurrentSessions` independently controls consumer concurrency. See [Service Bus session guidance](../CoreEx.Azure.Messaging.ServiceBus/README.md#publishing).
+
 **`appsettings.Development.json`** (connection strings vary by provider):
 
 ```jsonc

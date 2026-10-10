@@ -18,6 +18,7 @@ global using CoreEx.Mapping.Converters.Abstractions;
 global using CoreEx.Results.Abstractions;
 global using CoreEx.Security;
 global using Microsoft.Data.SqlClient;
+global using Microsoft.Extensions.Configuration;
 global using Microsoft.Extensions.DependencyInjection;
 global using Microsoft.Extensions.Logging;
 global using System.Collections.Immutable;

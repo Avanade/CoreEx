@@ -20,6 +20,8 @@ builder.Services.AddAzureServiceBusPublisher((_, c) =>
 });
 ```
 
+`SessionIdPartitionSize` can be configured independently with `CoreEx:Host:ServiceBus:SessionIdPartitionSize` (default: `PartitionKey.DefaultPartitionSize`). Exact destination names can override `SessionIdStrategy` and/or `SessionIdPartitionSize` under `CoreEx:Host:ServiceBus:Destinations:{destination}`. Prefer stable entity keys and tune bounded bucketing only where the ordering/concurrency profile warrants it. Do not reuse the relational outbox setting: direct Service Bus publishing can bypass the outbox, and the two sizes control separate ordering and concurrency boundaries.
+
 ## Subscribe Host Wiring
 
 ```csharp

@@ -18,7 +18,7 @@ Read, in this order:
 2. `aspire/*.Aspire/AppHost.cs` — existing resources, `WithReference` chains, whether `mockhost` is declared or commented out.
 3. `aspire/*.Aspire/*.csproj` — `ProjectReference`s (a host missing here has no `Projects.X`).
 4. `aspire/*.Test.Aspire/` — the test class, its hooks, and which `ServiceBus` class it uses (`Common.ServiceBus` for a single-domain solution; a local union class for a multi-domain AppHost).
-5. The calling host's `Program.cs` (`AddTypedHttpClient<...>("Section")`, receivers) and `appsettings*.json` (`BaseAddress`, `QueueOrTopicName`).
+5. The calling host's `Program.cs` (`AddTypedHttpClient<...>("Section")`, receivers) and `appsettings*.json` (`BaseAddress`, `QueueOrTopicName`, and any `CoreEx:Host:ServiceBus:Destinations` profile).
 
 If there is **no** `aspire/` folder, stop: the AppHost does not exist. Offer `dotnet new coreex-aspire` via `coreex-scaffold`; do not hand-roll one.
 
@@ -104,6 +104,7 @@ public static CreateQueueOptions[]? GetQueues() =>
 - A **single-domain** solution reuses `Common.ServiceBus` from `Test.Common` (already correct for its own topic/subscription); add the queue there once and Relay/Subscribe/Aspire tests all see it.
 - A **multi-domain** AppHost owns a local union class listing every domain's topic, subscriptions and command queues. Update it whenever any domain adds an entity.
 - Queue name = the `NamedDestinationProvider` result: `{CoreEx:Events:Destination}-{target-domain-lowercase}`. It must equal the consumer's `ServiceBusSessionReceiverOptions.CreateForQueue(...)` string exactly.
+- If publishing to a session-enabled entity, configure any `CoreEx:Host:ServiceBus:Destinations:{destination}` override in each host that publishes there (including the Relay); the key must exactly match the resolved destination. The session bucket count is producer-side key grouping, while `MaxConcurrentSessions` is consumer-side concurrency. Set `RequiresSession = true` in topology to match session-based publishing/receiving.
 - Entities are recreated by `ResetAzureServiceBusAsync` in `OnBeforeStartAsync`, so the emulator `Config.json` can stay empty.
 
 ## Phase 5 — Test.Aspire

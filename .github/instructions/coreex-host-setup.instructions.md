@@ -25,6 +25,27 @@ The host is a **composition root only** — no business logic. There are three h
 
 > **Further Reading**: [Hosts Layer Guide](/.github/docs/coreex/hosts-layer.md) · [Layer Dependencies](/.github/docs/coreex/layers.md) · [Pattern Catalog](/.github/docs/coreex/patterns.md) (docs-sync cache; after `/coreex-docs-sync`). Source: [samples/docs/hosts-layer.md](https://github.com/Avanade/CoreEx/blob/main/samples/docs/hosts-layer.md) · [samples/docs/layers.md](https://github.com/Avanade/CoreEx/blob/main/samples/docs/layers.md) · [samples/docs/patterns.md](https://github.com/Avanade/CoreEx/blob/main/samples/docs/patterns.md).
 
+## Service Bus Session Routing
+
+`CoreEx:Host:ServiceBus:SessionIdPartitionSize` is a publisher-wide default, not a Service Bus physical partition count. When a publisher sends to multiple destinations with different ordering/concurrency profiles, override its strategy or bucket count by the exact resolved destination:
+
+```json
+"CoreEx": {
+  "Host": {
+    "ServiceBus": {
+      "SessionIdPartitionSize": 8,
+      "Destinations": {
+        "contoso-products": {
+          "SessionIdPartitionSize": 2
+        }
+      }
+    }
+  }
+}
+```
+
+Use a stable business key with `UsePartitionKeyAsIs` when per-entity ordering is needed. Hashed buckets can make high-cardinality keys manageable, but unrelated keys may collide; more buckets do not increase throughput unless the receiver also allows enough concurrent sessions. Keep receiver concurrency settings separate from publisher session mapping, and keep both separate from the shared relational outbox `CoreEx:Host:Outbox:PartitionSize`.
+
 ---
 
 ## Scaffolding an API host

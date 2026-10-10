@@ -61,6 +61,8 @@ The subscriber uses Azure Service Bus **session-enabled topics** for ordered, pa
 
 The receiver, subscriber and hosted service are registered with service keys (`receiver-events`, `subscriber-events`, `hosted-subscriber-events`) so further receivers -- e.g. a command queue named `domain-parent-lower-domain-name-lower` (as routed by the default `NamedDestinationProvider`: events to the shared topic, commands to `{topic}-{domain}` queues) -- can be added alongside with their own keys. Tests resolve the subscriber via `GetRequiredKeyedService<ServiceBusSubscribedSubscriber>("subscriber-events")`. The Service Bus topology used by the tests (and `Test.ResetAzureServiceBusAsync`) is defined in code in the `Test.Common` project `ServiceBus` class; the emulator `servicebus/Config.json` is intentionally empty.
 
+When this host publishes to multiple session-enabled destinations, set any destination-specific producer profile under `CoreEx:Host:ServiceBus:Destinations:{exact-destination-name}` in each publishing host's configuration. The bucket count groups producer keys into sessions; it is separate from this receiver's `MaxConcurrentSessions` and does not represent Service Bus physical partitions.
+
 <!-- #endif -->
 
 ---

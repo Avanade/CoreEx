@@ -21,6 +21,7 @@ Makes a code change *visible and testable* in the Aspire environment: AppHost re
 
 - A new Api / Relay / Subscribe host must join the AppHost
 - A change introduces a **Service Bus queue** (e.g. a command queue) that the E2E topology must create
+- A new queue/topic needs session requirements or a destination-specific producer session profile
 - A host now calls **another domain's HTTP API** (needs service discovery) or a **third-party API** (needs a MockHost stub)
 - A cross-host flow needs an automated E2E test (`*.Test.Aspire`)
 - Invoked by [`coreex-command-publish-e2e`](../coreex-command-publish-e2e/SKILL.md) and [`coreex-command-subscribe-e2e`](../coreex-command-subscribe-e2e/SKILL.md) for their final step
@@ -51,7 +52,7 @@ Get this wrong and the E2E either hides a real integration (stubbing an in-AppHo
 1. **Inspect** — read AppHost, MockHost, Test.Aspire, Test.Common `ServiceBus`, the calling host's `Program.cs` + `appsettings.Development.json`.
 2. **Interview** — what changed; where each callee lives; which async effect the E2E should prove.
 3. **AppHost** — add/adjust visible external resources via `CoreEx.UnitTesting`'s `AddExternalConnectionString`, `AddProject` + `WithReference` (+ `ProjectReference`); service-discovery `BaseAddress`; MockHost wiring.
-4. **Topology** — add queues/topics/subscriptions to the `ServiceBus` class used by Test.Aspire (union class if multi-domain).
+4. **Topology** — add queues/topics/subscriptions to the `ServiceBus` class used by Test.Aspire (union class if multi-domain); mark session-enabled entities with `RequiresSession = true` and check the producer's exact destination-specific session profile.
 5. **Test.Aspire** — `OnBeforeStartAsync` (migrate, cache, broker reset) / `OnAfterStartAsync` (wait, stubs); E2E test with bounded polling.
 6. **Validate** — `dotnet build` the AppHost + Test.Aspire; `dotnet test` when infrastructure is up.
 

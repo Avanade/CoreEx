@@ -283,6 +283,7 @@ builder.Services.AzureServiceBusReceiving()
 
 - Each receiver, subscriber and hosted service needs its own **service key**; the event receiver uses `receiver-events` / `subscriber-events` / `hosted-subscriber-events`. Tests resolve `GetRequiredKeyedService<ServiceBusSubscribedSubscriber>("subscriber-commands")`.
 - The queue name must equal the `NamedDestinationProvider` result exactly and must exist (Test.Common `ServiceBus.GetQueues()`, session-enabled; Aspire topology class), otherwise the hosted service fails to start.
+- Publisher-side `CoreEx:Host:ServiceBus:Destinations:{destination}` overrides use that exact resolved queue/topic name; the default `NamedDestinationProvider` forms command queues as `{CoreEx:Events:Destination}-{target-domain}`. Session bucket count is not receiver concurrency: tune `MaxConcurrentSessions` independently, and only bucket keys when the ordering/concurrency trade-off is intentional.
 - The **consuming domain owns the command contract** and subject (`{parent}.{this-domain}.{entity}.{action}[.v{n}]`). Never subscribe to another domain's command.
 - Commands are at-least-once: handlers must be idempotent; map only *expected* outcomes in the `ErrorHandler`.
 - Full slice (contract, wiring, topology, tests, Aspire): [`coreex-command-subscribe-e2e`](/.github/skills/coreex-command-subscribe-e2e/SKILL.md). Publishing side: [`coreex-command-publish-e2e`](/.github/skills/coreex-command-publish-e2e/SKILL.md).

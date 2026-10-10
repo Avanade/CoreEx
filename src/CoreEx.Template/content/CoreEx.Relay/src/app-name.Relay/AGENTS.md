@@ -62,6 +62,7 @@ Relay timing and retry settings are configured via `appsettings.json` -- read `.
 <!-- #endif -->
 <!-- #if implement-servicebus -->
 - **Message broker:** Azure Service Bus (`AddAzureServiceBusPublisher()`)
+  - Session routing is producer-side: use `CoreEx:Host:ServiceBus:Destinations:{exact-destination-name}` for per-destination overrides; a Relay must carry the same profile as any other host publishing to that destination.
 <!-- #else -->
 - **Message broker:** None configured
 <!-- #endif -->
