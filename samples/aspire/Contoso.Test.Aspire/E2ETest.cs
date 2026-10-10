@@ -53,7 +53,7 @@ public partial class E2ETest : WithAspireTester<Projects.Contoso_Aspire>
         Test.Http(_productsApi)
             .Run(HttpMethod.Post, "/api/inventory/adjust", new MovementRequest
             {
-                Id = Guid.NewGuid().ToString(),
+                Id = Runtime.NewGuid().ToString(),
                 Products = new()
                 {
                     { product.Id!, new MovementRequestProduct { Quantity = 3, UnitOfMeasureCode = "EA" } },
@@ -93,7 +93,7 @@ public partial class E2ETest : WithAspireTester<Projects.Contoso_Aspire>
         Test.Checkpoint("Creating a Basket for a Customer that does not exist should fail validation.");
 
         Test.Http(_shoppingApi)
-            .Run(HttpMethod.Post, $"/api/customers/{Guid.NewGuid()}/baskets", r => r.WithIdempotencyKey())
+            .Run(HttpMethod.Post, $"/api/customers/{Runtime.NewGuid()}/baskets", r => r.WithIdempotencyKey())
             .AssertBadRequest();
 
         Test.Checkpoint("Add two existing Products to the Basket.");

@@ -290,7 +290,7 @@ public sealed class ReferenceDataOrchestrator(IServiceProvider serviceProvider, 
                         {
                             return await GetByTypeInNewScopeAsync(rdo, ec, scope, type, providerType, cancellationToken).ConfigureAwait(false);
                         }
-                        catch (Exception ex) when (Logger?.IsEnabled(LogLevel.Error) == true)
+                        catch (Exception ex) when (!(ex.IsCanceled() && cancellationToken.IsCancellationRequested) && Logger?.IsEnabled(LogLevel.Error) == true)
                         {
                             Logger.LogError(ex, "Reference data type {RefDataType} cache load failed in worker task: {ex.Message}", type.FullName, ex.Message);
                             throw; // Re-throw to propagate

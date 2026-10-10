@@ -12,17 +12,12 @@ public class MovementRepository(ProductsEfDb ef) : IMovementRepository
             .ThrowWhen(movements => movements.Any(m => !m.IsQuantityValidForKind), "One or more movements have invalid quantities for their kind.");
 
         // Process the movements and related inventory items.
-        var ids = movements.Select(m => m.ProductId).Distinct();
-        var inventoryItems = await _ef.Inventory.QueryTracked().Where(i => ids.Contains(i.Id)).ToDictionaryAsync(i => i.Id!, i => i, ct).ConfigureAwait(false);
         var args = new EfDbArgs { SaveChanges = false };
 
         foreach (var movement in movements)
         {
-            movement.Id = Runtime.NewId();
-            var movementModel = MovementMapper.To.Map(movement);
-
             // Adjust the inventory item for the movement.
-            await InventoryAdjustAsync(args, inventoryItems, movementModel, ct).ConfigureAwait(false);
+            await InventoryAdjustAsync(movement.ProductId!, movement.KindCode, movement.Quantity, ct).ConfigureAwait(false);
 
             // Create the movement.
             movement.Id = Runtime.NewId();
@@ -34,36 +29,37 @@ public class MovementRepository(ProductsEfDb ef) : IMovementRepository
     }
 
     /// <summary>
-    /// Adjust the inventory item for the movement.
+    /// Adjusts the inventory item for the movement using a single atomic statement.
     /// </summary>
-    private async Task InventoryAdjustAsync(EfDbArgs args, Dictionary<string, Persistence.Inventory> inventoryItems, Persistence.Movement movement, CancellationToken ct)
+    /// <remarks>A tracked read-modify-write is deliberately avoided: concurrent movements for the same product would otherwise race on the row version
+    /// (<c>xmin</c>) and fail with a concurrency error. The database applies the delta atomically (row-locked within the enclosing transaction), and the
+    /// sufficient-quantity guard is evaluated against the latest committed value.</remarks>
+    private async Task InventoryAdjustAsync(string productId, string? kind, decimal quantity, CancellationToken ct)
     {
-        // Create/adjust the inventory item for the movement.
-        if (inventoryItems.TryGetValue(movement.ProductId!, out var inventoryItem))
+        var db = _ef.DbContext.Database;
+        var rows = kind switch
         {
-            if (movement.MovementKindCode == Contracts.MovementKind.Adjust)
-                inventoryItem.QtyOnHand = movement.Quantity;
-            else
-                inventoryItem.QtyOnHand += movement.Quantity;
+            // Set the absolute quantity on hand; create where it does not yet exist.
+            Contracts.MovementKind.Adjust => await db.ExecuteSqlInterpolatedAsync($"""
+                INSERT INTO "products"."inventory" ("inventory_id", "qty_on_hand") VALUES ({productId}, {quantity})
+                ON CONFLICT ("inventory_id") DO UPDATE SET "qty_on_hand" = EXCLUDED."qty_on_hand"
+                """, ct).ConfigureAwait(false),
 
-            if (inventoryItem.QtyOnHand < 0)
-                throw new BusinessException($"Product '{movement.ProductId}' does not have sufficient quantity on hand.").WithErrorCode("insufficient-quantity").WithKey(movement.ProductId);
+            // Increase the quantity on hand; create where it does not yet exist.
+            _ when quantity >= 0 => await db.ExecuteSqlInterpolatedAsync($"""
+                INSERT INTO "products"."inventory" ("inventory_id", "qty_on_hand") VALUES ({productId}, {quantity})
+                ON CONFLICT ("inventory_id") DO UPDATE SET "qty_on_hand" = "inventory"."qty_on_hand" + EXCLUDED."qty_on_hand"
+                """, ct).ConfigureAwait(false),
 
-            await _ef.Inventory.UpdateAsync(args, inventoryItem, ct).ConfigureAwait(false);
-        }
-        else
-        {
-            if (movement.MovementKindCode == Contracts.MovementKind.Issue)
-                throw new BusinessException($"Product '{movement.ProductId}' does not have sufficient quantity on hand.").WithErrorCode("insufficient-quantity").WithKey(movement.ProductId);
+            // Decrease the quantity on hand only where sufficient; no row affected means insufficient (or non-existent) inventory.
+            _ => await db.ExecuteSqlInterpolatedAsync($"""
+                UPDATE "products"."inventory" SET "qty_on_hand" = "qty_on_hand" + {quantity}
+                WHERE "inventory_id" = {productId} AND "qty_on_hand" + {quantity} >= 0
+                """, ct).ConfigureAwait(false)
+        };
 
-            var newInventoryItem = new Persistence.Inventory
-            {
-                Id = movement.ProductId,
-                QtyOnHand = movement.Quantity
-            };
-
-            await _ef.Inventory.CreateAsync(args, newInventoryItem, ct).ConfigureAwait(false);
-        }
+        if (rows == 0)
+            throw new BusinessException($"Product '{productId}' does not have sufficient quantity on hand.").WithErrorCode("insufficient-quantity").WithKey(productId);
     }
 
     /// <inheritdoc/>
@@ -94,24 +90,12 @@ public class MovementRepository(ProductsEfDb ef) : IMovementRepository
         if (movements.Count == 0)
             return [];
 
-        // Get the related inventory ready to adjust.
-        var ids = movements.Select(m => m.ProductId).Distinct();
-        var inventoryItems = await _ef.Inventory.QueryTracked().Where(i => ids.Contains(i.Id)).ToDictionaryAsync(i => i.Id!, i => i, ct).ConfigureAwait(false);
-
         // Update the movement status to cancelled and adjust inventory back for all movements.
         var args = new EfDbArgs { SaveChanges = false };
         foreach (var movement in movements)
         {
-            // Create a fake movement with opposite quantity to adjust the inventory back.
-            var fakeMovement = new Persistence.Movement
-            {
-                ProductId = movement.ProductId,
-                Quantity = -movement.Quantity,
-                MovementKindCode = CreateReversalMovementKind(movement.MovementKindCode) 
-            };
-
-            // Reverse (adjust back) the inventory for the movement.
-            await InventoryAdjustAsync(args, inventoryItems, fakeMovement, ct).ConfigureAwait(false);
+            // Reverse (adjust back) the inventory for the movement using the opposite kind and quantity.
+            await InventoryAdjustAsync(movement.ProductId!, CreateReversalMovementKind(movement.MovementKindCode), -movement.Quantity, ct).ConfigureAwait(false);
 
             // Update movement status to cancelled.
             movement.MovementStatusCode = Contracts.MovementStatus.Canceled;

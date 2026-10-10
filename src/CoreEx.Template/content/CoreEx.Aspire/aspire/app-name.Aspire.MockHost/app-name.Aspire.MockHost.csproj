@@ -8,7 +8,8 @@
        requirement entirely - this test suite's AppHost has no container-based WireMock.Net resource at all.
 
        This project is deliberately kept small and test-only. It references UnitTestEx.Aspire itself for JsonElementComparerMatcher and WireMockConsole (which encapsulates all the
-       port/custom-matcher/graceful-shutdown boilerplate), so there is no matcher code - or boilerplate - left to copy; Program.cs is a one-liner. The official WireMock.Net.Aspire
+       port/custom-matcher/graceful-shutdown boilerplate), so there is no matcher code - or boilerplate - left to copy; Program.cs is essentially a one-liner (it also silences the per-request
+       stub logging by default, as it is very chatty under load; raise RequestResponseLogLevel when diagnosing mock matching). The official WireMock.Net.Aspire
        container resource remains fully supported as an alternative for teams already invested in that ecosystem. -->
   
   <PropertyGroup>
@@ -24,6 +25,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Using Include="Microsoft.Extensions.Logging" />
     <Using Include="UnitTestEx.Aspire" />
     <Using Include="WireMock.Server" />
   </ItemGroup>

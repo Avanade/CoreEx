@@ -472,6 +472,80 @@ public class CosmosDbOutboxRelayTests : CosmosTestBase
         await act.Should().NotThrowAsync();
     }
 
+    private const string ResetContainerId = "relay-reset-items";
+    private const string ResetLeaseContainerId = "relay-reset-items-leases";
+
+    [Test]
+    public async Task Relay_ContainersReplacedWhileRunning_SelfRecoversAndRelaysSubsequentEvents()
+    {
+        // Regression: a provisioning reset (delete + recreate; e.g. CosmosDbProvisionCommand.Reset) of the monitored and lease containers while the relay was running left the Change Feed Processor bound to
+        // the deleted containers (its lease prefix embeds the container resource ids) - endlessly reporting lost leases and never relaying another event until the host was restarted.
+        await GetOrCreateContainerAsync(ResetContainerId).ConfigureAwait(false);
+        await TestDatabase.CreateContainerIfNotExistsAsync(ResetLeaseContainerId, "/id").ConfigureAwait(false);
+
+        var cosmosDb = CreateCosmosDb();
+        var testPublisher = new TestEventPublisher();
+        using var sp = CreateServiceProvider(testPublisher);
+        var processor = new CosmosDbOutboxRelayProcessor(sp, ResetContainerId, NullLogger<CosmosDbOutboxRelayProcessor>.Instance);
+
+        var options = new CosmosDbOutboxRelayOptions
+        {
+            ContainerId = ResetContainerId,
+            LeaseContainerId = ResetLeaseContainerId,
+            InstanceName = $"instance-{NewId()}",
+            PollInterval = TimeSpan.FromMilliseconds(200),
+            RecoveryDelay = TimeSpan.FromMilliseconds(500)
+        };
+
+        async Task CreateWithEventAsync(string name)
+        {
+            var db = CreateCosmosDb();
+            var container = db.Container<TestItem>(ResetContainerId, o => o.WithPartitionKey(m => m.PartitionKey));
+            var unitOfWork = new CosmosDbUnitOfWork(db, new CosmosDbEventPublisher(db));
+            var pk = NewId();
+            await unitOfWork.TransactionAsync(async ct =>
+            {
+                var created = await container.CreateAsync(new TestItem { Id = NewId(), PartitionKey = pk, Name = name }, ct).ConfigureAwait(false);
+                unitOfWork.Events.Add(EventData.CreateEventWith(created.Value, EventAction.Created).WithSource(new Uri("https://unittest/coreex-cosmos", UriKind.Absolute)).WithPartitionKey(pk));
+            });
+        }
+
+        bool HasPublished(string name)
+        {
+            lock (testPublisher.Published)
+                return testPublisher.Published.Any(e => e.Event.Data?.ToString()?.Contains(name) ?? false);
+        }
+
+        await using var relay = new CosmosDbOutboxRelay(cosmosDb.Database, options, processor, NullLogger<CosmosDbOutboxRelay>.Instance);
+        await relay.StartAsync();
+        try
+        {
+            await CreateWithEventAsync("BeforeReset");
+            await WaitUntilAsync(() => HasPublished("BeforeReset"), TimeSpan.FromSeconds(30));
+            HasPublished("BeforeReset").Should().BeTrue();
+
+            // Simulate a provisioning reset of both containers underneath the running relay.
+            await TestDatabase.ReplaceOrCreateContainerAsync(new ContainerProperties(ResetContainerId, "/partitionKey"));
+            await TestDatabase.ReplaceOrCreateContainerAsync(new ContainerProperties(ResetLeaseContainerId, "/id"));
+
+            await CreateWithEventAsync("AfterReset");
+            await WaitUntilAsync(() => HasPublished("AfterReset"), TimeSpan.FromSeconds(60));
+            HasPublished("AfterReset").Should().BeTrue();
+
+            // Keep observing for a while; a further event must still relay (i.e. not a one-off delivery from a stale processor).
+            await Task.Delay(TimeSpan.FromSeconds(20));
+            await CreateWithEventAsync("Later");
+            await WaitUntilAsync(() => HasPublished("Later"), TimeSpan.FromSeconds(60));
+            HasPublished("Later").Should().BeTrue();
+
+            relay.Status.Should().Be(ServiceStatus.Running);
+        }
+        finally
+        {
+            await relay.StopAsync();
+        }
+    }
+
     private const string MissingLeaseContainerId = "relay-missing-lease-items";
 
     [Test]

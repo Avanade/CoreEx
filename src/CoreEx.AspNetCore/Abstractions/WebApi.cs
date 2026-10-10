@@ -37,7 +37,7 @@ public abstract partial class WebApi<TResult>(WebApiInvoker<TResult> invoker, Js
         }
         // A cancellation attributable to *this* request's own cancellationToken (e.g. a client disconnect) is intended to bubble up unclassified - even when
         // ConvertUnhandledExceptionsToProblemDetails is enabled - rather than being logged at Error and converted into a 500 that the disconnected client can never receive.
-        catch (Exception ex) when (ConvertUnhandledExceptionsToProblemDetails && !(ex is OperationCanceledException oce && oce.CancellationToken == cancellationToken))
+        catch (Exception ex) when (ConvertUnhandledExceptionsToProblemDetails && !ex.IsCanceledBy(cancellationToken))
         {
             return CreateResult(new WebApiResult<TResult>(request.HttpContext.Response) { Exception = ex });
         }
@@ -165,7 +165,7 @@ public abstract partial class WebApi<TResult>(WebApiInvoker<TResult> invoker, Js
         {
             return await request.ReadFromJsonAsync<TRequest>(JsonSerializerOptions, cancellationToken).ConfigureAwait(false);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (!ex.IsCanceledBy(cancellationToken)) // A client disconnect is not an invalid request body.
         {
             return new ValidationException(RequestBodyInvalidText.WithArgs(ex.Message)).WithErrorType(RequestBodyErrorType);
         }

@@ -105,7 +105,13 @@ public class CosmosDbOutboxRelayProcessor(IServiceProvider serviceProvider, stri
         {
             CosmosMetrics.OutboxRelayPublishFailed.Add(outboxDocs.Count, tag);
             RecordLagMetrics(eventPublisher);
-            if (Logger.IsEnabled(LogLevel.Error))
+            // A cancellation requested by the caller (e.g. the Change Feed Processor stopping) is expected; the batch is redelivered, so it is not logged as an error.
+            if (ex.IsCanceledBy(cancellationToken))
+            {
+                if (Logger.IsEnabled(LogLevel.Debug))
+                    Logger.LogDebug("Publish of {Count} outbox event(s) for container '{ContainerId}' was canceled; the batch will be redelivered.", outboxDocs.Count, ContainerId);
+            }
+            else if (Logger.IsEnabled(LogLevel.Error))
                 Logger.LogError(ex, "Failed to publish {Count} outbox event(s) for container '{ContainerId}': {Error}", outboxDocs.Count, ContainerId, ex.Message);
 
             throw;

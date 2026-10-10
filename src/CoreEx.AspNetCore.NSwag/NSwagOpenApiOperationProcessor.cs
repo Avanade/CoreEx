@@ -201,7 +201,7 @@ internal sealed class NSwagOpenApiOperationProcessor(OpenApiOptions options) : I
         }
 
         // Framework types (including collection, dictionary and task wrappers) have nothing to mark up; only their generic arguments can.
-        if (type.IsEnum || type.IsPrimitive || type.Namespace is null || type.Namespace.StartsWith("System", StringComparison.Ordinal) || type.Namespace.StartsWith("Microsoft", StringComparison.Ordinal))
+        if (type.IsEnum || type.IsPrimitive || type.Namespace is null || IsFrameworkNamespace(type.Namespace, "System") || IsFrameworkNamespace(type.Namespace, "Microsoft"))
         {
             if (type.IsGenericType)
             {
@@ -284,4 +284,9 @@ internal sealed class NSwagOpenApiOperationProcessor(OpenApiOptions options) : I
         Kind = OpenApiParameterKind.Query,
         Schema = new JsonSchema { Type = type }
     };
+
+    /// <summary>
+    /// Determines whether the <paramref name="ns"/> is the <paramref name="root"/> framework namespace or one of its dotted sub-namespaces (e.g. <c>System.Collections</c>, but not <c>Systematic</c>).
+    /// </summary>
+    private static bool IsFrameworkNamespace(string ns, string root) => ns.StartsWith(root, StringComparison.Ordinal) && (ns.Length == root.Length || ns[root.Length] == '.');
 }

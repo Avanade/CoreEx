@@ -47,6 +47,12 @@ public abstract class DatabaseOutboxRelayBase<TDatabase, TSelf> : IDatabaseOutbo
     protected DatabaseOutboxRelayInvoker<TDatabase, TSelf> Invoker => _invoker.Value;
 
     /// <summary>
+    /// Gets or sets the maximum duration allowed to <i>cancel</i> (release) a claimed batch following a relay failure.
+    /// </summary>
+    /// <remarks>Defaults to 30 seconds. This is independent of the relay cancellation token as that is likely already cancelled where the failure was due to exceeding the lease duration.</remarks>
+    public TimeSpan CancelBatchTimeout { get; set; } = TimeSpan.FromSeconds(30);
+
+    /// <summary>
     /// Gets or sets the <see cref="SqlStatement"/> used to <i>claim</i> the next batch of events from the <see cref="Database"/>.
     /// </summary>
     /// <remarks>Defaults to <see cref="SqlStatement.Indeterminate"/>.</remarks>
@@ -129,13 +135,17 @@ public abstract class DatabaseOutboxRelayBase<TDatabase, TSelf> : IDatabaseOutbo
 
                 result.ThrowOnError();
             }
+            catch (Exception ex) when (ex.IsCanceled() && cancellationToken.IsCancellationRequested)
+            {
+                // The caller (e.g. host shutdown) requested cancellation; stop processing and let the cancellation flow.
+                throw;
+            }
             catch (Exception ex) when (ex.IsCanceled())
             {
+                // The partition exceeded the lease duration; this is a partition-level failure (already observed by any resiliency pipeline), not a shutdown - rethrowing a cancellation here would be
+                // interpreted by the hosting service as a stop request and silently swallowed. Continue on to the next partition; the claim has been released (or will expire with the lease).
                 if (Logger?.IsEnabled(LogLevel.Warning) is true)
-                    Logger.LogWarning("The relay operation for partition '{PartitionId}' was cancelled due to exceeding lease-duration timeout; cancellation exception will continue to throw.", partitionId);
-
-                // Keep throwing as the cancellation is likely to be due to exceeding the lease duration which is a serious failure that should be surfaced and not treated as a transient exception.
-                throw;
+                    Logger.LogWarning("The relay operation for partition '{PartitionId}' was cancelled due to exceeding the lease duration of {LeaseDuration}; consider increasing the lease duration and/or reducing the batch size.", partitionId, args.LeaseDuration);
             }
             catch (Exception ex)
             {
@@ -208,10 +218,12 @@ public abstract class DatabaseOutboxRelayBase<TDatabase, TSelf> : IDatabaseOutbo
             }
             catch (Exception ex)
             {
-                // Cancel the batch; guard against a secondary failure masking the original exception.
+                // Cancel the batch; guard against a secondary failure masking the original exception. A separate bounded token is used as the original is likely already cancelled (e.g. the lease-duration
+                // timeout elapsed) and would otherwise prevent the claim from being released, leaving the events locked until the database lease expires.
                 try
                 {
-                    await CancelBatchAsync(args, leaseId, cancellationToken).ConfigureAwait(false);
+                    using var cancelBatchCts = new CancellationTokenSource(CancelBatchTimeout);
+                    await CancelBatchAsync(args, leaseId, cancelBatchCts.Token).ConfigureAwait(false);
 
                     if (Logger?.IsEnabled(LogLevel.Debug) is true)
                         Logger.LogDebug("Outbox batch was cancelled due to error: {Error}", ex.Message);

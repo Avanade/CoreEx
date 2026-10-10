@@ -424,7 +424,7 @@ tests/
         "OutboxRelay": {
           "BatchSize": 10,
           "PerWorkerPartitionCount": 2,
-          "LeaseDuration": "00:00:05",
+          "LeaseDuration": "00:00:30",
           "BackoffDuration": "00:00:05",
           "ServicesCount": 4
         }

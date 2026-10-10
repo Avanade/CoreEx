@@ -178,7 +178,7 @@ public class CosmosDbInvoker : InvokerBase<ICosmosDb, CosmosDbArgs>
         {
             await DiscardAsync().ConfigureAwait(false);
 
-            if (tracer.Logger is not null && tracer.Logger.IsEnabled(LogLevel.Error))
+            if (!(ex.IsCanceled() && cancellationToken.IsCancellationRequested) && tracer.Logger is not null && tracer.Logger.IsEnabled(LogLevel.Error))
                 tracer.Logger.LogError(ex, "Unit-of-work transaction discarded due to an unexpected error: {Error}", ex.Message);
 
             if (ExtendedException.TryConvertExceptionToResult<TResult>(ex, out var result))

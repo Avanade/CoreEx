@@ -117,7 +117,7 @@ public abstract class Database<TConnection, TCommand, TDatabaseArgs, TDatabaseCo
         }
         catch (Exception ex)
         {
-            if (Logger is not null && Logger.IsEnabled(LogLevel.Error))
+            if (!(ex.IsCanceled() && cancellationToken.IsCancellationRequested) && Logger is not null && Logger.IsEnabled(LogLevel.Error))
                 Logger.LogError(ex, "Error occurred whilst opening the database connection. [DatabaseId: {DatabaseId}]", DatabaseId);
 
             throw;

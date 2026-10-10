@@ -51,6 +51,12 @@ public sealed class CosmosDbOutboxRelayOptions
     public DateTime? StartTime { get; set; }
 
     /// <summary>
+    /// Gets or sets the delay before (and between) attempts to recover the Change Feed Processor where the monitored and/or lease container was deleted and recreated whilst the relay was running (e.g. a
+    /// provisioning reset). Defaults to 5 seconds.
+    /// </summary>
+    public TimeSpan RecoveryDelay { get; set; } = TimeSpan.FromSeconds(5);
+
+    /// <summary>
     /// Gets or sets the <see cref="ResiliencePipeline{T}"/> used to protect batch execution with a self-pausing/self-resuming circuit breaker; where not specified, defaults to
     /// <see cref="CosmosDbOutboxRelayResiliency.CreateRelayCircuitBreakerResiliency(int, TimeSpan?, TimeSpan?, TimeSpan?, double)"/>'s own defaults.
     /// </summary>
