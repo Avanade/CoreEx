@@ -1,5 +1,6 @@
 using CoreEx.Caching.FusionCache;
 using CoreEx.Entities;
+using CoreEx.Results;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
@@ -224,6 +225,77 @@ public class HybridCacheTests : WithGenericTester<EntryPoint>
             p2.Should().NotBeNull().And.BeEquivalentTo(p);
         });
     }
+
+    [Test]
+    public void GetOrCreateWithResult_Success_IsCached() => Test.ScopedType<IServiceProvider>(async test =>
+    {
+        var key = "withresult-success-key";
+        await ClearKeyAsync(test.Services, key);
+
+        var cache = test.Services.GetRequiredService<IHybridCache>();
+        var options = new HybridCacheEntryOptions { Strategy = CacheStrategy.Hybrid };
+
+        var r = await cache.GetOrCreateByKeyWithResultAsync(key, _ => Task.FromResult(Result.Ok("value")), options);
+        r.IsSuccess.Should().BeTrue();
+        r.Value.Should().Be("value");
+
+        IsInDistributedCache(test.Services, key).Should().BeTrue();
+        IsInMemoryCache(test.Services, key).Should().BeTrue();
+
+        r = await cache.GetOrCreateByKeyWithResultAsync<string>(key, _ => throw new InvalidOperationException("Should be cached?!"), options);
+        r.IsSuccess.Should().BeTrue();
+        r.Value.Should().Be("value");
+    });
+
+    [Test]
+    [TestCase(CacheStrategy.Hybrid)]
+    [TestCase(CacheStrategy.Local)]
+    [TestCase(CacheStrategy.Distributed)]
+    public void GetOrCreateWithResult_Failure_IsNeverCached(CacheStrategy strategy) => Test.ScopedType<IServiceProvider>(async test =>
+    {
+        var key = $"withresult-failure-key-{strategy}";
+        await ClearKeyAsync(test.Services, key);
+
+        var cache = test.Services.GetRequiredService<IHybridCache>();
+        var options = new HybridCacheEntryOptions { Strategy = strategy };
+
+        var r = await cache.GetOrCreateByKeyWithResultAsync<string>(key, _ => Task.FromResult<Result<string>>(Result.NotFoundError()), options);
+        r.IsFailure.Should().BeTrue();
+        r.Error.Should().BeOfType<NotFoundException>();
+
+        IsInDistributedCache(test.Services, key).Should().BeFalse();
+        IsInMemoryCache(test.Services, key).Should().BeFalse();
+
+        // A subsequent success must invoke the factory (i.e. the failure was not cached) and then be cached.
+        var invoked = 0;
+        r = await cache.GetOrCreateByKeyWithResultAsync(key, _ => { invoked++; return Task.FromResult(Result.Ok("value")); }, options);
+        r.IsSuccess.Should().BeTrue();
+        r.Value.Should().Be("value");
+        invoked.Should().Be(1);
+
+        r = await cache.GetOrCreateByKeyWithResultAsync<string>(key, _ => throw new InvalidOperationException("Should be cached?!"), options);
+        r.Value.Should().Be("value");
+    });
+
+    [Test]
+    public void GetOrCreateWithResult_ConcurrentMisses_InvokeFactoryOnce() => Test.ScopedType<IServiceProvider>(async test =>
+    {
+        var key = "withresult-concurrent-key";
+        await ClearKeyAsync(test.Services, key);
+
+        var cache = test.Services.GetRequiredService<IHybridCache>();
+        var invoked = 0;
+
+        var results = await Task.WhenAll(Enumerable.Range(0, 10).Select(_ => cache.GetOrCreateByKeyWithResultAsync(key, async ct =>
+        {
+            Interlocked.Increment(ref invoked);
+            await Task.Delay(250, ct).ConfigureAwait(false);
+            return Result.Ok("value");
+        })));
+
+        invoked.Should().Be(1);
+        results.Should().OnlyContain(r => r.IsSuccess && r.Value == "value");
+    });
 
     [Test]
     public void RemoveByTagAsync_QualifiesTag_DoesNotCrossTenantInvalidate() => Test.ScopedType<IServiceProvider>(async test =>

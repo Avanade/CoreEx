@@ -82,6 +82,7 @@ public partial class {Name} : IIdentifier<string?>, IETag, IChangeLog  // add ba
     public string? Id { get; set; }
 
     /// <summary>Gets or sets the ...</summary>
+    [NonNullable]   // Only where mandatory/required yet declared nullable for DTO flexibility.
     public string? SomeField { get; set; }
 
     /// <summary>Gets or sets the SKU (upper-cased on set).</summary>
@@ -109,6 +110,7 @@ public partial class {Name} : IIdentifier<string?>, IETag, IChangeLog  // add ba
 Key assembly rules:
 - `[Contract]` + `partial` on the class — always.
 - `[ReadOnly(true)]` on `Id`, `ETag`, `ChangeLog`, and any server-assigned/derived field.
+- `[NonNullable]` on any property that is mandatory/required (ultimately not nullable) but declared nullable (`string?`, `int?`) for DTO flexibility. Ask/infer from the requirements which properties are required; leave genuinely optional properties unmarked. This only affects the OpenAPI schema (`nullable: false`) — keep the matching validator rule. Never substitute `System.Diagnostics.CodeAnalysis.NotNull`. Never mark `Id`, `ETag` or `ChangeLog` (null on create); mark other `[ReadOnly]` properties only when the containing type is never a request body.
 - Only `[ReferenceData<T>]` properties are `partial` — all others are plain auto-properties.
 - `[Localization("label")]` — only when the auto-derived sentence-case label would be wrong/undesired. Never add when value equals the default.
 - Casing transforms belong in the setter: `set => field = value?.ToUpper()`.
@@ -161,6 +163,8 @@ public partial class ProductLite : ProductBase
     public decimal QtyOnHand { get; set; }
 }
 ```
+
+**A5 applies to genuine supersets only** — every inherited property must stay meaningful on the derived type. For a patch/merge-patch or other partial-update request that needs only a *subset* of a sibling contract's fields, do **not** inherit it and suppress the rest (`new`, `[JsonIgnore]`, ignoring members): author a standalone `[Contract]` class with just the properties it needs (+ `IETag` where concurrency applies). Overlapping field names alone are not a reason to extract a base class or inherit. Path B (request contracts) is the right home for these.
 
 ---
 

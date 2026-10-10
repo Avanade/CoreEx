@@ -57,6 +57,8 @@ Mutable resources typically compose three cross-cutting interfaces:
 
 Server-managed fields are decorated with `[ReadOnly(true)]` so they are excluded from inbound requests, by the likes of NSwag (Swagger), automatically.
 
+Properties that are mandatory but declared nullable (`string?`, `int?`) for DTO flexibility are decorated with `[NonNullable]` so the generated OpenAPI schema reports them as `nullable: false`; the C# type and validation are unaffected. `Id`, `ETag` and `ChangeLog` are never marked (they are null on create); other `[ReadOnly]` properties are marked only when the type is never a request body (e.g. `BasketItem`).
+
 ```csharp
 // samples/src/Contoso.Products.Contracts/Product.cs
 [Contract]

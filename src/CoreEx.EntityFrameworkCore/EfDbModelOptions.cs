@@ -12,6 +12,11 @@ public class EfDbModelOptions<TModel> where TModel : class
     private bool _tenantFilterEnabled;
 
     /// <summary>
+    /// The server-managed properties that are never copied from the updated model into the existing model by default; i.e. these are set (or retained) by the framework, not the caller.
+    /// </summary>
+    private static readonly IReadOnlyCollection<string> _updateExcludedProperties = [.. GetUpdateExcludedProperties()];
+
+    /// <summary>
     /// Indicates whether <see cref="ILogicallyDeleted"/> and/or <see cref="IReadOnlyLogicallyDeleted"/> is supported for the <typeparamref name="TModel"/>.
     /// </summary>
     public FeatureSupport LogicalDeleteSupport { get; } = FeatureSupport.Determine<TModel, ILogicallyDeleted, IReadOnlyLogicallyDeleted>();
@@ -239,7 +244,7 @@ public class EfDbModelOptions<TModel> where TModel : class
     /// <returns>The <see cref="EfDbModelOptions{TModel}"/> to support fluent-style method-chaining.</returns>
     /// <remarks>
     /// The <paramref name="updateModelMapper"/> function takes two parameters: the updated model (first parameter) and the existing model (second parameter) and returns a <see cref="bool"/> indicating whether any changes were made.
-    /// <para>This enables custom mapping logic to be specified for update operations; otherwise, by default, <see cref="Metadata.RuntimeMetadata.TryCopyInto{TFrom, TInto}(TFrom, TInto)"/> is used internally.</para></remarks>
+    /// <para>This enables custom mapping logic to be specified for update operations; otherwise, by default, <see cref="Metadata.RuntimeMetadata.TryCopyInto{TFrom, TInto}(TFrom, TInto, IReadOnlyCollection{string}?)"/> is used internally, excluding the server-managed <see cref="IReadOnlyChangeLogEx"/> (created and updated) and <see cref="IReadOnlyTenantId.TenantId"/> properties (these are set by the framework and are not caller-updatable; a custom mapper must honour the same).</para></remarks>
     public EfDbModelOptions<TModel> WithUpdateModelMapper(Func<TModel, TModel, bool> updateModelMapper)
     {
         _updateModelMapper = updateModelMapper.ThrowIfNull();
@@ -255,8 +260,25 @@ public class EfDbModelOptions<TModel> where TModel : class
     internal bool MapModelForUpdate(TModel update, TModel existing)
     {
         if (_updateModelMapper is null)
-            return Metadata.RuntimeMetadata.TryCopyInto(update, existing);
+            return Metadata.RuntimeMetadata.TryCopyInto(update, existing, _updateExcludedProperties);
         else
             return _updateModelMapper(update, existing);
+    }
+
+    /// <summary>
+    /// Gets the server-managed property names applicable to the <typeparamref name="TModel"/>.
+    /// </summary>
+    private static IEnumerable<string> GetUpdateExcludedProperties()
+    {
+        if (typeof(IReadOnlyChangeLogEx).IsAssignableFrom(typeof(TModel)))
+        {
+            yield return nameof(IReadOnlyChangeLogEx.CreatedBy);
+            yield return nameof(IReadOnlyChangeLogEx.CreatedOn);
+            yield return nameof(IReadOnlyChangeLogEx.UpdatedBy);
+            yield return nameof(IReadOnlyChangeLogEx.UpdatedOn);
+        }
+
+        if (typeof(IReadOnlyTenantId).IsAssignableFrom(typeof(TModel)))
+            yield return nameof(IReadOnlyTenantId.TenantId);
     }
 }

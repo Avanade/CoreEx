@@ -11,6 +11,7 @@ Category | Description
 [`API`](#API) | Provides the configuration for the generated API code.
 [`Repository`](#Repository) | Provides the configuration for the generated repository code.
 [`Mapping`](#Mapping) | Provides the configuration for the generated mapping code.
+[`Mutable`](#Mutable) | Provides the configuration for the generated mutability code.
 [`Exclude`](#Exclude) | Provides the configuration for code generation exclusion.
 [`Collections`](#Collections) | Provides the collections configuration.
 
@@ -24,8 +25,8 @@ Property | Description
 **`name`** | The reference-data entity (contract) name. [Mandatory]
 **`plural`** | The pluralized reference-data entity (contract) name.<br/>&dagger; Defaults to `{Name}` with the last word pluralized.
 `text` | The reference-data entity friendly text.<br/>&dagger; Defaults to `{Name}` converted to sentence case. This is primarily used in generated code comments.
-**`idType`** | The reference-data identifier type. Valid options are: `String`, `Guid`, `Int32`, `Int64`.<br/>&dagger; Defaults to root `{IdType}`.
-**`collectionSortOrder`** | The collection sort order. Valid options are: `Code`, `Id`, `Text`, `SortOrder`.<br/>&dagger; This is the collection sort order. Defaults to root `{CollectionSortOrder}`.
+`idType` | The reference-data identifier type. Valid options are: `String`, `Guid`, `Int32`, `Int64`.<br/>&dagger; Defaults to root `{IdType}`.
+`collectionSortOrder` | The collection sort order. Valid options are: `Code`, `Id`, `Text`, `SortOrder`.<br/>&dagger; This is the collection sort order. Defaults to root `{CollectionSortOrder}`.
 
 ## API
 Provides the configuration for the generated API code.
@@ -33,6 +34,8 @@ Provides the configuration for the generated API code.
 Property | Description
 -|-
 **`route`** | The route suffix.<br/>&dagger; Defaults to `{Plural}` and root `{RouteConvention}` configuration.
+`attribute` | The optional API controller operation attribute.<br/>&dagger; This is the attribute applied as-is to the generated `ReferenceDataController` operation. This is useful for adding the likes of `[Authorize]`.
+`mutableAttribute` | The mutable API controller class attribute; defaults to `[Authorize]`.<br/>&dagger; A configured value replaces the default and is applied as-is to the generated `{Name}Controller` class. Use a policy/role or `[AllowAnonymous]` only when intentionally public.
 
 ## Repository
 Provides the configuration for the generated repository code.
@@ -52,6 +55,14 @@ Property | Description
 -|-
 **`mapper`** | The mapper name.<br/>&dagger; This is the .NET mapper name used within the generated code. Defaults to root `{Name}Mapper`.
 
+## Mutable
+Provides the configuration for the generated mutability code.
+
+Property | Description
+-|-
+`mutability` | The reference-data entity mutability. Valid options are: `None`, `CreateUpdate`, `CreateUpdateDelete`.<br/>&dagger; Defaults to `None`. Requires a `Repository` of `EntityFramework` or `Cosmos`.
+`validator` | The validator type name used during mutability operations.<br/>&dagger; Defaults to `ReferenceDataValidator<{Name}>`. Must have a default constructor.
+
 ## Exclude
 Provides the configuration for code generation exclusion.
 
@@ -66,4 +77,3 @@ Provides the collections configuration.
 Property | Description
 -|-
 `properties` | The corresponding [`Property`](Property.md) collection.
-

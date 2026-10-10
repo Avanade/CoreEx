@@ -28,11 +28,23 @@ tags: ["validators", "validation", "fluent-api", "rules", "error-handling", "app
 
 ## Placement
 
-Validators live in `Application/Validators/`. They belong to the Application layer and may inject Application-layer dependencies (e.g., `IProductRepository`) — they must not reference Infrastructure directly.
+Application business/request validators live in `Application/Validators/` and may inject
+Application-layer dependencies (e.g., `IProductRepository`), never Infrastructure dependencies.
+External-response validation is integration-owned: prefer a private static readonly `Validator<T>`
+inside the typed client, configured once with `Validator.Create<T>().HasProperty(...)` and consumed
+via `response.WithValidator(_validator).ToResultAsync(ct)`. Extract substantial/shared response
+rules beside the client in `Infrastructure/Clients/{ExternalDomain}/`, not Application.
+See [client response validation](/.github/instructions/coreex-repositories.instructions.md#client-response-validation).
 
 ## Unit Tests (maintain alongside the validator)
 
 Validators are the primary unit-test target, so a validator and its test are maintained together. Validator rules are proven **exhaustively here** (every rule, error + success) — the API integration tests do **not** re-enumerate them; they assert only one representative bad-request to confirm the validator is wired into the pipeline. See the test-responsibility split in `coreex-tests.instructions.md`.
+
+For private inline client validators, cover rules through `*.Test.Unit/Clients/{ExternalDomain}/{External}HttpClientTests.cs`.
+Do not expose the validator, use reflection, or create standalone `{Validator}Tests` for a nonexistent
+validator class. Assert invalid 2xx responses fail with `HttpRequestException` and structured inner
+validation messages, and valid responses succeed. The standalone-validator guidance below applies
+to named validator classes.
 
 Author the test per `coreex-tests.instructions.md` → "Validator unit tests" and "Expected message text". Three things that cause repeated discover-by-running loops if missed:
 - **Invoke via `Test.Scoped(test => { XxxValidator.Default.AssertErrors(...); })`** — the **non-generic** `Test.Scoped` (no type parameter) + the validator's `Default` (or `new XxxValidator(deps)`). **Never** `Test.Scoped<XxxValidator>(...)` — validators are not in DI, so the generic (DI-resolving) overload fails.
@@ -40,7 +52,7 @@ Author the test per `coreex-tests.instructions.md` → "Validator unit tests" an
 - **Expected messages are exact** — use the message table in `coreex-tests.instructions.md` (`Mandatory()` → `"{Label} is required."`, `MaximumLength` → `"… character(s) in length."`, `PrecisionScale` → `"… exceeds the maximum decimal places (n)."`, etc.) with sentence-cased labels (`FirstName` → "First name").
 - **Ignore `ExecutionContext` in tests** — `Test.Scoped(...)` sets it up for you; do not construct, inject, or mock it. Ambient `Runtime` and any `ExecutionContext`-dependent rule work automatically inside the scope.
 
-> **Agent instruction:** When you create or modify a validator, **offer to also create or update the matching `{Validator}Tests`** in the `*.Test.Unit/Validators/` project (covering the new/changed rules — both error and success cases). If the user accepts, author it per `coreex-tests.instructions.md`; if the validator uses a reference-data type the test host does not yet handle, also add the corresponding case to `EntryPoint.ReferenceDataServiceDecorator.GetAsync`. If the user declines or defers, proceed with the validator change but note that its unit-test coverage is now missing/stale.
+> **Agent instruction:** When you create or modify a named Application validator, **offer to also create or update the matching `{Validator}Tests`** in the `*.Test.Unit/Validators/` project (covering the new/changed rules — both error and success cases). For inline response validators, maintain the corresponding client tests instead. If the user accepts, author it per `coreex-tests.instructions.md`; if the validator uses a reference-data type the test host does not yet handle, also add the corresponding case to `EntryPoint.ReferenceDataProviderDecorator.GetAsync`. If the user declines or defers, proceed with the validator change but note that its unit-test coverage is now missing/stale.
 
 ## Base Class
 
@@ -168,6 +180,20 @@ Property(x => x.Salary).CompareValue(CompareOperator.GreaterThanEqual, 0m, "zero
 ```
 
 The extension is **`Compare`** (not `CompareValue`), and the `CompareOperator` members are `Equal`, `NotEqual`, `LessThan`, `LessThanOrEqualTo`, `GreaterThan`, `GreaterThanOrEqualTo` (there is no `GreaterThanEqual`).
+
+#### Comparing two properties of the same entity
+
+Use **`CompareProperty(op, x => x.Other)`** — the preferred way to compare one property with another on the same entity (e.g. an end date against a start date). It compares only when **both values are present and valid**: it is skipped when either value is `null` or the compare-to property already has an error, so it never produces cascading errors. Chain `Mandatory()` first where the value must also be supplied. The error message names the other property's label (e.g. `"Ends on must be greater than or equal to Starts on."`).
+
+```csharp
+// ✅ Optional — compared only when both StartsOn and EndsOn have a value.
+Property(p => p.EndsOn).CompareProperty(CompareOperator.GreaterThanOrEqualTo, p => p.StartsOn);
+
+// ✅ Required — EndsOn must be supplied, then compared.
+Property(p => p.EndsOn).Mandatory().CompareProperty(CompareOperator.GreaterThanOrEqualTo, p => p.StartsOn);
+```
+
+The two properties must be different and of compatible types (same-type comparisons take a fast path; otherwise the compare-to value is converted). `ReferenceDataValidator<TRef>` (the CodeGen default for mutable reference data) already applies `EndsOn >= StartsOn`.
 
 #### Runtime-computed values (delegate overloads)
 
@@ -308,12 +334,13 @@ Property(x => x.Quantity, c => c
 
 - Do not use the `FluentValidation` NuGet package — `AbstractValidator` here is `CoreEx.Validation.AbstractValidator`, not FluentValidation.
 - Do not perform I/O in `OnValidateAsync` without first checking `context.HasErrors` — always fail fast.
-- Do not reference Infrastructure assemblies from validators — inject Application-layer repository interfaces only.
+- Do not reference Infrastructure assemblies from Application validators — inject Application-layer repository interfaces only. Client-owned response validators remain in Infrastructure.
 - Do not instantiate validators with `new` at the call site when a `Default` singleton is available.
 - Do not add logic that requires async I/O to the constructor — use `OnValidateAsync` for that.
 - Do not pass a property-name string (e.g. `nameof(...)`) to `context.AddError` — use the member-access expression overload, `context.AddError(x => x.Property, ...)`.
 - Do not apply `.IsValid()` to a `*Code` string property — validate the typed reference-data navigation property instead (e.g. `Gender`, not `GenderCode`).
 - Do not use `CompareValue(...)` or a `CompareOperator.GreaterThanEqual` value — the extension is `.Compare(...)` and the operator is `CompareOperator.GreaterThanOrEqualTo` (or use the dedicated `.GreaterThanOrEqualTo(...)` rule).
+- Do not hand-write a cross-property comparison (e.g. end date vs start date) in `OnValidateAsync` — use `CompareProperty(op, x => x.Other)`.
 - Do not hand-write logic in `OnValidateAsync` for something expressible as a rule — use the delegate overloads for runtime-computed values (e.g. `.LessThanOrEqualTo(_ => DateOnly.FromDateTime(Runtime.UtcNow.UtcDateTime.AddYears(-16)), _ => "the minimum age of 16")`). Sanity-check the comparison direction so the rule fails on the *invalid* case.
 - Do not put a full sentence in a rule's text argument — it is only the `{2}` value substitution in the standard message template; override the whole message with `.Error("...")`, and consult `ValidatorStrings.cs` for the defaults.
 - Do not add a redundant `[Localization]` whose value equals the auto-derived label (e.g. `[Localization("Salary")]` on `Salary`) — only annotate to change the label.

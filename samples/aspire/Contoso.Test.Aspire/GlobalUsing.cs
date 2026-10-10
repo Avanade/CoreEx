@@ -1,0 +1,15 @@
+global using Aspire.Hosting;
+global using Aspire.Hosting.ApplicationModel;
+global using AwesomeAssertions;
+global using Azure.Messaging.ServiceBus;
+global using Azure.Messaging.ServiceBus.Administration;
+global using Contoso.Products.Contracts;
+global using Contoso.Shopping.Contracts;
+global using CoreEx;
+global using Microsoft.Extensions.Configuration;
+global using NUnit.Framework;
+global using System.Net;
+global using System.Text.Json;
+global using UnitTestEx;
+global using UnitTestEx.Aspire;
+global using UnitTestEx.Expectations;

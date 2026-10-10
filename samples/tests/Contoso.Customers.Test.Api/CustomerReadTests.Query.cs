@@ -117,7 +117,7 @@ public partial class CustomerReadTests : WithApiTester<Contoso.Customers.Api.Pro
     [Test]
     public void Query_OrderBy_FirstName()
     {
-        // LastName is configured WithAlwaysInclude(), so this is a two-property "ORDER BY firstName, lastName" under the hood - requires the composite index DatabaseSetUp configures on "customers".
+        // LastName is configured WithAlwaysInclude(), so this is a two-property "ORDER BY firstName, lastName" under the hood - requires the composite index Contoso.Customers.Database configures on "customers".
         var r = Test.Http<CustomerLite[]>()
             .Run(HttpMethod.Get, "/api/customers?$orderby=firstname")
             .AssertOK()

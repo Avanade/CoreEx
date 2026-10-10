@@ -33,11 +33,11 @@ These files are present when the CoreEx AI workflow set has been copied into the
 - `.github/instructions/coreex-domain.instructions.md` — DDD aggregates, `Entity<TId,TSelf>`, mutation guards, `Result<T>` pipelines.
 - `.github/instructions/coreex-application-services.instructions.md` — service shape, `TransactionAsync`, validation-before-transaction, event enqueuing.
 - `.github/instructions/coreex-validators.instructions.md` — `Validator<T, TSelf>`, rule chains, `CommonValidator`, `ValidateAndThrowAsync`.
-- `.github/instructions/coreex-repositories.instructions.md` — `EfDbModel`, `IBiDirectionMapper`, `QueryArgsConfig`, paging.
+- `.github/instructions/coreex-repositories.instructions.md` — `EfDb`/`CosmosDb`, `IBiDirectionMapper`, `QueryArgsConfig`, paging.
 - `.github/instructions/coreex-api-controllers.instructions.md` — controller shape, `WebApi` helpers, `[IdempotencyKey]`, PATCH.
 - `.github/instructions/coreex-event-subscribers.instructions.md` — subscriber classes, `[Subscribe]`, `SubscribedManager`, error handling.
 - `.github/instructions/coreex-host-setup.instructions.md` — `Program.cs` shape, middleware order, service registration, outbox relay hosts.
-- `.github/instructions/coreex-tooling.instructions.md` — `*.CodeGen` and `*.Database` projects, `ref-data.yaml`, DbEx, generated-file ownership.
+- `.github/instructions/coreex-tooling.instructions.md` — `*.CodeGen` and `*.Database` projects, `ref-data.yaml`, DbEx or Cosmos provisioning, generated-file ownership.
 - `.github/instructions/coreex-tests.instructions.md` — `UnitTestEx`, `NUnit`, `AwesomeAssertions`, outbox/event expectations, seed data.
 
 ### Per-package AI usage guides
@@ -51,6 +51,7 @@ If a guide is not cached locally, fetch from GitHub:
 - [CoreEx.AspNetCore.NSwag](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.AspNetCore.NSwag/AGENTS.md) — NSwag/OpenAPI integration.
 - [CoreEx.Azure.Messaging.ServiceBus](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.Azure.Messaging.ServiceBus/AGENTS.md) — Service Bus publisher, subscribers, error handling.
 - [CoreEx.Caching.FusionCache](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.Caching.FusionCache/AGENTS.md) — `IHybridCache`, Redis backplane, idempotency provider.
+- [CoreEx.Cosmos](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.Cosmos/AGENTS.md) — `CosmosDb`, `CosmosDbContainer<TModel>`, transactional-batch outbox, Change Feed relay, provisioning.
 - [CoreEx.CodeGen](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.CodeGen/AGENTS.md) — `CodeGenConsole`, `ref-data.yaml`, generated-file ownership.
 - [CoreEx.Data](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.Data/AGENTS.md) — `IUnitOfWork`, `TransactionAsync`, `QueryArgsConfig`, `DataResult`.
 - [CoreEx.Data.GraphQL](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.Data.GraphQL/AGENTS.md) — GraphQL-lite `IGraphQLEngine`, `where`/`orderBy` bridged to `QueryArgsConfig`, Relay Cursor Connections paging.
@@ -111,6 +112,7 @@ Do not run `/coreex-docs-sync` silently — always offer and wait for confirmati
 - Separate explanation, plan, and implementation guidance clearly.
 - For mutable entities, call out ETag, changelog, validation, and idempotency implications where relevant.
 - For messaging, explicitly distinguish API-only, API plus outbox relay, API plus subscriber, and full orchestration shapes.
+- For Service Bus sessions, treat publisher key-to-session mapping, destination-specific bucket counts, receiver concurrency, and relational outbox partition sizing as separate controls; verify destination-specific profiles against the exact resolved queue/topic name.
 - The Api/Relay/Subscribe host split is a workload-isolation convention, not a technical requirement — for a small, low-traffic solution, consolidating hosted-service processing (outbox relay, subscriber receiving) into the Api host is a legitimate simplification. Mention it when a user's stated scale/traffic profile suggests the extra processes may not be earning their operational cost; see [Hosts Layer Guide § Choosing a Host Topology](https://github.com/Avanade/CoreEx/blob/main/samples/docs/hosts-layer.md#choosing-a-host-topology-split-vs-consolidate).
 - Never recommend editing `*.g.cs`, `*.g.sql`, or `*.g.pgsql` files — direct the user to the owning generator instead (Roslyn source generator for `*.g.cs`; `*.Database` project for `*.g.sql`/`*.g.pgsql`).
 
@@ -123,7 +125,9 @@ These skills are part of the CoreEx AI workflow set and live in `.github/skills/
 | Request | Skill |
 |---------|-------|
 | New entity with CRUD API — full stack from database table to HTTP endpoint | `/coreex-api-e2e` |
-| New event or command subscriber — handler, optional orchestration, and tests | `/coreex-subscriber-e2e` |
+| New event subscriber (event-data-sync or business-process) — handler, optional orchestration, and tests | `/coreex-subscriber-e2e` |
+| **Send a command** to another domain (not an event) — adapter, outbox/direct call site, queue routing, topology, tests, Aspire | `/coreex-command-publish-e2e` |
+| **Handle a command** addressed to this domain (not an event) — contract, subscriber, dedicated command-queue receiver, topology, tests, Aspire | `/coreex-command-subscribe-e2e` |
 
 **Add or modify a single capability** → route to the matching per-capability (L1) skill:
 
@@ -143,6 +147,7 @@ These skills are part of the CoreEx AI workflow set and live in `.github/skills/
 | API tests | `/coreex-test-api` |
 | Subscriber tests | `/coreex-test-subscribe` |
 | Outbox relay tests | `/coreex-test-relay` |
+| Aspire AppHost, service-bus topology, MockHost stubs, E2E tests | `/coreex-aspire` |
 
 **Broader routing:**
 

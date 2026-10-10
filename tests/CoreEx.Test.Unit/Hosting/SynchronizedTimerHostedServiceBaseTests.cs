@@ -183,17 +183,18 @@ public class SynchronizedTimerHostedServiceBaseTests
 
         public Task<bool> EnterAsync<T>(string? name = null, CancellationToken cancellationToken = default)
         {
-            Interlocked.Increment(ref _enterCount);
             LastEnterName = name;
             LastEnterType = typeof(T);
+            Interlocked.Increment(ref _enterCount);
             return Task.FromResult(ShouldEnterSucceed);
         }
 
         public Task ExitAsync<T>(string? name = null, CancellationToken cancellationToken = default)
         {
-            Interlocked.Increment(ref _exitCount);
+            // Set the values before incrementing the count, as tests poll the count and then read the values.
             LastExitName = name;
             LastExitType = typeof(T);
+            Interlocked.Increment(ref _exitCount);
             return Task.CompletedTask;
         }
 

@@ -1,7 +1,7 @@
 ---
 applyTo: "**/Infrastructure/**/*.cs"
-description: "Repository and infrastructure conventions: EFCore, mapping, typed HTTP clients, adapter implementations, and data-access patterns"
-tags: ["repositories", "infrastructure", "data-access", "efcore", "mapping", "adapters"]
+description: "Repository and infrastructure conventions: EFCore/Cosmos, mapping, typed HTTP clients, adapter implementations, and data-access patterns"
+tags: ["repositories", "infrastructure", "data-access", "efcore", "cosmos", "mapping", "adapters"]
 ---
 
 <!--
@@ -24,13 +24,15 @@ tags: ["repositories", "infrastructure", "data-access", "efcore", "mapping", "ad
 | Package | Key types provided |
 |---|---|
 | `CoreEx` | `[ScopedService<T>]`, `.ThrowIfNull()`, `ItemsResult<T>`, `Result<T>`, `.GoAsync()`, `.ThenAs()`, `.ThenAsAsync()` |
+| `CoreEx.Validation` | `Validator<T>`, `Validator.Create<T>()`, `.HasProperty(...)`, `.Mandatory()`, `.Email()` for inline response-contract rules |
 | `CoreEx.Events` | `EventData` |
 | `CoreEx.Data` | `IUnitOfWork`, `DataResult<T>`, `QueryArgsConfig<TSelf>`, `QueryFilterOperator`, `.Where(parsed)`, `.OrderBy(parsed)` |
+| `CoreEx.Cosmos` | `CosmosDb`, `CosmosDbContainer<TModel>`, `CosmosDbMappedContainer<TValue,TModel,TMapper>`, `CosmosDbArgs`, `CosmosDbQuery<TModel>`, `.GetAsync()`, `.CreateAsync()`, `.UpdateAsync()`, `.DeleteAsync()`, `.Query()`, `.ToMappedItemsResultAsync()` |
 | `CoreEx.EntityFrameworkCore` | `EfDb<TContext>`, `EfDbModel<T>`, `EfDbMappedModel<TContract,TModel,TMapper>`, `EfDbOptions`, `.GetAsync()`, `.CreateAsync()`, `.UpdateAsync()`, `.DeleteAsync()`, `.GetWithResultAsync()`, `.CreateWithResultAsync()`, `.UpdateWithResultAsync()`, `.Query()`, `.ToMappedItemsResultAsync()` |
 | `CoreEx.Database.SqlServer` | SQL Server outbox publisher, ADO.NET helpers |
 | `CoreEx.Database.Postgres` | PostgreSQL outbox publisher, ADO.NET helpers |
 
-> **Polyglot data**: Use `CoreEx.Database.Postgres` + `Npgsql.EntityFrameworkCore.PostgreSQL` for PostgreSQL domains. Use `CoreEx.Database.SqlServer` + `Microsoft.EntityFrameworkCore.SqlServer` for SQL Server domains. Layers above Infrastructure are database-agnostic.
+> **Polyglot data**: Use `CoreEx.Database.Postgres` + `Npgsql.EntityFrameworkCore.PostgreSQL` for PostgreSQL domains. Use `CoreEx.Database.SqlServer` + `Microsoft.EntityFrameworkCore.SqlServer` for SQL Server domains. Use `CoreEx.Cosmos` for Cosmos domains — no EF Core `DbContext`, no `EfDb`, and no `dbex.yaml`; repositories work through typed `CosmosDb` containers instead. Layers above Infrastructure are database-agnostic.
 
 ## Structure
 
@@ -38,11 +40,11 @@ The Infrastructure project is organised into focused sub-folders. The table belo
 
 | Sub-folder | Contents |
 |---|---|
-| `Repositories/` | `IXxxRepository` implementations (registered with `[ScopedService<IInterface>]`); `*EfDb.cs` — typed model accessor; `*DbContext.cs` — hand-authored EF `DbContext` (implements `IEfDbContext`, calls `AddGeneratedModels()`); `*DbContext.g.cs` — **generated** ModelBuilder configuration produced by the `*.Database` tooling. |
+| `Repositories/` | `IXxxRepository` implementations (registered with `[ScopedService<IInterface>]`); `*EfDb.cs` (relational) or `*CosmosDb.cs` (Cosmos) — typed model/container accessors; `*DbContext.cs` — hand-authored EF `DbContext` for relational domains (implements `IEfDbContext`, calls `AddGeneratedModels()`); `*DbContext.g.cs` — **generated** ModelBuilder configuration produced by the relational `*.Database` tooling. |
 | `Mapping/` | Bidirectional mappers (`BiDirectionMapper<TContract, TModel, TSelf>`) between Contract types and Persistence model types. |
 | `Adapters/` | Implementations of `IXxxAdapter` interfaces defined in `Application/Adapters/`. Registered with `[ScopedService<IInterface>]`. |
 | `Clients/` | Typed HTTP client wrappers — one class per external service. Registered via `AddTypedHttpClient<T>()` in `Program.cs`. |
-| `Persistence/` | EF entity/model classes. The `*.g.cs` files are **generated** by the `*.Database` tooling — do not edit them. Hand-authored POCOs for JSON-column storage (plain classes, no base class, no attributes) also live here alongside the generated files — see [Mapping](#mapping). |
+| `Persistence/` | Relational EF entity/model classes and Cosmos persistence models. The relational `*.g.cs` files are **generated** by the `*.Database` tooling — do not edit them. Hand-authored POCOs for Cosmos containers or JSON-column storage (plain classes, no base class, no attributes) also live here alongside the generated files — see [Mapping](#mapping). |
 
 Repository and adapter implementations follow the same primary-constructor + guard pattern:
 
@@ -53,6 +55,8 @@ public class ProductRepository(ProductsEfDb ef) : IProductRepository
     private readonly ProductsEfDb _ef = ef.ThrowIfNull();
 }
 ```
+
+Cosmos-backed adapters inject the typed `*CosmosDb` accessor instead of `*EfDb` and read through its mapped containers (`_cosmos.Products.GetAsync(...)`, `_cosmos.Products.Container.Query(...)`, etc.), but keep the same adapter/interface split and typed HTTP client pattern.
 
 **One repository per entity — the CQRS split is at the service layer, not here.** A single `XxxRepository` serves both the write `XxxService` and the read `XxxReadService` when they share a data source (the usual case for a SQL-backed domain) — do **not** create a separate read repository to mirror the read service. Introduce an additional repository only when an operation targets a **genuinely different** data source (e.g. a read served from a separate store or search index); the owning service then calls the appropriate repository per operation.
 
@@ -66,7 +70,42 @@ public class ProductRepository(ProductsEfDb ef) : IProductRepository
 | Collection query | `Task<ItemsResult<T>>` | Items + optional total count |
 | Result pipeline (optional) | `Task<Result<T>>` | Developer choice — can be used on any repository method; enables explicit failure propagation without exceptions |
 
-## EfDb and DbContext
+## CosmosDb
+
+For Cosmos domains there is **no EF Core `DbContext` or `EfDb`**. Instead, a typed `*CosmosDb` class extends `CosmosDb`, declares any shared container options, and exposes per-container accessors via `CosmosDbContainer<TModel>` / `CosmosDbMappedContainer<TValue,TModel,TMapper>`:
+
+```csharp
+public class CustomersCosmosDb(CosmosClient client, string databaseId) : CosmosDb(client, databaseId, _options)
+{
+    private static readonly CosmosDbOptions _options = new CosmosDbOptions().Container("ref-data", c => c.WithReferenceDataOutboxEvent());
+
+    public CosmosDbContainer<Persistence.CustomerType> CustomerTypes
+        => Container<Persistence.CustomerType>("ref-data", o => o.WithTypeDiscriminator());
+
+    public CosmosDbMappedContainer<Contracts.Customer, Persistence.Customer, CustomerMapper> Customers
+        => Container<Persistence.Customer>("customers").ToMappedModel<Contracts.Customer, CustomerMapper>(new CustomerMapper());
+}
+```
+
+Repositories inject `*CosmosDb` directly. CRUD methods call the mapped container; queries branch through the underlying `Container.Query(...)` and materialize via the `CosmosDbQuery<TModel>` **instance methods** (`ToMappedItemsResultAsync`, `ToItemsResultAsync`, etc.), avoiding the extension-method ambiguity that would occur if multiple providers exposed identically named `IQueryable<T>` extensions:
+
+```csharp
+[ScopedService<ICustomerRepository>]
+public class CustomerRepository(CustomersCosmosDb cosmos) : ICustomerRepository
+{
+    private readonly CustomersCosmosDb _cosmos = cosmos.ThrowIfNull();
+
+    public Task<Contracts.Customer?> GetAsync(string id, CancellationToken ct = default)
+        => _cosmos.Customers.GetAsync(CompositeKey.Create(id), ct);
+
+    public Task<DataResult<Contracts.Customer>> CreateAsync(Contracts.Customer customer, CancellationToken ct = default)
+        => _cosmos.Customers.CreateAsync(customer, ct);
+}
+```
+
+Use `CosmosDbArgs` for options such as an `IfMatchEtag` delete/update, and get the `CosmosClient` from DI via `builder.AddAzureCosmosClient("Cosmos", ...)` — never new one up in the repository.
+
+## Relational (EfDb and DbContext)
 
 ### DbContext
 
@@ -169,7 +208,7 @@ The model accessors (`EfDbModel<T>` and `EfDbMappedModel<...>`) expose two varia
 | Update | `UpdateAsync(value)` → `DataResult<TValue>` | `UpdateWithResultAsync(value)` → `Result<DataResult<TValue>>` |
 | Delete | `DeleteAsync(key)` → `DataResult` | `DeleteWithResultAsync(key)` → `Result<DataResult>` |
 
-Querying: `Query(...)` returns a filtered `IQueryable<TModel>` (logical-delete and tenant filters already applied); `QueryTracked(...)` is the change-tracked variant. Materialize via the extensions `ToMappedItemsResultAsync<TSource, TItem>()` (→ `ItemsResult<TItem>` with paging/count), `ToMappedItemsAsync<...>()`, or `ToItemsResultAsync<TItem>()`.
+Querying (relational): `Query(...)` returns a filtered `IQueryable<TModel>` (logical-delete and tenant filters already applied); `QueryTracked(...)` is the change-tracked variant. Materialize via the extensions `ToMappedItemsResultAsync<TSource, TItem>()` (→ `ItemsResult<TItem>` with paging/count), `ToMappedItemsAsync<...>()`, or `ToItemsResultAsync<TItem>()`. In Cosmos, the equivalent query entry point is `CosmosDbContainer<TModel>.Query(...)`, which returns a `CosmosDbQuery<TModel>`; materialize through its instance methods (`ToMappedItemsResultAsync`, `ToItemsResultAsync`, etc.), not via provider-neutral `IQueryable<T>` extensions.
 
 > **`cancellationToken` must be a named argument on `ToMappedItemsResultAsync`/`ToItemsResultAsync`.** Both signatures are `(mapper, paging = null, autoCount = true, cancellationToken = default)` — `autoCount` (`bool`) sits **before** `cancellationToken`. A bare positional `CancellationToken` in the third slot (e.g. `.ToMappedItemsResultAsync(mapper, paging, cancellationToken)`) binds to `autoCount` and fails to compile (`CS1503`). Always write `cancellationToken: cancellationToken` explicitly.
 
@@ -395,7 +434,7 @@ ShippingAddress = source.ShippingAddress is null ? null : new Persistence.Addres
 When a domain calls another domain's API over HTTP, split the concern across two focused classes:
 
 - **Typed HTTP client** (`Clients/`) — thin wrapper around `HttpClient` handling serialization and response mapping to `Result` types. One class per external service.
-- **Adapter implementation** (`Adapters/`) — implements the Application-layer `IXxxAdapter` interface. May combine the typed client with local EF reads and event publication.
+- **Adapter implementation** (`Adapters/`) — implements the Application-layer `IXxxAdapter` interface. May combine the typed client with local store reads (EF in relational domains; `CosmosDb` containers in Cosmos domains) and event publication.
 
 ```csharp
 // Infrastructure/Clients/ProductsHttpClient.cs
@@ -427,9 +466,39 @@ public class ProductAdapter(ShoppingEfDb ef, ProductsHttpClient client, IEventPu
 
 Keep the typed HTTP client and the adapter orchestration in separate, independently testable classes.
 
+### Client response validation
+
+Keep response-contract rules in the typed client, not Application business/request validators.
+For small rule sets, configure a private static readonly validator once; extract a colocated
+validator under `Clients/{ExternalDomain}/` only for substantial rules or genuine reuse.
+
+```csharp
+private static readonly Validator<Customer> _validator = Validator.Create<Customer>()
+    .HasProperty(x => x.Email, c => c.Mandatory().Email());
+
+// Inside the asynchronous client method; handle expected statuses before conversion.
+using var response = await _httpClient.GetAsync($"api/customers/{Uri.EscapeDataString(id)}", ct).ConfigureAwait(false);
+return await response.WithValidator(_validator).ToResultAsync(ct).ConfigureAwait(false);
+```
+
+Validate only fields the consumer needs; do not impose create/update rules or identifier matching
+by default. Do not capture request state/scoped dependencies in a shared validator.
+The wrapper validates successful non-null values and returns the validation result's `Value`.
+Reported errors become `HttpRequestException` with inner validation diagnostics: failed `ToResult*`,
+throwing `GetValue*`, standard internal 500 rather than caller 400. Required methods reject null;
+`OrDefault` methods allow null and skip validation for absent values. HTTP/ProblemDetails handling,
+deserialization exceptions, unexpected validator exceptions, and cancellation remain unchanged.
+Dispose the response at the call site; the wrapper does not own it.
+Test inline rules through the client, including invalid 2xx responses, exact inner messages, and
+valid minimal responses; do not expose private validators just for tests.
+
+**Value-returning clients and real-time caching.** A client method that returns a body uses `response.ToResultAsync<T>(ct)` (or `response.WithValidator(_validator).ToResultAsync(ct)` when response validation is needed) — it yields a non-null `T` on success and fails (`HttpRequestException`) on a null/empty body; use `ToResultOrDefaultAsync<T>(ct)` only for genuinely optional bodies. A real-time read adapter (no replica) should cache successful lookups in one line with `IHybridCache.GetOrCreateWithResultAsync<T>(key, ct => client.GetAsync(...), options, ct)` — failures, including invalid 2xx responses, are never cached; prove this by replacing an invalid payload with a valid one and retrying. Expiry should be short, and concurrent misses collapse to one factory call per key per node with `FusionHybridCache` (cross-node needs an opt-in FusionCache distributed locker). Tests sharing Redis must clear the cache per test. Full pattern: [`coreex-adapter` workflow](/.github/skills/coreex-adapter/references/workflow.md#caching-a-real-time-adapter).
+
+Cosmos-backed adapters inject the typed `*CosmosDb` accessor instead of `*EfDb` and read through its mapped containers (`_cosmos.Products.GetAsync(...)`, `_cosmos.Products.Container.Query(...)`, etc.), but keep the same adapter/interface split and typed HTTP client pattern.
+
 ## Generated Code
 
-Persistence model classes (`Persistence/*.g.cs`) and the EF `DbContext` partial (`Repositories/*DbContext.g.cs`) are generated by the domain's `*.Database` project. Never create or edit these files directly — run `dotnet run -- CodeGen` (or `dotnet run -- All`) in the `*.Database` project to regenerate.
+Persistence model classes (`Persistence/*.g.cs`) are generated by the domain's `*.Database` project for both relational and Cosmos domains. The EF `DbContext` partial (`Repositories/*DbContext.g.cs`) is generated only for relational domains. Never create or edit these files directly — run `dotnet run -- CodeGen` (or `dotnet run -- All`) in the `*.Database` project to regenerate.
 
 ## ConfigureAwait
 
@@ -441,6 +510,7 @@ Always call `.ConfigureAwait(false)` on every `await` inside repository and adap
 - Do not use AutoMapper or reflection-based mappers — use `BiDirectionMapper<TFrom, TTo, TSelf>` with explicit `OnMap` overrides.
 - Do not call the mapper via an invented member name (`MapToEntity`, `MapToDto`, `.Default.Map(...)`) — the real call sites are `{Name}Mapper.To.Map(source)` (left→right) and `{Name}Mapper.From.Map(source)` (right→left); see [`coreex-conventions.instructions.md#when-unsure-of-a-coreex-api-member`](/.github/instructions/coreex-conventions.instructions.md#when-unsure-of-a-coreex-api-member) if unsure.
 - Do not call `HttpClient` directly in adapter methods — use the typed HTTP client class in `Clients/`.
+- Do not hand-roll try-get/set caching around a `Result<T>` call, or cache failures — use `IHybridCache.GetOrCreateWithResultAsync<T>` (successes only); do not add `?? throw` null handling after `ToResultAsync<T>()` (it already fails on a null/empty body).
 - Do not conflate Application-level mapping (aggregate ↔ contract) with Infrastructure-level mapping (contract ↔ persistence model).
 - Do not write raw `DbContext` queries for standard CRUD — use the `EfDb` delegate methods.
 - Do not edit `*.g.cs` persistence or DbContext files directly — regenerate via the `*.Database` tooling project.

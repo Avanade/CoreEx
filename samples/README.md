@@ -1,10 +1,10 @@
 # Contoso Samples
 
-The `samples` folder contains reference implementations of domain microservices built with CoreEx: **Products** (PostgreSQL) and **Shopping** (SQL Server) are complete; **Customers** (Azure Cosmos DB) demonstrates typed CRUD, reference data, and a transactional outbox against a schemaless store, but has no Outbox Relay/Subscribe host yet. A fourth, **Orders**, is a work in progress that will eventually demonstrate asynchronous workflow processing.
+The `samples` folder contains reference implementations of domain microservices built with CoreEx: **Products** (PostgreSQL) and **Shopping** (SQL Server) are complete; **Customers** (Azure Cosmos DB) demonstrates typed CRUD, reference data, a transactional outbox, and a change-feed Outbox Relay against a schemaless store. Customers has no Subscribe host. A fourth, **Orders**, is a work in progress that will eventually demonstrate asynchronous workflow processing.
 
 ![Sample architecture interactions](../images/SampleArchitectureInteractions.png "Architecture")
 
-Each of Products and Shopping is an independently deployable unit with an API host, an Outbox Relay host, and an Event Subscriber host, backed by an applicable data repository, and connected to other domains via synchronous HTTP and asynchronous messaging over Azure Service Bus. Customers is API-only for now — no Relay or Subscribe host — and is not wired into the inter-domain messaging shown below.
+Each of Products and Shopping is an independently deployable unit with an API host, an Outbox Relay host, and an Event Subscriber host, backed by an applicable data repository, and connected to other domains via synchronous HTTP and asynchronous messaging over Azure Service Bus. Customers has API and Relay hosts: its relay forwards events from both Cosmos containers to the shared topic. Shopping still consumes Customers only via synchronous HTTP (see flow ⑧), not event-driven replication.
 
 > **Documentation** — detailed guides for layers, patterns, tooling, and testing are in [`samples/docs`](docs/).
 >
@@ -40,18 +40,29 @@ graph TB
         PDB[("SQL Server\n[Products] schema\n─────────────\nProduct\nInventory\nMovement\nOutbox / OutboxLease\nRef data")]
     end
 
+    subgraph CUSTOMERS["Contoso.Customers Domain"]
+        direction TB
+        CAPI["Customers API\n─────────────────\nGET/POST/PUT/PATCH/DELETE /customers\nGET /refdata"]
+        CDB[("Cosmos DB\ncustomers / ref-data\nCo-located outbox events\n$outbox-leases")]
+        COUTBOX["Customers.Relay\nChange feed to Service Bus"]
+    end
+
     subgraph SHOPPING["Contoso.Shopping Domain"]
         direction TB
         SAPI["Shopping API\n─────────────────\nPOST /customers/{id}/baskets\nPOST /{id}/checkout\nPUT /{id}/apply-discount\nPOST/PUT/DELETE /{id}/items\nGET /baskets"]
         SAPP["Shopping Application\n─────────────────\nBasketService\nBasketReadService"]
         SDOMAIN["Shopping Domain\n─────────────────\nBasket (Aggregate Root)\nBasketItem (Entity)\nItemPricing (Value Object)"]
-        SINFRA["Shopping Infrastructure\n─────────────────\nBasketRepository\nShoppingOutboxPublisher\nProductAdapter (ACL)\nProductsHttpClient\nProductSyncAdapter"]
+        SINFRA["Shopping Infrastructure\n─────────────────\nBasketRepository\nShoppingOutboxPublisher\nProductAdapter (ACL)\nProductsHttpClient\nProductSyncAdapter\nCustomerAdapter (ACL)\nCustomersHttpClient"]
         SSUBSCRIBE["Shopping.Subscribe\n─────────────────\nProductModifySubscriber\nProductDeleteSubscriber"]
         SOUTBOX["Shopping.Relay\n─────────────────\nOutbox to Service Bus\nPartitioned relay"]
         SDB[("SQL Server\n[Shopping] schema\n─────────────\nBasket\nBasketItem\nProduct (replica)\nOutbox / OutboxLease\nRef data")]
     end
 
     PAPI --> PAPP
+    CAPI --> CDB
+    CAPI -->|"L1/L2 Hybrid Cache + backplane"| REDIS
+    CDB -->|"Change feed"| COUTBOX
+    COUTBOX -->|"Publish customer and reference-data events"| ASB
     PAPP --> PINFRA
     PINFRA --> PDB
     POUTBOX -->|"Poll Outbox table"| PDB
@@ -64,6 +75,7 @@ graph TB
     SINFRA -->|"L1/L2 Hybrid Cache"| REDIS
 
     SINFRA -->|"① HTTP POST /api/inventory/reserve\nReserve inventory at checkout"| PAPI
+    SINFRA -->|"⑧ HTTP GET /api/customers/{id}\nValidate customer + default address"| CAPI
 
     POUTBOX -->|"② Publish product.created/updated/deleted"| ASB
     ASB -->|"③ Consume product events (replication)"| SSUBSCRIBE
@@ -88,6 +100,7 @@ graph TB
 | ① Inventory reservation | Shopping → Products | Synchronous HTTP — `ProductAdapter` calls `POST /api/inventory/reserve` at basket checkout. |
 | ② – ④ Product replication | Products → Shopping | Products Outbox → Relay → Service Bus → `Shopping.Subscribe` keeps a local product replica in sync. |
 | ⑤ – ⑦ Reservation commands | Shopping → Products | On checkout success the outbox enqueues `reservation.confirm`; on failure Shopping publishes `reservation.cancel` directly to Service Bus (the transaction has already rolled back). |
+| ⑧ Customer lookup | Shopping → Customers | Synchronous HTTP — `CustomerAdapter` calls `GET /api/customers/{id}` when a basket is created (the `customerId` is validated and the shipping address defaulted from the customer) and when the checkout confirmation email is addressed. Unlike Products there is no replication: this is the alternate, real-time adapter pattern (with successful lookups held briefly in the `IHybridCache`). |
 
 See [Patterns](docs/patterns.md) for the full catalog of architectural patterns demonstrated across the samples.
 
@@ -97,7 +110,7 @@ See [Patterns](docs/patterns.md) for the full catalog of architectural patterns 
 |---|---|
 | `src/Contoso.Products.*` | Products domain — Contracts, Application, Infrastructure, API, Relay, Subscribe, CodeGen, Database |
 | `src/Contoso.Shopping.*` | Shopping domain — same layer split plus Domain aggregate |
-| `src/Contoso.Customers.*` | Customers domain (Cosmos DB) — Contracts, Application, Infrastructure, API, CodeGen; no Relay/Subscribe/Database project (schemaless, code-first containers) |
+| `src/Contoso.Customers.*` | Customers domain (Cosmos DB) — Contracts, Application, Infrastructure, API, Relay, CodeGen, Database (Cosmos provisioning console); no Subscribe project |
 | `src/Contoso.Orders.*` | Orders domain (work in progress) |
 | `aspire/Contoso.Aspire` | Aspire AppHost — orchestrates all hosts for local development and E2E validation |
 | `tests/Contoso.*.Test.*` | Unit, API, Relay, and Subscribe test projects per domain |
@@ -141,7 +154,7 @@ dotnet run --project samples/src/Contoso.Shopping.Database -- All
 dotnet run --project samples/src/Contoso.Orders.Database   -- All
 ```
 
-> Customers (Cosmos DB) has no `*.Database` project — it is schemaless, and its containers are created/reset code-first at test/run time via `ReplaceOrCreateContainerAsync` (see [`Contoso.Customers.Test.Api/DatabaseSetUp.cs`](tests/Contoso.Customers.Test.Api/DatabaseSetUp.cs)); no separate migration step is required.
+> Customers (Cosmos DB) is schemaless, so `Contoso.Customers.Database` is not a schema migration tool: it declares the containers and seed data and runs them through the reusable `CoreEx.Cosmos.Provisioning` console (`dotnet run --project samples/src/Contoso.Customers.Database -- All`; use `DropAndAll` or `Create,ResetAndData` to start clean, noting `Drop`/`Reset` prompt for confirmation unless `--accept-prompts` is specified; `ResetAndData` alone fails where the database does not yet exist). Tests reuse the same definition via `Test.MigrateCosmosDataAsync<TestData>(...)`.
 
 > The E2E runner's **Database Migration and Base Data Refresh** option can also apply pending migrations across all domains without restarting hosts. See [Aspire & E2E](docs/aspire.md) for details.
 
@@ -165,9 +178,12 @@ dotnet test samples/tests/Contoso.Products.Test.Subscribe
 dotnet test samples/tests/Contoso.Shopping.Test.Api
 dotnet test samples/tests/Contoso.Customers.Test.Unit
 dotnet test samples/tests/Contoso.Customers.Test.Api
+dotnet test samples/tests/Contoso.Customers.Test.Relay
 ```
 
-The required infrastructure (data store, Redis, Service Bus emulator) must be running for API, Relay, and Subscribe tests. Customers' API tests require the `cosmos-emulator` container instead of a SQL Server/Postgres store.
+The required infrastructure (data store, Redis, Service Bus emulator) must be running for API, Relay, and Subscribe tests. Customers' API tests require `cosmos-emulator` and Redis instead of a SQL Server/Postgres store; its Relay tests require Cosmos and Service Bus.
+
+The Customers relay deliberately skips pending events older than its startup boundary when no checkpoint exists. Subsequent restarts resume saved checkpoints; delivery is at-least-once and retries can duplicate messages. Provision `$outbox-leases` with `Contoso.Customers.Database` before starting the relay. See [Hosts](docs/hosts-layer.md#customers-cosmos-relay) for configuration and recovery implications.
 
 See [Testing](docs/testing.md) for an explanation of test taxonomy, intra-domain vs inter-domain boundaries, data seeding, mock patterns, and the fluent assertion model.
 

@@ -24,10 +24,10 @@ public partial class OrdersDbContext
             e.Property(p => p.Text).HasColumnName("Text").HasColumnType("NVARCHAR(250)");
             e.Property(p => p.IsActive).HasColumnName("IsActive").HasColumnType("BIT");
             e.Property(p => p.SortOrder).HasColumnName("SortOrder").HasColumnType("INT");
-            e.Property(p => p.CreatedBy).HasColumnName("CreatedBy").HasColumnType("NVARCHAR(250)");
-            e.Property(p => p.CreatedOn).HasColumnName("CreatedOn").HasColumnType("DATETIMEOFFSET");
-            e.Property(p => p.UpdatedBy).HasColumnName("UpdatedBy").HasColumnType("NVARCHAR(250)");
-            e.Property(p => p.UpdatedOn).HasColumnName("UpdatedOn").HasColumnType("DATETIMEOFFSET");
+            e.Property(p => p.CreatedBy).HasColumnName("CreatedBy").HasColumnType("NVARCHAR(250)").ValueGeneratedOnUpdate();
+            e.Property(p => p.CreatedOn).HasColumnName("CreatedOn").HasColumnType("DATETIMEOFFSET").ValueGeneratedOnUpdate();
+            e.Property(p => p.UpdatedBy).HasColumnName("UpdatedBy").HasColumnType("NVARCHAR(250)").ValueGeneratedOnAdd();
+            e.Property(p => p.UpdatedOn).HasColumnName("UpdatedOn").HasColumnType("DATETIMEOFFSET").ValueGeneratedOnAdd();
             e.Property(p => p.ETag).HasColumnName("RowVersion").HasColumnType("TIMESTAMP").IsRowVersion().HasConversion(ValueConverterBridge.Create<string?, byte[]>(BaseDatabase.RowVersionConverter));
             e.Ignore(p => p.Description).Ignore(p => p.StartsOn).Ignore(p => p.EndsOn);
         });
@@ -40,10 +40,10 @@ public partial class OrdersDbContext
             e.Property(p => p.Id).HasColumnName("OrderId").HasColumnType("NVARCHAR(50)");
             e.Property(p => p.CustomerId).HasColumnName("CustomerId").HasColumnType("NVARCHAR(100)");
             e.Property(p => p.StatusCode).HasColumnName("StatusCode").HasColumnType("NVARCHAR(50)");
-            e.Property(p => p.CreatedBy).HasColumnName("CreatedBy").HasColumnType("NVARCHAR(250)");
-            e.Property(p => p.CreatedOn).HasColumnName("CreatedOn").HasColumnType("DATETIMEOFFSET");
-            e.Property(p => p.UpdatedBy).HasColumnName("UpdatedBy").HasColumnType("NVARCHAR(250)");
-            e.Property(p => p.UpdatedOn).HasColumnName("UpdatedOn").HasColumnType("DATETIMEOFFSET");
+            e.Property(p => p.CreatedBy).HasColumnName("CreatedBy").HasColumnType("NVARCHAR(250)").ValueGeneratedOnUpdate();
+            e.Property(p => p.CreatedOn).HasColumnName("CreatedOn").HasColumnType("DATETIMEOFFSET").ValueGeneratedOnUpdate();
+            e.Property(p => p.UpdatedBy).HasColumnName("UpdatedBy").HasColumnType("NVARCHAR(250)").ValueGeneratedOnAdd();
+            e.Property(p => p.UpdatedOn).HasColumnName("UpdatedOn").HasColumnType("DATETIMEOFFSET").ValueGeneratedOnAdd();
             e.Property(p => p.ETag).HasColumnName("RowVersion").HasColumnType("TIMESTAMP").IsRowVersion().HasConversion(ValueConverterBridge.Create<string?, byte[]>(BaseDatabase.RowVersionConverter));
         });
 
@@ -57,10 +57,10 @@ public partial class OrdersDbContext
             e.Property(p => p.ProductId).HasColumnName("ProductId").HasColumnType("NVARCHAR(100)");
             e.Property(p => p.Quantity).HasColumnName("Quantity").HasColumnType("DECIMAL(18, 4)");
             e.Property(p => p.UnitPrice).HasColumnName("UnitPrice").HasColumnType("DECIMAL(18, 4)");
-            e.Property(p => p.CreatedBy).HasColumnName("CreatedBy").HasColumnType("NVARCHAR(250)");
-            e.Property(p => p.CreatedOn).HasColumnName("CreatedOn").HasColumnType("DATETIMEOFFSET");
-            e.Property(p => p.UpdatedBy).HasColumnName("UpdatedBy").HasColumnType("NVARCHAR(250)");
-            e.Property(p => p.UpdatedOn).HasColumnName("UpdatedOn").HasColumnType("DATETIMEOFFSET");
+            e.Property(p => p.CreatedBy).HasColumnName("CreatedBy").HasColumnType("NVARCHAR(250)").ValueGeneratedOnUpdate();
+            e.Property(p => p.CreatedOn).HasColumnName("CreatedOn").HasColumnType("DATETIMEOFFSET").ValueGeneratedOnUpdate();
+            e.Property(p => p.UpdatedBy).HasColumnName("UpdatedBy").HasColumnType("NVARCHAR(250)").ValueGeneratedOnAdd();
+            e.Property(p => p.UpdatedOn).HasColumnName("UpdatedOn").HasColumnType("DATETIMEOFFSET").ValueGeneratedOnAdd();
             e.Ignore(p => p.ETag);
         });
     }

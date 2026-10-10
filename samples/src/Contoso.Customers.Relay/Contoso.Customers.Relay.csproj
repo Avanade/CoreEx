@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\CoreEx.AspNetCore\CoreEx.AspNetCore.csproj" />
+    <ProjectReference Include="..\..\..\src\CoreEx.Azure.Messaging.ServiceBus\CoreEx.Azure.Messaging.ServiceBus.csproj" />
+    <ProjectReference Include="..\..\..\src\CoreEx.Cosmos\CoreEx.Cosmos.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
+  </ItemGroup>
+  <ItemGroup>
+    <RuntimeHostConfigurationOption Include="Azure.Experimental.EnableActivitySource" Value="true" />
+  </ItemGroup>
+</Project>

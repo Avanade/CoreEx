@@ -1,7 +1,7 @@
 ---
 name: coreex-db-migration
-description: "Add or change a database table for a CoreEx domain. USE FOR: new transactional table, new reference-data table, altering an existing table (columns, indexes, constraints), or any other schema change (indexes, functions, stored procs). Scaffolds the correct migration script, updates dbex.yaml, applies the migration, and regenerates Infrastructure persistence models. DO NOT USE FOR: outbox provisioning (use dotnet run -- script outbox directly), seed data only changes (dotnet run -- Data), or CoreEx contract/service generation (that is *.CodeGen, not *.Database)."
-argument-hint: "Optional: entity/table name, schema, SQL Server vs PostgreSQL, nature of change"
+description: "Add or change relational database schema or Cosmos container provisioning for a CoreEx domain. USE FOR: new transactional table, new reference-data table, altering an existing table (columns, indexes, constraints), Cosmos container/provisioning changes, or any other persistence-shape change that must flow through Infrastructure access. For relational domains this scaffolds the correct migration script, updates dbex.yaml, applies the migration, and regenerates EF persistence models; for Cosmos domains it updates ConfigureProvisionArgs/seed data and the typed accessor expectations. DO NOT USE FOR: outbox provisioning in relational domains (use dotnet run -- script outbox directly), seed data only changes (dotnet run -- Data), or CoreEx contract/service generation (that is *.CodeGen, not *.Database)."
+argument-hint: "Optional: entity/table/container name, schema or database id, SQL Server vs PostgreSQL vs Cosmos, nature of change"
 tags: ["database", "migration", "dbex", "schema", "efcore", "coreex"]
 ---
 
@@ -15,14 +15,15 @@ tags: ["database", "migration", "dbex", "schema", "efcore", "coreex"]
 
 # CoreEx: DB Migration
 
-Guides you through any database schema change for a CoreEx domain — from choosing the right migration script through to regenerated EF persistence models.
+Guides you through any persistence-shape change for a CoreEx domain — relational schema migrations or Cosmos container/provisioning changes — through to regenerated access-layer artefacts.
 
 ## When to Use
 
-- Adding a new table for a new entity (transactional or reference-data)
-- Altering an existing table — adding/modifying/removing columns, indexes, or constraints
-- Any other schema change that needs to flow through to regenerated `*.g.cs` Infrastructure files
-- Non-entity schema changes (adding an index, a unique constraint, a function)
+- Adding a new relational table for a new entity (transactional or reference-data)
+- Altering an existing relational table — adding/modifying/removing columns, indexes, or constraints
+- Adding or changing a Cosmos container declaration, partition-key shape, or seed-data import for a CoreEx entity
+- Any other persistence-shape change that needs to flow through to regenerated `*.g.cs` Infrastructure files or typed accessors
+- Non-entity relational schema changes (adding an index, a unique constraint, a function)
 
 ## When Not to Use
 
@@ -32,13 +33,15 @@ Guides you through any database schema change for a CoreEx domain — from choos
 - Runtime or deployment issues
 
 > **Resolve project-wide choices from state before asking.** Read the solution-root `AGENTS.md`
-> **Feature Configuration** for `data-provider` (SQL Server / PostgreSQL — gates this whole skill; `None`
-> means no database) and `outbox-enabled`. Only prompt for what is unrecorded; re-state resolved values
+> **Feature Configuration** for `data-provider` (`SqlServer` / `Postgres` / `Cosmos` — gates this whole skill; `None`
+> means no persistence project) and `outbox-enabled`. Only prompt for what is unrecorded; re-state resolved values
 > for confirmation.
 
 ## Quick Reference
 
 All commands run from the `*.Database` project directory.
+
+### Relational providers (`SqlServer` / `Postgres`)
 
 | Task | Command |
 |---|---|
@@ -50,6 +53,16 @@ All commands run from the `*.Database` project directory.
 | Non-entity schema change | `dotnet run -- script` |
 | Apply everything + regenerate | `dotnet run -- All` |
 | Drop + full rebuild (destructive, confirm first) | `dotnet run -- dropandall --accept-prompts` |
+
+### Cosmos provider
+
+| Task | Command / file |
+|---|---|
+| Declare or change containers | Edit `Program.ConfigureProvisionArgs(CosmosDbProvisionArgs)` |
+| Add or amend seed data | Edit `Data/*.seed.yaml` / `Data/*.json` (top-level key = container id) |
+| Create/import baseline | `dotnet run -- All` |
+| Recreate containers + data | `dotnet run -- ResetAndData` |
+| Drop + recreate database (destructive, confirm first) | `dotnet run -- DropAndAll` |
 
 ## Naming
 
@@ -65,7 +78,7 @@ All commands run from the `*.Database` project directory.
 | PostgreSQL | `.pgsql` | `snake_case` |
 | SQL Server | `.sql` | `PascalCase` |
 
-Check the project's `*.Database/Program.cs` or `appsettings.json` to confirm the provider in use.
+Check the project's `*.Database/Program.cs` or host wiring to confirm the provider in use. Cosmos domains declare containers in `ConfigureProvisionArgs(...)` instead of `dbex.yaml`/migration scripts.
 
 For the full step-by-step decision tree, SQL column templates, and guardrails see [`references/workflow.md`](references/workflow.md).
 
@@ -86,9 +99,10 @@ For the full workflow, example YAML, DDD aggregate vs CRUD service guidance, and
 
 ## Key References
 
-- [`/.github/instructions/coreex-tooling.instructions.md`](/.github/instructions/coreex-tooling.instructions.md) — DbEx command reference, `dbex.yaml` structure, SQL conventions, outbox provisioning
+- [`/.github/instructions/coreex-tooling.instructions.md`](/.github/instructions/coreex-tooling.instructions.md) — relational DbEx command reference **and** Cosmos provisioning-console conventions
 - [`/.github/instructions/coreex-repositories.instructions.md`](/.github/instructions/coreex-repositories.instructions.md) — what the generated `*.g.cs` feeds into
 - Related skills: [`coreex-refdata`](../coreex-refdata/SKILL.md) (reference-data tables + CodeGen), [`coreex-repository`](../coreex-repository/SKILL.md) (maps the generated persistence models)
 - Illustrative examples (CoreEx sample — not present in your project):
   - [PostgreSQL domain database project](https://github.com/Avanade/CoreEx/tree/main/samples/src/Contoso.Products.Database) — canonical `.pgsql` / `snake_case` migrations, `dbex.yaml`, seed files
   - [SQL Server domain database project](https://github.com/Avanade/CoreEx/tree/main/samples/src/Contoso.Shopping.Database) — canonical `.sql` / `PascalCase` migrations, `dbex.yaml`, seed files
+  - [Cosmos domain database project](https://github.com/Avanade/CoreEx/tree/main/samples/src/Contoso.Customers.Database) — `CosmosDbConsole`, `ConfigureProvisionArgs`, and container-keyed seed files

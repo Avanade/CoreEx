@@ -1,7 +1,7 @@
 ---
 name: coreex-repository
-description: "Create or modify a CoreEx Infrastructure-layer repository. USE FOR: new repository class, adding CRUD operations, adding a custom query (QueryArgsConfig<TSelf>), bidirectional mapper (BiDirectionMapper), EfDb model accessor, Result<T> pipeline variants. DO NOT USE FOR: Application-layer service logic, domain invariants, typed HTTP clients/adapters (those follow adapter conventions in the infrastructure instructions, not this skill)."
-argument-hint: "Optional: entity name, database type (PostgreSQL/SQL Server), operations needed (get/create/update/delete/query), new or existing repository; for query: filtering (default: yes), ordering (default: yes), paging (default: yes), count support (default: no), then per filter field: name + property type + allowed operators + case-insensitive? + model mapping if different"
+description: "Create or modify a CoreEx Infrastructure-layer repository. USE FOR: new repository class, adding CRUD operations, adding a custom query (QueryArgsConfig<TSelf>), bidirectional mapper (BiDirectionMapper), EfDb/CosmosDb model accessor, Result<T> pipeline variants. DO NOT USE FOR: Application-layer service logic, domain invariants, typed HTTP clients/adapters (those follow adapter conventions in the infrastructure instructions, not this skill)."
+argument-hint: "Optional: entity name, database type (PostgreSQL/SQL Server/Cosmos), operations needed (get/create/update/delete/query), new or existing repository; for query: filtering (default: yes), ordering (default: yes), paging (default: yes), count support (default: no), then per filter field: name + property type + allowed operators + case-insensitive? + model mapping if different"
 tags: ["repository", "infrastructure", "efcore", "mapping", "coreex", "data-access", "result"]
 ---
 
@@ -15,15 +15,15 @@ tags: ["repository", "infrastructure", "efcore", "mapping", "coreex", "data-acce
 
 # CoreEx: Repository
 
-Guides you through creating or modifying a CoreEx Infrastructure-layer repository in `Infrastructure/Repositories/`. Covers CRUD delegates, custom queries, bidirectional mappers, EfDb accessors, and `Result<T>` pipelines.
+Guides you through creating or modifying a CoreEx Infrastructure-layer repository in `Infrastructure/Repositories/`. Covers CRUD delegates, custom queries, bidirectional mappers, EfDb or CosmosDb accessors, and `Result<T>` pipelines.
 
 ## When to Use
 
-- New repository class for an entity (scaffold, EfDb accessor, mapper, registration)
+- New repository class for an entity (scaffold, EfDb/CosmosDb accessor, mapper, registration)
 - Adding a CRUD operation (get/create/update/delete) using EfDb delegate shortcuts
 - Adding a custom query method with `QueryArgsConfig` dynamic filtering/ordering
 - Adding a `BiDirectionMapper` (Contract ↔ Persistence) in `Infrastructure/Mapping/`
-- Adding or modifying an `EfDbMappedModel` or `EfDbModel` accessor on `*EfDb`
+- Adding or modifying an `EfDbMappedModel` / `EfDbModel` accessor on `*EfDb`, or a `CosmosDbContainer<TModel>` / `CosmosDbMappedContainer<...>` accessor on `*CosmosDb`
 - Switching a method to the `Result<T>` / `*WithResultAsync` pipeline
 
 ## When Not to Use
@@ -35,8 +35,8 @@ Guides you through creating or modifying a CoreEx Infrastructure-layer repositor
 ## Quick Reference
 
 **Clarifying questions before writing any code:**
-0. **Resolve from state first.** Read the solution-root `AGENTS.md` **Feature Configuration** for `data-provider` (SQL Server / PostgreSQL — gates this skill) and check whether a `*.Domain` project exists (Domain-mapping vs contract-mapping). Only ask for what is unresolved; re-state resolved values for confirmation.
-1. Which entity? Which database type (PostgreSQL / SQL Server)? Check the project's `Program.cs`.
+0. **Resolve from state first.** Read the solution-root `AGENTS.md` **Feature Configuration** for `data-provider` (`SqlServer` / `Postgres` / `Cosmos` — gates this skill) and check whether a `*.Domain` project exists (Domain-mapping vs contract-mapping). Only ask for what is unresolved; re-state resolved values for confirmation.
+1. Which entity? Which database type (`PostgreSQL` / `SQL Server` / `Cosmos`)? Check the project's `Program.cs`.
 2. New repository or adding to an existing one?
 3. Operations needed: Get / Create / Update / Delete / Query?
 4. Does the project use `Result<T>` / ROP pipelines? (→ `*WithResultAsync` — per-project style choice, not tied to DDD)
@@ -44,12 +44,12 @@ Guides you through creating or modifying a CoreEx Infrastructure-layer repositor
 
 **Key rules at a glance:**
 - `[ScopedService<IInterface>]` on every repository class — auto-registers in DI
-- Primary constructor: `public class ProductRepository(ProductsEfDb ef) : IProductRepository`; guard with `ThrowIfNull()`
-- Use EfDb delegate shortcuts (`GetAsync`, `CreateAsync`, `UpdateAsync`, `DeleteAsync`) — never write raw `DbContext` CRUD
+- Primary constructor: relational example `public class ProductRepository(ProductsEfDb ef) : IProductRepository`; Cosmos example `public class CustomerRepository(CustomersCosmosDb cosmos) : ICustomerRepository`; always guard the injected accessor with `ThrowIfNull()`
+- Use the provider's typed accessors: `EfDb` delegate shortcuts (`GetAsync`, `CreateAsync`, `UpdateAsync`, `DeleteAsync`) for relational domains; `CosmosDbMappedContainer` / `CosmosDbContainer` delegates for Cosmos domains. Never write raw `DbContext` CRUD or instantiate a `CosmosClient` in the repository.
 - `DataResult<T>` return for Create/Update; `DataResult` for Delete — includes mutation flag for event decisions
 - `*WithResultAsync` variants for `Result<T>` ROP pipelines (per-project style choice)
 - `BiDirectionMapper`: override **both** `OnMap` overloads; map `Id` explicitly; **never** map `ETag` or `ChangeLog` — base mapper owns them
-- `QueryArgsConfig<TSelf>`: create a dedicated `{Name}QueryArgsConfig : QueryArgsConfig<{Name}QueryArgsConfig>` class per entity in `Infrastructure/Repositories/`; access via `.Default`; call `.Parse(query).ThrowOnError()` before use — never instantiate per-request
+- `QueryArgsConfig<TSelf>`: create a dedicated `{Name}QueryArgsConfig : QueryArgsConfig<{Name}QueryArgsConfig>` class per entity in `Infrastructure/Repositories/`; access via `.Default`; call `.Parse(query).ThrowOnError()` before use — never instantiate per-request. Relational queries materialize from `IQueryable<TModel>` extensions; Cosmos queries materialize from `CosmosDbQuery<TModel>` instance methods (`Container.Query(...).ToMappedItemsResultAsync(...)`).
 - `AddReferenceDataField<TRef>(field, model, ...)`: `field` is always the contract's generated nav property (`{Name}`, never `{Name}Code`) — a fixed, documented source-generator convention, **not** something to verify by exploring generated code
 - `ToMappedItemsResultAsync(mapper, paging, cancellationToken: cancellationToken)`: always pass `cancellationToken` **by name** — `autoCount` (`bool`, defaults `true`) sits before it in the signature, and a bare positional token there fails to compile
 - Always `.ConfigureAwait(false)` on every `await`

@@ -8,6 +8,33 @@
 
 **Publishing** is handled by `ServiceBusPublisher`, which inherits `EventPublisherBase` and implements `OnPublishAsync` using the SDK's safe-batch send API. Each `DestinationEvent` is converted from a `CloudEvent` to a `ServiceBusMessage` (structured or binary content mode), with CloudEvents attributes optionally written to message application properties. Session-ID assignment is controlled by the `ServiceBusSessionStrategy` enum.
 
+When `UsePartitionKeyConvertedToAnId` is selected, `CoreEx:Host:ServiceBus:SessionIdPartitionSize` controls the publisher-wide session bucket count (default `4`). Destination-specific settings can override the strategy and/or bucket count when destinations have different ordering or throughput needs:
+
+```json
+{
+  "CoreEx": {
+    "Host": {
+      "ServiceBus": {
+        "SessionIdPartitionSize": 8,
+        "Destinations": {
+          "contoso": {
+            "SessionIdStrategy": "UsePartitionKeyAsIs"
+          },
+          "contoso-products": {
+            "SessionIdStrategy": "UsePartitionKeyConvertedToAnId",
+            "SessionIdPartitionSize": 2
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+The destination keys are the exact Service Bus entity names. Unspecified destination values inherit the publisher-wide strategy or bucket count. This setting is intentionally separate from relational outbox partition sizing because hosts may publish directly to Service Bus as well as through an outbox relay.
+
+Prefer a stable business/aggregate key with `UsePartitionKeyAsIs` when ordering is required per entity; Service Bus then serializes each session while different sessions can be processed concurrently. Use `UsePartitionKeyConvertedToAnId` only when bounding session cardinality is useful, accepting that unrelated keys may collide and serialize together. More buckets do not themselves increase throughput: the receiving host must also allow enough concurrent sessions. A command destination's lower message volume does not inherently require a smaller count; tune it only when measurement or an explicit ordering/concurrency requirement justifies it. Avoid changing a destination's bucketing profile while relevant messages are queued or in flight, because a changed count may route the same key to another session.
+
 **Subscribing** is layered: `ServiceBusSubscriberBase` extends `EventSubscriberBase` to accept a raw `ServiceBusReceivedMessage`, converting it to a `CloudEvent` before delegating upward. `ServiceBusSubscribedSubscriber` adds `SubscribedManager` dispatch so that `[Subscribe]`-decorated handlers are resolved automatically from the message subject and source. The `ServiceBusReceiver<TSubscriber>` and `ServiceBusSessionReceiver<TSubscriber>` classes wrap the SDK `ServiceBusProcessor` / `ServiceBusSessionProcessor` lifetimes, and `ServiceBusReceiverHostedService<TReceiver>` integrates them with the .NET hosted-service model including pause/resume and health-check support.
 
 Resiliency is provided out-of-the-box: `ServiceBusReceiverResiliency` supplies factory methods for a receiver-level circuit breaker and a per-message retry pipeline (via Polly), both of which are applied by default in `ServiceBusReceiverOptionsBase`. Both factories are now thin wrappers over `CoreEx.Hosting`'s generic `CircuitBreakerResiliency<TOwner>`/`RetryResiliency<TOwner>` (promoted there so `CoreEx.Cosmos`'s Change Feed Processor-based outbox relay shares the exact same self-pause/self-resume behaviour) - this package supplies only the Service-Bus-specific pause-reason/dead-letter-exclusion/retry-classification wiring.
@@ -28,6 +55,7 @@ Resiliency is provided out-of-the-box: `ServiceBusReceiverResiliency` supplies f
 | Type | Description |
 |------|-------------|
 | **[`ServiceBusPublisher`](./ServiceBusPublisher.cs)** | `IEventPublisher` implementation for Azure Service Bus; sends batched `ServiceBusMessage` objects, supports structured/binary CloudEvents content mode and session-ID strategies. |
+| **[`ServiceBusDestinationSettings`](./ServiceBusDestinationSettings.cs)** | Optional per-destination overrides for the session-ID strategy and hashed session bucket count. |
 | _[`ServiceBusSubscriberBase`](./ServiceBusSubscriberBase.cs)_ | Abstract `EventSubscriberBase` for Service Bus; accepts a raw `ServiceBusReceivedMessage`, converts it to a `CloudEvent`, and provides an `OnBeforeReceiveAsync` hook. |
 | **[`ServiceBusSubscribedSubscriber`](./ServiceBusSubscribedSubscriber.cs)** | Concrete `ServiceBusSubscriberBase` that uses `SubscribedManager` to dispatch each message to the matching `[Subscribe]`-decorated handler. |
 | **[`ServiceBusReceiver<TSubscriber>`](./ServiceBusReceiver.cs)** | Manages a `ServiceBusProcessor` lifetime (start/pause/resume/stop) and delegates each received message to the scoped `TSubscriber`. |

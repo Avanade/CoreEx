@@ -8,11 +8,13 @@ public class ShoppingBasketScenario : IScenario
 {
     private static readonly SemaphoreSlim _semaphore = new(1);
     private ProductLite[]? _products;
+    private CustomerLite[]? _customers;
+
 
     /// <inheritdoc/>
     public async Task RunAsync(ScenarioContext context)
     {
-        // Step 1: Find all the products (first time only).
+        // Step 1a: Find all the products (first time only).
         _semaphore.Wait();
         try
         {
@@ -31,10 +33,28 @@ public class ShoppingBasketScenario : IScenario
             _semaphore.Release();
         }
 
-        // Step 2: Create a new basket
+        // Step 1b: Find all the Customers (first time only).
+        _semaphore.Wait();
+        try
+        {
+            if (_customers is null)
+            {
+                _customers = await context.StepAsync("Find all customers.", async () =>
+                {
+                    return await CustomerUpdateScenario.GetAllCustomersAsync(context);
+                }, result => $"{result!.Length} customer(s) found.");
+                await ScenarioContext.RandomizedDelayAsync(context);
+            }
+        }
+        finally
+        {
+            _semaphore.Release();
+        }
+
+        // Step 2: Create a new basket (for the Customers domain's golden customer ^16 - Frank Foster, who has a shipping address that is defaulted).
         var basket = await context.StepAsync("Create new basket.", async () =>
         {
-            var response = await context.TestContext.ShoppingHttpClient.PostAsync($"/api/customers/test/baskets", null);
+            var response = await context.TestContext.ShoppingHttpClient.PostAsync($"/api/customers/{16.ToGuid()}/baskets", null);
             return await response.GetValueAsync<Basket>();
         }, b => $"Basket '{b!.Id}' created.");
 
@@ -77,7 +97,7 @@ public class ShoppingBasketScenario : IScenario
         // Step 5: Update the shipping address.
         basket = await context.StepAsync("Update shipping address.", async () =>
         {
-            var address = new Address
+            var address = new Shopping.Contracts.Address
             {
                 Street1 = "123 Main St",
                 City = "Anytown",
@@ -101,7 +121,7 @@ public class ShoppingBasketScenario : IScenario
         basket = await context.StepAsync("Get checked-out basket.", async () =>
         {
             var response = await context.TestContext.ShoppingHttpClient.GetAsync($"/api/baskets/{basket!.Id}");
-            return await response.GetValueAsync<Basket>() ?? throw new NotFoundException();
+            return await response.GetValueAsync<Basket>();
         }, b => $"Basket retrieved.");
     }
 }

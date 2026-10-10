@@ -25,7 +25,7 @@ tags: ["testing", "unit-tests", "integration-tests", "test-helpers", "nunit"]
 
 | Package | Key types provided |
 |---|---|
-| `CoreEx.UnitTesting` | Base testers and common helpers: `WithApiTester<T>`, `WithGenericTester<T>`, `Test.Http()`, `Test.Http<T>()`, `Test.Scoped()`, `Test.ScopedType<T>()`, `Test.ClearFusionCacheAsync()`, `Test.ReplaceHttpClientFactory()`; database helpers: `Test.MigrateSqlServerDataAsync<T>()`, `Test.UseExpectedSqlServerOutboxPublisher()`, `.ExpectSqlServerOutboxEvents()`, `.ExpectNoSqlServerOutboxEvents()`, `Test.MigratePostgresDataAsync<T>()`, `Test.UseExpectedPostgresOutboxPublisher()`, `.ExpectPostgresOutboxEvents()`, `.ExpectNoPostgresOutboxEvents()`; messaging helpers: `Test.UseExpectedAzureServiceBusPublisher()`, `Test.GetAndClearAzureServiceBusAsync()`; ASP.NET Core assertions: `.ExpectIdentifier()`, `.ExpectETag()`, `.ExpectChangeLogCreated()`, `.ExpectJsonFromResource()`, `.AssertCreated()`, `.AssertOK()`, `.AssertBadRequest()`, `.AssertErrors()`, `.AssertJsonFromResource()`, `.AssertLocationHeader()` |
+| `CoreEx.UnitTesting` | Base testers and common helpers: `WithApiTester<T>`, `WithGenericTester<T>`, `Test.Http()`, `Test.Http<T>()`, `Test.Scoped()`, `Test.ScopedType<T>()`, `Test.ClearFusionCacheAsync()`, `Test.ReplaceHttpClientFactory()`; database helpers: `Test.MigrateSqlServerDataAsync<T>()`, `Test.UseExpectedSqlServerOutboxPublisher()`, `.ExpectSqlServerOutboxEvents()`, `.ExpectNoSqlServerOutboxEvents()`, `Test.MigratePostgresDataAsync<T>()`, `Test.UseExpectedPostgresOutboxPublisher()`, `.ExpectPostgresOutboxEvents()`, `.ExpectNoPostgresOutboxEvents()`, `Test.MigrateCosmosDataAsync<T>()`, `Test.UseExpectedCosmosDbOutboxPublisher()`, `.ExpectCosmosDbOutboxEvents()`, `.ExpectNoCosmosDbOutboxEvents()`; messaging helpers: `Test.UseExpectedAzureServiceBusPublisher()`, `Test.GetAndClearAzureServiceBusAsync()`; ASP.NET Core assertions: `.ExpectIdentifier()`, `.ExpectETag()`, `.ExpectChangeLogCreated()`, `.ExpectJsonFromResource()`, `.AssertCreated()`, `.AssertOK()`, `.AssertBadRequest()`, `.AssertErrors()`, `.AssertJsonFromResource()`, `.AssertLocationHeader()` |
 | `UnitTestEx` | `MockHttpClientFactory`, `MockHttpClientRequest`, `.WithJsonResourceBody()`, `.WithAnyBody()`, `.Respond.With()`, `.Respond.WithJsonResource()`, `.Verify()` |
 | `NUnit` | `[TestFixture]`, `[Test]`, `[OneTimeSetUp]` |
 | `AwesomeAssertions` | `.Should()`, `.Be()`, `.HaveCount()` |
@@ -53,6 +53,8 @@ The two test projects have **distinct, non-overlapping jobs**. Decide where a be
 | **Isolated component logic** — **validators**, pure mappers, calculations, value-conversion helpers, and other logic with no infrastructure dependency | **`*.Test.Unit`** | Fast, exhaustive, no DB. The natural home for enumerating every rule/branch of a validator or a pure function. |
 
 **Do not repeat the same assertion in both projects.** Concretely:
+
+- **Private inline response validators** are covered through `*.Test.Unit/Clients/{ExternalDomain}/{External}HttpClientTests.cs`, using mocked HTTP responses. Assert missing/invalid consumed fields produce `HttpRequestException` with exact inner validation messages, and valid minimal responses succeed; do not expose private rules or create standalone validator tests. For cached adapters, prove an invalid 2xx payload is not cached by replacing it with a valid one and retrying.
 
 - **Validator rules** are proven **exhaustively in unit tests** (every mandatory/range/format/cross-field rule). In the API tests, do **not** re-enumerate them — assert **one** representative `AssertBadRequest()` + `AssertErrors(...)` case to confirm the validator is *wired into the pipeline*, then move on. **But `AssertErrors` is an exact match — not a subset.** It fails unless the listed errors are **exactly** the set the input produces (none missing, none extra). So "one representative case" means **craft the input to produce exactly the errors you assert** — e.g. send a value valid in every respect *except* the one rule under test — rather than posting an empty object (which fires *all* mandatory errors) and listing only some. (See the validators guidance — "Unit Tests".)
 - **Service/repository behaviour** is proven in the **API tests** over the real database. Do **not** re-create it in unit tests with a mocked repository/UoW — that would assert the mock's configured behaviour, not the real persistence/mapping/eventing.
@@ -101,7 +103,19 @@ public async Task OneTimeSetUpAsync()
 }
 ```
 
-**Outbox assertion helpers are database-specific.** Use `UseExpectedPostgresOutboxPublisher` / `ExpectPostgresOutboxEvents` for PostgreSQL domains; use `UseExpectedSqlServerOutboxPublisher` / `ExpectSqlServerOutboxEvents` for SQL Server domains. Never mix them.
+**(Cosmos example):**
+```csharp
+[OneTimeSetUp]
+public async Task OneTimeSetUpAsync()
+{
+    await Test.MigrateCosmosDataAsync<TestData>(["mutate-data.seed.yaml"], DbMigration.ConfigureProvisionArgs).ConfigureAwait(false);
+    await Test.ClearFusionCacheAsync().ConfigureAwait(false);
+
+    Test.UseExpectedCosmosDbOutboxPublisher();
+}
+```
+
+**Outbox assertion helpers are database-specific.** Use `UseExpectedPostgresOutboxPublisher` / `ExpectPostgresOutboxEvents` for PostgreSQL domains; `UseExpectedSqlServerOutboxPublisher` / `ExpectSqlServerOutboxEvents` for SQL Server domains; and `UseExpectedCosmosDbOutboxPublisher` / `ExpectCosmosDbOutboxEvents` for Cosmos domains. Never mix them.
 
 **`UseExpectedXxxOutboxPublisher(...)` defaults to asserting *zero* events published when a test declares no explicit event expectation at all.** This is a catch-all, wired in automatically — every `Test.Http()`/`Test.Http<T>()` call that legitimately publishes an event **must** declare one (`ExpectXxxOutboxEvents(...)` or `ExpectNoXxxOutboxEvents()`), or the test fails with `"Expected no {ServiceKey} events; however, N found to be published"` even though the call itself succeeded. There are three tiers, in increasing order of assertion strength — prefer the strongest one your test can support:
 1. *(default, no call)* — asserts **zero** events.
@@ -109,6 +123,8 @@ public async Task OneTimeSetUpAsync()
 3. `.ExpectXxxOutboxEvents(e => e.AssertMetadata(...)` / `.AssertWithValue(...))` — asserts the **specific** event (destination + subject, optionally value/key). **This is the default to reach for** — it confirms you got the event you actually expected, not just "an event".
 
 `DataResetFilterPredicate` in `DbMigration.ConfigureMigrationArgs` scopes the reset to the domain's own schema — multiple domains' test runs do not corrupt each other even when run concurrently.
+
+**Adapters that cache (`IHybridCache`) need a per-test cache clear.** The `[OneTimeSetUp]` clear is not enough when a test class exercises a cached adapter: API and Subscribe hosts share a real Redis, so a cached remote lookup survives between tests *and* between runs, and a later test whose HTTP mock expects to be invoked (or expects a not-found/different payload) silently gets the stale entry. Add `[SetUp] public Task SetUpAsync() => Test.ClearFusionCacheAsync();` to those classes. Unit-test hosts instead register `builder.Services.AddMemoryCache(); builder.Services.AddMemoryOnlyHybridCache();` in `EntryPoint` (the `IMemoryCache` is a singleton, so entries persist across scopes — use a distinct key per test).
 
 For the **API read/mutate test classes** (see [API Tests — Structure & Generation](#api-tests--structure--generation)), pass the class's specific dataset via the **named-file overload** so read and mutate classes load only their own data: `MigrateSqlServerDataAsync<TestData>(["read-data.seed.yaml"], …)` / `MigratePostgresDataAsync<TestData>(["mutate-data.seed.yaml"], …)`. The no-argument overload loads every `Data/*.seed.yaml`, which would mix the read and mutate datasets.
 
@@ -133,16 +149,17 @@ Outside these three, if a test's `Data/*.seed.yaml` row could exist in that stat
 Use **one read dataset and one mutate dataset per domain** — `read-data.seed.yaml` and `mutate-data.seed.yaml` — shared across all of the domain's entities to avoid duplication. The relevant test class loads its dataset by name in `[OneTimeSetUp]`:
 
 ```csharp
-await Test.MigrateSqlServerDataAsync<TestData>(["read-data.seed.yaml"], DbMigration.ConfigureMigrationArgs);   // or MigratePostgresDataAsync
+await Test.MigrateSqlServerDataAsync<TestData>(["read-data.seed.yaml"], DbMigration.ConfigureMigrationArgs);   // or MigratePostgresDataAsync / MigrateCosmosDataAsync provider-specifically
 ```
 
-The shared `read-data.seed.yaml` / `mutate-data.seed.yaml` pair is the **preferred default** — most entities' data fits there without trouble. But `MigrateSqlServerDataAsync<TestData>([...])` / `MigratePostgresDataAsync<TestData>([...])` take a **list**, not a single file, precisely so a test class with data too distinct to manage cleanly inside the shared pair can add its own file — pass it alongside the shared one (`["mutate-data.seed.yaml", "booking-workflow.seed.yaml"]`) or, if the class's data has nothing in common with the shared set, on its own. Reach for a dedicated file when a class's precondition states (see "Prefer Seeded State Over API-Orchestrated Setup" above) would otherwise clutter the shared file with rows only that one class cares about — e.g. several `Booking` rows parked at different state-machine stages (`Draft`, `Confirmed`, `Cancelled`) purely to support one workflow test class. This is the intended use of the list parameter, not a workaround.
+The shared `read-data.seed.yaml` / `mutate-data.seed.yaml` pair is the **preferred default** — most entities' data fits there without trouble. But `MigrateSqlServerDataAsync<TestData>([...])` / `MigratePostgresDataAsync<TestData>([...])` / `MigrateCosmosDataAsync<TestData>([...])` take a **list**, not a single file, precisely so a test class with data too distinct to manage cleanly inside the shared pair can add its own file — pass it alongside the shared one (`["mutate-data.seed.yaml", "booking-workflow.seed.yaml"]`) or, if the class's data has nothing in common with the shared set, on its own. Reach for a dedicated file when a class's precondition states (see "Prefer Seeded State Over API-Orchestrated Setup" above) would otherwise clutter the shared file with rows only that one class cares about — e.g. several `Booking` rows parked at different state-machine stages (`Draft`, `Confirmed`, `Cancelled`) purely to support one workflow test class. This is the intended use of the list parameter, not a workaround.
 
-**Format** — `schema:` → `- <table>:` → rows, where each row is an **inline object** keyed by column name. Unlike the production `ref-data.seed.yaml` (which uses `$^<table>` + auto-id + `code: text` shorthand), test data uses a **plain `- <table>:`** entry (no `$`/`$^` — it is inserted into a freshly-reset DB) and rows that **list the columns explicitly**.
+**Format** — relational providers use `schema:` → `- <table>:` → rows, where each row is an **inline object** keyed by column name. Unlike the production `ref-data.seed.yaml` (which uses `$^<table>` + auto-id + `code: text` shorthand), relational test data uses a **plain `- <table>:`** entry (no `$`/`$^` — it is inserted into a freshly-reset DB) and rows that **list the columns explicitly**. Cosmos test data instead uses the **container id** as the top-level key, with raw camelCase document bodies matching the persistence model (`customers: - { id: ^1, firstName: Existing, ... }`); the reference-data container still uses the grouped `ref-data: - $^TypeName:` shorthand.
 
-> **⚠️ All identifiers — schema, table, AND column names — must match the database's actual casing for the chosen provider** (i.e. exactly what the migration scripts created). DbEx does not case-fold them, so a wrong-cased schema/table fails the seed with *"Table '…' does not exist"*:
+> **⚠️ All identifiers must match the provider's actual persisted shape.** For relational providers that means the schema, table, **and** column names created by the migration scripts; DbEx does not case-fold them, so a wrong-cased schema/table fails the seed with *"Table '…' does not exist"*. For Cosmos it means the **container id** top-level key and the document's camelCase JSON property names must match the persistence model exactly:
 > - **PostgreSQL (the default provider)** → **lowercase `snake_case`**: schema `bar`, table `employee`, columns `employee_id`, `first_name`, `gender_code`.
 > - **SQL Server** → **`PascalCase`**: schema `Bar`, table `Employee`, columns `EmployeeId`, `FirstName`, `GenderCode`.
+> - **Cosmos** → top-level container key such as `customers`, document properties such as `firstName`, `customerTypeCode`, and nested JSON that already matches the persisted document shape.
 
 ```yaml
 # PostgreSQL (default) — lowercase schema/table, snake_case columns
@@ -157,6 +174,12 @@ bar:
 Bar:
   - Employee:
     - { EmployeeId: ^1, FirstName: Bob, LastName: Smith, GenderCode: M, Salary: 50000, DateOfBirth: 1990-01-01 }
+```
+
+```yaml
+# Cosmos — top-level container id, raw camelCase document bodies
+customers:
+- { id: ^1, firstName: Bob, lastName: Smith, email: bob.smith@example.com, customerTypeCode: IND }
 ```
 
 - **`^N` is a deterministic GUID** — `^1` equals `1.ToGuid()`. Use it for the **identifier** and for any **GUID foreign-key reference** to another seeded row (e.g. a `movement` row with `{ product_id: ^1 }` points at the product seeded as `^1`). This is what lets a test target a specific row by the same `N.ToGuid()`.
@@ -737,6 +760,7 @@ Error text derives from the standard templates in [`ValidatorStrings.cs`](https:
 > | `GreaterThanOrEqualTo(v)` | `CompareGreaterThanEqualFormat` | `{Label} must be greater than or equal to {v}.` |
 > | `LessThan(v)` | `CompareLessThanFormat` | `{Label} must be less than {v}.` |
 > | `LessThanOrEqualTo(v)` | `CompareLessThanEqualFormat` | `{Label} must be less than or equal to {v}.` |
+> | `CompareProperty(op, x => x.Other)` | same `Compare*Format` as the operator | `{Label} must be greater than or equal to {Other label}.` — `{v}` is the other property's label; test both the failing and the skipped (either value `null`) cases |
 > | `Between(min,max)` / `InclusiveBetween` | `BetweenInclusiveFormat` | `{Label} must be between {min} and {max}.` |
 > | `ExclusiveBetween(min,max)` | `BetweenExclusiveFormat` | `{Label} must be between {min} and {max} (exclusive).` |
 > | `MaximumLength(n)` | `MaxLengthFormat` | `{Label} must not exceed {n} character(s) in length.` |
@@ -760,7 +784,7 @@ Error text derives from the standard templates in [`ValidatorStrings.cs`](https:
 
 ### Reference data in unit tests
 
-Validators that use reference data (`.IsValid()`, etc.) resolve it through `EntryPoint.ReferenceDataServiceDecorator`, which loads the **real seeded data** so tests use representative values rather than invented ones. When a validator under test needs a ref-data type the decorator does not yet handle, **add a new arm to** its `GetAsync` switch — inserting it **before** the final `_ => throw …` catch-all:
+Validators that use reference data (`.IsValid()`, etc.) resolve it through `EntryPoint.ReferenceDataProviderDecorator`, which loads the **real seeded data** so tests use representative values rather than invented ones. When a validator under test needs a ref-data type the decorator does not yet handle, **add a new arm to** its `GetAsync` switch — inserting it **before** the final `_ => throw …` catch-all:
 
 ```csharp
 public override Task<IReferenceDataCollection> GetAsync(Type type, CancellationToken cancellationToken = default) => type switch
@@ -773,7 +797,7 @@ public override Task<IReferenceDataCollection> GetAsync(Type type, CancellationT
 
 **Never remove or replace the final `_ => throw …` catch-all arm** — only add arms above it. It is the guard that surfaces an unhandled ref-data type; dropping it (e.g. "replacing the throw-only body") would silently break the decorator.
 
-**Mirror `ReferenceDataService.g.cs` exactly — dispatch on the item type, not the collection.** The decorator's `switch` must match the generated `ReferenceDataService.g.cs` `GetAsync(Type type)`: it keys on the **reference-data item type** — `typeof(Gender)` — **not** the collection type `typeof(GenderCollection)`. (The collection appears only as the `Deserialize<GenderCollection>(...)` target.) Copy the case keys from the generated file rather than guessing; using `typeof(GenderCollection)` as the key means the arm never matches and the catch-all throws.
+**Mirror `ReferenceDataProvider.g.cs` exactly — dispatch on the item type, not the collection.** The decorator's `switch` must match the generated `ReferenceDataProvider.g.cs` `GetAsync(Type type)`: it keys on the **reference-data item type** — `typeof(Gender)` — **not** the collection type `typeof(GenderCollection)`. (The collection appears only as the `Deserialize<GenderCollection>(...)` target.) Copy the case keys from the generated file rather than guessing; using `typeof(GenderCollection)` as the key means the arm never matches and the catch-all throws.
 
 `Gender` is the reference-data **contract type**; `"Bar.$^Gender"` is the `{schema}.$^{Table}` key into the pre-configured seed data. **The key must mirror the seed YAML's schema and `$^Table` entry exactly, including casing** — it is case-sensitive. So it follows the **provider's casing**: PascalCase for SQL Server (e.g. `"Bar.$^Gender"`, `"Orders.$^OrderStatus"`), lower/snake_case for PostgreSQL (e.g. `"products.$^category"`). Copy the casing from the actual seed `$^<Table>` rather than assuming lower-case.
 
@@ -826,10 +850,10 @@ public class ProductModifySubscriberTests : WithApiTester<YourDomain.Subscribe.P
     [OneTimeSetUp]
     public async Task OneTimeSetUpAsync()
     {
-        await Test.MigrateSqlServerDataAsync<TestData>(DbMigration.ConfigureMigrationArgs).ConfigureAwait(false);
+        await Test.MigrateSqlServerDataAsync<TestData>(DbMigration.ConfigureMigrationArgs).ConfigureAwait(false);   // or MigratePostgresDataAsync / MigrateCosmosDataAsync provider-specifically
         await Test.ClearFusionCacheAsync().ConfigureAwait(false);
 
-        Test.UseExpectedSqlServerOutboxPublisher();
+        Test.UseExpectedSqlServerOutboxPublisher();   // or UseExpectedPostgresOutboxPublisher / UseExpectedCosmosDbOutboxPublisher() provider-specifically
     }
 }
 ```
@@ -843,6 +867,13 @@ Relay tests extend `WithApiTester<Program>` over the relay host. Use `Test.Scope
 ```csharp
 public class RelayTests : WithApiTester<YourDomain.Relay.Program>
 {
+    [OneTimeSetUp]
+    public async Task OneTimeSetUpAsync()
+    {
+        // Reset the Service Bus entities to the code-based configuration in the shared Test.Common ServiceBus class.
+        await Test.ResetAzureServiceBusAsync(Common.ServiceBus.GetQueues(), Common.ServiceBus.GetTopicsAndSubscriptions());
+    }
+
     [Test]
     public async Task Outbox_Relay()
     {
@@ -850,7 +881,7 @@ public class RelayTests : WithApiTester<YourDomain.Relay.Program>
         {
             test.Run(async _ =>
             {
-                var pub = ActivatorUtilities.GetServiceOrCreateInstance<PostgresOutboxPublisher>(test.Services);
+                var pub = ActivatorUtilities.GetServiceOrCreateInstance<PostgresOutboxPublisher>(test.Services);   // Or SqlServerOutboxPublisher for SQL Server.
                 pub.Add("contoso", [ce1, ce2]);
                 await pub.PublishAsync();
 
@@ -869,6 +900,9 @@ public class RelayTests : WithApiTester<YourDomain.Relay.Program>
 
 The relay host exposes hosted-service management endpoints that can also be exercised in tests:
 
+For **Cosmos** domains, publish through `CosmosDbEventPublisher` inside `CosmosDbUnitOfWork.TransactionAsync(...)`, paired with a business mutation in the monitored container, then poll actual broker delivery and outbox cleanup. The relay's destination publisher stays Service Bus; never replace it with the Cosmos write-side publisher. Provision business and lease containers **before accessing the tester** (even `Test.Configuration` constructs the host and captures its first-start boundary). Test every outbox-hosting container and the configured first-start/checkpoint policy; use an isolated observation subscription rather than draining a running consumer's subscription. See [Customers RelayTests (CoreEx sample — illustrative)](https://github.com/Avanade/CoreEx/blob/main/samples/tests/Contoso.Customers.Test.Relay/RelayTests.cs).
+
+
 ```csharp
 Test.Http()
     .Run(HttpMethod.Post, "/hosted-services/postgres-outbox-relay-03/pause")
@@ -879,7 +913,7 @@ Test.Http()
 > ```
 > The messaging entity 'sb://sbemulatorns.servicebus.onebox.windows-int.net/<topic>/subscriptions/<subscription>' could not be found.
 > ```
-> (the topic/subscription path varies), the test host is reaching the emulator but the requested topic/subscription does not exist in it. **Emit to the chat output:** *"Check that the Service Bus emulator (container) is executing with the correct `/servicebus/Config.json` file."* — the emulator provisions its topics/subscriptions from that config at startup, so a missing or mismatched `Config.json` (or a container started without it) is the usual cause. This is an **environment** problem, not a test-code defect — do not "fix" it by editing the test, the subjects, or the emulator entity names.
+> (the topic/subscription path varies), the test host is reaching the emulator but the requested topic/subscription does not exist in it. **Emit to the chat output:** *"Check that the Service Bus emulator (container) is running, and that the test `[OneTimeSetUp]` calls `Test.ResetAzureServiceBusAsync(Common.ServiceBus.GetQueues(), Common.ServiceBus.GetTopicsAndSubscriptions())` and that entity is defined in the Test.Common `ServiceBus` class (or in `/servicebus/Config.json` where the solution provisions entities there)."* — in a templated solution the emulator `Config.json` is intentionally empty and the entities are created by the reset call, so a missing reset (or a missing definition in `ServiceBus`) is the usual cause. This is an **environment** problem, not a test-code defect — do not "fix" it by editing the test, the subjects, or the emulator entity names.
 
 ---
 
@@ -903,8 +937,9 @@ Basket_Checkout_Insufficient_Quantity
 ## Do Not
 
 - Do not use `[TestCase]` for integration tests — create separate named test methods for each scenario.
-- Do not use `UseExpectedSqlServerOutboxPublisher` / `ExpectSqlServerOutboxEvents` in PostgreSQL domain tests — use the Postgres equivalents.
-- Do not use `UseExpectedPostgresOutboxPublisher` / `ExpectPostgresOutboxEvents` in SQL Server domain tests — use the SQL Server equivalents.
+- Do not use `UseExpectedSqlServerOutboxPublisher` / `ExpectSqlServerOutboxEvents` in PostgreSQL or Cosmos domain tests — use the provider-correct helpers.
+- Do not use `UseExpectedPostgresOutboxPublisher` / `ExpectPostgresOutboxEvents` in SQL Server or Cosmos domain tests — use the provider-correct helpers.
+- Do not use `UseExpectedCosmosDbOutboxPublisher` / `ExpectCosmosDbOutboxEvents` in relational tests — use the SQL Server/Postgres helpers instead.
 - Do not call `ClearFusionCacheAsync()` in Outbox Relay host tests — relay hosts have no cache.
 - Do not test inter-domain HTTP calls against a real API — always mock with `MockHttpClientFactory`.
 - Do not call `Test.ReplaceHttpClientFactory()` inside individual tests — configure it once in `[OneTimeSetUp]`.
@@ -912,7 +947,7 @@ Basket_Checkout_Insufficient_Quantity
 - Do not omit `.Verify()` after a `MockHttpClientRequest` action — it confirms the mock was actually invoked.
 - Do not set a typed reference-data navigation property (e.g. `Gender`) when arranging a test input — set the `{Name}Code` string (e.g. `GenderCode = "M"`); the typed property depends on the `ReferenceDataOrchestrator`, which is not set during arrange.
 - Do not write validator tests for reference-data `IsActive`/`IsInactive` — assert only valid vs not-valid via `.IsValid()` (a not-valid case just uses an unseeded code); active/inactive is trusted framework behaviour. Reserve `ExtendForTesting` for rules that depend on a ref-data **extended property**.
-- Do not remove or replace the final `_ => throw …` catch-all arm of `ReferenceDataServiceDecorator.GetAsync` when adding a ref-data type — insert the new arm **above** it; the catch-all must remain.
+- Do not remove or replace the final `_ => throw …` catch-all arm of `ReferenceDataProviderDecorator.GetAsync` when adding a ref-data type — insert the new arm **above** it; the catch-all must remain.
 - Do not write validator tests for **length** rules (`MaximumLength`/`MinimumLength`/`Length`/`String`) — assume the declared length logic works (framework-guaranteed, like reference-data active/inactive); test conditional/business logic instead.
 - Do not put an entity's read and mutate API tests in one class — split into `XxxReadTests` (seeds `read-data.seed.yaml`) and `XxxMutateTests` (seeds `mutate-data.seed.yaml`), one partial sub-file per operation (`Xxx{Read|Mutate}Tests.{Operation}.cs`).
 - Do not load the whole dataset in an API read/mutate class — use the named-file `MigrateXxxDataAsync<TestData>(["read-data.seed.yaml"|"mutate-data.seed.yaml"], …)` overload so the class loads only its dataset.

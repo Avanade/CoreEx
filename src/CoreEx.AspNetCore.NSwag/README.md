@@ -16,6 +16,7 @@
 - 🔍 **Query parameters**: Reads `[QueryAttribute]` and adds `$filter` and/or `$orderby` query-string parameters when `SupportsFilter` / `SupportsOrderBy` are set.
 - 📦 **Request body content types**: Reads `[AcceptsAttribute]` and populates the operation `RequestBody` with the declared content type(s) and NSwag-inferred JSON schema for the body type.
 - 🔑 **Idempotency-key header**: Reads `[IdempotencyKeyAttribute]` and adds an `Idempotency-Key` header parameter to the operation.
+- ✅ **Non-nullable properties**: Walks the request/response types of each operation and marks any property decorated with `CoreEx.Entities.NonNullableAttribute` as `nullable: false` in the schema, regardless of whether it is declared nullable in code (e.g. `string?`, `int?`).
 - 🚫 **Not-found response**: Reads `[ProducesNotFoundProblemAttribute]` and adds a `404 application/problem+json` response entry.
 - ⚠️ **ProblemDetails responses**: Optionally injects `application/problem+json` response entries for the HTTP status codes configured via `OpenApiOptions.IncludeProblemDetailsHttpStatusCodes` / `OpenApiOptions.IncludeValidationProblemDetailsHttpStatusCodes` and their corresponding status-code lists; `500` is only included when it is present in the configured list, not by default via a separate `IncludeStandardProblemDetailsResponses` option.
 - 📡 **Fields query string**: When `OpenApiOptions.IncludeFieldsRequestHeaders` is set, adds the `$fields` query-string parameter for response field projection.

@@ -5,5 +5,11 @@ applicationProjectPath: ../../src/app-name.Application
 contractsProjectPath: ../../src/app-name.Contracts
 dataProjectPath: ../../src/app-name.Infrastructure
 collectionSortOrder: Code
+route: /ref
+routeConvention: KebabCase
+# #if implement-cosmos
+repository: Cosmos
+# #else
 repository: EntityFramework
+# #endif
 entities:

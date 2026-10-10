@@ -58,7 +58,7 @@ for every POST") is an invariant and stays; a numbered "detect → confirm → s
 procedure and moves to the skill.
 
 **Project-wide choices live in state, not in prompts.** The solution-root `AGENTS.md` "Feature Configuration"
-records `data-provider`, `rop-enabled`, `refdata-enabled`, `outbox-enabled`, and `messaging-provider`. Whether a Domain layer is present is inferred from the existence of `src/*.Domain/` (added via `dotnet new coreex-domain`). Instructions and skills must **read that recording before asking** and re-state resolved
+records `data-provider` (`SqlServer` / `Postgres` / `Cosmos` / `None`), `rop-enabled`, `refdata-enabled`, `outbox-enabled`, and `messaging-provider`. Whether a Domain layer is present is inferred from the existence of `src/*.Domain/` (added via `dotnet new coreex-domain`). Instructions and skills must **read that recording before asking** and re-state resolved
 values for confirmation rather than re-prompting (the global rule lives in `.github/copilot-instructions.md`).
 
 ---
@@ -207,9 +207,9 @@ A development-time console tool. Reads a single `ref-data.yaml` file (validated 
 
 The entry point is a one-line `Program.cs` in the `*.CodeGen` project. Templates live in `CoreEx.CodeGen/RefData/Templates/` (embedded in the NuGet package) and are the only place structural changes to the generated shape belong.
 
-### DbEx (`*.Database` project)
+### `*.Database` tooling project
 
-A development-time migration and generation tool. Reads YAML configuration and SQL migration scripts to produce database schema, outbox infrastructure, and EF Core scaffolding.
+For relational domains this is a DbEx-based migration and generation tool that reads YAML configuration and SQL migration scripts to produce database schema, outbox infrastructure, and EF Core scaffolding. For Cosmos domains it is a `CosmosDbConsole` provisioning app that declares containers and imports seed data; there are no SQL migration scripts or `dbex.yaml`.
 
 | Output pattern | What to change instead |
 |---|---|

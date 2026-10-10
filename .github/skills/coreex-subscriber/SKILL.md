@@ -35,6 +35,7 @@ There are three distinct subscriber scenarios — determine which applies before
 
 ## When Not to Use
 
+- The full command slice (contract, dedicated queue receiver, topology, tests, Aspire) — use `coreex-command-subscribe-e2e`, which invokes this skill for the subscriber step
 - HTTP API controllers — use `coreex-api`
 - Application services that the subscriber calls — use `coreex-app-service`
 - Replication adapter implementations (`IXxxSyncAdapter`) — use `coreex-adapter`

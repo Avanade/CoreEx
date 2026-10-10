@@ -12,7 +12,7 @@ CoreEx is a modular .NET framework for enterprise APIs and distributed services.
 ## Project Configuration State (read before asking)
 
 A CoreEx solution scaffolded with `dotnet new coreex` records its project-wide choices in the **solution-root
-`AGENTS.md` "Feature Configuration"** block: `data-provider` (SQL Server / PostgreSQL / None), `refdata-enabled`,
+`AGENTS.md` "Feature Configuration"** block: `data-provider` (SQL Server / PostgreSQL / Cosmos / None), `refdata-enabled`,
 `rop-enabled` (exception vs `Result<T>`), `outbox-enabled`, and `messaging-provider`. Whether a Domain layer is
 present is inferred from the existence of `src/*.Domain/` (added via `dotnet new coreex-domain`).
 
@@ -30,7 +30,7 @@ solution; the rule applies to consumer solutions where these assets are installe
 - `gen\CoreEx.Generator\`: Roslyn source generator for contracts.
 - `tests\`: framework-level tests.
 - `samples\src\Contoso.*\`: sample domains split by layer/host.
-- `samples\aspire\AppHost.cs`: orchestration entrypoint.
+- `samples\aspire\Contoso.Aspire\AppHost.cs`: orchestration entrypoint (plus `Contoso.Aspire.MockHost` for stub dependencies and `Contoso.Test.Aspire` for automated cross-domain smoke testing).
 - `coreex-starter\`: separate starter template repo — ignore unless user wants starter changes.
 
 ## Build, Test, and Run
@@ -41,6 +41,7 @@ solution; the rule applies to consumer solutions where these assets are installe
 - **`CoreEx.Template` changes**: `dotnet build`/`dotnet test` do **not** exercise `src/CoreEx.Template/content/**` — that's raw `dotnet new` template content, not compiled C#. Any change under `src/CoreEx.Template/content/` (a host's `Program.cs`/`GlobalUsing.cs`/`.csproj`, a `template.json` symbol, etc.) must be validated by actually scaffolding it: run [`tools/validate-template-pack.ps1`](../tools/validate-template-pack.ps1), which packs the template, installs it, scaffolds every parameter combination it knows about into temp directories, and `dotnet build`s the ones flagged `Build = $true`. It also runs in CI (`.github/workflows/CI.yml`). If you add a new template, host, or parameter combination, add a matching scenario to the script's `$testScenarios` array — parameter-conditional bugs (an unconditional `global using`/`ProjectReference` that should have been gated behind a symbol like `has-data-provider` or `implement-servicebus`) only surface when the generated code is actually compiled, which most existing host-template scenarios don't yet do since they scaffold in isolation without their `coreex` solution siblings.
 - **Linting**: No separate `dotnet format`. Build is the lint pass (nullable, LangVersion=preview, TreatWarningsAsErrors in `src\Directory.Build.props`).
 - **Formatting**: 4 spaces for `*.cs`, 2 spaces for `*.json|*.xml|*.yaml|*.props|*.csproj|*.sln|*.sql` per `.editorconfig`.
+- **Line endings**: `.editorconfig` (`end_of_line = lf`) and `.gitattributes` (`* text=auto eol=lf`) both mandate LF. Tooling (`dotnet new` templating, Roslyn/Handlebars code generators, and file-writing AI tools) does not consult either file and can emit CRLF on Windows regardless. Before finishing any task that created or edited files, run `git add --renormalize <changed paths>` (or `.` if changes are broad) as a closing step — it is a no-op if nothing drifted, so always safe to run. Do this in addition to, not instead of, `run_build`.
 - **Ad-hoc spike/reflection projects**: this repo uses Central Package Management (root `Directory.Packages.props`). A throwaway `dotnet new console` project scaffolded *inside* the repo tree (even outside `src\`/`tests\`) will silently inherit it and can fail to restore (`NU1008`) if it references a package/version not centrally pinned. Scaffold spike projects outside the repo tree, or set `<ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>` in the spike project's own `.csproj` to opt out locally.
 
 ## Local Development Infrastructure
@@ -56,9 +57,9 @@ podman compose -f docker-compose.yml up -d   # Podman preferred; `docker compose
 | `db-sql-server` | 1433 | Shopping domain database; Service Bus emulator backing store |
 | `db-postgres` | 5432 | Products domain database |
 | `redis-cache` | 6379 | FusionCache Redis backplane (all domains) |
-| `servicebus-emulator` | 5672 AMQP, 5300 mgmt | Azure Service Bus emulator; namespace `sbemulatorns`; topic `contoso` with subscriptions `products` and `shopping` (both session-enabled); config at `servicebus/Config.json` |
+| `servicebus-emulator` | 5672 AMQP, 5300 mgmt | Azure Service Bus emulator; namespace `sbemulatorns`; topic `contoso` with subscriptions `products` and `shopping` (both session-enabled) plus session-enabled command queue `contoso-products`; config at `servicebus/Config.json` |
 | `dts-emulator` | 8080, 8082 | Azure Durable Task Scheduler emulator; task hubs `default` and `order` |
-| `cosmos-emulator` | 8081, 10251-10254 | Azure Cosmos DB emulator; backs the Customers domain database and `CoreEx.Cosmos.Test.Unit`; under rootless Podman prefer `--privileged` or host networking if it doesn't come up cleanly (see `docker-compose.yml` comment) |
+| `cosmos-emulator` | 8081 (HTTPS gateway), 8083 (health, `/ready`), 1234 (Data Explorer) | Azure Cosmos DB **vNext** (Linux) emulator, host networking; backs the Customers domain database and `CoreEx.Cosmos.Test.Unit`; no container cap (see `docker-compose.yml` comment) |
 | `aspire-dashboard` | 18888 UI, 4317 OTLP | Standalone OpenTelemetry dashboard; usable without running the full Aspire AppHost |
 
 Connection strings for each service in development are in each host's `appsettings.Development.json` under the `Aspire:` configuration key hierarchy. See [`samples/docs/local-dev.md`](../samples/docs/local-dev.md) for full detail, connection string patterns, and startup sequences.
@@ -67,10 +68,10 @@ Connection strings for each service in development are in each host's `appsettin
 - **Two roles**: framework packages (`src\`) + sample reference implementations (`samples\`).
 - **Business layers** (strict inward dependency — inner layers have no knowledge of outer): `*.Contracts` → `*.Domain` (optional) → `*.Application` → `*.Infrastructure`. Confirmed by project references: `*.Domain` references only `*.Contracts`; `*.Application` references `*.Contracts` and `*.Domain`; `*.Infrastructure` references `*.Application` (and transitively `*.Domain`) — never the reverse in either case.
 - **Host layers** (composition roots, no business logic): `*.Api`, `*.Relay`, `*.Subscribe`.
-- **Design-time tooling** (no runtime presence): `*.CodeGen` (generates reference-data layer from `ref-data.yaml`) and `*.Database` (schema, seeding, outbox infrastructure via DbEx).
-- **Sample flow**: Controllers → `WebApi` helpers → Application services (validate + `IUnitOfWork`) → Infrastructure repositories (EF + explicit mappers) → transactional outbox → relay publishes to Service Bus → subscribers consume.
-- **Polyglot data**: Products uses PostgreSQL (`CoreEx.Database.Postgres` + `CoreEx.EntityFrameworkCore`); Shopping uses SQL Server (`CoreEx.Database.SqlServer` + `CoreEx.EntityFrameworkCore`); Customers uses Azure Cosmos DB (`CoreEx.Cosmos` — preview, API surface may still change without following strict semver until it stabilizes; direct SDK access, no EF Core, no `*.Database` project; containers are code-first via `ReplaceOrCreateContainerAsync`). Layers above Infrastructure are database-agnostic.
-- **Primary domains**: Products and Shopping complete; Customers (Cosmos DB) demonstrates typed CRUD + transactional outbox but has no Relay/Subscribe host yet; Orders WIP. See `samples\README.md` for topology.
+- **Design-time tooling** (no runtime presence): `*.CodeGen` (generates reference-data layer from `ref-data.yaml`) and `*.Database` (schema, seeding, and outbox infrastructure via DbEx for relational domains; a Cosmos DB provisioning console for Cosmos domains).
+- **Sample flow**: Controllers → `WebApi` helpers → Application services (validate + `IUnitOfWork`) → Infrastructure repositories (EF/CoreEx.Cosmos + explicit mappers) → transactional outbox → relay publishes to Service Bus → subscribers consume.
+- **Polyglot data**: Products uses PostgreSQL (`CoreEx.Database.Postgres` + `CoreEx.EntityFrameworkCore`); Shopping uses SQL Server (`CoreEx.Database.SqlServer` + `CoreEx.EntityFrameworkCore`); Customers uses Azure Cosmos DB (`CoreEx.Cosmos`; direct SDK access, no EF Core, and a `*.Database` provisioning console instead of DbEx migrations/schema). Layers above Infrastructure are database-agnostic.
+- **Primary domains**: Products and Shopping complete; Customers (Cosmos DB) demonstrates typed CRUD + transactional outbox + a change-feed Relay host, but has no Subscribe host; Orders WIP. See `samples\README.md` for topology.
 - **Aspire**: orchestrates all sample hosts in `samples\aspire\Contoso.Aspire\AppHost.cs` for local distributed development and E2E testing.
 
 ## Key Conventions That Matter in This Repo
@@ -83,6 +84,7 @@ Connection strings for each service in development are in each host's `appsettin
 ### Contracts and Source Generation
 - Contracts are commonly declared as `[Contract] public partial class ...`.
 - Mutable contracts often implement `IIdentifier<T>`, `IETag`, and `IChangeLog`.
+- Use `[NonNullable]` for properties that are mandatory/required but declared nullable (`string?`, `int?`) for DTO flexibility, so OpenAPI reports them as non-nullable.
 - Use `[ReadOnly(true)]` for server-managed fields and `[ReferenceData<T>]` for reference-data-backed code properties.
 - Canonical casing transformations belong in property setters when already established by the model (for example `Sku` uppercasing in `ProductBase`).
 - Favor the existing source-generation approach; do not hand-write members that are meant to be generated.
@@ -149,9 +151,9 @@ Connection strings for each service in development are in each host's `appsettin
 - Sample: `WithGenericTester<EntryPoint>` (unit) or `WithApiTester<Program>` (API/Subscribe/Relay).
 - Integration tests: per-class named seed files `Data\read-data.seed.yaml` / `Data\mutate-data.seed.yaml` (Products), or a single `Data\data.yaml` (Orders/Shopping), in Test.Common + `Resources\` JSON expectations.
 - **Intra-domain dependencies are real; inter-domain dependencies are always mocked.** Own database, cache, and outbox are started and seeded in `[OneTimeSetUp]`. Cross-domain HTTP calls and direct broker publishes are replaced with `MockHttpClientFactory` / `UseExpectedAzureServiceBusPublisher()`.
-- Outbox assertion helpers are database-specific: `UseExpectedPostgresOutboxPublisher()` for Products; `UseExpectedSqlServerOutboxPublisher()` for Shopping. Do not use the SQL Server helper in Products tests.
+- Outbox assertion helpers are database-specific: `UseExpectedPostgresOutboxPublisher()` for Products; `UseExpectedSqlServerOutboxPublisher()` for Shopping; `UseExpectedCosmosDbOutboxPublisher()` for Customers. Do not mix helpers across providers.
 - Mock downstream HTTP calls; do not assume live APIs.
-- **Outbox test-coverage split — don't re-flag as a gap without checking both places**: `tests\CoreEx.Database.SqlServer.Test.Unit` / `tests\CoreEx.Database.Postgres.Test.Unit` cover library-level logic only (parameter extensions, error-code mapping, `DatabaseRecord`/`DatabaseCommand` behavior) against a live database via DbEx migrations in the sibling `*.Test.Console` project — they do **not** exercise `SqlServerOutboxPublisher`/`SqlServerOutboxRelay` or `PostgresOutboxPublisher`/`PostgresOutboxRelay` end-to-end. That coverage lives in `samples\tests\Contoso.Products.Test.Relay` (Postgres) and `samples\tests\Contoso.Shopping.Test.Relay` (SQL Server): both spin up the real relay host (`WithApiTester<...Relay.Program>`), publish real events via the outbox, let the live `*OutboxRelayHostedService` poll and relay them, and assert what actually lands on the Service Bus emulator (`Test.GetAndClearAzureServiceBusAsync`). Keep the two relay test projects in parity — a fix or new scenario added to one should be mirrored in the other.
+- **Outbox test-coverage split — don't re-flag as a gap without checking both places**: `tests\CoreEx.Database.SqlServer.Test.Unit` / `tests\CoreEx.Database.Postgres.Test.Unit` cover library-level logic only (parameter extensions, error-code mapping, `DatabaseRecord`/`DatabaseCommand` behavior) against a live database via DbEx migrations in the sibling `*.Test.Console` project — they do **not** exercise `SqlServerOutboxPublisher`/`SqlServerOutboxRelay` or `PostgresOutboxPublisher`/`PostgresOutboxRelay` end-to-end. That coverage lives in `samples\tests\Contoso.Products.Test.Relay` (Postgres) and `samples\tests\Contoso.Shopping.Test.Relay` (SQL Server): both spin up the real relay host and assert delivery on the Service Bus emulator. Customers exercises Cosmos outbox writes in `samples\tests\Contoso.Customers.Test.Api`, and real two-container forwarding, cleanup, first-start exclusion, and management in `samples\tests\Contoso.Customers.Test.Relay`. Aspire additionally covers the real Customers API-to-broker flow using an isolated observation subscription.
 
 ### House Rules
 - Code comments end with a period/full stop.
@@ -162,6 +164,7 @@ Connection strings for each service in development are in each host's `appsettin
 - Single-line `if` bodies do not need braces: `if (x) return;`
 - Use expression-bodied syntax (`=>`) when the entire method or property body is a single expression.
 - Private instance fields are always prefixed with `_`.
+- Files end with exactly one trailing newline — never extra blank lines after the last line of content (check the tail of every file you create or edit).
 
 ### Generated Code
 Never create or edit `*.g.cs`, `*.g.sql`, or `*.g.pgsql` files directly. Each generator owns its outputs:
@@ -195,7 +198,7 @@ see [coreex-ai-workflows.md](./coreex-ai-workflows.md).
 | `CoreEx Expert` | Agent | Architecture guidance, pattern recommendations, and design review. Invoke via `/coreex-expert` (or `@coreex-expert`). |
 | `/coreex-scaffold` | Skill-backed prompt | Guided greenfield solution scaffolding (chooses the smallest safe shape, runs the `dotnet new coreex*` commands). |
 | `/coreex-docs-sync` | Skill | Refresh the whole AI asset bundle (instructions, skills, prompts, the `coreex-expert` agent, and the `.github/docs/coreex/` doc cache) to a new pinned CoreEx version after a version bump. |
-| `/coreex-<capability>` | Skills (L1) + matching prompts | Add or modify one building block: `coreex-contract`, `coreex-refdata`, `coreex-db-migration`, `coreex-repository`, `coreex-adapter`, `coreex-app-service`, `coreex-validator`, `coreex-policy`, `coreex-aggregate`, `coreex-api`, `coreex-graphql`, `coreex-subscriber`, and `coreex-test-api` / `coreex-test-subscribe` / `coreex-test-relay`. Each skill has a `.prompt.md` wrapper for Copilot. |
+| `/coreex-<capability>` | Skills (L1) + matching prompts | Add or modify one building block: `coreex-contract`, `coreex-refdata`, `coreex-db-migration`, `coreex-repository`, `coreex-adapter`, `coreex-app-service`, `coreex-validator`, `coreex-policy`, `coreex-aggregate`, `coreex-api`, `coreex-graphql`, `coreex-subscriber`, `coreex-aspire`, and `coreex-test-api` / `coreex-test-subscribe` / `coreex-test-relay`. End-to-end command skills: `coreex-command-publish-e2e` (send a command) and `coreex-command-subscribe-e2e` (handle a command). Each skill has a `.prompt.md` wrapper for Copilot. |
 | `/acquire-codebase-knowledge`, `/aspire` | Skills | Repo onboarding documentation; local Aspire orchestration. |
 
 ## Guidance for Authoring Instructions and Skills

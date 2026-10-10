@@ -29,6 +29,17 @@ public class BasketRepository(ShoppingEfDb ef) : IBasketRepository
         .ThenAsAsync(model => _ef.Baskets.UpdateWithResultAsync(model, ct))
         .ThenAs(basket => BasketMapper.Map(basket));
 
+    /// <inheritdoc/>
+    public Task<JsonElement> QuerySchemaAsync(CancellationToken ct = default) => Task.FromResult(BasketQueryArgsConfig.Default.ToJsonSchema());
+
+    /// <inheritdoc/>
+    public async Task<ItemsResult<Contracts.Basket>> QueryAsync(string customerId, QueryArgs? query, PagingArgs? paging, CancellationToken ct = default)
+    {
+        var parsed = BasketQueryArgsConfig.Default.Parse(query).ThrowOnError();
+        var baskets = _ef.Baskets.Query().IgnoreAutoIncludes().Where(b => b.CustomerId == customerId);
+        return await baskets.Where(parsed).OrderBy(parsed).ToMappedItemsResultAsync(b => BasketSummaryMapper.Map(b), paging, cancellationToken: ct).ConfigureAwait(false);
+    }
+
     /// <summary>
     /// Synchronize the items between the domain and model, ensuring the appropriate EntityState is set for each item based on its PersistenceState.
     /// </summary>

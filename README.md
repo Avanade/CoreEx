@@ -133,7 +133,7 @@ Project/Package | Description | Source
 `CoreEx.AspNetCore.NSwag`<br/><sub>&nbsp;</sub><br/>[![NuGet version](https://img.shields.io/nuget/vpre/CoreEx.AspNetCore.NSwag)](https://www.nuget.org/packages/CoreEx.AspNetCore.NSwag/absoluteLatest) | Provides the NSwag `IOperationProcessor` integration that reads CoreEx MVC attributes (`[Paging]`, `[Query]`, `[Accepts]`, `[IdempotencyKey]`, `[ProducesNotFoundProblem]`) and injects the corresponding parameters, request bodies, and response entries into the generated OpenAPI specification. | [Link](./src/CoreEx.AspNetCore.NSwag)
 `CoreEx.Azure.Messaging.ServiceBus`<br/><sub>&nbsp;</sub><br/>[![NuGet version](https://img.shields.io/nuget/vpre/CoreEx.Azure.Messaging.ServiceBus)](https://www.nuget.org/packages/CoreEx.Azure.Messaging.ServiceBus/absoluteLatest) | Provides Azure Service Bus integration for CoreEx: a `ServiceBusPublisher` implementing `IEventPublisher`, subscriber bases wired to `EventSubscriberBase`, and receiver hosts with built-in resiliency, metrics, and session support. | [Link](./src/CoreEx.Azure.Messaging.ServiceBus)
 `CoreEx.Caching.FusionCache`<br/><sub>&nbsp;</sub><br/>[![NuGet version](https://img.shields.io/nuget/vpre/CoreEx.Caching.FusionCache)](https://www.nuget.org/packages/CoreEx.Caching.FusionCache/absoluteLatest) | Provides a `FusionHybridCache` implementation of `IHybridCache` backed by the ZiggyCreatures FusionCache library, bridging CoreEx caching contracts to FusionCache's L1/L2 hybrid and backplane capabilities. | [Link](./src/CoreEx.Caching.FusionCache)
-`CoreEx.Cosmos`<br/><sub>&nbsp;</sub><br/>[![NuGet version](https://img.shields.io/nuget/vpre/CoreEx.Cosmos)](https://www.nuget.org/packages/CoreEx.Cosmos/absoluteLatest) | **Preview — newly added; API surface may still change without following strict semver until it stabilizes.** Provides the core Azure Cosmos DB access layer: `ICosmosDb`/`CosmosDb` as the CoreEx-Cosmos bridge, `CosmosDbContainer<TModel>` and `CosmosDbMappedContainer<TValue, TModel, TMapper>` for typed CRUD + query operations with ETag/concurrency, multi-tenancy, logical-delete, and type-discriminator support, a `TransactionalBatch`-based transactional outbox (`CosmosDbUnitOfWork`), and a Change Feed Processor-based outbox relay. | [Link](./src/CoreEx.Cosmos)
+`CoreEx.Cosmos`<br/><sub>&nbsp;</sub><br/>[![NuGet version](https://img.shields.io/nuget/vpre/CoreEx.Cosmos)](https://www.nuget.org/packages/CoreEx.Cosmos/absoluteLatest) | Provides the core Azure Cosmos DB access layer: `ICosmosDb`/`CosmosDb` as the CoreEx-Cosmos bridge, `CosmosDbContainer<TModel>` and `CosmosDbMappedContainer<TValue, TModel, TMapper>` for typed CRUD + query operations with ETag/concurrency, multi-tenancy, logical-delete, and type-discriminator support, a `TransactionalBatch`-based transactional outbox (`CosmosDbUnitOfWork`), and a Change Feed Processor-based outbox relay. | [Link](./src/CoreEx.Cosmos)
 `CoreEx.Data`<br/><sub>&nbsp;</sub><br/>[![NuGet version](https://img.shields.io/nuget/vpre/CoreEx.Data)](https://www.nuget.org/packages/CoreEx.Data/absoluteLatest) | Provides the `IUnitOfWork` transactional orchestration contract, `DataResult` mutation outcome types, data model base classes, and the `QueryArgsConfig` / `QueryFilterParser` / `QueryOrderByParser` pipeline for safe, explicitly-configured OData-style `$filter` and `$orderby` LINQ query translation. | [Link](./src/CoreEx.Data)
 `CoreEx.Data.GraphQL`<br/><sub>&nbsp;</sub><br/>[![NuGet version](https://img.shields.io/nuget/vpre/CoreEx.Data.GraphQL)](https://www.nuget.org/packages/CoreEx.Data.GraphQL/absoluteLatest) | Provides a transport-agnostic "GraphQL-lite" bridge (`IGraphQLEngine`) over the existing `CoreEx.Data` querying pipeline: a single registered root field maps a GraphQL selection set to `QueryArgs`/`PagingArgs` and `JsonFilter` field projection, reusing each entity's existing `QueryArgsConfig` — no new per-entity resolver code required. | [Link](./src/CoreEx.Data.GraphQL)
 `CoreEx.Database`<br/><sub>&nbsp;</sub><br/>[![NuGet version](https://img.shields.io/nuget/vpre/CoreEx.Database)](https://www.nuget.org/packages/CoreEx.Database/absoluteLatest) | Provides the `IDatabase` / `Database` ADO.NET abstraction, `DatabaseCommand` fluent query builder, `DatabaseRecord` row reader, multi-result-set support, convention-based column mapping, database wildcard translation, typed mapper contracts, and the transactional outbox relay infrastructure for publishing events from a relational database. | [Link](./src/CoreEx.Database)
@@ -186,12 +186,14 @@ The repository includes an AI workflow set in [`.github/`](./.github/) that give
 | [CoreEx.Template](./src/CoreEx.Template/README.md) | Deterministic solution and host scaffolding via `dotnet new coreex*` templates | `dotnet new install CoreEx.Template` then `dotnet new coreex...` | Run the same `dotnet new` commands in the terminal |
 | [`coreex-ai`](./src/CoreEx.Template/README.md#template-1----coreex-ai-ai-workflow-assets) | Installs this AI workflow set — agents, skills, prompts, instructions — into any repository | `dotnet new coreex-ai` | Run the same `dotnet new` command in the terminal |
 
-**Skills — the AI-augmented building blocks** — sixteen skills codify CoreEx's architectural patterns into guided, correct-by-construction workflows: fourteen per-capability (L1) skills that add or modify a single building block, and two end-to-end (L2) skills that orchestrate a full vertical slice in one pass. Each is invoked as `/coreex-<name>` (Claude Code) or via the matching `prompts/coreex-<name>.prompt.md` (Copilot).
+**Skills — the AI-augmented building blocks** — twenty skills codify CoreEx's architectural patterns into guided, correct-by-construction workflows: sixteen per-capability (L1) skills that add or modify a single building block, and four end-to-end (L2) skills that orchestrate a full vertical slice in one pass. Each is invoked as `/coreex-<name>` (Claude Code) or via the matching `prompts/coreex-<name>.prompt.md` (Copilot).
 
 | Group | Skill | What it does |
 |---|---|---|
 | **End-to-end (L2)** | `coreex-api-e2e` | New entity + full CRUD API — contract, migration, repository, validator, service, endpoint, and tests — in one guided workflow |
-| | `coreex-subscriber-e2e` | New event/command subscriber — contract, handler, service, and tests — in one guided workflow |
+| | `coreex-subscriber-e2e` | New event subscriber (data-sync or business-process) — contract, handler, service, and tests — in one guided workflow |
+| | `coreex-command-publish-e2e` | Send a **command** to another domain — adapter, outbox/direct call site, queue routing, Service Bus topology, API + Relay tests, and Aspire E2E |
+| | `coreex-command-subscribe-e2e` | Handle a **command** addressed to this domain — contract, subscriber, dedicated command-queue receiver, topology, Subscribe tests, and Aspire E2E |
 | | | |
 | Contracts | `coreex-contract` | Hand-authored DTO/entity contracts — root, subordinate, or extending an existing one |
 | | `coreex-refdata` | Reference data types — new entity, extra properties, seed rows, wiring into contracts |
@@ -203,16 +205,18 @@ The repository includes an AI workflow set in [`.github/`](./.github/) that give
 | | `coreex-adapter` | Anti-corruption-layer adapters and typed HTTP clients for cross-domain or external calls |
 | | `coreex-db-migration` | Database tables and schema changes for a domain |
 | Hosts | `coreex-api` | API controllers or Minimal API endpoints — CRUD and business actions |
+| | `coreex-graphql` | GraphQL-lite query bridge (`CoreEx.Data.GraphQL`) on an API host |
 | | `coreex-subscriber` | Event/command subscribers in a Subscribe host |
 | Testing | `coreex-test-api` | Integration tests for an API host |
 | | `coreex-test-subscribe` | Integration tests for a Subscribe host |
 | | `coreex-test-relay` | Integration tests for an Outbox Relay host |
+| | `coreex-aspire` | Aspire AppHost wiring, service-bus topology, MockHost stubs for third-party HTTP, and `Test.Aspire` E2E tests |
 
 See the [full skill catalog](./.github/coreex-ai-workflows.md#prompts-skills-and-templates) for full detail on each.
 
 **Also available** — repo-maintenance and local-orchestration skills: [`/coreex-scaffold`](./.github/skills/coreex-scaffold/README.md) (greenfield solution scaffolding), [`/coreex-docs-sync`](./.github/skills/coreex-docs-sync/README.md) (refresh cached CoreEx docs), [`/acquire-codebase-knowledge`](./.github/skills/acquire-codebase-knowledge/README.md) (map an existing codebase), and [`/aspire`](./.github/skills/aspire/README.md) (orchestrate Aspire apps locally).
 
-**Instructions** — 11 scoped instruction files are injected automatically when editing matching file types (contracts, services, repositories, controllers, tests, etc.). No action required.
+**Instructions** — 12 scoped instruction files are injected automatically when editing matching file types (contracts, services, repositories, controllers, tests, etc.). No action required.
 
 → **[Full AI workflow overview](./.github/coreex-ai-workflows.md)**
 

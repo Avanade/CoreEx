@@ -16,6 +16,9 @@
     <PackageVersion Include="CoreEx.Caching.FusionCache" Version="coreex-version" />
     <PackageVersion Include="CoreEx.Data" Version="coreex-version" />
     <PackageVersion Include="CoreEx.Data.GraphQL" Version="coreex-version" />
+    <!--#if implement-cosmos-->
+    <PackageVersion Include="CoreEx.Cosmos" Version="coreex-version" />
+    <!--#endif-->
     <!--#if implement-postgres-->
     <PackageVersion Include="CoreEx.Database" Version="coreex-version" />
     <PackageVersion Include="CoreEx.Database.Postgres" Version="coreex-version" />
@@ -39,6 +42,9 @@
   <ItemGroup>
     <!--#if implement-servicebus-->
     <PackageVersion Include="Aspire.Azure.Messaging.ServiceBus" Version="13.5.4" />
+    <!--#endif-->
+    <!--#if implement-cosmos-->
+    <PackageVersion Include="Aspire.Microsoft.Azure.Cosmos" Version="13.5.4" />
     <!--#endif-->
     <!--#if implement-postgres-->
     <PackageVersion Include="Aspire.Azure.Npgsql" Version="13.5.4" />
@@ -70,10 +76,10 @@
     <PackageVersion Include="CoreEx.UnitTesting" Version="coreex-version" />
     <PackageVersion Include="coverlet.collector" Version="10.0.1" />
     <!--#if implement-postgres-->
-    <PackageVersion Include="DbEx.Postgres" Version="3.2.0" />
+    <PackageVersion Include="DbEx.Postgres" Version="3.3.0" />
     <!--#endif-->
     <!--#if implement-sqlserver-->
-    <PackageVersion Include="DbEx.SqlServer" Version="3.2.0" />
+    <PackageVersion Include="DbEx.SqlServer" Version="3.3.0" />
     <!--#endif-->
     <!--#if implement-sqlserver-->
     <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.12" />
@@ -85,6 +91,8 @@
     <!--#if implement-postgres-->
     <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
     <!--#endif-->
-    <PackageVersion Include="UnitTestEx.NUnit" Version="5.11.1" />
+    <PackageVersion Include="UnitTestEx.Aspire" Version="5.12.0" />
+    <PackageVersion Include="UnitTestEx.NUnit" Version="5.12.0" />
+    <PackageVersion Include="WireMock.Net" Version="2.18.0" />
   </ItemGroup>
 </Project>

@@ -3,7 +3,7 @@ namespace CoreEx.Events.Publishing;
 /// <summary>
 /// Provides a <see cref="IDestinationProvider"/> where the same (fixed) <see cref="Destination"/> is used regardless of <see cref="EventData"/> contents; i.e. all messages are published to a single centralized destination.
 /// </summary>
-/// <remarks>The <see cref="Destination"/> will default to the value of the '<c>CoreEx.Events:Destination</c>' configuration setting or '<c>default</c>' as a fallback.</remarks>
+/// <remarks>The <see cref="Destination"/> will default to the value of the '<c>CoreEx:Events:Destination</c>' configuration setting or '<c>default</c>' as a fallback.</remarks>
 public class FixedDestinationProvider : IDestinationProvider
 {
     private string? _destination = null;

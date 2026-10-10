@@ -23,7 +23,7 @@ Guides you through creating or modifying a hand-authored contract (DTO/entity) i
 - New subordinate, line-item, or request/response contract (accessed via a parent — may still carry its own identifier)
 - Adding or changing properties on an existing contract
 - Wiring a ref-data navigation property (`[ReferenceData<T>]`) on an existing contract
-- Extracting a shared base class when ≥2 contracts repeat the same fields
+- Extracting a shared base class when ≥2 contracts repeat the same fields **and** every shared field is meaningful on each (genuine superset) — not for patch/subset request contracts
 
 ## When Not to Use
 
@@ -46,8 +46,10 @@ Guides you through creating or modifying a hand-authored contract (DTO/entity) i
 - `[Contract]` + `partial` on **all** contract classes by default
 - Only `[ReferenceData<T>]` properties are `partial` — never make plain properties `partial` (CS9248)
 - `[ReadOnly(true)]` on all server-assigned fields (`Id`, `ETag`, `ChangeLog`, computed/derived)
+- `[NonNullable]` on any property that is mandatory/required (ultimately not nullable) but declared nullable (`string?`, `int?`) for DTO flexibility — drives `nullable: false` in OpenAPI; not the same as `System.Diagnostics.CodeAnalysis.NotNull`. Never on `Id`/`ETag`/`ChangeLog`; on other `[ReadOnly]` properties only when the type is never a request body
 - Every property needs a `<summary>` XML doc comment
 - Same contract type for both API response and event payload — never split them
+- Patch/subset contracts (merge-patch, partial-update requests): standalone class with only the needed fields (+ `IETag`) — never inherit a sibling and suppress the rest; inheritance is for genuine supersets only
 
 For full workflow, decision trees, and code examples see [`references/workflow.md`](references/workflow.md).
 

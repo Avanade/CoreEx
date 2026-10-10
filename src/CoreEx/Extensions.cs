@@ -178,10 +178,24 @@ public static partial class Extensions
     public static string? ToSentenceCase(this string? text) => SentenceCase.ToSentenceCase(text);
 
     /// <summary>
-    /// Indicates whether the exception is <see cref="OperationCanceledException"/> (including <see cref="AggregateException"/> <see cref="Exception.InnerException"/>).
+    /// Indicates whether the exception is <see cref="OperationCanceledException"/> (including where wrapped by one or more nested <see cref="AggregateException"/> <see cref="Exception.InnerException"/> levels).
     /// </summary>
     /// <param name="ex">The <see cref="Exception"/>.</param>
     /// <returns><see langword="true"/> indicates canceled; otherwise, <see langword="false"/>.</returns>
+    /// <remarks>Nested wrapping occurs where a cancellation passes through multiple <c>Result.ThrowOnError()</c> boundaries, each of which wraps the error in a new <see cref="AggregateException"/>.</remarks>
     [DebuggerStepThrough]
-    public static bool IsCanceled(this Exception ex) => ex is OperationCanceledException || (ex is AggregateException aex && aex.InnerException is OperationCanceledException);
+    public static bool IsCanceled(this Exception ex) => ex is OperationCanceledException || (ex is AggregateException aex && aex.InnerException is not null && aex.InnerException.IsCanceled());
+
+    /// <summary>
+    /// Indicates whether the exception is <see cref="OperationCanceledException"/> (including where wrapped by one or more nested <see cref="AggregateException"/> <see cref="Exception.InnerException"/> levels) that is
+    /// attributable specifically to the <paramref name="cancellationToken"/>.
+    /// </summary>
+    /// <param name="ex">The <see cref="Exception"/>.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that the cancellation must be attributable to.</param>
+    /// <returns><see langword="true"/> indicates canceled by the <paramref name="cancellationToken"/>; otherwise, <see langword="false"/>.</returns>
+    /// <remarks>Unlike <see cref="IsCanceled(Exception)"/> (which matches <i>any</i> cancellation regardless of source), this distinguishes an operation's own cancellation (e.g. a host shutdown or client disconnect, which
+    /// should typically bubble up unclassified) from an unrelated cancellation elsewhere in the call stack (e.g. an inner <see cref="System.Net.Http.HttpClient"/> timeout using its own <see cref="CancellationTokenSource"/>).</remarks>
+    [DebuggerStepThrough]
+    public static bool IsCanceledBy(this Exception ex, CancellationToken cancellationToken)
+        => (ex is OperationCanceledException oce && oce.CancellationToken == cancellationToken) || (ex is AggregateException aex && aex.InnerException is not null && aex.InnerException.IsCanceledBy(cancellationToken));
 }

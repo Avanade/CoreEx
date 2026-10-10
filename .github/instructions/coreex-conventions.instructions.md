@@ -227,8 +227,15 @@ private readonly IUnitOfWork _unitOfWork;
 private readonly ILogger<ProductService> _logger;
 ```
 
+## End of File
+
+Every file ends with **exactly one** line terminator — the closing `}` (or last line of content) followed by a single newline. No blank lines after it, and no trailing whitespace. This applies to every file you create or edit (`.cs`, `.json`, `.yaml`, `.md`, `.csproj`, `.sql`, etc.), including generated-then-hand-tweaked output and template content.
+
+Create/edit tooling frequently appends extra `\n`s (particularly when `new_str` ends with a blank line, or when a trailing block is deleted and the blank lines before it are left behind) — check the tail of the file before finishing.
+
 ## Do Not
 
+- Do not leave blank lines at the end of a file — end with exactly one newline after the last line of content (the `.editorconfig` has `insert_final_newline = true`, which guarantees one, not zero extra).
 - Do not emit `#nullable enable` or `#nullable restore` pragma directives in hand-authored files — nullable is enabled project-wide via `<Nullable>enable</Nullable>` in `Directory.Build.props`. These pragmas are reserved for auto-generated `.g.cs` files produced by code generators.
 - Do not add `using` statements to individual `.cs` files — declare all imports in `GlobalUsing.cs`.
 - Do not leave `GlobalUsing.cs` unsorted after editing — re-sort the whole file alphabetically (all namespaces equally, no `System.*` grouping) rather than appending new entries at the end.
@@ -241,6 +248,7 @@ private readonly ILogger<ProductService> _logger;
 - Do not use `Guid.NewGuid()` — use `Runtime.NewGuid()`.
 - Do not omit or drop `CancellationToken` — every `async`/`Task`-returning method takes one (`CancellationToken cancellationToken = default`, last parameter) and passes it to every downstream awaitable call.
 - Do not pass `cancellationToken` positionally to a method with 3+ optional parameters (e.g. `ToMappedItemsResultAsync`/`ToItemsResultAsync`) — pass it as `cancellationToken:` by name; a bare positional token can silently bind to an unrelated `bool` parameter (e.g. `autoCount`) and fail to compile.
+- Do not rebuild a failed `Result`/`Result<T>` from its `.Error` (`Result<X>.Fail(r.Error!)`, `return r.Error!;`) — return the result itself (`return r;`), or `r.AsResult()` when the result type differs, or use a `Then*` chain. See the Result&lt;T&gt; guard-clause rules in `coreex-application-services.instructions.md`.
 - Do not replace a private backing field with an auto-property simply because it could be one — backing fields are a valid developer choice.
 - Do not leave interface members or contract properties undocumented — each gets a `<summary>`.
 - Do not invert the doc convention — summaries go on **interfaces and contract properties**; the **implementing** class member gets `<inheritdoc/>` (not a fresh summary). Summarising the concrete class while leaving the interface/contract undocumented is backwards.

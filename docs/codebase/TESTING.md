@@ -5,13 +5,14 @@
 ### 1) Test Stack and Commands
 
 - Primary test framework: NUnit 4.3.2.
-- Assertion/mocking tools: AwesomeAssertions, UnitTestEx.NUnit, coverlet.collector, and sample-specific mock helpers such as MockHttpClientFactory described in samples/README.md.
+- Assertion/mocking tools: AwesomeAssertions, UnitTestEx.NUnit, UnitTestEx.Aspire (Aspire E2E), WireMock.Net (Aspire MockHost), coverlet.collector, and sample-specific mock helpers such as MockHttpClientFactory described in samples/README.md.
 - Commands:
 
 ```bash
 dotnet test CoreEx.sln
 dotnet test tests/CoreEx.Test.Unit/CoreEx.Test.Unit.csproj
 dotnet test samples/tests/Contoso.Products.Test.Api/Contoso.Products.Test.Api.csproj
+dotnet test CoreEx.Samples.Test.E2E.slnf   # Aspire end-to-end (net10.0; requires the docker-compose infrastructure images)
 [TODO] no dedicated committed coverage command beyond standard dotnet test with coverlet.collector references was found.
 ```
 
@@ -27,7 +28,7 @@ dotnet test samples/tests/Contoso.Products.Test.Api/Contoso.Products.Test.Api.cs
 |-------|----------|----------------|-------|
 | Unit | yes | CoreEx library primitives and sample validators/domain behavior | tests/CoreEx.Test.Unit and Contoso.Products.Test.Unit are present |
 | Integration | yes | Sample APIs, subscriber hosts, and relay hosts | Contoso.Products.Test.Api, Contoso.Shopping.Test.Api, Contoso.Products.Test.Subscribe, and Contoso.Products.Test.Relay are present |
-| E2E | yes | Cross-service sample scenarios against running APIs | Contoso.E2E.Runner is an interactive console runner |
+| E2E | yes | Cross-service sample scenarios against running APIs | Contoso.E2E.Runner is an interactive console runner; Contoso.Test.Aspire is an automated NUnit test that self-hosts the Contoso.Aspire AppHost (`WithAspireTester`), resets databases/Redis/Service Bus from code, stubs SendGrid via the MockHost, and runs in CI on net10.0 only |
 
 ### 4) Mocking and Isolation Strategy
 
@@ -50,4 +51,5 @@ dotnet test samples/tests/Contoso.Products.Test.Api/Contoso.Products.Test.Api.cs
 - samples/tests/Contoso.Products.Test.Api/ProductMutateTests.Create.cs
 - samples/tests/Contoso.E2E.Runner/Contoso.E2E.Runner.csproj
 - samples/tests/Contoso.E2E.Runner/appsettings.json
+- samples/aspire/Contoso.Test.Aspire/E2ETest.cs
 - samples/README.md

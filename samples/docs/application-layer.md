@@ -172,6 +172,18 @@ A second interface, `IProductSyncAdapter`, handles the **event-driven data repli
 
 [`IProductSyncAdapter`](../src/Contoso.Shopping.Application/Adapters/Products/IProductSyncAdapter.cs)
 
+`ICustomerAdapter` demonstrates the **alternate, real-time pattern**: Shopping does not replicate Customers data, it calls the Customers API live whenever it needs it. `BasketService.CreateAsync` uses it (via `CustomerPolicy`) to validate the `customerId` and to default the basket's shipping address from the customer's address when the customer has one; the Infrastructure `NotificationAdapter` uses it to address the checkout confirmation email. The adapter returns Shopping's own `Customer` contract (only the properties Shopping cares about), not the Customers domain's.
+
+```csharp
+// samples/src/Contoso.Shopping.Application/Adapters/Customers/ICustomerAdapter.cs
+public interface ICustomerAdapter
+{
+    Task<Result<Customer>> GetAsync(string id, CancellationToken cancellationToken = default);
+}
+```
+
+[`ICustomerAdapter`](../src/Contoso.Shopping.Application/Adapters/Customers/ICustomerAdapter.cs)
+
 ---
 
 ## Mapping (Application-level)
@@ -213,3 +225,5 @@ public class ProductPolicy(IProductAdapter productAdapter)
             : r);
 }
 ```
+
+`CustomerPolicy` (`EnsureExistsAsync`) follows the same shape for the basket's `customerId`, returning a `customerId` validation error ("Customer was not found.") when the Customers API responds 404.

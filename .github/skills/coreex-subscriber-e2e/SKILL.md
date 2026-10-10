@@ -1,6 +1,6 @@
 ---
 name: coreex-subscriber-e2e
-description: "Create a complete new event or command subscriber end-to-end in a single guided workflow: event/command DTO contract (if new), subscriber handler, optional application service and repository, and integration tests. USE FOR: adding a brand-new subscriber to an existing CoreEx Subscribe host for any scenario — command handling, event-data-sync replication, or event-driven business-process choreography. DO NOT USE FOR: modifying an existing subscriber (use coreex-subscriber directly), API endpoint work (use coreex-api-e2e), or setting up the Subscribe host itself (use coreex-scaffold)."
+description: "Create a complete new event subscriber end-to-end in a single guided workflow: event DTO contract (if new), subscriber handler, optional application service and repository, and integration tests. USE FOR: adding a brand-new subscriber to an existing CoreEx Subscribe host for event-data-sync replication or event-driven business-process choreography. DO NOT USE FOR: command handling (use coreex-command-subscribe-e2e), sending a command (use coreex-command-publish-e2e), modifying an existing subscriber (use coreex-subscriber directly), API endpoint work (use coreex-api-e2e), or setting up the Subscribe host itself (use coreex-scaffold)."
 argument-hint: "Optional: event or command subject, subscriber scenario (command / event-data-sync / business-process)"
 tags: ["coreex", "subscriber", "event", "command", "end-to-end", "vertical-slice", "messaging"]
 ---
@@ -21,7 +21,7 @@ Guides you through adding a complete new event or command subscriber in one sitt
 
 - Adding a brand-new subscriber to an existing CoreEx Subscribe host
 - You know the event or command subject and want the full slice — contract, handler, optional orchestration, and tests — in one workflow
-- Covers all three subscriber scenarios: command handling, event-data-sync replication, and event-driven business-process choreography
+- Covers the event-data-sync and business-process scenarios; for a **command** (queue-based, needs a dedicated receiver in the Subscribe host) prefer [`coreex-command-subscribe-e2e`](../coreex-command-subscribe-e2e/SKILL.md), which also covers topology and Aspire
 
 ## When Not to Use
 
@@ -31,7 +31,7 @@ Guides you through adding a complete new event or command subscriber in one sitt
 
 ## Workflow Overview
 
-1. **Read Feature Configuration** — resolve `messaging-provider`, `outbox-enabled`, `data-provider`, and `rop-enabled` from the solution-root `AGENTS.md` before asking anything.
+1. **Read Feature Configuration** — resolve `messaging-provider`, `outbox-enabled`, `data-provider` (`SqlServer` / `Postgres` / `Cosmos` / `None`), and `rop-enabled` from the solution-root `AGENTS.md` before asking anything.
 2. **Interview** — identify the subject, scenario, DTO needs, and whether state persistence is required; batch all questions into one turn.
 3. **Execute L1 sequence** — invoke each applicable L1 skill in order, passing context resolved in steps 1–2; no repeated questions.
 4. **Validate** — `dotnet build`; confirm the subscriber is registered and integration tests are present.

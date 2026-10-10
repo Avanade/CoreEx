@@ -113,6 +113,7 @@ The repo already exposes several entry points. Use them intentionally.
 | Plan or review a new domain shape before scaffolding. | `CoreEx Expert` | Best when you want sample-aligned advice on host shape, layering, and capability choices before running `dotnet new`. |
 | Add capabilities to an existing domain. | `CoreEx Expert` or normal chat with inspect-first prompts | Best for incremental retrofits such as relay, subscribe, and messaging alignment now that scaffolding is deterministic and capability work is manual. |
 | Start local dependencies or sample runtime. | `init`, `setup`, or Aspire tooling | Best for environment and sample execution workflows. |
+| Send/receive a command, add an event subscriber, or add an Aspire E2E test. | `coreex-command-publish-e2e`, `coreex-command-subscribe-e2e`, `coreex-subscriber-e2e`, `coreex-aspire` | Guided end-to-end workflows covering code, Service Bus topology, tests and Aspire wiring. |
 
 ## A Good Question Usually Includes Four Things
 

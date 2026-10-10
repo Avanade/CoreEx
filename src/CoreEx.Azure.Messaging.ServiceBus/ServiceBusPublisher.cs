@@ -46,13 +46,24 @@ public sealed class ServiceBusPublisher(ServiceBusClient serviceBusClient, IDest
     /// <summary>
     /// Gets or sets the size of the partition used for when the <see cref="SessionIdStrategy"/> is <see cref="ServiceBusSessionStrategy.UsePartitionKeyConvertedToAnId"/>.
     /// </summary>
-    /// <remarks>Where not specified the <see cref="PartitionKey.DefaultPartitionSize"/> is used.</remarks>
+    /// <remarks>Where not specified the <see cref="PartitionKey.DefaultPartitionSize"/> is used. The optional configuration key is <see cref="SessionIdPartitionSizeConfigurationKey"/> and is independent of relational outbox partition sizing.</remarks>
     public int? SessionIdPartitionSize { get; set; }
+
+    /// <summary>
+    /// Gets the session settings keyed by the exact Service Bus destination name.
+    /// </summary>
+    /// <remarks>Destination settings override the corresponding publisher-wide setting; unspecified values inherit from the publisher.</remarks>
+    public IDictionary<string, ServiceBusDestinationSettings> DestinationSettings { get; } = new Dictionary<string, ServiceBusDestinationSettings>(StringComparer.Ordinal);
+
+    /// <summary>
+    /// Gets the configuration key for Service Bus session partition sizing.
+    /// </summary>
+    public const string SessionIdPartitionSizeConfigurationKey = "CoreEx:Host:ServiceBus:SessionIdPartitionSize";
 
     /// <summary>
     /// Gets the default <see cref="NoPartitionKeySessionId"/> value: '<c>$none</c>'.
     /// </summary>
-    public const string DefaultNoPartitionKeySessionId = "$none";
+    public const string DefaultNoPartitionKeySessionId = PartitionKey.DefaultNoPartitionKey;
 
     /// <summary>
     /// Gets or sets the fixed value used to derive the <see cref="ServiceBusMessage.SessionId"/> for an event with no <see cref="EventData.PartitionKey"/>, regardless of <see cref="SessionIdStrategy"/>;
@@ -110,12 +121,12 @@ public sealed class ServiceBusPublisher(ServiceBusClient serviceBusClient, IDest
             using var batch = await sender.CreateMessageBatchAsync(cancellationToken).ConfigureAwait(false);
 
             // Add first message to the batch.
-            if (batch.TryAddMessage(SetSessionId(events.Peek().Event.ToServiceBusMessage(ContentMode, IncludeCloudEventAttributes))))
+            if (batch.TryAddMessage(SetSessionId(events.Peek().Event.ToServiceBusMessage(ContentMode, IncludeCloudEventAttributes), destination)))
             {
                 events.Dequeue();
 
                 // Keep adding messages until we run out of messages or batch is full.
-                while (events.Count > 0 && batch.TryAddMessage(SetSessionId(events.Peek().Event.ToServiceBusMessage(ContentMode, IncludeCloudEventAttributes))))
+                while (events.Count > 0 && batch.TryAddMessage(SetSessionId(events.Peek().Event.ToServiceBusMessage(ContentMode, IncludeCloudEventAttributes), destination)))
                 {
                     events.Dequeue();
                 }
@@ -191,14 +202,17 @@ public sealed class ServiceBusPublisher(ServiceBusClient serviceBusClient, IDest
     /// <summary>
     /// Sets the <see cref="ServiceBusMessage"/> <see cref="ServiceBusMessage.SessionId"/> based on the configured <see cref="SessionIdStrategy"/>.
     /// </summary>
-    private ServiceBusMessage SetSessionId(ServiceBusMessage message)
+    private ServiceBusMessage SetSessionId(ServiceBusMessage message, string destination)
     {
         message.ThrowIfNull();
+        var settings = DestinationSettings.TryGetValue(destination, out var destinationSettings) ? destinationSettings : null;
+        var strategy = settings?.SessionIdStrategy ?? SessionIdStrategy;
+        var partitionSize = settings?.SessionIdPartitionSize ?? SessionIdPartitionSize ?? PartitionKey.DefaultPartitionSize;
 
-        return SessionIdStrategy switch
+        return strategy switch
         {
-            ServiceBusSessionStrategy.UsePartitionKeyAsIs => message.Adjust(message => message.SessionId = message.PartitionKey ?? LogNoPartitionKeyFallback(message, NoPartitionKeySessionId)),
-            ServiceBusSessionStrategy.UsePartitionKeyConvertedToAnId => message.Adjust(message => message.SessionId = message.PartitionKey = PartitionKey.GetPartitionIdAsString(message.PartitionKey ?? LogNoPartitionKeyFallback(message, NoPartitionKeySessionId), SessionIdPartitionSize ?? PartitionKey.DefaultPartitionSize)),
+            ServiceBusSessionStrategy.UsePartitionKeyAsIs => message.Adjust(message => message.SessionId = message.PartitionKey ?? LogNoPartitionKeyFallback(message, NoPartitionKeySessionId, strategy)),
+            ServiceBusSessionStrategy.UsePartitionKeyConvertedToAnId => message.Adjust(message => message.SessionId = message.PartitionKey = PartitionKey.GetPartitionIdAsString(message.PartitionKey ?? LogNoPartitionKeyFallback(message, NoPartitionKeySessionId, strategy), PartitionKey.ValidatePartitionSize(partitionSize))),
             _ => message
         };
     }
@@ -206,10 +220,10 @@ public sealed class ServiceBusPublisher(ServiceBusClient serviceBusClient, IDest
     /// <summary>
     /// Logs (at <see cref="LogLevel.Debug"/>) that an event with no <see cref="EventData.PartitionKey"/> is falling back to the specified <paramref name="fallbackValue"/> for session assignment.
     /// </summary>
-    private string LogNoPartitionKeyFallback(ServiceBusMessage message, string fallbackValue)
+    private string LogNoPartitionKeyFallback(ServiceBusMessage message, string fallbackValue, ServiceBusSessionStrategy strategy)
     {
         if (Logger?.IsEnabled(LogLevel.Debug) ?? false)
-            Logger.LogDebug("Event (Id={MessageId}) has no PartitionKey; falling back to '{FallbackValue}' for {SessionIdStrategy} session assignment.", message.MessageId, fallbackValue, SessionIdStrategy);
+            Logger.LogDebug("Event (Id={MessageId}) has no PartitionKey; falling back to '{FallbackValue}' for {SessionIdStrategy} session assignment.", message.MessageId, fallbackValue, strategy);
 
         return fallbackValue;
     }

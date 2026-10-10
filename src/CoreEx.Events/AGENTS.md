@@ -61,16 +61,15 @@ See [CoreEx.Azure.Messaging.ServiceBus](../CoreEx.Azure.Messaging.ServiceBus/REA
 
 ## DestinationProvider
 
-Implement `IDestinationProvider` to derive topic/queue names from `EventData`. Return `null` to fall back to the next registered provider.
+An `IDestinationProvider` derives the topic/queue name for each published message. Register exactly one; the built-ins cover the common cases:
+
+- `AddNamedDestinationProvider()` (**default for new solutions**) — events go to the single shared destination (topic) read from `CoreEx:Events:Destination`; commands go to a per-target-domain queue named `{Destination}-{domain}` (e.g. `contoso-products`), so only the named domain consumes them. A command with no destination domain is self-addressed to the host domain.
+- `AddFixedDestinationProvider("name")` — every message (events and commands) goes to one fixed destination.
+
+For anything else, implement `IDestinationProvider` (`CreateFrom(EventData, bool)`, `CreateFrom(string, bool)`, `CreateNew(MessageType, string?, bool)`) and register it in place of the built-ins.
 
 ```csharp
-public class MyDestinationProvider : IDestinationProvider
-{
-    public string? GetDestination(EventData @event)
-        => @event.Subject?.StartsWith("contoso.orders") == true
-            ? "orders-topic"
-            : null;
-}
+builder.Services.AddNamedDestinationProvider(); // Destination defaults from CoreEx:Events:Destination.
 ```
 
 ## Do Not

@@ -1,0 +1,3 @@
+# Insert: no '$' prefix.
+prov-items:
+  - { id: prov-1, partitionKey: pk, name: One }

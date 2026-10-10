@@ -14,22 +14,17 @@ public partial class ReferenceDataController(CoreEx.AspNetCore.Mvc.WebApi webApi
 {
     private readonly CoreEx.AspNetCore.Mvc.WebApi _webApi = webApi.ThrowIfNull();
 
-    [HttpGet("customer-types"), HttpHead("customer-types")]
+    [HttpGet("customer-types")]
     [ProducesResponseType(typeof(CustomerType[]), 200)]
     [Query(supportsOrderBy: true), Paging(supportsCount: true)]
     public Task<IActionResult> GetCustomerTypesAsync(CancellationToken cancellationToken)
         => _webApi.GetAsync(Request, (ro, ct) => ReferenceDataOrchestrator.Current.QueryAsync<CustomerType>(ro.QueryArgs, ro.PagingArgs, ct), cancellationToken: cancellationToken);
 
-    [HttpGet("contact-methods"), HttpHead("contact-methods")]
+    [HttpGet("contact-methods")]
     [ProducesResponseType(typeof(ContactMethod[]), 200)]
     [Query(supportsOrderBy: true), Paging(supportsCount: true)]
     public Task<IActionResult> GetContactMethodsAsync(CancellationToken cancellationToken)
         => _webApi.GetAsync(Request, (ro, ct) => ReferenceDataOrchestrator.Current.QueryAsync<ContactMethod>(ro.QueryArgs, ro.PagingArgs, ct), cancellationToken: cancellationToken);
-
-    [HttpGet]
-    [ProducesResponseType(typeof(ReferenceDataMultiDictionary), 200)]
-    public Task<IActionResult> GetNamedAsync([FromQuery] string[] name, CancellationToken cancellationToken)
-        => _webApi.GetAsync(Request, (ro, ct) => ReferenceDataOrchestrator.Current.GetNamedAsync(name, ro.IsIncludeInactive, ct), cancellationToken: cancellationToken);
 }
 
 #nullable restore

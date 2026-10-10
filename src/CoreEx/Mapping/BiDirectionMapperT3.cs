@@ -49,12 +49,12 @@ public abstract class BiDirectionMapper<TSource, TDestination, TSelf> : IBiDirec
     protected abstract TDestination OnMap(TSource source);
 
     /// <summary>
-    /// Maps the <paramref name="source"/> (<typeparamref name="TDestination"/>) value to a new destination (<typeparamref name="TSource"/>) value.
+    /// Maps the <paramref name="destination"/> (<typeparamref name="TDestination"/>) value to a new destination (<typeparamref name="TSource"/>) value.
     /// </summary>
-    /// <param name="source">The source value.</param>
-    /// <returns>The destination value.</returns>
+    /// <param name="destination">The destination value.</param>
+    /// <returns>The source value.</returns>
     /// <remarks>This represents the right-to-left mapping direction.</remarks>
-    protected abstract TSource OnMap(TDestination source);
+    protected abstract TSource OnMap(TDestination destination);
 
     /// <summary>
     /// Provides the underlying <typeparamref name="TSource"/> to <typeparamref name="TSource"/> mapping.
@@ -75,6 +75,6 @@ public abstract class BiDirectionMapper<TSource, TDestination, TSelf> : IBiDirec
         private readonly Func<TDestination, TSource> _map = map;
 
         /// <inheritdoc/>
-        protected override TSource OnMap(TDestination source) => _map(source);
+        protected override TSource OnMap(TDestination destination) => _map(destination);
     }
 }

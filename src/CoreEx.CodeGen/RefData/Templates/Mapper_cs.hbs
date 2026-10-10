@@ -8,8 +8,8 @@
 
 namespace {{Root.DataMappingNamespace}};
 
-/// <summary>Provides mapping from <see cref="{{Root.DataModelsPath}}.{{Model}}"/> to <see cref="Contracts.{{Name}}"/>.</summary>
-internal partial class {{Mapper}} : Mapper<{{Root.DataModelsPath}}.{{Model}}, Contracts.{{Name}}, {{Mapper}}>
+/// <summary>Provides mapping from <see cref="Contracts.{{Name}}"/> to <see cref="{{Root.DataModelsPath}}.{{Model}}"/>.</summary>
+internal partial class {{Mapper}} : BiDirectionMapper<Contracts.{{Name}}, {{Root.DataModelsPath}}.{{Model}}, {{Mapper}}>
 {
     /// <inheritdoc/>
     protected override Contracts.{{Name}} OnMap({{Root.DataModelsPath}}.{{Model}} source)
@@ -34,8 +34,37 @@ internal partial class {{Mapper}} : Mapper<{{Root.DataModelsPath}}.{{Model}}, Co
         return destination;
     }
 
-    /// <summary>Provides the opportunity to extend the <see cref="OnMap" /> method.</summary>
+    /// <summary>Provides the opportunity to extend the <b>To</b> mapping.</summary>
     partial void OnMapExtend({{Root.DataModelsPath}}.{{Model}} source, Contracts.{{Name}} destination);
+
+    /// <inheritdoc/>
+    {{#unless IsMutable}}
+    protected override {{Root.DataModelsPath}}.{{Model}} OnMap(Contracts.{{Name}} destination) => throw new NotSupportedException();
+    {{else}}
+    protected override {{Root.DataModelsPath}}.{{Model}} OnMap(Contracts.{{Name}} destination)
+    {
+        var source = new {{Root.DataModelsPath}}.{{Model}}
+        {
+            Code = destination.Code!,
+            Text = destination.Text,
+            Description = destination.Description,
+            SortOrder = destination.SortOrder,
+            IsActive = !destination.IsInactive,
+            StartsOn = destination.StartsOn,
+            EndsOn = destination.EndsOn,
+            ETag = destination.ETag{{#ifne MappingProperties.Count 0}},{{/ifne}}
+    {{#each MappingProperties}}
+            {{Model}} = destination.{{Name}}{{#unless @last}},{{/unless}}
+    {{/each}}
+        };
+
+        OnMapExtend(destination, source);
+        return source;
+    }
+
+    /// <summary>Provides the opportunity to extend the <b>From</b> mapping.</summary>
+    partial void OnMapExtend(Contracts.{{Name}} destination, {{Root.DataModelsPath}}.{{Model}} source);
+    {{/unless}}
 }
 
 #nullable restore

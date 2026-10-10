@@ -54,7 +54,7 @@ public class SqlServerOutboxPublisher : DatabaseOutboxPublisherBase<SqlServerDat
             {
                 // Add each event to the batch statement and parameters collection.
                 var pk = chunk[i].Event.GetPartitionKey();
-                var partitionId = PartitionKey.GetPartitionId(string.IsNullOrEmpty(pk) ? Guid.NewGuid().ToString() : pk, PartitionSize);
+                var partitionId = PartitionKey.GetPartitionId(string.IsNullOrEmpty(pk) ? PartitionKey.DefaultNoPartitionKey : pk, PartitionSize);
 
                 sb.Append($"EXEC {Statement.CommandText} ");
 

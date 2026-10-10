@@ -156,6 +156,17 @@ public class DataExtensionsTests
     }
 
     [Test]
+    public async Task WithTotalCountAsync_CanceledByToken_Propagates()
+    {
+        // Regression: a requested cancellation must flow rather than be swallowed as an unknown total count.
+        using var cts = new CancellationTokenSource();
+        await cts.CancelAsync();
+
+        var act = async () => await new PagingResult(PagingArgs.CreateWithCount()).WithTotalCountAsync(ct => Task.FromException<long?>(new OperationCanceledException(ct)), cts.Token);
+        await act.Should().ThrowAsync<OperationCanceledException>();
+    }
+
+    [Test]
     public async Task WithTotalCountAsync_WithCancellationToken_PassesTokenThrough()
     {
         using var cts = new CancellationTokenSource();

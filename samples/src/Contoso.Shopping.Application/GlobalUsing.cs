@@ -1,3 +1,4 @@
+global using Contoso.Shopping.Application.Adapters.Customers;
 global using Contoso.Shopping.Application.Adapters.Products;
 global using Contoso.Shopping.Application.Interfaces;
 global using Contoso.Shopping.Application.Mapping;
@@ -17,3 +18,4 @@ global using CoreEx.RefData.Abstractions;
 global using CoreEx.Results;
 global using CoreEx.Validation;
 global using Microsoft.Extensions.Logging;
+global using System.Text.Json;

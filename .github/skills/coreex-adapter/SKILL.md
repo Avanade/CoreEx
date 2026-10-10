@@ -1,7 +1,7 @@
 ---
 name: coreex-adapter
 description: "Create or modify a CoreEx Infrastructure-layer adapter (anti-corruption layer). USE FOR: new adapter interface in Application/Adapters/{ExternalDomain}/, new adapter implementation in Infrastructure/Adapters/{ExternalDomain}/, new typed HTTP client in Infrastructure/Clients/{ExternalDomain}/, event-driven sync/replication adapter (IXxxSyncAdapter), unit tests for HTTP clients with MockHttpClientFactory. DO NOT USE FOR: repositories within the same domain (use coreex-repository), application services that call adapters (use coreex-app-service), event subscriber hosts that drive sync adapters (see coreex-event-subscribers.instructions.md)."
-argument-hint: "Optional: external domain name, operations needed (get/reserve/cancel/sync), synchronous vs replication role, HTTP or EF-only"
+argument-hint: "Optional: external domain name, operations needed (get/reserve/cancel/sync), synchronous vs replication role, HTTP or local-store-only"
 tags: ["adapter", "anti-corruption", "http-client", "infrastructure", "integration", "coreex"]
 ---
 
@@ -20,20 +20,22 @@ Guides you through adding or modifying an adapter — the boundary that isolates
 ## When to Use
 
 - Add an `IXxxAdapter` interface for a new external-domain dependency
-- Add a synchronous real-time adapter (HTTP call + optional local EF read/event publish)
+- Add a synchronous real-time adapter (HTTP call + optional local store read/event publish)
 - Add a replication adapter (`IXxxSyncAdapter`) for event-driven data sync into your local store
 - Add or extend a typed HTTP client (`XxxHttpClient`) in `Infrastructure/Clients/{ExternalDomain}/`
+- Validate consumed response fields inside a typed HTTP client using `WithValidator`
 - Unit-test HTTP client response-code handling with `MockHttpClientFactory`
 
 ## When Not to Use
 
+- Sending a command end-to-end (call site, queue topology, tests, Aspire) — use `coreex-command-publish-e2e`, which invokes this skill for the adapter step
 - EF repositories within the same domain — use `coreex-repository`
 - Application services that consume the adapter — use `coreex-app-service`
 - Event subscriber hosts that drive `IXxxSyncAdapter` — use `coreex-subscriber`
 
 > **Resolve project-wide choices from state before asking.** Read the solution-root `AGENTS.md`
-> **Feature Configuration** for `messaging-provider` (does this domain publish/consume events?) and `data-provider`
-> (EF-only replication vs HTTP). Only prompt for what is unrecorded; re-state resolved values for confirmation.
+> **Feature Configuration** for `messaging-provider` (does this domain publish/consume events?) and `data-provider` (`SqlServer` / `Postgres` / `Cosmos` / `None`)
+> (provider-specific local-store replication vs HTTP). Only prompt for what is unrecorded; re-state resolved values for confirmation.
 
 ## Quick Reference
 
@@ -43,9 +45,13 @@ Guides you through adding or modifying an adapter — the boundary that isolates
 - `[ScopedService<IXxxAdapter>]` on the implementation — auto-discovered via `AddDynamicServicesUsing<T>()`
 - Typed HTTP client registered via `builder.AddTypedHttpClient<XxxHttpClient>("ServiceName")` in `Program.cs`
 - Never call `HttpClient` directly in adapter methods — always delegate to the typed client class
+- **Response validation belongs to the client**, not `Application/Validators/`. For small, client-only rules use a private static readonly `Validator<T>` configured once with `Validator.Create<T>().HasProperty(...)`, then `response.WithValidator(_validator).ToResultAsync(ct)`. Validate fields the consumer requires; do not copy create/update rules or add identifier matching by default. Extract a colocated validator only when complexity or genuine reuse warrants it; see the workflow.
+- Dispose the response with `using var`; `WithValidator` does not own it. Reported validation errors become `HttpRequestException` failures with inner diagnostics, not caller validation errors. Test inline rules through the client, including invalid 2xx responses and success; cached adapters must not cache invalid responses.
 - `response.ToResultAsync()` maps HTTP status to `Result` (2xx → `Success`, error + ProblemDetails → `BusinessException`/`ProblemDetailsException`, plain error → `HttpRequestException`)
-- Two distinct adapter roles in the samples — **synchronous** (real-time HTTP + events) and **replication** (event-driven local EF write); separate interfaces, separate implementations
-- **Generate `*.Test.Unit/Clients/{ExternalDomain}/{External}HttpClientTests.cs`** for a typed HTTP client used by a synchronous or replication adapter — cover success (2xx), server error (5xx), and business error (422/ProblemDetails) per endpoint; skip for EF-only replication adapters (no HTTP) and for combined EF+HTTP+events orchestration adapters (mock the client via `Test.ReplaceHttpClientFactory` in integration tests instead)
+- `response.ToResultAsync<T>()` is for responses that **must** carry a value — a null/empty body (including 204) is an `HttpRequestException` failure, so the result is `Result<T>` with a non-null `T` and callers need no null handling. Use `ToResultOrDefaultAsync<T>()` (→ `Result<T?>`) only where a missing body is genuinely valid; `GetValueAsync<T>()`/`GetValueOrDefaultAsync<T>()` are the throwing equivalents. Map a 404 yourself before calling (`Result.NotFoundError()`) when "not found" is an expected outcome
+- **Real-time read adapters should cache successes** with `IHybridCache.GetOrCreateWithResultAsync<T>(key, factory, options, ct)` — the adapter method becomes one line; only successful results are cached (failures such as not-found are never cached). Use short expiry via `HybridCacheEntryOptions.CreateFor<T>(...)` (overridable through `CoreEx:Caching:{Type}:*`). Concurrent cache misses are collapsed to one factory call per key per node with `FusionHybridCache` (cross-node needs an opt-in FusionCache distributed locker; non-FusionCache implementations such as `MemoryOnlyHybridCache` don't collapse them) — keep the factory an idempotent read. Tests must then clear the cache per test and register a hybrid cache in the unit-test host (see `references/workflow.md` → "Caching a real-time adapter")
+- Two distinct adapter roles in the samples — **synchronous** (real-time HTTP + events) and **replication** (event-driven local-store write; EF in relational domains, `CosmosDb` containers in Cosmos domains); separate interfaces, separate implementations
+- **Generate `*.Test.Unit/Clients/{ExternalDomain}/{External}HttpClientTests.cs`** for a typed HTTP client used by a synchronous or replication adapter — cover success (2xx), server error (5xx), and business error (422/ProblemDetails) per endpoint; skip for store-only replication adapters (no HTTP) and for combined local-store+HTTP+events orchestration adapters (mock the client via `Test.ReplaceHttpClientFactory` in integration tests instead)
 
 For full workflow and code examples see [`references/workflow.md`](references/workflow.md).
 
@@ -58,3 +64,4 @@ For full workflow and code examples see [`references/workflow.md`](references/wo
 - Illustrative examples (CoreEx sample — not present in your project):
   - [synchronous + replication adapter interfaces](https://github.com/Avanade/CoreEx/tree/main/samples/src/Contoso.Shopping.Application/Adapters/Products) — `IProductAdapter`, `IProductSyncAdapter`
   - [adapter + client implementations](https://github.com/Avanade/CoreEx/tree/main/samples/src/Contoso.Shopping.Infrastructure/Adapters/Products) and the [typed HTTP client](https://github.com/Avanade/CoreEx/tree/main/samples/src/Contoso.Shopping.Infrastructure/Clients/Products)
+  - [real-time cached adapter](https://github.com/Avanade/CoreEx/tree/main/samples/src/Contoso.Shopping.Infrastructure/Adapters/Customers) (`ICustomerAdapter`) and its [value-returning client](https://github.com/Avanade/CoreEx/tree/main/samples/src/Contoso.Shopping.Infrastructure/Clients/Customers) — the alternate, no-replication pattern

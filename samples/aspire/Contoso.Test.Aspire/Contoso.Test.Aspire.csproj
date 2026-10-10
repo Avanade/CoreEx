@@ -1,0 +1,45 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- References the single-TargetFramework Contoso.Aspire AppHost (see its csproj for why) - must match to be referenceable.
+         TargetFrameworks (plural) is explicitly cleared too, not just TargetFramework set: leaving it inherited from
+         samples\Directory.Build.props makes Visual Studio's project system (Configuration Manager, Test Explorer's
+         framework picker) keep offering net8.0/net9.0 for this project even though CLI builds already only ever use
+         net10.0 - selecting one of those in VS reintroduces the "cannot be referenced" error. -->
+    <TargetFrameworks></TargetFrameworks>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <RunSettingsFilePath>$(MSBuildProjectDirectory)\Contoso.Test.Aspire.runsettings</RunSettingsFilePath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="AwesomeAssertions" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="NUnit" />
+    <PackageReference Include="NUnit.Analyzers" />
+    <PackageReference Include="NUnit3TestAdapter" />
+    <PackageReference Include="UnitTestEx.Aspire" />
+    <PackageReference Include="UnitTestEx.NUnit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\CoreEx.UnitTesting\CoreEx.UnitTesting.csproj" />
+    <ProjectReference Include="..\..\..\src\CoreEx\CoreEx.csproj" />
+    <ProjectReference Include="..\..\src\Contoso.Customers.Contracts\Contoso.Customers.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\Contoso.Customers.Database\Contoso.Customers.Database.csproj" />
+    <ProjectReference Include="..\..\src\Contoso.Products.Contracts\Contoso.Products.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\Contoso.Products.Database\Contoso.Products.Database.csproj" />
+    <ProjectReference Include="..\..\src\Contoso.Shopping.Contracts\Contoso.Shopping.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\Contoso.Shopping.Database\Contoso.Shopping.Database.csproj" />
+    <ProjectReference Include="..\..\tests\Contoso.Customers.Test.Common\Contoso.Customers.Test.Common.csproj" />
+    <ProjectReference Include="..\..\tests\Contoso.Products.Test.Common\Contoso.Products.Test.Common.csproj" />
+    <ProjectReference Include="..\..\tests\Contoso.Shopping.Test.Common\Contoso.Shopping.Test.Common.csproj" />
+    <ProjectReference Include="..\Contoso.Aspire\Contoso.Aspire.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="NUnit.Framework" />
+  </ItemGroup>
+
+</Project>

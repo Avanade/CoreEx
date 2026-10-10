@@ -6,11 +6,11 @@ The host is the **composition root** of the application. It sits above all layer
 
 **Example projects**
 
-| Host type | Products | Shopping |
-|---|---|---|
-| API | [`Contoso.Products.Api`](../src/Contoso.Products.Api) | [`Contoso.Shopping.Api`](../src/Contoso.Shopping.Api) |
-| Outbox Relay | [`Contoso.Products.Relay`](../src/Contoso.Products.Relay) | [`Contoso.Shopping.Relay`](../src/Contoso.Shopping.Relay) |
-| Subscribe | [`Contoso.Products.Subscribe`](../src/Contoso.Products.Subscribe) | [`Contoso.Shopping.Subscribe`](../src/Contoso.Shopping.Subscribe) |
+| Host type | Products | Shopping | Customers |
+|---|---|---|---|
+| API | [`Contoso.Products.Api`](../src/Contoso.Products.Api) | [`Contoso.Shopping.Api`](../src/Contoso.Shopping.Api) | [`Contoso.Customers.Api`](../src/Contoso.Customers.Api) |
+| Outbox Relay | [`Contoso.Products.Relay`](../src/Contoso.Products.Relay) | [`Contoso.Shopping.Relay`](../src/Contoso.Shopping.Relay) | [`Contoso.Customers.Relay`](../src/Contoso.Customers.Relay) |
+| Subscribe | [`Contoso.Products.Subscribe`](../src/Contoso.Products.Subscribe) | [`Contoso.Shopping.Subscribe`](../src/Contoso.Shopping.Subscribe) | Not implemented |
 
 ---
 
@@ -131,7 +131,7 @@ way as any other CoreEx invoker.
 `Program.cs` follows a predictable CoreEx shape and is the only file in the API host:
 
 1. `builder.AddHostSettings()` — loads CoreEx host configuration.
-2. Core services — `AddExecutionContext()`, `AddReferenceDataOrchestrator<T>()`, `AddMvcWebApi()`, `AddHttpWebApi()`.
+2. Core services — `AddExecutionContext()`, `AddReferenceDataOrchestrator()` (non-generic; binds the CodeGen-generated `IReferenceDataProvider` from DI at runtime), `AddMvcWebApi()`, `AddHttpWebApi()`.
 3. Dynamic service registration — `AddDynamicServicesUsing<T…>()` auto-discovers all `[ScopedService]`-decorated types.
 4. Infrastructure wiring — database, EF DbContext, outbox publisher, caching (L1 in-memory + L2 Redis + FusionCache backplane).
 5. `PostConfigureAllHealthChecks()` — adds standard health-check tags.
@@ -143,7 +143,7 @@ way as any other CoreEx invoker.
 // samples/src/Contoso.Products.Api/Program.cs  (abridged)
 builder.Services
     .AddExecutionContext()
-    .AddReferenceDataOrchestrator<ReferenceDataService>()
+    .AddReferenceDataOrchestrator()
     .AddMvcWebApi()
     .AddHttpWebApi();
 
@@ -195,7 +195,23 @@ app.MapHealthChecks();
 app.MapHostedServices();  // Exposes pause/resume management endpoints.
 ```
 
+Relational outbox writers and relay hosts must configure the same `CoreEx:Host:Outbox:PartitionSize` value (default `4`, valid range `1`–`256`). The relay's startup log and detailed health data report the resolved size. Service Bus session bucketing is a separate boundary and can be tuned independently with `CoreEx:Host:ServiceBus:SessionIdPartitionSize`; do not wire it to the outbox value, since a host such as Shopping API can publish directly to Service Bus without passing through the outbox.
+
+The Service Bus size is a publisher-wide default. When destinations need different session profiles, use `CoreEx:Host:ServiceBus:Destinations:{destination}` with the exact resolved name (for example, Shopping targets the `contoso-products` command queue, so its override belongs under `Destinations:contoso-products`). Apply the profile in every host that publishes to the destination, including an outbox Relay. The bucket count groups producer keys; it does not set broker partitions or consumer concurrency. Keep `MaxConcurrentSessions` on the receiving host independently tuned.
+
 > The `Program.cs` for the Outbox Relay is intentionally minimal — no controllers, no OpenAPI document, no application-layer services. Its sole concern is shuttling committed outbox records to the broker reliably.
+
+### Customers Cosmos relay
+
+[`Contoso.Customers.Relay`](../src/Contoso.Customers.Relay) uses `AddCosmosDbOutboxRelayHostedService` once for `customers` and once for `ref-data` in database `contoso`. Outbox documents are committed beside business documents in the same container/partition; there is no separate Cosmos outbox container. Both processor groups share the `$outbox-leases` container, provisioned by `Contoso.Customers.Database` with partition key `/id`. The relay never creates that container and fails startup if it is missing.
+
+`CoreEx:Host:Services:CosmosOutboxRelay:{containerId}` controls `ServicesCount`, `PollInterval`, and `BatchSize` independently for each container. The sample defaults to two processors per container, named `cosmos-outbox-relay-customers-00/01` and `cosmos-outbox-relay-ref-data-00/01`. Each exposes the standard status/pause/resume endpoints. Pausing retains pending events and resuming continues from the saved change-feed position.
+
+**First-start policy:** a single live UTC host-start boundary is supplied to both processor groups. With no existing checkpoint, older pending outbox documents are intentionally skipped and left to expire under their existing seven-day TTL. This is not a historical replay. On later restarts, saved checkpoints take precedence, so downtime does not reset the feed to the new startup time. Deleting the lease state resets this behavior and can skip pending events again. The boundary uses Cosmos change-feed timestamps, not the event's application timestamp.
+
+Service Bus is the relay's destination `IEventPublisher`, never the Cosmos write-side publisher. CloudEvent payloads and metadata are preserved, and partition keys map to session identifiers consistently with the other relays. Delivery is **at-least-once**: publish retries or replay from a checkpoint can duplicate messages; consumers must tolerate duplicates. Events expire if an outage exceeds their outbox TTL.
+
+Tracing follows the relational relay defaults: idle change-feed polling, lease maintenance, and cleanup SDK/HTTP spans are suppressed, while actual publishing spans and originating-trace relay markers remain enabled. Metrics and warning/error logs are retained. Set `CosmosDbOutboxRelayOptions.IsInstrumentationEnabledForPolling` to `true` through `configureOptions` before start/resume when investigating processor internals. The Customers relay additionally constructs its singleton Cosmos client under an instrumentation-suppression scope: the SDK starts account discovery and its five-minute account-refresh timer during client construction, before the change-feed processor's lifecycle scopes exist. Foreground health checks remain instrumented after the construction scope is disposed.
 
 ### Distributed tracing: why the relay's own span is not the originating trace's parent/child
 
@@ -281,14 +297,23 @@ builder.Services.AzureServiceBusReceiving()
         var o = ServiceBusSessionReceiverOptions.CreateForTopicSubscription();
         o.SessionProcessorOptions.MaxConcurrentSessions = 4;
         return o;
-    })
-    .WithSubscribedSubscriber()   // Routes received messages through the SubscribedManager.
-    .WithHostedService()          // Runs the receiver as a BackgroundService.
+    }, "receiver-events")                       // Keyed so more than one receiver can coexist.
+    .WithKeyedSubscribedSubscriber("subscriber-events")   // Routes received messages through the SubscribedManager.
+    .WithHostedService("hosted-subscriber-events")         // Runs the receiver as a BackgroundService.
+    .Build();
+
+// A second receiver for the domain's command queue (commands are addressed to a single consuming domain by the NamedDestinationProvider).
+builder.Services.AzureServiceBusReceiving()
+    .WithSessionReceiver(_ => ServiceBusSessionReceiverOptions.CreateForQueue("contoso-products"), "receiver-commands")
+    .WithKeyedSubscribedSubscriber("subscriber-commands")
+    .WithHostedService("hosted-subscriber-commands")
     .Build();
 
 app.MapHealthChecks();
 app.MapHostedServices();  // Exposes pause/resume management endpoints.
 ```
+
+A single host can consume both a topic subscription and a command queue; each receiver, subscriber and hosted service needs its own service key (the optional `serviceKey` on `WithReceiver`/`WithSessionReceiver`). Publishing hosts register `AddNamedDestinationProvider()` so events go to the shared topic and commands to `{topic}-{domain}` queues; relay hosts need no provider as the destination is persisted in the outbox.
 
 `AddSubscribersUsing<T>()` scans the assembly containing `T` and auto-registers every class decorated with `[Subscribe]`, so adding a new subscriber requires only creating the class — no `Program.cs` edits are needed.
 

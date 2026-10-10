@@ -210,3 +210,42 @@ public class TestValueMapper : IBiDirectionMapper<TestValue, TestItem>
             : new TestValue { Id = source.Id, Name = source.Name, ETag = source.ETag };
     }
 }
+
+/// <summary>
+/// A reference data model (stored using the shared type discriminator) used to exercise <see cref="CosmosDbReferenceData"/>.
+/// </summary>
+[Schemas.Schema(Name = nameof(TestRefItem))]
+public class TestRefItem : CosmosDbReferenceDataModelBase, ITypeDiscriminator
+{
+    public string? TypeDiscriminator { get; set; }
+}
+
+/// <summary>
+/// A reference data "contract" mapped to/from <see cref="TestRefItem"/>.
+/// </summary>
+public class TestRef : ReferenceData<TestRef> { }
+
+/// <summary>
+/// A hand-written <see cref="IBiDirectionMapper{TSource, TDestination}"/> between <see cref="TestRef"/> and <see cref="TestRefItem"/>.
+/// </summary>
+public class TestRefMapper : IBiDirectionMapper<TestRef, TestRefItem>
+{
+    public IMapper<TestRef, TestRefItem> To { get; } = new ToMapper();
+
+    public IMapper<TestRefItem, TestRef> From { get; } = new FromMapper();
+
+    private sealed class ToMapper : IMapper<TestRef, TestRefItem>
+    {
+        // The identifier, active state and (on update) the code are intentionally not mapped back as they are managed by CosmosDbReferenceData.
+        public TestRefItem? Map(TestRef? source) => source is null
+            ? null
+            : new TestRefItem { Code = source.Code!, Text = source.GetText(), Description = source.GetDescription(), SortOrder = source.SortOrder, StartsOn = source.StartsOn, EndsOn = source.EndsOn, ETag = source.ETag };
+    }
+
+    private sealed class FromMapper : IMapper<TestRefItem, TestRef>
+    {
+        public TestRef? Map(TestRefItem? source) => source is null
+            ? null
+            : new TestRef { Id = source.Id, Code = source.Code, Text = source.Text, Description = source.Description, SortOrder = source.SortOrder, IsInactive = !source.IsActive, StartsOn = source.StartsOn, EndsOn = source.EndsOn, ETag = source.ETag };
+    }
+}

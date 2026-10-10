@@ -1,0 +1,8 @@
+# Merge (upsert): '$' prefixed container key and type group.
+$prov-items:
+  - { id: prov-1, partitionKey: pk, name: One }
+
+prov-ref:
+  - $^Colour:
+    - R: Red
+    - G: Green

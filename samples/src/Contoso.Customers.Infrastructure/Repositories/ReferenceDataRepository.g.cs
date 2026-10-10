@@ -14,11 +14,39 @@ public partial class ReferenceDataRepository : IReferenceDataRepository
 {
     /// <inheritdoc/>
     public Task<Contracts.CustomerTypeCollection> GetAllCustomerTypesAsync(CancellationToken cancellationToken = default)
-        => _cosmos.CustomerTypes.Query().ToMappedItemsAsync<Contracts.CustomerTypeCollection, Contracts.CustomerType>(CustomerTypeMapper.Map, cancellationToken);
+        => _cosmos.CustomerTypes.Query().ToMappedItemsAsync<Contracts.CustomerTypeCollection, Contracts.CustomerType>(CustomerTypeMapper.From, cancellationToken);
 
     /// <inheritdoc/>
     public Task<Contracts.ContactMethodCollection> GetAllContactMethodsAsync(CancellationToken cancellationToken = default)
-        => _cosmos.ContactMethods.Query().ToMappedItemsAsync<Contracts.ContactMethodCollection, Contracts.ContactMethod>(ContactMethodMapper.Map, cancellationToken);
+        => _cosmos.ContactMethods.Query().ToMappedItemsAsync<Contracts.ContactMethodCollection, Contracts.ContactMethod>(ContactMethodMapper.From, cancellationToken);
+
+    #region CustomerType
+
+    /// <inheritdoc/>
+    public Task<Result<Contracts.CustomerType>> GetCustomerTypeAsync(string id, CancellationToken cancellationToken = default)
+        => _cosmos.ThrowIfNull().CustomerTypes.GetWithResultAsync(CompositeKey.Create(id), cancellationToken).ThenAs(model => CustomerTypeMapper.From.Map(model));
+
+    /// <inheritdoc/>
+    public Task<Result<DataResult<Contracts.CustomerType>>> CreateCustomerTypeAsync(Contracts.CustomerType value, CancellationToken cancellationToken = default)
+        => CosmosDbReferenceData.CreateAsync<string, Contracts.CustomerType, Persistence.CustomerType, CustomerTypeMapper>(_cosmos.ThrowIfNull().CustomerTypes, value, CustomerTypeMapper.Default, cancellationToken);
+
+    /// <inheritdoc/>
+    public Task<Result<DataResult<Contracts.CustomerType>>> UpdateCustomerTypeAsync(string id, Contracts.CustomerType value, CancellationToken cancellationToken = default)
+        => CosmosDbReferenceData.UpdateAsync<string, Contracts.CustomerType, Persistence.CustomerType, CustomerTypeMapper>(_cosmos.ThrowIfNull().CustomerTypes, id, value, CustomerTypeMapper.Default, cancellationToken);
+
+    /// <inheritdoc />
+    public Task<Result<DataResult<Contracts.CustomerType>>> ActivateCustomerTypeAsync(string id, CancellationToken cancellationToken = default)
+        => CosmosDbReferenceData.ActivateAsync<string, Contracts.CustomerType, Persistence.CustomerType, CustomerTypeMapper>(_cosmos.ThrowIfNull().CustomerTypes, id, CustomerTypeMapper.Default, cancellationToken);
+
+    /// <inheritdoc />
+    public Task<Result<DataResult<Contracts.CustomerType>>> DeactivateCustomerTypeAsync(string id, CancellationToken cancellationToken = default)
+        => CosmosDbReferenceData.DeactivateAsync<string, Contracts.CustomerType, Persistence.CustomerType, CustomerTypeMapper>(_cosmos.ThrowIfNull().CustomerTypes, id, CustomerTypeMapper.Default, cancellationToken);
+
+    /// <inheritdoc/>
+    public Task<Result<DataResult>> DeleteCustomerTypeAsync(string id, CancellationToken cancellationToken = default)
+        => CosmosDbReferenceData.DeleteAsync<string, Contracts.CustomerType, Persistence.CustomerType>(_cosmos.ThrowIfNull().CustomerTypes, id, cancellationToken);
+
+    #endregion
 }
 
 #nullable restore

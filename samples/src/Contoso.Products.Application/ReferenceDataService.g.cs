@@ -8,45 +8,212 @@
 
 namespace Contoso.Products.Application;
 
-/// <summary>Provides the <see cref="IReferenceDataProvider"/> implementation.</summary>
-[ScopedService<IReferenceDataProvider>]
-public partial class ReferenceDataService(IReferenceDataRepository repository) : IReferenceDataProvider
+/// <summary>Provides the <see cref="IReferenceDataService"/> mutable implementation.</summary>
+[ScopedService<IReferenceDataService>]
+public partial class ReferenceDataService : IReferenceDataService
 {
-    private readonly IReferenceDataRepository _repository = repository.ThrowIfNull();
+    private readonly IUnitOfWork _unitOfWork;
+    private readonly IReferenceDataRepository _repository;
 
-    /// <inheritdoc/>
-    public IEnumerable<(Type, Type)> Types =>
-    [
-        (typeof(Brand), typeof(BrandCollection)),
-        (typeof(Category), typeof(CategoryCollection)),
-        (typeof(MovementKind), typeof(MovementKindCollection)),
-        (typeof(MovementStatus), typeof(MovementStatusCollection)),
-        (typeof(SubCategory), typeof(SubCategoryCollection)),
-        (typeof(UnitOfMeasure), typeof(UnitOfMeasureCollection)),
-    ];
-
-    /// <inheritdoc/>
-    public IEnumerable<(string, Type)> AlternateNames =>
-    [
-        ( "brands", typeof(Brand) ),
-        ( "categories", typeof(Category) ),
-        ( "movement-kinds", typeof(MovementKind) ),
-        ( "movement-statuses", typeof(MovementStatus) ),
-        ( "sub-categories", typeof(SubCategory) ),
-        ( "units-of-measure", typeof(UnitOfMeasure) )
-    ];
-
-    /// <inheritdoc/>
-    public virtual async Task<IReferenceDataCollection> GetAsync(Type type, CancellationToken cancellationToken = default) => type switch
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ReferenceDataService"/> class.
+    /// </summary>
+    /// <param name="unitOfWork">The <see cref="IUnitOfWork"/>.</param>
+    /// <param name="repository">The <see cref="IReferenceDataRepository"/>.</param>
+    public ReferenceDataService(IUnitOfWork unitOfWork, IReferenceDataRepository repository)
     {
-        _ when type == typeof(Brand) => await _repository.GetAllBrandsAsync(cancellationToken).ConfigureAwait(false),
-        _ when type == typeof(Category) => await _repository.GetAllCategoriesAsync(cancellationToken).ConfigureAwait(false),
-        _ when type == typeof(MovementKind) => await _repository.GetAllMovementKindsAsync(cancellationToken).ConfigureAwait(false),
-        _ when type == typeof(MovementStatus) => await _repository.GetAllMovementStatusesAsync(cancellationToken).ConfigureAwait(false),
-        _ when type == typeof(SubCategory) => await _repository.GetAllSubCategoriesAsync(cancellationToken).ConfigureAwait(false),
-        _ when type == typeof(UnitOfMeasure) => await _repository.GetAllUnitsOfMeasureAsync(cancellationToken).ConfigureAwait(false),
-        _ => throw new InvalidOperationException($"Type {type.FullName} is not a known {nameof(IReferenceData)}.")
-    };
+        _unitOfWork = unitOfWork.ThrowIfNull();
+        _repository = repository.ThrowIfNull();
+        OnInitialization();
+    }
+
+    /// <summary>
+    /// Provides the <see cref="ReferenceDataService"/> with an opportunity to perform additional initialization.
+    /// </summary>
+    partial void OnInitialization();
+
+    /// <summary>
+    /// Gets or sets the pre-check function that is invoked prior to the activate, deactivate or delete.
+    /// </summary>
+    /// <remarks>This is intended to be used for any additional validation or business rules that need to be applied prior to the action being performed.
+    /// <para>The passed <see cref="IReferenceData"/> is the reference data entity being mutated and the <see cref="EventAction"/> indicates the resulting action (being one of:
+    /// <see cref="EventAction.Activated"/>, <see cref="EventAction.Deactivated"/>, or <see cref="EventAction.Deleted"/>).</para></remarks>
+    private Func<IReferenceData, EventAction, CancellationToken, Task<Result>> PreCheckAsync { get; set => field = value.ThrowIfNull(); } = (_, _, _) => Result.SuccessTask;
+
+    #region Brand
+
+    /// <inheritdoc/>
+    public Task<Result<Brand>> GetBrandAsync(string id, CancellationToken cancellationToken) => GetAsync(id, _repository.GetBrandAsync, cancellationToken);
+
+    /// <inheritdoc/>
+    public Task<Result<Brand>> CreateBrandAsync(Brand value, CancellationToken cancellationToken) => CreateAsync<Brand, ReferenceDataValidator<Brand>>(value, _repository.CreateBrandAsync, cancellationToken);
+
+    /// <inheritdoc/>
+    public Task<Result<Brand>> UpdateBrandAsync(string id, Brand value, CancellationToken cancellationToken) => UpdateAsync<string, Brand, ReferenceDataValidator<Brand>>(id, value, _repository.UpdateBrandAsync, cancellationToken);
+
+    /// <inheritdoc/>
+    public Task<Result<Brand>> ActivateBrandAsync(string id, CancellationToken cancellationToken) => ActivateAsync(id, _repository.GetBrandAsync, _repository.ActivateBrandAsync, cancellationToken);
+
+    /// <inheritdoc/>
+    public Task<Result<Brand>> DeactivateBrandAsync(string id, CancellationToken cancellationToken) => DeactivateAsync(id, _repository.GetBrandAsync, _repository.DeactivateBrandAsync, cancellationToken);
+
+    /// <inheritdoc/>
+    public Task<Result> DeleteBrandAsync(string id, CancellationToken cancellationToken) => DeleteAsync<string, Brand>(id, _repository.GetBrandAsync, _repository.DeleteBrandAsync, cancellationToken);
+
+    #endregion
+
+    #region Internal
+
+    /// <summary>
+    /// Gets the reference data of type <typeparamref name="TRef"/> by the specified <typeparamref name="TId"/>.
+    /// </summary>
+    /// <typeparam name="TId">The identifier <see cref="Type"/>.</typeparam>
+    /// <typeparam name="TRef">The reference data <see cref="Type"/>.</typeparam>
+    /// <param name="id">The identifier.</param>
+    /// <param name="getFunc">The function to get the reference data.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The result.</returns>
+    private Task<Result<TRef>> GetAsync<TId, TRef>(TId id, Func<TId, CancellationToken, Task<Result<TRef>>> getFunc, CancellationToken cancellationToken)
+        where TRef : class, IReferenceData
+        => Result.GoAsync(() => getFunc(id, cancellationToken));
+
+    /// <summary>
+    /// Creates the reference data of type <typeparamref name="TRef"/> using the specified <paramref name="createFunc"/>.
+    /// </summary>
+    /// <typeparam name="TRef">The reference data <see cref="Type"/>.</typeparam>
+    /// <typeparam name="TValidator">The validator <see cref="Type"/>.</typeparam>
+    /// <param name="value">The reference data value.</param>
+    /// <param name="create">The function to create the reference data.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <param name="refresh">The optional function to re-get the reference data after a mutation; required where the underlying data store only finalizes the <see cref="IETag.ETag"/> once the unit of work has completed.</param>
+    /// <returns>The result.</returns>
+    private Task<Result<TRef>> CreateAsync<TRef, TValidator>(TRef value, Func<TRef, CancellationToken, Task<Result<DataResult<TRef>>>> create, CancellationToken cancellationToken, Func<TRef, CancellationToken, Task<Result<TRef>>>? refresh = null)
+        where TRef : class, IReferenceData where TValidator : IValidator<TRef>, new()
+        => Result.GoAsync(async () => (await new TValidator().ValidateAsync(value, cancellationToken).ConfigureAwait(false)).ToResult())
+            .ThenAsAsync(() => _unitOfWork.TransactionAsync(ct =>
+            {
+                return Result.GoAsync(() => create(value, ct))
+                    .ThenAs(dr => dr.WhereMutatedAnd(v => _unitOfWork.Events.Add(EventData.CreateEventWith(v, EventAction.Created))));
+            }, cancellationToken))
+            .ThenAsAsync(dr => RefreshAsync(dr, refresh))
+            .ThenAsAsync(dr => dr.WhereMutatedAsync((v, ct) => ReferenceDataOrchestrator.Current.TryInvalidateAsync<TRef>(ct), CancellationToken.None));
+
+    /// <summary>
+    /// Updates the reference data of type <typeparamref name="TRef"/> using the specified <paramref name="updateFunc"/>.
+    /// </summary>
+    /// <typeparam name="TId">The identifier <see cref="Type"/>.</typeparam>
+    /// <typeparam name="TRef">The reference data <see cref="Type"/>.</typeparam>
+    /// <typeparam name="TValidator">The validator <see cref="Type"/>.</typeparam>
+    /// <param name="id">The identifier.</param>
+    /// <param name="value">The reference data value.</param>
+    /// <param name="update">The function to update the reference data.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <param name="refresh">The optional function to re-get the reference data after a mutation; required where the underlying data store only finalizes the <see cref="IETag.ETag"/> once the unit of work has completed.</param>
+    /// <returns>The result.</returns>
+    private Task<Result<TRef>> UpdateAsync<TId, TRef, TValidator>(TId id, TRef value, Func<TId, TRef, CancellationToken, Task<Result<DataResult<TRef>>>> update, CancellationToken cancellationToken, Func<TRef, CancellationToken, Task<Result<TRef>>>? refresh = null)
+        where TRef : class, IReferenceData where TValidator : IValidator<TRef>, new()
+        => Result.GoAsync(async () => (await new TValidator().ValidateAsync(value, cancellationToken).ConfigureAwait(false)).ToResult())
+            .ThenAsAsync(() => _unitOfWork.TransactionAsync(ct =>
+            {
+                return Result.GoAsync(() => update(id, value, ct))
+                    .ThenAs(dr => dr.WhereMutatedAnd(v => _unitOfWork.Events.Add(EventData.CreateEventWith(v, EventAction.Updated))));
+            }, cancellationToken))
+            .ThenAsAsync(dr => RefreshAsync(dr, refresh))
+            .ThenAsAsync(dr => dr.WhereMutatedAsync((v, ct) => ReferenceDataOrchestrator.Current.TryInvalidateAsync<TRef>(ct), CancellationToken.None));
+
+    /// <summary>
+    /// Activates the reference data of type <typeparamref name="TRef"/> using the specified <paramref name="activateFunc"/>.
+    /// </summary>
+    /// <typeparam name="TId">The identifier <see cref="Type"/>.</typeparam>
+    /// <typeparam name="TRef">The reference data <see cref="Type"/>.</typeparam>
+    /// <param name="id">The identifier.</param>
+    /// <param name="get">The function to get the reference data.</param>
+    /// <param name="activate">The function to activate the reference data.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <param name="refresh">The optional function to re-get the reference data after a mutation; required where the underlying data store only finalizes the <see cref="IETag.ETag"/> once the unit of work has completed.</param>
+    /// <returns>The result.</returns>
+    private Task<Result<TRef>> ActivateAsync<TId, TRef>(TId id, Func<TId, CancellationToken, Task<Result<TRef>>> get, Func<TId, CancellationToken, Task<Result<DataResult<TRef>>>> activate, CancellationToken cancellationToken, Func<TRef, CancellationToken, Task<Result<TRef>>>? refresh = null)
+        where TRef : class, IReferenceData
+        => Result.GoAsync(() => get(id, cancellationToken))
+            .ThenAsAsync(v => PreCheckAsync(v, EventAction.Activated, cancellationToken))
+            .ThenAsAsync(() => _unitOfWork.TransactionAsync(ct =>
+            {
+                return Result.GoAsync(() => activate(id, ct))
+                    .ThenAs(dr => dr.WhereMutatedAnd(v => _unitOfWork.Events.Add(EventData.CreateEventWith(v, EventAction.Activated))));
+            }, cancellationToken))
+            .ThenAsAsync(dr => RefreshAsync(dr, refresh))
+            .ThenAsAsync(dr => dr.WhereMutatedAsync((v, ct) => ReferenceDataOrchestrator.Current.TryInvalidateAsync<TRef>(ct), CancellationToken.None));
+
+    /// <summary>
+    /// Deactivates the reference data of type <typeparamref name="TRef"/> using the specified <paramref name="deactivateFunc"/>.
+    /// </summary>
+    /// <typeparam name="TId">The identifier <see cref="Type"/>.</typeparam>
+    /// <typeparam name="TRef">The reference data <see cref="Type"/>.</typeparam>
+    /// <param name="id">The identifier.</param>
+    /// <param name="get">The function to get the reference data.</param>
+    /// <param name="deactivate">The function to deactivate the reference data.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <param name="refresh">The optional function to re-get the reference data after a mutation; required where the underlying data store only finalizes the <see cref="IETag.ETag"/> once the unit of work has completed.</param>
+    /// <returns>The result.</returns>
+    private Task<Result<TRef>> DeactivateAsync<TId, TRef>(TId id, Func<TId, CancellationToken, Task<Result<TRef>>> get, Func<TId, CancellationToken, Task<Result<DataResult<TRef>>>> deactivate, CancellationToken cancellationToken, Func<TRef, CancellationToken, Task<Result<TRef>>>? refresh = null)
+        where TRef : class, IReferenceData
+        => Result.GoAsync(() => get(id, cancellationToken))
+            .ThenAsAsync(v => PreCheckAsync(v, EventAction.Deactivated, cancellationToken))
+            .ThenAsAsync(() => _unitOfWork.TransactionAsync(ct =>
+            {
+                return Result.GoAsync(() => deactivate(id, ct))
+                    .ThenAs(dr => dr.WhereMutatedAnd(v => _unitOfWork.Events.Add(EventData.CreateEventWith(v, EventAction.Deactivated))));
+            }, cancellationToken))
+            .ThenAsAsync(dr => RefreshAsync(dr, refresh))
+            .ThenAsAsync(dr => dr.WhereMutatedAsync((v, ct) => ReferenceDataOrchestrator.Current.TryInvalidateAsync<TRef>(ct), CancellationToken.None));
+
+    /// <summary>
+    /// Re-gets the mutated reference data using the <paramref name="refresh"/> function (where specified) so that the final persisted <see cref="IReferenceData.ETag"/> is returned.
+    /// </summary>
+    /// <remarks>This occurs after the mutation has been committed, so it is deliberately not cancellable and a refresh failure is swallowed; i.e. it must never turn a committed success into an error, which would encourage a retry of a completed operation (the ETag is then simply as per the mutation).</remarks>
+    private static async Task<Result<DataResult<TRef>>> RefreshAsync<TRef>(DataResult<TRef> dr, Func<TRef, CancellationToken, Task<Result<TRef>>>? refresh)
+        where TRef : class, IReferenceData
+    {
+        if (refresh is null || !dr.WasMutated)
+            return dr;
+
+        try
+        {
+            var r = await refresh(dr.Value, CancellationToken.None).ConfigureAwait(false);
+            return r.IsSuccess ? new DataResult<TRef>(r.Value, true) : dr;
+        }
+        catch (Exception)
+        {
+            return dr;
+        }
+    }
+    /// <summary>
+    /// Deletes the reference data of type <typeparamref name="TRef"/> using the specified <paramref name="delete"/>.
+    /// </summary>
+    /// <typeparam name="TId">The identifier <see cref="Type"/>.</typeparam>
+    /// <typeparam name="TRef">The reference data <see cref="Type"/>.</typeparam>   
+    /// <param name="id">The identifier.</param>
+    /// <param name="get">The function to get the reference data.</param>
+    /// <param name="delete">The function to delete the reference data.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The result.</returns>
+    private async Task<Result> DeleteAsync<TId, TRef>(TId id, Func<TId, CancellationToken, Task<Result<TRef>>> get, Func<TId, CancellationToken, Task<Result<DataResult>>> delete, CancellationToken cancellationToken)
+        where TRef : class, IReferenceData
+    {
+        var r = await get(id, cancellationToken).ConfigureAwait(false);
+        if (r.IsFailure)
+            return r.IsNotFoundError ? Result.Success : r.AsResult();   // Delete is idempotent, so if not found then return success.
+
+        return await Result.GoAsync(() => PreCheckAsync(r.Value, EventAction.Deleted, cancellationToken))
+            .ThenAsAsync(() => _unitOfWork.TransactionAsync(ct =>
+            {
+                return Result.GoAsync(() => delete(id, ct))
+                    .Then(dr => dr.WhereMutatedAnd(() => _unitOfWork.Events.Add(EventData.CreateEvent<TRef>(EventAction.Deleted).WithKey(CompositeKey.Create(id)))));
+            }, cancellationToken))
+            .ThenAsAsync(dr => dr.WhereMutatedAsync(ct => ReferenceDataOrchestrator.Current.TryInvalidateAsync<TRef>(ct), CancellationToken.None)).ConfigureAwait(false);
+    }
+
+    #endregion
 }
 
 #nullable restore

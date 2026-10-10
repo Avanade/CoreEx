@@ -25,6 +25,27 @@ The host is a **composition root only** — no business logic. There are three h
 
 > **Further Reading**: [Hosts Layer Guide](/.github/docs/coreex/hosts-layer.md) · [Layer Dependencies](/.github/docs/coreex/layers.md) · [Pattern Catalog](/.github/docs/coreex/patterns.md) (docs-sync cache; after `/coreex-docs-sync`). Source: [samples/docs/hosts-layer.md](https://github.com/Avanade/CoreEx/blob/main/samples/docs/hosts-layer.md) · [samples/docs/layers.md](https://github.com/Avanade/CoreEx/blob/main/samples/docs/layers.md) · [samples/docs/patterns.md](https://github.com/Avanade/CoreEx/blob/main/samples/docs/patterns.md).
 
+## Service Bus Session Routing
+
+`CoreEx:Host:ServiceBus:SessionIdPartitionSize` is a publisher-wide default, not a Service Bus physical partition count. When a publisher sends to multiple destinations with different ordering/concurrency profiles, override its strategy or bucket count by the exact resolved destination:
+
+```json
+"CoreEx": {
+  "Host": {
+    "ServiceBus": {
+      "SessionIdPartitionSize": 8,
+      "Destinations": {
+        "contoso-products": {
+          "SessionIdPartitionSize": 2
+        }
+      }
+    }
+  }
+}
+```
+
+Use a stable business key with `UsePartitionKeyAsIs` when per-entity ordering is needed. Hashed buckets can make high-cardinality keys manageable, but unrelated keys may collide; more buckets do not increase throughput unless the receiver also allows enough concurrent sessions. Keep receiver concurrency settings separate from publisher session mapping, and keep both separate from the shared relational outbox `CoreEx:Host:Outbox:PartitionSize`.
+
 ---
 
 ## Scaffolding an API host
@@ -35,7 +56,7 @@ An API host is **not** part of the base `coreex` solution — it is added on dem
 > 1. **Detect** the host: look for `**/*.Api/*.Api.csproj`. The file system is authoritative for project existence (unlike database state) — no further checking is needed.
 > 2. **If present**, skip to authoring controllers (see [coreex-api-controllers](./coreex-api-controllers.instructions.md)).
 > 3. **If absent, confirm creation** with the user — default the name to `{Solution}.Api` and the physical location to `src/` (the template default). Do not create it without confirmation.
-> 4. **Recover the original selections** from the solution-root `AGENTS.md` "Feature Configuration" (cross-check `dbex.yaml`). These default the `coreex-api` template — which takes **`data-provider`, `refdata-enabled`, `outbox-enabled`** (a subset of the solution options). Re-state the resolved values for confirmation rather than re-prompting; if `AGENTS.md` and `dbex.yaml` disagree, **stop and flag** rather than guessing.
+> 4. **Recover the original selections** from the solution-root `AGENTS.md` "Feature Configuration" (cross-check the real provider artefacts — `*.Database/dbex.yaml` for relational domains, `*.Database/Program.cs` for Cosmos domains). These default the `coreex-api` template — which takes **`data-provider`, `refdata-enabled`, `outbox-enabled`** (a subset of the solution options). Re-state the resolved values for confirmation rather than re-prompting; if `AGENTS.md` and those provider artefacts disagree, **stop and flag** rather than guessing.
 > 5. **Scaffold** with the recovered values, naming consistently with the solution so the derived `domain-name`/`solution-name` tokens align with the existing projects:
 >    ```
 >    dotnet new coreex-api -n {Solution}.Api --data-provider <X> --refdata-enabled <bool> --outbox-enabled <bool>
@@ -66,7 +87,7 @@ The scaffolded `Program.cs` wiring is described below; it is generated **complet
 > // all hosts — scans the assemblies (via the stable AssemblyMarker types) for [ScopedService] types, registering them all (incl. CodeGen-generated):
 > builder.Services.AddDynamicServicesUsing(typeof({Solution}.Application.AssemblyMarker).Assembly, typeof({Solution}.Infrastructure.AssemblyMarker).Assembly);
 > ```
-> The generated `ReferenceDataService` is `[ScopedService]`-decorated, so the assembly scan picks it up automatically and the orchestrator binds to it via `IReferenceDataProvider` — no manual step. Before CodeGen there are simply no ref-data entities to serve (requests return empty), which is correct. **Do not** add `AddReferenceDataOrchestrator<ReferenceDataService>()` or `AddDynamicServicesUsing<…generated types…>()` — that reintroduces the compile-time dependency the marker approach removes.
+> The generated `ReferenceDataProvider` is `[ScopedService]`-decorated, so the assembly scan picks it up automatically and the orchestrator binds to it via `IReferenceDataProvider` — no manual step. Before CodeGen there are simply no ref-data entities to serve (requests return empty), which is correct. **Do not** add `AddReferenceDataOrchestrator<ReferenceDataProvider>()` or `AddDynamicServicesUsing<…generated types…>()` — that reintroduces the compile-time dependency the marker approach removes.
 
 ---
 
@@ -90,7 +111,7 @@ Like the Relay host, the Subscribe host is **fully template-generated**: the `co
 > 1. **Detect** it: look for `**/*.Subscribe/*.Subscribe.csproj`. The file system is authoritative (unlike database state) — no further checking is needed.
 > 2. **If present**, skip to authoring subscribers (see [coreex-event-subscribers](./coreex-event-subscribers.instructions.md)).
 > 3. **If absent, confirm creation** with the user — default the name to `{Solution}.Subscribe` and the physical location to `src/` (the template default). Do not create it without confirmation.
-> 4. **Recover the original selections** from the solution-root `AGENTS.md` "Feature Configuration" (cross-check `dbex.yaml`). The `coreex-subscribe` template takes **`data-provider`**, **`messaging-provider`**, and **`refdata-enabled`** — default all three from the recorded `coreex` selections. Re-state the resolved values for confirmation rather than re-prompting; if `AGENTS.md` and `dbex.yaml` disagree, **stop and flag** rather than guessing.
+> 4. **Recover the original selections** from the solution-root `AGENTS.md` "Feature Configuration" (cross-check the real provider artefacts — `*.Database/dbex.yaml` for relational domains, `*.Database/Program.cs` for Cosmos domains). The `coreex-subscribe` template takes **`data-provider`**, **`messaging-provider`**, and **`refdata-enabled`** — default all three from the recorded `coreex` selections. Re-state the resolved values for confirmation rather than re-prompting; if `AGENTS.md` and those provider artefacts disagree, **stop and flag** rather than guessing.
 > 5. **Scaffold** with the recovered values, naming consistently with the solution so the derived `domain-name`/`solution-name` tokens align with the existing projects:
 >    ```
 >    dotnet new coreex-subscribe -n {Solution}.Subscribe --data-provider <X> --messaging-provider <Y> --refdata-enabled <bool>
@@ -125,7 +146,7 @@ Unlike the Api host, the Relay is a **one-off, fully template-generated** host: 
 > 1. **Detect** it: look for `**/*.Relay/*.Relay.csproj`. The file system is authoritative (unlike database state) — no further checking is needed.
 > 2. **If present, STOP — it already exists.** The Relay is a single per-solution one-off; **immediately report it as pre-existing and do nothing else** — do not re-scaffold, modify, or "augment" it. (Contrast the Api host, where an existing host means "go author controllers"; the Relay has **no** follow-on work.)
 > 3. **If absent, confirm creation** with the user — default the name to `{Solution}.Relay` and the physical location to `src/` (the template default). Do not create it without confirmation.
-> 4. **Recover the original selections** from the solution-root `AGENTS.md` "Feature Configuration" (cross-check `dbex.yaml`). The `coreex-relay` template takes **`data-provider`** and **`messaging-provider`** — default **both** from the recorded `coreex` selections. Re-state the resolved values for confirmation rather than re-prompting; if `AGENTS.md` and `dbex.yaml` disagree, **stop and flag** rather than guessing.
+> 4. **Recover the original selections** from the solution-root `AGENTS.md` "Feature Configuration" (cross-check the real provider artefacts — `*.Database/dbex.yaml` for relational domains, `*.Database/Program.cs` for Cosmos domains). The `coreex-relay` template takes **`data-provider`** and **`messaging-provider`** — default **both** from the recorded `coreex` selections. Re-state the resolved values for confirmation rather than re-prompting; if `AGENTS.md` and those provider artefacts disagree, **stop and flag** rather than guessing.
 > 5. **Scaffold** with the recovered values, naming consistently with the solution so the derived `domain-name`/`solution-name` tokens align with the existing projects:
 >    ```
 >    dotnet new coreex-relay -n {Solution}.Relay --data-provider <X> --messaging-provider <Y>
@@ -158,15 +179,16 @@ The scaffolded Relay `Program.cs` wiring is described in [Outbox Relay Host](#ou
 | `CoreEx.AspNetCore` | `AddMvcWebApi()`, `AddHttpWebApi()`, `AddExecutionContext()`, `UseCoreExExceptionHandler()`, `UseExecutionContext()`, `UseIdempotencyKey()`, `MapHealthChecks()` |
 | `CoreEx.AspNetCore.NSwag` | `AddOpenApiDocument()`, `AddCoreExConfiguration()`, `UseOpenApi()`, `UseSwaggerUi()` |
 | `CoreEx.Caching.FusionCache` | `AddFusionCache()`, `AddFusionHybridCache()`, `AddDefaultCacheKeyProvider()`, `AddHybridCacheIdempotencyProvider()` |
-| `CoreEx.Database.SqlServer` | `AddSqlServerDatabase()`, `AddSqlServerUnitOfWork()`, `AddSqlServerOutboxPublisher()`, `AddSqlServerClient("SqlServer")` |
-| `CoreEx.Database.Postgres` | `AddPostgresDatabase()`, `AddPostgresUnitOfWork()`, `AddPostgresOutboxPublisher()`, `AddAzureNpgsqlDataSource("Postgres")` |
-| `CoreEx.EntityFrameworkCore` | `AddDbContext<T>()`, `AddEfDb<T>()` |
+| `CoreEx.Database.SqlServer` | `AddSqlServerDatabase()`, `AddSqlServerUnitOfWork()`, `AddSqlServerOutboxPublisher()` (only when outbox-enabled), `AddSqlServerClient("SqlServer")` |
+| `CoreEx.Database.Postgres` | `AddPostgresDatabase()`, `AddPostgresUnitOfWork()`, `AddPostgresOutboxPublisher()` (only when outbox-enabled), `AddAzureNpgsqlDataSource("Postgres")` |
+| `CoreEx.Cosmos` | `AddAzureCosmosClient("Cosmos", ...)`, `AddCosmosDb<TCosmosDb>("{db-id}")`, `AddCosmosDbUnitOfWork()`, `AddCosmosDbEventPublisher()` (only when outbox-enabled), `AddCosmosDbHealthCheck()` |
+| `CoreEx.EntityFrameworkCore` | `AddDbContext<T>()`, `AddEfDb<T>()` (relational providers only) |
 | `CoreEx.Events` | `AddEventFormatter()` |
 | `CoreEx.RefData` | `AddReferenceDataOrchestrator<T>()` |
 | `CoreEx.Data.GraphQL` | `AddCoreExGraphQLLite((o, sp) => o.AddQuery(...).AddGet(...))`, `MapCoreExGraphQLLite("/query")` — additive, opt-in GraphQL-lite bridge over existing `QueryArgsConfig`-driven `QueryAsync`/`GetAsync` methods; add only when explicitly asked |
 | `Aspire.StackExchange.Redis.DistributedCaching` | `AddRedisDistributedCache("redis")` |
 | `FusionCache.Backplane.StackExchangeRedis` | `RedisBackplane`, `RedisBackplaneOptions` |
-| `OpenTelemetry.*` | `WithCoreExTelemetry()`, `WithCoreExSqlServerTelemetry()` / `WithCoreExPostgresTelemetry()`, `UseOtlpExporter()` |
+| `OpenTelemetry.*` | `WithCoreExTelemetry()`, `WithCoreExSqlServerTelemetry()` / `WithCoreExPostgresTelemetry()` / `WithCoreExCosmosDbTelemetry()`, `UseOtlpExporter()` |
 
 ### Subscribe Host
 
@@ -175,9 +197,10 @@ The scaffolded Relay `Program.cs` wiring is described in [Outbox Relay Host](#ou
 | `CoreEx.AspNetCore` | `AddMvcWebApi()`, `AddHttpWebApi()`, `AddExecutionContext()`, `AddHostedServiceManager()`, `UseCoreExExceptionHandler()`, `UseExecutionContext()`, `MapHealthChecks()`, `MapHostedServices()` |
 | `CoreEx.Caching.FusionCache` | `AddFusionCache()`, `AddFusionHybridCache()`, `AddDefaultCacheKeyProvider()`, `AddHybridCacheIdempotencyProvider()` |
 | `CoreEx.Events` | `AddEventFormatter()`, `AddSubscribedManager()` |
-| `CoreEx.Database.SqlServer` | `AddSqlServerDatabase()`, `AddSqlServerUnitOfWork()`, `AddSqlServerOutboxPublisher()`, `AddSqlServerClient("SqlServer")` |
-| `CoreEx.Database.Postgres` | `AddPostgresDatabase()`, `AddPostgresUnitOfWork()`, `AddPostgresOutboxPublisher()`, `AddAzureNpgsqlDataSource("Postgres")` |
-| `CoreEx.EntityFrameworkCore` | `AddDbContext<T>()`, `AddEfDb<T>()` |
+| `CoreEx.Database.SqlServer` | `AddSqlServerDatabase()`, `AddSqlServerUnitOfWork()`, `AddSqlServerOutboxPublisher()` (only when outbox-enabled), `AddSqlServerClient("SqlServer")` |
+| `CoreEx.Database.Postgres` | `AddPostgresDatabase()`, `AddPostgresUnitOfWork()`, `AddPostgresOutboxPublisher()` (only when outbox-enabled), `AddAzureNpgsqlDataSource("Postgres")` |
+| `CoreEx.Cosmos` | `AddAzureCosmosClient("Cosmos", ...)`, `AddCosmosDb<TCosmosDb>("{db-id}")`, `AddCosmosDbUnitOfWork()`, `AddCosmosDbEventPublisher()` (only when outbox-enabled), `AddCosmosDbHealthCheck()` |
+| `CoreEx.EntityFrameworkCore` | `AddDbContext<T>()`, `AddEfDb<T>()` (relational providers only) |
 | `CoreEx.RefData` | `AddReferenceDataOrchestrator<T>()` |
 | `CoreEx.Azure.Messaging.ServiceBus` | `AddAzureServiceBusClient("ServiceBus")`, `AddAzureServiceBusPublisher(..., addAsDefaultIEventPublisher: false)`, `AzureServiceBusReceiving()`, `WithCoreExServiceBusTelemetry()` |
 | `Aspire.StackExchange.Redis.DistributedCaching` | `AddRedisDistributedCache("redis")` |
@@ -207,7 +230,7 @@ builder.AddHostSettings();
 builder.Services
     .AddPrecisionTimeProvider()
     .AddExecutionContext()
-    .AddReferenceDataOrchestrator()   // non-generic — binds the IReferenceDataProvider (CodeGen-generated ReferenceDataService) from DI at runtime
+    .AddReferenceDataOrchestrator()   // non-generic — binds the IReferenceDataProvider (CodeGen-generated ReferenceDataProvider) from DI at runtime
     .AddMvcWebApi()
     .AddHttpWebApi();
 
@@ -226,14 +249,14 @@ builder.Services
     .AddDefaultCacheKeyProvider()
     .AddHybridCacheIdempotencyProvider();
 
-// Database, EF, outbox publisher.
+// Database, relational EF or Cosmos, and (only when outbox-enabled) the default outbox publisher.
 // SQL Server variant:
 builder.AddSqlServerClient("SqlServer");
 builder.Services
     .AddSqlServerDatabase()
     .AddSqlServerUnitOfWork()
     .AddEventFormatter()
-    .AddSqlServerOutboxPublisher()
+    .AddSqlServerOutboxPublisher()          // only when outbox-enabled
     .AddDbContext<MyDbContext>()
     .AddEfDb<MyEfDb>();
 
@@ -243,15 +266,32 @@ builder.Services
 //     .AddPostgresDatabase()
 //     .AddPostgresUnitOfWork()
 //     .AddEventFormatter()
-//     .AddPostgresOutboxPublisher()
+//     .AddPostgresOutboxPublisher()        // only when outbox-enabled
 //     .AddDbContext<MyDbContext>()
 //     .AddEfDb<MyEfDb>();
+
+// Cosmos variant (use instead of the relational block):
+// builder.AddAzureCosmosClient("Cosmos", configureClientOptions: o =>
+// {
+//     o.UseSystemTextJsonSerializerWithOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+//     if (builder.Environment.IsDevelopment())
+//     {
+//         o.ConnectionMode = ConnectionMode.Gateway;
+//         o.HttpClientFactory = () => new HttpClient(new HttpClientHandler { ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator });
+//     }
+// });
+// builder.Services
+//     .AddCosmosDb<MyCosmosDb>("my-database-id")
+//     .AddEventFormatter()
+//     .AddCosmosDbEventPublisher()         // only when outbox-enabled
+//     .AddCosmosDbUnitOfWork()
+//     .AddCosmosDbHealthCheck();
 
 builder.Services.PostConfigureAllHealthChecks();
 builder.Services.AddControllers();
 builder.Services.AddOpenApiDocument(s => { s.Title = builder.Environment.ApplicationName; s.AddCoreExConfiguration(); });
 
-builder.WithCoreExTelemetry().WithCoreExSqlServerTelemetry().UseOtlpExporter();
+builder.WithCoreExTelemetry().WithCoreExSqlServerTelemetry().UseOtlpExporter();   // or .WithCoreExPostgresTelemetry() / .WithCoreExCosmosDbTelemetry() for the chosen provider
 
 var app = builder.Build();
 app.UseCoreExExceptionHandler();
@@ -268,13 +308,14 @@ app.Run();
 ```
 
 Key points:
-- **`AddDynamicServicesUsing(...)` registers per _assembly_, not per service.** It scans each supplied assembly for all `[ScopedService]`-decorated types and registers them. The template anchors each assembly on its neutral **`AssemblyMarker`** type (`typeof(MyApp.Application.AssemblyMarker).Assembly`, `…Infrastructure…`) — these are the **only** markers the clean scaffold ships, and they exist **solely** for this anchoring. Use the neutral marker, **not** a domain type like `typeof(ReferenceDataService).Assembly`: the marker reads as "scan this whole assembly," never misleads a reader into thinking the scan is scoped to one type, always exists (so there is no compile-time dependency on CodeGen output and no bootstrap/uncomment step), and survives renames. **Adding a new entity does not change this line** — the new service/repository is picked up automatically by the existing assembly scan. Add another assembly only when you introduce a **new project** containing `[ScopedService]` types (e.g. the Subscribe host passes `typeof(Program).Assembly` for its subscribers). Do **not** add per-namespace placeholder/marker types to satisfy `global using`s — those follow the code (see `coreex-conventions.instructions.md`).
-- Prefer the **non-generic `AddReferenceDataOrchestrator()`** (binds `IReferenceDataProvider` from DI at runtime) over `AddReferenceDataOrchestrator<ReferenceDataService>()` — the non-generic form needs no generated type, so it compiles from scaffold time. It also auto-registers `ReferenceDataQuery.Default`, enabling `ReferenceDataOrchestrator.QueryAsync<TRef>(QueryArgs?, PagingArgs?, CancellationToken)` on all ref-data endpoints out of the box.
+- **`AddDynamicServicesUsing(...)` registers per _assembly_, not per service.** It scans each supplied assembly for all `[ScopedService]`-decorated types and registers them. The template anchors each assembly on its neutral **`AssemblyMarker`** type (`typeof(MyApp.Application.AssemblyMarker).Assembly`, `…Infrastructure…`) — these are the **only** markers the clean scaffold ships, and they exist **solely** for this anchoring. Use the neutral marker, **not** a domain type like `typeof(ReferenceDataProvider).Assembly`: the marker reads as "scan this whole assembly," never misleads a reader into thinking the scan is scoped to one type, always exists (so there is no compile-time dependency on CodeGen output and no bootstrap/uncomment step), and survives renames. **Adding a new entity does not change this line** — the new service/repository is picked up automatically by the existing assembly scan. Add another assembly only when you introduce a **new project** containing `[ScopedService]` types (e.g. the Subscribe host passes `typeof(Program).Assembly` for its subscribers). Do **not** add per-namespace placeholder/marker types to satisfy `global using`s — those follow the code (see `coreex-conventions.instructions.md`).
+- Prefer the **non-generic `AddReferenceDataOrchestrator()`** (binds `IReferenceDataProvider` from DI at runtime) over `AddReferenceDataOrchestrator<ReferenceDataProvider>()` — the non-generic form needs no generated type, so it compiles from scaffold time. It also auto-registers `ReferenceDataQuery.Default`, enabling `ReferenceDataOrchestrator.QueryAsync<TRef>(QueryArgs?, PagingArgs?, CancellationToken)` on all ref-data endpoints out of the box.
 - `AddReferenceDataOrchestrator()` and `AddDynamicServicesUsing(...)` are shared with Subscribe hosts — both API and Subscribe hosts are full application-layer consumers.
 - FusionCache (L1/L2) and `AddHybridCacheIdempotencyProvider()` are shared with Subscribe hosts — both need caching for reference data and idempotency for safe duplicate handling.
 - `AddEventFormatter()` is required wherever events are published or parsed.
-- `AddSqlServerOutboxPublisher()` / `AddPostgresOutboxPublisher()` take no generic type parameter.
+- `AddSqlServerOutboxPublisher()` / `AddPostgresOutboxPublisher()` / `AddCosmosDbEventPublisher()` take no domain-type generic parameter. Register them only when `outbox-enabled` is true; otherwise keep the host on its direct-publisher-only path.
 - `UseIdempotencyKey()` must come **after** `UseExecutionContext()`.
+- Generated mutable reference-data controllers apply `[Authorize]` by default. The scaffold's `UseAuthentication()` call is intentionally commented until an authentication scheme is configured; before enabling mutable entities, register the intended authentication scheme and enable authentication middleware. Override `mutableAttribute` with a policy/role for the intended access level, or use `[AllowAnonymous]` only when anonymous writes are an explicit requirement (as in the Products and Customers samples).
 - If the domain also publishes directly to Service Bus (e.g. for cross-domain adapters), add `AddAzureServiceBusPublisher(..., addAsDefaultIEventPublisher: false)` so the outbox publisher remains the default `IEventPublisher`.
 - `MapHealthChecks()`'s **basic** `live`/`startup`/`ready` endpoints are intentionally left anonymous — they're conventionally probed by container orchestrators without credentials. Its **detailed** endpoints (`/health/*/detailed`) are different: they emit the full `HealthReport`, which can include component names and exception details, so `HealthCheckOptions.AreDetailedEndpointsEnabled` defaults to `false` (secure by default) and must be explicitly opted into, as shown above. Once opted in, they should also be secured — pass `detailedGroupConfigure: g => g.RequireAuthorization()`, **commented out by default** (as shown above) since it 500s until an authentication scheme and authorization services are registered; `MapHealthChecks` logs a `Warning` at startup if detailed endpoints are enabled without it. Uncomment alongside `UseAuthentication()` once a scheme is configured.
 - **`CoreEx.Data.GraphQL` is additive, not part of the base scaffold** — add it only when explicitly asked for a GraphQL query surface; use the `coreex-graphql` skill to wire it (`.github/skills/coreex-graphql/SKILL.md`) rather than improvising. Register roots with `builder.Services.AddCoreExGraphQLLite((o, sp) => o.AddQuery<ProductLite>("products", ProductQueryArgsConfig.Default, async (qa, pa, ct) => await CoreEx.ExecutionContext.GetRequiredService<IProductReadService>().QueryAsync(qa, pa, ct).ConfigureAwait(false)).AddGet<Product>("product", (args, ct) => CoreEx.ExecutionContext.GetRequiredService<IProductReadService>().GetAsync(args.GetIdentifier<string>(), ct)))` — `GetIdentifier<TId>` validates presence and type of the named argument (default `"id"`) — it casts to `TId`, it does not convert — and throws an `ArgumentException`, mapped by the engine to `ARGUMENT_ERROR`, if it's missing/empty/wrong-typed — then `app.MapCoreExGraphQLLite("/query");` after `app.MapControllers();`. Resolve scoped dependencies (repositories, application services) per-invocation via `CoreEx.ExecutionContext.GetRequiredService<T>()` — never capture an instance from the root `IServiceProvider` at registration time, since `IGraphQLEngine` is a singleton. It bridges GraphQL `where`/`orderBy` 1:1 onto the entity's existing `QueryArgsConfig` — no new resolver/filter logic. `MapCoreExGraphQLLite` executes through `WebApi.PostAsync<GraphQLLiteResponse>(...)`, so standard exception-handling middleware applies as a safety net; add `.WithCoreExGraphQLTelemetry()` alongside the host's other OpenTelemetry tracing extensions to trace `ExecuteAsync` calls. To expose all reference data types as GraphQL roots in one call, use `o.AddReferenceDataQueries(sp, ReferenceDataQueryArgsConfig.Default)` — this bulk-registers every type known to the `ReferenceDataOrchestrator`, keyed as `ref_<name>` where `<name>` is the type's `AlternateNames` entry where registered, otherwise its own `Type.Name`; pass `excludeTypes` to opt specific types out. See [`CoreEx.Data.GraphQL` AGENTS.md](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.Data.GraphQL/AGENTS.md).
@@ -318,7 +359,7 @@ builder.AddSqlServerClient("SqlServer");
 builder.Services
     .AddSqlServerDatabase()
     .AddSqlServerUnitOfWork()
-    .AddSqlServerOutboxPublisher()
+    .AddSqlServerOutboxPublisher()         // only when outbox-enabled
     .AddDbContext<MyDbContext>()
     .AddEfDb<MyEfDb>();
 
@@ -327,9 +368,25 @@ builder.Services
 // builder.Services
 //     .AddPostgresDatabase()
 //     .AddPostgresUnitOfWork()
-//     .AddPostgresOutboxPublisher()
+//     .AddPostgresOutboxPublisher()        // only when outbox-enabled
 //     .AddDbContext<MyDbContext>()
 //     .AddEfDb<MyEfDb>();
+
+// Cosmos variant (use instead of the relational block):
+// builder.AddAzureCosmosClient("Cosmos", configureClientOptions: o =>
+// {
+//     o.UseSystemTextJsonSerializerWithOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+//     if (builder.Environment.IsDevelopment())
+//     {
+//         o.ConnectionMode = ConnectionMode.Gateway;
+//         o.HttpClientFactory = () => new HttpClient(new HttpClientHandler { ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator });
+//     }
+// });
+// builder.Services
+//     .AddCosmosDb<MyCosmosDb>("my-database-id")
+//     .AddCosmosDbEventPublisher()         // only when outbox-enabled
+//     .AddCosmosDbUnitOfWork()
+//     .AddCosmosDbHealthCheck();
 
 // Service Bus: keep outbox publisher as the default IEventPublisher.
 builder.AddAzureServiceBusClient("ServiceBus");
@@ -349,9 +406,9 @@ builder.Services.AzureServiceBusReceiving()
         var o = ServiceBusSessionReceiverOptions.CreateForTopicSubscription();
         o.SessionProcessorOptions.MaxConcurrentSessions = 4;
         return o;
-    })
-    .WithSubscribedSubscriber()
-    .WithHostedService()
+    }, "receiver-events")
+    .WithKeyedSubscribedSubscriber("subscriber-events")
+    .WithHostedService("hosted-subscriber-events")
     .Build();
 
 builder.Services.PostConfigureAllHealthChecks();
@@ -360,7 +417,7 @@ builder.Services.AddOpenApiDocument(s => { s.Title = builder.Environment.Applica
 
 builder.WithCoreExTelemetry()
     .WithCoreExServiceBusTelemetry()
-    .WithCoreExSqlServerTelemetry()   // or .WithCoreExPostgresTelemetry() for PostgreSQL
+    .WithCoreExSqlServerTelemetry()   // or .WithCoreExPostgresTelemetry() / .WithCoreExCosmosDbTelemetry() for the chosen provider
     .UseOtlpExporter();
 
 var app = builder.Build();
@@ -380,10 +437,10 @@ app.Run();
 Key points:
 - Subscribe hosts **do** include `AddReferenceDataOrchestrator()` and `AddDynamicServicesUsing(...)` — subscribers call application services that need reference data for validation and business logic. The Subscribe host passes **three** assemblies to `AddDynamicServicesUsing`: its own (`typeof(Program).Assembly`, for the subscriber types) plus the Application and Infrastructure `AssemblyMarker` assemblies.
 - Subscribe hosts **do** include FusionCache (L1/L2) and `AddHybridCacheIdempotencyProvider()` — caching is required for reference data; idempotency is required to safely handle duplicate message delivery.
-- Subscribe hosts **do** include database/EF Core and outbox publisher — subscribers persist domain data and publish outbound events.
+- Subscribe hosts **do** include domain persistence — relational hosts use EF Core; Cosmos hosts use `CosmosDb` — and, when `outbox-enabled` is true, the provider-specific outbox publisher as the default `IEventPublisher`.
 - `AddHostedServiceManager()` must be registered before `AzureServiceBusReceiving()`.
 - `AddSubscribersUsing<T>()` scans the assembly of `T` and auto-registers all `[Subscribe]`-decorated classes — no manual registration per subscriber.
-- `AddAzureServiceBusPublisher(..., addAsDefaultIEventPublisher: false)` keeps the outbox publisher as the default `IEventPublisher` for transactional writes.
+- `AddAzureServiceBusPublisher(..., addAsDefaultIEventPublisher: false)` keeps the outbox publisher as the default `IEventPublisher` for transactional writes when one is registered; the broker publisher stays available for explicit/direct paths.
 - `MapHostedServices()` must come **after** `MapHealthChecks()`.
 - `MapHealthChecks()`'s **detailed** endpoints and `MapHostedServices()`'s pause/resume endpoints are both intended to be secured via `RequireAuthorization()` (both admin/diagnostic surfaces), but the calls above are **commented out by default** — they 500 until an authentication scheme is registered. Uncomment alongside `UseAuthentication()`. The basic `live`/`startup`/`ready` health checks stay anonymous for orchestrator probes. `HealthCheckOptions.AreDetailedEndpointsEnabled` defaults to `false` (secure by default), so it must be explicitly opted into as shown above; `MapHealthChecks` logs a `Warning` at startup if left enabled without `detailedGroupConfigure`. See the equivalent API host bullet for the reasoning.
 
@@ -391,7 +448,7 @@ Key points:
 
 ## Outbox Relay Host
 
-The Outbox Relay host is minimal: it polls the outbox table and forwards committed events to Azure Service Bus. It has **no application logic** — no controllers, no OpenAPI, no FusionCache, no reference data, no EF Core DbContext. It only needs database connectivity to read the outbox table and Service Bus connectivity to publish.
+The Outbox Relay host is minimal: it reads committed outbox events and forwards them to Azure Service Bus. It has **no application logic** — no controllers, no OpenAPI, no FusionCache, no reference data, no EF Core DbContext. Relational providers poll the outbox table; Cosmos uses a Change Feed Processor over the outbox-hosting container. It only needs provider-specific database connectivity plus Service Bus connectivity to publish.
 
 ```csharp
 builder.Services
@@ -418,6 +475,21 @@ builder.AddSqlServerOutboxRelayHostedService();
 //     .AddPostgresOutboxRelay();
 // builder.AddPostgresOutboxRelayHostedService();
 
+// Cosmos variant:
+// builder.AddAzureCosmosClient("Cosmos", configureClientOptions: o =>
+// {
+//     o.UseSystemTextJsonSerializerWithOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+//     if (builder.Environment.IsDevelopment())
+//     {
+//         o.ConnectionMode = ConnectionMode.Gateway;
+//         o.HttpClientFactory = () => new HttpClient(new HttpClientHandler { ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator });
+//     }
+// });
+// builder.Services
+//     .AddCosmosDb("my-database-id")
+//     .AddCosmosDbHealthCheck();
+// builder.AddCosmosDbOutboxRelayHostedService("ref-data");
+
 // Service Bus publisher — this IS the default IEventPublisher for the relay.
 builder.AddAzureServiceBusClient("ServiceBus");
 builder.Services.AddAzureServiceBusPublisher((_, c) =>
@@ -427,7 +499,7 @@ builder.Services.AddAzureServiceBusPublisher((_, c) =>
 
 builder.Services.PostConfigureAllHealthChecks();
 
-builder.WithCoreExTelemetry().WithCoreExSqlServerTelemetry().WithCoreExServiceBusTelemetry().UseOtlpExporter();
+builder.WithCoreExTelemetry().WithCoreExSqlServerTelemetry().WithCoreExServiceBusTelemetry().UseOtlpExporter();   // or .WithCoreExPostgresTelemetry() / .WithCoreExCosmosDbTelemetry() for the chosen provider
 
 var app = builder.Build();
 app.UseCoreExExceptionHandler();
@@ -441,9 +513,9 @@ app.Run();
 ```
 
 Key points:
-- The Relay host has **no application-layer dependencies** — no `AddReferenceDataOrchestrator`, no `AddDynamicServicesUsing`, no FusionCache, no EF Core DbContext, no domain services.
-- `AddSqlServerOutboxRelay()` / `AddPostgresOutboxRelay()` take no configuration lambda.
-- `AddSqlServerOutboxRelayHostedService()` / `AddPostgresOutboxRelayHostedService()` register the background relay pump — call these on `builder`, not `builder.Services`.
+- The Relay host has **no application-layer dependencies** — no `AddReferenceDataOrchestrator`, no `AddDynamicServicesUsing`, no FusionCache, no EF Core DbContext, no domain services. The Cosmos variant likewise stays host-only: register `AddCosmosDb(...)` for access plus the relay hosted service, but never a `CosmosDbEventPublisher` (the relay publishes to Service Bus, not back into Cosmos).
+- `AddSqlServerOutboxRelay()` / `AddPostgresOutboxRelay()` take no configuration lambda. Cosmos relay hosts do not register a separate relay service in `builder.Services`; they register `AddCosmosDb(...)` and `AddCosmosDbHealthCheck()` on `builder.Services`, then the hosted service on `builder`.
+- `AddSqlServerOutboxRelayHostedService()` / `AddPostgresOutboxRelayHostedService()` / `AddCosmosDbOutboxRelayHostedService("<containerId>")` register the background relay pump — call these on `builder`, not `builder.Services`. Cosmos relay instances are Change Feed Processor-based, use a shared `$outbox-leases` container that they never create (declare it in the Database project with `.OutboxLeaseContainer()`; startup fails fast if missing), and use `CoreEx:Host:Services:CosmosOutboxRelay:{containerId}:ServicesCount` for scaling.
 - `UseAuthentication()` / `UseAuthorization()` are present but **commented out** — the Relay host (unlike API/Subscribe) has no `AddControllers()` or other MVC registration, so calling `UseAuthorization()` without first registering `builder.Services.AddAuthorization()` throws at startup (confirmed: `AddControllers()` in the API/Subscribe hosts registers authorization services transitively, which is why they can call it directly). Uncomment both together, once a scheme and policy are registered, so the `detailedGroupConfigure`/`groupConfigure` calls below can also be uncommented and take effect.
 - `MapHealthChecks()`'s **basic** `live`/`startup`/`ready` endpoints are intentionally left anonymous for container-orchestrator probes; its **detailed** endpoints emit the full `HealthReport` (component names, exception details), so `HealthCheckOptions.AreDetailedEndpointsEnabled` defaults to `false` (secure by default) and is explicitly opted into above, and should be secured via `detailedGroupConfigure: g => g.RequireAuthorization()`. `MapHostedServices()`'s pause/resume admin endpoints should be secured the same way via `groupConfigure` (its remarks call this out as "highly recommended"). Both `detailedGroupConfigure` and `groupConfigure` are **commented out by default** here — same as `UseAuthentication()`/`UseAuthorization()` above — since they'd otherwise 500 every request until an authentication scheme is actually registered; uncomment alongside those.
 - No `AddControllers()`, no `AddOpenApiDocument()`, no `UseOpenApi()`, no `UseSwaggerUi()`, no `UseIdempotencyKey()`.

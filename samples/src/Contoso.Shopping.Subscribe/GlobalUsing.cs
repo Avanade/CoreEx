@@ -1,5 +1,7 @@
+global using Contoso.Shopping.Application.Adapters.Notifications;
 global using Contoso.Shopping.Application.Adapters.Products;
 global using Contoso.Shopping.Application.Validators;
+global using Contoso.Shopping.Contracts;
 global using CoreEx;
 global using CoreEx.DependencyInjection;
 global using CoreEx.Events;

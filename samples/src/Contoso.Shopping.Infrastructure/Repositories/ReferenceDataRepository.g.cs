@@ -14,15 +14,15 @@ public partial class ReferenceDataRepository : IReferenceDataRepository
 {
     /// <inheritdoc/>
     public Task<Contracts.BasketStatusCollection> GetAllBasketStatusesAsync(CancellationToken cancellationToken = default)
-        => _ef.ThrowIfNull().Model<Persistence.BasketStatus>().Query().ToMappedItemsAsync<Persistence.BasketStatus, Contracts.BasketStatusCollection, Contracts.BasketStatus>(BasketStatusMapper.Map, cancellationToken);
+        => _ef.ThrowIfNull().Model<Persistence.BasketStatus>().Query().ToMappedItemsAsync<Persistence.BasketStatus, Contracts.BasketStatusCollection, Contracts.BasketStatus>(BasketStatusMapper.From, cancellationToken);
 
     /// <inheritdoc/>
     public Task<Contracts.DiscountCouponCollection> GetAllDiscountCouponsAsync(CancellationToken cancellationToken = default)
-        => _ef.ThrowIfNull().Model<Persistence.DiscountCoupon>().Query().ToMappedItemsAsync<Persistence.DiscountCoupon, Contracts.DiscountCouponCollection, Contracts.DiscountCoupon>(DiscountCouponMapper.Map, cancellationToken);
+        => _ef.ThrowIfNull().Model<Persistence.DiscountCoupon>().Query().ToMappedItemsAsync<Persistence.DiscountCoupon, Contracts.DiscountCouponCollection, Contracts.DiscountCoupon>(DiscountCouponMapper.From, cancellationToken);
 
     /// <inheritdoc/>
     public Task<Contracts.UnitOfMeasureCollection> GetAllUnitsOfMeasureAsync(CancellationToken cancellationToken = default)
-        => _ef.ThrowIfNull().Model<Persistence.UnitOfMeasure>().Query().ToMappedItemsAsync<Persistence.UnitOfMeasure, Contracts.UnitOfMeasureCollection, Contracts.UnitOfMeasure>(UnitOfMeasureMapper.Map, cancellationToken);
+        => _ef.ThrowIfNull().Model<Persistence.UnitOfMeasure>().Query().ToMappedItemsAsync<Persistence.UnitOfMeasure, Contracts.UnitOfMeasureCollection, Contracts.UnitOfMeasure>(UnitOfMeasureMapper.From, cancellationToken);
 }
 
 #nullable restore

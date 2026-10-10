@@ -3,7 +3,11 @@
     <OutputType>Exe</OutputType>
   </PropertyGroup>
   <ItemGroup>
+    <!--#if implement-cosmos-->
+    <PackageReference Include="CoreEx.Cosmos" />
+    <!--#else-->
     <PackageReference Include="CoreEx.Database" />
+    <!--#endif-->
     <!--#if implement-sqlserver-->
     <PackageReference Include="DbEx.SqlServer" />
     <!--#endif-->
@@ -12,8 +16,12 @@
     <!--#endif-->
   </ItemGroup>
   <ItemGroup>
+    <!--#if implement-cosmos-->
+    <EmbeddedResource Include="Data\**\*" />
+    <!--#else-->
     <EmbeddedResource Include="Schema\**\*" />
     <EmbeddedResource Include="Migrations\**\*" />
     <EmbeddedResource Include="Data\**\*" />
+    <!--#endif-->
   </ItemGroup>
 </Project>

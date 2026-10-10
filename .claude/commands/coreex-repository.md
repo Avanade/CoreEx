@@ -1,5 +1,5 @@
 ---
-description: "Create or modify a CoreEx Infrastructure-layer repository. USE FOR: new repository class, adding CRUD operations, adding a custom query (QueryArgsConfig<TSelf>), bidirectional mapper (BiDirectionMapper), EfDb model accessor, Result<T> pipeline variants. DO NOT USE FOR: Application-layer service logic, domain invariants, typed HTTP clients/adapters (those follow adapter conventions in the infrastructure instructions, not this skill)."
+description: "Create or modify a CoreEx Infrastructure-layer repository. USE FOR: new repository class, adding CRUD operations, adding a custom query (QueryArgsConfig<TSelf>), bidirectional mapper (BiDirectionMapper), EfDb/CosmosDb model accessor, Result<T> pipeline variants. DO NOT USE FOR: Application-layer service logic, domain invariants, typed HTTP clients/adapters (those follow adapter conventions in the infrastructure instructions, not this skill)."
 allowed-tools: [Read, Glob, Grep, Edit, Write, Bash]
 ---
 

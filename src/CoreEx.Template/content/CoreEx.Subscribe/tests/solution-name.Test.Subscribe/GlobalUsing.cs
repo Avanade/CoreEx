@@ -11,8 +11,7 @@ global using System.Net;
 global using UnitTestEx;
 global using UnitTestEx.NUnit;
 global using UnitTestEx.Expectations;
-global using solution-name.Contracts;
-// #if (implement-sqlserver || implement-postgres)
+// #if has-data-provider
 global using DbMigration = solution-name.Database.Program;
 global using TestData = solution-name.Test.Common.TestData;
 // #endif

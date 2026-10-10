@@ -22,6 +22,7 @@ internal sealed class NSwagOpenApiOperationProcessor(OpenApiOptions options) : I
             HandleIdempotencyKeyAttribute(ctx);
             HandleProducesNotFoundProblemAttribute(ctx);
             HandleResponseProblemDetails(ctx);
+            HandleNonNullableAttribute(ctx);
 
             if (Options.IncludeFieldsRequestHeaders)
                 HandleRequestFieldQueryString(ctx);
@@ -161,6 +162,79 @@ internal sealed class NSwagOpenApiOperationProcessor(OpenApiOptions options) : I
     }
 
     /// <summary>
+    /// Handles the <see cref="NonNullableAttribute"/> by marking the corresponding schema properties as non-nullable, regardless of the nullability declared in code.
+    /// </summary>
+    /// <remarks>Walks the types reachable from the operation request and response bodies; the walk is idempotent so it is safe for types shared across operations.</remarks>
+    private void HandleNonNullableAttribute(AspNetCoreOperationProcessorContext context)
+    {
+        var visited = new HashSet<Type>();
+        var api = context.ApiDescription;
+
+        foreach (var p in api.ParameterDescriptions)
+            ApplyNotNull(context, p.Type, visited);
+
+        foreach (var r in api.SupportedResponseTypes)
+            ApplyNotNull(context, r.Type, visited);
+
+        if (api.ActionDescriptor.EndpointMetadata.FirstOrDefault(x => x is AcceptsAttribute) is AcceptsAttribute accepts)
+            ApplyNotNull(context, accepts.BodyType, visited);
+    }
+
+    /// <summary>
+    /// Applies the <see cref="NonNullableAttribute"/> to the schema for the <paramref name="type"/> and recursively to the types of its properties.
+    /// </summary>
+    private void ApplyNotNull(AspNetCoreOperationProcessorContext context, Type? type, HashSet<Type> visited)
+    {
+        if (type is null || type == typeof(void))
+            return;
+
+        if (type.IsArray)
+        {
+            ApplyNotNull(context, type.GetElementType(), visited);
+            return;
+        }
+
+        if (Nullable.GetUnderlyingType(type) is Type underlying)
+        {
+            ApplyNotNull(context, underlying, visited);
+            return;
+        }
+
+        // Framework types (including collection, dictionary and task wrappers) have nothing to mark up; only their generic arguments can.
+        if (type.IsEnum || type.IsPrimitive || type.Namespace is null || IsFrameworkNamespace(type.Namespace, "System") || IsFrameworkNamespace(type.Namespace, "Microsoft"))
+        {
+            if (type.IsGenericType)
+            {
+                foreach (var arg in type.GetGenericArguments())
+                    ApplyNotNull(context, arg, visited);
+            }
+
+            return;
+        }
+
+        if (!visited.Add(type))
+            return;
+
+        var schema = context.SchemaGenerator.Generate(type, context.SchemaResolver).ActualSchema;
+        var jso = (context.SchemaGenerator.Settings as SystemTextJsonSchemaGeneratorSettings)?.SerializerOptions ?? Options.JsonSerializerOptions;
+
+        foreach (var pi in type.GetProperties(BindingFlags.Public | BindingFlags.Instance))
+        {
+            var name = pi.GetCustomAttribute<JsonPropertyNameAttribute>()?.Name ?? jso?.PropertyNamingPolicy?.ConvertName(pi.Name) ?? pi.Name;
+            if (!schema.ActualProperties.TryGetValue(name, out var property))
+                continue;
+
+            if (pi.IsDefined(typeof(NonNullableAttribute), true))
+            {
+                property.IsNullableRaw = false;
+                property.Type &= ~JsonObjectType.Null;
+            }
+
+            ApplyNotNull(context, pi.PropertyType, visited);
+        }
+    }
+
+    /// <summary>
     /// Gets or generates the schema for the specified <paramref name="type"/>.
     /// </summary>
     private static JsonSchema GetOrGenerateSchemaForType(AspNetCoreOperationProcessorContext context, Type type)
@@ -210,4 +284,9 @@ internal sealed class NSwagOpenApiOperationProcessor(OpenApiOptions options) : I
         Kind = OpenApiParameterKind.Query,
         Schema = new JsonSchema { Type = type }
     };
+
+    /// <summary>
+    /// Determines whether the <paramref name="ns"/> is the <paramref name="root"/> framework namespace or one of its dotted sub-namespaces (e.g. <c>System.Collections</c>, but not <c>Systematic</c>).
+    /// </summary>
+    private static bool IsFrameworkNamespace(string ns, string root) => ns.StartsWith(root, StringComparison.Ordinal) && (ns.Length == root.Length || ns[root.Length] == '.');
 }

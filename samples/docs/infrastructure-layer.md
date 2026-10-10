@@ -64,8 +64,6 @@ public sealed class ProductsEfDb(ProductsDbContext dbContext) : EfDb<ProductsDbC
 
 ## Cosmos DB repositories
 
-> ⚠️ **Preview**: [`CoreEx.Cosmos`](../../src/CoreEx.Cosmos) is newly added in this release — treat its API surface as subject to change without following strict semver until it stabilizes.
-
 Customers is schemaless and code-first — there is no `*.Database`/DbEx migration project and no EF Core `DbContext`. `ref-data.yaml`-driven CodeGen still produces the generated persistence models (`Infrastructure/Persistence/*.g.cs`), same as the relational domains. Instead, `CosmosDb` (from `CoreEx.Cosmos`) is sub-classed once per domain to declare its containers, each exposed as a typed `CosmosDbContainer<TModel>` (same contract/model type) or `CosmosDbMappedContainer<TValue,TModel,TMapper>` (contract mapped to a distinct persistence model), analogous in role to an `EfDb<TContext>` unit-of-work facade:
 
 ```csharp
@@ -96,7 +94,7 @@ public class CustomerRepository(CustomersCosmosDb cosmos) : ICustomerRepository
 }
 ```
 
-Multi-document writes (e.g. an entity plus its outbox event) go through `CosmosDbUnitOfWork`, which uses `TransactionalBatch` to commit atomically within a partition — the Cosmos analogue of the EF Core `IUnitOfWork`/outbox pattern used by Products and Shopping. Because Customers has no Relay host yet, published events accumulate in the outbox container but are not currently forwarded to Service Bus.
+Multi-document writes (e.g. an entity plus its outbox event) go through `CosmosDbUnitOfWork`, which uses `TransactionalBatch` to commit atomically within a partition — the Cosmos analogue of the EF Core `IUnitOfWork`/outbox pattern used by Products and Shopping. Outbox documents are co-located with their business mutations in `customers` or `ref-data`. `Contoso.Customers.Relay` monitors both change feeds, publishes to Service Bus, and deletes successfully relayed documents. Its first-start policy excludes older pending events; subsequent restarts resume saved checkpoints (see [Customers Cosmos relay](hosts-layer.md#customers-cosmos-relay)).
 
 > **See also**: [`CosmosDb`](../../src/CoreEx.Cosmos/CosmosDb.cs) · [`CosmosDbContainer<TModel>`](../../src/CoreEx.Cosmos/CosmosDbContainer.cs) · [`CosmosDbMappedContainer<TValue,TModel,TMapper>`](../../src/CoreEx.Cosmos/CosmosDbMappedContainer.cs) · [`CosmosDbUnitOfWork`](../../src/CoreEx.Cosmos/CosmosDbUnitOfWork.cs)
 
@@ -146,4 +144,15 @@ public class ProductAdapter(ShoppingEfDb ef, IEventPublisher eventPublisher, Pro
 
 This split — client for transport, adapter for orchestration — keeps each class focused on a single responsibility and makes the HTTP interaction independently testable.
 
-> **See also**: [`ToResultAsync`](../../src/CoreEx.AspNetCore/HttpResponseMessageExtensions.cs) · [`JsonDefaults`](../../src/CoreEx/Json/JsonDefaults.cs) · [Strangler Fig / ACL patterns](https://learn.microsoft.com/en-us/azure/architecture/patterns/strangler-fig)
+`CustomersHttpClient` / `CustomerAdapter` are the purely real-time variant: no local replica, the adapter delegates to the client (`GET api/customers/{id}`), mapping a 404 to `Result.NotFoundError()`. The lookup is wrapped in a single `IHybridCache.GetOrCreateWithResultAsync<Customer>(...)` call: only successful results are cached (short, configurable expiry via `CoreEx:Caching:Customer:*`), failures such as not-found are never cached. The lookup is single-flight per key (per node) under FusionCache, so concurrent misses make one remote call; coalescing across nodes sharing Redis would need an opt-in FusionCache distributed locker, which isn't worth it for this cheap read. The client is registered in the Api and Subscribe hosts with `AddTypedHttpClient<CustomersHttpClient>("CustomersApi")`, the `CustomersApi:BaseAddress` setting being overridden with service discovery under Aspire.
+
+Before returning a successful lookup, `CustomersHttpClient` uses
+`response.WithValidator(_validator).ToResultAsync(ct)` to require an email with valid format.
+The response-specific rules are defined once in a private static readonly `Validator<Customer>`
+inside the client using `Validator.Create<Customer>().HasProperty(...)`, leaving other details unrestricted rather
+than applying create/update rules to a read response. Customer identity is trusted, not validated
+or compared with the requested identifier. Invalid successful responses become
+`HttpRequestException` failures with structured validation diagnostics, so they are not cached
+or mistaken for caller validation errors. The client disposes the HTTP response after consumption.
+
+> **See also**: [`ToResultAsync`](../../src/CoreEx/Extensions.HttpResponseMessage.cs) · [`JsonDefaults`](../../src/CoreEx/Json/JsonDefaults.cs) · [Strangler Fig / ACL patterns](https://learn.microsoft.com/en-us/azure/architecture/patterns/strangler-fig)

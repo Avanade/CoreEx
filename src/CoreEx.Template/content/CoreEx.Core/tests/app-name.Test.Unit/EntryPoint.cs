@@ -10,23 +10,32 @@ public class EntryPoint
         builder.Services.AddExecutionContext();
         builder.Services.AddMemoryCache();
 // #if refdata-enabled
-        builder.Services.AddReferenceDataOrchestrator<ReferenceDataServiceDecorator>();
+        builder.Services.AddReferenceDataOrchestrator<ReferenceDataProviderDecorator>();
 
         // Reuse the "real" database configured reference data.
+// #if implement-cosmos
+        var jdr = JsonDataReader.ParseYaml<app-name.Database.Program>("ref-data.seed.yaml", JsonDataReaderOptions.CreateForReferenceData(JsonPropertyNamingConvention.CamelCase));
+// #else
         var jdr = JsonDataReader.ParseYaml<app-name.Database.Program>("ref-data.seed.yaml", JsonDataReaderOptions.CreateForReferenceData(JsonPropertyNamingConvention.SnakeCase));
-        builder.Services.AddSingleton(new ReferenceDataServiceDecorator(jdr));
+// #endif
+        builder.Services.AddSingleton(new ReferenceDataProviderDecorator(jdr));
 // #endif
     }
 // #if refdata-enabled
 
-    /// <summary>Provides a decorator for the <see cref="ReferenceDataService"/> to use JSON data for unit tests.</summary>
-    public class ReferenceDataServiceDecorator(JsonDataReader jdr) : ReferenceDataService(Mock.Of<IReferenceDataRepository>())
+    /// <summary>Provides a decorator for the <see cref="ReferenceDataProvider"/> to use JSON data for unit tests.</summary>
+    public class ReferenceDataProviderDecorator(JsonDataReader jdr) : ReferenceDataProvider(Mock.Of<IReferenceDataRepository>())
     {
         public override Task<IReferenceDataCollection> GetAsync(Type type, CancellationToken cancellationToken = default) => type switch
         {
             // Add a case per reference data type a validator under test needs. '{RefData}' is the contract type and
+// #if implement-cosmos
+            // '{RefData}Collection' its collection; 'ref-data.$^Type' is the key into the seed data (container id, then the type discriminator group).
+            //_ when type == typeof(ref-data-name) => Task.FromResult((IReferenceDataCollection)jdr.Deserialize<ref-data-nameCollection>("ref-data.$^Type")!),
+// #else
             // '{RefData}Collection' its collection; 'schema.$^table' is the appropriately-cased key into the seed data.
             //_ when type == typeof(ref-data-name) => Task.FromResult((IReferenceDataCollection)jdr.Deserialize<ref-data-nameCollection>("schema.$^table")!),
+// #endif
             _ => throw new InvalidOperationException($"Type {type.FullName} is not a known {nameof(IReferenceData)}.")
         };
     }

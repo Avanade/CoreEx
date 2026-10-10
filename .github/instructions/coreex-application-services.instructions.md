@@ -92,7 +92,7 @@ public async Task<Product> UpdateAsync(Product product, CancellationToken cancel
 
 ## Validation
 
-Validators live in `Application/Validators/` and are **not registered in DI** — they are not injected into services (see [DI Registration Principle](#di-registration-principle) below). Choose the base class based on whether the validator needs injected dependencies:
+Application business/request validators live in `Application/Validators/` and are **not registered in DI** — they are not injected into services (see [DI Registration Principle](#di-registration-principle) below). External HTTP response-contract rules belong in the Infrastructure client instead; see [client response validation](/.github/instructions/coreex-repositories.instructions.md#client-response-validation). Choose the base class based on whether the application validator needs injected dependencies:
 
 **`Validator<T, TSelf>`** — use when no constructor injection is required. Exposes a static `Default` singleton; always call via the singleton:
 
@@ -352,6 +352,30 @@ Each has `Async` and `AsAsync` variants too (e.g. `ThenAsync`, `ThenAsAsync`). S
 
 Failure factories (return a failed result of the matching type): `Result.ValidationError(...)`, `NotFoundError(...)`, `BusinessError(...)`, `ConflictError(...)`, `ConcurrencyError(...)`, `DuplicateError(...)`, `AuthenticationError(...)`, `AuthorizationError(...)`, `TransientError(...)`. Success factories: `Result.Success`, `Result<T>.Ok(value)`. See the [CoreEx Results README](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx/Results/README.md) for the full set.
 
+#### Propagating a failure (guard clauses)
+
+Prefer a `Then*` chain — it short-circuits on failure and re-types for you. An explicit guard clause is also fine (e.g. between awaits); when you use one, **hand the existing result straight back** — never unwrap its `Error` to build a new one:
+
+| You hold | Method returns | Write |
+|---|---|---|
+| `Result` | `Result<U>` | `return r;` (implicit `Result` → `Result<U>`) |
+| `Result<T>` | `Result<T>` | `return r;` |
+| `Result<T>` | `Result<U>` (different type) | `return r.AsResult();` (drops to `Result`, then implicitly converts) |
+| `Result<T>` | `Result` | `return r.AsResult();` |
+
+```csharp
+var loaded = await _repository.GetAsync(id, cancellationToken).ConfigureAwait(false);
+if (loaded.IsFailure) return loaded.AsResult();            // Result<Domain.Booking> → Result<Contracts.Booking>
+
+var concurrency = ETag.CompareWithResult(etag, loaded.Value.ETag);
+if (concurrency.IsFailure) return concurrency;             // Result → Result<Contracts.Booking>
+
+// ❌ Wrong — reaches into Error to rebuild what already exists (and needs a '!' to do it).
+if (loaded.IsFailure) return Result<Contracts.Booking>.Fail(loaded.Error!);
+```
+
+The implicit `Result` → `Result<U>` conversion defaults the value on success, so use it (and `AsResult()`) only on the **failure** path of a guard — to continue on success, produce the real value (`ThenAs`, or construct the `Result<U>`). Do not use the implicit `Result<T>` → `T` conversion in a service either; it reads `Value`, which throws on failure.
+
 **`ThrowOnError()` returns `Result<T>`, not `T`** — unwrapping to `T` happens via `Result<T>`'s implicit conversion operator, which only fires in a **target-typed** context:
 
 ```csharp
@@ -524,6 +548,7 @@ Always call `.ConfigureAwait(false)` on every `await` inside service and reposit
 - Do not perform a mutating `TransactionAsync` without adding its event (`_unitOfWork.Events.Add(...)`) when eventing is enabled — the write and the event must be committed together.
 - Do not use `WhereMutated(_ => ...)` on a delete — `DataResult` (delete) has no value; use the parameterless `WhereMutated(() => ...)`. The value-carrying `WhereMutated(v => ...)` is only for `DataResult<T>` (create/update).
 - Do not reach for a non-`As` Result operator when the delegate changes the result type — use the `As` variant (e.g. `ThenAs`/`ThenAsAsync`); the `As` suffix exists to make the type change explicit.
+- Do not propagate a failure with `Result<X>.Fail(r.Error!)` / `Result.Fail(r.Error!)` / `return r.Error!;` — return the result itself (`return r;`) or `r.AsResult()` when the result type differs; prefer a `Then*` chain. Avoid touching `.Error` in service code at all.
 - Do not generate service operations the user did not confirm — confirm the CRUD set (Get/Create/Update/Delete, each default-selected) when operations are unspecified, and never add a Query operation without an explicit request.
 
 ## Further Reading

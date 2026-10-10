@@ -18,9 +18,9 @@ Full workflow for adding or modifying an adapter (anti-corruption layer) in a Co
 |---|---|---|
 | External system name | — | Used as sub-folder name. Can be a domain (`Products`, `Orders`), a system type (`Idp`, `Erp`), or a product name (`Stripe`, `Salesforce`). Choose a name that reflects the boundary, not the transport. |
 | Adapter role | Synchronous | Synchronous = real-time HTTP call. Replication = event-driven local store sync. |
-| HTTP calls needed? | Yes | No HTTP = EF-only replication adapter; skip HTTP client steps. |
+| HTTP calls needed? | Yes | No HTTP = local-store-only replication adapter; skip HTTP client steps. |
 | Multiple endpoints from the same system? | Yes | Always use sub-folder — it is the standard regardless of endpoint count. |
-| Needs local EF read alongside HTTP? | Ask | Adapter may combine local replicated data + live HTTP (see `ProductAdapter`). |
+| Needs local store read alongside HTTP? | Ask | Adapter may combine local replicated data + live HTTP (see `ProductAdapter`). Relational domains typically use `EfDb`; Cosmos domains use the typed `*CosmosDb` accessors. |
 | Unit tests for HTTP client? | Yes for any HTTP | Test each distinct response code the service depends on. |
 
 ---
@@ -90,11 +90,66 @@ public class ProductsHttpClient(HttpClient httpClient)
     /// <summary>Creates a new inventory reservation.</summary>
     public async Task<Result> CreateReservationAsync(MovementRequest request, CancellationToken ct = default)
     {
-        var response = await _httpClient.PostAsJsonAsync("api/inventory/reserve", request, JsonDefaults.SerializerOptions, ct).ConfigureAwait(false);
+        using var response = await _httpClient.PostAsJsonAsync("api/inventory/reserve", request, JsonDefaults.SerializerOptions, ct).ConfigureAwait(false);
         return await response.ToResultAsync(ct).ConfigureAwait(false);
     }
 }
 ```
+
+### Client method returning a value
+
+```csharp
+// Infrastructure/Clients/{ExternalDomain}/{External}HttpClient.cs
+public class ExternalHttpClient(HttpClient httpClient)
+{
+    private static readonly Validator<ExternalResponse> _validator = Validator.Create<ExternalResponse>()
+        .HasProperty(x => x.Email, c => c.Mandatory().Email());
+
+    private readonly HttpClient _httpClient = httpClient.ThrowIfNull();
+
+    public async Task<Result<ExternalResponse>> GetAsync(string id, CancellationToken ct = default)
+    {
+        using var response = await _httpClient.GetAsync($"api/entities/{Uri.EscapeDataString(id)}", ct).ConfigureAwait(false);
+        if (response.StatusCode == HttpStatusCode.NotFound)
+            return Result.NotFoundError();
+
+        return await response.WithValidator(_validator).ToResultAsync(ct).ConfigureAwait(false);
+    }
+}
+```
+
+`ToResultAsync<T>()` returns a non-null `T`: a successful response with a null/empty body (including 204) is an `HttpRequestException` failure, so no `?? throw` is needed. Use `ToResultOrDefaultAsync<T>()` (→ `Result<T?>`) only where an absent body is a valid outcome. Map 404 yourself when "not found" is an expected business outcome (surface it as `Result.NotFoundError()`; the Application-layer policy decides how to present it).
+
+### Response-contract validation
+
+Choose rules for fields the consuming operation actually requires; the example assumes an email is needed.
+Do not blindly reuse request/create/update validators, require every DTO property, or compare response
+identifiers with request identifiers by default. Validate identifiers only when explicitly required.
+
+Keep small, client-only rules in a private static readonly `Validator<T>` built once with
+`Validator.Create<T>().HasProperty(...)` (`CoreEx.Validation`). Do not construct rules per request
+or capture request-specific state/scoped dependencies in a shared validator. Extract a separate
+validator alongside the client in `Infrastructure/Clients/{ExternalDomain}/` only for substantial
+rules or genuine reuse. Application business/request validation remains in `Application/Validators/`,
+even when both validators target an Application-owned type.
+
+`WithValidator` binds the value type; terminal methods need no repeated type argument. Validation
+runs only after successful HTTP handling and non-null deserialization, and returns the validation
+result's `Value` (including normalization/replacement). Reported errors become `HttpRequestException`
+with the validation exception as its inner diagnostic: `ToResult*` returns failure; `GetValue*`
+throws. Standard CoreEx API handling treats the outer exception as internal 500, not caller 400.
+Do not include raw response bodies or sensitive values in outer error messages.
+
+`ToResultAsync`/`GetValueAsync` reject missing content and null validated values.
+`ToResultOrDefaultAsync`/`GetValueOrDefaultAsync` allow null and skip validation for absent response
+values. Serializer options and cancellation tokens are supported; cancellation, deserialization
+exceptions, and unexpected validator exceptions propagate unchanged. The wrapper does not dispose,
+buffer, or cache the response; retain `using var` at the call site.
+
+Test private inline rules through `{External}HttpClientTests`, not reflection or a new public
+validator solely for testing. Cover missing required fields, invalid format, valid minimal/full
+responses, exact structured inner messages, and existing HTTP error handling. For cached adapters,
+prove an invalid 2xx response is not cached by replacing it with a valid response and retrying.
 
 ### Local request/response DTOs
 
@@ -132,7 +187,10 @@ public class MovementRequestProduct
 
 Create in `Infrastructure/Adapters/{ExternalDomain}/`. Implement the Application interface; register with `[ScopedService<IXxxAdapter>]`.
 
-### Synchronous adapter (HTTP + local EF + event publication)
+### Synchronous adapter (HTTP + local store + event publication)
+
+> **Provider note:** relational domains inject `{Domain}EfDb` and query `_ef.{Entity}s`; Cosmos domains inject `{Domain}CosmosDb` and use the mapped container accessors (`_cosmos.{Entity}s.GetAsync(...)`, `_cosmos.{Entity}s.Container.Query(...)`, etc.). Keep the adapter surface the same; only the local-store implementation differs.
+
 
 ```csharp
 // Infrastructure/Adapters/Products/ProductAdapter.cs
@@ -185,7 +243,37 @@ public class ProductAdapter({Domain}EfDb ef, IEventPublisher eventPublisher, Pro
 }
 ```
 
-### Replication adapter (EF upsert/delete only)
+### Caching a real-time adapter
+
+A read-only real-time adapter (no local replica) should cache **successful** lookups so repeated calls in a request burst don't hammer the remote API. The pattern is one line, using the `IHybridCache` result-aware extension:
+
+```csharp
+// Infrastructure/Adapters/Customers/CustomerAdapter.cs
+[ScopedService<ICustomerAdapter>]
+public class CustomerAdapter(CustomersHttpClient client, IHybridCache cache) : ICustomerAdapter
+{
+    private readonly CustomersHttpClient _client = client.ThrowIfNull();
+    private readonly IHybridCache _cache = cache.ThrowIfNull();
+
+    // Short expiry; overridable through configuration: CoreEx:Caching:Customer:*.
+    private static readonly HybridCacheEntryOptions _cacheOptions = HybridCacheEntryOptions.CreateFor<Customer>(
+        localExpiration: TimeSpan.FromMinutes(1), distributedExpiration: TimeSpan.FromMinutes(5));
+
+    /// <inheritdoc/>
+    public Task<Result<Customer>> GetAsync(string id, CancellationToken ct = default)
+        => _cache.GetOrCreateWithResultAsync<Customer>(id, c => _client.GetAsync(id, c), _cacheOptions, ct);
+}
+```
+
+**Rules:**
+- `GetOrCreateWithResultAsync<T>` (and `GetOrCreateByKeyWithResultAsync` for a raw string key) caches **only** when the factory result `IsSuccess`; failures (e.g. not-found, 5xx) are returned as-is and never cached — there is deliberately no negative caching.
+- `T` must be `IEntityKey` for the entity-key overload (contracts with `IIdentifier<T>` are); otherwise use `GetOrCreateByKeyWithResultAsync` with your own key.
+- The factory runs at most once per key at a time with `FusionHybridCache` (single-flight / request coalescing, **per node** by default; to coalesce across nodes sharing Redis, opt in to a FusionCache distributed locker via `.WithDistributedLocker(...)` — usually not worth the cost for cheap idempotent reads, and it is an efficiency measure, not a correctness guarantee); other `IHybridCache` implementations (e.g. `MemoryOnlyHybridCache`) fall back to a non-atomic get-then-set, so concurrent misses may each call the factory. Keep factories idempotent.
+- Keep expiry short — the remote data is owned elsewhere and is not invalidated by an event. If staleness is unacceptable, use the replication (event-sync) pattern instead.
+- The cached type is serialized to the distributed cache — use the adapter's own contract (Application-layer DTO), not the transport DTO.
+- Add `global using CoreEx.Caching;` to the Infrastructure `GlobalUsing.cs`.
+
+### Replication adapter (local upsert/delete only)
 
 ```csharp
 // Infrastructure/Adapters/Products/ProductSyncAdapter.cs
@@ -208,6 +296,7 @@ public class ProductSyncAdapter({Domain}EfDb ef) : IProductSyncAdapter
 
 **Rules:**
 - `[ScopedService<IXxxAdapter>]` on every implementation — picked up by `AddDynamicServicesUsing<T>()` in `Program.cs`.
+- For Cosmos-backed local stores, replace the `EfDb` calls in the examples with the equivalent mapped-container operations on your typed `*CosmosDb` accessor.
 - Never call `HttpClient` directly in the adapter — always delegate to the typed client class.
 - Use `CancellationToken.None` (not the request `ct`) for **compensation paths** (e.g., rolling back a reservation after a checkout failure) — the request token may already be cancelled and must not abort the compensation.
 - Event publication inside a `TransactionAsync` uses the transactional `IEventPublisher` (Outbox). Bypass-Outbox paths use the Service Bus publisher directly and call `PublishAsync()` explicitly.
@@ -250,8 +339,9 @@ The adapter is registered automatically via `[ScopedService<IXxxAdapter>]` — n
 | Scenario | Action |
 |---|---|
 | Adapter includes a typed HTTP client (`XxxHttpClient`) | Generate `*.Test.Unit/Clients/{ExternalDomain}/{External}HttpClientTests.cs` — cover success (2xx), server error (5xx), and business error (422/ProblemDetails) per endpoint |
-| EF-only replication adapter (no HTTP) | Skip — integration tests cover this via intra-domain service tests |
+| Local-store-only replication adapter (no HTTP) | Skip — integration tests cover this via intra-domain service tests |
 | Adapter orchestration (EF + HTTP + events combined) | Skip — mock the HTTP client via `Test.ReplaceHttpClientFactory(mcf)` in `WithApiTester` integration tests instead |
+| Cached real-time adapter (`IHybridCache`) | Add `*.Test.Unit/Adapters/{ExternalDomain}/{External}AdapterTests.cs` — assert a success is cached (second call does not hit the mock) and a failure (not-found) is **not** cached; see "Testing a cached adapter" below |
 
 Unit-test every distinct status code that the consuming service acts on. Use `WithGenericTester<EntryPoint>` from UnitTestEx — the same `MockHttpClientFactory` pattern used in API integration tests, but backed by the lightweight unit-test host.
 
@@ -358,6 +448,13 @@ public class {External}HttpClientTests : WithGenericTester<EntryPoint>
 - `Test.Scoped(test => { ... })` (non-async) + `test.Run(async _ => { ... }).AssertSuccess()` — non-async outer lambda avoids CS1998; `AssertSuccess()` ensures exceptions inside `test.Run` fail the test rather than being swallowed
 - `ExecutionContext.GetRequiredService<{External}HttpClient>()` — resolves the client from DI; do not `new` it directly
 
+### Testing a cached adapter
+
+- **Unit host**: register an in-memory hybrid cache in the unit-test `EntryPoint` — `builder.Services.AddMemoryCache(); builder.Services.AddMemoryOnlyHybridCache();` (the `IMemoryCache` is a singleton, so cached entries persist across scopes within a test run — use a distinct key/id per test).
+- **Adapter unit tests**: construct the adapter from DI (`new {External}Adapter(client, ExecutionContext.GetRequiredService<IHybridCache>())`), mock the HTTP response, call `GetAsync` twice and assert the second call is served from cache (switch the mock to an error/404 between calls — still succeeds); and assert a 404 is **not** cached (switch the mock to 200 afterwards — now succeeds).
+- When response validation is enabled, also assert an invalid 2xx response is **not** cached: replace the invalid payload with a valid one and confirm the next lookup succeeds.
+- **API / Subscribe integration tests** share a real Redis, so cached entries survive between tests and between runs and will starve mocks that expect to be invoked. Add a per-test `[SetUp] => Test.ClearFusionCacheAsync()` (in addition to the `[OneTimeSetUp]` call) in any test class that exercises a cached adapter, and use `.Respond` replacement mid-test to prove caching where that is the behaviour under test.
+
 ---
 
 ## Guardrails
@@ -365,7 +462,8 @@ public class {External}HttpClientTests : WithGenericTester<EntryPoint>
 - **Sub-folder is always required** — never put adapter or client files directly in `Adapters/` or `Clients/` without a domain sub-folder
 - **Interface surface is domain-idiomatic** — method names and parameter types use your domain's language, not the remote API's
 - **No `HttpClient` in adapter methods** — the adapter delegates to the typed client; the typed client owns the HTTP concern
-- **`response.ToResultAsync()`** — always use this; never call `EnsureSuccessStatusCode()`; never swallow non-success responses silently
+- **`response.ToResultAsync()` / `ToResultAsync<T>()`** — always use these; never call `EnsureSuccessStatusCode()`; never swallow non-success responses silently. `ToResultAsync<T>()` guarantees a non-null `T` on success (null/empty body is a failure) — use `ToResultOrDefaultAsync<T>()` only for genuinely optional bodies
+- **Cache successes only** — a real-time read adapter caches via `IHybridCache.GetOrCreateWithResultAsync<T>`; never hand-roll try-get/set, never cache failures
 - **`CancellationToken.None` in compensation paths** — a cancelled request token must never abort a compensation operation (e.g., rolling back a reservation after a failed checkout)
 - **Two separate interface files** for synchronous vs replication roles — do not combine them into one interface
 - **Local DTOs stay in `Clients/{ExternalDomain}/`** — never expose them in the Application layer; map at the adapter boundary

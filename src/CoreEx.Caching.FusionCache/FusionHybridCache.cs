@@ -29,6 +29,29 @@ public class FusionHybridCache(IFusionCache fusionCache, ICacheKeyProvider cache
         => await _fusionCache.GetOrSetAsync(KeyProvider.GetFullyQualifiedCacheKey(key), async ct => await factory(ct).ConfigureAwait(false), ConfigureEntryOptions(options), QualifyTags(options?.Tags), cancellationToken).ConfigureAwait(false);
 
     /// <inheritdoc/>
+    /// <remarks>Concurrent misses for the same key invoke the <paramref name="factory"/> one at a time (per node by default, courtesy of FusionCache's memory locker; cross-node coalescing requires configuring a FusionCache distributed locker), with later callers served from the cache where the first succeeded.
+    /// A failure is not cached by skipping the memory and distributed cache writes via the adaptive factory context (rather than throwing, which would be logged as a factory error).</remarks>
+    public async Task<Result<T>> GetOrCreateByKeyWithResultAsync<T>(string key, Func<CancellationToken, Task<Result<T>>> factory, HybridCacheEntryOptions? options = null, CancellationToken cancellationToken = default)
+    {
+        factory.ThrowIfNull();
+
+        Result<T>? failure = null;
+        var value = await _fusionCache.GetOrSetAsync<T>(KeyProvider.GetFullyQualifiedCacheKey(key), async (ctx, ct) =>
+        {
+            var result = await factory(ct).ConfigureAwait(false);
+            if (result.IsSuccess)
+                return result.Value;
+
+            failure = result;
+            ctx.Options.SkipMemoryCacheWrite = true;
+            ctx.Options.SkipDistributedCacheWrite = true;
+            return default!;
+        }, default, ConfigureEntryOptions(options), QualifyTags(options?.Tags), cancellationToken).ConfigureAwait(false);
+
+        return failure ?? value;
+    }
+
+    /// <inheritdoc/>
     public async Task SetByKeyAsync<T>(string key, T value, HybridCacheEntryOptions? options = null, CancellationToken cancellationToken = default)
         => await _fusionCache.SetAsync(KeyProvider.GetFullyQualifiedCacheKey(key), value, ConfigureEntryOptions(options), QualifyTags(options?.Tags), cancellationToken).ConfigureAwait(false);
 

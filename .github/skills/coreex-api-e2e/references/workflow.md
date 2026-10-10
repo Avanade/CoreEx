@@ -19,7 +19,7 @@ Before asking the user anything, read the solution-root `AGENTS.md` **Feature Co
 | Feature | How it shapes the L1 sequence |
 |---|---|
 | `*.Domain` project present | `true` → Step 2 (`coreex-aggregate`) runs before Step 3 |
-| `data-provider` | `None` → Steps 4 and 5 (migration + repository) are skipped |
+| `data-provider` | `None` → Steps 4 and 5 (migration + repository) are skipped; `Cosmos` still runs those steps, but via container provisioning and Cosmos repositories instead of DbEx/EF |
 | `rop-enabled` | Passed to app-service and API steps to determine Result&lt;T&gt; pipeline shape |
 | `outbox-enabled` | Passed to app-service step to determine whether mutations publish outbox events |
 
@@ -87,7 +87,7 @@ Pass: entity name, properties list (name, type, required/optional), identifier t
 
 Invoke [`coreex-db-migration`](../coreex-db-migration/SKILL.md).
 
-Pass: table name (snake_case of entity name), columns derived from the properties list with their SQL types.
+Pass: for relational providers, the table name (provider-appropriate casing) plus columns derived from the properties list with their SQL types; for Cosmos, the container/provisioning shape and persistence-model expectations derived from the same properties.
 
 ---
 

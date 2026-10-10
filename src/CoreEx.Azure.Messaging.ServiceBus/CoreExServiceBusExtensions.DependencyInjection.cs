@@ -22,8 +22,44 @@ public static class CoreExServiceBusExtensions
         {
             var sbp = ActivatorUtilities.CreateInstance<ServiceBusPublisher>(sp);
             configure?.Invoke(sp, sbp);
+            var partitionSize = CoreEx.Abstractions.Internal.GetConfigurationValue<int?>(ServiceBusPublisher.SessionIdPartitionSizeConfigurationKey, null, sp.GetService<IConfiguration>());
+            if (partitionSize is not null)
+                sbp.SessionIdPartitionSize = PartitionKey.ValidatePartitionSize(partitionSize.Value);
+
+            if (sp.GetService<IConfiguration>() is { } configuration)
+                ConfigureDestinationSettings(sbp, configuration);
+
             return sbp;
         }, addAsDefaultIEventPublisher);
+
+    /// <summary>
+    /// Applies destination-specific session settings from configuration.
+    /// </summary>
+    private static void ConfigureDestinationSettings(ServiceBusPublisher publisher, IConfiguration configuration)
+    {
+        foreach (var section in configuration.GetSection("CoreEx:Host:ServiceBus:Destinations").GetChildren())
+        {
+            ServiceBusSessionStrategy? strategy = null;
+            if (section["SessionIdStrategy"] is { } strategyValue)
+            {
+                if (!Enum.TryParse<ServiceBusSessionStrategy>(strategyValue, true, out var parsedStrategy) || !Enum.IsDefined(parsedStrategy))
+                    throw new InvalidOperationException($"The Service Bus destination '{section.Key}' has an invalid SessionIdStrategy value '{strategyValue}'.");
+
+                strategy = parsedStrategy;
+            }
+
+            var size = CoreEx.Abstractions.Internal.GetConfigurationValue<int?>($"{section.Path}:SessionIdPartitionSize", null, configuration);
+            if (size is not null)
+                size = PartitionKey.ValidatePartitionSize(size.Value);
+
+            if (!publisher.DestinationSettings.TryGetValue(section.Key, out var settings))
+                settings = new ServiceBusDestinationSettings();
+
+            settings.SessionIdStrategy = strategy ?? settings.SessionIdStrategy;
+            settings.SessionIdPartitionSize = size ?? settings.SessionIdPartitionSize;
+            publisher.DestinationSettings[section.Key] = settings;
+        }
+    }
 
     /// <summary>
     /// Adds a <b>singleton</b> Azure <see cref="ServiceBusSubscribedSubscriber"/> service.
@@ -66,15 +102,17 @@ public static class CoreExServiceBusExtensions
         /// Adds a <b>singleton</b> Azure <see cref="ServiceBusReceiver"/> service enabling ongoing fluent-style method-chaining registration.
         /// </summary>
         /// <param name="optionsFactory">The factory to create the required <see cref="CoreEx.Azure.Messaging.ServiceBus.ServiceBusReceiverOptions"/>.</param>
+        /// <param name="serviceKey">The optional service key for the receiver; required to be unique where more than one receiver of the same <see cref="ServiceBusSubscriberBase"/> type is registered (e.g. a topic subscription and a queue).</param>
         /// <returns>The <see cref="AzureServiceBusReceiverService"/> for fluent-style method-chaining.</returns>
-        public AzureServiceBusReceiverService WithReceiver(Func<IServiceProvider, CoreEx.Azure.Messaging.ServiceBus.ServiceBusReceiverOptions> optionsFactory) => new(new(_services, null, optionsFactory));
+        public AzureServiceBusReceiverService WithReceiver(Func<IServiceProvider, CoreEx.Azure.Messaging.ServiceBus.ServiceBusReceiverOptions> optionsFactory, object? serviceKey = null) => new(new(_services, serviceKey, optionsFactory));
 
         /// <summary>
         /// Adds a <b>singleton</b> Azure <see cref="ServiceBusSessionReceiver"/> service enabling ongoing fluent-style method-chaining registration.
         /// </summary>
         /// <param name="optionsFactory">The factory to create the required <see cref="CoreEx.Azure.Messaging.ServiceBus.ServiceBusSessionReceiverOptions"/>.</param>
+        /// <param name="serviceKey">The optional service key for the receiver; required to be unique where more than one receiver of the same <see cref="ServiceBusSubscriberBase"/> type is registered (e.g. a topic subscription and a queue).</param>
         /// <returns>The <see cref="AzureServiceBusSessionReceiverService"/> for fluent-style method-chaining.</returns>
-        public AzureServiceBusSessionReceiverService WithSessionReceiver(Func<IServiceProvider, CoreEx.Azure.Messaging.ServiceBus.ServiceBusSessionReceiverOptions> optionsFactory) => new(new(_services, null, optionsFactory));
+        public AzureServiceBusSessionReceiverService WithSessionReceiver(Func<IServiceProvider, CoreEx.Azure.Messaging.ServiceBus.ServiceBusSessionReceiverOptions> optionsFactory, object? serviceKey = null) => new(new(_services, serviceKey, optionsFactory));
 
         /// <summary>
         /// Holds the state (<see cref="IServiceCollection"/>, service key and options factory) shared by both the queue/topic and session receiver-service registration builders, so it is captured once rather

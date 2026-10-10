@@ -39,18 +39,22 @@ This document provides detailed explanations of CoreEx capabilities and common p
     - [SQL Server](#sql-server)
     - [PostgreSQL](#postgresql)
     - [ADO.NET Command & Parameter Extensions](#adonet-command--parameter-extensions)
+    - [Transient Failure Retry](#transient-failure-retry)
     - [Entity Framework Integration](#entity-framework-integration)
 - [Messaging & Events](#messaging--events)
     - [EventData Abstraction](#eventdata-abstraction)
     - [CloudEvent Interoperability](#cloudevent-interoperability)
     - [Publish + Subscribe Patterns](#publish--subscribe-patterns)
     - [Azure Service Bus Integration](#azure-service-bus-integration)
+    - [Event vs. Command Destination Routing](#event-vs-command-destination-routing)
     - [Outbox Relay](#outbox-relay-with-partitioning)
     - [Workflow Orchestration (Durable Task SDK + DTS)](#workflow-orchestration-durable-task-sdk--dts)
 - [Domain-Driven Design](#domain-driven-design)
     - [Aggregate & Entity Modeling](#aggregate--entity-modeling)
     - [Value Objects](#value-objects)
     - [Integration Events Only](#integration-events-only)
+- [Testing](#testing)
+    - [End-to-End Testing with Aspire](#end-to-end-testing-with-aspire)
 - [Putting It All Together](#putting-it-all-together-a-typical-request-flow)
 - [Summary](#summary)
 
@@ -776,6 +780,16 @@ var cmd = connection.CreateCommand("SELECT * FROM [Products] WHERE Id = @Id")
 
 Safer, more readable, less repetitive.
 
+### Transient Failure Retry
+
+**Pattern:** Opt-in, per-invocation retry of database operations that fail with a transient error.
+
+`IDatabase.IsTransientException(Exception)` classifies whether a failure is worth retrying; it returns `false` by default. `SqlServerDatabase` overrides it to treat deadlocks, lock timeouts, stale-plan recompiles, and Azure SQL Database throttling/failover/connectivity error codes as transient.
+
+Retrying is **off by default** (blind retry is only safe where the operation is read-only or idempotent). Opt in per invocation by setting `RetryOnTransient = true` on the database args (`DatabaseArgsBase`). The default pipeline is 3 attempts with exponential backoff starting at 2 seconds.
+
+Only exceptions already classified as transient are retried; anything else is rethrown immediately. Supply `RetryResiliencePipeline` to control attempts/backoff; classification always stays with `IsTransientException`.
+
 ### Entity Framework Integration
 
 **Pattern:** CoreEx works with EF Core repositories and unit-of-work patterns.
@@ -887,6 +901,21 @@ Handles:
 - Partition affinity (partition key = session ID for ordered processing).
 
 In this repository, Azure Service Bus is the **default initial broker implementation** because the sample relay/subscriber hosts are wired around it. The surrounding event model is broader than that specific broker choice: `EventData` is transport-oriented rather than Service Bus-specific.
+
+### Event vs. Command Destination Routing
+
+**Pattern:** Events fan out to every interested domain; commands are addressed to exactly one.
+
+`IDestinationProvider` resolves where a message goes. `FixedDestinationProvider` sends everything to one destination. `NamedDestinationProvider` (`AddNamedDestinationProvider()`) distinguishes the message type:
+
+| Message type | Destination | Example |
+|---|---|---|
+| Event | The shared destination (topic) | `contoso` |
+| Command | A per-domain queue named `{Destination}-{domain}` | `contoso-products` |
+
+A command with a `null`/empty target domain is self-addressed to the host's own domain (`IHostSettings.DomainName`). The `Destination` defaults from the `CoreEx:Events:Destination` configuration key.
+
+On the receiving side a single Subscribe host can host multiple receivers (for example the events topic subscription plus its own command queue) using the keyed `WithReceiver`/`WithSessionReceiver` and `WithKeyedSubscribedSubscriber` support. A command is only ever consumed by the domain that owns it.
 
 ### Outbox Relay (with Partitioning)
 
@@ -1059,6 +1088,25 @@ _mediator.Publish(new ProductCreatedDomainEvent(...)); // In-process
 ```
 
 **Why:** Keep services decoupled and independent. If you need cross-domain orchestration, use integration events and let services react asynchronously.
+
+---
+
+## Testing
+
+### End-to-End Testing with Aspire
+
+**Pattern:** Self-host the whole Aspire AppHost from an NUnit test and drive real cross-domain flows.
+
+`CoreEx.UnitTesting` builds on `UnitTestEx.Aspire` (`WithAspireTester<TAppHost>`) so an E2E test starts every host itself, with no need for Aspire to already be running. Intra-domain tests still use real infrastructure with inter-domain calls mocked; the Aspire tests are where the domains genuinely talk to each other.
+
+`DistributedApplication` helpers reset state from code in `OnBeforeStartAsync`:
+- `MigrateSqlServerDataAsync` / `MigratePostgresDataAsync` — migrate and seed the databases.
+- `ClearRedisCacheAsync` — clear the Redis cache.
+- `ResetAzureServiceBusAsync` — recreate the Service Bus emulator queues, topics and subscriptions.
+
+AppHost extensions: `AddEndpoints`, `AddHostedServiceSupport` and `DisableHttpCertificateValidation`. Third-party HTTP dependencies (e.g. SendGrid) are stubbed by a WireMock-based `MockHost` project rather than called for real.
+
+The `coreex-aspire` template generates the AppHost, `MockHost` and `Test.Aspire` projects. See [`samples/docs/aspire.md`](../samples/docs/aspire.md) for the Contoso implementation.
 
 ---
 

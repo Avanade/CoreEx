@@ -15,7 +15,7 @@ reference data, validation, and data access — into a consistent, composable ba
 - ✅ Multi-domain .NET service topologies (microservices, event-driven, hexagonal architecture)
 - ✅ Teams that want opinionated, pattern-aligned scaffolding from day one
 - ✅ Organisations that need consistent HTTP/event behaviour across many services
-- ✅ Projects using Entity Framework Core + SQL Server or PostgreSQL
+- ✅ Projects using Entity Framework Core + SQL Server or PostgreSQL, or Azure Cosmos DB
 - ✅ Solutions that publish domain events with transactional guarantees (outbox pattern)
 - ⚠️ Not a general-purpose framework — CoreEx is intentionally opinionated; teams wanting full
   flexibility over error handling, HTTP response shaping, and event publishing will be constrained
@@ -33,7 +33,7 @@ reference data, validation, and data access — into a consistent, composable ba
 | `CoreEx.EntityFrameworkCore` | EF Core integration, typed CRUD, `ValueConverter` bridges |
 | `CoreEx.RefData` | Typed reference data with hybrid-cache-backed orchestrator |
 | `CoreEx.Caching.FusionCache` | `IHybridCache` backed by ZiggyCreatures FusionCache (L1/L2 + Redis backplane) |
-| `CoreEx.Cosmos` | **Preview — newly added; API surface may still change without following strict semver until it stabilizes.** Typed Azure Cosmos DB access: `CosmosDbContainer<TModel>`/`CosmosDbMappedContainer<TValue,TModel,TMapper>` for CRUD + query with ETag/multi-tenancy/logical-delete support, a `TransactionalBatch`-based transactional outbox, and a Change Feed Processor-based outbox relay |
+| `CoreEx.Cosmos` | Typed Azure Cosmos DB access: `CosmosDbContainer<TModel>`/`CosmosDbMappedContainer<TValue,TModel,TMapper>` for CRUD + query with ETag/multi-tenancy/logical-delete support, a `TransactionalBatch`-based transactional outbox, and a Change Feed Processor-based outbox relay |
 | `CoreEx.Data` | OData-esque dynamic querying (`QueryArgs`/`PagingArgs`/`QueryArgsConfig`), `ItemsResult<T>` |
 | `CoreEx.Data.GraphQL` | Transport-agnostic GraphQL-lite bridge (`IGraphQLEngine`) over `CoreEx.Data` querying + `JsonFilter` field projection; hosted via `CoreEx.AspNetCore`'s `MapCoreExGraphQLLite` |
 | `CoreEx.UnitTesting` | Fluent test toolkit: event assertions, outbox assertions, JSON seed data |
@@ -69,8 +69,9 @@ Rules that are easy to violate and cause real breakage or wrong choices:
 
 - **`GlobalUsings.cs`** — every project has a single `GlobalUsings.cs` at the project root; all `using` statements go there, never in individual source files. The Roslyn code generator emits no `using` statements and depends on this.
 - **`AwesomeAssertions` not FluentAssertions** — tests use the `AwesomeAssertions` NuGet package. Do not reach for FluentAssertions.
-- **Polyglot data** — Products uses PostgreSQL (`CoreEx.Database.Postgres`); Shopping uses SQL Server (`CoreEx.Database.SqlServer`). Do not assume SQL Server when working on Products, and do not mix outbox/publisher helpers across domains.
+- **Polyglot data** — Products uses PostgreSQL (`CoreEx.Database.Postgres`); Shopping uses SQL Server (`CoreEx.Database.SqlServer`); Customers uses Azure Cosmos DB (`CoreEx.Cosmos`). Do not assume SQL Server when working on Products, do not assume EF Core/DbEx in Cosmos domains, and do not mix outbox/publisher helpers across domains.
 - **No AutoMapper** — do not introduce AutoMapper. All mapping is explicit via `Mapper<>` (application layer) or `BiDirectionMapper<>` (infrastructure layer).
+- **Aspire external infrastructure** — use `CoreEx.UnitTesting`'s `AddExternalConnectionString` extension (`UnitTestEx` namespace) for visible graph nodes, preserving connection names and Compose lifecycle ownership. Plain `AddConnectionString(name)` creates parameter-only nodes excluded from Aspire 13.5.4's Graph/Table views. Cosmos's configured `AccountEndpoint` is exposed as a credential-free resource URL for trace matching. Node status reflects configuration resolution, not connectivity; hosts own readiness probes. See [Aspire guidance](./samples/docs/aspire.md).
 - **`.ConfigureAwait(false)`** — always use it in service and repository code.
 - **File-scoped namespaces** — `namespace Foo.Bar;` only; never block-scoped `namespace Foo.Bar { }`.
 - **Query materialization across data-access packages** — a new data-access package (e.g. `CoreEx.Cosmos`, a future `CoreEx.MongoDb`) should not materialize queries via `IQueryable<T>` extension methods named with a bare, generic-sounding verb (`ToListAsync`, `ToItemsResultAsync`, `ToMappedItemsAsync`, etc.) if another CoreEx package (or a third-party one, e.g. `Microsoft.EntityFrameworkCore`) already defines an identically-shaped one on the same receiver type. C# extension-method resolution has no precedence rule between two equally-applicable candidates from different namespaces — it is a hard `CS0121` ambiguous-call compile error in any file that imports both namespaces, not merely a style clash. The preferred fix is a package-owned query-wrapper type (e.g. `CoreEx.Cosmos`'s `CosmosDbQuery<TModel>`, returned from `CosmosDbContainer<TModel>.Query(...)` instead of a bare `IQueryable<TModel>`) so materializers are instance methods on that type — a different receiver type structurally cannot collide, so plain names (`ToListAsync`, `ToItemsResultAsync`, ...) are safe there; see [`CoreEx.Cosmos/AGENTS.md`](./src/CoreEx.Cosmos/AGENTS.md#do-not) for the worked example. Only fall back to prefixing with the provider name (`ToCosmosListAsync`, `ToCosmosItemsResultAsync`, ...) if a package genuinely must expose `IQueryable<T>` extensions directly instead of owning a wrapper type.
@@ -130,8 +131,8 @@ This installs:
 - `.github/skills/` — the CoreEx skill suite: `coreex-bootstrap`, `coreex-docs-sync`, `coreex-scaffold`, the L1 skills
   (`coreex-contract`, `coreex-refdata`, `coreex-db-migration`, `coreex-repository`, `coreex-adapter`,
   `coreex-app-service`, `coreex-validator`, `coreex-policy`, `coreex-aggregate`, `coreex-api`, `coreex-subscriber`,
-  `coreex-test-api`, `coreex-test-subscribe`, `coreex-test-relay`), and the L2 end-to-end skills
-  (`coreex-api-e2e`, `coreex-subscriber-e2e`)
+  `coreex-test-api`, `coreex-test-subscribe`, `coreex-test-relay`, `coreex-aspire`), and the L2 end-to-end skills
+  (`coreex-api-e2e`, `coreex-subscriber-e2e`, `coreex-command-publish-e2e`, `coreex-command-subscribe-e2e`)
 - `.github/agents/coreex-expert.agent.md` — architecture guidance agent
 - `.github/docs/coreex/` — the architecture docs + per-package guides cache, self-describing via
   `.github/docs/coreex/manifest.txt` (refresh later, version-pinned, with `/coreex-docs-sync`)

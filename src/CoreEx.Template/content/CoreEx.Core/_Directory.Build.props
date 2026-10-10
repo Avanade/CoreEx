@@ -4,5 +4,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
+    <!--#if implement-cosmos-->
+    <!-- Microsoft.Azure.Cosmos's default serializer is Newtonsoft.Json-based unless the caller configures UseSystemTextJsonSerializerWithOptions (the hosts and CoreEx.UnitTesting do) - Newtonsoft.Json itself is not required. -->
+    <AzureCosmosDisableNewtonsoftJsonCheck>true</AzureCosmosDisableNewtonsoftJsonCheck>
+    <!--#endif-->
   </PropertyGroup>
 </Project>

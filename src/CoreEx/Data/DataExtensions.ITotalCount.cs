@@ -70,7 +70,7 @@ public static partial class DataExtensions
         {
             source.WithTotalCount(await totalCount(cancellationToken).ConfigureAwait(false));
         }
-        catch (Exception ex)
+        catch (Exception ex) when (!ex.IsCanceledBy(cancellationToken)) // A requested cancellation must flow, not be swallowed as an unknown count.
         {
             WithTotalCountException(ex);
         }

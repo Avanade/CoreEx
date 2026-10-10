@@ -12,28 +12,44 @@ namespace Contoso.Products.Application.Repositories;
 public partial interface IReferenceDataRepository
 {
     /// <summary>Gets all <see cref="Brand"/> items.</summary>
-    /// <returns>The <see cref="BrandCollection"/>.</returns>
     Task<BrandCollection> GetAllBrandsAsync(CancellationToken cancellationToken = default);
 
     /// <summary>Gets all <see cref="Category"/> items.</summary>
-    /// <returns>The <see cref="CategoryCollection"/>.</returns>
     Task<CategoryCollection> GetAllCategoriesAsync(CancellationToken cancellationToken = default);
 
     /// <summary>Gets all <see cref="MovementKind"/> items.</summary>
-    /// <returns>The <see cref="MovementKindCollection"/>.</returns>
     Task<MovementKindCollection> GetAllMovementKindsAsync(CancellationToken cancellationToken = default);
 
     /// <summary>Gets all <see cref="MovementStatus"/> items.</summary>
-    /// <returns>The <see cref="MovementStatusCollection"/>.</returns>
     Task<MovementStatusCollection> GetAllMovementStatusesAsync(CancellationToken cancellationToken = default);
 
     /// <summary>Gets all <see cref="SubCategory"/> items.</summary>
-    /// <returns>The <see cref="SubCategoryCollection"/>.</returns>
     Task<SubCategoryCollection> GetAllSubCategoriesAsync(CancellationToken cancellationToken = default);
 
     /// <summary>Gets all <see cref="UnitOfMeasure"/> items.</summary>
-    /// <returns>The <see cref="UnitOfMeasureCollection"/>.</returns>
     Task<UnitOfMeasureCollection> GetAllUnitsOfMeasureAsync(CancellationToken cancellationToken = default);
+
+    #region Brand
+
+    /// <summary>Gets the specified <see cref="Brand"/>.</summary>
+    Task<Result<Contracts.Brand>> GetBrandAsync(string id, CancellationToken cancellationToken = default);
+
+    /// <summary>Creates the <see cref="Brand"/>.</summary>
+    Task<Result<DataResult<Contracts.Brand>>> CreateBrandAsync(Contracts.Brand value, CancellationToken cancellationToken = default);
+
+    /// <summary>Updates the <see cref="Brand"/>.</summary>
+    Task<Result<DataResult<Contracts.Brand>>> UpdateBrandAsync(string id, Contracts.Brand value, CancellationToken cancellationToken = default);
+
+    /// <summary>Activates the <see cref="Brand"/>.</summary>
+    Task<Result<DataResult<Contracts.Brand>>> ActivateBrandAsync(string id, CancellationToken cancellationToken = default);
+
+    /// <summary>Deactivates the <see cref="Brand"/>.</summary>
+    Task<Result<DataResult<Contracts.Brand>>> DeactivateBrandAsync(string id, CancellationToken cancellationToken = default);
+
+    /// <summary>Deletes the specified <see cref="Brand"/>.</summary>
+    Task<Result<DataResult>> DeleteBrandAsync(string id, CancellationToken cancellationToken = default);
+
+    #endregion
 }
     
 #nullable restore

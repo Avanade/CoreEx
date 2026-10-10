@@ -1,5 +1,7 @@
 using Contoso.Shopping.Application;
+using Contoso.Shopping.Infrastructure.Clients.Customers;
 using Contoso.Shopping.Infrastructure.Clients.Products;
+using Contoso.Shopping.Infrastructure.Clients.SendGrid;
 using Contoso.Shopping.Infrastructure.Repositories;
 using Contoso.Shopping.Subscribe.Subscribers;
 using CoreEx.Azure.Messaging.ServiceBus;
@@ -7,6 +9,7 @@ using Microsoft.Extensions.Options;
 using OpenTelemetry;
 using OpenTelemetry.Trace;
 using StackExchange.Redis;
+using System.Net.Http.Headers;
 using ZiggyCreatures.Caching.Fusion;
 using ZiggyCreatures.Caching.Fusion.Backplane.StackExchangeRedis;
 
@@ -32,7 +35,7 @@ public class Program
             .AddHostedServiceManager();
 
         // Add all the dynamically registered services.
-        builder.Services.AddDynamicServicesUsing<ProductModifySubscriber, ReferenceDataService, ReferenceDataRepository>();
+        builder.Services.AddDynamicServicesUsing<ProductModifySubscriber, ReferenceDataProvider, ReferenceDataRepository>();
 
         // Add L1/L2 caching services.
         builder.Services.AddMemoryCache();              // Adds the in-memory cache - L1.
@@ -70,6 +73,7 @@ public class Program
         // Add event formatter and subscribed-manager.
         builder.Services
             .AddEventFormatter()                                                               // Adds the EventFormatter to enable message parsing.
+            .AddNamedDestinationProvider()                 // Adds the NamedDestinationProvider; events to the shared topic, commands to per-domain queues.
             .AddSubscribedManager((_, c) => c.AddSubscribersUsing<ProductModifySubscriber>()); // Adds the SubscribedManager and dynamically links to the individual Subscribers.
 
         // Creates the Azure Service Bus receiving services builder.
@@ -86,6 +90,9 @@ public class Program
 
         // Add external API services.
         builder.AddTypedHttpClient<ProductsHttpClient>("ProductsApi");
+        builder.AddTypedHttpClient<CustomersHttpClient>("CustomersApi");
+        builder.AddTypedHttpClient<SendGridHttpClient>("SendGrid", client => client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", builder.Configuration["SendGrid:ApiKey"]));
+        builder.Services.Configure<SendGridOptions>(builder.Configuration.GetSection("SendGrid"));
 
         // Post-configure all health-checks; adds the standard tags.
         builder.Services.PostConfigureAllHealthChecks();

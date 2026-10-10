@@ -5,21 +5,81 @@ public partial class MutateTests
     [Test]
     public void Basket_Create()
     {
+        MockCustomerWithAddress();
+
         var basket = Test.Http<Basket>()
             .ExpectIdentifier()
             .ExpectChangeLogCreated()
             .ExpectETag()
             .ExpectJsonFromResource("Basket_Create.res.json", _pathsToIgnore)
             .ExpectSqlServerOutboxEvents(e => e.AssertWithValue("contoso", "contoso.shopping.basket.created.v1"))
-            .Run(HttpMethod.Post, $"/api/customers/{1004.ToGuid()}/baskets")
+            .Run(HttpMethod.Post, $"/api/customers/{CustomerWithAddressId}/baskets")
             .AssertCreated()
             .AssertLocationHeader(b => new Uri($"/api/baskets/{b!.Id}", UriKind.Relative))
             .Value!;
+
+        _mockHttpCustomerWithAddress.Verify();
+
+        // The shipping address is defaulted from the customer.
+        basket.ShippingAddress.Should().BeEquivalentTo(new Address { Street1 = "1 Test Street", City = "Springfield", PostCode = "49007", State = "IL" });
 
         Test.Http()
             .Run(HttpMethod.Get, $"/api/baskets/{basket.Id}")
             .AssertOK()
             .AssertValue(basket);
+    }
+
+    [Test]
+    public void Basket_Create_NoCustomerAddress()
+    {
+        MockCustomerNoAddress();
+
+        var basket = Test.Http<Basket>()
+            .ExpectSqlServerOutboxEvents(e => e.AssertWithValue("contoso", "contoso.shopping.basket.created.v1"))
+            .Run(HttpMethod.Post, $"/api/customers/{CustomerNoAddressId}/baskets")
+            .AssertCreated()
+            .Value!;
+
+        _mockHttpCustomerNoAddress.Verify();
+
+        basket.CustomerId.Should().Be(CustomerNoAddressId);
+        basket.ShippingAddress.Should().BeNull();
+    }
+
+    [Test]
+    public void Basket_Create_CustomerCached()
+    {
+        // The first create invokes the Customers API; the customer is then cached.
+        MockCustomerNoAddress();
+
+        Test.Http()
+            .ExpectSqlServerOutboxEvents()
+            .Run(HttpMethod.Post, $"/api/customers/{CustomerNoAddressId}/baskets")
+            .AssertCreated();
+
+        _mockHttpCustomerNoAddress.Verify();
+
+        // The customer is no longer available remotely; the second create must succeed by using the cached customer.
+        _mockHttpCustomerNoAddress.Respond.With(HttpStatusCode.NotFound);
+
+        Test.Http()
+            .ExpectSqlServerOutboxEvents()
+            .Run(HttpMethod.Post, $"/api/customers/{CustomerNoAddressId}/baskets")
+            .AssertCreated();
+    }
+
+    [Test]
+    public void Basket_Create_CustomerNotFound()
+    {
+        _mockHttpCustomerNotFound.Respond.With(HttpStatusCode.NotFound);
+
+        Test.Http()
+            .ExpectNoSqlServerOutboxEvents()
+            .Run(HttpMethod.Post, $"/api/customers/{CustomerNotFoundId}/baskets")
+            .AssertBadRequest()
+            .AssertErrors(new ApiError("customerId", "Customer was not found."));
+
+        _mockHttpCustomerNotFound.Verify();
     }
 
     [Test]
@@ -83,9 +143,11 @@ public partial class MutateTests
     [Test]
     public void Basket_Update_ShippingAddress()
     {
+        MockCustomerNoAddress();
+
         var v = Test.Http<Basket>()
             .ExpectSqlServerOutboxEvents()
-            .Run(HttpMethod.Post, $"/api/customers/{1004.ToGuid()}/baskets")
+            .Run(HttpMethod.Post, $"/api/customers/{CustomerNoAddressId}/baskets")
             .AssertCreated()
             .Value!;
 
@@ -156,7 +218,7 @@ public partial class MutateTests
         v = Test.Http<Basket>()
             .ExpectChangeLogUpdated()
             .ExpectSqlServerOutboxEvents(e => e.AssertWithValue("contoso", "contoso.shopping.basket.checkedout.v1")
-                                               .AssertMetadata("contoso", "contoso.products.reservation.confirm", v.Id))
+                                               .AssertMetadata("contoso-products", "contoso.products.reservation.confirm", v.Id))
             .Run(HttpMethod.Post, $"/api/baskets/{v.Id}/checkout")
             .AssertOK()
             .Value!;
@@ -219,7 +281,7 @@ public partial class MutateTests
         Test.Http()
             .OnEventPublish(SqlServerOutboxPublisher.DefaultServiceKey, () => throw new InvalidOperationException("Simulated failure during save; oh no, we all ready reserved inventory!"))
             .ExpectNoSqlServerOutboxEvents()
-            .ExpectAzureServiceBusEvents(e => e.AssertMetadata("contoso", "contoso.products.reservation.cancel", id))
+            .ExpectAzureServiceBusEvents(e => e.AssertMetadata("contoso-products", "contoso.products.reservation.cancel", id))
             .Run(HttpMethod.Post, $"/api/baskets/{id}/checkout")
             .AssertInternalServerError();
 
