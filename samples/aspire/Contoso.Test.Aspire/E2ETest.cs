@@ -26,8 +26,8 @@ public partial class E2ETest : WithAspireTester<Projects.Contoso_Aspire>
 
     protected override async Task OnAfterStartAsync(DistributedApplication app)
     {
-        // Wait for the Products, Shopping and Customers APIs to be ready before running the tests.
-        await app.WaitForResourceAsync([_productsApi, _shoppingApi, _customersApi, "customers-relay"]);
+        // Wait for every host used by the asynchronous checkout flow before running the tests.
+        await app.WaitForResourceAsync([_productsApi, _shoppingApi, _customersApi, "products-relay", "products-subscribe", "shopping-relay", "shopping-subscribe", "customers-relay"]);
 
         // Mock the SendGrid API so that the Shopping domain's Subscribe project can send emails without actually sending them.
         await app.HttpMock("mock-host", "http").Request(HttpMethod.Post, "/v3/mail/send").WithAnyBody().Respond.WithAsync(HttpStatusCode.Accepted);
@@ -161,18 +161,20 @@ public partial class E2ETest : WithAspireTester<Projects.Contoso_Aspire>
 
         movements.Should().HaveCount(2);    // One of the items is not stocked, so only two movements should be created for the two items that were successfully reserved.
 
+        const int maxConfirmationAttempts = 60;
         var attempt = 0;
         while (movements.Single(m => m.ProductId == product.Id).StatusCode != MovementStatus.Confirmed)
         {
-            Test.Delay(1000, $"Waiting for the Product's inventory movement to be confirmed (via the Products domain's outbox and Service Bus); iteration {attempt + 1}.");
+            if (attempt == maxConfirmationAttempts)
+                Assert.Fail($"Inventory movement confirmation timed out after {maxConfirmationAttempts} polls: BasketId='{basket.Id}', ProductId='{product.Id}', StatusCode='{movements.Single(m => m.ProductId == product.Id).StatusCode}'. Expected path: Shopping outbox -> Shopping Relay -> contoso-products command queue -> Products Subscribe.");
+
+            Test.Delay(1000, $"Waiting for the Product's inventory movement to be confirmed (via Shopping's outbox, Relay, and the Products command subscriber); iteration {attempt + 1} of {maxConfirmationAttempts}.");
             movements = Test.Http<Movement[]>(_productsApi)
                 .Run(HttpMethod.Get, "/api/inventory/movements", r => r.WithQuery($"referenceid eq '{basket.Id}'"))
                 .AssertOK()
                 .Value!;
 
             attempt++;
-            if (attempt > 10)
-                Assert.Fail("The Product's inventory movement was not confirmed after 10 attempts.");
         }
 
         Test.Checkpoint("The Product's inventory movement was successfully confirmed - you little beauty!");

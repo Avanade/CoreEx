@@ -185,6 +185,8 @@ dotnet run --project samples/src/Contoso.Orders.Api
 
 Intra-domain host tests (`*.Test.Api`, `*.Test.Subscribe`, `*.Test.Relay`) start their own in-process test host — they do not require any host process to be running. Infrastructure containers must still be up.
 
+Orders API uses HTTPS port `7330` and HTTP port `5330`; the E2E Runner targets `https://localhost:7330`. Keep fixed development ports outside Windows' default dynamic TCP range (`49152`-`65535`), where changing port reservations can prevent Aspire's proxy from binding. Restart the AppHost and runner after changing their endpoint configuration.
+
 ---
 
 ## Running with Aspire (cross-domain E2E)
