@@ -13,6 +13,12 @@ namespace CoreEx.Cosmos;
 public sealed class CosmosDbChangeTracker
 {
     private readonly ConcurrentDictionary<(string ContainerId, Type ModelType, string PartitionKey, string Id), byte[]> _snapshots = new();
+#if NET8_0
+    private readonly object _lock = new();
+#else
+    private readonly Lock _lock = new();
+#endif
+    private readonly Dictionary<(string ContainerId, string PartitionKey, string Id), object> _versions = new();
 
     /// <summary>
     /// Gets the number of tracked (snapshotted) documents.
@@ -22,7 +28,29 @@ public sealed class CosmosDbChangeTracker
     /// <summary>
     /// Clears (evicts) all tracked documents.
     /// </summary>
-    public void Clear() => _snapshots.Clear();
+    public void Clear()
+    {
+        lock (_lock)
+        {
+            _snapshots.Clear();
+            _versions.Clear();
+        }
+    }
+
+    /// <summary>
+    /// Captures the document version before a read starts.
+    /// </summary>
+    internal object CaptureVersion(string containerId, PartitionKey partitionKey, string id)
+    {
+        lock (_lock)
+        {
+            var key = (containerId, partitionKey.ToString(), id);
+            if (!_versions.TryGetValue(key, out var version))
+                _versions.Add(key, version = new object());
+
+            return version;
+        }
+    }
 
     /// <summary>
     /// Attempts to get a fresh copy of the snapshotted model.
@@ -42,8 +70,17 @@ public sealed class CosmosDbChangeTracker
     /// <summary>
     /// Snapshots the <paramref name="model"/>.
     /// </summary>
-    internal void Set<TModel>(JsonSerializerOptions options, string containerId, PartitionKey partitionKey, string id, TModel model) where TModel : class
-        => _snapshots[(containerId, typeof(TModel), partitionKey.ToString(), id)] = JsonSerializer.SerializeToUtf8Bytes(model, options);
+    /// <remarks>The captured version must still be current; eviction or clearing invalidates in-flight reads.</remarks>
+    internal void Set<TModel>(JsonSerializerOptions options, string containerId, PartitionKey partitionKey, string id, TModel model, object version) where TModel : class
+    {
+        var bytes = JsonSerializer.SerializeToUtf8Bytes(model, options);
+        var pk = partitionKey.ToString();
+        lock (_lock)
+        {
+            if (_versions.TryGetValue((containerId, pk, id), out var current) && ReferenceEquals(version, current))
+                _snapshots[(containerId, typeof(TModel), pk, id)] = bytes;
+        }
+    }
 
     /// <summary>
     /// Evicts the document (for all model types) from the tracker.
@@ -51,10 +88,14 @@ public sealed class CosmosDbChangeTracker
     internal void Remove(string containerId, PartitionKey partitionKey, string id)
     {
         var pk = partitionKey.ToString();
-        foreach (var key in _snapshots.Keys)
+        lock (_lock)
         {
-            if (key.ContainerId == containerId && key.PartitionKey == pk && key.Id == id)
-                _snapshots.TryRemove(key, out _);
+            _versions.Remove((containerId, pk, id));
+            foreach (var key in _snapshots.Keys)
+            {
+                if (key.ContainerId == containerId && key.PartitionKey == pk && key.Id == id)
+                    _snapshots.TryRemove(key, out _);
+            }
         }
     }
 }

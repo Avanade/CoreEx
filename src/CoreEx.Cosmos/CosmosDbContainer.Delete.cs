@@ -142,6 +142,10 @@ public partial class CosmosDbContainer<TModel>
                 // A delete is considered idempotent; a 'not found' is not an error.
                 return Result.Ok(DataResult.False);
             }
+            finally
+            {
+                EvictFromChangeTracker(partitionKey, id);
+            }
         }
 
         // Fast path: nothing is configured for CheckModel to check (no ITenantId/IReadOnlyTenantId support, no logical delete, no WithFilter registrations, no WithTypeDiscriminator configuration) AND

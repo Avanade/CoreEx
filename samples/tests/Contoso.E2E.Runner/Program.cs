@@ -67,7 +67,7 @@ void DisplayBannerAndConfig()
         new Panel(
             new Markup($"{(status.ProductApiOk ? "[green]:check_mark:[/] " : "[red]:cross_mark:[/]")} [grey]Products API:[/] {context.ProductsHttpClient.BaseAddress?.ToString().EscapeMarkup()}\n"
             + $"{(status.ShoppingApiOk ? "[green]:check_mark:[/] " : "[red]:cross_mark:[/]")} [grey]Shopping API:[/] {context.ShoppingHttpClient.BaseAddress?.ToString().EscapeMarkup()}\n"
-            + $"{(status.ShoppingApiOk ? "[green]:check_mark:[/] " : "[red]:cross_mark:[/]")} [grey]Shopping API:[/] {context.ShoppingHttpClient.BaseAddress?.ToString().EscapeMarkup()}\n"
+            + $"{(status.CustomersApiOk ? "[green]:check_mark:[/] " : "[red]:cross_mark:[/]")} [grey]Customers API:[/] {context.CustomersHttpClient.BaseAddress?.ToString().EscapeMarkup()}\n"
             + $"{(status.OrdersApiOk ? "[green]:check_mark:[/] " : "[red]:cross_mark:[/]")} [grey]Orders API:[/] {context.OrdersHttpClient.BaseAddress?.ToString().EscapeMarkup()}"))
             .Header("[bold]API status:[/]")
             .BorderColor(Color.Grey)

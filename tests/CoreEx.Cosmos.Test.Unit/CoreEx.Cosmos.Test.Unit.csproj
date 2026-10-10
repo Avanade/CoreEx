@@ -8,6 +8,8 @@
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
     <TestTfmsInParallel>false</TestTfmsInParallel>
+    <SignAssembly>true</SignAssembly>
+    <AssemblyOriginatorKeyFile>../../strong-name-key.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
 
   <ItemGroup>

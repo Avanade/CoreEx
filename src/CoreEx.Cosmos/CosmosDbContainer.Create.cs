@@ -76,7 +76,15 @@ public partial class CosmosDbContainer<TModel>
                 return Result.Ok(new DataResult<TModel>(model, true));
             }
 
-            var response = await Container.CreateItemAsync(model, partitionKey, BuildItemRequestOptions(args), cancellationToken).ConfigureAwait(false);
+            ItemResponse<TModel> response;
+            try
+            {
+                response = await Container.CreateItemAsync(model, partitionKey, BuildItemRequestOptions(args), cancellationToken).ConfigureAwait(false);
+            }
+            finally
+            {
+                EvictFromChangeTracker(partitionKey, Options.FormatIdentifier(Options.GetKeyFromModel(model)));
+            }
 
             // Refresh as required (rarely needed given the SDK already returns the persisted resource).
             var pr = await RefreshPostMutationAsync(args, response.Resource, partitionKey, memberName, cancellationToken).ConfigureAwait(false);

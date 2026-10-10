@@ -100,14 +100,15 @@ public partial class CosmosDbContainer<TModel>
             if (serializerOptions is not null && !args.ClearChangeTrackerAfterGet && args.ItemRequestOptions is null && tracker.TryGet<TModel>(serializerOptions, Container.Id, partitionKey, id, out var tracked))
                 return CheckModel(args, tracked, OperationType.Get, treatNullAsNotFound);
 
+            var version = serializerOptions is not null && !args.ClearChangeTrackerAfterGet ? tracker.CaptureVersion(Container.Id, partitionKey, id) : null;
             try
             {
                 var response = await Container.ReadItemAsync<TModel>(id, partitionKey, BuildItemRequestOptions(args), cancellationToken).ConfigureAwait(false);
 
                 if (args.ClearChangeTrackerAfterGet)
                     tracker.Remove(Container.Id, partitionKey, id);
-                else if (serializerOptions is not null && response.Resource is not null)
-                    tracker.Set(serializerOptions, Container.Id, partitionKey, id, response.Resource);
+                else if (serializerOptions is not null && response.Resource is not null && version is not null)
+                    tracker.Set(serializerOptions, Container.Id, partitionKey, id, response.Resource, version);
 
                 return CheckModel(args, response.Resource, OperationType.Get, treatNullAsNotFound);
             }
