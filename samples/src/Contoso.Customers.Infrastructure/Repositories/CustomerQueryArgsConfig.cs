@@ -10,7 +10,7 @@ public class CustomerQueryArgsConfig : QueryArgsConfig<CustomerQueryArgsConfig>
         WithFilter(filter => filter
             .AddField<string>(nameof(Contracts.CustomerBase.FirstName), c => c.WithOperators(QueryFilterOperator.StringFunctions).AsUpperCase())
             .AddField<string>(nameof(Contracts.CustomerBase.LastName), c => c.WithOperators(QueryFilterOperator.StringFunctions).AsUpperCase())
-            .AddField<string>(nameof(Contracts.CustomerBase.Email), c => c.WithOperators(QueryFilterOperator.StringFunctions).AsUpperCase())
+            .AddField<string>(nameof(Contracts.CustomerBase.Email), c => c.WithOperators(QueryFilterOperator.EqualityOperators | QueryFilterOperator.StringFunctions).AsUpperCase())
             .AddReferenceDataField<Contracts.CustomerType>(nameof(Contracts.CustomerBase.CustomerType), "CustomerTypeCode"));
 
         WithOrderBy(orderby => orderby
