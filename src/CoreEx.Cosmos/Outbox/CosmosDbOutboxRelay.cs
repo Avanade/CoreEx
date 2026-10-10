@@ -61,8 +61,8 @@ public sealed class CosmosDbOutboxRelay : IAsyncDisposable
         if (Options.BatchSize is not null)
             builder = builder.WithMaxItems(Options.BatchSize.Value);
 
-        if (Options.StartTime is not null)
-            builder = builder.WithStartTime(Options.StartTime.Value);
+        // The SDK defaults fresh leases to "now", which would skip an existing outbox backlog.
+        builder = builder.WithStartTime(Options.StartTime ?? DateTime.SpecifyKind(DateTime.MinValue, DateTimeKind.Utc));
 
         return builder.Build();
     }

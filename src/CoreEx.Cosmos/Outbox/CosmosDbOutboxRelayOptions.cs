@@ -45,8 +45,8 @@ public sealed class CosmosDbOutboxRelayOptions
     public int? BatchSize { get; set; }
 
     /// <summary>
-    /// Gets or sets the start time; where not specified, the Change Feed Processor's own default applies (confirmed empirically to mean "from the beginning" for a brand-new lease with no prior checkpoint, so
-    /// a first-ever relay startup does not silently skip a pre-existing outbox backlog).
+    /// Gets or sets the start time; where not specified, the relay explicitly reads from the beginning for a brand-new lease with no prior checkpoint so a first-ever startup or container-reset recovery
+    /// does not skip a pre-existing outbox backlog. Existing lease checkpoints take precedence; an explicit start time intentionally excludes earlier events on a fresh lease.
     /// </summary>
     public DateTime? StartTime { get; set; }
 

@@ -476,6 +476,50 @@ public class CosmosDbOutboxRelayTests : CosmosTestBase
     private const string ResetLeaseContainerId = "relay-reset-items-leases";
 
     [Test]
+    public async Task Relay_FirstStart_PublishesExistingOutboxBacklog()
+    {
+        const string containerId = "relay-backlog-items";
+        const string leaseContainerId = "relay-backlog-items-leases";
+        await TestDatabase.ReplaceOrCreateContainerAsync(new ContainerProperties(containerId, "/partitionKey")).ConfigureAwait(false);
+        await TestDatabase.ReplaceOrCreateContainerAsync(new ContainerProperties(leaseContainerId, "/id")).ConfigureAwait(false);
+
+        var cosmosDb = CreateCosmosDb();
+        var container = cosmosDb.Container<TestItem>(containerId, o => o.WithPartitionKey(m => m.PartitionKey));
+        var unitOfWork = new CosmosDbUnitOfWork(cosmosDb, new CosmosDbEventPublisher(cosmosDb));
+        var pk = NewId();
+        await unitOfWork.TransactionAsync(async ct =>
+        {
+            var created = await container.CreateAsync(new TestItem { Id = NewId(), PartitionKey = pk, Name = "ExistingBacklog" }, ct).ConfigureAwait(false);
+            unitOfWork.Events.Add(EventData.CreateEventWith(created.Value, EventAction.Created).WithSource(new Uri("https://unittest/coreex-cosmos", UriKind.Absolute)).WithPartitionKey(pk));
+        }).ConfigureAwait(false);
+
+        // Separate the write from startup beyond Cosmos's timestamp granularity.
+        await Task.Delay(TimeSpan.FromSeconds(2)).ConfigureAwait(false);
+
+        var testPublisher = new TestEventPublisher();
+        using var sp = CreateServiceProvider(testPublisher);
+        var processor = new CosmosDbOutboxRelayProcessor(sp, containerId, NullLogger<CosmosDbOutboxRelayProcessor>.Instance);
+        var options = new CosmosDbOutboxRelayOptions
+        {
+            ContainerId = containerId,
+            LeaseContainerId = leaseContainerId,
+            InstanceName = $"instance-{NewId()}",
+            PollInterval = TimeSpan.FromMilliseconds(200)
+        };
+
+        await using var relay = new CosmosDbOutboxRelay(cosmosDb.Database, options, processor, NullLogger<CosmosDbOutboxRelay>.Instance);
+        await relay.StartAsync().ConfigureAwait(false);
+        await WaitUntilAsync(HasPublished, TimeSpan.FromSeconds(30)).ConfigureAwait(false);
+        HasPublished().Should().BeTrue("a fresh lease must not skip outbox events written before relay startup");
+
+        bool HasPublished()
+        {
+            lock (testPublisher.Published)
+                return testPublisher.Published.Any(e => e.Event.Data?.ToString()?.Contains("ExistingBacklog") ?? false);
+        }
+    }
+
+    [Test]
     public async Task Relay_ContainersReplacedWhileRunning_SelfRecoversAndRelaysSubsequentEvents()
     {
         // Regression: a provisioning reset (delete + recreate; e.g. CosmosDbProvisionCommand.Reset) of the monitored and lease containers while the relay was running left the Change Feed Processor bound to
