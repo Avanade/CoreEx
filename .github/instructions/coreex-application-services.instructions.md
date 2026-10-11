@@ -463,6 +463,8 @@ var result = await new ProductPolicy(_productAdapter).EnsureExistsAsync(productI
 
 ## Application-Level Mapping
 
+For collection projections, follow [Mapper Projection Nullability](/.github/instructions/coreex-conventions.instructions.md#mapper-projection-nullability); preserve the lambda selectors in the examples below.
+
 When a domain has a Domain layer, an `Application/Mapping/` sub-folder holds mappers that translate between the **Domain aggregate** and the **Contract**. This mapping is an Application-layer concern because it sits at the public surface boundary — it is not tied to any persistence technology.
 
 Use `Mapper<TSource, TDest, TSelf>` (uni-directional). Mappers are **not registered in DI** — call them via the static `Map()` method directly at the point of use (see [DI Registration Principle](#di-registration-principle) below):

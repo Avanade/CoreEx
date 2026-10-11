@@ -352,6 +352,8 @@ public Task<Result<Domain.Basket>> CreateAsync(Domain.Basket basket, Cancellatio
 
 ## Mapping
 
+For collection projections through `.To.Map` / `.From.Map`, follow [Mapper Projection Nullability](/.github/instructions/coreex-conventions.instructions.md#mapper-projection-nullability).
+
 > **GlobalUsing requirement:** Mappers are declared in the `<Domain>.Infrastructure.Mapping` namespace but referenced elsewhere in the project (repositories, adapters, `*EfDb`). Whenever you add a Contract ↔ Persistence mapper, ensure `global using <Domain>.Infrastructure.Mapping;` is present in the Infrastructure project's `GlobalUsing.cs` — add it if missing. This prevents avoidable compilation errors when other classes reference the mapper (e.g. `ProductMapper.Default`).
 
 The `Mapping/` sub-folder contains **bidirectional mappers** between Contract types and Persistence model types. Extend `BiDirectionMapper<TFrom, TTo, TSelf>` — do not use AutoMapper or reflection-based conventions:

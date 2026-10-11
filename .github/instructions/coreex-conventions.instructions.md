@@ -27,6 +27,22 @@ Every project must have `Nullable` and `ImplicitUsings` enabled. For consuming p
 
 Nullable warnings are treated as errors. Never suppress a nullable warning with the null-forgiving operator (`!`) without a clear reason in a comment.
 
+## Mapper Projection Nullability
+
+When projecting through a CoreEx mapper with `[return: NotNullIfNotNull(nameof(source))]` into a collection of non-nullable elements, use a lambda that calls the mapper rather than an inferred method-group selector. `Select(Mapper.Map)` can infer a nullable result element type from the declared return type; the lambda lets nullable flow analysis apply the conditional return contract to each argument:
+
+```csharp
+// Correct when source.Items has non-nullable elements.
+Items = [.. source.Items.Select(i => BasketItemMapper.Map(i))]
+
+// Avoid: inferred nullable result elements can produce CS8604 at the collection spread.
+Items = [.. source.Items.Select(BasketItemMapper.Map)]
+```
+
+The same rule applies to bidirectional mapper selectors: use `x => ProductMapper.To.Map(x)` / `x => ProductMapper.From.Map(x)`. Do not simplify these lambdas into method groups. This is a conditional-nullability inference rule, not a general ban on method groups.
+
+If source elements are nullable, a lambda still returns nullable elements: preserve nulls in a nullable destination or explicitly guard them according to the intended behavior. Do not add `!`, warning suppression, or null-dropping filters merely to hide the warning; `Where(x => x is not null)` also does not change the sequence's nullable element type.
+
 ## Global Usings
 
 Every project has a single `GlobalUsing.cs` at the project root that declares all namespace imports. Do not add `using` statements to individual source files.
