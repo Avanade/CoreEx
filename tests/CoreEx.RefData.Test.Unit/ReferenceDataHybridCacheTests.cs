@@ -230,4 +230,43 @@ public partial class ReferenceDataOrchestratorTests
 
         callCount.Should().Be(2, "the stale value loaded before the removal must have been evicted");
     }
+
+    [Test]
+    public async Task RemoveAsync_WaitsForLoadFromAnotherScopedCache_ThenEvictsStaleValue()
+    {
+        // The default cache registration is scoped, so independent cache instances must still coordinate their load and removal.
+        var backing = new Caching.MemoryOnlyHybridCache();
+        var loadingCache = new ReferenceDataHybridCache(backing);
+        var removingCache = new ReferenceDataHybridCache(backing);
+        var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var callCount = 0;
+
+        async Task<IReferenceDataCollection> Factory(Type t, CancellationToken ct)
+        {
+            Interlocked.Increment(ref callCount);
+            started.TrySetResult();
+            await release.Task.ConfigureAwait(false);
+            return new DummyRefDataCollection { new DummyRefData { Id = 1, Code = "A" } };
+        }
+
+        var load = loadingCache.GetOrCreateAsync(typeof(DummyRefDataCollection), Factory);
+        await started.Task;
+
+        var remove = removingCache.RemoveAsync(typeof(DummyRefDataCollection));
+        var removalWaitedForLoad = !remove.IsCompleted;
+
+        release.SetResult();
+        await load;
+        await remove;
+
+        await removingCache.GetOrCreateAsync(typeof(DummyRefDataCollection), (t, ct) =>
+        {
+            Interlocked.Increment(ref callCount);
+            return Task.FromResult<IReferenceDataCollection>(new DummyRefDataCollection { new DummyRefData { Id = 1, Code = "A" } });
+        });
+
+        removalWaitedForLoad.Should().BeTrue("removal through another scoped cache must wait for the in-flight load");
+        callCount.Should().Be(2, "the stale value loaded before removal must have been evicted");
+    }
 }

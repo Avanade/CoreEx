@@ -6,13 +6,9 @@ namespace CoreEx.RefData;
 /// <param name="cache">The underlying <see cref="IHybridCache"/>.</param>
 public partial class ReferenceDataHybridCache(IHybridCache cache) : IReferenceDataCache
 {
-    private readonly ConcurrentDictionary<string, SemaphoreSlim> _semaphores = new();
+    // IReferenceDataCache is scoped, so the gate must be shared across instances to cover concurrent requests.
+    private static readonly ConcurrentDictionary<string, SemaphoreSlim> _semaphores = new();
     private readonly ConcurrentDictionary<Type, HybridCacheEntryOptions> _entryOptions = new();
-#if NET8_0
-    private readonly object _lock = new();
-#else
-    private readonly Lock _lock = new();
-#endif
 
     /// <summary>
     /// Gets the underlying <see cref="IHybridCache"/>.
@@ -69,7 +65,7 @@ public partial class ReferenceDataHybridCache(IHybridCache cache) : IReferenceDa
     }
 
     /// <inheritdoc/>
-    /// <remarks>The removal is performed under the same per-key semaphore as the load, so any in-flight load completes (and is then evicted) rather than repopulating the cache with stale data after the removal.</remarks>
+    /// <remarks>The removal is performed under the same process-wide per-key semaphore as cache loads, including loads in other request scopes. Any in-flight load completes (and is then evicted) rather than repopulating the cache with stale data after the removal.</remarks>
     public async Task RemoveAsync(Type type, CancellationToken cancellationToken = default)
     {
         var key = $"RefData:{(Internal.GetNamespaceFormattedName(type))}";
@@ -89,14 +85,7 @@ public partial class ReferenceDataHybridCache(IHybridCache cache) : IReferenceDa
     /// <summary>
     /// Gets or adds the <see cref="SemaphoreSlim"/> used to manage single concurrency for the specified cache <paramref name="key"/>.
     /// </summary>
-    private SemaphoreSlim GetSemaphore(string key)
-    {
-        // A lock is also needed to absolutely ensure only a single semaphore is _ever_ created per type/key.
-        lock (_lock)
-        {
-            return _semaphores.GetOrAdd(key, _ => new SemaphoreSlim(1, 1));
-        }
-    }
+    private static SemaphoreSlim GetSemaphore(string key) => _semaphores.GetOrAdd(key, _ => new SemaphoreSlim(1, 1));
 
     /// <summary>
     /// Registers the <see cref="HybridCacheEntryOptions"/> for the specified <typeparamref name="TRefColl"/>.

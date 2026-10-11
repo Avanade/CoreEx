@@ -193,9 +193,10 @@ public static partial class Extensions
     /// <param name="ex">The <see cref="Exception"/>.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that the cancellation must be attributable to.</param>
     /// <returns><see langword="true"/> indicates canceled by the <paramref name="cancellationToken"/>; otherwise, <see langword="false"/>.</returns>
-    /// <remarks>Unlike <see cref="IsCanceled(Exception)"/> (which matches <i>any</i> cancellation regardless of source), this distinguishes an operation's own cancellation (e.g. a host shutdown or client disconnect, which
+    /// <remarks>A non-cancelable token (such as <see cref="CancellationToken.None"/>) cannot identify the cancellation source and always returns <see langword="false"/>. Otherwise, unlike
+    /// <see cref="IsCanceled(Exception)"/> (which matches <i>any</i> cancellation regardless of source), this distinguishes an operation's own cancellation (e.g. a host shutdown or client disconnect, which
     /// should typically bubble up unclassified) from an unrelated cancellation elsewhere in the call stack (e.g. an inner <see cref="System.Net.Http.HttpClient"/> timeout using its own <see cref="CancellationTokenSource"/>).</remarks>
     [DebuggerStepThrough]
     public static bool IsCanceledBy(this Exception ex, CancellationToken cancellationToken)
-        => (ex is OperationCanceledException oce && oce.CancellationToken == cancellationToken) || (ex is AggregateException aex && aex.InnerException is not null && aex.InnerException.IsCanceledBy(cancellationToken));
+        => cancellationToken.CanBeCanceled && ((ex is OperationCanceledException oce && oce.CancellationToken == cancellationToken) || (ex is AggregateException aex && aex.InnerException is not null && aex.InnerException.IsCanceledBy(cancellationToken)));
 }

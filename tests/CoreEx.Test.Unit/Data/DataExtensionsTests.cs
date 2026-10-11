@@ -167,6 +167,14 @@ public class DataExtensionsTests
     }
 
     [Test]
+    public async Task WithTotalCountAsync_TokenlessCancellationWithDefaultToken_IsSwallowed()
+    {
+        var result = await new PagingResult(PagingArgs.CreateWithCount()).WithTotalCountAsync(_ => Task.FromException<long?>(new OperationCanceledException()), CancellationToken.None);
+
+        result.TotalCount.Should().BeNull();
+    }
+
+    [Test]
     public async Task WithTotalCountAsync_WithCancellationToken_PassesTokenThrough()
     {
         using var cts = new CancellationTokenSource();

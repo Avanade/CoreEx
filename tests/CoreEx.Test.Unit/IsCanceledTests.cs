@@ -46,4 +46,12 @@ public class IsCanceledTests
         new InvalidOperationException().IsCanceledBy(cts.Token).Should().BeFalse();
         new AggregateException().IsCanceledBy(cts.Token).Should().BeFalse();
     }
+
+    [Test]
+    public void IsCanceledBy_DefaultToken_DoesNotMatchTokenlessCancellation()
+    {
+        new OperationCanceledException().IsCanceledBy(CancellationToken.None).Should().BeFalse();
+        new OperationCanceledException(CancellationToken.None).IsCanceledBy(CancellationToken.None).Should().BeFalse();
+        new AggregateException(new OperationCanceledException()).IsCanceledBy(CancellationToken.None).Should().BeFalse();
+    }
 }
