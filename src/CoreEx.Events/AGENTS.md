@@ -63,7 +63,7 @@ See [CoreEx.Azure.Messaging.ServiceBus](../CoreEx.Azure.Messaging.ServiceBus/REA
 
 An `IDestinationProvider` derives the topic/queue name for each published message. Register exactly one; the built-ins cover the common cases:
 
-- `AddNamedDestinationProvider()` (**default for new solutions**) — events go to the single shared destination (topic) read from `CoreEx:Events:Destination`; commands go to a per-target-domain queue named `{Destination}-{domain}` (e.g. `contoso-products`), so only the named domain consumes them. A command with no destination domain is self-addressed to the host domain.
+- `AddNamedDestinationProvider()` (**default for new solutions**) — events go to the single shared destination (topic) read from `CoreEx:Events:Destination`; commands go to a per-target-domain queue named `{Destination}-{domain}` (e.g. `contoso-products`), so only the named domain consumes them. A command with no destination domain is self-addressed to the host domain. Both explicit and defaulted command domains use invariant lowercase, keeping destination-specific session policy lookups consistent; the base destination and explicitly supplied destination names are unchanged.
 - `AddFixedDestinationProvider("name")` — every message (events and commands) goes to one fixed destination.
 
 For anything else, implement `IDestinationProvider` (`CreateFrom(EventData, bool)`, `CreateFrom(string, bool)`, `CreateNew(MessageType, string?, bool)`) and register it in place of the built-ins.

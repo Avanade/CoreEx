@@ -15,6 +15,7 @@ global using CoreEx.Json;
 global using CoreEx.Results;
 global using CoreEx.Schemas;
 global using CoreEx.Security;
+global using CoreEx.Text;
 global using CoreEx.Validation;
 global using Microsoft.Extensions.DependencyInjection;
 global using Microsoft.Extensions.Logging;

@@ -162,11 +162,13 @@ public class NamedDestinationProviderTests
         provider.CreateFrom(ed, true).Should().Be("fixed-dead-letter");
     }
 
-    [Test]
-    public void CreateFrom_EventData_Command_ShouldAppendDomainName()
+    [TestCase("shopping")]
+    [TestCase("Shopping")]
+    [TestCase("SHOPPING")]
+    public void CreateFrom_EventData_Command_ShouldAppendDomainName(string domainName)
     {
         var provider = new NamedDestinationProvider { Destination = "fixed" };
-        var ed = new EventData { MessageType = MessageType.Command, DomainName = "shopping" };
+        var ed = new EventData { MessageType = MessageType.Command, DomainName = domainName };
         provider.CreateFrom(ed).Should().Be("fixed-shopping");
     }
 
@@ -183,7 +185,8 @@ public class NamedDestinationProviderTests
     {
         SetHostSettings("Products");
         var provider = new NamedDestinationProvider { Destination = "fixed" };
-        provider.CreateFrom(new EventData { MessageType = MessageType.Command }).Should().Be("fixed-Products");
+        provider.CreateFrom(new EventData { MessageType = MessageType.Command }).Should().Be("fixed-products");
+        provider.CreateFrom(new EventData { MessageType = MessageType.Command }, true).Should().Be("fixed-products-dead-letter");
     }
 
     [Test]
@@ -226,9 +229,15 @@ public class NamedDestinationProviderTests
     public void CreateNew_Event_DeadLetter_ShouldAppendDeadLetter()
         => new NamedDestinationProvider { Destination = "fixed" }.CreateNew(MessageType.Event, "shopping", true).Should().Be("fixed-dead-letter");
 
-    [Test]
-    public void CreateNew_Command_WithDomainName_ShouldAppendDomainName()
-        => new NamedDestinationProvider { Destination = "fixed" }.CreateNew(MessageType.Command, "shopping").Should().Be("fixed-shopping");
+    [TestCase("shopping")]
+    [TestCase("Shopping")]
+    [TestCase("SHOPPING")]
+    public void CreateNew_Command_WithDomainName_ShouldAppendDomainName(string domainName)
+    {
+        var provider = new NamedDestinationProvider { Destination = "Fixed" };
+        provider.CreateNew(MessageType.Command, domainName).Should().Be("Fixed-shopping");
+        provider.CreateNew(MessageType.Command, domainName, true).Should().Be("Fixed-shopping-dead-letter");
+    }
 
     [Test]
     public void CreateNew_Command_WithDomainName_DeadLetter_ShouldAppendDomainNameThenDeadLetter()
@@ -240,8 +249,8 @@ public class NamedDestinationProviderTests
     {
         SetHostSettings("Products");
         var provider = new NamedDestinationProvider { Destination = "fixed" };
-        provider.CreateNew(MessageType.Command, domainName).Should().Be("fixed-Products");
-        provider.CreateNew(MessageType.Command, domainName, true).Should().Be("fixed-Products-dead-letter");
+        provider.CreateNew(MessageType.Command, domainName).Should().Be("fixed-products");
+        provider.CreateNew(MessageType.Command, domainName, true).Should().Be("fixed-products-dead-letter");
     }
 
     [Test]

@@ -199,6 +199,14 @@ Relational outbox writers and relay hosts must configure the same `CoreEx:Host:O
 
 The Service Bus size is a publisher-wide default. When destinations need different session profiles, use `CoreEx:Host:ServiceBus:Destinations:{destination}` with the exact resolved name (for example, Shopping targets the `contoso-products` command queue, so its override belongs under `Destinations:contoso-products`). Apply the profile in every host that publishes to the destination, including an outbox Relay. The bucket count groups producer keys; it does not set broker partitions or consumer concurrency. Keep `MaxConcurrentSessions` on the receiving host independently tuned.
 
+#### Changing partition and session mappings safely
+
+Relational outbox partition IDs are persisted on each row; changing `PartitionSize` does not remap existing rows. Each relay scans only its configured partition range, so shrinking that range before the backlog drains can strand older rows indefinitely. Preserve the effective size when migrating from the removed `CoreEx:Host:Services:OutboxRelay:PartitionSize` key to `CoreEx:Host:Outbox:PartitionSize`.
+
+For an intentional mapping change, pause affected producers and drain their outboxes using the old relay configuration before deploying the new size consistently to every writer and relay. Resume only after the configuration is aligned. The deterministic `$none` mapping for keyless events also changes their placement relative to older random routing; do not assume mixed old/new placement preserves ordering.
+
+Service Bus session strategy or bucket-count changes are a separate rollout: the same key can move to a different session, and mixed producer policies can break per-key ordering. Pause every affected producer, including direct broker publishers, drain upstream outboxes and the affected broker queues/subscriptions and in-flight handlers, then switch destination policies consistently before resuming. Changing receiver concurrency alone does not change the producer's key-to-session mapping.
+
 > The `Program.cs` for the Outbox Relay is intentionally minimal — no controllers, no OpenAPI document, no application-layer services. Its sole concern is shuttling committed outbox records to the broker reliably.
 
 ### Customers Cosmos relay

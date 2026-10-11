@@ -12,6 +12,7 @@ namespace CoreEx.Events.Publishing;
 /// <i>self-addressed</i>; that is, the <see cref="IHostSettings.DomainName"/> of the current host is used (matching the <see cref="EventFormatter"/> title defaulting). An <see cref="InvalidOperationException"/> is thrown where there is no <see cref="IHostSettings"/> available to resolve it.</description></item>
 /// <item><description>Any other <see cref="MessageType"/> (i.e. <see cref="MessageType.ReplyTo"/>) is not supported and will result in a <see cref="NotSupportedException"/>.</description></item>
 /// </list>
+/// <para>The command domain segment is normalized to invariant lowercase; the base destination and explicitly supplied destination names are unchanged.</para>
 /// <para>Where a dead-letter destination is requested, the <see cref="AppendSeparatorCharacter"/> and '<c>dead-letter</c>' are appended to the resulting name.</para>
 /// <para>Where not explicitly specified, the <see cref="Destination"/> will default to the value of the '<c>CoreEx:Events:Destination</c>' configuration setting, or '<c>default</c>' as a fallback.</para>
 /// </remarks>
@@ -29,6 +30,11 @@ public class NamedDestinationProvider : IDestinationProvider
     /// Gets the character used to separate the <see cref="Destination"/> from the <see cref="EventData.DomainName"/> (<see cref="MessageType.Command"/> messages only) and from the '<c>dead-letter</c>' suffix. Defaults to '<c>-</c>'.
     /// </summary>
     public char AppendSeparatorCharacter { get; init; } = '-';
+
+    /// <summary>
+    /// Gets or sets the <see cref="Func{T, TResult}"/> used to format the <see cref="EventData.DomainName"/> for use in the destination name. Defaults to <see cref="string.ToLowerInvariant"/>.
+    /// </summary>
+    public Func<string, string> DomainNameFormatter { get; init => field = value.ThrowIfNull(); } = dn => dn.ToLowerInvariant();
 
     /// <summary>
     /// Gets the base destination name (i.e. topic).
@@ -61,12 +67,12 @@ public class NamedDestinationProvider : IDestinationProvider
     /// <summary>
     /// Gets the command target domain name; defaults to the <see cref="IHostSettings.DomainName"/> (i.e. self-addressed) where not specified.
     /// </summary>
-    private static string GetCommandDomainName(string? domainName)
+    private string GetCommandDomainName(string? domainName)
     {
         if (!string.IsNullOrEmpty(domainName))
-            return domainName;
+            return DomainNameFormatter(domainName);
 
-        return ExecutionContext.GetService<IHostSettings>()?.DomainName
-            ?? throw new InvalidOperationException($"A domain name is required for '{nameof(MessageType.Command)}' messages where the {nameof(IHostSettings)}.{nameof(IHostSettings.DomainName)} is not available to default the (self-addressed) target domain.");
+        return DomainNameFormatter(ExecutionContext.GetService<IHostSettings>()?.DomainName
+            ?? throw new InvalidOperationException($"A domain name is required for '{nameof(MessageType.Command)}' messages where the {nameof(IHostSettings)}.{nameof(IHostSettings.DomainName)} is not available to default the (self-addressed) target domain."));
     }
 }
