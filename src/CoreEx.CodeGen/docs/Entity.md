@@ -35,7 +35,6 @@ Property | Description
 -|-
 **`route`** | The route suffix.<br/>&dagger; Defaults to `{Plural}` and root `{RouteConvention}` configuration.
 `attribute` | The optional API controller operation attribute.<br/>&dagger; This is the attribute applied as-is to the generated `ReferenceDataController` operation. This is useful for adding the likes of `[Authorize]`.
-`mutableAttribute` | The mutable API controller class attribute; defaults to `[Authorize]`.<br/>&dagger; A configured value replaces the default and is applied as-is to the generated `{Name}Controller` class. Use a policy/role or `[AllowAnonymous]` only when intentionally public.
 
 ## Repository
 Provides the configuration for the generated repository code.
@@ -62,6 +61,7 @@ Property | Description
 -|-
 `mutability` | The reference-data entity mutability. Valid options are: `None`, `CreateUpdate`, `CreateUpdateDelete`.<br/>&dagger; Defaults to `None`. Requires a `Repository` of `EntityFramework` or `Cosmos`.
 `validator` | The validator type name used during mutability operations.<br/>&dagger; Defaults to `ReferenceDataValidator<{Name}>`. Must have a default constructor.
+`mutableAttribute` | The mutable API controller class attribute.<br/>&dagger; Defaults to `[Authorize]`. A configured value replaces the default attribute applied as-is to the generated `{Name}Controller` class.
 
 ## Exclude
 Provides the configuration for code generation exclusion.
