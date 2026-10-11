@@ -501,6 +501,10 @@ $testScenarios = @(
                 "src/App.Api/Program.cs"          = "AddNamedDestinationProvider"
                 "src/App.Subscribe/Program.cs"    = "WithKeyedSubscribedSubscriber"
                 "tests/App.Test.Common/ServiceBus.cs" = "CreateTopicOptions"
+                "aspire/App.Test.Aspire/HostTests.cs" = "must report healthy"
+            }
+            FileNotContains = @{
+                "aspire/App.Test.Aspire/HostTests.cs" = "BeOneOf"
             }
             FilesAbsent = @(
                 # Extensions.cs was superseded by CoreEx.UnitTesting's Aspire extension methods (UnitTestExExtensions.Aspire.cs).

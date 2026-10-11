@@ -181,7 +181,7 @@ internal sealed class NSwagOpenApiOperationProcessor(OpenApiOptions options) : I
     }
 
     /// <summary>
-    /// Applies the <see cref="NonNullableAttribute"/> to the schema for the <paramref name="type"/> and recursively to the types of its properties.
+    /// Applies the <see cref="NonNullableAttribute"/> to the schema for the <paramref name="type"/> and recursively to its generic arguments and property types.
     /// </summary>
     private void ApplyNotNull(AspNetCoreOperationProcessorContext context, Type? type, HashSet<Type> visited)
     {
@@ -200,19 +200,17 @@ internal sealed class NSwagOpenApiOperationProcessor(OpenApiOptions options) : I
             return;
         }
 
-        // Framework types (including collection, dictionary and task wrappers) have nothing to mark up; only their generic arguments can.
-        if (type.IsEnum || type.IsPrimitive || type.Namespace is null || IsFrameworkNamespace(type.Namespace, "System") || IsFrameworkNamespace(type.Namespace, "Microsoft"))
-        {
-            if (type.IsGenericType)
-            {
-                foreach (var arg in type.GetGenericArguments())
-                    ApplyNotNull(context, arg, visited);
-            }
-
+        if (!visited.Add(type))
             return;
+
+        if (type.IsGenericType)
+        {
+            foreach (var arg in type.GetGenericArguments())
+                ApplyNotNull(context, arg, visited);
         }
 
-        if (!visited.Add(type))
+        // Framework types have nothing to mark up beyond their generic arguments.
+        if (type.IsEnum || type.IsPrimitive || type.Namespace is null || IsFrameworkNamespace(type.Namespace, "System") || IsFrameworkNamespace(type.Namespace, "Microsoft"))
             return;
 
         var schema = context.SchemaGenerator.Generate(type, context.SchemaResolver).ActualSchema;

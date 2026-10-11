@@ -12,6 +12,11 @@ public class OtherController(WebApi webApi) : ControllerBase
     [ProducesResponseType(204)]
     public IActionResult OptionalBody() => NoContent();
 
+    [HttpPost("non-nullable-map")]
+    [Accepts<CoreEx.Entities.DataMap<NonNullableMapValue>>]
+    [ProducesResponseType(204)]
+    public IActionResult NonNullableMap() => NoContent();
+
     [HttpGet("messages")]
     [ProducesResponseType(204)]
     public IActionResult Messages()

@@ -40,31 +40,31 @@ public class HostTests : WithAspireTester<Projects.solution-name-underscore_Aspi
 // #if has-api
     [TestCase("/health/live")]
     [TestCase("/health/ready")]
-    public void Api_Health(string path)
-    {
-        Test.Http("domain-name-lower-api")
-            .Run(HttpMethod.Get, path)
-            .Response.StatusCode.Should().BeOneOf(HttpStatusCode.OK, HttpStatusCode.ServiceUnavailable);
-    }
+    public Task Api_Health(string path) => AssertHealthyAsync("domain-name-lower-api", path);
 // #endif
 
 // #if has-relay
     [Test]
-    public void Relay_Health()
-    {
-        Test.Http("domain-name-lower-relay")
-            .Run(HttpMethod.Get, "/health/ready")
-            .Response.StatusCode.Should().BeOneOf(HttpStatusCode.OK, HttpStatusCode.ServiceUnavailable);
-    }
+    public Task Relay_Health() => AssertHealthyAsync("domain-name-lower-relay", "/health/ready");
 // #endif
 
 // #if has-subscribe
     [Test]
-    public void Subscribe_Health()
-    {
-        Test.Http("domain-name-lower-subscribe")
-            .Run(HttpMethod.Get, "/health/ready")
-            .Response.StatusCode.Should().BeOneOf(HttpStatusCode.OK, HttpStatusCode.ServiceUnavailable);
-    }
+    public Task Subscribe_Health() => AssertHealthyAsync("domain-name-lower-subscribe", "/health/ready");
 // #endif
+
+    private async Task AssertHealthyAsync(string resourceName, string path)
+    {
+        for (var attempt = 0; attempt < 60; attempt++)
+        {
+            var response = Test.Http(resourceName).Run(HttpMethod.Get, path);
+            if (response.Response.StatusCode != HttpStatusCode.ServiceUnavailable || attempt == 59)
+            {
+                response.Response.StatusCode.Should().Be(HttpStatusCode.OK, $"{resourceName} {path} must report healthy");
+                return;
+            }
+
+            await Task.Delay(TimeSpan.FromSeconds(1));
+        }
+    }
 }

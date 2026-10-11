@@ -145,6 +145,21 @@ public class OtherApiTests : WithApiTester<Api.Program>
         props.GetProperty("lastName").GetProperty("nullable").GetBoolean().Should().BeTrue();
     }
 
+    [Test]
+    public void Swagger_JSON_NonNullableAttribute_DataMapValue_NotNullable()
+    {
+        var json = Test.Http()
+            .Run(HttpMethod.Get, "/swagger/v1/swagger.json")
+            .Assert(HttpStatusCode.OK)
+            .GetContent();
+
+        using var doc = JsonDocument.Parse(json!);
+        var props = doc.RootElement.GetProperty("components").GetProperty("schemas").GetProperty("NonNullableMapValue").GetProperty("properties");
+
+        props.GetProperty("requiredCode").GetProperty("nullable").GetBoolean().Should().BeFalse();
+        props.GetProperty("optionalCode").GetProperty("nullable").GetBoolean().Should().BeTrue();
+    }
+
     [TestCase("/health/live")]
     [TestCase("/health/startup")]
     [TestCase("/health/ready")]
