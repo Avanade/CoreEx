@@ -18,6 +18,11 @@ CoreEx now uses the `CoreEx.Template` `dotnet new` template pack for determinist
 | `/coreex-<capability>` | Skills (L1) | Add or change one building block (contract, repository, service, API, validator, etc.) | Guided, convention-aligned changes to an existing domain |
 | `/coreex-*-e2e` | Skills (L2) | Deliver a whole slice across layers, tests and Aspire | New entity, event subscriber, or command send/receive |
 | `/coreex-aspire` | Skill | Wire AppHost, `MockHost` and `Test.Aspire` end-to-end tests | Cross-domain E2E coverage |
+| `/coreex-bootstrap` | Skill | Initialize blank-repository guidance and chain to scaffold | First-time repository setup after `coreex-ai` |
+| `/coreex-scaffold` | Skill | Choose and execute the appropriate template commands | Guided greenfield scaffolding |
+| `/coreex-docs-sync` | Skill | Refresh the whole version-pinned AI bundle | After a CoreEx package version change |
+
+The consumer bundle ships 23 CoreEx skills (16 L1, four L2, bootstrap, scaffold and docs-sync). Generic `/acquire-codebase-knowledge` and `/aspire` are available in this framework repository but are not installed by `coreex-ai`. See the [complete asset inventory](../.github/coreex-ai-workflows.md#command-catalog).
 
 ---
 
@@ -38,6 +43,9 @@ CoreEx now uses the `CoreEx.Template` `dotnet new` template pack for determinist
 - `dotnet new coreex-api` adds an API host
 - `dotnet new coreex-relay` adds an outbox relay host
 - `dotnet new coreex-subscribe` adds a subscriber host
+- `dotnet new coreex-domain` adds an optional DDD layer
+- `dotnet new coreex-aspire` adds AppHost, MockHost and Test.Aspire projects
+- `dotnet new coreex-ai` installs the version-pinned AI workflow and documentation bundle
 
 **Output characteristics:**
 - Deterministic and repeatable
@@ -46,10 +54,13 @@ CoreEx now uses the `CoreEx.Template` `dotnet new` template pack for determinist
 
 **Example workflow:**
 ```
-dotnet new install CoreEx.Template
+dotnet new install CoreEx.Template::<version>
+dotnet new coreex-ai
 dotnet new coreex -n Avanade.Erp.Orders
 dotnet new coreex-api -n Avanade.Erp.Orders.Api
 ```
+
+Pin `<version>` to the project's CoreEx package version, or explicitly resolve and record a stable release for first-time adoption.
 
 ---
 
@@ -163,9 +174,9 @@ User: Ready to test Orders and Shopping domains together
 
 ### 5. `/coreex-*` Workflow Skills — Guided Capability Changes
 
-**Purpose:** Add or modify CoreEx building blocks in an existing solution by following the repo's instructions and sample patterns, rather than hand-editing from scratch. Each skill has a matching prompt (`/coreex-<name>`) for Copilot and Claude Code. The full catalog lives in [`.github/coreex-ai-workflows.md`](../.github/coreex-ai-workflows.md).
+**Purpose:** Add or modify CoreEx building blocks in an existing solution by following the repo's instructions and sample patterns, rather than hand-editing from scratch. All L1/L2 skills have a Copilot prompt and a Claude command wrapper (`/coreex-<name>`). The full catalog lives in [`.github/coreex-ai-workflows.md`](../.github/coreex-ai-workflows.md).
 
-**End-to-end (L2) skills that cover messaging and testing:**
+**End-to-end (L2) skills and their supporting Aspire (L1) skill:**
 
 | Skill | Use when |
 |---|---|

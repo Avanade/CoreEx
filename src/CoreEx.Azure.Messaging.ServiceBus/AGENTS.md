@@ -22,6 +22,8 @@ builder.Services.AddAzureServiceBusPublisher((_, c) =>
 
 `SessionIdPartitionSize` can be configured independently with `CoreEx:Host:ServiceBus:SessionIdPartitionSize` (default: `PartitionKey.DefaultPartitionSize`). Exact destination names can override `SessionIdStrategy` and/or `SessionIdPartitionSize` under `CoreEx:Host:ServiceBus:Destinations:{destination}`. Prefer stable entity keys and tune bounded bucketing only where the ordering/concurrency profile warrants it. Do not reuse the relational outbox setting: direct Service Bus publishing can bypass the outbox, and the two sizes control separate ordering and concurrency boundaries.
 
+Changing a destination's session strategy or bucket count can move the same key to a different session. A rolling deployment with mixed producer policies can therefore break per-key ordering. Pause all affected producers (including direct publishers), drain upstream outboxes and affected broker queues/subscriptions and in-flight handlers, then switch policies consistently before resuming. Changing receiver concurrency alone does not change the producer's key-to-session mapping.
+
 ## Subscribe Host Wiring
 
 ```csharp

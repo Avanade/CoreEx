@@ -21,8 +21,10 @@ Parameters are consistent across templates -- the same `--data-provider`, `--mes
 ## Installation
 
 ```sh
-dotnet new install CoreEx.Template
+dotnet new install CoreEx.Template::<version>
 ```
+
+Pin `<version>` to the project's referenced CoreEx NuGet version. For first-time adoption without a CoreEx reference, resolve the latest stable release explicitly and record that version.
 
 To verify:
 
@@ -33,7 +35,7 @@ dotnet new list --tag CoreEx
 To update after a new release:
 
 ```sh
-dotnet new update
+dotnet new install CoreEx.Template::<new-version>
 ```
 
 To uninstall:
@@ -48,10 +50,14 @@ dotnet new uninstall CoreEx.Template
 
 - `.github/instructions/coreex.instructions.md` -- CoreEx coding context (replaces `copilot-instructions.md`)
 - `.github/instructions/*.instructions.md` -- scoped coding conventions per layer/file type
-- `.github/prompts/coreex-scaffold.prompt.md` -- `/coreex-scaffold`: interviews for project needs and recommends the smallest safe `dotnet new coreex*` command set
+- `.github/skills/` -- 23 CoreEx skills: bootstrap, scaffold, docs-sync, 16 per-capability (L1) skills, and four end-to-end (L2) workflows
+- `.github/prompts/` -- 22 wrappers for bootstrap, scaffold, and all L1/L2 skills; docs-sync is invoked directly as a skill
 - `.github/agents/coreex-expert.agent.md` -- `/coreex-expert`: architecture guidance
 - `.claude/commands/coreex-expert.md` -- `/coreex-expert` for Claude Code
-- `.claude/commands/coreex-docs-sync.md` -- `/coreex-docs-sync`: refresh the local CoreEx doc cache after a version bump
+- `.claude/commands/` -- 24 commands: one per CoreEx skill plus expert guidance; `/coreex-docs-sync` refreshes the entire version-pinned bundle after a package version bump
+- `.github/docs/coreex/` -- 12 architecture/setup docs, 18 package guides, and `manifest.txt` recording the installed `coreex-version`
+
+The generic `acquire-codebase-knowledge` and `aspire` skills are framework-repository-only and are not emitted by `coreex-ai`. See the [full workflow inventory](../../.github/coreex-ai-workflows.md).
 
 **Recommended day-1 workflow:**
 
@@ -130,6 +136,7 @@ This template emits nothing but `.github/` and `.claude/` artefacts: no `AGENTS.
     coreex.instructions.md         # CoreEx coding context (applyTo: "**" or "<app-folder>/**")
     coreex-api-controllers.instructions.md
     coreex-application-services.instructions.md
+    coreex-aspire.instructions.md
     coreex-contracts.instructions.md
     coreex-conventions.instructions.md
     coreex-domain.instructions.md
@@ -140,15 +147,23 @@ This template emits nothing but `.github/` and `.claude/` artefacts: no `AGENTS.
     coreex-tooling.instructions.md
     coreex-validators.instructions.md
   prompts/
-    coreex-scaffold.prompt.md
+    coreex-*.prompt.md             # 22 wrappers: bootstrap, scaffold, and L1/L2 skills
+  skills/
+    coreex-*/SKILL.md              # 23 CoreEx skills, with references/assets where applicable
   agents/
     coreex-expert.agent.md
+  coreex-ai-workflows.md           # Command catalog and asset guidance
+  docs/coreex/
+    manifest.txt                  # Installed coreex-version
+    *.md                          # 12 architecture/setup docs
+    agents/*.md                   # 18 package guides
 .claude/
   commands/
     coreex-bootstrap.md            # /coreex-bootstrap blank-repo initialisation command
     coreex-scaffold.md             # /coreex-scaffold guided solution scaffolding command
     coreex-expert.md               # /coreex-expert architecture guidance command
-    coreex-docs-sync.md            # /coreex-docs-sync doc cache refresh command
+    coreex-docs-sync.md            # /coreex-docs-sync version-pinned AI bundle refresh
+    coreex-*.md                   # L1/L2 skill wrappers (24 commands total)
 ```
 
 ### `--app-folder` behaviour

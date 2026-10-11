@@ -12,7 +12,7 @@ _CoreEx_ helps teams build enterprise-grade back-end services faster — without
 
 Built-in AI support already knows _CoreEx_ patterns, conventions, and architecture — powering purpose-built skills and an expert agent that guide delivery toward production-grade, best-practice outcomes, consistently, every time.
 
-_CoreEx_ also addresses the recurring concerns that .NET leaves to each team to solve independently: shaping business rule failures into consistent HTTP responses, publishing and subscribing to domain events, implementing reference data with caching and validity, enforcing validation with structured error messages, and wiring data access across ADO.NET and Entity Framework Core with a shared unit-of-work model.
+_CoreEx_ also addresses the recurring concerns that .NET leaves to each team to solve independently: shaping business rule failures into consistent HTTP responses, publishing and subscribing to domain events and commands, implementing reference data with caching and validity, enforcing validation with structured error messages, and wiring data access across ADO.NET, Entity Framework Core, and Azure Cosmos DB with a shared unit-of-work model.
 
 The solution is composed of focused, independently consumable packages — `CoreEx` provides the shared runtime primitives, and each additional package (`CoreEx.AspNetCore`, `CoreEx.Events`, `CoreEx.Database`, `CoreEx.Validation`, etc.) adds a specific capability layer. Teams adopt only what they need.
 
@@ -44,10 +44,10 @@ The remainder of this README is organized into the following sections.
 
 _CoreEx_ is intended to be the foundational library for any business-service implementation — the motivation for adopting it comes down to four things:
 
-- **Value** — focus on business-value delivery; stop re-inventing the same foundational plumbing on every project.
-- **Velocity** — reduce cost and time-to-market by inheriting foundational capabilities rather than building them up-front.
-- **Consistency** — encapsulate complexity behind proven patterns so every service is familiar to build and predictable to run.
-- **Confidence** — improve quality and reduce delivery risk by leaning on capabilities that are already proven and tested.
+- **Value** — focus on business-value delivery; stop re-inventing the same foundational plumbing every time.
+- **Velocity** — reduce delivery time by pairing the framework with agentic AI that builds it for you.
+- **Consistency** — every service looks, builds, and behaves the same way, no matter who is on the team.
+- **Confidence** — improve quality and reduce delivery risk by leaning on capabilities that are proven and tested.
 
 ## Better Together
 
@@ -85,22 +85,27 @@ Here is a high-level overview of some of the key capabilities provided by _CoreE
 
 **Web / API**
 - 🌐 **ASP.NET Core Integration** — `WebApi` execution helpers for MVC and Minimal API, `ExecutionContext` scoping middleware, idempotency key handling (`[IdempotencyKey]`), and exception-to-`ProblemDetails` translation with consistent error response shaping.
-- 📋 **OpenAPI / NSwag** — `IOperationProcessor` that reads CoreEx MVC attributes (`[Paging]`, `[Query]`, `[Accepts]`, `[IdempotencyKey]`, `[ProducesNotFoundProblem]`) and injects the corresponding parameters, request bodies, and response entries into the generated OpenAPI specification.
+- 📋 **OpenAPI / NSwag** — `IOperationProcessor` that reads CoreEx MVC attributes (`[Paging]`, `[Query]`, `[Accepts]`, `[IdempotencyKey]`, `[ProducesNotFoundProblem]`) and injects the corresponding parameters, request bodies, and response entries into the generated OpenAPI specification; `[NonNullable]` describes mandatory nullable DTO properties correctly.
+- **Typed HTTP Clients** — Fluent response validation and cached-result helpers for domain adapters calling other services.
+- **GraphQL-lite** — An opt-in query bridge over existing `QueryArgsConfig` and paging, with JSON field projection rather than a separate resolver/filter implementation.
 
 **Data**
 - ✅ **Validation Framework** — Fluent, property-centric validator with composable rules, conditional clauses, async predicates, `RuleSet` grouping, base-validator include, FluentValidation interop bridge, and deep `ValidationException` / `ProblemDetails` integration.
 - 📊 **Data Access & OData-style Querying** — `QueryArgsConfig`, `QueryFilterParser`, and `QueryOrderByParser` for safe, explicitly-configured `$filter` and `$orderby` LINQ translation; query arguments, paging, partitioning, logical deletion, and `IUnitOfWork` transactional orchestration.
 - 🗄️ **Database & ORM** — `IDatabase` / `DatabaseCommand` ADO.NET abstraction with multi-result-set support, transactional outbox relay infrastructure, SQL Server and PostgreSQL implementations with OpenTelemetry metrics, and an Entity Framework Core integration layer with typed CRUD operations and `ValueConverter` bridges.
-- 📚 **Reference Data** — Typed `ReferenceData<TSelf>` / `ReferenceData<TId, TSelf>` base classes, thread-safe `Id`- and `Code`-indexed collections, hybrid-cache-backed orchestrator with per-type semaphore loading, contextual date-validity checking, and a code-serialization collection for wire-compatible reference-data properties.
+- **Azure Cosmos DB** — Typed CRUD/query access with ETags, multi-tenancy, logical deletion, scoped snapshot tracking, a transactional-batch outbox, and change-feed relaying with backlog replay on fresh leases.
+- 📚 **Reference Data** — Typed `ReferenceData<TSelf>` / `ReferenceData<TId, TSelf>` base classes, thread-safe collections, hybrid caching and date validity; opt-in generated mutation APIs backed by EF Core or Cosmos, with validation and post-commit cache invalidation.
 - ⚡ **Hybrid Caching** — `IHybridCache` abstraction with `FusionHybridCache` (ZiggyCreatures FusionCache) as the recommended implementation, providing L1/L2 hybrid storage and backplane-based cache invalidation.
 
 **Messaging**
 - 📨 **Event Publishing & Subscribing** — `EventData` ↔ CloudEvents formatting, a two-phase queue-then-publish pipeline, and configurable subscriber dispatch with per-subscriber structured error handling and dead-letter support.
-- 🚌 **Azure Service Bus** — `ServiceBusPublisher` implementing `IEventPublisher`, subscriber bases wired to `EventSubscriberBase`, and receiver hosts with built-in resiliency, OpenTelemetry metrics, and session support.
+- 🚌 **Azure Service Bus** — `ServiceBusPublisher` implementing `IEventPublisher`, named routing of commands to per-domain queues while events stay on a shared topic, keyed receivers, resiliency, OpenTelemetry metrics, and independently configurable per-destination session policies.
+- **Partitioning Boundaries** — Shared partition sizing across relational outbox writers and relays, deterministic keyless routing, and separate Service Bus session grouping; consumer concurrency and broker partitions are distinct concerns.
 
 **Tooling**
-- 🏗️ **Reference Data Code Generation** — Development-time `CoreEx.CodeGen` tooling that scaffolds the complete reference-data layer (contract, controller, service, repository interface, repository, and mapper) from a single schema-validated `ref-data.yaml` configuration file.
-- 🧪 **Testing Toolkit** — `CoreEx.UnitTesting` provides fluent value expectations, event-capture and outbox assertions (SQL Server, PostgreSQL, Azure Service Bus), JSON/YAML seed-data loading with placeholder substitution, and UnitTestEx bridge extensions covering every CoreEx subsystem.
+- 🏗️ **Reference Data Code Generation** — Development-time `CoreEx.CodeGen` tooling that scaffolds contracts, read providers/controllers, repositories and mappers, plus opt-in mutation services/controllers, from a single schema-validated `ref-data.yaml` configuration file.
+- **Provisioning & Scaffolding** — Composable `CoreEx.Template` solution/host/AI templates, relational database lifecycle tooling, and a Cosmos provisioning console for declared containers and seed data.
+- 🧪 **Testing Toolkit** — `CoreEx.UnitTesting` provides fluent expectations, event/outbox assertions (SQL Server, PostgreSQL, Cosmos, Azure Service Bus), JSON/YAML seeds, and Aspire E2E lifecycle helpers with real cross-domain hosts and a WireMock host for third-party HTTP.
 
 ## Patterns in Practice
 
@@ -174,7 +179,7 @@ The repository includes [Contoso reference samples](./samples/README.md) that im
 
 > **AI agents:** see [AGENTS.md](./AGENTS.md) for a structured CoreEx summary and the consumer cold-start installation steps.
 
-The repository includes an AI workflow set in [`.github/`](./.github/) that gives GitHub Copilot and Claude Code authoritative knowledge of CoreEx patterns, conventions, and architecture — no need to explain CoreEx to the tool each time. The artefacts can also be copied into a consuming project.
+The repository includes an AI workflow set in [`.github/`](./.github/) that gives GitHub Copilot and Claude Code authoritative knowledge of CoreEx patterns, conventions, and architecture — no need to explain CoreEx to the tool each time. Install the consumer bundle with `dotnet new coreex-ai` from a `CoreEx.Template::<version>` release matching the project's CoreEx packages; instructions, skills, commands, agent, and cached docs stay on one version.
 
 **Agent** — `coreex-expert` provides architecture guidance, pattern recommendations, and design reviews aligned to the sample implementations. See the [agent README](./.github/agents/README.md) for the resolution flowchart and local doc cache design.
 
@@ -183,7 +188,7 @@ The repository includes an AI workflow set in [`.github/`](./.github/) that give
 | Command | What it does | Claude Code | GitHub Copilot Chat |
 |---------|-------------|-------------|---------------------|
 | [Expert guidance](./.github/agents/README.md) | Architecture, pattern, and design advice | `@coreex-expert` | Agent mode → **CoreEx Expert** |
-| [CoreEx.Template](./src/CoreEx.Template/README.md) | Deterministic solution and host scaffolding via `dotnet new coreex*` templates | `dotnet new install CoreEx.Template` then `dotnet new coreex...` | Run the same `dotnet new` commands in the terminal |
+| [CoreEx.Template](./src/CoreEx.Template/README.md) | Deterministic solution and host scaffolding via `dotnet new coreex*` templates | `dotnet new install CoreEx.Template::<version>` then `dotnet new coreex...` | Run the same `dotnet new` commands in the terminal |
 | [`coreex-ai`](./src/CoreEx.Template/README.md#template-1----coreex-ai-ai-workflow-assets) | Installs this AI workflow set — agents, skills, prompts, instructions — into any repository | `dotnet new coreex-ai` | Run the same `dotnet new` command in the terminal |
 
 **Skills — the AI-augmented building blocks** — twenty skills codify CoreEx's architectural patterns into guided, correct-by-construction workflows: sixteen per-capability (L1) skills that add or modify a single building block, and four end-to-end (L2) skills that orchestrate a full vertical slice in one pass. Each is invoked as `/coreex-<name>` (Claude Code) or via the matching `prompts/coreex-<name>.prompt.md` (Copilot).
@@ -203,7 +208,7 @@ The repository includes an AI workflow set in [`.github/`](./.github/) that give
 | | `coreex-policy` | Application-layer policies enforcing I/O-dependent business guards |
 | Infrastructure | `coreex-repository` | Infrastructure-layer repositories — CRUD, custom queries, bi-directional mappers |
 | | `coreex-adapter` | Anti-corruption-layer adapters and typed HTTP clients for cross-domain or external calls |
-| | `coreex-db-migration` | Database tables and schema changes for a domain |
+| | `coreex-db-migration` | Relational tables/schema or Cosmos container provisioning changes for a domain |
 | Hosts | `coreex-api` | API controllers or Minimal API endpoints — CRUD and business actions |
 | | `coreex-graphql` | GraphQL-lite query bridge (`CoreEx.Data.GraphQL`) on an API host |
 | | `coreex-subscriber` | Event/command subscribers in a Subscribe host |
@@ -214,7 +219,9 @@ The repository includes an AI workflow set in [`.github/`](./.github/) that give
 
 See the [full skill catalog](./.github/coreex-ai-workflows.md#prompts-skills-and-templates) for full detail on each.
 
-**Also available** — repo-maintenance and local-orchestration skills: [`/coreex-scaffold`](./.github/skills/coreex-scaffold/README.md) (greenfield solution scaffolding), [`/coreex-docs-sync`](./.github/skills/coreex-docs-sync/README.md) (refresh cached CoreEx docs), [`/acquire-codebase-knowledge`](./.github/skills/acquire-codebase-knowledge/README.md) (map an existing codebase), and [`/aspire`](./.github/skills/aspire/README.md) (orchestrate Aspire apps locally).
+**Bootstrap and maintenance** — [`/coreex-bootstrap`](./.github/skills/coreex-bootstrap/SKILL.md) initializes a blank repository's root guidance and chains to [`/coreex-scaffold`](./.github/skills/coreex-scaffold/README.md) for solution scaffolding. [`/coreex-docs-sync`](./.github/skills/coreex-docs-sync/README.md) refreshes the entire version-pinned AI bundle, not just the docs cache. Together with the twenty L1/L2 workflows, these are **23 shipped CoreEx skills**.
+
+**Framework-repository-only skills** — [`/acquire-codebase-knowledge`](./.github/skills/acquire-codebase-knowledge/README.md) maps an existing codebase and [`/aspire`](./.github/skills/aspire/README.md) orchestrates Aspire apps locally. Neither is installed by `coreex-ai`.
 
 **Instructions** — 12 scoped instruction files are injected automatically when editing matching file types (contracts, services, repositories, controllers, tests, etc.). No action required.
 

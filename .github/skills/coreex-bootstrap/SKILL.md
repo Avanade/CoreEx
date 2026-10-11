@@ -87,6 +87,7 @@ Use `/coreex-expert` when you need CoreEx architecture guidance before choosing 
 @.github/instructions/coreex-conventions.instructions.md
 @.github/instructions/coreex-contracts.instructions.md
 @.github/instructions/coreex-application-services.instructions.md
+@.github/instructions/coreex-aspire.instructions.md
 @.github/instructions/coreex-validators.instructions.md
 @.github/instructions/coreex-repositories.instructions.md
 @.github/instructions/coreex-api-controllers.instructions.md
@@ -103,5 +104,5 @@ Use `/coreex-expert` when you need CoreEx architecture guidance before choosing 
 | `/coreex-bootstrap` | Generates root guidance files for a blank CoreEx repo, then chains to `/coreex-scaffold` |
 | `/coreex-scaffold` | Guided interview → derives and runs the right `dotnet new coreex*` commands for this solution shape |
 | `/coreex-expert` | Architecture guidance, pattern decisions, and sample-aligned implementation advice |
-| `/coreex-docs-sync` | Fetches and caches CoreEx architecture docs and per-package AI guides under `.github/docs/coreex/` |
+| `/coreex-docs-sync` | Refreshes the entire AI asset bundle and docs cache from the CoreEx.Template release matching this project's CoreEx NuGet version |
 ```

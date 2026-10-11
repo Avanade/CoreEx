@@ -51,9 +51,10 @@ No arguments required.
 
 ```
 .github/instructions/*.instructions.md
-.github/skills/**                        ← coreex-docs-sync, coreex-scaffold, all L1 skills, and all L2 skills
+.github/skills/coreex-*/                 ← 23 skills: bootstrap, scaffold, docs-sync, 16 L1 and four L2
 .github/prompts/*.prompt.md
 .github/agents/coreex-expert.agent.md
+.github/coreex-ai-workflows.md
 .claude/commands/**
 .github/docs/coreex/
   manifest.txt                             ← coreex-version, stamped by the template — not hand-written

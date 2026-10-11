@@ -196,10 +196,12 @@ see [coreex-ai-workflows.md](./coreex-ai-workflows.md).
 |---------|------|-------------|
 | `CoreEx.Template` | Template pack | Deterministic `dotnet new` scaffolding. Pin the version — `dotnet new install CoreEx.Template::<version>` — then `dotnet new coreex` (solution), `coreex-api` / `coreex-relay` / `coreex-subscribe` (hosts), `coreex-domain` (optional DDD layer), `coreex-aspire` (optional local-orchestration AppHost), or `coreex-ai` (AI workflow assets). Validate any change to `src/CoreEx.Template/content/**` with [`tools/validate-template-pack.ps1`](../tools/validate-template-pack.ps1) — see "Build, Test, and Run" above. |
 | `CoreEx Expert` | Agent | Architecture guidance, pattern recommendations, and design review. Invoke via `/coreex-expert` (or `@coreex-expert`). |
+| `/coreex-bootstrap` | Skill-backed prompt | Initialize root guidance in a blank repository after `coreex-ai`, then chain to `/coreex-scaffold`. |
 | `/coreex-scaffold` | Skill-backed prompt | Guided greenfield solution scaffolding (chooses the smallest safe shape, runs the `dotnet new coreex*` commands). |
 | `/coreex-docs-sync` | Skill | Refresh the whole AI asset bundle (instructions, skills, prompts, the `coreex-expert` agent, and the `.github/docs/coreex/` doc cache) to a new pinned CoreEx version after a version bump. |
-| `/coreex-<capability>` | Skills (L1) + matching prompts | Add or modify one building block: `coreex-contract`, `coreex-refdata`, `coreex-db-migration`, `coreex-repository`, `coreex-adapter`, `coreex-app-service`, `coreex-validator`, `coreex-policy`, `coreex-aggregate`, `coreex-api`, `coreex-graphql`, `coreex-subscriber`, `coreex-aspire`, and `coreex-test-api` / `coreex-test-subscribe` / `coreex-test-relay`. End-to-end command skills: `coreex-command-publish-e2e` (send a command) and `coreex-command-subscribe-e2e` (handle a command). Each skill has a `.prompt.md` wrapper for Copilot. |
-| `/acquire-codebase-knowledge`, `/aspire` | Skills | Repo onboarding documentation; local Aspire orchestration. |
+| `/coreex-<capability>` | Skills (L1) + matching prompts | Add or modify one building block: `coreex-contract`, `coreex-refdata`, `coreex-db-migration`, `coreex-repository`, `coreex-adapter`, `coreex-app-service`, `coreex-validator`, `coreex-policy`, `coreex-aggregate`, `coreex-api`, `coreex-graphql`, `coreex-subscriber`, `coreex-aspire`, and `coreex-test-api` / `coreex-test-subscribe` / `coreex-test-relay`. |
+| `/coreex-*-e2e` | Skills (L2) + matching prompts | Complete new slices: `coreex-api-e2e`, `coreex-subscriber-e2e`, `coreex-command-publish-e2e`, and `coreex-command-subscribe-e2e`. |
+| `/acquire-codebase-knowledge`, `/aspire` | Repository-only skills | Repo onboarding documentation; local Aspire orchestration. Not shipped by `coreex-ai`. |
 
 ## Guidance for Authoring Instructions and Skills
 
