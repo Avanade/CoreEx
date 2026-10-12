@@ -11,7 +11,7 @@ namespace CoreEx.Cosmos;
 /// time, so implement <see cref="IPartitionKey"/> directly (rather than deriving from this base class) where a different property name is required.</para>
 /// <para><see cref="ITimeToLive"/> lives in core <c>CoreEx.Data</c> (alongside <see cref="IPartitionKey"/>/<see cref="ITypeDiscriminator"/>), not <c>CoreEx.Cosmos</c>, since a future non-Cosmos NoSQL data-access
 /// package (e.g. MongoDB, which has its own distinct TTL-index mechanism) can reuse the same storage-agnostic contract.</para></remarks>
-public abstract class CosmosDbModelBase : IIdentifier<string>, IChangeLog, IETag, IPartitionKey, ITimeToLive
+public abstract class CosmosDbModelBase : IIdentifier<string>, IChangeLog, IETag, IPartitionKey, ITimeToLive, IExtensionData
 {
     /// <inheritdoc/>
     [JsonPropertyName("id")]
@@ -46,4 +46,8 @@ public abstract class CosmosDbModelBase : IIdentifier<string>, IChangeLog, IETag
     [JsonPropertyOrder(100002)]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public int? TimeToLive { get; set; }
+
+    /// <inheritdoc/>
+    [JsonExtensionData]
+    public Dictionary<string, object?>? ExtensionData { get; set; }
 }

@@ -23,7 +23,7 @@ public class ProductValidator : Validator<Product>
 
         Property(p => p.Price)
             .Mandatory()
-            .CompareValue(CompareOperator.GreaterThan, 0m);
+            .GreaterThan(0m);
     }
 }
 ```
@@ -65,8 +65,17 @@ Property(p => p.DiscountCode)
     .WhenEntity(product => product.HasDiscount);
 
 Property(p => p.ExpiresOn)
-    .CompareValue(CompareOperator.GreaterThan, () => Runtime.UtcNow)
+    .GreaterThan(_ => Runtime.UtcNow)
     .WhenHasValue();
+```
+
+### Comparing two properties
+
+Use `CompareProperty` to compare a property against another property on the **same entity** — do not hand-write it in `OnValidateAsync`. The comparison is skipped when either value is `null` or the compare-to property already has an error, so it only runs when both are present and valid. Chain `Mandatory()` first where the property must also be supplied.
+
+```csharp
+Property(p => p.EndsOn).CompareProperty(CompareOperator.GreaterThanOrEqualTo, p => p.StartsOn);
+Property(p => p.EndsOn).Mandatory().CompareProperty(CompareOperator.GreaterThanOrEqualTo, p => p.StartsOn);
 ```
 
 ## Reusable Validators
@@ -83,8 +92,10 @@ HasRuleFor(p => p.Sku).Common(SkuValidator);
 
 ## Do Not
 
-- Do not call `ValidateAsync` and ignore errors — always call `ValidateAndThrowAsync` or check `HasErrors` and throw `ValidationException` explicitly.
-- Do not add try/catch around `ValidateAndThrowAsync` to rethrow as a different exception type — `ValidationException` maps to HTTP 400 automatically.
+- Do not compare two properties of the same entity imperatively in `OnValidateAsync` — use `CompareProperty(op, p => p.Other)`; it already handles nulls and cascading errors.
+- Do not use `CompareValue(...)` — no such extension exists; use `Compare(op, value)` or the dedicated `GreaterThan`/`LessThan`/etc. rules.
+- Do not call `ValidateAsync` and ignore errors — use `ValidateAndThrowAsync` or inspect and handle the validation result.
+- Do not add try/catch around application `ValidateAndThrowAsync` to rethrow as a different exception type — `ValidationException` maps to HTTP 400 automatically.
 - Do not validate inside `TransactionAsync` — validate first (before the transaction) so failed validation never opens a database transaction.
 - Do not use `DataAnnotations` attributes alongside CoreEx validators — pick one approach per entity and stay consistent.
 - Do not use FluentValidation alongside CoreEx validators unless bridging with `InteropRule` is explicitly needed.

@@ -61,6 +61,7 @@ Guides you through creating or modifying a CoreEx Application-layer service in `
 - CQRS: mutations + `GetAsync` → `{Name}Service`; queries + `GetAsync` → `{Name}ReadService` (both have `GetAsync`)
 - **Before building Path C:** confirm `I{Name}Repository` already has `QueryAsync`/`QuerySchemaAsync` backed by a `{Name}QueryArgsConfig`. If not, stop and invoke `coreex-repository` first — never add filtering/ordering logic or a hand-rolled query in the service to work around a missing repository method
 - Always `.ConfigureAwait(false)` on every `await`
+- `Result<T>` failure propagation: prefer a `Then*` chain; for a guard clause `return r;` (same type, or `Result` → `Result<U>`) or `return r.AsResult();` (`Result<T>` → `Result<U>`) — **never** `Result<X>.Fail(r.Error!)` / `return r.Error!;`, and don't touch `.Error` in service code
 - A Domain value object persisted via a JSON column (e.g. `Basket.ShippingAddress`) is mapped with a `BiDirectionMapper<TDomain, TContract, TSelf>` in `Application/Mapping/` (not the uni-directional `Mapper<TSource,TDest,TSelf>` used for the root aggregate) — see [`coreex-application-services.instructions.md#json-backed-value-object-mapping`](/.github/instructions/coreex-application-services.instructions.md#json-backed-value-object-mapping)
 
 For full workflow and code examples see [`references/workflow.md`](references/workflow.md).

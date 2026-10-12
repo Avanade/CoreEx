@@ -39,6 +39,8 @@ public class ReferenceDataService(IHybridCache cache)
 }
 ```
 
+For a `Result<T>`-returning factory (e.g. a real-time adapter call) use `GetOrCreateWithResultAsync<T>` / `GetOrCreateByKeyWithResultAsync<T>`: only successes are cached, and `FusionHybridCache` makes concurrent misses invoke the factory once per key per node (cross-node needs an opt-in FusionCache distributed locker).
+
 ## Do Not
 
 - Do not inject `IFusionCache` directly into application or domain services — use `IHybridCache`.

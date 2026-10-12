@@ -228,7 +228,7 @@ nothing about persistence or JSON. Three additional things fall out of this choi
 
 1. **Three types instead of two.** The Domain value object (this type) sits between `Contracts.{ValueObject}`
    (plain DTO) and `Persistence.{ValueObject}` (hand-authored POCO, no invariants, no base class — created
-   manually alongside the generated `.g.cs` files, since DbEx cannot generate a type with validation logic).
+   manually alongside the generated `.g.cs` files, since persistence models stay POCO-only and should not carry domain validation logic).
 2. **Two mappers instead of one.** `BiDirectionMapper<Domain.ValueObjects.{ValueObject}, Contracts.{ValueObject}, TSelf>`
    in `Application/Mapping/` bridges Domain ↔ Contract; `BiDirectionMapper<Persistence.{ValueObject}, Domain.ValueObjects.{ValueObject}, TSelf>`
    in `Infrastructure/Mapping/` bridges Persistence ↔ Domain. Each mapper only ever sees its own boundary — never

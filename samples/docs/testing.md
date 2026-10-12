@@ -26,11 +26,12 @@ Understanding this distinction is the key to understanding every test setup deci
 | Azure Service Bus (direct publish) | Shopping | **Inter** | Captured via `UseExpectedAzureServiceBusPublisher()` |
 | Azure Service Bus (relay) | Products Outbox Relay | **Inter** | Real — drained and asserted via `GetAndClearAzureServiceBusAsync` |
 | Customers Cosmos DB (containers) | Customers | **Intra** | Real — created/reset code-first via `ReplaceOrCreateContainerAsync` in `[OneTimeSetUp]` |
-| Customers outbox (Cosmos DB) | Customers | **Intra** | Real — captured via `UseExpectedCosmosDbOutboxPublisher()`; asserted via `ExpectCosmosDbOutboxEvents(...)` / `ExpectNoCosmosDbOutboxEvents()`. No Relay host yet, so captured events are never actually forwarded to Service Bus. |
+| Customers outbox (Cosmos DB) | Customers | **Intra** | Real — captured in API tests via `UseExpectedCosmosDbOutboxPublisher()` and `ExpectCosmosDbOutboxEvents(...)` / `ExpectNoCosmosDbOutboxEvents()`. |
+| Azure Service Bus (Cosmos relay) | Customers Outbox Relay | **Inter** | Real — `Contoso.Customers.Test.Relay` verifies both containers, payload/session metadata, cleanup, first-start exclusion, and pause/resume using the isolated `customers-relay` subscription. Aspire additionally verifies API-to-broker lifecycle events. |
 
 The Shopping `Basket_Checkout_Save_Failure` test is the sharpest illustration of the boundary: when the outbox write fails mid-checkout, Shopping falls back to publishing a `reservation.cancel` command *directly* to Service Bus (bypassing the outbox, since the DB transaction has already rolled back). The test asserts that:
 - No outbox events are published (intra-domain write failed, as injected).
-- One direct Service Bus event *is* published (inter-domain cancel, asserted via `ExpectAzureServiceBusEvents`).
+- One direct Service Bus command *is* published (inter-domain cancel, asserted via `ExpectAzureServiceBusEvents`) - addressed to the `contoso-products` command queue (the `NamedDestinationProvider` routes events to the shared `contoso` topic and commands to `{topic}-{domain}` queues).
 - The basket remains `Active` (state was correctly rolled back).
 
 This single test exercises three layers of the intra/inter boundary in one shot.
@@ -125,7 +126,7 @@ The `[OneTimeSetUp]` pattern for all API test classes:
 1. **Migrate and seed** — `MigratePostgresDataAsync` / `MigrateSqlServerDataAsync` resets the domain schema to the contents of `Data/data.yaml` in `*.Test.Common`. A `DataResetFilterPredicate` scopes the reset to the domain's own schema so Products and Shopping test runs cannot affect each other.
 2. **Clear cache** — `ClearFusionCacheAsync()` flushes L1 (in-process) and L2 (Redis) so tests start from a known state.
 3. **Capture events** — `UseExpectedOutboxPublisher()` wraps the outbox publisher with a capture decorator; tests can then assert published events inline.
-4. **Mock inter-domain HTTP** (Shopping only) — `MockHttpClientFactory` intercepts `POST api/inventory/reserve` so the Shopping API can be tested without a running Products API.
+4. **Mock inter-domain HTTP** (Shopping only) — `MockHttpClientFactory` intercepts `POST api/inventory/reserve` (Products) and `GET api/customers/{id}` (Customers) so the Shopping API can be tested without running either API. Customer ids used in Shopping tests are the golden values from the Customers domain's `read-data.seed.yaml` (e.g. `^11` Alice with no address, `^16` Frank with an address).
 
 ```csharp
 // Contoso.Shopping.Test.Api — intra-domain real, inter-domain mocked
@@ -162,7 +163,7 @@ var v = Test.Http<Basket>()
     .ExpectChangeLogUpdated()
     .ExpectSqlServerOutboxEvents(e => e
         .AssertWithValue("contoso", "contoso.shopping.basket.checkedout.v1")
-        .AssertMetadata("contoso", "contoso.products.reservation.confirm", basket.Id))
+        .AssertMetadata("contoso-products", "contoso.products.reservation.confirm", basket.Id))
     .Run(HttpMethod.Post, $"/api/baskets/{basket.Id}/checkout")
     .AssertOK()
     .Value!;
@@ -176,7 +177,7 @@ Test.Http()
     .OnEventPublish(SqlServerOutboxPublisher.DefaultServiceKey,
         () => throw new InvalidOperationException("Simulated outbox failure"))
     .ExpectNoSqlServerOutboxEvents()
-    .ExpectAzureServiceBusEvents(e => e.AssertMetadata("contoso", "contoso.products.reservation.cancel", id))
+    .ExpectAzureServiceBusEvents(e => e.AssertMetadata("contoso-products", "contoso.products.reservation.cancel", id))
     .Run(HttpMethod.Post, $"/api/baskets/{id}/checkout")
     .AssertInternalServerError();
 ```
@@ -199,7 +200,7 @@ public partial class SubscriberTests : WithApiTester<Contoso.Products.Subscribe.
                 var ce = Test.CreateCloudEventFrom(ed);
                 var sbm = ce.ToServiceBusReceivedMessage();
 
-                var sbs = test.Services.GetRequiredService<ServiceBusSubscribedSubscriber>();
+                var sbs = test.Services.GetRequiredKeyedService<ServiceBusSubscribedSubscriber>("subscriber-commands");
                 var r = await sbs.ReceiveAsync(sbm);
                 r.IsSuccess.Should().BeTrue();
             }).AssertSuccess();
@@ -296,4 +297,6 @@ Each `*.Test.Api` and `*.Test.Relay` project has a `Resources/` folder containin
 
 `Contoso.E2E.Runner` is an interactive console runner for cross-domain scenarios. Unlike the host tests above it requires **all** infrastructure and **all** hosts to be running simultaneously — orchestrated via Aspire. It tests the complete inter-domain flow end-to-end: basket checkout triggers a real HTTP call to Products, which publishes a real event to Service Bus, which is consumed by the real subscriber. It also supports a parallel load-simulation mode for concurrency and performance validation.
 
-See [aspire.md](aspire.md) for the full Aspire setup, E2E Runner usage, scenario descriptions, load-simulation configuration, and the recommended first-run order.
+`Contoso.Test.Aspire` is the automated, CI-friendly counterpart — an NUnit test that self-hosts the whole `Contoso.Aspire` AppHost via `WithAspireTester<...>` (no need for Aspire to already be running) and asserts the same cross-domain flow as a single deterministic pass/fail test.
+
+See [aspire.md](aspire.md) for the full Aspire setup, `Contoso.Test.Aspire`, E2E Runner usage, scenario descriptions, load-simulation configuration, and the recommended first-run order.

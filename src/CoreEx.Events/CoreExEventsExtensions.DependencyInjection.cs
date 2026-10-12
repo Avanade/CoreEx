@@ -33,6 +33,16 @@ public static class CoreExEventsExtensions
         => services.ThrowIfNull().AddSingleton<IDestinationProvider>(new FixedDestinationProvider { Destination = destination.ThrowIfNullOrEmpty() });
 
     /// <summary>
+    /// Adds a <b>singleton</b> service for the <see cref="NamedDestinationProvider"/> as the <see cref="IDestinationProvider"/>.
+    /// </summary>
+    /// <param name="services">The <see cref="IServiceCollection"/>.</param>
+    /// <param name="destination">The optional base destination name (i.e. topic); where <see langword="null"/> the '<c>CoreEx:Events:Destination</c>' configuration setting is used.</param>
+    /// <returns>The <see cref="IServiceCollection"/> for fluent-style method-chaining.</returns>
+    /// <remarks>Events are sent to the <see cref="NamedDestinationProvider.Destination"/> (shared topic) whilst commands are sent to a per-domain destination (queue).</remarks>
+    public static IServiceCollection AddNamedDestinationProvider(this IServiceCollection services, string? destination = null)
+        => services.ThrowIfNull().AddSingleton<IDestinationProvider>(destination is null ? new NamedDestinationProvider() : new NamedDestinationProvider { Destination = destination });
+
+    /// <summary>
     /// Adds a <b>singleton</b> <see cref="SubscribedManager"/> service.
     /// </summary>
     /// <param name="services">The <see cref="IServiceCollection"/>.</param>

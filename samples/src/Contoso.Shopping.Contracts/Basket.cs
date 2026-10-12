@@ -6,9 +6,11 @@ public partial class Basket : IIdentifier<string?>, IChangeLog, IETag
     [ReadOnly(true)]
     public string? Id { get; set; }
 
+    [NonNullable]
     public string? CustomerId { get; set; }
 
     [ReferenceData<BasketStatus>]
+    [NonNullable]
     public partial string? StatusCode { get; set; }
 
     [ReadOnly(true)]

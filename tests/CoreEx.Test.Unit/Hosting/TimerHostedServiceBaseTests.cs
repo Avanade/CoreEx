@@ -137,6 +137,97 @@ public class TimerHostedServiceBaseTests
         }
     }
 
+    [Test]
+    public async Task Resume_AfterManyTimedIterations_WakesService()
+    {
+        using var sp = CreateServiceProvider();
+        var svc = new TestTimerService(sp, NullLogger.Instance) { Interval = TimeSpan.FromMilliseconds(5), FirstInterval = TimeSpan.FromMilliseconds(5) };
+
+        await svc.StartAsync(CancellationToken.None);
+        try
+        {
+            // Many timed iterations (delay wins) previously left abandoned semaphore waiters that would swallow subsequent wake-up signals.
+            await WaitUntilAsync(() => svc.ExecuteCount >= 20, TimeSpan.FromSeconds(5));
+
+            await svc.PauseAsync(CancellationToken.None);
+            await WaitUntilAsync(() => svc.Status == ServiceStatus.Paused, TimeSpan.FromSeconds(5));
+            await Task.Delay(50);
+
+            var count = svc.ExecuteCount;
+            await svc.ResumeAsync(CancellationToken.None);
+            await WaitUntilAsync(() => svc.ExecuteCount > count, TimeSpan.FromSeconds(5));
+        }
+        finally
+        {
+            await svc.StopAsync(CancellationToken.None);
+        }
+    }
+
+    [Test]
+    public async Task OneOffTrigger_WhilePaused_WakesService()
+    {
+        using var sp = CreateServiceProvider();
+        var svc = new TestTimerService(sp, NullLogger.Instance) { Interval = TimeSpan.FromMilliseconds(5), FirstInterval = TimeSpan.FromMilliseconds(5), PauseOnUnhandledException = true, ThrowOnExecute = true };
+
+        await svc.StartAsync(CancellationToken.None);
+        try
+        {
+            await WaitUntilAsync(() => svc.Status == ServiceStatus.Paused, TimeSpan.FromSeconds(5));
+            svc.ThrowOnExecute = false;
+
+            // Run a number of timed iterations, then pause again so the loop waits on the signal only.
+            await svc.ResumeAsync(CancellationToken.None);
+            var count = svc.ExecuteCount;
+            await WaitUntilAsync(() => svc.ExecuteCount >= count + 20, TimeSpan.FromSeconds(5));
+            await svc.PauseAsync(CancellationToken.None);
+            await Task.Delay(50);
+
+            count = svc.ExecuteCount;
+            await svc.ResumeAsync(CancellationToken.None);
+            await WaitUntilAsync(() => svc.ExecuteCount > count, TimeSpan.FromSeconds(5));
+        }
+        finally
+        {
+            await svc.StopAsync(CancellationToken.None);
+        }
+    }
+
+    [Test]
+    public async Task StartTriggerStop_Stress_DoesNotThrow()
+    {
+        using var sp = CreateServiceProvider();
+
+        for (var i = 0; i < 200; i++)
+        {
+            using var svc = new TestTimerService(sp, NullLogger.Instance) { Interval = TimeSpan.FromMilliseconds(1), FirstInterval = TimeSpan.FromMilliseconds(1) };
+            await svc.StartAsync(CancellationToken.None);
+
+            using var cts = new CancellationTokenSource();
+            var trigger = Task.Run(() =>
+            {
+                while (!cts.IsCancellationRequested)
+                    svc.OneOffTrigger();
+            });
+
+            await Task.Delay(i % 5);
+            await svc.StopAsync(CancellationToken.None);
+            cts.Cancel();
+            await trigger;
+        }
+    }
+
+    [Test]
+    public async Task OneOffTrigger_AfterDispose_DoesNotThrow()
+    {
+        using var sp = CreateServiceProvider();
+        var svc = new TestTimerService(sp, NullLogger.Instance) { Interval = TimeSpan.FromMilliseconds(5), FirstInterval = TimeSpan.FromMilliseconds(5) };
+
+        await svc.StartAsync(CancellationToken.None);
+        svc.Dispose();
+
+        svc.Invoking(s => s.OneOffTrigger()).Should().NotThrow();
+    }
+
     private class TestTimerService(IServiceProvider serviceProvider, ILogger logger) : TimerHostedServiceBase(serviceProvider, logger)
     {
         private int _executeCount;

@@ -7,10 +7,15 @@ public partial class HostTests : WithApiTester<solution-name.Subscribe.Program>
     {
 // #if implement-sqlserver
         await Test.MigrateSqlServerDataAsync<TestData>(["no-data.seed.yaml"], DbMigration.ConfigureMigrationArgs).ConfigureAwait(false);
+// #elif implement-cosmos
+        await Test.MigrateCosmosDataAsync<TestData>(["no-data.seed.yaml"], DbMigration.ConfigureProvisionArgs).ConfigureAwait(false);
 // #elif implement-postgres
         await Test.MigratePostgresDataAsync<TestData>(["no-data.seed.yaml"], DbMigration.ConfigureMigrationArgs).ConfigureAwait(false);
 // #endif
         await Test.ClearFusionCacheAsync().ConfigureAwait(false);
+// #if implement-servicebus
+        await Test.ResetAzureServiceBusAsync(Common.ServiceBus.GetQueues(), Common.ServiceBus.GetTopicsAndSubscriptions()).ConfigureAwait(false);
+// #endif
     }
 
     [TestCase("/health/live")]
@@ -36,11 +41,13 @@ public partial class HostTests : WithApiTester<solution-name.Subscribe.Program>
             "$.entries['stackExchange.Redis']",
 // #if implement-sqlserver
             "$.entries.sqlServer",
+// #elif implement-cosmos
+            "$.entries.cosmos-database",
 // #elif implement-postgres
             "$.entries.postgreSql",
 // #endif
 // #if implement-servicebus
-            "$.entries.azure-service-bus-session-receiver"
+            "$.entries.hosted-subscriber-events"
 // #endif
         ];
 
@@ -61,7 +68,7 @@ public partial class HostTests : WithApiTester<solution-name.Subscribe.Program>
     public void HostedService_Pause_And_Resume()
     {
 // #if implement-servicebus
-        const string Service = "azure-service-bus-session-receiver";
+        const string Service = "hosted-subscriber-events";
 // #endif
 
         Test.Http<string>()

@@ -14,6 +14,7 @@
     <PackageReference Include="DbEx.SqlServer" />
     <PackageReference Include="AwesomeAssertions" />
     <PackageReference Include="UnitTestEx" />
+    <PackageReference Include="UnitTestEx.Aspire" />
   </ItemGroup>
 
   <ItemGroup>

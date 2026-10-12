@@ -27,6 +27,7 @@ public class Program
         builder.Services
             .AddPrecisionTimeProvider()
             .AddExecutionContext()
+            .AddNamedDestinationProvider()              // Adds the NamedDestinationProvider (default); events go to the shared topic, commands to a per-domain queue.
 // #if refdata-enabled
             .AddReferenceDataOrchestrator()             // Resolves the (CodeGen-generated) IReferenceDataProvider from DI at runtime — no compile-time dependency on the generated type.
 // #endif
@@ -61,16 +62,41 @@ public class Program
             .AddSqlServerDatabase()                     // Adds the SqlServerDatabase.
             .AddSqlServerUnitOfWork()                   // Adds the SqlServerUnitOfWork for the SqlServerDatabase.
             .AddEventFormatter()                        // Adds the EventFormatter to enable message formatting for publishing.
+// #if outbox-enabled
             .AddSqlServerOutboxPublisher()              // Adds the SqlServerOutboxPublisher as the IEventPublisher.
+// #endif
             .AddDbContext<domain-nameDbContext>()       // Adds the standard EF DbContext.
             .AddEfDb<domain-nameEfDb>();                // Adds the CoreEx extended EF service.
+// #elif implement-cosmos
+        // Add the Cosmos DB client (Aspire); in Development, accept the local emulator's self-signed certificate and use Gateway mode.
+        builder.AddAzureCosmosClient("Cosmos", configureClientOptions: o =>
+        {
+            o.UseSystemTextJsonSerializerWithOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+
+            if (builder.Environment.IsDevelopment())
+            {
+                o.ConnectionMode = ConnectionMode.Gateway;
+                o.HttpClientFactory = () => new HttpClient(new HttpClientHandler { ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator });
+            }
+        });
+
+        builder.Services.AddCosmosDb<domain-nameCosmosDb>("domain-name-lower");     // Adds the CoreEx extended Cosmos DB service for the database.
+        builder.Services
+            .AddEventFormatter()                        // Adds the EventFormatter to enable message formatting for publishing.
+// #if outbox-enabled
+            .AddCosmosDbEventPublisher()                // Adds the CosmosDbEventPublisher as the IEventPublisher.
+// #endif
+            .AddCosmosDbUnitOfWork()                    // Adds the CosmosDbUnitOfWork as the IUnitOfWork.
+            .AddCosmosDbHealthCheck();                  // Adds the CosmosDbHealthCheck; Aspire's AddAzureCosmosClient does not register one.
 // #elif implement-postgres
         builder.AddAzureNpgsqlDataSource("Postgres");   // Adds the NpgsqlDataSource (using Aspire library).
         builder.Services
             .AddPostgresDatabase()                      // Adds the PostgresDatabase.
             .AddPostgresUnitOfWork()                    // Adds the PostgresUnitOfWork for the PostgresDatabase.
             .AddEventFormatter()                        // Adds the EventFormatter to enable message formatting for publishing.
+// #if outbox-enabled
             .AddPostgresOutboxPublisher()               // Adds the PostgresOutboxPublisher as the IEventPublisher.
+// #endif
             .AddDbContext<domain-nameDbContext>()       // Adds the standard EF DbContext.
             .AddEfDb<domain-nameEfDb>();                // Adds the CoreEx extended EF service.
 // #endif
@@ -81,19 +107,23 @@ public class Program
         builder.Services.AddAzureServiceBusPublisher((_, c) =>  // Adds the service bus as the IEventPublisher.
         {
             c.SessionIdStrategy = ServiceBusSessionStrategy.UsePartitionKeyConvertedToAnId;  // Use a partition-id as the session-id.
+// #if (outbox-enabled && has-data-provider)
         }, addAsDefaultIEventPublisher: false);                                              // Add as a named IEventPublisher, not the default (as the default is the OutboxPublisher).
+// #else
+        });
+// #endif
 
         // Add event formatter and subscribed-manager.
         builder.Services
             .AddEventFormatter()                                                // Adds the EventFormatter to enable message parsing/formatting.
             .AddSubscribedManager((_, c) => c.AddSubscribersUsing<Program>());  // Add all subscribers from this assembly.
 
-        // Build and create the Azure Service Bus receiving services.
+        // Build and create the Azure Service Bus receiving services; the receiver, subscriber and hosted service are keyed so that additional receivers (e.g. a command queue) can be added alongside.
         builder.Services.AzureServiceBusReceiving()
-            .WithSessionReceiver(_ => ServiceBusSessionReceiverOptions.CreateForTopicSubscription())    // Set the topic and subscription, etc. from configuration.
-            .WithSubscribedSubscriber()                 // Adds the service bus subscriber using the SubscribedManager.
-            .WithHostedService()                        // Adds the service bus receiver as a hosted service.
-            .Build();                                   // Builds all the services and adds to the service collection.
+            .WithSessionReceiver(_ => ServiceBusSessionReceiverOptions.CreateForTopicSubscription(), "receiver-events")    // Set the topic and subscription, etc. from configuration.
+            .WithKeyedSubscribedSubscriber("subscriber-events")     // Adds the service bus subscriber using the SubscribedManager.
+            .WithHostedService("hosted-subscriber-events")                     // Adds the service bus receiver as a hosted service (this key is also the health-check and hosted-service management name).
+            .Build();                                               // Builds all the services and adds to the service collection.
 // #endif
 
         // Post-configure all health-checks; adds the standard tags.
@@ -113,6 +143,8 @@ public class Program
         builder.WithCoreExTelemetry()
 // #if implement-sqlserver
             .WithCoreExSqlServerTelemetry()
+// #elif implement-cosmos
+            .WithCoreExCosmosDbTelemetry()
 // #elif implement-postgres
             .WithCoreExPostgresTelemetry()
 // #endif

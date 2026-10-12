@@ -114,6 +114,7 @@ public partial class CosmosDbContainer<TModel>
             throw new InvalidOperationException($"The model implements {nameof(IReadOnlyLogicallyDeleted)} which is ambiguous for a delete operation; the model must implement {nameof(ILogicallyDeleted)} not {nameof(IReadOnlyLogicallyDeleted)}.");
 
         var id = Options.FormatIdentifier(key);
+        EvictFromChangeTracker(partitionKey, id);
 
         async Task<Result<DataResult>> PhysicalDeleteAsync()
         {
@@ -141,6 +142,10 @@ public partial class CosmosDbContainer<TModel>
                 // A delete is considered idempotent; a 'not found' is not an error.
                 return Result.Ok(DataResult.False);
             }
+            finally
+            {
+                EvictFromChangeTracker(partitionKey, id);
+            }
         }
 
         // Fast path: nothing is configured for CheckModel to check (no ITenantId/IReadOnlyTenantId support, no logical delete, no WithFilter registrations, no WithTypeDiscriminator configuration) AND
@@ -156,7 +161,8 @@ public partial class CosmosDbContainer<TModel>
 
         // Fetch first (via CheckModel) so tenant ownership and any configured WithFilter checks are enforced consistently with Get/Update for both a physical and a logical delete - a physical
         // DeleteItemAsync/ReplaceItemAsync call has no other opportunity to apply them, as Cosmos DB deletes/replaces purely by id + partition key with no awareness of our tenant/filter concerns.
-        var gr = await GetWithResultInternalAsync(args, key, partitionKey, memberName, treatNullAsNotFound: false, cancellationToken).ConfigureAwait(false);
+        // The read always bypasses the change tracker - a stale "exists" would otherwise fail a whole TransactionalBatch (or a logical-delete replace) with a 404/412.
+        var gr = await GetWithResultInternalAsync(args with { ClearChangeTrackerAfterGet = true }, key, partitionKey, memberName, treatNullAsNotFound: false, cancellationToken).ConfigureAwait(false);
         if (gr.IsFailure)
             return gr.Bind();
 

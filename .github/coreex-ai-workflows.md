@@ -28,7 +28,7 @@ This folder contains the AI artefacts that give GitHub Copilot and Claude Code a
 - Claude Code: `@coreex-expert`
 - Copilot Chat: switch to **Agent** mode and select **CoreEx Expert**
 
-The agent uses a local doc cache (populated by `/coreex-docs-sync`) to avoid live GitHub fetches on every question. It covers all 18 CoreEx packages, distinguishing those already in the project from ones the project could adopt. See the [agent README](./agents/README.md) for the resolution flowchart, cache structure, and adoption guide.
+The agent uses a local doc cache installed by `dotnet new coreex-ai` and refreshed by `/coreex-docs-sync` to avoid live GitHub fetches on every question. It covers all 18 CoreEx package guides, distinguishing packages referenced by the project from ones it could adopt. See the [agent README](./agents/README.md) for the resolution flowchart, cache structure, and adoption guide.
 
 ## Instructions
 
@@ -40,13 +40,14 @@ Instructions are passive — no action is needed to activate them. The global fi
 | `coreex-contracts.instructions.md` | Contract files — `[Contract]`, `[ReferenceData]`, source generation |
 | `coreex-application-services.instructions.md` | Application services — `TransactionAsync`, validation, event enqueuing |
 | `coreex-validators.instructions.md` | Validator files — `Validator<T,TSelf>`, rule chains |
-| `coreex-repositories.instructions.md` | Repository files — `EfDbModel`, mappers, `QueryArgsConfig`, paging |
+| `coreex-repositories.instructions.md` | Repository files — `EfDb`/`CosmosDb`, mappers, `QueryArgsConfig`, paging |
 | `coreex-api-controllers.instructions.md` | Controller files — `WebApi` helpers, `[IdempotencyKey]`, PATCH |
 | `coreex-event-subscribers.instructions.md` | Subscriber files — `[Subscribe]`, `SubscribedManager`, error handling |
 | `coreex-host-setup.instructions.md` | `Program.cs` files — middleware order, service registration, outbox relay |
-| `coreex-tooling.instructions.md` | CodeGen and Database projects — `ref-data.yaml`, DbEx, generated-file ownership |
+| `coreex-tooling.instructions.md` | CodeGen and Database projects — `ref-data.yaml`, DbEx or Cosmos provisioning, generated-file ownership |
 | `coreex-tests.instructions.md` | Test files — UnitTestEx, NUnit, AwesomeAssertions, outbox/event assertions |
 | `coreex-domain.instructions.md` | Domain files — aggregates, mutation guards, `Result<T>` pipelines |
+| `coreex-aspire.instructions.md` | Aspire files — AppHost wiring, service-bus topology, MockHost/third-party HTTP, `Test.Aspire` lifecycle |
 
 ## Prompts, Skills, and Templates
 
@@ -55,8 +56,8 @@ Instructions are passive — no action is needed to activate them. The global fi
 Three artefact types cooperate, each with a distinct job:
 
 - **Instruction** (`instructions/*.instructions.md`) — invariant rules that are *auto-injected* whenever an edited file matches the instruction's `applyTo` glob. You never invoke them; they passively shape every edit to a matching file.
-- **Skill** (`skills/coreex-*/`) — a reasoning *workflow* you invoke explicitly to create or modify something. Each skill owns a `SKILL.md` and a `references/workflow.md` that drive the interaction. GitHub Copilot invokes a skill directly by reading `SKILL.md`; Claude Code requires the matching `.claude/commands/coreex-<x>.md` thin wrapper (see below) for `/coreex-<x>` to work.
-- **Prompt** (`prompts/coreex-*.prompt.md`) — the GitHub Copilot entry point that *delegates to the matching skill's workflow*. Skills and prompts map 1:1 by name, so `/coreex-contract` and `coreex-contract.prompt.md` run the same workflow.
+- **Skill** (`skills/coreex-*/`) — a reasoning *workflow* you invoke explicitly to create or modify something. Each skill owns a `SKILL.md`; longer workflows also use `references/`. GitHub Copilot invokes a skill directly by reading `SKILL.md`; Claude Code requires the matching `.claude/commands/coreex-<x>.md` thin wrapper (see below) for `/coreex-<x>` to work.
+- **Prompt** (`prompts/coreex-*.prompt.md`) — the GitHub Copilot entry point that *delegates to the matching skill's workflow*. All L1/L2 workflows plus bootstrap and scaffold have matching prompts; `coreex-docs-sync` is invoked directly as a skill.
 - **Claude command** (`.claude/commands/coreex-*.md`) — the Claude Code entry point, mirroring the prompt's role: a thin wrapper ("Read `.github/skills/coreex-<x>/SKILL.md` and follow it") that makes `/coreex-<x>` work in Claude Code. Every `coreex-*` skill ships one, 1:1 by name — this is what gives Claude Code and Copilot equivalent slash-command coverage over the same skill catalog.
 
 **Feature Configuration.** A CoreEx solution's project-wide choices — `data-provider`, `refdata-enabled`, `rop-enabled`, `outbox-enabled`, `messaging-provider` — are persisted in the solution-root `AGENTS.md` **Feature Configuration** block. Skills read that block before asking anything, so recorded decisions are not re-prompted from one skill to the next. Whether a Domain layer is present is inferred from the existence of the `src/*.Domain/` project rather than a flag, since the Domain layer is now an independent addon template (`coreex-domain`).
@@ -72,42 +73,47 @@ A version mismatch between the installed AI-asset bundle (`.github/docs/coreex/m
 
 ### Command catalog
 
+The consumer bundle contains **23 CoreEx skills** (16 L1, four L2, bootstrap, scaffold, and docs-sync), **22 prompt wrappers**, **24 Claude commands** (one per skill plus expert guidance), **12 scoped instructions** plus the consumer global instruction, and one expert agent. The two generic repository-only skills below are not shipped by `coreex-ai`.
+
 | Command | Type | What it does |
 |---------|------|-------------|
 | [`CoreEx.Template`](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.Template/README.md) | Template pack | Deterministic `dotnet new` scaffolding for a CoreEx solution plus API, relay, and subscriber hosts. Always install with an explicit pinned version — `dotnet new install CoreEx.Template::<version>` (see [Version-pin discipline](#version-pin-discipline)) — then run the `coreex*` templates in a terminal. `dotnet new coreex-ai` installs the full AI workflow set (instructions, prompts, skills, the `coreex-expert` agent, `.claude/commands/`, and the `.github/docs/coreex/` docs cache, self-describing via `manifest.txt`) into a consuming project as one version-pinned bundle. |
 | [`/acquire-codebase-knowledge`](./skills/acquire-codebase-knowledge/README.md) | Skill | Maps an unfamiliar codebase and produces seven structured onboarding documents. Generic (no CoreEx dependency) and framework-repo-only — not copied into consumer repos by `dotnet new coreex-ai`. |
 | [`/coreex-scaffold`](./skills/coreex-scaffold/README.md) · [prompt](./prompts/coreex-scaffold.prompt.md) | Skill + prompt | Guides greenfield solution scaffolding, chooses the smallest safe CoreEx.Template shape, and runs the matching `dotnet new coreex*` commands. |
+| [`/coreex-bootstrap`](./skills/coreex-bootstrap/SKILL.md) · [prompt](./prompts/coreex-bootstrap.prompt.md) | Skill + prompt | Initializes root guidance in a blank repository after `coreex-ai`, then chains to `coreex-scaffold`. |
 | [`/coreex-docs-sync`](./skills/coreex-docs-sync/README.md) | Skill | Refreshes the whole AI asset bundle (instructions, skills, prompts, agent, `.claude/commands/`, and the `.github/docs/coreex/` docs cache) as one version-pinned `dotnet new coreex-ai --force` reinstall, matching the project's referenced `CoreEx` NuGet version. No live GitHub `main` fetch. |
 | [`/aspire`](./skills/aspire/README.md) | Skill | Orchestrates Aspire distributed apps locally: start, stop, logs, debug. Generic (wraps the Aspire CLI, no CoreEx dependency) and framework-repo-only — not copied into consumer repos by `dotnet new coreex-ai`. |
 
 #### Per-capability skills (L1)
 
-Fifteen skills add or modify a single CoreEx capability on an existing solution. Each is invoked as `/coreex-<name>` in Claude Code (via its `.claude/commands/coreex-<name>.md` thin wrapper) or via the matching [`prompts/coreex-<name>.prompt.md`](./prompts/) in Copilot — 1:1 by name across all three (skill, prompt, Claude command). Every skill reads the solution-root `AGENTS.md` **Feature Configuration** first to avoid redundant questioning.
+Sixteen skills add or modify a single CoreEx capability on an existing solution. Each is invoked as `/coreex-<name>` in Claude Code (via its `.claude/commands/coreex-<name>.md` thin wrapper) or via the matching [`prompts/coreex-<name>.prompt.md`](./prompts/) in Copilot — 1:1 by name across all three (skill, prompt, Claude command). Every skill reads the solution-root `AGENTS.md` **Feature Configuration** first to avoid redundant questioning.
 
 | Skill / prompt | Capability |
 |----------------|-----------|
 | [`coreex-contract`](./skills/coreex-contract/) | Hand-authored contract (DTO/entity) — root, subordinate, request/response, base class |
-| [`coreex-refdata`](./skills/coreex-refdata/) | Reference data type + `ref-data.yaml` entry |
-| [`coreex-db-migration`](./skills/coreex-db-migration/) | Database table / DbEx migration |
-| [`coreex-repository`](./skills/coreex-repository/) | EF Core repository, mapper, and query configuration |
+| [`coreex-refdata`](./skills/coreex-refdata/) | Reference data types, seed data, `ref-data.yaml`, and opt-in mutation APIs |
+| [`coreex-db-migration`](./skills/coreex-db-migration/) | Database table change or Cosmos container provisioning change |
+| [`coreex-repository`](./skills/coreex-repository/) | EF Core or Cosmos repository, mapper, and query configuration |
 | [`coreex-adapter`](./skills/coreex-adapter/) | External-integration adapter |
 | [`coreex-app-service`](./skills/coreex-app-service/) | Application service orchestration |
 | [`coreex-validator`](./skills/coreex-validator/) | Fluent `Validator<T,TSelf>` |
-| [`coreex-policy`](./skills/coreex-policy/) | Authorization / business policy |
+| [`coreex-policy`](./skills/coreex-policy/) | I/O-dependent business guards in application policies |
 | [`coreex-aggregate`](./skills/coreex-aggregate/) | DDD aggregate / domain entity |
 | [`coreex-api`](./skills/coreex-api/) | API controller / endpoint |
 | [`coreex-graphql`](./skills/coreex-graphql/) | GraphQL-lite query bridge (`CoreEx.Data.GraphQL`) on an API host |
-| [`coreex-subscriber`](./skills/coreex-subscriber/) | Event subscriber |
+| [`coreex-subscriber`](./skills/coreex-subscriber/) | Event or command subscriber |
 | [`coreex-test-api`](./skills/coreex-test-api/) | API tests |
 | [`coreex-test-subscribe`](./skills/coreex-test-subscribe/) | Subscriber tests |
 | [`coreex-test-relay`](./skills/coreex-test-relay/) | Outbox relay tests |
+| [`coreex-aspire`](./skills/coreex-aspire/) | Aspire AppHost wiring, service-bus topology, MockHost stubs, and `Test.Aspire` E2E tests |
 
 #### End-to-end workflow skills (L2)
 
-Two skills orchestrate a complete vertical slice by gathering all context upfront and invoking the appropriate L1 skills in sequence — no repeated questions. They are **creation-only** — modifications to an existing entity or subscriber always target the relevant L1 skill directly.
+Four skills orchestrate a complete vertical slice by gathering all context upfront and invoking the appropriate L1 skills in sequence — no repeated questions. They are **creation-only** — modifications to an existing entity or subscriber always target the relevant L1 skill directly.
 
 | Skill / prompt | What it orchestrates |
 |----------------|---------------------|
 | [`coreex-api-e2e`](./skills/coreex-api-e2e/) | New entity with CRUD API — contract → migration → repository → validator → policy (if needed) → app-service → API endpoint → integration tests |
-| [`coreex-subscriber-e2e`](./skills/coreex-subscriber-e2e/) | New event or command subscriber — contract (if new) → migration + repository (if new entity) → app-service (if needed) → subscriber handler → integration tests |
-
+| [`coreex-subscriber-e2e`](./skills/coreex-subscriber-e2e/) | New event subscriber (data-sync / business-process; for **commands** use the two command skills below) — contract (if new) → migration + repository (if new entity) → app-service (if needed) → subscriber handler → integration tests |
+| [`coreex-command-publish-e2e`](./skills/coreex-command-publish-e2e/) | Send a **command** to another domain — adapter → transactional call site (outbox vs direct) → `NamedDestinationProvider` queue routing → Test.Common `ServiceBus` queue → API + Relay tests → Aspire E2E |
+| [`coreex-command-subscribe-e2e`](./skills/coreex-command-subscribe-e2e/) | Handle a **command** addressed to this domain — contract (if payload) → migration + repository (if new state) → app-service → subscriber → dedicated keyed command-queue receiver → `ServiceBus` queue → Subscribe tests → Aspire E2E |

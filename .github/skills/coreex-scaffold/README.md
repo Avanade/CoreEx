@@ -53,5 +53,3 @@ If the prompt file is not present, attach the skill file directly in Copilot Cha
 ## Reference
 
 - [SKILL.md](./SKILL.md) - main workflow guidance.
-
-

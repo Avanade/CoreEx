@@ -8,8 +8,8 @@
 
 namespace Contoso.Products.Infrastructure.Mapping;
 
-/// <summary>Provides mapping from <see cref="Persistence.MovementKind"/> to <see cref="Contracts.MovementKind"/>.</summary>
-internal partial class MovementKindMapper : Mapper<Persistence.MovementKind, Contracts.MovementKind, MovementKindMapper>
+/// <summary>Provides mapping from <see cref="Contracts.MovementKind"/> to <see cref="Persistence.MovementKind"/>.</summary>
+internal partial class MovementKindMapper : BiDirectionMapper<Contracts.MovementKind, Persistence.MovementKind, MovementKindMapper>
 {
     /// <inheritdoc/>
     protected override Contracts.MovementKind OnMap(Persistence.MovementKind source)
@@ -31,8 +31,11 @@ internal partial class MovementKindMapper : Mapper<Persistence.MovementKind, Con
         return destination;
     }
 
-    /// <summary>Provides the opportunity to extend the <see cref="OnMap" /> method.</summary>
+    /// <summary>Provides the opportunity to extend the <b>To</b> mapping.</summary>
     partial void OnMapExtend(Persistence.MovementKind source, Contracts.MovementKind destination);
+
+    /// <inheritdoc/>
+    protected override Persistence.MovementKind OnMap(Contracts.MovementKind destination) => throw new NotSupportedException();
 }
 
 #nullable restore

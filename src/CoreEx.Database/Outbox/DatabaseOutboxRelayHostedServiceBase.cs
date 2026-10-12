@@ -48,7 +48,7 @@ public abstract class DatabaseOutboxRelayHostedServiceBase : TimerHostedServiceB
     /// <summary>
     /// Gets or sets the partition size.
     /// </summary>
-    /// <remarks>Defaults to <see cref="PartitionKey.DefaultPartitionSize"/>.</remarks>
+    /// <remarks>Defaults to <see cref="PartitionKey.DefaultPartitionSize"/> and resolves from <see cref="DatabaseOutboxConfiguration.PartitionSizeConfigurationKey"/>, which is shared with relational outbox publishers.</remarks>
     public int PartitionSize { get; set => field = SetValueWhenStatusIsInitializedOnly(value); }
 
     /// <summary>
@@ -72,7 +72,11 @@ public abstract class DatabaseOutboxRelayHostedServiceBase : TimerHostedServiceB
         BatchSize = Internal.GetConfigurationValueWithFallback<int>($"CoreEx:Host:Services:{ServiceConfigurationSectionName}:OutboxRelay:BatchSize", "CoreEx:Host:Services:OutboxRelay:BatchSize", 25, Configuration);
         LeaseDuration = Internal.GetConfigurationValueWithFallback<TimeSpan>($"CoreEx:Host:Services:{ServiceConfigurationSectionName}:OutboxRelay:LeaseDuration", "CoreEx:Host:Services:OutboxRelay:LeaseDuration", TimeSpan.FromMinutes(5), Configuration);
         BackOffDuration = Internal.GetConfigurationValueWithFallback<TimeSpan>($"CoreEx:Host:Services:{ServiceConfigurationSectionName}:OutboxRelay:BackOffDuration", "CoreEx:Host:Services:OutboxRelay:BackOffDuration", TimeSpan.FromSeconds(5), Configuration);
-        PartitionSize = Internal.GetConfigurationValueWithFallback<int>($"CoreEx:Host:Services:{ServiceConfigurationSectionName}:OutboxRelay:PartitionSize", "CoreEx:Host:Services:OutboxRelay:PartitionSize", PartitionKey.DefaultPartitionSize, Configuration);
+        var legacyPartitionSizeKey = $"CoreEx:Host:Services:{ServiceConfigurationSectionName}:OutboxRelay:PartitionSize";
+        if (Configuration[legacyPartitionSizeKey] is not null || Configuration["CoreEx:Host:Services:OutboxRelay:PartitionSize"] is not null)
+            throw new InvalidOperationException($"The relay-specific PartitionSize configuration has been removed. Configure '{DatabaseOutboxConfiguration.PartitionSizeConfigurationKey}' instead so the outbox publisher and relay use the same value.");
+
+        PartitionSize = DatabaseOutboxConfiguration.GetPartitionSize(Configuration);
 
         // Default capped at PartitionSize (whatever it resolved to above, default or configured) - PartitionPicker requires perWorkerPartitionCount <= partitionSize; an unconditional literal default
         // here would silently throw at startup whenever it exceeds the resolved PartitionSize (e.g. the out-of-the-box defaults: PartitionSize=4 but a literal 6 here).

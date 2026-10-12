@@ -162,40 +162,87 @@ public class ServiceBusReceiverTests : WithGenericTester<EntryPoint>
     });
 
     [Test]
+    public void WithReceiver_MultipleKeyedReceivers_ResolveIndependently() => Test.ScopedType<ExecutionContext>(async test =>
+    {
+        // Two receivers of the same receiver type (i.e. a topic subscription and a queue) must not collide; each is registered under its own receiver key.
+        var services = new ServiceCollection();
+        services.AddSingleton(test.Services.GetRequiredService<ServiceBusClient>());
+        services.AddSingleton(test.Services.GetRequiredService<IConfiguration>());
+        services.AddLogging();
+
+        services.AzureServiceBusReceiving()
+            .WithReceiver(_ => ServiceBusReceiverOptions.CreateForTopicSubscription("unit-test", "default"), "receiver-topic")
+            .WithKeyedSubscribedSubscriber("subscriber-topic")
+            .WithHostedService("hosted-topic")
+            .Build();
+
+        services.AzureServiceBusReceiving()
+            .WithReceiver(_ => ServiceBusReceiverOptions.CreateForQueue("unit-test-queue"), "receiver-queue")
+            .WithKeyedSubscribedSubscriber("subscriber-queue")
+            .WithHostedService("hosted-queue")
+            .Build();
+
+        await using var sp = services.BuildServiceProvider();
+
+        var topic = sp.GetRequiredKeyedService<ServiceBusReceiver<ServiceBusSubscribedSubscriber>>("receiver-topic");
+        var queue = sp.GetRequiredKeyedService<ServiceBusReceiver<ServiceBusSubscribedSubscriber>>("receiver-queue");
+
+        topic.Should().NotBeSameAs(queue);
+        topic.Options.QueueOrTopicName.Should().Be("unit-test");
+        topic.Options.SubscriptionName.Should().Be("default");
+        topic.Options.SubscriberServiceKey.Should().Be("subscriber-topic");
+        queue.Options.QueueOrTopicName.Should().Be("unit-test-queue");
+        queue.Options.IsSubscription.Should().BeFalse();
+        queue.Options.SubscriberServiceKey.Should().Be("subscriber-queue");
+
+        sp.GetServices<IHostedService>().OfType<ServiceBusReceiverHostedService<ServiceBusReceiver<ServiceBusSubscribedSubscriber>>>().Should().HaveCount(2);
+    });
+
+    [Test]
     public void ReceiveAsync_OwnTokenCancellation_DoesNotLogAsUnhandled() => Test.ScopedType<ExecutionContext>(async test =>
     {
-        // Regression: a cancellation attributable to the receiver's own cancellationToken (simulating a host/processor
-        // shutdown while a message is in flight) must not be logged as "An unhandled error has occurred" and must not
-        // throw attempting to abandon the message with the already-cancelled token.
-        var sp = (ServiceBusPublisher)test.Services.GetRequiredKeyedService<IEventPublisher>(ServiceBusPublisher.DefaultServiceKey);
-        sp.Add(EventData.CreateEventWith(new Subscribers.Product { Id = 200, Sku = "SKU-200" }, "Created"));
-        await sp.PublishAsync();
+        // An isolated subscription excludes poison messages abandoned by the circuit-breaker test.
+        var configuration = test.Services.GetRequiredService<IConfiguration>();
+        var connectionString = configuration.GetConnectionString("ServiceBus") ?? configuration["Aspire:Azure:Messaging:ServiceBus:ConnectionString"]
+            ?? throw new InvalidOperationException("The Service Bus connection string is missing.");
+        var admin = new global::Azure.Messaging.ServiceBus.Administration.ServiceBusAdministrationClient(UnitTestExExtensions.CreateAzureServiceBusAdminConnectionString(connectionString));
+        var subscription = $"cancellation-{Guid.NewGuid():N}";
+        await admin.CreateSubscriptionAsync("unit-test", subscription).ConfigureAwait(false);
+        try
+        {
+            var processing = Subscribers.ProductSubscriber.Id200Processing = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var sp = (ServiceBusPublisher)test.Services.GetRequiredKeyedService<IEventPublisher>(ServiceBusPublisher.DefaultServiceKey);
+            sp.Add(EventData.CreateEventWith(new Subscribers.Product { Id = 200, Sku = "SKU-200" }, "Created"));
+            await sp.PublishAsync().ConfigureAwait(false);
 
-        var o = ServiceBusReceiverOptions.CreateForTopicSubscription("unit-test", "default");
-        var sbr = ActivatorUtilities.CreateInstance<ServiceBusReceiver<ServiceBusSubscribedSubscriber>>(Test.Services, o);
+            var o = ServiceBusReceiverOptions.CreateForTopicSubscription("unit-test", subscription);
+            var sbr = ActivatorUtilities.CreateInstance<ServiceBusReceiver<ServiceBusSubscribedSubscriber>>(Test.Services, o);
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
 
-        var cts = new CancellationTokenSource();
-        cts.CancelAfter(10000); // Ensure test doesn't run indefinitely.
-        sbr.MessageProcessed += (sender, e) => { }; // No-op: Id 200 blocks on the token itself and is only "processed" once cancellation propagates.
-
-        var assertor = Test.ExpectLogContains("Received product with Id: 200 and Sku: SKU-200.")
-            .Run(async () =>
-            {
-                try
+            var assertor = Test.ExpectLogContains("Received product with Id: 200 and Sku: SKU-200.")
+                .Run(async () =>
                 {
-                    await sbr.StartAsync(cts.Token).ConfigureAwait(false);
-                    await Task.Delay(200, cts.Token).ConfigureAwait(false); // Allow the message to be received and start processing (blocking on cts.Token).
-                    cts.Cancel(); // Simulate host/processor shutdown while the message is in flight.
-                    await Task.Delay(Timeout.Infinite, cts.Token).ConfigureAwait(false);
-                }
-                finally
-                {
-                    await sbr.StopAsync().ConfigureAwait(false);
-                    await sbr.DisposeAsync().ConfigureAwait(false);
-                }
-            }).AssertException<TaskCanceledException>();
+                    try
+                    {
+                        await sbr.StartAsync(cts.Token).ConfigureAwait(false);
+                        await processing.Task.WaitAsync(cts.Token).ConfigureAwait(false);
+                        cts.Cancel();
+                        await Task.Delay(Timeout.Infinite, cts.Token).ConfigureAwait(false);
+                    }
+                    finally
+                    {
+                        await sbr.StopAsync().ConfigureAwait(false);
+                        await sbr.DisposeAsync().ConfigureAwait(false);
+                    }
+                }).AssertException<TaskCanceledException>();
 
-        assertor.LogMessages.Any(x => x?.Contains("An unhandled error has occurred") == true).Should().BeFalse();
+            assertor.LogMessages.Any(x => x?.Contains("An unhandled error has occurred") == true).Should().BeFalse();
+        }
+        finally
+        {
+            Subscribers.ProductSubscriber.Id200Processing = null;
+            await admin.DeleteSubscriptionAsync("unit-test", subscription).ConfigureAwait(false);
+        }
     });
 
     [Test]

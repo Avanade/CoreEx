@@ -1,0 +1,8 @@
+{
+  "solution": {
+    "path": "CoreEx.slnx",
+    "projects": [
+      "samples/aspire/Contoso.Test.Aspire/Contoso.Test.Aspire.csproj"
+    ]
+  }
+}

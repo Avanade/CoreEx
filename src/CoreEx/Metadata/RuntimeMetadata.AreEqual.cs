@@ -19,8 +19,25 @@ public static partial class RuntimeMetadata
     /// are performed: <see cref="IEquatable{T}.Equals(T)"/> comparison, <see cref="ICollection.Count"/> comparison, <see cref="IDictionary"/> per item <see cref="IDictionaryEnumerator.Key"/> and <see cref="IDictionaryEnumerator.Value"/> comparisons,
     /// <see cref="IEnumerable"/> item comparisons, and nested <see cref="IRuntimeMetadataCore"/> and <see cref="IPropertyRuntimeMetadata"/> comparisons. This is to achieve a best attempt deep-equals where a contract-style
     /// class (such as a <see href="https://en.wikipedia.org/wiki/Data_transfer_object"/>) constrains itself to simple and known types such as those described above, and/or overrides <see cref="object.Equals(object?)"/> accordingly.</remarks>
-    public static bool AreEqual<T>(T? left, T? right)
+    public static bool AreEqual<T>(T? left, T? right) => AreEqual(left, right, null);
+
+    /// <summary>
+    /// Compare two <typeparamref name="T"/> values for equality, ignoring the specified top-level (root) properties.
+    /// </summary>
+    /// <typeparam name="T">The value <see cref="Type"/>.</typeparam>
+    /// <param name="left">The left-side value.</param>
+    /// <param name="right">The right-side value.</param>
+    /// <param name="excludedProperties">The names of the root-level properties of <paramref name="left"/>/<paramref name="right"/> to exclude from the comparison; <see langword="null"/> indicates that none are excluded.</param>
+    /// <returns><see langword="true"/> indicates they are equal; otherwise, <see langword="false"/>.</returns>
+    /// <remarks>Exclusion applies to the top-level properties only (no paths); nested values are always compared in full. Where properties are excluded the <see cref="IEquatable{T}"/> fast-path is skipped as
+    /// it cannot honor the exclusions. See <see cref="AreEqual{T}(T, T)"/> for the comparison behavior.</remarks>
+    public static bool AreEqual<T>(T? left, T? right, IEnumerable<string>? excludedProperties)
     {
+        // Materialized once (unless already a collection) so a lazy sequence is not re-enumerated per property; empty is treated as none.
+        var excluded = excludedProperties as ICollection<string> ?? excludedProperties?.ToArray();
+        if (excluded is { Count: 0 })
+            excluded = null;
+
         if (ReferenceEquals(left, right)) return true;
         if (left is null || right is null) return false;
 
@@ -43,7 +60,16 @@ public static partial class RuntimeMetadata
                 var epr = ((IRuntimeMetadataCore)right).GetPropertyRuntimeMetadata().GetEnumerator();
                 while (epl.MoveNext())
                 {
-                    if (!epr.MoveNext() || !AreEqual(epl.Current.GetValue(left), epr.Current.GetValue(right)))
+                    if (!epr.MoveNext())
+                    {
+                        set.Remove(pair);
+                        return false;
+                    }
+
+                    if (excluded is not null && excluded.Contains(epl.Current.Name))
+                        continue;
+
+                    if (!AreEqual(epl.Current.GetValue(left), epr.Current.GetValue(right)))
                     {
                         set.Remove(pair);
                         return false;
@@ -61,7 +87,7 @@ public static partial class RuntimeMetadata
         }
 
         // Fast-path explicit equality implementation.
-        if (left is IEquatable<T> leq)
+        if (excluded is null && left is IEquatable<T> leq)
             return leq.Equals(right);
 
         // Short circuit arrays, collections, lists, and dictionaries based on count difference.
@@ -80,11 +106,7 @@ public static partial class RuntimeMetadata
 
         // Special handling for JsonElement comparison.
         if (left is JsonElement lje && right is JsonElement rje)
-#if NET8_0
             return CoreEx.Json.JsonMergePatch.DeepEquals(lje, rje);
-#else
-            return JsonElement.DeepEquals(lje, rje);
-#endif
 
         // Default value type comparison.
         var type = left.GetType();
@@ -103,6 +125,9 @@ public static partial class RuntimeMetadata
 
                 foreach (var p in GetCachedProperties(type).Values)
                 {
+                    if (excluded is not null && excluded.Contains(p.Name))
+                        continue;
+
                     if (!AreEqual(p.GetValue(left), p.GetValue(right)))
                     {
                         set.Remove(pair);

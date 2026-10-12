@@ -24,6 +24,7 @@ public class Program
         builder.Services
             .AddPrecisionTimeProvider()
             .AddExecutionContext()
+            .AddNamedDestinationProvider()              // Adds the NamedDestinationProvider (default); events go to the shared topic, commands to a per-domain queue.
 // #if refdata-enabled
             .AddReferenceDataOrchestrator()              // Resolves the (CodeGen-generated) IReferenceDataProvider from DI at runtime — no compile-time dependency on the generated type.
 // #endif
@@ -62,6 +63,27 @@ public class Program
 // #endif
             .AddDbContext<domain-nameDbContext>()       // Adds the standard EF DbContext.
             .AddEfDb<domain-nameEfDb>();                // Adds the CoreEx extended EF service.
+// #elif implement-cosmos
+        // Add the Cosmos DB client (Aspire); in Development, accept the local emulator's self-signed certificate and use Gateway mode.
+        builder.AddAzureCosmosClient("Cosmos", configureClientOptions: o =>
+        {
+            o.UseSystemTextJsonSerializerWithOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+
+            if (builder.Environment.IsDevelopment())
+            {
+                o.ConnectionMode = ConnectionMode.Gateway;
+                o.HttpClientFactory = () => new HttpClient(new HttpClientHandler { ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator });
+            }
+        });
+
+        builder.Services.AddCosmosDb<domain-nameCosmosDb>("domain-name-lower");     // Adds the CoreEx extended Cosmos DB service for the database.
+        builder.Services
+            .AddEventFormatter()                        // Adds the EventFormatter to enable message formatting for publishing.
+// #if outbox-enabled
+            .AddCosmosDbEventPublisher()                // Adds the CosmosDbEventPublisher as the IEventPublisher.
+// #endif
+            .AddCosmosDbUnitOfWork()                    // Adds the CosmosDbUnitOfWork as the IUnitOfWork.
+            .AddCosmosDbHealthCheck();                  // Adds the CosmosDbHealthCheck; Aspire's AddAzureCosmosClient does not register one.
 // #elif implement-postgres
         builder.AddNpgsqlDataSource("Postgres");        // Adds the NpgsqlDataSource (using Aspire library).
         builder.Services
@@ -92,6 +114,8 @@ public class Program
         builder.WithCoreExTelemetry()
 // #if implement-sqlserver
             .WithCoreExSqlServerTelemetry()
+// #elif implement-cosmos
+            .WithCoreExCosmosDbTelemetry()
 // #elif implement-postgres
             .WithCoreExPostgresTelemetry()
 // #endif

@@ -23,7 +23,7 @@ tags: ["subscribers", "messaging", "service-bus", "event-handling", "integration
 | Package | Key types provided |
 |---|---|
 | `CoreEx.Events` | `SubscribedBase`, `SubscribedBase<TValue>`, `[Subscribe(...)]`, `EventSubscriberArgs`, `ErrorHandler`, `ErrorHandling`, `EventData`, `.Key` |
-| `CoreEx.Azure.Messaging.ServiceBus` | `ServiceBusSessionReceiverOptions`, `.AzureServiceBusReceiving()`, `.WithSessionReceiver()`, `.WithSubscribedSubscriber()`, `.WithHostedService()` |
+| `CoreEx.Azure.Messaging.ServiceBus` | `ServiceBusSessionReceiverOptions`, `.AzureServiceBusReceiving()`, `.WithSessionReceiver()`, `.WithSubscribedSubscriber()`, `.WithKeyedSubscribedSubscriber()`, `.WithHostedService()` |
 | `CoreEx` | `[ScopedService]`, `.ThrowIfNull()`, `.Required()`, `Result`, `Result.Success`, `IValidator<T>` |
 
 ## Subscriber Structure
@@ -170,13 +170,13 @@ builder.Services
     .AddDefaultCacheKeyProvider()
     .AddHybridCacheIdempotencyProvider();
 
-// 3. Infrastructure — database, EF, outbox publisher (for transactional writes inside subscribers)
+// 3. Infrastructure — database, relational EF or Cosmos, and (only when outbox-enabled) the default outbox publisher for transactional writes inside subscribers.
 // SQL Server variant:
 builder.AddSqlServerClient("SqlServer");
 builder.Services
     .AddSqlServerDatabase()
     .AddSqlServerUnitOfWork()
-    .AddSqlServerOutboxPublisher()              // outbox publisher becomes the default IEventPublisher
+    .AddSqlServerOutboxPublisher()              // only when outbox-enabled; becomes the default IEventPublisher when registered
     .AddDbContext<MyDbContext>()
     .AddEfDb<MyEfDb>();
 
@@ -186,18 +186,34 @@ builder.Services
 //     .AddPostgresDatabase()
 //     .AddPostgresUnitOfWork()
 //     .AddEventFormatter()
-//     .AddPostgresOutboxPublisher()
+//     .AddPostgresOutboxPublisher()            // only when outbox-enabled; becomes the default IEventPublisher when registered
 //     .AddDbContext<MyDbContext>()
 //     .AddEfDb<MyEfDb>();
+
+// Cosmos variant (use instead of the relational block):
+// builder.AddAzureCosmosClient("Cosmos", configureClientOptions: o =>
+// {
+//     o.UseSystemTextJsonSerializerWithOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+//     if (builder.Environment.IsDevelopment())
+//     {
+//         o.ConnectionMode = ConnectionMode.Gateway;
+//         o.HttpClientFactory = () => new HttpClient(new HttpClientHandler { ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator });
+//     }
+// });
+// builder.Services
+//     .AddCosmosDb<MyCosmosDb>("my-database-id")
+//     .AddCosmosDbUnitOfWork()
+//     .AddCosmosDbEventPublisher()             // only when outbox-enabled; becomes the default IEventPublisher when registered
+//     .AddCosmosDbHealthCheck();
 
 // 4. Azure Service Bus publisher — direct publish capability (not the default IEventPublisher)
 builder.AddAzureServiceBusClient("ServiceBus");
 builder.Services.AddAzureServiceBusPublisher((_, c) =>
 {
     c.SessionIdStrategy = ServiceBusSessionStrategy.UsePartitionKeyConvertedToAnId;
-}, addAsDefaultIEventPublisher: false);  // false because outbox publisher is already the default
+}, addAsDefaultIEventPublisher: false);  // false because, when outbox-enabled, the database-backed outbox publisher remains the default
 
-// 5. Event formatter + subscriber manager
+// 5. Event formatter + subscriber manager (AddNamedDestinationProvider() is registered with the other CoreEx services: events to the shared topic, commands to `{topic}-{domain}` queues)
 builder.Services
     .AddEventFormatter()
     .AddSubscribedManager((_, c) => c.AddSubscribersUsing<MySubscriber>());
@@ -209,9 +225,9 @@ builder.Services.AzureServiceBusReceiving()
         var o = ServiceBusSessionReceiverOptions.CreateForTopicSubscription();
         o.SessionProcessorOptions.MaxConcurrentSessions = 4;
         return o;
-    })
-    .WithSubscribedSubscriber()    // routes received messages through the SubscribedManager
-    .WithHostedService()           // runs the receiver as a BackgroundService
+    }, "receiver-events")                               // keyed by default so further receivers (e.g. a command queue) can be added alongside
+    .WithKeyedSubscribedSubscriber("subscriber-events") // routes received messages through the SubscribedManager
+    .WithHostedService("hosted-subscriber-events")                 // runs the receiver as a BackgroundService (also the health-check/hosted-service management name)
     .Build();
 
 // 7. External API clients (if needed — for domains with inter-domain HTTP calls)
@@ -228,7 +244,7 @@ builder.Services.AddOpenApiDocument(s =>
 
 builder.WithCoreExTelemetry()
     .WithCoreExServiceBusTelemetry()
-    .WithCoreExSqlServerTelemetry()  // or .WithCoreExPostgresTelemetry() for PostgreSQL
+    .WithCoreExSqlServerTelemetry()  // or .WithCoreExPostgresTelemetry() / .WithCoreExCosmosDbTelemetry() for the chosen provider
     .UseOtlpExporter();
 
 // 9. Build and middleware pipeline
@@ -253,17 +269,36 @@ app.Run();
 
 `MapHostedServices()` exposes runtime management endpoints to **pause and resume** the receiver per partition without restarting the process.
 
+## Command Subscribers (Queue)
+
+A command is addressed to **one** domain and travels on that domain's **queue** (`{CoreEx:Events:Destination}-{domain}`, e.g. `contoso-products`), not the shared event topic. The `NamedDestinationProvider` (`AddNamedDestinationProvider()`) does the routing on the publishing side; the consuming Subscribe host needs its **own** receiver for that queue:
+
+```csharp
+builder.Services.AzureServiceBusReceiving()
+    .WithSessionReceiver(_ => ServiceBusSessionReceiverOptions.CreateForQueue("{destination}-{domain}"), "receiver-commands")
+    .WithKeyedSubscribedSubscriber("subscriber-commands")
+    .WithHostedService("hosted-subscriber-commands")
+    .Build();
+```
+
+- Each receiver, subscriber and hosted service needs its own **service key**; the event receiver uses `receiver-events` / `subscriber-events` / `hosted-subscriber-events`. Tests resolve `GetRequiredKeyedService<ServiceBusSubscribedSubscriber>("subscriber-commands")`.
+- The queue name must equal the `NamedDestinationProvider` result exactly and must exist (Test.Common `ServiceBus.GetQueues()`, session-enabled; Aspire topology class), otherwise the hosted service fails to start.
+- Publisher-side `CoreEx:Host:ServiceBus:Destinations:{destination}` overrides use that exact resolved queue/topic name; the default `NamedDestinationProvider` forms command queues as `{CoreEx:Events:Destination}-{target-domain}`. Session bucket count is not receiver concurrency: tune `MaxConcurrentSessions` independently, and only bucket keys when the ordering/concurrency trade-off is intentional.
+- The **consuming domain owns the command contract** and subject (`{parent}.{this-domain}.{entity}.{action}[.v{n}]`). Never subscribe to another domain's command.
+- Commands are at-least-once: handlers must be idempotent; map only *expected* outcomes in the `ErrorHandler`.
+- Full slice (contract, wiring, topology, tests, Aspire): [`coreex-command-subscribe-e2e`](/.github/skills/coreex-command-subscribe-e2e/SKILL.md). Publishing side: [`coreex-command-publish-e2e`](/.github/skills/coreex-command-publish-e2e/SKILL.md).
+
 ## Do Not
 
 - Do not embed business logic in subscriber classes — delegate immediately to an Application-layer service or adapter.
 - Do not use MediatR or in-process event dispatchers — subscribers react to integration events from the broker only.
 - Do not manually register subscriber classes in DI — `AddSubscribersUsing<T>()` discovers them automatically via `[ScopedService]`.
 - Do not omit `AddEventFormatter()` from `Program.cs` — it is required for message parsing and deserialization.
-- Do not set `addAsDefaultIEventPublisher: true` for the Service Bus publisher when the outbox publisher is the intended default `IEventPublisher`.
+- Do not set `addAsDefaultIEventPublisher: true` for the Service Bus publisher when an outbox publisher is registered (all providers, and only when `outbox-enabled` is true) and is the intended default `IEventPublisher`.
 
 ## Further Reading
 
 - [Hosts Layer Guide — Subscribe Host](/.github/docs/coreex/hosts-layer.md) — Subscribe host architecture, Program.cs shape, and subscriber patterns (docs-sync cache; after `/coreex-docs-sync`). Source: [samples/docs/hosts-layer.md](https://github.com/Avanade/CoreEx/blob/main/samples/docs/hosts-layer.md).
 - [Pattern Catalog](/.github/docs/coreex/patterns.md) — Subscribe, Publish, Transactional Outbox, and Event-Driven Replication pattern entries (docs-sync cache; after `/coreex-docs-sync`). Source: [samples/docs/patterns.md](https://github.com/Avanade/CoreEx/blob/main/samples/docs/patterns.md).
 - [CoreEx.Azure.Messaging.ServiceBus guide](/.github/docs/coreex/agents/CoreEx.Azure.Messaging.ServiceBus.md) — `SubscribedBase`, `ErrorHandler`, and Service Bus receiver configuration (docs-sync cache; after `/coreex-docs-sync`). Source: [CoreEx.Azure.Messaging.ServiceBus README](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.Azure.Messaging.ServiceBus/README.md).
-- Related skill: [`coreex-subscriber`](/.github/skills/coreex-subscriber/SKILL.md) — invoke to scaffold an event subscriber.
+- Related skill: [`coreex-subscriber`](/.github/skills/coreex-subscriber/SKILL.md) — invoke to scaffold a subscriber; [`coreex-command-subscribe-e2e`](/.github/skills/coreex-command-subscribe-e2e/SKILL.md) for a command end-to-end.

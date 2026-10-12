@@ -29,12 +29,30 @@ The package extends [UnitTestEx](https://github.com/Avanade/UnitTestEx) — the 
 - 🔄 **FusionCache test reset**: `ClearFusionCacheAsync` clears the registered `IFusionCache` between test runs to prevent state bleed in cached reference-data or other cache-backed scenarios.
 
 ## Key types
-
 | Type | Description |
 |------|-------------|
 | **[`UnitTestExOneOffTestSetUp`](./UnitTestExOneOffTestSetUp.cs)** | Internal one-off UnitTestEx initializer; configures CoreEx JSON serialization defaults, the environment user name, and `ValidationException` error-assertion integration automatically on assembly load. |
 | **[`UnitTestExExpectations`](./UnitTestExExpectations.cs)** | Static partial class; aggregates all CoreEx-specific value and tester expectation extension methods: `ExpectIdentifier`, `ExpectETag`, `ExpectChangeLogCreated`, `ExpectChangeLogUpdated`, `IgnorePaths`, and the full event and outbox expectation surface. |
 | **[`UnitTestExExtensions`](./UnitTestExExtensions.cs)** | Static partial class; aggregates all CoreEx-specific `TesterBase` and `IValidator<T>` extension methods: `Scoped`, `CreateCloudEventFrom`, `AssertProblemDetails`, `ClearFusionCacheAsync`, `UseExpectedEventPublisher`, `AssertSuccess`, and `AssertErrors`. |
+
+
+### Aspire external infrastructure
+
+`AddExternalConnectionString` (in the `UnitTestEx` namespace, alongside the other Aspire extensions) wraps a secret
+parameter sourced from `ConnectionStrings:{name}` in a visible connection-string resource:
+
+```csharp
+var database = builder.AddExternalConnectionString("Cosmos", endpointKey: "AccountEndpoint").WithIconName("DatabaseMultiple");
+var redis = builder.AddExternalConnectionString("redis").WithIconName("Database");
+builder.AddProject<Projects.Customers_Api>("customers-api").WithReference(database).WithReference(redis);
+```
+
+Use `"Postgres"` or `"SqlServer"` without `endpointKey` for relational providers. Plain `AddConnectionString(name)`
+creates parameter-only resources omitted from Aspire 13.5.4's Graph/Table views. Compose retains infrastructure
+lifecycle ownership; the resource's running status indicates resolved configuration, not connectivity. Hosts still
+perform readiness checks. Cosmos's configured endpoint is exposed as a credential-free HTTP/HTTPS URL for dashboard
+peer matching; missing, invalid, non-HTTP, or credential-bearing endpoint URLs fail explicitly. Dashboard labels
+depend on span endpoint attributes, not database-provider names; explicit ports help avoid ambiguous local matches.
 
 ## Namespaces
 

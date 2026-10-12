@@ -112,6 +112,46 @@ public partial class RuntimeMetadataTests
         RuntimeMetadata.AreEqual("abc", "def").Should().BeFalse();
     }
 
+    public class PlainPoco
+    {
+        public int Id { get; set; }
+        public string? Name { get; set; }
+        public PlainPoco? Child { get; set; }
+    }
+
+    [Test]
+    public void AreEqual_ExcludedProperties_Contract()
+    {
+        var a = new EntityA { Id = 1, Name = "Bob" };
+        var b = new EntityA { Id = 2, Name = "Bob" };
+
+        RuntimeMetadata.AreEqual(a, b).Should().BeFalse();
+        RuntimeMetadata.AreEqual(a, b, [nameof(EntityA.Id)]).Should().BeTrue();
+        RuntimeMetadata.AreEqual(a, b, [nameof(EntityA.Name)]).Should().BeFalse();
+        RuntimeMetadata.AreEqual(a, b, []).Should().BeFalse();
+        RuntimeMetadata.AreEqual(a, b, null).Should().BeFalse();
+    }
+
+    [Test]
+    public void AreEqual_ExcludedProperties_PlainClass_RootOnly()
+    {
+        var a = new PlainPoco { Id = 1, Name = "Bob", Child = new PlainPoco { Id = 5 } };
+        var b = new PlainPoco { Id = 2, Name = "Bob", Child = new PlainPoco { Id = 5 } };
+        RuntimeMetadata.AreEqual(a, b, [nameof(PlainPoco.Id)]).Should().BeTrue();
+
+        // Exclusion is top-level only; the same name nested still counts.
+        var c = new PlainPoco { Id = 1, Name = "Bob", Child = new PlainPoco { Id = 6 } };
+        RuntimeMetadata.AreEqual(a, c, [nameof(PlainPoco.Id)]).Should().BeFalse();
+    }
+
+    [Test]
+    public void AreEqual_ExcludedProperties_SameReference_AndNulls()
+    {
+        var a = new PlainPoco { Id = 1 };
+        RuntimeMetadata.AreEqual(a, a, [nameof(PlainPoco.Id)]).Should().BeTrue();
+        RuntimeMetadata.AreEqual<PlainPoco>(null, null, [nameof(PlainPoco.Id)]).Should().BeTrue();
+        RuntimeMetadata.AreEqual(a, null, [nameof(PlainPoco.Id)]).Should().BeFalse();
+    }
     [Test]
     public void AreEqual_IEnumerable_ValueType()
     {
@@ -135,6 +175,28 @@ public partial class RuntimeMetadataTests
         RuntimeMetadata.AreEqual(arr1, arr3).Should().BeFalse();
         RuntimeMetadata.AreEqual(arr1, arr4).Should().BeFalse();
     }
+
+    [TestCase("{\"a\":1,\"b\":2}", "{\"b\":2,\"a\":1}", true)]
+    [TestCase("{\"a\":{\"b\":[1,{\"c\":1,\"d\":2}]}}", "{\"a\":{\"b\":[1,{\"d\":2,\"c\":1}]}}", true)]
+    [TestCase("{\"a\":1}", "{\"a\":2}", false)]
+    [TestCase("{\"a\":\"x\"}", "{\"a\":\"y\"}", false)]
+    [TestCase("{\"a\":1}", "{\"a\":1,\"b\":2}", false)]
+    [TestCase("{\"a\":1,\"b\":2}", "{\"a\":1}", false)]
+    [TestCase("{\"a\":null}", "{}", false)]
+    [TestCase("{\"a\":{\"b\":[1,{\"c\":1}]}}", "{\"a\":{\"b\":[1,{\"c\":2}]}}", false)]
+    [TestCase("[1,2]", "[2,1]", false)]
+    [TestCase("[1,2]", "[1,2,3]", false)]
+    [TestCase("1", "1.0", true)]
+    [TestCase("1e2", "100", true)]
+    [TestCase("10.50", "10.5", true)]
+    [TestCase("12345678901234567890.123", "12345678901234567890.124", false)]
+    [TestCase("1e999", "1e999", true)]
+    [TestCase("\"\\u0041\"", "\"A\"", true)]
+    [TestCase("\"1\"", "1", false)]
+    [TestCase("true", "false", false)]
+    [TestCase("null", "null", true)]
+    public void AreEqual_JsonElement(string left, string right, bool expected)
+        => RuntimeMetadata.AreEqual(System.Text.Json.JsonDocument.Parse(left).RootElement, System.Text.Json.JsonDocument.Parse(right).RootElement).Should().Be(expected);
 
     // Local iterator methods (not backed by ICollection) so the AreEqual<T> ICollection.Count short-circuit is bypassed
     // and TypedEnumerateAreEqual/EnumerateObjectAreEqual are exercised directly.

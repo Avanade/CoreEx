@@ -14,27 +14,55 @@ public partial class ReferenceDataRepository : IReferenceDataRepository
 {
     /// <inheritdoc/>
     public Task<Contracts.BrandCollection> GetAllBrandsAsync(CancellationToken cancellationToken = default)
-        => _ef.ThrowIfNull().Model<Persistence.Brand>().Query().ToMappedItemsAsync<Persistence.Brand, Contracts.BrandCollection, Contracts.Brand>(BrandMapper.Map, cancellationToken);
+        => _ef.ThrowIfNull().Model<Persistence.Brand>().Query().ToMappedItemsAsync<Persistence.Brand, Contracts.BrandCollection, Contracts.Brand>(BrandMapper.From, cancellationToken);
 
     /// <inheritdoc/>
     public Task<Contracts.CategoryCollection> GetAllCategoriesAsync(CancellationToken cancellationToken = default)
-        => _ef.ThrowIfNull().Model<Persistence.Category>().Query().ToMappedItemsAsync<Persistence.Category, Contracts.CategoryCollection, Contracts.Category>(CategoryMapper.Map, cancellationToken);
+        => _ef.ThrowIfNull().Model<Persistence.Category>().Query().ToMappedItemsAsync<Persistence.Category, Contracts.CategoryCollection, Contracts.Category>(CategoryMapper.From, cancellationToken);
 
     /// <inheritdoc/>
     public Task<Contracts.MovementKindCollection> GetAllMovementKindsAsync(CancellationToken cancellationToken = default)
-        => _ef.ThrowIfNull().Model<Persistence.MovementKind>().Query().ToMappedItemsAsync<Persistence.MovementKind, Contracts.MovementKindCollection, Contracts.MovementKind>(MovementKindMapper.Map, cancellationToken);
+        => _ef.ThrowIfNull().Model<Persistence.MovementKind>().Query().ToMappedItemsAsync<Persistence.MovementKind, Contracts.MovementKindCollection, Contracts.MovementKind>(MovementKindMapper.From, cancellationToken);
 
     /// <inheritdoc/>
     public Task<Contracts.MovementStatusCollection> GetAllMovementStatusesAsync(CancellationToken cancellationToken = default)
-        => _ef.ThrowIfNull().Model<Persistence.MovementStatus>().Query().ToMappedItemsAsync<Persistence.MovementStatus, Contracts.MovementStatusCollection, Contracts.MovementStatus>(MovementStatusMapper.Map, cancellationToken);
+        => _ef.ThrowIfNull().Model<Persistence.MovementStatus>().Query().ToMappedItemsAsync<Persistence.MovementStatus, Contracts.MovementStatusCollection, Contracts.MovementStatus>(MovementStatusMapper.From, cancellationToken);
 
     /// <inheritdoc/>
     public Task<Contracts.SubCategoryCollection> GetAllSubCategoriesAsync(CancellationToken cancellationToken = default)
-        => _ef.ThrowIfNull().Model<Persistence.SubCategory>().Query().ToMappedItemsAsync<Persistence.SubCategory, Contracts.SubCategoryCollection, Contracts.SubCategory>(SubCategoryMapper.Map, cancellationToken);
+        => _ef.ThrowIfNull().Model<Persistence.SubCategory>().Query().ToMappedItemsAsync<Persistence.SubCategory, Contracts.SubCategoryCollection, Contracts.SubCategory>(SubCategoryMapper.From, cancellationToken);
 
     /// <inheritdoc/>
     public Task<Contracts.UnitOfMeasureCollection> GetAllUnitsOfMeasureAsync(CancellationToken cancellationToken = default)
-        => _ef.ThrowIfNull().Model<Persistence.UnitOfMeasure>().Query().ToMappedItemsAsync<Persistence.UnitOfMeasure, Contracts.UnitOfMeasureCollection, Contracts.UnitOfMeasure>(UnitOfMeasureMapper.Map, cancellationToken);
+        => _ef.ThrowIfNull().Model<Persistence.UnitOfMeasure>().Query().ToMappedItemsAsync<Persistence.UnitOfMeasure, Contracts.UnitOfMeasureCollection, Contracts.UnitOfMeasure>(UnitOfMeasureMapper.From, cancellationToken);
+
+    #region Brand
+
+    /// <inheritdoc/>
+    public Task<Result<Contracts.Brand>> GetBrandAsync(string id, CancellationToken cancellationToken = default)
+        => _ef.ThrowIfNull().Model<Persistence.Brand>().GetWithResultAsync(id, cancellationToken).ThenAs(model => BrandMapper.From.Map(model));
+
+    /// <inheritdoc/>
+    public Task<Result<DataResult<Contracts.Brand>>> CreateBrandAsync(Contracts.Brand value, CancellationToken cancellationToken = default)
+        => EfDbReferenceData.CreateAsync<string, Contracts.Brand, Persistence.Brand, BrandMapper>(_ef.ThrowIfNull().Model<Persistence.Brand>(), value, BrandMapper.Default, cancellationToken);
+
+    /// <inheritdoc/>
+    public Task<Result<DataResult<Contracts.Brand>>> UpdateBrandAsync(string id, Contracts.Brand value, CancellationToken cancellationToken = default)
+        => EfDbReferenceData.UpdateAsync<string, Contracts.Brand, Persistence.Brand, BrandMapper>(_ef.ThrowIfNull().Model<Persistence.Brand>(), id, value, BrandMapper.Default, cancellationToken);
+
+    /// <inheritdoc />
+    public Task<Result<DataResult<Contracts.Brand>>> ActivateBrandAsync(string id, CancellationToken cancellationToken = default)
+        => EfDbReferenceData.ActivateAsync<string, Contracts.Brand, Persistence.Brand, BrandMapper>(_ef.ThrowIfNull().Model<Persistence.Brand>(), id, BrandMapper.Default, cancellationToken);
+
+    /// <inheritdoc />
+    public Task<Result<DataResult<Contracts.Brand>>> DeactivateBrandAsync(string id, CancellationToken cancellationToken = default)
+        => EfDbReferenceData.DeactivateAsync<string, Contracts.Brand, Persistence.Brand, BrandMapper>(_ef.ThrowIfNull().Model<Persistence.Brand>(), id, BrandMapper.Default, cancellationToken);
+
+    /// <inheritdoc/>
+    public Task<Result<DataResult>> DeleteBrandAsync(string id, CancellationToken cancellationToken = default)
+        => EfDbReferenceData.DeleteAsync<string, Contracts.Brand, Persistence.Brand>(_ef.ThrowIfNull().Model<Persistence.Brand>(), id, cancellationToken);
+
+    #endregion
 }
 
 #nullable restore

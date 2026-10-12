@@ -14,13 +14,13 @@ public class ComparePropertyRuleTests
         v.ValidateAsSuccess(new Ranges { FromNumber = null, ToNumber = 2 });
         v.ValidateAsSuccess(new Ranges { FromNumber = 1, ToNumber = null });
         v.ValidateAsSuccess(new Ranges { FromNumber = 1, ToNumber = 2 });
-        v.ValidateAsError(new Ranges { FromNumber = 2, ToNumber = 1 }, "toNumber", "To number must be greater than or equal to '2'.");
+        v.ValidateAsError(new Ranges { FromNumber = 2, ToNumber = 1 }, "toNumber", "To number must be greater than or equal to From number.");
 
         v.ValidateAsSuccess(new Ranges());
         v.ValidateAsSuccess(new Ranges { FromText = null, ToText = "b" });
         v.ValidateAsSuccess(new Ranges { FromText = "a", ToText = null });
         v.ValidateAsSuccess(new Ranges { FromText = "a", ToText = "b" });
-        v.ValidateAsError(new Ranges { FromText = "b", ToText = "a" }, "toText", "To text must be greater than or equal to 'b'.");
+        v.ValidateAsError(new Ranges { FromText = "b", ToText = "a" }, "toText", "To text must be greater than or equal to From text.");
     }
 
     [Test]

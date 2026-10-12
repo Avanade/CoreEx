@@ -290,7 +290,7 @@ public sealed class ReferenceDataOrchestrator(IServiceProvider serviceProvider, 
                         {
                             return await GetByTypeInNewScopeAsync(rdo, ec, scope, type, providerType, cancellationToken).ConfigureAwait(false);
                         }
-                        catch (Exception ex) when (Logger?.IsEnabled(LogLevel.Error) == true)
+                        catch (Exception ex) when (!(ex.IsCanceled() && cancellationToken.IsCancellationRequested) && Logger?.IsEnabled(LogLevel.Error) == true)
                         {
                             Logger.LogError(ex, "Reference data type {RefDataType} cache load failed in worker task: {ex.Message}", type.FullName, ex.Message);
                             throw; // Re-throw to propagate
@@ -390,6 +390,68 @@ public sealed class ReferenceDataOrchestrator(IServiceProvider serviceProvider, 
     /// <returns>The corresponding <see cref="IReferenceDataCollection"/> where found; otherwise, <see langword="null"/>.</returns>
     public Task<IReferenceDataCollection> GetByNameRequiredAsync(string name, CancellationToken cancellationToken = default)
         => _nameToType.TryGetValue(name.ThrowIfNull(), out var type) ? GetByTypeRequiredAsync(type, cancellationToken) : throw new InvalidOperationException($"Reference data collection for name '{name}' does not exist.");
+
+    /// <summary>
+    /// Invalidates the cached <see cref="IReferenceDataCollection"/> for the specified <see cref="IReferenceData"/> <see cref="Type"/>.
+    /// </summary>
+    /// <typeparam name="TRef">The <see cref="IReferenceData"/> <see cref="Type"/>.</typeparam>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+    /// <remarks>This will result in the cached <see cref="IReferenceDataCollection"/> being removed, and then re-cached on next access.</remarks>
+    public Task InvalidateAsync<TRef>(CancellationToken cancellationToken = default) where TRef : IReferenceData => InvalidateAsync(typeof(TRef), cancellationToken);
+
+    /// <summary>
+    /// Invalidates the cached <see cref="IReferenceDataCollection"/> for the specified <see cref="IReferenceData"/> <see cref="Type"/>.
+    /// </summary>
+    /// <param name="type">The <see cref="IReferenceData"/> <see cref="Type"/>.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+    /// <remarks>This will result in the cached <see cref="IReferenceDataCollection"/> being removed, and then re-cached on next access.</remarks>
+    public async Task InvalidateAsync(Type type, CancellationToken cancellationToken = default)
+    {
+        if (!_typeToProvider.TryGetValue(type.ThrowIfNull(), out var providerType))
+            return;
+
+        if (!ExecutionContext.HasCurrent)
+            throw new InvalidOperationException($"The {nameof(ReferenceDataOrchestrator)} requires an active {nameof(ExecutionContext)} to support underlying scoped service resolution.");
+
+        // Get the underlying scoped cache.
+        var cache = ExecutionContext.GetRequiredService<IReferenceDataCache>();
+
+        // The cache is keyed by the reference data collection type (see GetByTypeAsync), so the corresponding collection type is required for the removal.
+        await cache.RemoveAsync(_typeToCollType[type], cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Attempts a best-effort invalidation of the cached <see cref="IReferenceDataCollection"/> for the specified <see cref="IReferenceData"/> <see cref="Type"/>.
+    /// </summary>
+    /// <typeparam name="TRef">The <see cref="IReferenceData"/> <see cref="Type"/>.</typeparam>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+    /// <returns><see langword="true"/> where the invalidation succeeded (or there was nothing to invalidate); otherwise, <see langword="false"/> where it failed.</returns>
+    /// <remarks>See <see cref="TryInvalidateAsync(Type, CancellationToken)"/>.</remarks>
+    public Task<bool> TryInvalidateAsync<TRef>(CancellationToken cancellationToken = default) where TRef : IReferenceData => TryInvalidateAsync(typeof(TRef), cancellationToken);
+
+    /// <summary>
+    /// Attempts a best-effort invalidation of the cached <see cref="IReferenceDataCollection"/> for the specified <see cref="IReferenceData"/> <see cref="Type"/>.
+    /// </summary>
+    /// <param name="type">The <see cref="IReferenceData"/> <see cref="Type"/>.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+    /// <returns><see langword="true"/> where the invalidation succeeded (or there was nothing to invalidate); otherwise, <see langword="false"/> where it failed.</returns>
+    /// <remarks>Unlike <see cref="InvalidateAsync(Type, CancellationToken)"/>, any failure (including cancellation) is logged as a warning and swallowed; the invalidation is still awaited so that read-after-write is preserved.
+    /// <para>This is intended to be invoked <i>after</i> the underlying data change has been committed, where the change is permanent and a failure to evict must not be surfaced as a failure of the operation; the cached
+    /// collection will then remain stale until it expires. Do <b>not</b> invoke within the transaction as a concurrent reader could re-cache the pre-commit data.</para></remarks>
+    public async Task<bool> TryInvalidateAsync(Type type, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            await InvalidateAsync(type, cancellationToken).ConfigureAwait(false);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Reference data type {RefDataType} cache invalidation failed; the cached collection will remain stale until it expires: {Message}", type?.FullName, ex.Message);
+            return false;
+        }
+    }
 
     /// <summary>
     /// Gets the dictionary of the single definitive external name for every registered <see cref="IReferenceData"/> <see cref="Type"/>.

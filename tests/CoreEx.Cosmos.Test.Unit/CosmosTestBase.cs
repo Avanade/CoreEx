@@ -16,9 +16,17 @@ public abstract class CosmosTestBase
     /// <summary>
     /// Gets the shared <see cref="CosmosClient"/> (Gateway mode, pointed at the local emulator, accepting its self-signed certificate).
     /// </summary>
-    protected static CosmosClient Client => _client ??= new CosmosClient(Endpoint, Key, new CosmosClientOptions
+    protected static CosmosClient Client => _client ??= CreateClient();
+
+    /// <summary>
+    /// Creates a new, independent <see cref="CosmosClient"/> (own metadata caches) configured as per <see cref="Client"/>; the caller owns (and must dispose) it.
+    /// </summary>
+    /// <param name="enableTracing">Whether to enable the SDK's distributed tracing for telemetry assertions.</param>
+    /// <remarks>Useful where a test drops/replaces databases or containers, as a client that has cached the replaced resource can otherwise surface stale-cache failures.</remarks>
+    protected static CosmosClient CreateClient(bool enableTracing = false) => new(Endpoint, Key, new CosmosClientOptions
     {
         ConnectionMode = ConnectionMode.Gateway,
+        CosmosClientTelemetryOptions = new CosmosClientTelemetryOptions { DisableDistributedTracing = !enableTracing },
         HttpClientFactory = () => new HttpClient(new HttpClientHandler { ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator }),
         // CosmosDbModelBase uses System.Text.Json's [JsonPropertyName] to map the id/_etag/ttl reserved properties; the SDK's default serializer is Newtonsoft.Json-based and would not honour those
         // attributes, so opt into the SDK's System.Text.Json serializer explicitly (camelCase for everything else, matching typical Cosmos DB document conventions).
@@ -76,10 +84,8 @@ public abstract class CosmosTestBase
     /// <summary>
     /// Creates (if not already existing) a test container with the specified <paramref name="id"/> and <paramref name="partitionKeyPath"/> (defaults to <c>/partitionKey</c>).
     /// </summary>
-    /// <remarks>The local emulator occasionally responds with a transient <c>503 ServiceUnavailable</c> ("high demand") when several containers are created in quick succession; a short retry-with-backoff
-    /// smooths over this. Note: this exact response is also what the emulator returns when its <c>AZURE_COSMOS_EMULATOR_PARTITION_COUNT</c> (the cap on the total number of containers it can host, not
-    /// "partitions per container") has been exhausted - that failure mode is deterministic, not transient, and no amount of retrying fixes it (confirmed the hard way); see the setting's own comment in
-    /// <c>docker-compose.yml</c>. If this retry starts failing consistently for a new container, check whether the count needs raising before assuming it is another transient blip.</remarks>
+    /// <remarks>The local emulator can respond with a transient <c>503 ServiceUnavailable</c> when containers are created in quick succession (the legacy emulator image also returned the same response, deterministically, once its ~35 container cap was exhausted); a short retry-with-backoff
+    /// smooths over this.</remarks>
     protected static async Task<Container> GetOrCreateContainerAsync(string id, string partitionKeyPath = "/partitionKey")
     {
         for (var attempt = 1; ; attempt++)

@@ -1,7 +1,3 @@
-using OpenTelemetry;
-using OpenTelemetry.Trace;
-using ZiggyCreatures.Caching.Fusion;
-
 namespace Contoso.Customers.Api;
 
 public class Program
@@ -23,12 +19,15 @@ public class Program
             .AddHttpWebApi();
 
         // Add all the dynamically registered services.
-        builder.Services.AddDynamicServicesUsing<ReferenceDataService, CustomerRepository>();
+        builder.Services.AddDynamicServicesUsing<ReferenceDataProvider, CustomerRepository>();
 
-        // Add caching services - in-memory (L1) only for this sample; no distributed (L2)/Redis, kept deliberately simple.
+        // Add L1/L2 caching services and the Redis backplane.
         builder.Services.AddMemoryCache();
+        builder.AddRedisDistributedCache("redis");
         builder.Services.AddFusionCache()
             .WithRegisteredMemoryCache()
+            .WithRegisteredDistributedCache()
+            .WithBackplane(sp => new RedisBackplane(new RedisBackplaneOptions { Configuration = sp.GetRequiredService<IOptions<ConfigurationOptions>>().Value.ToString() }))
             .WithSystemTextJsonSerializer(JsonDefaults.SerializerOptions);
 
         builder.Services
@@ -52,6 +51,7 @@ public class Program
         builder.Services.AddCosmosDb<CustomersCosmosDb>("contoso");
         builder.Services
             .AddEventFormatter()                         // Adds the EventFormatter to enable message formatting for publishing.
+            .AddNamedDestinationProvider()                 // Adds the NamedDestinationProvider; events to the shared topic, commands to per-domain queues.
             .AddCosmosDbEventPublisher()                 // Adds the CosmosDbEventPublisher/IEventPublisher
             .AddCosmosDbUnitOfWork()                     // Adds the CosmosDbUnitOfWork/IUnitOfWork, matching AddPostgresUnitOfWork/AddSqlServerUnitOfWork's multi-register shape.
             .AddCosmosDbHealthCheck();                   // Adds the CosmosDbHealthCheck - Aspire's own AddAzureCosmosClient does not register one itself, unlike its Npgsql/SqlClient counterparts.

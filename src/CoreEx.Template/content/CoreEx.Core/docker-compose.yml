@@ -18,6 +18,14 @@ services:
     ports:
       - "5432:5432"
 #endif
+#if implement-cosmos
+  # Azure Cosmos DB "vNext" Linux emulator; the .NET SDK only speaks HTTPS (vNext defaults to HTTP), hence `--protocol https` (self-signed certificate; clients must accept it).
+  # Host networking is used because rootless Podman on Windows (WSL) does not forward the TLS gateway port correctly via published ports; it also works as-is with Docker on Linux.
+  cosmos-emulator:
+    image: mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:vnext-latest
+    command: ["--protocol", "https", "--health-port", "8083"]
+    network_mode: host
+#endif
   redis-cache:
     image: docker.io/redis:latest
     ports:

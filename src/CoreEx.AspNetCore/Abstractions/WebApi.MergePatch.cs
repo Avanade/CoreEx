@@ -14,7 +14,11 @@ public abstract partial class WebApi<TResult>
     /// <returns>The resulting <typeparamref name="TResult"/>.</returns>
     public Task<TResult> PatchAsync<TValue>(HttpRequest request, Func<WebApiResponseOptions<TValue>, CancellationToken, Task<TValue?>> get, Func<WebApiRequestResponseOptions<TValue, TValue>, CancellationToken, Task<TValue>> put, HttpStatusCode statusCode = HttpStatusCode.OK, CancellationToken cancellationToken = default)
         => PatchWithResultAsync<TValue>(request,
-            async (ro, ct) => Result.Ok(await get(ro, ct).ConfigureAwait(false)),
+            async (ro, ct) =>
+            {
+                var gv = await get(ro, ct).ConfigureAwait(false);
+                return gv is null ? Result.NotFoundError() : Result.Ok(gv);
+            },
             async (ro, ct) => Result.Ok(await put(ro, ct).ConfigureAwait(false)),
             statusCode, cancellationToken);
 
@@ -28,7 +32,7 @@ public abstract partial class WebApi<TResult>
     /// <param name="statusCode">The <see cref="HttpStatusCode"/> where result is not <see langword="null"/>.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
     /// <returns>The resulting <typeparamref name="TResult"/>.</returns>
-    public async Task<TResult> PatchWithResultAsync<TValue>(HttpRequest request, Func<WebApiResponseOptions<TValue>, CancellationToken, Task<Result<TValue?>>> get, Func<WebApiRequestResponseOptions<TValue, TValue>, CancellationToken, Task<Result<TValue>>> put, HttpStatusCode statusCode = HttpStatusCode.OK, CancellationToken cancellationToken = default)
+    public async Task<TResult> PatchWithResultAsync<TValue>(HttpRequest request, Func<WebApiResponseOptions<TValue>, CancellationToken, Task<Result<TValue>>> get, Func<WebApiRequestResponseOptions<TValue, TValue>, CancellationToken, Task<Result<TValue>>> put, HttpStatusCode statusCode = HttpStatusCode.OK, CancellationToken cancellationToken = default)
     {
         CheckRequest(request, [HttpMethods.Patch]);
         get.ThrowIfNull();
@@ -63,9 +67,8 @@ public abstract partial class WebApi<TResult>
 
             var mpr = await JsonMergePatch.MergeWithResultAsync(content, async ct =>
             {
-                // Perform the get operation to retrieve the current value.
                 return Result.Go(await _invoker.InvokeAsync(this, async (_, cancellationToken) => await get(gro, cancellationToken).ConfigureAwait(false), cancellationToken, $"{nameof(PatchAsync)}::{nameof(get)}").ConfigureAwait(false))
-                    .Then(gv => 
+                    .Then(gv =>
                     {
                         if (gv is null || gv is not IReadOnlyETag etag)
                             return gv;

@@ -93,10 +93,23 @@ public partial class CosmosDbContainer<TModel>
         => await CosmosDb.Invoker.InvokeAsync(CosmosDb, args.ThrowIfNull(), async (_, args, cancellationToken) =>
         {
             var id = Options.FormatIdentifier(key);
+            var serializerOptions = ChangeTrackerSerializerOptions;
+            var tracker = CosmosDb.ChangeTracker;
 
+            // Serve from the change tracker snapshot (a fresh instance each time) unless bypassed (refresh, or caller-supplied ItemRequestOptions such as a conditional read or consistency/session option, which must reach Cosmos DB); CheckModel is always re-run as the args (e.g. filters) can differ per call.
+            if (serializerOptions is not null && !args.ClearChangeTrackerAfterGet && args.ItemRequestOptions is null && tracker.TryGet<TModel>(serializerOptions, Container.Id, partitionKey, id, out var tracked))
+                return CheckModel(args, tracked, OperationType.Get, treatNullAsNotFound);
+
+            var version = serializerOptions is not null && !args.ClearChangeTrackerAfterGet ? tracker.CaptureVersion(Container.Id, partitionKey, id) : null;
             try
             {
                 var response = await Container.ReadItemAsync<TModel>(id, partitionKey, BuildItemRequestOptions(args), cancellationToken).ConfigureAwait(false);
+
+                if (args.ClearChangeTrackerAfterGet)
+                    tracker.Remove(Container.Id, partitionKey, id);
+                else if (serializerOptions is not null && response.Resource is not null && version is not null)
+                    tracker.Set(serializerOptions, Container.Id, partitionKey, id, response.Resource, version);
+
                 return CheckModel(args, response.Resource, OperationType.Get, treatNullAsNotFound);
             }
             catch (CosmosException cex) when (cex.StatusCode == HttpStatusCode.NotFound)

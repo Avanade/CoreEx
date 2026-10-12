@@ -1,5 +1,6 @@
 using CoreEx.Database.Outbox;
 using CoreEx.Database.SqlServer;
+using CoreEx.Database.SqlServer.Outbox;
 using CoreEx.Events.Publishing;
 using CoreEx.Hosting;
 using Microsoft.Data.SqlClient;
@@ -49,6 +50,77 @@ public class DatabaseOutboxRelayHostedServiceBaseTests
     }
 
     [Test]
+    public async Task SharedPartitionSize_IsUsedAndReported()
+    {
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(
+            [
+                new(DatabaseOutboxConfiguration.PartitionSizeConfigurationKey, "2"),
+                new("CoreEx:Host:Services:OutboxRelay:PerWorkerPartitionCount", "1")
+            ])
+            .Build();
+        var sc = new ServiceCollection();
+        sc.AddSingleton<IConfiguration>(configuration);
+        sc.AddExecutionContext();
+        using var sp = sc.BuildServiceProvider();
+
+        var svc = new TestOutboxRelayHostedService(sp, NullLogger.Instance)
+        {
+            RelayFactory = _ => new TestOutboxRelay(CreateDatabase(), new NoOpEventPublisher(), new TestRelayState { ThrowAlways = false })
+        };
+
+        await svc.StartAsync(CancellationToken.None);
+        try
+        {
+            svc.PartitionSize.Should().Be(2);
+            var data = new Dictionary<string, object>();
+            svc.GetHealthStatus(data);
+            ((Dictionary<string, object>)data["OutboxRelay"])["PartitionSize"].Should().Be(2);
+        }
+        finally
+        {
+            await svc.StopAsync(CancellationToken.None);
+        }
+    }
+
+    [Test]
+    public void LegacyPartitionSize_FailsAtStartup()
+    {
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection([new("CoreEx:Host:Services:OutboxRelay:PartitionSize", "2")])
+            .Build();
+        var sc = new ServiceCollection();
+        sc.AddSingleton<IConfiguration>(configuration);
+        sc.AddExecutionContext();
+        using var sp = sc.BuildServiceProvider();
+
+        var svc = new TestOutboxRelayHostedService(sp, NullLogger.Instance)
+        {
+            RelayFactory = _ => new TestOutboxRelay(CreateDatabase(), new NoOpEventPublisher(), new TestRelayState { ThrowAlways = false })
+        };
+
+        var ex = Assert.ThrowsAsync<InvalidOperationException>(async () => await svc.StartAsync(CancellationToken.None));
+        ex!.Message.Should().Contain(DatabaseOutboxConfiguration.PartitionSizeConfigurationKey);
+    }
+
+    [Test]
+    public void SqlServerOutboxPublisher_UsesSharedPartitionSize()
+    {
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection([new(DatabaseOutboxConfiguration.PartitionSizeConfigurationKey, "3")])
+            .Build();
+        var services = new ServiceCollection();
+        services.AddSingleton<IConfiguration>(configuration);
+        services.AddLogging();
+        services.AddScoped(_ => CreateDatabase());
+        services.AddSqlServerOutboxPublisher((_, publisher) => publisher.PartitionSize = 8);
+        using var sp = services.BuildServiceProvider();
+
+        var publisher = (SqlServerOutboxPublisher)sp.GetRequiredKeyedService<IEventPublisher>(SqlServerOutboxPublisher.DefaultServiceKey);
+        publisher.PartitionSize.Should().Be(3);
+    }
+
+    [Test]
     public async Task Relay_CircuitBreaker_TripsOnSustainedFailure_ThenSelfRecovers()
     {
         var state = new TestRelayState();
@@ -58,7 +130,7 @@ public class DatabaseOutboxRelayHostedServiceBaseTests
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(
             [
-                new("CoreEx:Host:Services:OutboxRelay:PartitionSize", "1"),
+                new(DatabaseOutboxConfiguration.PartitionSizeConfigurationKey, "1"),
                 new("CoreEx:Host:Services:OutboxRelay:PerWorkerPartitionCount", "1")
             ])
             .Build();
@@ -114,5 +186,7 @@ public class DatabaseOutboxRelayHostedServiceBaseTests
     {
         public TestOutboxRelayHostedService(IServiceProvider serviceProvider, ILogger logger) : base(serviceProvider, logger)
             => Resiliency = CreateDefaultResiliency(minimumThroughput: 2, samplingDuration: TimeSpan.FromSeconds(30), breakDuration: TimeSpan.FromMilliseconds(200));
+
+        public void GetHealthStatus(Dictionary<string, object> data) => _ = OnReportHealthStatus(data);
     }
 }

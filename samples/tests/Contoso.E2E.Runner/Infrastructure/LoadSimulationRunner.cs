@@ -227,7 +227,7 @@ public class LoadSimulationRunner
         foreach (var scenario in _context.Scenarios.Keys)
         {
             var scenarioStatistics = _scenarioStatistics[scenario];
-            var workers = _config.Simulations[scenario].Parallelism;
+            var workers = _config.Simulations.GetValueOrDefault(scenario, new LoadSimulationSimulatorConfig()).Parallelism;
             totalWorkers += workers;
 
             table.AddRow(

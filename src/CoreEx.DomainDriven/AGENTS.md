@@ -97,4 +97,3 @@ CoreEx does not provide a native in-process domain-event bus. Use `IUnitOfWork.E
 - [CoreEx.EntityFrameworkCore](../CoreEx.EntityFrameworkCore/README.md) — persists `Entity`/`Aggregate` types using `PersistenceState`.
 - [Domain layer](../../samples/docs/domain-layer.md) — real-world aggregate design, mutation guards, integration-event accumulation, and `Result<T>` pipeline usage in the Shopping sample.
 - [Patterns](../../samples/docs/patterns.md) — aggregate-oriented service patterns, domain event flow, and mutation-state tracking.
-

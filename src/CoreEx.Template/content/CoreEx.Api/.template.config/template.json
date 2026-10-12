@@ -75,6 +75,11 @@
           "description": "Indicates to use PostgreSQL as the data provider."
         },
         {
+          "choice": "Cosmos",
+          "displayName": "Azure Cosmos DB",
+          "description": "Indicates to use Azure Cosmos DB as the data provider."
+        },
+        {
           "choice": "None",
           "displayName": "None",
           "description": "Indicates no data provider is used (e.g. a facade over an external system such as Dynamics 365)."
@@ -91,6 +96,14 @@
     "implement-postgres": {
       "type": "computed",
       "value": "data-provider == 'Postgres'"
+    },
+    "implement-cosmos": {
+      "type": "computed",
+      "value": "data-provider == 'Cosmos'"
+    },
+    "implement-relational": {
+      "type": "computed",
+      "value": "(data-provider == 'SqlServer' || data-provider == 'Postgres')"
     },
     "implement-none-data": {
       "type": "computed",

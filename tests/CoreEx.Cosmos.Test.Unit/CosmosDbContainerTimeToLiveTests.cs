@@ -44,6 +44,33 @@ public class CosmosDbContainerTimeToLiveTests : CosmosTestBase
     }
 
     [Test]
+    public async Task UpdateAsync_NoTimeToLiveConfigured_CandidateWithoutTtl_RetainsPersistedTtl()
+    {
+        await GetOrCreateContainerAsync(ContainerId).ConfigureAwait(false);
+        var container = CreateCosmosDb().Container<TestItem>(ContainerId, o => o.WithPartitionKey(m => m.PartitionKey));
+
+        var id = NewId();
+        await container.CreateAsync(new TestItem { Id = id, PartitionKey = id, Name = "Original", TimeToLive = 600 });
+
+        var updated = await container.UpdateAsync(new TestItem { Id = id, PartitionKey = id, Name = "Replaced" });
+        updated.Value.TimeToLive.Should().Be(600);
+
+        var other = CreateCosmosDb().Container<TestItem>(ContainerId, o => o.WithPartitionKey(m => m.PartitionKey));
+        (await other.GetAsync(CompositeKey.Create(id), id))!.TimeToLive.Should().Be(600);
+    }
+
+    [Test]
+    public async Task UpdateAsync_NoTimeToLiveConfigured_ExplicitCandidateTtl_Wins()
+    {
+        await GetOrCreateContainerAsync(ContainerId).ConfigureAwait(false);
+        var container = CreateCosmosDb().Container<TestItem>(ContainerId, o => o.WithPartitionKey(m => m.PartitionKey));
+
+        var id = NewId();
+        await container.CreateAsync(new TestItem { Id = id, PartitionKey = id, Name = "Original", TimeToLive = 600 });
+
+        (await container.UpdateAsync(new TestItem { Id = id, PartitionKey = id, Name = "Original", TimeToLive = -1 })).Value.TimeToLive.Should().Be(-1);
+    }
+    [Test]
     public void WithTimeToLive_ModelWithoutITimeToLive_Throws()
     {
         var options = new CosmosDbModelOptions<NoTimeToLiveItem>();

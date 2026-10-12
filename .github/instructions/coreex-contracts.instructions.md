@@ -197,6 +197,29 @@ public partial class Employee : IIdentifier<string?>, IETag, IChangeLog
 
 Decorate server-assigned properties with `[ReadOnly(true)]` to signal that clients cannot supply them. Common examples: `Id`, `ETag`, `ChangeLog`, `CategoryCode` (derived from SubCategory). NSwag/OpenAPI automatically excludes these from inbound request schemas.
 
+## NonNullable Properties
+
+Contract properties are routinely declared nullable (`string?`, `int?`, `DateOnly?`) for DTO flexibility — partial payloads, merge-patch, and validation that reports a missing value rather than failing deserialization. Where a property is nevertheless **mandatory/required (ultimately not nullable)** in the contract, decorate it with `[NonNullable]` (`CoreEx.Entities.NonNullableAttribute`). The NSwag operation processor then emits it as `nullable: false` in the OpenAPI schema regardless of the CLR nullability. The C# type and validation are unaffected — `[NonNullable]` is documentation of the contract only, so keep the matching validator rule (e.g. `.Mandatory()`).
+
+```csharp
+[Contract]
+public partial class Person
+{
+    /// <summary>Gets or sets the first name.</summary>
+    [NonNullable]
+    public string? FirstName { get; set; }   // Mandatory; nullable in code only for DTO flexibility.
+
+    /// <summary>Gets or sets the middle name.</summary>
+    public string? MiddleName { get; set; }  // Genuinely optional — no attribute.
+}
+```
+
+Do **not** apply it to optional properties, and do not use `System.Diagnostics.CodeAnalysis.NotNull` for this purpose (that is a compiler flow-analysis attribute with no OpenAPI effect).
+
+### `[ReadOnly]` properties and `[NonNullable]`
+
+Contracts are commonly shared between request and response bodies, so a server-assigned property is legitimately null on create. Never mark `Id`, `ETag` or `ChangeLog` with `[NonNullable]` — they are lifecycle fields that are null in requests, and non-nullable members in generated clients cause confusion. For any other `[ReadOnly]` property, apply `[NonNullable]` only when its containing type is never used as a request body (e.g. `BasketItem`, which is only returned within the read-only `Basket.Items`); otherwise leave it unmarked (e.g. `ProductBase.CategoryCode`).
+
 ## Reference Data Properties
 
 Use `[ReferenceData<TRefData>]` on code properties that back a reference data relationship. Two conditions must both be met for the source generator to emit the navigation accessor:
@@ -315,6 +338,27 @@ public partial class Product : ProductBase, IETag, IChangeLog { /* additions onl
 public partial class ProductLite : ProductBase
 {
     public decimal QtyOnHand { get; set; }
+}
+```
+
+### Patch / subset contracts — do not inherit
+
+Inheritance is for genuine supersets only: every inherited property must remain meaningful on the derived type. Do **not** inherit a sibling contract for a merge-patch or partial-update request merely because field names overlap. If the contract only needs a subset of the other contract's properties, author a **standalone** class containing just those properties (plus `IETag` where concurrency applies). Never inherit and then suppress the unwanted members with `new` / `[JsonIgnore]` / `[ReadOnly]` — the contract then advertises (in OpenAPI, validation and the patch surface) fields that are silently ignored, and inherited non-nullable members (e.g. `decimal`) take default values that a merge-patch can mistake for intent.
+
+```csharp
+// ❌ Inherits everything, then has to ignore most of it.
+public partial class BookingTravellerNotesPatch : BookingTraveller { /* hides/ignores the rest */ }
+
+// ✅ Standalone — only what the patch actually changes.
+[Contract]
+public partial class BookingTravellerNotesPatch : IETag
+{
+    /// <summary>Gets or sets the notes.</summary>
+    public string? Notes { get; set; }
+
+    /// <inheritdoc/>
+    [ReadOnly(true)]
+    public string? ETag { get; set; }
 }
 ```
 
@@ -437,6 +481,7 @@ Never create or edit `*.g.cs` files directly.
 
 - Do not reference another domain's Contracts assembly to consume its events — declare a local adapter model instead.
 - Do not omit `[Contract]` and `partial` from hand-authored contract classes without an explicit user request — all hand-authored contracts use `[Contract]` + `partial` by default.
+- Do not inherit a sibling contract for a patch/partial-update/subset request and then hide or ignore the unwanted members (`new`, `[JsonIgnore]`) — author a standalone class with only the needed properties (+ `IETag` if applicable). See *Patch / subset contracts — do not inherit*.
 - Do not implement members that the Roslyn source generator emits (equality, cloning, serialization helpers).
 - Do not place domain rules, validators, or service calls in contract classes.
 - Do not leave contract properties without a `<summary>` — every property gets one (standard `Id`/`ETag`/`ChangeLog` may use `<inheritdoc/>`). See the *Documentation Comments* section.

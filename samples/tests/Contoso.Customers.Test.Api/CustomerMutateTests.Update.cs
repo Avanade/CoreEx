@@ -28,9 +28,9 @@ public partial class CustomerMutateTests : WithApiTester<Contoso.Customers.Api.P
 
         c.LastName += " Updated";
 
-        // Act/Assert.
+        // Act/Assert. The stale ETag must be GUID-shaped: the vNext emulator ignores a malformed If-Match inside a TransactionalBatch.
         Test.Http()
-            .Run(HttpMethod.Put, $"/api/customers/{c.Id}", c, requestModifier: r => r.WithIfMatch("AAAAAAAA"))
+            .Run(HttpMethod.Put, $"/api/customers/{c.Id}", c, requestModifier: r => r.WithIfMatch("00000000-0000-0000-0000-000000000000"))
             .AssertPreconditionFailed();
     }
 

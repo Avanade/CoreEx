@@ -41,4 +41,40 @@ public readonly record struct DataResult
         if (WasMutated)
             action?.Invoke();
     }
+
+    /// <summary>
+    /// Invokes the specified <paramref name="action"/> where the result <see cref="WasMutated"/> is <see langword="true"/> and returns the current <see cref="DataResult"/>.
+    /// </summary>
+    /// <param name="action">The action to execute.</param>
+    /// <returns>The current <see cref="DataResult"/>.</returns>
+    public readonly DataResult WhereMutatedAnd(Action action)
+    {
+        WhereMutated(action);
+        return this;
+    }
+
+    /// <summary>
+    /// Invokes the specified <paramref name="func"/> where the result <see cref="WasMutated"/> is <see langword="true"/>.
+    /// </summary>
+    /// <param name="func">The function to execute.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+    public readonly Task WhereMutatedAsync(Func<CancellationToken, Task> func, CancellationToken cancellationToken = default)
+    {
+        if (WasMutated)
+            return func?.Invoke(cancellationToken) ?? Task.CompletedTask;
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Invokes the specified <paramref name="func"/> where the result <see cref="WasMutated"/> is <see langword="true"/> and returns the current <see cref="DataResult"/>.
+    /// </summary>
+    /// <param name="func">The function to execute.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+    /// <returns>The current <see cref="DataResult"/>.</returns>
+    public async readonly Task<DataResult> WhereMutatedAndAsync(Func<CancellationToken, Task> func, CancellationToken cancellationToken = default)
+    {
+        await WhereMutatedAsync(func, cancellationToken);
+        return this;
+    }
 }

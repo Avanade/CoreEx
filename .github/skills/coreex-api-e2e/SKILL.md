@@ -31,7 +31,7 @@ Guides you through adding a complete new entity and its CRUD API in one sitting:
 
 ## Workflow Overview
 
-1. **Read Feature Configuration** — resolve `rop-enabled`, `outbox-enabled`, and `data-provider` from the solution-root `AGENTS.md`, and check whether a `*.Domain` project exists, before asking anything.
+1. **Read Feature Configuration** — resolve `rop-enabled`, `outbox-enabled`, and `data-provider` (`SqlServer` / `Postgres` / `Cosmos` / `None`) from the solution-root `AGENTS.md`, and check whether a `*.Domain` project exists, before asking anything.
 2. **Interview** — gather entity name, fields, operations (Get/Query/Create/Update/Patch/Delete), identifier type, whether a policy guard is needed, and (if any field is ref-data) whether that reference-data type already exists; batch all questions into one turn.
 3. **Execute L1 sequence** — invoke each L1 skill in order, passing context resolved in steps 1–2; no repeated questions.
 4. **Validate** — `dotnet build` across all projects; confirm unit and integration test classes are present.

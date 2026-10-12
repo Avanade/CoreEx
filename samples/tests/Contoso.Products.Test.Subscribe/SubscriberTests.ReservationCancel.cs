@@ -11,7 +11,7 @@ public partial class SubscriberTests
 
         test.Run(async _ =>
         {
-            var sbs = test.Services.GetRequiredService<ServiceBusSubscribedSubscriber>();
+            var sbs = test.Services.GetRequiredKeyedService<ServiceBusSubscribedSubscriber>("subscriber-commands");
             var r = await sbs.ReceiveAsync(sbm);
 
             r.IsFailure.Should().BeTrue();
@@ -43,7 +43,7 @@ public partial class SubscriberTests
                 var ce = Test.CreateCloudEventFrom(ed);
                 var sbm = ce.ToServiceBusReceivedMessage();
 
-                var sbs = test.Services.GetRequiredService<ServiceBusSubscribedSubscriber>();
+                var sbs = test.Services.GetRequiredKeyedService<ServiceBusSubscribedSubscriber>("subscriber-commands");
                 var r = await sbs.ReceiveAsync(sbm);
                 r.IsSuccess.Should().BeTrue();
             }).AssertSuccess();

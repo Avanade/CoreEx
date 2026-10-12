@@ -178,7 +178,7 @@ public class CosmosDbInvoker : InvokerBase<ICosmosDb, CosmosDbArgs>
         {
             await DiscardAsync().ConfigureAwait(false);
 
-            if (tracer.Logger is not null && tracer.Logger.IsEnabled(LogLevel.Error))
+            if (!(ex.IsCanceled() && cancellationToken.IsCancellationRequested) && tracer.Logger is not null && tracer.Logger.IsEnabled(LogLevel.Error))
                 tracer.Logger.LogError(ex, "Unit-of-work transaction discarded due to an unexpected error: {Error}", ex.Message);
 
             if (ExtendedException.TryConvertExceptionToResult<TResult>(ex, out var result))
@@ -193,6 +193,9 @@ public class CosmosDbInvoker : InvokerBase<ICosmosDb, CosmosDbArgs>
                 // Retained (independent of the ambient scope, which is always cleared here) so IUnitOfWork.SynchronizeETag can resolve against it after this call returns.
                 unitOfWork.LastTransaction = txn;
                 unitOfWork.CosmosDb.UseTransaction(null);
+
+                // The batch may have caused any number of server-side effects, so no snapshot read within this unit-of-work can be trusted afterwards.
+                unitOfWork.CosmosDb.ChangeTracker.Clear();
             }
         }
     }

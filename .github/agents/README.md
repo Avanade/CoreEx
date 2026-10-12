@@ -13,13 +13,13 @@ It is defined once in `coreex-expert.agent.md` and works in both tools from the 
 
 ## How the agent resolves guidance
 
-The agent relies on a local doc cache rather than making live GitHub fetches on every question. The cache is populated by `/coreex-docs-sync` and stored under `.github/docs/coreex/`.
+The agent prefers the local doc cache installed by `dotnet new coreex-ai` at the pinned `CoreEx.Template` version. `/coreex-docs-sync` refreshes that cache and the entire AI asset bundle together; it does not fetch GitHub `main`.
 
 ```
 Developer asks a CoreEx question
               │
               ▼
-  Read .github/docs/coreex/.manifest
+  Read .github/docs/coreex/manifest.txt
               │
         ┌─────┴─────┐
         │           │
@@ -28,12 +28,12 @@ Developer asks a CoreEx question
         │          └──► offer to run /coreex-docs-sync first
         │                (never runs silently — always asks first)
         │
-  check staleness
+  compare coreex-version with project package references
         │
    ┌────┴────┐
    │         │
- fresh     stale
-   │       (>30 days OR coreex-version in manifest
+ matches   differs
+   │       (coreex-version in manifest
    │        differs from version in project files)
    │         │
    │         └──► recommend running /coreex-docs-sync
@@ -41,25 +41,25 @@ Developer asks a CoreEx question
    ▼
 Use local cache (always preferred over live GitHub fetches)
    │
-   ├── .github/docs/coreex/*.md           ← 10 architecture docs
+   ├── .github/docs/coreex/*.md           ← 12 architecture/setup docs
    │
    └── .github/docs/coreex/agents/*.md   ← 18 per-package AI guides
               │
-    read manifest referenced-packages
+    inspect project package references
     to distinguish:
       • package already in project  →  guide on current usage
       • package not yet in project  →  recommend adopting it
 ```
 
-The `referenced-packages` field in the manifest lets the agent distinguish between a package the project already uses and one it would need to add — without restricting which guides get synced.
+The manifest records only `coreex-version`. Package adoption is determined from the project's package references, not a `referenced-packages` field or a sync timestamp.
 
 ---
 
 ## The local doc cache
 
-`/coreex-docs-sync` fetches from the CoreEx GitHub repository and writes two folders:
+`CoreEx.Template` packages the documentation at release time. `coreex-ai` installs it; `/coreex-docs-sync` reinstalls the bundle from the release matching the project's CoreEx NuGet version.
 
-**`.github/docs/coreex/`** — 10 architecture docs:
+**`.github/docs/coreex/`** — 12 architecture/setup docs:
 
 | File | Content |
 |------|---------|
@@ -73,17 +73,18 @@ The `referenced-packages` field in the manifest lets the agent distinguish betwe
 | `testing.md` | Unit, integration, API, Subscribe, and Relay test patterns |
 | `tooling.md` | CodeGen and Database project run order, generated-file ownership |
 | `aspire.md` | Aspire orchestration for local distributed development and E2E testing |
+| `local-dev.md` | Local infrastructure, connection strings, and startup sequences |
+| `application-scaffolding-guide.md` | Choosing and composing solution/host templates |
 
-**`.github/docs/coreex/agents/`** — 18 per-package AI usage guides: the base `CoreEx` package plus one per `src/CoreEx.*` package (including `CoreEx.Cosmos`, which is newly published as a preview-quality package — its API surface may still change without following strict semver until it stabilizes). All 18 are synced unconditionally so the agent can guide on any package — including ones the project hasn't adopted yet.
+**`.github/docs/coreex/agents/`** — 18 per-package AI usage guides: the base `CoreEx` package plus one per `src/CoreEx.*` package (including `CoreEx.Cosmos`). All 18 are synced unconditionally so the agent can guide on any package — including ones the project hasn't adopted yet.
 
-**`.github/docs/coreex/.manifest`** — records `synced` date, `coreex-version`, and `referenced-packages`.
+**`.github/docs/coreex/manifest.txt`** — records `coreex-version`, stamped by the installed template release.
 
 ### Staleness triggers
 
 | Trigger | Agent action |
 |---------|-------------|
 | Cache absent | Offers to run `/coreex-docs-sync` before the first GitHub fetch |
-| `synced` date > 30 days | Recommends a refresh |
 | `coreex-version` in manifest ≠ version in project files | Recommends a refresh |
 
 ---
@@ -95,7 +96,7 @@ An earlier design synced only the packages the project already references. This 
 - The agent cannot recommend adopting a package (e.g. `CoreEx.Caching.FusionCache`) if it has no knowledge of what that package offers.
 - All 18 guides are small markdown files — the total download is negligible.
 - Syncing all unconditionally removes the need to re-run after adding a new package.
-- The `referenced-packages` manifest field preserves the "in project vs. not yet" distinction without making it a gate on what gets synced.
+- Inspecting project package references preserves the "in project vs. not yet" distinction without making it a gate on which guides get installed.
 
 ---
 
@@ -119,10 +120,10 @@ dotnet new coreex-ai --app-folder <subfolder>
 `dotnet new coreex-ai` installs everything the agent depends on:
 
 - `.github/instructions/` — the scoped, auto-injected instruction files
-- `.github/prompts/` — the `coreex-scaffold` prompt plus one prompt per per-capability (L1) skill
-- `.github/skills/` — the full skill suite (`coreex-docs-sync`, `acquire-codebase-knowledge`, `coreex-scaffold`, `aspire`, and the 15 L1 skills)
+- `.github/prompts/` — 22 wrappers: bootstrap, scaffold, 16 L1 skills and four L2 workflows (`coreex-docs-sync` is a direct skill, without a prompt wrapper)
+- `.github/skills/` — 23 CoreEx skills: bootstrap, scaffold, docs-sync, 16 L1 skills and four L2 workflows; generic `acquire-codebase-knowledge` and `aspire` skills are framework-repository-only
 - `.github/agents/coreex-expert.agent.md` — this agent
-- `.claude/commands/` — the Claude Code equivalents
+- `.claude/commands/` — 24 commands: one for each CoreEx skill plus expert guidance
 - `.github/docs/coreex/` — the local docs cache (architecture docs + per-package guides) the expert reads first, already populated at the pinned version — no separate sync step needed on first install
 
 Later, when the project's `CoreEx` NuGet version is bumped, re-run `/coreex-docs-sync` to refresh the whole bundle (instructions, skills, prompts, this agent, and the docs cache) to the matching `CoreEx.Template` release — the agent recommends this automatically when the cached `coreex-version` no longer matches the project (see the resolution flowchart above).

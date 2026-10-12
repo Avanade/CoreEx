@@ -216,6 +216,29 @@ Then add the missing pieces required to consume <event/command>.
 Keep subscriber logic thin and aligned to repo conventions.
 ```
 
+### Send a command to another domain
+
+```text
+Use the coreex-command-publish-e2e skill.
+This domain must instruct <target domain> to <action> (a command, not an event).
+Inspect the existing adapters, outbox and NamedDestinationProvider wiring first, then add the adapter, call site, queue routing, tests and Aspire E2E.
+```
+
+### Handle a command addressed to this domain
+
+```text
+Use the coreex-command-subscribe-e2e skill.
+This domain must accept and act on the <command> command sent by <source domain>.
+Add the command contract, application service, subscriber, keyed command-queue receiver, Subscribe tests and Aspire E2E.
+```
+
+### Add an Aspire end-to-end test
+
+```text
+Use the coreex-aspire skill.
+Wire <host / queue / inter-domain dependency / third-party stub> into the AppHost and add a Test.Aspire test that exercises the cross-domain flow.
+```
+
 ### Ask for a retrofit plan explicitly
 
 ```text

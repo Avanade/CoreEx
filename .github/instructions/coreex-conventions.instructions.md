@@ -27,6 +27,22 @@ Every project must have `Nullable` and `ImplicitUsings` enabled. For consuming p
 
 Nullable warnings are treated as errors. Never suppress a nullable warning with the null-forgiving operator (`!`) without a clear reason in a comment.
 
+## Mapper Projection Nullability
+
+When projecting through a CoreEx mapper with `[return: NotNullIfNotNull(nameof(source))]` into a collection of non-nullable elements, use a lambda that calls the mapper rather than an inferred method-group selector. `Select(Mapper.Map)` can infer a nullable result element type from the declared return type; the lambda lets nullable flow analysis apply the conditional return contract to each argument:
+
+```csharp
+// Correct when source.Items has non-nullable elements.
+Items = [.. source.Items.Select(i => BasketItemMapper.Map(i))]
+
+// Avoid: inferred nullable result elements can produce CS8604 at the collection spread.
+Items = [.. source.Items.Select(BasketItemMapper.Map)]
+```
+
+The same rule applies to bidirectional mapper selectors: use `x => ProductMapper.To.Map(x)` / `x => ProductMapper.From.Map(x)`. Do not simplify these lambdas into method groups. This is a conditional-nullability inference rule, not a general ban on method groups.
+
+If source elements are nullable, a lambda still returns nullable elements: preserve nulls in a nullable destination or explicitly guard them according to the intended behavior. Do not add `!`, warning suppression, or null-dropping filters merely to hide the warning; `Where(x => x is not null)` also does not change the sequence's nullable element type.
+
 ## Global Usings
 
 Every project has a single `GlobalUsing.cs` at the project root that declares all namespace imports. Do not add `using` statements to individual source files.
@@ -227,8 +243,15 @@ private readonly IUnitOfWork _unitOfWork;
 private readonly ILogger<ProductService> _logger;
 ```
 
+## End of File
+
+Every file ends with **exactly one** line terminator — the closing `}` (or last line of content) followed by a single newline. No blank lines after it, and no trailing whitespace. This applies to every file you create or edit (`.cs`, `.json`, `.yaml`, `.md`, `.csproj`, `.sql`, etc.), including generated-then-hand-tweaked output and template content.
+
+Create/edit tooling frequently appends extra `\n`s (particularly when `new_str` ends with a blank line, or when a trailing block is deleted and the blank lines before it are left behind) — check the tail of the file before finishing.
+
 ## Do Not
 
+- Do not leave blank lines at the end of a file — end with exactly one newline after the last line of content (the `.editorconfig` has `insert_final_newline = true`, which guarantees one, not zero extra).
 - Do not emit `#nullable enable` or `#nullable restore` pragma directives in hand-authored files — nullable is enabled project-wide via `<Nullable>enable</Nullable>` in `Directory.Build.props`. These pragmas are reserved for auto-generated `.g.cs` files produced by code generators.
 - Do not add `using` statements to individual `.cs` files — declare all imports in `GlobalUsing.cs`.
 - Do not leave `GlobalUsing.cs` unsorted after editing — re-sort the whole file alphabetically (all namespaces equally, no `System.*` grouping) rather than appending new entries at the end.
@@ -241,6 +264,7 @@ private readonly ILogger<ProductService> _logger;
 - Do not use `Guid.NewGuid()` — use `Runtime.NewGuid()`.
 - Do not omit or drop `CancellationToken` — every `async`/`Task`-returning method takes one (`CancellationToken cancellationToken = default`, last parameter) and passes it to every downstream awaitable call.
 - Do not pass `cancellationToken` positionally to a method with 3+ optional parameters (e.g. `ToMappedItemsResultAsync`/`ToItemsResultAsync`) — pass it as `cancellationToken:` by name; a bare positional token can silently bind to an unrelated `bool` parameter (e.g. `autoCount`) and fail to compile.
+- Do not rebuild a failed `Result`/`Result<T>` from its `.Error` (`Result<X>.Fail(r.Error!)`, `return r.Error!;`) — return the result itself (`return r;`), or `r.AsResult()` when the result type differs, or use a `Then*` chain. See the Result&lt;T&gt; guard-clause rules in `coreex-application-services.instructions.md`.
 - Do not replace a private backing field with an auto-property simply because it could be one — backing fields are a valid developer choice.
 - Do not leave interface members or contract properties undocumented — each gets a `<summary>`.
 - Do not invert the doc convention — summaries go on **interfaces and contract properties**; the **implementing** class member gets `<inheritdoc/>` (not a fresh summary). Summarising the concrete class while leaving the interface/contract undocumented is backwards.

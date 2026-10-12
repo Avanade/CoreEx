@@ -57,4 +57,3 @@ The samples are built on two overarching architectural styles — **Domain-based
 | | 🔗 | **Inter-domain Mocking** | Replacing cross-domain HTTP calls and direct broker publishes with controlled fakes that assert the correct outbound request was made, decoupling test correctness from the availability or behavior of other domains. | [Testing](testing.md#intra-domain-vs-inter-domain-testing) |
 | | 🧹 | **Unit Testing** | Testing stateless components (validators, mappers) in a minimal DI container with no I/O, using real reference data loaded from the domain’s own seed file and mocking only intra-domain repository dependencies. | [Testing](testing.md#unit-tests-testunit) |
 | | ✨ | **Local Orchestration** | Running all domain hosts simultaneously as a single distributed application with unified health, log, trace, and metric visibility, enabling cross-domain interaction and end-to-end validation in a local environment. | [Aspire](aspire.md) |
-

@@ -63,9 +63,13 @@ The emulator is pre-configured by `servicebus/Config.json`. Key values the sampl
 | Topic | `contoso` |
 | Subscription — Products | `products` (session-enabled) |
 | Subscription — Shopping | `shopping` (session-enabled) |
+| Subscription — Customers relay tests | `customers-relay` (session-enabled observation subscription; no Customers Subscribe host) |
+| Queue — Products commands | `contoso-products` (session-enabled; Shopping → Products `reservation.confirm`/`reservation.cancel` commands; Shopping publisher uses a destination-specific session bucket count of `2`) |
 | Unit test topics | `unit-test`, `unit-test-2` (used by integration tests) |
 
-The `contoso` topic is shared across both domains. Session-enabled subscriptions ensure ordered, per-entity processing of events.
+The `contoso` topic is shared across Products, Shopping, and Customers for **events**. The `customers-relay` subscription is test-owned observation, not a business consumer. Session-enabled subscriptions ensure ordered, per-entity processing of events. **Commands** are single-consumer: the `NamedDestinationProvider` routes each command to a per-target-domain queue (`contoso-{domain}`, e.g. `contoso-products`) so only the addressed domain sees it. Any new command target needs a matching queue in `servicebus/Config.json` (and in the tests' `ServiceBus.GetQueues()`), and the emulator container must be restarted to pick it up.
+
+Shopping's API, Subscribe, and Relay publisher configurations override `CoreEx:Host:ServiceBus:Destinations:contoso-products:SessionIdPartitionSize` to `2`; the publisher-wide default remains `4` for other destinations. This is a producer-side key-to-session bucket setting, not Service Bus's physical partition count or the Products receiver's `MaxConcurrentSessions`.
 
 ---
 
@@ -115,7 +119,7 @@ All sample hosts use the Aspire component configuration key hierarchy in `appset
 
 ### Azure Service Bus emulator
 
-All hosts that publish or subscribe add the same base connection string. Subscribe hosts additionally set `QueueOrTopicName` and `SubscriptionName`:
+All hosts that publish or subscribe add the same base connection string. Subscribe hosts consuming a topic additionally set `QueueOrTopicName` and `SubscriptionName` (a command queue receiver, e.g. `contoso-products`, is named explicitly via `CreateForQueue("contoso-products")`):
 
 ```json
 "Aspire": {
@@ -164,6 +168,11 @@ dotnet run --project samples/src/Contoso.Products.Api
 dotnet run --project samples/src/Contoso.Products.Relay
 dotnet run --project samples/src/Contoso.Products.Subscribe
 
+# Customers (provision both business containers and $outbox-leases first)
+dotnet run --project samples/src/Contoso.Customers.Database -f net10.0 -- All
+dotnet run --project samples/src/Contoso.Customers.Api -f net10.0
+dotnet run --project samples/src/Contoso.Customers.Relay -f net10.0
+
 # Shopping
 dotnet run --project samples/src/Contoso.Shopping.Api
 dotnet run --project samples/src/Contoso.Shopping.Relay
@@ -175,6 +184,8 @@ dotnet run --project samples/src/Contoso.Orders.Api
 ```
 
 Intra-domain host tests (`*.Test.Api`, `*.Test.Subscribe`, `*.Test.Relay`) start their own in-process test host — they do not require any host process to be running. Infrastructure containers must still be up.
+
+Orders API uses HTTPS port `7330` and HTTP port `5330`; the E2E Runner targets `https://localhost:7330`. Keep fixed development ports outside Windows' default dynamic TCP range (`49152`-`65535`), where changing port reservations can prevent Aspire's proxy from binding. Restart the AppHost and runner after changing their endpoint configuration.
 
 ---
 

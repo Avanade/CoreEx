@@ -15,6 +15,9 @@
     <!--#if (implement-sqlserver || implement-postgres)-->
     <PackageReference Include="CoreEx.EntityFrameworkCore" />
     <!--#endif-->
+    <!--#if implement-cosmos-->
+    <PackageReference Include="CoreEx.Cosmos" />
+    <!--#endif-->
     <!--#if refdata-enabled-->
     <PackageReference Include="CoreEx.RefData" />
     <!--#endif-->

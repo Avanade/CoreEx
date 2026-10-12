@@ -65,6 +65,7 @@ public partial class CosmosDbContainer<TModel>
 
             var partitionKeyValue = Options.GetPartitionKeyValue(model);
             var partitionKey = CosmosDbModelOptions<TModel>.ToPartitionKey(partitionKeyValue);
+            EvictFromChangeTracker(partitionKey, Options.FormatIdentifier(Options.GetKeyFromModel(model)));
 
             // Where an ambient CosmosDbUnitOfWork transaction is active, enlist (queue) rather than execute immediately - see CosmosDbUnitOfWork for the full deferred-execution/atomicity model. The model's
             // ETag is not yet final at this point (the batch has not executed) - see IUnitOfWork.SynchronizeETag for how a caller resolves the true, persisted ETag once the unit-of-work has committed.
@@ -75,7 +76,15 @@ public partial class CosmosDbContainer<TModel>
                 return Result.Ok(new DataResult<TModel>(model, true));
             }
 
-            var response = await Container.CreateItemAsync(model, partitionKey, BuildItemRequestOptions(args), cancellationToken).ConfigureAwait(false);
+            ItemResponse<TModel> response;
+            try
+            {
+                response = await Container.CreateItemAsync(model, partitionKey, BuildItemRequestOptions(args), cancellationToken).ConfigureAwait(false);
+            }
+            finally
+            {
+                EvictFromChangeTracker(partitionKey, Options.FormatIdentifier(Options.GetKeyFromModel(model)));
+            }
 
             // Refresh as required (rarely needed given the SDK already returns the persisted resource).
             var pr = await RefreshPostMutationAsync(args, response.Resource, partitionKey, memberName, cancellationToken).ConfigureAwait(false);

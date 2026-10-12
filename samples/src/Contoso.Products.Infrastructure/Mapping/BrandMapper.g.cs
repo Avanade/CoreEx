@@ -8,8 +8,8 @@
 
 namespace Contoso.Products.Infrastructure.Mapping;
 
-/// <summary>Provides mapping from <see cref="Persistence.Brand"/> to <see cref="Contracts.Brand"/>.</summary>
-internal partial class BrandMapper : Mapper<Persistence.Brand, Contracts.Brand, BrandMapper>
+/// <summary>Provides mapping from <see cref="Contracts.Brand"/> to <see cref="Persistence.Brand"/>.</summary>
+internal partial class BrandMapper : BiDirectionMapper<Contracts.Brand, Persistence.Brand, BrandMapper>
 {
     /// <inheritdoc/>
     protected override Contracts.Brand OnMap(Persistence.Brand source)
@@ -31,8 +31,30 @@ internal partial class BrandMapper : Mapper<Persistence.Brand, Contracts.Brand, 
         return destination;
     }
 
-    /// <summary>Provides the opportunity to extend the <see cref="OnMap" /> method.</summary>
+    /// <summary>Provides the opportunity to extend the <b>To</b> mapping.</summary>
     partial void OnMapExtend(Persistence.Brand source, Contracts.Brand destination);
+
+    /// <inheritdoc/>
+    protected override Persistence.Brand OnMap(Contracts.Brand destination)
+    {
+        var source = new Persistence.Brand
+        {
+            Code = destination.Code!,
+            Text = destination.Text,
+            Description = destination.Description,
+            SortOrder = destination.SortOrder,
+            IsActive = !destination.IsInactive,
+            StartsOn = destination.StartsOn,
+            EndsOn = destination.EndsOn,
+            ETag = destination.ETag
+        };
+
+        OnMapExtend(destination, source);
+        return source;
+    }
+
+    /// <summary>Provides the opportunity to extend the <b>From</b> mapping.</summary>
+    partial void OnMapExtend(Contracts.Brand destination, Persistence.Brand source);
 }
 
 #nullable restore

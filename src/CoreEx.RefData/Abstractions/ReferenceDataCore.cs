@@ -8,7 +8,7 @@ namespace CoreEx.RefData.Abstractions;
 /// superfluous from an equality perspective. The <see cref="Id"/> and <see cref="Code"/> properties should be both unique within their owning collection; the <see cref="ReferenceDataCollectionCore{TId, TRef}"/>
 /// ensures this.</remarks>
 [DebuggerDisplay("Id = {Id}, Code = {Code}, IsActive = {IsActive}, IsValid = {IsValid}")]
-public abstract class ReferenceDataCore<TId> : IReferenceData<TId>
+public abstract class ReferenceDataCore<TId> : IReferenceData<TId>, IETag
 {
     private string? _text;
     private string? _description;
@@ -26,10 +26,12 @@ public abstract class ReferenceDataCore<TId> : IReferenceData<TId>
 
     /// <inheritdoc/>
     [JsonPropertyOrder(-999)]
+    [ReadOnly(true)]
     public TId Id { get; init; }
 
     /// <inheritdoc/>
     [JsonPropertyOrder(-998)]
+    [ReadOnly(true)]
     public string? Code { get; init; }
 
     /// <inheritdoc/>
@@ -51,6 +53,7 @@ public abstract class ReferenceDataCore<TId> : IReferenceData<TId>
 
     /// <inheritdoc/>
     [JsonPropertyOrder(-994)]
+    [ReadOnly(true)]
     public virtual bool IsInactive
     {
         get
@@ -89,7 +92,8 @@ public abstract class ReferenceDataCore<TId> : IReferenceData<TId>
     public DateTimeOffset? EndsOn { get; init; }
 
     /// <inheritdoc/>
-    public string? ETag { get; init; }
+    [ReadOnly(true)]
+    public string? ETag { get; set; }
 
     /// <inheritdoc/>
     [JsonIgnore]

@@ -8,8 +8,9 @@
 |--------|---------------------------|---------|------------|-------------|----------|
 | SQL Server | DB | Primary persistence for sample domains, outbox tables, and migration utilities | Connection string-based | High | docker-compose.yml; samples/src/Contoso.Products.Database/Program.cs; samples/src/Contoso.Products.Api/Program.cs |
 | Redis | Cache/backplane | L2 distributed cache and FusionCache backplane | Connection configured through Aspire/registered ConfigurationOptions | Medium | docker-compose.yml; samples/src/Contoso.Products.Api/Program.cs; samples/src/Contoso.Shopping.Api/Program.cs |
-| Azure Service Bus | Queue/topic broker | Async event publishing, relay, and subscriber processing | Connection configured through Aspire/host config; emulator config committed for local use | High | servicebus/Config.json; samples/src/Contoso.Products.Relay/Program.cs; samples/src/Contoso.Products.Subscribe/Program.cs |
+| Azure Service Bus | Queue/topic broker | Async event publishing (shared `contoso` topic), per-domain command queues (`contoso-products`), relay, and subscriber processing | Connection configured through Aspire/host config; emulator config committed for local use | High | servicebus/Config.json; samples/src/Contoso.Products.Relay/Program.cs; samples/src/Contoso.Products.Subscribe/Program.cs |
 | Products API from Shopping | Internal HTTP API | Real-time inventory reservation during checkout | [TODO] no explicit auth configuration was found in the inspected Shopping client code | High | samples/src/Contoso.Shopping.Infrastructure/Clients/ProductsHttpClient.cs; samples/src/Contoso.Shopping.Infrastructure/Adapters/ProductAdapter.cs |
+| SendGrid | Third-party HTTP API | Checkout-confirmation email sent by the Shopping Subscribe host (`BasketCheckedOutSubscriber` via `INotificationAdapter`); stubbed by the Aspire `MockHost` in E2E tests | API key (`SendGridOptions.ApiKey`) applied as the Authorization header on the typed HttpClient | Low | samples/src/Contoso.Shopping.Infrastructure/Clients/SendGrid/SendGridHttpClient.cs; samples/src/Contoso.Shopping.Infrastructure/Adapters/Notifications/NotificationAdapter.cs; samples/src/Contoso.Shopping.Subscribe/Subscribers/BasketCheckedOutSubscriber.cs; samples/aspire/Contoso.Aspire.MockHost/Program.cs |
 | OTLP / Aspire dashboard | Observability endpoint | Export traces from sample hosts and inspect them locally | No auth found in local compose config; dashboard is configured for anonymous local access | Medium | docker-compose.yml; samples/src/Contoso.Products.Api/Program.cs; samples/src/Contoso.Products.Relay/Program.cs |
 | Durable Task Scheduler | Workflow runtime | Order workflow worker orchestration sample | Connection string assembled from endpoint/task hub and auth mode | Medium | samples/src/Contoso.Order.Workflow.Worker/Program.cs |
 
@@ -28,7 +29,7 @@
 
 ### 4) Reliability and Failure Behavior
 
-- Retry/backoff behavior: transactional outbox relays are implemented for Products and Shopping; [TODO] no explicit HTTP retry/backoff policy configuration was found in the inspected host files.
+- Retry/backoff behavior: transactional outbox relays are implemented for Products and Shopping; database operations can opt in to retry on transient errors (`DatabaseArgsBase.RetryOnTransient`, default off; 3 attempts with exponential backoff, SQL Server classifies deadlocks/lock timeouts/Azure SQL throttling as transient); [TODO] no explicit HTTP retry/backoff policy configuration was found in the inspected host files.
 - Timeout policy: [TODO] no explicit timeout configuration was found in the inspected host or client files.
 - Circuit-breaker or fallback behavior: Shopping checkout falls back to direct broker publication for reservation cancellation if the transactional path fails; Service Bus subscriber sessions set MaxConcurrentSessions and emulator MaxDeliveryCount is configured.
 
@@ -43,6 +44,7 @@
 - docker-compose.yml
 - servicebus/Config.json
 - samples/aspire/Contoso.Aspire/Contoso.Aspire.csproj
+- samples/aspire/Contoso.Aspire.MockHost/Program.cs
 - samples/src/Contoso.Products.Api/Program.cs
 - samples/src/Contoso.Shopping.Api/Program.cs
 - samples/src/Contoso.Products.Relay/Program.cs

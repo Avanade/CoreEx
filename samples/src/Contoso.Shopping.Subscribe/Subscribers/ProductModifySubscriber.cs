@@ -1,8 +1,7 @@
 namespace Contoso.Shopping.Subscribe.Subscribers;
 
 [ScopedService]
-[Subscribe("contoso.products.product.created.v1")]
-[Subscribe("contoso.products.product.updated.v1")]
+[Subscribe("contoso.products.product.*.v1")]
 public class ProductModifySubscriber(IProductSyncAdapter adapter) : SubscribedBase<Product>
 {
     private readonly IProductSyncAdapter _adapter = adapter.ThrowIfNull();

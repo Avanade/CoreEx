@@ -17,6 +17,7 @@ global using CoreEx.Mapping.Converters;
 global using CoreEx.Mapping.Converters.Abstractions;
 global using CoreEx.Results.Abstractions;
 global using CoreEx.Text;
+global using Microsoft.Extensions.Configuration;
 global using Microsoft.Extensions.DependencyInjection;
 global using Microsoft.Extensions.Logging;
 global using Npgsql;

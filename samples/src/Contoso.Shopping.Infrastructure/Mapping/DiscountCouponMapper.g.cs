@@ -8,8 +8,8 @@
 
 namespace Contoso.Shopping.Infrastructure.Mapping;
 
-/// <summary>Provides mapping from <see cref="Persistence.DiscountCoupon"/> to <see cref="Contracts.DiscountCoupon"/>.</summary>
-internal partial class DiscountCouponMapper : Mapper<Persistence.DiscountCoupon, Contracts.DiscountCoupon, DiscountCouponMapper>
+/// <summary>Provides mapping from <see cref="Contracts.DiscountCoupon"/> to <see cref="Persistence.DiscountCoupon"/>.</summary>
+internal partial class DiscountCouponMapper : BiDirectionMapper<Contracts.DiscountCoupon, Persistence.DiscountCoupon, DiscountCouponMapper>
 {
     /// <inheritdoc/>
     protected override Contracts.DiscountCoupon OnMap(Persistence.DiscountCoupon source)
@@ -32,8 +32,11 @@ internal partial class DiscountCouponMapper : Mapper<Persistence.DiscountCoupon,
         return destination;
     }
 
-    /// <summary>Provides the opportunity to extend the <see cref="OnMap" /> method.</summary>
+    /// <summary>Provides the opportunity to extend the <b>To</b> mapping.</summary>
     partial void OnMapExtend(Persistence.DiscountCoupon source, Contracts.DiscountCoupon destination);
+
+    /// <inheritdoc/>
+    protected override Persistence.DiscountCoupon OnMap(Contracts.DiscountCoupon destination) => throw new NotSupportedException();
 }
 
 #nullable restore

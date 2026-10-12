@@ -95,6 +95,20 @@ public static partial class Extensions
         => await cache.GetOrCreateByKeyAsync<T>(cache.KeyProvider.GetEntityCacheKey<T>(key), factory, options ?? HybridCacheEntryOptions.CreateFor<T>(), cancellationToken).ConfigureAwait(false);
 
     /// <summary>
+    /// Gets the cached value for the specified key using the <paramref name="factory"/> to create and set <i>only where successful</i>, where not found.
+    /// </summary>
+    /// <typeparam name="T">The cache value <see cref="Type"/>.</typeparam>
+    /// <param name="cache">The <see cref="IHybridCache"/>.</param>
+    /// <param name="key">The <see cref="CompositeKey"/>.</param>
+    /// <param name="factory">The function used to create the <see cref="Result{T}"/> (e.g. a remote call) where not cached.</param>
+    /// <param name="options">The optional <see cref="HybridCacheEntryOptions"/>.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+    /// <returns>The cached (or created) value as a successful <see cref="Result{T}"/>; otherwise, the failure from the <paramref name="factory"/> (which is never cached).</returns>
+    /// <remarks>Uses the <see cref="IHybridCache.KeyProvider"/> <see cref="ICacheKeyProvider.GetEntityCacheKey{T}(CompositeKey)"/> to determine the cache key. See <see cref="IHybridCache.GetOrCreateByKeyWithResultAsync{T}(string, Func{CancellationToken, Task{Result{T}}}, HybridCacheEntryOptions?, CancellationToken)"/> for further details (including atomicity).</remarks>
+    public static async Task<Result<T>> GetOrCreateWithResultAsync<T>(this IHybridCache cache, CompositeKey key, Func<CancellationToken, Task<Result<T>>> factory, HybridCacheEntryOptions? options = null, CancellationToken cancellationToken = default) where T : IEntityKey
+        => await cache.GetOrCreateByKeyWithResultAsync<T>(cache.KeyProvider.GetEntityCacheKey<T>(key), factory, options ?? HybridCacheEntryOptions.CreateFor<T>(), cancellationToken).ConfigureAwait(false);
+
+    /// <summary>
     /// Removes the cached value for the specified key.
     /// </summary>
     /// <param name="cache">The <see cref="IHybridCache"/>.</param>

@@ -8,8 +8,8 @@
 
 namespace Contoso.Shopping.Infrastructure.Mapping;
 
-/// <summary>Provides mapping from <see cref="Persistence.BasketStatus"/> to <see cref="Contracts.BasketStatus"/>.</summary>
-internal partial class BasketStatusMapper : Mapper<Persistence.BasketStatus, Contracts.BasketStatus, BasketStatusMapper>
+/// <summary>Provides mapping from <see cref="Contracts.BasketStatus"/> to <see cref="Persistence.BasketStatus"/>.</summary>
+internal partial class BasketStatusMapper : BiDirectionMapper<Contracts.BasketStatus, Persistence.BasketStatus, BasketStatusMapper>
 {
     /// <inheritdoc/>
     protected override Contracts.BasketStatus OnMap(Persistence.BasketStatus source)
@@ -31,8 +31,11 @@ internal partial class BasketStatusMapper : Mapper<Persistence.BasketStatus, Con
         return destination;
     }
 
-    /// <summary>Provides the opportunity to extend the <see cref="OnMap" /> method.</summary>
+    /// <summary>Provides the opportunity to extend the <b>To</b> mapping.</summary>
     partial void OnMapExtend(Persistence.BasketStatus source, Contracts.BasketStatus destination);
+
+    /// <inheritdoc/>
+    protected override Persistence.BasketStatus OnMap(Contracts.BasketStatus destination) => throw new NotSupportedException();
 }
 
 #nullable restore

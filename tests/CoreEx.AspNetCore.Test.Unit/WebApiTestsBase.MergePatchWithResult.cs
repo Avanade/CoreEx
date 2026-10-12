@@ -41,7 +41,7 @@ partial class WebApiTestsBase<TWebApi, TResult>
     public void MergePatchWithResult_Not_Found()
     {
         Test.Type<TWebApi>()
-            .Run(async w => await w.PatchWithResultAsync<Person>(Test.CreateHttpRequest(HttpMethod.Patch, "test", "{}", r => r.ContentType = HttpNames.MergePatchJsonMediaTypeName), (ro, ct) => Task.FromResult(Result<Person?>.Ok(null)), (ro, ct) => throw new InvalidOperationException()))
+            .Run(async w => await w.PatchWithResultAsync<Person>(Test.CreateHttpRequest(HttpMethod.Patch, "test", "{}", r => r.ContentType = HttpNames.MergePatchJsonMediaTypeName), (ro, ct) => Task.FromResult(Result<Person>.Ok(null!)), (ro, ct) => throw new InvalidOperationException()))
             .ToHttpResponseMessageAssertor()
             .AssertNotFound();
     }
@@ -53,7 +53,7 @@ partial class WebApiTestsBase<TWebApi, TResult>
         hr.Headers.IfMatch = new EntityTagHeaderValue("\"123456\"", true).ToString();
 
         Test.Type<TWebApi>()
-            .Run(async w => await w.PatchWithResultAsync<Person>(hr, (ro, ct) => Task.FromResult(Result<Person?>.Ok(Person.GetPerson("abcdefg"))), (ro, ct) => throw new InvalidOperationException()))
+            .Run(async w => await w.PatchWithResultAsync<Person>(hr, (ro, ct) => Task.FromResult(Result<Person>.Ok(Person.GetPerson("abcdefg"))), (ro, ct) => throw new InvalidOperationException()))
             .ToHttpResponseMessageAssertor()
             .AssertPreconditionFailed();
     }
@@ -66,7 +66,7 @@ partial class WebApiTestsBase<TWebApi, TResult>
 
         // As there are no changes as a result of merging then the corresponding put operation should not be invoked; should just return as-if it had done something :-)
         Test.Type<TWebApi>()
-            .Run(async w => await w.PatchWithResultAsync<Person>(hr, (ro, ct) => Task.FromResult(Result<Person?>.Ok(Person.GetPerson("abcdef"))), (ro, ct) => throw new InvalidOperationException()))
+            .Run(async w => await w.PatchWithResultAsync<Person>(hr, (ro, ct) => Task.FromResult(Result<Person>.Ok(Person.GetPerson("abcdef"))), (ro, ct) => throw new InvalidOperationException()))
             .ToHttpResponseMessageAssertor()
             .AssertOK()
             .AssertValue(Person.GetPerson("abcdef"));
@@ -82,7 +82,7 @@ partial class WebApiTestsBase<TWebApi, TResult>
         ep.Age = 40;
 
         Test.Type<TWebApi>()
-            .Run(async w => await w.PatchWithResultAsync<Person>(hr, (ro, ct) => Task.FromResult(Result<Person?>.Ok(Person.GetPerson("abcdef"))), (ro, ct) => Task.FromResult(Result.Ok(ro.Value.Adjust(p => p.ETag = "qrstuv")))))
+            .Run(async w => await w.PatchWithResultAsync<Person>(hr, (ro, ct) => Task.FromResult(Result<Person>.Ok(Person.GetPerson("abcdef"))), (ro, ct) => Task.FromResult(Result.Ok(ro.Value.Adjust(p => p.ETag = "qrstuv")))))
             .ToHttpResponseMessageAssertor()
             .AssertOK()
             .AssertValue(ep, "etag");

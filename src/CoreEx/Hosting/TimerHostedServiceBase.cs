@@ -180,15 +180,27 @@ public abstract class TimerHostedServiceBase : HostedServiceBase
                     await _signal.WaitAsync(cancellationToken).ConfigureAwait(false);
                 else
                 {
-                    _delayCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-                    var delayTask = Task.Delay(nextInterval, _delayCts.Token);
-                    var signalTask = _signal.WaitAsync(cancellationToken);
-                    await Task.WhenAny(delayTask, signalTask).ConfigureAwait(false);
-                    _delayCts?.Dispose();
-                    _delayCts = null;
+                    // The signal wait shares the per-iteration token so that the losing wait is cancelled (and dequeued from the semaphore); otherwise, abandoned waiters accumulate and swallow subsequent signals.
+                    var delayCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                    Volatile.Write(ref _delayCts, delayCts);
+                    try
+                    {
+                        var delayTask = Task.Delay(nextInterval, delayCts.Token);
+                        var signalTask = _signal.WaitAsync(delayCts.Token);
+                        await Task.WhenAny(delayTask, signalTask).ConfigureAwait(false);
+                    }
+                    finally
+                    {
+                        Interlocked.CompareExchange(ref _delayCts, null, delayCts);
+                        TryCancel(delayCts);
+                        delayCts.Dispose();
+                    }
                 }
             }
             catch (Exception ex) when (ex.IsCanceled()) { break; }
+
+            if (cancellationToken.IsCancellationRequested)
+                break;
 
             lock (SyncLock)
             {
@@ -456,8 +468,8 @@ public abstract class TimerHostedServiceBase : HostedServiceBase
     {
         try
         {
-            _delayCts?.Cancel();
-            _backgroundCts?.Cancel();
+            TryCancel(Volatile.Read(ref _delayCts));
+            TryCancel(_backgroundCts);
         }
         finally
         {
@@ -543,9 +555,26 @@ public abstract class TimerHostedServiceBase : HostedServiceBase
     /// </summary>
     private void SignalWakeUp()
     {
-        _delayCts?.Cancel();
-        if (_signal.CurrentCount == 0)
-            _signal.Release();
+        TryCancel(Volatile.Read(ref _delayCts));
+
+        try
+        {
+            if (_signal.CurrentCount == 0)
+                _signal.Release();
+        }
+        catch (ObjectDisposedException) { } // Disposed; there is nothing left to wake.
+    }
+
+    /// <summary>
+    /// Cancels the <paramref name="cts"/> where not <c>null</c>, ignoring where already disposed (the background loop may concurrently complete and dispose it).
+    /// </summary>
+    private static void TryCancel(CancellationTokenSource? cts)
+    {
+        try
+        {
+            cts?.Cancel();
+        }
+        catch (ObjectDisposedException) { }
     }
 
     /// <inheritdoc/>
@@ -553,19 +582,17 @@ public abstract class TimerHostedServiceBase : HostedServiceBase
     {
         if (disposing)
         {
-            try { _backgroundCts?.Cancel(); } catch { }
-            try { _delayCts?.Cancel(); } catch { }
+            TryCancel(_backgroundCts);
+            TryCancel(Interlocked.Exchange(ref _delayCts, null));
 
             try
             {
                 _signal?.Dispose();
-                _delayCts?.Dispose();
                 _backgroundCts?.Dispose();
             }
             catch { }
             finally
             {
-                _delayCts = null;
                 _backgroundTask = null;
                 _backgroundCts = null;
             }

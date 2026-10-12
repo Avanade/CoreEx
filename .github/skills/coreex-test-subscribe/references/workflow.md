@@ -38,10 +38,11 @@ public partial class SubscriberTests : WithApiTester<{Domain}.Subscribe.Program>
     {
         // Always specify the seed file explicitly — read-data.seed.yaml, mutate-data.seed.yaml,
         // or a schema-only no-data.seed.yaml for plumbing/health-only tests.
-        await Test.MigrateSqlServerDataAsync<TestData>(["mutate-data.seed.yaml"], DbMigration.ConfigureMigrationArgs).ConfigureAwait(false);   // or MigratePostgresDataAsync<TestData>(...) — provider-specific
+        await Test.MigrateSqlServerDataAsync<TestData>(["mutate-data.seed.yaml"], DbMigration.ConfigureMigrationArgs).ConfigureAwait(false);   // or MigratePostgresDataAsync<TestData>(...) / MigrateCosmosDataAsync<TestData>(..., DbMigration.ConfigureProvisionArgs) — provider-specific
         await Test.ClearFusionCacheAsync().ConfigureAwait(false);
+        await Test.ResetAzureServiceBusAsync(Common.ServiceBus.GetQueues(), Common.ServiceBus.GetTopicsAndSubscriptions()).ConfigureAwait(false);   // Test.Common ServiceBus: the code-based topology.
 
-        Test.UseExpectedSqlServerOutboxPublisher();   // or UseExpectedPostgresOutboxPublisher() — provider-specific
+        Test.UseExpectedSqlServerOutboxPublisher();   // or UseExpectedPostgresOutboxPublisher() / UseExpectedCosmosDbOutboxPublisher() — provider-specific
     }
 }
 ```
@@ -51,7 +52,7 @@ One partial file per subscriber scenario under test: `SubscriberTests.{Scenario}
 ## Phase 2 — Simulating Message Receipt
 
 Build the `EventData` the subscriber expects, convert it to a `ServiceBusReceivedMessage`, resolve
-`ServiceBusSubscribedSubscriber` from DI, and call `.ReceiveAsync(sbm)` — no live Service Bus connection
+the keyed `ServiceBusSubscribedSubscriber` (key `"subscriber-events"`, as registered by the templated Subscribe host) from DI, and call `.ReceiveAsync(sbm)` — no live Service Bus connection
 needed.
 
 ```csharp
@@ -64,7 +65,7 @@ var ed = EventData.CreateCommand("{domain}", "{entity}", "{action}").WithKey(ref
 var ce = Test.CreateCloudEventFrom(ed);
 var sbm = ce.ToServiceBusReceivedMessage();
 
-var sbs = test.Services.GetRequiredService<ServiceBusSubscribedSubscriber>();
+var sbs = test.Services.GetRequiredKeyedService<ServiceBusSubscribedSubscriber>("subscriber-events");
 var r = await sbs.ReceiveAsync(sbm);
 r.IsSuccess.Should().BeTrue();
 ```
@@ -84,14 +85,14 @@ public void {Entity}{Action}_Success() => Test.Scoped(async test =>
     items.Should().HaveCount(3);
 
     // Act — simulate the command message; assert any resulting outbox events.
-    test.ExpectSqlServerOutboxEvents(e => e.AssertCount(3))   // or ExpectPostgresOutboxEvents(...) — provider-specific
+    test.ExpectSqlServerOutboxEvents(e => e.AssertCount(3))   // or ExpectPostgresOutboxEvents(...) / ExpectCosmosDbOutboxEvents(...) — provider-specific
         .Run(async _ =>
         {
             var ed = EventData.CreateCommand("{domain}", "{entity}", "{action}").WithKey(referenceId);
             var ce = Test.CreateCloudEventFrom(ed);
             var sbm = ce.ToServiceBusReceivedMessage();
 
-            var sbs = test.Services.GetRequiredService<ServiceBusSubscribedSubscriber>();
+            var sbs = test.Services.GetRequiredKeyedService<ServiceBusSubscribedSubscriber>("subscriber-events");
             var r = await sbs.ReceiveAsync(sbm);
             r.IsSuccess.Should().BeTrue();
         }).AssertSuccess();
@@ -117,7 +118,7 @@ public void {Entity}{Action}_NotFound() => Test.Scoped(test =>
 
     test.Run(async _ =>
     {
-        var sbs = test.Services.GetRequiredService<ServiceBusSubscribedSubscriber>();
+        var sbs = test.Services.GetRequiredKeyedService<ServiceBusSubscribedSubscriber>("subscriber-events");
         var r = await sbs.ReceiveAsync(sbm);
 
         r.IsFailure.Should().BeTrue();
@@ -148,7 +149,7 @@ public void {Entity}Modify_Success() => Test.Scoped(async test =>
     // Act.
     test.Run(async _ =>
     {
-        var sbs = test.Services.GetRequiredService<ServiceBusSubscribedSubscriber>();
+        var sbs = test.Services.GetRequiredKeyedService<ServiceBusSubscribedSubscriber>("subscriber-events");
         var r = await sbs.ReceiveAsync(sbm);
         r.IsSuccess.Should().BeTrue();
     }).AssertSuccess();
@@ -179,7 +180,7 @@ public void Unsubscribed_CompletesSilently() => Test.Scoped(test =>
 
     test.Run(async _ =>
     {
-        var sbs = test.Services.GetRequiredService<ServiceBusSubscribedSubscriber>();
+        var sbs = test.Services.GetRequiredKeyedService<ServiceBusSubscribedSubscriber>("subscriber-events");
         var r = await sbs.ReceiveAsync(sbm);
 
         r.IsFailure.Should().BeTrue();
@@ -194,7 +195,7 @@ public void Unsubscribed_CompletesSilently() => Test.Scoped(test =>
 
 - [ ] Test shape matches the subscriber scenario (command / event-data-sync / event-business-process)
 - [ ] `OneTimeSetUp` clears FusionCache — Subscribe hosts have it, don't skip it
-- [ ] Provider-correct outbox helpers used (no Postgres/SQL Server mixing)
+- [ ] Provider-correct outbox helpers used (no Postgres/SQL Server/Cosmos mixing)
 - [ ] `ErrorHandler` outcomes asserted where the subscriber defines one (handled exception → `.ErrorHandling` + `.InnerException`)
 - [ ] Event-data-sync tests assert via the adapter/local store, not the raw external contract
 - [ ] An "unsubscribed subject" test exists for the host

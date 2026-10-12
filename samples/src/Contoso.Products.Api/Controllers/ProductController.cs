@@ -36,4 +36,9 @@ public class ProductController(WebApi webApi, IProductService service) : Control
     [ProducesResponseType(204)]
     public Task<IActionResult> DeleteAsync(string id, CancellationToken cancellationToken = default) => _webApi.DeleteAsync(Request, (_, ct)
         => _service.DeleteAsync(id.Required(), ct), cancellationToken: cancellationToken);
+
+    [HttpPost("{id}/activate")]
+    [ProducesResponseType(typeof(Product), 200)]
+    public Task<IActionResult> ActivateAsync(string id, CancellationToken cancellationToken = default) => _webApi.PostAsync<Product>(Request, (_, ct)
+        => _service.ActivateAsync(id.Required(), ct), HttpStatusCode.OK, cancellationToken: cancellationToken);
 }

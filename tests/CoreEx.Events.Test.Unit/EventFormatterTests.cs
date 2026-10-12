@@ -111,6 +111,53 @@ public class EventFormatterTests
     }
 
     [Test]
+    public void Format_Event_NoDomainName_DefaultsToFormatterDomain()
+    {
+        var ef = new EventFormatter { TitlePrefix = "pre", DomainName = "dom", PartitionKeyIsRequired = false };
+        ef.Format(new EventData { Entity = "ent", Action = "act" }).Title.Should().Be("pre.dom.ent.act");
+    }
+
+    [Test]
+    public void Format_Command_ExplicitDomainName_UsesTargetDomain()
+    {
+        var ef = new EventFormatter { TitlePrefix = "pre", DomainName = "self", PartitionKeyIsRequired = false };
+        ef.Format(EventData.CreateCommand("target", "ent", "act")).Title.Should().Be("pre.target.ent.act");
+    }
+
+    [Test]
+    public void Format_Command_NoDomainName_SelfAddressesUsingFormatterDomain()
+    {
+        var ef = new EventFormatter { TitlePrefix = "pre", DomainName = "self", PartitionKeyIsRequired = false };
+        ef.Format(new EventData { MessageType = MessageType.Command, Entity = "ent", Action = "act" }).Title.Should().Be("pre.self.ent.act");
+    }
+
+    [Test]
+    public void Format_Command_NoDomainNameAndNoFormatterDomain_ShouldThrowInvalidOperationException()
+    {
+        var ef = new EventFormatter { PartitionKeyIsRequired = false };
+        Action act = () => ef.Format(new EventData { MessageType = MessageType.Command, Entity = "ent", Action = "act" });
+        act.Should().Throw<InvalidOperationException>();
+    }
+
+    [Test]
+    public void Format_Command_NoDomainNameWithExplicitTitle_ShouldNotThrow()
+    {
+        var ef = new EventFormatter { PartitionKeyIsRequired = false };
+        ef.Format(new EventData { MessageType = MessageType.Command, Title = "explicit.title.here" }).Title.Should().Be("explicit.title.here");
+    }
+
+    [Test]
+    public void Parse_Title_ExistingValues_ShouldNotBeOverwritten()
+    {
+        var ef = new EventFormatter();
+        var ed = new EventData { Title = "dom.ent.act", DomainName = "existing" };
+        var result = ef.Parse(ed);
+        result.DomainName.Should().Be("existing");
+        result.Entity.Should().Be("ent");
+        result.Action.Should().Be("act");
+    }
+
+    [Test]
     public void Parse_Title_Full()
     {
         var ef = new EventFormatter { TitlePrefix = "pre" };

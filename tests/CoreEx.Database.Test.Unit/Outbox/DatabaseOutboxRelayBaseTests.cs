@@ -13,12 +13,12 @@ public class DatabaseOutboxRelayBaseTests
 {
     private static SqlServerDatabase CreateDatabase() => new((SqlConnection)SqlClientFactory.Instance.CreateConnection());
 
-    private static DatabaseOutboxRelayArgs CreateArgs(DatabaseOutboxRelayResiliencyExecutor? resiliencyExecutor = null) => new()
+    private static DatabaseOutboxRelayArgs CreateArgs(DatabaseOutboxRelayResiliencyExecutor? resiliencyExecutor = null, TimeSpan? leaseDuration = null) => new()
     {
         // partitionSize == perWorkerPartitionCount triggers PartitionPicker's "probe all partitions" path - deterministic, covers every partition every call.
         PartitionPicker = new PartitionPicker(partitionSize: 2, perWorkerPartitionCount: 2),
         BatchSize = 10,
-        LeaseDuration = TimeSpan.FromSeconds(5),
+        LeaseDuration = leaseDuration ?? TimeSpan.FromSeconds(5),
         BackOffDuration = TimeSpan.FromSeconds(1),
         ResiliencyExecutor = resiliencyExecutor ?? ((work, ct) => work(ct))
     };
@@ -96,13 +96,51 @@ public class DatabaseOutboxRelayBaseTests
         markers[0].GetTagItem("outbox.destination").Should().Be("test-destination");
     }
 
+    [Test]
+    public async Task RelayAsync_LeaseDurationExceeded_ReleasesClaimAndContinues()
+    {
+        // Regression: a publish exceeding the lease duration (surfacing as a nested AggregateException-wrapped cancellation) must release the claim using a live token, and must not abort the tick.
+        var relay = new TestOutboxRelay(CreateDatabase(), new NoOpEventPublisher())
+        {
+            EventsForPartition = _ => [new DestinationEvent("test-destination", new CloudNative.CloudEvents.CloudEvent { Id = Guid.NewGuid().ToString(), Type = "test.event", Source = new Uri("urn:test") })],
+            WaitForLeaseExpiry = true,
+            PublishException = ct => new AggregateException(new AggregateException(new TaskCanceledException(null, null, ct)))
+        };
+
+        await relay.RelayAsync(CreateArgs(leaseDuration: TimeSpan.FromMilliseconds(50)), CancellationToken.None);
+
+        relay.AttemptedPartitions.Should().BeEquivalentTo([0, 1]);
+        relay.CancelBatchTokenWasCanceled.Should().BeEquivalentTo([false, false]);
+    }
+
+    [Test]
+    public async Task RelayAsync_CallerCancellation_Rethrows()
+    {
+        using var cts = new CancellationTokenSource();
+        var relay = new TestOutboxRelay(CreateDatabase(), new NoOpEventPublisher())
+        {
+            EventsForPartition = _ => [new DestinationEvent("test-destination", new CloudNative.CloudEvents.CloudEvent { Id = Guid.NewGuid().ToString(), Type = "test.event", Source = new Uri("urn:test") })],
+            PublishException = _ => { cts.Cancel(); return new AggregateException(new OperationCanceledException(cts.Token)); }
+        };
+
+        var act = () => relay.RelayAsync(CreateArgs(), cts.Token);
+        await act.Should().ThrowAsync<AggregateException>();
+        relay.AttemptedPartitions.Should().ContainSingle();
+    }
+
     private sealed class TestOutboxRelay(SqlServerDatabase database, IEventPublisher eventPublisher) : DatabaseOutboxRelayBase<SqlServerDatabase, TestOutboxRelay>(database, eventPublisher)
     {
         public List<int> AttemptedPartitions { get; } = [];
 
+        public List<bool> CancelBatchTokenWasCanceled { get; } = [];
+
         public int? FailingPartitionId { get; set; }
 
         public Func<int, List<DestinationEvent>>? EventsForPartition { get; set; }
+
+        public Func<CancellationToken, Exception>? PublishException { get; set; }
+
+        public bool WaitForLeaseExpiry { get; set; }
 
         public override void SetStatementsByConvention(string? schema = null) { }
 
@@ -118,10 +156,25 @@ public class DatabaseOutboxRelayBaseTests
             return Task.FromResult(EventsForPartition?.Invoke(partitionId) ?? []);
         }
 
-        // No-op - avoids requiring a real database connection for tests that DO claim events (CreateDatabase() has no live connection); the claim/publish path is exercised via
-        // ClaimNextBatchAsync/EventPublisher instead, which is all these tests care about.
-        protected override Task CompleteBatchAsync(DatabaseOutboxRelayArgs args, Guid leaseId, CancellationToken cancellationToken) => Task.CompletedTask;
+        // Simulates a publish failure (CompleteBatchAsync runs inside the same try as the publish); otherwise a no-op - avoids requiring a real database connection for tests that DO claim events
+        // (CreateDatabase() has no live connection); the claim/publish path is exercised via ClaimNextBatchAsync/EventPublisher instead, which is all these tests care about.
+        protected override async Task CompleteBatchAsync(DatabaseOutboxRelayArgs args, Guid leaseId, CancellationToken cancellationToken)
+        {
+            if (PublishException is null)
+                return;
 
-        protected override Task CancelBatchAsync(DatabaseOutboxRelayArgs args, Guid leaseId, CancellationToken cancellationToken) => Task.CompletedTask;
+            if (WaitForLeaseExpiry)
+                await Task.Delay(Timeout.Infinite, cancellationToken).ContinueWith(_ => { }, TaskScheduler.Default);
+
+            throw PublishException(cancellationToken);
+        }
+
+        protected override Task CancelBatchAsync(DatabaseOutboxRelayArgs args, Guid leaseId, CancellationToken cancellationToken)
+        {
+            lock (CancelBatchTokenWasCanceled)
+                CancelBatchTokenWasCanceled.Add(cancellationToken.IsCancellationRequested);
+
+            return Task.CompletedTask;
+        }
     }
 }

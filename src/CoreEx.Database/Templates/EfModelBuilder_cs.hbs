@@ -37,16 +37,16 @@ public partial class {{Domain}}DbContext
             e.Property(p => p.{{Property}}).HasColumnName("{{Name}}").HasColumnType("{{DbColumn.SqlType2}}"){{#if DbColumn.IsComputed}}.ValueGeneratedOnAddOrUpdate(){{/if}}{{#if DbColumn.IsRowVersionColumn}}.IsRowVersion(){{/if}}{{#if DbColumn.IsCreatedAudit}}.ValueGeneratedOnUpdate(){{/if}}{{#if DbColumn.IsUpdatedAudit}}.ValueGeneratedOnAdd(){{/if}}{{#if ValueConverter}}.HasConversion({{ValueConverter}}){{else}}{{#if DbColumn.IsJsonContent}}{{#ifne Type 'string' 'string?'}}.HasConversion(TypeToJsonStringEfConverter<{{Type}}>.Default, TypeToJsonStringEfComparer<{{Type}}>.Default){{/ifne}}{{/if}}{{/if}};
   {{/each}}
   {{#if HasColumnCreatedBy}}
-            e.Property(p => p.CreatedBy).HasColumnName("{{ColumnCreatedBy.Name}}").HasColumnType("{{ColumnCreatedBy.DbColumn.SqlType2}}");
+            e.Property(p => p.CreatedBy).HasColumnName("{{ColumnCreatedBy.Name}}").HasColumnType("{{ColumnCreatedBy.DbColumn.SqlType2}}").ValueGeneratedOnUpdate();
   {{/if}}
   {{#if HasColumnCreatedOn}}
-            e.Property(p => p.CreatedOn).HasColumnName("{{ColumnCreatedOn.Name}}").HasColumnType("{{ColumnCreatedOn.DbColumn.SqlType2}}");
+            e.Property(p => p.CreatedOn).HasColumnName("{{ColumnCreatedOn.Name}}").HasColumnType("{{ColumnCreatedOn.DbColumn.SqlType2}}").ValueGeneratedOnUpdate();
   {{/if}}
   {{#if HasColumnUpdatedBy}}
-            e.Property(p => p.UpdatedBy).HasColumnName("{{ColumnUpdatedBy.Name}}").HasColumnType("{{ColumnUpdatedBy.DbColumn.SqlType2}}");
+            e.Property(p => p.UpdatedBy).HasColumnName("{{ColumnUpdatedBy.Name}}").HasColumnType("{{ColumnUpdatedBy.DbColumn.SqlType2}}").ValueGeneratedOnAdd();
   {{/if}}
   {{#if HasColumnUpdatedOn}}
-            e.Property(p => p.UpdatedOn).HasColumnName("{{ColumnUpdatedOn.Name}}").HasColumnType("{{ColumnUpdatedOn.DbColumn.SqlType2}}");
+            e.Property(p => p.UpdatedOn).HasColumnName("{{ColumnUpdatedOn.Name}}").HasColumnType("{{ColumnUpdatedOn.DbColumn.SqlType2}}").ValueGeneratedOnAdd();
   {{/if}}
   {{#if HasColumnRowVersion}}
             e.Property(p => p.ETag).HasColumnName("{{ColumnRowVersion.Name}}").HasColumnType("{{ColumnRowVersion.DbColumn.SqlType2}}").IsRowVersion().HasConversion(ValueConverterBridge.Create<string?, {{ColumnRowVersion.Type}}>(BaseDatabase.RowVersionConverter));

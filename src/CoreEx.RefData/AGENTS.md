@@ -12,7 +12,7 @@ The canonical way to introduce reference data is through the **`*.CodeGen` proje
 | `*.g.cs` — `ReferenceDataCollection<TSelf>` class | Thread-safe, cache-friendly collection |
 | `*.g.cs` — `IReferenceDataRepository` | Repository interface for loading from the database |
 | `*.g.cs` — `ReferenceDataRepository` | EF Core implementation of the repository |
-| `*.g.cs` — `IReferenceDataProvider` / `ReferenceDataService` | Orchestrator provider wiring all types together |
+| `*.g.cs` — `IReferenceDataProvider` / `ReferenceDataProvider` | Orchestrator provider wiring all types together |
 | `*.g.cs` — `ReferenceDataController` | API controller exposing all reference data types |
 
 ### `ref-data.yaml` — the single source of truth
@@ -55,16 +55,16 @@ if (movement.Status == MovementStatus.Pending) { ... }
 
 ### Registration
 
-Register the generated `IReferenceDataProvider` with the orchestrator, then dynamically register all generated services and repositories:
+Add the non-generic orchestrator (it binds the generated `IReferenceDataProvider` from DI at runtime, so there is no compile-time dependency on the generated type), then dynamically register all generated services and repositories:
 
 ```csharp
 // Program.cs
 builder.Services
-    .AddReferenceDataOrchestrator<ReferenceDataService>()   // generated IReferenceDataProvider
+    .AddReferenceDataOrchestrator()   // binds the generated IReferenceDataProvider from DI
     ...
 
-// Dynamic registration discovers ReferenceDataService and ReferenceDataRepository via [ScopedService]
-builder.Services.AddDynamicServicesUsing<ReferenceDataService, ReferenceDataRepository>();
+// Dynamic registration discovers ReferenceDataProvider and ReferenceDataRepository via [ScopedService]
+builder.Services.AddDynamicServicesUsing<ReferenceDataProvider, ReferenceDataRepository>();
 ```
 
 The orchestrator resolves `IHybridCache` from DI to cache loaded collections. Register FusionCache separately — see [CoreEx.Caching.FusionCache](../CoreEx.Caching.FusionCache/README.md).

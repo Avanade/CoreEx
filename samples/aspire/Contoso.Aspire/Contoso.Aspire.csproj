@@ -1,6 +1,20 @@
-<Project Sdk="Aspire.AppHost.Sdk/13.2.4">
+﻿<Project Sdk="Aspire.AppHost.Sdk/13.5.4">
 
   <PropertyGroup>
+    <!-- Aspire.AppHost.Sdk 13.4+ regresses (MSB4036: PickBestRid task not found) when the AppHost project multi-targets
+         (see https://github.com/microsoft/aspire/issues/17912). The AppHost is an orchestration executable only - it is
+         never packaged/shipped as a multi-targeted library - so pin a single TargetFramework here to override the
+         TargetFrameworks inherited from samples\Directory.Build.props and avoid the regression. Explicitly clearing
+         TargetFrameworks (plural) too, not just setting TargetFramework, matters here: MSBuild's own outer/inner-build
+         gate only checks whether TargetFramework is already set (so command-line/CLI builds were already correct),
+         but Visual Studio's project system reads TargetFrameworks directly for Configuration Manager/Test Explorer's
+         framework picker - leaving it populated made VS keep offering net8.0/net9.0 there, which then built this
+         project (and Contoso.Test.Aspire) at the wrong TFM and reintroduced the exact reference error this override
+         was meant to prevent. -->
+    <TargetFrameworks></TargetFrameworks>
+    <TargetFramework>net10.0</TargetFramework>
+    <!-- Default for the SetTargetFramework override below (see the ItemGroup comment) when SampleTargetFramework isn't passed explicitly. -->
+    <SampleTargetFramework Condition="'$(SampleTargetFramework)' == ''">net10.0</SampleTargetFramework>
     <OutputType>Exe</OutputType>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
@@ -9,20 +23,40 @@
     <UserSecretsId>6a58b94b-d2ff-413a-9e03-e9995a3de4dd</UserSecretsId>
   </PropertyGroup>
 
+  <ItemGroup>
+    <Using Include="UnitTestEx" />
+  </ItemGroup>
+
   <!-- Vulnerability override: MessagePack 2.5.192 (transitive via Aspire) has multiple CVEs; patched at >= 2.5.302. -->
   <ItemGroup>
     <PackageReference Include="MessagePack" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Contoso.Orders.Api\Contoso.Orders.Api.csproj" />
-    <ProjectReference Include="..\..\src\Contoso.Order.Workflow.Worker\Contoso.Order.Workflow.Worker.csproj" />
-    <ProjectReference Include="..\..\src\Contoso.Products.Api\Contoso.Products.Api.csproj" />
-    <ProjectReference Include="..\..\src\Contoso.Products.Relay\Contoso.Products.Relay.csproj" />
-    <ProjectReference Include="..\..\src\Contoso.Products.Subscribe\Contoso.Products.Subscribe.csproj" />
-    <ProjectReference Include="..\..\src\Contoso.Shopping.Api\Contoso.Shopping.Api.csproj" />
-    <ProjectReference Include="..\..\src\Contoso.Shopping.Relay\Contoso.Shopping.Relay.csproj" />
-    <ProjectReference Include="..\..\src\Contoso.Shopping.Subscribe\Contoso.Shopping.Subscribe.csproj" />
+    <PackageReference Include="UnitTestEx.Aspire" />
+  </ItemGroup>
+
+  <!-- To smoke-test the orchestrated sample projects against a specific TFM without multi-targeting this AppHost
+       (see the TargetFramework note above), pass e.g. `-p:SampleTargetFramework=net8.0` to `dotnet build`/`dotnet test`
+       on this project or Contoso.Test.Aspire (the property propagates down the ProjectReference graph). Defaults to
+       net10.0 (see SampleTargetFramework above) when not passed. A single unconditional SetTargetFramework per
+       ProjectReference is used deliberately - two conditioned duplicate items for the same project (one prior attempt)
+       confused Visual Studio's project-dependency graph (parsed pre-condition-evaluation by the IDE's project system),
+       scrambling build order across the *entire* solution; the CLI's MSBuild evaluated the conditions correctly and
+       never showed the problem, which is why it only surfaced in Visual Studio. -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\CoreEx.UnitTesting\CoreEx.UnitTesting.csproj" IsAspireProjectResource="false" />
+    <ProjectReference Include="..\Contoso.Aspire.MockHost\Contoso.Aspire.MockHost.csproj" />
+    <ProjectReference Include="..\..\src\Contoso.Customers.Api\Contoso.Customers.Api.csproj" SetTargetFramework="TargetFramework=$(SampleTargetFramework)" />
+    <ProjectReference Include="..\..\src\Contoso.Customers.Relay\Contoso.Customers.Relay.csproj" SetTargetFramework="TargetFramework=$(SampleTargetFramework)" />
+    <ProjectReference Include="..\..\src\Contoso.Orders.Api\Contoso.Orders.Api.csproj" SetTargetFramework="TargetFramework=$(SampleTargetFramework)" />
+    <ProjectReference Include="..\..\src\Contoso.Order.Workflow.Worker\Contoso.Order.Workflow.Worker.csproj" SetTargetFramework="TargetFramework=$(SampleTargetFramework)" />
+    <ProjectReference Include="..\..\src\Contoso.Products.Api\Contoso.Products.Api.csproj" SetTargetFramework="TargetFramework=$(SampleTargetFramework)" />
+    <ProjectReference Include="..\..\src\Contoso.Products.Relay\Contoso.Products.Relay.csproj" SetTargetFramework="TargetFramework=$(SampleTargetFramework)" />
+    <ProjectReference Include="..\..\src\Contoso.Products.Subscribe\Contoso.Products.Subscribe.csproj" SetTargetFramework="TargetFramework=$(SampleTargetFramework)" />
+    <ProjectReference Include="..\..\src\Contoso.Shopping.Api\Contoso.Shopping.Api.csproj" SetTargetFramework="TargetFramework=$(SampleTargetFramework)" />
+    <ProjectReference Include="..\..\src\Contoso.Shopping.Relay\Contoso.Shopping.Relay.csproj" SetTargetFramework="TargetFramework=$(SampleTargetFramework)" />
+    <ProjectReference Include="..\..\src\Contoso.Shopping.Subscribe\Contoso.Shopping.Subscribe.csproj" SetTargetFramework="TargetFramework=$(SampleTargetFramework)" />
   </ItemGroup>
 
 </Project>

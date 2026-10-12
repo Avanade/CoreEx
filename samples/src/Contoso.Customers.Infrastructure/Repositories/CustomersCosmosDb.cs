@@ -5,7 +5,7 @@ public class CustomersCosmosDb(CosmosClient client, string databaseId) : CosmosD
     private const string RefDataContainerId = "ref-data";
     private const string CustomersContainerId = "customers";
 
-    private static readonly CosmosDbOptions _options = new();
+    private static readonly CosmosDbOptions _options = new CosmosDbOptions().Container(RefDataContainerId, c => c.WithReferenceDataOutboxEvent());
 
     public CosmosDbContainer<Persistence.ContactMethod> ContactMethods => Container<Persistence.ContactMethod>(RefDataContainerId, o => o.WithTypeDiscriminator());
 

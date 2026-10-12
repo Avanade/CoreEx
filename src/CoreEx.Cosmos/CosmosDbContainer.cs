@@ -80,6 +80,74 @@ public sealed partial class CosmosDbContainer<TModel> where TModel : class, IEnt
         return Options.CheckFilters(args, model, operationType);
     }
 
+    // Top-level properties that are server-managed (or carried separately) and therefore never considered when determining whether an Update is a no-op.
+    private static readonly string[] _noOpExcludedProperties = [nameof(IETag.ETag), nameof(IChangeLog.ChangeLog), nameof(IChangeLogEx.CreatedBy), nameof(IChangeLogEx.CreatedOn), nameof(IChangeLogEx.UpdatedBy), nameof(IChangeLogEx.UpdatedOn), nameof(IExtensionData.ExtensionData)];
+
+    // Cosmos DB system properties that surface in the additional properties bag; these are server-owned and never forwarded/compared.
+    private static readonly string[] _cosmosSystemProperties = ["_rid", "_self", "_etag", "_attachments", "_ts"];
+
+    /// <summary>
+    /// Gets the <see cref="JsonSerializerOptions"/> used to snapshot to/from the <see cref="ICosmosDb.ChangeTracker"/>; <see langword="null"/> where tracking is not enabled (no <c>System.Text.Json</c> serializer configured).
+    /// </summary>
+    private JsonSerializerOptions? ChangeTrackerSerializerOptions => CosmosDb.Client.ClientOptions.UseSystemTextJsonSerializerWithOptions;
+
+    /// <summary>
+    /// Evicts the specified document from the <see cref="ICosmosDb.ChangeTracker"/>.
+    /// </summary>
+    private void EvictFromChangeTracker(PartitionKey partitionKey, string id) => CosmosDb.ChangeTracker.Remove(Container.Id, partitionKey, id);
+
+    /// <summary>
+    /// Copies the server-managed values from the <paramref name="existing"/> (persisted) model onto the <paramref name="model"/> (candidate) being updated so they are not lost by the replace.
+    /// </summary>
+    /// <remarks>The <see cref="IETag.ETag"/> is deliberately <b>never</b> copied; the incoming value drives the server-side <c>If-Match</c> optimistic concurrency check.
+    /// <para>The persisted <see cref="ITimeToLive.TimeToLive"/> is only carried forward where the candidate has none and <see cref="CosmosDbModelOptions{TModel}.WithTimeToLive"/> is not configured (where configured the value is
+    /// always recomputed); otherwise a replace would silently remove the expiry. An explicit value (e.g. <c>-1</c> for never-expires) overrides.</para></remarks>
+    private void CopyServerManagedValues(TModel existing, TModel model)
+    {
+        if (!Options.HasTimeToLive && model is ITimeToLive ttl && ttl.TimeToLive is null && existing is IReadOnlyTimeToLive ettl)
+            ttl.TimeToLive = ettl.TimeToLive;
+
+        if (model is IChangeLog cl)
+        {
+            var ecl = (existing as IReadOnlyChangeLog)?.ChangeLog;
+            cl.ChangeLog = (cl.ChangeLog ?? new ChangeLog()) with { CreatedBy = ecl?.CreatedBy, CreatedOn = ecl?.CreatedOn };
+        }
+        else if (model is IChangeLogEx cle && existing is IReadOnlyChangeLogEx ecle)
+        {
+            cle.CreatedBy = ecle.CreatedBy;
+            cle.CreatedOn = ecle.CreatedOn;
+        }
+
+        // Forward any persisted additional properties the candidate does not itself supply (the candidate wins on a key conflict) as a replace otherwise drops anything the model is unaware of.
+        if (model is IExtensionData map && existing is IExtensionData eap && eap.ExtensionData is not null)
+        {
+            foreach (var kvp in eap.ExtensionData)
+            {
+                if (_cosmosSystemProperties.Contains(kvp.Key))
+                    continue;
+
+                (map.ExtensionData ??= []).TryAdd(kvp.Key, kvp.Value);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Determines whether the <paramref name="model"/> (candidate) is equivalent to the <paramref name="existing"/> (persisted) model, ignoring the server-managed values (see <see cref="CopyServerManagedValues"/>).
+    /// </summary>
+    private static bool AreEquivalent(TModel existing, TModel model)
+    {
+        if (!RuntimeMetadata.AreEqual(existing, model, _noOpExcludedProperties))
+            return false;
+
+        if (existing is IExtensionData eap && model is IExtensionData map)
+            return RuntimeMetadata.AreEqual(WithoutSystemProperties(eap.ExtensionData), WithoutSystemProperties(map.ExtensionData));
+
+        return true;
+    }
+
+    private static Dictionary<string, object?> WithoutSystemProperties(Dictionary<string, object?>? bag)
+        => bag is null ? [] : bag.Where(kvp => !_cosmosSystemProperties.Contains(kvp.Key)).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+
     /// <summary>
     /// Builds the <see cref="ItemRequestOptions"/> for a point operation from the specified <paramref name="args"/>.
     /// </summary>

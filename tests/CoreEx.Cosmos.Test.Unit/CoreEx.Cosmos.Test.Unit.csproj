@@ -8,6 +8,8 @@
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
     <TestTfmsInParallel>false</TestTfmsInParallel>
+    <SignAssembly>true</SignAssembly>
+    <AssemblyOriginatorKeyFile>../../strong-name-key.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
 
   <ItemGroup>
@@ -24,10 +26,12 @@
     <ProjectReference Include="..\..\src\CoreEx\CoreEx.csproj" />
     <ProjectReference Include="..\..\src\CoreEx.Data\CoreEx.Data.csproj" />
     <ProjectReference Include="..\..\src\CoreEx.Events\CoreEx.Events.csproj" />
+    <ProjectReference Include="..\..\src\CoreEx.RefData\CoreEx.RefData.csproj" />
     <ProjectReference Include="..\..\src\CoreEx.Cosmos\CoreEx.Cosmos.csproj" />
   </ItemGroup>
 
   <ItemGroup>
+    <RuntimeHostConfigurationOption Include="Azure.Experimental.EnableActivitySource" Value="true" />
     <Using Include="AwesomeAssertions" />
     <Using Include="NUnit.Framework" />
   </ItemGroup>

@@ -5,6 +5,10 @@
     <PackageReference Include="CoreEx.Database.SqlServer" />
     <PackageReference Include="Aspire.Microsoft.Data.SqlClient" />
     <!--#endif-->
+    <!--#if implement-cosmos-->
+    <PackageReference Include="CoreEx.Cosmos" />
+    <PackageReference Include="Aspire.Microsoft.Azure.Cosmos" />
+    <!--#endif-->
     <!--#if implement-postgres-->
     <PackageReference Include="CoreEx.Database.Postgres" />
     <PackageReference Include="Aspire.Azure.Npgsql" />

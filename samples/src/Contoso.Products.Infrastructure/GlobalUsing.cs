@@ -14,6 +14,8 @@ global using CoreEx.EntityFrameworkCore.Converters;
 global using CoreEx.Events;
 global using CoreEx.Events.Publishing;
 global using CoreEx.Mapping;
+global using CoreEx.Results;
 global using Microsoft.EntityFrameworkCore;
 global using Microsoft.Extensions.Logging;
 global using System.Text.Json;
+global using ExecutionContext = CoreEx.ExecutionContext;

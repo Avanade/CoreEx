@@ -8,5 +8,6 @@ public partial class MovementRequestProduct
 
     [ReferenceData<UnitOfMeasure>]
     [Localization("Unit-of-measure")]
+    [NonNullable]
     public partial string? UnitOfMeasureCode { get; set; }
 }

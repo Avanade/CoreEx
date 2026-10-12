@@ -37,6 +37,12 @@ public sealed partial class EventData : IIdentifier<string>, ITenantId, IPartiti
     /// <summary>
     /// Gets or sets the domain (<see href="https://en.wikipedia.org/wiki/Domain-driven_design">DDD</see> bounded context) name.
     /// </summary>
+    /// <remarks>Represents the domain that <i>owns</i> the message contract (the <see cref="Entity"/> and <see cref="Action"/> vocabulary), and is the first segment of the <see cref="Title"/> (see <see cref="EventFormatter.Format(EventData)"/>). This is <b>not</b> the source of the message; that is conveyed by <see cref="Source"/>, which is derived from the host settings.
+    /// <list type="bullet">
+    /// <item><description><see cref="MessageType.Event"/>: the publishing domain; optional and defaults to the current host domain (<see cref="EventFormatter.DomainName"/>) and is not used for destination resolution.</description></item>
+    /// <item><description><see cref="MessageType.Command"/>: the <i>target</i> domain that is to action the command (see <see cref="CreateCommand(string, string, string)"/>), which is also used to resolve the destination (see <see cref="Publishing.NamedDestinationProvider"/>). Where not specified the command is <i>self-addressed</i>; i.e. defaults to the current host domain.</description></item>
+    /// </list>
+    /// <para>Where the <see cref="Title"/> is parsed (see <see cref="EventFormatter.Parse(EventData)"/>) this reflects the first segment of the received <see cref="Title"/>.</para></remarks>
     public string? DomainName { get; set; }
 
     /// <inheritdoc/>

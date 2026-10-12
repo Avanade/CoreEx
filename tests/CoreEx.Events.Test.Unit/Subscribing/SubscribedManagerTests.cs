@@ -31,6 +31,26 @@ public class SubscribedManagerTests
     }
 
     [Test]
+    public async Task ReceiveAsync_NestedAggregateCancellationMatchingOwnToken_BubblesUnclassified()
+    {
+        // Regression: multiple Result.ThrowOnError() boundaries each wrap the error in a new AggregateException; an own-token cancellation must still bubble up unclassified however deeply wrapped.
+        using var cts = new CancellationTokenSource();
+        Exception? thrown = null;
+
+        var subscribed = new TestSubscribed(ct =>
+        {
+            thrown = new AggregateException(new AggregateException(new OperationCanceledException("shutdown", ct)));
+            throw thrown;
+        }) { ErrorHandler = new ErrorHandler().Add<AggregateException>(ErrorHandling.DeadLetter) };
+
+        var (manager, executionContext, args) = CreateManager();
+        var result = await manager.ReceiveAsync(executionContext, subscribed, new EventData(), args, cts.Token);
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().BeSameAs(thrown);
+    }
+
+    [Test]
     public async Task ReceiveAsync_UnrelatedCancellation_IsClassifiedViaConfiguredRule()
     {
         // Regression: a cancellation from an unrelated source must be classified normally via the subscribed ErrorHandler, not excluded just because it's an OperationCanceledException.

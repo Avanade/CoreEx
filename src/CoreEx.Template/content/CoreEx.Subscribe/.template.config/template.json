@@ -60,6 +60,13 @@
       "description": "Indicates whether reference data pattern/capabilities is enabled.",
       "defaultValue": "true"
     },
+    "outbox-enabled": {
+      "type": "parameter",
+      "datatype": "bool",
+      "displayName": "Outbox enabled",
+      "description": "Indicates whether a transactional-outbox is enabled.",
+      "defaultValue": "true"
+    },
     "data-provider": {
       "type": "parameter",
       "datatype": "choice",
@@ -73,6 +80,11 @@
           "choice": "Postgres",
           "displayName": "PostgreSQL",
           "description": "Indicates to use PostgreSQL as the data provider."
+        },
+        {
+          "choice": "Cosmos",
+          "displayName": "Azure Cosmos DB",
+          "description": "Indicates to use Azure Cosmos DB as the data provider."
         },
         {
           "choice": "None",
@@ -91,6 +103,14 @@
     "implement-postgres": {
       "type": "computed",
       "value": "data-provider == 'Postgres'"
+    },
+    "implement-cosmos": {
+      "type": "computed",
+      "value": "data-provider == 'Cosmos'"
+    },
+    "implement-relational": {
+      "type": "computed",
+      "value": "(data-provider == 'SqlServer' || data-provider == 'Postgres')"
     },
     "implement-none-data": {
       "type": "computed",

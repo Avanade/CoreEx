@@ -311,7 +311,7 @@ restores inventory.
 - **Subject version suffix (`.v{n}`) is payload-driven**, not event-type-driven — add it when the
   message carries a data schema; omit it for key-only messages
 - **Outbox assertion helper is database-specific** — use `UseExpectedSqlServerOutboxPublisher()` for
-  SQL Server domains; `UseExpectedPostgresOutboxPublisher()` for PostgreSQL; do not mix them
+  SQL Server domains; `UseExpectedPostgresOutboxPublisher()` for PostgreSQL; `UseExpectedCosmosDbOutboxPublisher()` for Cosmos; do not mix them
 - **Always specify seed files explicitly** — `read-data.seed.yaml` for read tests, `mutate-data.seed.yaml`
   for mutate/subscribe tests, `no-data.seed.yaml` for schema-only tests (health, relay); never rely on
   auto-discovery of YAML files in the test common assembly

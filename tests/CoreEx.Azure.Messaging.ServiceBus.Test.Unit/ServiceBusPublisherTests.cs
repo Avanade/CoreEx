@@ -1,5 +1,7 @@
 using Azure.Messaging.ServiceBus;
+using CoreEx.Azure.Messaging.ServiceBus;
 using CoreEx.Events.Publishing;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using UnitTestEx.Expectations;
@@ -8,6 +10,38 @@ namespace CoreEx.Azure.Messaging.ServiceBus.Test.Unit;
 
 public class ServiceBusPublisherTests : WithGenericTester<EntryPoint>
 {
+    [Test]
+    public void AddAzureServiceBusPublisher_UsesIndependentSessionPartitionSize()
+    {
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["CoreEx:Host:Outbox:PartitionSize"] = "2",
+                [ServiceBusPublisher.SessionIdPartitionSizeConfigurationKey] = "8",
+                ["CoreEx:Host:ServiceBus:Destinations:contoso:SessionIdStrategy"] = "UsePartitionKeyAsIs",
+                ["CoreEx:Host:ServiceBus:Destinations:contoso-products:SessionIdStrategy"] = "UsePartitionKeyConvertedToAnId",
+                ["CoreEx:Host:ServiceBus:Destinations:contoso-products:SessionIdPartitionSize"] = "2"
+            })
+            .Build();
+        var services = new ServiceCollection();
+        services.AddSingleton<IConfiguration>(configuration);
+        services.AddLogging();
+        services.AddSingleton(new ServiceBusClient("Endpoint=sb://localhost/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="));
+        services.AddAzureServiceBusPublisher((_, publisher) =>
+        {
+            publisher.SessionIdStrategy = ServiceBusSessionStrategy.UsePartitionKeyConvertedToAnId;
+            publisher.DestinationSettings["contoso"] = new() { SessionIdPartitionSize = 4 };
+        });
+        using var provider = services.BuildServiceProvider();
+
+        var publisher = (ServiceBusPublisher)provider.GetRequiredKeyedService<IEventPublisher>(ServiceBusPublisher.DefaultServiceKey);
+        publisher.SessionIdPartitionSize.Should().Be(8);
+        publisher.DestinationSettings["contoso"].SessionIdStrategy.Should().Be(ServiceBusSessionStrategy.UsePartitionKeyAsIs);
+        publisher.DestinationSettings["contoso"].SessionIdPartitionSize.Should().Be(4);
+        publisher.DestinationSettings["contoso-products"].SessionIdStrategy.Should().Be(ServiceBusSessionStrategy.UsePartitionKeyConvertedToAnId);
+        publisher.DestinationSettings["contoso-products"].SessionIdPartitionSize.Should().Be(2);
+    }
+
     [Test]
     public void PublishAsync_SingleBatchOfOne() => Test.ScopedType<ExecutionContext>(test =>
     {

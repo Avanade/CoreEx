@@ -32,7 +32,7 @@ public readonly record struct DataResult<T>
     public bool WasMutated { get; }
 
     /// <summary>
-    /// Invokes the specified <paramref name="action"/> where the result <see cref="WasMutated"/> is <see langword="true"/>.
+    /// Invokes the specified <paramref name="action"/> where the result <see cref="WasMutated"/> is <see langword="true"/> returning the <see cref="Value"/>.
     /// </summary>
     /// <param name="action">The action to execute.</param>
     /// <returns>The <see cref="Value"/>.</returns>
@@ -43,6 +43,44 @@ public readonly record struct DataResult<T>
             action?.Invoke(Value);
 
         return Value;
+    }
+
+    /// <summary>
+    /// Invokes the specified <paramref name="action"/> where the result <see cref="WasMutated"/> is <see langword="true"/> returning the <see cref="DataResult{T}"/>.
+    /// </summary>
+    /// <param name="action">The action to execute.</param>
+    /// <returns>The <see cref="DataResult{T}"/>.</returns>
+    /// <remarks>This is a convenience method to allow fluent-style method-chaining.</remarks>
+    public readonly DataResult<T> WhereMutatedAnd(Action<T> action)
+    {
+        WhereMutated(action);
+        return this;
+    }
+
+    /// <summary>
+    /// Invokes the specified <paramref name="func"/> where the result <see cref="WasMutated"/> is <see langword="true"/> returning the <see cref="Value"/>.
+    /// </summary>
+    /// <param name="func">The function to execute.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+    /// <returns>The <see cref="Value"/>.</returns>
+    public async readonly Task<T> WhereMutatedAsync(Func<T, CancellationToken, Task> func, CancellationToken cancellationToken = default)
+    {
+        if (WasMutated && func is not null)
+            await func.Invoke(Value, cancellationToken).ConfigureAwait(false);
+
+        return Value;
+    }
+
+    /// <summary>
+    /// Invokes the specified <paramref name="func"/> where the result <see cref="WasMutated"/> is <see langword="true"/> returning the <see cref="DataResult{T}"/>.
+    /// </summary>
+    /// <param name="func">The function to execute.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+    /// <returns>The <see cref="DataResult{T}"/>.</returns>
+    public async readonly Task<DataResult<T>> WhereMutatedAndAsync(Func<T, CancellationToken, Task> func, CancellationToken cancellationToken = default)
+    {
+        await WhereMutatedAsync(func, cancellationToken).ConfigureAwait(false);
+        return this;
     }
 
     /// <summary>

@@ -4,10 +4,11 @@ public sealed class Basket : Aggregate<string, Basket>
 {
     private List<BasketItem> _items = [];
 
-    public static Basket CreateNew(string customerId) => new Basket(Runtime.NewId())
+    public static Basket CreateNew(string customerId, Address? shippingAddress = null) => new Basket(Runtime.NewId())
     {
         CustomerId = customerId,
-        Status = Contracts.BasketStatus.Empty
+        Status = Contracts.BasketStatus.Empty,
+        ShippingAddress = shippingAddress
     }.AsNew();
 
     public static Basket CreateFrom(string id, string customerId, Contracts.BasketStatus status, Contracts.DiscountCoupon? discountCoupon, Address? shippingAddress, IEnumerable<BasketItem>? items, ChangeLog? changeLog, string? etag) => new Basket(id)

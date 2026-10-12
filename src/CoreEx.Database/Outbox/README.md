@@ -12,6 +12,10 @@ The transactional outbox pattern ensures that domain events are reliably publish
 
 `DatabaseOutboxRelayBase<TDatabase, TSelf>` contains the relay logic and is parameterized by both the `IDatabase` type and the self-referencing relay type, enabling per-deployment SQL statement customization via `SetStatementsByConvention(schemaName?)`.
 
+Relational outbox publishers and relay hosts use the same `CoreEx:Host:Outbox:PartitionSize` configuration value (default `4`, valid range `1`–`256`). Configure the same value in every host that writes or relays the outbox. The relay reports the effective size in its startup log and detailed health data. The former relay-only `CoreEx:Host:Services:OutboxRelay:PartitionSize` setting is rejected with a migration error; it is not a fallback. Keep this value stable while outbox rows are pending.
+
+Events without a partition key are assigned a stable sentinel before the relational outbox partition hash, so all keyless events share one outbox partition and preserve their relative relay order. The event itself remains keyless. This deliberately serializes keyless events and does not apply to Cosmos DB's native logical partitioning.
+
 ## Key capabilities
 
 - ⚛️ **Atomic write**: `DatabaseOutboxPublisherBase.PublishAsync` inserts serialized events into the outbox table within the calling `IUnitOfWork` transaction — no two-phase commit required.

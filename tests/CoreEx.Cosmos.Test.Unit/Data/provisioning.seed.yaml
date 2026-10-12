@@ -1,0 +1,11 @@
+# Plain container (partitionKey-bearing documents) and a type-discriminated reference data container ($^TypeName shorthand), keyed by container id.
+prov-items:
+  - { id: prov-1, partitionKey: pk, name: One }
+  - { id: prov-2, partitionKey: pk, name: Two }
+
+prov-ref:
+  - $^Colour:
+    - R: Red
+    - G: Green
+  - $^Shape:
+    - SQ: Square

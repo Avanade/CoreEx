@@ -114,15 +114,6 @@ public class IdentifierGeneratorTests
     }
 
     [Test]
-    public async Task AssignIdentifierAsync_NotAnIdentifier_NoOp()
-    {
-        var entity = new PlainEntity();
-        Func<Task> act = () => new IdentifierGenerator().AssignIdentifierAsync(entity);
-
-        await act.Should().NotThrowAsync();
-    }
-
-    [Test]
     public void Current_NoExecutionContextService_ReturnsDefaultInstance()
     {
         ExecutionContext.Reset();

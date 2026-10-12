@@ -1,0 +1,8 @@
+<Project>
+  <!-- A nearer Directory.Build.props hides the solution-root one, so import it explicitly to keep TargetFramework, Nullable, etc. -->
+  <Import Project="$(MSBuildThisFileDirectory)..\Directory.Build.props" />
+
+  <PropertyGroup>
+    <NoWarn>IDE1006</NoWarn>
+  </PropertyGroup>
+</Project>

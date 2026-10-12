@@ -8,8 +8,8 @@
 
 namespace Contoso.Customers.Infrastructure.Mapping;
 
-/// <summary>Provides mapping from <see cref="Persistence.ContactMethod"/> to <see cref="Contracts.ContactMethod"/>.</summary>
-internal partial class ContactMethodMapper : Mapper<Persistence.ContactMethod, Contracts.ContactMethod, ContactMethodMapper>
+/// <summary>Provides mapping from <see cref="Contracts.ContactMethod"/> to <see cref="Persistence.ContactMethod"/>.</summary>
+internal partial class ContactMethodMapper : BiDirectionMapper<Contracts.ContactMethod, Persistence.ContactMethod, ContactMethodMapper>
 {
     /// <inheritdoc/>
     protected override Contracts.ContactMethod OnMap(Persistence.ContactMethod source)
@@ -31,8 +31,11 @@ internal partial class ContactMethodMapper : Mapper<Persistence.ContactMethod, C
         return destination;
     }
 
-    /// <summary>Provides the opportunity to extend the <see cref="OnMap" /> method.</summary>
+    /// <summary>Provides the opportunity to extend the <b>To</b> mapping.</summary>
     partial void OnMapExtend(Persistence.ContactMethod source, Contracts.ContactMethod destination);
+
+    /// <inheritdoc/>
+    protected override Persistence.ContactMethod OnMap(Contracts.ContactMethod destination) => throw new NotSupportedException();
 }
 
 #nullable restore

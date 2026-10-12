@@ -60,6 +60,12 @@ Stored procedures raise user error numbers 56001–56007/56010 to signal domain 
 | 56006 | `ConflictException` |
 | 56007 | `DuplicateException` |
 
+## Outbox partition rollout
+
+Writers and relays share `CoreEx:Host:Outbox:PartitionSize`. Preserve the effective size when migrating from the removed relay-only key. Changing the size does not remap persisted outbox rows; shrinking the relay range can leave older partition IDs unprocessed. Pause affected producers and drain the outbox with the old configuration before changing the mapping, then resume with consistent writer/relay settings. Keyless events now map deterministically using `$none`, so old/new placement must not be assumed to preserve ordering.
+
+Service Bus session mapping is a separate boundary. Coordinate destination policies across all producers, including direct broker publishers; drain affected broker work and in-flight handlers before switching mappings where ordering matters.
+
 ## Do Not
 
 - Do not write raw `DbCommand` or `SqlCommand` code — use `DatabaseCommand`.

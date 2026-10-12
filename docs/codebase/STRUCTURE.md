@@ -12,17 +12,17 @@ List only meaningful top-level directories and files.
 | tests/ | Unit and API-style tests for CoreEx libraries | CoreEx.sln; tests/CoreEx.Test.Unit/CoreEx.Test.Unit.csproj |
 | samples/src/ | Contoso sample applications and hosts by domain/layer, including in-progress Orders and Order.Workflow sample areas | CoreEx.sln; samples/README.md |
 | samples/tests/ | Sample API, relay, subscriber, unit, and E2E test projects | CoreEx.sln; samples/README.md |
-| samples/aspire/ | Aspire AppHost that references runnable sample services | samples/aspire/Contoso.Aspire/Contoso.Aspire.csproj |
+| samples/aspire/ | Aspire AppHost (`Contoso.Aspire`), WireMock-based `Contoso.Aspire.MockHost` for stubbing third-party HTTP dependencies, and the `Contoso.Test.Aspire` end-to-end test project | samples/aspire/Contoso.Aspire/Contoso.Aspire.csproj; samples/aspire/Contoso.Aspire.MockHost/Contoso.Aspire.MockHost.csproj; samples/aspire/Contoso.Test.Aspire/Contoso.Test.Aspire.csproj |
 | gen/ | Roslyn source generator/analyzer project | CoreEx.sln; gen/CoreEx.Generator/CoreEx.Generator.csproj |
 | docs/ | Technical notes and generated codebase knowledge docs | README.md; docs/capabilities.md |
 | ref/ | Separate reference solution content (NDCOrderOrchestration.sln) | list_dir output; ref/NDCOrderOrchestration.sln |
-| servicebus/ | Emulator configuration for local Azure Service Bus topics/subscriptions | CoreEx.sln; servicebus/Config.json |
+| servicebus/ | Emulator configuration for local Azure Service Bus topic/subscriptions and the per-domain command queue (`contoso-products`), plus `Reset-ServiceBusEmulator.ps1` | CoreEx.sln; servicebus/Config.json; servicebus/Reset-ServiceBusEmulator.ps1 |
 | tools/ | Repo utility area | list_dir output |
 
 ### 2) Entry Points
 
 - Main runtime entry: there is no single root application entry; runnable entry points are sample host Program.cs files under samples/src/ plus the Aspire AppHost in samples/aspire/Contoso.Aspire.
-- Secondary entry points (worker/cli/jobs): database console utilities in samples/src/*Database/Program.cs, outbox relays in samples/src/*.Relay/Program.cs, subscriber hosts in samples/src/*.Subscribe/Program.cs, and the order workflow worker in samples/src/Contoso.Order.Workflow.Worker/Program.cs.
+- Secondary entry points (worker/cli/jobs): database console utilities in samples/src/*Database/Program.cs, outbox relays in samples/src/*.Relay/Program.cs, subscriber hosts in samples/src/*.Subscribe/Program.cs, the order workflow worker in samples/src/Contoso.Order.Workflow.Worker/Program.cs, and the Aspire `MockHost` in samples/aspire/Contoso.Aspire.MockHost/Program.cs.
 - How entry is selected (script/config): projects are selected explicitly via dotnet run --project ..., as shown in README.md and samples/README.md.
 
 ### 3) Module Boundaries
@@ -48,6 +48,8 @@ List only meaningful top-level directories and files.
 - README.md
 - samples/README.md
 - samples/aspire/Contoso.Aspire/Contoso.Aspire.csproj
+- samples/aspire/Contoso.Aspire.MockHost/Contoso.Aspire.MockHost.csproj
+- samples/aspire/Contoso.Test.Aspire/Contoso.Test.Aspire.csproj
 - samples/src/Contoso.Products.Api/Program.cs
 - samples/src/Contoso.Products.Database/Program.cs
 - samples/src/Contoso.Products.Relay/Program.cs

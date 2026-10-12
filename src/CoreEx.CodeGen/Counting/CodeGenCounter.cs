@@ -6,18 +6,24 @@ internal class CodeGenCounter(CodeGeneratorArgs args)
 
     public Task<CodeGenStatistics> CountAsync()
     {
-        if (args is null || args.OutputDirectory?.Parent is null || args.Logger is null)
+        if (args is null || args.OutputDirectory is null || args.Logger is null)
             throw new ArgumentNullException(nameof(args), "Arguments, and its OutputDirectory, and Logger cannot be null.");
 
         if (!args.Logger.IsEnabled(LogLevel.Information))
             throw new ArgumentException("Logger must be enabled for Information level.", nameof(args));
 
-        args.Logger.LogInformation("{Content}", $"Counting: {args.OutputDirectory.Parent.FullName}");
+        if (!args.OutputDirectory.Exists)
+            throw new DirectoryNotFoundException($"The specified output directory '{args.OutputDirectory.FullName}' does not exist.");
+
+        var countDir = args.OutputDirectory.Parent ?? args.OutputDirectory;
+        countDir = countDir.Parent ?? countDir;
+
+        args.Logger.LogInformation("{Content}", $"Counting: {countDir.FullName}");
         args.Logger.LogInformation("{Content}", $"Include: {string.Join(", ", _countExtensions)}");
         args.Logger.LogInformation("{Content}", string.Empty);
 
         var sw = Stopwatch.StartNew();
-        var dcs = new DirectoryCountStatistics(args.OutputDirectory.Parent);
+        var dcs = new DirectoryCountStatistics(countDir);
         CountDirectoryAndItsChildren(dcs);
 
         var columnLength = Math.Max(dcs.TotalLineCount.ToString().Length, 5);

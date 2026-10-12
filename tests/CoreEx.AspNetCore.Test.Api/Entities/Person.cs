@@ -8,10 +8,12 @@ public partial class Person : IIdentifier<string?>, IETag, IChangeLog
 {
     public string? Id { get; set; }
 
+    [NonNullable]
     public string? FirstName { get; set; }
 
     public string? LastName { get; set; }
 
+    [NonNullable]
     public DateOnly? Birthday { get; set; }
 
     [ReferenceData<Gender>]

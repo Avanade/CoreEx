@@ -14,21 +14,21 @@ Full step-by-step workflow for adding or modifying a reference data type. Follow
 
 ## Phase 1 — Establish Baseline
 
-Before any change, bring the database to a known good state and identify the scope.
+Before any change, bring the persistence baseline to a known good state and identify the scope.
 
-1. Identify the database provider in use (PostgreSQL → `.pgsql` / `snake_case`; SQL Server → `.sql` / `PascalCase`). Check `*.Database/Program.cs` if unsure.
+1. Identify the data provider in use: PostgreSQL (`.pgsql` / `snake_case`), SQL Server (`.sql` / `PascalCase`), or Cosmos (`ConfigureProvisionArgs(...)` + container-keyed seed data). Check `*.Database/Program.cs` if unsure.
 2. From the `*.Database` project directory:
-   ```
-   dotnet run -- database
-   ```
-   This is non-destructive (`Create` → `Migrate` → `Schema` → `Data`). **If it fails, stop and surface the verbatim error — do not continue.**
-3. Identify all tables involved: the ref-data entity's own table, plus any ref-data tables referenced via `^Type` properties.
+   - **Relational**: run `dotnet run -- database`. This is non-destructive (`Create` → `Migrate` → `Schema` → `Data`). **If it fails, stop and surface the verbatim error — do not continue.**
+   - **Cosmos**: review `Program.ConfigureProvisionArgs(CosmosDbProvisionArgs)` and the existing `Data/*.seed.yaml` resources, then run `dotnet run -- All` if the baseline needs provisioning/importing.
+3. Identify the persistence artefacts involved:
+   - **Relational**: the ref-data entity's own table, plus any ref-data tables referenced via `^Type` properties.
+   - **Cosmos**: the `ref-data` container, plus any generated repository/accessor expectations that depend on its discriminator entries.
 
 ---
 
 ## Phase 2 — Choose Your Path
 
-Inspect the table(s) to determine which path applies:
+For **relational** providers, inspect the table(s) to determine which path applies:
 
 ```
 dotnet run -- inspect <schema> <table>
@@ -41,6 +41,8 @@ dotnet run -- inspect <schema> <table>
 | Table exists but no CodeGen entry yet (table was created externally) | **Path C** — seed + dbex.yaml + CodeGen only |
 | Seed rows only, no schema change | **Path D** — seed rows only |
 | Wire existing type into a contract | **Path E** — contract wiring only |
+
+For **Cosmos**, the persistence path is simpler: keep the `ref-data` container declaration, update its grouped seed data, and set `repository: Cosmos` in `ref-data.yaml` when the generated repository should target Cosmos. There is no table-inspect/dbex path.
 
 ---
 
@@ -254,7 +256,7 @@ Add or update the entry under `entities:`. The standard `IReferenceData` propert
 ```yaml
 # yaml-language-server: $schema=https://raw.githubusercontent.com/Avanade/CoreEx/refs/heads/main/schema/coreex-refdata.json
 collectionSortOrder: Code
-repository: EntityFramework
+repository: EntityFramework      # use `Cosmos` in Cosmos-backed domains
 entities:
 - name: Brand                   # minimal — no extra properties
 - name: SubCategory
@@ -283,6 +285,8 @@ Key `entities:` options:
 | `properties[].name` | — | Additional property name |
 | `properties[].type` | — | CLR type; prefix `^` for navigation accessor |
 | `properties[].excludeContract` | `false` | Persistence model only |
+| `mutability` | `None` | `None` (read-only), `CreateUpdate` or `CreateUpdateDelete` — opts the type in to generated write endpoints; see [Mutable types](#mutable-types-optional) |
+| `mutableAttribute` | `[Authorize]` | Replaces the default attribute on the generated `{Name}Controller`; set a policy/role or `[AllowAnonymous]` only when intended — `attribute` does **not** cover write endpoints |
 
 ### Run CodeGen
 
@@ -297,11 +301,22 @@ On success, CodeGen emits `.g.cs` files across all layers:
 | Artefact | Layer |
 |---|---|
 | `<Entity>.g.cs` | Contracts |
-| `<Entity>Controller.g.cs` | API host |
-| `<Entity>Service.g.cs` | Application |
-| `I<Entity>Repository.g.cs` | Application |
-| `<Entity>Repository.g.cs` | Infrastructure |
+| `ReferenceDataController.g.cs` (read-only GETs, all entities) | API host |
+| `ReferenceDataProvider.g.cs` (`IReferenceDataProvider`) | Application |
+| `ReferenceDataRepository.g.cs` / `IReferenceDataRepository.g.cs` | Infrastructure / Application |
 | `<Entity>Mapper.g.cs` | Infrastructure |
+| `<Entity>Controller.g.cs` — **mutable entities only** | API host |
+| `IReferenceDataService.g.cs` + `ReferenceDataService.g.cs` — **only if any entity is mutable** | Application |
+
+### Mutable types (optional)
+
+Types are **read-only by default**. Only set `mutability` when the user explicitly wants the type to be maintained through the API; ask if unclear.
+
+- **EF or Cosmos only** — requires `repository: EntityFramework` or `Cosmos`; CodeGen fails fast otherwise. For Cosmos the ref-data container must be dedicated, have a `/typeDiscriminator` + `/code` unique key, and be registered with `new CosmosDbOptions().Container("<id>", c => c.WithReferenceDataOutboxEvent())` (duplicate codes surface as a 409). The persistence model needs columns for any optional property clients set (`Description`, `StartsOn`, `EndsOn`) or the request is rejected with a 400 (`not-supported`).
+- Generates `POST`, `PUT {id}`, `PATCH {id}`, `POST {id}/activate`, `POST {id}/deactivate` and — for `CreateUpdateDelete` — `DELETE {id}` under `/api/refdata/{route}`. Create always yields an inactive item; `code` is immutable; an active item cannot be deleted. Mutable controllers default to `[Authorize]`; recommend a project-specific policy/role through `mutableAttribute` where available. Use `[AllowAnonymous]` only when the API is deliberately public (as in the Products and Customers sample configurations).
+- **No usage/cascade check.** Delete and deactivate do not verify the value is unreferenced, and other tables usually store the code — removing or deactivating an in-use value silently invalidates that data. **Always warn the user**, and offer to add a veto-only check via the `PreCheckAsync` hook (a lightweight allow/deny guard — never side effects or cascades; if the user needs more, e.g. atomic reassignment of dependents, hand-write that repository/service logic instead of using the generated mutation) in a hand-written `partial class ReferenceDataService` (`partial void OnInitialization()`; runs for activate/deactivate/delete only, before the transaction, one delegate for all mutable types). Never edit the `.g.cs`.
+- Add API tests (`coreex-test-api`) for the write endpoints, including the `PreCheckAsync` veto.
+- Detail: `src/CoreEx.CodeGen/README.md` → "Readonly vs Mutation" (CoreEx repo).
 
 **On failure, relay verbatim error output — do not create or edit `.g.cs` files to work around it. Fix `ref-data.yaml` and re-run.**
 
@@ -332,7 +347,7 @@ Do **not** pre-add empty-namespace usings — wait until the generated code that
 
 ## Guardrails
 
-- **Never edit `.g.cs` files** — they are owned by `*.CodeGen` (contract, controller, service, repository, mapper) or `*.Database` (persistence model). Regenerate instead.
+- **Never edit `.g.cs` files** — they are owned by `*.CodeGen` (contract, controllers, provider, service, repository, mapper) or `*.Database` (persistence model). Regenerate instead.
 - **Two separate YAML files** — `*.CodeGen/ref-data.yaml` (entity definitions) vs `*.Database/Data/ref-data.seed.yaml` (seed rows). Wrong file = runtime failure.
 - **Never include `{Name}Id` in seed rows** — `$^` auto-generates the id. Including it is always a bug.
 - **Always use `$^` on ref-data table entries** — regardless of identifier type (`string`, `Guid`, `int`).

@@ -15,6 +15,14 @@ CoreEx now uses the `CoreEx.Template` `dotnet new` template pack for determinist
 | `CoreEx Expert` | Agent | Review architecture choices and recommend CoreEx-aligned patterns | Shape selection, design review, capability planning |
 | `/acquire-codebase-knowledge` | Skill | Document and understand an existing codebase | Onboarding and architecture discovery |
 | `/aspire` | Skill | Orchestrate distributed apps locally | Running and debugging Aspire apps |
+| `/coreex-<capability>` | Skills (L1) | Add or change one building block (contract, repository, service, API, validator, etc.) | Guided, convention-aligned changes to an existing domain |
+| `/coreex-*-e2e` | Skills (L2) | Deliver a whole slice across layers, tests and Aspire | New entity, event subscriber, or command send/receive |
+| `/coreex-aspire` | Skill | Wire AppHost, `MockHost` and `Test.Aspire` end-to-end tests | Cross-domain E2E coverage |
+| `/coreex-bootstrap` | Skill | Initialize blank-repository guidance and chain to scaffold | First-time repository setup after `coreex-ai` |
+| `/coreex-scaffold` | Skill | Choose and execute the appropriate template commands | Guided greenfield scaffolding |
+| `/coreex-docs-sync` | Skill | Refresh the whole version-pinned AI bundle | After a CoreEx package version change |
+
+The consumer bundle ships 23 CoreEx skills (16 L1, four L2, bootstrap, scaffold and docs-sync). Generic `/acquire-codebase-knowledge` and `/aspire` are available in this framework repository but are not installed by `coreex-ai`. See the [complete asset inventory](../.github/coreex-ai-workflows.md#command-catalog).
 
 ---
 
@@ -35,6 +43,9 @@ CoreEx now uses the `CoreEx.Template` `dotnet new` template pack for determinist
 - `dotnet new coreex-api` adds an API host
 - `dotnet new coreex-relay` adds an outbox relay host
 - `dotnet new coreex-subscribe` adds a subscriber host
+- `dotnet new coreex-domain` adds an optional DDD layer
+- `dotnet new coreex-aspire` adds AppHost, MockHost and Test.Aspire projects
+- `dotnet new coreex-ai` installs the version-pinned AI workflow and documentation bundle
 
 **Output characteristics:**
 - Deterministic and repeatable
@@ -43,10 +54,13 @@ CoreEx now uses the `CoreEx.Template` `dotnet new` template pack for determinist
 
 **Example workflow:**
 ```
-dotnet new install CoreEx.Template
+dotnet new install CoreEx.Template::<version>
+dotnet new coreex-ai
 dotnet new coreex -n Avanade.Erp.Orders
 dotnet new coreex-api -n Avanade.Erp.Orders.Api
 ```
+
+Pin `<version>` to the project's CoreEx package version, or explicitly resolve and record a stable release for first-time adoption.
 
 ---
 
@@ -158,6 +172,32 @@ User: Ready to test Orders and Shopping domains together
 
 ---
 
+### 5. `/coreex-*` Workflow Skills — Guided Capability Changes
+
+**Purpose:** Add or modify CoreEx building blocks in an existing solution by following the repo's instructions and sample patterns, rather than hand-editing from scratch. All L1/L2 skills have a Copilot prompt and a Claude command wrapper (`/coreex-<name>`). The full catalog lives in [`.github/coreex-ai-workflows.md`](../.github/coreex-ai-workflows.md).
+
+**End-to-end (L2) skills and their supporting Aspire (L1) skill:**
+
+| Skill | Use when |
+|---|---|
+| `coreex-api-e2e` | Adding a brand-new entity with CRUD endpoints, from table to integration tests |
+| `coreex-subscriber-e2e` | Adding an **event** subscriber (data sync or business-process choreography) |
+| `coreex-command-publish-e2e` | This domain must **send a command** to another domain: adapter, outbox vs direct publish, `NamedDestinationProvider` queue routing, Service Bus topology, tests and Aspire E2E |
+| `coreex-command-subscribe-e2e` | This domain must **receive a command** addressed to it: contract, app service, subscriber, dedicated keyed queue receiver, tests and Aspire E2E |
+| `coreex-aspire` | Wiring a host, queue/topic, inter-domain dependency or third-party stub (`MockHost`) into the AppHost and `Test.Aspire` |
+
+**Events vs commands:** events go to the shared topic and any interested domain may subscribe; a command goes to the target domain's own queue (`{destination}-{domain}`) and is only ever consumed by that domain. Pick the skill accordingly.
+
+**Example workflow:**
+```
+User: Shopping must tell Products to confirm a reservation after checkout.
+→ /coreex-command-publish-e2e in Shopping (adapter + call site + queue routing)
+→ /coreex-command-subscribe-e2e in Products (subscriber + keyed queue receiver)
+→ /coreex-aspire verifies the cross-domain flow in Test.Aspire
+```
+
+---
+
 ## Typical Development Workflows
 
 ### Workflow A: Greenfield Domain from Scratch
@@ -222,6 +262,12 @@ START: What do you need?
 │
 ├─ I want to RUN the system locally or DEBUG multiple services
 │  └─ → Use /aspire
+│
+├─ I want to SEND or RECEIVE a command, or add an event subscriber
+│  └─ → Use /coreex-command-publish-e2e, /coreex-command-subscribe-e2e or /coreex-subscriber-e2e
+│
+├─ I want a cross-domain end-to-end (Aspire) test
+│  └─ → Use /coreex-aspire
 │
 └─ I want to PLAN a refactor or understand dependencies
    └─ → Use /acquire-codebase-knowledge
@@ -349,4 +395,5 @@ If alignment is unclear, ask the CoreEx Expert agent.
 - [CoreEx Capabilities](capabilities.md) — Detailed feature guide
 - [Application Scaffolding Guide](application-scaffolding-guide.md) — Deep dive on domain structure
 - [Orchestration Guide](orchestration.md) — Aspire and distributed app patterns
+- [Aspire sample guide](../samples/docs/aspire.md) — AppHost, `MockHost` and `Test.Aspire` end-to-end tests
 - [Agent Interaction Guide](agent-interaction-guide.md) — How to interact with CoreEx agents effectively

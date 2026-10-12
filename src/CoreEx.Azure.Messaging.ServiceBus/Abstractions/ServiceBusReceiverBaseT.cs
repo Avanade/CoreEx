@@ -52,6 +52,10 @@ public abstract class ServiceBusReceiverBase<TSubscriber>(ServiceBusClient clien
                     result = Result.Fail(ex);
                 }
 
+                // A cancellation attributable to this receive's own token (e.g. shutdown) must bubble up unclassified; it must not be converted (and logged) as per the configured UnhandledErrorHandling (e.g. DeadLetter).
+                if (result.IsFailure && result.Error.IsCanceledBy(ctx.CancellationToken))
+                    return result;
+
                 // Determine where unhandled what the final error handling will be; otherwise, success.
                 return MessageUnhandledErrorDetermination(result, state.Owner.Options, state.Owner.Logger);
             }, ctx, (subscriber, message, esa, this));
@@ -66,7 +70,7 @@ public abstract class ServiceBusReceiverBase<TSubscriber>(ServiceBusClient clien
             // A cancellation attributable to *this* receive's own cancellationToken (e.g. a host/processor shutdown) is intended to bubble up unclassified (see CoreEx.Events.Subscribing.EventSubscriberBase);
             // do not log it as an unhandled error nor attempt any message action using the very token that just got cancelled (which the Azure SDK would likely reject immediately) - simply let the message be
             // left for natural redelivery once its lock expires.
-            if (result.Error is OperationCanceledException oce && oce.CancellationToken == cancellationToken)
+            if (result.Error.IsCanceledBy(cancellationToken))
                 return result;
 
             // Handle the error accordingly; a) retry error conversion, b) invoke message action, then c) pause where critical.

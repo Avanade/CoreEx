@@ -50,6 +50,16 @@
             },
             "Subscriptions": [
               {
+                "Name": "customers-relay",
+                "Properties": {
+                  "DefaultMessageTimeToLive": "PT1H",
+                  "LockDuration": "PT1M",
+                  "MaxDeliveryCount": 10,
+                  "DeadLetteringOnMessageExpiration": false,
+                  "RequiresSession": true
+                }
+              },
+              {
                 "Name": "products",
                 "Properties": {
                   "DefaultMessageTimeToLive": "PT1H",
@@ -70,6 +80,19 @@
                 }
               }
             ]
+          }
+        ],
+        "Queues": [
+          {
+            "Name": "contoso-products",
+            "Properties": {
+              "DefaultMessageTimeToLive": "PT1H",
+              "LockDuration": "PT1M",
+              "MaxDeliveryCount": 10,
+              "DeadLetteringOnMessageExpiration": false,
+              "RequiresDuplicateDetection": false,
+              "RequiresSession": true
+            }
           }
         ]
       }

@@ -64,7 +64,19 @@ public static partial class RuntimeMetadata
     /// <para>This method ignores <see cref="string"/> and <see cref="ICollection"/> values, and the <paramref name="from"/> value must be the same type or is same assignable/subclass as the <paramref name="into"/> value.
     /// In these instances no copying can or will be performed; i.e. is a no-op.</para>
     /// <para>This will leverage either the underlying<see cref="IRuntimeMetadataCore"/> implementation or reflection (<see cref="GetCachedProperties{T}()"/>) depending on the types.</para></remarks>
-    public static bool TryCopyInto<TFrom, TInto>(TFrom from, TInto into) where TFrom : class where TInto : class
+    public static bool TryCopyInto<TFrom, TInto>(TFrom from, TInto into) where TFrom : class where TInto : class => TryCopyInto(from, into, null);
+
+    /// <summary>
+    /// Copies (shallow) <paramref name="from"/> a value <paramref name="into"/> another value where they share mutable properties, excluding the specified properties, and returns a value indicating whether changes where made.
+    /// </summary>
+    /// <typeparam name="TFrom">The from <see cref="Type"/>.</typeparam>
+    /// <typeparam name="TInto">The into <see cref="Type"/>.</typeparam>
+    /// <param name="from">The from value.</param>
+    /// <param name="into">The into value.</param>
+    /// <param name="excludedProperties">The names of the properties to exclude from the copy (and therefore from the change detection); <see langword="null"/> indicates that none are excluded.</param>
+    /// <returns><c>true</c> where changes were made; otherwise, <c>false</c>.</returns>
+    /// <remarks>See <see cref="TryCopyInto{TFrom, TInto}(TFrom, TInto)"/> for the copy semantics.</remarks>
+    public static bool TryCopyInto<TFrom, TInto>(TFrom from, TInto into, IReadOnlyCollection<string>? excludedProperties) where TFrom : class where TInto : class
     {
         from.ThrowIfNull();
         into.ThrowIfNull();
@@ -84,6 +96,9 @@ public static partial class RuntimeMetadata
         {
             foreach (var fp in frm.GetPropertyRuntimeMetadata().Where(p => !p.IsReadOnly))
             {
+                if (excludedProperties is not null && excludedProperties.Contains(fp.Name))
+                    continue;
+
                 if (dict.TryGetValue(fp.Name, out var im) && !im.IsReadOnly && fp.Type == im.Type)
                 {
                     var gv = fp.GetValue(from);
@@ -102,6 +117,9 @@ public static partial class RuntimeMetadata
         {
             foreach (var fp in GetCachedProperties<TFrom>().Where(p => !p.Value.IsReadOnly))
             {
+                if (excludedProperties is not null && excludedProperties.Contains(fp.Value.Name))
+                    continue;
+
                 if (dict.TryGetValue(fp.Value.Name, out var im) && !im.IsReadOnly && fp.Value.Type == im.Type)
                 {
                     var gv = fp.Value.GetValue(from);

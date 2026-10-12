@@ -7,6 +7,8 @@ public partial class HostTests : WithApiTester<solution-name.Relay.Program>
     {
 // #if implement-sqlserver
         await Test.MigrateSqlServerDataAsync<TestData>(["no-data.seed.yaml"], DbMigration.ConfigureMigrationArgs).ConfigureAwait(false);
+// #elif implement-cosmos
+        await Test.MigrateCosmosDataAsync<TestData>(["no-data.seed.yaml"], DbMigration.ConfigureProvisionArgs).ConfigureAwait(false);
 // #elif implement-postgres
         await Test.MigratePostgresDataAsync<TestData>(["no-data.seed.yaml"], DbMigration.ConfigureMigrationArgs).ConfigureAwait(false);
 // #endif
@@ -35,6 +37,14 @@ public partial class HostTests : WithApiTester<solution-name.Relay.Program>
             "$.entries.sqlserver-outbox-relay-01",
             "$.entries.sqlserver-outbox-relay-02",
             "$.entries.sqlserver-outbox-relay-03"
+// #elif implement-cosmos
+            "$.entries.cosmos-database",
+// #if refdata-enabled
+            "$.entries.cosmos-outbox-relay-ref-data-00",
+            "$.entries.cosmos-outbox-relay-ref-data-01",
+            "$.entries.cosmos-outbox-relay-ref-data-02",
+            "$.entries.cosmos-outbox-relay-ref-data-03",
+// #endif
 // #elif implement-postgres
             "$.entries.postgreSql",
             "$.entries.postgres-outbox-relay-00",
@@ -57,11 +67,14 @@ public partial class HostTests : WithApiTester<solution-name.Relay.Program>
             json.ContainAll(_paths);
     }
 
+// #if (!implement-cosmos || refdata-enabled)
     [Test]
     public void HostedService_Pause_And_Resume()
     {
 // #if implement-sqlserver
         const string Service = "sqlserver-outbox-relay-03";
+// #elif implement-cosmos
+        const string Service = "cosmos-outbox-relay-ref-data-03";
 // #elif implement-postgres
         const string Service = "postgres-outbox-relay-03";
 // #endif
@@ -88,4 +101,5 @@ public partial class HostTests : WithApiTester<solution-name.Relay.Program>
             .Run(HttpMethod.Get, $"/hosted-services/{Service}/status")
             .Value.Should().BeOneOf("Running", "Sleeping");
     }
+// #endif
 }

@@ -20,8 +20,8 @@ Describe the flow in 4-6 steps using file-backed evidence.
 2. The application service validates input, loads current state when needed, and coordinates a unit-of-work, for example ProductService and BasketService.
 3. For Shopping mutations, domain behavior is applied on Basket and BasketItem before persistence.
 4. Infrastructure repositories translate between domain/contracts and EF-backed persistence models, for example BasketRepository and ProductRepository.
-5. Cross-service behavior happens through a typed HTTP client and adapter for real-time reservation, plus outbox messages or direct Service Bus publishing for async commands.
-6. Relay and subscriber hosts move outbox records to Azure Service Bus and consume messages back into application services.
+5. Cross-service behavior happens through a typed HTTP client and adapter for real-time reservation, plus outbox messages or direct Service Bus publishing for async commands. `NamedDestinationProvider` routes events to the shared topic and commands to a per-domain queue (`{topic}-{domain}`, e.g. `contoso-products`).
+6. Relay and subscriber hosts move outbox records to Azure Service Bus and consume messages back into application services; Subscribe hosts use keyed receivers so the events topic subscription and the domain's own command queue can be consumed side by side.
 
 ### 3) Layer/Module Responsibilities
 

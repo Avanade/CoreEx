@@ -10,5 +10,7 @@
     <AzdPublishTargetFramework Condition="'$(AzdPublishTargetFramework)' == ''">$(AZD_DOTNET_TARGET_FRAMEWORK)</AzdPublishTargetFramework>
     <AzdPublishTargetFramework Condition="'$(AzdPublishTargetFramework)' == ''">$(DOTNET_TARGET_FRAMEWORK)</AzdPublishTargetFramework>
     <TargetFramework Condition="'$(AzdPublishTargetFramework)' != ''">$(AzdPublishTargetFramework)</TargetFramework>
+    <!-- Also clear the plural: 'dotnet run' (as used by the Aspire AppHost) rejects a project with TargetFrameworks set, even when TargetFramework is pinned. -->
+    <TargetFrameworks Condition="'$(AzdPublishTargetFramework)' != ''"></TargetFrameworks>
   </PropertyGroup>
 </Project>

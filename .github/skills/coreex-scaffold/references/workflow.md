@@ -175,12 +175,14 @@ Recommended options:
 
 - `SQL Server`
 - `Postgres`
+- `Cosmos`
 - `No local database`
 
 Interpretation:
 
 - `SQL Server` maps to `--data-provider SqlServer`.
 - `Postgres` maps to `--data-provider Postgres`.
+- `Cosmos` maps to `--data-provider Cosmos`.
 - `No local database` maps to `--data-provider None`.
 
 Default: `No local database`.
@@ -276,7 +278,7 @@ Recommended options:
 
 Interpretation:
 
-- `Yes` means run `dotnet new coreex-aspire -n Company.Product.Books.Aspire` after every chosen host template, passing `--has-api`/`--has-relay`/`--has-subscribe` to match the hosts chosen in questions 3-5.
+- `Yes` means run `dotnet new coreex-aspire -n Company.Product.Books.Aspire` after every chosen host template, passing `--has-api`/`--has-relay`/`--has-subscribe` to match the hosts chosen in questions 3-5, and `--data-provider`/`--messaging-provider` to match questions 6/7.
 - `No` means skip `coreex-aspire` entirely.
 
 Default: `No`.
@@ -293,12 +295,13 @@ Build a structured decision summary before any command is run.
 | Consume events | `dotnet new coreex-subscribe -n Company.Product.Books.Subscribe ...` |
 | SQL Server | `--data-provider SqlServer` |
 | Postgres | `--data-provider Postgres` |
+| Cosmos | `--data-provider Cosmos` |
 | No local database | `--data-provider None` |
 | Azure Service Bus | `--messaging-provider ServiceBus` |
 | Reference data needed | `--refdata-enabled true` |
 | Domain layer needed | `dotnet new coreex-domain -n Company.Product.Books.Domain` + `dotnet sln Company.Product.Books.slnx add src/Company.Product.Books.Domain` + `dotnet add src/Company.Product.Books.Application/Company.Product.Books.Application.csproj reference src/Company.Product.Books.Domain/Company.Product.Books.Domain.csproj` (Application must reference Domain directly -- nothing else wires this) |
 | Result/ROP style needed | `--rop-enabled true` |
-| Aspire AppHost needed | `dotnet new coreex-aspire -n Company.Product.Books.Aspire --has-api <bool> --has-relay <bool> --has-subscribe <bool>`, where each `--has-*` flag mirrors whether that host was chosen in questions 3-5 -- run this last, after every chosen host template |
+| Aspire AppHost needed | `dotnet new coreex-aspire -n Company.Product.Books.Aspire --has-api <bool> --has-relay <bool> --has-subscribe <bool> --data-provider <SqlServer\|Postgres\|Cosmos\|None> --messaging-provider <ServiceBus\|None>`, where each `--has-*` flag mirrors whether that host was chosen in questions 3-5 and the provider flags mirror questions 6-7 -- run this last, after every chosen host template |
 
 If the user is retrofitting an existing solution, only include flags that are required for missing projects or that the user explicitly asked to change.
 
@@ -319,13 +322,13 @@ State that the workflow will finish by wiring projects into the solution and run
 4. Stop if the dry-run shows nested root folders, incorrect host names, or a layout that conflicts with the existing repo.
 5. For bootstrap-only repos, run `coreex` first (omit `-n` when the folder name matches), then add each needed host template with the **4-part name** (`base.Api`, `base.Relay`, `base.Subscribe`).
 6. For retrofit work, add only the missing hosts unless the user explicitly asked for broader reshaping.
-7. If an Aspire AppHost was requested, run `coreex-aspire` last, after every chosen host template has already been generated -- its `--has-*` flags and generated `Projects.*` references depend on those hosts already existing.
+7. If an Aspire AppHost was requested, run `coreex-aspire` last, after every chosen host template has already been generated -- its `--has-*` flags and generated `Projects.*` references depend on those hosts already existing. Preserve its visible external resources using `CoreEx.UnitTesting`'s `AddExternalConnectionString`; do not replace them with parameter-only `AddConnectionString(name)` calls or duplicate the helper locally. Configure `ConnectionStrings` in the AppHost; Cosmos's resource URL is derived from `AccountEndpoint`, while Compose retains infrastructure lifecycle ownership.
 8. After generating all host templates (and the AppHost, if requested), run `dotnet sln` to add every new host project and its test project to the `.slnx` solution file.
 9. Verify that each expected generated host and test project exists on disk before moving to validation.
 
 ### Adding a host to a solution that already has an AppHost
 
-If `coreex-aspire` has already been run and a new host is added afterward, do not re-run `coreex-aspire --force` -- it would overwrite any customisation already made to `AppHost.cs`/`Extensions.cs`. Instead, add the missing `<ProjectReference>` in the AppHost's `.csproj` and the matching `builder.AddProject<...>(...)` line in `AppHost.cs` by hand, following the pattern already used for the other hosts there.
+If `coreex-aspire` has already been run and a new host is added afterward, do not re-run `coreex-aspire --force` -- it would overwrite any customisation already made to `AppHost.cs`. Instead, add the missing `<ProjectReference>` in the AppHost's `.csproj` and the matching `builder.AddProject<...>(...)` line in `AppHost.cs` by hand, following the pattern already used for the other hosts there.
 
 ### Adding an API host to a solution where CodeGen has already run
 
@@ -363,15 +366,15 @@ For local development there are two validation modes:
 
 - `dotnet build` is the default minimum bar for a successful scaffold.
 - `dotnet test` for `tests/[solution].Test.Unit` should run by default when the project exists.
-- API, relay, and subscriber tests may depend on local SQL Server or Postgres, Redis, Service Bus, or other host prerequisites. If those are not configured, skip those tests and say why.
+- API, relay, and subscriber tests may depend on local SQL Server or Postgres, the Cosmos emulator, Redis, Service Bus, or other host prerequisites. If those are not configured, skip those tests and say why.
 - A missing local dependency is a deferred setup item, not necessarily a scaffolding failure.
 - If the user wants runnable local validation and local dependency files are missing, materialize them first from bundled templates or repo-standard equivalents, for example `.github/skills/coreex-scaffold/assets/docker-compose.local.yml` and `.github/skills/coreex-scaffold/assets/servicebus-config.template.json`. These are a static, options-agnostic fallback for use when it is unsafe to re-run the root scaffold — see `.github/skills/coreex-scaffold/assets/README.md` for why they exist and how they relate to the scaffold's own generated `docker-compose.yml`/`servicebus/Config.json`.
-- If the generated shape includes SQL Server, Redis, or Service Bus and the repo lacks a root `docker-compose.yml`, create one before trying to run broader tests.
+- If the generated shape includes SQL Server, Postgres, the Cosmos emulator, Redis, or Service Bus and the repo lacks a root `docker-compose.yml`, create one before trying to run broader tests.
 - If Service Bus emulator wiring is needed and the repo lacks `servicebus/Config.json`, create it before starting the dependency stack.
-- For `tools/[solution].Database`, run from that directory so `dbex.yaml` is discovered correctly. Prefer `dotnet run -- All` for first-run local setup and `dotnet run -- CodeGen` or `dotnet run -- Database` for narrower follow-up work.
+- For `tools/[solution].Database`, run from that directory. In relational domains this ensures `dbex.yaml` is discovered correctly; in Cosmos domains it keeps the provisioning console aligned with its embedded `Data/*` resources. Prefer `dotnet run -- All` for first-run local setup and `dotnet run -- CodeGen` or `dotnet run -- Database` for narrower relational follow-up work.
 - For `tools/[solution].CodeGen`, run from that directory so `ref-data.yaml` is discovered correctly.
 - If `refdata-enabled` is `true`, call out `tools/[solution].CodeGen` as the next step, or run it only when the user wants the repo left in a fully generated state.
-- If `data-provider != None`, call out `tools/[solution].Database` as the next step, or run it only when the user wants local schema setup as part of scaffolding.
+- If `data-provider != None`, call out `tools/[solution].Database` as the next step, or run it only when the user wants local persistence setup as part of scaffolding. Relational domains create schema/migrations; Cosmos domains provision containers and seed data.
 - If generated code fails compile due to placeholder types, missing project references, wrong package APIs, or other issues unrelated to missing local dependencies, classify that as a template defect and surface it explicitly.
 - If `dotnet new` reports duplicate CoreEx template identities, surface that warning and note which template source was used.
 
@@ -430,7 +433,7 @@ dotnet new coreex --data-provider SqlServer --messaging-provider ServiceBus --re
 dotnet new coreex-api        -n Avanade.Erp.Sales.Api        --data-provider SqlServer --refdata-enabled true --outbox-enabled true
 dotnet new coreex-relay      -n Avanade.Erp.Sales.Relay      --data-provider SqlServer --messaging-provider ServiceBus
 dotnet new coreex-subscribe -n Avanade.Erp.Sales.Subscribe --data-provider SqlServer --messaging-provider ServiceBus --refdata-enabled true
-dotnet new coreex-aspire     -n Avanade.Erp.Sales.Aspire     --has-api true --has-relay true --has-subscribe true
+dotnet new coreex-aspire     -n Avanade.Erp.Sales.Aspire     --has-api true --has-relay true --has-subscribe true --data-provider SqlServer --messaging-provider ServiceBus
 
 dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Api
 dotnet sln Avanade.Erp.Sales.slnx add tests/Avanade.Erp.Sales.Test.Api
@@ -438,7 +441,9 @@ dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Relay
 dotnet sln Avanade.Erp.Sales.slnx add tests/Avanade.Erp.Sales.Test.Relay
 dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Subscribe
 dotnet sln Avanade.Erp.Sales.slnx add tests/Avanade.Erp.Sales.Test.Subscribe
-dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Aspire
+dotnet sln Avanade.Erp.Sales.slnx add aspire/Avanade.Erp.Sales.Aspire
+dotnet sln Avanade.Erp.Sales.slnx add aspire/Avanade.Erp.Sales.Aspire.MockHost
+dotnet sln Avanade.Erp.Sales.slnx add aspire/Avanade.Erp.Sales.Test.Aspire
 
 dotnet build Avanade.Erp.Sales.slnx
 dotnet test tests/Avanade.Erp.Sales.Test.Unit
@@ -468,4 +473,3 @@ dotnet sln Avanade.Erp.Sales.slnx add tests/Avanade.Erp.Sales.Test.Subscribe
 dotnet build Avanade.Erp.Sales.slnx
 dotnet test tests/Avanade.Erp.Sales.Test.Unit
 ```
-

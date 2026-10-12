@@ -1,0 +1,4 @@
+# Insert: no '$' prefix (the '^' generates the identifier).
+prov-ref:
+  - ^Colour:
+    - R: Red

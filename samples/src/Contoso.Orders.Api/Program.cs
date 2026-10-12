@@ -46,6 +46,7 @@ public class Program
             .AddSqlServerDatabase()
             .AddSqlServerUnitOfWork()
             .AddEventFormatter()
+            .AddNamedDestinationProvider()                 // Adds the NamedDestinationProvider; events to the shared topic, commands to per-domain queues.
             .AddSqlServerOutboxPublisher<OrdersOutboxPublisher>()
             .AddDbContext<OrdersDbContext>()
             .AddEfDb<OrdersEfDb>();

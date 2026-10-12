@@ -3,6 +3,11 @@
     <PackageReference Include="NUnit" />
     <PackageReference Include="UnitTestEx.NUnit" />
   </ItemGroup>
+  <!--#if implement-servicebus-->
+  <ItemGroup>
+    <PackageReference Include="CoreEx.Azure.Messaging.ServiceBus" />
+  </ItemGroup>
+  <!--#endif-->
   <!--#if has-data-provider-->
   <ItemGroup>
     <ProjectReference Include="..\..\tools\app-name.Database\app-name.Database.csproj" />

@@ -36,7 +36,7 @@ changes were made to keep them consumer-safe and domain-agnostic:
   — per this repo's core principle that skills must not be tied to the sample domains.
 - Unlike `CoreEx.Core`'s `docker-compose.yml` (which conditionally includes only the services matching
   the selected `data-provider`/`messaging-provider`), these are an unconditional "everything" stack —
-  SQL Server, Postgres, Redis, Service Bus emulator, Aspire Dashboard, and the DTS emulator — so the
+  SQL Server, Postgres, Cosmos emulator, Redis, Service Bus emulator, Aspire Dashboard, and the DTS emulator — so the
   fallback works regardless of which options the retrofit repo actually chose. Trim unused services
   when applying them to a specific repo.
 

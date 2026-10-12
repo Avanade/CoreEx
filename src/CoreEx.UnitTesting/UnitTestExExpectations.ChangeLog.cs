@@ -10,7 +10,7 @@ public static partial class UnitTestExExpectations
     /// <typeparam name="TSelf">The expectations <see cref="Type"/>.</typeparam>
     /// <typeparam name="TValue">The value <see cref="Type"/>.</typeparam>
     /// <param name="tester">The <see cref="IValueExpectations{TValue, TSelf}"/> tester.</param>
-    /// <param name="createdBy">The specific <see cref="IChangeLogEx.CreatedBy"/> value where specified (can include wildcards); otherwise, indicates to check for user running the test (see <see cref="Abstractions.TesterBase.UserName"/>).</param>
+    /// <param name="createdBy">The specific <see cref="IChangeLogEx.CreatedBy"/> value where specified (can include wildcards); otherwise, indicates to check for user running the test (see <see cref="Abstractions.TesterBaseCore.UserName"/>).</param>
     /// <param name="createdOn">The <see cref="DateTimeOffset"/> in which the <see cref="IChangeLogEx.CreatedOn"/> should be greater than or equal to; where <c>null</c> it will default to <see cref="DateTimeOffset.UtcNow"/>.</param>
     /// <returns>The <typeparamref name="TSelf"/> instance to support fluent-style method-chaining.</returns>
     public static TSelf ExpectChangeLogCreated<TValue, TSelf>(this IValueExpectations<TValue, TSelf> tester, string? createdBy = null, DateTimeOffset? createdOn = null) where TSelf : IValueExpectations<TValue, TSelf>
@@ -65,7 +65,7 @@ public static partial class UnitTestExExpectations
     /// <typeparam name="TSelf">The expectations <see cref="Type"/>.</typeparam>
     /// <typeparam name="TValue">The value <see cref="Type"/>.</typeparam>
     /// <param name="tester">The <see cref="IValueExpectations{TValue, TSelf}"/> tester.</param>
-    /// <param name="updatedBy">The specific <see cref="IChangeLogEx.UpdatedBy"/> value where specified (can include wildcards); otherwise, indicates to check for user running the test (see <see cref="Abstractions.TesterBase.UserName"/>).</param>
+    /// <param name="updatedBy">The specific <see cref="IChangeLogEx.UpdatedBy"/> value where specified (can include wildcards); otherwise, indicates to check for user running the test (see <see cref="Abstractions.TesterBaseCore.UserName"/>).</param>
     /// <param name="updatedOn">The <see cref="DateTimeOffset"/> in which the <see cref="IChangeLogEx.UpdatedOn"/> should be greater than or equal to; where <c>null</c> it will default to <see cref="DateTimeOffset.UtcNow"/>.</param>
     /// <returns>The <typeparamref name="TSelf"/> instance to support fluent-style method-chaining.</returns>
     public static TSelf ExpectChangeLogUpdated<TValue, TSelf>(this IValueExpectations<TValue, TSelf> tester, string? updatedBy = null, DateTimeOffset? updatedOn = null) where TSelf : IValueExpectations<TValue, TSelf>

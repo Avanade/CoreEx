@@ -52,9 +52,13 @@ public sealed class JsonMergePatch(JsonMergePatchOptions? options = null)
     /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
     /// <returns>The <see cref="JsonMergePatchResult{T}"/> <see cref="Result{T}"/>.</returns>
     /// <remarks>Provides the opportunity to validate the JSON before getting the value where this execution order is important; i.e. get operation is expensive (latency). A <paramref name="getTarget"/> that returns <see langword="null"/>
-    /// will immediately exit without performing any merge.</remarks>
+    /// will return a not found result.</remarks>
     public Task<Result<JsonMergePatchResult<T>>> MergeAsync<T>(BinaryData patch, Func<CancellationToken, Task<T?>> getTarget, CancellationToken cancellationToken = default)
-        => MergeWithResultAsync(patch, async ct => Result.Ok(await getTarget.ThrowIfNull()(ct).ConfigureAwait(false)), cancellationToken);
+        => MergeWithResultAsync(patch, async ct =>
+        {
+            var v = await getTarget.ThrowIfNull()(ct).ConfigureAwait(false);
+            return v is null ? Result.NotFoundError() : Result.Ok(v);
+        }, cancellationToken);
 
     /// <summary>
     /// Merges the <paramref name="patch"/> content into the value returned by the <paramref name="getTarget"/> function.
@@ -66,7 +70,7 @@ public sealed class JsonMergePatch(JsonMergePatchOptions? options = null)
     /// <returns>The <see cref="JsonMergePatchResult{T}"/> <see cref="Result{T}"/>.</returns>
     /// <remarks>Provides the opportunity to validate the JSON before getting the value where this execution order is important; i.e. get operation is expensive (latency). A <paramref name="getTarget"/> that returns <see langword="null"/>
     /// will immediately exit without performing any merge.</remarks>
-    public async Task<Result<JsonMergePatchResult<T>>> MergeWithResultAsync<T>(BinaryData patch, Func<CancellationToken, Task<Result<T?>>> getTarget, CancellationToken cancellationToken = default)
+    public async Task<Result<JsonMergePatchResult<T>>> MergeWithResultAsync<T>(BinaryData patch, Func<CancellationToken, Task<Result<T>>> getTarget, CancellationToken cancellationToken = default)
     {
         // Parse ensuring the JSON is valid for the type and can be navigated.
         if (!TryParseJson<T>(patch.ThrowIfNull(), out var r))
@@ -75,7 +79,7 @@ public sealed class JsonMergePatch(JsonMergePatchOptions? options = null)
         // Get the value and exit where nothing to merge into.
         var target = await getTarget.ThrowIfNull().Invoke(cancellationToken).ConfigureAwait(false);
         if (target.IsFailure)
-            return target.Error;
+            return target.AsResult();
 
         if (target.Value is null)
             return new JsonMergePatchResult<T>();
@@ -230,11 +234,7 @@ public sealed class JsonMergePatch(JsonMergePatchOptions? options = null)
             case JsonValueKind.Array:
                 // An array is always a replacement.
                 patch.WriteTo(writer);
-#if NET8_0
-                if (patch.GetArrayLength() != target.GetArrayLength() || !DeepEquals(patch, target))
-#else
-                if (patch.GetArrayLength() != target.GetArrayLength() || !JsonElement.DeepEquals(patch, target))
-#endif
+                if (!DeepEquals(patch, target))
                     changed = true;
 
                 break;
@@ -242,11 +242,7 @@ public sealed class JsonMergePatch(JsonMergePatchOptions? options = null)
             default:
                 // Accept merge as-is.
                 patch.WriteTo(writer);
-#if NET8_0
                 if (!DeepEquals(patch, target))
-#else
-                if (!JsonElement.DeepEquals(patch, target))
-#endif
                     changed = true;
 
                 break;
@@ -323,29 +319,36 @@ public sealed class JsonMergePatch(JsonMergePatchOptions? options = null)
         return false;
     }
 
-#if NET8_0
     /// <summary>
-    /// Provides a deep equals for two <see cref="JsonElement"/> instances.
+    /// Provides a deep equals for two <see cref="JsonElement"/> instances; property order is not significant, array order is, numbers are compared by value, and strings are compared after unescaping.
     /// </summary>
     /// <param name="left">The left <see cref="JsonElement"/>.</param>
     /// <param name="right">The right <see cref="JsonElement"/>.</param>
+    /// <remarks>This is deliberately a single implementation for all target frameworks, as <c>JsonElement.DeepEquals</c> is not available prior to .NET 9 and <c>JsonNode.DeepEquals</c> compares numbers by their raw text on .NET 8 but by value from .NET 9.</remarks>
     internal static bool DeepEquals(JsonElement left, JsonElement right)
     {
         if (left.ValueKind != right.ValueKind)
-        {
             return false;
-        }
 
         switch (left.ValueKind)
         {
+            case JsonValueKind.Undefined:
             case JsonValueKind.Null:
             case JsonValueKind.False:
             case JsonValueKind.True:
                 // These are the same by kind, so carry on!
                 return true;
 
-            case JsonValueKind.Number:
             case JsonValueKind.String:
+                return left.GetString() == right.GetString();
+
+            case JsonValueKind.Number:
+                if (left.TryGetDecimal(out var ld) && right.TryGetDecimal(out var rd))
+                    return ld == rd;
+
+                if (left.TryGetDouble(out var ldbl) && right.TryGetDouble(out var rdbl))
+                    return ldbl == rdbl;
+
                 return left.GetRawText() == right.GetRawText();
 
             case JsonValueKind.Array:
@@ -365,21 +368,17 @@ public sealed class JsonMergePatch(JsonMergePatchOptions? options = null)
             default:
                 foreach (var l in left.EnumerateObject())
                 {
-                    if (!right.TryGetProperty(l.Name, out var r))
-                    {
-                        if (!DeepEquals(l.Value, r))
-                            return false;
-                    }
+                    if (!right.TryGetProperty(l.Name, out var r) || !DeepEquals(l.Value, r))
+                        return false;
                 }
 
                 foreach (var r in right.EnumerateObject())
                 {
-                    if (!left.TryGetProperty(r.Name, out var _))
+                    if (!left.TryGetProperty(r.Name, out _))
                         return false;
                 }
 
                 return true;
         }
     }
-#endif
 }

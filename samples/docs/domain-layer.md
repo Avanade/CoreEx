@@ -21,9 +21,10 @@ An aggregate is a cluster of related entities treated as a single consistency bo
 // samples/src/Contoso.Shopping.Domain/Basket.cs
 public sealed class Basket : Aggregate<string, Basket>
 {
-    public static Basket CreateNew(string customerId) => new Basket(Runtime.NewId())
+    public static Basket CreateNew(string customerId, Address? shippingAddress = null) => new Basket(Runtime.NewId())
     {
         CustomerId = customerId,
+        ShippingAddress = shippingAddress,
         Status = BasketStatus.Empty
     }.AsNew();
 

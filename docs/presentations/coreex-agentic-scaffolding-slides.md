@@ -348,6 +348,7 @@ This is where friction drops versus generic frameworks: CoreEx packages wire the
 - CloudEvent conversion and interoperability support.
 - Publish and subscribe patterns with per-message subscription behavior from stream.
 - Azure Service Bus integration patterns.
+- Event vs command routing: events to a shared topic, commands to a per-domain queue.
 - Outbox relay support with partition-aware patterns.
 - Domain-driven modeling support for aggregates and entities.
 - ValueObject modeling using C# record class patterns.
@@ -376,6 +377,7 @@ Roadmap:
 Aspire enabled (done):
 - Leverages component runtime libraries.
 - Sample uses console for logging, tracing, and metrics visualization.
+- Automated cross-domain end-to-end tests self-host the AppHost, with a WireMock-based MockHost stubbing third-party HTTP dependencies.
 
 Speaker notes:
 This makes current maturity and future direction explicit for stakeholders. It also reinforces that platform portability is planned and active, not theoretical.

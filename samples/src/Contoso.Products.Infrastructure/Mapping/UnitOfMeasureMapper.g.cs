@@ -8,8 +8,8 @@
 
 namespace Contoso.Products.Infrastructure.Mapping;
 
-/// <summary>Provides mapping from <see cref="Persistence.UnitOfMeasure"/> to <see cref="Contracts.UnitOfMeasure"/>.</summary>
-internal partial class UnitOfMeasureMapper : Mapper<Persistence.UnitOfMeasure, Contracts.UnitOfMeasure, UnitOfMeasureMapper>
+/// <summary>Provides mapping from <see cref="Contracts.UnitOfMeasure"/> to <see cref="Persistence.UnitOfMeasure"/>.</summary>
+internal partial class UnitOfMeasureMapper : BiDirectionMapper<Contracts.UnitOfMeasure, Persistence.UnitOfMeasure, UnitOfMeasureMapper>
 {
     /// <inheritdoc/>
     protected override Contracts.UnitOfMeasure OnMap(Persistence.UnitOfMeasure source)
@@ -32,8 +32,11 @@ internal partial class UnitOfMeasureMapper : Mapper<Persistence.UnitOfMeasure, C
         return destination;
     }
 
-    /// <summary>Provides the opportunity to extend the <see cref="OnMap" /> method.</summary>
+    /// <summary>Provides the opportunity to extend the <b>To</b> mapping.</summary>
     partial void OnMapExtend(Persistence.UnitOfMeasure source, Contracts.UnitOfMeasure destination);
+
+    /// <inheritdoc/>
+    protected override Persistence.UnitOfMeasure OnMap(Contracts.UnitOfMeasure destination) => throw new NotSupportedException();
 }
 
 #nullable restore

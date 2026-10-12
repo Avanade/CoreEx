@@ -33,11 +33,8 @@ public class IdentifierGenerator : IIdentifierGenerator
     public async Task<TId> GenerateIdentifierAsync<TId, TFor>() where TFor : class => await GenerateIdentifierAsync<TId>().ConfigureAwait(false);
 
     /// <inheritdoc/>
-    public async Task AssignIdentifierAsync<TFor>(TFor value) where TFor : class
+    public async Task AssignIdentifierAsync<TFor>(TFor value) where TFor : class, IIdentifier
     {
-        if (value is not IReadOnlyIdentifier ii)
-            return;
-
         if (value is IIdentifier<string> iis)
             iis.Id ??= await GenerateIdentifierAsync<string, TFor>().ConfigureAwait(false);
         else if (value is IIdentifier<Guid> iig)
@@ -46,6 +43,6 @@ public class IdentifierGenerator : IIdentifierGenerator
                 iig.Id = await GenerateIdentifierAsync<Guid, TFor>().ConfigureAwait(false);
         }
         else
-            throw new NotSupportedException($"Identifier Type '{ii.IdType.Name}' is not supported; only String or Guid.");
+            throw new NotSupportedException($"Identifier Type '{value.IdType.Name}' is not supported; only String or Guid.");
     }
 }

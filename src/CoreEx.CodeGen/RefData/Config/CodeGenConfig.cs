@@ -54,6 +54,21 @@ public class CodeGenConfig : ConfigRootBase<CodeGenConfig>
     [JsonPropertyName("routeConvention")]
     [CodeGenProperty("API", Title = "The route naming convention where not directly specified.", IsImportant = true, Options = ["KebabCase", "SnakeCase", "CamelCase", "Lowercase"], Description = "Defaults to `KebabCase`.")]
     public string? RouteConvention { get; set; }
+    
+    /// <summary>
+    /// Gets or sets the optional attribute.
+    /// </summary>
+    [JsonPropertyName("attribute")]
+    [CodeGenProperty("API", Title = "The optional API controller class attribute.", Description = "This is the attribute applied as-is to the generated `ReferenceDataController` class. This is useful for adding the likes of `[Authorize]`.")]
+    public string? Attribute { get; set; }
+
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the API controller emits the `GetNamed` operation.
+    /// </summary>
+    [JsonPropertyName("getNamed")]
+    [CodeGenProperty("API", Title = "Indicates whether the API controller emits the `GetNamed` operation.", Description = "Defaults to `false`.")]
+    public bool? GetNamed { get; set; }
 
     #endregion
 
@@ -166,6 +181,16 @@ public class CodeGenConfig : ConfigRootBase<CodeGenConfig>
     /// </summary>
     public List<EntityConfig>? CosmosPersistenceModels => Entities?.Where(x => x.CosmosPersistenceModel ?? false).ToList();
 
+    /// <summary>
+    /// Gets the list of configured entities that are mutable (i.e. not read-only).
+    /// </summary>
+    public List<EntityConfig>? EntitiesThatAreMutable => Entities?.Where(x => x.IsMutable).ToList();
+
+    /// <summary>
+    /// Gets the list of configured entities that are mutable (i.e. not read-only) and have a repository implementation specified (i.e. not 'None').
+    /// </summary>
+    public List<EntityConfig>? EntitiesThatAreMutableWithRepository => Entities?.Where(x => x.IsMutable && x.Repository != "None").ToList();
+
     #endregion
 
     /// <summary>
@@ -222,6 +247,11 @@ public class CodeGenConfig : ConfigRootBase<CodeGenConfig>
     /// Gets or sets the .NET namespace for the generated data models code.
     /// </summary>
     public string? DataModelsNamespace { get; set; }
+
+    /// <summary>
+    /// Indicates whether there are any configured entities that are mutable (i.e. not read-only).
+    /// </summary>
+    public bool HasMutableEntities => EntitiesThatAreMutable?.Count > 0;
 
     /// <inheritdoc/>
     protected override async Task PrepareAsync()
@@ -299,6 +329,7 @@ public class CodeGenConfig : ConfigRootBase<CodeGenConfig>
         CollectionSortOrder = DefaultWhereNull(CollectionSortOrder, () => "Code");
         Route = DefaultWhereNull(Route, () => "/api/refdata");
         RouteConvention = DefaultWhereNull(RouteConvention, () => "KebabCase");
+        GetNamed = DefaultWhereNull(GetNamed, () => false);
 
         // Load the entities configuration.
         Entities = await PrepareCollectionAsync(Entities).ConfigureAwait(false);

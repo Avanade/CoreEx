@@ -27,7 +27,8 @@ Transport-specific publisher implementations (e.g. Azure Service Bus, RabbitMQ) 
 | [`IEventPublisher`](./IEventPublisher.cs) | Extends `IEventQueue` with `PublishAsync()`, `HasBeenPublished`, `Reset()`, `Rollback(count)`, and `GetEvents()`. |
 | _[`EventPublisherBase`](./EventPublisherBase.cs)_ | Thread-safe abstract base; wires formatting, destination resolution, single-publish guard, and OpenTelemetry; implementors override `OnPublishAsync`. |
 | [`IDestinationProvider`](./IDestinationProvider.cs) | Resolves destination (topic/queue) names from `EventData`, a string, or `MessageType` + domain name. |
-| **[`FixedDestinationProvider`](./FixedDestinationProvider.cs)** | `IDestinationProvider` that routes all events to a single destination; defaults to the `CoreEx.Events:Destination` configuration key or `"default"`. |
+| **[`FixedDestinationProvider`](./FixedDestinationProvider.cs)** | `IDestinationProvider` that routes all events to a single destination; defaults to the `CoreEx:Events:Destination` configuration key or `"default"`. |
+| **[`NamedDestinationProvider`](./NamedDestinationProvider.cs)** | `IDestinationProvider` that routes events to a single shared destination (topic) and commands to a per-target-domain destination (queue), e.g. `{Destination}-{domain}`; a command without a domain is self-addressed (host domain). Defaults `Destination` from `CoreEx:Events:Destination` or `"default"`. |
 | **[`DestinationEvent`](./DestinationEvent.cs)** | Immutable record pairing a resolved destination name with a formatted `CloudEvent`; passed to `OnPublishAsync`. |
 | **[`EventPublisherInvoker`](./EventPublisherInvoker.cs)** | `InvokerBase` subclass that wraps publish operations with OpenTelemetry activity spans. |
 | **[`NoOpEventPublisher`](./NoOpEventPublisher.cs)** | Silent `IEventPublisher` implementation that discards all events without error. |

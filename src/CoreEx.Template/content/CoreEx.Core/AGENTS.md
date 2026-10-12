@@ -28,12 +28,12 @@ app-name/
 |   +-- app-name.Contracts/        # Public contracts: entities, DTOs, event schemas
 |   +-- app-name.Application/      # Business logic: services, validators, repository interfaces
 |   +-- app-name.Domain/           # (coreex-domain addon, optional) Aggregates, value objects, domain events
-|   +-- app-name.Infrastructure/   # EF Core repositories, outbox, external integrations
+|   +-- app-name.Infrastructure/   # EF Core / Cosmos DB repositories, outbox, external integrations
 +-- tools/
-|   +-- app-name.Database/         # (data-provider != None) Database migrations (DbEx)
+|   +-- app-name.Database/         # (data-provider != None) Database migrations (DbEx) or, for Cosmos, container provisioning + seed data
 |   +-- app-name.CodeGen/          # (refdata-enabled && data-provider != None) Ref-data code gen
 +-- tests/
-|   +-- app-name.Test.Common/      # Shared test infrastructure: TestData marker, embedded seed data
+|   +-- app-name.Test.Common/      # Shared test infrastructure: TestData marker, embedded seed data, ServiceBus (code-based topic/queue configuration)
 |   +-- app-name.Test.Unit/        # Fast isolated unit tests (validators, services, no I/O)
 +-- Directory.Packages.props       # Central NuGet version management (no versions in .csproj)
 ```
@@ -46,11 +46,13 @@ app-name/
 - **Data provider:** SQL Server (`CoreEx.Database.SqlServer`, `CoreEx.EntityFrameworkCore`)
 <!-- #elif implement-postgres -->
 - **Data provider:** PostgreSQL (`CoreEx.Database.Postgres`, `CoreEx.EntityFrameworkCore`)
+<!-- #elif implement-cosmos -->
+- **Data provider:** Azure Cosmos DB (`CoreEx.Cosmos`) -- no EF Core; containers declared in `domain-nameCosmosDb` and provisioned by `tools/app-name.Database` (`CosmosDbConsole`)
 <!-- #else -->
 - **Data provider:** None -- facade solution (e.g. over Dynamics 365 via HttpClient)
 <!-- #endif -->
 <!-- #if (refdata-enabled && has-data-provider) -->
-- **Reference data:** Enabled -- `src/app-name.Application/ReferenceDataService.cs` and `tools/app-name.CodeGen/`
+- **Reference data:** Enabled -- `src/app-name.Application/ReferenceDataProvider.g.cs` and `tools/app-name.CodeGen/`
 <!-- #else -->
 - **Reference data:** Disabled
 <!-- #endif -->
@@ -82,8 +84,7 @@ app-name/
 - `.github/docs/coreex/application-scaffolding-guide.md` -- choosing the smallest safe CoreEx solution shape before adding code
 - `.github/docs/coreex/contracts-layer.md` -- entities, DTOs, event schemas
 - `.github/docs/coreex/application-layer.md` -- services, validators, repository interfaces
-- `.github/docs/coreex/infrastructure-layer.md` -- EF Core, outbox, external integrations
+- `.github/docs/coreex/infrastructure-layer.md` -- EF Core / Cosmos DB, outbox, external integrations
 - `.github/docs/coreex/testing.md` -- test project setup, `WithGenericTester`, `WithApiTester`
 - `.github/docs/coreex/local-dev.md` -- running locally with .NET Aspire
 - `.github/docs/coreex/tooling.md` -- Database and CodeGen tool projects
-

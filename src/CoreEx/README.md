@@ -49,6 +49,57 @@ All other CoreEx packages (`CoreEx.Events`, `CoreEx.Database`, `CoreEx.AspNetCor
 
 See the [Extended Exceptions](#extended-exceptions) section below for the full list of semantic exception types.
 
+## Validating HTTP response values
+
+HTTP success and JSON deserialization do not guarantee a valid dependency response. Use
+`WithValidator` with a `CoreEx.Validation.IValidator<T>` to opt into response-contract validation:
+
+```csharp
+using var response = await _httpClient.GetAsync($"api/customers/{Uri.EscapeDataString(id)}", ct).ConfigureAwait(false);
+return await response.WithValidator(customerValidator).ToResultAsync(ct).ConfigureAwait(false);
+```
+
+The [typed wrapper](./Http/ValidatedHttpResponseT.cs) reuses the existing response converters and
+validates only successful, non-null deserialized values. It returns the **validation result's
+Value**, including replacements or normalization. `ToResultAsync` requires a non-null value both
+before and after validation; `ToResultOrDefaultAsync` allows null and skips validation when the
+response has no value. `GetValueAsync` and `GetValueOrDefaultAsync` provide the throwing equivalents.
+All four methods accept optional JSON serializer options and a cancellation token.
+
+Reported validation errors become `HttpRequestException` failures with the validation exception
+as the inner exception, preserving structured messages. `ToResult*` returns these failures;
+`GetValue*` throws them. Under standard CoreEx API exception handling, these are internal **500**
+errors, not caller **400** validation errors. The exception's upstream status is diagnostic context,
+not the status returned to the caller. Outer messages do not contain the response body.
+Existing HTTP/ProblemDetails handling is unchanged; cancellation, deserialization exceptions,
+and unexpected exceptions thrown by a validator still propagate.
+
+Use a response-specific validator rather than assuming create/update rules apply to read responses.
+For small client-only rules, prefer a private static readonly `Validator<T>` configured once with
+`Validator.Create<T>().HasProperty(...)` from the `CoreEx.Validation` package inside the Infrastructure client:
+
+```csharp
+private static readonly Validator<Customer> _validator = Validator.Create<Customer>()
+    .HasProperty(x => x.Email, c => c.Mandatory().Email());
+
+// Inside the asynchronous HTTP client method.
+using var response = await _httpClient.GetAsync($"api/customers/{Uri.EscapeDataString(id)}", ct).ConfigureAwait(false);
+return await response.WithValidator(_validator).ToResultAsync(ct).ConfigureAwait(false);
+```
+
+Extract a colocated validator only for substantial rules or genuine reuse. Validate consumed
+fields rather than requiring every DTO property or matching identifiers by default.
+Configure shared rules once without captured request state or scoped dependencies, and test inline
+rules through client unit tests rather than exposing them solely for testing. Invalid responses
+must not be cached. See the
+[Customers client sample](../../samples/src/Contoso.Shopping.Infrastructure/Clients/Customers/CustomersHttpClient.cs)
+for a complete implementation.
+Validators can normalize values or perform I/O, so consider their effects explicitly. The wrapper
+does not own or dispose the response, cache validation results, or support concurrent response
+consumption. Keep responsibility for disposing the response at the call site.
+Like the underlying converters, a terminal operation consumes the content stream; creating a
+wrapper does not buffer the body for repeated reads.
+
 ## Errors vs Exceptions
 
 `CoreEx` distinguishes between expected and unexpected errors:

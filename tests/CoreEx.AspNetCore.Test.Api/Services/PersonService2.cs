@@ -53,7 +53,7 @@ public class PersonService2
         }
     };
 
-    public Task<Result<Person?>> GetAsync(string id) => Task.FromResult(Result.Ok(_people.TryGetValue(id, out var person) ? person : null));
+    public Task<Result<Person>> GetAsync(string id) => Task.FromResult(_people.TryGetValue(id, out var person) ? Result.Ok(person) : Result<Person>.NotFoundError());
 
     public Task<Result<Person>> CreateAsync(Person person)
     {

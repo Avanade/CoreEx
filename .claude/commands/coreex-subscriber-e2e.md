@@ -1,5 +1,5 @@
 ---
-description: "Create a complete new event or command subscriber end-to-end in a single guided workflow: event/command DTO contract (if new), subscriber handler, optional application service and repository, and integration tests. USE FOR: adding a brand-new subscriber to an existing CoreEx Subscribe host for any scenario — command handling, event-data-sync replication, or event-driven business-process choreography. DO NOT USE FOR: modifying an existing subscriber (use coreex-subscriber directly), API endpoint work (use coreex-api-e2e), or setting up the Subscribe host itself (use coreex-scaffold)."
+description: "Create a complete new event subscriber end-to-end in a single guided workflow: event DTO contract (if new), subscriber handler, optional application service and repository, and integration tests. USE FOR: adding a brand-new subscriber to an existing CoreEx Subscribe host for event-data-sync replication or event-driven business-process choreography. DO NOT USE FOR: command handling (use coreex-command-subscribe-e2e), sending a command (use coreex-command-publish-e2e), modifying an existing subscriber (use coreex-subscriber directly), API endpoint work (use coreex-api-e2e), or setting up the Subscribe host itself (use coreex-scaffold)."
 allowed-tools: [Read, Glob, Grep, Edit, Write, Bash]
 ---
 

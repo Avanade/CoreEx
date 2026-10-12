@@ -80,11 +80,7 @@ git init
 
 ## 2. Install the template pack
 
-```bash
-dotnet new install CoreEx.Template
-```
-
-This installs the latest stable release. To target a specific version (e.g. to match an existing project's CoreEx NuGet reference), use `::<version>`:
+Resolve the version first: use the exact CoreEx NuGet version referenced by an existing project, or explicitly look up and record the latest stable release for first-time adoption. Always pin the install so the runtime packages and AI assets describe the same release:
 
 ```bash
 dotnet new install CoreEx.Template::<version>

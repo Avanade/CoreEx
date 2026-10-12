@@ -91,6 +91,7 @@ public static partial class CoreExSqlServerExtensions
         {
             var outbox = ActivatorUtilities.CreateInstance<TOutbox>(sp);
             configure?.Invoke(sp, outbox);
+            outbox.PartitionSize = DatabaseOutboxConfiguration.GetPartitionSize(sp.GetService<IConfiguration>());
             return outbox;
         }, addAsDefaultIEventPublisher);
 

@@ -1,8 +1,14 @@
 // #if implement-servicebus
 global using CoreEx.Azure.Messaging.ServiceBus;
 // #endif
+// #if implement-cosmos
+global using Microsoft.Azure.Cosmos;
+// #endif
 global using OpenTelemetry;
 global using OpenTelemetry.Trace;
+// #if implement-cosmos
+global using System.Text.Json;
+// #endif
 
 
 namespace app-name.Relay;
@@ -37,6 +43,26 @@ public class Program
             .AddSqlServerOutboxRelay();                 // Adds the SqlServerOutboxRelay.
 
         builder.AddSqlServerOutboxRelayHostedService(); // Adds the SqlServerOutboxRelayHostedService.
+// #elif implement-cosmos
+        // Add the Cosmos DB client (Aspire); in Development, accept the local emulator's self-signed certificate and use Gateway mode.
+        builder.AddAzureCosmosClient("Cosmos", configureClientOptions: o =>
+        {
+            o.UseSystemTextJsonSerializerWithOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+
+            if (builder.Environment.IsDevelopment())
+            {
+                o.ConnectionMode = ConnectionMode.Gateway;
+                o.HttpClientFactory = () => new HttpClient(new HttpClientHandler { ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator });
+            }
+        });
+
+        builder.Services
+            .AddCosmosDb("domain-name-lower")           // Adds the CosmosDb for the database.
+            .AddCosmosDbHealthCheck();                  // Adds the CosmosDbHealthCheck; Aspire's AddAzureCosmosClient does not register one.
+
+// #if refdata-enabled
+        builder.AddCosmosDbOutboxRelayHostedService("ref-data");   // Adds the CosmosDbOutboxRelayHostedService(s) (Change Feed Processor) for the 'ref-data' container; add one call per outbox-hosting container.
+// #endif
 // #elif implement-postgres
         builder.AddAzureNpgsqlDataSource("Postgres");   // Adds the NpgsqlDataSource (using Aspire library).
         builder.Services
@@ -63,6 +89,8 @@ public class Program
         builder.WithCoreExTelemetry()
 // #if implement-sqlserver
             .WithCoreExSqlServerTelemetry()
+// #elif implement-cosmos
+            .WithCoreExCosmosDbTelemetry()
 // #elif implement-postgres
             .WithCoreExPostgresTelemetry()
 // #endif

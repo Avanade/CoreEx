@@ -25,7 +25,7 @@ public interface IDestinationProvider
     /// <summary>
     /// Creates the destination name using the specified parameters.
     /// </summary>
-    /// <param name="domainName">The recipient domain (DDD) name.</param>
+    /// <param name="domainName">The target (recipient) domain (DDD) name; applicable to <see cref="MessageType.Command"/> messages.</param>
     /// <param name="messageType">The <see cref="MessageType"/>.</param>
     /// <param name="isDeadLetter">Indicates whether to provide a dead-letter specific destination or not.</param>
     /// <returns>The resulting destination name.</returns>

@@ -32,6 +32,6 @@ public abstract class DatabaseOutboxPublisherBase<TDatabase>(TDatabase database,
     /// <summary>
     /// Gets or sets the partition size to use when calculating the partition id for each event.
     /// </summary>
-    /// <remarks>This is used to ensure that events with the same partition key are stored in the same partition, which guarantees that events are processed in order within a partition.</remarks>
+    /// <remarks>DI-registered publishers resolve this from <see cref="DatabaseOutboxConfiguration.PartitionSizeConfigurationKey"/>; the same key is used by relational relay hosts. Explicit per-instance settings outside DI must match that shared value.</remarks>
     public int PartitionSize { get; set; } = PartitionKey.DefaultPartitionSize;
 }

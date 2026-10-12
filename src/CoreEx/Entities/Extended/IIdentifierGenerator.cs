@@ -32,5 +32,5 @@ public interface IIdentifierGenerator
     /// </summary>
     /// <typeparam name="TFor">The <see cref="System.Type"/> to generate for.</typeparam>
     /// <param name="value">The value to assign an identifier for.</param>
-    Task AssignIdentifierAsync<TFor>(TFor value) where TFor : class;
+    Task AssignIdentifierAsync<TFor>(TFor value) where TFor : class, IIdentifier;
 }

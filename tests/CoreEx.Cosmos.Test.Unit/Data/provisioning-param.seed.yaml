@@ -1,0 +1,3 @@
+# Parameter supplied via CosmosDbProvisionArgs.Parameters.
+$prov-items:
+  - { id: param-1, partitionKey: pk, name: ^Who }

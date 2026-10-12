@@ -1,7 +1,7 @@
 ---
 applyTo: "**/*.CodeGen/Program.cs;**/*.CodeGen/ref-data.yaml;**/*.Database/Program.cs;**/*.Database/dbex.yaml;**/*.Database/Migrations/**;**/*.Database/Data/**;**/*.Database/Schema/**;!**/*.Database/Schema/**/*.g.*"
-description: "Developer tooling conventions: *.CodeGen reference-data C# code generation and *.Database schema migration, DbEx commands, seed data, and outbox provisioning"
-tags: ["tooling", "codegen", "database", "migrations", "dbex", "reference-data", "outbox"]
+description: "Developer tooling conventions: *.CodeGen reference-data C# code generation and *.Database relational migration or Cosmos provisioning, seed data, and outbox provisioning"
+tags: ["tooling", "codegen", "database", "migrations", "dbex", "cosmos", "reference-data", "outbox"]
 ---
 
 <!--
@@ -14,12 +14,12 @@ tags: ["tooling", "codegen", "database", "migrations", "dbex", "reference-data",
 
 # Developer Tooling Conventions
 
-Each domain has two developer-time tooling projects that have **no runtime presence**. They run locally during development and in CI/CD pipelines to generate code and manage the database schema.
+Each domain has two developer-time tooling projects that have **no runtime presence**. They run locally during development and in CI/CD pipelines to generate code and manage the persistence baseline.
 
 | Project | Purpose |
 |---|---|
 | `*.CodeGen` | Generates reference-data C# artefacts across all layers from `ref-data.yaml` |
-| `*.Database` | Manages the full database lifecycle — schema, seed data, outbox provisioning, and Infrastructure C# code generation |
+| `*.Database` | For relational providers: manages schema, seed data, outbox provisioning, and Infrastructure C# code generation via DbEx. For Cosmos: provisions the database/containers, imports seed data, and keeps the declared container topology in code. |
 
 > **Related skills:** this file holds the invariants (command reference, YAML structure, table templates, casing,
 > generated-file ownership) that must hold on **any** tooling edit. For the step-by-step **creation** procedures,
@@ -64,15 +64,17 @@ Running `dotnet run` reads `ref-data.yaml`, validates it against the CoreEx JSON
 | Artefact | Target layer | Description |
 |---|---|---|
 | `*.g.cs` contract class | Contracts | Typed reference-data entity contract extending `ReferenceData<TSelf>`, decorated with `[ReferenceData]` which triggers the Roslyn source generator to emit additional members at compile time |
-| `*.g.cs` controller route | API host | HTTP GET endpoint exposing the entity collection |
-| `*.g.cs` service method | Application | Service method delegating to the repository |
+| `ReferenceDataController.g.cs` | API host | Read-only HTTP GET endpoints for every entity (always generated) |
+| `ReferenceDataProvider.g.cs` | Application | `IReferenceDataProvider` implementation delegating to the repositories (always generated; this is what the orchestrator binds to) |
+| `{Name}Controller.g.cs` — **mutable entities only** | API host | Create / patch / activate / deactivate (/ delete) endpoints for that entity |
+| `IReferenceDataService.g.cs` + `ReferenceDataService.g.cs` — **only if any entity is mutable** | Application | The write service (validation, unit of work, events, cache invalidation) |
 | `*.g.cs` repository interface | Application | `IXxxRepository` interface declaration |
 | `*.g.cs` repository | Infrastructure | EF Core repository implementation |
 | `*.g.cs` mapper | Infrastructure | `BiDirectionMapper` for the entity |
 
 All outputs carry the `.g.cs` suffix and must never be edited directly — regenerate by re-running `dotnet run`.
 
-> **Add the global usings the generated code depends on — the clean scaffold does not pre-import own-project namespaces.** The `coreex` scaffold ships **clean**: it does **not** carry `global using {Solution}.Contracts;` / `{Solution}.Application;` / `{Solution}.Application.Repositories;` in the `GlobalUsing.cs` files, because those namespaces are empty until code/CodeGen populates them (a `global using` of an empty namespace is **CS0234**). The generated artefacts reference these types **unqualified** (e.g. `ReferenceDataService.g.cs` and `IXxxRepository.g.cs` use `IReferenceDataRepository`, `GenderCollection`, `Gender`), so **as you create the code, add the matching `global using` to each consuming project's `GlobalUsing.cs`**:
+> **Add the global usings the generated code depends on — the clean scaffold does not pre-import own-project namespaces.** The `coreex` scaffold ships **clean**: it does **not** carry `global using {Solution}.Contracts;` / `{Solution}.Application;` / `{Solution}.Application.Repositories;` in the `GlobalUsing.cs` files, because those namespaces are empty until code/CodeGen populates them (a `global using` of an empty namespace is **CS0234**). The generated artefacts reference these types **unqualified** (e.g. `ReferenceDataProvider.g.cs` and `IXxxRepository.g.cs` use `IReferenceDataRepository`, `GenderCollection`, `Gender`), so **as you create the code, add the matching `global using` to each consuming project's `GlobalUsing.cs`**:
 > - First **contract** created → add `global using {Solution}.Contracts;` to **Application**, **Infrastructure** (mappers), and **Api** (controllers).
 > - After **CodeGen** emits repository interfaces → add `global using {Solution}.Application.Repositories;` to **Application** (services) and **Infrastructure** (repositories).
 > - First **controller** referencing a service → add `global using {Solution}.Application;` to **Api**.
@@ -114,6 +116,26 @@ entities:
 
 Add the `$schema` annotation to the file for IDE YAML validation and auto-complete.
 
+Root-level `getNamed` (default `false`) opts in to the `GetNamedAsync` endpoint on `ReferenceDataController`; omit it and the endpoint is not generated.
+
+#### Readonly vs Mutation
+
+Entities are **read-only by default**. Set `mutability` on an entity to also generate write endpoints and the write service:
+
+```yaml
+entities:
+- name: Brand
+  mutability: CreateUpdateDelete   # None (default) | CreateUpdate | CreateUpdateDelete
+  # Mutable controllers default to [Authorize]; override only when intentionally public or to add a policy.
+  mutableAttribute: '[Authorize(Policy = "ReferenceDataAdmin")]'
+```
+
+- **EF or Cosmos only.** A mutable entity requires `repository: EntityFramework` or `Cosmos` — CodeGen fails fast otherwise. Cosmos duplicate-code detection relies on a `/typeDiscriminator` + `/code` unique key on the ref-data container; register the container with `new CosmosDbOptions().Container("<id>", c => c.WithReferenceDataOutboxEvent())` so the co-located outbox events (which carry neither path) get a unique `code` and do not collide.
+- Endpoints (`/api/refdata/{route}`): `GET {id}`, `POST`, `PUT {id}` (full replace; `code`/`isActive` in the body are ignored), `PATCH {id}` (merge-patch), `POST {id}/activate`, `POST {id}/deactivate`, and `DELETE {id}` (`CreateUpdateDelete` only). `code` is immutable after create; create always yields an inactive item; a non-inactive value cannot be deleted.
+- **No usage/cascade check.** Delete and deactivate do **not** verify whether the value is referenced elsewhere; tables typically store the code, so removing or deactivating an in-use value silently leaves that data invalid. This is the consumer's responsibility — set the `PreCheckAsync` hook from a hand-written `partial class ReferenceDataService` (via `partial void OnInitialization()`) to veto Activate/Deactivate/Delete. The hook is a lightweight allow/deny veto only (runs before the transaction, not atomic) — for cascades, side effects or atomic checks, hand-write the data/repository logic instead. Never edit the `.g.cs`.
+- The persistence model must have the columns for any optional `IReferenceData` property a client sets (`Description`, `StartsOn`, `EndsOn`); otherwise the request is rejected with a 400 (`not-supported`).
+- Full detail (options, outputs, `PreCheckAsync` example, gotchas): `src/CoreEx.CodeGen/README.md` → "Readonly vs Mutation".
+
 The standard `IReferenceData` properties (`Id`, `Code`, `Text`, `Description`, `SortOrder`, `IsActive`, etc.) are automatically included in every generated type — do not declare them under `properties:`. Only additional domain-specific columns need to be listed; most reference data entities require no `properties:` entry at all.
 
 Key `entities:` options:
@@ -123,6 +145,10 @@ Key `entities:` options:
 | `name` | Yes | -- | Entity name (PascalCase) |
 | `plural` | No | Auto-pluralized | Override when pluralization is irregular |
 | `idType` | No | `string` | Identifier type override (e.g. `Guid`, `int`) |
+| `mutability` | No | `None` | `None` (read-only), `CreateUpdate` or `CreateUpdateDelete` — see [Readonly vs Mutation](#readonly-vs-mutation) |
+| `validator` | No | `ReferenceDataValidator<{Name}>` | Validator type used by the write service (mutable only) |
+| `mutableAttribute` | No | `[Authorize]` | Replaces the default attribute applied to the generated `{Name}Controller`; use a policy/role or `[AllowAnonymous]` when intentionally public |
+| `attribute` | No | -- | Attribute(s) applied to the read-only `ReferenceDataController` only — **not** the write endpoints |
 | `properties[].name` | Yes (if any) | -- | Additional stored property name |
 | `properties[].type` | Yes (if any) | -- | CLR type; prefix `^` for a ref-data navigation accessor |
 | `properties[].excludeContract` | No | `false` | Exclude from the generated contract (persistence only) |
@@ -136,7 +162,68 @@ Key `entities:` options:
 
 ---
 
-## `*.Database` — Database Lifecycle Management
+## `*.Database` — Cosmos Provisioning Lifecycle
+
+For **Cosmos** domains, `*.Database` is **not** a DbEx project. It is a `CosmosDbConsole` provisioning app that declares containers in code and imports `Data/*.seed.yaml` resources directly into those containers. There is no `dbex.yaml`, no `Migrations/`, and no SQL schema scripts.
+
+### Cosmos `Program.cs` pattern
+
+```csharp
+public static Task<int> Main(string[] args)
+    => CosmosDbConsole.Create<Program>(DefaultConnectionString, DefaultDatabaseId)
+        .Configure(c => ConfigureProvisionArgs(c.Args))
+        .RunAsync(args);
+
+public static CosmosDbProvisionArgs ConfigureProvisionArgs(CosmosDbProvisionArgs args) => args
+    .AddAssembly<Program>()
+    .Container("customers", configure: cp =>
+    {
+        // optional indexing / unique-key customisation
+    })
+    .ReferenceDataContainer("ref-data")
+    .OutboxLeaseContainer();   // Only where a Relay host runs.
+```
+
+- Use `ReferenceDataContainer("ref-data")` for type-discriminated reference data. It provisions the `/typeDiscriminator` + `/code` unique-key shape the generated ref-data repository expects.
+- Use `OutboxLeaseContainer()` to declare the Change Feed Processor lease container (`$outbox-leases`, partition key `/id`) shared by outbox relay host(s). The relay never creates it (production identities cannot create containers) and fails fast at startup if it is missing.
+- Add one `.Container(id, partitionKeyPath, configure, dataOptions)` (or the convenience overloads) per transactional container. The default partition-key path is `/partitionKey`; use a deliberate override only when the model/container shape requires it.
+- The typed Infrastructure accessor mirrors these ids exactly: `Container<Persistence.Customer>("customers")`, `Container<Persistence.CustomerType>("ref-data", o => o.WithTypeDiscriminator())`, etc.
+
+### Cosmos commands
+
+Run with `dotnet run -- <command>`. Default (no arguments) runs `All`.
+
+| Command | Description |
+|---|---|
+| `Create` | Creates the database (if absent) and any missing declared containers |
+| `Data` | Imports the embedded `Data/*.seed.yaml` / `*.json` resources into the declared containers |
+| `All` | `Create` → `Data` |
+| `ResetAndData` | Replaces every declared container, then re-imports seed data |
+| `Drop` | Drops the database |
+| `DropAndAll` | `Drop` → `All` |
+
+### Cosmos seed data
+
+- Transactional container seed files use the **container id** as the top-level key and raw camelCase document bodies matching the persistence model, for example:
+
+```yaml
+customers:
+- { id: ^1, firstName: Existing, lastName: Customer, email: existing.customer@example.com }
+```
+
+- The reference-data container keeps the grouped shorthand under its container id:
+
+```yaml
+ref-data:
+- $^CustomerType:
+  - IND: Individual
+  - ORG: Organisation
+```
+
+- Container ids are the authoritative keys. A top-level key that does not match a declared container fails the import.
+- Seed documents must already match the stored JSON shape (camelCase names, partition-key property if the container requires one). There is no relational casing translation step.
+
+## `*.Database` — Relational Database Lifecycle Management
 
 ### NuGet / Project References
 

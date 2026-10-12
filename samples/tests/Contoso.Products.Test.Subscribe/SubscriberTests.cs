@@ -23,7 +23,7 @@ public partial class SubscriberTests : WithApiTester<Contoso.Products.Subscribe.
 
         test.Run(async _ =>
         {
-            var sbs = test.Services.GetRequiredService<ServiceBusSubscribedSubscriber>();
+            var sbs = test.Services.GetRequiredKeyedService<ServiceBusSubscribedSubscriber>("subscriber-commands");
             var r = await sbs.ReceiveAsync(sbm);
 
             r.IsFailure.Should().BeTrue();

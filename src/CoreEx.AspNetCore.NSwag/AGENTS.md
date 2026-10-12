@@ -28,6 +28,9 @@ app.UseSwaggerUi();
 | `[IdempotencyKey]` | `Idempotency-Key` header parameter |
 | `[ProducesNotFoundProblem]` | `404 application/problem+json` response entry |
 | `[Accepts(typeof(T))]` | Request body content type and JSON schema |
+| `[NonNullable]` (on a DTO property) | Schema property emitted as `nullable: false`, even if declared `string?` / `int?` |
+
+Non-nullability is applied recursively to request and response types, including generic wrapper arguments such as `DataMap<T>` dictionary values and nested collections. Unannotated nullable properties retain their declared nullability; the attribute changes the schema, not runtime validation.
 
 ## Do Not
 

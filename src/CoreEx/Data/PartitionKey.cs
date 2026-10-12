@@ -11,6 +11,18 @@ public class PartitionKey
     public const int DefaultPartitionSize = 4;
 
     /// <summary>
+    /// Gets the fixed partition-key value used when an event has no partition key.
+    /// </summary>
+    public const string DefaultNoPartitionKey = "$none";
+
+    /// <summary>
+    /// Validates and returns the specified partition size.
+    /// </summary>
+    /// <param name="partitionSize">The partition size (i.e. the number of possible partitions).</param>
+    /// <returns>The validated partition size.</returns>
+    public static int ValidatePartitionSize(int partitionSize) => partitionSize.ThrowWhen(ps => ps <= 0 || ps > 256, nameof(partitionSize));
+
+    /// <summary>
     /// Gets the maximum byte count for stack allocation when converting strings to UTF-8.
     /// </summary>
     private const int MaxStackAllocByteCount = 256;
@@ -26,7 +38,7 @@ public class PartitionKey
     public static int GetPartitionId(string partitionKey, int partitionSize = DefaultPartitionSize, bool ignoreCase = true)
     {
         partitionKey = partitionKey.ThrowIfNull().Trim().ThrowIfNullOrEmpty().ThrowWhen(pk => pk.Length > 256, nameof(partitionKey));
-        partitionSize.ThrowWhen(ps => ps <= 0 || ps > 256, nameof(partitionSize));
+        partitionSize = ValidatePartitionSize(partitionSize);
 
         static int GenerateIdFromHash(ReadOnlySpan<byte> bytes, int partitionSize)
         {

@@ -20,6 +20,7 @@ The namespace also includes supporting utilities: `Cleaner` for normalizing stri
 - 🧹 **Cleaning and normalization**: `Cleaner` applies configurable `StringTrim`, `StringTransform` (null/empty), `StringCase` (upper/lower/title), and `DateTimeTransform` (UTC/local) policies across entity properties before save.
 - 📐 **Feature detection**: `FeatureSupport` and extension methods allow infrastructure code to detect which interfaces an entity implements and act accordingly (e.g. auto-populate ETags or change logs).
 - ✍️ **Write-intent descriptors**: `Writable` enum and `[Writable]` attribute annotate entity properties with create-only / update-only / never-writable semantics for OpenAPI documentation and tooling.
+- ✅ **Non-nullable intent**: `[NonNullable]` marks a property as mandatory/non-null for OpenAPI tooling even though it is declared nullable (`string?`, `int?`) in code for DTO flexibility.
 - 🔧 **Identifier generation**: `IdentifierGenerator` and `IIdentifierGenerator` provide DI-replaceable new `Guid`/`string` identifier creation (using `Guid.CreateVersion7()` on .NET 9+).
 
 ## Key types
@@ -38,6 +39,7 @@ The namespace also includes supporting utilities: `Cleaner` for normalizing stri
 | **[`MessageItem`](./MessageItem.cs)** | Record carrying a single structured message — type (Error/Warning/Info), text (`LText`), and optional property name — returned from validation and service operations. |
 | **[`MessageCollection`](./MessageCollection.cs)** | Collection of `MessageItem` instances; attached to `ValidationException` and surfaced via `ExecutionContext.Messages`. |
 | **[`ValueResult`](./ValueResult.cs)** | Wraps a value alongside an `IResult` to carry both a typed result and an associated result state. |
+| **[`NonNullableAttribute`](./NonNullableAttribute.cs)** | Property attribute declaring a nullable-in-code property as non-nullable for OpenAPI (read by `CoreEx.AspNetCore.NSwag`). |
 | **[`Writable`](./Writable.cs)** | Enum describing property write intent: `Always`, `Never`, `CreateOnly`, or `UpdateOnly`; used with `[WritableAttribute]` for OpenAPI tooling. |
 | [`IContract`](./IContract.cs) | Marker interface combining `IRuntimeMetadata`, `ICopyFrom`, and `IDefault` — the aggregate contract implemented by generated domain types. |
 | [`IContract<T>`](./IContractT.cs) | Generic version of `IContract` providing strongly-typed `CopyFrom(T)` and `IsDefault()` implementations via `RuntimeMetadata`. |

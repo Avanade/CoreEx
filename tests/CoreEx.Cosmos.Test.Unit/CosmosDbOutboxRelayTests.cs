@@ -265,8 +265,7 @@ public class CosmosDbOutboxRelayTests : CosmosTestBase
         testPublisher.Published.Should().BeEmpty();
     }
 
-    // Fixed (not per-run GUID-suffixed) container names, matching every other fixture in this project - the local emulator caps the TOTAL number of containers across the whole account
-    // (AZURE_COSMOS_EMULATOR_PARTITION_COUNT, see docker-compose.yml), and a new container pair per test run/rerun burns through that budget fast for no benefit (confirmed the hard way this session).
+    // Fixed (not per-run GUID-suffixed) container names, matching every other fixture in this project - a new container pair per test run/rerun just accumulates emulator state for no benefit.
     private const string CircuitBreakerContainerId = "relay-cb-items";
     private const string CircuitBreakerLeaseContainerId = "relay-cb-items-leases";
 
@@ -333,6 +332,115 @@ public class CosmosDbOutboxRelayTests : CosmosTestBase
 
     private const string DisposeLeaseContainerId = "relay-items-leases";
 
+    [TestCase(false, true)]
+    [TestCase(true, true)]
+    [TestCase(false, false)]
+    public async Task Relay_Instrumentation_SuppressesPollingButPreservesPublishing(bool pollingEnabled, bool publishingEnabled)
+    {
+        const string containerId = "relay-telemetry-items";
+        const string leaseContainerId = "relay-telemetry-leases";
+        await GetOrCreateContainerAsync(containerId).ConfigureAwait(false);
+        await TestDatabase.CreateContainerIfNotExistsAsync(leaseContainerId, "/id").ConfigureAwait(false);
+
+        var activities = new ConcurrentQueue<Activity>();
+        using var telemetry = Sdk.CreateTracerProviderBuilder()
+            .AddSource("Azure.Cosmos.Operation", "test.outbox.*", CloudEventTracingExtensions.RelayMarkerActivitySourceName)
+            .AddInvokerAsSource<CosmosDbOutboxRelayInvoker>().AddHttpClientInstrumentation()
+            .SetSampler(new AlwaysOnSampler())
+            .AddProcessor(new CaptureActivityProcessor(activities)).Build();
+        CosmosClient client;
+        // The client starts its own account-discovery work during construction, outside the relay's lifecycle.
+        using (SuppressInstrumentationScope.Begin(!pollingEnabled))
+            client = CreateClient(enableTracing: true);
+        using var ownedClient = client;
+        var cosmosDb = new CosmosDb(client, TestDatabase.Id);
+        var publisher = new TestEventPublisher();
+        using var sp = new ServiceCollection()
+            .AddScoped<ICosmosDb>(_ => new CosmosDb(client, TestDatabase.Id))
+            .AddSingleton<IEventPublisher>(publisher).BuildServiceProvider();
+        var processor = new CosmosDbOutboxRelayProcessor(sp, containerId, NullLogger<CosmosDbOutboxRelayProcessor>.Instance)
+        {
+            IsInstrumentationEnabledForPublishing = publishingEnabled
+        };
+        var options = new CosmosDbOutboxRelayOptions
+        {
+            ContainerId = containerId,
+            LeaseContainerId = leaseContainerId,
+            InstanceName = $"instance-{NewId()}",
+            PollInterval = TimeSpan.FromMilliseconds(200),
+            IsInstrumentationEnabledForPolling = pollingEnabled
+        };
+        await using var relay = new CosmosDbOutboxRelay(cosmosDb.Database, options, processor, NullLogger<CosmosDbOutboxRelay>.Instance);
+
+        await relay.StartAsync().ConfigureAwait(false);
+        await Task.Delay(TimeSpan.FromSeconds(2)).ConfigureAwait(false);
+        AssertPollingActivities();
+
+        await relay.PauseAsync("Verify instrumentation after resume.").ConfigureAwait(false);
+        activities.Clear();
+        await relay.ResumeAsync().ConfigureAwait(false);
+        await Task.Delay(TimeSpan.FromSeconds(2)).ConfigureAwait(false);
+        AssertPollingActivities();
+
+        var id = NewId();
+        using var producerSource = new ActivitySource("test.outbox.producer");
+        ActivityContext origin;
+        using (var producer = producerSource.StartActivity("original-request"))
+        {
+            producer.Should().NotBeNull();
+            origin = producer!.Context;
+            var outbox = new CosmosDbEventPublisher(cosmosDb);
+            var unitOfWork = new CosmosDbUnitOfWork(cosmosDb, outbox);
+            await unitOfWork.TransactionAsync(async ct =>
+            {
+                var created = await cosmosDb.Container<TestItem>(containerId, o => o.WithPartitionKey(m => m.PartitionKey))
+                    .CreateAsync(new TestItem { Id = id, PartitionKey = id, Name = "Telemetry" }, ct).ConfigureAwait(false);
+                unitOfWork.Events.Add(EventData.CreateEventWith(created.Value, EventAction.Created).WithSource(new Uri("https://unittest/coreex-cosmos")).WithPartitionKey(id));
+            }).ConfigureAwait(false);
+        }
+
+        await WaitUntilAsync(() =>
+        {
+            lock (publisher.Published)
+                return publisher.Published.Any(e => e.Event.Subject == id);
+        }, TimeSpan.FromSeconds(15)).ConfigureAwait(false);
+        await relay.StopAsync().ConfigureAwait(false);
+        publisher.Published.Should().Contain(e => e.Event.Subject == id);
+
+        var cleanup = activities.Where(a => a.Source.Name == "Azure.Cosmos.Operation" && a.DisplayName.StartsWith("delete_item", StringComparison.Ordinal)).ToArray();
+        if (pollingEnabled)
+            cleanup.Should().NotBeEmpty();
+        else
+            cleanup.Should().BeEmpty("cleanup uses the suppressed polling context, not the publishing context");
+
+        var delivery = activities.Where(a => a.OperationName == "test-publish").ToArray();
+        var markers = activities.Where(a => a.Source.Name == CloudEventTracingExtensions.RelayMarkerActivitySourceName && a.TraceId == origin.TraceId).ToArray();
+        if (publishingEnabled)
+        {
+            delivery.Should().NotBeEmpty();
+            activities.Should().Contain(a => a.GetTagItem("outbox.container") as string == containerId);
+            markers.Should().NotBeEmpty();
+            markers.Should().OnlyContain(a => a.ParentSpanId == origin.SpanId);
+        }
+        else
+        {
+            delivery.Should().BeEmpty();
+            markers.Should().BeEmpty();
+            activities.Should().NotContain(a => a.GetTagItem("outbox.container") as string == containerId);
+        }
+
+        void AssertPollingActivities()
+        {
+            if (pollingEnabled)
+            {
+                activities.Select(a => $"{a.Source.Name}: {a.DisplayName}").Should().Contain(s => s.StartsWith("Azure.Cosmos", StringComparison.Ordinal));
+                activities.Select(a => a.Source.Name).Should().Contain("System.Net.Http");
+            }
+            else
+                activities.Should().BeEmpty("idle change-feed and lease maintenance must not emit SDK or HTTP spans");
+        }
+    }
+
     [Test]
     public async Task DisposeAsync_WithoutPriorStop_StopsProcessorAndIsIdempotent()
     {
@@ -364,21 +472,136 @@ public class CosmosDbOutboxRelayTests : CosmosTestBase
         await act.Should().NotThrowAsync();
     }
 
-    private const string AutoProvisionContainerId = "relay-autoprovision-items";
-    private const string AutoProvisionLeaseContainerId = "relay-autoprovision-items-leases";
+    private const string ResetContainerId = "relay-reset-items";
+    private const string ResetLeaseContainerId = "relay-reset-items-leases";
 
     [Test]
-    public async Task StartAsync_LeaseContainerDoesNotAlreadyExist_IsAutoProvisioned()
+    public async Task Relay_FirstStart_PublishesExistingOutboxBacklog()
     {
-        // Regression: StartAsync previously only ever resolved the lease container via Database.GetContainer (a proxy reference, not a create) - against a fresh Cosmos DB database where the lease
-        // container had never been created, the underlying ChangeFeedProcessor.StartAsync would fail trying to acquire leases against a container that does not exist. Deliberately does NOT pre-create
-        // the lease container here (unlike every other test in this fixture), to prove StartAsync itself now provisions it.
-        await GetOrCreateContainerAsync(AutoProvisionContainerId).ConfigureAwait(false);
+        const string containerId = "relay-backlog-items";
+        const string leaseContainerId = "relay-backlog-items-leases";
+        await TestDatabase.ReplaceOrCreateContainerAsync(new ContainerProperties(containerId, "/partitionKey")).ConfigureAwait(false);
+        await TestDatabase.ReplaceOrCreateContainerAsync(new ContainerProperties(leaseContainerId, "/id")).ConfigureAwait(false);
 
-        // Confirm the lease container genuinely does not exist yet - a stale container from a prior interrupted run would invalidate this test's premise.
+        var cosmosDb = CreateCosmosDb();
+        var container = cosmosDb.Container<TestItem>(containerId, o => o.WithPartitionKey(m => m.PartitionKey));
+        var unitOfWork = new CosmosDbUnitOfWork(cosmosDb, new CosmosDbEventPublisher(cosmosDb));
+        var pk = NewId();
+        await unitOfWork.TransactionAsync(async ct =>
+        {
+            var created = await container.CreateAsync(new TestItem { Id = NewId(), PartitionKey = pk, Name = "ExistingBacklog" }, ct).ConfigureAwait(false);
+            unitOfWork.Events.Add(EventData.CreateEventWith(created.Value, EventAction.Created).WithSource(new Uri("https://unittest/coreex-cosmos", UriKind.Absolute)).WithPartitionKey(pk));
+        }).ConfigureAwait(false);
+
+        // Separate the write from startup beyond Cosmos's timestamp granularity.
+        await Task.Delay(TimeSpan.FromSeconds(2)).ConfigureAwait(false);
+
+        var testPublisher = new TestEventPublisher();
+        using var sp = CreateServiceProvider(testPublisher);
+        var processor = new CosmosDbOutboxRelayProcessor(sp, containerId, NullLogger<CosmosDbOutboxRelayProcessor>.Instance);
+        var options = new CosmosDbOutboxRelayOptions
+        {
+            ContainerId = containerId,
+            LeaseContainerId = leaseContainerId,
+            InstanceName = $"instance-{NewId()}",
+            PollInterval = TimeSpan.FromMilliseconds(200)
+        };
+
+        await using var relay = new CosmosDbOutboxRelay(cosmosDb.Database, options, processor, NullLogger<CosmosDbOutboxRelay>.Instance);
+        await relay.StartAsync().ConfigureAwait(false);
+        await WaitUntilAsync(HasPublished, TimeSpan.FromSeconds(30)).ConfigureAwait(false);
+        HasPublished().Should().BeTrue("a fresh lease must not skip outbox events written before relay startup");
+
+        bool HasPublished()
+        {
+            lock (testPublisher.Published)
+                return testPublisher.Published.Any(e => e.Event.Data?.ToString()?.Contains("ExistingBacklog") ?? false);
+        }
+    }
+
+    [Test]
+    public async Task Relay_ContainersReplacedWhileRunning_SelfRecoversAndRelaysSubsequentEvents()
+    {
+        // Regression: a provisioning reset (delete + recreate; e.g. CosmosDbProvisionCommand.Reset) of the monitored and lease containers while the relay was running left the Change Feed Processor bound to
+        // the deleted containers (its lease prefix embeds the container resource ids) - endlessly reporting lost leases and never relaying another event until the host was restarted.
+        await GetOrCreateContainerAsync(ResetContainerId).ConfigureAwait(false);
+        await TestDatabase.CreateContainerIfNotExistsAsync(ResetLeaseContainerId, "/id").ConfigureAwait(false);
+
+        var cosmosDb = CreateCosmosDb();
+        var testPublisher = new TestEventPublisher();
+        using var sp = CreateServiceProvider(testPublisher);
+        var processor = new CosmosDbOutboxRelayProcessor(sp, ResetContainerId, NullLogger<CosmosDbOutboxRelayProcessor>.Instance);
+
+        var options = new CosmosDbOutboxRelayOptions
+        {
+            ContainerId = ResetContainerId,
+            LeaseContainerId = ResetLeaseContainerId,
+            InstanceName = $"instance-{NewId()}",
+            PollInterval = TimeSpan.FromMilliseconds(200),
+            RecoveryDelay = TimeSpan.FromMilliseconds(500)
+        };
+
+        async Task CreateWithEventAsync(string name)
+        {
+            var db = CreateCosmosDb();
+            var container = db.Container<TestItem>(ResetContainerId, o => o.WithPartitionKey(m => m.PartitionKey));
+            var unitOfWork = new CosmosDbUnitOfWork(db, new CosmosDbEventPublisher(db));
+            var pk = NewId();
+            await unitOfWork.TransactionAsync(async ct =>
+            {
+                var created = await container.CreateAsync(new TestItem { Id = NewId(), PartitionKey = pk, Name = name }, ct).ConfigureAwait(false);
+                unitOfWork.Events.Add(EventData.CreateEventWith(created.Value, EventAction.Created).WithSource(new Uri("https://unittest/coreex-cosmos", UriKind.Absolute)).WithPartitionKey(pk));
+            });
+        }
+
+        bool HasPublished(string name)
+        {
+            lock (testPublisher.Published)
+                return testPublisher.Published.Any(e => e.Event.Data?.ToString()?.Contains(name) ?? false);
+        }
+
+        await using var relay = new CosmosDbOutboxRelay(cosmosDb.Database, options, processor, NullLogger<CosmosDbOutboxRelay>.Instance);
+        await relay.StartAsync();
         try
         {
-            await TestDatabase.GetContainer(AutoProvisionLeaseContainerId).DeleteContainerAsync().ConfigureAwait(false);
+            await CreateWithEventAsync("BeforeReset");
+            await WaitUntilAsync(() => HasPublished("BeforeReset"), TimeSpan.FromSeconds(30));
+            HasPublished("BeforeReset").Should().BeTrue();
+
+            // Simulate a provisioning reset of both containers underneath the running relay.
+            await TestDatabase.ReplaceOrCreateContainerAsync(new ContainerProperties(ResetContainerId, "/partitionKey"));
+            await TestDatabase.ReplaceOrCreateContainerAsync(new ContainerProperties(ResetLeaseContainerId, "/id"));
+
+            await CreateWithEventAsync("AfterReset");
+            await WaitUntilAsync(() => HasPublished("AfterReset"), TimeSpan.FromSeconds(60));
+            HasPublished("AfterReset").Should().BeTrue();
+
+            // Keep observing for a while; a further event must still relay (i.e. not a one-off delivery from a stale processor).
+            await Task.Delay(TimeSpan.FromSeconds(20));
+            await CreateWithEventAsync("Later");
+            await WaitUntilAsync(() => HasPublished("Later"), TimeSpan.FromSeconds(60));
+            HasPublished("Later").Should().BeTrue();
+
+            relay.Status.Should().Be(ServiceStatus.Running);
+        }
+        finally
+        {
+            await relay.StopAsync();
+        }
+    }
+
+    private const string MissingLeaseContainerId = "relay-missing-lease-items";
+
+    [Test]
+    public async Task StartAsync_LeaseContainerDoesNotExist_FailsFastAndDoesNotCreateIt()
+    {
+        // The relay must never create its lease container (a control-plane operation a production identity is not permitted); it fails fast with actionable guidance instead.
+        await GetOrCreateContainerAsync(MissingLeaseContainerId).ConfigureAwait(false);
+        const string leaseContainerId = "relay-missing-lease-items-leases";
+
+        try
+        {
+            await TestDatabase.GetContainer(leaseContainerId).DeleteContainerAsync().ConfigureAwait(false);
         }
         catch (CosmosException cex) when (cex.StatusCode == HttpStatusCode.NotFound)
         {
@@ -387,36 +610,35 @@ public class CosmosDbOutboxRelayTests : CosmosTestBase
 
         var cosmosDb = CreateCosmosDb();
         using var sp = CreateServiceProvider(new TestEventPublisher());
-        var processor = new CosmosDbOutboxRelayProcessor(sp, AutoProvisionContainerId, NullLogger<CosmosDbOutboxRelayProcessor>.Instance);
+        var processor = new CosmosDbOutboxRelayProcessor(sp, MissingLeaseContainerId, NullLogger<CosmosDbOutboxRelayProcessor>.Instance);
 
         var options = new CosmosDbOutboxRelayOptions
         {
-            ContainerId = AutoProvisionContainerId,
-            LeaseContainerId = AutoProvisionLeaseContainerId,
+            ContainerId = MissingLeaseContainerId,
+            LeaseContainerId = leaseContainerId,
             InstanceName = $"instance-{NewId()}"
         };
 
         await using var relay = new CosmosDbOutboxRelay(cosmosDb.Database, options, processor, NullLogger<CosmosDbOutboxRelay>.Instance);
 
         Func<Task> act = async () => await relay.StartAsync();
-        await act.Should().NotThrowAsync();
-        relay.Status.Should().Be(ServiceStatus.Running);
-
-        // The lease container must now actually exist (StartAsync provisioned it) - ReadContainerAsync throws CosmosException(NotFound) otherwise.
-        var readResponse = await TestDatabase.GetContainer(AutoProvisionLeaseContainerId).ReadContainerAsync().ConfigureAwait(false);
-        readResponse.Resource.Id.Should().Be(AutoProvisionLeaseContainerId);
-
-        await relay.StopAsync();
+        (await act.Should().ThrowAsync<InvalidOperationException>()).WithMessage($"*'{leaseContainerId}'*OutboxLeaseContainer*");
+        relay.Status.Should().Be(ServiceStatus.Initializing); // Unchanged; remains startable once the lease container is provisioned.
+        Func<Task> read = async () => await TestDatabase.GetContainer(leaseContainerId).ReadContainerAsync();
+        (await read.Should().ThrowAsync<CosmosException>()).Which.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
     private sealed class TestEventPublisher : EventPublisherBase
     {
+        private static readonly ActivitySource _source = new("test.outbox.publisher");
+
         public List<DestinationEvent> Published { get; } = [];
 
         public bool ThrowOnPublish { get; set; }
 
         protected override Task OnPublishAsync(DestinationEvent[] events, CancellationToken cancellationToken = default)
         {
+            using var activity = _source.StartActivity("test-publish");
             if (ThrowOnPublish)
                 throw new InvalidOperationException("Simulated publish failure.");
 
@@ -425,5 +647,10 @@ public class CosmosDbOutboxRelayTests : CosmosTestBase
 
             return Task.CompletedTask;
         }
+    }
+
+    private sealed class CaptureActivityProcessor(ConcurrentQueue<Activity> activities) : BaseProcessor<Activity>
+    {
+        public override void OnEnd(Activity data) => activities.Enqueue(data);
     }
 }
