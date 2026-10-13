@@ -55,6 +55,7 @@
     <ProjectReference Include="..\..\src\Contoso.Products.Relay\Contoso.Products.Relay.csproj" SetTargetFramework="TargetFramework=$(SampleTargetFramework)" />
     <ProjectReference Include="..\..\src\Contoso.Products.Subscribe\Contoso.Products.Subscribe.csproj" SetTargetFramework="TargetFramework=$(SampleTargetFramework)" />
     <ProjectReference Include="..\..\src\Contoso.Shopping.Api\Contoso.Shopping.Api.csproj" SetTargetFramework="TargetFramework=$(SampleTargetFramework)" />
+    <ProjectReference Include="..\..\src\Contoso.Mcp\Contoso.Mcp.csproj" SetTargetFramework="TargetFramework=$(SampleTargetFramework)" />
     <ProjectReference Include="..\..\src\Contoso.Shopping.Relay\Contoso.Shopping.Relay.csproj" SetTargetFramework="TargetFramework=$(SampleTargetFramework)" />
     <ProjectReference Include="..\..\src\Contoso.Shopping.Subscribe\Contoso.Shopping.Subscribe.csproj" SetTargetFramework="TargetFramework=$(SampleTargetFramework)" />
   </ItemGroup>

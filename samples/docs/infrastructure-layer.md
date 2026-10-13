@@ -121,17 +121,18 @@ public class ProductMapper : BiDirectionMapper<Contracts.Product, Persistence.Pr
 
 ## External clients and adapter implementations
 
-When a domain needs to call another domain's API over HTTP, the raw HTTP interaction is encapsulated in a **typed HTTP client** (`Clients/`) — a thin wrapper around `HttpClient` that serializes requests and maps responses to CoreEx `Result` types. The adapter implementation (`Adapters/`) then uses this client alongside other infrastructure concerns (local EF store, event publishers) to fulfill the Application-layer adapter interface.
+When a domain needs to call another domain's API over HTTP, the raw HTTP interaction is encapsulated in a **typed HTTP client** (`Clients/`) — a thin wrapper around `HttpClient` that builds requests fluently and maps responses to CoreEx `Result` types. The adapter implementation (`Adapters/`) then uses this client alongside other infrastructure concerns (local EF store, event publishers) to fulfill the Application-layer adapter interface.
 
 ```csharp
 // samples/src/Contoso.Shopping.Infrastructure/Clients/ProductsHttpClient.cs
 public class ProductsHttpClient(HttpClient httpClient)
 {
-    public async Task<Result> CreateReservationAsync(MovementRequest request)
-    {
-        var response = await _httpClient.PostAsJsonAsync("api/inventory/reserve", request, JsonDefaults.SerializerOptions);
-        return await response.ToResultAsync();
-    }
+    private readonly HttpClient _httpClient = httpClient.ThrowIfNull();
+
+    public Task<Result> CreateReservationAsync(MovementRequest request, CancellationToken ct = default)
+        => _httpClient
+            .SendValue(HttpMethod.Post, "api/inventory/reserve", request)
+            .ToResultAsync(ct);
 }
 
 // samples/src/Contoso.Shopping.Infrastructure/Adapters/ProductAdapter.cs
@@ -142,17 +143,16 @@ public class ProductAdapter(ShoppingEfDb ef, IEventPublisher eventPublisher, Pro
 }
 ```
 
-This split — client for transport, adapter for orchestration — keeps each class focused on a single responsibility and makes the HTTP interaction independently testable.
+This split — client for transport, adapter for orchestration — keeps each class focused on a single responsibility and makes the HTTP interaction independently testable. Using `_httpClient.Send(...)` or `_httpClient.SendValue(...)` returns an `HttpRequestBuilder`, allowing fluent setup of headers, query parameters, and paging, with automatic response disposal when calling terminal methods (`ToResultAsync`, `GetValueAsync<T>`, etc.).
 
 `CustomersHttpClient` / `CustomerAdapter` are the purely real-time variant: no local replica, the adapter delegates to the client (`GET api/customers/{id}`), mapping a 404 to `Result.NotFoundError()`. The lookup is wrapped in a single `IHybridCache.GetOrCreateWithResultAsync<Customer>(...)` call: only successful results are cached (short, configurable expiry via `CoreEx:Caching:Customer:*`), failures such as not-found are never cached. The lookup is single-flight per key (per node) under FusionCache, so concurrent misses make one remote call; coalescing across nodes sharing Redis would need an opt-in FusionCache distributed locker, which isn't worth it for this cheap read. The client is registered in the Api and Subscribe hosts with `AddTypedHttpClient<CustomersHttpClient>("CustomersApi")`, the `CustomersApi:BaseAddress` setting being overridden with service discovery under Aspire.
 
-Before returning a successful lookup, `CustomersHttpClient` uses
-`response.WithValidator(_validator).ToResultAsync(ct)` to require an email with valid format.
+`CustomersHttpClient` chains `.WithStatusResult(HttpStatusCode.NotFound, () => Result.NotFoundError())` and `.WithValidator(_validator).ToResultAsync(ct)` directly on `_httpClient.Send(...)`: a 404 response short-circuits directly to `Result.NotFoundError()` before deserialization or validation runs, while a 200 response requires an email with valid format and automatically disposes the HTTP response.
 The response-specific rules are defined once in a private static readonly `Validator<Customer>`
 inside the client using `Validator.Create<Customer>().HasProperty(...)`, leaving other details unrestricted rather
 than applying create/update rules to a read response. Customer identity is trusted, not validated
 or compared with the requested identifier. Invalid successful responses become
 `HttpRequestException` failures with structured validation diagnostics, so they are not cached
-or mistaken for caller validation errors. The client disposes the HTTP response after consumption.
+or mistaken for caller validation errors.
 
-> **See also**: [`ToResultAsync`](../../src/CoreEx/Extensions.HttpResponseMessage.cs) · [`JsonDefaults`](../../src/CoreEx/Json/JsonDefaults.cs) · [Strangler Fig / ACL patterns](https://learn.microsoft.com/en-us/azure/architecture/patterns/strangler-fig)
+> **See also**: [`HttpRequestBuilder`](../../src/CoreEx/Http/HttpRequestBuilder.cs) · [`ToResultAsync`](../../src/CoreEx/Extensions.HttpResponseMessage.cs) · [`JsonDefaults`](../../src/CoreEx/Json/JsonDefaults.cs) · [Strangler Fig / ACL patterns](https://learn.microsoft.com/en-us/azure/architecture/patterns/strangler-fig)

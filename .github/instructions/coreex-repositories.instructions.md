@@ -23,7 +23,7 @@ tags: ["repositories", "infrastructure", "data-access", "efcore", "cosmos", "map
 
 | Package | Key types provided |
 |---|---|
-| `CoreEx` | `[ScopedService<T>]`, `.ThrowIfNull()`, `ItemsResult<T>`, `Result<T>`, `.GoAsync()`, `.ThenAs()`, `.ThenAsAsync()` |
+| `CoreEx` | `[ScopedService<T>]`, `.ThrowIfNull()`, `ItemsResult<T>`, `Result<T>`, `.GoAsync()`, `.ThenAs()`, `.ThenAsAsync()`, `HttpRequestBuilder`, `client.Send(...)`, `client.SendValue(...)`, `builder.AddNamedHttpClient(...)`, `builder.AddTypedHttpClient<T>(...)` |
 | `CoreEx.Validation` | `Validator<T>`, `Validator.Create<T>()`, `.HasProperty(...)`, `.Mandatory()`, `.Email()` for inline response-contract rules |
 | `CoreEx.Events` | `EventData` |
 | `CoreEx.Data` | `IUnitOfWork`, `DataResult<T>`, `QueryArgsConfig<TSelf>`, `QueryFilterOperator`, `.Where(parsed)`, `.OrderBy(parsed)` |
@@ -444,11 +444,10 @@ public class ProductsHttpClient(HttpClient httpClient)
 {
     private readonly HttpClient _httpClient = httpClient.ThrowIfNull();
 
-    public async Task<Result> CreateReservationAsync(MovementRequest request, CancellationToken cancellationToken = default)
-    {
-        var response = await _httpClient.PostAsJsonAsync("api/inventory/reserve", request, JsonDefaults.SerializerOptions, cancellationToken);
-        return await response.ToResultAsync();
-    }
+    public Task<Result> CreateReservationAsync(MovementRequest request, CancellationToken cancellationToken = default)
+        => _httpClient
+            .SendValue(HttpMethod.Post, "api/inventory/reserve", request)
+            .ToResultAsync(cancellationToken);
 }
 
 // Infrastructure/Adapters/ProductAdapter.cs
@@ -468,6 +467,10 @@ public class ProductAdapter(ShoppingEfDb ef, ProductsHttpClient client, IEventPu
 
 Keep the typed HTTP client and the adapter orchestration in separate, independently testable classes.
 
+Register typed HTTP clients in the host `Program.cs` via `builder.AddTypedHttpClient<ProductsHttpClient>("ProductsApi")` (or `builder.AddNamedHttpClient("ProductsApi")`). This automatically binds `BaseAddress` from configuration, adds `IdempotencyKeyHandler`, wires service discovery, and adds `Microsoft.Extensions.Http.Resilience` standard resilience handlers.
+
+Inside the client, use `_httpClient.Send(...)` and `_httpClient.SendValue(...)` to fluently construct requests (adding headers, queries, or paging) and execute them. Terminal methods on `HttpRequestBuilder` (`ToResultAsync`, `GetValueAsync<T>`, `GetStringAsync`, etc.) execute the request and **automatically dispose** the underlying `HttpResponseMessage`.
+
 ### Client response validation
 
 Keep response-contract rules in the typed client, not Application business/request validators.
@@ -478,19 +481,39 @@ validator under `Clients/{ExternalDomain}/` only for substantial rules or genuin
 private static readonly Validator<Customer> _validator = Validator.Create<Customer>()
     .HasProperty(x => x.Email, c => c.Mandatory().Email());
 
-// Inside the asynchronous client method; handle expected statuses before conversion.
-using var response = await _httpClient.GetAsync($"api/customers/{Uri.EscapeDataString(id)}", ct).ConfigureAwait(false);
-return await response.WithValidator(_validator).ToResultAsync(ct).ConfigureAwait(false);
+// Fluent builder execution with custom status mapping, validation, and automatic response disposal:
+public Task<Result<Customer>> GetAsync(string id, CancellationToken ct = default)
+    => _httpClient
+        .Send(HttpMethod.Get, $"api/customers/{Uri.EscapeDataString(id)}")
+        .WithStatusResult(HttpStatusCode.NotFound, () => Result.NotFoundError())
+        .WithValidator(_validator)
+        .ToResultAsync(ct);
+
+// Or when inspecting raw response directly (caller owns response disposal):
+public async Task<Result<Customer>> GetAsync(string id, CancellationToken ct = default)
+{
+    using var response = await _httpClient
+        .Send(HttpMethod.Get, $"api/customers/{Uri.EscapeDataString(id)}")
+        .GetResponseAsync(ct).ConfigureAwait(false);
+
+    return await response
+        .WithValidator(_validator)
+        .WithStatusResult(HttpStatusCode.NotFound, () => Result.NotFoundError())
+        .ToResultAsync(ct).ConfigureAwait(false);
+}
 ```
 
 Validate only fields the consumer needs; do not impose create/update rules or identifier matching
 by default. Do not capture request state/scoped dependencies in a shared validator.
+Matched status codes from `.WithStatusResult(...)` short-circuit execution before deserialization and validation.
 The wrapper validates successful non-null values and returns the validation result's `Value`.
 Reported errors become `HttpRequestException` with inner validation diagnostics: failed `ToResult*`,
 throwing `GetValue*`, standard internal 500 rather than caller 400. Required methods reject null;
 `OrDefault` methods allow null and skip validation for absent values. HTTP/ProblemDetails handling,
 deserialization exceptions, unexpected validator exceptions, and cancellation remain unchanged.
-Dispose the response at the call site; the wrapper does not own it.
+When executing terminal methods on `HttpRequestBuilder`, response disposal is automatic; when retrieving
+raw responses via `GetResponseAsync()` or directly awaiting `HttpClient.SendAsync`, the caller retains
+responsibility for disposing the response (`using var`).
 Test inline rules through the client, including invalid 2xx responses, exact inner messages, and
 valid minimal responses; do not expose private validators just for tests.
 

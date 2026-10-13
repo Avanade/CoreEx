@@ -110,6 +110,7 @@ See [Patterns](docs/patterns.md) for the full catalog of architectural patterns 
 |---|---|
 | `src/Contoso.Products.*` | Products domain — Contracts, Application, Infrastructure, API, Relay, Subscribe, CodeGen, Database |
 | `src/Contoso.Shopping.*` | Shopping domain — same layer split plus Domain aggregate |
+| `src/Contoso.Mcp` | HTTP MCP facade that composes the Products and Shopping APIs |
 | `src/Contoso.Customers.*` | Customers domain (Cosmos DB) — Contracts, Application, Infrastructure, API, Relay, CodeGen, Database (Cosmos provisioning console); no Subscribe project |
 | `src/Contoso.Orders.*` | Orders domain (work in progress) |
 | `aspire/Contoso.Aspire` | Aspire AppHost — orchestrates all hosts for local development and E2E validation |
@@ -166,7 +167,7 @@ See [Tooling](docs/tooling.md) for the full list of database commands and what e
 aspire run
 ```
 
-This starts every domain API, Outbox Relay, and Subscribe host as a single distributed application and opens the Aspire Dashboard for centralized logs, traces, and metrics. See [Aspire & E2E](docs/aspire.md) for a full walkthrough.
+This starts every domain API, Outbox Relay, Subscribe host, and the Contoso MCP endpoint as a single distributed application and opens the Aspire Dashboard for centralized logs, traces, and metrics. See [Aspire & E2E](docs/aspire.md) for a full walkthrough and the [Contoso MCP demo](docs/aspire.md#contoso-mcp-demo) for connecting a local MCP client.
 
 ### 4 — Run Tests
 

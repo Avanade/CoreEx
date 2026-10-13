@@ -33,6 +33,7 @@ All other CoreEx packages (`CoreEx.Events`, `CoreEx.Database`, `CoreEx.AspNetCor
 - 🃏 **Wildcard parsing**: `Wildcard` provides standardized `*` and `?` wildcard parsing, validation, and `Regex` compilation for consistent wildcard-based filtering.
 - 🏷️ **Reference data interfaces**: Core `IReferenceData`, `IReferenceDataCollection`, and `ReferenceDataOrchestrator` types establish the reference data contract used by `CoreEx.RefData` and data-layer packages.
 - 📐 **Schema versioning**: `SchemaAttribute` and `Schema` utilities for associating a semantic version with entity types, supporting schema-aware messaging and validation.
+- 🌐 **HTTP client and request builder**: `client.Send(...)` and `client.SendValue(...)` return an `HttpRequestBuilder` providing fluent request setup (`WithQuery`, `WithPaging`, headers) and terminal execution with automatic response disposal (`GetValueAsync<T>`, `ToResultAsync`, `GetStringAsync`, etc.). `builder.AddNamedHttpClient` / `AddTypedHttpClient` configure service discovery, resilience, and idempotency key handling.
 
 ## Key types
 
@@ -41,6 +42,7 @@ All other CoreEx packages (`CoreEx.Events`, `CoreEx.Database`, `CoreEx.AspNetCor
 | **[`ExecutionContext`](./ExecutionContext.cs)** | `AsyncLocal`-scoped ambient context carrying user identity, tenant ID, operation type, timestamp, and attributes for the lifetime of a request. |
 | **[`Result`](./Results/Result.cs)** | Value type representing a successful or failed operation with no return value; the basis of railway-oriented programming in CoreEx. |
 | **[`Result<T>`](./Results/ResultT.cs)** | Value type representing a successful operation with a value, or a typed error — used for functional pipeline-style error propagation. |
+| **[`HttpRequestBuilder`](./Http/HttpRequestBuilder.cs)** | Fluent HTTP request builder for configuring requests, chaining extensions, and executing terminal deserialization and result mapping with automatic response disposal. |
 | **[`DataConsistencyException`](./DataConsistencyException.cs)** | Non-error exception used to signal a potential data consistency issue without treating it as an application error. |
 | **[`PrecisionTimeProvider`](./PrecisionTimeProvider.cs)** | `TimeProvider` implementation that truncates timestamps to a configurable fractional-second precision for database compatibility. |
 | **[`OperationType`](./OperationType.cs)** | Enum representing the CRUD operation type (Get, Create, Update, Delete, Query) carried on the `ExecutionContext`. |
@@ -52,14 +54,23 @@ See the [Extended Exceptions](#extended-exceptions) section below for the full l
 ## Validating HTTP response values
 
 HTTP success and JSON deserialization do not guarantee a valid dependency response. Use
-`WithValidator` with a `CoreEx.Validation.IValidator<T>` to opt into response-contract validation:
+`WithValidator` with a `CoreEx.Validation.IValidator<T>` to opt into response-contract validation.
+This can be chained directly onto `HttpRequestBuilder` (which manages execution and automatic response disposal)
+or applied directly to an `HttpResponseMessage`:
 
 ```csharp
+// Fluent request with validator and automatic response disposal:
+return await _httpClient.Send(HttpMethod.Get, $"api/customers/{Uri.EscapeDataString(id)}")
+    .WithValidator(customerValidator)
+    .ToResultAsync(ct).ConfigureAwait(false);
+
+// Or on an existing HttpResponseMessage (caller owns response disposal):
 using var response = await _httpClient.GetAsync($"api/customers/{Uri.EscapeDataString(id)}", ct).ConfigureAwait(false);
 return await response.WithValidator(customerValidator).ToResultAsync(ct).ConfigureAwait(false);
 ```
 
-The [typed wrapper](./Http/ValidatedHttpResponseT.cs) reuses the existing response converters and
+The typed wrappers ([`ValidatedHttpRequestBuilder<T>`](./Http/ValidatedHttpRequestBuilderT.cs) and
+[`ValidatedHttpResponse<T>`](./Http/ValidatedHttpResponseT.cs)) reuse the existing response converters and
 validates only successful, non-null deserialized values. It returns the **validation result's
 Value**, including replacements or normalization. `ToResultAsync` requires a non-null value both
 before and after validation; `ToResultOrDefaultAsync` allows null and skips validation when the
@@ -82,9 +93,11 @@ For small client-only rules, prefer a private static readonly `Validator<T>` con
 private static readonly Validator<Customer> _validator = Validator.Create<Customer>()
     .HasProperty(x => x.Email, c => c.Mandatory().Email());
 
-// Inside the asynchronous HTTP client method.
-using var response = await _httpClient.GetAsync($"api/customers/{Uri.EscapeDataString(id)}", ct).ConfigureAwait(false);
-return await response.WithValidator(_validator).ToResultAsync(ct).ConfigureAwait(false);
+// Fluent builder with custom status mapping and automatic response disposal:
+return await _httpClient.Send(HttpMethod.Get, $"api/customers/{Uri.EscapeDataString(id)}")
+    .WithStatusResult(HttpStatusCode.NotFound, () => Result.NotFoundError())
+    .WithValidator(_validator)
+    .ToResultAsync(ct).ConfigureAwait(false);
 ```
 
 Extract a colocated validator only for substantial rules or genuine reuse. Validate consumed
@@ -94,9 +107,10 @@ rules through client unit tests rather than exposing them solely for testing. In
 must not be cached. See the
 [Customers client sample](../../samples/src/Contoso.Shopping.Infrastructure/Clients/Customers/CustomersHttpClient.cs)
 for a complete implementation.
-Validators can normalize values or perform I/O, so consider their effects explicitly. The wrapper
-does not own or dispose the response, cache validation results, or support concurrent response
-consumption. Keep responsibility for disposing the response at the call site.
+Validators can normalize values or perform I/O, so consider their effects explicitly.
+When using `HttpRequestBuilder` terminal methods, the response is automatically disposed. When using
+raw `HttpResponseMessage.WithValidator`, the wrapper does not own or dispose the response — retain
+responsibility for disposing the response via `using var` at the call site.
 Like the underlying converters, a terminal operation consumes the content stream; creating a
 wrapper does not buffer the body for repeated reads.
 

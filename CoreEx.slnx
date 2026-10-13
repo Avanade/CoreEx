@@ -104,6 +104,9 @@
     <Project Path="samples/src/Contoso.Shopping.Relay/Contoso.Shopping.Relay.csproj" />
     <Project Path="samples/src/Contoso.Shopping.Subscribe/Contoso.Shopping.Subscribe.csproj" />
   </Folder>
+  <Folder Name="/samples/Integration/hosts/">
+    <Project Path="samples/src/Contoso.Mcp/Contoso.Mcp.csproj" />
+  </Folder>
   <Folder Name="/samples/Shopping/tests/">
     <Project Path="samples/tests/Contoso.Shopping.Test.Api/Contoso.Shopping.Test.Api.csproj" />
     <Project Path="samples/tests/Contoso.Shopping.Test.Common/Contoso.Shopping.Test.Common.csproj" />

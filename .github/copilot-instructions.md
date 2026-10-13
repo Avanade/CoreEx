@@ -112,6 +112,8 @@ Connection strings for each service in development are in each host's `appsettin
 ### Adapters (Anti-Corruption Layer)
 - When a domain needs to interact with another domain or external service, define an **adapter interface** in `Application\Adapters\`. The Application layer depends on this domain-idiomatic abstraction — never on the remote API's schema or transport directly.
 - Infrastructure implements the adapter using a **typed HTTP client** (`Infrastructure\Clients\`) for the transport concern, keeping client and orchestration in separate focused classes.
+- Register typed HTTP clients in `Program.cs` via `builder.AddTypedHttpClient<TClient>("ServiceName")` (or `builder.AddNamedHttpClient("ServiceName")`), which automatically wires base address configuration, `IdempotencyKeyHandler`, service discovery, and `Microsoft.Extensions.Http.Resilience` standard resilience handlers.
+- Inside typed clients, use `client.Send(...)` or `client.SendValue(...)` returning `HttpRequestBuilder` for fluent request building (`WithQuery`, `WithPaging`, headers, `WithStatusResult`, `WithValidator`) and single-await execution with automatic response disposal.
 - Two adapter roles appear in Shopping:
   - **Synchronous adapter** (`IProductAdapter`) — real-time calls (e.g. inventory reservation at checkout); the HTTP client is called live inside the unit of work.
   - **Sync/replication adapter** (`IProductSyncAdapter`) — event-driven data replication; receives published domain events and maintains a local eventually-consistent copy in the domain's own store.

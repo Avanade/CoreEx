@@ -106,12 +106,7 @@ public class HttpClientTests
     {
         public static void ConfigureApplication(IHostApplicationBuilder builder)
         {
-            builder.Services.AddHttpClient("UnitTest", static client =>
-            {
-                client.BaseAddress = new Uri("http://unittest");
-            })
-            .AddIdempotencyKeyHandler()
-            .AddStandardResilienceHandler(); // https://learn.microsoft.com/en-us/dotnet/core/resilience/http-resilience?tabs=dotnet-cli#standard-resilience-handler-defaults
+            builder.AddNamedHttpClient("UnitTest", client => client.BaseAddress = new Uri("http://unittest"));
         }
     }
 }

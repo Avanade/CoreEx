@@ -53,18 +53,53 @@ return await GetOrderAsync(id)
     .ConfigureAwait(false);
 ```
 
+## HTTP Request Builder and Extensions
+
+Use `client.Send(...)` or `client.SendValue(...)` to build, configure, and execute HTTP requests fluently. Terminal methods (`GetValueAsync<T>`, `GetValueOrDefaultAsync<T>`, `GetStringAsync`, `ToResultAsync`, `ToProblemDetailsAsync`, `ThrowOnErrorAsync`) execute the request and automatically dispose the underlying `HttpResponseMessage`.
+
+```csharp
+// Fluent request with query filter, paging, and typed response deserialization + disposal
+var products = await _httpClient
+    .Send(HttpMethod.Get, "api/products")
+    .WithQuery("contains(Text, 'hammer')")
+    .WithPaging(take: 10)
+    .GetValueAsync<ProductLite[]>(cancellationToken).ConfigureAwait(false);
+
+// POST JSON body and map response to CoreEx Result with automatic disposal
+return await _httpClient
+    .SendValue(HttpMethod.Post, "api/inventory/reserve", request)
+    .ToResultAsync(cancellationToken).ConfigureAwait(false);
+
+// Intercept specific HTTP status codes (e.g. 404 -> Result.NotFoundError)
+return await _httpClient
+    .Send(HttpMethod.Get, $"api/customers/{Uri.EscapeDataString(id)}")
+    .WithStatusResult(HttpStatusCode.NotFound, () => Result.NotFoundError())
+    .ToResultAsync<Customer>(cancellationToken).ConfigureAwait(false);
+```
+
+Register named or typed HTTP clients in `Program.cs` via `builder.AddNamedHttpClient(...)` or `builder.AddTypedHttpClient<TClient>(...)`. These automatically configure the base address, `IdempotencyKeyHandler`, service discovery, and `Microsoft.Extensions.Http.Resilience` standard resilience handlers.
+
 ## Validating HTTP Response Values
 
-Use `response.WithValidator(validator).ToResultAsync(ct)` to validate a successful,
-non-null deserialized dependency response. The typed wrapper returns the validation result's
-`Value`; reported validation errors become failed results containing `HttpRequestException`
-with structured inner validation diagnostics. `GetValueAsync(ct)` is the throwing equivalent.
-Standard API handling treats these as internal 500 errors, not caller 400 validation errors.
+Use `WithValidator(validator)` to validate a successful, non-null deserialized dependency response.
+It can be chained directly onto `HttpRequestBuilder` (which manages request execution and automatic
+response disposal) or used on an existing `HttpResponseMessage`.
+
+When combined with `.WithStatusResult(status, result)` (or `.WithErrorStatus(...)`), matched status
+codes short-circuit before deserialization and validation, returning the custom result immediately.
+
+The typed wrapper returns the validation result's `Value`; reported validation errors become failed
+results containing `HttpRequestException` with structured inner validation diagnostics.
+`GetValueAsync(ct)` is the throwing equivalent. Standard API handling treats these as internal 500
+errors, not caller 400 validation errors.
 
 Required methods reject missing content and null validated values; `OrDefault` methods allow
 null and skip validation for absent response values. Existing HTTP/ProblemDetails handling,
 deserialization exceptions, unexpected validator exceptions, and cancellation are unchanged.
-Dispose the response at the call site; the wrapper does not own it.
+
+When using terminal methods on `HttpRequestBuilder` (e.g. `ToResultAsync`, `GetValueAsync<T>`), response disposal
+is handled automatically. When inspecting raw responses via `builder.GetResponseAsync()` or directly awaiting
+`client.SendAsync`, retain `using var response = ...` to dispose the response at the call site.
 
 For small client-only rules, configure a private static readonly `Validator<T>` once with
 `Validator.Create<T>().HasProperty(...)` from the `CoreEx.Validation` package. Keep these rules
@@ -75,9 +110,21 @@ not create/update requirements or identifier matching by default. Test through t
 private static readonly Validator<Customer> _validator = Validator.Create<Customer>()
     .HasProperty(x => x.Email, c => c.Mandatory().Email());
 
-// Inside the asynchronous HTTP client method.
-using var response = await _httpClient.GetAsync($"api/customers/{Uri.EscapeDataString(id)}", ct).ConfigureAwait(false);
-return await response.WithValidator(_validator).ToResultAsync(ct).ConfigureAwait(false);
+// Fluent builder execution with custom status mapping, validation, and automatic disposal:
+return await _httpClient
+    .Send(HttpMethod.Get, $"api/customers/{Uri.EscapeDataString(id)}")
+    .WithStatusResult(HttpStatusCode.NotFound, () => Result.NotFoundError())
+    .WithValidator(_validator)
+    .ToResultAsync(ct).ConfigureAwait(false);
+
+// Or when inspecting raw response directly (caller owns response disposal):
+using var response = await _httpClient
+    .Send(HttpMethod.Get, $"api/customers/{Uri.EscapeDataString(id)}")
+    .GetResponseAsync(ct).ConfigureAwait(false);
+
+return await response.WithValidator(_validator)
+    .WithStatusResult(HttpStatusCode.NotFound, () => Result.NotFoundError())
+    .ToResultAsync(ct).ConfigureAwait(false);
 ```
 
 See [usage, inline examples, and semantics](./README.md#validating-http-response-values).

@@ -21,6 +21,7 @@ The `Contoso.Aspire` AppHost (`samples/aspire/Contoso.Aspire/AppHost.cs`) regist
 | `products-relay` | `Contoso.Products.Relay` | HTTP + `/health/ready/detailed` + hosted-service controls |
 | `products-subscribe` | `Contoso.Products.Subscribe` | HTTP + `/health/ready/detailed` + hosted-service controls |
 | `shopping-api` | `Contoso.Shopping.Api` | HTTP + `/health/ready/detailed` |
+| `contoso-mcp` | `Contoso.Mcp` | Streamable HTTP MCP at `/mcp` + `/health` (Products and Shopping API calls) |
 | `shopping-relay` | `Contoso.Shopping.Relay` | HTTP + `/health/ready/detailed` + hosted-service controls |
 | `shopping-subscribe` | `Contoso.Shopping.Subscribe` | HTTP + `/health/ready/detailed` + hosted-service controls |
 | `order-workflow-worker` | `Contoso.Order.Workflow.Worker` | HTTP + `/health` + DTS Dashboard link |
@@ -78,6 +79,28 @@ dotnet run --project samples/aspire/Contoso.Aspire
 
 Both commands start the AppHost, which in turn launches all registered projects as child processes. The Aspire Dashboard opens automatically in the browser.
 
+### Contoso MCP demo
+
+`Contoso.Mcp` is a local-development sample: it has no authentication and must not be exposed to an untrusted network. It is a cross-domain HTTP facade over the real Products and Shopping APIs. Aspire wires both API references through service discovery; it does not add MCP endpoints to either domain API. The server uses stateless Streamable HTTP at `/mcp` (not stdio). Copy the `contoso-mcp` HTTP endpoint from the Aspire Dashboard and append `/mcp`; the port can vary between runs.
+
+The tools support product search/detail and the complete basket lifecycle: list/create baskets, read a basket, add/update/remove items, apply `SAVE10`, update the shipping address, and checkout. Successful calls return typed structured data with a tool output schema; errors are reported as MCP tool errors, not success-shaped strings. The ordinary development database seed does not include customer or product test data. For an interactive basket demo, start `Contoso.E2E.Runner` and run **Database Migration and Base Data Refresh** followed by **Data Seeding for E2E Testing**; this resets the local sample databases to test data, seeds customer `16.ToGuid()` with an address, and stocks active products. Basket creation requires an existing Customers-domain ID. Checkout is consequential: it reserves stock and triggers asynchronous confirmation through the existing outbox, relay, Service Bus, and Products subscriber.
+
+To connect GitHub Copilot CLI while Aspire is running, register that endpoint from a terminal:
+
+```powershell
+copilot mcp add --transport http coreex-contoso "http://localhost:<contoso-mcp-port>/mcp"
+```
+
+Replace the URL with the `contoso-mcp` HTTP URL shown in the dashboard, including `/mcp`. In Copilot CLI, use `/mcp` to see the connected server and its tools. After completing the E2E setup above, ask it to search for a product, create a basket for customer `16.ToGuid()`, add an item, and inspect the basket. Treat checkout as a separate explicit step because it changes inventory and starts asynchronous processing. When finished, remove the connection with `copilot mcp remove coreex-contoso`.
+
+For protocol-level testing without Copilot CLI, run `npx @modelcontextprotocol/inspector`, choose Streamable HTTP, and enter the same `/mcp` URL. The Aspire E2E test exercises discovery and every lifecycle tool through the MCP client SDK:
+
+```powershell
+dotnet test samples/aspire/Contoso.Test.Aspire --filter "FullyQualifiedName~Contoso_Mcp_FullBasketLifecycle"
+```
+
+This sample and test validate the local HTTP server and MCP protocol flow; they do not establish compatibility with Copilot App Sessions or provide a stdio transport.
+
 ### Aspire Dashboard
 
 The dashboard (default: `http://localhost:15174`) provides:
@@ -96,7 +119,7 @@ The hosted-service command buttons (Pause / Resume) are also surfaced here, maki
 
 `Contoso.Test.Aspire` (`samples/aspire/Contoso.Test.Aspire/E2ETest.cs`) is an NUnit project that provides an **automated, CI-friendly** counterpart to the interactive E2E Runner described below. Unlike the E2E Runner, it does not require Aspire to already be running — its single test class derives from `WithAspireTester<Projects.Contoso_Aspire>` (from `CoreEx.UnitTesting`'s Aspire support), which starts the whole `Contoso.Aspire` AppHost itself for the duration of the test run.
 
-Its `OnBeforeStartAsync` override migrates and seeds the Products (Postgres), Shopping (SQL Server) and Customers (Cosmos DB) databases, clears the Redis cache, and resets the Service Bus emulator's queues/topics/subscriptions to a known state (the topology is the code-based `ServiceBus` class), then `OnAfterStartAsync` waits for the three APIs, all three relays, and the Products and Shopping subscribers. The `CreateOrderAndConfirmAsync` test drives the same cross-domain flow as the E2E Runner's **Shopping Basket Lifecycle** scenario: checkout, async inventory confirmation, and the stubbed SendGrid email. Inventory confirmation uses up to 60 one-second polling delays to accommodate relay contention and lease recovery on slower CI runners; failure reports the basket, product, last movement status, and expected command path.
+Its `OnBeforeStartAsync` override migrates and seeds the Products (Postgres), Shopping (SQL Server) and Customers (Cosmos DB) databases, clears the Redis cache, and resets the Service Bus emulator's queues/topics/subscriptions to a known state (the topology is the code-based `ServiceBus` class), then `OnAfterStartAsync` waits for the three APIs, all three relays, the Products and Shopping subscribers, and the MCP host. The `CreateOrderAndConfirmAsync` test drives the same cross-domain flow as the E2E Runner's **Shopping Basket Lifecycle** scenario: checkout, async inventory confirmation, and the stubbed SendGrid email. `Contoso_Mcp_FullBasketLifecycle` drives that basket lifecycle through the cross-domain MCP facade, verifies structured outputs and their schemas, and waits for the asynchronous inventory confirmation. Inventory confirmation uses up to 60 one-second polling delays to accommodate relay contention and lease recovery on slower CI runners; failure reports the basket, product, last movement status, and expected command path.
 
 `Customers_Api_Outbox_Relay_PublishesEvents` additionally drives customer create/update/delete and reference-data create/update/activate/deactivate/delete through the real Customers API. It receives the resulting events on the isolated, session-enabled `customers-relay` subscription using the Service Bus SDK and the AppHost's resolved connection string. Bounded polling correlates messages to this test's entity identifiers and event types; it does not drain Products/Shopping subscriptions or assume exactly-once delivery. No Customers subscriber or replication flow is introduced.
 

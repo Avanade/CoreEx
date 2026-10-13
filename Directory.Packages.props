@@ -13,6 +13,8 @@
     <PackageVersion Include="Aspire.StackExchange.Redis.DistributedCaching" Version="13.5.4" />
     <PackageVersion Include="CloudNative.CloudEvents.SystemTextJson" Version="2.9.0" />
     <PackageVersion Include="MessagePack" Version="2.5.303" />
+    <PackageVersion Include="ModelContextProtocol.AspNetCore" Version="2.2.0" />
+    <PackageVersion Include="ModelContextProtocol" Version="2.2.0" />
     <PackageVersion Include="Microsoft.Azure.Cosmos" Version="3.63.1" />
     <PackageVersion Include="Microsoft.DurableTask.Abstractions" Version="1.26.0" />
     <PackageVersion Include="Microsoft.DurableTask.Client.AzureManaged" Version="1.26.0" />

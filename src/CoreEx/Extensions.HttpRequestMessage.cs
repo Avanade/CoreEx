@@ -1,3 +1,9 @@
+/*
+ * NOTE: When adding, updating, or removing request configuration extensions in this file,
+ * ensure the matching fluent methods on HttpRequestBuilder (CoreEx.Http.HttpRequestBuilder)
+ * are also added, updated, or removed to keep both HTTP request configuration APIs in sync.
+ */
+
 namespace CoreEx;
 
 public static partial class Extensions

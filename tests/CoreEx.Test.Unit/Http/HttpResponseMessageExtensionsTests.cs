@@ -106,6 +106,91 @@ public class HttpResponseMessageExtensionsTests
     }
 
     [Test]
+    public async Task ToResultOrDefaultAsync_NullContent_IsSuccessWithNull()
+    {
+        var r = await Empty(HttpStatusCode.OK).ToResultOrDefaultAsync<Widget>();
+        r.IsSuccess.Should().BeTrue();
+        r.Value.Should().BeNull();
+    }
+
+    [Test]
+    public async Task ToStringResultAsync_Value_ReturnsValue()
+    {
+        var r = await new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("hello world") }.ToStringResultAsync();
+        r.IsSuccess.Should().BeTrue();
+        r.Value.Should().Be("hello world");
+    }
+
+    [Test]
+    public async Task ToStringResultAsync_NullContent_IsSuccessWithNull()
+    {
+        var r = await Empty(HttpStatusCode.OK).ToStringResultAsync();
+        r.IsSuccess.Should().BeTrue();
+        r.Value.Should().BeNull();
+    }
+
+    [Test]
+    public async Task ToStringResultAsync_EmptyString_IsSuccessWithNull()
+    {
+        var r = await new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(string.Empty) }.ToStringResultAsync();
+        r.IsSuccess.Should().BeTrue();
+        r.Value.Should().BeNull();
+    }
+
+    [Test]
+    public async Task ToStringResultAsync_NoContent_IsSuccessWithNull()
+    {
+        var r = await Empty(HttpStatusCode.NoContent).ToStringResultAsync();
+        r.IsSuccess.Should().BeTrue();
+        r.Value.Should().BeNull();
+    }
+
+    [Test]
+    public async Task ToStringResultAsync_NotSuccess_IsFailure()
+    {
+        var r = await Empty(HttpStatusCode.InternalServerError).ToStringResultAsync();
+        r.IsFailure.Should().BeTrue();
+        r.Error.Should().BeOfType<HttpRequestException>();
+    }
+
+    [Test]
+    public async Task GetStringAsync_Value_ReturnsValue()
+    {
+        var response = new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("test-data") };
+        var value = await response.GetStringAsync();
+        value.Should().Be("test-data");
+    }
+
+    [Test]
+    public async Task GetStringAsync_NullContent_ReturnsNull()
+    {
+        var value = await Empty(HttpStatusCode.OK).GetStringAsync();
+        value.Should().BeNull();
+    }
+
+    [Test]
+    public async Task GetStringAsync_EmptyString_ReturnsNull()
+    {
+        var response = new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(string.Empty) };
+        var value = await response.GetStringAsync();
+        value.Should().BeNull();
+    }
+
+    [Test]
+    public async Task GetStringAsync_NoContent_ReturnsNull()
+    {
+        var value = await Empty(HttpStatusCode.NoContent).GetStringAsync();
+        value.Should().BeNull();
+    }
+
+    [Test]
+    public async Task GetStringAsync_NotSuccess_Throws()
+    {
+        var act = async () => await Empty(HttpStatusCode.InternalServerError).GetStringAsync();
+        await act.Should().ThrowAsync<HttpRequestException>();
+    }
+
+    [Test]
     public async Task GetValueAsync_Value_ReturnsValue()
         => (await Json("{\"name\":\"abc\"}").GetValueAsync<Widget>()).Name.Should().Be("abc");
 

@@ -31,7 +31,7 @@ builder.AddProject<Projects.Contoso_Products_Subscribe>("products-subscribe").Wi
 // "https://localhost:7200" (Products) / "https://localhost:7320" (Customers); here the logical "https+http://products-api" / "https+http://customers-api" is injected instead, and WithReference populates the
 // "Services:products-api:*" / "Services:customers-api:*" configuration used by CoreEx's service-discovery-aware AddTypedHttpClient, so the resolved address
 // always matches whichever endpoint/port the target actually binds to (regardless of launch profile), rather than a static guess.
-builder.AddProject<Projects.Contoso_Shopping_Api>("shopping-api")
+var shoppingApi = builder.AddProject<Projects.Contoso_Shopping_Api>("shopping-api")
     .WithReference(sqlServer)
     .WithReference(redis)
     .WithReference(serviceBus)
@@ -54,6 +54,13 @@ builder.AddProject<Projects.Contoso_Shopping_Subscribe>("shopping-subscribe")
     .AddEndpoints("/health/ready/detailed")
     .AddHostedServiceSupport()
     .WithMockHostEnvironment("SendGrid__BaseAddress", mockhost, "http");
+
+builder.AddProject<Projects.Contoso_Mcp>("contoso-mcp")
+    .WithReference(productsApi)
+    .WithEnvironment("ProductsApi__BaseAddress", "https+http://products-api")
+    .WithReference(shoppingApi)
+    .WithEnvironment("ShoppingApi__BaseAddress", "https+http://shopping-api")
+    .AddEndpoints("/health");
 
 // Orders domain.
 var orderWorkflowWorker = builder.AddProject<Projects.Contoso_Order_Workflow_Worker>("order-workflow-worker").AddEndpoints("/health").WithUrlForEndpoint("https", ep => { ep.Url = "http://localhost:8082"; ep.DisplayText = "DTS Dashboard"; });
