@@ -13,6 +13,7 @@ public class ProductQueryArgsConfig : QueryArgsConfig<ProductQueryArgsConfig>
             .WithDefaultModelPrefix("Product")
             .AddField<string>(nameof(Contracts.ProductBase.Sku), c => c.WithOperators(QueryFilterOperator.EqualityOperators | QueryFilterOperator.StartsWith).AsUpperCase())
             .AddField<string>(nameof(Contracts.ProductBase.Text), c => c.WithOperators(QueryFilterOperator.StringFunctions).AsUpperCase())
+            .AddField<decimal>(nameof(Contracts.ProductBase.Price), c => c.WithOperators(QueryFilterOperator.ComparisonOperators))
             .AddReferenceDataField<Contracts.Category>(nameof(Contracts.ProductBase.Category), "CategoryCode", c => c.WithNoModelPrefix())
             .AddReferenceDataField<Contracts.SubCategory>(nameof(Contracts.ProductBase.SubCategory), "SubCategoryCode")
             .AddReferenceDataField<Contracts.Brand>(nameof(Contracts.ProductBase.Brand), "BrandCode"));

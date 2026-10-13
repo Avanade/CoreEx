@@ -15,11 +15,12 @@ The goal is not merely to store some numbers and label the result "AI". It is to
 | MCP `search_products` forwarding to Products | Implemented | The tool calls the Products API with `$search`; it does not query the database. |
 | Ranked-search mode plumbing | Implemented | CoreEx validates and carries ranked search intent; the repository must execute it. |
 | Canonical product search document | Implemented | Versioned, whitespace-normalized documents and source hashes exclude price, status, inventory and business metadata. |
+| Product descriptions and price filtering | Implemented | Optional descriptive content supports CRUD; decimal price constraints use existing REST and GraphQL-lite query configuration. |
 | Local embedding provider | Implemented | Ollama/Nomic document and query instructions, response validation, and an Application adapter boundary are available. |
 | Separate search projection and pgvector semantic retrieval | Proposed | No product embeddings are currently stored or queried in PostgreSQL. |
 | PostgreSQL full-text retrieval and hybrid ranking | Proposed | The current sample does not perform full-text or hybrid search. |
 | Asynchronous search indexing and backfill | Proposed | The outbox and subscriber foundations exist; search-specific processing does not. |
-| Real-model relevance evaluation and HNSW benchmark | Initial probes implemented; broader evaluation proposed | Two illustrative semantic expectations currently fail. Full-catalog relevance and index performance remain unproven. |
+| Real-model relevance evaluation and HNSW benchmark | Initial probes implemented; broader evaluation proposed | Two illustrative semantic expectations pass after descriptive enrichment. Full-catalog relevance and index performance remain unproven. |
 
 The proposed baseline is PostgreSQL as the search store, one embedding per product, a rebuildable search projection, and indexing outside product-write transactions. The first milestone selects local Ollama with Nomic v1.5 and 768 dimensions. The final schema, retrieval windows, and count semantics still need to be resolved during implementation.
 
@@ -96,7 +97,14 @@ Keyword mode allows ordinary ordering. Ranked modes own relevance ordering: Core
 
 The server configuration selects the mode. There is currently no public `$searchMode` parameter.
 
-Price, availability, and other hard constraints belong in structured filtering, not in assumptions about what an embedding understands. The current Products filter configuration does not expose price or inventory filters; those would require explicit additions.
+Price, availability, and other hard constraints belong in structured filtering, not in assumptions about what an embedding understands. Products exposes a decimal `price` filter with `eq`, `ne`, `in`, `gt`, `ge`, `lt` and `le`; inventory filters are not currently exposed.
+
+```text
+GET /api/products?$search=cleaner&$filter=price%20lt%2020
+GET /api/products?$filter=price%20ge%2099%20and%20price%20lt%20130
+```
+
+GraphQL-lite uses the same configuration, for example `products(where: {price: {ge: 99, lt: 130}})`. No generic `QueryArgs` changes or client-supplied vectors are needed.
 
 See the [CoreEx querying guide](../../src/CoreEx.Data/Querying/README.md) for actual parser configuration and syntax.
 
@@ -224,21 +232,70 @@ There is no universal relevance threshold. The sample needs unrelated-query exam
 
 The **search document** is the text we deliberately prepare for the embedding model and lexical retrieval.
 
-Current product data includes short names, SKU, category/subcategory, brand, and tags. Many names contain little explanatory content.
+Current product data includes short names, an optional `Description`, SKU, category/subcategory, brand, and tags. Many names contain little explanatory content, so descriptions explain product function and intended use.
 
 A canonical document might be:
 
 ```text
 Name: Yeti ASR C2
-Brand: Yeti
+SKU: YETI-ASR-C2-2025
+Description: ...
+Brand: Yeti Cycles
 Category: Bikes
-Subcategory: Cross-country
+Subcategory: Cross country
 Tags: cross-country, full-suspension
 ```
 
 Only include verified attributes. If the demonstration needs concepts such as weight, riding style, or component compatibility, add accurate descriptive data or select examples that the existing data supports.
 
 Do not generate invented product specifications merely to make semantic results impressive.
+
+`Description` is optional plain text, limited to 2,000 characters in validation and PostgreSQL. It is returned in full-product and `ProductLite` responses and editable through existing POST, PUT and merge-PATCH endpoints; PATCH can explicitly clear it with `{"description":null}`. Updates retain the existing ETag, changelog and transactional-outbox behavior. The search document recipe is now `product-document-v2`, and description edits change its source hash; price changes do not.
+
+Descriptions are included in embedding documents. The default keyword `$search` still matches the product name (`Text`) or SKU prefix, not the new description field; this preserves the existing keyword behavior until a deliberate search-mode change.
+
+### Where the seeded descriptions come from
+
+Both Products read and mutation seed files contain the same original, short descriptions for all 32 entries. These are paraphrases of product function and intended use, not copied marketing text. The sources below support those statements; they do not validate the sample prices, every build's components, or every model-year SKU.
+
+Several sources describe a model family rather than the exact seeded build. The descriptions deliberately avoid travel numbers, model-year changes and precise component specifications. In particular, Specialized sells both a **Chisel Hardtail Comp** and a full-suspension **Chisel Comp**. The sample places its Chisel in the hardtail category, but its description says only "aluminium cross-country mountain bike" rather than guessing the suspension from the shared name.
+
+| Seeded product | Reference |
+|---|---|
+| Yeti ASR C2 | [Yeti ASR](https://yeticycles.com/en-us/bikes/asr) |
+| Yeti SB120 C2 | [Yeti SB120](https://yeticycles.com/en-us/bikes/sb120) |
+| Yeti SB140 LR C2 | [Yeti SB140](https://yeticycles.com/en-us/bikes/sb140) |
+| Yeti SB165 C3 | [Yeti SB165 specifications and FAQ](https://support.yeticycles.com/hc/en-us/articles/56816935325211-SB165-specs-and-FAQ) |
+| Yeti MTe C2 eMTB | [Yeti MTe](https://yeticycles.com/en-us/bikes/mte) |
+| Canyon Lux Trail CF | [Canyon Lux Trail announcement](https://media-centre.canyon.com/en-INT/231333-the-brand-new-lux-trail-canyon-s-ultra-capable-xc-bike/) |
+| Canyon Spectral CF | [Canyon Spectral CF announcement](https://media-centre.canyon.com/en-INT/234670-canyon-launch-all-new-trail-taming-spectral-cf/) |
+| Canyon Neuron CF | [Canyon Neuron](https://www.canyon.com/en-us/mountain-bikes/trail-bikes/neuron/) |
+| Canyon Torque Mullet CF | [MTB Database: Torque Mullet CF 8](https://mtbdatabase.com/bikes/2024/canyon/torque/2024-canyon-torque-mullet-cf-8/) (third-party model-family reference) |
+| Canyon Sender CFR | [Canyon Sender](https://www.canyon.com/en-gb/mountain-bikes/downhill-bikes/sender/) |
+| Specialized Stumpjumper 15 Comp | [Stumpjumper 15 Comp](https://www.specialized.com/us/en/stumpjumper-15-comp-sram-s-1000-axs-fox-performance/p/4221395) |
+| Specialized Enduro Pro | [Enduro Pro](https://www.specialized.com/us/en/enduro-pro/p/4276010) |
+| Specialized Epic 8 Pro | [Epic 8 Pro](https://www.specialized.com/us/en/epic-8-pro-sram-x0-axs-rockshox-ultimate/p/220874) |
+| Specialized Chisel Comp | [Chisel Hardtail Comp](https://www.specialized.com/us/en/chisel-hardtail-comp/p/4221772) and [Chisel Comp](https://www.specialized.com/us/en/chisel-comp/p/4221778); variant ambiguity described above |
+| Specialized Status 140 | [Status 140](https://www.specialized.com/us/en/status-140/p/199765); exact generation not asserted |
+| Giant Trance X Advanced Pro 29 | [Trance X Advanced family](https://www.giant-bicycles.com/global/showcase/trance-x-advanced); exact build not asserted |
+| Giant Anthem Advanced 29 1 | [Anthem Advanced 29 family](https://www.giant-bicycles.com/global/showcase/anthem-advanced-29); exact build not asserted |
+| Giant Talon 2 | [Talon family](https://www.giant-bicycles.com/us/talon); exact build not asserted |
+| Shimano Deore XT M8100 Rear Derailleur | [Shimano RD-M8100-SGS](https://bike.shimano.com/en-NA/products/components/pdp.P-RD-M8100-SGS.html) |
+| Shimano SLX M7100 12-speed Cassette | [Shimano CS-M7100-12](https://bike.shimano.com/products/components/pdp.P-CS-M7100-12.html); exact gear range not asserted |
+| Shimano XTR M9100 Crankset | [Shimano FC-M9100-1](https://bike.shimano.com/products/components/pdp.P-FC-M9100-1.html) |
+| SRAM GX Eagle Rear Derailleur | [Mechanical GX Eagle](https://www.sram.com/en/sram/models/rd-gx-1-b2) |
+| SRAM X0 Transmission Rear Derailleur | [X0 Eagle Transmission](https://www.sram.com/en/sram/models/rd-x0-e-b1) |
+| SRAM XX1 Eagle Cassette | [SRAM XG-1299](https://www.sram.com/en/sram/models/cs-xg-1299-a2); exact gear range not asserted |
+| OneUp Dropper Post V3 180mm | [Dropper Post V3](https://www.oneupcomponents.com/products/dropper-post-v3) |
+| OneUp Carbon Handlebar | [V2 Carbon Handlebar](https://www.oneupcomponents.com/products/v2-carbon-handlebar); description avoids version-specific measurements |
+| OneUp Composite Pedals | [Composite Pedals](https://www.oneupcomponents.com/products/comp-pedal) |
+| OneUp EDC Tool V2 | [EDC V2 Tool](https://www.oneupcomponents.com/products/edc-v2-tool) |
+| Muc-Off Nano Tech Bike Cleaner | [Muc-Off Bike Cleaner](https://muc-off.com/products/bike-cleaner) |
+| Muc-Off MTB Tubeless Sealant | [Muc-Off MTB Tubeless Sealant](https://muc-off.com/products/mtb-tubeless-sealant) |
+| Muc-Off Drivetrain Cleaner | [Drivetrain Cleaner retailer listing](https://www.bikefreeus.com/products/muc-off-drivetrain-cleaner) |
+| Labour | Authored sample description of hourly workshop maintenance/repair; not a manufacturer product |
+
+Keep these sources and descriptions aligned when changing the fixtures. A product-family page is not a licence to invent build-specific claims, and manufacturer pages can change over time.
 
 ### Keep rapidly changing facts relational
 
@@ -493,11 +550,11 @@ The document builder reads labels through the contract's `Brand`, `Category` and
 
 ### First real-model finding
 
-The local embedding endpoint works, but the initial semantic ranking check does **not** yet pass. For "something to clean mud off my bike", Nomic ranked the Yeti bike above the bike cleaner when given current short names, category/brand labels and tags. It also ranked the Yeti bike above the Shimano derailleur for "a component for changing gears". Even the name-only probe did not reliably favor the cleaner.
+Before descriptive content was added, the local embedding endpoint worked but the initial semantic ranking check did **not** pass. For "something to clean mud off my bike", Nomic ranked the Yeti bike above the bike cleaner when given short names, category/brand labels and tags. It also ranked the Yeti bike above the Shimano derailleur for "a component for changing gears". Even the name-only probe did not reliably favor the cleaner.
 
-This is a useful counterexample to "embeddings work, therefore search is good". The failures are recorded rather than hidden by changing the queries or weakening the expected results. `tools/test-product-embeddings.ps1` evaluates both examples before reporting any failures. It calculates exact cosine distances in memory; it is not pgvector retrieval, a full-catalog evaluation, or evidence about index performance.
+This is a useful counterexample to "embeddings work, therefore search is good". The failures are recorded rather than hidden by changing the queries or weakening the expected results. `tools/test-product-embeddings.ps1` retains the original queries and expected products, evaluates both examples before reporting failures, and now includes the seeded descriptions. It calculates exact cosine distances in memory; it is not pgvector retrieval, a full-catalog evaluation, or evidence about index performance.
 
-Possible next steps are verified descriptive enrichment, a deliberately evaluated hybrid retrieval policy, or comparison with another model. These are explicit relevance decisions; none has been silently applied to make the example pass.
+Possible remedies included verified descriptive enrichment, a deliberately evaluated hybrid retrieval policy, or comparison with another model. The subsequent implementation selects descriptive enrichment, retaining the model and original expectations.
 
 ### Controlled document-content experiment
 
@@ -524,7 +581,9 @@ Additional controls used an independent Python standard-library HTTP client and 
 
 This is evidence that document content materially affects this configuration, and that the model can separate these functional descriptions. It is **not** proof that sparse text is the only cause, that the model is optimal, or that an eight-query/three-product sample predicts full-catalog quality. The whole-bike-versus-parts query had a particularly small winning margin, despite passing. There was no held-out evaluation set, and descriptions were designed with the task in mind.
 
-The next content decision is whether to introduce authoritative product descriptions or another curated source of functional text, followed by broader evaluation. The actual document builder and original smoke expectations remain unchanged by this experiment; pgvector cannot supply meaning absent from its input vectors.
+The experiment did not modify catalog data or change the original smoke expectations. The subsequent implementation adds researched product descriptions and includes them in `product-document-v2`; broader evaluation still matters. pgvector cannot supply meaning absent from its input vectors.
+
+With the researched descriptions, the original smoke examples now pass: the cleaner ranks first for the cleaning query (cosine distance **0.2958**) and the Shimano derailleur ranks first for the gear-changing query (**0.3442**). This is still a three-product illustration, not proof of full-catalog relevance.
 
 Measure document and query embedding separately. Caching repeated query embeddings can help, but keys must include the profile and relevant preprocessing; user text may be sensitive, so retention/logging needs care.
 

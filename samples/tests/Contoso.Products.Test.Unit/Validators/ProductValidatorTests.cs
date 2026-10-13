@@ -29,4 +29,26 @@ public class ProductValidatorTests : WithGenericTester<EntryPoint>
         var p = new Product { Sku = "X", Text = "Test", SubCategoryCode = "XC", UnitOfMeasureCode = "EA", Price = 9.99m };
         ProductValidator.Default.AssertSuccess(p);
     });
+
+    [Test]
+    public void Description_TooLong() => Test.Scoped(test =>
+    {
+        var p = new Product { Sku = "X", Text = "Test", SubCategoryCode = "XC", UnitOfMeasureCode = "EA", Description = new string('x', 2001) };
+        ProductValidator.Default.AssertErrors(p, ("description", "Description must not exceed 2000 character(s) in length."));
+    });
+
+    [Test]
+    public void Description_MaximumLength() => Test.Scoped(test =>
+    {
+        var p = new Product { Sku = "X", Text = "Test", SubCategoryCode = "XC", UnitOfMeasureCode = "EA", Description = new string('x', 2000) };
+        ProductValidator.Default.AssertSuccess(p);
+    });
+
+    [TestCase(null)]
+    [TestCase("A cross-country mountain bicycle.")]
+    public void Description_Optional(string? description) => Test.Scoped(test =>
+    {
+        var p = new Product { Sku = "X", Text = "Test", SubCategoryCode = "XC", UnitOfMeasureCode = "EA", Description = description };
+        ProductValidator.Default.AssertSuccess(p);
+    });
 }

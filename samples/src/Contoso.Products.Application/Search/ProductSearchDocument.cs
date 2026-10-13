@@ -8,7 +8,7 @@ namespace Contoso.Products.Application.Search;
 public sealed record ProductSearchDocument(string Text, string SourceHash)
 {
     /// <summary>Gets the template version; changes to the document recipe require a new version.</summary>
-    public const string TemplateVersion = "product-document-v1";
+    public const string TemplateVersion = "product-document-v2";
 
     /// <summary>
     /// Creates a document using the product's reference-data labels, falling back to codes where labels are unavailable.
@@ -23,6 +23,7 @@ public sealed record ProductSearchDocument(string Text, string SourceHash)
         var text = string.Join('\n',
             $"Name: {name}",
             $"SKU: {sku}",
+            $"Description: {Normalize(product.Description)}",
             $"Brand: {LabelOrCode(product.Brand?.Text, product.BrandCode)}",
             $"Category: {LabelOrCode(product.Category?.Text, product.CategoryCode)}",
             $"Subcategory: {LabelOrCode(product.SubCategory?.Text, product.SubCategoryCode)}",

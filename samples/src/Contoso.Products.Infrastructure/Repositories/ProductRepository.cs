@@ -45,6 +45,7 @@ public class ProductRepository(ProductsEfDb ef) : IProductRepository
             Id = x.Product.Id,
             Sku = x.Product.Sku,
             Text = x.Product.Text,
+            Description = x.Product.Description,
             CategoryCode = x.CategoryCode,
             SubCategoryCode = x.SubCategoryCode,
             BrandCode = x.Product.BrandCode,

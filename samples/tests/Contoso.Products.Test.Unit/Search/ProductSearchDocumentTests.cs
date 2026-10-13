@@ -5,12 +5,24 @@ public class ProductSearchDocumentTests : WithGenericTester<EntryPoint>
     [Test]
     public void Create_NormalizesContentAndSortsTags() => Test.Scoped(test => test.Run(_ =>
     {
-        var product = new Product { Sku = " test-1 ", Text = " Bike \t cleaner ", BrandCode = "MUCOFF", CategoryCode = "A", SubCategoryCode = "CL", Tags = ["mud", " cleaning ", "mud", ""] };
+        var product = new Product { Sku = " test-1 ", Text = " Bike \t cleaner ", Description = " Removes \n dirt and mud. ", BrandCode = "MUCOFF", CategoryCode = "A", SubCategoryCode = "CL", Tags = ["mud", " cleaning ", "mud", ""] };
         var document = ProductSearchDocument.Create(product);
 
-        document.Text.Should().Be("Name: Bike cleaner\nSKU: TEST-1\nBrand: Muc-Off\nCategory: Accessories\nSubcategory: Cleaner\nTags: cleaning, mud");
+        document.Text.Should().Be("Name: Bike cleaner\nSKU: TEST-1\nDescription: Removes dirt and mud.\nBrand: Muc-Off\nCategory: Accessories\nSubcategory: Cleaner\nTags: cleaning, mud");
         document.SourceHash.Should().HaveLength(64);
         ProductSearchDocument.Create(product).Should().Be(document);
+    }).AssertSuccess());
+
+    [Test]
+    public void Create_DescriptionChangeChangesHash() => Test.Scoped(test => test.Run(_ =>
+    {
+        var product = new Product { Sku = "test-1", Text = "Cleaner" };
+        var before = ProductSearchDocument.Create(product);
+        product.Description = "A cleaner for removing mud from bicycles.";
+        ProductSearchDocument.Create(product).SourceHash.Should().NotBe(before.SourceHash);
+        var described = ProductSearchDocument.Create(product);
+        product.Description = " A cleaner for removing \n mud from bicycles. ";
+        ProductSearchDocument.Create(product).Should().Be(described);
     }).AssertSuccess());
 
     [Test]

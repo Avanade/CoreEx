@@ -49,12 +49,12 @@ function Get-CosineDistance([double[]] $Query, [double[]] $Document) {
 
 # These names, labels and tags come from the existing product and reference-data seeds.
 $products = @(
-    @{ Sku = 'MUCOFF-NANO-CLEANER'; Text = 'Muc-Off Nano Tech Bike Cleaner'; Brand = 'Muc-Off'; Category = 'Accessories'; Subcategory = 'Cleaner'; Tags = '' },
-    @{ Sku = 'SHIMANO-XT-M8100-RD'; Text = 'Shimano Deore XT M8100 Rear Derailleur'; Brand = 'Shimano'; Category = 'Parts'; Subcategory = 'Derailleur'; Tags = '' },
-    @{ Sku = 'YETI-ASR-C2-2025'; Text = 'Yeti ASR C2'; Brand = 'Yeti Cycles'; Category = 'Bikes'; Subcategory = 'Cross country'; Tags = 'cross-country, full-suspension' }
+    @{ Sku = 'MUCOFF-NANO-CLEANER'; Text = 'Muc-Off Nano Tech Bike Cleaner'; Description = 'A spray-on bicycle cleaner that breaks down dirt and grime on frames and components before rinsing. Suitable for routine washing after muddy rides.'; Brand = 'Muc-Off'; Category = 'Accessories'; Subcategory = 'Cleaner'; Tags = '' },
+    @{ Sku = 'SHIMANO-XT-M8100-RD'; Text = 'Shimano Deore XT M8100 Rear Derailleur'; Description = 'A 12-speed mountain bike rear derailleur that moves the chain between cassette sprockets to change gears. Its clutch helps control chain movement on rough trails.'; Brand = 'Shimano'; Category = 'Parts'; Subcategory = 'Derailleur'; Tags = '' },
+    @{ Sku = 'YETI-ASR-C2-2025'; Text = 'Yeti ASR C2'; Description = 'A carbon full-suspension cross-country mountain bike built for efficient climbing and fast riding on technical singletrack.'; Brand = 'Yeti Cycles'; Category = 'Bikes'; Subcategory = 'Cross country'; Tags = 'cross-country, full-suspension' }
 )
 foreach ($product in $products) {
-    $document = "Name: $($product.Text)`nSKU: $($product.Sku)`nBrand: $($product.Brand)`nCategory: $($product.Category)`nSubcategory: $($product.Subcategory)`nTags: $($product.Tags)"
+    $document = "Name: $($product.Text)`nSKU: $($product.Sku)`nDescription: $($product.Description)`nBrand: $($product.Brand)`nCategory: $($product.Category)`nSubcategory: $($product.Subcategory)`nTags: $($product.Tags)"
     $product.Vector = Get-Embedding "search_document: $document"
 }
 

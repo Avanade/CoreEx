@@ -4,10 +4,10 @@ namespace Contoso.Mcp.Tools;
 public static class CommerceTools
 {
     /// <summary>Searches products by free-text keywords.</summary>
-    [McpServerTool(UseStructuredContent = true, ReadOnly = true), Description("Find active products using free-text keywords; each word must appear in the product description or be the beginning of the product SKU. Returns up to the requested number of matching product summaries.")]
+    [McpServerTool(UseStructuredContent = true, ReadOnly = true), Description("Find active products using free-text keywords; each word must appear in the product name or be the beginning of the product SKU. Returns up to the requested number of matching product summaries.")]
     public static Task<ProductLite[]> SearchProductsAsync(
         [FromServices] IHttpClientFactory clientFactory,
-        [Description("One or more keywords to find in product descriptions, or the beginning of a product SKU.")] string searchTerm,
+        [Description("One or more keywords to find in product names, or the beginning of a product SKU.")] string searchTerm,
         [Description("Maximum number of products to return (1-25).")] int take = 10,
         CancellationToken cancellationToken = default)
     {

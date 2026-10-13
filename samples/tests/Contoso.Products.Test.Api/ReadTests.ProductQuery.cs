@@ -139,6 +139,45 @@ public partial class ReadTests : WithApiTester<Contoso.Products.Api.Program>
     }
 
     [Test]
+    public void Product_Query_FilterByPriceRange()
+    {
+        var result = Test.Http<ProductLite[]>()
+            .Run(HttpMethod.Get, "/api/products?$filter=price ge 99 and price lt 130&$count=true")
+            .AssertOK();
+
+        result.Value.Should().NotBeNull().And.HaveCount(2)
+            .And.OnlyContain(p => p.Price >= 99 && p.Price < 130);
+        result.Value!.Select(p => p.Sku).Should().BeEquivalentTo(["SHIMANO-SLX-M7100-CASSETTE", "SHIMANO-XT-M8100-RD"]);
+        result.Response.Headers.Should().ContainKey("X-Paging-Total-Count").WhoseValue.Should().ContainSingle().Which.Should().Be("2");
+    }
+
+    [TestCase("price eq 16.99")]
+    [TestCase("price in (16.99, 17.50)")]
+    [TestCase("price gt 16.98 and price le 16.99")]
+    [TestCase("brand eq 'MUCOFF' and price ne 8 and price ne 25")]
+    public void Product_Query_FilterByDecimalPrice(string filter)
+    {
+        var products = Test.Http<ProductLite[]>()
+            .Run(HttpMethod.Get, $"/api/products?$filter={Uri.EscapeDataString(filter)}")
+            .AssertOK()
+            .Value!;
+
+        products.Should().ContainSingle().Which.Sku.Should().Be("MUCOFF-NANO-CLEANER");
+    }
+
+    [Test]
+    public void Product_Query_Search_WithPriceFilter()
+    {
+        var products = Test.Http<ProductLite[]>()
+            .Run(HttpMethod.Get, "/api/products?$search=cleaner&$filter=price lt 20")
+            .AssertOK()
+            .Value!;
+
+        products.Should().ContainSingle().Which.Sku.Should().Be("MUCOFF-NANO-CLEANER");
+        products[0].Description.Should().NotBeNullOrEmpty();
+    }
+
+    [Test]
     public void Product_Query_Search_TooManyTerms()
     {
         Test.Http()

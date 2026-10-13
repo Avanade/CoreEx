@@ -18,6 +18,19 @@
           "endswith"
         ]
       },
+      "price": {
+        "type": "number",
+        "format": "decimal",
+        "operators": [
+          "eq",
+          "ne",
+          "lt",
+          "le",
+          "ge",
+          "gt",
+          "in"
+        ]
+      },
       "category": {
         "type": "string",
         "operators": [
