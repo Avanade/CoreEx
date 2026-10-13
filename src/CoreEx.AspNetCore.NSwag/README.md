@@ -13,7 +13,7 @@
 ## Key capabilities
 
 - 📋 **Paging parameters**: Reads `[PagingAttribute]` and adds `$skip`, `$take`, and optionally `$count` query-string parameters with descriptions controlled by `OpenApiOptions.PagingSkipText`, `PagingTakeText`, etc.
-- 🔍 **Query parameters**: Reads `[QueryAttribute]` and adds `$filter` and/or `$orderby` query-string parameters when `SupportsFilter` / `SupportsOrderBy` are set.
+- 🔍 **Query parameters**: Reads `[QueryAttribute]` and adds `$filter`, `$orderby` and/or `$search` query-string parameters when `SupportsFilter` / `SupportsOrderBy` / `SupportsSearch` are set.
 - 📦 **Request body content types**: Reads `[AcceptsAttribute]` and populates the operation `RequestBody` with the declared content type(s) and NSwag-inferred JSON schema for the body type.
 - 🔑 **Idempotency-key header**: Reads `[IdempotencyKeyAttribute]` and adds an `Idempotency-Key` header parameter to the operation.
 - ✅ **Non-nullable properties**: Walks the request/response types of each operation and marks any property decorated with `CoreEx.Entities.NonNullableAttribute` as `nullable: false` in the schema, regardless of whether it is declared nullable in code (e.g. `string?`, `int?`).

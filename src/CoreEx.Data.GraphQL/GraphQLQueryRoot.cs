@@ -62,8 +62,8 @@ public sealed class GraphQLQueryRoot
                 if (_options.EnableSensitiveDataLogging)
                     logger.LogDebug("Invoking GraphQL query root '{Name}' with:\n  QueryArgs: [{QueryArgs}]\n  PagingArgs: [{PagingArgs}].", Name, queryArgs, pagingArgs);
                 else
-                    logger.LogDebug("Invoking GraphQL query root '{Name}' with: HasFilter={HasFilter}, HasOrderBy={HasOrderBy}, PagingArgs: [{PagingArgs}].",
-                        Name, queryArgs?.Filter is not null, queryArgs?.OrderBy is not null, pagingArgs);
+                    logger.LogDebug("Invoking GraphQL query root '{Name}' with: HasFilter={HasFilter}, HasOrderBy={HasOrderBy}, HasSearch={HasSearch}, PagingArgs: [{PagingArgs}].",
+                        Name, queryArgs?.Filter is not null, queryArgs?.OrderBy is not null, queryArgs?.Search is not null, pagingArgs);
             }
         }
 

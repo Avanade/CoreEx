@@ -110,6 +110,13 @@ public sealed class HttpRequestBuilder(HttpClient client, HttpMethod method, str
     public HttpRequestBuilder WithQuery(string? filter = null, string? orderBy = null, IEnumerable<string>? include = null, IEnumerable<string>? exclude = null) => Configure(r => r.WithQuery(filter, orderBy, include, exclude));
 
     /// <summary>
+    /// Adds the <see cref="QueryArgs.Search"/> free-text statement to the request URI query string.
+    /// </summary>
+    /// <param name="search">The free-text <c>$search</c> statement; ignored where <see langword="null"/> or white space.</param>
+    /// <returns>The <see cref="HttpRequestBuilder"/> instance to support fluent chaining.</returns>
+    public HttpRequestBuilder WithSearch(string? search) => Configure(r => r.WithSearch(search));
+
+    /// <summary>
     /// Adds <see cref="QueryArgs.IsIncludeText"/> to the request URI query string.
     /// </summary>
     /// <returns>The <see cref="HttpRequestBuilder"/> instance to support fluent chaining.</returns>

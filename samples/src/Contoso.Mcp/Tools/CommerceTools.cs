@@ -3,11 +3,11 @@ namespace Contoso.Mcp.Tools;
 [McpServerToolType]
 public static class CommerceTools
 {
-    /// <summary>Searches products by text or SKU prefix.</summary>
-    [McpServerTool(UseStructuredContent = true, ReadOnly = true), Description("Find active products whose description contains the search phrase or whose SKU starts with it. Returns up to the requested number of matching product summaries.")]
+    /// <summary>Searches products by free-text keywords.</summary>
+    [McpServerTool(UseStructuredContent = true, ReadOnly = true), Description("Find active products using free-text keywords; each word must appear in the product description or be the beginning of the product SKU. Returns up to the requested number of matching product summaries.")]
     public static Task<ProductLite[]> SearchProductsAsync(
         [FromServices] IHttpClientFactory clientFactory,
-        [Description("A word or phrase to find in product descriptions, or the beginning of a product SKU.")] string searchTerm,
+        [Description("One or more keywords to find in product descriptions, or the beginning of a product SKU.")] string searchTerm,
         [Description("Maximum number of products to return (1-25).")] int take = 10,
         CancellationToken cancellationToken = default)
     {
@@ -15,11 +15,9 @@ public static class CommerceTools
         if (take is < 1 or > 25)
             throw new ArgumentOutOfRangeException(nameof(take), "The result limit must be between 1 and 25.");
 
-        var filterTerm = searchTerm.Replace("'", "''", StringComparison.Ordinal);
-        var filter = $"contains(Text, '{filterTerm}') or startswith(Sku, '{filterTerm}')";
         return ProductsApi(clientFactory)
             .Send(HttpMethod.Get, "/api/products")
-            .WithQuery(filter)
+            .WithSearch(searchTerm)
             .WithPaging(take: take)
             .GetValueAsync<ProductLite[]>(cancellationToken);
     }

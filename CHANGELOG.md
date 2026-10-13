@@ -2,6 +2,10 @@
 
 Represents the **NuGet** versions.
 
+## v4.2.0
+- *Enhancement:* Added OData-style free-text `$search` support to the `QueryArgs` querying pipeline: `QueryArgs.Search`; `QueryArgsConfig.WithSearch(Action<QuerySearchParser>)` with `QuerySearchMode` (`Keyword` executed by `QueryExtensions.Where` as a provider-agnostic predicate where every term must match a configured keyword field; `FullText`/`Semantic`/`Hybrid` are relevance-ranked and executed by the repository via `QueryArgsParseResult.IsRankedSearch`/`SearchResult.Text`, with `$orderby` rejected); `QuerySearchParserException`; `WithSearch` on `HttpRequestMessage`/`HttpRequestBuilder`; `QueryAttribute.SupportsSearch` (NSwag `$search` parameter); and a GraphQL-lite `search` argument on list roots. `$search` is rejected where not configured. The Products sample (and its MCP `search_products` tool) now uses `$search`.
+- *Fixed:* `HttpRequestMessage.WithQuery(QueryArgs)` (and therefore `HttpRequestBuilder.WithQuery(QueryArgs)`) previously ignored `IsIncludeText` and `IsIncludeInactive`; these are now sent as `$text=true` and `$inactive=true` respectively.
+
 ## v4.1.0
 - *Enhancement:* Added `NamedDestinationProvider` (`AddNamedDestinationProvider()`); events are sent to the shared destination (topic), whereas commands are sent to a per-domain queue named `{Destination}-{domain}` so that only the addressed domain receives them. A `null` or empty command domain is self-addressed to the `IHostSettings.DomainName`.
 - *Enhancement:* Added keyed `WithReceiver`/`WithSessionReceiver` and `WithKeyedSubscribedSubscriber` support to `AzureServiceBusReceiving` to enable multiple receivers (e.g. events topic and commands queue) within a single Subscribe host.

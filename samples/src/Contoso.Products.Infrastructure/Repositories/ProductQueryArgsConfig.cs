@@ -23,5 +23,12 @@ public class ProductQueryArgsConfig : QueryArgsConfig<ProductQueryArgsConfig>
             .AddField(nameof(Contracts.ProductBase.Sku), c => c.WithDefault().WithAlwaysInclude())
             .AddField(nameof(Contracts.ProductBase.Text))
             .AddField(nameof(Contracts.ProductBase.Brand)));
+
+        // Configure the free-text $search; keyword mode (unranked) where each term must match the Text (contains) or Sku (starts-with). A semantic/hybrid (vector) search would
+        // instead use WithMode(QuerySearchMode.Semantic) and be executed by the repository (see QueryArgsParseResult.IsRankedSearch).
+        WithSearch(search => search
+            .WithDefaultModelPrefix("Product")
+            .AddKeywordField(nameof(Contracts.ProductBase.Text), c => c.AsUpperCase())
+            .AddKeywordField(nameof(Contracts.ProductBase.Sku), c => c.WithOperator(QueryFilterOperator.StartsWith).AsUpperCase()));
     }
 }

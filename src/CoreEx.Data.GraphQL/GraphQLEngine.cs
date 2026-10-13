@@ -364,6 +364,7 @@ public sealed class GraphQLEngine(GraphQLLiteOptions options) : IGraphQLEngine
         KeyNotFoundException => NewError(ex.Message, [alias], "ARGUMENT_ERROR"),
         QueryFilterParserException => NewError(ex.Message, [alias], "FILTER_PARSE_ERROR"),
         QueryOrderByParserException => NewError(ex.Message, [alias], "ORDERBY_PARSE_ERROR"),
+        QuerySearchParserException => NewError(ex.Message, [alias], "SEARCH_PARSE_ERROR"),
         ValidationException vex => MapValidationException(vex, alias),
         NotFoundException => MapKnownExtendedException(ex, alias, "NOT_FOUND"),
         ConflictException => MapKnownExtendedException(ex, alias, "CONFLICT_ERROR"),

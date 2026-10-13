@@ -66,5 +66,11 @@
       }
     },
     "default": "sku asc"
+  },
+  "search": {
+    "mode": "keyword",
+    "ranked": false,
+    "maxLength": 200,
+    "maxTerms": 8
   }
 }

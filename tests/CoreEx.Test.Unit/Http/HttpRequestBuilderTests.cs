@@ -407,6 +407,7 @@ public class HttpRequestBuilderTests
             .WithFields("id", "name")
             .WithoutFields("internalNotes")
             .WithPaging(skip: 10, take: 20, count: true)
+            .WithSearch("red bike")
             .GetResponseAsync();
 
         captured.Should().NotBeNull();
@@ -423,6 +424,7 @@ public class HttpRequestBuilderTests
         query.Should().Contain("$skip=10");
         query.Should().Contain("$take=20");
         query.Should().Contain("$count=true");
+        query.Should().Contain("$search=red%20bike");
     }
 
     [Test]

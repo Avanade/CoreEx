@@ -20,4 +20,10 @@ public sealed class QueryAttribute(bool supportsFilter = true, bool supportsOrde
     /// </summary>
     /// <remarks>Defaults to <see langword="false"/>.</remarks>
     public bool SupportsOrderBy { get; } = supportsOrderBy;
+
+    /// <summary>
+    /// Gets or sets whether the <see cref="QueryArgs.Search"/> (free-text <c>$search</c>) is supported.
+    /// </summary>
+    /// <remarks>Defaults to <see langword="false"/>.</remarks>
+    public bool SupportsSearch { get; set; }
 }

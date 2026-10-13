@@ -94,7 +94,25 @@ public static partial class Extensions
     /// <param name="query">The <see cref="QueryArgs"/>.</param>
     /// <returns>The <paramref name="request"/> to support fluent-style method-chaining.</returns>
     public static HttpRequestMessage WithQuery(this HttpRequestMessage request, QueryArgs? query)
-        => WithQuery(request, query?.Filter, query?.OrderBy, query?.IncludeFields, query?.ExcludeFields);
+    {
+        WithQuery(request, query?.Filter, query?.OrderBy, query?.IncludeFields, query?.ExcludeFields);
+        if (query is null)
+            return request;
+
+        return AddQuery(request, qb => qb
+            .AddQuery(HttpNames.QuerySearchQueryStringName, query.Search)
+            .AddQuery(HttpNames.IncludeTextQueryStringName, query.IsIncludeText ? "true" : null)
+            .AddQuery(HttpNames.IncludeInactiveQueryStringName, query.IsIncludeInactive ? "true" : null));
+    }
+
+    /// <summary>
+    /// Adds the <see cref="QueryArgs.Search"/> free-text statement to the <see cref="HttpRequestMessage"/> <see cref="HttpRequestMessage.RequestUri"/> by adding to the <see cref="Uri.Query"/>.
+    /// </summary>
+    /// <param name="request">The <see cref="HttpRequestMessage"/>.</param>
+    /// <param name="search">The free-text <c>$search</c> statement; ignored where <see langword="null"/> or white space.</param>
+    /// <returns>The <paramref name="request"/> to support fluent-style method-chaining.</returns>
+    public static HttpRequestMessage WithSearch(this HttpRequestMessage request, string? search)
+        => AddQuery(request, qb => qb.AddQuery(HttpNames.QuerySearchQueryStringName, search));
 
     /// <summary>
     /// Adds <see cref="QueryArgs"/> to the <see cref="HttpRequestMessage"/> <see cref="HttpRequestMessage.RequestUri"/> by adding to the <see cref="Uri.Query"/>.

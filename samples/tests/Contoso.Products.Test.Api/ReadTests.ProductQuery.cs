@@ -97,4 +97,53 @@ public partial class ReadTests : WithApiTester<Contoso.Products.Api.Program>
 
         r.Should().NotBeNull().And.HaveCount(2);
     }
+
+    [Test]
+    public void Product_Query_Search_MultipleTerms()
+    {
+        var r = Test.Http<ProductLite[]>()
+            .Run(HttpMethod.Get, "/api/products?$search=rear derailleur")
+            .AssertOK()
+            .Value;
+
+        r.Should().NotBeNull()
+            .And.HaveCount(3)
+            .And.BeInAscendingOrder(x => x.Sku)
+            .And.OnlyContain(p => p.Text!.Contains("Rear Derailleur"));
+    }
+
+    [Test]
+    public void Product_Query_Search_SkuPrefix()
+    {
+        var r = Test.Http<ProductLite[]>()
+            .Run(HttpMethod.Get, "/api/products?$search=sram-xx1")
+            .AssertOK()
+            .Value;
+
+        r.Should().NotBeNull()
+            .And.ContainSingle()
+            .Which.Sku.Should().Be("SRAM-XX1-EAGLE-CASSETTE");
+    }
+
+    [Test]
+    public void Product_Query_Search_WithFilterAndOrderBy()
+    {
+        var r = Test.Http<ProductLite[]>()
+            .Run(HttpMethod.Get, "/api/products?$search=cleaner&$filter=brand eq 'MUCOFF'&$orderby=text desc")
+            .AssertOK()
+            .Value;
+
+        r.Should().NotBeNull()
+            .And.HaveCount(2)
+            .And.BeInDescendingOrder(x => x.Text);
+    }
+
+    [Test]
+    public void Product_Query_Search_TooManyTerms()
+    {
+        Test.Http()
+            .Run(HttpMethod.Get, "/api/products?$search=a b c d e f g h i")
+            .AssertBadRequest()
+            .AssertErrors(new ApiError("$search", "Statement must not contain more than 8 distinct terms."));
+    }
 }

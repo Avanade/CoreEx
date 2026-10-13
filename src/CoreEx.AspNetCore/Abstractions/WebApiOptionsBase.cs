@@ -201,6 +201,7 @@ public class WebApiOptionsBase
         {
             Filter = GetNamedQueryString(Request.Query, HttpNames.QueryFilterQueryStringName),
             OrderBy = GetNamedQueryString(Request.Query, HttpNames.QueryOrderByQueryStringName),
+            Search = GetNamedQueryString(Request.Query, HttpNames.QuerySearchQueryStringName),
             IncludeFields = IncludeFields,
             ExcludeFields = ExcludeFields,
             IsIncludeText = IsIncludeText,

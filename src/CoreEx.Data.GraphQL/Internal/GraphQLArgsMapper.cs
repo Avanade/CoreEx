@@ -1,7 +1,7 @@
 namespace CoreEx.Data.GraphQL.Internal;
 
 /// <summary>
-/// Maps the GraphQL-native <c>where</c>/<c>orderBy</c>/<c>first</c>/<c>after</c>/<c>includeText</c>/<c>includeInactive</c> root field arguments onto <see cref="QueryArgs"/>/
+/// Maps the GraphQL-native <c>where</c>/<c>orderBy</c>/<c>search</c>/<c>first</c>/<c>after</c>/<c>includeText</c>/<c>includeInactive</c> root field arguments onto <see cref="QueryArgs"/>/
 /// <see cref="PagingArgs"/>, translating the structured <c>where</c>/<c>orderBy</c> input objects to the equivalent OData-esque <c>filter</c>/<c>orderby</c> strings consumed by
 /// the underlying <see cref="QueryArgsConfig"/> (see <see cref="GraphQLFilterTranslator"/>/<see cref="GraphQLOrderByTranslator"/>).
 /// </summary>
@@ -19,7 +19,8 @@ internal static class GraphQLArgsMapper
         var queryArgs = new QueryArgs
         {
             Filter = GraphQLFilterTranslator.Translate(args.TryGetValue("where", out var where) ? where : null, filterParser),
-            OrderBy = GraphQLOrderByTranslator.Translate(args.TryGetValue("orderBy", out var orderBy) ? orderBy : null)
+            OrderBy = GraphQLOrderByTranslator.Translate(args.TryGetValue("orderBy", out var orderBy) ? orderBy : null),
+            Search = args.GetString("search")
         };
 
         if (args.GetBool("includeText") is true)
@@ -47,8 +48,8 @@ internal static class GraphQLArgsMapper
     /// <exception cref="GraphQLArgumentTranslationException">Thrown where <c>where</c>/<c>orderBy</c> are specified; these are only applicable to list query roots.</exception>
     public static void ApplyItemRootFlags(IReadOnlyDictionary<string, object?> args)
     {
-        if (args.ContainsKey("where") || args.ContainsKey("orderBy"))
-            throw new GraphQLArgumentTranslationException("'where'/'orderBy' are not supported on single-item root fields; they are only applicable to list query roots.");
+        if (args.ContainsKey("where") || args.ContainsKey("orderBy") || args.ContainsKey("search"))
+            throw new GraphQLArgumentTranslationException("'where'/'orderBy'/'search' are not supported on single-item root fields; they are only applicable to list query roots.");
 
         if (args.GetBool("includeText") is true && ExecutionContext.HasCurrent && !ExecutionContext.Current.IncludeRelatedText)
             ExecutionContext.Current.IncludeRelatedText = true;
