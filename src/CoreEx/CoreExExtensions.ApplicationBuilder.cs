@@ -89,7 +89,7 @@ public static class CoreExExtensions
         cb.AddServiceDiscovery();
 
         if (config.GetSection("Resilience").Exists())
-            cb.AddStandardResilienceHandler(config);
+            cb.AddStandardResilienceHandler(config.GetSection("Resilience"));
         else
             cb.AddStandardResilienceHandler();
 

@@ -35,7 +35,7 @@
   </Folder>
   <Folder Name="/samples/Customers/tools/">
     <Project Path="samples/src/Contoso.Customers.CodeGen/Contoso.Customers.CodeGen.csproj" />
-      <Project Path="samples/src/Contoso.Customers.Database/Contoso.Customers.Database.csproj" />
+    <Project Path="samples/src/Contoso.Customers.Database/Contoso.Customers.Database.csproj" />
   </Folder>
   <Folder Name="/samples/docs/">
     <File Path="samples/docs/application-layer.md" />
@@ -47,6 +47,7 @@
     <File Path="samples/docs/layers.md" />
     <File Path="samples/docs/local-dev.md" />
     <File Path="samples/docs/patterns.md" />
+    <File Path="samples/docs/search.md" />
     <File Path="samples/docs/testing.md" />
     <File Path="samples/docs/tooling.md" />
   </Folder>
@@ -104,6 +105,7 @@
     <Project Path="samples/src/Contoso.Shopping.Relay/Contoso.Shopping.Relay.csproj" />
     <Project Path="samples/src/Contoso.Shopping.Subscribe/Contoso.Shopping.Subscribe.csproj" />
   </Folder>
+  <Folder Name="/samples/Integration/" />
   <Folder Name="/samples/Integration/hosts/">
     <Project Path="samples/src/Contoso.Mcp/Contoso.Mcp.csproj" />
   </Folder>

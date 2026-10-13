@@ -1,4 +1,6 @@
+global using Contoso.Products.Application.Adapters.Embeddings;
 global using Contoso.Products.Application.Repositories;
+global using Contoso.Products.Infrastructure.Clients.Ollama;
 global using Contoso.Products.Infrastructure.Mapping;
 global using CoreEx;
 global using CoreEx.Data;
@@ -15,6 +17,7 @@ global using CoreEx.Events;
 global using CoreEx.Events.Publishing;
 global using CoreEx.Mapping;
 global using CoreEx.Results;
+global using CoreEx.Validation;
 global using Microsoft.EntityFrameworkCore;
 global using Microsoft.Extensions.Logging;
 global using System.Text.Json;

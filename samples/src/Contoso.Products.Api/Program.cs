@@ -29,6 +29,8 @@ public class Program
         // Add all the dynamically registered services.
         builder.Services.AddDynamicServicesUsing<ReferenceDataService, ReferenceDataRepository>();
 
+        builder.AddTypedHttpClient<Contoso.Products.Infrastructure.Clients.Ollama.OllamaHttpClient>("Ollama");
+
         // Add L1/L2 caching services.
         builder.Services.AddMemoryCache();              // Adds the in-memory cache - L1.
         builder.AddRedisDistributedCache("redis");      // Adds Redis as the distributed cache (using Aspire library) - L2.

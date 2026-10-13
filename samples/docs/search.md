@@ -14,13 +14,14 @@ The goal is not merely to store some numbers and label the result "AI". It is to
 | Products keyword search | Implemented | Every distinct whitespace-separated term must match the product text or the beginning of its SKU. |
 | MCP `search_products` forwarding to Products | Implemented | The tool calls the Products API with `$search`; it does not query the database. |
 | Ranked-search mode plumbing | Implemented | CoreEx validates and carries ranked search intent; the repository must execute it. |
-| Product search document and separate search projection | Proposed | No product embeddings are currently stored. |
-| Embedding provider and pgvector semantic retrieval | Proposed | No embedding model is currently configured or called. |
+| Canonical product search document | Implemented | Versioned, whitespace-normalized documents and source hashes exclude price, status, inventory and business metadata. |
+| Local embedding provider | Implemented | Ollama/Nomic document and query instructions, response validation, and an Application adapter boundary are available. |
+| Separate search projection and pgvector semantic retrieval | Proposed | No product embeddings are currently stored or queried in PostgreSQL. |
 | PostgreSQL full-text retrieval and hybrid ranking | Proposed | The current sample does not perform full-text or hybrid search. |
 | Asynchronous search indexing and backfill | Proposed | The outbox and subscriber foundations exist; search-specific processing does not. |
-| Real-model relevance evaluation and HNSW benchmark | Proposed | Existing keyword tests are not evidence of semantic-search quality or scale. |
+| Real-model relevance evaluation and HNSW benchmark | Initial probes implemented; broader evaluation proposed | Two illustrative semantic expectations currently fail. Full-catalog relevance and index performance remain unproven. |
 
-The proposed baseline is PostgreSQL as the search store, one embedding per product, a rebuildable search projection, and indexing outside product-write transactions. Model selection, vector dimensions, final schema, retrieval windows, and count semantics still need to be resolved during implementation.
+The proposed baseline is PostgreSQL as the search store, one embedding per product, a rebuildable search projection, and indexing outside product-write transactions. The first milestone selects local Ollama with Nomic v1.5 and 768 dimensions. The final schema, retrieval windows, and count semantics still need to be resolved during implementation.
 
 ## Reading map
 
@@ -482,7 +483,48 @@ A locally runnable, pinned model is attractive for a self-contained learning sam
 
 A hosted provider can simplify execution on developer machines, but introduces credentials, usage charges, network latency, availability, and data-transfer/privacy considerations.
 
-No provider or model is selected yet. Document the actual model, retrieval instructions, dimensions, resource requirements, and setup once chosen.
+The first milestone selects **Ollama 0.13.5** and **`nomic-embed-text:v1.5`**, using its native **768 dimensions** and separate `search_document: ` / `search_query: ` prefixes. The observed model manifest digest is `0a109f422b47e3a30ba2b10eca18548e944e8a23073ee3f3e947efcf3c45e59f`; the live smoke script requires that identity. The application client validates the response model name and vector shape, not the server's manifest digest; deployment must preserve the recorded model identity before a persisted profile is introduced.
+
+The container is CPU-based and opt-in through the `search` Compose profile. Its runtime image occupies about **4 GB uncompressed**, in addition to the **274 MB** model and temporary/container overhead. See [local embedding setup](local-dev.md#optional-local-embedding-model).
+
+The client requires exactly one finite, non-zero vector, disables silent truncation, and surfaces provider failures instead of substituting empty embeddings. A versioned canonical document builder creates a SHA-256 source fingerprint and deterministically orders/deduplicates tags.
+
+The document builder reads labels through the contract's `Brand`, `Category` and `SubCategory` reference-data properties. Call it within a CoreEx execution context with the reference-data orchestrator configured; callers do not pass duplicate label arguments. Its unit tests use the same seeded reference data through the unit-test host. Because `Text` supports localization, an indexer must use a consistent language context when producing documents.
+
+### First real-model finding
+
+The local embedding endpoint works, but the initial semantic ranking check does **not** yet pass. For "something to clean mud off my bike", Nomic ranked the Yeti bike above the bike cleaner when given current short names, category/brand labels and tags. It also ranked the Yeti bike above the Shimano derailleur for "a component for changing gears". Even the name-only probe did not reliably favor the cleaner.
+
+This is a useful counterexample to "embeddings work, therefore search is good". The failures are recorded rather than hidden by changing the queries or weakening the expected results. `tools/test-product-embeddings.ps1` evaluates both examples before reporting any failures. It calculates exact cosine distances in memory; it is not pgvector retrieval, a full-catalog evaluation, or evidence about index performance.
+
+Possible next steps are verified descriptive enrichment, a deliberately evaluated hybrid retrieval policy, or comparison with another model. These are explicit relevance decisions; none has been silently applied to make the example pass.
+
+### Controlled document-content experiment
+
+A follow-up experiment kept the same model digest, task prefixes, 768 dimensions, cosine calculation and three products. It compared four document recipes across eight queries: the two original failing queries, a whole-bike query, the short queries "bike cleaner" and "rear derailleur", and three additional paraphrases about washing a dirty cycle, shifting the chain on the rear cassette, and buying a whole bike rather than parts.
+
+| Document recipe | Expected product ranked first |
+|---|---|
+| Current canonical names, codes, labels and tags | 2 of 8 |
+| Product title alone | 2 of 8 |
+| Diagnostic functional description alone | 8 of 8 |
+| Current canonical document plus diagnostic description | 8 of 8 |
+
+The diagnostic descriptions were deliberately simple:
+
+- Cleaner: "A bicycle cleaning product used to wash dirt and mud from a bicycle."
+- Derailleur: "A rear derailleur is a bicycle drivetrain component that moves the chain between sprockets to change gears."
+- Bike: "A complete cross-country mountain bicycle for riding on trails."
+
+These are **synthetic diagnostic inputs**, not verified manufacturer descriptions, new product facts, or changes to the seeded catalog. They test whether stating a product's function changes retrieval; they must not be quietly promoted into production data.
+
+For the original cleaning query, adding the description increased the cleaner's cosine similarity from **0.2934** to **0.7321**, ahead of the derailleur (**0.5374**) and bike (**0.5223**). For the gear-changing query, the enriched derailleur scored **0.6671**, ahead of the cleaner (**0.5584**) and bike (**0.5119**). Similarity is not a probability.
+
+Additional controls used an independent Python standard-library HTTP client and cosine calculation, reproducing the original PowerShell baseline rankings. Repeated query embeddings and single-versus-batched requests had cosine similarity **1.0** in this run. The cleaning query was closer to the functional cleaning description (**0.7803**) than to unrelated cake (**0.3661**) or database-backup (**0.4082**) descriptions.
+
+This is evidence that document content materially affects this configuration, and that the model can separate these functional descriptions. It is **not** proof that sparse text is the only cause, that the model is optimal, or that an eight-query/three-product sample predicts full-catalog quality. The whole-bike-versus-parts query had a particularly small winning margin, despite passing. There was no held-out evaluation set, and descriptions were designed with the task in mind.
+
+The next content decision is whether to introduce authoritative product descriptions or another curated source of functional text, followed by broader evaluation. The actual document builder and original smoke expectations remain unchanged by this experiment; pgvector cannot supply meaning absent from its input vectors.
 
 Measure document and query embedding separately. Caching repeated query embeddings can help, but keys must include the profile and relevant preprocessing; user text may be sensitive, so retention/logging needs care.
 
@@ -528,6 +570,11 @@ These existing files are the starting points, not claims that the proposed funct
 
 | Existing surface | Relevance |
 |---|---|
+| [Search document builder](../src/Contoso.Products.Application/Search/ProductSearchDocument.cs) | Versioned canonical text and source fingerprint. |
+| [Embedding adapter interface](../src/Contoso.Products.Application/Adapters/Embeddings/IProductEmbeddingAdapter.cs) | Application-owned query/document embedding boundary. |
+| [Ollama client](../src/Contoso.Products.Infrastructure/Clients/Ollama/OllamaHttpClient.cs) | Task prefixes, model profile, explicit truncation policy, and response validation. |
+| [Embedding client tests](../tests/Contoso.Products.Test.Unit/Clients/Ollama/OllamaHttpClientTests.cs) | Mocked success/error responses and exact request construction. |
+| [Live embedding smoke check](../../tools/test-product-embeddings.ps1) | Explicit local-model probe and retained relevance expectations. |
 | [Product query configuration](../src/Contoso.Products.Infrastructure/Repositories/ProductQueryArgsConfig.cs) | Current keyword fields and future server-selected ranked mode. |
 | [Product repository](../src/Contoso.Products.Infrastructure/Repositories/ProductRepository.cs) | Existing filters, joins, ordering, mapping, and paging to preserve. |
 | [Product read service](../src/Contoso.Products.Application/ProductReadService.cs) | Current query delegation through the Application boundary. |

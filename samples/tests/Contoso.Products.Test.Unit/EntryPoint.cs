@@ -9,6 +9,8 @@ public class EntryPoint
         builder.Services.AddMemoryCache();
         builder.Services.AddReferenceDataOrchestrator<ReferenceDataProviderDecorator>();
 
+        builder.AddTypedHttpClient<OllamaHttpClient>("Ollama", client => client.BaseAddress = new Uri("http://localhost:11434/"));
+
         // Reuse the "real" database configured reference data.
         var jdr = JsonDataReader.ParseYaml<Contoso.Products.Database.Program>("ref-data.seed.yaml", JsonDataReaderOptions.CreateForReferenceData(JsonPropertyNamingConvention.SnakeCase));
         builder.Services.AddSingleton(new ReferenceDataProviderDecorator(jdr));
@@ -18,7 +20,7 @@ public class EntryPoint
     {
         public override Task<IReferenceDataCollection> GetAsync(Type type, CancellationToken cancellationToken = default) => type switch
         {
-            _ when type == typeof(Category) => Task.FromResult((IReferenceDataCollection)jdr.Deserialize<CategoryCollection>("products.$^category")!.ExtendForTesting([new Category { Id = Runtime.NewId(), Code = "X", IsInactive = false }])),
+            _ when type == typeof(Category) => Task.FromResult((IReferenceDataCollection)jdr.Deserialize<CategoryCollection>("products.$^category")!.ExtendForTesting(new Category[] { new() { Id = Runtime.NewId(), Code = "X", IsInactive = false } })),
             _ when type == typeof(SubCategory) => Task.FromResult((IReferenceDataCollection)jdr.Deserialize<SubCategoryCollection>("products.$^sub_category")!),
             _ when type == typeof(UnitOfMeasure) => Task.FromResult((IReferenceDataCollection)jdr.Deserialize<UnitOfMeasureCollection>("products.$^unit_of_measure")!),
             _ when type == typeof(Brand) => Task.FromResult((IReferenceDataCollection)jdr.Deserialize<BrandCollection>("products.$^brand")!),

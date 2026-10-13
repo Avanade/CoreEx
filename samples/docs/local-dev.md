@@ -53,6 +53,41 @@ podman compose -f docker-compose.yml down
 | `dts-emulator` | `dts/dts-emulator:latest` | 8080, 8082 | Orders.Workflow.Worker, Orders.Api | Task hubs: `default`, `order` |
 | `aspire-dashboard` | `aspire-dashboard:latest` | 18888 (UI), 4317 (OTLP) | Optional — any host with OTLP configured | Usable standalone; no need to run the full Aspire AppHost just for traces |
 
+### Optional local embedding model
+
+The first Products search milestone uses **Ollama 0.13.5** with **`nomic-embed-text:v1.5`**.
+It is opt-in: normal Compose startup does not start the `search` profile or download a model.
+From the repository root:
+
+```powershell
+podman compose -f docker-compose.yml --profile search up -d ollama
+podman compose -f docker-compose.yml exec ollama ollama pull nomic-embed-text:v1.5
+Invoke-RestMethod http://localhost:11434/api/version
+.\tools\test-product-embeddings.ps1
+```
+
+The runtime image is approximately **4 GB uncompressed** and the model file is approximately **274 MB**.
+Allow additional room for downloaded layers, extraction, and container storage; the model size alone is not the disk budget.
+This CPU-based setup requests no GPU and limits Ollama to one loaded model and one parallel inference request.
+
+The endpoint binds to host loopback at `localhost:11434` because Ollama has no authentication configured here.
+The `ollama-models` named volume keeps downloads across container recreation.
+Stopping the container does not delete that volume:
+
+```powershell
+podman compose -f docker-compose.yml stop ollama
+```
+
+Nomic emits **768-dimensional** vectors with `search_document: ` and `search_query: ` task prefixes.
+The client sends `truncate=false`, so an oversized input fails instead of silently changing the searchable document.
+The smoke script checks the installed model manifest digest, validates vectors, and prints cosine rankings for seeded catalog examples.
+It intentionally fails if the expected semantic ranking is not obtained; do not confuse a working embedding endpoint with good retrieval.
+
+Products API development configuration contains `Ollama:BaseAddress` and longer inference timeout settings.
+Other environments must supply their own endpoint/timeouts before using the adapter. Keyword requests do not call Ollama.
+This milestone does **not** enable pgvector or change the Products API's default keyword behavior.
+See [the search guide](search.md) for implementation status and relevance findings.
+
 ### Service Bus configuration
 
 The emulator is pre-configured by `servicebus/Config.json`. Key values the sample hosts depend on:
