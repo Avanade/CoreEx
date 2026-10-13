@@ -12,6 +12,7 @@ Each of Products and Shopping is an independently deployable unit with an API ho
 > |---|---|
 > | [Layers](docs/layers.md) | Business and host layer overview with dependency diagram |
 > | [Patterns](docs/patterns.md) | Catalog of architectural patterns implemented across the samples |
+> | [Search: from keywords to vectors](docs/search.md) | Beginner-friendly explanation and staged design for Products search, PostgreSQL/pgvector, hybrid ranking, indexing, and MCP; distinguishes implemented behavior from planned work |
 > | [Tooling](docs/tooling.md) | Code generation (`*.CodeGen`) and database management (`*.Database`) |
 > | [Testing](docs/testing.md) | Unit, intra-domain, inter-domain, and E2E testing strategy |
 > | [Aspire & E2E](docs/aspire.md) | Local orchestration and cross-domain end-to-end validation |
