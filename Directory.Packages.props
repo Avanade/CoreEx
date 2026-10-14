@@ -12,6 +12,7 @@
     <PackageVersion Include="Aspire.Azure.Npgsql" Version="13.5.4" />
     <PackageVersion Include="Aspire.StackExchange.Redis.DistributedCaching" Version="13.5.4" />
     <PackageVersion Include="CloudNative.CloudEvents.SystemTextJson" Version="2.9.0" />
+    <PackageVersion Include="CommunityToolkit.Aspire.OllamaSharp" Version="13.5.0" />
     <PackageVersion Include="MessagePack" Version="2.5.303" />
     <PackageVersion Include="ModelContextProtocol.AspNetCore" Version="2.2.0" />
     <PackageVersion Include="ModelContextProtocol" Version="2.2.0" />

@@ -102,21 +102,20 @@ public partial class ReadTests : WithApiTester<Contoso.Products.Api.Program>
     public void Product_Query_Search_MultipleTerms()
     {
         var r = Test.Http<ProductLite[]>()
-            .Run(HttpMethod.Get, "/api/products?$search=rear derailleur")
+            .Run(HttpMethod.Get, "/api/products?$search=rear derailleur&$take=3")
             .AssertOK()
             .Value;
 
         r.Should().NotBeNull()
             .And.HaveCount(3)
-            .And.BeInAscendingOrder(x => x.Sku)
             .And.OnlyContain(p => p.Text!.Contains("Rear Derailleur"));
     }
 
     [Test]
-    public void Product_Query_Search_SkuPrefix()
+    public void Product_Query_Search_SkuIntent()
     {
         var r = Test.Http<ProductLite[]>()
-            .Run(HttpMethod.Get, "/api/products?$search=sram-xx1")
+            .Run(HttpMethod.Get, "/api/products?$search=sram-xx1&$take=1")
             .AssertOK()
             .Value;
 
@@ -128,14 +127,9 @@ public partial class ReadTests : WithApiTester<Contoso.Products.Api.Program>
     [Test]
     public void Product_Query_Search_WithFilterAndOrderBy()
     {
-        var r = Test.Http<ProductLite[]>()
+        Test.Http()
             .Run(HttpMethod.Get, "/api/products?$search=cleaner&$filter=brand eq 'MUCOFF'&$orderby=text desc")
-            .AssertOK()
-            .Value;
-
-        r.Should().NotBeNull()
-            .And.HaveCount(2)
-            .And.BeInDescendingOrder(x => x.Text);
+            .AssertBadRequest();
     }
 
     [Test]
@@ -169,7 +163,7 @@ public partial class ReadTests : WithApiTester<Contoso.Products.Api.Program>
     public void Product_Query_Search_WithPriceFilter()
     {
         var products = Test.Http<ProductLite[]>()
-            .Run(HttpMethod.Get, "/api/products?$search=cleaner&$filter=price lt 20")
+            .Run(HttpMethod.Get, "/api/products?$search=cleaner&$filter=price lt 20&$take=1")
             .AssertOK()
             .Value!;
 
@@ -178,11 +172,11 @@ public partial class ReadTests : WithApiTester<Contoso.Products.Api.Program>
     }
 
     [Test]
-    public void Product_Query_Search_TooManyTerms()
+    public void Product_Query_Search_TooLong()
     {
         Test.Http()
-            .Run(HttpMethod.Get, "/api/products?$search=a b c d e f g h i")
+            .Run(HttpMethod.Get, $"/api/products?$search={new string('a', 201)}")
             .AssertBadRequest()
-            .AssertErrors(new ApiError("$search", "Statement must not contain more than 8 distinct terms."));
+            .AssertErrors(new ApiError("$search", "Statement must not exceed 200 characters in length."));
     }
 }

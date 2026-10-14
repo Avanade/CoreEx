@@ -4,7 +4,7 @@ public partial class E2ETest
 {
     private string _mcpEndpoint = string.Empty;
 
-    [Test]
+    [Test, Order(0)]
     public async Task Contoso_Mcp_FullBasketLifecycle()
     {
         Test.Checkpoint("Increase inventory for the seeded, active Product used by the MCP basket scenario.");
@@ -33,11 +33,11 @@ public partial class E2ETest
         tools.Select(x => x.Name).Should().Contain(expectedToolNames);
         tools.Should().OnlyContain(x => x.ProtocolTool.OutputSchema.HasValue);
 
-        Test.Checkpoint("Search for and read a Product through MCP.");
+        Test.Checkpoint("Read a Product and search the prepared real-model projection through MCP.");
         var product = await CallToolAsync(client, "get_product", new Dictionary<string, object?> { ["productId"] = productId }).ConfigureAwait(false);
         product.GetProperty("id").GetString().Should().Be(productId);
-        var productSearch = await CallToolAsync(client, "search_products", new Dictionary<string, object?> { ["searchTerm"] = "spec", ["take"] = 25 }).ConfigureAwait(false);
-        productSearch.EnumerateArray().Should().Contain(x => x.GetProperty("sku").GetString()!.StartsWith("SPEC", StringComparison.Ordinal));
+        var productSearch = await CallToolAsync(client, "search_products", new Dictionary<string, object?> { ["searchTerm"] = "something to clean mud off my bike", ["take"] = 1 }).ConfigureAwait(false);
+        productSearch.EnumerateArray().Should().ContainSingle().Which.GetProperty("sku").GetString().Should().Be("MUCOFF-NANO-CLEANER");
 
         Test.Checkpoint("Create a Basket for the seeded MCP demo customer, then read and list it through MCP.");
         var customerId = 16.ToGuid().ToString();

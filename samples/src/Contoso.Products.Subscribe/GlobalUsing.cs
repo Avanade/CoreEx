@@ -1,4 +1,5 @@
 global using Contoso.Products.Application.Interfaces;
+global using Contoso.Products.Infrastructure.Clients.Ollama;
 global using CoreEx;
 global using CoreEx.DependencyInjection;
 global using CoreEx.Events;

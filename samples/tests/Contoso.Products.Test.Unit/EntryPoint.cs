@@ -9,7 +9,8 @@ public class EntryPoint
         builder.Services.AddMemoryCache();
         builder.Services.AddReferenceDataOrchestrator<ReferenceDataProviderDecorator>();
 
-        builder.AddTypedHttpClient<OllamaHttpClient>("Ollama", client => client.BaseAddress = new Uri("http://localhost:11434/"));
+        builder.Configuration["Ollama:BaseAddress"] = "http://localhost:11434/";
+        builder.AddProductEmbeddings();
 
         // Reuse the "real" database configured reference data.
         var jdr = JsonDataReader.ParseYaml<Contoso.Products.Database.Program>("ref-data.seed.yaml", JsonDataReaderOptions.CreateForReferenceData(JsonPropertyNamingConvention.SnakeCase));

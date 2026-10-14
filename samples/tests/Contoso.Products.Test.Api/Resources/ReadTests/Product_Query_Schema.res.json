@@ -81,9 +81,8 @@
     "default": "sku asc"
   },
   "search": {
-    "mode": "keyword",
-    "ranked": false,
-    "maxLength": 200,
-    "maxTerms": 8
+    "mode": "semantic",
+    "ranked": true,
+    "maxLength": 200
   }
 }

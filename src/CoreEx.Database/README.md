@@ -47,6 +47,23 @@ The outbox sub-namespace implements the [Transactional Outbox pattern](https://m
 | **[`DatabaseOutboxRelayHostedServiceBase`](./Outbox/DatabaseOutboxRelayHostedServiceBase.cs)** | `TimerHostedServiceBase` subclass that drives `IDatabaseOutboxRelay.RelayAsync` on a timer. |
 | **[`DatabaseOutboxPublisherBase`](./Outbox/DatabaseOutboxPublisherBase.cs)** | Abstract base `IEventPublisher` that writes `EventData` entries to the outbox table within the current database transaction. |
 
+## Transaction isolation
+
+The SQL Server and PostgreSQL `IUnitOfWork.TransactionAsync` overloads accepting provider arguments honor
+`SqlServerDatabaseArgs.IsolationLevel` or `PostgresDatabaseArgs.IsolationLevel` when creating a root transaction.
+Overloads without explicit arguments use the database's configured arguments; the default is `ReadCommitted`.
+The framework owns commit, rollback and disposal, and `EfDb` enlists its shared connection through
+`IDatabase.UseTransactionChanged`.
+
+Nested calls use savepoints and **inherit the parent's isolation level**, regardless of their arguments.
+They do not upgrade isolation or independently commit the parent. An operation needing a particular isolation
+guarantee must verify an existing parent's level. Isolation semantics are provider-specific: PostgreSQL
+`RepeatableRead` provides a stable MVCC snapshot, whereas SQL Server `RepeatableRead` does not prevent phantoms
+and is not a substitute for SQL Server `Snapshot`.
+
+Read-only callbacks need not enqueue events. At the root boundary, a configured outbox publishes any queued
+events before commit; nested calls leave publication to their parent.
+
 ## Namespaces
 
 | Namespace | Description |

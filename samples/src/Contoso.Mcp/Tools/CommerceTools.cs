@@ -3,11 +3,11 @@ namespace Contoso.Mcp.Tools;
 [McpServerToolType]
 public static class CommerceTools
 {
-    /// <summary>Searches products by free-text keywords.</summary>
-    [McpServerTool(UseStructuredContent = true, ReadOnly = true), Description("Find active products using free-text keywords; each word must appear in the product name or be the beginning of the product SKU. Returns up to the requested number of matching product summaries.")]
+    /// <summary>Searches products by semantic relevance.</summary>
+    [McpServerTool(UseStructuredContent = true, ReadOnly = true), Description("Find active products by meaning using semantic search over names, descriptions and product classifications. Returns up to the requested number of product summaries, closest first; results are candidates, not guaranteed matches. Requires a current search index.")]
     public static Task<ProductLite[]> SearchProductsAsync(
         [FromServices] IHttpClientFactory clientFactory,
-        [Description("One or more keywords to find in product names, or the beginning of a product SKU.")] string searchTerm,
+        [Description("Describe the product or intended use to search for. Exact SKU matching is not guaranteed by semantic search.")] string searchTerm,
         [Description("Maximum number of products to return (1-25).")] int take = 10,
         CancellationToken cancellationToken = default)
     {

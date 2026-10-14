@@ -7,6 +7,7 @@
     <ProjectReference Include="..\Contoso.Products.Contracts\Contoso.Products.Contracts.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Aspire.OllamaSharp" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
   </ItemGroup>
 </Project>

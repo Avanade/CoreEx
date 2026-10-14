@@ -8,7 +8,7 @@ public class OllamaHttpClientTests : WithGenericTester<EntryPoint>
     public void OneTimeSetUp()
     {
         var factory = MockHttpClientFactory.Create();
-        _request = factory.CreateClient("Ollama").Request(HttpMethod.Post, "api/embed");
+        _request = factory.CreateClient(OllamaHostingExtensions.HttpClientName).Request(HttpMethod.Post, "api/embed");
         _request.WithAnyBody();
         Test.ReplaceHttpClientFactory(factory);
     }
@@ -84,8 +84,9 @@ public class OllamaHttpClientTests : WithGenericTester<EntryPoint>
             using (json)
             {
                 json.RootElement.GetProperty("model").GetString().Should().Be(OllamaHttpClient.ModelName);
-                json.RootElement.GetProperty("input").GetString().Should().Be(prefix + "cleaner");
+                json.RootElement.GetProperty("input").EnumerateArray().Should().ContainSingle().Which.GetString().Should().Be(prefix + "cleaner");
                 json.RootElement.GetProperty("truncate").GetBoolean().Should().BeFalse();
+                json.RootElement.GetProperty("keep_alive").GetString().Should().Be("5m");
             }
 
             return new HttpResponseMessage(HttpStatusCode.OK)
@@ -94,7 +95,8 @@ public class OllamaHttpClientTests : WithGenericTester<EntryPoint>
             };
         });
         using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:11434/") };
-        var client = new OllamaHttpClient(http);
+        using var sdk = new OllamaApiClient(http);
+        var client = new OllamaHttpClient(sdk);
         var result = query ? await client.EmbedQueryAsync(" cleaner ") : await client.EmbedDocumentAsync(" cleaner ");
         result.IsSuccess.Should().BeTrue();
     }
@@ -102,11 +104,12 @@ public class OllamaHttpClientTests : WithGenericTester<EntryPoint>
     [TestCase(null)]
     [TestCase("")]
     [TestCase("  ")]
-    public void Embed_BlankInputDoesNotCallProvider(string? text)
+    public async Task Embed_BlankInputDoesNotCallProvider(string? text)
     {
-        using var http = new HttpClient();
-        Action action = () => new OllamaHttpClient(http).EmbedQueryAsync(text!);
-        action.Should().Throw<ArgumentException>();
+        using var sdk = new OllamaApiClient(new Uri("http://localhost:11434/"));
+        var client = new OllamaHttpClient(sdk);
+        Func<Task> action = () => client.EmbedQueryAsync(text!);
+        await action.Should().ThrowAsync<ArgumentException>();
     }
 
     [Test]
@@ -118,7 +121,8 @@ public class OllamaHttpClientTests : WithGenericTester<EntryPoint>
             Content = new StringContent($"{{\"model\":\"{OllamaHttpClient.ModelName}\",\"embeddings\":[[{values}]]}}")
         }));
         using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:11434/") };
-        var result = await new OllamaHttpClient(http).EmbedQueryAsync("cleaner");
+        using var sdk = new OllamaApiClient(http);
+        var result = await new OllamaHttpClient(sdk).EmbedQueryAsync("cleaner");
         result.IsFailure.Should().BeTrue();
         result.Error.Should().BeOfType<HttpRequestException>().Which.InnerException.Should().BeOfType<ValidationException>();
     }
@@ -129,9 +133,52 @@ public class OllamaHttpClientTests : WithGenericTester<EntryPoint>
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
         using var http = new HttpClient { BaseAddress = new Uri("http://localhost:11434/") };
-        var client = new OllamaHttpClient(http);
+        using var sdk = new OllamaApiClient(http);
+        var client = new OllamaHttpClient(sdk);
         Func<Task> action = () => client.EmbedQueryAsync("cleaner", cancellation.Token);
         await action.Should().ThrowAsync<OperationCanceledException>();
+    }
+
+    [Test]
+    public async Task Registration_UsesAspireClientWithServiceDiscoveryAndResilience()
+    {
+        var builder = Host.CreateApplicationBuilder();
+        builder.Configuration["Ollama:BaseAddress"] = "http://ollama";
+        builder.Configuration["Ollama:Resilience:Retry:Delay"] = "00:00:00.001";
+        builder.Configuration["Ollama:Resilience:Retry:UseJitter"] = "false";
+        builder.Configuration["Ollama:Resilience:Retry:MaxRetryAttempts"] = "1";
+        builder.Configuration["Services:ollama:http:0"] = "http://localhost:11434";
+        builder.AddProductEmbeddings();
+        var requests = 0;
+        builder.Services.AddHttpClient(OllamaHostingExtensions.HttpClientName).ConfigurePrimaryHttpMessageHandler(() => new InspectHandler((request, _) =>
+        {
+            request.RequestUri.Should().Be(new Uri("http://localhost:11434/api/embed"));
+            requests++;
+            return Task.FromResult(new HttpResponseMessage(requests == 1 ? HttpStatusCode.ServiceUnavailable : HttpStatusCode.OK)
+            {
+                Content = new StringContent(JsonSerializer.Serialize(new { model = OllamaHttpClient.ModelName, embeddings = new[] { Enumerable.Repeat(0.1f, 768).ToArray() } }))
+            });
+        }));
+
+        using var host = builder.Build();
+        host.Services.GetRequiredService<IOllamaApiClient>().Should().BeOfType<OllamaApiClient>();
+        using var http = host.Services.GetRequiredService<IHttpClientFactory>().CreateClient(OllamaHostingExtensions.HttpClientName);
+        http.Timeout.Should().Be(Timeout.InfiniteTimeSpan);
+        var result = await host.Services.GetRequiredService<OllamaHttpClient>().EmbedQueryAsync("cleaner");
+        result.IsSuccess.Should().BeTrue();
+        requests.Should().Be(2);
+    }
+
+    [TestCase("null")]
+    [TestCase("{")]
+    public async Task Embed_InvalidJson_ReturnsDependencyFailure(string body)
+    {
+        using var handler = new InspectHandler((_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(body) }));
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:11434/") };
+        using var sdk = new OllamaApiClient(http);
+        var result = await new OllamaHttpClient(sdk).EmbedQueryAsync("cleaner");
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().BeOfType<HttpRequestException>();
     }
 
     private sealed class InspectHandler(Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> inspect) : HttpMessageHandler

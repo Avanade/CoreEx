@@ -67,8 +67,21 @@ public static class CoreExExtensions
     /// </code>
     /// </para></remarks>
     public static IHttpClientBuilder AddNamedHttpClient(this IHostApplicationBuilder builder, string name, Action<HttpClient>? configureClient = null, Action<IServiceProvider, IdempotencyKeyHandler>? configureIdempotency = null)
+        => builder.AddNamedHttpClient(name, configureClient, name, configureIdempotency);
+
+    /// <summary>
+    /// Adds an opinionated named <see cref="HttpClient"/> using a separate configuration section, with idempotency key handling, service discovery, and standard resilience.
+    /// </summary>
+    /// <param name="builder">The <see cref="IHostApplicationBuilder"/>.</param>
+    /// <param name="name">The name registered with <see cref="IHttpClientFactory"/>.</param>
+    /// <param name="configureClient">An optional action to configure the <see cref="HttpClient"/>.</param>
+    /// <param name="configurationSectionName">The section containing <c>BaseAddress</c> and optional <c>Resilience</c> settings.</param>
+    /// <param name="configureIdempotency">An optional action to configure the <see cref="IdempotencyKeyHandler"/>.</param>
+    /// <returns>The <see cref="IHttpClientBuilder"/> for fluent-style method-chaining.</returns>
+    /// <remarks>Use this overload when an SDK registers its own HTTP client name. Existing registrations for that name are augmented, not replaced.</remarks>
+    public static IHttpClientBuilder AddNamedHttpClient(this IHostApplicationBuilder builder, string name, Action<HttpClient>? configureClient, string configurationSectionName, Action<IServiceProvider, IdempotencyKeyHandler>? configureIdempotency = null)
     {
-        var config = builder.ThrowIfNull().Configuration.GetSection(name) ?? throw new ArgumentException($"Unable to find configuration section for '{name}'.");
+        var config = builder.ThrowIfNull().Configuration.GetSection(configurationSectionName.ThrowIfNullOrEmpty());
 
         // Registers the underlying service endpoint resolver providers (configuration-based + pass-through); safe/idempotent to call more than once per host.
         builder.Services.AddServiceDiscovery();
@@ -82,7 +95,7 @@ public static class CoreExExtensions
             configureClient?.Invoke(client);
 
             if (client.BaseAddress is null)
-                throw new ArgumentException($"Unable to find '{nameof(HttpClient.BaseAddress)}' configuration for '{name}'.");
+                throw new ArgumentException($"Unable to find '{nameof(HttpClient.BaseAddress)}' configuration for '{configurationSectionName}'.");
         });
 
         cb.AddIdempotencyKeyHandler((sp, handler) => configureIdempotency?.Invoke(sp, handler));

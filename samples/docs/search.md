@@ -1,6 +1,6 @@
 # Product search: from keywords to vectors
 
-This guide explains how product search works, why vectors can help, and how we intend to extend the Contoso Products sample using PostgreSQL and pgvector. It assumes no previous experience with embeddings, vector databases, or search engines.
+This guide explains how product search works, why vectors can help, and how the Contoso Products sample uses PostgreSQL and pgvector. It assumes no previous experience with embeddings, vector databases, or search engines.
 
 The goal is not merely to store some numbers and label the result "AI". It is to demonstrate an understandable search capability with correct filtering, reliable updates, and evidence of useful results.
 
@@ -11,25 +11,25 @@ The goal is not merely to store some numbers and label the result "AI". It is to
 | Capability | Status | What that means |
 |---|---|---|
 | CoreEx `QueryArgs.Search` and search parser configuration | Implemented | REST, HTTP clients, OpenAPI, and GraphQL-lite can carry search text. |
-| Products keyword search | Implemented | Every distinct whitespace-separated term must match the product text or the beginning of its SKU. |
+| Products semantic search | Implemented; default for `$search` | Exact cosine-distance ranking replaces the earlier keyword matching. Requests without `$search` retain ordinary filtering and ordering. |
 | MCP `search_products` forwarding to Products | Implemented | The tool calls the Products API with `$search`; it does not query the database. |
 | Ranked-search mode plumbing | Implemented | CoreEx validates and carries ranked search intent; the repository must execute it. |
 | Canonical product search document | Implemented | Versioned, whitespace-normalized documents and source hashes exclude price, status, inventory and business metadata. |
 | Product descriptions and price filtering | Implemented | Optional descriptive content supports CRUD; decimal price constraints use existing REST and GraphQL-lite query configuration. |
 | Local embedding provider | Implemented | Ollama/Nomic document and query instructions, response validation, and an Application adapter boundary are available. |
-| Separate search projection and pgvector semantic retrieval | Proposed | No product embeddings are currently stored or queried in PostgreSQL. |
+| Separate search projection and pgvector semantic retrieval | Implemented | PostgreSQL stores 768-dimensional embeddings and computes exact, filtered cosine-distance rankings. |
 | PostgreSQL full-text retrieval and hybrid ranking | Proposed | The current sample does not perform full-text or hybrid search. |
-| Asynchronous search indexing and backfill | Proposed | The outbox and subscriber foundations exist; search-specific processing does not. |
+| Explicit rebuild / asynchronous search indexing | Rebuild implemented; asynchronous processing proposed | Test setup invokes reusable Infrastructure logic to rebuild the catalog atomically. Missing/stale eligible documents return HTTP 503 until rebuilt. |
 | Real-model relevance evaluation and HNSW benchmark | Initial probes implemented; broader evaluation proposed | Two illustrative semantic expectations pass after descriptive enrichment. Full-catalog relevance and index performance remain unproven. |
 
-The proposed baseline is PostgreSQL as the search store, one embedding per product, a rebuildable search projection, and indexing outside product-write transactions. The first milestone selects local Ollama with Nomic v1.5 and 768 dimensions. The final schema, retrieval windows, and count semantics still need to be resolved during implementation.
+The implemented baseline is PostgreSQL as the search store, one embedding per product/profile/recipe, a rebuildable search projection, and indexing outside product-write transactions. It uses local Ollama with Nomic v1.5 and 768 dimensions. Exact retrieval ranks every eligible product; count means the number of eligible products, not the number judged relevant. Full-text/hybrid retrieval windows and asynchronous maintenance remain future work.
 
 ## Reading map
 
 - [Start with the three kinds of search](#three-kinds-of-search).
 - [Learn what embeddings and distances mean](#embeddings-text-as-coordinates).
 - [Understand PostgreSQL storage and retrieval](#postgresql-and-pgvector).
-- [Follow the proposed sample architecture](#where-this-fits-in-the-sample).
+- [Follow the sample architecture](#where-this-fits-in-the-sample).
 - [See how indexing stays correct](#keeping-search-current).
 - [Understand hybrid ranking](#hybrid-search-combining-two-result-lists).
 - [Review the implementation stages and evidence](#implementation-stages).
@@ -41,13 +41,13 @@ Imagine a catalog containing "Muc-Off Nano Tech Bike Cleaner".
 
 ### Keyword search: find these words
 
-A keyword search asks whether particular text occurs in selected fields. The implemented sample splits a request into whitespace-separated terms, requires every term to match, and allows each term to match either the product text or the SKU prefix.
+A keyword search asks whether particular text occurs in selected fields. The sample's earlier keyword implementation split a request into whitespace-separated terms, required every term to match, and allowed each term to match either the product text or the SKU prefix. CoreEx still supports that mode; Products has now deliberately switched to semantic mode.
 
 ```text
 GET /api/products?$search=rear%20derailleur
 ```
 
-This finds products whose configured fields collectively match both words. It is not phrase matching: the words do not have to be adjacent. Repeated terms are deduplicated case-insensitively.
+In keyword mode this finds products whose configured fields collectively match both words. It is not phrase matching: the words do not have to be adjacent. Repeated terms are deduplicated case-insensitively. In the current Products semantic mode, this same request instead returns nearby meanings in relevance order.
 
 Keyword search is simple, predictable, and useful. It is not inherently inferior to vectors. For an exact identifier, it may be the better tool.
 
@@ -95,7 +95,7 @@ This should retrieve the most relevant eligible Yeti products, not search the en
 
 Keyword mode allows ordinary ordering. Ranked modes own relevance ordering: CoreEx rejects an explicit `$orderby` and does not apply the configured default ordering.
 
-The server configuration selects the mode. There is currently no public `$searchMode` parameter.
+The server configuration selects the mode; Products now selects semantic mode. There is no public `$searchMode` parameter. Semantic text is limited to 200 normalized characters, but the keyword-only eight-term limit no longer applies.
 
 Price, availability, and other hard constraints belong in structured filtering, not in assumptions about what an embedding understands. Products exposes a decimal `price` filter with `eq`, `ne`, `in`, `gt`, `ge`, `lt` and `le`; inventory filters are not currently exposed.
 
@@ -158,30 +158,28 @@ That explanation is a separate step, and the returned product data remains the a
 
 An **extension** is additional database functionality installed on the server and enabled in a database. `CREATE EXTENSION` cannot install server binaries that are absent.
 
-The current Compose setup uses a plain, unpinned `postgres` image. Implementation will need a compatible, pinned image containing pgvector, plus a database migration enabling the extension. Changing database images or major versions requires checking compatibility and preserving existing local data.
+Compose uses `docker.io/pgvector/pgvector:0.8.2-pg18-trixie`: pgvector 0.8.2 on PostgreSQL 18. The Products migration enables `vector` and creates the search projection. Changing database images or major versions requires checking compatibility; do not reuse a data directory across incompatible PostgreSQL major versions. The local switch retained the existing PostgreSQL 18 data volume.
 
-### Proposed storage
+### Implemented storage
 
 A **search projection** is derived data prepared for retrieval. It can be rebuilt from the authoritative products.
 
-The proposed one-to-one projection could have this shape:
+The current projection has this shape (see the migration for complete constraints):
 
 ```sql
--- Illustrative only: names, dimensions, and constraints are not finalized.
-CREATE EXTENSION IF NOT EXISTS vector;
-
-CREATE TABLE products.product_search
-(
-    product_id text PRIMARY KEY,
-    document_text text NOT NULL,
-    embedding vector(768) NOT NULL,
-    embedding_profile text NOT NULL,
-    source_hash text NOT NULL,
-    embedded_at timestamptz NOT NULL DEFAULT now()
+CREATE TABLE products.product_search (
+    product_id varchar(50) NOT NULL REFERENCES products.product(product_id) ON DELETE CASCADE,
+    profile varchar(250) NOT NULL,
+    recipe varchar(50) NOT NULL,
+    source_hash char(64) NOT NULL,
+    document text NOT NULL,
+    embedding vector(768) NOT NULL CHECK (vector_norm(embedding) > 0),
+    indexed_on timestamptz NOT NULL,
+    PRIMARY KEY (product_id, profile, recipe)
 );
 ```
 
-The `768` is an example, not a chosen model dimension. Choose the model first, then the storage type and index strategy. The final design must also define ownership/foreign keys, deletion handling, full-text storage, and profile migration.
+The `768` is Nomic's selected native dimensionality. The composite primary key permits separate profiles/recipes without mixing them in retrieval. There is no HNSW or IVFFlat index: PostgreSQL evaluates exact distances. Full-text storage and coherent profile rollout remain later milestones.
 
 Why a separate table instead of another product column?
 
@@ -252,7 +250,7 @@ Do not generate invented product specifications merely to make semantic results 
 
 `Description` is optional plain text, limited to 2,000 characters in validation and PostgreSQL. It is returned in full-product and `ProductLite` responses and editable through existing POST, PUT and merge-PATCH endpoints; PATCH can explicitly clear it with `{"description":null}`. Updates retain the existing ETag, changelog and transactional-outbox behavior. The search document recipe is now `product-document-v2`, and description edits change its source hash; price changes do not.
 
-Descriptions are included in embedding documents. The default keyword `$search` still matches the product name (`Text`) or SKU prefix, not the new description field; this preserves the existing keyword behavior until a deliberate search-mode change.
+Descriptions are included in embedding documents. The current semantic `$search` uses their meaning alongside names, SKU and classifications; it does not require literal keyword matches. For guaranteed SKU matching, use `$filter=sku eq '...'`, not semantic similarity.
 
 ### Where the seeded descriptions come from
 
@@ -305,7 +303,7 @@ Otherwise a price change can leave the stored embedding representing yesterday's
 
 ### One product, one vector
 
-One embedding per product is the proposed baseline.
+One embedding per product/profile/recipe is the implemented baseline.
 
 **Chunking** means splitting a long document into smaller passages and embedding them separately. It is useful for manuals and lengthy articles, not automatically useful for a short catalog record.
 
@@ -340,7 +338,7 @@ flowchart LR
     API --> Client
 ```
 
-This is the proposed ranked flow. Today the repository executes keyword search without an embedding provider.
+This is the implemented semantic flow. Requests without `$search` do not call the embedding provider or require a populated projection.
 
 **CoreEx responsibilities:** carry intent through `QueryArgs`, validate configured constraints, apply keyword predicates, and distinguish ranked search from ordinary ordering.
 
@@ -348,9 +346,9 @@ This is the proposed ranked flow. Today the repository executes keyword search w
 
 The existing `ProductRepository.QueryAsync` joins product, subcategory, and inventory data. Ranked retrieval must preserve that behavior and all configured filters rather than quietly implementing a reduced API.
 
-Application orchestration should depend on application-owned interfaces. Embedding transport/SDK and pgvector access belong in Infrastructure, composed by the hosts. The exact interface names are not yet chosen.
+Application orchestration depends on application-owned interfaces. `IProductEmbeddingAdapter` owns the model boundary, its Ollama implementation lives in Infrastructure, and `ProductSearchIndex` handles derived storage and rebuilds there.
 
-The .NET pgvector integration supports Npgsql and EF Core. Versions must match this repository's EF/Npgsql target matrix; external Npgsql data sources and EF options must both be configured where required. Database changes remain owned by DbEx migrations and regeneration, not hand-edited generated files.
+The sample deliberately uses bound vector-text parameters with an explicit PostgreSQL `vector(768)` cast, rather than adding pgvector EF/Npgsql packages. EF Core's unmapped `SqlQuery<T>` exposes only product IDs, fingerprints and distances; the repository composes it with its existing relational joins and filters. Vectors never enter CRUD contracts. This SQL-only derived table is intentionally outside `dbex.yaml`'s generated CRUD models; its DDL is still owned by a DbEx migration.
 
 ### What MCP adds
 
@@ -358,11 +356,71 @@ MCP (Model Context Protocol) lets an AI client discover and invoke tools such as
 
 The tool sends search text to Products and returns product data. It does not generate its own embeddings, query PostgreSQL directly, or maintain its own index. Non-MCP clients use the same capability.
 
-After switching the sample to ranked search, update the tool description to describe the actual behavior instead of promising keyword matching.
+The tool description now promises semantic candidate ordering, not literal keyword or exact-SKU matching. Price/brand filters remain available in REST/GraphQL-lite but are not yet arguments on the MCP tool.
 
 Search does not resolve authentication or authorization. The sample's existing authentication gaps remain separate concerns.
 
 ## Keeping search current
+
+### Current milestone: an explicit, atomic rebuild
+
+Rebuilding is reusable Infrastructure logic, **not an API startup responsibility**. The earlier API
+`--rebuild-search` maintenance mode has been removed. There is no HTTP rebuild endpoint or standalone indexing
+console at this milestone.
+
+Products read-test `OneTimeSetUp` seeds the catalog and invokes `ProductSearchIndex.RebuildAsync` with controlled
+embeddings. Aspire E2E setup seeds the catalog, clears Redis, then creates a small test-owned service scope using
+the actual PostgreSQL resource connection string and AppHost Ollama configuration. It invokes the same rebuild
+logic with the real model before starting the hosts. The scope uses fresh in-memory reference-data caching over
+the real database; the serving API uses its normal Redis-backed cache, cleared by setup. The AppHost exposes
+Ollama as a Compose-owned external resource. CI explicitly starts the search profile and pulls the selected model.
+Neither API nor AppHost startup seeds or rebuilds anything during ordinary manual execution.
+
+The API, Subscribe host and real-model test fixture register `CommunityToolkit.Aspire.OllamaSharp` through the
+shared `AddProductEmbeddings` composition helper. Aspire registers `IOllamaApiClient`; CoreEx's `AddNamedHttpClient`
+augments the SDK's named client using the separate `Ollama` configuration section, adding idempotency handling,
+service discovery and standard HTTP resilience from `Ollama:Resilience`,
+with `HttpClient.Timeout` disabled so the resilience timeouts control request duration. The container remains
+Compose-owned; the client integration does not launch it.
+
+The SDK handles request serialization, transport and response disposal. `OllamaHttpClient` is now a validated SDK
+wrapper, not a hand-written HTTP transport. It preserves Nomic's prefixes, `truncate=false`, the pinned model and
+768-dimensional finite, non-zero vector checks. OllamaSharp's response type omits the returned model name, so a
+small read-only response converter retains that field for validation. Provider/protocol errors return failed
+CoreEx results; cancellation still propagates. No provider types leak through `IProductEmbeddingAdapter`.
+The SDK's direct embedding API is used instead of `IEmbeddingGenerator` to retain the provider-specific truncation
+policy and response model metadata; portability remains at the application-owned adapter boundary.
+
+The Products Subscribe host also registers the Ollama client because its shared repositories and dynamically
+registered services include the embedding adapter. Ordinary reservation handlers do not call the model; this
+registration satisfies their service graph, not an indexing workflow.
+
+The rebuild indexes the current non-deleted catalog, including inactive products so `$inactive` works. It does
+not seed products or download the model. It prepares documents and calls Ollama **before** starting a database
+transaction when invoked outside an existing transaction. Only publication takes a short framework-managed unit
+of work: lock the product table against writes, verify that its searchable documents still match the captured
+catalog, replace the selected profile/recipe, and commit. A model failure leaves the previous index untouched;
+a concurrent searchable catalog edit rejects publication. Deleted-product entries disappear on rebuild, and
+physical deletion also cascades through the foreign key. Other profiles remain separate. If a consumer calls
+rebuild inside an existing unit of work, it inherits that transaction and publication remains subject to the
+parent's eventual commit or rollback.
+
+For a semantic request, the repository checks eligible source hashes first, so a known broken index fails before paying for inference. It embeds the query, uses `PostgresUnitOfWork.TransactionAsync` with `PostgresDatabaseArgs.IsolationLevel = RepeatableRead` to open a database snapshot, and checks hashes again to cover writes during inference. It then joins the compatible projection, orders by exact cosine distance and product ID (a deterministic tie-breaker), and applies paging/count. Any missing or stale eligible document yields **HTTP 503** with a rebuild instruction. There is no silent keyword fallback, incomplete result set or successful empty response masquerading as inference failure.
+
+The framework manages commit, rollback and cleanup, and enlists the EF context in the shared database transaction. A nested unit of work uses a savepoint, not a new independent transaction: it inherits the parent's isolation. Semantic search therefore explicitly rejects an existing parent unless it is `RepeatableRead` or `Serializable`; silently accepting `ReadCommitted` would lose the consistency guarantee. For standalone requests, inference occurs before opening the snapshot. When a caller already owns a compatible parent transaction, that caller owns its lifetime, including time spent on inference. The search callback does not enqueue events, but any events already queued by a consumer follow the normal root-unit-of-work outbox rules.
+
+This guard deliberately recomputes hashes over eligible products and reads stored fingerprints, twice for successful searches. That is suitable for a 32-row teaching catalog, **not a high-volume indexing strategy**. Price and inventory come from live relational data, are not in the document hash, and do not require new embeddings. Name, description, tags and reference-data labels do. Labels use the existing orchestrator/cache; rebuilding and querying must use consistent language/cache state. This is not a substitute for reference-data invalidation and asynchronous indexing.
+
+API integration tests rebuild with controlled vectors, isolating distance ordering and failure behavior from model
+quality. Test.Aspire's MCP lifecycle asserts that real semantic cleaning intent returns Nano cleaner through
+MCP -> Products API -> PostgreSQL. It runs before the checkout scenario that creates a new product: until
+incremental indexing exists, that catalog mutation intentionally makes the prepared projection stale. This ordering
+is explicit fixture management, not evidence of automatic indexing. Future mutation-to-search tests must exercise
+the asynchronous indexing path without inserting a rebuild between mutation and search.
+
+There is no relevance cutoff: every eligible vector is a candidate. `$count=true` reports the eligible catalog size, including poor semantic matches. An unrelated query still returns neighbors; clients must not interpret a returned product as guaranteed suitable.
+
+### Next milestone: asynchronous maintenance
 
 Product CRUD already commits product mutations and outgoing events together using the transactional outbox.
 
@@ -585,6 +643,21 @@ The experiment did not modify catalog data or change the original smoke expectat
 
 With the researched descriptions, the original smoke examples now pass: the cleaner ranks first for the cleaning query (cosine distance **0.2958**) and the Shimano derailleur ranks first for the gear-changing query (**0.3442**). This is still a three-product illustration, not proof of full-catalog relevance.
 
+### Exact retrieval against the seeded catalog
+
+The subsequent pgvector milestone stores **31 non-deleted products**, including two inactive products. Normal semantic requests rank the **29 active products**. The real-model API smoke keeps the original queries rather than choosing new ones to make the database demo look better:
+
+| Query | First candidate | Second candidate | Third candidate |
+|---|---|---|---|
+| something to clean mud off my bike | Muc-Off Nano Tech Bike Cleaner | Muc-Off Drivetrain Cleaner | Muc-Off MTB Tubeless Sealant |
+| a component for changing gears | Shimano Deore XT M8100 Rear Derailleur | SRAM GX Eagle Rear Derailleur | OneUp EDC Tool V2 |
+
+Both expected first products survive the larger candidate set. A price-under-20 cleaning request returns the Nano cleaner, and GraphQL-lite returns the same first gear-changing candidate as REST. `tools/test-product-search.ps1` reproduces these checks through the API, not by calculating distances in PowerShell.
+
+The live MCP HTTP transport was also exercised against this API: `search_products` returned the Nano cleaner first for the original cleaning intent, including its description and live price. Temporarily invalidating its indexed fingerprint produced a tool error rather than a successful partial result; the fingerprint was restored afterwards. This bounded manual check is distinct from the full Test.Aspire topology.
+
+The lower ranks expose the remaining quality problem: sealant is not a cleaner, and a repair multi-tool ranks above some drivetrain components. Exact search does not fix that; it faithfully returns the model's nearest candidates. These examples motivate hybrid retrieval and a curated evaluation set, not an invented confidence threshold or a claim that search is finished.
+
 Measure document and query embedding separately. Caching repeated query embeddings can help, but keys must include the profile and relevant preprocessing; user text may be sensitive, so retention/logging needs care.
 
 Trace embedding time, database time, indexing lag, retries, and failures. Avoid logging raw vectors, credentials, or full user queries by default.
@@ -594,7 +667,7 @@ Trace embedding time, database time, indexing lag, retries, and failures. Avoid 
 | Stage | Learning objective | Evidence required |
 |---|---|---|
 | 1. Documents and embeddings | See how verified catalog content becomes vectors. | Selected profile, reproducible builder, provider configuration, provenance. |
-| 2. Exact pgvector retrieval | Understand distance ordering with real filters. | Real database tests for ordering, eligibility, profile isolation, and paging policy. |
+| 2. Exact pgvector retrieval (implemented) | Understand distance ordering with real filters. | Real database tests for ordering, eligibility, profile isolation, paging, freshness and atomic rebuild failure. |
 | 3. Full-text and RRF | Compare exact terminology with semantic intent. | Inspectable branch ranks and curated hybrid comparisons. |
 | 4. Indexing and backfill | Maintain rebuildable derived state. | Duplicate/out-of-order handling, stale-write protection, updates/deletes, recovery. |
 | 5. HNSW benchmark | Measure speed versus recall at meaningful scale. | Exact baseline, larger corpus, real query plans, latency and recall results. |
@@ -625,7 +698,7 @@ ANN recall and human relevance are different measurements. A fast index can fait
 
 ## Implementation map
 
-These existing files are the starting points, not claims that the proposed functionality already lives there:
+These files own the implemented behavior and the foundations for later milestones:
 
 | Existing surface | Relevance |
 |---|---|
@@ -634,7 +707,7 @@ These existing files are the starting points, not claims that the proposed funct
 | [Ollama client](../src/Contoso.Products.Infrastructure/Clients/Ollama/OllamaHttpClient.cs) | Task prefixes, model profile, explicit truncation policy, and response validation. |
 | [Embedding client tests](../tests/Contoso.Products.Test.Unit/Clients/Ollama/OllamaHttpClientTests.cs) | Mocked success/error responses and exact request construction. |
 | [Live embedding smoke check](../../tools/test-product-embeddings.ps1) | Explicit local-model probe and retained relevance expectations. |
-| [Product query configuration](../src/Contoso.Products.Infrastructure/Repositories/ProductQueryArgsConfig.cs) | Current keyword fields and future server-selected ranked mode. |
+| [Product query configuration](../src/Contoso.Products.Infrastructure/Repositories/ProductQueryArgsConfig.cs) | Server-selected semantic mode and existing filter/order fields. |
 | [Product repository](../src/Contoso.Products.Infrastructure/Repositories/ProductRepository.cs) | Existing filters, joins, ordering, mapping, and paging to preserve. |
 | [Product read service](../src/Contoso.Products.Application/ProductReadService.cs) | Current query delegation through the Application boundary. |
 | [Product service](../src/Contoso.Products.Application/ProductService.cs) | Atomic product mutations and outbox events. |
@@ -643,8 +716,12 @@ These existing files are the starting points, not claims that the proposed funct
 | [DbContext](../src/Contoso.Products.Infrastructure/Repositories/ProductsDbContext.cs) | Hand-authored EF/Npgsql composition; generated partials remain generator-owned. |
 | [Subscribe host](../src/Contoso.Products.Subscribe/Program.cs) | Existing message receiving/composition foundations. |
 | [MCP tools](../src/Contoso.Mcp/Tools/CommerceTools.cs) | API-only search forwarding and tool description. |
-| [Compose infrastructure](../../docker-compose.yml) | PostgreSQL image and potential local inference resource. |
-| [Product query tests](../tests/Contoso.Products.Test.Api/ReadTests.ProductQuery.cs) | Current keyword API behavior and schema expectations. |
+| [Compose infrastructure](../../docker-compose.yml) | Pinned PostgreSQL/pgvector image and optional local inference resource. |
+| [Search projection](../src/Contoso.Products.Infrastructure/Repositories/ProductSearchIndex.cs) | Exact distances, compatibility/freshness checks and atomic manual rebuild. |
+| [Search migration](../src/Contoso.Products.Database/Migrations/20261013-182033-create-products-product_search-table.pgsql) | Derived table, vector extension and constraints. |
+| [Product query tests](../tests/Contoso.Products.Test.Api/ReadTests.ProductQuery.cs) | Semantic API behavior and schema expectations. |
+| [Semantic database tests](../tests/Contoso.Products.Test.Api/ReadTests.ProductSemanticSearch.cs) | Controlled-vector ranking, eligibility, paging, failures and rebuild behavior. |
+| [Real API smoke](../../tools/test-product-search.ps1) | Real-model, full-catalog REST/GraphQL-lite checks. |
 
 See also [layer boundaries](layers.md), [Infrastructure](infrastructure-layer.md), [messaging hosts](hosts-layer.md), [tooling](tooling.md), [testing](testing.md), and [Aspire](aspire.md).
 

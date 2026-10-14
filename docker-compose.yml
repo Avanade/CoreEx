@@ -10,7 +10,7 @@ services:
       - "1433:1433"
     
   db-postgres:
-    image: postgres
+    image: docker.io/pgvector/pgvector:0.8.2-pg18-trixie
     environment:
       POSTGRES_PASSWORD: "yourStrong#!Password"
     ports:

@@ -16,6 +16,7 @@ var sqlServer = builder.AddExternalConnectionString("SqlServer").WithIconName("D
 var redis = builder.AddExternalConnectionString("redis").WithIconName("Database");
 var serviceBus = builder.AddExternalConnectionString("ServiceBus").WithIconName("MailMultiple");
 var cosmos = builder.AddExternalConnectionString("Cosmos", endpointKey: "AccountEndpoint").WithIconName("DatabaseMultiple");
+var ollama = builder.AddExternalService("ollama", builder.Configuration["Ollama:BaseAddress"].ThrowIfNullOrEmpty()).WithHttpHealthCheck("/api/tags").WithIconName("BrainCircuitRegular");
 
 // Customers domain.
 var customersApi = builder.AddProject<Projects.Contoso_Customers_Api>("customers-api").WithReference(cosmos).WithReference(redis).AddEndpoints("/health/ready/detailed");
@@ -23,8 +24,15 @@ builder.AddProject<Projects.Contoso_Customers_Relay>("customers-relay").WithRefe
 
 // Products domain.
 var productsApi = builder.AddProject<Projects.Contoso_Products_Api>("products-api").WithReference(postgres).WithReference(redis).AddEndpoints("/health/ready/detailed");
+productsApi.WithReference(ollama).WithEnvironment("Ollama__BaseAddress", "http://ollama").WaitFor(ollama);
 builder.AddProject<Projects.Contoso_Products_Relay>("products-relay").WithReference(postgres).WithReference(serviceBus).AddEndpoints("/health/ready/detailed").AddHostedServiceSupport();
-builder.AddProject<Projects.Contoso_Products_Subscribe>("products-subscribe").WithReference(postgres).WithReference(redis).WithReference(serviceBus).AddEndpoints("/health/ready/detailed").AddHostedServiceSupport();
+var productsSubscribe = builder.AddProject<Projects.Contoso_Products_Subscribe>("products-subscribe").WithReference(postgres).WithReference(redis).WithReference(serviceBus).AddEndpoints("/health/ready/detailed").AddHostedServiceSupport();
+productsSubscribe.WithReference(ollama).WithEnvironment("Ollama__BaseAddress", "http://ollama");
+foreach (var setting in builder.Configuration.GetSection("Ollama:Resilience").AsEnumerable().Where(x => x.Value is not null))
+{
+    productsApi.WithEnvironment(setting.Key.Replace(":", "__"), setting.Value.ThrowIfNull());
+    productsSubscribe.WithEnvironment(setting.Key.Replace(":", "__"), setting.Value.ThrowIfNull());
+}
 
 // Shopping domain.
 // Note: shopping-api and shopping-subscribe call Products and Customers synchronously (see ProductsHttpClient and CustomersHttpClient). The appsettings default is the standalone

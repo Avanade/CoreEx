@@ -31,6 +31,7 @@
     <ProjectReference Include="..\..\src\Contoso.Customers.Database\Contoso.Customers.Database.csproj" />
     <ProjectReference Include="..\..\src\Contoso.Products.Contracts\Contoso.Products.Contracts.csproj" />
     <ProjectReference Include="..\..\src\Contoso.Products.Database\Contoso.Products.Database.csproj" />
+    <ProjectReference Include="..\..\src\Contoso.Products.Infrastructure\Contoso.Products.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\Contoso.Shopping.Contracts\Contoso.Shopping.Contracts.csproj" />
     <ProjectReference Include="..\..\src\Contoso.Shopping.Database\Contoso.Shopping.Database.csproj" />
     <ProjectReference Include="..\..\src\Contoso.Mcp\Contoso.Mcp.csproj" />

@@ -15,6 +15,7 @@ global using CoreEx.Validation;
 global using Microsoft.Extensions.DependencyInjection;
 global using Microsoft.Extensions.Hosting;
 global using Moq;
+global using OllamaSharp;
 global using System.Net;
 global using System.Text.Json;
 global using UnitTestEx;

@@ -20,6 +20,9 @@ public partial class E2ETest : WithAspireTester<Projects.Contoso_Aspire>
         // Clear the Redis cache.
         await app.ClearRedisCacheAsync("redis");
 
+        // Prepare the real-model derived projection explicitly; API startup never rebuilds it.
+        await ProductSearchSetup.RebuildAsync(app).ConfigureAwait(false);
+
         // Reset the Azure Service Bus queues and topics/subscriptions to an initial state.
         await app.ResetAzureServiceBusAsync("servicebus", ServiceBus.GetQueues(), ServiceBus.GetTopicsAndSubscriptions());
     }
@@ -35,7 +38,7 @@ public partial class E2ETest : WithAspireTester<Projects.Contoso_Aspire>
         _mcpEndpoint = app.GetEndpoint("contoso-mcp", "http").ToString().TrimEnd('/');
     }
 
-    [Test]
+    [Test, Order(1)]
     public async Task CreateOrderAndConfirmAsync()
     {
         Test.Checkpoint("Create and activate a new Product; this should sync to the Shopping domain via the Products domain's outbox and Service Bus.");
