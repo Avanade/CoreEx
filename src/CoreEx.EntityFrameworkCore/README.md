@@ -40,6 +40,21 @@ The central type is `EfDb<TDbContext>`, which holds the `DbContext`, bridges its
 | [`IEfDb`](./IEfDb.cs) | Interface exposing `DbContext`, `IDatabase`, `EfDbOptions`, `ExecutionContext`, and `EfDbInvoker`; implemented by `EfDb<TDbContext>`. |
 | [`IEfDbContext`](./IEfDbContext.cs) | Marker interface for `DbContext` subclasses wiring the `IDatabase` bridge via `BaseDatabase`. |
 
+## Composable SQL statements
+
+`IEfDb.SqlQuery<T>(SqlStatement, params object[])` bridges CoreEx SQL statements to EF's deferred, composable scalar/unmapped queries. Cache embedded statements and supply values separately:
+
+```csharp
+private static readonly SqlStatement _matches = SqlStatement.FromResource<ProductRepository>("ProductMatches.pgsql");
+
+public IQueryable<ProductMatch> Matches(string profile)
+    => _ef.SqlQuery<ProductMatch>(_matches, profile);
+```
+
+The resource can contain `SELECT product_id AS "Id" FROM products.product_search WHERE profile = {0}`. EF binds placeholder values; explicit provider `DbParameter` instances with named placeholders are also supported. Do not interpolate values into SQL or call `string.Format`. Only determinate `CommandType.Text` statements are accepted; stored-procedure statements are rejected. Normal EF/provider composability rules apply (including no trailing semicolon for a composed query); SQL is not rewritten. A composed scalar query needs a `Value` column.
+
+Materialization (for example, `ToListAsync(cancellationToken)`) executes through EF with the context's current transaction and EF diagnostics/error handling, not the CoreEx Database command pipeline. The helper does not apply CoreEx model filters: callers must enforce tenant, logical-delete and other eligibility rules explicitly. For immediate scalar or non-query commands, continue to use `ef.Database.Statement(...)`.
+
 ## Namespaces
 
 | Namespace | Description |

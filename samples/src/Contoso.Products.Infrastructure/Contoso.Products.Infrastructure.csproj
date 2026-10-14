@@ -10,4 +10,7 @@
     <PackageReference Include="CommunityToolkit.Aspire.OllamaSharp" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
   </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Repositories\Sql\*.pgsql" />
+  </ItemGroup>
 </Project>

@@ -6,11 +6,14 @@ public partial class E2ETest : WithAspireTester<Projects.Contoso_Aspire>
     private readonly string _shoppingApi = "shopping-api";
     private readonly string _customersApi = "customers-api";
     private string _serviceBusConnectionString = string.Empty;
+    private string _productsConnectionString = string.Empty;
 
     protected override async Task OnBeforeStartAsync(DistributedApplication app)
     {
         _serviceBusConnectionString = await AspireTesterBase.GetConnectionStringAsync(app, "ServiceBus").ConfigureAwait(false)
             ?? throw new InvalidOperationException("The ServiceBus resource has no connection string.");
+        _productsConnectionString = await AspireTesterBase.GetConnectionStringAsync(app, "Postgres").ConfigureAwait(false)
+            ?? throw new InvalidOperationException("The Postgres resource has no connection string.");
 
         // Migrate the Products, Shopping and Customers databases and seed each with test data.
         await app.MigratePostgresDataAsync<Contoso.Products.Test.Common.TestData>("Postgres", ["mutate-data.seed.yaml"], Contoso.Products.Database.Program.ConfigureMigrationArgs);
@@ -38,7 +41,7 @@ public partial class E2ETest : WithAspireTester<Projects.Contoso_Aspire>
         _mcpEndpoint = app.GetEndpoint("contoso-mcp", "http").ToString().TrimEnd('/');
     }
 
-    [Test, Order(1)]
+    [Test]
     public async Task CreateOrderAndConfirmAsync()
     {
         Test.Checkpoint("Create and activate a new Product; this should sync to the Shopping domain via the Products domain's outbox and Service Bus.");

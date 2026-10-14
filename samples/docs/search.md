@@ -19,10 +19,10 @@ The goal is not merely to store some numbers and label the result "AI". It is to
 | Local embedding provider | Implemented | Ollama/Nomic document and query instructions, response validation, and an Application adapter boundary are available. |
 | Separate search projection and pgvector semantic retrieval | Implemented | PostgreSQL stores 768-dimensional embeddings and computes exact, filtered cosine-distance rankings. |
 | PostgreSQL full-text retrieval and hybrid ranking | Proposed | The current sample does not perform full-text or hybrid search. |
-| Explicit rebuild / asynchronous search indexing | Rebuild implemented; asynchronous processing proposed | Test setup invokes reusable Infrastructure logic to rebuild the catalog atomically. Missing/stale eligible documents return HTTP 503 until rebuilt. |
+| Explicit backfill / asynchronous search indexing | Implemented | Test setup publishes an atomic initial backfill; one globbed product-event subscriber reconciles subsequent changes, including logical deletion. |
 | Real-model relevance evaluation and HNSW benchmark | Initial probes implemented; broader evaluation proposed | Two illustrative semantic expectations pass after descriptive enrichment. Full-catalog relevance and index performance remain unproven. |
 
-The implemented baseline is PostgreSQL as the search store, one embedding per product/profile/recipe, a rebuildable search projection, and indexing outside product-write transactions. It uses local Ollama with Nomic v1.5 and 768 dimensions. Exact retrieval ranks every eligible product; count means the number of eligible products, not the number judged relevant. Full-text/hybrid retrieval windows and asynchronous maintenance remain future work.
+The implemented baseline is PostgreSQL as the search store, one embedding per product/profile/recipe, a rebuildable search projection, and indexing outside product-write transactions. It uses local Ollama with Nomic v1.5 and 768 dimensions. Exact retrieval ranks eligible **indexed** products; count means the number of those candidates, not the number judged relevant or the complete catalog size. Full-text/hybrid retrieval windows remain future work.
 
 ## Reading map
 
@@ -346,9 +346,9 @@ This is the implemented semantic flow. Requests without `$search` do not call th
 
 The existing `ProductRepository.QueryAsync` joins product, subcategory, and inventory data. Ranked retrieval must preserve that behavior and all configured filters rather than quietly implementing a reduced API.
 
-Application orchestration depends on application-owned interfaces. `IProductEmbeddingAdapter` owns the model boundary, its Ollama implementation lives in Infrastructure, and `ProductSearchIndex` handles derived storage and rebuilds there.
+Application orchestration depends on application-owned interfaces. `IProductEmbeddingAdapter` owns the model boundary; `IProductSearchSyncAdapter` exposes current-state reconciliation to the subscriber. Their implementations live in Infrastructure, where `ProductSearchIndex` handles derived storage and backfills.
 
-The sample deliberately uses bound vector-text parameters with an explicit PostgreSQL `vector(768)` cast, rather than adding pgvector EF/Npgsql packages. EF Core's unmapped `SqlQuery<T>` exposes only product IDs, fingerprints and distances; the repository composes it with its existing relational joins and filters. Vectors never enter CRUD contracts. This SQL-only derived table is intentionally outside `dbex.yaml`'s generated CRUD models; its DDL is still owned by a DbEx migration.
+The sample deliberately uses bound vector-text parameters with an explicit PostgreSQL `vector(768)` cast, rather than adding pgvector EF/Npgsql packages. SQL lives in named, embedded `.pgsql` files under Infrastructure's `Repositories/Sql/`, loaded through `SqlStatement.FromResource`. `Matches()` passes its resource to CoreEx's `IEfDb.SqlQuery<T>` bridge with separate parameter values; EF binds the `{0}`/`{1}`/`{2}` placeholders rather than formatting values into SQL. The query omits a trailing semicolon so EF can compose it with live relational joins, filters, ranking, paging and count. Maintenance statements execute with bound parameters via `ProductsEfDb.Database` (CoreEx `IDatabase`). These commands share the existing unit-of-work transaction with EF; no separate connection or transaction is introduced. Vectors never enter CRUD contracts. These SQL-only derived tables are intentionally outside `dbex.yaml`'s generated CRUD models; their DDL is still owned by DbEx migrations.
 
 ### What MCP adds
 
@@ -362,7 +362,7 @@ Search does not resolve authentication or authorization. The sample's existing a
 
 ## Keeping search current
 
-### Current milestone: an explicit, atomic rebuild
+### Initial readiness: an explicit, atomic backfill
 
 Rebuilding is reusable Infrastructure logic, **not an API startup responsibility**. The earlier API
 `--rebuild-search` maintenance mode has been removed. There is no HTTP rebuild endpoint or standalone indexing
@@ -391,9 +391,7 @@ CoreEx results; cancellation still propagates. No provider types leak through `I
 The SDK's direct embedding API is used instead of `IEmbeddingGenerator` to retain the provider-specific truncation
 policy and response model metadata; portability remains at the application-owned adapter boundary.
 
-The Products Subscribe host also registers the Ollama client because its shared repositories and dynamically
-registered services include the embedding adapter. Ordinary reservation handlers do not call the model; this
-registration satisfies their service graph, not an indexing workflow.
+The Products Subscribe host registers the Ollama client for asynchronous product indexing. Ordinary reservation handlers do not call the model and consume a separate command queue.
 
 The rebuild indexes the current non-deleted catalog, including inactive products so `$inactive` works. It does
 not seed products or download the model. It prepares documents and calls Ollama **before** starting a database
@@ -405,28 +403,36 @@ physical deletion also cascades through the foreign key. Other profiles remain s
 rebuild inside an existing unit of work, it inherits that transaction and publication remains subject to the
 parent's eventual commit or rollback.
 
-For a semantic request, the repository checks eligible source hashes first, so a known broken index fails before paying for inference. It embeds the query, uses `PostgresUnitOfWork.TransactionAsync` with `PostgresDatabaseArgs.IsolationLevel = RepeatableRead` to open a database snapshot, and checks hashes again to cover writes during inference. It then joins the compatible projection, orders by exact cosine distance and product ID (a deterministic tie-breaker), and applies paging/count. Any missing or stale eligible document yields **HTTP 503** with a rebuild instruction. There is no silent keyword fallback, incomplete result set or successful empty response masquerading as inference failure.
+`products.product_search_readiness` records successful initial preparation for each profile/recipe. The readiness marker commits atomically with backfill publication, even for an empty catalog. Incremental events never mark a partially indexed catalog ready. A failed initial backfill leaves it unready; a failed later backfill preserves the previous published projection and readiness.
+
+For a semantic request, the repository checks this small readiness record before inference and again inside its `RepeatableRead` snapshot. It joins compatible vectors to **live** product data, orders by exact cosine distance and product ID (a deterministic tie-breaker), and applies paging/count. There are no full-catalog freshness scans.
+
+| Condition | Search behavior |
+|---|---|
+| Updated product, older compatible vector | HTTP 200; older meaning can affect ranking, but returned fields and filters use current relational state. |
+| New product without a vector | HTTP 200; omitted until indexing succeeds. |
+| Deleted or inactive product with a retained vector | Immediately excluded by live eligibility (inactive can be explicitly requested). |
+| Ready index with no eligible indexed candidates | HTTP 200 with an empty result and count zero. |
+| Initial backfill never completed for the configured profile/recipe | CoreEx `TransientException`, HTTP 503. |
+| Query embedding dependency unavailable, timed out, or returned an invalid response | CoreEx `TransientException`, HTTP 503, preserving inner diagnostics. |
+
+Caller cancellation propagates; a broken internal vector contract remains a programming error, not a successful empty result. There is no silent keyword fallback.
 
 The framework manages commit, rollback and cleanup, and enlists the EF context in the shared database transaction. A nested unit of work uses a savepoint, not a new independent transaction: it inherits the parent's isolation. Semantic search therefore explicitly rejects an existing parent unless it is `RepeatableRead` or `Serializable`; silently accepting `ReadCommitted` would lose the consistency guarantee. For standalone requests, inference occurs before opening the snapshot. When a caller already owns a compatible parent transaction, that caller owns its lifetime, including time spent on inference. The search callback does not enqueue events, but any events already queued by a consumer follow the normal root-unit-of-work outbox rules.
 
-This guard deliberately recomputes hashes over eligible products and reads stored fingerprints, twice for successful searches. That is suitable for a 32-row teaching catalog, **not a high-volume indexing strategy**. Price and inventory come from live relational data, are not in the document hash, and do not require new embeddings. Name, description, tags and reference-data labels do. Labels use the existing orchestrator/cache; rebuilding and querying must use consistent language/cache state. This is not a substitute for reference-data invalidation and asynchronous indexing.
+Price, inventory and activity changes do not require new embeddings. Name, description, tags and reference-data labels do. Labels use the existing orchestrator/cache; reference-data-driven invalidation and reindexing are **not implemented**. A label-only change needs an explicit backfill with appropriate cache invalidation.
 
-API integration tests rebuild with controlled vectors, isolating distance ordering and failure behavior from model
-quality. Test.Aspire's MCP lifecycle asserts that real semantic cleaning intent returns Nano cleaner through
-MCP -> Products API -> PostgreSQL. It runs before the checkout scenario that creates a new product: until
-incremental indexing exists, that catalog mutation intentionally makes the prepared projection stale. This ordering
-is explicit fixture management, not evidence of automatic indexing. Future mutation-to-search tests must exercise
-the asynchronous indexing path without inserting a rebuild between mutation and search.
+API integration tests rebuild with controlled vectors, isolating distance ordering and failure behavior from model quality. Subscriber integration tests cover duplicate/out-of-order notifications, logical deletion, content-hash skips, concurrent edits and provider retries. Test.Aspire's MCP lifecycle asserts real semantic cleaning intent; its product-search lifecycle drives create/update/activate/delete through HTTP and polls the stored document and search results through the real relay, broker, subscriber and model, with no intervening rebuild. The MCP and checkout scenarios no longer require ordering to avoid freshness failures.
 
-There is no relevance cutoff: every eligible vector is a candidate. `$count=true` reports the eligible catalog size, including poor semantic matches. An unrelated query still returns neighbors; clients must not interpret a returned product as guaranteed suitable.
+There is no relevance cutoff: every eligible compatible vector is a candidate. `$count=true` reports eligible indexed candidates, including poor semantic matches and excluding not-yet-indexed products. An unrelated query still returns neighbors; clients must not interpret a returned product as guaranteed suitable.
 
-### Next milestone: asynchronous maintenance
+### Asynchronous maintenance
 
 Product CRUD already commits product mutations and outgoing events together using the transactional outbox.
 
 An **outbox** stores an event in the same database transaction as its business change. A **relay** forwards committed events to the broker. A **subscriber** handles delivered events.
 
-The proposed indexing flow reuses that foundation:
+The indexing flow reuses that foundation:
 
 ```mermaid
 sequenceDiagram
@@ -450,28 +456,28 @@ This is **eventual consistency**: the product write can succeed before its searc
 
 The API must not wait for external inference inside a product-write transaction. That would tie business writes to model availability and hold database resources during inference.
 
-The existing Products Subscribe host is a natural home for the worker. A dedicated subscription/receiver may isolate slower indexing from reservation commands without adding another host. Broker subscription rules, handler registration, concurrency, retries, and dead-letter behavior all need explicit wiring.
+`ProductSearchSubscriber` uses `[Subscribe("contoso.products.product.**")]` to handle both versioned payload events and key-only deletion events. It delegates only the product key through the application-owned sync boundary. The existing `contoso` topic's `products` subscription feeds it; assembly discovery registers the handler. Reservation commands use a separate receiver/queue, although they still share the process and infrastructure. The usual CoreEx transient error handling requests broker retry; operators must monitor failures/dead letters.
 
 ### Duplicate delivery is normal
 
 At-least-once delivery means an event can arrive multiple times. The handler must be **idempotent**: retrying the same work must not corrupt state.
 
-The proposed handler should:
+The implemented handler:
 
-1. Load current authoritative product data instead of blindly using an old event payload.
-2. Construct the canonical document and source hash.
-3. Skip work if the stored hash/profile already matches.
-4. Generate the embedding outside a database transaction.
-5. Recheck source freshness before writing.
-6. Store only if the result still corresponds to current source state; otherwise schedule/retry fresh work.
+1. Loads current authoritative product data instead of blindly using an old event payload.
+2. Constructs the canonical document and source hash.
+3. Skips inference if the stored hash/profile already matches.
+4. Generates any required embedding outside a database transaction.
+5. Rechecks source freshness before writing.
+6. Stores only if the result still corresponds to current source state; otherwise returns `TransientException` for retry.
 
-The final check/write requires a concurrency strategy, not just two unrelated reads. A short transaction with an appropriate lock/version check can prevent an older worker overwriting a newer projection.
+The final check/write uses a short unit of work and PostgreSQL `SHARE` lock on the product table, also used by backfill publication. This blocks product writes during the final check/upsert, **not** during model inference. Inference cannot run inside a caller-owned parent transaction for incremental sync. Concurrent publishers may share the lock, but all must verify the same current source. This coarse table lock is deliberately simple for the teaching catalog; production scale needs measured contention and a finer-grained publication strategy.
 
-If reference-data descriptions contribute to the document, changes to those descriptions must also trigger or schedule reindexing of affected products.
+Reference-data changes should eventually schedule affected products too; that wiring remains future work.
 
 ### Deactivation and deletion
 
-Live eligibility must exclude deleted or inactive products when appropriate, even while their old vectors remain stored. Deletion should also clean up the projection.
+Live eligibility excludes deleted or inactive products when appropriate, even while their old vectors remain stored. On a missing/logically deleted product, the subscriber deletes projection rows for **all** profiles and recipes. An old update arriving afterward reloads current state and cannot resurrect the projection. The foreign key cascade helps physical deletion only; it cannot detect a logical delete.
 
 Search eligibility must not rely solely on yesterday's indexed status.
 
@@ -479,7 +485,7 @@ Search eligibility must not rely solely on yesterday's indexed status.
 
 Events do not automatically index pre-existing products. A **backfill** processes existing records; **reindexing** rebuilds records after a model/template change or repair.
 
-Provide an explicit resumable operation using the same builder and profile as event processing. It should batch work, skip current records, report failures, and support reconciliation after missed events or dead-lettered work.
+The sample's atomic backfill uses the same document/profile as incremental processing, but is not a resumable, batched operational job. Production adoption still needs explicit reconciliation after missed/dead-lettered work, operational scheduling, lag/coverage monitoring and a controlled profile rollout.
 
 ### Provider failures
 
@@ -669,7 +675,7 @@ Trace embedding time, database time, indexing lag, retries, and failures. Avoid 
 | 1. Documents and embeddings | See how verified catalog content becomes vectors. | Selected profile, reproducible builder, provider configuration, provenance. |
 | 2. Exact pgvector retrieval (implemented) | Understand distance ordering with real filters. | Real database tests for ordering, eligibility, profile isolation, paging, freshness and atomic rebuild failure. |
 | 3. Full-text and RRF | Compare exact terminology with semantic intent. | Inspectable branch ranks and curated hybrid comparisons. |
-| 4. Indexing and backfill | Maintain rebuildable derived state. | Duplicate/out-of-order handling, stale-write protection, updates/deletes, recovery. |
+| 4. Indexing and backfill (implemented; operational recovery remains) | Maintain rebuildable derived state. | Duplicate/out-of-order handling, stale-write protection, updates/logical deletes and explicit readiness. Resumable reconciliation remains future work. |
 | 5. HNSW benchmark | Measure speed versus recall at meaningful scale. | Exact baseline, larger corpus, real query plans, latency and recall results. |
 | 6. MCP demonstration | Reuse the domain capability from an AI client. | Same API behavior, accurate tool descriptions, cross-host demonstration. |
 
@@ -717,7 +723,9 @@ These files own the implemented behavior and the foundations for later milestone
 | [Subscribe host](../src/Contoso.Products.Subscribe/Program.cs) | Existing message receiving/composition foundations. |
 | [MCP tools](../src/Contoso.Mcp/Tools/CommerceTools.cs) | API-only search forwarding and tool description. |
 | [Compose infrastructure](../../docker-compose.yml) | Pinned PostgreSQL/pgvector image and optional local inference resource. |
-| [Search projection](../src/Contoso.Products.Infrastructure/Repositories/ProductSearchIndex.cs) | Exact distances, compatibility/freshness checks and atomic manual rebuild. |
+| [Search projection](../src/Contoso.Products.Infrastructure/Repositories/ProductSearchIndex.cs) | Exact distances, readiness, atomic backfill and current-state reconciliation. |
+| [Product-event subscriber](../src/Contoso.Products.Subscribe/Subscribers/ProductSearchSubscriber.cs) | One globbed handler for all product lifecycle notifications. |
+| [Indexing integration tests](../tests/Contoso.Products.Test.Subscribe/ProductSearchTests.cs) | Logical-delete cleanup, idempotence, inference races and retries. |
 | [Search migration](../src/Contoso.Products.Database/Migrations/20261013-182033-create-products-product_search-table.pgsql) | Derived table, vector extension and constraints. |
 | [Product query tests](../tests/Contoso.Products.Test.Api/ReadTests.ProductQuery.cs) | Semantic API behavior and schema expectations. |
 | [Semantic database tests](../tests/Contoso.Products.Test.Api/ReadTests.ProductSemanticSearch.cs) | Controlled-vector ranking, eligibility, paging, failures and rebuild behavior. |

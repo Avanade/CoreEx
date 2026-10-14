@@ -1,3 +1,4 @@
+global using Contoso.Products.Application.Adapters.Embeddings;
 global using Contoso.Products.Application.Interfaces;
 global using Contoso.Products.Infrastructure.Clients.Ollama;
 global using CoreEx;

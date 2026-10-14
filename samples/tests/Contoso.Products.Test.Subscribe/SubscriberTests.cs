@@ -17,7 +17,7 @@ public partial class SubscriberTests : WithApiTester<Contoso.Products.Subscribe.
     [Test]
     public void Unsubscribed_Error() => Test.Scoped(test =>
     {
-        var ed = EventData.CreateEvent("product", "deleted").WithKey("abc");
+        var ed = EventData.CreateEvent("unsubscribed", "deleted").WithKey("abc");
         var ce = Test.CreateCloudEventFrom(ed);
         var sbm = ce.ToServiceBusReceivedMessage();
 

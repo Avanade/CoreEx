@@ -104,11 +104,10 @@ public partial class ReadTests
             .Select(edge => edge.GetProperty("node").GetProperty("id").GetString()).Should().Equal(rest.Select(p => p.Id));
     }
 
-    [TestCase("DELETE FROM products.product_search WHERE profile = 'tests:controlled-vectors:768'")]
-    [TestCase("UPDATE products.product_search SET profile = 'incompatible' WHERE profile = 'tests:controlled-vectors:768'")]
-    [TestCase("UPDATE products.product_search SET recipe = 'old-recipe' WHERE profile = 'tests:controlled-vectors:768'")]
-    [TestCase("UPDATE products.product_search SET source_hash = repeat('0', 64) WHERE profile = 'tests:controlled-vectors:768'")]
-    public void Product_Search_InvalidProjectionIsUnavailable(string sql)
+    [TestCase("DELETE FROM products.product_search_readiness WHERE profile = 'tests:controlled-vectors:768'")]
+    [TestCase("UPDATE products.product_search_readiness SET profile = 'incompatible' WHERE profile = 'tests:controlled-vectors:768'")]
+    [TestCase("UPDATE products.product_search_readiness SET recipe = 'old-recipe' WHERE profile = 'tests:controlled-vectors:768'")]
+    public void Product_Search_UninitializedProfileIsUnavailable(string sql)
     {
         try
         {
@@ -125,7 +124,7 @@ public partial class ReadTests
         }
         finally
         {
-            ExecuteSearchSql("DELETE FROM products.product_search WHERE profile = 'incompatible' OR recipe = 'old-recipe'");
+            ExecuteSearchSql("DELETE FROM products.product_search_readiness WHERE profile = 'incompatible' OR recipe = 'old-recipe'");
             RebuildSearch();
         }
     }
@@ -154,7 +153,7 @@ public partial class ReadTests
         _embeddings.FailQuery = true;
         try
         {
-            Test.Http().Run(HttpMethod.Get, "/api/products?$search=cleaner").Assert(HttpStatusCode.InternalServerError);
+            Test.Http().Run(HttpMethod.Get, "/api/products?$search=cleaner").Assert(HttpStatusCode.ServiceUnavailable);
         }
         finally
         {
@@ -163,13 +162,107 @@ public partial class ReadTests
     }
 
     [Test]
-    public void Product_Search_DescriptionEditRequiresRebuild()
+    public void Product_Search_TransientFailurePreservesDiagnosticsAndCancellation() => Test.Scoped(test => test.Run(async _ =>
+    {
+        var index = test.Services.GetRequiredService<ProductSearchIndex>();
+        _embeddings.FailQuery = true;
+        try
+        {
+            Func<Task> search = () => index.EmbedQueryAsync("cleaner");
+            var failure = await search.Should().ThrowAsync<TransientException>().ConfigureAwait(false);
+            failure.Which.InnerException.Should().BeOfType<HttpRequestException>().Which.Message.Should().Be("Controlled query embedding failure.");
+        }
+        finally
+        {
+            _embeddings.FailQuery = false;
+        }
+
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        Func<Task> canceled = () => index.EmbedQueryAsync("cleaner", cancellation.Token);
+        await canceled.Should().ThrowAsync<OperationCanceledException>().ConfigureAwait(false);
+    }).AssertSuccess());
+
+    [TestCase("is_inactive")]
+    [TestCase("is_deleted")]
+    public void Product_Search_LiveEligibilityExcludesRetainedVectors(string column)
+    {
+        try
+        {
+            ExecuteSearchSql($"UPDATE products.product SET {column} = true WHERE sku = 'MUCOFF-NANO-CLEANER'");
+            Test.Http<ProductLite[]>().Run(HttpMethod.Get, "/api/products?$search=cleaner&$filter=sku eq 'MUCOFF-NANO-CLEANER'")
+                .AssertOK().Value.Should().BeEmpty();
+            if (column == "is_inactive")
+                Test.Http<ProductLite[]>().Run(HttpMethod.Get, "/api/products?$search=cleaner&$inactive&$filter=sku eq 'MUCOFF-NANO-CLEANER'")
+                    .AssertOK().Value.Should().ContainSingle();
+        }
+        finally
+        {
+            ExecuteSearchSql($"UPDATE products.product SET {column} = false WHERE sku = 'MUCOFF-NANO-CLEANER'");
+        }
+    }
+
+    [Test]
+    public void Product_Search_FailedInitialBackfillDoesNotPublishReadiness()
+    {
+        ExecuteSearchSql("DELETE FROM products.product_search_readiness WHERE profile = 'tests:controlled-vectors:768'");
+        _embeddings.DocumentCallCount = 0;
+        _embeddings.FailDocumentOnCall = 2;
+        try
+        {
+            Test.Scoped(test => test.Run(async _ =>
+            {
+                var index = test.Services.GetRequiredService<ProductSearchIndex>();
+                Func<Task> rebuild = () => index.RebuildAsync();
+                await rebuild.Should().ThrowAsync<TransientException>().ConfigureAwait(false);
+                Func<Task> ready = () => index.EnsureReadyAsync();
+                await ready.Should().ThrowAsync<TransientException>().ConfigureAwait(false);
+            }).AssertSuccess());
+        }
+        finally
+        {
+            _embeddings.FailDocumentOnCall = null;
+            RebuildSearch();
+        }
+    }
+
+    [Test]
+    public void Product_Search_EmptyBackfillPublishesReadiness()
+    {
+        string[] ids = [];
+        Test.Scoped(test => test.Run(async _ =>
+            ids = await test.Services.GetRequiredService<ProductsDbContext>().Database
+                .SqlQuery<string>($"SELECT product_id AS \"Value\" FROM products.product WHERE NOT is_deleted").ToArrayAsync().ConfigureAwait(false)).AssertSuccess());
+        try
+        {
+            ExecuteSearchSql("UPDATE products.product SET is_deleted = true WHERE NOT is_deleted");
+            ExecuteSearchSql("DELETE FROM products.product_search_readiness WHERE profile = 'tests:controlled-vectors:768'");
+            Test.Scoped(test => test.Run(async _ =>
+            {
+                var index = test.Services.GetRequiredService<ProductSearchIndex>();
+                (await index.RebuildAsync().ConfigureAwait(false)).Should().Be(0);
+                await index.EnsureReadyAsync().ConfigureAwait(false);
+            }).AssertSuccess());
+            Test.Http<ProductLite[]>().Run(HttpMethod.Get, "/api/products?$search=cleaner").AssertOK().Value.Should().BeEmpty();
+        }
+        finally
+        {
+            Test.Scoped(test => test.Run(async _ =>
+                await test.Services.GetRequiredService<ProductsDbContext>().Database.ExecuteSqlInterpolatedAsync(
+                    $"UPDATE products.product SET is_deleted = false WHERE product_id = ANY ({ids})").ConfigureAwait(false)).AssertSuccess());
+            RebuildSearch();
+        }
+    }
+
+    [Test]
+    public void Product_Search_DescriptionEditReturnsLiveContentWhileIndexLags()
     {
         var product = Test.Http<Product>().Run(HttpMethod.Get, $"/api/products/{29.ToGuid()}").AssertOK().Value!;
         try
         {
             ExecuteSearchSql("UPDATE products.product SET description = 'Changed searchable meaning.' WHERE sku = 'MUCOFF-NANO-CLEANER'");
-            Test.Http().Run(HttpMethod.Get, "/api/products?$search=cleaner").Assert(HttpStatusCode.ServiceUnavailable);
+            Test.Http<ProductLite[]>().Run(HttpMethod.Get, "/api/products?$search=cleaner&$filter=sku eq 'MUCOFF-NANO-CLEANER'")
+                .AssertOK().Value.Should().ContainSingle().Which.Description.Should().Be("Changed searchable meaning.");
         }
         finally
         {
@@ -207,7 +300,7 @@ public partial class ReadTests
         try
         {
             Test.Scoped(test => test.Run(async _ =>
-                await test.Services.GetRequiredService<ProductSearchIndex>().RebuildAsync().ConfigureAwait(false)).AssertException<HttpRequestException>());
+                await test.Services.GetRequiredService<ProductSearchIndex>().RebuildAsync().ConfigureAwait(false)).AssertException<TransientException>());
             Test.Http<ProductLite[]>().Run(HttpMethod.Get, "/api/products?$search=changing gears&$take=3").AssertOK()
                 .Value.Should().HaveCount(3).And.OnlyContain(p => p.Text!.Contains("Rear Derailleur"));
         }
@@ -246,4 +339,36 @@ public partial class ReadTests
 
     private void ExecuteSearchSql(string sql) => Test.Scoped(test => test.Run(async _ =>
         await test.Services.GetRequiredService<ProductsDbContext>().Database.ExecuteSqlRawAsync(sql).ConfigureAwait(false)).AssertSuccess());
+
+    [Test]
+    public void Product_Search_MissingVectorChangesCandidateCountWithoutUnavailableResponse()
+    {
+        try
+        {
+            ExecuteSearchSql("DELETE FROM products.product_search WHERE profile = 'tests:controlled-vectors:768' AND product_id = (SELECT product_id FROM products.product WHERE sku = 'MUCOFF-NANO-CLEANER')");
+            var response = Test.Http<ProductLite[]>().Run(HttpMethod.Get, "/api/products?$search=cleaner&$take=50&$count=true").AssertOK();
+            response.Value.Should().HaveCount(28).And.NotContain(p => p.Sku == "MUCOFF-NANO-CLEANER");
+            response.Response.Headers.Should().ContainKey("X-Paging-Total-Count").WhoseValue.Should().ContainSingle().Which.Should().Be("28");
+        }
+        finally
+        {
+            RebuildSearch();
+        }
+    }
+
+    [Test]
+    public void Product_Search_ReadyEmptyProjectionIsSuccessful()
+    {
+        try
+        {
+            ExecuteSearchSql("DELETE FROM products.product_search WHERE profile = 'tests:controlled-vectors:768'");
+            var response = Test.Http<ProductLite[]>().Run(HttpMethod.Get, "/api/products?$search=cleaner&$count=true").AssertOK();
+            response.Value.Should().BeEmpty();
+            response.Response.Headers.Should().ContainKey("X-Paging-Total-Count").WhoseValue.Should().ContainSingle().Which.Should().Be("0");
+        }
+        finally
+        {
+            RebuildSearch();
+        }
+    }
 }

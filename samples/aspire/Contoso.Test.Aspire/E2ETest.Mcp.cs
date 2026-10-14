@@ -4,7 +4,7 @@ public partial class E2ETest
 {
     private string _mcpEndpoint = string.Empty;
 
-    [Test, Order(0)]
+    [Test]
     public async Task Contoso_Mcp_FullBasketLifecycle()
     {
         Test.Checkpoint("Increase inventory for the seeded, active Product used by the MCP basket scenario.");

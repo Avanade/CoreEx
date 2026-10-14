@@ -5,92 +5,190 @@ namespace Contoso.Products.Infrastructure.Repositories;
 /// <param name="embeddings">The compatible document/query embedding provider.</param>
 /// <param name="referenceData">The reference-data labels used by the canonical document.</param>
 /// <param name="unitOfWork">The shared PostgreSQL transaction coordinator.</param>
+/// <param name="logger">The indexing diagnostics logger.</param>
 [ScopedService<ProductSearchIndex>]
-public sealed class ProductSearchIndex(ProductsEfDb ef, IProductEmbeddingAdapter embeddings, ReferenceDataOrchestrator referenceData, PostgresUnitOfWork unitOfWork)
+public sealed class ProductSearchIndex(ProductsEfDb ef, IProductEmbeddingAdapter embeddings, ReferenceDataOrchestrator referenceData, PostgresUnitOfWork unitOfWork, ILogger<ProductSearchIndex> logger)
 {
+    private static readonly SqlStatement _isReady = SqlStatement.FromResource<ProductSearchIndex>("ProductSearchIsReady.pgsql");
+    private static readonly SqlStatement _sourceHash = SqlStatement.FromResource<ProductSearchIndex>("ProductSearchSourceHash.pgsql");
+    private static readonly SqlStatement _lockSource = SqlStatement.FromResource<ProductSearchIndex>("ProductSearchLockSource.pgsql");
+    private static readonly SqlStatement _deleteProduct = SqlStatement.FromResource<ProductSearchIndex>("ProductSearchDeleteProduct.pgsql");
+    private static readonly SqlStatement _deleteProfile = SqlStatement.FromResource<ProductSearchIndex>("ProductSearchDeleteProfile.pgsql");
+    private static readonly SqlStatement _markReady = SqlStatement.FromResource<ProductSearchIndex>("ProductSearchMarkReady.pgsql");
+    private static readonly SqlStatement _upsert = SqlStatement.FromResource<ProductSearchIndex>("ProductSearchUpsert.pgsql");
+    private static readonly SqlStatement _matches = SqlStatement.FromResource<ProductSearchIndex>("ProductSearchMatches.pgsql");
+
     private readonly ProductsEfDb _ef = ef.ThrowIfNull();
     private readonly IProductEmbeddingAdapter _embeddings = embeddings.ThrowIfNull();
     private readonly ReferenceDataOrchestrator _referenceData = referenceData.ThrowIfNull();
     private readonly PostgresUnitOfWork _unitOfWork = unitOfWork.ThrowIfNull();
+    private readonly ILogger<ProductSearchIndex> _logger = logger.ThrowIfNull();
 
     /// <summary>Embeds search text before opening a database snapshot.</summary>
-    public async Task<float[]> EmbedQueryAsync(string text, CancellationToken ct = default)
+    public async Task<float[]> EmbedQueryAsync(string text, CancellationToken cancellationToken = default)
     {
-        var vector = (await _embeddings.EmbedQueryAsync(text, ct).ConfigureAwait(false)).ThrowOnError().Value;
-        ValidateVector(vector);
-        return vector;
+        try
+        {
+            var vector = (await _embeddings.EmbedQueryAsync(text, cancellationToken).ConfigureAwait(false)).ThrowOnError().Value;
+            ValidateVector(vector);
+            return vector;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or Polly.Timeout.TimeoutRejectedException || ex is OperationCanceledException && !cancellationToken.IsCancellationRequested)
+        {
+            throw new TransientException("Product search is temporarily unavailable. Please try again.", ex);
+        }
     }
 
     /// <summary>Returns composable exact distances for the selected model profile and document recipe.</summary>
-    /// <remarks>Vector text is a bound SQL parameter, not interpolated SQL syntax; no provider-specific EF extension is required.</remarks>
+    /// <remarks>Kept as composable EF SQL so live filters, ranking, paging and count execute together in PostgreSQL. Vector text is a bound parameter.</remarks>
     public IQueryable<SearchMatch> Matches(float[] vector)
     {
         var serialized = SerializeVector(vector);
-        return _ef.DbContext.Database.SqlQuery<SearchMatch>($"""
-            SELECT product_id AS "Id",
-                   embedding <=> CAST({serialized} AS vector(768)) AS "Distance"
-            FROM products.product_search
-            WHERE profile = {_embeddings.Profile} AND recipe = {ProductSearchDocument.TemplateVersion}
-            """);
+        return _ef.SqlQuery<SearchMatch>(_matches, serialized, _embeddings.Profile, ProductSearchDocument.TemplateVersion);
     }
 
-    /// <summary>Refuses incomplete or stale eligible results rather than silently dropping products.</summary>
-    public async Task EnsureFreshAsync(IReadOnlyCollection<Persistence.Product> products, CancellationToken ct = default)
+    /// <summary>Distinguishes a completed, possibly empty index from one never prepared for this profile.</summary>
+    public async Task EnsureReadyAsync(CancellationToken cancellationToken = default)
     {
-        if (products.Count == 0)
-            return;
-        await LoadLabelsAsync(ct).ConfigureAwait(false);
-        var hashes = await _ef.DbContext.Database.SqlQuery<SearchFingerprint>($"""
-            SELECT product_id AS "Id", source_hash AS "SourceHash"
-            FROM products.product_search
-            WHERE profile = {_embeddings.Profile} AND recipe = {ProductSearchDocument.TemplateVersion}
-            """).ToDictionaryAsync(x => x.Id, x => x.SourceHash, ct).ConfigureAwait(false);
+        var ready = await _ef.Database.Statement(_isReady)
+            .Param("Profile", _embeddings.Profile, dbType: DbType.String)
+            .Param("Recipe", ProductSearchDocument.TemplateVersion, dbType: DbType.String)
+            .ScalarAsync<bool>(cancellationToken).ConfigureAwait(false);
 
-        if (products.Any(product => !hashes.TryGetValue(product.Id, out var hash) || hash != Document(product).SourceHash))
-            throw new TransientException("Product search is missing or stale. Rebuild the search projection before searching.");
+        if (!ready)
+            throw new TransientException("Product search is not initialized for the configured model and document recipe. Complete a search backfill before searching.");
+    }
+
+    /// <summary>Reconciles current product state, avoiding inference for unchanged documents and removing logical deletions.</summary>
+    public async Task SynchronizeAsync(string id, CancellationToken cancellationToken = default)
+    {
+        id = id.ThrowIfNullOrEmpty();
+        if (_unitOfWork.Database.CurrentTransaction is not null)
+            throw new InvalidOperationException("Search synchronization must run outside a parent transaction so inference does not hold database locks.");
+
+        await LoadLabelsAsync(cancellationToken).ConfigureAwait(false);
+        var product = await _ef.Products.Model.Query().AsNoTracking().SingleOrDefaultAsync(p => p.Id == id, cancellationToken).ConfigureAwait(false);
+        var document = product is null ? null : Document(product);
+        string? vector = null;
+
+        if (document is not null)
+        {
+            var hash = await ReadSourceHashAsync(id, cancellationToken).ConfigureAwait(false);
+            if (hash != document.SourceHash)
+                vector = await EmbedDocumentAsync(document.Text, cancellationToken).ConfigureAwait(false);
+        }
+
+        await _unitOfWork.TransactionAsync(async token =>
+        {
+            // Shares the rebuild's publish lock; source writes cannot race the final check and publication.
+            await _ef.Database.Statement(_lockSource).NonQueryAsync(token).ConfigureAwait(false);
+            var current = await _ef.Products.Model.Query().AsNoTracking().SingleOrDefaultAsync(p => p.Id == id, token).ConfigureAwait(false);
+
+            if (current is null)
+            {
+                await _ef.Database.Statement(_deleteProduct).Param("ProductId", id, dbType: DbType.String).NonQueryAsync(token).ConfigureAwait(false);
+
+                if (_logger.IsEnabled(LogLevel.Debug))
+                    _logger.LogDebug("Removed search projections for deleted or missing product {ProductId}.", id);
+                return;
+            }
+
+            if (document is null || Document(current).SourceHash != document.SourceHash)
+                throw new TransientException("The product changed during search indexing. Retry using its current state.");
+
+            if (vector is not null)
+            {
+                await UpsertAsync(id, document, vector, token).ConfigureAwait(false);
+                if (_logger.IsEnabled(LogLevel.Information))
+                    _logger.LogInformation("Indexed product {ProductId} for search profile {Profile} and recipe {Recipe}.", id, _embeddings.Profile, ProductSearchDocument.TemplateVersion);
+            }
+            else
+            {
+                // A concurrent rebuild may have removed the row after the initial hash comparison.
+                var hash = await ReadSourceHashAsync(id, token).ConfigureAwait(false);
+                if (hash != document.SourceHash)
+                    throw new TransientException("The search projection changed during indexing. Retry using its current state.");
+
+                if (_logger.IsEnabled(LogLevel.Debug))
+                    _logger.LogDebug("Search document for product {ProductId} is already current.", id);
+            }
+        }, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>Builds embeddings outside transactions and atomically replaces this profile's projection.</summary>
     /// <remarks>A short publish-time lock rejects concurrent catalog edits instead of installing stale documents.</remarks>
-    public async Task<int> RebuildAsync(CancellationToken ct = default)
+    public async Task<int> RebuildAsync(CancellationToken cancellationToken = default)
     {
-        await LoadLabelsAsync(ct).ConfigureAwait(false);
-        var products = await _ef.Products.Model.Query().AsNoTracking().OrderBy(p => p.Id).ToListAsync(ct).ConfigureAwait(false);
+        await LoadLabelsAsync(cancellationToken).ConfigureAwait(false);
+        var products = await _ef.Products.Model.Query().AsNoTracking().OrderBy(p => p.Id).ToListAsync(cancellationToken).ConfigureAwait(false);
         var documents = products.Select(product => (Product: product, Document: Document(product))).ToArray();
         var vectors = new List<string>(documents.Length);
         foreach (var item in documents)
-        {
-            var vector = (await _embeddings.EmbedDocumentAsync(item.Document.Text, ct).ConfigureAwait(false)).ThrowOnError().Value;
-            vectors.Add(SerializeVector(vector));
-        }
+            vectors.Add(await EmbedDocumentAsync(item.Document.Text, cancellationToken).ConfigureAwait(false));
 
         return await _unitOfWork.TransactionAsync(async token =>
         {
-            await _ef.DbContext.Database.ExecuteSqlRawAsync("LOCK TABLE products.product IN SHARE MODE", token).ConfigureAwait(false);
+            await _ef.Database.Statement(_lockSource).NonQueryAsync(token).ConfigureAwait(false);
             var current = await _ef.Products.Model.Query().AsNoTracking().OrderBy(p => p.Id).ToListAsync(token).ConfigureAwait(false);
             if (!current.Select(p => (p.Id, Document(p).SourceHash)).SequenceEqual(documents.Select(d => (d.Product.Id, d.Document.SourceHash))))
                 throw new ConcurrencyException("The product catalog changed during embedding. Rebuild the search projection again.");
 
-            await _ef.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
-                DELETE FROM products.product_search WHERE profile = {_embeddings.Profile} AND recipe = {ProductSearchDocument.TemplateVersion}
-                """, token).ConfigureAwait(false);
+            await _ef.Database.Statement(_deleteProfile)
+                .Param("Profile", _embeddings.Profile, dbType: DbType.String)
+                .Param("Recipe", ProductSearchDocument.TemplateVersion, dbType: DbType.String)
+                .NonQueryAsync(token).ConfigureAwait(false);
+
             for (var i = 0; i < documents.Length; i++)
             {
                 var item = documents[i];
-                await _ef.DbContext.Database.ExecuteSqlInterpolatedAsync($"""
-                    INSERT INTO products.product_search (product_id, profile, recipe, source_hash, document, embedding, indexed_on)
-                    VALUES ({item.Product.Id}, {_embeddings.Profile}, {ProductSearchDocument.TemplateVersion},
-                            {item.Document.SourceHash}, {item.Document.Text}, CAST({vectors[i]} AS vector(768)), {Runtime.UtcNow})
-                    """, token).ConfigureAwait(false);
+                await UpsertAsync(item.Product.Id, item.Document, vectors[i], token).ConfigureAwait(false);
             }
 
+            await _ef.Database.Statement(_markReady)
+                .Param("Profile", _embeddings.Profile, dbType: DbType.String)
+                .Param("Recipe", ProductSearchDocument.TemplateVersion, dbType: DbType.String)
+                .Param("ReadyOn", Runtime.UtcNow, dbType: DbType.DateTimeOffset)
+                .NonQueryAsync(token).ConfigureAwait(false);
             return documents.Length;
-        }, ct).ConfigureAwait(false);
+        }, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>Reads the stored fingerprint, or null when this product has no compatible projection.</summary>
+    private Task<string?> ReadSourceHashAsync(string id, CancellationToken cancellationToken)
+        => _ef.Database.Statement(_sourceHash)
+            .Param("ProductId", id, dbType: DbType.String)
+            .Param("Profile", _embeddings.Profile, dbType: DbType.String)
+            .Param("Recipe", ProductSearchDocument.TemplateVersion, dbType: DbType.String)
+            .ScalarAsync<string?>(cancellationToken);
+
+    /// <summary>Publishes a validated vector and its exact source document for this profile and recipe.</summary>
+    private Task<int> UpsertAsync(string id, ProductSearchDocument document, string vector, CancellationToken cancellationToken)
+        => _ef.Database.Statement(_upsert)
+            .Param("ProductId", id, dbType: DbType.String)
+            .Param("Profile", _embeddings.Profile, dbType: DbType.String)
+            .Param("Recipe", ProductSearchDocument.TemplateVersion, dbType: DbType.String)
+            .Param("SourceHash", document.SourceHash, dbType: DbType.String)
+            .Param("Document", document.Text, dbType: DbType.String)
+            .Param("Embedding", vector, dbType: DbType.String)
+            .Param("IndexedOn", Runtime.UtcNow, dbType: DbType.DateTimeOffset)
+            .NonQueryAsync(cancellationToken);
+
+    /// <summary>Preserves model diagnostics while making dependency failures retriable for indexing.</summary>
+    private async Task<string> EmbedDocumentAsync(string text, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return SerializeVector((await _embeddings.EmbedDocumentAsync(text, cancellationToken).ConfigureAwait(false)).ThrowOnError().Value);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or Polly.Timeout.TimeoutRejectedException || ex is OperationCanceledException && !cancellationToken.IsCancellationRequested)
+        {
+            throw new TransientException("Product search indexing is temporarily unavailable. Please retry.", ex);
+        }
     }
 
     /// <summary>Loads the labels before synchronous generated navigation getters are used.</summary>
-    private async Task LoadLabelsAsync(CancellationToken ct)
-        => await _referenceData.PrefetchAsync([typeof(Contracts.Brand), typeof(Contracts.Category), typeof(Contracts.SubCategory)], ct).ConfigureAwait(false);
+    private async Task LoadLabelsAsync(CancellationToken cancellationToken)
+        => await _referenceData.PrefetchAsync([typeof(Contracts.Brand), typeof(Contracts.Category), typeof(Contracts.SubCategory)], cancellationToken).ConfigureAwait(false);
 
     /// <summary>Uses the same category derivation as the application contract.</summary>
     private static ProductSearchDocument Document(Persistence.Product product)
@@ -117,14 +215,5 @@ public sealed class ProductSearchIndex(ProductsEfDb ef, IProductEmbeddingAdapter
         public string Id { get; set; } = string.Empty;
         /// <summary>Gets or sets cosine distance; lower is closer.</summary>
         public double Distance { get; set; }
-    }
-
-    /// <summary>Represents the indexed content fingerprint without loading vector values.</summary>
-    public sealed class SearchFingerprint
-    {
-        /// <summary>Gets or sets the product identifier.</summary>
-        public string Id { get; set; } = string.Empty;
-        /// <summary>Gets or sets the indexed document fingerprint.</summary>
-        public string SourceHash { get; set; } = string.Empty;
     }
 }

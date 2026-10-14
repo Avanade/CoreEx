@@ -68,6 +68,10 @@ public async Task<ItemsResult<Product>> QueryAsync(QueryArgs? query, PagingArgs?
 
 > If the read side projects to a reduced "Lite" contract instead of the full entity, `ProductMapper.From.Map(m)` (an `IBiDirectionMapper<Product, ProductModel>`) still returns `Product`, not `ProductLite` — a mapper only knows its own two types. Project inline instead: `m => new ProductLite { Id = m.Id, Sku = m.Sku, ... }`.
 
+## Composable SQL
+
+Use `ef.SqlQuery<T>(statement, parameters)` for deferred scalar/unmapped EF queries over a CoreEx `SqlStatement`, including cached `SqlStatement.FromResource<TResource>(...)` resources. EF binds `{0}`, `{1}`, etc. to separately supplied values, or accepts explicit provider `DbParameter` instances with named placeholders. Never format parameter values into SQL. Only determinate text statements are accepted; normal EF/provider composability rules apply (no trailing semicolon for composed SQL, and `Value` as the column name for composed scalar queries). Materialize with cancellation. This uses the existing EF context/transaction and EF diagnostics, not the CoreEx Database execution pipeline. It does not automatically apply tenant/logical-delete model filters. Use `ef.Database.Statement(...)` for immediate commands instead.
+
 ## ValueConverter Bridge
 
 Use `ValueConverterBridge<TModel, TProvider>` in `OnModelCreating` to reuse CoreEx `IConverter<T, U>` instances as EF value converters.

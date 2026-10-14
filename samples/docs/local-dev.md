@@ -96,16 +96,9 @@ Aspire exposes the Compose-owned Ollama endpoint as an external resource and use
 configuration for both fixture preparation and API calls. Start the `search` Compose profile and install the model
 above before running Aspire E2E tests; CI does this explicitly too.
 
-`ProductSearchIndex.RebuildAsync` remains callable through a configured Infrastructure service scope. There is
-currently no standalone indexing console or HTTP maintenance endpoint. Starting Aspire manually does not seed or
-rebuild the catalog. After prepared-fixture execution, `.\tools\test-product-search.ps1` can exercise a normally
-running API (default `http://localhost:5207/`). Searchable CRUD changes require another explicit rebuild until
-incremental indexing is implemented. Missing/stale eligible embeddings produce HTTP 503 rather than an incomplete
-successful search. Ordinary product reads and structured filters remain available.
+`ProductSearchIndex.RebuildAsync` remains callable through a configured Infrastructure service scope. There is currently no standalone indexing console or HTTP maintenance endpoint. Starting Aspire manually does not seed or rebuild the catalog. After prepared-fixture execution, `.\tools\test-product-search.ps1` can exercise a normally running API (default `http://localhost:5207/`). Subsequent product changes flow through the transactional outbox, Products Relay and the Products Subscribe host's single globbed product handler. Keep both hosts running to maintain the projection; logical deletion explicitly removes projection rows rather than relying on a cascade. Search is eventually consistent: older vectors can rank current product fields, and new products appear once indexed. Live price/activity/deletion filters apply immediately. Counts describe eligible indexed candidates. Only uninitialized/incompatible readiness or a failed query-embedding dependency yields CoreEx `TransientException` (HTTP 503), not ordinary indexing lag. Ordinary reads and structured filters remain available.
 
-To prepare and verify a real-model catalog without subsequently running the E2E test that adds an unindexed product,
-run the MCP lifecycle on its own. This is test setup: it reseeds all three domain databases and resets broker state,
-so use it only against disposable local infrastructure.
+To prepare and verify a real-model seed catalog, run the MCP lifecycle on its own. This is test setup: it reseeds all three domain databases and resets broker state, so use it only against disposable local infrastructure.
 
 ```powershell
 dotnet test samples\aspire\Contoso.Test.Aspire --filter "FullyQualifiedName~E2ETest.Contoso_Mcp_FullBasketLifecycle"

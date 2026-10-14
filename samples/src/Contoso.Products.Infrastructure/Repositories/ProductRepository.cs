@@ -7,17 +7,17 @@ public class ProductRepository(ProductsEfDb ef, ProductSearchIndex searchIndex, 
     private readonly ProductSearchIndex _searchIndex = searchIndex.ThrowIfNull();
     private readonly PostgresUnitOfWork _unitOfWork = unitOfWork.ThrowIfNull();
 
-    public Task<Contracts.Product?> GetAsync(string id, CancellationToken ct = default) => _ef.Products.GetAsync(id, ct);
+    public Task<Contracts.Product?> GetAsync(string id, CancellationToken cancellationToken = default) => _ef.Products.GetAsync(id, cancellationToken);
 
-    public Task<DataResult<Contracts.Product>> CreateAsync(Contracts.Product product, CancellationToken ct = default) => _ef.Products.CreateAsync(product, ct);
+    public Task<DataResult<Contracts.Product>> CreateAsync(Contracts.Product product, CancellationToken cancellationToken = default) => _ef.Products.CreateAsync(product, cancellationToken);
 
-    public Task<DataResult<Contracts.Product>> UpdateAsync(Contracts.Product product, CancellationToken ct = default) => _ef.Products.UpdateAsync(product, ct);
+    public Task<DataResult<Contracts.Product>> UpdateAsync(Contracts.Product product, CancellationToken cancellationToken = default) => _ef.Products.UpdateAsync(product, cancellationToken);
 
-    public Task<DataResult> DeleteAsync(string id, CancellationToken ct = default) => _ef.Products.DeleteAsync(id, ct);
+    public Task<DataResult> DeleteAsync(string id, CancellationToken cancellationToken = default) => _ef.Products.DeleteAsync(id, cancellationToken);
 
-    public Task<JsonElement> QuerySchemaAsync(CancellationToken ct = default) => Task.FromResult(ProductQueryArgsConfig.Default.ToJsonSchema());
+    public Task<JsonElement> QuerySchemaAsync(CancellationToken cancellationToken = default) => Task.FromResult(ProductQueryArgsConfig.Default.ToJsonSchema());
 
-    public async Task<ItemsResult<Contracts.ProductLite>> QueryAsync(QueryArgs? query, PagingArgs? paging, CancellationToken ct = default)
+    public async Task<ItemsResult<Contracts.ProductLite>> QueryAsync(QueryArgs? query, PagingArgs? paging, CancellationToken cancellationToken = default)
     {
         var parsed = ProductQueryArgsConfig.Default.Parse(query).ThrowOnError();
         var products = _ef.Products.Model.Query();
@@ -46,21 +46,20 @@ public class ProductRepository(ProductsEfDb ef, ProductSearchIndex searchIndex, 
         if (parsed.IsRankedSearch)
         {
             EnsureSnapshotIsolation();
-            // Fail fast before inference, then recheck in the retrieval snapshot to cover writes during inference.
-            await _searchIndex.EnsureFreshAsync(await q.Select(x => x.Product).AsNoTracking().ToListAsync(ct).ConfigureAwait(false), ct).ConfigureAwait(false);
-            vector = await _searchIndex.EmbedQueryAsync((parsed.SearchResult?.Text).ThrowIfNull(), ct).ConfigureAwait(false);
+            await _searchIndex.EnsureReadyAsync(cancellationToken).ConfigureAwait(false);
+            vector = await _searchIndex.EmbedQueryAsync((parsed.SearchResult?.Text).ThrowIfNull(), cancellationToken).ConfigureAwait(false);
         }
 
         return vector is null
-            ? await ReadAsync(ct).ConfigureAwait(false)
-            : await _unitOfWork.TransactionAsync(_unitOfWork.Database.DbArgs with { IsolationLevel = IsolationLevel.RepeatableRead }, ReadAsync, ct).ConfigureAwait(false);
+            ? await ReadAsync(cancellationToken).ConfigureAwait(false)
+            : await _unitOfWork.TransactionAsync(_unitOfWork.Database.DbArgs with { IsolationLevel = IsolationLevel.RepeatableRead }, ReadAsync, cancellationToken).ConfigureAwait(false);
 
-        async Task<ItemsResult<Contracts.ProductLite>> ReadAsync(CancellationToken token)
+        async Task<ItemsResult<Contracts.ProductLite>> ReadAsync(CancellationToken cancellationToken)
         {
             if (vector is not null)
             {
                 EnsureSnapshotIsolation();
-                await _searchIndex.EnsureFreshAsync(await q.Select(x => x.Product).AsNoTracking().ToListAsync(token).ConfigureAwait(false), token).ConfigureAwait(false);
+                await _searchIndex.EnsureReadyAsync(cancellationToken).ConfigureAwait(false);
                 q = (from candidate in q
                      join match in _searchIndex.Matches(vector) on candidate.Product.Id equals match.Id
                      orderby match.Distance, candidate.Product.Id
@@ -83,7 +82,7 @@ public class ProductRepository(ProductsEfDb ef, ProductSearchIndex searchIndex, 
                 IsInactive = x.Product.IsInactive,
                 IsNonStocked = x.Product.IsNonStocked,
                 QtyOnHand = x.QtyOnHand
-            }, paging, cancellationToken: token).ConfigureAwait(false);
+            }, paging, cancellationToken: cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -94,7 +93,7 @@ public class ProductRepository(ProductsEfDb ef, ProductSearchIndex searchIndex, 
             throw new InvalidOperationException("Semantic product search requires a RepeatableRead or Serializable parent transaction.");
     }
 
-    public Task<Dictionary<string, Contracts.ProductReserve>> GetForReservationAsync(string[] ids, CancellationToken ct = default)
+    public Task<Dictionary<string, Contracts.ProductReserve>> GetForReservationAsync(string[] ids, CancellationToken cancellationToken = default)
     {
         var products = _ef.Products.Model.Query();
         var list = ids.ToList();    // PostgreSQL EF has issues translating array.Contains, but can do list.Contains; see: https://github.com/npgsql/efcore.pg/issues/3461.
@@ -110,6 +109,6 @@ public class ProductRepository(ProductsEfDb ef, ProductSearchIndex searchIndex, 
                 IsNonStocked = p.IsNonStocked
             };
 
-        return q.ToDictionaryAsync(x => x.Id, x => x, ct);
+        return q.ToDictionaryAsync(x => x.Id, x => x, cancellationToken);
     }
 }
