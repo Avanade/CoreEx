@@ -9,7 +9,7 @@ This script validates the CoreEx.Template pack by:
 2. Scaffolding each template+parameter combination into a temp directory.
 3. Asserting expected files are present/absent and file content matches.
 4. Running dotnet build on code-emitting templates to confirm compilation.
-5. Cleaning up temporary test directories (unless -SkipCleanup).
+5. Cleaning successful scenarios' build outputs immediately and temporary test directories at completion (unless -SkipCleanup).
 
 Runs on Windows, Linux, and macOS via pwsh (cross-platform PowerShell).
 
@@ -857,6 +857,9 @@ function Invoke-Assertion {
 }
 
 try {
+    # Packages must contain every target framework; ignore any local inner-loop narrowing (see Directory.Build.targets).
+    $env:CoreExLocalTargetFramework = $null
+
     # Step 1: Build and pack CoreEx.Template
     Write-Header "Building CoreEx.Template package"
     if (-not $NoRebuild) {
@@ -883,10 +886,6 @@ try {
     New-Item -ItemType Directory -Path $localFeedPath -Force | Out-Null
 
     Write-Header "Building local NuGet feed"
-    # Build the solution so binaries and assets exist before packing individually.
-    dotnet build (Join-Path $repoRoot "CoreEx.sln") -c Release --nologo -m:1
-    if ($LASTEXITCODE -ne 0) { throw "Failed to build solution" }
-
     $srcRoot = Join-Path $repoRoot "src"
     # Only look one level deep — each package lives in its own direct subdirectory.
     # Recursing would pick up template content files inside CoreEx.Template/content/.
@@ -894,6 +893,12 @@ try {
         Where-Object { $_.Name -ne "CoreEx.Template" } |
         ForEach-Object { Get-ChildItem -Path $_.FullName -Filter "*.csproj" | Select-Object -First 1 } |
         Where-Object { $_ -ne $null }
+
+    # Build only the packable libraries (not samples/tests) so binaries and assets exist before packing individually.
+    foreach ($proj in $libraryProjects) {
+        dotnet build $proj.FullName -c Release --nologo -m:1 -v q
+        if ($LASTEXITCODE -ne 0) { throw "Failed to build $($proj.Directory.Name)" }
+    }
 
     foreach ($proj in $libraryProjects) {
         Write-Verbose "Packing $($proj.Directory.Name)"
@@ -1072,6 +1077,14 @@ try {
 
             if ($scenarioFailures.Count -eq 0) {
                 Write-Pass "$($scenario.Name) PASSED"
+                if (-not $SkipCleanup) {
+                    $buildOutputDirs = Get-ChildItem -LiteralPath $testDir -Directory -Recurse |
+                        Where-Object { $_.Name -in @("bin", "obj") } |
+                        Sort-Object { $_.FullName.Length } -Descending
+                    foreach ($buildOutputDir in $buildOutputDirs) {
+                        Remove-Item -LiteralPath $buildOutputDir.FullName -Recurse -Force
+                    }
+                }
             } else {
                 $scenarioFailures | ForEach-Object { Write-Verbose "  Error: $_" }
                 $failedScenarios += $scenario.Name

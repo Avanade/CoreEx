@@ -1,4 +1,4 @@
-﻿<Project Sdk="Aspire.AppHost.Sdk/13.5.4">
+<Project Sdk="Aspire.AppHost.Sdk/13.6.1">
 
   <PropertyGroup>
     <!-- Aspire.AppHost.Sdk 13.4+ regresses (MSB4036: PickBestRid task not found) when the AppHost project multi-targets
