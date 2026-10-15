@@ -1,6 +1,7 @@
 global using AwesomeAssertions;
 global using Contoso.Products.Application.Adapters.Embeddings;
 global using Contoso.Products.Application.Repositories;
+global using Contoso.Products.Application.Search;
 global using Contoso.Products.Contracts;
 global using Contoso.Products.Infrastructure.Clients.Ollama;
 global using Contoso.Products.Infrastructure.Repositories;

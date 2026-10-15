@@ -4,10 +4,10 @@ namespace Contoso.Mcp.Tools;
 public static class CommerceTools
 {
     /// <summary>Searches products using the Products server's configured ranked retrieval mode.</summary>
-    [McpServerTool(UseStructuredContent = true, ReadOnly = true), Description("Find active products using the Products server's ranked search mode (semantic by default; optionally English full-text). Returns up to the requested number of summaries, most relevant first. Results are candidates, not guaranteed matches; full-text can return none. Requires a prepared index.")]
+    [McpServerTool(UseStructuredContent = true, ReadOnly = true), Description("Find active products using the Products server's ranked search mode (semantic by default; optionally English full-text or hybrid). Hybrid fuses up to 100 eligible candidates per branch with Reciprocal Rank Fusion and prioritizes an exact eligible SKU. Returns up to the requested number of summaries; candidates are not guaranteed matches and may come from a bounded pool. Requires every configured index and embedding provider to be ready.")]
     public static Task<ProductLite[]> SearchProductsAsync(
         [FromServices] IHttpClientFactory clientFactory,
-        [Description("Product text, intended use, or a SKU. Semantic mode does not guarantee exact SKU matching; FullText mode prioritizes an exact eligible SKU and otherwise requires lexical matches.")] string searchTerm,
+        [Description("Product text, intended use, or a SKU. Semantic mode does not guarantee exact SKU matching; FullText and Hybrid prioritize an exact eligible SKU, while Hybrid otherwise combines lexical and semantic ranks.")] string searchTerm,
         [Description("Maximum number of products to return (1-25).")] int take = 10,
         CancellationToken cancellationToken = default)
     {

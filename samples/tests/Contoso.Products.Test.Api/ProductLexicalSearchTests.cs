@@ -110,9 +110,9 @@ public class ProductLexicalSearchTests : WithApiTester<Contoso.Products.Api.Prog
         var configuration = Test.Configuration;
         try
         {
-            configuration["Products:Search:Mode"] = "Hybrid";
+            configuration["Products:Search:Mode"] = "Vector";
             Action resolve = () => ProductQueryArgsConfig.FromConfiguration(configuration);
-            resolve.Should().Throw<InvalidOperationException>().WithMessage("Unsupported Products:Search:Mode 'Hybrid'. Expected Semantic or FullText.");
+            resolve.Should().Throw<InvalidOperationException>().WithMessage("Unsupported Products:Search:Mode 'Vector'. Expected Semantic, FullText or Hybrid.");
         }
         finally
         {

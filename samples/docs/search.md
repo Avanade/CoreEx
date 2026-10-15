@@ -19,12 +19,12 @@ The goal is not merely to store some numbers and label the result "AI". It is to
 | Local embedding provider | Implemented | Ollama/Nomic document and query instructions, response validation, and an Application adapter boundary are available. |
 | Separate search projection and pgvector semantic retrieval | Implemented | PostgreSQL stores 768-dimensional embeddings and computes exact, filtered cosine-distance rankings. |
 | Independent PostgreSQL full-text retrieval | Implemented; opt-in server mode | Weighted English `tsvector`/GIN matching, safe websearch parsing, exact eligible SKU first, no embedding calls. |
-| Hybrid ranking / RRF | Proposed | The two retrieval branches are not fused. |
+| Hybrid ranking / RRF | Implemented; opt-in server mode | Bounded lexical and semantic lists share live eligibility and structured filters, then fuse by RRF with exact eligible-SKU priority. |
 | Explicit backfill / asynchronous search indexing | Implemented | Test setup publishes an atomic initial backfill; one globbed product-event subscriber reconciles subsequent changes, including logical deletion. |
-| Real-model relevance evaluation | Baseline measured; monthly/manual workflow configured | A version-controlled, 24-query judged set, isolated-catalog setup, opt-in REST/Ollama runner, and real report are available. Scores are observations, not quality gates. |
+| Real-model relevance evaluation | v1 baseline historical; expanded MTB v2 catalog and judgments measured locally | A version-controlled 170-product mountain-bike catalog and 60-query reviewed set use an isolated seed and opt-in REST/Ollama runner. The checked-in v1 report remains historical and is not comparable to v2. Scores are observations, not quality gates. |
 | HNSW benchmark | Proposed | Exact full-catalog retrieval is still the comparison baseline; index performance has not been measured. |
 
-The default baseline is PostgreSQL as the search store, one embedding per product/profile/recipe, a rebuildable search projection, and indexing outside product-write transactions. It uses local Ollama with Nomic v1.5 and 768 dimensions. Exact semantic retrieval ranks eligible **indexed** products; count means the number of those candidates, not the number judged relevant or the complete catalog size. The independent full-text branch counts only lexical matches (including exact SKUs). Hybrid retrieval windows remain future work.
+The default mode remains semantic. Hybrid is enabled only with `Products:Search:Mode=Hybrid`; it requires both independently ready projections and a successful query embedding. The fixed initial policy takes the top 100 eligible candidates from each branch, uses RRF with `k=60`, prioritizes an eligible exact canonical SKU, and deterministically breaks remaining ties. Hybrid count is the deduplicated bounded union (at most 200), not a full-catalog or relevance count; paging is stable within that pool. These are explicit initial policy choices, not proven optimal tuning.
 
 ## Reading map
 
@@ -97,7 +97,7 @@ This should retrieve the most relevant eligible Yeti products, not search the en
 
 Keyword mode allows ordinary ordering. Ranked modes own relevance ordering: CoreEx rejects an explicit `$orderby` and does not apply the configured default ordering.
 
-The server configuration selects the mode; Products defaults to semantic mode. Set `Products:Search:Mode` to `FullText` (environment variable `Products__Search__Mode=FullText`) to exercise lexical retrieval instead. The only supported values are `Semantic` and `FullText`; an unsupported value fails explicitly. There is no public `$searchMode` parameter or test-only endpoint. Both ranked modes limit text to 200 normalized characters; the keyword-only eight-term limit does not apply. REST query schema and GraphQL-lite use the same selected configuration and unchanged filter fields.
+The server configuration selects the mode; Products defaults to semantic mode. Set `Products:Search:Mode` to `FullText` for lexical retrieval or `Hybrid` for RRF (environment variable `Products__Search__Mode=Hybrid`). The supported values are `Semantic`, `FullText` and `Hybrid`; an unsupported value fails explicitly. There is no public `$searchMode` parameter or test-only endpoint. All ranked modes limit text to 200 normalized characters; the keyword-only eight-term limit does not apply. REST query schema and GraphQL-lite use the same selected configuration and unchanged filter fields.
 
 Price, availability, and other hard constraints belong in structured filtering, not in assumptions about what an embedding understands. Products exposes a decimal `price` filter with `eq`, `ne`, `in`, `gt`, `ge`, `lt` and `le`; inventory filters are not currently exposed.
 
@@ -181,7 +181,7 @@ CREATE TABLE products.product_search (
 );
 ```
 
-The `768` is Nomic's selected native dimensionality. The composite primary key permits separate profiles/recipes without mixing them in retrieval. There is no HNSW or IVFFlat index: PostgreSQL evaluates exact distances. Full-text storage and coherent profile rollout remain later milestones.
+The `768` is Nomic's selected native dimensionality. The composite primary key permits separate profiles/recipes without mixing them in retrieval. There is no HNSW or IVFFlat index: PostgreSQL evaluates exact distances. Coherent semantic profile rollout remains future work.
 
 Why a separate table instead of another product column?
 
@@ -297,6 +297,17 @@ Several sources describe a model family rather than the exact seeded build. The 
 
 Keep these sources and descriptions aligned when changing the fixtures. A product-family page is not a licence to invent build-specific claims, and manufacturer pages can change over time.
 
+The expanded shared demo catalog has a [product/source manifest](../data/demo-catalog.sources.json): each added entry carries a source URL, source type, original short description, internal demo SKU, and illustrative USD price. FOX in the catalog means FOX Factory suspension; FOXRACING is the separate Fox Racing apparel/protection brand. Product facts and model-family descriptions are supported by their linked manufacturer pages (with retailer sources explicitly identified where necessary). Tags `e-bike` and `emtb` are user-requested colloquial search aliases on the three verified electric mountain bikes, alongside the `electric` category term. `dentist-bike` is a user-provided informal search alias on Yeti bikes for an offhand demo query. It is neither manufacturer provenance nor a factual claim about intended riders or affordability.
+
+The shared `LABOR` listing retains its hourly, non-stocked workshop-service identity and explicitly describes
+professional MTB maintenance/repair labour without promising particular operations or included parts.
+Its curated service-intent tags include `bike-service`, `bicycle-repair`, `workshop-labour`/`workshop-labor`,
+`bike-mechanic` and `maintenance`. User-requested `wrench-monkey`, `grease-monkey`, `bike-whisperer` and
+`spanner-man` are informal demo search aliases, not manufacturer facts or staff credentials; their provenance
+is recorded separately under the manifest's sample service definitions. `hourly bike mechanic` and
+`bike-whisperer` are interactive service-intent probes, not new MTB benchmark judgments: the benchmark's
+`sku ne 'LABOR'` filter intentionally excludes this workshop service.
+
 ### Keep rapidly changing facts relational
 
 Generally exclude price, current stock, and activity status from embeddings. Retrieve or filter these from live product data.
@@ -340,7 +351,7 @@ flowchart LR
     API --> Client
 ```
 
-This is the implemented semantic flow. Requests without `$search` do not call the embedding provider or require a populated projection.
+This is the semantic flow. In opt-in Hybrid mode the API also asks PostgreSQL's lexical projection for a bounded filtered list before fusing both ranked lists. Requests without `$search` do not call the embedding provider or require a populated projection.
 
 **CoreEx responsibilities:** carry intent through `QueryArgs`, validate configured constraints, apply keyword predicates, and distinguish ranked search from ordinary ordering.
 
@@ -358,7 +369,7 @@ MCP (Model Context Protocol) lets an AI client discover and invoke tools such as
 
 The tool sends search text to Products and returns product data. It does not generate its own embeddings, query PostgreSQL directly, or maintain its own index. Non-MCP clients use the same capability.
 
-The tool description defers to the Products server's configured ranked mode: semantic by default, or lexical matches when explicitly selected. It does not promise exact-SKU matching in semantic mode. Price/brand filters remain available in REST/GraphQL-lite but are not yet arguments on the MCP tool.
+The tool description defers to the Products server's configured ranked mode: semantic by default, or lexical/hybrid when explicitly selected. It does not promise exact-SKU matching in semantic mode; FullText and Hybrid prioritize an exact eligible SKU. Hybrid requires both indexes and embedding inference, and its results come from a bounded union. Price/brand filters remain available in REST/GraphQL-lite but are not yet arguments on the MCP tool.
 
 Search does not resolve authentication or authorization. The sample's existing authentication gaps remain separate concerns.
 
@@ -366,9 +377,9 @@ Search does not resolve authentication or authorization. The sample's existing a
 
 ### Initial readiness: an explicit, atomic backfill
 
-Rebuilding is reusable Infrastructure logic, **not an API startup responsibility**. The earlier API
-`--rebuild-search` maintenance mode has been removed. There is no HTTP rebuild endpoint or standalone indexing
-console at this milestone.
+Rebuilding is reusable Infrastructure logic, **not an API startup responsibility**. There is no HTTP rebuild
+endpoint. The E2E Runner's [shared demo bootstrap](aspire.md#shared-demo-catalog-bootstrap) invokes the same
+Infrastructure rebuild explicitly, including its `--demo-catalog-only --accept-demo-reset` maintenance path.
 
 Products read-test `OneTimeSetUp` seeds the catalog and invokes `ProductSearchIndex.RebuildAsync` with controlled
 embeddings. Aspire E2E setup seeds the catalog, clears Redis, then creates a small test-owned service scope using
@@ -406,7 +417,7 @@ reject a parent transaction: the lexical publication must commit independently b
 
 `products.product_search_readiness` records successful initial preparation for each profile/recipe. The readiness marker commits atomically with backfill publication, even for an empty catalog. Incremental events never mark a partially indexed catalog ready. A failed initial backfill leaves it unready; a failed later backfill preserves the previous published projection and readiness.
 
-For a semantic request, the repository checks this small readiness record before inference and again inside its `RepeatableRead` snapshot. It joins compatible vectors to **live** product data, orders by exact cosine distance and product ID (a deterministic tie-breaker), and applies paging/count. There are no full-catalog freshness scans.
+For a semantic request, the repository checks this small readiness record before inference and again inside its `RepeatableRead` snapshot. It joins compatible vectors to **live** product data, orders by exact cosine distance and product ID (a deterministic tie-breaker), and applies paging/count. Hybrid additionally verifies lexical readiness both before inference and inside the same snapshot; both branch queries share the live product/subcategory/inventory joins and parsed structured filters. There are no full-catalog freshness scans.
 
 | Condition | Search behavior |
 |---|---|
@@ -419,13 +430,13 @@ For a semantic request, the repository checks this small readiness record before
 
 Caller cancellation propagates; a broken internal vector contract remains a programming error, not a successful empty result. There is no silent keyword fallback.
 
-The framework manages commit, rollback and cleanup, and enlists the EF context in the shared database transaction. A nested unit of work uses a savepoint, not a new independent transaction: it inherits the parent's isolation. Semantic search therefore explicitly rejects an existing parent unless it is `RepeatableRead` or `Serializable`; silently accepting `ReadCommitted` would lose the consistency guarantee. For standalone requests, inference occurs before opening the snapshot. When a caller already owns a compatible parent transaction, that caller owns its lifetime, including time spent on inference. The search callback does not enqueue events, but any events already queued by a consumer follow the normal root-unit-of-work outbox rules.
+The framework manages commit, rollback and cleanup, and enlists the EF context in the shared database transaction. A nested unit of work uses a savepoint, not a new independent transaction: it inherits the parent's isolation. Semantic and Hybrid search therefore explicitly reject an existing parent unless it is `RepeatableRead` or `Serializable`; silently accepting `ReadCommitted` would lose the consistency guarantee. For standalone requests, inference occurs before opening the snapshot. When a caller already owns a compatible parent transaction, that caller owns its lifetime, including time spent on inference. The search callback does not enqueue events, but any events already queued by a consumer follow the normal root-unit-of-work outbox rules.
 
 Price, inventory and activity changes do not require new embeddings. Name, description, tags and reference-data labels do. Labels use the existing orchestrator/cache; reference-data-driven invalidation and reindexing are **not implemented**. A label-only change needs an explicit backfill with appropriate cache invalidation.
 
 API integration tests rebuild with controlled vectors, isolating distance ordering and failure behavior from model quality. Subscriber integration tests cover duplicate/out-of-order notifications, logical deletion, content-hash skips, concurrent edits and provider retries. Test.Aspire's MCP lifecycle asserts real semantic cleaning intent; its product-search lifecycle drives create/update/activate/delete through HTTP and polls the stored document and search results through the real relay, broker, subscriber and model, with no intervening rebuild. The MCP and checkout scenarios no longer require ordering to avoid freshness failures.
 
-There is no relevance cutoff: every eligible compatible vector is a candidate. `$count=true` reports eligible indexed candidates, including poor semantic matches and excluding not-yet-indexed products. An unrelated query still returns neighbors; clients must not interpret a returned product as guaranteed suitable.
+There is no relevance cutoff: semantic mode returns every eligible compatible vector, including poor matches, and `$count=true` reports eligible indexed candidates. FullText count reports matching lexical candidates. Hybrid `$count=true` reports the deduplicated union of its two bounded candidate lists (0–200), not all eligible products. Hybrid's branch filters are applied in PostgreSQL before each 100-row limit; paging and count use the same repeatable-read snapshot and the fused pool is independent of page size/offset. Consequently, `$skip` beyond that pool returns no items, and `take` cannot expand the maximum reachable set. An unrelated query still returns semantic neighbors in semantic mode; returned products are candidates, not guaranteed suitable matches.
 
 ### Independent lexical projection
 
@@ -604,9 +615,9 @@ PostgreSQL full-text search uses:
 
 A `tsvector` is not a neural embedding. PostgreSQL's built-in rank functions are not BM25 by default.
 
-`plainto_tsquery` is a straightforward candidate for our opaque text contract: it processes plain text and ANDs surviving words. Long conversational queries may produce few lexical matches.
+Products uses `websearch_to_tsquery` in its independent full-text branch: it processes words and supports PostgreSQL web-search syntax such as quoted phrases, OR, and negation. Long conversational queries may produce few lexical matches.
 
-`websearch_to_tsquery` recognizes syntax such as quotes, OR, and negation. Choosing it would deliberately introduce provider-specific query interpretation that needs documenting. CoreEx does not currently promise that grammar.
+That interpretation is provider-specific; CoreEx does not promise that grammar.
 
 SKUs need explicit treatment because punctuation and language tokenization can behave differently from ordinary prose. Exact SKU matching is a useful separate signal, not something to leave to semantic similarity.
 
@@ -631,7 +642,14 @@ Semantic list: B, D, A
 
 A and B benefit from appearing in both lists. The constant `k` smooths the effect of position; 60 is a common starting value, not a universal optimum.
 
-Retrieve a bounded candidate pool from each eligible branch, combine by product ID, fuse ranks, apply a deterministic tie-breaker, and return the requested window.
+The opt-in Products policy retrieves up to **100 eligible candidates per branch** after live product eligibility and the complete structured query filters have been applied in PostgreSQL. Branch ranks are one-based. It combines by product ID and uses equal-weight RRF with fixed **`k=60`**:
+
+```text
+score = (lexical candidate ? 1 / (60 + lexical rank) : 0)
+      + (semantic candidate ? 1 / (60 + semantic rank) : 0)
+```
+
+An eligible exact canonical SKU is ordered ahead of the fused scores, so a vector candidate budget cannot hide it. Remaining order is descending fused score, then lexical rank, semantic rank, and ordinal product ID. The unique union contains at most **200** candidates. This deterministic initial budget and `k` are policy, not a claim of optimal tuning.
 
 The candidate pool is usually larger than the final page. Its size affects both quality and work; ten returned products does not imply ten candidates per branch are sufficient.
 
@@ -651,7 +669,7 @@ Ranked search must define its result window and count semantics:
 - Deep offset paging can require increasingly large candidate retrieval.
 - Stable tie-breaking does not freeze rankings when content or indexes change.
 
-Before implementation is complete, record the chosen behavior for `$skip`, `$take`, `$count`, maximum ranked window, and empty/weak matches. Do not report candidate count as total match count without making that meaning explicit.
+For hybrid mode, the branch candidate lists are independent of requested paging, `$skip` and `$take` are applied only after fusion, and `$count` is the deduplicated candidate-union size (maximum 200). It is not a total match count or the complete eligible catalog. Semantic and FullText keep their existing count behavior. No branch is silently dropped: an unready lexical/semantic projection or failed query embedding makes Hybrid unavailable (HTTP 503), rather than returning a partial branch. Empty lists are valid when both indexes are ready; weak semantic matches are not assigned a confidence score.
 
 ## Model hosting and operational costs
 
@@ -717,11 +735,11 @@ Both expected first products survive the larger candidate set. A price-under-20 
 
 The live MCP HTTP transport was also exercised against this API: `search_products` returned the Nano cleaner first for the original cleaning intent, including its description and live price. Temporarily invalidating its indexed fingerprint produced a tool error rather than a successful partial result; the fingerprint was restored afterwards. This bounded manual check is distinct from the full Test.Aspire topology.
 
-The lower ranks expose the remaining quality problem: sealant is not a cleaner, and a repair multi-tool ranks above some drivetrain components. Exact search does not fix that; it faithfully returns the model's nearest candidates. These examples motivate hybrid retrieval and a curated evaluation set, not an invented confidence threshold or a claim that search is finished.
+The lower ranks expose the remaining quality problem: sealant is not a cleaner, and a repair multi-tool ranks above some drivetrain components. Exact search does not fix that; it faithfully returns the model's nearest candidates. These examples motivated hybrid retrieval and a curated evaluation set, not an invented confidence threshold or a claim that search is finished.
 
 ### Curated real-model relevance evaluation
 
-The opt-in evaluation lives in [`tools/product-search-relevance.dataset.json`](../../tools/product-search-relevance.dataset.json). It contains 24 realistic requests split into 18 tuning and 6 held-out queries: exact SKUs, product terminology, paraphrases, broad/ambiguous intent, hard price filters, and out-of-catalog requests. Every query attests that all 29 default-eligible seeded products were reviewed; listed judgments carry a grade and rationale, while each omitted SKU explicitly means grade 0. The eligible snapshot and the exact seed-file SHA-256 are pinned so changed seed data or live API catalog fields stop the run rather than silently changing the benchmark.
+The opt-in evaluation lives in [`tools/product-search-relevance.dataset.json`](../../tools/product-search-relevance.dataset.json). Its v2 snapshot contains 170 eligible mountain-bike products and 60 reviewed requests split into 48 tuning and 12 held-out queries: exact identifiers, product terminology, paraphrases, focused category intent, hard price filters, and out-of-catalog requests. Every query attests that the full 170-product catalog was reviewed; listed judgments carry a grade and rationale, while each omitted SKU explicitly means grade 0. The snapshot, shared seed SHA-256, source URLs, product classifications, price policy, and curated-tag provenance are pinned so catalog drift cannot silently change the benchmark. The product expansion and per-product research references are in [`samples/data/demo-catalog.sources.json`](../data/demo-catalog.sources.json). Catalog SKUs are internal demo identifiers, not verified manufacturer part numbers; no `DEMO-` prefix is required. Genuine model names retain Demo (`SPECIALIZED-DEMO`). Every catalog price is illustrative USD, not a retail quote.
 
 Run the evaluator only when the Products REST API, its PostgreSQL database, and Ollama are already available and the configured profile's backfill is ready:
 
@@ -730,30 +748,49 @@ Run the evaluator only when the Products REST API, its PostgreSQL database, and 
 .\tools\product-search-relevance.ps1 -OutputPath artifacts\product-search-relevance-report.json
 ```
 
-The first command exercises metric math, invalid judgments, catalog drift, incomplete backfill, and mocked HTTP failure without external services. The second makes real HTTP requests; it never rebuilds the index or substitutes synthetic embeddings. It verifies the pinned Nomic model digest, semantic/ranked API mode, exact 29-product live catalog signature, and candidate count for every query. A missing API, model/profile mismatch, seed/catalog drift, or incomplete/unready index fails explicitly. Reports identify the model, profile, document recipe, seed and catalog hashes, and include per-query results plus separate tuning/held-out aggregates. Do not edit held-out judgments or tune against held-out scores.
+The first command exercises metric math, dataset and alias-provenance validation, multi-page catalog retrieval, drift, incomplete backfill, bounded-count semantics, split isolation, and mocked HTTP failure without external services. The second makes real HTTP requests; it never rebuilds the index or substitutes synthetic embeddings. It verifies the pinned Nomic model digest when the approach uses semantics, the selected ranked API mode, the full 170-product live catalog signature, and approach-appropriate candidate counts. A missing API, model/profile mismatch, seed/catalog drift, or incomplete/unready index fails explicitly. Hybrid count is checked against the bounded eligible union, while branch completeness is checked separately by the guarded setup fixture. Reports identify model and lexical recipe identities, policy, seed/catalog hashes, and per-query results. Tune only on tuning queries; held-out judgments remain untouched until one final evaluation.
 
-The dedicated [`tools/product-search-relevance.seed.yaml`](../../tools/product-search-relevance.seed.yaml) is an exact copy of the reviewed test catalog, but is loaded explicitly through DbEx. The safe sequence is: create/migrate the isolated database (`all`), reset the `products` schema (`reset --accept-prompts`), restore its reference rows (`data`), then load the evaluation catalog (`execute <seed.yaml>`). The `Reset` filter is scoped to the `products` schema, and in practice clears its reference and transactional tables, search projection, and readiness marker. `Data` restores embedded reference data; `Execute` then inserts the product, inventory, and movement rows. Execute is **not** a reset or upsert: repeating it against populated tables fails with a duplicate-primary-key error and leaves existing rows unchanged. Do not rerun Execute without first doing the explicit Reset and reference-data reload.
+The shared [`samples/data/demo-catalog.seed.yaml`](../data/demo-catalog.seed.yaml) serves interactive demo/MCP, the E2E Runner bootstrap, and this evaluation; ordinary API test fixtures remain small and specialized. It contains 174 source rows: 170 active MTB products, two inactive MTB products, one deleted MTB product, and the original non-stocked `LABOR` service needed by existing baskets. Bootstrap replicates and indexes all 173 non-deleted rows. The evaluator adds the existing structured filter `sku ne 'LABOR'` to every catalog/search request, excluding the workshop service while preserving the same 170 reviewed MTB identities and 60 queries. Excluding the entire workshop category would incorrectly discard five reviewed Muc-Off products assigned to the existing Miscellaneous subcategory; those classifications remain unchanged. This changes the seed file hash/path, not MTB judgments or ranking. The historical v1 baseline remains immutable with its original path/hash.
+
+Additional brands/subcategories are normal Products-owned reference data in `Contoso.Products.Database/Data/ref-data.seed.yaml`; existing codes/text are unchanged. Shopping receives only its own reference data (including units), never Products brands/categories. For an evaluation-only database, the safe DbEx sequence is: create/migrate the isolated database (`database`, which avoids code generation), reset the `products` schema (`reset --accept-prompts`), restore its reference rows (`data`), then load the shared catalog (`execute <seed.yaml>`). Reset clears reference/transactional tables, projections and readiness. Execute is **not** a reset/upsert: repeating it against populated tables fails with duplicate keys. Never run this sequence against a shared/default database. For a complete demo including Shopping, use the [bootstrap](aspire.md#shared-demo-catalog-bootstrap) instead.
 
 From the repository root, first set `$connectionString` to a connection whose database is exactly `contoso_search_eval`, then run:
 
 ```powershell
 $databaseProject = 'samples\src\Contoso.Products.Database\Contoso.Products.Database.csproj'
-dotnet run --no-launch-profile --project $databaseProject --no-build --framework net10.0 -- all --connection-string $connectionString
+dotnet run --no-launch-profile --project $databaseProject --no-build --framework net10.0 -- database --connection-string $connectionString
 dotnet run --no-launch-profile --project $databaseProject --no-build --framework net10.0 -- reset --accept-prompts --connection-string $connectionString
 dotnet run --no-launch-profile --project $databaseProject --no-build --framework net10.0 -- data --connection-string $connectionString
-$seedPath = (Resolve-Path 'tools\product-search-relevance.seed.yaml').Path
+$seedPath = (Resolve-Path 'samples\data\demo-catalog.seed.yaml').Path
 dotnet run --no-launch-profile --project $databaseProject --no-build --framework net10.0 -- execute $seedPath --connection-string $connectionString
 ```
 
 The NUnit fixture below is the next step: it builds the vector projection, not the catalog data. The REST evaluator itself never resets, loads, or reindexes anything.
 
-The isolated preparation fixture, [`ProductSearchRelevanceSetupTests.cs`](../tests/Contoso.Products.Test.Api/ProductSearchRelevanceSetupTests.cs), refuses to run unless the configured database is exactly `contoso_search_eval`; it does not seed or reset data. It uses the real indexing path to rebuild embeddings from the already-loaded catalog and verifies profile readiness. The separate [monthly/manual GitHub Actions workflow](../../.github/workflows/product-search-relevance.yml) provisions PostgreSQL, Redis, and Ollama, installs the pinned model, creates that dedicated database, runs the explicit DbEx sequence, the fixture, and the live API evaluator, then uploads the JSON report and API log as a 90-day artifact. Setup failures fail the workflow, and cleanup runs regardless. It is not part of default CI. Run it manually with `workflow_dispatch`, or download the artifact from the monthly run.
+The isolated preparation fixture, [`ProductSearchRelevanceSetupTests.cs`](../tests/Contoso.Products.Test.Api/ProductSearchRelevanceSetupTests.cs), refuses to run unless the configured database is exactly `contoso_search_eval`; it does not seed or reset data. It uses the real indexing path to rebuild projections from the already-loaded catalog and verifies row completeness separately from search-result counts (Hybrid candidate counts are intentionally bounded). The separate [monthly/manual GitHub Actions workflow](../../.github/workflows/product-search-relevance.yml) provisions PostgreSQL, Redis, and Ollama, installs the pinned model, creates that dedicated database, runs the explicit DbEx sequence, the fixture, and the live API evaluator, then uploads the JSON report and API log as a 90-day artifact. Setup failures fail the workflow, and cleanup runs regardless. It is not part of default CI. Run it manually with `workflow_dispatch`, or download the artifact from the monthly run.
 
-The captured [`baseline report`](product-search-relevance-baseline.json) is one measured run, not a target: tuning mean nDCG@5 is **0.8377** over 17 relevant queries (one no-relevant query is reported separately), and tuning mean Precision@5 is **0.3765**. Exact-SKU top-1 is **2/3**; the Shimano XT derailleur query returned Muc-Off cleaner. Held-out mean nDCG@5 is **0.8770** over only **3** relevant queries, mean Precision@5 is **0.2667**, and exact-SKU top-1 is **0/1** (the SRAM X0 query returned Muc-Off cleaner). The held-out split also has three no-relevant/out-of-catalog queries; its tiny relevant denominator makes these descriptive results highly uncertain. The report records zero price-filter violations in 15 tuning and 5 held-out constrained results. No score threshold is imposed, and these results do not justify a claim that search is generally good or bad.
+The checked-in [`baseline report`](product-search-relevance-baseline.json) is the historical v1 measurement over 29 eligible products and 24 queries, not a target or a v2 comparison. Its v1 results remain in the report for historical context, but the changed catalog, labels, and split make its metrics incomparable with v2. Do not pass it as `-BaselinePath` for v2 runs.
+
+#### Expanded MTB v2 local measurements (before SKU prefix removal)
+
+The expanded v2 catalog was evaluated locally against the isolated `contoso_search_eval` database using the pinned `nomic-embed-text:v1.5` model, before removing the leading `DEMO-` from 142 internal SKUs. The live REST catalog matched all 170 then-reviewed eligible products. The 48 tuning queries include 46 queries with judged relevant products; the two no-relevant queries are reported separately and excluded from mean relevance metrics. The metrics below remain historical observations, not measurements of the renamed catalog, quality gates, or comparisons to v1:
+
+| Approach and split | Mean nDCG@5 | Mean Precision@5 | Exact-SKU top-1 | Constrained results | Constraint violations |
+|---|---:|---:|---:|---:|---:|
+| Semantic, tuning (48 queries) | 0.8514 | 0.5522 | 1/6 | 15 | 0 |
+| FullText, tuning (48 queries) | 0.4956 | 0.2783 | 6/6 | 0 | N/A (no results) |
+| Hybrid, tuning (48 queries) | 0.9562 | 0.5783 | 6/6 | 15 | 0 |
+| Hybrid, held-out (12 queries) | 0.8774 | 0.3600 | 4/4 | 10 | 0 |
+
+The Hybrid policy and judgments were reviewed on tuning before the held-out split was run once. The held-out set has 10 relevant queries and two no-relevant/out-of-catalog queries; its result was not used to change the policy, labels, or catalog. The local JSON reports are retained under ignored `artifacts/` paths (`product-search-mtb-semantic-tuning.json`, `product-search-mtb-fulltext-tuning.json`, `product-search-mtb-hybrid-tuning.json`, and `product-search-mtb-hybrid-held-out.json`) and are not promoted to the checked-in v1 baseline.
+
+Prefix removal updates the shared seed, research-source identifiers, reviewed catalog, judgment references and exact-SKU query text without changing grades, rationales or query splits. It changes the seed/dataset/catalog hashes and canonical search documents, so existing lexical/semantic projections and Shopping replicas must be rebuilt from the renamed source. The guarded [isolated bootstrap fixture](aspire.md#shared-demo-catalog-bootstrap) resets only `contoso_search_eval` / `Contoso_demo_eval` with Redis database 14 and rebuilds both projections using the real model. Shared/default databases are not refreshed by that test: stop their writers and use the explicitly acknowledged demo bootstrap before serving the new identifiers. Prior reports and their measured metrics remain unchanged; they cannot be used as identical-identity baselines for the renamed catalog. No live relevance evaluation has been rerun for this identifier revision.
+
+The post-rename isolated bootstrap passed locally on 2026-10-15: 174 unique source SKUs, 173 non-deleted Products/Shopping rows and 173 rows in each real-model semantic/lexical projection. The live API's 170 eligible products matched the reviewed catalog signature `088C254161DDB99DD27D9AB06208616532708F200F1B00A5AD4302D8DCD77B03`. A single renamed exact-SKU Hybrid smoke request also passed; this is setup/identity verification, not a rerun of the relevance benchmark.
 
 Routine reports belong in the git-ignored `artifacts/` directory, not in the checked-in baseline. Replacing `samples/docs/product-search-relevance-baseline.json` is an explicit review step: compare the new report's per-query results, aggregate metrics, and model/dataset/catalog/implementation identities with the existing baseline; explain why the replacement is appropriate in the change description; then deliberately copy the reviewed report over the baseline and update the documented findings. Git history preserves the previous baseline. Do not automatically promote scheduled reports or replace the baseline merely because a score decreased.
 
-Rerun and review the benchmark when the embedding model/profile, document recipe or text fields, ranking/retrieval implementation, judged catalog/seed data, or judgment set changes. Preserve the prior report for comparison and record the changed identity; do not silently replace labels. Full-text tuning compares only the tuning split with this semantic baseline; held-out execution is deferred until an explicitly approved final comparison, not used as a tuning target. Any new catalog revision requires reviewing all eligible products for every query before updating the pinned catalog identity.
+Rerun and review the benchmark when the embedding model/profile, document recipe or text fields, ranking/retrieval implementation, judged catalog/seed data, or judgment set changes. Preserve prior reports and record the changed identity; do not silently replace labels. The old v1 report cannot be used as a baseline comparison for v2. FullText and Hybrid can be evaluated on the v2 tuning split without a baseline comparison. Once the Hybrid policy and v2 judgments are settled, run the Hybrid held-out split exactly once as the final v2 observation; do not tune from that result. Any new catalog revision requires reviewing all eligible products for every query before updating the pinned catalog identity.
 
 ### Lexical tuning-only comparison
 
@@ -766,23 +803,24 @@ $env:Products__Search__Mode = 'FullText'
 dotnet test samples\tests\Contoso.Products.Test.Api --no-build --framework net10.0 --filter 'FullyQualifiedName~ProductSearchRelevanceSetupTests'
 # Start the API separately with the same environment and your chosen BaseAddress.
 .\tools\product-search-relevance.ps1 -BaseAddress http://localhost:5217/ -Approach fulltext -Split tuning `
-  -BaselinePath samples\docs\product-search-relevance-baseline.json `
   -OutputPath artifacts\product-search-lexical-tuning.json
 ```
 
-This evaluator makes **no Ollama requests** in full-text mode, identifies the lexical recipe and embedded SQL
+This evaluator makes **no Ollama requests** in FullText mode, identifies the lexical recipe and embedded SQL
 hashes, and selects tuning queries **before issuing any search requests**. Full-text without `-Split tuning`
-is rejected at this milestone. Semantic evaluation retains its original full-split default; `-Split tuning`
-also supports a semantic tuning-only run. Baseline comparison validates dataset/catalog/seed identities and
-tuning query IDs and emits aggregate deltas without replacing the original baseline. No judgments change.
+is rejected. Semantic evaluation retains its original full-split default; `-Split tuning` also supports a
+semantic tuning-only run. A baseline comparison is valid only for a report with the identical dataset,
+catalog, seed, and query IDs; the historical v1 baseline therefore cannot be used for these v2 commands.
+No judgments change.
 
 Lexical counts are matching-set counts, not semantic full-catalog candidate counts. The runner checks that
 they are bounded by the live eligible catalog and that page size agrees with count. It cannot infer lexical
 index completeness from a naturally sparse/no-match result; the guarded host fixture performs the actual full
-backfill and verifies its 31 non-deleted source rows (29 active). No fake “every product must match” completeness
+backfill and verifies the database-derived non-deleted source-row count (172 in the current v2 seed; 170 active). No fake “every product must match” completeness
 probe is sent to the lexical branch.
 
-Measured locally on **2026-10-15**, through the real FullText REST API over the isolated, dedicated seed:
+Historical v1 measurement, recorded locally on **2026-10-15**, through the real FullText REST API over the
+then-current isolated seed. These results are not measurements of v2:
 
 | Tuning metric | Original semantic baseline | Independent lexical v1 |
 |---|---:|---:|
@@ -798,12 +836,77 @@ requests (often containing price words/numbers) are too restrictive under websea
 stemming does not supply absent synonyms or paraphrases. Only the three exact-SKU requests and the cross-country
 race request returned results. No parsing policy, catalog content, or judgments were adjusted to improve these
 scores. This is a useful independent lexical baseline, **not** an improvement to replace semantic defaults.
-RRF/fusion, ANN, and reranking are not implemented.
 
-The ignored report `artifacts/product-search-lexical-tuning.json` contains all 18 per-query results,
-matched counts, identities and baseline deltas; test/setup/API diagnostics are also under `artifacts/`.
-The semantic baseline file remains unchanged. **No held-out requests or lexical held-out scores were run.**
+The ignored historical report `artifacts/product-search-lexical-tuning.json` contains the 18 v1 per-query
+results, matched counts, identities and baseline deltas; test/setup/API diagnostics are also under `artifacts/`.
+The checked-in semantic v1 baseline remains unchanged. No held-out lexical requests or scores were run.
+
+### Hybrid tuning and final held-out comparison
+
+Use the same isolated setup sequence above. Hybrid setup invokes the real semantic rebuild, which also rebuilds
+the lexical projection, and checks both projections against database-derived row counts (172 non-deleted, 170 active). Set Hybrid mode both for the
+explicit setup fixture and for the separately started Products API:
+
+```powershell
+$env:Aspire__Npgsql__ConnectionString = $connectionString
+$env:Products__Search__Mode = 'Hybrid'
+dotnet test samples\tests\Contoso.Products.Test.Api --no-build --framework net10.0 --filter 'FullyQualifiedName~ProductSearchRelevanceSetupTests'
+# Start the API separately with the same environment and your chosen BaseAddress.
+.\tools\product-search-relevance.ps1 -BaseAddress http://localhost:5217/ -Approach hybrid -Split tuning `
+  -OutputPath artifacts\product-search-hybrid-tuning.json
+```
+
+Hybrid evaluation verifies the same exact eligible catalog identity, asks Ollama for the pinned model identity,
+and validates every returned count against the constrained eligible catalog and 200-candidate ceiling. The
+report retains the separate full eligible catalog count and the bounded result count, plus the lexical recipe,
+`k=60`, and per-branch budget of 100. Candidate counts are not interpreted as proof
+that either index is complete; the guarded setup fixture checks each stored index row count directly.
+
+For a new catalog or ranking revision, review all tuning rankings and settle the policy before running the
+held-out split once. Do not adjust `k`, candidate budget, labels, document content, or any other ranking choice
+after that final observation:
+
+```powershell
+.\tools\product-search-relevance.ps1 -BaseAddress http://localhost:5217/ -Approach hybrid -Split held-out `
+  -OutputPath artifacts\product-search-hybrid-held-out.json
+```
+
+This was the final pre-rename v2 held-out observation, not a comparison to the historical v1 report. It was
+run before SKU prefix removal; do not relabel it as a current-catalog measurement or change the policy based on its output. The evaluator's
+held-out command is available for Semantic or Hybrid; FullText remains tuning-only. The checked-in v1 semantic
+baseline is not replaced, and reports remain in ignored `artifacts/`.
 The separate monthly/manual workflow remains semantic-only and has not been trialed remotely from this branch.
+
+Historical v1 comparison, measured locally on **2026-10-15** against the then-reviewed catalog, seed,
+judgments and pinned Nomic model. It is not a v2 result:
+
+| Tuning metric | Semantic baseline | Independent FullText | Hybrid (100 per branch, `k=60`) |
+|---|---:|---:|---:|
+| Mean nDCG@5 (17 relevant queries) | 0.8377 | 0.2072 | **0.8966** |
+| Mean Precision@5 | 0.3765 | 0.0588 | **0.3882** |
+| Exact-SKU top-1 | 2/3 | 3/3 | **3/3** |
+| Price-constrained result rows / violations | 15 / 0 | 0 / 0 | **15 / 0** |
+
+In that v1 tuning run, Hybrid exceeded its semantic baseline by 0.0588 nDCG@5 and 0.0118 Precision@5, while preserving
+all 15 returned price-constrained rows without a violation and fixing the missed exact SKU. FullText's zero
+constrained rows are not useful filter-retrieval evidence; its violation rate is undefined. These observed
+tuning results support retaining the fixed Hybrid policy as an opt-in, not making it the default.
+
+In the historical v1 run, the fixed policy was compared with its semantic baseline on held-out exactly once,
+without changing the policy or judgments:
+
+| Held-out metric | Semantic baseline | Hybrid |
+|---|---:|---:|
+| Mean nDCG@5 (3 relevant queries) | 0.8770 | **1.0000** |
+| Mean Precision@5 | 0.2667 | 0.2667 |
+| Exact-SKU top-1 | 0/1 | **1/1** |
+| Price-constrained result rows / violations | 5 / 0 | **5 / 0** |
+
+That v1 held-out set contained only three relevant queries; its quality figures are descriptive and highly uncertain.
+It also contains three no-relevant/out-of-catalog queries, for which both approaches still return candidates.
+Those measured v1 results do not justify changing the semantic default or a general quality claim. The complete
+historical per-query reports are `artifacts/product-search-hybrid-tuning.json` and
+`artifacts/product-search-hybrid-held-out.json`; the checked-in semantic baseline remains unchanged.
 
 Judgments are graded 0 (irrelevant), 1 (marginal), 2 (useful secondary result), or 3 (direct fit). The report uses gain `2^grade - 1` for nDCG@5; Precision@5 counts grade 2 or 3 and always divides by five. Exact-SKU top-1 accuracy is shown only for exact-SKU queries. Queries with no grade-above-zero product are listed separately and excluded from nDCG/precision means rather than counted as successful empty results. Price-filter violations are counted and reported; no similarity/confidence cutoff or quality pass threshold is invented. The checked-in query set is not itself a measured baseline: capture and review a real report before making claims about full-catalog relevance.
 
@@ -817,9 +920,9 @@ Trace embedding time, database time, indexing lag, retries, and failures. Avoid 
 |---|---|---|
 | 1. Documents and embeddings | See how verified catalog content becomes vectors. | Selected profile, reproducible builder, provider configuration, provenance. |
 | 2. Exact pgvector retrieval (implemented) | Understand distance ordering with real filters. | Real database tests for ordering, eligibility, profile isolation, paging, freshness and atomic rebuild failure. |
-| 3. Full-text (implemented); RRF (future) | Compare exact terminology with semantic intent. | Independent lexical matching, exact-SKU priority, model-free lifecycle and measured tuning-only comparison. Hybrid comparisons remain future work. |
+| 3. Full-text and Hybrid/RRF (implemented; Hybrid opt-in) | Compare exact terminology with semantic intent. | Independent lexical matching, fixed bounded RRF (`k=60`, 100 candidates per branch), exact-SKU priority, deterministic paging/counts, and historical v1 comparison evidence. |
 | 4. Indexing and backfill (implemented; operational recovery remains) | Maintain rebuildable derived state. | Duplicate/out-of-order handling, stale-write protection, updates/logical deletes and explicit readiness. Resumable reconciliation remains future work. |
-| 5. Curated relevance evaluation (implemented; baseline captured) | Assess real-model rankings against reviewed judgments. | Pinned full-catalog labels, isolated held-out queries, metric definitions and a reproducible live report. |
+| 5. Curated relevance evaluation (v1 baseline captured; v2 catalog prepared, not measured) | Assess real-model rankings against reviewed judgments. | Pinned 170-product MTB labels, isolated held-out queries, metric definitions and a reproducible live report. |
 | 6. HNSW benchmark | Measure speed versus recall at meaningful scale. | Exact baseline, larger corpus, real query plans, latency and recall results. |
 | 7. MCP demonstration | Reuse the domain capability from an AI client. | Same API behavior, accurate tool descriptions, cross-host demonstration. |
 
@@ -857,18 +960,21 @@ These files own the implemented behavior and the foundations for later milestone
 | [Ollama client](../src/Contoso.Products.Infrastructure/Clients/Ollama/OllamaHttpClient.cs) | Task prefixes, model profile, explicit truncation policy, and response validation. |
 | [Embedding client tests](../tests/Contoso.Products.Test.Unit/Clients/Ollama/OllamaHttpClientTests.cs) | Mocked success/error responses and exact request construction. |
 | [Live embedding smoke check](../../tools/test-product-embeddings.ps1) | Explicit local-model probe and retained relevance expectations. |
-| [Curated relevance judgments](../../tools/product-search-relevance.dataset.json) | Versioned graded labels, reviewed catalog snapshot, tuning/held-out split, and pinned model/seed identity. |
-| [Relevance evaluator](../../tools/product-search-relevance.ps1) | Opt-in real REST/Ollama evaluation, drift/backfill checks, per-query metrics, and split aggregates. |
-| [Relevance evaluator tests](../../tools/test-product-search-relevance.ps1) | Local metric, dataset validation, drift, backfill, and mocked-HTTP failure tests. |
-| [Dedicated evaluation seed](../../tools/product-search-relevance.seed.yaml) | Exact reviewed catalog copy loaded using DbEx Execute after isolated reset/reference-data reload. |
+| [Curated relevance judgments](../../tools/product-search-relevance.dataset.json) | Versioned graded labels, reviewed 170-product MTB snapshot, 48/12 tuning/held-out split, sources and pinned model/seed identity. |
+| [Demo expansion source manifest](../data/demo-catalog.sources.json) | Product-level source URLs, short descriptions, illustrative prices and provenance for the 142 added products. |
+| [Relevance evaluator](../../tools/product-search-relevance.ps1) | Opt-in real REST/Ollama evaluation, complete paged catalog verification, drift/backfill checks and per-query metrics. |
+| [Relevance evaluator tests](../../tools/test-product-search-relevance.ps1) | Local metric, dataset/provenance validation, paged-catalog drift, backfill, split isolation and mocked HTTP tests. |
+| [Shared demo catalog](../data/demo-catalog.seed.yaml) | One embedded Products seed for interactive demo/MCP, runner bootstrap, and evaluation; domain reference data stays in the owning Database project. |
 | [Isolated setup fixture](../tests/Contoso.Products.Test.Api/ProductSearchRelevanceSetupTests.cs) | Explicitly guarded real backfill and readiness verification for `contoso_search_eval` only. |
 | [Lexical projection](../src/Contoso.Products.Infrastructure/Repositories/ProductLexicalSearchIndex.cs) | Model-free rebuild/synchronization, separate recipe/readiness, composable matches and weighted embedded SQL. |
 | [Lexical API tests](../tests/Contoso.Products.Test.Api/ProductLexicalSearchTests.cs) | English parsing, exact SKUs, live eligibility/filters, paging, weights/ties, lifecycle, readiness and cancellation. |
 | [Lexical subscriber tests](../tests/Contoso.Products.Test.Subscribe/ProductLexicalSearchSubscriberTests.cs) | Real event dispatch and idempotent/deleted state with an unavailable embedding provider. |
 | [Monthly/manual workflow](../../.github/workflows/product-search-relevance.yml) | Separate scheduled run with isolated services and retained JSON/API-log artifact. |
-| [Measured baseline report](product-search-relevance-baseline.json) | Captured model/profile/catalog identities, per-query results, and split metrics; no quality threshold. |
-| [Product query configuration](../src/Contoso.Products.Infrastructure/Repositories/ProductQueryArgsConfig.cs) | Server-selected semantic mode and existing filter/order fields. |
-| [Product repository](../src/Contoso.Products.Infrastructure/Repositories/ProductRepository.cs) | Existing filters, joins, ordering, mapping, and paging to preserve. |
+| [Measured v1 baseline report](product-search-relevance-baseline.json) | Historical model/profile/catalog identities, per-query results and split metrics; not comparable to the v2 dataset. |
+| [Product query configuration](../src/Contoso.Products.Infrastructure/Repositories/ProductQueryArgsConfig.cs) | Server-selected Semantic/FullText/Hybrid mode and unchanged filter/order fields. |
+| [Product query repository](../src/Contoso.Products.Infrastructure/Repositories/ProductQueryRepository.cs) | Existing eligibility/filter joins, single-branch retrieval, bounded candidate queries, RRF fusion, mapping, paging and count semantics. |
+| [RRF fusion helper](../src/Contoso.Products.Infrastructure/Repositories/ProductSearchFusion.cs) | Fixed `k=60`, per-branch budget, deduplication, exact-SKU override, and deterministic tie-breaking. |
+| [Hybrid API tests](../tests/Contoso.Products.Test.Api/ProductHybridSearchTests.cs) | Controlled RRF scores, candidate bounds, filters, exact SKU, paging/count, readiness failures and transaction requirements. |
 | [Product read service](../src/Contoso.Products.Application/ProductReadService.cs) | Current query delegation through the Application boundary. |
 | [Product service](../src/Contoso.Products.Application/ProductService.cs) | Atomic product mutations and outbox events. |
 | [Product contract](../src/Contoso.Products.Contracts/ProductBase.cs) | Current authoritative catalog attributes. |
@@ -899,7 +1005,7 @@ When a stage lands:
 4. Add runnable setup/backfill/evaluation commands when they exist. Put environment setup in [local-dev.md](local-dev.md) and cross-host wiring in [aspire.md](aspire.md), linking from here instead of duplicating them.
 5. Update API examples, schema expectations, MCP descriptions, and observable behavior together.
 
-Keep unresolved choices explicitly unresolved. If the implementation remains keyword-only, this page must continue to say so. Never turn a proposed design into present-tense documentation just because the SQL looks convincing.
+Keep unresolved choices explicitly unresolved. Never turn a proposed design into present-tense documentation just because the SQL looks convincing; the bounded Hybrid behavior described here is implemented and covered by controlled tests.
 
 ## Primary references
 

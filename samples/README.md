@@ -158,7 +158,7 @@ dotnet run --project samples/src/Contoso.Orders.Database   -- All
 
 > Customers (Cosmos DB) is schemaless, so `Contoso.Customers.Database` is not a schema migration tool: it declares the containers and seed data and runs them through the reusable `CoreEx.Cosmos.Provisioning` console (`dotnet run --project samples/src/Contoso.Customers.Database -- All`; use `DropAndAll` or `Create,ResetAndData` to start clean, noting `Drop`/`Reset` prompt for confirmation unless `--accept-prompts` is specified; `ResetAndData` alone fails where the database does not yet exist). Tests reuse the same definition via `Test.MigrateCosmosDataAsync<TestData>(...)`.
 
-> The E2E runner's **Database Migration and Base Data Refresh** option can also apply pending migrations across all domains without restarting hosts. See [Aspire & E2E](docs/aspire.md) for details.
+> The E2E runner's **Database Migration and Base Data Refresh** option loads the [shared demo catalog](docs/aspire.md#shared-demo-catalog-bootstrap), bootstraps Shopping and prepares real-model search. This is a destructive reset: stop writers and restart serving hosts/caches afterwards. See [Aspire & E2E](docs/aspire.md) for details.
 
 See [Tooling](docs/tooling.md) for the full list of database commands and what each does.
 

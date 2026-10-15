@@ -4,7 +4,7 @@ param(
     [uri] $OllamaAddress = 'http://localhost:11434/',
     [string] $DatasetPath = "$PSScriptRoot\product-search-relevance.dataset.json",
     [string] $OutputPath,
-    [ValidateSet('semantic', 'fulltext')][string] $Approach = 'semantic',
+    [ValidateSet('semantic', 'fulltext', 'hybrid')][string] $Approach = 'semantic',
     [ValidateSet('all', 'tuning', 'held-out')][string] $Split = 'all',
     [string] $BaselinePath
 )
@@ -21,7 +21,7 @@ function Get-ProductSearchDataset {
 function Test-ProductSearchDataset {
     param([Parameter(Mandatory)][object] $Dataset)
 
-    if ($Dataset.datasetVersion -ne 'product-search-relevance-v1') { throw 'Unsupported product-search relevance dataset version.' }
+    if ($Dataset.datasetVersion -ne 'product-search-relevance-v2-mtb') { throw 'Unsupported product-search relevance dataset version.' }
     if ($Dataset.profile -ne 'ollama:nomic-embed-text:v1.5:768:retrieval-prefix-v1' -or
         $Dataset.model -ne 'nomic-embed-text:v1.5' -or
         $Dataset.modelDigest -ne '0a109f422b47e3a30ba2b10eca18548e944e8a23073ee3f3e947efcf3c45e59f' -or
@@ -34,18 +34,63 @@ function Test-ProductSearchDataset {
     if ($Dataset.catalogReviewed -ne $true -or [string]::IsNullOrWhiteSpace($Dataset.catalogEligibility)) {
         throw 'The eligible seeded catalog must be explicitly reviewed and described.'
     }
-    if (@($Dataset.queries).Count -lt 20 -or @($Dataset.queries).Count -gt 30) {
-        throw 'The curated evaluation must contain 20 to 30 queries.'
+    if ([string]::IsNullOrWhiteSpace($Dataset.referenceDataFile)) { throw 'The owning-domain reference-data seed must be pinned.' }
+    $referencePath = Join-Path $PSScriptRoot ("..\{0}" -f ($Dataset.referenceDataFile -replace '/', '\'))
+    if (!(Test-Path -LiteralPath $referencePath -PathType Leaf) -or
+        (Get-FileHash -LiteralPath $referencePath -Algorithm SHA256).Hash -ne $Dataset.referenceDataFileSha256) {
+        throw 'Reference-data seed drift: review canonical document labels and update the dataset pin intentionally.'
     }
-    if (@($Dataset.catalog).Count -eq 0) { throw 'The reviewed catalog snapshot is empty.' }
+    if ($Dataset.priceCurrency -ne 'USD' -or [string]::IsNullOrWhiteSpace($Dataset.pricePolicy) -or
+        [string]::IsNullOrWhiteSpace($Dataset.sourcePolicy) -or $null -eq $Dataset.tagProvenancePolicy) {
+        throw 'The catalog must document its illustrative price currency, source policy and tag provenance.'
+    }
+    if (@($Dataset.queries).Count -lt 50 -or @($Dataset.queries).Count -gt 60) {
+        throw 'The curated evaluation must contain 50 to 60 queries.'
+    }
+    if (@($Dataset.catalog).Count -lt 150 -or @($Dataset.catalog).Count -gt 200) {
+        throw 'The reviewed mountain-bike catalog must contain 150 to 200 products.'
+    }
 
     $catalogSkus = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
     foreach ($product in $Dataset.catalog) {
         if ([string]::IsNullOrWhiteSpace($product.sku) -or
             [string]::IsNullOrWhiteSpace($product.text) -or
             $null -eq $product.price -or
-            [string]::IsNullOrWhiteSpace($product.description)) {
-            throw 'Every catalog snapshot entry requires a SKU, text, price and description.'
+            [string]::IsNullOrWhiteSpace($product.description) -or
+            [string]::IsNullOrWhiteSpace($product.brandCode) -or
+            [string]::IsNullOrWhiteSpace($product.subCategoryCode) -or
+            @($product.tags).Count -eq 0 -or 'mountain-bike' -notin @($product.tags) -or
+            [string]::IsNullOrWhiteSpace($product.sourceType) -or
+            $product.sourceType -notin @('manufacturer', 'retailer') -or
+            [string]::IsNullOrWhiteSpace($product.sourceUrl)) {
+            throw 'Every catalog item requires a mountain-bike SKU, category, brand, tags, source URL and product text.'
+        }
+        $sourceUri = $null
+        if (![uri]::TryCreate([string]$product.sourceUrl, [UriKind]::Absolute, [ref]$sourceUri) -or
+            $sourceUri.Scheme -notin @('http', 'https')) { throw "Catalog item '$($product.sku)' has an invalid source URL." }
+        if ($null -ne $product.tagProvenance) {
+            foreach ($alias in @($product.tagProvenance)) {
+                if ($alias.tag -notin @($product.tags) -or
+                    $alias.origin -notin @('user-provided-colloquial-search-alias', 'user-provided-informal-search-alias') -or
+                    [string]::IsNullOrWhiteSpace($alias.note)) {
+                    throw "Catalog item '$($product.sku)' has invalid curated-tag provenance."
+                }
+                if ($alias.tag -eq 'dentist-bike' -and
+                    ($product.brandCode -ne 'YETI' -or $alias.origin -ne 'user-provided-informal-search-alias')) {
+                    throw "The dentist-bike alias is restricted to Yeti demo listings and must be marked informal."
+                }
+                if ($alias.tag -in @('e-bike', 'emtb') -and
+                    ($product.subCategoryCode -ne 'EM' -or $alias.origin -ne 'user-provided-colloquial-search-alias')) {
+                    throw "E-bike aliases are restricted to catalogued electric mountain bikes and must be marked colloquial."
+                }
+            }
+        }
+        if ('dentist-bike' -in @($product.tags) -and !(@($product.tagProvenance | Where-Object { $_.tag -eq 'dentist-bike' }).Count)) {
+            throw "Catalog item '$($product.sku)' must identify the dentist-bike alias as user-provided, not manufacturer fact."
+        }
+        if (@($product.tags | Where-Object { $_ -in @('e-bike', 'emtb') }).Count -gt 0 -and
+            @($product.tagProvenance | Where-Object { $_.tag -in @('e-bike', 'emtb') }).Count -lt 2) {
+            throw "Catalog item '$($product.sku)' must document both colloquial electric-MTB aliases."
         }
         if (!$catalogSkus.Add([string]$product.sku)) { throw "Duplicate catalog SKU '$($product.sku)'." }
     }
@@ -168,10 +213,10 @@ function Get-ProductSearchEligibleCatalog {
 
 function Get-ProductSearchFilter {
     param([Parameter(Mandatory)][object] $Query)
-    if ($null -eq $Query.constraints -or $null -eq $Query.constraints.price) { return $null }
+    if ($null -eq $Query.constraints -or $null -eq $Query.constraints.price) { return "sku ne 'LABOR'" }
     $constraint = $Query.constraints.price
     $value = ([decimal]$constraint.value).ToString('0.############################', [Globalization.CultureInfo]::InvariantCulture)
-    return "price $($constraint.operator) $value"
+    return "sku ne 'LABOR' and price $($constraint.operator) $value"
 }
 
 function Get-ProductSearchMetrics {
@@ -249,14 +294,14 @@ function Invoke-ProductSearchRelevanceEvaluation {
         [Parameter(Mandatory)][uri] $OllamaAddress,
         [Parameter(Mandatory)][scriptblock] $Request,
         [string] $DatasetSha256,
-        [ValidateSet('semantic', 'fulltext')][string] $Approach = 'semantic',
+        [ValidateSet('semantic', 'fulltext', 'hybrid')][string] $Approach = 'semantic',
         [ValidateSet('all', 'tuning', 'held-out')][string] $Split = 'all',
         [string] $BaselinePath
     )
     if ($Approach -eq 'fulltext' -and $Split -ne 'tuning') {
         throw 'This lexical milestone is tuning-only. Pass -Split tuning; held-out queries must not execute during tuning.'
     }
-    if ($BaselinePath -and $Split -ne 'tuning') { throw 'Baseline comparison is tuning-only.' }
+    if ($BaselinePath -and $Split -eq 'all') { throw 'Baseline comparison requires one explicit split: tuning or held-out.' }
     $selectedQueries = @($Dataset.queries | Where-Object { $Split -eq 'all' -or $_.split -eq $Split })
     $requestedSplit = $Split
     if (!$selectedQueries.Count) { throw "No queries selected for split '$Split'." }
@@ -272,19 +317,22 @@ function Invoke-ProductSearchRelevanceEvaluation {
         $DatasetSha256 = (Get-FileHash -LiteralPath (Join-Path $PSScriptRoot 'product-search-relevance.dataset.json') -Algorithm SHA256).Hash
     }
 
-    if ($Approach -eq 'semantic') {
+    $lexicalRecipe = $null
+    $usesSemantic = $Approach -in @('semantic', 'hybrid')
+    $usesLexical = $Approach -in @('fulltext', 'hybrid')
+    if ($usesSemantic) {
         $models = (Get-ProductSearchResponse -Request $Request -Uri ([uri]::new($OllamaAddress, 'api/tags'))).Data.models
         $model = @($models | Where-Object { $_.name -eq $Dataset.model -and $_.digest -eq $Dataset.modelDigest })
         if ($model.Count -ne 1) { throw "Ollama model drift: expected $($Dataset.model) with digest $($Dataset.modelDigest)." }
     }
-    else {
+    if ($usesLexical) {
         $sqlPath = Join-Path $PSScriptRoot '..\samples\src\Contoso.Products.Infrastructure\Repositories\Sql'
         $repositoryPath = Split-Path $sqlPath
         $lexicalSource = Get-Content -LiteralPath (Join-Path $repositoryPath 'ProductLexicalSearchIndex.cs') -Raw
         if ($lexicalSource -notmatch 'Recipe\s*=\s*"([^"]+)"') { throw 'Cannot identify the lexical recipe.' }
         $lexicalRecipe = $Matches[1]
         $implementationIdentity | Add-Member -NotePropertyName lexicalImplementationSha256 -NotePropertyValue @(
-            @('ProductLexicalSearchIndex.cs', 'ProductRepository.cs', 'ProductQueryArgsConfig.cs') | ForEach-Object {
+            @('ProductLexicalSearchIndex.cs', 'ProductQueryRepository.cs', 'ProductSearchFusion.cs', 'ProductQueryArgsConfig.cs') | ForEach-Object {
                 [pscustomobject]@{ file = $_; sha256 = (Get-FileHash -LiteralPath (Join-Path $repositoryPath $_) -Algorithm SHA256).Hash }
             })
         $implementationIdentity | Add-Member -NotePropertyName lexicalSqlSha256 -NotePropertyValue @(
@@ -298,9 +346,26 @@ function Invoke-ProductSearchRelevanceEvaluation {
         throw "Products API drift: this evaluation requires $Approach ranked search."
     }
 
-    $catalogResponse = Get-ProductSearchResponse -Request $Request -Uri ([uri]::new($BaseAddress, 'api/products?$take=100&$count=true'))
-    $liveCatalog = @($catalogResponse.Data)
-    $liveCatalogCount = Get-ProductSearchCountHeader $catalogResponse.Headers
+    $liveCatalog = [Collections.Generic.List[object]]::new()
+    $liveCatalogCount = $null
+    for ($offset = 0; $true; $offset += 100) {
+        $catalogUri = [uri]::new($BaseAddress, "api/products?`$skip=$offset&`$take=100&`$count=true&`$filter=$([uri]::EscapeDataString("sku ne 'LABOR'"))")
+        $catalogResponse = Get-ProductSearchResponse -Request $Request -Uri $catalogUri
+        $page = @($catalogResponse.Data)
+        $pageCount = Get-ProductSearchCountHeader $catalogResponse.Headers
+        if ($null -eq $liveCatalogCount) { $liveCatalogCount = $pageCount }
+        elseif ($pageCount -ne $liveCatalogCount) { throw 'Eligible catalog count changed during paged catalog verification.' }
+        if ($offset -ge $liveCatalogCount) {
+            if ($page.Count -ne 0) { throw "Products API returned rows beyond the reported catalog count at offset $offset." }
+            break
+        }
+        $expectedPageCount = [Math]::Min(100, $liveCatalogCount - $offset)
+        if ($page.Count -ne $expectedPageCount) {
+            throw "Incomplete catalog page at offset $offset`: expected $expectedPageCount rows, got $($page.Count)."
+        }
+        foreach ($product in $page) { $liveCatalog.Add($product) }
+        if ($offset + $page.Count -ge $liveCatalogCount) { break }
+    }
     if ($liveCatalogCount -ne @($Dataset.catalog).Count -or $liveCatalog.Count -ne @($Dataset.catalog).Count) {
         $expectedSkus = @($Dataset.catalog | ForEach-Object sku)
         $actualSkus = @($liveCatalog | ForEach-Object sku)
@@ -323,6 +388,9 @@ function Invoke-ProductSearchRelevanceEvaluation {
     if ($Approach -eq 'semantic' -and $firstActualCount -ne $firstExpectedCount) {
         throw "Search backfill is not ready or is incomplete for profile '$($Dataset.profile)' and recipe '$($Dataset.documentRecipe)': expected $firstExpectedCount indexed candidates, got $firstActualCount."
     }
+    if ($Approach -eq 'hybrid' -and $firstActualCount -gt [Math]::Min($firstExpectedCount, 200)) {
+        throw "Hybrid candidate count exceeds the bounded eligible pool for query '$($firstQuery.id)': expected at most $([Math]::Min($firstExpectedCount, 200)), got $firstActualCount."
+    }
 
     $reports = [Collections.Generic.List[object]]::new()
     foreach ($query in $selectedQueries) {
@@ -338,9 +406,10 @@ function Invoke-ProductSearchRelevanceEvaluation {
 
         $candidateCount = Get-ProductSearchCountHeader $response.Headers
         $expectedCandidateCount = @((Get-ProductSearchEligibleCatalog -Dataset $Dataset -Query $query)).Count
+        $maximumCandidateCount = if ($Approach -eq 'hybrid') { [Math]::Min($expectedCandidateCount, 200) } else { $expectedCandidateCount }
         if (($Approach -eq 'semantic' -and $candidateCount -ne $expectedCandidateCount) -or
-            $candidateCount -lt 0 -or $candidateCount -gt $expectedCandidateCount) {
-            throw "Search count drift for $Approach query '$($query.id)': $expectedCandidateCount eligible catalog rows, got $candidateCount candidates. Semantic must match the eligible count; lexical counts must be between zero and that count."
+            $candidateCount -lt 0 -or $candidateCount -gt $maximumCandidateCount) {
+            throw "Search count drift for $Approach query '$($query.id)': $expectedCandidateCount eligible catalog rows, got $candidateCount candidates. Semantic count must match indexed eligible rows; lexical and hybrid counts must remain within their documented candidate scope."
         }
 
         $judgments = @{}
@@ -381,7 +450,7 @@ function Invoke-ProductSearchRelevanceEvaluation {
             noRelevant = !$metrics.HasRelevant
             ndcgAt5 = $metrics.NdcgAt5
             precisionAt5 = $metrics.PrecisionAt5
-            eligibleCandidateCount = $expectedCandidateCount
+            eligibleCatalogCount = $expectedCandidateCount
             matchedCandidateCount = $candidateCount
             constraintViolationCount = $constraintViolations.Count
             topFive = $topFive
@@ -393,7 +462,7 @@ function Invoke-ProductSearchRelevanceEvaluation {
         $splitQueries = @($reports | Where-Object split -EQ $split)
         $relevantQueries = @($splitQueries | Where-Object { !$_.noRelevant })
         $exactQueries = @($splitQueries | Where-Object { $null -ne $_.exactSkuTop1 })
-        $constraintQueries = @($splitQueries | Where-Object { $null -ne $_.eligibleCandidateCount -and $null -ne $_.kind -and $_.kind -eq 'price-constraint' })
+        $constraintQueries = @($splitQueries | Where-Object { $null -ne $_.eligibleCatalogCount -and $null -ne $_.kind -and $_.kind -eq 'price-constraint' })
         $constraintResultCount = 0
         foreach ($item in $constraintQueries) { $constraintResultCount += $item.topFive.Count }
         $violations = ($constraintQueries | Measure-Object -Property constraintViolationCount -Sum).Sum
@@ -424,37 +493,57 @@ function Invoke-ProductSearchRelevanceEvaluation {
             $baseline.catalogIdentity.seedFileSha256 -ne $actualSeedHash) {
             throw 'Baseline dataset/catalog identity does not match this evaluation.'
         }
-        $baselineIds = @($baseline.queries | Where-Object split -EQ 'tuning' | ForEach-Object id | Sort-Object)
+        $baselineIds = @($baseline.queries | Where-Object split -EQ $Split | ForEach-Object id | Sort-Object)
         $actualIds = @($reports | ForEach-Object id | Sort-Object)
-        if (($baselineIds -join '|') -ne ($actualIds -join '|')) { throw 'Baseline tuning query IDs differ.' }
+        if (($baselineIds -join '|') -ne ($actualIds -join '|')) { throw "Baseline $Split query IDs differ." }
+        $baselineSplit = $baseline.splits.$Split
+        $currentSplit = $splitReports[$Split]
         $comparison = [pscustomobject]@{
             baselineSha256 = (Get-FileHash -LiteralPath $BaselinePath -Algorithm SHA256).Hash
-            split = 'tuning'
-            baseline = $baseline.splits.tuning
-            meanNdcgAt5Delta = $splitReports.tuning.meanNdcgAt5 - $baseline.splits.tuning.meanNdcgAt5
-            meanPrecisionAt5Delta = $splitReports.tuning.meanPrecisionAt5 - $baseline.splits.tuning.meanPrecisionAt5
-            exactSkuTop1AccuracyDelta = $splitReports.tuning.exactSkuTop1Accuracy - $baseline.splits.tuning.exactSkuTop1Accuracy
+            split = $Split
+            baseline = $baselineSplit
+            meanNdcgAt5Delta = $currentSplit.meanNdcgAt5 - $baselineSplit.meanNdcgAt5
+            meanPrecisionAt5Delta = $currentSplit.meanPrecisionAt5 - $baselineSplit.meanPrecisionAt5
+            exactSkuTop1AccuracyDelta = $currentSplit.exactSkuTop1Accuracy - $baselineSplit.exactSkuTop1Accuracy
         }
     }
     return [pscustomobject]@{
-        evaluationVersion = 'product-search-relevance-runner-v2'
+        evaluationVersion = 'product-search-relevance-runner-v3'
         approach = $Approach
         selectedSplit = $requestedSplit
         completedAtUtc = [DateTime]::UtcNow.ToString('o')
         status = 'completed'
         datasetVersion = [string]$Dataset.datasetVersion
-        model = if ($Approach -eq 'semantic') { [string]$Dataset.model } else { $null }
-        modelDigest = if ($Approach -eq 'semantic') { [string]$Dataset.modelDigest } else { $null }
-        profile = if ($Approach -eq 'semantic') { [string]$Dataset.profile } else { 'postgres:english:ts_rank_cd:exact-sku-first' }
-        dimensions = if ($Approach -eq 'semantic') { [int]$Dataset.dimensions } else { $null }
-        documentRecipe = if ($Approach -eq 'semantic') { [string]$Dataset.documentRecipe } else { $lexicalRecipe }
-        documentInstruction = if ($Approach -eq 'semantic') { [string]$Dataset.documentInstruction } else { $null }
-        queryInstruction = if ($Approach -eq 'semantic') { [string]$Dataset.queryInstruction } else { $null }
+        model = if ($usesSemantic) { [string]$Dataset.model } else { $null }
+        modelDigest = if ($usesSemantic) { [string]$Dataset.modelDigest } else { $null }
+        profile = if ($usesSemantic) { [string]$Dataset.profile } else { 'postgres:english:ts_rank_cd:exact-sku-first' }
+        dimensions = if ($usesSemantic) { [int]$Dataset.dimensions } else { $null }
+        documentRecipe = if ($usesSemantic) { [string]$Dataset.documentRecipe } else { $lexicalRecipe }
+        documentInstruction = if ($usesSemantic) { [string]$Dataset.documentInstruction } else { $null }
+        queryInstruction = if ($usesSemantic) { [string]$Dataset.queryInstruction } else { $null }
+        lexicalRecipe = if ($usesLexical) { $lexicalRecipe } else { $null }
+        candidatePool = if ($Approach -eq 'hybrid') {
+            [pscustomobject]@{
+                candidatesPerBranch = 100
+                maximumUniqueCandidates = 200
+                rrfK = 60
+                exactEligibleSkuPriority = $true
+                countSemantics = 'Deduplicated union of the bounded eligible branch candidates, not the full eligible catalog.'
+                pagingSemantics = 'Stable offset paging over the fused candidate union; offsets beyond the union return no items.'
+            }
+        } else { $null }
+        countSemantics = switch ($Approach) {
+            'semantic' { 'Eligible indexed semantic candidates; expected to cover the reviewed eligible catalog after the guarded completeness fixture.' }
+            'fulltext' { 'Eligible lexical matches; not the full eligible catalog.' }
+            'hybrid' { 'Deduplicated bounded union of eligible lexical and semantic candidates; not the full eligible catalog.' }
+        }
         datasetSha256 = $DatasetSha256
         implementationIdentity = $implementationIdentity
         catalogIdentity = [pscustomobject]@{
             seedFile = [string]$Dataset.seedFile
             seedFileSha256 = $actualSeedHash
+            referenceDataFile = [string]$Dataset.referenceDataFile
+            referenceDataFileSha256 = [string]$Dataset.referenceDataFileSha256
             eligibleCatalogCount = $liveCatalogCount
             reviewedCatalogSha256 = $catalogSignature
             liveApiCatalogSha256 = $liveCatalogSignature
@@ -469,7 +558,7 @@ function Invoke-ProductSearchRelevanceEvaluation {
             constraints = 'Returned price-filtered results are validated against the declared hard price condition; no threshold is imposed on relevance scores.'
         }
         splits = $splitReports
-        tuningComparison = $comparison
+        baselineComparison = $comparison
         queries = @($reports)
     }
 }

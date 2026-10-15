@@ -12,17 +12,26 @@ public class ProductQueryArgsConfig : QueryArgsConfig<ProductQueryArgsConfig>
     /// <summary>The server-selected full-text configuration; filter fields remain identical.</summary>
     public static ProductQueryArgsConfig FullText { get; } = new(QuerySearchMode.FullText);
 
+    /// <summary>The server-selected hybrid configuration; filter fields remain identical.</summary>
+    public static ProductQueryArgsConfig Hybrid { get; } = new(QuerySearchMode.Hybrid);
+
     /// <summary>Resolves the server-selected search mode without constructing a query configuration.</summary>
     public static QuerySearchMode ResolveMode(IConfiguration configuration)
         => configuration.ThrowIfNull()["Products:Search:Mode"] switch
         {
             null or "" or "Semantic" => QuerySearchMode.Semantic,
             "FullText" => QuerySearchMode.FullText,
-            var mode => throw new InvalidOperationException($"Unsupported Products:Search:Mode '{mode}'. Expected Semantic or FullText.")
+            "Hybrid" => QuerySearchMode.Hybrid,
+            var mode => throw new InvalidOperationException($"Unsupported Products:Search:Mode '{mode}'. Expected Semantic, FullText or Hybrid.")
         };
 
     /// <summary>Resolves the explicit server setting without changing the public query arguments.</summary>
-    public static ProductQueryArgsConfig FromConfiguration(IConfiguration configuration) => ResolveMode(configuration) == QuerySearchMode.FullText ? FullText : Default;
+    public static ProductQueryArgsConfig FromConfiguration(IConfiguration configuration) => ResolveMode(configuration) switch
+    {
+        QuerySearchMode.FullText => FullText,
+        QuerySearchMode.Hybrid => Hybrid,
+        _ => Default
+    };
 
     private ProductQueryArgsConfig(QuerySearchMode mode)
     {
@@ -46,8 +55,11 @@ public class ProductQueryArgsConfig : QueryArgsConfig<ProductQueryArgsConfig>
         // Ranked search is executed by the repository; ordinary queries retain the configured SKU ordering.
         WithSearch(search => search
             .WithMode(mode)
-            .WithHelpText(mode == QuerySearchMode.FullText
-                ? "English full-text matching with websearch syntax, weighted SKU/name, category/brand, tags and description; exact canonical SKU first, then cover-density rank. No semantic expansion."
-                : "Semantic similarity using exact cosine distance over the configured product embedding profile."));
+            .WithHelpText(mode switch
+            {
+                QuerySearchMode.FullText => "English full-text matching with websearch syntax, weighted SKU/name, category/brand, tags and description; exact canonical SKU first, then cover-density rank. No semantic expansion.",
+                QuerySearchMode.Hybrid => $"Reciprocal Rank Fusion (RRF) combines English full-text and exact semantic rankings. Each branch contributes at most {ProductSearchFusion.CandidateLimit} eligible candidates (RRF k={ProductSearchFusion.RrfK}); an exact eligible canonical SKU is prioritized. $count reports the deduplicated candidate union (at most {ProductSearchFusion.MaximumCandidateCount}), not all eligible products. Paging is over this stable bounded pool.",
+                _ => "Semantic similarity using exact cosine distance over the configured product embedding profile."
+            }));
     }
 }

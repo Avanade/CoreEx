@@ -83,7 +83,7 @@ Both commands start the AppHost, which in turn launches all registered projects 
 
 `Contoso.Mcp` is a local-development sample: it has no authentication and must not be exposed to an untrusted network. It is a cross-domain HTTP facade over the real Products and Shopping APIs. Aspire wires both API references through service discovery; it does not add MCP endpoints to either domain API. The server uses stateless Streamable HTTP at `/mcp` (not stdio). Copy the `contoso-mcp` HTTP endpoint from the Aspire Dashboard and append `/mcp`; the port can vary between runs.
 
-The tools support product search/detail and the complete basket lifecycle: list/create baskets, read a basket, add/update/remove items, apply `SAVE10`, update the shipping address, and checkout. Successful calls return typed structured data with a tool output schema; errors are reported as MCP tool errors, not success-shaped strings. The ordinary development database seed does not include customer or product test data. For an interactive basket demo, start `Contoso.E2E.Runner` and run **Database Migration and Base Data Refresh** followed by **Data Seeding for E2E Testing**; this resets the local sample databases to test data, seeds customer `16.ToGuid()` with an address, and stocks active products. Basket creation requires an existing Customers-domain ID. Checkout is consequential: it reserves stock and triggers asynchronous confirmation through the existing outbox, relay, Service Bus, and Products subscriber.
+The tools support product search/detail and the complete basket lifecycle: list/create baskets, read a basket, add/update/remove items, apply `SAVE10`, update the shipping address, and checkout. Successful calls return typed structured data with a tool output schema; errors are reported as MCP tool errors, not success-shaped strings. The ordinary development database seed does not include customer or product test data. For an interactive basket demo, explicitly run the E2E Runner's **Database Migration and Base Data Refresh** followed by **Data Seeding for E2E Testing**. The [shared demo bootstrap](#shared-demo-catalog-bootstrap) loads the expanded catalog, synchronizes Shopping and prepares real-model search; the full setup also seeds Customers (including `16.ToGuid()` with an address). Review the destructive-reset cautions below first. Basket creation requires an existing Customers-domain ID. Checkout is consequential: it reserves stock and triggers asynchronous confirmation through the existing outbox, relay, Service Bus, and Products subscriber.
 
 To connect GitHub Copilot CLI while Aspire is running, register that endpoint from a terminal:
 
@@ -155,7 +155,7 @@ The E2E Runner calls the live APIs over real HTTP. No mocks. Cross-domain flows 
 
 ## E2E Runner
 
-`Contoso.E2E.Runner` is an interactive console application (`samples/tests/Contoso.E2E.Runner`) that drives cross-domain scenarios against the running APIs. It serves two purposes:
+`Contoso.E2E.Runner` is a single-target .NET 10 interactive console application (`samples/tests/Contoso.E2E.Runner`) that drives cross-domain scenarios against the running APIs. It stays with the sample tests, but explicitly clears inherited multi-targeting like the Aspire tests, avoiding older-framework dependency-version conflicts. It serves two purposes:
 
 1. **Functional validation** — verify that the end-to-end flows work correctly against real infrastructure, catching issues that intra-domain tests cannot (network timeouts, Service Bus lag, cross-domain state consistency).
 2. **Load simulation** — run all scenarios in parallel workers to exercise the system under realistic concurrency, surfacing performance issues and race conditions.
@@ -172,7 +172,7 @@ On startup, the runner checks `/health/ready` on all APIs and displays their sta
 
 ### Configuration
 
-Default endpoints and simulation parameters are defined in `appsettings.json`. Override with environment variables using `__` as the separator:
+Default endpoints and simulation parameters are defined in the runner's `appsettings.json` (copied as `e2e-settings.json`); Products embedding defaults are linked from its API's development settings as `products-settings.json`. Both files are resolved relative to the executable, not the current directory. Override with environment variables using `__` as the separator:
 
 ```bash
 E2E__Products__BaseAddress=https://localhost:7200
@@ -197,7 +197,7 @@ Per-scenario simulation parallelism and delay bounds are also configurable:
 
 | Scenario | What it does |
 |---|---|
-| Database Migration and Base Data Refresh | Runs DbEx migrations for all domain databases and resets base reference data. |
+| Database Migration and Base Data Refresh | Resets/migrates Products and Shopping, loads the shared demo catalog, syncs Shopping through its adapter before baskets, and rebuilds/verifies both search projections. Also resets/provisions Customers and Orders using their existing domain setup. |
 | Data Seeding for E2E Testing | Calls `POST /api/inventory/adjust` to set on-hand quantity to 1 000 units for every active, stocked product. Required before basket scenarios to ensure stock is available. |
 
 #### Functional scenarios (repeatable)
@@ -210,6 +210,72 @@ Per-scenario simulation parallelism and delay bounds are also configurable:
 | Shopping Basket Lifecycle | **Yes** | Creates a basket, adds 1–4 random items, optionally applies the `SAVE10` coupon, checks out. Triggers the full cross-domain flow: synchronous inventory reservation (Shopping → Products HTTP), transactional outbox publish, relay forwarding, and async reservation confirmation (Service Bus → Products Subscribe). |
 
 The Shopping Basket Lifecycle is the richest scenario — it exercises every inter-domain integration path in a single run and is the primary validation tool for the full system.
+
+### Shared demo catalog bootstrap
+
+[`samples/data/demo-catalog.seed.yaml`](../data/demo-catalog.seed.yaml) is the single catalog source for
+interactive demo/MCP, `DatabaseMigrationSetup`, and search relevance evaluation. It is linked/embedded in
+`Contoso.Products.Database`, so the runner needs neither a repository checkout nor cwd-relative seed paths.
+Research provenance is in [`demo-catalog.sources.json`](../data/demo-catalog.sources.json). Ordinary
+Products/Shopping API, subscriber and automated Aspire test catalogs are deliberately unchanged.
+
+The snapshot has 174 source rows: 170 active MTB products, two inactive MTB products, one logically deleted
+product, and the original non-stocked `LABOR` service. Original deterministic `^1`–`^32` IDs are preserved.
+The **173 non-deleted** rows are read through Products' CoreEx accessor/mapping (inactive rows are retained),
+serialized across the same JSON contract boundary used by events, and passed to Shopping's normal
+`IProductSyncAdapter.ModifyAsync`/`DeleteAsync`. Existing Shopping mapping/upsert owns persistence.
+There is no second Shopping catalog and no cross-database SQL between PostgreSQL and SQL Server.
+Only this setup composition directly resolves both domains; business services still use adapters/HTTP/events.
+The domains have separate DI/execution scopes and fresh local reference-data caches. Added Products
+brands/subcategories live in Products' normal reference seed; Shopping only loads its own reference data.
+
+Shopping's product-free [`demo-baskets.seed.yaml`](../tests/Contoso.E2E.Runner/Data/demo-baskets.seed.yaml)
+is loaded **after** product synchronization, retaining the original basket/item IDs and scenario state.
+Setup verifies all replica IDs/SKUs/text/units/prices/activity/non-stocked flags, absence of stale/deleted
+replicas, domain reference-data availability and basket/item references. It builds both lexical and
+semantic projections using `AddProductEmbeddings` and the configured real provider/profile, verifies readiness
+and query inference, and fails visibly if migrations, mappings, inference or integrity checks fail.
+It evicts only the affected domains' reference-data collection keys through the normal Redis/FusionCache
+backplane, waiting for distributed operations and surfacing failures; it never flushes shared Redis.
+
+**Snapshot bootstrap is not replication evidence.** It does not publish historical events or exercise
+outbox/relay/broker delivery. Subsequent E2E product-change and basket scenarios continue exercising those paths.
+Run setup with writers/relays/subscribers stopped, then restart the hosts; never use it to reconcile a live
+catalog while scenarios are writing. Restart/clear serving hosts' reference-data caches after resetting data.
+
+For Products/Shopping-only maintenance (no API health checks, Customers/Cosmos or Orders reset):
+
+```powershell
+$env:CoreExLocalTargetFramework = 'net10.0'
+# Review/override E2E__Products__ConnectionString and E2E__Shopping__ConnectionString first.
+# Ollama__BaseAddress selects the same real provider used by Products; the model must already be installed.
+dotnet run --project samples\tests\Contoso.E2E.Runner -- --demo-catalog-only --accept-demo-reset
+```
+
+**Destructive:** the command resets demo data and runs migrations in the configured Products/Shopping databases.
+The explicit flag acknowledges that reset; never target another person's shared databases without agreement.
+The full interactive migration option additionally resets Customers and Orders. A model failure may leave a
+partially prepared database; fix the reported cause and rerun the complete bootstrap before starting hosts.
+`Data Seeding for E2E Testing` still performs stock adjustments through the API after hosts are running;
+the base snapshot's inventory is intentionally small.
+
+The opt-in `DemoCatalogBootstrapTests` fixture lives in the single-target `Contoso.Test.Aspire` project,
+but directly exercises setup composition without starting AppHost or the ordinary smoke fixtures.
+It refuses to run unless E2E connections target exactly
+`contoso_search_eval` and `Contoso_demo_eval`, and its Redis connection must use `defaultDatabase=14`.
+With existing PostgreSQL/SQL Server/Redis/Ollama infrastructure, set the two database overrides and run:
+
+```powershell
+$env:CoreExLocalTargetFramework = 'net10.0'
+$settings = Get-Content samples\tests\Contoso.E2E.Runner\appsettings.json -Raw | ConvertFrom-Json
+$env:E2E__Products__ConnectionString = $settings.E2E.Products.ConnectionString -replace 'Database=contoso;', 'Database=contoso_search_eval;'
+$env:E2E__Shopping__ConnectionString = $settings.E2E.Shopping.ConnectionString -replace 'Initial Catalog=Contoso;', 'Initial Catalog=Contoso_demo_eval;'
+$env:Aspire__StackExchange__Redis__ConnectionString = 'localhost:6379,defaultDatabase=14'
+dotnet test samples\aspire\Contoso.Test.Aspire --framework net10.0 --filter 'FullyQualifiedName~DemoCatalogBootstrapTests'
+```
+
+It exercises actual source/replica agreement, flags/soft deletion, stale removal, basket integrity,
+repeatable reconciliation/reset, cancellation and explicit real-provider failure. It does not touch Cosmos.
 
 #### Load simulation
 
@@ -229,7 +295,7 @@ Press `ESC` to stop gracefully. Errors are written to `logs/load-simulation-erro
 2. Migrate and seed: `dotnet run --project samples/src/Contoso.Products.Database` (and Shopping, Orders)
 3. Start Aspire: `aspire run`
 4. Start the runner: `dotnet run --project samples/tests/Contoso.E2E.Runner`
-5. Run **Database Migration and Base Data Refresh** (picks up any pending migrations)
+5. Stop writers/relays/subscribers before **Database Migration and Base Data Refresh**; review all connection strings and its destructive resets. Skip startup health checks with ESC when hosts are stopped, then restart hosts after setup (including their reference-data caches).
 6. Run **Data Seeding for E2E Testing** (stocks inventory for basket scenarios)
 7. Run individual scenarios, or select **Run all scenarios as simulation** for load testing
 8. Observe distributed traces, logs, and metrics in the Aspire Dashboard while the runner executes

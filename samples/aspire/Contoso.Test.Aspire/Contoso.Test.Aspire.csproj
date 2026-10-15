@@ -38,6 +38,7 @@
     <ProjectReference Include="..\..\tests\Contoso.Customers.Test.Common\Contoso.Customers.Test.Common.csproj" />
     <ProjectReference Include="..\..\tests\Contoso.Products.Test.Common\Contoso.Products.Test.Common.csproj" />
     <ProjectReference Include="..\..\tests\Contoso.Shopping.Test.Common\Contoso.Shopping.Test.Common.csproj" />
+    <ProjectReference Include="..\..\tests\Contoso.E2E.Runner\Contoso.E2E.Runner.csproj" />
     <ProjectReference Include="..\Contoso.Aspire\Contoso.Aspire.csproj" />
   </ItemGroup>
 

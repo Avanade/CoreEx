@@ -14,6 +14,10 @@ function Assert-Throws {
 
 $dataset = Get-ProductSearchDataset "$PSScriptRoot\product-search-relevance.dataset.json"
 Test-ProductSearchDataset $dataset | Out-Null
+Assert-Equal (Get-ProductSearchFilter $dataset.queries[0]) "sku ne 'LABOR'" 'The shared catalog benchmark must exclude only the workshop service, not reviewed Miscellaneous products.'
+$invalidReference = Get-ProductSearchDataset "$PSScriptRoot\product-search-relevance.dataset.json"
+$invalidReference.referenceDataFileSha256 = 'drift'
+Assert-Throws { Test-ProductSearchDataset $invalidReference } 'Canonical reference-data label drift must be rejected.'
 
 $metrics = Get-ProductSearchMetrics -RankedGrades @(3, 2, 0) -IdealGrades @(3, 2, 1)
 $expectedNdcg = (7 + 3 / [Math]::Log(3, 2)) / (7 + 3 / [Math]::Log(3, 2) + 1 / [Math]::Log(4, 2))
@@ -36,7 +40,7 @@ $invalid = Get-ProductSearchDataset "$PSScriptRoot\product-search-relevance.data
 $invalid.queries[0].kind = 'unreviewed-kind'
 Assert-Throws { Test-ProductSearchDataset $invalid } 'Unsupported query kinds must be rejected.'
 $invalid = Get-ProductSearchDataset "$PSScriptRoot\product-search-relevance.dataset.json"
-$constrainedQuery = $invalid.queries | Where-Object id -EQ 'tune-price-derailleur-under-150'
+$constrainedQuery = $invalid.queries | Where-Object id -EQ 'tune-derailleur-under-150'
 $constrainedQuery.judgments[0].sku = 'SHIMANO-XTR-M9100-CRANK'
 Assert-Throws { Test-ProductSearchDataset $invalid } 'Judgments violating hard query constraints must be rejected.'
 
@@ -52,9 +56,14 @@ $validMock = {
         return [pscustomobject]@{ StatusCode = 200; Content = $content; Headers = @{} }
     }
     if ($path -ne '/api/products') { throw "Unexpected mocked URI: $Uri" }
+    if (![uri]::UnescapeDataString($Uri.Query).Contains("sku ne 'LABOR'")) { throw 'Every catalog/search request must use the reviewed MTB eligibility filter.' }
     if (!$Uri.Query.Contains('$search=')) {
-        $items = @($dataset.catalog | ForEach-Object { @{ sku = $_.sku; text = $_.text; price = $_.price; description = $_.description } })
-        return [pscustomobject]@{ StatusCode = 200; Content = (ConvertTo-Json -InputObject $items -Depth 8 -Compress); Headers = @{ 'X-Paging-Total-Count' = "$($items.Count)" } }
+        $skip = 0
+        $take = 100
+        if ($Uri.Query -match '\$skip=(\d+)') { $skip = [int]$Matches[1] }
+        if ($Uri.Query -match '\$take=(\d+)') { $take = [int]$Matches[1] }
+        $items = @($dataset.catalog | Select-Object -Skip $skip -First $take | ForEach-Object { @{ sku = $_.sku; text = $_.text; price = $_.price; description = $_.description } })
+        return [pscustomobject]@{ StatusCode = 200; Content = (ConvertTo-Json -InputObject $items -Depth 8 -Compress); Headers = @{ 'X-Paging-Total-Count' = "$($dataset.catalog.Count)" } }
     }
     $queryString = $Uri.Query.TrimStart([char]'?')
     $searchPart = $queryString -split '&' | Where-Object { $_.StartsWith('$search=') } | Select-Object -First 1
@@ -79,8 +88,18 @@ $validMock = {
 }.GetNewClosure()
 
 $mockReport = Invoke-ProductSearchRelevanceEvaluation -Dataset $dataset -BaseAddress 'http://mock/' -OllamaAddress 'http://mock/' -Request $validMock
-Assert-Equal $mockReport.queries.Count 24 'The mocked end-to-end evaluation must exercise all curated queries.'
-Assert-Equal $mockReport.splits.'held-out'.queryCount 6 'Tuning and held-out aggregates must remain split.'
+Assert-Equal $mockReport.queries.Count 60 'The mocked end-to-end evaluation must exercise all curated queries.'
+Assert-Equal $mockReport.splits.'held-out'.queryCount 12 'Tuning and held-out aggregates must remain split.'
+Assert-Equal $mockReport.splits.tuning.queryCount 48 'Tuning and held-out aggregates must remain split.'
+Assert-Equal @($dataset.catalog | Where-Object { 'e-bike' -in $_.tags -and 'emtb' -in $_.tags }).Count 3 'E-bike aliases must be limited to the electric mountain bikes.'
+Assert-Equal @($dataset.catalog | Where-Object { 'dentist-bike' -in $_.tags -and $_.brandCode -ne 'YETI' }).Count 0 'The informal dentist-bike alias must be limited to Yeti catalog entries.'
+$invalid = Get-ProductSearchDataset "$PSScriptRoot\product-search-relevance.dataset.json"
+$yetiAlias = $invalid.catalog | Where-Object sku -EQ 'YETI-ASR-C2-2025'
+$yetiAlias.tagProvenance[0].origin = 'manufacturer'
+Assert-Throws { Test-ProductSearchDataset $invalid } 'Informal search aliases must not be represented as manufacturer product facts.'
+$invalid = Get-ProductSearchDataset "$PSScriptRoot\product-search-relevance.dataset.json"
+$invalid.catalog | Where-Object sku -EQ 'SPECIALIZED-TURBO-LEVO' | ForEach-Object { $_.subCategoryCode = 'TR' }
+Assert-Throws { Test-ProductSearchDataset $invalid } 'E-bike aliases must not be assigned to non-electric MTB categories.'
 
 $shortPageMock = {
     param([uri] $Uri)
@@ -95,9 +114,13 @@ Assert-Throws { Invoke-ProductSearchRelevanceEvaluation -Dataset $dataset -BaseA
 $driftMock = {
     param([uri] $Uri)
     if ($Uri.AbsolutePath -eq '/api/products' -and !$Uri.Query.Contains('$search=')) {
-        $items = @($dataset.catalog | ForEach-Object { @{ sku = $_.sku; text = $_.text; price = $_.price; description = $_.description } })
+        $skip = 0
+        $take = 100
+        if ($Uri.Query -match '\$skip=(\d+)') { $skip = [int]$Matches[1] }
+        if ($Uri.Query -match '\$take=(\d+)') { $take = [int]$Matches[1] }
+        $items = @($dataset.catalog | Select-Object -Skip $skip -First $take | ForEach-Object { @{ sku = $_.sku; text = $_.text; price = $_.price; description = $_.description } })
         $items[0].text = 'Changed catalog item'
-        return [pscustomobject]@{ StatusCode = 200; Content = (ConvertTo-Json -InputObject $items -Depth 8 -Compress); Headers = @{ 'X-Paging-Total-Count' = "$($items.Count)" } }
+        return [pscustomobject]@{ StatusCode = 200; Content = (ConvertTo-Json -InputObject $items -Depth 8 -Compress); Headers = @{ 'X-Paging-Total-Count' = "$($dataset.catalog.Count)" } }
     }
     & $validMock $Uri
 }.GetNewClosure()
@@ -118,17 +141,19 @@ $violationMock = {
         $queryString = $Uri.Query.TrimStart([char]'?')
         $searchPart = $queryString -split '&' | Where-Object { $_.StartsWith('$search=') } | Select-Object -First 1
         $queryText = [uri]::UnescapeDataString($searchPart.Substring(8))
-        if ($queryText -eq 'a rear derailleur for a 12-speed mountain bike under $150') {
+        if ($queryText -eq 'mountain bike rear derailleur under $150') {
             $crank = $dataset.catalog | Where-Object sku -EQ 'SHIMANO-XTR-M9100-CRANK'
-            $eligible = @($dataset.catalog | Where-Object { [decimal]$_.price -lt 150 } | Select-Object -First 4)
+            $query = $dataset.queries | Where-Object id -EQ 'tune-derailleur-under-150'
+            $eligibleCatalog = @($dataset.catalog | Where-Object { [decimal]$_.price -lt [decimal]$query.constraints.price.value })
+            $eligible = @($eligibleCatalog | Select-Object -First 4)
             $results = @(@($crank) + $eligible | ForEach-Object { @{ sku = $_.sku; text = $_.text; price = $_.price; description = $_.description } })
-            return [pscustomobject]@{ StatusCode = 200; Content = (ConvertTo-Json -InputObject $results -Depth 8 -Compress); Headers = @{ 'X-Paging-Total-Count' = '8' } }
+            return [pscustomobject]@{ StatusCode = 200; Content = (ConvertTo-Json -InputObject $results -Depth 8 -Compress); Headers = @{ 'X-Paging-Total-Count' = "$($eligibleCatalog.Count)" } }
         }
     }
     & $validMock $Uri
 }.GetNewClosure()
 $violationReport = Invoke-ProductSearchRelevanceEvaluation -Dataset $dataset -BaseAddress 'http://mock/' -OllamaAddress 'http://mock/' -Request $violationMock
-$violationQuery = $violationReport.queries | Where-Object id -EQ 'tune-price-derailleur-under-150'
+$violationQuery = $violationReport.queries | Where-Object id -EQ 'tune-derailleur-under-150'
 Assert-Equal $violationQuery.constraintViolationCount 1 'Hard price-filter violations must be measured rather than hidden.'
 Assert-Equal $violationReport.splits.tuning.constraintViolationCount 1 'Constraint violations must be included in split aggregates.'
 
@@ -152,14 +177,34 @@ $tuningOnlyMock = {
     }
     & $validMock $Uri
 }.GetNewClosure()
-$lexical = Invoke-ProductSearchRelevanceEvaluation -Dataset $dataset -BaseAddress 'http://mock/' -OllamaAddress 'http://mock/' -Request $tuningOnlyMock -Approach fulltext -Split tuning -BaselinePath "$PSScriptRoot\..\samples\docs\product-search-relevance-baseline.json"
-Assert-Equal $lexical.queries.Count 18 'Tuning-only must execute exactly 18 queries.'
+$lexical = Invoke-ProductSearchRelevanceEvaluation -Dataset $dataset -BaseAddress 'http://mock/' -OllamaAddress 'http://mock/' -Request $tuningOnlyMock -Approach fulltext -Split tuning
+Assert-Equal $lexical.queries.Count 48 'Tuning-only must execute exactly 48 queries.'
 Assert-Equal $lexical.splits.ContainsKey('held-out') $false 'Held-out metrics must not be generated while tuning.'
 Assert-Equal $lexical.model $null 'Full-text must not claim model inference.'
+Assert-Equal $lexical.countSemantics 'Eligible lexical matches; not the full eligible catalog.' 'Full-text count semantics must not imply complete catalog coverage.'
 Assert-Equal $lexical.splits.tuning.meanNdcgAt5 0 'Zero matching results are legitimate lexical results and must score zero.'
-Assert-Equal $lexical.tuningComparison.split 'tuning' 'Only tuning scores may be compared with the baseline.'
+Assert-Throws { Invoke-ProductSearchRelevanceEvaluation -Dataset $dataset -BaseAddress 'http://mock/' -OllamaAddress 'http://mock/' -Request $tuningOnlyMock -Approach fulltext -Split tuning -BaselinePath "$PSScriptRoot\..\samples\docs\product-search-relevance-baseline.json" } 'The historical v1 baseline must not be compared directly with the v2 catalog and query set.'
 Assert-Equal $mockReport.selectedSplit 'all' 'The original semantic full evaluation remains supported.'
 Assert-Throws { Invoke-ProductSearchRelevanceEvaluation -Dataset $dataset -BaseAddress 'http://mock/' -OllamaAddress 'http://mock/' -Request $tuningOnlyMock -Approach fulltext } 'Full-text must require an explicit tuning-only split.'
 Assert-Throws { Invoke-ProductSearchRelevanceEvaluation -Dataset $dataset -BaseAddress 'http://mock/' -OllamaAddress 'http://mock/' -Request $tuningOnlyMock -Approach fulltext -Split held-out } 'Held-out lexical execution must be rejected during this tuning milestone.'
 
-Write-Host 'Product-search relevance tests passed: metric math, dataset validation, catalog drift, backfill completeness, constraint violations, and mocked HTTP failures.'
+$hybridMock = {
+    param([uri] $Uri)
+    if ($Uri.AbsolutePath -eq '/api/products/$query') {
+        return [pscustomobject]@{ StatusCode = 200; Content = '{"search":{"mode":"hybrid","ranked":true}}'; Headers = @{} }
+    }
+    & $validMock $Uri
+}.GetNewClosure()
+$hybrid = Invoke-ProductSearchRelevanceEvaluation -Dataset $dataset -BaseAddress 'http://mock/' -OllamaAddress 'http://mock/' -Request $hybridMock -Approach hybrid -Split tuning
+Assert-Equal $hybrid.queries.Count 48 'Hybrid tuning must execute only the tuning split.'
+Assert-Equal $hybrid.model $dataset.model 'Hybrid search must retain the semantic model identity.'
+Assert-Equal $hybrid.candidatePool.candidatesPerBranch 100 'Hybrid reports must identify the per-branch candidate budget.'
+Assert-Equal $hybrid.candidatePool.maximumUniqueCandidates 200 'Hybrid reports must identify the maximum unique candidate pool.'
+Assert-Equal $hybrid.candidatePool.rrfK 60 'Hybrid reports must identify the fixed RRF constant.'
+Assert-Equal $hybrid.countSemantics 'Deduplicated bounded union of eligible lexical and semantic candidates; not the full eligible catalog.' 'Hybrid count must describe the bounded union.'
+$hybridHeldOut = Invoke-ProductSearchRelevanceEvaluation -Dataset $dataset -BaseAddress 'http://mock/' -OllamaAddress 'http://mock/' -Request $hybridMock -Approach hybrid -Split held-out
+Assert-Equal $hybridHeldOut.queries.Count 12 'Hybrid held-out evaluation must remain available after tuning is finalized.'
+Assert-Equal $hybridHeldOut.splits.ContainsKey('tuning') $false 'Hybrid held-out runs must not execute tuning queries.'
+Assert-Throws { Invoke-ProductSearchRelevanceEvaluation -Dataset $dataset -BaseAddress 'http://mock/' -OllamaAddress 'http://mock/' -Request $hybridMock -Approach hybrid -Split held-out -BaselinePath "$PSScriptRoot\..\samples\docs\product-search-relevance-baseline.json" } 'The historical v1 baseline must not be compared directly with v2 held-out queries.'
+
+Write-Host 'Product-search relevance tests passed: metric math, dataset validation, catalog drift, count scope, split isolation, constraint violations, and mocked HTTP failures.'

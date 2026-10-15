@@ -12,6 +12,7 @@
     <EmbeddedResource Include="Schema\**\*" />
     <EmbeddedResource Include="Migrations\**\*" />
     <EmbeddedResource Include="Data\**\*" />
+    <EmbeddedResource Include="..\..\data\demo-catalog.seed.yaml" Link="Data\demo-catalog.seed.yaml" />
   </ItemGroup>
 
   <ItemGroup>

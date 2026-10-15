@@ -9,33 +9,8 @@ public sealed class DatabaseMigrationSetup : IScenario
     /// <inheritdoc/>
     public async Task RunAsync(ScenarioContext context)
     {
-        // Step 1: Products database migration.
-        await context.StepAsync("Products database migration.", async () =>
-        {
-            var cs = context.TestContext.Config.GetValue<string>("E2E:Products:ConnectionString") ?? throw new InvalidOperationException("E2E:Products:ConnectionString configuration value is missing.");
-            var ma = new MigrationArgs(MigrationCommand.ResetAndDatabase, cs);
-            Contoso.Products.Database.Program.ConfigureMigrationArgs(ma);
-            ma.AddAssembly<Products.Test.Common.TestData>().DataParserArgs.AddNamed<Products.Test.Common.TestData>("mutate-data.seed.yaml");
-
-            using var m = new PostgresMigration(ma);
-            var (Success, Output) = await m.MigrateAndLogAsync().ConfigureAwait(false);
-            if (!Success)
-                throw new Exception("Database migration failed:" + Environment.NewLine + Output);
-        }, "Successfully migrated; base data refreshed.").ConfigureAwait(false);
-
-        // Step 2: Shopping database migration.
-        await context.StepAsync("Shopping database migration.", async () =>
-        {
-            var cs = context.TestContext.Config.GetValue<string>("E2E:Shopping:ConnectionString") ?? throw new InvalidOperationException("E2E:Shopping:ConnectionString configuration value is missing.");
-            var ma = new MigrationArgs(MigrationCommand.ResetAndDatabase, cs);
-            Contoso.Shopping.Database.Program.ConfigureMigrationArgs(ma);
-            ma.AddAssembly<Shopping.Test.Common.TestData>().DataParserArgs.AddNamed<Shopping.Test.Common.TestData>("mutate-data.seed.yaml");
-
-            using var m = new SqlServerMigration(ma);
-            var (Success, Output) = await m.MigrateAndLogAsync().ConfigureAwait(false);
-            if (!Success)
-                throw new Exception("Database migration failed:" + Environment.NewLine + Output);
-        }, "Successfully migrated; base data refreshed.").ConfigureAwait(false);
+        await context.StepAsync("Products and Shopping demo catalog bootstrap.", () => DemoCatalogBootstrap.RunAsync(context.TestContext.Config),
+            count => $"{count} non-deleted products replicated; baskets and search projections verified.").ConfigureAwait(false);
 
         // Step 3: Customers database migration.
         await context.StepAsync("Customers database migration.", async () =>

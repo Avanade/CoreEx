@@ -11,6 +11,9 @@
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
   </ItemGroup>
   <ItemGroup>
+    <InternalsVisibleTo Include="Contoso.Products.Test.Api" />
+  </ItemGroup>
+  <ItemGroup>
     <EmbeddedResource Include="Repositories\Sql\*.pgsql" />
   </ItemGroup>
 </Project>

@@ -66,7 +66,7 @@ jobs:
         dotnet build samples/tests/Contoso.Products.Test.Api/Contoso.Products.Test.Api.csproj --no-restore --configuration Release --framework net10.0
 
     - name: Apply schema and reference data to the isolated database
-      run: dotnet run --no-launch-profile --project samples/src/Contoso.Products.Database/Contoso.Products.Database.csproj --no-build --configuration Release --framework net10.0 -- all --connection-string "$PRODUCTS_DATABASE_CONNECTION_STRING"
+      run: dotnet run --no-launch-profile --project samples/src/Contoso.Products.Database/Contoso.Products.Database.csproj --no-build --configuration Release --framework net10.0 -- database --connection-string "$PRODUCTS_DATABASE_CONNECTION_STRING"
 
     - name: Reset only the isolated Products schema
       run: dotnet run --no-launch-profile --project samples/src/Contoso.Products.Database/Contoso.Products.Database.csproj --no-build --configuration Release --framework net10.0 -- reset --accept-prompts --connection-string "$PRODUCTS_DATABASE_CONNECTION_STRING"
@@ -74,8 +74,8 @@ jobs:
     - name: Reload reference data
       run: dotnet run --no-launch-profile --project samples/src/Contoso.Products.Database/Contoso.Products.Database.csproj --no-build --configuration Release --framework net10.0 -- data --connection-string "$PRODUCTS_DATABASE_CONNECTION_STRING"
 
-    - name: Load the dedicated evaluation catalog
-      run: dotnet run --no-launch-profile --project samples/src/Contoso.Products.Database/Contoso.Products.Database.csproj --no-build --configuration Release --framework net10.0 -- execute "$GITHUB_WORKSPACE/tools/product-search-relevance.seed.yaml" --connection-string "$PRODUCTS_DATABASE_CONNECTION_STRING"
+    - name: Load the shared demo catalog
+      run: dotnet run --no-launch-profile --project samples/src/Contoso.Products.Database/Contoso.Products.Database.csproj --no-build --configuration Release --framework net10.0 -- execute "$GITHUB_WORKSPACE/samples/data/demo-catalog.seed.yaml" --connection-string "$PRODUCTS_DATABASE_CONNECTION_STRING"
 
     - name: Prepare and verify the real-model index
       run: dotnet test samples/tests/Contoso.Products.Test.Api/Contoso.Products.Test.Api.csproj --no-build --configuration Release --framework net10.0 --filter "FullyQualifiedName~ProductSearchRelevanceSetupTests" --logger "console;verbosity=normal"

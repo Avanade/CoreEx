@@ -10,6 +10,7 @@ internal sealed class TestEmbeddingAdapter : IProductEmbeddingAdapter
     public float[]? QueryVector { get; set; }
     public bool FailQuery { get; set; }
     public Func<CancellationToken, Task>? BeforeDocument { get; set; }
+    public Func<CancellationToken, Task>? BeforeQuery { get; set; }
 
     public async Task<Result<float[]>> EmbedDocumentAsync(string text, CancellationToken ct = default)
     {
@@ -19,12 +20,17 @@ internal sealed class TestEmbeddingAdapter : IProductEmbeddingAdapter
             throw new HttpRequestException("Controlled embedding failure.");
         return await EmbedAsync(text, ct).ConfigureAwait(false);
     }
-    public Task<Result<float[]>> EmbedQueryAsync(string text, CancellationToken ct = default)
+    public async Task<Result<float[]>> EmbedQueryAsync(string text, CancellationToken ct = default)
     {
         QueryCallCount++;
+        if (BeforeQuery is not null)
+            await BeforeQuery(ct).ConfigureAwait(false);
+        ct.ThrowIfCancellationRequested();
         if (FailQuery)
-            return Task.FromException<Result<float[]>>(new HttpRequestException("Controlled query embedding failure."));
-        return QueryVector is null ? EmbedAsync(text, ct) : Task.FromResult(Result.Ok(QueryVector));
+            throw new HttpRequestException("Controlled query embedding failure.");
+
+        var vector = QueryVector;
+        return vector is null ? await EmbedAsync(text, ct).ConfigureAwait(false) : Result.Ok(vector);
     }
 
     private static Task<Result<float[]>> EmbedAsync(string text, CancellationToken ct)
