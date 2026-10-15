@@ -137,4 +137,29 @@ Assert-Throws { Invoke-ProductSearchRelevanceEvaluation -Dataset $dataset -BaseA
 $unavailableMock = { param([uri] $Uri) [pscustomobject]@{ StatusCode = 503; Content = '{"title":"Unavailable"}'; Headers = @{} } }.GetNewClosure()
 Assert-Throws { Invoke-ProductSearchRelevanceEvaluation -Dataset $dataset -BaseAddress 'http://mock/' -OllamaAddress 'http://mock/' -Request $unavailableMock } 'Service-unavailable responses must stop evaluation.'
 
+$tuningOnlyMock = {
+    param([uri] $Uri)
+    if ($Uri.AbsolutePath -eq '/api/tags') { throw 'Full-text must not contact Ollama.' }
+    if ($Uri.AbsolutePath -eq '/api/products/$query') {
+        return [pscustomobject]@{ StatusCode = 200; Content = '{"search":{"mode":"fulltext","ranked":true}}'; Headers = @{} }
+    }
+    if ($Uri.Query.Contains('$search=')) {
+        $searchPart = $Uri.Query.TrimStart([char]'?') -split '&' | Where-Object { $_.StartsWith('$search=') } | Select-Object -First 1
+        $queryText = [uri]::UnescapeDataString($searchPart.Substring(8))
+        $query = $dataset.queries | Where-Object query -EQ $queryText | Select-Object -First 1
+        if ($query.split -ne 'tuning') { throw "Non-tuning query executed: $queryText" }
+        return [pscustomobject]@{ StatusCode = 200; Content = '[]'; Headers = @{ 'X-Paging-Total-Count' = '0' } }
+    }
+    & $validMock $Uri
+}.GetNewClosure()
+$lexical = Invoke-ProductSearchRelevanceEvaluation -Dataset $dataset -BaseAddress 'http://mock/' -OllamaAddress 'http://mock/' -Request $tuningOnlyMock -Approach fulltext -Split tuning -BaselinePath "$PSScriptRoot\..\samples\docs\product-search-relevance-baseline.json"
+Assert-Equal $lexical.queries.Count 18 'Tuning-only must execute exactly 18 queries.'
+Assert-Equal $lexical.splits.ContainsKey('held-out') $false 'Held-out metrics must not be generated while tuning.'
+Assert-Equal $lexical.model $null 'Full-text must not claim model inference.'
+Assert-Equal $lexical.splits.tuning.meanNdcgAt5 0 'Zero matching results are legitimate lexical results and must score zero.'
+Assert-Equal $lexical.tuningComparison.split 'tuning' 'Only tuning scores may be compared with the baseline.'
+Assert-Equal $mockReport.selectedSplit 'all' 'The original semantic full evaluation remains supported.'
+Assert-Throws { Invoke-ProductSearchRelevanceEvaluation -Dataset $dataset -BaseAddress 'http://mock/' -OllamaAddress 'http://mock/' -Request $tuningOnlyMock -Approach fulltext } 'Full-text must require an explicit tuning-only split.'
+Assert-Throws { Invoke-ProductSearchRelevanceEvaluation -Dataset $dataset -BaseAddress 'http://mock/' -OllamaAddress 'http://mock/' -Request $tuningOnlyMock -Approach fulltext -Split held-out } 'Held-out lexical execution must be rejected during this tuning milestone.'
+
 Write-Host 'Product-search relevance tests passed: metric math, dataset validation, catalog drift, backfill completeness, constraint violations, and mocked HTTP failures.'

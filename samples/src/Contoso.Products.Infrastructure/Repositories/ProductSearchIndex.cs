@@ -6,8 +6,9 @@ namespace Contoso.Products.Infrastructure.Repositories;
 /// <param name="referenceData">The reference-data labels used by the canonical document.</param>
 /// <param name="unitOfWork">The shared PostgreSQL transaction coordinator.</param>
 /// <param name="logger">The indexing diagnostics logger.</param>
+/// <param name="lexicalIndex">The independently committed, model-free text projection.</param>
 [ScopedService<ProductSearchIndex>]
-public sealed class ProductSearchIndex(ProductsEfDb ef, IProductEmbeddingAdapter embeddings, ReferenceDataOrchestrator referenceData, PostgresUnitOfWork unitOfWork, ILogger<ProductSearchIndex> logger)
+public sealed class ProductSearchIndex(ProductsEfDb ef, IProductEmbeddingAdapter embeddings, ReferenceDataOrchestrator referenceData, PostgresUnitOfWork unitOfWork, ILogger<ProductSearchIndex> logger, ProductLexicalSearchIndex lexicalIndex)
 {
     private static readonly SqlStatement _isReady = SqlStatement.FromResource<ProductSearchIndex>("ProductSearchIsReady.pgsql");
     private static readonly SqlStatement _sourceHash = SqlStatement.FromResource<ProductSearchIndex>("ProductSearchSourceHash.pgsql");
@@ -23,6 +24,7 @@ public sealed class ProductSearchIndex(ProductsEfDb ef, IProductEmbeddingAdapter
     private readonly ReferenceDataOrchestrator _referenceData = referenceData.ThrowIfNull();
     private readonly PostgresUnitOfWork _unitOfWork = unitOfWork.ThrowIfNull();
     private readonly ILogger<ProductSearchIndex> _logger = logger.ThrowIfNull();
+    private readonly ProductLexicalSearchIndex _lexicalIndex = lexicalIndex.ThrowIfNull();
 
     /// <summary>Embeds search text before opening a database snapshot.</summary>
     public async Task<float[]> EmbedQueryAsync(string text, CancellationToken cancellationToken = default)
@@ -66,6 +68,7 @@ public sealed class ProductSearchIndex(ProductsEfDb ef, IProductEmbeddingAdapter
         if (_unitOfWork.Database.CurrentTransaction is not null)
             throw new InvalidOperationException("Search synchronization must run outside a parent transaction so inference does not hold database locks.");
 
+        await _lexicalIndex.SynchronizeAsync(id, cancellationToken).ConfigureAwait(false);
         await LoadLabelsAsync(cancellationToken).ConfigureAwait(false);
         var product = await _ef.Products.Model.Query().AsNoTracking().SingleOrDefaultAsync(p => p.Id == id, cancellationToken).ConfigureAwait(false);
         var document = product is null ? null : Document(product);
@@ -119,6 +122,7 @@ public sealed class ProductSearchIndex(ProductsEfDb ef, IProductEmbeddingAdapter
     /// <remarks>A short publish-time lock rejects concurrent catalog edits instead of installing stale documents.</remarks>
     public async Task<int> RebuildAsync(CancellationToken cancellationToken = default)
     {
+        await _lexicalIndex.RebuildAsync(cancellationToken).ConfigureAwait(false);
         await LoadLabelsAsync(cancellationToken).ConfigureAwait(false);
         var products = await _ef.Products.Model.Query().AsNoTracking().OrderBy(p => p.Id).ToListAsync(cancellationToken).ConfigureAwait(false);
         var documents = products.Select(product => (Product: product, Document: Document(product))).ToArray();
@@ -149,6 +153,7 @@ public sealed class ProductSearchIndex(ProductsEfDb ef, IProductEmbeddingAdapter
                 .Param("Recipe", ProductSearchDocument.TemplateVersion, dbType: DbType.String)
                 .Param("ReadyOn", Runtime.UtcNow, dbType: DbType.DateTimeOffset)
                 .NonQueryAsync(token).ConfigureAwait(false);
+
             return documents.Length;
         }, cancellationToken).ConfigureAwait(false);
     }

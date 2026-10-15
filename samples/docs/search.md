@@ -18,12 +18,13 @@ The goal is not merely to store some numbers and label the result "AI". It is to
 | Product descriptions and price filtering | Implemented | Optional descriptive content supports CRUD; decimal price constraints use existing REST and GraphQL-lite query configuration. |
 | Local embedding provider | Implemented | Ollama/Nomic document and query instructions, response validation, and an Application adapter boundary are available. |
 | Separate search projection and pgvector semantic retrieval | Implemented | PostgreSQL stores 768-dimensional embeddings and computes exact, filtered cosine-distance rankings. |
-| PostgreSQL full-text retrieval and hybrid ranking | Proposed | The current sample does not perform full-text or hybrid search. |
+| Independent PostgreSQL full-text retrieval | Implemented; opt-in server mode | Weighted English `tsvector`/GIN matching, safe websearch parsing, exact eligible SKU first, no embedding calls. |
+| Hybrid ranking / RRF | Proposed | The two retrieval branches are not fused. |
 | Explicit backfill / asynchronous search indexing | Implemented | Test setup publishes an atomic initial backfill; one globbed product-event subscriber reconciles subsequent changes, including logical deletion. |
 | Real-model relevance evaluation | Baseline measured; monthly/manual workflow configured | A version-controlled, 24-query judged set, isolated-catalog setup, opt-in REST/Ollama runner, and real report are available. Scores are observations, not quality gates. |
 | HNSW benchmark | Proposed | Exact full-catalog retrieval is still the comparison baseline; index performance has not been measured. |
 
-The implemented baseline is PostgreSQL as the search store, one embedding per product/profile/recipe, a rebuildable search projection, and indexing outside product-write transactions. It uses local Ollama with Nomic v1.5 and 768 dimensions. Exact retrieval ranks eligible **indexed** products; count means the number of those candidates, not the number judged relevant or the complete catalog size. Full-text/hybrid retrieval windows remain future work.
+The default baseline is PostgreSQL as the search store, one embedding per product/profile/recipe, a rebuildable search projection, and indexing outside product-write transactions. It uses local Ollama with Nomic v1.5 and 768 dimensions. Exact semantic retrieval ranks eligible **indexed** products; count means the number of those candidates, not the number judged relevant or the complete catalog size. The independent full-text branch counts only lexical matches (including exact SKUs). Hybrid retrieval windows remain future work.
 
 ## Reading map
 
@@ -96,7 +97,7 @@ This should retrieve the most relevant eligible Yeti products, not search the en
 
 Keyword mode allows ordinary ordering. Ranked modes own relevance ordering: CoreEx rejects an explicit `$orderby` and does not apply the configured default ordering.
 
-The server configuration selects the mode; Products now selects semantic mode. There is no public `$searchMode` parameter. Semantic text is limited to 200 normalized characters, but the keyword-only eight-term limit no longer applies.
+The server configuration selects the mode; Products defaults to semantic mode. Set `Products:Search:Mode` to `FullText` (environment variable `Products__Search__Mode=FullText`) to exercise lexical retrieval instead. The only supported values are `Semantic` and `FullText`; an unsupported value fails explicitly. There is no public `$searchMode` parameter or test-only endpoint. Both ranked modes limit text to 200 normalized characters; the keyword-only eight-term limit does not apply. REST query schema and GraphQL-lite use the same selected configuration and unchanged filter fields.
 
 Price, availability, and other hard constraints belong in structured filtering, not in assumptions about what an embedding understands. Products exposes a decimal `price` filter with `eq`, `ne`, `in`, `gt`, `ge`, `lt` and `le`; inventory filters are not currently exposed.
 
@@ -345,7 +346,7 @@ This is the implemented semantic flow. Requests without `$search` do not call th
 
 **Products implementation responsibilities:** prepare documents, generate embeddings, execute provider-specific queries, enforce eligibility, maintain derived state, and evaluate relevance/performance.
 
-The existing `ProductRepository.QueryAsync` joins product, subcategory, and inventory data. Ranked retrieval must preserve that behavior and all configured filters rather than quietly implementing a reduced API.
+`ProductQueryRepository.QueryAsync` joins product, subcategory, and inventory data. Ranked retrieval must preserve that behavior and all configured filters rather than quietly implementing a reduced API. Query configuration, semantic and lexical retrieval, and snapshot-isolation checks stay together in this query repository; the CRUD/reservation `ProductRepository` depends only on `ProductsEfDb`. `ProductReadService` delegates `GetAsync` to the CRUD repository and query operations to `IProductQueryRepository`, so its by-id read still resolves both dependencies.
 
 Application orchestration depends on application-owned interfaces. `IProductEmbeddingAdapter` owns the model boundary; `IProductSearchSyncAdapter` exposes current-state reconciliation to the subscriber. Their implementations live in Infrastructure, where `ProductSearchIndex` handles derived storage and backfills.
 
@@ -357,7 +358,7 @@ MCP (Model Context Protocol) lets an AI client discover and invoke tools such as
 
 The tool sends search text to Products and returns product data. It does not generate its own embeddings, query PostgreSQL directly, or maintain its own index. Non-MCP clients use the same capability.
 
-The tool description now promises semantic candidate ordering, not literal keyword or exact-SKU matching. Price/brand filters remain available in REST/GraphQL-lite but are not yet arguments on the MCP tool.
+The tool description defers to the Products server's configured ranked mode: semantic by default, or lexical matches when explicitly selected. It does not promise exact-SKU matching in semantic mode. Price/brand filters remain available in REST/GraphQL-lite but are not yet arguments on the MCP tool.
 
 Search does not resolve authentication or authorization. The sample's existing authentication gaps remain separate concerns.
 
@@ -398,11 +399,10 @@ The rebuild indexes the current non-deleted catalog, including inactive products
 not seed products or download the model. It prepares documents and calls Ollama **before** starting a database
 transaction when invoked outside an existing transaction. Only publication takes a short framework-managed unit
 of work: lock the product table against writes, verify that its searchable documents still match the captured
-catalog, replace the selected profile/recipe, and commit. A model failure leaves the previous index untouched;
+catalog, replace the selected profile/recipe, and commit. A model failure leaves the previous vector index untouched;
 a concurrent searchable catalog edit rejects publication. Deleted-product entries disappear on rebuild, and
-physical deletion also cascades through the foreign key. Other profiles remain separate. If a consumer calls
-rebuild inside an existing unit of work, it inherits that transaction and publication remains subject to the
-parent's eventual commit or rollback.
+physical deletion also cascades through the foreign key. Other profiles remain separate. Rebuild and synchronization
+reject a parent transaction: the lexical publication must commit independently before any model work.
 
 `products.product_search_readiness` records successful initial preparation for each profile/recipe. The readiness marker commits atomically with backfill publication, even for an empty catalog. Incremental events never mark a partially indexed catalog ready. A failed initial backfill leaves it unready; a failed later backfill preserves the previous published projection and readiness.
 
@@ -426,6 +426,60 @@ Price, inventory and activity changes do not require new embeddings. Name, descr
 API integration tests rebuild with controlled vectors, isolating distance ordering and failure behavior from model quality. Subscriber integration tests cover duplicate/out-of-order notifications, logical deletion, content-hash skips, concurrent edits and provider retries. Test.Aspire's MCP lifecycle asserts real semantic cleaning intent; its product-search lifecycle drives create/update/activate/delete through HTTP and polls the stored document and search results through the real relay, broker, subscriber and model, with no intervening rebuild. The MCP and checkout scenarios no longer require ordering to avoid freshness failures.
 
 There is no relevance cutoff: every eligible compatible vector is a candidate. `$count=true` reports eligible indexed candidates, including poor semantic matches and excluding not-yet-indexed products. An unrelated query still returns neighbors; clients must not interpret a returned product as guaranteed suitable.
+
+### Independent lexical projection
+
+`ProductLexicalSearchIndex` owns `products.product_lexical_search` and its separate
+`product_lexical_search_readiness` table. Both are SQL-only derived state managed by the new DbEx migration,
+not generated CRUD models. There is exactly one row per product. Recipe `product-lexical-english-v1` uses
+explicit `pg_catalog.english` processing on both documents and queries:
+
+- Weight A: canonical SKU and product name.
+- Weight B: brand/category/subcategory labels (code fallback) and existing JSON tags.
+- Weight C: description.
+
+The document is a PostgreSQL `tsvector`; its GIN index supports lexical matching. A separate SKU B-tree
+supports the exact-match alternative. `websearch_to_tsquery` receives bound text, not interpolated SQL or
+raw `to_tsquery` syntax. English stemming and stopwords apply; punctuation is parsed by PostgreSQL.
+Ordinary words are ANDed; quoted phrases, `OR`, and exclusions follow PostgreSQL websearch semantics.
+This is not BM25, substring matching, fuzzy spelling correction, synonym expansion, or semantic retrieval.
+
+The entire normalized input is also compared with the stored SKU after trimming and the contract's existing
+uppercase transformation. An exact eligible SKU is included even if tokenization removes it (e.g. a stopword
+SKU). Ranking is exact-SKU first, then descending `ts_rank_cd` using PostgreSQL's default weight values and
+no length normalization, then product ID. The OR predicate does not union duplicate rows. An exact but
+inactive, deleted, or filtered-out SKU cannot bypass live eligibility.
+
+The repository composes these matches with the **same** product/subcategory/inventory joins and all existing
+filters. It counts and pages the complete matching set in a `RepeatableRead` snapshot; compatible parent
+snapshots enlist, weaker ones fail explicitly. An explicit `$orderby` is rejected. No-match, stopword-only,
+and punctuation-only inputs return an empty set, not semantic neighbors or the whole catalog. An unprepared
+lexical recipe returns HTTP 503. Cancellation propagates. Existing `QueryArgs` behavior is unchanged:
+an empty/whitespace `$search` is treated as absent and performs an ordinary catalog query, not lexical matching.
+
+Lexical synchronization reads current authoritative state and publishes it in one short transaction.
+It shares the product source-write lock, also locks reference-data sources during publication, and serializes
+lexical publishers. Delete/reinsert is atomic to readers; duplicate or late events reconcile current state.
+The complete lexical rebuild replaces all rows and publishes readiness in that **same** transaction, including
+an empty catalog. Individual events cannot mark a partly indexed initial catalog ready. Cancellation/failure
+rolls back publication and preserves any prior complete version.
+
+In default semantic mode, `ProductSearchIndex.SynchronizeAsync` and `RebuildAsync` first **commit** lexical
+work and only then call the embedding provider. A semantic failure still retries the event, but cannot roll back
+already-published lexical content/readiness. In explicitly configured FullText Subscribe mode, the application
+adapter calls **only** the lexical index: an offline model does not cause event retries or prevent later lexical
+updates. Configure API and Subscribe consistently. No background poller, automatic startup backfill, new service,
+or new package is introduced.
+
+For a lexical-only initial backfill call `ProductLexicalSearchIndex.RebuildAsync` from a maintenance/test-owned
+scope. The guarded evaluation fixture below selects that path when `Products__Search__Mode=FullText`.
+Switching an installation that has run lexical-only maintenance back to Semantic requires a semantic rebuild:
+FullText mode does not maintain vector rows. Changing the lexical document/configuration recipe also requires a
+version bump and full rebuild. Readiness means a completed initial build, **not** a proof of continuous freshness.
+Events can lag or be missed; live filters still exclude ineligible rows but term matching can temporarily reflect
+older content. Reference-data-only edits have no automatic reindex trigger; rebuild explicitly. Lexical labels
+come directly from database text, not localized request/cache values; English is the sole supported language.
+The table locks/full rebuild are deliberately small-catalog sample choices, not a large-catalog online rebuild design.
 
 ### Asynchronous maintenance
 
@@ -699,7 +753,57 @@ The captured [`baseline report`](product-search-relevance-baseline.json) is one 
 
 Routine reports belong in the git-ignored `artifacts/` directory, not in the checked-in baseline. Replacing `samples/docs/product-search-relevance-baseline.json` is an explicit review step: compare the new report's per-query results, aggregate metrics, and model/dataset/catalog/implementation identities with the existing baseline; explain why the replacement is appropriate in the change description; then deliberately copy the reviewed report over the baseline and update the documented findings. Git history preserves the previous baseline. Do not automatically promote scheduled reports or replace the baseline merely because a score decreased.
 
-Rerun and review the benchmark when the embedding model/profile, document recipe or text fields, ranking/retrieval implementation, judged catalog/seed data, or judgment set changes. Preserve the prior report for comparison and record the changed identity; do not silently replace labels. When PostgreSQL full-text/RRF is implemented, run the same pinned dataset/model and compare per-query rankings and both splits against this semantic baseline; treat held-out as a final comparison, not a tuning target. Any new catalog revision requires reviewing all eligible products for every query before updating the pinned catalog identity.
+Rerun and review the benchmark when the embedding model/profile, document recipe or text fields, ranking/retrieval implementation, judged catalog/seed data, or judgment set changes. Preserve the prior report for comparison and record the changed identity; do not silently replace labels. Full-text tuning compares only the tuning split with this semantic baseline; held-out execution is deferred until an explicitly approved final comparison, not used as a tuning target. Any new catalog revision requires reviewing all eligible products for every query before updating the pinned catalog identity.
+
+### Lexical tuning-only comparison
+
+After the guarded `contoso_search_eval` Reset/Data/Execute sequence above, set the isolated connection and
+FullText mode for the indexing fixture and the separately started Products API:
+
+```powershell
+$env:Aspire__Npgsql__ConnectionString = $connectionString
+$env:Products__Search__Mode = 'FullText'
+dotnet test samples\tests\Contoso.Products.Test.Api --no-build --framework net10.0 --filter 'FullyQualifiedName~ProductSearchRelevanceSetupTests'
+# Start the API separately with the same environment and your chosen BaseAddress.
+.\tools\product-search-relevance.ps1 -BaseAddress http://localhost:5217/ -Approach fulltext -Split tuning `
+  -BaselinePath samples\docs\product-search-relevance-baseline.json `
+  -OutputPath artifacts\product-search-lexical-tuning.json
+```
+
+This evaluator makes **no Ollama requests** in full-text mode, identifies the lexical recipe and embedded SQL
+hashes, and selects tuning queries **before issuing any search requests**. Full-text without `-Split tuning`
+is rejected at this milestone. Semantic evaluation retains its original full-split default; `-Split tuning`
+also supports a semantic tuning-only run. Baseline comparison validates dataset/catalog/seed identities and
+tuning query IDs and emits aggregate deltas without replacing the original baseline. No judgments change.
+
+Lexical counts are matching-set counts, not semantic full-catalog candidate counts. The runner checks that
+they are bounded by the live eligible catalog and that page size agrees with count. It cannot infer lexical
+index completeness from a naturally sparse/no-match result; the guarded host fixture performs the actual full
+backfill and verifies its 31 non-deleted source rows (29 active). No fake “every product must match” completeness
+probe is sent to the lexical branch.
+
+Measured locally on **2026-10-15**, through the real FullText REST API over the isolated, dedicated seed:
+
+| Tuning metric | Original semantic baseline | Independent lexical v1 |
+|---|---:|---:|
+| Mean nDCG@5 (17 relevant queries) | 0.8377 | **0.2072** |
+| Mean Precision@5 | 0.3765 | **0.0588** |
+| Exact-SKU top-1 | 2/3 | **3/3** |
+| Returned constrained results (3 price queries) | 15 | **0** |
+
+The lexical branch returned no matches for 14 of 18 tuning queries, including all three price-constrained
+requests. Zero filter violations across zero constrained results is **not** evidence of useful constrained
+retrieval; its violation rate is undefined. The exact-SKU improvement is real, but long natural-language
+requests (often containing price words/numbers) are too restrictive under websearch's AND semantics, and
+stemming does not supply absent synonyms or paraphrases. Only the three exact-SKU requests and the cross-country
+race request returned results. No parsing policy, catalog content, or judgments were adjusted to improve these
+scores. This is a useful independent lexical baseline, **not** an improvement to replace semantic defaults.
+RRF/fusion, ANN, and reranking are not implemented.
+
+The ignored report `artifacts/product-search-lexical-tuning.json` contains all 18 per-query results,
+matched counts, identities and baseline deltas; test/setup/API diagnostics are also under `artifacts/`.
+The semantic baseline file remains unchanged. **No held-out requests or lexical held-out scores were run.**
+The separate monthly/manual workflow remains semantic-only and has not been trialed remotely from this branch.
 
 Judgments are graded 0 (irrelevant), 1 (marginal), 2 (useful secondary result), or 3 (direct fit). The report uses gain `2^grade - 1` for nDCG@5; Precision@5 counts grade 2 or 3 and always divides by five. Exact-SKU top-1 accuracy is shown only for exact-SKU queries. Queries with no grade-above-zero product are listed separately and excluded from nDCG/precision means rather than counted as successful empty results. Price-filter violations are counted and reported; no similarity/confidence cutoff or quality pass threshold is invented. The checked-in query set is not itself a measured baseline: capture and review a real report before making claims about full-catalog relevance.
 
@@ -713,7 +817,7 @@ Trace embedding time, database time, indexing lag, retries, and failures. Avoid 
 |---|---|---|
 | 1. Documents and embeddings | See how verified catalog content becomes vectors. | Selected profile, reproducible builder, provider configuration, provenance. |
 | 2. Exact pgvector retrieval (implemented) | Understand distance ordering with real filters. | Real database tests for ordering, eligibility, profile isolation, paging, freshness and atomic rebuild failure. |
-| 3. Full-text and RRF | Compare exact terminology with semantic intent. | Inspectable branch ranks and curated hybrid comparisons. |
+| 3. Full-text (implemented); RRF (future) | Compare exact terminology with semantic intent. | Independent lexical matching, exact-SKU priority, model-free lifecycle and measured tuning-only comparison. Hybrid comparisons remain future work. |
 | 4. Indexing and backfill (implemented; operational recovery remains) | Maintain rebuildable derived state. | Duplicate/out-of-order handling, stale-write protection, updates/logical deletes and explicit readiness. Resumable reconciliation remains future work. |
 | 5. Curated relevance evaluation (implemented; baseline captured) | Assess real-model rankings against reviewed judgments. | Pinned full-catalog labels, isolated held-out queries, metric definitions and a reproducible live report. |
 | 6. HNSW benchmark | Measure speed versus recall at meaningful scale. | Exact baseline, larger corpus, real query plans, latency and recall results. |
@@ -758,6 +862,9 @@ These files own the implemented behavior and the foundations for later milestone
 | [Relevance evaluator tests](../../tools/test-product-search-relevance.ps1) | Local metric, dataset validation, drift, backfill, and mocked-HTTP failure tests. |
 | [Dedicated evaluation seed](../../tools/product-search-relevance.seed.yaml) | Exact reviewed catalog copy loaded using DbEx Execute after isolated reset/reference-data reload. |
 | [Isolated setup fixture](../tests/Contoso.Products.Test.Api/ProductSearchRelevanceSetupTests.cs) | Explicitly guarded real backfill and readiness verification for `contoso_search_eval` only. |
+| [Lexical projection](../src/Contoso.Products.Infrastructure/Repositories/ProductLexicalSearchIndex.cs) | Model-free rebuild/synchronization, separate recipe/readiness, composable matches and weighted embedded SQL. |
+| [Lexical API tests](../tests/Contoso.Products.Test.Api/ProductLexicalSearchTests.cs) | English parsing, exact SKUs, live eligibility/filters, paging, weights/ties, lifecycle, readiness and cancellation. |
+| [Lexical subscriber tests](../tests/Contoso.Products.Test.Subscribe/ProductLexicalSearchSubscriberTests.cs) | Real event dispatch and idempotent/deleted state with an unavailable embedding provider. |
 | [Monthly/manual workflow](../../.github/workflows/product-search-relevance.yml) | Separate scheduled run with isolated services and retained JSON/API-log artifact. |
 | [Measured baseline report](product-search-relevance-baseline.json) | Captured model/profile/catalog identities, per-query results, and split metrics; no quality threshold. |
 | [Product query configuration](../src/Contoso.Products.Infrastructure/Repositories/ProductQueryArgsConfig.cs) | Server-selected semantic mode and existing filter/order fields. |

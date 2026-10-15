@@ -8,7 +8,7 @@ public partial class ReadTests
     {
         var ef = test.Services.GetRequiredService<ProductsEfDb>();
         var uow = test.Services.GetRequiredService<PostgresUnitOfWork>();
-        var repository = test.Services.GetRequiredService<IProductRepository>();
+        var repository = test.Services.GetRequiredService<IProductQueryRepository>();
         await uow.TransactionAsync(new PostgresDatabaseArgs { IsolationLevel = isolation }, async token =>
         {
             var parent = uow.Database.CurrentTransaction;
@@ -28,7 +28,7 @@ public partial class ReadTests
     {
         var ef = test.Services.GetRequiredService<ProductsEfDb>();
         var uow = test.Services.GetRequiredService<PostgresUnitOfWork>();
-        var repository = test.Services.GetRequiredService<IProductRepository>();
+        var repository = test.Services.GetRequiredService<IProductQueryRepository>();
         await uow.TransactionAsync(async token =>
         {
             var parent = uow.Database.CurrentTransaction;
@@ -215,6 +215,7 @@ public partial class ReadTests
                 var index = test.Services.GetRequiredService<ProductSearchIndex>();
                 Func<Task> rebuild = () => index.RebuildAsync();
                 await rebuild.Should().ThrowAsync<TransientException>().ConfigureAwait(false);
+                await test.Services.GetRequiredService<ProductLexicalSearchIndex>().EnsureReadyAsync().ConfigureAwait(false);
                 Func<Task> ready = () => index.EnsureReadyAsync();
                 await ready.Should().ThrowAsync<TransientException>().ConfigureAwait(false);
             }).AssertSuccess());

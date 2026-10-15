@@ -71,7 +71,7 @@ public class Program
             o.EnableIntrospection = true; // Defaults to false (secure-by-default); enabled here so client tooling (Postman, GraphiQL, etc.) can introspect the schema.
 
             o.AddReferenceDataQueries(sp, ReferenceDataQueryArgsConfig.Default)
-             .AddQuery<ProductLite>("products", ProductQueryArgsConfig.Default, async (qa, pa, ct) => await CoreEx.ExecutionContext.GetRequiredService<IProductReadService>().QueryAsync(qa, pa, ct).ConfigureAwait(false))
+             .AddQuery<ProductLite>("products", ProductQueryArgsConfig.FromConfiguration(builder.Configuration), async (qa, pa, ct) => await CoreEx.ExecutionContext.GetRequiredService<IProductReadService>().QueryAsync(qa, pa, ct).ConfigureAwait(false))
              .AddGet<Product>("product", (args, ct) => CoreEx.ExecutionContext.GetRequiredService<IProductReadService>().GetAsync(args.GetIdentifier<string>(), ct));
         });
 

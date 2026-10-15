@@ -95,6 +95,10 @@ public class ProductSearchTests : WithApiTester<Contoso.Products.Subscribe.Progr
         _embeddings.Fail = true;
         Receive("updated", retry: true);
         Count().Should().Be(1);
+        Test.Scoped(test => test.Run(async _ =>
+        {
+            (await test.Services.GetRequiredService<ProductLexicalSearchIndex>().Matches("Changed before provider failure").CountAsync().ConfigureAwait(false)).Should().BeGreaterThan(0);
+        }).AssertSuccess());
         _embeddings.Fail = false;
         Receive("updated");
         Count().Should().Be(1);

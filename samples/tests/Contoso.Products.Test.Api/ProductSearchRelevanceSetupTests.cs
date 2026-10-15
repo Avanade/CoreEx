@@ -1,6 +1,6 @@
 namespace Contoso.Products.Test.Api;
 
-[TestFixture, Explicit("Builds and verifies the real Ollama search profile in the isolated contoso_search_eval database.")]
+[TestFixture, Explicit("Builds and verifies the selected real search branch in the isolated contoso_search_eval database.")]
 public class ProductSearchRelevanceSetupTests : WithApiTester<Contoso.Products.Api.Program>
 {
     [OneTimeSetUp]
@@ -15,7 +15,10 @@ public class ProductSearchRelevanceSetupTests : WithApiTester<Contoso.Products.A
 
         Test.Scoped(test => test.Run(async _ =>
         {
-            var count = await test.Services.GetRequiredService<ProductSearchIndex>().RebuildAsync().ConfigureAwait(false);
+            var lexical = Environment.GetEnvironmentVariable("Products__Search__Mode") == "FullText";
+            var count = lexical
+                ? await test.Services.GetRequiredService<ProductLexicalSearchIndex>().RebuildAsync().ConfigureAwait(false)
+                : await test.Services.GetRequiredService<ProductSearchIndex>().RebuildAsync().ConfigureAwait(false);
             count.Should().Be(31);
         }).AssertSuccess());
     }
@@ -23,11 +26,17 @@ public class ProductSearchRelevanceSetupTests : WithApiTester<Contoso.Products.A
     [Test]
     public void Product_Search_RealModelProfileIsReady()
     {
+        var lexical = Environment.GetEnvironmentVariable("Products__Search__Mode") == "FullText";
         var response = Test.Http<ProductLite[]>()
-            .Run(HttpMethod.Get, "/api/products?$search=something to clean mud off my bike&$take=1&$count=true")
+            .Run(HttpMethod.Get, lexical
+                ? "/api/products?$search=SHIMANO-XT-M8100-RD&$take=1&$count=true"
+                : "/api/products?$search=something to clean mud off my bike&$take=1&$count=true")
             .AssertOK();
 
-        response.Response.Headers.Should().ContainKey("X-Paging-Total-Count")
-            .WhoseValue.Should().ContainSingle().Which.Should().Be("29");
+        if (lexical)
+            response.Value.Should().ContainSingle().Which.Sku.Should().Be("SHIMANO-XT-M8100-RD");
+        else
+            response.Response.Headers.Should().ContainKey("X-Paging-Total-Count")
+                .WhoseValue.Should().ContainSingle().Which.Should().Be("29");
     }
 }

@@ -82,6 +82,7 @@
   },
   "search": {
     "mode": "semantic",
+    "description": "Semantic similarity using exact cosine distance over the configured product embedding profile.",
     "ranked": true,
     "maxLength": 200
   }

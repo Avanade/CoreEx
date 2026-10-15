@@ -3,7 +3,10 @@ param(
     [uri] $BaseAddress = 'http://localhost:5207/',
     [uri] $OllamaAddress = 'http://localhost:11434/',
     [string] $DatasetPath = "$PSScriptRoot\product-search-relevance.dataset.json",
-    [string] $OutputPath
+    [string] $OutputPath,
+    [ValidateSet('semantic', 'fulltext')][string] $Approach = 'semantic',
+    [ValidateSet('all', 'tuning', 'held-out')][string] $Split = 'all',
+    [string] $BaselinePath
 )
 
 $ErrorActionPreference = 'Stop'
@@ -245,8 +248,18 @@ function Invoke-ProductSearchRelevanceEvaluation {
         [Parameter(Mandatory)][uri] $BaseAddress,
         [Parameter(Mandatory)][uri] $OllamaAddress,
         [Parameter(Mandatory)][scriptblock] $Request,
-        [string] $DatasetSha256
+        [string] $DatasetSha256,
+        [ValidateSet('semantic', 'fulltext')][string] $Approach = 'semantic',
+        [ValidateSet('all', 'tuning', 'held-out')][string] $Split = 'all',
+        [string] $BaselinePath
     )
+    if ($Approach -eq 'fulltext' -and $Split -ne 'tuning') {
+        throw 'This lexical milestone is tuning-only. Pass -Split tuning; held-out queries must not execute during tuning.'
+    }
+    if ($BaselinePath -and $Split -ne 'tuning') { throw 'Baseline comparison is tuning-only.' }
+    $selectedQueries = @($Dataset.queries | Where-Object { $Split -eq 'all' -or $_.split -eq $Split })
+    $requestedSplit = $Split
+    if (!$selectedQueries.Count) { throw "No queries selected for split '$Split'." }
     $implementationIdentity = Test-ProductSearchImplementationIdentity $Dataset
     $catalogSignature = Get-ProductSearchCatalogSignature -Products @($Dataset.catalog)
     $seedPath = Join-Path $PSScriptRoot ("..\{0}" -f ($Dataset.seedFile -replace '/', '\'))
@@ -259,13 +272,30 @@ function Invoke-ProductSearchRelevanceEvaluation {
         $DatasetSha256 = (Get-FileHash -LiteralPath (Join-Path $PSScriptRoot 'product-search-relevance.dataset.json') -Algorithm SHA256).Hash
     }
 
-    $models = (Get-ProductSearchResponse -Request $Request -Uri ([uri]::new($OllamaAddress, 'api/tags'))).Data.models
-    $model = @($models | Where-Object { $_.name -eq $Dataset.model -and $_.digest -eq $Dataset.modelDigest })
-    if ($model.Count -ne 1) { throw "Ollama model drift: expected $($Dataset.model) with digest $($Dataset.modelDigest)." }
+    if ($Approach -eq 'semantic') {
+        $models = (Get-ProductSearchResponse -Request $Request -Uri ([uri]::new($OllamaAddress, 'api/tags'))).Data.models
+        $model = @($models | Where-Object { $_.name -eq $Dataset.model -and $_.digest -eq $Dataset.modelDigest })
+        if ($model.Count -ne 1) { throw "Ollama model drift: expected $($Dataset.model) with digest $($Dataset.modelDigest)." }
+    }
+    else {
+        $sqlPath = Join-Path $PSScriptRoot '..\samples\src\Contoso.Products.Infrastructure\Repositories\Sql'
+        $repositoryPath = Split-Path $sqlPath
+        $lexicalSource = Get-Content -LiteralPath (Join-Path $repositoryPath 'ProductLexicalSearchIndex.cs') -Raw
+        if ($lexicalSource -notmatch 'Recipe\s*=\s*"([^"]+)"') { throw 'Cannot identify the lexical recipe.' }
+        $lexicalRecipe = $Matches[1]
+        $implementationIdentity | Add-Member -NotePropertyName lexicalImplementationSha256 -NotePropertyValue @(
+            @('ProductLexicalSearchIndex.cs', 'ProductRepository.cs', 'ProductQueryArgsConfig.cs') | ForEach-Object {
+                [pscustomobject]@{ file = $_; sha256 = (Get-FileHash -LiteralPath (Join-Path $repositoryPath $_) -Algorithm SHA256).Hash }
+            })
+        $implementationIdentity | Add-Member -NotePropertyName lexicalSqlSha256 -NotePropertyValue @(
+            Get-ChildItem -LiteralPath $sqlPath -Filter 'ProductLexicalSearch*.pgsql' | Sort-Object Name | ForEach-Object {
+                [pscustomobject]@{ file = $_.Name; sha256 = (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash }
+            })
+    }
 
     $schema = (Get-ProductSearchResponse -Request $Request -Uri ([uri]::new($BaseAddress, 'api/products/$query'))).Data
-    if ($schema.search.mode -ne 'semantic' -or $schema.search.ranked -ne $true) {
-        throw 'Products API drift: this evaluation requires semantic ranked search.'
+    if ($schema.search.mode -ne $Approach -or $schema.search.ranked -ne $true) {
+        throw "Products API drift: this evaluation requires $Approach ranked search."
     }
 
     $catalogResponse = Get-ProductSearchResponse -Request $Request -Uri ([uri]::new($BaseAddress, 'api/products?$take=100&$count=true'))
@@ -283,17 +313,19 @@ function Invoke-ProductSearchRelevanceEvaluation {
         throw "Catalog drift: live Products API catalog signature $liveCatalogSignature does not match reviewed dataset signature $catalogSignature."
     }
 
-    $firstQuery = $Dataset.queries[0]
+    $firstQuery = $selectedQueries[0]
     $firstUri = [uri]::new($BaseAddress, "api/products?`$search=$([uri]::EscapeDataString([string]$firstQuery.query))&`$take=5&`$count=true")
+    $firstFilter = Get-ProductSearchFilter $firstQuery
+    if ($firstFilter) { $firstUri = [uri]($firstUri.AbsoluteUri + "&`$filter=$([uri]::EscapeDataString($firstFilter))") }
     $firstResponse = Get-ProductSearchResponse -Request $Request -Uri $firstUri
     $firstExpectedCount = @((Get-ProductSearchEligibleCatalog -Dataset $Dataset -Query $firstQuery)).Count
     $firstActualCount = Get-ProductSearchCountHeader $firstResponse.Headers
-    if ($firstActualCount -ne $firstExpectedCount) {
+    if ($Approach -eq 'semantic' -and $firstActualCount -ne $firstExpectedCount) {
         throw "Search backfill is not ready or is incomplete for profile '$($Dataset.profile)' and recipe '$($Dataset.documentRecipe)': expected $firstExpectedCount indexed candidates, got $firstActualCount."
     }
 
     $reports = [Collections.Generic.List[object]]::new()
-    foreach ($query in $Dataset.queries) {
+    foreach ($query in $selectedQueries) {
         if ($query.id -eq $firstQuery.id) {
             $response = $firstResponse
         }
@@ -306,14 +338,15 @@ function Invoke-ProductSearchRelevanceEvaluation {
 
         $candidateCount = Get-ProductSearchCountHeader $response.Headers
         $expectedCandidateCount = @((Get-ProductSearchEligibleCatalog -Dataset $Dataset -Query $query)).Count
-        if ($candidateCount -ne $expectedCandidateCount) {
-            throw "Search backfill is incomplete or eligibility drifted for query '$($query.id)' (profile '$($Dataset.profile)', recipe '$($Dataset.documentRecipe)'): expected $expectedCandidateCount candidates, got $candidateCount."
+        if (($Approach -eq 'semantic' -and $candidateCount -ne $expectedCandidateCount) -or
+            $candidateCount -lt 0 -or $candidateCount -gt $expectedCandidateCount) {
+            throw "Search count drift for $Approach query '$($query.id)': $expectedCandidateCount eligible catalog rows, got $candidateCount candidates. Semantic must match the eligible count; lexical counts must be between zero and that count."
         }
 
         $judgments = @{}
         foreach ($judgment in $query.judgments) { $judgments[[string]$judgment.sku] = [int]$judgment.grade }
         $ranked = @($response.Data)
-        $expectedPageCount = [Math]::Min(5, $expectedCandidateCount)
+        $expectedPageCount = [Math]::Min(5, $candidateCount)
         if ($ranked.Count -ne $expectedPageCount) {
             throw "Incomplete result page for query '$($query.id)': expected $expectedPageCount rows, got $($ranked.Count)."
         }
@@ -349,13 +382,14 @@ function Invoke-ProductSearchRelevanceEvaluation {
             ndcgAt5 = $metrics.NdcgAt5
             precisionAt5 = $metrics.PrecisionAt5
             eligibleCandidateCount = $expectedCandidateCount
+            matchedCandidateCount = $candidateCount
             constraintViolationCount = $constraintViolations.Count
             topFive = $topFive
         })
     }
 
     $splitReports = @{}
-    foreach ($split in @('tuning', 'held-out')) {
+    foreach ($split in @($reports | ForEach-Object split | Select-Object -Unique)) {
         $splitQueries = @($reports | Where-Object split -EQ $split)
         $relevantQueries = @($splitQueries | Where-Object { !$_.noRelevant })
         $exactQueries = @($splitQueries | Where-Object { $null -ne $_.exactSkuTop1 })
@@ -381,18 +415,41 @@ function Invoke-ProductSearchRelevanceEvaluation {
         }
     }
 
+    $comparison = $null
+    if ($BaselinePath) {
+        $baseline = Get-Content -LiteralPath $BaselinePath -Raw | ConvertFrom-Json
+        if ($baseline.status -ne 'completed' -or $baseline.datasetSha256 -ne $DatasetSha256 -or
+            $baseline.profile -ne $Dataset.profile -or $baseline.documentRecipe -ne $Dataset.documentRecipe -or
+            $baseline.catalogIdentity.liveApiCatalogSha256 -ne $liveCatalogSignature -or
+            $baseline.catalogIdentity.seedFileSha256 -ne $actualSeedHash) {
+            throw 'Baseline dataset/catalog identity does not match this evaluation.'
+        }
+        $baselineIds = @($baseline.queries | Where-Object split -EQ 'tuning' | ForEach-Object id | Sort-Object)
+        $actualIds = @($reports | ForEach-Object id | Sort-Object)
+        if (($baselineIds -join '|') -ne ($actualIds -join '|')) { throw 'Baseline tuning query IDs differ.' }
+        $comparison = [pscustomobject]@{
+            baselineSha256 = (Get-FileHash -LiteralPath $BaselinePath -Algorithm SHA256).Hash
+            split = 'tuning'
+            baseline = $baseline.splits.tuning
+            meanNdcgAt5Delta = $splitReports.tuning.meanNdcgAt5 - $baseline.splits.tuning.meanNdcgAt5
+            meanPrecisionAt5Delta = $splitReports.tuning.meanPrecisionAt5 - $baseline.splits.tuning.meanPrecisionAt5
+            exactSkuTop1AccuracyDelta = $splitReports.tuning.exactSkuTop1Accuracy - $baseline.splits.tuning.exactSkuTop1Accuracy
+        }
+    }
     return [pscustomobject]@{
-        evaluationVersion = 'product-search-relevance-runner-v1'
+        evaluationVersion = 'product-search-relevance-runner-v2'
+        approach = $Approach
+        selectedSplit = $requestedSplit
         completedAtUtc = [DateTime]::UtcNow.ToString('o')
         status = 'completed'
         datasetVersion = [string]$Dataset.datasetVersion
-        model = [string]$Dataset.model
-        modelDigest = [string]$Dataset.modelDigest
-        profile = [string]$Dataset.profile
-        dimensions = [int]$Dataset.dimensions
-        documentRecipe = [string]$Dataset.documentRecipe
-        documentInstruction = [string]$Dataset.documentInstruction
-        queryInstruction = [string]$Dataset.queryInstruction
+        model = if ($Approach -eq 'semantic') { [string]$Dataset.model } else { $null }
+        modelDigest = if ($Approach -eq 'semantic') { [string]$Dataset.modelDigest } else { $null }
+        profile = if ($Approach -eq 'semantic') { [string]$Dataset.profile } else { 'postgres:english:ts_rank_cd:exact-sku-first' }
+        dimensions = if ($Approach -eq 'semantic') { [int]$Dataset.dimensions } else { $null }
+        documentRecipe = if ($Approach -eq 'semantic') { [string]$Dataset.documentRecipe } else { $lexicalRecipe }
+        documentInstruction = if ($Approach -eq 'semantic') { [string]$Dataset.documentInstruction } else { $null }
+        queryInstruction = if ($Approach -eq 'semantic') { [string]$Dataset.queryInstruction } else { $null }
         datasetSha256 = $DatasetSha256
         implementationIdentity = $implementationIdentity
         catalogIdentity = [pscustomobject]@{
@@ -412,6 +469,7 @@ function Invoke-ProductSearchRelevanceEvaluation {
             constraints = 'Returned price-filtered results are validated against the declared hard price condition; no threshold is imposed on relevance scores.'
         }
         splits = $splitReports
+        tuningComparison = $comparison
         queries = @($reports)
     }
 }
@@ -428,12 +486,12 @@ if ($MyInvocation.InvocationName -ne '.') {
     }
 
     $request = { param([uri] $Uri) Invoke-WebRequest -Uri $Uri -TimeoutSec 120 }
-    $report = Invoke-ProductSearchRelevanceEvaluation -Dataset $dataset -BaseAddress $BaseAddress -OllamaAddress $OllamaAddress -Request $request -DatasetSha256 $datasetHash
+    $report = Invoke-ProductSearchRelevanceEvaluation -Dataset $dataset -BaseAddress $BaseAddress -OllamaAddress $OllamaAddress -Request $request -DatasetSha256 $datasetHash -Approach $Approach -Split $Split -BaselinePath $BaselinePath
     $json = ConvertTo-Json -InputObject $report -Depth 30
     if ($OutputPath) {
         $outputFullPath = [IO.Path]::GetFullPath($OutputPath)
         [IO.File]::WriteAllText($outputFullPath, $json + [Environment]::NewLine, [Text.UTF8Encoding]::new($false))
-        Write-Host "Wrote real-model product-search report to $outputFullPath"
+        Write-Host "Wrote $Approach product-search ($Split) report to $outputFullPath"
     }
     else { Write-Output $json }
 }
