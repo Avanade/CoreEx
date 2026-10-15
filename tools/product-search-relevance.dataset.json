@@ -1,0 +1,392 @@
+{
+  "datasetVersion": "product-search-relevance-v1",
+  "profile": "ollama:nomic-embed-text:v1.5:768:retrieval-prefix-v1",
+  "model": "nomic-embed-text:v1.5",
+  "modelDigest": "0a109f422b47e3a30ba2b10eca18548e944e8a23073ee3f3e947efcf3c45e59f",
+  "dimensions": 768,
+  "documentRecipe": "product-document-v2",
+  "documentInstruction": "search_document: ",
+  "queryInstruction": "search_query: ",
+  "seedFile": "tools/product-search-relevance.seed.yaml",
+  "seedFileSha256": "F18614A4520837867BF9187D812ECC5BAF0559D0E652FC1175CDBECFC74ADF44",
+  "catalogEligibility": "Default Products API catalog: exclude inactive and logically deleted products; non-stocked service rows remain eligible.",
+  "catalogReviewed": true,
+  "catalog": [
+    { "sku": "YETI-ASR-C2-2025", "text": "Yeti ASR C2", "price": 5800, "description": "A carbon full-suspension cross-country mountain bike built for efficient climbing and fast riding on technical singletrack." },
+    { "sku": "YETI-SB120-C2", "text": "Yeti SB120 C2", "price": 6200, "description": "A carbon full-suspension trail mountain bike designed for efficient climbs, responsive handling and flowing singletrack descents." },
+    { "sku": "YETI-SB140-LR-C2", "text": "Yeti SB140 LR C2", "price": 6600, "description": "A carbon full-suspension trail mountain bike in the Lunch Ride configuration, built for technical climbs and rough, fast descents." },
+    { "sku": "YETI-SB165-C3", "text": "Yeti SB165 C3", "price": 7200, "description": "A carbon full-suspension mountain bike for gravity-focused riding, steep descents and demanding bike-park terrain." },
+    { "sku": "YETI-MTE-C2", "text": "Yeti MTe C2 eMTB", "price": 9850, "description": "An electric-assist mountain bike with a carbon full-suspension frame, designed for technical trail riding and assisted climbs." },
+    { "sku": "CANYON-LUXTRAIL-CF6", "text": "Canyon Lux Trail CF 6", "price": 3899, "description": "A carbon full-suspension mountain bike combining cross-country pedalling efficiency with trail capability for long rides and technical singletrack." },
+    { "sku": "CANYON-SPECTRAL-CF8", "text": "Canyon Spectral CF 8", "price": 4999, "description": "A carbon full-suspension trail mountain bike for varied singletrack, balancing climbing capability with control on rough, technical descents." },
+    { "sku": "CANYON-NEURON-CF7", "text": "Canyon Neuron CF 7", "price": 3499, "description": "A carbon full-suspension trail mountain bike for long rides over varied terrain, combining efficient climbing with stable descending." },
+    { "sku": "CANYON-TORQUE-MULLET-CF8", "text": "Canyon Torque Mullet CF 8", "price": 3599, "description": "A carbon mixed-wheel mountain bike designed for freeride and bike-park use, including jumps, drops and steep descents." },
+    { "sku": "CANYON-SENDER-CFR", "text": "Canyon Sender CFR", "price": 7799, "description": "A carbon downhill mountain bike designed for racing and fast descending on steep, demanding tracks and bike-park terrain." },
+    { "sku": "SPEC-STUMPJUMPER-15-COMP", "text": "Specialized Stumpjumper 15 Comp", "price": 5500, "description": "A full-suspension trail mountain bike with adjustable geometry, designed to balance climbing efficiency and control on technical descents." },
+    { "sku": "SPEC-ENDURO-PRO", "text": "Specialized Enduro Pro", "price": 9500, "description": "A carbon full-suspension enduro mountain bike built for steep, rough descents and enduro racing while retaining the ability to pedal uphill." },
+    { "sku": "SPEC-CHISEL-COMP", "text": "Specialized Chisel Comp", "price": 3400, "description": "An aluminium cross-country mountain bike designed for efficient pedalling, racing and fast singletrack riding." },
+    { "sku": "SPEC-STATUS-140", "text": "Specialized Status 140", "price": 2499, "description": "An aluminium mixed-wheel full-suspension mountain bike designed for playful trail riding, jumps and technical descents." },
+    { "sku": "GIANT-TRANCE-X-ADVPRO29", "text": "Giant Trance X Advanced Pro 29", "price": 6200, "description": "A carbon full-suspension trail mountain bike with 29-inch wheels and adjustable geometry, designed for climbing and technical descending." },
+    { "sku": "GIANT-ANTHEM-ADV29-1", "text": "Giant Anthem Advanced 29 1", "price": 7800, "description": "A carbon full-suspension cross-country mountain bike with 29-inch wheels, designed for efficient pedalling and fast riding on demanding race courses." },
+    { "sku": "SHIMANO-XT-M8100-RD", "text": "Shimano Deore XT M8100 Rear Derailleur", "price": 129, "description": "A 12-speed mountain bike rear derailleur that moves the chain between cassette sprockets to change gears. Its clutch helps control chain movement on rough trails." },
+    { "sku": "SHIMANO-SLX-M7100-CASSETTE", "text": "Shimano SLX M7100 12-speed Cassette", "price": 99, "description": "A 12-speed mountain bike cassette that provides a wide range of gears for climbing and descending. It uses Shimano Micro Spline mounting and Hyperglide Plus shifting." },
+    { "sku": "SHIMANO-XTR-M9100-CRANK", "text": "Shimano XTR M9100 Crankset", "price": 499, "description": "A mountain bike crankset that transfers pedalling power to the chain through a direct-mount chainring, designed for lightweight cross-country and trail use." },
+    { "sku": "SRAM-GX-EAGLE-RD", "text": "SRAM GX Eagle Rear Derailleur", "price": 135, "description": "A cable-operated 12-speed mountain bike rear derailleur for SRAM Eagle drivetrains. It shifts the chain between rear sprockets and uses a clutch to control chain movement." },
+    { "sku": "SRAM-X0-TRANSMISSION-RD", "text": "SRAM X0 Transmission Rear Derailleur", "price": 400, "description": "A wireless electronic mountain bike rear derailleur for SRAM Eagle Transmission drivetrains. Its hangerless Full Mount design attaches around the rear axle on compatible frames." },
+    { "sku": "SRAM-XX1-EAGLE-CASSETTE", "text": "SRAM XX1 Eagle Cassette", "price": 449, "description": "A lightweight 12-speed mountain bike cassette with a wide gear range for climbing and descending, designed for SRAM Eagle drivetrains and XD freehub drivers." },
+    { "sku": "ONEUP-V3-DROPPER-180", "text": "OneUp Dropper Post V3 180mm", "price": 269, "description": "A mountain bike dropper seatpost with 180 mm of travel. Riders can lower the saddle for descending and raise it for pedalling using a compatible remote." },
+    { "sku": "ONEUP-CARBON-HANDLEBAR", "text": "OneUp Carbon Handlebar", "price": 159, "description": "A carbon mountain bike handlebar with a shaped profile designed to absorb vibration and reduce hand fatigue while maintaining steering control." },
+    { "sku": "ONEUP-EDC-TOOL-V2", "text": "OneUp EDC Tool V2", "price": 59, "description": "A compact trailside repair multi-tool with hex keys, a Torx key, a chain breaker and a tyre lever, designed for storage in compatible OneUp steerer or pump systems." },
+    { "sku": "MUCOFF-NANO-CLEANER", "text": "Muc-Off Nano Tech Bike Cleaner", "price": 16.99, "description": "A spray-on bicycle cleaner that breaks down dirt and grime on frames and components before rinsing. Suitable for routine washing after muddy rides." },
+    { "sku": "MUCOFF-TUBELESS-SEALANT", "text": "Muc-Off MTB Tubeless Sealant", "price": 8.00, "description": "A tubeless mountain bike tyre sealant that helps seal punctures and maintain an airtight tyre system. Its UV-reactive dye helps locate leaks." },
+    { "sku": "MUCOFF-DRIVETRAIN-CLEANER", "text": "Muc-Off Drivetrain Cleaner", "price": 25.00, "description": "A bicycle drivetrain cleaner that removes grease, oil and grime from chains, cassettes, chainrings and derailleurs. It can be sprayed on or used with a chain-cleaning device." },
+    { "sku": "LABOR", "text": "Labor", "price": 80.00, "description": "Workshop labour charged by the hour for bicycle maintenance and repair. This is a service rather than a stocked physical product." }
+  ],
+  "queries": [
+    {
+      "id": "tune-exact-yeti-asr",
+      "split": "tuning",
+      "kind": "exact-sku",
+      "query": "YETI-ASR-C2-2025",
+      "expectedTop1Sku": "YETI-ASR-C2-2025",
+      "catalogReviewed": true,
+      "judgedCatalogCount": 29,
+      "omittedSkuGrade": 0,
+      "intent": "Exact SKU lookup for the Yeti ASR C2 2025.",
+      "judgments": [
+        { "sku": "YETI-ASR-C2-2025", "grade": 3, "rationale": "Exact identifier match." }
+      ]
+    },
+    {
+      "id": "tune-exact-shimano-derailleur",
+      "split": "tuning",
+      "kind": "exact-sku",
+      "query": "SHIMANO-XT-M8100-RD",
+      "expectedTop1Sku": "SHIMANO-XT-M8100-RD",
+      "catalogReviewed": true,
+      "judgedCatalogCount": 29,
+      "omittedSkuGrade": 0,
+      "intent": "Exact SKU lookup for the Shimano XT rear derailleur.",
+      "judgments": [
+        { "sku": "SHIMANO-XT-M8100-RD", "grade": 3, "rationale": "Exact identifier match." }
+      ]
+    },
+    {
+      "id": "tune-exact-mucoff-cleaner",
+      "split": "tuning",
+      "kind": "exact-sku",
+      "query": "MUCOFF-NANO-CLEANER",
+      "expectedTop1Sku": "MUCOFF-NANO-CLEANER",
+      "catalogReviewed": true,
+      "judgedCatalogCount": 29,
+      "omittedSkuGrade": 0,
+      "intent": "Exact SKU lookup for the Nano Tech bicycle cleaner.",
+      "judgments": [
+        { "sku": "MUCOFF-NANO-CLEANER", "grade": 3, "rationale": "Exact identifier match." }
+      ]
+    },
+    {
+      "id": "tune-paraphrase-muddy-bike-cleaner",
+      "split": "tuning",
+      "kind": "paraphrase",
+      "query": "something to clean mud off my bike",
+      "catalogReviewed": true,
+      "judgedCatalogCount": 29,
+      "omittedSkuGrade": 0,
+      "intent": "A user describes the cleaning task rather than the product name.",
+      "judgments": [
+        { "sku": "MUCOFF-NANO-CLEANER", "grade": 3, "rationale": "Specifically cleans bicycle dirt and grime after muddy rides." },
+        { "sku": "MUCOFF-DRIVETRAIN-CLEANER", "grade": 2, "rationale": "Cleans bicycle grime, but is specialized for drivetrain parts rather than the whole bike." }
+      ]
+    },
+    {
+      "id": "tune-terminology-changing-gears",
+      "split": "tuning",
+      "kind": "terminology",
+      "query": "a component for changing gears",
+      "catalogReviewed": true,
+      "judgedCatalogCount": 29,
+      "omittedSkuGrade": 0,
+      "intent": "Broad functional terminology for drivetrain components.",
+      "judgments": [
+        { "sku": "SHIMANO-XT-M8100-RD", "grade": 3, "rationale": "A rear derailleur directly moves the chain to change gears." },
+        { "sku": "SRAM-GX-EAGLE-RD", "grade": 3, "rationale": "A rear derailleur directly moves the chain to change gears." },
+        { "sku": "SRAM-X0-TRANSMISSION-RD", "grade": 3, "rationale": "An electronic rear derailleur directly changes gears." },
+        { "sku": "SHIMANO-SLX-M7100-CASSETTE", "grade": 2, "rationale": "The cassette supplies the selectable sprockets used when changing gears." },
+        { "sku": "SRAM-XX1-EAGLE-CASSETTE", "grade": 2, "rationale": "The cassette supplies the selectable sprockets used when changing gears." },
+        { "sku": "SHIMANO-XTR-M9100-CRANK", "grade": 1, "rationale": "The crankset is a drivetrain component but does not itself select gears." }
+      ]
+    },
+    {
+      "id": "tune-paraphrase-climbing-gears",
+      "split": "tuning",
+      "kind": "paraphrase",
+      "query": "a wide range of low gears for climbing",
+      "catalogReviewed": true,
+      "judgedCatalogCount": 29,
+      "omittedSkuGrade": 0,
+      "intent": "A climbing use case described without naming a cassette.",
+      "judgments": [
+        { "sku": "SHIMANO-SLX-M7100-CASSETTE", "grade": 3, "rationale": "Explicitly offers a wide range of gears for climbing." },
+        { "sku": "SRAM-XX1-EAGLE-CASSETTE", "grade": 3, "rationale": "Explicitly offers a wide gear range for climbing." },
+        { "sku": "SHIMANO-XT-M8100-RD", "grade": 1, "rationale": "A derailleur is part of a drivetrain, but its description does not establish a low climbing range." }
+      ]
+    },
+    {
+      "id": "tune-paraphrase-tubeless-punctures",
+      "split": "tuning",
+      "kind": "paraphrase",
+      "query": "liquid to seal small punctures in tubeless tires",
+      "catalogReviewed": true,
+      "judgedCatalogCount": 29,
+      "omittedSkuGrade": 0,
+      "intent": "Describes the purpose of a tubeless tire sealant without its product name.",
+      "judgments": [
+        { "sku": "MUCOFF-TUBELESS-SEALANT", "grade": 3, "rationale": "The product is a tubeless tyre sealant that helps seal punctures." }
+      ]
+    },
+    {
+      "id": "tune-paraphrase-lower-saddle",
+      "split": "tuning",
+      "kind": "paraphrase",
+      "query": "a seat post that lowers the saddle for descents",
+      "catalogReviewed": true,
+      "judgedCatalogCount": 29,
+      "omittedSkuGrade": 0,
+      "intent": "Describes dropper-post behavior in everyday language.",
+      "judgments": [
+        { "sku": "ONEUP-V3-DROPPER-180", "grade": 3, "rationale": "The dropper post lowers the saddle for descending." },
+        { "sku": "YETI-SB165-C3", "grade": 1, "rationale": "A downhill-oriented bike relates to the use case but is not the requested seat post." }
+      ]
+    },
+    {
+      "id": "tune-terminology-reduce-hand-vibration",
+      "split": "tuning",
+      "kind": "terminology",
+      "query": "handlebars that reduce hand fatigue on rough trails",
+      "catalogReviewed": true,
+      "judgedCatalogCount": 29,
+      "omittedSkuGrade": 0,
+      "intent": "Matches rider language to a product's vibration and fatigue benefit.",
+      "judgments": [
+        { "sku": "ONEUP-CARBON-HANDLEBAR", "grade": 3, "rationale": "Its shaped carbon profile is designed to absorb vibration and reduce hand fatigue." }
+      ]
+    },
+    {
+      "id": "tune-paraphrase-trailside-repair",
+      "split": "tuning",
+      "kind": "paraphrase",
+      "query": "a compact tool for fixing my bike on the trail",
+      "catalogReviewed": true,
+      "judgedCatalogCount": 29,
+      "omittedSkuGrade": 0,
+      "intent": "A use-case paraphrase for a portable repair multi-tool.",
+      "judgments": [
+        { "sku": "ONEUP-EDC-TOOL-V2", "grade": 3, "rationale": "A compact trailside repair tool with a chain breaker and tyre lever." }
+      ]
+    },
+    {
+      "id": "tune-no-current-bike-under-1000",
+      "split": "tuning",
+      "kind": "price-constraint",
+      "query": "a mountain bike under $1000",
+      "constraints": { "price": { "operator": "lt", "value": 1000 } },
+      "catalogReviewed": true,
+      "judgedCatalogCount": 29,
+      "omittedSkuGrade": 0,
+      "intent": "No currently eligible seeded mountain bike is priced below $1000; the deleted Giant Talon is not eligible.",
+      "judgments": []
+    },
+    {
+      "id": "tune-terminology-cross-country-race",
+      "split": "tuning",
+      "kind": "terminology",
+      "query": "a fast cross-country bike for racing",
+      "catalogReviewed": true,
+      "judgedCatalogCount": 29,
+      "omittedSkuGrade": 0,
+      "intent": "Cross-country race terminology matched to seeded bike descriptions.",
+      "judgments": [
+        { "sku": "YETI-ASR-C2-2025", "grade": 3, "rationale": "Built for efficient climbing and fast technical singletrack." },
+        { "sku": "GIANT-ANTHEM-ADV29-1", "grade": 3, "rationale": "Designed for efficient pedalling and demanding race courses." },
+        { "sku": "SPEC-CHISEL-COMP", "grade": 2, "rationale": "An efficient cross-country race bike, though aluminium rather than carbon." },
+        { "sku": "CANYON-LUXTRAIL-CF6", "grade": 2, "rationale": "Combines cross-country efficiency with trail capability, but is framed for long rides rather than racing." }
+      ]
+    },
+    {
+      "id": "tune-broad-steep-bike-park",
+      "split": "tuning",
+      "kind": "broad",
+      "query": "a bike for steep rough descents and bike-park riding",
+      "catalogReviewed": true,
+      "judgedCatalogCount": 29,
+      "omittedSkuGrade": 0,
+      "intent": "Broad descending intent with several suitable bike categories.",
+      "judgments": [
+        { "sku": "YETI-SB165-C3", "grade": 3, "rationale": "Designed for gravity riding, steep descents and bike-park terrain." },
+        { "sku": "CANYON-SENDER-CFR", "grade": 3, "rationale": "A downhill bike for steep tracks and bike-park terrain." },
+        { "sku": "SPEC-ENDURO-PRO", "grade": 3, "rationale": "Built for steep, rough descents and enduro racing." },
+        { "sku": "CANYON-TORQUE-MULLET-CF8", "grade": 2, "rationale": "Designed for freeride and bike-park use, but not specifically downhill racing." },
+        { "sku": "SPEC-STATUS-140", "grade": 2, "rationale": "Designed for jumps and technical descents, but is a more playful trail bike." },
+        { "sku": "YETI-SB140-LR-C2", "grade": 2, "rationale": "Built for rough, fast descents, though its stated use is trail riding." }
+      ]
+    },
+    {
+      "id": "tune-paraphrase-drivetrain-degreaser",
+      "split": "tuning",
+      "kind": "paraphrase",
+      "query": "degreaser for a greasy chain and cassette",
+      "catalogReviewed": true,
+      "judgedCatalogCount": 29,
+      "omittedSkuGrade": 0,
+      "intent": "Names drivetrain parts and soil rather than the cleaner product name.",
+      "judgments": [
+        { "sku": "MUCOFF-DRIVETRAIN-CLEANER", "grade": 3, "rationale": "Removes grease and grime from chains, cassettes and other drivetrain parts." },
+        { "sku": "MUCOFF-NANO-CLEANER", "grade": 1, "rationale": "A general bicycle cleaner, but not specifically a drivetrain degreaser." }
+      ]
+    },
+    {
+      "id": "tune-price-derailleur-under-150",
+      "split": "tuning",
+      "kind": "price-constraint",
+      "query": "a rear derailleur for a 12-speed mountain bike under $150",
+      "constraints": { "price": { "operator": "lt", "value": 150 } },
+      "catalogReviewed": true,
+      "judgedCatalogCount": 29,
+      "omittedSkuGrade": 0,
+      "intent": "Hard price ceiling and product type; two seeded derailleurs satisfy both.",
+      "judgments": [
+        { "sku": "SHIMANO-XT-M8100-RD", "grade": 3, "rationale": "A 12-speed mountain bike rear derailleur priced at $129." },
+        { "sku": "SRAM-GX-EAGLE-RD", "grade": 3, "rationale": "A 12-speed mountain bike rear derailleur priced at $135." }
+      ]
+    },
+    {
+      "id": "tune-price-trail-bike-under-5000",
+      "split": "tuning",
+      "kind": "price-constraint",
+      "query": "a trail bike for technical descents under $5000",
+      "constraints": { "price": { "operator": "lt", "value": 5000 } },
+      "catalogReviewed": true,
+      "judgedCatalogCount": 29,
+      "omittedSkuGrade": 0,
+      "intent": "Filters to affordable seeded bikes while preferring trail models suitable for technical descents.",
+      "judgments": [
+        { "sku": "CANYON-SPECTRAL-CF8", "grade": 3, "rationale": "A trail bike balancing climbing with control on rough technical descents, priced at $4999." },
+        { "sku": "CANYON-NEURON-CF7", "grade": 3, "rationale": "A trail bike with stable descending over varied terrain, priced at $3499." },
+        { "sku": "CANYON-LUXTRAIL-CF6", "grade": 2, "rationale": "A trail-capable cross-country bike for technical singletrack, priced at $3899." },
+        { "sku": "CANYON-TORQUE-MULLET-CF8", "grade": 1, "rationale": "Capable on steep descents but oriented to freeride and bike parks rather than trail riding." }
+      ]
+    },
+    {
+      "id": "tune-broad-everyday-singletrack",
+      "split": "tuning",
+      "kind": "broad",
+      "query": "a versatile mountain bike for after-work singletrack",
+      "catalogReviewed": true,
+      "judgedCatalogCount": 29,
+      "omittedSkuGrade": 0,
+      "intent": "Ambiguous everyday trail request without a specific price, discipline or component.",
+      "judgments": [
+        { "sku": "YETI-SB120-C2", "grade": 2, "rationale": "A trail bike for efficient climbs and flowing singletrack descents." },
+        { "sku": "CANYON-SPECTRAL-CF8", "grade": 2, "rationale": "A versatile trail bike for varied singletrack." },
+        { "sku": "CANYON-NEURON-CF7", "grade": 2, "rationale": "A trail bike for long rides over varied terrain." },
+        { "sku": "SPEC-STUMPJUMPER-15-COMP", "grade": 2, "rationale": "Balances climbing efficiency and technical trail control." },
+        { "sku": "GIANT-TRANCE-X-ADVPRO29", "grade": 2, "rationale": "A trail bike designed for climbing and technical descending." },
+        { "sku": "SPEC-CHISEL-COMP", "grade": 1, "rationale": "A cross-country bike suitable for fast singletrack but less versatile on technical trails." },
+        { "sku": "YETI-ASR-C2-2025", "grade": 1, "rationale": "An efficient cross-country bike, narrower in purpose than the broad trail request." }
+      ]
+    },
+    {
+      "id": "tune-broad-weekend-ride-kit",
+      "split": "tuning",
+      "kind": "broad",
+      "query": "useful gear for a weekend ride on rough trails",
+      "catalogReviewed": true,
+      "judgedCatalogCount": 29,
+      "omittedSkuGrade": 0,
+      "intent": "Intentionally broad request that could mean a trail accessory or repair item.",
+      "judgments": [
+        { "sku": "ONEUP-EDC-TOOL-V2", "grade": 2, "rationale": "A compact trailside tool is useful for repairs during a ride." },
+        { "sku": "ONEUP-V3-DROPPER-180", "grade": 1, "rationale": "A dropper supports descending, but the request does not specifically ask for a bike component." },
+        { "sku": "ONEUP-CARBON-HANDLEBAR", "grade": 1, "rationale": "A trail riding component, but not an obvious general-purpose ride kit item." },
+        { "sku": "MUCOFF-TUBELESS-SEALANT", "grade": 1, "rationale": "A repair-related consumable, though it is installed in a tyre rather than carried as general kit." }
+      ]
+    },
+    {
+      "id": "holdout-exact-sram-x0-derailleur",
+      "split": "held-out",
+      "kind": "exact-sku",
+      "query": "SRAM-X0-TRANSMISSION-RD",
+      "expectedTop1Sku": "SRAM-X0-TRANSMISSION-RD",
+      "catalogReviewed": true,
+      "judgedCatalogCount": 29,
+      "omittedSkuGrade": 0,
+      "intent": "Held-out exact SKU lookup for the SRAM X0 electronic rear derailleur.",
+      "judgments": [
+        { "sku": "SRAM-X0-TRANSMISSION-RD", "grade": 3, "rationale": "Exact identifier match." }
+      ]
+    },
+    {
+      "id": "holdout-terminology-workshop-labour",
+      "split": "held-out",
+      "kind": "terminology",
+      "query": "an hourly workshop charge for a bicycle tune-up",
+      "catalogReviewed": true,
+      "judgedCatalogCount": 29,
+      "omittedSkuGrade": 0,
+      "intent": "Held-out service request for workshop labour rather than a stocked physical product.",
+      "judgments": [
+        { "sku": "LABOR", "grade": 3, "rationale": "The catalog entry is hourly workshop labour for bicycle maintenance and repair." }
+      ]
+    },
+    {
+      "id": "holdout-price-carbon-bike-under-4000",
+      "split": "held-out",
+      "kind": "price-constraint",
+      "query": "a carbon mountain bike for long rides under $4000",
+      "constraints": { "price": { "operator": "lt", "value": 4000 } },
+      "catalogReviewed": true,
+      "judgedCatalogCount": 29,
+      "omittedSkuGrade": 0,
+      "intent": "Held-out structured price ceiling with a long-ride carbon-bike intent.",
+      "judgments": [
+        { "sku": "CANYON-LUXTRAIL-CF6", "grade": 3, "rationale": "A carbon full-suspension bike explicitly described for long rides, priced at $3899." },
+        { "sku": "CANYON-NEURON-CF7", "grade": 3, "rationale": "A carbon full-suspension trail bike explicitly designed for long rides, priced at $3499." },
+        { "sku": "CANYON-TORQUE-MULLET-CF8", "grade": 1, "rationale": "A carbon bike under the price limit, but its freeride and bike-park focus is a poor long-ride fit." }
+      ]
+    },
+    {
+      "id": "holdout-no-electric-bike-charger",
+      "split": "held-out",
+      "kind": "out-of-catalog",
+      "query": "a charger for the battery on an electric mountain bike",
+      "catalogReviewed": true,
+      "judgedCatalogCount": 29,
+      "omittedSkuGrade": 0,
+      "intent": "The catalog includes an electric mountain bike but no battery charger accessory.",
+      "judgments": []
+    },
+    {
+      "id": "holdout-no-night-riding-lights",
+      "split": "held-out",
+      "kind": "out-of-catalog",
+      "query": "USB rechargeable lights for night riding",
+      "catalogReviewed": true,
+      "judgedCatalogCount": 29,
+      "omittedSkuGrade": 0,
+      "intent": "The reviewed eligible catalog contains no lights or night-riding electronics.",
+      "judgments": []
+    },
+    {
+      "id": "holdout-no-city-bike-child-seat",
+      "split": "held-out",
+      "kind": "out-of-catalog",
+      "query": "a child seat for a city bicycle",
+      "catalogReviewed": true,
+      "judgedCatalogCount": 29,
+      "omittedSkuGrade": 0,
+      "intent": "The reviewed eligible catalog contains no child seats or city-bike accessories.",
+      "judgments": []
+    }
+  ]
+}

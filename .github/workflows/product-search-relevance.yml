@@ -1,0 +1,114 @@
+name: Product search relevance
+
+on:
+  schedule:
+    - cron: '0 14 1 * *'
+  workflow_dispatch:
+
+concurrency:
+  group: product-search-relevance-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  evaluate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      PRODUCTS_DATABASE_CONNECTION_STRING: Server=127.0.0.1;Database=contoso_search_eval;Username=postgres;Password=yourStrong#!Password
+      Aspire__Npgsql__ConnectionString: Server=127.0.0.1;Database=contoso_search_eval;Username=postgres;Password=yourStrong#!Password
+      Aspire__StackExchange__Redis__ConnectionString: localhost:6379
+      Ollama__BaseAddress: http://localhost:11434/
+      ASPNETCORE_ENVIRONMENT: Development
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 10.x
+
+    - name: Cache NuGet packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.nuget/packages
+        key: nuget-${{ runner.os }}-search-relevance-${{ hashFiles('**/*.csproj', '**/Directory.Packages.props') }}
+        restore-keys: nuget-${{ runner.os }}-
+
+    - name: Start isolated evaluation services
+      run: docker compose --profile search up -d db-postgres redis-cache ollama
+
+    - name: Wait for PostgreSQL and create the isolated evaluation database
+      run: |
+        for attempt in $(seq 1 60); do
+          if docker compose exec -T db-postgres pg_isready -U postgres; then break; fi
+          sleep 2
+        done
+        docker compose exec -T db-postgres createdb -U postgres contoso_search_eval
+
+    - name: Install pinned embedding model
+      timeout-minutes: 10
+      run: |
+        docker compose exec -T ollama ollama pull nomic-embed-text:v1.5
+        docker compose exec -T ollama ollama list
+
+    - name: Restore evaluation projects
+      run: |
+        dotnet restore samples/src/Contoso.Products.Database/Contoso.Products.Database.csproj --verbosity minimal
+        dotnet restore samples/tests/Contoso.Products.Test.Api/Contoso.Products.Test.Api.csproj --verbosity minimal
+
+    - name: Build evaluation projects
+      run: |
+        dotnet build samples/src/Contoso.Products.Database/Contoso.Products.Database.csproj --no-restore --configuration Release --framework net10.0
+        dotnet build samples/tests/Contoso.Products.Test.Api/Contoso.Products.Test.Api.csproj --no-restore --configuration Release --framework net10.0
+
+    - name: Apply schema and reference data to the isolated database
+      run: dotnet run --no-launch-profile --project samples/src/Contoso.Products.Database/Contoso.Products.Database.csproj --no-build --configuration Release --framework net10.0 -- all --connection-string "$PRODUCTS_DATABASE_CONNECTION_STRING"
+
+    - name: Reset only the isolated Products schema
+      run: dotnet run --no-launch-profile --project samples/src/Contoso.Products.Database/Contoso.Products.Database.csproj --no-build --configuration Release --framework net10.0 -- reset --accept-prompts --connection-string "$PRODUCTS_DATABASE_CONNECTION_STRING"
+
+    - name: Reload reference data
+      run: dotnet run --no-launch-profile --project samples/src/Contoso.Products.Database/Contoso.Products.Database.csproj --no-build --configuration Release --framework net10.0 -- data --connection-string "$PRODUCTS_DATABASE_CONNECTION_STRING"
+
+    - name: Load the dedicated evaluation catalog
+      run: dotnet run --no-launch-profile --project samples/src/Contoso.Products.Database/Contoso.Products.Database.csproj --no-build --configuration Release --framework net10.0 -- execute "$GITHUB_WORKSPACE/tools/product-search-relevance.seed.yaml" --connection-string "$PRODUCTS_DATABASE_CONNECTION_STRING"
+
+    - name: Prepare and verify the real-model index
+      run: dotnet test samples/tests/Contoso.Products.Test.Api/Contoso.Products.Test.Api.csproj --no-build --configuration Release --framework net10.0 --filter "FullyQualifiedName~ProductSearchRelevanceSetupTests" --logger "console;verbosity=normal"
+
+    - name: Evaluate the live Products REST API
+      shell: bash
+      env:
+        ASPNETCORE_URLS: http://localhost:5207
+      run: |
+        mkdir -p artifacts
+        dotnet run --project samples/src/Contoso.Products.Api/Contoso.Products.Api.csproj --no-build --configuration Release --framework net10.0 --no-launch-profile > artifacts/products-api.log 2>&1 &
+        api_pid=$!
+        trap 'kill "$api_pid" 2>/dev/null || true' EXIT
+        for attempt in $(seq 1 60); do
+          if curl --fail --silent http://localhost:5207/api/products/%24query > /dev/null; then break; fi
+          if ! kill -0 "$api_pid" 2>/dev/null; then
+            cat artifacts/products-api.log
+            exit 1
+          fi
+          sleep 2
+        done
+        curl --fail --silent http://localhost:5207/api/products/%24query > /dev/null
+        pwsh -NoProfile -File tools/product-search-relevance.ps1 -BaseAddress http://localhost:5207/ -OllamaAddress http://localhost:11434/ -OutputPath artifacts/product-search-relevance-report.json
+
+    - name: Upload evaluation report and diagnostics
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: product-search-relevance-${{ github.run_number }}
+        path: artifacts/
+        if-no-files-found: warn
+        retention-days: 90
+
+    - name: Stop isolated evaluation services
+      if: always()
+      run: docker compose --profile search down

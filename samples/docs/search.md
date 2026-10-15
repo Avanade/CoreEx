@@ -20,7 +20,8 @@ The goal is not merely to store some numbers and label the result "AI". It is to
 | Separate search projection and pgvector semantic retrieval | Implemented | PostgreSQL stores 768-dimensional embeddings and computes exact, filtered cosine-distance rankings. |
 | PostgreSQL full-text retrieval and hybrid ranking | Proposed | The current sample does not perform full-text or hybrid search. |
 | Explicit backfill / asynchronous search indexing | Implemented | Test setup publishes an atomic initial backfill; one globbed product-event subscriber reconciles subsequent changes, including logical deletion. |
-| Real-model relevance evaluation and HNSW benchmark | Initial probes implemented; broader evaluation proposed | Two illustrative semantic expectations pass after descriptive enrichment. Full-catalog relevance and index performance remain unproven. |
+| Real-model relevance evaluation | Baseline measured; monthly/manual workflow configured | A version-controlled, 24-query judged set, isolated-catalog setup, opt-in REST/Ollama runner, and real report are available. Scores are observations, not quality gates. |
+| HNSW benchmark | Proposed | Exact full-catalog retrieval is still the comparison baseline; index performance has not been measured. |
 
 The implemented baseline is PostgreSQL as the search store, one embedding per product/profile/recipe, a rebuildable search projection, and indexing outside product-write transactions. It uses local Ollama with Nomic v1.5 and 768 dimensions. Exact retrieval ranks eligible **indexed** products; count means the number of those candidates, not the number judged relevant or the complete catalog size. Full-text/hybrid retrieval windows remain future work.
 
@@ -643,7 +644,7 @@ For the original cleaning query, adding the description increased the cleaner's 
 
 Additional controls used an independent Python standard-library HTTP client and cosine calculation, reproducing the original PowerShell baseline rankings. Repeated query embeddings and single-versus-batched requests had cosine similarity **1.0** in this run. The cleaning query was closer to the functional cleaning description (**0.7803**) than to unrelated cake (**0.3661**) or database-backup (**0.4082**) descriptions.
 
-This is evidence that document content materially affects this configuration, and that the model can separate these functional descriptions. It is **not** proof that sparse text is the only cause, that the model is optimal, or that an eight-query/three-product sample predicts full-catalog quality. The whole-bike-versus-parts query had a particularly small winning margin, despite passing. There was no held-out evaluation set, and descriptions were designed with the task in mind.
+This is evidence that document content materially affects this configuration, and that the model can separate these functional descriptions. It is **not** proof that sparse text is the only cause, that the model is optimal, or that an eight-query/three-product sample predicts full-catalog quality. The whole-bike-versus-parts query had a particularly small winning margin, despite passing. This initial experiment had no held-out evaluation set, and its diagnostic descriptions were designed with the task in mind.
 
 The experiment did not modify catalog data or change the original smoke expectations. The subsequent implementation adds researched product descriptions and includes them in `product-document-v2`; broader evaluation still matters. pgvector cannot supply meaning absent from its input vectors.
 
@@ -664,6 +665,44 @@ The live MCP HTTP transport was also exercised against this API: `search_product
 
 The lower ranks expose the remaining quality problem: sealant is not a cleaner, and a repair multi-tool ranks above some drivetrain components. Exact search does not fix that; it faithfully returns the model's nearest candidates. These examples motivate hybrid retrieval and a curated evaluation set, not an invented confidence threshold or a claim that search is finished.
 
+### Curated real-model relevance evaluation
+
+The opt-in evaluation lives in [`tools/product-search-relevance.dataset.json`](../../tools/product-search-relevance.dataset.json). It contains 24 realistic requests split into 18 tuning and 6 held-out queries: exact SKUs, product terminology, paraphrases, broad/ambiguous intent, hard price filters, and out-of-catalog requests. Every query attests that all 29 default-eligible seeded products were reviewed; listed judgments carry a grade and rationale, while each omitted SKU explicitly means grade 0. The eligible snapshot and the exact seed-file SHA-256 are pinned so changed seed data or live API catalog fields stop the run rather than silently changing the benchmark.
+
+Run the evaluator only when the Products REST API, its PostgreSQL database, and Ollama are already available and the configured profile's backfill is ready:
+
+```powershell
+.\tools\test-product-search-relevance.ps1
+.\tools\product-search-relevance.ps1 -OutputPath artifacts\product-search-relevance-report.json
+```
+
+The first command exercises metric math, invalid judgments, catalog drift, incomplete backfill, and mocked HTTP failure without external services. The second makes real HTTP requests; it never rebuilds the index or substitutes synthetic embeddings. It verifies the pinned Nomic model digest, semantic/ranked API mode, exact 29-product live catalog signature, and candidate count for every query. A missing API, model/profile mismatch, seed/catalog drift, or incomplete/unready index fails explicitly. Reports identify the model, profile, document recipe, seed and catalog hashes, and include per-query results plus separate tuning/held-out aggregates. Do not edit held-out judgments or tune against held-out scores.
+
+The dedicated [`tools/product-search-relevance.seed.yaml`](../../tools/product-search-relevance.seed.yaml) is an exact copy of the reviewed test catalog, but is loaded explicitly through DbEx. The safe sequence is: create/migrate the isolated database (`all`), reset the `products` schema (`reset --accept-prompts`), restore its reference rows (`data`), then load the evaluation catalog (`execute <seed.yaml>`). The `Reset` filter is scoped to the `products` schema, and in practice clears its reference and transactional tables, search projection, and readiness marker. `Data` restores embedded reference data; `Execute` then inserts the product, inventory, and movement rows. Execute is **not** a reset or upsert: repeating it against populated tables fails with a duplicate-primary-key error and leaves existing rows unchanged. Do not rerun Execute without first doing the explicit Reset and reference-data reload.
+
+From the repository root, first set `$connectionString` to a connection whose database is exactly `contoso_search_eval`, then run:
+
+```powershell
+$databaseProject = 'samples\src\Contoso.Products.Database\Contoso.Products.Database.csproj'
+dotnet run --no-launch-profile --project $databaseProject --no-build --framework net10.0 -- all --connection-string $connectionString
+dotnet run --no-launch-profile --project $databaseProject --no-build --framework net10.0 -- reset --accept-prompts --connection-string $connectionString
+dotnet run --no-launch-profile --project $databaseProject --no-build --framework net10.0 -- data --connection-string $connectionString
+$seedPath = (Resolve-Path 'tools\product-search-relevance.seed.yaml').Path
+dotnet run --no-launch-profile --project $databaseProject --no-build --framework net10.0 -- execute $seedPath --connection-string $connectionString
+```
+
+The NUnit fixture below is the next step: it builds the vector projection, not the catalog data. The REST evaluator itself never resets, loads, or reindexes anything.
+
+The isolated preparation fixture, [`ProductSearchRelevanceSetupTests.cs`](../tests/Contoso.Products.Test.Api/ProductSearchRelevanceSetupTests.cs), refuses to run unless the configured database is exactly `contoso_search_eval`; it does not seed or reset data. It uses the real indexing path to rebuild embeddings from the already-loaded catalog and verifies profile readiness. The separate [monthly/manual GitHub Actions workflow](../../.github/workflows/product-search-relevance.yml) provisions PostgreSQL, Redis, and Ollama, installs the pinned model, creates that dedicated database, runs the explicit DbEx sequence, the fixture, and the live API evaluator, then uploads the JSON report and API log as a 90-day artifact. Setup failures fail the workflow, and cleanup runs regardless. It is not part of default CI. Run it manually with `workflow_dispatch`, or download the artifact from the monthly run.
+
+The captured [`baseline report`](product-search-relevance-baseline.json) is one measured run, not a target: tuning mean nDCG@5 is **0.8377** over 17 relevant queries (one no-relevant query is reported separately), and tuning mean Precision@5 is **0.3765**. Exact-SKU top-1 is **2/3**; the Shimano XT derailleur query returned Muc-Off cleaner. Held-out mean nDCG@5 is **0.8770** over only **3** relevant queries, mean Precision@5 is **0.2667**, and exact-SKU top-1 is **0/1** (the SRAM X0 query returned Muc-Off cleaner). The held-out split also has three no-relevant/out-of-catalog queries; its tiny relevant denominator makes these descriptive results highly uncertain. The report records zero price-filter violations in 15 tuning and 5 held-out constrained results. No score threshold is imposed, and these results do not justify a claim that search is generally good or bad.
+
+Routine reports belong in the git-ignored `artifacts/` directory, not in the checked-in baseline. Replacing `samples/docs/product-search-relevance-baseline.json` is an explicit review step: compare the new report's per-query results, aggregate metrics, and model/dataset/catalog/implementation identities with the existing baseline; explain why the replacement is appropriate in the change description; then deliberately copy the reviewed report over the baseline and update the documented findings. Git history preserves the previous baseline. Do not automatically promote scheduled reports or replace the baseline merely because a score decreased.
+
+Rerun and review the benchmark when the embedding model/profile, document recipe or text fields, ranking/retrieval implementation, judged catalog/seed data, or judgment set changes. Preserve the prior report for comparison and record the changed identity; do not silently replace labels. When PostgreSQL full-text/RRF is implemented, run the same pinned dataset/model and compare per-query rankings and both splits against this semantic baseline; treat held-out as a final comparison, not a tuning target. Any new catalog revision requires reviewing all eligible products for every query before updating the pinned catalog identity.
+
+Judgments are graded 0 (irrelevant), 1 (marginal), 2 (useful secondary result), or 3 (direct fit). The report uses gain `2^grade - 1` for nDCG@5; Precision@5 counts grade 2 or 3 and always divides by five. Exact-SKU top-1 accuracy is shown only for exact-SKU queries. Queries with no grade-above-zero product are listed separately and excluded from nDCG/precision means rather than counted as successful empty results. Price-filter violations are counted and reported; no similarity/confidence cutoff or quality pass threshold is invented. The checked-in query set is not itself a measured baseline: capture and review a real report before making claims about full-catalog relevance.
+
 Measure document and query embedding separately. Caching repeated query embeddings can help, but keys must include the profile and relevant preprocessing; user text may be sensitive, so retention/logging needs care.
 
 Trace embedding time, database time, indexing lag, retries, and failures. Avoid logging raw vectors, credentials, or full user queries by default.
@@ -676,8 +715,9 @@ Trace embedding time, database time, indexing lag, retries, and failures. Avoid 
 | 2. Exact pgvector retrieval (implemented) | Understand distance ordering with real filters. | Real database tests for ordering, eligibility, profile isolation, paging, freshness and atomic rebuild failure. |
 | 3. Full-text and RRF | Compare exact terminology with semantic intent. | Inspectable branch ranks and curated hybrid comparisons. |
 | 4. Indexing and backfill (implemented; operational recovery remains) | Maintain rebuildable derived state. | Duplicate/out-of-order handling, stale-write protection, updates/logical deletes and explicit readiness. Resumable reconciliation remains future work. |
-| 5. HNSW benchmark | Measure speed versus recall at meaningful scale. | Exact baseline, larger corpus, real query plans, latency and recall results. |
-| 6. MCP demonstration | Reuse the domain capability from an AI client. | Same API behavior, accurate tool descriptions, cross-host demonstration. |
+| 5. Curated relevance evaluation (implemented; baseline captured) | Assess real-model rankings against reviewed judgments. | Pinned full-catalog labels, isolated held-out queries, metric definitions and a reproducible live report. |
+| 6. HNSW benchmark | Measure speed versus recall at meaningful scale. | Exact baseline, larger corpus, real query plans, latency and recall results. |
+| 7. MCP demonstration | Reuse the domain capability from an AI client. | Same API behavior, accurate tool descriptions, cross-host demonstration. |
 
 These are teaching milestones, not instructions to ship ranked search without lifecycle support. Completion requires the corresponding operational behavior, not only the read query.
 
@@ -713,6 +753,13 @@ These files own the implemented behavior and the foundations for later milestone
 | [Ollama client](../src/Contoso.Products.Infrastructure/Clients/Ollama/OllamaHttpClient.cs) | Task prefixes, model profile, explicit truncation policy, and response validation. |
 | [Embedding client tests](../tests/Contoso.Products.Test.Unit/Clients/Ollama/OllamaHttpClientTests.cs) | Mocked success/error responses and exact request construction. |
 | [Live embedding smoke check](../../tools/test-product-embeddings.ps1) | Explicit local-model probe and retained relevance expectations. |
+| [Curated relevance judgments](../../tools/product-search-relevance.dataset.json) | Versioned graded labels, reviewed catalog snapshot, tuning/held-out split, and pinned model/seed identity. |
+| [Relevance evaluator](../../tools/product-search-relevance.ps1) | Opt-in real REST/Ollama evaluation, drift/backfill checks, per-query metrics, and split aggregates. |
+| [Relevance evaluator tests](../../tools/test-product-search-relevance.ps1) | Local metric, dataset validation, drift, backfill, and mocked-HTTP failure tests. |
+| [Dedicated evaluation seed](../../tools/product-search-relevance.seed.yaml) | Exact reviewed catalog copy loaded using DbEx Execute after isolated reset/reference-data reload. |
+| [Isolated setup fixture](../tests/Contoso.Products.Test.Api/ProductSearchRelevanceSetupTests.cs) | Explicitly guarded real backfill and readiness verification for `contoso_search_eval` only. |
+| [Monthly/manual workflow](../../.github/workflows/product-search-relevance.yml) | Separate scheduled run with isolated services and retained JSON/API-log artifact. |
+| [Measured baseline report](product-search-relevance-baseline.json) | Captured model/profile/catalog identities, per-query results, and split metrics; no quality threshold. |
 | [Product query configuration](../src/Contoso.Products.Infrastructure/Repositories/ProductQueryArgsConfig.cs) | Server-selected semantic mode and existing filter/order fields. |
 | [Product repository](../src/Contoso.Products.Infrastructure/Repositories/ProductRepository.cs) | Existing filters, joins, ordering, mapping, and paging to preserve. |
 | [Product read service](../src/Contoso.Products.Application/ProductReadService.cs) | Current query delegation through the Application boundary. |
