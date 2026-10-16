@@ -299,14 +299,7 @@ Keep these sources and descriptions aligned when changing the fixtures. A produc
 
 The expanded shared demo catalog has a [product/source manifest](../data/demo-catalog.sources.json): each added entry carries a source URL, source type, original short description, internal demo SKU, and illustrative USD price. FOX in the catalog means FOX Factory suspension; FOXRACING is the separate Fox Racing apparel/protection brand. Product facts and model-family descriptions are supported by their linked manufacturer pages (with retailer sources explicitly identified where necessary). Tags `e-bike` and `emtb` are user-requested colloquial search aliases on the three verified electric mountain bikes, alongside the `electric` category term. `dentist-bike` is a user-provided informal search alias on Yeti bikes for an offhand demo query. It is neither manufacturer provenance nor a factual claim about intended riders or affordability.
 
-The shared `LABOR` listing retains its hourly, non-stocked workshop-service identity and explicitly describes
-professional MTB maintenance/repair labour without promising particular operations or included parts.
-Its curated service-intent tags include `bike-service`, `bicycle-repair`, `workshop-labour`/`workshop-labor`,
-`bike-mechanic` and `maintenance`. User-requested `wrench-monkey`, `grease-monkey`, `bike-whisperer` and
-`spanner-man` are informal demo search aliases, not manufacturer facts or staff credentials; their provenance
-is recorded separately under the manifest's sample service definitions. `hourly bike mechanic` and
-`bike-whisperer` are interactive service-intent probes, not new MTB benchmark judgments: the benchmark's
-`sku ne 'LABOR'` filter intentionally excludes this workshop service.
+The shared `LABOR` listing retains its hourly, non-stocked workshop-service identity and explicitly describes professional MTB maintenance/repair labour without promising particular operations or included parts. Its curated service-intent tags include `bike-service`, `bicycle-repair`, `workshop-labour`/`workshop-labor`, `bike-mechanic` and `maintenance`. User-requested `wrench-monkey`, `grease-monkey`, `bike-whisperer` and `spanner-man` are informal demo search aliases, not manufacturer facts or staff credentials; their provenance is recorded separately under the manifest's sample service definitions. `hourly bike mechanic` and `bike-whisperer` are interactive service-intent probes, not new MTB benchmark judgments: the benchmark's `sku ne 'LABOR'` filter intentionally excludes this workshop service.
 
 ### Keep rapidly changing facts relational
 
@@ -377,43 +370,17 @@ Search does not resolve authentication or authorization. The sample's existing a
 
 ### Initial readiness: an explicit, atomic backfill
 
-Rebuilding is reusable Infrastructure logic, **not an API startup responsibility**. There is no HTTP rebuild
-endpoint. The E2E Runner's [shared demo bootstrap](aspire.md#shared-demo-catalog-bootstrap) invokes the same
-Infrastructure rebuild explicitly, including its `--demo-catalog-only --accept-demo-reset` maintenance path.
+Rebuilding is reusable Infrastructure logic, **not an API startup responsibility**. There is no HTTP rebuild endpoint. The E2E Runner's [shared demo bootstrap](aspire.md#shared-demo-catalog-bootstrap) invokes the same Infrastructure rebuild explicitly, including its `--demo-catalog-only --accept-demo-reset` maintenance path.
 
-Products read-test `OneTimeSetUp` seeds the catalog and invokes `ProductSearchIndex.RebuildAsync` with controlled
-embeddings. Aspire E2E setup seeds the catalog, clears Redis, then creates a small test-owned service scope using
-the actual PostgreSQL resource connection string and AppHost Ollama configuration. It invokes the same rebuild
-logic with the real model before starting the hosts. The scope uses fresh in-memory reference-data caching over
-the real database; the serving API uses its normal Redis-backed cache, cleared by setup. The AppHost exposes
-Ollama as a Compose-owned external resource. CI explicitly starts the search profile and pulls the selected model.
-Neither API nor AppHost startup seeds or rebuilds anything during ordinary manual execution.
+Products read-test `OneTimeSetUp` seeds the catalog and invokes `ProductSearchIndex.RebuildAsync` with controlled embeddings. Aspire E2E setup seeds the catalog, clears Redis, then creates a small test-owned service scope using the actual PostgreSQL resource connection string and AppHost Ollama configuration. It invokes the same rebuild logic with the real model before starting the hosts. The scope uses fresh in-memory reference-data caching over the real database; the serving API uses its normal Redis-backed cache, cleared by setup. The AppHost exposes Ollama as a Compose-owned external resource. CI explicitly starts the search profile and pulls the selected model. Neither API nor AppHost startup seeds or rebuilds anything during ordinary manual execution.
 
-The API, Subscribe host and real-model test fixture register `CommunityToolkit.Aspire.OllamaSharp` through the
-shared `AddProductEmbeddings` composition helper. Aspire registers `IOllamaApiClient`; CoreEx's `AddNamedHttpClient`
-augments the SDK's named client using the separate `Ollama` configuration section, adding idempotency handling,
-service discovery and standard HTTP resilience from `Ollama:Resilience`,
-with `HttpClient.Timeout` disabled so the resilience timeouts control request duration. The container remains
-Compose-owned; the client integration does not launch it.
+The API, Subscribe host and real-model test fixture register `CommunityToolkit.Aspire.OllamaSharp` through the shared `AddProductEmbeddings` composition helper. Aspire registers `IOllamaApiClient`; CoreEx's `AddNamedHttpClient` augments the SDK's named client using the separate `Ollama` configuration section, adding idempotency handling, service discovery and standard HTTP resilience from `Ollama:Resilience`, with `HttpClient.Timeout` disabled so the resilience timeouts control request duration. The container remains Compose-owned; the client integration does not launch it.
 
-The SDK handles request serialization, transport and response disposal. `OllamaHttpClient` is now a validated SDK
-wrapper, not a hand-written HTTP transport. It preserves Nomic's prefixes, `truncate=false`, the pinned model and
-768-dimensional finite, non-zero vector checks. OllamaSharp's response type omits the returned model name, so a
-small read-only response converter retains that field for validation. Provider/protocol errors return failed
-CoreEx results; cancellation still propagates. No provider types leak through `IProductEmbeddingAdapter`.
-The SDK's direct embedding API is used instead of `IEmbeddingGenerator` to retain the provider-specific truncation
-policy and response model metadata; portability remains at the application-owned adapter boundary.
+The SDK handles request serialization, transport and response disposal. `OllamaHttpClient` is now a validated SDK wrapper, not a hand-written HTTP transport. It preserves Nomic's prefixes, `truncate=false`, the pinned model and 768-dimensional finite, non-zero vector checks. OllamaSharp's response type omits the returned model name, so a small read-only response converter retains that field for validation. Provider/protocol errors return failed CoreEx results; cancellation still propagates. No provider types leak through `IProductEmbeddingAdapter`. The SDK's direct embedding API is used instead of `IEmbeddingGenerator` to retain the provider-specific truncation policy and response model metadata; portability remains at the application-owned adapter boundary.
 
 The Products Subscribe host registers the Ollama client for asynchronous product indexing. Ordinary reservation handlers do not call the model and consume a separate command queue.
 
-The rebuild indexes the current non-deleted catalog, including inactive products so `$inactive` works. It does
-not seed products or download the model. It prepares documents and calls Ollama **before** starting a database
-transaction when invoked outside an existing transaction. Only publication takes a short framework-managed unit
-of work: lock the product table against writes, verify that its searchable documents still match the captured
-catalog, replace the selected profile/recipe, and commit. A model failure leaves the previous vector index untouched;
-a concurrent searchable catalog edit rejects publication. Deleted-product entries disappear on rebuild, and
-physical deletion also cascades through the foreign key. Other profiles remain separate. Rebuild and synchronization
-reject a parent transaction: the lexical publication must commit independently before any model work.
+The rebuild indexes the current non-deleted catalog, including inactive products so `$inactive` works. It does not seed products or download the model. It prepares documents and calls Ollama **before** starting a database transaction when invoked outside an existing transaction. Only publication takes a short framework-managed unit of work: lock the product table against writes, verify that its searchable documents still match the captured catalog, replace the selected profile/recipe, and commit. A model failure leaves the previous vector index untouched; a concurrent searchable catalog edit rejects publication. Deleted-product entries disappear on rebuild, and physical deletion also cascades through the foreign key. Other profiles remain separate. Rebuild and synchronization reject a parent transaction: the lexical publication must commit independently before any model work.
 
 `products.product_search_readiness` records successful initial preparation for each profile/recipe. The readiness marker commits atomically with backfill publication, even for an empty catalog. Incremental events never mark a partially indexed catalog ready. A failed initial backfill leaves it unready; a failed later backfill preserves the previous published projection and readiness.
 
@@ -440,57 +407,23 @@ There is no relevance cutoff: semantic mode returns every eligible compatible ve
 
 ### Independent lexical projection
 
-`ProductLexicalSearchIndex` owns `products.product_lexical_search` and its separate
-`product_lexical_search_readiness` table. Both are SQL-only derived state managed by the new DbEx migration,
-not generated CRUD models. There is exactly one row per product. Recipe `product-lexical-english-v1` uses
-explicit `pg_catalog.english` processing on both documents and queries:
+`ProductLexicalSearchIndex` owns `products.product_lexical_search` and its separate `product_lexical_search_readiness` table. Both are SQL-only derived state managed by the new DbEx migration, not generated CRUD models. There is exactly one row per product. Recipe `product-lexical-english-v1` uses explicit `pg_catalog.english` processing on both documents and queries:
 
 - Weight A: canonical SKU and product name.
 - Weight B: brand/category/subcategory labels (code fallback) and existing JSON tags.
 - Weight C: description.
 
-The document is a PostgreSQL `tsvector`; its GIN index supports lexical matching. A separate SKU B-tree
-supports the exact-match alternative. `websearch_to_tsquery` receives bound text, not interpolated SQL or
-raw `to_tsquery` syntax. English stemming and stopwords apply; punctuation is parsed by PostgreSQL.
-Ordinary words are ANDed; quoted phrases, `OR`, and exclusions follow PostgreSQL websearch semantics.
-This is not BM25, substring matching, fuzzy spelling correction, synonym expansion, or semantic retrieval.
+The document is a PostgreSQL `tsvector`; its GIN index supports lexical matching. A separate SKU B-tree supports the exact-match alternative. `websearch_to_tsquery` receives bound text, not interpolated SQL or raw `to_tsquery` syntax. English stemming and stopwords apply; punctuation is parsed by PostgreSQL. Ordinary words are ANDed; quoted phrases, `OR`, and exclusions follow PostgreSQL websearch semantics. This is not BM25, substring matching, fuzzy spelling correction, synonym expansion, or semantic retrieval.
 
-The entire normalized input is also compared with the stored SKU after trimming and the contract's existing
-uppercase transformation. An exact eligible SKU is included even if tokenization removes it (e.g. a stopword
-SKU). Ranking is exact-SKU first, then descending `ts_rank_cd` using PostgreSQL's default weight values and
-no length normalization, then product ID. The OR predicate does not union duplicate rows. An exact but
-inactive, deleted, or filtered-out SKU cannot bypass live eligibility.
+The entire normalized input is also compared with the stored SKU after trimming and the contract's existing uppercase transformation. An exact eligible SKU is included even if tokenization removes it (e.g. a stopword SKU). Ranking is exact-SKU first, then descending `ts_rank_cd` using PostgreSQL's default weight values and no length normalization, then product ID. The OR predicate does not union duplicate rows. An exact but inactive, deleted, or filtered-out SKU cannot bypass live eligibility.
 
-The repository composes these matches with the **same** product/subcategory/inventory joins and all existing
-filters. It counts and pages the complete matching set in a `RepeatableRead` snapshot; compatible parent
-snapshots enlist, weaker ones fail explicitly. An explicit `$orderby` is rejected. No-match, stopword-only,
-and punctuation-only inputs return an empty set, not semantic neighbors or the whole catalog. An unprepared
-lexical recipe returns HTTP 503. Cancellation propagates. Existing `QueryArgs` behavior is unchanged:
-an empty/whitespace `$search` is treated as absent and performs an ordinary catalog query, not lexical matching.
+The repository composes these matches with the **same** product/subcategory/inventory joins and all existing filters. It counts and pages the complete matching set in a `RepeatableRead` snapshot; compatible parent snapshots enlist, weaker ones fail explicitly. An explicit `$orderby` is rejected. No-match, stopword-only, and punctuation-only inputs return an empty set, not semantic neighbors or the whole catalog. An unprepared lexical recipe returns HTTP 503. Cancellation propagates. Existing `QueryArgs` behavior is unchanged: an empty/whitespace `$search` is treated as absent and performs an ordinary catalog query, not lexical matching.
 
-Lexical synchronization reads current authoritative state and publishes it in one short transaction.
-It shares the product source-write lock, also locks reference-data sources during publication, and serializes
-lexical publishers. Delete/reinsert is atomic to readers; duplicate or late events reconcile current state.
-The complete lexical rebuild replaces all rows and publishes readiness in that **same** transaction, including
-an empty catalog. Individual events cannot mark a partly indexed initial catalog ready. Cancellation/failure
-rolls back publication and preserves any prior complete version.
+Lexical synchronization reads current authoritative state and publishes it in one short transaction. It shares the product source-write lock, also locks reference-data sources during publication, and serializes lexical publishers. Delete/reinsert is atomic to readers; duplicate or late events reconcile current state. The complete lexical rebuild replaces all rows and publishes readiness in that **same** transaction, including an empty catalog. Individual events cannot mark a partly indexed initial catalog ready. Cancellation/failure rolls back publication and preserves any prior complete version.
 
-In default semantic mode, `ProductSearchIndex.SynchronizeAsync` and `RebuildAsync` first **commit** lexical
-work and only then call the embedding provider. A semantic failure still retries the event, but cannot roll back
-already-published lexical content/readiness. In explicitly configured FullText Subscribe mode, the application
-adapter calls **only** the lexical index: an offline model does not cause event retries or prevent later lexical
-updates. Configure API and Subscribe consistently. No background poller, automatic startup backfill, new service,
-or new package is introduced.
+In default semantic mode, `ProductSearchIndex.SynchronizeAsync` and `RebuildAsync` first **commit** lexical work and only then call the embedding provider. A semantic failure still retries the event, but cannot roll back already-published lexical content/readiness. In explicitly configured FullText Subscribe mode, the application adapter calls **only** the lexical index: an offline model does not cause event retries or prevent later lexical updates. Configure API and Subscribe consistently. No background poller, automatic startup backfill, new service, or new package is introduced.
 
-For a lexical-only initial backfill call `ProductLexicalSearchIndex.RebuildAsync` from a maintenance/test-owned
-scope. The guarded evaluation fixture below selects that path when `Products__Search__Mode=FullText`.
-Switching an installation that has run lexical-only maintenance back to Semantic requires a semantic rebuild:
-FullText mode does not maintain vector rows. Changing the lexical document/configuration recipe also requires a
-version bump and full rebuild. Readiness means a completed initial build, **not** a proof of continuous freshness.
-Events can lag or be missed; live filters still exclude ineligible rows but term matching can temporarily reflect
-older content. Reference-data-only edits have no automatic reindex trigger; rebuild explicitly. Lexical labels
-come directly from database text, not localized request/cache values; English is the sole supported language.
-The table locks/full rebuild are deliberately small-catalog sample choices, not a large-catalog online rebuild design.
+For a lexical-only initial backfill call `ProductLexicalSearchIndex.RebuildAsync` from a maintenance/test-owned scope. The guarded evaluation fixture below selects that path when `Products__Search__Mode=FullText`. Switching an installation that has run lexical-only maintenance back to Semantic requires a semantic rebuild: FullText mode does not maintain vector rows. Changing the lexical document/configuration recipe also requires a version bump and full rebuild. Readiness means a completed initial build, **not** a proof of continuous freshness. Events can lag or be missed; live filters still exclude ineligible rows but term matching can temporarily reflect older content. Reference-data-only edits have no automatic reindex trigger; rebuild explicitly. Lexical labels come directly from database text, not localized request/cache values; English is the sole supported language. The table locks/full rebuild are deliberately small-catalog sample choices, not a large-catalog online rebuild design.
 
 ### Asynchronous maintenance
 
@@ -794,8 +727,7 @@ Rerun and review the benchmark when the embedding model/profile, document recipe
 
 ### Lexical tuning-only comparison
 
-After the guarded `contoso_search_eval` Reset/Data/Execute sequence above, set the isolated connection and
-FullText mode for the indexing fixture and the separately started Products API:
+After the guarded `contoso_search_eval` Reset/Data/Execute sequence above, set the isolated connection and FullText mode for the indexing fixture and the separately started Products API:
 
 ```powershell
 $env:Aspire__Npgsql__ConnectionString = $connectionString
@@ -806,21 +738,11 @@ dotnet test samples\tests\Contoso.Products.Test.Api --no-build --framework net10
   -OutputPath artifacts\product-search-lexical-tuning.json
 ```
 
-This evaluator makes **no Ollama requests** in FullText mode, identifies the lexical recipe and embedded SQL
-hashes, and selects tuning queries **before issuing any search requests**. Full-text without `-Split tuning`
-is rejected. Semantic evaluation retains its original full-split default; `-Split tuning` also supports a
-semantic tuning-only run. A baseline comparison is valid only for a report with the identical dataset,
-catalog, seed, and query IDs; the historical v1 baseline therefore cannot be used for these v2 commands.
-No judgments change.
+This evaluator makes **no Ollama requests** in FullText mode, identifies the lexical recipe and embedded SQL hashes, and selects tuning queries **before issuing any search requests**. Full-text without `-Split tuning` is rejected. Semantic evaluation retains its original full-split default; `-Split tuning` also supports a semantic tuning-only run. A baseline comparison is valid only for a report with the identical dataset, catalog, seed, and query IDs; the historical v1 baseline therefore cannot be used for these v2 commands. No judgments change.
 
-Lexical counts are matching-set counts, not semantic full-catalog candidate counts. The runner checks that
-they are bounded by the live eligible catalog and that page size agrees with count. It cannot infer lexical
-index completeness from a naturally sparse/no-match result; the guarded host fixture performs the actual full
-backfill and verifies the database-derived non-deleted source-row count (172 in the current v2 seed; 170 active). No fake “every product must match” completeness
-probe is sent to the lexical branch.
+Lexical counts are matching-set counts, not semantic full-catalog candidate counts. The runner checks that they are bounded by the live eligible catalog and that page size agrees with count. It cannot infer lexical index completeness from a naturally sparse/no-match result; the guarded host fixture performs the actual full backfill and verifies the database-derived non-deleted source-row count (172 in the current v2 seed; 170 active). No fake “every product must match” completeness probe is sent to the lexical branch.
 
-Historical v1 measurement, recorded locally on **2026-10-15**, through the real FullText REST API over the
-then-current isolated seed. These results are not measurements of v2:
+Historical v1 measurement, recorded locally on **2026-10-15**, through the real FullText REST API over the then-current isolated seed. These results are not measurements of v2:
 
 | Tuning metric | Original semantic baseline | Independent lexical v1 |
 |---|---:|---:|
@@ -829,23 +751,13 @@ then-current isolated seed. These results are not measurements of v2:
 | Exact-SKU top-1 | 2/3 | **3/3** |
 | Returned constrained results (3 price queries) | 15 | **0** |
 
-The lexical branch returned no matches for 14 of 18 tuning queries, including all three price-constrained
-requests. Zero filter violations across zero constrained results is **not** evidence of useful constrained
-retrieval; its violation rate is undefined. The exact-SKU improvement is real, but long natural-language
-requests (often containing price words/numbers) are too restrictive under websearch's AND semantics, and
-stemming does not supply absent synonyms or paraphrases. Only the three exact-SKU requests and the cross-country
-race request returned results. No parsing policy, catalog content, or judgments were adjusted to improve these
-scores. This is a useful independent lexical baseline, **not** an improvement to replace semantic defaults.
+The lexical branch returned no matches for 14 of 18 tuning queries, including all three price-constrained requests. Zero filter violations across zero constrained results is **not** evidence of useful constrained retrieval; its violation rate is undefined. The exact-SKU improvement is real, but long natural-language requests (often containing price words/numbers) are too restrictive under websearch's AND semantics, and stemming does not supply absent synonyms or paraphrases. Only the three exact-SKU requests and the cross-country race request returned results. No parsing policy, catalog content, or judgments were adjusted to improve these scores. This is a useful independent lexical baseline, **not** an improvement to replace semantic defaults.
 
-The ignored historical report `artifacts/product-search-lexical-tuning.json` contains the 18 v1 per-query
-results, matched counts, identities and baseline deltas; test/setup/API diagnostics are also under `artifacts/`.
-The checked-in semantic v1 baseline remains unchanged. No held-out lexical requests or scores were run.
+The ignored historical report `artifacts/product-search-lexical-tuning.json` contains the 18 v1 per-query results, matched counts, identities and baseline deltas; test/setup/API diagnostics are also under `artifacts/`. The checked-in semantic v1 baseline remains unchanged. No held-out lexical requests or scores were run.
 
 ### Hybrid tuning and final held-out comparison
 
-Use the same isolated setup sequence above. Hybrid setup invokes the real semantic rebuild, which also rebuilds
-the lexical projection, and checks both projections against database-derived row counts (172 non-deleted, 170 active). Set Hybrid mode both for the
-explicit setup fixture and for the separately started Products API:
+Use the same isolated setup sequence above. Hybrid setup invokes the real semantic rebuild, which also rebuilds the lexical projection, and checks both projections against database-derived row counts (172 non-deleted, 170 active). Set Hybrid mode both for the explicit setup fixture and for the separately started Products API:
 
 ```powershell
 $env:Aspire__Npgsql__ConnectionString = $connectionString
@@ -856,29 +768,18 @@ dotnet test samples\tests\Contoso.Products.Test.Api --no-build --framework net10
   -OutputPath artifacts\product-search-hybrid-tuning.json
 ```
 
-Hybrid evaluation verifies the same exact eligible catalog identity, asks Ollama for the pinned model identity,
-and validates every returned count against the constrained eligible catalog and 200-candidate ceiling. The
-report retains the separate full eligible catalog count and the bounded result count, plus the lexical recipe,
-`k=60`, and per-branch budget of 100. Candidate counts are not interpreted as proof
-that either index is complete; the guarded setup fixture checks each stored index row count directly.
+Hybrid evaluation verifies the same exact eligible catalog identity, asks Ollama for the pinned model identity, and validates every returned count against the constrained eligible catalog and 200-candidate ceiling. The report retains the separate full eligible catalog count and the bounded result count, plus the lexical recipe, `k=60`, and per-branch budget of 100. Candidate counts are not interpreted as proof that either index is complete; the guarded setup fixture checks each stored index row count directly.
 
-For a new catalog or ranking revision, review all tuning rankings and settle the policy before running the
-held-out split once. Do not adjust `k`, candidate budget, labels, document content, or any other ranking choice
-after that final observation:
+For a new catalog or ranking revision, review all tuning rankings and settle the policy before running the held-out split once. Do not adjust `k`, candidate budget, labels, document content, or any other ranking choice after that final observation:
 
 ```powershell
 .\tools\product-search-relevance.ps1 -BaseAddress http://localhost:5217/ -Approach hybrid -Split held-out `
   -OutputPath artifacts\product-search-hybrid-held-out.json
 ```
 
-This was the final pre-rename v2 held-out observation, not a comparison to the historical v1 report. It was
-run before SKU prefix removal; do not relabel it as a current-catalog measurement or change the policy based on its output. The evaluator's
-held-out command is available for Semantic or Hybrid; FullText remains tuning-only. The checked-in v1 semantic
-baseline is not replaced, and reports remain in ignored `artifacts/`.
-The separate monthly/manual workflow remains semantic-only and has not been trialed remotely from this branch.
+This was the final pre-rename v2 held-out observation, not a comparison to the historical v1 report. It was run before SKU prefix removal; do not relabel it as a current-catalog measurement or change the policy based on its output. The evaluator's held-out command is available for Semantic or Hybrid; FullText remains tuning-only. The checked-in v1 semantic baseline is not replaced, and reports remain in ignored `artifacts/`. The separate monthly/manual workflow remains semantic-only and has not been trialed remotely from this branch.
 
-Historical v1 comparison, measured locally on **2026-10-15** against the then-reviewed catalog, seed,
-judgments and pinned Nomic model. It is not a v2 result:
+Historical v1 comparison, measured locally on **2026-10-15** against the then-reviewed catalog, seed, judgments and pinned Nomic model. It is not a v2 result:
 
 | Tuning metric | Semantic baseline | Independent FullText | Hybrid (100 per branch, `k=60`) |
 |---|---:|---:|---:|
@@ -887,13 +788,9 @@ judgments and pinned Nomic model. It is not a v2 result:
 | Exact-SKU top-1 | 2/3 | 3/3 | **3/3** |
 | Price-constrained result rows / violations | 15 / 0 | 0 / 0 | **15 / 0** |
 
-In that v1 tuning run, Hybrid exceeded its semantic baseline by 0.0588 nDCG@5 and 0.0118 Precision@5, while preserving
-all 15 returned price-constrained rows without a violation and fixing the missed exact SKU. FullText's zero
-constrained rows are not useful filter-retrieval evidence; its violation rate is undefined. These observed
-tuning results support retaining the fixed Hybrid policy as an opt-in, not making it the default.
+In that v1 tuning run, Hybrid exceeded its semantic baseline by 0.0588 nDCG@5 and 0.0118 Precision@5, while preserving all 15 returned price-constrained rows without a violation and fixing the missed exact SKU. FullText's zero constrained rows are not useful filter-retrieval evidence; its violation rate is undefined. These observed tuning results support retaining the fixed Hybrid policy as an opt-in, not making it the default.
 
-In the historical v1 run, the fixed policy was compared with its semantic baseline on held-out exactly once,
-without changing the policy or judgments:
+In the historical v1 run, the fixed policy was compared with its semantic baseline on held-out exactly once, without changing the policy or judgments:
 
 | Held-out metric | Semantic baseline | Hybrid |
 |---|---:|---:|
@@ -902,11 +799,7 @@ without changing the policy or judgments:
 | Exact-SKU top-1 | 0/1 | **1/1** |
 | Price-constrained result rows / violations | 5 / 0 | **5 / 0** |
 
-That v1 held-out set contained only three relevant queries; its quality figures are descriptive and highly uncertain.
-It also contains three no-relevant/out-of-catalog queries, for which both approaches still return candidates.
-Those measured v1 results do not justify changing the semantic default or a general quality claim. The complete
-historical per-query reports are `artifacts/product-search-hybrid-tuning.json` and
-`artifacts/product-search-hybrid-held-out.json`; the checked-in semantic baseline remains unchanged.
+That v1 held-out set contained only three relevant queries; its quality figures are descriptive and highly uncertain. It also contains three no-relevant/out-of-catalog queries, for which both approaches still return candidates. Those measured v1 results do not justify changing the semantic default or a general quality claim. The complete historical per-query reports are `artifacts/product-search-hybrid-tuning.json` and `artifacts/product-search-hybrid-held-out.json`; the checked-in semantic baseline remains unchanged.
 
 Judgments are graded 0 (irrelevant), 1 (marginal), 2 (useful secondary result), or 3 (direct fit). The report uses gain `2^grade - 1` for nDCG@5; Precision@5 counts grade 2 or 3 and always divides by five. Exact-SKU top-1 accuracy is shown only for exact-SKU queries. Queries with no grade-above-zero product are listed separately and excluded from nDCG/precision means rather than counted as successful empty results. Price-filter violations are counted and reported; no similarity/confidence cutoff or quality pass threshold is invented. The checked-in query set is not itself a measured baseline: capture and review a real report before making claims about full-catalog relevance.
 

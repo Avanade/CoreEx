@@ -13,8 +13,14 @@ if (args.Contains("--demo-catalog-only", StringComparer.Ordinal))
 {
     if (!args.Contains("--accept-demo-reset", StringComparer.Ordinal))
         throw new InvalidOperationException("Demo setup resets the configured Products and Shopping schemas. Stop their writers and explicitly pass --accept-demo-reset after reviewing E2E connection strings.");
-    var count = await DemoCatalogBootstrap.RunAsync(config).ConfigureAwait(false);
-    Console.WriteLine($"Demo bootstrap complete: {count} products replicated; basket integrity and lexical/semantic search readiness verified.");
+    try
+    {
+        await new DemoCatalogOperation().RunAsync(config).ConfigureAwait(false);
+    }
+    catch (OperationCanceledException)
+    {
+        Environment.ExitCode = 130;
+    }
     return;
 }
 

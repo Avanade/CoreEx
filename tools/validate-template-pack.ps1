@@ -857,7 +857,7 @@ function Invoke-Assertion {
 }
 
 try {
-    # Packages must contain every target framework; ignore any local inner-loop narrowing (see Directory.Build.targets).
+    # Packages must contain every target framework; ignore any local inner-loop narrowing (see Directory.Build.props).
     $env:CoreExLocalTargetFramework = $null
 
     # Step 1: Build and pack CoreEx.Template

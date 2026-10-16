@@ -47,6 +47,16 @@ Additionally, all source code files (`/src/**/*.cs`) require this exact header a
 
 <br/>
 
+## Local builds and Visual Studio
+
+Set the user environment variable `CoreExLocalTargetFramework=net10.0` to opt into net10-only local builds, then launch Visual Studio from a process that has that environment value. The shared `Directory.Build.props` policy is imported by the framework, sample, and test props before SDK targets initialize; projects must inherit that framework list rather than redeclare it. Single-target projects, including the netstandard2.0 source generator, remain unchanged. The switch does not select a build configuration; Debug is recommended locally.
+
+Use `dotnet build CoreEx.sln -p:CoreExLocalTargetFramework=` for the full framework matrix. CI (`CI=true`) and `dotnet pack` ignore narrowing; `nuget-publish.ps1` and the template validator also clear it explicitly. Direct `msbuild -t:Pack` and Visual Studio Pack do not set the CLI's `_IsPacking` global property, so clear `CoreExLocalTargetFramework` explicitly for those entry points.
+
+After framework-policy changes, reload the solution and verify Visual Studio's framework selection before retrying **Contoso.Aspire → Start Without Debugging**. A successful CLI build or static-graph evaluation verifies MSBuild consistency, not the running IDE's configured-project state; no `.vs` deletion should be necessary.
+
+<br/>
+
 ## Tests
 
 We use [`NUnit`](https://github.com/nunit/nunit) for all unit testing.

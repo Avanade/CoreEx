@@ -1,5 +1,8 @@
 <Project>
+  <Import Project="$(MSBuildThisFileDirectory)..\Directory.Build.props" />
+
   <PropertyGroup>
+    <TargetFrameworks>$(CoreExTargetFrameworks)</TargetFrameworks>
     <NoWarn>IDE1006</NoWarn>
   </PropertyGroup>
 </Project>

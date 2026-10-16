@@ -191,6 +191,14 @@ Per-scenario simulation parallelism and delay bounds are also configurable:
 }
 ```
 
+### Interactive Product Search
+
+The Aspire demo selects **Hybrid** search for both Products API and Products Subscribe. Set `Products:Search:Mode` on the AppHost to override this with `Semantic` or `FullText`; the same setting is forwarded to both hosts. Standalone hosts retain their existing Semantic default. After restarting with a different mode, exit and re-enter the runner's Product Search operation to refresh its session-cached mode.
+
+Select **Interactive operations → Product Search** to search the configured Products REST API. Enter search text to request `/api/products?$search=<URL-encoded text>&$take=10`. Results appear in server rank order with **Rank**, **SKU**, **Product (Text)** and **Price (USD)** columns, without repeating the entered text. The runner reads the server's **Semantic**, **FullText** or **Hybrid** mode from `/api/products/$query` on the first search and caches it until returning to the menu; re-enter Product Search to refresh the displayed mode after changing server configuration. Failed schema lookups are retried on the next search. This lookup discovers the configured mode, not products, and never overrides it. Loading messages identify mode discovery and search; the result summary shows mode, returned rows and total elapsed time including any schema lookup and response decoding. No total-match count is requested or inferred (Hybrid uses bounded candidate pools).
+
+Enter another query to repeat, or submit blank input or `/back` to return to the main menu. **Ctrl+C** cancels the operation, including an in-flight HTTP request, and returns to the menu. Only Products needs to be available: this operation is not gated on Shopping or the other APIs. API, schema, timeout and model/index readiness failures are displayed explicitly; there is no fallback, implicit reset, seeding or index rebuild. Prepare the demo catalog separately if needed, observing the reset cautions below. Product Search is not a scenario and is never included in **Run all scenarios as simulation** or automated scenario discovery.
+
 ### Scenarios
 
 #### Set-Up (run once)
@@ -213,35 +221,15 @@ The Shopping Basket Lifecycle is the richest scenario — it exercises every int
 
 ### Shared demo catalog bootstrap
 
-[`samples/data/demo-catalog.seed.yaml`](../data/demo-catalog.seed.yaml) is the single catalog source for
-interactive demo/MCP, `DatabaseMigrationSetup`, and search relevance evaluation. It is linked/embedded in
-`Contoso.Products.Database`, so the runner needs neither a repository checkout nor cwd-relative seed paths.
-Research provenance is in [`demo-catalog.sources.json`](../data/demo-catalog.sources.json). Ordinary
-Products/Shopping API, subscriber and automated Aspire test catalogs are deliberately unchanged.
+Setup reports each real stage: Products migration/reset and catalog load, Shopping migration/reset, current-product synchronization, basket load, targeted cache invalidation, lexical rebuild, document loading, semantic embedding, index publication and final verification. Embedding counts advance only after a valid model response (reported at 0, 1, every 10 products and the final count); reaching N/N is not overall completion, which requires successful publication and verification. Each completed stage and the successful bootstrap show elapsed seconds. Durable progress lines also work when output is redirected and do not overwrite warnings. Only bootstrap-created hosts filter routine reference-data, HTTP-client and Polly information logs; warnings/errors, including FusionCache serializer warnings, remain visible. Ctrl+C cancels setup; failures and cancellation never print bootstrap success, and incomplete setup must be rerun before starting hosts.
 
-The snapshot has 174 source rows: 170 active MTB products, two inactive MTB products, one logically deleted
-product, and the original non-stocked `LABOR` service. Original deterministic `^1`–`^32` IDs are preserved.
-The **173 non-deleted** rows are read through Products' CoreEx accessor/mapping (inactive rows are retained),
-serialized across the same JSON contract boundary used by events, and passed to Shopping's normal
-`IProductSyncAdapter.ModifyAsync`/`DeleteAsync`. Existing Shopping mapping/upsert owns persistence.
-There is no second Shopping catalog and no cross-database SQL between PostgreSQL and SQL Server.
-Only this setup composition directly resolves both domains; business services still use adapters/HTTP/events.
-The domains have separate DI/execution scopes and fresh local reference-data caches. Added Products
-brands/subcategories live in Products' normal reference seed; Shopping only loads its own reference data.
+[`samples/data/demo-catalog.seed.yaml`](../data/demo-catalog.seed.yaml) is the single catalog source for interactive demo/MCP, `DatabaseMigrationSetup`, and search relevance evaluation. It is linked/embedded in `Contoso.Products.Database`, so the runner needs neither a repository checkout nor cwd-relative seed paths. Research provenance is in [`demo-catalog.sources.json`](../data/demo-catalog.sources.json). Ordinary Products/Shopping API, subscriber and automated Aspire test catalogs are deliberately unchanged.
 
-Shopping's product-free [`demo-baskets.seed.yaml`](../tests/Contoso.E2E.Runner/Data/demo-baskets.seed.yaml)
-is loaded **after** product synchronization, retaining the original basket/item IDs and scenario state.
-Setup verifies all replica IDs/SKUs/text/units/prices/activity/non-stocked flags, absence of stale/deleted
-replicas, domain reference-data availability and basket/item references. It builds both lexical and
-semantic projections using `AddProductEmbeddings` and the configured real provider/profile, verifies readiness
-and query inference, and fails visibly if migrations, mappings, inference or integrity checks fail.
-It evicts only the affected domains' reference-data collection keys through the normal Redis/FusionCache
-backplane, waiting for distributed operations and surfacing failures; it never flushes shared Redis.
+The snapshot has 174 source rows: 170 active MTB products, two inactive MTB products, one logically deleted product, and the original non-stocked `LABOR` service. Original deterministic `^1`–`^32` IDs are preserved. The **173 non-deleted** rows are read through Products' CoreEx accessor/mapping (inactive rows are retained), serialized across the same JSON contract boundary used by events, and passed to Shopping's normal `IProductSyncAdapter.ModifyAsync`/`DeleteAsync`. Existing Shopping mapping/upsert owns persistence. There is no second Shopping catalog and no cross-database SQL between PostgreSQL and SQL Server. Only this setup composition directly resolves both domains; business services still use adapters/HTTP/events. The domains have separate DI/execution scopes and fresh local reference-data caches. Added Products brands/subcategories live in Products' normal reference seed; Shopping only loads its own reference data.
 
-**Snapshot bootstrap is not replication evidence.** It does not publish historical events or exercise
-outbox/relay/broker delivery. Subsequent E2E product-change and basket scenarios continue exercising those paths.
-Run setup with writers/relays/subscribers stopped, then restart the hosts; never use it to reconcile a live
-catalog while scenarios are writing. Restart/clear serving hosts' reference-data caches after resetting data.
+Shopping's product-free [`demo-baskets.seed.yaml`](../tests/Contoso.E2E.Runner/Data/demo-baskets.seed.yaml) is loaded **after** product synchronization, retaining the original basket/item IDs and scenario state. Setup verifies all replica IDs/SKUs/text/units/prices/activity/non-stocked flags, absence of stale/deleted replicas, domain reference-data availability and basket/item references. It builds both lexical and semantic projections using `AddProductEmbeddings` and the configured real provider/profile, verifies readiness and query inference, and fails visibly if migrations, mappings, inference or integrity checks fail. It evicts only the affected domains' reference-data collection keys through the normal Redis/FusionCache backplane, waiting for distributed operations and surfacing failures; it never flushes shared Redis.
+
+**Snapshot bootstrap is not replication evidence.** It does not publish historical events or exercise outbox/relay/broker delivery. Subsequent E2E product-change and basket scenarios continue exercising those paths. Run setup with writers/relays/subscribers stopped, then restart the hosts; never use it to reconcile a live catalog while scenarios are writing. Restart/clear serving hosts' reference-data caches after resetting data.
 
 For Products/Shopping-only maintenance (no API health checks, Customers/Cosmos or Orders reset):
 
@@ -252,18 +240,9 @@ $env:CoreExLocalTargetFramework = 'net10.0'
 dotnet run --project samples\tests\Contoso.E2E.Runner -- --demo-catalog-only --accept-demo-reset
 ```
 
-**Destructive:** the command resets demo data and runs migrations in the configured Products/Shopping databases.
-The explicit flag acknowledges that reset; never target another person's shared databases without agreement.
-The full interactive migration option additionally resets Customers and Orders. A model failure may leave a
-partially prepared database; fix the reported cause and rerun the complete bootstrap before starting hosts.
-`Data Seeding for E2E Testing` still performs stock adjustments through the API after hosts are running;
-the base snapshot's inventory is intentionally small.
+**Destructive:** the command resets demo data and runs migrations in the configured Products/Shopping databases. The explicit flag acknowledges that reset; never target another person's shared databases without agreement. The full interactive migration option additionally resets Customers and Orders. A model failure may leave a partially prepared database; fix the reported cause and rerun the complete bootstrap before starting hosts. `Data Seeding for E2E Testing` still performs stock adjustments through the API after hosts are running; the base snapshot's inventory is intentionally small.
 
-The opt-in `DemoCatalogBootstrapTests` fixture lives in the single-target `Contoso.Test.Aspire` project,
-but directly exercises setup composition without starting AppHost or the ordinary smoke fixtures.
-It refuses to run unless E2E connections target exactly
-`contoso_search_eval` and `Contoso_demo_eval`, and its Redis connection must use `defaultDatabase=14`.
-With existing PostgreSQL/SQL Server/Redis/Ollama infrastructure, set the two database overrides and run:
+The opt-in `DemoCatalogBootstrapTests` fixture lives in the single-target `Contoso.Test.Aspire` project, but directly exercises setup composition without starting AppHost or the ordinary smoke fixtures. It refuses to run unless E2E connections target exactly `contoso_search_eval` and `Contoso_demo_eval`, and its Redis connection must use `defaultDatabase=14`. With existing PostgreSQL/SQL Server/Redis/Ollama infrastructure, set the two database overrides and run:
 
 ```powershell
 $env:CoreExLocalTargetFramework = 'net10.0'
@@ -274,8 +253,7 @@ $env:Aspire__StackExchange__Redis__ConnectionString = 'localhost:6379,defaultDat
 dotnet test samples\aspire\Contoso.Test.Aspire --framework net10.0 --filter 'FullyQualifiedName~DemoCatalogBootstrapTests'
 ```
 
-It exercises actual source/replica agreement, flags/soft deletion, stale removal, basket integrity,
-repeatable reconciliation/reset, cancellation and explicit real-provider failure. It does not touch Cosmos.
+It exercises actual source/replica agreement, flags/soft deletion, stale removal, basket integrity, repeatable reconciliation/reset, cancellation and explicit real-provider failure. It does not touch Cosmos.
 
 #### Load simulation
 

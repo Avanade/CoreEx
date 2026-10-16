@@ -23,10 +23,13 @@ var customersApi = builder.AddProject<Projects.Contoso_Customers_Api>("customers
 builder.AddProject<Projects.Contoso_Customers_Relay>("customers-relay").WithReference(cosmos).WithReference(serviceBus).AddEndpoints("/health/ready/detailed").AddHostedServiceSupport();
 
 // Products domain.
+var productSearchMode = builder.Configuration["Products:Search:Mode"] ?? "Hybrid";
 var productsApi = builder.AddProject<Projects.Contoso_Products_Api>("products-api").WithReference(postgres).WithReference(redis).AddEndpoints("/health/ready/detailed");
+productsApi.WithEnvironment("Products__Search__Mode", productSearchMode);
 productsApi.WithReference(ollama).WithEnvironment("Ollama__BaseAddress", "http://ollama").WaitFor(ollama);
 builder.AddProject<Projects.Contoso_Products_Relay>("products-relay").WithReference(postgres).WithReference(serviceBus).AddEndpoints("/health/ready/detailed").AddHostedServiceSupport();
 var productsSubscribe = builder.AddProject<Projects.Contoso_Products_Subscribe>("products-subscribe").WithReference(postgres).WithReference(redis).WithReference(serviceBus).AddEndpoints("/health/ready/detailed").AddHostedServiceSupport();
+productsSubscribe.WithEnvironment("Products__Search__Mode", productSearchMode);
 productsSubscribe.WithReference(ollama).WithEnvironment("Ollama__BaseAddress", "http://ollama");
 foreach (var setting in builder.Configuration.GetSection("Ollama:Resilience").AsEnumerable().Where(x => x.Value is not null))
 {

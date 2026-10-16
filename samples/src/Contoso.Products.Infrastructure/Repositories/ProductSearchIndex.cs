@@ -120,17 +120,35 @@ public sealed class ProductSearchIndex(ProductsEfDb ef, IProductEmbeddingAdapter
 
     /// <summary>Builds embeddings outside transactions and atomically replaces this profile's projection.</summary>
     /// <remarks>A short publish-time lock rejects concurrent catalog edits instead of installing stale documents.</remarks>
-    public async Task<int> RebuildAsync(CancellationToken cancellationToken = default)
+    public Task<int> RebuildAsync(CancellationToken cancellationToken = default) => RebuildAsync(null, cancellationToken);
+
+    /// <summary>Rebuilds with synchronous, ordered progress notifications; counts represent validated embeddings, not committed index rows.</summary>
+    public async Task<int> RebuildAsync(Action<RebuildProgress>? progress, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+        progress?.Invoke(new("Rebuilding lexical index"));
         await _lexicalIndex.RebuildAsync(cancellationToken).ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
+        progress?.Invoke(new("Rebuilding lexical index", IsComplete: true));
+        progress?.Invoke(new("Loading search documents"));
         await LoadLabelsAsync(cancellationToken).ConfigureAwait(false);
         var products = await _ef.Products.Model.Query().AsNoTracking().OrderBy(p => p.Id).ToListAsync(cancellationToken).ConfigureAwait(false);
         var documents = products.Select(product => (Product: product, Document: Document(product))).ToArray();
+        cancellationToken.ThrowIfCancellationRequested();
+        progress?.Invoke(new("Loading search documents", IsComplete: true));
         var vectors = new List<string>(documents.Length);
+        progress?.Invoke(new("Embedding products", 0, documents.Length));
         foreach (var item in documents)
+        {
             vectors.Add(await EmbedDocumentAsync(item.Document.Text, cancellationToken).ConfigureAwait(false));
+            cancellationToken.ThrowIfCancellationRequested();
+            progress?.Invoke(new("Embedding products", vectors.Count, documents.Length));
+        }
 
-        return await _unitOfWork.TransactionAsync(async token =>
+        cancellationToken.ThrowIfCancellationRequested();
+        progress?.Invoke(new("Embedding products", vectors.Count, documents.Length, IsComplete: true));
+        progress?.Invoke(new("Publishing semantic index"));
+        var count = await _unitOfWork.TransactionAsync(async token =>
         {
             await _ef.Database.Statement(_lockSource).NonQueryAsync(token).ConfigureAwait(false);
             var current = await _ef.Products.Model.Query().AsNoTracking().OrderBy(p => p.Id).ToListAsync(token).ConfigureAwait(false);
@@ -156,7 +174,13 @@ public sealed class ProductSearchIndex(ProductsEfDb ef, IProductEmbeddingAdapter
 
             return documents.Length;
         }, cancellationToken).ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
+        progress?.Invoke(new("Publishing semantic index", IsComplete: true));
+        return count;
     }
+
+    /// <summary>Describes actual rebuild work; completion applies only to the named stage.</summary>
+    public sealed record RebuildProgress(string Stage, int? Completed = null, int? Total = null, bool IsComplete = false);
 
     /// <summary>Reads the stored fingerprint, or null when this product has no compatible projection.</summary>
     private Task<string?> ReadSourceHashAsync(string id, CancellationToken cancellationToken)

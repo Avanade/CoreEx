@@ -25,6 +25,7 @@ public class ChoiceManager(TestContext context)
             _choicesCache.Add($"{i++}. {scenario.Value.Text}{(scenario.Value.Attribute.RequiresApi ? _requiresApi : string.Empty)}", (scenario.Value, 1, () => RunScenarioAsync(scenario.Value), ChoiceResult.ContinueWithPrompt));
 
         _choicesCache.Add($"{i++}. Run all scenarios as simulation{_requiresApi}", (null, 1, () => new LoadSimulationRunner(_context).RunAsync(), ChoiceResult.Continue));
+        _choicesCache.Add($"{i++}. Product Search [grey](requires Products API)[/]", (null, 2, () => new ProductSearchOperation(_context.ProductsHttpClient).RunAsync(), ChoiceResult.Continue));
         _choicesCache.Add($"{i++}. Retry APIs", (null, -2, () => Task.CompletedTask, ChoiceResult.RetryApi));
         _choicesCache.Add($"{i++}. Exit", (null, -1, () => Task.CompletedTask, ChoiceResult.Stop));
     }
@@ -39,6 +40,7 @@ public class ChoiceManager(TestContext context)
 
         prompt.AddChoiceGroup("Set-up:", _choicesCache.Where(c => c.Value.Group == 0).Select(c => c.Key));
         prompt.AddChoiceGroup("Scenarios:", _choicesCache.Where(c => c.Value.Group == 1).Select(c => c.Key));
+        prompt.AddChoiceGroup("Interactive operations:", _choicesCache.Where(c => c.Value.Group == 2).Select(c => c.Key));
         prompt.AddChoiceGroup("Other:", _choicesCache.Where(c => c.Value.Group < 0).Select(c => c.Key));
         return prompt;
     }

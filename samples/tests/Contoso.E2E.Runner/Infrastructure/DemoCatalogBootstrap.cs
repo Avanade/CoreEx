@@ -5,7 +5,10 @@ namespace Contoso.E2E.Runner.Infrastructure;
 public static class DemoCatalogBootstrap
 {
     /// <summary>Resets only Products and Shopping, seeds replicas before baskets, and verifies search readiness.</summary>
-    public static async Task<int> RunAsync(IConfiguration configuration, CancellationToken cancellationToken = default)
+    public static Task<int> RunAsync(IConfiguration configuration, CancellationToken cancellationToken = default) => RunAsync(configuration, null, cancellationToken);
+
+    /// <summary>Runs setup with ordered synchronous notifications, stopping immediately on failure or cancellation.</summary>
+    public static async Task<int> RunAsync(IConfiguration configuration, Action<ProductSearchIndex.RebuildProgress>? progress, CancellationToken cancellationToken = default)
     {
         var productsConnection = RequiredConnection(configuration, "Products");
         var shoppingConnection = RequiredConnection(configuration, "Shopping");
@@ -16,31 +19,38 @@ public static class DemoCatalogBootstrap
         productsArgs.DataParserArgs.AddNamed<Products.Database.Program>("ref-data.seed.yaml", "demo-catalog.seed.yaml");
 
         using (var migration = new PostgresMigration(productsArgs))
-            await MigrateAsync(migration, cancellationToken).ConfigureAwait(false);
+            await StageAsync("Migrating/resetting Products and loading catalog", () => MigrateAsync(migration, cancellationToken), progress, cancellationToken).ConfigureAwait(false);
 
         var shoppingArgs = Shopping.Database.Program.ConfigureMigrationArgs(new MigrationArgs(MigrationCommand.ResetAndDatabase, shoppingConnection));
         using (var migration = new SqlServerMigration(shoppingArgs))
-            await MigrateAsync(migration, cancellationToken).ConfigureAwait(false);
+            await StageAsync("Migrating/resetting Shopping", () => MigrateAsync(migration, cancellationToken), progress, cancellationToken).ConfigureAwait(false);
 
         using var products = CreateProductsHost(configuration, productsConnection);
         using var shopping = CreateShoppingHost(configuration, shoppingConnection);
-        var count = await SynchronizeAsync(products, shopping, cancellationToken).ConfigureAwait(false);
+        var count = 0;
+        await StageAsync("Synchronizing current products to Shopping", async () =>
+        {
+            count = await SynchronizeAsync(products, shopping, cancellationToken).ConfigureAwait(false);
+        }, progress, cancellationToken).ConfigureAwait(false);
 
         var basketArgs = Shopping.Database.Program.ConfigureMigrationArgs(new MigrationArgs(MigrationCommand.Data, shoppingConnection));
         basketArgs.AddAssembly<DatabaseMigrationSetup>().DataParserArgs.AddNamed<DatabaseMigrationSetup>("demo-baskets.seed.yaml");
         using (var migration = new SqlServerMigration(basketArgs))
-            await MigrateAsync(migration, cancellationToken).ConfigureAwait(false);
+            await StageAsync("Loading Shopping baskets", () => MigrateAsync(migration, cancellationToken), progress, cancellationToken).ConfigureAwait(false);
 
-        using (var cache = CreateServingCacheHost(configuration, "Products"))
-            await InvalidateReferenceDataAsync(cache, [typeof(BrandCollection), typeof(CategoryCollection), typeof(SubCategoryCollection),
-                typeof(Products.Contracts.UnitOfMeasureCollection), typeof(MovementKindCollection), typeof(MovementStatusCollection)], cancellationToken).ConfigureAwait(false);
+        await StageAsync("Invalidating Products and Shopping reference-data caches", async () =>
+        {
+            using (var cache = CreateServingCacheHost(configuration, "Products"))
+                await InvalidateReferenceDataAsync(cache, [typeof(BrandCollection), typeof(CategoryCollection), typeof(SubCategoryCollection),
+                    typeof(Products.Contracts.UnitOfMeasureCollection), typeof(MovementKindCollection), typeof(MovementStatusCollection)], cancellationToken).ConfigureAwait(false);
 
-        using (var cache = CreateServingCacheHost(configuration, "Shopping"))
-            await InvalidateReferenceDataAsync(cache, [typeof(Shopping.Contracts.UnitOfMeasureCollection),
-                typeof(Shopping.Contracts.BasketStatusCollection), typeof(Shopping.Contracts.DiscountCouponCollection)], cancellationToken).ConfigureAwait(false);
+            using (var cache = CreateServingCacheHost(configuration, "Shopping"))
+                await InvalidateReferenceDataAsync(cache, [typeof(Shopping.Contracts.UnitOfMeasureCollection),
+                    typeof(Shopping.Contracts.BasketStatusCollection), typeof(Shopping.Contracts.DiscountCouponCollection)], cancellationToken).ConfigureAwait(false);
+        }, progress, cancellationToken).ConfigureAwait(false);
 
-        await VerifyAsync(products, shopping, cancellationToken).ConfigureAwait(false);
-        await PrepareSearchAsync(products, cancellationToken).ConfigureAwait(false);
+        await PrepareSearchAsync(products, progress, cancellationToken).ConfigureAwait(false);
+        await StageAsync("Verifying Products, Shopping and basket integrity", () => VerifyAsync(products, shopping, cancellationToken), progress, cancellationToken).ConfigureAwait(false);
         return count;
     }
 
@@ -50,6 +60,7 @@ public static class DemoCatalogBootstrap
         var builder = Host.CreateApplicationBuilder();
         builder.Configuration.Sources.Clear();
         builder.Configuration.AddConfiguration(configuration);
+        ConfigureLogging(builder);
         builder.AddProductEmbeddings();
         builder.Services.AddSingleton(_ => Npgsql.NpgsqlDataSource.Create(connectionString));
 
@@ -70,6 +81,7 @@ public static class DemoCatalogBootstrap
         var builder = Host.CreateApplicationBuilder();
         builder.Configuration.Sources.Clear();
         builder.Configuration.AddConfiguration(configuration);
+        ConfigureLogging(builder);
 
         builder.Services.AddExecutionContext().AddMemoryCache().AddMemoryOnlyHybridCache().AddDefaultCacheKeyProvider()
             .AddReferenceDataOrchestrator<Shopping.Application.ReferenceDataProvider>()
@@ -88,6 +100,7 @@ public static class DemoCatalogBootstrap
         var builder = Host.CreateApplicationBuilder();
         builder.Configuration.Sources.Clear();
         builder.Configuration.AddConfiguration(configuration);
+        ConfigureLogging(builder);
         builder.AddHostSettings(solutionName: "Contoso", domainName: domainName);
         builder.AddRedisDistributedCache("redis");
         builder.Services.AddExecutionContext().AddMemoryCache().AddDefaultCacheKeyProvider().AddFusionHybridCache();
@@ -168,20 +181,27 @@ public static class DemoCatalogBootstrap
 
     /// <summary>Builds lexical and semantic projections with the configured real provider; failures are not swallowed or replaced by test vectors.</summary>
     public static Task<int> PrepareSearchAsync(IHost products, CancellationToken cancellationToken = default)
+        => PrepareSearchAsync(products, null, cancellationToken);
+
+    /// <summary>Builds and verifies projections while reporting actual rebuild work.</summary>
+    public static Task<int> PrepareSearchAsync(IHost products, Action<ProductSearchIndex.RebuildProgress>? progress, CancellationToken cancellationToken = default)
         => InScopeAsync(products, async services =>
         {
             var profile = services.GetRequiredService<Products.Application.Adapters.Embeddings.IProductEmbeddingAdapter>().Profile;
             try
             {
                 var semantic = services.GetRequiredService<ProductSearchIndex>();
-                var count = await semantic.RebuildAsync(cancellationToken).ConfigureAwait(false);
-                await semantic.EnsureReadyAsync(cancellationToken).ConfigureAwait(false);
-                await services.GetRequiredService<ProductLexicalSearchIndex>().EnsureReadyAsync(cancellationToken).ConfigureAwait(false);
-                await semantic.EmbedQueryAsync("mountain bike", cancellationToken).ConfigureAwait(false);
+                var count = await semantic.RebuildAsync(progress, cancellationToken).ConfigureAwait(false);
+                await StageAsync("Verifying lexical/semantic search and query model", async () =>
+                {
+                    await semantic.EnsureReadyAsync(cancellationToken).ConfigureAwait(false);
+                    await services.GetRequiredService<ProductLexicalSearchIndex>().EnsureReadyAsync(cancellationToken).ConfigureAwait(false);
+                    await semantic.EmbedQueryAsync("mountain bike", cancellationToken).ConfigureAwait(false);
 
-                var expected = await services.GetRequiredService<ProductsEfDb>().Products.Model.Query().CountAsync(cancellationToken).ConfigureAwait(false);
-                if (count != expected)
-                    throw new InvalidOperationException($"Demo search projection is incomplete: expected {expected}, indexed {count}.");
+                    var expected = await services.GetRequiredService<ProductsEfDb>().Products.Model.Query().CountAsync(cancellationToken).ConfigureAwait(false);
+                    if (count != expected)
+                        throw new InvalidOperationException($"Demo search projection is incomplete: expected {expected}, indexed {count}.");
+                }, progress, cancellationToken).ConfigureAwait(false);
 
                 return count;
             }
@@ -190,6 +210,24 @@ public static class DemoCatalogBootstrap
                 throw new InvalidOperationException($"Demo lexical/semantic search preparation failed for embedding profile '{profile}'. Verify the configured provider/model and rerun setup.", ex);
             }
         });
+
+    /// <summary>Suppresses routine success chatter only in bootstrap-created hosts; warnings and errors remain visible.</summary>
+    private static void ConfigureLogging(HostApplicationBuilder builder)
+    {
+        builder.Logging.AddFilter("CoreEx.RefData", LogLevel.Warning);
+        builder.Logging.AddFilter("Polly", LogLevel.Warning);
+        builder.Logging.AddFilter("System.Net.Http.HttpClient", LogLevel.Warning);
+    }
+
+    /// <summary>Reports completion only after the stage succeeds and cancellation has been checked.</summary>
+    private static async Task StageAsync(string stage, Func<Task> action, Action<ProductSearchIndex.RebuildProgress>? progress, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        progress?.Invoke(new(stage));
+        await action().ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
+        progress?.Invoke(new(stage, IsComplete: true));
+    }
 
     private static Task<List<Shopping.Application.Adapters.Products.Product>> ReadSnapshotAsync(IHost products, CancellationToken cancellationToken)
         => InScopeAsync(products, async services =>

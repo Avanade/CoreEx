@@ -9,7 +9,7 @@ public sealed class DatabaseMigrationSetup : IScenario
     /// <inheritdoc/>
     public async Task RunAsync(ScenarioContext context)
     {
-        await context.StepAsync("Products and Shopping demo catalog bootstrap.", () => DemoCatalogBootstrap.RunAsync(context.TestContext.Config),
+        await context.StepAsync("Products and Shopping demo catalog bootstrap.", () => new DemoCatalogOperation().RunAsync(context.TestContext.Config),
             count => $"{count} non-deleted products replicated; baskets and search projections verified.").ConfigureAwait(false);
 
         // Step 3: Customers database migration.

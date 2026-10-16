@@ -41,8 +41,16 @@ public class DemoCatalogBootstrapTests
                 (_, _) => Task.FromResult<CoreEx.RefData.Abstractions.IReferenceDataCollection>(new BrandCollection { new Brand { Id = "OLD-SNAPSHOT", Code = "OLD-SNAPSHOT", Text = "Stale brand" } })).ConfigureAwait(false);
         }
 
-        var bootstrap = await DemoCatalogBootstrap.RunAsync(_configuration).ConfigureAwait(false);
+        var progress = new List<ProductSearchIndex.RebuildProgress>();
+        var bootstrap = await DemoCatalogBootstrap.RunAsync(_configuration, progress.Add).ConfigureAwait(false);
         bootstrap.Should().Be(173);
+        progress.Where(p => p.IsComplete).Select(p => p.Stage).Should().Equal(
+            "Migrating/resetting Products and loading catalog", "Migrating/resetting Shopping", "Synchronizing current products to Shopping",
+            "Loading Shopping baskets", "Invalidating Products and Shopping reference-data caches", "Rebuilding lexical index", "Loading search documents",
+            "Embedding products", "Publishing semantic index", "Verifying lexical/semantic search and query model", "Verifying Products, Shopping and basket integrity");
+        var embeddings = progress.Where(p => p.Stage == "Embedding products" && !p.IsComplete).ToArray();
+        embeddings.Select(p => p.Completed).Should().Equal(Enumerable.Range(0, 174).Select(i => (int?)i));
+        embeddings.Should().OnlyContain(p => p.Total == 173);
 
         using (var cacheHost = DemoCatalogBootstrap.CreateServingCacheHost(_configuration, "Products"))
         {
@@ -193,10 +201,14 @@ public class DemoCatalogBootstrapTests
             .AddInMemoryCollection(new Dictionary<string, string?> { ["Ollama:BaseAddress"] = "http://127.0.0.1:1/" }).Build();
         using (var broken = DemoCatalogBootstrap.CreateProductsHost(brokenConfiguration, _productsConnection))
         {
-            var rebuild = () => DemoCatalogBootstrap.PrepareSearchAsync(broken);
+            progress.Clear();
+            var rebuild = () => DemoCatalogBootstrap.PrepareSearchAsync(broken, progress.Add);
             var failure = await rebuild.Should().ThrowAsync<InvalidOperationException>().WithMessage("*search preparation failed*").ConfigureAwait(false);
             failure.Which.InnerException.Should().NotBeNull();
             failure.Which.ToString().Should().Contain("127.0.0.1:1");
+            progress.Should().Contain(p => p.Stage == "Embedding products" && p.Completed == 0);
+            progress.Should().NotContain(p => p.Stage == "Embedding products" && (p.Completed > 0 || p.IsComplete));
+            progress.Should().NotContain(p => p.Stage == "Publishing semantic index" || p.Stage.StartsWith("Verifying", StringComparison.Ordinal));
         }
 
         // A full rerun must clear stale projections and restore deterministic product/basket identities.
