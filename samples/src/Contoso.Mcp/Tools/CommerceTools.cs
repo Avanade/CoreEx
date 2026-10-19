@@ -4,23 +4,62 @@ namespace Contoso.Mcp.Tools;
 public static class CommerceTools
 {
     /// <summary>Searches products using the Products server's configured ranked retrieval mode.</summary>
-    [McpServerTool(UseStructuredContent = true, ReadOnly = true), Description("Find active products using the Products server's ranked search mode (semantic by default; optionally English full-text or hybrid). Hybrid fuses up to 100 eligible candidates per branch with Reciprocal Rank Fusion and prioritizes an exact eligible SKU. Returns up to the requested number of summaries; candidates are not guaranteed matches and may come from a bounded pool. Requires every configured index and embedding provider to be ready.")]
+    [McpServerTool(UseStructuredContent = true, ReadOnly = true), Description("Find active products using the Products server's ranked search mode (semantic, full-text or hybrid). Optional category, subcategory, brand and inclusive USD price filters restrict eligible products before ranking; all supplied filters must match. Use get_product_search_options to discover current codes rather than guessing. Use filters for explicit requirements, not inferred preferences. Hybrid fuses up to 100 eligible candidates per branch and prioritizes an exact eligible SKU. Returns up to the requested number of summaries, not guaranteed matches. Requires every configured index and embedding provider to be ready.")]
     public static Task<ProductLite[]> SearchProductsAsync(
         [FromServices] IHttpClientFactory clientFactory,
         [Description("Product text, intended use, or a SKU. Semantic mode does not guarantee exact SKU matching; FullText and Hybrid prioritize an exact eligible SKU, while Hybrid otherwise combines lexical and semantic ranks.")] string searchTerm,
         [Description("Maximum number of products to return (1-25).")] int take = 10,
+        [Description("Optional category code from get_product_search_options, for example B for Bikes. Omit for any category.")] string? categoryCode = null,
+        [Description("Optional subcategory code from get_product_search_options, for example EM for E-MTB or XC for Cross country. Omit for any subcategory.")] string? subCategoryCode = null,
+        [Description("Optional brand code from get_product_search_options, for example YETI. Omit for any brand.")] string? brandCode = null,
+        [Description("Optional inclusive minimum price in USD; must be nonnegative.")] decimal? minPrice = null,
+        [Description("Optional inclusive maximum price in USD; must be nonnegative and at least minPrice.")] decimal? maxPrice = null,
         CancellationToken cancellationToken = default)
     {
         searchTerm = searchTerm.Required();
         if (take is < 1 or > 25)
             throw new ArgumentOutOfRangeException(nameof(take), "The result limit must be between 1 and 25.");
 
+        if (minPrice < 0)
+            throw new ArgumentOutOfRangeException(nameof(minPrice), "The minimum price must be nonnegative.");
+
+        if (maxPrice < 0)
+            throw new ArgumentOutOfRangeException(nameof(maxPrice), "The maximum price must be nonnegative.");
+
+        if (minPrice > maxPrice)
+            throw new ArgumentException("The maximum price must be at least the minimum price.", nameof(maxPrice));
+
+        var filters = new List<string>();
+        AddCodeFilter("category", categoryCode, nameof(categoryCode));
+        AddCodeFilter("subcategory", subCategoryCode, nameof(subCategoryCode));
+        AddCodeFilter("brand", brandCode, nameof(brandCode));
+        if (minPrice.HasValue)
+            filters.Add($"price ge {minPrice.Value.ToString(CultureInfo.InvariantCulture)}");
+
+        if (maxPrice.HasValue)
+            filters.Add($"price le {maxPrice.Value.ToString(CultureInfo.InvariantCulture)}");
+
         return ProductsApi(clientFactory)
             .Send(HttpMethod.Get, "/api/products")
             .WithSearch(searchTerm)
+            .WithQuery(filter: filters.Count == 0 ? null : string.Join(" and ", filters))
             .WithPaging(take: take)
             .GetValueAsync<ProductLite[]>(cancellationToken);
+
+        /// <summary>Adds an equality predicate with a normalized, escaped code literal.</summary>
+        void AddCodeFilter(string field, string? code, string name)
+        {
+            if (code is not null)
+                filters.Add($"{field} eq '{code.Required(name).Trim().ToUpperInvariant().Replace("'", "''")}'");
+        }
     }
+
+    /// <summary>Gets the live reference-data codes supported by structured product search filters.</summary>
+    [McpServerTool(UseStructuredContent = true, ReadOnly = true), Description("List current product-search categories, subcategories (including their parent category codes), and brands. Use the returned codes in search_products filters; do not invent codes or treat tags as filterable fields. These are classification options, not product availability or result counts.")]
+    public static Task<ProductSearchOptions> GetProductSearchOptionsAsync([FromServices] IHttpClientFactory clientFactory, CancellationToken cancellationToken = default)
+        => ProductsApi(clientFactory)
+            .Send(HttpMethod.Get, "/api/refdata?name=categories&name=sub-categories&name=brands")
+            .GetValueAsync<ProductSearchOptions>(cancellationToken);
 
     /// <summary>Gets the full details for a product.</summary>
     [McpServerTool(UseStructuredContent = true, ReadOnly = true), Description("Get product details by product ID.")]

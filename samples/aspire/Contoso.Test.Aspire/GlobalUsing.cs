@@ -5,6 +5,7 @@ global using AwesomeAssertions;
 global using Azure.Messaging.ServiceBus;
 global using Azure.Messaging.ServiceBus.Administration;
 global using Contoso.E2E.Runner.Infrastructure;
+global using Contoso.Mcp.Tools;
 global using Contoso.Products.Application.Adapters.Embeddings;
 global using Contoso.Products.Contracts;
 global using Contoso.Products.Infrastructure.Clients.Ollama;
