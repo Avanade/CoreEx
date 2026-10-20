@@ -617,6 +617,8 @@ Ranked search must define its result window and count semantics:
 
 For hybrid mode, the branch candidate lists are independent of requested paging, `$skip` and `$take` are applied only after fusion, and `$count` is the deduplicated candidate-union size (maximum 200). It is not a total match count or the complete eligible catalog. Semantic and FullText keep their existing count behavior. No branch is silently dropped: an unready lexical/semantic projection or failed query embedding makes Hybrid unavailable (HTTP 503), rather than returning a partial branch. Empty lists are valid when both indexes are ready; weak semantic matches are not assigned a confidence score.
 
+The final product lookup uses a materialized `List<string>` and its instance `Contains` inside the EF predicate. Keep this list-based: array `Contains` can introduce a span conversion into the expression tree that EF cannot evaluate on .NET 8. The existing hybrid-search API tests cover this lookup across all supported target frameworks in CI.
+
 ## Model hosting and operational costs
 
 A locally runnable, pinned model is attractive for a self-contained learning sample, but "local" is not "free". Downloads, licensing, RAM, CPU/GPU needs, startup time, and query latency still matter.

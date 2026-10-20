@@ -134,8 +134,10 @@ public class ProductQueryRepository(ProductsEfDb ef, ProductSearchIndex searchIn
             var fused = ProductSearchFusion.Fuse(
                 lexical.Select(item => new ProductSearchFusion.LexicalCandidate(item.Id, item.ExactSku)).ToArray(),
                 semantic);
-            var ids = fused.Select(candidate => candidate.Id).ToArray();
-            var mapped = ids.Length == 0
+
+            // List.Contains avoids span-based array expressions that EF cannot evaluate on .NET 8.
+            var ids = fused.Select(candidate => candidate.Id).ToList();
+            var mapped = ids.Count == 0
                 ? []
                 : await q.Where(candidate => ids.Contains(candidate.Product.Id))
                     .ToMappedItemsAsync(x => new Contracts.ProductLite
@@ -153,16 +155,16 @@ public class ProductQueryRepository(ProductsEfDb ef, ProductSearchIndex searchIn
                         IsNonStocked = x.Product.IsNonStocked,
                         QtyOnHand = x.QtyOnHand
                     }, cancellationToken).ConfigureAwait(false);
-            var byId = mapped.ToDictionary(
-                product => product.Id ?? throw new InvalidOperationException("A product search candidate must have an identifier."),
-                StringComparer.Ordinal);
+
+            var byId = mapped.ToDictionary(product => product.Id ?? throw new InvalidOperationException("A product search candidate must have an identifier."), StringComparer.Ordinal);
             var effectivePaging = paging ?? new PagingArgs();
             IEnumerable<string> pageIds = effectivePaging.IsNone
                 ? fused.Select(candidate => candidate.Id)
                 : fused.Skip(effectivePaging.Skip).Take(effectivePaging.Take).Select(candidate => candidate.Id);
+
             var result = new ItemsResult<Contracts.ProductLite>(paging)
             {
-                Items = pageIds.Select(id => byId[id]).ToArray()
+                Items = [.. pageIds.Select(id => byId[id])]
             };
 
             if (paging?.IsCountRequested is true)
