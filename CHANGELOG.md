@@ -13,6 +13,7 @@ Represents the **NuGet** versions.
 - *Behavior change:* Added a string-specific `Required()` validation overload that rejects null, empty and whitespace values with a `ValidationException`. Existing string call sites now reject empty/whitespace strings rather than only null.
 - *Maintenance:* Updated framework dependencies and corresponding `CoreEx.Template` dependencies, including Aspire 13.6.1, EF/.NET servicing packages and FusionCache 2.9.0. The SQL Server package now explicitly references `System.Security.Cryptography.Pkcs` 10.0.13; the Aspire template's MessagePack override is updated to 2.5.307.
 - *Fixed:* Named/typed HTTP client registration now binds standard resilience settings from the nested `Resilience` configuration section rather than the parent client section.
+- *Fixed:* `CoreEx.UnitTesting` and the sample/template MockHost now explicitly reference MessagePack 2.5.307 so their transitive Aspire dependency cannot resolve the vulnerable 2.5.302 version; a central version entry alone does not pin transitive dependencies.
 - *Fixed:* SQL Server and PostgreSQL unit-of-work root transactions now honor `DatabaseArgs.IsolationLevel`; nested invocations use savepoints and inherit the existing transaction's isolation level.
 - *Fixed:* `HttpRequestMessage.WithQuery(QueryArgs)` (and therefore `HttpRequestBuilder.WithQuery(QueryArgs)`) previously ignored `IsIncludeText` and `IsIncludeInactive`; these are now sent as `$text=true` and `$inactive=true` respectively.
 

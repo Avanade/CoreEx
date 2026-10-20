@@ -13,6 +13,8 @@
     <PackageReference Include="DbEx.Postgres" />
     <PackageReference Include="DbEx.SqlServer" />
     <PackageReference Include="AwesomeAssertions" />
+    <!-- Keep the transitive Aspire dependency above the vulnerable MessagePack versions. -->
+    <PackageReference Include="MessagePack" />
     <PackageReference Include="UnitTestEx" />
     <PackageReference Include="UnitTestEx.Aspire" />
   </ItemGroup>
