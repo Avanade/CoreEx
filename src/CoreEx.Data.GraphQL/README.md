@@ -50,7 +50,9 @@ The engine is deliberately **transport-agnostic**: it references only `CoreEx.Da
   already-materialized result via `JsonFilter`, not via per-field resolvers.
 - 🧾 **GraphQL-shaped errors**: `GraphQLArgumentTranslationException`, `QueryFilterParserException`,
   `QueryOrderByParserException`, `QuerySearchParserException`, `ValidationException`, `NotFoundException`, and unknown-field errors are
-  mapped to `{ message, path, extensions.code }` error objects.
+  mapped to `{ message, path, extensions.code }` error objects. Validation errors also include per-property
+  `extensions.messages` details. Search parsing errors retain `SEARCH_PARSE_ERROR` and expose the actionable
+  reason in `extensions.messages["$search"]` (for example, unsupported search, length/term limits, or custom validation).
 - 🔍 **Spec-compliant introspection**: `__schema`/`__type(name:)` (plus `__typename`) implement the official
   GraphQL introspection schema, built once from the registered roots (see `Internal.GraphQLIntrospectionSchemaBuilder`)
   and exposed identically via `IGraphQLEngine.GetSchemaAsync()`. Each query root's `where`/`orderBy` arguments

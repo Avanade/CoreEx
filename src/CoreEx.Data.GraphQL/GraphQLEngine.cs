@@ -364,7 +364,7 @@ public sealed class GraphQLEngine(GraphQLLiteOptions options) : IGraphQLEngine
         KeyNotFoundException => NewError(ex.Message, [alias], "ARGUMENT_ERROR"),
         QueryFilterParserException => NewError(ex.Message, [alias], "FILTER_PARSE_ERROR"),
         QueryOrderByParserException => NewError(ex.Message, [alias], "ORDERBY_PARSE_ERROR"),
-        QuerySearchParserException => NewError(ex.Message, [alias], "SEARCH_PARSE_ERROR"),
+        QuerySearchParserException qspex => MapValidationException(qspex, alias, "SEARCH_PARSE_ERROR"),
         ValidationException vex => MapValidationException(vex, alias),
         NotFoundException => MapKnownExtendedException(ex, alias, "NOT_FOUND"),
         ConflictException => MapKnownExtendedException(ex, alias, "CONFLICT_ERROR"),
@@ -393,13 +393,13 @@ public sealed class GraphQLEngine(GraphQLLiteOptions options) : IGraphQLEngine
     /// Maps a <see cref="ValidationException"/> to a <see cref="GraphQLEngineError"/>, including a per-property <c>messages</c> extension (mirroring the REST <c>ValidationProblem</c> shape)
     /// where <see cref="ValidationException.Messages"/> is populated - so structured per-property detail is not lost behind the single top-level <see cref="Exception.Message"/>.
     /// </summary>
-    private static GraphQLEngineError MapValidationException(ValidationException vex, string alias)
+    private static GraphQLEngineError MapValidationException(ValidationException vex, string alias, string code = "VALIDATION_ERROR")
     {
         if (vex.ShouldBeLogged)
             LogException(vex);
 
         if (vex.Messages is not { Count: > 0 })
-            return NewError(vex.Message, [alias], "VALIDATION_ERROR");
+            return NewError(vex.Message, [alias], code);
 
         var messages = new Dictionary<string, string[]>();
         foreach (var group in from m in vex.Messages.GetMessagesForType(MessageType.Error).Where(x => x.Property is not null && x.Text is not null)
@@ -409,7 +409,7 @@ public sealed class GraphQLEngine(GraphQLLiteOptions options) : IGraphQLEngine
             messages.Add(group.Property!, [.. group.Messages.Select(m => m.Text!.ToString()!)]);
         }
 
-        return NewError(vex.Message, [alias], "VALIDATION_ERROR", new Dictionary<string, object?> { ["messages"] = messages });
+        return NewError(vex.Message, [alias], code, new Dictionary<string, object?> { ["messages"] = messages });
     }
 
     /// <summary>

@@ -12,7 +12,7 @@ The goal is not merely to store some numbers and label the result "AI". It is to
 |---|---|---|
 | CoreEx `QueryArgs.Search` and search parser configuration | Implemented | REST, HTTP clients, OpenAPI, and GraphQL-lite can carry search text. |
 | Products semantic search | Implemented; default for `$search` | Exact cosine-distance ranking replaces the earlier keyword matching. Requests without `$search` retain ordinary filtering and ordering. |
-| MCP `search_products` forwarding to Products | Implemented | The tool forwards `$search`, optional category/subcategory/brand/price filters, and paging to the Products API; it does not query the database. |
+| MCP product-search tools | Implemented | `search_products` forwards `$search`, optional category/subcategory/brand/price filters, and paging to the Products API; `get_product_search_options` exposes live category, subcategory and brand codes. MCP does not query the database. |
 | Ranked-search mode plumbing | Implemented | CoreEx validates and carries ranked search intent; the repository must execute it. |
 | Canonical product search document | Implemented | Versioned, whitespace-normalized documents and source hashes exclude price, status, inventory and business metadata. |
 | Product descriptions and price filtering | Implemented | Optional descriptive content supports CRUD; decimal price constraints use existing REST and GraphQL-lite query configuration. |
@@ -372,10 +372,31 @@ Keep deterministic tool behavior checks separate from protocol and model evaluat
 |---|---|---|
 | Direct MCP tool tests | Calls `CommerceTools` directly with a mocked Products HTTP handler; checks query forwarding, special-character handling, combined filters, culture-invariant prices, validation, API failures, live filter options, and the MCP input schema. This does not start the MCP server, database, or embedding model. | `dotnet test samples/aspire/Contoso.Test.Aspire --filter "FullyQualifiedName~ProductSearchToolTests"` |
 | Streamable HTTP protocol E2E | Starts the real Aspire topology, connects through the MCP client SDK, discovers tools and output schemas, then exercises semantic product search and the basket lifecycle through MCP. This verifies the MCP transport and real cross-domain calls, not just the static tool methods. | `dotnet test samples/aspire/Contoso.Test.Aspire --filter "FullyQualifiedName~Contoso_Mcp_FullBasketLifecycle"` |
+| Interactive MCP client check | Uses MCP Inspector or Copilot CLI against the running local Streamable HTTP server. Verifies that a client can discover tools, use live filter codes, select structured constraints, and ground its response in returned products. This is exploratory, model-dependent validation, not a deterministic regression test. | Follow the steps below. |
 
 The E2E fixture migrates/seeds Products, Shopping, and Customers, clears Redis, rebuilds the real-model search projection, and resets Service Bus before starting the hosts. Run it only against disposable local infrastructure; it resets shared local test services. Locally, start the [Compose search profile and install the pinned model](local-dev.md#optional-local-embedding-model) first. CI includes this test in `CoreEx.Samples.Test.E2E.slnf`; the workflow starts the search profile and pulls the model before running Aspire E2E tests.
 
 These tests verify tool behavior when called and the real MCP protocol flow. They do not test whether an LLM chooses to call `search_products` for a natural-language prompt; that is a separate, nondeterministic agent evaluation, not a deterministic CI test.
+
+#### Manually validate with MCP Inspector
+
+Start `Contoso.Aspire` and copy the `contoso-mcp` HTTP endpoint from the Aspire Dashboard, appending `/mcp` (for example, `http://localhost:7235/mcp`). In [MCP Inspector](https://github.com/modelcontextprotocol/inspector), select **Streamable HTTP**, enter the endpoint, and connect. A successful connection only verifies transport; continue to the tools view and list the available tools.
+
+Call `get_product_search_options` first and inspect its live category, subcategory and brand codes. Then invoke `search_products` with `searchTerm` = `descending with purpose`, `categoryCode` = `B`, `subCategoryCode` = `EM`, `maxPrice` = `10000`, and `take` = `10`. Leave other optional arguments unset. Verify every returned product matches the requested category/subcategory and is priced at or below the maximum; fewer than ten results are valid. Optionally add `brandCode` = `YETI` to verify that multiple filters are combined with AND semantics. Inspector tests explicit tool calls; it does not test an AI model's ability to select tools from a natural-language request.
+
+#### Manually validate tool selection with Copilot CLI
+
+With Aspire still running, register the dashboard endpoint from PowerShell (replace the port with the current `contoso-mcp` endpoint):
+
+```powershell
+copilot mcp add --transport http coreex-contoso "http://localhost:<port>/mcp"
+```
+
+In a **new Copilot CLI conversation**, use `/mcp` to confirm the server and tools are available. Then ask a natural-language request without procedural coaching, for example: “Find me a dentist-worthy electric mountain bike for aggressive descending, under $10,000. Show prices and product IDs.” Inspect the actual tool calls, not just the final prose: the client should use `get_product_search_options` when it needs current codes, pass the electric-bike subcategory (`EM`) and `maxPrice: 10000` as structured filters, and leave “dentist-worthy” and descending intent in `searchTerm` rather than inventing a Yeti-only constraint. If the client already has valid reference codes, an extra discovery call is not required on every request.
+
+Compare the response with the tool's returned products and descriptions. The model may summarize retrieved evidence, but a ranking result alone does not prove unsupported claims such as “best for descending”; require a product lookup or other supporting data before presenting such claims as fact. A different product order or fewer matches can be valid when the search text changes, provided the explicit filters are satisfied. Do not ask the client to create or alter a basket during this read-only search check. Remove the CLI registration afterwards with `copilot mcp remove coreex-contoso`.
+
+`Contoso.Mcp` has no authentication and is intended only for local development; use it only on trusted local infrastructure and never expose it to an untrusted network. Avoid destructive setup or checkout operations during search validation.
 
 Search does not resolve authentication or authorization. The sample's existing authentication gaps remain separate concerns.
 
