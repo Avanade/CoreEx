@@ -25,7 +25,7 @@ The `Abstractions` sub-namespace defines additional lightweight types and interf
 | **[`ProblemDetails`](./Abstractions/ProblemDetails.cs)** | RFC 7807 problem-details record with `Type`, `Title`, `Status`, `Detail`, `Instance`, and an `Extensions` dictionary; includes `GetValidationErrors(string? key)`. |
 | **[`ProblemDetailsException`](./ProblemDetailsException.cs)** | Exception wrapping a `ProblemDetails`; provides `ToException<TException>()` to convert it back to a typed CoreEx semantic exception. |
 | **[`HttpNames`](./HttpNames.cs)** | Static class of configurable string properties for all standard paging query-string names, response-header names, and the idempotency-key header name. |
-| **[`HttpRequestBuilder`](./HttpRequestBuilder.cs)** | Fluent HTTP request builder returned by `client.Send(...)` and `client.SendValue(...)`; executes requests and manages automatic response disposal across typed deserialization, ROP result conversion, validation, and error-handling methods. |
+| **[`HttpRequestBuilder`](./HttpRequestBuilder.cs)** | Single-use fluent HTTP request builder returned by `client.Send(...)` or the verb shortcuts; executes requests and manages automatic response disposal across typed deserialization, ROP result conversion, validation, and error-handling methods. |
 | **[`ValidatedHttpRequestBuilder<T>`](./ValidatedHttpRequestBuilderT.cs)** | Wrapper returned by `builder.WithValidator(validator)` that executes the request, validates the deserialized response value, and automatically disposes the response. |
 | **[`ValidatedHttpResponse<T>`](./ValidatedHttpResponseT.cs)** | Thin wrapper returned by `HttpResponseMessage.WithValidator(validator)`; validates successful non-null response values when consumed via `ToResult*` or `GetValue*`. Does not own the response. |
 | **[`HttpResult`](./HttpResult.cs)** | Readonly struct pairing an `HttpResponseMessage` with either a deserialized value or a `ProblemDetails` from the response; exposes `IsSuccess`, `StatusCode`, and `ThrowOnError()`. |
@@ -34,29 +34,30 @@ The `Abstractions` sub-namespace defines additional lightweight types and interf
 
 ## Sending requests
 
-The `CoreEx` namespace provides fluent synchronous builder methods `HttpClient.Send(...)` and `SendValue(...)`
-returning an `HttpRequestBuilder`, as well as direct asynchronous `SendAsync` and `SendValueAsync` overloads.
+The `CoreEx` namespace provides `HttpClient.Send(method, uri)` and the `Get`, `Post`, `Put`, `Patch`, and `Delete`
+shortcuts returning an `HttpRequestBuilder`, as well as direct asynchronous `SendAsync` overloads.
 Relative URIs are resolved against `HttpClient.BaseAddress` before the configuration callback, so
 `WithQuery`, `WithPaging`, and header helpers can be applied there. Absolute URIs do not require a base address.
 
 ### Fluent request execution and automatic response disposal
 
-`client.Send(...)` and `client.SendValue(...)` return an `HttpRequestBuilder`. Calling any terminal consumption
+`client.Send(...)` and the verb shortcuts only build a request. Calling any terminal consumption
 method executes the request and automatically disposes the underlying `HttpResponseMessage`:
 
 ```csharp
 // Single await with automatic response disposal:
-var product = await client.Send(HttpMethod.Get, "api/products/123")
+var product = await client.Get("api/products/123")
     .GetValueAsync<Product>(cancellationToken).ConfigureAwait(false);
 
 // Fluent query, paging, and headers directly chained:
-var products = await client.Send(HttpMethod.Get, "api/products")
+var products = await client.Get("api/products")
     .WithQuery("startswith(sku, 'ABC')")
     .WithPaging(take: 10)
     .GetValueAsync<ProductLite[]>(cancellationToken).ConfigureAwait(false);
 
 // Post JSON payload with typed response:
-var created = await client.SendValue(HttpMethod.Post, "api/baskets", newBasket)
+var created = await client.Post("api/baskets")
+    .WithJson(newBasket)
     .GetValueAsync<Basket>(cancellationToken).ConfigureAwait(false);
 
 // With custom status mapping (short-circuits validation/deserialization on match):
@@ -75,9 +76,33 @@ using var response = await client.Send(HttpMethod.Get, "api/products")
     .GetResponseAsync(cancellationToken).ConfigureAwait(false);
 ```
 
+### Request bodies and single-use execution
+
+Use `WithJson<T>(value, mediaType: ..., jsonSerializerOptions: ...)` for a JSON body. It uses
+`JsonDefaults.SerializerOptions` and `application/json` by default. A null value sends JSON `null`;
+a string sends a JSON string, not raw text. For explicit raw text, form data, multipart content, or
+streams, use `WithContent(HttpContent)`. Matching helpers are available on `HttpRequestMessage`.
+
+Only one body may be assigned: repeated `WithJson`, repeated `WithContent`, or mixing the two throws
+`InvalidOperationException`. Low-level `Configure(...)` callbacks may supply a body only when no body
+has already been assigned; replacing or removing an existing body is rejected before sending.
+Callbacks may still modify content headers. `Patch(uri)` only selects the HTTP verb; use
+`.WithJson(patch).WithMergePatchJsonContentType()` to explicitly select JSON Merge Patch.
+
+Each builder allows exactly one execution attempt, even if it fails or is cancelled. A second or
+concurrent terminal call, or configuration after execution begins, throws `InvalidOperationException`.
+Configure the builder before executing it; concurrent configuration is not supported. The validated
+builder shares the same single-use request. Retries within the HTTP resilience pipeline are not new
+builder executions.
+
+Accepted `WithContent` content is disposed with the request during execution, including failures.
+The caller must dispose content if assignment is rejected or the builder is never executed.
+JSON content is created when execution begins. Terminal consumption methods dispose the response;
+`GetResponseAsync` and `SendAsync` return a raw response that the caller must dispose.
+
 ### Direct asynchronous methods
 
-For direct response inspection, `SendAsync` and `SendValueAsync` return the raw `HttpResponseMessage` (which the caller must dispose):
+For direct response inspection, `SendAsync` returns the raw `HttpResponseMessage` (which the caller must dispose):
 
 ```csharp
 using var response = await client.SendAsync(HttpMethod.Get, "api/products",

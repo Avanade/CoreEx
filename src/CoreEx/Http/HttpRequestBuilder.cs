@@ -7,8 +7,12 @@
 namespace CoreEx.Http;
 
 /// <summary>
-/// Builds and executes an HTTP request, providing fluent terminal methods that handle response consumption and disposal.
+/// Builds and executes a single HTTP request, providing fluent terminal methods that handle response consumption and disposal.
 /// </summary>
+/// <remarks>
+/// Configure before execution; concurrent configuration is not supported. The first execution attempt consumes the builder even on failure or cancellation.
+/// Subsequent execution or configuration throws <see cref="InvalidOperationException"/>. HTTP resilience retries remain part of the same execution.
+/// </remarks>
 /// <param name="client">The <see cref="HttpClient"/>.</param>
 /// <param name="method">The <see cref="HttpMethod"/>.</param>
 /// <param name="requestUri">The request URI.</param>
@@ -18,8 +22,10 @@ public sealed class HttpRequestBuilder(HttpClient client, HttpMethod method, str
     private readonly HttpClient _client = client.ThrowIfNull();
     private readonly HttpMethod _method = method.ThrowIfNull();
     private readonly string? _requestUri = requestUri;
-    private Action<HttpRequestMessage>? _configureRequest = configureRequest;
+    private readonly List<Action<HttpRequestMessage>> _configureRequests = configureRequest is null ? [] : [configureRequest];
     private Dictionary<HttpStatusCode, Func<HttpResponseMessage, CancellationToken, Task<Result>>>? _statusResults;
+    private Func<HttpContent>? _createContent;
+    private int _started;
 
     /// <summary>
     /// Gets the <see cref="HttpClient"/>.
@@ -43,10 +49,71 @@ public sealed class HttpRequestBuilder(HttpClient client, HttpMethod method, str
     /// <returns>The <see cref="HttpRequestBuilder"/> instance to support fluent chaining.</returns>
     public HttpRequestBuilder Configure(Action<HttpRequestMessage> configureRequest)
     {
+        EnsureNotStarted();
         configureRequest.ThrowIfNull();
-        var existing = _configureRequest;
-        _configureRequest = existing is null ? configureRequest : (r => { existing(r); configureRequest(r); });
+        _configureRequests.Add(configureRequest);
         return this;
+    }
+
+    /// <summary>
+    /// Sets the body to the JSON representation of the value, including JSON null. Only one body may be assigned.
+    /// </summary>
+    /// <typeparam name="T">The value type.</typeparam>
+    /// <param name="value">The value to serialize.</param>
+    /// <param name="mediaType">The media type; defaults to <see cref="MediaTypeNames.Application.Json"/>.</param>
+    /// <param name="jsonSerializerOptions">The serializer options; defaults to <see cref="JsonDefaults.SerializerOptions"/>.</param>
+    /// <returns>The builder for fluent chaining.</returns>
+    public HttpRequestBuilder WithJson<T>(T value, string? mediaType = null, JsonSerializerOptions? jsonSerializerOptions = null)
+    {
+        EnsureBodyNotAssigned();
+        var contentType = new MediaTypeHeaderValue(mediaType ?? MediaTypeNames.Application.Json);
+        _createContent = () => JsonContent.Create(value, contentType, options: jsonSerializerOptions ?? JsonDefaults.SerializerOptions);
+        return this;
+    }
+
+    /// <summary>
+    /// Sets the request body. Only one body may be assigned.
+    /// </summary>
+    /// <param name="content">The content, disposed with the request when executed. The caller must dispose it if the builder is never executed or assignment is rejected.</param>
+    /// <returns>The builder for fluent chaining.</returns>
+    public HttpRequestBuilder WithContent(HttpContent content)
+    {
+        EnsureBodyNotAssigned();
+        content.ThrowIfNull();
+        _createContent = () => content;
+        return this;
+    }
+
+    /// <summary>Rejects configuration after execution has started.</summary>
+    private void EnsureNotStarted()
+    {
+        if (Volatile.Read(ref _started) != 0)
+            throw new InvalidOperationException("The HTTP request builder has already been consumed.");
+    }
+
+    /// <summary>Rejects a second body assignment.</summary>
+    private void EnsureBodyNotAssigned()
+    {
+        EnsureNotStarted();
+        if (_createContent is not null)
+            throw new InvalidOperationException("The HTTP request body has already been assigned.");
+    }
+
+    /// <summary>Applies low-level configuration without allowing an existing body to be replaced.</summary>
+    private static void ApplyConfiguration(HttpRequestMessage request, Action<HttpRequestMessage> configureRequest)
+    {
+        var content = request.Content;
+        try
+        {
+            configureRequest(request);
+            if (content is not null && !ReferenceEquals(content, request.Content))
+                throw new InvalidOperationException("Request configuration cannot replace an assigned HTTP request body.");
+        }
+        finally
+        {
+            if (content is not null && !ReferenceEquals(content, request.Content))
+                content.Dispose();
+        }
     }
 
     /// <summary>
@@ -150,6 +217,7 @@ public sealed class HttpRequestBuilder(HttpClient client, HttpMethod method, str
     /// <returns>The <see cref="HttpRequestBuilder"/> instance to support fluent chaining.</returns>
     public HttpRequestBuilder WithStatusResult(HttpStatusCode statusCode, Result result)
     {
+        EnsureNotStarted();
         _statusResults ??= [];
         _statusResults[statusCode] = (_, _) => Task.FromResult(result);
         return this;
@@ -163,6 +231,7 @@ public sealed class HttpRequestBuilder(HttpClient client, HttpMethod method, str
     /// <returns>The <see cref="HttpRequestBuilder"/> instance to support fluent chaining.</returns>
     public HttpRequestBuilder WithStatusResult(HttpStatusCode statusCode, Func<Result> result)
     {
+        EnsureNotStarted();
         result.ThrowIfNull();
         _statusResults ??= [];
         _statusResults[statusCode] = (_, _) => Task.FromResult(result());
@@ -177,6 +246,7 @@ public sealed class HttpRequestBuilder(HttpClient client, HttpMethod method, str
     /// <returns>The <see cref="HttpRequestBuilder"/> instance to support fluent chaining.</returns>
     public HttpRequestBuilder WithStatusResult(HttpStatusCode statusCode, Func<HttpResponseMessage, Result> result)
     {
+        EnsureNotStarted();
         result.ThrowIfNull();
         _statusResults ??= [];
         _statusResults[statusCode] = (response, _) => Task.FromResult(result(response));
@@ -191,6 +261,7 @@ public sealed class HttpRequestBuilder(HttpClient client, HttpMethod method, str
     /// <returns>The <see cref="HttpRequestBuilder"/> instance to support fluent chaining.</returns>
     public HttpRequestBuilder WithStatusResult(HttpStatusCode statusCode, Func<HttpResponseMessage, CancellationToken, Task<Result>> result)
     {
+        EnsureNotStarted();
         result.ThrowIfNull();
         _statusResults ??= [];
         _statusResults[statusCode] = result;
@@ -235,11 +306,17 @@ public sealed class HttpRequestBuilder(HttpClient client, HttpMethod method, str
     /// <returns>The <see cref="HttpResponseMessage"/>.</returns>
     public async Task<HttpResponseMessage> GetResponseAsync(CancellationToken cancellationToken = default)
     {
+        if (Interlocked.Exchange(ref _started, 1) != 0)
+            throw new InvalidOperationException("The HTTP request builder has already been consumed.");
+
         using var request = new HttpRequestMessage(_method, _requestUri);
+        request.Content = _createContent?.Invoke();
         if (_client.BaseAddress is not null && request.RequestUri?.IsAbsoluteUri != true)
             request.RequestUri = new Uri(_client.BaseAddress, _requestUri ?? string.Empty);
 
-        _configureRequest?.Invoke(request);
+        foreach (var configure in _configureRequests)
+            ApplyConfiguration(request, configure);
+
         return await _client.SendAsync(request, cancellationToken).ConfigureAwait(false);
     }
 
@@ -458,5 +535,9 @@ public sealed class HttpRequestBuilder(HttpClient client, HttpMethod method, str
     /// <typeparam name="T">The response value type.</typeparam>
     /// <param name="validator">The response value validator.</param>
     /// <returns>A typed wrapper that validates when a value is consumed.</returns>
-    public ValidatedHttpRequestBuilder<T> WithValidator<T>(Validation.IValidator<T> validator) => new(this, validator);
+    public ValidatedHttpRequestBuilder<T> WithValidator<T>(Validation.IValidator<T> validator)
+    {
+        EnsureNotStarted();
+        return new(this, validator);
+    }
 }

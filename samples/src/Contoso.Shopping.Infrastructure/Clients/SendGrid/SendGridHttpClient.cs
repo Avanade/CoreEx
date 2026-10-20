@@ -14,5 +14,5 @@ public class SendGridHttpClient(HttpClient httpClient)
     /// <param name="request">The <see cref="SendGridMailRequest"/>.</param>
     /// <remarks>A successful send returns <see cref="System.Net.HttpStatusCode.Accepted"/> (202) with no response body.</remarks>
     public Task<Result> SendMailAsync(SendGridMailRequest request, CancellationToken ct = default)
-        => _httpClient.SendValue(HttpMethod.Post, "v3/mail/send", request).ToResultAsync(ct);
+        => _httpClient.Post("v3/mail/send").WithJson(request).ToResultAsync(ct);
 }

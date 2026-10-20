@@ -32,7 +32,7 @@ public class HttpClientExtensionsTests
 
     [TestCase(null, "application/json")]
     [TestCase("application/merge-patch+json", "application/merge-patch+json")]
-    public async Task SendValue_PreservesContentUntilCompletionAndUsesCoreExJson(string? mediaType, string expectedMediaType)
+    public async Task WithJson_PreservesContentUntilCompletionAndUsesCoreExJson(string? mediaType, string expectedMediaType)
     {
         var payload = new { ProductId = "123", Quantity = 2 };
         using var handler = new InspectHandler(async (request, ct) =>
@@ -44,7 +44,7 @@ public class HttpClientExtensionsTests
             return new HttpResponseMessage(System.Net.HttpStatusCode.OK);
         });
         using var client = new HttpClient(handler) { BaseAddress = new Uri("https://example.com/") };
-        using var response = await client.SendValueAsync(HttpMethod.Post, "/api", payload, mediaType: mediaType);
+        using var response = await client.Post("/api").WithJson(payload, mediaType: mediaType).SendAsync();
         response.StatusCode.Should().Be(System.Net.HttpStatusCode.OK);
     }
 

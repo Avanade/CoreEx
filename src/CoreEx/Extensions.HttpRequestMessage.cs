@@ -8,6 +8,37 @@ namespace CoreEx;
 
 public static partial class Extensions
 {
+    /// <summary>Sets the body to the JSON representation of the value, including JSON null. Rejects an existing body.</summary>
+    /// <typeparam name="T">The value type.</typeparam>
+    /// <param name="request">The HTTP request.</param>
+    /// <param name="value">The value to serialize.</param>
+    /// <param name="mediaType">The media type; defaults to application/json.</param>
+    /// <param name="jsonSerializerOptions">The serializer options; defaults to <see cref="JsonDefaults.SerializerOptions"/>.</param>
+    /// <returns>The request for fluent chaining.</returns>
+    public static HttpRequestMessage WithJson<T>(this HttpRequestMessage request, T value, string? mediaType = null, JsonSerializerOptions? jsonSerializerOptions = null)
+    {
+        request.ThrowIfNull();
+        if (request.Content is not null)
+            throw new InvalidOperationException("The HTTP request body has already been assigned.");
+
+        request.Content = JsonContent.Create(value, new MediaTypeHeaderValue(mediaType ?? MediaTypeNames.Application.Json), options: jsonSerializerOptions ?? JsonDefaults.SerializerOptions);
+        return request;
+    }
+
+    /// <summary>Sets the body, rejecting an existing body. The request owns and disposes accepted content.</summary>
+    /// <param name="request">The HTTP request.</param>
+    /// <param name="content">The content; the caller retains ownership if assignment is rejected.</param>
+    /// <returns>The request for fluent chaining.</returns>
+    public static HttpRequestMessage WithContent(this HttpRequestMessage request, HttpContent content)
+    {
+        request.ThrowIfNull();
+        if (request.Content is not null)
+            throw new InvalidOperationException("The HTTP request body has already been assigned.");
+
+        request.Content = content.ThrowIfNull();
+        return request;
+    }
+
     /// <summary>
     /// Adds the <see cref="HttpRequestMessage"/> <see cref="HttpRequestHeaders.IfMatch"/> with the specified <paramref name="etag"/> (where no <see langword="null"/>).
     /// </summary>

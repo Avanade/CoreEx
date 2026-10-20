@@ -23,10 +23,11 @@ tags: ["repositories", "infrastructure", "data-access", "efcore", "cosmos", "map
 
 | Package | Key types provided |
 |---|---|
-| `CoreEx` | `[ScopedService<T>]`, `.ThrowIfNull()`, `ItemsResult<T>`, `Result<T>`, `.GoAsync()`, `.ThenAs()`, `.ThenAsAsync()`, `HttpRequestBuilder`, `client.Send(...)`, `client.SendValue(...)`, `builder.AddNamedHttpClient(...)`, `builder.AddTypedHttpClient<T>(...)` |
+| `CoreEx` | `[ScopedService<T>]`, `.ThrowIfNull()`, `ItemsResult<T>`, `Result<T>`, `.GoAsync()`, `.ThenAs()`, `.ThenAsAsync()`, `HttpRequestBuilder`, `client.Send(...)`, `client.Post(...).WithJson(...)`, `builder.AddNamedHttpClient(...)`, `builder.AddTypedHttpClient<T>(...)` |
 | `CoreEx.Validation` | `Validator<T>`, `Validator.Create<T>()`, `.HasProperty(...)`, `.Mandatory()`, `.Email()` for inline response-contract rules |
 | `CoreEx.Events` | `EventData` |
 | `CoreEx.Data` | `IUnitOfWork`, `DataResult<T>`, `QueryArgsConfig<TSelf>`, `QueryFilterOperator`, `.Where(parsed)`, `.OrderBy(parsed)` |
+| `CoreEx.Database` | `IDatabase`, `SqlStatement`, `DatabaseCommand` for custom relational SQL |
 | `CoreEx.Cosmos` | `CosmosDb`, `CosmosDbContainer<TModel>`, `CosmosDbMappedContainer<TValue,TModel,TMapper>`, `CosmosDbArgs`, `CosmosDbQuery<TModel>`, `.GetAsync()`, `.CreateAsync()`, `.UpdateAsync()`, `.DeleteAsync()`, `.Query()`, `.ToMappedItemsResultAsync()` |
 | `CoreEx.EntityFrameworkCore` | `EfDb<TContext>`, `EfDbModel<T>`, `EfDbMappedModel<TContract,TModel,TMapper>`, `EfDbOptions`, `.GetAsync()`, `.CreateAsync()`, `.UpdateAsync()`, `.DeleteAsync()`, `.GetWithResultAsync()`, `.CreateWithResultAsync()`, `.UpdateWithResultAsync()`, `.Query()`, `.ToMappedItemsResultAsync()` |
 | `CoreEx.Database.SqlServer` | SQL Server outbox publisher, ADO.NET helpers |
@@ -213,6 +214,26 @@ Querying (relational): `Query(...)` returns a filtered `IQueryable<TModel>` (log
 > **`cancellationToken` must be a named argument on `ToMappedItemsResultAsync`/`ToItemsResultAsync`.** Both signatures are `(mapper, paging = null, autoCount = true, cancellationToken = default)` — `autoCount` (`bool`) sits **before** `cancellationToken`. A bare positional `CancellationToken` in the third slot (e.g. `.ToMappedItemsResultAsync(mapper, paging, cancellationToken)`) binds to `autoCount` and fails to compile (`CS1503`). Always write `cancellationToken: cancellationToken` explicitly.
 
 Per-model behaviour is configured on `EfDbOptions` / `EfDbModelOptions`: `WithModel<T>(...)`, `WithLogicalDeleteFilter()`, `WithTenantFilter()`, `WithFilter(...)`, `WithGetKey(...)`, `WithArgs(...)`, `WithOnBeforeCreateOrUpdate(...)`, `WithUpdateModelMapper(...)`.
+
+## Custom Relational SQL
+
+Use `EfDb` for normal CRUD and LINQ queries. For custom relational operations, put application-owned static SQL
+(short or long) in a `.sql` / `.pgsql` file under `Infrastructure/Repositories/Sql/`, embed it in the project, then
+load it with `SqlStatement.FromResource<TResource>(...)` and execute via `_ef.Database.Statement(...)`. Keep
+resource filenames unique within the assembly because lookup matches by suffix. Bind all values with `.Param(...)`.
+Reserve `FromText(...)` for SQL that genuinely must be generated at runtime; validate or safely quote dynamic
+identifiers, and continue binding data values. Schema changes stay in DbEx migrations rather than runtime SQL
+resources.
+
+```csharp
+private static readonly SqlStatement _isReady =
+    SqlStatement.FromResource<ProductSearchIndex>("ProductSearchIsReady.pgsql");
+
+var ready = await _ef.Database.Statement(_isReady)
+    .Param("Profile", profile, dbType: DbType.String)
+    .ScalarAsync<bool>(cancellationToken)
+    .ConfigureAwait(false);
+```
 
 ## Dynamic Query Configuration
 
@@ -446,7 +467,8 @@ public class ProductsHttpClient(HttpClient httpClient)
 
     public Task<Result> CreateReservationAsync(MovementRequest request, CancellationToken cancellationToken = default)
         => _httpClient
-            .SendValue(HttpMethod.Post, "api/inventory/reserve", request)
+            .Post("api/inventory/reserve")
+            .WithJson(request)
             .ToResultAsync(cancellationToken);
 }
 
@@ -469,7 +491,7 @@ Keep the typed HTTP client and the adapter orchestration in separate, independen
 
 Register typed HTTP clients in the host `Program.cs` via `builder.AddTypedHttpClient<ProductsHttpClient>("ProductsApi")` (or `builder.AddNamedHttpClient("ProductsApi")`). This automatically binds `BaseAddress` from configuration, adds `IdempotencyKeyHandler`, wires service discovery, and adds `Microsoft.Extensions.Http.Resilience` standard resilience handlers.
 
-Inside the client, use `_httpClient.Send(...)` and `_httpClient.SendValue(...)` to fluently construct requests (adding headers, queries, or paging) and execute them. Terminal methods on `HttpRequestBuilder` (`ToResultAsync`, `GetValueAsync<T>`, `GetStringAsync`, etc.) execute the request and **automatically dispose** the underlying `HttpResponseMessage`.
+Inside the client, use `_httpClient.Send(method, uri)` or `Get`/`Post`/`Put`/`Patch`/`Delete` to construct requests. Add JSON via `WithJson(value)` or explicit content via `WithContent(content)`; exactly one body assignment is allowed, and `Patch` does not imply JSON Merge Patch. Builders are single-use, even after failure/cancellation; configure headers, queries, and paging before execution. Terminal methods (`ToResultAsync`, `GetValueAsync<T>`, `GetStringAsync`, etc.) execute the request and **automatically dispose** the response (except raw-response terminals).
 
 ### Client response validation
 
@@ -546,6 +568,7 @@ Always call `.ConfigureAwait(false)` on every `await` inside repository and adap
 ## Further Reading
 
 - [Infrastructure Layer Guide](/.github/docs/coreex/infrastructure-layer.md) — full walkthrough of persistence models, repositories, mapping, and external client/adapter patterns (docs-sync cache; after `/coreex-docs-sync`). Source: [samples/docs/infrastructure-layer.md](https://github.com/Avanade/CoreEx/blob/main/samples/docs/infrastructure-layer.md).
+- [CoreEx.Database guide](/.github/docs/coreex/agents/CoreEx.Database.md) — `IDatabase`, `DatabaseCommand`, and embedded SQL statements (docs-sync cache; after `/coreex-docs-sync`).
 - [Pattern Catalog](/.github/docs/coreex/patterns.md) — Adapter, Repository, Mapper, Persistence, and HTTP Client pattern entries (docs-sync cache; after `/coreex-docs-sync`). Source: [samples/docs/patterns.md](https://github.com/Avanade/CoreEx/blob/main/samples/docs/patterns.md).
 - [Layer Dependencies](/.github/docs/coreex/layers.md) — layer dependency rules and the role of the Infrastructure layer (docs-sync cache; after `/coreex-docs-sync`). Source: [samples/docs/layers.md](https://github.com/Avanade/CoreEx/blob/main/samples/docs/layers.md).
 - [Tooling Guide](/.github/docs/coreex/tooling.md) — `*.Database` project: schema, persistence-model generation, and outbox provisioning (docs-sync cache; after `/coreex-docs-sync`). Source: [samples/docs/tooling.md](https://github.com/Avanade/CoreEx/blob/main/samples/docs/tooling.md).

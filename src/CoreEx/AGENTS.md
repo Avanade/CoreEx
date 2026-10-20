@@ -55,7 +55,9 @@ return await GetOrderAsync(id)
 
 ## HTTP Request Builder and Extensions
 
-Use `client.Send(...)` or `client.SendValue(...)` to build, configure, and execute HTTP requests fluently. Terminal methods (`GetValueAsync<T>`, `GetValueOrDefaultAsync<T>`, `GetStringAsync`, `ToResultAsync`, `ToProblemDetailsAsync`, `ThrowOnErrorAsync`) execute the request and automatically dispose the underlying `HttpResponseMessage`.
+Use `client.Send(method, uri)` or the `Get`, `Post`, `Put`, `Patch`, and `Delete` shortcuts to build HTTP requests. Add a JSON body with `WithJson(value)` (CoreEx serializer defaults; null sends JSON null), or explicit `HttpContent` with `WithContent(content)`. Exactly one body assignment is allowed; duplicates or mixing the two throw `InvalidOperationException`. `Patch` does not imply JSON Merge Patch; select it explicitly with `WithMergePatchJsonContentType()`.
+
+Builders are single-use: the first terminal call consumes the builder, even on failure or cancellation. Repeated/concurrent execution or subsequent configuration throws `InvalidOperationException`; configure before sending. `Configure` cannot replace/remove an assigned body. Accepted explicit content is disposed during execution; the caller owns rejected content or content on a builder that is never executed. Terminal methods (`GetValueAsync<T>`, `GetValueOrDefaultAsync<T>`, `GetStringAsync`, `ToResultAsync`, `ToProblemDetailsAsync`, `ThrowOnErrorAsync`) automatically dispose the response; callers own raw responses from `GetResponseAsync`/`SendAsync`.
 
 ```csharp
 // Fluent request with query filter, paging, and typed response deserialization + disposal
@@ -67,7 +69,8 @@ var products = await _httpClient
 
 // POST JSON body and map response to CoreEx Result with automatic disposal
 return await _httpClient
-    .SendValue(HttpMethod.Post, "api/inventory/reserve", request)
+    .Post("api/inventory/reserve")
+    .WithJson(request)
     .ToResultAsync(cancellationToken).ConfigureAwait(false);
 
 // Intercept specific HTTP status codes (e.g. 404 -> Result.NotFoundError)

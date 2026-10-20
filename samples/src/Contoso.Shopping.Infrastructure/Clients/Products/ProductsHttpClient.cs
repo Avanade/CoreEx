@@ -13,5 +13,5 @@ public class ProductsHttpClient(HttpClient httpClient)
     /// </summary>
     /// <param name="request">The <see cref="MovementRequest"/>.</param>
     public Task<Result> CreateReservationAsync(MovementRequest request, CancellationToken ct = default)
-        => _httpClient.SendValue(HttpMethod.Post, "api/inventory/reserve", request).ToResultAsync(ct);
+        => _httpClient.Post("api/inventory/reserve").WithJson(request).ToResultAsync(ct);
 }

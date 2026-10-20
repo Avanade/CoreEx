@@ -200,6 +200,38 @@ public Task<DataResult> DeleteAsync(string id) => _ef.{Name}s.DeleteAsync(id);
 
 ---
 
+## Custom SQL Operations
+
+Use EF Core / `EfDb` for ordinary CRUD and LINQ queries. Choose direct SQL only when the operation needs database
+features or composition that the model APIs do not express cleanly. Put application-owned static SQL in a named
+`.sql` / `.pgsql` file under `Infrastructure/Repositories/Sql/`—regardless of length—explicitly embed those files
+in the Infrastructure `.csproj`, and load each statement once with `SqlStatement.FromResource<TResource>`.
+
+```xml
+<ItemGroup>
+  <EmbeddedResource Include="Repositories\Sql\*.pgsql" />
+</ItemGroup>
+```
+
+```csharp
+private static readonly SqlStatement _isReady =
+    SqlStatement.FromResource<ProductSearchIndex>("ProductSearchIsReady.pgsql");
+
+var ready = await _ef.Database.Statement(_isReady)
+    .Param("Profile", profile, dbType: DbType.String)
+    .ScalarAsync<bool>(cancellationToken)
+    .ConfigureAwait(false);
+```
+
+Use `.Param(...)` for values; never interpolate data values into SQL. Reserve `SqlStatement.FromText(...)` for SQL
+that genuinely must be generated at runtime (for example, when a validated or safely quoted identifier is dynamic);
+data values must still be bound as parameters. Keep schema changes in the `*.Database` project's DbEx migrations
+rather than embedding DDL in runtime resources. See the Products sample's
+[`ProductSearchIndex`](https://github.com/Avanade/CoreEx/blob/main/samples/src/Contoso.Products.Infrastructure/Repositories/ProductSearchIndex.cs)
+and [search guide](https://github.com/Avanade/CoreEx/blob/main/samples/docs/search.md#postgresql-and-pgvector).
+
+---
+
 ## Path C — Add a Query Method with Dynamic Filtering/Ordering
 
 ### C0 — Interview (required before writing any code)
@@ -263,9 +295,9 @@ Collect the following from the developer. **AI cannot infer field selection, ope
 
 **Case sensitivity (string fields):** `.AsUpperCase()` wraps both the stored column value and the filter input in `ToUpperInvariant()`, making all string comparisons case-insensitive. `.AsLowerCase()` does the same with `ToLowerInvariant()`. Apply to any string field where case should be ignored (SKUs, codes, free-text search). Omit for fields where case is meaningful.
 
-### C2 — Create the `{Name}QueryArgsConfig` class
+### C2 — Create the query config class
 
-Create `Infrastructure/Repositories/{Name}QueryArgsConfig.cs`. Extend `QueryArgsConfig<{Name}QueryArgsConfig>` (CRTP) — all configuration goes in the constructor; the base provides a thread-safe lazy `Default` singleton:
+Create `Infrastructure/Repositories/{Name}QueryArgsConfig.cs`. The class extends `QueryArgsConfig<{Name}QueryArgsConfig>` (CRTP) — all configuration goes in the constructor; the base provides a thread-safe lazy `Default` singleton:
 
 ```csharp
 namespace {Solution}.Infrastructure.Repositories;

@@ -117,10 +117,8 @@ public static class CommerceTools
         [Description("The quantity to add.")] decimal quantity,
         CancellationToken cancellationToken = default)
         => ShoppingApi(clientFactory)
-            .SendValue(
-                HttpMethod.Post,
-                $"/api/baskets/{Uri.EscapeDataString(basketId.Required())}/items",
-                new BasketItemAddRequest { ProductId = productId.Required(), Quantity = quantity })
+            .Post($"/api/baskets/{Uri.EscapeDataString(basketId.Required())}/items")
+            .WithJson(new BasketItemAddRequest { ProductId = productId.Required(), Quantity = quantity })
             .GetValueAsync<Basket>(cancellationToken);
 
     /// <summary>Changes the quantity of a basket item.</summary>
@@ -141,10 +139,8 @@ public static class CommerceTools
             ?? throw new InvalidOperationException($"Basket item '{basketItemId}' was not found in basket '{basketId}'.");
 
         return await client
-            .SendValue(
-                HttpMethod.Put,
-                $"/api/baskets/{Uri.EscapeDataString(basketId)}/items/{Uri.EscapeDataString(basketItemId)}",
-                new BasketItemUpdateRequest { Quantity = quantity, ETag = item.ETag })
+            .Put($"/api/baskets/{Uri.EscapeDataString(basketId)}/items/{Uri.EscapeDataString(basketItemId)}")
+            .WithJson(new BasketItemUpdateRequest { Quantity = quantity, ETag = item.ETag })
             .GetValueAsync<Basket>(cancellationToken).ConfigureAwait(false);
     }
 
@@ -178,7 +174,8 @@ public static class CommerceTools
         Address shippingAddress,
         CancellationToken cancellationToken = default)
         => ShoppingApi(clientFactory)
-            .SendValue(HttpMethod.Put, $"/api/baskets/{Uri.EscapeDataString(basketId.Required())}/shipping-address", shippingAddress)
+            .Put($"/api/baskets/{Uri.EscapeDataString(basketId.Required())}/shipping-address")
+            .WithJson(shippingAddress)
             .GetValueAsync<Basket>(cancellationToken);
 
     /// <summary>Checks out a basket and starts inventory reservation.</summary>

@@ -131,7 +131,8 @@ public class ProductsHttpClient(HttpClient httpClient)
 
     public Task<Result> CreateReservationAsync(MovementRequest request, CancellationToken ct = default)
         => _httpClient
-            .SendValue(HttpMethod.Post, "api/inventory/reserve", request)
+            .Post("api/inventory/reserve")
+            .WithJson(request)
             .ToResultAsync(ct);
 }
 
@@ -143,7 +144,7 @@ public class ProductAdapter(ShoppingEfDb ef, IEventPublisher eventPublisher, Pro
 }
 ```
 
-This split — client for transport, adapter for orchestration — keeps each class focused on a single responsibility and makes the HTTP interaction independently testable. Using `_httpClient.Send(...)` or `_httpClient.SendValue(...)` returns an `HttpRequestBuilder`, allowing fluent setup of headers, query parameters, and paging, with automatic response disposal when calling terminal methods (`ToResultAsync`, `GetValueAsync<T>`, etc.).
+This split — client for transport, adapter for orchestration — keeps each class focused on a single responsibility and makes the HTTP interaction independently testable. Use `_httpClient.Send(method, uri)` or `Get`/`Post`/`Put`/`Patch`/`Delete`, with `WithJson(value)` for JSON or `WithContent(content)` for explicit content. Builders are single-use and permit exactly one body assignment. Configure headers, query parameters, and paging before terminal methods (`ToResultAsync`, `GetValueAsync<T>`, etc.), which automatically dispose the response unless returning it raw. `Patch` selects only the verb, not JSON Merge Patch.
 
 `CustomersHttpClient` / `CustomerAdapter` are the purely real-time variant: no local replica, the adapter delegates to the client (`GET api/customers/{id}`), mapping a 404 to `Result.NotFoundError()`. The lookup is wrapped in a single `IHybridCache.GetOrCreateWithResultAsync<Customer>(...)` call: only successful results are cached (short, configurable expiry via `CoreEx:Caching:Customer:*`), failures such as not-found are never cached. The lookup is single-flight per key (per node) under FusionCache, so concurrent misses make one remote call; coalescing across nodes sharing Redis would need an opt-in FusionCache distributed locker, which isn't worth it for this cheap read. The client is registered in the Api and Subscribe hosts with `AddTypedHttpClient<CustomersHttpClient>("CustomersApi")`, the `CustomersApi:BaseAddress` setting being overridden with service discovery under Aspire.
 

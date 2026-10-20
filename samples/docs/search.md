@@ -12,7 +12,7 @@ The goal is not merely to store some numbers and label the result "AI". It is to
 |---|---|---|
 | CoreEx `QueryArgs.Search` and search parser configuration | Implemented | REST, HTTP clients, OpenAPI, and GraphQL-lite can carry search text. |
 | Products semantic search | Implemented; default for `$search` | Exact cosine-distance ranking replaces the earlier keyword matching. Requests without `$search` retain ordinary filtering and ordering. |
-| MCP `search_products` forwarding to Products | Implemented | The tool calls the Products API with `$search`; it does not query the database. |
+| MCP `search_products` forwarding to Products | Implemented | The tool forwards `$search`, optional category/subcategory/brand/price filters, and paging to the Products API; it does not query the database. |
 | Ranked-search mode plumbing | Implemented | CoreEx validates and carries ranked search intent; the repository must execute it. |
 | Canonical product search document | Implemented | Versioned, whitespace-normalized documents and source hashes exclude price, status, inventory and business metadata. |
 | Product descriptions and price filtering | Implemented | Optional descriptive content supports CRUD; decimal price constraints use existing REST and GraphQL-lite query configuration. |
@@ -21,7 +21,7 @@ The goal is not merely to store some numbers and label the result "AI". It is to
 | Independent PostgreSQL full-text retrieval | Implemented; opt-in server mode | Weighted English `tsvector`/GIN matching, safe websearch parsing, exact eligible SKU first, no embedding calls. |
 | Hybrid ranking / RRF | Implemented; opt-in server mode | Bounded lexical and semantic lists share live eligibility and structured filters, then fuse by RRF with exact eligible-SKU priority. |
 | Explicit backfill / asynchronous search indexing | Implemented | Test setup publishes an atomic initial backfill; one globbed product-event subscriber reconciles subsequent changes, including logical deletion. |
-| Real-model relevance evaluation | v1 baseline historical; expanded MTB v2 catalog and judgments measured locally | A version-controlled 170-product mountain-bike catalog and 60-query reviewed set use an isolated seed and opt-in REST/Ollama runner. The checked-in v1 report remains historical and is not comparable to v2. Scores are observations, not quality gates. |
+| Real-model relevance evaluation | Historical v1 baseline and pre-SKU-rename v2 measurements; current catalog not re-evaluated | A version-controlled 170-product mountain-bike catalog and 60-query reviewed set use an isolated seed and opt-in REST/Ollama runner. The checked-in v1 report remains historical and is not comparable to v2; the last v2 report predates the current SKU rename. Scores are observations, not quality gates. |
 | HNSW benchmark | Proposed | Exact full-catalog retrieval is still the comparison baseline; index performance has not been measured. |
 
 The default mode remains semantic. Hybrid is enabled only with `Products:Search:Mode=Hybrid`; it requires both independently ready projections and a successful query embedding. The fixed initial policy takes the top 100 eligible candidates from each branch, uses RRF with `k=60`, prioritizes an eligible exact canonical SKU, and deterministically breaks remaining ties. Hybrid count is the deduplicated bounded union (at most 200), not a full-catalog or relevance count; paging is stable within that pool. These are explicit initial policy choices, not proven optimal tuning.
@@ -362,7 +362,20 @@ MCP (Model Context Protocol) lets an AI client discover and invoke tools such as
 
 The tool sends search text to Products and returns product data. It does not generate its own embeddings, query PostgreSQL directly, or maintain its own index. Non-MCP clients use the same capability.
 
-The tool description defers to the Products server's configured ranked mode: semantic by default, or lexical/hybrid when explicitly selected. It does not promise exact-SKU matching in semantic mode; FullText and Hybrid prioritize an exact eligible SKU. Hybrid requires both indexes and embedding inference, and its results come from a bounded union. Price/brand filters remain available in REST/GraphQL-lite but are not yet arguments on the MCP tool.
+The tool description defers to the Products server's configured ranked mode: semantic by default, or lexical/hybrid when explicitly selected. It does not promise exact-SKU matching in semantic mode; FullText and Hybrid prioritize an exact eligible SKU. Hybrid requires both indexes and embedding inference, and its results come from a bounded union. `search_products` accepts optional category, subcategory, brand, and inclusive USD price filters, plus a result limit; `get_product_search_options` returns the live codes and category/subcategory relationship so clients do not have to guess. The tool combines supplied filters with AND semantics and forwards them to the Products API, which applies them before ranking.
+
+#### Testing MCP search
+
+Keep deterministic tool behavior checks separate from protocol and model evaluation:
+
+| Test level | What it verifies | Run |
+|---|---|---|
+| Direct MCP tool tests | Calls `CommerceTools` directly with a mocked Products HTTP handler; checks query forwarding, special-character handling, combined filters, culture-invariant prices, validation, API failures, live filter options, and the MCP input schema. This does not start the MCP server, database, or embedding model. | `dotnet test samples/aspire/Contoso.Test.Aspire --filter "FullyQualifiedName~ProductSearchToolTests"` |
+| Streamable HTTP protocol E2E | Starts the real Aspire topology, connects through the MCP client SDK, discovers tools and output schemas, then exercises semantic product search and the basket lifecycle through MCP. This verifies the MCP transport and real cross-domain calls, not just the static tool methods. | `dotnet test samples/aspire/Contoso.Test.Aspire --filter "FullyQualifiedName~Contoso_Mcp_FullBasketLifecycle"` |
+
+The E2E fixture migrates/seeds Products, Shopping, and Customers, clears Redis, rebuilds the real-model search projection, and resets Service Bus before starting the hosts. Run it only against disposable local infrastructure; it resets shared local test services. Locally, start the [Compose search profile and install the pinned model](local-dev.md#optional-local-embedding-model) first. CI includes this test in `CoreEx.Samples.Test.E2E.slnf`; the workflow starts the search profile and pulls the model before running Aspire E2E tests.
+
+These tests verify tool behavior when called and the real MCP protocol flow. They do not test whether an LLM chooses to call `search_products` for a natural-language prompt; that is a separate, nondeterministic agent evaluation, not a deterministic CI test.
 
 Search does not resolve authentication or authorization. The sample's existing authentication gaps remain separate concerns.
 
@@ -874,7 +887,9 @@ These files own the implemented behavior and the foundations for later milestone
 | [Database configuration](../src/Contoso.Products.Database/dbex.yaml) | DbEx-owned persistence generation and schema configuration. |
 | [DbContext](../src/Contoso.Products.Infrastructure/Repositories/ProductsDbContext.cs) | Hand-authored EF/Npgsql composition; generated partials remain generator-owned. |
 | [Subscribe host](../src/Contoso.Products.Subscribe/Program.cs) | Existing message receiving/composition foundations. |
-| [MCP tools](../src/Contoso.Mcp/Tools/CommerceTools.cs) | API-only search forwarding and tool description. |
+| [MCP tools](../src/Contoso.Mcp/Tools/CommerceTools.cs) | API-only search forwarding, structured filters, and tool descriptions. |
+| [MCP tool tests](../aspire/Contoso.Test.Aspire/ProductSearchToolTests.cs) | Direct tool behavior, filter forwarding, validation, failures, and tool schema with a mocked Products API. |
+| [MCP protocol E2E](../aspire/Contoso.Test.Aspire/E2ETest.Mcp.cs) | Tool discovery and structured outputs through real Streamable HTTP MCP and the full Aspire topology. |
 | [Compose infrastructure](../../docker-compose.yml) | Pinned PostgreSQL/pgvector image and optional local inference resource. |
 | [Search projection](../src/Contoso.Products.Infrastructure/Repositories/ProductSearchIndex.cs) | Exact distances, readiness, atomic backfill and current-state reconciliation. |
 | [Product-event subscriber](../src/Contoso.Products.Subscribe/Subscribers/ProductSearchSubscriber.cs) | One globbed handler for all product lifecycle notifications. |

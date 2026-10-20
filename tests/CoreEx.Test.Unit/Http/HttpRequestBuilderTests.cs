@@ -1,10 +1,3 @@
-using System.Net;
-using System.Net.Http.Headers;
-using System.Text;
-using System.Text.Json;
-using CoreEx.Data;
-using CoreEx.Http;
-
 namespace CoreEx.Test.Unit.Http;
 
 [TestFixture]
@@ -59,6 +52,29 @@ public class HttpRequestBuilderTests
     }
 
     private static HttpClient CreateClient(HttpMessageHandler handler) => new(handler) { BaseAddress = new Uri("https://example.com/") };
+
+    [Test]
+    public async Task ValidatedBuilder_SharesSingleUseExecution_AndRejectsLateConfiguration()
+    {
+        using var handler = new InspectHandler((_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StringContent("{\"name\":\"Widget\"}", Encoding.UTF8, "application/json")
+        }));
+        using var client = CreateClient(handler);
+        var builder = client.Get("/api");
+        var validator = new WidgetValidator((w, _) => Task.FromResult<CoreEx.Validation.IValidationResult<Widget>>(new WidgetValidationResult(w)));
+        var validated = builder.WithValidator(validator);
+
+        (await validated.GetValueAsync()).Name.Should().Be("Widget");
+        Func<Task> repeatValidated = () => validated.ToResultAsync();
+        Func<Task> repeatBuilder = () => builder.SendAsync();
+        await repeatValidated.Should().ThrowAsync<InvalidOperationException>();
+        await repeatBuilder.Should().ThrowAsync<InvalidOperationException>();
+        Action lateValidator = () => builder.WithValidator(validator);
+        Action lateStatus = () => validated.WithStatusResult(HttpStatusCode.NotFound, CoreEx.Results.Result.NotFoundError());
+        lateValidator.Should().Throw<InvalidOperationException>();
+        lateStatus.Should().Throw<InvalidOperationException>();
+    }
 
     [Test]
     public void Properties_And_ConfigureChaining()
@@ -276,7 +292,7 @@ public class HttpRequestBuilderTests
     }
 
     [Test]
-    public async Task SendValue_SerializesPayload_AndSupportsFluentChaining()
+    public async Task WithJson_SerializesPayload_AndSupportsFluentChaining()
     {
         var payload = new Widget { Name = "PayloadWidget" };
         DisposableResponse? lastResponse = null;
@@ -294,7 +310,7 @@ public class HttpRequestBuilderTests
         });
 
         using var client = CreateClient(handler);
-        var created = await client.SendValue(HttpMethod.Post, "/api/widgets", payload)
+        var created = await client.Post("/api/widgets").WithJson(payload)
             .GetValueAsync<Widget>();
 
         created.Name.Should().Be("CreatedWidget");
@@ -438,7 +454,7 @@ public class HttpRequestBuilderTests
         });
 
         using var client = CreateClient(handler);
-        await client.SendValue(HttpMethod.Put, "/api/widgets/1", new Widget { Name = "test" })
+        await client.Put("/api/widgets/1").WithJson(new Widget { Name = "test" })
             .WithIfNoneMatch("xyz")
             .WithMergePatchJsonContentType()
             .WithPaging(new PagingArgs(5, 15, true))

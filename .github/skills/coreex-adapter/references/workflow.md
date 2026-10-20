@@ -74,7 +74,7 @@ public interface IProductSyncAdapter
 
 Create in `Infrastructure/Clients/{ExternalDomain}/`. One class per external service; one method per remote endpoint.
 
-Use `_httpClient.Send(...)` and `_httpClient.SendValue(...)` to fluently construct requests (adding headers, query parameters, or paging) and execute them. Terminal methods on `HttpRequestBuilder` (`ToResultAsync`, `GetValueAsync<T>`, `GetStringAsync`, etc.) execute the request and **automatically dispose** the underlying `HttpResponseMessage`.
+Use `_httpClient.Send(method, uri)` or the `Get`/`Post`/`Put`/`Patch`/`Delete` shortcuts to construct requests; add JSON with `WithJson(value)` or explicit content with `WithContent(content)`. The builder is single-use (including failures/cancellation), and exactly one body assignment is allowed. Configure headers, query parameters, and paging before execution. `Patch` does not imply JSON Merge Patch. Terminal methods (`ToResultAsync`, `GetValueAsync<T>`, `GetStringAsync`, etc.) execute the request and **automatically dispose** the response (except raw-response terminals).
 
 ### Client class
 
@@ -92,7 +92,8 @@ public class ProductsHttpClient(HttpClient httpClient)
     /// <summary>Creates a new inventory reservation.</summary>
     public Task<Result> CreateReservationAsync(MovementRequest request, CancellationToken ct = default)
         => _httpClient
-            .SendValue(HttpMethod.Post, "api/inventory/reserve", request)
+            .Post("api/inventory/reserve")
+            .WithJson(request)
             .ToResultAsync(ct);
 }
 ```
