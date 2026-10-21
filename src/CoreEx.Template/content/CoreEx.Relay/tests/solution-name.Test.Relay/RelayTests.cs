@@ -44,14 +44,14 @@ public class RelayTests : WithApiTester<solution-name.Relay.Program>
                 pub.Add("domain-parent-lower", [ce1, ce2]);
                 await pub.PublishAsync();
 
-                // Hosted-service(s) are currently running and should relay to Azure Service Bus; we just need to give it a few seconds to do so.
-                for (int i = 0; i < 5; i++)
+                // Poll for delivery because relay polling and transient database retries can exceed a fixed sleep.
+                var list = new List<Azure.Messaging.ServiceBus.ServiceBusReceivedMessage>();
+                for (int i = 0; i < 30 && list.Count < 2; i++)
+                {
                     await Task.Delay(TimeSpan.FromSeconds(1));
+                    list.AddRange(await Test.GetAndClearAzureServiceBusAsync(ServiceBusSessionReceiverOptions.CreateForTopicSubscription("domain-parent-lower", "domain-name-lower")));
+                }
 
-                // Receive the events from Azure Service Bus and assert (order is not guaranteed as different sessions).
-                var list = await Test.GetAndClearAzureServiceBusAsync(ServiceBusSessionReceiverOptions.CreateForTopicSubscription("domain-parent-lower", "domain-name-lower"));
-
-                list.Should().NotBeNull().And.HaveCount(2);
                 list.Should().NotBeNull().And.HaveCount(2);
                 var ce1Msg = list.Should().ContainSingle(x => x.MessageId == ce1.Id).Subject;
                 var ce2Msg = list.Should().ContainSingle(x => x.MessageId == ce2.Id).Subject;

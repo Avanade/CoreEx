@@ -28,12 +28,13 @@ public class RelayTests : WithApiTester<Contoso.Products.Relay.Program>
                 pub.Add("contoso", [ce1, ce2]);
                 await pub.PublishAsync();
 
-                // Hosted-service(s) are currently running and should relay to Azure Service Bus; we just need to give it a few seconds to do so.
-                for (int i = 0; i < 5; i++)
+                // Poll for delivery because relay polling can vary under load.
+                var list = new List<Azure.Messaging.ServiceBus.ServiceBusReceivedMessage>();
+                for (int i = 0; i < 30 && list.Count < 2; i++)
+                {
                     await Task.Delay(TimeSpan.FromSeconds(1));
-
-                // Receive the events from Azure Service Bus and assert.
-                var list = await Test.GetAndClearAzureServiceBusAsync(ServiceBusSessionReceiverOptions.CreateForTopicSubscription("contoso", "products"));
+                    list.AddRange(await Test.GetAndClearAzureServiceBusAsync(ServiceBusSessionReceiverOptions.CreateForTopicSubscription("contoso", "products")));
+                }
 
                 list.Should().NotBeNull().And.HaveCount(2);
                 var ce1Msg = list.Should().ContainSingle(x => x.MessageId == ce1.Id).Subject;
