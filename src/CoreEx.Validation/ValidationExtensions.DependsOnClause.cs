@@ -14,4 +14,18 @@ public static partial class ValidationExtensions
     /// <remarks>Represents a depends on clause; in that specified property (<paramref name="dependsOnPropertyExpression"/>) of the entity must have a non-default value, and not have a validation error, to continue.</remarks>
     public static IPropertyRule<TEntity, TProperty> DependsOn<TEntity, TProperty, TDependsOnProperty>(this IPropertyRule<TEntity, TProperty> rule, Expression<Func<TEntity, TDependsOnProperty>> dependsOnPropertyExpression) where TEntity : class
         => AddClause(rule, new DependsOnClause<TEntity, TProperty, TDependsOnProperty>(dependsOnPropertyExpression.ThrowIfNull()));
+
+    /// <summary>
+    /// Adds a depends on expression with an additional predicate (<see cref="DependsOnClause{TEntity, TProperty, TDependsOnProperty}"/>) clause to the existing <paramref name="rule"/>.
+    /// </summary>
+    /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
+    /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
+    /// <typeparam name="TDependsOnProperty">The depends on property <see cref="Type"/>.</typeparam>
+    /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
+    /// <param name="dependsOnPropertyExpression">The depends on property expression.</param>
+    /// <param name="andAlso">The predicate evaluated when the dependent property has a non-default value and no validation error; returning <see langword="false"/> skips the rule.</param>
+    /// <returns>The <paramref name="rule"/> to support fluent-style method-chaining.</returns>
+    /// <remarks>The specified property must have a non-default value and no validation error, and <paramref name="andAlso"/> must return <see langword="true"/>, for the rule to continue.</remarks>
+    public static IPropertyRule<TEntity, TProperty> DependsOn<TEntity, TProperty, TDependsOnProperty>(this IPropertyRule<TEntity, TProperty> rule, Expression<Func<TEntity, TDependsOnProperty>> dependsOnPropertyExpression, Func<TDependsOnProperty, bool> andAlso) where TEntity : class
+        => AddClause(rule, new DependsOnClause<TEntity, TProperty, TDependsOnProperty>(dependsOnPropertyExpression.ThrowIfNull()) { AndAlso = andAlso.ThrowIfNull() });
 }

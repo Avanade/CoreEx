@@ -55,6 +55,7 @@ Guides you through creating or modifying a CoreEx validator (`Application/Valida
 - Runtime-computed thresholds: use delegate overloads (`.LessThanOrEqualTo(_ => ...)`) — prefer over `OnValidateAsync` imperative logic
 - `context.HasErrors` guard before async I/O; `context.HasError(x => x.Prop)` for per-property guards
 - `context.AddError(x => x.Prop, ...)` — member-access expression, never `nameof(...)`
+- Conditional rules on a dependency: `.DependsOn(x => x.Other, value => predicate)` skips its attached rule when the dependency is default/invalid and otherwise runs it only when the predicate is true. Clauses guard the rule they are attached to; use another `Property(...)` call for a separate root rule chain. Use `.WhenEntity(...)` for conditions based on broader entity state.
 - Message text argument is a `{2}` suffix substitution — not a full sentence; use `.Error("...")` to override the whole message
 - **Always generate or update the matching `{Validator}Tests`** in `*.Test.Unit/Validators/` — cover conditional/business rules and cross-field logic thoroughly, plus a representative error/success pair for simple rules; skip dedicated boundary tests for framework-guaranteed constraints like length rules (`MaximumLength`/`MinimumLength`/`Length`/`String`)
 

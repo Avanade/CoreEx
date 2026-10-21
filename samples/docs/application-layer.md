@@ -148,6 +148,16 @@ public class MovementRequestValidator : Validator<Contracts.MovementRequest>
 }
 ```
 
+When a property's rules depend on a condition of the dependency itself, use the predicate overload to combine the non-default/valid dependency guard with that condition:
+
+```csharp
+Property(x => x.FareClass)
+    .Mandatory()
+    .DependsOn(x => x.SegmentType, segmentType => segmentType!.IsFlight);
+```
+
+This makes `FareClass` mandatory only when `SegmentType` is valid and represents a flight. For conditions based on other entity properties, use `WhenEntity(...)`; the `DependsOn` predicate is intentionally scoped to the dependent property's value.
+
 > **See also**: [`Validator<T>`](../../src/CoreEx.Validation/Validator.cs) · [`IValidatorEx`](../../src/CoreEx.Validation/IValidatorEx.cs)
 
 ---

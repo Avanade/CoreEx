@@ -52,7 +52,7 @@ Clauses are conditional guards that run _before_ the rule body. When a clause re
 
 | Clause Class | Description | Extensions |
 |---|---|---|
-| **[`DependsOnClause<TEntity, TProperty, TDependsOnProperty>`](./Clauses/DependsOnClause.cs)** | Skips the rule when a specified sibling property has its default value or has already reported a validation error. | `DependsOn(Expression<Func<TEntity, TDependsOnProperty>>)` |
+| **[`DependsOnClause<TEntity, TProperty, TDependsOnProperty>`](./Clauses/DependsOnClause.cs)** | Skips the rule when a specified sibling property has its default value or has already reported a validation error; an optional predicate can further condition execution on that property's value. | `DependsOn(expression)`, `DependsOn(expression, predicate)` |
 | **[`WhenClause<TEntity, TProperty>`](./Clauses/WhenClause.cs)** | Skips the rule when a boolean condition or async predicate evaluates to `false`. | `When(bool)`, `When(Func<bool>)`, `When(Func<PropertyContext,bool>)`, `When(PredicateAsync)`, `WhenValue(Predicate<TProperty>)`, `WhenHasValue()`, `WhenEntity(Predicate<TEntity>)` |
 
 ## Rules

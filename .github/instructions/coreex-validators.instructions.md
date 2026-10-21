@@ -158,7 +158,7 @@ The table above lists the most common rules; the full set of fluent extension me
 | Dictionaries | `Dictionary(...)` (with `WithKeyValidator(...)` / `WithValueValidator(...)`) |
 | Child / shared / external | `Entity(validator)` (child entity), `Common(commonValidator)` (shared value rules), `Interop(validator)` (external/FluentValidation) |
 | Always-error (guard with a clause) | `Error(text)`, `Duplicate()`, `NotFound()`, `Invalid()`, `Immutable()` |
-| Clauses (conditional execution) | `When(...)`, `WhenValue(pred)`, `WhenHasValue()`, `WhenEntity(pred)`, `DependsOn(x => x.Other)` |
+| Clauses (conditional execution) | `When(...)`, `WhenValue(pred)`, `WhenHasValue()`, `WhenEntity(pred)`, `DependsOn(x => x.Other)` / `DependsOn(x => x.Other, value => predicate)` |
 
 > **`Mandatory()` on a non-nullable value type checks `default`, not just null.** `Mandatory()` defaults to `mustNotBeDefault: true`, so on a non-nullable value type it **errors when the value equals `default(T)`** — `0` for `decimal`/`int`, `DateOnly.MinValue` for `DateOnly`, etc. (On a **nullable** type — `decimal?`, `DateOnly?` — it errors only on `null`, since a supplied `0` is non-default.) Implications:
 > - **Do not use `Mandatory()` on a non-nullable value type where the default is a legitimate value** (e.g. a `decimal Salary` where `0` is allowed) — it will wrongly reject `0`. Use a range rule instead, e.g. `GreaterThanOrEqualTo(0)` (allows `0`) or `GreaterThan(0)` (requires positive). To require presence *without* the default-check, pass `Mandatory(mustNotBeDefault: false)`.
@@ -317,9 +317,9 @@ public partial string? SubCategoryCode { get; set; }
 // Produces: "Sub-category is required." (not "SubCategoryCode is required.")
 ```
 
-## DependsOn for Conditional Precision
+## DependsOn for Conditional Rules and Precision
 
-Use `.DependsOn(x => x.OtherProp)` to skip a rule when a dependent property is already invalid. This prevents misleading cascading errors:
+Use `.DependsOn(x => x.OtherProp)` to skip a rule when a dependent property is unset/default or already invalid. This prevents misleading cascading errors:
 
 ```csharp
 Property(x => x.Quantity, c => c
@@ -329,6 +329,19 @@ Property(x => x.Quantity, c => c
         ctx => ctx.Entity.UnitOfMeasure!.Scale)
     .DependsOn(x => x.UnitOfMeasure));
 ```
+
+The predicate overload adds a condition over the dependent property's value. The rule runs only when that property is non-default, has no validation error, **and** the predicate returns `true`:
+
+```csharp
+// FareClass is required only when the valid SegmentType is a flight.
+Property(x => x.FareClass)
+    .Mandatory()
+    .DependsOn(x => x.SegmentType, segmentType => segmentType!.IsFlight);
+```
+
+This is a good fit when the condition is naturally about the dependency itself. For a nullable dependency, `!` is justified in the predicate: `DependsOn` invokes it only after the dependency is non-default and has no validation error, though nullable flow analysis cannot infer that guard. The null-forgiving operator only affects compile-time analysis; it does not change validation behavior. Clauses apply to the rule they are attached to: in this example, both clauses guard `.Mandatory()`, so non-flight, unset, or invalid `SegmentType` values skip that mandatory check. Use `.WhenEntity(...)` when the condition needs other entity state or is not about the dependency value; do not replace a dependency guard if you also need its invalid-state short-circuit behavior.
+
+Use another `Property(x => x.SameProperty)` call to start a separate root rule chain for the same property when different rules need different conditions. This is a separate chain, not an isolated validation transaction: if an earlier chain reports an error for that property, later chains may be skipped by the existing-error guard.
 
 ## Do Not
 
