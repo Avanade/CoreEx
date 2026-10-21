@@ -66,6 +66,8 @@ public sealed class Basket : Aggregate<string, Basket>
 
 ### Factory Methods
 
+Where parameters or value-object properties use concrete reference-data types, callers can pass code strings directly via generated implicit conversion. Do not add conversion-only helpers or weaken typed parameters to strings to accommodate mapping. See [Reference-Data Code Conversion](/.github/instructions/coreex-contracts.instructions.md#reference-data-code-conversion) for resolution, nullability and validation semantics.
+
 Provide two factory methods per aggregate:
 
 - `CreateNew(...)` — constructs a new aggregate with a generated ID, initial state, and calls `.AsNew()` to mark it as `PersistenceState.New`.

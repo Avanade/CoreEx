@@ -54,6 +54,7 @@ Guides you through creating or modifying a CoreEx Infrastructure-layer repositor
 - `AddReferenceDataField<TRef>(field, model, ...)`: `field` is always the contract's generated nav property (`{Name}`, never `{Name}Code`) — a fixed, documented source-generator convention, **not** something to verify by exploring generated code
 - `ToMappedItemsResultAsync(mapper, paging, cancellationToken: cancellationToken)`: always pass `cancellationToken` **by name** — `autoCount` (`bool`, defaults `true`) sits before it in the signature, and a bare positional token there fails to compile
 - Always `.ConfigureAwait(false)` on every `await`
+- In mappings, pass stored codes directly to concrete reference-data parameters/properties (`Currency = source.CurrencyCode`); do not add `RefData<T>` helpers or conversion-only lookups. See [conversion semantics](/.github/instructions/coreex-contracts.instructions.md#reference-data-code-conversion).
 
 For full workflow and code examples see [`references/workflow.md`](references/workflow.md).
 

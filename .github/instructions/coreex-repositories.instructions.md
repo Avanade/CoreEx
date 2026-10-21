@@ -373,6 +373,8 @@ public Task<Result<Domain.Basket>> CreateAsync(Domain.Basket basket, Cancellatio
 
 ## Mapping
 
+For concrete typed reference-data destinations and factory parameters, pass stored code strings directly (`Currency = source.CurrencyCode`, `CreateFrom(..., source.StatusCode, ...)`); use the generated implicit conversion, not custom `RefData<T>` helpers or conversion-only collection lookups. Map contracts through their annotated `XxxCode` properties. See [Reference-Data Code Conversion](/.github/instructions/coreex-contracts.instructions.md#reference-data-code-conversion) for null, resolution and validation semantics.
+
 For collection projections through `.To.Map` / `.From.Map`, follow [Mapper Projection Nullability](/.github/instructions/coreex-conventions.instructions.md#mapper-projection-nullability).
 
 > **GlobalUsing requirement:** Mappers are declared in the `<Domain>.Infrastructure.Mapping` namespace but referenced elsewhere in the project (repositories, adapters, `*EfDb`). Whenever you add a Contract ↔ Persistence mapper, ensure `global using <Domain>.Infrastructure.Mapping;` is present in the Infrastructure project's `GlobalUsing.cs` — add it if missing. This prevents avoidable compilation errors when other classes reference the mapper (e.g. `ProductMapper.Default`).

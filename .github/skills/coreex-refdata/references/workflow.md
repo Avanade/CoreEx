@@ -242,6 +242,7 @@ public partial string? BrandCode { get; set; }
 ```
 
 3. Rebuild — the Roslyn generator emits the typed `Brand` navigation property automatically. Do not hand-author it.
+4. Set `BrandCode` when mapping/arranging DTOs and use `Brand` for typed behavior. For a concrete typed destination, use `Contracts.Brand? brand = source.BrandCode`; no helper or null guard is needed. Follow [Reference-Data Code Conversion](/.github/instructions/coreex-contracts.instructions.md#reference-data-code-conversion) and validate separately.
 
 ---
 
