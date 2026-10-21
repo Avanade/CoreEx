@@ -4,6 +4,7 @@
 
     .DESCRIPTION
     Packs all supported target frameworks regardless of CoreExLocalTargetFramework.
+    Builds before packing, overriding GeneratePackageOnBuild so existing binaries are not reused without a build.
     Uses Release by default; the Visual Studio configuration does not affect this script.
     Preserves existing packages except when replacing the same package filename.
     Remote publishing uploads only packages produced by this invocation.
@@ -27,7 +28,8 @@
     List of projects to Build and publish.
 
     .PARAMETER DeleteFromlocalCache
-    Should the newly built packages be deleted from tle Nuget Cache Folder.
+    Removes matching newly packed package versions from the local NuGet cache by default.
+    Pass -DeleteFromlocalCache:$false to preserve cached copies.
 
     .PARAMETER NugetCacheFolder
     Path to Nuget Cache folder.
@@ -51,7 +53,7 @@ param(
     [switch]$IncludeSource,
     [string]$NugetServer,
     [string]$ApiKey,
-    [switch]$DeleteFromlocalCache,
+    [switch]$DeleteFromlocalCache = $true,
     [string]$NugetCacheFolder = "$($env:USERPROFILE)\.nuget\packages",
     [String[]]$ProjectsToPublish = @(
         "src\CoreEx",
@@ -85,11 +87,11 @@ if (!(Test-Path -Path $publishFolder)) {
 
 $stagingFolder = Join-Path ([IO.Path]::GetTempPath()) ("CoreEx-nuget-publish-" + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $stagingFolder -ErrorAction Stop | Out-Null
-$packageDetailsRegexp = [regex] '(?<name>.*?)\.(?<version>\d*\.\d*\.\d*\.\d*.*)(?<!\.symbols)$'
+$packageDetailsRegexp = [regex] '^(?<name>.+?)\.(?<version>\d+\.\d+\.\d+(?:\.\d+)?(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?)$'
 
 try {
     foreach ($project in $projectsToPublish) {
-        $packArguments = @('pack', $project, '-o', $stagingFolder, '-c', $configuration, '-p:CoreExLocalTargetFramework=', '--force')
+        $packArguments = @('pack', $project, '-o', $stagingFolder, '-c', $configuration, '-p:CoreExLocalTargetFramework=', '-p:GeneratePackageOnBuild=false', '--force')
         if ($IncludeSource) { $packArguments += '--include-source' }
         if ($IncludeSymbols) { $packArguments += '--include-symbols' }
 

@@ -129,6 +129,8 @@ The [Pattern Catalog](./samples/docs/patterns.md) is the best entry point: it in
 
 ## Build and Package Status
 
+**Contributor SDK:** Install the stable .NET SDK specified in [`global.json`](./global.json) (10.0.402, with servicing patches in the same feature band allowed). Local builds, CI and [`nuget-publish.ps1`](./nuget-publish.ps1) use this SDK; preview SDKs installed alongside it are not selected. Run `dotnet --version` from the repository root to confirm. Publishing still packs all supported target frameworks in Release. Update the SDK baseline in `global.json` when adopting a newer feature band; CI installs that baseline automatically.
+
 The build status is [![CI](https://github.com/Avanade/CoreEx/actions/workflows/CI.yml/badge.svg)](https://github.com/Avanade/CoreEx/actions/workflows/CI.yml) with the NuGet package status as follows, including links to the underlying source code and documentation:
 
 Project/Package | Description | Source
