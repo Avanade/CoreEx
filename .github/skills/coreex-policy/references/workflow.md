@@ -18,6 +18,7 @@ Full workflow for creating or modifying a CoreEx Application-layer policy class 
 |---|---|---|
 | What entity is guarded? | Ask | Names the policy and its methods |
 | Guard type? | EnsureExists | EnsureExists / business rule / state check |
+| Identifier's role? | Resolve from operation | Target resource/explicit child → 404; body reference → field validation (400); query filter → normally empty results |
 | Returns entity or pass/fail? | Returns entity | `Result<Contracts.T>` lets callers reuse loaded data; `Result` for pure pass/fail |
 | Adapter or repository dependency? | Ask | Inject whatever is already available in the calling service |
 | Multiple guard methods in one class? | No | Group when they share the same dependency |
@@ -52,28 +53,44 @@ public class {Name}Policy(I{Name}Repository repository)
 
 ## Step 2 — EnsureExists Guard (most common)
 
-Fetch the entity via the adapter and handle the `NotFoundError`. **How you translate it is a developer choice** — two patterns, different trade-offs:
+Fetch the entity via the adapter and interpret the expected lookup outcome according to the identifier's role in the operation. This is not an arbitrary status-code choice; apply [Not Found Handling](/.github/instructions/coreex-application-services.instructions.md#not-found-handling).
 
 | Pattern | HTTP status | When to use |
 |---|---|---|
-| `Result.ValidationError(...)` | 400 | The `id` is a **property on the request body** — links the error to the field, consistent with other validation errors, allows aggregation |
-| `new NotFoundException().WithErrorCode(...)` | 404 | The `id` is a **path/query parameter** (primary resource), or the caller needs a machine-readable error code to branch on |
+| `Result.ValidationError(...)` | 400 | A request-body property references a nonexistent entity — attach the error to that input field |
+| `Result.NotFoundError(...)` / `NotFoundException` | 404 | The operation's target resource or explicitly addressed child does not exist |
 
-`CreateErrorMessage(string? property, LText text)` — first arg is the **JSON property name** (`nameof(param)` or a string literal, never `LText`); second arg is the **localizable error message text**.
+For example, `/bookings/{id}/travellers/{travellerId}` explicitly targets a child; an unknown `travellerId` in the body of `POST /bookings/{id}/travellers` is instead an invalid reference. Query parameters often filter collections: no matches normally means an empty result, while invalid query inputs follow the endpoint's validation contract. Preserve deliberate idempotent-delete and security-concealment behavior.
 
-### Validation error (request-body property reference) — default for most policies
+Translate only an expected entity-not-found result; other failures propagate unchanged. A downstream HTTP 404 may indicate an incorrect route or deployment/configuration problem rather than a missing entity. Do not turn those failures into caller validation. Machine-readable codes enrich the selected error type; they never justify selecting 404 or a business error for a missing body reference.
+
+When the owning request contract is known, prefer `Result.ValidationError<Request>(x => x.ProductId, "Product was not found.")`. Expressions identify the caller's input field, not the fetched entity's `Id`. For aggregation, use `MessageItem.CreateErrorMessage<Request>(x => x.ProductId, text)`; omitted/null text infers the standard invalid message from the property's friendly metadata label. Explicit naming options are supported as `(expression, options, text)`, and preformatted `LText` carries message arguments.
+
+Reusable policies that receive only an identifier need not depend on a request DTO. `CreateErrorMessage(string? property, LText text)` accepts an already-resolved JSON path as its first argument, not a naming expression. `nameof(param)` supplies only a CLR parameter name; it does not honor JSON attributes or naming policies. The examples below assume the caller's JSON field is explicitly agreed to be `"id"`; use a caller-supplied resolved path when the policy is reused for different fields.
+
+### Validation error (request-body property reference)
+
+When the policy already knows the owning request contract, the result value and request-property owner can differ:
+
+```csharp
+return lookup.IsNotFoundError
+    ? Result<Contracts.{Name}>.ValidationError<{Request}>(x => x.{ReferenceId}, "{Name} was not found.")
+    : lookup;
+```
+
+Here `lookup` is `Result<Contracts.{Name}>`, not a nullable entity: unrelated failures remain unchanged. The expression type is the request contract, not the returned entity. With a nullable lookup, check null instead. Inside validators use `context.AddError(...)` to preserve contextual paths. For a reusable policy with the agreed JSON path `"id"`:
 
 ```csharp
 public Task<Result<Contracts.{Name}>> EnsureExistsAsync(string id) => Result
     .GoAsync(() => _{dep}Adapter.GetAsync(id))
     .OnFailure(r => r.IsNotFoundError
-        ? Result.ValidationError(MessageItem.CreateErrorMessage(nameof(id), "{0} was not found.", _entityText))
+        ? Result.ValidationError(MessageItem.CreateErrorMessage("id", "{0} was not found.", _entityText))
         : r);
 ```
 
 `OnFailure` runs only when the result is a failure. The ternary re-maps `NotFoundError` to a validation error; any other failure kind propagates unchanged (the `: r` branch).
 
-### NotFoundException with context (path parameter / primary resource)
+### NotFoundException with context (target resource / explicitly addressed child)
 
 ```csharp
 public Task<Result<Contracts.{Name}>> EnsureExistsAsync(string id) => Result
@@ -83,7 +100,7 @@ public Task<Result<Contracts.{Name}>> EnsureExistsAsync(string id) => Result
         : r);
 ```
 
-`WithErrorCode` gives the consumer a stable, machine-readable code; `WithKey` records the offending identifier for diagnostics.
+An existing target-not-found result may propagate unchanged; enrichment is optional. `WithErrorCode` gives the consumer a stable, machine-readable code; `WithKey` records the offending identifier for diagnostics. Neither changes which failure classification is appropriate.
 
 ---
 
@@ -115,7 +132,7 @@ public Task<Result> EnsureActiveAsync(string id) => Result
         : Result.Success);
 ```
 
-**`Result.BusinessError` vs `Result.ValidationError`:** use `BusinessError` for domain/state violations that the user understands as a process rule ("entity is no longer available"), and `ValidationError` for constraint violations tied to a specific input field ("Product was not found").
+**`Result.BusinessError` vs `Result.ValidationError`:** use `BusinessError` for domain/state violations that the user understands as a process rule ("entity is no longer available"), unless specific conflict/concurrency or authorization semantics apply. Use field-level `ValidationError` for invalid input references ("Product was not found"), not a business error merely to retain an error code.
 
 ---
 
@@ -134,16 +151,16 @@ public class {Name}Policy(I{Dep}Adapter {dep}Adapter)
     public Task<Result<Contracts.{Name}>> EnsureExistsAsync(string id) => Result
         .GoAsync(() => _{dep}Adapter.GetAsync(id))
         .OnFailure(r => r.IsNotFoundError
-            ? Result.ValidationError(MessageItem.CreateErrorMessage(nameof(id), "{0} was not found.", _entityText))
+            ? Result.ValidationError(MessageItem.CreateErrorMessage("id", "{0} was not found.", _entityText))
             : r);
 }
 ```
 
 **Two-argument vs three-argument `CreateErrorMessage`:**
-- `CreateErrorMessage(nameof(id), "{Name} was not found.")` — the whole message is one `LText`; the entity name is baked in. Simple, but the entity name cannot be independently localized.
-- `CreateErrorMessage(nameof(id), "{0} was not found.", _entityText)` — the format string is an `LText` and the entity name is a separately localizable `LText` argument. Preferred when the entity name is a shared concept.
+- `CreateErrorMessage("id", "{Name} was not found.")` — the whole message is one `LText`; the entity name is baked in. Simple, but the entity name cannot be independently localized.
+- `CreateErrorMessage("id", "{0} was not found.", _entityText)` — the format string is an `LText` and the entity name is a separately localizable `LText` argument. Preferred when the entity name is a shared concept.
 
-**The property name is always `string?`** — `nameof(param)` for a local parameter, or a string literal for a fixed JSON path. Never pass `LText` as the property argument.
+**For explicit-path overloads, the property path is `string?`, never `LText`.** For expression overloads, runtime metadata resolves the JSON path automatically. Neither requires changing a reusable policy's dependencies.
 
 ---
 
@@ -160,11 +177,11 @@ public class {Name}Policy(I{Dep}Adapter {dep}Adapter)
     private readonly I{Dep}Adapter _{dep}Adapter = {dep}Adapter.ThrowIfNull();
 
     /// <summary>Ensures the {Name} exists; returns the loaded entity for reuse by the caller.</summary>
-    /// <remarks>Uses ValidationError because {Name}Id is a request-body property; swap for NotFoundException if it is a path parameter.</remarks>
+    /// <remarks>Checks a request-body reference using the agreed JSON path "id"; missing target resources have different semantics.</remarks>
     public Task<Result<Contracts.{Name}>> EnsureExistsAsync(string id) => Result
         .GoAsync(() => _{dep}Adapter.GetAsync(id))
         .OnFailure(r => r.IsNotFoundError
-            ? Result.ValidationError(MessageItem.CreateErrorMessage(nameof(id), "{0} was not found.", _entityText))
+            ? Result.ValidationError(MessageItem.CreateErrorMessage("id", "{0} was not found.", _entityText))
             : r);
 
     /// <summary>Ensures the {Name} is in active state.</summary>
@@ -235,10 +252,10 @@ if (pr.IsFailure)
 1. `dotnet build` — no errors or warnings.
 2. Verify the policy lives in `Application/Policies/` and is **not** added to DI.
 3. Verify call sites use `new {Name}Policy(_{dep}).MethodAsync(...)` — never inject via constructor.
-4. Verify `NotFoundError` is translated to `ValidationError` — not allowed to propagate as a 404.
+4. Verify missing body references produce field-level validation errors, missing targets retain not-found semantics, and unrelated failures propagate unchanged. Cover the agreed JSON path and deliberately retained endpoint semantics.
 5. **Generate a matching unit test class** — always create `*.Test.Unit/Policies/{Name}PolicyTests.cs`. Policies have no infrastructure dependencies at test time (all I/O is mocked via the adapter/repository interface), making them ideal unit-test targets. Use `WithGenericTester<EntryPoint>` as the base class and `Test.Scoped(async test => ...)` to wrap each test body, consistent with other unit tests in the project.
 
-### EnsureExists guard test
+### EnsureExists guard test (request-body reference)
 
 ```csharp
 public class {Name}PolicyTests : WithGenericTester<EntryPoint>
@@ -321,7 +338,7 @@ public void {Name}Policy_EnsureActiveAsync_Active_ReturnsSuccess() => Test.Scope
 ## Guardrails
 
 - **Never register a policy in DI** — instantiate at call site only. If you find yourself registering `I{Name}Policy`, stop and reconsider.
-- **Never let `NotFoundException` propagate** from an EnsureExists method — translate it to either `ValidationError` (HTTP 400, for request-body property references) or a richer `NotFoundException` with `WithErrorCode`/`WithKey` (HTTP 404, for path/query parameters) — see Step 2 for the decision.
+- **Interpret missing entities by their role, not URI location or error-code needs** — translate expected missing body references to field-level validation; preserve missing-target not-found results and unrelated failures. Do not require enrichment just to propagate a valid 404; see Step 2.
 - **`Result.BusinessError` for process/state violations; `Result.ValidationError` for field-constraint violations** — do not use `BusinessError` to signal a missing entity.
 - **Return `Result<T>` (entity)** when the caller needs the loaded value; return `Result` (pass/fail) only when the entity is not needed downstream — this avoids a duplicate fetch in the service.
 - **Always `.ConfigureAwait(false)` on every `await`** — policy methods run in service context where thread-pool continuations matter.

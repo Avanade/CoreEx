@@ -35,6 +35,8 @@ public partial class Product : ModelBase<string>, ILogicallyDeleted
 
 Repository implementations live in `Repositories/` and implement the `IXxxRepository` interfaces declared in the Application layer. They use CoreEx's `EfDb<TContext>` abstraction, which provides strongly-typed, mapper-aware access patterns (`GetAsync`, `CreateAsync`, `UpdateAsync`, `DeleteAsync`, `Query`) built on top of EF Core, adding CoreEx's `DataResult<T>` return semantics, change-tracking integration, and query filtering support.
 
+These mutation outcomes survive Domain mapping and ROP: Shopping's BasketRepository returns `Result<DataResult<Domain.Basket>>` for Create/Update and maps with `.ThenAs(dr => dr.Map(value => BasketMapper.Map(value)))`, not an implicit conversion to the aggregate. `Map` transforms the value even on a no-op and preserves `WasMutated`; the lambda retains CoreEx's conditional mapper nullability guarantee. Delete repositories retain `DataResult`/`Result<DataResult>`. The flag must represent the complete parent/child operation; Shopping explicitly marks the parent modified when synchronizing items, preserving aggregate-wide mutation tracking. Application decides whether to announce the mutation before unwrapping the value. This is a provider mutation signal; transaction commit still determines the atomic outcome.
+
 ```csharp
 // samples/src/Contoso.Products.Infrastructure/Repositories/ProductRepository.cs
 [ScopedService<IProductRepository>]

@@ -10,6 +10,10 @@ Provides DDD building blocks: aggregate roots (with integration events), typed e
 
 ## Aggregate Root
 
+Domain business invariants (aggregate, child entity, and value object) use `BusinessException` / `Result.BusinessError`, not request-validation errors. Keep meaningful domain messages/codes without request DTO dependencies or JSON paths. Application validators/policies own input validation and may selectively map a known domain failure to a request field; never blanket-convert business errors. Both normally map to HTTP 400, but semantics and diagnostics differ. Domain enforcement is still needed after request validation.
+
+Exception versus `Result` is independent: constructors/setters may throw business exceptions; result-returning methods generally return business failures. `OnCheckCanMutate` rejection throws through `Modify`/`Remove` internally. Keep argument/invalid-operation exceptions for programming misuse; general numeric/ref-data guard helpers throw those types, not business errors, so use explicit checks for expected business invariant rejections without changing shared helper behavior.
+
 `Aggregate<TId, TSelf>` is an `Entity<TId, TSelf>` with an `Events` collection for accumulating integration events. The aggregate owns its invariants; the application service is responsible for forwarding any accumulated events to `IUnitOfWork.Events` after a successful repository operation.
 
 ```csharp
@@ -39,16 +43,18 @@ In the application service, events are added to `IUnitOfWork.Events` after the r
 return await _unitOfWork.TransactionAsync(async () =>
 {
     var ur = await _repository.UpdateAsync(basket).ConfigureAwait(false);
-    return ur.ThenAs(b =>
+    return ur.ThenAs(dr =>
     {
-        var contract = BasketMapper.Map(b);
-        _unitOfWork.Events.Add(EventData.CreateEventWith(contract, EventAction.CheckedOut));
+        var contract = BasketMapper.Map(dr.Value);
+        dr.WhereMutated(_ => _unitOfWork.Events.Add(EventData.CreateEventWith(contract, EventAction.CheckedOut)));
         return contract;
     });
 }).ConfigureAwait(false);
 ```
 
 > `Aggregate<TId, TSelf>` also exposes `AddEvent` / `ClearEvents` for cases where the aggregate itself needs to accumulate events internally, but this is not the primary pattern used in the sample domains.
+
+Domain repositories retain persistence metadata: Create/Update return `Result<DataResult<Domain.Basket>>` (or non-ROP `DataResult<Domain.Basket>`), Delete returns `Result<DataResult>`/`DataResult`, and reads keep their existing shapes. Map persistence values with the original `WasMutated` flag; only unwrap after Application gates mutation-announcement events. A successful no-op emits no mutation event even when the aggregate had changes or an earlier read found it. The flag covers the aggregate operation but is not a commit/exactly-once guarantee; commands have separate semantics.
 
 ## Entity Base
 

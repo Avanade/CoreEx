@@ -85,6 +85,12 @@ Rules apply the actual validation logic to a property value. Each rule class is 
 | **[`StringRule<TEntity>`](./Rules/StringRule.cs)** | Validates string length (min/max), regex pattern matching, or an exact length. | `String(maxLength)`, `String(min, max, regex)`, `Matches(regex)`, `Length(exact)`, `MinimumLength()`, `MaximumLength()` |
 | **[`WildcardRule<TEntity>`](./Rules/WildcardRule.cs)** | Validates that a `string` conforms to a CoreEx `Wildcard` pattern. | `Wildcard()`, `Wildcard(wildcard)` |
 
+## Dictionary Error Paths
+
+JSON error paths follow the effective `JsonSerializerOptions.DictionaryKeyPolicy` for string keys, for both key and value errors. With CoreEx defaults, key `HomeAddress` produces `addresses.homeAddress.street`; a null key policy preserves `HomeAddress`. Property segments independently use their metadata/`PropertyNamingPolicy`. Explicit validation options take precedence over `JsonDefaults.SerializerOptions`. Non-string keys keep their existing string representation.
+
+CLR paths (`UseJsonNames = false`) and `GetDictionaryKey()` retain the original key. The expression-based `ValidationException.Create<TEntity>` factories follow the same JSON naming rules. Dictionary entries use `.key` and collection elements use `[index]`; these are validation error paths, not full JSONPath expressions, and no escaping is added.
+
 ## Namespaces
 
 | Namespace | Description | Documentation |

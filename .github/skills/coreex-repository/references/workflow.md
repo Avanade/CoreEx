@@ -376,34 +376,37 @@ Use when the project has elected to use `Result<T>` pipelines for explicit failu
 
 ```csharp
 // Get — Persistence → Domain via mapper
-public Task<Result<Domain.{Name}>> GetAsync(string id) => Result
-    .GoAsync(() => _ef.{Name}s.GetWithResultAsync(id))
+public Task<Result<Domain.{Name}>> GetAsync(string id, CancellationToken cancellationToken = default) => Result
+    .GoAsync(() => _ef.{Name}s.GetWithResultAsync(id, cancellationToken))
     .ThenAs(model => {Name}Mapper.Map(model));
 
 // Create — Domain → Persistence → Domain via into-mapper + create
-public Task<Result<Domain.{Name}>> CreateAsync(Domain.{Name} value) => Result
+public Task<Result<DataResult<Domain.{Name}>>> CreateAsync(Domain.{Name} value, CancellationToken cancellationToken = default) => Result
     .Go(() =>
     {
         var model = new Persistence.{Name}();
         {Name}IntoMapper.MapInto(value, model);
         return model;
     })
-    .ThenAsAsync(model => _ef.{Name}s.CreateWithResultAsync(model))
-    .ThenAs(m => {Name}Mapper.Map(m));
+    .ThenAsAsync(model => _ef.{Name}s.CreateWithResultAsync(model, cancellationToken))
+    .ThenAs(dr => dr.Map(value => {Name}Mapper.Map(value)));
 
 // Update — load model, apply into-mapper, save, map back
-public Task<Result<Domain.{Name}>> UpdateAsync(Domain.{Name} value) => Result
-    .GoAsync(() => _ef.{Name}s.GetWithResultAsync(value.Id))
+public Task<Result<DataResult<Domain.{Name}>>> UpdateAsync(Domain.{Name} value, CancellationToken cancellationToken = default) => Result
+    .GoAsync(() => _ef.{Name}s.GetWithResultAsync(value.Id, cancellationToken))
     .Then(model =>
     {
         {Name}IntoMapper.MapInto(value, model);
         return model;
     })
-    .ThenAsAsync(model => _ef.{Name}s.UpdateWithResultAsync(model))
-    .ThenAs(m => {Name}Mapper.Map(m));
+    .ThenAsAsync(model => _ef.{Name}s.UpdateWithResultAsync(model, cancellationToken))
+    .ThenAs(dr => dr.Map(value => {Name}Mapper.Map(value)));
+
+public Task<Result<DataResult>> DeleteAsync(string id, CancellationToken cancellationToken = default)
+    => _ef.{Name}s.DeleteWithResultAsync(id, cancellationToken);
 ```
 
-**Return types differ by operation:** `GetWithResultAsync` returns `Result<T>` directly. `CreateWithResultAsync` / `UpdateWithResultAsync` return `Result<DataResult<T>>`; `DeleteWithResultAsync` returns `Result<DataResult>`. The `DataResult<T>` → `T` implicit operator means mapper calls like `.ThenAs(m => {Name}Mapper.Map(m))` work without explicit `.Value` unwrapping — but use `.ThenAs(dr => dr.Value)` when you need the persistence model value explicitly.
+**Return types differ by operation:** Reads return `Result<Domain.{Name}>`, but Create/Update return `Result<DataResult<Domain.{Name}>>`; Delete returns `Result<DataResult>`. Keep these shapes in the Application repository interface as well. An implicit `DataResult<T>` → `T` conversion into a mapper discards `WasMutated`, and constructing the mapped result without its original bool silently defaults to true. Use `dr.Map(value => {Name}Mapper.Map(value))` to transform the value while preserving the flag, including on successful no-ops. Prefer the lambda over a CoreEx mapper method group so `NotNullIfNotNull` preserves non-null destination inference. Aggregate mutation outcomes must cover the whole parent/child persistence operation, not merely an unrelated row. The service gates mutation-announcement events with `WhereMutated` in the same transaction, then unwraps its public response; aggregate state is an optimization, not a substitute for this provider signal.
 
 **Domain ↔ Persistence mappers are one-way** (`Mapper<TPersistence, TDomain, TSelf>`) — they map from persistence to domain only; use a separate `{Name}IntoMapper` (`IntoMapper<TDomain, TPersistence, TSelf>`) for the write direction.
 
@@ -413,7 +416,7 @@ public Task<Result<Domain.{Name}>> UpdateAsync(Domain.{Name} value) => Result
 
 1. `dotnet build` — no errors or warnings.
 2. Verify the repository interface in `Application/Repositories/` declares all new methods.
-3. Verify the service calling the repository handles `null` returns (Get) and checks `DataResult.HasMutations` before publishing events (Create/Update/Delete).
+3. Verify the service handles `null`/not-found Result on reads and gates mutation events on successful `DataResult.WasMutated` using `WhereMutated`. Preserve the flag through all Domain/DTO mapping and ROP before Application unwraps the value.
 4. **Offer to create or update the matching integration test** in `*.Test.Integration/Repositories/` or `*.Test.Api/`. Integration tests seed via `Data/*.yaml` and assert round-trip fidelity.
 5. Check `GlobalUsing.cs` for required namespace imports (`CoreEx.Data.Querying`, `{Solution}.Infrastructure.Mapping`).
 
@@ -427,7 +430,7 @@ public Task<Result<Domain.{Name}>> UpdateAsync(Domain.{Name} value) => Result
 - **`BiDirectionMapper.OnMap` — two overloads, same name, different source type** — do not invent `OnMapToPrimary` / `OnMapToSecondary`.
 - **`Id` must be mapped explicitly** in `OnMap` — the base does not auto-map it.
 - **`ETag` and `ChangeLog` must NOT be mapped** in `OnMap` — the base mapper owns them; the model has no `RowVersion` member.
-- **`DataResult<T>` for Create/Update, `DataResult` for Delete** — do not return `T` directly; the mutation flag is needed for event decisions.
+- **Retain `DataResult` for mutations, including ROP/DDD** — Create/Update return `DataResult<T>` or `Result<DataResult<T>>`; Delete returns `DataResult` or `Result<DataResult>`. Preserve `WasMutated` until Application gates mutation events; successful no-ops must not announce a mutation. Cover success/false after a successful earlier read as well as success/true and failure; a sequential delete-idempotency test alone does not cover that boundary.
 - **`[ScopedService<IInterface>]` on every repository** — do not add `AddScoped<>()` calls in `Program.cs` for repositories.
 - **`QueryArgsConfig<TSelf>`** — create one `{Name}QueryArgsConfig : QueryArgsConfig<{Name}QueryArgsConfig>` class per entity; access via `.Default`; call `.Parse(query).ThrowOnError()` before use — never instantiate per-request. Collect all field names, types, and operators from the developer before writing any code; AI cannot infer them from the entity shape.
 - **Match the database package to the project**: PostgreSQL → `CoreEx.Database.Postgres`, `PostgresDatabase`, `UseNpgsql`; SQL Server → `CoreEx.Database.SqlServer`, `SqlServerDatabase`, `UseSqlServer`. Check the project's `Program.cs` — do not introduce the wrong provider.

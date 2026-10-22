@@ -45,12 +45,14 @@ Guides you through creating or modifying a CoreEx Application-layer policy class
 - **Not DI-registered** — instantiated at the call site: `new {Name}Policy(_adapter).EnsureExistsAsync(id)`
 - Constructor accepts adapters and/or repositories already injected into the calling service
 - Always returns `Result` or `Result<T>` — never throws (unless adapter itself throws unexpectedly)
-- **EnsureExists:** translate `r.IsNotFoundError` → `Result.ValidationError(...)` — do not let `NotFoundException` propagate as-is
-- `MessageItem.CreateErrorMessage(nameof(param), "{Entity} was not found.")` produces a field-level validation error
-- `LText` static fields hold **localizable entity names** used inside message text — e.g. `new LText("Product")` as the `{0}` substitution in `"{0} was not found."`. The **property name** (`nameof(param)`) is always a plain `string?` — never `LText`
+- **EnsureExists:** classify by the identifier's role: a missing request-body reference becomes a field-level validation error (400); a missing target resource or explicitly addressed child remains not-found (404). Query filters normally return empty results, not 404. See [Not Found Handling](/.github/instructions/coreex-application-services.instructions.md#not-found-handling).
+- Translate only expected entity-not-found outcomes; preserve unrelated failures. Do not interpret route/configuration 404s as missing references, or choose a failure type merely to retain an error code. Preserve deliberate delete/security semantics; use business errors for state/process rules unless more specific conflict/concurrency or authorization semantics apply.
+- When the owning request contract is known, prefer `Result.ValidationError<Request>(x => x.ProductId, "Product was not found.")`; use `MessageItem.CreateErrorMessage<Request>(...)` when assembling multiple errors. Expressions must identify the caller's input field, not the fetched entity's identifier.
+- Reusable policies receiving only an identifier may use `MessageItem.CreateErrorMessage(propertyPath, ...)` with an explicit caller-agreed JSON path. Do not couple a reusable policy to a request DTO merely to use an expression. `nameof(param)` is a CLR parameter name, not a JSON-name resolver.
+- `LText` static fields hold **localizable entity names** used inside message text — e.g. `new LText("Product")` as the `{0}` substitution in `"{0} was not found."`. Explicit property paths remain plain strings; expression factories resolve JSON naming metadata.
 - Guard methods can return the loaded entity as `Result<Contracts.T>` so callers can use it without a second fetch
 - Always `.ConfigureAwait(false)` on every `await`
-- **Always generate a matching `{Name}PolicyTests.cs`** in `*.Test.Unit/Policies/` — cover the success path (expect `IsSuccess`) for each guard method, plus its failure path: `IsValidationError` for `EnsureExists`-style not-found guards, `IsBusinessError` for state/condition guards (e.g. `EnsureActive`)
+- **Always generate a matching `{Name}PolicyTests.cs`** in `*.Test.Unit/Policies/` — cover success, the intended failure classification (`IsValidationError` for invalid references, `IsNotFoundError` for missing targets, `IsBusinessError` for business-state rules), and unchanged propagation of unrelated failures.
 
 For full workflow and code examples see [`references/workflow.md`](references/workflow.md).
 

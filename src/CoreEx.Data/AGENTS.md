@@ -16,12 +16,9 @@ public class OrderService(IUnitOfWork uow, IOrderRepository repo)
 
         return await uow.TransactionAsync(async ct =>
         {
-            var created = await repo.CreateAsync(order, ct).ConfigureAwait(false);
+            var dr = await repo.CreateAsync(order, ct).ConfigureAwait(false);
 
-            // enqueue event — published atomically with the DB commit via the outbox
-            uow.Events.Add(EventData.CreateEventWith(created, EventAction.Created));
-
-            return created;
+            return dr.WhereMutated(created => uow.Events.Add(EventData.CreateEventWith(created, EventAction.Created)));
         }, ct).ConfigureAwait(false);
     }
 }
@@ -51,7 +48,7 @@ public async Task<ItemsResult<Order>> GetAllAsync(QueryArgs args, PagingArgs? pa
 
 ## DataResult
 
-Return `DataResult` (no value) or `DataResult<T>` from mutation operations to distinguish "mutated" from "not found" without throwing.
+Return `DataResult<T>` for Create/Update and `DataResult` for Delete; ROP wraps these in `Result<...>`, including when mapping persistence models to Domain aggregates. Use `dr.Map(value => SomeMapper.Map(value))` to transform the value and preserve `WasMutated` instead of relying on implicit conversion to the value. `Map` invokes the delegate once regardless of the flag, passes null values through, rejects a null delegate, and propagates mapper exceptions unchanged. Prefer lambdas for CoreEx mappers so conditional nullability is retained. The Application layer gates mutation-announcement events with `WhereMutated` in the write transaction before unwrapping its public response. Successful no-ops still succeed but emit no mutation event, even if an earlier read found the target or the aggregate had changes. Commands/attempt messages have separate semantics. The flag reports the provider's mutation outcome, potentially before deferred writes/commit; it does not guarantee committed rows or exactly-once delivery.
 
 ```csharp
 public async Task<DataResult> DeleteAsync(Guid id, CancellationToken ct = default)

@@ -4,11 +4,13 @@
 
 ## Semantic Exceptions
 
+When collecting multiple field errors, use `MessageItem.CreateErrorMessage<TEntity>(x => x.Property, text)` and wrap the collection once with `Result.ValidationError(messages)` or `new ValidationException(messages)`. Text may be omitted/null for the inferred invalid message; `(expression, options, text)` supports custom naming. Exception factories delegate to this message factory. For reusable policies without a known request type, retain explicit caller-agreed JSON paths rather than inventing a contract dependency.
+
 Throw the most specific exception; the framework maps each to its HTTP status automatically.
 
 ```csharp
 // 400 — field-level validation errors
-throw new ValidationException(new MessageItemCollection { new("sku", "Sku is required.") });
+throw ValidationException.Create<Product>(x => x.Sku, "Sku is required.");
 
 // 404 — resource not found
 throw new NotFoundException();
@@ -22,6 +24,12 @@ throw new ConcurrencyException();
 // 409 — duplicate record
 throw new DuplicateException();
 ```
+
+For manual property errors, prefer `ValidationException.Create<TEntity>(x => x.Property, text)` over hard-coded names. Nested paths such as `x => x.Address!.Street` resolve every segment through runtime metadata to JSON names (e.g. `address.street`), respecting `[JsonPropertyName]` and the default serializer naming policy. Use `(expression, options, format, ...values)` for explicit serializer options. Entity access is never executed, so `!` is safe for nullable intermediate properties. Array/list indexes and string dictionary keys support literals and captured locals: `x => x.Addresses[0].Street` yields `addresses[0].street`; `x => x.AddressesByType["home"].Street` yields `addressesByType.home.street`. String keys follow the effective `DictionaryKeyPolicy` (null preserves keys), matching validators and serialized JSON. No escaping is added; punctuation can be ambiguous because these are error paths, not full JSONPath expressions. Entity fields, arbitrary getters/calls for indexes/keys, index calculations, and intermediate casts are rejected. Formatting matches the existing string-property factory; no label/value arguments are prepended. Within a validator, continue using `context.AddError(...)` to preserve contextual paths, naming overrides, and validator formatting.
+
+For lookup failures, classify by identifier role: missing target/explicit child → `NotFoundException` / `Result.NotFoundError` (404); missing body reference → field-level validation (400), using an expression over the request contract where known. Query filters normally return empty results. Translate only expected entity-not-found outcomes, not route/configuration failures; preserve unrelated failures and deliberate delete/security semantics. Business errors describe process/state rules, with more specific conflict/concurrency or authorization semantics taking precedence; error-code needs never determine classification. See [application-layer guidance](../../samples/docs/application-layer.md#missing-targets-versus-invalid-references).
+
+Request/input validity uses validation errors; aggregate/entity/value-object business invariants use `BusinessException` / `Result.BusinessError` with domain messages/codes and no request DTO dependencies or JSON paths. Both normally map to 400 but are different semantic contracts. Keep domain guards after request validation; Application may selectively map known domain failures to fields, never blanket-convert them. Programming misuse retains argument/invalid-operation errors; shared guard helpers keep their semantics. See [domain guidance](../../samples/docs/domain-layer.md#business-invariants-versus-request-validation).
 
 ## ExecutionContext
 
@@ -37,6 +45,10 @@ var ctx = ExecutionContext.TryGetCurrent();  // returns null if none set
 ```
 
 ## Result / Result\<T\>
+
+Expression-based `ValidationException.Create<TEntity>` and `Result.ValidationError<TEntity>`/`Result<T>.ValidationError<TEntity>` accept an omitted/null message, defaulting to `Validation.InvalidFormat` with the leaf property's friendly metadata `Text` (including localization/display annotations). `RuntimeMetadata.GetJsonPathAndText` resolves the path and label together. A terminal index/key uses its containing property's label. Explicit messages and existing string-property factories are unchanged.
+
+For manual property validation failures, use `Result.ValidationError<Person>(x => x.Name, "Name is invalid.")` or `Result<Order>.ValidationError<Person>(x => x.Name, "Name is invalid.")`. The shorthand accepts an expression, an `LText` message (including preformatted arguments), and an optional exception configuration action. It uses the default JSON naming, nesting, and indexing from `ValidationException.Create<TEntity>`. For explicit serializer options or separate formatting arguments, use that exception factory directly; exceptions implicitly convert to `Result` and `Result<T>`.
 
 Use `Result<T>` for expected business-error paths instead of throwing exceptions. Compose pipelines with `Then`, `ThenAs`, `GoAsync`, `ThenAsAsync`.
 
@@ -133,6 +145,8 @@ return await response.WithValidator(_validator)
 See [usage, inline examples, and semantics](./README.md#validating-http-response-values).
 
 ## Entity Contracts
+
+Cached runtime metadata lookups prefer the type's static `IRuntimeMetadata` provider and use reflection only for types without that interface. This applies to root/nested `GetJsonPath` and `GetJsonPathAndText` resolution, so custom/generated JSON names, friendly labels, and excluded properties are respected consistently regardless of which cache entry point runs first. Entity instances are never constructed for metadata discovery.
 
 Use the standard interfaces on your contracts so the framework's ETag, paging, and change-log handling works automatically.
 

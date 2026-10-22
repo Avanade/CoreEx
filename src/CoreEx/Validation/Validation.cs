@@ -12,6 +12,12 @@ public static class Validation
     public static LText MandatoryFormat { get; set; } = new("CoreEx.Validation.MandatoryFormat", "{0} is required.");
 
     /// <summary>
+    /// Gets or sets the format string for the invalid error message.
+    /// </summary>
+    /// <remarks>Defaults to: '<c>{0} is invalid</c>'.</remarks>
+    public static LText InvalidFormat { get; set; } = new("CoreEx.Validation.InvalidFormat", "{0} is invalid.");
+
+    /// <summary>
     /// Gets or sets the format string for an <i>invalid value</i> error message.
     /// </summary>
     /// <remarks>Defaults to: '<c>{0} is invalid: {1}.</c>'.</remarks>
@@ -50,6 +56,20 @@ public static class Validation
     public static TResult CreateRequiredValueResult<TResult>(string? name = null, LText? text = null, Action<ValidationException>? configure = null) where TResult : IResult, new()
     {
         var ex = new ValidationException(MessageItem.CreateErrorMessage(name ?? ValueName, MandatoryFormat, text ?? name?.ToSentenceCase() ?? ValueText));
+        configure?.Invoke(ex);
+        return (TResult)new TResult().ToFailure(ex);
+    }
+
+    /// <summary>
+    /// Creates an invalid <see cref="ValidationException"/> <see cref="Result"/>.
+    /// </summary>
+    /// <param name="name">The value name.</param>
+    /// <param name="text">The friendly text name used in validation messages (defaults to <paramref name="name"/> as sentence case where not specified).</param>
+    /// <param name="configure">An optional action to configure the <see cref="ValidationException"/>.</param>
+    /// <returns>The resulting <see cref="ValidationException"/> <see cref="Result"/>.</returns>
+    public static TResult CreateInvalidResult<TResult>(string? name = null, LText? text = null, Action<ValidationException>? configure = null) where TResult : IResult, new()
+    {
+        var ex = new ValidationException(MessageItem.CreateErrorMessage(name ?? ValueName, InvalidFormat, text ?? name?.ToSentenceCase() ?? ValueText));
         configure?.Invoke(ex);
         return (TResult)new TResult().ToFailure(ex);
     }

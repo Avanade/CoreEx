@@ -45,15 +45,17 @@ Guides you through creating or modifying a CoreEx Application-layer service in `
 6. Read-only queries or collection results needed? (→ CQRS read service, Path C)
 
 **Key rules at a glance:**
+- Request validity uses validation errors; domain business invariants use business errors without request-field paths. Keep domain enforcement after request validation. Only selectively translate known domain failures where the request-field mapping is unambiguous; do not blanket-convert business errors. See [domain invariant conventions](/.github/instructions/coreex-domain.instructions.md#invariant-failures-versus-request-validation).
 - `[ScopedService<IInterface>]` on every service — auto-registers via `AddDynamicServicesUsing<T>()`
 - **Only inject**: repository, unit of work, adapter interfaces, logger — **never** validators, mappers, policies
 - `ValidateAndThrowAsync` (exception style) / `ValidateWithResultAsync` (Result&lt;T&gt;) — **never bare `ValidateAsync`**
 - Service assigns `Id` after validation: `value.Id = Runtime.NewId()` (string key) / `Runtime.NewGuid()` (Guid)
 - All mutations in `_unitOfWork.TransactionAsync(...)` — event added inside, never outside
 - `WhereMutated(v => ...)` for Create/Update (`DataResult<T>` carries value); `WhereMutated(() => ...)` for Delete
+- Success is not mutation: retain `DataResult` through ROP/domain mapping until the service gates mutation events on `WasMutated`, inside the write transaction, then unwrap for its response. An earlier read or `HasChanges` check is not a substitute; the flag is a provider signal, not a commit/exactly-once guarantee. Commands/attempt notifications follow their own semantics.
 - Delete event: `EventData.CreateEvent<T>(EventAction.Deleted).WithKey(id)` — **no value body**
 - Check `EventAction` before reaching for `CreateEventWith(v, "string")` — most business actions (`Confirmed`, `Cancelled`, `Started`, `Completed`, `Suspended`, `Closed`, `Expired`, etc.) already have an enum member; the raw-string overload is only for genuinely novel actions
-- `NotFoundException.ThrowIfDefault(entity)` after any Get that must find the entity
+- Missing target resource/explicit child → `NotFoundException` / `Result.NotFoundError`; missing body reference → field-level validation (400), preferably an expression over the request contract. Query filters normally return empty results. Interpret only expected entity-not-found outcomes; preserve unrelated failures and deliberate endpoint semantics. See [Not Found Handling](/.github/instructions/coreex-application-services.instructions.md#not-found-handling).
 - Validators / Mappers / Policies: **not DI-registered** — call or instantiate at point of use
 - `Validator<T, TSelf>`: call via singleton — `{Name}Validator.Default.ValidateAndThrowAsync(...)`
 - `Validator<T>` (with injection): instantiate at call site — `new {Name}Validator(_dep).ValidateAndThrowAsync(...)`

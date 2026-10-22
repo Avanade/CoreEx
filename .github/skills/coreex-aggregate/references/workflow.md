@@ -194,7 +194,7 @@ namespace {Domain}.Domain.ValueObjects;
 
 public sealed record class {ValueObject}
 {
-    public required {PropertyType} {Property} { get; init => field = value.ThrowIfLessThanZero(); }
+    public required decimal {Property} { get; init => field = value < 0 ? throw new BusinessException("{Property} cannot be negative.").WithErrorCode("negative-{property}") : value; }
     public {OtherType} {OtherProperty} { get; init => field = value.ThrowIfNull(); }
 
     // Derived read-only members are welcome — they are not persisted, only computed.
@@ -202,16 +202,14 @@ public sealed record class {ValueObject}
 
     /// <summary>Validates cross-property invariants not expressible via a single property initialiser.</summary>
     public {ValueObject} EnsureIsValid() => {condition} ? this
-        : throw new ValidationException("{Description of the violated invariant}.");
+        : throw new BusinessException("{Description of the violated invariant}.").WithErrorCode("{invariant-error-code}");
 }
 ```
 
 **Rules:**
 - `sealed record`, never a mutable class — structural equality and `with`-expression semantics are
   intrinsic to a value object's definition.
-- Enforce single-property invariants directly in the `init` accessor using the guard helpers
-  (`.ThrowIfNull()`, `.ThrowIfLessThanZero()`, `.ThrowIfInactive()`, etc.) — they return the guarded
-  value, making them composable inline.
+- Enforce business invariants directly in `init` accessors using explicit domain checks that throw `BusinessException`, not request-validation errors. Use domain messages/codes, never request contracts or JSON paths. Required internal object/argument checks may retain argument guards; a numeric business restriction is not programming misuse merely because a guard helper exists.
 - Cross-property invariants that cannot be expressed in a single `init` accessor go in an
   `EnsureIsValid()` method, called by the owning entity/aggregate after construction.
 - Place value objects in a `ValueObjects/` sub-folder within the Domain project.
@@ -347,14 +345,14 @@ public class {Aggregate}Tests : WithGenericTester<EntryPoint>
 These extension methods return the guarded value on success (enabling inline chaining) and throw on
 failure — used throughout property setters, `init` accessors, and factory method bodies:
 
-| Helper | Throws when |
-|---|---|
-| `.ThrowIfNull()` | value is `null` |
-| `.ThrowIfNullOrEmpty()` | value is `null` or an empty string |
-| `.ThrowIfInactive()` | a reference-data value's `IsActive` is `false` |
-| `.ThrowIfLessThanZero()` | a numeric value is less than zero |
+| Helper | Throws when | Exception |
+|---|---|---|
+| `.ThrowIfNull()` | value is `null` | `ArgumentNullException` |
+| `.ThrowIfNullOrEmpty()` | value is `null` or an empty string | `ArgumentNullException` / `ArgumentException` |
+| `.ThrowIfInactive()` | reference data is invalid or inactive | `InvalidOperationException` |
+| `.ThrowIfLessThanZero()` | a numeric value is less than zero | `ArgumentOutOfRangeException` |
 
-Chain them for multiple checks on one value: `value.ThrowIfNull().ThrowIfInactive()`.
+These helpers return the guarded value and can be chained for programming assumptions, such as checking an internally assigned status. They do not represent expected business failures. For a business rule rejecting a negative quantity or invalid/inactive selection, use an explicit check and `BusinessException` / `Result.BusinessError` instead. Keep shared helper behavior unchanged.
 
 ---
 
@@ -388,10 +386,7 @@ Application layer. CoreEx deliberately does not provide in-process domain-event 
   side-effects; coarse integration events communicated through `IUnitOfWork.Events` are explicit,
   auditable, and transactional.
 - Add events from within a mutation method using the inherited `AddEvent(...)`.
-- The Application service is responsible for forwarding `aggregate.Events` into `_unitOfWork.Events`
-  inside the same `TransactionAsync(...)` scope that persists the aggregate — see
-  [`/.github/instructions/coreex-application-services.instructions.md`](/.github/instructions/coreex-application-services.instructions.md) for the Application-layer side
-  of this handoff.
+- The Application service forwards mutation-announcement `aggregate.Events` into `_unitOfWork.Events` using `WhereMutated` on the successful persistence `DataResult`, inside the transaction that persists the aggregate. Preserve `WasMutated` through Domain mapping; an earlier read, aggregate state, or success alone is not a substitute. Commands/attempt notifications have separate semantics; the flag is not a commit/exactly-once guarantee. See [Application guidance](/.github/instructions/coreex-application-services.instructions.md) for this handoff.
 - If a genuine in-process domain-event use case exists, that is an opt-in extension a consumer adds
   themselves (e.g., raising events dispatched via MediatR after commit) — not a CoreEx default.
 
@@ -399,6 +394,7 @@ Application layer. CoreEx deliberately does not provide in-process domain-event 
 
 ## Guardrails
 
+- **Business invariants are not request validation** — use `BusinessException` / `Result.BusinessError` in aggregates, entities, and value objects. Keep request validators and domain enforcement; selectively translate known errors in Application only when the request-field mapping is unambiguous. Never derive request JSON paths or reference request DTOs in Domain.
 - **No async I/O in domain classes** — repository calls, HTTP requests, adapter calls all belong in
   Application services or Policies, never in an aggregate, entity, or value object
 - **Constructor is always `private`** — `CreateNew(...)` and `CreateFrom(...)` are the only public

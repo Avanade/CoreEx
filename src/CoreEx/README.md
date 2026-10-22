@@ -143,6 +143,27 @@ Semantic (error-oriented) exception types with automatic HTTP status mapping:
 
 All inherit from [`ExtendedException<TSelf>`](./Abstractions/ExtendedExceptionT.cs) implementing [`IExtendedException`](./Abstractions/IExtendedException.cs).
 
+Choose the error by the identifier's role: a missing operation target or explicitly addressed child is `NotFoundException` / `Result.NotFoundError` (404); a missing entity referenced by a request-body field is field-level validation (400 under CoreEx conventions). An unmatched collection filter normally returns an empty result. Services/policies interpret expected lookup outcomes, not every downstream 404 (which might indicate a route/configuration failure), and preserve unrelated failures. Error-code needs do not determine classification; retain deliberate idempotent-delete and security-concealment semantics. See [application-layer guidance](../../samples/docs/application-layer.md#missing-targets-versus-invalid-references).
+
+For a manually raised property validation error, prefer an expression over a hard-coded property name.
+
+Use validation errors for request/input validity; aggregate, entity, and value-object business invariants use `BusinessException` / `Result.BusinessError` with domain messages/codes and no request-field paths. Keep both request validation and domain enforcement. Argument/invalid-operation exceptions remain appropriate for programming misuse; shared guard helpers are not business-error factories. See [domain failure conventions](../../samples/docs/domain-layer.md#business-invariants-versus-request-validation).
+
+To aggregate errors without creating an exception per item, use `MessageItem.CreateErrorMessage<Person>(x => x.Name)` or supply an explicit/preformatted `LText`. The overload `(expression, options, text)` accepts custom serializer options; null text infers the standard invalid message. `ValidationException.Create<TEntity>` delegates to this message factory, sharing metadata paths and friendly labels.
+
+Omit the message, or pass null, to use `Validation.InvalidFormat` with the leaf property's friendly metadata label: `ValidationException.Create<Person>(x => x.Name)` produces `Name is invalid.`. Localization/display annotations are respected independently of JSON naming; terminal collection indexes or dictionary keys use the containing property's label. With explicit serializer options, pass null as the message to request inference. Explicit messages remain unchanged, and existing string-property factories retain their behavior.
+
+```csharp
+throw ValidationException.Create<Person>(x => x.Name, "Name is already registered.");
+throw ValidationException.Create<Person>(x => x.Address!.Street, "Street is spooky.");
+// JSON paths: "name" and "address.street" with default camel-case naming.
+throw ValidationException.Create<Person>(x => x.Addresses[0].Street, "Street is spooky.");
+throw ValidationException.Create<Person>(x => x.AddressesByType["home"].Street, "Street is spooky.");
+// Validator-compatible paths: "addresses[0].street" and "addressesByType.home.street".
+```
+
+Each path segment uses runtime metadata: explicit `[JsonPropertyName]` names take precedence over the naming policy in `JsonDefaults.SerializerOptions`. For custom naming, use `ValidationException.Create<Person>(x => x.Address!.Street, options, "Street is spooky.")`. The expression is inspected, never executed; `!` is safe for nullable intermediate properties here. Direct/nested public instance properties, outermost boxing, one-dimensional array/list indexes, and string dictionary keys are supported. Indexes/keys may be literals or captured locals; arbitrary getters, method calls, index calculations, and intermediate casts are rejected. Collections are never accessed, so indexes and keys do not need to exist (indexes must be non-negative). String dictionary keys use the effective serializer's `DictionaryKeyPolicy`, matching validators and serialized JSON (unchanged when that policy is null). No escaping is added. These are error paths, not full `$`-rooted JSONPath expressions; dots/brackets in keys can be ambiguous. The `LText` and formatting behavior matches the string-property factory: no property label or current value is automatically prepended. Unlike a validator context, this factory always uses JSON names and has no contextual name/path overrides.
+
 Additionally, these support `With*`-style methods to add additional context that is added to the resulting `ProblemDetails`:
 
 ``` csharp

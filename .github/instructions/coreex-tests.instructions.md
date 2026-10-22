@@ -57,8 +57,10 @@ The two test projects have **distinct, non-overlapping jobs**. Decide where a be
 - **Private inline response validators** are covered through `*.Test.Unit/Clients/{ExternalDomain}/{External}HttpClientTests.cs`, using mocked HTTP responses. Assert missing/invalid consumed fields produce `HttpRequestException` with exact inner validation messages, and valid minimal responses succeed; do not expose private rules or create standalone validator tests. For cached adapters, prove an invalid 2xx payload is not cached by replacing it with a valid one and retrying.
 
 - **Validator rules** are proven **exhaustively in unit tests** (every mandatory/range/format/cross-field rule). In the API tests, do **not** re-enumerate them — assert **one** representative `AssertBadRequest()` + `AssertErrors(...)` case to confirm the validator is *wired into the pipeline*, then move on. **But `AssertErrors` is an exact match — not a subset.** It fails unless the listed errors are **exactly** the set the input produces (none missing, none extra). So "one representative case" means **craft the input to produce exactly the errors you assert** — e.g. send a value valid in every respect *except* the one rule under test — rather than posting an empty object (which fires *all* mandatory errors) and listing only some. (See the validators guidance — "Unit Tests".)
-- **Service/repository behaviour** is proven in the **API tests** over the real database. Do **not** re-create it in unit tests with a mocked repository/UoW — that would assert the mock's configured behaviour, not the real persistence/mapping/eventing.
+- **Service/repository behaviour** is proven in the **API tests** over the real database. Do **not** re-create it in unit tests with a mocked repository/UoW — that would assert the mock's configured behaviour, not the real persistence/mapping/eventing. The narrow mutation-publication boundary exception below does not replace that coverage.
 - When a behaviour *could* sit in either, prefer the layer that exercises it **without mocking the thing under test**: validator → unit; anything touching the DB, cache, outbox, or HTTP pipeline → API.
+
+**Mutation-publication boundary exception:** When real persistence cannot reliably force a successful no-op after a successful read, a narrowly scoped unit test may supply `DataResult` with `WasMutated == false`, true, and a failed Result to the real service. Verify success/no mutation event, success/expected event, and unchanged failure/no event, including when the aggregate had changes. Assert the write and event decision run inside the transaction delegate. This proves the service interprets the supplied outcome, not real persistence, rollback, deferred writes, or concurrency. Retain sequential delete-idempotency coverage, but do not treat it as covering the read/delete gap.
 
 The goal is a single source of truth per behaviour: unit tests guard the rules and pure logic; API tests guard the wired-up, persisted, evented system.
 
@@ -668,7 +670,7 @@ _mockHttpReserveRequest.Verify();
 
 ## Unit Tests — Validators
 
-Unit tests are for logic with **no external dependencies**; any injected services are **mocked**. **Validators are the primary unit-test target** — they encode the most conditional logic. Application service orchestration is exercised by the host integration tests (`*.Test.Api` / `*.Test.Subscribe`), **not** here.
+Unit tests are for logic with **no external dependencies**; any injected services are **mocked**. **Validators are the primary unit-test target** — they encode the most conditional logic. Application service orchestration is exercised by the host integration tests (`*.Test.Api` / `*.Test.Subscribe`), except the narrow mutation-publication boundary regression described above.
 
 Maintain **one test class per validator**, under `*.Test.Unit/Validators/`, named `{Validator}Tests` and extending `WithGenericTester<EntryPoint>` — `EntryPoint` (in the template) configures the DI/host services the validator needs. Each `[Test]` runs inside `Test.Scoped(test => { ... })`. Invoke the validator exactly as the application does:
 

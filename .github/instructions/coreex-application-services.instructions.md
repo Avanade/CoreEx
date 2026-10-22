@@ -170,14 +170,36 @@ if (result.IsFailure) return result.AsResult();
 
 ## Not Found Handling
 
-After loading an entity, throw immediately if it does not exist:
+Choose the error according to the identifier's role in the operation, not merely because a repository or downstream API returned "not found":
+
+- **Missing target resource:** use `NotFoundException` / `Result.NotFoundError` (HTTP 404) for the primary resource or an explicitly addressed child, such as `/bookings/{id}` or `/bookings/{id}/travellers/{travellerId}`.
+- **Invalid reference:** use a field-level `ValidationException` / `Result.ValidationError` (HTTP 400 under CoreEx conventions) when a request-body property refers to a nonexistent entity. An unknown `travellerId` in `POST /bookings/{id}/travellers` is an invalid reference; a missing target booking is a 404.
+- **Query inputs:** URI presence alone does not imply a target resource. An unmatched collection filter normally returns an empty result; invalid query inputs follow the endpoint's validation contract.
+- **Downstream failures:** translate only an expected entity-not-found outcome for an invalid reference; preserve other failures unchanged. A downstream HTTP 404 can also indicate an incorrect route or deployment/configuration problem. Do not automatically turn every downstream 404 into caller validation.
+- **State/process restrictions:** use business errors where appropriate, with specific conflict/concurrency or authorization semantics taking precedence. Do not use business errors or choose HTTP 404 merely to retain a machine-readable error code.
+- **Endpoint semantics:** preserve deliberate behavior, including idempotent deletion and security-driven concealment of resource existence.
+
+For a missing target resource:
 
 ```csharp
 var current = await _repository.GetAsync(id, cancellationToken).ConfigureAwait(false);
 NotFoundException.ThrowIfDefault(current);
 ```
 
+For an expected missing reference returned as `Result<Traveller>`, translate only that failure:
+
+```csharp
+var traveller = await _travellerAdapter.GetAsync(request.TravellerId, cancellationToken).ConfigureAwait(false);
+return traveller.IsNotFoundError
+    ? Result<Traveller>.ValidationError<BookingTravellerAddRequest>(x => x.TravellerId, "Traveller was not found.")
+    : traveller;
+```
+
+The expression type is the request contract containing the invalid reference; the result value type is the entity returned on success. For a nullable lookup, check null and use the same field-error factory instead. Use `ValidationException.Create<Request>(...)` in exception-style services, `MessageItem.CreateErrorMessage<Request>(...)` for aggregation, and `context.AddError(...)` inside validators to preserve contextual paths. Reusable policies without a known request contract may accept an already-resolved JSON path; do not introduce a DTO dependency solely for an expression. `nameof(param)` alone does not resolve JSON names.
+
 ## Business Rule Exceptions
+
+Request/input validity (including invalid references) uses validation errors with request-field context where known. Aggregate/entity/value-object business invariants use business errors with domain messages/codes, not request paths; Domain must not reference request DTOs or infer their JSON paths. Both normally map to 400, but are distinct contracts. Keep domain enforcement after request validation. Application may selectively translate a known domain error to a field error only when the mapping is unambiguous; never blanket-convert business failures. See [domain invariant conventions](/.github/instructions/coreex-domain.instructions.md#invariant-failures-versus-request-validation).
 
 Use `BusinessException` for domain rule violations that are the caller's fault but are not validation errors:
 
@@ -275,6 +297,7 @@ return await _unitOfWork.TransactionAsync(async ct =>
 ```
 
 - `WhereMutated(action)` — executes `action` only when the data result records a mutation; add the event inside this callback. **Mind the overload:** `DataResult<T>` (from `Create`/`Update`) carries the value, so use `WhereMutated(v => ...)`; `DataResult` (from `Delete`) has **no value**, so use the parameterless `WhereMutated(() => ...)` — not `WhereMutated(_ => ...)`.
+- **Success is not evidence of mutation.** Preserve `DataResult` through repository/ROP/domain mapping until mutation-dependent decisions are complete. A successful `WasMutated == false` returns success without a mutation-announcement event; use `WhereMutated` inside the same transaction as the write, then unwrap for the public response. An earlier successful read or aggregate `HasChanges`/`PersistenceState` check does not replace the persistence outcome. The flag is the provider's mutation signal, potentially before deferred writes/commit; it is not an exactly-once or committed-row guarantee. Commands and deliberate attempt notifications have separate semantics, so do not mechanically gate them as mutation events.
 - `EventData.CreateEventWith(value, action)` — a typed event **carrying the entity value** (Create/Update only — pass the **real** mutated value `v`). For a **no-value** event (Delete), use `EventData.CreateEvent<T>(action).WithKey(id)` — the type + action + key, **no value**. **Never fabricate a value to feed `CreateEventWith` on a delete** (e.g. `CreateEventWith(new Employee { Id = id }, …)` or `CreateEventWith<T>(default, …)`): a delete event must have **no body** — a synthetic entity wrongly serialises a near-empty value, adds a version suffix that delete events must not have, and buries the id in the body instead of the metadata key. The id belongs in `.WithKey(id)`.
 - `EventAction.Created`, `EventAction.Updated`, `EventAction.Deleted` — use the standard constants.
 
@@ -312,15 +335,35 @@ public Task<Result<Basket>> CreateAsync(string customerId, CancellationToken can
     return _unitOfWork.TransactionAsync(async ct =>
     {
         var br = await _repository.CreateAsync(aggregate, ct).ConfigureAwait(false);
-        return br.ThenAs(b =>
+        return br.ThenAs(dr =>
         {
-            var contract = BasketMapper.Map(b);
-            _unitOfWork.Events.Add(EventData.CreateEventWith(contract, EventAction.Created));
+            var contract = BasketMapper.Map(dr.Value);
+            dr.WhereMutated(_ => _unitOfWork.Events.Add(EventData.CreateEventWith(contract, EventAction.Created)));
             return contract;
         });
     }, cancellationToken);
 }
 ```
+
+The repository above returns `Result<DataResult<Domain.Basket>>` from Create/Update, preserving its provider's flag when mapping persistence models: `dr.Map(value => BasketMapper.Map(value))`. `Map` transforms even a no-op's value without changing `WasMutated`; the lambda retains the CoreEx mapper's conditional non-null guarantee. Reads remain `Result<Domain.Basket>`; delete returns `Result<DataResult>`. For a repository with an idempotent delete:
+
+```csharp
+public Task<Result> DeleteAsync(string id, CancellationToken cancellationToken = default)
+{
+    id.ThrowIfNullOrEmpty();
+    return _unitOfWork.TransactionAsync(async ct =>
+    {
+        var result = await _repository.DeleteAsync(id, ct).ConfigureAwait(false);
+        return result.ThenAs(dr =>
+        {
+            dr.WhereMutated(() => _unitOfWork.Events.Add(EventData.CreateEvent<Basket>(EventAction.Deleted).WithKey(id)));
+            return Result.Success;
+        });
+    }, cancellationToken);
+}
+```
+
+If deletion needs a prior aggregate read to enforce business rules, keep it, but still gate the event on the successful delete result. Test the successful no-op outcome even after that read found the target. A sequential repeat-delete test does not cover the read/delete gap; depending on tracking/provider behavior, a concurrent deletion can instead produce a concurrency failure, which must propagate unchanged.
 
 For multi-step orchestration with early exit on the first failure:
 
@@ -453,13 +496,15 @@ public class ProductPolicy(IProductAdapter productAdapter)
     public Task<Result<Product>> EnsureExistsAsync(string productId, CancellationToken cancellationToken = default) => Result
         .GoAsync(() => _productAdapter.GetAsync(productId, cancellationToken))
         .OnFailure(r => r.IsNotFoundError
-            ? Result.ValidationError(MessageItem.CreateErrorMessage(nameof(productId), "Product was not found."))
+            ? Result.ValidationError(MessageItem.CreateErrorMessage("productId", "Product was not found."))
             : r);
 }
 
 // In the calling service — _productAdapter is already injected into the service:
 var result = await new ProductPolicy(_productAdapter).EnsureExistsAsync(productId, cancellationToken);
 ```
+
+This policy checks a request-body reference whose agreed JSON path is `"productId"`; it does not define missing-target behavior. For a policy reused across fields, accept a resolved path from the caller. Apply [Not Found Handling](#not-found-handling) before choosing the failure type.
 
 ## Application-Level Mapping
 

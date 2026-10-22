@@ -26,6 +26,11 @@ public abstract class InlineValidator<TValue>
     protected string? OverrideName { get; set; }
 
     /// <summary>
+    /// Gets or sets the JSON name override independently of the CLR name.
+    /// </summary>
+    protected string? OverrideJsonName { get; set; }
+
+    /// <summary>
     /// Gets or sets the property text override (where not <see langword="null"/>).
     /// </summary>
     /// <remarks>This will apply to all instances in which the <see cref="CommonValidator{TValue}"/> is used; therefore, caution is required when using. This is intended for advanced usage only.</remarks>
@@ -40,7 +45,7 @@ public abstract class InlineValidator<TValue>
     internal async Task ValidateAsync<TEntity>(PropertyContext<TEntity, TValue> context, CancellationToken cancellationToken) where TEntity : class
     {
         var root = new RootPropertyRule<ValidationValue<TValue>, TValue>(
-            new PropertyRuntimeMetadata<ValidationValue<TValue>, TValue>(OverrideName ?? context.Name, _ => context.Metadata.GetValue<TValue>(context.Entity), text: () => OverrideText ?? context.Metadata.Text, jsonName: OverrideName ?? context.Metadata.JsonName),
+            new PropertyRuntimeMetadata<ValidationValue<TValue>, TValue>(OverrideName ?? context.Name, _ => context.Metadata.GetValue<TValue>(context.Entity), text: () => OverrideText ?? context.Metadata.Text, jsonName: OverrideJsonName ?? OverrideName ?? context.Metadata.JsonName),
                 context.IsValueNullable ? _ => context.GetNullableValueOrDefault<TValue>() : null, context.IsValueNullable ? _ => context.IsNullableValueDefault() : null);
 
         ValidationExtensions.Chain(root, _validator);

@@ -1,9 +1,14 @@
 global using CoreEx.Data;
+global using CoreEx.Entities;
 global using CoreEx.Http;
+global using CoreEx.Localization;
+global using CoreEx.Metadata;
 global using Microsoft.Extensions.Configuration;
 global using Microsoft.Extensions.DependencyInjection;
 global using Microsoft.Extensions.Hosting;
+global using System.Linq.Expressions;
 global using System.Net;
 global using System.Net.Http.Headers;
 global using System.Text;
 global using System.Text.Json;
+global using System.Text.Json.Serialization;

@@ -132,7 +132,7 @@ return await response.WithValidator(_validator)
     .ToResultAsync(ct).ConfigureAwait(false);
 ```
 
-`ToResultAsync<T>()` returns a non-null `T`: a successful response with a null/empty body (including 204) is an `HttpRequestException` failure, so no `?? throw` is needed. Use `ToResultOrDefaultAsync<T>()` (→ `Result<T?>`) only where an absent body is a valid outcome. Map 404 yourself when "not found" is an expected business outcome (surface it as `Result.NotFoundError()`; the Application-layer policy decides how to present it).
+`ToResultAsync<T>()` returns a non-null `T`: a successful response with a null/empty body (including 204) is an `HttpRequestException` failure, so no `?? throw` is needed. Use `ToResultOrDefaultAsync<T>()` (→ `Result<T?>`) only where an absent body is a valid outcome. Map 404 to `Result.NotFoundError()` only when entity-not-found is an expected outcome of that downstream endpoint; a wrong route or deployment/configuration failure is not an invalid caller reference. The application service/policy interprets expected lookup outcomes as missing targets (404) or missing body references (field-level 400), preserving other failures; see [Not Found Handling](/.github/instructions/coreex-application-services.instructions.md#not-found-handling).
 
 ### Response-contract validation
 

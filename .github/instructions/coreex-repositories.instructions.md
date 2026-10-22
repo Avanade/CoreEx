@@ -66,10 +66,12 @@ Cosmos-backed adapters inject the typed `*CosmosDb` accessor instead of `*EfDb` 
 | Operation | Return type | Notes |
 |---|---|---|
 | Single entity lookup | `Task<TEntity?>` | Returns `null` when not found; service checks |
-| Create / Update | `Task<DataResult<TEntity>>` | Includes mutation flag for event decisions |
-| Delete | `Task<DataResult>` | Carries mutation flag only |
+| Create / Update | `Task<DataResult<TEntity>>` or `Task<Result<DataResult<TEntity>>>` | Includes mutation flag for event decisions |
+| Delete | `Task<DataResult>` or `Task<Result<DataResult>>` | Carries mutation flag only |
 | Collection query | `Task<ItemsResult<T>>` | Items + optional total count |
 | Result pipeline (optional) | `Task<Result<T>>` | Developer choice — can be used on any repository method; enables explicit failure propagation without exceptions |
+
+**Preserve mutation metadata across repository boundaries, including ROP and Domain mapping.** Use `dr.Map(value => SomeMapper.Map(value))` to transform the value while retaining `WasMutated`; never unwrap/cast away `DataResult` before Application makes mutation-dependent decisions. `Map` always transforms the value, including successful no-ops. Prefer the lambda for CoreEx mappers: their nullable-return method groups can infer a nullable destination despite `NotNullIfNotNull`. Implicit conversion to `T`, `.AsResult()` on a successful mutation result, or constructing `new DataResult<T>(mappedValue)` with the default `true` loses that information. For aggregates, report the whole parent/child operation, not an unrelated single-row flag; retain provider semantics and transaction commit handling. Reads remain unchanged.
 
 ## CosmosDb
 
@@ -360,7 +362,7 @@ public Task<Result<Domain.Basket>> GetAsync(string id, CancellationToken cancell
     .GoAsync(() => _ef.Baskets.GetWithResultAsync(id, cancellationToken))
     .ThenAs(model => BasketMapper.Map(model));
 
-public Task<Result<Domain.Basket>> CreateAsync(Domain.Basket basket, CancellationToken cancellationToken = default) => Result
+public Task<Result<DataResult<Domain.Basket>>> CreateAsync(Domain.Basket basket, CancellationToken cancellationToken = default) => Result
     .Go(() =>
     {
         var model = new Persistence.Basket();
@@ -368,7 +370,7 @@ public Task<Result<Domain.Basket>> CreateAsync(Domain.Basket basket, Cancellatio
         return model;
     })
     .ThenAsAsync(model => _ef.Baskets.CreateWithResultAsync(model, cancellationToken))
-    .ThenAs(b => BasketMapper.Map(b));
+    .ThenAs(dr => dr.Map(value => BasketMapper.Map(value)));
 ```
 
 ## Mapping
@@ -530,6 +532,8 @@ public async Task<Result<Customer>> GetAsync(string id, CancellationToken ct = d
 Validate only fields the consumer needs; do not impose create/update rules or identifier matching
 by default. Do not capture request state/scoped dependencies in a shared validator.
 Matched status codes from `.WithStatusResult(...)` short-circuit execution before deserialization and validation.
+
+Map HTTP 404 to entity-not-found only when the downstream endpoint contract defines that expected lookup outcome; a route/deployment/configuration 404 is not an invalid caller reference. Repositories/adapters report lookup outcomes; application services/policies distinguish missing target resources (404) from missing request-body references (field-level 400), preserving unrelated failures. See [Not Found Handling](/.github/instructions/coreex-application-services.instructions.md#not-found-handling).
 The wrapper validates successful non-null values and returns the validation result's `Value`.
 Reported errors become `HttpRequestException` with inner validation diagnostics: failed `ToResult*`,
 throwing `GetValue*`, standard internal 500 rather than caller 400. Required methods reject null;

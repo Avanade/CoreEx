@@ -87,6 +87,8 @@ Property(p => p.EndsOn).Mandatory().CompareProperty(CompareOperator.GreaterThanO
 
 ## Reusable Validators
 
+Dictionary JSON error paths use the effective serializer's `DictionaryKeyPolicy` for string keys: `HomeAddress` becomes `homeAddress` with CoreEx defaults. A null key policy preserves keys. This applies to key and value errors and matches `ValidationException.Create<TEntity>`; CLR paths and `GetDictionaryKey()` retain original keys. Dictionary object members use `.key`, arrays/lists use `[index]`. No escaping is added for punctuation within names.
+
 Use `CommonValidator<TValue>` for logic reused across multiple entity validators.
 
 ```csharp

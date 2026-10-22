@@ -50,11 +50,13 @@ Guides you through creating or modifying a CoreEx validator (`Application/Valida
 | FluentValidation-style preferred | `AbstractValidator<T, TSelf>` | `RuleFor(x => ...)` / `NotEmpty()` / `IsValid()` — still CoreEx; has `Default` |
 
 **Key rules at a glance:**
+- Request/input validation uses field-level validation errors; aggregate/entity/value-object business invariants use business errors with domain messages/codes. Keep both checks; never derive request paths in Domain or blanket-convert business errors. See [domain invariant conventions](/.github/instructions/coreex-domain.instructions.md#invariant-failures-versus-request-validation).
 - Ref-data: `.IsValid()` on the **navigation property** (`Gender`), never on `*Code` string
 - `Mandatory()` on a non-nullable value type errors on `default` (`0`, `MinValue`) — use a range rule if `0` is valid
 - Runtime-computed thresholds: use delegate overloads (`.LessThanOrEqualTo(_ => ...)`) — prefer over `OnValidateAsync` imperative logic
 - `context.HasErrors` guard before async I/O; `context.HasError(x => x.Prop)` for per-property guards
 - `context.AddError(x => x.Prop, ...)` — member-access expression, never `nameof(...)`
+- Outside a validator context, prefer `ValidationException.Create<TEntity>(x => x.Address!.Street, "Street is invalid.")` for manual property errors. Property names resolve through metadata; entity access is never executed, so `!` is safe on nullable intermediates. Array/list indexes and string dictionary keys accept literals/captured locals: `addresses[0].street` / `addressesByType.home.street`. String keys follow `DictionaryKeyPolicy` (null preserves keys), matching serialized JSON and validator key/value errors; CLR paths and `GetDictionaryKey()` keep original keys. No escaping/full JSONPath support. Use `(expression, options, format, ...values)` for custom naming. No arbitrary index/key getters, calls, calculations, or intermediate casts; unlike `context.AddError`, no label/value formatting arguments or contextual naming overrides are applied.
 - Conditional rules on a dependency: `.DependsOn(x => x.Other, value => predicate)` skips its attached rule when the dependency is default/invalid and otherwise runs it only when the predicate is true. Clauses guard the rule they are attached to; use another `Property(...)` call for a separate root rule chain. Use `.WhenEntity(...)` for conditions based on broader entity state.
 - Message text argument is a `{2}` suffix substitution — not a full sentence; use `.Error("...")` to override the whole message
 - **Always generate or update the matching `{Validator}Tests`** in `*.Test.Unit/Validators/` — cover conditional/business rules and cross-field logic thoroughly, plus a representative error/success pair for simple rules; skip dedicated boundary tests for framework-guaranteed constraints like length rules (`MaximumLength`/`MinimumLength`/`Length`/`String`)
@@ -62,6 +64,12 @@ Guides you through creating or modifying a CoreEx validator (`Application/Valida
 For full workflow, rule reference, and code examples see [`references/workflow.md`](references/workflow.md).
 
 ## Key References
+
+For aggregating manual errors outside a validator, use `MessageItem.CreateErrorMessage<TEntity>(x => x.Property, text)` and wrap the collection once. Omitted/null text infers the invalid message; `(expression, options, text)` supports custom naming. Exception/result factories share this message construction.
+
+Expression-based exception/result factories allow an omitted/null message, defaulting to `Validation.InvalidFormat` and the leaf property's friendly metadata label: `Result.ValidationError<Person>(x => x.Name)` yields `Name is invalid.`. Terminal indexes/keys use the containing property's label. Explicit messages remain unchanged; string-property factories keep their existing semantics.
+
+For Result-style manual errors outside a validator, use `Result.ValidationError<TEntity>(x => x.Name, "Name is invalid.")` or `Result<TValue>.ValidationError<TEntity>(...)`. These accept an expression, `LText` message (including preformatted arguments), and optional exception configuration action. For explicit serializer options or separate formatting arguments, use `ValidationException.Create<TEntity>` directly and its implicit conversion to the result type.
 
 - [`/.github/instructions/coreex-validators.instructions.md`](/.github/instructions/coreex-validators.instructions.md) — full rule set, comparison operators, localization, DependsOn, DI registration
 - [`/.github/instructions/coreex-tests.instructions.md`](/.github/instructions/coreex-tests.instructions.md) — validator unit test conventions: `Test.Scoped`, `AssertErrors`, expected message text

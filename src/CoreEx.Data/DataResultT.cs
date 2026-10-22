@@ -32,6 +32,15 @@ public readonly record struct DataResult<T>
     public bool WasMutated { get; }
 
     /// <summary>
+    /// Maps the <see cref="Value"/> while preserving <see cref="WasMutated"/>.
+    /// </summary>
+    /// <typeparam name="TResult">The mapped value type.</typeparam>
+    /// <param name="mapper">The function to map the value, invoked regardless of <see cref="WasMutated"/>.</param>
+    /// <returns>The mapped value with the original mutation flag.</returns>
+    /// <exception cref="ArgumentNullException">The <paramref name="mapper"/> is <see langword="null"/>.</exception>
+    public DataResult<TResult> Map<TResult>(Func<T, TResult> mapper) => new(mapper.ThrowIfNull()(Value), WasMutated);
+
+    /// <summary>
     /// Invokes the specified <paramref name="action"/> where the result <see cref="WasMutated"/> is <see langword="true"/> returning the <see cref="Value"/>.
     /// </summary>
     /// <param name="action">The action to execute.</param>
