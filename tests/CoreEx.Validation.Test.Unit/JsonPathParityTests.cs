@@ -89,7 +89,7 @@ public class JsonPathParityTests
         });
 
         result.Messages.Should().NotBeNull();
-        result.Messages?.Select(x => x.Property).Should().BeEquivalentTo("values.etag", "numericAddresses.13.street_name");
+        result.Messages?.Select(x => x.Property).Should().BeEquivalentTo("values.ETag", "numericAddresses.13.street_name");
     }
 
     [Test]
