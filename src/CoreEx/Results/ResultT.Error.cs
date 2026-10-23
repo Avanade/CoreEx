@@ -90,4 +90,15 @@ public readonly partial struct Result<T>
     /// <param name="configure">The optional configuration action.</param>
     /// <returns>The <see cref="Result{T}"/> that has a state of <see cref="IsFailure"/>.</returns>       
     public static Result<T> ValidationError(MessageItem message, Action<ValidationException>? configure = null) => (new ValidationException(message)).Adjust(configure);
+
+    /// <summary>
+    /// Creates a validation failure using the JSON path of a property expression.
+    /// </summary>
+    /// <typeparam name="TEntity">The entity type used to identify the property, independent of the result value type.</typeparam>
+    /// <param name="propertyExpression">The direct, nested, or indexed property expression.</param>
+    /// <param name="text">The message text; null uses the standard invalid format and the property's friendly metadata text.</param>
+    /// <param name="configure">The optional configuration action.</param>
+    /// <returns>The <see cref="Result{T}"/> that has a state of <see cref="IsFailure"/>.</returns>
+    public static Result<T> ValidationError<TEntity>(Expression<Func<TEntity, object?>> propertyExpression, LText? text = null, Action<ValidationException>? configure = null) where TEntity : class
+        => ValidationException.Create(propertyExpression, text).Adjust(configure);
 }

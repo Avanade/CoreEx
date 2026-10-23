@@ -1,4 +1,4 @@
-<Project Sdk="Aspire.AppHost.Sdk/13.5.4">
+<Project Sdk="Aspire.AppHost.Sdk/13.6.1">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -8,7 +8,7 @@
 
   <!-- Vulnerability override: MessagePack (transitive via Aspire) has had multiple CVEs on older versions. -->
   <ItemGroup>
-    <PackageReference Include="MessagePack" VersionOverride="2.5.302" />
+    <PackageReference Include="MessagePack" VersionOverride="2.5.307" />
   </ItemGroup>
 
   <ItemGroup>

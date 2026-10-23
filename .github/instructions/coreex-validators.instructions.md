@@ -28,6 +28,8 @@ tags: ["validators", "validation", "fluent-api", "rules", "error-handling", "app
 
 ## Placement
 
+Request validators provide input/field validity; aggregates, entities, and value objects independently enforce business invariants using `BusinessException` / `Result.BusinessError`, not request-validation errors. Do not move request validators or request JSON paths into Domain, or remove domain guards because input was validated. Known domain failures may be selectively translated in Application only when the request-field mapping is unambiguous. See [domain invariant conventions](/.github/instructions/coreex-domain.instructions.md#invariant-failures-versus-request-validation).
+
 Application business/request validators live in `Application/Validators/` and may inject
 Application-layer dependencies (e.g., `IProductRepository`), never Infrastructure dependencies.
 External-response validation is integration-owned: prefer a private static readonly `Validator<T>`
@@ -158,7 +160,7 @@ The table above lists the most common rules; the full set of fluent extension me
 | Dictionaries | `Dictionary(...)` (with `WithKeyValidator(...)` / `WithValueValidator(...)`) |
 | Child / shared / external | `Entity(validator)` (child entity), `Common(commonValidator)` (shared value rules), `Interop(validator)` (external/FluentValidation) |
 | Always-error (guard with a clause) | `Error(text)`, `Duplicate()`, `NotFound()`, `Invalid()`, `Immutable()` |
-| Clauses (conditional execution) | `When(...)`, `WhenValue(pred)`, `WhenHasValue()`, `WhenEntity(pred)`, `DependsOn(x => x.Other)` |
+| Clauses (conditional execution) | `When(...)`, `WhenValue(pred)`, `WhenHasValue()`, `WhenEntity(pred)`, `DependsOn(x => x.Other)` / `DependsOn(x => x.Other, value => predicate)` |
 
 > **`Mandatory()` on a non-nullable value type checks `default`, not just null.** `Mandatory()` defaults to `mustNotBeDefault: true`, so on a non-nullable value type it **errors when the value equals `default(T)`** — `0` for `decimal`/`int`, `DateOnly.MinValue` for `DateOnly`, etc. (On a **nullable** type — `decimal?`, `DateOnly?` — it errors only on `null`, since a supplied `0` is non-default.) Implications:
 > - **Do not use `Mandatory()` on a non-nullable value type where the default is a legitimate value** (e.g. a `decimal Salary` where `0` is allowed) — it will wrongly reject `0`. Use a range rule instead, e.g. `GreaterThanOrEqualTo(0)` (allows `0`) or `GreaterThan(0)` (requires positive). To require presence *without* the default-check, pass `Mandatory(mustNotBeDefault: false)`.
@@ -285,6 +287,14 @@ protected async override Task OnValidateAsync(ValidationContext<MovementRequest>
 
 When you do add an error directly, identify the property using the **member-access expression** overload of `context.AddError` — `context.AddError(x => x.Property, ...)`. Never pass a property-name string such as `nameof(...)`; the expression resolves the label, JSON name, and metadata automatically.
 
+Outside a validator context, use `ValidationException.Create<TEntity>(x => x.Address!.Street, "Street is invalid.")` for a manual property error. Direct/nested property chains resolve each segment's JSON name using runtime metadata, respecting explicit JSON names and the default serializer naming policy. An overload accepts `(expression, options, format, ...values)` for custom serializer options. Expressions are not executed: `!` is safe for nullable intermediate properties. Array/list indexes and string dictionary keys may be literals or captured locals: `x => x.Addresses[0].Street` yields `addresses[0].street`, while `x => x.AddressesByType["home"].Street` yields `addressesByType.home.street`. Collection access is never executed. String keys follow the effective serializer's `DictionaryKeyPolicy` (null preserves keys), matching serialized JSON and validator key/value error paths. CLR paths and `GetDictionaryKey()` retain the original key. No escaping is added; punctuation in keys can be ambiguous because these are error paths, not full JSONPath expressions. Entity fields, arbitrary getters/calls for indexes/keys, index calculations, and intermediate casts are unsupported. This factory always uses JSON names and preserves the existing string-property factory's `LText`/formatting behavior (no automatic label/value arguments). It does not carry validator-specific naming/path overrides; keep using `context.AddError` within validators.
+
+For Result-style manual property errors outside a validator, use `Result.ValidationError<TEntity>(x => x.Name, "Name is invalid.")` or `Result<TValue>.ValidationError<TEntity>(...)`. The shorthand accepts an expression, an `LText` message (including preformatted arguments), and an optional exception configuration action, using the default JSON naming/path resolver. For explicit serializer options or separate formatting arguments, use `ValidationException.Create<TEntity>` directly; the exception implicitly converts to `Result` or `Result<T>`.
+
+The expression factories also allow an omitted/null message: `ValidationException.Create<TEntity>(x => x.Name)` or `Result.ValidationError<TEntity>(x => x.Name)` uses `Validation.InvalidFormat` with the leaf property's friendly metadata text, respecting localization/display labels rather than deriving a label from the JSON path. A terminal collection index or dictionary key retains its containing property's label. With explicit serializer options, pass null as the message to infer it. Explicit messages are unchanged; this default does not apply to existing string-property factories.
+
+For multiple manually collected errors outside a validator, use `MessageItem.CreateErrorMessage<TEntity>(x => x.Property, text)` and wrap the collection once. It shares inferred/default messages and paths with the exception/result factories; `(expression, options, text)` supports explicit serializer options. Keep using `context.AddError` inside validators.
+
 **Choose the right guard — `HasErrors` vs `HasError(x => x.Prop)`:**
 - `context.HasErrors` (global) — bail early only when the *following logic needs the whole entity in a valid state*, e.g. before async I/O / database lookups (see [Async Validation](#async-validation-database-checks)).
 - `context.HasError(x => x.Prop)` (per-property) — when you are simply layering an additional rule onto a single property, gate on **that property only**. This still runs your check when unrelated properties have failed, and skips it only when the property itself is already in error (avoiding a misleading second message).
@@ -317,9 +327,9 @@ public partial string? SubCategoryCode { get; set; }
 // Produces: "Sub-category is required." (not "SubCategoryCode is required.")
 ```
 
-## DependsOn for Conditional Precision
+## DependsOn for Conditional Rules and Precision
 
-Use `.DependsOn(x => x.OtherProp)` to skip a rule when a dependent property is already invalid. This prevents misleading cascading errors:
+Use `.DependsOn(x => x.OtherProp)` to skip a rule when a dependent property is unset/default or already invalid. This prevents misleading cascading errors:
 
 ```csharp
 Property(x => x.Quantity, c => c
@@ -329,6 +339,19 @@ Property(x => x.Quantity, c => c
         ctx => ctx.Entity.UnitOfMeasure!.Scale)
     .DependsOn(x => x.UnitOfMeasure));
 ```
+
+The predicate overload adds a condition over the dependent property's value. The rule runs only when that property is non-default, has no validation error, **and** the predicate returns `true`:
+
+```csharp
+// FareClass is required only when the valid SegmentType is a flight.
+Property(x => x.FareClass)
+    .Mandatory()
+    .DependsOn(x => x.SegmentType, segmentType => segmentType!.IsFlight);
+```
+
+This is a good fit when the condition is naturally about the dependency itself. For a nullable dependency, `!` is justified in the predicate: `DependsOn` invokes it only after the dependency is non-default and has no validation error, though nullable flow analysis cannot infer that guard. The null-forgiving operator only affects compile-time analysis; it does not change validation behavior. Clauses apply to the rule they are attached to: in this example, both clauses guard `.Mandatory()`, so non-flight, unset, or invalid `SegmentType` values skip that mandatory check. Use `.WhenEntity(...)` when the condition needs other entity state or is not about the dependency value; do not replace a dependency guard if you also need its invalid-state short-circuit behavior.
+
+Use another `Property(x => x.SameProperty)` call to start a separate root rule chain for the same property when different rules need different conditions. This is a separate chain, not an isolated validation transaction: if an earlier chain reports an error for that property, later chains may be skipped by the existing-error guard.
 
 ## Do Not
 

@@ -31,6 +31,12 @@ The package intentionally stays minimal: it does not dictate a persistence strat
 | **[`PersistenceState`](./PersistenceState.cs)** | Enum: `Unknown`, `New`, `NotModified`, `Modified`, `Removed`; governs the entity lifecycle from creation through persistence to deletion. |
 | **[`DomainDrivenExtensions`](./DomainDrivenExtensions.cs)** | Extension methods on `PersistenceState`: `IsNew`, `IsNotModified`, `IsModified`, `IsRemoved`, `IsNotRemoved`, `IsNewOrModified`. |
 
+## Business Invariants versus Request Validation
+
+Aggregates, entities, and value objects enforce business invariants using `BusinessException` / `Result.BusinessError`, with domain messages/codes rather than request-field paths. Request/input validity belongs to Application validators/policies (`ValidationException` / `Result.ValidationError`). Both normally map to HTTP 400, but their classification and diagnostics differ. Never reference request DTOs or infer request JSON paths inside Domain; Application may selectively translate a known domain error where the request-field mapping is unambiguous.
+
+Keep domain enforcement even after request validation. Constructors/`init` setters may throw business exceptions; result-returning operations generally return business failures. `OnCheckCanMutate` returns a result but `Modify`/`Remove` call `ThrowOnError` internally, so guard rejection throws. Programming misuse/broken assumptions retain argument/invalid-operation exceptions. General numeric/reference-data guard helpers are not business-error factories; use explicit domain checks for expected invariant rejections without changing shared helper semantics. See the [Shopping domain walkthrough](../../samples/docs/domain-layer.md#business-invariants-versus-request-validation).
+
 ## Domain Events — Intentionally Not Supported
 
 CoreEx deliberately does not provide a native domain-event mechanism (e.g. MediatR `INotification` dispatch or an in-process event bus). This is a conscious architectural decision:
@@ -45,7 +51,7 @@ A developer can extend CoreEx with a domain-event mechanism if a genuine use cas
 
 - **[`CoreEx`](../CoreEx/README.md)** - Provides `IIdentifier`, `IChangeLog`, `IETag`, `CompositeKey`, `EventData`, and `Result<T>` consumed by the DDD types.
 - **[`CoreEx.EntityFrameworkCore`](../CoreEx.EntityFrameworkCore/README.md)** - Persists `Entity<TId, TSelf>` and `Aggregate<TId, TSelf>` via `EfDbModel<TModel>`; uses `PersistenceState` to determine insert/update/delete operations.
-- **[`CoreEx.Validation`](../CoreEx.Validation/README.md)** - Validates entity state; `OnCheckCanMutate` can delegate to a CoreEx validator for pre-mutation rule checks.
+- **[`CoreEx.Validation`](../CoreEx.Validation/README.md)** - Validates request/input contracts in Application; Domain protects its own business invariants without request-field context.
 
 ## AI Usage Guide
 

@@ -22,6 +22,18 @@
 - 🔗 **IQueryable integration**: `QueryExtensions.Where` and `OrderBy` applies the filter and order-by to any `IQueryable<T>`.
 - 🧩 **Multi-set query contract**: `IMultiSetArgsCore` is the minimal, provider-agnostic base for a single result-set within a multi-set query (`MinimumRows`, `MaximumRows`, `StopOnNull`, `InvokeResult()`) - `CoreEx.Database.Extended.IMultiSetArgs` (positional/ordered relational result sets) and `CoreEx.Cosmos.Extended.IMultiSetArgs` (discriminator-keyed Cosmos DB document sets) each extend it with their own provider-specific matching mechanism, so a future NoSQL provider (e.g. Mongo) can reuse the same base contract and row-count semantics.
 
+## Preserving Mutation Outcomes
+
+Create/Update return `DataResult<TEntity>` (or `Result<DataResult<TEntity>>`); Delete returns `DataResult` (or `Result<DataResult>`). Use `DataResult<T>.Map` to transform the value while preserving `WasMutated`, including successful no-ops:
+
+```csharp
+.ThenAs(dr => dr.Map(value => BasketMapper.Map(value)))
+```
+
+`Map` invokes the delegate exactly once regardless of `WasMutated`, passes null source/destination values through, rejects a null delegate, and propagates mapper exceptions unchanged. Prefer the lambda over a CoreEx mapper method group: nullable-return method groups can infer a nullable destination despite `NotNullIfNotNull`, whereas the lambda retains conditional flow analysis.
+
+Only unwrap after the Application layer gates mutation-announcement events with `WhereMutated`, inside the write transaction. Success with `WasMutated == false` is a successful no-op, not an event to announce; an earlier existence read or aggregate state check cannot substitute for this signal. For aggregates, the flag must represent the whole parent/child persistence operation. Deferred writes may commit later, so the flag does not prove committed rows or exactly-once delivery. Commands and intentional attempt messages follow their own semantics.
+
 ## Key types
 
 | Type | Description |

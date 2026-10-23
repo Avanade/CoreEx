@@ -217,38 +217,12 @@ public sealed class JsonMergePatch(JsonMergePatchOptions? options = null)
     /// </summary>
     private bool TryMerge(JsonElement patch, JsonElement target, Utf8JsonWriter writer, bool changed)
     {
-        // Where the kinds are different then simply accept the merge and acknowledge as changed.
-        if (patch.ValueKind != target.ValueKind)
-        {
-            patch.WriteTo(writer);
-            return true;
-        }
+        // Object patches merge recursively, treating a non-object target as an empty object.
+        if (patch.ValueKind == JsonValueKind.Object)
+            return TryObjectMerge(patch, target, writer, changed || target.ValueKind != JsonValueKind.Object);
 
-        // Where the kinds are the same then process accordingly.
-        switch (patch.ValueKind)
-        {
-            case JsonValueKind.Object:
-                // An object is a property-by-property merge.
-                return TryObjectMerge(patch, target, writer, changed);
-
-            case JsonValueKind.Array:
-                // An array is always a replacement.
-                patch.WriteTo(writer);
-                if (!DeepEquals(patch, target))
-                    changed = true;
-
-                break;
-
-            default:
-                // Accept merge as-is.
-                patch.WriteTo(writer);
-                if (!DeepEquals(patch, target))
-                    changed = true;
-
-                break;
-        }
-
-        return changed;
+        patch.WriteTo(writer);
+        return changed || !DeepEquals(patch, target);
     }
 
     /// <summary>
@@ -264,10 +238,11 @@ public sealed class JsonMergePatch(JsonMergePatchOptions? options = null)
             // Where the property is new then add.
             if (!TryGetProperty(target, j.Name, out var t))
             {
-                if (j.Value.ValueKind != JsonValueKind.Null)
-                    j.WriteTo(writer);
+                if (j.Value.ValueKind == JsonValueKind.Null)
+                    continue;
 
-                changed = true;
+                writer.WritePropertyName(j.Name);
+                changed = TryMerge(j.Value, default, writer, true);
                 continue;
             }
 
@@ -282,13 +257,16 @@ public sealed class JsonMergePatch(JsonMergePatchOptions? options = null)
         }
 
         // Add existing target properties not being merged.
-        foreach (var t in target.EnumerateObject())
+        if (target.ValueKind == JsonValueKind.Object)
         {
-            // Where found then consider as handled above and ignore!
-            if (TryGetProperty(patch, t.Name, out _))
-                continue;
+            foreach (var t in target.EnumerateObject())
+            {
+                // Where found then consider as handled above and ignore!
+                if (TryGetProperty(patch, t.Name, out _))
+                    continue;
 
-            t.WriteTo(writer);
+                t.WriteTo(writer);
+            }
         }
 
         writer.WriteEndObject();
@@ -299,7 +277,17 @@ public sealed class JsonMergePatch(JsonMergePatchOptions? options = null)
     /// Performs the TryGetProperty using the configured comparer.
     /// </summary>
     private bool TryGetProperty(JsonElement json, string propertyName, out JsonElement value)
-        => Options.PropertyNameComparer is null ? json.TryGetProperty(propertyName, out value) : TryGetPropertyWithComparer(json, propertyName, Options.PropertyNameComparer, out value);
+    {
+        if (json.ValueKind != JsonValueKind.Object)
+        {
+            value = default;
+            return false;
+        }
+
+        return Options.PropertyNameComparer is null || Options.PropertyNameComparer == StringComparer.Ordinal
+            ? json.TryGetProperty(propertyName, out value)
+            : TryGetPropertyWithComparer(json, propertyName, Options.PropertyNameComparer, out value);
+    }
 
     /// <summary>
     /// Performs the TryGetProperty using the specified comparer (this will impact performance).

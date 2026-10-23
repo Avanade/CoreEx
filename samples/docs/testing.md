@@ -300,3 +300,5 @@ Each `*.Test.Api` and `*.Test.Relay` project has a `Resources/` folder containin
 `Contoso.Test.Aspire` is the automated, CI-friendly counterpart — an NUnit test that self-hosts the whole `Contoso.Aspire` AppHost via `WithAspireTester<...>` (no need for Aspire to already be running) and asserts the same cross-domain flow as a single deterministic pass/fail test.
 
 See [aspire.md](aspire.md) for the full Aspire setup, `Contoso.Test.Aspire`, E2E Runner usage, scenario descriptions, load-simulation configuration, and the recommended first-run order.
+
+The runner's [demo snapshot bootstrap](aspire.md#shared-demo-catalog-bootstrap) is distinct from those event-flow scenarios: it directly composes the Products accessor and Shopping sync adapter before loading basket data, then builds real-model search. Its explicit `DemoCatalogBootstrapTests` fixture uses only guarded isolated PostgreSQL/SQL Server databases; it neither resets Cosmos nor replaces ordinary host-test catalogs.

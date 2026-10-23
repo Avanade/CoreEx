@@ -2,6 +2,39 @@ namespace Contoso.Shopping.Test.Unit.Domains;
 
 public class BasketTests : WithGenericTester<EntryPoint>
 {
+    [TestCase(-1, "negative-quantity")]
+    [TestCase(1.5, "quantity-scale-exceeded")]
+    public void Basket_ItemUpdate_InvalidPricing_ThrowsWithoutChangingState(decimal quantity, string code) => Test.Scoped(test =>
+    {
+        var item = Domain.BasketItem.CreateFrom("item-id", "product-id", "sku", "text", new Domain.ValueObjects.ItemPricing { UnitOfMeasure = "EA", Quantity = 1, UnitPrice = 10 }, null);
+        var basket = Domain.Basket.CreateFrom("basket-id", "customer-id", BasketStatus.Active, null, null, [item], null, null);
+
+        Action act = () => basket.ItemUpdate("item-id", quantity, "new-etag");
+
+        act.Should().Throw<BusinessException>().Which.ErrorCode.Should().Be(code);
+        basket.Items.Single().Pricing.Quantity.Should().Be(1);
+        basket.Items.Single().ETag.Should().BeNull();
+        basket.Total.Should().Be(10);
+        basket.HasChanges.Should().BeFalse();
+    });
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public void Basket_ApplyDiscount_InvalidCoupon_ReturnsBusinessError(bool inactive) => Test.Scoped(test =>
+    {
+        var basket = Domain.Basket.CreateNew("customer-id");
+        var coupon = new DiscountCoupon { Code = "INVALID", IsInactive = inactive };
+        if (!inactive)
+            ((IReferenceData)coupon).SetInvalid();
+
+        var result = basket.ApplyDiscount(coupon);
+
+        result.IsBusinessError.Should().BeTrue();
+        result.Error.Should().BeOfType<BusinessException>().Which.ErrorCode.Should().Be("invalid-discount-coupon");
+        basket.DiscountCoupon.Should().BeNull();
+        basket.Total.Should().Be(0);
+    });
+
     [Test]
     public void Basket_ApplyDiscount_Success() => Test.Scoped(test =>
     {

@@ -39,6 +39,9 @@ public partial class Product : ModelBase<string>, ILogicallyDeleted
     /// <summary>Gets or sets the value of the '<c>tags_json</c>' column (type '<c>JSONB NULL</c>').</summary>
     public List<string>? Tags { get; set; }
 
+    /// <summary>Gets or sets the value of the '<c>description</c>' column (type '<c>CHARACTER VARYING(2000) NULL</c>').</summary>
+    public string? Description { get; set; }
+
     /// <summary>Gets or sets the value of the '<c>is_deleted</c>' column (type '<c>BOOLEAN</c>'); see <see cref="ILogicallyDeleted.IsDeleted"/>.</summary>
     public bool IsDeleted { get; set; }
 }

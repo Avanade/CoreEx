@@ -35,7 +35,7 @@
   </Folder>
   <Folder Name="/samples/Customers/tools/">
     <Project Path="samples/src/Contoso.Customers.CodeGen/Contoso.Customers.CodeGen.csproj" />
-      <Project Path="samples/src/Contoso.Customers.Database/Contoso.Customers.Database.csproj" />
+    <Project Path="samples/src/Contoso.Customers.Database/Contoso.Customers.Database.csproj" />
   </Folder>
   <Folder Name="/samples/docs/">
     <File Path="samples/docs/application-layer.md" />
@@ -47,6 +47,7 @@
     <File Path="samples/docs/layers.md" />
     <File Path="samples/docs/local-dev.md" />
     <File Path="samples/docs/patterns.md" />
+    <File Path="samples/docs/search.md" />
     <File Path="samples/docs/testing.md" />
     <File Path="samples/docs/tooling.md" />
   </Folder>
@@ -104,6 +105,10 @@
     <Project Path="samples/src/Contoso.Shopping.Relay/Contoso.Shopping.Relay.csproj" />
     <Project Path="samples/src/Contoso.Shopping.Subscribe/Contoso.Shopping.Subscribe.csproj" />
   </Folder>
+  <Folder Name="/samples/Integration/" />
+  <Folder Name="/samples/Integration/hosts/">
+    <Project Path="samples/src/Contoso.Mcp/Contoso.Mcp.csproj" />
+  </Folder>
   <Folder Name="/samples/Shopping/tests/">
     <Project Path="samples/tests/Contoso.Shopping.Test.Api/Contoso.Shopping.Test.Api.csproj" />
     <Project Path="samples/tests/Contoso.Shopping.Test.Common/Contoso.Shopping.Test.Common.csproj" />
@@ -126,11 +131,15 @@
     <File Path=".editorconfig" />
     <File Path=".filenesting.json" />
     <File Path=".gitignore" />
+    <File Path="AGENTS.md" />
     <File Path="CHANGELOG.md" />
+    <File Path="CLAUDE.md" />
     <File Path="CODE_OF_CONDUCT.md" />
     <File Path="CONTRIBUTING.md" />
+    <File Path="Directory.Build.props" />
     <File Path="Directory.Packages.props" />
     <File Path="docker-compose.yml" />
+    <File Path="global.json" />
     <File Path="LICENCE" />
     <File Path="nuget-publish.ps1" />
     <File Path="README.md" />

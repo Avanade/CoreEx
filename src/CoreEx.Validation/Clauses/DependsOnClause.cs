@@ -11,6 +11,11 @@ public sealed class DependsOnClause<TEntity, TProperty, TDependsOnProperty>(Expr
 {
     private readonly IPropertyRuntimeMetadata _dependsOn = RuntimeMetadata.GetForExpression(dependsOnExpression.ThrowIfNull());
 
+    /// <summary>
+    /// Gets or initializes a predicate that determines whether the dependent property satisfies an additional condition.
+    /// </summary>
+    internal Func<TDependsOnProperty, bool>? AndAlso { get; init; }
+
     /// <inheritdoc/>
     public Task<bool> CheckAsync(PropertyContext<TEntity, TProperty> context, CancellationToken cancellationToken)
     {
@@ -23,6 +28,6 @@ public sealed class DependsOnClause<TEntity, TProperty, TDependsOnProperty>(Expr
             return Task.FromResult(false);
 
         // Check depends on value to continue.
-        return Task.FromResult(!_dependsOn.IsDefault(context.Entity));
+        return Task.FromResult(!_dependsOn.IsDefault(context.Entity) && AndAlso?.Invoke(_dependsOn.GetValue<TDependsOnProperty>(context.Entity)) != false);
     }
 }

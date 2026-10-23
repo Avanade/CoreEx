@@ -19,6 +19,7 @@
     <PackageReference Include="NUnit" />
     <PackageReference Include="NUnit.Analyzers" />
     <PackageReference Include="NUnit3TestAdapter" />
+    <PackageReference Include="ModelContextProtocol" />
     <PackageReference Include="UnitTestEx.Aspire" />
     <PackageReference Include="UnitTestEx.NUnit" />
   </ItemGroup>
@@ -30,11 +31,14 @@
     <ProjectReference Include="..\..\src\Contoso.Customers.Database\Contoso.Customers.Database.csproj" />
     <ProjectReference Include="..\..\src\Contoso.Products.Contracts\Contoso.Products.Contracts.csproj" />
     <ProjectReference Include="..\..\src\Contoso.Products.Database\Contoso.Products.Database.csproj" />
+    <ProjectReference Include="..\..\src\Contoso.Products.Infrastructure\Contoso.Products.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\Contoso.Shopping.Contracts\Contoso.Shopping.Contracts.csproj" />
     <ProjectReference Include="..\..\src\Contoso.Shopping.Database\Contoso.Shopping.Database.csproj" />
+    <ProjectReference Include="..\..\src\Contoso.Mcp\Contoso.Mcp.csproj" />
     <ProjectReference Include="..\..\tests\Contoso.Customers.Test.Common\Contoso.Customers.Test.Common.csproj" />
     <ProjectReference Include="..\..\tests\Contoso.Products.Test.Common\Contoso.Products.Test.Common.csproj" />
     <ProjectReference Include="..\..\tests\Contoso.Shopping.Test.Common\Contoso.Shopping.Test.Common.csproj" />
+    <ProjectReference Include="..\..\tests\Contoso.E2E.Runner\Contoso.E2E.Runner.csproj" />
     <ProjectReference Include="..\Contoso.Aspire\Contoso.Aspire.csproj" />
   </ItemGroup>
 

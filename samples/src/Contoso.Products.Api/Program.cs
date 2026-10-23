@@ -10,7 +10,7 @@ namespace Contoso.Products.Api;
 
 public class Program
 {
-    private static void Main(string[] args)
+    private static async Task Main(string[] args)
     {
         // Create the web builder.
         var builder = WebApplication.CreateBuilder(args);
@@ -28,6 +28,8 @@ public class Program
 
         // Add all the dynamically registered services.
         builder.Services.AddDynamicServicesUsing<ReferenceDataService, ReferenceDataRepository>();
+
+        builder.AddProductEmbeddings();
 
         // Add L1/L2 caching services.
         builder.Services.AddMemoryCache();              // Adds the in-memory cache - L1.
@@ -69,7 +71,7 @@ public class Program
             o.EnableIntrospection = true; // Defaults to false (secure-by-default); enabled here so client tooling (Postman, GraphiQL, etc.) can introspect the schema.
 
             o.AddReferenceDataQueries(sp, ReferenceDataQueryArgsConfig.Default)
-             .AddQuery<ProductLite>("products", ProductQueryArgsConfig.Default, async (qa, pa, ct) => await CoreEx.ExecutionContext.GetRequiredService<IProductReadService>().QueryAsync(qa, pa, ct).ConfigureAwait(false))
+             .AddQuery<ProductLite>("products", ProductQueryArgsConfig.FromConfiguration(builder.Configuration), async (qa, pa, ct) => await CoreEx.ExecutionContext.GetRequiredService<IProductReadService>().QueryAsync(qa, pa, ct).ConfigureAwait(false))
              .AddGet<Product>("product", (args, ct) => CoreEx.ExecutionContext.GetRequiredService<IProductReadService>().GetAsync(args.GetIdentifier<string>(), ct));
         });
 
@@ -87,7 +89,7 @@ public class Program
             .UseOtlpExporter();
 
         // Build the application.
-        var app = builder.Build();
+        await using var app = builder.Build();
 
         // Configure the pipeline/middleware (order is important).
         app.UseCoreExExceptionHandler();
@@ -107,6 +109,6 @@ public class Program
         app.MapHealthChecks();   // Secure by default: detailed endpoints are disabled unless explicitly enabled (HealthCheckOptions.AreDetailedEndpointsEnabled) and secured (detailedGroupConfigure, e.g. g => g.RequireAuthorization()); basic live/startup/ready checks stay anonymous for orchestrator probes.
 
         // Run the application.
-        app.Run();
+        await app.RunAsync().ConfigureAwait(false);
     }
 }

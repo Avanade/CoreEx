@@ -46,20 +46,24 @@ Guides you through creating or modifying a CoreEx Infrastructure-layer repositor
 - `[ScopedService<IInterface>]` on every repository class — auto-registers in DI
 - Primary constructor: relational example `public class ProductRepository(ProductsEfDb ef) : IProductRepository`; Cosmos example `public class CustomerRepository(CustomersCosmosDb cosmos) : ICustomerRepository`; always guard the injected accessor with `ThrowIfNull()`
 - Use the provider's typed accessors: `EfDb` delegate shortcuts (`GetAsync`, `CreateAsync`, `UpdateAsync`, `DeleteAsync`) for relational domains; `CosmosDbMappedContainer` / `CosmosDbContainer` delegates for Cosmos domains. Never write raw `DbContext` CRUD or instantiate a `CosmosClient` in the repository.
-- `DataResult<T>` return for Create/Update; `DataResult` for Delete — includes mutation flag for event decisions
+- Create/Update return `DataResult<T>` or `Result<DataResult<T>>`; Delete returns `DataResult` or `Result<DataResult>`. Use `dr.Map(value => SomeMapper.Map(value))` to preserve `WasMutated` through ROP/Domain mapping until Application gates mutation events; prefer the lambda to retain CoreEx mapper nullability guarantees. Do not implicitly unwrap or default the flag to true. Aggregate outcomes cover the whole parent/child operation; reads remain unchanged.
 - `*WithResultAsync` variants for `Result<T>` ROP pipelines (per-project style choice)
 - `BiDirectionMapper`: override **both** `OnMap` overloads; map `Id` explicitly; **never** map `ETag` or `ChangeLog` — base mapper owns them
 - `QueryArgsConfig<TSelf>`: create a dedicated `{Name}QueryArgsConfig : QueryArgsConfig<{Name}QueryArgsConfig>` class per entity in `Infrastructure/Repositories/`; access via `.Default`; call `.Parse(query).ThrowOnError()` before use — never instantiate per-request. Relational queries materialize from `IQueryable<TModel>` extensions; Cosmos queries materialize from `CosmosDbQuery<TModel>` instance methods (`Container.Query(...).ToMappedItemsResultAsync(...)`).
+- Custom relational SQL: prefer `EfDb` for ordinary CRUD/LINQ; put application-owned static SQL (short or long) in embedded `.sql` / `.pgsql` resources loaded by `SqlStatement.FromResource<TResource>`, and bind values with `.Param(...)`. Reserve `FromText(...)` for SQL genuinely generated at runtime, with dynamic identifiers validated or safely quoted; schema changes belong in DbEx migrations.
 - `AddReferenceDataField<TRef>(field, model, ...)`: `field` is always the contract's generated nav property (`{Name}`, never `{Name}Code`) — a fixed, documented source-generator convention, **not** something to verify by exploring generated code
 - `ToMappedItemsResultAsync(mapper, paging, cancellationToken: cancellationToken)`: always pass `cancellationToken` **by name** — `autoCount` (`bool`, defaults `true`) sits before it in the signature, and a bare positional token there fails to compile
 - Always `.ConfigureAwait(false)` on every `await`
+- In mappings, pass stored codes directly to concrete reference-data parameters/properties (`Currency = source.CurrencyCode`); do not add `RefData<T>` helpers or conversion-only lookups. See [conversion semantics](/.github/instructions/coreex-contracts.instructions.md#reference-data-code-conversion).
 
 For full workflow and code examples see [`references/workflow.md`](references/workflow.md).
 
 ## Key References
 
 - [`/.github/instructions/coreex-repositories.instructions.md`](/.github/instructions/coreex-repositories.instructions.md) — full conventions: EfDb, DbContext, mappers, query config, adapters
+- [CoreEx.Database guide](/.github/docs/coreex/agents/CoreEx.Database.md) — direct relational SQL with `IDatabase`, `SqlStatement`, and embedded resources
 - Related skills: [`coreex-db-migration`](../coreex-db-migration/SKILL.md) (generates the persistence models this maps), [`coreex-app-service`](../coreex-app-service/SKILL.md) + [`coreex-adapter`](../coreex-adapter/SKILL.md) (consumers), [`coreex-aggregate`](../coreex-aggregate/SKILL.md) (persisting aggregates)
 - Illustrative examples (CoreEx sample — not present in your project):
   - [contract-mapping repositories](https://github.com/Avanade/CoreEx/tree/main/samples/src/Contoso.Products.Infrastructure/Repositories) — `ProductRepository` (CRUD + query), `ProductsEfDb`, `ProductsDbContext` — and [BiDirectionMapper](https://github.com/Avanade/CoreEx/tree/main/samples/src/Contoso.Products.Infrastructure/Mapping) (`ProductMapper`)
+  - [Custom SQL with embedded resources](https://github.com/Avanade/CoreEx/blob/main/samples/src/Contoso.Products.Infrastructure/Repositories/ProductSearchIndex.cs) — `SqlStatement.FromResource`, bound parameters, and `ProductsEfDb.Database`
   - [Domain-mapping repositories](https://github.com/Avanade/CoreEx/tree/main/samples/src/Contoso.Shopping.Infrastructure/Repositories) — `BasketRepository` (`Result<T>` + Domain mapping) — and [one-way Domain ↔ Persistence mappers](https://github.com/Avanade/CoreEx/tree/main/samples/src/Contoso.Shopping.Infrastructure/Mapping) (`BasketMapper`)

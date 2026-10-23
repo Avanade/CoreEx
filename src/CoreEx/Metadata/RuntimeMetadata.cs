@@ -15,7 +15,7 @@ public static partial class RuntimeMetadata
     public static TimeSpan SlidingExpirationTimespan => Internal.GetConfigurationValue("CoreEx:Runtime:Metadata:SlidingExpirationTimespan", TimeSpan.FromMinutes(30));
 
     /// <summary>
-    /// Gets the <see cref="IPropertyRuntimeMetadata"/> for the specified <paramref name="propertyExpression"/> using <see cref="IRuntimeMetadata.GetStaticPropertyRuntimeMetadata"/>.
+    /// Gets the <see cref="IPropertyRuntimeMetadata"/> for the specified <paramref name="propertyExpression"/>, preferring static metadata with a cached reflection fallback.
     /// </summary>
     /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
     /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
@@ -27,14 +27,14 @@ public static partial class RuntimeMetadata
             throw new ArgumentException("Only member access expressions are supported.", nameof(propertyExpression));
 
         var me = (MemberExpression)propertyExpression.Body;
-        if (GetCachedProperties<TEntity>().TryGetValue(me.Member.Name, out var m))
-            return m;
+        if (me.Member is PropertyInfo property)
+            return GetForProperty(typeof(TEntity), property);
 
         throw new InvalidOperationException("The underlying property metadata cannot be retrieved for the property expression.");
     }
 
     /// <summary>
-    /// Gets the <see cref="IPropertyRuntimeMetadata"/> for the specified <paramref name="propertyExpression"/> using reflection on a cache miss.
+    /// Gets the <see cref="IPropertyRuntimeMetadata"/> for the specified <paramref name="propertyExpression"/>, preferring static metadata with a cached reflection fallback.
     /// </summary>
     /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
     /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
@@ -49,10 +49,28 @@ public static partial class RuntimeMetadata
             throw new ArgumentException("Only member access expressions are supported.", nameof(propertyExpression));
 
         var me = (MemberExpression)propertyExpression.Body;
-        if (GetCachedProperties<TEntity>().TryGetValue(me.Member.Name, out var m))
-            return m;
+        if (me.Member is PropertyInfo property)
+            return GetForProperty(typeof(TEntity), property);
 
-        throw new InvalidOperationException("The underlying property metadata can not be retrieved for the property expression.");
+        throw new InvalidOperationException("The underlying property metadata cannot be retrieved for the property expression.");
+    }
+
+    /// <summary>
+    /// Resolves explicitly requested properties omitted by static metadata without changing the contract's property collection.
+    /// </summary>
+    private static IPropertyRuntimeMetadata GetForProperty(Type type, PropertyInfo property)
+    {
+        if (GetCachedProperties(type).TryGetValue(property.Name, out var metadata))
+            return metadata;
+
+        if (property.GetMethod is not { IsPublic: true, IsStatic: false } || property.GetIndexParameters().Length != 0)
+            throw new InvalidOperationException("The underlying property metadata cannot be retrieved for the property expression.");
+
+        return Internal.MemoryCache.GetOrCreate(("RuntimeMetadata_Property", type, property), entry =>
+        {
+            entry.SlidingExpiration = SlidingExpirationTimespan;
+            return CreateReflectedPropertyMetadata(type, property);
+        })!;
     }
 
     /// <summary>
@@ -60,38 +78,26 @@ public static partial class RuntimeMetadata
     /// </summary>
     /// <typeparam name="T">The <see cref="IContract{T}"/> <see cref="Type"/>.</typeparam>
     /// <returns>The cached <see cref="IPropertyRuntimeMetadata"/> dictionary.</returns>
-    public static IDictionary<string, IPropertyRuntimeMetadata> GetCachedProperties<T>() where T : IContract<T>
-    {
-        var cacheKey = $"RuntimeMetadata_{typeof(T).FullName}";
-
-        return Internal.MemoryCache.GetOrCreate<IDictionary<string, IPropertyRuntimeMetadata>>(cacheKey, entry =>
-        {
-            var dict = new Dictionary<string, IPropertyRuntimeMetadata>();
-            foreach (var p in GetPropertyRuntimeMetadata<T>())
-                dict[p.Name] = p;
-
-            entry.SlidingExpiration = SlidingExpirationTimespan;
-            return dict;
-        })!;
-    }
+    public static IDictionary<string, IPropertyRuntimeMetadata> GetCachedProperties<T>() where T : IContract<T> => GetCachedProperties(typeof(T));
 
     /// <summary>
-    /// Gets the cached <see cref="IPropertyRuntimeMetadata"/> dictionary for the entity <typeparamref name="T"/> <see cref="Type"/> using <b>reflection</b> on a cache miss.
+    /// Gets the cached property metadata, preferring static <see cref="IRuntimeMetadata"/> metadata with reflection as the fallback.
     /// </summary>
     /// <typeparam name="T">The entity <see cref="Type"/>.</typeparam>
     /// <param name="ignoreProperties">The list of properties to ignore.</param>
-    /// <remarks>This implementation leverages <i>System.Reflection</i>; as such, consider implementing type as <see cref="IContract{T}"/> and use <see cref="GetPropertyRuntimeMetadata{T}()"/> where performance is a premium.</remarks>
+    /// <remarks>Metadata source selection and creation occur only on a cache miss. No entity instance is constructed.</remarks>
     public static IDictionary<string, IPropertyRuntimeMetadata> GetCachedProperties<T>(params IEnumerable<string> ignoreProperties) => GetCachedProperties(typeof(T), ignoreProperties);
 
     /// <summary>
-    /// Gets the cached <see cref="IPropertyRuntimeMetadata"/> dictionary for the entity <paramref name="type"/> using <b>reflection</b> on a cache miss.
+    /// Gets the cached property metadata, preferring static <see cref="IRuntimeMetadata"/> metadata with reflection as the fallback.
     /// </summary>
     /// <param name="type">The <see cref="Type"/>.</param>
     /// <param name="ignoreProperties">The list of properties to ignore.</param>
-    /// <remarks>This implementation leverages <i>System.Reflection</i>; as such, consider implementing type as <see cref="IContract{T}"/> and use <see cref="GetPropertyRuntimeMetadata{T}()"/> where performance is a premium.</remarks>
+    /// <remarks>Metadata source selection and creation occur only on a cache miss. No entity instance is constructed.
+    /// Static metadata errors propagate; reflection is used only when the type does not implement <see cref="IRuntimeMetadata"/>.</remarks>
     public static IDictionary<string, IPropertyRuntimeMetadata> GetCachedProperties(Type type, params IEnumerable<string> ignoreProperties)
     {
-        var cacheKey = $"RuntimeMetadata_{type.FullName}";
+        var cacheKey = $"RuntimeMetadata_{type.ThrowIfNull().FullName}";
 
         if (type.IsValueType)
             return new Dictionary<string, IPropertyRuntimeMetadata>();
@@ -99,7 +105,8 @@ public static partial class RuntimeMetadata
         var dict = Internal.MemoryCache.GetOrCreate<IDictionary<string, IPropertyRuntimeMetadata>>(cacheKey, entry =>
         {
             var dict = new Dictionary<string, IPropertyRuntimeMetadata>();
-            foreach (var p in GetPropertyRuntimeMetadata(type))
+            var properties = typeof(IRuntimeMetadata).IsAssignableFrom(type) ? GetStaticMetadataForType(type) : GetPropertyRuntimeMetadata(type);
+            foreach (var p in properties)
                 dict[p.Name] = p;
 
             entry.SlidingExpiration = SlidingExpirationTimespan;
@@ -108,6 +115,23 @@ public static partial class RuntimeMetadata
 
         return ignoreProperties.Any() ? dict.Where(kvp => !ignoreProperties.Contains(kvp.Key)).ToDictionary(kvp => kvp.Key, kvp => kvp.Value) : dict;
     }
+
+    /// <summary>
+    /// Dispatches to the static interface metadata provider for a runtime type.
+    /// </summary>
+    private static IEnumerable<IPropertyRuntimeMetadata> GetStaticMetadataForType(Type type)
+    {
+        var method = typeof(RuntimeMetadata).GetMethod(nameof(GetStaticMetadata), BindingFlags.NonPublic | BindingFlags.Static)
+            ?? throw new InvalidOperationException("The static metadata dispatcher cannot be found.");
+
+        var provider = method.MakeGenericMethod(type).CreateDelegate<Func<IEnumerable<IPropertyRuntimeMetadata>>>();
+        return provider();
+    }
+
+    /// <summary>
+    /// Invokes the static metadata interface, including explicit implementations.
+    /// </summary>
+    private static IEnumerable<IPropertyRuntimeMetadata> GetStaticMetadata<T>() where T : IRuntimeMetadata => T.GetStaticPropertyRuntimeMetadata();
 
     /// <summary>
     /// Gets the <see cref="IPropertyRuntimeMetadata"/> for each property of the entity <typeparamref name="T"/> <see cref="Type"/> using <see cref="IRuntimeMetadata.GetStaticPropertyRuntimeMetadata"/>.
@@ -146,9 +170,17 @@ public static partial class RuntimeMetadata
             if (ignoreProperties.Contains(pi.Name))
                 continue;
 
-            var method = typeof(PropertyRuntimeMetadataReflector).GetMethod(nameof(PropertyRuntimeMetadataReflector.CreatePropertyRuntimeMetadata), BindingFlags.Static | BindingFlags.Public)!;
-            var genericMethod = method.MakeGenericMethod(type, pi.PropertyType);
-            yield return (IPropertyRuntimeMetadata)genericMethod.Invoke(null, [pi])!;
+            yield return CreateReflectedPropertyMetadata(type, pi);
         }
+    }
+
+    /// <summary>
+    /// Creates typed reflected metadata for a single property without invoking its getter.
+    /// </summary>
+    private static IPropertyRuntimeMetadata CreateReflectedPropertyMetadata(Type type, PropertyInfo property)
+    {
+        var method = typeof(PropertyRuntimeMetadataReflector).GetMethod(nameof(PropertyRuntimeMetadataReflector.CreatePropertyRuntimeMetadata), BindingFlags.Static | BindingFlags.Public)!;
+        var genericMethod = method.MakeGenericMethod(type, property.PropertyType);
+        return (IPropertyRuntimeMetadata)genericMethod.Invoke(null, [property])!;
     }
 }

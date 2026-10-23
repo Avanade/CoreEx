@@ -155,7 +155,7 @@ public static partial class Extensions
             return await ToResultAsync(response, cancellationToken).ConfigureAwait(false);
 
         // Where successful, attempt to read the content as JSON and return as the value; empty content (e.g. 204) is treated as no value as it is not valid JSON.
-        if (response.StatusCode == HttpStatusCode.NoContent || response.Content.Headers.ContentLength == 0)
+        if (response.StatusCode == HttpStatusCode.NoContent || response.Content is null || response.Content.Headers.ContentLength == 0)
             return default;
 
         var value = await response.Content.ReadFromJsonAsync<T>(jsonSerializerOptions ?? JsonDefaults.SerializerOptions, cancellationToken).ConfigureAwait(false);
@@ -171,6 +171,26 @@ public static partial class Extensions
     /// <returns>The corresponding <see cref="Result{T}"/>.</returns>
     /// <remarks>See <see cref="ToResultOrDefaultAsync{T}(HttpResponseMessage, JsonSerializerOptions?, CancellationToken)"/>.</remarks>
     public static Task<Result<T?>> ToResultOrDefaultAsync<T>(this HttpResponseMessage response, CancellationToken cancellationToken = default) => ToResultOrDefaultAsync<T>(response, null, cancellationToken);
+
+    /// <summary>
+    /// Converts the <see cref="HttpResponseMessage"/> into a <see cref="Result{T}"/> including the response content as a string where successful; a successful response with empty or <see langword="null"/> content results in a <see langword="null"/> value.
+    /// </summary>
+    /// <param name="response">The <see cref="HttpResponseMessage"/>.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+    /// <returns>The corresponding <see cref="Result{T}"/>.</returns>
+    public static async Task<Result<string?>> ToStringResultAsync(this HttpResponseMessage response, CancellationToken cancellationToken = default)
+    {
+        // Where not successful, reuse the non-generic version above to get the error details.
+        if (!response.ThrowIfNull().IsSuccessStatusCode)
+            return await ToResultAsync(response, cancellationToken).ConfigureAwait(false);
+
+        // Where successful, attempt to read the content as a string; empty content (e.g. 204) is treated as no value.
+        if (response.StatusCode == HttpStatusCode.NoContent || response.Content is null || response.Content.Headers.ContentLength == 0)
+            return default;
+
+        var value = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+        return string.IsNullOrEmpty(value) ? null : value;
+    }
 
     /// <summary>
     /// Gets the deserialized JSON response value from the <see cref="HttpResponseMessage"/> where successful; otherwise, will throw a corresponding exception.
@@ -227,4 +247,16 @@ public static partial class Extensions
     /// <returns>The value where successful.</returns>
     /// <remarks>See <see cref="GetValueOrDefaultAsync{T}(HttpResponseMessage, JsonSerializerOptions?, CancellationToken)"/>.</remarks>
     public static Task<T?> GetValueOrDefaultAsync<T>(this HttpResponseMessage response, CancellationToken cancellationToken = default) => GetValueOrDefaultAsync<T>(response, null, cancellationToken);
+
+    /// <summary>
+    /// Gets the response content as a string where successful, or <see langword="null"/> where the content is empty or <see langword="null"/>; otherwise, will throw a corresponding exception.
+    /// </summary>
+    /// <param name="response">The <see cref="HttpResponseMessage"/>.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+    /// <returns>The response content as a string where successful, or <see langword="null"/> where the content is empty or <see langword="null"/>.</returns>
+    public static async Task<string?> GetStringAsync(this HttpResponseMessage response, CancellationToken cancellationToken = default)
+    {
+        var result = await response.ThrowIfNull().ToStringResultAsync(cancellationToken).ConfigureAwait(false);
+        return result.Value;
+    }
 }

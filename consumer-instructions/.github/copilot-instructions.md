@@ -18,7 +18,7 @@ CoreEx is a modular .NET framework for enterprise back-end services. It provides
 
 | NuGet Package | Capability |
 |---|---|
-| `CoreEx` | Core: exceptions, `Result<T>`, execution context, DI helpers, entity markers, JSON, mapping, and Roslyn source generator for `[Contract]`-decorated and `[ReferenceData]`-decorated types |
+| `CoreEx` | Core: exceptions, `Result<T>`, execution context, DI helpers, HTTP client/builder extensions, entity markers, JSON, mapping, and Roslyn source generator for `[Contract]`-decorated and `[ReferenceData]`-decorated types |
 | `CoreEx.AspNetCore` | HTTP API: `WebApi` helpers, idempotency, health checks, middleware |
 | `CoreEx.AspNetCore.NSwag` | OpenAPI / NSwag integration |
 | `CoreEx.Validation` | Fluent validation: `Validator<T>`, `AbstractValidator<T>`, rules |

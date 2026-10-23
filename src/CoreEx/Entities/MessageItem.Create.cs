@@ -3,6 +3,30 @@ namespace CoreEx.Entities;
 public partial record class MessageItem
 {
     /// <summary>
+    /// Creates an error message using a property's JSON path and optional message text.
+    /// </summary>
+    /// <typeparam name="TEntity">The root entity type.</typeparam>
+    /// <param name="propertyExpression">The direct, nested, or indexed property expression.</param>
+    /// <param name="text">The message; null uses the standard invalid format and friendly metadata label.</param>
+    /// <returns>The error message.</returns>
+    public static MessageItem CreateErrorMessage<TEntity>(Expression<Func<TEntity, object?>> propertyExpression, LText? text = null) where TEntity : class
+        => CreateErrorMessage(propertyExpression, null, text);
+
+    /// <summary>
+    /// Creates an error message using a property's JSON path and explicit serializer naming options.
+    /// </summary>
+    /// <typeparam name="TEntity">The root entity type.</typeparam>
+    /// <param name="propertyExpression">The direct, nested, or indexed property expression.</param>
+    /// <param name="options">The naming options, or null to use serializer defaults.</param>
+    /// <param name="text">The message; null uses the standard invalid format and friendly metadata label.</param>
+    /// <returns>The error message.</returns>
+    public static MessageItem CreateErrorMessage<TEntity>(Expression<Func<TEntity, object?>> propertyExpression, JsonSerializerOptions? options, LText? text) where TEntity : class
+    {
+        var metadata = RuntimeMetadata.GetJsonPathAndText(propertyExpression, options);
+        return text.HasValue ? CreateErrorMessage(metadata.Path, text.Value) : CreateErrorMessage(metadata.Path, Validation.Validation.InvalidFormat, metadata.Text);
+    }
+
+    /// <summary>
     /// Creates a new <see cref="MessageItem"/> with a specified <see cref="MessageType"/> and text.
     /// </summary>
     /// <param name="type">The <see cref="MessageType"/>.</param>

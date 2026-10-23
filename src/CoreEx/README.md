@@ -33,6 +33,7 @@ All other CoreEx packages (`CoreEx.Events`, `CoreEx.Database`, `CoreEx.AspNetCor
 - 🃏 **Wildcard parsing**: `Wildcard` provides standardized `*` and `?` wildcard parsing, validation, and `Regex` compilation for consistent wildcard-based filtering.
 - 🏷️ **Reference data interfaces**: Core `IReferenceData`, `IReferenceDataCollection`, and `ReferenceDataOrchestrator` types establish the reference data contract used by `CoreEx.RefData` and data-layer packages.
 - 📐 **Schema versioning**: `SchemaAttribute` and `Schema` utilities for associating a semantic version with entity types, supporting schema-aware messaging and validation.
+- 🌐 **HTTP client and request builder**: `client.Send(method, uri)` or `Get`/`Post`/`Put`/`Patch`/`Delete` return a single-use `HttpRequestBuilder`. Add exactly one body via `WithJson(value)` (JSON) or `WithContent(content)`, configure queries/paging/headers, then execute a terminal method (`GetValueAsync<T>`, `ToResultAsync`, `GetStringAsync`, etc.) with automatic response disposal except when returning the raw response. Reuse, configuration after execution begins, or duplicate body assignment throws `InvalidOperationException`. `Patch` does not imply JSON Merge Patch. See the [HTTP guide](./Http/README.md#request-bodies-and-single-use-execution) for ownership and execution semantics. `builder.AddNamedHttpClient` / `AddTypedHttpClient` configure service discovery, resilience, and idempotency key handling. For SDK-owned client names, `builder.AddNamedHttpClient("Sdk_httpClient", configureClient: null, configurationSectionName: "Service")` augments the SDK registration using `Service:BaseAddress` and `Service:Resilience`; existing overloads continue using the client name as the configuration section.
 
 ## Key types
 
@@ -41,6 +42,7 @@ All other CoreEx packages (`CoreEx.Events`, `CoreEx.Database`, `CoreEx.AspNetCor
 | **[`ExecutionContext`](./ExecutionContext.cs)** | `AsyncLocal`-scoped ambient context carrying user identity, tenant ID, operation type, timestamp, and attributes for the lifetime of a request. |
 | **[`Result`](./Results/Result.cs)** | Value type representing a successful or failed operation with no return value; the basis of railway-oriented programming in CoreEx. |
 | **[`Result<T>`](./Results/ResultT.cs)** | Value type representing a successful operation with a value, or a typed error — used for functional pipeline-style error propagation. |
+| **[`HttpRequestBuilder`](./Http/HttpRequestBuilder.cs)** | Fluent HTTP request builder for configuring requests, chaining extensions, and executing terminal deserialization and result mapping with automatic response disposal. |
 | **[`DataConsistencyException`](./DataConsistencyException.cs)** | Non-error exception used to signal a potential data consistency issue without treating it as an application error. |
 | **[`PrecisionTimeProvider`](./PrecisionTimeProvider.cs)** | `TimeProvider` implementation that truncates timestamps to a configurable fractional-second precision for database compatibility. |
 | **[`OperationType`](./OperationType.cs)** | Enum representing the CRUD operation type (Get, Create, Update, Delete, Query) carried on the `ExecutionContext`. |
@@ -52,14 +54,23 @@ See the [Extended Exceptions](#extended-exceptions) section below for the full l
 ## Validating HTTP response values
 
 HTTP success and JSON deserialization do not guarantee a valid dependency response. Use
-`WithValidator` with a `CoreEx.Validation.IValidator<T>` to opt into response-contract validation:
+`WithValidator` with a `CoreEx.Validation.IValidator<T>` to opt into response-contract validation.
+This can be chained directly onto `HttpRequestBuilder` (which manages execution and automatic response disposal)
+or applied directly to an `HttpResponseMessage`:
 
 ```csharp
+// Fluent request with validator and automatic response disposal:
+return await _httpClient.Send(HttpMethod.Get, $"api/customers/{Uri.EscapeDataString(id)}")
+    .WithValidator(customerValidator)
+    .ToResultAsync(ct).ConfigureAwait(false);
+
+// Or on an existing HttpResponseMessage (caller owns response disposal):
 using var response = await _httpClient.GetAsync($"api/customers/{Uri.EscapeDataString(id)}", ct).ConfigureAwait(false);
 return await response.WithValidator(customerValidator).ToResultAsync(ct).ConfigureAwait(false);
 ```
 
-The [typed wrapper](./Http/ValidatedHttpResponseT.cs) reuses the existing response converters and
+The typed wrappers ([`ValidatedHttpRequestBuilder<T>`](./Http/ValidatedHttpRequestBuilderT.cs) and
+[`ValidatedHttpResponse<T>`](./Http/ValidatedHttpResponseT.cs)) reuse the existing response converters and
 validates only successful, non-null deserialized values. It returns the **validation result's
 Value**, including replacements or normalization. `ToResultAsync` requires a non-null value both
 before and after validation; `ToResultOrDefaultAsync` allows null and skips validation when the
@@ -82,9 +93,11 @@ For small client-only rules, prefer a private static readonly `Validator<T>` con
 private static readonly Validator<Customer> _validator = Validator.Create<Customer>()
     .HasProperty(x => x.Email, c => c.Mandatory().Email());
 
-// Inside the asynchronous HTTP client method.
-using var response = await _httpClient.GetAsync($"api/customers/{Uri.EscapeDataString(id)}", ct).ConfigureAwait(false);
-return await response.WithValidator(_validator).ToResultAsync(ct).ConfigureAwait(false);
+// Fluent builder with custom status mapping and automatic response disposal:
+return await _httpClient.Send(HttpMethod.Get, $"api/customers/{Uri.EscapeDataString(id)}")
+    .WithStatusResult(HttpStatusCode.NotFound, () => Result.NotFoundError())
+    .WithValidator(_validator)
+    .ToResultAsync(ct).ConfigureAwait(false);
 ```
 
 Extract a colocated validator only for substantial rules or genuine reuse. Validate consumed
@@ -94,9 +107,10 @@ rules through client unit tests rather than exposing them solely for testing. In
 must not be cached. See the
 [Customers client sample](../../samples/src/Contoso.Shopping.Infrastructure/Clients/Customers/CustomersHttpClient.cs)
 for a complete implementation.
-Validators can normalize values or perform I/O, so consider their effects explicitly. The wrapper
-does not own or dispose the response, cache validation results, or support concurrent response
-consumption. Keep responsibility for disposing the response at the call site.
+Validators can normalize values or perform I/O, so consider their effects explicitly.
+When using `HttpRequestBuilder` terminal methods, the response is automatically disposed. When using
+raw `HttpResponseMessage.WithValidator`, the wrapper does not own or dispose the response — retain
+responsibility for disposing the response via `using var` at the call site.
 Like the underlying converters, a terminal operation consumes the content stream; creating a
 wrapper does not buffer the body for repeated reads.
 
@@ -128,6 +142,27 @@ Semantic (error-oriented) exception types with automatic HTTP status mapping:
 | [`ValidationException`](./ValidationException.cs) | Validation failure with message collection. | 400-Bad Request | `validation` |
 
 All inherit from [`ExtendedException<TSelf>`](./Abstractions/ExtendedExceptionT.cs) implementing [`IExtendedException`](./Abstractions/IExtendedException.cs).
+
+Choose the error by the identifier's role: a missing operation target or explicitly addressed child is `NotFoundException` / `Result.NotFoundError` (404); a missing entity referenced by a request-body field is field-level validation (400 under CoreEx conventions). An unmatched collection filter normally returns an empty result. Services/policies interpret expected lookup outcomes, not every downstream 404 (which might indicate a route/configuration failure), and preserve unrelated failures. Error-code needs do not determine classification; retain deliberate idempotent-delete and security-concealment semantics. See [application-layer guidance](../../samples/docs/application-layer.md#missing-targets-versus-invalid-references).
+
+For a manually raised property validation error, prefer an expression over a hard-coded property name.
+
+Use validation errors for request/input validity; aggregate, entity, and value-object business invariants use `BusinessException` / `Result.BusinessError` with domain messages/codes and no request-field paths. Keep both request validation and domain enforcement. Argument/invalid-operation exceptions remain appropriate for programming misuse; shared guard helpers are not business-error factories. See [domain failure conventions](../../samples/docs/domain-layer.md#business-invariants-versus-request-validation).
+
+To aggregate errors without creating an exception per item, use `MessageItem.CreateErrorMessage<Person>(x => x.Name)` or supply an explicit/preformatted `LText`. The overload `(expression, options, text)` accepts custom serializer options; null text infers the standard invalid message. `ValidationException.Create<TEntity>` delegates to this message factory, sharing metadata paths and friendly labels.
+
+Omit the message, or pass null, to use `Validation.InvalidFormat` with the leaf property's friendly metadata label: `ValidationException.Create<Person>(x => x.Name)` produces `Name is invalid.`. Localization/display annotations are respected independently of JSON naming; terminal collection indexes or dictionary keys use the containing property's label. With explicit serializer options, pass null as the message to request inference. Explicit messages remain unchanged, and existing string-property factories retain their behavior.
+
+```csharp
+throw ValidationException.Create<Person>(x => x.Name, "Name is already registered.");
+throw ValidationException.Create<Person>(x => x.Address!.Street, "Street is spooky.");
+// JSON paths: "name" and "address.street" with default camel-case naming.
+throw ValidationException.Create<Person>(x => x.Addresses[0].Street, "Street is spooky.");
+throw ValidationException.Create<Person>(x => x.AddressesByType["home"].Street, "Street is spooky.");
+// Validator-compatible paths: "addresses[0].street" and "addressesByType.home.street".
+```
+
+Each path segment uses runtime metadata: explicit `[JsonPropertyName]` names take precedence over the naming policy in `JsonDefaults.SerializerOptions`. For custom naming, use `ValidationException.Create<Person>(x => x.Address!.Street, options, "Street is spooky.")`. The expression is inspected, never executed; `!` is safe for nullable intermediate properties here. Direct/nested public instance properties, outermost boxing, one-dimensional array/list indexes, and string dictionary keys are supported. Indexes/keys may be literals or captured locals; arbitrary getters, method calls, index calculations, and intermediate casts are rejected. Collections are never accessed, so indexes and keys do not need to exist (indexes must be non-negative). String dictionary keys use the effective serializer's `DictionaryKeyPolicy`, matching validators and serialized JSON (unchanged when that policy is null). No escaping is added. These are error paths, not full `$`-rooted JSONPath expressions; dots/brackets in keys can be ambiguous. The `LText` and formatting behavior matches the string-property factory: no property label or current value is automatically prepended. Unlike a validator context, this factory always uses JSON names and has no contextual name/path overrides.
 
 Additionally, these support `With*`-style methods to add additional context that is added to the resulting `ProblemDetails`:
 

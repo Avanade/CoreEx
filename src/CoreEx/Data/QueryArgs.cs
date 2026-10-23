@@ -24,6 +24,13 @@ public class QueryArgs
     public string? OrderBy { get; set; }
 
     /// <summary>
+    /// Gets or sets the free-text <c>$search</c> statement.
+    /// </summary>
+    /// <remarks>The search text is <b>opaque</b>; i.e. no grammar (boolean operators, phrases, etc.) is defined or interpreted by <i>CoreEx</i>. The text is passed as-is to the configured
+    /// search capability (keyword, full-text, semantic/vector, hybrid, etc.) which is responsible for its interpretation; see <c>CoreEx.Data.Querying.QuerySearchParser</c>.</remarks>
+    public string? Search { get; set; }
+
+    /// <summary>
     /// Gets or sets the list of <b>included</b> fields.
     /// </summary>
     /// <remarks>The <see cref="IncludeFields"/> and <see cref="ExcludeFields"/> are mutually exclusive.</remarks>
@@ -44,6 +51,17 @@ public class QueryArgs
     /// Indicates whether to include inactive items for the resulting item(s).
     /// </summary>
     public bool IsIncludeInactive { get; set; }
+
+    /// <summary>
+    /// Sets the free-text <see cref="Search"/> statement.
+    /// </summary>
+    /// <param name="search">The free-text <c>$search</c> statement.</param>
+    /// <returns>The <see cref="QueryArgs"/> to support fluent-style method-chaining.</returns>
+    public QueryArgs WithSearch(string? search)
+    {
+        Search = search;
+        return this;
+    }
 
     /// <summary>
     /// Adds the specified fields to the <see cref="IncludeFields"/> list.
@@ -90,5 +108,5 @@ public class QueryArgs
     }
 
     /// <inheritdoc/>
-    public override string ToString() => $"Filter={Filter}, OrderBy={OrderBy}, IncludeFields={(IncludeFields is null ? string.Empty : string.Join(',', IncludeFields))}, ExcludeFields={(ExcludeFields is null ? string.Empty : string.Join(',', ExcludeFields))}, IsIncludeText={IsIncludeText}, IsIncludeInactive={IsIncludeInactive}";
+    public override string ToString() => $"Filter={Filter}, OrderBy={OrderBy}, Search={Search}, IncludeFields={(IncludeFields is null ? string.Empty : string.Join(',', IncludeFields))}, ExcludeFields={(ExcludeFields is null ? string.Empty : string.Join(',', ExcludeFields))}, IsIncludeText={IsIncludeText}, IsIncludeInactive={IsIncludeInactive}";
 }

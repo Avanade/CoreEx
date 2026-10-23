@@ -120,6 +120,8 @@ public Task<IActionResult> GetAsync(string id, CancellationToken cancellationTok
 
 Do not use `.ThrowIfNull()` / `.ThrowIfNullOrEmpty()` on route parameters — those throw `ArgumentNullException`, which results in a 500 rather than a 400.
 
+Classify lookup failures by the identifier's role, not URI presence: a missing target resource or explicitly addressed child is 404; a missing request-body reference is a field-level 400 validation error. Unmatched collection filters normally return empty results, not 404. Application services/policies interpret expected lookup outcomes; controllers preserve that classification through `WebApi`. Retain deliberate idempotent-delete and security-concealment semantics. See [Not Found Handling](/.github/instructions/coreex-application-services.instructions.md#not-found-handling).
+
 ### POST — Create with Location Header
 
 Use `ro.WithLocationUri(...)` to set the `Location` response header:

@@ -7,6 +7,7 @@ public class QueryArgsConfig
 {
     private QueryFilterParser? _filterParser;
     private QueryOrderByParser? _orderByParser;
+    private QuerySearchParser? _searchParser;
 
     /// <summary>
     /// Creates a new <see cref="QueryArgsConfig"/>.
@@ -40,6 +41,16 @@ public class QueryArgsConfig
     public bool HasOrderByParser => _orderByParser is not null;
 
     /// <summary>
+    /// Gets the <see cref="QuerySearchParser"/>.
+    /// </summary>
+    public QuerySearchParser SearchParser => _searchParser ??= new QuerySearchParser(this);
+
+    /// <summary>
+    /// Indicates whether there is a <see cref="SearchParser"/>.
+    /// </summary>
+    public bool HasSearchParser => _searchParser is not null;
+
+    /// <summary>
     /// Enables fluent-style method-chaining configuration for the <see cref="FilterParser"/>.
     /// </summary>
     /// <param name="filter">The <see cref="FilterParser"/>.</param>
@@ -62,10 +73,23 @@ public class QueryArgsConfig
     }
 
     /// <summary>
-    /// Parses and converts the <see cref="QueryArgs.Filter"/> and <see cref="QueryArgs.OrderBy"/> to dynamic LINQ.
+    /// Enables fluent-style method-chaining configuration for the <see cref="SearchParser"/>.
+    /// </summary>
+    /// <param name="search">The <see cref="SearchParser"/>.</param>
+    /// <returns>The <see cref="QueryArgsConfig"/> instance to support fluent-style method-chaining.</returns>
+    public QueryArgsConfig WithSearch(Action<QuerySearchParser> search)
+    {
+        search.ThrowIfNull()(SearchParser);
+        return this;
+    }
+
+    /// <summary>
+    /// Parses and converts the <see cref="QueryArgs.Filter"/>, <see cref="QueryArgs.Search"/> and <see cref="QueryArgs.OrderBy"/> to dynamic LINQ.
     /// </summary>
     /// <param name="queryArgs">The <see cref="QueryArgs"/>.</param>
     /// <returns>The <see cref="QueryArgsParseResult"/>.</returns>
+    /// <remarks>Where the <see cref="QueryArgs.Search"/> is specified and the <see cref="SearchParser"/> is <see cref="QuerySearchParser.IsRanked">ranked</see>, then an explicit <see cref="QueryArgs.OrderBy"/> is not supported,
+    /// and no default ordering is applied, as the results are expected to be ordered by relevance.</remarks>
     public QueryArgsParseResult Parse(QueryArgs? queryArgs)
     {
         var result = new QueryArgsParseResult(this);
@@ -85,8 +109,29 @@ public class QueryArgsConfig
                 return result.Adjust(x => x.Error = new QueryFilterParserException("Filter statement is not currently supported."));
         }
 
+        QuerySearchParserResult? searchParserResult = null;
+        if (!string.IsNullOrWhiteSpace(queryArgs.Search))
+        {
+            if (HasSearchParser)
+            {
+                searchParserResult = SearchParser.Parse(queryArgs.Search);
+                if (searchParserResult.HasError)
+                    return result.Adjust(x => x.Error = searchParserResult.Error);
+
+                if (!searchParserResult.HasText)
+                    searchParserResult = null;
+            }
+            else
+                return result.Adjust(x => x.Error = new QuerySearchParserException("Search statement is not currently supported."));
+        }
+
         QueryOrderByParserResult? orderByParserResult = null;
-        if (HasOrderByParser)
+        if (searchParserResult is not null && searchParserResult.IsRanked)
+        {
+            if (!string.IsNullOrEmpty(queryArgs.OrderBy))
+                return result.Adjust(x => x.Error = new QueryOrderByParserException("OrderBy statement is not supported in combination with a search; results are ordered by relevance."));
+        }
+        else if (HasOrderByParser)
         {
             orderByParserResult = OrderByParser.Parse(queryArgs.OrderBy);
             if (orderByParserResult.HasError)
@@ -94,8 +139,8 @@ public class QueryArgsConfig
         }
         else if (!string.IsNullOrEmpty(queryArgs.OrderBy))
             return result.Adjust(x => x.Error = new QueryOrderByParserException("OrderBy statement is not currently supported."));
-            
-        return new QueryArgsParseResult(this, filterParserResult, orderByParserResult);
+
+        return new QueryArgsParseResult(this, filterParserResult, orderByParserResult, searchParserResult);
     }
 
     /// <summary>
@@ -131,6 +176,9 @@ public class QueryArgsConfig
 
         if (HasOrderByParser)
             dict["orderby"] = OrderByParser.ToJsonSchema();
+
+        if (HasSearchParser)
+            dict["search"] = SearchParser.ToJsonSchema();
 
         return JsonSerializer.SerializeToElement(dict);
     }

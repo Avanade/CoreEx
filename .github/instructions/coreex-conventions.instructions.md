@@ -162,6 +162,8 @@ Guid id            = Runtime.NewGuid();          // new Guid
 
 **Every `async`/`Task`-returning method takes a `CancellationToken` and passes it on.** Add it as the **last parameter** — `CancellationToken cancellationToken = default` on public/library methods (default so callers aren't forced to supply one). Flow it through to **every** downstream awaitable call (repositories, `HttpClient`, EF Core, `_unitOfWork`, other services) — never call an overload that accepts a token without passing it, and never silently drop it.
 
+**Naming:** use `cancellationToken` for declared method parameters, including interfaces, implementations, private methods and local functions. Reserve `ct` for local delegate/lambda parameters within methods; do not shorten a method parameter to `ct`.
+
 ```csharp
 public async Task<Employee> CreateAsync(Employee value, CancellationToken cancellationToken = default)
 {

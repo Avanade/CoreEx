@@ -45,6 +45,7 @@ Guides you through creating or modifying a hand-authored contract (DTO/entity) i
 **Key rules at a glance:**
 - `[Contract]` + `partial` on **all** contract classes by default
 - Only `[ReferenceData<T>]` properties are `partial` — never make plain properties `partial` (CS9248)
+- Map/request-arrange through annotated `XxxCode` properties; use generated typed accessors for reference-data behavior. Pass codes directly to concrete typed destinations via [implicit conversion](/.github/instructions/coreex-contracts.instructions.md#reference-data-code-conversion), not custom conversion helpers; conversion is not validation.
 - `[ReadOnly(true)]` on all server-assigned fields (`Id`, `ETag`, `ChangeLog`, computed/derived)
 - `[NonNullable]` on any property that is mandatory/required (ultimately not nullable) but declared nullable (`string?`, `int?`) for DTO flexibility — drives `nullable: false` in OpenAPI; not the same as `System.Diagnostics.CodeAnalysis.NotNull`. Never on `Id`/`ETag`/`ChangeLog`; on other `[ReadOnly]` properties only when the type is never a request body
 - Every property needs a `<summary>` XML doc comment

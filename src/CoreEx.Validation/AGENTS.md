@@ -67,7 +67,14 @@ Property(p => p.DiscountCode)
 Property(p => p.ExpiresOn)
     .GreaterThan(_ => Runtime.UtcNow)
     .WhenHasValue();
+
+// FareClass is required only when its valid dependency is a flight.
+Property(p => p.FareClass)
+    .Mandatory()
+    .DependsOn(p => p.SegmentType, segmentType => segmentType?.IsFlight == true);
 ```
+
+The `DependsOn` predicate overload is evaluated only after the dependency has a non-default value and no validation error. Clauses guard the rule they are attached to, so `Mandatory()` is conditional in this example. Use another `Property(p => p.SameProperty)` call to add a separate root rule chain for the same property when different rules need different conditions; later chains may be skipped if an earlier one has already reported an error for that property. Use `WhenEntity(...)` when the condition depends on broader entity state; use `!` for nullable dependencies when relying on this runtime guard, because nullable flow analysis cannot infer it.
 
 ### Comparing two properties
 
@@ -79,6 +86,8 @@ Property(p => p.EndsOn).Mandatory().CompareProperty(CompareOperator.GreaterThanO
 ```
 
 ## Reusable Validators
+
+Dictionary JSON error paths use the effective serializer's `DictionaryKeyPolicy` for string keys: `HomeAddress` becomes `homeAddress` with CoreEx defaults. A null key policy preserves keys. This applies to key and value errors and matches `ValidationException.Create<TEntity>`; CLR paths and `GetDictionaryKey()` retain original keys. Dictionary object members use `.key`, arrays/lists use `[index]`. No escaping is added for punctuation within names.
 
 Use `CommonValidator<TValue>` for logic reused across multiple entity validators.
 

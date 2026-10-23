@@ -4,9 +4,9 @@ public interface IBasketRepository
 {
     Task<Result<Domain.Basket>> GetAsync(string id, CancellationToken ct = default);
 
-    Task<Result<Domain.Basket>> CreateAsync(Domain.Basket basket, CancellationToken ct = default);
+    Task<Result<DataResult<Domain.Basket>>> CreateAsync(Domain.Basket basket, CancellationToken ct = default);
 
-    Task<Result<Domain.Basket>> UpdateAsync(Domain.Basket basket, CancellationToken ct = default);
+    Task<Result<DataResult<Domain.Basket>>> UpdateAsync(Domain.Basket basket, CancellationToken ct = default);
 
     /// <summary>
     /// Gets the <see cref="QueryArgs"/> schema.

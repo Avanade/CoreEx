@@ -35,6 +35,8 @@ Guides you through the complete end-to-end workflow for adding or modifying a re
 
 ## Quick Reference
 
+- Consume codes through [generated implicit conversion](/.github/instructions/coreex-contracts.instructions.md#reference-data-code-conversion) to concrete reference-data types, not custom `RefData<T>` helpers. Contracts use annotated partial `XxxCode` properties, not plain code auto-properties; conversion does not validate requiredness, validity or activity.
+
 > **Resolve project-wide choices from state before asking.** Read the solution-root `AGENTS.md`
 > **Feature Configuration** for `refdata-enabled` (gates this whole skill) and `data-provider`
 > (`SqlServer` / `Postgres` / `Cosmos` — drives whether the database step is DbEx or Cosmos provisioning, plus casing/seed shape). Only prompt for what is unrecorded;

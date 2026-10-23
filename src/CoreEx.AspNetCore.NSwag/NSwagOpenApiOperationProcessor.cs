@@ -67,6 +67,9 @@ internal sealed class NSwagOpenApiOperationProcessor(OpenApiOptions options) : I
 
         if (query.SupportsOrderBy)
             context.OperationDescription.Operation.Parameters.Add(CreateParameter(HttpNames.QueryOrderByQueryStringName, Options.QueryOrderByText, JsonObjectType.String, $"{nameof(QueryArgs)}{nameof(QueryArgs.OrderBy)}"));
+
+        if (query.SupportsSearch)
+            context.OperationDescription.Operation.Parameters.Add(CreateParameter(HttpNames.QuerySearchQueryStringName, Options.QuerySearchText, JsonObjectType.String, $"{nameof(QueryArgs)}{nameof(QueryArgs.Search)}"));
     }
 
     /// <summary>

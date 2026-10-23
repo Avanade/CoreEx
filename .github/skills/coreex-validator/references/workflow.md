@@ -65,9 +65,22 @@ public class {Name}Validator : Validator<Contracts.{Name}, {Name}Validator>
 | Required + precision | `.PrecisionScale(null, 2).GreaterThanOrEqualTo(0, _ => "zero")` |
 | Run rule only when entity condition met | `.WhenEntity(e => e.StartDate.HasValue)` chained after the rule |
 | Run rule only when property value condition met | `.WhenValue(v => v != null)` chained after the rule (predicate on property value, not entity — use `WhenEntity` for entity conditions) |
-| Skip when dependent prop invalid | `.DependsOn(x => x.OtherProp)` at end of chain |
+| Skip when dependent prop invalid/default | `.DependsOn(x => x.OtherProp)` at end of chain |
+| Run only when a valid dependency also meets a condition | `.DependsOn(x => x.OtherProp, value => predicate)` — the predicate is evaluated only after the dependency is non-default and has no validation error |
 | Compare to another property on the same entity | `.CompareProperty(CompareOperator.GreaterThanOrEqualTo, x => x.StartsOn)` — compares only when both have a value and are valid; add `.Mandatory()` first to require it |
 | Runtime-computed threshold | `.LessThanOrEqualTo(_ => DateOnly.FromDateTime(Runtime.UtcNow.UtcDateTime.AddYears(-16)), _ => "the minimum age of 16")` |
+
+When a property's rules are conditional on the dependent property's value, use the predicate overload instead of repeating the dependency/null condition in `WhenEntity`:
+
+```csharp
+Property(x => x.FareClass)
+    .Mandatory()
+    .DependsOn(x => x.SegmentType, segmentType => segmentType!.IsFlight);
+```
+
+Here `.Mandatory()` runs only when `SegmentType` is non-default, has no validation error, and `IsFlight` is true; clauses apply to the rule they are attached to. For a nullable dependency, `!` is justified because the predicate runs only after the runtime guard; it only affects nullable analysis and does not change validation behavior. Use `WhenEntity(...)` when the condition depends on other entity state; retain `DependsOn(...)` as a separate guard when you need its invalid-dependency short-circuit behavior.
+
+Call `Property(x => x.SameProperty)` again to start a separate root rule chain for the same property when another rule needs a different condition. This is not an isolated validation transaction: if an earlier chain reports an error for that property, later chains may be skipped by the existing-error guard.
 
 **Mandatory() on non-nullable value types:**
 `Mandatory()` errors when the value equals `default(T)` — `0` for `decimal`/`int`, `DateOnly.MinValue` for `DateOnly`. If `0` is a legitimate value, do **not** use `Mandatory()` — use `.GreaterThanOrEqualTo(0)` (allows `0`) or `.GreaterThan(0)` (requires positive) instead.

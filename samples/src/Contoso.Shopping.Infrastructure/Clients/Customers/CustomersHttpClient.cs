@@ -15,12 +15,10 @@ public class CustomersHttpClient(HttpClient httpClient)
     /// Gets the customer, or returns a not-found result when the customer does not exist.
     /// </summary>
     /// <param name="id">The customer identifier.</param>
-    public async Task<Result<Customer>> GetAsync(string id, CancellationToken ct = default)
-    {
-        using var response = await _httpClient.GetAsync($"api/customers/{Uri.EscapeDataString(id)}", ct).ConfigureAwait(false);
-        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-            return Result.NotFoundError();
-
-        return await response.WithValidator(_validator).ToResultAsync(ct).ConfigureAwait(false);
-    }
+    public Task<Result<Customer>> GetAsync(string id, CancellationToken ct = default)
+        => _httpClient
+            .Send(HttpMethod.Get, $"api/customers/{Uri.EscapeDataString(id)}")
+            .WithStatusResult(HttpStatusCode.NotFound, () => Result.NotFoundError())
+            .WithValidator(_validator)
+            .ToResultAsync(ct);
 }

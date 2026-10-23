@@ -22,6 +22,8 @@
   <ItemGroup>
     <PackageReference Include="WireMock.Net" />
     <PackageReference Include="UnitTestEx.Aspire" />
+    <!-- Override the vulnerable transitive Aspire dependency independently of the consumer's central versions. -->
+    <PackageReference Include="MessagePack" VersionOverride="2.5.307" />
   </ItemGroup>
 
   <ItemGroup>

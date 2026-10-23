@@ -2,6 +2,13 @@
     .SYNOPSIS
     Generates nuget pacakges and publishes if server values are provided
 
+    .DESCRIPTION
+    Packs all supported target frameworks regardless of CoreExLocalTargetFramework.
+    Builds before packing, overriding GeneratePackageOnBuild so existing binaries are not reused without a build.
+    Uses Release by default; the Visual Studio configuration does not affect this script.
+    Preserves existing packages except when replacing the same package filename.
+    Remote publishing uploads only packages produced by this invocation.
+
     .PARAMETER PublishFolder
     Local folder to publish the built nuget pacakges to
 
@@ -21,7 +28,8 @@
     List of projects to Build and publish.
 
     .PARAMETER DeleteFromlocalCache
-    Should the newly built packages be deleted from tle Nuget Cache Folder.
+    Removes matching newly packed package versions from the local NuGet cache by default.
+    Pass -DeleteFromlocalCache:$false to preserve cached copies.
 
     .PARAMETER NugetCacheFolder
     Path to Nuget Cache folder.
@@ -45,7 +53,7 @@ param(
     [switch]$IncludeSource,
     [string]$NugetServer,
     [string]$ApiKey,
-    [switch]$DeleteFromlocalCache,
+    [switch]$DeleteFromlocalCache = $true,
     [string]$NugetCacheFolder = "$($env:USERPROFILE)\.nuget\packages",
     [String[]]$ProjectsToPublish = @(
         "src\CoreEx",
@@ -71,44 +79,36 @@ param(
 
 $ShouldPublishRemote = (![string]::IsNullOrEmpty($apiKey) -and ![string]::IsNullOrEmpty($NugetServer))
 
-if ($ShouldPublishRemote) {
-	Write-Warning "APIKey and NugetServer provided, All existing NuGet packages in publish folder will be deleted.`r`n"
-}
-
-# Create publish folder if it doesn't exist; otherwise, delete existing.
+# Create the shared local feed without deleting existing packages.
 if (!(Test-Path -Path $publishFolder)) {
 	Write-Host "Publish folder doesn't exist - creating folder." -ForegroundColor Yellow 
-	New-Item -ItemType directory -Path $publishFolder
+	New-Item -ItemType directory -Path $publishFolder -ErrorAction Stop | Out-Null
 }
-else {
-    if($ShouldPublishRemote)
-    {
-        Write-Host 'Deleting existing NuGet packages from publish folder.' -ForegroundColor Yellow 
-        $removeFiles = Join-Path $publishFolder '*.nupkg'
-        Remove-Item $removeFiles
+
+$stagingFolder = Join-Path ([IO.Path]::GetTempPath()) ("CoreEx-nuget-publish-" + [guid]::NewGuid().ToString('N'))
+New-Item -ItemType Directory -Path $stagingFolder -ErrorAction Stop | Out-Null
+$packageDetailsRegexp = [regex] '^(?<name>.+?)\.(?<version>\d+\.\d+\.\d+(?:\.\d+)?(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?)$'
+
+try {
+    foreach ($project in $projectsToPublish) {
+        $packArguments = @('pack', $project, '-o', $stagingFolder, '-c', $configuration, '-p:CoreExLocalTargetFramework=', '-p:GeneratePackageOnBuild=false', '--force')
+        if ($IncludeSource) { $packArguments += '--include-source' }
+        if ($IncludeSymbols) { $packArguments += '--include-symbols' }
+
+        Write-Host "`r`nPacking $project ($configuration, all target frameworks)." -ForegroundColor Yellow
+        & dotnet @packArguments
+        if ($LASTEXITCODE -ne 0) { throw "Failed to pack $project (exit $LASTEXITCODE)." }
     }
-}
 
-# Generate NuGet packages using dotnet pack.
-$successPackageRegexp = [regex] 'Successfully\screated\spackage\s''(?<packagePath>.*?)''.'
-$packageDetailsRegexp = [regex] '(?<name>.*?)\.(?<version>\d*\.\d*\.\d*\.\d*.*)(?<!\.symbols)$'
+    $packages = @(Get-ChildItem -LiteralPath $stagingFolder -File |
+        Where-Object { $_.Extension -in '.nupkg', '.snupkg' })
+    if ($packages.Count -eq 0) { throw 'Packing produced no NuGet packages.' }
 
-foreach ($project in $projectsToPublish) {
-    $packCommand = "dotnet pack $($project) -o $($publishFolder) -c $($configuration)  --force" # --no-build")
-    if($IncludeSource) { $packCommand = "$($packCommand) --include-source"}
-    if($IncludeSymbols) { $packCommand = "$($packCommand) --include-symbols"}
+    foreach ($package in $packages) {
+        Copy-Item -LiteralPath $package.FullName -Destination $publishFolder -Force -ErrorAction Stop
 
-    Write-Host "`r`n$($packCommand)" -ForegroundColor Yellow 
-
-    $output = ""
-    Invoke-Expression $packCommand -OutVariable output
-
-    if($DeleteFromlocalCache)
-    {
-        $successPackageRegexp.Matches($output) | foreach{
-            $packagePath = $_.Groups['packagePath']
-
-            $packageName = [System.IO.Path]::GetFileNameWithoutExtension($packagePath) 
+        if ($DeleteFromlocalCache -and $package.Extension -eq '.nupkg') {
+            $packageName = [System.IO.Path]::GetFileNameWithoutExtension($package.Name)
             $packageDetails = $packageDetailsRegexp.Matches($packageName)
             if($packageDetails.Success)
             {
@@ -119,7 +119,7 @@ foreach ($project in $projectsToPublish) {
                     -and ![string]::IsNullOrWhiteSpace($packageDetails[0].Groups['version'].value))
                 {
                     write-host "Deleting local cache for package`r`n`t$packageCachePath"
-                    Remove-Item $packageCachePath -Recurse
+                    Remove-Item -LiteralPath $packageCachePath -Recurse -ErrorAction Stop
                 }
                 else
                 {
@@ -128,16 +128,16 @@ foreach ($project in $projectsToPublish) {
             }
         }
     }
+
+    # Push only this run's packages; dotnet also pushes matching symbol packages.
+    if ($ShouldPublishRemote) {
+        foreach ($package in $packages | Where-Object { $_.Extension -eq '.nupkg' }) {
+            Write-Host "`r`nPublishing $($package.Name) to $NugetServer." -ForegroundColor Yellow
+            & dotnet nuget push $package.FullName --source $NugetServer --api-key $ApiKey --skip-duplicate
+            if ($LASTEXITCODE -ne 0) { throw "Failed to push $($package.Name) (exit $LASTEXITCODE)." }
+        }
+    }
 }
-
-# Publish packages to NuGet repository (where a key and NugetServer have been provided).
-if ($ShouldPublishRemote) {
-	Get-ChildItem -Path $publishFolder -Filter *.nupkg | ForEach-Object {
-		$package = Join-Path $publishFolder $_.Name
-		$pushCommand = "dotnet nuget push --source $($nugetServer) --api-key $($apiKey) $($package) --skip-duplicate"
-
-		Write-Host "`r`n$($pushCommand)" -ForegroundColor Yellow
-
-		Invoke-Expression $pushCommand
-	}
+finally {
+    Remove-Item -LiteralPath $stagingFolder -Recurse -Force -ErrorAction Stop
 }

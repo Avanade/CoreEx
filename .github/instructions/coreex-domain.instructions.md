@@ -27,7 +27,15 @@ The Domain layer is **optional**. It is introduced only when a domain contains a
 | Package | Key types provided |
 |---|---|
 | `CoreEx.DomainDriven` | `Aggregate<TId, TSelf>`, `Entity<TId, TSelf>`, `PersistenceState`, `.AsNew()`, `.AsNotModified()`, `.SetPersistenceState()` |
-| `CoreEx` | `Result`, `Result<T>`, `Result.GoAsync()`, `.ThenAs()`, `.ThenAsAsync()`, `Result.BusinessError()`, `Result.NotFoundError()`, `Result.ValidationError()`, `Runtime.NewId()`, `.ThrowIfNull()`, `.ThrowIfNullOrEmpty()`, `.ThrowIfInactive()`, `.ThrowIfLessThanZero()`, `ValidationException` |
+| `CoreEx` | `Result`, `Result<T>`, `Result.GoAsync()`, `.ThenAs()`, `.ThenAsAsync()`, `Result.BusinessError()`, `Result.NotFoundError()`, `BusinessException`, `Runtime.NewId()`, `.ThrowIfNull()`, `.ThrowIfNullOrEmpty()` |
+
+## Invariant Failures versus Request Validation
+
+Request/input validity belongs to Application validators/policies: use `ValidationException` / `Result.ValidationError` with request-field context where known. Aggregates, entities, and value objects protect business invariants using `BusinessException` / `Result.BusinessError`, with meaningful domain messages and stable error codes where useful, not request paths. Both normally map to HTTP 400, but their classification and diagnostic structure are different. Keep domain enforcement even after request validation: other callers, persisted state, and concurrent changes still require it. Specific not-found, conflict/concurrency, or authorization semantics remain distinct.
+
+Never reference request contracts or infer request JSON paths inside Domain, even if Contracts is already a project dependency. Application may deliberately translate a known domain error into a request-field error where the mapping is unambiguous; never blanket-convert business failures to validation. Exception versus `Result` is a separate choice: constructors/`init` setters can throw business exceptions; result-returning operations generally return business failures. `OnCheckCanMutate` failures still throw through `Modify`/`Remove` internally.
+
+Retain argument/invalid-operation guards for programming misuse or broken internal assumptions (for example, a required internal dependency/value is null). Do not automatically classify these as business failures. Conversely, do not use argument guards for expected business rejections: `ThrowIfLessThanZero` throws `ArgumentOutOfRangeException`; reference-data `ThrowIfInvalid`/`ThrowIfInactive` throw `InvalidOperationException`. These helpers are not business-error factories. Use explicit domain checks when negative amounts, invalid/inactive selections, or similar values are business invariants; do not change the shared helpers' exception semantics.
 
 ## Aggregates
 
@@ -65,6 +73,8 @@ public sealed class Basket : Aggregate<string, Basket>
 ```
 
 ### Factory Methods
+
+Where parameters or value-object properties use concrete reference-data types, callers can pass code strings directly via generated implicit conversion. Do not add conversion-only helpers or weaken typed parameters to strings to accommodate mapping. See [Reference-Data Code Conversion](/.github/instructions/coreex-contracts.instructions.md#reference-data-code-conversion) for resolution, nullability and validation semantics.
 
 Provide two factory methods per aggregate:
 
@@ -156,7 +166,7 @@ public sealed class BasketItem : Entity<string, BasketItem>
 
 Keep mutation methods on child entities `internal` so they can only be invoked by the owning aggregate — never directly from the Application layer.
 
-Guard methods (`.ThrowIfNull()`, `.ThrowIfNullOrEmpty()`, `.ThrowIfInactive()`, `.ThrowIfLessThanZero()`) **return the guarded value** when the check passes, making them natural for inline use in property setters, `init` expressions, and method calls — as shown throughout the examples above. They also chain: `value.ThrowIfNull().ThrowIfInactive()` checks both conditions and returns the value if both pass.
+Guard methods return the guarded value when the check passes, allowing inline checks for programming assumptions. The `Status` guard above protects internally assigned/rehydrated status, and required identifier/object guards protect the internal construction contract. They are not substitutes for business-rule rejection; see [Invariant Failures versus Request Validation](#invariant-failures-versus-request-validation).
 
 ## PersistenceState
 
@@ -183,13 +193,24 @@ Value objects represent concepts with no independent identity — defined entire
 ```csharp
 public sealed record class ItemPricing
 {
-    public required Contracts.UnitOfMeasure UnitOfMeasure { get; init => field = value.ThrowIfInactive(); }
-    public decimal UnitPrice { get; init => field = value.ThrowIfLessThanZero(); }
-    public decimal Quantity { get; init => field = value.ThrowIfLessThanZero(); }
+    public required Contracts.UnitOfMeasure UnitOfMeasure
+    {
+        get;
+        init
+        {
+            value.ThrowIfNull();
+            if (!value.IsValid || !value.IsActive)
+                throw new BusinessException("Pricing requires a valid, active unit of measure.").WithErrorCode("invalid-unit-of-measure");
+
+            field = value;
+        }
+    }
+    public decimal UnitPrice { get; init => field = value < 0 ? throw new BusinessException("Unit price cannot be negative.").WithErrorCode("negative-unit-price") : value; }
+    public decimal Quantity { get; init => field = value < 0 ? throw new BusinessException("Quantity cannot be negative.").WithErrorCode("negative-quantity") : value; }
     public decimal Total => UnitPrice * Quantity;
 
     public ItemPricing EnsureIsValid() => DecimalRuleHelper.CheckScale(Quantity, UnitOfMeasure.Scale) ? this
-        : throw new ValidationException($"Quantity decimal places exceed the unit-of-measure scale of {UnitOfMeasure.Scale}.");
+        : throw new BusinessException($"Quantity decimal places exceed the unit-of-measure scale of {UnitOfMeasure.Scale}.").WithErrorCode("quantity-scale-exceeded");
 }
 ```
 
@@ -247,6 +268,7 @@ For CRUD-oriented domains, skip the Domain layer entirely and let the Applicatio
 ## Do Not
 
 - Do not perform async I/O (repository calls, HTTP requests) inside domain classes — async work belongs in Application services or Policies.
+- Do not use request-validation errors for domain business invariants, reference request DTOs, or derive request-field paths in Domain. Use domain business errors; translate selectively in Application only where request context is known.
 - Do not expose child entity mutation methods as `public` — use `internal` so only the owning aggregate can drive mutations.
 - Prefer returning `Result.BusinessError(...)` or `Result.NotFoundError()` over throwing exceptions for expected business failures in domain methods — this keeps failures explicit and composable. Throwing `BusinessException` is acceptable where it feels more natural, but the `Result` style is recommended for consistency.
 - Do not reference Infrastructure, Application, or host assemblies from the Domain layer — it depends only on Contracts and CoreEx.

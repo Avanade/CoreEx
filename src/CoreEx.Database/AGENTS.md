@@ -4,20 +4,31 @@ Provides the `IDatabase` ADO.NET abstraction, `DatabaseCommand` fluent builder, 
 
 ## IDatabase and DatabaseCommand
 
-Use `DatabaseCommand` for all ADO.NET queries. Never write raw `DbCommand` code.
+Use `DatabaseCommand` for all ADO.NET queries. Never write raw `DbCommand` code. Prefer `EfDb` for ordinary CRUD
+and LINQ queries; put application-owned static SQL in an embedded `.sql` / `.pgsql` resource, regardless of length,
+and load it once with `SqlStatement.FromResource<TResource>`.
 
 ```csharp
-// Single row
-var order = await _db.SqlStatement("SELECT * FROM orders WHERE id = @id")
-    .Param("@id", id)
+private static readonly SqlStatement _getOrder =
+    SqlStatement.FromResource<OrderRepository>("GetOrderById.sql");
+
+var order = await _db.Statement(_getOrder)
+    .Param("OrderId", id)
     .SelectSingleAsync(OrderMapper.Default)
     .ConfigureAwait(false);
 
-// Collection
-var orders = await _db.StoredProcedure("spGetOrders")
+// Stored procedure
+var orders = await _db.Statement(SqlStatement.StoredProcedure("spGetOrders"))
     .SelectQueryAsync(OrderMapper.Default)
     .ConfigureAwait(false);
 ```
+
+Explicitly embed SQL files in the Infrastructure project's `.csproj` (for example,
+`<EmbeddedResource Include="Repositories\Sql\*.sql" />`). Bind values with `.Param(...)`; never interpolate data
+values into SQL. Resource lookup matches the end of the fully qualified name, so keep resource filenames unique
+within the assembly. Use `SqlStatement.FromText(...)` only when SQL must genuinely be generated at runtime (for
+example, when an identifier is dynamic); bind data values as parameters and validate or safely quote dynamic
+identifiers. Schema changes belong in the `*.Database` project's DbEx migrations, not in runtime SQL resources.
 
 ## Explicit Mappers
 
@@ -70,6 +81,7 @@ Service Bus session mapping is a separate boundary. Coordinate destination polic
 
 - Do not write raw `DbCommand` or `SqlCommand` code — use `DatabaseCommand`.
 - Do not use reflection-based mappers — extend `DatabaseMapper<T>` with explicit column reads.
+- Do not inline application-owned static SQL in C# — keep it in an embedded resource and load it with `SqlStatement.FromResource<TResource>`. Reserve `SqlStatement.FromText(...)` for genuinely dynamic SQL.
 
 ## Further Reading
 

@@ -63,13 +63,13 @@ public partial class HostTests : WithApiTester<solution-name.Api.Program>
 // #if refdata-enabled
             "$.entries.reference-data-orchestrator",
 // #endif
-            "$.entries['stackExchange.Redis']",
+            "$.entries['StackExchange.Redis']",
 // #if implement-sqlserver
-            "$.entries.sqlServer"
+            "$.entries.SqlServer"
 // #elif implement-cosmos
             "$.entries.cosmos-database"
 // #elif implement-postgres
-            "$.entries.postgreSql"
+            "$.entries.PostgreSql"
 // #endif
         ];
 

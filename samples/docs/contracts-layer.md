@@ -102,6 +102,25 @@ public partial class UnitOfMeasure
 
 ---
 
+### Consuming reference-data codes
+
+The generated concrete reference-data types support implicit conversion from `string?`. The Shopping [BasketMapper](../src/Contoso.Shopping.Infrastructure/Mapping/BasketMapper.cs) passes stored codes directly to typed domain parameters and value-object properties:
+
+```csharp
+var pricing = new Domain.ValueObjects.ItemPricing
+{
+    UnitOfMeasure = item.UnitOfMeasureCode,
+    Quantity = item.Quantity,
+    UnitPrice = item.UnitPrice
+};
+Contracts.BasketStatus? status = source.BasketStatusCode;
+Contracts.DiscountCoupon? coupon = source.DiscountCouponCode;
+```
+
+Do not add `RefData<T>` helpers or conversion-only collection lookups. Null stays null; unresolved non-null codes become invalid instances retaining their codes, including when no current orchestrator is available. Requiredness, validity and activity need separate validation. Use explicit lookups when found/not-found semantics or collection querying are needed.
+
+On contracts, declare `[ReferenceData<T>] public partial string? XxxCode { get; set; }` within a `[Contract]` partial class. Map/request-arrange through `XxxCode`; consume typed behavior through the generated `Xxx` accessor. See the [reference-data guide](../../src/CoreEx.RefData/README.md#reference-data-code-conversion) for conversion details.
+
 ## Source generation
 
 The `[Contract]` and `[ReferenceData]` class annotations drive the [`CoreEx.Generator`](../gen/CoreEx.Generator) Roslyn source generator.

@@ -84,6 +84,21 @@ builder.Services.AddReferenceDataOrchestrator(sp =>
 
 ---
 
+## Consuming Codes
+
+Concrete `[ReferenceData]` types receive a generated implicit conversion from `string?`. Assign codes directly to typed properties, return values and method parameters:
+
+```csharp
+BasketStatus? status = source.BasketStatusCode;
+DiscountCoupon? coupon = source.DiscountCouponCode;
+```
+
+The generated operator uses the current orchestrator. Null converts to null; an unresolved non-null code produces an invalid instance retaining its code, including when no current orchestrator exists. Conversion does not enforce requiredness, validity or activity. Apply those checks separately at the appropriate boundary.
+
+Do not introduce `RefData<T>` helpers, manually construct code-only instances, or call collection `GetByCode` merely for conversion. Use an explicit concrete type or cast when target typing/generic inference cannot supply it; an `IReferenceData` constraint alone does not expose a concrete type's operator. Explicit lookups are appropriate when collection operations or found/not-found semantics are needed.
+
+On contracts, use `[Contract]` + `partial` on the class and `[ReferenceData<T>] public partial string? XxxCode { get; set; }` on each reference-data field. Map/request-arrange through `XxxCode`; consume behavior through the generated typed `Xxx` accessor.
+
 ## ReferenceDataCodeCollection — Wire Serialization
 
 For properties that serialise as a list of string codes on the wire but expose typed reference data objects in code:
@@ -119,7 +134,7 @@ public class MyService(IReferenceDataContext refDataContext)
 - Do not edit `*.g.cs` files — they are overwritten on every generation run.
 - Do not load reference data collections on every request — the orchestrator caches via `IHybridCache`; load functions are called only on a cache miss.
 - Do not access reference data in `static` constructors — the orchestrator must be resolved from DI at runtime.
-- Do not use `ReferenceDataCodeCollection<T>` for single-value fields — use a plain `Code` string property on the contract instead.
+- Do not use `ReferenceDataCodeCollection<T>` for single-value contract fields or replace them with plain code auto-properties; use `[ReferenceData<T>] public partial string? XxxCode { get; set; }` inside a `[Contract]` partial class.
 
 ## Further Reading
 

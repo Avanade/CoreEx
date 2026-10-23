@@ -20,7 +20,7 @@ public class PostgresUnitOfWorkInvoker : InvokerBase<PostgresUnitOfWork, Postgre
 
     /// <inheritdoc/>
     protected async override Task<TResult> OnInvokeAsync<TResult>(InvokerTracer tracer, PostgresUnitOfWork unitOfWork, PostgresDatabaseArgs args, Func<InvokerTracer, PostgresDatabaseArgs, CancellationToken, Task<TResult>> func, CancellationToken cancellationToken)
-        => await DatabaseInvoker.OrchestrateUnitOfWorkTransactionAsync(tracer, unitOfWork,
+        => await DatabaseInvoker.OrchestrateUnitOfWorkTransactionAsync(tracer, unitOfWork, args,
             () => base.OnInvokeAsync(tracer, unitOfWork, args, func, cancellationToken),
             outboxEnqueued => PostgresMetrics.OutboxEnqueued.Add(outboxEnqueued),
             cancellationToken).ConfigureAwait(false);

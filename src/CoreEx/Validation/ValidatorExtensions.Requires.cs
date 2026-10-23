@@ -3,6 +3,18 @@ namespace CoreEx.Validation;
 public static partial class ValidatorExtensions
 {
     /// <summary>
+    /// Validates (requires) that the <paramref name="value"/> is non-null, non-empty, and non-whitespace and continues; otherwise, will throw a <see cref="ValidationException"/>.
+    /// </summary>
+    /// <param name="value">The value to validate.</param>
+    /// <param name="name">The value name.</param>
+    /// <param name="text">The friendly text name used in validation messages (defaults to <paramref name="name"/> as sentence case where not specified).</param>
+    /// <returns>The value where non-null, non-empty, and non-whitespace.</returns>
+    /// <exception cref="ValidationException">Thrown where the value is null, empty, or whitespace.</exception>
+    [return: NotNull()]
+    public static string Required(this string? value, [CallerArgumentExpression(nameof(value))] string? name = null, LText? text = null)
+        => string.IsNullOrWhiteSpace(value) ? throw Validation.CreateRequiredValueResult<Result>(name, text).Error : value;
+
+    /// <summary>
     /// Validates (requires) that the <paramref name="value"/> is non-default and continues; otherwise, will throw a <see cref="ValidationException"/>.
     /// </summary>
     /// <typeparam name="T">The <paramref name="value"/> <see cref="Type"/>.</typeparam>

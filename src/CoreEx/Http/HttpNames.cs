@@ -46,6 +46,11 @@ public static class HttpNames
     public static string QueryOrderByQueryStringName { get; set; } = "$orderby";
 
     /// <summary>
+    /// Gets or sets the <see cref="QueryArgs.Search"/> <see cref="HttpRequestMessage.RequestUri"/> <see cref="Uri.Query"/> name.
+    /// </summary>
+    public static string QuerySearchQueryStringName { get; set; } = "$search";
+
+    /// <summary>
     /// Gets or sets the <see cref="QueryArgs.IncludeFields"/> <see cref="HttpRequestMessage.RequestUri"/> <see cref="Uri.Query"/> name.
     /// </summary>
     public static string IncludeFieldsQueryStringName { get; set; } = "$fields";

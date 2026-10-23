@@ -74,6 +74,8 @@ public interface IProductSyncAdapter
 
 Create in `Infrastructure/Clients/{ExternalDomain}/`. One class per external service; one method per remote endpoint.
 
+Use `_httpClient.Send(method, uri)` or the `Get`/`Post`/`Put`/`Patch`/`Delete` shortcuts to construct requests; add JSON with `WithJson(value)` or explicit content with `WithContent(content)`. The builder is single-use (including failures/cancellation), and exactly one body assignment is allowed. Configure headers, query parameters, and paging before execution. `Patch` does not imply JSON Merge Patch. Terminal methods (`ToResultAsync`, `GetValueAsync<T>`, `GetStringAsync`, etc.) execute the request and **automatically dispose** the response (except raw-response terminals).
+
 ### Client class
 
 ```csharp
@@ -88,11 +90,11 @@ public class ProductsHttpClient(HttpClient httpClient)
     private readonly HttpClient _httpClient = httpClient.ThrowIfNull();
 
     /// <summary>Creates a new inventory reservation.</summary>
-    public async Task<Result> CreateReservationAsync(MovementRequest request, CancellationToken ct = default)
-    {
-        using var response = await _httpClient.PostAsJsonAsync("api/inventory/reserve", request, JsonDefaults.SerializerOptions, ct).ConfigureAwait(false);
-        return await response.ToResultAsync(ct).ConfigureAwait(false);
-    }
+    public Task<Result> CreateReservationAsync(MovementRequest request, CancellationToken ct = default)
+        => _httpClient
+            .Post("api/inventory/reserve")
+            .WithJson(request)
+            .ToResultAsync(ct);
 }
 ```
 
@@ -107,18 +109,30 @@ public class ExternalHttpClient(HttpClient httpClient)
 
     private readonly HttpClient _httpClient = httpClient.ThrowIfNull();
 
-    public async Task<Result<ExternalResponse>> GetAsync(string id, CancellationToken ct = default)
-    {
-        using var response = await _httpClient.GetAsync($"api/entities/{Uri.EscapeDataString(id)}", ct).ConfigureAwait(false);
-        if (response.StatusCode == HttpStatusCode.NotFound)
-            return Result.NotFoundError();
-
-        return await response.WithValidator(_validator).ToResultAsync(ct).ConfigureAwait(false);
-    }
+    // Fluent builder execution with custom status mapping, validation, and automatic response disposal:
+    public Task<Result<ExternalResponse>> GetAsync(string id, CancellationToken ct = default)
+        => _httpClient
+            .Send(HttpMethod.Get, $"api/entities/{Uri.EscapeDataString(id)}")
+            .WithStatusResult(HttpStatusCode.NotFound, () => Result.NotFoundError())
+            .WithValidator(_validator)
+            .ToResultAsync(ct);
 }
 ```
 
-`ToResultAsync<T>()` returns a non-null `T`: a successful response with a null/empty body (including 204) is an `HttpRequestException` failure, so no `?? throw` is needed. Use `ToResultOrDefaultAsync<T>()` (→ `Result<T?>`) only where an absent body is a valid outcome. Map 404 yourself when "not found" is an expected business outcome (surface it as `Result.NotFoundError()`; the Application-layer policy decides how to present it).
+Matched status codes from `.WithStatusResult(...)` short-circuit execution before deserialization and validation.
+Where raw response inspection is needed directly, use `GetResponseAsync` (caller owns response disposal):
+
+```csharp
+using var response = await _httpClient
+    .Send(HttpMethod.Get, $"api/entities/{Uri.EscapeDataString(id)}")
+    .GetResponseAsync(ct).ConfigureAwait(false);
+
+return await response.WithValidator(_validator)
+    .WithStatusResult(HttpStatusCode.NotFound, () => Result.NotFoundError())
+    .ToResultAsync(ct).ConfigureAwait(false);
+```
+
+`ToResultAsync<T>()` returns a non-null `T`: a successful response with a null/empty body (including 204) is an `HttpRequestException` failure, so no `?? throw` is needed. Use `ToResultOrDefaultAsync<T>()` (→ `Result<T?>`) only where an absent body is a valid outcome. Map 404 to `Result.NotFoundError()` only when entity-not-found is an expected outcome of that downstream endpoint; a wrong route or deployment/configuration failure is not an invalid caller reference. The application service/policy interprets expected lookup outcomes as missing targets (404) or missing body references (field-level 400), preserving other failures; see [Not Found Handling](/.github/instructions/coreex-application-services.instructions.md#not-found-handling).
 
 ### Response-contract validation
 
@@ -143,8 +157,9 @@ Do not include raw response bodies or sensitive values in outer error messages.
 `ToResultAsync`/`GetValueAsync` reject missing content and null validated values.
 `ToResultOrDefaultAsync`/`GetValueOrDefaultAsync` allow null and skip validation for absent response
 values. Serializer options and cancellation tokens are supported; cancellation, deserialization
-exceptions, and unexpected validator exceptions propagate unchanged. The wrapper does not dispose,
-buffer, or cache the response; retain `using var` at the call site.
+exceptions, and unexpected validator exceptions propagate unchanged. When using terminal methods
+on `HttpRequestBuilder`, the response is disposed automatically. When operating on raw
+`HttpResponseMessage` directly or via `GetResponseAsync()`, retain `using var` at the call site.
 
 Test private inline rules through `{External}HttpClientTests`, not reflection or a new public
 validator solely for testing. Cover missing required fields, invalid format, valid minimal/full

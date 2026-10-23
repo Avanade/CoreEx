@@ -2,6 +2,7 @@
   "id": "140d1f58-7927-47e4-a775-618b6516e2ab",
   "sku": "NEW-SKU-123",
   "text": "New Product",
+  "description": "A carbon cross-country mountain bicycle for trail riding.",
   "category": "B",
   "subCategory": "XC",
   "unitOfMeasure": "EA",

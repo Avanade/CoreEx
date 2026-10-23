@@ -3,10 +3,26 @@ Console.OutputEncoding = System.Text.Encoding.UTF8;
 
 // Build configuration
 var config = new ConfigurationBuilder()
-    .SetBasePath(Directory.GetCurrentDirectory())
-    .AddJsonFile("appsettings.json", optional: false)
+    .SetBasePath(AppContext.BaseDirectory)
+    .AddJsonFile("products-settings.json", optional: false)
+    .AddJsonFile("e2e-settings.json", optional: false)
     .AddEnvironmentVariables()
     .Build();
+
+if (args.Contains("--demo-catalog-only", StringComparer.Ordinal))
+{
+    if (!args.Contains("--accept-demo-reset", StringComparer.Ordinal))
+        throw new InvalidOperationException("Demo setup resets the configured Products and Shopping schemas. Stop their writers and explicitly pass --accept-demo-reset after reviewing E2E connection strings.");
+    try
+    {
+        await new DemoCatalogOperation().RunAsync(config).ConfigureAwait(false);
+    }
+    catch (OperationCanceledException)
+    {
+        Environment.ExitCode = 130;
+    }
+    return;
+}
 
 var context = new TestContext(config);
 (bool ProductApiOk, bool ShoppingApiOk, bool CustomersApiOk, bool OrdersApiOk) status = (false, false, false, false);

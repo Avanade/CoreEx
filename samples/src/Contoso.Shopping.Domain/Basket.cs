@@ -64,7 +64,10 @@ public sealed class Basket : Aggregate<string, Basket>
     /// </summary>
     public Result ApplyDiscount(Contracts.DiscountCoupon discountCoupon)
     {
-        discountCoupon.ThrowIfNull().ThrowIfInactive();
+        discountCoupon.ThrowIfNull();
+        if (!discountCoupon.IsValid || !discountCoupon.IsActive)
+            return Result.BusinessError("A valid, active discount coupon is required.", c => c.WithKey(Id).WithErrorCode("invalid-discount-coupon"));
+
         if (discountCoupon != DiscountCoupon)
             Modify(() => DiscountCoupon = discountCoupon);
 

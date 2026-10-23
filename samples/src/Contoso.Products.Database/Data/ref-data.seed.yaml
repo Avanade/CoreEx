@@ -28,6 +28,15 @@ products:
     - { code: LU, text: Lubricant, category_code: A }
     - { code: LA, text: Labor, category_code: M }
     - { code: MS, text: Miscellaneous, category_code: M }
+    - { code: AP, text: Apparel, category_code: G }
+    - { code: BG, text: Bash guide, category_code: P }
+    - { code: BR, text: Brakes, category_code: P }
+    - { code: CG, text: Chain guide, category_code: P }
+    - { code: FS, text: Front suspension, category_code: P }
+    - { code: PE, text: Pedals, category_code: P }
+    - { code: PR, text: Protection, category_code: G }
+    - { code: RS, text: Rear shock, category_code: P }
+    - { code: SH, text: Shoes, category_code: G }
   - $^unit_of_measure:
     - EA: Each
     - SET: Set
@@ -47,6 +56,9 @@ products:
     - ONEUP: OneUp Components
     - MUCOFF: Muc-Off
     - NONE: None/Not Applicable
+    - FOX: Fox Factory
+    - FOXRACING: Fox Racing
+    - MAXXIS: Maxxis
   - $^movement_kind:
     - A: Adjust
     - I: Issue

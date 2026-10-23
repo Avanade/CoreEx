@@ -23,6 +23,16 @@ public static partial class AspNetCoreHttpExtensions
     public static RouteHandlerBuilder WithQuery(this RouteHandlerBuilder builder, bool supportsFilter = true, bool supportsOrderBy = false) => builder.ThrowIfNull().WithMetadata(new QueryAttribute(supportsFilter, supportsOrderBy));
 
     /// <summary>
+    /// Adds metadata to the <see cref="RouteHandlerBuilder"/> that the action/operation supports <see cref="QueryArgs"/> including <see cref="QueryArgs.Search"/>.
+    /// </summary>
+    /// <param name="builder">The <see cref="RouteHandlerBuilder"/>.</param>
+    /// <param name="supportsFilter">Indicates whether <see cref="QueryArgs.Filter"/> is supported/enabled.</param>
+    /// <param name="supportsOrderBy">Indicates whether <see cref="QueryArgs.OrderBy"/> is supported/enabled.</param>
+    /// <param name="supportsSearch">Indicates whether <see cref="QueryArgs.Search"/> is supported/enabled.</param>
+    /// <returns>The <see cref="RouteHandlerBuilder"/> to support fluent-style method-chaining.</returns>
+    public static RouteHandlerBuilder WithQuery(this RouteHandlerBuilder builder, bool supportsFilter, bool supportsOrderBy, bool supportsSearch) => builder.ThrowIfNull().WithMetadata(new QueryAttribute(supportsFilter, supportsOrderBy) { SupportsSearch = supportsSearch });
+
+    /// <summary>
     /// Adds <see cref="Microsoft.AspNetCore.Http.Metadata.IAcceptsMetadata"/> to <see cref="EndpointBuilder.Metadata"/> for all endpoints produced by the <paramref name="builder"/> defaulting the content type to <see cref="MediaTypeNames.Application.Json"/>.
     /// </summary>
     /// <typeparam name="TRequest">The request <i>Body</i> <see cref="Type"/>.</typeparam>

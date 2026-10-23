@@ -21,6 +21,21 @@ Two concrete base classes cover the most common identity types: `ReferenceData<T
 - 🔧 **DI and health-check helpers**: `AddReferenceDataOrchestrator` and related `IServiceCollection` extensions register the orchestrator, cache, and `ReferenceDataQuery.Default` (enabling `QueryAsync<TRef>()` out of the box); `ReferenceDataOrchestratorHealthCheck` exposes a health-check endpoint reporting all registered reference data types.
 - 🔎 **OData-esque query/paging**: `ReferenceDataQuery` (the default `IReferenceDataQuery` implementation) filters, orders, and pages a reference data collection via `ReferenceDataQueryArgsConfig` — OData-esque `$filter` on `code`/`text` (all string operators, case-insensitive) and `$orderby` on `code`/`text`/`sortOrder`. Supply a `Func<Type, QueryArgsConfig?>` to `ReferenceDataQuery(configSelector)` to use a different config per reference data type.
 
+## Reference-data code conversion
+
+The Roslyn generator gives each concrete `[ReferenceData]` type an implicit conversion from `string?`:
+
+```csharp
+BasketStatus? status = source.BasketStatusCode;
+DiscountCoupon? coupon = source.DiscountCouponCode;
+```
+
+Pass code strings directly to concrete typed reference-data parameters and properties; no `RefData<T>` wrapper, code-only construction or conversion-only collection lookup is needed. Use an explicitly typed variable or cast when the expression does not provide a concrete target type; generic `IReferenceData` constraints do not expose concrete generated operators.
+
+Conversion uses the current orchestrator. Null converts to null; unresolved non-null codes produce invalid instances retaining their codes, including when no current orchestrator exists. Requiredness, validity and activity must be checked separately. Use explicit collection lookups when querying the collection or requiring found/not-found semantics.
+
+For a single reference-data field on a contract, declare `[ReferenceData<T>] public partial string? XxxCode { get; set; }` within a `[Contract]` partial class, not a plain code auto-property. Set `XxxCode` when mapping/arranging DTOs; use the generated typed `Xxx` accessor for reference-data behavior.
+
 ## Key types
 
 | Type | Description |

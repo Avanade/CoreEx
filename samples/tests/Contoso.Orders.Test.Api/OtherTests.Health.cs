@@ -20,8 +20,8 @@ public partial class OtherTests
         string[] requiredServices =
         [
             "reference-data-orchestrator",
-            "stackExchange.Redis",
-            "sqlServer"
+            "StackExchange.Redis",
+            "SqlServer"
         ];
 
         var r = Test.Http()

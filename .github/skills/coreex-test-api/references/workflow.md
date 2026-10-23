@@ -429,6 +429,7 @@ values, include them; don't exclude them. The only volatile fields are `id`/`eta
 - [ ] One seed row per destructive test, not per operation
 - [ ] Provider-correct outbox helpers used throughout (no Postgres/SQL Server/Cosmos mixing)
 - [ ] Delete tested as the idempotent 4-step flow; never `AssertNotFound()` on DELETE
+- [ ] Successful persistence no-op (`WasMutated == false`) produces success with no mutation event, including after a successful read; true produces the expected event, failure propagates without an event. Use focused boundary coverage if a real-provider no-op is not deterministic; sequential repeat-delete tests are not concurrency/read-delete-gap proof.
 - [ ] Create/Update/Patch `_Success` tests assert the specific changed property/properties explicitly (`updated.Prop.Should().Be(expected)`), then re-GET and `AssertValue(...)` to verify the change persisted (not just that the response echoed it back)
 - [ ] ETag concurrency asserted as 412, not 409; 428 case understood for missing-ETag scenarios
 - [ ] `.res.json` omits fields covered by `Expect*` auto-exclude helpers

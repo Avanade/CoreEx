@@ -52,7 +52,7 @@ Clauses are conditional guards that run _before_ the rule body. When a clause re
 
 | Clause Class | Description | Extensions |
 |---|---|---|
-| **[`DependsOnClause<TEntity, TProperty, TDependsOnProperty>`](./Clauses/DependsOnClause.cs)** | Skips the rule when a specified sibling property has its default value or has already reported a validation error. | `DependsOn(Expression<Func<TEntity, TDependsOnProperty>>)` |
+| **[`DependsOnClause<TEntity, TProperty, TDependsOnProperty>`](./Clauses/DependsOnClause.cs)** | Skips the rule when a specified sibling property has its default value or has already reported a validation error; an optional predicate can further condition execution on that property's value. | `DependsOn(expression)`, `DependsOn(expression, predicate)` |
 | **[`WhenClause<TEntity, TProperty>`](./Clauses/WhenClause.cs)** | Skips the rule when a boolean condition or async predicate evaluates to `false`. | `When(bool)`, `When(Func<bool>)`, `When(Func<PropertyContext,bool>)`, `When(PredicateAsync)`, `WhenValue(Predicate<TProperty>)`, `WhenHasValue()`, `WhenEntity(Predicate<TEntity>)` |
 
 ## Rules
@@ -84,6 +84,12 @@ Rules apply the actual validation logic to a property value. Each rule class is 
 | **[`RuleSet<TEntity>`](./Rules/RuleSet.cs)** | Groups a block of `IRootPropertyRule` chains that only execute when a `Predicate<ValidationContext<TEntity>>` is `true`; wired into a validator via `RuleSet(predicate, configure)` on the fluent builder. | (used via `ValidatorBase<TEntity, TSelf>.RuleSet(predicate, configure)`) |
 | **[`StringRule<TEntity>`](./Rules/StringRule.cs)** | Validates string length (min/max), regex pattern matching, or an exact length. | `String(maxLength)`, `String(min, max, regex)`, `Matches(regex)`, `Length(exact)`, `MinimumLength()`, `MaximumLength()` |
 | **[`WildcardRule<TEntity>`](./Rules/WildcardRule.cs)** | Validates that a `string` conforms to a CoreEx `Wildcard` pattern. | `Wildcard()`, `Wildcard(wildcard)` |
+
+## Dictionary Error Paths
+
+JSON error paths follow the effective `JsonSerializerOptions.DictionaryKeyPolicy` for string keys, for both key and value errors. With CoreEx defaults, key `HomeAddress` produces `addresses.homeAddress.street`; a null key policy preserves `HomeAddress`. Property segments independently use their metadata/`PropertyNamingPolicy`. Explicit validation options take precedence over `JsonDefaults.SerializerOptions`. Non-string keys keep their existing string representation.
+
+CLR paths (`UseJsonNames = false`) and `GetDictionaryKey()` retain the original key. The expression-based `ValidationException.Create<TEntity>` factories follow the same JSON naming rules. Dictionary entries use `.key` and collection elements use `[index]`; these are validation error paths, not full JSONPath expressions, and no escaping is added.
 
 ## Namespaces
 

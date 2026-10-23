@@ -70,6 +70,7 @@ public partial class ProductMutateTests : WithApiTester<Contoso.Products.Api.Pro
         {
             Sku = "New-SKU-123",
             Text = "New Product",
+            Description = "A carbon cross-country mountain bicycle for trail riding.",
             Price = 1000M,
             SubCategoryCode = "XC",
             UnitOfMeasureCode = "EA",
@@ -87,6 +88,8 @@ public partial class ProductMutateTests : WithApiTester<Contoso.Products.Api.Pro
             .AssertCreated()
             .AssertLocationHeader(r => new Uri($"/api/products/{r!.Id}", UriKind.Relative))
             .Value!;
+
+        r.Description.Should().Be(p.Description);
 
         // Assert.
         Test.Http<Product>()

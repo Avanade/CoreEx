@@ -120,6 +120,9 @@ internal static class GraphQLIntrospectionSchemaBuilder
         if (orderByTypeName is not null)
             args.Add(NewArg("orderBy", ListOf(NonNullOf(NamedRef(orderByTypeName, "INPUT_OBJECT")))));
 
+        if (root.QueryArgsConfig.HasSearchParser)
+            args.Add(NewArg("search", NamedRef("String", "SCALAR")));
+
         args.Add(NewArg("includeText", NamedRef("Boolean", "SCALAR")));
         args.Add(NewArg("includeInactive", NamedRef("Boolean", "SCALAR")));
 

@@ -21,6 +21,22 @@ The `IReferenceDataContext` scoping mechanism allows per-request filtering: e.g.
 - 🏷️ **Code validation**: `IReferenceDataCodeCollection` provides `ContainsCode(string)` for fast O(1) code existence checks used by validation rules.
 - 📡 **OpenTelemetry tracing**: `ReferenceDataOrchestratorInvoker` wraps every collection load with an `InvokerTracer` span, tagging the cache type, cache state, and item count.
 
+## Prefetching reference data
+
+Use `PrefetchAsync(IEnumerable<Type>, cancellationToken)` to warm required collections before using synchronous
+reference-data navigation properties:
+
+```csharp
+await orchestrator.PrefetchAsync([typeof(Brand), typeof(Category), typeof(SubCategory)], cancellationToken).ConfigureAwait(false);
+```
+
+The type-based overload removes duplicates and validates every registration before loading any collection.
+An unregistered type throws rather than silently skipping a required dependency. Loading is bounded by
+`PrefetchMaxDegreeOfParallelism` and uses the existing cache-backed provider scopes.
+The existing `PrefetchAsync(IEnumerable<string>, cancellationToken)` retains its behavior of ignoring unknown
+names and deduplicating names case-insensitively. For an empty input, use `Array.Empty<Type>()` or
+`Array.Empty<string>()` to make the intended overload explicit.
+
 ## Key types
 
 | Type | Description |

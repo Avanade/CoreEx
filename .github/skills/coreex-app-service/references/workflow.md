@@ -164,7 +164,7 @@ public async Task<Contracts.{Name}> {Action}Async(string id, CancellationToken c
 
 Use when the project has elected the ROP style. Method signatures return `Result<T>`. `TransactionAsync` returns `Task<Result<T>>` when its delegate returns `Result<T>`. Compose with `Result.GoAsync` / `.ThenAs` / `.ThenAsAsync`.
 
-> **Domain aggregate case:** When a Domain layer is present, repositories return `Result<Domain.T>` directly (not `DataResult<T>`). Map to contract via a `Mapper<Domain.T, Contracts.T, TSelf>` in `Application/Mapping/` — call via `{Name}Mapper.Map(aggregate)`. See Shopping samples in Key References.
+> **Repository mutation contract:** ROP Create/Update return `Result<DataResult<T>>`; Delete returns `Result<DataResult>`. This includes Domain aggregates (`Result<DataResult<Domain.T>>`), not just DTO CRUD. Reads keep their existing shapes. Map domain values to contracts via `{Name}Mapper.Map(dr.Value)`, retaining `WasMutated` until mutation-event decisions are complete; see the [complete ROP/domain mapping example](/.github/instructions/coreex-application-services.instructions.md). Non-ROP repositories may return plain `DataResult<T>`/`DataResult`; adapt the examples to the declared contract, never implicitly unwrap either result.
 >
 > **JSON-backed value object case:** If the aggregate holds a value object persisted via a JSON column (e.g. `Basket.ShippingAddress`), that value object needs its own `BiDirectionMapper<Domain.ValueObjects.T, Contracts.T, TSelf>` in `Application/Mapping/` — not the root aggregate's uni-directional `Mapper`, because the value flows both out (to the read contract) and in (as update input, e.g. `UpdateShippingAddressAsync`). Compose it in both directions: `{ValueObject}Mapper.To.Map(...)` in the root mapper's `OnMap`, and `{ValueObject}Mapper.From.Map(...)` when accepting the value as a service parameter before calling the aggregate's `UpdateXxx(...)` method. See [`coreex-application-services.instructions.md#json-backed-value-object-mapping`](/.github/instructions/coreex-application-services.instructions.md#json-backed-value-object-mapping).
 
@@ -200,8 +200,8 @@ public async Task<Result<Contracts.{Name}>> CreateAsync(Contracts.{Name} value, 
     return await _unitOfWork.TransactionAsync(async ct =>
     {
         var dr = await _repository.CreateAsync(value, ct).ConfigureAwait(false);
-        return Result.Ok(
-            dr.WhereMutated(v => _unitOfWork.Events.Add(EventData.CreateEventWith(v, EventAction.Created))));
+        return dr.ThenAs(data =>
+            data.WhereMutated(v => _unitOfWork.Events.Add(EventData.CreateEventWith(v, EventAction.Created))));
     }, cancellationToken).ConfigureAwait(false);
 }
 ```
@@ -219,14 +219,14 @@ public async Task<Result<Contracts.{Name}>> UpdateAsync(Contracts.{Name} value, 
         return vr.AsResult();
 
     var current = await _repository.GetAsync(value.Id, cancellationToken).ConfigureAwait(false);
-    if (current is null)
-        return Result.NotFoundError();
+    if (current.IsFailure)
+        return current.AsResult();
 
     return await _unitOfWork.TransactionAsync(async ct =>
     {
         var dr = await _repository.UpdateAsync(value, ct).ConfigureAwait(false);
-        return Result.Ok(
-            dr.WhereMutated(v => _unitOfWork.Events.Add(EventData.CreateEventWith(v, EventAction.Updated))));
+        return dr.ThenAs(data =>
+            data.WhereMutated(v => _unitOfWork.Events.Add(EventData.CreateEventWith(v, EventAction.Updated))));
     }, cancellationToken).ConfigureAwait(false);
 }
 ```
@@ -241,18 +241,18 @@ private async Task<Result<Contracts.{Name}>> OrchestrateUpdateAsync(
     string id, Func<Contracts.{Name}, Result> mutate, EventAction action = EventAction.Updated, CancellationToken cancellationToken = default)
 {
     var current = await _repository.GetAsync(id, cancellationToken).ConfigureAwait(false);
-    if (current is null)
-        return Result.NotFoundError();
+    if (current.IsFailure)
+        return current.AsResult();
 
-    var mr = mutate(current);
+    var mr = mutate(current.Value);
     if (mr.IsFailure)
         return mr.AsResult();
 
     return await _unitOfWork.TransactionAsync(async ct =>
     {
-        var dr = await _repository.UpdateAsync(current, ct).ConfigureAwait(false);
-        return Result.Ok(
-            dr.WhereMutated(v => _unitOfWork.Events.Add(EventData.CreateEventWith(v, action))));
+        var dr = await _repository.UpdateAsync(current.Value, ct).ConfigureAwait(false);
+        return dr.ThenAs(data =>
+            data.WhereMutated(v => _unitOfWork.Events.Add(EventData.CreateEventWith(v, action))));
     }, cancellationToken).ConfigureAwait(false);
 }
 
@@ -364,6 +364,8 @@ public class {Name}Service(IUnitOfWork unitOfWork, I{Name}Repository repository,
 
 Create `Application/Policies/{Name}Policy.cs`. Policies are **not registered in DI** — instantiate at call site using dependencies already injected into the calling service:
 
+The example checks a request-body reference with the agreed JSON path `"id"` and translates only expected entity-not-found failures. Missing target resources (including explicitly addressed children) retain 404 semantics; unmatched collection filters normally return empty results. Preserve other failures, deliberate idempotent deletion, and security concealment. Do not choose 404/business errors merely for an error code; see [Not Found Handling](/.github/instructions/coreex-application-services.instructions.md#not-found-handling). For a policy reused across fields, accept a resolved JSON path; when the request contract is already known, prefer `Result<Contracts.{Name}>.ValidationError<{Request}>(x => x.{ReferenceId}, text)`. Do not add a request DTO dependency merely to use the shorthand.
+
 ```csharp
 namespace {Solution}.Application.Policies;
 
@@ -374,7 +376,7 @@ public class {Name}Policy(I{ExternalDomain}Adapter adapter)
     public Task<Result<Contracts.{Name}>> EnsureExistsAsync(string id, CancellationToken cancellationToken = default) => Result
         .GoAsync(() => _adapter.GetAsync(id, cancellationToken))
         .OnFailure(r => r.IsNotFoundError
-            ? Result.ValidationError(MessageItem.CreateErrorMessage(nameof(id), "{Name} was not found."))
+            ? Result.ValidationError(MessageItem.CreateErrorMessage("id", "{Name} was not found."))
             : r);
 }
 ```
@@ -405,10 +407,11 @@ if (pr.IsFailure)
 
 1. `dotnet build` — no errors or warnings.
 2. Verify the interface in `Application/Interfaces/` declares all new methods.
-3. Verify every mutating method wraps the repository call in `_unitOfWork.TransactionAsync(...)` and adds an event inside that scope.
+3. Verify every mutating method wraps the repository call in `_unitOfWork.TransactionAsync(...)` and gates mutation-announcement events on the successful `DataResult.WasMutated` inside that scope. Preserve the flag through mapping/ROP before unwrapping the response.
 4. Verify validators are called via `Default.ValidateAndThrowAsync` (exception style) or `Default.ValidateWithResultAsync` (ROP) — never bare `ValidateAsync`.
 5. Check `Id` is assigned via `Runtime.NewId()` / `Runtime.NewGuid()` on Create — never left to the caller or the database.
 6. **Offer to create or update the matching integration test** in `*.Test.Api/` or unit test in `*.Test.Unit/Services/` — go straight there. Do not write a throwaway smoke test (a scratch console/test snippet, ad-hoc scoped call, or manual `dotnet run` check) first "to see if it works"; that confirmation is exactly what the real test proves, so a preliminary pass is discarded effort.
+7. Cover success/true (event), success/false (success without event), and failure (unchanged failure without event), including a successful earlier read and changed aggregate followed by a persistence no-op. Sequential delete idempotency alone does not cover that boundary; use a focused deterministic boundary test when necessary, without claiming it proves real concurrency/transaction behavior.
 
 ---
 
@@ -417,6 +420,7 @@ if (pr.IsFailure)
 - **Never call bare `ValidateAsync`** — it returns results without throwing; use `ValidateAndThrowAsync` or `ValidateWithResultAsync`.
 - **Never inject validators, mappers, or policies** into service constructors — these are YAGNI injection points; call or instantiate at the point of use.
 - **Never publish events outside `TransactionAsync`** — the event and the database write must commit together.
+- **Success is not mutation.** An existence read or aggregate `HasChanges`/`PersistenceState` check cannot replace the provider's `WasMutated`. Deferred writes may commit later; do not claim this flag proves a committed row or exactly-once delivery. Commands and deliberate attempt messages are not automatically mutation events.
 - **`WhereMutated(() => ...)` on Delete** — `DataResult` (delete) has no value; do not use `(v => ...)` or `(_ => ...)`.
 - **Delete event has no body** — use `EventData.CreateEvent<T>(action).WithKey(id)`; never pass a fabricated entity instance to `CreateEventWith` on a delete.
 - **`Runtime.NewId()` / `Runtime.NewGuid()` — not `Guid.NewGuid()`** — always use `Runtime` so the id source is test-controllable.

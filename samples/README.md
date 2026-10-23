@@ -12,6 +12,7 @@ Each of Products and Shopping is an independently deployable unit with an API ho
 > |---|---|
 > | [Layers](docs/layers.md) | Business and host layer overview with dependency diagram |
 > | [Patterns](docs/patterns.md) | Catalog of architectural patterns implemented across the samples |
+> | [Search: from keywords to vectors](docs/search.md) | Beginner-friendly explanation and staged design for Products search, PostgreSQL/pgvector, hybrid ranking, indexing, and MCP; distinguishes implemented behavior from planned work |
 > | [Tooling](docs/tooling.md) | Code generation (`*.CodeGen`) and database management (`*.Database`) |
 > | [Testing](docs/testing.md) | Unit, intra-domain, inter-domain, and E2E testing strategy |
 > | [Aspire & E2E](docs/aspire.md) | Local orchestration and cross-domain end-to-end validation |
@@ -110,6 +111,7 @@ See [Patterns](docs/patterns.md) for the full catalog of architectural patterns 
 |---|---|
 | `src/Contoso.Products.*` | Products domain — Contracts, Application, Infrastructure, API, Relay, Subscribe, CodeGen, Database |
 | `src/Contoso.Shopping.*` | Shopping domain — same layer split plus Domain aggregate |
+| `src/Contoso.Mcp` | HTTP MCP facade that composes the Products and Shopping APIs |
 | `src/Contoso.Customers.*` | Customers domain (Cosmos DB) — Contracts, Application, Infrastructure, API, Relay, CodeGen, Database (Cosmos provisioning console); no Subscribe project |
 | `src/Contoso.Orders.*` | Orders domain (work in progress) |
 | `aspire/Contoso.Aspire` | Aspire AppHost — orchestrates all hosts for local development and E2E validation |
@@ -156,7 +158,7 @@ dotnet run --project samples/src/Contoso.Orders.Database   -- All
 
 > Customers (Cosmos DB) is schemaless, so `Contoso.Customers.Database` is not a schema migration tool: it declares the containers and seed data and runs them through the reusable `CoreEx.Cosmos.Provisioning` console (`dotnet run --project samples/src/Contoso.Customers.Database -- All`; use `DropAndAll` or `Create,ResetAndData` to start clean, noting `Drop`/`Reset` prompt for confirmation unless `--accept-prompts` is specified; `ResetAndData` alone fails where the database does not yet exist). Tests reuse the same definition via `Test.MigrateCosmosDataAsync<TestData>(...)`.
 
-> The E2E runner's **Database Migration and Base Data Refresh** option can also apply pending migrations across all domains without restarting hosts. See [Aspire & E2E](docs/aspire.md) for details.
+> The E2E runner's **Database Migration and Base Data Refresh** option loads the [shared demo catalog](docs/aspire.md#shared-demo-catalog-bootstrap), bootstraps Shopping and prepares real-model search. This is a destructive reset: stop writers and restart serving hosts/caches afterwards. See [Aspire & E2E](docs/aspire.md) for details.
 
 See [Tooling](docs/tooling.md) for the full list of database commands and what each does.
 
@@ -166,7 +168,7 @@ See [Tooling](docs/tooling.md) for the full list of database commands and what e
 aspire run
 ```
 
-This starts every domain API, Outbox Relay, and Subscribe host as a single distributed application and opens the Aspire Dashboard for centralized logs, traces, and metrics. See [Aspire & E2E](docs/aspire.md) for a full walkthrough.
+This starts every domain API, Outbox Relay, Subscribe host, and the Contoso MCP endpoint as a single distributed application and opens the Aspire Dashboard for centralized logs, traces, and metrics. See [Aspire & E2E](docs/aspire.md) for a full walkthrough and the [Contoso MCP demo](docs/aspire.md#contoso-mcp-demo) for connecting a local MCP client.
 
 ### 4 — Run Tests
 

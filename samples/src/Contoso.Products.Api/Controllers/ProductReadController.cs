@@ -13,7 +13,7 @@ public class ProductReadController(WebApi webApi, IProductReadService service) :
 
     [HttpGet]
     [ProducesResponseType(typeof(ProductLite[]), 200)]
-    [Query(supportsOrderBy: true), Paging(supportsCount: true)]
+    [Query(supportsOrderBy: true, SupportsSearch = true), Paging(supportsCount: true)]
     public Task<IActionResult> QueryAsync(CancellationToken cancellationToken = default) => _webApi.GetAsync(Request, (ro, ct) => _service.QueryAsync(ro.QueryArgs, ro.PagingArgs, ct), cancellationToken: cancellationToken);
 
     [HttpGet("$query")]

@@ -262,6 +262,7 @@ Apply the 5-step type resolution. Emit the property with `<summary>`, correct ty
 3. Add: `[ReferenceData<T>]` `public partial string? {Name}Code { get; set; }`
 4. Add `[Localization]` only if the auto-label would be wrong.
 5. Rebuild — Roslyn emits the typed navigation property automatically.
+6. Map/request-arrange through `{Name}Code`; consume behavior through `{Name}`. Pass code strings directly to concrete typed reference-data destinations using [generated implicit conversion](/.github/instructions/coreex-contracts.instructions.md#reference-data-code-conversion), not custom helpers or conversion-only collection lookups.
 
 ### C3 — Add an interface
 
