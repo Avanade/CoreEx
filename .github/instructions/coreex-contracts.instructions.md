@@ -395,6 +395,25 @@ public partial class BookingTravellerNotesPatch : IETag
 }
 ```
 
+### Optional patch properties
+
+Use `Optional<T>` only on a dedicated request/patch contract when omitted, explicit `null`, and supplied default values must remain distinct. A default wrapper is unspecified; assignment or `Optional<T>.Specified(value)` marks it present. Do not combine `required` with `Optional<T>`: presence is already represented by the wrapper, and the generator reports `CoreEx013` for that contradictory declaration. Do not use `[NonNullable]` to express presence; it describes only the inner value's OpenAPI nullability.
+
+```csharp
+[Contract]
+public partial class TravellerNotesPatch
+{
+    /// <summary>Gets or sets the optionally supplied notes.</summary>
+    public Optional<string?> Notes { get; set; }
+}
+```
+
+The converter uses the inner value's scalar/object/collection JSON shape. Missing JSON properties remain unspecified, explicit `null` becomes specified-null for nullable inner types, and supplied defaults such as `0` or `false` remain specified. CoreEx's `JsonDefaults` omits the default wrapper when writing; custom serializer options must also ignore default values. OpenAPI unwraps the inner type, marks the property non-required, and preserves the inner nullability.
+
+For reference data, annotate the optional `*Code` property with `[ReferenceData<T>]` and declare it `partial Optional<string?>`; the generated typed navigation accessor is also optional and shares the code property's specified state. Preserve the scalar code wire contract.
+
+Validate the request DTO with `.Unwrap()` and map only specified values into an ordinary contract, aggregate, or model. Do not put `Optional<T>` on shared response/event contracts or in repository and persistence models. See [optional validation guidance](./coreex-validators.instructions.md#optional-patch-validation).
+
 ## Reference Data Contracts
 
 Reference data contracts are **generated, not hand-authored**. The source of truth is the `entities:` section of `ref-data.yaml` in the domain's `*.CodeGen` project. Running the CodeGen generates all artefacts across every layer -- contract class, API endpoint, service method, repository interface, repository implementation, and mapper -- as `.g.cs` files that must never be edited directly.

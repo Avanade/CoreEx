@@ -150,6 +150,7 @@ The table above lists the most common rules; the full set of fluent extension me
 |---|---|
 | Presence (required) | `Mandatory()`, `NotNull()`, `NotEmpty()` |
 | Absence (must be unset) | `Null()`, `None()`, `Empty()` |
+| Optional patch input | `Unwrap()` validates the inner value only when specified; `Specified()` requires outer presence |
 | Strings | `MaximumLength(n)`, `MinimumLength(n)`, `Length(exact)`, `String(maxLength)`, `String(min, max, regex)`, `Matches(regex)`, `Wildcard()`, `Email()` / `Email(maxLength)` |
 | Numbers / decimals | `Numeric(allowNegatives)`, `Positive()`, `Decimal(precision, scale)`, `PrecisionScale(precision, scale)` |
 | Comparisons (value) | `Equal(v)`, `NotEqual(v)`, `LessThan(v)`, `LessThanOrEqualTo(v)`, `GreaterThan(v)`, `GreaterThanOrEqualTo(v)`, `Compare(op, v)` — each with a delegate overload for runtime values (see below) |
@@ -165,6 +166,29 @@ The table above lists the most common rules; the full set of fluent extension me
 > **`Mandatory()` on a non-nullable value type checks `default`, not just null.** `Mandatory()` defaults to `mustNotBeDefault: true`, so on a non-nullable value type it **errors when the value equals `default(T)`** — `0` for `decimal`/`int`, `DateOnly.MinValue` for `DateOnly`, etc. (On a **nullable** type — `decimal?`, `DateOnly?` — it errors only on `null`, since a supplied `0` is non-default.) Implications:
 > - **Do not use `Mandatory()` on a non-nullable value type where the default is a legitimate value** (e.g. a `decimal Salary` where `0` is allowed) — it will wrongly reject `0`. Use a range rule instead, e.g. `GreaterThanOrEqualTo(0)` (allows `0`) or `GreaterThan(0)` (requires positive). To require presence *without* the default-check, pass `Mandatory(mustNotBeDefault: false)`.
 > - **The expected unit-test error follows the same rule:** a `Mandatory()` on a non-nullable `decimal`/`DateOnly` produces the *required* error for `0`/`MinValue`, so a test arranging that value must expect the mandatory error (not a pass).
+
+## Optional patch validation
+
+Unwrapping is interface-based: custom `IWrappedValue<T>` wrappers validate their inner value, while `IOptionalValue<T>` wrappers skip the inner chain when unspecified, before `.Value` is read. Both interfaces live in `CoreEx.Entities.Abstractions`. `Optional<T>` and reference-type wrappers support `.Unwrap()` with inferred types; custom struct wrappers require the static helper `ValidationExtensions.Unwrap<TEntity, TWrapper, TValue>(rule)` because C# cannot infer the inner type from a generic constraint. Only wrapper-specific receivers are exposed as extensions; the explicitly typed helpers retain interface constraints without appearing as extensions on unrelated property rules.
+
+On a patch request property typed `Optional<T>`, `.Unwrap()` lets the existing rules validate its inner value while skipping the entire chain when the field was omitted. A specified `null` or default value is not omitted and follows the inner type's ordinary rule behavior. `.Specified()` is a separate outer-property rule that requires presence but permits specified-null.
+
+```csharp
+public class TravellerNotesPatchValidator : Validator<Contracts.TravellerNotesPatch, TravellerNotesPatchValidator>
+{
+    public TravellerNotesPatchValidator()
+    {
+        Property(x => x.Notes).Unwrap().Mandatory();
+        Property(x => x.Category).Specified();
+    }
+}
+```
+
+Use `.Unwrap().Collection(...)` for an optional collection. Only root `Optional<T>` properties are unwrapped; optional collection elements and dictionary keys/values are not supported. Keep optional wrappers in request DTOs and map only specified values into normal application/domain objects. Reference-data patch contracts validate the generated optional navigation property after unwrapping, not the code string.
+
+`.Unwrap().Entity(...)` validates a supplied child entity using its nested error paths. Normalizing rules (for example, `CompareValues(..., overrideValueWhereMatched: true)`) write back to writable `Optional<T>` properties, and subsequent rules see the normalized value. Custom wrappers expose a read-only inner-value contract; do not assume they can be reconstructed or normalized.
+
+`CommonValidator<T>` preserves the caller's label, formatting and originating null state, including when composed after `.Unwrap()`. A `CommonValidator<int>` can validate `int?` without treating null as zero: range rules skip null; `.NotNull()` rejects null but allows zero; default `.Mandatory()` rejects both null and zero. Normalization respects property writability and is visible to later rules and `AdditionalAsync` callbacks.
 
 ### Comparisons
 

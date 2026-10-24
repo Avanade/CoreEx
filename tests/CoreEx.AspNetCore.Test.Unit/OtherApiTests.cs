@@ -1,5 +1,7 @@
 using CoreEx.AspNetCore.Idempotency;
+using CoreEx.AspNetCore.Test.Api.Entities;
 using CoreEx.Caching;
+using CoreEx.Entities;
 using CoreEx.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
@@ -158,6 +160,50 @@ public class OtherApiTests : WithApiTester<Api.Program>
 
         props.GetProperty("requiredCode").GetProperty("nullable").GetBoolean().Should().BeFalse();
         props.GetProperty("optionalCode").GetProperty("nullable").GetBoolean().Should().BeTrue();
+    }
+
+    [Test]
+    public void Swagger_JSON_OptionalProperties_AreNotRequired_AndKeepInnerNullability()
+    {
+        var json = Test.Http()
+            .Run(HttpMethod.Get, "/swagger/v1/swagger.json")
+            .Assert(HttpStatusCode.OK)
+            .GetContent();
+
+        using var doc = JsonDocument.Parse(json!);
+        var schema = doc.RootElement.GetProperty("components").GetProperty("schemas").GetProperty("OptionalPatchRequest");
+        var properties = schema.GetProperty("properties");
+
+        schema.TryGetProperty("required", out _).Should().BeFalse();
+        properties.GetProperty("title").GetProperty("type").GetString().Should().Be("string");
+        properties.GetProperty("title").GetProperty("nullable").GetBoolean().Should().BeFalse();
+        properties.GetProperty("notes").GetProperty("nullable").GetBoolean().Should().BeTrue();
+        properties.GetProperty("count").GetProperty("type").GetString().Should().Be("integer");
+        properties.GetProperty("count").GetProperty("nullable").GetBoolean().Should().BeFalse();
+        properties.GetProperty("nullableCount").GetProperty("type").EnumerateArray().Select(x => x.GetString()).Should().BeEquivalentTo("integer", "null");
+        properties.GetProperty("nullableCount").GetProperty("nullable").GetBoolean().Should().BeTrue();
+        properties.GetProperty("tags").GetProperty("type").GetString().Should().Be("array");
+        properties.GetProperty("tags").GetProperty("items").GetProperty("type").GetString().Should().Be("string");
+        properties.GetProperty("gender").GetProperty("type").EnumerateArray().Select(x => x.GetString()).Should().BeEquivalentTo("null", "string");
+        properties.GetProperty("gender").GetProperty("nullable").GetBoolean().Should().BeTrue();
+        properties.TryGetProperty("genderCode", out _).Should().BeFalse();
+    }
+
+    [Test]
+    public void OptionalReferenceDataNavigation_SharesCodePresence()
+    {
+        var request = new OptionalPatchRequest();
+
+        request.Gender.IsSpecified.Should().BeFalse();
+        request.Gender = Optional<Gender?>.Specified(null);
+        request.GenderCode.IsSpecified.Should().BeTrue();
+        request.GenderCode.Value.Should().BeNull();
+        request.Gender = default;
+        request.GenderCode.IsSpecified.Should().BeFalse();
+
+        request.GenderCode = Optional<string?>.Specified(null);
+        request.Gender.IsSpecified.Should().BeTrue();
+        request.Gender.Value.Should().BeNull();
     }
 
     [TestCase("/health/live")]

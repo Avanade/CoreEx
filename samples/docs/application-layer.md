@@ -84,6 +84,22 @@ Validators live in `Application/Validators/` and extend CoreEx's `Validator<T>`.
 
 The two phases integrate naturally: `OnValidateAsync` should guard with `if (context.HasErrors) return;` to fail fast and avoid unnecessary I/O when declarative rules have already failed.
 
+For a patch contract using `Optional<T>`, `.Unwrap()` applies ordinary rules only when a field was supplied, and `.Specified()` can require field presence independently. A specified null/default is still supplied and is handled by the inner rules:
+
+```csharp
+public class TravellerNotesPatchValidator : Validator<Contracts.TravellerNotesPatch, TravellerNotesPatchValidator>
+{
+    public TravellerNotesPatchValidator() => Property(x => x.Notes).Unwrap().Mandatory();
+}
+```
+
+After validation, map the patch into the existing ordinary contract/domain object only when the field is specified; this preserves untouched fields and prevents request-only wrappers from reaching repositories or persistence models:
+
+```csharp
+if (patch.Notes.IsSpecified)
+    traveller.Notes = patch.Notes.Value;
+```
+
 ```csharp
 // samples/src/Contoso.Products.Application/Validators/ProductValidator.cs
 // Declarative-only — all rules expressed in the constructor.

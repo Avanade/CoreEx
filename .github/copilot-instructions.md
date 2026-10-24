@@ -88,6 +88,7 @@ Connection strings for each service in development are in each host's `appsettin
 - Mutable contracts often implement `IIdentifier<T>`, `IETag`, and `IChangeLog`.
 - Use `[NonNullable]` for properties that are mandatory/required but declared nullable (`string?`, `int?`) for DTO flexibility, so OpenAPI reports them as non-nullable.
 - Use `[ReadOnly(true)]` for server-managed fields and `[ReferenceData<T>]` for reference-data-backed code properties.
+- Use `Optional<T>` only on explicit patch/input DTOs when omission must differ from supplied `null` or default values; validate with `.Unwrap()` and map only specified values into ordinary application/domain objects. Do not leak wrappers into response/event or persistence models.
 - Canonical casing transformations belong in property setters when already established by the model (for example `Sku` uppercasing in `ProductBase`).
 - Favor the existing source-generation approach; do not hand-write members that are meant to be generated.
 
@@ -161,6 +162,8 @@ Connection strings for each service in development are in each host's `appsettin
 
 ### House Rules
 - Code comments end with a period/full stop.
+- Use `///` XML documentation for types and members, including private nested types, methods, and properties; use `<inheritdoc/>` for implementations and overrides. Private fields and test fixtures/helpers retain their existing exemptions.
+- Do not hard-wrap prose in READMEs, AGENTS files, skills, instructions, or other Markdown documents for visual formatting. Keep each paragraph on one physical line; use editor soft wrapping, LF line endings, and line breaks only for Markdown structure or code blocks.
 - Always use `.ConfigureAwait(false)` in service/repository code.
 - `<Nullable>enable</Nullable>` and `<ImplicitUsings>enable</ImplicitUsings>` are set in `Directory.Build.props` — treat nullable warnings as errors, never suppress them with `!` without justification.
 - Every project has a single `GlobalUsing.cs` at the project root. All `using` statements go there — never in individual source files. The code generator (`*.CodeGen`) emits no `using` statements and depends on this.

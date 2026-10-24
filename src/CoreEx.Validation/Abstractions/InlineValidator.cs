@@ -45,19 +45,23 @@ public abstract class InlineValidator<TValue>
     internal async Task ValidateAsync<TEntity>(PropertyContext<TEntity, TValue> context, CancellationToken cancellationToken) where TEntity : class
     {
         var root = new RootPropertyRule<ValidationValue<TValue>, TValue>(
-            new PropertyRuntimeMetadata<ValidationValue<TValue>, TValue>(OverrideName ?? context.Name, _ => context.Metadata.GetValue<TValue>(context.Entity), text: () => OverrideText ?? context.Metadata.Text, jsonName: OverrideJsonName ?? OverrideName ?? context.Metadata.JsonName),
+            new PropertyRuntimeMetadata<ValidationValue<TValue>, TValue>(OverrideName ?? context.Name, _ => context.Value,
+                context.Metadata.IsReadOnly ? null : (_, value) => context.Override(value),
+                text: () => OverrideText ?? context.Text, jsonName: OverrideJsonName ?? OverrideName ?? context.Metadata.JsonName),
                 context.IsValueNullable ? _ => context.GetNullableValueOrDefault<TValue>() : null, context.IsValueNullable ? _ => context.IsNullableValueDefault() : null);
 
         ValidationExtensions.Chain(root, _validator);
+        ((IRootPropertyRule<ValidationValue<TValue>>)root).SetFormat(context.ValueFormatter.Format, context.ValueFormatter.FormatProvider, context.ValueFormatter.QuotingCharacter);
 
         var vv = new ValidationValue<TValue>(context.Value);
         var vc = new ValidationContext<ValidationValue<TValue>>(vv, context.CreateValidationArgs(true));
-        var pc = new PropertyContext<ValidationValue<TValue>, TValue>(root, vc);
+        var pc = new PropertyContext<ValidationValue<TValue>, TValue>(root, vc, () => context.IsValueNull);
 
         // Execute the primary validation.
         await root.ValidateAsync(pc, cancellationToken).ConfigureAwait(false);
 
         // Execute the secondary validation.
+        pc.RefreshFromEntity();
         await OnValidateAsync(pc, cancellationToken).ConfigureAwait(false);
 
         // Merge results.

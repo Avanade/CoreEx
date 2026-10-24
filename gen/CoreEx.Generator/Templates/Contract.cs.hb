@@ -64,7 +64,11 @@ namespace {{Namespace}};
     {{#if HasText}}
 {{indent}}    [global::CoreEx.Localization.Localization("{{KeyAndOrText}}"{{#if HasFallbackText}}, "{{FallbackText}}"{{/if}})]
     {{/if}}
+    {{#if IsOptionalRefData}}
+{{indent}}    public global::CoreEx.Entities.Optional<{{RefDataType}}> {{RefDataName}} { get => {{Name}}.IsSpecified ? global::CoreEx.Entities.Optional<{{RefDataType}}>.Specified(({{RefDataType}}){{Name}}.Value) : default; set => {{Name}} = value.IsSpecified ? global::CoreEx.Entities.Optional<{{OptionalRefDataCodeType}}>.Specified(value.Value) : default; }
+    {{else}}
 {{indent}}    public {{RefDataType}} {{RefDataName}} { get => ({{RefDataType}}){{Name}}; {{#if IsSettable}}set => {{Name}} = value; {{/if}} }
+    {{/if}}
     {{#if IsRefDataText}}
 
 {{indent}}    /// <summary>Gets the related <see cref="{{RefDataName}}"/> text where explicitly requested.</summary>
@@ -74,7 +78,7 @@ namespace {{Namespace}};
       {{#if HasRefDataTextJsonName}}
 {{indent}}    [global::System.Text.Json.Serialization.JsonPropertyName("{{RefDataTextJsonName}}")]
       {{/if}}
-{{indent}}    public string? {{RefDataName}}Text { get => field ?? global::CoreEx.ExecutionContext.GetRelatedText(() => {{Name}} is null ? null : {{RefDataName}}?.Text); init => field = value; }
+{{indent}}    public string? {{RefDataName}}Text { get => field ?? global::CoreEx.ExecutionContext.GetRelatedText(() => {{#if IsOptionalRefData}}{{Name}}.IsSpecified && {{Name}}.Value is not null ? {{RefDataName}}.Value?.Text : null{{else}}{{Name}} is null ? null : {{RefDataName}}?.Text{{/if}}); init => field = value; }
     {{/if}}
   {{else}}
     {{#if IsRefDataCodeCollection}}

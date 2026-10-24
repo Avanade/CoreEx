@@ -156,6 +156,7 @@ internal class ContractModel : CodeGenContext
         }
 
         // Get the list of properties which as a minimum do a get.
+        var optionalTypeSymbol = context.SemanticModel.Compilation.GetTypeByMetadataName("CoreEx.Entities.Optional`1");
         foreach (var p in symbol.GetMembers().OfType<IPropertySymbol>().Where(p => p.GetMethod is not null))
         {
             if (p.GetAttributes().FirstOrDefault(a => a.AttributeClass?.ToDisplayString() == "CoreEx.Entities.ContractIgnoreAttribute") is not null)
@@ -174,6 +175,20 @@ internal class ContractModel : CodeGenContext
                 Default = p.DeclaringSyntaxReferences.Select(ds => ds.GetSyntax()).OfType<PropertyDeclarationSyntax>().Select(ps => GetDefaultConstant(ps, context.SemanticModel)).FirstOrDefault(),
                 Format = GetDisplayFormatAttributeDataFormatString(p)
             };
+
+            emp.IsOptional = p.Type is INamedTypeSymbol optionalType && SymbolEqualityComparer.Default.Equals(optionalType.OriginalDefinition, optionalTypeSymbol);
+            if (emp.IsOptional && emp.IsRequired)
+            {
+                var descriptor = new DiagnosticDescriptor(
+                    id: "CoreEx013",
+                    title: "Required Optional property is contradictory.",
+                    messageFormat: "Contract property '{0}' cannot be declared 'required' because Optional<T> already represents whether a value was specified.",
+                    category: "CoreEx",
+                    defaultSeverity: DiagnosticSeverity.Error,
+                    isEnabledByDefault: true);
+
+                model.Diagnostics.Add(Diagnostic.Create(descriptor, p.Locations.FirstOrDefault(), p.Name));
+            }
 
             if (model.IsRecord && emp.Name == "EqualityContract")
                 continue;
@@ -484,9 +499,13 @@ internal class ContractModel : CodeGenContext
             return;
 
         model.IsRefData = true;
-        model.RefDataType = FormatTypeWithNullability(att.AttributeClass.TypeArguments.FirstOrDefault()?.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)!, propertySymbol.NullableAnnotation);
+        var optionalType = propertySymbol.Type as INamedTypeSymbol;
+        var innerType = model.IsOptional && optionalType is not null ? optionalType.TypeArguments[0] : propertySymbol.Type;
+        model.IsOptionalRefData = model.IsOptional;
+        model.OptionalRefDataCodeType = innerType.ToDisplayString(ContractGenerator.FullyQualifiedWithNullability);
+        model.RefDataType = FormatTypeWithNullability(att.AttributeClass.TypeArguments.FirstOrDefault()?.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)!, innerType.NullableAnnotation);
 
-        if (propertySymbol.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) != "string" && propertySymbol.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) != "string?")
+        if (innerType.SpecialType != SpecialType.System_String)
         {
             var descriptor = new DiagnosticDescriptor(
                 id: "CoreEx001",

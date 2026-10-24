@@ -53,6 +53,11 @@ internal class PropertyModel
     public bool IsRequired { get; set; }
 
     /// <summary>
+    /// Indicates whether the property is an <c>Optional&lt;T&gt;</c>.
+    /// </summary>
+    public bool IsOptional { get; set; }
+
+    /// <summary>
     /// Indicates whether the property has a <see cref="JsonName"/>.
     /// </summary>
     public bool HasJsonName => !string.IsNullOrEmpty(JsonName);
@@ -126,6 +131,16 @@ internal class PropertyModel
     /// Gets or sets the reference data type where<see cref="IsRefData"/> is <see langword="true"/>.
     /// </summary>
     public string? RefDataType { get; set; }
+
+    /// <summary>
+    /// Indicates whether the reference-data code property is an <c>Optional&lt;T&gt;</c>.
+    /// </summary>
+    public bool IsOptionalRefData { get; set; }
+
+    /// <summary>
+    /// Gets or sets the inner type of an optional reference-data code.
+    /// </summary>
+    public string? OptionalRefDataCodeType { get; set; }
 
     /// <summary>
     /// Indicates whether the json serialization attribute is required.

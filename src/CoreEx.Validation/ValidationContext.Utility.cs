@@ -39,7 +39,7 @@ public sealed partial class ValidationContext<TEntity>
         if (!predicate(pm.GetValue<TProperty>(Value)))
             return false;
 
-        AddError<TProperty>(pm, null, null, null, format, values);
+        AddError<TProperty>(pm, null, null, null, null, format, values);
         return true;
     }
 
@@ -63,7 +63,7 @@ public sealed partial class ValidationContext<TEntity>
         if (!when)
             return false;
 
-        AddError<TProperty>(pm, null, null, null, format, values);
+        AddError<TProperty>(pm, null, null, null, null, format, values);
         return true;
     }
 
@@ -77,7 +77,7 @@ public sealed partial class ValidationContext<TEntity>
     /// <returns>The <see cref="MessageItem"/>.</returns>
     /// <remarks>The property friendly text and value are automatically prepended to the <paramref name="values"/> as the first two arguments where the <paramref name="format"/> does not have already have <see cref="LText.HasArgs"/>.</remarks>
     public MessageItem AddError<TProperty>(Expression<Func<TEntity, TProperty>> propertyExpression, LText format, params object?[] values)
-        => AddError<TProperty>(RuntimeMetadata.GetForExpression(propertyExpression), null, null, null, format, values);
+        => AddError<TProperty>(RuntimeMetadata.GetForExpression(propertyExpression), null, null, null, null, format, values);
 
     /// <summary>
     /// Adds an <see cref="MessageType.Error"/> <see cref="MessageItem"/> to the <see cref="Messages"/> for the specified property, explicit text format and and additional values included in the text. 
@@ -87,17 +87,19 @@ public sealed partial class ValidationContext<TEntity>
     /// <param name="text">The property <see cref="LText"/> override.</param>
     /// <param name="valueFormatter">The <see cref="ValueFormatter"/>.</param>
     /// <param name="jsonNameOverride">The JSON property name override.</param>
+    /// <param name="isValueNull">Optional originating null state for an adapted value.</param>
     /// <param name="format">The composite format string.</param>
     /// <param name="values">The values that form part of the message text.</param>
     /// <returns>The <see cref="MessageItem"/>.</returns>
     /// <remarks>The property friendly text and value are automatically prepended to the <paramref name="values"/> as the first two arguments where the <paramref name="format"/> does not have already have <see cref="LText.HasArgs"/>.</remarks>
-    internal MessageItem AddError<TProperty>(IPropertyRuntimeMetadata propertyMetadata, LText? text, ValueFormatter? valueFormatter, string? jsonNameOverride, LText format, params object?[] values)
+    internal MessageItem AddError<TProperty>(IPropertyRuntimeMetadata propertyMetadata, LText? text, ValueFormatter? valueFormatter, string? jsonNameOverride, bool? isValueNull, LText format, params object?[] values)
     {
         format = format.EnsureNoArgsWhen(values);
 
         text ??= propertyMetadata.Text;
         jsonNameOverride ??= propertyMetadata.GetJsonName(JsonSerializerOptions);
-        object?[] std = [text, valueFormatter is null ? propertyMetadata.GetValue(Value) : valueFormatter.Value.ToLText(propertyMetadata.GetValue(Value))];
+        var value = isValueNull == true ? null : propertyMetadata.GetValue(Value);
+        object?[] std = [text, valueFormatter is null ? value : valueFormatter.Value.ToLText(value)];
 
         if (propertyMetadata is ISelfRuntimeMetadata)
             return AddError(format, [.. std, .. values]);

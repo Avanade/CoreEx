@@ -9,7 +9,7 @@ public static partial class ValidationExtensions
     /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
     /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
     /// <param name="commonValidator">The <see cref="CommonValidator{T}"/>.</param>
-    public static IPropertyRule<TEntity, TProperty> Common<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, InlineValidator<TProperty> commonValidator) where TEntity : class
+    public static IPropertyRule<TEntity, TProperty> Common<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty?> rule, InlineValidator<TProperty> commonValidator) where TEntity : class
         => Chain(rule, new CommonRule<TEntity, TProperty>(commonValidator.ThrowIfNull()));
 
     /// <summary>

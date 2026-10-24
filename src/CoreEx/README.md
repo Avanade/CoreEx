@@ -24,6 +24,7 @@ All other CoreEx packages (`CoreEx.Events`, `CoreEx.Database`, `CoreEx.AspNetCor
 - 🔐 **Execution context**: An `AsyncLocal`-scoped `ExecutionContext` that carries user identity (`AuthenticationUser`), tenant ID, operation type, request timestamp, and arbitrary attributes throughout the lifetime of a request.
 - 🚂 **Railway-oriented results**: `Result` and `Result<T>` value types that represent success or a typed error without throwing, enabling functional pipeline-style error propagation for expected business outcomes.
 - 📦 **Entity contracts**: Interfaces and types for identifiers (`IIdentifier<T>`), ETags (`IETag`), audit change logs (`IChangeLog`), composite keys (`CompositeKey`), and entity cleaning/transformation — used as the common contract shape across all CoreEx layers.
+- 📝 **Partial-update values**: `Optional<T>` preserves omitted-versus-supplied intent for explicit request/patch DTOs without changing ordinary contracts or persistence models.
 - 🗺️ **Explicit mapping**: Uni- and Bi-directional mapper base classes and a `Mapper` utility for propagating standard contract properties (identity, ETags, change logs, tenant, partition) between source and destination types without a reflection-heavy mapping library.
 - 🔄 **JSON utilities**: RFC 7396 JSON Merge Patch (`JsonMergePatch`), include/exclude JSON property filtering (`JsonFilter`), and custom converters for common CoreEx types.
 - 💉 **DI lifetime attributes**: `[ScopedService]`, `[SingletonService]`, and `[TransientService]` attributes that mark implementation types for automatic discovery and registration via `AddDynamicServicesUsing<T>`.
@@ -50,6 +51,12 @@ All other CoreEx packages (`CoreEx.Events`, `CoreEx.Database`, `CoreEx.AspNetCor
 | [`IExtendedException`](./Abstractions/IExtendedException.cs) | Interface defining the extended exception contract: `StatusCode`, `ErrorType`, `ErrorCode`, `IsError`, and `ShouldBeLogged`. |
 
 See the [Extended Exceptions](#extended-exceptions) section below for the full list of semantic exception types.
+
+## Optional patch values
+
+For partial-update request DTOs, `Optional<T>` distinguishes an omitted property from a supplied `null` or default value. `default(Optional<T>)` is unspecified; implicit conversion from `T` and `Optional<T>.Specified(value)` create a specified value. Its JSON converter reads and writes the inner value shape, while CoreEx's `WhenWritingDefault` serializer setting omits unspecified properties. OpenAPI exposes the inner type and nullability while leaving the property non-required.
+
+Keep `Optional<T>` on the request boundary: validate with `.Unwrap()` and copy only specified values into the ordinary contract/domain object. It is not a persistence or event-model type. See [contract patch guidance](../../.github/instructions/coreex-contracts.instructions.md#optional-patch-properties) and [optional validation](../CoreEx.Validation/README.md#optional-patch-validation).
 
 ## Validating HTTP response values
 

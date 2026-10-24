@@ -69,6 +69,19 @@ public partial class Product : ProductBase, IETag, IChangeLog
 }
 ```
 
+For partial-update requests, use a standalone patch contract and `Optional<T>` when omission must remain distinct from explicit `null` or a supplied default. The wrapper belongs at the request boundary; the regular resource contract remains unchanged:
+
+```csharp
+[Contract]
+public partial class TravellerNotesPatch
+{
+    /// <summary>Gets or sets the optionally supplied notes.</summary>
+    public Optional<string?> Notes { get; set; }
+}
+```
+
+`default(Optional<T>)` is omitted, while assignment marks a value specified. The converter preserves the inner JSON shape, and CoreEx serializer defaults omit unspecified values. The OpenAPI schema uses the inner type/nullability but does not require the property. For a reference-data patch field, declare `[ReferenceData<Gender>] public partial Optional<string?> GenderCode { get; set; }`; the generated typed navigation property shares the code property's presence.
+
 An abstract base class (e.g. [`ProductBase`](../src/Contoso.Products.Contracts/ProductBase.cs)) is used where multiple projections of the same resource share common fields — for example `Product` (full detail) and `ProductLite` (query list projection).
 
 > **See also**: [`IIdentifier`](../../src/CoreEx/Entities/IIdentifier.cs) · [`IETag`](../../src/CoreEx/Entities/IETag.cs) · [`IChangeLog`](../../src/CoreEx/Entities/IChangeLog.cs)

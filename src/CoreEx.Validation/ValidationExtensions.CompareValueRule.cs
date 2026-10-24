@@ -12,7 +12,7 @@ public static partial class ValidationExtensions
     /// <param name="compareTo">The compare-to value.</param>
     /// <param name="compareToText">The value text formatter (used in the error message); otherwise, uses the resulting <paramref name="compareTo"/> value.</param>
     /// <param name="comparer">The optional <see cref="IComparer{T}"/>.</param>
-    public static IPropertyRule<TEntity, TProperty> Compare<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, CompareOperator compareOperator, TProperty compareTo, Func<TProperty, LText?>? compareToText = null, IComparer<TProperty>? comparer = null) where TEntity : class where TProperty : IComparable<TProperty>
+    public static IPropertyRule<TEntity, TProperty> Compare<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty?> rule, CompareOperator compareOperator, TProperty compareTo, Func<TProperty, LText?>? compareToText = null, IComparer<TProperty>? comparer = null) where TEntity : class where TProperty : IComparable<TProperty>
         => Chain(rule, new CompareValueRule<TEntity, TProperty>(compareOperator, _ => compareTo, compareToText, comparer));
 
     /// <summary>
@@ -25,7 +25,7 @@ public static partial class ValidationExtensions
     /// <param name="compareTo">The function to get the compare-to value.</param>
     /// <param name="compareToText">The value text formatter (used in the error message); otherwise, uses the resulting <paramref name="compareTo"/> value.</param>
     /// <param name="comparer">The optional <see cref="IComparer{T}"/>.</param>
-    public static IPropertyRule<TEntity, TProperty> Compare<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, CompareOperator compareOperator, Func<PropertyContext<TEntity, TProperty>, TProperty> compareTo, Func<TProperty, LText?>? compareToText = null, IComparer<TProperty>? comparer = null) where TEntity : class where TProperty : IComparable<TProperty>
+    public static IPropertyRule<TEntity, TProperty> Compare<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty?> rule, CompareOperator compareOperator, Func<PropertyContext<TEntity, TProperty>, TProperty> compareTo, Func<TProperty, LText?>? compareToText = null, IComparer<TProperty>? comparer = null) where TEntity : class where TProperty : IComparable<TProperty>
         => Chain(rule, new CompareValueRule<TEntity, TProperty>(compareOperator, c => compareTo.ThrowIfNull()(c), compareToText, comparer));
 
     /// <summary>
@@ -37,7 +37,7 @@ public static partial class ValidationExtensions
     /// <param name="compareTo">The compare-to value.</param>
     /// <param name="compareToText">The value text formatter (used in the error message); otherwise, uses the resulting <paramref name="compareTo"/> value.</param>
     /// <param name="comparer">The optional <see cref="IComparer{T}"/>.</param>
-    public static IPropertyRule<TEntity, TProperty> Equal<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, TProperty compareTo, Func<TProperty, LText?>? compareToText = null, IComparer<TProperty>? comparer = null) where TEntity : class where TProperty : IComparable<TProperty>
+    public static IPropertyRule<TEntity, TProperty> Equal<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty?> rule, TProperty compareTo, Func<TProperty, LText?>? compareToText = null, IComparer<TProperty>? comparer = null) where TEntity : class where TProperty : IComparable<TProperty>
         => Chain(rule, new CompareValueRule<TEntity, TProperty>(CompareOperator.Equal, _ => compareTo, compareToText, comparer));
 
     /// <summary>
@@ -49,7 +49,7 @@ public static partial class ValidationExtensions
     /// <param name="compareTo">The function to get the compare-to value.</param>
     /// <param name="compareToText">The value text formatter (used in the error message); otherwise, uses the resulting <paramref name="compareTo"/> value.</param>
     /// <param name="comparer">The optional <see cref="IComparer{T}"/>.</param>
-    public static IPropertyRule<TEntity, TProperty> Equal<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, Func<PropertyContext<TEntity, TProperty>, TProperty> compareTo, Func<TProperty, LText?>? compareToText = null, IComparer<TProperty>? comparer = null) where TEntity : class where TProperty : IComparable<TProperty>
+    public static IPropertyRule<TEntity, TProperty> Equal<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty?> rule, Func<PropertyContext<TEntity, TProperty>, TProperty> compareTo, Func<TProperty, LText?>? compareToText = null, IComparer<TProperty>? comparer = null) where TEntity : class where TProperty : IComparable<TProperty>
         => Chain(rule, new CompareValueRule<TEntity, TProperty>(CompareOperator.Equal, c => compareTo.ThrowIfNull()(c), compareToText, comparer));
 
     /// <summary>
@@ -61,7 +61,7 @@ public static partial class ValidationExtensions
     /// <param name="compareTo">The compare-to value.</param>
     /// <param name="compareToText">The value text formatter (used in the error message); otherwise, uses the resulting <paramref name="compareTo"/> value.</param>
     /// <param name="comparer">The optional <see cref="IComparer{T}"/>.</param>
-    public static IPropertyRule<TEntity, TProperty> NotEqual<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, TProperty compareTo, Func<TProperty, LText?>? compareToText = null, IComparer<TProperty>? comparer = null) where TEntity : class where TProperty : IComparable<TProperty>
+    public static IPropertyRule<TEntity, TProperty> NotEqual<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty?> rule, TProperty compareTo, Func<TProperty, LText?>? compareToText = null, IComparer<TProperty>? comparer = null) where TEntity : class where TProperty : IComparable<TProperty>
         => Chain(rule, new CompareValueRule<TEntity, TProperty>(CompareOperator.NotEqual, _ => compareTo, compareToText, comparer));
 
     /// <summary>
@@ -73,7 +73,7 @@ public static partial class ValidationExtensions
     /// <param name="compareTo">The function to get the compare-to value.</param>
     /// <param name="compareToText">The value text formatter (used in the error message); otherwise, uses the resulting <paramref name="compareTo"/> value.</param>
     /// <param name="comparer">The optional <see cref="IComparer{T}"/>.</param>
-    public static IPropertyRule<TEntity, TProperty> NotEqual<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, Func<PropertyContext<TEntity, TProperty>, TProperty> compareTo, Func<TProperty, LText?>? compareToText = null, IComparer<TProperty>? comparer = null) where TEntity : class where TProperty : IComparable<TProperty>
+    public static IPropertyRule<TEntity, TProperty> NotEqual<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty?> rule, Func<PropertyContext<TEntity, TProperty>, TProperty> compareTo, Func<TProperty, LText?>? compareToText = null, IComparer<TProperty>? comparer = null) where TEntity : class where TProperty : IComparable<TProperty>
         => Chain(rule, new CompareValueRule<TEntity, TProperty>(CompareOperator.NotEqual, c => compareTo.ThrowIfNull()(c), compareToText, comparer));
 
     /// <summary>
@@ -85,7 +85,7 @@ public static partial class ValidationExtensions
     /// <param name="compareTo">The compare-to value.</param>
     /// <param name="compareToText">The value text formatter (used in the error message); otherwise, uses the resulting <paramref name="compareTo"/> value.</param>
     /// <param name="comparer">The optional <see cref="IComparer{T}"/>.</param>
-    public static IPropertyRule<TEntity, TProperty> LessThan<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, TProperty compareTo, Func<TProperty, LText?>? compareToText = null, IComparer<TProperty>? comparer = null) where TEntity : class where TProperty : IComparable<TProperty>
+    public static IPropertyRule<TEntity, TProperty> LessThan<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty?> rule, TProperty compareTo, Func<TProperty, LText?>? compareToText = null, IComparer<TProperty>? comparer = null) where TEntity : class where TProperty : IComparable<TProperty>
         => Chain(rule, new CompareValueRule<TEntity, TProperty>(CompareOperator.LessThan, _ => compareTo, compareToText, comparer));
 
     /// <summary>
@@ -97,7 +97,7 @@ public static partial class ValidationExtensions
     /// <param name="compareTo">The function to get the compare-to value.</param>
     /// <param name="compareToText">The value text formatter (used in the error message); otherwise, uses the resulting <paramref name="compareTo"/> value.</param>
     /// <param name="comparer">The optional <see cref="IComparer{T}"/>.</param>
-    public static IPropertyRule<TEntity, TProperty> LessThan<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, Func<PropertyContext<TEntity, TProperty>, TProperty> compareTo, Func<TProperty, LText?>? compareToText = null, IComparer<TProperty>? comparer = null) where TEntity : class where TProperty : IComparable<TProperty>
+    public static IPropertyRule<TEntity, TProperty> LessThan<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty?> rule, Func<PropertyContext<TEntity, TProperty>, TProperty> compareTo, Func<TProperty, LText?>? compareToText = null, IComparer<TProperty>? comparer = null) where TEntity : class where TProperty : IComparable<TProperty>
         => Chain(rule, new CompareValueRule<TEntity, TProperty>(CompareOperator.LessThan, c => compareTo.ThrowIfNull()(c), compareToText, comparer));
 
     /// <summary>
@@ -109,7 +109,7 @@ public static partial class ValidationExtensions
     /// <param name="compareTo">The compare-to value.</param>
     /// <param name="compareToText">The value text formatter (used in the error message); otherwise, uses the resulting <paramref name="compareTo"/> value.</param>
     /// <param name="comparer">The optional <see cref="IComparer{T}"/>.</param>
-    public static IPropertyRule<TEntity, TProperty> LessThanOrEqualTo<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, TProperty compareTo, Func<TProperty, LText?>? compareToText = null, IComparer<TProperty>? comparer = null) where TEntity : class where TProperty : IComparable<TProperty>
+    public static IPropertyRule<TEntity, TProperty> LessThanOrEqualTo<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty?> rule, TProperty compareTo, Func<TProperty, LText?>? compareToText = null, IComparer<TProperty>? comparer = null) where TEntity : class where TProperty : IComparable<TProperty>
         => Chain(rule, new CompareValueRule<TEntity, TProperty>(CompareOperator.LessThanOrEqualTo, _ => compareTo, compareToText, comparer));
 
     /// <summary>
@@ -121,7 +121,7 @@ public static partial class ValidationExtensions
     /// <param name="compareTo">The function to get the compare-to value.</param>
     /// <param name="compareToText">The value text formatter (used in the error message); otherwise, uses the resulting <paramref name="compareTo"/> value.</param>
     /// <param name="comparer">The optional <see cref="IComparer{T}"/>.</param>
-    public static IPropertyRule<TEntity, TProperty> LessThanOrEqualTo<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, Func<PropertyContext<TEntity, TProperty>, TProperty> compareTo, Func<TProperty, LText?>? compareToText = null, IComparer<TProperty>? comparer = null) where TEntity : class where TProperty : IComparable<TProperty>
+    public static IPropertyRule<TEntity, TProperty> LessThanOrEqualTo<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty?> rule, Func<PropertyContext<TEntity, TProperty>, TProperty> compareTo, Func<TProperty, LText?>? compareToText = null, IComparer<TProperty>? comparer = null) where TEntity : class where TProperty : IComparable<TProperty>
         => Chain(rule, new CompareValueRule<TEntity, TProperty>(CompareOperator.LessThanOrEqualTo, c => compareTo.ThrowIfNull()(c), compareToText, comparer));
 
     /// <summary>
@@ -133,7 +133,7 @@ public static partial class ValidationExtensions
     /// <param name="compareTo">The compare-to value.</param>
     /// <param name="compareToText">The value text formatter (used in the error message); otherwise, uses the resulting <paramref name="compareTo"/> value.</param>
     /// <param name="comparer">The optional <see cref="IComparer{T}"/>.</param>
-    public static IPropertyRule<TEntity, TProperty> GreaterThanOrEqualTo<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, TProperty compareTo, Func<TProperty, LText?>? compareToText = null, IComparer<TProperty>? comparer = null) where TEntity : class where TProperty : IComparable<TProperty>
+    public static IPropertyRule<TEntity, TProperty> GreaterThanOrEqualTo<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty?> rule, TProperty compareTo, Func<TProperty, LText?>? compareToText = null, IComparer<TProperty>? comparer = null) where TEntity : class where TProperty : IComparable<TProperty>
         => Chain(rule, new CompareValueRule<TEntity, TProperty>(CompareOperator.GreaterThanOrEqualTo, _ => compareTo, compareToText, comparer));
 
     /// <summary>
@@ -145,7 +145,7 @@ public static partial class ValidationExtensions
     /// <param name="compareTo">The function to get the compare-to value.</param>
     /// <param name="compareToText">The value text formatter (used in the error message); otherwise, uses the resulting <paramref name="compareTo"/> value.</param>
     /// <param name="comparer">The optional <see cref="IComparer{T}"/>.</param>
-    public static IPropertyRule<TEntity, TProperty> GreaterThanOrEqualTo<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, Func<PropertyContext<TEntity, TProperty>, TProperty> compareTo, Func<TProperty, LText?>? compareToText = null, IComparer<TProperty>? comparer = null) where TEntity : class where TProperty : IComparable<TProperty>
+    public static IPropertyRule<TEntity, TProperty> GreaterThanOrEqualTo<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty?> rule, Func<PropertyContext<TEntity, TProperty>, TProperty> compareTo, Func<TProperty, LText?>? compareToText = null, IComparer<TProperty>? comparer = null) where TEntity : class where TProperty : IComparable<TProperty>
         => Chain(rule, new CompareValueRule<TEntity, TProperty>(CompareOperator.GreaterThanOrEqualTo, c => compareTo.ThrowIfNull()(c), compareToText, comparer));
 
     /// <summary>
@@ -157,7 +157,7 @@ public static partial class ValidationExtensions
     /// <param name="compareTo">The compare-to value.</param>
     /// <param name="compareToText">The value text formatter (used in the error message); otherwise, uses the resulting <paramref name="compareTo"/> value.</param>
     /// <param name="comparer">The optional <see cref="IComparer{T}"/>.</param>
-    public static IPropertyRule<TEntity, TProperty> GreaterThan<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, TProperty compareTo, Func<TProperty, LText?>? compareToText = null, IComparer<TProperty>? comparer = null) where TEntity : class where TProperty : IComparable<TProperty>
+    public static IPropertyRule<TEntity, TProperty> GreaterThan<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty?> rule, TProperty compareTo, Func<TProperty, LText?>? compareToText = null, IComparer<TProperty>? comparer = null) where TEntity : class where TProperty : IComparable<TProperty>
         => Chain(rule, new CompareValueRule<TEntity, TProperty>(CompareOperator.GreaterThan, _ => compareTo, compareToText, comparer));
 
     /// <summary>
@@ -169,7 +169,7 @@ public static partial class ValidationExtensions
     /// <param name="compareTo">The function to get the compare-to value.</param>
     /// <param name="compareToText">The value text formatter (used in the error message); otherwise, uses the resulting <paramref name="compareTo"/> value.</param>
     /// <param name="comparer">The optional <see cref="IComparer{T}"/>.</param>
-    public static IPropertyRule<TEntity, TProperty> GreaterThan<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty> rule, Func<PropertyContext<TEntity, TProperty>, TProperty> compareTo, Func<TProperty, LText?>? compareToText = null, IComparer<TProperty>? comparer = null) where TEntity : class where TProperty : IComparable<TProperty>
+    public static IPropertyRule<TEntity, TProperty> GreaterThan<TEntity, TProperty>(this IPropertyRule<TEntity, TProperty?> rule, Func<PropertyContext<TEntity, TProperty>, TProperty> compareTo, Func<TProperty, LText?>? compareToText = null, IComparer<TProperty>? comparer = null) where TEntity : class where TProperty : IComparable<TProperty>
         => Chain(rule, new CompareValueRule<TEntity, TProperty>(CompareOperator.GreaterThan, c => compareTo.ThrowIfNull()(c), compareToText, comparer));
 
     /* Nullable/Struct */

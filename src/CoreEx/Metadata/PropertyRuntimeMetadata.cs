@@ -20,6 +20,7 @@ public readonly struct PropertyRuntimeMetadata<TEntity, TProperty>(string name, 
 
     // Where the property type does not itself carry runtime metadata (i.e. is not an IContract-like graph type), Clean and CleanAndDefault have the same outcome (see CleanOption remarks).
     private static readonly bool _isRuntimeMetadataProperty = typeof(IRuntimeMetadataCore).IsAssignableFrom(typeof(TProperty));
+    private static readonly bool _isWrappedValueCleaner = RuntimeMetadata.IsWrappedValueCleaner(typeof(TProperty));
 
     private readonly Func<TEntity, TProperty> _getValue = getValue.ThrowIfNull();
     private readonly Action<TEntity, TProperty>? _setValue = setValue;
@@ -96,6 +97,9 @@ public readonly struct PropertyRuntimeMetadata<TEntity, TProperty>(string name, 
             return;
 
         var val = Cleaner.Clean(GetValue(entity), args);
+        if (_isWrappedValueCleaner && !IsReadOnly && val is TProperty wrappedValue)
+            SetValue(entity, wrappedValue);
+
         if (IsReadOnly)
             return;
 

@@ -51,6 +51,7 @@ Guides you through creating or modifying a hand-authored contract (DTO/entity) i
 - Every property needs a `<summary>` XML doc comment
 - Same contract type for both API response and event payload — never split them
 - Patch/subset contracts (merge-patch, partial-update requests): standalone class with only the needed fields (+ `IETag`) — never inherit a sibling and suppress the rest; inheritance is for genuine supersets only
+- For patch fields that distinguish omission from explicit `null` or a supplied default, use `Optional<T>` on the request DTO; do not use it on response/event or persistence contracts
 
 For full workflow, decision trees, and code examples see [`references/workflow.md`](references/workflow.md).
 

@@ -21,6 +21,7 @@ The namespace also includes supporting utilities: `Cleaner` for normalizing stri
 - 📐 **Feature detection**: `FeatureSupport` and extension methods allow infrastructure code to detect which interfaces an entity implements and act accordingly (e.g. auto-populate ETags or change logs).
 - ✍️ **Write-intent descriptors**: `Writable` enum and `[Writable]` attribute annotate entity properties with create-only / update-only / never-writable semantics for OpenAPI documentation and tooling.
 - ✅ **Non-nullable intent**: `[NonNullable]` marks a property as mandatory/non-null for OpenAPI tooling even though it is declared nullable (`string?`, `int?`) in code for DTO flexibility.
+- 📝 **Partial-update values**: `Optional<T>` distinguishes an omitted request property from a supplied `null` or default value; use it on explicit patch DTOs, not persisted contracts.
 - 🔧 **Identifier generation**: `IdentifierGenerator` and `IIdentifierGenerator` provide DI-replaceable new `Guid`/`string` identifier creation (using `Guid.CreateVersion7()` on .NET 9+).
 
 ## Key types
@@ -32,6 +33,7 @@ The namespace also includes supporting utilities: `Cleaner` for normalizing stri
 | **[`Cleaner`](./Cleaner.cs)** | Static utility applying configurable string trimming, transformation, casing, and `DateTime` normalization to entity values. |
 | **[`CompositeKey`](./CompositeKey.cs)** | Immutable struct representing a multi-part entity key with boxing-free generic `Create<T1,T2,...>` overloads for up to four arguments. |
 | **[`CompositeKeyComparer`](./CompositeKeyComparer.cs)** | `IEqualityComparer<CompositeKey>` for use in dictionaries and collections keyed by `CompositeKey`. |
+| **[`Optional<T>`](./Optional.cs)** | Presence-aware value wrapper for partial-update request properties; `default` is unspecified, while `Specified(value)` preserves supplied `null` and default values. |
 | **[`DataMap<TValue>`](./DataMap.cs)** | String-keyed dictionary whose keys are preserved as-is (no camelCase conversion) during JSON serialization; used for arbitrary data maps on entities. |
 | **[`ETag`](./ETag.cs)** | Static utility for comparing ETag strings and throwing `ConcurrencyException` on mismatch; also generates ETag hashes from entity values. |
 | **[`FeatureSupport`](./FeatureSupport.cs)** | Enum of flags indicating which entity contract interfaces a type implements, used by infrastructure to decide which fields to auto-populate. |
@@ -51,6 +53,16 @@ The namespace also includes supporting utilities: `Cleaner` for normalizing stri
 | [`IIdentifierGenerator`](./Extended/IIdentifierGenerator.cs) | DI-replaceable interface for generating new typed identifiers (`Guid`, `string`). |
 | [`ICopyFrom`](./Extended/ICopyFrom.cs) | Interface enabling an entity to copy its state from another instance of itself. |
 | [`IDefault`](./Extended/IDefault.cs) | Interface enabling an entity to determine whether it is in its default (unset) state. |
+
+## Optional request values
+
+Use `Optional<T>` on a dedicated patch/input DTO when the request must distinguish a missing field from an explicitly supplied `null`, `0`, or `false`. A default `Optional<T>` is unspecified; assignment or `Optional<T>.Specified(value)` marks it present. Reading `.Value` while unspecified throws.
+
+The JSON converter uses the inner value's ordinary JSON shape. Missing properties remain unspecified, and explicit `null` is specified-null when `T` permits null. CoreEx's `JsonDefaults.SerializerOptions` omits unspecified wrappers through `WhenWritingDefault`; custom serializer options must also ignore default values when serializing an object property.
+
+Keep the wrapper at the request boundary. Validate supplied values with `CoreEx.Validation`'s `.Unwrap()` and map only properties where `IsSpecified` is true into ordinary contracts or domain objects. Do not add `Optional<T>` to event, repository, or persistence models.
+
+Custom value wrappers, whether optional or always present, can independently opt into runtime cleaning by implementing `CoreEx.Entities.Abstractions.IWrappedValueCleaner<TSelf>`, where `TSelf` is the implementing wrapper type. This capability is separate from the read-only `IWrappedValue<T>` and `IOptionalValue<T>` contracts: `Clean(CleanArgs)` returns a reconstructed wrapper of the same runtime type while preserving its invariants. Optional implementations must also preserve presence even when the cleaned inner value is null, and must not read an unspecified value. Runtime cleaning writes the result back to writable properties; null results or a different wrapper type are rejected. Typed cleaning uses cached constrained dispatch to avoid boxing the wrapper receiver and result; reflection initializes the dispatcher once per type. Object/interface-typed boundaries still require runtime dispatch and can box struct wrappers, and cleaning the inner value may itself allocate. This does not automatically add JSON, source-generation or OpenAPI support for custom wrappers.
 
 ## Related Namespaces
 

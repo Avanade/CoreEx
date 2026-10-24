@@ -52,6 +52,7 @@ Guides you through creating or modifying a CoreEx validator (`Application/Valida
 **Key rules at a glance:**
 - Request/input validation uses field-level validation errors; aggregate/entity/value-object business invariants use business errors with domain messages/codes. Keep both checks; never derive request paths in Domain or blanket-convert business errors. See [domain invariant conventions](/.github/instructions/coreex-domain.instructions.md#invariant-failures-versus-request-validation).
 - Ref-data: `.IsValid()` on the **navigation property** (`Gender`), never on `*Code` string
+- Optional patch input: `.Unwrap()` validates the inner value only when specified; `.Specified()` requires presence while allowing specified-null
 - `Mandatory()` on a non-nullable value type errors on `default` (`0`, `MinValue`) — use a range rule if `0` is valid
 - Runtime-computed thresholds: use delegate overloads (`.LessThanOrEqualTo(_ => ...)`) — prefer over `OnValidateAsync` imperative logic
 - `context.HasErrors` guard before async I/O; `context.HasError(x => x.Prop)` for per-property guards

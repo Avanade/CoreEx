@@ -36,6 +36,7 @@ Guides you through the complete end-to-end workflow for adding or modifying a re
 ## Quick Reference
 
 - Consume codes through [generated implicit conversion](/.github/instructions/coreex-contracts.instructions.md#reference-data-code-conversion) to concrete reference-data types, not custom `RefData<T>` helpers. Contracts use annotated partial `XxxCode` properties, not plain code auto-properties; conversion does not validate requiredness, validity or activity.
+- For a patch DTO that must distinguish an omitted code from an explicit clear, use an annotated `partial Optional<string?> XxxCode` property; the generator supplies a presence-sharing optional navigation accessor. Keep this wrapper out of persisted/reference-data entities.
 
 > **Resolve project-wide choices from state before asking.** Read the solution-root `AGENTS.md`
 > **Feature Configuration** for `refdata-enabled` (gates this whole skill) and `data-provider`

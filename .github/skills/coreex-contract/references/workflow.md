@@ -166,6 +166,8 @@ public partial class ProductLite : ProductBase
 
 **A5 applies to genuine supersets only** — every inherited property must stay meaningful on the derived type. For a patch/merge-patch or other partial-update request that needs only a *subset* of a sibling contract's fields, do **not** inherit it and suppress the rest (`new`, `[JsonIgnore]`, ignoring members): author a standalone `[Contract]` class with just the properties it needs (+ `IETag` where concurrency applies). Overlapping field names alone are not a reason to extract a base class or inherit. Path B (request contracts) is the right home for these.
 
+When the patch must distinguish an omitted field from explicit `null` or a supplied default, declare that field as `Optional<T>` on this standalone request contract. Do not mark it C# `required`, and do not carry the wrapper into shared response/event or persistence models. Validate via `.Unwrap()` and map only specified values into the ordinary target. See the [Optional patch property guidance](/.github/instructions/coreex-contracts.instructions.md#optional-patch-properties).
+
 ---
 
 ## Path B — New Subordinate or Request Contract

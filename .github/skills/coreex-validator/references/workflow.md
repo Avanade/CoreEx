@@ -60,6 +60,8 @@ public class {Name}Validator : Validator<Contracts.{Name}, {Name}Validator>
 | Required string | `.Mandatory().MaximumLength(n)` |
 | Required ref-data | `.Mandatory().IsValid()` |
 | Optional ref-data (valid if supplied) | `.IsValid()` |
+| Optional patch value (validate only when present) | `.Unwrap().{existing rules}` |
+| Require a patch field to be present | `.Specified()` |
 | Non-negative decimal | `.GreaterThanOrEqualTo(0, _ => "zero")` |
 | Decimal precision | `.PrecisionScale(precision, scale)` — pass `null` for precision to skip |
 | Required + precision | `.PrecisionScale(null, 2).GreaterThanOrEqualTo(0, _ => "zero")` |
@@ -69,6 +71,10 @@ public class {Name}Validator : Validator<Contracts.{Name}, {Name}Validator>
 | Run only when a valid dependency also meets a condition | `.DependsOn(x => x.OtherProp, value => predicate)` — the predicate is evaluated only after the dependency is non-default and has no validation error |
 | Compare to another property on the same entity | `.CompareProperty(CompareOperator.GreaterThanOrEqualTo, x => x.StartsOn)` — compares only when both have a value and are valid; add `.Mandatory()` first to require it |
 | Runtime-computed threshold | `.LessThanOrEqualTo(_ => DateOnly.FromDateTime(Runtime.UtcNow.UtcDateTime.AddYears(-16)), _ => "the minimum age of 16")` |
+
+For patch inputs, exercise omitted, specified-null (where applicable), supplied default and valid/invalid supplied values. Use `.Unwrap().Entity(...)` or `.Unwrap().Collection(...)` for supplied complex values; assert the nested error path. If a rule normalizes an input, assert the value written back into the writable `Optional<T>` property and that a subsequent rule observes it; custom read-only wrapper contracts do not imply write-back support.
+
+When reusing a `CommonValidator<T>`, keep `T` non-nullable for reuse across nullable/non-nullable properties. Check null versus zero explicitly for numeric presence requirements: `.NotNull()` permits zero, default `.Mandatory()` does not. Shared rules preserve caller labels/formatting and normalization across chained rules and `AdditionalAsync` callbacks; cover these interactions when the application relies on them.
 
 When a property's rules are conditional on the dependent property's value, use the predicate overload instead of repeating the dependency/null condition in `WhenEntity`:
 

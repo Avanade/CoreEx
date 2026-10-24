@@ -179,13 +179,13 @@ public async Task<Employee> CreateAsync(Employee value, CancellationToken cancel
 
 ## XML Documentation Comments
 
-Document the public surface with XML doc comments, and **never duplicate** a description that an interface already provides:
+Document types and members with `///` XML doc comments regardless of accessibility, and **never duplicate** a description that an interface already provides:
 
 - **Interfaces** — give **every** member (method, property, event) a `<summary>` describing the operation. Document parameters/returns (`<param>`, `<returns>`) where it adds clarity.
 - **Contract / DTO properties** — every property on a contract (including `[Contract]` partial classes) gets a `<summary>`. (Standard `Id`/`ETag`/`ChangeLog` members that implement `IIdentifier`/`IETag`/`IChangeLog` may use `<inheritdoc/>`.)
 - **Implementing / overriding members** — on the concrete class member that implements an interface member (or overrides a base member), use **`<inheritdoc/>`** rather than repeating the summary.
 - **Public / protected / internal types and members** — a type or member at these access levels that is **not** an interface implementation/override gets its own `<summary>` (classes, standalone methods, properties, constructors, etc.), plus `<param>`/`<returns>` where applicable.
-- **Private methods** (including local functions) — still get a `<summary>` describing what they do; `<param>`/`<returns>` are not required. Private fields are exempt.
+- **Private types and members** — private nested types, methods (including local functions), and properties still get a `<summary>` describing what they do; use `<inheritdoc/>` for implementations and overrides. `<param>`/`<returns>` are not required for private methods. Private fields are exempt.
 - **Test projects (`*.Test*`)** — test fixture classes, `[Test]`/`[TestCase]` methods, and private test helpers/fixtures are exempt from this doc requirement (established convention across the repo's test suites).
 
 > **Do not invert this** (a common mistake): the `<summary>` goes on the **interface** member and on **contract properties**; the concrete class member that *implements* an interface gets **`<inheritdoc/>`**, not a fresh summary. Leaving interfaces or contract properties undocumented while summarising the implementing class is **backwards** — fix it the right way round.
@@ -245,6 +245,10 @@ private readonly IUnitOfWork _unitOfWork;
 private readonly ILogger<ProductService> _logger;
 ```
 
+## Markdown Prose
+
+Do not hard-wrap prose in READMEs, AGENTS files, skills, instructions, or other Markdown documents to meet a visual line width. Keep each paragraph on one physical line and let the editor soft-wrap it. Use LF line endings; retain line breaks required for Markdown structure (headings, lists, tables, and paragraph boundaries) and code blocks.
+
 ## End of File
 
 Every file ends with **exactly one** line terminator — the closing `}` (or last line of content) followed by a single newline. No blank lines after it, and no trailing whitespace. This applies to every file you create or edit (`.cs`, `.json`, `.yaml`, `.md`, `.csproj`, `.sql`, etc.), including generated-then-hand-tweaked output and template content.
@@ -270,5 +274,5 @@ Create/edit tooling frequently appends extra `\n`s (particularly when `new_str` 
 - Do not replace a private backing field with an auto-property simply because it could be one — backing fields are a valid developer choice.
 - Do not leave interface members or contract properties undocumented — each gets a `<summary>`.
 - Do not invert the doc convention — summaries go on **interfaces and contract properties**; the **implementing** class member gets `<inheritdoc/>` (not a fresh summary). Summarising the concrete class while leaving the interface/contract undocumented is backwards.
-- Do not leave a private method undocumented — it still needs a `<summary>` (params/returns optional), unless it's a test helper in a `*.Test*` project.
+- Do not leave private nested types, methods, or properties undocumented — use `/// <summary>` (params/returns optional for private methods), or `/// <inheritdoc/>` for implementations and overrides, unless covered by the test fixture/helper exemption.
 - Do not invent a plausible-sounding CoreEx member name when unsure (`MapToEntity`, `OnMapToPrimary`/`OnMapToSecondary`, etc.) — check the relevant instructions file, then just build (a compile error is authoritative), before ever searching GitHub blind.

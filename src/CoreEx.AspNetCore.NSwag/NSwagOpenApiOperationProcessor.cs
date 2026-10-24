@@ -221,9 +221,15 @@ internal sealed class NSwagOpenApiOperationProcessor(OpenApiOptions options) : I
 
         foreach (var pi in type.GetProperties(BindingFlags.Public | BindingFlags.Instance))
         {
+            if (pi.IsDefined(typeof(JsonIgnoreAttribute), true))
+                continue;
+
             var name = pi.GetCustomAttribute<JsonPropertyNameAttribute>()?.Name ?? jso?.PropertyNamingPolicy?.ConvertName(pi.Name) ?? pi.Name;
             if (!schema.ActualProperties.TryGetValue(name, out var property))
                 continue;
+
+            if (pi.PropertyType.IsGenericType && pi.PropertyType.GetGenericTypeDefinition() == typeof(Optional<>))
+                ApplyOptionalProperty(context, schema, property, pi, name);
 
             if (pi.IsDefined(typeof(NonNullableAttribute), true))
             {
@@ -231,7 +237,57 @@ internal sealed class NSwagOpenApiOperationProcessor(OpenApiOptions options) : I
                 property.Type &= ~JsonObjectType.Null;
             }
 
-            ApplyNotNull(context, pi.PropertyType, visited);
+            ApplyNotNull(context, pi.PropertyType.IsGenericType && pi.PropertyType.GetGenericTypeDefinition() == typeof(Optional<>)
+                ? pi.PropertyType.GetGenericArguments()[0]
+                : pi.PropertyType, visited);
+        }
+    }
+
+    /// <summary>
+    /// Replaces an Optional wrapper schema with its inner schema and makes the containing property non-required.
+    /// </summary>
+    private static void ApplyOptionalProperty(AspNetCoreOperationProcessorContext context, JsonSchema schema, JsonSchemaProperty property, PropertyInfo propertyInfo, string jsonName)
+    {
+        var optionalType = propertyInfo.PropertyType.GetGenericArguments()[0];
+        var nullableInfo = new NullabilityInfoContext().Create(propertyInfo);
+        var innerIsNullable = Nullable.GetUnderlyingType(optionalType) is not null
+            || nullableInfo.GenericTypeArguments.FirstOrDefault()?.ReadState == NullabilityState.Nullable;
+
+        var innerType = Nullable.GetUnderlyingType(optionalType) ?? optionalType;
+        var generatedInnerSchema = context.SchemaGenerator.Generate(innerType, context.SchemaResolver);
+        var innerSchema = generatedInnerSchema.ActualSchema;
+        var innerJsonType = generatedInnerSchema.Reference is not null ? JsonObjectType.None
+            : innerType == typeof(string) ? JsonObjectType.String
+            : innerType == typeof(bool) ? JsonObjectType.Boolean
+            : innerType == typeof(byte) || innerType == typeof(short) || innerType == typeof(int) || innerType == typeof(long) ? JsonObjectType.Integer
+            : innerType == typeof(float) || innerType == typeof(double) || innerType == typeof(decimal) ? JsonObjectType.Number
+            : innerSchema.Type;
+
+        schema.RequiredProperties.Remove(jsonName);
+        property.IsRequired = false;
+        property.Reference = generatedInnerSchema.Reference;
+        property.Type = innerJsonType;
+        property.Format = innerSchema.Format;
+        property.IsNullableRaw = innerIsNullable;
+        property.Type = innerIsNullable ? property.Type | JsonObjectType.Null : property.Type & ~JsonObjectType.Null;
+
+        if (generatedInnerSchema.Reference is null)
+        {
+            property.Item = innerSchema.Item;
+            property.AdditionalPropertiesSchema = innerSchema.AdditionalPropertiesSchema;
+            property.Properties.Clear();
+            foreach (var innerProperty in innerSchema.Properties)
+                property.Properties.Add(innerProperty.Key, innerProperty.Value);
+            property.RequiredProperties.Clear();
+            foreach (var requiredProperty in innerSchema.RequiredProperties)
+                property.RequiredProperties.Add(requiredProperty);
+        }
+
+        if (innerSchema.Enumeration.Count > 0)
+        {
+            property.Enumeration.Clear();
+            foreach (var value in innerSchema.Enumeration)
+                property.Enumeration.Add(value);
         }
     }
 

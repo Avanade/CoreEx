@@ -5,7 +5,7 @@ namespace CoreEx.Validation;
 /// </summary>
 /// <typeparam name="TEntity">The entity <see cref="Type"/>.</typeparam>
 /// <typeparam name="TProperty">The property <see cref="Type"/>.</typeparam>
-public struct PropertyContext<TEntity, TProperty> : IPropertyContext<TEntity, TProperty> where TEntity : class
+public struct PropertyContext<TEntity, TProperty> : IPropertyContext<TEntity, TProperty>, IPropertyContextNullState where TEntity : class
 {
     private const string _dictionaryKeyParameterName = "__dictionaryKey";
     private const string _collectionIndexParameterName = "__collectionIndex";
@@ -13,21 +13,26 @@ public struct PropertyContext<TEntity, TProperty> : IPropertyContext<TEntity, TP
     private readonly IRootPropertyRule<TEntity> _root;
     private readonly IPropertyRuntimeMetadata _metadata;
     private readonly ValidationContext<TEntity> _owner;
+    private readonly bool _isValueNullable;
+    private readonly Func<bool>? _getIsValueNull;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PropertyContext{TEntity, TProperty}"/> class.
     /// </summary>
     /// <param name="root">The <see cref="RootPropertyRule{TEntity, TProperty}"/>.</param>
     /// <param name="context">The validation context for the parent entity.</param>
-    internal PropertyContext(RootPropertyRule<TEntity, TProperty> root, ValidationContext<TEntity> context)
+    /// <param name="getIsValueNull">Optional originating null-state reader for an adapted value.</param>
+    internal PropertyContext(RootPropertyRule<TEntity, TProperty> root, ValidationContext<TEntity> context, Func<bool>? getIsValueNull = null)
     {
         _root = root.ThrowIfNull();
         _metadata = root.Metadata.ThrowIfNull();
         _owner = context.ThrowIfNull();
+        _isValueNullable = root.IsValueNullable;
+        _getIsValueNull = getIsValueNull;
 
         JsonName = _metadata.GetJsonName(context.JsonSerializerOptions);
         Value = _metadata.GetValue<TProperty>(context.Value);
-        IsValueNull = Value is null;
+        IsValueNull = _getIsValueNull?.Invoke() ?? Value is null;
         ValueFormatter = root.ValueFormatter;
         Text = root.Text ?? _metadata.Text;
 
@@ -50,15 +55,19 @@ public struct PropertyContext<TEntity, TProperty> : IPropertyContext<TEntity, TP
     /// </summary>
     /// <param name="context">The <see cref="IPropertyContext{TEntity}"/>.</param>
     /// <param name="value">The property value.</param>
-    internal PropertyContext(IPropertyContext<TEntity> context, TProperty value)
+    /// <param name="isValueNull">Indicates whether the unwrapped value is <see langword="null"/>.</param>
+    /// <param name="metadata">Optional adapted metadata for an unwrapped value.</param>
+    internal PropertyContext(IPropertyContext<TEntity> context, TProperty value, bool? isValueNull = null, IPropertyRuntimeMetadata? metadata = null)
     {
         _root = context.RootPropertyRule;
-        _metadata = context.Metadata;
+        _metadata = metadata ?? context.Metadata;
         _owner = (ValidationContext<TEntity>)context.Owner;
+        _isValueNullable = isValueNull.HasValue ? Nullable.GetUnderlyingType(typeof(TProperty)) is not null : context.IsValueNullable;
+        _getIsValueNull = metadata is null ? (context as IPropertyContextNullState)?.GetIsValueNull : null;
 
         JsonName = context.JsonName;
         Value = value;
-        IsValueNull = context.IsValueNull;
+        IsValueNull = isValueNull ?? context.IsValueNull;
         ValueFormatter = context.ValueFormatter;
         Text = context.Text;
         FullyQualifiedPropertyName = context.FullyQualifiedPropertyName;
@@ -67,6 +76,9 @@ public struct PropertyContext<TEntity, TProperty> : IPropertyContext<TEntity, TP
 
     /// <inheritdoc/>
     readonly IRootPropertyRule<TEntity> IPropertyContext<TEntity>.RootPropertyRule => _root;
+
+    /// <inheritdoc/>
+    readonly Func<bool>? IPropertyContextNullState.GetIsValueNull => _getIsValueNull;
 
     /// <inheritdoc/>
     readonly IValidationContext<TEntity> IPropertyContext<TEntity>.Owner => _owner;
@@ -127,7 +139,7 @@ public struct PropertyContext<TEntity, TProperty> : IPropertyContext<TEntity, TP
     /// <param name="values">The values that form part of the message text.</param>
     /// <returns>The <see cref="MessageItem"/>.</returns>
     /// <remarks>The property friendly text and value are automatically prepended to the <paramref name="values"/> as the first two arguments where the <paramref name="format"/> does not have already have <see cref="LText.HasArgs"/>.</remarks>
-    public readonly MessageItem AddError(LText format, params object?[] values) => _owner.AddError<TProperty>(_metadata, Text, ValueFormatter, JsonName, format, values);
+    public readonly MessageItem AddError(LText format, params object?[] values) => _owner.AddError<TProperty>(_metadata, Text, ValueFormatter, JsonName, IsValueNull, format, values);
 
     /// <inheritdoc/>
     public readonly string CreateFullyQualifiedPropertyName(string name) => _owner.CreateFullyQualifiedPropertyName(name);
@@ -167,20 +179,38 @@ public struct PropertyContext<TEntity, TProperty> : IPropertyContext<TEntity, TP
     /// <summary>
     /// Indicates whether the originating property type is <see cref="Nullable{T}"/>.
     /// </summary>
-    public readonly bool IsValueNullable => _root.IsValueNullable;
+    public readonly bool IsValueNullable => _isValueNullable;
 
     /// <summary>
     /// Gets the originating property <see cref="Nullable{T}.Value"/> or <see langword="default"/> (where <see cref="IsValueNullable"/>).
     /// </summary>
     /// <typeparam name="T">The property <see cref="Nullable{T}.Value"/> <see cref="Type"/>.</typeparam>
     /// <returns>The originating property <see cref="Nullable{T}.Value"/> or <see langword="default"/>.</returns>
-    public readonly T GetNullableValueOrDefault<T>() => _root.GetNullableValueOrDefault<T>(Entity);
+    public readonly T GetNullableValueOrDefault<T>()
+    {
+        if (_root.IsValueNullable)
+            return _root.GetNullableValueOrDefault<T>(Entity);
+
+        if (!IsValueNullable)
+            throw new InvalidOperationException("The property must be Nullable<T>.");
+
+        return Value is null ? default! : Internal.Cast<object, T>(Value);
+    }
 
     /// <summary>
     /// Indicates whether the originating property <see cref="Nullable{T}.Value"/> is <see langword="default"/> (where <see cref="IsValueNullable"/>).
     /// </summary>
     /// <returns><see langword="true"/> where <see langword="default"/>; otherwise, <see langword="false"/>.</returns>
-    public readonly bool IsNullableValueDefault() => _root.IsNullableValueDefault(Entity);
+    public readonly bool IsNullableValueDefault()
+    {
+        if (_root.IsValueNullable)
+            return _root.IsNullableValueDefault(Entity);
+
+        if (!IsValueNullable)
+            throw new InvalidOperationException("The property must be Nullable<T>.");
+
+        return Value is null || Equals(Value, Activator.CreateInstance(Nullable.GetUnderlyingType(typeof(TProperty)) ?? typeof(TProperty)));
+    }
 
     /// <inheritdoc/>
     /// <remarks>An <see cref="InvalidOperationException"/> will be thrown where the underlying property is read-only.</remarks>
@@ -203,15 +233,19 @@ public struct PropertyContext<TEntity, TProperty> : IPropertyContext<TEntity, TP
     /// <remarks>Because <see cref="PropertyContext{TEntity, TProperty}"/> is a value type that is passed by value through the rule chain (see <see cref="Rules.PropertyRuleBase{TEntity, TProperty}"/>), a call to
     /// <see cref="Override(TProperty)"/> made by one rule only updates that rule's own copy of the context. This method allows the chain to re-synchronize its copy with the entity's current value before invoking
     /// the next chained rule, so that an overridden value is correctly observed by subsequent rules.
-    /// <para>Skipped where the underlying metadata's declared type does not match <typeparamref name="TProperty"/> (i.e. the <see cref="Nullable{T}"/> rewrap adapter created by <see cref="Rules.PropertyRuleBase{TEntity, TProperty}"/>),
-    /// as the value cannot be safely re-read via the metadata in that case.</para></remarks>
+    /// <para>Nullable value adapters retain the originating null state while exposing the underlying value to subsequent rules.</para></remarks>
     internal void RefreshFromEntity()
     {
-        if (_metadata.Type != typeof(TProperty))
+        if (_metadata.Type == typeof(TProperty))
+        {
+            Value = _metadata.GetValue<TProperty>(Entity);
+            IsValueNull = _getIsValueNull?.Invoke() ?? Value is null;
             return;
+        }
 
-        Value = _metadata.GetValue<TProperty>(Entity);
-        IsValueNull = Value is null;
+        var value = _metadata.GetValue(Entity);
+        Value = Internal.Cast<object?, TProperty>(value);
+        IsValueNull = _getIsValueNull?.Invoke() ?? value is null;
     }
 
     /// <summary>

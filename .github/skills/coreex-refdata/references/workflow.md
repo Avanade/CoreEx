@@ -244,6 +244,8 @@ public partial string? BrandCode { get; set; }
 3. Rebuild — the Roslyn generator emits the typed `Brand` navigation property automatically. Do not hand-author it.
 4. Set `BrandCode` when mapping/arranging DTOs and use `Brand` for typed behavior. For a concrete typed destination, use `Contracts.Brand? brand = source.BrandCode`; no helper or null guard is needed. Follow [Reference-Data Code Conversion](/.github/instructions/coreex-contracts.instructions.md#reference-data-code-conversion) and validate separately.
 
+For partial-update request DTOs that need to distinguish omission from an explicit clear, declare the annotated code property as `partial Optional<string?> BrandCode`. The source generator emits an optional typed `Brand` navigation property sharing the code property's presence. Validate supplied codes through that navigation after unwrapping; map only specified codes into the ordinary target contract. Do not use `Optional<T>` on the persisted reference-data entity.
+
 ---
 
 ## Phase 3 — CoreEx CodeGen (edit ref-data.yaml + generate)
