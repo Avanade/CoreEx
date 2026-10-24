@@ -169,6 +169,7 @@ public partial class ProductsDbContext
             e.Property(p => p.IsInactive).HasColumnName("is_inactive").HasColumnType("BOOLEAN");
             e.Property(p => p.IsNonStocked).HasColumnName("is_non_stocked").HasColumnType("BOOLEAN");
             e.Property(p => p.Tags).HasColumnName("tags_json").HasColumnType("JSONB").HasConversion(TypeToJsonStringEfConverter<List<string>?>.Default, TypeToJsonStringEfComparer<List<string>?>.Default);
+            e.Property(p => p.Description).HasColumnName("description").HasColumnType("CHARACTER VARYING(2000)");
             e.Property(p => p.CreatedBy).HasColumnName("created_by").HasColumnType("CHARACTER VARYING(250)").ValueGeneratedOnUpdate();
             e.Property(p => p.CreatedOn).HasColumnName("created_on").HasColumnType("TIMESTAMP WITH TIME ZONE").ValueGeneratedOnUpdate();
             e.Property(p => p.UpdatedBy).HasColumnName("updated_by").HasColumnType("CHARACTER VARYING(250)").ValueGeneratedOnAdd();

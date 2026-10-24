@@ -35,6 +35,9 @@ public class Program
         // Only reset data for the 'products' schema.
         args.DataResetFilterPredicate = ts => ts.Schema == "products";
 
+        // The demo catalog is explicitly opt-in; ordinary database/test setup loads reference data only.
+        args.DataParserArgs.AddNamed<Program>("ref-data.seed.yaml");
+
         return args;
     }
 }

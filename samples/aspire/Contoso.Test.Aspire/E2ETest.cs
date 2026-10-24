@@ -6,19 +6,25 @@ public partial class E2ETest : WithAspireTester<Projects.Contoso_Aspire>
     private readonly string _shoppingApi = "shopping-api";
     private readonly string _customersApi = "customers-api";
     private string _serviceBusConnectionString = string.Empty;
+    private string _productsConnectionString = string.Empty;
 
     protected override async Task OnBeforeStartAsync(DistributedApplication app)
     {
         _serviceBusConnectionString = await AspireTesterBase.GetConnectionStringAsync(app, "ServiceBus").ConfigureAwait(false)
             ?? throw new InvalidOperationException("The ServiceBus resource has no connection string.");
+        _productsConnectionString = await AspireTesterBase.GetConnectionStringAsync(app, "Postgres").ConfigureAwait(false)
+            ?? throw new InvalidOperationException("The Postgres resource has no connection string.");
 
         // Migrate the Products, Shopping and Customers databases and seed each with test data.
         await app.MigratePostgresDataAsync<Contoso.Products.Test.Common.TestData>("Postgres", ["mutate-data.seed.yaml"], Contoso.Products.Database.Program.ConfigureMigrationArgs);
         await app.MigrateSqlServerDataAsync<Contoso.Shopping.Test.Common.TestData>("SqlServer", ["mutate-data.seed.yaml"], Contoso.Shopping.Database.Program.ConfigureMigrationArgs);
-        await app.MigrateCosmosDataAsync<Contoso.Customers.Test.Common.TestData>("Cosmos", "contoso", ["mutate-data.seed.yaml"], Contoso.Customers.Database.Program.ConfigureProvisionArgs);
+        await app.MigrateCosmosDataAsync<Contoso.Customers.Test.Common.TestData>("Cosmos", "contoso", ["mutate-data.seed.yaml", "mcp-demo.seed.yaml"], Contoso.Customers.Database.Program.ConfigureProvisionArgs);
 
         // Clear the Redis cache.
         await app.ClearRedisCacheAsync("redis");
+
+        // Prepare the real-model derived projection explicitly; API startup never rebuilds it.
+        await ProductSearchSetup.RebuildAsync(app).ConfigureAwait(false);
 
         // Reset the Azure Service Bus queues and topics/subscriptions to an initial state.
         await app.ResetAzureServiceBusAsync("servicebus", ServiceBus.GetQueues(), ServiceBus.GetTopicsAndSubscriptions());
@@ -27,10 +33,12 @@ public partial class E2ETest : WithAspireTester<Projects.Contoso_Aspire>
     protected override async Task OnAfterStartAsync(DistributedApplication app)
     {
         // Wait for every host used by the asynchronous checkout flow before running the tests.
-        await app.WaitForResourceAsync([_productsApi, _shoppingApi, _customersApi, "products-relay", "products-subscribe", "shopping-relay", "shopping-subscribe", "customers-relay"]);
+        await app.WaitForResourceAsync([_productsApi, _shoppingApi, _customersApi, "products-relay", "products-subscribe", "shopping-relay", "shopping-subscribe", "customers-relay", "contoso-mcp"]);
 
         // Mock the SendGrid API so that the Shopping domain's Subscribe project can send emails without actually sending them.
         await app.HttpMock("mock-host", "http").Request(HttpMethod.Post, "/v3/mail/send").WithAnyBody().Respond.WithAsync(HttpStatusCode.Accepted);
+
+        _mcpEndpoint = app.GetEndpoint("contoso-mcp", "http").ToString().TrimEnd('/');
     }
 
     [Test]

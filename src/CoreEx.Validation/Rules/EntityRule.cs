@@ -52,7 +52,7 @@ public sealed class EntityRule<TEntity, TProperty> : PropertyRuleBase<TEntity, T
             validator.ThrowIfNull();
             _rule._validationAsync = async (context, args, cancellationToken) =>
             {
-                var value = context.Metadata.GetValue<TProperty>(context.Entity);
+                var value = context.Value;
                 if (validator is ValidatingInlineValidator<TProperty> vilv)
                     return await vilv.ValidateEntityAsync(value, args, cancellationToken).ConfigureAwait(false);
 
@@ -67,7 +67,7 @@ public sealed class EntityRule<TEntity, TProperty> : PropertyRuleBase<TEntity, T
         public void WithValidator<TValidator>() where TValidator : IValidatorEx<TProperty> => _rule._validationAsync = async (context, args, cancellationToken) =>
         {
             var validator = Validator.Get<TValidator>(args.ServiceProvider);
-            var value = context.Metadata.GetValue<TProperty>(context.Entity);
+            var value = context.Value;
             return await validator.ValidateAsync(value, args, cancellationToken).ConfigureAwait(false);
         };
 
@@ -79,7 +79,7 @@ public sealed class EntityRule<TEntity, TProperty> : PropertyRuleBase<TEntity, T
         public void WithKeyedValidator<TValidator>(object? serviceKey) where TValidator : IValidatorEx<TProperty> => _rule._validationAsync = async (context, args, cancellationToken) =>
         {
             var validator = Validator.GetKeyed<TValidator>(serviceKey, args.ServiceProvider);
-            var value = context.Metadata.GetValue<TProperty>(context.Entity);
+            var value = context.Value;
             return await validator.ValidateAsync(value, args, cancellationToken).ConfigureAwait(false);
         };
     }

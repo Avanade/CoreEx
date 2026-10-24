@@ -82,6 +82,19 @@ partial class WebApiTestsBase<TWebApi, TResult>
     }
 
     [Test]
+    public void MergePatch_DifferentlyCasedName_DoesNotRemoveProperty()
+    {
+        var hr = Test.CreateHttpRequest(HttpMethod.Patch, "test", """{"Age":null}""", r => r.ContentType = HttpNames.MergePatchJsonMediaTypeName);
+        hr.Headers.IfMatch = new EntityTagHeaderValue("\"abcdef\"", true).ToString();
+
+        Test.Type<TWebApi>()
+            .Run(async w => await w.PatchAsync<Person>(hr, (ro, ct) => Task.FromResult<Person?>(Person.GetPerson("abcdef")), (ro, ct) => throw new InvalidOperationException()))
+            .ToHttpResponseMessageAssertor()
+            .AssertOK()
+            .AssertValue(Person.GetPerson("abcdef"));
+    }
+
+    [Test]
     public void MergePatch_With_Changes()
     {
         var hr = Test.CreateHttpRequest(HttpMethod.Patch, "test", """{"age": 40}""", r => r.ContentType = HttpNames.MergePatchJsonMediaTypeName);

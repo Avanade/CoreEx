@@ -19,7 +19,7 @@ public partial class OtherTests
     {
         string[] requiredServices =
         [
-            "sqlServer",
+            "SqlServer",
             "sqlserver-outbox-relay-00",
             "sqlserver-outbox-relay-01",
             "sqlserver-outbox-relay-02",

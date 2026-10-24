@@ -21,7 +21,7 @@ The outbox sub-namespace implements the [Transactional Outbox pattern](https://m
 - 🦁 **Database wildcard**: `DatabaseWildcard` translates CoreEx `WildcardResult` selections into database `LIKE` patterns (`%`, `_`) with configurable escape character.
 - 📡 **DatabaseInvoker tracing**: Every command execution is wrapped by `DatabaseInvoker` (an `InvokerBase<IDatabase>`) emitting OpenTelemetry spans tagged with command text, operation result, and error details.
 - 📤 **Transactional outbox relay**: `DatabaseOutboxRelayBase<TDatabase, TSelf>` polls an outbox table, deserializes events, publishes them via `IEventPublisher`, and marks them as sent — all within a configurable polling hosted service.
-- 🔢 **SQL statement abstraction**: `SqlStatement` carries `CommandText`, `CommandType` (`Text` or `StoredProcedure`), and convenience factory methods for inline SQL and stored procedure calls.
+- 🔢 **SQL statement abstraction**: `SqlStatement` carries `CommandText`, `CommandType` (`Text` or `StoredProcedure`), and factory methods for inline SQL, embedded SQL resources, and stored procedure calls.
 
 ## Key types
 
@@ -32,7 +32,7 @@ The outbox sub-namespace implements the [Transactional Outbox pattern](https://m
 | **[`DatabaseCommand`](./DatabaseCommand.cs)** | Fluent command builder: `Parameters` (`DatabaseParameterCollection`), `NonQueryAsync`, `ScalarAsync`, `SelectSingleAsync`, `SelectFirstOrDefaultAsync`, `SelectQueryAsync`, `SelectMultiSetAsync`. |
 | **[`DatabaseRecord`](./DatabaseRecord.cs)** | Wraps `DbDataReader`: `GetValue<T>(string/int)`, `GetRowVersion()`, ordinal caching, and null-safe typed reads with `DateTimeTransform` applied. |
 | **[`DatabaseParameterCollection`](./DatabaseParameterCollection.cs)** | `DbParameterCollection` wrapper with `AddParameter<T>`, `AddRowVersionParameter`, `AddReturnValueParameter`, and batch helpers; fluent via `IDatabaseParameters<T>`. |
-| **[`SqlStatement`](./SqlStatement.cs)** | Carries `CommandText` and `CommandType`; factory methods `StoredProcedure(name)`, `FromText(text)` (in-line) and `FromResource(resourceName)` (embedded resource). |
+| **[`SqlStatement`](./SqlStatement.cs)** | Carries `CommandText` and `CommandType`; factory methods `StoredProcedure(name)`, `FromResource(resourceName)` (embedded resource), and `FromText(text)` (runtime-generated SQL). |
 | **[`DatabaseArgs`](./Abstractions/DatabaseArgs.cs)** | Per-operation options: transaction `IsolationLevel`, `Refresh`, and `TransformException` behavior overrides. |
 | **[`DatabaseInvoker`](./Abstractions/DatabaseInvoker.cs)** | `InvokerBase<IDatabase>` emitting OpenTelemetry spans and structured log entries for every command execution. |
 | **[`IDatabaseMapper<T>`](./Mapping/IDatabaseMapperT.cs)** | Bidirectional mapper interface: `MapFromDb(DatabaseRecord, OperationType)` → `T`; `MapToDb(T, DatabaseParameterCollection, OperationType)`. |
@@ -46,6 +46,51 @@ The outbox sub-namespace implements the [Transactional Outbox pattern](https://m
 | **[`DatabaseOutboxRelayBase<TDatabase, TSelf>`](./Outbox/DatabaseOutboxRelayBase.cs)** | Abstract base for the outbox relay: polls an outbox table, publishes events via `IEventPublisher`, marks entries as sent, with configurable batch size and SQL statements. |
 | **[`DatabaseOutboxRelayHostedServiceBase`](./Outbox/DatabaseOutboxRelayHostedServiceBase.cs)** | `TimerHostedServiceBase` subclass that drives `IDatabaseOutboxRelay.RelayAsync` on a timer. |
 | **[`DatabaseOutboxPublisherBase`](./Outbox/DatabaseOutboxPublisherBase.cs)** | Abstract base `IEventPublisher` that writes `EventData` entries to the outbox table within the current database transaction. |
+
+## Transaction isolation
+
+The SQL Server and PostgreSQL `IUnitOfWork.TransactionAsync` overloads accepting provider arguments honor
+`SqlServerDatabaseArgs.IsolationLevel` or `PostgresDatabaseArgs.IsolationLevel` when creating a root transaction.
+Overloads without explicit arguments use the database's configured arguments; the default is `ReadCommitted`.
+The framework owns commit, rollback and disposal, and `EfDb` enlists its shared connection through
+`IDatabase.UseTransactionChanged`.
+
+Nested calls use savepoints and **inherit the parent's isolation level**, regardless of their arguments.
+They do not upgrade isolation or independently commit the parent. An operation needing a particular isolation
+guarantee must verify an existing parent's level. Isolation semantics are provider-specific: PostgreSQL
+`RepeatableRead` provides a stable MVCC snapshot, whereas SQL Server `RepeatableRead` does not prevent phantoms
+and is not a substitute for SQL Server `Snapshot`.
+
+Read-only callbacks need not enqueue events. At the root boundary, a configured outbox publishes any queued
+events before commit; nested calls leave publication to their parent.
+
+## SQL statement source
+
+Prefer the EF Core / `EfDb` model APIs for ordinary CRUD and LINQ queries. When application code needs custom
+relational SQL, put the static SQL in a named `.sql` or `.pgsql` file and embed it in the Infrastructure assembly,
+regardless of its length. Load it once with `SqlStatement.FromResource<TResource>` and execute it through
+`IDatabase.Statement`; keeping SQL in a discoverable resource makes it easier to review and extend without mixing
+it into orchestration code.
+
+```csharp
+private static readonly SqlStatement _isReady =
+    SqlStatement.FromResource<ProductSearchIndex>("ProductSearchIsReady.pgsql");
+
+var ready = await _ef.Database.Statement(_isReady)
+    .Param("Profile", profile, dbType: DbType.String)
+    .ScalarAsync<bool>(cancellationToken)
+    .ConfigureAwait(false);
+```
+
+The Infrastructure project must explicitly embed the files (for example,
+`<EmbeddedResource Include="Repositories\Sql\*.pgsql" />`). Resource lookup matches the end of the fully qualified
+resource name, so keep filenames unique within the assembly. Bind values with `DatabaseCommand.Param`; do not
+interpolate user or data values into SQL. Use `SqlStatement.FromText` only when SQL must genuinely be generated at
+runtime, such as when a validated or safely quoted identifier is dynamic; continue to bind data values as
+parameters. Keep schema changes in the `*.Database` project's DbEx migrations, not in runtime query resources.
+The Products search implementation is a complete example
+([`ProductSearchIndex`](https://github.com/Avanade/CoreEx/blob/main/samples/src/Contoso.Products.Infrastructure/Repositories/ProductSearchIndex.cs),
+[search guide](https://github.com/Avanade/CoreEx/blob/main/samples/docs/search.md#postgresql-and-pgvector)).
 
 ## Namespaces
 

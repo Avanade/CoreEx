@@ -23,10 +23,11 @@ tags: ["repositories", "infrastructure", "data-access", "efcore", "cosmos", "map
 
 | Package | Key types provided |
 |---|---|
-| `CoreEx` | `[ScopedService<T>]`, `.ThrowIfNull()`, `ItemsResult<T>`, `Result<T>`, `.GoAsync()`, `.ThenAs()`, `.ThenAsAsync()` |
+| `CoreEx` | `[ScopedService<T>]`, `.ThrowIfNull()`, `ItemsResult<T>`, `Result<T>`, `.GoAsync()`, `.ThenAs()`, `.ThenAsAsync()`, `HttpRequestBuilder`, `client.Send(...)`, `client.Post(...).WithJson(...)`, `builder.AddNamedHttpClient(...)`, `builder.AddTypedHttpClient<T>(...)` |
 | `CoreEx.Validation` | `Validator<T>`, `Validator.Create<T>()`, `.HasProperty(...)`, `.Mandatory()`, `.Email()` for inline response-contract rules |
 | `CoreEx.Events` | `EventData` |
 | `CoreEx.Data` | `IUnitOfWork`, `DataResult<T>`, `QueryArgsConfig<TSelf>`, `QueryFilterOperator`, `.Where(parsed)`, `.OrderBy(parsed)` |
+| `CoreEx.Database` | `IDatabase`, `SqlStatement`, `DatabaseCommand` for custom relational SQL |
 | `CoreEx.Cosmos` | `CosmosDb`, `CosmosDbContainer<TModel>`, `CosmosDbMappedContainer<TValue,TModel,TMapper>`, `CosmosDbArgs`, `CosmosDbQuery<TModel>`, `.GetAsync()`, `.CreateAsync()`, `.UpdateAsync()`, `.DeleteAsync()`, `.Query()`, `.ToMappedItemsResultAsync()` |
 | `CoreEx.EntityFrameworkCore` | `EfDb<TContext>`, `EfDbModel<T>`, `EfDbMappedModel<TContract,TModel,TMapper>`, `EfDbOptions`, `.GetAsync()`, `.CreateAsync()`, `.UpdateAsync()`, `.DeleteAsync()`, `.GetWithResultAsync()`, `.CreateWithResultAsync()`, `.UpdateWithResultAsync()`, `.Query()`, `.ToMappedItemsResultAsync()` |
 | `CoreEx.Database.SqlServer` | SQL Server outbox publisher, ADO.NET helpers |
@@ -65,10 +66,12 @@ Cosmos-backed adapters inject the typed `*CosmosDb` accessor instead of `*EfDb` 
 | Operation | Return type | Notes |
 |---|---|---|
 | Single entity lookup | `Task<TEntity?>` | Returns `null` when not found; service checks |
-| Create / Update | `Task<DataResult<TEntity>>` | Includes mutation flag for event decisions |
-| Delete | `Task<DataResult>` | Carries mutation flag only |
+| Create / Update | `Task<DataResult<TEntity>>` or `Task<Result<DataResult<TEntity>>>` | Includes mutation flag for event decisions |
+| Delete | `Task<DataResult>` or `Task<Result<DataResult>>` | Carries mutation flag only |
 | Collection query | `Task<ItemsResult<T>>` | Items + optional total count |
 | Result pipeline (optional) | `Task<Result<T>>` | Developer choice — can be used on any repository method; enables explicit failure propagation without exceptions |
+
+**Preserve mutation metadata across repository boundaries, including ROP and Domain mapping.** Use `dr.Map(value => SomeMapper.Map(value))` to transform the value while retaining `WasMutated`; never unwrap/cast away `DataResult` before Application makes mutation-dependent decisions. `Map` always transforms the value, including successful no-ops. Prefer the lambda for CoreEx mappers: their nullable-return method groups can infer a nullable destination despite `NotNullIfNotNull`. Implicit conversion to `T`, `.AsResult()` on a successful mutation result, or constructing `new DataResult<T>(mappedValue)` with the default `true` loses that information. For aggregates, report the whole parent/child operation, not an unrelated single-row flag; retain provider semantics and transaction commit handling. Reads remain unchanged.
 
 ## CosmosDb
 
@@ -214,6 +217,26 @@ Querying (relational): `Query(...)` returns a filtered `IQueryable<TModel>` (log
 
 Per-model behaviour is configured on `EfDbOptions` / `EfDbModelOptions`: `WithModel<T>(...)`, `WithLogicalDeleteFilter()`, `WithTenantFilter()`, `WithFilter(...)`, `WithGetKey(...)`, `WithArgs(...)`, `WithOnBeforeCreateOrUpdate(...)`, `WithUpdateModelMapper(...)`.
 
+## Custom Relational SQL
+
+Use `EfDb` for normal CRUD and LINQ queries. For custom relational operations, put application-owned static SQL
+(short or long) in a `.sql` / `.pgsql` file under `Infrastructure/Repositories/Sql/`, embed it in the project, then
+load it with `SqlStatement.FromResource<TResource>(...)` and execute via `_ef.Database.Statement(...)`. Keep
+resource filenames unique within the assembly because lookup matches by suffix. Bind all values with `.Param(...)`.
+Reserve `FromText(...)` for SQL that genuinely must be generated at runtime; validate or safely quote dynamic
+identifiers, and continue binding data values. Schema changes stay in DbEx migrations rather than runtime SQL
+resources.
+
+```csharp
+private static readonly SqlStatement _isReady =
+    SqlStatement.FromResource<ProductSearchIndex>("ProductSearchIsReady.pgsql");
+
+var ready = await _ef.Database.Statement(_isReady)
+    .Param("Profile", profile, dbType: DbType.String)
+    .ScalarAsync<bool>(cancellationToken)
+    .ConfigureAwait(false);
+```
+
 ## Dynamic Query Configuration
 
 > **GlobalUsing requirement:** `QueryArgsConfig<TSelf>` and the related query types live in the `CoreEx.Data.Querying` namespace. When introducing query configuration, ensure `global using CoreEx.Data.Querying;` is present in the Infrastructure project's `GlobalUsing.cs` — add it if missing.
@@ -339,7 +362,7 @@ public Task<Result<Domain.Basket>> GetAsync(string id, CancellationToken cancell
     .GoAsync(() => _ef.Baskets.GetWithResultAsync(id, cancellationToken))
     .ThenAs(model => BasketMapper.Map(model));
 
-public Task<Result<Domain.Basket>> CreateAsync(Domain.Basket basket, CancellationToken cancellationToken = default) => Result
+public Task<Result<DataResult<Domain.Basket>>> CreateAsync(Domain.Basket basket, CancellationToken cancellationToken = default) => Result
     .Go(() =>
     {
         var model = new Persistence.Basket();
@@ -347,10 +370,12 @@ public Task<Result<Domain.Basket>> CreateAsync(Domain.Basket basket, Cancellatio
         return model;
     })
     .ThenAsAsync(model => _ef.Baskets.CreateWithResultAsync(model, cancellationToken))
-    .ThenAs(b => BasketMapper.Map(b));
+    .ThenAs(dr => dr.Map(value => BasketMapper.Map(value)));
 ```
 
 ## Mapping
+
+For concrete typed reference-data destinations and factory parameters, pass stored code strings directly (`Currency = source.CurrencyCode`, `CreateFrom(..., source.StatusCode, ...)`); use the generated implicit conversion, not custom `RefData<T>` helpers or conversion-only collection lookups. Map contracts through their annotated `XxxCode` properties. See [Reference-Data Code Conversion](/.github/instructions/coreex-contracts.instructions.md#reference-data-code-conversion) for null, resolution and validation semantics.
 
 For collection projections through `.To.Map` / `.From.Map`, follow [Mapper Projection Nullability](/.github/instructions/coreex-conventions.instructions.md#mapper-projection-nullability).
 
@@ -444,11 +469,11 @@ public class ProductsHttpClient(HttpClient httpClient)
 {
     private readonly HttpClient _httpClient = httpClient.ThrowIfNull();
 
-    public async Task<Result> CreateReservationAsync(MovementRequest request, CancellationToken cancellationToken = default)
-    {
-        var response = await _httpClient.PostAsJsonAsync("api/inventory/reserve", request, JsonDefaults.SerializerOptions, cancellationToken);
-        return await response.ToResultAsync();
-    }
+    public Task<Result> CreateReservationAsync(MovementRequest request, CancellationToken cancellationToken = default)
+        => _httpClient
+            .Post("api/inventory/reserve")
+            .WithJson(request)
+            .ToResultAsync(cancellationToken);
 }
 
 // Infrastructure/Adapters/ProductAdapter.cs
@@ -468,6 +493,10 @@ public class ProductAdapter(ShoppingEfDb ef, ProductsHttpClient client, IEventPu
 
 Keep the typed HTTP client and the adapter orchestration in separate, independently testable classes.
 
+Register typed HTTP clients in the host `Program.cs` via `builder.AddTypedHttpClient<ProductsHttpClient>("ProductsApi")` (or `builder.AddNamedHttpClient("ProductsApi")`). This automatically binds `BaseAddress` from configuration, adds `IdempotencyKeyHandler`, wires service discovery, and adds `Microsoft.Extensions.Http.Resilience` standard resilience handlers.
+
+Inside the client, use `_httpClient.Send(method, uri)` or `Get`/`Post`/`Put`/`Patch`/`Delete` to construct requests. Add JSON via `WithJson(value)` or explicit content via `WithContent(content)`; exactly one body assignment is allowed, and `Patch` does not imply JSON Merge Patch. Builders are single-use, even after failure/cancellation; configure headers, queries, and paging before execution. Terminal methods (`ToResultAsync`, `GetValueAsync<T>`, `GetStringAsync`, etc.) execute the request and **automatically dispose** the response (except raw-response terminals).
+
 ### Client response validation
 
 Keep response-contract rules in the typed client, not Application business/request validators.
@@ -478,19 +507,41 @@ validator under `Clients/{ExternalDomain}/` only for substantial rules or genuin
 private static readonly Validator<Customer> _validator = Validator.Create<Customer>()
     .HasProperty(x => x.Email, c => c.Mandatory().Email());
 
-// Inside the asynchronous client method; handle expected statuses before conversion.
-using var response = await _httpClient.GetAsync($"api/customers/{Uri.EscapeDataString(id)}", ct).ConfigureAwait(false);
-return await response.WithValidator(_validator).ToResultAsync(ct).ConfigureAwait(false);
+// Fluent builder execution with custom status mapping, validation, and automatic response disposal:
+public Task<Result<Customer>> GetAsync(string id, CancellationToken ct = default)
+    => _httpClient
+        .Send(HttpMethod.Get, $"api/customers/{Uri.EscapeDataString(id)}")
+        .WithStatusResult(HttpStatusCode.NotFound, () => Result.NotFoundError())
+        .WithValidator(_validator)
+        .ToResultAsync(ct);
+
+// Or when inspecting raw response directly (caller owns response disposal):
+public async Task<Result<Customer>> GetAsync(string id, CancellationToken ct = default)
+{
+    using var response = await _httpClient
+        .Send(HttpMethod.Get, $"api/customers/{Uri.EscapeDataString(id)}")
+        .GetResponseAsync(ct).ConfigureAwait(false);
+
+    return await response
+        .WithValidator(_validator)
+        .WithStatusResult(HttpStatusCode.NotFound, () => Result.NotFoundError())
+        .ToResultAsync(ct).ConfigureAwait(false);
+}
 ```
 
 Validate only fields the consumer needs; do not impose create/update rules or identifier matching
 by default. Do not capture request state/scoped dependencies in a shared validator.
+Matched status codes from `.WithStatusResult(...)` short-circuit execution before deserialization and validation.
+
+Map HTTP 404 to entity-not-found only when the downstream endpoint contract defines that expected lookup outcome; a route/deployment/configuration 404 is not an invalid caller reference. Repositories/adapters report lookup outcomes; application services/policies distinguish missing target resources (404) from missing request-body references (field-level 400), preserving unrelated failures. See [Not Found Handling](/.github/instructions/coreex-application-services.instructions.md#not-found-handling).
 The wrapper validates successful non-null values and returns the validation result's `Value`.
 Reported errors become `HttpRequestException` with inner validation diagnostics: failed `ToResult*`,
 throwing `GetValue*`, standard internal 500 rather than caller 400. Required methods reject null;
 `OrDefault` methods allow null and skip validation for absent values. HTTP/ProblemDetails handling,
 deserialization exceptions, unexpected validator exceptions, and cancellation remain unchanged.
-Dispose the response at the call site; the wrapper does not own it.
+When executing terminal methods on `HttpRequestBuilder`, response disposal is automatic; when retrieving
+raw responses via `GetResponseAsync()` or directly awaiting `HttpClient.SendAsync`, the caller retains
+responsibility for disposing the response (`using var`).
 Test inline rules through the client, including invalid 2xx responses, exact inner messages, and
 valid minimal responses; do not expose private validators just for tests.
 
@@ -523,6 +574,7 @@ Always call `.ConfigureAwait(false)` on every `await` inside repository and adap
 ## Further Reading
 
 - [Infrastructure Layer Guide](/.github/docs/coreex/infrastructure-layer.md) — full walkthrough of persistence models, repositories, mapping, and external client/adapter patterns (docs-sync cache; after `/coreex-docs-sync`). Source: [samples/docs/infrastructure-layer.md](https://github.com/Avanade/CoreEx/blob/main/samples/docs/infrastructure-layer.md).
+- [CoreEx.Database guide](/.github/docs/coreex/agents/CoreEx.Database.md) — `IDatabase`, `DatabaseCommand`, and embedded SQL statements (docs-sync cache; after `/coreex-docs-sync`).
 - [Pattern Catalog](/.github/docs/coreex/patterns.md) — Adapter, Repository, Mapper, Persistence, and HTTP Client pattern entries (docs-sync cache; after `/coreex-docs-sync`). Source: [samples/docs/patterns.md](https://github.com/Avanade/CoreEx/blob/main/samples/docs/patterns.md).
 - [Layer Dependencies](/.github/docs/coreex/layers.md) — layer dependency rules and the role of the Infrastructure layer (docs-sync cache; after `/coreex-docs-sync`). Source: [samples/docs/layers.md](https://github.com/Avanade/CoreEx/blob/main/samples/docs/layers.md).
 - [Tooling Guide](/.github/docs/coreex/tooling.md) — `*.Database` project: schema, persistence-model generation, and outbox provisioning (docs-sync cache; after `/coreex-docs-sync`). Source: [samples/docs/tooling.md](https://github.com/Avanade/CoreEx/blob/main/samples/docs/tooling.md).

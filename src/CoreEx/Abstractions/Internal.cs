@@ -140,15 +140,15 @@ public static class Internal
     /// <remarks>This uses a <see cref="Unsafe.As{TFrom, TTo}(ref TFrom)"/> to perform as it is fastest means possible. Where there is a mismatch of types an <see cref="InvalidCastException"/> will be thrown.</remarks>
     internal static TTo Cast<TFrom, TTo>(TFrom value, bool trustMe = false)
     {
+        // Check identical types before null and pattern checks, which can box value types.
+        if (typeof(TFrom) == typeof(TTo))
+            return Unsafe.As<TFrom, TTo>(ref value);
+
         if (value is null)
             return default!;
 
         if (value is TTo t)
             return t;
-
-        // Must be identical types, uses Unsafe.As to avoid boxing of value types.
-        if (typeof(TFrom) == typeof(TTo))
-            return Unsafe.As<TFrom, TTo>(ref value);
 
         // Allow bypass of type check where caller is certain of compatibility (use with extreme caution).
         if (trustMe)

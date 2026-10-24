@@ -220,6 +220,39 @@ Do **not** apply it to optional properties, and do not use `System.Diagnostics.C
 
 Contracts are commonly shared between request and response bodies, so a server-assigned property is legitimately null on create. Never mark `Id`, `ETag` or `ChangeLog` with `[NonNullable]` — they are lifecycle fields that are null in requests, and non-nullable members in generated clients cause confusion. For any other `[ReadOnly]` property, apply `[NonNullable]` only when its containing type is never used as a request body (e.g. `BasketItem`, which is only returned within the read-only `Basket.Items`); otherwise leave it unmarked (e.g. `ProductBase.CategoryCode`).
 
+## Reference-Data Code Conversion
+
+Concrete types decorated with `[ReferenceData]` receive a generated implicit conversion from `string?` to that concrete reference-data type. Use it when assigning a code to a typed property, returning a typed value, or passing a code to a typed method parameter:
+
+```csharp
+Contracts.BookingStatus? status = source.BookingStatusCode;
+Contracts.FareClass? fareClass = source.FareClassCode;
+public static Contracts.BookingStatus Draft => DraftCode; // DraftCode is a non-null string constant.
+
+// CreateFrom's parameters and Money.Currency are concrete reference-data types.
+Domain.BookingSegment.CreateFrom(
+    s.Id,
+    s.SegmentTypeCode,
+    s.FareClassCode,
+    s.Description,
+    s.Provider,
+    new Domain.ValueObjects.Money
+    {
+        Amount = s.PriceAmount,
+        Currency = s.PriceCurrencyCode
+    },
+    s.StartDate,
+    s.EndDate);
+```
+
+Do not introduce application-specific `RefData<T>` wrappers, manually construct code-only instances, or query a collection merely to convert a code. Redundant `code is null ? null : ...` guards are unnecessary. Explicit lookups remain appropriate for collection querying or when found/not-found semantics are required.
+
+Conversion delegates to the current orchestrator. A null code converts to null; an unresolved non-null code produces an invalid instance retaining its code, including when no current orchestrator is available. Conversion does not enforce requiredness, validity or activity; enforce these separately at the appropriate validation boundary. Do not suppress nullable warnings with `!` to bypass requiredness.
+
+When `var`, generic inference or an expression supplies no concrete reference-data target type, declare the type explicitly or cast at the conversion boundary. Code constrained only to `IReferenceData` cannot assume a concrete type's generated operator is available.
+
+On contracts, use the annotated partial-code-property pattern below: set `XxxCode` when mapping DTOs or arranging request data; consume reference-data behavior through the generated typed `Xxx` accessor.
+
 ## Reference Data Properties
 
 Use `[ReferenceData<TRefData>]` on code properties that back a reference data relationship. Two conditions must both be met for the source generator to emit the navigation accessor:
@@ -361,6 +394,25 @@ public partial class BookingTravellerNotesPatch : IETag
     public string? ETag { get; set; }
 }
 ```
+
+### Optional patch properties
+
+Use `Optional<T>` only on a dedicated request/patch contract when omitted, explicit `null`, and supplied default values must remain distinct. A default wrapper is unspecified; assignment or `Optional<T>.Specified(value)` marks it present. Do not combine `required` with `Optional<T>`: presence is already represented by the wrapper, and the generator reports `CoreEx013` for that contradictory declaration. Do not use `[NonNullable]` to express presence; it describes only the inner value's OpenAPI nullability.
+
+```csharp
+[Contract]
+public partial class TravellerNotesPatch
+{
+    /// <summary>Gets or sets the optionally supplied notes.</summary>
+    public Optional<string?> Notes { get; set; }
+}
+```
+
+The converter uses the inner value's scalar/object/collection JSON shape. Missing JSON properties remain unspecified, explicit `null` becomes specified-null for nullable inner types, and supplied defaults such as `0` or `false` remain specified. CoreEx's `JsonDefaults` omits the default wrapper when writing; custom serializer options must also ignore default values. OpenAPI unwraps the inner type, marks the property non-required, and preserves the inner nullability.
+
+For reference data, annotate the optional `*Code` property with `[ReferenceData<T>]` and declare it `partial Optional<string?>`; the generated typed navigation accessor is also optional and shares the code property's specified state. Preserve the scalar code wire contract.
+
+Validate the request DTO with `.Unwrap()` and map only specified values into an ordinary contract, aggregate, or model. Do not put `Optional<T>` on shared response/event contracts or in repository and persistence models. See [optional validation guidance](./coreex-validators.instructions.md#optional-patch-validation).
 
 ## Reference Data Contracts
 

@@ -67,10 +67,13 @@ Never create or edit `*.g.cs`, `*.g.sql`, or `*.g.pgsql` files directly. Each ge
 
 Rules that are easy to violate and cause real breakage or wrong choices:
 
+- **Markdown prose** — keep each paragraph on one physical line; do not insert hard line breaks mid-sentence for visual formatting. Use editor soft wrapping and LF line endings; preserve structural line breaks and code blocks.
+- **XML documentation** — document types and members with `///`, including private nested types, methods, and properties; use `<inheritdoc/>` for implementations and overrides. Private fields and test fixtures/helpers retain their existing exemptions.
 - **`GlobalUsings.cs`** — every project has a single `GlobalUsings.cs` at the project root; all `using` statements go there, never in individual source files. The Roslyn code generator emits no `using` statements and depends on this.
 - **`AwesomeAssertions` not FluentAssertions** — tests use the `AwesomeAssertions` NuGet package. Do not reach for FluentAssertions.
 - **Polyglot data** — Products uses PostgreSQL (`CoreEx.Database.Postgres`); Shopping uses SQL Server (`CoreEx.Database.SqlServer`); Customers uses Azure Cosmos DB (`CoreEx.Cosmos`). Do not assume SQL Server when working on Products, do not assume EF Core/DbEx in Cosmos domains, and do not mix outbox/publisher helpers across domains.
 - **No AutoMapper** — do not introduce AutoMapper. All mapping is explicit via `Mapper<>` (application layer) or `BiDirectionMapper<>` (infrastructure layer).
+- **Optional patch inputs** — use `Optional<T>` only on explicit request/patch DTOs when omission must differ from a supplied `null` or default value. Validate with `.Unwrap()` and map only specified values into ordinary application/domain objects; do not leak wrappers into response/event or persistence models.
 - **Aspire external infrastructure** — use `CoreEx.UnitTesting`'s `AddExternalConnectionString` extension (`UnitTestEx` namespace) for visible graph nodes, preserving connection names and Compose lifecycle ownership. Plain `AddConnectionString(name)` creates parameter-only nodes excluded from Aspire 13.5.4's Graph/Table views. Cosmos's configured `AccountEndpoint` is exposed as a credential-free resource URL for trace matching. Node status reflects configuration resolution, not connectivity; hosts own readiness probes. See [Aspire guidance](./samples/docs/aspire.md).
 - **`.ConfigureAwait(false)`** — always use it in service and repository code.
 - **File-scoped namespaces** — `namespace Foo.Bar;` only; never block-scoped `namespace Foo.Bar { }`.

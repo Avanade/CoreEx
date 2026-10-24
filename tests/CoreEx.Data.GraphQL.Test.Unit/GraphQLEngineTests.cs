@@ -818,6 +818,46 @@ public class GraphQLEngineTests
         messages["age"].Should().Equal("Age must be greater than zero.", "Age must be a whole number.");
     }
 
+    [TestCase("unsupported", "Search statement is not currently supported.")]
+    [TestCase("length", "Statement must not exceed 5 characters in length.")]
+    [TestCase("terms", "Statement must not contain more than 1 distinct terms.")]
+    [TestCase("custom", "Use a more specific search.")]
+    public async Task ExecuteAsync_QueryRoot_SearchParseError_PreservesValidationDetailsAsync(string scenario, string expectedMessage)
+    {
+        var config = QueryArgsConfig.Create();
+        if (scenario != "unsupported")
+        {
+            config.WithSearch(search =>
+            {
+                search.AddKeywordField(nameof(Person.Name));
+                if (scenario == "length")
+                    search.WithMaxLength(5);
+                else if (scenario == "terms")
+                    search.WithMaxTerms(1);
+                else
+                    search.WithValidator(_ => throw new QuerySearchParserException("Use a more specific search."));
+            });
+        }
+
+        var engine = CreateEngine(options => options.AddQuery<Person>("searchPeople", config, (qa, pa, ct) =>
+        {
+            config.Parse(qa).ThrowOnError();
+            return Task.FromResult<IItemsResult<Person>>(new ItemsResult<Person>(_people, pa));
+        }));
+
+        var result = await engine.ExecuteAsync("{ found: searchPeople(search: \"Alice Bob\") { edges { node { id } } } }");
+
+        result.HasErrors.Should().BeTrue();
+        var error = result.Errors!.Single();
+        error.Message.Should().Be("A query search parsing error occurred.");
+        error.Path.Should().Equal("found");
+        error.Extensions!["code"].Should().Be("SEARCH_PARSE_ERROR");
+        var messages = error.Extensions["messages"].Should().BeOfType<Dictionary<string, string[]>>().Subject;
+        messages.Should().ContainSingle();
+        messages["$search"].Should().Equal(expectedMessage);
+        result.Data!.Value.GetProperty("found").ValueKind.Should().Be(JsonValueKind.Null);
+    }
+
     [Test]
     public async Task ExecuteAsync_ResolverThrowsValidationExceptionWithoutMessages_ProducesPlainValidationErrorAsync()
     {

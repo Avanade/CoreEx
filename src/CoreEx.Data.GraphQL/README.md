@@ -38,7 +38,9 @@ The engine is deliberately **transport-agnostic**: it references only `CoreEx.Da
   `GraphQLOrderByTranslator`) onto the OData-esque `filter`/`orderby` strings; the translated string is
   always parsed/validated by the entity's own, unmodified `QueryArgsConfig` (`QueryFilterParser`/
   `QueryOrderByParser`) — so whatever operators and fields a `QueryArgsConfig` already exposes for the REST
-  `$filter`/`$orderby` query strings are supported **exactly**, with no separate allow-list to maintain.
+  `$filter`/`$orderby` query strings are supported **exactly**, with no separate allow-list to maintain. Where the
+  `QueryArgsConfig` has a `SearchParser` configured, a free-text `search: String` argument is also advertised and
+  passed through as-is to `QueryArgs.Search` (the REST `$search` equivalent).
 - 🔗 **Relay Cursor Connections paging**: list query roots return the spec-shaped `edges { node cursor }
   pageInfo { hasNextPage hasPreviousPage startCursor endCursor } totalCount` response via `first`/`after`
   forward pagination (backward pagination — `last`/`before` — is out of scope for v1 and rejected with an
@@ -47,8 +49,10 @@ The engine is deliberately **transport-agnostic**: it references only `CoreEx.Da
   object graph (e.g. `node { address { street city } }`) since projection is performed over one
   already-materialized result via `JsonFilter`, not via per-field resolvers.
 - 🧾 **GraphQL-shaped errors**: `GraphQLArgumentTranslationException`, `QueryFilterParserException`,
-  `QueryOrderByParserException`, `ValidationException`, `NotFoundException`, and unknown-field errors are
-  mapped to `{ message, path, extensions.code }` error objects.
+  `QueryOrderByParserException`, `QuerySearchParserException`, `ValidationException`, `NotFoundException`, and unknown-field errors are
+  mapped to `{ message, path, extensions.code }` error objects. Validation errors also include per-property
+  `extensions.messages` details. Search parsing errors retain `SEARCH_PARSE_ERROR` and expose the actionable
+  reason in `extensions.messages["$search"]` (for example, unsupported search, length/term limits, or custom validation).
 - 🔍 **Spec-compliant introspection**: `__schema`/`__type(name:)` (plus `__typename`) implement the official
   GraphQL introspection schema, built once from the registered roots (see `Internal.GraphQLIntrospectionSchemaBuilder`)
   and exposed identically via `IGraphQLEngine.GetSchemaAsync()`. Each query root's `where`/`orderBy` arguments

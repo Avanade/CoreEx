@@ -27,7 +27,8 @@ public static partial class ValidationExtensions
     /// <param name="rule">The <see cref="IPropertyRule{TEntity, TProperty}"/> being extended.</param>
     /// <param name="nextRule">The next <see cref="IPropertyRule{TEntity, TProperty}"/> in the chain.</param>
     /// <returns>The <paramref name="nextRule"/> to support fluent-style method-chaining.</returns>
-    public static IPropertyRule<TEntity, TProperty> Chain<TEntity, TProperty>(IPropertyRule<TEntity, TProperty> rule, IPropertyRule<TEntity, TProperty> nextRule) where TEntity : class
+    /// <remarks>Accepts nullable reference inputs while retaining the next rule's property type. Runtime null handling remains the responsibility of each rule.</remarks>
+    public static IPropertyRule<TEntity, TProperty> Chain<TEntity, TProperty>(IPropertyRule<TEntity, TProperty?> rule, IPropertyRule<TEntity, TProperty> nextRule) where TEntity : class
     {
         rule.ThrowIfNull().Chain(nextRule.ThrowIfNull());
         return nextRule;

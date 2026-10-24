@@ -1,11 +1,15 @@
+global using AwesomeAssertions;
+global using Contoso.Products.Application.Adapters.Embeddings;
 global using Contoso.Products.Application.Interfaces;
 global using Contoso.Products.Contracts;
+global using Contoso.Products.Infrastructure.Repositories;
 global using CoreEx;
 global using CoreEx.Azure.Messaging.ServiceBus;
 global using CoreEx.Events;
 global using CoreEx.Events.Subscribing;
 global using CoreEx.Events.Subscribing.Exceptions;
-global using AwesomeAssertions;
+global using CoreEx.Results;
+global using Microsoft.EntityFrameworkCore;
 global using Microsoft.Extensions.DependencyInjection;
 global using NUnit.Framework;
 global using UnitTestEx;

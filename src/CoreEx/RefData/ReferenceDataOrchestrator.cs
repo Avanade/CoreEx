@@ -67,7 +67,7 @@ public sealed class ReferenceDataOrchestrator(IServiceProvider serviceProvider, 
     public ILogger Logger { get; } = logger.ThrowIfNull();
 
     /// <summary>
-    /// Gets or sets the <see cref="ParallelOptions.MaxDegreeOfParallelism"/> to use when performing a <see cref="PrefetchAsync(IEnumerable{string}, CancellationToken)"/>.
+    /// Gets or sets the <see cref="ParallelOptions.MaxDegreeOfParallelism"/> to use when performing a reference-data prefetch.
     /// </summary>
     /// <remarks>Defaults to <c>2</c> to minimize potential impact</remarks>
     public int PrefetchMaxDegreeOfParallelism { get; set; } = 2;
@@ -522,12 +522,41 @@ public sealed class ReferenceDataOrchestrator(IServiceProvider serviceProvider, 
     /// <remarks>As the reference data is a great candidate for caching this will force a prefetch of the cache items.</remarks>
     public async Task<IEnumerable<string>> PrefetchAsync(IEnumerable<string> names, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         // Get the distinct list of known names to prefetch.
         var list = names.Where(ContainsName).Distinct(StringComparer.OrdinalIgnoreCase);
 
         // Go get 'em all!
         await Parallel.ForEachAsync(list, new ParallelOptions { MaxDegreeOfParallelism = PrefetchMaxDegreeOfParallelism, CancellationToken = cancellationToken },
             async (name, ct) => await GetByNameAsync(name, ct).ConfigureAwait(false)).ConfigureAwait(false);
+
+        return list;
+    }
+
+    /// <summary>
+    /// Prefetches all of the specified, registered <see cref="IReferenceData"/> types.
+    /// </summary>
+    /// <param name="types">The list of reference-data types.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+    /// <returns>The actual distinct list of types used.</returns>
+    /// <remarks>Validates all types before loading any collections. Unlike name-based prefetch, unregistered types throw <see cref="InvalidOperationException"/>.
+    /// Loading uses <see cref="PrefetchMaxDegreeOfParallelism"/> and the existing cache-backed, separately scoped provider execution.</remarks>
+    public async Task<IEnumerable<Type>> PrefetchAsync(IEnumerable<Type> types, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+
+        // Get the distinct list of known types to prefetch, validating that they are all registered.
+        var list = types.ThrowIfNull().Select(type => type.ThrowIfNull()).Distinct().ToArray();
+        foreach (var type in list)
+        {
+            if (!ContainsType(type))
+                throw new InvalidOperationException($"Reference data collection for type '{type.FullName}' does not exist.");
+        }
+
+        // Go get 'em all!
+        await Parallel.ForEachAsync(list, new ParallelOptions { MaxDegreeOfParallelism = PrefetchMaxDegreeOfParallelism, CancellationToken = cancellationToken },
+            async (type, ct) => await GetByTypeRequiredAsync(type, ct).ConfigureAwait(false)).ConfigureAwait(false);
 
         return list;
     }

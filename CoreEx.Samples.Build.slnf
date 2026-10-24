@@ -34,6 +34,7 @@
       "samples/src/Contoso.Shopping.Database/Contoso.Shopping.Database.csproj",
       "samples/src/Contoso.Shopping.Domain/Contoso.Shopping.Domain.csproj",
       "samples/src/Contoso.Shopping.Infrastructure/Contoso.Shopping.Infrastructure.csproj",
+      "samples/src/Contoso.Mcp/Contoso.Mcp.csproj",
       "samples/src/Contoso.Shopping.Relay/Contoso.Shopping.Relay.csproj",
       "samples/src/Contoso.Shopping.Subscribe/Contoso.Shopping.Subscribe.csproj",
       "samples/tests/Contoso.Customers.Test.Api/Contoso.Customers.Test.Api.csproj",

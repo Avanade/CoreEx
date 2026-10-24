@@ -1,11 +1,13 @@
 <Project>
 
+  <Import Project="$(MSBuildThisFileDirectory)..\Directory.Build.props" />
+
   <!-- Targeting & Language Defaults -->
   <PropertyGroup>
-    <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+    <TargetFrameworks>$(CoreExTargetFrameworks)</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <LangVersion>preview</LangVersion>
+    <LangVersion>latest</LangVersion>
   </PropertyGroup>
 
   <!-- Versioning (defined in /Version.props at repo root) -->

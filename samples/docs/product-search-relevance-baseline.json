@@ -1,0 +1,1226 @@
+{
+  "evaluationVersion": "product-search-relevance-runner-v1",
+  "completedAtUtc": "2026-10-15T17:01:00.2457191Z",
+  "status": "completed",
+  "datasetVersion": "product-search-relevance-v1",
+  "model": "nomic-embed-text:v1.5",
+  "modelDigest": "0a109f422b47e3a30ba2b10eca18548e944e8a23073ee3f3e947efcf3c45e59f",
+  "profile": "ollama:nomic-embed-text:v1.5:768:retrieval-prefix-v1",
+  "dimensions": 768,
+  "documentRecipe": "product-document-v2",
+  "documentInstruction": "search_document: ",
+  "queryInstruction": "search_query: ",
+  "datasetSha256": "E118A3F4B3B851A535FD3EBDBE8BB5C1C1F7B3F7EE2F21AD3D737B85E9D16C9B",
+  "implementationIdentity": {
+    "clientSha256": "7A4EF9679E9621D1271F524277EFD79C0D910BFCD2E3F5735FC401DA3C7BEF77",
+    "documentBuilderSha256": "F237F42D07A6269C8B686A11949FE49809756286CBCDA09F9F3B4CD51BD9DFED"
+  },
+  "catalogIdentity": {
+    "seedFile": "tools/product-search-relevance.seed.yaml",
+    "seedFileSha256": "F18614A4520837867BF9187D812ECC5BAF0559D0E652FC1175CDBECFC74ADF44",
+    "eligibleCatalogCount": 29,
+    "reviewedCatalogSha256": "EE8FBC8AADA96142D82F5C97B3B7509AD1E21B67DB26A69C941DB5DEDF9EA3C5",
+    "liveApiCatalogSha256": "EE8FBC8AADA96142D82F5C97B3B7509AD1E21B67DB26A69C941DB5DEDF9EA3C5",
+    "eligibility": "Default Products API catalog: exclude inactive and logically deleted products; non-stocked service rows remain eligible."
+  },
+  "metrics": {
+    "relevanceThresholdForPrecisionAt5": 2,
+    "ndcgAt5Gain": "2^grade - 1; logarithmic rank discount; judged grades 0-3",
+    "precisionAt5": "Relevant means grade >= 2; denominator is always 5.",
+    "noRelevantQueries": "Reported separately and excluded from relevance-metric means.",
+    "exactSkuTop1": "Reported only for exact-SKU queries.",
+    "constraints": "Returned price-filtered results are validated against the declared hard price condition; no threshold is imposed on relevance scores."
+  },
+  "splits": {
+    "tuning": {
+      "queryCount": 18,
+      "relevantQueryCount": 17,
+      "noRelevantQueryCount": 1,
+      "noRelevantQueryIds": [
+        "tune-no-current-bike-under-1000"
+      ],
+      "outOfCatalogQueryCount": 0,
+      "meanNdcgAt5": 0.8377447396384872,
+      "meanPrecisionAt5": 0.37647058823529417,
+      "exactSkuQueryCount": 3,
+      "exactSkuTop1Accuracy": 0.6666666666666666,
+      "constrainedQueryCount": 3,
+      "constrainedResultCount": 15,
+      "constraintViolationCount": 0,
+      "constraintViolationRate": 0.0
+    },
+    "held-out": {
+      "queryCount": 6,
+      "relevantQueryCount": 3,
+      "noRelevantQueryCount": 3,
+      "noRelevantQueryIds": [
+        "holdout-no-electric-bike-charger",
+        "holdout-no-night-riding-lights",
+        "holdout-no-city-bike-child-seat"
+      ],
+      "outOfCatalogQueryCount": 3,
+      "meanNdcgAt5": 0.8769765845238191,
+      "meanPrecisionAt5": 0.26666666666666666,
+      "exactSkuQueryCount": 1,
+      "exactSkuTop1Accuracy": 0.0,
+      "constrainedQueryCount": 1,
+      "constrainedResultCount": 5,
+      "constraintViolationCount": 0,
+      "constraintViolationRate": 0.0
+    }
+  },
+  "queries": [
+    {
+      "id": "tune-exact-yeti-asr",
+      "split": "tuning",
+      "kind": "exact-sku",
+      "query": "YETI-ASR-C2-2025",
+      "intent": "Exact SKU lookup for the Yeti ASR C2 2025.",
+      "expectedTop1Sku": "YETI-ASR-C2-2025",
+      "actualTop1Sku": "YETI-ASR-C2-2025",
+      "exactSkuTop1": true,
+      "relevantJudgedCount": 1,
+      "noRelevant": false,
+      "ndcgAt5": 1.0,
+      "precisionAt5": 0.2,
+      "eligibleCandidateCount": 29,
+      "constraintViolationCount": 0,
+      "topFive": [
+        {
+          "sku": "YETI-ASR-C2-2025",
+          "text": "Yeti ASR C2",
+          "price": 5800.0,
+          "grade": 3
+        },
+        {
+          "sku": "ONEUP-V3-DROPPER-180",
+          "text": "OneUp Dropper Post V3 180mm",
+          "price": 269.0,
+          "grade": 0
+        },
+        {
+          "sku": "SRAM-X0-TRANSMISSION-RD",
+          "text": "SRAM X0 Transmission Rear Derailleur",
+          "price": 400.0,
+          "grade": 0
+        },
+        {
+          "sku": "SPEC-STATUS-140",
+          "text": "Specialized Status 140",
+          "price": 2499.0,
+          "grade": 0
+        },
+        {
+          "sku": "GIANT-ANTHEM-ADV29-1",
+          "text": "Giant Anthem Advanced 29 1",
+          "price": 7800.0,
+          "grade": 0
+        }
+      ]
+    },
+    {
+      "id": "tune-exact-shimano-derailleur",
+      "split": "tuning",
+      "kind": "exact-sku",
+      "query": "SHIMANO-XT-M8100-RD",
+      "intent": "Exact SKU lookup for the Shimano XT rear derailleur.",
+      "expectedTop1Sku": "SHIMANO-XT-M8100-RD",
+      "actualTop1Sku": "MUCOFF-NANO-CLEANER",
+      "exactSkuTop1": false,
+      "relevantJudgedCount": 1,
+      "noRelevant": false,
+      "ndcgAt5": 0.0,
+      "precisionAt5": 0.0,
+      "eligibleCandidateCount": 29,
+      "constraintViolationCount": 0,
+      "topFive": [
+        {
+          "sku": "MUCOFF-NANO-CLEANER",
+          "text": "Muc-Off Nano Tech Bike Cleaner",
+          "price": 16.99,
+          "grade": 0
+        },
+        {
+          "sku": "SRAM-X0-TRANSMISSION-RD",
+          "text": "SRAM X0 Transmission Rear Derailleur",
+          "price": 400.0,
+          "grade": 0
+        },
+        {
+          "sku": "SRAM-XX1-EAGLE-CASSETTE",
+          "text": "SRAM XX1 Eagle Cassette",
+          "price": 449.0,
+          "grade": 0
+        },
+        {
+          "sku": "MUCOFF-TUBELESS-SEALANT",
+          "text": "Muc-Off MTB Tubeless Sealant",
+          "price": 8.0,
+          "grade": 0
+        },
+        {
+          "sku": "ONEUP-EDC-TOOL-V2",
+          "text": "OneUp EDC Tool V2",
+          "price": 59.0,
+          "grade": 0
+        }
+      ]
+    },
+    {
+      "id": "tune-exact-mucoff-cleaner",
+      "split": "tuning",
+      "kind": "exact-sku",
+      "query": "MUCOFF-NANO-CLEANER",
+      "intent": "Exact SKU lookup for the Nano Tech bicycle cleaner.",
+      "expectedTop1Sku": "MUCOFF-NANO-CLEANER",
+      "actualTop1Sku": "MUCOFF-NANO-CLEANER",
+      "exactSkuTop1": true,
+      "relevantJudgedCount": 1,
+      "noRelevant": false,
+      "ndcgAt5": 1.0,
+      "precisionAt5": 0.2,
+      "eligibleCandidateCount": 29,
+      "constraintViolationCount": 0,
+      "topFive": [
+        {
+          "sku": "MUCOFF-NANO-CLEANER",
+          "text": "Muc-Off Nano Tech Bike Cleaner",
+          "price": 16.99,
+          "grade": 3
+        },
+        {
+          "sku": "SRAM-X0-TRANSMISSION-RD",
+          "text": "SRAM X0 Transmission Rear Derailleur",
+          "price": 400.0,
+          "grade": 0
+        },
+        {
+          "sku": "SRAM-XX1-EAGLE-CASSETTE",
+          "text": "SRAM XX1 Eagle Cassette",
+          "price": 449.0,
+          "grade": 0
+        },
+        {
+          "sku": "MUCOFF-TUBELESS-SEALANT",
+          "text": "Muc-Off MTB Tubeless Sealant",
+          "price": 8.0,
+          "grade": 0
+        },
+        {
+          "sku": "ONEUP-EDC-TOOL-V2",
+          "text": "OneUp EDC Tool V2",
+          "price": 59.0,
+          "grade": 0
+        }
+      ]
+    },
+    {
+      "id": "tune-paraphrase-muddy-bike-cleaner",
+      "split": "tuning",
+      "kind": "paraphrase",
+      "query": "something to clean mud off my bike",
+      "intent": "A user describes the cleaning task rather than the product name.",
+      "expectedTop1Sku": null,
+      "actualTop1Sku": "MUCOFF-NANO-CLEANER",
+      "exactSkuTop1": null,
+      "relevantJudgedCount": 2,
+      "noRelevant": false,
+      "ndcgAt5": 1.0,
+      "precisionAt5": 0.4,
+      "eligibleCandidateCount": 29,
+      "constraintViolationCount": 0,
+      "topFive": [
+        {
+          "sku": "MUCOFF-NANO-CLEANER",
+          "text": "Muc-Off Nano Tech Bike Cleaner",
+          "price": 16.99,
+          "grade": 3
+        },
+        {
+          "sku": "MUCOFF-DRIVETRAIN-CLEANER",
+          "text": "Muc-Off Drivetrain Cleaner",
+          "price": 25.0,
+          "grade": 2
+        },
+        {
+          "sku": "MUCOFF-TUBELESS-SEALANT",
+          "text": "Muc-Off MTB Tubeless Sealant",
+          "price": 8.0,
+          "grade": 0
+        },
+        {
+          "sku": "ONEUP-CARBON-HANDLEBAR",
+          "text": "OneUp Carbon Handlebar",
+          "price": 159.0,
+          "grade": 0
+        },
+        {
+          "sku": "ONEUP-EDC-TOOL-V2",
+          "text": "OneUp EDC Tool V2",
+          "price": 59.0,
+          "grade": 0
+        }
+      ]
+    },
+    {
+      "id": "tune-terminology-changing-gears",
+      "split": "tuning",
+      "kind": "terminology",
+      "query": "a component for changing gears",
+      "intent": "Broad functional terminology for drivetrain components.",
+      "expectedTop1Sku": null,
+      "actualTop1Sku": "SHIMANO-XT-M8100-RD",
+      "exactSkuTop1": null,
+      "relevantJudgedCount": 6,
+      "noRelevant": false,
+      "ndcgAt5": 0.8875825932815664,
+      "precisionAt5": 0.8,
+      "eligibleCandidateCount": 29,
+      "constraintViolationCount": 0,
+      "topFive": [
+        {
+          "sku": "SHIMANO-XT-M8100-RD",
+          "text": "Shimano Deore XT M8100 Rear Derailleur",
+          "price": 129.0,
+          "grade": 3
+        },
+        {
+          "sku": "SRAM-GX-EAGLE-RD",
+          "text": "SRAM GX Eagle Rear Derailleur",
+          "price": 135.0,
+          "grade": 3
+        },
+        {
+          "sku": "ONEUP-EDC-TOOL-V2",
+          "text": "OneUp EDC Tool V2",
+          "price": 59.0,
+          "grade": 0
+        },
+        {
+          "sku": "SHIMANO-SLX-M7100-CASSETTE",
+          "text": "Shimano SLX M7100 12-speed Cassette",
+          "price": 99.0,
+          "grade": 2
+        },
+        {
+          "sku": "SRAM-X0-TRANSMISSION-RD",
+          "text": "SRAM X0 Transmission Rear Derailleur",
+          "price": 400.0,
+          "grade": 3
+        }
+      ]
+    },
+    {
+      "id": "tune-paraphrase-climbing-gears",
+      "split": "tuning",
+      "kind": "paraphrase",
+      "query": "a wide range of low gears for climbing",
+      "intent": "A climbing use case described without naming a cassette.",
+      "expectedTop1Sku": null,
+      "actualTop1Sku": "SRAM-XX1-EAGLE-CASSETTE",
+      "exactSkuTop1": null,
+      "relevantJudgedCount": 3,
+      "noRelevant": false,
+      "ndcgAt5": 1.0,
+      "precisionAt5": 0.4,
+      "eligibleCandidateCount": 29,
+      "constraintViolationCount": 0,
+      "topFive": [
+        {
+          "sku": "SRAM-XX1-EAGLE-CASSETTE",
+          "text": "SRAM XX1 Eagle Cassette",
+          "price": 449.0,
+          "grade": 3
+        },
+        {
+          "sku": "SHIMANO-SLX-M7100-CASSETTE",
+          "text": "Shimano SLX M7100 12-speed Cassette",
+          "price": 99.0,
+          "grade": 3
+        },
+        {
+          "sku": "SHIMANO-XT-M8100-RD",
+          "text": "Shimano Deore XT M8100 Rear Derailleur",
+          "price": 129.0,
+          "grade": 1
+        },
+        {
+          "sku": "GIANT-TRANCE-X-ADVPRO29",
+          "text": "Giant Trance X Advanced Pro 29",
+          "price": 6200.0,
+          "grade": 0
+        },
+        {
+          "sku": "ONEUP-V3-DROPPER-180",
+          "text": "OneUp Dropper Post V3 180mm",
+          "price": 269.0,
+          "grade": 0
+        }
+      ]
+    },
+    {
+      "id": "tune-paraphrase-tubeless-punctures",
+      "split": "tuning",
+      "kind": "paraphrase",
+      "query": "liquid to seal small punctures in tubeless tires",
+      "intent": "Describes the purpose of a tubeless tire sealant without its product name.",
+      "expectedTop1Sku": null,
+      "actualTop1Sku": "MUCOFF-TUBELESS-SEALANT",
+      "exactSkuTop1": null,
+      "relevantJudgedCount": 1,
+      "noRelevant": false,
+      "ndcgAt5": 1.0,
+      "precisionAt5": 0.2,
+      "eligibleCandidateCount": 29,
+      "constraintViolationCount": 0,
+      "topFive": [
+        {
+          "sku": "MUCOFF-TUBELESS-SEALANT",
+          "text": "Muc-Off MTB Tubeless Sealant",
+          "price": 8.0,
+          "grade": 3
+        },
+        {
+          "sku": "ONEUP-EDC-TOOL-V2",
+          "text": "OneUp EDC Tool V2",
+          "price": 59.0,
+          "grade": 0
+        },
+        {
+          "sku": "MUCOFF-NANO-CLEANER",
+          "text": "Muc-Off Nano Tech Bike Cleaner",
+          "price": 16.99,
+          "grade": 0
+        },
+        {
+          "sku": "MUCOFF-DRIVETRAIN-CLEANER",
+          "text": "Muc-Off Drivetrain Cleaner",
+          "price": 25.0,
+          "grade": 0
+        },
+        {
+          "sku": "GIANT-ANTHEM-ADV29-1",
+          "text": "Giant Anthem Advanced 29 1",
+          "price": 7800.0,
+          "grade": 0
+        }
+      ]
+    },
+    {
+      "id": "tune-paraphrase-lower-saddle",
+      "split": "tuning",
+      "kind": "paraphrase",
+      "query": "a seat post that lowers the saddle for descents",
+      "intent": "Describes dropper-post behavior in everyday language.",
+      "expectedTop1Sku": null,
+      "actualTop1Sku": "ONEUP-V3-DROPPER-180",
+      "exactSkuTop1": null,
+      "relevantJudgedCount": 2,
+      "noRelevant": false,
+      "ndcgAt5": 0.9173194127129571,
+      "precisionAt5": 0.2,
+      "eligibleCandidateCount": 29,
+      "constraintViolationCount": 0,
+      "topFive": [
+        {
+          "sku": "ONEUP-V3-DROPPER-180",
+          "text": "OneUp Dropper Post V3 180mm",
+          "price": 269.0,
+          "grade": 3
+        },
+        {
+          "sku": "SPEC-STUMPJUMPER-15-COMP",
+          "text": "Specialized Stumpjumper 15 Comp",
+          "price": 5500.0,
+          "grade": 0
+        },
+        {
+          "sku": "GIANT-TRANCE-X-ADVPRO29",
+          "text": "Giant Trance X Advanced Pro 29",
+          "price": 6200.0,
+          "grade": 0
+        },
+        {
+          "sku": "ONEUP-CARBON-HANDLEBAR",
+          "text": "OneUp Carbon Handlebar",
+          "price": 159.0,
+          "grade": 0
+        },
+        {
+          "sku": "CANYON-NEURON-CF7",
+          "text": "Canyon Neuron CF 7",
+          "price": 3499.0,
+          "grade": 0
+        }
+      ]
+    },
+    {
+      "id": "tune-terminology-reduce-hand-vibration",
+      "split": "tuning",
+      "kind": "terminology",
+      "query": "handlebars that reduce hand fatigue on rough trails",
+      "intent": "Matches rider language to a product's vibration and fatigue benefit.",
+      "expectedTop1Sku": null,
+      "actualTop1Sku": "ONEUP-CARBON-HANDLEBAR",
+      "exactSkuTop1": null,
+      "relevantJudgedCount": 1,
+      "noRelevant": false,
+      "ndcgAt5": 1.0,
+      "precisionAt5": 0.2,
+      "eligibleCandidateCount": 29,
+      "constraintViolationCount": 0,
+      "topFive": [
+        {
+          "sku": "ONEUP-CARBON-HANDLEBAR",
+          "text": "OneUp Carbon Handlebar",
+          "price": 159.0,
+          "grade": 3
+        },
+        {
+          "sku": "ONEUP-EDC-TOOL-V2",
+          "text": "OneUp EDC Tool V2",
+          "price": 59.0,
+          "grade": 0
+        },
+        {
+          "sku": "SPEC-STATUS-140",
+          "text": "Specialized Status 140",
+          "price": 2499.0,
+          "grade": 0
+        },
+        {
+          "sku": "CANYON-NEURON-CF7",
+          "text": "Canyon Neuron CF 7",
+          "price": 3499.0,
+          "grade": 0
+        },
+        {
+          "sku": "YETI-SB120-C2",
+          "text": "Yeti SB120 C2",
+          "price": 6200.0,
+          "grade": 0
+        }
+      ]
+    },
+    {
+      "id": "tune-paraphrase-trailside-repair",
+      "split": "tuning",
+      "kind": "paraphrase",
+      "query": "a compact tool for fixing my bike on the trail",
+      "intent": "A use-case paraphrase for a portable repair multi-tool.",
+      "expectedTop1Sku": null,
+      "actualTop1Sku": "ONEUP-EDC-TOOL-V2",
+      "exactSkuTop1": null,
+      "relevantJudgedCount": 1,
+      "noRelevant": false,
+      "ndcgAt5": 1.0,
+      "precisionAt5": 0.2,
+      "eligibleCandidateCount": 29,
+      "constraintViolationCount": 0,
+      "topFive": [
+        {
+          "sku": "ONEUP-EDC-TOOL-V2",
+          "text": "OneUp EDC Tool V2",
+          "price": 59.0,
+          "grade": 3
+        },
+        {
+          "sku": "GIANT-TRANCE-X-ADVPRO29",
+          "text": "Giant Trance X Advanced Pro 29",
+          "price": 6200.0,
+          "grade": 0
+        },
+        {
+          "sku": "SPEC-STUMPJUMPER-15-COMP",
+          "text": "Specialized Stumpjumper 15 Comp",
+          "price": 5500.0,
+          "grade": 0
+        },
+        {
+          "sku": "SHIMANO-XTR-M9100-CRANK",
+          "text": "Shimano XTR M9100 Crankset",
+          "price": 499.0,
+          "grade": 0
+        },
+        {
+          "sku": "SHIMANO-XT-M8100-RD",
+          "text": "Shimano Deore XT M8100 Rear Derailleur",
+          "price": 129.0,
+          "grade": 0
+        }
+      ]
+    },
+    {
+      "id": "tune-no-current-bike-under-1000",
+      "split": "tuning",
+      "kind": "price-constraint",
+      "query": "a mountain bike under $1000",
+      "intent": "No currently eligible seeded mountain bike is priced below $1000; the deleted Giant Talon is not eligible.",
+      "expectedTop1Sku": null,
+      "actualTop1Sku": "ONEUP-V3-DROPPER-180",
+      "exactSkuTop1": null,
+      "relevantJudgedCount": 0,
+      "noRelevant": true,
+      "ndcgAt5": null,
+      "precisionAt5": null,
+      "eligibleCandidateCount": 13,
+      "constraintViolationCount": 0,
+      "topFive": [
+        {
+          "sku": "ONEUP-V3-DROPPER-180",
+          "text": "OneUp Dropper Post V3 180mm",
+          "price": 269.0,
+          "grade": 0
+        },
+        {
+          "sku": "SRAM-XX1-EAGLE-CASSETTE",
+          "text": "SRAM XX1 Eagle Cassette",
+          "price": 449.0,
+          "grade": 0
+        },
+        {
+          "sku": "SHIMANO-XT-M8100-RD",
+          "text": "Shimano Deore XT M8100 Rear Derailleur",
+          "price": 129.0,
+          "grade": 0
+        },
+        {
+          "sku": "SRAM-X0-TRANSMISSION-RD",
+          "text": "SRAM X0 Transmission Rear Derailleur",
+          "price": 400.0,
+          "grade": 0
+        },
+        {
+          "sku": "SRAM-GX-EAGLE-RD",
+          "text": "SRAM GX Eagle Rear Derailleur",
+          "price": 135.0,
+          "grade": 0
+        }
+      ]
+    },
+    {
+      "id": "tune-terminology-cross-country-race",
+      "split": "tuning",
+      "kind": "terminology",
+      "query": "a fast cross-country bike for racing",
+      "intent": "Cross-country race terminology matched to seeded bike descriptions.",
+      "expectedTop1Sku": null,
+      "actualTop1Sku": "SPEC-CHISEL-COMP",
+      "exactSkuTop1": null,
+      "relevantJudgedCount": 4,
+      "noRelevant": false,
+      "ndcgAt5": 0.8592395637645646,
+      "precisionAt5": 0.8,
+      "eligibleCandidateCount": 29,
+      "constraintViolationCount": 0,
+      "topFive": [
+        {
+          "sku": "SPEC-CHISEL-COMP",
+          "text": "Specialized Chisel Comp",
+          "price": 3400.0,
+          "grade": 2
+        },
+        {
+          "sku": "GIANT-ANTHEM-ADV29-1",
+          "text": "Giant Anthem Advanced 29 1",
+          "price": 7800.0,
+          "grade": 3
+        },
+        {
+          "sku": "YETI-ASR-C2-2025",
+          "text": "Yeti ASR C2",
+          "price": 5800.0,
+          "grade": 3
+        },
+        {
+          "sku": "CANYON-LUXTRAIL-CF6",
+          "text": "Canyon Lux Trail CF 6",
+          "price": 3899.0,
+          "grade": 2
+        },
+        {
+          "sku": "SPEC-ENDURO-PRO",
+          "text": "Specialized Enduro Pro",
+          "price": 9500.0,
+          "grade": 0
+        }
+      ]
+    },
+    {
+      "id": "tune-broad-steep-bike-park",
+      "split": "tuning",
+      "kind": "broad",
+      "query": "a bike for steep rough descents and bike-park riding",
+      "intent": "Broad descending intent with several suitable bike categories.",
+      "expectedTop1Sku": null,
+      "actualTop1Sku": "CANYON-TORQUE-MULLET-CF8",
+      "exactSkuTop1": null,
+      "relevantJudgedCount": 6,
+      "noRelevant": false,
+      "ndcgAt5": 0.8688881839864373,
+      "precisionAt5": 1.0,
+      "eligibleCandidateCount": 29,
+      "constraintViolationCount": 0,
+      "topFive": [
+        {
+          "sku": "CANYON-TORQUE-MULLET-CF8",
+          "text": "Canyon Torque Mullet CF 8",
+          "price": 3599.0,
+          "grade": 2
+        },
+        {
+          "sku": "CANYON-SENDER-CFR",
+          "text": "Canyon Sender CFR",
+          "price": 7799.0,
+          "grade": 3
+        },
+        {
+          "sku": "YETI-SB165-C3",
+          "text": "Yeti SB165 C3",
+          "price": 7200.0,
+          "grade": 3
+        },
+        {
+          "sku": "SPEC-ENDURO-PRO",
+          "text": "Specialized Enduro Pro",
+          "price": 9500.0,
+          "grade": 3
+        },
+        {
+          "sku": "YETI-SB140-LR-C2",
+          "text": "Yeti SB140 LR C2",
+          "price": 6600.0,
+          "grade": 2
+        }
+      ]
+    },
+    {
+      "id": "tune-paraphrase-drivetrain-degreaser",
+      "split": "tuning",
+      "kind": "paraphrase",
+      "query": "degreaser for a greasy chain and cassette",
+      "intent": "Names drivetrain parts and soil rather than the cleaner product name.",
+      "expectedTop1Sku": null,
+      "actualTop1Sku": "MUCOFF-DRIVETRAIN-CLEANER",
+      "exactSkuTop1": null,
+      "relevantJudgedCount": 2,
+      "noRelevant": false,
+      "ndcgAt5": 0.9173194127129571,
+      "precisionAt5": 0.2,
+      "eligibleCandidateCount": 29,
+      "constraintViolationCount": 0,
+      "topFive": [
+        {
+          "sku": "MUCOFF-DRIVETRAIN-CLEANER",
+          "text": "Muc-Off Drivetrain Cleaner",
+          "price": 25.0,
+          "grade": 3
+        },
+        {
+          "sku": "SHIMANO-XT-M8100-RD",
+          "text": "Shimano Deore XT M8100 Rear Derailleur",
+          "price": 129.0,
+          "grade": 0
+        },
+        {
+          "sku": "SRAM-XX1-EAGLE-CASSETTE",
+          "text": "SRAM XX1 Eagle Cassette",
+          "price": 449.0,
+          "grade": 0
+        },
+        {
+          "sku": "SRAM-GX-EAGLE-RD",
+          "text": "SRAM GX Eagle Rear Derailleur",
+          "price": 135.0,
+          "grade": 0
+        },
+        {
+          "sku": "SHIMANO-SLX-M7100-CASSETTE",
+          "text": "Shimano SLX M7100 12-speed Cassette",
+          "price": 99.0,
+          "grade": 0
+        }
+      ]
+    },
+    {
+      "id": "tune-price-derailleur-under-150",
+      "split": "tuning",
+      "kind": "price-constraint",
+      "query": "a rear derailleur for a 12-speed mountain bike under $150",
+      "intent": "Hard price ceiling and product type; two seeded derailleurs satisfy both.",
+      "expectedTop1Sku": null,
+      "actualTop1Sku": "SHIMANO-XT-M8100-RD",
+      "exactSkuTop1": null,
+      "relevantJudgedCount": 2,
+      "noRelevant": false,
+      "ndcgAt5": 1.0,
+      "precisionAt5": 0.4,
+      "eligibleCandidateCount": 8,
+      "constraintViolationCount": 0,
+      "topFive": [
+        {
+          "sku": "SHIMANO-XT-M8100-RD",
+          "text": "Shimano Deore XT M8100 Rear Derailleur",
+          "price": 129.0,
+          "grade": 3
+        },
+        {
+          "sku": "SRAM-GX-EAGLE-RD",
+          "text": "SRAM GX Eagle Rear Derailleur",
+          "price": 135.0,
+          "grade": 3
+        },
+        {
+          "sku": "SHIMANO-SLX-M7100-CASSETTE",
+          "text": "Shimano SLX M7100 12-speed Cassette",
+          "price": 99.0,
+          "grade": 0
+        },
+        {
+          "sku": "MUCOFF-DRIVETRAIN-CLEANER",
+          "text": "Muc-Off Drivetrain Cleaner",
+          "price": 25.0,
+          "grade": 0
+        },
+        {
+          "sku": "ONEUP-EDC-TOOL-V2",
+          "text": "OneUp EDC Tool V2",
+          "price": 59.0,
+          "grade": 0
+        }
+      ]
+    },
+    {
+      "id": "tune-price-trail-bike-under-5000",
+      "split": "tuning",
+      "kind": "price-constraint",
+      "query": "a trail bike for technical descents under $5000",
+      "intent": "Filters to affordable seeded bikes while preferring trail models suitable for technical descents.",
+      "expectedTop1Sku": null,
+      "actualTop1Sku": "CANYON-NEURON-CF7",
+      "exactSkuTop1": null,
+      "relevantJudgedCount": 4,
+      "noRelevant": false,
+      "ndcgAt5": 0.883484406764202,
+      "precisionAt5": 0.6,
+      "eligibleCandidateCount": 19,
+      "constraintViolationCount": 0,
+      "topFive": [
+        {
+          "sku": "CANYON-NEURON-CF7",
+          "text": "Canyon Neuron CF 7",
+          "price": 3499.0,
+          "grade": 3
+        },
+        {
+          "sku": "SPEC-STATUS-140",
+          "text": "Specialized Status 140",
+          "price": 2499.0,
+          "grade": 0
+        },
+        {
+          "sku": "CANYON-SPECTRAL-CF8",
+          "text": "Canyon Spectral CF 8",
+          "price": 4999.0,
+          "grade": 3
+        },
+        {
+          "sku": "CANYON-LUXTRAIL-CF6",
+          "text": "Canyon Lux Trail CF 6",
+          "price": 3899.0,
+          "grade": 2
+        },
+        {
+          "sku": "SPEC-CHISEL-COMP",
+          "text": "Specialized Chisel Comp",
+          "price": 3400.0,
+          "grade": 0
+        }
+      ]
+    },
+    {
+      "id": "tune-broad-everyday-singletrack",
+      "split": "tuning",
+      "kind": "broad",
+      "query": "a versatile mountain bike for after-work singletrack",
+      "intent": "Ambiguous everyday trail request without a specific price, discipline or component.",
+      "expectedTop1Sku": null,
+      "actualTop1Sku": "CANYON-SPECTRAL-CF8",
+      "exactSkuTop1": null,
+      "relevantJudgedCount": 7,
+      "noRelevant": false,
+      "ndcgAt5": 0.6534081967245269,
+      "precisionAt5": 0.4,
+      "eligibleCandidateCount": 29,
+      "constraintViolationCount": 0,
+      "topFive": [
+        {
+          "sku": "CANYON-SPECTRAL-CF8",
+          "text": "Canyon Spectral CF 8",
+          "price": 4999.0,
+          "grade": 2
+        },
+        {
+          "sku": "YETI-SB120-C2",
+          "text": "Yeti SB120 C2",
+          "price": 6200.0,
+          "grade": 2
+        },
+        {
+          "sku": "SPEC-CHISEL-COMP",
+          "text": "Specialized Chisel Comp",
+          "price": 3400.0,
+          "grade": 1
+        },
+        {
+          "sku": "CANYON-LUXTRAIL-CF6",
+          "text": "Canyon Lux Trail CF 6",
+          "price": 3899.0,
+          "grade": 0
+        },
+        {
+          "sku": "YETI-ASR-C2-2025",
+          "text": "Yeti ASR C2",
+          "price": 5800.0,
+          "grade": 1
+        }
+      ]
+    },
+    {
+      "id": "tune-broad-weekend-ride-kit",
+      "split": "tuning",
+      "kind": "broad",
+      "query": "useful gear for a weekend ride on rough trails",
+      "intent": "Intentionally broad request that could mean a trail accessory or repair item.",
+      "expectedTop1Sku": null,
+      "actualTop1Sku": "CANYON-NEURON-CF7",
+      "exactSkuTop1": null,
+      "relevantJudgedCount": 4,
+      "noRelevant": false,
+      "ndcgAt5": 0.25441880390707017,
+      "precisionAt5": 0.2,
+      "eligibleCandidateCount": 29,
+      "constraintViolationCount": 0,
+      "topFive": [
+        {
+          "sku": "CANYON-NEURON-CF7",
+          "text": "Canyon Neuron CF 7",
+          "price": 3499.0,
+          "grade": 0
+        },
+        {
+          "sku": "CANYON-SPECTRAL-CF8",
+          "text": "Canyon Spectral CF 8",
+          "price": 4999.0,
+          "grade": 0
+        },
+        {
+          "sku": "SHIMANO-XT-M8100-RD",
+          "text": "Shimano Deore XT M8100 Rear Derailleur",
+          "price": 129.0,
+          "grade": 0
+        },
+        {
+          "sku": "YETI-SB140-LR-C2",
+          "text": "Yeti SB140 LR C2",
+          "price": 6600.0,
+          "grade": 0
+        },
+        {
+          "sku": "ONEUP-EDC-TOOL-V2",
+          "text": "OneUp EDC Tool V2",
+          "price": 59.0,
+          "grade": 2
+        }
+      ]
+    },
+    {
+      "id": "holdout-exact-sram-x0-derailleur",
+      "split": "held-out",
+      "kind": "exact-sku",
+      "query": "SRAM-X0-TRANSMISSION-RD",
+      "intent": "Held-out exact SKU lookup for the SRAM X0 electronic rear derailleur.",
+      "expectedTop1Sku": "SRAM-X0-TRANSMISSION-RD",
+      "actualTop1Sku": "MUCOFF-NANO-CLEANER",
+      "exactSkuTop1": false,
+      "relevantJudgedCount": 1,
+      "noRelevant": false,
+      "ndcgAt5": 0.6309297535714574,
+      "precisionAt5": 0.2,
+      "eligibleCandidateCount": 29,
+      "constraintViolationCount": 0,
+      "topFive": [
+        {
+          "sku": "MUCOFF-NANO-CLEANER",
+          "text": "Muc-Off Nano Tech Bike Cleaner",
+          "price": 16.99,
+          "grade": 0
+        },
+        {
+          "sku": "SRAM-X0-TRANSMISSION-RD",
+          "text": "SRAM X0 Transmission Rear Derailleur",
+          "price": 400.0,
+          "grade": 3
+        },
+        {
+          "sku": "SRAM-XX1-EAGLE-CASSETTE",
+          "text": "SRAM XX1 Eagle Cassette",
+          "price": 449.0,
+          "grade": 0
+        },
+        {
+          "sku": "MUCOFF-TUBELESS-SEALANT",
+          "text": "Muc-Off MTB Tubeless Sealant",
+          "price": 8.0,
+          "grade": 0
+        },
+        {
+          "sku": "ONEUP-EDC-TOOL-V2",
+          "text": "OneUp EDC Tool V2",
+          "price": 59.0,
+          "grade": 0
+        }
+      ]
+    },
+    {
+      "id": "holdout-terminology-workshop-labour",
+      "split": "held-out",
+      "kind": "terminology",
+      "query": "an hourly workshop charge for a bicycle tune-up",
+      "intent": "Held-out service request for workshop labour rather than a stocked physical product.",
+      "expectedTop1Sku": null,
+      "actualTop1Sku": "LABOR",
+      "exactSkuTop1": null,
+      "relevantJudgedCount": 1,
+      "noRelevant": false,
+      "ndcgAt5": 1.0,
+      "precisionAt5": 0.2,
+      "eligibleCandidateCount": 29,
+      "constraintViolationCount": 0,
+      "topFive": [
+        {
+          "sku": "LABOR",
+          "text": "Labor",
+          "price": 80.0,
+          "grade": 3
+        },
+        {
+          "sku": "SPEC-STATUS-140",
+          "text": "Specialized Status 140",
+          "price": 2499.0,
+          "grade": 0
+        },
+        {
+          "sku": "GIANT-ANTHEM-ADV29-1",
+          "text": "Giant Anthem Advanced 29 1",
+          "price": 7800.0,
+          "grade": 0
+        },
+        {
+          "sku": "MUCOFF-DRIVETRAIN-CLEANER",
+          "text": "Muc-Off Drivetrain Cleaner",
+          "price": 25.0,
+          "grade": 0
+        },
+        {
+          "sku": "GIANT-TRANCE-X-ADVPRO29",
+          "text": "Giant Trance X Advanced Pro 29",
+          "price": 6200.0,
+          "grade": 0
+        }
+      ]
+    },
+    {
+      "id": "holdout-price-carbon-bike-under-4000",
+      "split": "held-out",
+      "kind": "price-constraint",
+      "query": "a carbon mountain bike for long rides under $4000",
+      "intent": "Held-out structured price ceiling with a long-ride carbon-bike intent.",
+      "expectedTop1Sku": null,
+      "actualTop1Sku": "CANYON-NEURON-CF7",
+      "exactSkuTop1": null,
+      "relevantJudgedCount": 3,
+      "noRelevant": false,
+      "ndcgAt5": 1.0,
+      "precisionAt5": 0.4,
+      "eligibleCandidateCount": 18,
+      "constraintViolationCount": 0,
+      "topFive": [
+        {
+          "sku": "CANYON-NEURON-CF7",
+          "text": "Canyon Neuron CF 7",
+          "price": 3499.0,
+          "grade": 3
+        },
+        {
+          "sku": "CANYON-LUXTRAIL-CF6",
+          "text": "Canyon Lux Trail CF 6",
+          "price": 3899.0,
+          "grade": 3
+        },
+        {
+          "sku": "CANYON-TORQUE-MULLET-CF8",
+          "text": "Canyon Torque Mullet CF 8",
+          "price": 3599.0,
+          "grade": 1
+        },
+        {
+          "sku": "ONEUP-CARBON-HANDLEBAR",
+          "text": "OneUp Carbon Handlebar",
+          "price": 159.0,
+          "grade": 0
+        },
+        {
+          "sku": "SPEC-STATUS-140",
+          "text": "Specialized Status 140",
+          "price": 2499.0,
+          "grade": 0
+        }
+      ]
+    },
+    {
+      "id": "holdout-no-electric-bike-charger",
+      "split": "held-out",
+      "kind": "out-of-catalog",
+      "query": "a charger for the battery on an electric mountain bike",
+      "intent": "The catalog includes an electric mountain bike but no battery charger accessory.",
+      "expectedTop1Sku": null,
+      "actualTop1Sku": "YETI-MTE-C2",
+      "exactSkuTop1": null,
+      "relevantJudgedCount": 0,
+      "noRelevant": true,
+      "ndcgAt5": null,
+      "precisionAt5": null,
+      "eligibleCandidateCount": 29,
+      "constraintViolationCount": 0,
+      "topFive": [
+        {
+          "sku": "YETI-MTE-C2",
+          "text": "Yeti MTe C2 eMTB",
+          "price": 9850.0,
+          "grade": 0
+        },
+        {
+          "sku": "SRAM-X0-TRANSMISSION-RD",
+          "text": "SRAM X0 Transmission Rear Derailleur",
+          "price": 400.0,
+          "grade": 0
+        },
+        {
+          "sku": "SHIMANO-XTR-M9100-CRANK",
+          "text": "Shimano XTR M9100 Crankset",
+          "price": 499.0,
+          "grade": 0
+        },
+        {
+          "sku": "ONEUP-V3-DROPPER-180",
+          "text": "OneUp Dropper Post V3 180mm",
+          "price": 269.0,
+          "grade": 0
+        },
+        {
+          "sku": "SHIMANO-XT-M8100-RD",
+          "text": "Shimano Deore XT M8100 Rear Derailleur",
+          "price": 129.0,
+          "grade": 0
+        }
+      ]
+    },
+    {
+      "id": "holdout-no-night-riding-lights",
+      "split": "held-out",
+      "kind": "out-of-catalog",
+      "query": "USB rechargeable lights for night riding",
+      "intent": "The reviewed eligible catalog contains no lights or night-riding electronics.",
+      "expectedTop1Sku": null,
+      "actualTop1Sku": "SRAM-X0-TRANSMISSION-RD",
+      "exactSkuTop1": null,
+      "relevantJudgedCount": 0,
+      "noRelevant": true,
+      "ndcgAt5": null,
+      "precisionAt5": null,
+      "eligibleCandidateCount": 29,
+      "constraintViolationCount": 0,
+      "topFive": [
+        {
+          "sku": "SRAM-X0-TRANSMISSION-RD",
+          "text": "SRAM X0 Transmission Rear Derailleur",
+          "price": 400.0,
+          "grade": 0
+        },
+        {
+          "sku": "SPEC-STATUS-140",
+          "text": "Specialized Status 140",
+          "price": 2499.0,
+          "grade": 0
+        },
+        {
+          "sku": "YETI-MTE-C2",
+          "text": "Yeti MTe C2 eMTB",
+          "price": 9850.0,
+          "grade": 0
+        },
+        {
+          "sku": "MUCOFF-TUBELESS-SEALANT",
+          "text": "Muc-Off MTB Tubeless Sealant",
+          "price": 8.0,
+          "grade": 0
+        },
+        {
+          "sku": "CANYON-LUXTRAIL-CF6",
+          "text": "Canyon Lux Trail CF 6",
+          "price": 3899.0,
+          "grade": 0
+        }
+      ]
+    },
+    {
+      "id": "holdout-no-city-bike-child-seat",
+      "split": "held-out",
+      "kind": "out-of-catalog",
+      "query": "a child seat for a city bicycle",
+      "intent": "The reviewed eligible catalog contains no child seats or city-bike accessories.",
+      "expectedTop1Sku": null,
+      "actualTop1Sku": "ONEUP-V3-DROPPER-180",
+      "exactSkuTop1": null,
+      "relevantJudgedCount": 0,
+      "noRelevant": true,
+      "ndcgAt5": null,
+      "precisionAt5": null,
+      "eligibleCandidateCount": 29,
+      "constraintViolationCount": 0,
+      "topFive": [
+        {
+          "sku": "ONEUP-V3-DROPPER-180",
+          "text": "OneUp Dropper Post V3 180mm",
+          "price": 269.0,
+          "grade": 0
+        },
+        {
+          "sku": "GIANT-ANTHEM-ADV29-1",
+          "text": "Giant Anthem Advanced 29 1",
+          "price": 7800.0,
+          "grade": 0
+        },
+        {
+          "sku": "LABOR",
+          "text": "Labor",
+          "price": 80.0,
+          "grade": 0
+        },
+        {
+          "sku": "MUCOFF-NANO-CLEANER",
+          "text": "Muc-Off Nano Tech Bike Cleaner",
+          "price": 16.99,
+          "grade": 0
+        },
+        {
+          "sku": "GIANT-TRANCE-X-ADVPRO29",
+          "text": "Giant Trance X Advanced Pro 29",
+          "price": 6200.0,
+          "grade": 0
+        }
+      ]
+    }
+  ]
+}

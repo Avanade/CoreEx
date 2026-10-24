@@ -164,7 +164,7 @@ public sealed class DictionaryRule<TEntity, TProperty, TKey, TValue> : PropertyR
                     // Where the key is a string, then set the name on the validator to support better error messages.
                     var kv = _getKeyValidator.Invoke(args);
                     if (kvp.Key is string s && !string.IsNullOrEmpty(s) && kv is ValidatingInlineValidator<TKey> vilv)
-                        vilv.WithName(s);
+                        vilv.WithName(s, (args.JsonSerializerOptions ?? JsonDefaults.SerializerOptions).DictionaryKeyPolicy?.ConvertName(s) ?? s);
 
                     // Validate the key and merge the result.
                     var r = await kv.ValidateAsync(kvp.Key, args, cancellationToken).ConfigureAwait(false);
@@ -179,7 +179,7 @@ public sealed class DictionaryRule<TEntity, TProperty, TKey, TValue> : PropertyR
                         hasNullValue = true;
                     else if (_getValueValidator is not null)
                     {
-                        var args = CreateValidationArgs(context, kvp.Key?.ToString());
+                        var args = CreateValidationArgs(context, kvp.Key);
 
                         var last = context.GetDictionaryKeySafe();
                         context.SetDictionaryKey(kvp.Key);
@@ -223,13 +223,15 @@ public sealed class DictionaryRule<TEntity, TProperty, TKey, TValue> : PropertyR
         /// <param name="context">The <see cref="PropertyContext{TEntity, TProperty}"/>.</param>
         /// <param name="key">The dictionary key.</param>
         /// <returns>The <see cref="ValidationArgs"/>.</returns>
-        private static ValidationArgs CreateValidationArgs(PropertyContext<TEntity, TProperty> context, string? key)
+        private static ValidationArgs CreateValidationArgs(PropertyContext<TEntity, TProperty> context, TKey? key)
         {
             var args = context.CreateValidationArgs();
-            args.FullyQualifiedEntityName += $"[{(key ?? "null")}]";
+            var name = key?.ToString() ?? "null";
+            args.FullyQualifiedEntityName += $"[{name}]";
 
             // Note: an indexer for a dictionary from a JSON perspective is simply a property name; i.e. no square brackets.
-            args.FullyQualifiedJsonEntityName += $".{key ?? "null"}";
+            var jsonName = key is string s ? (args.JsonSerializerOptions ?? JsonDefaults.SerializerOptions).DictionaryKeyPolicy?.ConvertName(s) ?? s : name;
+            args.FullyQualifiedJsonEntityName += $".{jsonName}";
             return args;
         }
     }

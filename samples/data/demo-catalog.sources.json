@@ -1,0 +1,2399 @@
+{
+  "catalogVersion": "product-search-mtb-expansion-v2",
+  "currency": "USD",
+  "skuPolicy": "Catalog SKUs are internal demo identifiers, not verified manufacturer part numbers; no DEMO- prefix is required. Demo in a genuine model name, such as Specialized Demo, is retained.",
+  "pricePolicy": "All prices are illustrative demo values in USD, not current retail prices.",
+  "sourcePolicy": "Manufacturer pages support all 142 expansion entries. The retained v1 catalog subset preserves two previously documented non-manufacturer references, explicitly marked retailer; BikesOnline is approved as a supplementary retailer source for additional research.",
+  "products": [
+    {
+      "sku": "YETI-ARC",
+      "brandCode": "YETI",
+      "subCategoryCode": "HT",
+      "unitCode": "EA",
+      "price": 3200,
+      "text": "Yeti ARC Mountain Bike",
+      "description": "A hardtail mountain bike in Yeti Cycles' ARC model family for cross-country and trail riding.",
+      "sourceUrl": "https://yeticycles.com/bikes/arc",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "hardtail",
+        "cross-country",
+        "dentist-bike"
+      ],
+      "tagProvenance": [
+        {
+          "tag": "dentist-bike",
+          "origin": "user-provided-informal-search-alias",
+          "note": "Search alias only; no intended-rider or affordability claim."
+        }
+      ]
+    },
+    {
+      "sku": "YETI-SB135",
+      "brandCode": "YETI",
+      "subCategoryCode": "TR",
+      "unitCode": "EA",
+      "price": 6400,
+      "text": "Yeti SB135 Mountain Bike",
+      "description": "A full-suspension trail mountain bike in Yeti Cycles' SB135 model family.",
+      "sourceUrl": "https://yeticycles.com/bikes/sb135",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "trail",
+        "dentist-bike"
+      ],
+      "tagProvenance": [
+        {
+          "tag": "dentist-bike",
+          "origin": "user-provided-informal-search-alias",
+          "note": "Search alias only; no intended-rider or affordability claim."
+        }
+      ]
+    },
+    {
+      "sku": "YETI-SB160",
+      "brandCode": "YETI",
+      "subCategoryCode": "EN",
+      "unitCode": "EA",
+      "price": 7900,
+      "text": "Yeti SB160 Mountain Bike",
+      "description": "A full-suspension enduro mountain bike in Yeti Cycles' SB160 model family.",
+      "sourceUrl": "https://yeticycles.com/bikes/sb160",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "enduro",
+        "dentist-bike"
+      ],
+      "tagProvenance": [
+        {
+          "tag": "dentist-bike",
+          "origin": "user-provided-informal-search-alias",
+          "note": "Search alias only; no intended-rider or affordability claim."
+        }
+      ]
+    },
+    {
+      "sku": "CANYON-STOIC",
+      "brandCode": "CANYON",
+      "subCategoryCode": "HT",
+      "unitCode": "EA",
+      "price": 1899,
+      "text": "Canyon Stoic Mountain Bike",
+      "description": "A hardtail mountain bike in Canyon's Stoic model family for trail riding.",
+      "sourceUrl": "https://www.canyon.com/en-us/mountain-bikes/trail-bikes/stoic/",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "hardtail",
+        "trail"
+      ]
+    },
+    {
+      "sku": "CANYON-STRIVE",
+      "brandCode": "CANYON",
+      "subCategoryCode": "EN",
+      "unitCode": "EA",
+      "price": 5799,
+      "text": "Canyon Strive Mountain Bike",
+      "description": "A full-suspension enduro mountain bike in Canyon's Strive model family.",
+      "sourceUrl": "https://www.canyon.com/en-us/mountain-bikes/enduro-bikes/strive/",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "enduro"
+      ]
+    },
+    {
+      "sku": "CANYON-GRAND-CANYON",
+      "brandCode": "CANYON",
+      "subCategoryCode": "HT",
+      "unitCode": "EA",
+      "price": 1499,
+      "text": "Canyon Grand Canyon Mountain Bike",
+      "description": "A hardtail mountain bike in Canyon's Grand Canyon model family for off-road riding.",
+      "sourceUrl": "https://www.canyon.com/en-us/mountain-bikes/hardtail-mountain-bikes/grand-canyon/",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "hardtail"
+      ]
+    },
+    {
+      "sku": "CANYON-LUX-WORLD-CUP",
+      "brandCode": "CANYON",
+      "subCategoryCode": "XC",
+      "unitCode": "EA",
+      "price": 6299,
+      "text": "Canyon Lux World Cup Mountain Bike",
+      "description": "A full-suspension cross-country race mountain bike in Canyon's Lux World Cup family.",
+      "sourceUrl": "https://media-centre.canyon.com/en-INT/264438-no-limits-on-the-limit-canyon-launches-new-lux-world-cup-cfr/",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "cross-country",
+        "race"
+      ]
+    },
+    {
+      "sku": "SPECIALIZED-FUSE",
+      "brandCode": "SPEC",
+      "subCategoryCode": "HT",
+      "unitCode": "EA",
+      "price": 2799,
+      "text": "Specialized Fuse Mountain Bike",
+      "description": "A hardtail mountain bike in Specialized's Fuse model family for trail riding.",
+      "sourceUrl": "https://www.specialized.com/us/en/shop/bikes/mountain-bikes/trail-mountain-bikes/fuse",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "hardtail",
+        "trail"
+      ]
+    },
+    {
+      "sku": "SPECIALIZED-DEMO",
+      "brandCode": "SPEC",
+      "subCategoryCode": "DH",
+      "unitCode": "EA",
+      "price": 6499,
+      "text": "Specialized Demo Mountain Bike",
+      "description": "A downhill mountain bike in Specialized's Demo model family.",
+      "sourceUrl": "https://www.specialized.com/us/en/shop/bikes/mountain-bikes/downhill-mountain-bikes/demo",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "downhill"
+      ]
+    },
+    {
+      "sku": "SPECIALIZED-TURBO-LEVO",
+      "brandCode": "SPEC",
+      "subCategoryCode": "EM",
+      "unitCode": "EA",
+      "price": 8999,
+      "text": "Specialized Turbo Levo E-Mountain Bike",
+      "description": "An electric-assist mountain bike in Specialized's Turbo Levo model family.",
+      "sourceUrl": "https://www.specialized.com/us/en/turbo-levo/c/turbo-levo",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "electric",
+        "e-bike",
+        "emtb"
+      ],
+      "tagProvenance": [
+        {
+          "tag": "e-bike",
+          "origin": "user-provided-colloquial-search-alias",
+          "note": "Synonym for the verified electric-assist mountain-bike product type."
+        },
+        {
+          "tag": "emtb",
+          "origin": "user-provided-colloquial-search-alias",
+          "note": "Synonym for the verified electric-assist mountain-bike product type."
+        }
+      ]
+    },
+    {
+      "sku": "SPECIALIZED-TURBO-KENEVO",
+      "brandCode": "SPEC",
+      "subCategoryCode": "EM",
+      "unitCode": "EA",
+      "price": 9999,
+      "text": "Specialized Turbo Kenevo E-Mountain Bike",
+      "description": "An electric-assist mountain bike in Specialized's Turbo Kenevo model family.",
+      "sourceUrl": "https://www.specialized.com/us/en/shop/bikes/electric-bikes/electric-mountain-bikes/turbo-kenevo",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "electric",
+        "enduro",
+        "e-bike",
+        "emtb"
+      ],
+      "tagProvenance": [
+        {
+          "tag": "e-bike",
+          "origin": "user-provided-colloquial-search-alias",
+          "note": "Synonym for the verified electric-assist mountain-bike product type."
+        },
+        {
+          "tag": "emtb",
+          "origin": "user-provided-colloquial-search-alias",
+          "note": "Synonym for the verified electric-assist mountain-bike product type."
+        }
+      ]
+    },
+    {
+      "sku": "SPECIALIZED-EPIC-WORLD-CUP",
+      "brandCode": "SPEC",
+      "subCategoryCode": "XC",
+      "unitCode": "EA",
+      "price": 8999,
+      "text": "Specialized Epic World Cup Mountain Bike",
+      "description": "A cross-country race mountain bike in Specialized's Epic World Cup family.",
+      "sourceUrl": "https://www.specialized.com/us/en/s-works-epic-world-cup-sram-xx-sl-axs-rockshox-ultimate/p/4221515",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "cross-country",
+        "race"
+      ]
+    },
+    {
+      "sku": "GIANT-TRANCE",
+      "brandCode": "GIANT",
+      "subCategoryCode": "TR",
+      "unitCode": "EA",
+      "price": 4599,
+      "text": "Giant Trance Mountain Bike",
+      "description": "A full-suspension trail mountain bike in Giant's Trance model family.",
+      "sourceUrl": "https://www.giant-bicycles.com/us/trance",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "trail"
+      ]
+    },
+    {
+      "sku": "GIANT-REIGN",
+      "brandCode": "GIANT",
+      "subCategoryCode": "EN",
+      "unitCode": "EA",
+      "price": 5499,
+      "text": "Giant Reign Mountain Bike",
+      "description": "A full-suspension enduro mountain bike in Giant's Reign model family.",
+      "sourceUrl": "https://www.giant-bicycles.com/us/reign",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "enduro"
+      ]
+    },
+    {
+      "sku": "GIANT-FATHOM",
+      "brandCode": "GIANT",
+      "subCategoryCode": "HT",
+      "unitCode": "EA",
+      "price": 1699,
+      "text": "Giant Fathom Mountain Bike",
+      "description": "A hardtail mountain bike in Giant's Fathom model family for trail riding.",
+      "sourceUrl": "https://www.giant-bicycles.com/us/fathom",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "hardtail",
+        "trail"
+      ]
+    },
+    {
+      "sku": "GIANT-GLORY",
+      "brandCode": "GIANT",
+      "subCategoryCode": "DH",
+      "unitCode": "EA",
+      "price": 7199,
+      "text": "Giant Glory Mountain Bike",
+      "description": "A downhill mountain bike in Giant's Glory model family.",
+      "sourceUrl": "https://www.giant-bicycles.com/us/glory",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "downhill"
+      ]
+    },
+    {
+      "sku": "GIANT-STANCE",
+      "brandCode": "GIANT",
+      "subCategoryCode": "TR",
+      "unitCode": "EA",
+      "price": 2499,
+      "text": "Giant Stance Mountain Bike",
+      "description": "A full-suspension trail mountain bike in Giant's Stance model family.",
+      "sourceUrl": "https://www.giant-bicycles.com/us/stance",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "trail"
+      ]
+    },
+    {
+      "sku": "SPECIALIZED-STATUS-2",
+      "brandCode": "SPEC",
+      "subCategoryCode": "FR",
+      "unitCode": "EA",
+      "price": 3299,
+      "text": "Specialized Status 2 Mountain Bike",
+      "description": "A mixed-wheel mountain bike in Specialized's Status model family for trail and freeride use.",
+      "sourceUrl": "https://www.specialized.com/us/en/status-140/p/199765",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "freeride"
+      ]
+    },
+    {
+      "sku": "GIANT-ANTHEM",
+      "brandCode": "GIANT",
+      "subCategoryCode": "XC",
+      "unitCode": "EA",
+      "price": 6399,
+      "text": "Giant Anthem Mountain Bike",
+      "description": "A full-suspension cross-country mountain bike in Giant's Anthem model family.",
+      "sourceUrl": "https://www.giant-bicycles.com/global/anthem",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "cross-country"
+      ]
+    },
+    {
+      "sku": "SHIMANO-SLX-M7100-DERAILLEUR",
+      "brandCode": "SHIMANO",
+      "subCategoryCode": "DR",
+      "unitCode": "EA",
+      "price": 89,
+      "text": "Shimano SLX M7100 Rear Derailleur",
+      "description": "A rear derailleur from Shimano's SLX M7100 mountain bike component series.",
+      "sourceUrl": "https://bike.shimano.com/category/mtb.html",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "drivetrain",
+        "derailleur"
+      ]
+    },
+    {
+      "sku": "SHIMANO-SLX-M7100-SHIFTER",
+      "brandCode": "SHIMANO",
+      "subCategoryCode": "DR",
+      "unitCode": "EA",
+      "price": 49,
+      "text": "Shimano SLX M7100 Shifter",
+      "description": "A mountain bike gear shifter from Shimano's SLX M7100 component series.",
+      "sourceUrl": "https://bike.shimano.com/category/mtb.html",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "drivetrain",
+        "shifter"
+      ]
+    },
+    {
+      "sku": "SHIMANO-SLX-M7100-CHAIN",
+      "brandCode": "SHIMANO",
+      "subCategoryCode": "CH",
+      "unitCode": "EA",
+      "price": 39,
+      "text": "Shimano SLX M7100 Chain",
+      "description": "A bicycle chain from Shimano's SLX M7100 mountain bike component series.",
+      "sourceUrl": "https://bike.shimano.com/category/mtb.html",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "drivetrain",
+        "chain"
+      ]
+    },
+    {
+      "sku": "SHIMANO-SLX-M7100-CRANKSET",
+      "brandCode": "SHIMANO",
+      "subCategoryCode": "CR",
+      "unitCode": "EA",
+      "price": 149,
+      "text": "Shimano SLX M7100 Crankset",
+      "description": "A mountain bike crankset from Shimano's SLX M7100 component series.",
+      "sourceUrl": "https://bike.shimano.com/category/mtb.html",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "drivetrain",
+        "crankset"
+      ]
+    },
+    {
+      "sku": "SHIMANO-XT-M8100-SHIFTER",
+      "brandCode": "SHIMANO",
+      "subCategoryCode": "DR",
+      "unitCode": "EA",
+      "price": 69,
+      "text": "Shimano Deore XT M8100 Shifter",
+      "description": "A mountain bike gear shifter from Shimano's Deore XT M8100 component series.",
+      "sourceUrl": "https://bike.shimano.com/category/mtb.html",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "drivetrain",
+        "shifter"
+      ]
+    },
+    {
+      "sku": "SHIMANO-XT-M8100-CHAIN",
+      "brandCode": "SHIMANO",
+      "subCategoryCode": "CH",
+      "unitCode": "EA",
+      "price": 54,
+      "text": "Shimano Deore XT M8100 Chain",
+      "description": "A bicycle chain from Shimano's Deore XT M8100 mountain bike component series.",
+      "sourceUrl": "https://bike.shimano.com/category/mtb.html",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "drivetrain",
+        "chain"
+      ]
+    },
+    {
+      "sku": "SHIMANO-XT-M8100-CRANKSET",
+      "brandCode": "SHIMANO",
+      "subCategoryCode": "CR",
+      "unitCode": "EA",
+      "price": 199,
+      "text": "Shimano Deore XT M8100 Crankset",
+      "description": "A mountain bike crankset from Shimano's Deore XT M8100 component series.",
+      "sourceUrl": "https://bike.shimano.com/category/mtb.html",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "drivetrain",
+        "crankset"
+      ]
+    },
+    {
+      "sku": "SHIMANO-XT-M8100-CASSETTE",
+      "brandCode": "SHIMANO",
+      "subCategoryCode": "CA",
+      "unitCode": "EA",
+      "price": 149,
+      "text": "Shimano Deore XT M8100 Cassette",
+      "description": "A mountain bike cassette from Shimano's Deore XT M8100 component series.",
+      "sourceUrl": "https://bike.shimano.com/category/mtb.html",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "drivetrain",
+        "cassette"
+      ]
+    },
+    {
+      "sku": "SHIMANO-XT-M8120-BRAKE",
+      "brandCode": "SHIMANO",
+      "subCategoryCode": "BR",
+      "unitCode": "EA",
+      "price": 219,
+      "text": "Shimano Deore XT M8120 Disc Brake",
+      "description": "A hydraulic disc brake from Shimano's Deore XT M8120 mountain bike component series.",
+      "sourceUrl": "https://bike.shimano.com/category/mtb.html",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "brakes"
+      ]
+    },
+    {
+      "sku": "SHIMANO-XT-M8100-BRAKE-LEVER",
+      "brandCode": "SHIMANO",
+      "subCategoryCode": "BR",
+      "unitCode": "EA",
+      "price": 89,
+      "text": "Shimano Deore XT M8100 Brake Lever",
+      "description": "A hydraulic brake lever from Shimano's Deore XT M8100 mountain bike component series.",
+      "sourceUrl": "https://bike.shimano.com/category/mtb.html",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "brakes",
+        "lever"
+      ]
+    },
+    {
+      "sku": "SHIMANO-XTR-M9100-DERAILLEUR",
+      "brandCode": "SHIMANO",
+      "subCategoryCode": "DR",
+      "unitCode": "EA",
+      "price": 259,
+      "text": "Shimano XTR M9100 Rear Derailleur",
+      "description": "A rear derailleur from Shimano's XTR M9100 mountain bike component series.",
+      "sourceUrl": "https://bike.shimano.com/category/mtb.html",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "drivetrain",
+        "derailleur"
+      ]
+    },
+    {
+      "sku": "SHIMANO-XTR-M9100-SHIFTER",
+      "brandCode": "SHIMANO",
+      "subCategoryCode": "DR",
+      "unitCode": "EA",
+      "price": 129,
+      "text": "Shimano XTR M9100 Shifter",
+      "description": "A mountain bike gear shifter from Shimano's XTR M9100 component series.",
+      "sourceUrl": "https://bike.shimano.com/category/mtb.html",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "drivetrain",
+        "shifter"
+      ]
+    },
+    {
+      "sku": "SHIMANO-XTR-M9100-CHAIN",
+      "brandCode": "SHIMANO",
+      "subCategoryCode": "CH",
+      "unitCode": "EA",
+      "price": 79,
+      "text": "Shimano XTR M9100 Chain",
+      "description": "A bicycle chain from Shimano's XTR M9100 mountain bike component series.",
+      "sourceUrl": "https://bike.shimano.com/category/mtb.html",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "drivetrain",
+        "chain"
+      ]
+    },
+    {
+      "sku": "SHIMANO-XTR-M9100-CASSETTE",
+      "brandCode": "SHIMANO",
+      "subCategoryCode": "CA",
+      "unitCode": "EA",
+      "price": 399,
+      "text": "Shimano XTR M9100 Cassette",
+      "description": "A mountain bike cassette from Shimano's XTR M9100 component series.",
+      "sourceUrl": "https://bike.shimano.com/category/mtb.html",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "drivetrain",
+        "cassette"
+      ]
+    },
+    {
+      "sku": "SHIMANO-XTR-M9100-CRANKSET",
+      "brandCode": "SHIMANO",
+      "subCategoryCode": "CR",
+      "unitCode": "EA",
+      "price": 499,
+      "text": "Shimano XTR M9100 Crankset",
+      "description": "A mountain bike crankset from Shimano's XTR M9100 component series.",
+      "sourceUrl": "https://bike.shimano.com/products/components/pdp.P-FC-M9100-1.html",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "drivetrain",
+        "crankset"
+      ]
+    },
+    {
+      "sku": "SHIMANO-XTR-M9100-BRAKE",
+      "brandCode": "SHIMANO",
+      "subCategoryCode": "BR",
+      "unitCode": "EA",
+      "price": 399,
+      "text": "Shimano XTR M9100 Disc Brake",
+      "description": "A hydraulic disc brake from Shimano's XTR M9100 mountain bike component series.",
+      "sourceUrl": "https://bike.shimano.com/category/mtb.html",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "brakes"
+      ]
+    },
+    {
+      "sku": "SHIMANO-DEORE-M6100-DERAILLEUR",
+      "brandCode": "SHIMANO",
+      "subCategoryCode": "DR",
+      "unitCode": "EA",
+      "price": 64,
+      "text": "Shimano Deore M6100 Rear Derailleur",
+      "description": "A rear derailleur from Shimano's Deore M6100 mountain bike component series.",
+      "sourceUrl": "https://bike.shimano.com/category/mtb.html",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "drivetrain",
+        "derailleur"
+      ]
+    },
+    {
+      "sku": "SHIMANO-DEORE-M6100-CASSETTE",
+      "brandCode": "SHIMANO",
+      "subCategoryCode": "CA",
+      "unitCode": "EA",
+      "price": 119,
+      "text": "Shimano Deore M6100 Cassette",
+      "description": "A mountain bike cassette from Shimano's Deore M6100 component series.",
+      "sourceUrl": "https://bike.shimano.com/category/mtb.html",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "drivetrain",
+        "cassette"
+      ]
+    },
+    {
+      "sku": "SRAM-GX-EAGLE-CASSETTE",
+      "brandCode": "SRAM",
+      "subCategoryCode": "CA",
+      "unitCode": "EA",
+      "price": 235,
+      "text": "SRAM GX Eagle Cassette",
+      "description": "A mountain bike cassette from SRAM's GX Eagle drivetrain family.",
+      "sourceUrl": "https://www.sram.com/en/sram/mountain/series/gx-eagle/gx-eagle?page=1",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "drivetrain",
+        "cassette"
+      ]
+    },
+    {
+      "sku": "SRAM-X01-EAGLE-CASSETTE",
+      "brandCode": "SRAM",
+      "subCategoryCode": "CA",
+      "unitCode": "EA",
+      "price": 349,
+      "text": "SRAM X01 Eagle Cassette",
+      "description": "A mountain bike cassette from SRAM's X01 Eagle drivetrain family.",
+      "sourceUrl": "https://www.sram.com/en/sram/mountain/series/x01-eagle",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "drivetrain",
+        "cassette"
+      ]
+    },
+    {
+      "sku": "SRAM-XX1-EAGLE-CHAIN",
+      "brandCode": "SRAM",
+      "subCategoryCode": "CH",
+      "unitCode": "EA",
+      "price": 89,
+      "text": "SRAM XX1 Eagle Chain",
+      "description": "A bicycle chain from SRAM's XX1 Eagle mountain bike drivetrain family.",
+      "sourceUrl": "https://www.sram.com/en/sram/models/cn-eagle-xx1-a1",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "drivetrain",
+        "chain"
+      ]
+    },
+    {
+      "sku": "SRAM-GX-EAGLE-CHAIN",
+      "brandCode": "SRAM",
+      "subCategoryCode": "CH",
+      "unitCode": "EA",
+      "price": 42,
+      "text": "SRAM GX Eagle Chain",
+      "description": "A bicycle chain from SRAM's GX Eagle mountain bike drivetrain family.",
+      "sourceUrl": "https://www.sram.com/en/sram/mountain/series/gx-eagle/gx-eagle?page=1",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "drivetrain",
+        "chain"
+      ]
+    },
+    {
+      "sku": "SRAM-GX-EAGLE-CRANKSET",
+      "brandCode": "SRAM",
+      "subCategoryCode": "CR",
+      "unitCode": "EA",
+      "price": 159,
+      "text": "SRAM GX Eagle Crankset",
+      "description": "A mountain bike crankset from SRAM's GX Eagle drivetrain family.",
+      "sourceUrl": "https://www.sram.com/en/sram/mountain/series/gx-eagle/gx-eagle?page=1",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "drivetrain",
+        "crankset"
+      ]
+    },
+    {
+      "sku": "SRAM-GX-EAGLE-SHIFTER",
+      "brandCode": "SRAM",
+      "subCategoryCode": "DR",
+      "unitCode": "EA",
+      "price": 49,
+      "text": "SRAM GX Eagle Trigger Shifter",
+      "description": "A mountain bike gear shifter from SRAM's GX Eagle drivetrain family.",
+      "sourceUrl": "https://www.sram.com/en/sram/mountain/series/gx-eagle/gx-eagle?page=1",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "drivetrain",
+        "shifter"
+      ]
+    },
+    {
+      "sku": "SRAM-X01-EAGLE-AXS-DERAILLEUR",
+      "brandCode": "SRAM",
+      "subCategoryCode": "DR",
+      "unitCode": "EA",
+      "price": 499,
+      "text": "SRAM X01 Eagle AXS Rear Derailleur",
+      "description": "A wireless electronic rear derailleur from SRAM's X01 Eagle AXS mountain bike drivetrain family.",
+      "sourceUrl": "https://www.sram.com/en/sram/models/rd-x0-1-e-a1",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "drivetrain",
+        "derailleur",
+        "electronic"
+      ]
+    },
+    {
+      "sku": "SRAM-XX1-EAGLE-AXS-DERAILLEUR",
+      "brandCode": "SRAM",
+      "subCategoryCode": "DR",
+      "unitCode": "EA",
+      "price": 699,
+      "text": "SRAM XX1 Eagle AXS Rear Derailleur",
+      "description": "A wireless electronic rear derailleur from SRAM's XX1 Eagle AXS mountain bike drivetrain family.",
+      "sourceUrl": "https://www.sram.com/en/sram/models/rd-xx-1-e-a1",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "drivetrain",
+        "derailleur",
+        "electronic"
+      ]
+    },
+    {
+      "sku": "SRAM-GX-TRANSMISSION-DERAILLEUR",
+      "brandCode": "SRAM",
+      "subCategoryCode": "DR",
+      "unitCode": "EA",
+      "price": 599,
+      "text": "SRAM GX Eagle Transmission Rear Derailleur",
+      "description": "A rear derailleur from SRAM's GX Eagle Transmission mountain bike drivetrain family.",
+      "sourceUrl": "https://www.sram.com/en/sram/mountain/series/gx-eagle-transmission/gx-eagle-transmission",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "drivetrain",
+        "derailleur",
+        "electronic"
+      ]
+    },
+    {
+      "sku": "SRAM-CODE-RSC-BRAKE",
+      "brandCode": "SRAM",
+      "subCategoryCode": "BR",
+      "unitCode": "EA",
+      "price": 349,
+      "text": "SRAM Code RSC Disc Brake",
+      "description": "A hydraulic disc brake from SRAM's Code mountain bike brake family.",
+      "sourceUrl": "https://www.sram.com/en/sram/models/db-codr-d1",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "brakes"
+      ]
+    },
+    {
+      "sku": "SRAM-MAVEN-ULTIMATE-BRAKE",
+      "brandCode": "SRAM",
+      "subCategoryCode": "BR",
+      "unitCode": "EA",
+      "price": 699,
+      "text": "SRAM Maven Ultimate Disc Brake",
+      "description": "A hydraulic disc brake from SRAM's Maven mountain bike brake family.",
+      "sourceUrl": "https://www.sram.com/en/sram/mountain/series/maven/maven",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "brakes"
+      ]
+    },
+    {
+      "sku": "SRAM-MAVEN-SILVER-BRAKE",
+      "brandCode": "SRAM",
+      "subCategoryCode": "BR",
+      "unitCode": "EA",
+      "price": 499,
+      "text": "SRAM Maven Silver Disc Brake",
+      "description": "A hydraulic disc brake from SRAM's Maven mountain bike brake family.",
+      "sourceUrl": "https://www.sram.com/en/sram/mountain/series/maven/maven",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "brakes"
+      ]
+    },
+    {
+      "sku": "SRAM-LEVEL-ULTIMATE-BRAKE",
+      "brandCode": "SRAM",
+      "subCategoryCode": "BR",
+      "unitCode": "EA",
+      "price": 399,
+      "text": "SRAM Level Ultimate Disc Brake",
+      "description": "A hydraulic disc brake from SRAM's Level mountain bike brake family.",
+      "sourceUrl": "https://www.sram.com/en/sram/mountain/series/level/level",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "brakes"
+      ]
+    },
+    {
+      "sku": "SRAM-XX-TRANSMISSION-CASSETTE",
+      "brandCode": "SRAM",
+      "subCategoryCode": "CA",
+      "unitCode": "EA",
+      "price": 699,
+      "text": "SRAM XX Eagle Transmission Cassette",
+      "description": "A cassette from SRAM's XX Eagle Transmission mountain bike drivetrain family.",
+      "sourceUrl": "https://www.sram.com/en/sram/mountain/series/gx-eagle-transmission/gx-eagle-transmission",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "drivetrain",
+        "cassette"
+      ]
+    },
+    {
+      "sku": "SRAM-XX-TRANSMISSION-CHAIN",
+      "brandCode": "SRAM",
+      "subCategoryCode": "CH",
+      "unitCode": "EA",
+      "price": 89,
+      "text": "SRAM XX Eagle Transmission Chain",
+      "description": "A chain from SRAM's XX Eagle Transmission mountain bike drivetrain family.",
+      "sourceUrl": "https://www.sram.com/en/sram/mountain/series/gx-eagle-transmission/gx-eagle-transmission",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "drivetrain",
+        "chain"
+      ]
+    },
+    {
+      "sku": "SRAM-X01-EAGLE-CRANKSET",
+      "brandCode": "SRAM",
+      "subCategoryCode": "CR",
+      "unitCode": "EA",
+      "price": 329,
+      "text": "SRAM X01 Eagle Crankset",
+      "description": "A mountain bike crankset from SRAM's X01 Eagle drivetrain family.",
+      "sourceUrl": "https://www.sram.com/en/sram/mountain/series/x01-eagle",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "drivetrain",
+        "crankset"
+      ]
+    },
+    {
+      "sku": "FOX-32-SC-FACTORY",
+      "brandCode": "FOX",
+      "subCategoryCode": "FS",
+      "unitCode": "EA",
+      "price": 1099,
+      "text": "FOX 32 Step-Cast Factory Fork",
+      "description": "A mountain bike suspension fork in FOX's 32 Step-Cast Factory series for cross-country riding.",
+      "sourceUrl": "https://www.ridefox.com/family.php?m=bike&family=32",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "suspension",
+        "fork",
+        "cross-country"
+      ]
+    },
+    {
+      "sku": "FOX-34-FACTORY",
+      "brandCode": "FOX",
+      "subCategoryCode": "FS",
+      "unitCode": "EA",
+      "price": 1199,
+      "text": "FOX 34 Factory Fork",
+      "description": "A mountain bike suspension fork in FOX's 34 Factory series for trail and downcountry riding.",
+      "sourceUrl": "https://ridefox.com/collections/fox-34",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "suspension",
+        "fork",
+        "trail"
+      ]
+    },
+    {
+      "sku": "FOX-34-FACTORY-GRIP-X",
+      "brandCode": "FOX",
+      "subCategoryCode": "FS",
+      "unitCode": "EA",
+      "price": 1199,
+      "text": "FOX 34 Factory GRIP X Fork",
+      "description": "A mountain bike suspension fork in FOX's 34 Factory GRIP X series for trail riding.",
+      "sourceUrl": "https://ridefox.com/collections/fox-34",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "suspension",
+        "fork",
+        "trail"
+      ]
+    },
+    {
+      "sku": "FOX-34-PERFORMANCE-ELITE",
+      "brandCode": "FOX",
+      "subCategoryCode": "FS",
+      "unitCode": "EA",
+      "price": 899,
+      "text": "FOX 34 Performance Elite Fork",
+      "description": "A mountain bike suspension fork in FOX's 34 Performance Elite series.",
+      "sourceUrl": "https://ridefox.com/collections/fox-34",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "suspension",
+        "fork"
+      ]
+    },
+    {
+      "sku": "FOX-36-SL-FACTORY",
+      "brandCode": "FOX",
+      "subCategoryCode": "FS",
+      "unitCode": "EA",
+      "price": 1199,
+      "text": "FOX 36 SL Factory GRIP X Fork",
+      "description": "A mountain bike suspension fork in FOX's 36 SL Factory series for trail and downcountry riding.",
+      "sourceUrl": "https://ridefox.com/products/my27-fox-36-sl-factory-gripx",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "suspension",
+        "fork",
+        "trail"
+      ]
+    },
+    {
+      "sku": "FOX-36-FACTORY-GRIP-X",
+      "brandCode": "FOX",
+      "subCategoryCode": "FS",
+      "unitCode": "EA",
+      "price": 1299,
+      "text": "FOX 36 Factory GRIP X Fork",
+      "description": "A mountain bike suspension fork in FOX's 36 Factory GRIP X series for trail riding.",
+      "sourceUrl": "https://ridefox.com/products/my27-fox-36-factory-gripx",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "suspension",
+        "fork",
+        "trail"
+      ]
+    },
+    {
+      "sku": "FOX-36-FACTORY-GRIP-X2",
+      "brandCode": "FOX",
+      "subCategoryCode": "FS",
+      "unitCode": "EA",
+      "price": 1399,
+      "text": "FOX 36 Factory GRIP X2 Fork",
+      "description": "A mountain bike suspension fork in FOX's 36 Factory GRIP X2 series for all-mountain riding.",
+      "sourceUrl": "https://ridefox.com/products/my27-fox-36-factory-gripx2",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "suspension",
+        "fork",
+        "all-mountain"
+      ]
+    },
+    {
+      "sku": "FOX-36-PERFORMANCE-ELITE",
+      "brandCode": "FOX",
+      "subCategoryCode": "FS",
+      "unitCode": "EA",
+      "price": 999,
+      "text": "FOX 36 Performance Elite GRIP X Fork",
+      "description": "A mountain bike suspension fork in FOX's 36 Performance Elite series.",
+      "sourceUrl": "https://ridefox.com/products/my27-fox-36-pse-gripx-fcb6ecad",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "suspension",
+        "fork"
+      ]
+    },
+    {
+      "sku": "FOX-38-FACTORY",
+      "brandCode": "FOX",
+      "subCategoryCode": "FS",
+      "unitCode": "EA",
+      "price": 1399,
+      "text": "FOX 38 Factory Fork",
+      "description": "A mountain bike suspension fork in FOX's 38 Factory series for enduro riding.",
+      "sourceUrl": "https://ridefox.com/products/my27-fox-38-factory",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "suspension",
+        "fork",
+        "enduro"
+      ]
+    },
+    {
+      "sku": "FOX-38-PERFORMANCE-ELITE",
+      "brandCode": "FOX",
+      "subCategoryCode": "FS",
+      "unitCode": "EA",
+      "price": 1199,
+      "text": "FOX 38 Performance Elite Fork",
+      "description": "A mountain bike suspension fork in FOX's 38 Performance Elite series.",
+      "sourceUrl": "https://ridefox.com/products/my27-fox-38-pse-d795211b",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "suspension",
+        "fork",
+        "enduro"
+      ]
+    },
+    {
+      "sku": "FOX-40-FACTORY",
+      "brandCode": "FOX",
+      "subCategoryCode": "FS",
+      "unitCode": "EA",
+      "price": 1899,
+      "text": "FOX 40 Factory Downhill Fork",
+      "description": "A dual-crown suspension fork in FOX's 40 Factory downhill series.",
+      "sourceUrl": "https://ridefox.com/products/fox-40-factory-grip-x2-dh-fork-for-downhill-riding",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "suspension",
+        "fork",
+        "downhill"
+      ]
+    },
+    {
+      "sku": "FOX-FLOAT-DPS-FACTORY",
+      "brandCode": "FOX",
+      "subCategoryCode": "RS",
+      "unitCode": "EA",
+      "price": 599,
+      "text": "FOX Float DPS Factory Rear Shock",
+      "description": "An air-sprung rear shock in FOX's Float DPS Factory mountain bike suspension series.",
+      "sourceUrl": "https://www.ridefox.com/family.php?m=bike&family=floatdps",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "suspension",
+        "rear-shock"
+      ]
+    },
+    {
+      "sku": "FOX-FLOAT-X-FACTORY",
+      "brandCode": "FOX",
+      "subCategoryCode": "RS",
+      "unitCode": "EA",
+      "price": 699,
+      "text": "FOX Float X Factory Rear Shock",
+      "description": "An air-sprung rear shock in FOX's Float X Factory mountain bike suspension series.",
+      "sourceUrl": "https://ridefox.com/pages/fox-float-x",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "suspension",
+        "rear-shock"
+      ]
+    },
+    {
+      "sku": "FOX-FLOAT-X2-FACTORY",
+      "brandCode": "FOX",
+      "subCategoryCode": "RS",
+      "unitCode": "EA",
+      "price": 799,
+      "text": "FOX Float X2 Factory Rear Shock",
+      "description": "An air-sprung rear shock in FOX's Float X2 Factory mountain bike suspension series.",
+      "sourceUrl": "https://www.ridefox.com/family.php?m=bike&family=floatx2",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "suspension",
+        "rear-shock"
+      ]
+    },
+    {
+      "sku": "FOX-DHX-FACTORY",
+      "brandCode": "FOX",
+      "subCategoryCode": "RS",
+      "unitCode": "EA",
+      "price": 699,
+      "text": "FOX DHX Factory Coil Shock",
+      "description": "A coil-sprung rear shock in FOX's DHX Factory mountain bike suspension series.",
+      "sourceUrl": "https://ca.ridefox.com/products/fox-dhx-factory",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "suspension",
+        "rear-shock",
+        "coil"
+      ]
+    },
+    {
+      "sku": "MAXXIS-ASSEGAI",
+      "brandCode": "MAXXIS",
+      "subCategoryCode": "TY",
+      "unitCode": "EA",
+      "price": 99,
+      "text": "Maxxis Assegai Mountain Bike Tire",
+      "description": "A mountain bike tire in Maxxis's Assegai tread family for enduro and downhill riding.",
+      "sourceUrl": "https://shop.maxxis.com/products/assegai",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "tire",
+        "enduro",
+        "downhill"
+      ]
+    },
+    {
+      "sku": "MAXXIS-MINION-DHF",
+      "brandCode": "MAXXIS",
+      "subCategoryCode": "TY",
+      "unitCode": "EA",
+      "price": 95,
+      "text": "Maxxis Minion DHF Mountain Bike Tire",
+      "description": "A mountain bike tire in Maxxis's Minion DHF tread family, commonly used at the front for trail, enduro, and downhill riding.",
+      "sourceUrl": "https://shop.maxxis.com/products/minion-dhf-1",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "tire",
+        "front",
+        "enduro"
+      ]
+    },
+    {
+      "sku": "MAXXIS-MINION-DHR-II",
+      "brandCode": "MAXXIS",
+      "subCategoryCode": "TY",
+      "unitCode": "EA",
+      "price": 95,
+      "text": "Maxxis Minion DHR II Mountain Bike Tire",
+      "description": "A mountain bike tire in Maxxis's Minion DHR II tread family with a braking-oriented tread pattern.",
+      "sourceUrl": "https://shop.maxxis.com/products/minion-dhr-ii",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "tire",
+        "rear",
+        "braking"
+      ]
+    },
+    {
+      "sku": "MAXXIS-DISSECTOR",
+      "brandCode": "MAXXIS",
+      "subCategoryCode": "TY",
+      "unitCode": "EA",
+      "price": 89,
+      "text": "Maxxis Dissector Mountain Bike Tire",
+      "description": "A mountain bike tire in Maxxis's Dissector tread family for trail and enduro riding.",
+      "sourceUrl": "https://shop.maxxis.com/products/dissector",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "tire",
+        "trail",
+        "enduro"
+      ]
+    },
+    {
+      "sku": "MAXXIS-REKON",
+      "brandCode": "MAXXIS",
+      "subCategoryCode": "TY",
+      "unitCode": "EA",
+      "price": 79,
+      "text": "Maxxis Rekon Mountain Bike Tire",
+      "description": "A mountain bike tire in Maxxis's Rekon tread family for cross-country and trail riding.",
+      "sourceUrl": "https://shop.maxxis.com/products/rekon",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "tire",
+        "cross-country",
+        "trail"
+      ]
+    },
+    {
+      "sku": "MAXXIS-REKON-RACE",
+      "brandCode": "MAXXIS",
+      "subCategoryCode": "TY",
+      "unitCode": "EA",
+      "price": 79,
+      "text": "Maxxis Rekon Race Mountain Bike Tire",
+      "description": "A low-profile mountain bike tire in Maxxis's Rekon Race family for cross-country racing.",
+      "sourceUrl": "https://www.maxxis.com/us/tire/rekon-race/",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "tire",
+        "cross-country",
+        "race"
+      ]
+    },
+    {
+      "sku": "MAXXIS-FOREKASTER",
+      "brandCode": "MAXXIS",
+      "subCategoryCode": "TY",
+      "unitCode": "EA",
+      "price": 84,
+      "text": "Maxxis Forekaster Mountain Bike Tire",
+      "description": "A mountain bike tire in Maxxis's Forekaster tread family for trail riding in mixed conditions.",
+      "sourceUrl": "https://www.maxxis.com/us/tire/forekaster/",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "tire",
+        "trail",
+        "mixed-conditions"
+      ]
+    },
+    {
+      "sku": "MAXXIS-HIGH-ROLLER-II",
+      "brandCode": "MAXXIS",
+      "subCategoryCode": "TY",
+      "unitCode": "EA",
+      "price": 89,
+      "text": "Maxxis High Roller II Mountain Bike Tire",
+      "description": "An aggressive mountain bike tire in Maxxis's High Roller II tread family for loose and varied terrain.",
+      "sourceUrl": "https://www.maxxis.com/us/tire/high-roller/",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "tire",
+        "loose-terrain"
+      ]
+    },
+    {
+      "sku": "MAXXIS-SHORTY",
+      "brandCode": "MAXXIS",
+      "subCategoryCode": "TY",
+      "unitCode": "EA",
+      "price": 99,
+      "text": "Maxxis Shorty Mountain Bike Tire",
+      "description": "A mountain bike tire in Maxxis's Shorty tread family for muddy and loose conditions.",
+      "sourceUrl": "https://www.maxxis.com/us/tire/shorty/",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "tire",
+        "mud",
+        "downhill"
+      ]
+    },
+    {
+      "sku": "MAXXIS-AGGRESSOR",
+      "brandCode": "MAXXIS",
+      "subCategoryCode": "TY",
+      "unitCode": "EA",
+      "price": 89,
+      "text": "Maxxis Aggressor Mountain Bike Tire",
+      "description": "A mountain bike tire in Maxxis's Aggressor tread family, often selected for the rear on dry, rocky trails.",
+      "sourceUrl": "https://www.maxxis.com/us/tire/aggressor/",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "tire",
+        "rear",
+        "dry-trail"
+      ]
+    },
+    {
+      "sku": "MAXXIS-ARDENT",
+      "brandCode": "MAXXIS",
+      "subCategoryCode": "TY",
+      "unitCode": "EA",
+      "price": 75,
+      "text": "Maxxis Ardent Mountain Bike Tire",
+      "description": "A mountain bike tire in Maxxis's Ardent tread family for cross-country and trail riding.",
+      "sourceUrl": "https://www.maxxis.com/us/tire/ardent/",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "tire",
+        "cross-country",
+        "trail"
+      ]
+    },
+    {
+      "sku": "MAXXIS-ARDENT-RACE",
+      "brandCode": "MAXXIS",
+      "subCategoryCode": "TY",
+      "unitCode": "EA",
+      "price": 79,
+      "text": "Maxxis Ardent Race Mountain Bike Tire",
+      "description": "A mountain bike tire in Maxxis's Ardent Race tread family for cross-country riding.",
+      "sourceUrl": "https://www.maxxis.com/us/tire/ardent-race/",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "tire",
+        "cross-country",
+        "race"
+      ]
+    },
+    {
+      "sku": "MAXXIS-IKON",
+      "brandCode": "MAXXIS",
+      "subCategoryCode": "TY",
+      "unitCode": "EA",
+      "price": 79,
+      "text": "Maxxis Ikon Mountain Bike Tire",
+      "description": "A mountain bike tire in Maxxis's Ikon tread family for cross-country riding.",
+      "sourceUrl": "https://www.maxxis.com/us/tire/ikon/",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "tire",
+        "cross-country"
+      ]
+    },
+    {
+      "sku": "MAXXIS-ASPEN",
+      "brandCode": "MAXXIS",
+      "subCategoryCode": "TY",
+      "unitCode": "EA",
+      "price": 89,
+      "text": "Maxxis Aspen Mountain Bike Tire",
+      "description": "A mountain bike tire in Maxxis's Aspen tread family for cross-country riding and racing.",
+      "sourceUrl": "https://shop.maxxis.com/products/aspen",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "tire",
+        "cross-country",
+        "race"
+      ]
+    },
+    {
+      "sku": "MAXXIS-ASPEN-ST",
+      "brandCode": "MAXXIS",
+      "subCategoryCode": "TY",
+      "unitCode": "EA",
+      "price": 99,
+      "text": "Maxxis Aspen ST Mountain Bike Tire",
+      "description": "A low-profile mountain bike tire in Maxxis's Aspen ST family for short-track cross-country racing.",
+      "sourceUrl": "https://www.maxxis.com/us/tire/aspen-st/",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "tire",
+        "cross-country",
+        "race"
+      ]
+    },
+    {
+      "sku": "MAXXIS-ASPEN-AT",
+      "brandCode": "MAXXIS",
+      "subCategoryCode": "TY",
+      "unitCode": "EA",
+      "price": 99,
+      "text": "Maxxis Aspen AT Mountain Bike Tire",
+      "description": "A mountain bike tire in Maxxis's Aspen AT family for cross-country riding across varied terrain.",
+      "sourceUrl": "https://www.maxxis.com/us/tire/aspen-at/",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "tire",
+        "cross-country",
+        "all-terrain"
+      ]
+    },
+    {
+      "sku": "MAXXIS-CROSSMARK-II",
+      "brandCode": "MAXXIS",
+      "subCategoryCode": "TY",
+      "unitCode": "EA",
+      "price": 69,
+      "text": "Maxxis Crossmark II Mountain Bike Tire",
+      "description": "A mountain bike tire in Maxxis's Crossmark II tread family with a fast-rolling center ridge for dry conditions.",
+      "sourceUrl": "https://www.maxxis.com/us/tire/crossmark-ii/",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "tire",
+        "cross-country",
+        "fast-rolling"
+      ]
+    },
+    {
+      "sku": "MAXXIS-MINION-SS",
+      "brandCode": "MAXXIS",
+      "subCategoryCode": "TY",
+      "unitCode": "EA",
+      "price": 89,
+      "text": "Maxxis Minion SS Mountain Bike Tire",
+      "description": "A semi-slick mountain bike tire in Maxxis's Minion SS family for fast-rolling conditions.",
+      "sourceUrl": "https://www.maxxis.com/us/tire/minion-ss/",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "tire",
+        "semi-slick",
+        "fast-rolling"
+      ]
+    },
+    {
+      "sku": "MAXXIS-MINION-FBF",
+      "brandCode": "MAXXIS",
+      "subCategoryCode": "TY",
+      "unitCode": "EA",
+      "price": 109,
+      "text": "Maxxis Minion FBF Fat Bike Front Tire",
+      "description": "A front tire in Maxxis's Minion FBF fat-bike tread family.",
+      "sourceUrl": "https://www.maxxis.com/us/tire/minion-fbf/",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "tire",
+        "fat-bike",
+        "front"
+      ]
+    },
+    {
+      "sku": "MAXXIS-MINION-FBR",
+      "brandCode": "MAXXIS",
+      "subCategoryCode": "TY",
+      "unitCode": "EA",
+      "price": 109,
+      "text": "Maxxis Minion FBR Fat Bike Rear Tire",
+      "description": "A rear tire in Maxxis's Minion FBR fat-bike tread family.",
+      "sourceUrl": "https://www.maxxis.com/us/tire/minion-fbr/",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "tire",
+        "fat-bike",
+        "rear"
+      ]
+    },
+    {
+      "sku": "ONEUP-V3-DROPPER-120",
+      "brandCode": "ONEUP",
+      "subCategoryCode": "SP",
+      "unitCode": "EA",
+      "price": 269,
+      "text": "OneUp Dropper Post V3 120mm",
+      "description": "A mountain bike dropper seatpost with 120 mm of travel from OneUp Components' V3 series.",
+      "sourceUrl": "https://www.oneupcomponents.com/products/dropper-post-v3",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "dropper",
+        "seatpost"
+      ]
+    },
+    {
+      "sku": "ONEUP-V3-DROPPER-210",
+      "brandCode": "ONEUP",
+      "subCategoryCode": "SP",
+      "unitCode": "EA",
+      "price": 269,
+      "text": "OneUp Dropper Post V3 210mm",
+      "description": "A mountain bike dropper seatpost with 210 mm of travel from OneUp Components' V3 series.",
+      "sourceUrl": "https://www.oneupcomponents.com/products/dropper-post-v3",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "dropper",
+        "seatpost"
+      ]
+    },
+    {
+      "sku": "ONEUP-V3-DROPPER-240",
+      "brandCode": "ONEUP",
+      "subCategoryCode": "SP",
+      "unitCode": "EA",
+      "price": 269,
+      "text": "OneUp Dropper Post V3 240mm",
+      "description": "A mountain bike dropper seatpost with 240 mm of travel from OneUp Components' V3 series.",
+      "sourceUrl": "https://www.oneupcomponents.com/products/dropper-post-v3",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "dropper",
+        "seatpost"
+      ]
+    },
+    {
+      "sku": "ONEUP-V2-CARBON-HANDLEBAR",
+      "brandCode": "ONEUP",
+      "subCategoryCode": "HB",
+      "unitCode": "EA",
+      "price": 159,
+      "text": "OneUp V2 Carbon Handlebar",
+      "description": "A carbon mountain bike handlebar from OneUp Components' V2 series.",
+      "sourceUrl": "https://www.oneupcomponents.com/products/v2-carbon-handlebar",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "cockpit",
+        "handlebar"
+      ]
+    },
+    {
+      "sku": "ONEUP-ALUMINUM-HANDLEBAR",
+      "brandCode": "ONEUP",
+      "subCategoryCode": "HB",
+      "unitCode": "EA",
+      "price": 89,
+      "text": "OneUp Aluminum Handlebar",
+      "description": "An aluminum handlebar for mountain bikes from OneUp Components.",
+      "sourceUrl": "https://www.oneupcomponents.com/collections/handlebars",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "cockpit",
+        "handlebar"
+      ]
+    },
+    {
+      "sku": "ONEUP-ALUMINUM-PEDAL",
+      "brandCode": "ONEUP",
+      "subCategoryCode": "PE",
+      "unitCode": "PR",
+      "price": 149,
+      "text": "OneUp Aluminum Pedals",
+      "description": "Flat platform pedals for mountain bikes from OneUp Components.",
+      "sourceUrl": "https://www.oneupcomponents.com/collections/pedals",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "pedals",
+        "flat-pedal"
+      ]
+    },
+    {
+      "sku": "ONEUP-EDC-V2-TOOL",
+      "brandCode": "ONEUP",
+      "subCategoryCode": "TO",
+      "unitCode": "EA",
+      "price": 59,
+      "text": "OneUp EDC Tool V2",
+      "description": "A compact trailside multi-tool from OneUp Components' EDC V2 family.",
+      "sourceUrl": "https://www.oneupcomponents.com/products/edc-v2-tool",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "tool",
+        "repair"
+      ]
+    },
+    {
+      "sku": "ONEUP-EDC-LITE-TOOL",
+      "brandCode": "ONEUP",
+      "subCategoryCode": "TO",
+      "unitCode": "EA",
+      "price": 39,
+      "text": "OneUp EDC Lite Tool",
+      "description": "A compact multi-tool in OneUp Components' EDC Lite tool family for mountain bike repairs.",
+      "sourceUrl": "https://www.oneupcomponents.com/collections/edc",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "tool",
+        "repair"
+      ]
+    },
+    {
+      "sku": "ONEUP-EDC-PUMP-100",
+      "brandCode": "ONEUP",
+      "subCategoryCode": "TO",
+      "unitCode": "EA",
+      "price": 59,
+      "text": "OneUp EDC Pump 100cc",
+      "description": "A compact hand pump in OneUp Components' EDC pump family for carrying on mountain bike rides.",
+      "sourceUrl": "https://www.oneupcomponents.com/collections/edc",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "pump",
+        "repair"
+      ]
+    },
+    {
+      "sku": "ONEUP-EDC-PUMP-70",
+      "brandCode": "ONEUP",
+      "subCategoryCode": "TO",
+      "unitCode": "EA",
+      "price": 49,
+      "text": "OneUp EDC Pump 70cc",
+      "description": "A compact hand pump in OneUp Components' EDC pump family for carrying on mountain bike rides.",
+      "sourceUrl": "https://www.oneupcomponents.com/collections/edc",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "pump",
+        "repair"
+      ]
+    },
+    {
+      "sku": "ONEUP-EDC-TOP-CAP",
+      "brandCode": "ONEUP",
+      "subCategoryCode": "TO",
+      "unitCode": "EA",
+      "price": 29,
+      "text": "OneUp EDC Top Cap",
+      "description": "A top cap in OneUp Components' EDC system for mountain bike tool storage.",
+      "sourceUrl": "https://www.oneupcomponents.com/collections/edc",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "tool-storage"
+      ]
+    },
+    {
+      "sku": "ONEUP-CHAIN-GUIDE",
+      "brandCode": "ONEUP",
+      "subCategoryCode": "CG",
+      "unitCode": "EA",
+      "price": 79,
+      "text": "OneUp Chain Guide",
+      "description": "A chain guide for mountain bikes from OneUp Components.",
+      "sourceUrl": "https://www.oneupcomponents.com/collections/components",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "drivetrain",
+        "chain-guide"
+      ]
+    },
+    {
+      "sku": "ONEUP-BASH-GUIDE",
+      "brandCode": "ONEUP",
+      "subCategoryCode": "BG",
+      "unitCode": "EA",
+      "price": 89,
+      "text": "OneUp Bash Guide",
+      "description": "A bash guide for mountain bikes from OneUp Components.",
+      "sourceUrl": "https://www.oneupcomponents.com/collections/components",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "drivetrain",
+        "bash-guide"
+      ]
+    },
+    {
+      "sku": "ONEUP-V3-REMOTE",
+      "brandCode": "ONEUP",
+      "subCategoryCode": "SP",
+      "unitCode": "EA",
+      "price": 59,
+      "text": "OneUp V3 Dropper Remote",
+      "description": "A handlebar remote control in OneUp Components' V3 dropper post system.",
+      "sourceUrl": "https://www.oneupcomponents.com/products/dropper-post-v3",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "dropper",
+        "remote"
+      ]
+    },
+    {
+      "sku": "ONEUP-THICK-GRIP",
+      "brandCode": "ONEUP",
+      "subCategoryCode": "HB",
+      "unitCode": "PR",
+      "price": 29,
+      "text": "OneUp Thick Lock-On Grips",
+      "description": "Lock-on grips for mountain bike handlebars from OneUp Components.",
+      "sourceUrl": "https://www.oneupcomponents.com/collections/grips",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "cockpit",
+        "grips"
+      ]
+    },
+    {
+      "sku": "ONEUP-DIRECT-MOUNT-STEM",
+      "brandCode": "ONEUP",
+      "subCategoryCode": "HB",
+      "unitCode": "EA",
+      "price": 109,
+      "text": "OneUp Direct Mount Stem",
+      "description": "A direct-mount stem for mountain bike handlebars from OneUp Components.",
+      "sourceUrl": "https://www.oneupcomponents.com/collections/components",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "cockpit",
+        "stem"
+      ]
+    },
+    {
+      "sku": "ONEUP-CARBON-EBAR",
+      "brandCode": "ONEUP",
+      "subCategoryCode": "HB",
+      "unitCode": "EA",
+      "price": 169,
+      "text": "OneUp Carbon E-Bar",
+      "description": "A carbon handlebar from OneUp Components' E-Bar series for electric mountain bikes.",
+      "sourceUrl": "https://www.oneupcomponents.com/collections/handlebars",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "cockpit",
+        "handlebar",
+        "electric"
+      ]
+    },
+    {
+      "sku": "FOXRACING-UNION-FLAT-SHOE",
+      "brandCode": "FOXRACING",
+      "subCategoryCode": "SH",
+      "unitCode": "PR",
+      "price": 179,
+      "text": "Fox Racing Union Flat Mountain Bike Shoe",
+      "description": "A flat-pedal mountain bike shoe in Fox Racing's Union footwear family.",
+      "sourceUrl": "https://www.foxracing.com/product/fox-union-flat-shoes/29354.html",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "shoe",
+        "flat-pedal"
+      ]
+    },
+    {
+      "sku": "FOXRACING-UNION-BOA-FLAT",
+      "brandCode": "FOXRACING",
+      "subCategoryCode": "SH",
+      "unitCode": "PR",
+      "price": 249,
+      "text": "Fox Racing Union BOA Flat Mountain Bike Shoe",
+      "description": "A flat-pedal mountain bike shoe with BOA closure in Fox Racing's Union footwear family.",
+      "sourceUrl": "https://www.foxracing.com/products/union-boa-flat-shoes/32347.html",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "shoe",
+        "flat-pedal"
+      ]
+    },
+    {
+      "sku": "FOXRACING-UNION-CLIPLESS",
+      "brandCode": "FOXRACING",
+      "subCategoryCode": "SH",
+      "unitCode": "PR",
+      "price": 229,
+      "text": "Fox Racing Union Clipless Mountain Bike Shoe",
+      "description": "A clipless mountain bike shoe in Fox Racing's Union footwear family.",
+      "sourceUrl": "https://www.foxracing.com/products/union-clipless-shoes/31948.html",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "shoe",
+        "clipless"
+      ]
+    },
+    {
+      "sku": "FOXRACING-UNION-BOA-CLIPLESS",
+      "brandCode": "FOXRACING",
+      "subCategoryCode": "SH",
+      "unitCode": "PR",
+      "price": 279,
+      "text": "Fox Racing Union BOA Clipless Mountain Bike Shoe",
+      "description": "A clipless mountain bike shoe with BOA closure in Fox Racing's Union footwear family.",
+      "sourceUrl": "https://www.foxracing.com/product/fox-union-boa-clipless-shoes/29353.html",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "shoe",
+        "clipless"
+      ]
+    },
+    {
+      "sku": "FOXRACING-RANGER-SS-JERSEY",
+      "brandCode": "FOXRACING",
+      "subCategoryCode": "AP",
+      "unitCode": "EA",
+      "price": 69,
+      "text": "Fox Racing Ranger TruDri Short Sleeve Jersey",
+      "description": "A short-sleeve mountain bike jersey from Fox Racing's Ranger TruDri apparel family.",
+      "sourceUrl": "https://www.foxracing.com/product/ranger-trudri-short-sleeve-jersey/28874.html",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "apparel",
+        "jersey"
+      ]
+    },
+    {
+      "sku": "FOXRACING-RANGER-LS-JERSEY",
+      "brandCode": "FOXRACING",
+      "subCategoryCode": "AP",
+      "unitCode": "EA",
+      "price": 79,
+      "text": "Fox Racing Ranger Long Sleeve Jersey",
+      "description": "A long-sleeve mountain bike jersey from Fox Racing's Ranger apparel family.",
+      "sourceUrl": "https://www.foxracing.com/products/ranger-long-sleeve-jersey/27362.html",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "apparel",
+        "jersey"
+      ]
+    },
+    {
+      "sku": "FOXRACING-FLEXAIR-PRO-JERSEY",
+      "brandCode": "FOXRACING",
+      "subCategoryCode": "AP",
+      "unitCode": "EA",
+      "price": 99,
+      "text": "Fox Racing Flexair Pro Jersey",
+      "description": "A mountain bike jersey from Fox Racing's Flexair Pro apparel family.",
+      "sourceUrl": "https://www.foxracing.com/product/flexair-pro-jersey/31296.html",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "apparel",
+        "jersey"
+      ]
+    },
+    {
+      "sku": "FOXRACING-FLEXAIR-SS-JERSEY",
+      "brandCode": "FOXRACING",
+      "subCategoryCode": "AP",
+      "unitCode": "EA",
+      "price": 89,
+      "text": "Fox Racing Flexair Short Sleeve Jersey",
+      "description": "A short-sleeve mountain bike jersey from Fox Racing's Flexair apparel family.",
+      "sourceUrl": "https://www.foxracing.com/products/flexair-short-sleeve-jersey/28863.html",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "apparel",
+        "jersey"
+      ]
+    },
+    {
+      "sku": "FOXRACING-DEFEND-LS-JERSEY",
+      "brandCode": "FOXRACING",
+      "subCategoryCode": "AP",
+      "unitCode": "EA",
+      "price": 89,
+      "text": "Fox Racing Defend Long Sleeve Jersey",
+      "description": "A long-sleeve mountain bike jersey from Fox Racing's Defend apparel family.",
+      "sourceUrl": "https://www.foxracing.com/product/defend-long-sleeve-jersey/28864.html",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "apparel",
+        "jersey"
+      ]
+    },
+    {
+      "sku": "FOXRACING-RANGER-PANTS",
+      "brandCode": "FOXRACING",
+      "subCategoryCode": "AP",
+      "unitCode": "EA",
+      "price": 119,
+      "text": "Fox Racing Ranger Mountain Bike Pants",
+      "description": "Mountain bike riding pants in Fox Racing's Ranger apparel family.",
+      "sourceUrl": "https://www.foxracing.com/product/ranger-pants/28891.html",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "apparel",
+        "pants"
+      ]
+    },
+    {
+      "sku": "FOXRACING-FLEXAIR-PANTS",
+      "brandCode": "FOXRACING",
+      "subCategoryCode": "AP",
+      "unitCode": "EA",
+      "price": 169,
+      "text": "Fox Racing Flexair Mountain Bike Pants",
+      "description": "Mountain bike riding pants in Fox Racing's Flexair apparel family.",
+      "sourceUrl": "https://www.foxracing.com/product/flexair-pant/28886.html",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "apparel",
+        "pants"
+      ]
+    },
+    {
+      "sku": "FOXRACING-DEFEND-PANTS",
+      "brandCode": "FOXRACING",
+      "subCategoryCode": "AP",
+      "unitCode": "EA",
+      "price": 159,
+      "text": "Fox Racing Defend Mountain Bike Pants",
+      "description": "Mountain bike riding pants in Fox Racing's Defend apparel family.",
+      "sourceUrl": "https://www.foxracing.com/product/defend-pant/25929.html",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "apparel",
+        "pants"
+      ]
+    },
+    {
+      "sku": "FOXRACING-RANGER-SHORTS",
+      "brandCode": "FOXRACING",
+      "subCategoryCode": "AP",
+      "unitCode": "EA",
+      "price": 89,
+      "text": "Fox Racing Ranger Mountain Bike Shorts",
+      "description": "Mountain bike riding shorts in Fox Racing's Ranger apparel family.",
+      "sourceUrl": "https://www.foxracing.com/products/ranger-shorts/28882.html",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "apparel",
+        "shorts"
+      ]
+    },
+    {
+      "sku": "FOXRACING-FLEXAIR-SHORTS",
+      "brandCode": "FOXRACING",
+      "subCategoryCode": "AP",
+      "unitCode": "EA",
+      "price": 129,
+      "text": "Fox Racing Flexair Mountain Bike Shorts",
+      "description": "Mountain bike riding shorts in Fox Racing's Flexair apparel family.",
+      "sourceUrl": "https://www.foxracing.com/products/flexair-shorts/28881.html",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "apparel",
+        "shorts"
+      ]
+    },
+    {
+      "sku": "FOXRACING-DEFEND-SHORTS",
+      "brandCode": "FOXRACING",
+      "subCategoryCode": "AP",
+      "unitCode": "EA",
+      "price": 139,
+      "text": "Fox Racing Defend Mountain Bike Shorts",
+      "description": "Mountain bike riding shorts in Fox Racing's Defend apparel family.",
+      "sourceUrl": "https://www.foxracing.com/product/defend-shorts/28881.html",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "apparel",
+        "shorts"
+      ]
+    },
+    {
+      "sku": "FOXRACING-RANGER-GLOVES",
+      "brandCode": "FOXRACING",
+      "subCategoryCode": "GL",
+      "unitCode": "PR",
+      "price": 39,
+      "text": "Fox Racing Ranger Mountain Bike Gloves",
+      "description": "Mountain bike riding gloves from Fox Racing's Ranger gear family.",
+      "sourceUrl": "https://www.foxracing.com/product/ranger-gloves/27162.html",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "gloves"
+      ]
+    },
+    {
+      "sku": "FOXRACING-RANGER-GEL-GLOVES",
+      "brandCode": "FOXRACING",
+      "subCategoryCode": "GL",
+      "unitCode": "PR",
+      "price": 49,
+      "text": "Fox Racing Ranger Gel Mountain Bike Gloves",
+      "description": "Mountain bike riding gloves in Fox Racing's Ranger Gel family.",
+      "sourceUrl": "https://www.foxracing.com/products/ranger-gel-gloves/33607.html",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "gloves"
+      ]
+    },
+    {
+      "sku": "FOXRACING-FLEXAIR-GLOVES",
+      "brandCode": "FOXRACING",
+      "subCategoryCode": "GL",
+      "unitCode": "PR",
+      "price": 45,
+      "text": "Fox Racing Flexair Mountain Bike Gloves",
+      "description": "Mountain bike riding gloves from Fox Racing's Flexair gear family.",
+      "sourceUrl": "https://www.foxracing.com/products/flexair-gloves/31308.html",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "gloves"
+      ]
+    },
+    {
+      "sku": "FOXRACING-DEFEND-GLOVES",
+      "brandCode": "FOXRACING",
+      "subCategoryCode": "GL",
+      "unitCode": "PR",
+      "price": 49,
+      "text": "Fox Racing Defend Mountain Bike Gloves",
+      "description": "Mountain bike riding gloves from Fox Racing's Defend gear family.",
+      "sourceUrl": "https://www.foxracing.com/products/defend-gloves/33792.html",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "gloves"
+      ]
+    },
+    {
+      "sku": "FOXRACING-SPEEDFRAME-HELMET",
+      "brandCode": "FOXRACING",
+      "subCategoryCode": "HE",
+      "unitCode": "EA",
+      "price": 179,
+      "text": "Fox Racing Speedframe Mountain Bike Helmet",
+      "description": "An open-face mountain bike helmet in Fox Racing's Speedframe family.",
+      "sourceUrl": "https://www.foxracing.com/product/speedframe-helmet/26712.html",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "helmet"
+      ]
+    },
+    {
+      "sku": "FOXRACING-SPEEDFRAME-PRO",
+      "brandCode": "FOXRACING",
+      "subCategoryCode": "HE",
+      "unitCode": "EA",
+      "price": 279,
+      "text": "Fox Racing Speedframe Pro Mountain Bike Helmet",
+      "description": "An open-face mountain bike helmet in Fox Racing's Speedframe Pro family.",
+      "sourceUrl": "https://www.foxracing.com/product/speedframe-pro-helmet/25102.html",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "helmet"
+      ]
+    },
+    {
+      "sku": "FOXRACING-DROPFRAME-PRO",
+      "brandCode": "FOXRACING",
+      "subCategoryCode": "HE",
+      "unitCode": "EA",
+      "price": 299,
+      "text": "Fox Racing Dropframe Pro Mountain Bike Helmet",
+      "description": "A mountain bike helmet in Fox Racing's Dropframe Pro family.",
+      "sourceUrl": "https://www.foxracing.com/products/dropframe-pro-helmet/31459.html",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "helmet"
+      ]
+    },
+    {
+      "sku": "FOXRACING-PROFRAME-RS",
+      "brandCode": "FOXRACING",
+      "subCategoryCode": "HE",
+      "unitCode": "EA",
+      "price": 449,
+      "text": "Fox Racing Proframe RS Mountain Bike Helmet",
+      "description": "A full-face mountain bike helmet in Fox Racing's Proframe RS family.",
+      "sourceUrl": "https://www.foxracing.com/products/proframe-rs-helmet/32497.html",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "helmet",
+        "full-face"
+      ]
+    },
+    {
+      "sku": "FOXRACING-LAUNCH-D3O-KNEE",
+      "brandCode": "FOXRACING",
+      "subCategoryCode": "PR",
+      "unitCode": "PR",
+      "price": 99,
+      "text": "Fox Racing Launch D3O Knee Guard",
+      "description": "A knee guard in Fox Racing's Launch D3O mountain bike protection family.",
+      "sourceUrl": "https://www.foxracing.com/product/launch-d3o-knee-guard/26430.html",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "protection",
+        "knee-guard"
+      ]
+    },
+    {
+      "sku": "FOXRACING-LAUNCH-PRO-D3O-ELBOW",
+      "brandCode": "FOXRACING",
+      "subCategoryCode": "PR",
+      "unitCode": "PR",
+      "price": 89,
+      "text": "Fox Racing Launch Pro D3O Elbow Guard",
+      "description": "An elbow guard in Fox Racing's Launch Pro D3O mountain bike protection range.",
+      "sourceUrl": "https://www.foxracing.com/products/launch-pro-d3o-elbow-guards/18495.html",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "protection",
+        "elbow-guard"
+      ]
+    },
+    {
+      "sku": "MUCOFF-DRY-CHAIN-LUBE",
+      "brandCode": "MUCOFF",
+      "subCategoryCode": "LU",
+      "unitCode": "EA",
+      "price": 14,
+      "text": "Muc-Off Dry Chain Lube",
+      "description": "A bicycle chain lubricant from Muc-Off for dry riding conditions.",
+      "sourceUrl": "https://us.muc-off.com/collections/all-bicycle-products",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "maintenance",
+        "chain-lube",
+        "dry"
+      ]
+    },
+    {
+      "sku": "MUCOFF-WET-CHAIN-LUBE",
+      "brandCode": "MUCOFF",
+      "subCategoryCode": "LU",
+      "unitCode": "EA",
+      "price": 14,
+      "text": "Muc-Off Wet Chain Lube",
+      "description": "A bicycle chain lubricant from Muc-Off for wet riding conditions.",
+      "sourceUrl": "https://us.muc-off.com/collections/all-bicycle-products",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "maintenance",
+        "chain-lube",
+        "wet"
+      ]
+    },
+    {
+      "sku": "MUCOFF-C3-CERAMIC-DRY-LUBE",
+      "brandCode": "MUCOFF",
+      "subCategoryCode": "LU",
+      "unitCode": "EA",
+      "price": 28,
+      "text": "Muc-Off C3 Ceramic Dry Chain Lube",
+      "description": "A ceramic bicycle chain lubricant from Muc-Off for dry conditions.",
+      "sourceUrl": "https://us.muc-off.com/collections/all-bicycle-products",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "maintenance",
+        "chain-lube",
+        "dry"
+      ]
+    },
+    {
+      "sku": "MUCOFF-C3-CERAMIC-WET-LUBE",
+      "brandCode": "MUCOFF",
+      "subCategoryCode": "LU",
+      "unitCode": "EA",
+      "price": 28,
+      "text": "Muc-Off C3 Ceramic Wet Chain Lube",
+      "description": "A ceramic bicycle chain lubricant from Muc-Off for wet conditions.",
+      "sourceUrl": "https://us.muc-off.com/collections/all-bicycle-products",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "maintenance",
+        "chain-lube",
+        "wet"
+      ]
+    },
+    {
+      "sku": "MUCOFF-BIO-DRIVETRAIN-CLEANER",
+      "brandCode": "MUCOFF",
+      "subCategoryCode": "CL",
+      "unitCode": "EA",
+      "price": 22,
+      "text": "Muc-Off Bio Drivetrain Cleaner",
+      "description": "A bicycle drivetrain cleaner from Muc-Off for cleaning grease and grime from drivetrain parts.",
+      "sourceUrl": "https://us.muc-off.com/collections/all-bicycle-products",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "maintenance",
+        "cleaner",
+        "drivetrain"
+      ]
+    },
+    {
+      "sku": "MUCOFF-DISC-BRAKE-CLEANER",
+      "brandCode": "MUCOFF",
+      "subCategoryCode": "CL",
+      "unitCode": "EA",
+      "price": 16,
+      "text": "Muc-Off Disc Brake Cleaner",
+      "description": "A cleaner from Muc-Off formulated for bicycle disc brake components.",
+      "sourceUrl": "https://us.muc-off.com/collections/all-bicycle-products",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "maintenance",
+        "cleaner",
+        "brakes"
+      ]
+    },
+    {
+      "sku": "MUCOFF-BIKE-PROTECT",
+      "brandCode": "MUCOFF",
+      "subCategoryCode": "MS",
+      "unitCode": "EA",
+      "price": 22,
+      "text": "Muc-Off Bike Protect",
+      "description": "A post-wash protection spray for bicycles from Muc-Off.",
+      "sourceUrl": "https://us.muc-off.com/collections/all-bicycle-products",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "maintenance",
+        "protection-spray"
+      ]
+    },
+    {
+      "sku": "MUCOFF-MO94",
+      "brandCode": "MUCOFF",
+      "subCategoryCode": "MS",
+      "unitCode": "EA",
+      "price": 12,
+      "text": "Muc-Off MO-94 Maintenance Spray",
+      "description": "A multi-purpose maintenance spray from Muc-Off for bicycle care.",
+      "sourceUrl": "https://us.muc-off.com/collections/all-bicycle-products",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "maintenance",
+        "spray"
+      ]
+    },
+    {
+      "sku": "MUCOFF-PREMIUM-BRUSH-SET",
+      "brandCode": "MUCOFF",
+      "subCategoryCode": "MS",
+      "unitCode": "EA",
+      "price": 35,
+      "text": "Muc-Off Premium Brush Set",
+      "description": "A bicycle cleaning brush set from Muc-Off for washing frames and components.",
+      "sourceUrl": "https://us.muc-off.com/collections/all-bicycle-products",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "maintenance",
+        "brush"
+      ]
+    },
+    {
+      "sku": "MUCOFF-CLAW-BRUSH",
+      "brandCode": "MUCOFF",
+      "subCategoryCode": "MS",
+      "unitCode": "EA",
+      "price": 12,
+      "text": "Muc-Off Claw Brush",
+      "description": "A bicycle cleaning brush from Muc-Off for drivetrain maintenance.",
+      "sourceUrl": "https://us.muc-off.com/collections/all-bicycle-products",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "maintenance",
+        "brush",
+        "drivetrain"
+      ]
+    },
+    {
+      "sku": "MUCOFF-NANO-TECH-CONCENTRATE",
+      "brandCode": "MUCOFF",
+      "subCategoryCode": "CL",
+      "unitCode": "EA",
+      "price": 29,
+      "text": "Muc-Off Nano Tech Bike Cleaner Concentrate",
+      "description": "A concentrated bicycle cleaner from Muc-Off for preparing bike wash solution.",
+      "sourceUrl": "https://muc-off.com/products/bike-cleaner",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "maintenance",
+        "cleaner"
+      ]
+    },
+    {
+      "sku": "MUCOFF-TUBELESS-VALVE-KIT",
+      "brandCode": "MUCOFF",
+      "subCategoryCode": "MS",
+      "unitCode": "EA",
+      "price": 34,
+      "text": "Muc-Off Tubeless Valve Kit",
+      "description": "A tubeless valve kit from Muc-Off for bicycle wheel setups.",
+      "sourceUrl": "https://us.muc-off.com/collections/all-bicycle-products",
+      "sourceType": "manufacturer",
+      "tags": [
+        "mountain-bike",
+        "maintenance",
+        "tubeless"
+      ]
+    }
+  ],
+  "services": [
+    {
+      "sku": "LABOR",
+      "sourceType": "sample-service-definition",
+      "sourcePath": "samples/data/demo-catalog.seed.yaml",
+      "brandCode": "NONE",
+      "subCategoryCode": "LA",
+      "unitCode": "HR",
+      "price": 80,
+      "text": "Labor",
+      "description": "Professional workshop labour charged by the hour for mountain-bike maintenance and repair. This is a non-stocked service rather than a physical product; no specific operations or parts are promised by this listing.",
+      "tags": [
+        "bike-service",
+        "bicycle-repair",
+        "workshop-labour",
+        "workshop-labor",
+        "bike-mechanic",
+        "maintenance",
+        "wrench-monkey",
+        "grease-monkey",
+        "bike-whisperer",
+        "spanner-man"
+      ],
+      "tagProvenance": [
+        {
+          "tag": "wrench-monkey",
+          "origin": "user-provided-informal-search-alias",
+          "note": "Curated service-intent alias, not a manufacturer fact, staff designation or guarantee of specific work."
+        },
+        {
+          "tag": "grease-monkey",
+          "origin": "user-provided-informal-search-alias",
+          "note": "Curated service-intent alias, not a manufacturer fact, staff designation or guarantee of specific work."
+        },
+        {
+          "tag": "bike-whisperer",
+          "origin": "user-provided-informal-search-alias",
+          "note": "Curated service-intent alias, not a manufacturer fact, staff designation or guarantee of specific work."
+        },
+        {
+          "tag": "spanner-man",
+          "origin": "user-provided-informal-search-alias",
+          "note": "Curated service-intent alias, not a manufacturer fact, staff designation or guarantee of specific work."
+        }
+      ]
+    }
+  ],
+  "tagPolicy": {
+    "manufacturerFacts": "For manufacturer/retailer product entries, names, category tags and factual descriptions are supported by the per-product sourceUrl. Services are locally authored sample definitions, not manufacturer claims. Prices are illustrative USD.",
+    "colloquialAliases": "e-bike and emtb are user-requested colloquial search aliases for verified electric-assist mountain bikes; they are not extra specifications.",
+    "informalYetiAlias": "dentist-bike is a user-provided informal demo search alias on Yeti mountain-bike listings only. It is not a manufacturer fact, intended-rider claim, or affordability statement.",
+    "serviceIntentAliases": "LABOR uses curated workshop/maintenance intent terms. wrench-monkey, grease-monkey, bike-whisperer and spanner-man are user-requested informal demo aliases, not manufacturer facts, staff designations, guaranteed operations or included parts."
+  }
+}

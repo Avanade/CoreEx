@@ -11,6 +11,7 @@ public abstract record class DatabaseArgs : DatabaseArgsBase
     /// Gets or sets the <see cref="DbTransaction"/> <see cref="System.Data.IsolationLevel"/>.
     /// </summary>
     /// <remarks>Defaults to <see cref="IsolationLevel.ReadCommitted"/>.
-    /// <para>This is used to specify the transaction isolation level for the likes of the <see cref="IUnitOfWork"/>.</para></remarks>
+    /// <para>Specifies the isolation level when an <see cref="IUnitOfWork"/> creates a root transaction. Nested invocations use save-points and inherit the existing transaction's isolation level;
+    /// this setting does not change or validate the parent's isolation level.</para></remarks>
     public IsolationLevel IsolationLevel { get; init; } = IsolationLevel.ReadCommitted;
 }

@@ -60,14 +60,33 @@ public class {Name}Validator : Validator<Contracts.{Name}, {Name}Validator>
 | Required string | `.Mandatory().MaximumLength(n)` |
 | Required ref-data | `.Mandatory().IsValid()` |
 | Optional ref-data (valid if supplied) | `.IsValid()` |
+| Optional patch value (validate only when present) | `.Unwrap().{existing rules}` |
+| Require a patch field to be present | `.Specified()` |
 | Non-negative decimal | `.GreaterThanOrEqualTo(0, _ => "zero")` |
 | Decimal precision | `.PrecisionScale(precision, scale)` — pass `null` for precision to skip |
 | Required + precision | `.PrecisionScale(null, 2).GreaterThanOrEqualTo(0, _ => "zero")` |
 | Run rule only when entity condition met | `.WhenEntity(e => e.StartDate.HasValue)` chained after the rule |
 | Run rule only when property value condition met | `.WhenValue(v => v != null)` chained after the rule (predicate on property value, not entity — use `WhenEntity` for entity conditions) |
-| Skip when dependent prop invalid | `.DependsOn(x => x.OtherProp)` at end of chain |
+| Skip when dependent prop invalid/default | `.DependsOn(x => x.OtherProp)` at end of chain |
+| Run only when a valid dependency also meets a condition | `.DependsOn(x => x.OtherProp, value => predicate)` — the predicate is evaluated only after the dependency is non-default and has no validation error |
 | Compare to another property on the same entity | `.CompareProperty(CompareOperator.GreaterThanOrEqualTo, x => x.StartsOn)` — compares only when both have a value and are valid; add `.Mandatory()` first to require it |
 | Runtime-computed threshold | `.LessThanOrEqualTo(_ => DateOnly.FromDateTime(Runtime.UtcNow.UtcDateTime.AddYears(-16)), _ => "the minimum age of 16")` |
+
+For patch inputs, exercise omitted, specified-null (where applicable), supplied default and valid/invalid supplied values. Use `.Unwrap().Entity(...)` or `.Unwrap().Collection(...)` for supplied complex values; assert the nested error path. If a rule normalizes an input, assert the value written back into the writable `Optional<T>` property and that a subsequent rule observes it; custom read-only wrapper contracts do not imply write-back support.
+
+When reusing a `CommonValidator<T>`, keep `T` non-nullable for reuse across nullable/non-nullable properties. Check null versus zero explicitly for numeric presence requirements: `.NotNull()` permits zero, default `.Mandatory()` does not. Shared rules preserve caller labels/formatting and normalization across chained rules and `AdditionalAsync` callbacks; cover these interactions when the application relies on them.
+
+When a property's rules are conditional on the dependent property's value, use the predicate overload instead of repeating the dependency/null condition in `WhenEntity`:
+
+```csharp
+Property(x => x.FareClass)
+    .Mandatory()
+    .DependsOn(x => x.SegmentType, segmentType => segmentType!.IsFlight);
+```
+
+Here `.Mandatory()` runs only when `SegmentType` is non-default, has no validation error, and `IsFlight` is true; clauses apply to the rule they are attached to. For a nullable dependency, `!` is justified because the predicate runs only after the runtime guard; it only affects nullable analysis and does not change validation behavior. Use `WhenEntity(...)` when the condition depends on other entity state; retain `DependsOn(...)` as a separate guard when you need its invalid-dependency short-circuit behavior.
+
+Call `Property(x => x.SameProperty)` again to start a separate root rule chain for the same property when another rule needs a different condition. This is not an isolated validation transaction: if an earlier chain reports an error for that property, later chains may be skipped by the existing-error guard.
 
 **Mandatory() on non-nullable value types:**
 `Mandatory()` errors when the value equals `default(T)` — `0` for `decimal`/`int`, `DateOnly.MinValue` for `DateOnly`. If `0` is a legitimate value, do **not** use `Mandatory()` — use `.GreaterThanOrEqualTo(0)` (allows `0`) or `.GreaterThan(0)` (requires positive) instead.

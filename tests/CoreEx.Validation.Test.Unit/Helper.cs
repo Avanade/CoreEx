@@ -2,6 +2,7 @@ using CoreEx.Entities;
 using CoreEx.Invokers;
 using CoreEx.Validation.Abstractions;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace CoreEx.Validation.Test.Unit;
 
@@ -14,7 +15,7 @@ internal static class Helper
         if (_jsonSerializerOptions is not null)
             return _jsonSerializerOptions;
 
-        _jsonSerializerOptions = new JsonSerializerOptions { WriteIndented = true };
+        _jsonSerializerOptions = new JsonSerializerOptions { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault, WriteIndented = true };
         _jsonSerializerOptions.Converters.Add(new IgnoreTypeConverter<Type>());
         _jsonSerializerOptions.Converters.Add(new IgnoreTypeConverter<Exception>());
         _jsonSerializerOptions.Converters.Add(new IgnoreTypeConverter<IServiceProvider>());

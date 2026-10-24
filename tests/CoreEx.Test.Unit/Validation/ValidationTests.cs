@@ -46,6 +46,29 @@ public class ValidationTests
         result.Should().Be(123);
     }
 
+    [TestCase("value")]
+    [TestCase(" value ")]
+    public void Required_StringNonWhitespace_ReturnsValue(string value)
+        => value.Required().Should().Be(value);
+
+    [TestCase(null)]
+    [TestCase("")]
+    [TestCase(" ")]
+    public void Required_StringNullOrWhitespace_ThrowsValidationException(string? value)
+    {
+        Action act = () => value.Required();
+        act.Should().Throw<ValidationException>();
+    }
+
+    [Test]
+    public void Required_StringNullOrWhitespace_CustomNameAndText()
+    {
+        string? value = "";
+        Action act = () => value.Required("myValue", new("custom", "Custom"));
+        act.Should().Throw<ValidationException>()
+            .Which.Messages.Should().ContainSingle().Which.ToString().Should().Be("MessageItem { Type = Error, Text = Custom is required., Property = myValue }");
+    }
+
     [Test]
     public void Required_Default_ThrowsValidationException()
     {

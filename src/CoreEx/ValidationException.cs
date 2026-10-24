@@ -29,6 +29,54 @@ public class ValidationException(LText? message, Exception? innerException)
     public static ValidationException Create(string? property, LText format, params IEnumerable<object?> values) => new(MessageItem.CreateErrorMessage(property, format, values));
 
     /// <summary>
+    /// Creates a validation exception for a direct or nested property using its JSON path.
+    /// </summary>
+    /// <typeparam name="TEntity">The root entity type.</typeparam>
+    /// <param name="propertyExpression">The property chain, which is inspected without execution.</param>
+    /// <param name="text">The message text; null uses the standard invalid format and the property's friendly metadata text.</param>
+    /// <returns>The validation exception.</returns>
+    public static ValidationException Create<TEntity>(Expression<Func<TEntity, object?>> propertyExpression, LText? text = null) where TEntity : class
+        => Create(propertyExpression, null, text);
+
+    /// <summary>
+    /// Creates a validation exception for a direct or nested property using its JSON path and a formatted message.
+    /// </summary>
+    /// <typeparam name="TEntity">The root entity type.</typeparam>
+    /// <param name="propertyExpression">The property chain, which is inspected without execution.</param>
+    /// <param name="format">The composite format string.</param>
+    /// <param name="values">The values included in the message; no property label or current value is prepended.</param>
+    /// <returns>The validation exception.</returns>
+    public static ValidationException Create<TEntity>(Expression<Func<TEntity, object?>> propertyExpression, LText? format, params IEnumerable<object?> values) where TEntity : class
+        => Create(propertyExpression, null, format, values);
+
+    /// <summary>
+    /// Creates a validation exception for a direct or nested property using explicit JSON naming options.
+    /// </summary>
+    /// <typeparam name="TEntity">The root entity type.</typeparam>
+    /// <param name="propertyExpression">The property chain, which is inspected without execution.</param>
+    /// <param name="options">The serializer options used for naming; defaults to <see cref="JsonDefaults.SerializerOptions"/>.</param>
+    /// <param name="text">The message text; null uses the standard invalid format and the property's friendly metadata text.</param>
+    /// <returns>The validation exception.</returns>
+    public static ValidationException Create<TEntity>(Expression<Func<TEntity, object?>> propertyExpression, JsonSerializerOptions? options, LText? text) where TEntity : class
+        => new(MessageItem.CreateErrorMessage(propertyExpression, options, text));
+
+    /// <summary>
+    /// Creates a validation exception for a direct or nested property using explicit JSON naming options and a formatted message.
+    /// </summary>
+    /// <typeparam name="TEntity">The root entity type.</typeparam>
+    /// <param name="propertyExpression">The property chain, which is inspected without execution.</param>
+    /// <param name="options">The serializer options used for naming; defaults to <see cref="JsonDefaults.SerializerOptions"/>.</param>
+    /// <param name="format">The message text or composite format string.</param>
+    /// <param name="values">The values included in the message; no property label or current value is prepended.</param>
+    /// <returns>The validation exception.</returns>
+    public static ValidationException Create<TEntity>(Expression<Func<TEntity, object?>> propertyExpression, JsonSerializerOptions? options, LText? format, params IEnumerable<object?> values) where TEntity : class
+    {
+        var args = values.ToArray();
+        return args.Length == 0 ? Create(propertyExpression, options, format)
+            : Create(RuntimeMetadata.GetJsonPath(propertyExpression, options), format ?? throw new ArgumentNullException(nameof(format)), args);
+    }
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="ValidationException"/> class.
     /// </summary>
     public ValidationException() : this(null) { }

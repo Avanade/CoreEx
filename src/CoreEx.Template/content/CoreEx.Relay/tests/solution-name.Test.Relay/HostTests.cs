@@ -32,7 +32,7 @@ public partial class HostTests : WithApiTester<solution-name.Relay.Program>
         string[] _paths =
         [
 // #if implement-sqlserver
-            "$.entries.sqlServer",
+            "$.entries.SqlServer",
             "$.entries.sqlserver-outbox-relay-00",
             "$.entries.sqlserver-outbox-relay-01",
             "$.entries.sqlserver-outbox-relay-02",
@@ -46,7 +46,7 @@ public partial class HostTests : WithApiTester<solution-name.Relay.Program>
             "$.entries.cosmos-outbox-relay-ref-data-03",
 // #endif
 // #elif implement-postgres
-            "$.entries.postgreSql",
+            "$.entries.PostgreSql",
             "$.entries.postgres-outbox-relay-00",
             "$.entries.postgres-outbox-relay-01",
             "$.entries.postgres-outbox-relay-02",

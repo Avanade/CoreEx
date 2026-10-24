@@ -29,6 +29,7 @@ public class JsonDefaults
         /// <summary>
         /// Initializes a new instance of the <see cref="JsonDefaultConfiguration"/> class with <see cref="CoreEx"/> default settings.
         /// </summary>
+        /// <remarks>Property names use the substitute naming policy; dictionary keys are preserved by default.</remarks>
         public JsonDefaultConfiguration()
         {
             SerializerOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web)
@@ -36,8 +37,8 @@ public class JsonDefaults
                 DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingDefault,
                 WriteIndented = false, 
                 PropertyNamingPolicy = _jsonSubstituteNamingPolicy,
-                DictionaryKeyPolicy = _jsonSubstituteNamingPolicy,
-                Converters = { new JsonStringEnumConverter(), new JsonReferenceDataConverter(), new JsonResultConverter(), new JsonDataMapConverterFactory() }
+                DictionaryKeyPolicy = null,
+                Converters = { new JsonStringEnumConverter(), new JsonReferenceDataConverter(), new JsonResultConverter(), new JsonDataMapConverterFactory(), new OptionalJsonConverterFactory() }
             };
         }
 

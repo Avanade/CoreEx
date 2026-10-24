@@ -41,6 +41,11 @@ public class OpenApiOptions
     public string QueryOrderByText { get; set; } = "The OData-like query order-by expression.";
 
     /// <summary>
+    /// Gets or sets the <see cref="HttpNames.QuerySearchQueryStringName"/> descriptive text.
+    /// </summary>
+    public string QuerySearchText { get; set; } = "The free-text search expression; interpretation (keyword, full-text, semantic) is endpoint-specific and where ranked results are ordered by relevance.";
+
+    /// <summary>
     /// Gets or sets the <see cref="HttpNames.IncludeFieldsQueryStringName"/> descriptive text.
     /// </summary>
     public string IncludeFieldsText { get; set; } = "The comma separated list of JSON field names to include only in the response.";

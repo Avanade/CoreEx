@@ -11,11 +11,13 @@ public sealed class QueryArgsParseResult : IQueryParseError, IToResult
     /// <param name="config">The owning <see cref="QueryArgsConfig"/>.</param>
     /// <param name="filterResult">The <see cref="QueryFilterParserResult"/>.</param>
     /// <param name="orderByResult">The <see cref="QueryOrderByParserResult"/>.</param>
-    internal QueryArgsParseResult(QueryArgsConfig config, QueryFilterParserResult? filterResult = null, QueryOrderByParserResult? orderByResult = null)
+    /// <param name="searchResult">The <see cref="QuerySearchParserResult"/>.</param>
+    internal QueryArgsParseResult(QueryArgsConfig config, QueryFilterParserResult? filterResult = null, QueryOrderByParserResult? orderByResult = null, QuerySearchParserResult? searchResult = null)
     {
         Config = config;
         FilterResult = filterResult;
         OrderByResult = orderByResult;
+        SearchResult = searchResult;
     }
 
     /// <summary>
@@ -32,6 +34,17 @@ public sealed class QueryArgsParseResult : IQueryParseError, IToResult
     /// Gets the <see cref="QueryOrderByParserResult"/>.
     /// </summary>
     public QueryOrderByParserResult? OrderByResult { get; }
+
+    /// <summary>
+    /// Gets the <see cref="QuerySearchParserResult"/>; <see langword="null"/> where no search text was specified.
+    /// </summary>
+    public QuerySearchParserResult? SearchResult { get; }
+
+    /// <summary>
+    /// Indicates whether a <see cref="QuerySearchParserResult.IsRanked">ranked</see> search was specified; as such, the repository is responsible for executing the search (using the <see cref="QuerySearchParserResult.Text"/>)
+    /// and ordering the results by relevance.
+    /// </summary>
+    public bool IsRankedSearch => SearchResult is not null && SearchResult.IsRanked;
 
     /// <inheritdoc/>
     public bool HasError => Error is not null;

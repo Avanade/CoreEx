@@ -47,11 +47,64 @@ podman compose -f docker-compose.yml down
 | Service name | Image | Port(s) | Used by | Notes |
 |---|---|---|---|---|
 | `db-sql-server` | `mssql/server:2022-latest` | 1433 | Shopping domain; Service Bus emulator | SA password: `yourStrong(!)Password` |
-| `db-postgres` | `postgres` | 5432 | Products domain | Password: `yourStrong#!Password` |
+| `db-postgres` | `pgvector/pgvector:0.8.2-pg18-trixie` | 5432 | Products domain | PostgreSQL 18 with pgvector 0.8.2; password: `yourStrong#!Password` |
 | `redis-cache` | `redis:latest` | 6379 | All domains (FusionCache backplane) | No auth by default |
 | `servicebus-emulator` | `azure-messaging/servicebus-emulator:latest` | 5672 (AMQP), 5300 (mgmt) | Products.Subscribe, Shopping.Subscribe, all Relay hosts | Depends on `db-sql-server`; config mounted from `servicebus/Config.json` |
 | `dts-emulator` | `dts/dts-emulator:latest` | 8080, 8082 | Orders.Workflow.Worker, Orders.Api | Task hubs: `default`, `order` |
 | `aspire-dashboard` | `aspire-dashboard:latest` | 18888 (UI), 4317 (OTLP) | Optional — any host with OTLP configured | Usable standalone; no need to run the full Aspire AppHost just for traces |
+
+### Optional local embedding model
+
+Products semantic search uses **Ollama 0.13.5** with **`nomic-embed-text:v1.5`**.
+Normal Compose startup does not start the `search` profile or download a model. Requests without `$search` do not need it; semantic requests do.
+From the repository root:
+
+```powershell
+podman compose -f docker-compose.yml --profile search up -d ollama
+podman compose -f docker-compose.yml exec ollama ollama pull nomic-embed-text:v1.5
+Invoke-RestMethod http://localhost:11434/api/version
+.\tools\test-product-embeddings.ps1
+```
+
+The runtime image is approximately **4 GB uncompressed** and the model file is approximately **274 MB**.
+Allow additional room for downloaded layers, extraction, and container storage; the model size alone is not the disk budget.
+This CPU-based setup requests no GPU and limits Ollama to one loaded model and one parallel inference request.
+
+The endpoint binds to host loopback at `localhost:11434` because Ollama has no authentication configured here.
+The `ollama-models` named volume keeps downloads across container recreation.
+Stopping the container does not delete that volume:
+
+```powershell
+podman compose -f docker-compose.yml stop ollama
+```
+
+Nomic emits **768-dimensional** vectors with `search_document: ` and `search_query: ` task prefixes.
+The client sends `truncate=false`, so an oversized input fails instead of silently changing the searchable document.
+The smoke script checks the installed model manifest digest, validates vectors, and prints cosine rankings for seeded catalog examples.
+It intentionally fails if the expected semantic ranking is not obtained; do not confuse a working embedding endpoint with good retrieval.
+
+Products API and Subscribe development configuration contain `Ollama:BaseAddress` and longer inference timeout settings.
+Other environments must supply their own endpoint/timeouts before searching. PostgreSQL now includes pgvector and `$search` uses exact semantic ranking by default.
+
+Both hosts use the Aspire OllamaSharp client integration via `AddProductEmbeddings`, with CoreEx's named-client
+registration providing service discovery, idempotency handling and HTTP resilience. The same registration is used by real-model test setup. This is client wiring only: Compose
+still owns the server and model provisioning, and the Application layer still depends on `IProductEmbeddingAdapter`.
+
+The API has no rebuild command or startup rebuild. Products read-test `OneTimeSetUp` explicitly prepares controlled
+embeddings; Test.Aspire prepares real embeddings after seeding and clearing the cache, before starting hosts.
+Aspire exposes the Compose-owned Ollama endpoint as an external resource and uses the AppHost's `Ollama`
+configuration for both fixture preparation and API calls. Start the `search` Compose profile and install the model
+above before running Aspire E2E tests; CI does this explicitly too.
+
+`ProductSearchIndex.RebuildAsync` remains callable through a configured Infrastructure service scope. There is currently no standalone indexing console or HTTP maintenance endpoint. Starting Aspire manually does not seed or rebuild the catalog. After prepared-fixture execution, `.\tools\test-product-search.ps1` can exercise a normally running API (default `http://localhost:5207/`). Subsequent product changes flow through the transactional outbox, Products Relay and the Products Subscribe host's single globbed product handler. Keep both hosts running to maintain the projection; logical deletion explicitly removes projection rows rather than relying on a cascade. Search is eventually consistent: older vectors can rank current product fields, and new products appear once indexed. Live price/activity/deletion filters apply immediately. Counts describe eligible indexed candidates. Only uninitialized/incompatible readiness or a failed query-embedding dependency yields CoreEx `TransientException` (HTTP 503), not ordinary indexing lag. Ordinary reads and structured filters remain available.
+
+To prepare and verify a real-model seed catalog, run the MCP lifecycle on its own. This is test setup: it reseeds all three domain databases and resets broker state, so use it only against disposable local infrastructure.
+
+```powershell
+dotnet test samples\aspire\Contoso.Test.Aspire --filter "FullyQualifiedName~E2ETest.Contoso_Mcp_FullBasketLifecycle"
+```
+
+See [the search guide](search.md) for implementation status and relevance findings.
 
 ### Service Bus configuration
 

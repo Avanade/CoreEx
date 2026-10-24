@@ -11,6 +11,7 @@
   <ItemGroup>
     <PackageReference Include="WireMock.Net" />
     <PackageReference Include="UnitTestEx.Aspire" />
+    <PackageReference Include="MessagePack" />
   </ItemGroup>
 
   <ItemGroup>

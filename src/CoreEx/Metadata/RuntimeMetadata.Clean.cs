@@ -16,6 +16,9 @@ public static partial class RuntimeMetadata
     /// this is unable to be cleaned/replaced. An empty array, collection, or dictionary will be set to <see langword="default"/>.</remarks>
     public static T? Clean<T>(T? value, CleanArgs args = default)
     {
+        if (WrappedValueCleaner<T>.Clean is { } cleanWrapper)
+            return cleanWrapper(value!, args);
+
         if (value is string str)
             return Internal.Cast<string, T>(Cleaner.Clean(str, Cleaner.DefaultStringTrim, Cleaner.DefaultStringTransform, Cleaner.DefaultStringCase)!);
 
@@ -24,6 +27,16 @@ public static partial class RuntimeMetadata
 
         if (value is DateTime dt)
             return Internal.Cast<DateTime, T>(Cleaner.Clean(dt, Cleaner.DefaultDateTimeTransform));
+
+        var runtimeType = value.GetType();
+        if (runtimeType != typeof(T) && IsWrappedValueCleaner(runtimeType))
+        {
+            var clean = _wrappedValueCleaners.GetOrAdd(runtimeType, static type =>
+                typeof(RuntimeMetadata).GetMethod(nameof(CleanErasedWrapper), BindingFlags.NonPublic | BindingFlags.Static)!
+                    .MakeGenericMethod(type).CreateDelegate<Func<object, CleanArgs, object>>());
+
+            return Internal.Cast<object, T>(clean(value, args));
+        }
 
         // All reference-type branches below can form cycles — allocate the visited set once per thread and reuse it.
         var set = _visitingForClean ??= new HashSet<object>(ReferenceEqualityComparer.Instance);

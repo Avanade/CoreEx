@@ -176,6 +176,7 @@ The scaffolded Relay `Program.cs` wiring is described in [Outbox Relay Host](#ou
 
 | Package | Key registrations |
 |---|---|
+| `CoreEx` | `AddHostSettings()`, `AddNamedHttpClient()`, `AddTypedHttpClient<T>()`, `AddPrecisionTimeProvider()` |
 | `CoreEx.AspNetCore` | `AddMvcWebApi()`, `AddHttpWebApi()`, `AddExecutionContext()`, `UseCoreExExceptionHandler()`, `UseExecutionContext()`, `UseIdempotencyKey()`, `MapHealthChecks()` |
 | `CoreEx.AspNetCore.NSwag` | `AddOpenApiDocument()`, `AddCoreExConfiguration()`, `UseOpenApi()`, `UseSwaggerUi()` |
 | `CoreEx.Caching.FusionCache` | `AddFusionCache()`, `AddFusionHybridCache()`, `AddDefaultCacheKeyProvider()`, `AddHybridCacheIdempotencyProvider()` |
@@ -194,6 +195,7 @@ The scaffolded Relay `Program.cs` wiring is described in [Outbox Relay Host](#ou
 
 | Package | Key registrations |
 |---|---|
+| `CoreEx` | `AddNamedHttpClient()`, `AddTypedHttpClient<T>()` (when calling external APIs directly from subscribers or adapters) |
 | `CoreEx.AspNetCore` | `AddMvcWebApi()`, `AddHttpWebApi()`, `AddExecutionContext()`, `AddHostedServiceManager()`, `UseCoreExExceptionHandler()`, `UseExecutionContext()`, `MapHealthChecks()`, `MapHostedServices()` |
 | `CoreEx.Caching.FusionCache` | `AddFusionCache()`, `AddFusionHybridCache()`, `AddDefaultCacheKeyProvider()`, `AddHybridCacheIdempotencyProvider()` |
 | `CoreEx.Events` | `AddEventFormatter()`, `AddSubscribedManager()` |

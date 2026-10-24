@@ -74,6 +74,8 @@ CoreEx exception types include:
 - `AuthenticationException` — Unauthorized (401).
 - `AuthorizationException` — Forbidden (403).
 
+Request/input validity uses validation errors with request-field context where known. Aggregate/entity/value-object business invariants use business errors with domain messages/codes, never request DTOs or JSON paths. Both normally map to 400, but their semantics and diagnostics differ. Keep domain enforcement after request validation, retain argument/invalid-operation exceptions for programming misuse, and translate known domain failures to request fields only deliberately in Application. See [domain error conventions](../samples/docs/domain-layer.md#business-invariants-versus-request-validation).
+
 **Why it matters:** Instead of throwing generic `Exception` or returning error codes, you throw domain-specific exceptions that middlewares automatically convert to RFC 9457 ProblemDetails responses. This keeps error handling logic centralized and consistent across APIs.
 
 **Example:**
@@ -1013,7 +1015,7 @@ public class Basket : IIdentifier, IETag, IChangeLog
     public void Checkout()
     {
         if (!_items.Any())
-            throw new ValidationException("Cannot checkout empty basket.");
+            throw new BusinessException("Cannot checkout empty basket.").WithErrorCode("empty-basket");
         
         StatusCode = "CheckedOut";
     }

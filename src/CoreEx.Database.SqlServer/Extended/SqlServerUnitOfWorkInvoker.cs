@@ -20,7 +20,7 @@ public class SqlServerUnitOfWorkInvoker : InvokerBase<SqlServerUnitOfWork, SqlSe
 
     /// <inheritdoc/>
     protected async override Task<TResult> OnInvokeAsync<TResult>(InvokerTracer tracer, SqlServerUnitOfWork unitOfWork, SqlServerDatabaseArgs args, Func<InvokerTracer, SqlServerDatabaseArgs, CancellationToken, Task<TResult>> func, CancellationToken cancellationToken)
-        => await DatabaseInvoker.OrchestrateUnitOfWorkTransactionAsync(tracer, unitOfWork,
+        => await DatabaseInvoker.OrchestrateUnitOfWorkTransactionAsync(tracer, unitOfWork, args,
             () => base.OnInvokeAsync(tracer, unitOfWork, args, func, cancellationToken),
             outboxEnqueued => SqlServerMetrics.OutboxEnqueued.Add(outboxEnqueued),
             cancellationToken).ConfigureAwait(false);

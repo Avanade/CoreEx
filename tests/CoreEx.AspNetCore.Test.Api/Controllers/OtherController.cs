@@ -1,5 +1,6 @@
 using CoreEx.AspNetCore.Mvc;
 using CoreEx.AspNetCore.Test.Api.Entities;
+using CoreEx.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CoreEx.AspNetCore.Test.Api.Controllers;
@@ -11,6 +12,11 @@ public class OtherController(WebApi webApi) : ControllerBase
     [Accepts<Person>(IsOptional = true)]
     [ProducesResponseType(204)]
     public IActionResult OptionalBody() => NoContent();
+
+    [HttpPatch("optional-patch")]
+    [Accepts<OptionalPatchRequest>(HttpNames.MergePatchJsonMediaTypeName)]
+    [ProducesResponseType(204)]
+    public IActionResult OptionalPatch() => NoContent();
 
     [HttpPost("non-nullable-map")]
     [Accepts<CoreEx.Entities.DataMap<NonNullableMapValue>>]

@@ -60,6 +60,33 @@ public partial class ReadTests : WithApiTester<Contoso.Products.Api.Program>
     }
 
     [Test]
+    public void GraphQLLite_Products_PriceFilterAndDescription_MatchRest()
+    {
+        var graphql = Test.Http<JsonElement>()
+            .Run(HttpMethod.Post, "/api/query", new
+            {
+                query = "{ products(where: {price: {ge: 99, lt: 130}}) { edges { node { sku price description } } } }"
+            })
+            .AssertOK()
+            .Value;
+        graphql.TryGetProperty("errors", out _).Should().BeFalse();
+
+        var edges = graphql.GetProperty("data").GetProperty("products").GetProperty("edges");
+        var rest = Test.Http<ProductLite[]>()
+            .Run(HttpMethod.Get, "/api/products?$filter=price ge 99 and price lt 130")
+            .AssertOK()
+            .Value!;
+        edges.GetArrayLength().Should().Be(rest.Length).And.Be(2);
+        for (var i = 0; i < rest.Length; i++)
+        {
+            var node = edges[i].GetProperty("node");
+            node.GetProperty("sku").GetString().Should().Be(rest[i].Sku);
+            node.GetProperty("price").GetDecimal().Should().Be(rest[i].Price);
+            node.GetProperty("description").GetString().Should().Be(rest[i].Description);
+        }
+    }
+
+    [Test]
     public void GraphQLLite_Product_Get_NotFound()
     {
         var r = Test.Http<JsonElement>()

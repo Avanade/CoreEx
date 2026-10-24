@@ -19,7 +19,7 @@ public partial class OtherTests
     {
         string[] _requiredServices =
         [
-            "postgreSql",
+            "PostgreSql",
             "postgres-outbox-relay-00",
             "postgres-outbox-relay-01",
             "postgres-outbox-relay-02",

@@ -55,14 +55,36 @@ Value objects represent concepts that have no independent identity — they are 
 // samples/src/Contoso.Shopping.Domain/ValueObjects/ItemPricing.cs
 public sealed record class ItemPricing
 {
-    public required Contracts.UnitOfMeasure UnitOfMeasure { get; init => field = value.ThrowIfInactive(); }
-    public decimal UnitPrice { get; init => field = value.ThrowIfLessThanZero(); }
-    public decimal Quantity { get; init => field = value.ThrowIfLessThanZero(); }
+    public required Contracts.UnitOfMeasure UnitOfMeasure
+    {
+        get;
+        init
+        {
+            value.ThrowIfNull();
+            if (!value.IsValid || !value.IsActive)
+                throw new BusinessException("Pricing requires a valid, active unit of measure.").WithErrorCode("invalid-unit-of-measure");
+
+            field = value;
+        }
+    }
+    public decimal UnitPrice { get; init => field = value < 0 ? throw new BusinessException("Unit price cannot be negative.").WithErrorCode("negative-unit-price") : value; }
+    public decimal Quantity { get; init => field = value < 0 ? throw new BusinessException("Quantity cannot be negative.").WithErrorCode("negative-quantity") : value; }
     public decimal Total => UnitPrice * Quantity;
+
+    public ItemPricing EnsureIsValid() => DecimalRuleHelper.CheckScale(Quantity, UnitOfMeasure.Scale) ? this
+        : throw new BusinessException($"Quantity decimal places exceed the unit-of-measure scale of {UnitOfMeasure.Scale}.").WithErrorCode("quantity-scale-exceeded");
 }
 ```
 
-Value objects enforce their own invariants in property initialisers using CoreEx guard extensions (`ThrowIfInactive`, `ThrowIfLessThanZero`) so that invalid instances simply cannot exist.
+Single-property business invariants are enforced in `init` setters; the owning entity invokes `EnsureIsValid` for cross-property invariants before accepting the value object. `with` expressions run setters, but do not automatically run `EnsureIsValid`; retain that ownership check.
+
+### Business invariants versus request validation
+
+Application validators/policies use `ValidationException` / `Result.ValidationError` for request/input validity, with request-field feedback where known. Aggregates, entities, and value objects enforce business invariants with `BusinessException` / `Result.BusinessError`, meaningful domain messages, and stable codes where useful, not request paths. Both normally map to HTTP 400; they remain different semantic and diagnostic contracts. Never reference request DTOs or derive request JSON paths inside Domain. Application may selectively translate a known domain error when a specific request-field mapping is unambiguous, but must not blanket-convert business errors into validation.
+
+Keep domain enforcement after request validation: other callers, persisted state, and concurrent changes still require invariant protection. Exception versus `Result` is separate: constructors/setters may throw business exceptions, result-returning operations generally return business failures, and `OnCheckCanMutate` failures throw internally through `Modify`/`Remove`.
+
+Argument/invalid-operation exceptions remain appropriate for programming misuse or broken internal assumptions, such as a required internal object being null or an internally assigned status being invalid. The general `ThrowIfLessThanZero` helper throws `ArgumentOutOfRangeException`; reference-data `ThrowIfInvalid`/`ThrowIfInactive` throw `InvalidOperationException`, not business exceptions. Do not use those guards as substitutes for expected business-rule rejection or change their shared semantics. Shopping pricing and discount application use explicit business checks, while internal identifier/object/status guards remain programming-assumption checks.
 
 > **See also**: [Value Object pattern](https://learn.microsoft.com/en-us/dotnet/architecture/microservices/microservice-ddd-cqrs-patterns/implement-value-objects)
 
@@ -78,13 +100,15 @@ CoreEx deliberately does not provide a native domain-event mechanism (e.g. Media
 
 ```csharp
 // Events are added by the application SERVICE after the repository operation — not by the aggregate itself
-return ur.ThenAs(basket =>
+return ur.ThenAs(dr =>
 {
-    var contract = BasketMapper.Map(basket);
-    _unitOfWork.Events.Add(EventData.CreateEventWith(contract, EventAction.CheckedOut));
+    var contract = BasketMapper.Map(dr.Value);
+    dr.WhereMutated(_ => _unitOfWork.Events.Add(EventData.CreateEventWith(contract, EventAction.CheckedOut)));
     return contract;
 });
 ```
+
+Here `ur` is the repository's `Result<DataResult<Domain.Basket>>`, evaluated inside the write transaction. Domain mapping preserves `WasMutated` until Application decides whether to announce a mutation; success alone, an earlier successful read, or `HasChanges` is insufficient. Successful no-ops return a contract without a mutation event. Commands and deliberate attempt messages follow their own semantics; provider mutation flags do not guarantee committed rows or exactly-once delivery.
 
 A developer can opt in to a domain-event mechanism if genuinely needed — for example, dispatching via MediatR after the transaction commits — but this is an explicit extension, not a framework default.
 

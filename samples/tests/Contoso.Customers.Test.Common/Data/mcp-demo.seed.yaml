@@ -1,0 +1,3 @@
+# A dedicated local Aspire demo customer for the Contoso MCP sample.
+customers:
+- { id: ^16, firstName: MCP, lastName: Demo, email: mcp.demo@example.com, customerTypeCode: IND, contactMethodCode: EM, hasShopped: false, shippingAddress: { street1: "1 Demo Street", city: "Anytown", state: "CA", postCode: "12345" } }

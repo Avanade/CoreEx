@@ -33,6 +33,20 @@ The core principle is a clear distinction between *expected* errors and *unexpec
 | [`IToResult`](./Abstractions/IToResult.cs) | Interface for types that can project themselves to a `Result`. |
 | [`IToResult<T>`](./Abstractions/IToResultT.cs) | Interface for types that can project themselves to a `Result<T>`. |
 
+## Property Validation Failures
+
+Use expression-based shorthand factories for manual property errors without throwing:
+
+The message is optional: `Result.ValidationError<Person>(x => x.Name)` and `Result<Order>.ValidationError<Person>(x => x.Name, null)` use `Validation.InvalidFormat` and the leaf property's friendly metadata label. `ValidationException.Create<TEntity>` delegates message construction/defaulting to `MessageItem.CreateErrorMessage<TEntity>`, with path/label inference shared in runtime metadata.
+
+```csharp
+return Result.ValidationError<Person>(x => x.Name, "Name is already registered.");
+return Result<Order>.ValidationError<Person>(x => x.Children[0].Name, "Name is invalid.");
+return ValidationException.Create<Person>(x => x.Contacts["home"].Name, options, "Name {0} is taken.", name);
+```
+
+The shorthand accepts a property expression, an `LText` message, and an optional `configure` action for the created exception. It delegates to `ValidationException.Create<TEntity>` for default JSON naming, nesting, array/list indexes, and string dictionary keys. `TEntity` identifies the property owner independently of the `Result<T>` value type. Supply a preformatted `LText` for message arguments. For explicit serializer options or composite formatting arguments, fall back to `ValidationException.Create<TEntity>` and its implicit conversion to `Result` or `Result<T>`, as in the last example. Invalid expressions throw rather than being converted into failed results.
+
 ## Related Namespaces
 
 - **[`CoreEx`](../README.md)** - Defines the semantic exception types (`ValidationException`, `NotFoundException`, etc.) that are used as the `Error` payload within a failed `Result`.

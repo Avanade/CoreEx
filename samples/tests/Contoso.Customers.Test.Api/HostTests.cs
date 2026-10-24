@@ -53,7 +53,7 @@ public partial class HostTests : WithApiTester<Contoso.Customers.Api.Program>
     public void Health_Detailed(string path, bool minimal)
     {
         // Liveness reflects the process, not downstream dependencies.
-        string[] paths = ["$.entries.reference-data-orchestrator", "$.entries.cosmos-database", "$.entries['stackExchange.Redis']"];
+        string[] paths = ["$.entries.reference-data-orchestrator", "$.entries.cosmos-database", "$.entries['StackExchange.Redis']"];
 
         var r = Test.Http()
             .Run(HttpMethod.Get, path)

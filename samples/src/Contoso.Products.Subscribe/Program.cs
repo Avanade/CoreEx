@@ -32,6 +32,7 @@ public class Program
 
         // Add all the dynamically registered services.
         builder.Services.AddDynamicServicesUsing<ReservationConfirmSubscriber, ReferenceDataService, ReferenceDataRepository>();
+        builder.AddProductEmbeddings();
 
         // Add L1/L2 caching services.
         builder.Services.AddMemoryCache();              // Adds the in-memory cache - L1.

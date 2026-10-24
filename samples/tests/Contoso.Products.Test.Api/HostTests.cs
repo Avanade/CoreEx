@@ -55,8 +55,8 @@ public partial class HostTests : WithApiTester<Contoso.Products.Api.Program>
         string[] _paths =
         [
             "$.entries.reference-data-orchestrator",
-            "$.entries['stackExchange.Redis']",
-            "$.entries.postgreSql"
+            "$.entries['StackExchange.Redis']",
+            "$.entries.PostgreSql"
         ];
 
         var r = Test.Http()

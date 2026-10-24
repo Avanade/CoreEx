@@ -1,6 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <TargetFrameworks />
+    <TargetFramework>net10.0</TargetFramework>
     <OutputType>Exe</OutputType>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
@@ -10,6 +12,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Aspire.StackExchange.Redis.DistributedCaching" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" />
     <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" />
     <PackageReference Include="Microsoft.Extensions.Http" />
@@ -27,10 +30,15 @@
     <ProjectReference Include="..\Contoso.Orders.Test.Common\Contoso.Orders.Test.Common.csproj" />
     <ProjectReference Include="..\Contoso.Products.Test.Common\Contoso.Products.Test.Common.csproj" />
     <ProjectReference Include="..\Contoso.Shopping.Test.Common\Contoso.Shopping.Test.Common.csproj" />
+    <ProjectReference Include="..\..\src\Contoso.Products.Infrastructure\Contoso.Products.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Contoso.Shopping.Infrastructure\Contoso.Shopping.Infrastructure.csproj" />
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Data\**\*" />
+    <None Include="..\..\src\Contoso.Products.Api\appsettings.Development.json" Link="products-settings.json" CopyToOutputDirectory="PreserveNewest" />
     <None Update="appsettings.json">
+      <TargetPath>e2e-settings.json</TargetPath>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

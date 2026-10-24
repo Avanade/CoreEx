@@ -1,0 +1,10 @@
+<Project>
+
+  <!-- Define the framework policy before SDK targets and project-configuration discovery, not in Directory.Build.targets. -->
+  <PropertyGroup>
+    <CoreExTargetFrameworks>net8.0;net9.0;net10.0</CoreExTargetFrameworks>
+    <!-- dotnet pack supplies _IsPacking as a global property, so it is available during props evaluation. -->
+    <CoreExTargetFrameworks Condition="'$(CoreExLocalTargetFramework)' != '' and '$(CI)' != 'true' and '$(_IsPacking)' != 'true' and $([System.String]::Copy(';$(CoreExTargetFrameworks);').Contains(';$(CoreExLocalTargetFramework);'))">$(CoreExLocalTargetFramework)</CoreExTargetFrameworks>
+  </PropertyGroup>
+
+</Project>

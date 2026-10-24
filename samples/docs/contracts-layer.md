@@ -69,6 +69,19 @@ public partial class Product : ProductBase, IETag, IChangeLog
 }
 ```
 
+For partial-update requests, use a standalone patch contract and `Optional<T>` when omission must remain distinct from explicit `null` or a supplied default. The wrapper belongs at the request boundary; the regular resource contract remains unchanged:
+
+```csharp
+[Contract]
+public partial class TravellerNotesPatch
+{
+    /// <summary>Gets or sets the optionally supplied notes.</summary>
+    public Optional<string?> Notes { get; set; }
+}
+```
+
+`default(Optional<T>)` is omitted, while assignment marks a value specified. The converter preserves the inner JSON shape, and CoreEx serializer defaults omit unspecified values. The OpenAPI schema uses the inner type/nullability but does not require the property. For a reference-data patch field, declare `[ReferenceData<Gender>] public partial Optional<string?> GenderCode { get; set; }`; the generated typed navigation property shares the code property's presence.
+
 An abstract base class (e.g. [`ProductBase`](../src/Contoso.Products.Contracts/ProductBase.cs)) is used where multiple projections of the same resource share common fields — for example `Product` (full detail) and `ProductLite` (query list projection).
 
 > **See also**: [`IIdentifier`](../../src/CoreEx/Entities/IIdentifier.cs) · [`IETag`](../../src/CoreEx/Entities/IETag.cs) · [`IChangeLog`](../../src/CoreEx/Entities/IChangeLog.cs)
@@ -101,6 +114,25 @@ public partial class UnitOfMeasure
 > **See also**: [`ReferenceData<T>`](../../src/CoreEx.RefData/ReferenceData.cs) · [`[ReferenceData]`](../../src/CoreEx.RefData/ReferenceDataAttribute.cs)
 
 ---
+
+### Consuming reference-data codes
+
+The generated concrete reference-data types support implicit conversion from `string?`. The Shopping [BasketMapper](../src/Contoso.Shopping.Infrastructure/Mapping/BasketMapper.cs) passes stored codes directly to typed domain parameters and value-object properties:
+
+```csharp
+var pricing = new Domain.ValueObjects.ItemPricing
+{
+    UnitOfMeasure = item.UnitOfMeasureCode,
+    Quantity = item.Quantity,
+    UnitPrice = item.UnitPrice
+};
+Contracts.BasketStatus? status = source.BasketStatusCode;
+Contracts.DiscountCoupon? coupon = source.DiscountCouponCode;
+```
+
+Do not add `RefData<T>` helpers or conversion-only collection lookups. Null stays null; unresolved non-null codes become invalid instances retaining their codes, including when no current orchestrator is available. Requiredness, validity and activity need separate validation. Use explicit lookups when found/not-found semantics or collection querying are needed.
+
+On contracts, declare `[ReferenceData<T>] public partial string? XxxCode { get; set; }` within a `[Contract]` partial class. Map/request-arrange through `XxxCode`; consume typed behavior through the generated `Xxx` accessor. See the [reference-data guide](../../src/CoreEx.RefData/README.md#reference-data-code-conversion) for conversion details.
 
 ## Source generation
 

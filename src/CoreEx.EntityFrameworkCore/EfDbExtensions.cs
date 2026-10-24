@@ -6,6 +6,31 @@ namespace CoreEx.EntityFrameworkCore;
 public static partial class EfDbExtensions
 {
     /// <summary>
+    /// Creates a deferred, composable SQL query using the existing Entity Framework context; see <see cref="Microsoft.EntityFrameworkCore.RelationalDatabaseFacadeExtensions.SqlQueryRaw"/>.
+    /// </summary>
+    /// <typeparam name="T">The scalar or unmapped result type supported by Entity Framework.</typeparam>
+    /// <param name="database">The CoreEx Entity Framework database accessor.</param>
+    /// <param name="statement">The SQL text statement, optionally loaded from an embedded resource.</param>
+    /// <param name="parameters">Values for SQL placeholders, or explicit <see cref="DbParameter"/> instances.</param>
+    /// <returns>The unexecuted query.</returns>
+    /// <remarks>Parameters are bound by Entity Framework, never formatted into SQL. Composed queries must satisfy the provider's composable SQL rules (for example, no trailing semicolon); scalar queries
+    /// composed with LINQ require a column named <c>Value</c>. Execution uses the context's transaction and Entity Framework diagnostics and error handling, not the CoreEx Database command pipeline.
+    /// No CoreEx model filters (including tenant and logical-delete filters) are automatically added; the caller must enforce eligibility. Pass cancellation when materializing the query.</remarks>
+    public static IQueryable<T> SqlQuery<T>(this IEfDb database, SqlStatement statement, params object[] parameters)
+    {
+        database.ThrowIfNull();
+        statement.ThrowIfNull();
+        parameters.ThrowIfNull();
+        if (statement.IsIndeterminate)
+            throw new InvalidOperationException("A SQL query requires a determinate statement.");
+
+        if (statement.CommandType != System.Data.CommandType.Text)
+            throw new ArgumentException("A SQL query requires a text statement.", nameof(statement));
+
+        return database.DbContext.Database.SqlQueryRaw<T>(statement.CommandText, parameters);
+    }
+
+    /// <summary>
     /// Creates a <typeparamref name="TColl"/> from a <typeparamref name="TSource"/> <see cref="IQueryable{TSource}"/> using the specified <paramref name="mapper"/>.
     /// </summary>
     /// <typeparam name="TSource">The source <see cref="Type"/>.</typeparam>

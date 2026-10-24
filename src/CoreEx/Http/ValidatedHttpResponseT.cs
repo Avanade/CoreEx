@@ -12,6 +12,93 @@ public sealed class ValidatedHttpResponse<T>(HttpResponseMessage response, Valid
 {
     private readonly HttpResponseMessage _response = response.ThrowIfNull();
     private readonly Validation.IValidator<T> _validator = validator.ThrowIfNull();
+    private Dictionary<HttpStatusCode, Func<HttpResponseMessage, CancellationToken, Task<Result>>>? _statusResults;
+
+    /// <summary>
+    /// Configures a <see cref="Result"/> to return when the response status matches the specified <paramref name="statusCode"/>.
+    /// </summary>
+    /// <param name="statusCode">The HTTP status code to match.</param>
+    /// <param name="result">The <see cref="Result"/> to return.</param>
+    /// <returns>The <see cref="ValidatedHttpResponse{T}"/> instance to support fluent chaining.</returns>
+    public ValidatedHttpResponse<T> WithStatusResult(HttpStatusCode statusCode, Result result)
+    {
+        _statusResults ??= [];
+        _statusResults[statusCode] = (_, _) => Task.FromResult(result);
+        return this;
+    }
+
+    /// <summary>
+    /// Configures a <see cref="Result"/> factory to invoke when the response status matches the specified <paramref name="statusCode"/>.
+    /// </summary>
+    /// <param name="statusCode">The HTTP status code to match.</param>
+    /// <param name="result">The function returning the <see cref="Result"/>.</param>
+    /// <returns>The <see cref="ValidatedHttpResponse{T}"/> instance to support fluent chaining.</returns>
+    public ValidatedHttpResponse<T> WithStatusResult(HttpStatusCode statusCode, Func<Result> result)
+    {
+        result.ThrowIfNull();
+        _statusResults ??= [];
+        _statusResults[statusCode] = (_, _) => Task.FromResult(result());
+        return this;
+    }
+
+    /// <summary>
+    /// Configures a <see cref="Result"/> factory to invoke with the <see cref="HttpResponseMessage"/> when the response status matches the specified <paramref name="statusCode"/>.
+    /// </summary>
+    /// <param name="statusCode">The HTTP status code to match.</param>
+    /// <param name="result">The function returning the <see cref="Result"/> for the response.</param>
+    /// <returns>The <see cref="ValidatedHttpResponse{T}"/> instance to support fluent chaining.</returns>
+    public ValidatedHttpResponse<T> WithStatusResult(HttpStatusCode statusCode, Func<HttpResponseMessage, Result> result)
+    {
+        result.ThrowIfNull();
+        _statusResults ??= [];
+        _statusResults[statusCode] = (response, _) => Task.FromResult(result(response));
+        return this;
+    }
+
+    /// <summary>
+    /// Configures an asynchronous <see cref="Result"/> factory to invoke with the <see cref="HttpResponseMessage"/> when the response status matches the specified <paramref name="statusCode"/>.
+    /// </summary>
+    /// <param name="statusCode">The HTTP status code to match.</param>
+    /// <param name="result">The asynchronous function returning the <see cref="Result"/> for the response.</param>
+    /// <returns>The <see cref="ValidatedHttpResponse{T}"/> instance to support fluent chaining.</returns>
+    public ValidatedHttpResponse<T> WithStatusResult(HttpStatusCode statusCode, Func<HttpResponseMessage, CancellationToken, Task<Result>> result)
+    {
+        result.ThrowIfNull();
+        _statusResults ??= [];
+        _statusResults[statusCode] = result;
+        return this;
+    }
+
+    /// <summary>
+    /// Configures a <see cref="Result"/> to return when the response status matches the specified <paramref name="statusCode"/>. Alias for <see cref="WithStatusResult(HttpStatusCode, Result)"/>.
+    /// </summary>
+    public ValidatedHttpResponse<T> WithErrorStatus(HttpStatusCode statusCode, Result result) => WithStatusResult(statusCode, result);
+
+    /// <summary>
+    /// Configures a <see cref="Result"/> factory to invoke when the response status matches the specified <paramref name="statusCode"/>. Alias for <see cref="WithStatusResult(HttpStatusCode, Func{Result})"/>.
+    /// </summary>
+    public ValidatedHttpResponse<T> WithErrorStatus(HttpStatusCode statusCode, Func<Result> result) => WithStatusResult(statusCode, result);
+
+    /// <summary>
+    /// Configures a <see cref="Result"/> factory to invoke with the <see cref="HttpResponseMessage"/> when the response status matches the specified <paramref name="statusCode"/>. Alias for <see cref="WithStatusResult(HttpStatusCode, Func{HttpResponseMessage, Result})"/>.
+    /// </summary>
+    public ValidatedHttpResponse<T> WithErrorStatus(HttpStatusCode statusCode, Func<HttpResponseMessage, Result> result) => WithStatusResult(statusCode, result);
+
+    /// <summary>
+    /// Configures an asynchronous <see cref="Result"/> factory to invoke with the <see cref="HttpResponseMessage"/> when the response status matches the specified <paramref name="statusCode"/>. Alias for <see cref="WithStatusResult(HttpStatusCode, Func{HttpResponseMessage, CancellationToken, Task{Result}})"/>.
+    /// </summary>
+    public ValidatedHttpResponse<T> WithErrorStatus(HttpStatusCode statusCode, Func<HttpResponseMessage, CancellationToken, Task<Result>> result) => WithStatusResult(statusCode, result);
+
+    /// <summary>
+    /// Attempts to get a registered custom <see cref="Result"/> for the response's status code.
+    /// </summary>
+    private async Task<Result?> TryGetStatusResultAsync(CancellationToken cancellationToken)
+    {
+        if (_statusResults is not null && _statusResults.TryGetValue(_response.StatusCode, out var handler))
+            return await handler(_response, cancellationToken).ConfigureAwait(false);
+
+        return null;
+    }
 
     /// <summary>
     /// Gets a result containing the validated value; missing content or a null validated value is a failure.
@@ -28,6 +115,9 @@ public sealed class ValidatedHttpResponse<T>(HttpResponseMessage response, Valid
     /// <returns>The validated result.</returns>
     public async Task<Result<T>> ToResultAsync(JsonSerializerOptions? jsonSerializerOptions, CancellationToken cancellationToken = default)
     {
+        if (await TryGetStatusResultAsync(cancellationToken).ConfigureAwait(false) is { } customResult)
+            return customResult.Bind<T>();
+
         var result = await _response.ToResultAsync<T>(jsonSerializerOptions, cancellationToken).ConfigureAwait(false);
         var validated = await ValidateAsync(result.AsResult<T, T?>(), true, cancellationToken).ConfigureAwait(false);
         return validated.AsResult<T?, T>();
@@ -48,6 +138,9 @@ public sealed class ValidatedHttpResponse<T>(HttpResponseMessage response, Valid
     /// <returns>The validated result.</returns>
     public async Task<Result<T?>> ToResultOrDefaultAsync(JsonSerializerOptions? jsonSerializerOptions, CancellationToken cancellationToken = default)
     {
+        if (await TryGetStatusResultAsync(cancellationToken).ConfigureAwait(false) is { } customResult)
+            return customResult.Bind<T?>();
+
         var result = await _response.ToResultOrDefaultAsync<T>(jsonSerializerOptions, cancellationToken).ConfigureAwait(false);
         return await ValidateAsync(result, false, cancellationToken).ConfigureAwait(false);
     }

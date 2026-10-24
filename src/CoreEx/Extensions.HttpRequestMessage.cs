@@ -1,7 +1,44 @@
+/*
+ * NOTE: When adding, updating, or removing request configuration extensions in this file,
+ * ensure the matching fluent methods on HttpRequestBuilder (CoreEx.Http.HttpRequestBuilder)
+ * are also added, updated, or removed to keep both HTTP request configuration APIs in sync.
+ */
+
 namespace CoreEx;
 
 public static partial class Extensions
 {
+    /// <summary>Sets the body to the JSON representation of the value, including JSON null. Rejects an existing body.</summary>
+    /// <typeparam name="T">The value type.</typeparam>
+    /// <param name="request">The HTTP request.</param>
+    /// <param name="value">The value to serialize.</param>
+    /// <param name="mediaType">The media type; defaults to application/json.</param>
+    /// <param name="jsonSerializerOptions">The serializer options; defaults to <see cref="JsonDefaults.SerializerOptions"/>.</param>
+    /// <returns>The request for fluent chaining.</returns>
+    public static HttpRequestMessage WithJson<T>(this HttpRequestMessage request, T value, string? mediaType = null, JsonSerializerOptions? jsonSerializerOptions = null)
+    {
+        request.ThrowIfNull();
+        if (request.Content is not null)
+            throw new InvalidOperationException("The HTTP request body has already been assigned.");
+
+        request.Content = JsonContent.Create(value, new MediaTypeHeaderValue(mediaType ?? MediaTypeNames.Application.Json), options: jsonSerializerOptions ?? JsonDefaults.SerializerOptions);
+        return request;
+    }
+
+    /// <summary>Sets the body, rejecting an existing body. The request owns and disposes accepted content.</summary>
+    /// <param name="request">The HTTP request.</param>
+    /// <param name="content">The content; the caller retains ownership if assignment is rejected.</param>
+    /// <returns>The request for fluent chaining.</returns>
+    public static HttpRequestMessage WithContent(this HttpRequestMessage request, HttpContent content)
+    {
+        request.ThrowIfNull();
+        if (request.Content is not null)
+            throw new InvalidOperationException("The HTTP request body has already been assigned.");
+
+        request.Content = content.ThrowIfNull();
+        return request;
+    }
+
     /// <summary>
     /// Adds the <see cref="HttpRequestMessage"/> <see cref="HttpRequestHeaders.IfMatch"/> with the specified <paramref name="etag"/> (where no <see langword="null"/>).
     /// </summary>
@@ -88,7 +125,25 @@ public static partial class Extensions
     /// <param name="query">The <see cref="QueryArgs"/>.</param>
     /// <returns>The <paramref name="request"/> to support fluent-style method-chaining.</returns>
     public static HttpRequestMessage WithQuery(this HttpRequestMessage request, QueryArgs? query)
-        => WithQuery(request, query?.Filter, query?.OrderBy, query?.IncludeFields, query?.ExcludeFields);
+    {
+        WithQuery(request, query?.Filter, query?.OrderBy, query?.IncludeFields, query?.ExcludeFields);
+        if (query is null)
+            return request;
+
+        return AddQuery(request, qb => qb
+            .AddQuery(HttpNames.QuerySearchQueryStringName, query.Search)
+            .AddQuery(HttpNames.IncludeTextQueryStringName, query.IsIncludeText ? "true" : null)
+            .AddQuery(HttpNames.IncludeInactiveQueryStringName, query.IsIncludeInactive ? "true" : null));
+    }
+
+    /// <summary>
+    /// Adds the <see cref="QueryArgs.Search"/> free-text statement to the <see cref="HttpRequestMessage"/> <see cref="HttpRequestMessage.RequestUri"/> by adding to the <see cref="Uri.Query"/>.
+    /// </summary>
+    /// <param name="request">The <see cref="HttpRequestMessage"/>.</param>
+    /// <param name="search">The free-text <c>$search</c> statement; ignored where <see langword="null"/> or white space.</param>
+    /// <returns>The <paramref name="request"/> to support fluent-style method-chaining.</returns>
+    public static HttpRequestMessage WithSearch(this HttpRequestMessage request, string? search)
+        => AddQuery(request, qb => qb.AddQuery(HttpNames.QuerySearchQueryStringName, search));
 
     /// <summary>
     /// Adds <see cref="QueryArgs"/> to the <see cref="HttpRequestMessage"/> <see cref="HttpRequestMessage.RequestUri"/> by adding to the <see cref="Uri.Query"/>.

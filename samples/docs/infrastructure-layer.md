@@ -35,6 +35,8 @@ public partial class Product : ModelBase<string>, ILogicallyDeleted
 
 Repository implementations live in `Repositories/` and implement the `IXxxRepository` interfaces declared in the Application layer. They use CoreEx's `EfDb<TContext>` abstraction, which provides strongly-typed, mapper-aware access patterns (`GetAsync`, `CreateAsync`, `UpdateAsync`, `DeleteAsync`, `Query`) built on top of EF Core, adding CoreEx's `DataResult<T>` return semantics, change-tracking integration, and query filtering support.
 
+These mutation outcomes survive Domain mapping and ROP: Shopping's BasketRepository returns `Result<DataResult<Domain.Basket>>` for Create/Update and maps with `.ThenAs(dr => dr.Map(value => BasketMapper.Map(value)))`, not an implicit conversion to the aggregate. `Map` transforms the value even on a no-op and preserves `WasMutated`; the lambda retains CoreEx's conditional mapper nullability guarantee. Delete repositories retain `DataResult`/`Result<DataResult>`. The flag must represent the complete parent/child operation; Shopping explicitly marks the parent modified when synchronizing items, preserving aggregate-wide mutation tracking. Application decides whether to announce the mutation before unwrapping the value. This is a provider mutation signal; transaction commit still determines the atomic outcome.
+
 ```csharp
 // samples/src/Contoso.Products.Infrastructure/Repositories/ProductRepository.cs
 [ScopedService<IProductRepository>]
@@ -121,17 +123,19 @@ public class ProductMapper : BiDirectionMapper<Contracts.Product, Persistence.Pr
 
 ## External clients and adapter implementations
 
-When a domain needs to call another domain's API over HTTP, the raw HTTP interaction is encapsulated in a **typed HTTP client** (`Clients/`) — a thin wrapper around `HttpClient` that serializes requests and maps responses to CoreEx `Result` types. The adapter implementation (`Adapters/`) then uses this client alongside other infrastructure concerns (local EF store, event publishers) to fulfill the Application-layer adapter interface.
+When a domain needs to call another domain's API over HTTP, the raw HTTP interaction is encapsulated in a **typed HTTP client** (`Clients/`) — a thin wrapper around `HttpClient` that builds requests fluently and maps responses to CoreEx `Result` types. The adapter implementation (`Adapters/`) then uses this client alongside other infrastructure concerns (local EF store, event publishers) to fulfill the Application-layer adapter interface.
 
 ```csharp
 // samples/src/Contoso.Shopping.Infrastructure/Clients/ProductsHttpClient.cs
 public class ProductsHttpClient(HttpClient httpClient)
 {
-    public async Task<Result> CreateReservationAsync(MovementRequest request)
-    {
-        var response = await _httpClient.PostAsJsonAsync("api/inventory/reserve", request, JsonDefaults.SerializerOptions);
-        return await response.ToResultAsync();
-    }
+    private readonly HttpClient _httpClient = httpClient.ThrowIfNull();
+
+    public Task<Result> CreateReservationAsync(MovementRequest request, CancellationToken ct = default)
+        => _httpClient
+            .Post("api/inventory/reserve")
+            .WithJson(request)
+            .ToResultAsync(ct);
 }
 
 // samples/src/Contoso.Shopping.Infrastructure/Adapters/ProductAdapter.cs
@@ -142,17 +146,16 @@ public class ProductAdapter(ShoppingEfDb ef, IEventPublisher eventPublisher, Pro
 }
 ```
 
-This split — client for transport, adapter for orchestration — keeps each class focused on a single responsibility and makes the HTTP interaction independently testable.
+This split — client for transport, adapter for orchestration — keeps each class focused on a single responsibility and makes the HTTP interaction independently testable. Use `_httpClient.Send(method, uri)` or `Get`/`Post`/`Put`/`Patch`/`Delete`, with `WithJson(value)` for JSON or `WithContent(content)` for explicit content. Builders are single-use and permit exactly one body assignment. Configure headers, query parameters, and paging before terminal methods (`ToResultAsync`, `GetValueAsync<T>`, etc.), which automatically dispose the response unless returning it raw. `Patch` selects only the verb, not JSON Merge Patch.
 
 `CustomersHttpClient` / `CustomerAdapter` are the purely real-time variant: no local replica, the adapter delegates to the client (`GET api/customers/{id}`), mapping a 404 to `Result.NotFoundError()`. The lookup is wrapped in a single `IHybridCache.GetOrCreateWithResultAsync<Customer>(...)` call: only successful results are cached (short, configurable expiry via `CoreEx:Caching:Customer:*`), failures such as not-found are never cached. The lookup is single-flight per key (per node) under FusionCache, so concurrent misses make one remote call; coalescing across nodes sharing Redis would need an opt-in FusionCache distributed locker, which isn't worth it for this cheap read. The client is registered in the Api and Subscribe hosts with `AddTypedHttpClient<CustomersHttpClient>("CustomersApi")`, the `CustomersApi:BaseAddress` setting being overridden with service discovery under Aspire.
 
-Before returning a successful lookup, `CustomersHttpClient` uses
-`response.WithValidator(_validator).ToResultAsync(ct)` to require an email with valid format.
+`CustomersHttpClient` chains `.WithStatusResult(HttpStatusCode.NotFound, () => Result.NotFoundError())` and `.WithValidator(_validator).ToResultAsync(ct)` directly on `_httpClient.Send(...)`: a 404 response short-circuits directly to `Result.NotFoundError()` before deserialization or validation runs, while a 200 response requires an email with valid format and automatically disposes the HTTP response.
 The response-specific rules are defined once in a private static readonly `Validator<Customer>`
 inside the client using `Validator.Create<Customer>().HasProperty(...)`, leaving other details unrestricted rather
 than applying create/update rules to a read response. Customer identity is trusted, not validated
 or compared with the requested identifier. Invalid successful responses become
 `HttpRequestException` failures with structured validation diagnostics, so they are not cached
-or mistaken for caller validation errors. The client disposes the HTTP response after consumption.
+or mistaken for caller validation errors.
 
-> **See also**: [`ToResultAsync`](../../src/CoreEx/Extensions.HttpResponseMessage.cs) · [`JsonDefaults`](../../src/CoreEx/Json/JsonDefaults.cs) · [Strangler Fig / ACL patterns](https://learn.microsoft.com/en-us/azure/architecture/patterns/strangler-fig)
+> **See also**: [`HttpRequestBuilder`](../../src/CoreEx/Http/HttpRequestBuilder.cs) · [`ToResultAsync`](../../src/CoreEx/Extensions.HttpResponseMessage.cs) · [`JsonDefaults`](../../src/CoreEx/Json/JsonDefaults.cs) · [Strangler Fig / ACL patterns](https://learn.microsoft.com/en-us/azure/architecture/patterns/strangler-fig)

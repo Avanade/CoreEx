@@ -1,6 +1,7 @@
 global using Contoso.Products.Application;
 global using Contoso.Products.Application.Interfaces;
 global using Contoso.Products.Contracts;
+global using Contoso.Products.Infrastructure.Clients.Ollama;
 global using Contoso.Products.Infrastructure.Repositories;
 global using CoreEx;
 global using CoreEx.AspNetCore.Mvc;

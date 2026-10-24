@@ -25,13 +25,13 @@ public class BasketService(IUnitOfWork unitOfWork, IBasketRepository repository,
         {
             // Create the aggregate in the repository, which will return the created aggregate with any updates (e.g. Id).
             var br = await _repository.CreateAsync(aggregate, tct).ConfigureAwait(false);
-            return br.ThenAs(b =>
+            return br.ThenAs(dr =>
             {
                 // Map the result to the contract representation.
-                var contract = BasketMapper.Map(b);
+                var contract = BasketMapper.Map(dr.Value);
 
-                // Add an event for the creation of the basket.
-                _unitOfWork.Events.Add(EventData.CreateEventWith(contract, EventAction.Created));
+                // Only announce a creation when persistence reports a mutation.
+                dr.WhereMutated(_ => _unitOfWork.Events.Add(EventData.CreateEventWith(contract, EventAction.Created)));
 
                 return contract;
             });
@@ -115,7 +115,7 @@ public class BasketService(IUnitOfWork unitOfWork, IBasketRepository repository,
     }
 
     /// <summary>
-    /// Performs the "actual" update of the basket within a transaction, ensuring that any events are only published if the transaction is successful.
+    /// Persists the basket within a transaction, announcing an update only when persistence reports a mutation.
     /// </summary>
     private Task<Result<Basket>> UpdateAsync(Domain.Basket basket, EventAction action, CancellationToken ct) => _unitOfWork.TransactionAsync(async tct =>
     {
@@ -125,13 +125,13 @@ public class BasketService(IUnitOfWork unitOfWork, IBasketRepository repository,
         // Update the aggregate in the repository, which will return the updated aggregate with any updates (e.g. Id).
         var ur = await _repository.UpdateAsync(basket, tct).ConfigureAwait(false);
 
-        return ur.ThenAs(basket =>
+        return ur.ThenAs(dr =>
         {
             // Map the result to the contract representation.
-            var contract = BasketMapper.Map(basket);
+            var contract = BasketMapper.Map(dr.Value);
 
-            // Add an event for the update of the basket.
-            _unitOfWork.Events.Add(EventData.CreateEventWith(contract, action));
+            // Aggregate state expresses intent; persistence decides whether to announce a mutation.
+            dr.WhereMutated(_ => _unitOfWork.Events.Add(EventData.CreateEventWith(contract, action)));
 
             return contract;
         });
@@ -148,18 +148,16 @@ public class BasketService(IUnitOfWork unitOfWork, IBasketRepository repository,
             {
                 return await _unitOfWork.TransactionAsync(tct => Result
                     .GoAsync(() => _repository.UpdateAsync(basket, tct))     // Update the basket aggregate to reflect the checkout (e.g. status change).
-                    .ThenAsAsync(async basket =>
+                    .ThenAsAsync(async dr =>
                     {
                         // Map the result to the contract representation.
-                        var contract = BasketMapper.Map(basket);
+                        var contract = BasketMapper.Map(dr.Value);
 
-                        // Outbox the "checked-out" event for the basket aggregate.
-                        _unitOfWork.Events.Add(EventData.CreateEventWith(contract, EventAction.CheckedOut));
+                        // Only announce checkout when persistence reports a mutation.
+                        dr.WhereMutated(_ => _unitOfWork.Events.Add(EventData.CreateEventWith(contract, EventAction.CheckedOut)));
 
-                        // Note: the reservation confirmation is outboxed as a command to the products domain, as it's an action that we want to occur asynchronously after the transaction has completed, but it doesn't
-                        // necessarily need to be performed immediately after the checkout event (e.g. it could be performed after some delay, or after some other events have been processed). By using a command, we
-                        // also have more flexibility in how we handle failures and retries for the reservation confirmation, without impacting the checkout event processing.
-                        return (await _productAdapter.CreateConfirmReservationCommand(basket, tct).ConfigureAwait(false))
+                        // Outbox confirmation of the successful reservation even when persistence reports no mutation.
+                        return (await _productAdapter.CreateConfirmReservationCommand(dr.Value, tct).ConfigureAwait(false))
                             .ThenAs(() => contract);
                     }), ct).ConfigureAwait(false);
             }

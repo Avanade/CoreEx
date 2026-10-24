@@ -28,6 +28,17 @@ public class ProductValidator : Validator<Product>
 }
 ```
 
+## Optional patch properties
+
+Use `.Unwrap()` on `Optional<T>` request properties to validate the wrapped value with normal rules only when it was supplied. `.Specified()` requires presence but allows specified-null. Keep ordinary value rules off the outer `Optional<T>` property.
+
+```csharp
+Property(x => x.Notes).Unwrap().Mandatory();
+Property(x => x.Category).Specified();
+```
+
+Keep `Optional<T>` in the request contract and apply changes to ordinary application/domain objects only after validation. See the [validation README](./README.md#optional-patch-validation).
+
 ## Call from a Service
 
 Always call `ValidateAndThrowAsync` before mutating state. This produces a `ValidationException` with all field-level errors at once.
@@ -67,7 +78,14 @@ Property(p => p.DiscountCode)
 Property(p => p.ExpiresOn)
     .GreaterThan(_ => Runtime.UtcNow)
     .WhenHasValue();
+
+// FareClass is required only when its valid dependency is a flight.
+Property(p => p.FareClass)
+    .Mandatory()
+    .DependsOn(p => p.SegmentType, segmentType => segmentType?.IsFlight == true);
 ```
+
+The `DependsOn` predicate overload is evaluated only after the dependency has a non-default value and no validation error. Clauses guard the rule they are attached to, so `Mandatory()` is conditional in this example. Use another `Property(p => p.SameProperty)` call to add a separate root rule chain for the same property when different rules need different conditions; later chains may be skipped if an earlier one has already reported an error for that property. Use `WhenEntity(...)` when the condition depends on broader entity state; use `!` for nullable dependencies when relying on this runtime guard, because nullable flow analysis cannot infer it.
 
 ### Comparing two properties
 
@@ -80,6 +98,8 @@ Property(p => p.EndsOn).Mandatory().CompareProperty(CompareOperator.GreaterThanO
 
 ## Reusable Validators
 
+Dictionary JSON error paths use the effective serializer's `DictionaryKeyPolicy` for string keys: `HomeAddress` becomes `homeAddress` with CoreEx defaults. A null key policy preserves keys. This applies to key and value errors and matches `ValidationException.Create<TEntity>`; CLR paths and `GetDictionaryKey()` retain original keys. Dictionary object members use `.key`, arrays/lists use `[index]`. No escaping is added for punctuation within names.
+
 Use `CommonValidator<TValue>` for logic reused across multiple entity validators.
 
 ```csharp
@@ -89,6 +109,10 @@ public static readonly CommonValidator<string> SkuValidator = Validator.CreateCo
 // Usage
 HasRuleFor(p => p.Sku).Common(SkuValidator);
 ```
+
+Common validators preserve the caller's label, value formatting and null state. Prefer non-nullable `TValue` for reuse on both nullable and non-nullable properties. `CommonValidator<int>` does not turn an originating null into zero: range rules skip null, `.NotNull()` rejects null but permits zero, and default `.Mandatory()` rejects both. Normalizing rules write back to writable properties (including unwrapped `Optional<T>`) and subsequent rules/`AdditionalAsync` callbacks observe the updated value. Custom wrapper interfaces expose read-only inner values; do not invent reconstruction semantics.
+
+When changing validation plumbing, preserve typed metadata reads and track adapted null state separately; do not route every value through `object` merely to represent null. Validation is not allocation-free: type-erased adapters, error construction and other infrastructure can still allocate. Keep regression coverage for `string`, `string?`, `int` and `int?`, including omitted/specified values, chained normalization, read-only properties and nested error paths. See the [package README](./README.md#optional-patch-validation) for behavior details.
 
 ## Do Not
 

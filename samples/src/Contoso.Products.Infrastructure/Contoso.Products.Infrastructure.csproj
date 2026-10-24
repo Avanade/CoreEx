@@ -7,6 +7,13 @@
     <ProjectReference Include="..\Contoso.Products.Contracts\Contoso.Products.Contracts.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Aspire.OllamaSharp" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Contoso.Products.Test.Api" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Repositories\Sql\*.pgsql" />
   </ItemGroup>
 </Project>

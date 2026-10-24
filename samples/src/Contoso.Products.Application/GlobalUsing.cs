@@ -12,4 +12,6 @@ global using CoreEx.RefData;
 global using CoreEx.RefData.Abstractions;
 global using CoreEx.Results;
 global using CoreEx.Validation;
+global using System.Security.Cryptography;
+global using System.Text;
 global using System.Text.Json;

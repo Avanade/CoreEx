@@ -160,8 +160,25 @@ public abstract class DatabaseInvoker : InvokerBase<IDatabase, DatabaseArgs>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
     /// <returns>The result of the <paramref name="work"/>.</returns>
     /// <remarks>This is intended to be used by the <see cref="IUnitOfWork"/> invoker to provide database-agnostic transaction handling (where applicable).</remarks>
-    public static async Task<TResult> OrchestrateUnitOfWorkTransactionAsync<TResult>(InvokerTracer tracer, IDatabaseUnitOfWork unitOfWork, Func<Task<TResult>> work, Action<int>? emitOutboxMetrics, CancellationToken cancellationToken)
+    public static Task<TResult> OrchestrateUnitOfWorkTransactionAsync<TResult>(InvokerTracer tracer, IDatabaseUnitOfWork unitOfWork, Func<Task<TResult>> work, Action<int>? emitOutboxMetrics, CancellationToken cancellationToken)
+        => OrchestrateUnitOfWorkTransactionAsync(tracer, unitOfWork, unitOfWork.Database.DbArgs, work, emitOutboxMetrics, cancellationToken);
+
+    /// <summary>
+    /// Provides standardized database transaction handling using the specified arguments for a new root transaction.
+    /// </summary>
+    /// <typeparam name="TResult">The result <see cref="Type"/>.</typeparam>
+    /// <param name="tracer">The <see cref="InvokerTracer"/>.</param>
+    /// <param name="unitOfWork">The <see cref="IDatabaseUnitOfWork"/>.</param>
+    /// <param name="args">The arguments specifying the root transaction isolation level.</param>
+    /// <param name="work">The work to be performed within the unit-of-work.</param>
+    /// <param name="emitOutboxMetrics">The action to emit outbox metrics (where applicable).</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+    /// <returns>The result of the <paramref name="work"/>.</returns>
+    /// <remarks>Nested invocations use save-points and inherit the parent transaction's isolation level; they cannot change it.</remarks>
+    public static async Task<TResult> OrchestrateUnitOfWorkTransactionAsync<TResult>(InvokerTracer tracer, IDatabaseUnitOfWork unitOfWork, DatabaseArgs args,
+        Func<Task<TResult>> work, Action<int>? emitOutboxMetrics, CancellationToken cancellationToken)
     {
+        args.ThrowIfNull();
         var txn = unitOfWork.Database.CurrentTransaction;
         var isRootTxn = txn is null;
         var savePoint = isRootTxn ? string.Empty : unitOfWork.Database.GetNextSavePointName();
@@ -242,7 +259,7 @@ public abstract class DatabaseInvoker : InvokerBase<IDatabase, DatabaseArgs>
                     tracer.Logger.LogDebug("Unit-of-work transaction; creating (root) transaction. [DatabaseId: {DatabaseId}]", unitOfWork.Database.DatabaseId);
 
                 var conn = await unitOfWork.Database.GetConnectionAsync(cancellationToken).ConfigureAwait(false);
-                txn = await conn.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+                txn = await conn.BeginTransactionAsync(args.IsolationLevel, cancellationToken).ConfigureAwait(false);
                 unitOfWork.Database.UseTransaction(txn);
             }
             else

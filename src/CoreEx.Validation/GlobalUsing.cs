@@ -2,6 +2,7 @@ global using CoreEx.Abstractions;
 global using CoreEx.Data;
 global using CoreEx.Entities;
 global using CoreEx.Entities.Abstractions;
+global using CoreEx.Json;
 global using CoreEx.Localization;
 global using CoreEx.Metadata;
 global using CoreEx.RefData;

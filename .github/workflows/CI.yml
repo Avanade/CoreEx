@@ -10,6 +10,7 @@ on:
       - 'gen/**'
       - 'servicebus/**'
       - 'Directory.Packages.props'
+      - 'global.json'
       - 'docker-compose.yml'
       - '*.slnf'
       - '*.slnx'
@@ -24,6 +25,7 @@ on:
       - 'gen/**'
       - 'servicebus/**'
       - 'Directory.Packages.props'
+      - 'global.json'
       - 'docker-compose.yml'
       - '*.slnf'
       - '*.slnx'
@@ -48,15 +50,15 @@ jobs:
     - uses: actions/checkout@v4
 
     - name: Start containers
-      run: docker compose up -d
+      run: docker compose --profile search up -d
 
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
+        global-json-file: global.json
         dotnet-version: |
           8.x
           9.x
-          10.x
 
     - name: Cache NuGet packages
       uses: actions/cache@v4
@@ -148,9 +150,14 @@ jobs:
         rm aspnetcore-dev.pem
 
     # The Aspire end-to-end tests orchestrate every sample host together, so they run last (after all the intra-domain sample tests) and on .NET 10 only (the AppHost is single-TFM).
+    - name: Prepare semantic search model
+      timeout-minutes: 10
+      run: docker compose exec -T ollama ollama pull nomic-embed-text:v1.5
+
     - name: Test samples (Aspire end-to-end, net10.0 only)
       timeout-minutes: 20
       run: dotnet test CoreEx.Samples.Test.E2E.slnf --no-build --configuration Release --logger trx --results-directory coverage/samples-e2e -m:1 -p:TestTfmsInParallel=false -p:BuildInParallel=false
+
     - name: Upload samples test results
       if: always()
       uses: actions/upload-artifact@v4
@@ -207,10 +214,10 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
+        global-json-file: global.json
         dotnet-version: |
           8.x
           9.x
-          10.x
 
     - name: Cache NuGet packages
       uses: actions/cache@v4

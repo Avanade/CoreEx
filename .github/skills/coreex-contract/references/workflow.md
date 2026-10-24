@@ -166,6 +166,8 @@ public partial class ProductLite : ProductBase
 
 **A5 applies to genuine supersets only** — every inherited property must stay meaningful on the derived type. For a patch/merge-patch or other partial-update request that needs only a *subset* of a sibling contract's fields, do **not** inherit it and suppress the rest (`new`, `[JsonIgnore]`, ignoring members): author a standalone `[Contract]` class with just the properties it needs (+ `IETag` where concurrency applies). Overlapping field names alone are not a reason to extract a base class or inherit. Path B (request contracts) is the right home for these.
 
+When the patch must distinguish an omitted field from explicit `null` or a supplied default, declare that field as `Optional<T>` on this standalone request contract. Do not mark it C# `required`, and do not carry the wrapper into shared response/event or persistence models. Validate via `.Unwrap()` and map only specified values into the ordinary target. See the [Optional patch property guidance](/.github/instructions/coreex-contracts.instructions.md#optional-patch-properties).
+
 ---
 
 ## Path B — New Subordinate or Request Contract
@@ -262,6 +264,7 @@ Apply the 5-step type resolution. Emit the property with `<summary>`, correct ty
 3. Add: `[ReferenceData<T>]` `public partial string? {Name}Code { get; set; }`
 4. Add `[Localization]` only if the auto-label would be wrong.
 5. Rebuild — Roslyn emits the typed navigation property automatically.
+6. Map/request-arrange through `{Name}Code`; consume behavior through `{Name}`. Pass code strings directly to concrete typed reference-data destinations using [generated implicit conversion](/.github/instructions/coreex-contracts.instructions.md#reference-data-code-conversion), not custom helpers or conversion-only collection lookups.
 
 ### C3 — Add an interface
 

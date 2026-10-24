@@ -12,6 +12,9 @@ public abstract partial class ProductBase : IIdentifier<string?>
     [NonNullable]
     public string? Text { get; set; }
 
+    /// <summary>Gets or sets the descriptive product information and intended use.</summary>
+    public string? Description { get; set; }
+
     [ReadOnly(true)]
     [ReferenceData<Category>]
     public partial string? CategoryCode { get; set; }

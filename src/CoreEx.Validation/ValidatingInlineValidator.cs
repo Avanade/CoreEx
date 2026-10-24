@@ -11,11 +11,13 @@ internal sealed class ValidatingInlineValidator<TValue>(Action<ValidatingInlineV
     /// Overrides the property and JSON names.
     /// </summary>
     /// <param name="name">The property name.</param>
+    /// <param name="jsonName">The JSON name where different from the property name.</param>
     /// <returns>The <see cref="ValidatingInlineValidator{TValue}"/> to support fluent-style method-chaining.</returns>
     /// <remarks>This will apply to all instances in which the <see cref="ValidatingInlineValidator{TValue}"/> is used; therefore, caution is required when using. This is intended for advanced usage only.</remarks>
-    public ValidatingInlineValidator<TValue> WithName(string name)
+    public ValidatingInlineValidator<TValue> WithName(string name, string? jsonName = null)
     {
         OverrideName = name.ThrowIfNullOrEmpty();
+        OverrideJsonName = jsonName;
         return this;
     }
 

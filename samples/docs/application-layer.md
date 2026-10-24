@@ -55,6 +55,8 @@ Each service interface lives in `Application/Interfaces/` and exposes only what 
 
 Repository interfaces (`Application/Repositories/`) define the **data contract** for the Application layer without coupling it to any persistence technology. They surface domain-idiomatic operations (`GetAsync`, `CreateAsync`, `QueryAsync`, etc.) and return CoreEx result types (`DataResult<T>`, `ItemsResult<T>`) rather than raw EF entities.
 
+The Shopping DDD/ROP repository uses `Result<DataResult<Domain.Basket>>` for Create/Update; reads still return `Result<Domain.Basket>`. The service maps `dr.Value` to a contract, gates mutation-announcement events with `dr.WhereMutated(...)` inside the write transaction, then returns the contract. Successful no-ops emit no mutation event even if an earlier read found the aggregate and `HasChanges` indicated intent to save. This applies to Create, shared Update, and Checkout; the reservation-confirmation command still follows its own successful-reservation semantics. For repositories exposing Delete, retain `Result<DataResult>`/`DataResult` and use parameterless `WhereMutated(() => ...)`. Sequential delete idempotency does not exercise the read/delete gap; the provider may report a no-op or a concurrency failure, and the latter must propagate unchanged.
+
 ```csharp
 // samples/src/Contoso.Products.Application/Repositories/IProductRepository.cs
 public interface IProductRepository
@@ -81,6 +83,22 @@ Validators live in `Application/Validators/` and extend CoreEx's `Validator<T>`.
 **Programmatic** — `OnValidateAsync` is overridden to add behavior that cannot be expressed declaratively: repository lookups, cross-property business rules, or dynamically-constructed validators built from retrieved data. The override pattern calls `context.ValidateFurtherAsync(...)` to compose additional property-level rules in the same structured way.
 
 The two phases integrate naturally: `OnValidateAsync` should guard with `if (context.HasErrors) return;` to fail fast and avoid unnecessary I/O when declarative rules have already failed.
+
+For a patch contract using `Optional<T>`, `.Unwrap()` applies ordinary rules only when a field was supplied, and `.Specified()` can require field presence independently. A specified null/default is still supplied and is handled by the inner rules:
+
+```csharp
+public class TravellerNotesPatchValidator : Validator<Contracts.TravellerNotesPatch, TravellerNotesPatchValidator>
+{
+    public TravellerNotesPatchValidator() => Property(x => x.Notes).Unwrap().Mandatory();
+}
+```
+
+After validation, map the patch into the existing ordinary contract/domain object only when the field is specified; this preserves untouched fields and prevents request-only wrappers from reaching repositories or persistence models:
+
+```csharp
+if (patch.Notes.IsSpecified)
+    traveller.Notes = patch.Notes.Value;
+```
 
 ```csharp
 // samples/src/Contoso.Products.Application/Validators/ProductValidator.cs
@@ -148,6 +166,16 @@ public class MovementRequestValidator : Validator<Contracts.MovementRequest>
 }
 ```
 
+When a property's rules depend on a condition of the dependency itself, use the predicate overload to combine the non-default/valid dependency guard with that condition:
+
+```csharp
+Property(x => x.FareClass)
+    .Mandatory()
+    .DependsOn(x => x.SegmentType, segmentType => segmentType!.IsFlight);
+```
+
+This makes `FareClass` mandatory only when `SegmentType` is valid and represents a flight. For conditions based on other entity properties, use `WhenEntity(...)`; the `DependsOn` predicate is intentionally scoped to the dependent property's value.
+
 > **See also**: [`Validator<T>`](../../src/CoreEx.Validation/Validator.cs) · [`IValidatorEx`](../../src/CoreEx.Validation/IValidatorEx.cs)
 
 ---
@@ -214,6 +242,27 @@ public class BasketMapper : Mapper<Domain.Basket, Contracts.Basket, BasketMapper
 
 Policies (`Application/Policies/`) encapsulate **domain-level guard logic** that requires I/O (adapter or repository calls). They provide a named, independently testable home for rules that depend on external state and cannot be expressed in a validator alone (synchronous) or enforced directly in the domain model (no async I/O). A policy can be called from any point in service orchestration where the condition needs to be verified — for example, confirming that a referenced entity actually exists before proceeding with a mutation.
 
+### Missing targets versus invalid references
+
+Classify a missing entity by the identifier's role in the operation. A missing target resource or explicitly addressed child (`/bookings/{id}/travellers/{travellerId}`) is `NotFoundException` / `Result.NotFoundError` (404). A missing entity referenced by a request-body field, such as `travellerId` in `POST /bookings/{id}/travellers`, is field-level validation (400 under CoreEx conventions); a missing target booking remains 404. Query parameters often filter collections: no matches normally means an empty result, while invalid query inputs follow the endpoint's validation contract.
+
+Repositories/adapters report lookup outcomes; services/policies interpret them. Translate only expected entity-not-found outcomes for missing references and preserve other failures unchanged. A downstream 404 may instead mean an incorrect route or deployment/configuration problem. Use business errors for process/state restrictions unless specific conflict/concurrency or authorization semantics apply; error-code needs never justify reclassifying an invalid reference. Preserve deliberate idempotent-delete behavior and security-driven concealment of resource existence.
+
+When the request contract is known, expression factories resolve the invalid field's JSON path without coupling it to the returned entity type:
+
+```csharp
+// lookup is Result<Traveller>; preserve unrelated failures and successful values.
+return lookup.IsNotFoundError
+    ? Result<Traveller>.ValidationError<BookingTravellerAddRequest>(x => x.TravellerId, "Traveller was not found.")
+    : lookup;
+```
+
+For nullable lookups, check null instead. In exception-style services use `ValidationException.Create<Request>(...)`; for aggregation use `MessageItem.CreateErrorMessage<Request>(...)`; inside validators keep using `context.AddError(...)` for contextual paths. Reusable policies receiving only an identifier can keep explicit caller-agreed JSON paths (or accept a resolved path); do not add a request DTO dependency solely for the shorthand. `nameof(param)` does not resolve JSON naming.
+
+### Sample reference policies
+
+The following Product policy checks a body reference whose agreed JSON path is `"productId"`; the literal is already the resolved path, not a parameter-name-to-JSON conversion.
+
 ```csharp
 // samples/src/Contoso.Shopping.Application/Policies/ProductPolicy.cs
 public class ProductPolicy(IProductAdapter productAdapter)
@@ -221,9 +270,9 @@ public class ProductPolicy(IProductAdapter productAdapter)
     public Task<Result<Product>> EnsureExistsAsync(string productId) => Result
         .GoAsync(() => _productAdapter.GetAsync(productId))
         .OnFailure(r => r.IsNotFoundError
-            ? Result.ValidationError(MessageItem.CreateErrorMessage(nameof(productId), "Product was not found."))
+            ? Result.ValidationError(MessageItem.CreateErrorMessage("productId", "Product was not found."))
             : r);
 }
 ```
 
-`CustomerPolicy` (`EnsureExistsAsync`) follows the same shape for the basket's `customerId`, returning a `customerId` validation error ("Customer was not found.") when the Customers API responds 404.
+`CustomerPolicy` (`EnsureExistsAsync`) follows the same shape for the basket's `customerId`, returning a `customerId` validation error ("Customer was not found.") when the adapter reports the expected customer-not-found outcome from the Customers lookup endpoint.

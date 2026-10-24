@@ -660,6 +660,66 @@ public partial class ReferenceDataOrchestratorTests
         names.Should().BeEmpty();
     }
 
+    [Test]
+    public async Task PrefetchAsync_Types_ReturnsDistinctTypesAndPopulatesCache()
+    {
+        var orch = ReferenceDataOrchestrator.Current;
+        var types = await orch.PrefetchAsync([typeof(DummyRefData), typeof(DummyRefData2), typeof(DummyRefData)]).ConfigureAwait(false);
+
+        types.Should().Equal(typeof(DummyRefData), typeof(DummyRefData2));
+        var cache = ExecutionContext.GetRequiredService<IReferenceDataCache>();
+        (await cache.GetOrCreateAsync(typeof(DummyRefDataCollection), (_, _) => throw new InvalidOperationException("Prefetch did not populate the cache.")).ConfigureAwait(false)).Should().NotBeNull();
+        (await cache.GetOrCreateAsync(typeof(DummyRefData2Collection), (_, _) => throw new InvalidOperationException("Prefetch did not populate the cache.")).ConfigureAwait(false)).Should().NotBeNull();
+    }
+
+    [TestCase(typeof(InvalidRefData))]
+    [TestCase(typeof(string))]
+    public async Task PrefetchAsync_UnregisteredTypeRejectsBeforeLoading(Type invalidType)
+    {
+        var orch = ReferenceDataOrchestrator.Current;
+        Func<Task> act = () => orch.PrefetchAsync([typeof(DummyRefData), invalidType]);
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage($"Reference data collection for type '{invalidType.FullName}' does not exist.").ConfigureAwait(false);
+        await AssertPrefetchCacheEmptyAsync().ConfigureAwait(false);
+    }
+
+    [Test]
+    public async Task PrefetchAsync_EmptyTypesReturnsEmpty()
+    {
+        var types = await ReferenceDataOrchestrator.Current.PrefetchAsync(Array.Empty<Type>()).ConfigureAwait(false);
+        types.Should().BeEmpty();
+    }
+
+    [Test]
+    public async Task PrefetchAsync_NullTypesRejected()
+    {
+        Func<Task> act = () => ReferenceDataOrchestrator.Current.PrefetchAsync((IEnumerable<Type>)null!);
+        await act.Should().ThrowAsync<ArgumentNullException>().ConfigureAwait(false);
+        act = () => ReferenceDataOrchestrator.Current.PrefetchAsync(new Type[] { typeof(DummyRefData), null! });
+        await act.Should().ThrowAsync<ArgumentNullException>().ConfigureAwait(false);
+    }
+
+    [Test]
+    public async Task PrefetchAsync_CanceledTypesDoesNotPopulateCache()
+    {
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        Func<Task> act = () => ReferenceDataOrchestrator.Current.PrefetchAsync([typeof(DummyRefData)], cancellation.Token);
+        await act.Should().ThrowAsync<OperationCanceledException>().ConfigureAwait(false);
+        await AssertPrefetchCacheEmptyAsync().ConfigureAwait(false);
+    }
+
+    private static async Task AssertPrefetchCacheEmptyAsync()
+    {
+        var created = false;
+        await ExecutionContext.GetRequiredService<IReferenceDataCache>().GetOrCreateAsync(typeof(DummyRefDataCollection), (_, _) =>
+        {
+            created = true;
+            return Task.FromResult<IReferenceDataCollection>(new DummyRefDataCollection());
+        }).ConfigureAwait(false);
+        created.Should().BeTrue();
+    }
+
     // ── ConvertFromMapping ─────────────────────────────────────────────────
 
     private class MappingProvider(IReferenceDataCollection collection) : IReferenceDataProvider
