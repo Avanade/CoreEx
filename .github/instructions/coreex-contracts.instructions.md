@@ -197,6 +197,10 @@ public partial class Employee : IIdentifier<string?>, IETag, IChangeLog
 
 Decorate server-assigned properties with `[ReadOnly(true)]` to signal that clients cannot supply them. Common examples: `Id`, `ETag`, `ChangeLog`, `CategoryCode` (derived from SubCategory). NSwag/OpenAPI automatically excludes these from inbound request schemas.
 
+## Requiredness and Validation
+
+Do not use `System.Text.Json`'s `[JsonRequired]` on API request contracts, adapter/HTTP-client wire DTOs, or subscriber payload contracts to enforce required input. It rejects an omitted JSON property during deserialization, before CoreEx validation can report the problem through the intended validation path. Express requiredness with CoreEx validator rules (e.g. `.Mandatory()`) at the relevant boundary instead: API request rules in the request validator, downstream response rules in the typed client, subscriber payload rules in `ValueValidator`, and outbound payload rules before sending where required. Declare request or payload properties nullable where necessary to distinguish an omitted value from a supplied default (such as `0`); use `[NonNullable]` separately when the OpenAPI schema should report `nullable: false`. `[NonNullable]` documents schema nullability and does not enforce runtime requiredness.
+
 ## NonNullable Properties
 
 Contract properties are routinely declared nullable (`string?`, `int?`, `DateOnly?`) for DTO flexibility — partial payloads, merge-patch, and validation that reports a missing value rather than failing deserialization. Where a property is nevertheless **mandatory/required (ultimately not nullable)** in the contract, decorate it with `[NonNullable]` (`CoreEx.Entities.NonNullableAttribute`). The NSwag operation processor then emits it as `nullable: false` in the OpenAPI schema regardless of the CLR nullability. The C# type and validation are unaffected — `[NonNullable]` is documentation of the contract only, so keep the matching validator rule (e.g. `.Mandatory()`).

@@ -139,6 +139,10 @@ return await response.WithValidator(_validator)
 Choose rules for fields the consuming operation actually requires; the example assumes an email is needed.
 Do not blindly reuse request/create/update validators, require every DTO property, or compare response
 identifiers with request identifiers by default. Validate identifiers only when explicitly required.
+Do not use `System.Text.Json`'s `[JsonRequired]` on adapter/HTTP-client wire DTOs: it throws during
+deserialization before these CoreEx response rules run. Use nullable DTO properties when omission
+must be distinguished from a supplied default, enforce required response fields in the typed client's
+validator, and validate outbound payloads before sending when their contract requires it.
 
 Keep small, client-only rules in a private static readonly `Validator<T>` built once with
 `Validator.Create<T>().HasProperty(...)` (`CoreEx.Validation`). Do not construct rules per request

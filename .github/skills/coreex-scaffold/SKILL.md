@@ -139,12 +139,12 @@ dotnet new coreex-subscribe -n Avanade.Product.Books.Subscribe --data-provider S
 dotnet new coreex-aspire -n Avanade.Product.Books.Aspire --has-api true --has-relay true --has-subscribe true --data-provider SqlServer --messaging-provider ServiceBus
 
 # Step 3: Add host and test projects to the solution file.
-dotnet sln Avanade.Product.Books.slnx add src/Avanade.Product.Books.Api
-dotnet sln Avanade.Product.Books.slnx add tests/Avanade.Product.Books.Test.Api
-dotnet sln Avanade.Product.Books.slnx add src/Avanade.Product.Books.Relay
-dotnet sln Avanade.Product.Books.slnx add tests/Avanade.Product.Books.Test.Relay
-dotnet sln Avanade.Product.Books.slnx add src/Avanade.Product.Books.Subscribe
-dotnet sln Avanade.Product.Books.slnx add tests/Avanade.Product.Books.Test.Subscribe
+dotnet sln Avanade.Product.Books.slnx add src/Avanade.Product.Books.Api --solution-folder hosts
+dotnet sln Avanade.Product.Books.slnx add tests/Avanade.Product.Books.Test.Api --solution-folder tests
+dotnet sln Avanade.Product.Books.slnx add src/Avanade.Product.Books.Relay --solution-folder hosts
+dotnet sln Avanade.Product.Books.slnx add tests/Avanade.Product.Books.Test.Relay --solution-folder tests
+dotnet sln Avanade.Product.Books.slnx add src/Avanade.Product.Books.Subscribe --solution-folder hosts
+dotnet sln Avanade.Product.Books.slnx add tests/Avanade.Product.Books.Test.Subscribe --solution-folder tests
 dotnet sln Avanade.Product.Books.slnx add aspire/Avanade.Product.Books.Aspire
 dotnet sln Avanade.Product.Books.slnx add aspire/Avanade.Product.Books.Aspire.MockHost
 dotnet sln Avanade.Product.Books.slnx add aspire/Avanade.Product.Books.Test.Aspire
@@ -154,6 +154,8 @@ dotnet build Avanade.Product.Books.slnx
 dotnet test tests/Avanade.Product.Books.Test.Unit
 # Run broader test projects only when their local infrastructure dependencies are available.
 ```
+
+Host projects always live physically under `src/` and are grouped under the virtual `/hosts/` solution folder. Host test projects live under `tests/` and the `/tests/` solution folder. Always pass `--solution-folder` when adding hosts; a solution folder does not change a project's filesystem path.
 
 ### Existing Repository Retrofit (Skip Bootstrap)
 
@@ -188,6 +190,7 @@ dotnet new coreex-aspire    -n Company.Product.Books.Aspire --has-api ... --has-
 ## Validation Rules
 
 - After generation, verify that every expected host and test project exists on disk and has been added to the `.slnx`.
+- Host projects must remain physically under `src/` and be grouped in the virtual `/hosts/` solution folder; host test projects remain physically under `tests/` and grouped in `/tests/`. Use `dotnet sln add <host-project> --solution-folder hosts` and `dotnet sln add <test-project> --solution-folder tests`; verify solution grouping without moving project directories.
 - Always run `dotnet build` on the solution as the minimum end-to-end validation step.
 - Always run the unit test project when present.
 - Run API, relay, or subscriber test projects only when their required local dependencies are available; otherwise skip them and report the reason explicitly.

@@ -688,14 +688,14 @@ dotnet new coreex-subscribe -n Avanade.Erp.Sales.Subscribe
 ### Step 3 -- Add hosts and their test projects to the solution
 
 ```sh
-dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Api
-dotnet sln Avanade.Erp.Sales.slnx add tests/Avanade.Erp.Sales.Test.Api
+dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Api --solution-folder hosts
+dotnet sln Avanade.Erp.Sales.slnx add tests/Avanade.Erp.Sales.Test.Api --solution-folder tests
 
-dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Relay
-dotnet sln Avanade.Erp.Sales.slnx add tests/Avanade.Erp.Sales.Test.Relay
+dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Relay --solution-folder hosts
+dotnet sln Avanade.Erp.Sales.slnx add tests/Avanade.Erp.Sales.Test.Relay --solution-folder tests
 
-dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Subscribe
-dotnet sln Avanade.Erp.Sales.slnx add tests/Avanade.Erp.Sales.Test.Subscribe
+dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Subscribe --solution-folder hosts
+dotnet sln Avanade.Erp.Sales.slnx add tests/Avanade.Erp.Sales.Test.Subscribe --solution-folder tests
 ```
 
 ### Step 4 -- Add an Aspire AppHost (optional)
@@ -709,7 +709,9 @@ dotnet sln Avanade.Erp.Sales.slnx add aspire/Avanade.Erp.Sales.Aspire.MockHost
 dotnet sln Avanade.Erp.Sales.slnx add aspire/Avanade.Erp.Sales.Test.Aspire
 ```
 
-### Resulting directory structure
+### Resulting filesystem and solution structure
+
+Host project directories stay under the physical `src/` directory, while their projects are grouped under the virtual `/hosts/` solution folder. Test projects stay under physical `tests/` and virtual `/tests/`. These solution folders only organize the IDE view; they do not move files on disk.
 
 ```
 Avanade.Erp.Sales/
@@ -736,6 +738,8 @@ Avanade.Erp.Sales/
     Avanade.Erp.Sales.Aspire.MockHost/
     Avanade.Erp.Sales.Test.Aspire/
 ```
+
+In the solution explorer, the host projects appear under `/hosts/`; the source libraries remain under `/src/`, tools under `/tools/`, and tests under `/tests/`.
 
 ---
 

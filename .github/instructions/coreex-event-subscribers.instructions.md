@@ -77,6 +77,8 @@ public class ProductModifySubscriber(IProductSyncAdapter adapter) : SubscribedBa
 
 Multiple `[Subscribe]` attributes on a single class handle multiple subjects with the same logic — no duplication required.
 
+Do not use `System.Text.Json`'s `[JsonRequired]` on subscriber payload contracts to enforce required fields. It rejects an omitted property during deserialization before the subscriber's `ValueValidator` can report a validation failure. Express requiredness in the payload validator instead; declare properties nullable when omission must be distinguished from a supplied default value.
+
 ## Subject Naming
 
 Use dot-separated lowercase subject strings:

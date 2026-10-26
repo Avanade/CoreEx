@@ -51,6 +51,7 @@ There are three distinct subscriber scenarios — determine which applies before
 
 - **Untyped subscriber** (`SubscribedBase`) — message carries data in the key only; extract with `@event.Key.Required()`
 - **Typed subscriber** (`SubscribedBase<TValue>`) — message carries a serialised payload; set `ValueValidator` to validate before `OnReceiveAsync`
+- Do not use `[JsonRequired]` on subscriber payload contracts; use `ValueValidator` for required fields, with nullable properties when omission must be distinguished from a supplied default
 - `[ScopedService]` + one or more `[Subscribe("subject")]` attributes on every subscriber class
 - No `Program.cs` edit needed — `AddSubscribersUsing<T>()` discovers all `[Subscribe]`-decorated classes automatically
 - Subject format: `{solution}.{domain}.{entity}.{action}[.v{n}]` — include `.v{n}` only when the message carries a payload

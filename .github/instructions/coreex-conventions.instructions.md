@@ -103,6 +103,21 @@ if (condition)
 }
 ```
 
+## Blank Lines After Indented Continuations or Bodies
+
+When a new statement returns to a shallower indentation level after a multiline statement or an unbraced control-flow body, insert one empty line before the new statement. Do not insert an empty line before a closing delimiter (`}`, `)`, `]`) or a continuation clause (`else`, `catch`, `finally`, or the `while` in `do`/`while`). Empty lines must contain no whitespace.
+
+```csharp
+var current = await _ef.Employees.GetAsync(value.Id.ThrowIfNullOrEmpty(), cancellationToken).ConfigureAwait(false)
+    ?? throw new NotFoundException();
+
+ETag.Compare(value.ETag, current.ETag);
+if (!string.Equals(value.Email, current.Email, StringComparison.Ordinal))
+    Result.ValidationError<Contracts.Employee>(e => e.Email, "Email cannot be changed after creation.").ThrowOnError();
+
+return await _ef.Employees.UpdateAsync(value, cancellationToken).ConfigureAwait(false);
+```
+
 ## Expression-Bodied Members
 
 Use `=>` syntax whenever the entire body is a single expression — methods, properties, constructors, operators, and accessors. Use a block body when there are multiple statements. The choice is entirely the developer's; the IDE makes no suggestion in either direction.

@@ -435,12 +435,12 @@ dotnet new coreex-relay      -n Avanade.Erp.Sales.Relay      --data-provider Sql
 dotnet new coreex-subscribe -n Avanade.Erp.Sales.Subscribe --data-provider SqlServer --messaging-provider ServiceBus --refdata-enabled true
 dotnet new coreex-aspire     -n Avanade.Erp.Sales.Aspire     --has-api true --has-relay true --has-subscribe true --data-provider SqlServer --messaging-provider ServiceBus
 
-dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Api
-dotnet sln Avanade.Erp.Sales.slnx add tests/Avanade.Erp.Sales.Test.Api
-dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Relay
-dotnet sln Avanade.Erp.Sales.slnx add tests/Avanade.Erp.Sales.Test.Relay
-dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Subscribe
-dotnet sln Avanade.Erp.Sales.slnx add tests/Avanade.Erp.Sales.Test.Subscribe
+dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Api --solution-folder hosts
+dotnet sln Avanade.Erp.Sales.slnx add tests/Avanade.Erp.Sales.Test.Api --solution-folder tests
+dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Relay --solution-folder hosts
+dotnet sln Avanade.Erp.Sales.slnx add tests/Avanade.Erp.Sales.Test.Relay --solution-folder tests
+dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Subscribe --solution-folder hosts
+dotnet sln Avanade.Erp.Sales.slnx add tests/Avanade.Erp.Sales.Test.Subscribe --solution-folder tests
 dotnet sln Avanade.Erp.Sales.slnx add aspire/Avanade.Erp.Sales.Aspire
 dotnet sln Avanade.Erp.Sales.slnx add aspire/Avanade.Erp.Sales.Aspire.MockHost
 dotnet sln Avanade.Erp.Sales.slnx add aspire/Avanade.Erp.Sales.Test.Aspire
@@ -454,8 +454,8 @@ dotnet test tests/Avanade.Erp.Sales.Test.Unit
 ```sh
 dotnet new coreex -n Avanade.Erp.Sales --data-provider None --messaging-provider None
 dotnet new coreex-api -n Avanade.Erp.Sales.Api --data-provider None
-dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Api
-dotnet sln Avanade.Erp.Sales.slnx add tests/Avanade.Erp.Sales.Test.Api
+dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Api --solution-folder hosts
+dotnet sln Avanade.Erp.Sales.slnx add tests/Avanade.Erp.Sales.Test.Api --solution-folder tests
 dotnet build Avanade.Erp.Sales.slnx
 dotnet test tests/Avanade.Erp.Sales.Test.Unit
 ```
@@ -466,10 +466,10 @@ dotnet test tests/Avanade.Erp.Sales.Test.Unit
 dotnet new coreex -n Avanade.Erp.Sales --data-provider SqlServer --messaging-provider ServiceBus --outbox-enabled false
 dotnet new coreex-api        -n Avanade.Erp.Sales.Api        --data-provider SqlServer --outbox-enabled false
 dotnet new coreex-subscribe -n Avanade.Erp.Sales.Subscribe --data-provider SqlServer --messaging-provider ServiceBus
-dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Api
-dotnet sln Avanade.Erp.Sales.slnx add tests/Avanade.Erp.Sales.Test.Api
-dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Subscribe
-dotnet sln Avanade.Erp.Sales.slnx add tests/Avanade.Erp.Sales.Test.Subscribe
+dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Api --solution-folder hosts
+dotnet sln Avanade.Erp.Sales.slnx add tests/Avanade.Erp.Sales.Test.Api --solution-folder tests
+dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Subscribe --solution-folder hosts
+dotnet sln Avanade.Erp.Sales.slnx add tests/Avanade.Erp.Sales.Test.Subscribe --solution-folder tests
 dotnet build Avanade.Erp.Sales.slnx
 dotnet test tests/Avanade.Erp.Sales.Test.Unit
 ```

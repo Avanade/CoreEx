@@ -502,6 +502,7 @@ Inside the client, use `_httpClient.Send(method, uri)` or `Get`/`Post`/`Put`/`Pa
 Keep response-contract rules in the typed client, not Application business/request validators.
 For small rule sets, configure a private static readonly validator once; extract a colocated
 validator under `Clients/{ExternalDomain}/` only for substantial rules or genuine reuse.
+Do not use `System.Text.Json`'s `[JsonRequired]` on HTTP-client or adapter wire DTOs to enforce required fields; it fails during deserialization before the typed client's CoreEx response validator can report the problem. Express response requiredness in that validator; validate outbound payloads before sending when their contract requires it.
 
 ```csharp
 private static readonly Validator<Customer> _validator = Validator.Create<Customer>()

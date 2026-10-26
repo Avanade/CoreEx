@@ -123,6 +123,7 @@ public class {Entity}DeleteSubscriber(I{Entity}SyncAdapter adapter) : Subscribed
 
 **Rules:**
 - Validate incoming payloads with `ValueValidator` — only accept well-formed data into the local store.
+- Do not use `System.Text.Json`'s `[JsonRequired]` on subscriber payload contracts; it fails during deserialization before `ValueValidator` can report the validation problem. Declare properties nullable when omission must be distinguished from a supplied default, and enforce requiredness in `ValueValidator`.
 - The adapter handles upsert semantics — a create and an update event route to the same `ModifyAsync`.
 - Delete is key-only; no payload, no version suffix on the subject.
 - Do not store the full external contract — map to the minimal local persistence model in the adapter.

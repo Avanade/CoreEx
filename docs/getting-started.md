@@ -4,7 +4,9 @@ This guide walks through creating a new CoreEx-based microservice from scratch u
 
 ## What we're building
 
-Throughout this guide we'll build the **People** domain — part of a fictional HR solution for Avanade. The solution name is `Avanade.Hr.People`. We'll scaffold the solution with all defaults, stand up local infrastructure, and implement an **Employee** entity with full CRUD, validation, and tests. We'll then add an Outbox Relay host and a Subscribe host and verify both with the generated integration tests.
+Throughout this guide we'll build the **People** domain — part of a fictional HR solution for Avanade. The solution name is `Avanade.Hr.People`. We'll scaffold the solution with all defaults, stand up local infrastructure, and implement an **Employee** entity with full CRUD, validation, and tests. We'll then add an Outbox Relay host and a Subscribe host and verify both with the generated integration tests. As an optional extension in step 13, we'll use self-subscription to provision and deactivate identity-provider accounts from employee lifecycle events. This demonstrates asynchronous decoupling within one domain, not only cross-domain integration.
+
+Step 14 adds Aspire for local orchestration and an end-to-end test of that identity lifecycle flow across the running hosts.
 
 By the end you'll have a running, fully tested CoreEx microservice as a foundation to build on.
 
@@ -32,6 +34,8 @@ By the end you'll have a running, fully tested CoreEx microservice as a foundati
 **Going further (optional)**
 - [11. Add an Employee query endpoint](#11-add-an-employee-query-endpoint)
 - [12. Add GraphQL query support](#12-add-graphql-query-support)
+- [13. Provision identity accounts asynchronously](#13-provision-identity-accounts-asynchronously)
+- [14. Add Aspire and an end-to-end test](#14-add-aspire-and-an-end-to-end-test)
 
 **Reference**
 - [What's next](#whats-next)
@@ -83,6 +87,8 @@ git init
 Resolve the version first: use the exact CoreEx NuGet version referenced by an existing project, or explicitly look up and record the latest stable release for first-time adoption. Always pin the install so the runtime packages and AI assets describe the same release:
 
 ```bash
+dotnet new install CoreEx.Template
+# -- or --
 dotnet new install CoreEx.Template::<version>
 ```
 
@@ -164,14 +170,14 @@ docker compose up -d
 > Until `*.CodeGen` runs, `IReferenceDataRepository` has no DI registration. `dotnet build` still succeeds, but
 > starting any host with `ASPNETCORE_ENVIRONMENT=Development` (the default for IDE launch profiles and most
 > local dev workflows) throws a DI-validation exception at startup: `Unable to resolve service for type
-> '...IReferenceDataRepository'...`. The Database step below is genuinely optional verification; the CodeGen
-> step is not, whenever reference data is enabled.
+> '...IReferenceDataRepository'...`. Apply the database migration before running API or other database-backed
+> integration tests; it is optional only when you are building without running the database-backed hosts or tests.
+> The CodeGen step is required whenever reference data is enabled.
 > ```bash
-> dotnet run --project tools/Avanade.Hr.People.Database -- all  # apply initial schema (optional — verifies the DB layer builds cleanly)
+> dotnet run --project tools/Avanade.Hr.People.Database -- all  # apply initial schema (required before database-backed hosts/tests)
 > dotnet run --project tools/Avanade.Hr.People.CodeGen          # generate ref-data stubs (required before first `dotnet run` on any host, when refdata is enabled)
 > ```
-> The AI agent in step 5 will run both of these automatically as part of implementing the domain — this only
-> matters if you (or an IDE) start a host manually before reaching that step.
+> The AI agent in step 7 will run these as needed while implementing the domain — this only matters if you (or an IDE) start a host manually before reaching that step.
 
 ---
 
@@ -222,7 +228,7 @@ Use the coreex-api-e2e skill to add a new Employee entity end-to-end with the fo
   - Salary (decimal)
   - DateOfBirth (DateOnly) - must be at least 16 years of age.
 
-Operations needed: Get, Create, Update, Delete. No business guard/policy is required.
+Operations needed: Get, Create, Update (Patch), Delete (logical delete).
 
 Run all the tests and correct any failures.
 ```
@@ -233,9 +239,11 @@ This invokes the [`coreex-api-e2e`](https://github.com/Avanade/CoreEx/blob/main/
 
 ```bash
 dotnet new coreex-api -n Avanade.Hr.People.Api --data-provider Postgres --refdata-enabled true --outbox-enabled true
+dotnet sln Avanade.Hr.People.slnx add src/Avanade.Hr.People.Api --solution-folder hosts
+dotnet sln Avanade.Hr.People.slnx add tests/Avanade.Hr.People.Test.Api --solution-folder tests
 ```
 
-This adds `src/Avanade.Hr.People.Api/` and `tests/Avanade.Hr.People.Test.Api/` and wires both into the solution file. After scaffolding, implement the domain entity, validation, and tests by hand following the [Pattern Catalog](https://github.com/Avanade/CoreEx/blob/main/samples/docs/patterns.md) and [Contoso samples](https://github.com/Avanade/CoreEx/tree/main/samples).
+The template creates the API host under `src/` and its tests under `tests/`. The `dotnet sln` commands add the host to the `/hosts/` solution folder and the tests to `/tests/`; these virtual folders do not change the filesystem paths. After scaffolding, implement the domain entity, validation, and tests by hand following the [Pattern Catalog](https://github.com/Avanade/CoreEx/blob/main/samples/docs/patterns.md) and [Contoso samples](https://github.com/Avanade/CoreEx/tree/main/samples).
 
 ---
 
@@ -255,6 +263,8 @@ Add the Outbox Relay host to the solution. Run the existing relay integration te
 
 ```bash
 dotnet new coreex-relay -n Avanade.Hr.People.Relay --data-provider Postgres --messaging-provider ServiceBus
+dotnet sln Avanade.Hr.People.slnx add src/Avanade.Hr.People.Relay --solution-folder hosts
+dotnet sln Avanade.Hr.People.slnx add tests/Avanade.Hr.People.Test.Relay --solution-folder tests
 ```
 
 This adds `src/Avanade.Hr.People.Relay/` and `tests/Avanade.Hr.People.Test.Relay/`.
@@ -270,13 +280,15 @@ This adds `src/Avanade.Hr.People.Relay/` and `tests/Avanade.Hr.People.Test.Relay
 ```
 Work in phases: Plan your approach and present it for review before writing any code; once confirmed, implement.
 
-Add the Subscribe host to the solution. Run the existing subscriber integration tests; do not attempt to correct any failures.
+Add the Subscribe host to the solution. Run its generated integration tests and correct any failures.
 ```
 
 ### Manual alternative
 
 ```bash
 dotnet new coreex-subscribe -n Avanade.Hr.People.Subscribe --data-provider Postgres --messaging-provider ServiceBus --refdata-enabled true
+dotnet sln Avanade.Hr.People.slnx add src/Avanade.Hr.People.Subscribe --solution-folder hosts
+dotnet sln Avanade.Hr.People.slnx add tests/Avanade.Hr.People.Test.Subscribe --solution-folder tests
 ```
 
 This adds `src/Avanade.Hr.People.Subscribe/` and `tests/Avanade.Hr.People.Test.Subscribe/`.
@@ -291,9 +303,9 @@ dotnet test tests/Avanade.Hr.People.Test.Unit   # fast, no infrastructure requir
 dotnet test                                      # all tests — requires containers + database
 ```
 
-At this point you have a complete, fully tested CoreEx microservice — CRUD API, Outbox Relay, and Subscribe host, all green. Everything from here is optional: two further extensions that build on the Employee entity you already have.
+At this point you have a complete, fully tested CoreEx microservice — CRUD API, Outbox Relay, and Subscribe host, all green. Everything from here is optional: further extensions that build on the Employee entity you already have.
 
-> **Note:** The [walk-through video](#walk-through) above covers steps 1–10 only; it predates steps 11 and 12 below.
+> **Note:** The [walk-through video](#walk-through) above covers steps 1–10 only; it predates the optional extensions below.
 
 ---
 
@@ -342,6 +354,50 @@ This invokes the [`coreex-graphql`](https://github.com/Avanade/CoreEx/blob/main/
 ### Manual alternative
 
 Follow [`CoreEx.Data.GraphQL`'s AGENTS.md](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.Data.GraphQL/AGENTS.md) to wire `AddCoreExGraphQLLite`/`MapCoreExGraphQLLite` by hand and register an `AddQuery<EmployeeLite>` (or `AddQuery<Employee>` if there's no separate "Lite" projection) root.
+
+## 13. Provision identity accounts asynchronously
+
+This optional extension builds on the Employee API, Outbox Relay, and Subscribe host created in steps 7–9. It adds an `Email` login identifier and consumes the Employee lifecycle events in the same domain to provision or deactivate accounts in an external identity provider such as Okta. This is an intentional self-subscription: the subscriber runs asynchronously in a separate host, decoupling identity-provider availability from the employee API. No real Okta tenant is needed; mock the HTTP calls in tests.
+
+### AI-assisted (recommended)
+
+> Paste the following into GitHub Copilot (Agent mode) or Claude Code.
+
+```
+Work in phases: Plan your approach and present it for review before writing any code; once confirmed, implement.
+
+Extend the existing Employee contract with a required, unique Email property and use it as the identity-provider username.
+
+Add subscribers that consume the existing Employee lifecycle events and provision (on create) or deactivate (on delete) the user through an identity-provider adapter and typed HTTP client (Okta is the example). Mock the HTTP calls in tests; no live Okta tenant is required. Test the subscriber behavior and HTTP client.
+
+This is an intentional self-subscription that decouples identity lifecycle work asynchronously from the Employee API.
+
+Run the relevant tests and correct any failures.
+```
+
+This uses the existing Relay and Subscribe hosts rather than adding another service. The API commits the employee change and outbox event atomically; the Relay forwards committed events, and the Subscribe host performs the identity-provider call independently. A temporary identity-provider failure therefore does not roll back employee creation or deletion.
+
+---
+
+## 14. Add Aspire and an end-to-end test
+
+This optional extension builds on the identity-provider integration in step 13. Aspire orchestrates the API, Relay, and Subscribe hosts together, while an end-to-end test verifies employee creation and deletion through to the corresponding identity-provider calls. The database, cache, and message broker remain real local infrastructure managed by Compose; only the external identity provider is stubbed through the Aspire MockHost.
+
+### AI-assisted (recommended)
+
+> Paste the following into GitHub Copilot (Agent mode) or Claude Code.
+
+```
+Work in phases: Plan your approach and present it for review before writing any code; once confirmed, implement.
+
+Add Aspire to the existing solution to orchestrate the API, Relay, and Subscribe hosts.
+
+Add an end-to-end test that creates an Employee through the API and verifies the user is provisioned, then deletes the Employee and verifies the user is deactivated. Exercise the real hosts, database, outbox, and message broker; stub the external identity provider through the Aspire MockHost. No live Okta tenant is required.
+
+Run the end-to-end test and correct any failures.
+```
+
+This uses [`coreex-scaffold`](https://github.com/Avanade/CoreEx/blob/main/.github/skills/coreex-scaffold/SKILL.md) to add the Aspire AppHost, MockHost, and Test.Aspire projects, then [`coreex-aspire`](https://github.com/Avanade/CoreEx/blob/main/.github/skills/coreex-aspire/SKILL.md) to wire the hosts and implement the cross-host test. Unlike the individual host tests, this proves the asynchronous flow across process boundaries, waiting for each identity-provider call before proceeding.
 
 ---
 
