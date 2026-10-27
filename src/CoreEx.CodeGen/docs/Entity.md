@@ -77,3 +77,4 @@ Provides the collections configuration.
 Property | Description
 -|-
 `properties` | The corresponding [`Property`](Property.md) collection.
+
