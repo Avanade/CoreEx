@@ -2,6 +2,9 @@
 
 Represents the **NuGet** versions.
 
+## v4.2.1
+- *Fixed:* Fixed and improved guidance and generated templates.
+
 ## v4.2.0
 - *Enhancement:* Added `Optional<T>` for explicit request/patch DTOs to distinguish omitted fields from supplied null/default values, with JSON conversion, contract cleaning and generated reference-data support, and inner-type OpenAPI schemas. Validation uses `.Unwrap()` for supplied values and `.Specified()` to require presence; only specified fields should be mapped into ordinary application/domain models. Custom value wrappers (optional or always present) can independently opt into runtime cleaning through the public `IWrappedValueCleaner<TSelf>` capability, with cached constrained dispatch avoiding wrapper boxing on typed cleaning paths.
 - *Enhancement:* Added expression-based `MessageItem.CreateErrorMessage<TEntity>` factories for aggregating field errors, with inferred friendly invalid messages and optional JSON naming options. Validation exception factories share this message construction; policy guidance now distinguishes known request-contract expressions from explicit paths in reusable policies.
