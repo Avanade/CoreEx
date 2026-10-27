@@ -90,6 +90,10 @@ Test.Http()
 
 For **Cosmos** relay tests, publish via `CosmosDbEventPublisher` inside `CosmosDbUnitOfWork.TransactionAsync(...)`, paired with a real business mutation, and use bounded polling to assert broker delivery and outbox cleanup. Keep the relay's default `IEventPublisher` registered as its broker destination. Provision containers before accessing the tester: even `Test.Configuration` constructs the host and captures its first-start boundary. Use a test-owned observation subscription and do not reset containers beneath a running change-feed processor. The Customers sample below demonstrates both `PartitionKey.None` and explicit partition keys.
 
+## Validation
+
+Run the relevant Relay tests against the configured infrastructure; apply [Execution Evidence](/.github/instructions/coreex-tests.instructions.md#execution-evidence) when reporting results or blocked execution.
+
 ## Troubleshooting — Service Bus Emulator "Entity Not Found"
 
 If a Relay (or any Service Bus) test fails with:

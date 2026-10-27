@@ -15,8 +15,8 @@ Guide this workspace through creating or modifying a CoreEx validator.
 Use `.github/skills/coreex-validator/SKILL.md` and its referenced workflow as the authoritative workflow when they exist.
 
 Operational contract:
-- Ask upfront: injection needed (→ `Validator<T>`), FluentValidation-style (→ `AbstractValidator<T,TSelf>`), or standard (→ `Validator<T, TSelf>`).
-- List all properties before writing any rule — resolve types in batch, never interrupt per-property.
+- Resolve recorded choices first and ask only unresolved design questions one at a time using the available interaction mechanism.
+- Ask once for the complete property list and its types before writing rules; do not interrupt once per property.
 - Ref-data: `.IsValid()` on the navigation property (`Gender`), never on the `*Code` string.
 - `Mandatory()` on a non-nullable value type errors on `default` — use a range rule if `0` is valid.
 - Runtime-computed comparisons: prefer delegate overloads over imperative `OnValidateAsync`.

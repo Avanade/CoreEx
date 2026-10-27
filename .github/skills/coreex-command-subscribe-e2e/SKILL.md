@@ -44,7 +44,7 @@ A domain **never** subscribes to another domain's command queue. If the message 
 
 1. **Read Feature Configuration** — `messaging-provider`, `data-provider` (`SqlServer` / `Postgres` / `Cosmos` / `None`), `rop-enabled`, `outbox-enabled`.
 2. **Inspect the host** — is the existing event receiver already keyed? Is there already a command receiver? (Retrofit rules in the workflow.)
-3. **Interview** — command shape, action, persistence, publisher location; one batched turn.
+3. **Interview** — resolve recorded decisions first, then ask only unresolved behavioral/design questions one at a time using the available interaction mechanism. Present one compact plan and wait for approval unless the user's request already authorizes implementation; approval remains valid unless scope changes.
 4. **Execute L1 sequence** (table below).
 5. **Host wiring + topology + tests + Aspire.**
 6. **Validate** — build, Subscribe tests, report.

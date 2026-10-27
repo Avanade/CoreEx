@@ -496,8 +496,10 @@ $testScenarios = @(
             )
             FileContains = @{
                 "aspire/Directory.Build.props"    = "IDE1006"
-                "aspire/App.Aspire/AppHost.cs"    = "Projects.App_Api"
-                "aspire/App.Aspire/App.Aspire.csproj" = "CoreEx.UnitTesting"
+                "aspire/App.Aspire/AppHost.cs"    = "builder.Environment.IsDevelopment()"
+                "aspire/App.Aspire/App.Aspire.csproj" = "UserSecretsId"
+                "aspire/App.Aspire/appsettings.Development.json" = "Port=5432"
+                "src/App.Api/appsettings.Development.json" = "Port=5432"
                 "src/App.Api/Program.cs"          = "AddNamedDestinationProvider"
                 "src/App.Subscribe/Program.cs"    = "WithKeyedSubscribedSubscriber"
                 "tests/App.Test.Common/ServiceBus.cs" = "CreateTopicOptions"
@@ -505,6 +507,10 @@ $testScenarios = @(
             }
             FileNotContains = @{
                 "aspire/App.Test.Aspire/HostTests.cs" = "BeOneOf"
+                "aspire/App.Aspire/appsettings.Development.json" = "******"
+                "src/App.Api/appsettings.Development.json" = "******"
+                "src/App.Relay/appsettings.Development.json" = "******"
+                "src/App.Subscribe/appsettings.Development.json" = "******"
             }
             FilesAbsent = @(
                 # Extensions.cs was superseded by CoreEx.UnitTesting's Aspire extension methods (UnitTestExExtensions.Aspire.cs).
@@ -548,6 +554,8 @@ $testScenarios = @(
                 # the other hosts' AddProject calls and ProjectReferences, not just that has-api's survive.
                 "aspire/App.Aspire/AppHost.cs"          = "Projects.App_Relay"
                 "aspire/App.Aspire/App.Aspire.csproj"   = "App.Relay"
+                "aspire/App.Aspire/appsettings.Development.json" = "******"
+                "src/App.Api/appsettings.Development.json" = "******"
             }
         }
         Build        = $true
@@ -684,6 +692,7 @@ $testScenarios = @(
             )
             FileContains = @{
                 "aspire/App.Aspire/AppHost.cs"  = 'AddExternalConnectionString("Cosmos", endpointKey: "AccountEndpoint")'
+                "aspire/App.Aspire/appsettings.Development.json" = "AccountEndpoint=https://localhost:8081/"
                 "src/App.Api/Program.cs"        = "AddCosmosDbEventPublisher"
                 "src/App.Relay/Program.cs"      = "AddCosmosDbOutboxRelayHostedService"
                 "src/App.Subscribe/Program.cs"  = "AddCosmosDbEventPublisher"
@@ -692,6 +701,7 @@ $testScenarios = @(
             FileNotContains = @{
                 # The write-side publisher must never be registered on the Relay host.
                 "src/App.Relay/Program.cs"      = "AddCosmosDbEventPublisher"
+                "aspire/App.Aspire/appsettings.Development.json" = "******"
             }
         }
         Build        = $true

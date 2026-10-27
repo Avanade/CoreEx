@@ -26,7 +26,7 @@ tags: ["aspire", "apphost", "mockhost", "e2e", "service-bus", "http", "wiremock"
 | `*.Aspire.MockHost` | WireMock.Net console host that stands in for HTTP dependencies **outside** the AppHost | Started via `AddMockHostProject`; carries no stubs itself — stubs are added by the test (or at AppHost start) |
 | `*.Test.Aspire` | NUnit project deriving `WithAspireTester<Projects.X_Aspire>`; starts the whole AppHost and asserts cross-host flows | The **only** place inter-domain dependencies are real |
 
-`dotnet new coreex-aspire` generates all three; the `AddEndpoints` / `AddHostedServiceSupport` / `DisableHttpCertificateValidation` /
+`dotnet new coreex-aspire` generates all three; the `AddEndpoints` / `AddHostedServiceSupport` /
 `AddMockHostProject` / `WithMockHostEnvironment` / `HttpMock` helpers come from `CoreEx.UnitTesting` + `UnitTestEx.Aspire`
 (`<Using Include="UnitTestEx.Aspire" />` in the AppHost csproj) — there is no local `Extensions.cs`.
 
@@ -82,6 +82,8 @@ protected override async Task OnAfterStartAsync(DistributedApplication app)
 - The AppHost-scaffolded `mockhost` line is commented out until a stub is genuinely needed — uncomment it, do not add a second MockHost.
 - Auth material for a third-party client (`ApiKey` etc.) must still resolve to *something* in `appsettings.Development.json`, or the typed-client factory throws before the call reaches the mock.
 - Never call the real third-party API from Aspire tests. Never stub an intra-AppHost domain — that hides the very integration Aspire exists to verify.
+- Keep HTTP MockHost overrides explicitly on `http`; certificate validation is unrelated to that HTTP stub. For cross-platform `Test.Aspire` runs that call HTTPS project endpoints with an untrusted development certificate, guard `DisableHttpCertificateValidation()` with `builder.Environment.IsDevelopment()`. It affects every `HttpClient` created by the AppHost's `IHttpClientFactory`, so never use it in a production host.
+- Check provider/topology compatibility before migrations or host startup. Scaffolded connection-string defaults are covered by template validation; consumer-supplied overrides belong in User Secrets and connection failures are surfaced by the provider.
 
 ## Test.Aspire lifecycle
 

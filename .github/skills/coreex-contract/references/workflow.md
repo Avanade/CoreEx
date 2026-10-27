@@ -14,7 +14,7 @@ Full workflow for creating or modifying a hand-authored contract in `*.Contracts
 
 ## Phase 1 — Clarify Before Writing
 
-Answer these questions before emitting any code. Batch all questions — do not interrupt per-property.
+Resolve the decisions below from the request and existing project before emitting code. Ask only unresolved design questions, one question per interaction using the available mechanism. Request the complete property set in one question rather than interrupting per property.
 
 | Question | Default | Notes |
 |---|---|---|
@@ -58,11 +58,11 @@ A root contract owns its own identity and is accessed via its own API endpoint (
    - **Found** → wire silently as `[ReferenceData<T>]` `public partial string? {Name}Code { get; set; }`. No question.
    - **Not found** → add to the candidate list for step 4.
 
-4. **Batch ask once for all remaining candidates:**
+4. **Ask one classification question covering all remaining candidates:**
    > "The following properties could be reference data types — which should be added to `ref-data.yaml`? (select any, or none to treat as plain): `Status`, `Priority`"
    Never ask per-property. Never interrupt before all properties are analysed.
 
-5. **Emit the complete contract in one pass** after all types are resolved (and any `ref-data.yaml` entries added + CodeGen run if needed).
+5. **Emit the complete contract in one pass** after all types are resolved. For newly confirmed reference-data types, use `coreex-refdata` to add all entries in one edit and run CodeGen once; never create `.g.cs` files manually. For properties confirmed as plain, use `string?` if no better type can be inferred.
 
 ### A3 — Base class consideration
 

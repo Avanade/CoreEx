@@ -41,6 +41,10 @@ tags: ["testing", "unit-tests", "integration-tests", "test-helpers", "nunit"]
 
 **Rule**: intra-domain dependencies (database, cache, outbox) are real; inter-domain HTTP calls and direct broker publishes are always mocked.
 
+## Execution Evidence
+
+Run the relevant tests after creating or modifying them, using the narrowest project/filter that covers the change. A successful build or an existing test class does not prove behavior. If a required database, cache, broker, or emulator is unavailable, name the blocking dependency and report the affected tests as unverified, not passed; do not weaken assertions or substitute mocks for owned infrastructure to manufacture a pass.
+
 ---
 
 ## Test Responsibility — what goes where (do not duplicate)

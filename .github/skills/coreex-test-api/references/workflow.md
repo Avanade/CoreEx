@@ -424,6 +424,7 @@ values, include them; don't exclude them. The only volatile fields are `id`/`eta
 
 ## Completion Checklist
 
+- [ ] Relevant tests executed; report any blocked execution per [Execution Evidence](/.github/instructions/coreex-tests.instructions.md#execution-evidence)
 - [ ] Read/mutate split into separate classes with separate seed files
 - [ ] Named-file seed overload used (not the no-arg "load everything" overload)
 - [ ] One seed row per destructive test, not per operation

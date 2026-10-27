@@ -236,9 +236,9 @@ CoreEx's singleton/static call-site patterns (`Default`, `To`/`From`, static `Ma
 **Resolution order when unsure of an exact member/signature:**
 
 1. Check the relevant `.github/instructions/coreex-*.instructions.md` file first — the call pattern for every commonly-used type is already documented with a working example (see the quick-reference table below for the most frequently guessed ones).
-2. If still unsure, **just build** — a `CS1061`/`CS0117` ("no such member") is fast, authoritative, and reflects the *actually-restored* package version. Prefer this over speculative research.
-3. Check the docs-sync cache (`.github/docs/coreex/*.md`, after `/coreex-docs-sync`) if present.
-4. Only as a last resort, inspect CoreEx source directly — either the restored NuGet package (decompile, or `~/.nuget/packages/coreex*/<version>/`) or the GitHub repo. If using GitHub, **verify the tag/branch matches the installed package version** — `main` can be ahead of or behind what's actually referenced; do not assume it's current, and do not guess at file paths (e.g. the 3-generic-argument singleton mapper base lives in `BiDirectionMapperT3.cs`, not `BiDirectionMapper.cs`).
+2. Resolve the symbol/signature through available code intelligence or nearby usages in the current workspace. In the CoreEx framework repository, its local source is authoritative; in a consumer repo, use the installed version's API metadata or docs-sync cache when available.
+3. Build the affected project to verify the call against the actually-restored package version. A `CS1061`/`CS0117` is authoritative evidence of a mismatch, not a reason to keep guessing names.
+4. If local evidence is insufficient, inspect the restored NuGet package or version-matched upstream source. If using GitHub, **verify the tag/branch matches the installed package version** — `main` can be ahead of or behind what's actually referenced; do not assume it's current, and do not guess at file paths (e.g. the 3-generic-argument singleton mapper base lives in `BiDirectionMapperT3.cs`, not `BiDirectionMapper.cs`).
 5. If still unresolved, ask the developer rather than fabricate a member name.
 
 **Quick reference — exact call patterns (do not substitute a guessed name):**
@@ -290,4 +290,4 @@ Create/edit tooling frequently appends extra `\n`s (particularly when `new_str` 
 - Do not leave interface members or contract properties undocumented — each gets a `<summary>`.
 - Do not invert the doc convention — summaries go on **interfaces and contract properties**; the **implementing** class member gets `<inheritdoc/>` (not a fresh summary). Summarising the concrete class while leaving the interface/contract undocumented is backwards.
 - Do not leave private nested types, methods, or properties undocumented — use `/// <summary>` (params/returns optional for private methods), or `/// <inheritdoc/>` for implementations and overrides, unless covered by the test fixture/helper exemption.
-- Do not invent a plausible-sounding CoreEx member name when unsure (`MapToEntity`, `OnMapToPrimary`/`OnMapToSecondary`, etc.) — check the relevant instructions file, then just build (a compile error is authoritative), before ever searching GitHub blind.
+- Do not invent CoreEx member names — follow [When Unsure of a CoreEx API Member](#when-unsure-of-a-coreex-api-member); use local evidence before upstream research and verify with a build.

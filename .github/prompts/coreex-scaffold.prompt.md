@@ -16,8 +16,8 @@ Use `.github/skills/coreex-scaffold/SKILL.md` and its referenced workflow as the
 
 Operational contract:
 - Use `.github/skills/coreex-scaffold/SKILL.md` and its referenced workflow as the sole source of truth for interview order, defaults, and guardrails.
-- Keep the interview deterministic: one scaffold question per turn, exactly one editable field per confirmation card, and wait for confirmation before moving on.
-- Preserve the skill's multiple-choice format: use a `text` field only for the base solution name and `select` fields for all other interview questions when confirmation cards are available.
+- Resolve recorded decisions first; ask only unresolved behavioral/design questions one at a time through the available interaction mechanism. Do not rely on unavailable confirmation-card tools.
+- Present one compact implementation plan and wait for explicit approval unless the user's request already authorizes implementation. Approval remains valid unless scope changes.
 - Inspect the workspace before scaffolding, run the safest dry-run path before real template commands, and scaffold only the smallest safe CoreEx shape.
 - If any prompt text conflicts with the skill, the skill wins.
 

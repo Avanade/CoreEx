@@ -15,25 +15,19 @@ Use this workflow to guide the user through CoreEx solution shape decisions in p
 - Ask one short question at a time.
 - Use simple English, not template parameter names.
 - Prefer small fixed choices before freeform text.
-- Reuse what the workspace already proves.
+- Resolve recorded decisions and reuse what the workspace already proves before asking anything.
 - If the user seems unsure, give a recommended default and explain it in one sentence.
 - Before running any real command, restate the derived inputs in a compact summary.
 - Finish with executable validation, not just generated files.
 
 ## Mandatory Interview Mechanics
 
-- When `mcp_microsoft_git_confirm_options` is available, use it for each interview step.
-- Ask exactly one scaffold question per turn.
-- Each confirmation card must contain exactly one editable option plus optional readonly context.
-- Use a `text` field only for the base solution name.
-- Use `select` fields for every other interview question so the workflow stays multiple-choice.
-- Preselect or prefill a default for the current question.
-- Never batch multiple scaffold questions into one assistant message.
-- Wait for the user to confirm the current card before moving to the next question.
+- Ask only unresolved behavioral or design questions, one question per interaction using the available mechanism (for example, `ask_user`); do not rely on unavailable confirmation-card tools.
+- Present one compact plan after resolving requirements. Wait for explicit approval unless the user's request already authorizes the stated scope; approval remains valid unless scope changes.
 
 ## Default Selection Policy
 
-Use these defaults when the workspace does not already prove the answer:
+Recommend these defaults when the workspace does not already prove the answer:
 
 | Question | Default |
 |---|---|
@@ -63,17 +57,13 @@ Treat the repo as bootstrap-only when the workspace mostly contains AI assets, d
 
 Treat the repo as scaffolded when there is already a real solution shape, such as a populated `src/`, `tests/`, `*.Database`, `*.CodeGen`, or one or more existing hosts.
 
-If the workspace already shows the current provider, naming shape, or enabled capabilities, confirm those choices instead of asking open-ended questions again.
+Read the solution-root `AGENTS.md` Feature Configuration and cross-check package references and provider artefacts (`*.Database/dbex.yaml` for relational providers, `*.Database/Program.cs` for Cosmos). If the recording and artefacts disagree, stop and flag the mismatch. Restate resolved provider, naming, and capability choices in the compact plan instead of asking again.
 
 ## Phase 2: Run The Interview
 
 Ask the questions in this order. Skip questions that the workspace has already answered with high confidence.
 
-Implementation notes:
-- Use one `confirm_options` call per question when the tool is available.
-- Include only one editable field in the card for the current question.
-- Use readonly fields to show prior confirmed answers when that context helps the user answer quickly.
-- If `confirm_options` is unavailable, ask the same question as plain chat text and still ask only one question per message.
+Follow [Mandatory Interview Mechanics](#mandatory-interview-mechanics) throughout; carry the resolved answers forward to the plan in Phase 4.
 
 ### 1. Base solution name
 
@@ -323,7 +313,7 @@ State that the workflow will finish by wiring projects into the solution and run
 5. For bootstrap-only repos, run `coreex` first (omit `-n` when the folder name matches), then add each needed host template with the **4-part name** (`base.Api`, `base.Relay`, `base.Subscribe`).
 6. For retrofit work, add only the missing hosts unless the user explicitly asked for broader reshaping.
 7. If an Aspire AppHost was requested, run `coreex-aspire` last, after every chosen host template has already been generated -- its `--has-*` flags and generated `Projects.*` references depend on those hosts already existing. Preserve its visible external resources using `CoreEx.UnitTesting`'s `AddExternalConnectionString`; do not replace them with parameter-only `AddConnectionString(name)` calls or duplicate the helper locally. Configure `ConnectionStrings` in the AppHost; Cosmos's resource URL is derived from `AccountEndpoint`, while Compose retains infrastructure lifecycle ownership.
-8. After generating all host templates (and the AppHost, if requested), run `dotnet sln` to add every new host project and its test project to the `.slnx` solution file.
+8. Update the root `AGENTS.md` project structure to include the new hosts, then use `dotnet sln add` to add every new host and test project to the `.slnx`; never hand-edit its XML. If Visual Studio has the solution open and the reload could interrupt pending work, defer only the solution-add commands to a final Manual steps list. In that case, build and test each new project by path; a solution build would silently omit them.
 9. Verify that each expected generated host and test project exists on disk before moving to validation.
 
 ### Adding a host to a solution that already has an AppHost
@@ -352,7 +342,7 @@ Passing the 3-part base name to an addon template causes it to emit into `src/Co
 
 After generation and solution wiring, validate in this order:
 
-1. Run `dotnet build` on the `.slnx`.
+1. Run `dotnet build` on the `.slnx`, or on each new project by path if solution wiring was deferred.
 2. Run the unit test project when present.
 3. Run broader API, relay, and subscriber test projects only when their local dependencies are available.
 4. Report any skipped validations explicitly.
@@ -364,10 +354,7 @@ For local development there are two validation modes:
 
 ### Validation policy
 
-- `dotnet build` is the default minimum bar for a successful scaffold.
-- `dotnet test` for `tests/[solution].Test.Unit` should run by default when the project exists.
-- API, relay, and subscriber tests may depend on local SQL Server or Postgres, the Cosmos emulator, Redis, Service Bus, or other host prerequisites. If those are not configured, skip those tests and say why.
-- A missing local dependency is a deferred setup item, not necessarily a scaffolding failure.
+- A missing local dependency is a deferred setup item, not necessarily a scaffolding failure; report the affected suites as unverified, not passed.
 - If the user wants runnable local validation and local dependency files are missing, materialize them first from bundled templates or repo-standard equivalents, for example `.github/skills/coreex-scaffold/assets/docker-compose.local.yml` and `.github/skills/coreex-scaffold/assets/servicebus-config.template.json`. These are a static, options-agnostic fallback for use when it is unsafe to re-run the root scaffold — see `.github/skills/coreex-scaffold/assets/README.md` for why they exist and how they relate to the scaffold's own generated `docker-compose.yml`/`servicebus/Config.json`.
 - If the generated shape includes SQL Server, Postgres, the Cosmos emulator, Redis, or Service Bus and the repo lacks a root `docker-compose.yml`, create one before trying to run broader tests.
 - If Service Bus emulator wiring is needed and the repo lacks `servicebus/Config.json`, create it before starting the dependency stack.
@@ -375,6 +362,7 @@ For local development there are two validation modes:
 - For `tools/[solution].CodeGen`, run from that directory so `ref-data.yaml` is discovered correctly.
 - If `refdata-enabled` is `true`, call out `tools/[solution].CodeGen` as the next step, or run it only when the user wants the repo left in a fully generated state.
 - If `data-provider != None`, call out `tools/[solution].Database` as the next step, or run it only when the user wants local persistence setup as part of scaffolding. Relational domains create schema/migrations; Cosmos domains provision containers and seed data.
+- Before running database tooling or Aspire tests, verify the selected data and messaging providers agree with generated host references and that the Service Bus topology matches the selected transport and session requirements. The template-pack validator checks scaffolded connection-string defaults; generated Aspire projects support User Secrets for optional local overrides. Provider connection failures from consumer-supplied overrides are reported by the provider at connection time.
 - If generated code fails compile due to placeholder types, missing project references, wrong package APIs, or other issues unrelated to missing local dependencies, classify that as a template defect and surface it explicitly.
 - If `dotnet new` reports duplicate CoreEx template identities, surface that warning and note which template source was used.
 
@@ -390,6 +378,8 @@ When the user explicitly asks for successful local build and test, use this orde
 6. Run `dotnet build` on the solution.
 7. Run the unit test project.
 8. Run API, relay, and subscriber test projects individually so one hanging host does not block the others.
+
+For an AppHost User Secret, run `dotnet user-secrets set "ConnectionStrings:{name}" "<connection-string>" --project aspire/[solution].Aspire/[solution].Aspire.csproj`, replacing `{name}` with the generated resource name (`Postgres`, `SqlServer`, `Cosmos`, or `ServiceBus`). Use the generated local Compose values for development unless an override is required.
 
 ### Template Defects vs Workflow Steps
 

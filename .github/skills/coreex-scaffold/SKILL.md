@@ -45,22 +45,19 @@ For step-by-step guidance, see [references/workflow.md](references/workflow.md).
 
 ## Interactive Interview Rules
 
-- When `mcp_microsoft_git_confirm_options` is available, use it for every interview step.
-- Each interview turn must contain exactly one editable field plus optional readonly context fields.
+- Resolve recorded decisions and inspect the existing solution before asking.
+- Ask only unresolved behavioral or design questions, one question per interaction, using the available interaction mechanism (for example, `ask_user`). Never rely on an unavailable confirmation-card tool.
 - Ask short, plain-English questions. Do not ask the user to supply template flag names.
 - The canonical interview order is: base solution name, new vs retrofit, HTTP API, reliable event publishing, event consumption, data storage, messaging provider when needed, reference data, domain layer, and ROP.
-- Use a single `text` field only for the base solution name.
-- Use a single `select` field for every other interview step so the workflow stays multiple-choice and deterministic.
-- For yes or no questions, use a `select` with `Yes` and `No` so the default remains visibly preselected.
 - Prefer either/or or small-choice questions before any extra freeform follow-up.
-- Do not batch multiple scaffold questions into a single assistant message.
 - If the user gives a partial or non-canonical name, stop and help them reach `[Company].[Product].[Domain]` before any template command.
-- If the workspace already proves a choice, confirm it instead of asking again.
-- Before any real `dotnet new` command, restate the derived inputs in one compact summary and ask for confirmation when there is any ambiguity.
+- If the workspace already proves a choice, restate it in the implementation plan instead of asking again.
+- Present one compact implementation plan once requirements are resolved. Wait for explicit approval unless the user's request already authorizes implementation; approval remains valid unless scope changes.
+- Before any real `dotnet new` command, restate the derived inputs in one compact summary. Ask again only if an unresolved ambiguity materially changes the scaffold.
 
 ## Default Selection Policy
 
-When the workspace does not already prove a value, preselect the safest default that still keeps the workflow moving:
+When the workspace does not already prove a value, recommend the safest default that still keeps the workflow moving:
 
 | Question | Default |
 |---|---|

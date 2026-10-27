@@ -15,7 +15,7 @@ Guide this workspace through creating or modifying a CoreEx contract.
 Use `.github/skills/coreex-contract/SKILL.md` and its referenced workflow as the authoritative workflow contract when they exist.
 
 Operational contract:
-- Ask root vs. subordinate, identifier type, `IETag` (default yes for root), and `IChangeLog` need before emitting any code — batch all questions, never interrupt per-property.
+- Resolve recorded decisions first. Ask only unresolved design questions one at a time using the available interaction mechanism; do not batch separate questions or rely on unavailable confirmation-card tools. Ask for the property set in one question rather than interrupting once per property, and do not emit code until required decisions are resolved.
 - `[Contract]` + `partial` on all contract classes by default; only omit when explicitly asked.
 - Only `[ReferenceData<T>]`-decorated properties are `partial` — never mark plain properties `partial` (CS9248).
 - `[ReadOnly(true)]` on all server-assigned or derived fields.

@@ -224,11 +224,12 @@ Use the coreex-api-e2e skill to add a new Employee entity end-to-end with the fo
   - FirstName (string)
   - NickName (string) - optional
   - LastName (string)
+  - Email (string) - required, unique (lowercase), must be a valid email address.
   - Gender (reference data)
   - Salary (decimal)
   - DateOfBirth (DateOnly) - must be at least 16 years of age.
 
-Operations needed: Get, Create, Update (Patch), Delete (logical delete).
+Operations needed: Get, Create, Update (and Patch), Delete (logical delete).
 
 Run all the tests and correct any failures.
 ```
@@ -256,7 +257,7 @@ The template creates the API host under `src/` and its tests under `tests/`. The
 ```
 Work in phases: Plan your approach and present it for review before writing any code; once confirmed, implement.
 
-Add the Outbox Relay host to the solution. Run the existing relay integration tests; do not attempt to correct any failures.
+Add the Outbox Relay host to the solution. Run the included relay integration tests; do not attempt to correct any failures.
 ```
 
 ### Manual alternative
@@ -280,7 +281,7 @@ This adds `src/Avanade.Hr.People.Relay/` and `tests/Avanade.Hr.People.Test.Relay
 ```
 Work in phases: Plan your approach and present it for review before writing any code; once confirmed, implement.
 
-Add the Subscribe host to the solution. Run its generated integration tests and correct any failures.
+Add the Subscribe host to the solution. Run the included integration tests and correct any failures.
 ```
 
 ### Manual alternative
@@ -365,8 +366,6 @@ This optional extension builds on the Employee API, Outbox Relay, and Subscribe 
 
 ```
 Work in phases: Plan your approach and present it for review before writing any code; once confirmed, implement.
-
-Extend the existing Employee contract with a required, unique Email property and use it as the identity-provider username.
 
 Add subscribers that consume the existing Employee lifecycle events and provision (on create) or deactivate (on delete) the user through an identity-provider adapter and typed HTTP client (Okta is the example). Mock the HTTP calls in tests; no live Okta tenant is required. Test the subscriber behavior and HTTP client.
 

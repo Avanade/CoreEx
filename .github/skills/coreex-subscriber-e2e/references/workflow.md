@@ -8,7 +8,7 @@
 
 # coreex-subscriber-e2e: Workflow
 
-Full step-by-step workflow for adding a new event or command subscriber end-to-end in a CoreEx solution. All context is gathered upfront so no L1 skill needs to re-ask a question already answered here.
+Full step-by-step workflow for adding a new event or command subscriber end-to-end in a CoreEx solution. Resolve requirements before implementation and pass confirmed context to each L1 skill so answered questions are not repeated.
 
 ---
 
@@ -29,9 +29,9 @@ If any feature is absent from `AGENTS.md`, include it as a question in Phase 2 a
 
 ## Phase 2 — Interview
 
-Gather everything needed for all downstream L1 skills in a single conversation turn.
+Resolve recorded project decisions first. Ask only unresolved behavioral or design questions, one question per interaction using the available interaction mechanism; reuse information already supplied rather than re-asking it. Do not rely on an unavailable confirmation-card tool. Once the requirements are resolved, present one compact implementation plan and wait for explicit approval before starting unless the user's request already authorized implementation. That approval remains valid unless scope changes; do not ask again at each L1 step.
 
-**Questions to ask (batch into one turn):**
+**Questions, asked individually only when unresolved:**
 
 | # | Question | Why needed |
 |---|---|---|
@@ -111,8 +111,9 @@ Pass: subscriber class name, subject, scenario type, expected outcome (success p
 
 1. `dotnet build` — no errors or warnings across all projects.
 2. Confirm the subscriber is discoverable via `AddSubscribersUsing<T>()` — no manual Subscribe host `Program.cs` registration is required.
-3. Confirm `*.Test.Subscribe/` contains the scenario test class (or partial class) with at minimum a success path and an unsubscribed-subject test.
-4. Report a file-per-layer summary of everything added during this workflow.
+3. Run the relevant `*.Test.Subscribe` tests, including the success path and unsubscribed-subject case, and any unit tests added by the invoked L1 skills.
+4. If infrastructure prevents a suite from running, report the exact unavailable dependency and mark that behavior unverified; test-class presence is not evidence that the feature works.
+5. Report a file-per-layer summary of everything added during this workflow.
 
 ---
 

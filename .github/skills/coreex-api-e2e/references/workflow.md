@@ -8,7 +8,7 @@
 
 # coreex-api-e2e: Workflow
 
-Full step-by-step workflow for adding a new entity with CRUD API endpoints end-to-end in a CoreEx solution. The key discipline of this skill is **interview once, invoke many**: all context is gathered upfront so no L1 skill needs to re-ask a question already answered here.
+Full step-by-step workflow for adding a new entity with CRUD API endpoints end-to-end in a CoreEx solution. The key discipline is to resolve requirements before implementation and pass confirmed context to each L1 skill so answered questions are not repeated.
 
 ---
 
@@ -31,9 +31,9 @@ If any feature is absent from `AGENTS.md`, include it as a question in Phase 2 a
 
 ## Phase 2 — Interview
 
-Gather everything needed for all downstream L1 skills in a single conversation turn. Do not interrupt the workflow mid-sequence to re-ask something that could have been settled here.
+Resolve recorded project decisions first. Ask only unresolved behavioral or design questions, one question per interaction using the available interaction mechanism; reuse information already supplied rather than re-asking it. Do not rely on an unavailable confirmation-card tool. Once the requirements are resolved, present one compact implementation plan and wait for explicit approval before starting unless the user's request already authorized implementation. That approval remains valid unless scope changes; do not ask again at each L1 step.
 
-**Questions to ask (batch into one turn):**
+**Questions, asked individually only when unresolved:**
 
 | # | Question | Why needed |
 |---|---|---|
@@ -145,11 +145,11 @@ Pass: entity name, operations list, seed data requirements. The seed data conver
 
 ## Phase 4 — Validate
 
-1. `dotnet build` — no errors or warnings across all projects.
-2. Confirm `*.Test.Unit/Validators/` contains `{Name}ValidatorTests.cs`.
-3. Confirm `*.Test.Unit/Policies/` contains `{Name}PolicyTests.cs` (if Step 7 ran).
-4. Confirm `*.Test.Api/` contains the `{Name}ReadTests` and `{Name}MutateTests` partial classes.
-5. Report a file-per-layer summary of everything added during this workflow.
+1. `dotnet build` the solution — no errors or warnings.
+2. Run the generated unit-test project (for example, `dotnet test tests/{solution}.Test.Unit`).
+3. Run the API integration-test project (for example, `dotnet test tests/{solution}.Test.Api`) with its required database, cache, and broker dependencies available.
+4. If infrastructure prevents a suite from running, report the exact unavailable dependency and mark that behavior unverified; test-class presence is not evidence that the feature works.
+5. Confirm the expected test classes exist and report a file-per-layer summary of everything added during this workflow.
 
 ---
 

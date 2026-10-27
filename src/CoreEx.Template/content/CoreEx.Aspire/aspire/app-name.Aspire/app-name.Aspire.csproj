@@ -4,6 +4,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <UserSecretsId>solution-name.Aspire</UserSecretsId>
   </PropertyGroup>
 
   <!-- Vulnerability override: MessagePack (transitive via Aspire) has had multiple CVEs on older versions. -->

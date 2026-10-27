@@ -193,6 +193,7 @@ public void Unsubscribed_CompletesSilently() => Test.Scoped(test =>
 
 ## Completion Checklist
 
+- [ ] Relevant tests executed; report any blocked execution per [Execution Evidence](/.github/instructions/coreex-tests.instructions.md#execution-evidence)
 - [ ] Test shape matches the subscriber scenario (command / event-data-sync / event-business-process)
 - [ ] `OneTimeSetUp` clears FusionCache — Subscribe hosts have it, don't skip it
 - [ ] Provider-correct outbox helpers used (no Postgres/SQL Server/Cosmos mixing)

@@ -20,7 +20,7 @@ apply to that boundary-specific pattern.
 
 ## Phase 1 — Clarify Before Writing
 
-Answer these questions before emitting any code. Batch all questions — do not interrupt per-property.
+Resolve the decisions below from the request and existing project before emitting code. Ask only unresolved design questions, one question per interaction using the available mechanism. Request the complete property list and types in one question rather than interrupting per property.
 
 | Question | Default | Notes |
 |---|---|---|

@@ -619,7 +619,8 @@ aspire/
 ```csharp
 var builder = DistributedApplication.CreateBuilder(args);
 
-builder.DisableHttpCertificateValidation();
+if (builder.Environment.IsDevelopment())
+    builder.DisableHttpCertificateValidation();
 
 var db = builder.AddExternalConnectionString("Postgres").WithIconName("DatabaseMultiple");
 var redis = builder.AddExternalConnectionString("redis").WithIconName("Database");
@@ -633,12 +634,13 @@ builder.AddProject<Projects.Avanade_Erp_Sales_Subscribe>("sales-subscribe").With
 builder.Build().Run();
 ```
 
+The certificate-validation bypass is enabled only when the AppHost's resolved hosting environment is `Development`, as configured by the generated launch profiles. It supports HTTPS project endpoints with untrusted development certificates, including Linux CI test runs; all other environments retain normal certificate validation. It applies to clients created by the AppHost's `IHttpClientFactory`, not to clients in the separately hosted services. An HTTP MockHost does not need a certificate bypass. The guard is not Linux-specific.
+
 `AddExternalConnectionString` is supplied by **CoreEx.UnitTesting** in the `UnitTestEx` namespace,
 alongside `AddEndpoints` and the other Aspire helpers; there is no local implementation. It wraps secret parameters from
 `ConnectionStrings:{name}` in visible `ConnectionStringResource` nodes. Aspire 13.5.4 excludes parameter-only
 `AddConnectionString(name)` resources from Graph/Table views. Existing connection names and host references are
-preserved; Compose still owns the actual infrastructure lifecycle. A node's running status means configuration
-resolved, not that its service is healthy; host readiness checks perform those probes.
+preserved; Compose still owns the actual infrastructure lifecycle. The template-pack validation checks generated connection-string defaults. The generated AppHost has a `UserSecretsId`; use `dotnet user-secrets set "ConnectionStrings:Postgres" "<connection-string>" --project aspire/[solution].Aspire/[solution].Aspire.csproj` to override a local development value without committing credentials. A node's running status means configuration resolved, not that its service is healthy; host readiness checks perform those probes.
 
 For Cosmos the scaffold passes `endpointKey: "AccountEndpoint"` and derives a credential-free resource URL from
 that connection string, correcting dashboard peer matching. Relational connection strings should include explicit

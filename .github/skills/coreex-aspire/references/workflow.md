@@ -22,7 +22,7 @@ Read, in this order:
 
 If there is **no** `aspire/` folder, stop: the AppHost does not exist. Offer `dotnet new coreex-aspire` via `coreex-scaffold`; do not hand-roll one.
 
-## Phase 2 — Interview (one batched turn)
+## Phase 2 — Interview
 
 | # | Question | Gates |
 |---|---|---|
@@ -33,7 +33,17 @@ If there is **no** `aspire/` folder, stop: the AppHost does not exist. Offer `do
 
 Do not ask what Phase 1 already answered.
 
+Resolve recorded decisions first. Ask only unresolved behavioral or design questions, one question per interaction using the available mechanism; reuse information already supplied. Present one compact implementation plan once requirements are resolved and wait for explicit approval unless the user's request already authorizes implementation. Approval remains valid unless scope changes.
+
 ## Phase 3 — AppHost
+
+Generated AppHosts include development-only Compose connection strings. If local development uses different credentials, override them with AppHost User Secrets rather than committing real credentials:
+
+```text
+dotnet user-secrets set "ConnectionStrings:Postgres" "<connection-string>" --project aspire/{solution}.Aspire/{solution}.Aspire.csproj
+```
+
+Use the matching key (`SqlServer`, `Cosmos`, or `ServiceBus`) for the selected provider. This is an optional local override; the generated defaults are validated by the template-pack tests, while consumer-provided connection failures are surfaced by the provider when it connects.
 
 ### External infrastructure
 
@@ -138,7 +148,7 @@ Drive the flow from its real entry point over HTTP, then **poll** for the async 
 
 ```csharp
 [Test]
-public void Checkout_ConfirmsReservation()
+public async Task Checkout_ConfirmsReservation()
 {
     Test.Checkpoint("Checkout the basket; the reservation is confirmed asynchronously via the outbox, Service Bus and the Products Subscribe host.");
     var basket = Test.Http<Basket>("shopping-api").Run(HttpMethod.Post, $"/api/baskets/{basketId}/checkout").AssertOK().Value!;
@@ -173,11 +183,19 @@ private static async Task<bool> SendReceivedAsync(WireMock.Client.IWireMockAdmin
 - Assert the **effect in the consuming host** (via its API), not the broker: the Aspire tester has no peek helper. Broker delivery of a specific message is a `*.Test.Relay` concern.
 - Where the consumer is *outside* the AppHost there is no effect to poll — keep the E2E to publishing health (host ready, relay hosted service healthy) and leave delivery to `Test.Relay`.
 
+### Stateful provider lifecycle tests
+
+For create/delete or provision/deprovision workflows, use one correlation identifier per test and carry it through the API request, provider request, and journal assertions. Keep the provider-side `EmployeeId`/resource identifier correlated with the local entity identifier so each lifecycle step can prove it is acting on the resource created by that test.
+
+Model the provider as a scenario with explicit states (for example, absent → provisioned → deprovisioned). A create transition must match the expected decoded path, required query values, and payload identifiers; a delete transition must match the same correlation and provider identifiers and only succeed from the provisioned state. Assert the observed payload and query values from the journal, not just that the route was called. `Request.Path` is decoded by WireMock; query values should be matched or asserted as query parameters rather than embedded in a guessed encoded path.
+
+Add a deliberate fallback response that rejects any request not matched by the expected provider contract, then assert that the fallback was never used. Treat broker delivery as at-least-once: repeated create/delete requests for the same correlation must not create duplicate provider resources, and tests should assert the final provider state and uniqueness rather than requiring exactly one delivery. For HTTPS-only downstream clients, keep the MockHost override explicitly `http`; certificate validation is unrelated to that HTTP stub. Cross-platform `Test.Aspire` runs that call HTTPS project endpoints with an untrusted development certificate may use `builder.DisableHttpCertificateValidation()` in the AppHost, guarded by `builder.Environment.IsDevelopment()`. This affects every `HttpClient` created by the AppHost's `IHttpClientFactory`, so treat it strictly as local development/test behavior and never use it in a production host.
+
 ## Phase 6 — Validate
 
 1. `dotnet build` the AppHost and `*.Test.Aspire` projects — 0 errors/warnings.
-2. With infrastructure up (`docker compose up -d`) run `dotnet test aspire/*.Test.Aspire`. If infrastructure is unavailable, say so explicitly and report the build result only.
-3. Confirm each `WithMockHostEnvironment` key has a matching configuration section and a stub, and that no in-AppHost domain is stubbed.
+2. With infrastructure up (`docker compose up -d`) run the relevant `*.Test.Aspire` suite. If infrastructure is unavailable, say so explicitly and report the build result only; do not claim the E2E behavior passed.
+3. Confirm each `WithMockHostEnvironment` key has a matching configuration section and stub, and that no in-AppHost domain is stubbed.
 
 ## Guardrails
 
