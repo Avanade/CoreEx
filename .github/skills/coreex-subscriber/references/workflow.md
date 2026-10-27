@@ -20,6 +20,7 @@ Full workflow for adding or modifying a subscriber in a CoreEx Subscribe host.
 | Does the message carry a payload? | Yes → `SubscribedBase<TValue>` + `ValueValidator`. No → `SubscribedBase`, extract key with `@event.Key.Required()` |
 | What does the subscriber delegate to? | Command or Business-Process → application service. Data-Sync → replication adapter (`IXxxSyncAdapter`). Never both in the same subscriber. |
 | Is an `ErrorHandler` needed? | Yes for command/process subscribers where a not-found outcome is semantically valid (e.g., idempotent replay). Data-sync subscribers typically handle not-found silently via delete semantics. |
+| What broker disposition is intended for validation/business failures and invalid payloads? | Resolve explicitly. `ValidationException`/`BusinessException` and invalid payloads default to `CompleteAsError` (log, then acknowledge), not retry or dead-letter. Choose `CompleteAsError`, `Retry`, or `DeadLetter` for each relevant category. |
 | Are multiple subjects handled identically? | Yes → stack `[Subscribe]` attributes on a single class. No → separate classes per subject. |
 | Is an integration test needed? | Yes — always provide a test class. Use existing `*.Test.Subscribe` project for the domain. |
 
@@ -47,7 +48,7 @@ public class {Entity}{Action}Subscriber : SubscribedBase
     internal static readonly ErrorHandler DefaultErrorHandler = new ErrorHandler()
         .Add<NotFoundException>(ex => ex.ErrorCode == "{entity}-not-found"
             ? ErrorHandling.CompleteAsInformation   // consume silently; log as informational
-            : null);                                // null = fall through to default handling (retry / dead-letter)
+            : null);                                // null = fall through to the base subscriber defaults
 
     private readonly I{Entity}Service _service;
 
@@ -181,14 +182,14 @@ with a payload would also carry a version; a key-only event would not.
 ## Step 3 — Error Handling
 
 Define a static `ErrorHandler` when specific exceptions should be treated differently from the
-default retry/dead-letter behaviour. The most common case: a `NotFoundException` that is semantically
+base subscriber defaults. The most common case: a `NotFoundException` that is semantically
 expected (e.g., an entity was deleted before a queued command was processed).
 
 ```csharp
 internal static readonly ErrorHandler DefaultErrorHandler = new ErrorHandler()
     .Add<NotFoundException>(ex => ex.ErrorCode == "{entity}-not-found"
         ? ErrorHandling.CompleteAsInformation   // consume silently; log as informational
-        : null);                                // null = fall through to default dead-letter logic
+        : null);                                // null = fall through to the base subscriber defaults
 ```
 
 **Assign in the constructor:** `ErrorHandler = DefaultErrorHandler;`
@@ -217,6 +218,18 @@ public ReservationCancelSubscriber(IMovementService service)
 | `Retry` | Message requeued for retry |
 | `DeadLetter` | Message sent to dead-letter queue |
 | `null` (from handler) | Fall through to next handler / default behaviour |
+
+**Choose settlement deliberately.** `EventSubscriberBase` defaults `ValidationException`/`BusinessException` (`IExtendedException.IsError`) to `CompleteAsError` and automatically retries transient `IExtendedException` failures. `InvalidDataHandling` also defaults to `CompleteAsError`. `CompleteAsError` logs the failure and the Service Bus receiver completes (acknowledges) the message; it does not retry or dead-letter. Set `InvalidDataHandling` or add type-specific `ErrorHandler` rules when a different disposition is required. `UnhandledErrorHandling` defaults to `None`, so unclassified failures follow receiver-level behavior rather than an implicit subscriber retry/dead-letter rule.
+
+```csharp
+public {Entity}Subscriber(...)
+{
+    ErrorHandler = new ErrorHandler()
+        .Add<ValidationException>(ErrorHandling.DeadLetter)
+        .Add<BusinessException>(ErrorHandling.Retry);
+    InvalidDataHandling = ErrorHandling.DeadLetter;
+}
+```
 
 ---
 

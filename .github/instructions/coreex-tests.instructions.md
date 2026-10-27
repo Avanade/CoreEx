@@ -47,6 +47,8 @@ Maintain relevant tests alongside behavior changes without a separate permission
 
 Run the relevant tests after creating or modifying them, using the narrowest project/filter that covers the change. A successful build or an existing test class does not prove behavior. If a required database, cache, broker, or emulator is unavailable, name the blocking dependency and report the affected tests as unverified, not passed; do not weaken assertions or substitute mocks for owned infrastructure to manufacture a pass.
 
+Avoid overlapping `dotnet test` commands that build shared project references into the same `bin`/`obj` outputs; compiler/MSBuild file contention can fail otherwise-independent projects. If parallel execution is useful, build the shared projects once, then run isolated unit-test projects with `--no-build`. API/Relay/Subscribe integration projects that reset shared infrastructure still run sequentially, even with `--no-build`.
+
 ---
 
 ## Test Responsibility — what goes where (do not duplicate)

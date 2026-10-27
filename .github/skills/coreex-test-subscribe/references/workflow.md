@@ -49,6 +49,21 @@ public partial class SubscriberTests : WithApiTester<{Domain}.Subscribe.Program>
 
 One partial file per subscriber scenario under test: `SubscriberTests.{Scenario}.cs`.
 
+### Mocking downstream HTTP calls
+
+Create request mappings once in `[OneTimeSetUp]`, configure their responses in each test, then verify invocation. The UnitTestEx API uses the `Respond` property, not a method; for body matching, configure the response from the body mapping. `Verify()` checks completion/invocation and does not reset the mock. `Reset()` restores the request to its initial state when you intentionally need to clear and reuse its configuration.
+
+```csharp
+var mcf = MockHttpClientFactory.Create();
+var request = mcf.CreateClient("ExternalApi").Request(HttpMethod.Post, "api/users");
+Test.ReplaceHttpClientFactory(mcf);
+
+// In the test:
+request.WithAnyBody().Respond.With(HttpStatusCode.Created);
+// Run the subscriber action.
+request.Verify();
+```
+
 ## Phase 2 — Simulating Message Receipt
 
 Build the `EventData` the subscriber expects, convert it to a `ServiceBusReceivedMessage`, resolve
@@ -127,6 +142,13 @@ public void {Entity}{Action}_NotFound() => Test.Scoped(test =>
         e.InnerException.Should().BeOfType<NotFoundException>().Which.ErrorCode.Should().Be("{entity}-not-found");
     }).AssertSuccess();
 });
+```
+
+`ValidationException.Messages` contain `MessageItem.Text` values of type `LText`. Convert to a string for exact text assertions:
+
+```csharp
+var validation = e.InnerException.Should().BeOfType<ValidationException>().Subject;
+validation.Messages!.Single().Text.ToString().Should().Be("Email is invalid.");
 ```
 
 ### Event — Data Sync (state assertion via the adapter)

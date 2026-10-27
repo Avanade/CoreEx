@@ -49,6 +49,7 @@ There are three distinct subscriber scenarios — determine which applies before
 
 ## Quick Reference
 
+- **Choose settlement explicitly.** CoreEx defaults `ValidationException`/`BusinessException` to `CompleteAsError` (log, then complete/acknowledge the broker message), not retry or dead-letter. Invalid payloads also default to `CompleteAsError`. Confirm the intended disposition for business/validation failures and invalid payloads; do not silently rely on these defaults.
 - **Untyped subscriber** (`SubscribedBase`) — message carries data in the key only; extract with `@event.Key.Required()`
 - **Typed subscriber** (`SubscribedBase<TValue>`) — message carries a serialised payload; set `ValueValidator` to validate before `OnReceiveAsync`
 - Do not use `[JsonRequired]` on subscriber payload contracts; use `ValueValidator` for required fields, with nullable properties when omission must be distinguished from a supplied default
@@ -56,7 +57,7 @@ There are three distinct subscriber scenarios — determine which applies before
 - No `Program.cs` edit needed — `AddSubscribersUsing<T>()` discovers all `[Subscribe]`-decorated classes automatically
 - Subject format: `{solution}.{domain}.{entity}.{action}[.v{n}]` — include `.v{n}` only when the message carries a payload
 - `EventData.CreateCommand(...)` for commands; `EventData.CreateEvent(...)` / `new EventData().WithTitle(...)` for events
-- `ErrorHandler` for graceful not-found and retry/dead-letter control — share the same static instance across related subscribers
+- `ErrorHandler` for explicit completion/retry/dead-letter control — share the same static instance across related subscribers
 - Integration tests use `WithApiTester<Program>` (Subscribe host); simulate receipt via `ServiceBusSubscribedSubscriber.ReceiveAsync(sbm)` — see `coreex-test-subscribe` for the full test workflow
 
 For full workflow and code examples see [`references/workflow.md`](references/workflow.md).

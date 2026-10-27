@@ -191,7 +191,7 @@ dotnet new coreex-aspire    -n Company.Product.Books.Aspire --has-api ... --has-
 - Generate from the solution root with full suffixed names; verify the host and test project paths.
 - Update root `AGENTS.md` and register the explicit projects using `dotnet sln add ... --include-references false` when the SDK supports it and dependencies are already registered. Keep hosts under the virtual `hosts` folder and tests under `tests`.
 - If solution registration is unsafe while Visual Studio has it open, defer only that step and validate new projects by path. Provide pending commands once, then stop with registration explicitly deferred; recheck only when asked or given new information.
-- Build the solution (or each unregistered project), run unit tests, then run API/Relay/Subscribe integration projects **sequentially**, awaiting each completion. Do not use solution-wide `dotnet test` or overlapping runs against shared resettable database/cache/broker state.
+- Build the solution (or each unregistered project) before testing. Run API/Relay/Subscribe integration projects **sequentially**, awaiting each completion; they share resettable database/cache/broker state. Avoid concurrent test builds of shared project references; see the test instructions for safe `--no-build` parallelism.
 - Report results and exact blocked/deferred steps without claiming them complete. See [validation details](references/workflow.md#phase-6-validate-the-scaffold) for infrastructure setup and defect handling.
 
 ## Shape Selection Guide

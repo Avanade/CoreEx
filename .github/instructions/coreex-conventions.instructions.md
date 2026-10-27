@@ -260,6 +260,17 @@ private readonly IUnitOfWork _unitOfWork;
 private readonly ILogger<ProductService> _logger;
 ```
 
+## Logging
+
+Check whether the requested level is enabled before every logger call. Keep the log call inside the check so disabled logging avoids argument evaluation and formatting work:
+
+```csharp
+if (_logger.IsEnabled(LogLevel.Information))
+    _logger.LogInformation("Identity is already absent for Employee {EmployeeId}.", employeeId);
+```
+
+Use the matching `LogLevel` for each call; do not emit first and check afterward.
+
 ## Markdown Prose
 
 Do not hard-wrap prose in READMEs, AGENTS files, skills, instructions, or other Markdown documents to meet a visual line width. Keep each paragraph on one physical line and let the editor soft-wrap it. Use LF line endings; retain line breaks required for Markdown structure (headings, lists, tables, and paragraph boundaries) and code blocks.

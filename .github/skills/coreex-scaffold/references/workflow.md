@@ -389,7 +389,7 @@ When the user explicitly asks for successful local build and test, use this orde
 5. Run `tools/[solution].CodeGen` from its own directory when reference data is enabled.
 6. Run `dotnet build` on the solution.
 7. Run the unit test project.
-8. Run API, relay, and subscriber test projects sequentially; await each result before starting the next.
+8. Run API, relay, and subscriber test projects sequentially; await each result before starting the next. See [test execution guidance](/.github/instructions/coreex-tests.instructions.md#execution-evidence) before parallelizing independent unit-test projects.
 
 For an AppHost User Secret, run `dotnet user-secrets set "ConnectionStrings:{name}" "<connection-string>" --project aspire/[solution].Aspire/[solution].Aspire.csproj`, replacing `{name}` with the generated resource name (`Postgres`, `SqlServer`, `Cosmos`, or `ServiceBus`). Use the generated local Compose values for development unless an override is required.
 
