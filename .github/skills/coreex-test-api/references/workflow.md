@@ -120,8 +120,7 @@ If the domain calls another domain over HTTP, add HTTP mocking to `OneTimeSetUp`
 > Examples throughout this phase use an illustrative Product domain — substitute your own entity/type
 > names and routes, and replace the `contoso`/`products` subject literals with your `{solution}`/`{domain}`.
 
-Co-design seed → tests → resources **in that order** (seed rows exist before you write assertions
-against them; resources get captured from the actual run).
+Co-design seeds, tests, and expected resources from requirements and the serialization contract before execution; actual output helps diagnose mismatches, not define correctness.
 
 | Operation | Must cover |
 |---|---|
@@ -417,10 +416,7 @@ call `.Verify()` after the action.
 
 ## Phase 6 — Resources
 
-`.res.json`/`.req.json` live under `Resources/{TestClass}/…`. Pre-author from the seed values you
-control; expect the first run to need a small fix-up from actual output — that's normal. Reference-data
-properties serialize by their **non-`Code`** JSON name (`gender`, not `genderCode`) — real, deterministic
-values, include them; don't exclude them. The only volatile fields are `id`/`etag`/`changelog`.
+`.res.json`/`.req.json` live under `Resources/{TestClass}/…`; follow the expected-resource rule in [API Tests — Structure & Generation](/.github/instructions/coreex-tests.instructions.md#api-tests--structure--generation). Reference-data properties serialize by their **non-`Code`** JSON name (`gender`, not `genderCode`); assert deterministic values rather than excluding them. Exclude or separately assert runtime-generated fields such as `id`/`etag`/`changelog`.
 
 ## Completion Checklist
 

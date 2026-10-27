@@ -43,6 +43,8 @@ tags: ["testing", "unit-tests", "integration-tests", "test-helpers", "nunit"]
 
 ## Execution Evidence
 
+Maintain relevant tests alongside behavior changes without a separate permission round. Respect an explicit tests-excluded or deferred scope and report the resulting coverage gap; do not expand into unrelated test suites.
+
 Run the relevant tests after creating or modifying them, using the narrowest project/filter that covers the change. A successful build or an existing test class does not prove behavior. If a required database, cache, broker, or emulator is unavailable, name the blocking dependency and report the affected tests as unverified, not passed; do not weaken assertions or substitute mocks for owned infrastructure to manufacture a pass.
 
 ---
@@ -275,7 +277,7 @@ public partial class EmployeeMutateTests
 >
 > Non-mutating tests (Get, Query, 304, validation bad-requests) can freely share read rows — the rule is specifically about tests that **commit a write**.
 
-**Expected `.req.json` / `.res.json` resources** (the JSON representation of the request/response) live under `Resources/{TestClass}/…` and are referenced via `.ExpectJsonFromResource(...)` / `.AssertJsonFromResource("EmployeeReadTests.Employee_Get_Found.res.json", "etag", "changelog")` (exclude volatile fields). **Pre-author them from the seed values** — you control the seed, so you can write the expected JSON up front (remember to exclude/expect the volatile `id`/`etag`/`changelog`); then **run once and reconcile** any remaining differences from the actual output (they are intentionally copy-paste-friendly). Expect the first run to need a small fix-up; that's normal, not a failure to avoid. They scale better than inline assertions as entities grow.
+**Expected `.req.json` / `.res.json` resources** live under `Resources/{TestClass}/…` and are referenced via `.ExpectJsonFromResource(...)` / `.AssertJsonFromResource("EmployeeReadTests.Employee_Get_Found.res.json", "etag", "changelog")`. Derive expectations from requirements, controlled seed values, and the serialization contract before running tests; exclude or separately assert volatile fields. Use actual output to diagnose mismatches, not as the source of truth: correct the implementation or expectation only after establishing which violates the intended contract.
 
 > **Creation procedure → skill.** Co-designing the seed, tests, and expected resources (seed first → tests next →
 > resources last, so all three agree) is driven by the [`coreex-test-api`](/.github/skills/coreex-test-api/SKILL.md)

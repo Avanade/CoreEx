@@ -12,7 +12,7 @@ This is the **Message Subscriber host** for the `domain-name` domain, part of th
 This is a **background worker host** -- it runs a Service Bus session receiver as a hosted service and delegates message handling to typed subscriber classes. It should contain:
 
 - `Program.cs` -- startup, DI registration, subscriber wiring
-- `Subscribers/` -- `ISubscriber<TEvent>` implementations (one per message type)
+- `Subscribers/` -- `SubscribedBase` or `SubscribedBase<TValue>` handlers
 - No business logic; business processing belongs in `solution-name.Application`
 <!-- #else -->
 This is a **background worker host** with no messaging provider configured. It should contain:
@@ -29,11 +29,7 @@ Read `.github/docs/coreex/hosts-layer.md` for the full host-layer guide.
 <!-- #if implement-servicebus -->
 ## Adding a New Subscriber
 
-1. Create a class in `Subscribers/`, e.g. `ProductCreatedSubscriber.cs`
-2. Implement `SubscriberBase<TEvent>` or `ISubscriber<TEvent>` from `CoreEx.Events`
-3. Register it via `AddSubscribedManager()` in `Program.cs` (the template wires this up via `AddSubscribersUsing<T>()`)
-4. Decorate with `[EventSubscriber("EventType", "EventSource")]` to declare which messages it handles
-5. Call the Application service from inside `ReceiveAsync()` -- keep subscriber classes thin
+Use the `coreex-subscriber` skill when installed, with `.github/instructions/coreex-event-subscribers.instructions.md` as the conventions reference. Derive from `SubscribedBase` (key-only) or `SubscribedBase<TValue>` (typed payload), decorate with `[Subscribe("subject")]`, and delegate from `OnReceiveAsync` to the Application service or adapter. The existing `AddSubscribersUsing<Program>()` discovers handlers automatically; do not add per-handler registrations in `Program.cs`.
 
 Consult `.github/docs/coreex/agents/CoreEx.Azure.Messaging.ServiceBus.md` for subscriber patterns and session receiver configuration.
 
@@ -104,7 +100,7 @@ The subscriber wires FusionCache with both in-memory (L1) and Redis distributed 
 <!-- #if implement-servicebus -->
 | `CoreEx.Azure.Messaging.ServiceBus` | Service Bus session receiver, `SubscribedManager` |
 <!-- #endif -->
-| `CoreEx.Events` | `ISubscriber<T>`, `SubscriberBase<T>`, `EventSubscriberAttribute` |
+| `CoreEx.Events` | `SubscribedBase`, `SubscribedBase<TValue>`, `[Subscribe]` |
 | `CoreEx.Caching.FusionCache` | FusionCache `IHybridCache` integration |
 <!-- #if implement-sqlserver -->
 | `CoreEx.Database.SqlServer` | SQL Server outbox for outbound events |

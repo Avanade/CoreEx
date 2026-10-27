@@ -14,13 +14,15 @@ Full workflow for adding or modifying HTTP API endpoints in a CoreEx `*.Api` hos
 
 ## Phase 1 — Clarify Before Writing
 
+Resolve these decisions from the request, Feature Configuration, and existing code. Ask only unresolved behavioral questions, not for inspectable facts or requirements already supplied.
+
 | Question | Default | Notes |
 |---|---|---|
-| Entity / resource being exposed? | Ask | Names the controller, route segment, and OpenApiTag |
-| Operations needed? | Ask | GET, query, create, update, delete, custom action — never assume Query |
-| Service style: exception-based or `Result<T>`? | Ask | Determines which WebApi helper variant to use |
-| Read service (`I{Name}ReadService`) already exists? | Ask | Controllers cannot be written without a service to delegate to |
-| MVC controllers or Minimal API? | MVC | MVC for most projects; Minimal API for lighter hosts — see Step 7 |
+| Entity / resource being exposed? | From request | Names the controller, route segment, and OpenApiTag |
+| Operations needed? | From request | GET, query, create, update, delete, custom action — never assume Query |
+| Service style: exception-based or `Result<T>`? | Inspect | Feature Configuration and service signatures determine the WebApi helper variant |
+| Read service (`I{Name}ReadService`) already exists? | Inspect | Controllers need a service to delegate to |
+| MVC controllers or Minimal API? | Match host | For a new host, default to MVC unless requested otherwise — see Step 7 |
 
 **Gate — do not skip:** if the CQRS split calls for a `{Name}ReadController` (any GET/query/`$query` endpoint being added or moved) and `I{Name}ReadService`/`{Name}ReadService` does not already exist, **stop before Step 1** and invoke [`coreex-app-service`](../../coreex-app-service/SKILL.md) (Path C — CQRS Read Service) to create the read service pair first. Never add query/collection methods to the existing `I{Name}Service`/`{Name}Service` as a shortcut, and never write `{Name}ReadController` against a service that doesn't exist yet — only the by-id `GetAsync` may legitimately live on both. Resume the controller work once the read service exists.
 
@@ -101,7 +103,7 @@ public Task<IActionResult> QuerySchemaAsync(CancellationToken cancellationToken 
 
 ## Step 3 — POST — Create
 
-**Ask the user whether this POST should be idempotent before writing it.** Create-style POSTs almost always are — a retried request with the same `[IdempotencyKey]` returns the original result instead of creating a duplicate. Omit `[IdempotencyKey]` only when the user explicitly confirms the operation is intentionally non-idempotent (e.g. a deliberately non-repeatable command).
+**Resolve POST idempotency before writing it; ask only if unresolved.** Create-style POSTs almost always need `[IdempotencyKey]`: a retried request with the same key returns the original result instead of creating a duplicate. Omit it only when the user explicitly confirms the operation is intentionally non-idempotent (e.g. a deliberately non-repeatable command).
 
 ### Exception-based
 
@@ -376,7 +378,7 @@ All the same rules apply: `.Required()` on route params, no business logic in ha
 7. No `IUnitOfWork`, `HttpClient`, or adapter types injected into the controller.
 8. `WithResult` variants used throughout when the service style is `Result<T>`; standard variants for exception-based.
 9. `[Accepts<T>]` present on POST/PUT/PATCH actions; `[ProducesNotFoundProblem()]` on GET/PUT/PATCH/DELETE where applicable.
-10. Hand off directly to [`coreex-test-api`](../../coreex-test-api/SKILL.md) for the real integration test — do not insert a throwaway smoke test (scratch test class, manual curl/`HttpClient` call, `dotnet run` + eyeball) in between just to confirm the endpoint works before writing "the real one". That confirmation *is* what the integration test does; a preliminary pass duplicates it and is discarded moments later.
+10. Maintain integration tests via [`coreex-test-api`](../../coreex-test-api/SKILL.md), following [Execution Evidence](/.github/instructions/coreex-tests.instructions.md#execution-evidence). Do not duplicate them with throwaway smoke tests.
 
 ---
 

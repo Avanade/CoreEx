@@ -14,13 +14,15 @@ Full workflow for creating or modifying a CoreEx Application-layer service in `A
 
 ## Phase 1 — Clarify Before Writing
 
+Resolve these decisions from the request, Feature Configuration, and existing code; ask only unresolved behavioral questions.
+
 | Question | Default | Notes |
 |---|---|---|
-| Exception-based or `Result<T>` pipeline? | Ask | Exception → Path A; `Result<T>` → Path B; per-project style choice |
-| Operations needed? | Ask | Get / Create / Update / Delete / custom — **never assume Query** |
+| Exception-based or `Result<T>` pipeline? | Match project/service | Exception → Path A; `Result<T>` → Path B |
+| Operations needed? | From request | Get / Create / Update / Delete / custom — **never assume Query** |
 | Cross-domain or external-service calls? | No | Yes → adapter interface + Path D |
 | Policy guard checks requiring I/O? | No | Yes → policy class + Path D |
-| Domain layer present? | No | Yes → `Application/Mapping/` mapper; affects Path B |
+| Domain layer present? | Inspect | Yes → `Application/Mapping/` mapper; affects Path B |
 | Read queries or collection results needed? | No | Yes → Path C (CQRS read service) — **first** confirm `I{Name}Repository.QueryAsync`/`QuerySchemaAsync` already exist; if not, stop and invoke `coreex-repository` to add the `{Name}QueryArgsConfig` before building the read service |
 
 ---
@@ -410,7 +412,7 @@ if (pr.IsFailure)
 3. Verify every mutating method wraps the repository call in `_unitOfWork.TransactionAsync(...)` and gates mutation-announcement events on the successful `DataResult.WasMutated` inside that scope. Preserve the flag through mapping/ROP before unwrapping the response.
 4. Verify validators are called via `Default.ValidateAndThrowAsync` (exception style) or `Default.ValidateWithResultAsync` (ROP) — never bare `ValidateAsync`.
 5. Check `Id` is assigned via `Runtime.NewId()` / `Runtime.NewGuid()` on Create — never left to the caller or the database.
-6. **Offer to create or update the matching integration test** in `*.Test.Api/` or unit test in `*.Test.Unit/Services/` — go straight there. Do not write a throwaway smoke test (a scratch console/test snippet, ad-hoc scoped call, or manual `dotnet run` check) first "to see if it works"; that confirmation is exactly what the real test proves, so a preliminary pass is discarded effort.
+6. Maintain relevant tests following [Execution Evidence](/.github/instructions/coreex-tests.instructions.md#execution-evidence) and [Test Responsibility](/.github/instructions/coreex-tests.instructions.md#test-responsibility--what-goes-where-do-not-duplicate). Standard service/repository behavior belongs in `*.Test.Api`; do not duplicate it with mocked service tests or throwaway smoke checks.
 7. Cover success/true (event), success/false (success without event), and failure (unchanged failure without event), including a successful earlier read and changed aggregate followed by a persistence no-op. Sequential delete idempotency alone does not cover that boundary; use a focused deterministic boundary test when necessary, without claiming it proves real concurrency/transaction behavior.
 
 ---

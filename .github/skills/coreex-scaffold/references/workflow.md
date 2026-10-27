@@ -24,6 +24,7 @@ Use this workflow to guide the user through CoreEx solution shape decisions in p
 
 - Ask only unresolved behavioral or design questions, one question per interaction using the available mechanism (for example, `ask_user`); do not rely on unavailable confirmation-card tools.
 - Present one compact plan after resolving requirements. Wait for explicit approval unless the user's request already authorizes the stated scope; approval remains valid unless scope changes.
+- Follow the skill's [Interactive Interview Rules](../SKILL.md#interactive-interview-rules) when the user or approval mechanism is unavailable; do not loop on a pending decision.
 
 ## Default Selection Policy
 
@@ -313,8 +314,19 @@ State that the workflow will finish by wiring projects into the solution and run
 5. For bootstrap-only repos, run `coreex` first (omit `-n` when the folder name matches), then add each needed host template with the **4-part name** (`base.Api`, `base.Relay`, `base.Subscribe`).
 6. For retrofit work, add only the missing hosts unless the user explicitly asked for broader reshaping.
 7. If an Aspire AppHost was requested, run `coreex-aspire` last, after every chosen host template has already been generated -- its `--has-*` flags and generated `Projects.*` references depend on those hosts already existing. Preserve its visible external resources using `CoreEx.UnitTesting`'s `AddExternalConnectionString`; do not replace them with parameter-only `AddConnectionString(name)` calls or duplicate the helper locally. Configure `ConnectionStrings` in the AppHost; Cosmos's resource URL is derived from `AccountEndpoint`, while Compose retains infrastructure lifecycle ownership.
-8. Update the root `AGENTS.md` project structure to include the new hosts, then use `dotnet sln add` to add every new host and test project to the `.slnx`; never hand-edit its XML. If Visual Studio has the solution open and the reload could interrupt pending work, defer only the solution-add commands to a final Manual steps list. In that case, build and test each new project by path; a solution build would silently omit them.
+8. Apply the skill's [Host-Addition Checklist](../SKILL.md#host-addition-checklist) for recording, solution registration, and any IDE-safe deferral; never hand-edit `.slnx`.
 9. Verify that each expected generated host and test project exists on disk before moving to validation.
+
+### Solution registration and deferred work
+
+Check `dotnet sln add --help`: on SDKs exposing `--include-references` (default `true`), use `--include-references false` when dependencies are already registered so the command adds only the requested projects. On older SDKs omit the unsupported option. Explicitly register any genuinely missing dependency rather than relying on recursive registration to choose its solution folder.
+
+```text
+dotnet sln {Solution}.slnx add src/{Solution}.Subscribe/{Solution}.Subscribe.csproj --solution-folder hosts --include-references false
+dotnet sln {Solution}.slnx add tests/{Solution}.Test.Subscribe/{Solution}.Test.Subscribe.csproj --solution-folder tests --include-references false
+```
+
+If Visual Studio's solution reload could interrupt pending work, finish all independent implementation and project-by-path validation, list the pending registration commands once, and end with registration deferred. This is a valid handoff, not permission to claim solution wiring complete. Do not repeatedly ask the user to close the IDE or recheck its state; when asked to resume, recheck once and either register the projects or retain the deferred outcome.
 
 ### Adding a host to a solution that already has an AppHost
 
@@ -344,7 +356,7 @@ After generation and solution wiring, validate in this order:
 
 1. Run `dotnet build` on the `.slnx`, or on each new project by path if solution wiring was deferred.
 2. Run the unit test project when present.
-3. Run broader API, relay, and subscriber test projects only when their local dependencies are available.
+3. Run broader API, relay, and subscriber test projects only when their local dependencies are available, sequentially as required by the [Host-Addition Checklist](../SKILL.md#host-addition-checklist). These projects reset shared database/cache/broker state; do not run solution-wide `dotnet test` or overlap them unless their resources are isolated.
 4. Report any skipped validations explicitly.
 
 For local development there are two validation modes:
@@ -377,7 +389,7 @@ When the user explicitly asks for successful local build and test, use this orde
 5. Run `tools/[solution].CodeGen` from its own directory when reference data is enabled.
 6. Run `dotnet build` on the solution.
 7. Run the unit test project.
-8. Run API, relay, and subscriber test projects individually so one hanging host does not block the others.
+8. Run API, relay, and subscriber test projects sequentially; await each result before starting the next.
 
 For an AppHost User Secret, run `dotnet user-secrets set "ConnectionStrings:{name}" "<connection-string>" --project aspire/[solution].Aspire/[solution].Aspire.csproj`, replacing `{name}` with the generated resource name (`Postgres`, `SqlServer`, `Cosmos`, or `ServiceBus`). Use the generated local Compose values for development unless an override is required.
 
@@ -425,15 +437,15 @@ dotnet new coreex-relay      -n Avanade.Erp.Sales.Relay      --data-provider Sql
 dotnet new coreex-subscribe -n Avanade.Erp.Sales.Subscribe --data-provider SqlServer --messaging-provider ServiceBus --refdata-enabled true
 dotnet new coreex-aspire     -n Avanade.Erp.Sales.Aspire     --has-api true --has-relay true --has-subscribe true --data-provider SqlServer --messaging-provider ServiceBus
 
-dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Api --solution-folder hosts
-dotnet sln Avanade.Erp.Sales.slnx add tests/Avanade.Erp.Sales.Test.Api --solution-folder tests
-dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Relay --solution-folder hosts
-dotnet sln Avanade.Erp.Sales.slnx add tests/Avanade.Erp.Sales.Test.Relay --solution-folder tests
-dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Subscribe --solution-folder hosts
-dotnet sln Avanade.Erp.Sales.slnx add tests/Avanade.Erp.Sales.Test.Subscribe --solution-folder tests
-dotnet sln Avanade.Erp.Sales.slnx add aspire/Avanade.Erp.Sales.Aspire
-dotnet sln Avanade.Erp.Sales.slnx add aspire/Avanade.Erp.Sales.Aspire.MockHost
-dotnet sln Avanade.Erp.Sales.slnx add aspire/Avanade.Erp.Sales.Test.Aspire
+dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Api --solution-folder hosts --include-references false
+dotnet sln Avanade.Erp.Sales.slnx add tests/Avanade.Erp.Sales.Test.Api --solution-folder tests --include-references false
+dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Relay --solution-folder hosts --include-references false
+dotnet sln Avanade.Erp.Sales.slnx add tests/Avanade.Erp.Sales.Test.Relay --solution-folder tests --include-references false
+dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Subscribe --solution-folder hosts --include-references false
+dotnet sln Avanade.Erp.Sales.slnx add tests/Avanade.Erp.Sales.Test.Subscribe --solution-folder tests --include-references false
+dotnet sln Avanade.Erp.Sales.slnx add aspire/Avanade.Erp.Sales.Aspire --include-references false
+dotnet sln Avanade.Erp.Sales.slnx add aspire/Avanade.Erp.Sales.Aspire.MockHost --include-references false
+dotnet sln Avanade.Erp.Sales.slnx add aspire/Avanade.Erp.Sales.Test.Aspire --include-references false
 
 dotnet build Avanade.Erp.Sales.slnx
 dotnet test tests/Avanade.Erp.Sales.Test.Unit
@@ -444,8 +456,8 @@ dotnet test tests/Avanade.Erp.Sales.Test.Unit
 ```sh
 dotnet new coreex -n Avanade.Erp.Sales --data-provider None --messaging-provider None
 dotnet new coreex-api -n Avanade.Erp.Sales.Api --data-provider None
-dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Api --solution-folder hosts
-dotnet sln Avanade.Erp.Sales.slnx add tests/Avanade.Erp.Sales.Test.Api --solution-folder tests
+dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Api --solution-folder hosts --include-references false
+dotnet sln Avanade.Erp.Sales.slnx add tests/Avanade.Erp.Sales.Test.Api --solution-folder tests --include-references false
 dotnet build Avanade.Erp.Sales.slnx
 dotnet test tests/Avanade.Erp.Sales.Test.Unit
 ```
@@ -456,10 +468,10 @@ dotnet test tests/Avanade.Erp.Sales.Test.Unit
 dotnet new coreex -n Avanade.Erp.Sales --data-provider SqlServer --messaging-provider ServiceBus --outbox-enabled false
 dotnet new coreex-api        -n Avanade.Erp.Sales.Api        --data-provider SqlServer --outbox-enabled false
 dotnet new coreex-subscribe -n Avanade.Erp.Sales.Subscribe --data-provider SqlServer --messaging-provider ServiceBus
-dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Api --solution-folder hosts
-dotnet sln Avanade.Erp.Sales.slnx add tests/Avanade.Erp.Sales.Test.Api --solution-folder tests
-dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Subscribe --solution-folder hosts
-dotnet sln Avanade.Erp.Sales.slnx add tests/Avanade.Erp.Sales.Test.Subscribe --solution-folder tests
+dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Api --solution-folder hosts --include-references false
+dotnet sln Avanade.Erp.Sales.slnx add tests/Avanade.Erp.Sales.Test.Api --solution-folder tests --include-references false
+dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Subscribe --solution-folder hosts --include-references false
+dotnet sln Avanade.Erp.Sales.slnx add tests/Avanade.Erp.Sales.Test.Subscribe --solution-folder tests --include-references false
 dotnet build Avanade.Erp.Sales.slnx
 dotnet test tests/Avanade.Erp.Sales.Test.Unit
 ```

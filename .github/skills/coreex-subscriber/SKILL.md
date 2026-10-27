@@ -45,7 +45,7 @@ There are three distinct subscriber scenarios — determine which applies before
 > **Feature Configuration**: `messaging-provider` gates this skill (a Subscribe host exists only when a
 > messaging provider is configured); `outbox-enabled` determines whether the delegated service publishes
 > resulting events transactionally; `rop-enabled` confirms `Result`/`Result<T>` return-style pipelines.
-> Only prompt for what is unrecorded; re-state resolved values for confirmation.
+> Only prompt for what is unresolved; include resolved values in the implementation plan.
 
 ## Quick Reference
 

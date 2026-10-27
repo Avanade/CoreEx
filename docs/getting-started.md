@@ -224,7 +224,7 @@ Use the coreex-api-e2e skill to add a new Employee entity end-to-end with the fo
   - FirstName (string)
   - NickName (string) - optional
   - LastName (string)
-  - Email (string) - required, unique (lowercase), must be a valid email address.
+  - Email (string) - required, unique (lowercase), must be a valid email address, immutbale once set.
   - Gender (reference data)
   - Salary (decimal)
   - DateOfBirth (DateOnly) - must be at least 16 years of age.
@@ -319,8 +319,6 @@ At this point you have a complete, fully tested CoreEx microservice — CRUD API
 > Paste the following into GitHub Copilot (Agent mode) or Claude Code. It invokes the `coreex-api` skill to add a paged, filterable, sortable query endpoint for the existing Employee entity.
 
 ```
-/coreex-api
-
 Create a query endpoint for the Employee.
 Support paging.
 Support the following filter properties:
@@ -367,7 +365,9 @@ This optional extension builds on the Employee API, Outbox Relay, and Subscribe 
 ```
 Work in phases: Plan your approach and present it for review before writing any code; once confirmed, implement.
 
-Add subscribers that consume the existing Employee lifecycle events and provision (on create) or deactivate (on delete) the user through an identity-provider adapter and typed HTTP client (Okta is the example). Mock the HTTP calls in tests; no live Okta tenant is required. Test the subscriber behavior and HTTP client.
+Add subscribers that consume the existing Employee lifecycle events and provision (on create) or deactivate (on delete) the user through an identity-provider adapter and typed HTTP client (Okta is the example). A soft-delete means that the email can be read bypassing the standard repository filter, so that the subscriber can deactivate the user even after the employee is deleted.
+
+Mock the HTTP calls in tests; no live Okta tenant is required. Test the subscriber behavior and HTTP client.
 
 This is an intentional self-subscription that decouples identity lifecycle work asynchronously from the Employee API.
 

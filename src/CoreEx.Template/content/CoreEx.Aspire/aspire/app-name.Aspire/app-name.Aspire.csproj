@@ -17,6 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Using Include="Microsoft.Extensions.Hosting" />
     <Using Include="UnitTestEx" />
   </ItemGroup>
 

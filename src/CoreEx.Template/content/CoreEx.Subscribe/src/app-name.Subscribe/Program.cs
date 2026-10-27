@@ -1,16 +1,3 @@
-// #if (has-data-provider || refdata-enabled)
-using solution-name.Infrastructure.Repositories;
-// #endif
-// #if implement-servicebus
-using CoreEx.Azure.Messaging.ServiceBus;
-// #endif
-using Microsoft.Extensions.Options;
-using OpenTelemetry;
-using OpenTelemetry.Trace;
-using StackExchange.Redis;
-using ZiggyCreatures.Caching.Fusion;
-using ZiggyCreatures.Caching.Fusion.Backplane.StackExchangeRedis;
-
 namespace app-name.Subscribe;
 
 public class Program

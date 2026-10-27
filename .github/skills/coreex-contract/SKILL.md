@@ -33,8 +33,8 @@ Guides you through creating or modifying a hand-authored contract (DTO/entity) i
 
 ## Quick Reference
 
-**Clarifying questions to ask before emitting any code:**
-0. **Resolve from state first.** Read the solution-root `AGENTS.md` **Feature Configuration** for `refdata-enabled` (whether `[ReferenceData<T>]` wiring applies) and check whether a `*.Domain` project exists (aggregate-mapping context). Only ask for what is unresolved; re-state resolved values for confirmation.
+**Decisions to resolve from the request and existing code; ask only about unresolved behavior:**
+0. **Resolve from state first.** Read the solution-root `AGENTS.md` **Feature Configuration** for `refdata-enabled` (whether `[ReferenceData<T>]` wiring applies) and check whether a `*.Domain` project exists (aggregate-mapping context). Only ask for what is unresolved; include resolved values in the implementation plan.
 1. Root or subordinate? (if not explicit)
 2. Identifier type? (default `string?` — confirm before using any other type)
 3. `IETag` needed? (default yes for root contracts — omit only on explicit request)

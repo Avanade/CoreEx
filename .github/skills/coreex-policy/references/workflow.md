@@ -14,6 +14,8 @@ Full workflow for creating or modifying a CoreEx Application-layer policy class 
 
 ## Phase 1 — Clarify Before Writing
 
+Resolve these decisions from the request and existing code; ask only unresolved behavioral questions.
+
 | Question | Default | Notes |
 |---|---|---|
 | What entity is guarded? | Ask | Names the policy and its methods |
@@ -253,7 +255,7 @@ if (pr.IsFailure)
 2. Verify the policy lives in `Application/Policies/` and is **not** added to DI.
 3. Verify call sites use `new {Name}Policy(_{dep}).MethodAsync(...)` — never inject via constructor.
 4. Verify missing body references produce field-level validation errors, missing targets retain not-found semantics, and unrelated failures propagate unchanged. Cover the agreed JSON path and deliberately retained endpoint semantics.
-5. **Generate a matching unit test class** — always create `*.Test.Unit/Policies/{Name}PolicyTests.cs`. Policies have no infrastructure dependencies at test time (all I/O is mocked via the adapter/repository interface), making them ideal unit-test targets. Use `WithGenericTester<EntryPoint>` as the base class and `Test.Scoped(async test => ...)` to wrap each test body, consistent with other unit tests in the project.
+5. Maintain `*.Test.Unit/Policies/{Name}PolicyTests.cs`, following [Execution Evidence](/.github/instructions/coreex-tests.instructions.md#execution-evidence). Mock I/O through the adapter/repository interface; use `WithGenericTester<EntryPoint>` and `Test.Scoped(async test => ...)`, consistent with existing unit tests.
 
 ### EnsureExists guard test (request-body reference)
 

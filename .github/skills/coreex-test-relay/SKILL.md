@@ -39,7 +39,7 @@ rarely need new scenarios per domain.
 > **Feature Configuration**: `messaging-provider` gates this skill (a Relay host exists only when a
 > messaging provider is configured) and `data-provider` (PostgreSQL vs SQL Server vs Cosmos) selects the outbox
 > publisher family (`PostgresOutboxPublisher`/`SqlServerOutboxPublisher`/`CosmosDbEventPublisher`) — never mix them. Only prompt
-> for what is unrecorded; re-state resolved values for confirmation.
+> for what is unresolved; include resolved values in the implementation plan.
 
 ## Quick Reference
 

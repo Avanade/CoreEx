@@ -53,6 +53,7 @@ For step-by-step guidance, see [references/workflow.md](references/workflow.md).
 - If the user gives a partial or non-canonical name, stop and help them reach `[Company].[Product].[Domain]` before any template command.
 - If the workspace already proves a choice, restate it in the implementation plan instead of asking again.
 - Present one compact implementation plan once requirements are resolved. Wait for explicit approval unless the user's request already authorizes implementation; approval remains valid unless scope changes.
+- An unavailable user or approval tool is not approval. If explicit approval is required, use the available interaction mechanism; if none is available, present the plan once and stop pending approval. Do not retry the same question or invent consent.
 - Before any real `dotnet new` command, restate the derived inputs in one compact summary. Ask again only if an unresolved ambiguity materially changes the scaffold.
 
 ## Default Selection Policy
@@ -125,7 +126,7 @@ dotnet new coreex -n Avanade.Product.Books --data-provider SqlServer --messaging
 
 # Step 1a (optional): Add the Domain layer when domain complexity warrants DDD.
 dotnet new coreex-domain -n Avanade.Product.Books.Domain
-dotnet sln Avanade.Product.Books.slnx add src/Avanade.Product.Books.Domain
+dotnet sln Avanade.Product.Books.slnx add src/Avanade.Product.Books.Domain --include-references false
 
 # Step 2: Add each host template using the 4-part name (base + host suffix).
 dotnet new coreex-api        -n Avanade.Product.Books.Api        --data-provider SqlServer --refdata-enabled true --outbox-enabled true
@@ -136,15 +137,15 @@ dotnet new coreex-subscribe -n Avanade.Product.Books.Subscribe --data-provider S
 dotnet new coreex-aspire -n Avanade.Product.Books.Aspire --has-api true --has-relay true --has-subscribe true --data-provider SqlServer --messaging-provider ServiceBus
 
 # Step 3: Add host and test projects to the solution file.
-dotnet sln Avanade.Product.Books.slnx add src/Avanade.Product.Books.Api --solution-folder hosts
-dotnet sln Avanade.Product.Books.slnx add tests/Avanade.Product.Books.Test.Api --solution-folder tests
-dotnet sln Avanade.Product.Books.slnx add src/Avanade.Product.Books.Relay --solution-folder hosts
-dotnet sln Avanade.Product.Books.slnx add tests/Avanade.Product.Books.Test.Relay --solution-folder tests
-dotnet sln Avanade.Product.Books.slnx add src/Avanade.Product.Books.Subscribe --solution-folder hosts
-dotnet sln Avanade.Product.Books.slnx add tests/Avanade.Product.Books.Test.Subscribe --solution-folder tests
-dotnet sln Avanade.Product.Books.slnx add aspire/Avanade.Product.Books.Aspire
-dotnet sln Avanade.Product.Books.slnx add aspire/Avanade.Product.Books.Aspire.MockHost
-dotnet sln Avanade.Product.Books.slnx add aspire/Avanade.Product.Books.Test.Aspire
+dotnet sln Avanade.Product.Books.slnx add src/Avanade.Product.Books.Api --solution-folder hosts --include-references false
+dotnet sln Avanade.Product.Books.slnx add tests/Avanade.Product.Books.Test.Api --solution-folder tests --include-references false
+dotnet sln Avanade.Product.Books.slnx add src/Avanade.Product.Books.Relay --solution-folder hosts --include-references false
+dotnet sln Avanade.Product.Books.slnx add tests/Avanade.Product.Books.Test.Relay --solution-folder tests --include-references false
+dotnet sln Avanade.Product.Books.slnx add src/Avanade.Product.Books.Subscribe --solution-folder hosts --include-references false
+dotnet sln Avanade.Product.Books.slnx add tests/Avanade.Product.Books.Test.Subscribe --solution-folder tests --include-references false
+dotnet sln Avanade.Product.Books.slnx add aspire/Avanade.Product.Books.Aspire --include-references false
+dotnet sln Avanade.Product.Books.slnx add aspire/Avanade.Product.Books.Aspire.MockHost --include-references false
+dotnet sln Avanade.Product.Books.slnx add aspire/Avanade.Product.Books.Test.Aspire --include-references false
 
 # Step 4: Validate the generated solution.
 dotnet build Avanade.Product.Books.slnx
@@ -152,7 +153,7 @@ dotnet test tests/Avanade.Product.Books.Test.Unit
 # Run broader test projects only when their local infrastructure dependencies are available.
 ```
 
-Host projects always live physically under `src/` and are grouped under the virtual `/hosts/` solution folder. Host test projects live under `tests/` and the `/tests/` solution folder. Always pass `--solution-folder` when adding hosts; a solution folder does not change a project's filesystem path.
+Host projects always live physically under `src/` and are grouped under the virtual `/hosts/` solution folder. Host test projects live under `tests/` and the `/tests/` solution folder. Always pass `--solution-folder` when adding hosts; a solution folder does not change a project's filesystem path. The examples use `--include-references false`; omit it on SDKs that do not expose that option (see [solution registration](references/workflow.md#solution-registration-and-deferred-work)).
 
 ### Existing Repository Retrofit (Skip Bootstrap)
 
@@ -184,21 +185,14 @@ dotnet new coreex-aspire    -n Company.Product.Books.Aspire --has-api ... --has-
 - **Force only for bootstrap replacement:** In a confirmed bootstrap-only repo, `--force` is acceptable only after dry-run validation shows the expected canonical layout. `--force` overwrites every file the current template version emits but does **not** delete files an older/superseded template version left behind — treat any such leftover as a manual-review orphan, not a safe-to-ignore artifact.
 - **No force for mismatches:** Do not use `--force` to push through a naming or layout mismatch. The mismatch itself indicates an unsafe operation.
 
-## Validation Rules
+## Host-Addition Checklist
 
-- After generation, verify that every expected host and test project exists on disk and has been added to the `.slnx`.
-- Host projects must remain physically under `src/` and be grouped in the virtual `/hosts/` solution folder; host test projects remain physically under `tests/` and grouped in `/tests/`. Use `dotnet sln add <host-project> --solution-folder hosts` and `dotnet sln add <test-project> --solution-folder tests`; verify solution grouping without moving project directories.
-- Always run `dotnet build` on the solution as the minimum end-to-end validation step.
-- Always run the unit test project when present.
-- Run API, relay, or subscriber test projects only when their required local dependencies are available; otherwise skip them and report the reason explicitly.
-- Treat missing local infrastructure such as SQL Server, Postgres, Cosmos emulator, Redis, or Service Bus as a validation skip, not as a scaffolding failure, unless the user explicitly asked for full local environment setup.
-- Once the scaffolded test projects build and run their initial templated tests, hand off to `coreex-test-api`, `coreex-test-subscribe`, or `coreex-test-relay` for authoring any further domain-specific integration tests — this skill only validates the generated shape, not test content.
-- When the user explicitly wants a first local runnable state, create any missing local dependency assets before broader validation, using bundled templates where available.
-- When `data-provider != None` and the user wants runnable local state, run the `*.Database` tool from its own project directory. For relational providers this ensures `dbex.yaml` resolves correctly; for Cosmos it provisions the declared containers and imports seed data. Prefer `dotnet run -- All` for first-run local setup.
-- When `refdata-enabled` is `true` and the user wants runnable local state, run the `*.CodeGen` tool from its own project directory so its config file resolves correctly.
-- If generated code fails to compile before environment or tool execution becomes relevant, treat that as a template or package-version defect first; prefer fixing the template pack rather than teaching the workflow to hand-patch generated output every time.
-- If `refdata-enabled` is `true`, call out the `*.CodeGen` tool as the next step or run it only when the user wants a fully generated local state.
-- If `data-provider != None`, call out the `*.Database` tool as the next step or run it only when the user wants local persistence setup as part of scaffolding. Relational domains create schema/migrations; Cosmos domains provision containers and seed data.
+- Resolve the recorded configuration and authorized scope; preserve existing hosts and dry-run only the missing templates.
+- Generate from the solution root with full suffixed names; verify the host and test project paths.
+- Update root `AGENTS.md` and register the explicit projects using `dotnet sln add ... --include-references false` when the SDK supports it and dependencies are already registered. Keep hosts under the virtual `hosts` folder and tests under `tests`.
+- If solution registration is unsafe while Visual Studio has it open, defer only that step and validate new projects by path. Provide pending commands once, then stop with registration explicitly deferred; recheck only when asked or given new information.
+- Build the solution (or each unregistered project), run unit tests, then run API/Relay/Subscribe integration projects **sequentially**, awaiting each completion. Do not use solution-wide `dotnet test` or overlapping runs against shared resettable database/cache/broker state.
+- Report results and exact blocked/deferred steps without claiming them complete. See [validation details](references/workflow.md#phase-6-validate-the-scaffold) for infrastructure setup and defect handling.
 
 ## Shape Selection Guide
 

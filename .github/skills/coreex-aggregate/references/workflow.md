@@ -29,6 +29,8 @@ Only proceed past this point when a Domain layer is confirmed to exist and be wa
 
 ## Phase 1 — Interview: Which Domain Object?
 
+Resolve the object shape from the request and existing domain first; use these questions only when its ownership or lifecycle is unresolved.
+
 | Question | Branch |
 |---|---|
 | Is this the consistency boundary itself — the thing loaded, mutated, and saved as a unit, potentially raising integration events? | **Aggregate Root** → Step 1 |

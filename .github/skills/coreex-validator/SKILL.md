@@ -17,7 +17,7 @@ tags: ["validators", "validation", "application-layer", "coreex", "fluent-rules"
 
 Guides you through creating or modifying a CoreEx validator (`Application/Validators/`) for a contract or request type. Covers declarative rules, ref-data validation, async database checks, collection and dictionary validators.
 
-Resolve recorded choices first and ask only unresolved questions one at a time using the available interaction mechanism. Ask once for the complete property list instead of interrupting once per property.
+Resolve requirements from the request, existing contract, and validator before asking unresolved behavioral questions one at a time.
 
 ## When to Use
 
@@ -36,9 +36,9 @@ Resolve recorded choices first and ask only unresolved questions one at a time u
 
 ## Quick Reference
 
-**Clarifying questions to ask before writing any code:**
+**Decisions to resolve from the request and existing code; ask only about unresolved behavior:**
 1. Does the validator need a constructor-injected dependency (e.g. a repository)? (determines base class)
-2. Which properties need validation? Ask once for the complete property list, then ask other unresolved questions one at a time using the available interaction mechanism.
+2. Which properties need validation? Inspect types in the contract; ask only for missing rule requirements.
 3. Are any ref-data properties required? Optional? (`.Mandatory().IsValid()` vs `.IsValid()`)
 4. Are any checks async (e.g. confirming an entity exists in the database)?
 5. Does the user prefer FluentValidation-style `RuleFor(x => ...)` syntax?

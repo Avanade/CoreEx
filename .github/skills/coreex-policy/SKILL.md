@@ -32,8 +32,8 @@ Guides you through creating or modifying a CoreEx Application-layer policy class
 
 ## Quick Reference
 
-**Clarifying questions before writing any code:**
-0. Resolve `rop-enabled` (`Result<T>` vs exception style — policies compose into `Result<T>` pipelines) from the solution-root `AGENTS.md` **Feature Configuration** before asking the rest; only prompt for what is unrecorded and re-state resolved values for confirmation.
+**Decisions to resolve from the request and existing code; ask only about unresolved behavior:**
+0. Resolve `rop-enabled` (`Result<T>` vs exception style — policies compose into `Result<T>` pipelines) from the solution-root `AGENTS.md` **Feature Configuration**; include resolved values in the implementation plan.
 1. What entity / concept is being guarded? (names the policy class)
 2. What type of guard? EnsureExists / business rule / state check
 3. Which adapter or repository does the policy call?
@@ -52,7 +52,7 @@ Guides you through creating or modifying a CoreEx Application-layer policy class
 - `LText` static fields hold **localizable entity names** used inside message text — e.g. `new LText("Product")` as the `{0}` substitution in `"{0} was not found."`. Explicit property paths remain plain strings; expression factories resolve JSON naming metadata.
 - Guard methods can return the loaded entity as `Result<Contracts.T>` so callers can use it without a second fetch
 - Always `.ConfigureAwait(false)` on every `await`
-- **Always generate a matching `{Name}PolicyTests.cs`** in `*.Test.Unit/Policies/` — cover success, the intended failure classification (`IsValidationError` for invalid references, `IsNotFoundError` for missing targets, `IsBusinessError` for business-state rules), and unchanged propagation of unrelated failures.
+- Maintain `{Name}PolicyTests.cs` in `*.Test.Unit/Policies/`, following [Execution Evidence](/.github/instructions/coreex-tests.instructions.md#execution-evidence); cover success, intended failure classification (`IsValidationError` for invalid references, `IsNotFoundError` for missing targets, `IsBusinessError` for business-state rules), and propagation of unrelated failures.
 
 For full workflow and code examples see [`references/workflow.md`](references/workflow.md).
 

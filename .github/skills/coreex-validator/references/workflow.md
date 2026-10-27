@@ -20,14 +20,14 @@ apply to that boundary-specific pattern.
 
 ## Phase 1 — Clarify Before Writing
 
-Resolve the decisions below from the request and existing project before emitting code. Ask only unresolved design questions, one question per interaction using the available mechanism. Request the complete property list and types in one question rather than interrupting per property.
+Resolve the decisions below from the request, existing contract, and validator. Ask only unresolved rule requirements, one question per interaction; inspect property types rather than asking the user to restate them.
 
 | Question | Default | Notes |
 |---|---|---|
 | Does validation need a constructor-injected dependency? | No | Yes → Path B (`Validator<T>`); No → Path A (`Validator<T, TSelf>`) |
 | FluentValidation-style `RuleFor` syntax preferred? | No | Yes → Path C (`AbstractValidator<T, TSelf>`) |
-| Which properties need rules? | Ask | List all upfront; resolve types before writing any rule |
-| Ref-data properties — required or optional? | Ask per field | Required: `.Mandatory().IsValid()`; optional: `.IsValid()` alone |
+| Which properties need rules? | Request + inspect | Reuse existing rules and supplied requirements |
+| Ref-data properties — required or optional? | From requirements | Required: `.Mandatory().IsValid()`; optional: `.IsValid()` alone; ask only when unresolved |
 | Any async checks requiring a dependency (DB lookup, etc.)? | No | Yes → Path B (`Validator<T>` with injection); async-only (no dependency) → override `OnValidateAsync` on Path A |
 
 ---

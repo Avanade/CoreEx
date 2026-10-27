@@ -14,7 +14,7 @@ Full workflow for creating or modifying a hand-authored contract in `*.Contracts
 
 ## Phase 1 — Clarify Before Writing
 
-Resolve the decisions below from the request and existing project before emitting code. Ask only unresolved design questions, one question per interaction using the available mechanism. Request the complete property set in one question rather than interrupting per property.
+Resolve the decisions below from the request and existing project before emitting code. Ask only unresolved design questions, one question per interaction; request a property set only when not already supplied or inspectable.
 
 | Question | Default | Notes |
 |---|---|---|

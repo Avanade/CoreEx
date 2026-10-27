@@ -10,21 +10,4 @@ description: Create or modify a CoreEx validator in the Application layer — Va
     propose the change upstream in Avanade/CoreEx instead, then refresh once it is released.
 -->
 
-Guide this workspace through creating or modifying a CoreEx validator.
-
-Use `.github/skills/coreex-validator/SKILL.md` and its referenced workflow as the authoritative workflow when they exist.
-
-Operational contract:
-- Resolve recorded choices first and ask only unresolved design questions one at a time using the available interaction mechanism.
-- Ask once for the complete property list and its types before writing rules; do not interrupt once per property.
-- Ref-data: `.IsValid()` on the navigation property (`Gender`), never on the `*Code` string.
-- `Mandatory()` on a non-nullable value type errors on `default` — use a range rule if `0` is valid.
-- Runtime-computed comparisons: prefer delegate overloads over imperative `OnValidateAsync`.
-- `context.HasErrors` guard only before async I/O; `context.HasError(x => x.Prop)` for per-property guards.
-- `context.AddError` via member-access expression, never `nameof(...)`.
-- Always offer to create or update the matching `{Validator}Tests` in `*.Test.Unit/Validators/`.
-- Never use the FluentValidation NuGet package — `AbstractValidator` is `CoreEx.Validation.AbstractValidator`.
-- If any prompt text conflicts with the skill, the skill wins.
-
-Outcome:
-- The validator is declared correctly, wired to the service, builds cleanly, and has test coverage offered.
+Read `.github/skills/coreex-validator/SKILL.md` and follow its authoritative workflow for the requested change.

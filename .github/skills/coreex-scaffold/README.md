@@ -46,7 +46,7 @@ If the prompt file is not present, attach the skill file directly in Copilot Cha
 ## Interview behavior
 
 - Resolve recorded decisions before asking; ask only unresolved behavioral/design questions, one at a time, using the available interaction mechanism.
-- Present one compact plan and wait for explicit approval unless the user already authorized implementation. Approval remains valid unless scope changes.
+- Follow the [Interactive Interview Rules](./SKILL.md#interactive-interview-rules) for approval and unavailable-user handling, and the [Host-Addition Checklist](./SKILL.md#host-addition-checklist) for validation and deferred solution registration.
 
 ## Reference
 

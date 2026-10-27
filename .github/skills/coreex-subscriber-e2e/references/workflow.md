@@ -41,7 +41,7 @@ Resolve recorded project decisions first. Ask only unresolved behavioral or desi
 | 4 | (Business-process and command scenarios) Does the handler need to persist state to a new local store shape (relational table or Cosmos container)? | Gates Steps 2 and 3 (migration + repository) |
 | 5 | (If `data-provider` was unrecorded) Does this solution have local persistence (`SqlServer` / `Postgres` / `Cosmos`)? | Required before Steps 2–3 can be evaluated |
 
-**Do not ask** about `messaging-provider`, `outbox-enabled`, or `rop-enabled` if already recorded in Feature Configuration — restate the resolved values for confirmation instead.
+**Do not ask** about `messaging-provider`, `outbox-enabled`, or `rop-enabled` if already recorded in Feature Configuration — include resolved values in the implementation plan instead.
 
 ---
 

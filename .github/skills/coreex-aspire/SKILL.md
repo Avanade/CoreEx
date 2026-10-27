@@ -35,7 +35,7 @@ Makes a code change *visible and testable* in the Aspire environment: AppHost re
 
 > **Resolve project-wide choices from state before asking.** Read the solution-root `AGENTS.md` **Feature Configuration**
 > (`data-provider`, `messaging-provider`, `outbox-enabled`) and inspect the existing `*.Aspire/AppHost.cs`, `*.Aspire.MockHost`
-> and `*.Test.Aspire` before interviewing. Re-state resolved values for confirmation.
+> and `*.Test.Aspire` before interviewing. Include resolved values in the implementation plan.
 
 ## The Deciding Question — where does the callee live?
 

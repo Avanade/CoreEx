@@ -36,23 +36,20 @@ Guides you through adding or modifying HTTP API endpoints in an `*.Api` host. Co
 
 ## Quick Reference
 
-**Clarifying questions before writing any code:**
-0. Resolve `rop-enabled` (exception vs `Result<T>` service style — selects the standard vs `WithResult` WebApi helper variant) from the solution-root `AGENTS.md` **Feature Configuration** before asking the rest; only prompt for what is unrecorded and re-state resolved values for confirmation.
-1. What entity / resource is being exposed? (names the controller and route)
-2. Which operations? GET / Query / Create / Update / Delete / custom business action?
-3. Is the application service exception-based or `Result<T>` pipeline style? (determines WebApi helper variant)
-4. Is a read service (`I{Name}ReadService`) already present, or does it need to be created?
-5. MVC controllers or Minimal API?
+**Resolve context before coding; ask only about unresolved behavior:**
+- Take the resource and operations from the request; do not assume additional operations.
+- Resolve service style from Feature Configuration and method signatures, and inspect whether `I{Name}ReadService` exists.
+- Follow the host's MVC or Minimal API style unless a change is requested.
 
 **Key rules at a glance:**
-- **If Q4 answer is "needs to be created":** stop before scaffolding the controller pair and invoke `coreex-app-service` (Path C — CQRS Read Service) to create `I{Name}ReadService`/`{Name}ReadService` first. Never shortcut by adding query/collection methods to the existing `I{Name}Service`/`{Name}Service`.
+- **If a required read service is missing:** invoke `coreex-app-service` (Path C — CQRS Read Service) to create `I{Name}ReadService`/`{Name}ReadService` first. Never shortcut by adding query/collection methods to the existing `I{Name}Service`/`{Name}Service`.
 - Inherit from `ControllerBase` — **never** `Controller` (that adds View support)
 - **CQRS split:** `{Name}Controller` (POST/PUT/PATCH/DELETE → `I{Name}Service`) + `{Name}ReadController` (GET/query → `I{Name}ReadService`). Both use the **same route** and **same `[OpenApiTag]`** so they appear as one OpenAPI group
 - All action methods return `Task<IActionResult>` via the `WebApi` helper — never `ActionResult<T>` directly
 - Route parameter validation: use `.Required()` — **not** `.ThrowIfNull()` (wrong exception type → 500 not 400)
 - `ro.Value.Adjust(v => v.Id = id.Required())` — bind route `id` into the deserialized body before passing to the service
 - `ro.WithLocationUri(...)` — set the `Location` response header in POST 201 responses
-- `[IdempotencyKey]` on every create-style POST — confirm with user; omit only if explicitly non-idempotent
+- `[IdempotencyKey]` on every create-style POST — confirm idempotency only if unresolved; omit only if explicitly non-idempotent
 - Always expose **both PUT and PATCH** for full-entity updates; specialised partial-update endpoints only on request
 - Every action method takes `CancellationToken cancellationToken = default` — pass to the WebApi helper via `cancellationToken:` and to the service via the lambda's `ct`: `(ro, ct) => _service.XxxAsync(... , ct)`. Never discard with `(ro, _)`
 - Exception-based service → standard helpers (`GetAsync`, `PostAsync`, `PutAsync`, …)
@@ -60,7 +57,7 @@ Guides you through adding or modifying HTTP API endpoints in an `*.Api` host. Co
 - No business logic in controllers — delegate immediately to the application service
 - `[Query(supportsOrderBy: true), Paging(supportsCount: true)]` + `[HttpGet("$query")]` schema endpoint for query operations
 - After adding a GET/Query endpoint, check whether this host already has GraphQL enabled (grep `Program.cs` for `AddCoreExGraphQLLite`, or check the host's `AGENTS.md` for a `**GraphQL:**` line). If enabled, offer to add a matching root via `coreex-graphql` in the same session; if not enabled, say nothing — do not offer to enable GraphQL, that is a separate explicit ask
-- Once the endpoint is implemented, hand off to `coreex-test-api` to add/update its integration test — go straight there. Do not write a throwaway smoke test (a scratch test class, ad-hoc curl/`HttpClient` call, or manual `dotnet run` check) first "to see if it works" and then discard it; the real integration test authored by `coreex-test-api` runs against the real host/DB and **is** the verification step, so a preliminary pass is wasted effort that gets thrown away seconds later
+- Maintain endpoint integration tests via `coreex-test-api`, following [Execution Evidence](/.github/instructions/coreex-tests.instructions.md#execution-evidence); do not duplicate them with throwaway smoke tests.
 
 For full workflow and code examples see [`references/workflow.md`](references/workflow.md).
 

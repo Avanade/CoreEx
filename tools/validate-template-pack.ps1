@@ -110,9 +110,17 @@ $testScenarios = @(
             )
             FileContains = @{
                 ".github/instructions/coreex.instructions.md"                   = 'applyTo: "**"'
-                ".github/instructions/coreex-api-controllers.instructions.md"   = "applyTo:"
+                ".github/instructions/coreex-api-controllers.instructions.md"   = "Paging is tolerant"
                 ".github/instructions/coreex-validators.instructions.md"        = "applyTo:"
                 ".github/docs/coreex/manifest.txt"                             = "coreex-version:"
+                ".github/docs/coreex/agents/CoreEx.Data.md"                    = "OrderQueryArgsConfig : QueryArgsConfig<OrderQueryArgsConfig>"
+                ".github/prompts/coreex-repository.prompt.md"                  = "follow its authoritative workflow"
+                ".github/instructions/coreex-tests.instructions.md"            = "Derive expectations from requirements"
+            }
+            FileNotContains = @{
+                ".github/instructions/coreex.instructions.md"                 = "Read each matching file in full"
+                ".github/docs/coreex/agents/CoreEx.Data.md"                    = '.WithDefault("A")'
+                ".github/skills/coreex-test-api/references/workflow.md"         = "resources get captured from the actual run"
             }
         }
         Build      = $false
@@ -145,6 +153,7 @@ $testScenarios = @(
                 ".github/instructions/coreex-validators.instructions.md"      = 'applyTo: "backend/'
                 ".github/instructions/coreex-api-controllers.instructions.md" = 'applyTo: "backend/'
                 ".github/docs/coreex/manifest.txt"                            = "coreex-version:"
+                ".github/skills/coreex-api/SKILL.md"                           = "Resolve context before coding"
             }
         }
         Build      = $false
@@ -415,6 +424,12 @@ $testScenarios = @(
                 # Regression guard: same Npgsql/implement-postgres guard bug found in coreex-api - copy-pasted
                 # into Subscribe's appsettings too.
                 "src/App/appsettings.Development.json" = '"Npgsql": "Warning"'
+                "src/App/GlobalUsing.cs" = ".Infrastructure.Repositories;"
+                "src/App/AGENTS.md" = "SubscribedBase<TValue>"
+            }
+            FileNotContains = @{
+                "src/App/Program.cs" = "using CoreEx."
+                "src/App/AGENTS.md" = "SubscriberBase"
             }
         }
         Build      = $false  # add-on template; no standalone solution

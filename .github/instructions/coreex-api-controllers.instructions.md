@@ -20,7 +20,7 @@ tags: ["controllers", "api", "routing", "cqrs", "dependency-injection", "minimal
 
 > **Precondition — the Api host must exist.** Controllers live in the `*.Api` host, which is **not** part of the base `coreex` solution. Before authoring a controller, confirm an Api host is present (`**/*.Api/*.Api.csproj`); if it is absent, run the scaffolding workflow first (see `coreex-host-setup.instructions.md` → "Scaffolding an API host") — which confirms creation, generates it via the `coreex-api` template using the recorded solution options, and adds the new projects to the solution (`dotnet sln add`) as the final in-session step. Also ensure the entity's application service exists (create per *Service Operations — Confirm Scope* in `coreex-application-services.instructions.md` if not).
 
-> **Maintain the API tests alongside the controller.** When you create or change a controller's operations, **offer to create or update the matching `XxxReadTests` / `XxxMutateTests`** (per-entity, one partial file per operation) in the `*.Test.Api` project — see `coreex-tests.instructions.md` → "API Tests — Structure & Generation". If accepted, co-design the seed data, tests, and `.res.json`/`.req.json` resources together; if declined, proceed but note the coverage gap.
+> **Maintain the API tests alongside the controller.** Use `coreex-test-api` to update the matching `XxxReadTests` / `XxxMutateTests`, with seed data and expected resources. Test scope and execution follow [Execution Evidence](/.github/instructions/coreex-tests.instructions.md#execution-evidence).
 
 CoreEx.AspNetCore supports two approaches for exposing HTTP endpoints. Choose one per host — they can coexist in the same application when needed.
 
@@ -138,7 +138,7 @@ public Task<IActionResult> PostAsync(CancellationToken cancellationToken = defau
 }, cancellationToken: cancellationToken);
 ```
 
-> **Agent instruction — confirm idempotency for every POST.** When adding a `POST`, ask whether the operation should be **idempotent** (safe to retry without creating a duplicate). A general **create-style** POST is a strong candidate — default to offering it. If confirmed, decorate the action with **`[IdempotencyKey]`** (MVC) or `.WithIdempotencyKey()` (Minimal API): a retried request carrying the same key then returns the original result instead of creating a second resource. Omit it only when the user confirms the POST is **not** idempotent (e.g. a deliberately non-repeatable command). This applies to `POST` specifically; `PUT`/`PATCH`/`DELETE` are inherently idempotent and do not take the attribute.
+> **Resolve idempotency for every POST; ask only if unresolved.** For an agreed idempotent operation, use **`[IdempotencyKey]`** (MVC) or `.WithIdempotencyKey()` (Minimal API): a retry with the same key returns the original result instead of creating a duplicate. Recommend this for create-style POSTs; omit only when explicitly non-idempotent. Do not apply the POST idempotency attribute to other verbs.
 
 ### POST / DELETE — Conditional on a Related Resource's State
 
@@ -215,6 +215,8 @@ Expose `QueryArgs` and `PagingArgs` via `[Query]` and `[Paging]` action attribut
 public Task<IActionResult> QueryAsync(CancellationToken cancellationToken = default) =>
     _webApi.GetAsync(Request, (ro, ct) => _service.QueryAsync(ro.QueryArgs, ro.PagingArgs, ct), cancellationToken: cancellationToken);
 ```
+
+**Paging is tolerant, unlike filter/order validation.** With the default query-string names, the WebApi parser treats malformed, negative, or overflowing `$skip` as `0` and `$take` as `PagingArgs.DefaultTake`; `$take=0` also uses that default. `DefaultTake` is `25` unless configured via `CoreEx:Data:PagingArgs:DefaultTake` or set in code; take is capped by `MaximumTake` (default `1000`). These inputs do not inherently produce HTTP 400. With no `$skip`/`$take`/`$count`, `ro.PagingArgs` is `null`; whether paging is then applied depends on the downstream query implementation. `[Paging]` documents support, not strict validation or an automatic page cap.
 
 ### Reference Data Endpoints
 

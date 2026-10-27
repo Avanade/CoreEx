@@ -241,7 +241,7 @@ var ready = await _ef.Database.Statement(_isReady)
 
 > **GlobalUsing requirement:** `QueryArgsConfig<TSelf>` and the related query types live in the `CoreEx.Data.Querying` namespace. When introducing query configuration, ensure `global using CoreEx.Data.Querying;` is present in the Infrastructure project's `GlobalUsing.cs` — add it if missing.
 
-> **Interview first.** The fields to filter and order, the operators permitted per field, and the mapping from contract names to model names are **business and design decisions** — the developer must specify them. Never generate a `QueryArgsConfig` without first collecting the complete field list, types, and operators from the developer.
+> **Resolve the query contract first.** Reuse the requested filter/order fields, operators, and existing configuration. Inspect contracts and mappings for property types and model names; ask only about unresolved exposure, matching, or ordering behavior. Never expose additional fields or operators merely because they exist on the entity.
 
 Each entity's query configuration lives in its own dedicated class in `Infrastructure/Repositories/`, named `{Name}QueryArgsConfig`. Extend `QueryArgsConfig<{Name}QueryArgsConfig>` (CRTP) — the base provides a thread-safe lazy `Default` singleton and all `WithFilter` / `WithOrderBy` configuration is performed in the constructor:
 
@@ -309,7 +309,7 @@ The **operators per field** are a design decision — restrict them deliberately
 
 ### Contract-vs-model naming
 
-The first `field` argument is the **public contract property name**. Supply it as `nameof(Contracts.SomeType.Property)` or as a plain string literal — the developer must specify it. The optional second `model` argument is the **LINQ property name** when it differs (e.g., a ref-data navigation `Category` maps to the persistence column `CategoryCode`).
+The first `field` argument is the **public contract property name**. Supply it as `nameof(Contracts.SomeType.Property)` or as a plain string literal from the agreed query contract. The optional second `model` argument is the **LINQ property name** when it differs (e.g., a ref-data navigation `Category` maps to the persistence column `CategoryCode`).
 
 `WithDefaultModelPrefix("Product")` wraps all LINQ expressions with `Product.xxx` — needed when the query projects into an anonymous type like `new { Product = p, ... }`. Override per-field with `.WithModelPrefix("...")` (set) or `.WithNoModelPrefix()` (clear) when a joined column lives at the projection root rather than under the prefixed object — both methods exist identically on filter-field and order-by-field configs.
 

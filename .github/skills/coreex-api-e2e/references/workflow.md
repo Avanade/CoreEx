@@ -45,7 +45,7 @@ Resolve recorded project decisions first. Ask only unresolved behavioral or desi
 | 6 | (If `*.Domain` project presence is unclear) Is this a DDD aggregate with mutation methods, or a plain data entity? | Determines whether Step 2 (`coreex-aggregate`) runs |
 | 7 | (If any property flagged as ref-data in Q3) Does that reference-data type already exist in `*.Contracts`, or is it brand new? | A brand-new ref-data type must be created via Step 1 (`coreex-refdata`) **before** Step 2 — the aggregate can only reference ref-data types that already compile |
 
-**Do not ask** about `rop-enabled`, `outbox-enabled`, or `data-provider` if they are already recorded in Feature Configuration — restate the resolved values for confirmation instead.
+**Do not ask** about `rop-enabled`, `outbox-enabled`, or `data-provider` if they are already recorded in Feature Configuration — include resolved values in the implementation plan instead.
 
 ---
 

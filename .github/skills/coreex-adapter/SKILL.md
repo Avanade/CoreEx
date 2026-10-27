@@ -35,7 +35,7 @@ Guides you through adding or modifying an adapter — the boundary that isolates
 
 > **Resolve project-wide choices from state before asking.** Read the solution-root `AGENTS.md`
 > **Feature Configuration** for `messaging-provider` (does this domain publish/consume events?) and `data-provider` (`SqlServer` / `Postgres` / `Cosmos` / `None`)
-> (provider-specific local-store replication vs HTTP). Only prompt for what is unrecorded; re-state resolved values for confirmation.
+> (provider-specific local-store replication vs HTTP). Only prompt for what is unresolved; include resolved values in the implementation plan.
 
 ## Quick Reference
 
