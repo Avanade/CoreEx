@@ -193,6 +193,7 @@
     <Project Path="tests/CoreEx.Validation.Test.Unit/CoreEx.Validation.Test.Unit.csproj" />
   </Folder>
   <Folder Name="/tools/">
+    <File Path="tools/clean-build-outputs.ps1" />
     <File Path="tools/validate-template-pack.ps1" />
     <Project Path="tools/CoreEx.Tooling.Console/CoreEx.Tooling.Console.csproj" />
   </Folder>

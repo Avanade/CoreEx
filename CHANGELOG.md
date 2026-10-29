@@ -2,8 +2,10 @@
 
 Represents the **NuGet** versions.
 
-## v4.2.1
-- *Fixed:* Fixed and improved guidance and generated templates.
+## v4.3.0
+- *Fixed:* Fixed and improved AI skills, instructions, guidance and generated templates.
+- *Behavior change:* Upgraded `UnitTestEx` (including `UnitTestEx.NUnit` and `UnitTestEx.Aspire`) to v6.0.0, a major version upgrade that flows transitively to consumers of `CoreEx.UnitTesting`. The `WithAspireTester<TAppHost>` class has been removed from `CoreEx.UnitTesting` as it is now provided by `UnitTestEx` (same `UnitTestEx` namespace and behavior); no code change is expected beyond updating to the new package versions, but consumers pinning `UnitTestEx` 5.x must upgrade.
+- *Maintenance:* Updated `OnRamp` to 2.3.1 and the corresponding `CoreEx.Template` `UnitTestEx` dependencies.
 
 ## v4.2.0
 - *Enhancement:* Added `Optional<T>` for explicit request/patch DTOs to distinguish omitted fields from supplied null/default values, with JSON conversion, contract cleaning and generated reference-data support, and inner-type OpenAPI schemas. Validation uses `.Unwrap()` for supplied values and `.Specified()` to require presence; only specified fields should be mapped into ordinary application/domain models. Custom value wrappers (optional or always present) can independently opt into runtime cleaning through the public `IWrappedValueCleaner<TSelf>` capability, with cached constrained dispatch avoiding wrapper boxing on typed cleaning paths.
