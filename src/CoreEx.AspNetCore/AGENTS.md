@@ -98,6 +98,16 @@ builder.Services
     .AddHttpWebApi();     // registers Http.WebApi for Minimal API
 ```
 
+## Specialized JSON and Error Representations
+
+For opt-in Accept validation, call `options.WithAccept()` after any `WithContentType(...)` override and before service execution, like the immediate `WithIfMatchRequired()` guard. It checks the override or owning WebApi default, accepts missing headers and standard wildcards, honors media parameters and quality exclusions, and returns 406 when incompatible (400 when malformed). Vendor `+json` and ordinary JSON are distinct. It adds `Vary: Accept`, does not select representations or change error rendering, and must be repeated if the content type changes afterward. Do not apply it to explicit results as though it inspected their representation. No call means no enforcement; use native ASP.NET Core for negotiated formats.
+
+Set the instance `WebApiBase.DefaultJsonMediaType` (default `application/json`) for all generated JSON from an MVC or Minimal WebApi instance, or call `options.WithContentType("application/vnd.example+json")` for one operation. Operation override wins; `WithContentType(null)` restores the instance default. The generic extension supports GET's base options and typed options, and copies retain it. Media types must be concrete and syntactically valid; an explicit charset must be UTF-8. These settings label JSON only: they do not choose a serializer, negotiate content, change request parsing, alter explicit results, or relabel ProblemDetails. HEAD/204/304 remain bodyless.
+
+For a different error representation, subclass `Mvc.WebApi` or `Http.WebApi` and override `CreateResultForException(HttpContext, Exception, IExtendedException?)` with the respective result type. Classification, propagation, logging, and applicable Retry-After headers stay outside the hook. Do not log again or expose raw internal diagnostics. Configure `JsonSerializerOptions`, success media type, and error representation independently, preferably on a keyed instance while retaining normal unkeyed registrations. See the [complete keyed MVC/Minimal example](./README.md#specialized-json-representations).
+
+`ConvertUnhandledExceptionsToProblemDetails` remains opt-in (`false` by default), regardless of the override. It decides whether unexpected thrown or returned failures reach the renderer; it does not select the format. Minimal WebApi now propagates unexpected failed Results with the flag off, matching MVC. Own-operation-token cancellation propagates; unrelated cancellation follows unexpected-error policy. Global exception middleware resolves the unkeyed `Http.WebApi`, not a keyed specialization. Authentication, model binding, automatic validation, middleware, and result execution can fail outside WebApi; handle any wider protocol requirements in the host. Keep protocol SDKs and domain payload construction out of CoreEx.
+
 ## Do Not
 
 - Do not inherit from `Controller` — use `ControllerBase`.

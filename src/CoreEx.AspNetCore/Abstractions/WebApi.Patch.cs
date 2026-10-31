@@ -26,17 +26,17 @@ public abstract partial class WebApi<TResult>
         CheckRequest(request, [HttpMethods.Patch]);
         function.ThrowIfNull();
 
-        return await InvokeAsync(request, async cancellationToken =>
+        return await InvokeWithResultAsync(request, async cancellationToken =>
         {
-            var ro = new WebApiOptions(request).WithOperationType(OperationType.Create).WithStatusCode(statusCode);
+            var ro = new WebApiOptions(request) { WebApi = this }.WithOperationType(OperationType.Create).WithStatusCode(statusCode);
             if (ro.IsInError(out var ror))
-                return CreateResult(new WebApiResult<TResult>(request.HttpContext.Response) { Exception = ror.Error });
+                return new WebApiResult<TResult>(request.HttpContext.Response) { Exception = ror.Error };
 
             var fr = await _invoker.InvokeAsync(this, async (_, cancellationToken) => await function(ro, cancellationToken).ConfigureAwait(false), cancellationToken, $"{nameof(HttpMethods.Patch)}Async::{nameof(function)}").ConfigureAwait(false);
             if (fr.IsSuccess)
-                return CreateResult(new WebApiResult<TResult>(request.HttpContext.Response) { StatusCode = ro.StatusCode });
+                return new WebApiResult<TResult>(request.HttpContext.Response) { StatusCode = ro.StatusCode };
             else
-                return CreateResult(new WebApiResult<TResult>(request.HttpContext.Response) { Exception = fr.Error });
+                return new WebApiResult<TResult>(request.HttpContext.Response) { Exception = fr.Error };
         }, cancellationToken, nameof(PatchAsync)).ConfigureAwait(false);
     }
 
@@ -66,21 +66,21 @@ public abstract partial class WebApi<TResult>
         CheckRequest(request, [HttpMethods.Patch]);
         function.ThrowIfNull();
 
-        return await InvokeAsync(request, async cancellationToken =>
+        return await InvokeWithResultAsync(request, async cancellationToken =>
         {
             var vr = await GetRequestValueAsync<TRequest>(request, cancellationToken).ConfigureAwait(false);
             if (vr.IsFailure)
-                return CreateResult(new WebApiResult<TResult>(request.HttpContext.Response) { Exception = vr.Error });
+                return new WebApiResult<TResult>(request.HttpContext.Response) { Exception = vr.Error };
 
-            var ro = new WebApiRequestOptions<TRequest>(request, vr.Value).WithOperationType(OperationType.Create).WithStatusCode(statusCode);
+            var ro = new WebApiRequestOptions<TRequest>(request, vr.Value) { WebApi = this }.WithOperationType(OperationType.Create).WithStatusCode(statusCode);
             if (ro.IsInError(out var ror))
-                return CreateResult(new WebApiResult<TResult>(request.HttpContext.Response) { Exception = ror.Error });
+                return new WebApiResult<TResult>(request.HttpContext.Response) { Exception = ror.Error };
 
             var fr = await _invoker.InvokeAsync(this, async (_, cancellationToken) => await function(ro, cancellationToken).ConfigureAwait(false), cancellationToken, $"{nameof(HttpMethods.Patch)}Async::{nameof(function)}").ConfigureAwait(false);
             if (fr.IsSuccess)
-                return CreateResult(new WebApiResult<TResult>(request.HttpContext.Response) { StatusCode = ro.StatusCode });
+                return new WebApiResult<TResult>(request.HttpContext.Response) { StatusCode = ro.StatusCode };
             else
-                return CreateResult(new WebApiResult<TResult>(request.HttpContext.Response) { Exception = fr.Error });
+                return new WebApiResult<TResult>(request.HttpContext.Response) { Exception = fr.Error };
         }, cancellationToken, nameof(PatchAsync)).ConfigureAwait(false);
     }
 
@@ -112,17 +112,17 @@ public abstract partial class WebApi<TResult>
         CheckRequest(request, [HttpMethods.Patch]);
         function.ThrowIfNull();
 
-        return await InvokeAsync(request, async cancellationToken =>
+        return await InvokeWithResultAsync(request, async cancellationToken =>
         {
-            var ro = new WebApiRequestOptions<TRequest>(request, value).WithOperationType(OperationType.Create).WithStatusCode(statusCode);
+            var ro = new WebApiRequestOptions<TRequest>(request, value) { WebApi = this }.WithOperationType(OperationType.Create).WithStatusCode(statusCode);
             if (ro.IsInError(out var ror))
-                return CreateResult(new WebApiResult<TResult>(request.HttpContext.Response) { Exception = ror.Error });
+                return new WebApiResult<TResult>(request.HttpContext.Response) { Exception = ror.Error };
 
             var fr = await _invoker.InvokeAsync(this, async (_, cancellationToken) => await function(ro, cancellationToken).ConfigureAwait(false), cancellationToken, $"{nameof(HttpMethods.Patch)}Async::{nameof(function)}").ConfigureAwait(false);
             if (fr.IsSuccess)
-                return CreateResult(new WebApiResult<TResult>(request.HttpContext.Response) { StatusCode = ro.StatusCode });
+                return new WebApiResult<TResult>(request.HttpContext.Response) { StatusCode = ro.StatusCode };
             else
-                return CreateResult(new WebApiResult<TResult>(request.HttpContext.Response) { Exception = fr.Error });
+                return new WebApiResult<TResult>(request.HttpContext.Response) { Exception = fr.Error };
         }, cancellationToken, nameof(PatchAsync)).ConfigureAwait(false);
     }
 
@@ -156,14 +156,14 @@ public abstract partial class WebApi<TResult>
         CheckRequest(request, [HttpMethods.Patch]);
         function.ThrowIfNull();
 
-        return await InvokeAsync(request, async cancellationToken =>
+        return await InvokeWithResultAsync(request, async cancellationToken =>
         {
-            var ro = new WebApiResponseOptions<TResponse>(request).WithOperationType(OperationType.Create).WithStatusCode(statusCode).WithAlternateStatusCode(alternateStatusCode);
+            var ro = new WebApiResponseOptions<TResponse>(request) { WebApi = this }.WithOperationType(OperationType.Create).WithStatusCode(statusCode).WithAlternateStatusCode(alternateStatusCode);
             if (ro.IsInError(out var ror))
-                return CreateResult(new WebApiResult<TResult>(request.HttpContext.Response) { Exception = ror.Error });
+                return new WebApiResult<TResult>(request.HttpContext.Response) { Exception = ror.Error };
 
             var fr = await _invoker.InvokeAsync(this, async (_, cancellationToken) => await function(ro, cancellationToken).ConfigureAwait(false), cancellationToken, $"{nameof(HttpMethods.Patch)}Async::{nameof(function)}").ConfigureAwait(false);
-            return CreateResult(CreateContentForValue(ro, fr));
+            return CreateContentForValue(ro, fr);
         }, cancellationToken, nameof(PatchAsync)).ConfigureAwait(false);
     }
 
@@ -199,18 +199,18 @@ public abstract partial class WebApi<TResult>
         CheckRequest(request, [HttpMethods.Patch]);
         function.ThrowIfNull();
 
-        return await InvokeAsync(request, async cancellationToken =>
+        return await InvokeWithResultAsync(request, async cancellationToken =>
         {
             var vr = await GetRequestValueAsync<TRequest>(request, cancellationToken).ConfigureAwait(false);
             if (vr.IsFailure)
-                return CreateResult(new WebApiResult<TResult>(request.HttpContext.Response) { Exception = vr.Error });
+                return new WebApiResult<TResult>(request.HttpContext.Response) { Exception = vr.Error };
 
-            var ro = new WebApiRequestResponseOptions<TRequest, TResponse>(request, vr.Value).WithOperationType(OperationType.Create).WithStatusCode(statusCode).WithAlternateStatusCode(alternateStatusCode);
+            var ro = new WebApiRequestResponseOptions<TRequest, TResponse>(request, vr.Value) { WebApi = this }.WithOperationType(OperationType.Create).WithStatusCode(statusCode).WithAlternateStatusCode(alternateStatusCode);
             if (ro.IsInError(out var ror))
-                return CreateResult(new WebApiResult<TResult>(request.HttpContext.Response) { Exception = ror.Error });
+                return new WebApiResult<TResult>(request.HttpContext.Response) { Exception = ror.Error };
 
             var fr = await _invoker.InvokeAsync(this, async (_, cancellationToken) => await function(ro, cancellationToken).ConfigureAwait(false), cancellationToken, $"{nameof(HttpMethods.Patch)}Async::{nameof(function)}").ConfigureAwait(false);
-            return CreateResult(CreateContentForValue(ro, fr));
+            return CreateContentForValue(ro, fr);
         }, cancellationToken, nameof(PatchAsync)).ConfigureAwait(false);
     }
 
@@ -248,14 +248,14 @@ public abstract partial class WebApi<TResult>
         CheckRequest(request, [HttpMethods.Patch]);
         function.ThrowIfNull();
 
-        return await InvokeAsync(request, async cancellationToken =>
+        return await InvokeWithResultAsync(request, async cancellationToken =>
         {
-            var ro = new WebApiRequestResponseOptions<TRequest, TResponse>(request, value).WithOperationType(OperationType.Create).WithStatusCode(statusCode).WithAlternateStatusCode(alternateStatusCode);
+            var ro = new WebApiRequestResponseOptions<TRequest, TResponse>(request, value) { WebApi = this }.WithOperationType(OperationType.Create).WithStatusCode(statusCode).WithAlternateStatusCode(alternateStatusCode);
             if (ro.IsInError(out var ror))
-                return CreateResult(new WebApiResult<TResult>(request.HttpContext.Response) { Exception = ror.Error });
+                return new WebApiResult<TResult>(request.HttpContext.Response) { Exception = ror.Error };
 
             var fr = await _invoker.InvokeAsync(this, async (_, cancellationToken) => await function(ro, cancellationToken).ConfigureAwait(false), cancellationToken, $"{nameof(HttpMethods.Patch)}Async::{nameof(function)}").ConfigureAwait(false);
-            return CreateResult(CreateContentForValue(ro, fr));
+            return CreateContentForValue(ro, fr);
         }, cancellationToken, nameof(PatchAsync)).ConfigureAwait(false);
     }
 }

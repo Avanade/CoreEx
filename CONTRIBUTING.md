@@ -53,6 +53,8 @@ Set the user environment variable `CoreExLocalTargetFramework=net10.0` to opt in
 
 Use `dotnet build CoreEx.sln -p:CoreExLocalTargetFramework=` for the full framework matrix. CI (`CI=true`) and `dotnet pack` ignore narrowing; `nuget-publish.ps1` and the template validator also clear it explicitly. Direct `msbuild -t:Pack` and Visual Studio Pack do not set the CLI's `_IsPacking` global property, so clear `CoreExLocalTargetFramework` explicitly for those entry points.
 
+For reduced local packages, run `.\nuget-publish.ps1 -Tfm 10 -configuration Debug -PublishFolder "$env:USERPROFILE\nuget-publish-net10"` (`-Tfm net10.0` and `-Tfm 10.0` are equivalent). The explicit flag overrides the shared framework list for both build and pack; omitting it preserves all-framework Release packaging by default. Independently targeted projects retain their own frameworks, including the netstandard2.0 source generator and net10.0 template pack. Reduced packages retain the same package ID/version and replace matching filenames in the selected feed; keep them in a separate local feed and do not publish them as release packages. Matching versions are still removed from the local NuGet cache unless `-DeleteFromlocalCache:$false` is supplied.
+
 After framework-policy changes, reload the solution and verify Visual Studio's framework selection before retrying **Contoso.Aspire → Start Without Debugging**. A successful CLI build or static-graph evaluation verifies MSBuild consistency, not the running IDE's configured-project state; no `.vs` deletion should be necessary.
 
 <br/>

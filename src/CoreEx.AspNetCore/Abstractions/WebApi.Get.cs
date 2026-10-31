@@ -32,14 +32,14 @@ public abstract partial class WebApi<TResult>
         CheckRequest(request, [HttpMethods.Get, HttpMethods.Head]);
         function.ThrowIfNull();
 
-        return await InvokeAsync(request, async cancellationToken =>
+        return await InvokeWithResultAsync(request, async cancellationToken =>
         {
-            var ro = new WebApiResponseOptions<TResponse>(request).WithStatusCode(statusCode).WithAlternateStatusCode(alternateStatusCode);
+            var ro = new WebApiResponseOptions<TResponse>(request) { WebApi = this }.WithStatusCode(statusCode).WithAlternateStatusCode(alternateStatusCode);
             if (ro.IsInError(out var ror))
-                return CreateResult(new WebApiResult<TResult>(request.HttpContext.Response) { Exception = ror.Error });
+                return new WebApiResult<TResult>(request.HttpContext.Response) { Exception = ror.Error };
 
             var result = await _invoker.InvokeAsync(this, async (_, cancellationToken) => await function(ro, cancellationToken).ConfigureAwait(false), cancellationToken, $"{nameof(GetAsync)}::{nameof(function)}").ConfigureAwait(false);
-            return CreateResult(CreateContentForValue(ro, result));
+            return CreateContentForValue(ro, result);
         }, cancellationToken, nameof(GetAsync)).ConfigureAwait(false);
     }
 }

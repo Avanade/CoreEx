@@ -109,6 +109,7 @@ Do not run `/coreex-docs-sync` silently — always offer and wait for confirmati
 - Always inspect current code before recommending changes.
 - Give sample-backed guidance where possible; cite the specific doc or file that supports the recommendation.
 - Favor smallest safe change and preserve existing structure.
+- For specialized WebApi representations or Accept requirements, consult the [controller representation guidance](/.github/instructions/coreex-api-controllers.instructions.md#specialized-json-representations) and CoreEx.AspNetCore package guide. Distinguish JSON labeling (`DefaultJsonMediaType`/`WithContentType`) from immediate opt-in validation (`WithAccept`) and actual negotiation; do not recommend negotiation machinery where the guard suffices, or WebApi where negotiated formats/serializers are required.
 - Separate explanation, plan, and implementation guidance clearly.
 - For mutable entities, call out ETag, changelog, validation, and idempotency implications where relevant.
 - For messaging, explicitly distinguish API-only, API plus outbox relay, API plus subscriber, and full orchestration shapes.

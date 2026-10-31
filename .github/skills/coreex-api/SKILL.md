@@ -40,6 +40,8 @@ Guides you through adding or modifying HTTP API endpoints in an `*.Api` host. Co
 - Take the resource and operations from the request; do not assume additional operations.
 - Resolve service style from Feature Configuration and method signatures, and inspect whether `I{Name}ReadService` exists.
 - Follow the host's MVC or Minimal API style unless a change is requested.
+- Only when specialized representations are requested or already configured, consult [Specialized JSON Representations](/.github/instructions/coreex-api-controllers.instructions.md#specialized-json-representations) and the [package guide](/.github/docs/coreex/agents/CoreEx.AspNetCore.md). Preserve the configured keyed WebApi injection and declare matching success/error OpenAPI metadata; use the [host guidance](/.github/instructions/coreex-host-setup.instructions.md#specialized-webapi-instances) for registration and error-policy boundaries. Do not add a representation interview to ordinary CRUD work.
+- If strict Accept validation is requested or already used by the endpoint, place `ro.WithAccept()` after any `WithContentType(...)` override and before the service call. Follow the [representation instructions](/.github/instructions/coreex-api-controllers.instructions.md#specialized-json-representations); verify incompatible requests return 406 without executing mutations, and malformed headers return 400. Do not add enforcement to ordinary endpoints unasked or treat the guard as negotiation.
 
 **Key rules at a glance:**
 - **If a required read service is missing:** invoke `coreex-app-service` (Path C — CQRS Read Service) to create `I{Name}ReadService`/`{Name}ReadService` first. Never shortcut by adding query/collection methods to the existing `I{Name}Service`/`{Name}Service`.

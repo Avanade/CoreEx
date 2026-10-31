@@ -6,6 +6,20 @@ namespace CoreEx.AspNetCore;
 public static partial class AspNetCoreExtensions
 {
     /// <summary>
+    /// Overrides the response content type for generated JSON.
+    /// </summary>
+    /// <typeparam name="TRequestOptions">The <see cref="WebApiOptionsBase"/> type.</typeparam>
+    /// <param name="requestOptions">The operation options.</param>
+    /// <param name="contentType">A concrete media type, or <see langword="null"/> to use the WebApi instance default.</param>
+    /// <returns>The options for fluent-style method-chaining.</returns>
+    /// <remarks>Does not change request parsing, serializer selection, content negotiation, explicit results, or exception representations. Only UTF-8 is supported when a charset is specified.</remarks>
+    public static TRequestOptions WithContentType<TRequestOptions>(this TRequestOptions requestOptions, string? contentType) where TRequestOptions : WebApiOptionsBase
+    {
+        requestOptions.ThrowIfNull().ContentType = contentType is null ? null : WebApiBase.ValidateJsonMediaType(contentType, nameof(contentType));
+        return requestOptions;
+    }
+
+    /// <summary>
     /// Overrides the <see cref="WebApiOptionsBase.StatusCode"/>.
     /// </summary>
     /// <typeparam name="TRequestOptions">The <see cref="WebApiOptionsBase"/> <see cref="Type"/>.</typeparam>

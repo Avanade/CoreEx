@@ -240,6 +240,14 @@ Decorate actions with standard response metadata attributes:
 - `[ProducesNotFoundProblem()]` — shorthand for `[ProducesResponseType(typeof(ProblemDetails), 404)]`; use on GET/PUT/PATCH/DELETE where not-found is expected.
 - `[Accepts<T>]` — documents the consumed media type.
 
+### Specialized JSON Representations
+
+Where strict Accept validation is required, call `ro.WithAccept()` after setting any `WithContentType(...)` override and before calling the service. Like `WithIfMatchRequired()`, the check is immediate, not deferred: it validates the effective JSON media type, returns 406 for incompatibility (400 for malformed headers), and adds `Vary: Accept`. It is opt-in validation, not negotiation; changing the content type afterward requires another check. It does not inspect explicit results or change error representation.
+
+For generated JSON, `ro.WithContentType("application/vnd.example+json")` overrides the injected WebApi instance's `DefaultJsonMediaType` (`application/json` by default); `null` clears the operation override. This works with GET's base options and typed options, survives copies, and changes only the response label, not request parsing, serializer selection, or content negotiation. Explicit `IActionResult`/`IResult` values remain untouched; HEAD/204/304 remain bodyless.
+
+Preserve any configured keyed WebApi injection (`[FromKeyedServices("specialized")]`); do not replace it with an unkeyed instance or mutate instance defaults per operation. Success media types do not change error representations. Specialized errors belong in the MVC/Minimal `CreateResultForException(HttpContext, Exception, IExtendedException?)` hook, not duplicated controller exception handling. Declare matching success and error OpenAPI metadata separately; do not use ProblemDetails shorthand attributes where the configured error body is different. See [host configuration](/.github/instructions/coreex-host-setup.instructions.md#specialized-webapi-instances) and the [package guide](/.github/docs/coreex/agents/CoreEx.AspNetCore.md).
+
 ### Query Schema Endpoint
 
 Read controllers that expose a `QueryAsync` should also expose a `$query` schema endpoint. This returns the JSON schema for the supported query/filter parameters:

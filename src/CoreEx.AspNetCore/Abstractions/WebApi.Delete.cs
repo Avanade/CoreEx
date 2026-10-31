@@ -26,13 +26,13 @@ public abstract partial class WebApi<TResult>
         CheckRequest(request, [HttpMethods.Delete]);
         function.ThrowIfNull();
 
-        TResult CreateStatusResult(WebApiOptions ro) => CreateResult(new WebApiResult<TResult>(request.HttpContext.Response) { StatusCode = ro.StatusCode });
+        WebApiResult<TResult> CreateStatusResult(WebApiOptions ro) => new(request.HttpContext.Response) { StatusCode = ro.StatusCode };
 
-        return await InvokeAsync(request, async cancellationToken =>
+        return await InvokeWithResultAsync(request, async cancellationToken =>
         {
-            var ro = new WebApiOptions(request).WithOperationType(OperationType.Delete).WithStatusCode(statusCode);
+            var ro = new WebApiOptions(request) { WebApi = this }.WithOperationType(OperationType.Delete).WithStatusCode(statusCode);
             if (ro.IsInError(out var ror))
-                return CreateResult(new WebApiResult<TResult>(request.HttpContext.Response) { Exception = ror.Error });
+                return new WebApiResult<TResult>(request.HttpContext.Response) { Exception = ror.Error };
 
             try
             {
@@ -43,7 +43,7 @@ public abstract partial class WebApi<TResult>
                     if (ConvertNotfoundToDefaultStatusCodeOnDelete && result.IsNotFoundError)
                         return CreateStatusResult(ro);
                     else
-                        return CreateResult(new WebApiResult<TResult>(request.HttpContext.Response) { Exception = result.Error });
+                        return new WebApiResult<TResult>(request.HttpContext.Response) { Exception = result.Error };
                 }
                 else
                     return CreateStatusResult(ro);
@@ -83,15 +83,15 @@ public abstract partial class WebApi<TResult>
         CheckRequest(request, [HttpMethods.Delete]);
         function.ThrowIfNull();
 
-        return await InvokeAsync(request, async cancellationToken =>
+        return await InvokeWithResultAsync(request, async cancellationToken =>
         {
-            var ro = new WebApiResponseOptions<TResponse>(request).WithOperationType(OperationType.Delete).WithStatusCode(statusCode);
+            var ro = new WebApiResponseOptions<TResponse>(request) { WebApi = this }.WithOperationType(OperationType.Delete).WithStatusCode(statusCode);
 
             if (ro.IsInError(out var ror))
-                return CreateResult(new WebApiResult<TResult>(request.HttpContext.Response) { Exception = ror.Error });
+                return new WebApiResult<TResult>(request.HttpContext.Response) { Exception = ror.Error };
 
             var fr = await _invoker.InvokeAsync(this, async (_, cancellationToken) => await function(ro, cancellationToken).ConfigureAwait(false), cancellationToken, $"{nameof(DeleteAsync)}::{nameof(function)}").ConfigureAwait(false);
-            return CreateResult(CreateContentForValue(ro, fr));
+            return CreateContentForValue(ro, fr);
         }, cancellationToken, nameof(DeleteAsync)).ConfigureAwait(false);
     }
 }
