@@ -1,5 +1,7 @@
 global using Azure.Core.Amqp;
 global using Azure.Messaging.ServiceBus;
+global using CoreEx.AspNetCore.Idempotency;
+global using CoreEx.AspNetCore.Mvc;
 global using CoreEx.AspNetCore;
 global using CoreEx.Azure.Messaging.ServiceBus.Abstractions;
 global using CoreEx.Azure.Messaging.ServiceBus;
@@ -8,6 +10,9 @@ global using CoreEx.Results;
 global using CoreEx;
 global using ExecutionContext = CoreEx.ExecutionContext;
 global using Microsoft.AspNetCore.Http;
+global using Microsoft.AspNetCore.Mvc.Abstractions;
+global using Microsoft.AspNetCore.Mvc;
+global using Microsoft.AspNetCore.Routing;
 global using Microsoft.Azure.Functions.Worker.Middleware;
 global using Microsoft.Azure.Functions.Worker;
 global using Microsoft.Extensions.Configuration;

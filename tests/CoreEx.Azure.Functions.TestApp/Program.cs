@@ -5,6 +5,11 @@ builder.AddHostSettings(solutionName: "CoreEx", domainName: "Functions");
 builder.Services.AddExecutionContext();
 builder.Services.AddMvc();
 builder.Services.AddMvcWebApi((_, webApi) => webApi.ConvertUnhandledExceptionsToProblemDetails = true);
+builder.Services.AddFusionCache();
+builder.Services.AddDefaultCacheKeyProvider();
+builder.Services.AddFusionHybridCache();
+builder.Services.AddHybridCacheIdempotencyProvider();
+builder.Services.AddSingleton<IdempotencyOperationService>();
 builder.Services.AddDynamicServicesUsing<InvocationService>();
 builder.Services.AddSingleton(sp => new BlobServiceClient(sp.GetRequiredService<IConfiguration>()["ImportStorage"]
     ?? throw new InvalidOperationException("ImportStorage must be configured for Blob processing.")));

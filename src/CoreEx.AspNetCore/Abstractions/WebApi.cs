@@ -15,6 +15,24 @@ public abstract partial class WebApi<TResult>(WebApiInvoker<TResult> invoker, Js
     private readonly WebApiInvoker<TResult> _invoker = invoker.ThrowIfNull();
 
     /// <summary>
+    /// Creates an error result using this instance's exception classification, logging and representation policy.
+    /// </summary>
+    /// <param name="request">The originating request.</param>
+    /// <param name="exception">The exception to represent.</param>
+    /// <param name="cancellationToken">The operation cancellation token.</param>
+    /// <returns>The error result.</returns>
+    /// <remarks>Unexpected exceptions propagate unless <see cref="WebApiBase.ConvertUnhandledExceptionsToProblemDetails"/> is enabled. Cancellation attributable to the operation token always propagates. Result execution is the caller's responsibility.</remarks>
+    public TResult CreateErrorResult(HttpRequest request, Exception exception, CancellationToken cancellationToken = default)
+    {
+        request.ThrowIfNull();
+        exception.ThrowIfNull();
+        if (exception.IsCanceledBy(cancellationToken))
+            Result.Fail(exception).ThrowOnError();
+
+        return CreateResult(new WebApiResult<TResult>(request.HttpContext.Response) { Exception = exception });
+    }
+
+    /// <summary>
     /// Invokes the <paramref name="function"/> asynchronously performing standardized execution.
     /// </summary>
     /// <param name="request">The <see cref="HttpRequest"/>.</param>

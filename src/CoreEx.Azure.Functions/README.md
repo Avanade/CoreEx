@@ -12,6 +12,20 @@ HTTP functions use the existing `CoreEx.AspNetCore.Mvc.WebApi` with `HttpRequest
 
 See the real [test application](../../tests/CoreEx.Azure.Functions.TestApp/Program.cs) and [invocation tests](../../tests/CoreEx.Azure.Functions.Test.Unit/HttpFunctionsTests.cs). The host has no test-framework dependencies and does not duplicate a Contoso domain.
 
+### HTTP idempotency
+
+Use the explicit `webApi.FunctionWithIdempotencyAsync(request, ct => webApi.PostAsync(..., cancellationToken: ct), isRequired: true, cancellationToken: cancellationToken)` helper around an existing WebApi operation. Register `IIdempotencyProvider` as usual, for example `AddHybridCacheIdempotencyProvider()` together with `AddFusionCache()`, `AddDefaultCacheKeyProvider()` and `AddFusionHybridCache()`. The Functions package does not choose a cache or register a provider automatically. Pass the configured WebApi instance, including a keyed/custom instance when applicable; pre-processing errors use its `CreateErrorResult` classification, logging and representation policy.
+
+The callback must defer application execution and return an `IActionResult`. The helper renders that result inside the provider's response-capture boundary and returns an `EmptyResult`, so the Functions ASP.NET proxy has nothing left to render. Return the helper's result directly from the function. Wrapping only worker middleware's `next(context)` is insufficient: the proxy normally renders the returned result after that middleware has finished. `[IdempotencyKey]` alone does not enable this Functions path; normal endpoint metadata discovery is unavailable. Use this helper for buffered HTTP responses, not streaming responses, additional HTTP output bindings, or an already-started response.
+
+The existing provider policy is unchanged: keys are optional unless `isRequired` is true; missing required/invalid keys produce 400, an overlapping duplicate produces 409, and reuse with a different request fingerprint produces 422. Successful 2xx responses are replayed with their captured status, body and headers, excluding `Set-Cookie` by default. Non-2xx responses, application exceptions, rendering failures and cancellation during execution allow a retry after the provider removes its marker. Unexpected pre-processing failures follow the supplied WebApi's opt-in ProblemDetails policy; application/renderer failures are not caught and re-rendered by the helper. Cancellation attributable to the supplied invocation token propagates.
+
+This is a best-effort retry safety net, not an exactly-once or business-transaction guarantee. Default retention is eight hours and the default replay body limit is 512 KB; an oversized successful response cannot be replayed and a subsequent duplicate receives 409. Fingerprints include method, path, selected headers and body, not the query string. Configure cache-key isolation and relevant fingerprint headers for tenant/caller boundaries. FusionCache's default single-flight protection is per node: a shared Redis L2/backplane does not by itself provide cross-instance mutual exclusion. Business invariants still need transactional enforcement.
+
+See [IdempotencyFunctions](../../tests/CoreEx.Azure.Functions.TestApp/IdempotencyFunctions.cs), [component/invocation tests](../../tests/CoreEx.Azure.Functions.Test.Unit/FunctionsHttpIdempotencyTests.cs) and the [real Core Tools runtime proofs](../../tests/aspire/CoreEx.Azure.Functions.Test.Aspire/FunctionsRuntimeTests.cs). The runtime overlap test deliberately holds the first operation open before submitting its duplicate; it proves same-worker behavior, not cross-instance locking.
+
+For UnitTestEx 6.0.0 invocation tests of this helper, assign a readable, seekable response buffer before invoking the function and use `.Run(...).SnapshotHttpResponse(request.HttpContext.Response)` to assert the already-rendered status, headers and body. The snapshot preserves stream ownership and position and does not re-execute the function or its result. Reserve `ToHttpResponseMessageAssertor(request)` for deferred results that still need execution.
+
 ## Service Bus: subscribed and native JSON
 
 Set `AutoCompleteMessages = false` on every trigger that uses this bridge. Both paths use `FunctionReceiveAsync`: the `ServiceBusSubscriberBase` overload (including `ServiceBusSubscribedSubscriber`) delegates to an existing CoreEx subscriber and then settles the result. The `ServiceBusMessageActions` overload accepts a result-producing callback instead: it does not deserialize messages, require CloudEvents, inspect subjects, or dispatch to registered subscribers.
@@ -75,7 +89,7 @@ For HTTP, exceptions within `WebApi` can become sanitized ProblemDetails under t
 
 ## Boundaries
 
-Functions owns routing, scheduling, binding conversion, retries and runtime scaling. Normal ASP.NET Core middleware and endpoint metadata are not available through the worker builder. HTTP idempotency, consumer host templates and AI assets are not implemented yet. Blob support is demonstrated through native bindings; cloud Event Grid delivery and exact historical-revision processing are not claimed.
+Functions owns routing, scheduling, binding conversion, retries and runtime scaling. Normal ASP.NET Core middleware and endpoint metadata are not available through the worker builder. Consumer host templates and AI assets are not implemented yet. Blob support is demonstrated through native bindings; cloud Event Grid delivery and exact historical-revision processing are not claimed.
 
 UnitTestEx invocation tests build the real host and run worker middleware, but do not start Core Tools or prove trigger delivery and binding conversion. Run the test application with Core Tools for runtime verification; `FUNCTIONS_WORKER_RUNTIME=dotnet-isolated` must be available to the Functions host. Select only the HTTP functions when no host storage is configured, since Timer triggers require storage.
 

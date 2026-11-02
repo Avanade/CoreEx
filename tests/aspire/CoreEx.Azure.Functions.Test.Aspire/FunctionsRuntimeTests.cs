@@ -14,7 +14,8 @@ public class FunctionsRuntimeTests : WithAspireTester<Projects.CoreEx_Azure_Func
         try
         {
             await Test.WaitForResourceAsync("functions", TimeSpan.FromMinutes(4));
-            await Test.WaitForFunctionsAsync("functions", ["ReadContext", "ReadTraceObservation", "Create", "Failure", "Messages", "ProcessMessage", "ProcessNativeMessage"], TimeSpan.FromSeconds(90));
+            await Test.WaitForFunctionsAsync("functions", ["ReadContext", "ReadTraceObservation", "Create", "Failure", "Messages", "ProcessMessage", "ProcessNativeMessage",
+                "CreateIdempotent", "CreateIdempotentRequired", "ReadIdempotencyCount", "ReleaseIdempotencyOperation"], TimeSpan.FromSeconds(90));
         }
         catch
         {
@@ -30,6 +31,145 @@ public class FunctionsRuntimeTests : WithAspireTester<Projects.CoreEx_Azure_Func
     {
         _client?.Dispose();
         await DisposeAsync();
+    }
+
+    [Test]
+    public async Task Idempotency_ReplaysRenderedResponseAndRejectsChangedPayload()
+    {
+        var id = Runtime.NewGuid().ToString("N");
+        using var first = await SendIdempotentAsync(id, "example", id);
+        first.StatusCode.Should().Be(HttpStatusCode.Created);
+        var body = await first.Content.ReadAsStringAsync();
+        using var document = JsonDocument.Parse(body);
+        document.RootElement.GetProperty("executions").GetInt32().Should().Be(1);
+        first.Headers.Location.Should().Be(new Uri($"/api/idempotency/{id}", UriKind.Relative));
+        first.Headers.ETag.Should().NotBeNull();
+        first.Headers.Contains("Set-Cookie").Should().BeTrue();
+        first.Headers.GetValues("X-Info-Messages").Should().Equal("Idempotent operation processed.");
+
+        using var replay = await SendIdempotentAsync(id, "example", id);
+        replay.StatusCode.Should().Be(first.StatusCode);
+        (await replay.Content.ReadAsStringAsync()).Should().Be(body);
+        replay.Headers.Location.Should().Be(first.Headers.Location);
+        replay.Headers.ETag.Should().Be(first.Headers.ETag);
+        replay.Headers.GetValues("X-Info-Messages").Should().Equal("Idempotent operation processed.");
+        replay.Headers.Contains("Set-Cookie").Should().BeFalse();
+        using var changed = await SendIdempotentAsync(id, "changed", id);
+        await AssertIdempotencyProblemAsync(changed, HttpStatusCode.UnprocessableEntity);
+        (await ReadIdempotencyCountAsync(id)).Should().Be(1);
+    }
+
+    [TestCase(null)]
+    [TestCase("bad")]
+    public async Task Idempotency_RequiredKeyFailsBeforeApplicationExecution(string? key)
+    {
+        var id = Runtime.NewGuid().ToString("N");
+        using var response = await SendIdempotentAsync(id, "example", key, required: true);
+        await AssertIdempotencyProblemAsync(response, HttpStatusCode.BadRequest);
+        (await ReadIdempotencyCountAsync(id)).Should().Be(0);
+    }
+
+    [Test]
+    public async Task Idempotency_InvalidJsonIsNotCached()
+    {
+        var id = Runtime.NewGuid().ToString("N");
+        for (var attempt = 0; attempt < 2; attempt++)
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Post, $"/api/idempotency/{id}")
+            {
+                Content = new StringContent("{", System.Text.Encoding.UTF8, "application/json")
+            };
+            request.Headers.Add("Idempotency-Key", id);
+            using var response = await _client.SendAsync(request);
+            await AssertIdempotencyProblemAsync(response, HttpStatusCode.BadRequest);
+        }
+
+        (await ReadIdempotencyCountAsync(id)).Should().Be(0);
+    }
+
+    [Test]
+    public async Task Idempotency_OptionalMissingKeyExecutesEveryRequest()
+    {
+        var id = Runtime.NewGuid().ToString("N");
+        using var first = await SendIdempotentAsync(id, "example", null);
+        using var second = await SendIdempotentAsync(id, "example", null);
+        first.StatusCode.Should().Be(HttpStatusCode.Created);
+        second.StatusCode.Should().Be(HttpStatusCode.Created);
+        (await ReadIdempotencyCountAsync(id)).Should().Be(2);
+    }
+
+    [Test]
+    public async Task Idempotency_FailedResponseAllowsRetry()
+    {
+        var id = Runtime.NewGuid().ToString("N");
+        using var failure = await SendIdempotentAsync(id, "fail-once", id);
+        await AssertIdempotencyProblemAsync(failure, HttpStatusCode.InternalServerError);
+        (await failure.Content.ReadAsStringAsync()).Should().NotContain("Internal idempotency diagnostic.");
+        using var retry = await SendIdempotentAsync(id, "fail-once", id);
+        retry.StatusCode.Should().Be(HttpStatusCode.Created);
+        using var replay = await SendIdempotentAsync(id, "fail-once", id);
+        (await replay.Content.ReadAsStringAsync()).Should().Be(await retry.Content.ReadAsStringAsync());
+        (await ReadIdempotencyCountAsync(id)).Should().Be(2);
+    }
+
+    [Test]
+    public async Task Idempotency_OverlappingDuplicateIsRejected()
+    {
+        var id = Runtime.NewGuid().ToString("N");
+        var first = SendIdempotentAsync(id, "wait", id);
+        try
+        {
+            var entered = false;
+            for (var attempt = 0; attempt < 100; attempt++)
+            {
+                if (await ReadIdempotencyCountAsync(id) == 1)
+                {
+                    entered = true;
+                    break;
+                }
+
+                await Task.Delay(100);
+            }
+
+            entered.Should().BeTrue("the first request must be inside application execution before sending the duplicate");
+            using var duplicate = await SendIdempotentAsync(id, "wait", id);
+            await AssertIdempotencyProblemAsync(duplicate, HttpStatusCode.Conflict);
+            (await ReadIdempotencyCountAsync(id)).Should().Be(1);
+        }
+        finally
+        {
+            using var release = await _client.PostAsync($"/api/idempotency-release/{id}", null);
+            release.EnsureSuccessStatusCode();
+            using var original = await first;
+            original.StatusCode.Should().Be(HttpStatusCode.Created);
+        }
+    }
+
+    private async Task<HttpResponseMessage> SendIdempotentAsync(string id, string name, string? key, bool required = false)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, $"/api/{(required ? "idempotency-required" : "idempotency")}/{id}")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(name), System.Text.Encoding.UTF8, "application/json")
+        };
+        if (key is not null)
+            request.Headers.Add("Idempotency-Key", key);
+
+        return await _client.SendAsync(request);
+    }
+
+    private async Task<int> ReadIdempotencyCountAsync(string id)
+    {
+        using var response = await _client.GetAsync($"/api/idempotency-count/{id}");
+        response.EnsureSuccessStatusCode();
+        return int.Parse(await response.Content.ReadAsStringAsync(), System.Globalization.CultureInfo.InvariantCulture);
+    }
+
+    private static async Task AssertIdempotencyProblemAsync(HttpResponseMessage response, HttpStatusCode statusCode)
+    {
+        response.StatusCode.Should().Be(statusCode);
+        response.Content.Headers.ContentType?.MediaType.Should().Be("application/problem+json");
+        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        document.RootElement.GetProperty("status").GetInt32().Should().Be((int)statusCode);
     }
 
     [Test]

@@ -29,7 +29,8 @@ var serviceBus = builder.AddContainer("functions-servicebus", "mcr.microsoft.com
 
 var configuration = new DirectoryInfo(AppContext.BaseDirectory).Parent?.Name ?? throw new InvalidOperationException("Could not determine the AppHost build configuration.");
 var functionDirectory = Path.Combine(builder.AppHostDirectory, "bin", configuration, "net10.0", "functions");
-var arguments = new[] { "start", "--no-build", "--port", "7099", "--functions", "ReadContext", "ReadTraceObservation", "Create", "Failure", "Messages", "ProcessMessage", "ProcessNativeMessage", "ImportBlob" };
+var arguments = new[] { "start", "--no-build", "--port", "7099", "--functions", "ReadContext", "ReadTraceObservation", "Create", "Failure", "Messages", "ProcessMessage", "ProcessNativeMessage", "ImportBlob",
+    "CreateIdempotent", "CreateIdempotentRequired", "ReadIdempotencyCount", "ReleaseIdempotencyOperation" };
 var functions = OperatingSystem.IsWindows()
     ? builder.AddExecutable("functions", "cmd.exe", functionDirectory, ["/c", "func", .. arguments])
     : builder.AddExecutable("functions", "func", functionDirectory, arguments);
