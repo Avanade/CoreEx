@@ -203,6 +203,53 @@ jobs:
       if: always()
       run: docker compose down
 
+  functions-runtime:
+    name: Functions runtime
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      ASPIRE_CONTAINER_RUNTIME: docker
+      FUNCTIONS_CORE_TOOLS_TELEMETRY_OPTOUT: '1'
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        global-json-file: global.json
+        dotnet-version: |
+          8.x
+          9.x
+
+    - name: Setup Node
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+
+    - name: Install Functions Core Tools
+      run: |
+        npm install --global azure-functions-core-tools@4.16.0
+        func --version
+
+    - name: Cache NuGet packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.nuget/packages
+        key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', '**/Directory.Packages.props') }}
+        restore-keys: nuget-${{ runner.os }}-
+
+    - name: Test Functions runtime (HTTP and Service Bus)
+      run: dotnet test tests/aspire/CoreEx.Azure.Functions.Test.Aspire/CoreEx.Azure.Functions.Test.Aspire.csproj --configuration Release --logger trx --results-directory coverage/functions-runtime --verbosity minimal
+
+    - name: Upload Functions runtime test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: functions-runtime-test-results
+        path: "coverage/functions-runtime/**/*.trx"
+        retention-days: 30
+
   template-validation:
     name: Template validation
     runs-on: ubuntu-latest

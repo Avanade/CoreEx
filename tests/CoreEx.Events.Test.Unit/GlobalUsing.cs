@@ -1,0 +1,9 @@
+global using CloudNative.CloudEvents.Extensions;
+global using CloudNative.CloudEvents;
+global using CoreEx.Events.Publishing;
+global using CoreEx.Events.Subscribing;
+global using CoreEx.Results;
+global using Microsoft.Extensions.Logging.Abstractions;
+global using Microsoft.Extensions.Logging;
+global using System.Diagnostics;
+global using System.Text;

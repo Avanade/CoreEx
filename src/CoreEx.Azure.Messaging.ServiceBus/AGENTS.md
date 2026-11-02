@@ -96,6 +96,12 @@ public class OrderUpdatedSubscriber(IOrderService service) : SubscribedBase<Orde
 
 ## Error Handling
 
+For uniform native JSON, derive from `ServiceBusSubscriberBase<TValue>` rather than `SubscribedBase<TValue>`. Override `ValueValidator` and the typed `OnReceiveAsync(TValue value, ServiceBusReceivedMessage message, EventSubscriberArgs args, CancellationToken cancellationToken)`; no `[Subscribe]` attributes or manager are needed. Register through `.WithSubscriber<MySubscriber>()`, or inject into a Function and use `FunctionReceiveAsync`. The base bypasses CloudEvents entirely and preserves the original message metadata. Its constructor takes the logger only; the unused inherited formatter dependency is satisfied internally.
+
+All Service Bus subscribers enrich the host-owned activity from fixed transport properties `traceparent`/`tracestate`, falling back to Azure's `Diagnostic-Id`, independently of formatter-configured CloudEvent attribute names. Producer contexts already represented by local ancestry or links are not linked again. Malformed tracing metadata is ignored without changing settlement. Set `PropagateBaggage = true` only for trusted producers to import bounded W3C baggage; the default is false and existing baggage keys are preserved. Message/correlation/session IDs are diagnostic tags, not metric dimensions or authenticated identity.
+
+Choose `InvalidDataHandling` for malformed/null bodies separately from `ErrorHandler` mappings for validation/application failures. Defaults remain `CompleteAsError`, not dead-lettering. `ValueIsRequired` defaults to true; when overriding false, use nullable `TValue` for optional reference payloads. `JsonSerializerOptions` controls body deserialization; native payload tenant/authentication policy is application-owned.
+
 Use `ErrorHandler` on a subscriber to map specific exceptions to dead-letter, silent completion, or retry — no try/catch in subscriber code.
 
 ```csharp

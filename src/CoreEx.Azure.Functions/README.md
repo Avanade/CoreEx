@@ -1,0 +1,100 @@
+# CoreEx.Azure.Functions
+
+Work-in-progress isolated-worker integration for the next CoreEx release. This project is intentionally not packable while the host integration is being established.
+
+## Invocation context and HTTP
+
+Call `ConfigureFunctionsWebApplication()` before `UseCoreExExecutionContext()`. Register `AddExecutionContext()` explicitly so custom context factories remain supported. The middleware initializes the invocation's scoped context before application execution, supports an optional asynchronous configuration callback, and clears ambient state on success or failure. HTTP informational/warning headers are added before response rendering starts.
+
+Pass invocation-specific configuration directly as `UseCoreExExecutionContext((context, ec, cancellationToken) => ...)`; omit the callback when no additional configuration is needed. Authentication and tenant identification remain application policies; no trigger data or headers are trusted automatically. The middleware is singleton, so callbacks must resolve scoped dependencies from `context.InstanceServices` rather than capture them.
+
+HTTP functions use the existing `CoreEx.AspNetCore.Mvc.WebApi` with `HttpRequest` and `IActionResult`. Register MVC services for ProblemDetails and configure `ConvertUnhandledExceptionsToProblemDetails = true` when the WebApi helper is the HTTP exception boundary. Exceptions outside that helper, and all non-HTTP failures, propagate to the worker. This is not a general Functions HTTP exception middleware.
+
+See the real [test application](../../tests/CoreEx.Azure.Functions.TestApp/Program.cs) and [invocation tests](../../tests/CoreEx.Azure.Functions.Test.Unit/HttpFunctionsTests.cs). The host has no test-framework dependencies and does not duplicate a Contoso domain.
+
+## Service Bus: subscribed and native JSON
+
+Set `AutoCompleteMessages = false` on every trigger that uses this bridge. Both paths use `FunctionReceiveAsync`: the `ServiceBusSubscriberBase` overload (including `ServiceBusSubscribedSubscriber`) delegates to an existing CoreEx subscriber and then settles the result. The `ServiceBusMessageActions` overload accepts a result-producing callback instead: it does not deserialize messages, require CloudEvents, inspect subjects, or dispatch to registered subscribers.
+
+The `entityPath` argument labels settlement metrics; it does not select the entity being settled. Share a constant such as `const string QueueName = "%OrdersQueue%";` between `[ServiceBusTrigger(QueueName, ...)]` and `FunctionReceiveAsync(..., QueueName, ...)`. Both receive overloads resolve `%SettingName%` references through `ExecutionContext.GetRequiredService<IConfiguration>()`; embedded references such as `%OrdersTopic%/Subscriptions/%OrdersSubscription%` are supported. Literal paths pass through without requiring ambient services. Unmatched percent delimiters, empty references and missing/empty settings fail before handler execution or settlement. Values are substituted once, not recursively expanded. Configure CoreEx execution-context middleware for expression resolution. The worker and Functions host must use consistent app settings: this resolves worker configuration, not the host's authoritative listener path, so worker-only overrides can still cause metric-label disagreement.
+
+The [subscribed function](../../tests/CoreEx.Azure.Functions.TestApp/ServiceBusFunctions.cs) receives key-only CloudEvent commands and uses `SubscribedManager` plus a [subscriber-specific ErrorHandler](../../tests/CoreEx.Azure.Functions.TestApp/MessageSubscriber.cs). The [native function](../../tests/CoreEx.Azure.Functions.TestApp/NativeServiceBusFunctions.cs) processes every message as the same JSON shape, e.g. `{"outcome":"success"}`, using [NativeMessageSubscriber](../../tests/CoreEx.Azure.Functions.TestApp/NativeMessageSubscriber.cs), derived from `ServiceBusSubscriberBase<NativeMessageRequest>`. The typed base deserializes the body, invokes `ValueValidator`, and reuses CoreEx error classification, logging and receive metrics before delegating to the application service. It has no CloudEvent conversion, metadata requirements, `[Subscribe]` attributes or subject dispatcher. Both functions call the subscriber overload of `FunctionReceiveAsync`; the callback overload remains available for custom native processing.
+
+| Handler outcome | Bridge action | Functions invocation |
+| --- | --- | --- |
+| Success | Complete. | Successful, provided completion succeeds. |
+| `CompleteAsSilent` / `CompleteAsInformation` / `CompleteAsWarning` / `CompleteAsError` | Complete. | Successful; logging is the handler's responsibility. |
+| `Retry` | Abandon once; no in-invocation retry loop. | Successful if abandonment succeeds; the broker can redeliver. |
+| `DeadLetter` | Dead-letter once. | Successful if settlement succeeds. |
+| Unclassified failure / `None` | No bridge settlement; rethrow the original exception. | Failed; the host/extension manages the unsettled delivery. |
+| `Catastrophic` | No bridge settlement; rethrow. | Failed; **does not pause the Functions listener**. |
+| Invocation cancellation | No bridge settlement. | Cancellation propagates; an unsettled message remains eligible for redelivery. |
+| Settlement failure | Propagate without attempting another action. | Failed; do not assume whether the broker accepted the first action. |
+
+The bridge reuses `ServiceBusReceiverBase.MessageErrorActionAsync` and `ServiceBusMessageActionsBase`, including existing settlement metrics and bounded reason metadata. Full exceptions and stack traces are not copied into dead-letter descriptions. A completed/dead-lettered/abandoned message does not become unsettled again because code later throws. Processing is at-least-once: a committed database write followed by a failed completion can be delivered again, so application idempotency remains necessary.
+
+**Choose poison-message policy explicitly.** CoreEx subscribers, including the typed native base, default validation/business errors and invalid data to `CompleteAsError`, not dead-lettering. Both examples deliberately override validation to dead-letter and business rejection to complete-with-warning. The native subscriber also sets `InvalidDataHandling = ErrorHandling.DeadLetter` for malformed/null bodies; its validator requires `outcome`. A bare native callback has no automatic deserialization, validation or error-classification policy.
+
+Both bridge overloads enrich the existing Functions activity from standard Service Bus transport tracing properties, without replacing its parent or creating a competing span. Valid `traceparent` takes precedence over Azure's `Diagnostic-Id`, with `tracestate` carried into any new remote link; local ancestry and existing links prevent duplicate producer connections. Malformed trace metadata is ignored without changing message disposition. Message/business-correlation/session identifiers and delivery metadata are diagnostic tags, never new metric dimensions or authenticated execution context. The callback overload accepts optional `FunctionsServiceBusReceiveArgs`, enabling baggage with `args: new FunctionsServiceBusReceiveArgs { PropagateBaggage = true }`; subscriber-based processing uses the inherited `EventSubscriberBase.PropagateBaggage`, covering both transport properties and CloudEvent envelopes. Both default false, including when callback arguments are omitted. Functions receive arguments are separate from the subscriber overload's `EventSubscriberArgs`. Shared baggage handling uses W3C parsing, an 8192-byte header limit and at most 64 parsed entries per import, also bounding decoded imports and preserving existing keys; enable it only for trusted producers. Transport values win over duplicate envelope keys. The isolated native test host deliberately enables it for runtime verification. CloudEvent trace linking remains automatic, but former automatic envelope baggage import is now opt-in for 4.4; ambient publishing capture separately requires `EventFormatter.CaptureBaggage = true`.
+
+Tracing requires the host/worker telemetry pipeline to create an activity; without one, enrichment is a no-op. The test host uses `Microsoft.Azure.Functions.Worker.OpenTelemetry`, `AddOpenTelemetry().UseFunctionsWorkerDefaults()` and `host.json`'s `"telemetryMode": "OpenTelemetry"` with an always-on sampler for deterministic observations. It deliberately configures no external exporter. Production applications choose their own sampler and exporter using Microsoft's [Functions OpenTelemetry guidance](https://learn.microsoft.com/en-us/azure/azure-functions/opentelemetry-howto); CoreEx does not install telemetry or replace the worker's span.
+
+## Native Blob/Event Grid integration
+
+The [Blob function](../../tests/CoreEx.Azure.Functions.TestApp/BlobFunctions.cs) uses `[BlobTrigger("imports/{name}", Connection = "ImportStorage", Source = BlobTriggerSource.EventGrid)] BlobClient` and delegates to [BlobImportService](../../tests/CoreEx.Azure.Functions.TestApp/BlobImportService.cs). The binding stays native: no CoreEx CloudEvent conversion, subscriber dispatcher or custom listener is involved. The proof processes a small JSON file such as `{"name":"example"}` and persists an accepted/rejected report in `import-results`; this is an integration example, not a general-purpose file parser.
+
+The service reads the current ETag, then downloads with `IfMatch` so an overwrite between the property read and download fails rather than producing a report labelled with the wrong revision. The deterministic report name hashes the source blob name and observed ETag, so repeated execution replaces the same report and subsequent revisions retain separate reports. This does not guarantee exactly-once side effects; the Functions extension may suppress duplicate notifications using its blob receipts. A `BlobClient` binding targets the current blob, not an immutable copy of the revision named in an old Event Grid notification. Use blob versioning/snapshots or a different application contract when every historical revision must be processed.
+
+Malformed JSON or a missing name is an explicit content rejection: the service logs the rejection, persists a report, and completes successfully. Storage errors, failed conditional reads, failed report writes and invocation cancellation propagate to Functions. Blob retries/poison handling belong to the storage extension, not the Service Bus bridge or CoreEx `ErrorHandling`. Output containers must be provisioned separately; the service deliberately does not create infrastructure or hide a failed write. The test host uses a two-attempt `poisonBlobThreshold` for a bounded operational-failure proof, not as a production retry recommendation.
+
+The [invocation cases](../../tests/CoreEx.Azure.Functions.Test.Unit/BlobFunctionsTests.cs) cover delegation, scoped execution context, original cancellation token, bubbling failures and the conditional read. The [runtime fixture](../../tests/aspire/CoreEx.Azure.Functions.Test.Aspire/BlobRuntimeTests.cs) uses the real Functions Blob binding with Azurite, posts storage-shaped notifications through UnitTestEx's `FunctionsWebhook(...).PostBlobCreatedAsync(...)`, and checks persisted outcomes, repeated notifications, separate revision reports and a storage failure reaching `webjobs-blobtrigger-poison`. Azurite does not emit Event Grid events: these tests simulate notification delivery locally and do not prove Azure subscription provisioning, authentication or Event Grid delivery/retry policy. No external tunnel or live Azure service is required.
+
+The existing native binding, Azure Storage SDK and CoreEx application primitives cover this slice without an additional CoreEx Blob base class or settlement adapter.
+
+## Bubbling exceptions and receiver tradeoffs
+
+A bubbling exception marks an invocation as failed, not "retry with CoreEx resilience". Retry behavior is trigger-specific. Service Bus uses extension/broker delivery and lock handling; after repeated failed/unsettled deliveries, the broker's `MaxDeliveryCount` can move the message to the dead-letter queue. This is distinct from SDK retries for AMQP operations and from CoreEx's in-invocation message retry pipeline. The bridge does not prescribe an immediate abandonment time for unhandled exceptions or guarantee a delay between redeliveries.
+
+| Capability | CoreEx Subscribe host | Native Functions Service Bus trigger | CoreEx Functions bridge |
+| --- | --- | --- | --- |
+| Listener lifecycle | CoreEx owns processor start/stop and pause/resume. | Functions owns listener lifecycle. | Remains Functions-owned. |
+| Payload/dispatch | CloudEvent subject/source matching through `SubscribedManager`, or uniform JSON through `ServiceBusSubscriberBase<TValue>`. | Native JSON, SDK messages or other supported bindings; no CoreEx subject dispatch. | CloudEvent subscribers, typed native subscribers, or a custom native-message callback. |
+| Error classification | Subscriber `ErrorHandler` plus receiver error-conversion settings. | No understanding of CoreEx `Result` or exception classifications. | Existing classified settlement actions; no receiver error-conversion settings. |
+| Processing retries | Configurable message resilience pipeline before settlement. | Broker redelivery, separate from SDK operation retries. | No added retry loop; `Retry` maps to abandonment. |
+| Unhandled failure | Receiver policy can convert handling; otherwise abandons and reports failure to receiver resilience. | Failed invocation and host/extension-managed unsettled delivery. | Rethrows; does not swallow a failed `Result` as success. |
+| Circuit breaker | Receiver resilience pauses processing and resumes automatically. | No equivalent CoreEx receiver pause/resume contract. | **Not carried over.** |
+| Catastrophic failure | Can abandon and pause the receiver. | Failed invocation; no CoreEx-specific listener pause. | Rethrows; **does not stop subsequent deliveries**. |
+| Concurrency/prefetch/sessions | CoreEx receiver options and processor settings. | Binding/`host.json` settings plus platform scale-out. | Functions settings remain authoritative; current executable broker proof is non-session, single-message processing. |
+| Lock renewal | Service Bus SDK processor configuration. | Functions Service Bus extension configuration. | Not overridden. |
+| Application/UoW/outbox | Available independently of the host. | Available when registered by the application. | Preserved; output bindings are not transactional outbox substitutes. |
+| Observability | CoreEx receive/settlement metrics, logs and tracing. | Functions host and worker telemetry. | Receive metrics and error logging for CloudEvent and typed native subscribers, plus settlement metrics; bare native callbacks own their processing telemetry. |
+
+Downstream HTTP/database resilience remains useful, but a handler-level circuit breaker does not stop Functions receiving messages. Throwing "circuit open" on every delivery can exhaust delivery attempts and dead-letter valid work during an outage. A process-local breaker also does not coordinate independently scaled worker instances. Prefer the existing Subscribe host when receiver-level backpressure, pause/resume or its full resilience policy is a requirement; do not recreate that receiver inside a Function.
+
+For HTTP, exceptions within `WebApi` can become sanitized ProblemDetails under the configured boundary; an exception outside that boundary fails the invocation and is not promised the same response format. Timer retries, Blob poison handling and Event Grid subscription retries are separate trigger policies, not Service Bus semantics. See Microsoft's [Service Bus trigger guidance](https://learn.microsoft.com/en-us/azure/azure-functions/functions-bindings-service-bus-trigger), [binding configuration](https://learn.microsoft.com/en-us/azure/azure-functions/functions-bindings-service-bus#hostjson-settings), and [trigger-specific retry guidance](https://learn.microsoft.com/en-us/azure/azure-functions/functions-bindings-error-pages).
+
+## Boundaries
+
+Functions owns routing, scheduling, binding conversion, retries and runtime scaling. Normal ASP.NET Core middleware and endpoint metadata are not available through the worker builder. HTTP idempotency, consumer host templates and AI assets are not implemented yet. Blob support is demonstrated through native bindings; cloud Event Grid delivery and exact historical-revision processing are not claimed.
+
+UnitTestEx invocation tests build the real host and run worker middleware, but do not start Core Tools or prove trigger delivery and binding conversion. Run the test application with Core Tools for runtime verification; `FUNCTIONS_WORKER_RUNTIME=dotnet-isolated` must be available to the Functions host. Select only the HTTP functions when no host storage is configured, since Timer triggers require storage.
+
+## Run the executable proofs
+
+Invocation tests build the real host and execute worker middleware with recording settlement actions. They cover subscribed and native JSON success, retry, rejection, unhandled/catastrophic failure, cancellation, and settlement failure without claiming broker integration:
+
+```powershell
+dotnet test tests\CoreEx.Azure.Functions.Test.Unit\CoreEx.Azure.Functions.Test.Unit.csproj -p:CoreExLocalTargetFramework=net10.0
+```
+
+The [runtime fixture](../../tests/aspire/CoreEx.Azure.Functions.Test.Aspire/FunctionsRuntimeTests.cs) uses UnitTestEx 6/Aspire to own Core Tools and isolated Service Bus/SQL Server/Azurite containers, wait for indexed functions, and dispose the topology. Unlike Contoso's development AppHost, this focused test-only topology owns its emulators rather than referencing shared Compose infrastructure. Core Tools v4 and a working Aspire-compatible container runtime are prerequisites. Run sequentially with ports 7099, 5682, 5310 and 10000-10002 free:
+
+```powershell
+dotnet test tests\aspire\CoreEx.Azure.Functions.Test.Aspire\CoreEx.Azure.Functions.Test.Aspire.csproj -p:CoreExLocalTargetFramework=net10.0
+```
+
+These are ordinary automated integration tests, not `[Explicit]` tests against a developer-owned listener. The AppHost build publishes a separate Functions output directory; do not rebuild that AppHost while the fixture is running. The HTTP cases verify rendering and concurrent context isolation. Both broker paths verify direct poison-message dead-lettering before the delivery budget is exhausted and eventual broker dead-lettering at `MaxDeliveryCount` for retry, unhandled and catastrophic outcomes. Emulator behavior is not proof of all Azure Service Bus cloud features or an exact redelivery schedule. The test topology accepts the emulator/SQL Server EULAs for test use; images may be downloaded on first run.
+
+The tracing cases observe the real worker activity before and after processing messages with `traceparent`, `Diagnostic-Id`, or both. With the current test topology, the worker's locally visible ancestry/links do not already represent the supplied producer context, so enrichment adds exactly one producer link while preserving the invocation activity and importing explicitly enabled baggage. This is version-specific runtime evidence, not an assumption that Azure never correlates messages automatically.
+
+CI runs this fixture in a separate Functions runtime job, using Core Tools 4.16.0 and Docker rather than sharing the Contoso Compose topology. Runtime resource output is captured through UnitTestEx checkpoints, including when startup or broker polling fails. Broker polling starts peeking from sequence zero on each attempt so it observes the entire dead-letter set rather than advancing a receiver's peek cursor.

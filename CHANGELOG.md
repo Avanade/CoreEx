@@ -2,6 +2,10 @@
 
 Represents the **NuGet** versions.
 
+## v4.4.0 (unreleased)
+- *Enhancement:* Added Azure Functions isolated-worker host support (`CoreEx.Azure.Functions`) with scoped CoreEx execution context, HTTP `WebApi` integration and explicit Service Bus settlement for CloudEvent and typed native JSON subscribers. Includes native Blob/Event Grid integration examples and UnitTestEx invocation/Aspire runtime proofs, preserving Functions-owned trigger and retry behavior.
+- *Behavior change:* `Result.ThrowOnError()`, `Result<T>.ThrowOnError()` and failed result value access now preserve the original exception instance, type and existing stack trace instead of wrapping previously thrown errors in a new `AggregateException`. Consumers catching the former wrapper must catch the underlying exception instead; explicitly aggregated errors remain unchanged.
+
 ## v4.3.0
 - *Enhancement:* Added opt-in `WithAccept()` as an immediate operation guard against the effective generated JSON media type, shared by MVC and Minimal WebApi. Supports standard wildcards, media parameters, quality exclusions, and copied/keyed instance defaults; rejects incompatible requests with 406 and malformed headers with 400, preserving error rendering and existing Vary values. Set response overrides before the guard and call it before business execution; no negotiation or automatic enforcement is introduced.
 - *Enhancement:* Added instance `WebApiBase.DefaultJsonMediaType` and per-operation `WithContentType(...)` for generated JSON responses, including option-copy support and MVC/Minimal parity. Defaults remain `application/json`; explicit results and error representations are unaffected.

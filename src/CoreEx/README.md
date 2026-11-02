@@ -52,6 +52,10 @@ All other CoreEx packages (`CoreEx.Events`, `CoreEx.Database`, `CoreEx.AspNetCor
 
 See the [Extended Exceptions](#extended-exceptions) section below for the full list of semantic exception types.
 
+## Result exception propagation
+
+`Result.ThrowOnError()`, `Result<T>.ThrowOnError()` and failed result value access throw the original exception, preserving its instance, type and existing stack trace. Repeated result boundaries do not introduce `AggregateException` wrappers; explicitly aggregated errors remain aggregated. From 4.4, callers that previously caught an automatically added wrapper must catch the underlying exception instead.
+
 ## Optional patch values
 
 For partial-update request DTOs, `Optional<T>` distinguishes an omitted property from a supplied `null` or default value. `default(Optional<T>)` is unspecified; implicit conversion from `T` and `Optional<T>.Specified(value)` create a specified value. Its JSON converter reads and writes the inner value shape, while CoreEx's `WhenWritingDefault` serializer setting omits unspecified properties. OpenAPI exposes the inner type and nullability while leaving the property non-required.

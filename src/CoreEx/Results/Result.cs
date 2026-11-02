@@ -66,26 +66,21 @@ public readonly partial struct Result : IResult, IEquatable<Result>
     /// Throws the <see cref="Error"/> where <see cref="IsFailure"/>; otherwise, does nothing.
     /// </summary>
     /// <returns>The <see cref="Result"/> where <see cref="IsSuccess"/> to enable further fluent-style method-chaining.</returns>
+    /// <remarks>Preserves the original exception instance, type and existing stack trace without adding an aggregate wrapper.</remarks>
     public Result ThrowOnError()
     {
         if (IsFailure)
-            ThrowErrorOrAggregateException(Error);
+            ThrowError(Error);
 
         return this;
     }
 
     /// <summary>
-    /// Throws either the <paramref name="error"/> directly where not previously thrown; otherwise, throws a new <see cref="AggregateException"/> which contains the originating <paramref name="error"/>.
+    /// Throws the <paramref name="error"/> while preserving its original instance, type and existing stack trace.
     /// </summary>
     /// <param name="error">The originating <see cref="Exception"/>.</param>
     [DoesNotReturn]
-    internal static void ThrowErrorOrAggregateException(Exception error)
-    {
-        if (error.StackTrace is null)
-            throw error;
-
-        throw new AggregateException(error);
-    }
+    internal static void ThrowError(Exception error) => ExceptionDispatchInfo.Capture(error).Throw();
 
     /// <summary>
     /// Converts the <see cref="Result"/> to a <see cref="Task{TResult}"/> using <see cref="Task.FromResult{TResult}(TResult)"/>.

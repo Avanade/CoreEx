@@ -1,0 +1,32 @@
+{
+  "UserConfig": {
+    "Namespaces": [
+      {
+        "Name": "sbemulatorns",
+        "Queues": [
+          {
+            "Name": "coreex-functions",
+            "Properties": {
+              "LockDuration": "PT10S",
+              "MaxDeliveryCount": 3,
+              "DefaultMessageTimeToLive": "PT1H",
+              "RequiresSession": false
+            }
+          },
+          {
+            "Name": "coreex-native-functions",
+            "Properties": {
+              "LockDuration": "PT10S",
+              "MaxDeliveryCount": 3,
+              "DefaultMessageTimeToLive": "PT1H",
+              "RequiresSession": false
+            }
+          }
+        ]
+      }
+    ],
+    "Logging": {
+      "Type": "Console"
+    }
+  }
+}

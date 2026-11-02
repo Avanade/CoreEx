@@ -16,6 +16,29 @@ public static class CloudEventTracingExtensions
     private static readonly ActivitySource _relayMarkerActivitySource = new(RelayMarkerActivitySourceName);
 
     /// <summary>
+    /// Links a valid producer context only when it is not already represented by the activity's local ancestry or existing links.
+    /// </summary>
+    /// <param name="activity">The host-owned activity; a no-op where null.</param>
+    /// <param name="context">The originating context.</param>
+    public static void LinkTraceContext(this Activity? activity, ActivityContext context)
+    {
+        if (activity is null || context.TraceId == default || context.SpanId == default)
+            return;
+
+        for (var current = activity; current is not null; current = current.Parent)
+        {
+            if (current.TraceId == context.TraceId
+                && (current.SpanId == context.SpanId || current.ParentSpanId == context.SpanId))
+                return;
+
+            if (current.Links.Any(link => link.Context.TraceId == context.TraceId && link.Context.SpanId == context.SpanId))
+                return;
+        }
+
+        activity.AddLink(new ActivityLink(context));
+    }
+
+    /// <summary>
     /// Links the <paramref name="activity"/> to each of the <paramref name="events"/>' originating W3C trace context (the <c>traceparent</c>/<c>tracestate</c> <see cref="CloudEvent"/> extension attributes,
     /// added as an <see cref="ActivityLink"/>).
     /// </summary>

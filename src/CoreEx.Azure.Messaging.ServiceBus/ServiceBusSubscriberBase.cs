@@ -7,6 +7,15 @@ namespace CoreEx.Azure.Messaging.ServiceBus;
 /// <param name="logger">The <see cref="ILogger{ServiceBusSubscriber}"/>.</param>
 public abstract class ServiceBusSubscriberBase(IEventFormatter formatter, ILogger<ServiceBusSubscriberBase> logger) : EventSubscriberBase(formatter, logger)
 {
+    private static readonly IEventFormatter _nativeFormatter = new EventFormatter();
+
+    /// <summary>
+    /// Initializes native subscriber infrastructure without requiring an unused formatter from dependency injection.
+    /// </summary>
+    /// <param name="logger">The subscriber logger.</param>
+    /// <remarks>The shared internal formatter satisfies the inherited infrastructure dependency; native message processing never invokes it.</remarks>
+    protected ServiceBusSubscriberBase(ILogger<ServiceBusSubscriberBase> logger) : this(_nativeFormatter, logger) { }
+
     /// <summary>
     /// Gets or sets the <see cref="CloudNative.CloudEvents.ContentMode"/> to use when receiving <see cref="CloudEvent"/> messages.
     /// </summary>
@@ -26,7 +35,7 @@ public abstract class ServiceBusSubscriberBase(IEventFormatter formatter, ILogge
         args.Owner ??= this;
         args.Message = message.ThrowIfNull();
 
-        Activity.Current?.AddTag("messaging.subject", message.Subject);
+        message.EnrichReceiveActivity(PropagateBaggage);
 
         return EventSubscriberMetrics.ReceiveMessageAsync(args, async () =>
         {
@@ -35,13 +44,23 @@ public abstract class ServiceBusSubscriberBase(IEventFormatter formatter, ILogge
             if (br.IsFailure)
                 return br;
 
-            // Convert to CloudEvent and process.
-            return await ReceiveAsync(message.ToCloudEvent(ContentMode), args, cancellationToken).ConfigureAwait(false);
+            return await OnReceiveMessageAsync(message, args, cancellationToken).ConfigureAwait(false);
         });
     }
 
     /// <summary>
-    /// Receives the <see cref="ServiceBusReceivedMessage"/> providing an opportunity to perform actions before further processing as a converted <see cref="CloudEvent"/>.
+    /// Processes the message, converting to a CloudEvent by default.
+    /// </summary>
+    /// <param name="message">The received message.</param>
+    /// <param name="args">The subscriber arguments.</param>
+    /// <param name="cancellationToken">The receive cancellation token.</param>
+    /// <returns>The processing result.</returns>
+    /// <remarks>Native message subscribers override this hook to bypass CloudEvent conversion.</remarks>
+    protected virtual Task<Result> OnReceiveMessageAsync(ServiceBusReceivedMessage message, EventSubscriberArgs args, CancellationToken cancellationToken = default)
+        => ReceiveAsync(message.ToCloudEvent(ContentMode), args, cancellationToken);
+
+    /// <summary>
+    /// Receives the <see cref="ServiceBusReceivedMessage"/> providing an opportunity to perform actions before CloudEvent or native message processing.
     /// </summary>
     /// <param name="message">The <see cref="ServiceBusReceivedMessage"/>.</param>
     /// <param name="args">The <see cref="EventSubscriberArgs"/>.</param>

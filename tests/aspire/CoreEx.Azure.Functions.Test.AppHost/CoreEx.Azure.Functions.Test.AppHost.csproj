@@ -1,0 +1,18 @@
+<Project Sdk="Aspire.AppHost.Sdk/13.6.1">
+  <PropertyGroup>
+    <TargetFrameworks />
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="UnitTestEx.Aspire" />
+    <PackageReference Include="MessagePack" />
+    <ProjectReference Include="..\..\CoreEx.Azure.Functions.TestApp\CoreEx.Azure.Functions.TestApp.csproj" IsAspireProjectResource="false" />
+  </ItemGroup>
+  <Target Name="PublishFunctionsForRuntimeTests" AfterTargets="Build">
+    <MSBuild Projects="..\..\CoreEx.Azure.Functions.TestApp\CoreEx.Azure.Functions.TestApp.csproj" Targets="Publish" Properties="Configuration=$(Configuration);PublishDir=$(TargetDir)functions\;CoreExLocalTargetFramework=net10.0" />
+  </Target>
+</Project>

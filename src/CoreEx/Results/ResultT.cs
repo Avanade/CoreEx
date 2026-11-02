@@ -42,7 +42,7 @@ public readonly partial struct Result<T> : IResult<T>, IEquatable<Result<T>>
             if (IsSuccess)
                 return _value;
 
-            Result.ThrowErrorOrAggregateException(Error);
+            Result.ThrowError(Error);
             return default;
         }
     }
@@ -71,10 +71,11 @@ public readonly partial struct Result<T> : IResult<T>, IEquatable<Result<T>>
     /// Throws the <see cref="Error"/> where <see cref="IsFailure"/>; otherwise, does nothing.
     /// </summary>
     /// <returns>The <see cref="Result{T}"/> where <see cref="IsSuccess"/> to enable further fluent-style method-chaining.</returns>
+    /// <remarks>Preserves the original exception instance, type and existing stack trace without adding an aggregate wrapper.</remarks>
     public Result<T> ThrowOnError()
     {
         if (IsFailure)
-            Result.ThrowErrorOrAggregateException(Error);
+            Result.ThrowError(Error);
 
         return this;
     }
