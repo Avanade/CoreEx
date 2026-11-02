@@ -224,7 +224,7 @@ public ReservationCancelSubscriber(IMovementService service)
 ```csharp
 public {Entity}Subscriber(...)
 {
-    ErrorHandler = new ErrorHandler()
+    ErrorHandler
         .Add<ValidationException>(ErrorHandling.DeadLetter)
         .Add<BusinessException>(ErrorHandling.Retry);
     InvalidDataHandling = ErrorHandling.DeadLetter;
