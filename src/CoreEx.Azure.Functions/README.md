@@ -1,6 +1,10 @@
 # CoreEx.Azure.Functions
 
-Work-in-progress isolated-worker integration for the next CoreEx release. This project is intentionally not packable while the host integration is being established.
+Isolated-worker integration for Azure Functions: scoped invocation context, existing MVC WebApi HTTP handling, explicit HTTP idempotency, and Service Bus subscriber/settlement bridges. Functions retains ownership of triggers, listeners, retries and scaling.
+
+The [`coreex-functions` template](../CoreEx.Template/README.md#template-8----coreex-functions-empty-functions-host) adds an empty, independently deployable `*.Functions` host and matching `*.Test.Functions` project to an existing CoreEx solution. It deliberately adds no functions, health endpoint or invented test cases; add capability-specific entry points and tests when there is real work to perform.
+
+Use `--shared-core false` for a standalone integration: no shared Application/Infrastructure/Contracts projects are required, and host/test build settings and pinned package versions are self-contained. Keep trigger methods thin, delegating to capability-local handlers; extract libraries only when actual reuse or complexity warrants it. The default remains `--shared-core true` for hosts that reuse an existing application core.
 
 ## Invocation context and HTTP
 
@@ -89,7 +93,7 @@ For HTTP, exceptions within `WebApi` can become sanitized ProblemDetails under t
 
 ## Boundaries
 
-Functions owns routing, scheduling, binding conversion, retries and runtime scaling. Normal ASP.NET Core middleware and endpoint metadata are not available through the worker builder. Consumer host templates and AI assets are not implemented yet. Blob support is demonstrated through native bindings; cloud Event Grid delivery and exact historical-revision processing are not claimed.
+Functions owns routing, scheduling, binding conversion, retries and runtime scaling. Normal ASP.NET Core middleware and endpoint metadata are not available through the worker builder. The empty consumer host template is available; Functions-specific AI skills and scoped instructions remain pending. Blob support is demonstrated through native bindings; cloud Event Grid delivery and exact historical-revision processing are not claimed.
 
 UnitTestEx invocation tests build the real host and run worker middleware, but do not start Core Tools or prove trigger delivery and binding conversion. Run the test application with Core Tools for runtime verification; `FUNCTIONS_WORKER_RUNTIME=dotnet-isolated` must be available to the Functions host. Select only the HTTP functions when no host storage is configured, since Timer triggers require storage.
 

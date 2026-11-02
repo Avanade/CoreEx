@@ -1,0 +1,125 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "https://github.com/avanade/coreex",
+  "classifications": [ "CoreEx", "Azure", "Functions" ],
+  "identity": "CoreEx.Functions",
+  "name": "CoreEx Azure Functions host",
+  "description": "An empty Azure Functions isolated-worker host and matching UnitTestEx test project, using shared CoreEx layers or running standalone.",
+  "shortName": "coreex-functions",
+  "tags": {
+    "language": "C#",
+    "type": "project"
+  },
+  "sourceName": "app-name.Functions",
+  "preferNameDirectory": false,
+  "symbols": {
+    "coreex-version": {
+      "type": "generated",
+      "generator": "constant",
+      "parameters": {
+        "value": "COREEX_VERSION"
+      },
+      "replaces": "coreex-version"
+    },
+    "shared-core": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "true",
+      "displayName": "Use shared application core",
+      "description": "Reference the shared Application/Infrastructure projects and use solution package versions. Set false for a standalone host and test project with their own package versions."
+    },
+    "solution-name": {
+      "type": "parameter",
+      "datatype": "string",
+      "displayName": "Shared solution name",
+      "description": "The shared Application/Infrastructure project prefix. Defaults to the host name without its final .Functions segment; specify it for independently named additional hosts."
+    },
+    "default-solution-name": {
+      "type": "derived",
+      "valueSource": "name",
+      "valueTransform": "ValueWithoutLastDotDelimited"
+    },
+    "test-project-name": {
+      "type": "derived",
+      "valueSource": "name",
+      "valueTransform": "TestProjectName",
+      "fileRename": "host-test-name",
+      "replaces": "host-test-name"
+    },
+    "resolved-solution-name": {
+      "type": "generated",
+      "generator": "coalesce",
+      "parameters": {
+        "sourceVariableName": "solution-name",
+        "fallbackVariableName": "default-solution-name"
+      },
+      "replaces": "solution-name"
+    },
+    "solution-parent-name": {
+      "type": "derived",
+      "valueSource": "resolved-solution-name",
+      "valueTransform": "ValueWithoutLastDotDelimited",
+      "replaces": "solution-parent-name"
+    },
+    "domain-name": {
+      "type": "derived",
+      "valueSource": "resolved-solution-name",
+      "valueTransform": "ValueLastDotDelimited",
+      "replaces": "domain-name"
+    }
+  },
+  "sources": [
+    {
+      "rename": {
+        "_gitignore": ".gitignore"
+      }
+    }
+  ],
+  "specialCustomOperations": {
+    "*.csproj": {
+      "operations": [
+        {
+          "type": "conditional",
+          "configuration": {
+            "actionableIf": [ "<!--#if" ],
+            "actionableElse": [ "<!--#else" ],
+            "endif": [ "<!--#endif" ],
+            "trim": true,
+            "wholeLine": true
+          }
+        }
+      ]
+    },
+    "*.md": {
+      "operations": [
+        {
+          "type": "conditional",
+          "configuration": {
+            "actionableIf": [ "<!-- #if" ],
+            "actionableElse": [ "<!-- #else" ],
+            "endif": [ "<!-- #endif" ],
+            "trim": true,
+            "wholeLine": true
+          }
+        }
+      ]
+    }
+  },
+  "forms": {
+    "TestProjectName": {
+      "identifier": "replace",
+      "pattern": "^(.*)\\.Functions$",
+      "replacement": "$1.Test.Functions"
+    },
+    "ValueWithoutLastDotDelimited": {
+      "identifier": "replace",
+      "pattern": "^(.*)\\.([^.]+)$",
+      "replacement": "$1"
+    },
+    "ValueLastDotDelimited": {
+      "identifier": "replace",
+      "pattern": "^.*\\.([^.]+)$",
+      "replacement": "$1"
+    }
+  }
+}

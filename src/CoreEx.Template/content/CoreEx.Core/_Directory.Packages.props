@@ -10,6 +10,7 @@
     <PackageVersion Include="CoreEx" Version="coreex-version" />
     <PackageVersion Include="CoreEx.AspNetCore" Version="coreex-version" />
     <PackageVersion Include="CoreEx.AspNetCore.NSwag" Version="coreex-version" />
+    <PackageVersion Include="CoreEx.Azure.Functions" Version="coreex-version" />
     <!--#if implement-servicebus-->
     <PackageVersion Include="CoreEx.Azure.Messaging.ServiceBus" Version="coreex-version" />
     <!--#endif-->
@@ -69,6 +70,7 @@
 
   <!-- Tool/Test packages. -->
   <ItemGroup>
+    <PackageVersion Include="Microsoft.Azure.Functions.Worker.Sdk" Version="2.1.0" />
     <PackageVersion Include="AwesomeAssertions" Version="9.6.0" />
     <!--#if refdata-enabled-->
     <PackageVersion Include="CoreEx.CodeGen" Version="coreex-version" />
@@ -92,6 +94,7 @@
     <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
     <!--#endif-->
     <PackageVersion Include="UnitTestEx.Aspire" Version="6.0.0" />
+    <PackageVersion Include="UnitTestEx.Azure.Functions" Version="6.0.0" />
     <PackageVersion Include="UnitTestEx.NUnit" Version="6.0.0" />
     <PackageVersion Include="WireMock.Net" Version="2.19.0" />
   </ItemGroup>
