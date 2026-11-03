@@ -18,7 +18,10 @@ public abstract class CsvFileProcessorBase<TUnit> : FileProcessor where TUnit : 
     protected CsvFileProcessorBase(CsvFileOptions? options, IValidator<TUnit>? validator, IServiceProvider? serviceProvider, Func<IServiceProvider, FileUnitHandler<TUnit>>? handlerFactory)
     {
         options ??= new CsvFileOptions();
+        options.MaxInputBytes.ThrowIfLessThanOrEqualToZero();
+        options.MaxGroupRecords.ThrowIfLessThanOrEqualToZero();
         _options = options with { Encoding = (Encoding)options.Encoding.ThrowIfNull().Clone() };
+        _options.Encoding.DecoderFallback = DecoderFallback.ExceptionFallback;
         if (handlerFactory is not null)
             serviceProvider.ThrowIfNull();
 
@@ -84,6 +87,9 @@ public abstract class CsvFileProcessorBase<TUnit> : FileProcessor where TUnit : 
     /// <param name="unitContext">The fresh registered context.</param>
     protected virtual void OnConfigureUnitContext(FileProcessingContext fileContext, TUnit unit, ExecutionContext? parent, ExecutionContext unitContext) { }
 
+    /// <summary>Gets the maximum parser records retained or inspected in one root group.</summary>
+    private protected long MaxGroupRecords => _options.MaxGroupRecords;
+
     /// <summary>Reads or reconstructs one pass with format-specific mapping and assembly.</summary>
     private protected abstract Task<bool> ReadPassAsync(Func<CancellationToken, Task<Stream>> openReadAsync, FileProcessingContext context, ProcessingState state, bool execute, CancellationToken cancellationToken);
 
@@ -106,7 +112,8 @@ public abstract class CsvFileProcessorBase<TUnit> : FileProcessor where TUnit : 
                 state.Bytes = checked(state.Bytes + count);
                 state.Update();
             }
-        });
+        }, _options.MaxInputBytes);
+        var encodingDiagnostic = await countingInput.InitializeAsync(_options.Encoding, cancellationToken).ConfigureAwait(false);
 
         using var text = new StreamReader(countingInput, _options.Encoding, detectEncodingFromByteOrderMarks: false, leaveOpen: true);
         FileDiagnostic? syntaxError = null;
@@ -125,9 +132,35 @@ public abstract class CsvFileProcessorBase<TUnit> : FileProcessor where TUnit : 
                 "CSV syntax could not be parsed.", location: new(error.LineNumber))
         }, leaveOpen: true);
 
-        while (await parser.ReadAsync(cancellationToken).ConfigureAwait(false))
+        while (true)
         {
+            var read = false;
+            if (encodingDiagnostic is null && !countingInput.LimitExceeded)
+            {
+                try
+                {
+                    read = await parser.ReadAsync(cancellationToken).ConfigureAwait(false);
+                }
+                catch (DecoderFallbackException)
+                {
+                    encodingDiagnostic = new(FileDiagnosticCategory.Parsing, "csv.encoding.invalid", "Input bytes are invalid for the configured encoding.");
+                }
+            }
+
             cancellationToken.ThrowIfCancellationRequested();
+            if (countingInput.LimitExceeded || encodingDiagnostic is not null)
+            {
+                var diagnostic = countingInput.LimitExceeded
+                    ? new FileDiagnostic(FileDiagnosticCategory.Limit, "csv.limit.input-bytes", "The input exceeds its configured byte limit.")
+                    : encodingDiagnostic;
+
+                yield return new(parser, diagnostic, true);
+                yield break;
+            }
+
+            if (!read)
+                yield break;
+
             yield return new(parser, syntaxError);
             syntaxError = null;
         }

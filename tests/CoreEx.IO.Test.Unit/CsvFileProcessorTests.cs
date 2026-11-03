@@ -516,10 +516,12 @@ public class CsvFileProcessorTests
         byte[] bytes = [.. Encoding.UTF8.GetBytes("Id,Name,Quantity\n1,"), 0xC3, 0x28, .. Encoding.UTF8.GetBytes(",2\n")];
         await using var stream = new TrackedStream(bytes) { ChunkSize = 1 };
         var processor = new Processor();
-        Func<Task> run = () => processor.ProcessAsync(_ => Task.FromResult<Stream>(stream), Context(FileProcessingMode.ValidateOnly));
-        await run.Should().ThrowAsync<DecoderFallbackException>().ConfigureAwait(false);
+        var summary = await processor.ProcessAsync(_ => Task.FromResult<Stream>(stream), Context(FileProcessingMode.ValidateOnly)).ConfigureAwait(false);
+        summary.Outcome.Should().Be(FileProcessingOutcome.Rejected);
+        summary.ValidationCompleted.Should().BeFalse();
+        processor.Diagnostics.Should().ContainSingle().Which.Code.Should().Be("csv.encoding.invalid");
         stream.AsyncDisposed.Should().BeTrue();
-        processor.Events.Should().BeEmpty();
+        processor.Events.Should().Equal("diagnostic", "rejected");
     }
 
     [Test]

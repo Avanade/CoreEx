@@ -24,6 +24,15 @@ public class CsvFileProcessor<TRecord> : CsvFileProcessorBase<TRecord> where TRe
         var headerSeen = false;
         await foreach (var parsed in ReadRecordsAsync(openReadAsync, state, execute, cancellationToken).ConfigureAwait(false))
         {
+            if (parsed.IsTerminal)
+            {
+                if (execute)
+                    throw new InvalidDataException("Replay violated the accepted input bounds or encoding.");
+
+                await state.ReportAsync(parsed.Diagnostic.ThrowIfNull(), cancellationToken).ConfigureAwait(false);
+                return false;
+            }
+
             var record = parsed.Diagnostic is null ? mapping(parsed.Reader) : new CsvInputRecord<TRecord>(null, definition.RequiresHeader && !headerSeen, [parsed.Diagnostic]);
             if (record.IsHeader)
             {

@@ -501,7 +501,7 @@ public class CsvHierarchyFileProcessorTests
     [Test]
     public async Task LargeInvalidHierarchy_DoesNotThrowPerContentFailure()
     {
-        var processor = new CsvHierarchyFileProcessor<Group>(() => Orders());
+        var processor = new CsvHierarchyFileProcessor<Group>(() => Orders(), new() { MaxGroupRecords = 10_001 });
         var count = 0;
         void Observe(object? sender, FirstChanceExceptionEventArgs args) => Interlocked.Increment(ref count);
         AppDomain.CurrentDomain.FirstChanceException += Observe;

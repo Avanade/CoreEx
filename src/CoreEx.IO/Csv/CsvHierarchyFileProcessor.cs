@@ -29,8 +29,19 @@ public class CsvHierarchyFileProcessor<TGroup> : CsvFileProcessorBase<TGroup> wh
 
         var session = new Session(this, _definitionFactory().ThrowIfNull(), hierarchyContext, state, execute);
         await foreach (var parsed in ReadRecordsAsync(openReadAsync, state, execute, cancellationToken).ConfigureAwait(false))
+        {
+            if (parsed.IsTerminal)
+            {
+                if (execute)
+                    throw new InvalidDataException("Replay violated the accepted input bounds or encoding.");
+
+                await state.ReportAsync(parsed.Diagnostic.ThrowIfNull(), cancellationToken).ConfigureAwait(false);
+                return false;
+            }
+
             if (!await session.ObserveAsync(parsed, cancellationToken).ConfigureAwait(false))
                 return false;
+        }
 
         if (!await session.CompleteAsync(cancellationToken).ConfigureAwait(false))
             return false;
@@ -57,6 +68,7 @@ public class CsvHierarchyFileProcessor<TGroup> : CsvFileProcessorBase<TGroup> wh
         private bool _trailerSeen;
         private bool _stop;
         private bool _recordInvalid;
+        private long _groupRecords;
 
         /// <summary>Initializes isolated mapping and recognized-count state.</summary>
         public Session(CsvHierarchyFileProcessor<TGroup> processor, CsvHierarchyDefinition<TGroup> definition, CsvHierarchyContext context, ProcessingState state, bool execute)
@@ -142,6 +154,18 @@ public class CsvHierarchyFileProcessor<TGroup> : CsvFileProcessorBase<TGroup> wh
 
             if (route is not null)
                 _context.Count(route.Key);
+
+            if (key == root.Key || _stack.Count > 0)
+            {
+                _groupRecords = key == root.Key ? 1 : checked(_groupRecords + 1);
+                if (_groupRecords > _processor.MaxGroupRecords)
+                {
+                    await ReportAsync(new(FileDiagnosticCategory.Limit, "csv.limit.group-records", "The root group exceeds its configured record limit.",
+                        location: new(line), recordType: root.Key), root.Key, false, cancellationToken).ConfigureAwait(false);
+
+                    return false;
+                }
+            }
 
             if (_trailerSeen && trailer is not null)
                 await FailAsync("csv.structure.after-trailer", "A record cannot follow the last envelope.", trailer.Key, line, true, cancellationToken).ConfigureAwait(false);
