@@ -1,6 +1,6 @@
 # CoreEx.IO contract and migration baseline
 
-Steps 1 through 3 cover format-neutral contract invariants, extension-point behavior, and executable flat CSV processing with CsvHelper 34.0.0. Fixture integrity tests remain distinct from runtime evidence; flat processor tests prove parsing, whole-file acceptance, stream ownership, unit scopes, and hook orchestration. Hierarchical processor coverage remains Step 4 work.
+Steps 1 through 4 cover format-neutral contract invariants, extension-point behavior, and executable flat/hierarchical CSV processing with CsvHelper 34.0.0. Fixture integrity tests remain distinct from runtime evidence; processor tests prove parsing, whole-file acceptance, routing/assembly, stream ownership, unit scopes, and hook orchestration.
 
 ## Portable fixtures
 
@@ -32,3 +32,11 @@ The runtime acceptance matrix in `docs/file-processing-design.md` remains author
 `CsvFileProcessorTests` exercises late mapping and EOF rejection with zero execution, fresh models/context/scopes on replay, original Result failure, scoped errors/warnings and CoreEx validator messages, case-insensitive/reordered/duplicate/missing headers, positional selectors, missing fields, multiple errors per record, comments/blanks, quoted/escaped/multiline fields, CR/LF/CRLF locations, single-byte nonseekable async input, split Unicode, invalid UTF-8, invariant nullable/date conversion, and concurrent invocation mapping/counters.
 
 Lifecycle coverage includes cancellation before opening, during blocked validation/replay reads, and inside a scoped diagnostic callback; open/read/converter/business/reporting faults; null/unreadable streams; replay count/mapping drift; invalid replay contexts; missing execution handlers; awaited report backpressure under the file ambient context; scope disposal; and asynchronous disposal of every owned input. Test streams reject synchronous reads. Separate 10K conversion-error and malformed-quote cases assert zero observed first-chance exceptions during processing, and streamed diagnostic tests retain no history in framework state.
+
+## Hierarchical runtime evidence
+
+`CsvHierarchyFileProcessorTests` processes all three order fixtures and proves zero writes for a late trailer mismatch or structural rejection. Coverage includes exact/missing/unknown discriminators, malformed-record isolation, recognized-invalid counts, accepted envelope availability and duplicate preservation, first/last rules, orphan children, arbitrary nested assembly and physical provenance, sibling-order/reopening failures, and `Many`/`One`/`Optional`/`OneOrMore` cardinality at parent and file level.
+
+Lifecycle coverage includes fresh replay wire records/context/envelopes, field validation only on the first pass, one async handler scope per root and pass with parent restoration, root-policy group errors without fake invalid physical rows, route-specific continuation for mapping/missing-child failures, required-record/parent/EOF anchors, EOF reconciliation, original execution Result failure, count/mapping replay drift, projection/reporting faults, awaited reporting and cancellation under the file ambient context, context-reuse rejection, and invalid named route mappings before opening input.
+
+Independent keyed hierarchy definitions sharing a group CLR type coexist with a flat definition, using their own scoped handlers under concurrent replay in either registration order. Weak-reference evidence checks that completed projected groups, aggregate nodes, and wire records are not retained by file state. A 10K bad-child conversion case asserts zero observed first-chance exceptions. Single-group size bounds, comprehensive BOM compatibility, and allocation measurements remain Step 5 work.
