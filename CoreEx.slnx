@@ -166,6 +166,7 @@
     <Project Path="src/CoreEx.DomainDriven/CoreEx.DomainDriven.csproj" />
     <Project Path="src/CoreEx.EntityFrameworkCore/CoreEx.EntityFrameworkCore.csproj" />
     <Project Path="src/CoreEx.Events/CoreEx.Events.csproj" />
+    <Project Path="src/CoreEx.IO/CoreEx.IO.csproj" />
     <Project Path="src/CoreEx.RefData/CoreEx.RefData.csproj" />
     <Project Path="src/CoreEx.Template/CoreEx.Template.csproj" />
     <Project Path="src/CoreEx.UnitTesting/CoreEx.UnitTesting.csproj" />
@@ -190,6 +191,7 @@
     <Project Path="tests/CoreEx.Database.Test.Unit/CoreEx.Database.Test.Unit.csproj" />
     <Project Path="tests/CoreEx.DomainDriven.Test.Unit/CoreEx.DomainDriven.Test.Unit.csproj" />
     <Project Path="tests/CoreEx.Events.Test.Unit/CoreEx.Events.Test.Unit.csproj" />
+    <Project Path="tests/CoreEx.IO.Test.Unit/CoreEx.IO.Test.Unit.csproj" />
     <Project Path="tests/CoreEx.RefData.Test.Unit/CoreEx.RefData.Test.Unit.csproj" />
     <Project Path="tests/CoreEx.Test.Unit/CoreEx.Test.Unit.csproj" />
     <Project Path="tests/CoreEx.UnitTesting.Test.Unit/CoreEx.UnitTesting.Test.Unit.csproj" />

@@ -1,0 +1,7 @@
+H,batch-1
+O,order-1
+L,product-1,2
+L,product-2,3
+O,order-2
+L,product-3,1
+T,2,6

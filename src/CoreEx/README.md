@@ -38,6 +38,8 @@ All other CoreEx packages (`CoreEx.Events`, `CoreEx.Database`, `CoreEx.AspNetCor
 
 ## Key types
 
+Argument guards support fluent validation with caller-inferred parameter names: `value.ThrowIfNull()`, `text.ThrowIfNullOrEmpty()`, `text.ThrowIfNullOrWhiteSpace()`, and numeric guards such as `count.ThrowIfLessThanZero()`. They return the original value; the white-space guard rejects null, empty, and white-space-only strings without trimming accepted input.
+
 | Type | Description |
 |------|-------------|
 | **[`ExecutionContext`](./ExecutionContext.cs)** | `AsyncLocal`-scoped ambient context carrying user identity, tenant ID, operation type, timestamp, and attributes for the lifetime of a request. |

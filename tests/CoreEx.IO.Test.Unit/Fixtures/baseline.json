@@ -1,0 +1,52 @@
+[
+  {
+    "file": "flat-valid.csv",
+    "physicalLines": 4,
+    "recordsRead": 2,
+    "unitsValidated": 2,
+    "unitsExecuted": 2,
+    "outcome": "Executed",
+    "diagnosticLines": [],
+    "requirement": "Quoted delimiters and embedded newlines; zero is a valid required integer."
+  },
+  {
+    "file": "flat-invalid.csv",
+    "physicalLines": 3,
+    "recordsRead": 2,
+    "unitsValidated": 1,
+    "unitsExecuted": 0,
+    "outcome": "Rejected",
+    "diagnosticLines": [3],
+    "requirement": "A late flat-row mapping failure prevents every execution call."
+  },
+  {
+    "file": "orders-valid.csv",
+    "physicalLines": 7,
+    "recordsRead": 7,
+    "unitsValidated": 2,
+    "unitsExecuted": 2,
+    "outcome": "Executed",
+    "diagnosticLines": [],
+    "requirement": "Header, two ordered roots with children, trailer, and EOF reconciliation."
+  },
+  {
+    "file": "orders-invalid-trailer.csv",
+    "physicalLines": 7,
+    "recordsRead": 7,
+    "unitsValidated": 2,
+    "unitsExecuted": 0,
+    "outcome": "Rejected",
+    "diagnosticLines": [7],
+    "requirement": "A late trailer total mismatch prevents execution of previously validated groups."
+  },
+  {
+    "file": "orders-invalid-structure.csv",
+    "physicalLines": 6,
+    "recordsRead": 6,
+    "unitsValidated": 1,
+    "unitsExecuted": 0,
+    "outcome": "Rejected",
+    "diagnosticLines": [2, 5],
+    "requirement": "CollectErrors reports an orphan and an unknown discriminator with physical anchors."
+  }
+]
