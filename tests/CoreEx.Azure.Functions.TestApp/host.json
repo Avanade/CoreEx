@@ -1,0 +1,10 @@
+{
+  "version": "2.0",
+  "telemetryMode": "OpenTelemetry",
+  "extensions": {
+    "blobs": {
+      "maxDegreeOfParallelism": 1,
+      "poisonBlobThreshold": 2
+    }
+  }
+}

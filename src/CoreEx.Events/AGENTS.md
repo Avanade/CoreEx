@@ -53,6 +53,8 @@ Use the default `EventFormatter`; only customise when you need non-standard Clou
 builder.Services.AddEventFormatter();   // registers EventFormatter as IEventFormatter
 ```
 
+From 4.4, ambient baggage capture and incoming baggage propagation are separate opt-in policies, both default false. Use `AddEventFormatter(formatter => formatter.CaptureBaggage = true)` for publishing ambient baggage, and `PropagateBaggage = true` on the owning `EventSubscriberBase` for receive propagation. Explicit `EventData.TraceBaggage`/`AddTracing` baggage and supplied envelope baggage remain wire data independently of capture. CloudEvent/native imports share bounded W3C parsing and preserve existing activity keys; trace linking remains automatic, and relay batches never import envelope baggage. Only enable propagation for trusted producers; baggage is not authenticated tenant/user context. Use standard trace attribute names for Service Bus mirroring and relay extraction.
+
 ## Subscribers
 
 Subscriber dispatch is handled by `SubscribedManager`. Subscriber classes are marked `[Subscribe("subject")]` and discovered automatically by `AddSubscribersUsing<T>()`.

@@ -69,7 +69,7 @@ Connection strings for each service in development are in each host's `appsettin
 ## Architecture
 - **Two roles**: framework packages (`src\`) + sample reference implementations (`samples\`).
 - **Business layers** (strict inward dependency — inner layers have no knowledge of outer): `*.Contracts` → `*.Domain` (optional) → `*.Application` → `*.Infrastructure`. Confirmed by project references: `*.Domain` references only `*.Contracts`; `*.Application` references `*.Contracts` and `*.Domain`; `*.Infrastructure` references `*.Application` (and transitively `*.Domain`) — never the reverse in either case.
-- **Host layers** (composition roots, no business logic): `*.Api`, `*.Relay`, `*.Subscribe`.
+- **Host layers** (composition roots, no business logic): `*.Api`, `*.Relay`, `*.Subscribe`, `*.Functions`. Functions supports shared application libraries or standalone capability-local handlers; use the scoped Functions instructions rather than ASP.NET startup recipes.
 - **Design-time tooling** (no runtime presence): `*.CodeGen` (generates reference-data layer from `ref-data.yaml`) and `*.Database` (schema, seeding, and outbox infrastructure via DbEx for relational domains; a Cosmos DB provisioning console for Cosmos domains).
 - **Sample flow**: Controllers → `WebApi` helpers → Application services (validate + `IUnitOfWork`) → Infrastructure repositories (EF/CoreEx.Cosmos + explicit mappers) → transactional outbox → relay publishes to Service Bus → subscribers consume.
 - **Polyglot data**: Products uses PostgreSQL (`CoreEx.Database.Postgres` + `CoreEx.EntityFrameworkCore`); Shopping uses SQL Server (`CoreEx.Database.SqlServer` + `CoreEx.EntityFrameworkCore`); Customers uses Azure Cosmos DB (`CoreEx.Cosmos`; direct SDK access, no EF Core, and a `*.Database` provisioning console instead of DbEx migrations/schema). Layers above Infrastructure are database-agnostic.
@@ -138,6 +138,7 @@ Connection strings for each service in development are in each host's `appsettin
   - OpenTelemetry wiring
   - middleware order with `UseCoreExExceptionHandler()`, `UseExecutionContext()`, and host-specific additions such as `UseIdempotencyKey()` or `MapHostedServices()`.
 - API hosts, subscriber hosts, and outbox relay hosts intentionally have different startup shapes. Do not collapse them into one generic startup unless the user explicitly asks for that refactor.
+- Functions isolated-worker hosts use native triggers, `UseCoreExExecutionContext`, MVC WebApi for HTTP and explicit Service Bus settlement; no competing receiver or automatic health endpoint. Use `/coreex-functions` for capabilities/tests and `/coreex-scaffold` for an empty host/test pair. Executable reference examples live in `tests\CoreEx.Azure.Functions.TestApp`, invocation tests in `tests\CoreEx.Azure.Functions.Test.Unit` and runtime proofs under `tests\aspire\`.
 
 ### Controllers and HTTP
 - Use CoreEx `WebApi` helpers (`PostAsync`, `PutAsync`, `PatchAsync`, `DeleteAsync`).
@@ -208,6 +209,7 @@ see [coreex-ai-workflows.md](./coreex-ai-workflows.md).
 | `/coreex-docs-sync` | Skill | Refresh the whole AI asset bundle (instructions, skills, prompts, the `coreex-expert` agent, and the `.github/docs/coreex/` doc cache) to a new pinned CoreEx version after a version bump. |
 | `/coreex-<capability>` | Skills (L1) + matching prompts | Add or modify one building block: `coreex-contract`, `coreex-refdata`, `coreex-db-migration`, `coreex-repository`, `coreex-adapter`, `coreex-app-service`, `coreex-validator`, `coreex-policy`, `coreex-aggregate`, `coreex-api`, `coreex-graphql`, `coreex-subscriber`, `coreex-aspire`, and `coreex-test-api` / `coreex-test-subscribe` / `coreex-test-relay`. |
 | `/coreex-*-e2e` | Skills (L2) + matching prompts | Complete new slices: `coreex-api-e2e`, `coreex-subscriber-e2e`, `coreex-command-publish-e2e`, and `coreex-command-subscribe-e2e`. |
+| `/coreex-functions` | Skill + prompt | Native HTTP/Service Bus/Blob/Timer capabilities and UnitTestEx tests in existing Functions apps. Scaffold the empty host/test pair with `dotnet new coreex-functions`; use `--shared-core false` for standalone integration. |
 | `/acquire-codebase-knowledge`, `/aspire` | Repository-only skills | Repo onboarding documentation; local Aspire orchestration. Not shipped by `coreex-ai`. |
 
 ## Guidance for Authoring Instructions and Skills

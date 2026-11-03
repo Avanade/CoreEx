@@ -45,6 +45,12 @@ public class EventFormatter : IEventFormatter
     public string TraceBaggageAttributeName { get; set => field = SetAndInitializeNameArray(value); } = "baggage";
 
     /// <summary>
+    /// Gets or sets whether publishing captures ambient activity baggage when inferring trace context.
+    /// </summary>
+    /// <remarks>Defaults to false. Explicit EventData baggage or AddTracing baggage arguments remain intentional wire data and are preserved independently of this setting.</remarks>
+    public bool CaptureBaggage { get; set; }
+
+    /// <summary>
     /// Gets or sets the <see cref="CloudEvent"/> extension attribute name for the <see cref="EventData.TenantId"/>.
     /// </summary>
     public string TenantIdAttributeName { get; set => field = SetAndInitializeNameArray(value); } = "tenantid";
@@ -310,13 +316,7 @@ public class EventFormatter : IEventFormatter
             @event.TraceState = val;
 
         if (cloudEvent.TryGetExtensionAttribute(TraceBaggageAttributeName, out val) && !string.IsNullOrEmpty(val))
-        {
-            var carrier = new Dictionary<string, string?> { ["baggage"] = val };
-            var propagationContext = _propagator.Extract(default, carrier, (msg, key) => msg.TryGetValue(key, out var value) ? [value!] : []);
-
-            if (propagationContext.Baggage.Count > 0)
-                @event.TraceBaggage = Baggage.GetBaggage(propagationContext.Baggage).Select(x => new KeyValuePair<string, string?>(x.Key, x.Value));
-        }
+            @event.TraceBaggage = EventBaggage.Parse(val);
 
         if (cloudEvent.Source is not null)
             @event.Source = cloudEvent.Source;
@@ -364,7 +364,7 @@ public class EventFormatter : IEventFormatter
             return;
 
         _initializeNameArray = false;
-        _nameArray = [.. CloudEventsSpecVersion.Default.AllAttributes.Select(x => x.Name), Partitioning.PartitionKeyAttribute.Name, TraceParentAttributeName, TraceStateAttributeName, TenantIdAttributeName, DataSchemaVersionAttributeName, AuthTypeAttributeName, AuthIdAttributeName, ReplyToAttributeName];
+        _nameArray = [.. CloudEventsSpecVersion.Default.AllAttributes.Select(x => x.Name), Partitioning.PartitionKeyAttribute.Name, TraceParentAttributeName, TraceStateAttributeName, TraceBaggageAttributeName, TenantIdAttributeName, DataSchemaVersionAttributeName, AuthTypeAttributeName, AuthIdAttributeName, ReplyToAttributeName];
     }
 
     /// <inheritdoc/>
@@ -378,7 +378,8 @@ public class EventFormatter : IEventFormatter
         {
             traceParent = Activity.Current.Id;
             traceState = Activity.Current.TraceStateString;
-            traceBaggage ??= Activity.Current.Baggage;
+            if (CaptureBaggage)
+                traceBaggage ??= Activity.Current.Baggage;
         }
 
         if (string.IsNullOrEmpty(traceParent))  

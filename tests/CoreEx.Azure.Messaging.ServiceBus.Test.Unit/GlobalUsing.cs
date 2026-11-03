@@ -1,0 +1,14 @@
+global using Azure.Messaging.ServiceBus;
+global using CoreEx.Events.Subscribing.Exceptions;
+global using CoreEx.Events.Subscribing;
+global using CoreEx.Events;
+global using CoreEx.Results;
+global using CoreEx.Validation;
+global using Microsoft.Extensions.Configuration;
+global using Microsoft.Extensions.DependencyInjection;
+global using Microsoft.Extensions.Logging.Abstractions;
+global using Microsoft.Extensions.Logging;
+global using ServiceBusTraceExtensions = OpenTelemetry.Trace.CoreExServiceBusExtensions;
+global using System.Diagnostics;
+global using System.Text.Json.Serialization;
+global using System.Text.Json;

@@ -1,10 +1,10 @@
 # CoreEx.Template
 
-> Provides the `dotnet new` template pack for scaffolding CoreEx-based domain microservice solutions -- seven composable templates, one `dotnet new install`.
+> Provides the `dotnet new` template pack for scaffolding CoreEx-based domain microservice solutions -- eight composable templates, one `dotnet new install`.
 
 ## Overview
 
-`CoreEx.Template` is a `PackageType=Template` NuGet package that installs seven `dotnet new` templates as a single unit. Together they cover AI workflow assets, the full project topology for a CoreEx domain-based microservice (shared solution core plus independently deployable host processes), an optional domain layer, and an optional Aspire AppHost for local orchestration.
+`CoreEx.Template` is a `PackageType=Template` NuGet package that installs eight `dotnet new` templates as a single unit. Together they cover AI workflow assets, the full project topology for a CoreEx domain-based microservice (shared solution core plus independently deployable host processes), an optional domain layer, and an optional Aspire AppHost for local orchestration.
 
 | Short name | Template | Emits |
 |---|---|---|
@@ -15,6 +15,7 @@
 | `coreex-relay` | CoreEx Outbox Relay host | `src/[name].Relay/` host project + `tests/[solution].Test.Relay/` integration test project |
 | `coreex-subscribe` | CoreEx Subscriber host | `src/[name].Subscribe/` host project + `tests/[solution].Test.Subscribe/` integration test project |
 | `coreex-aspire` | CoreEx Aspire AppHost | `aspire/[name].Aspire/` AppHost project orchestrating this solution's own hosts — add-on, run after the hosts it references already exist |
+| `coreex-functions` | CoreEx Azure Functions host | `src/[name]/` empty isolated-worker host + matching `tests/[host-prefix].Test.Functions/` project; no sample triggers or test cases |
 
 Parameters are consistent across templates -- the same `--data-provider`, `--messaging-provider`, and feature flags appear in every template that needs them, ensuring the generated code is coherent regardless of which templates you use.
 
@@ -50,12 +51,12 @@ dotnet new uninstall CoreEx.Template
 
 - `.github/instructions/coreex.instructions.md` -- CoreEx coding context (replaces `copilot-instructions.md`)
 - `.github/instructions/*.instructions.md` -- scoped coding conventions per layer/file type
-- `.github/skills/` -- 23 CoreEx skills: bootstrap, scaffold, docs-sync, 16 per-capability (L1) skills, and four end-to-end (L2) workflows
-- `.github/prompts/` -- 22 wrappers for bootstrap, scaffold, and all L1/L2 skills; docs-sync is invoked directly as a skill
+- `.github/skills/` -- 24 CoreEx skills: bootstrap, scaffold, docs-sync, 17 per-capability (L1) skills, and four end-to-end (L2) workflows
+- `.github/prompts/` -- 23 wrappers for bootstrap, scaffold, and all L1/L2 skills; docs-sync is invoked directly as a skill
 - `.github/agents/coreex-expert.agent.md` -- `/coreex-expert`: architecture guidance
 - `.claude/commands/coreex-expert.md` -- `/coreex-expert` for Claude Code
-- `.claude/commands/` -- 24 commands: one per CoreEx skill plus expert guidance; `/coreex-docs-sync` refreshes the entire version-pinned bundle after a package version bump
-- `.github/docs/coreex/` -- 12 architecture/setup docs, 18 package guides, and `manifest.txt` recording the installed `coreex-version`
+- `.claude/commands/` -- 25 commands: one per CoreEx skill plus expert guidance; `/coreex-docs-sync` refreshes the entire version-pinned bundle after a package version bump
+- `.github/docs/coreex/` -- 12 architecture/setup docs, 19 package guides, and `manifest.txt` recording the installed `coreex-version`
 
 The generic `acquire-codebase-knowledge` and `aspire` skills are framework-repository-only and are not emitted by `coreex-ai`. See the [full workflow inventory](../../.github/coreex-ai-workflows.md).
 
@@ -87,7 +88,7 @@ dotnet new coreex-ai
 /coreex-bootstrap
 ```
 
-Then answer the `/coreex-scaffold` questions. The workflow derives the required `coreex`, `coreex-domain` (optional), `coreex-api`, `coreex-relay`, `coreex-subscribe`, and `coreex-aspire` (optional) commands.
+Then answer the `/coreex-scaffold` questions. The workflow derives the required `coreex`, `coreex-domain` (optional), `coreex-api`, `coreex-relay`, `coreex-subscribe`, `coreex-functions`, and `coreex-aspire` (optional) commands. Standalone Functions apps use `coreex-functions --shared-core false` without the root `coreex` scaffold; `/coreex-functions` adds the first actual capability and meaningful tests.
 
 ---
 
@@ -141,29 +142,30 @@ This template emits nothing but `.github/` and `.claude/` artefacts: no `AGENTS.
     coreex-conventions.instructions.md
     coreex-domain.instructions.md
     coreex-event-subscribers.instructions.md
+    coreex-functions.instructions.md
     coreex-host-setup.instructions.md
     coreex-repositories.instructions.md
     coreex-tests.instructions.md
     coreex-tooling.instructions.md
     coreex-validators.instructions.md
   prompts/
-    coreex-*.prompt.md             # 22 wrappers: bootstrap, scaffold, and L1/L2 skills
+    coreex-*.prompt.md             # 23 wrappers: bootstrap, scaffold, and L1/L2 skills
   skills/
-    coreex-*/SKILL.md              # 23 CoreEx skills, with references/assets where applicable
+    coreex-*/SKILL.md              # 24 CoreEx skills, with references/assets where applicable
   agents/
     coreex-expert.agent.md
   coreex-ai-workflows.md           # Command catalog and asset guidance
   docs/coreex/
     manifest.txt                  # Installed coreex-version
     *.md                          # 12 architecture/setup docs
-    agents/*.md                   # 18 package guides
+    agents/*.md                   # 19 package guides
 .claude/
   commands/
     coreex-bootstrap.md            # /coreex-bootstrap blank-repo initialisation command
     coreex-scaffold.md             # /coreex-scaffold guided solution scaffolding command
     coreex-expert.md               # /coreex-expert architecture guidance command
     coreex-docs-sync.md            # /coreex-docs-sync version-pinned AI bundle refresh
-    coreex-*.md                   # L1/L2 skill wrappers (24 commands total)
+    coreex-*.md                   # L1/L2 skill wrappers (25 commands total)
 ```
 
 ### `--app-folder` behaviour
@@ -663,6 +665,81 @@ dotnet new coreex-aspire -n Avanade.Erp.Sales.Aspire --has-api true --has-relay 
 
 ---
 
+## Template 8 -- `coreex-functions` (Empty Functions host)
+
+Scaffolds one independently deployable Azure Functions isolated-worker app and its corresponding test project into an existing CoreEx solution. The host initializes CoreEx execution context and references the shared Application/Infrastructure libraries, but deliberately contains no functions, health endpoint, cache, database, broker connection or telemetry exporter. It does not automatically scan/register application services: add those registrations with their dependencies when a capability needs them, so unused services cannot prevent the empty host from starting. The test project references the host and includes UnitTestEx Functions, CoreEx test helpers, NUnit and AwesomeAssertions, without invented test cases. Trigger-specific registrations and meaningful tests belong with the first real capability.
+
+Run from the solution root with the full host name ending in `.Functions`. By default, the host references shared layers; use `--shared-core false` for a standalone integration app without those projects or a preceding `dotnet new coreex`. Unlike the other host templates, a separate `--solution-name` can select shared layers independently of the deployment name. Multiple Functions hosts can reuse the same layers without referencing one another or overwriting shared settings.
+
+### Parameters
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `-n` / `--name` | string | _(required)_ | Full host name, e.g. `Avanade.Erp.Sales.Functions` or `Avanade.Erp.Sales.Imports.Functions`. |
+| `--shared-core` | bool | `true` | Reference shared Application/Infrastructure projects and use the solution's central package versions. Set `false` for a standalone host and test project with explicit package versions. |
+| `--solution-name` | string | Host name without its final segment | Shared Application/Infrastructure project prefix, e.g. `Avanade.Erp.Sales`. Specify this for an additional workload segment or independently named host. In both modes it supplies the solution/domain identity in the host's worker configuration; standalone mode never references those projects. |
+
+### Output
+
+```text
+src/
+  [name]/
+    [name].csproj
+    Program.cs
+    GlobalUsing.cs
+    appsettings.json
+    host.json
+    local.settings.json
+    .gitignore
+    AGENTS.md
+tests/
+  [host-prefix].Test.Functions/
+    [host-prefix].Test.Functions.csproj
+    GlobalUsing.cs
+    .gitignore
+```
+
+With `--shared-core true`, the projects use the solution's central package versions. New `coreex` scaffolds include `CoreEx.Azure.Functions`, `Microsoft.Azure.Functions.Worker.Sdk` and `UnitTestEx.Azure.Functions` version entries. When adding this host to an older solution, add those entries to its existing `Directory.Packages.props` first: pin `CoreEx.Azure.Functions` to the solution's CoreEx version, Worker.Sdk to `2.1.0` and UnitTestEx.Azure.Functions to `6.0.0` (matching the other UnitTestEx packages). Do not regenerate the root scaffold over an existing solution. The Functions integration package currently brings HTTP and Service Bus support transitively; the empty template does not enable either trigger or add other binding packages.
+
+With `--shared-core false`, both projects supply their own .NET 10, nullable/implicit-using settings and explicit package versions (CoreEx is pinned to the installed template release). They opt out of Central Package Management locally, so the layout builds in an empty directory or alongside a solution using CPM, without writing or overwriting root build/package configuration. No solution file is generated; build/test by project path, or register the projects in a solution as needed. Standalone means no shared application-library dependencies, not no NuGet or platform dependencies.
+
+`local.settings.json` contains only `FUNCTIONS_WORKER_RUNTIME=dotnet-isolated`, is ignored by Git and is never published. Add required binding settings and storage configuration when choosing actual triggers; no emulator or secret is assumed. The worker's `appsettings.json` is not a replacement for Functions host/listener app settings.
+
+### Examples
+
+```sh
+# Standard host using the shared Avanade.Erp.Sales layers.
+dotnet new coreex-functions -n Avanade.Erp.Sales.Functions
+
+# A second independently deployable app sharing those same layers.
+dotnet new coreex-functions -n Avanade.Erp.Sales.Imports.Functions --solution-name Avanade.Erp.Sales
+
+dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Functions --solution-folder hosts
+dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Imports.Functions --solution-folder hosts
+dotnet sln Avanade.Erp.Sales.slnx add tests/Avanade.Erp.Sales.Test.Functions --solution-folder tests
+dotnet sln Avanade.Erp.Sales.slnx add tests/Avanade.Erp.Sales.Imports.Test.Functions --solution-folder tests
+dotnet build tests/Avanade.Erp.Sales.Test.Functions
+dotnet build tests/Avanade.Erp.Sales.Imports.Test.Functions
+```
+
+Standalone integration (no `coreex` solution scaffold required):
+
+```sh
+dotnet new coreex-functions -n Avanade.Integration.Imports.Functions --shared-core false
+dotnet build tests/Avanade.Integration.Imports.Test.Functions
+# Add real functions and their tests before running the test project.
+```
+
+One project is one Function App deployment/configuration/identity boundary. Split hosts for operational isolation, permissions, ownership or deployment cadence; do not automatically split by trigger type.
+
+Add capability folders when needed, for example `Imports/ImportFunction.cs` with its local transport types. Normally use one trigger class per file; related HTTP methods can share a class. Keep trigger methods thin: use shared Application/Infrastructure services when those layers exist, or focused capability-local handlers such as `Imports/BlobForwarder.cs` for a standalone integration. Extract libraries when actual reuse or complexity warrants them, not just for layering ceremony. Mirror capability folders in the generated test project and add UnitTestEx invocation tests with the first real function. Test project names replace the host's final `.Functions` with `.Test.Functions`, independently of `--solution-name`; `Sales.Imports.Functions` therefore gets `Sales.Imports.Test.Functions` without colliding with `Sales.Test.Functions`. Runtime binding/delivery assertions require Core Tools/Aspire rather than invocation tests alone.
+
+For HTTP functions, add `ConfigureFunctionsWebApplication()` immediately after builder creation, register `AddMvc()`/`AddMvcWebApi()` and use the existing MVC `WebApi`; do not copy ASP.NET middleware or `MapHealthChecks` into Functions. For Service Bus/Blob/Timer, add only the binding/configuration the workload needs. See [CoreEx.Azure.Functions](../CoreEx.Azure.Functions/README.md) for executable examples and the Functions-owned retry/settlement boundaries.
+
+An empty host may report "No job functions found" until its first trigger is added. This is intentional. Health functions are optional operational capabilities, not generated workload. Use `/coreex-functions` from the version-pinned `coreex-ai` bundle to add actual HTTP/Service Bus/Blob/Timer capabilities, their packages/configuration and meaningful UnitTestEx tests; its scoped instructions keep native Functions boundaries distinct from ASP.NET hosts.
+
+---
+
 ## Typical Workflow
 
 These templates are independent -- use only the ones your solution needs (an optional `coreex-domain` add-on can be scaffolded after Step 1 when DDD complexity warrants it; see the `coreex-domain` template above). The following shows a full event-driven microservice topology:
@@ -805,17 +882,17 @@ dotnet new coreex-subscribe -n Avanade.Erp.Sales.Subscribe
 
 ## Package Design Notes
 
-**Single install, six project-scaffolding templates.** All six ship inside the same NuGet package as `coreex-ai` (`PackageType=Template`). A single `dotnet new install CoreEx.Template` makes all short names available: `coreex`, `coreex-domain`, `coreex-api`, `coreex-relay`, `coreex-subscribe`, and `coreex-aspire`.
+**Single install, seven project-scaffolding templates.** All seven ship inside the same NuGet package as `coreex-ai` (`PackageType=Template`). A single `dotnet new install CoreEx.Template::<version>` makes all short names available: `coreex`, `coreex-domain`, `coreex-api`, `coreex-relay`, `coreex-subscribe`, `coreex-aspire`, and `coreex-functions`.
 
-**Version stamping.** Each `template.json` carries `COREEX_VERSION` as a placeholder. During `dotnet pack`, an inline MSBuild `ReplaceTextInFile` task stamps the actual `$(Version)` into generated copies of the five `template.json` files (`CoreEx.Ai`, `CoreEx.Core`, `CoreEx.Api`, `CoreEx.Relay`, `CoreEx.Subscribe`) before they are packed. The source copies in `content/` retain the placeholder and remain editable. `CoreEx.Domain` and `CoreEx.Aspire` have no `COREEX_VERSION` token (neither depends on a CoreEx NuGet package) and are packed directly, unstamped.
+**Version stamping.** During `dotnet pack`, an inline MSBuild `ReplaceTextInFile` task stamps the actual `$(Version)` into generated copies of the six `template.json` files carrying a `COREEX_VERSION` placeholder (`CoreEx.Ai`, `CoreEx.Core`, `CoreEx.Api`, `CoreEx.Relay`, `CoreEx.Subscribe`, `CoreEx.Functions`) before they are packed. The source copies in `content/` retain the placeholder and remain editable. `CoreEx.Domain` and `CoreEx.Aspire` have no `COREEX_VERSION` token and are packed directly, unstamped. Functions uses the stamped version only for standalone projects; shared-core mode uses the solution's central package versions.
 
-**Central Package Management.** All `PackageReference` entries in generated projects carry no `Version` attribute -- versions are resolved from the `Directory.Packages.props` emitted by the `coreex` solution template. The host templates therefore require that the `coreex` solution template has been applied first (since `Directory.Packages.props` lives at the solution root). `coreex-aspire` is the one exception: its single extra package (the `MessagePack` CVE override) uses a per-project `VersionOverride` instead, since it is designed to be run standalone without requiring a `Directory.Packages.props` update.
+**Central Package Management.** By default, generated `PackageReference` entries carry no `Version` attribute -- versions are resolved from the `Directory.Packages.props` emitted by the `coreex` solution template. These hosts require that shared solution configuration first. `coreex-aspire` uses a per-project `VersionOverride` for its extra MessagePack CVE override rather than updating the root file. `coreex-functions --shared-core false` explicitly opts its host and test projects out of CPM and supplies their package versions locally, requiring no shared solution configuration.
 
 **Conditional file exclusion.** The template engine's `sources.modifiers` with glob patterns handle all conditional file output -- no empty placeholder files are emitted. The `.slnx` solution file uses `specialCustomOperations` to enable `<!--#if-->` XML-style conditionals (the template engine does not recognise `.slnx` as XML by default).
 
-**`preferNameDirectory`.** All six project-scaffolding templates set `preferNameDirectory: false` so they generate into the current directory rather than creating an extra named subdirectory. The solution template generates its content directly into the current directory. Host templates (and the `coreex-domain`/`coreex-aspire` add-ons) generate their content into `src/[ProjectName]/` (and `tests/[solution-name].Test.X/` for hosts) subdirectories, which are created by the template itself as part of the source layout -- not by the `preferNameDirectory` mechanism.
+**`preferNameDirectory`.** All seven project-scaffolding templates set `preferNameDirectory: false` so they generate into the current directory rather than creating an extra named subdirectory. The solution template generates its content directly into the current directory. Host templates generate their content into `src/[ProjectName]/` and `tests/` subdirectories, which are created by the template itself as part of the source layout -- not by the `preferNameDirectory` mechanism. Aspire uses `aspire/`.
 
-**`solution-name` file renaming.** The `solution-name` derived symbol (everything before the last dot-segment of the `-n` value) carries `fileRename: "solution-name"` in all host templates. This causes directory names like `solution-name.Test.Api` to be substituted at generation time, producing correctly-named test project folders (e.g. `Avanade.Erp.Sales.Test.Api`) that match the CoreEx sample naming convention.
+**`solution-name` file renaming.** The Api/Relay/Subscribe host templates use a `solution-name` derived symbol (everything before the last dot-segment of the `-n` value) with `fileRename: "solution-name"`. This substitutes directory names like `solution-name.Test.Api` at generation time, producing correctly-named test project folders (e.g. `Avanade.Erp.Sales.Test.Api`). Functions resolves a separately overridable shared solution name for layer references; host and test output paths derive independently from the full host name.
 
 ## Validating Template Changes
 

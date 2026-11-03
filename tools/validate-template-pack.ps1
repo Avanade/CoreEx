@@ -54,6 +54,9 @@ Write-Verbose "Test root: $temporaryTestRoot"
 #   FilesAbsent   - paths relative to the output dir that MUST NOT exist
 #   FileContains  - hashtable of relative-path => required substring
 #   Build         - if $true, run dotnet build on the output dir after scaffolding
+#   Prepare       - optional scriptblock to compose a workload after scaffolding
+#   VerifyBuild   - optional assertions against the compiled output
+#   TestTargets   - optional project paths to run after a successful build
 # ---------------------------------------------------------------------------
 $testScenarios = @(
     @{
@@ -69,6 +72,13 @@ $testScenarios = @(
                 ".github/instructions/coreex-validators.instructions.md"
                 ".github/prompts/coreex-scaffold.prompt.md"
                 ".github/prompts/coreex-bootstrap.prompt.md"
+                ".github/prompts/coreex-functions.prompt.md"
+                ".github/instructions/coreex-functions.instructions.md"
+                ".github/skills/coreex-functions/SKILL.md"
+                ".github/skills/coreex-functions/references/workflow.md"
+                ".github/skills/coreex-functions/references/patterns.md"
+                ".github/docs/coreex/agents/CoreEx.Azure.Functions.md"
+                ".claude/commands/coreex-functions.md"
                 ".github/agents/coreex-expert.agent.md"
                 ".github/skills/coreex-bootstrap/SKILL.md"
                 ".github/skills/coreex-docs-sync/SKILL.md"
@@ -116,6 +126,9 @@ $testScenarios = @(
                 ".github/docs/coreex/agents/CoreEx.Data.md"                    = "OrderQueryArgsConfig : QueryArgsConfig<OrderQueryArgsConfig>"
                 ".github/prompts/coreex-repository.prompt.md"                  = "follow its authoritative workflow"
                 ".github/instructions/coreex-tests.instructions.md"            = "Derive expectations from requirements"
+                ".github/instructions/coreex-functions.instructions.md"        = 'applyTo: "**/*.Functions/**/*.cs,**/*.Test.Functions/**/*.cs"'
+                ".github/skills/coreex-functions/references/patterns.md"        = "SnapshotHttpResponse"
+                ".github/docs/coreex/agents/CoreEx.Azure.Functions.md"          = "AutoCompleteMessages = false"
             }
             FileNotContains = @{
                 ".github/instructions/coreex.instructions.md"                 = "Read each matching file in full"
@@ -140,6 +153,13 @@ $testScenarios = @(
                 ".github/skills/coreex-command-publish-e2e/SKILL.md"
                 ".github/skills/coreex-command-subscribe-e2e/SKILL.md"
                 ".github/instructions/coreex-aspire.instructions.md"
+                ".github/instructions/coreex-functions.instructions.md"
+                ".github/prompts/coreex-functions.prompt.md"
+                ".github/skills/coreex-functions/SKILL.md"
+                ".github/skills/coreex-functions/references/workflow.md"
+                ".github/skills/coreex-functions/references/patterns.md"
+                ".github/docs/coreex/agents/CoreEx.Azure.Functions.md"
+                ".claude/commands/coreex-functions.md"
                 ".github/docs/coreex/manifest.txt"
                 ".github/coreex-ai-workflows.md"
                 ".claude/commands/coreex-docs-sync.md"
@@ -154,6 +174,8 @@ $testScenarios = @(
                 ".github/instructions/coreex-api-controllers.instructions.md" = 'applyTo: "backend/'
                 ".github/docs/coreex/manifest.txt"                            = "coreex-version:"
                 ".github/skills/coreex-api/SKILL.md"                           = "Resolve context before coding"
+                ".github/instructions/coreex-functions.instructions.md"      = 'applyTo: "backend/**/*.Functions/**/*.cs,backend/**/*.Test.Functions/**/*.cs"'
+                ".github/instructions/coreex-tooling.instructions.md"        = ';!backend/**/*.Database/Schema/**/*.g.*"'
             }
         }
         Build      = $false
@@ -774,6 +796,193 @@ $testScenarios = @(
         )
     },
     @{
+        Name       = "coreex-functions-multiple-hosts"
+        Steps      = @(
+            @{ Template = "coreex"; Name = "Example.Integration.Orders"; Parameters = @{ "data-provider" = "None"; "messaging-provider" = "None"; "refdata-enabled" = "false"; "outbox-enabled" = "false" } }
+            @{ Template = "coreex-functions"; Name = "Example.Integration.Orders.Functions"; Parameters = @{} }
+            @{ Template = "coreex-functions"; Name = "Example.Imports.Functions"; Parameters = @{ "solution-name" = "Example.Integration.Orders" } }
+        )
+        TestPath   = "test-functions-multiple"
+        Verify     = @{
+            FilesPresent = @(
+                "src/Example.Integration.Orders.Functions/Program.cs"
+                "src/Example.Imports.Functions/Program.cs"
+                "src/Example.Imports.Functions/.gitignore"
+                "src/Example.Imports.Functions/local.settings.json"
+                "tests/Example.Integration.Orders.Test.Functions/Example.Integration.Orders.Test.Functions.csproj"
+                "tests/Example.Imports.Test.Functions/Example.Imports.Test.Functions.csproj"
+                "tests/Example.Imports.Test.Functions/GlobalUsing.cs"
+            )
+            FilesAbsent = @(
+                "tests/Example.Integration.Orders.Test.Functions/HostTests.cs"
+                "tests/Example.Imports.Test.Functions/HostTests.cs"
+                "src/Example.Imports.Functions/Health"
+                "src/Example.Imports.Functions/Imports"
+            )
+            FileContains = @{
+                "src/Example.Integration.Orders.Functions/Example.Integration.Orders.Functions.csproj" = "..\Example.Integration.Orders.Infrastructure\Example.Integration.Orders.Infrastructure.csproj"
+                "src/Example.Imports.Functions/Example.Imports.Functions.csproj" = "..\Example.Integration.Orders.Application\Example.Integration.Orders.Application.csproj"
+                "src/Example.Imports.Functions/appsettings.json" = '"SolutionName": "Example.Integration"'
+                "src/Example.Integration.Orders.Functions/appsettings.json" = '"DomainName": "Orders"'
+                "src/Example.Imports.Functions/.gitignore" = "local.settings.json"
+                "src/Example.Imports.Functions/local.settings.json" = '"FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated"'
+                "tests/Example.Imports.Test.Functions/Example.Imports.Test.Functions.csproj" = "..\..\src\Example.Imports.Functions\Example.Imports.Functions.csproj"
+                "tests/Example.Integration.Orders.Test.Functions/Example.Integration.Orders.Test.Functions.csproj" = "..\..\src\Example.Integration.Orders.Functions\Example.Integration.Orders.Functions.csproj"
+            }
+            FileNotContains = @{
+                "src/Example.Imports.Functions/Program.cs" = "ConfigureFunctionsWebApplication"
+                "src/Example.Imports.Functions/AGENTS.md" = "solution-name"
+                "src/Example.Imports.Functions/Example.Imports.Functions.csproj" = "<ManagePackageVersionsCentrally>false"
+                "tests/Example.Imports.Test.Functions/Example.Imports.Test.Functions.csproj" = "<ManagePackageVersionsCentrally>false"
+            }
+        }
+        Build        = $true
+        BuildTargets = @(
+            "tests/Example.Integration.Orders.Test.Functions/Example.Integration.Orders.Test.Functions.csproj"
+            "tests/Example.Imports.Test.Functions/Example.Imports.Test.Functions.csproj"
+        )
+        VerifyBuild = @{
+            FileContains = @{
+                "src/Example.Integration.Orders.Functions/bin/Debug/net10.0/functions.metadata" = "[]"
+                "src/Example.Imports.Functions/bin/Debug/net10.0/functions.metadata" = "[]"
+            }
+            FilesPresent = @(
+                "src/Example.Imports.Functions/bin/Debug/net10.0/host.json"
+                "src/Example.Imports.Functions/bin/Debug/net10.0/appsettings.json"
+            )
+        }
+    },
+    @{
+        Name       = "coreex-functions-http-composition"
+        Steps      = @(
+            @{ Template = "coreex"; Name = "Example.Integration.Catalog"; Parameters = @{ "data-provider" = "Postgres"; "messaging-provider" = "ServiceBus"; "refdata-enabled" = "true"; "outbox-enabled" = "true" } }
+            @{ Template = "coreex-functions"; Name = "Example.Integration.Catalog.Functions"; Parameters = @{} }
+        )
+        TestPath   = "test-functions-http"
+        # Compose only in the validation fixture: the user-facing template must remain empty.
+        Prepare = {
+            param($testDir)
+            $hostDir = Join-Path $testDir "src/Example.Integration.Catalog.Functions"
+            $programPath = Join-Path $hostDir "Program.cs"
+            $program = (Get-Content -LiteralPath $programPath -Raw).Replace(
+                "var builder = FunctionsApplication.CreateBuilder(args);",
+                "var builder = FunctionsApplication.CreateBuilder(args);`n        builder.ConfigureFunctionsWebApplication();`n        builder.Services.AddMvc();`n        builder.Services.AddMvcWebApi((_, webApi) => webApi.ConvertUnhandledExceptionsToProblemDetails = true);")
+            [System.IO.File]::WriteAllText($programPath, $program)
+            $capabilityDir = Join-Path $hostDir "Products"
+            New-Item -ItemType Directory -Path $capabilityDir -Force | Out-Null
+            [System.IO.File]::WriteAllText((Join-Path $capabilityDir "ProductFunctions.cs"), @'
+namespace Example.Integration.Catalog.Functions.Products;
+
+public sealed class ProductFunctions(CoreEx.AspNetCore.Mvc.WebApi webApi)
+{
+    [Microsoft.Azure.Functions.Worker.Function("ReadProduct")]
+    public Task<Microsoft.AspNetCore.Mvc.IActionResult> ReadAsync(
+        [Microsoft.Azure.Functions.Worker.HttpTrigger(Microsoft.Azure.Functions.Worker.AuthorizationLevel.Function, "get", Route = "products/{id}")] Microsoft.AspNetCore.Http.HttpRequest request,
+        string id, CancellationToken cancellationToken)
+        => webApi.GetAsync(request, (_, _) => Task.FromResult(id), cancellationToken: cancellationToken);
+}
+'@)
+            $testCapabilityDir = Join-Path $testDir "tests/Example.Integration.Catalog.Test.Functions/Products"
+            New-Item -ItemType Directory -Path $testCapabilityDir -Force | Out-Null
+            [System.IO.File]::WriteAllText((Join-Path $testCapabilityDir "ProductFunctionsTests.cs"), @'
+namespace Example.Integration.Catalog.Test.Functions.Products;
+
+public class ProductFunctionsTests
+{
+    [Test]
+    public void Read_UsesWebApi()
+    {
+        using var test = FunctionTester.Create<Example.Integration.Catalog.Functions.Products.ProductFunctions>();
+        var request = test.CreateHttpRequest(System.Net.Http.HttpMethod.Get, "products/example");
+        test.HttpTrigger<Example.Integration.Catalog.Functions.Products.ProductFunctions>()
+            .Run(f => f.ReadAsync(request, "example", CancellationToken.None))
+            .ToHttpResponseMessageAssertor(request)
+            .AssertOK()
+            .AssertValue("example");
+    }
+}
+'@)
+        }
+        Verify = @{
+            FilesPresent = @("src/Example.Integration.Catalog.Functions/Products/ProductFunctions.cs")
+            FileContains = @{
+                "src/Example.Integration.Catalog.Functions/Program.cs" = "builder.ConfigureFunctionsWebApplication();"
+            }
+        }
+        Build       = $true
+        BuildTarget = "tests/Example.Integration.Catalog.Test.Functions/Example.Integration.Catalog.Test.Functions.csproj"
+        TestTargets = @("tests/Example.Integration.Catalog.Test.Functions/Example.Integration.Catalog.Test.Functions.csproj")
+        VerifyBuild = @{
+            FileContains = @{
+                "src/Example.Integration.Catalog.Functions/bin/Debug/net10.0/functions.metadata" = '"name": "ReadProduct"'
+            }
+        }
+    },
+    @{
+        Name       = "coreex-functions-standalone"
+        Template   = "coreex-functions"
+        ProjectName = "Example.Integration.Catalog.Functions"
+        Parameters = @{ "shared-core" = "false" }
+        TestPath   = "test-functions-standalone"
+        Verify = @{
+            FilesPresent = @(
+                "src/Example.Integration.Catalog.Functions/Program.cs"
+                "tests/Example.Integration.Catalog.Test.Functions/Example.Integration.Catalog.Test.Functions.csproj"
+                "tests/Example.Integration.Catalog.Test.Functions/.gitignore"
+            )
+            FilesAbsent = @(
+                "Directory.Build.props"
+                "Directory.Packages.props"
+                "src/Example.Integration.Catalog.Application"
+                "src/Example.Integration.Catalog.Infrastructure"
+                "src/Example.Integration.Catalog.Contracts"
+            )
+            FileContains = @{
+                "src/Example.Integration.Catalog.Functions/Example.Integration.Catalog.Functions.csproj" = "<ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>"
+                "tests/Example.Integration.Catalog.Test.Functions/Example.Integration.Catalog.Test.Functions.csproj" = 'Include="UnitTestEx.Azure.Functions" Version="6.0.0"'
+                "src/Example.Integration.Catalog.Functions/AGENTS.md" = "standalone Azure Functions"
+            }
+            FileNotContains = @{
+                "src/Example.Integration.Catalog.Functions/Example.Integration.Catalog.Functions.csproj" = "ProjectReference"
+                "src/Example.Integration.Catalog.Functions/AGENTS.md" = "AssemblyMarker"
+                "tests/Example.Integration.Catalog.Test.Functions/Example.Integration.Catalog.Test.Functions.csproj" = "coreex-version"
+            }
+        }
+        Build       = $true
+        BuildTarget = "tests/Example.Integration.Catalog.Test.Functions/Example.Integration.Catalog.Test.Functions.csproj"
+        TestTargets = @("tests/Example.Integration.Catalog.Test.Functions/Example.Integration.Catalog.Test.Functions.csproj")
+        VerifyBuild = @{
+            FileContains = @{
+                "src/Example.Integration.Catalog.Functions/bin/Debug/net10.0/functions.metadata" = '"name": "ReadProduct"'
+            }
+        }
+    },
+    @{
+        Name       = "coreex-functions-standalone-in-shared-solution"
+        Steps      = @(
+            @{ Template = "coreex"; Name = "Example.Integration.Orders"; Parameters = @{ "data-provider" = "None"; "messaging-provider" = "None"; "refdata-enabled" = "false"; "outbox-enabled" = "false" } }
+            @{ Template = "coreex-functions"; Name = "Example.Imports.Functions"; Parameters = @{ "shared-core" = "false" } }
+        )
+        TestPath   = "test-functions-standalone-cpm"
+        Verify = @{
+            FileContains = @{
+                "Directory.Packages.props" = "<ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>"
+                "src/Example.Imports.Functions/Example.Imports.Functions.csproj" = "<ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>"
+            }
+            FileNotContains = @{
+                "src/Example.Imports.Functions/Example.Imports.Functions.csproj" = "ProjectReference"
+                "tests/Example.Imports.Test.Functions/Example.Imports.Test.Functions.csproj" = "Orders"
+            }
+        }
+        Build       = $true
+        BuildTarget = "tests/Example.Imports.Test.Functions/Example.Imports.Test.Functions.csproj"
+        VerifyBuild = @{
+            FileContains = @{
+                "src/Example.Imports.Functions/bin/Debug/net10.0/functions.metadata" = "[]"
+            }
+        }
+    },
+    @{
         Name       = "coreex-domain-regression"
         # Regression guard: coreex-domain's ProjectReference to Contracts previously resolved only
         # by accident, via substring overlap between the short sourceName "app-name" and the
@@ -796,6 +1005,10 @@ $testScenarios = @(
         BuildTarget = "src/App.Domain/App.Domain.csproj"
     }
 )
+
+# Exercise the same HTTP capability and invocation test in shared-core and standalone layouts.
+$httpCompositionScenario = $testScenarios | Where-Object { $_.Name -eq "coreex-functions-http-composition" }
+($testScenarios | Where-Object { $_.Name -eq "coreex-functions-standalone" }).Prepare = $httpCompositionScenario.Prepare
 
 function Write-Header {
     param([string]$Message)
@@ -1046,6 +1259,10 @@ try {
                 if ($LASTEXITCODE -ne 0) { throw "dotnet new failed" }
             }
 
+            if ($scenario.Prepare) {
+                & $scenario.Prepare $testDir
+            }
+
             # Assertions
             if ($scenario.Verify) {
                 Invoke-Assertion -TestDir $testDir -Verify $scenario.Verify -Failures ([ref]$scenarioFailures)
@@ -1096,6 +1313,23 @@ try {
                         Write-Fail "Build FAILED ($buildPath)"
                     } else {
                         Write-Pass "Build succeeded ($buildPath)"
+                    }
+                }
+
+                if ($scenario.VerifyBuild) {
+                    Invoke-Assertion -TestDir $testDir -Verify $scenario.VerifyBuild -Failures ([ref]$scenarioFailures)
+                }
+
+                if ($scenarioFailures.Count -eq 0) {
+                    foreach ($testTarget in $scenario.TestTargets) {
+                        $testPath = Join-Path $testDir $testTarget
+                        dotnet test $testPath --no-build --nologo --verbosity minimal
+                        if ($LASTEXITCODE -ne 0) {
+                            $scenarioFailures += "dotnet test failed for '$testPath'"
+                            Write-Fail "Tests FAILED ($testPath)"
+                        } else {
+                            Write-Pass "Tests succeeded ($testPath)"
+                        }
                     }
                 }
             }

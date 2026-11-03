@@ -28,6 +28,7 @@ CoreEx is a modular .NET framework for enterprise back-end services. It provides
 | `CoreEx.Database.Postgres` | PostgreSQL: unit of work, outbox publisher, outbox relay |
 | `CoreEx.Events` | Event publishing/subscribing: `EventData`, `IEventPublisher` |
 | `CoreEx.Azure.Messaging.ServiceBus` | Azure Service Bus: subscriber base classes, publisher, receiver wiring |
+| `CoreEx.Azure.Functions` | Isolated-worker invocation context, MVC WebApi/idempotency and explicit native Service Bus settlement |
 | `CoreEx.RefData` | Reference data: `ReferenceData<T>`, `ReferenceDataOrchestrator` |
 | `CoreEx.Caching.FusionCache` | Hybrid L1/L2 cache: FusionCache + Redis backplane |
 | `CoreEx.DomainDriven` | DDD: `Aggregate<TId,TSelf>`, `Entity<TId,TSelf>`, `PersistenceState` |
@@ -48,10 +49,13 @@ CoreEx does not impose a specific folder or project structure. The following lay
 | API host | `*.Api` | HTTP composition root — controllers and `Program.cs` |
 | Subscribe host | `*.Subscribe` | Message consumer composition root |
 | Outbox Relay host | `*.Relay` | Relay background service composition root |
+| Functions host | `*.Functions` | Native trigger composition root; shared business libraries or standalone local handlers |
 | Database tooling | `*.Database` | Design-time: schema, migrations, outbox provisioning (no runtime presence) |
 | CodeGen tooling | `*.CodeGen` | Design-time: reference-data C# generation (no runtime presence) |
 
 The Domain layer is **optional**. Introduce it only when the domain has aggregates with non-trivial invariants enforced at the model level. Simple CRUD-oriented domains can skip it entirely.
+
+Azure Functions is an additional host option, not another required layer. One Functions project is one deployment; several may reuse shared libraries, while standalone integration apps need no Application/Infrastructure/Contracts projects. Use `coreex-scaffold` for an empty host/test pair (`coreex-functions`, optional `--shared-core false`) and `coreex-functions` skill for real HTTP/Service Bus/Blob/Timer capabilities and tests. The [Functions instructions](/.github/instructions/coreex-functions.instructions.md) override ASP.NET startup examples for the isolated worker: native bindings own delivery, HTTP uses MVC WebApi, and no competing CoreEx receiver or automatic health endpoint is added.
 
 ## Universal Rules
 

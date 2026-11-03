@@ -6,13 +6,13 @@
 
 `CoreEx.Events` is the messaging backbone of the CoreEx framework. It defines the contracts and base implementations used by every host that sends or receives integration events — whether those are Azure Service Bus messages, outbox-relayed events, or any other transport.
 
-**Publishing** follows a two-phase pattern: application code buffers `EventData` (or `CloudEvent`) objects into a lightweight in-process queue, then a single `PublishAsync()` call drains the queue to the underlying transport atomically. An `IDestinationProvider` resolves topic/queue names from event metadata, and `IEventFormatter` converts between `EventData` and the CloudNative CloudEvents specification, attaching distributed tracing headers automatically.
+**Publishing** follows a two-phase pattern: application code buffers `EventData` (or `CloudEvent`) objects into a lightweight in-process queue, then a single `PublishAsync()` call drains the queue to the underlying transport atomically. An `IDestinationProvider` resolves topic/queue names from event metadata, and `IEventFormatter` converts between `EventData` and the CloudNative CloudEvents specification, attaching trace parent/state automatically; ambient baggage capture requires explicit opt-in.
 
 **Subscribing** is built around `EventSubscriberBase`, which receives a `CloudEvent` from the host transport, converts it back to `EventData` via `IEventFormatter`, and dispatches to the matching `SubscribedBase` handler registered with a `SubscribedManager`. Every error path — transient retries, dead-letter, silent completion, catastrophic failure — is expressed as a configurable `ErrorHandling` enum value, keeping subscriber code free of try/catch scaffolding.
 
 ## Key capabilities
 
-- 🔄 **`EventData` ↔ CloudEvents bridge**: `IEventFormatter` / `EventFormatter` convert between the CoreEx `EventData` envelope and the CloudNative CloudEvents spec, including distributed-tracing header propagation (`traceparent`, `tracestate`, baggage) attached when an event is *published*.
+- 🔄 **`EventData` ↔ CloudEvents bridge**: `IEventFormatter` / `EventFormatter` convert between the CoreEx `EventData` envelope and the CloudNative CloudEvents spec, including automatic trace parent/state propagation and explicit baggage policies.
 - 🔗 **Outbox relay trace-linking**: `CloudEventTracingExtensions.LinkTraceContext` reads a *previously-stored* event's `traceparent`/`tracestate` extension attributes back out and adds them as an `ActivityLink` on the current `Activity` - used by an outbox relay to connect its own publish span back to each original producer's trace (deliberately does not propagate `baggage`; see the XML doc remarks for why a batched, fan-in relay can't do that safely). Shared unchanged by `CoreEx.Database.Outbox` and `CoreEx.Cosmos.Outbox`'s relays.
 - 🧹 **App-wide payload redaction**: `EventFormatter.DataExcludePaths` applies a `CoreEx.Json.JsonFilter` exclude (recursive descent, e.g. `$..etag`) to every event's `Data` during `Format()`, so a property can be stripped from all published events in one place rather than at every `EventData.WithValue()` call site. Defaults to excluding `$..etag` — an optimistic-concurrency token that has no meaning to a downstream consumer and cannot be reliably captured for events raised transactionally via an outbox against a NoSQL store; set to `null`/empty to opt out.
 - 📤 **Queue-then-publish pipeline**: Events are buffered in-process and dispatched atomically via `PublishAsync()`; `Rollback(count)` and `Reset()` support outbox and retry patterns.
@@ -21,6 +21,16 @@
 - 🛡️ **Configurable error handling**: `ErrorHandling` enum values (`CompleteAsSilent`, `Retry`, `DeadLetter`, `Catastrophic`, and more) are mapped per exception type via a fluent `ErrorHandler` configurator — no boilerplate try/catch in subscriber code.
 - 📊 **OpenTelemetry metrics**: `EventSubscriberMetrics` exposes a `messages.received` counter via `System.Diagnostics.Metrics`; `EventPublisherInvoker` and `SubscribedInvoker` wrap operations in activity spans.
 - 🧩 **`MessageType` discrimination**: Distinguishes `Event`, `Command`, and `ReplyTo` semantics for destination-name generation.
+
+## Baggage policy and 4.4 migration
+
+**Behavior change for 4.4:** incoming CloudEvent baggage is no longer automatically imported into `Activity.Current`, and publishing no longer automatically captures ambient activity baggage. Trace parent/state capture and producer linking remain automatic; message processing, validation and settlement are unchanged.
+
+Enable receive propagation on the owning `EventSubscriberBase` (including `ServiceBusSubscribedSubscriber` or `ServiceBusSubscriberBase<TValue>`) with `PropagateBaggage = true`. This single policy covers both CloudEvent envelopes and native Service Bus application properties. The shared `EventBaggage` parser/importer rejects encoded headers over 8192 UTF-8 bytes, considers at most 64 entries per import, bounds decoded imports by their encoded size, and preserves all existing activity baggage keys. Malformed/oversized tracing metadata does not reject otherwise-valid event data. Transport metadata is imported first, so it wins over duplicate envelope keys when enabled. Baggage propagation does not require a trace parent and never creates an activity or authenticated tenant/user context.
+
+Enable ambient capture separately with `AddEventFormatter(formatter => formatter.CaptureBaggage = true)`. Explicit `EventData.TraceBaggage`, explicit `AddTracing(..., traceBaggage: ...)` arguments and baggage already present in a supplied CloudEvent remain intentional wire data, independent of ambient capture. Parsing an envelope retains bounded `EventData.TraceBaggage` even when activity import is disabled; the setting controls propagation, not removal of message metadata. Only opt in for trusted producers and approved baggage keys: baggage flows to downstream dependencies and can contain sensitive data.
+
+Outbox relay batch activities continue to link originating traces without importing any event's baggage, avoiding cross-event leakage. Formatter-configured trace attribute names are honored by envelope conversion; Service Bus transport mirroring and relay extraction still recognize standard trace names, so use the defaults for end-to-end transport/relay tracing.
 
 ## Key types
 

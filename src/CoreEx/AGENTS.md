@@ -52,6 +52,8 @@ For manual property validation failures, use `Result.ValidationError<Person>(x =
 
 Use `Result<T>` for expected business-error paths instead of throwing exceptions. Compose pipelines with `Then`, `ThenAs`, `GoAsync`, `ThenAsAsync`.
 
+Use `ThrowOnError()` when crossing back to exception-based handling. It and failed result value access preserve the original exception instance, type and existing stack trace, without adding aggregate wrappers (from 4.4). Explicit aggregates remain unchanged.
+
 ```csharp
 public async Task<Result<Order>> GetOrderAsync(Guid id)
 {

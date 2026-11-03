@@ -1,6 +1,6 @@
 ---
 applyTo: "**/Program.cs"
-description: "Host setup conventions for Program.cs: API host, Subscribe host, Outbox Relay host, middleware, service registration, and distributed caching"
+description: "Host setup conventions for Program.cs: API, Subscribe, Relay and Azure Functions routing, middleware, service registration and caching"
 tags: ["program-cs", "host-setup", "middleware", "dependency-registration", "caching"]
 ---
 
@@ -14,11 +14,13 @@ tags: ["program-cs", "host-setup", "middleware", "dependency-registration", "cac
 
 # Host Setup Conventions (Program.cs)
 
-The host is a **composition root only** — no business logic. There are three host types in a CoreEx solution depending on the capabilities required. Each follows the same opening skeleton, then diverges based on its responsibilities.
+The host is a **composition root only** — no business logic. Api, Subscribe and Relay follow the ASP.NET/hosted-service patterns below. Azure Functions is an additional host option with a different startup and trigger boundary.
+
+> **Functions exception:** for a `*.Functions` isolated-worker host, use [Functions instructions](/.github/instructions/coreex-functions.instructions.md) and [`coreex-functions`](/.github/skills/coreex-functions/SKILL.md). The ASP.NET startup/middleware/health/automatic service registration examples below do not apply. Use native triggers, `FunctionsApplication.CreateBuilder`, explicit `AddExecutionContext` / `UseCoreExExecutionContext`, and MVC WebApi only for HTTP. Standalone Functions apps need no shared application layers.
 
 > **Split vs. consolidate:** Api/Relay/Subscribe as separate processes is a workload-isolation convention, not a technical requirement — see [Hosts Layer Guide § Choosing a Host Topology](/.github/docs/coreex/hosts-layer.md#choosing-a-host-topology-split-vs-consolidate) before assuming a small/low-traffic solution needs all three.
 
-> **Related skill:** to scaffold a solution or an additional host (Api / Subscribe / Relay), invoke the [`coreex-scaffold`](/.github/skills/coreex-scaffold/SKILL.md) skill.
+> **Related skill:** to scaffold a solution or an additional host (Api / Subscribe / Relay / Functions), invoke the [`coreex-scaffold`](/.github/skills/coreex-scaffold/SKILL.md) skill.
 > This file holds the invariants for edits to a host `Program.cs`; the skill owns the creation procedure, interview, approval, solution wiring, and validation.
 
 > **Further Reading**: [Hosts Layer Guide](/.github/docs/coreex/hosts-layer.md) · [Layer Dependencies](/.github/docs/coreex/layers.md) · [Pattern Catalog](/.github/docs/coreex/patterns.md) (docs-sync cache; after `/coreex-docs-sync`). Source: [samples/docs/hosts-layer.md](https://github.com/Avanade/CoreEx/blob/main/samples/docs/hosts-layer.md) · [samples/docs/layers.md](https://github.com/Avanade/CoreEx/blob/main/samples/docs/layers.md) · [samples/docs/patterns.md](https://github.com/Avanade/CoreEx/blob/main/samples/docs/patterns.md).
@@ -55,6 +57,7 @@ Api, Subscribe, and Relay hosts are optional additions to the base `coreex` solu
 | Api | Author the requested controllers via `coreex-api`; do not re-scaffold. | `coreex-api` emits the host and test project; author only the requested endpoints afterward. |
 | Subscribe | Author the requested subscribers via `coreex-subscriber`; do not re-scaffold. | `coreex-subscribe` emits the host and test project; author only the requested handlers afterward. |
 | Relay | For an add/create request, report it as already present; do not re-scaffold or augment it. | `coreex-relay` is complete as emitted; do not add domain logic or unnecessary registrations/tests. |
+| Functions | Author the capability and tests via `coreex-functions`; do not re-scaffold. | `coreex-functions` emits an empty host and test project; shared-core by default, standalone with `--shared-core false`. |
 
 Preserve the recorded Feature Configuration and stop on disagreement with provider artefacts. Run addon templates from the solution root with the full suffixed name (`{Solution}.Api`, `{Solution}.Subscribe`, `{Solution}.Relay`); their `src/` and `tests/` paths are already part of the template. The scaffold skill owns the option mapping and commands.
 

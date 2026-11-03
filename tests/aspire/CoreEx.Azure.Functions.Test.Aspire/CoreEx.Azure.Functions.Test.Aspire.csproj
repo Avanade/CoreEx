@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks />
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="AwesomeAssertions" />
+    <PackageReference Include="Azure.Storage.Queues" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="NUnit" />
+    <PackageReference Include="NUnit3TestAdapter" />
+    <PackageReference Include="UnitTestEx.Aspire" />
+    <PackageReference Include="UnitTestEx.Azure.Functions" />
+    <PackageReference Include="UnitTestEx.NUnit" />
+    <ProjectReference Include="..\CoreEx.Azure.Functions.Test.AppHost\CoreEx.Azure.Functions.Test.AppHost.csproj" />
+    <ProjectReference Include="..\..\CoreEx.Azure.Functions.TestApp\CoreEx.Azure.Functions.TestApp.csproj" />
+  </ItemGroup>
+</Project>

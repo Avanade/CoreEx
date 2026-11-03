@@ -18,6 +18,12 @@ public abstract class EventSubscriberBase(IEventFormatter formatter, ILogger<Eve
     public ILogger Logger { get; } = logger.ThrowIfNull();
 
     /// <summary>
+    /// Gets or sets whether incoming baggage is imported into the current activity.
+    /// </summary>
+    /// <remarks>Defaults to false. Applies to CloudEvent envelopes and Service Bus transport properties; enable only for trusted producers. Existing keys are preserved and imports are bounded.</remarks>
+    public bool PropagateBaggage { get; set; }
+
+    /// <summary>
     /// Gets or sets the customizable <see cref="Subscribing.ErrorHandler"/> configuration.
     /// </summary>
     /// <remarks>The <see cref="ErrorHandler.AutoTransientHandling"/> is defaulted to <see langword="true"/> and the <see cref="ErrorHandler.WhereIsExtendedErrorHandling"/> is defaulted to <see cref="ErrorHandling.CompleteAsError"/>.</remarks>
@@ -99,19 +105,15 @@ public abstract class EventSubscriberBase(IEventFormatter formatter, ILogger<Eve
         if (this != args.Owner)
             args.Owner = this;
 
-        // When the event has tracing we should link and include any baggage. We link as we don't want to override the current activity but rather link to the originating event's activity.
+        // Link the producer without replacing the host activity; baggage propagation is a separate opt-in policy.
         if (!string.IsNullOrEmpty(@event.TraceParent) && Activity.Current is not null)
         {
-            if (ActivityContext.TryParse(@event.TraceParent, @event.TraceState, out var ac))
-            {
-                Activity.Current?.AddLink(new ActivityLink(ac));
-                if (@event.TraceBaggage is not null)
-                {
-                    foreach (var kvp in @event.TraceBaggage)
-                        Activity.Current?.AddBaggage(kvp.Key, kvp.Value);
-                }
-            }
+            if (ActivityContext.TryParse(@event.TraceParent, @event.TraceState, isRemote: true, out var ac))
+                Activity.Current.LinkTraceContext(ac);
         }
+
+        if (PropagateBaggage)
+            EventBaggage.Import(Activity.Current, @event.TraceBaggage);
 
         return await ReceiveWrapperAsync(args, async () =>
         {
@@ -135,7 +137,11 @@ public abstract class EventSubscriberBase(IEventFormatter formatter, ILogger<Eve
     /// <summary>
     /// Receives and processes the <paramref name="receiveAsync"/> function with standardized execution and error/exception handling.
     /// </summary>
-    private async Task<Result> ReceiveWrapperAsync(EventSubscriberArgs args, Func<Task<Result>> receiveAsync, CancellationToken cancellationToken)
+    /// <param name="args">The subscriber arguments.</param>
+    /// <param name="receiveAsync">The processing callback.</param>
+    /// <param name="cancellationToken">The receive cancellation token.</param>
+    /// <returns>The classified processing result.</returns>
+    protected async Task<Result> ReceiveWrapperAsync(EventSubscriberArgs args, Func<Task<Result>> receiveAsync, CancellationToken cancellationToken)
     {
         // Execute the internal receive logic.
         Result result;
@@ -158,6 +164,16 @@ public abstract class EventSubscriberBase(IEventFormatter formatter, ILogger<Eve
 
         return result;
     }
+
+    /// <summary>
+    /// Creates an invalid-data result for a transport-specific payload failure.
+    /// </summary>
+    /// <typeparam name="TValue">The payload type.</typeparam>
+    /// <param name="message">The failure message.</param>
+    /// <param name="exception">The optional underlying exception.</param>
+    /// <returns>A failure using the configured invalid-data disposition.</returns>
+    protected Result<TValue> InvalidDataResult<TValue>(string message, Exception? exception = null)
+        => new EventSubscriberReceiveException(message, InvalidDataHandling, exception);
 
     /// <summary>
     /// Deserializes the <see cref="EventData.Data"/> value to the specified <typeparamref name="TValue"/> type.

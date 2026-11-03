@@ -73,6 +73,7 @@ Keeps `.github/instructions/`, `.github/skills/`, `.github/prompts/`, `.github/a
     CoreEx.md
     CoreEx.AspNetCore.md
     CoreEx.AspNetCore.NSwag.md
+    CoreEx.Azure.Functions.md
     CoreEx.Azure.Messaging.ServiceBus.md
     CoreEx.Caching.FusionCache.md
     CoreEx.CodeGen.md

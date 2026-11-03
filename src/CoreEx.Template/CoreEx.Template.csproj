@@ -69,17 +69,18 @@
               var line = rawLine.TrimEnd('\r');
               if (!transformed && line.TrimStart().StartsWith("applyTo:"))
               {
-                  // When app-folder is set, prefix the original pattern with the subfolder so each
-                  // instruction file retains its own scope (e.g. **/*Validator*.cs stays targeted).
+                  // Prefix every pattern, preserving delimiters, whitespace and exclusion markers.
                   // When absent, preserve the original per-file applyTo pattern unchanged.
                   var colonIdx = line.IndexOf(':');
                   var originalPattern = line.Substring(colonIdx + 1).Trim().Trim('"');
+                  var scopedPattern = System.Text.RegularExpressions.Regex.Replace(originalPattern, @"(^|[,;])(\s*)(!?)",
+                      match => match.Groups[1].Value + match.Groups[2].Value + match.Groups[3].Value + "__COREEX_AI_APP_FOLDER_TOKEN__/");
                   // __COREEX_AI_APP_FOLDER_TOKEN__ is a sentinel, not the literal text "app-folder": the
                   // app-folder symbol's "replaces" value is a global text-replace across every packed file,
                   // so using the human-readable name here would also corrupt any prose mentioning "app-folder"
                   // (e.g. "--app-folder" in SKILL.md/README.md) elsewhere in the CoreEx.Ai bundle.
                   sb.AppendLine("<!-- #if hasAppFolder -->");
-                  sb.AppendLine("applyTo: \"__COREEX_AI_APP_FOLDER_TOKEN__/" + originalPattern + "\"");
+                  sb.AppendLine("applyTo: \"" + scopedPattern + "\"");
                   sb.AppendLine("<!-- #else -->");
                   sb.AppendLine(line);
                   sb.AppendLine("<!-- #endif -->");
@@ -144,6 +145,7 @@
     <InjectAppFolderConditional SourceFile="$(_RepoRoot).github/instructions/coreex-conventions.instructions.md" DestinationFile="$(_AiAiGenRoot).github/instructions/coreex-conventions.instructions.md" />
     <InjectAppFolderConditional SourceFile="$(_RepoRoot).github/instructions/coreex-domain.instructions.md" DestinationFile="$(_AiAiGenRoot).github/instructions/coreex-domain.instructions.md" />
     <InjectAppFolderConditional SourceFile="$(_RepoRoot).github/instructions/coreex-event-subscribers.instructions.md" DestinationFile="$(_AiAiGenRoot).github/instructions/coreex-event-subscribers.instructions.md" />
+    <InjectAppFolderConditional SourceFile="$(_RepoRoot).github/instructions/coreex-functions.instructions.md" DestinationFile="$(_AiAiGenRoot).github/instructions/coreex-functions.instructions.md" />
     <InjectAppFolderConditional SourceFile="$(_RepoRoot).github/instructions/coreex-host-setup.instructions.md" DestinationFile="$(_AiAiGenRoot).github/instructions/coreex-host-setup.instructions.md" />
     <InjectAppFolderConditional SourceFile="$(_RepoRoot).github/instructions/coreex-repositories.instructions.md" DestinationFile="$(_AiAiGenRoot).github/instructions/coreex-repositories.instructions.md" />
     <InjectAppFolderConditional SourceFile="$(_RepoRoot).github/instructions/coreex-tests.instructions.md" DestinationFile="$(_AiAiGenRoot).github/instructions/coreex-tests.instructions.md" />
@@ -162,6 +164,9 @@
           SkipUnchangedFiles="true" />
 
     <!-- CoreEx.Ai: copy additional skills + their prompt wrappers (prefer one block per skill for clarity). -->
+    <Copy SourceFiles="$(_RepoRoot).github/prompts/coreex-functions.prompt.md;$(_RepoRoot).github/skills/coreex-functions/SKILL.md;$(_RepoRoot).github/skills/coreex-functions/references/workflow.md;$(_RepoRoot).github/skills/coreex-functions/references/patterns.md;$(_RepoRoot).claude/commands/coreex-functions.md"
+          DestinationFiles="$(_AiAiGenRoot).github/prompts/coreex-functions.prompt.md;$(_AiAiGenRoot).github/skills/coreex-functions/SKILL.md;$(_AiAiGenRoot).github/skills/coreex-functions/references/workflow.md;$(_AiAiGenRoot).github/skills/coreex-functions/references/patterns.md;$(_AiAiGenRoot).claude/commands/coreex-functions.md"
+          SkipUnchangedFiles="true" />
     <Copy SourceFiles="$(_RepoRoot).github/prompts/coreex-db-migration.prompt.md;$(_RepoRoot).github/skills/coreex-db-migration/SKILL.md;$(_RepoRoot).github/skills/coreex-db-migration/references/workflow.md;$(_RepoRoot).claude/commands/coreex-db-migration.md"
           DestinationFiles="$(_AiAiGenRoot).github/prompts/coreex-db-migration.prompt.md;$(_AiAiGenRoot).github/skills/coreex-db-migration/SKILL.md;$(_AiAiGenRoot).github/skills/coreex-db-migration/references/workflow.md;$(_AiAiGenRoot).claude/commands/coreex-db-migration.md"
           SkipUnchangedFiles="true" />
@@ -230,6 +235,7 @@
     <ItemGroup>
       <_AiDocFile Include="$(_RepoRoot)src/CoreEx/AGENTS.md" DestSubPath=".github/docs/coreex/agents/CoreEx.md" />
       <_AiDocFile Include="$(_RepoRoot)src/CoreEx.AspNetCore/AGENTS.md" DestSubPath=".github/docs/coreex/agents/CoreEx.AspNetCore.md" />
+      <_AiDocFile Include="$(_RepoRoot)src/CoreEx.Azure.Functions/AGENTS.md" DestSubPath=".github/docs/coreex/agents/CoreEx.Azure.Functions.md" />
       <_AiDocFile Condition="Exists('$(_RepoRoot)src/CoreEx.AspNetCore.NSwag/AGENTS.md')" Include="$(_RepoRoot)src/CoreEx.AspNetCore.NSwag/AGENTS.md" DestSubPath=".github/docs/coreex/agents/CoreEx.AspNetCore.NSwag.md" />
       <_AiDocFile Include="$(_RepoRoot)src/CoreEx.Azure.Messaging.ServiceBus/AGENTS.md" DestSubPath=".github/docs/coreex/agents/CoreEx.Azure.Messaging.ServiceBus.md" />
       <_AiDocFile Include="$(_RepoRoot)src/CoreEx.Caching.FusionCache/AGENTS.md" DestSubPath=".github/docs/coreex/agents/CoreEx.Caching.FusionCache.md" />
@@ -297,12 +303,14 @@
     <ReplaceTextInFile SourceFile="$(MSBuildThisFileDirectory)content/CoreEx.Api/.template.config/template.json" DestinationFile="$(_GenRoot)CoreEx.Api/.template.config/template.json" FindText="COREEX_VERSION" ReplaceText="$(Version)" />
     <ReplaceTextInFile SourceFile="$(MSBuildThisFileDirectory)content/CoreEx.Relay/.template.config/template.json" DestinationFile="$(_GenRoot)CoreEx.Relay/.template.config/template.json" FindText="COREEX_VERSION" ReplaceText="$(Version)" />
     <ReplaceTextInFile SourceFile="$(MSBuildThisFileDirectory)content/CoreEx.Subscribe/.template.config/template.json" DestinationFile="$(_GenRoot)CoreEx.Subscribe/.template.config/template.json" FindText="COREEX_VERSION" ReplaceText="$(Version)" />
+    <ReplaceTextInFile SourceFile="$(MSBuildThisFileDirectory)content/CoreEx.Functions/.template.config/template.json" DestinationFile="$(_GenRoot)CoreEx.Functions/.template.config/template.json" FindText="COREEX_VERSION" ReplaceText="$(Version)" />
     <ItemGroup>
       <None Include="$(_GenRoot)CoreEx.Ai/.template.config/template.json" Pack="true" PackagePath="content/CoreEx.Ai/.template.config/template.json" />
       <None Include="$(_GenRoot)CoreEx.Core/.template.config/template.json" Pack="true" PackagePath="content/CoreEx.Core/.template.config/template.json" />
       <None Include="$(_GenRoot)CoreEx.Api/.template.config/template.json" Pack="true" PackagePath="content/CoreEx.Api/.template.config/template.json" />
       <None Include="$(_GenRoot)CoreEx.Relay/.template.config/template.json" Pack="true" PackagePath="content/CoreEx.Relay/.template.config/template.json" />
       <None Include="$(_GenRoot)CoreEx.Subscribe/.template.config/template.json" Pack="true" PackagePath="content/CoreEx.Subscribe/.template.config/template.json" />
+      <None Include="$(_GenRoot)CoreEx.Functions/.template.config/template.json" Pack="true" PackagePath="content/CoreEx.Functions/.template.config/template.json" />
     </ItemGroup>
   </Target>
 

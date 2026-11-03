@@ -23,10 +23,10 @@ public interface IEventFormatter
     /// Adds tracing to the <see cref="CloudEvent"/>.
     /// </summary>
     /// <param name="cloudEvent">The <see cref="CloudEvent"/>.</param>
-    /// <param name="traceParent">The optional trace parent; defaults to <see cref="Activity.TraceId"/>.</param>
+    /// <param name="traceParent">The optional trace parent; defaults to the current <see cref="Activity.Id"/>.</param>
     /// <param name="traceState">The optional trace state; defaults to <see cref="Activity.TraceStateString"/>.</param>
-    /// <param name="traceBaggage">The optional trace baggage; defaults to <see cref="Activity.Baggage"/>.</param>
-    /// <remarks>To add, as a minimum the <paramref name="traceParent"/> must be specified.</remarks>
+    /// <param name="traceBaggage">The optional explicit baggage; ambient capture is controlled by the formatter's publishing policy.</param>
+    /// <remarks>The default EventFormatter captures ambient baggage only when EventFormatter.CaptureBaggage is enabled. A supplied or ambient trace parent is required.</remarks>
     void AddTracing(CloudEvent cloudEvent, string? traceParent = null, string? traceState = null, IEnumerable<KeyValuePair<string, string?>>? traceBaggage = null);
 
     /// <summary>

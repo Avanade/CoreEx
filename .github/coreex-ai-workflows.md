@@ -28,7 +28,7 @@ This folder contains the AI artefacts that give GitHub Copilot and Claude Code a
 - Claude Code: `@coreex-expert`
 - Copilot Chat: switch to **Agent** mode and select **CoreEx Expert**
 
-The agent uses a local doc cache installed by `dotnet new coreex-ai` and refreshed by `/coreex-docs-sync` to avoid live GitHub fetches on every question. It covers all 18 CoreEx package guides, distinguishing packages referenced by the project from ones it could adopt. See the [agent README](./agents/README.md) for the resolution flowchart, cache structure, and adoption guide.
+The agent uses a local doc cache installed by `dotnet new coreex-ai` and refreshed by `/coreex-docs-sync` to avoid live GitHub fetches on every question. It covers all 19 CoreEx package guides, distinguishing packages referenced by the project from ones it could adopt. See the [agent README](./agents/README.md) for the resolution flowchart, cache structure, and adoption guide.
 
 ## Instructions
 
@@ -48,6 +48,7 @@ Instructions are passive — no action is needed to activate them. The global fi
 | `coreex-tests.instructions.md` | Test files — UnitTestEx, NUnit, AwesomeAssertions, outbox/event assertions |
 | `coreex-domain.instructions.md` | Domain files — aggregates, mutation guards, `Result<T>` pipelines |
 | `coreex-aspire.instructions.md` | Aspire files — AppHost wiring, service-bus topology, MockHost/third-party HTTP, `Test.Aspire` lifecycle |
+| `coreex-functions.instructions.md` | `*.Functions` / `*.Test.Functions` C# — native triggers, worker composition, WebApi/idempotency, settlement and test boundaries |
 
 ## Prompts, Skills, and Templates
 
@@ -73,7 +74,7 @@ A version mismatch between the installed AI-asset bundle (`.github/docs/coreex/m
 
 ### Command catalog
 
-The consumer bundle contains **23 CoreEx skills** (16 L1, four L2, bootstrap, scaffold, and docs-sync), **22 prompt wrappers**, **24 Claude commands** (one per skill plus expert guidance), **12 scoped instructions** plus the consumer global instruction, and one expert agent. The two generic repository-only skills below are not shipped by `coreex-ai`.
+The consumer bundle contains **24 CoreEx skills** (17 L1, four L2, bootstrap, scaffold, and docs-sync), **23 prompt wrappers**, **25 Claude commands** (one per skill plus expert guidance), **13 scoped instructions** plus the consumer global instruction, and one expert agent. The two generic repository-only skills below are not shipped by `coreex-ai`.
 
 | Command | Type | What it does |
 |---------|------|-------------|
@@ -86,7 +87,7 @@ The consumer bundle contains **23 CoreEx skills** (16 L1, four L2, bootstrap, sc
 
 #### Per-capability skills (L1)
 
-Sixteen skills add or modify a single CoreEx capability on an existing solution. Each is invoked as `/coreex-<name>` in Claude Code (via its `.claude/commands/coreex-<name>.md` thin wrapper) or via the matching [`prompts/coreex-<name>.prompt.md`](./prompts/) in Copilot — 1:1 by name across all three (skill, prompt, Claude command). Every skill reads the solution-root `AGENTS.md` **Feature Configuration** first to avoid redundant questioning.
+Seventeen skills add or modify a single CoreEx capability on an existing solution. Each is invoked as `/coreex-<name>` in Claude Code (via its `.claude/commands/coreex-<name>.md` thin wrapper) or via the matching [`prompts/coreex-<name>.prompt.md`](./prompts/) in Copilot — 1:1 by name across all three (skill, prompt, Claude command). Skills resolve the solution-root `AGENTS.md` **Feature Configuration** before asking about shared features; standalone Functions apps instead use their host guidance and project configuration.
 
 | Skill / prompt | Capability |
 |----------------|-----------|
@@ -101,6 +102,7 @@ Sixteen skills add or modify a single CoreEx capability on an existing solution.
 | [`coreex-aggregate`](./skills/coreex-aggregate/) | DDD aggregate / domain entity |
 | [`coreex-api`](./skills/coreex-api/) | API controller / endpoint |
 | [`coreex-graphql`](./skills/coreex-graphql/) | GraphQL-lite query bridge (`CoreEx.Data.GraphQL`) on an API host |
+| [`coreex-functions`](./skills/coreex-functions/) | Native HTTP/Service Bus/Blob/Timer capabilities and UnitTestEx tests; shared-core or standalone Functions hosts |
 | [`coreex-subscriber`](./skills/coreex-subscriber/) | Event or command subscriber |
 | [`coreex-test-api`](./skills/coreex-test-api/) | API tests |
 | [`coreex-test-subscribe`](./skills/coreex-test-subscribe/) | Subscriber tests |

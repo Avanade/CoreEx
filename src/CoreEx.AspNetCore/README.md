@@ -10,6 +10,8 @@ The centrepiece is `WebApi`, which controllers and Minimal API handlers inject a
 
 Two concrete `WebApi` implementations ship: `Mvc.WebApi` returning `IActionResult` for MVC controllers, and `Http.WebApi` returning `IResult` for Minimal API endpoints. Both share the same abstract base (`WebApi<TResult>`) and invoker infrastructure.
 
+For HTTP adapters with a pre-processing exception boundary, `webApi.CreateErrorResult(request, exception, cancellationToken)` creates an error result using the same instance's classification, logging, ProblemDetails/custom representation and unexpected-exception policy. Own-operation cancellation propagates. The caller executes the returned result; errors during that execution are not caught and rendered again.
+
 ## Key capabilities
 
 - 🌐 **WebApi execution helper**: `WebApi` encapsulates GET/HEAD, POST (with idempotency), PUT, PATCH (JSON Merge Patch), and DELETE patterns with standardized request validation, deserialization, ETag checks, and response serialization.
