@@ -58,6 +58,31 @@ See the [Extended Exceptions](#extended-exceptions) section below for the full l
 
 `Result.ThrowOnError()`, `Result<T>.ThrowOnError()` and failed result value access throw the original exception, preserving its instance, type and existing stack trace. Repeated result boundaries do not introduce `AggregateException` wrappers; explicitly aggregated errors remain aggregated. From 4.4, callers that previously caught an automatically added wrapper must catch the underlying exception instead.
 
+## Nested scoped execution
+
+Use `ExecutionContext.RunScopedAsync` for independently scoped units within an existing request, invocation, or file coordinator. It creates an async DI scope, resolves `ExecutionContext` through the registered factory, invokes optional context configuration before the operation resolves business services, and awaits the operation and scope disposal. Both value-returning and non-value-returning overloads are available. Results return unchanged; faults and cancellation propagate.
+
+```csharp
+var result = await ExecutionContext.RunScopedAsync(serviceProvider, async (context, ct) =>
+{
+    var service = context.ServiceProvider.ThrowIfNull().GetRequiredService<OrderService>();
+    return await service.ExecuteAsync(order, ct).ConfigureAwait(false);
+}, configure: (parent, context) =>
+{
+    // Propagate only identity established by the trusted caller.
+    if (parent is not null)
+    {
+        context.User = parent.User;
+        context.TenantId = parent.TenantId;
+        context.UICulture = parent.UICulture;
+    }
+}, cancellationToken: cancellationToken).ConfigureAwait(false);
+```
+
+The parent is detached non-destructively before DI resolution and restored after disposal on success, Result failure, configuration/factory/operation/disposal faults, or cancellation. The caller retains its ambient context while the asynchronous unit is pending; nested and concurrent units use separate scopes and contexts. Ordinary `AddExecutionContext` resolution retains its existing reset-and-replace behavior; this helper does not change host middleware or timer ownership.
+
+Registered factories must return fresh scope-owned contexts, not singleton or parent instances. No parent fields are copied implicitly: deliberately select trusted user/tenant/culture and approved metadata in `configure`, including custom properties on derived contexts. Do not copy the parent service provider, timestamp, messages, mutable accumulators, or operation state. Registration callbacks run during context resolution; context-dependent business services must be resolved only after the helper's configuration callback. The helper does not establish a transaction or idempotency guarantee, retry operations, or make unawaited work safe. DI owns dependency disposal; if a dependency's disposal throws, the helper still disposes its context and restores the parent, but cannot guarantee disposal of other services that DI skipped.
+
 ## Optional patch values
 
 For partial-update request DTOs, `Optional<T>` distinguishes an omitted property from a supplied `null` or default value. `default(Optional<T>)` is unspecified; implicit conversion from `T` and `Optional<T>.Specified(value)` create a specified value. Its JSON converter reads and writes the inner value shape, while CoreEx's `WhenWritingDefault` serializer setting omits unspecified properties. OpenAPI exposes the inner type and nullability while leaving the property non-required.
