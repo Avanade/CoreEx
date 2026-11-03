@@ -21,26 +21,43 @@ public abstract partial class WebApi<TResult>(WebApiInvoker<TResult> invoker, Js
     /// <param name="function">The function to execute.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
     /// <param name="memberName">The calling member name (uses <see cref="CallerMemberNameAttribute"/> to default).</param>
-    protected async Task<TResult> InvokeAsync(HttpRequest request, Func<CancellationToken, Task<TResult>> function, CancellationToken cancellationToken, [CallerMemberName] string? memberName = null) => await _invoker.InvokeAsync(this, async (_, cancellationToken) =>
+    protected Task<TResult> InvokeAsync(HttpRequest request, Func<CancellationToken, Task<TResult>> function, CancellationToken cancellationToken, [CallerMemberName] string? memberName = null)
+        => InvokeWithResultAsync(request, async ct => new WebApiResult<TResult>(request.HttpContext.Response) { Result = await function(ct).ConfigureAwait(false) }, cancellationToken, memberName);
+
+    /// <summary>
+    /// Executes an operation before rendering its result outside the exception-catching boundary.
+    /// </summary>
+    private async Task<TResult> InvokeWithResultAsync(HttpRequest request, Func<CancellationToken, Task<WebApiResult<TResult>>> function, CancellationToken cancellationToken, string? memberName)
+        => await _invoker.InvokeAsync(this, async (_, cancellationToken) =>
     {
+        WebApiResult<TResult> result;
+        var addMessages = true;
         try
         {
-            var result = await function(cancellationToken).ConfigureAwait(false);
-            if (ExecutionContext.TryGetCurrent(out var ec))
-                ExecutionContextMiddleware.AddMessagesHeader(request.HttpContext, ec);
-
-            return result;
+            result = await function(cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex) when (ex is IExtendedException eex && eex.IsError)
         {
-            return CreateResult(new WebApiResult<TResult>(request.HttpContext.Response) { Exception = ex });
+            result = new WebApiResult<TResult>(request.HttpContext.Response) { Exception = ex };
+            addMessages = false;
         }
         // A cancellation attributable to *this* request's own cancellationToken (e.g. a client disconnect) is intended to bubble up unclassified - even when
         // ConvertUnhandledExceptionsToProblemDetails is enabled - rather than being logged at Error and converted into a 500 that the disconnected client can never receive.
         catch (Exception ex) when (ConvertUnhandledExceptionsToProblemDetails && !ex.IsCanceledBy(cancellationToken))
         {
-            return CreateResult(new WebApiResult<TResult>(request.HttpContext.Response) { Exception = ex });
+            result = new WebApiResult<TResult>(request.HttpContext.Response) { Exception = ex };
+            addMessages = false;
         }
+
+        // Returned failures must follow the same cancellation policy as thrown failures.
+        if (result.Exception is not null && result.Exception.IsCanceledBy(cancellationToken))
+            System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(result.Exception).Throw();
+
+        var response = CreateResult(result);
+        if (addMessages && ExecutionContext.TryGetCurrent(out var ec))
+            ExecutionContextMiddleware.AddMessagesHeader(request.HttpContext, ec);
+
+        return response;
     }, cancellationToken, memberName).ConfigureAwait(false);
 
     /// <summary>
@@ -126,11 +143,18 @@ public abstract partial class WebApi<TResult>(WebApiInvoker<TResult> invoker, Js
                 Headers = new WebApiHeader { ETag = getag, Location = location }
             };
 
+        if (options.StatusCode is HttpStatusCode.NoContent or HttpStatusCode.NotModified)
+            return new WebApiResult<TResult>(options.Request.HttpContext.Response)
+            {
+                StatusCode = options.StatusCode,
+                Headers = new WebApiHeader { ETag = getag, Location = location, PagingResult = paging }
+            };
+
         // All others should return content.
         return new WebApiResult<TResult>(options.Request.HttpContext.Response)
         {
             Content = json,
-            ContentType = MediaTypeNames.Application.Json,
+            ContentType = options.ContentType ?? DefaultJsonMediaType,
             StatusCode = options.StatusCode,
             Headers = new WebApiHeader
             {

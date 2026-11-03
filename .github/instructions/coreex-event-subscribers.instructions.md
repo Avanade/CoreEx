@@ -37,6 +37,8 @@ Each subscriber is a small, focused class that:
 
 All subscribers are decorated with `[ScopedService]` for automatic DI discovery. Dependencies are injected via primary constructor and guarded with `.ThrowIfNull()`.
 
+**Choose broker settlement explicitly.** `ValidationException`/`BusinessException` default to `CompleteAsError`: CoreEx logs the failure and the Service Bus receiver completes (acknowledges) the message. Invalid payload handling also defaults to `CompleteAsError`. Neither means retry or dead-letter; use the subscriber skill to choose the intended disposition for business/validation failures and invalid payloads.
+
 ### Untyped subscriber — `SubscribedBase`
 
 Use when the relevant data is carried in the message key rather than a typed payload. Extract the key with `.Required()`, which throws a `ValidationException` if the key is absent:
@@ -76,6 +78,8 @@ public class ProductModifySubscriber(IProductSyncAdapter adapter) : SubscribedBa
 ```
 
 Multiple `[Subscribe]` attributes on a single class handle multiple subjects with the same logic — no duplication required.
+
+Do not use `System.Text.Json`'s `[JsonRequired]` on subscriber payload contracts to enforce required fields. It rejects an omitted property during deserialization before the subscriber's `ValueValidator` can report a validation failure. Express requiredness in the payload validator instead; declare properties nullable when omission must be distinguished from a supplied default value.
 
 ## Subject Naming
 
@@ -119,7 +123,7 @@ Define a static `ErrorHandler` to control how specific exceptions are treated �
 internal static readonly ErrorHandler DefaultErrorHandler = new ErrorHandler()
     .Add<NotFoundException>(ex => ex.ErrorCode == "pending-reservation-not-found"
         ? ErrorHandling.CompleteAsInformation   // consume silently; log as informational
-        : null);                                // null = fall through to default handling (retry / dead-letter)
+        : null);                                // null = fall through to the base subscriber defaults
 ```
 
 Assign it in the constructor: `ErrorHandler = DefaultErrorHandler;`

@@ -34,13 +34,9 @@ Guides you through creating or modifying a CoreEx Infrastructure-layer repositor
 
 ## Quick Reference
 
-**Clarifying questions before writing any code:**
-0. **Resolve from state first.** Read the solution-root `AGENTS.md` **Feature Configuration** for `data-provider` (`SqlServer` / `Postgres` / `Cosmos` — gates this skill) and check whether a `*.Domain` project exists (Domain-mapping vs contract-mapping). Only ask for what is unresolved; re-state resolved values for confirmation.
-1. Which entity? Which database type (`PostgreSQL` / `SQL Server` / `Cosmos`)? Check the project's `Program.cs`.
-2. New repository or adding to an existing one?
-3. Operations needed: Get / Create / Update / Delete / Query?
-4. Does the project use `Result<T>` / ROP pipelines? (→ `*WithResultAsync` — per-project style choice, not tied to DDD)
-5. Does the query need dynamic filtering/ordering? (→ `QueryArgsConfig<TSelf>`) — if yes, collect the **complete field list** from the developer before writing any code: for each filter field the name, property type, allowed operators, and model/LINQ name if it differs from the contract name; for each order-by field the name and whether it should be in the default sort or always appended. **AI cannot infer these from the entity shape.**
+**Resolve context before coding; ask only about unresolved behavior:**
+- Take the entity and operations from the request; inspect the existing repository, provider, Domain layer, and ROP style against Feature Configuration.
+- For queries, reuse supplied field/operator/sort requirements and existing configuration. Inspect contracts and mappings for types and model names; ask only about unresolved exposure, matching, or default ordering. Entity shape alone does not authorize exposing a field.
 
 **Key rules at a glance:**
 - `[ScopedService<IInterface>]` on every repository class — auto-registers in DI

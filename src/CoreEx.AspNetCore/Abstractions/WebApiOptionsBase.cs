@@ -55,10 +55,12 @@ public class WebApiOptionsBase
     public WebApiOptionsBase(WebApiOptionsBase options)
     {
         Request = options.Request;
+        WebApi = options.WebApi;
         HasQueryString = options.HasQueryString;
         OperationType = options.OperationType;
         ETag = options.ETag;
         StatusCode = options.StatusCode;
+        ContentType = options.ContentType;
         LocationUri = options.LocationUri;
 
         _queryArgs = options._queryArgs;
@@ -76,6 +78,11 @@ public class WebApiOptionsBase
     /// Gets the originating <see cref="HttpRequest"/>.
     /// </summary>
     public HttpRequest Request { get; }
+
+    /// <summary>
+    /// Gets or sets the WebApi instance owning the operation, including its response representation defaults.
+    /// </summary>
+    internal WebApiBase? WebApi { get; set; }
 
     /// <summary>
     /// Indicates whether the <see cref="Request"/> has a query string.
@@ -109,6 +116,12 @@ public class WebApiOptionsBase
     /// Gets the <see cref="HttpStatusCode"/>.
     /// </summary>
     public HttpStatusCode StatusCode { get; internal set; }
+
+    /// <summary>
+    /// Gets the optional response content type override for generated JSON.
+    /// </summary>
+    /// <remarks>A <see langword="null"/> value uses <see cref="WebApiBase.DefaultJsonMediaType"/>. Request parsing, serializer selection, and exception results are unaffected.</remarks>
+    public string? ContentType { get; internal set; }
 
     /// <summary>
     /// Gets the alternate <see cref="HttpStatusCode"/>.

@@ -73,6 +73,25 @@ public class EventSubscriberBaseTests
         result.Error.Should().BeOfType<EventSubscriberUnhandledException>();
     }
 
+    [TestCaseSource(nameof(ExtendedErrorCases))]
+    public async Task ReceiveAsync_ExtendedErrors_DefaultToCompleteAsError(Exception exception)
+    {
+        var subscriber = new TestEventSubscriber(_ => throw exception);
+
+        var result = await subscriber.InvokeReceiveAsync(new EventData(), null, CancellationToken.None);
+
+        result.IsFailure.Should().BeTrue();
+        var handled = result.Error.Should().BeOfType<EventSubscriberHandledException>().Subject;
+        handled.ErrorHandling.Should().Be(ErrorHandling.CompleteAsError);
+        handled.InnerException.Should().BeSameAs(exception);
+    }
+
+    private static IEnumerable<TestCaseData> ExtendedErrorCases()
+    {
+        yield return new TestCaseData(new ValidationException("invalid")).SetName("ValidationException");
+        yield return new TestCaseData(new BusinessException("business")).SetName("BusinessException");
+    }
+
     private sealed class TestEventSubscriber(Action<CancellationToken> onReceive) : EventSubscriberBase(new EventFormatter(), NullLogger<EventSubscriberBase>.Instance)
     {
         public Task<Result> InvokeReceiveAsync(EventData @event, EventSubscriberArgs? args, CancellationToken cancellationToken) => ReceiveAsync(@event, args, cancellationToken);

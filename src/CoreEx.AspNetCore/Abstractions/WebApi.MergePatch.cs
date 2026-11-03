@@ -38,19 +38,19 @@ public abstract partial class WebApi<TResult>
         get.ThrowIfNull();
         put.ThrowIfNull();
 
-        TResult RequiredErrorResult() => CreateResult(new WebApiResult<TResult>(request.HttpContext.Response) { Exception = Validation.Validation.CreateRequiredValueResult<Result>().Error });
+        WebApiResult<TResult> RequiredErrorResult() => new(request.HttpContext.Response) { Exception = Validation.Validation.CreateRequiredValueResult<Result>().Error };
 
-        return await InvokeAsync(request, async cancellationToken =>
+        return await InvokeWithResultAsync(request, async cancellationToken =>
         {
             // Make sure that only the supported content types are used.
             var hct = request.GetTypedHeaders()?.ContentType?.MediaType.Value;
             if (StringComparer.OrdinalIgnoreCase.Compare(hct, HttpNames.MergePatchJsonMediaTypeName) != 0)
-                return CreateResult(new WebApiResult<TResult>(request.HttpContext.Response)
+                return new WebApiResult<TResult>(request.HttpContext.Response)
                 {
                     StatusCode = HttpStatusCode.UnsupportedMediaType,
                     ContentType = MediaTypeNames.Text.Plain,
                     Content = $"Unsupported '{HeaderNames.ContentType}' for an HTTP {HttpMethods.Patch}; only JSON Merge Patch is supported using content type '{HttpNames.MergePatchJsonMediaTypeName}'."
-                });
+                };
 
             // Get the JSON merge content.
             if (request.ContentLength is null || request.ContentLength == 0)
@@ -61,9 +61,9 @@ public abstract partial class WebApi<TResult>
                 return RequiredErrorResult();
 
             // Invokes the Merge which also includes the get function execution.
-            var gro = new WebApiResponseOptions<TValue>(request).WithOperationType(OperationType.Get).WithStatusCode(statusCode);
+            var gro = new WebApiResponseOptions<TValue>(request) { WebApi = this }.WithOperationType(OperationType.Get).WithStatusCode(statusCode);
             if (gro.IsInError(out var gror))
-                return CreateResult(new WebApiResult<TResult>(request.HttpContext.Response) { Exception = gror.Error });
+                return new WebApiResult<TResult>(request.HttpContext.Response) { Exception = gror.Error };
 
             var mpr = await JsonMergePatch.MergeWithResultAsync(content, async ct =>
             {
@@ -87,23 +87,23 @@ public abstract partial class WebApi<TResult>
             if (mpr.IsFailure)
             {
                 if (mpr.Error is IExtendedException)
-                    return CreateResult(new WebApiResult<TResult>(request.HttpContext.Response) { Exception = mpr.Error });
+                    return new WebApiResult<TResult>(request.HttpContext.Response) { Exception = mpr.Error };
                 else
-                    return CreateResult(new WebApiResult<TResult>(request.HttpContext.Response) { Exception = Validation.Validation.CreateInvalidValueResult<Result>(mpr.Error.Message).Error });
+                    return new WebApiResult<TResult>(request.HttpContext.Response) { Exception = Validation.Validation.CreateInvalidValueResult<Result>(mpr.Error.Message).Error };
             }
 
             // Value is not found so error out.
             if (mpr.Value.Merged is null)
-                return CreateResult(new WebApiResult<TResult>(request.HttpContext.Response) { Exception = new NotFoundException() });
+                return new WebApiResult<TResult>(request.HttpContext.Response) { Exception = new NotFoundException() };
 
             // No change so return the get value as-is.
             if (!mpr.Value.HasChanges)
-                return CreateResult(CreateContentForValue(gro, mpr.Value.Merged));
+                return CreateContentForValue(gro, mpr.Value.Merged);
 
             // Finish by performing the put operation with the changed value.
             var pro = new WebApiRequestResponseOptions<TValue, TValue>(gro, mpr.Value.Merged).WithOperationType(OperationType.Update);
             var value = await _invoker.InvokeAsync(this, async (_, cancellationToken) => await put(pro, cancellationToken).ConfigureAwait(false), cancellationToken, $"{nameof(PatchAsync)}::{nameof(put)}").ConfigureAwait(false);
-            return CreateResult(CreateContentForValue(pro, value));
+            return CreateContentForValue(pro, value);
         }, cancellationToken, nameof(PatchAsync)).ConfigureAwait(false);
     }
 }

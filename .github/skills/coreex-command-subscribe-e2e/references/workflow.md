@@ -8,7 +8,7 @@
 
 # coreex-command-subscribe-e2e: Workflow
 
-Full step-by-step workflow for making a domain **receive and handle a command**, end-to-end. All context is gathered upfront so no L1 skill re-asks a question already answered here.
+Full step-by-step workflow for making a domain **receive and handle a command**, end-to-end. Resolve requirements before implementation and pass confirmed context to each L1 skill so answered questions are not repeated.
 
 ---
 
@@ -36,7 +36,7 @@ Open `*.Subscribe/Program.cs` and determine:
 
 ## Phase 3 — Interview
 
-One batched turn. Restate resolved values.
+Resolve recorded decisions first, then ask only unresolved behavioral or design questions one at a time using the available interaction mechanism. Restate known values rather than re-asking. Present one compact implementation plan and wait for approval unless the user's request already authorizes the stated scope; approval remains valid unless scope changes.
 
 | # | Question | Why needed |
 |---|---|---|

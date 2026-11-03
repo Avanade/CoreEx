@@ -197,6 +197,10 @@ public partial class Employee : IIdentifier<string?>, IETag, IChangeLog
 
 Decorate server-assigned properties with `[ReadOnly(true)]` to signal that clients cannot supply them. Common examples: `Id`, `ETag`, `ChangeLog`, `CategoryCode` (derived from SubCategory). NSwag/OpenAPI automatically excludes these from inbound request schemas.
 
+## Requiredness and Validation
+
+Do not use `System.Text.Json`'s `[JsonRequired]` on API request contracts, adapter/HTTP-client wire DTOs, or subscriber payload contracts to enforce required input. It rejects an omitted JSON property during deserialization, before CoreEx validation can report the problem through the intended validation path. Express requiredness with CoreEx validator rules (e.g. `.Mandatory()`) at the relevant boundary instead: API request rules in the request validator, downstream response rules in the typed client, subscriber payload rules in `ValueValidator`, and outbound payload rules before sending where required. Declare request or payload properties nullable where necessary to distinguish an omitted value from a supplied default (such as `0`); use `[NonNullable]` separately when the OpenAPI schema should report `nullable: false`. `[NonNullable]` documents schema nullability and does not enforce runtime requiredness.
+
 ## NonNullable Properties
 
 Contract properties are routinely declared nullable (`string?`, `int?`, `DateOnly?`) for DTO flexibility — partial payloads, merge-patch, and validation that reports a missing value rather than failing deserialization. Where a property is nevertheless **mandatory/required (ultimately not nullable)** in the contract, decorate it with `[NonNullable]` (`CoreEx.Entities.NonNullableAttribute`). The NSwag operation processor then emits it as `nullable: false` in the OpenAPI schema regardless of the CLR nullability. The C# type and validation are unaffected — `[NonNullable]` is documentation of the contract only, so keep the matching validator rule (e.g. `.Mandatory()`).
@@ -291,44 +295,7 @@ The generated code exposes a strongly-typed `SubCategory` property alongside the
 > }
 > ```
 
-> **Agent instruction — property type resolution:** When generating contract properties, apply this hierarchy for every property first, then generate the complete contract in a single pass. Do not ask about individual properties mid-list.
->
-> **Step 1 — Honour explicit types**  
-> If the user specifies a CLR type (e.g. `string Gender`, `int Rating`), use it as-is. No lookup. No question.
->
-> **Step 2 — Infer obvious primitives by name pattern (silent — no question)**
->
-> | Name pattern | Inferred type |
-> |---|---|
-> | `First*`, `Last*`, `*Name`, `*Description`, `*Text`, `*Notes`, `*Comment`, `Sku`, `Email`, `Phone`, `Url` | `string?` |
-> | `Is*`, `Has*`, `Can*`, `Allow*` | `bool` |
-> | `*Price`, `*Amount`, `*Cost`, `*Rate`, `*Total`, `*Balance`, `*Percentage` | `decimal` |
-> | `*Date`, `*On`, `*At`, `Created*`, `Updated*`, `Deleted*` | `DateTime?` |
-> | `*Quantity`, `*Qty` | `decimal` |
-> | `*Count`, `*Number`, `*Sequence` | `int` |
->
-> **Step 3 — Check `ref-data.yaml` for any remaining untyped noun properties**  
-> Search `entities:` in `tools/[domain].CodeGen/ref-data.yaml` for each unresolved property name:
-> - **Found** — wire up silently as `[ReferenceData<T>]` `public partial string? {Name}Code { get; set; }`. No question.
-> - **Not found** — add to the candidates list for Step 4.
->
-> **Step 4 — Ask once, for all remaining candidates, at the end**  
-> After processing every property, if any candidates remain unresolved, ask a single question:  
-> *"The following properties could be reference data types — which should I add to `ref-data.yaml`? (select any, or none to treat as plain properties): `Gender`, `Status`, `Priority`"*  
-> Never ask per-property. Never interrupt before all properties have been analysed.
->
-> **Step 5 — Single batch edit and one CodeGen run**  
-> For all properties the user confirms as reference data:
-> 1. Add **all** confirmed types to `ref-data.yaml` under `entities:` in a **single edit**.
-> 2. Offer to run `dotnet run` from the `*.CodeGen` directory **once** to generate all of them in one pass.
-> 3. On success, summarise the generated artefacts; on failure relay the **complete output verbatim** then fix `ref-data.yaml` and offer to re-run. Do not create `.g.cs` files manually.
->
-> **Step 6 — Generate the complete contract in one pass**  
-> Once all types are resolved and CodeGen has run (if needed), emit the full contract:
-> - Reference data properties: `[ReferenceData<T>]` `public partial string? {Name}Code { get; set; }` — the property name is always `{Name}Code`; the navigation property `{Name}` is Roslyn-generated and must not be hand-authored.
-> - Plain properties: use the inferred or explicit CLR type.
-> - Apply `[Localization("Human label")]` **only** where the auto-derived label would be wrong/undesired (e.g. `SubCategoryCode` → `"Sub-category"`). Do **not** add it when the value would equal the default (e.g. `[Localization("Salary")]` on `Salary` is redundant).
-> - For any property confirmed as plain (Step 4, user selected none or a subset), use `string?` as the default if no better type can be inferred.
+Honor explicit CLR types; for untyped properties, use established primitive conventions and existing `ref-data.yaml` entities before asking for classification. Do not silently introduce a reference-data type from a property name. The [`coreex-contract` workflow](/.github/skills/coreex-contract/references/workflow.md#a2--property-type-resolution-5-step-process-all-before-asking-anything) owns the inference table and interview; [`coreex-refdata`](/.github/skills/coreex-refdata/SKILL.md) owns adding types and running CodeGen. Keep `{Name}Code` as the annotated code property and leave the typed `{Name}` navigation accessor to Roslyn generation.
 
 ## Localization Labels
 

@@ -26,24 +26,27 @@ public class OrderService(IUnitOfWork uow, IOrderRepository repo)
 
 ## QueryArgsConfig — Safe Dynamic Filter / OrderBy
 
-Configure an explicit allow-list of filterable and sortable fields. Never expose raw `$filter` strings to LINQ without this.
+Configure an explicit allow-list of filterable and sortable fields. Use a dedicated `{Name}QueryArgsConfig : QueryArgsConfig<{Name}QueryArgsConfig>` and parse once before applying it, matching the repository conventions. These types live in `CoreEx.Data.Querying`.
 
 ```csharp
-private static readonly QueryArgsConfig _queryConfig = QueryArgsConfig.Create()
-    .WithFilter(f => f
-        .AddField<string>(nameof(Order.Status), c => c.WithDefault("A"))
-        .AddField<DateTimeOffset>(nameof(Order.CreatedOn)))
-    .WithOrderBy(o => o
-        .AddField(nameof(Order.CreatedOn))
-        .WithDefault($"{nameof(Order.CreatedOn)} desc"));
+public class OrderQueryArgsConfig : QueryArgsConfig<OrderQueryArgsConfig>
+{
+    public OrderQueryArgsConfig()
+    {
+        WithFilter(f => f
+            .AddField<string>(nameof(Order.Status))
+            .AddField<DateTimeOffset>(nameof(Order.CreatedOn)));
+        WithOrderBy(o => o
+            .AddField(nameof(Order.CreatedOn), c => c.WithDefault(QueryOrderByDirection.Descending)));
+    }
+}
+```
 
-// In the repository
-public async Task<ItemsResult<Order>> GetAllAsync(QueryArgs args, PagingArgs? paging, CancellationToken cancellationToken = default)
-    => await _efDb.Model<OrderModel>().Query()
-        .Where(_queryConfig, args)
-        .OrderBy(_queryConfig, args)
-        .ToItemsResultAsync(paging, cancellationToken: cancellationToken)     // named — autoCount (bool) sits before cancellationToken
-        .ConfigureAwait(false);
+In the repository, apply the parsed result to the provider query before mapping/materializing:
+
+```csharp
+var parsed = OrderQueryArgsConfig.Default.Parse(args).ThrowOnError();
+var filtered = query.Where(parsed).OrderBy(parsed);
 ```
 
 ## DataResult

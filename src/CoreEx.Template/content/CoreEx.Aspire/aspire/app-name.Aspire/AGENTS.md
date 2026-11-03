@@ -19,7 +19,7 @@ only the resources that host actually needs (Api: data provider + Redis; Relay: 
 Subscribe: data provider + Redis + Service Bus), then runs the distributed application. It does **not** contain
 business logic or DI registrations for the hosts themselves -- those live in each host's own
 `Program.cs`/`appsettings*.json`. This project only wires hosts and their dependencies together and adds dashboard
-sugar (`AddEndpoints`/`AddCommand`/`AddHostedServiceSupport`/`DisableHttpCertificateValidation`, provided by the
+sugar (`AddEndpoints`/`AddCommand`/`AddHostedServiceSupport`, provided by the
 `CoreEx.UnitTesting` package referenced by this project -- see `<Using Include="UnitTestEx" />` in
 `app-name.Aspire.csproj`).
 
@@ -31,6 +31,10 @@ the node's running status indicates resolved configuration, not a successful con
 checks. Cosmos exposes its configured `AccountEndpoint` as a resource URL for peer matching; never include credentials
 in dashboard URLs. Use explicit PostgreSQL/SQL Server ports and inspect span endpoint attributes before diagnosing
 mislabelled dependencies; shared localhost addresses do not identify the database provider.
+
+The development settings use the sample credentials declared in `docker-compose.yml`; override them with User Secrets using `dotnet user-secrets set "ConnectionStrings:{name}" "<connection-string>"` from this project directory. The template-pack validation checks the generated defaults; connection errors from consumer-supplied overrides are reported by the provider when the host connects.
+
+`AppHost.cs` guards `DisableHttpCertificateValidation()` with `builder.Environment.IsDevelopment()`. The generated launch profiles select `Development`; all other environments retain normal certificate validation. This supports HTTPS project endpoints with untrusted development certificates, including Linux CI test runs, but is not Linux-specific. The bypass affects clients created by the AppHost's `IHttpClientFactory`, not clients in separately hosted services. Keep this environment guard; an HTTP MockHost does not need a certificate bypass.
 
 This solution was generated with:
 

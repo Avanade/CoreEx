@@ -17,7 +17,6 @@ Use `.github/skills/coreex-command-publish-e2e/SKILL.md` and its referenced work
 Operational contract:
 - Read the solution-root `AGENTS.md` **Feature Configuration** first (`messaging-provider`, `outbox-enabled`, `data-provider` — `SqlServer` / `Postgres` / `Cosmos` / `None`, `rop-enabled`).
 - Verify every publishing host uses `AddNamedDestinationProvider()` — `AddFixedDestinationProvider` would send commands to the shared topic.
-- Batch all interview questions into one turn: target domain and location, command entity/action, key-only or payload, trigger, outbox vs direct, outbound HTTP.
 - Invoke `coreex-adapter`, `coreex-app-service`, add the `{Destination}-{target}` queue to Test.Common `ServiceBus`, then `coreex-test-api`, `coreex-test-relay` and `coreex-aspire`.
 - If any prompt text conflicts with the skill, the skill wins.
 

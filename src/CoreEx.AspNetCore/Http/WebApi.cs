@@ -15,73 +15,58 @@ public class WebApi(JsonSerializerOptions? jsonSerializerOptions = null, ILogger
         if (result.Result is not null)
             return result.Result;
 
-        IExtendedException? eex = null;
-
         if (result.Exception is not null)
         {
-            if (!result.BypassExceptionLogging)
-            {
-                if (result.Exception is not IExtendedException reex || !reex.IsError)
-                {
-                    // Treat the unhandled exception as an error.
-                    var logger = Logger ?? result.HttpResponse.HttpContext.RequestServices.GetRequiredService<ILogger<WebApi>>();
-                    if (logger.IsEnabled(LogLevel.Error))
-                        logger.LogError(result.Exception, "{Error}", result.Exception.Message);
-                }
-                else
-                {
-                    // Log the exception where required.
-                    eex = reex;
-                    var logger = Logger ?? result.HttpResponse.HttpContext.RequestServices.GetRequiredService<ILogger<WebApi>>();
-                    if (eex.ShouldBeLogged && logger.IsEnabled(LogLevel.Error))
-                        logger.LogError(result.Exception, "{Error}", eex.Message);
-                }
-            }
-            else
-                // Bypass logging, but still determine if the exception is an extended exception for later processing.
-                eex = result.Exception as IExtendedException;
-
-            // Merge all extensions.
-            var extensions = CreateProblemDetailsExtensions(eex);
-            if (eex is not null && eex.HasExtensions)
-            {
-                foreach (var kvp in eex.Extensions)
-                {
-                    extensions.TryAdd(kvp.Key, kvp.Value);
-                }
-            }
-
-            // Special case where the exception is a ValidationException and has messages.
-            if (eex is ValidationException vex && vex.Messages is not null && vex.Messages.Count > 0)
-            {
-                var msd = new Dictionary<string, string[]>();
-                foreach (var item in from m in vex.Messages.GetMessagesForType(MessageType.Error).Where(x => x.Property is not null && x.Text is not null)
-                                     group m by m.Property into g
-                                     select new { Property = g.Key, Messages = g })
-                {
-                    msd.Add(item.Property!, [.. item.Messages.Select(m => m.Text!.ToString()!)]);
-                }
-
-                return AspHttp.Results.ValidationProblem(msd, title: vex.Message, detail: vex.Detail, extensions: extensions);
-            }
-
-            // Convert and return exception as problem details.
-            new WebApiHeader { RetryAfter = eex?.RetryAfter }.ApplyTo(this, result.HttpResponse);
-            if (eex is not null)
-                return AspHttp.Results.Problem(statusCode: (int)eex.StatusCode, title: eex.Message, detail: eex.Detail, extensions: extensions);
-
-            var config = result.HttpResponse.HttpContext.RequestServices.GetRequiredService<IConfiguration>();
-            var include = Internal.GetConfigurationValue(IncludeExceptionInProblemDetailsName, false, config);
-
-            if (include)
-                return AspHttp.Results.Problem(statusCode: (int)HttpStatusCode.InternalServerError, title: result.Exception.Message, detail: result.Exception.ToString(), extensions: extensions);
-            else
-                return AspHttp.Results.Problem(statusCode: (int)HttpStatusCode.InternalServerError, title: new UnexpectedInternalException().Message, extensions: extensions);
+            var extendedException = PrepareException<WebApi>(result.HttpResponse, result.Exception, result.BypassExceptionLogging);
+            return CreateResultForException(result.HttpResponse.HttpContext, result.Exception, extendedException);
         }
 
         result.Headers?.ApplyTo(this, result.HttpResponse);
         return result.Content is not null
             ? AspHttp.Results.Content(result.Content, result.ContentType ?? MediaTypeNames.Text.Plain, statusCode: (int)result.StatusCode)
             : AspHttp.Results.StatusCode((int)result.StatusCode);
+    }
+
+    /// <summary>
+    /// Creates the response representation for an exception already accepted, classified, and logged by WebApi.
+    /// </summary>
+    /// <param name="httpContext">The originating request and response context.</param>
+    /// <param name="exception">The original exception. Internal diagnostics must not be exposed in a specialized response.</param>
+    /// <param name="extendedException">The classified exception, or <see langword="null"/> for an unexpected failure.</param>
+    /// <returns>The exception response, defaulting to <see cref="ProblemDetails"/>.</returns>
+    /// <remarks>Overriding changes representation only. Propagation policy, logging, and applicable Retry-After headers are handled before this method. Do not log the failure again.
+    /// Success media types do not apply. This override does not enable <see cref="WebApiBase.ConvertUnhandledExceptionsToProblemDetails"/>.</remarks>
+    protected virtual IResult CreateResultForException(HttpContext httpContext, Exception exception, IExtendedException? extendedException)
+    {
+        var extensions = CreateProblemDetailsExtensions(extendedException);
+        if (extendedException is not null && extendedException.HasExtensions)
+        {
+            foreach (var kvp in extendedException.Extensions)
+            {
+                extensions.TryAdd(kvp.Key, kvp.Value);
+            }
+        }
+
+        if (extendedException is ValidationException vex && vex.Messages is not null && vex.Messages.Count > 0)
+        {
+            var msd = new Dictionary<string, string[]>();
+            foreach (var item in from m in vex.Messages.GetMessagesForType(MessageType.Error).Where(x => x.Property is not null && x.Text is not null)
+                                 group m by m.Property into g
+                                 select new { Property = g.Key, Messages = g })
+            {
+                msd.Add(item.Property!, [.. item.Messages.Select(m => m.Text!.ToString()!)]);
+            }
+
+            return AspHttp.Results.ValidationProblem(msd, title: vex.Message, detail: vex.Detail, extensions: extensions);
+        }
+
+        if (extendedException is not null)
+            return AspHttp.Results.Problem(statusCode: (int)extendedException.StatusCode, title: extendedException.Message, detail: extendedException.Detail, extensions: extensions);
+
+        var config = httpContext.RequestServices.GetRequiredService<IConfiguration>();
+        var include = Internal.GetConfigurationValue(IncludeExceptionInProblemDetailsName, false, config);
+        return include
+            ? AspHttp.Results.Problem(statusCode: (int)HttpStatusCode.InternalServerError, title: exception.Message, detail: exception.ToString(), extensions: extensions)
+            : AspHttp.Results.Problem(statusCode: (int)HttpStatusCode.InternalServerError, title: new UnexpectedInternalException().Message, extensions: extensions);
     }
 }

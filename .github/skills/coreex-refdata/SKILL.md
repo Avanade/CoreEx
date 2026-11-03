@@ -41,7 +41,7 @@ Guides you through the complete end-to-end workflow for adding or modifying a re
 > **Resolve project-wide choices from state before asking.** Read the solution-root `AGENTS.md`
 > **Feature Configuration** for `refdata-enabled` (gates this whole skill) and `data-provider`
 > (`SqlServer` / `Postgres` / `Cosmos` — drives whether the database step is DbEx or Cosmos provisioning, plus casing/seed shape). Only prompt for what is unrecorded;
-> re-state resolved values for confirmation.
+> include resolved values in the implementation plan.
 
 **Two separate `dotnet run` steps in two different projects — never conflate them.**
 

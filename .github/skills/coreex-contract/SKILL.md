@@ -33,8 +33,8 @@ Guides you through creating or modifying a hand-authored contract (DTO/entity) i
 
 ## Quick Reference
 
-**Clarifying questions to ask before emitting any code:**
-0. **Resolve from state first.** Read the solution-root `AGENTS.md` **Feature Configuration** for `refdata-enabled` (whether `[ReferenceData<T>]` wiring applies) and check whether a `*.Domain` project exists (aggregate-mapping context). Only ask for what is unresolved; re-state resolved values for confirmation.
+**Decisions to resolve from the request and existing code; ask only about unresolved behavior:**
+0. **Resolve from state first.** Read the solution-root `AGENTS.md` **Feature Configuration** for `refdata-enabled` (whether `[ReferenceData<T>]` wiring applies) and check whether a `*.Domain` project exists (aggregate-mapping context). Only ask for what is unresolved; include resolved values in the implementation plan.
 1. Root or subordinate? (if not explicit)
 2. Identifier type? (default `string?` — confirm before using any other type)
 3. `IETag` needed? (default yes for root contracts — omit only on explicit request)
@@ -48,6 +48,7 @@ Guides you through creating or modifying a hand-authored contract (DTO/entity) i
 - Map/request-arrange through annotated `XxxCode` properties; use generated typed accessors for reference-data behavior. Pass codes directly to concrete typed destinations via [implicit conversion](/.github/instructions/coreex-contracts.instructions.md#reference-data-code-conversion), not custom conversion helpers; conversion is not validation.
 - `[ReadOnly(true)]` on all server-assigned fields (`Id`, `ETag`, `ChangeLog`, computed/derived)
 - `[NonNullable]` on any property that is mandatory/required (ultimately not nullable) but declared nullable (`string?`, `int?`) for DTO flexibility — drives `nullable: false` in OpenAPI; not the same as `System.Diagnostics.CodeAnalysis.NotNull`. Never on `Id`/`ETag`/`ChangeLog`; on other `[ReadOnly]` properties only when the type is never a request body
+- Do not use `[JsonRequired]` on API request contracts, adapter/HTTP-client wire DTOs, or subscriber payload contracts; use CoreEx validator rules at the relevant boundary, and nullable properties where omission must be distinguished from a supplied default
 - Every property needs a `<summary>` XML doc comment
 - Same contract type for both API response and event payload — never split them
 - Patch/subset contracts (merge-patch, partial-update requests): standalone class with only the needed fields (+ `IETag`) — never inherit a sibling and suppress the rest; inheritance is for genuine supersets only

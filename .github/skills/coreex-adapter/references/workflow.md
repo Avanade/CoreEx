@@ -65,7 +65,7 @@ public interface IProductSyncAdapter
 
 **Rules:**
 - Interface name follows the calling domain's language, not the remote API's naming.
-- All methods return `Result` or `Result<T>` — no plain values, no thrown exceptions at the interface boundary.
+- Methods return `Result` or `Result<T>` for expected success and business outcomes. This does not guarantee that calls cannot throw: transport, cancellation, deserialization, and unexpected validation exceptions can still propagate through the interface.
 - One interface file per role (synchronous vs replication); do not combine them.
 
 ---
@@ -139,6 +139,10 @@ return await response.WithValidator(_validator)
 Choose rules for fields the consuming operation actually requires; the example assumes an email is needed.
 Do not blindly reuse request/create/update validators, require every DTO property, or compare response
 identifiers with request identifiers by default. Validate identifiers only when explicitly required.
+Do not use `System.Text.Json`'s `[JsonRequired]` on adapter/HTTP-client wire DTOs: it throws during
+deserialization before these CoreEx response rules run. Use nullable DTO properties when omission
+must be distinguished from a supplied default, enforce required response fields in the typed client's
+validator, and validate outbound payloads before sending when their contract requires it.
 
 Keep small, client-only rules in a private static readonly `Validator<T>` built once with
 `Validator.Create<T>().HasProperty(...)` (`CoreEx.Validation`). Do not construct rules per request
@@ -328,6 +332,8 @@ builder.AddTypedHttpClient<ProductsHttpClient>("ProductsApi");
 ```
 
 The `"ProductsApi"` name must match the name used in `MockHttpClientFactory.CreateClient("ProductsApi", ...)` in tests.
+
+`AddTypedHttpClient` adds standard resilience handlers; they do not make a remote mutation idempotent. Keep retries disabled for unsafe methods such as POST provisioning unless the remote contract guarantees idempotency or accepts a stable idempotency key. For at-least-once delivery or a lost response, reconcile by looking up the remote resource before repeating the create. Do not broaden retry methods casually; verify the effective client-specific retry configuration against the remote contract.
 
 **Configuration** (appsettings.json / appsettings.Development.json):
 

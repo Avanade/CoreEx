@@ -110,9 +110,17 @@ $testScenarios = @(
             )
             FileContains = @{
                 ".github/instructions/coreex.instructions.md"                   = 'applyTo: "**"'
-                ".github/instructions/coreex-api-controllers.instructions.md"   = "applyTo:"
+                ".github/instructions/coreex-api-controllers.instructions.md"   = "Paging is tolerant"
                 ".github/instructions/coreex-validators.instructions.md"        = "applyTo:"
                 ".github/docs/coreex/manifest.txt"                             = "coreex-version:"
+                ".github/docs/coreex/agents/CoreEx.Data.md"                    = "OrderQueryArgsConfig : QueryArgsConfig<OrderQueryArgsConfig>"
+                ".github/prompts/coreex-repository.prompt.md"                  = "follow its authoritative workflow"
+                ".github/instructions/coreex-tests.instructions.md"            = "Derive expectations from requirements"
+            }
+            FileNotContains = @{
+                ".github/instructions/coreex.instructions.md"                 = "Read each matching file in full"
+                ".github/docs/coreex/agents/CoreEx.Data.md"                    = '.WithDefault("A")'
+                ".github/skills/coreex-test-api/references/workflow.md"         = "resources get captured from the actual run"
             }
         }
         Build      = $false
@@ -145,6 +153,7 @@ $testScenarios = @(
                 ".github/instructions/coreex-validators.instructions.md"      = 'applyTo: "backend/'
                 ".github/instructions/coreex-api-controllers.instructions.md" = 'applyTo: "backend/'
                 ".github/docs/coreex/manifest.txt"                            = "coreex-version:"
+                ".github/skills/coreex-api/SKILL.md"                           = "Resolve context before coding"
             }
         }
         Build      = $false
@@ -415,6 +424,12 @@ $testScenarios = @(
                 # Regression guard: same Npgsql/implement-postgres guard bug found in coreex-api - copy-pasted
                 # into Subscribe's appsettings too.
                 "src/App/appsettings.Development.json" = '"Npgsql": "Warning"'
+                "src/App/GlobalUsing.cs" = ".Infrastructure.Repositories;"
+                "src/App/AGENTS.md" = "SubscribedBase<TValue>"
+            }
+            FileNotContains = @{
+                "src/App/Program.cs" = "using CoreEx."
+                "src/App/AGENTS.md" = "SubscriberBase"
             }
         }
         Build      = $false  # add-on template; no standalone solution
@@ -496,8 +511,10 @@ $testScenarios = @(
             )
             FileContains = @{
                 "aspire/Directory.Build.props"    = "IDE1006"
-                "aspire/App.Aspire/AppHost.cs"    = "Projects.App_Api"
-                "aspire/App.Aspire/App.Aspire.csproj" = "CoreEx.UnitTesting"
+                "aspire/App.Aspire/AppHost.cs"    = "builder.Environment.IsDevelopment()"
+                "aspire/App.Aspire/App.Aspire.csproj" = "UserSecretsId"
+                "aspire/App.Aspire/appsettings.Development.json" = "Port=5432"
+                "src/App.Api/appsettings.Development.json" = "Port=5432"
                 "src/App.Api/Program.cs"          = "AddNamedDestinationProvider"
                 "src/App.Subscribe/Program.cs"    = "WithKeyedSubscribedSubscriber"
                 "tests/App.Test.Common/ServiceBus.cs" = "CreateTopicOptions"
@@ -505,6 +522,10 @@ $testScenarios = @(
             }
             FileNotContains = @{
                 "aspire/App.Test.Aspire/HostTests.cs" = "BeOneOf"
+                "aspire/App.Aspire/appsettings.Development.json" = "******"
+                "src/App.Api/appsettings.Development.json" = "******"
+                "src/App.Relay/appsettings.Development.json" = "******"
+                "src/App.Subscribe/appsettings.Development.json" = "******"
             }
             FilesAbsent = @(
                 # Extensions.cs was superseded by CoreEx.UnitTesting's Aspire extension methods (UnitTestExExtensions.Aspire.cs).
@@ -548,6 +569,8 @@ $testScenarios = @(
                 # the other hosts' AddProject calls and ProjectReferences, not just that has-api's survive.
                 "aspire/App.Aspire/AppHost.cs"          = "Projects.App_Relay"
                 "aspire/App.Aspire/App.Aspire.csproj"   = "App.Relay"
+                "aspire/App.Aspire/appsettings.Development.json" = "******"
+                "src/App.Api/appsettings.Development.json" = "******"
             }
         }
         Build        = $true
@@ -684,6 +707,7 @@ $testScenarios = @(
             )
             FileContains = @{
                 "aspire/App.Aspire/AppHost.cs"  = 'AddExternalConnectionString("Cosmos", endpointKey: "AccountEndpoint")'
+                "aspire/App.Aspire/appsettings.Development.json" = "AccountEndpoint=https://localhost:8081/"
                 "src/App.Api/Program.cs"        = "AddCosmosDbEventPublisher"
                 "src/App.Relay/Program.cs"      = "AddCosmosDbOutboxRelayHostedService"
                 "src/App.Subscribe/Program.cs"  = "AddCosmosDbEventPublisher"
@@ -692,6 +716,7 @@ $testScenarios = @(
             FileNotContains = @{
                 # The write-side publisher must never be registered on the Relay host.
                 "src/App.Relay/Program.cs"      = "AddCosmosDbEventPublisher"
+                "aspire/App.Aspire/appsettings.Development.json" = "******"
             }
         }
         Build        = $true

@@ -14,7 +14,7 @@ Full workflow for creating or modifying a hand-authored contract in `*.Contracts
 
 ## Phase 1 — Clarify Before Writing
 
-Answer these questions before emitting any code. Batch all questions — do not interrupt per-property.
+Resolve the decisions below from the request and existing project before emitting code. Ask only unresolved design questions, one question per interaction; request a property set only when not already supplied or inspectable.
 
 | Question | Default | Notes |
 |---|---|---|
@@ -58,11 +58,11 @@ A root contract owns its own identity and is accessed via its own API endpoint (
    - **Found** → wire silently as `[ReferenceData<T>]` `public partial string? {Name}Code { get; set; }`. No question.
    - **Not found** → add to the candidate list for step 4.
 
-4. **Batch ask once for all remaining candidates:**
+4. **Ask one classification question covering all remaining candidates:**
    > "The following properties could be reference data types — which should be added to `ref-data.yaml`? (select any, or none to treat as plain): `Status`, `Priority`"
    Never ask per-property. Never interrupt before all properties are analysed.
 
-5. **Emit the complete contract in one pass** after all types are resolved (and any `ref-data.yaml` entries added + CodeGen run if needed).
+5. **Emit the complete contract in one pass** after all types are resolved. For newly confirmed reference-data types, use `coreex-refdata` to add all entries in one edit and run CodeGen once; never create `.g.cs` files manually. For properties confirmed as plain, use `string?` if no better type can be inferred.
 
 ### A3 — Base class consideration
 
@@ -111,6 +111,7 @@ Key assembly rules:
 - `[Contract]` + `partial` on the class — always.
 - `[ReadOnly(true)]` on `Id`, `ETag`, `ChangeLog`, and any server-assigned/derived field.
 - `[NonNullable]` on any property that is mandatory/required (ultimately not nullable) but declared nullable (`string?`, `int?`) for DTO flexibility. Ask/infer from the requirements which properties are required; leave genuinely optional properties unmarked. This only affects the OpenAPI schema (`nullable: false`) — keep the matching validator rule. Never substitute `System.Diagnostics.CodeAnalysis.NotNull`. Never mark `Id`, `ETag` or `ChangeLog` (null on create); mark other `[ReadOnly]` properties only when the containing type is never a request body.
+- Do not use `System.Text.Json`'s `[JsonRequired]` on API request contracts, adapter/HTTP-client wire DTOs, or subscriber payload contracts to enforce required input; it fails during deserialization before CoreEx validation can report the problem through the intended validation path. Use CoreEx validator rules (e.g. `.Mandatory()`) at the relevant boundary instead: HTTP-client response rules belong in the typed client, and subscriber payload rules belong in `ValueValidator`. Declare request or payload properties nullable where needed to distinguish omission from a supplied default value.
 - Only `[ReferenceData<T>]` properties are `partial` — all others are plain auto-properties.
 - `[Localization("label")]` — only when the auto-derived sentence-case label would be wrong/undesired. Never add when value equals the default.
 - Casing transforms belong in the setter: `set => field = value?.ToUpper()`.

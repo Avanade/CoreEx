@@ -15,11 +15,12 @@ Guide this workspace through creating or modifying a CoreEx contract.
 Use `.github/skills/coreex-contract/SKILL.md` and its referenced workflow as the authoritative workflow contract when they exist.
 
 Operational contract:
-- Ask root vs. subordinate, identifier type, `IETag` (default yes for root), and `IChangeLog` need before emitting any code — batch all questions, never interrupt per-property.
+- Resolve recorded decisions first. Ask only unresolved design questions one at a time using the available interaction mechanism; do not batch separate questions or rely on unavailable confirmation-card tools. Ask for the property set in one question rather than interrupting once per property, and do not emit code until required decisions are resolved.
 - `[Contract]` + `partial` on all contract classes by default; only omit when explicitly asked.
 - Only `[ReferenceData<T>]`-decorated properties are `partial` — never mark plain properties `partial` (CS9248).
 - `[ReadOnly(true)]` on all server-assigned or derived fields.
 - `[NonNullable]` on mandatory/required properties that are declared nullable (`string?`, `int?`) for DTO flexibility, so OpenAPI reports them as non-nullable. Never on `Id`/`ETag`/`ChangeLog`; on other `[ReadOnly]` properties only when the type is never a request body.
+- Do not use `[JsonRequired]` on API request contracts, adapter/HTTP-client wire DTOs, or subscriber payload contracts; enforce required input with CoreEx validator rules at the relevant boundary, using nullable properties where omission must be distinguished from a supplied default.
 - Apply `[Schema]` only when the user explicitly requests a custom event schema name or version.
 - Never hand-author generated members or create/edit `*.g.cs` files.
 - If any prompt text conflicts with the skill, the skill wins.

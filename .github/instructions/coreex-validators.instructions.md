@@ -54,7 +54,7 @@ Author the test per `coreex-tests.instructions.md` → "Validator unit tests" an
 - **Expected messages are exact** — use the message table in `coreex-tests.instructions.md` (`Mandatory()` → `"{Label} is required."`, `MaximumLength` → `"… character(s) in length."`, `PrecisionScale` → `"… exceeds the maximum decimal places (n)."`, etc.) with sentence-cased labels (`FirstName` → "First name").
 - **Ignore `ExecutionContext` in tests** — `Test.Scoped(...)` sets it up for you; do not construct, inject, or mock it. Ambient `Runtime` and any `ExecutionContext`-dependent rule work automatically inside the scope.
 
-> **Agent instruction:** When you create or modify a named Application validator, **offer to also create or update the matching `{Validator}Tests`** in the `*.Test.Unit/Validators/` project (covering the new/changed rules — both error and success cases). For inline response validators, maintain the corresponding client tests instead. If the user accepts, author it per `coreex-tests.instructions.md`; if the validator uses a reference-data type the test host does not yet handle, also add the corresponding case to `EntryPoint.ReferenceDataProviderDecorator.GetAsync`. If the user declines or defers, proceed with the validator change but note that its unit-test coverage is now missing/stale.
+> Maintain the matching `{Validator}Tests` in `*.Test.Unit/Validators/` for changed Application rules, covering error and success cases; inline response validators belong in client tests instead. Follow [Execution Evidence](/.github/instructions/coreex-tests.instructions.md#execution-evidence). If a reference-data type is new to the test host, add its case to `EntryPoint.ReferenceDataProviderDecorator.GetAsync`.
 
 ## Base Class
 

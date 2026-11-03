@@ -33,7 +33,7 @@ Guides you through adding `CoreEx.Data.GraphQL` (GraphQL-lite) to an `*.Api` hos
 
 ## Quick Reference
 
-**Clarifying questions before writing any code:**
+**Decisions to resolve from the request and existing code; ask only about unresolved behavior:**
 0. Check the target host's `AGENTS.md` "This Host's Feature Configuration" section for an existing `**GraphQL:**` line — if already enabled, skip `Program.cs` wiring and go straight to root registration.
 1. Which `*.Api` host?
 2. First-time enablement, or adding a root to an already-enabled host?

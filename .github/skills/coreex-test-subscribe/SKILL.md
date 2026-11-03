@@ -49,6 +49,7 @@ test triggers behavior: a simulated message receipt instead of an HTTP call.
 - **One partial file per subscriber scenario** — `SubscriberTests.{Scenario}.cs`
 - **Match the test shape to the subscriber scenario**: command → assert outcome + outbox events published as a result; event-data-sync → assert local state/adapter reflects the payload; event-business-process → assert the downstream service ran and published its own events
 - **`ErrorHandler` outcomes are assertable** — a handled exception surfaces as `EventSubscriberHandledException` with `.ErrorHandling` and `.InnerException` to check
+- **HTTP mocks**: `MockHttpClientRequest.Respond` is a property (`request.Respond.With(...)`), not a method. Configure responses per test and call `.Verify()` after the subscriber action. `.Reset()` restores a request mock to its initial state; `.Verify()` does not reset it.
 - **Always include an "unsubscribed subject" test** — confirms unknown subjects are consumed silently (`ErrorHandling.CompleteAsSilent`), not dead-lettered
 - **Seed file naming carries over unchanged** — `read-data.seed.yaml` / `mutate-data.seed.yaml` / a schema-only `no-data.seed.yaml` for health/plumbing-only tests
 

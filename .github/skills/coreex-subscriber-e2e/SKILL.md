@@ -15,7 +15,7 @@ tags: ["coreex", "subscriber", "event", "command", "end-to-end", "vertical-slice
 
 # CoreEx: Add Subscriber (End-to-End)
 
-Guides you through adding a complete new event or command subscriber in one sitting: gathers all context upfront, identifies the right scenario path, then invokes the appropriate L1 skills in sequence so you are never asked the same question twice.
+Guides you through adding a complete new event or command subscriber in one sitting: resolves requirements through focused interactions, identifies the right scenario path, then invokes the appropriate L1 skills in sequence without repeating answered questions.
 
 ## When to Use
 
@@ -32,7 +32,7 @@ Guides you through adding a complete new event or command subscriber in one sitt
 ## Workflow Overview
 
 1. **Read Feature Configuration** — resolve `messaging-provider`, `outbox-enabled`, `data-provider` (`SqlServer` / `Postgres` / `Cosmos` / `None`), and `rop-enabled` from the solution-root `AGENTS.md` before asking anything.
-2. **Interview** — identify the subject, scenario, DTO needs, and whether state persistence is required; batch all questions into one turn.
+2. **Interview** — resolve recorded decisions first, then ask only unresolved behavioral/design questions one at a time using the available interaction mechanism; identify the subject, scenario, DTO needs, and state-persistence needs. Present one compact plan and wait for approval unless the user's request already authorizes implementation; approval remains valid unless scope changes.
 3. **Execute L1 sequence** — invoke each applicable L1 skill in order, passing context resolved in steps 1–2; no repeated questions.
 4. **Validate** — `dotnet build`; confirm the subscriber is registered and integration tests are present.
 

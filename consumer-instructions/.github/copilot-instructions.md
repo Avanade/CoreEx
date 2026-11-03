@@ -96,9 +96,9 @@ Steps 3–4 (seed rows, `dbex.yaml` tables) come **after** the migration scripts
 
 ### Before Generating Any Code
 
-1. Run `Get-ChildItem .github/instructions -File` to enumerate all instruction files.
-2. Identify which instruction files match the target layer (contracts, domain, application, etc.).
-3. Read each matching file in full with `get_file` before writing any code.
+Resolve requirements from the user's request, prior decisions, Feature Configuration, and existing code before asking questions. Ask only unresolved behavioral or design questions, one at a time; do not make the user repeat supplied requirements or report inspectable facts.
+
+Use the applicable instructions already in context. For additional guidance, locate and read the relevant sections of the matching skill/workflow or version-pinned local guide; expand only when needed. Reference lists are not mandatory full-file reading lists.
 
 ### Do Not Create Projects Unless Explicitly Asked
 
@@ -116,7 +116,7 @@ Verify **before** the project is in the solution: build and test a new or edited
 
 ### Validator Unit Tests
 
-Validators are the primary unit-test target. When you create or change a validator, plan to **offer** to create/update its matching `{Validator}Tests` (in `*.Test.Unit/Validators/`) in the same change — covering both error and success cases. Proceed if the user declines or defers, but note the coverage gap. See `coreex-validators.instructions.md` and `coreex-tests.instructions.md`.
+Maintain the matching `{Validator}Tests` in `*.Test.Unit/Validators/` alongside changed rules, covering error and success cases. Apply the scope and execution rules in `coreex-tests.instructions.md`; if the user explicitly excludes or defers tests, report the coverage gap.
 
 ### Using Statements
 

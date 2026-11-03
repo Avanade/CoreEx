@@ -35,7 +35,7 @@ Makes a code change *visible and testable* in the Aspire environment: AppHost re
 
 > **Resolve project-wide choices from state before asking.** Read the solution-root `AGENTS.md` **Feature Configuration**
 > (`data-provider`, `messaging-provider`, `outbox-enabled`) and inspect the existing `*.Aspire/AppHost.cs`, `*.Aspire.MockHost`
-> and `*.Test.Aspire` before interviewing. Re-state resolved values for confirmation.
+> and `*.Test.Aspire` before interviewing. Include resolved values in the implementation plan.
 
 ## The Deciding Question — where does the callee live?
 
@@ -53,8 +53,8 @@ Get this wrong and the E2E either hides a real integration (stubbing an in-AppHo
 2. **Interview** — what changed; where each callee lives; which async effect the E2E should prove.
 3. **AppHost** — add/adjust visible external resources via `CoreEx.UnitTesting`'s `AddExternalConnectionString`, `AddProject` + `WithReference` (+ `ProjectReference`); service-discovery `BaseAddress`; MockHost wiring.
 4. **Topology** — add queues/topics/subscriptions to the `ServiceBus` class used by Test.Aspire (union class if multi-domain); mark session-enabled entities with `RequiresSession = true` and check the producer's exact destination-specific session profile.
-5. **Test.Aspire** — `OnBeforeStartAsync` (migrate, cache, broker reset) / `OnAfterStartAsync` (wait, stubs); E2E test with bounded polling.
-6. **Validate** — `dotnet build` the AppHost + Test.Aspire; `dotnet test` when infrastructure is up.
+5. **Test.Aspire** — prepare state, wait for hosts, configure stubs, and test with bounded polling.
+6. **Validate** — build the AppHost + Test.Aspire and execute the relevant Aspire tests when infrastructure is available; report infrastructure-blocked tests explicitly.
 
 For step-by-step guidance see [`references/workflow.md`](references/workflow.md).
 

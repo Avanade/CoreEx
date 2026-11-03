@@ -39,7 +39,7 @@ rarely need new scenarios per domain.
 > **Feature Configuration**: `messaging-provider` gates this skill (a Relay host exists only when a
 > messaging provider is configured) and `data-provider` (PostgreSQL vs SQL Server vs Cosmos) selects the outbox
 > publisher family (`PostgresOutboxPublisher`/`SqlServerOutboxPublisher`/`CosmosDbEventPublisher`) — never mix them. Only prompt
-> for what is unrecorded; re-state resolved values for confirmation.
+> for what is unresolved; include resolved values in the implementation plan.
 
 ## Quick Reference
 
@@ -89,6 +89,10 @@ Test.Http()
 ```
 
 For **Cosmos** relay tests, publish via `CosmosDbEventPublisher` inside `CosmosDbUnitOfWork.TransactionAsync(...)`, paired with a real business mutation, and use bounded polling to assert broker delivery and outbox cleanup. Keep the relay's default `IEventPublisher` registered as its broker destination. Provision containers before accessing the tester: even `Test.Configuration` constructs the host and captures its first-start boundary. Use a test-owned observation subscription and do not reset containers beneath a running change-feed processor. The Customers sample below demonstrates both `PartitionKey.None` and explicit partition keys.
+
+## Validation
+
+Run the relevant Relay tests against the configured infrastructure; apply [Execution Evidence](/.github/instructions/coreex-tests.instructions.md#execution-evidence) when reporting results or blocked execution.
 
 ## Troubleshooting — Service Bus Emulator "Entity Not Found"
 

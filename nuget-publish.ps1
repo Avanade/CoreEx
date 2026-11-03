@@ -3,7 +3,9 @@
     Generates nuget pacakges and publishes if server values are provided
 
     .DESCRIPTION
-    Packs all supported target frameworks regardless of CoreExLocalTargetFramework.
+    Packs all supported target frameworks by default, regardless of CoreExLocalTargetFramework.
+    Use -Tfm to build and pack only one supported framework for local testing.
+    Independently targeted projects, including the source generator and template pack, retain their own frameworks.
     Builds before packing, overriding GeneratePackageOnBuild so existing binaries are not reused without a build.
     Uses Release by default; the Visual Studio configuration does not affect this script.
     Preserves existing packages except when replacing the same package filename.
@@ -11,6 +13,11 @@
 
     .PARAMETER PublishFolder
     Local folder to publish the built nuget pacakges to
+
+    .PARAMETER Tfm
+    Optional framework major version or TFM, for example 10, 10.0, or net10.0.
+    Must match a supported framework in Directory.Build.props.
+    Reduced packages keep the same ID/version; use a separate local feed, not a release feed.
 
     .PARAMETER IncludeSymbols
     Create nuget symbols package
@@ -45,6 +52,10 @@
     .Example
     C:\PS> .\nuget-publish.ps1 -NugetServer 'https://api.nuget.org/v3/index.json' -ApiKey 'key' -IncludeSymbols -IncludeSource -ProjectsToPublish @('CoreEx')
     Build selected pacakges and push to remote server.
+
+    .Example
+    C:\PS> .\nuget-publish.ps1 -Tfm 10 -configuration Debug -PublishFolder "$env:USERPROFILE\nuget-publish-net10"
+    Build and pack net10.0 locally, retaining independent project targets.
 #>
 param(
     [string]$PublishFolder = "$($env:USERPROFILE)\nuget-publish",
@@ -74,8 +85,27 @@ param(
         "src\CoreEx.RefData",
         "src\CoreEx.Template",
         "src\CoreEx.Validation",
-        "src\CoreEx.UnitTesting")
-    )
+        "src\CoreEx.UnitTesting"),
+    [ValidateNotNullOrEmpty()]
+    [string]$Tfm
+)
+
+$frameworkDescription = 'all target frameworks'
+if ($PSBoundParameters.ContainsKey('Tfm')) {
+    if ($Tfm -notmatch '^(?:net)?(?<major>[1-9][0-9]*)(?:\.0)?$') {
+        throw "Invalid Tfm '$Tfm'. Use a major version or TFM, for example -Tfm 10 or -Tfm net10.0."
+    }
+
+    $Tfm = "net$($Matches['major']).0"
+    $frameworkPolicy = [xml](Get-Content -LiteralPath (Join-Path $PSScriptRoot 'Directory.Build.props') -Raw -ErrorAction Stop)
+    $supportedFrameworks = $frameworkPolicy.SelectSingleNode('/Project/PropertyGroup/CoreExTargetFrameworks[not(@Condition)]').InnerText.Split(';')
+    if ($Tfm -notin $supportedFrameworks) {
+        throw "Unsupported Tfm '$Tfm'. Supported frameworks: $($supportedFrameworks -join ', ')."
+    }
+
+    $frameworkDescription = "$Tfm; independent project targets unchanged"
+    Write-Warning 'Single-framework packages retain the same package ID/version. Use a separate local feed; do not publish them as release packages.'
+}
 
 $ShouldPublishRemote = (![string]::IsNullOrEmpty($apiKey) -and ![string]::IsNullOrEmpty($NugetServer))
 
@@ -92,10 +122,11 @@ $packageDetailsRegexp = [regex] '^(?<name>.+?)\.(?<version>\d+\.\d+\.\d+(?:\.\d+
 try {
     foreach ($project in $projectsToPublish) {
         $packArguments = @('pack', $project, '-o', $stagingFolder, '-c', $configuration, '-p:CoreExLocalTargetFramework=', '-p:GeneratePackageOnBuild=false', '--force')
+        if ($Tfm) { $packArguments += "-p:CoreExTargetFrameworks=$Tfm" }
         if ($IncludeSource) { $packArguments += '--include-source' }
         if ($IncludeSymbols) { $packArguments += '--include-symbols' }
 
-        Write-Host "`r`nPacking $project ($configuration, all target frameworks)." -ForegroundColor Yellow
+        Write-Host "`r`nPacking $project ($configuration, $frameworkDescription)." -ForegroundColor Yellow
         & dotnet @packArguments
         if ($LASTEXITCODE -ne 0) { throw "Failed to pack $project (exit $LASTEXITCODE)." }
     }

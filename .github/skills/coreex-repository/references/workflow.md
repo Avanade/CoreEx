@@ -14,15 +14,15 @@ Full workflow for creating or modifying a CoreEx Infrastructure repository in `I
 
 ## Phase 1 — Clarify Before Writing
 
-Answer these questions before emitting any code.
+Resolve these decisions from the request, Feature Configuration, and existing code. Ask only unresolved behavioral questions; do not re-interview for inspectable facts or supplied requirements.
 
 | Question | Default | Notes |
 |---|---|---|
-| Which entity and database type? | Ask | PostgreSQL: `PostgresDatabase` + `UseNpgsql`; SQL Server: `SqlServerDatabase` + `UseSqlServer`; Cosmos: `AddAzureCosmosClient("Cosmos")` + `AddCosmosDb<TCosmosDb>("{db-id}")` — check the project's `Program.cs` |
-| New repository or adding to an existing one? | Ask | New → Path A (scaffold); Existing → Path B/C/D |
-| Operations needed? | Ask | Get / Create / Update / Delete / Query |
-| Using `Result<T>` / ROP pipelines? | No | Yes → use `*WithResultAsync` + `Result<T>` pipeline (Path D); either style works at the repository level — this is a per-project or per-service choice |
-| Dynamic filtering/ordering on query? | No | Yes → `QueryArgsConfig` (Path C) |
+| Which entity and database type? | Request + inspect | PostgreSQL: `PostgresDatabase` + `UseNpgsql`; SQL Server: `SqlServerDatabase` + `UseSqlServer`; Cosmos: `AddAzureCosmosClient("Cosmos")` + `AddCosmosDb<TCosmosDb>("{db-id}")` — check the project's `Program.cs` |
+| New repository or adding to an existing one? | Inspect | New → Path A (scaffold); Existing → Path B/C/D |
+| Operations needed? | From request | Get / Create / Update / Delete / Query |
+| Using `Result<T>` / ROP pipelines? | Match project/service | Yes → use `*WithResultAsync` + `Result<T>` pipeline (Path D) |
+| Dynamic filtering/ordering on query? | From request | Yes → `QueryArgsConfig` (Path C) |
 
 ---
 
@@ -234,11 +234,11 @@ and [search guide](https://github.com/Avanade/CoreEx/blob/main/samples/docs/sear
 
 ## Path C — Add a Query Method with Dynamic Filtering/Ordering
 
-### C0 — Interview (required before writing any code)
+### C0 — Resolve the Query Contract
 
-Collect the following from the developer. **AI cannot infer field selection, operators, model mappings, or structural options from the entity shape.**
+Reuse requirements already supplied and existing query configuration. Inspect contracts, mappings, and nearby queries for property types and model names. Ask only about unresolved field exposure, operators, matching, or ordering behavior; do not turn the tables below into a mandatory questionnaire.
 
-**Step 1 — Structural options (ask first; answers determine the shape of the config and method signature)**
+**Step 1 — Structural options (use requested values; otherwise apply these defaults)**
 
 | Question | Default | Notes |
 |---|---|---|
@@ -417,7 +417,7 @@ public Task<Result<DataResult>> DeleteAsync(string id, CancellationToken cancell
 1. `dotnet build` — no errors or warnings.
 2. Verify the repository interface in `Application/Repositories/` declares all new methods.
 3. Verify the service handles `null`/not-found Result on reads and gates mutation events on successful `DataResult.WasMutated` using `WhereMutated`. Preserve the flag through all Domain/DTO mapping and ROP before Application unwraps the value.
-4. **Offer to create or update the matching integration test** in `*.Test.Integration/Repositories/` or `*.Test.Api/`. Integration tests seed via `Data/*.yaml` and assert round-trip fidelity.
+4. Maintain matching integration coverage in the project's existing test layout, following [Execution Evidence](/.github/instructions/coreex-tests.instructions.md#execution-evidence). For the standard domain layout, repository behavior belongs in `*.Test.Api`, not duplicated mocked repository tests.
 5. Check `GlobalUsing.cs` for required namespace imports (`CoreEx.Data.Querying`, `{Solution}.Infrastructure.Mapping`).
 
 ---
@@ -432,5 +432,5 @@ public Task<Result<DataResult>> DeleteAsync(string id, CancellationToken cancell
 - **`ETag` and `ChangeLog` must NOT be mapped** in `OnMap` — the base mapper owns them; the model has no `RowVersion` member.
 - **Retain `DataResult` for mutations, including ROP/DDD** — Create/Update return `DataResult<T>` or `Result<DataResult<T>>`; Delete returns `DataResult` or `Result<DataResult>`. Preserve `WasMutated` until Application gates mutation events; successful no-ops must not announce a mutation. Cover success/false after a successful earlier read as well as success/true and failure; a sequential delete-idempotency test alone does not cover that boundary.
 - **`[ScopedService<IInterface>]` on every repository** — do not add `AddScoped<>()` calls in `Program.cs` for repositories.
-- **`QueryArgsConfig<TSelf>`** — create one `{Name}QueryArgsConfig : QueryArgsConfig<{Name}QueryArgsConfig>` class per entity; access via `.Default`; call `.Parse(query).ThrowOnError()` before use — never instantiate per-request. Collect all field names, types, and operators from the developer before writing any code; AI cannot infer them from the entity shape.
+- **`QueryArgsConfig<TSelf>`** — create one `{Name}QueryArgsConfig : QueryArgsConfig<{Name}QueryArgsConfig>` class per entity; access via `.Default`; call `.Parse(query).ThrowOnError()` before use — never instantiate per-request. Expose only the agreed query contract (C0).
 - **Match the database package to the project**: PostgreSQL → `CoreEx.Database.Postgres`, `PostgresDatabase`, `UseNpgsql`; SQL Server → `CoreEx.Database.SqlServer`, `SqlServerDatabase`, `UseSqlServer`. Check the project's `Program.cs` — do not introduce the wrong provider.

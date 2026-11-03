@@ -35,13 +35,9 @@ Guides you through creating or modifying a CoreEx Application-layer service in `
 
 ## Quick Reference
 
-**Clarifying questions before writing any code:**
-0. Resolve `rop-enabled` (exception vs `Result<T>`), whether a `*.Domain` project exists (aggregate mapping vs direct-CRUD), and `outbox-enabled` (event publishing) from the solution-root `AGENTS.md` **Feature Configuration** and project structure before asking the rest; only prompt for what is unresolved and re-state resolved values for confirmation.
-1. Exception-based or `Result<T>` pipeline style? (→ Path A or B — per-project choice)
-2. Which operations? Get / Create / Update / Delete / custom business action? (**never assume Query**)
-3. Any cross-domain or external-service calls? (→ adapter interface, Path D)
-4. Any policy guard checks requiring I/O? (→ policy class, Path D)
-5. Domain layer present? (→ `Application/Mapping/` mapper; used in Path B)
+**Resolve context before coding; ask only about unresolved behavior:**
+- Inspect Feature Configuration, service signatures, and project structure for ROP, Domain mapping, and outbox choices.
+- Take operations from the request (**never assume Query**); resolve external calls and policy requirements from the requested behavior and existing services.
 6. Read-only queries or collection results needed? (→ CQRS read service, Path C)
 
 **Key rules at a glance:**

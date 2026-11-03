@@ -14,6 +14,8 @@ Full workflow for adding or extending `CoreEx.Data.GraphQL` (GraphQL-lite) on a 
 
 ## Phase 1 — Clarify Before Writing
 
+Resolve these decisions from the request and existing host; ask only unresolved behavioral questions.
+
 | Question | Default | Notes |
 |---|---|---|
 | Target host | — | `*.Api` project. GraphQL-lite is a REST-adjacent query surface; do not offer it for Subscribe/Relay hosts. |

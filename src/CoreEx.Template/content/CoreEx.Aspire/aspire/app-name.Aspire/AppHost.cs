@@ -1,10 +1,9 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
-// dotnet dev-certs https --trust is not fully supported on Linux, so the ASP.NET Core dev cert used by each
-// project resource's https endpoint is not OS-trusted on Linux CI runners. Both the health check probes (via
-// AddEndpoints) and AspireTesterBase's CreateHttpClient() resolve their HttpClient via this same DI container's
-// IHttpClientFactory, so disabling certificate validation here (dev/test-only AppHost, never shipped) covers both.
-builder.DisableHttpCertificateValidation();
+// Test.Aspire reaches HTTPS project endpoints through the AppHost's HttpClientFactory. Linux CI may not trust the ASP.NET Core dev certificate.
+// This is AppHost-only development/test behavior; never use it in a production host.
+if (builder.Environment.IsDevelopment())
+    builder.DisableHttpCertificateValidation();
 
 // IsRunMode: never surface this test-only resource in a published manifest (per the self-hosted WireMock.Net housekeeping note - see AppHost.cs's header comment).
 //var mockhost = builder.AddMockHostProject<Projects.solution-name-underscore_Aspire_MockHost>("mock-host");

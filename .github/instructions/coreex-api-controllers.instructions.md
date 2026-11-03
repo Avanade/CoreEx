@@ -20,7 +20,7 @@ tags: ["controllers", "api", "routing", "cqrs", "dependency-injection", "minimal
 
 > **Precondition — the Api host must exist.** Controllers live in the `*.Api` host, which is **not** part of the base `coreex` solution. Before authoring a controller, confirm an Api host is present (`**/*.Api/*.Api.csproj`); if it is absent, run the scaffolding workflow first (see `coreex-host-setup.instructions.md` → "Scaffolding an API host") — which confirms creation, generates it via the `coreex-api` template using the recorded solution options, and adds the new projects to the solution (`dotnet sln add`) as the final in-session step. Also ensure the entity's application service exists (create per *Service Operations — Confirm Scope* in `coreex-application-services.instructions.md` if not).
 
-> **Maintain the API tests alongside the controller.** When you create or change a controller's operations, **offer to create or update the matching `XxxReadTests` / `XxxMutateTests`** (per-entity, one partial file per operation) in the `*.Test.Api` project — see `coreex-tests.instructions.md` → "API Tests — Structure & Generation". If accepted, co-design the seed data, tests, and `.res.json`/`.req.json` resources together; if declined, proceed but note the coverage gap.
+> **Maintain the API tests alongside the controller.** Use `coreex-test-api` to update the matching `XxxReadTests` / `XxxMutateTests`, with seed data and expected resources. Test scope and execution follow [Execution Evidence](/.github/instructions/coreex-tests.instructions.md#execution-evidence).
 
 CoreEx.AspNetCore supports two approaches for exposing HTTP endpoints. Choose one per host — they can coexist in the same application when needed.
 
@@ -138,7 +138,7 @@ public Task<IActionResult> PostAsync(CancellationToken cancellationToken = defau
 }, cancellationToken: cancellationToken);
 ```
 
-> **Agent instruction — confirm idempotency for every POST.** When adding a `POST`, ask whether the operation should be **idempotent** (safe to retry without creating a duplicate). A general **create-style** POST is a strong candidate — default to offering it. If confirmed, decorate the action with **`[IdempotencyKey]`** (MVC) or `.WithIdempotencyKey()` (Minimal API): a retried request carrying the same key then returns the original result instead of creating a second resource. Omit it only when the user confirms the POST is **not** idempotent (e.g. a deliberately non-repeatable command). This applies to `POST` specifically; `PUT`/`PATCH`/`DELETE` are inherently idempotent and do not take the attribute.
+> **Resolve idempotency for every POST; ask only if unresolved.** For an agreed idempotent operation, use **`[IdempotencyKey]`** (MVC) or `.WithIdempotencyKey()` (Minimal API): a retry with the same key returns the original result instead of creating a duplicate. Recommend this for create-style POSTs; omit only when explicitly non-idempotent. Do not apply the POST idempotency attribute to other verbs.
 
 ### POST / DELETE — Conditional on a Related Resource's State
 
@@ -216,6 +216,8 @@ public Task<IActionResult> QueryAsync(CancellationToken cancellationToken = defa
     _webApi.GetAsync(Request, (ro, ct) => _service.QueryAsync(ro.QueryArgs, ro.PagingArgs, ct), cancellationToken: cancellationToken);
 ```
 
+**Paging is tolerant, unlike filter/order validation.** With the default query-string names, the WebApi parser treats malformed, negative, or overflowing `$skip` as `0` and `$take` as `PagingArgs.DefaultTake`; `$take=0` also uses that default. `DefaultTake` is `25` unless configured via `CoreEx:Data:PagingArgs:DefaultTake` or set in code; take is capped by `MaximumTake` (default `1000`). These inputs do not inherently produce HTTP 400. With no `$skip`/`$take`/`$count`, `ro.PagingArgs` is `null`; whether paging is then applied depends on the downstream query implementation. `[Paging]` documents support, not strict validation or an automatic page cap.
+
 ### Reference Data Endpoints
 
 Delegate to `ReferenceDataOrchestrator.Current.QueryAsync<T>()`. Decorate with `[Query]` and `[Paging]` so the OData-esque `$filter`/`$orderby` query strings and paging parameters are parsed from the request and passed through. The default `ReferenceDataQueryArgsConfig` supports filtering on `code`/`text` (all string operators, case-insensitive) and ordering by `code`/`text`/`sortOrder`:
@@ -237,6 +239,14 @@ Decorate actions with standard response metadata attributes:
 - `[ProducesResponseType(typeof(T), statusCode)]` — equivalent non-generic form; either is acceptable.
 - `[ProducesNotFoundProblem()]` — shorthand for `[ProducesResponseType(typeof(ProblemDetails), 404)]`; use on GET/PUT/PATCH/DELETE where not-found is expected.
 - `[Accepts<T>]` — documents the consumed media type.
+
+### Specialized JSON Representations
+
+Where strict Accept validation is required, call `ro.WithAccept()` after setting any `WithContentType(...)` override and before calling the service. Like `WithIfMatchRequired()`, the check is immediate, not deferred: it validates the effective JSON media type, returns 406 for incompatibility (400 for malformed headers), and adds `Vary: Accept`. It is opt-in validation, not negotiation; changing the content type afterward requires another check. It does not inspect explicit results or change error representation.
+
+For generated JSON, `ro.WithContentType("application/vnd.example+json")` overrides the injected WebApi instance's `DefaultJsonMediaType` (`application/json` by default); `null` clears the operation override. This works with GET's base options and typed options, survives copies, and changes only the response label, not request parsing, serializer selection, or content negotiation. Explicit `IActionResult`/`IResult` values remain untouched; HEAD/204/304 remain bodyless.
+
+Preserve any configured keyed WebApi injection (`[FromKeyedServices("specialized")]`); do not replace it with an unkeyed instance or mutate instance defaults per operation. Success media types do not change error representations. Specialized errors belong in the MVC/Minimal `CreateResultForException(HttpContext, Exception, IExtendedException?)` hook, not duplicated controller exception handling. Declare matching success and error OpenAPI metadata separately; do not use ProblemDetails shorthand attributes where the configured error body is different. See [host configuration](/.github/instructions/coreex-host-setup.instructions.md#specialized-webapi-instances) and the [package guide](/.github/docs/coreex/agents/CoreEx.AspNetCore.md).
 
 ### Query Schema Endpoint
 

@@ -8,7 +8,7 @@
 
 # coreex-command-publish-e2e: Workflow
 
-Full step-by-step workflow for making a domain **send a command** to another domain, end-to-end. All context is gathered upfront so no L1 skill re-asks a question already answered here.
+Full step-by-step workflow for making a domain **send a command** to another domain, end-to-end. Resolve requirements before implementation and pass confirmed context to each L1 skill so answered questions are not repeated.
 
 ---
 
@@ -34,7 +34,7 @@ Then verify **routing** (this is the most common trap):
 
 ## Phase 2 — Interview
 
-One batched turn. Restate anything already resolved rather than re-asking.
+Resolve recorded decisions first, then ask only unresolved behavioral or design questions one at a time using the available interaction mechanism. Restate known values rather than re-asking. Present one compact implementation plan and wait for approval unless the user's request already authorizes the stated scope; approval remains valid unless scope changes.
 
 | # | Question | Why needed |
 |---|---|---|

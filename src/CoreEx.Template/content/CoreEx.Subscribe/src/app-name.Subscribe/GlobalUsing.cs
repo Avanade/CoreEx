@@ -33,6 +33,9 @@ global using Microsoft.Azure.Cosmos;
 global using Microsoft.Extensions.Options;
 global using OpenTelemetry;
 global using OpenTelemetry.Trace;
+// #if (has-data-provider || refdata-enabled)
+global using solution-name.Infrastructure.Repositories;
+// #endif
 global using StackExchange.Redis;
 global using System.Net;
 global using System.Text.Json;

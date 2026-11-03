@@ -44,7 +44,7 @@ If the developer means an event, stop and use `coreex-app-service` — nothing o
 
 1. **Read Feature Configuration** — `messaging-provider` must be `ServiceBus`; `outbox-enabled` decides outbox vs direct; `rop-enabled` decides `Result<T>` vs exceptions.
 2. **Verify routing** — `AddNamedDestinationProvider()` is registered in every host that publishes; migrate away from `AddFixedDestinationProvider` (it would send commands to the shared topic).
-3. **Interview** — target domain, command shape, payload, trigger, outbox vs direct, target location; one batched turn.
+3. **Interview** — resolve recorded decisions first, then ask only unresolved behavioral/design questions one at a time using the available interaction mechanism. Present one compact plan and wait for approval unless the user's request already authorizes implementation; approval remains valid unless scope changes.
 4. **Execute L1 sequence** (table below).
 5. **Topology + tests + Aspire** — queue in Test.Common `ServiceBus`, API/Relay tests, `coreex-aspire`.
 6. **Validate** — build, unit/integration tests, report.
