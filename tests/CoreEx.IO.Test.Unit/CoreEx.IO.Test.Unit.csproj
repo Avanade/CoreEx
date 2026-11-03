@@ -17,6 +17,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\CoreEx.IO\CoreEx.IO.csproj" />
+    <ProjectReference Include="..\..\src\CoreEx.Validation\CoreEx.Validation.csproj" />
   </ItemGroup>
   <ItemGroup>
     <None Update="Fixtures\**\*" CopyToOutputDirectory="PreserveNewest" />

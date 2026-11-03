@@ -1,7 +1,14 @@
 global using AwesomeAssertions;
 global using CoreEx.Entities;
 global using CoreEx.IO;
+global using CoreEx.IO.Csv;
 global using CoreEx.Localization;
 global using CoreEx.Results;
+global using CoreEx.Validation;
+global using Microsoft.Extensions.DependencyInjection;
 global using NUnit.Framework;
+global using System.Globalization;
+global using System.Runtime.ExceptionServices;
+global using System.Text;
 global using System.Text.Json;
+global using ExecutionContext = CoreEx.ExecutionContext;

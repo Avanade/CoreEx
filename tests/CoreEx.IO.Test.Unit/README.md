@@ -1,6 +1,6 @@
 # CoreEx.IO contract and migration baseline
 
-Step 1 covers format-neutral contract invariants and extension-point behavior. There is deliberately no CSV engine or parser dependency yet. Fixture integrity tests do not claim to prove parsing, whole-file acceptance, stream ownership, scope isolation, or hook orchestration. Those become executable processor tests in Steps 3 and 4.
+Steps 1 through 3 cover format-neutral contract invariants, extension-point behavior, and executable flat CSV processing with CsvHelper 34.0.0. Fixture integrity tests remain distinct from runtime evidence; flat processor tests prove parsing, whole-file acceptance, stream ownership, unit scopes, and hook orchestration. Hierarchical processor coverage remains Step 4 work.
 
 ## Portable fixtures
 
@@ -16,8 +16,8 @@ The reviewed source is `C:\Repos\Playground\Sor.Demo`. Its unit solution `Sor.De
 
 | Area | Source behavior or dependency | Migration action |
 |---|---|---|
-| Parser | TinyCsvParser 3.0.11; mapping outcomes and converters can represent invalid content without throwing from framework control flow. | Integrate asynchronous enumeration and cancellation. Characterize parser-internal malformed quoting/header exceptions separately; do not hide them behind Result wrappers. |
-| Parser compatibility | The reviewed package has net8.0/net10.0 assets, MIT licensing, and a net8.0 System.IO.Pipelines 10.0.8 dependency. | Verify actual restored assets, signing, supported TFMs, and transitive dependencies before introducing the package; Step 1 adds no parser reference. |
+| Parser | The demo uses TinyCsvParser 3.0.11 synchronously; its async path retained record terminators in final fields, mishandled malformed final quoting, and swallowed mapping faults. | Replaced with CsvHelper 34.0.0 low-level parsing. Malformed-record callbacks become current-record diagnostics; recovered malformed rows never reach business validation/execution. |
+| Parser compatibility | CsvHelper 34.0.0 is a fresh rewrite, strong-named, licensed MS-PL OR Apache-2.0, with dependency-free net8.0/net10.0 runtime assets. | Keep version-specific regression coverage. Decode through a strict StreamReader because its native UTF-8 path silently accepted malformed bytes despite a strict Encoding option. Full package/framework and BOM compatibility remains Step 5. |
 | CodeGen API | Demo pins OnRamp 2.4.0; CoreEx pins 2.3.1. Demo uses CodeGenPropertyMap, PrepareMapAsync, and MapEntryKey. | Upgrade deliberately in Step 6 and run RefData/Count regressions; do not copy source against incompatible APIs now. |
 | Expected errors | Demo validation flattens errors into strings and keeps a file-wide list. | Preserve localization/severity/location in individual diagnostics; do not construct ValidationException or Result.ValidationError per bad record. |
 | Input ownership | Demo has path, stream snapshot, and revision-pinned Blob APIs. | Core only accepts a stream-opening factory; caller guarantees immutable bytes, processor owns returned streams, and there is no compulsory snapshot. |
@@ -26,3 +26,9 @@ The reviewed source is `C:\Repos\Playground\Sor.Demo`. Its unit solution `Sor.De
 | CoreEx ambient context | Resolving the current scoped registration resets/disposes its parent. | Add safe nesting in Step 2 before implementing unit execution; saving/restoring a disposed reference is not sufficient. |
 
 The runtime acceptance matrix in `docs/file-processing-design.md` remains authoritative for the larger suite: headers/selectors, quoting, conversions, requiredness, record policies, missing records, EOF reconciliation, no-write validation, report failures/backpressure, replay/ownership/cancellation, bounds/encoding, context isolation, multi-definition registration, and concurrent invocations. Numeric limits and precise BOM support remain Step 5 work, not assumed parser defaults.
+
+## Flat runtime evidence
+
+`CsvFileProcessorTests` exercises late mapping and EOF rejection with zero execution, fresh models/context/scopes on replay, original Result failure, scoped errors/warnings and CoreEx validator messages, case-insensitive/reordered/duplicate/missing headers, positional selectors, missing fields, multiple errors per record, comments/blanks, quoted/escaped/multiline fields, CR/LF/CRLF locations, single-byte nonseekable async input, split Unicode, invalid UTF-8, invariant nullable/date conversion, and concurrent invocation mapping/counters.
+
+Lifecycle coverage includes cancellation before opening, during blocked validation/replay reads, and inside a scoped diagnostic callback; open/read/converter/business/reporting faults; null/unreadable streams; replay count/mapping drift; invalid replay contexts; missing execution handlers; awaited report backpressure under the file ambient context; scope disposal; and asynchronous disposal of every owned input. Test streams reject synchronous reads. Separate 10K conversion-error and malformed-quote cases assert zero observed first-chance exceptions during processing, and streamed diagnostic tests retain no history in framework state.

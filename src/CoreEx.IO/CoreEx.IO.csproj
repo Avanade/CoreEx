@@ -1,10 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <Title>CoreEx file processing.</Title>
-    <Description>Format-neutral contracts for stream-based file validation and execution.</Description>
+    <Description>Stream-based file validation and execution with a host-neutral CSV runtime.</Description>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="CsvHelper" />
     <ProjectReference Include="..\CoreEx\CoreEx.csproj" />
   </ItemGroup>
 </Project>

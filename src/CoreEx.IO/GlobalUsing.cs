@@ -1,3 +1,11 @@
 global using CoreEx.Entities;
+global using CoreEx.IO.Csv;
 global using CoreEx.Localization;
 global using CoreEx.Results;
+global using CoreEx.Validation;
+global using CsvHelper;
+global using Microsoft.Extensions.DependencyInjection;
+global using System.Globalization;
+global using System.Linq.Expressions;
+global using System.Text;
+global using ExecutionContext = CoreEx.ExecutionContext;
