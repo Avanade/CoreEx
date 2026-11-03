@@ -53,6 +53,63 @@ public class BlobFunctionsTests
         BlobImportReport.GetReportName("path/file.json", "\"v1\"").Length.Should().Be(69);
     }
 
+    [TestCase(BlobImportService.MaximumContentLength - 1, "accepted", true)]
+    [TestCase(BlobImportService.MaximumContentLength, "accepted", true)]
+    [TestCase(BlobImportService.MaximumContentLength + 1, "rejected", false)]
+    public async Task PayloadSize_IsBoundedBeforeDownloadAndPersistsOutcome(int length, string status, bool downloaded)
+    {
+        var blob = new SizedBlob(length);
+        var output = new ReportBlob();
+        var service = new BlobImportService(new ReportStorage(output), NullLogger<BlobImportService>.Instance);
+        await service.ProcessAsync(blob);
+
+        blob.Downloaded.Should().Be(downloaded);
+        if (downloaded)
+            blob.Condition.Should().Be(new ETag("\"observed\""));
+
+        output.Report.Should().Be(new BlobImportReport(blob.Name, "\"observed\"", status, downloaded ? "example" : null));
+    }
+
+    private sealed class SizedBlob(int length) : BlobClient
+    {
+        public bool Downloaded { get; private set; }
+        public ETag? Condition { get; private set; }
+        public override string Name => "file.json";
+
+        public override Task<Response<BlobProperties>> GetPropertiesAsync(BlobRequestConditions? conditions = null, CancellationToken cancellationToken = default)
+            => Task.FromResult(Response.FromValue(BlobsModelFactory.BlobProperties(contentLength: length, eTag: new ETag("\"observed\"")), new TestResponse()));
+
+        public override Task<Response<BlobDownloadResult>> DownloadContentAsync(BlobDownloadOptions options, CancellationToken cancellationToken = default)
+        {
+            Downloaded = true;
+            Condition = options.Conditions.IfMatch;
+            var content = BinaryData.FromString("{\"name\":\"example\"}".PadRight(length));
+            return Task.FromResult(Response.FromValue(BlobsModelFactory.BlobDownloadResult(content: content), new TestResponse()));
+        }
+    }
+
+    private sealed class ReportStorage(ReportBlob output) : BlobServiceClient
+    {
+        public override BlobContainerClient GetBlobContainerClient(string blobContainerName) => new ReportContainer(output);
+    }
+
+    private sealed class ReportContainer(ReportBlob output) : BlobContainerClient
+    {
+        public override BlobClient GetBlobClient(string blobName) => output;
+    }
+
+    private sealed class ReportBlob : BlobClient
+    {
+        public BlobImportReport? Report { get; private set; }
+        public override string Name => "report.json";
+
+        public override Task<Response<BlobContentInfo>> UploadAsync(BinaryData content, bool overwrite = false, CancellationToken cancellationToken = default)
+        {
+            Report = content.ToObjectFromJson<BlobImportReport>(JsonDefaults.SerializerOptions);
+            return Task.FromResult(Response.FromValue(BlobsModelFactory.BlobContentInfo(new ETag("\"report\""), DateTimeOffset.UtcNow, [], "", "", "", 0), new TestResponse()));
+        }
+    }
+
     private sealed class RecordingService : IBlobImportService
     {
         public BlobClient? Blob { get; private set; }

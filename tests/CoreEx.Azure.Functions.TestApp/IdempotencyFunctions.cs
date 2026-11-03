@@ -46,7 +46,7 @@ public sealed class IdempotencyFunctions(WebApi webApi, IdempotencyOperationServ
         => webApi.FunctionWithIdempotencyAsync(request, ct => webApi.PostAsync<string, IdempotencyResponse>(request, (ro, token) =>
         {
             ro.WithLocationUri(value => new Uri($"/api/idempotency/{Uri.EscapeDataString(value.Id)}", UriKind.Relative));
-            request.HttpContext.Response.Cookies.Append("test-idempotency", id);
+            request.HttpContext.Response.Cookies.Append("test-idempotency", id, new CookieOptions { Secure = true, HttpOnly = true });
             return service.ExecuteAsync(id, ro.Value.Required(), token);
         }, cancellationToken: ct), isRequired, cancellationToken);
 }

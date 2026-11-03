@@ -21,37 +21,54 @@ public interface IBlobImportService
 [ScopedService<IBlobImportService>]
 public sealed class BlobImportService(BlobServiceClient storage, ILogger<BlobImportService> logger) : IBlobImportService
 {
+    /// <summary>
+    /// Gets the maximum JSON payload size accepted by this small-file example, in bytes.
+    /// </summary>
+    public const int MaximumContentLength = 64 * 1024;
+
     /// <inheritdoc/>
     public async Task ProcessAsync(BlobClient blob, CancellationToken cancellationToken = default)
     {
         var properties = (await blob.GetPropertiesAsync(cancellationToken: cancellationToken).ConfigureAwait(false)).Value;
         using var scope = logger.BeginScope(new Dictionary<string, object> { ["BlobName"] = blob.Name, ["ETag"] = properties.ETag.ToString() });
-        var download = await blob.DownloadContentAsync(new BlobDownloadOptions
-        {
-            Conditions = new BlobRequestConditions { IfMatch = properties.ETag }
-        }, cancellationToken).ConfigureAwait(false);
-
         string? name = null;
         var status = "accepted";
-        try
-        {
-            var value = JsonSerializer.Deserialize<BlobImportRequest>(download.Value.Content.ToMemory().Span, JsonDefaults.SerializerOptions);
-            name = value?.Name.Required() ?? throw new ValidationException("A file value is required.");
-        }
-        catch (JsonException)
+        if (properties.ContentLength > MaximumContentLength)
         {
             status = "rejected";
-            logger.LogWarning("Blob rejected because its content is not a valid JSON request.");
+            if (logger.IsEnabled(LogLevel.Warning))
+                logger.LogWarning("Blob rejected because its content exceeds {MaximumContentLength} bytes.", MaximumContentLength);
         }
-        catch (ValidationException)
+        else
         {
-            status = "rejected";
-            logger.LogWarning("Blob rejected because its name is required.");
+            var download = await blob.DownloadContentAsync(new BlobDownloadOptions
+            {
+                Conditions = new BlobRequestConditions { IfMatch = properties.ETag }
+            }, cancellationToken).ConfigureAwait(false);
+
+            try
+            {
+                var value = JsonSerializer.Deserialize<BlobImportRequest>(download.Value.Content.ToMemory().Span, JsonDefaults.SerializerOptions);
+                name = value?.Name.Required() ?? throw new ValidationException("A file value is required.");
+            }
+            catch (JsonException)
+            {
+                status = "rejected";
+                if (logger.IsEnabled(LogLevel.Warning))
+                    logger.LogWarning("Blob rejected because its content is not a valid JSON request.");
+            }
+            catch (ValidationException)
+            {
+                status = "rejected";
+                if (logger.IsEnabled(LogLevel.Warning))
+                    logger.LogWarning("Blob rejected because its name is required.");
+            }
         }
 
         var report = new BlobImportReport(blob.Name, properties.ETag.ToString(), status, name);
         var output = storage.GetBlobContainerClient("import-results").GetBlobClient(BlobImportReport.GetReportName(blob.Name, report.ETag));
         await output.UploadAsync(BinaryData.FromObjectAsJson(report, JsonDefaults.SerializerOptions), overwrite: true, cancellationToken).ConfigureAwait(false);
-        logger.LogInformation("Blob processing completed with status {Status}; report {ReportName}.", status, output.Name);
+        if (logger.IsEnabled(LogLevel.Information))
+            logger.LogInformation("Blob processing completed with status {Status}; report {ReportName}.", status, output.Name);
     }
 }

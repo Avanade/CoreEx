@@ -26,6 +26,9 @@ public class FunctionsHttpIdempotencyTests
             body.Position.Should().Be(position);
         }
 
+        var cookie = request.HttpContext.Response.Headers.SetCookie.ToString();
+        cookie.Should().Contain("secure");
+        cookie.Should().Contain("httponly");
         request.HttpContext.RequestServices.GetRequiredService<IdempotencyOperationService>().GetCount(id).Should().Be(1);
     }
 
