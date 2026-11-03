@@ -21,7 +21,7 @@ Guides a repository through the right CoreEx setup path by interviewing the user
 
 - Starting a new CoreEx domain or service from a repository that already contains only the bootstrap AI assets.
 - Deciding whether the first cut should create just the API host or also include the outbox relay and/or subscriber hosts.
-- Adding missing `Api`, `Relay`, or `Subscribe` hosts to an existing scaffolded CoreEx solution.
+- Adding missing `Api`, `Relay`, `Subscribe` or `Functions` hosts, including standalone Functions integration apps without shared libraries.
 - Adding an Aspire AppHost so a solution's hosts can be run and debugged together locally, with a dashboard.
 - Converting plain-English project needs into either the matching `dotnet new coreex*` commands or the safest retrofit path.
 
@@ -50,7 +50,7 @@ For step-by-step guidance, see [references/workflow.md](references/workflow.md).
 - Ask short, plain-English questions. Do not ask the user to supply template flag names.
 - The canonical interview order is: base solution name, new vs retrofit, HTTP API, reliable event publishing, event consumption, data storage, messaging provider when needed, reference data, domain layer, and ROP.
 - Prefer either/or or small-choice questions before any extra freeform follow-up.
-- If the user gives a partial or non-canonical name, stop and help them reach `[Company].[Product].[Domain]` before any template command.
+- For conventional solution templates, if the user gives a partial or non-canonical name, stop and help them reach `[Company].[Product].[Domain]` before any template command. Functions has the deployment-name exception below; do not impose a new domain/root scaffold on standalone apps.
 - If the workspace already proves a choice, restate it in the implementation plan instead of asking again.
 - Present one compact implementation plan once requirements are resolved. Wait for explicit approval unless the user's request already authorizes implementation; approval remains valid unless scope changes.
 - An unavailable user or approval tool is not approval. If explicit approval is required, use the available interaction mechanism; if none is available, present the plan once and stop pending approval. Do not retry the same question or invent consent.
@@ -81,6 +81,7 @@ Set outbox to `true` only when the user chose owned persistence and reliable pub
 | User answer | Template impact |
 |---|---|
 | "I need HTTP endpoints." | Add `coreex-api`. |
+| "I need a Functions app." | Add `coreex-functions`; determine shared-core versus standalone from requirements/references. No trigger is generated. |
 | "I need to publish events reliably." | Add `coreex-relay`; use a messaging provider and keep outbox enabled where relevant. |
 | "I need to consume events." | Add `coreex-subscribe`; use a messaging provider. |
 | "This service stores its own data in SQL Server." | `--data-provider SqlServer` |
@@ -98,9 +99,13 @@ Before this skill runs, the repository must already be in one of these states:
 - A bootstrap-only shell created by `coreex-bootstrap`; or
 - An existing CoreEx solution that is missing some runtime hosts.
 
+**Functions exception:** a standalone `coreex-functions --shared-core false` host/test pair can be created in an empty repository without the root `coreex` scaffold. Do not generate Application/Infrastructure/Contracts, a database or root package configuration for it.
+
 **AI assets:** If the repository does not yet have `.github/instructions/` or `.github/agents/`, the consumer should run `dotnet new coreex-ai` at the repo root first (optionally with `--app-folder <subfolder>` for monorepos), installed from an explicitly pinned `CoreEx.Template::<version>` (see [Version-pin discipline](/.github/coreex-ai-workflows.md#version-pin-discipline)). This skill will remind the user if AI assets appear to be absent.
 
 ## Naming Rules
+
+**Functions deployment names:** `coreex-functions` takes the full deployment name ending in `.Functions`, e.g. `Sales.Functions` or `Sales.Imports.Functions`. It is not restricted to four parts. Default shared-core references use the name minus the final suffix; pass `--solution-name Company.Product.Sales` when deployment and shared library prefixes differ. Test names replace the final `.Functions` with `.Test.Functions`, independently of `--solution-name`. The canonical rules below apply to the other solution/addon templates.
 
 - The base solution name must be in `[Company].[Product].[Domain]` form, e.g. `Avanade.Bookstore.Books`.
 - The `coreex` (solution) template takes the **3-part base name**: `-n Company.Product.Books`. If the current directory is already named `Company.Product.Books`, `-n` can be omitted — the template uses the folder name automatically.
@@ -117,6 +122,24 @@ Before this skill runs, the repository must already be in one of these states:
 - If the repository already exists with a non-canonical root name (e.g., `Avanade.Books`), prefer a manual retrofit unless the user explicitly wants to rename the solution first.
 
 ## Command Patterns
+
+### Functions Host and Test Pair
+
+From the solution/output root, inspect an existing host first; create only explicitly requested missing deployments. Dry-run before applying:
+
+```text
+# Shared application libraries; --solution-name is needed only if prefixes differ.
+dotnet new coreex-functions -n Company.Product.Sales.Imports.Functions --solution-name Company.Product.Sales --dry-run
+dotnet new coreex-functions -n Company.Product.Sales.Imports.Functions --solution-name Company.Product.Sales
+
+# Independent integration app, no root coreex scaffold required.
+dotnet new coreex-functions -n Sales.Imports.Functions --shared-core false --dry-run
+dotnet new coreex-functions -n Sales.Imports.Functions --shared-core false
+```
+
+Both emit `src/<full-host-name>/` and `tests/<host-name-with-Test.Functions>/`. Build host/test by path; register them in an existing solution under `hosts` / `tests` when appropriate. Record deployment/shared-core choices in host/root guidance as applicable. Multiple hosts may share libraries but must not reference one another. The scaffold contains no dummy triggers, health endpoint or fixtures; use [`coreex-functions`](../coreex-functions/SKILL.md) for the first actual capability and meaningful tests.
+
+Do not pass data-provider/outbox/refdata flags to this template or automatically scan all shared services. Capability setup owns those dependencies. `coreex-aspire` does not generate Functions references; wire a requested Functions runtime into an existing AppHost using the project's verified Functions integration rather than its Api/Relay/Subscribe flags.
 
 ### Bootstrap-Only Repository
 
@@ -202,6 +225,8 @@ dotnet new coreex-aspire    -n Company.Product.Books.Aspire --has-api ... --has-
 | Empty repo, own data, expose HTTP, publish reliable events | `coreex` + `coreex-api` + `coreex-relay` |
 | Empty repo, expose HTTP, publish events, consume events | `coreex` + `coreex-api` + `coreex-relay` + `coreex-subscribe` |
 | Existing repo missing only runtime hosts | Infer current shape, then add only the missing hosts |
+| Functions integration with shared business logic | `coreex-functions -n <deployment>.Functions`, with `--solution-name <shared-prefix>` if different |
+| Standalone Blob/Service Bus/HTTP/Timer integration | `coreex-functions -n <deployment>.Functions --shared-core false`; add capabilities via `coreex-functions` skill |
 | Facade over another system with no local database | `coreex --data-provider None --messaging-provider None` and add `coreex-api --data-provider None` only if an API is needed |
 
 ## Key References
@@ -221,4 +246,5 @@ dotnet new coreex-aspire    -n Company.Product.Books.Aspire --has-api ... --has-
 | CoreEx API host | `coreex-api` | Adds an ASP.NET Core API host |
 | CoreEx Outbox Relay host | `coreex-relay` | Adds an outbox relay host |
 | CoreEx Subscriber host | `coreex-subscribe` | Adds an event subscriber host |
+| CoreEx Functions host | `coreex-functions` | Adds an empty isolated-worker host and test project; optional `--shared-core false` |
 | CoreEx Aspire AppHost | `coreex-aspire` | Adds an Aspire AppHost orchestrating this solution's own hosts — run after those hosts exist |

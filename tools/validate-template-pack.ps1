@@ -72,6 +72,13 @@ $testScenarios = @(
                 ".github/instructions/coreex-validators.instructions.md"
                 ".github/prompts/coreex-scaffold.prompt.md"
                 ".github/prompts/coreex-bootstrap.prompt.md"
+                ".github/prompts/coreex-functions.prompt.md"
+                ".github/instructions/coreex-functions.instructions.md"
+                ".github/skills/coreex-functions/SKILL.md"
+                ".github/skills/coreex-functions/references/workflow.md"
+                ".github/skills/coreex-functions/references/patterns.md"
+                ".github/docs/coreex/agents/CoreEx.Azure.Functions.md"
+                ".claude/commands/coreex-functions.md"
                 ".github/agents/coreex-expert.agent.md"
                 ".github/skills/coreex-bootstrap/SKILL.md"
                 ".github/skills/coreex-docs-sync/SKILL.md"
@@ -119,6 +126,9 @@ $testScenarios = @(
                 ".github/docs/coreex/agents/CoreEx.Data.md"                    = "OrderQueryArgsConfig : QueryArgsConfig<OrderQueryArgsConfig>"
                 ".github/prompts/coreex-repository.prompt.md"                  = "follow its authoritative workflow"
                 ".github/instructions/coreex-tests.instructions.md"            = "Derive expectations from requirements"
+                ".github/instructions/coreex-functions.instructions.md"        = 'applyTo: "**/*.Functions/**/*.cs,**/*.Test.Functions/**/*.cs"'
+                ".github/skills/coreex-functions/references/patterns.md"        = "SnapshotHttpResponse"
+                ".github/docs/coreex/agents/CoreEx.Azure.Functions.md"          = "AutoCompleteMessages = false"
             }
             FileNotContains = @{
                 ".github/instructions/coreex.instructions.md"                 = "Read each matching file in full"
@@ -143,6 +153,13 @@ $testScenarios = @(
                 ".github/skills/coreex-command-publish-e2e/SKILL.md"
                 ".github/skills/coreex-command-subscribe-e2e/SKILL.md"
                 ".github/instructions/coreex-aspire.instructions.md"
+                ".github/instructions/coreex-functions.instructions.md"
+                ".github/prompts/coreex-functions.prompt.md"
+                ".github/skills/coreex-functions/SKILL.md"
+                ".github/skills/coreex-functions/references/workflow.md"
+                ".github/skills/coreex-functions/references/patterns.md"
+                ".github/docs/coreex/agents/CoreEx.Azure.Functions.md"
+                ".claude/commands/coreex-functions.md"
                 ".github/docs/coreex/manifest.txt"
                 ".github/coreex-ai-workflows.md"
                 ".claude/commands/coreex-docs-sync.md"
@@ -157,6 +174,8 @@ $testScenarios = @(
                 ".github/instructions/coreex-api-controllers.instructions.md" = 'applyTo: "backend/'
                 ".github/docs/coreex/manifest.txt"                            = "coreex-version:"
                 ".github/skills/coreex-api/SKILL.md"                           = "Resolve context before coding"
+                ".github/instructions/coreex-functions.instructions.md"      = 'applyTo: "backend/**/*.Functions/**/*.cs,backend/**/*.Test.Functions/**/*.cs"'
+                ".github/instructions/coreex-tooling.instructions.md"        = ';!backend/**/*.Database/Schema/**/*.g.*"'
             }
         }
         Build      = $false

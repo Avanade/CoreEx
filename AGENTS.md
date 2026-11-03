@@ -29,6 +29,7 @@ reference data, validation, and data access — into a consistent, composable ba
 | `CoreEx.Validation` | Fluent property-centric validator, composable rules, async predicates, deep `ValidationException` integration |
 | `CoreEx.Events` | `EventData` ↔ CloudEvents, two-phase publish pipeline, structured subscriber dispatch |
 | `CoreEx.Azure.Messaging.ServiceBus` | Azure Service Bus publisher + subscriber bases, outbox relay |
+| `CoreEx.Azure.Functions` | Isolated-worker invocation context, MVC WebApi/idempotency and native Service Bus settlement; native HTTP/Blob/Timer bindings |
 | `CoreEx.Database` / `.SqlServer` / `.Postgres` | ADO.NET abstraction, outbox relay infrastructure |
 | `CoreEx.EntityFrameworkCore` | EF Core integration, typed CRUD, `ValueConverter` bridges |
 | `CoreEx.RefData` | Typed reference data with hybrid-cache-backed orchestrator |
@@ -43,6 +44,8 @@ reference data, validation, and data access — into a consistent, composable ba
 composition-root hosts (Api, Relay, Subscribe). See [samples/docs/layers.md](./samples/docs/layers.md)
 for the full dependency diagram and [samples/docs/patterns.md](./samples/docs/patterns.md) for the
 pattern catalog.
+
+Azure Functions is an additional host option: one `*.Functions` project per deployment, sharing application libraries or standalone with capability-local handlers. Scaffold the empty host/test pair via `coreex-functions` (`--shared-core false` for standalone); use `/coreex-functions` for native HTTP/Service Bus/Blob/Timer capabilities and meaningful tests. Functions-specific examples are executable framework test hosts, not another Contoso domain.
 
 ---
 
@@ -134,7 +137,7 @@ This installs:
 - `.github/skills/` — the CoreEx skill suite: `coreex-bootstrap`, `coreex-docs-sync`, `coreex-scaffold`, the L1 skills
   (`coreex-contract`, `coreex-refdata`, `coreex-db-migration`, `coreex-repository`, `coreex-adapter`,
   `coreex-app-service`, `coreex-validator`, `coreex-policy`, `coreex-aggregate`, `coreex-api`, `coreex-subscriber`,
-  `coreex-test-api`, `coreex-test-subscribe`, `coreex-test-relay`, `coreex-aspire`), and the L2 end-to-end skills
+  `coreex-test-api`, `coreex-test-subscribe`, `coreex-test-relay`, `coreex-aspire`, `coreex-functions`), and the L2 end-to-end skills
   (`coreex-api-e2e`, `coreex-subscriber-e2e`, `coreex-command-publish-e2e`, `coreex-command-subscribe-e2e`)
 - `.github/agents/coreex-expert.agent.md` — architecture guidance agent
 - `.github/docs/coreex/` — the architecture docs + per-package guides cache, self-describing via

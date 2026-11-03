@@ -37,6 +37,7 @@ These files are present when the CoreEx AI workflow set has been copied into the
 - `.github/instructions/coreex-api-controllers.instructions.md` — controller shape, `WebApi` helpers, `[IdempotencyKey]`, PATCH.
 - `.github/instructions/coreex-event-subscribers.instructions.md` — subscriber classes, `[Subscribe]`, `SubscribedManager`, error handling.
 - `.github/instructions/coreex-host-setup.instructions.md` — `Program.cs` shape, middleware order, service registration, outbox relay hosts.
+- `.github/instructions/coreex-functions.instructions.md` — isolated-worker composition, native triggers, WebApi/idempotency, explicit settlement and invocation/runtime testing boundaries.
 - `.github/instructions/coreex-tooling.instructions.md` — `*.CodeGen` and `*.Database` projects, `ref-data.yaml`, DbEx or Cosmos provisioning, generated-file ownership.
 - `.github/instructions/coreex-tests.instructions.md` — `UnitTestEx`, `NUnit`, `AwesomeAssertions`, outbox/event expectations, seed data.
 
@@ -49,6 +50,7 @@ If a guide is not cached locally, fetch from GitHub:
 - [CoreEx](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx/AGENTS.md) — exceptions, `ExecutionContext`, `Result<T>`, entity contracts, `Runtime.UtcNow`, DI attributes.
 - [CoreEx.AspNetCore](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.AspNetCore/AGENTS.md) — `WebApi`, middleware, health checks, idempotency.
 - [CoreEx.AspNetCore.NSwag](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.AspNetCore.NSwag/AGENTS.md) — NSwag/OpenAPI integration.
+- [CoreEx.Azure.Functions](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.Azure.Functions/AGENTS.md) — isolated-worker invocation context, MVC WebApi/idempotency, Service Bus settlement and native binding boundaries.
 - [CoreEx.Azure.Messaging.ServiceBus](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.Azure.Messaging.ServiceBus/AGENTS.md) — Service Bus publisher, subscribers, error handling.
 - [CoreEx.Caching.FusionCache](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.Caching.FusionCache/AGENTS.md) — `IHybridCache`, Redis backplane, idempotency provider.
 - [CoreEx.Cosmos](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.Cosmos/AGENTS.md) — `CosmosDb`, `CosmosDbContainer<TModel>`, transactional-batch outbox, Change Feed relay, provisioning.
@@ -113,6 +115,7 @@ Do not run `/coreex-docs-sync` silently — always offer and wait for confirmati
 - Separate explanation, plan, and implementation guidance clearly.
 - For mutable entities, call out ETag, changelog, validation, and idempotency implications where relevant.
 - For messaging, explicitly distinguish API-only, API plus outbox relay, API plus subscriber, and full orchestration shapes.
+- Functions is an additional host, not a mandatory replacement. One project is one deployment; multiple apps can share libraries, while standalone integration apps can use focused local handlers. Use native bindings and never add a competing CoreEx listener or assume ASP.NET middleware works on the worker. Functions examples live in framework test hosts rather than duplicated Contoso domains.
 - For Service Bus sessions, treat publisher key-to-session mapping, destination-specific bucket counts, receiver concurrency, and relational outbox partition sizing as separate controls; verify destination-specific profiles against the exact resolved queue/topic name.
 - The Api/Relay/Subscribe host split is a workload-isolation convention, not a technical requirement — for a small, low-traffic solution, consolidating hosted-service processing (outbox relay, subscriber receiving) into the Api host is a legitimate simplification. Mention it when a user's stated scale/traffic profile suggests the extra processes may not be earning their operational cost; see [Hosts Layer Guide § Choosing a Host Topology](https://github.com/Avanade/CoreEx/blob/main/samples/docs/hosts-layer.md#choosing-a-host-topology-split-vs-consolidate).
 - Never recommend editing `*.g.cs`, `*.g.sql`, or `*.g.pgsql` files — direct the user to the owning generator instead (Roslyn source generator for `*.g.cs`; `*.Database` project for `*.g.sql`/`*.g.pgsql`).
@@ -145,6 +148,7 @@ These skills are part of the CoreEx AI workflow set and live in `.github/skills/
 | DDD aggregate / domain entity | `/coreex-aggregate` |
 | API controller / endpoint | `/coreex-api` |
 | GraphQL-lite query bridge over existing query configuration | `/coreex-graphql` |
+| Azure Functions capability and tests (HTTP, Service Bus, Blob, Timer) | `/coreex-functions` |
 | Event or command subscriber | `/coreex-subscriber` |
 | API tests | `/coreex-test-api` |
 | Subscriber tests | `/coreex-test-subscribe` |
@@ -154,6 +158,7 @@ These skills are part of the CoreEx AI workflow set and live in `.github/skills/
 **Broader routing:**
 
 - Greenfield solution or host scaffolding, or adding a .NET Aspire AppHost for local multi-host orchestration/dashboard → `/coreex-scaffold` (`coreex-scaffold` skill), which runs the matching [CoreEx.Template](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.Template/README.md) `dotnet new coreex*` commands.
+- Empty Functions host/test pair → `/coreex-scaffold` with `coreex-functions`; choose `--shared-core false` for standalone integration without a root domain scaffold. Route capabilities to `/coreex-functions`, not controller/Subscribe-host workflows.
 - Blank repository after installing `coreex-ai` → `/coreex-bootstrap`, which creates root guidance and chains to `/coreex-scaffold`.
 - CoreEx package version changed or AI bundle version mismatches → `/coreex-docs-sync`.
 - Repo mapping or onboarding documentation → `/acquire-codebase-knowledge` where installed (framework-repository-only; not shipped by `coreex-ai`).

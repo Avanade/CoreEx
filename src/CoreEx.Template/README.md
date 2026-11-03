@@ -51,12 +51,12 @@ dotnet new uninstall CoreEx.Template
 
 - `.github/instructions/coreex.instructions.md` -- CoreEx coding context (replaces `copilot-instructions.md`)
 - `.github/instructions/*.instructions.md` -- scoped coding conventions per layer/file type
-- `.github/skills/` -- 23 CoreEx skills: bootstrap, scaffold, docs-sync, 16 per-capability (L1) skills, and four end-to-end (L2) workflows
-- `.github/prompts/` -- 22 wrappers for bootstrap, scaffold, and all L1/L2 skills; docs-sync is invoked directly as a skill
+- `.github/skills/` -- 24 CoreEx skills: bootstrap, scaffold, docs-sync, 17 per-capability (L1) skills, and four end-to-end (L2) workflows
+- `.github/prompts/` -- 23 wrappers for bootstrap, scaffold, and all L1/L2 skills; docs-sync is invoked directly as a skill
 - `.github/agents/coreex-expert.agent.md` -- `/coreex-expert`: architecture guidance
 - `.claude/commands/coreex-expert.md` -- `/coreex-expert` for Claude Code
-- `.claude/commands/` -- 24 commands: one per CoreEx skill plus expert guidance; `/coreex-docs-sync` refreshes the entire version-pinned bundle after a package version bump
-- `.github/docs/coreex/` -- 12 architecture/setup docs, 18 package guides, and `manifest.txt` recording the installed `coreex-version`
+- `.claude/commands/` -- 25 commands: one per CoreEx skill plus expert guidance; `/coreex-docs-sync` refreshes the entire version-pinned bundle after a package version bump
+- `.github/docs/coreex/` -- 12 architecture/setup docs, 19 package guides, and `manifest.txt` recording the installed `coreex-version`
 
 The generic `acquire-codebase-knowledge` and `aspire` skills are framework-repository-only and are not emitted by `coreex-ai`. See the [full workflow inventory](../../.github/coreex-ai-workflows.md).
 
@@ -88,7 +88,7 @@ dotnet new coreex-ai
 /coreex-bootstrap
 ```
 
-Then answer the `/coreex-scaffold` questions. The workflow derives the required `coreex`, `coreex-domain` (optional), `coreex-api`, `coreex-relay`, `coreex-subscribe`, and `coreex-aspire` (optional) commands.
+Then answer the `/coreex-scaffold` questions. The workflow derives the required `coreex`, `coreex-domain` (optional), `coreex-api`, `coreex-relay`, `coreex-subscribe`, `coreex-functions`, and `coreex-aspire` (optional) commands. Standalone Functions apps use `coreex-functions --shared-core false` without the root `coreex` scaffold; `/coreex-functions` adds the first actual capability and meaningful tests.
 
 ---
 
@@ -142,29 +142,30 @@ This template emits nothing but `.github/` and `.claude/` artefacts: no `AGENTS.
     coreex-conventions.instructions.md
     coreex-domain.instructions.md
     coreex-event-subscribers.instructions.md
+    coreex-functions.instructions.md
     coreex-host-setup.instructions.md
     coreex-repositories.instructions.md
     coreex-tests.instructions.md
     coreex-tooling.instructions.md
     coreex-validators.instructions.md
   prompts/
-    coreex-*.prompt.md             # 22 wrappers: bootstrap, scaffold, and L1/L2 skills
+    coreex-*.prompt.md             # 23 wrappers: bootstrap, scaffold, and L1/L2 skills
   skills/
-    coreex-*/SKILL.md              # 23 CoreEx skills, with references/assets where applicable
+    coreex-*/SKILL.md              # 24 CoreEx skills, with references/assets where applicable
   agents/
     coreex-expert.agent.md
   coreex-ai-workflows.md           # Command catalog and asset guidance
   docs/coreex/
     manifest.txt                  # Installed coreex-version
     *.md                          # 12 architecture/setup docs
-    agents/*.md                   # 18 package guides
+    agents/*.md                   # 19 package guides
 .claude/
   commands/
     coreex-bootstrap.md            # /coreex-bootstrap blank-repo initialisation command
     coreex-scaffold.md             # /coreex-scaffold guided solution scaffolding command
     coreex-expert.md               # /coreex-expert architecture guidance command
     coreex-docs-sync.md            # /coreex-docs-sync version-pinned AI bundle refresh
-    coreex-*.md                   # L1/L2 skill wrappers (24 commands total)
+    coreex-*.md                   # L1/L2 skill wrappers (25 commands total)
 ```
 
 ### `--app-folder` behaviour
@@ -735,7 +736,7 @@ Add capability folders when needed, for example `Imports/ImportFunction.cs` with
 
 For HTTP functions, add `ConfigureFunctionsWebApplication()` immediately after builder creation, register `AddMvc()`/`AddMvcWebApi()` and use the existing MVC `WebApi`; do not copy ASP.NET middleware or `MapHealthChecks` into Functions. For Service Bus/Blob/Timer, add only the binding/configuration the workload needs. See [CoreEx.Azure.Functions](../CoreEx.Azure.Functions/README.md) for executable examples and the Functions-owned retry/settlement boundaries.
 
-An empty host may report "No job functions found" until its first trigger is added. This is intentional. Health functions are optional operational capabilities, not generated workload; Functions-specific AI skills and scoped instructions remain a separate follow-on.
+An empty host may report "No job functions found" until its first trigger is added. This is intentional. Health functions are optional operational capabilities, not generated workload. Use `/coreex-functions` from the version-pinned `coreex-ai` bundle to add actual HTTP/Service Bus/Blob/Timer capabilities, their packages/configuration and meaningful UnitTestEx tests; its scoped instructions keep native Functions boundaries distinct from ASP.NET hosts.
 
 ---
 

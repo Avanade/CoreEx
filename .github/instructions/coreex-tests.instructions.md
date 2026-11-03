@@ -1,6 +1,6 @@
 ---
 applyTo: "**/*.Test*/**/*.cs"
-description: "Test conventions: test project types (Api/Unit/Subscribe/Relay), base classes, one-time setup patterns, and assertion helpers"
+description: "Test conventions: Api/Unit/Subscribe/Relay/Functions project types, tester boundaries, setup patterns and assertion helpers"
 tags: ["testing", "unit-tests", "integration-tests", "test-helpers", "nunit"]
 ---
 
@@ -21,12 +21,15 @@ tags: ["testing", "unit-tests", "integration-tests", "test-helpers", "nunit"]
 > invariants that must hold on **any** test edit (project types, base classes, isolation, assertion helpers); the
 > skills drive the step-by-step creation procedure.
 
+For `*.Test.Functions`, use [`coreex-functions`](/.github/skills/coreex-functions/SKILL.md) and its [Functions instructions](/.github/instructions/coreex-functions.instructions.md), not the ASP.NET ApiTester examples below. Use UnitTestEx 6 `FunctionTester.Create<TFunction>()` with `HttpTrigger<T>()` / `Trigger<T>()`. Invocation tests exercise worker composition/middleware, not binding delivery, deployed authorization or broker redelivery; runtime proofs use Core Tools/Aspire.
+
 ## NuGet / Project References
 
 | Package | Key types provided |
 |---|---|
 | `CoreEx.UnitTesting` | Base testers and common helpers: `WithApiTester<T>`, `WithGenericTester<T>`, `Test.Http()`, `Test.Http<T>()`, `Test.Scoped()`, `Test.ScopedType<T>()`, `Test.ClearFusionCacheAsync()`, `Test.ReplaceHttpClientFactory()`; database helpers: `Test.MigrateSqlServerDataAsync<T>()`, `Test.UseExpectedSqlServerOutboxPublisher()`, `.ExpectSqlServerOutboxEvents()`, `.ExpectNoSqlServerOutboxEvents()`, `Test.MigratePostgresDataAsync<T>()`, `Test.UseExpectedPostgresOutboxPublisher()`, `.ExpectPostgresOutboxEvents()`, `.ExpectNoPostgresOutboxEvents()`, `Test.MigrateCosmosDataAsync<T>()`, `Test.UseExpectedCosmosDbOutboxPublisher()`, `.ExpectCosmosDbOutboxEvents()`, `.ExpectNoCosmosDbOutboxEvents()`; messaging helpers: `Test.UseExpectedAzureServiceBusPublisher()`, `Test.GetAndClearAzureServiceBusAsync()`; ASP.NET Core assertions: `.ExpectIdentifier()`, `.ExpectETag()`, `.ExpectChangeLogCreated()`, `.ExpectJsonFromResource()`, `.AssertCreated()`, `.AssertOK()`, `.AssertBadRequest()`, `.AssertErrors()`, `.AssertJsonFromResource()`, `.AssertLocationHeader()` |
 | `UnitTestEx` | `MockHttpClientFactory`, `MockHttpClientRequest`, `.WithJsonResourceBody()`, `.WithAnyBody()`, `.Respond.With()`, `.Respond.WithJsonResource()`, `.Verify()` |
+| `UnitTestEx.Azure.Functions` / `UnitTestEx.NUnit` | `FunctionTester.Create<TFunction>()`, `HttpTrigger<T>()`, `Trigger<T>()`, `ToHttpResponseMessageAssertor(request)` for deferred results, `SnapshotHttpResponse(response)` for eagerly rendered idempotency output with a readable/seekable buffer. |
 | `NUnit` | `[TestFixture]`, `[Test]`, `[OneTimeSetUp]` |
 | `AwesomeAssertions` | `.Should()`, `.Be()`, `.HaveCount()` |
 
@@ -38,6 +41,7 @@ tags: ["testing", "unit-tests", "integration-tests", "test-helpers", "nunit"]
 | `*.Test.Unit` | `WithGenericTester<EntryPoint>` | Component/unit — isolated, no infrastructure |
 | `*.Test.Subscribe` | `WithApiTester<Program>` | Integration over subscriber host |
 | `*.Test.Relay` | `WithApiTester<Program>` | Integration over relay host |
+| `*.Test.Functions` | `FunctionTester.Create<TFunction>()` (no mandatory fixture base) | Worker invocation/component tests; Core Tools/Aspire for runtime binding/delivery proofs. |
 
 **Rule**: intra-domain dependencies (database, cache, outbox) are real; inter-domain HTTP calls and direct broker publishes are always mocked.
 
@@ -53,7 +57,7 @@ Avoid overlapping `dotnet test` commands that build shared project references in
 
 ## Test Responsibility — what goes where (do not duplicate)
 
-The two test projects have **distinct, non-overlapping jobs**. Decide where a behaviour belongs by what it needs to exercise, and assert it in **one** place only.
+For conventional API solutions, Test.Api and Test.Unit have **distinct, non-overlapping jobs** below. For Functions solutions, put the equivalent host-boundary/intra-domain assertions in Test.Functions, keep pure component coverage separate and use runtime tests only for boundaries invocation cannot prove. Decide where a behaviour belongs by what it needs to exercise, and assert it in **one** place only.
 
 | Concern | Where | Why |
 |---|---|---|

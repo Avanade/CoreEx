@@ -10,6 +10,14 @@
 
 Use this workflow to guide the user through CoreEx solution shape decisions in plain English, then turn the answers into safe `dotnet new` inputs.
 
+## Functions-specific path
+
+When the request is for an Azure Functions deployment, follow the [Functions host/test command path](../SKILL.md#functions-host-and-test-pair) before the conventional domain interview below. Inspect existing host names and package/project references, then ask only unresolved deployment name and shared-library versus standalone choices. Default `--shared-core true` only when matching shared libraries exist or are explicitly in scope; standalone uses `--shared-core false` without the root `coreex` template.
+
+Use the full deployment name ending `.Functions`; pass `--solution-name` only for a different shared prefix. Verify host and independently named test paths in the dry-run, then generate/build/register only that pair. Do not insist on a three-part domain name or ask database/refdata/ROP questions for a standalone host. Preserve root configuration in existing solutions; record standalone/deployment decisions in host guidance when there is no generated root Feature Configuration.
+
+The output is deliberately empty: no health endpoint, demo trigger, service scan or test fixture. Stop at shape validation unless capability implementation is authorized; then route to `coreex-functions` for native HTTP/Service Bus/Blob/Timer wiring and meaningful tests. Existing Functions hosts are modified, never re-scaffolded.
+
 ## Principles
 
 - Ask one short question at a time.

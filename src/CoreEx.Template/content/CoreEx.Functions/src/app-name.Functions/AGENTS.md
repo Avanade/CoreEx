@@ -10,6 +10,8 @@ The scaffold intentionally contains no functions, health endpoint, dependency co
 
 ## Adding a capability
 
+Use `/coreex-functions` from the version-pinned `coreex-ai` asset bundle for capability setup and tests. Its scoped `.github/instructions/coreex-functions.instructions.md` defines Functions-specific boundaries; do not apply ASP.NET host startup recipes to the worker.
+
 Group entry points by business capability, for example `Imports/ImportFunction.cs` or `Products/ProductFunctions.cs`. Normally use one trigger class per file; related HTTP operations may share a class. Keep transport-local DTOs, binding constants and mappings beside the functions that use them. Do not create empty capability folders or a speculative `Shared` folder.
 
 Keep trigger methods thin and delegate processing to focused handlers/services. Add the required binding package, DI registrations, configuration and UnitTestEx invocation tests together. Mirror capability folders in `host-test-name`; its name is derived from this host, not the shared solution prefix, so multiple Functions apps have independent test projects.

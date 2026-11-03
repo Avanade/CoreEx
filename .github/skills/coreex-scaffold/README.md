@@ -15,6 +15,7 @@ Guides a developer through selecting the right `CoreEx.Template` scaffolding sha
 - The repository is empty or only contains the `coreex-bootstrap` AI shell.
 - You want the scaffolder to choose the smallest safe CoreEx shape before scaffolding.
 - You want an interactive workflow instead of manually composing the template commands.
+- You need an empty Functions host/test pair, sharing existing libraries or standalone via `--shared-core false`; add real triggers/tests afterward with `/coreex-functions`.
 
 ## How to invoke
 

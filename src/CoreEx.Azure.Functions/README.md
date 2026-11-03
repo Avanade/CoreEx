@@ -6,6 +6,8 @@ The [`coreex-functions` template](../CoreEx.Template/README.md#template-8----cor
 
 Use `--shared-core false` for a standalone integration: no shared Application/Infrastructure/Contracts projects are required, and host/test build settings and pinned package versions are self-contained. Keep trigger methods thin, delegating to capability-local handlers; extract libraries only when actual reuse or complexity warrants it. The default remains `--shared-core true` for hosts that reuse an existing application core.
 
+The version-pinned `coreex-ai` bundle includes the [`coreex-functions` skill](../../.github/skills/coreex-functions/SKILL.md), scoped Functions instructions and this package's AI usage guide. Use the skill for real HTTP/Service Bus/Blob/Timer capabilities and tests; use `coreex-scaffold` for host creation. It resolves shared-core/standalone configuration, keeps application logic out of triggers, and distinguishes invocation coverage from runtime binding/delivery proofs.
+
 ## Invocation context and HTTP
 
 Call `ConfigureFunctionsWebApplication()` before `UseCoreExExecutionContext()`. Register `AddExecutionContext()` explicitly so custom context factories remain supported. The middleware initializes the invocation's scoped context before application execution, supports an optional asynchronous configuration callback, and clears ambient state on success or failure. HTTP informational/warning headers are added before response rendering starts.

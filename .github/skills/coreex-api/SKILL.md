@@ -29,6 +29,7 @@ Guides you through adding or modifying HTTP API endpoints in an `*.Api` host. Co
 
 ## When Not to Use
 
+- Functions HTTP triggers — use `coreex-functions`; reuse MVC WebApi, not controller discovery or ASP.NET middleware.
 - Api host setup and `Program.cs` composition — use `coreex-scaffold` (see [`/.github/instructions/coreex-host-setup.instructions.md`](/.github/instructions/coreex-host-setup.instructions.md))
 - Application service creation — use `coreex-app-service`
 - API integration tests — use `coreex-test-api` (hand off once the endpoint is implemented)
