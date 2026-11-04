@@ -1,5 +1,5 @@
 {
-  "title": "JSON Schema for CoreEx code-generation (https://github.com/avanade/coreex).",
+  "title": "JSON Schema for CoreEx reference-data code-generation (https://github.com/avanade/coreex).",
   "$schema": "https://json-schema.org/draft-04/schema#",
   "definitions": {
     "CodeGeneration": {

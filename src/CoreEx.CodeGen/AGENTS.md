@@ -1,6 +1,6 @@
 # CoreEx.CodeGen — AI Usage Guide
 
-`CoreEx.CodeGen` is a **development-time** code generation tool — it is never deployed at runtime. It reads a `ref-data.yaml` file and generates the complete reference-data layer (contract, controller, provider, repository, mapper — plus service and write endpoints for mutable entities) as `.g.cs` files.
+`CoreEx.CodeGen` is a **development-time** code generation tool — it is never deployed at runtime. Its default RefData command reads `ref-data.yaml` and generates the complete reference-data layer. Its explicit File command generates host-neutral CoreEx.IO CSV integrations from top-level `*-file.yaml` definitions; Count reports generated versus handwritten code.
 
 ## Setup
 
@@ -11,6 +11,14 @@ await CoreEx.CodeGen.CodeGenConsole.Create().RunAsync(args);
 ```
 
 Place `ref-data.yaml` alongside `Program.cs`.
+
+## File processing
+
+Run `dotnet run -- file` for all top-level `*-file.yaml` definitions, or supply explicit filenames with the same suffix. `--validate` checks the whole batch without writing; `--simulation` and `--expect-no-changes` retain OnRamp behavior. See [File usage](./Files/README.md) and its [configuration reference](./Files/docs/CodeGeneration.md); RefData configuration documentation lives separately under [RefData/docs](./RefData/docs/CodeGeneration.md).
+
+Required File metadata is `name`, opaque `version`, `runtimeProjectPath`, and typed `records`. Optional `structure` declares exact discriminator routing and ordered hierarchy/cardinality. Generated type names are definition-prefixed, one top-level type per file, with composition and wrappers only for non-leaf nodes. Keep artifacts together in the configured runtime project/subfolder; override `runtimeNamespace` rather than guessing evaluated MSBuild namespace values.
+
+The generated processor rejects mismatched context name/version/type before opening input. Default processing is validation-only; inherited execution fails until a handwritten handler implements it. Handler starters are create-only and never overwritten. The host owns execution-context registration, immutable stream factories, reporting, and application transactions/idempotency. Optional String `referenceData: { type: Fully.Qualified.Type, allowInactive: false }` emits CoreEx's typed code-validation rule, not reference-object conversion. Initialize the ambient orchestrator/collections before processing; unknown/inactive codes are validation messages, missing setup is a fault, and replay does not rerun lookup validation or normalize codes.
 
 ## ref-data.yaml Structure
 

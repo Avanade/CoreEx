@@ -1,0 +1,379 @@
+{
+  "title": "JSON Schema for CoreEx File code-generation (https://github.com/avanade/coreex).",
+  "$schema": "https://json-schema.org/draft-04/schema#",
+  "definitions": {
+    "CodeGeneration": {
+      "type": "object",
+      "title": "File processing code-generation.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "title": "Integration name."
+        },
+        "version": {
+          "type": "string",
+          "title": "Definition revision.",
+          "description": "Not a package/source version, layout selector, or business deduplication key."
+        },
+        "runtimeProjectPath": {
+          "type": "string",
+          "title": "Runtime project directory.",
+          "description": "Relative to the CodeGen output/project directory, or absolute. No Functions project is required."
+        },
+        "runtimePath": {
+          "type": "string",
+          "title": "Runtime subfolder.",
+          "description": "Defaults to Files/\u003CName\u003E; must remain inside runtimeProjectPath."
+        },
+        "runtimeNamespace": {
+          "type": "string",
+          "title": "Generated namespace.",
+          "description": "Defaults to project directory name plus runtimePath segments. Explicit override avoids assumptions about MSBuild RootNamespace."
+        },
+        "delimiter": {
+          "type": "string",
+          "title": "Delimiter.",
+          "description": "One character; defaults to comma."
+        },
+        "quote": {
+          "type": "string",
+          "title": "Quote.",
+          "description": "One character; defaults to double quote."
+        },
+        "comment": {
+          "type": "string",
+          "title": "Comment marker.",
+          "description": "One character at record start; omitted by default."
+        },
+        "encoding": {
+          "type": "string",
+          "title": "Explicit encoding.",
+          "description": "Defaults to Utf8. Strict runtime decoding; no BOM-based encoding switching.",
+          "enum": [
+            "Utf8",
+            "Utf16LE",
+            "Utf16BE",
+            "Utf32LE",
+            "Utf32BE"
+          ]
+        },
+        "mode": {
+          "type": "string",
+          "title": "Default processing mode.",
+          "description": "Defaults to ValidateOnly. Execution without handwritten behavior fails explicitly.",
+          "enum": [
+            "ValidateOnly",
+            "ValidateThenExecute"
+          ]
+        },
+        "errorMode": {
+          "type": "string",
+          "title": "Default content policy.",
+          "description": "Defaults to FailFast.",
+          "enum": [
+            "FailFast",
+            "CollectErrors"
+          ]
+        },
+        "maxInputBytes": {
+          "type": "integer",
+          "title": "Positive input-byte budget.",
+          "description": "Defaults to 67108864 (64 MiB)."
+        },
+        "maxGroupRecords": {
+          "type": "integer",
+          "title": "Positive records-per-root budget.",
+          "description": "Defaults to 10000, including the root."
+        },
+        "discriminatorIndex": {
+          "type": "integer",
+          "title": "Zero-based discriminator index.",
+          "description": "Required with structure; forbidden for flat input."
+        },
+        "structure": {
+          "title": "Business-root hierarchy.",
+          "description": "Without structure, exactly one flat record must be declared.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Structure"
+            }
+          ]
+        },
+        "records": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "default": [],
+          "title": "Wire record definitions.",
+          "items": {
+            "$ref": "#/definitions/Record"
+          }
+        }
+      },
+      "required": [
+        "name",
+        "version",
+        "runtimeProjectPath",
+        "records"
+      ]
+    },
+    "Structure": {
+      "type": "object",
+      "title": "Hierarchical file structure.",
+      "properties": {
+        "root": {
+          "title": "Business root.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Node"
+            }
+          ]
+        },
+        "header": {
+          "title": "First envelope.",
+          "description": "One or Optional, without children.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Node"
+            }
+          ]
+        },
+        "trailer": {
+          "title": "Final envelope.",
+          "description": "One or Optional, without children.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Node"
+            }
+          ]
+        }
+      },
+      "required": [
+        "root"
+      ]
+    },
+    "Node": {
+      "type": "object",
+      "title": "Hierarchy position.",
+      "properties": {
+        "record": {
+          "type": "string",
+          "title": "Record name."
+        },
+        "cardinality": {
+          "type": "string",
+          "title": "Occurrences.",
+          "description": "Defaults to Many.",
+          "enum": [
+            "Many",
+            "One",
+            "Optional",
+            "OneOrMore"
+          ]
+        },
+        "children": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "default": [],
+          "title": "Ordered children.",
+          "items": {
+            "$ref": "#/definitions/Node"
+          }
+        }
+      },
+      "required": [
+        "record"
+      ]
+    },
+    "Record": {
+      "type": "object",
+      "title": "File record.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "title": "Logical record name."
+        },
+        "match": {
+          "type": "string",
+          "title": "Exact discriminator.",
+          "description": "Required for hierarchical files; forbidden for flat files."
+        },
+        "errorMode": {
+          "type": "string",
+          "title": "Route error policy.",
+          "enum": [
+            "FailFast",
+            "CollectErrors"
+          ]
+        },
+        "properties": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "default": [],
+          "title": "Wire properties.",
+          "items": {
+            "$ref": "#/definitions/Property"
+          }
+        }
+      },
+      "required": [
+        "name",
+        "properties"
+      ]
+    },
+    "Property": {
+      "type": "object",
+      "title": "File record property.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "title": "C# property name."
+        },
+        "type": {
+          "type": "string",
+          "title": "Logical type.",
+          "description": "Defaults to String. All wire properties are nullable; requiredness is separate.",
+          "enum": [
+            "String",
+            "Integer",
+            "Int64",
+            "Decimal",
+            "Double",
+            "Boolean",
+            "Guid",
+            "DateOnly",
+            "DateTime"
+          ]
+        },
+        "index": {
+          "type": "integer",
+          "title": "Zero-based CSV index.",
+          "description": "Required for routed files. Specify exactly one of index or column."
+        },
+        "column": {
+          "type": "string",
+          "title": "CSV column name.",
+          "description": "Flat files only; specify exactly one of column or index."
+        },
+        "format": {
+          "type": "string",
+          "title": "Exact invariant date format.",
+          "description": "Required for DateOnly/DateTime; not applicable to other types."
+        },
+        "required": {
+          "type": "boolean",
+          "title": "Reject null.",
+          "description": "Defaults to false. Uses NotNull, not Mandatory, for value types."
+        },
+        "maxLength": {
+          "type": "integer",
+          "title": "Maximum string length.",
+          "description": "Nonnegative; String properties only. Zero permits only empty strings or null."
+        },
+        "mandatory": {
+          "type": "boolean",
+          "title": "Reject null and default values.",
+          "description": "Defaults to false. Unlike required, rejects zero and false."
+        },
+        "minLength": {
+          "type": "integer",
+          "title": "Minimum string length.",
+          "description": "Nonnegative; String only."
+        },
+        "regex": {
+          "type": "string",
+          "title": "Regular expression.",
+          "description": "String only; generated cached regex has a one-second timeout."
+        },
+        "email": {
+          "type": "boolean",
+          "title": "Email validation.",
+          "description": "String only."
+        },
+        "min": {
+          "type": [
+            "string",
+            "number"
+          ],
+          "title": "Inclusive minimum.",
+          "description": "String, numeric or date value; dates use the property format. String ordering is culture-sensitive."
+        },
+        "max": {
+          "type": [
+            "string",
+            "number"
+          ],
+          "title": "Inclusive maximum.",
+          "description": "String, numeric or date value; dates use the property format."
+        },
+        "precision": {
+          "type": "integer",
+          "title": "Decimal precision.",
+          "description": "Decimal only; from 1 through 29. No rounding."
+        },
+        "scale": {
+          "type": "integer",
+          "title": "Decimal scale.",
+          "description": "Decimal only; from 0 through 28, not greater than precision."
+        },
+        "options": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "default": [],
+          "title": "Allowed values.",
+          "description": "Nonempty typed scalars; dates use the property format. Values are not canonicalized.",
+          "items": {
+            "type": [
+              "string",
+              "number",
+              "boolean"
+            ]
+          }
+        },
+        "referenceData": {
+          "title": "Reference-data code validation.",
+          "description": "Uses the existing CoreEx ReferenceData rule without converting the code to an object. The caller must initialize the ambient reference-data orchestrator and load this collection before processing.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/ReferenceData"
+            }
+          ]
+        }
+      },
+      "required": [
+        "name"
+      ]
+    },
+    "ReferenceData": {
+      "type": "object",
+      "title": "Reference-data code validation.",
+      "properties": {
+        "type": {
+          "type": "string",
+          "title": "Reference-data CLR type.",
+          "description": "An existing IReferenceData type, for example Contoso.Contracts.ReferenceData.Country. The wire property remains string?."
+        },
+        "allowInactive": {
+          "type": "boolean",
+          "title": "Allow inactive codes.",
+          "description": "Defaults to false. Unknown codes always fail validation."
+        }
+      },
+      "required": [
+        "type"
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "$ref": "#/definitions/CodeGeneration"
+    }
+  ]
+}

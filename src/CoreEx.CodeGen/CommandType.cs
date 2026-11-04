@@ -13,5 +13,10 @@ public enum CommandType
     /// <summary>
     /// Counts the files and lines of code distinguishing between generated and non-generated.
     /// </summary>
-    Count
+    Count,
+
+    /// <summary>
+    /// Generates typed CSV processing from selected top-level *-file.yaml definitions.
+    /// </summary>
+    File
 }

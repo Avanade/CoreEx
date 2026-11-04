@@ -1,0 +1,265 @@
+namespace CoreEx.CodeGen.Files.Config;
+
+/// <summary>Declares a nullable wire property, its CSV selector, conversion, and pure validation.</summary>
+[CodeGenClass("Property", Title = "File record property.")]
+[CodeGenCategory("Primary", Title = "Wire property identity.")]
+[CodeGenCategory("Mapping", Title = "CSV selector and conversion.")]
+[CodeGenCategory("Validation", Title = "Pure typed validation.")]
+public class PropertyConfig : ConfigBase<CodeGenConfig, RecordConfig>
+{
+    /// <summary>Gets or sets the generated property name.</summary>
+    [JsonPropertyName("name")]
+    [CodeGenProperty("Primary", Title = "C# property name.", IsMandatory = true)]
+    public string? Name { get; set; }
+
+    /// <summary>Gets or sets the supported logical type.</summary>
+    [JsonPropertyName("type")]
+    [CodeGenProperty("Primary", Title = "Logical type.", Options = ["String", "Integer", "Int64", "Decimal", "Double", "Boolean", "Guid", "DateOnly", "DateTime"], Description = "Defaults to String. All wire properties are nullable; requiredness is separate.")]
+    public string? Type { get; set; }
+
+    /// <summary>Gets or sets the positional field index.</summary>
+    [JsonPropertyName("index")]
+    [CodeGenProperty("Mapping", Title = "Zero-based CSV index.", Description = "Required for routed files. Specify exactly one of index or column.")]
+    public int? Index { get; set; }
+
+    /// <summary>Gets or sets the column-name selector.</summary>
+    [JsonPropertyName("column")]
+    [CodeGenProperty("Mapping", Title = "CSV column name.", Description = "Flat files only; specify exactly one of column or index.")]
+    public string? Column { get; set; }
+
+    /// <summary>Gets or sets an exact invariant date format.</summary>
+    [JsonPropertyName("format")]
+    [CodeGenProperty("Mapping", Title = "Exact invariant date format.", Description = "Required for DateOnly/DateTime; not applicable to other types.")]
+    public string? Format { get; set; }
+
+    /// <summary>Gets or sets whether null is rejected, preserving valid zero/false values.</summary>
+    [JsonPropertyName("required")]
+    [CodeGenProperty("Validation", Title = "Reject null.", Description = "Defaults to false. Uses NotNull, not Mandatory, for value types.")]
+    public bool? Required { get; set; }
+
+    /// <summary>Gets or sets a string length bound.</summary>
+    [JsonPropertyName("maxLength")]
+    [CodeGenProperty("Validation", Title = "Maximum string length.", Description = "Nonnegative; String properties only. Zero permits only empty strings or null.")]
+    public int? MaxLength { get; set; }
+
+    /// <summary>Gets or sets whether null and default values are rejected.</summary>
+    [JsonPropertyName("mandatory")]
+    [CodeGenProperty("Validation", Title = "Reject null and default values.", Description = "Defaults to false. Unlike required, rejects zero and false.")]
+    public bool? Mandatory { get; set; }
+
+    /// <summary>Gets or sets the minimum string length.</summary>
+    [JsonPropertyName("minLength")]
+    [CodeGenProperty("Validation", Title = "Minimum string length.", Description = "Nonnegative; String only.")]
+    public int? MinLength { get; set; }
+
+    /// <summary>Gets or sets the .NET regular expression.</summary>
+    [JsonPropertyName("regex")]
+    [CodeGenProperty("Validation", Title = "Regular expression.", Description = "String only; generated cached regex has a one-second timeout.")]
+    public string? Regex { get; set; }
+
+    /// <summary>Gets or sets whether email validation is enabled.</summary>
+    [JsonPropertyName("email")]
+    [CodeGenProperty("Validation", Title = "Email validation.", Description = "String only.")]
+    public bool? Email { get; set; }
+
+    /// <summary>Gets or sets the inclusive minimum value.</summary>
+    [JsonPropertyName("min")]
+    [CodeGenProperty("Validation", Title = "Inclusive minimum.", JsonTypes = [CodeGenJsonType.String, CodeGenJsonType.Number], Description = "String, numeric or date value; dates use the property format. String ordering is culture-sensitive.")]
+    public JsonElement Min { get; set; }
+
+    /// <summary>Gets or sets the inclusive maximum value.</summary>
+    [JsonPropertyName("max")]
+    [CodeGenProperty("Validation", Title = "Inclusive maximum.", JsonTypes = [CodeGenJsonType.String, CodeGenJsonType.Number], Description = "String, numeric or date value; dates use the property format.")]
+    public JsonElement Max { get; set; }
+
+    /// <summary>Gets or sets the maximum decimal digit count.</summary>
+    [JsonPropertyName("precision")]
+    [CodeGenProperty("Validation", Title = "Decimal precision.", Description = "Decimal only; from 1 through 29. No rounding.")]
+    public int? Precision { get; set; }
+
+    /// <summary>Gets or sets the maximum decimal places.</summary>
+    [JsonPropertyName("scale")]
+    [CodeGenProperty("Validation", Title = "Decimal scale.", Description = "Decimal only; from 0 through 28, not greater than precision.")]
+    public int? Scale { get; set; }
+
+    /// <summary>Gets or sets allowed typed values.</summary>
+    [JsonPropertyName("options")]
+    [CodeGenPropertyCollection("Validation", Title = "Allowed values.", ItemJsonTypes = [CodeGenJsonType.String, CodeGenJsonType.Number, CodeGenJsonType.Boolean], Description = "Nonempty typed scalars; dates use the property format. Values are not canonicalized.")]
+    public List<JsonElement>? Options { get; set; }
+
+    /// <summary>Gets or sets typed reference-data validation for a string code.</summary>
+    [JsonPropertyName("referenceData")]
+    [CodeGenProperty("Validation", Title = "Reference-data code validation.", Description = "Uses the existing CoreEx ReferenceData rule without converting the code to an object. The caller must initialize the ambient reference-data orchestrator and load this collection before processing.")]
+    public ReferenceDataConfig? ReferenceData { get; set; }
+
+    /// <summary>Gets whether this property has any generated validation rules.</summary>
+    public bool HasValidation => RuleExpressions.Any();
+
+    /// <summary>Gets the safely escaped regular expression literal, including an empty pattern.</summary>
+    public string? RegexLiteral => Regex is null ? null : OnRamp.Utility.CSharpSource.StringLiteral(Regex);
+
+    /// <summary>Gets the fluent validation expressions in execution order.</summary>
+    public IEnumerable<string> RuleExpressions
+    {
+        get
+        {
+            if (Mandatory == true) yield return "Mandatory()";
+            else if (Required == true) yield return "NotNull()";
+            if (MinLength.HasValue) yield return $"MinimumLength({MinLength.Value})";
+            if (MaxLength == 0) yield return "CompareValues(new string[] { \"\" })";
+            else if (MaxLength.HasValue) yield return $"MaximumLength({MaxLength.Value})";
+            if (Regex is not null) yield return $"Matches({Name}Regex())";
+            if (Email == true) yield return "Email()";
+            if (HasMin && HasMax) yield return $"InclusiveBetween({ScalarLiteral(ParseScalar(Min, nameof(Min)))}, {ScalarLiteral(ParseScalar(Max, nameof(Max)))})";
+            else if (HasMin) yield return $"GreaterThanOrEqualTo({ScalarLiteral(ParseScalar(Min, nameof(Min)))})";
+            else if (HasMax) yield return $"LessThanOrEqualTo({ScalarLiteral(ParseScalar(Max, nameof(Max)))})";
+            if (Precision.HasValue || Scale.HasValue) yield return $"Decimal({Precision?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "null"}, {Scale?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "null"})";
+            if (Options is not null) yield return $"CompareValues(new {DotNetType.TrimEnd('?')}[] {{ {string.Join(", ", Options.Select(x => ScalarLiteral(ParseScalar(x, nameof(Options)))))} }})";
+            if (ReferenceData is not null) yield return $"ReferenceData(r => r.With<global::{ReferenceData.Type}>(){(ReferenceData.AllowInactive == true ? ".AllowInactive()" : string.Empty)})";
+        }
+    }
+
+    /// <summary>Gets whether a minimum was supplied.</summary>
+    private bool HasMin => Min.ValueKind != JsonValueKind.Undefined;
+
+    /// <summary>Gets whether a maximum was supplied.</summary>
+    private bool HasMax => Max.ValueKind != JsonValueKind.Undefined;
+
+    /// <summary>Parses a configuration scalar without losing integer or decimal precision.</summary>
+    private object ParseScalar(JsonElement value, string property)
+    {
+        var text = value.ValueKind == JsonValueKind.String ? value.GetString() : null;
+        var culture = System.Globalization.CultureInfo.InvariantCulture;
+        return Type switch
+        {
+            "String" when text is not null => text,
+            "Integer" when value.ValueKind == JsonValueKind.Number && value.TryGetInt32(out var n) => n,
+            "Int64" when value.ValueKind == JsonValueKind.Number && value.TryGetInt64(out var n) => n,
+            "Decimal" when value.ValueKind == JsonValueKind.Number && value.TryGetDecimal(out var n) => n,
+            "Decimal" when text is not null && decimal.TryParse(text, System.Globalization.NumberStyles.Float, culture, out var n) => n,
+            "Double" when value.ValueKind == JsonValueKind.Number && value.TryGetDouble(out var n) && double.IsFinite(n) => n,
+            "Double" when text is not null && double.TryParse(text, System.Globalization.NumberStyles.Float, culture, out var n) && double.IsFinite(n) => n,
+            "Boolean" when value.ValueKind is JsonValueKind.True or JsonValueKind.False => value.GetBoolean(),
+            "Guid" when text is not null && Guid.TryParse(text, out var n) => n,
+            "DateOnly" when text is not null && DateOnly.TryParseExact(text, Format, culture, System.Globalization.DateTimeStyles.None, out var n) => n,
+            "DateTime" when text is not null && DateTime.TryParseExact(text, Format, culture, System.Globalization.DateTimeStyles.None, out var n) => n,
+            _ => throw new CodeGenException(this, property, $"Expected a non-null {Type} scalar matching the property's type and format.")
+        };
+    }
+
+    /// <summary>Renders a parsed scalar as a culture-independent C# expression.</summary>
+    private static string ScalarLiteral(object value) => value switch
+    {
+        string text => OnRamp.Utility.CSharpSource.StringLiteral(text),
+        int n => n.ToString(System.Globalization.CultureInfo.InvariantCulture),
+        long n => n.ToString(System.Globalization.CultureInfo.InvariantCulture) + "L",
+        decimal n => n.ToString(System.Globalization.CultureInfo.InvariantCulture) + "m",
+        double n => n.ToString("R", System.Globalization.CultureInfo.InvariantCulture) + "d",
+        bool n => n ? "true" : "false",
+        Guid n => $"new Guid({OnRamp.Utility.CSharpSource.StringLiteral(n.ToString("D"))})",
+        DateOnly n => FormattableString.Invariant($"new DateOnly({n.Year}, {n.Month}, {n.Day})"),
+        DateTime n => FormattableString.Invariant($"new DateTime({n.Ticks}L, DateTimeKind.{n.Kind})"),
+        _ => throw new InvalidOperationException("Unsupported validation scalar.")
+    };
+
+    /// <summary>Gets the nullable C# type.</summary>
+    public string DotNetType => Type switch
+    {
+        "String" => "string?", "Integer" => "int?", "Int64" => "long?", "Decimal" => "decimal?", "Double" => "double?", "Boolean" => "bool?",
+        "Guid" => "Guid?", "DateOnly" => "DateOnly?", "DateTime" => "DateTime?", _ => throw new InvalidOperationException("Unprepared property type.")
+    };
+
+    /// <summary>Gets a safe mapping selector literal.</summary>
+    public string SelectorLiteral => OnRamp.Utility.CSharpSource.StringLiteral(Column ?? Name!);
+
+    /// <summary>Gets the positional selector expression.</summary>
+    public string IndexExpression => Index?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "null";
+
+    /// <summary>Gets the non-throwing converter expression.</summary>
+    public string Converter => Type switch
+    {
+        "String" => "CsvFieldConverters.String",
+        "DateOnly" => $"CsvFieldConverters.DateOnly({OnRamp.Utility.CSharpSource.StringLiteral(Format!)})",
+        "DateTime" => $"Convert{Name}",
+        _ => $"CsvFieldConverters.Nullable<{DotNetType.TrimEnd('?')}>()"
+    };
+
+    /// <summary>Gets whether an exact DateTime converter must be emitted.</summary>
+    public bool IsDateTime => Type == "DateTime";
+
+    /// <summary>Gets a safe date-format literal.</summary>
+    public string FormatLiteral => OnRamp.Utility.CSharpSource.StringLiteral(Format ?? string.Empty);
+
+    /// <inheritdoc/>
+    protected override async Task PrepareAsync()
+    {
+        RejectUnknownProperties();
+        Name = ConfigValidation.Identifier(this, nameof(Name), Name);
+        Type = DefaultWhereNull(Type, () => "String");
+        Required = DefaultWhereNull(Required, () => false);
+        if (Index.HasValue == (Column is not null) || Index < 0)
+            throw new CodeGenException(this, nameof(Index), "Specify exactly one nonnegative index or nonblank column.");
+
+        if (Column is not null)
+            RequireText(nameof(Column), Column);
+
+        if (Type != "String" && (MinLength.HasValue || MaxLength.HasValue || Regex is not null || Email.HasValue))
+            throw new CodeGenException(this, nameof(MinLength), "Length, regex and email rules require String.");
+
+        if (MinLength < 0 || MaxLength < 0 || MinLength > MaxLength)
+            throw new CodeGenException(this, nameof(MinLength), "Lengths must be nonnegative and minLength must not exceed maxLength.");
+
+        if (Regex is not null)
+        {
+            try { _ = new System.Text.RegularExpressions.Regex(Regex, RegexOptions.None, TimeSpan.FromSeconds(1)); }
+            catch (ArgumentException ex) { throw new CodeGenException(this, nameof(Regex), ex.Message); }
+        }
+
+        if (Type != "Decimal" && (Precision.HasValue || Scale.HasValue))
+            throw new CodeGenException(this, nameof(Precision), "Precision and scale require Decimal.");
+
+        if (Precision is < 1 or > 29 || Scale is < 0 or > 28 || Scale > Precision)
+            throw new CodeGenException(this, nameof(Precision), "Require precision 1..29, scale 0..28 and scale <= precision.");
+
+        if (Type is "DateOnly" or "DateTime")
+        {
+            RequireText(nameof(Format), Format);
+            try
+            {
+                var date = new DateTime(2024, 6, 15, 13, 14, 15);
+                var text = date.ToString(Format, System.Globalization.CultureInfo.InvariantCulture);
+                if (!DateTime.TryParseExact(text, Format, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out _))
+                    throw new FormatException("The date format cannot round-trip.");
+            }
+            catch (FormatException ex)
+            {
+                throw new CodeGenException(this, nameof(Format), ex.Message);
+            }
+        }
+        else if (Format is not null)
+            throw new CodeGenException(this, nameof(Format), "Only date properties support format.");
+
+        if (HasMin || HasMax)
+        {
+            if (Type is "Boolean" or "Guid")
+                throw new CodeGenException(this, nameof(Min), "Bounds are not supported for Boolean or Guid.");
+
+            var min = HasMin ? ParseScalar(Min, nameof(Min)) : null;
+            var max = HasMax ? ParseScalar(Max, nameof(Max)) : null;
+            if (min is IComparable comparable && max is not null && comparable.CompareTo(max) > 0)
+                throw new CodeGenException(this, nameof(Min), "Minimum must not exceed maximum.");
+        }
+
+        if (Options is not null)
+        {
+            if (Options.Count == 0)
+                throw new CodeGenException(this, nameof(Options), "At least one allowed value is required.");
+
+            foreach (var option in Options)
+                ParseScalar(option, nameof(Options));
+        }
+
+        if (ReferenceData is not null)
+            await ReferenceData.PrepareAsync(Root!, this).ConfigureAwait(false);
+    }
+}
