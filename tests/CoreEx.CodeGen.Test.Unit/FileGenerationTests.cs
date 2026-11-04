@@ -161,9 +161,29 @@ public class FileGenerationTests
         System.IO.File.ReadAllText(Path.Combine(_runtime, "Files", "Flat", "FlatProcessor.g.cs")).Should().Contain("[ScopedService]");
         System.IO.File.ReadAllText(Path.Combine(_runtime, "Files", "Flat", "FlatHandler.cs")).Should().Contain("[ScopedService]");
         var validator = System.IO.File.ReadAllText(Path.Combine(_runtime, "Files", "Flat", "FlatRowValidator.g.cs"));
-        validator.Should().Contain("Property(x => x.Code).NotNull().MaximumLength(10);")
+        validator.Should().Contain("Property(x => x.Code).WithText(\"Code\").NotNull().MaximumLength(10);")
             .And.NotContain("Property(x => x.Date)")
             .And.NotContain("Property(x => x.Timestamp)");
+    }
+
+    [Test]
+    public async Task NamedValidationLabelsUseSourceColumnWithoutChangingPropertyIdentity()
+    {
+        Write("flat-file.yaml", Flat().Replace("column: Code", "column: 'Supplier code'"));
+        await FileGenerationBatch.GenerateAsync(Args());
+        var validator = System.IO.File.ReadAllText(Path.Combine(_runtime, "Files", "Flat", "FlatRowValidator.g.cs"));
+        validator.Should().Contain("Property(x => x.Code).WithText(\"Supplier code\").NotNull().MaximumLength(10)");
+    }
+
+    [TestCase("delimiter")]
+    [TestCase("quote")]
+    [TestCase("comment")]
+    public async Task SurrogateDialectIsRejectedBeforeWrites(string property)
+    {
+        Write("flat-file.yaml", Flat() + "\n" + property + ": \"\\uD800\"\n");
+        var act = () => FileGenerationBatch.GenerateAsync(Args());
+        await act.Should().ThrowAsync<CodeGenException>();
+        Directory.Exists(Path.Combine(_runtime, "Files")).Should().BeFalse();
     }
 
     [Test]
@@ -345,6 +365,7 @@ public class FileGenerationTests
     public async Task GeneratedFlatAndTwoNestedHierarchiesCompileAndRunTogether()
     {
         Write("flat-file.yaml", Flat().Replace("column: Code, required: true", "column: Code, referenceData: { type: Consumer.Country }, required: true")
+            .Replace("column: Code,", "column: 'Supplier code',")
             .Replace("version: '2026-01'", "version: 'rev\"\\\u96ea'")
             + "\n  - { name: Alternate, column: Alternate, referenceData: { type: Consumer.Country, allowInactive: true } }\n");
         Write("orders-file.yaml", Hierarchy("Orders"));
@@ -399,6 +420,7 @@ public class FileGenerationTests
                 protected override Task OnDiagnosticAsync(CoreEx.IO.FileProcessingContext context, CoreEx.IO.FileDiagnostic diagnostic, CancellationToken cancellationToken)
                 {
                     if (diagnostic.Location?.PropertyPath != "code") throw new Exception($"Unexpected diagnostic {diagnostic.Code} at {diagnostic.Location?.PropertyPath}: {diagnostic.Message}");
+                    if (diagnostic.Message.ToString()?.Contains("Supplier code") != true) throw new Exception("Validation did not retain the source-column label.");
                     Diagnostics++;
                     return Task.CompletedTask;
                 }
@@ -422,7 +444,7 @@ public class FileGenerationTests
             var orders = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<Consumer.Orders.OrdersProcessor>(provider);
             var returns = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<Consumer.Returns.ReturnsProcessor>(provider);
             static Task<Stream> Open(string text) => Task.FromResult<Stream>(new MemoryStream(System.Text.Encoding.UTF8.GetBytes(text)));
-            const string columns = "Code,Count,Date,Timestamp,Alternate\n";
+            const string columns = "Supplier code,Count,Date,Timestamp,Alternate\n";
             if (Consumer.Flat.FlatProcessor.DefinitionVersion != "rev\"\\\u96ea") throw new Exception("Definition revision literal did not round-trip.");
             var flatResult = await flat.ProcessAsync(_ => Open(columns + "a,0,20260615,20260615,D\nA,0,,,\n"), Consumer.Flat.FlatProcessor.CreateContext("source", "attempt"));
             if (flatResult.Outcome != CoreEx.IO.FileProcessingOutcome.Validated) throw new Exception("Flat validation failed.");

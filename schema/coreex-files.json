@@ -88,11 +88,11 @@
         "discriminatorIndex": {
           "type": "integer",
           "title": "Zero-based discriminator index.",
-          "description": "Required with structure; forbidden for flat input."
+          "description": "Selects unordered routing without structure; required with structure; omitted for flat input."
         },
         "structure": {
           "title": "Business-root hierarchy.",
-          "description": "Without structure, exactly one flat record must be declared.",
+          "description": "Omit for unordered routed records (with discriminatorIndex) or one flat record (without discriminatorIndex).",
           "allOf": [
             {
               "$ref": "#/definitions/Structure"
@@ -199,7 +199,7 @@
         "match": {
           "type": "string",
           "title": "Exact discriminator.",
-          "description": "Required for hierarchical files; forbidden for flat files."
+          "description": "Required for routed files; forbidden for flat files."
         },
         "errorMode": {
           "type": "string",
@@ -207,6 +207,27 @@
           "enum": [
             "FailFast",
             "CollectErrors"
+          ]
+        },
+        "cardinality": {
+          "type": "string",
+          "title": "File cardinality.",
+          "description": "Unordered routed files only; defaults to Many. Counts include recognized invalid records. Hierarchical cardinality belongs on structure nodes.",
+          "enum": [
+            "Many",
+            "One",
+            "Optional",
+            "OneOrMore"
+          ]
+        },
+        "position": {
+          "type": "string",
+          "title": "File position.",
+          "description": "Unordered routed files only; defaults to Any. First/Last require One or Optional cardinality. Hierarchical boundaries belong in structure.",
+          "enum": [
+            "Any",
+            "First",
+            "Last"
           ]
         },
         "properties": {

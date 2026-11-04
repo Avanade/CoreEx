@@ -9,7 +9,7 @@
 namespace {{Root.RuntimeNamespace}};
 
 /// <summary>Represents a typed wire record; not a domain aggregate or persistence model.</summary>
-public partial class {{TypeName}}
+public partial class {{TypeName}}{{#if Root.IsUnordered}} : {{Root.UnitType}}{{/if}}
 {
 {{#each Properties}}
     /// <summary>Gets or sets the mapped input value.</summary>

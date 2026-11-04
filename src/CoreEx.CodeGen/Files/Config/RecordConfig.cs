@@ -14,13 +14,23 @@ public class RecordConfig : ConfigBase<CodeGenConfig, CodeGenConfig>
 
     /// <summary>Gets or sets the exact discriminator value.</summary>
     [JsonPropertyName("match")]
-    [CodeGenProperty("Structure", Title = "Exact discriminator.", Description = "Required for hierarchical files; forbidden for flat files.")]
+    [CodeGenProperty("Structure", Title = "Exact discriminator.", Description = "Required for routed files; forbidden for flat files.")]
     public string? Match { get; set; }
 
     /// <summary>Gets or sets the route continuation override.</summary>
     [JsonPropertyName("errorMode")]
     [CodeGenProperty("Structure", Title = "Route error policy.", Options = ["FailFast", "CollectErrors"])]
     public string? ErrorMode { get; set; }
+
+    /// <summary>Gets or sets the unordered route's recognized occurrences per file.</summary>
+    [JsonPropertyName("cardinality")]
+    [CodeGenProperty("Structure", Title = "File cardinality.", Options = ["Many", "One", "Optional", "OneOrMore"], Description = "Unordered routed files only; defaults to Many. Counts include recognized invalid records. Hierarchical cardinality belongs on structure nodes.")]
+    public string? Cardinality { get; set; }
+
+    /// <summary>Gets or sets the unordered route's optional file-boundary restriction.</summary>
+    [JsonPropertyName("position")]
+    [CodeGenProperty("Structure", Title = "File position.", Options = ["Any", "First", "Last"], Description = "Unordered routed files only; defaults to Any. First/Last require One or Optional cardinality. Hierarchical boundaries belong in structure.")]
+    public string? Position { get; set; }
 
     /// <summary>Gets or sets mapped properties.</summary>
     [JsonPropertyName("properties")]
@@ -44,6 +54,16 @@ public class RecordConfig : ConfigBase<CodeGenConfig, CodeGenConfig>
     {
         RejectUnknownProperties();
         Name = ConfigValidation.Identifier(this, nameof(Name), Name);
+        if (Root!.IsUnordered)
+        {
+            Cardinality = DefaultWhereNull(Cardinality, () => "Many");
+            Position = DefaultWhereNull(Position, () => "Any");
+            if (Position != "Any" && Cardinality is not ("One" or "Optional"))
+                throw new CodeGenException(this, nameof(Position), "First and Last positions require One or Optional cardinality.");
+        }
+        else if (Cardinality is not null || Position is not null)
+            throw new CodeGenException(this, nameof(Cardinality), "Record cardinality/position are only valid for unordered routed files; hierarchical rules belong in structure.");
+
         if (Properties is null || Properties.Count == 0 || Properties.Any(x => x is null))
             throw new CodeGenException(this, nameof(Properties), "At least one non-null mapped property is required.");
 

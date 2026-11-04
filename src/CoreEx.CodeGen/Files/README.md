@@ -39,6 +39,8 @@ records:
 
 Each property specifies exactly one zero-based `index` or named `column`. A named selector requires a column-name header. All wire values are nullable; `required` emits `NotNull`, so numeric zero and Boolean false remain valid. Whitespace-only strings become null, while nonblank strings are not trimmed. Supported types are String, Integer, Int64, Decimal, Double, Boolean, Guid, DateOnly, and DateTime. Dates require an exact invariant format.
 
+Generated validators use the named source column as their friendly message label (`WithText`), or the property name for positional fields. Logical diagnostic property paths remain property-based; labels do not change mapping identity or attempt to infer physical coordinates. CSV syntax markers reject surrogate code units in configuration and at the runtime boundary.
+
 Property-level validation also supports `mandatory: true` (rejects null and default values, including zero/false), String-only `minLength`, `maxLength`, `regex`, and `email`, inclusive `min`/`max` for strings/numbers/dates, Decimal-only `precision`/`scale`, and nonempty typed `options` for every supported type. Omit both presence flags for optional values; `mandatory` takes precedence over `required`. Other rules retain CoreEx's null-skipping behavior. Lengths are nonnegative (`maxLength: 0` permits only empty strings or null); precision is 1..29 and scale is 0..28, no greater than precision, without rounding. String bounds use CoreEx's culture-sensitive comparison. Date bounds/options use the property's exact `format`; numeric bounds/options use invariant values (Decimal/Double also accept numeric strings). Boolean/Guid do not support bounds. Invalid patterns, incompatible rule/type combinations, reversed bounds, and invalid option scalars fail before any batch output is written. Each property emits one fluent rule chain; regexes use cached `[GeneratedRegex]` methods with a one-second match timeout. Regex timeout is an operational fault, not a silently accepted value.
 
 ```yaml
@@ -49,6 +51,48 @@ Property-level validation also supports `mandatory: true` (rejects null and defa
 ```
 
 `referenceData` applies only to String properties. The wire value remains a code, and the generated validator invokes CoreEx's `ReferenceData(r => r.With<TRef>())` rule, optionally allowing inactive values. Unknown/inactive codes produce normal validation messages, not exception-based content failures. Blanks are allowed unless `required` is true. Reference collections and the ambient `ReferenceDataOrchestrator` must be initialized before processing; missing setup is an operational fault, not a bad CSV code. No reference-data lookup or mutation happens in CSV conversion/replay, and no canonicalizing `Override()` is applied. These reference-backed rules are dependency-aware, unlike the other pure wire rules: the caller owns the initialized lookup context for the validation pass. Application services must still enforce business rules at execution time if reference data changes after validation.
+
+## Unordered routed definition
+
+Set `discriminatorIndex` and omit `structure` to process heterogeneous record layouts without grouping. Each physical record is an independent business unit, including records marked First or Last. Both ValidateOnly and ValidateThenExecute are supported; execution still waits for whole-file validation and EOF reconciliation.
+
+```yaml
+name: Imports
+version: '1'
+runtimeProjectPath: ../Contoso.Integration
+discriminatorIndex: 0
+mode: ValidateThenExecute
+errorMode: CollectErrors
+records:
+- name: Header
+  match: H
+  cardinality: One
+  position: First
+  properties:
+  - { name: Batch, index: 1, required: true }
+- name: Supplier
+  match: S
+  cardinality: OneOrMore
+  properties:
+  - { name: Code, index: 1, required: true }
+- name: Adjustment
+  match: A
+  errorMode: CollectErrors
+  properties:
+  - { name: Amount, type: Decimal, index: 1, required: true }
+- name: Trailer
+  match: T
+  cardinality: One
+  position: Last
+  properties:
+  - { name: Count, type: Integer, index: 1, required: true }
+```
+
+Matches are exact and case-sensitive, without trimming; all fields are positional and exclude the discriminator index. Records may otherwise occur in any order. File-level `cardinality` defaults to Many and supports Many, One, Optional, and OneOrMore. Recognized records count even if fields are invalid. `position` defaults to Any; First/Last require One or Optional cardinality, with at most one of each boundary. Unknown/malformed records still participate in boundary-position checks, while skipped blank/comment lines do not. Declare hierarchy cardinalities/envelopes only inside `structure`, never on hierarchical wire records.
+
+Generation emits a distinct `ImportsProcessor : CsvRoutedFileProcessor<ImportsRecord>`, typed rows deriving from the common `ImportsRecord` base, `ImportsContext : CsvRoutedContext`, and `ImportsHandlerBase` with type-safe dispatch. The create-only `ImportsHandler` inherits that generated base. Override methods such as `OnValidateSupplierAsync(ImportsSupplier unit, ImportsContext context, Func<FileDiagnostic, CancellationToken, Task> reportDiagnosticAsync, CancellationToken cancellationToken)` and `OnExecuteSupplierAsync(ImportsSupplier unit, ImportsContext context, CancellationToken cancellationToken)` in a handwritten partial. These expose concrete row and context types without object casts or a handwritten type switch. Every execution method must be implemented for the record types the file contains; defaults throw explicitly rather than silently skipping First/Last records or other rows.
+
+The generated context exposes recognized counts through `GetRecordCount`, `EndOfFileLineNumber`, and `HasValidationErrors`. Extend it with reconciliation accumulators and the processor with `OnValidateFileAsync`; fresh replay contexts do not copy validation state. Each accepted record gets a separate custom-validation scope and a separate execution scope, and pure/custom validation is not repeated on replay. The finite input-byte bound applies; no file-wide record buffer is retained, and `maxGroupRecords` is only relevant to hierarchical mode.
 
 ## Hierarchical definition
 
@@ -80,7 +124,7 @@ Wire records (`OrdersOrder`, `OrdersLine`) are separate types/files. A non-leaf 
 
 ## Ownership and use
 
-Generated code assumes the runtime project's `GlobalUsing.cs` imports `CoreEx`, `CoreEx.DependencyInjection`, `CoreEx.IO`, `CoreEx.IO.Csv`, `CoreEx.Validation`, `Microsoft.Extensions.DependencyInjection`, `System.Globalization`, `System.Text`, and `System.Text.RegularExpressions`, alongside the standard System/collections/IO/threading/task imports normally provided by implicit usings. Templates emit ordinary type names and extension calls, not per-file imports. Explicitly configured reference-data type names remain qualified to avoid ambiguity between consumer types.
+Generated code assumes the runtime project's `GlobalUsing.cs` imports `CoreEx`, `CoreEx.DependencyInjection`, `CoreEx.IO`, `CoreEx.IO.Csv`, `CoreEx.Results`, `CoreEx.Validation`, `Microsoft.Extensions.DependencyInjection`, `System.Globalization`, `System.Text`, and `System.Text.RegularExpressions`, alongside the standard System/collections/IO/threading/task imports normally provided by implicit usings. Templates emit ordinary type names and extension calls, not per-file imports. Explicitly configured reference-data type names remain qualified to avoid ambiguity between consumer types.
 
  Templates emit ordinary type names and extension calls, not per-file imports. Explicitly configured reference-data type names remain qualified to avoid ambiguity between consumer types.
 

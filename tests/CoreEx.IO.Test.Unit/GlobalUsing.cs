@@ -6,6 +6,7 @@ global using CoreEx.Localization;
 global using CoreEx.Results;
 global using CoreEx.Validation;
 global using Microsoft.Extensions.DependencyInjection;
+global using Microsoft.Extensions.Logging;
 global using NUnit.Framework;
 global using System.Globalization;
 global using System.Runtime.ExceptionServices;

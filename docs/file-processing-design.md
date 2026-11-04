@@ -256,6 +256,8 @@ Step 6 follow-up restores the demo's declarative string length/regex/email, type
 
 ## 12. Acceptance matrix
 
+The remaining Step 6 parity work is implemented: unordered discriminator-routed files support both validation-only and whole-file validate-then-execute with one scoped business unit per record, per-type file cardinality, and Any/First/Last positions. Generated typed dispatch preserves distinct integration identities without requiring a hierarchy. CSV attempts now use CoreEx invoker tracing, host outcome logs, and a bounded-outcome metric; invalid surrogate syntax characters fail before source opening; generated validation messages retain source-column labels without changing logical property paths. Verification covers 284 runtime tests and 65 CodeGen tests on each of net8.0, net9.0, and net10.0, including generated consumer compilation/execution. Products RefData regeneration remains 19 unchanged files. Integration examples and distribution remain Steps 7 and 8.
+
 | Area | Required evidence |
 |---|---|
 | Flat whole-file barrier | A final invalid row or EOF reconciliation error causes zero execution calls; valid input executes rows in order. |

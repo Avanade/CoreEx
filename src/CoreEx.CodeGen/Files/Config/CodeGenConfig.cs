@@ -1,6 +1,6 @@
 namespace CoreEx.CodeGen.Files.Config;
 
-/// <summary>Defines one host-neutral flat or hierarchical CSV integration.</summary>
+/// <summary>Defines one host-neutral flat, unordered routed, or hierarchical CSV integration.</summary>
 [CodeGenClass("CodeGeneration", Title = "File processing code-generation.")]
 [CodeGenCategory("Primary", Title = "Definition identity.")]
 [CodeGenCategory("Format", Title = "CSV dialect and explicit encoding.")]
@@ -83,12 +83,12 @@ public class CodeGenConfig : ConfigRootBase<CodeGenConfig>
 
     /// <summary>Gets or sets the discriminator field index.</summary>
     [JsonPropertyName("discriminatorIndex")]
-    [CodeGenProperty("Structure", Title = "Zero-based discriminator index.", Description = "Required with structure; forbidden for flat input.")]
+    [CodeGenProperty("Structure", Title = "Zero-based discriminator index.", Description = "Selects unordered routing without structure; required with structure; omitted for flat input.")]
     public int? DiscriminatorIndex { get; set; }
 
     /// <summary>Gets or sets the optional hierarchy.</summary>
     [JsonPropertyName("structure")]
-    [CodeGenProperty("Structure", Title = "Business-root hierarchy.", Description = "Without structure, exactly one flat record must be declared.")]
+    [CodeGenProperty("Structure", Title = "Business-root hierarchy.", Description = "Omit for unordered routed records (with discriminatorIndex) or one flat record (without discriminatorIndex).")]
     public StructureConfig? Structure { get; set; }
 
     /// <summary>Gets or sets typed wire records.</summary>
@@ -105,8 +105,14 @@ public class CodeGenConfig : ConfigRootBase<CodeGenConfig>
     /// <summary>Gets whether routed hierarchy processing is required.</summary>
     public bool IsHierarchical => Structure is not null;
 
+    /// <summary>Gets whether records are routed without a hierarchy, each forming its own business unit.</summary>
+    public bool IsUnordered => Structure is null && DiscriminatorIndex.HasValue;
+
+    /// <summary>Gets whether exact discriminator routing is configured.</summary>
+    public bool IsRouted => IsHierarchical || IsUnordered;
+
     /// <summary>Gets the business-unit type.</summary>
-    public string UnitType => Structure?.RootNode?.TypeName ?? Records![0].TypeName;
+    public string UnitType => IsUnordered ? Name + "Record" : Structure?.RootNode?.TypeName ?? Records![0].TypeName;
 
     /// <summary>Gets assembled positions, excluding leaves.</summary>
     public IEnumerable<NodeConfig> Groups => Structure?.Nodes.Where(x => x.HasChildren) ?? [];
@@ -139,7 +145,8 @@ public class CodeGenConfig : ConfigRootBase<CodeGenConfig>
 
     /// <summary>Gets the generated top-level names, including handwritten extension-point ownership.</summary>
     public IEnumerable<string> TypeNames => Records!.SelectMany(x => new[] { x.TypeName, x.TypeName + "Mapping", x.TypeName + "Validator" })
-        .Concat(Groups.Select(x => x.TypeName)).Concat(new[] { Name + "Context", Name + "Processor", Name + "Handler" });
+        .Concat(Groups.Select(x => x.TypeName)).Concat(IsUnordered ? new[] { Name + "Record", Name + "HandlerBase" } : [])
+        .Concat(new[] { Name + "Context", Name + "Processor", Name + "Handler" });
 
     /// <summary>Gets every owned file path for batch collision checks.</summary>
     public IEnumerable<string> OutputFiles => TypeNames.Select(x => Path.Combine(OutputDirectory.FullName, x + (x == Name + "Handler" ? ".cs" : ".g.cs")));
@@ -173,7 +180,7 @@ public class CodeGenConfig : ConfigRootBase<CodeGenConfig>
 
         Delimiter = DefaultWhereNull(Delimiter, () => ",");
         Quote = DefaultWhereNull(Quote, () => "\"");
-        if (new[] { Delimiter, Quote, Comment }.OfType<string>().Any(x => x.Length != 1 || x[0] is '\r' or '\n' or '\0')
+        if (new[] { Delimiter, Quote, Comment }.OfType<string>().Any(x => x.Length != 1 || x[0] is '\r' or '\n' or '\0' || char.IsSurrogate(x[0]))
             || Delimiter == Quote || Comment is not null && (Comment == Delimiter || Comment == Quote))
             throw new CodeGenException(this, nameof(Delimiter), "Dialect markers must be distinct single non-newline, non-null characters.");
 
@@ -184,7 +191,7 @@ public class CodeGenConfig : ConfigRootBase<CodeGenConfig>
         if (Records.Select(x => x.Name).Distinct(StringComparer.OrdinalIgnoreCase).Count() != Records.Count)
             throw new CodeGenException(this, nameof(Records), "Record names must be unique ignoring case.");
 
-        if (Structure is null)
+        if (!IsRouted)
         {
             if (Records.Count != 1 || DiscriminatorIndex.HasValue || Records.Any(x => x.Match is not null || x.ErrorMode is not null))
                 throw new CodeGenException(this, nameof(Structure), "Flat input requires one record and no routing settings.");
@@ -193,9 +200,12 @@ public class CodeGenConfig : ConfigRootBase<CodeGenConfig>
         {
             if (!DiscriminatorIndex.HasValue || DiscriminatorIndex < 0 || Records.Any(x => string.IsNullOrWhiteSpace(x.Match) || x.Properties!.Any(p => !p.Index.HasValue || p.Index == DiscriminatorIndex))
                 || Records.Select(x => x.Match).Distinct(StringComparer.Ordinal).Count() != Records.Count)
-                throw new CodeGenException(this, nameof(DiscriminatorIndex), "Hierarchies require a nonnegative discriminator, exact unique matches, and positional fields excluding the discriminator.");
+                throw new CodeGenException(this, nameof(DiscriminatorIndex), "Routed files require a nonnegative discriminator, exact unique matches, and positional fields excluding the discriminator.");
 
-            await Structure.PrepareAsync(this, this).ConfigureAwait(false);
+            if (Structure is not null)
+                await Structure.PrepareAsync(this, this).ConfigureAwait(false);
+            else if (Records.Count(x => x.Position == "First") > 1 || Records.Count(x => x.Position == "Last") > 1)
+                throw new CodeGenException(this, nameof(Records), "Only one First and one Last record type may be configured.");
         }
 
         if (TypeNames.Distinct(StringComparer.OrdinalIgnoreCase).Count() != TypeNames.Count())

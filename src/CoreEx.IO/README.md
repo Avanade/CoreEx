@@ -1,6 +1,6 @@
 # CoreEx.IO
 
-**Work in progress; not packable or included in release publishing.** Steps 1 through 5 provide format-neutral contracts, safe nested execution contexts, flat/hierarchical CSV validation and execution, finite input/group bounds, and strict encoding/BOM handling. CodeGen, integration examples, and release integration remain planned. See the [design and implementation plan](../../docs/file-processing-design.md).
+**Work in progress; not packable or included in release publishing.** Steps 1 through 6 provide format-neutral contracts, safe nested execution contexts, CSV validation and execution, finite input/group bounds, strict encoding/BOM handling, and [File CodeGen](../CoreEx.CodeGen/Files/README.md). Integration examples and release integration remain planned. See the [design and implementation plan](../../docs/file-processing-design.md).
 
 Shared types live in `CoreEx.IO`. CSV mappings, converters, options, `CsvFileProcessor<TRecord>`, and `CsvHierarchyFileProcessor<TGroup>` live in `CoreEx.IO.Csv`; future formats can reuse the root contracts without CSV line/header assumptions. No universal parser/plugin abstraction is being introduced.
 
@@ -46,6 +46,39 @@ Other stable diagnostic codes are `csv.header.duplicate`, `csv.header.missing`, 
 For dependency-backed validation or execution, pass `serviceProvider` and a `handlerFactory` resolving a registered `FileUnitHandler<ImportRow>` from the supplied scoped provider. Register `AddExecutionContext()` (or its custom factory) and the handler/dependencies; execution without a handler factory fails before opening input. Pure validation runs under the file context, while custom validation and execution use distinct async scopes and contexts for each row and pass. Override `OnConfigureUnitContext` to propagate trusted identity explicitly; CSV fields are not authentication. Override `OnCreateExecutionContext` when a derived file context needs fresh replay reconciliation state.
 
 Diagnostic callbacks run under the captured file-level ambient execution context even when emitted by a unit-scoped validator. They are awaited before parsing the next record; execution-context flow must be enabled. Normal EOF invokes `OnValidateFileAsync`, including after collected errors, but fail-fast/invalid-header termination does not. Rejected files never open replay. Valid execution rebuilds fresh rows/context without repeating validators or custom validation; reconstruction/count drift faults explicitly, but equal-count changed values cannot prove or disprove the caller's immutable-source guarantee.
+
+## Unordered routed CSV
+
+`CsvRoutedFileProcessor<TUnit>` supports heterogeneous records without parent/child grouping. Configure a `CsvRoutedDefinition<TUnit>` with exact discriminator matching and typed `CsvRoutedRecord<TRecord, TUnit>` routes. Each mapped record is independently projected into the common unit type (an application-owned base class, interface, or wrapper) without object casts; a pure route validator still receives its concrete wire type:
+
+```csharp
+CsvRoutedDefinition<ImportRecord> CreateDefinition() => new(0,
+[
+    new CsvRoutedRecord<SupplierRecord, ImportRecord>("supplier", "S", CreateSupplierMapping, row => row,
+        validator: supplierValidator, cardinality: CsvRecordCardinality.OneOrMore),
+    new CsvRoutedRecord<AdjustmentRecord, ImportRecord>("adjustment", "A", CreateAdjustmentMapping, row => row,
+        validator: adjustmentValidator, errorMode: FileErrorMode.CollectErrors)
+]);
+
+var processor = new CsvRoutedFileProcessor<ImportRecord>(CreateDefinition,
+    serviceProvider: serviceProvider,
+    handlerFactory: scoped => scoped.GetRequiredService<ImportHandler>());
+var context = new CsvRoutedContext(
+    new FileProcessingIdentity("imports", "1", "store/import.csv", "attempt", "revision"),
+    FileProcessingMode.ValidateThenExecute,
+    FileErrorMode.CollectErrors);
+var summary = await processor.ProcessAsync(openReadAsync, context, cancellationToken).ConfigureAwait(false);
+```
+
+In this example, `SupplierRecord` and `AdjustmentRecord` derive from the caller-owned `ImportRecord`; the mappings are positional, and `ImportHandler : FileUnitHandler<ImportRecord>` dispatches to the appropriate typed application operation. [File CodeGen](../CoreEx.CodeGen/Files/README.md#unordered-routed-definition) generates a definition-specific common base and typed validation/execution dispatch so handwritten handlers do not need casts or a manual type switch.
+
+Routes may occur in any order. `Many` (default), `One`, `Optional`, and `OneOrMore` apply per file and count recognized occurrences even when fields are invalid. An optional `CsvRecordPosition.First` or `Last` requires `One` or `Optional` cardinality; at most one route may claim each boundary. First must precede every parsed record, including unknown/malformed records; a required First also forbids records before it. Last forbids every subsequent parsed record. Blank/comment lines do not participate. Boundary records are ordinary business units here, not hierarchy envelopes: they receive their own validation and execution scopes.
+
+Exact matches, positional fields, strict encoding, finite input-byte limits, streamed/awaited diagnostics, whole-file acceptance, fresh replay models/context, original application Results, and scoped business handlers share the existing CSV lifecycle. Every accepted physical record is one validated/executed unit; no file-wide record collection or root buffer is retained. `MaxGroupRecords` is irrelevant to unordered input, while the independent positive `MaxInputBytes` budget still bounds input. Replay never repeats pure or custom validators. Callers remain responsible for an immutable source revision and application-level transactions/idempotency.
+
+Use a fresh `CsvRoutedContext` (or derived context with a matching replay-context override) per invocation. `GetRecordCount(key)` includes recognized invalid records, while unknown/malformed records are not assigned a route. `EndOfFileLineNumber` anchors missing requirements at the last parsed record's physical start, or line 1 for empty input. `HasValidationErrors` reflects streamed validation diagnostics. Put reconciliation accumulators in a derived context and implement `OnValidateFileAsync`; missing/duplicate/position/reconciliation errors prevent all replay, even when earlier records passed validation.
+
+Record-specific policies apply to mapping, pure/custom validation, and rules owned by the route, including missing occurrences. A record after Last uses the Last route's policy, and a record before required First uses the First route's policy, rather than the current record's override. Unknown/malformed records use the file policy. Collected errors reach EOF reconciliation; fail-fast skips it and reports incomplete validation. Stable structural codes are `csv.structure.required`, `csv.structure.duplicate`, `csv.structure.before-first`, `csv.structure.first-position`, and `csv.structure.after-last`; discriminator, parsing, mapping, and validation codes are shared with the other CSV modes. Multiple physical errors increment `InvalidRecords` only once, and EOF/reconciliation failures do not invent invalid rows.
 
 ## Routed hierarchical CSV
 
@@ -98,6 +131,8 @@ Multiple definitions may share the same projected group CLR type. Register defin
 
 ## Bounds and encoding
 
+CSV delimiter, quote, and optional comment markers must be distinct single non-surrogate characters other than CR, LF, and NUL. Both YAML preparation and direct runtime construction reject invalid dialects before opening a source. Embedded quotes use doubled-quote escaping.
+
 Both processors enforce `CsvFileOptions.MaxInputBytes` (default **64 MiB**, including a BOM) on each pass. Hierarchical processing additionally enforces `MaxGroupRecords` (default **10,000**, including the root and all parser-returned descendants, even invalid/unknown ones). Both values must be positive; there is no automatic unbounded mode. The group count resets at a new root, excludes file envelopes outside the group, and counts a multiline logical CSV record once rather than counting its physical lines. Blank/comment records skipped by the parser still consume the byte budget. Limits apply before mapping/projecting the over-budget record.
 
 Byte overflow produces `csv.limit.input-bytes`; group overflow produces `csv.limit.group-records` with the offending record's physical start and root key. Either is a terminal `Limit` diagnostic regardless of `FailFast`/`CollectErrors` or route overrides. Processing reports rejection with `ValidationCompleted=false`, does not close a partial group or run EOF reconciliation, and never opens replay. Limits are not successful truncation. Group/file limit errors do not invent invalid physical rows. The stream wrapper reads no more than the byte limit plus one lookahead byte needed to distinguish exact-size EOF from overflow; `BytesRead` includes that actual lookahead, which is never sent to the decoder/parser. Buffers can read ahead of record dispatch, so limits do not promise an exact count of accepted prefix records.
@@ -111,3 +146,9 @@ Invalid byte sequences, truncated multibyte sequences, and incomplete UTF-16/32 
 The defaults are configurable operating budgets, **not** per-invocation heap ceilings or a throughput SLA. A local net10 Debug characterization of 100,000 64-character flat rows (6.5 MB source, scoped validation) allocated about 222 MB cumulatively; a single 10,000-record root with 1,024-character children (10.3 MB source) allocated about 57 MB cumulatively. These include temporary managed allocations, not measured peak/live memory; elapsed time and allocations vary by framework, host, schema, and handler. The 10,000-record default accommodates the measured roughly-10-MB root while preventing unchecked subtree growth; the independent 64-MiB byte cap bounds wide records, malformed framing, comments, and parser input even when record count stays small. Parser/decoded-model overhead can substantially exceed input size, and a single record can consume much of the byte budget. Lower limits for hostile uploads, constrain concurrent files, and apply host timeouts/authentication/admission controls. Caller hooks/validators can retain their own data or perform arbitrary work; framework limits cannot bound that.
 
 Runtime and CsvHelper strong-name loading, exact byte/group boundaries, Unicode/BOM behavior, split nonseekable asynchronous reads, cancellation, and replay failure semantics are covered on net8.0, net9.0, and net10.0. The parser dependency/version/license remain unchanged.
+
+## Observability
+
+Every CSV processing attempt uses `CsvFileProcessorInvoker` and the standard CoreEx invoker tracing/configuration pipeline (`ActivitySource` name `CoreEx.IO.Csv`). Traces identify definition/version and policies, then capture outcome and final or partial progress through reporting completion, faults, and cancellation. Source identity, source revision, attempt identifiers, and raw field values are not automatically attached. Outcome logs use the optional service provider's logger factory and its level filters; register a custom `CsvFileProcessorInvoker` there to customize the invoker behavior. Existing CoreEx settings control standard invoker tracing/debug logs.
+
+Subscribe to the `CsvProcessingTelemetry.MeterName` meter (`CoreEx.IO.Csv`) for `csv.files.processed`, one increment per attempt, with only the bounded `csv.outcome` dimension: `validated`, `executed`, `rejected`, `execution-failed`, `faulted`, or `cancelled`. Retries count as separate attempts; a reporting failure is faulted rather than successful. Instrumentation stores no diagnostic history. Configure normal host OpenTelemetry subscriptions/exporters; this package does not select an exporter or require one.

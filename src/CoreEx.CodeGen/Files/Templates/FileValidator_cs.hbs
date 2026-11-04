@@ -16,7 +16,7 @@ public partial class {{TypeName}}Validator : Validator<{{TypeName}}>
     {
 {{#each Properties}}
 {{#if HasValidation}}
-        Property(x => x.{{Name}}){{#each RuleExpressions}}.{{{this}}}{{/each}};
+        Property(x => x.{{Name}}).WithText({{{SelectorLiteral}}}){{#each RuleExpressions}}.{{{this}}}{{/each}};
 {{/if}}
 {{/each}}
         OnInitialization();

@@ -65,8 +65,8 @@ Routing and hierarchy.
 
 Property | Description
 -|-
-`discriminatorIndex` | Zero-based discriminator index.<br/>&dagger; Required with structure; forbidden for flat input.
-`structure` | Business-root hierarchy. The corresponding [`Structure`](Structure.md) object.<br/>&dagger; Without structure, exactly one flat record must be declared.
+`discriminatorIndex` | Zero-based discriminator index.<br/>&dagger; Selects unordered routing without structure; required with structure; omitted for flat input.
+`structure` | Business-root hierarchy. The corresponding [`Structure`](Structure.md) object.<br/>&dagger; Omit for unordered routed records (with discriminatorIndex) or one flat record (without discriminatorIndex).
 
 ## Collections
 Typed wire records.

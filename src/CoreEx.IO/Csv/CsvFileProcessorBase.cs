@@ -1,14 +1,15 @@
 namespace CoreEx.IO.Csv;
 
 /// <summary>Shares whole-file acceptance, reporting, and scoped business-unit lifetimes across CSV processors.</summary>
-/// <typeparam name="TUnit">The flat record or projected root group.</typeparam>
-/// <remarks>Use the flat or hierarchical processor rather than implementing a separate lifecycle. Independent invocations require distinct contexts and thread-safe shared dependencies.</remarks>
+/// <typeparam name="TUnit">The flat or unordered routed record, or projected root group.</typeparam>
+/// <remarks>Use the flat, unordered routed, or hierarchical processor rather than implementing a separate lifecycle. Independent invocations require distinct contexts and thread-safe shared dependencies.</remarks>
 public abstract class CsvFileProcessorBase<TUnit> : FileProcessor where TUnit : class
 {
     private readonly CsvFileOptions _options;
     private readonly IValidator<TUnit>? _validator;
     private readonly IServiceProvider? _serviceProvider;
     private readonly Func<IServiceProvider, FileUnitHandler<TUnit>>? _handlerFactory;
+    private readonly CsvFileProcessorInvoker _invoker;
 
     /// <summary>Initializes shared syntax, pure validation, and optional scoped business handlers.</summary>
     /// <param name="options">CSV syntax and explicit decoding.</param>
@@ -20,6 +21,11 @@ public abstract class CsvFileProcessorBase<TUnit> : FileProcessor where TUnit : 
         options ??= new CsvFileOptions();
         options.MaxInputBytes.ThrowIfLessThanOrEqualToZero();
         options.MaxGroupRecords.ThrowIfLessThanOrEqualToZero();
+        if (new[] { options.Delimiter, options.Quote }.Concat(options.Comment.HasValue ? [options.Comment.Value] : Array.Empty<char>())
+            .Any(c => c is '\r' or '\n' or '\0' || char.IsSurrogate(c))
+            || options.Delimiter == options.Quote || options.Comment == options.Delimiter || options.Comment == options.Quote)
+            throw new ArgumentException("CSV syntax characters must be distinct non-surrogate characters other than newline or null.", nameof(options));
+
         _options = options with { Encoding = (Encoding)options.Encoding.ThrowIfNull().Clone() };
         _options.Encoding.DecoderFallback = DecoderFallback.ExceptionFallback;
         if (handlerFactory is not null)
@@ -28,13 +34,20 @@ public abstract class CsvFileProcessorBase<TUnit> : FileProcessor where TUnit : 
         _validator = validator;
         _serviceProvider = serviceProvider;
         _handlerFactory = handlerFactory;
+        _invoker = serviceProvider?.GetService<CsvFileProcessorInvoker>() ?? new CsvFileProcessorInvoker(serviceProvider);
     }
 
     /// <inheritdoc/>
-    public override async Task<FileProcessingSummary> ProcessAsync(Func<CancellationToken, Task<Stream>> openReadAsync, FileProcessingContext context, CancellationToken cancellationToken = default)
+    public override Task<FileProcessingSummary> ProcessAsync(Func<CancellationToken, Task<Stream>> openReadAsync, FileProcessingContext context, CancellationToken cancellationToken = default)
     {
         openReadAsync.ThrowIfNull();
         context.ThrowIfNull();
+        return _invoker.InvokeFileAsync(this, context, ct => ProcessCoreAsync(openReadAsync, context, ct), cancellationToken);
+    }
+
+    /// <summary>Processes both passes inside the file-level instrumentation boundary.</summary>
+    private async Task<FileProcessingSummary> ProcessCoreAsync(Func<CancellationToken, Task<Stream>> openReadAsync, FileProcessingContext context, CancellationToken cancellationToken)
+    {
         cancellationToken.ThrowIfCancellationRequested();
         if (context.Mode == FileProcessingMode.ValidateThenExecute && _handlerFactory is null)
             throw new InvalidOperationException("Execution requires a scoped unit handler factory.");

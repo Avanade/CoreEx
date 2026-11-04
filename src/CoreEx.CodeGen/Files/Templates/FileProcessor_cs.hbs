@@ -10,7 +10,7 @@ namespace {{RuntimeNamespace}};
 
 /// <summary>Coordinates this definition's whole-file validation and optional scoped replay.</summary>
 [ScopedService]
-public partial class {{Name}}Processor : {{#if IsHierarchical}}CsvHierarchyFileProcessor{{else}}CsvFileProcessor{{/if}}<{{UnitType}}>
+public partial class {{Name}}Processor : {{#if IsHierarchical}}CsvHierarchyFileProcessor{{else}}{{#if IsUnordered}}CsvRoutedFileProcessor{{else}}CsvFileProcessor{{/if}}{{/if}}<{{UnitType}}>
 {
     /// <summary>Gets the immutable definition name.</summary>
     public const string DefinitionName = {{{NameLiteral}}};
@@ -20,7 +20,7 @@ public partial class {{Name}}Processor : {{#if IsHierarchical}}CsvHierarchyFileP
 
     /// <summary>Initializes the definition-specific processor and scoped handler resolution.</summary>
     public {{Name}}Processor(IServiceProvider serviceProvider) : base(
-{{#if IsHierarchical}}
+{{#if IsRouted}}
         CreateDefinition,
 {{else}}
         {{Records.0.TypeName}}Mapping.Create,
@@ -77,6 +77,19 @@ public partial class {{Name}}Processor : {{#if IsHierarchical}}CsvHierarchyFileP
 {{/each}}
     };
 {{/each}}
+{{/if}}
+{{#if IsUnordered}}
+
+    /// <summary>Creates isolated typed routes and file-level occurrence rules for each pass.</summary>
+    private static CsvRoutedDefinition<{{UnitType}}> CreateDefinition() => new(
+        {{DiscriminatorIndex}},
+        new CsvRoutedRecord<{{UnitType}}>[]
+        {
+{{#each Records}}
+            new CsvRoutedRecord<{{TypeName}}, {{Root.UnitType}}>({{{KeyLiteral}}}, {{{MatchLiteral}}}, {{TypeName}}Mapping.Create, row => row,
+                validator: new {{TypeName}}Validator(), cardinality: CsvRecordCardinality.{{Cardinality}}, position: CsvRecordPosition.{{Position}}, errorMode: {{{ErrorModeExpression}}}),
+{{/each}}
+        });
 {{/if}}
 }
 
