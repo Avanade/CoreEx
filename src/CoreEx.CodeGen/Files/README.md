@@ -3,6 +3,7 @@
 The `File` command generates host-neutral CoreEx.IO CSV integrations from top-level `*-file.yaml` definitions alongside a consumer CodeGen project's `Program.cs`. It does not generate a transport trigger or require a Functions project. Runtime artifacts live together in an existing project referencing CoreEx.IO and CoreEx.Validation; CodeGen itself has no runtime dependency on CoreEx.IO.
 
 ```powershell
+Set-Location <CodeGen-project-directory>
 dotnet run -- file
 dotnet run -- file suppliers-file.yaml orders-file.yaml
 dotnet run -- file --validate
@@ -11,6 +12,21 @@ dotnet run -- file --expect-no-changes
 ```
 
 Default discovery is nonrecursive and ordinal-sorted. Explicit filenames must also end with `-file.yaml`; `--config` selects a single file when no positional files are given. Paths resolve from the CodeGen output/project directory (OnRamp's `--output` overrides that basis). Script/template resources, parameters, simulation, and unchanged-output checks retain OnRamp semantics. Every selected configuration is loaded and prepared, including identity/type/path collision checks, before any output is written. This is not transactional filesystem generation: a subsequent I/O failure can leave partial output.
+
+## Generation-first Functions example
+
+The framework's [InventoryImports example](../../../tests/CoreEx.Azure.Functions.TestApp/InventoryImports/README.md) keeps `name: Inventory`, `version: '1'`, and its single `Adjustment` record in `tests/CoreEx.Azure.Functions.TestApp.CodeGen/inventory-file.yaml`. From the repository root, first change into the CodeGen project, then validate and generate:
+
+```powershell
+Set-Location tests\CoreEx.Azure.Functions.TestApp.CodeGen
+dotnet run -- file --validate
+dotnet run -- file
+dotnet run -- file --expect-no-changes
+```
+
+`dotnet run --project <CodeGen-project>` selects the project to build/run but does not change the process working directory used for top-level `*-file.yaml` discovery. The definition generates `InventoryAdjustment`, `InventoryAdjustmentMapping`, `InventoryAdjustmentValidator`, `InventoryContext`, `InventoryProcessor`, and `InventoryHandler` under `InventoryImports/Files`; wire types, mapping, and validation are not handwritten.
+
+Generated processors expose protected `Services` for handwritten partial hooks that need invocation-scoped options and reporting adapters without adding a conflicting constructor. This is a generated-template extension, not a CoreEx.IO runtime API change. Keep per-unit business services in the generated handler's fresh child scope. The native Blob trigger, SQL Server unit of work, durable receipt/outbox transaction, and Append Blob report adapter remain handwritten host/application responsibilities; no trigger or persistence code is emitted by File CodeGen.
 
 ## Flat definition
 
@@ -126,16 +142,12 @@ Wire records (`OrdersOrder`, `OrdersLine`) are separate types/files. A non-leaf 
 
 Generated code assumes the runtime project's `GlobalUsing.cs` imports `CoreEx`, `CoreEx.DependencyInjection`, `CoreEx.IO`, `CoreEx.IO.Csv`, `CoreEx.Results`, `CoreEx.Validation`, `Microsoft.Extensions.DependencyInjection`, `System.Globalization`, `System.Text`, and `System.Text.RegularExpressions`, alongside the standard System/collections/IO/threading/task imports normally provided by implicit usings. Templates emit ordinary type names and extension calls, not per-file imports. Explicitly configured reference-data type names remain qualified to avoid ambiguity between consumer types.
 
- Templates emit ordinary type names and extension calls, not per-file imports. Explicitly configured reference-data type names remain qualified to avoid ambiguity between consumer types.
-
 `name` drives the integration identity, type prefix, default `Files/<Name>` output folder, and namespace suffix. `runtimeProjectPath` accepts absolute paths or paths relative to the CodeGen project, including ordinary names not starting with a dot. `runtimePath` must stay inside that project. The default namespace uses the project directory name plus subfolder segments; specify `runtimeNamespace` when MSBuild uses another root namespace. Literal project XML is not treated as evaluated MSBuild.
 
 Processors and handler starters carry `[ScopedService]`. Register them with `services.AddDynamicServicesUsing<SuppliersProcessor>()` and the host's normal CoreEx execution-context services; one scan registers every attributed integration in that assembly. Resolve `SuppliersProcessor`, create a context with `SuppliersProcessor.CreateContext(sourceId, attemptId, sourceRevision)`, and pass a fresh-stream factory to `ProcessAsync`. The default mode is ValidateOnly. `SuppliersHandler.cs` is a create-only handwritten starter: override its inherited validation/execution methods to call application services, returning their Result unchanged. Unimplemented execution throws explicitly. Generated processors expose inherited reporting/reconciliation hooks through handwritten partials or subclasses.
-
-When regenerating an existing integration that previously emitted a services extension, remove its obsolete `<Name>ServiceCollectionExtensions.g.cs` and replace its host registration with the assembly scan. Existing create-only handlers are preserved: add `[ScopedService]` to those handlers manually (and import `CoreEx.DependencyInjection`) rather than expecting regeneration to overwrite them.
 
 Generated `.g.cs` files are owned by the templates, identify the generator in an auto-generated warning banner, and wrap their contents in `#nullable enable` / `#nullable restore`. Extend partial wire models/validators/contexts/processors in separate handwritten files; validators expose `OnInitialization`. Never edit generated output. Handler starters remain handwritten, without an auto-generated warning, and are never overwritten, even during unchanged-output checks. Renaming/removing definitions does not delete old artifacts automatically.
 
 Generated constants identify the opaque developer-maintained definition revision. A processor rejects a wrong context type/name/version before opening the input. Bump version when interpretation, mapping, validation, or structure changes; it is not source revision, version negotiation, package version, or an automatic business deduplication key. Whole-file acceptance does not make execution atomic or exactly-once; caller-owned immutable sources and application transactions/idempotency remain necessary.
 
-The [configuration reference](./docs/CodeGeneration.md) and [JSON schema](../../../schema/coreex-files.json) describe available settings and categories. Optional host adapter examples are a separate integration step.
+The [configuration reference](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.CodeGen/Files/docs/CodeGeneration.md) and [JSON schema](https://github.com/Avanade/CoreEx/blob/main/schema/coreex-files.json) describe available settings and categories. The installed AI bundle includes release-matched copies under `/.github/docs/coreex/files/` and `/.github/docs/coreex/schema/`.

@@ -56,7 +56,7 @@ dotnet new uninstall CoreEx.Template
 - `.github/agents/coreex-expert.agent.md` -- `/coreex-expert`: architecture guidance
 - `.claude/commands/coreex-expert.md` -- `/coreex-expert` for Claude Code
 - `.claude/commands/` -- 25 commands: one per CoreEx skill plus expert guidance; `/coreex-docs-sync` refreshes the entire version-pinned bundle after a package version bump
-- `.github/docs/coreex/` -- 12 architecture/setup docs, 19 package guides, and `manifest.txt` recording the installed `coreex-version`
+- `.github/docs/coreex/` -- 12 architecture/setup docs, 20 package guides, File configuration references/schema, and `manifest.txt` recording the installed `coreex-version`
 
 The generic `acquire-codebase-knowledge` and `aspire` skills are framework-repository-only and are not emitted by `coreex-ai`. See the [full workflow inventory](../../.github/coreex-ai-workflows.md).
 
@@ -143,29 +143,32 @@ This template emits nothing but `.github/` and `.claude/` artefacts: no `AGENTS.
     coreex-domain.instructions.md
     coreex-event-subscribers.instructions.md
     coreex-functions.instructions.md
+    coreex-files.instructions.md
     coreex-host-setup.instructions.md
     coreex-repositories.instructions.md
     coreex-tests.instructions.md
     coreex-tooling.instructions.md
     coreex-validators.instructions.md
   prompts/
-    coreex-*.prompt.md             # 23 wrappers: bootstrap, scaffold, and L1/L2 skills
+    coreex-*.prompt.md             # Bootstrap, scaffold, and L1/L2 skill wrappers
   skills/
-    coreex-*/SKILL.md              # 24 CoreEx skills, with references/assets where applicable
+    coreex-*/SKILL.md              # CoreEx skills, including coreex-file, with references/assets
   agents/
     coreex-expert.agent.md
   coreex-ai-workflows.md           # Command catalog and asset guidance
   docs/coreex/
     manifest.txt                  # Installed coreex-version
     *.md                          # 12 architecture/setup docs
-    agents/*.md                   # 19 package guides
+    agents/*.md                   # 20 package guides
+    files/*.md                    # File CodeGen configuration references and usage
+    schema/coreex-files.json       # Release-matched File YAML schema
 .claude/
   commands/
     coreex-bootstrap.md            # /coreex-bootstrap blank-repo initialisation command
     coreex-scaffold.md             # /coreex-scaffold guided solution scaffolding command
     coreex-expert.md               # /coreex-expert architecture guidance command
     coreex-docs-sync.md            # /coreex-docs-sync version-pinned AI bundle refresh
-    coreex-*.md                   # L1/L2 skill wrappers (25 commands total)
+    coreex-*.md                   # L1/L2 skill wrappers, including coreex-file
 ```
 
 ### `--app-folder` behaviour
@@ -897,6 +900,8 @@ dotnet new coreex-subscribe -n Avanade.Erp.Sales.Subscribe
 ## Validating Template Changes
 
 `dotnet build`/`dotnet test` on `CoreEx.sln` never compiles anything under `content/` -- it's raw `dotnet new` template source, not a C# project. A change to a host's `Program.cs`, `GlobalUsing.cs`, `.csproj`, or a `template.json` symbol is only proven correct by actually scaffolding it and building the result. Run [`../../tools/validate-template-pack.ps1`](../../tools/validate-template-pack.ps1) (also run in CI) -- it packs and installs the template, scaffolds every parameter combination in its `$testScenarios` array into temp directories, asserts expected file presence/content, and `dotnet build`s the scenarios flagged `Build = $true`.
+
+Local validation builds and packs libraries for .NET 10 in Debug, including when `CoreExLocalTargetFramework` is unset; the source generator retains its required netstandard2.0 target. CI (`CI=true`) retains full-framework Release library packages. Generated scenarios build/test .NET 10 in Debug in both environments. `-NoRebuild` uses the existing template package from the corresponding Debug/Release directory. These reduced local packages are validation artifacts, not release packages.
 
 When adding a template, a host, or a new parameter, add a matching scenario. Most existing host-template scenarios (`coreex-api-*`, `coreex-relay-*`, `coreex-subscribe-*`) scaffold in isolation and set `Build = $false` because they have no `coreex`-generated siblings to compile against -- so a symbol-conditional bug (an unconditional `global using`/`ProjectReference` that should have been gated behind `has-data-provider`, `implement-servicebus`, etc.) will only be caught by a scenario that scaffolds `coreex` plus the host together in the same directory and builds the host's own `.csproj`.
 

@@ -21,7 +21,7 @@ tags: ["testing", "unit-tests", "integration-tests", "test-helpers", "nunit"]
 > invariants that must hold on **any** test edit (project types, base classes, isolation, assertion helpers); the
 > skills drive the step-by-step creation procedure.
 
-For `*.Test.Functions`, use [`coreex-functions`](/.github/skills/coreex-functions/SKILL.md) and its [Functions instructions](/.github/instructions/coreex-functions.instructions.md), not the ASP.NET ApiTester examples below. Use UnitTestEx 6 `FunctionTester.Create<TFunction>()` with `HttpTrigger<T>()` / `Trigger<T>()`. Invocation tests exercise worker composition/middleware, not binding delivery, deployed authorization or broker redelivery; runtime proofs use Core Tools/Aspire.
+For `*.Test.Functions`, use [`coreex-functions`](/.github/skills/coreex-functions/SKILL.md) and its [Functions instructions](/.github/instructions/coreex-functions.instructions.md), not the ASP.NET ApiTester examples below. Use UnitTestEx 6 `FunctionTester.Create<TFunction>()` with `HttpTrigger<T>()` / `Trigger<T>()`. Invocation tests exercise worker composition/middleware, not binding delivery, deployed authorization or broker redelivery; runtime proofs use Core Tools/Aspire. For an Event Grid-source Blob trigger against Azurite, upload the input and post a storage-shaped event through the Functions webhook; `EventGridExtensionMethods.CreateBlobCreatedEvent` builds only the simulated notification because Azurite does not emit Event Grid events. The local proof does not establish Azure subscription provisioning, authentication, or delivery.
 
 ## NuGet / Project References
 

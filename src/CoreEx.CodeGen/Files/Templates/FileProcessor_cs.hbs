@@ -32,7 +32,10 @@ public partial class {{Name}}Processor : {{#if IsHierarchical}}CsvHierarchyFileP
             Encoding = {{{EncodingExpression}}}, MaxInputBytes = {{MaxInputBytes}}L, MaxGroupRecords = {{MaxGroupRecords}}L
         },
         serviceProvider: serviceProvider,
-        handlerFactory: scoped => scoped.GetRequiredService<{{Name}}Handler>()) { }
+        handlerFactory: scoped => scoped.GetRequiredService<{{Name}}Handler>()) => Services = serviceProvider;
+
+    /// <summary>Gets the invocation-scoped provider for handwritten reporting and trusted-context hooks.</summary>
+    protected IServiceProvider Services { get; }
 
     /// <summary>Creates correctly identified invocation-local context; source and attempt identity belong to the caller.</summary>
     public static {{Name}}Context CreateContext(string sourceId, string attemptId, string? sourceRevision = null, FileProcessingMode mode = FileProcessingMode.{{Mode}}, FileErrorMode errorMode = FileErrorMode.{{ErrorMode}})

@@ -121,6 +121,7 @@
     <Project Path="samples/src/Contoso.Shopping.Database/Contoso.Shopping.Database.csproj" />
   </Folder>
   <Folder Name="/schema/">
+    <File Path="schema/coreex-files.json" />
     <File Path="schema/coreex-refdata.json" />
   </Folder>
   <Folder Name="/servicebus/">
@@ -178,6 +179,7 @@
     <Project Path="tests/CoreEx.AspNetCore.Test.Api/CoreEx.AspNetCore.Test.Api.csproj" />
     <Project Path="tests/CoreEx.AspNetCore.Test.Unit/CoreEx.AspNetCore.Test.Unit.csproj" />
     <Project Path="tests/CoreEx.Azure.Functions.Test.Unit/CoreEx.Azure.Functions.Test.Unit.csproj" />
+    <Project Path="tests/CoreEx.Azure.Functions.TestApp.CodeGen/CoreEx.Azure.Functions.TestApp.CodeGen.csproj" />
     <Project Path="tests/CoreEx.Azure.Functions.TestApp/CoreEx.Azure.Functions.TestApp.csproj" />
     <Project Path="tests/CoreEx.Azure.Messaging.ServiceBus.Test.Unit/CoreEx.Azure.Messaging.ServiceBus.Test.Unit.csproj" />
     <Project Path="tests/CoreEx.Caching.Redis.Test.Unit/CoreEx.Caching.Redis.Test.Unit.csproj" />

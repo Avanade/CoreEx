@@ -17,6 +17,8 @@
     <ProjectReference Include="..\..\src\CoreEx.Azure.Functions\CoreEx.Azure.Functions.csproj" />
     <ProjectReference Include="..\..\src\CoreEx.Caching.FusionCache\CoreEx.Caching.FusionCache.csproj" />
     <ProjectReference Include="..\..\src\CoreEx.Validation\CoreEx.Validation.csproj" />
+    <ProjectReference Include="..\..\src\CoreEx.IO\CoreEx.IO.csproj" />
+    <ProjectReference Include="..\..\src\CoreEx.Database.SqlServer\CoreEx.Database.SqlServer.csproj" />
   </ItemGroup>
   <ItemGroup>
     <None Update="host.json" CopyToOutputDirectory="PreserveNewest" />

@@ -12,6 +12,8 @@ This script validates the CoreEx.Template pack by:
 5. Cleaning successful scenarios' build outputs immediately and temporary test directories at completion (unless -SkipCleanup).
 
 Runs on Windows, Linux, and macOS via pwsh (cross-platform PowerShell).
+Local runs build/package libraries for net10.0 in Debug to minimize disk usage.
+CI retains all supported library frameworks in Release. Generated scenarios build/test net10.0 in Debug.
 
 .PARAMETER SkipCleanup
 If specified, temporary test directories are not cleaned up after validation.
@@ -46,6 +48,13 @@ Write-Verbose "Repository root: $repoRoot"
 Write-Verbose "Template project: $templateProjectPath"
 Write-Verbose "Test root: $temporaryTestRoot"
 
+$isCI = $env:CI -eq "true"
+$packageConfiguration = if ($isCI) { "Release" } else { "Debug" }
+# Override the shared policy, not TargetFramework(s): the generator must remain netstandard2.0.
+# Pass this to both build and pack because pack intentionally ignores CoreExLocalTargetFramework.
+$packageFrameworkArgs = @(if ($isCI) { "-p:CoreExLocalTargetFramework=" } else { "-p:CoreExTargetFrameworks=net10.0" })
+Write-Verbose "Library packages: $packageConfiguration / $(if ($isCI) { 'all supported frameworks' } else { 'net10.0' })"
+
 # ---------------------------------------------------------------------------
 # Test scenarios
 # ---------------------------------------------------------------------------
@@ -73,6 +82,16 @@ $testScenarios = @(
                 ".github/prompts/coreex-scaffold.prompt.md"
                 ".github/prompts/coreex-bootstrap.prompt.md"
                 ".github/prompts/coreex-functions.prompt.md"
+                ".github/prompts/coreex-file.prompt.md"
+                ".github/instructions/coreex-files.instructions.md"
+                ".github/skills/coreex-file/SKILL.md"
+                ".github/skills/coreex-file/references/workflow.md"
+                ".github/skills/coreex-file/references/patterns.md"
+                ".claude/commands/coreex-file.md"
+                ".github/docs/coreex/agents/CoreEx.IO.md"
+                ".github/docs/coreex/files/README.md"
+                ".github/docs/coreex/files/CodeGeneration.md"
+                ".github/docs/coreex/schema/coreex-files.json"
                 ".github/instructions/coreex-functions.instructions.md"
                 ".github/skills/coreex-functions/SKILL.md"
                 ".github/skills/coreex-functions/references/workflow.md"
@@ -129,6 +148,10 @@ $testScenarios = @(
                 ".github/instructions/coreex-functions.instructions.md"        = 'applyTo: "**/*.Functions/**/*.cs,**/*.Test.Functions/**/*.cs"'
                 ".github/skills/coreex-functions/references/patterns.md"        = "SnapshotHttpResponse"
                 ".github/docs/coreex/agents/CoreEx.Azure.Functions.md"          = "AutoCompleteMessages = false"
+                ".github/instructions/coreex-files.instructions.md"            = 'applyTo: "**/*-file.yaml;**/Files/**/*.cs;!**/Files/**/*.g.cs"'
+                ".github/docs/coreex/agents/CoreEx.IO.md"                       = "CsvRoutedFileProcessor"
+                ".github/docs/coreex/files/CodeGeneration.md"                  = "runtimeProjectPath"
+                ".github/docs/coreex/schema/coreex-files.json"                 = '"discriminatorIndex"'
             }
             FileNotContains = @{
                 ".github/instructions/coreex.instructions.md"                 = "Read each matching file in full"
@@ -145,6 +168,14 @@ $testScenarios = @(
         TestPath   = "test-ai-monorepo"
         Verify     = @{
             FilesPresent = @(
+                ".github/instructions/coreex-files.instructions.md"
+                ".github/skills/coreex-file/SKILL.md"
+                ".github/skills/coreex-file/references/workflow.md"
+                ".github/skills/coreex-file/references/patterns.md"
+                ".github/prompts/coreex-file.prompt.md"
+                ".claude/commands/coreex-file.md"
+                ".github/docs/coreex/agents/CoreEx.IO.md"
+                ".github/docs/coreex/schema/coreex-files.json"
                 ".github/instructions/coreex.instructions.md"
                 ".github/instructions/coreex-validators.instructions.md"
                 ".github/skills/coreex-docs-sync/SKILL.md"
@@ -176,6 +207,7 @@ $testScenarios = @(
                 ".github/skills/coreex-api/SKILL.md"                           = "Resolve context before coding"
                 ".github/instructions/coreex-functions.instructions.md"      = 'applyTo: "backend/**/*.Functions/**/*.cs,backend/**/*.Test.Functions/**/*.cs"'
                 ".github/instructions/coreex-tooling.instructions.md"        = ';!backend/**/*.Database/Schema/**/*.g.*"'
+                ".github/instructions/coreex-files.instructions.md"          = 'applyTo: "backend/**/*-file.yaml;backend/**/Files/**/*.cs;!backend/**/Files/**/*.g.cs"'
             }
         }
         Build      = $false
@@ -1095,25 +1127,21 @@ function Invoke-Assertion {
 }
 
 try {
-    # Packages must contain every target framework; ignore any local inner-loop narrowing (see Directory.Build.props).
-    $env:CoreExLocalTargetFramework = $null
-
     # Step 1: Build and pack CoreEx.Template
     Write-Header "Building CoreEx.Template package"
     if (-not $NoRebuild) {
-        Push-Location $templateProjectPath
         # Use dotnet build rather than dotnet pack: GeneratePackageOnBuild=true (from
         # Directory.Build.props) means the build target already produces the nupkg, and
         # dotnet pack alone skips compilation on a clean runner (no prior bin/ output).
-        dotnet build -c Release --nologo -m:1
+        dotnet build $templateProjectPath -c $packageConfiguration @packageFrameworkArgs --nologo -m:1
         if ($LASTEXITCODE -ne 0) { throw "Failed to build CoreEx.Template" }
-        Pop-Location
         Write-Pass "Template packed successfully"
     }
 
     # Step 2: Locate nupkg
-    $nupkgFiles = Get-ChildItem -Path (Join-Path $templateProjectPath "bin/Release") -Filter "CoreEx.Template.*.nupkg" -ErrorAction SilentlyContinue
-    if (-not $nupkgFiles) { throw "Template package not found in $templateProjectPath/bin/Release" }
+    $packageOutputPath = Join-Path $templateProjectPath "bin/$packageConfiguration"
+    $nupkgFiles = Get-ChildItem -Path $packageOutputPath -Filter "CoreEx.Template.*.nupkg" -ErrorAction SilentlyContinue
+    if (-not $nupkgFiles) { throw "Template package not found in $packageOutputPath" }
     $nupkgFile = ($nupkgFiles | Sort-Object LastWriteTime -Descending | Select-Object -First 1).FullName
     Write-Verbose "Using template package: $nupkgFile"
 
@@ -1134,13 +1162,13 @@ try {
 
     # Build only the packable libraries (not samples/tests) so binaries and assets exist before packing individually.
     foreach ($proj in $libraryProjects) {
-        dotnet build $proj.FullName -c Release --nologo -m:1 -v q
+        dotnet build $proj.FullName -c $packageConfiguration @packageFrameworkArgs --nologo -m:1 -v q
         if ($LASTEXITCODE -ne 0) { throw "Failed to build $($proj.Directory.Name)" }
     }
 
     foreach ($proj in $libraryProjects) {
         Write-Verbose "Packing $($proj.Directory.Name)"
-        $packOutput = dotnet pack $proj.FullName -c Release --nologo --no-build --no-restore -o $localFeedPath 2>&1
+        $packOutput = dotnet pack $proj.FullName -c $packageConfiguration @packageFrameworkArgs --nologo --no-build --no-restore -o $localFeedPath 2>&1
         $packExit = $LASTEXITCODE
         $packOutput | Where-Object { $_ -match "error|successfully created" } | Write-Output
         if ($packExit -ne 0) { throw "Failed to pack $($proj.Directory.Name) (exit $packExit)" }
@@ -1307,7 +1335,7 @@ try {
                 }
 
                 foreach ($buildPath in $buildPaths) {
-                    dotnet build $buildPath --nologo --verbosity minimal -m:1 2>&1 | Where-Object { $_ -match "error|warning|succeeded|failed" }
+                    dotnet build $buildPath -c Debug --nologo --verbosity minimal -m:1 2>&1 | Where-Object { $_ -match "error|warning|succeeded|failed" }
                     if ($LASTEXITCODE -ne 0) {
                         $scenarioFailures += "dotnet build failed for '$buildPath'"
                         Write-Fail "Build FAILED ($buildPath)"
@@ -1323,7 +1351,7 @@ try {
                 if ($scenarioFailures.Count -eq 0) {
                     foreach ($testTarget in $scenario.TestTargets) {
                         $testPath = Join-Path $testDir $testTarget
-                        dotnet test $testPath --no-build --nologo --verbosity minimal
+                        dotnet test $testPath -c Debug -f net10.0 --no-build --nologo --verbosity minimal
                         if ($LASTEXITCODE -ne 0) {
                             $scenarioFailures += "dotnet test failed for '$testPath'"
                             Write-Fail "Tests FAILED ($testPath)"

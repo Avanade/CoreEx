@@ -28,7 +28,7 @@ This folder contains the AI artefacts that give GitHub Copilot and Claude Code a
 - Claude Code: `@coreex-expert`
 - Copilot Chat: switch to **Agent** mode and select **CoreEx Expert**
 
-The agent uses a local doc cache installed by `dotnet new coreex-ai` and refreshed by `/coreex-docs-sync` to avoid live GitHub fetches on every question. It covers all 19 CoreEx package guides, distinguishing packages referenced by the project from ones it could adopt. See the [agent README](./agents/README.md) for the resolution flowchart, cache structure, and adoption guide.
+The agent uses a local doc cache installed by `dotnet new coreex-ai` and refreshed by `/coreex-docs-sync` to avoid live GitHub fetches on every question. It covers all 20 CoreEx package guides, distinguishing packages referenced by the project from ones it could adopt. See the [agent README](./agents/README.md) for the resolution flowchart, cache structure, and adoption guide.
 
 ## Instructions
 
@@ -49,6 +49,7 @@ Instructions are passive — no action is needed to activate them. The global fi
 | `coreex-domain.instructions.md` | Domain files — aggregates, mutation guards, `Result<T>` pipelines |
 | `coreex-aspire.instructions.md` | Aspire files — AppHost wiring, service-bus topology, MockHost/third-party HTTP, `Test.Aspire` lifecycle |
 | `coreex-functions.instructions.md` | `*.Functions` / `*.Test.Functions` C# — native triggers, worker composition, WebApi/idempotency, settlement and test boundaries |
+| `coreex-files.instructions.md` | `*-file.yaml` and handwritten `Files/` C# — immutable sources, streamed diagnostics, scoped execution and generated ownership |
 
 ## Prompts, Skills, and Templates
 
@@ -103,6 +104,7 @@ Seventeen skills add or modify a single CoreEx capability on an existing solutio
 | [`coreex-api`](./skills/coreex-api/) | API controller / endpoint |
 | [`coreex-graphql`](./skills/coreex-graphql/) | GraphQL-lite query bridge (`CoreEx.Data.GraphQL`) on an API host |
 | [`coreex-functions`](./skills/coreex-functions/) | Native HTTP/Service Bus/Blob/Timer capabilities and UnitTestEx tests; shared-core or standalone Functions hosts |
+| [`coreex-file`](./skills/coreex-file/) | Flat, unordered or hierarchical CSV definition, generated processor, scoped handler and immutable source adapter |
 | [`coreex-subscriber`](./skills/coreex-subscriber/) | Event or command subscriber |
 | [`coreex-test-api`](./skills/coreex-test-api/) | API tests |
 | [`coreex-test-subscribe`](./skills/coreex-test-subscribe/) | Subscriber tests |

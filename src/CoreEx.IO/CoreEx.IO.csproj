@@ -2,7 +2,6 @@
   <PropertyGroup>
     <Title>CoreEx file processing.</Title>
     <Description>Stream-based file validation and execution with a host-neutral CSV runtime.</Description>
-    <IsPackable>false</IsPackable>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="CsvHelper" />

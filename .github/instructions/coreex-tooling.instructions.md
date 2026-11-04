@@ -21,6 +21,8 @@ Each domain has two developer-time tooling projects that have **no runtime prese
 | `*.CodeGen` | Generates reference-data C# artefacts across all layers from `ref-data.yaml` |
 | `*.Database` | For relational providers: manages schema, seed data, outbox provisioning, and Infrastructure C# code generation via DbEx. For Cosmos: provisions the database/containers, imports seed data, and keeps the declared container topology in code. |
 
+`*.CodeGen` also supports the explicit `file` command for top-level `*-file.yaml` definitions; it does not require `ref-data.yaml` or a database. Use [coreex-file](/.github/skills/coreex-file/SKILL.md) and [File invariants](/.github/instructions/coreex-files.instructions.md) for this independent pipeline. RefData remains the default command.
+
 > **Related skills:** this file holds the invariants (command reference, YAML structure, table templates, casing,
 > generated-file ownership) that must hold on **any** tooling edit. For the step-by-step **creation** procedures,
 > invoke the skills: [`coreex-db-migration`](/.github/skills/coreex-db-migration/SKILL.md) (author/apply a migration

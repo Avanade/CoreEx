@@ -55,6 +55,7 @@ If a guide is not cached locally, fetch from GitHub:
 - [CoreEx.Caching.FusionCache](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.Caching.FusionCache/AGENTS.md) — `IHybridCache`, Redis backplane, idempotency provider.
 - [CoreEx.Cosmos](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.Cosmos/AGENTS.md) — `CosmosDb`, `CosmosDbContainer<TModel>`, transactional-batch outbox, Change Feed relay, provisioning.
 - [CoreEx.CodeGen](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.CodeGen/AGENTS.md) — `CodeGenConsole`, `ref-data.yaml`, generated-file ownership.
+- [CoreEx.IO](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.IO/AGENTS.md) — flat/routed/hierarchical CSV, whole-file validation, immutable replay, scoped execution and streamed diagnostics.
 - [CoreEx.Data](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.Data/AGENTS.md) — `IUnitOfWork`, `TransactionAsync`, `QueryArgsConfig`, `DataResult`.
 - [CoreEx.Data.GraphQL](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.Data.GraphQL/AGENTS.md) — GraphQL-lite `IGraphQLEngine`, `where`/`orderBy` bridged to `QueryArgsConfig`, Relay Cursor Connections paging.
 - [CoreEx.Database](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.Database/AGENTS.md) — `IDatabase`, `DatabaseCommand`, outbox relay base types.
@@ -116,6 +117,7 @@ Do not run `/coreex-docs-sync` silently — always offer and wait for confirmati
 - For mutable entities, call out ETag, changelog, validation, and idempotency implications where relevant.
 - For messaging, explicitly distinguish API-only, API plus outbox relay, API plus subscriber, and full orchestration shapes.
 - Functions is an additional host, not a mandatory replacement. One project is one deployment; multiple apps can share libraries, while standalone integration apps can use focused local handlers. Use native bindings and never add a competing CoreEx listener or assume ASP.NET middleware works on the worker. Functions examples live in framework test hosts rather than duplicated Contoso domains.
+- For a schema-defined CSV import hosted by Functions, route generation and file-runtime work to `/coreex-file` and the native Blob trigger/runtime boundary to `/coreex-functions`. Prefer checked-in `*-file.yaml` over handwritten generated wire, mapping, or validator types; keep business execution in fresh scoped handlers and storage/report adapters in the host/application boundary.
 - For Service Bus sessions, treat publisher key-to-session mapping, destination-specific bucket counts, receiver concurrency, and relational outbox partition sizing as separate controls; verify destination-specific profiles against the exact resolved queue/topic name.
 - The Api/Relay/Subscribe host split is a workload-isolation convention, not a technical requirement — for a small, low-traffic solution, consolidating hosted-service processing (outbox relay, subscriber receiving) into the Api host is a legitimate simplification. Mention it when a user's stated scale/traffic profile suggests the extra processes may not be earning their operational cost; see [Hosts Layer Guide § Choosing a Host Topology](https://github.com/Avanade/CoreEx/blob/main/samples/docs/hosts-layer.md#choosing-a-host-topology-split-vs-consolidate).
 - Never recommend editing `*.g.cs`, `*.g.sql`, or `*.g.pgsql` files — direct the user to the owning generator instead (Roslyn source generator for `*.g.cs`; `*.Database` project for `*.g.sql`/`*.g.pgsql`).
@@ -149,6 +151,7 @@ These skills are part of the CoreEx AI workflow set and live in `.github/skills/
 | API controller / endpoint | `/coreex-api` |
 | GraphQL-lite query bridge over existing query configuration | `/coreex-graphql` |
 | Azure Functions capability and tests (HTTP, Service Bus, Blob, Timer) | `/coreex-functions` |
+| CSV file definition, generated processor, handler, immutable source adapter | `/coreex-file` |
 | Event or command subscriber | `/coreex-subscriber` |
 | API tests | `/coreex-test-api` |
 | Subscriber tests | `/coreex-test-subscribe` |

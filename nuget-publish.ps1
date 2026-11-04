@@ -82,6 +82,7 @@ param(
         "src\CoreEx.DomainDriven",
         "src\CoreEx.EntityFrameworkCore",
         "src\CoreEx.Events",
+        "src\CoreEx.IO",
         "src\CoreEx.RefData",
         "src\CoreEx.Template",
         "src\CoreEx.Validation",

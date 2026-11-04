@@ -26,6 +26,7 @@
       "tests/CoreEx.AspNetCore.Test.Api/CoreEx.AspNetCore.Test.Api.csproj",
       "tests/CoreEx.AspNetCore.Test.Unit/CoreEx.AspNetCore.Test.Unit.csproj",
       "tests/CoreEx.Azure.Functions.TestApp/CoreEx.Azure.Functions.TestApp.csproj",
+      "tests/CoreEx.Azure.Functions.TestApp.CodeGen/CoreEx.Azure.Functions.TestApp.CodeGen.csproj",
       "tests/CoreEx.Azure.Functions.Test.Unit/CoreEx.Azure.Functions.Test.Unit.csproj",
       "tests/CoreEx.Azure.Messaging.ServiceBus.Test.Unit/CoreEx.Azure.Messaging.ServiceBus.Test.Unit.csproj",
       "tests/CoreEx.Caching.Redis.Test.Unit/CoreEx.Caching.Redis.Test.Unit.csproj",

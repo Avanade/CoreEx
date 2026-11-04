@@ -33,7 +33,8 @@ CoreEx is a modular .NET framework for enterprise back-end services. It provides
 | `CoreEx.Caching.FusionCache` | Hybrid L1/L2 cache: FusionCache + Redis backplane |
 | `CoreEx.DomainDriven` | DDD: `Aggregate<TId,TSelf>`, `Entity<TId,TSelf>`, `PersistenceState` |
 | `CoreEx.UnitTesting` | Test helpers: `WithApiTester`, `WithGenericTester`, `Test.Http()` |
-| `CoreEx.CodeGen` | Design-time: generates reference-data C# artefacts from `ref-data.yaml` |
+| `CoreEx.CodeGen` | Design-time: reference-data artefacts from `ref-data.yaml` and file integrations from `*-file.yaml` |
+| `CoreEx.IO` | Host-neutral CSV validation, streamed diagnostics, immutable replay and scoped business execution |
 | `CoreEx.Generator` | Roslyn source generator: emits members for `[Contract]`-decorated types |
 
 ## Recommended Layer Structure

@@ -212,6 +212,7 @@ see [coreex-ai-workflows.md](./coreex-ai-workflows.md).
 | `/coreex-<capability>` | Skills (L1) + matching prompts | Add or modify one building block: `coreex-contract`, `coreex-refdata`, `coreex-db-migration`, `coreex-repository`, `coreex-adapter`, `coreex-app-service`, `coreex-validator`, `coreex-policy`, `coreex-aggregate`, `coreex-api`, `coreex-graphql`, `coreex-subscriber`, `coreex-aspire`, and `coreex-test-api` / `coreex-test-subscribe` / `coreex-test-relay`. |
 | `/coreex-*-e2e` | Skills (L2) + matching prompts | Complete new slices: `coreex-api-e2e`, `coreex-subscriber-e2e`, `coreex-command-publish-e2e`, and `coreex-command-subscribe-e2e`. |
 | `/coreex-functions` | Skill + prompt | Native HTTP/Service Bus/Blob/Timer capabilities and UnitTestEx tests in existing Functions apps. Scaffold the empty host/test pair with `dotnet new coreex-functions`; use `--shared-core false` for standalone integration. |
+| `/coreex-file` | Skill + prompt | Flat, unordered or hierarchical CSV definitions, generated processors, scoped handlers, streamed reports and immutable source adapters. |
 | `/acquire-codebase-knowledge`, `/aspire` | Repository-only skills | Repo onboarding documentation; local Aspire orchestration. Not shipped by `coreex-ai`. |
 
 ## Guidance for Authoring Instructions and Skills

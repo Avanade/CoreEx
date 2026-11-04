@@ -1,0 +1,15 @@
+# yaml-language-server: $schema=../../schema/coreex-files.json
+name: Inventory
+version: '1'
+runtimeProjectPath: ../CoreEx.Azure.Functions.TestApp
+runtimePath: InventoryImports/Files
+runtimeNamespace: CoreEx.Azure.Functions.TestApp.InventoryImports
+mode: ValidateThenExecute
+errorMode: CollectErrors
+maxInputBytes: 1048576
+records:
+- name: Adjustment
+  properties:
+  - { name: CommandId, column: CommandId, mandatory: true, maxLength: 100 }
+  - { name: Sku, column: Sku, mandatory: true, maxLength: 100 }
+  - { name: Quantity, column: Quantity, type: Integer, required: true, min: 1 }

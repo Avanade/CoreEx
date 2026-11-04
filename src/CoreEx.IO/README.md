@@ -1,14 +1,14 @@
 # CoreEx.IO
 
-**Work in progress; not packable or included in release publishing.** Steps 1 through 6 provide format-neutral contracts, safe nested execution contexts, CSV validation and execution, finite input/group bounds, strict encoding/BOM handling, and [File CodeGen](../CoreEx.CodeGen/Files/README.md). Integration examples and release integration remain planned. See the [design and implementation plan](../../docs/file-processing-design.md).
+Host-neutral file processing with format-neutral contracts, safe nested execution contexts, CSV validation and execution, finite input/group bounds, strict encoding/BOM handling, [File CodeGen](../CoreEx.CodeGen/Files/README.md), and the [generation-first Functions inventory example](../../tests/CoreEx.Azure.Functions.TestApp/InventoryImports/README.md).
 
-Shared types live in `CoreEx.IO`. CSV mappings, converters, options, `CsvFileProcessor<TRecord>`, and `CsvHierarchyFileProcessor<TGroup>` live in `CoreEx.IO.Csv`; future formats can reuse the root contracts without CSV line/header assumptions. No universal parser/plugin abstraction is being introduced.
+Shared contracts live in `CoreEx.IO`. CSV mappings, converters, options, `CsvFileProcessor<TRecord>`, and `CsvHierarchyFileProcessor<TGroup>` live in `CoreEx.IO.Csv`. The package does not impose CSV line/header assumptions on its shared contracts and exposes no universal parser/plugin abstraction.
 
 `FileProcessor.ProcessAsync` accepts a cancellation-aware stream-opening factory and an invocation-local `FileProcessingContext`, and returns `FileProcessingSummary` directly. The caller guarantees identical immutable bytes on every open; the processor owns/disposes the streams. Validation-only is the default. Validate-then-execute must complete whole-file validation, including EOF reconciliation, before opening a replay stream or performing any execution.
 
 `FileDiagnostic` uses CoreEx `MessageType` and `LText`, a stable code/category, and optional `FileLocation` and logical record type. `FileLocation` separates one-based physical line/character position, zero-based field index/name, and opaque logical property paths. Physical coordinates are not mandatory, and raw input values are not automatically captured. File-wide diagnostic history is not part of the context or summary.
 
-`FileUnitHandler<TUnit>` separates row/root-group lifetimes from the file coordinator. Its custom validation emits diagnostics through an awaited sink; its execution returns the application's original `Result`. Generated validation will use CoreEx validator messages without per-record exceptions. Default execution throws `NotSupportedException` rather than reporting false success.
+`FileUnitHandler<TUnit>` separates row/root-group lifetimes from the file coordinator. Its custom validation emits diagnostics through an awaited sink; its execution returns the application's original `Result`. Generated validation uses CoreEx validator messages without per-record exceptions. Default execution throws `NotSupportedException` rather than reporting false success.
 
 The file coordinator exposes the three reporting hooks `OnDiagnosticAsync`, `OnRejectedAsync`, and `OnCompletedAsync`, plus `OnValidateFileAsync` for EOF reconciliation. Reports are ordered/awaited; hooks do not choose a built-in report format or destination. Business Result failure returns `ExecutionFailed` with attempted/successful counts and the original failure; operational faults and cancellation propagate. Neither terminal reporting hook runs for those failures.
 
@@ -16,9 +16,15 @@ Identity includes definition/version, credential-free source/revision, and a cal
 
 Progress counters are `long`, count validation input once (never again on replay), and distinguish physical records, invalid records, validated units, attempted execution, successful execution, and diagnostic severities. Summary construction enforces outcome/mode/error/completeness invariants; whole-file acceptance does not promise atomicity or exactly-once effects.
 
+## Executable integration example
+
+The [generation-first inventory import example](../../tests/CoreEx.Azure.Functions.TestApp/InventoryImports/README.md) is defined by `tests/CoreEx.Azure.Functions.TestApp.CodeGen/inventory-file.yaml` and generated into `InventoryImports/Files`. It demonstrates `InventoryAdjustment`, its generated mapping/validator/context/processor, and a create-only handler while keeping `CoreEx.IO` host-neutral. The native Functions adapter uses the Azure Blob SDK and ETag-pinned input reads; report output is a durable Append Blob.
+
+The application uses a supported SQL Server unit of work to commit inventory changes, durable receipts, and an outbox write atomically. Earlier units may commit before a later unit fails, and outbox persistence does not prove broker publication or exactly-once delivery. The Aspire runtime path uploads a real blob to Azurite, then simulates the Event Grid notification through the Functions webhook; it exercises the actual Functions binding, Blob SDK I/O, SQL Server work, and report writes. Azurite does not emit Event Grid events, so the local proof does not establish Azure subscription provisioning, authentication, or delivery.
+
 ## Flat CSV
 
-The parser dependency is **CsvHelper 34.0.0**, used only for low-level record parsing. CoreEx owns decoding, mapping, validation, diagnostics, and execution. This is the rewritten version 34 API, not the older ClassMap/converter API. The package is strong-named, offers net8.0/net10.0 assets (net9.0 uses net8.0), has no additional runtime dependencies on those assets, and is licensed `MS-PL OR Apache-2.0`.
+The parser dependency is **CsvHelper 34.0.0**, used only for low-level record parsing. CoreEx owns decoding, mapping, validation, diagnostics, and execution. The package is strong-named, offers net8.0/net10.0 assets (net9.0 uses net8.0), has no additional runtime dependencies on those assets, and is licensed `MS-PL OR Apache-2.0`.
 
 Define a new mapping for each pass:
 
@@ -145,7 +151,7 @@ Invalid byte sequences, truncated multibyte sequences, and incomplete UTF-16/32 
 
 The defaults are configurable operating budgets, **not** per-invocation heap ceilings or a throughput SLA. A local net10 Debug characterization of 100,000 64-character flat rows (6.5 MB source, scoped validation) allocated about 222 MB cumulatively; a single 10,000-record root with 1,024-character children (10.3 MB source) allocated about 57 MB cumulatively. These include temporary managed allocations, not measured peak/live memory; elapsed time and allocations vary by framework, host, schema, and handler. The 10,000-record default accommodates the measured roughly-10-MB root while preventing unchecked subtree growth; the independent 64-MiB byte cap bounds wide records, malformed framing, comments, and parser input even when record count stays small. Parser/decoded-model overhead can substantially exceed input size, and a single record can consume much of the byte budget. Lower limits for hostile uploads, constrain concurrent files, and apply host timeouts/authentication/admission controls. Caller hooks/validators can retain their own data or perform arbitrary work; framework limits cannot bound that.
 
-Runtime and CsvHelper strong-name loading, exact byte/group boundaries, Unicode/BOM behavior, split nonseekable asynchronous reads, cancellation, and replay failure semantics are covered on net8.0, net9.0, and net10.0. The parser dependency/version/license remain unchanged.
+Tests cover runtime and CsvHelper strong-name loading, exact byte/group boundaries, Unicode/BOM behavior, split nonseekable asynchronous reads, cancellation, and replay failure semantics on net8.0, net9.0, and net10.0.
 
 ## Observability
 

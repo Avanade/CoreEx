@@ -64,6 +64,8 @@ Separate explicit content rejection from operational failure. Preserve cancellat
 
 Blob poison queues, Timer retry behavior, Event Grid retries and Service Bus broker delivery limits are different mechanisms. Do not promise uniform retries or exactly-once. Provision output containers/subscriptions separately.
 
+For schema-defined CSV, use File CodeGen rather than hand-authoring wire models, mappings, or validators. The framework test-host example is driven by `tests/CoreEx.Azure.Functions.TestApp.CodeGen/inventory-file.yaml`; generated types stay in `InventoryImports/Files`, while the handwritten processor partial owns trusted context and report hooks. The native Blob trigger uses Azure Storage SDK clients, durable Append Blob reports, and a supported SQL Server unit of work that commits item changes, receipts, and outbox writes atomically. Its Aspire proof uploads input to Azurite and posts a storage-shaped event through the Functions webhook; `EventGridExtensionMethods.CreateBlobCreatedEvent` simulates only notification delivery because Azurite does not emit Event Grid events. This local test does not verify Azure Event Grid provisioning, authentication, or delivery.
+
 ## Testing and discovery
 
 Use UnitTestEx 6 `FunctionTester.Create<TFunction>()` against the real host; `HttpTrigger<T>()` / `Trigger<T>()` run worker composition and middleware. Deferred results use `ToHttpResponseMessageAssertor(request)`. Eager idempotency output uses `SnapshotHttpResponse(response)` with a caller-owned readable/seekable response buffer; it preserves stream ownership/position and does not execute the result again.

@@ -64,6 +64,8 @@ Success completes, classified retry abandons once, dead-letter settles once; unc
 
 Use native `BlobTrigger`/SDK binding and only the required storage extension/client registrations. With Event Grid source, plan subscription provisioning separately; local Azurite notification tests do not prove Azure Event Grid delivery/authentication.
 
+For schema-defined CSV, use `coreex-file` to generate the wire model, mapping, validator, context, processor and create-only handler from `*-file.yaml`; keep the Functions trigger thin and use the Azure Storage SDK for input/report operations. A durable per-unit receipt, business mutation and outbox write belong in one supported application transaction; report persistence is separate and cannot make trigger delivery exactly-once.
+
 Bound payload processing. Separate logged content rejection from operational failure; do not swallow read/write failures as success. A `BlobClient` targets the current blob, not an immutable event revision. Use ETag-conditional reads or versions/snapshots as needed and deterministic output identity for replay. Provision output containers outside handler execution. Storage extension retries/poison queues are not Service Bus settlement policies.
 
 ### Timer

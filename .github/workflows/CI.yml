@@ -78,6 +78,10 @@ jobs:
     - name: Build core
       run: dotnet build CoreEx.Core.slnf --no-restore --configuration Release
 
+    - name: Verify checked-in Functions File CodeGen
+      working-directory: tests/CoreEx.Azure.Functions.TestApp.CodeGen
+      run: dotnet run --no-build --configuration Release -- file inventory-file.yaml --expect-no-changes
+
     - name: Test core (parallel)
       run: dotnet test CoreEx.Core.Test.Parallel.slnf --no-build --configuration Release --logger trx --collect "XPlat Code Coverage" --results-directory coverage/core
 
@@ -239,7 +243,7 @@ jobs:
         key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', '**/Directory.Packages.props') }}
         restore-keys: nuget-${{ runner.os }}-
 
-    - name: Test Functions runtime (HTTP and Service Bus)
+    - name: Test Functions runtime (HTTP, Service Bus and Blob CSV)
       run: dotnet test tests/aspire/CoreEx.Azure.Functions.Test.Aspire/CoreEx.Azure.Functions.Test.Aspire.csproj --configuration Release --logger trx --results-directory coverage/functions-runtime --verbosity minimal
 
     - name: Upload Functions runtime test results

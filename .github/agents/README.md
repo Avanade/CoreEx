@@ -43,7 +43,7 @@ Use local cache (always preferred over live GitHub fetches)
    │
    ├── .github/docs/coreex/*.md           ← 12 architecture/setup docs
    │
-   └── .github/docs/coreex/agents/*.md   ← 19 per-package AI guides
+   └── .github/docs/coreex/agents/*.md   ← 20 per-package AI guides
               │
     inspect project package references
     to distinguish:
@@ -76,7 +76,7 @@ The manifest records only `coreex-version`. Package adoption is determined from 
 | `local-dev.md` | Local infrastructure, connection strings, and startup sequences |
 | `application-scaffolding-guide.md` | Choosing and composing solution/host templates |
 
-**`.github/docs/coreex/agents/`** — 19 per-package AI usage guides, including `CoreEx.Cosmos` and `CoreEx.Azure.Functions`. All 19 are synced unconditionally so the agent can guide on any package — including ones the project hasn't adopted yet.
+**`.github/docs/coreex/agents/`** — 20 per-package AI usage guides, including `CoreEx.IO`, `CoreEx.Cosmos` and `CoreEx.Azure.Functions`. All 20 are synced unconditionally so the agent can guide on any package — including ones the project hasn't adopted yet. The cache also includes `files/` configuration references and `schema/coreex-files.json`.
 
 **`.github/docs/coreex/manifest.txt`** — records `coreex-version`, stamped by the installed template release.
 
@@ -89,12 +89,12 @@ The manifest records only `coreex-version`. Package adoption is determined from 
 
 ---
 
-## Why sync all 19 package guides unconditionally
+## Why sync all 20 package guides unconditionally
 
 An earlier design synced only the packages the project already references. This was changed because:
 
 - The agent cannot recommend adopting a package (e.g. `CoreEx.Caching.FusionCache`) if it has no knowledge of what that package offers.
-- All 19 guides are small markdown files — the total download is negligible.
+- All 20 guides are small markdown files — the total download is negligible.
 - Syncing all unconditionally removes the need to re-run after adding a new package.
 - Inspecting project package references preserves the "in project vs. not yet" distinction without making it a gate on which guides get installed.
 

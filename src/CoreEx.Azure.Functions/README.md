@@ -71,6 +71,8 @@ The [invocation cases](../../tests/CoreEx.Azure.Functions.Test.Unit/BlobFunction
 
 The existing native binding, Azure Storage SDK and CoreEx application primitives cover this slice without an additional CoreEx Blob base class or settlement adapter.
 
+For generation-first schema-defined CSV ingestion, see the [InventoryImports capability](../../tests/CoreEx.Azure.Functions.TestApp/InventoryImports/README.md) and its checked-in `tests/CoreEx.Azure.Functions.TestApp.CodeGen/inventory-file.yaml`. File CodeGen owns the wire model, mapping, validator, context, processor, and create-only handler; handwritten host/application code owns the native `inventory-adjustments/{name}` Blob trigger, trusted context/report hooks, SQL Server unit of work, durable receipt, and outbox write. Blob reads are pinned to the selected ETag, and reports are written through the Azure Storage SDK to Append Blob rather than local files. The Aspire proof uploads input to Azurite, then uses `EventGridExtensionMethods.CreateBlobCreatedEvent` and `FunctionsWebhook(...).PostBlobCreatedAsync(...)` to simulate notification delivery; Azurite does not emit Event Grid events. The Functions binding, Blob SDK operations, SQL Server transaction, and report writes are real in the harness, but this does not prove Azure Event Grid provisioning, authentication, or delivery.
+
 ## Bubbling exceptions and receiver tradeoffs
 
 A bubbling exception marks an invocation as failed, not "retry with CoreEx resilience". Retry behavior is trigger-specific. Service Bus uses extension/broker delivery and lock handling; after repeated failed/unsettled deliveries, the broker's `MaxDeliveryCount` can move the message to the dead-letter queue. This is distinct from SDK retries for AMQP operations and from CoreEx's in-invocation message retry pipeline. The bridge does not prescribe an immediate abandonment time for unhandled exceptions or guarantee a delay between redeliveries.
@@ -95,7 +97,7 @@ For HTTP, exceptions within `WebApi` can become sanitized ProblemDetails under t
 
 ## Boundaries
 
-Functions owns routing, scheduling, binding conversion, retries and runtime scaling. Normal ASP.NET Core middleware and endpoint metadata are not available through the worker builder. The empty consumer host template is available; Functions-specific AI skills and scoped instructions remain pending. Blob support is demonstrated through native bindings; cloud Event Grid delivery and exact historical-revision processing are not claimed.
+Functions owns routing, scheduling, binding conversion, retries and runtime scaling. Normal ASP.NET Core middleware and endpoint metadata are not available through the worker builder. The consumer host template, Functions-specific AI skills and scoped instructions are available. Blob support uses native bindings; cloud Event Grid delivery and exact historical-revision processing are not claimed.
 
 UnitTestEx invocation tests build the real host and run worker middleware, but do not start Core Tools or prove trigger delivery and binding conversion. Run the test application with Core Tools for runtime verification; `FUNCTIONS_WORKER_RUNTIME=dotnet-isolated` must be available to the Functions host. Select only the HTTP functions when no host storage is configured, since Timer triggers require storage.
 

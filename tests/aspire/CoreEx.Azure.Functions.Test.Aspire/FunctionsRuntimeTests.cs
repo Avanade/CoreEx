@@ -10,7 +10,7 @@ public class FunctionsRuntimeTests : WithAspireTester<Projects.CoreEx_Azure_Func
     public async Task StartAsync()
     {
         IPGlobalProperties.GetIPGlobalProperties().GetActiveTcpListeners().Should().NotContain(endpoint =>
-            new[] { 7099, 5682, 5310, 10000, 10001, 10002 }.Contains(endpoint.Port), "the fixture owns its host and emulators");
+            new[] { 7099, 5682, 5310, 10000, 10001, 10002, 14335 }.Contains(endpoint.Port), "the fixture owns its host and emulators");
         try
         {
             await Test.WaitForResourceAsync("functions", TimeSpan.FromMinutes(4));

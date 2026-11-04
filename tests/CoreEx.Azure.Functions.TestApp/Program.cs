@@ -10,6 +10,14 @@ builder.Services.AddDefaultCacheKeyProvider();
 builder.Services.AddFusionHybridCache();
 builder.Services.AddHybridCacheIdempotencyProvider();
 builder.Services.AddSingleton<IdempotencyOperationService>();
+builder.Services.AddInventoryImport(sp =>
+{
+    var configuration = sp.GetRequiredService<IConfiguration>();
+    return new InventoryImportOptions(
+        configuration["InventoryImportDatabase"] ?? throw new InvalidOperationException("InventoryImportDatabase must be configured."),
+        configuration["InventoryImportReports"] ?? throw new InvalidOperationException("InventoryImportReports must be configured."),
+        configuration["InventoryImportTenant"] ?? throw new InvalidOperationException("InventoryImportTenant must be configured."));
+});
 builder.Services.AddDynamicServicesUsing<InvocationService>();
 builder.Services.AddSingleton(sp => new BlobServiceClient(sp.GetRequiredService<IConfiguration>()["ImportStorage"]
     ?? throw new InvalidOperationException("ImportStorage must be configured for Blob processing.")));
