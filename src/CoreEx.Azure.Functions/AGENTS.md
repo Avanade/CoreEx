@@ -4,7 +4,7 @@
 
 Azure Functions isolated-worker integration for CoreEx execution context, existing MVC WebApi HTTP handling, explicit HTTP idempotency and classified Service Bus settlement. Functions owns routing, bindings, scheduling, retries, listener lifecycle and scaling. Do not install a second CoreEx receiver or imitate ASP.NET endpoint middleware on the worker.
 
-`coreex-functions` scaffolds an empty host and matching `*.Test.Functions` project. Shared-core mode references existing Application/Infrastructure libraries; `--shared-core false` supplies project-local package/build settings with no shared library requirements. Thin triggers may delegate to local handlers in standalone apps. Multiple hosts are independent deployments; test names derive from each full host name.
+`coreex-functions` scaffolds an empty host and matching `*.Test.Functions` project. Shared-core mode references existing Application/Infrastructure libraries; standalone mode has no such requirements. Both follow effective CPM with inline fallback when disabled. New standalone repositories use `coreex-solution` for root conventions/Test.Common; the optional `--test-common-project` wires its test-only reference. Thin triggers delegate to shared services or capability-local handlers. Multiple hosts are independent deployments; test names derive from each full host name.
 
 ## Invocation context
 

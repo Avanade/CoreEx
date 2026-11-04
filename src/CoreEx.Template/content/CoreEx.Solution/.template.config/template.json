@@ -1,0 +1,110 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "https://github.com/avanade/coreex",
+  "classifications": [ "CoreEx", "Solution" ],
+  "identity": "CoreEx.SolutionBaseline",
+  "name": "CoreEx solution baseline",
+  "description": "Solution, central package/build policy, repository conventions and optional shared test support, without business layers or runtime hosts.",
+  "shortName": "coreex-solution",
+  "tags": {
+    "language": "C#",
+    "type": "solution"
+  },
+  "sourceName": "app-name",
+  "preferNameDirectory": false,
+  "symbols": {
+    "coreex-version": {
+      "type": "generated",
+      "generator": "constant",
+      "parameters": { "value": "COREEX_VERSION" },
+      "replaces": "coreex-version"
+    },
+    "test-common": {
+      "type": "parameter",
+      "datatype": "bool",
+      "defaultValue": "true",
+      "description": "Create and register a lightweight Test.Common class library. Set false for root artefacts only."
+    },
+    "domain-name": {
+      "type": "derived",
+      "valueSource": "name",
+      "valueTransform": "LastSegment",
+      "replaces": "domain-name"
+    },
+    "implement-cosmos": { "type": "computed", "value": "false" },
+    "implement-postgres": { "type": "computed", "value": "false" },
+    "implement-sqlserver": { "type": "computed", "value": "false" },
+    "implement-servicebus": { "type": "computed", "value": "false" },
+    "refdata-enabled": { "type": "computed", "value": "false" }
+  },
+  "sources": [
+    {
+      "rename": {
+        "_Directory.Build.props": "Directory.Build.props",
+        "_Directory.Packages.props": "Directory.Packages.props",
+        "tests/_Directory.Build.props": "tests/Directory.Build.props",
+        "_editorconfig": ".editorconfig",
+        "_gitattributes": ".gitattributes",
+        "_gitignore": ".gitignore",
+        "_.filenesting.json": ".filenesting.json"
+      },
+      "modifiers": [
+        {
+          "condition": "(!test-common)",
+          "exclude": [ "tests/app-name.Test.Common/**" ]
+        }
+      ]
+    }
+  ],
+  "specialCustomOperations": {
+    "*.props": {
+      "operations": [
+        {
+          "type": "conditional",
+          "configuration": {
+            "actionableIf": [ "<!--#if" ],
+            "actionableElse": [ "<!--#else" ],
+            "actionableElseif": [ "<!--#elseif", "<!--#elif" ],
+            "endif": [ "<!--#endif" ],
+            "trim": true,
+            "wholeLine": true
+          }
+        }
+      ]
+    },
+    "*.slnx": {
+      "operations": [
+        {
+          "type": "conditional",
+          "configuration": {
+            "actionableIf": [ "<!--#if" ],
+            "endif": [ "<!--#endif" ],
+            "trim": true,
+            "wholeLine": true
+          }
+        }
+      ]
+    },
+    "*.md": {
+      "operations": [
+        {
+          "type": "conditional",
+          "configuration": {
+            "actionableIf": [ "<!-- #if" ],
+            "actionableElse": [ "<!-- #else" ],
+            "endif": [ "<!-- #endif" ],
+            "trim": true,
+            "wholeLine": true
+          }
+        }
+      ]
+    }
+  },
+  "forms": {
+    "LastSegment": {
+      "identifier": "replace",
+      "pattern": "^.*\\.([^.]+)$",
+      "replacement": "$1"
+    }
+  }
+}

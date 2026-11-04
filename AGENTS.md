@@ -48,6 +48,8 @@ pattern catalog.
 
 Azure Functions is an additional host option: one `*.Functions` project per deployment, sharing application libraries or standalone with capability-local handlers. Scaffold the empty host/test pair via `coreex-functions` (`--shared-core false` for standalone); use `/coreex-functions` for native HTTP/Service Bus/Blob/Timer capabilities and meaningful tests. Functions-specific examples are executable framework test hosts, not another Contoso domain.
 
+Standalone consumer repositories use `coreex-solution` for root solution/package/build conventions and lightweight Test.Common by default. The scaffold workflow wires test-to-common references explicitly; package policy is independent of business-layer references. File-only tooling can use the independent `coreex-codegen` console without a database/ref-data/full-domain scaffold. Existing consumers require a reviewed baseline retrofit, never host regeneration.
+
 ---
 
 ## Working in this Repository (Contributors)

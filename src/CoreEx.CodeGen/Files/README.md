@@ -13,6 +13,8 @@ dotnet run -- file --expect-no-changes
 
 Default discovery is nonrecursive and ordinal-sorted. Explicit filenames must also end with `-file.yaml`; `--config` selects a single file when no positional files are given. Paths resolve from the CodeGen output/project directory (OnRamp's `--output` overrides that basis). Script/template resources, parameters, simulation, and unchanged-output checks retain OnRamp semantics. Every selected configuration is loaded and prepared, including identity/type/path collision checks, before any output is written. This is not transactional filesystem generation: a subsequent I/O failure can leave partial output.
 
+Final generated type names must not shadow runtime dependencies referenced by the templates, such as `DateTime`, `DateOnly`, `Guid`, `ReadOnlySpan`, or `CsvFileOptions`. This is a File-generator naming restriction, not a list of C# reserved keywords or every .NET type. Validation checks the composed definition-plus-record names and other generated types before writing any files; for example, definition `Date` with record `Time` is rejected because it would generate `DateTime`. A DateTime property's `Convert<PropertyName>` helper must also differ from its containing mapping class name.
+
 ## Generation-first Functions example
 
 The framework's [InventoryImports example](../../../tests/CoreEx.Azure.Functions.TestApp/InventoryImports/README.md) keeps `name: Inventory`, `version: '1'`, and its single `Adjustment` record in `tests/CoreEx.Azure.Functions.TestApp.CodeGen/inventory-file.yaml`. From the repository root, first change into the CodeGen project, then validate and generate:

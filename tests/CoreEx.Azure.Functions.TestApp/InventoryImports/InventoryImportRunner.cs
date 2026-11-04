@@ -1,6 +1,6 @@
 namespace CoreEx.Azure.Functions.TestApp.InventoryImports;
 
-/// <summary>Shares the host-neutral execution boundary between local input and native Blob ingestion.</summary>
+/// <summary>Coordinates host-neutral CSV execution and reporting for native Blob ingestion.</summary>
 public sealed class InventoryImportRunner(InventoryProcessor processor, InventoryImportReport report)
 {
     /// <summary>Executes one invocation with explicitly selected definition, immutable revision, and unique attempt identity.</summary>

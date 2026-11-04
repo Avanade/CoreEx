@@ -35,6 +35,8 @@ For `*.Test.Functions`, use [`coreex-functions`](/.github/skills/coreex-function
 
 ## Project Types
 
+`*.Test.Common` is a non-packable test-support class library, not a discoverable test suite. `coreex-solution` creates/registers it by default (`--test-common false` opts out); consuming test projects require an explicit ProjectReference. It holds authored helpers/resources and the TestData assembly marker, not automatic database/broker setup. Full domain scaffolds retain their provider-specific common fixtures. Resolve the actual common path independently of deployment names; runtime hosts and CodeGen do not reference it.
+
 | Project suffix | Base class | Scope |
 |---|---|---|
 | `*.Test.Api` | `WithApiTester<Program>` | Full integration — real DB, cache, outbox, HTTP |

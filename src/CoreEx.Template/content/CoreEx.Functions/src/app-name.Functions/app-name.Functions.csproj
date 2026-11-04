@@ -12,19 +12,14 @@
     <ProjectReference Include="..\solution-name.Application\solution-name.Application.csproj" />
     <ProjectReference Include="..\solution-name.Infrastructure\solution-name.Infrastructure.csproj" />
   </ItemGroup>
-  <!--#else-->
-  <PropertyGroup>
-    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
-  </PropertyGroup>
   <!--#endif-->
-  <ItemGroup>
-    <!--#if shared-core-->
+  <ItemGroup Condition="'$(ManagePackageVersionsCentrally)' == 'true'">
     <PackageReference Include="CoreEx.Azure.Functions" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Sdk" />
-    <!--#else-->
+  </ItemGroup>
+  <ItemGroup Condition="'$(ManagePackageVersionsCentrally)' != 'true'">
     <PackageReference Include="CoreEx.Azure.Functions" Version="coreex-version" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Sdk" Version="2.1.0" />
-    <!--#endif-->
   </ItemGroup>
   <ItemGroup>
     <None Update="appsettings.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />

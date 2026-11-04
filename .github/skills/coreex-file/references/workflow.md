@@ -4,6 +4,8 @@
 
 Read the installed CoreEx.IO/CodeGen guides, existing CodeGen `Program.cs`, runtime project references and GlobalUsing, existing definitions, handlers and host composition. Resolve recorded project choices first. Ask only unresolved input shape, execution intent, source revision ownership, and durable deduplication questions. For Functions ingestion, also read the host's Functions instructions and use the `coreex-functions` skill for the trigger boundary.
 
+Reuse an existing CodeGen console. If none exists, obtain explicit tool-creation scope and route through `coreex-scaffold` to `coreex-codegen -n <full-name>.CodeGen`; do not run the full `coreex` scaffold or enable reference data/database just to get a tool. The console follows effective CPM and has no runtime-project reference. A missing repository baseline is a separate scaffold decision, not an excuse to overwrite root policy.
+
 Choose flat for one row type; unordered routing for independent heterogeneous records; hierarchy only when contiguous descendants form business units. A typed header/trailer is a data envelope, not a column-name header.
 
 ## 2. Configure and generate

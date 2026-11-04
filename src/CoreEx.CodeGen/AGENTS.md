@@ -7,10 +7,10 @@
 Create a console project (e.g. `MyApp.CodeGen`) and add a `Program.cs` with one line:
 
 ```csharp
-await CoreEx.CodeGen.CodeGenConsole.Create().RunAsync(args);
+return await CoreEx.CodeGen.CodeGenConsole.Create().RunAsync(args);
 ```
 
-Place `ref-data.yaml` alongside `Program.cs`.
+For an independently scaffolded console, use `dotnet new coreex-codegen -n MyApp.CodeGen` through the scaffold workflow. The non-packable tool follows central/inline repository package policy and needs neither a database nor business-layer projects. Place `ref-data.yaml` beside the entry point only for RefData; File uses top-level `*-file.yaml` instead. The tool has no runtime-host ProjectReference.
 
 ## File processing
 

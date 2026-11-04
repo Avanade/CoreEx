@@ -193,7 +193,7 @@ The repository includes an AI workflow set in [`.github/`](./.github/) that give
 | Command | What it does | Claude Code | GitHub Copilot Chat |
 |---------|-------------|-------------|---------------------|
 | [Expert guidance](./.github/agents/README.md) | Architecture, pattern, and design advice | `@coreex-expert` | Agent mode → **CoreEx Expert** |
-| [CoreEx.Template](./src/CoreEx.Template/README.md) | Deterministic solution and host scaffolding via `dotnet new coreex*` templates | `dotnet new install CoreEx.Template::<version>` then `dotnet new coreex...` | Run the same `dotnet new` commands in the terminal |
+| [CoreEx.Template](./src/CoreEx.Template/README.md) | Deterministic full-domain or repository-only scaffolding, hosts and independent CodeGen | `dotnet new install CoreEx.Template::<version>` then the selected `coreex*` templates | Run the same `dotnet new` commands in the terminal |
 | [`coreex-ai`](./src/CoreEx.Template/README.md#template-1----coreex-ai-ai-workflow-assets) | Installs this AI workflow set — agents, skills, prompts, instructions — into any repository | `dotnet new coreex-ai` | Run the same `dotnet new` command in the terminal |
 
 **Skills — the AI-augmented building blocks** — twenty-one skills codify CoreEx's architectural patterns into guided, correct-by-construction workflows: seventeen per-capability (L1) skills that add or modify a single building block, and four end-to-end (L2) skills that orchestrate a full vertical slice in one pass. Each is invoked as `/coreex-<name>` (Claude Code) or via the matching `prompts/coreex-<name>.prompt.md` (Copilot).

@@ -78,6 +78,9 @@ public class RecordConfig : ConfigBase<CodeGenConfig, CodeGenConfig>
             if (!names.Add(property.Name!) || property.Name == TypeName || typeof(object).GetMembers().Any(x => x.Name == property.Name))
                 throw new CodeGenException(property, nameof(property.Name), "Duplicate property or conflict with its containing/inherited type.");
 
+            if (property.IsDateTime && property.Converter == TypeName + "Mapping")
+                throw new CodeGenException(property, nameof(property.Name), $"Generated conversion helper '{property.Converter}' conflicts with its containing mapping type.");
+
             if (!labels.Add(property.Column ?? property.Name!) || property.Column is not null && !columns.Add(property.Column) || property.Index.HasValue && !indices.Add(property.Index.Value))
                 throw new CodeGenException(property, nameof(property.Index), "Duplicate CSV selector.");
         }

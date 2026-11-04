@@ -16,6 +16,7 @@ Guides a developer through selecting the right `CoreEx.Template` scaffolding sha
 - You want the scaffolder to choose the smallest safe CoreEx shape before scaffolding.
 - You want an interactive workflow instead of manually composing the template commands.
 - You need an empty Functions host/test pair, sharing existing libraries or standalone via `--shared-core false`; add real triggers/tests afterward with `/coreex-functions`.
+- You need solution/build/package conventions and lightweight Test.Common without business layers, or an independent CodeGen tool without database/reference-data setup.
 
 ## How to invoke
 
@@ -37,12 +38,14 @@ If the prompt file is not present, attach the skill file directly in Copilot Cha
 
 ## What it will do
 
-1. Inspect the workspace to confirm it is suitable for greenfield scaffolding.
+1. Inspect the workspace and distinguish greenfield generation from a safe existing-project retrofit.
 2. Ask only unresolved business/domain questions one at a time through the available interaction mechanism, then derive the required hosts.
 3. Recommend the exact `dotnet new coreex*` commands.
 4. Install `CoreEx.Template` if it is not already available.
 5. In a confirmed bootstrap-only repo, use `dotnet new ... --force` only after a dry-run shows the expected canonical layout.
 6. Run the selected commands and summarize the output.
+
+Standalone greenfield normally uses `coreex-solution` (Test.Common included unless opted out), then `coreex-functions --shared-core false` with the discovered common reference. Existing hosts are never regenerated: stage missing baseline files separately, preserve exact package versions during CPM migration, register projects, and wire Test.Common explicitly. `coreex-codegen` is optional and independent. See the [retrofit workflow](references/workflow.md#standalone-baseline-and-existing-project-retrofit).
 
 ## Interview behavior
 

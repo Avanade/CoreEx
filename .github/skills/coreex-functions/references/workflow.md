@@ -11,11 +11,11 @@
 
 Locate the requested `*.Functions` host, its `Program.cs`, package references, `AGENTS.md`, `host.json` and corresponding `*.Test.Functions` project. Read the Functions instructions and relevant sections of the installed package guide. Use the existing host if unambiguous; ask which deployment only when several candidates fit.
 
-Resolve shared-core versus standalone from actual project references and package management, not from naming alone. For shared-core, read the solution-root Feature Configuration and cross-check provider artefacts. Stop on disagreement. For standalone, do not demand a nonexistent solution-root Feature Configuration or generate Application/Infrastructure/Contracts projects.
+Resolve shared-core versus standalone from actual business-project references, not naming or package management. CPM is independent: standalone hosts can use central versions. Read existing root/host guidance and cross-check actual provider artefacts; stop on disagreement. Do not demand missing root Feature Configuration or generate business layers to change a standalone function. Route an explicitly requested missing baseline/Test.Common retrofit through `coreex-scaffold`.
 
 If the host is missing, route explicit host-creation work through `coreex-scaffold`. A request to change a function does not authorize creating another deployment. Never re-run a template with `--force` over a customized host.
 
-Inspect existing dependencies and nearby patterns first. The Functions package currently brings HTTP/Service Bus dependencies transitively; only add explicit packages when required by the project's direct-dependency policy or a missing binding. Respect CPM for shared-core; standalone projects use explicit package versions. Match the installed CoreEx version and existing compatible worker/binding versions.
+Inspect existing dependencies and nearby patterns first. The Functions package currently brings HTTP/Service Bus dependencies transitively; only add explicit packages when required by the project's direct-dependency policy or a missing binding. Follow effective CPM in both shared/standalone modes, with inline versions only when disabled. Preserve explicit opt-outs and existing compatible pins. Reuse the actual Test.Common reference for shared fixtures/resources; it is test-only and not a database/broker scaffold.
 
 ## 2. Resolve the actual behavior
 

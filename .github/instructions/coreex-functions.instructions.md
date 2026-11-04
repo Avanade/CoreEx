@@ -27,6 +27,8 @@ tags: ["functions", "azure", "hosting", "testing"]
 
 One `*.Functions` project is one deployable Function App; several may reuse shared layers. Standalone apps (`--shared-core false`) delegate to focused local handlers instead of mandatory Application/Infrastructure projects. Group by capability, normally one class per file; related HTTP methods may share a class. Keep bindings/transport types local and business logic outside trigger methods. Never register every shared service before its dependencies exist.
 
+Package management follows effective CPM independently of shared-core, with inline fallback only when disabled. New standalone solutions use `coreex-solution` for root/Test.Common scaffolding. Test.Common references belong only in consuming test projects and require explicit wiring; its lightweight baseline configures no database/broker. Missing baseline/tool creation is a `coreex-scaffold` responsibility, not a reason to regenerate an existing host.
+
 ```csharp
 var builder = FunctionsApplication.CreateBuilder(args);
 builder.ConfigureFunctionsWebApplication();

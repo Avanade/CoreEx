@@ -43,6 +43,22 @@
     </Task>
   </UsingTask>
 
+  <!-- Share canonical repository policy and the resource marker without copying domain infrastructure fixtures. -->
+  <Target Name="CopySolutionBaselineContent" BeforeTargets="_GetPackageFiles">
+    <PropertyGroup>
+      <_BaselineRoot>$(BaseIntermediateOutputPath)generated/CoreEx.Solution/</_BaselineRoot>
+    </PropertyGroup>
+    <RemoveDir Directories="$(_BaselineRoot)" />
+    <ItemGroup>
+      <_BaselineFile Include="content/CoreEx.Core/_Directory.Build.props;content/CoreEx.Core/_Directory.Packages.props;content/CoreEx.Core/_editorconfig;content/CoreEx.Core/_gitattributes;content/CoreEx.Core/_gitignore;content/CoreEx.Core/_.filenesting.json;content/CoreEx.Core/tests/_Directory.Build.props;content/CoreEx.Core/tests/app-name.Test.Common/TestData.cs" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_BaselineFile)" DestinationFiles="@(_BaselineFile->'$(_BaselineRoot)%(Identity)')" />
+    <ItemGroup>
+      <_BaselineGenerated Include="$(_BaselineRoot)content/CoreEx.Core/**/*" />
+      <None Include="@(_BaselineGenerated)" Pack="true" PackagePath="content/CoreEx.Solution" />
+    </ItemGroup>
+  </Target>
+
   <!-- Inline task: wraps the applyTo: frontmatter line in an instruction file with a template conditional
        so the coreex-ai template can scope all instruction files to a subfolder when app-folder is provided. -->
   <UsingTask TaskName="InjectAppFolderConditional" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$([System.IO.Path]::Combine('$(MSBuildToolsPath)', 'Microsoft.Build.Tasks.Core.dll'))">
@@ -317,6 +333,8 @@
     <ReplaceTextInFile SourceFile="$(MSBuildThisFileDirectory)content/CoreEx.Relay/.template.config/template.json" DestinationFile="$(_GenRoot)CoreEx.Relay/.template.config/template.json" FindText="COREEX_VERSION" ReplaceText="$(Version)" />
     <ReplaceTextInFile SourceFile="$(MSBuildThisFileDirectory)content/CoreEx.Subscribe/.template.config/template.json" DestinationFile="$(_GenRoot)CoreEx.Subscribe/.template.config/template.json" FindText="COREEX_VERSION" ReplaceText="$(Version)" />
     <ReplaceTextInFile SourceFile="$(MSBuildThisFileDirectory)content/CoreEx.Functions/.template.config/template.json" DestinationFile="$(_GenRoot)CoreEx.Functions/.template.config/template.json" FindText="COREEX_VERSION" ReplaceText="$(Version)" />
+    <ReplaceTextInFile SourceFile="$(MSBuildThisFileDirectory)content/CoreEx.Solution/.template.config/template.json" DestinationFile="$(_GenRoot)CoreEx.Solution/.template.config/template.json" FindText="COREEX_VERSION" ReplaceText="$(Version)" />
+    <ReplaceTextInFile SourceFile="$(MSBuildThisFileDirectory)content/CoreEx.CodeGen/.template.config/template.json" DestinationFile="$(_GenRoot)CoreEx.CodeGen/.template.config/template.json" FindText="COREEX_VERSION" ReplaceText="$(Version)" />
     <ItemGroup>
       <None Include="$(_GenRoot)CoreEx.Ai/.template.config/template.json" Pack="true" PackagePath="content/CoreEx.Ai/.template.config/template.json" />
       <None Include="$(_GenRoot)CoreEx.Core/.template.config/template.json" Pack="true" PackagePath="content/CoreEx.Core/.template.config/template.json" />
@@ -324,6 +342,8 @@
       <None Include="$(_GenRoot)CoreEx.Relay/.template.config/template.json" Pack="true" PackagePath="content/CoreEx.Relay/.template.config/template.json" />
       <None Include="$(_GenRoot)CoreEx.Subscribe/.template.config/template.json" Pack="true" PackagePath="content/CoreEx.Subscribe/.template.config/template.json" />
       <None Include="$(_GenRoot)CoreEx.Functions/.template.config/template.json" Pack="true" PackagePath="content/CoreEx.Functions/.template.config/template.json" />
+      <None Include="$(_GenRoot)CoreEx.Solution/.template.config/template.json" Pack="true" PackagePath="content/CoreEx.Solution/.template.config/template.json" />
+      <None Include="$(_GenRoot)CoreEx.CodeGen/.template.config/template.json" Pack="true" PackagePath="content/CoreEx.CodeGen/.template.config/template.json" />
     </ItemGroup>
   </Target>
 

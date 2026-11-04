@@ -14,9 +14,39 @@ Use this workflow to guide the user through CoreEx solution shape decisions in p
 
 When the request is for an Azure Functions deployment, follow the [Functions host/test command path](../SKILL.md#functions-host-and-test-pair) before the conventional domain interview below. Inspect existing host names and package/project references, then ask only unresolved deployment name and shared-library versus standalone choices. Default `--shared-core true` only when matching shared libraries exist or are explicitly in scope; standalone uses `--shared-core false` without the root `coreex` template.
 
-Use the full deployment name ending `.Functions`; pass `--solution-name` only for a different shared prefix. Verify host and independently named test paths in the dry-run, then generate/build/register only that pair. Do not insist on a three-part domain name or ask database/refdata/ROP questions for a standalone host. Preserve root configuration in existing solutions; record standalone/deployment decisions in host guidance when there is no generated root Feature Configuration.
+Use the full deployment name ending `.Functions`; pass `--solution-name` only for a different shared prefix. For a new standalone solution, generate `coreex-solution` first: root conventions and Test.Common by default, not business layers. `--test-common false` opts out. Discover the common project and pass `--test-common-project` relative to the generated test project; its name may differ from both host and shared-library prefixes. Register host/test projects and verify the actual common ProjectReference, not just solution membership. Package management follows effective CPM independently of shared-core. Do not insist on a three-part domain name or ask database/refdata/ROP questions for standalone processing.
 
 The output is deliberately empty: no health endpoint, demo trigger, service scan or test fixture. Stop at shape validation unless capability implementation is authorized; then route to `coreex-functions` for native HTTP/Service Bus/Blob/Timer wiring and meaningful tests. Existing Functions hosts are modified, never re-scaffolded.
+
+## Standalone baseline and existing-project retrofit
+
+A populated standalone Functions repository can legitimately lack the full `coreex` scaffold. Do not create business layers just to obtain root files or Test.Common. Distinguish template generation from migration: `dotnet new coreex-solution` does not rewrite existing projects or centralize their inline versions.
+
+1. Inspect root/ancestor props, solution files, all affected project references and version metadata, existing guidance, ignore rules, and the installed template/AI versions. Confirm the explicit baseline retrofit scope; preserve existing implementations and shared test support. PackageVersion declarations are not adopted features.
+2. Dry-run `coreex-solution -n <actual-solution-name>` into a separate temporary directory, then generate there. Test.Common is included by default; honor an explicit opt-out. Merge only missing root/common files or individually reviewed changes. Never use `--force` over customized roots, and never replace an existing `.slnx` or Test.Common. If only common support is missing, copy its reviewed subtree from the staged output and register it.
+3. For CPM migration, collect every existing direct package version and preserve it exactly, including aliases, PrivateAssets/IncludeAssets and other metadata. Resolve conflicting pins explicitly; do not upgrade packages as a side effect. Add those versions to the effective central catalogue, remove affected project-local CPM opt-outs and inline Version metadata, and keep explicit user-requested exceptions. Do not blindly replace the catalogue with the template's default pins.
+4. Register existing hosts under `hosts` and tests/common under `tests`, using the SDK solution CLI and `--include-references false` where supported. Add the common ProjectReference to each affected existing test project using the SDK project-reference CLI. Runtime hosts and CodeGen never reference Test.Common. An independently named deployment uses the actual common path, not a guessed host prefix.
+5. Merge truthful root guidance: existing deployments, actual shared/local processing, package policy, selected common support, and genuinely enabled providers/features. Preserve host guidance and record absent file tooling unless requested. No database/broker fixtures or dummy tests belong in lightweight Common.
+6. Build the resulting solution, inspect effective package/reference items (including aliases), run its actual test projects, and verify ignore rules cover build outputs/local secrets without hiding authored resources. Registering projects or adding root props alone is not a completed retrofit. Report native/cloud delivery as unverified unless separately exercised.
+
+SDK 10 example after the reviewed root/common merge and version-preserving project migration:
+
+```powershell
+dotnet sln Oregon.Mes.Demo.slnx add src\Oregon.Mes.Demo.Functions --solution-folder hosts
+dotnet sln Oregon.Mes.Demo.slnx add tests\Oregon.Mes.Demo.Test.Common --solution-folder tests
+dotnet sln Oregon.Mes.Demo.slnx add tests\Oregon.Mes.Demo.Test.Functions --solution-folder tests
+dotnet add tests\Oregon.Mes.Demo.Test.Functions reference tests\Oregon.Mes.Demo.Test.Common
+dotnet build Oregon.Mes.Demo.slnx
+dotnet test tests\Oregon.Mes.Demo.Test.Functions
+```
+
+The example is a retrofit shape, not permission to mutate that repository. On SDKs exposing `--include-references`, add `--include-references false` to solution registration when dependencies are already registered.
+
+## Independent CodeGen
+
+Reuse the existing `*.CodeGen` project when present. If tool creation is explicitly authorized, dry-run and add `coreex-codegen -n <full-name>.CodeGen` from the solution root, register it under `tools`, and honor the effective central/inline package policy. Do not enable a database or reference data to obtain File generation. The tool references CoreEx.CodeGen, not the Functions/runtime project; YAML's `runtimeProjectPath` targets an existing project with CoreEx.IO/CoreEx.Validation.
+
+Use `coreex-file` for actual definitions and runtime wiring. Run `dotnet run -- file --validate`, then `dotnet run -- file` from the console directory. The unchanged default command is RefData; an empty tool has no dummy definition and a bare run is not a valid File smoke test.
 
 ## Principles
 

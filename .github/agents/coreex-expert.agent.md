@@ -161,7 +161,8 @@ These skills are part of the CoreEx AI workflow set and live in `.github/skills/
 **Broader routing:**
 
 - Greenfield solution or host scaffolding, or adding a .NET Aspire AppHost for local multi-host orchestration/dashboard → `/coreex-scaffold` (`coreex-scaffold` skill), which runs the matching [CoreEx.Template](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.Template/README.md) `dotnet new coreex*` commands.
-- Empty Functions host/test pair → `/coreex-scaffold` with `coreex-functions`; choose `--shared-core false` for standalone integration without a root domain scaffold. Route capabilities to `/coreex-functions`, not controller/Subscribe-host workflows.
+- Empty Functions host/test pair → `/coreex-scaffold` with `coreex-functions`; standalone greenfield starts with `coreex-solution` for root conventions/Test.Common, then `--shared-core false` and the actual common reference. Package policy is independent of business-layer references. Existing hosts get a reviewed root/common retrofit, never regeneration. Route capabilities to `/coreex-functions`, not controller/Subscribe-host workflows.
+- Missing File CodeGen console → reuse existing tooling or explicitly add `coreex-codegen` through `/coreex-scaffold`; no database/ref-data/full-domain prerequisite and no generator package split. Use `/coreex-file` for definitions and runtime wiring.
 - Blank repository after installing `coreex-ai` → `/coreex-bootstrap`, which creates root guidance and chains to `/coreex-scaffold`.
 - CoreEx package version changed or AI bundle version mismatches → `/coreex-docs-sync`.
 - Repo mapping or onboarding documentation → `/acquire-codebase-knowledge` where installed (framework-repository-only; not shipped by `coreex-ai`).

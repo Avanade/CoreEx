@@ -205,6 +205,7 @@ see [coreex-ai-workflows.md](./coreex-ai-workflows.md).
 | Command | Type | When to use |
 |---------|------|-------------|
 | `CoreEx.Template` | Template pack | Deterministic `dotnet new` scaffolding. Pin the version — `dotnet new install CoreEx.Template::<version>` — then `dotnet new coreex` (solution), `coreex-api` / `coreex-relay` / `coreex-subscribe` (hosts), `coreex-domain` (optional DDD layer), `coreex-aspire` (optional local-orchestration AppHost), or `coreex-ai` (AI workflow assets). Validate any change to `src/CoreEx.Template/content/**` with [`tools/validate-template-pack.ps1`](../tools/validate-template-pack.ps1) — see "Build, Test, and Run" above. |
+| `coreex-solution` / `coreex-codegen` | Templates | Repository/Test.Common baseline without business layers, or independent design-time tooling without database/ref-data prerequisites. Standalone Functions follows effective CPM independently of `shared-core`; the scaffold workflow wires test-to-common references explicitly and stages existing-project retrofits instead of regenerating hosts. |
 | `CoreEx Expert` | Agent | Architecture guidance, pattern recommendations, and design review. Invoke via `/coreex-expert` (or `@coreex-expert`). |
 | `/coreex-bootstrap` | Skill-backed prompt | Initialize root guidance in a blank repository after `coreex-ai`, then chain to `/coreex-scaffold`. |
 | `/coreex-scaffold` | Skill-backed prompt | Guided greenfield solution scaffolding (chooses the smallest safe shape, runs the `dotnet new coreex*` commands). |

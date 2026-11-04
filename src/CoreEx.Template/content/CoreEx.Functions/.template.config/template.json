@@ -26,7 +26,19 @@
       "datatype": "bool",
       "defaultValue": "true",
       "displayName": "Use shared application core",
-      "description": "Reference the shared Application/Infrastructure projects and use solution package versions. Set false for a standalone host and test project with their own package versions."
+      "description": "Reference the shared Application/Infrastructure projects. Set false for capability-local processing. Package versions follow the repository policy independently."
+    },
+    "test-common-project": {
+      "type": "parameter",
+      "datatype": "string",
+      "defaultValue": "",
+      "displayName": "Shared test project path",
+      "description": "Optional Test.Common .csproj path relative to the generated test project. Independent of shared-core; omitted keeps the test project self-contained.",
+      "replaces": "__COREEX_TEST_COMMON_PROJECT__"
+    },
+    "has-test-common": {
+      "type": "computed",
+      "value": "test-common-project != ''"
     },
     "solution-name": {
       "type": "parameter",

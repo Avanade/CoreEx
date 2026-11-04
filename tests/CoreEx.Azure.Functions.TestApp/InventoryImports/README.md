@@ -31,4 +31,4 @@ The handwritten processor streams diagnostics and terminal outcome metadata thro
 
 The existing `tests/aspire/CoreEx.Azure.Functions.Test.Aspire` AppHost orchestrates Azurite, SQL Server, and Functions Core Tools. The runtime test uploads the actual CSV input to Azurite, creates a storage-shaped event with `EventGridExtensionMethods.CreateBlobCreatedEvent`, and posts it through `Test.FunctionsWebhook(...).PostBlobCreatedAsync(...)`. That webhook call simulates notification delivery only: Azurite does not emit Event Grid events. The Functions Blob binding, Azure Blob SDK reads/writes, SQL Server transaction, and Append Blob report operations are real in the local test topology.
 
-This does not prove Azure Event Grid subscription provisioning, authentication, or cloud delivery. `InventoryImportLocal` also provides a bounded immutable snapshot source for callers that supply a local file; persistence and reports still use the configured SQL Server and Blob services.
+This does not prove Azure Event Grid subscription provisioning, authentication, or cloud delivery.

@@ -15,6 +15,7 @@
     <PackageVersion Include="CoreEx.Azure.Messaging.ServiceBus" Version="coreex-version" />
     <!--#endif-->
     <PackageVersion Include="CoreEx.Caching.FusionCache" Version="coreex-version" />
+    <PackageVersion Include="CoreEx.CodeGen" Version="coreex-version" />
     <PackageVersion Include="CoreEx.Data" Version="coreex-version" />
     <PackageVersion Include="CoreEx.Data.GraphQL" Version="coreex-version" />
     <!--#if implement-cosmos-->
@@ -33,6 +34,7 @@
     <PackageVersion Include="CoreEx.EntityFrameworkCore" Version="coreex-version" />
     <!--#endif-->
     <PackageVersion Include="CoreEx.Events" Version="coreex-version" />
+    <PackageVersion Include="CoreEx.IO" Version="coreex-version" />
     <!--#if refdata-enabled-->
     <PackageVersion Include="CoreEx.RefData" Version="coreex-version" />
     <!--#endif-->
@@ -72,9 +74,6 @@
   <ItemGroup>
     <PackageVersion Include="Microsoft.Azure.Functions.Worker.Sdk" Version="2.1.0" />
     <PackageVersion Include="AwesomeAssertions" Version="9.6.0" />
-    <!--#if refdata-enabled-->
-    <PackageVersion Include="CoreEx.CodeGen" Version="coreex-version" />
-    <!--#endif-->
     <PackageVersion Include="CoreEx.UnitTesting" Version="coreex-version" />
     <PackageVersion Include="coverlet.collector" Version="10.1.0" />
     <!--#if implement-postgres-->

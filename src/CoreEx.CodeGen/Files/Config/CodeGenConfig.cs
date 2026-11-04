@@ -210,5 +210,8 @@ public class CodeGenConfig : ConfigRootBase<CodeGenConfig>
 
         if (TypeNames.Distinct(StringComparer.OrdinalIgnoreCase).Count() != TypeNames.Count())
             throw new CodeGenException(this, nameof(Records), "Generated type/file names collide.");
+
+        foreach (var typeName in TypeNames)
+            ConfigValidation.GeneratedTypeName(this, nameof(Records), typeName);
     }
 }

@@ -311,6 +311,35 @@ public class FileGenerationTests
         await act.Should().ThrowAsync<CodeGenException>();
     }
 
+    [TestCase("Date", "Time")]
+    [TestCase("Date", "Only")]
+    [TestCase("G", "uid")]
+    [TestCase("ReadOnly", "Span")]
+    [TestCase("Csv", "FileOptions")]
+    [TestCase("File", "ProcessingContext")]
+    [TestCase("Generated", "RegexAttribute")]
+    public async Task ReservedGeneratedTypeNamesAreRejectedBeforeBatchWrites(string definition, string record)
+    {
+        Write("a-file.yaml", Flat());
+        Write("z-file.yaml", Flat(definition).Replace("name: Row", "name: " + record));
+        foreach (var validateOnly in new[] { true, false })
+        {
+            var act = () => FileGenerationBatch.GenerateAsync(Args(), validateOnly: validateOnly);
+            await act.Should().ThrowAsync<CodeGenException>().WithMessage("*" + definition + record + "*reserved*");
+            Directory.Exists(Path.Combine(_runtime, "Files")).Should().BeFalse();
+        }
+    }
+
+    [Test]
+    public async Task ConversionHelperContainingTypeCollisionIsRejectedBeforeBatchWrites()
+    {
+        Write("a-file.yaml", Flat());
+        Write("z-file.yaml", Flat("Convert").Replace("name: Timestamp", "name: RowMapping"));
+        var act = () => FileGenerationBatch.GenerateAsync(Args());
+        await act.Should().ThrowAsync<CodeGenException>().WithMessage("*ConvertRowMapping*containing mapping type*");
+        Directory.Exists(Path.Combine(_runtime, "Files")).Should().BeFalse();
+    }
+
     [TestCase("cardinality: OneOrMore", "cardinality: Invalid")]
     [TestCase("match: L", "match: O")]
     [TestCase("discriminatorIndex: 0", "discriminatorIndex: 1")]

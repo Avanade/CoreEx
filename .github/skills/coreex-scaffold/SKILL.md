@@ -22,6 +22,7 @@ Guides a repository through the right CoreEx setup path by interviewing the user
 - Starting a new CoreEx domain or service from a repository that already contains only the bootstrap AI assets.
 - Deciding whether the first cut should create just the API host or also include the outbox relay and/or subscriber hosts.
 - Adding missing `Api`, `Relay`, `Subscribe` or `Functions` hosts, including standalone Functions integration apps without shared libraries.
+- Adding a repository/Test.Common baseline without business layers, or an independent CodeGen console without a database/reference-data scaffold.
 - Adding an Aspire AppHost so a solution's hosts can be run and debugged together locally, with a dashboard.
 - Converting plain-English project needs into either the matching `dotnet new coreex*` commands or the safest retrofit path.
 
@@ -97,15 +98,17 @@ Set outbox to `true` only when the user chose owned persistence and reliable pub
 
 Before this skill runs, the repository must already be in one of these states:
 - A bootstrap-only shell created by `coreex-bootstrap`; or
-- An existing CoreEx solution that is missing some runtime hosts.
+- An existing CoreEx solution that is missing hosts, root/shared-test conventions or independent CodeGen tooling.
 
-**Functions exception:** a standalone `coreex-functions --shared-core false` host/test pair can be created in an empty repository without the root `coreex` scaffold. Do not generate Application/Infrastructure/Contracts, a database or root package configuration for it.
+**Standalone baseline:** use `coreex-solution` for a new Functions/integration repository: root solution/build/package conventions and lightweight Test.Common by default (`--test-common false` opts out), without Application/Infrastructure/Contracts or a database. Raw `coreex-functions --shared-core false` remains supported without a baseline and uses inline versions only when CPM is not enabled. For existing repositories, follow the [safe baseline retrofit](references/workflow.md#standalone-baseline-and-existing-project-retrofit); do not overwrite root policy.
 
 **AI assets:** If the repository does not yet have `.github/instructions/` or `.github/agents/`, the consumer should run `dotnet new coreex-ai` at the repo root first (optionally with `--app-folder <subfolder>` for monorepos), installed from an explicitly pinned `CoreEx.Template::<version>` (see [Version-pin discipline](/.github/coreex-ai-workflows.md#version-pin-discipline)). This skill will remind the user if AI assets appear to be absent.
 
 ## Naming Rules
 
 **Functions deployment names:** `coreex-functions` takes the full deployment name ending in `.Functions`, e.g. `Sales.Functions` or `Sales.Imports.Functions`. It is not restricted to four parts. Default shared-core references use the name minus the final suffix; pass `--solution-name Company.Product.Sales` when deployment and shared library prefixes differ. Test names replace the final `.Functions` with `.Test.Functions`, independently of `--solution-name`. The canonical rules below apply to the other solution/addon templates.
+
+`coreex-solution` takes the actual solution name without imposing a three-part domain. `coreex-codegen` takes the full project name ending `.CodeGen` and emits `tools/<full-project-name>/`; reuse existing tools instead of generating duplicates.
 
 - The base solution name must be in `[Company].[Product].[Domain]` form, e.g. `Avanade.Bookstore.Books`.
 - The `coreex` (solution) template takes the **3-part base name**: `-n Company.Product.Books`. If the current directory is already named `Company.Product.Books`, `-n` can be omitted — the template uses the folder name automatically.
@@ -132,12 +135,14 @@ From the solution/output root, inspect an existing host first; create only expli
 dotnet new coreex-functions -n Company.Product.Sales.Imports.Functions --solution-name Company.Product.Sales --dry-run
 dotnet new coreex-functions -n Company.Product.Sales.Imports.Functions --solution-name Company.Product.Sales
 
-# Independent integration app, no root coreex scaffold required.
-dotnet new coreex-functions -n Sales.Imports.Functions --shared-core false --dry-run
-dotnet new coreex-functions -n Sales.Imports.Functions --shared-core false
+# New standalone repository: baseline and shared test support, not business layers.
+dotnet new coreex-solution -n Sales --dry-run
+dotnet new coreex-solution -n Sales
+dotnet new coreex-functions -n Sales.Imports.Functions --shared-core false --test-common-project "..\Sales.Test.Common\Sales.Test.Common.csproj" --dry-run
+dotnet new coreex-functions -n Sales.Imports.Functions --shared-core false --test-common-project "..\Sales.Test.Common\Sales.Test.Common.csproj"
 ```
 
-Both emit `src/<full-host-name>/` and `tests/<host-name-with-Test.Functions>/`. Build host/test by path; register them in an existing solution under `hosts` / `tests` when appropriate. Record deployment/shared-core choices in host/root guidance as applicable. Multiple hosts may share libraries but must not reference one another. The scaffold contains no dummy triggers, health endpoint or fixtures; use [`coreex-functions`](../coreex-functions/SKILL.md) for the first actual capability and meaningful tests.
+Functions emits `src/<full-host-name>/` and `tests/<host-name-with-Test.Functions>/`. Register both under `hosts`/`tests` and build by solution or project path. Discover the actual Test.Common project and supply its path relative to the generated test project using `--test-common-project`; omission generates no common reference, and a supplied missing path fails the build. Existing test projects use the SDK reference command instead. Package management follows effective CPM independently of `shared-core`; merge missing central entries deliberately, never add them or change existing pins silently. Record actual deployments/features in root/host guidance. Multiple hosts may share libraries but must not reference one another. Use [`coreex-functions`](../coreex-functions/SKILL.md) for real capabilities and tests.
 
 Do not pass data-provider/outbox/refdata flags to this template or automatically scan all shared services. Capability setup owns those dependencies. `coreex-aspire` does not generate Functions references; wire a requested Functions runtime into an existing AppHost using the project's verified Functions integration rather than its Api/Relay/Subscribe flags.
 
@@ -181,9 +186,8 @@ Host projects always live physically under `src/` and are grouped under the virt
 ### Existing Repository Retrofit (Skip Bootstrap)
 
 ```text
-# If the repo already has a bootstrap or partial scaffold, run only the missing domain/host templates.
-# Confirm the canonical three-part base name, then run coreex and/or host templates with the correct suffixes.
-dotnet new coreex            -n Company.Product.Books ...
+# Existing implementations: preserve root policy and generate only missing addons.
+# A missing standalone baseline uses the reviewed retrofit workflow, never coreex --force.
 dotnet new coreex-domain     -n Company.Product.Books.Domain    # optional: only when DDD is needed
 dotnet new coreex-api        -n Company.Product.Books.Api ...
 dotnet new coreex-relay      -n Company.Product.Books.Relay ...
@@ -199,7 +203,7 @@ dotnet new coreex-aspire    -n Company.Product.Books.Aspire --has-api ... --has-
 ## Existing Repository Guardrails
 
 - **Bootstrap is a prereq:** This skill assumes `dotnet new coreex-ai` has already been run and (for a blank repo) `/coreex-bootstrap` has generated root guidance files.
-- **For retrofit work:** If the repo already contains a solution, `src/`, tooling, or tests, do not re-run the root scaffold unless the current shape is still only the bootstrap shell.
+- **For retrofit work:** Never rerun the full root scaffold over populated implementations. A missing standalone baseline may be staged separately with `coreex-solution`, then merged through the [reviewed retrofit](references/workflow.md#standalone-baseline-and-existing-project-retrofit), including existing-project registration, Test.Common references and version-preserving CPM migration.
 - **Template identity conflicts:** If `dotnet new list` or template execution reports duplicate CoreEx template identities, warn the user which template source is being selected before continuing.
 - **Version-pin discipline:** If `CoreEx.Template` needs installing or updating here, never run a bare `dotnet new install CoreEx.Template` — resolve and pin an explicit `::<version>` matching the project's referenced `CoreEx` NuGet version (see [coreex-ai-workflows.md § Version-pin discipline](/.github/coreex-ai-workflows.md#version-pin-discipline)).
 - **Pre-flight validation:** Always run a dry-run with the intended base solution name before any real domain/host template invocation.
@@ -212,6 +216,7 @@ dotnet new coreex-aspire    -n Company.Product.Books.Aspire --has-api ... --has-
 
 - Resolve the recorded configuration and authorized scope; preserve existing hosts and dry-run only the missing templates.
 - Generate from the solution root with full suffixed names; verify the host and test project paths.
+- Resolve Test.Common independently of host/business-library names; wire consuming test projects explicitly and honor a common opt-out. Never add a test-support reference to runtime projects.
 - Update root `AGENTS.md` and register the explicit projects using `dotnet sln add ... --include-references false` when the SDK supports it and dependencies are already registered. Keep hosts under the virtual `hosts` folder and tests under `tests`.
 - If solution registration is unsafe while Visual Studio has it open, defer only that step and validate new projects by path. Provide pending commands once, then stop with registration explicitly deferred; recheck only when asked or given new information.
 - Build the solution (or each unregistered project) before testing. Run API/Relay/Subscribe integration projects **sequentially**, awaiting each completion; they share resettable database/cache/broker state. Avoid concurrent test builds of shared project references; see the test instructions for safe `--no-build` parallelism.
@@ -226,7 +231,8 @@ dotnet new coreex-aspire    -n Company.Product.Books.Aspire --has-api ... --has-
 | Empty repo, expose HTTP, publish events, consume events | `coreex` + `coreex-api` + `coreex-relay` + `coreex-subscribe` |
 | Existing repo missing only runtime hosts | Infer current shape, then add only the missing hosts |
 | Functions integration with shared business logic | `coreex-functions -n <deployment>.Functions`, with `--solution-name <shared-prefix>` if different |
-| Standalone Blob/Service Bus/HTTP/Timer integration | `coreex-functions -n <deployment>.Functions --shared-core false`; add capabilities via `coreex-functions` skill |
+| Standalone Blob/Service Bus/HTTP/Timer integration | `coreex-solution` + `coreex-functions --shared-core false`, with the actual Test.Common reference; add capabilities via `coreex-functions` skill |
+| File generation without reference data/database | Optional `coreex-codegen -n <name>.CodeGen`, then `coreex-file`; reuse an existing tool when present |
 | Facade over another system with no local database | `coreex --data-provider None --messaging-provider None` and add `coreex-api --data-provider None` only if an API is needed |
 
 ## Key References
@@ -241,6 +247,8 @@ dotnet new coreex-aspire    -n Company.Product.Books.Aspire --has-api ... --has-
 | Template | Short name | Purpose |
 |---|---|---|
 | CoreEx AI workflow assets | `coreex-ai` | Installs the `.github/` instructions, skills, prompts, agents, and docs cache, plus `.claude/` commands — run at repo root before or after scaffolding |
+| CoreEx solution baseline | `coreex-solution` | Root solution/build/package conventions and Test.Common by default, without business layers |
+| CoreEx code-generation console | `coreex-codegen` | Independent design-time tool; explicit File generation requires no database/ref-data |
 | CoreEx Application services | `coreex` | Scaffolds the implementation layers (Contracts, Application, Infrastructure, etc.) |
 | CoreEx Domain layer | `coreex-domain` | Adds a Domain project for DDD — run after `coreex`, wire via `dotnet sln add` |
 | CoreEx API host | `coreex-api` | Adds an ASP.NET Core API host |

@@ -1,10 +1,10 @@
 # CoreEx.Template
 
-> Provides the `dotnet new` template pack for scaffolding CoreEx-based domain microservice solutions -- eight composable templates, one `dotnet new install`.
+> Provides the `dotnet new` template pack for CoreEx solutions and standalone integrations -- ten composable templates, one `dotnet new install`.
 
 ## Overview
 
-`CoreEx.Template` is a `PackageType=Template` NuGet package that installs eight `dotnet new` templates as a single unit. Together they cover AI workflow assets, the full project topology for a CoreEx domain-based microservice (shared solution core plus independently deployable host processes), an optional domain layer, and an optional Aspire AppHost for local orchestration.
+`CoreEx.Template` is a `PackageType=Template` NuGet package that installs ten `dotnet new` templates as a single unit. They cover independent repository/test scaffolding, design-time CodeGen, AI assets, full shared-domain solutions, deployable hosts, an optional domain layer and Aspire orchestration.
 
 | Short name | Template | Emits |
 |---|---|---|
@@ -16,6 +16,8 @@
 | `coreex-subscribe` | CoreEx Subscriber host | `src/[name].Subscribe/` host project + `tests/[solution].Test.Subscribe/` integration test project |
 | `coreex-aspire` | CoreEx Aspire AppHost | `aspire/[name].Aspire/` AppHost project orchestrating this solution's own hosts — add-on, run after the hosts it references already exist |
 | `coreex-functions` | CoreEx Azure Functions host | `src/[name]/` empty isolated-worker host + matching `tests/[host-prefix].Test.Functions/` project; no sample triggers or test cases |
+| `coreex-solution` | CoreEx solution baseline | `.slnx`, root build/package conventions, guidance and lightweight `tests/[name].Test.Common/` by default; no business layers |
+| `coreex-codegen` | CoreEx code-generation console | Independent `tools/[name]/` console; full name ends `.CodeGen`, no database/ref-data prerequisite |
 
 Parameters are consistent across templates -- the same `--data-provider`, `--messaging-provider`, and feature flags appear in every template that needs them, ensuring the generated code is coherent regardless of which templates you use.
 
@@ -88,7 +90,7 @@ dotnet new coreex-ai
 /coreex-bootstrap
 ```
 
-Then answer the `/coreex-scaffold` questions. The workflow derives the required `coreex`, `coreex-domain` (optional), `coreex-api`, `coreex-relay`, `coreex-subscribe`, `coreex-functions`, and `coreex-aspire` (optional) commands. Standalone Functions apps use `coreex-functions --shared-core false` without the root `coreex` scaffold; `/coreex-functions` adds the first actual capability and meaningful tests.
+Then answer the `/coreex-scaffold` questions. Full shared domains use `coreex` and selected addons. Standalone Functions normally uses `coreex-solution` for root conventions/Test.Common, then `coreex-functions --shared-core false` with the actual common reference. CodeGen is an optional independent addon. `/coreex-functions` adds actual capabilities and tests.
 
 ---
 
@@ -679,8 +681,9 @@ Run from the solution root with the full host name ending in `.Functions`. By de
 | Parameter | Type | Default | Description |
 |---|---|---|---|
 | `-n` / `--name` | string | _(required)_ | Full host name, e.g. `Avanade.Erp.Sales.Functions` or `Avanade.Erp.Sales.Imports.Functions`. |
-| `--shared-core` | bool | `true` | Reference shared Application/Infrastructure projects and use the solution's central package versions. Set `false` for a standalone host and test project with explicit package versions. |
+| `--shared-core` | bool | `true` | Reference shared Application/Infrastructure projects; `false` uses capability-local processing. Package policy is independent. |
 | `--solution-name` | string | Host name without its final segment | Shared Application/Infrastructure project prefix, e.g. `Avanade.Erp.Sales`. Specify this for an additional workload segment or independently named host. In both modes it supplies the solution/domain identity in the host's worker configuration; standalone mode never references those projects. |
+| `--test-common-project` | string | _(empty)_ | Optional Test.Common `.csproj` path relative to the generated test project; independent of host/shared-library naming. A supplied missing path fails explicitly. |
 
 ### Output
 
@@ -702,9 +705,11 @@ tests/
     .gitignore
 ```
 
-With `--shared-core true`, the projects use the solution's central package versions. New `coreex` scaffolds include `CoreEx.Azure.Functions`, `Microsoft.Azure.Functions.Worker.Sdk` and `UnitTestEx.Azure.Functions` version entries. When adding this host to an older solution, add those entries to its existing `Directory.Packages.props` first: pin `CoreEx.Azure.Functions` to the solution's CoreEx version, Worker.Sdk to `2.1.0` and UnitTestEx.Azure.Functions to `6.0.0` (matching the other UnitTestEx packages). Do not regenerate the root scaffold over an existing solution. The Functions integration package currently brings HTTP and Service Bus support transitively; the empty template does not enable either trigger or add other binding packages.
+Both modes follow effective MSBuild package policy: central versions when `ManagePackageVersionsCentrally` is true, otherwise inline versions pinned by the template. Explicit MSBuild opt-outs remain supported. New `coreex` and `coreex-solution` scaffolds include `CoreEx.Azure.Functions`, Worker.Sdk and UnitTestEx Functions versions. Older CPM solutions need the missing entries merged into their existing catalogue, retaining compatible pins; do not regenerate root policy. The Functions package brings HTTP/Service Bus support transitively but the empty template enables no triggers.
 
-With `--shared-core false`, both projects supply their own .NET 10, nullable/implicit-using settings and explicit package versions (CoreEx is pinned to the installed template release). They opt out of Central Package Management locally, so the layout builds in an empty directory or alongside a solution using CPM, without writing or overwriting root build/package configuration. No solution file is generated; build/test by project path, or register the projects in a solution as needed. Standalone means no shared application-library dependencies, not no NuGet or platform dependencies.
+`--shared-core false` retains self-contained .NET 10/nullable/implicit-using settings, but no longer disables repository CPM. Raw host generation without root props remains supported and uses inline versions. The host template never writes root policy or a solution file. Standalone means no shared business-library dependencies, not no solution hygiene.
+
+`--test-common-project` wires an explicitly selected common library into the test project only. `/coreex-scaffold` discovers it and supplies the relative path for newly generated tests; existing test projects use `dotnet add <test-project> reference <common-project>`. Creating Test.Common or registering it in `.slnx` does not add a ProjectReference automatically.
 
 `local.settings.json` contains only `FUNCTIONS_WORKER_RUNTIME=dotnet-isolated`, is ignored by Git and is never published. Add required binding settings and storage configuration when choosing actual triggers; no emulator or secret is assumed. The worker's `appsettings.json` is not a replacement for Functions host/listener app settings.
 
@@ -725,10 +730,13 @@ dotnet build tests/Avanade.Erp.Sales.Test.Functions
 dotnet build tests/Avanade.Erp.Sales.Imports.Test.Functions
 ```
 
-Standalone integration (no `coreex` solution scaffold required):
+Standalone integration with a repository/test baseline (no full `coreex` scaffold required):
 
 ```sh
-dotnet new coreex-functions -n Avanade.Integration.Imports.Functions --shared-core false
+dotnet new coreex-solution -n Avanade.Integration
+dotnet new coreex-functions -n Avanade.Integration.Imports.Functions --shared-core false --test-common-project "..\Avanade.Integration.Test.Common\Avanade.Integration.Test.Common.csproj"
+dotnet sln Avanade.Integration.slnx add src/Avanade.Integration.Imports.Functions --solution-folder hosts
+dotnet sln Avanade.Integration.slnx add tests/Avanade.Integration.Imports.Test.Functions --solution-folder tests
 dotnet build tests/Avanade.Integration.Imports.Test.Functions
 # Add real functions and their tests before running the test project.
 ```
@@ -738,6 +746,41 @@ One project is one Function App deployment/configuration/identity boundary. Spli
 Add capability folders when needed, for example `Imports/ImportFunction.cs` with its local transport types. Normally use one trigger class per file; related HTTP methods can share a class. Keep trigger methods thin: use shared Application/Infrastructure services when those layers exist, or focused capability-local handlers such as `Imports/BlobForwarder.cs` for a standalone integration. Extract libraries when actual reuse or complexity warrants them, not just for layering ceremony. Mirror capability folders in the generated test project and add UnitTestEx invocation tests with the first real function. Test project names replace the host's final `.Functions` with `.Test.Functions`, independently of `--solution-name`; `Sales.Imports.Functions` therefore gets `Sales.Imports.Test.Functions` without colliding with `Sales.Test.Functions`. Runtime binding/delivery assertions require Core Tools/Aspire rather than invocation tests alone.
 
 For HTTP functions, add `ConfigureFunctionsWebApplication()` immediately after builder creation, register `AddMvc()`/`AddMvcWebApi()` and use the existing MVC `WebApi`; do not copy ASP.NET middleware or `MapHealthChecks` into Functions. For Service Bus/Blob/Timer, add only the binding/configuration the workload needs. See [CoreEx.Azure.Functions](../CoreEx.Azure.Functions/README.md) for executable examples and the Functions-owned retry/settlement boundaries.
+
+---
+
+## Template 9 -- `coreex-solution` (Repository and shared-test baseline)
+
+Supplies a named `.slnx`, `Directory.Build.props`, `Directory.Packages.props`, `tests/Directory.Build.props`, `.editorconfig`, `.gitattributes`, `.gitignore`, `.filenesting.json`, README/AGENTS/CLAUDE guidance, and lightweight Test.Common by default. It shares canonical root policy and the TestData resource marker with the full scaffold at pack time. It generates no runtime host, business libraries, database, broker topology or sample tests.
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `-n` / `--name` | string | _(required)_ | Actual solution name; no three-part domain requirement. |
+| `--test-common` | bool | `true` | Create/register `tests/[name].Test.Common`; `false` yields root artefacts only. |
+
+Test.Common is non-packable and not a discoverable test suite. It supports authored embedded `Data/`/`Resources/` and shared helpers, with no Database reference, ServiceBus SDK imports or seeded database fixtures. Consuming test projects need explicit references; runtime/CodeGen projects must not reference it.
+
+Central CodeGen/IO version entries are available independently of data/ref-data flags. Unused PackageVersion entries do not introduce dependencies or enable features.
+
+For a populated repository, use the [scaffold retrofit workflow](../../.github/skills/coreex-scaffold/references/workflow.md#standalone-baseline-and-existing-project-retrofit): generate into a separate temporary directory, merge reviewed missing artefacts, preserve every existing pin/alias during CPM migration, then register existing projects and wire their common references. A plain template invocation does not migrate existing `.csproj` files. Never force over an existing root or regenerate the host. The full `coreex` scaffold already owns a baseline; do not apply both root-emitting templates to one solution.
+
+---
+
+## Template 10 -- `coreex-codegen` (Independent design-time console)
+
+Run `dotnet new coreex-codegen -n Avanade.Integration.CodeGen` from the solution root to create `tools/Avanade.Integration.CodeGen/` with its console project, entry point, GlobalUsing and usage guidance. Register it under `tools` using the solution CLI. The console is non-packable, references CoreEx.CodeGen only, follows effective CPM/inline policy, and returns the generator's exit code.
+
+Reuse existing CodeGen tooling where present. No database, reference data, business layers, runtime ProjectReference or dummy schema is generated. File definitions select an existing runtime project using `runtimeProjectPath`; that project needs CoreEx.IO/CoreEx.Validation. Keep generated artefacts out of manual edits and preserve handwritten handlers.
+
+Run from the CodeGen project directory:
+
+```powershell
+dotnet run -- file --validate
+dotnet run -- file
+dotnet run -- file --expect-no-changes
+```
+
+The unchanged default command is RefData, requiring an authored `ref-data.yaml`. File uses top-level `*-file.yaml` and explicit `file`; `dotnet run --project` does not change discovery's working directory. Use `/coreex-file` for definitions and `/coreex-functions` for the native Functions trigger boundary. No generator-package split is needed.
 
 An empty host may report "No job functions found" until its first trigger is added. This is intentional. Health functions are optional operational capabilities, not generated workload. Use `/coreex-functions` from the version-pinned `coreex-ai` bundle to add actual HTTP/Service Bus/Blob/Timer capabilities, their packages/configuration and meaningful UnitTestEx tests; its scoped instructions keep native Functions boundaries distinct from ASP.NET hosts.
 
@@ -887,7 +930,7 @@ dotnet new coreex-subscribe -n Avanade.Erp.Sales.Subscribe
 
 **Single install, seven project-scaffolding templates.** All seven ship inside the same NuGet package as `coreex-ai` (`PackageType=Template`). A single `dotnet new install CoreEx.Template::<version>` makes all short names available: `coreex`, `coreex-domain`, `coreex-api`, `coreex-relay`, `coreex-subscribe`, `coreex-aspire`, and `coreex-functions`.
 
-**Version stamping.** During `dotnet pack`, an inline MSBuild `ReplaceTextInFile` task stamps the actual `$(Version)` into generated copies of the six `template.json` files carrying a `COREEX_VERSION` placeholder (`CoreEx.Ai`, `CoreEx.Core`, `CoreEx.Api`, `CoreEx.Relay`, `CoreEx.Subscribe`, `CoreEx.Functions`) before they are packed. The source copies in `content/` retain the placeholder and remain editable. `CoreEx.Domain` and `CoreEx.Aspire` have no `COREEX_VERSION` token and are packed directly, unstamped. Functions uses the stamped version only for standalone projects; shared-core mode uses the solution's central package versions.
+**Version stamping.** During `dotnet pack`, the inline MSBuild `ReplaceTextInFile` task stamps the actual `$(Version)` into generated copies of the eight `template.json` files carrying `COREEX_VERSION`: Ai, Core, Api, Relay, Subscribe, Functions, Solution and CodeGen. Source copies retain the placeholder. Domain and Aspire have no version token and are packed directly. Functions and independent CodeGen use the stamped pin when effective CPM is disabled; shared-core does not choose package policy.
 
 **Central Package Management.** By default, generated `PackageReference` entries carry no `Version` attribute -- versions are resolved from the `Directory.Packages.props` emitted by the `coreex` solution template. These hosts require that shared solution configuration first. `coreex-aspire` uses a per-project `VersionOverride` for its extra MessagePack CVE override rather than updating the root file. `coreex-functions --shared-core false` explicitly opts its host and test projects out of CPM and supplies their package versions locally, requiring no shared solution configuration.
 
