@@ -34,7 +34,7 @@ Property | Description
 `quote` | Quote.<br/>&dagger; One character; defaults to double quote.
 `comment` | Comment marker.<br/>&dagger; One character at record start; omitted by default.
 `encoding` | Explicit encoding. Valid options are: `Utf8`, `Utf16LE`, `Utf16BE`, `Utf32LE`, `Utf32BE`.<br/>&dagger; Defaults to Utf8. Strict runtime decoding; no BOM-based encoding switching.
-`headerPolicy` | Named header policy. Valid options are: `AllowAdditionalColumns`, `Exact`.<br/>&dagger; Flat named-column mappings only; defaults to AllowAdditionalColumns. Exact requires every mapped property to use a named column selector and rejects extra header columns.
+`headerPolicy` | Named header policy. Valid options are: `AllowAdditionalColumns`, `Exact`.<br/>&dagger; Flat named-column mappings only; defaults to AllowAdditionalColumns. Exact requires every mapped property to use a named column selector, rejects extra header columns, and requires every data record to have exactly the header's field count.
 
 ## Processing
 Default invocation policy and operating budgets.

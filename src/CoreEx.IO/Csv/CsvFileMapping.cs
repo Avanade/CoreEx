@@ -82,6 +82,7 @@ public sealed class CsvFileMapping<TRecord> where TRecord : class, new()
         private readonly bool _requiresHeader = columns.Any(x => !x.Index.HasValue);
         private readonly HashSet<string> _columnNames = new(columns.Select(x => x.Name), StringComparer.OrdinalIgnoreCase);
         private int[]? _indices;
+        private int? _expectedFieldCount;
         private bool _headerRead;
 
         /// <summary>Maps the current parser record before its buffer advances.</summary>
@@ -106,7 +107,11 @@ public sealed class CsvFileMapping<TRecord> where TRecord : class, new()
                         diagnostics.Add(new(FileDiagnosticCategory.Structure, "csv.header.missing", "A required column-name header is missing.", location: new(reader.LineNumber, fieldName: column.Name, propertyPath: column.PropertyPath)));
 
                 if (diagnostics.Count == 0)
+                {
                     _indices = columns.Select(column => column.Index ?? headers[column.Name]).ToArray();
+                    if (headerPolicy == CsvHeaderPolicy.Exact)
+                        _expectedFieldCount = reader.FieldCount;
+                }
 
                 return new(null, true, diagnostics);
             }
@@ -118,6 +123,13 @@ public sealed class CsvFileMapping<TRecord> where TRecord : class, new()
 
                 _indices = columns.Select(column => column.Index.GetValueOrDefault()).ToArray();
             }
+
+            if (_expectedFieldCount.HasValue && reader.FieldCount != _expectedFieldCount.Value)
+                return new(null, false,
+                [
+                    new(FileDiagnosticCategory.Structure, "csv.record.field_count", "The record field count does not match the column-name header.",
+                        location: new(reader.LineNumber, fieldIndex: Math.Min(reader.FieldCount, _expectedFieldCount.Value)))
+                ]);
 
             var record = new TRecord();
             var errors = new List<FileDiagnostic>();

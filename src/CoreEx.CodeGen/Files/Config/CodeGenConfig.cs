@@ -63,7 +63,7 @@ public class CodeGenConfig : ConfigRootBase<CodeGenConfig>
 
     /// <summary>Gets or sets the flat named-header policy.</summary>
     [JsonPropertyName("headerPolicy")]
-    [CodeGenProperty("Format", Title = "Named header policy.", Options = ["AllowAdditionalColumns", "Exact"], Description = "Flat named-column mappings only; defaults to AllowAdditionalColumns.")]
+    [CodeGenProperty("Format", Title = "Named header policy.", Options = ["AllowAdditionalColumns", "Exact"], Description = "Flat named-column mappings only; defaults to AllowAdditionalColumns. Exact rejects extra header columns and rows whose field count differs from the header.")]
     public string? HeaderPolicy { get; set; }
 
     /// <summary>Gets or sets the default processing mode.</summary>

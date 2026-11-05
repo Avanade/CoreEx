@@ -134,6 +134,28 @@ public class CsvFileProcessorTests
         rejectedProcessor.Diagnostics.Select(x => x.Code).Should().Contain("csv.header.unexpected");
     }
 
+    [TestCase("1,A,0,x")]
+    [TestCase("1,A")]
+    public async Task ExactHeaders_RejectRowsWithDifferentFieldCountsWithoutReportingThem(string invalidRow)
+    {
+        static CsvFileMapping<Record> ExactMapping() => new CsvFileMapping<Record>(CsvHeaderPolicy.Exact)
+            .MapProperty("Id", x => x.Id, CsvFieldConverters.Nullable<int>())
+            .MapProperty("Name", x => x.Name, CsvFieldConverters.String)
+            .MapProperty("Quantity", x => x.Quantity, CsvFieldConverters.Nullable<int>());
+
+        var processor = new Processor(mappingFactory: ExactMapping);
+        var input = new Input($"Id,Name,Quantity\n1,First,1\n{invalidRow}\n3,Last,3\n");
+        var summary = await processor.ProcessAsync(input.OpenAsync,
+            Context(FileProcessingMode.ValidateAndReport, FileErrorMode.CollectErrors)).ConfigureAwait(false);
+
+        summary.Outcome.Should().Be(FileProcessingOutcome.ReportedWithErrors);
+        summary.Progress.InvalidRecords.Should().Be(1);
+        summary.Progress.UnitsValidated.Should().Be(2);
+        summary.Progress.UnitsReported.Should().Be(2);
+        processor.Diagnostics.Select(x => x.Code).Should().Contain("csv.record.field_count");
+        processor.Reported.Select(x => x.Record.Id).Should().Equal(1, 3);
+    }
+
     [Test]
     public async Task ValidateAndReport_ObservesOnlyRowsPassingAllUnitValidation()
     {

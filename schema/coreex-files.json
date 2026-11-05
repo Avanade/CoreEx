@@ -60,7 +60,7 @@
         "headerPolicy": {
           "type": "string",
           "title": "Named header policy.",
-          "description": "Flat named-column mappings only; defaults to AllowAdditionalColumns.",
+          "description": "Flat named-column mappings only; defaults to AllowAdditionalColumns. Exact rejects extra header columns and rows whose field count differs from the header.",
           "enum": [
             "AllowAdditionalColumns",
             "Exact"
