@@ -28,6 +28,12 @@ Full workflow for adding or modifying a subscriber in a CoreEx Subscribe host.
 
 ## Step 1 — Subscriber Class
 
+### Payload Cleanup Policy
+
+Published events are generally expected to contain canonical producer-normalized data, so receive cleanup is typically redundant and can silently reinterpret published facts. This is why `EventSubscriberBase.AutoCleanValue` defaults false while WebApi request cleanup defaults true. Keep it off for canonical replication; opt in for a noncanonical feed or command whose receiving boundary owns normalization.
+
+`SubscribedBase.AutoCleanValue` is a nullable per-handler/message-type override. Null inherits the owner, true enables and false disables even when the owner enables cleanup. Assign it in the handler constructor (`AutoCleanValue = true;`); all subjects on that handler share the policy, while separate handlers using the same payload CLR type may differ. Native JSON `ServiceBusSubscriberBase<TValue>` uses the inherited bool. Cleanup runs after deserialization but before required checks, validation and handling, with `CleanArgs.Default` and no root/nested object collapse. Serialized bodies, keys and metadata are unchanged; cleanup errors follow normal receive error handling. If opting in, cover cleaned values seen by the validator/handler and required scalar whitespace becoming null.
+
 ### Scenario A — Command
 
 A command is addressed to _this_ domain. The contract (payload or key) is owned by this domain.

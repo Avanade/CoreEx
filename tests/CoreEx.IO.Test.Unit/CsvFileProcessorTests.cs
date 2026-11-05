@@ -115,6 +115,118 @@ public class CsvFileProcessorTests
     }
 
     [Test]
+    public async Task ExactHeaders_AllowReorderingButRejectUnmappedColumns()
+    {
+        static CsvFileMapping<Record> ExactMapping() => new CsvFileMapping<Record>(CsvHeaderPolicy.Exact)
+            .MapProperty("Id", x => x.Id, CsvFieldConverters.Nullable<int>())
+            .MapProperty("Name", x => x.Name, CsvFieldConverters.String)
+            .MapProperty("Quantity", x => x.Quantity, CsvFieldConverters.Nullable<int>());
+
+        var accepted = new Processor(mappingFactory: ExactMapping);
+        var valid = await accepted.ProcessAsync(new Input("Name,quantity,ID\nA,0,1\n").OpenAsync, Context(FileProcessingMode.ValidateOnly)).ConfigureAwait(false);
+        valid.Outcome.Should().Be(FileProcessingOutcome.Validated);
+        valid.Progress.UnitsValidated.Should().Be(1);
+
+        var rejectedProcessor = new Processor(mappingFactory: ExactMapping);
+        var rejected = await rejectedProcessor.ProcessAsync(new Input("Id,Name,Quantity,Extra\n1,A,0,x\n").OpenAsync, Context(FileProcessingMode.ValidateOnly)).ConfigureAwait(false);
+        rejected.Outcome.Should().Be(FileProcessingOutcome.Rejected);
+        rejected.Progress.UnitsValidated.Should().Be(0);
+        rejectedProcessor.Diagnostics.Select(x => x.Code).Should().Contain("csv.header.unexpected");
+    }
+
+    [Test]
+    public async Task ValidateAndReport_ObservesOnlyRowsPassingAllUnitValidation()
+    {
+        await using var environment = new Environment { InvalidAt = 2 };
+        var processor = new Processor(environment);
+        var input = new Input("Id,Name,Quantity\n1,A,1\n2,B,2\n3,C,3\n");
+        var context = Context(FileProcessingMode.ValidateAndReport, FileErrorMode.CollectErrors);
+        var summary = await processor.ProcessAsync(input.OpenAsync, context).ConfigureAwait(false);
+
+        summary.Outcome.Should().Be(FileProcessingOutcome.ReportedWithErrors);
+        summary.IsSuccess.Should().BeFalse();
+        summary.ValidationCompleted.Should().BeTrue();
+        summary.Progress.RecordsRead.Should().Be(3);
+        summary.Progress.InvalidRecords.Should().Be(1);
+        summary.Progress.UnitsValidated.Should().Be(2);
+        summary.Progress.UnitsReported.Should().Be(2);
+        summary.Progress.UnitsAttempted.Should().Be(0);
+        processor.Reported.Select(x => x.Record.Id).Should().Equal(1, 3);
+        processor.Reported.Select(x => x.Info.Location.LineNumber).Should().Equal(2, 4);
+        processor.Reported.Select(x => x.Info.RecordType).Should().OnlyContain(x => x == null);
+        environment.Executed.Should().BeEmpty();
+        input.Streams.Should().ContainSingle();
+        processor.Events.Should().Equal("diagnostic", "eof", "rejected");
+    }
+
+    [Test]
+    public async Task ValidateAndReport_EofErrorRetainsCompletedValidUnitReports()
+    {
+        var processor = new Processor { Reconcile = true };
+        var input = new Input("Id,Name,Quantity\n1,A,1\n2,B,2\n");
+        var summary = await processor.ProcessAsync(input.OpenAsync, Context(FileProcessingMode.ValidateAndReport)).ConfigureAwait(false);
+
+        summary.Outcome.Should().Be(FileProcessingOutcome.ReportedWithErrors);
+        summary.ValidationCompleted.Should().BeTrue();
+        summary.Progress.InvalidRecords.Should().Be(0);
+        summary.Progress.UnitsValidated.Should().Be(2);
+        summary.Progress.UnitsReported.Should().Be(2);
+        processor.Reported.Select(x => x.Record.Id).Should().Equal(1, 2);
+        processor.Events.Should().Equal("eof", "diagnostic", "rejected");
+    }
+
+    [Test]
+    public async Task ValidateAndReport_CompletesSuccessfullyWithoutExecuting()
+    {
+        var processor = new Processor();
+        var summary = await processor.ProcessAsync(new Input("Id,Name,Quantity\n1,A,1\n").OpenAsync,
+            Context(FileProcessingMode.ValidateAndReport)).ConfigureAwait(false);
+
+        summary.Outcome.Should().Be(FileProcessingOutcome.Reported);
+        summary.IsSuccess.Should().BeTrue();
+        summary.Progress.UnitsValidated.Should().Be(1);
+        summary.Progress.UnitsReported.Should().Be(1);
+        processor.Reported.Select(x => x.Record.Id).Should().Equal(1);
+        processor.Events.Should().Equal("eof", "completed");
+    }
+
+    [Test]
+    public async Task ValidateAndReport_FailFastReturnsPartialReportOutcome()
+    {
+        await using var environment = new Environment { InvalidAt = 2 };
+        var processor = new Processor(environment);
+        var context = Context(FileProcessingMode.ValidateAndReport, FileErrorMode.FailFast);
+        var summary = await processor.ProcessAsync(new Input("Id,Name,Quantity\n1,A,1\n2,B,2\n3,C,3\n").OpenAsync, context).ConfigureAwait(false);
+
+        summary.Outcome.Should().Be(FileProcessingOutcome.ReportedWithErrors);
+        summary.ValidationCompleted.Should().BeFalse();
+        summary.Progress.RecordsRead.Should().Be(2);
+        summary.Progress.UnitsValidated.Should().Be(1);
+        summary.Progress.UnitsReported.Should().Be(1);
+        summary.Progress.InvalidRecords.Should().Be(1);
+        processor.Reported.Select(x => x.Record.Id).Should().Equal(1);
+        environment.Executed.Should().BeEmpty();
+    }
+
+    [Test]
+    public async Task ValidateAndReport_PropagatesReportFaultWithoutCountingFailedCallback()
+    {
+        var failure = new IOException("Report write failed.");
+        var processor = new Processor
+        {
+            ValidatedCallback = (_, _, _) => Task.FromException(failure)
+        };
+        var context = Context(FileProcessingMode.ValidateAndReport);
+        Func<Task> run = () => processor.ProcessAsync(new Input("Id,Name,Quantity\n1,A,1\n").OpenAsync, context);
+
+        (await run.Should().ThrowAsync<IOException>().ConfigureAwait(false)).Which.Should().BeSameAs(failure);
+        context.Progress.UnitsValidated.Should().Be(1);
+        context.Progress.UnitsReported.Should().Be(0);
+        processor.Reported.Should().BeEmpty();
+        processor.Events.Should().BeEmpty();
+    }
+
+    [Test]
     public async Task PositionalMapping_DoesNotDiscardFirstRecordAndSkipsComments()
     {
         var options = new CsvFileOptions { Comment = '#' };
@@ -596,6 +708,7 @@ public class CsvFileProcessorTests
             : base(mappingFactory ?? (() => Mapping(positional)), options, validator, environment?.Provider, environment is null ? null : sp => sp.GetRequiredService<Handler>()) { }
 
         public List<FileDiagnostic> Diagnostics { get; } = [];
+        public List<(Record Record, FileUnitInfo Info)> Reported { get; } = [];
         public List<string> Events { get; } = [];
         public List<ExecutionContext?> FileAmbient { get; } = [];
         public bool Reconcile { get; init; }
@@ -604,6 +717,7 @@ public class CsvFileProcessorTests
         public string? FaultHook { get; init; }
         public Exception Fault { get; init; } = new IOException("Report failed.");
         public Func<FileDiagnostic, CancellationToken, Task>? DiagnosticCallback { get; init; }
+        public Func<Record, FileUnitInfo, CancellationToken, Task>? ValidatedCallback { get; init; }
 
         protected override void OnConfigureUnitContext(FileProcessingContext fileContext, Record record, ExecutionContext? parent, ExecutionContext unitContext)
             => unitContext.TenantId = "trusted-file-tenant";
@@ -632,6 +746,14 @@ public class CsvFileProcessorTests
         {
             Observe("completed");
             return Task.CompletedTask;
+        }
+
+        protected override async Task OnValidatedUnitAsync(FileProcessingContext context, Record unit, FileUnitInfo info, CancellationToken cancellationToken)
+        {
+            if (ValidatedCallback is not null)
+                await ValidatedCallback(unit, info, cancellationToken).ConfigureAwait(false);
+
+            Reported.Add((unit, info));
         }
 
         protected override Task OnRejectedAsync(FileProcessingContext context, FileProcessingSummary summary, CancellationToken cancellationToken)
@@ -665,6 +787,7 @@ public class CsvFileProcessorTests
         public List<Handler> Handlers { get; } = [];
         public bool ReportWarnings { get; init; }
         public bool ReportErrors { get; init; }
+        public int? InvalidAt { get; init; }
         public int? FailAt { get; init; }
         public Exception? ExecutionFault { get; init; }
         public Result Failure { get; } = Result.Fail(new BusinessException("Unit failed."));
@@ -697,6 +820,9 @@ public class CsvFileProcessorTests
                 await reportDiagnosticAsync(new(FileDiagnosticCategory.Validation, "rule.one", "First business rule failed."), cancellationToken).ConfigureAwait(false);
                 await reportDiagnosticAsync(new(FileDiagnosticCategory.Validation, "rule.two", "Second business rule failed."), cancellationToken).ConfigureAwait(false);
             }
+
+            if (_environment.InvalidAt.HasValue && unit.Id == _environment.InvalidAt)
+                await reportDiagnosticAsync(new(FileDiagnosticCategory.Validation, "cross-field.invalid", "The fields are inconsistent."), cancellationToken).ConfigureAwait(false);
 
             ExecutionContext.Current.Should().BeSameAs(Context);
         }

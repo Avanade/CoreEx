@@ -57,12 +57,22 @@
             "Utf32BE"
           ]
         },
+        "headerPolicy": {
+          "type": "string",
+          "title": "Named header policy.",
+          "description": "Flat named-column mappings only; defaults to AllowAdditionalColumns.",
+          "enum": [
+            "AllowAdditionalColumns",
+            "Exact"
+          ]
+        },
         "mode": {
           "type": "string",
           "title": "Default processing mode.",
-          "description": "Defaults to ValidateOnly. Execution without handwritten behavior fails explicitly.",
+          "description": "Defaults to ValidateOnly. ValidateAndReport invokes the handwritten valid-unit report hook without executing business units.",
           "enum": [
             "ValidateOnly",
+            "ValidateAndReport",
             "ValidateThenExecute"
           ]
         },

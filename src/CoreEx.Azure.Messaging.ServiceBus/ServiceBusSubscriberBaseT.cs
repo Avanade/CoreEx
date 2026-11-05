@@ -72,6 +72,9 @@ public abstract class ServiceBusSubscriberBase<TValue>(ILogger<ServiceBusSubscri
             return InvalidDataResult<TValue>("An error occurred in the event subscriber during message body deserialization.", ex);
         }
 
+        if (AutoCleanValue)
+            value = Metadata.RuntimeMetadata.Clean(value, Entities.CleanArgs.Default);
+
         if (!ValueIsRequired)
             return Result.Ok(value!);   // Optional payloads intentionally allow null; use a nullable TValue when overriding ValueIsRequired.
 

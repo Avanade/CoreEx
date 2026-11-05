@@ -61,9 +61,14 @@ public class CodeGenConfig : ConfigRootBase<CodeGenConfig>
     [CodeGenProperty("Format", Title = "Explicit encoding.", Options = ["Utf8", "Utf16LE", "Utf16BE", "Utf32LE", "Utf32BE"], Description = "Defaults to Utf8. Strict runtime decoding; no BOM-based encoding switching.")]
     public string? Encoding { get; set; }
 
+    /// <summary>Gets or sets the flat named-header policy.</summary>
+    [JsonPropertyName("headerPolicy")]
+    [CodeGenProperty("Format", Title = "Named header policy.", Options = ["AllowAdditionalColumns", "Exact"], Description = "Flat named-column mappings only; defaults to AllowAdditionalColumns.")]
+    public string? HeaderPolicy { get; set; }
+
     /// <summary>Gets or sets the default processing mode.</summary>
     [JsonPropertyName("mode")]
-    [CodeGenProperty("Processing", Title = "Default processing mode.", Options = ["ValidateOnly", "ValidateThenExecute"], Description = "Defaults to ValidateOnly. Execution without handwritten behavior fails explicitly.")]
+    [CodeGenProperty("Processing", Title = "Default processing mode.", Options = ["ValidateOnly", "ValidateAndReport", "ValidateThenExecute"], Description = "Defaults to ValidateOnly. ValidateAndReport invokes the handwritten valid-unit report hook without executing business units.")]
     public string? Mode { get; set; }
 
     /// <summary>Gets or sets the default content-error policy.</summary>
@@ -143,6 +148,12 @@ public class CodeGenConfig : ConfigRootBase<CodeGenConfig>
     /// <summary>Gets the optional safe comment expression.</summary>
     public string CommentExpression => Comment is null ? "null" : OnRamp.Utility.CSharpSource.StringLiteral(Comment) + "[0]";
 
+    /// <summary>Gets the configured named-header policy expression.</summary>
+    public string HeaderPolicyExpression => "CsvHeaderPolicy." + HeaderPolicy;
+
+    /// <summary>Gets whether exact header validation is enabled for generated flat mappings.</summary>
+    public bool IsExactHeaderPolicy => HeaderPolicy == "Exact";
+
     /// <summary>Gets the generated top-level names, including handwritten extension-point ownership.</summary>
     public IEnumerable<string> TypeNames => Records!.SelectMany(x => new[] { x.TypeName, x.TypeName + "Mapping", x.TypeName + "Validator" })
         .Concat(Groups.Select(x => x.TypeName)).Concat(IsUnordered ? new[] { Name + "Record", Name + "HandlerBase" } : [])
@@ -172,7 +183,14 @@ public class CodeGenConfig : ConfigRootBase<CodeGenConfig>
         RuntimeNamespace = ConfigValidation.Namespace(this, nameof(RuntimeNamespace), RuntimeNamespace);
         Mode = DefaultWhereNull(Mode, () => "ValidateOnly");
         ErrorMode = DefaultWhereNull(ErrorMode, () => "FailFast");
+        HeaderPolicy = DefaultWhereNull(HeaderPolicy, () => "AllowAdditionalColumns");
         Encoding = DefaultWhereNull(Encoding, () => "Utf8");
+        if (Mode is not ("ValidateOnly" or "ValidateAndReport" or "ValidateThenExecute"))
+            throw new CodeGenException(this, nameof(Mode), "The processing mode must be ValidateOnly, ValidateAndReport, or ValidateThenExecute.");
+
+        if (ErrorMode is not ("FailFast" or "CollectErrors"))
+            throw new CodeGenException(this, nameof(ErrorMode), "The content policy must be FailFast or CollectErrors.");
+
         MaxInputBytes = DefaultWhereNull(MaxInputBytes, () => 64 * 1024 * 1024);
         MaxGroupRecords = DefaultWhereNull(MaxGroupRecords, () => 10_000);
         if (MaxInputBytes <= 0 || MaxGroupRecords <= 0)
@@ -191,13 +209,22 @@ public class CodeGenConfig : ConfigRootBase<CodeGenConfig>
         if (Records.Select(x => x.Name).Distinct(StringComparer.OrdinalIgnoreCase).Count() != Records.Count)
             throw new CodeGenException(this, nameof(Records), "Record names must be unique ignoring case.");
 
+        if (HeaderPolicy is not ("AllowAdditionalColumns" or "Exact"))
+            throw new CodeGenException(this, nameof(HeaderPolicy), "The named header policy must be AllowAdditionalColumns or Exact.");
+
         if (!IsRouted)
         {
             if (Records.Count != 1 || DiscriminatorIndex.HasValue || Records.Any(x => x.Match is not null || x.ErrorMode is not null))
                 throw new CodeGenException(this, nameof(Structure), "Flat input requires one record and no routing settings.");
+
+            if (HeaderPolicy == "Exact" && Records[0].Properties!.Any(x => x.Index.HasValue))
+                throw new CodeGenException(this, nameof(HeaderPolicy), "Exact header validation requires every flat property to use a named column selector.");
         }
         else
         {
+            if (HeaderPolicy != "AllowAdditionalColumns")
+                throw new CodeGenException(this, nameof(HeaderPolicy), "Named header policies apply only to flat files.");
+
             if (!DiscriminatorIndex.HasValue || DiscriminatorIndex < 0 || Records.Any(x => string.IsNullOrWhiteSpace(x.Match) || x.Properties!.Any(p => !p.Index.HasValue || p.Index == DiscriminatorIndex))
                 || Records.Select(x => x.Match).Distinct(StringComparer.Ordinal).Count() != Records.Count)
                 throw new CodeGenException(this, nameof(DiscriminatorIndex), "Routed files require a nonnegative discriminator, exact unique matches, and positional fields excluding the discriminator.");

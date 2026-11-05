@@ -61,7 +61,8 @@ public abstract class CsvFileProcessorBase<TUnit> : FileProcessor where TUnit : 
         cancellationToken.ThrowIfCancellationRequested();
         if (state.Errors > 0)
         {
-            var rejected = new FileProcessingSummary(context, FileProcessingOutcome.Rejected, state.Snapshot(), validationCompleted);
+            var rejectedOutcome = context.Mode == FileProcessingMode.ValidateAndReport ? FileProcessingOutcome.ReportedWithErrors : FileProcessingOutcome.Rejected;
+            var rejected = new FileProcessingSummary(context, rejectedOutcome, state.Snapshot(), validationCompleted);
             await OnRejectedAsync(context, rejected, cancellationToken).ConfigureAwait(false);
             return rejected;
         }
@@ -71,6 +72,13 @@ public abstract class CsvFileProcessorBase<TUnit> : FileProcessor where TUnit : 
             var validated = new FileProcessingSummary(context, FileProcessingOutcome.Validated, state.Snapshot(), true);
             await OnCompletedAsync(context, validated, cancellationToken).ConfigureAwait(false);
             return validated;
+        }
+
+        if (context.Mode == FileProcessingMode.ValidateAndReport)
+        {
+            var reported = new FileProcessingSummary(context, FileProcessingOutcome.Reported, state.Snapshot(), true);
+            await OnCompletedAsync(context, reported, cancellationToken).ConfigureAwait(false);
+            return reported;
         }
 
         var executionContext = OnCreateExecutionContext(context).ThrowIfNull();
@@ -99,6 +107,15 @@ public abstract class CsvFileProcessorBase<TUnit> : FileProcessor where TUnit : 
     /// <param name="parent">The file ambient context, when present.</param>
     /// <param name="unitContext">The fresh registered context.</param>
     protected virtual void OnConfigureUnitContext(FileProcessingContext fileContext, TUnit unit, ExecutionContext? parent, ExecutionContext unitContext) { }
+
+    /// <summary>Reports one fully validated unit in ValidateAndReport mode; the awaited hook is never called for invalid units.</summary>
+    /// <param name="context">The file invocation context under its file-level ambient execution context.</param>
+    /// <param name="unit">The mapped or projected unit that passed every unit-level validation check.</param>
+    /// <param name="info">The unit's physical/logical location and optional route type.</param>
+    /// <param name="cancellationToken">The processing cancellation token.</param>
+    /// <returns>The asynchronous report operation; operational faults and cancellation propagate.</returns>
+    protected virtual Task OnValidatedUnitAsync(FileProcessingContext context, TUnit unit, FileUnitInfo info, CancellationToken cancellationToken)
+        => throw new NotSupportedException("ValidateAndReport requires a processor overriding OnValidatedUnitAsync.");
 
     /// <summary>Gets the maximum parser records retained or inspected in one root group.</summary>
     private protected long MaxGroupRecords => _options.MaxGroupRecords;
@@ -216,7 +233,16 @@ public abstract class CsvFileProcessorBase<TUnit> : FileProcessor where TUnit : 
                 (parent, unitContext) => OnConfigureUnitContext(context, unit, parent, unitContext), cancellationToken).ConfigureAwait(false);
 
         if (!invalid)
+        {
             state.Validated = checked(state.Validated + 1);
+
+            if (context.Mode == FileProcessingMode.ValidateAndReport)
+            {
+                state.Update();
+                await OnValidatedUnitAsync(context, unit, new(location, recordType), cancellationToken).ConfigureAwait(false);
+                state.Reported = checked(state.Reported + 1);
+            }
+        }
 
         state.Update();
         return !invalid;
@@ -276,11 +302,14 @@ public abstract class CsvFileProcessorBase<TUnit> : FileProcessor where TUnit : 
         /// <summary>Gets or sets the informational diagnostic count.</summary>
         public long Information { get; set; }
 
+        /// <summary>Gets or sets the number of successfully completed validated-unit reporting hooks.</summary>
+        public long Reported { get; set; }
+
         /// <summary>Gets or sets the original execution Result.</summary>
         public Result ExecutionResult { get; set; }
 
         /// <summary>Creates an immutable progress snapshot.</summary>
-        public FileProcessingProgress Snapshot() => new(Bytes, Records, Invalid, Validated, Attempted, Executed, Errors, Warnings, Information);
+        public FileProcessingProgress Snapshot() => new(Bytes, Records, Invalid, Validated, Attempted, Executed, Errors, Warnings, Information, Reported);
 
         /// <summary>Updates caller-visible partial progress before callbacks and faults.</summary>
         public void Update() => context.Progress = Snapshot();

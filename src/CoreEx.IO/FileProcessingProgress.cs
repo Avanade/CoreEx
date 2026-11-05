@@ -13,7 +13,8 @@ public sealed class FileProcessingProgress
     /// <param name="errorCount">The error diagnostics emitted during validation.</param>
     /// <param name="warningCount">The warning diagnostics emitted during validation.</param>
     /// <param name="informationCount">The informational diagnostics emitted during validation.</param>
-    public FileProcessingProgress(long bytesRead = 0, long recordsRead = 0, long invalidRecords = 0, long unitsValidated = 0, long unitsAttempted = 0, long unitsExecuted = 0, long errorCount = 0, long warningCount = 0, long informationCount = 0)
+    /// <param name="unitsReported">The valid-unit reporting hooks that returned successfully.</param>
+    public FileProcessingProgress(long bytesRead = 0, long recordsRead = 0, long invalidRecords = 0, long unitsValidated = 0, long unitsAttempted = 0, long unitsExecuted = 0, long errorCount = 0, long warningCount = 0, long informationCount = 0, long unitsReported = 0)
     {
         bytesRead.ThrowIfLessThanZero();
         recordsRead.ThrowIfLessThanZero();
@@ -24,6 +25,8 @@ public sealed class FileProcessingProgress
         errorCount.ThrowIfLessThanZero();
         warningCount.ThrowIfLessThanZero();
         informationCount.ThrowIfLessThanZero();
+        unitsReported.ThrowIfLessThanZero();
+
         if (invalidRecords > recordsRead)
             throw new ArgumentException("Invalid records cannot exceed records read.", nameof(invalidRecords));
 
@@ -35,6 +38,9 @@ public sealed class FileProcessingProgress
 
         if (unitsExecuted > unitsAttempted)
             throw new ArgumentException("Executed units cannot exceed attempted units.", nameof(unitsExecuted));
+
+        if (unitsReported > unitsValidated)
+            throw new ArgumentException("Reported units cannot exceed validated units.", nameof(unitsReported));
 
         if (invalidRecords > 0 && errorCount == 0)
             throw new ArgumentException("Invalid records require a content error.", nameof(errorCount));
@@ -48,6 +54,7 @@ public sealed class FileProcessingProgress
         ErrorCount = errorCount;
         WarningCount = warningCount;
         InformationCount = informationCount;
+        UnitsReported = unitsReported;
     }
 
     /// <summary>Gets the validation-pass bytes consumed; excludes replay reads.</summary>
@@ -76,4 +83,7 @@ public sealed class FileProcessingProgress
 
     /// <summary>Gets the emitted validation informational count.</summary>
     public long InformationCount { get; }
+
+    /// <summary>Gets the validated-unit reporting hooks that returned successfully.</summary>
+    public long UnitsReported { get; }
 }

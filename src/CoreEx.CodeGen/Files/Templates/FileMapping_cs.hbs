@@ -12,7 +12,7 @@ namespace {{Root.RuntimeNamespace}};
 public static class {{TypeName}}Mapping
 {
     /// <summary>Creates a typed CSV mapping.</summary>
-    public static CsvFileMapping<{{TypeName}}> Create() => new CsvFileMapping<{{TypeName}}>()
+    public static CsvFileMapping<{{TypeName}}> Create() => new CsvFileMapping<{{TypeName}}>{{#if Root.IsExactHeaderPolicy}}({{{Root.HeaderPolicyExpression}}}){{else}}(){{/if}}
 {{#each Properties}}
         .MapProperty({{{SelectorLiteral}}}, x => x.{{Name}}, {{{Converter}}}, {{{IndexExpression}}}){{#if @last}};{{/if}}
 {{/each}}

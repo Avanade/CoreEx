@@ -34,13 +34,14 @@ Property | Description
 `quote` | Quote.<br/>&dagger; One character; defaults to double quote.
 `comment` | Comment marker.<br/>&dagger; One character at record start; omitted by default.
 `encoding` | Explicit encoding. Valid options are: `Utf8`, `Utf16LE`, `Utf16BE`, `Utf32LE`, `Utf32BE`.<br/>&dagger; Defaults to Utf8. Strict runtime decoding; no BOM-based encoding switching.
+`headerPolicy` | Named header policy. Valid options are: `AllowAdditionalColumns`, `Exact`.<br/>&dagger; Flat named-column mappings only; defaults to AllowAdditionalColumns. Exact requires every mapped property to use a named column selector and rejects extra header columns.
 
 ## Processing
 Default invocation policy and operating budgets.
 
 Property | Description
 -|-
-`mode` | Default processing mode. Valid options are: `ValidateOnly`, `ValidateThenExecute`.<br/>&dagger; Defaults to ValidateOnly. Execution without handwritten behavior fails explicitly.
+`mode` | Default processing mode. Valid options are: `ValidateOnly`, `ValidateAndReport`, `ValidateThenExecute`.<br/>&dagger; Defaults to ValidateOnly. ValidateAndReport awaits the generated processor's overridden `OnValidatedUnitAsync` for units that pass all unit-level validation, without business execution; ValidateThenExecute executes only after whole-file acceptance.
 `errorMode` | Default content policy. Valid options are: `FailFast`, `CollectErrors`.<br/>&dagger; Defaults to FailFast.
 `maxInputBytes` | Positive input-byte budget.<br/>&dagger; Defaults to 67108864 (64 MiB).
 `maxGroupRecords` | Positive records-per-root budget.<br/>&dagger; Defaults to 10000, including the root.

@@ -53,6 +53,7 @@ There are three distinct subscriber scenarios — determine which applies before
 - **Choose settlement explicitly.** CoreEx defaults `ValidationException`/`BusinessException` to `CompleteAsError` (log, then complete/acknowledge the broker message), not retry or dead-letter. Invalid payloads also default to `CompleteAsError`. Confirm the intended disposition for business/validation failures and invalid payloads; do not silently rely on these defaults.
 - **Untyped subscriber** (`SubscribedBase`) — message carries data in the key only; extract with `@event.Key.Required()`
 - **Typed subscriber** (`SubscribedBase<TValue>`) — message carries a serialised payload; set `ValueValidator` to validate before `OnReceiveAsync`
+- Payload cleanup defaults off because events are generally canonical already, making it typically redundant (unlike WebApi request cleanup). `AutoCleanValue` on `SubscribedBase` is a nullable per-handler/message-type override: null inherits the owner's bool, true enables, false disables. Set it in the constructor only where the boundary owns normalization; see the [workflow](references/workflow.md#payload-cleanup-policy).
 - Do not use `[JsonRequired]` on subscriber payload contracts; use `ValueValidator` for required fields, with nullable properties when omission must be distinguished from a supplied default
 - `[ScopedService]` + one or more `[Subscribe("subject")]` attributes on every subscriber class
 - No `Program.cs` edit needed — `AddSubscribersUsing<T>()` discovers all `[Subscribe]`-decorated classes automatically

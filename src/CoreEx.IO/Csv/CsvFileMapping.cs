@@ -7,8 +7,21 @@ public sealed class CsvFileMapping<TRecord> where TRecord : class, new()
 {
     private readonly List<Column> _columns = [];
 
+    /// <summary>Initializes a mapping with the selected named-header policy.</summary>
+    /// <param name="headerPolicy">The header policy; additional columns are allowed by default.</param>
+    public CsvFileMapping(CsvHeaderPolicy headerPolicy = CsvHeaderPolicy.AllowAdditionalColumns)
+    {
+        if (!Enum.IsDefined(headerPolicy))
+            throw new ArgumentOutOfRangeException(nameof(headerPolicy));
+
+        HeaderPolicy = headerPolicy;
+    }
+
     /// <summary>Gets whether at least one named selector requires a column-name header.</summary>
     public bool RequiresHeader => _columns.Any(x => !x.Index.HasValue);
+
+    /// <summary>Gets the policy applied to a named header.</summary>
+    public CsvHeaderPolicy HeaderPolicy { get; }
 
     /// <summary>Maps a named header or zero-based positional field to a writable property.</summary>
     /// <typeparam name="TProperty">The property type.</typeparam>
@@ -51,7 +64,10 @@ public sealed class CsvFileMapping<TRecord> where TRecord : class, new()
         if (_columns.Count == 0)
             throw new InvalidOperationException("At least one CSV column must be mapped.");
 
-        return new InputMapping([.. _columns]).Map;
+        if (HeaderPolicy == CsvHeaderPolicy.Exact && _columns.Any(x => x.Index.HasValue))
+            throw new InvalidOperationException("Exact header validation requires every mapped column to use a named selector.");
+
+        return new InputMapping([.. _columns], HeaderPolicy).Map;
     }
 
     /// <summary>Converts and assigns one decoded field.</summary>
@@ -61,9 +77,10 @@ public sealed class CsvFileMapping<TRecord> where TRecord : class, new()
     private sealed record Column(string Name, int? Index, string PropertyPath, AssignField Assign);
 
     /// <summary>Resolves headers and maps decoded fields without exception control flow for content errors.</summary>
-    private sealed class InputMapping(Column[] columns)
+    private sealed class InputMapping(Column[] columns, CsvHeaderPolicy headerPolicy)
     {
         private readonly bool _requiresHeader = columns.Any(x => !x.Index.HasValue);
+        private readonly HashSet<string> _columnNames = new(columns.Select(x => x.Name), StringComparer.OrdinalIgnoreCase);
         private int[]? _indices;
         private bool _headerRead;
 
@@ -76,8 +93,13 @@ public sealed class CsvFileMapping<TRecord> where TRecord : class, new()
                 var headers = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
                 var diagnostics = new List<FileDiagnostic>();
                 for (var index = 0; index < reader.FieldCount; index++)
+                {
                     if (!headers.TryAdd(reader.GetString(index), index))
                         diagnostics.Add(new(FileDiagnosticCategory.Structure, "csv.header.duplicate", "A column-name header is duplicated.", location: new(reader.LineNumber, fieldIndex: index)));
+
+                    if (headerPolicy == CsvHeaderPolicy.Exact && !_columnNames.Contains(reader.GetString(index)))
+                        diagnostics.Add(new(FileDiagnosticCategory.Structure, "csv.header.unexpected", "The column-name header contains an unexpected column.", location: new(reader.LineNumber, fieldIndex: index, fieldName: reader.GetString(index))));
+                }
 
                 foreach (var column in columns.Where(x => !x.Index.HasValue))
                     if (!headers.ContainsKey(column.Name))

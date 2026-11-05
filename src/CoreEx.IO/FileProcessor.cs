@@ -26,15 +26,15 @@ public abstract class FileProcessor
     /// <remarks>The default performs no reporting; summary counts must still record diagnostics.</remarks>
     protected virtual Task OnDiagnosticAsync(FileProcessingContext context, FileDiagnostic diagnostic, CancellationToken cancellationToken) => Task.CompletedTask;
 
-    /// <summary>Finalizes content rejection, including incomplete validation, under the file-level context.</summary>
+    /// <summary>Finalizes content rejection or report-with-errors, including incomplete validation, under the file-level context.</summary>
     /// <param name="context">The file invocation context.</param>
-    /// <param name="summary">The rejected summary with zero business execution.</param>
+    /// <param name="summary">The unsuccessful content summary with zero business execution.</param>
     /// <param name="cancellationToken">The processing cancellation token.</param>
     /// <returns>The asynchronous finalization operation; failures propagate.</returns>
     /// <remarks>Never invoked for execution failure, operational faults, or cancellation.</remarks>
     protected virtual Task OnRejectedAsync(FileProcessingContext context, FileProcessingSummary summary, CancellationToken cancellationToken) => Task.CompletedTask;
 
-    /// <summary>Finalizes successful completion of the requested processing mode under the file-level context.</summary>
+    /// <summary>Finalizes successful validation, reporting, or execution under the file-level context.</summary>
     /// <param name="context">The file invocation context.</param>
     /// <param name="summary">The successfully validated or executed summary.</param>
     /// <param name="cancellationToken">The processing cancellation token.</param>

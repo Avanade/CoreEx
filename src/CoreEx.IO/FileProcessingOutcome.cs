@@ -13,5 +13,11 @@ public enum FileProcessingOutcome
     Rejected,
 
     /// <summary>A business execution returned a failed Result; earlier units may have committed.</summary>
-    ExecutionFailed
+    ExecutionFailed,
+
+    /// <summary>Validation completed successfully and every validated unit was reported.</summary>
+    Reported,
+
+    /// <summary>Validation found content errors after reporting zero or more valid units; no business execution occurred.</summary>
+    ReportedWithErrors
 }

@@ -17,14 +17,18 @@ public class CsvFileProcessorInvoker(IServiceProvider? serviceProvider = null) :
             try
             {
                 var summary = await process(ct).ConfigureAwait(false);
+
                 outcome = summary.Outcome switch
                 {
                     FileProcessingOutcome.Validated => "validated",
                     FileProcessingOutcome.Executed => "executed",
                     FileProcessingOutcome.Rejected => "rejected",
                     FileProcessingOutcome.ExecutionFailed => "execution-failed",
+                    FileProcessingOutcome.Reported => "reported",
+                    FileProcessingOutcome.ReportedWithErrors => "reported-with-errors",
                     _ => throw new InvalidOperationException("Unknown file processing outcome.")
                 };
+
                 return summary;
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested)
@@ -47,13 +51,15 @@ public class CsvFileProcessorInvoker(IServiceProvider? serviceProvider = null) :
                 tracer.Activity?.SetTag("csv.units_validated", progress.UnitsValidated);
                 tracer.Activity?.SetTag("csv.units_attempted", progress.UnitsAttempted);
                 tracer.Activity?.SetTag("csv.units_executed", progress.UnitsExecuted);
+                tracer.Activity?.SetTag("csv.units_reported", progress.UnitsReported);
                 tracer.Activity?.SetTag("csv.error_count", progress.ErrorCount);
-                if (outcome is "rejected" or "execution-failed")
-                    Logger?.LogWarning("CSV {Outcome}. Definition: {DefinitionName}; records: {RecordsRead}; validated: {UnitsValidated}; executed: {UnitsExecuted}; errors: {ErrorCount}.",
-                        outcome, context.Identity.DefinitionName, progress.RecordsRead, progress.UnitsValidated, progress.UnitsExecuted, progress.ErrorCount);
+
+                if (outcome is "rejected" or "reported-with-errors" or "execution-failed")
+                    Logger?.LogWarning("CSV {Outcome}. Definition: {DefinitionName}; records: {RecordsRead}; validated: {UnitsValidated}; executed: {UnitsExecuted}; reported: {UnitsReported}; errors: {ErrorCount}.",
+                        outcome, context.Identity.DefinitionName, progress.RecordsRead, progress.UnitsValidated, progress.UnitsExecuted, progress.UnitsReported, progress.ErrorCount);
                 else
-                    Logger?.LogInformation("CSV {Outcome}. Definition: {DefinitionName}; records: {RecordsRead}; validated: {UnitsValidated}; executed: {UnitsExecuted}; errors: {ErrorCount}.",
-                        outcome, context.Identity.DefinitionName, progress.RecordsRead, progress.UnitsValidated, progress.UnitsExecuted, progress.ErrorCount);
+                    Logger?.LogInformation("CSV {Outcome}. Definition: {DefinitionName}; records: {RecordsRead}; validated: {UnitsValidated}; executed: {UnitsExecuted}; reported: {UnitsReported}; errors: {ErrorCount}.",
+                        outcome, context.Identity.DefinitionName, progress.RecordsRead, progress.UnitsValidated, progress.UnitsExecuted, progress.UnitsReported, progress.ErrorCount);
 
                 CsvProcessingTelemetry.RecordFile(outcome);
             }

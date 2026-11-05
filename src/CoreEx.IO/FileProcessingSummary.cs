@@ -1,6 +1,6 @@
 namespace CoreEx.IO;
 
-/// <summary>Describes completed processing or an explicit business execution failure without diagnostic history.</summary>
+/// <summary>Describes validation, reporting, rejection, or an explicit business execution failure without diagnostic history.</summary>
 public sealed class FileProcessingSummary
 {
     /// <summary>Initializes an outcome snapshot and rejects contradictory success/failure states.</summary>
@@ -16,18 +16,32 @@ public sealed class FileProcessingSummary
         if (!Enum.IsDefined(outcome))
             throw new ArgumentOutOfRangeException(nameof(outcome));
 
-        if (outcome != FileProcessingOutcome.Rejected && (!validationCompleted || progress.ErrorCount != 0 || progress.InvalidRecords != 0))
+        var requiresAcceptedValidation = outcome is FileProcessingOutcome.Validated or FileProcessingOutcome.Executed or FileProcessingOutcome.ExecutionFailed or FileProcessingOutcome.Reported;
+        var reportOutcome = outcome is FileProcessingOutcome.Reported or FileProcessingOutcome.ReportedWithErrors;
+        if (requiresAcceptedValidation && (!validationCompleted || progress.ErrorCount != 0 || progress.InvalidRecords != 0))
             throw new ArgumentException("Acceptance requires completed validation with no content errors.", nameof(outcome));
 
         if (outcome == FileProcessingOutcome.Rejected && (progress.ErrorCount == 0 || progress.UnitsAttempted != 0))
             throw new ArgumentException("Rejection requires a content error and zero execution.", nameof(outcome));
 
+        if (outcome == FileProcessingOutcome.ReportedWithErrors && (progress.ErrorCount == 0 || progress.UnitsAttempted != 0))
+            throw new ArgumentException("A report with errors requires content errors and zero execution.", nameof(outcome));
+
         if ((outcome == FileProcessingOutcome.Validated && context.Mode != FileProcessingMode.ValidateOnly)
+            || (reportOutcome && context.Mode != FileProcessingMode.ValidateAndReport)
+            || (outcome == FileProcessingOutcome.Rejected && context.Mode == FileProcessingMode.ValidateAndReport)
             || (outcome is FileProcessingOutcome.Executed or FileProcessingOutcome.ExecutionFailed && context.Mode != FileProcessingMode.ValidateThenExecute))
             throw new ArgumentException("The outcome must match the requested processing mode.", nameof(outcome));
 
-        if (outcome == FileProcessingOutcome.Validated && progress.UnitsAttempted != 0)
-            throw new ArgumentException("Validation-only processing cannot execute units.", nameof(progress));
+        if (outcome is FileProcessingOutcome.Validated or FileProcessingOutcome.Reported or FileProcessingOutcome.ReportedWithErrors or FileProcessingOutcome.Rejected
+            && progress.UnitsAttempted != 0)
+            throw new ArgumentException("Only execution modes can attempt business units.", nameof(progress));
+
+        if (outcome == FileProcessingOutcome.Reported && progress.UnitsReported != progress.UnitsValidated)
+            throw new ArgumentException("Successful reporting must complete every validated-unit hook.", nameof(progress));
+
+        if (!reportOutcome && progress.UnitsReported != 0)
+            throw new ArgumentException("Only report outcomes can include reported units.", nameof(progress));
 
         if (outcome == FileProcessingOutcome.Executed && progress.UnitsExecuted != progress.UnitsValidated)
             throw new ArgumentException("Successful execution must complete every accepted unit.", nameof(progress));
@@ -62,7 +76,7 @@ public sealed class FileProcessingSummary
     public bool ValidationCompleted { get; }
 
     /// <summary>Gets whether the requested processing mode completed successfully.</summary>
-    public bool IsSuccess => Outcome is FileProcessingOutcome.Validated or FileProcessingOutcome.Executed;
+    public bool IsSuccess => Outcome is FileProcessingOutcome.Validated or FileProcessingOutcome.Executed or FileProcessingOutcome.Reported;
 
     /// <summary>Gets the original execution Result; failure is available without throwing or losing progress.</summary>
     public Result ExecutionResult { get; }

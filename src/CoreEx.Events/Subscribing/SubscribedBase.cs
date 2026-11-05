@@ -41,6 +41,12 @@ public abstract partial class SubscribedBase
     public JsonSerializerOptions? JsonSerializerOptions { get; set; }
 
     /// <summary>
+    /// Gets or sets the optional automatic payload cleanup override.
+    /// </summary>
+    /// <remarks>Null inherits <see cref="EventSubscriberBase.AutoCleanValue"/> (false by default). Applies only when deserializing a payload; keys and envelope metadata are unchanged.</remarks>
+    public bool? AutoCleanValue { get; set; }
+
+    /// <summary>
     /// Receives and processes the <paramref name="event"/>.
     /// </summary>
     /// <param name="event">The <see cref="EventData"/>.</param>
@@ -69,5 +75,5 @@ public abstract partial class SubscribedBase
     /// <returns>The deserialized value within a <see cref="Result{T}.Value"/>.</returns>
     /// <remarks>Where an invalid data error (see <see cref="InvalidDataHandling"/>) occurs a <see cref="EventSubscriberReceiveException"/> will be thrown.</remarks>
     protected Result<TValue> DeserializeValue<TValue>(EventData @event, EventSubscriberArgs args, bool valueIsRequired)
-        => args.Owner!.DeserializeValue<TValue>(@event, valueIsRequired, InvalidDataHandling, JsonSerializerOptions);
+        => args.Owner!.DeserializeValue<TValue>(@event, valueIsRequired, InvalidDataHandling, JsonSerializerOptions, AutoCleanValue);
 }

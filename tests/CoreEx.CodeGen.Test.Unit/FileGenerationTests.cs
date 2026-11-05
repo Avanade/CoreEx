@@ -167,6 +167,19 @@ public class FileGenerationTests
     }
 
     [Test]
+    public async Task FlatDefinitionGeneratesExactHeaderAndReportMode()
+    {
+        var definition = Flat().Replace("errorMode: CollectErrors", "errorMode: CollectErrors\nheaderPolicy: Exact\nmode: ValidateAndReport", StringComparison.Ordinal);
+        Write("report-file.yaml", definition);
+        await FileGenerationBatch.GenerateAsync(Args());
+
+        System.IO.File.ReadAllText(Path.Combine(_runtime, "Files", "Flat", "FlatRowMapping.g.cs")).Should()
+            .Contain("new CsvFileMapping<FlatRow>(CsvHeaderPolicy.Exact)");
+        System.IO.File.ReadAllText(Path.Combine(_runtime, "Files", "Flat", "FlatProcessor.g.cs")).Should()
+            .Contain("FileProcessingMode mode = FileProcessingMode.ValidateAndReport");
+    }
+
+    [Test]
     public async Task NamedValidationLabelsUseSourceColumnWithoutChangingPropertyIdentity()
     {
         Write("flat-file.yaml", Flat().Replace("column: Code", "column: 'Supplier code'"));

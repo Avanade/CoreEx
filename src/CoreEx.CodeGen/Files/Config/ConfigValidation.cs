@@ -5,9 +5,9 @@ internal static partial class ConfigValidation
 {
     private static readonly HashSet<string> _generatedTypeReservations = new(("ArgumentException Array CancellationToken CultureInfo DateOnly DateTime DateTimeKind DateTimeStyles Func Guid " +
         "IReadOnlyList IServiceProvider NotSupportedException ReadOnlySpan Regex RegexOptions GeneratedRegex GeneratedRegexAttribute Result ScopedService ScopedServiceAttribute Stream Task Validator " +
-        "CsvAggregateNode CsvFieldConverters CsvFileMapping CsvFileOptions CsvFileProcessor CsvHierarchyContext CsvHierarchyDefinition CsvHierarchyFileProcessor CsvHierarchyNode " +
+        "CsvAggregateNode CsvFieldConverters CsvFileMapping CsvFileOptions CsvFileProcessor CsvHeaderPolicy CsvHierarchyContext CsvHierarchyDefinition CsvHierarchyFileProcessor CsvHierarchyNode " +
         "CsvRecordCardinality CsvRecordPosition CsvRecordRoute CsvRoutedContext CsvRoutedDefinition CsvRoutedFileProcessor CsvRoutedRecord " +
-        "FileDiagnostic FileErrorMode FileProcessingContext FileProcessingIdentity FileProcessingMode FileProcessingSummary FileUnitHandler").Split(' '), StringComparer.Ordinal);
+        "FileDiagnostic FileErrorMode FileProcessingContext FileProcessingIdentity FileProcessingMode FileProcessingSummary FileUnitHandler FileUnitInfo").Split(' '), StringComparer.Ordinal);
 
     private static readonly HashSet<string> _keywords = new(("abstract as base bool break byte case catch char checked class const continue decimal default delegate do double else enum event " +
         "explicit extern false finally fixed float for foreach goto if implicit in int interface internal is lock long namespace new null object operator out override params private protected " +
