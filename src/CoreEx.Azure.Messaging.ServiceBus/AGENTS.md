@@ -24,6 +24,8 @@ builder.Services.AddAzureServiceBusPublisher((_, c) =>
 
 Changing a destination's session strategy or bucket count can move the same key to a different session. A rolling deployment with mixed producer policies can therefore break per-key ordering. Pause all affected producers (including direct publishers), drain upstream outboxes and affected broker queues/subscriptions and in-flight handlers, then switch policies consistently before resuming. Changing receiver concurrency alone does not change the producer's key-to-session mapping.
 
+Default publisher send retries use `ServiceBusErrorClassifier.IsTransient`. At the publication boundary, classifier-confirmed Service Bus failures become generic CoreEx `TransientException` failures with the final broker exception retained as `InnerException` and error logging enabled; permanent failures and caller cancellation remain unchanged. Batch creation is translated by the same boundary but is outside the send retry pipeline. CoreEx WebApi defaults to HTTP 503 and `Retry-After: 90` for this exception. Acceptance may be unconfirmed or partial, so retries require stable message identities and application-level idempotency; this is not a rollback guarantee. A committed outbox-backed API request is not retroactively failed by a later relay publish failure.
+
 ## Subscribe Host Wiring
 
 ```csharp

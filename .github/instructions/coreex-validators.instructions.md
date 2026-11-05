@@ -118,7 +118,7 @@ For `Validator<T, TSelf>` (no injection), call via the static `Default` singleto
 await ProductValidator.Default.ValidateAndThrowAsync(product, cancellationToken);
 
 // Result style — returns Result<T> for pipeline composition
-var result = await ProductValidator.Default.ValidateWithResultAsync(product, cancellationToken);
+var result = await ProductValidator.Default.ValidateWithResultAsync(product, cancellationToken: cancellationToken);
 ```
 
 For `Validator<T>` (with injection), the instance is resolved from DI and invoked the same way:
@@ -126,6 +126,10 @@ For `Validator<T>` (with injection), the instance is resolved from DI and invoke
 ```csharp
 await _movementRequestValidator.ValidateAndThrowAsync(request, cancellationToken);
 ```
+
+For per-call exception metadata, use `ValidateAndThrowAsync(value, ex => ex.ErrorCode = "invalid-request", cancellationToken)` or the equivalent `ValidateWithResultAsync` overload instead of catch-and-rethrow. Configuration runs once only on failure and is not retained on the validator. Convenience overloads require a non-null action and an explicit token; `(value, args, configure, cancellationToken)` also supports validation arguments and a nullable action. Existing positional `(value, null, cancellationToken)` calls must use `args: null` to avoid overload ambiguity. Without configuration, pass the token by name to `ValidateWithResultAsync(value, cancellationToken: cancellationToken)`.
+
+For deliberately inspected `ValidateAsync` results, use `context.ThrowOnError(ex => ex.ErrorCode = "invalid-request")`. This `IValidationResult` overload requires a non-null action and configures only a `ValidationException` produced by `ToException()`; it returns the same result on success and propagates other exception types unchanged. Do not reconstruct exceptions from messages or store the callback on a shared validator/context.
 
 ## Common Rules
 

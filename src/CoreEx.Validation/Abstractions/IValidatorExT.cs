@@ -28,6 +28,29 @@ public interface IValidatorEx<T> : IValidatorEx, IValidator<T>
     Task ValidateAndThrowAsync(T value, ValidationArgs? args, CancellationToken cancellationToken);
 
     /// <summary>
+    /// Validates the value and configures the <see cref="ValidationException"/> before throwing when validation fails.
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <param name="args">An optional <see cref="ValidationArgs"/>.</param>
+    /// <param name="configure">The optional configuration action, invoked once only when validation fails.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+    async Task ValidateAndThrowAsync(T value, ValidationArgs? args, Action<ValidationException>? configure, CancellationToken cancellationToken)
+    {
+        var context = await ValidateAsync(value, args, cancellationToken).ConfigureAwait(false);
+        if (context.HasErrors)
+            Result.ValidationError(context.Messages, configure).ThrowOnError();
+    }
+
+    /// <summary>
+    /// Validates the value and configures the exception before throwing when validation fails.
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <param name="configure">The configuration action, invoked once only when validation fails.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+    Task ValidateAndThrowAsync(T value, Action<ValidationException> configure, CancellationToken cancellationToken)
+        => ValidateAndThrowAsync(value, null, configure.ThrowIfNull(), cancellationToken);
+
+    /// <summary>
     /// Validate using the <paramref name="context"/>.
     /// </summary>
     /// <param name="context">The <see cref="IValidationContext{T}"/>.</param>

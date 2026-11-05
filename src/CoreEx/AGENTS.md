@@ -31,6 +31,12 @@ For lookup failures, classify by identifier role: missing target/explicit child 
 
 Request/input validity uses validation errors; aggregate/entity/value-object business invariants use `BusinessException` / `Result.BusinessError` with domain messages/codes and no request DTO dependencies or JSON paths. Both normally map to 400 but are different semantic contracts. Keep domain guards after request validation; Application may selectively map known domain failures to fields, never blanket-convert them. Programming misuse retains argument/invalid-operation errors; shared guard helpers keep their semantics. See [domain guidance](../../samples/docs/domain-layer.md#business-invariants-versus-request-validation).
 
+For existing `IValidationResult` values, use `result.ThrowOnError(ex => ex.ErrorCode = "invalid-request")` to configure a validation failure before throwing. The action must be non-null and runs once only when `ToException()` returns a `ValidationException`; other exception types are preserved, not reconstructed from messages. Success returns the same result without configuration. The default interface implementation keeps custom implementers compatible; `MultiValidatorResult` also exposes a concrete fluent overload.
+
+## Object Cleaning
+
+`Entities.Cleaner.Clean(entity)` writes cleaned string and `DateTime` replacements back to writable properties on generated contracts and reflection-backed POCOs, including changes to date kind without different ticks. Do not add `[String]` or `[DateTime]` setters merely to enable object cleanup; use them for assignment-time or property-specific normalization. Preserve read-only/cleanup exclusions, nested graph identity and existing `CleanAndDefault` controls. See [object cleaning](./Entities/README.md#object-cleaning).
+
 ## ExecutionContext
 
 `ExecutionContext` is `AsyncLocal`-scoped and carries user identity, tenant ID, timestamp, and operation type for the lifetime of a request. Access it via DI injection, or use the static accessors when outside the DI graph.

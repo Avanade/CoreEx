@@ -164,6 +164,14 @@ public abstract partial class ValidatorBase<TEntity, TSelf> : IValidatorEx<TEnti
         => throw new NotSupportedException($"{nameof(ValidateAndThrowAsync)} is not supported by the {nameof(ValidatorBase<,>)} class.");
 
     /// <inheritdoc/>
+    public virtual Task ValidateAndThrowAsync(TEntity value, ValidationArgs? args, Action<ValidationException>? configure, CancellationToken cancellationToken)
+        => throw new NotSupportedException($"{nameof(ValidateAndThrowAsync)} is not supported by the {nameof(ValidatorBase<,>)} class.");
+
+    /// <inheritdoc/>
+    public Task ValidateAndThrowAsync(TEntity value, Action<ValidationException> configure, CancellationToken cancellationToken)
+        => ValidateAndThrowAsync(value, null, configure.ThrowIfNull(), cancellationToken);
+
+    /// <inheritdoc/>
     Task IValidatorEx<TEntity>.ValidateAsync(IValidationContext<TEntity> context, CancellationToken cancellationToken)
         => ValidateAsync(context, cancellationToken);
 

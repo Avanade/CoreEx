@@ -37,6 +37,10 @@ Contracts live **flat in the root of the `*.Contracts` project** — both hand-a
 </ItemGroup>
 ```
 
+## Object Cleanup versus Generated Setters
+
+`Cleaner.Clean(value)` applies configured string and `DateTime` normalization to ordinary writable properties on both generated contracts and reflection-backed POCOs. `[String]` and `[DateTime]` generated setters are for assignment-time or property-specific normalization, not prerequisites for object cleanup. Respect read-only properties, cleanup exclusions and existing `CleanAndDefault` controls; do not normalize an entire object graph by indiscriminately assigning every property.
+
 ## Root vs. Subordinate (contract or entity)
 
 Note that the terms Contract and Entity are interchangeable in this context. The conventions below apply to all DTOs that represent a resource, whether they are persisted entities or plain request/response models.

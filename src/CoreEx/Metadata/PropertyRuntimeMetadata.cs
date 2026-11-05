@@ -96,15 +96,28 @@ public readonly struct PropertyRuntimeMetadata<TEntity, TProperty>(string name, 
         if (clean == CleanOption.None)
             return;
 
-        var val = Cleaner.Clean(GetValue(entity), args);
-        if (_isWrappedValueCleaner && !IsReadOnly && val is TProperty wrappedValue)
-            SetValue(entity, wrappedValue);
-
+        var value = GetValue(entity);
+        var val = Cleaner.Clean(value, args);
         if (IsReadOnly)
             return;
 
         if ((clean == CleanOption.CleanAndDefault || !_isRuntimeMetadataProperty) && RuntimeMetadata.AreEqual(val, DefaultValue))
             SetValue(entity, DefaultValue!);
+        else if (value is string text)
+        {
+            if (val is not string cleanedText || text != cleanedText)
+                SetValue(entity, val!); // String cleaning may return null even for a non-nullable property.
+        }
+        else if (val is TProperty cleanedValue)
+        {
+            // DateTime equality ignores Kind, while graph values must be compared by identity.
+            var changed = value is DateTime date && val is DateTime cleanedDate
+                ? date.Ticks != cleanedDate.Ticks || date.Kind != cleanedDate.Kind
+                : _isWrappedValueCleaner || !typeof(TProperty).IsValueType && !ReferenceEquals(value, val);
+
+            if (changed)
+                SetValue(entity, cleanedValue);
+        }
     }
 
     /// <inheritdoc/>

@@ -52,6 +52,8 @@ Resolve requirements from the request, existing contract, and validator before a
 | FluentValidation-style preferred | `AbstractValidator<T, TSelf>` | `RuleFor(x => ...)` / `NotEmpty()` / `IsValid()` — still CoreEx; has `Default` |
 
 **Key rules at a glance:**
+- Configure failure metadata per call with `ValidateAndThrowAsync(value, ex => ex.ErrorCode = "invalid-request", cancellationToken)` or the equivalent `ValidateWithResultAsync` overload; never mutate shared validators or catch/rebuild exceptions just to set metadata. See the [invocation workflow](references/workflow.md#a3--invoke) for validation arguments and overload compatibility.
+- For explicitly inspected validation results, use `context.ThrowOnError(ex => ex.ErrorCode = "invalid-request")`; the non-null callback configures only validation exceptions and is skipped on success. Other exception types propagate unchanged.
 - Request/input validation uses field-level validation errors; aggregate/entity/value-object business invariants use business errors with domain messages/codes. Keep both checks; never derive request paths in Domain or blanket-convert business errors. See [domain invariant conventions](/.github/instructions/coreex-domain.instructions.md#invariant-failures-versus-request-validation).
 - Ref-data: `.IsValid()` on the **navigation property** (`Gender`), never on `*Code` string
 - Optional patch input: `.Unwrap()` validates the inner value only when specified; `.Specified()` requires presence while allowing specified-null

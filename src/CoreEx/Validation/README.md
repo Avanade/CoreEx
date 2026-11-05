@@ -10,6 +10,8 @@
 
 ## Key capabilities
 
+`IValidationResult.ThrowOnError(ex => ex.ErrorCode = "invalid-request")` configures the exception produced by `ToException()` only when it is a `ValidationException`, then throws that same exception. The action must be non-null and runs once only for a validation exception; success returns the same result without invoking it. Other exception types propagate unchanged with their existing stack trace; configuration failures also propagate. The parameterless method remains unchanged, and the default interface implementation supports existing custom result types. `MultiValidatorResult` and the full package's `ValidationContext<TEntity>` expose concrete fluent overloads returning their own type.
+
 - 📋 **Validator contract**: `IValidator<T>` defines `ValidateAsync(T value, CancellationToken)` returning `Task<IValidationResult<T>>`; consumed by application services for both manual and DI-resolved validation.
 - ✅ **Validation result contract**: `IValidationResult<T>` carries the validated `Value`, a `MessageCollection`, and `ThrowOnError()` / `ToResult()` helpers to integrate naturally with both exception-based and `Result`-based service flows.
 - 🔗 **Multi-validator**: `MultiValidator` runs a sequence of validators, merges `MessageItem` collections, and produces a single result — used when a single entity must pass multiple independent validation passes.

@@ -72,6 +72,31 @@ public class WrappedValueCleanerTests
         originalReference.Value.Should().Be(text);
     }
 
+    [Test]
+    public void ErasedWrapperProperties_WriteBackCleanedReplacements()
+    {
+        var entity = new ErasedContainer { StructValue = new TextValue("text  "), ReferenceValue = new TextReference("text  ") };
+        var originalReference = entity.ReferenceValue;
+
+        RuntimeMetadata.Clean(entity);
+
+        entity.StructValue.Should().BeOfType<TextValue>().Which.Value.Should().Be("text");
+        entity.ReferenceValue.Should().BeOfType<TextReference>().Which.Value.Should().Be("text");
+        entity.ReferenceValue.Should().NotBeSameAs(originalReference);
+        originalReference.Value.Should().Be("text  ");
+    }
+
+    [Test]
+    public void OptionalDateTimeProperties_WriteBackKindChanges()
+    {
+        var entity = new OptionalDateContainer { Value = new DateTime(2024, 1, 1, 12, 0, 0, DateTimeKind.Unspecified) };
+
+        RuntimeMetadata.Clean(entity);
+
+        entity.Value.IsSpecified.Should().BeTrue();
+        entity.Value.Value.Kind.Should().Be(DateTimeKind.Utc);
+    }
+
     public readonly record struct TextValue(string? Value)
         : CoreEx.Entities.Abstractions.IWrappedValue<string?>, CoreEx.Entities.Abstractions.IWrappedValueCleaner<TextValue>
     {
@@ -90,5 +115,17 @@ public class WrappedValueCleanerTests
     {
         public TextValue StructValue { get; set; }
         public TextReference ReferenceValue { get; set; } = new(null);
+    }
+
+    private sealed class ErasedContainer
+    {
+        public object StructValue { get; set; } = new TextValue(null);
+
+        public CoreEx.Entities.Abstractions.IWrappedValue<string?> ReferenceValue { get; set; } = new TextReference(null);
+    }
+
+    private sealed class OptionalDateContainer
+    {
+        public Optional<DateTime> Value { get; set; }
     }
 }

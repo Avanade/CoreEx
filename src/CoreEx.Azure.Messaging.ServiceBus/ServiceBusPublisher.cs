@@ -9,6 +9,7 @@ namespace CoreEx.Azure.Messaging.ServiceBus;
 /// <param name="logger">The optional logger.</param>
 /// <remarks>Sends using <see href="https://github.com/Azure/azure-sdk-for-net/tree/main/sdk/servicebus/Azure.Messaging.ServiceBus#sending-a-batch-of-messages">safe-batching</see>.
 /// <para>This implementation enables at-least once delivery; i.e. there are no guarantees that events are not delivered more than once where an underlying <see cref="Exception"/> is thrown.</para>
+/// <para>Failures classified by <see cref="ServiceBusErrorClassifier.IsTransient(ServiceBusException)"/> are propagated as <see cref="TransientException"/> after send retries, retaining the original failure as the inner exception. Permanent failures and caller cancellation are propagated unchanged.</para>
 /// <para>Where <see href="https://learn.microsoft.com/en-us/azure/service-bus-messaging/message-sessions"></see> are required then the <see cref="ServiceBusSessionStrategy"/> must be configured accordingly.</para></remarks>
 public sealed class ServiceBusPublisher(ServiceBusClient serviceBusClient, IDestinationProvider? destinationProvider = null, IEventFormatter? formatter = null, ILogger<ServiceBusPublisher>? logger = null) : EventPublisherBase(destinationProvider, formatter, logger)
 {
@@ -96,9 +97,14 @@ public sealed class ServiceBusPublisher(ServiceBusClient serviceBusClient, IDest
         if (Logger?.IsEnabled(LogLevel.Debug) ?? false)
             Logger.LogDebug("Preparing to send {EventCount} event(s) to {DestinationCount} destination(s).", events.Length, groups.Count);
 
-        foreach (var group in groups)
+        try
         {
-            await SendBatchAsync(events.Length, group.Key, group.Value, cancellationToken).ConfigureAwait(false);
+            foreach (var group in groups)
+                await SendBatchAsync(events.Length, group.Key, group.Value, cancellationToken).ConfigureAwait(false);
+        }
+        catch (ServiceBusException ex) when (!cancellationToken.IsCancellationRequested && ServiceBusErrorClassifier.IsTransient(ex))
+        {
+            throw new TransientException(null, ex) { ShouldBeLogged = true };
         }
 
         if (Logger?.IsEnabled(LogLevel.Debug) ?? false)

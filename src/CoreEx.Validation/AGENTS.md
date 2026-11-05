@@ -55,6 +55,19 @@ public async Task<Product> CreateAsync(Product product, CancellationToken ct = d
 }
 ```
 
+## Configure Validation Failures
+
+Use the per-call configuration overload instead of catching and rebuilding a `ValidationException` merely to set metadata. Both throwing and Result-style validation preserve collected field errors and invoke the action once only on failure; no configuration is retained on shared `Default` validators.
+
+```csharp
+await ProductValidator.Default.ValidateAndThrowAsync(product, ex => ex.ErrorCode = "invalid-product", cancellationToken).ConfigureAwait(false);
+var result = await ProductValidator.Default.ValidateWithResultAsync(product, ex => ex.ErrorCode = "invalid-product", cancellationToken).ConfigureAwait(false);
+```
+
+These convenience overloads require a non-null action and an explicit cancellation token. For validation arguments, use `(value, args, configure, cancellationToken)`; its action may be null. Existing `(value, null, cancellationToken)` calls must use `args: null` to disambiguate from the convenience overload. For ordinary Result-style validation without configuration, use `ValidateWithResultAsync(value, cancellationToken: cancellationToken)`; a token is not the second positional parameter.
+
+When inspecting `ValidateAsync` results explicitly, call `context.ThrowOnError(ex => ex.ErrorCode = "invalid-product")` to configure the failure without rebuilding it. This `IValidationResult` overload requires a non-null action, runs it once only for a `ValidationException`, returns the same context on success and propagates other exception types unchanged. Concrete `ValidationContext<TEntity>` and `MultiValidatorResult` overloads preserve fluent return types; the parameterless method remains available.
+
 ## Common Rules Reference
 
 ```csharp

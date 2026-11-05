@@ -27,16 +27,20 @@ public class Validator<TEntity> : ValidatorBase<TEntity, Validator<TEntity>> whe
         => ValidateAsync(value, null, cancellationToken);
 
     /// <inheritdoc/>
-    public async sealed override Task ValidateAndThrowAsync(TEntity value, ValidationArgs? args = null, CancellationToken cancellationToken = default)
-        => (await ValidateAsync(value, args, cancellationToken).ConfigureAwait(false)).ThrowOnError();
+    public sealed override Task ValidateAndThrowAsync(TEntity value, ValidationArgs? args = null, CancellationToken cancellationToken = default)
+        => ValidateAndThrowAsync(value, args, null, cancellationToken);
+
+    /// <inheritdoc/>
+    public async sealed override Task ValidateAndThrowAsync(TEntity value, ValidationArgs? args, Action<ValidationException>? configure, CancellationToken cancellationToken)
+        => (await ValidateWithResultAsync(value, args, configure, cancellationToken).ConfigureAwait(false)).ThrowOnError();
 
     /// <summary>
     /// Validate the value and automatically throw a <see cref="ValidationException"/> where <see cref="IValidationResult.HasErrors"/>.
     /// </summary>
     /// <param name="value">The value.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-    public Task ValidateAndThrowAsync(TEntity value,  CancellationToken cancellationToken)
-        => ValidateAndThrowAsync(value, null, cancellationToken);
+    public Task ValidateAndThrowAsync(TEntity value, CancellationToken cancellationToken)
+        => ValidateAndThrowAsync(value, args: null, cancellationToken);
 
     /// <inheritdoc/>
     internal override Task ValidateAsync(IValidationContext<TEntity> context, CancellationToken cancellationToken)
@@ -94,9 +98,30 @@ public class Validator<TEntity> : ValidatorBase<TEntity, Validator<TEntity>> whe
     /// <param name="args">An optional <see cref="ValidationArgs"/>.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
     /// <remarks>The <see cref="Result{T}"/>.</remarks>
-    public async Task<Result<TEntity>> ValidateWithResultAsync(TEntity value, ValidationArgs? args = null, CancellationToken cancellationToken = default)
+    public Task<Result<TEntity>> ValidateWithResultAsync(TEntity value, ValidationArgs? args = null, CancellationToken cancellationToken = default)
+        => ValidateWithResultAsync(value, args, null, cancellationToken);
+
+    /// <summary>
+    /// Validates the value and returns a result with a configured <see cref="ValidationException"/> when validation fails.
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <param name="configure">The configuration action, invoked once only when validation fails.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+    /// <returns>The validation <see cref="Result{T}"/>, retaining the original value on success.</returns>
+    public Task<Result<TEntity>> ValidateWithResultAsync(TEntity value, Action<ValidationException> configure, CancellationToken cancellationToken)
+        => ValidateWithResultAsync(value, null, configure.ThrowIfNull(), cancellationToken);
+
+    /// <summary>
+    /// Validates the value and returns a result with an optionally configured <see cref="ValidationException"/> when validation fails.
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <param name="args">An optional <see cref="ValidationArgs"/>.</param>
+    /// <param name="configure">The optional configuration action, invoked once only when validation fails.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+    /// <returns>The validation <see cref="Result{T}"/>, retaining the original value on success.</returns>
+    public async Task<Result<TEntity>> ValidateWithResultAsync(TEntity value, ValidationArgs? args, Action<ValidationException>? configure, CancellationToken cancellationToken)
     {
         var vc = await ValidateAsync(value, args, cancellationToken).ConfigureAwait(false);
-        return vc.HasErrors ? vc.ToResult() : value;
+        return vc.HasErrors ? Result.ValidationError(vc.Messages, configure) : value;
     }
 }
