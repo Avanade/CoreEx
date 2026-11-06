@@ -14,12 +14,16 @@ tags: ["tooling", "codegen", "database", "migrations", "dbex", "cosmos", "refere
 
 # Developer Tooling Conventions
 
-Each domain has two developer-time tooling projects that have **no runtime presence**. They run locally during development and in CI/CD pipelines to generate code and manage the persistence baseline.
+Developer-time tooling has **no runtime presence**. Add only the tools the solution needs; a file-only integration needs no Database or reference-data scaffold.
 
 | Project | Purpose |
 |---|---|
-| `*.CodeGen` | Generates reference-data C# artefacts across all layers from `ref-data.yaml` |
+| `*.CodeGen` | Generates reference-data C# from `ref-data.yaml`, or host-neutral File artefacts from `*-file.yaml` |
 | `*.Database` | For relational providers: manages schema, seed data, outbox provisioning, and Infrastructure C# code generation via DbEx. For Cosmos: provisions the database/containers, imports seed data, and keeps the declared container topology in code. |
+
+`*.CodeGen` also supports the explicit `file` command for top-level `*-file.yaml` definitions; it does not require `ref-data.yaml` or a database. Use [coreex-file](/.github/skills/coreex-file/SKILL.md) and [File invariants](/.github/instructions/coreex-files.instructions.md) for this independent pipeline. RefData remains the default command.
+
+`coreex-codegen` scaffolds an independent non-packable console when explicitly requested through [coreex-scaffold](/.github/skills/coreex-scaffold/SKILL.md). Follow effective central/inline package policy; never add CoreEx.CodeGen to runtime hosts. YAML targets an existing runtime project, not a CodeGen ProjectReference.
 
 > **Related skills:** this file holds the invariants (command reference, YAML structure, table templates, casing,
 > generated-file ownership) that must hold on **any** tooling edit. For the step-by-step **creation** procedures,
@@ -54,7 +58,7 @@ Steps 3–4 come **after** the migration scripts (step 2) and are only applied/i
 `Program.cs` is minimal — it delegates entirely to `CodeGenConsole`:
 
 ```csharp
-await CoreEx.CodeGen.CodeGenConsole.Create().RunAsync(args);
+return await CoreEx.CodeGen.CodeGenConsole.Create().RunAsync(args);
 ```
 
 Running `dotnet run` reads `ref-data.yaml`, validates it against the CoreEx JSON Schema, evaluates the embedded Handlebars templates via [OnRamp](https://github.com/Avanade/OnRamp), and writes `.g.cs` files into the correct target project directories (resolved automatically by convention from the CodeGen project location).
@@ -692,6 +696,6 @@ products:
 ## Further Reading
 
 - [Tooling Guide](https://github.com/Avanade/CoreEx/blob/main/samples/docs/tooling.md) — full `*.CodeGen` and `*.Database` walkthrough with command reference.
-- [CodeGen Schema Docs](https://github.com/Avanade/CoreEx/tree/main/src/CoreEx.CodeGen/docs) — `ref-data.yaml` schema: `CodeGeneration.md`, `Entity.md`, `Property.md`.
+- [CodeGen Schema Docs](https://github.com/Avanade/CoreEx/tree/main/src/CoreEx.CodeGen/RefData/docs) — `ref-data.yaml` schema: `CodeGeneration.md`, `Entity.md`, `Property.md`.
 - [DbEx on GitHub](https://github.com/Avanade/DbEx) — DbEx command reference, YAML schema, and migration script conventions.
 - [OnRamp on GitHub](https://github.com/Avanade/OnRamp) — Handlebars-based code generation engine used by `*.CodeGen`.

@@ -1,0 +1,17 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path=".editorconfig" />
+    <File Path=".gitattributes" />
+    <File Path=".gitignore" />
+    <File Path="AGENTS.md" />
+    <File Path="CLAUDE.md" />
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Packages.props" />
+    <File Path="README.md" />
+  </Folder>
+  <!--#if test-common-->
+  <Folder Name="/tests/">
+    <Project Path="tests\app-name.Test.Common\app-name.Test.Common.csproj" />
+  </Folder>
+  <!--#endif-->
+</Solution>

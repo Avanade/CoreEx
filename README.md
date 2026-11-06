@@ -103,6 +103,7 @@ Here is a high-level overview of some of the key capabilities provided by _CoreE
 - **Partitioning Boundaries** — Shared partition sizing across relational outbox writers and relays, deterministic keyless routing, and separate Service Bus session grouping; consumer concurrency and broker partitions are distinct concerns.
 
 **Tooling**
+- **CSV File Processing** — `CoreEx.IO` provides host-neutral flat, unordered and hierarchical CSV validation, streamed diagnostics, report-only observation of individually valid units, and scoped execution after whole-file acceptance. Flat named mappings can opt into exact header sets and matching row widths. File CodeGen generates typed integrations from `*-file.yaml`; the host owns immutable replay and durable business idempotency.
 - 🏗️ **Reference Data Code Generation** — Development-time `CoreEx.CodeGen` tooling that scaffolds contracts, read providers/controllers, repositories and mappers, plus opt-in mutation services/controllers, from a single schema-validated `ref-data.yaml` configuration file.
 - **Provisioning & Scaffolding** — Composable `CoreEx.Template` solution/host/AI templates, relational database lifecycle tooling, and a Cosmos provisioning console for declared containers and seed data.
 - 🧪 **Testing Toolkit** — `CoreEx.UnitTesting` provides fluent expectations, event/outbox assertions (SQL Server, PostgreSQL, Cosmos, Azure Service Bus), JSON/YAML seeds, and Aspire E2E lifecycle helpers with real cross-domain hosts and a WireMock host for third-party HTTP.
@@ -136,6 +137,7 @@ The build status is [![CI](https://github.com/Avanade/CoreEx/actions/workflows/C
 Project/Package | Description | Source
 -|-|-
 `CoreEx`<br/><sub>&nbsp;</sub><br/>[![NuGet version](https://img.shields.io/nuget/vpre/CoreEx)](https://www.nuget.org/packages/CoreEx/absoluteLatest) | The foundational `CoreEx` package providing the core runtime primitives, patterns, and abstractions used across all other CoreEx libraries and consuming services. | [Link](./src/CoreEx)
+`CoreEx.IO` | Stream-factory CSV processing with flat, unordered discriminator and hierarchical layouts, typed validation, streamed diagnostics, whole-file acceptance and scoped Result-returning execution. | [Link](./src/CoreEx.IO)
 `CoreEx.AspNetCore`<br/><sub>&nbsp;</sub><br/>[![NuGet version](https://img.shields.io/nuget/vpre/CoreEx.AspNetCore)](https://www.nuget.org/packages/CoreEx.AspNetCore/absoluteLatest) | Provides the ASP.NET Core integration layer for CoreEx: the `WebApi` execution helper (MVC and Minimal API variants), middleware for `ExecutionContext` scoping and exception-to-ProblemDetails translation, idempotency key handling, health check configuration, and OpenAPI/NSwag extensions. | [Link](./src/CoreEx.AspNetCore)
 `CoreEx.AspNetCore.NSwag`<br/><sub>&nbsp;</sub><br/>[![NuGet version](https://img.shields.io/nuget/vpre/CoreEx.AspNetCore.NSwag)](https://www.nuget.org/packages/CoreEx.AspNetCore.NSwag/absoluteLatest) | Provides the NSwag `IOperationProcessor` integration that reads CoreEx MVC attributes (`[Paging]`, `[Query]`, `[Accepts]`, `[IdempotencyKey]`, `[ProducesNotFoundProblem]`) and injects the corresponding parameters, request bodies, and response entries into the generated OpenAPI specification. | [Link](./src/CoreEx.AspNetCore.NSwag)
 `CoreEx.Azure.Messaging.ServiceBus`<br/><sub>&nbsp;</sub><br/>[![NuGet version](https://img.shields.io/nuget/vpre/CoreEx.Azure.Messaging.ServiceBus)](https://www.nuget.org/packages/CoreEx.Azure.Messaging.ServiceBus/absoluteLatest) | Provides Azure Service Bus integration for CoreEx: a `ServiceBusPublisher` implementing `IEventPublisher`, subscriber bases wired to `EventSubscriberBase`, and receiver hosts with built-in resiliency, metrics, and session support. | [Link](./src/CoreEx.Azure.Messaging.ServiceBus)
@@ -191,7 +193,7 @@ The repository includes an AI workflow set in [`.github/`](./.github/) that give
 | Command | What it does | Claude Code | GitHub Copilot Chat |
 |---------|-------------|-------------|---------------------|
 | [Expert guidance](./.github/agents/README.md) | Architecture, pattern, and design advice | `@coreex-expert` | Agent mode → **CoreEx Expert** |
-| [CoreEx.Template](./src/CoreEx.Template/README.md) | Deterministic solution and host scaffolding via `dotnet new coreex*` templates | `dotnet new install CoreEx.Template::<version>` then `dotnet new coreex...` | Run the same `dotnet new` commands in the terminal |
+| [CoreEx.Template](./src/CoreEx.Template/README.md) | Deterministic full-domain or repository-only scaffolding, hosts and independent CodeGen | `dotnet new install CoreEx.Template::<version>` then the selected `coreex*` templates | Run the same `dotnet new` commands in the terminal |
 | [`coreex-ai`](./src/CoreEx.Template/README.md#template-1----coreex-ai-ai-workflow-assets) | Installs this AI workflow set — agents, skills, prompts, instructions — into any repository | `dotnet new coreex-ai` | Run the same `dotnet new` command in the terminal |
 
 **Skills — the AI-augmented building blocks** — twenty-one skills codify CoreEx's architectural patterns into guided, correct-by-construction workflows: seventeen per-capability (L1) skills that add or modify a single building block, and four end-to-end (L2) skills that orchestrate a full vertical slice in one pass. Each is invoked as `/coreex-<name>` (Claude Code) or via the matching `prompts/coreex-<name>.prompt.md` (Copilot).
@@ -215,6 +217,7 @@ The repository includes an AI workflow set in [`.github/`](./.github/) that give
 | Hosts | `coreex-api` | API controllers or Minimal API endpoints — CRUD and business actions |
 | | `coreex-graphql` | GraphQL-lite query bridge (`CoreEx.Data.GraphQL`) on an API host |
 | | `coreex-functions` | Native HTTP/Service Bus/Blob/Timer capabilities and UnitTestEx tests in shared-core or standalone Functions apps |
+| | `coreex-file` | Typed CSV file definitions, generated processors, scoped handlers and immutable source adapters |
 | | `coreex-subscriber` | Event/command subscribers in a Subscribe host |
 | Testing | `coreex-test-api` | Integration tests for an API host |
 | | `coreex-test-subscribe` | Integration tests for a Subscribe host |

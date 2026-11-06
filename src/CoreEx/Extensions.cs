@@ -35,6 +35,20 @@ public static partial class Extensions
     }
 
     /// <summary>
+    /// Throws an <see cref="ArgumentNullException"/> if the <paramref name="value"/> is <see langword="null"/>, or an <see cref="ArgumentException"/> if it is empty or consists only of white-space characters.
+    /// </summary>
+    /// <param name="value">The value to validate as non-null, non-empty, and not white-space.</param>
+    /// <param name="paramName">The name of the parameter with which the <paramref name="value"/> corresponds.</param>
+    /// <returns>The unchanged <paramref name="value"/> to support fluent-style method-chaining.</returns>
+    [DebuggerStepThrough]
+    [return: NotNull]
+    public static string ThrowIfNullOrWhiteSpace([NotNull] this string? value, [CallerArgumentExpression(nameof(value))] string? paramName = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(value, paramName);
+        return value;
+    }
+
+    /// <summary>
     /// Throws an <see cref="ArgumentNullException"/> if the <paramref name="value"/> is <see cref="string.Empty"/>.
     /// </summary>
     /// <param name="value">The value to validate as non-null.</param>

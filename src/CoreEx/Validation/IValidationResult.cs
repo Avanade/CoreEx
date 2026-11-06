@@ -31,4 +31,23 @@ public interface IValidationResult : IToResult
     /// </summary>
     /// <returns>The <see cref="IValidationResult"/> to support fluent-style method-chaining.</returns>
     IValidationResult ThrowOnError();
+
+    /// <summary>
+    /// Throws the corresponding exception, configuring it only when it is a <see cref="ValidationException"/>.
+    /// </summary>
+    /// <param name="configure">The non-null configuration action, invoked once only for a validation exception.</param>
+    /// <returns>The same <see cref="IValidationResult"/> when no exception exists, supporting fluent-style method-chaining.</returns>
+    /// <remarks>Other exception types are propagated unchanged. Configuration exceptions are not intercepted.</remarks>
+    IValidationResult ThrowOnError(Action<ValidationException> configure)
+    {
+        configure.ThrowIfNull();
+        var exception = ToException();
+        if (exception is ValidationException validationException)
+            configure(validationException);
+
+        if (exception is not null)
+            new Result(exception).ThrowOnError();
+
+        return this;
+    }
 }

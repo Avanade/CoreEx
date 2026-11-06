@@ -4,7 +4,7 @@
 
 Azure Functions isolated-worker integration for CoreEx execution context, existing MVC WebApi HTTP handling, explicit HTTP idempotency and classified Service Bus settlement. Functions owns routing, bindings, scheduling, retries, listener lifecycle and scaling. Do not install a second CoreEx receiver or imitate ASP.NET endpoint middleware on the worker.
 
-`coreex-functions` scaffolds an empty host and matching `*.Test.Functions` project. Shared-core mode references existing Application/Infrastructure libraries; `--shared-core false` supplies project-local package/build settings with no shared library requirements. Thin triggers may delegate to local handlers in standalone apps. Multiple hosts are independent deployments; test names derive from each full host name.
+`coreex-functions` scaffolds an empty host and matching `*.Test.Functions` project. Shared-core mode references existing Application/Infrastructure libraries; standalone mode has no such requirements. Both follow effective CPM with inline fallback when disabled. New standalone repositories use `coreex-solution` for root conventions/Test.Common; the optional `--test-common-project` wires its test-only reference. Thin triggers delegate to shared services or capability-local handlers. Multiple hosts are independent deployments; test names derive from each full host name.
 
 ## Invocation context
 
@@ -63,6 +63,8 @@ Use native binding extensions and SDK types. No CoreEx Blob base class, syntheti
 Separate explicit content rejection from operational failure. Preserve cancellation and let failed I/O propagate. A BlobClient sees the current object, not necessarily an event's historical revision; use conditional ETag reads or versions/snapshots when needed. Deterministic outputs aid replay but do not make Blob-to-Service-Bus sends transactional. Output bindings are not an outbox.
 
 Blob poison queues, Timer retry behavior, Event Grid retries and Service Bus broker delivery limits are different mechanisms. Do not promise uniform retries or exactly-once. Provision output containers/subscriptions separately.
+
+For schema-defined CSV, use File CodeGen rather than hand-authoring wire models, mappings, or validators. The framework test-host example is driven by `tests/CoreEx.Azure.Functions.TestApp.CodeGen/inventory-file.yaml`; generated types stay in `InventoryImports/Files`, while the handwritten processor partial owns trusted context and report hooks. The native Blob trigger uses Azure Storage SDK clients, durable Append Blob reports, and a supported SQL Server unit of work that commits item changes, receipts, and outbox writes atomically. Its Aspire proof uploads input to Azurite and posts a storage-shaped event through the Functions webhook; `EventGridExtensionMethods.CreateBlobCreatedEvent` simulates only notification delivery because Azurite does not emit Event Grid events. This local test does not verify Azure Event Grid provisioning, authentication, or delivery.
 
 ## Testing and discovery
 

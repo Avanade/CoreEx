@@ -28,7 +28,7 @@ This folder contains the AI artefacts that give GitHub Copilot and Claude Code a
 - Claude Code: `@coreex-expert`
 - Copilot Chat: switch to **Agent** mode and select **CoreEx Expert**
 
-The agent uses a local doc cache installed by `dotnet new coreex-ai` and refreshed by `/coreex-docs-sync` to avoid live GitHub fetches on every question. It covers all 19 CoreEx package guides, distinguishing packages referenced by the project from ones it could adopt. See the [agent README](./agents/README.md) for the resolution flowchart, cache structure, and adoption guide.
+The agent uses a local doc cache installed by `dotnet new coreex-ai` and refreshed by `/coreex-docs-sync` to avoid live GitHub fetches on every question. It covers all 20 CoreEx package guides, distinguishing packages referenced by the project from ones it could adopt. See the [agent README](./agents/README.md) for the resolution flowchart, cache structure, and adoption guide.
 
 ## Instructions
 
@@ -49,6 +49,7 @@ Instructions are passive — no action is needed to activate them. The global fi
 | `coreex-domain.instructions.md` | Domain files — aggregates, mutation guards, `Result<T>` pipelines |
 | `coreex-aspire.instructions.md` | Aspire files — AppHost wiring, service-bus topology, MockHost/third-party HTTP, `Test.Aspire` lifecycle |
 | `coreex-functions.instructions.md` | `*.Functions` / `*.Test.Functions` C# — native triggers, worker composition, WebApi/idempotency, settlement and test boundaries |
+| `coreex-files.instructions.md` | `*-file.yaml` and handwritten `Files/` C# — immutable sources, streamed diagnostics, scoped execution and generated ownership |
 
 ## Prompts, Skills, and Templates
 
@@ -78,9 +79,9 @@ The consumer bundle contains **24 CoreEx skills** (17 L1, four L2, bootstrap, sc
 
 | Command | Type | What it does |
 |---------|------|-------------|
-| [`CoreEx.Template`](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.Template/README.md) | Template pack | Deterministic `dotnet new` scaffolding for a CoreEx solution plus API, relay, and subscriber hosts. Always install with an explicit pinned version — `dotnet new install CoreEx.Template::<version>` (see [Version-pin discipline](#version-pin-discipline)) — then run the `coreex*` templates in a terminal. `dotnet new coreex-ai` installs the full AI workflow set (instructions, prompts, skills, the `coreex-expert` agent, `.claude/commands/`, and the `.github/docs/coreex/` docs cache, self-describing via `manifest.txt`) into a consuming project as one version-pinned bundle. |
+| [`CoreEx.Template`](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.Template/README.md) | Template pack | Deterministic full-domain scaffolding (`coreex`), repository/Test.Common baseline without business layers (`coreex-solution`), independently deployable hosts including Functions, and standalone design-time tooling (`coreex-codegen`). Always install an explicit version matching CoreEx; `coreex-ai` installs instructions, prompts, skills, expert agent, Claude commands and cached docs as one version-pinned bundle. |
 | [`/acquire-codebase-knowledge`](./skills/acquire-codebase-knowledge/README.md) | Skill | Maps an unfamiliar codebase and produces seven structured onboarding documents. Generic (no CoreEx dependency) and framework-repo-only — not copied into consumer repos by `dotnet new coreex-ai`. |
-| [`/coreex-scaffold`](./skills/coreex-scaffold/README.md) · [prompt](./prompts/coreex-scaffold.prompt.md) | Skill + prompt | Guides greenfield solution scaffolding, chooses the smallest safe CoreEx.Template shape, and runs the matching `dotnet new coreex*` commands. |
+| [`/coreex-scaffold`](./skills/coreex-scaffold/README.md) · [prompt](./prompts/coreex-scaffold.prompt.md) | Skill + prompt | Guides greenfield and reviewed existing-project scaffolding: full domains, standalone `coreex-solution`/Test.Common, Functions reference wiring, and independent `coreex-codegen` tooling. |
 | [`/coreex-bootstrap`](./skills/coreex-bootstrap/SKILL.md) · [prompt](./prompts/coreex-bootstrap.prompt.md) | Skill + prompt | Initializes root guidance in a blank repository after `coreex-ai`, then chains to `coreex-scaffold`. |
 | [`/coreex-docs-sync`](./skills/coreex-docs-sync/README.md) | Skill | Refreshes the whole AI asset bundle (instructions, skills, prompts, agent, `.claude/commands/`, and the `.github/docs/coreex/` docs cache) as one version-pinned `dotnet new coreex-ai --force` reinstall, matching the project's referenced `CoreEx` NuGet version. No live GitHub `main` fetch. |
 | [`/aspire`](./skills/aspire/README.md) | Skill | Orchestrates Aspire distributed apps locally: start, stop, logs, debug. Generic (wraps the Aspire CLI, no CoreEx dependency) and framework-repo-only — not copied into consumer repos by `dotnet new coreex-ai`. |
@@ -103,6 +104,7 @@ Seventeen skills add or modify a single CoreEx capability on an existing solutio
 | [`coreex-api`](./skills/coreex-api/) | API controller / endpoint |
 | [`coreex-graphql`](./skills/coreex-graphql/) | GraphQL-lite query bridge (`CoreEx.Data.GraphQL`) on an API host |
 | [`coreex-functions`](./skills/coreex-functions/) | Native HTTP/Service Bus/Blob/Timer capabilities and UnitTestEx tests; shared-core or standalone Functions hosts |
+| [`coreex-file`](./skills/coreex-file/) | Flat, unordered or hierarchical CSV definition, generated processor, scoped handler and immutable source adapter |
 | [`coreex-subscriber`](./skills/coreex-subscriber/) | Event or command subscriber |
 | [`coreex-test-api`](./skills/coreex-test-api/) | API tests |
 | [`coreex-test-subscribe`](./skills/coreex-test-subscribe/) | Subscriber tests |

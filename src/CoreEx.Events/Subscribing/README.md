@@ -10,6 +10,16 @@ The subscribing namespace defines the inbound half of the CoreEx events pipeline
 
 Every error outcome in the pipeline — transient retry, dead-letter, silent completion, catastrophic escalation — is expressed as an `ErrorHandling` enum value. The `ErrorHandler` class provides a fluent per-exception-type mapping, eliminating repetitive try/catch scaffolding from subscriber code. `EventSubscriberMetrics` exposes an OpenTelemetry `messages.received` counter for observability.
 
+## Optional payload cleanup
+
+`EventSubscriberBase.AutoCleanValue` defaults to `false`, unlike WebApi's default-on request cleanup. Published events are generally expected to contain canonical data already normalized by the producer, so cleaning again on receipt is typically redundant. Consumer-side normalization can also silently change published facts, including case-sensitive identifiers or `DateTime.Kind`. Keep it disabled for canonical event replication; enable it deliberately for a noncanonical external feed or command boundary that owns its input-normalization policy.
+
+`SubscribedBase.AutoCleanValue` is a nullable per-handler/message-type override: `null` inherits the owner's setting, `true` enables cleanup, and `false` disables it even when the owner enables it. Set it in the handler constructor, for example `AutoCleanValue = true;`. This is a handler policy, not a global registration for a payload CLR type: separate handlers using the same `TValue` can choose differently, while all subjects handled by one instance share its setting.
+
+When enabled, typed payloads are cleaned once per deserialization with the same `RuntimeMetadata.Clean(value, CleanArgs.Default)` operation as WebApi, before required-value checks, `ValueValidator` and the receive handler. A whitespace-only scalar string can therefore become null and fail `ValueIsRequired`. Root/nested objects are not collapsed to default; normal scalar cleanup, exclusions and read-only rules still apply. The original serialized data, envelope metadata, keys and key-only handlers are not modified. Cleanup exceptions use normal receive error handling, not the malformed/missing-data policy. Deserialization is repeated on a redelivery or processing retry; this is not a once-per-message lifetime guarantee.
+
+Native JSON `ServiceBusSubscriberBase<TValue>` uses the inherited non-nullable `AutoCleanValue` switch with the same default and ordering. The original SDK message body and transport metadata remain unchanged. No broker retry or settlement policy is changed by opting in.
+
 ## Key capabilities
 
 - 🔄 **CloudEvent → `EventData` conversion**: `EventSubscriberBase` uses `IEventFormatter.ConvertFromCloudEvent` and `Parse` to produce a fully populated `EventData` before any handler is invoked.

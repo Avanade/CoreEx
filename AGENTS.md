@@ -38,7 +38,8 @@ reference data, validation, and data access — into a consistent, composable ba
 | `CoreEx.Data` | OData-esque dynamic querying (`QueryArgs`/`PagingArgs`/`QueryArgsConfig`), `ItemsResult<T>` |
 | `CoreEx.Data.GraphQL` | Transport-agnostic GraphQL-lite bridge (`IGraphQLEngine`) over `CoreEx.Data` querying + `JsonFilter` field projection; hosted via `CoreEx.AspNetCore`'s `MapCoreExGraphQLLite` |
 | `CoreEx.UnitTesting` | Fluent test toolkit: event assertions, outbox assertions, JSON seed data |
-| `CoreEx.CodeGen` | Dev-time reference data code generation from YAML |
+| `CoreEx.CodeGen` | Dev-time reference-data and CSV file-integration code generation from YAML |
+| `CoreEx.IO` | Host-neutral CSV validation, streamed diagnostics, immutable replay and scoped execution |
 
 **Architecture overview**: layered services (Contracts → Application → Infrastructure) with
 composition-root hosts (Api, Relay, Subscribe). See [samples/docs/layers.md](./samples/docs/layers.md)
@@ -46,6 +47,8 @@ for the full dependency diagram and [samples/docs/patterns.md](./samples/docs/pa
 pattern catalog.
 
 Azure Functions is an additional host option: one `*.Functions` project per deployment, sharing application libraries or standalone with capability-local handlers. Scaffold the empty host/test pair via `coreex-functions` (`--shared-core false` for standalone); use `/coreex-functions` for native HTTP/Service Bus/Blob/Timer capabilities and meaningful tests. Functions-specific examples are executable framework test hosts, not another Contoso domain.
+
+Standalone consumer repositories use `coreex-solution` for root solution/package/build conventions and lightweight Test.Common by default. The scaffold workflow wires test-to-common references explicitly; package policy is independent of business-layer references. File-only tooling can use the independent `coreex-codegen` console without a database/ref-data/full-domain scaffold. Existing consumers require a reviewed baseline retrofit, never host regeneration.
 
 ---
 
@@ -64,6 +67,7 @@ Never create or edit `*.g.cs`, `*.g.sql`, or `*.g.pgsql` files directly. Each ge
 |---|---|---|
 | `*.g.cs` (contracts, ref-data) | Roslyn source generator (`CoreEx.Generator`) | The `[Contract]`- or `[ReferenceData]`-decorated partial class |
 | `*.g.cs` (ref-data layer — controller, service, repository, mapper) | `*.CodeGen` project (CoreEx.CodeGen + `ref-data.yaml`) | `ref-data.yaml` config or the Handlebars templates in `CoreEx.CodeGen/RefData/Templates/` |
+| `Files/**/*.g.cs` (CSV wire, mapping, validator, context, processor) | `*.CodeGen` File command | `*-file.yaml` or `CoreEx.CodeGen/Files/Templates/`; create-only handlers remain handwritten |
 | `*.g.sql`, `*.g.pgsql`, `*DbContext.g.cs`, `Persistence/*.g.cs` | `*.Database` project (DbEx) | DbEx YAML config or SQL migration scripts |
 
 ### House Rules
@@ -137,7 +141,7 @@ This installs:
 - `.github/skills/` — the CoreEx skill suite: `coreex-bootstrap`, `coreex-docs-sync`, `coreex-scaffold`, the L1 skills
   (`coreex-contract`, `coreex-refdata`, `coreex-db-migration`, `coreex-repository`, `coreex-adapter`,
   `coreex-app-service`, `coreex-validator`, `coreex-policy`, `coreex-aggregate`, `coreex-api`, `coreex-subscriber`,
-  `coreex-test-api`, `coreex-test-subscribe`, `coreex-test-relay`, `coreex-aspire`, `coreex-functions`), and the L2 end-to-end skills
+  `coreex-test-api`, `coreex-test-subscribe`, `coreex-test-relay`, `coreex-aspire`, `coreex-functions`, `coreex-file`), and the L2 end-to-end skills
   (`coreex-api-e2e`, `coreex-subscriber-e2e`, `coreex-command-publish-e2e`, `coreex-command-subscribe-e2e`)
 - `.github/agents/coreex-expert.agent.md` — architecture guidance agent
 - `.github/docs/coreex/` — the architecture docs + per-package guides cache, self-describing via

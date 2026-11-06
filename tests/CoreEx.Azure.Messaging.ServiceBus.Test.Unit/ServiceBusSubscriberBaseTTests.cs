@@ -94,10 +94,11 @@ public class ServiceBusSubscriberBaseTTests
         subscriber.Calls.Should().Be(1);
     }
 
-    [Test]
-    public async Task OptionalNull_IsDeliveredToNullableHandler()
+    [TestCase(false)]
+    [TestCase(true)]
+    public async Task OptionalNull_IsDeliveredToNullableHandler(bool clean)
     {
-        var subscriber = new OptionalSubscriber();
+        var subscriber = new OptionalSubscriber { AutoCleanValue = clean };
         (await subscriber.ReceiveAsync(Message("null"))).IsSuccess.Should().BeTrue();
         subscriber.Calls.Should().Be(1);
         subscriber.Value.Should().BeNull();
@@ -235,6 +236,110 @@ public class ServiceBusSubscriberBaseTTests
         provider.GetService<IEventFormatter>().Should().BeNull();
         var subscriber = provider.GetRequiredService<LoggerOnlySubscriber>();
         (await subscriber.ReceiveAsync(Message("{}"))).IsSuccess.Should().BeTrue();
+    }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public async Task AutoCleanValue_IsOptInAndRunsBeforeValidation(bool clean)
+    {
+        new NativeSubscriber().AutoCleanValue.Should().BeFalse();
+        string? validatedName = null;
+        var subscriber = new NativeSubscriber
+        {
+            AutoCleanValue = clean,
+            Validator = Validator.Create<Payload>().AdditionalAsync((context, _) =>
+            {
+                validatedName = context.Value.Name;
+                return Task.CompletedTask;
+            })
+        };
+        var message = Message("{\"name\":\"hello \"}");
+
+        (await subscriber.ReceiveAsync(message)).IsSuccess.Should().BeTrue();
+
+        subscriber.Value!.Name.Should().Be(clean ? "hello" : "hello ");
+        validatedName.Should().Be(subscriber.Value.Name);
+        subscriber.Message.Should().BeSameAs(message);
+        message.Body.ToString().Should().Be("{\"name\":\"hello \"}");
+    }
+
+    [Test]
+    public async Task AutoCleanValue_ValidationSeesWhitespaceAsNull()
+    {
+        var subscriber = new NativeSubscriber
+        {
+            AutoCleanValue = true,
+            Validator = Validator.Create<Payload>().HasProperty(x => x.Name, rule => rule.NotNull())
+        };
+        subscriber.ErrorHandler.Add<ValidationException>(ErrorHandling.DeadLetter);
+
+        var result = await subscriber.ReceiveAsync(Message("{\"name\":\" \"}"));
+
+        result.Error.Should().BeOfType<EventSubscriberDeadLetterException>();
+        result.Error.InnerException.Should().BeOfType<ValidationException>();
+        subscriber.Calls.Should().Be(0);
+    }
+
+    [TestCase(true)]
+    [TestCase(false)]
+    public async Task AutoCleanValue_ScalarWhitespaceIsCheckedAfterCleanup(bool required)
+    {
+        var subscriber = new StringSubscriber { AutoCleanValue = true, Required = required, InvalidDataHandling = ErrorHandling.DeadLetter };
+        var result = await subscriber.ReceiveAsync(Message("\" \""));
+
+        result.IsSuccess.Should().Be(!required);
+        subscriber.Calls.Should().Be(required ? 0 : 1);
+        subscriber.Value.Should().BeNull();
+        if (required)
+            result.Error.Should().BeOfType<EventSubscriberDeadLetterException>();
+    }
+
+    [Test]
+    public async Task AutoCleanValue_FailureIsNotMalformedJson()
+    {
+        var subscriber = new FailingCleanSubscriber { AutoCleanValue = true, InvalidDataHandling = ErrorHandling.DeadLetter };
+        var result = await subscriber.ReceiveAsync(Message("{}"));
+
+        result.Error.Should().BeOfType<EventSubscriberUnhandledException>();
+        result.Error.InnerException.Should().BeOfType<InvalidOperationException>().Which.Message.Should().Be("Cleanup failed.");
+    }
+
+    [Test]
+    public async Task AutoCleanValue_MalformedJsonStillUsesInvalidDataPolicy()
+    {
+        var subscriber = new NativeSubscriber { AutoCleanValue = true, InvalidDataHandling = ErrorHandling.DeadLetter };
+
+        (await subscriber.ReceiveAsync(Message("{"))).Error.Should().BeOfType<EventSubscriberDeadLetterException>();
+        subscriber.Calls.Should().Be(0);
+    }
+
+    private sealed class StringSubscriber() : ServiceBusSubscriberBase<string?>(NullLogger<ServiceBusSubscriberBase>.Instance)
+    {
+        public bool Required { get; set; }
+
+        public override bool ValueIsRequired => Required;
+
+        public string? Value { get; private set; }
+
+        public int Calls { get; private set; }
+
+        protected override Task<Result> OnReceiveAsync(string? value, ServiceBusReceivedMessage message, EventSubscriberArgs args, CancellationToken cancellationToken)
+        {
+            Value = value;
+            Calls++;
+            return Result.SuccessTask;
+        }
+    }
+
+    public sealed class FailingCleanPayload : CoreEx.Entities.Abstractions.IWrappedValueCleaner<FailingCleanPayload>
+    {
+        public FailingCleanPayload Clean(CoreEx.Entities.CleanArgs args) => throw new InvalidOperationException("Cleanup failed.");
+    }
+
+    private sealed class FailingCleanSubscriber() : ServiceBusSubscriberBase<FailingCleanPayload>(NullLogger<ServiceBusSubscriberBase>.Instance)
+    {
+        protected override Task<Result> OnReceiveAsync(FailingCleanPayload value, ServiceBusReceivedMessage message, EventSubscriberArgs args, CancellationToken cancellationToken)
+            => throw new InvalidOperationException("Handler must not run.");
     }
 
     private sealed class LoggerOnlySubscriber(ILogger<ServiceBusSubscriberBase> logger) : ServiceBusSubscriberBase<Payload>(logger)

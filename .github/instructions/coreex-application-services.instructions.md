@@ -164,7 +164,7 @@ await new MovementRequestValidator(_repository).ValidateAndThrowAsync(request, c
 Both phases apply to both base classes. For `Result<T>` pipelines, use `ValidateWithResultAsync` instead of `ValidateAndThrowAsync`:
 
 ```csharp
-var result = await Result.GoAsync(() => MyValidator.Default.ValidateWithResultAsync(value, cancellationToken));
+var result = await Result.GoAsync(() => MyValidator.Default.ValidateWithResultAsync(value, cancellationToken: cancellationToken));
 if (result.IsFailure) return result.AsResult();
 ```
 
@@ -217,7 +217,7 @@ if (!product.IsInactive)
 | `.WithDetail(string)` | Adds extended human-readable detail beyond the main message |
 | `.WithStatusCode(HttpStatusCode)` | Overrides the default HTTP status code (use sparingly) |
 | `.WithExtension(string, object)` | Adds arbitrary key/value metadata to `extensions` in the problem-details response |
-| `.AsTransient(TimeSpan?)` | Marks the error as transient so retry infrastructure knows it is safe to retry |
+| `.AsTransient(TimeSpan?)` | Marks the error as a retry candidate; callers still own idempotency and partial-success handling |
 
 ```csharp
 // Minimal — message only
@@ -368,7 +368,7 @@ If deletion needs a prior aggregate read to enforce business rules, keep it, but
 For multi-step orchestration with early exit on the first failure:
 
 ```csharp
-var pr = await Result.GoAsync(() => SomeValidator.Default.ValidateWithResultAsync(input, cancellationToken))
+var pr = await Result.GoAsync(() => SomeValidator.Default.ValidateWithResultAsync(input, cancellationToken: cancellationToken))
     .ThenAsAsync(v => _someAdapter.EnsureExistsAsync(v.Id!, cancellationToken));
 
 if (pr.IsFailure)

@@ -92,7 +92,7 @@ No arguments required.
     CoreEx.Validation.md
 ```
 
-All of the above are part of the one `dotnet new coreex-ai --force` bundle — none are fetched or written independently. All 19 package guides are always present regardless of which packages the project currently references, so the expert can recommend adopting a new one with full knowledge of what it offers; it reads the project's actual package references live each session (no longer cached) to tell "already in use" from "you'd need to add this."
+All of the above are part of the one `dotnet new coreex-ai --force` bundle — none are fetched or written independently. All 20 package guides, including CoreEx.IO, are always present regardless of which packages the project currently references, alongside File configuration references and schema. The expert can recommend adopting a new package with full knowledge of what it offers; it reads the project's actual package references live each session (no longer cached) to tell "already in use" from "you'd need to add this."
 
 ## Reference
 

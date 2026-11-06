@@ -47,14 +47,21 @@ public abstract class EventSubscriberBase(IEventFormatter formatter, ILogger<Eve
     /// Gets or sets the <see cref="ErrorHandling"/> where the <see cref="EventData.Data"/> is not considered <i>valid</i>.
     /// </summary>
     /// <remarks>Defaults to <see cref="ErrorHandling.CompleteAsError"/> as it is considered poison and as such is unable to be processed.
-    /// <para>This is used by <see cref="DeserializeValue{TValue}"/>.</para></remarks>
+    /// <para>This is used by <see cref="DeserializeValue{TValue}(EventData, bool, ErrorHandling?, JsonSerializerOptions?)"/>.</para></remarks>
     public ErrorHandling InvalidDataHandling { get; set; } = ErrorHandling.CompleteAsError;
 
     /// <summary>
     /// Gets or sets the optional <see cref="JsonSerializerOptions"/>.
     /// </summary>
-    /// <remarks>This is used by <see cref="DeserializeValue{TValue}"/>.</remarks>
+    /// <remarks>This is used by <see cref="DeserializeValue{TValue}(EventData, bool, ErrorHandling?, JsonSerializerOptions?)"/>.</remarks>
     public JsonSerializerOptions? JsonSerializerOptions { get; set; }
+
+    /// <summary>
+    /// Gets or sets whether deserialized payload values are automatically cleaned before required-value checks and validation.
+    /// </summary>
+    /// <remarks>Defaults to false because published events are generally canonical already, making receive cleanup typically redundant, unlike WebApi request cleanup.
+    /// Uses <see cref="CleanArgs.Default"/> without collapsing root or nested objects. The original envelope and message metadata are not changed.</remarks>
+    public bool AutoCleanValue { get; set; }
 
     /// <summary>
     /// Receives a <see cref="CloudEvent"/>.
@@ -186,6 +193,20 @@ public abstract class EventSubscriberBase(IEventFormatter formatter, ILogger<Eve
     /// <returns>The deserialized value as a <see cref="Result{T}.Value"/>.</returns>
     /// <remarks>Where an invalid data, deserialization or required, error occurs an <see cref="EventSubscriberReceiveException"/> will be be returned via a <see cref="Result.Fail(Exception)"/>.</remarks>
     public Result<TValue> DeserializeValue<TValue>(EventData @event, bool valueIsRequired = true, ErrorHandling? invalidDataHandling = null, JsonSerializerOptions? jsonSerializerOptions = null)
+        => DeserializeValue<TValue>(@event, valueIsRequired, invalidDataHandling, jsonSerializerOptions, null);
+
+    /// <summary>
+    /// Deserializes a payload with an optional override of <see cref="AutoCleanValue"/>.
+    /// </summary>
+    /// <typeparam name="TValue">The payload type.</typeparam>
+    /// <param name="event">The event.</param>
+    /// <param name="valueIsRequired">Whether the cleaned value is required.</param>
+    /// <param name="invalidDataHandling">The optional invalid-data policy override.</param>
+    /// <param name="jsonSerializerOptions">The optional serializer options override.</param>
+    /// <param name="autoCleanValue">The cleanup override; null uses <see cref="AutoCleanValue"/>.</param>
+    /// <returns>The deserialized and optionally cleaned value or an invalid-data failure.</returns>
+    /// <remarks>Cleanup failures propagate to normal receive error handling, not the invalid-data policy.</remarks>
+    public Result<TValue> DeserializeValue<TValue>(EventData @event, bool valueIsRequired, ErrorHandling? invalidDataHandling, JsonSerializerOptions? jsonSerializerOptions, bool? autoCleanValue)
     {
         @event.ThrowIfNull();
 
@@ -199,10 +220,13 @@ public abstract class EventSubscriberBase(IEventFormatter formatter, ILogger<Eve
             return new EventSubscriberReceiveException("An error occurred in the event subscriber during event data deserialization.", invalidDataHandling ?? InvalidDataHandling, ex);
         }
 
-        if (!valueIsRequired)
-            return value;
+        if (autoCleanValue ?? AutoCleanValue)
+            value = Metadata.RuntimeMetadata.Clean(value, CleanArgs.Default);
 
-        return Result.Go(value).Required()
+        if (!valueIsRequired)
+            return Result.Ok(value!); // Optional payloads intentionally permit null; use a nullable TValue.
+
+        return Result.Go(value!).Required() // Required reports a null cleaned payload through the existing invalid-data policy.
             .OnFailure(r => new EventSubscriberReceiveException("An error occurred in the event subscriber as the deserialized value is required.", invalidDataHandling ?? InvalidDataHandling, r.Error));
     }
 }

@@ -24,6 +24,12 @@ builder.Services.AddAzureServiceBusPublisher((_, c) =>
 
 Changing a destination's session strategy or bucket count can move the same key to a different session. A rolling deployment with mixed producer policies can therefore break per-key ordering. Pause all affected producers (including direct publishers), drain upstream outboxes and affected broker queues/subscriptions and in-flight handlers, then switch policies consistently before resuming. Changing receiver concurrency alone does not change the producer's key-to-session mapping.
 
+Default publisher send retries use `ServiceBusErrorClassifier.IsTransient`. At the publication boundary, classifier-confirmed Service Bus failures become generic CoreEx `TransientException` failures with the final broker exception retained as `InnerException` and error logging enabled; permanent failures and caller cancellation remain unchanged. Batch creation is translated by the same boundary but is outside the send retry pipeline. CoreEx WebApi defaults to HTTP 503 and `Retry-After: 90` for this exception. Acceptance may be unconfirmed or partial, so retries require stable message identities and application-level idempotency; this is not a rollback guarantee. A committed outbox-backed API request is not retroactively failed by a later relay publish failure.
+
+## Receive Payload Cleanup
+
+`AutoCleanValue` defaults false, unlike default-on WebApi request cleanup: events are generally expected to be canonical already, so consumer cleanup is typically redundant and can reinterpret producer-owned data. Enable deliberately for noncanonical feeds or commands that own normalization. Native `ServiceBusSubscriberBase<TValue>` uses the inherited bool; dispatched `SubscribedBase<TValue>` handlers have a nullable per-handler/message-type override (null inherits owner, true enables, false disables). Set it in the handler constructor; separate handlers sharing a payload CLR type may differ. Cleanup precedes required checks, validation and handling, uses `CleanArgs.Default` without object collapse, and does not change serialized data, envelope keys or transport metadata. Cleanup failures use normal error handling, not malformed-data handling. See [cleanup policy](./README.md#optional-payload-cleanup).
+
 ## Subscribe Host Wiring
 
 ```csharp

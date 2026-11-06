@@ -76,6 +76,17 @@ public class MultiValidatorResult : IValidationResult
         return this;
     }
 
+    /// <summary>
+    /// Throws a configured <see cref="ValidationException"/> when validation fails.
+    /// </summary>
+    /// <param name="configure">The non-null action, invoked once only when validation fails.</param>
+    /// <returns>The same result on success to support fluent-style method-chaining.</returns>
+    public MultiValidatorResult ThrowOnError(Action<ValidationException> configure)
+    {
+        ((IValidationResult)this).ThrowOnError(configure);
+        return this;
+    }
+
     /// <inheritdoc/>
     public Result ToResult() => HasErrors ? Result.ValidationError(Messages!) : Result.Success;
 }

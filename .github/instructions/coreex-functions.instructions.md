@@ -27,6 +27,8 @@ tags: ["functions", "azure", "hosting", "testing"]
 
 One `*.Functions` project is one deployable Function App; several may reuse shared layers. Standalone apps (`--shared-core false`) delegate to focused local handlers instead of mandatory Application/Infrastructure projects. Group by capability, normally one class per file; related HTTP methods may share a class. Keep bindings/transport types local and business logic outside trigger methods. Never register every shared service before its dependencies exist.
 
+Package management follows effective CPM independently of shared-core, with inline fallback only when disabled. New standalone solutions use `coreex-solution` for root/Test.Common scaffolding. Test.Common references belong only in consuming test projects and require explicit wiring; its lightweight baseline configures no database/broker. Missing baseline/tool creation is a `coreex-scaffold` responsibility, not a reason to regenerate an existing host.
+
 ```csharp
 var builder = FunctionsApplication.CreateBuilder(args);
 builder.ConfigureFunctionsWebApplication();
@@ -58,11 +60,13 @@ Choose CloudEvents dispatch, typed uniform JSON subscriber or native processing 
 
 Blob/Timer bindings remain native. Distinguish content rejection from operational failure; preserve cancellation. A current `BlobClient` is not an immutable event revision. Blob-to-broker sends are not atomic with invocation completion; stable identity/duplicate tolerance is required where retries matter.
 
+For schema-defined CSV Blob imports, use File CodeGen for wire types, mappings, validators, contexts, and processors, then keep the native trigger as a thin adapter. Pin both reads to the selected source revision; persist reports to durable storage and commit business effects, deduplication receipts, and outbox writes in the application's transaction.
+
 ## Configuration and tests
 
 Bindings use Functions host app settings/local settings, not worker-only `appsettings.json`. `host.json` affects sibling functions too. Keep secrets out of source, local settings unpublished and configuration names documented. Function keys do not establish application identity/tenant trust.
 
-Use the real host via `FunctionTester.Create<TFunction>()`. Deferred HTTP results use `ToHttpResponseMessageAssertor(request)`; eager idempotency results use `SnapshotHttpResponse(response)` with a caller-owned readable/seekable buffer. Assert behavior, cancellation/failure and exact settlement where relevant. Invocation tests do not prove binding conversion, broker delivery, function-key authorization or cloud provisioning; use Core Tools/Aspire runtime proofs for those boundaries.
+Use the real host via `FunctionTester.Create<TFunction>()`. Deferred HTTP results use `ToHttpResponseMessageAssertor(request)`; eager idempotency results use `SnapshotHttpResponse(response)` with a caller-owned readable/seekable buffer. Assert behavior, cancellation/failure and exact settlement where relevant. Invocation tests do not prove binding conversion, broker delivery, function-key authorization or cloud provisioning; use Core Tools/Aspire runtime proofs for those boundaries. With Azurite Event Grid-source Blob triggers, upload the input and post a storage-shaped event through the Functions webhook: this simulates only notification delivery because Azurite does not emit Event Grid events. Do not claim Azure Event Grid provisioning, authentication, or delivery from that local test.
 
 ## Do Not
 
@@ -76,3 +80,4 @@ Use the real host via `FunctionTester.Create<TFunction>()`. Deferred HTTP result
 - [Functions capability skill](/.github/skills/coreex-functions/SKILL.md) — creation/modification/testing procedure.
 - [Functions package guide](/.github/docs/coreex/agents/CoreEx.Azure.Functions.md) — version-pinned API/boundary reference.
 - [Host setup](/.github/instructions/coreex-host-setup.instructions.md) and [test invariants](/.github/instructions/coreex-tests.instructions.md) — other host patterns do not override the Functions-specific boundary.
+- [File processing skill](/.github/skills/coreex-file/SKILL.md) — generation-first CSV definition and processor workflow.

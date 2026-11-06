@@ -12,12 +12,17 @@ This script validates the CoreEx.Template pack by:
 5. Cleaning successful scenarios' build outputs immediately and temporary test directories at completion (unless -SkipCleanup).
 
 Runs on Windows, Linux, and macOS via pwsh (cross-platform PowerShell).
+Local runs build/package libraries for net10.0 in Debug to minimize disk usage.
+CI retains all supported library frameworks in Release. Generated scenarios build/test net10.0 in Debug.
 
 .PARAMETER SkipCleanup
 If specified, temporary test directories are not cleaned up after validation.
 
 .PARAMETER NoRebuild
 If specified, the template pack is not rebuilt before validation (uses existing nupkg).
+
+.PARAMETER ScenarioFilter
+Optional scenario-name wildcard filters for focused validation. Omit to run every scenario.
 
 .EXAMPLE
 ./validate-template-pack.ps1
@@ -28,7 +33,9 @@ If specified, the template pack is not rebuilt before validation (uses existing 
 [CmdletBinding()]
 param(
     [switch]$SkipCleanup = $false,
-    [switch]$NoRebuild = $false
+    [switch]$NoRebuild = $false,
+    [Alias("Scenario")]
+    [string[]]$ScenarioFilter = @("*")
 )
 
 $ErrorActionPreference = "Stop"
@@ -40,11 +47,20 @@ $templateProjectPath = Join-Path $repoRoot "src/CoreEx.Template"
 # Fall back to the system temp dir for local runs. Both avoid the deep repo worktree path
 # which exceeds Windows MAX_PATH (260 chars) when build output is factored in.
 $tempBase = if ($env:RUNNER_TEMP) { $env:RUNNER_TEMP } else { [System.IO.Path]::GetTempPath() }
-$temporaryTestRoot = Join-Path $tempBase "cxval-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
+$temporaryTestRoot = Join-Path $tempBase "cxval-$([Guid]::NewGuid().ToString('N').Substring(0, 12))"
+$templateHive = Join-Path $temporaryTestRoot "template-hive"
+$originalPackagesPath = $env:NUGET_PACKAGES
 
 Write-Verbose "Repository root: $repoRoot"
 Write-Verbose "Template project: $templateProjectPath"
 Write-Verbose "Test root: $temporaryTestRoot"
+
+$isCI = $env:CI -eq "true"
+$packageConfiguration = if ($isCI) { "Release" } else { "Debug" }
+# Override the shared policy, not TargetFramework(s): the generator must remain netstandard2.0.
+# Pass this to both build and pack because pack intentionally ignores CoreExLocalTargetFramework.
+$packageFrameworkArgs = @(if ($isCI) { "-p:CoreExLocalTargetFramework=" } else { "-p:CoreExTargetFrameworks=net10.0" })
+Write-Verbose "Library packages: $packageConfiguration / $(if ($isCI) { 'all supported frameworks' } else { 'net10.0' })"
 
 # ---------------------------------------------------------------------------
 # Test scenarios
@@ -57,8 +73,63 @@ Write-Verbose "Test root: $temporaryTestRoot"
 #   Prepare       - optional scriptblock to compose a workload after scaffolding
 #   VerifyBuild   - optional assertions against the compiled output
 #   TestTargets   - optional project paths to run after a successful build
+#   BeforeBuild   - optional generation after the scenario's NuGet source is configured
+#   AfterBuild    - optional evaluated-property/compiled-output assertions
+#   ExpectedBuildFailure - diagnostic required from an intentionally invalid consumer
 # ---------------------------------------------------------------------------
 $testScenarios = @(
+    @{
+        Name = "coreex-solution-default"
+        Template = "coreex-solution"
+        ProjectName = "Example.Integration"
+        Parameters = @{}
+        TestPath = "test-solution"
+        Verify = @{
+            FilesPresent = @(
+                "Example.Integration.slnx", "Directory.Build.props", "Directory.Packages.props",
+                "tests/Directory.Build.props", ".editorconfig", ".gitattributes", ".gitignore", ".filenesting.json",
+                "README.md", "AGENTS.md", "CLAUDE.md",
+                "tests/Example.Integration.Test.Common/Example.Integration.Test.Common.csproj",
+                "tests/Example.Integration.Test.Common/GlobalUsing.cs", "tests/Example.Integration.Test.Common/TestData.cs"
+            )
+            FilesAbsent = @("src", "tools", "docker-compose.yml", "servicebus", "tests/Example.Integration.Test.Common/ServiceBus.cs", "tests/Example.Integration.Test.Common/Data")
+            FileContains = @{
+                "Example.Integration.slnx" = 'tests\Example.Integration.Test.Common\Example.Integration.Test.Common.csproj'
+                "Directory.Packages.props" = 'Include="CoreEx.CodeGen"'
+                ".gitignore" = "local.settings.json"
+                "AGENTS.md" = "Baseline only"
+            }
+            FileNotContains = @{
+                "Directory.Build.props" = "<!--#"
+                "Directory.Packages.props" = "<!--#"
+                "tests/Example.Integration.Test.Common/GlobalUsing.cs" = "Azure"
+            }
+        }
+        Build = $true
+        AfterBuild = {
+            param($testDir)
+            $project = Join-Path $testDir "tests/Example.Integration.Test.Common/Example.Integration.Test.Common.csproj"
+            Assert-PackagePolicy $project $true
+            $properties = & dotnet msbuild $project -nologo "-getProperty:IsTestProject,IsPackable" | ConvertFrom-Json
+            if ($LASTEXITCODE -ne 0 -or $properties.Properties.IsTestProject -ne "false" -or $properties.Properties.IsPackable -ne "false") {
+                throw "Test.Common must be non-packable support, not an executable test suite."
+            }
+        }
+    },
+    @{
+        Name = "coreex-solution-no-common"
+        Template = "coreex-solution"
+        ProjectName = "Example.Integration"
+        Parameters = @{ "test-common" = "false" }
+        TestPath = "test-solution-no-common"
+        Verify = @{
+            FilesPresent = @("Example.Integration.slnx", "Directory.Packages.props", "tests/Directory.Build.props")
+            FilesAbsent = @("src", "tools", "tests/Example.Integration.Test.Common")
+            FileNotContains = @{ "Example.Integration.slnx" = "<Project" }
+            FileContains = @{ "Directory.Packages.props" = 'Include="CoreEx.IO"' }
+        }
+        Build = $false
+    },
     @{
         Name       = "coreex-ai-single-repo"
         Template   = "coreex-ai"
@@ -73,6 +144,16 @@ $testScenarios = @(
                 ".github/prompts/coreex-scaffold.prompt.md"
                 ".github/prompts/coreex-bootstrap.prompt.md"
                 ".github/prompts/coreex-functions.prompt.md"
+                ".github/prompts/coreex-file.prompt.md"
+                ".github/instructions/coreex-files.instructions.md"
+                ".github/skills/coreex-file/SKILL.md"
+                ".github/skills/coreex-file/references/workflow.md"
+                ".github/skills/coreex-file/references/patterns.md"
+                ".claude/commands/coreex-file.md"
+                ".github/docs/coreex/agents/CoreEx.IO.md"
+                ".github/docs/coreex/files/README.md"
+                ".github/docs/coreex/files/CodeGeneration.md"
+                ".github/docs/coreex/schema/coreex-files.json"
                 ".github/instructions/coreex-functions.instructions.md"
                 ".github/skills/coreex-functions/SKILL.md"
                 ".github/skills/coreex-functions/references/workflow.md"
@@ -129,6 +210,14 @@ $testScenarios = @(
                 ".github/instructions/coreex-functions.instructions.md"        = 'applyTo: "**/*.Functions/**/*.cs,**/*.Test.Functions/**/*.cs"'
                 ".github/skills/coreex-functions/references/patterns.md"        = "SnapshotHttpResponse"
                 ".github/docs/coreex/agents/CoreEx.Azure.Functions.md"          = "AutoCompleteMessages = false"
+                ".github/instructions/coreex-files.instructions.md"            = 'applyTo: "**/*-file.yaml;**/Files/**/*.cs;!**/Files/**/*.g.cs"'
+                ".github/docs/coreex/agents/CoreEx.IO.md"                       = "CsvRoutedFileProcessor"
+                ".github/docs/coreex/files/CodeGeneration.md"                  = "runtimeProjectPath"
+                ".github/docs/coreex/schema/coreex-files.json"                 = '"discriminatorIndex"'
+                ".github/skills/coreex-scaffold/SKILL.md"                      = "coreex-solution"
+                ".github/skills/coreex-scaffold/references/workflow.md"        = "preserve it exactly"
+                ".github/skills/coreex-file/references/workflow.md"            = "coreex-codegen"
+                ".github/docs/coreex/agents/CoreEx.CodeGen.md"                 = "return await"
             }
             FileNotContains = @{
                 ".github/instructions/coreex.instructions.md"                 = "Read each matching file in full"
@@ -145,6 +234,14 @@ $testScenarios = @(
         TestPath   = "test-ai-monorepo"
         Verify     = @{
             FilesPresent = @(
+                ".github/instructions/coreex-files.instructions.md"
+                ".github/skills/coreex-file/SKILL.md"
+                ".github/skills/coreex-file/references/workflow.md"
+                ".github/skills/coreex-file/references/patterns.md"
+                ".github/prompts/coreex-file.prompt.md"
+                ".claude/commands/coreex-file.md"
+                ".github/docs/coreex/agents/CoreEx.IO.md"
+                ".github/docs/coreex/schema/coreex-files.json"
                 ".github/instructions/coreex.instructions.md"
                 ".github/instructions/coreex-validators.instructions.md"
                 ".github/skills/coreex-docs-sync/SKILL.md"
@@ -176,6 +273,7 @@ $testScenarios = @(
                 ".github/skills/coreex-api/SKILL.md"                           = "Resolve context before coding"
                 ".github/instructions/coreex-functions.instructions.md"      = 'applyTo: "backend/**/*.Functions/**/*.cs,backend/**/*.Test.Functions/**/*.cs"'
                 ".github/instructions/coreex-tooling.instructions.md"        = ';!backend/**/*.Database/Schema/**/*.g.*"'
+                ".github/instructions/coreex-files.instructions.md"          = 'applyTo: "backend/**/*-file.yaml;backend/**/Files/**/*.cs;!backend/**/Files/**/*.g.cs"'
             }
         }
         Build      = $false
@@ -938,8 +1036,8 @@ public class ProductFunctionsTests
                 "src/Example.Integration.Catalog.Contracts"
             )
             FileContains = @{
-                "src/Example.Integration.Catalog.Functions/Example.Integration.Catalog.Functions.csproj" = "<ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>"
-                "tests/Example.Integration.Catalog.Test.Functions/Example.Integration.Catalog.Test.Functions.csproj" = 'Include="UnitTestEx.Azure.Functions" Version="6.0.0"'
+                "src/Example.Integration.Catalog.Functions/Example.Integration.Catalog.Functions.csproj" = "ManagePackageVersionsCentrally"
+                "tests/Example.Integration.Catalog.Test.Functions/Example.Integration.Catalog.Test.Functions.csproj" = 'Include="UnitTestEx.Azure.Functions" Version="6.1.0"'
                 "src/Example.Integration.Catalog.Functions/AGENTS.md" = "standalone Azure Functions"
             }
             FileNotContains = @{
@@ -947,6 +1045,11 @@ public class ProductFunctionsTests
                 "src/Example.Integration.Catalog.Functions/AGENTS.md" = "AssemblyMarker"
                 "tests/Example.Integration.Catalog.Test.Functions/Example.Integration.Catalog.Test.Functions.csproj" = "coreex-version"
             }
+        }
+        AfterBuild = {
+            param($testDir)
+            Assert-PackagePolicy (Join-Path $testDir "src/Example.Integration.Catalog.Functions/Example.Integration.Catalog.Functions.csproj") $false
+            Assert-PackagePolicy (Join-Path $testDir "tests/Example.Integration.Catalog.Test.Functions/Example.Integration.Catalog.Test.Functions.csproj") $false
         }
         Build       = $true
         BuildTarget = "tests/Example.Integration.Catalog.Test.Functions/Example.Integration.Catalog.Test.Functions.csproj"
@@ -967,7 +1070,7 @@ public class ProductFunctionsTests
         Verify = @{
             FileContains = @{
                 "Directory.Packages.props" = "<ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>"
-                "src/Example.Imports.Functions/Example.Imports.Functions.csproj" = "<ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>"
+                "src/Example.Imports.Functions/Example.Imports.Functions.csproj" = "ManagePackageVersionsCentrally"
             }
             FileNotContains = @{
                 "src/Example.Imports.Functions/Example.Imports.Functions.csproj" = "ProjectReference"
@@ -976,10 +1079,206 @@ public class ProductFunctionsTests
         }
         Build       = $true
         BuildTarget = "tests/Example.Imports.Test.Functions/Example.Imports.Test.Functions.csproj"
+        AfterBuild = {
+            param($testDir)
+            Assert-PackagePolicy (Join-Path $testDir "src/Example.Imports.Functions/Example.Imports.Functions.csproj") $true
+            Assert-PackagePolicy (Join-Path $testDir "tests/Example.Imports.Test.Functions/Example.Imports.Test.Functions.csproj") $true
+        }
         VerifyBuild = @{
             FileContains = @{
                 "src/Example.Imports.Functions/bin/Debug/net10.0/functions.metadata" = "[]"
             }
+        }
+    },
+    @{
+        Name = "coreex-functions-standalone-baseline"
+        Steps = @(
+            @{ Template = "coreex-solution"; Name = "Example.Integration.Catalog"; Parameters = @{} }
+            @{ Template = "coreex-functions"; Name = "Example.Integration.Catalog.Functions"; Parameters = @{ "shared-core" = "false"; "test-common-project" = "..\Example.Integration.Catalog.Test.Common\Example.Integration.Catalog.Test.Common.csproj" } }
+        )
+        TestPath = "test-functions-baseline"
+        Prepare = {
+            param($testDir)
+            & $httpCompositionScenario.Prepare $testDir
+            Add-CommonResourceTest $testDir "Example.Integration.Catalog" "Example.Integration.Catalog"
+            Add-SolutionProjects $testDir "Example.Integration.Catalog" @("Example.Integration.Catalog")
+        }
+        Verify = @{
+            FilesAbsent = @("src/Example.Integration.Catalog.Application", "src/Example.Integration.Catalog.Contracts", "src/Example.Integration.Catalog.Infrastructure", "tools", "servicebus")
+            FileContains = @{
+                "tests/Example.Integration.Catalog.Test.Functions/Example.Integration.Catalog.Test.Functions.csproj" = '..\Example.Integration.Catalog.Test.Common\Example.Integration.Catalog.Test.Common.csproj'
+            }
+        }
+        Build = $true
+        TestTargets = @("tests/Example.Integration.Catalog.Test.Functions/Example.Integration.Catalog.Test.Functions.csproj")
+        AfterBuild = {
+            param($testDir)
+            Assert-PackagePolicy (Join-Path $testDir "src/Example.Integration.Catalog.Functions/Example.Integration.Catalog.Functions.csproj") $true
+        }
+        VerifyBuild = @{ FileContains = @{ "src/Example.Integration.Catalog.Functions/bin/Debug/net10.0/functions.metadata" = '"name": "ReadProduct"' } }
+    },
+    @{
+        Name = "coreex-functions-independent-common"
+        Steps = @(
+            @{ Template = "coreex-solution"; Name = "Example.Integration"; Parameters = @{} }
+            @{ Template = "coreex-functions"; Name = "Example.Input.Functions"; Parameters = @{ "shared-core" = "false"; "test-common-project" = "..\Example.Integration.Test.Common\Example.Integration.Test.Common.csproj" } }
+            @{ Template = "coreex-functions"; Name = "Example.Output.Functions"; Parameters = @{ "shared-core" = "false"; "test-common-project" = "..\Example.Integration.Test.Common\Example.Integration.Test.Common.csproj" } }
+        )
+        TestPath = "test-functions-common"
+        Prepare = {
+            param($testDir)
+            Add-CommonResourceTest $testDir "Example.Integration" "Example.Input"
+            Add-CommonResourceTest $testDir "Example.Integration" "Example.Output"
+            Add-SolutionProjects $testDir "Example.Integration" @("Example.Input", "Example.Output")
+        }
+        Verify = @{
+            FilesAbsent = @("src/Example.Input.Application", "src/Example.Output.Infrastructure")
+            FileContains = @{ "tests/Example.Output.Test.Functions/Example.Output.Test.Functions.csproj" = '..\Example.Integration.Test.Common\Example.Integration.Test.Common.csproj' }
+        }
+        Build = $true
+        TestTargets = @("tests/Example.Input.Test.Functions/Example.Input.Test.Functions.csproj", "tests/Example.Output.Test.Functions/Example.Output.Test.Functions.csproj")
+    },
+    @{
+        Name = "coreex-functions-common-opt-out"
+        Steps = @(
+            @{ Template = "coreex-solution"; Name = "Example.Integration"; Parameters = @{ "test-common" = "false" } }
+            @{ Template = "coreex-functions"; Name = "Example.Imports.Functions"; Parameters = @{ "shared-core" = "false" } }
+        )
+        TestPath = "test-functions-no-common"
+        Verify = @{
+            FilesAbsent = @("tests/Example.Integration.Test.Common")
+            FileNotContains = @{ "tests/Example.Imports.Test.Functions/Example.Imports.Test.Functions.csproj" = "Test.Common" }
+        }
+        Build = $true
+        BuildTarget = "tests/Example.Imports.Test.Functions/Example.Imports.Test.Functions.csproj"
+    },
+    @{
+        Name = "coreex-functions-missing-common"
+        Template = "coreex-functions"
+        ProjectName = "Example.Imports.Functions"
+        Parameters = @{ "shared-core" = "false"; "test-common-project" = "..\Missing.Common\Missing.Common.csproj" }
+        TestPath = "test-functions-missing-common"
+        Build = $true
+        BuildTarget = "tests/Example.Imports.Test.Functions/Example.Imports.Test.Functions.csproj"
+        ExpectedBuildFailure = "COREEX001"
+    },
+    @{
+        Name = "coreex-functions-missing-central-version"
+        Steps = @(
+            @{ Template = "coreex-solution"; Name = "Example.Integration"; Parameters = @{ "test-common" = "false" } }
+            @{ Template = "coreex-functions"; Name = "Example.Imports.Functions"; Parameters = @{ "shared-core" = "false" } }
+        )
+        TestPath = "test-functions-missing-pin"
+        Prepare = {
+            param($testDir)
+            $path = Join-Path $testDir "Directory.Packages.props"
+            [xml]$central = Get-Content $path -Raw
+            $entry = $central.SelectSingleNode("//PackageVersion[@Include='CoreEx.Azure.Functions']")
+            $entry.ParentNode.RemoveChild($entry) | Out-Null
+            $central.Save($path)
+        }
+        Build = $true
+        BuildTarget = "src/Example.Imports.Functions/Example.Imports.Functions.csproj"
+        ExpectedBuildFailure = "NU1010"
+    },
+    @{
+        Name = "coreex-functions-explicit-cpm-opt-out"
+        Steps = @(
+            @{ Template = "coreex-solution"; Name = "Example.Integration"; Parameters = @{ "test-common" = "false" } }
+            @{ Template = "coreex-functions"; Name = "Example.Imports.Functions"; Parameters = @{ "shared-core" = "false" } }
+        )
+        TestPath = "test-functions-cpm-opt-out"
+        Prepare = {
+            param($testDir)
+            Set-ProjectCpmOptOut (Join-Path $testDir "src/Example.Imports.Functions/Example.Imports.Functions.csproj")
+            Set-ProjectCpmOptOut (Join-Path $testDir "tests/Example.Imports.Test.Functions/Example.Imports.Test.Functions.csproj")
+        }
+        Build = $true
+        BuildTarget = "tests/Example.Imports.Test.Functions/Example.Imports.Test.Functions.csproj"
+        AfterBuild = {
+            param($testDir)
+            Assert-PackagePolicy (Join-Path $testDir "src/Example.Imports.Functions/Example.Imports.Functions.csproj") $false
+            Assert-PackagePolicy (Join-Path $testDir "tests/Example.Imports.Test.Functions/Example.Imports.Test.Functions.csproj") $false
+        }
+    },
+    @{
+        Name = "coreex-codegen-inline-files"
+        Steps = @(
+            @{ Template = "coreex-functions"; Name = "Example.Files.Functions"; Parameters = @{ "shared-core" = "false" } }
+            @{ Template = "coreex-codegen"; Name = "Example.Files.CodeGen"; Parameters = @{} }
+        )
+        TestPath = "test-codegen-inline"
+        Prepare = { param($testDir); Add-FileConsumer $testDir }
+        BeforeBuild = { param($testDir); Invoke-FileConsumerGeneration $testDir }
+        Build = $true
+        BuildTargets = @("tools/Example.Files.CodeGen/Example.Files.CodeGen.csproj", "tests/Example.Files.Test.Functions/Example.Files.Test.Functions.csproj")
+        TestTargets = @("tests/Example.Files.Test.Functions/Example.Files.Test.Functions.csproj")
+        Verify = @{
+            FilesAbsent = @("Directory.Packages.props", "tools/Example.Files.Database", "tools/Example.Files.CodeGen/ref-data.yaml")
+            FileNotContains = @{ "tools/Example.Files.CodeGen/Example.Files.CodeGen.csproj" = "ProjectReference" }
+        }
+        AfterBuild = { param($testDir); Assert-PackagePolicy (Join-Path $testDir "tools/Example.Files.CodeGen/Example.Files.CodeGen.csproj") $false }
+        VerifyBuild = @{ FilesPresent = @("src/Example.Files.Functions/Files/Smoke/SmokeProcessor.g.cs", "src/Example.Files.Functions/Files/Smoke/SmokeHandler.cs") }
+    },
+    @{
+        Name = "coreex-codegen-central-files"
+        Steps = @(
+            @{ Template = "coreex-solution"; Name = "Example.Files"; Parameters = @{} }
+            @{ Template = "coreex-functions"; Name = "Example.Files.Functions"; Parameters = @{ "shared-core" = "false"; "test-common-project" = "..\Example.Files.Test.Common\Example.Files.Test.Common.csproj" } }
+            @{ Template = "coreex-codegen"; Name = "Example.Files.CodeGen"; Parameters = @{} }
+        )
+        TestPath = "test-codegen-central"
+        Prepare = {
+            param($testDir)
+            Add-FileConsumer $testDir
+            Add-CommonResourceTest $testDir "Example.Files" "Example.Files"
+            Add-SolutionProjects $testDir "Example.Files" @("Example.Files")
+            & dotnet sln (Join-Path $testDir "Example.Files.slnx") add (Join-Path $testDir "tools/Example.Files.CodeGen") --solution-folder tools
+            if ($LASTEXITCODE -ne 0) { throw "Failed to register independent CodeGen." }
+        }
+        BeforeBuild = { param($testDir); Invoke-FileConsumerGeneration $testDir }
+        Build = $true
+        TestTargets = @("tests/Example.Files.Test.Functions/Example.Files.Test.Functions.csproj")
+        Verify = @{
+            FilesAbsent = @("src/Example.Files.Contracts", "src/Example.Files.Application", "src/Example.Files.Infrastructure", "tools/Example.Files.Database", "tools/Example.Files.CodeGen/ref-data.yaml")
+            FileNotContains = @{ "tools/Example.Files.CodeGen/Example.Files.CodeGen.csproj" = "ProjectReference" }
+        }
+        AfterBuild = { param($testDir); Assert-PackagePolicy (Join-Path $testDir "tools/Example.Files.CodeGen/Example.Files.CodeGen.csproj") $true }
+    },
+    @{
+        Name = "coreex-codegen-explicit-cpm-opt-out"
+        Steps = @(
+            @{ Template = "coreex-solution"; Name = "Example.Files"; Parameters = @{ "test-common" = "false" } }
+            @{ Template = "coreex-codegen"; Name = "Example.Files.CodeGen"; Parameters = @{} }
+        )
+        TestPath = "test-codegen-opt-out"
+        Prepare = {
+            param($testDir)
+            Set-ProjectCpmOptOut (Join-Path $testDir "tools/Example.Files.CodeGen/Example.Files.CodeGen.csproj")
+        }
+        Build = $true
+        BuildTarget = "tools/Example.Files.CodeGen/Example.Files.CodeGen.csproj"
+        AfterBuild = { param($testDir); Assert-PackagePolicy (Join-Path $testDir "tools/Example.Files.CodeGen/Example.Files.CodeGen.csproj") $false }
+    },
+    @{
+        Name = "coreex-solution-existing-functions-retrofit"
+        Steps = @(
+            @{ Template = "coreex-functions"; Name = "Example.Retrofit.Functions"; Parameters = @{ "shared-core" = "false" }; Prepare = { param($testDir); Initialize-InlineRetrofit $testDir } }
+            @{ Template = "coreex-solution"; Name = "Example.Retrofit"; Parameters = @{} }
+        )
+        TestPath = "test-solution-retrofit"
+        Prepare = {
+            param($testDir)
+            Complete-InlineRetrofit $testDir
+            Add-CommonResourceTest $testDir "Example.Retrofit" "Example.Retrofit"
+            Add-SolutionProjects $testDir "Example.Retrofit" @("Example.Retrofit")
+        }
+        Build = $true
+        TestTargets = @("tests/Example.Retrofit.Test.Functions/Example.Retrofit.Test.Functions.csproj")
+        AfterBuild = { param($testDir); Assert-InlineRetrofit $testDir }
+        Verify = @{
+            FilesAbsent = @("tools", "src/Example.Retrofit.Application", "src/Example.Retrofit.Infrastructure")
+            FileContains = @{ "tests/Example.Retrofit.Test.Functions/Example.Retrofit.Test.Functions.csproj" = "Example.Retrofit.Test.Common.csproj" }
         }
     },
     @{
@@ -1006,9 +1305,16 @@ public class ProductFunctionsTests
     }
 )
 
-# Exercise the same HTTP capability and invocation test in shared-core and standalone layouts.
 $httpCompositionScenario = $testScenarios | Where-Object { $_.Name -eq "coreex-functions-http-composition" }
-($testScenarios | Where-Object { $_.Name -eq "coreex-functions-standalone" }).Prepare = $httpCompositionScenario.Prepare
+$testScenarios = @($testScenarios | Where-Object {
+    $name = $_.Name
+    @($ScenarioFilter | Where-Object { $name -like $_ }).Count -gt 0
+})
+if ($testScenarios.Count -eq 0) { throw "No validation scenarios match: $($ScenarioFilter -join ', ')." }
+
+# Exercise the same HTTP capability and invocation test in shared-core and standalone layouts.
+$standaloneScenario = $testScenarios | Where-Object { $_.Name -eq "coreex-functions-standalone" }
+if ($standaloneScenario) { $standaloneScenario.Prepare = $httpCompositionScenario.Prepare }
 
 function Write-Header {
     param([string]$Message)
@@ -1094,26 +1400,292 @@ function Invoke-Assertion {
     }
 }
 
-try {
-    # Packages must contain every target framework; ignore any local inner-loop narrowing (see Directory.Build.props).
-    $env:CoreExLocalTargetFramework = $null
+function Assert-PackagePolicy {
+    param([string]$Project, [bool]$Central)
+    $output = & dotnet msbuild $Project -nologo "-getProperty:ManagePackageVersionsCentrally" "-getItem:PackageReference"
+    if ($LASTEXITCODE -ne 0) { throw "Cannot evaluate package policy for $Project." }
+    $evaluation = $output | ConvertFrom-Json
+    $expected = if ($Central) { "true" } else { "false" }
+    $actual = $evaluation.Properties.ManagePackageVersionsCentrally
+    if (($Central -and $actual -ne "true") -or (-not $Central -and $actual -eq "true")) {
+        throw "Expected CPM=$expected for $Project, got '$actual'."
+    }
+    $references = @($evaluation.Items.PackageReference)
+    if ($references.Count -eq 0) { throw "No effective package references in $Project." }
+    foreach ($reference in $references) {
+        if ($Central -and $reference.Version) { throw "Central reference $($reference.Identity) has an inline version in $Project." }
+        if (-not $Central -and -not $reference.Version) { throw "Noncentral reference $($reference.Identity) lacks a version in $Project." }
+    }
+    Write-Pass "Effective CPM=$expected and correct package metadata: $Project"
+}
 
+function Add-SolutionProjects {
+    param([string]$TestDir, [string]$SolutionName, [string[]]$HostPrefixes)
+    $solution = Join-Path $TestDir "$SolutionName.slnx"
+    foreach ($prefix in $HostPrefixes) {
+        & dotnet sln $solution add (Join-Path $TestDir "src/$prefix.Functions") --solution-folder hosts
+        if ($LASTEXITCODE -ne 0) { throw "Failed to register $prefix.Functions." }
+        & dotnet sln $solution add (Join-Path $TestDir "tests/$prefix.Test.Functions") --solution-folder tests
+        if ($LASTEXITCODE -ne 0) { throw "Failed to register $prefix.Test.Functions." }
+    }
+}
+
+function Set-ProjectCpmOptOut {
+    param([string]$Path)
+    [xml]$project = Get-Content $Path -Raw
+    $policy = $project.CreateElement("ManagePackageVersionsCentrally")
+    $policy.InnerText = "false"
+    $project.SelectSingleNode("//PropertyGroup").AppendChild($policy) | Out-Null
+    $project.Save($Path)
+}
+
+function Add-CommonResourceTest {
+    param([string]$TestDir, [string]$SolutionName, [string]$HostPrefix)
+    $commonDir = Join-Path $TestDir "tests/$SolutionName.Test.Common"
+    New-Item -ItemType Directory -Path (Join-Path $commonDir "Resources") -Force | Out-Null
+    [System.IO.File]::WriteAllText((Join-Path $commonDir "FixtureHelper.cs"), @"
+namespace $SolutionName.Test.Common;
+
+/// <summary>Provides shared fixture normalization.</summary>
+public static class FixtureHelper
+{
+    /// <summary>Normalizes the shared resource.</summary>
+    public static string Normalize(string value) => value.Trim().ToUpperInvariant();
+}
+"@ + "`n")
+    [System.IO.File]::WriteAllText((Join-Path $commonDir "Resources/common.txt"), "shared fixture")
+    [System.IO.File]::WriteAllText((Join-Path $TestDir "tests/$HostPrefix.Test.Functions/CommonTests.cs"), @"
+namespace $HostPrefix.Test.Functions;
+
+[TestFixture]
+public sealed class CommonTests
+{
+    [Test]
+    public void UsesSharedHelperAndEmbeddedResource()
+    {
+        var assembly = typeof($SolutionName.Test.Common.TestData).Assembly;
+        using var resource = assembly.GetManifestResourceStream("$SolutionName.Test.Common.Resources.common.txt");
+        Assert.That(resource, Is.Not.Null);
+        using var reader = new StreamReader(resource ?? throw new InvalidOperationException("Missing shared resource."));
+        Assert.That($SolutionName.Test.Common.FixtureHelper.Normalize(reader.ReadToEnd()), Is.EqualTo("SHARED FIXTURE"));
+    }
+}
+"@ + "`n")
+}
+
+function Add-FileConsumer {
+    param([string]$TestDir)
+    $hostDir = Join-Path $TestDir "src/Example.Files.Functions"
+    $hostProject = Join-Path $hostDir "Example.Files.Functions.csproj"
+    [xml]$project = Get-Content $hostProject -Raw
+    $coreExVersion = $project.SelectSingleNode("//PackageReference[@Include='CoreEx.Azure.Functions'][@Version]").Version
+    $group = $project.CreateElement("ItemGroup")
+    foreach ($name in @("CoreEx.IO", "CoreEx.Validation")) {
+        $reference = $project.CreateElement("PackageReference")
+        $reference.SetAttribute("Include", $name)
+        if (-not (Test-Path (Join-Path $TestDir "Directory.Packages.props"))) { $reference.SetAttribute("Version", $coreExVersion) }
+        $group.AppendChild($reference) | Out-Null
+    }
+    $project.Project.AppendChild($group) | Out-Null
+    $project.Save($hostProject)
+    Add-Content (Join-Path $hostDir "GlobalUsing.cs") @'
+global using CoreEx;
+global using CoreEx.DependencyInjection;
+global using CoreEx.IO;
+global using CoreEx.IO.Csv;
+global using CoreEx.Validation;
+global using System.Globalization;
+global using System.Text;
+global using System.Text.RegularExpressions;
+'@
+    [System.IO.File]::WriteAllText((Join-Path $TestDir "tools/Example.Files.CodeGen/smoke-file.yaml"), @'
+name: Smoke
+version: "fixture-v1"
+runtimeProjectPath: ../../src/Example.Files.Functions
+mode: ValidateOnly
+encoding: Utf8
+records:
+  - name: Row
+    properties:
+      - name: Code
+        type: String
+        column: Code
+        required: true
+      - name: Count
+        type: Integer
+        column: Count
+        min: 1
+'@ + "`n")
+    Add-Content (Join-Path $TestDir "tests/Example.Files.Test.Functions/GlobalUsing.cs") @'
+global using CoreEx;
+global using CoreEx.IO;
+global using Example.Files.Functions.Files.Smoke;
+global using Microsoft.Extensions.DependencyInjection;
+global using System.Text;
+'@
+    [System.IO.File]::WriteAllText((Join-Path $TestDir "tests/Example.Files.Test.Functions/FileTests.cs"), @'
+namespace Example.Files.Test.Functions;
+
+[TestFixture]
+public sealed class FileTests
+{
+    [TestCase("Code,Count\nok,1\n", FileProcessingOutcome.Validated)]
+    [TestCase("Code,Count\nok,0\n", FileProcessingOutcome.Rejected)]
+    public async Task ProcessesGeneratedDefinition(string csv, FileProcessingOutcome expected)
+    {
+        var services = new ServiceCollection();
+        services.AddExecutionContext();
+        services.AddScoped<SmokeHandler>();
+        using var provider = services.BuildServiceProvider();
+        var processor = new SmokeProcessor(provider);
+        var result = await processor.ProcessAsync(_ => Task.FromResult<Stream>(new MemoryStream(Encoding.UTF8.GetBytes(csv))), SmokeProcessor.CreateContext("fixture", "attempt"));
+        Assert.That(result.Outcome, Is.EqualTo(expected));
+        Assert.That(result.Progress.UnitsAttempted, Is.Zero);
+    }
+}
+'@ + "`n")
+}
+
+function Invoke-FileConsumerGeneration {
+    param([string]$TestDir)
+    $toolDir = Join-Path $TestDir "tools/Example.Files.CodeGen"
+    Push-Location $toolDir
+    try {
+        & dotnet run -c Debug -- file --validate
+        if ($LASTEXITCODE -ne 0) { throw "Independent File definition validation failed." }
+        $outputDir = Join-Path $TestDir "src/Example.Files.Functions/Files/Smoke"
+        if (Test-Path $outputDir) { throw "File --validate unexpectedly generated runtime code." }
+        & dotnet run -c Debug --no-build -- file
+        if ($LASTEXITCODE -ne 0) { throw "Independent File generation failed." }
+        $handler = Join-Path $outputDir "SmokeHandler.cs"
+        Add-Content $handler "// Handwritten fixture content must survive regeneration."
+        $hash = (Get-FileHash $handler).Hash
+        & dotnet run -c Debug --no-build -- file
+        if ($LASTEXITCODE -ne 0 -or (Get-FileHash $handler).Hash -ne $hash) { throw "Regeneration changed the handwritten handler." }
+        & dotnet run -c Debug --no-build -- file --expect-no-changes
+        if ($LASTEXITCODE -ne 0) { throw "Regeneration is not deterministic." }
+        $failureOutput = & dotnet run -c Debug --no-build -- file missing-file.yaml --validate 2>&1
+        if ($LASTEXITCODE -eq 0) { throw "CodeGen swallowed a failed command's exit code: $failureOutput" }
+        Write-Pass "File validation/generation, deterministic replay, handwritten preservation and failure exit code"
+    }
+    finally { Pop-Location }
+}
+
+function Initialize-InlineRetrofit {
+    param([string]$TestDir)
+    $pins = @()
+    foreach ($relative in @("src/Example.Retrofit.Functions/Example.Retrofit.Functions.csproj", "tests/Example.Retrofit.Test.Functions/Example.Retrofit.Test.Functions.csproj")) {
+        $path = Join-Path $TestDir $relative
+        [xml]$project = Get-Content $path -Raw
+        foreach ($group in @($project.Project.ItemGroup)) {
+            if ($group.Condition -and $group.Condition.Contains(" == ")) { $project.Project.RemoveChild($group) | Out-Null }
+            elseif ($group.Condition -and $group.Condition.Contains(" != ")) { $group.RemoveAttribute("Condition") }
+        }
+        $policy = $project.CreateElement("ManagePackageVersionsCentrally")
+        $policy.InnerText = "false"
+        $project.SelectSingleNode("//PropertyGroup").AppendChild($policy) | Out-Null
+        if ($relative.StartsWith("src/")) {
+            $identity = $project.CreateElement("PackageReference")
+            $identity.SetAttribute("Include", "Azure.Identity")
+            $identity.SetAttribute("Version", "1.16.0")
+            $aliases = $project.CreateElement("Aliases")
+            $aliases.InnerText = "global,AzureIdentity"
+            $identity.AppendChild($aliases) | Out-Null
+            $project.SelectSingleNode("//ItemGroup[PackageReference]").AppendChild($identity) | Out-Null
+            $globalUsing = Join-Path $TestDir "src/Example.Retrofit.Functions/GlobalUsing.cs"
+            [System.IO.File]::WriteAllText($globalUsing, "extern alias AzureIdentity;`nglobal using AliasCredential = AzureIdentity::Azure.Identity.DefaultAzureCredential;`n" + (Get-Content $globalUsing -Raw))
+            [System.IO.File]::WriteAllText((Join-Path $TestDir "src/Example.Retrofit.Functions/AliasProof.cs"), @'
+namespace Example.Retrofit.Functions;
+
+/// <summary>Proves the existing Azure.Identity alias still compiles.</summary>
+public static class AliasProof
+{
+    /// <summary>Gets the aliased credential type without contacting Azure.</summary>
+    public static Type CredentialType => typeof(AliasCredential);
+}
+'@ + "`n")
+        }
+        foreach ($reference in $project.SelectNodes("//PackageReference[@Version]")) {
+            $versionless = $reference.CloneNode($true)
+            $versionless.RemoveAttribute("Version")
+            $pins += @{ Project = $relative; Name = $reference.Include; Version = $reference.Version; Metadata = $versionless.OuterXml }
+        }
+        $project.Save($path)
+    }
+    $hostHashes = @{}
+    foreach ($file in @("Program.cs", "host.json", "appsettings.json", "local.settings.json")) {
+        $hostHashes[$file] = (Get-FileHash (Join-Path $TestDir "src/Example.Retrofit.Functions/$file")).Hash
+    }
+    @{ Pins = $pins; HostHashes = $hostHashes } | ConvertTo-Json -Depth 8 | Set-Content (Join-Path $TestDir "retrofit-snapshot.json")
+}
+
+function Complete-InlineRetrofit {
+    param([string]$TestDir)
+    $snapshot = Get-Content (Join-Path $TestDir "retrofit-snapshot.json") -Raw | ConvertFrom-Json
+    $centralPath = Join-Path $TestDir "Directory.Packages.props"
+    [xml]$central = Get-Content $centralPath -Raw
+    $versions = @{}
+    foreach ($pin in $snapshot.Pins) {
+        if ($versions.ContainsKey($pin.Name) -and $versions[$pin.Name] -ne $pin.Version) { throw "Conflicting existing version pins for $($pin.Name)." }
+        $versions[$pin.Name] = $pin.Version
+        $entry = $central.SelectSingleNode("//PackageVersion[@Include='$($pin.Name)']")
+        if (-not $entry) {
+            $entry = $central.CreateElement("PackageVersion")
+            $entry.SetAttribute("Include", $pin.Name)
+            $central.SelectSingleNode("//ItemGroup[PackageVersion]").AppendChild($entry) | Out-Null
+        }
+        $entry.SetAttribute("Version", $pin.Version)
+    }
+    $central.Save($centralPath)
+    foreach ($relative in @($snapshot.Pins.Project | Select-Object -Unique)) {
+        $path = Join-Path $TestDir $relative
+        [xml]$project = Get-Content $path -Raw
+        foreach ($policy in @($project.SelectNodes("//ManagePackageVersionsCentrally"))) { $policy.ParentNode.RemoveChild($policy) | Out-Null }
+        foreach ($reference in $project.SelectNodes("//PackageReference[@Version]")) { $reference.RemoveAttribute("Version") }
+        $project.Save($path)
+    }
+    & dotnet add (Join-Path $TestDir "tests/Example.Retrofit.Test.Functions/Example.Retrofit.Test.Functions.csproj") reference (Join-Path $TestDir "tests/Example.Retrofit.Test.Common/Example.Retrofit.Test.Common.csproj")
+    if ($LASTEXITCODE -ne 0) { throw "Failed to wire existing tests to Test.Common." }
+}
+
+function Assert-InlineRetrofit {
+    param([string]$TestDir)
+    $snapshot = Get-Content (Join-Path $TestDir "retrofit-snapshot.json") -Raw | ConvertFrom-Json
+    [xml]$central = Get-Content (Join-Path $TestDir "Directory.Packages.props") -Raw
+    foreach ($pin in $snapshot.Pins) {
+        $path = Join-Path $TestDir $pin.Project
+        [xml]$project = Get-Content $path -Raw
+        $reference = $project.SelectSingleNode("//PackageReference[@Include='$($pin.Name)']")
+        $actualXml = [System.Xml.XmlDocument]::new()
+        $actualXml.LoadXml($reference.OuterXml)
+        $expectedXml = [System.Xml.XmlDocument]::new()
+        $expectedXml.LoadXml($pin.Metadata)
+        if ($actualXml.OuterXml -ne $expectedXml.OuterXml) { throw "Migration changed project metadata for $($pin.Name) in $($pin.Project)." }
+        if ($central.SelectSingleNode("//PackageVersion[@Include='$($pin.Name)']").Version -ne $pin.Version) { throw "Migration changed the pin for $($pin.Name)." }
+    }
+    foreach ($relative in @($snapshot.Pins.Project | Select-Object -Unique)) { Assert-PackagePolicy (Join-Path $TestDir $relative) $true }
+    foreach ($entry in $snapshot.HostHashes.PSObject.Properties) {
+        if ((Get-FileHash (Join-Path $TestDir "src/Example.Retrofit.Functions/$($entry.Name)")).Hash -ne $entry.Value) { throw "Retrofit changed host file $($entry.Name)." }
+    }
+    Write-Pass "Existing exact pins, package metadata/Azure.Identity alias and host files preserved"
+}
+
+try {
     # Step 1: Build and pack CoreEx.Template
     Write-Header "Building CoreEx.Template package"
     if (-not $NoRebuild) {
-        Push-Location $templateProjectPath
         # Use dotnet build rather than dotnet pack: GeneratePackageOnBuild=true (from
         # Directory.Build.props) means the build target already produces the nupkg, and
         # dotnet pack alone skips compilation on a clean runner (no prior bin/ output).
-        dotnet build -c Release --nologo -m:1
+        dotnet build $templateProjectPath -c $packageConfiguration @packageFrameworkArgs --nologo -m:1
         if ($LASTEXITCODE -ne 0) { throw "Failed to build CoreEx.Template" }
-        Pop-Location
         Write-Pass "Template packed successfully"
     }
 
     # Step 2: Locate nupkg
-    $nupkgFiles = Get-ChildItem -Path (Join-Path $templateProjectPath "bin/Release") -Filter "CoreEx.Template.*.nupkg" -ErrorAction SilentlyContinue
-    if (-not $nupkgFiles) { throw "Template package not found in $templateProjectPath/bin/Release" }
+    $packageOutputPath = Join-Path $templateProjectPath "bin/$packageConfiguration"
+    $nupkgFiles = Get-ChildItem -Path $packageOutputPath -Filter "CoreEx.Template.*.nupkg" -ErrorAction SilentlyContinue
+    if (-not $nupkgFiles) { throw "Template package not found in $packageOutputPath" }
     $nupkgFile = ($nupkgFiles | Sort-Object LastWriteTime -Descending | Select-Object -First 1).FullName
     Write-Verbose "Using template package: $nupkgFile"
 
@@ -1134,45 +1706,25 @@ try {
 
     # Build only the packable libraries (not samples/tests) so binaries and assets exist before packing individually.
     foreach ($proj in $libraryProjects) {
-        dotnet build $proj.FullName -c Release --nologo -m:1 -v q
+        dotnet build $proj.FullName -c $packageConfiguration @packageFrameworkArgs --nologo -m:1 -v q
         if ($LASTEXITCODE -ne 0) { throw "Failed to build $($proj.Directory.Name)" }
     }
 
     foreach ($proj in $libraryProjects) {
         Write-Verbose "Packing $($proj.Directory.Name)"
-        $packOutput = dotnet pack $proj.FullName -c Release --nologo --no-build --no-restore -o $localFeedPath 2>&1
+        $packOutput = dotnet pack $proj.FullName -c $packageConfiguration @packageFrameworkArgs --nologo --no-build --no-restore -o $localFeedPath 2>&1
         $packExit = $LASTEXITCODE
         $packOutput | Where-Object { $_ -match "error|successfully created" } | Write-Output
         if ($packExit -ne 0) { throw "Failed to pack $($proj.Directory.Name) (exit $packExit)" }
     }
     Write-Pass "Local feed populated: $localFeedPath"
 
-    # NuGet's global-packages cache is keyed purely by package id + version. Every package here is
-    # packed at whatever version is currently in Directory.Build.props (typically unchanged between
-    # local runs), so once a version has been restored once, NuGet will happily keep serving that
-    # STALE cached copy to every future scaffold — silently ignoring the freshly-packed content above
-    # and making local source changes invisible to validation. Evict exactly these package ids from
-    # the global cache before anything restores from the local feed, so each run reflects current source.
-    $globalPackagesFolder = (dotnet nuget locals global-packages --list) -replace '^global-packages:\s*', ''
-    $globalPackagesFolder = $globalPackagesFolder.Trim()
-    if ($globalPackagesFolder -and (Test-Path $globalPackagesFolder)) {
-        foreach ($proj in $libraryProjects) {
-            $packageId = $proj.BaseName.ToLowerInvariant()
-            $cachedPackagePath = Join-Path $globalPackagesFolder $packageId
-            if (Test-Path $cachedPackagePath) {
-                Write-Verbose "Evicting stale cached package: $cachedPackagePath"
-                Remove-Item -Path $cachedPackagePath -Recurse -Force
-            }
-        }
-        Write-Pass "Evicted stale CoreEx.* packages from the global NuGet cache"
-    }
-
     # Some CoreEx package versions depend on a paired prerelease of a third-party package (e.g. UnitTestEx.Aspire)
     # that may not be published on NuGet.org yet, only in a developer's own private local NuGet source. Adding
     # that whole source to the generated nuget.config is dangerous: if it also happens to hold an older, stale
     # copy of a CoreEx.* package at the SAME version this script just packed fresh (very possible — it's the
     # same developer machine, same unchanged version numbers), NuGet may resolve that stale copy instead of the
-    # one in $localFeedPath, silently re-introducing the exact staleness bug evicted from the global cache above.
+    # one in $localFeedPath, silently testing stale source at an unchanged package version.
     # So instead of adding the source, copy only the packages it holds that this script does NOT itself own
     # (i.e. not one of $libraryProjects) into $localFeedPath — this keeps a single trusted source of truth for
     # every CoreEx.* package while still filling in missing third-party prerelease dependencies.
@@ -1197,11 +1749,12 @@ try {
         }
     }
 
-    # Step 4: Install template pack (uninstall any existing version first to avoid duplicate registrations)
+    # Keep same-id/version source packages and template registrations isolated from other sessions.
+    $env:NUGET_PACKAGES = Join-Path $temporaryTestRoot "packages"
+
+    # Step 4: Install only in a private template hive; leave the user's installed pack untouched.
     Write-Header "Installing template pack"
-    dotnet new uninstall CoreEx.Template 2>&1 | Out-Null
-    Write-Verbose "Uninstalled any prior CoreEx.Template (exit: $LASTEXITCODE — ignored)"
-    dotnet new install $nupkgFile
+    dotnet new install $nupkgFile --debug:custom-hive $templateHive
     if ($LASTEXITCODE -ne 0) { throw "Failed to install template pack" }
     Write-Pass "Template pack installed"
 
@@ -1238,7 +1791,7 @@ try {
                 # Multiple templates into the SAME directory — e.g. `coreex` plus one or more hosts —
                 # so the later steps have real siblings to compile against (see the composite scenarios above).
                 foreach ($step in $scenario.Steps) {
-                    $args = @("new", $step.Template, "--output", $testDir, "--name", $step.Name, "--no-update-check")
+                    $args = @("new", $step.Template, "--output", $testDir, "--name", $step.Name, "--no-update-check", "--debug:custom-hive", $templateHive)
                     foreach ($kv in $step.Parameters.GetEnumerator()) {
                         $args += "--$($kv.Key)"
                         if ($kv.Value -ne "") { $args += $kv.Value }
@@ -1246,10 +1799,11 @@ try {
                     Write-Verbose "dotnet $($args -join ' ')"
                     & dotnet @args
                     if ($LASTEXITCODE -ne 0) { throw "dotnet new failed for step '$($step.Template)'" }
+                    if ($step.Prepare) { & $step.Prepare $testDir }
                 }
             } else {
                 $projectName = if ($scenario.ProjectName) { $scenario.ProjectName } else { "App" }
-                $args = @("new", $scenario.Template, "--output", $testDir, "--name", $projectName, "--no-update-check")
+                $args = @("new", $scenario.Template, "--output", $testDir, "--name", $projectName, "--no-update-check", "--debug:custom-hive", $templateHive)
                 foreach ($kv in $scenario.Parameters.GetEnumerator()) {
                     $args += "--$($kv.Key)"
                     if ($kv.Value -ne "") { $args += $kv.Value }
@@ -1284,9 +1838,25 @@ try {
     <add key="local-coreex" value="$localFeedPath" />
     <add key="nuget.org" value="https://api.nuget.org/v3/index.json" protocolVersion="3" />
   </packageSources>
+  <disabledPackageSources>
+    <clear />
+  </disabledPackageSources>
+  <packageSourceMapping>
+    <clear />
+    <packageSource key="local-coreex">
+      <package pattern="CoreEx" />
+      <package pattern="CoreEx.*" />
+      <package pattern="*" />
+    </packageSource>
+    <packageSource key="nuget.org">
+      <package pattern="*" />
+    </packageSource>
+  </packageSourceMapping>
 </configuration>
 "@
                 Set-Content -Path (Join-Path $testDir "nuget.config") -Value $nugetConfigContent -Encoding utf8
+
+                if ($scenario.BeforeBuild) { & $scenario.BeforeBuild $testDir }
 
                 Write-Output "  Building generated output..."
                 # Explicit target(s) — required for composite scenarios: later steps (hosts) are never
@@ -1307,8 +1877,17 @@ try {
                 }
 
                 foreach ($buildPath in $buildPaths) {
-                    dotnet build $buildPath --nologo --verbosity minimal -m:1 2>&1 | Where-Object { $_ -match "error|warning|succeeded|failed" }
-                    if ($LASTEXITCODE -ne 0) {
+                    $buildOutput = & dotnet build $buildPath -c Debug --nologo --verbosity minimal -m:1 2>&1
+                    $buildExit = $LASTEXITCODE
+                    $buildOutput | Where-Object { $_ -match "error|warning|succeeded|failed" } | Write-Output
+                    if ($scenario.ExpectedBuildFailure) {
+                        if ($buildExit -eq 0 -or -not ($buildOutput -match $scenario.ExpectedBuildFailure)) {
+                            $scenarioFailures += "Expected failed build with diagnostic '$($scenario.ExpectedBuildFailure)' for '$buildPath'."
+                            Write-Fail "Expected diagnostic was not raised"
+                        } else {
+                            Write-Pass "Invalid consumer failed explicitly: $($scenario.ExpectedBuildFailure)"
+                        }
+                    } elseif ($buildExit -ne 0) {
                         $scenarioFailures += "dotnet build failed for '$buildPath'"
                         Write-Fail "Build FAILED ($buildPath)"
                     } else {
@@ -1316,14 +1895,15 @@ try {
                     }
                 }
 
-                if ($scenario.VerifyBuild) {
+                if ($scenario.VerifyBuild -and -not $scenario.ExpectedBuildFailure) {
                     Invoke-Assertion -TestDir $testDir -Verify $scenario.VerifyBuild -Failures ([ref]$scenarioFailures)
                 }
 
                 if ($scenarioFailures.Count -eq 0) {
+                    if ($scenario.AfterBuild) { & $scenario.AfterBuild $testDir }
                     foreach ($testTarget in $scenario.TestTargets) {
                         $testPath = Join-Path $testDir $testTarget
-                        dotnet test $testPath --no-build --nologo --verbosity minimal
+                        dotnet test $testPath -c Debug -f net10.0 --no-build --nologo --verbosity minimal
                         if ($LASTEXITCODE -ne 0) {
                             $scenarioFailures += "dotnet test failed for '$testPath'"
                             Write-Fail "Tests FAILED ($testPath)"
@@ -1351,6 +1931,7 @@ try {
         }
         catch {
             Write-Fail "$($scenario.Name) threw: $_"
+            Write-Verbose $_.ScriptStackTrace
             $failedScenarios += $scenario.Name
         }
     }
@@ -1369,9 +1950,10 @@ try {
     }
 }
 finally {
+    $env:NUGET_PACKAGES = $originalPackagesPath
     if (-not $SkipCleanup -and (Test-Path $temporaryTestRoot)) {
         Write-Header "Cleaning up"
-        Remove-Item -Path $temporaryTestRoot -Recurse -Force -ErrorAction SilentlyContinue
+        Remove-Item -LiteralPath $temporaryTestRoot -Recurse -Force
         Write-Pass "Cleaned: $temporaryTestRoot"
     } elseif ($SkipCleanup) {
         Write-Output ""

@@ -4,7 +4,7 @@ Isolated-worker integration for Azure Functions: scoped invocation context, exis
 
 The [`coreex-functions` template](../CoreEx.Template/README.md#template-8----coreex-functions-empty-functions-host) adds an empty, independently deployable `*.Functions` host and matching `*.Test.Functions` project to an existing CoreEx solution. It deliberately adds no functions, health endpoint or invented test cases; add capability-specific entry points and tests when there is real work to perform.
 
-Use `--shared-core false` for a standalone integration: no shared Application/Infrastructure/Contracts projects are required, and host/test build settings and pinned package versions are self-contained. Keep trigger methods thin, delegating to capability-local handlers; extract libraries only when actual reuse or complexity warrants it. The default remains `--shared-core true` for hosts that reuse an existing application core.
+Use `--shared-core false` for a standalone integration without shared Application/Infrastructure/Contracts. Package management is independent: inherit effective CPM, with inline versions when disabled. New repositories use `coreex-solution` for root conventions/Test.Common; pass its actual relative path with `--test-common-project` or wire an existing test project through the SDK CLI. Keep triggers thin and extract business libraries only for real reuse/complexity. The default remains shared-core for hosts reusing an existing application core.
 
 The version-pinned `coreex-ai` bundle includes the [`coreex-functions` skill](../../.github/skills/coreex-functions/SKILL.md), scoped Functions instructions and this package's AI usage guide. Use the skill for real HTTP/Service Bus/Blob/Timer capabilities and tests; use `coreex-scaffold` for host creation. It resolves shared-core/standalone configuration, keeps application logic out of triggers, and distinguishes invocation coverage from runtime binding/delivery proofs.
 
@@ -30,7 +30,7 @@ This is a best-effort retry safety net, not an exactly-once or business-transact
 
 See [IdempotencyFunctions](../../tests/CoreEx.Azure.Functions.TestApp/IdempotencyFunctions.cs), [component/invocation tests](../../tests/CoreEx.Azure.Functions.Test.Unit/FunctionsHttpIdempotencyTests.cs) and the [real Core Tools runtime proofs](../../tests/aspire/CoreEx.Azure.Functions.Test.Aspire/FunctionsRuntimeTests.cs). The runtime overlap test deliberately holds the first operation open before submitting its duplicate; it proves same-worker behavior, not cross-instance locking.
 
-For UnitTestEx 6.0.0 invocation tests of this helper, assign a readable, seekable response buffer before invoking the function and use `.Run(...).SnapshotHttpResponse(request.HttpContext.Response)` to assert the already-rendered status, headers and body. The snapshot preserves stream ownership and position and does not re-execute the function or its result. Reserve `ToHttpResponseMessageAssertor(request)` for deferred results that still need execution.
+For UnitTestEx 6.1.0 invocation tests of this helper, assign a readable, seekable response buffer before invoking the function and use `.Run(...).SnapshotHttpResponse(request.HttpContext.Response)` to assert the already-rendered status, headers and body. The snapshot preserves stream ownership and position and does not re-execute the function or its result. Reserve `ToHttpResponseMessageAssertor(request)` for deferred results that still need execution.
 
 ## Service Bus: subscribed and native JSON
 
@@ -71,6 +71,8 @@ The [invocation cases](../../tests/CoreEx.Azure.Functions.Test.Unit/BlobFunction
 
 The existing native binding, Azure Storage SDK and CoreEx application primitives cover this slice without an additional CoreEx Blob base class or settlement adapter.
 
+For generation-first schema-defined CSV ingestion, see the [InventoryImports capability](../../tests/CoreEx.Azure.Functions.TestApp/InventoryImports/README.md) and its checked-in `tests/CoreEx.Azure.Functions.TestApp.CodeGen/inventory-file.yaml`. File CodeGen owns the wire model, mapping, validator, context, processor, and create-only handler; handwritten host/application code owns the native `inventory-adjustments/{name}` Blob trigger, trusted context/report hooks, SQL Server unit of work, durable receipt, and outbox write. Blob reads are pinned to the selected ETag, and reports are written through the Azure Storage SDK to Append Blob rather than local files. The Aspire proof uploads input to Azurite, then uses `EventGridExtensionMethods.CreateBlobCreatedEvent` and `FunctionsWebhook(...).PostBlobCreatedAsync(...)` to simulate notification delivery; Azurite does not emit Event Grid events. The Functions binding, Blob SDK operations, SQL Server transaction, and report writes are real in the harness, but this does not prove Azure Event Grid provisioning, authentication, or delivery.
+
 ## Bubbling exceptions and receiver tradeoffs
 
 A bubbling exception marks an invocation as failed, not "retry with CoreEx resilience". Retry behavior is trigger-specific. Service Bus uses extension/broker delivery and lock handling; after repeated failed/unsettled deliveries, the broker's `MaxDeliveryCount` can move the message to the dead-letter queue. This is distinct from SDK retries for AMQP operations and from CoreEx's in-invocation message retry pipeline. The bridge does not prescribe an immediate abandonment time for unhandled exceptions or guarantee a delay between redeliveries.
@@ -95,7 +97,7 @@ For HTTP, exceptions within `WebApi` can become sanitized ProblemDetails under t
 
 ## Boundaries
 
-Functions owns routing, scheduling, binding conversion, retries and runtime scaling. Normal ASP.NET Core middleware and endpoint metadata are not available through the worker builder. The empty consumer host template is available; Functions-specific AI skills and scoped instructions remain pending. Blob support is demonstrated through native bindings; cloud Event Grid delivery and exact historical-revision processing are not claimed.
+Functions owns routing, scheduling, binding conversion, retries and runtime scaling. Normal ASP.NET Core middleware and endpoint metadata are not available through the worker builder. The consumer host template, Functions-specific AI skills and scoped instructions are available. Blob support uses native bindings; cloud Event Grid delivery and exact historical-revision processing are not claimed.
 
 UnitTestEx invocation tests build the real host and run worker middleware, but do not start Core Tools or prove trigger delivery and binding conversion. Run the test application with Core Tools for runtime verification; `FUNCTIONS_WORKER_RUNTIME=dotnet-isolated` must be available to the Functions host. Select only the HTTP functions when no host storage is configured, since Timer triggers require storage.
 

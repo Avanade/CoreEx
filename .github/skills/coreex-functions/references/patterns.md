@@ -95,3 +95,9 @@ public Task Scheduled([TimerTrigger("%ImportSchedule%")] TimerInfo timer, Cancel
 ```
 
 These are separate illustrative entry points; do not generate both unless requested. The binding extensions own retries/poison behavior. Thread cancellation through SDK reads/writes; deterministic output naming alone does not make all downstream side effects exactly-once.
+
+## Generation-first CSV Blob ingestion
+
+For a schema-defined CSV feed, use the [coreex-file pattern](../../coreex-file/references/patterns.md) for YAML generation, generated/handwritten ownership, ETag pinning, durable reports, and transactional deduplication. Keep the native trigger and Azure Storage SDK boundary here; do not hand-author the generated file model or move transport types into CoreEx.IO.
+
+The InventoryImports Aspire scenario uploads real input to Azurite, then uses `EventGridExtensionMethods.CreateBlobCreatedEvent` and `FunctionsWebhook(...).PostBlobCreatedAsync(...)` to simulate only notification delivery. Azurite does not emit Event Grid events; the Functions binding, Blob SDK I/O, SQL Server work, and report writes are real in the harness, but Azure Event Grid provisioning/authentication/delivery are not proven. Do not describe the new runtime test as passed until it has actually run.

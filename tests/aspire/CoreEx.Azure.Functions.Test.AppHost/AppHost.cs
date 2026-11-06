@@ -13,7 +13,8 @@ var storage = builder.AddContainer("functions-storage", "mcr.microsoft.com/azure
 
 var sql = builder.AddContainer("functions-sql", "mcr.microsoft.com/mssql/server", "2022-latest")
     .WithEnvironment("ACCEPT_EULA", "Y")
-    .WithEnvironment("MSSQL_SA_PASSWORD", sqlPassword);
+    .WithEnvironment("MSSQL_SA_PASSWORD", sqlPassword)
+    .WithEndpoint(port: 14335, targetPort: 1433, scheme: "tcp", name: "sql", isProxied: false);
 
 var serviceBus = builder.AddContainer("functions-servicebus", "mcr.microsoft.com/azure-messaging/servicebus-emulator", "latest")
     .WithEnvironment("ACCEPT_EULA", "Y")
@@ -29,7 +30,7 @@ var serviceBus = builder.AddContainer("functions-servicebus", "mcr.microsoft.com
 
 var configuration = new DirectoryInfo(AppContext.BaseDirectory).Parent?.Name ?? throw new InvalidOperationException("Could not determine the AppHost build configuration.");
 var functionDirectory = Path.Combine(builder.AppHostDirectory, "bin", configuration, "net10.0", "functions");
-var arguments = new[] { "start", "--no-build", "--port", "7099", "--functions", "ReadContext", "ReadTraceObservation", "Create", "Failure", "Messages", "ProcessMessage", "ProcessNativeMessage", "ImportBlob",
+var arguments = new[] { "start", "--no-build", "--port", "7099", "--functions", "ReadContext", "ReadTraceObservation", "Create", "Failure", "Messages", "ProcessMessage", "ProcessNativeMessage", "ImportBlob", "ImportInventoryFile",
     "CreateIdempotent", "CreateIdempotentRequired", "ReadIdempotencyCount", "ReleaseIdempotencyOperation" };
 var functions = OperatingSystem.IsWindows()
     ? builder.AddExecutable("functions", "cmd.exe", functionDirectory, ["/c", "func", .. arguments])
@@ -43,6 +44,9 @@ functions
     .WithEnvironment("AzureWebJobsSecretStorageType", "files")
     .WithEnvironment("AzureWebJobsStorage", "UseDevelopmentStorage=true")
     .WithEnvironment("ImportStorage", "UseDevelopmentStorage=true")
+    .WithEnvironment("InventoryImportDatabase", $"Server=tcp:127.0.0.1,14335;Database=CoreExInventory;User Id=sa;Password={sqlPassword};TrustServerCertificate=True;Connect Timeout=10")
+    .WithEnvironment("InventoryImportReports", "inventory-results")
+    .WithEnvironment("InventoryImportTenant", "runtime-tenant")
     .WithEnvironment("ServiceBus", serviceBusConnection)
     .WaitFor(serviceBus)
     .WaitFor(storage);

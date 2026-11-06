@@ -2,7 +2,7 @@ namespace CoreEx.Azure.Functions.Test.Aspire;
 
 [TestFixture]
 [NonParallelizable]
-public class BlobRuntimeTests : WithAspireTester<Projects.CoreEx_Azure_Functions_Test_AppHost>
+public partial class BlobRuntimeTests : WithAspireTester<Projects.CoreEx_Azure_Functions_Test_AppHost>
 {
     private BlobContainerClient _inputs = null!;
     private BlobContainerClient _reports = null!;
@@ -11,16 +11,18 @@ public class BlobRuntimeTests : WithAspireTester<Projects.CoreEx_Azure_Functions
     public async Task StartAsync()
     {
         IPGlobalProperties.GetIPGlobalProperties().GetActiveTcpListeners().Should().NotContain(endpoint =>
-            new[] { 7099, 5682, 5310, 10000, 10001, 10002 }.Contains(endpoint.Port), "the fixture owns its host and emulators");
+            new[] { 7099, 5682, 5310, 10000, 10001, 10002, 14335 }.Contains(endpoint.Port), "the fixture owns its host and emulators");
         try
         {
+            Test.EnableHostDiagnostics();
             await Test.WaitForResourceAsync("functions", TimeSpan.FromMinutes(4));
-            await Test.WaitForFunctionsAsync("functions", ["ImportBlob"], TimeSpan.FromSeconds(90));
+            await Test.WaitForFunctionsAsync("functions", ["ImportBlob", "ImportInventoryFile"], TimeSpan.FromSeconds(90));
             var storage = new BlobServiceClient("UseDevelopmentStorage=true");
             _inputs = storage.GetBlobContainerClient("imports");
             _reports = storage.GetBlobContainerClient("import-results");
             await _inputs.CreateIfNotExistsAsync();
             await _reports.CreateIfNotExistsAsync();
+            await PrepareInventoryAsync(storage);
         }
         catch
         {
@@ -81,7 +83,7 @@ public class BlobRuntimeTests : WithAspireTester<Projects.CoreEx_Azure_Functions
                 if (!(await queue.ExistsAsync(token)).Value)
                     return null;
 
-                var messages = await queue.PeekMessagesAsync(cancellationToken: token);
+                var messages = await queue.PeekMessagesAsync(32, token);
                 return messages.Value.FirstOrDefault(message => message.Body.ToString().Contains(blob.Name, StringComparison.Ordinal));
             }, value => value is not null, timeout: TimeSpan.FromSeconds(90));
             poison.Should().NotBeNull();

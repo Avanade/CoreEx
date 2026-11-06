@@ -193,7 +193,7 @@ public async Task<Result<Contracts.{Name}>> CreateAsync(Contracts.{Name} value, 
 {
     value.ThrowIfNull();
 
-    var vr = await {Name}Validator.Default.ValidateWithResultAsync(value, cancellationToken).ConfigureAwait(false);
+    var vr = await {Name}Validator.Default.ValidateWithResultAsync(value, cancellationToken: cancellationToken).ConfigureAwait(false);
     if (vr.IsFailure)
         return vr.AsResult();
 
@@ -216,7 +216,7 @@ public async Task<Result<Contracts.{Name}>> UpdateAsync(Contracts.{Name} value, 
     value.ThrowIfNull();
     value.Id.ThrowIfNullOrEmpty();
 
-    var vr = await {Name}Validator.Default.ValidateWithResultAsync(value, cancellationToken).ConfigureAwait(false);
+    var vr = await {Name}Validator.Default.ValidateWithResultAsync(value, cancellationToken: cancellationToken).ConfigureAwait(false);
     if (vr.IsFailure)
         return vr.AsResult();
 
@@ -270,7 +270,7 @@ public Task<Result<Contracts.{Name}>> {Action}Async(string id, CancellationToken
 For pre-flight checks (validation + adapter/policy) before the transaction:
 
 ```csharp
-var pr = await Result.GoAsync(() => {Name}Validator.Default.ValidateWithResultAsync(item, cancellationToken))
+var pr = await Result.GoAsync(() => {Name}Validator.Default.ValidateWithResultAsync(item, cancellationToken: cancellationToken))
     .ThenAsAsync(v => new {Dep}Policy(_adapter).EnsureExistsAsync(v.{DepId}!, cancellationToken))
     .ConfigureAwait(false);
 
@@ -395,7 +395,7 @@ if (pr.IsFailure)
     return pr.AsResult();
 
 // Or inline in a Result<T> pipeline:
-var pr = await Result.GoAsync(() => {Name}Validator.Default.ValidateWithResultAsync(item, cancellationToken))
+var pr = await Result.GoAsync(() => {Name}Validator.Default.ValidateWithResultAsync(item, cancellationToken: cancellationToken))
     .ThenAsAsync(item => new {Name}Policy(_adapter).EnsureExistsAsync(item.{Id}!, cancellationToken))
     .ConfigureAwait(false);
 

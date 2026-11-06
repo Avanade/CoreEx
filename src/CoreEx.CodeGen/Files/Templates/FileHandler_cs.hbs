@@ -1,0 +1,8 @@
+namespace {{RuntimeNamespace}};
+
+/// <summary>Implements integration-specific validation and execution in a fresh business-unit scope.</summary>
+/// <remarks>This starter is created only when absent and is never overwritten. Override OnExecuteAsync to call application services and return their Result. The inherited execution fails explicitly until implemented.</remarks>
+[ScopedService]
+public partial class {{Name}}Handler : {{#if IsUnordered}}{{Name}}HandlerBase{{else}}FileUnitHandler<{{UnitType}}>{{/if}}
+{
+}

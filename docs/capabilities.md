@@ -18,6 +18,7 @@ This document provides detailed explanations of CoreEx capabilities and common p
   - [Mapping Helpers](#mapping-helpers)
   - [Globalization & Localization](#globalization--localization)
   - [Railway-Oriented Programming](#railway-oriented-programming-with-resultt)
+  - [CSV File Processing](#csv-file-processing)
 - [API & HTTP Features](#api--http-features)
   - [Web API Styles](#web-api-styles-minimal--mvc)
   - [RFC 7396 Merge-Patch](#rfc-7396-merge-patch-applicationmerge-patchjson)
@@ -61,6 +62,14 @@ This document provides detailed explanations of CoreEx capabilities and common p
 ---
 
 ## General Capabilities
+
+### CSV File Processing
+
+`CoreEx.IO` is the host-neutral ingestion runtime for flat rows, unordered discriminator records, and contiguous hierarchical groups. A fresh-stream factory decouples local/Blob/upload adapters from parsing. CoreEx owns nullable typed conversion, field/custom validation, streamed diagnostics, finite input/group budgets and strict decoding. Whole-file validation, including EOF reconciliation, precedes every execution; accepted input is rebuilt from the same immutable revision and each unit runs in a fresh DI/execution-context scope. Its report-only mode invokes an awaited hook only for individually valid units; later errors still produce an unsuccessful aggregate outcome. Flat named mappings can opt into exact header sets and data-row widths. Expected invalid content is diagnostic data, not per-row exception control flow.
+
+`CoreEx.CodeGen`'s `file` command generates wire models, mappings, validators, typed contexts/processors, and create-only scoped handler starters from top-level `*-file.yaml` definitions. It supports non-throwing requiredness, lengths/regex/email, typed bounds/options, decimal precision/scale and typed reference-code validation. The caller owns source revision pinning, report persistence, authenticated context, and atomic per-unit deduplication/business mutation. Whole-file acceptance is not a transaction or exactly-once guarantee. See the [runtime guide](../src/CoreEx.IO/README.md), [File CodeGen](../src/CoreEx.CodeGen/Files/README.md), and `/coreex-file`.
+
+The [Functions test-host inventory example](../tests/CoreEx.Azure.Functions.TestApp/InventoryImports/README.md) is generation-first: `inventory-file.yaml` emits the input types, while native Blob SDK handling, Append Blob reports, trusted context, and SQL Server `Items`/`Receipts`/outbox effects remain host/application concerns. Its Aspire notification is simulated through the Functions webhook because Azurite does not emit Event Grid events; this does not prove Azure Event Grid delivery.
 
 ### Exception-Based Error Handling
 

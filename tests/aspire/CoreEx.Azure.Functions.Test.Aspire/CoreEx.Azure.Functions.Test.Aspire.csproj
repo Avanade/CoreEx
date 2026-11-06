@@ -19,4 +19,7 @@
     <ProjectReference Include="..\CoreEx.Azure.Functions.Test.AppHost\CoreEx.Azure.Functions.Test.AppHost.csproj" />
     <ProjectReference Include="..\..\CoreEx.Azure.Functions.TestApp\CoreEx.Azure.Functions.TestApp.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="InventorySchema.sql" />
+  </ItemGroup>
 </Project>

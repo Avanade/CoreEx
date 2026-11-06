@@ -45,9 +45,15 @@ Use this progression:
 
 ## Which Scaffolding Path to Use
 
+Standalone Functions/integration apps need repository hygiene, not mandatory business layers. Start with `coreex-solution` for `.slnx`, central package/build conventions and lightweight Test.Common by default (`--test-common false` opts out), then `coreex-functions --shared-core false` with the actual common-project path. The scaffold workflow registers projects and wires test-to-common references; root generation alone does not migrate existing project versions. Package policy follows effective CPM independently of shared libraries.
+
+For generated CSV integrations, add `coreex-codegen` only when no reusable console exists; File uses explicit commands and YAML runtime output paths, with no database/ref-data requirement. The full `coreex` template remains the complete domain scaffold and already supplies root artefacts; do not run both root-emitting templates over one another.
+
 | Need | Best starting point | Why |
 |---|---|---|
 | New implementation solution with one or more domains and standard hosts. | `CoreEx.Template` via `dotnet new coreex*` | This is the deterministic scaffolding path for layered solution structure, package choices, standard `Program.cs` wiring, tests, and host projects. |
+| Standalone Functions/integration repository, or existing hosts missing root/Common artefacts. | `/coreex-scaffold`: `coreex-solution` plus only missing hosts; staged/reviewed merges for existing projects | Root conventions and shared test support without unwanted layers; version-preserving CPM migration and explicit common references for existing hosts. |
+| File generation without a database or reference data. | Reuse CodeGen or add `coreex-codegen`, then `/coreex-file` | Independent design-time tooling generates into an existing runtime project; no package split or domain scaffold is required. |
 | Existing domain needs new messaging or integration capability added incrementally. | Inspect first, then make a manual CoreEx-aligned change | Capability retrofits are now normal implementation work guided by the samples and instruction files rather than a dedicated scaffolding command. |
 | New domain with a conventional entity shape. | `dotnet new coreex` plus only the required `coreex-api`, `coreex-relay`, or `coreex-subscribe` hosts | Fastest path when you want deterministic output and only need to fill in the domain-specific logic. |
 | New domain with richer rules or more design uncertainty. | Ask `CoreEx Expert` to choose the shape, then scaffold with `dotnet new coreex*` | Best when you want sample-aligned advice before committing to a host set or capability mix. |

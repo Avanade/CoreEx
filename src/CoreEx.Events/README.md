@@ -10,6 +10,8 @@
 
 **Subscribing** is built around `EventSubscriberBase`, which receives a `CloudEvent` from the host transport, converts it back to `EventData` via `IEventFormatter`, and dispatches to the matching `SubscribedBase` handler registered with a `SubscribedManager`. Every error path — transient retries, dead-letter, silent completion, catastrophic failure — is expressed as a configurable `ErrorHandling` enum value, keeping subscriber code free of try/catch scaffolding.
 
+Typed payload cleanup is available through `EventSubscriberBase.AutoCleanValue` (default false) and a nullable per-handler `SubscribedBase.AutoCleanValue` override. Unlike WebApi request input, published events are generally expected to be canonical already, so consumer cleanup is typically redundant and can reinterpret producer-owned facts. Enable it deliberately where the receiving boundary owns normalization; see [cleanup behavior and overrides](./Subscribing/README.md#optional-payload-cleanup).
+
 ## Key capabilities
 
 - 🔄 **`EventData` ↔ CloudEvents bridge**: `IEventFormatter` / `EventFormatter` convert between the CoreEx `EventData` envelope and the CloudNative CloudEvents spec, including automatic trace parent/state propagation and explicit baggage policies.

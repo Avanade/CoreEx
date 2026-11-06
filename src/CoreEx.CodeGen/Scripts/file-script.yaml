@@ -1,0 +1,11 @@
+configType: CoreEx.CodeGen.Files.Config.CodeGenConfig, CoreEx.CodeGen
+generators:
+- { type: 'CoreEx.CodeGen.Files.Generators.RecordGenerator, CoreEx.CodeGen', template: 'FileRecord_cs', file: '{{TypeName}}.g.cs', directory: '{{Root.OutputDirectory.FullName}}', text: Wire record }
+- { type: 'CoreEx.CodeGen.Files.Generators.RecordGenerator, CoreEx.CodeGen', template: 'FileMapping_cs', file: '{{TypeName}}Mapping.g.cs', directory: '{{Root.OutputDirectory.FullName}}', text: CSV mapping }
+- { type: 'CoreEx.CodeGen.Files.Generators.RecordGenerator, CoreEx.CodeGen', template: 'FileValidator_cs', file: '{{TypeName}}Validator.g.cs', directory: '{{Root.OutputDirectory.FullName}}', text: Wire validator }
+- { type: 'CoreEx.CodeGen.Files.Generators.GroupGenerator, CoreEx.CodeGen', template: 'FileGroup_cs', file: '{{TypeName}}.g.cs', directory: '{{Root.OutputDirectory.FullName}}', text: Assembled group }
+- { type: 'CoreEx.CodeGen.Files.Generators.RoutedGenerator, CoreEx.CodeGen', template: 'FileRecordBase_cs', file: '{{Name}}Record.g.cs', directory: '{{OutputDirectory.FullName}}', text: Common routed record }
+- { type: 'CoreEx.CodeGen.Files.Generators.RoutedGenerator, CoreEx.CodeGen', template: 'FileHandlerBase_cs', file: '{{Name}}HandlerBase.g.cs', directory: '{{OutputDirectory.FullName}}', text: Typed routed dispatch }
+- { type: 'CoreEx.CodeGen.Files.Generators.RootGenerator, CoreEx.CodeGen', template: 'FileContext_cs', file: '{{Name}}Context.g.cs', directory: '{{OutputDirectory.FullName}}', text: Pass context }
+- { type: 'CoreEx.CodeGen.Files.Generators.RootGenerator, CoreEx.CodeGen', template: 'FileProcessor_cs', file: '{{Name}}Processor.g.cs', directory: '{{OutputDirectory.FullName}}', text: Definition processor }
+- { type: 'CoreEx.CodeGen.Files.Generators.RootGenerator, CoreEx.CodeGen', template: 'FileHandler_cs', file: '{{Name}}Handler.cs', directory: '{{OutputDirectory.FullName}}', genOnce: true, text: Handwritten handler starter }

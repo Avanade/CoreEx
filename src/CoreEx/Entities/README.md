@@ -54,6 +54,12 @@ The namespace also includes supporting utilities: `Cleaner` for normalizing stri
 | [`ICopyFrom`](./Extended/ICopyFrom.cs) | Interface enabling an entity to copy its state from another instance of itself. |
 | [`IDefault`](./Extended/IDefault.cs) | Interface enabling an entity to determine whether it is in its default (unset) state. |
 
+## Object cleaning
+
+`Cleaner.Clean(entity)` writes cleaned replacement values back to ordinary writable properties on both generated `[Contract]` types and reflection-backed POCOs. Strings use the configured defaults (`StringTrim.End`, `StringTransform.EmptyToNull`, and `StringCase.None` initially); `DateTime` and nullable `DateTime` properties use `DefaultDateTimeTransform` (`DateTimeUtc` initially), including changes to `DateTime.Kind` without changing ticks. `[String]` and `[DateTime]` generated setters are only needed for assignment-time or property-specific normalization, not to enable ordinary object cleanup.
+
+Read-only properties and properties whose effective `CleanOption` is `None` are left unchanged. Generated metadata also respects `[Clean(CleanOption.None)]` and `[ContractIgnore]` exclusions. Nested objects and collection contents are cleaned in place without reassigning unchanged graph references. Existing `CleanAndDefault` rules, `CleanArgs` controls, and configured property defaults still govern null-collapse; collection entries are not replaced.
+
 ## Optional request values
 
 Use `Optional<T>` on a dedicated patch/input DTO when the request must distinguish a missing field from an explicitly supplied `null`, `0`, or `false`. A default `Optional<T>` is unspecified; assignment or `Optional<T>.Specified(value)` marks it present. Reading `.Value` while unspecified throws.

@@ -101,8 +101,26 @@ The text argument in comparison rules (`"zero"`, `"the minimum age of 16"`) supp
 await {Name}Validator.Default.ValidateAndThrowAsync(value, cancellationToken).ConfigureAwait(false);
 
 // Result style — returns Result<T> for pipeline composition
-var result = await {Name}Validator.Default.ValidateWithResultAsync(value, cancellationToken).ConfigureAwait(false);
+var result = await {Name}Validator.Default.ValidateWithResultAsync(value, cancellationToken: cancellationToken).ConfigureAwait(false);
 ```
+
+When the caller needs failure metadata such as an error code or logging flag, configure the exception per invocation instead of catching and rebuilding it:
+
+```csharp
+await {Name}Validator.Default.ValidateAndThrowAsync(value, ex => ex.ErrorCode = "invalid-request", cancellationToken).ConfigureAwait(false);
+var result = await {Name}Validator.Default.ValidateWithResultAsync(value, ex => ex.ErrorCode = "invalid-request", cancellationToken).ConfigureAwait(false);
+```
+
+The action runs once only on validation failure, with the collected field errors, and is never retained on shared validators. Convenience overloads require a non-null action and explicit token; use `(value, args, configure, cancellationToken)` when validation arguments are needed (that action may be null). Migrate positional `(value, null, cancellationToken)` calls to `(value, args: null, cancellationToken)` to resolve the convenience-overload ambiguity. If application behavior depends on configuration, cover failure metadata, unchanged success and reuse of the validator without configuration.
+
+If the caller deliberately inspects the validation context first, retain that flow and configure its failure directly:
+
+```csharp
+var context = await {Name}Validator.Default.ValidateAsync(value, cancellationToken: cancellationToken).ConfigureAwait(false);
+context.ThrowOnError(ex => ex.ErrorCode = "invalid-request");
+```
+
+`IValidationResult.ThrowOnError(configure)` requires a non-null action, invokes it once only for a `ValidationException` returned by `ToException()`, and returns the same result on success. Other exception types are propagated unchanged, not rebuilt from messages. Concrete `ValidationContext<TEntity>` and `MultiValidatorResult` overloads retain fluent return types.
 
 ---
 
@@ -188,7 +206,7 @@ Reserve `OnValidateAsync` + `AddError` for logic that genuinely cannot be expres
 await new {Name}Validator(_repository).ValidateAndThrowAsync(request, cancellationToken).ConfigureAwait(false);
 
 // Result style — for pipeline composition
-var result = await new {Name}Validator(_repository).ValidateWithResultAsync(request, cancellationToken).ConfigureAwait(false);
+var result = await new {Name}Validator(_repository).ValidateWithResultAsync(request, cancellationToken: cancellationToken).ConfigureAwait(false);
 ```
 
 DI registration (`services.AddScoped<{Name}Validator>()`) is an option when the validator needs to be mocked in tests or is shared across multiple services, but is not required by default.

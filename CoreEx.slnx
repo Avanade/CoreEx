@@ -121,6 +121,7 @@
     <Project Path="samples/src/Contoso.Shopping.Database/Contoso.Shopping.Database.csproj" />
   </Folder>
   <Folder Name="/schema/">
+    <File Path="schema/coreex-files.json" />
     <File Path="schema/coreex-refdata.json" />
   </Folder>
   <Folder Name="/servicebus/">
@@ -166,6 +167,7 @@
     <Project Path="src/CoreEx.DomainDriven/CoreEx.DomainDriven.csproj" />
     <Project Path="src/CoreEx.EntityFrameworkCore/CoreEx.EntityFrameworkCore.csproj" />
     <Project Path="src/CoreEx.Events/CoreEx.Events.csproj" />
+    <Project Path="src/CoreEx.IO/CoreEx.IO.csproj" />
     <Project Path="src/CoreEx.RefData/CoreEx.RefData.csproj" />
     <Project Path="src/CoreEx.Template/CoreEx.Template.csproj" />
     <Project Path="src/CoreEx.UnitTesting/CoreEx.UnitTesting.csproj" />
@@ -177,9 +179,11 @@
     <Project Path="tests/CoreEx.AspNetCore.Test.Api/CoreEx.AspNetCore.Test.Api.csproj" />
     <Project Path="tests/CoreEx.AspNetCore.Test.Unit/CoreEx.AspNetCore.Test.Unit.csproj" />
     <Project Path="tests/CoreEx.Azure.Functions.Test.Unit/CoreEx.Azure.Functions.Test.Unit.csproj" />
+    <Project Path="tests/CoreEx.Azure.Functions.TestApp.CodeGen/CoreEx.Azure.Functions.TestApp.CodeGen.csproj" />
     <Project Path="tests/CoreEx.Azure.Functions.TestApp/CoreEx.Azure.Functions.TestApp.csproj" />
     <Project Path="tests/CoreEx.Azure.Messaging.ServiceBus.Test.Unit/CoreEx.Azure.Messaging.ServiceBus.Test.Unit.csproj" />
     <Project Path="tests/CoreEx.Caching.Redis.Test.Unit/CoreEx.Caching.Redis.Test.Unit.csproj" />
+    <Project Path="tests/CoreEx.CodeGen.Test.Unit/CoreEx.CodeGen.Test.Unit.csproj" />
     <Project Path="tests/CoreEx.Cosmos.Test.Unit/CoreEx.Cosmos.Test.Unit.csproj" />
     <Project Path="tests/CoreEx.Data.GraphQL.Test.Unit/CoreEx.Data.GraphQL.Test.Unit.csproj" />
     <Project Path="tests/CoreEx.Data.Test.Unit/CoreEx.Data.Test.Unit.csproj" />
@@ -190,6 +194,7 @@
     <Project Path="tests/CoreEx.Database.Test.Unit/CoreEx.Database.Test.Unit.csproj" />
     <Project Path="tests/CoreEx.DomainDriven.Test.Unit/CoreEx.DomainDriven.Test.Unit.csproj" />
     <Project Path="tests/CoreEx.Events.Test.Unit/CoreEx.Events.Test.Unit.csproj" />
+    <Project Path="tests/CoreEx.IO.Test.Unit/CoreEx.IO.Test.Unit.csproj" />
     <Project Path="tests/CoreEx.RefData.Test.Unit/CoreEx.RefData.Test.Unit.csproj" />
     <Project Path="tests/CoreEx.Test.Unit/CoreEx.Test.Unit.csproj" />
     <Project Path="tests/CoreEx.UnitTesting.Test.Unit/CoreEx.UnitTesting.Test.Unit.csproj" />

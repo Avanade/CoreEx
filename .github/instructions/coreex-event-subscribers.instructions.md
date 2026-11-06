@@ -79,6 +79,8 @@ public class ProductModifySubscriber(IProductSyncAdapter adapter) : SubscribedBa
 
 Multiple `[Subscribe]` attributes on a single class handle multiple subjects with the same logic — no duplication required.
 
+Payload cleanup is opt-in, unlike default-on WebApi request cleanup: events are generally expected to be canonical already, so cleaning again is typically redundant and may change producer-owned facts. `EventSubscriberBase.AutoCleanValue` defaults false; `SubscribedBase.AutoCleanValue` is a nullable per-handler/message-type override (null inherits, true enables, false disables). Assign `AutoCleanValue = true;` or `false` in the handler constructor when needed; all subjects on that handler share the setting, and separate handlers using the same payload CLR type can differ. Enabled cleanup uses `CleanArgs.Default` before required checks, `ValueValidator` and handling, without object collapse or changes to serialized envelopes, keys or metadata. Cleanup errors follow normal receive error handling. Native JSON `ServiceBusSubscriberBase<TValue>` uses the inherited bool with the same default/order; do not enable cleanup blindly for canonical event replication.
+
 Do not use `System.Text.Json`'s `[JsonRequired]` on subscriber payload contracts to enforce required fields. It rejects an omitted property during deserialization before the subscriber's `ValueValidator` can report a validation failure. Express requiredness in the payload validator instead; declare properties nullable when omission must be distinguished from a supplied default value.
 
 ## Subject Naming

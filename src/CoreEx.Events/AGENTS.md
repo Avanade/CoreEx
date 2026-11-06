@@ -59,6 +59,8 @@ From 4.4, ambient baggage capture and incoming baggage propagation are separate 
 
 Subscriber dispatch is handled by `SubscribedManager`. Subscriber classes are marked `[Subscribe("subject")]` and discovered automatically by `AddSubscribersUsing<T>()`.
 
+Payload cleanup is opt-in: `EventSubscriberBase.AutoCleanValue` defaults false because published events are generally canonical already, making receive cleanup typically redundant (unlike default-on WebApi request cleanup). `SubscribedBase.AutoCleanValue` is a per-handler/message-type nullable override: null inherits the owner, true enables and false disables. Assign it in the handler constructor, not by modifying a global payload-type registration. All subjects on that handler share the setting; separate handlers can differ even with the same payload CLR type. Enabled cleanup uses `CleanArgs.Default` after deserialization and before required checks/validation/handling, without collapsing root/nested objects or altering serialized envelopes, keys or metadata. Cleanup errors follow normal receive error handling. See [cleanup policy](./Subscribing/README.md#optional-payload-cleanup).
+
 See [CoreEx.Azure.Messaging.ServiceBus](../CoreEx.Azure.Messaging.ServiceBus/README.md) for the full subscriber wiring example.
 
 ## DestinationProvider

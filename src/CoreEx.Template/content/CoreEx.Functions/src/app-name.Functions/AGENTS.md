@@ -3,10 +3,18 @@
 <!-- #if shared-core -->
 This project is one independently deployable Azure Functions isolated-worker app. It shares the `solution-name.Application` and `solution-name.Infrastructure` libraries; other hosts must not reference this host.
 <!-- #else -->
-This project is a standalone Azure Functions isolated-worker app with no shared Application/Infrastructure/Contracts project dependencies. Its host and test projects define their own package versions; no root `coreex` scaffold is required. Other hosts must not reference this host.
+This project is a standalone Azure Functions isolated-worker app with no shared Application/Infrastructure/Contracts project dependencies. No full `coreex` domain scaffold is required. Other hosts must not reference this host.
 <!-- #endif -->
 
 The scaffold intentionally contains no functions, health endpoint, dependency connections or trigger-specific registrations. Its corresponding `host-test-name` project is wired for UnitTestEx invocation testing but contains no invented test cases. Add only the capabilities the workload needs. An empty app can report "No job functions found" until its first trigger is added.
+
+Both projects follow the repository's effective package policy: central versions when `ManagePackageVersionsCentrally` is true, otherwise inline versions pinned by the template. `shared-core` controls business-library references only; an explicit MSBuild CPM opt-out is respected. A new standalone repository normally starts with `coreex-solution`, which supplies root conventions and Test.Common without business layers.
+
+<!-- #if has-test-common -->
+The test project references the explicitly selected shared test project `__COREEX_TEST_COMMON_PROJECT__` (relative to its project directory). This is a test-only dependency, independent of shared business libraries. The common library is not a test suite and does not configure a database or broker automatically.
+<!-- #else -->
+No Test.Common reference was selected. `/coreex-scaffold` can wire an existing common project using `--test-common-project` for a new test project or the SDK project-reference command for an existing one. Do not regenerate this host to add test support.
+<!-- #endif -->
 
 ## Adding a capability
 

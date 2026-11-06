@@ -15,7 +15,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="docs\" />
+    <Folder Include="RefData\docs\" />
+    <Folder Include="Files\docs\" />
   </ItemGroup>
 
 </Project>

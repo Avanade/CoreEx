@@ -31,11 +31,13 @@ Initialises a blank CoreEx repository by generating root guidance files and imme
 
 ## Workflow
 
-1. **Confirm the project name.** Read the workspace root folder name as the default. If it is already in `[Company].[Product].[Domain]` form (e.g. `Avanade.Bookstore.Books`), use it as-is. Otherwise ask the user for the correct 3-part name.
+1. **Confirm the project name and broad shape.** Read the workspace root folder name as the default. Conventional domains use `[Company].[Product].[Domain]`; standalone Functions/integration solutions can use the actual solution name without inventing domain segments.
 
 2. **Generate root guidance files.** Write the three files below, substituting `{{project-name}}` with the confirmed project name.
 
 3. **Chain to `/coreex-scaffold`.** Immediately invoke the scaffold skill to interview the solution shape and run the right `dotnet new coreex*` commands.
+
+Standalone Functions uses `coreex-solution` for repository conventions and Test.Common by default, then `coreex-functions --shared-core false` with the actual common reference. The full `coreex` domain scaffold is not a prerequisite. CodeGen is an optional independent add-on, not an automatic database/ref-data dependency.
 
 ## File Templates
 
@@ -44,7 +46,7 @@ Initialises a blank CoreEx repository by generating root guidance files and imme
 ```markdown
 # {{project-name}}
 
-This repository is a CoreEx application service.
+This repository will use CoreEx; the scaffold workflow chooses a layered domain or a standalone integration shape.
 
 ## Next Step
 

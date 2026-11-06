@@ -6,8 +6,7 @@
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
   </PropertyGroup>
-  <!--#if shared-core-->
-  <ItemGroup>
+  <ItemGroup Condition="'$(ManagePackageVersionsCentrally)' == 'true'">
     <PackageReference Include="AwesomeAssertions" />
     <PackageReference Include="CoreEx.UnitTesting" />
     <PackageReference Include="coverlet.collector" />
@@ -18,11 +17,7 @@
     <PackageReference Include="UnitTestEx.Azure.Functions" />
     <PackageReference Include="UnitTestEx.NUnit" />
   </ItemGroup>
-  <!--#else-->
-  <PropertyGroup>
-    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
-  </PropertyGroup>
-  <ItemGroup>
+  <ItemGroup Condition="'$(ManagePackageVersionsCentrally)' != 'true'">
     <PackageReference Include="AwesomeAssertions" Version="9.6.0" />
     <PackageReference Include="CoreEx.UnitTesting" Version="coreex-version" />
     <PackageReference Include="coverlet.collector" Version="10.1.0" />
@@ -30,11 +25,18 @@
     <PackageReference Include="NUnit" Version="4.6.1" />
     <PackageReference Include="NUnit.Analyzers" Version="4.15.0" />
     <PackageReference Include="NUnit3TestAdapter" Version="5.2.0" />
-    <PackageReference Include="UnitTestEx.Azure.Functions" Version="6.0.0" />
-    <PackageReference Include="UnitTestEx.NUnit" Version="6.0.0" />
+    <PackageReference Include="UnitTestEx.Azure.Functions" Version="6.1.0" />
+    <PackageReference Include="UnitTestEx.NUnit" Version="6.1.0" />
   </ItemGroup>
-  <!--#endif-->
   <ItemGroup>
     <ProjectReference Include="..\..\src\app-name.Functions\app-name.Functions.csproj" />
+    <!--#if has-test-common-->
+    <ProjectReference Include="__COREEX_TEST_COMMON_PROJECT__" />
+    <!--#endif-->
   </ItemGroup>
+  <!--#if has-test-common-->
+  <Target Name="ValidateTestCommonProject" BeforeTargets="CollectPackageReferences;PrepareForBuild">
+    <Error Condition="!Exists('__COREEX_TEST_COMMON_PROJECT__')" Code="COREEX001" Text="The selected Test.Common project '__COREEX_TEST_COMMON_PROJECT__' does not exist relative to this test project." />
+  </Target>
+  <!--#endif-->
 </Project>

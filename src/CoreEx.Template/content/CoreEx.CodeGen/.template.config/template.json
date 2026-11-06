@@ -1,0 +1,23 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "https://github.com/avanade/coreex",
+  "classifications": [ "CoreEx", "Code Generation" ],
+  "identity": "CoreEx.CodeGen",
+  "name": "CoreEx code-generation console",
+  "description": "Independent design-time console for explicit File and RefData generation, without a database or runtime-project dependency.",
+  "shortName": "coreex-codegen",
+  "tags": {
+    "language": "C#",
+    "type": "project"
+  },
+  "sourceName": "app-name.CodeGen",
+  "preferNameDirectory": false,
+  "symbols": {
+    "coreex-version": {
+      "type": "generated",
+      "generator": "constant",
+      "parameters": { "value": "COREEX_VERSION" },
+      "replaces": "coreex-version"
+    }
+  }
+}

@@ -121,6 +121,17 @@ public sealed partial class ValidationContext<TEntity>(TEntity value, Validation
     }
 
     /// <summary>
+    /// Throws a configured <see cref="ValidationException"/> when validation fails.
+    /// </summary>
+    /// <param name="configure">The non-null action, invoked once only when validation fails.</param>
+    /// <returns>The same context on success to support fluent-style method-chaining.</returns>
+    public ValidationContext<TEntity> ThrowOnError(Action<ValidationException> configure)
+    {
+        ((IValidationResult)this).ThrowOnError(configure);
+        return this;
+    }
+
+    /// <summary>
     /// Merges a <paramref name="validationResult"/> into this.
     /// </summary>
     /// <param name="validationResult">The <see cref="IValidationResult"/> to merge.</param>
