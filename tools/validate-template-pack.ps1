@@ -1037,7 +1037,7 @@ public class ProductFunctionsTests
             )
             FileContains = @{
                 "src/Example.Integration.Catalog.Functions/Example.Integration.Catalog.Functions.csproj" = "ManagePackageVersionsCentrally"
-                "tests/Example.Integration.Catalog.Test.Functions/Example.Integration.Catalog.Test.Functions.csproj" = 'Include="UnitTestEx.Azure.Functions" Version="6.0.0"'
+                "tests/Example.Integration.Catalog.Test.Functions/Example.Integration.Catalog.Test.Functions.csproj" = 'Include="UnitTestEx.Azure.Functions" Version="6.1.0"'
                 "src/Example.Integration.Catalog.Functions/AGENTS.md" = "standalone Azure Functions"
             }
             FileNotContains = @{

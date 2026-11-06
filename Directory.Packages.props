@@ -90,10 +90,10 @@
     <PackageVersion Include="NUnit3TestAdapter" Version="5.2.0" />
     <PackageVersion Include="OnRamp" Version="2.4.0" />
     <PackageVersion Include="Spectre.Console" Version="0.57.2" />
-    <PackageVersion Include="UnitTestEx" Version="6.0.0" />
-    <PackageVersion Include="UnitTestEx.Aspire" Version="6.0.0" />
-    <PackageVersion Include="UnitTestEx.Azure.Functions" Version="6.0.0" />
-    <PackageVersion Include="UnitTestEx.NUnit" Version="6.0.0" />
+    <PackageVersion Include="UnitTestEx" Version="6.1.0" />
+    <PackageVersion Include="UnitTestEx.Aspire" Version="6.1.0" />
+    <PackageVersion Include="UnitTestEx.Azure.Functions" Version="6.1.0" />
+    <PackageVersion Include="UnitTestEx.NUnit" Version="6.1.0" />
     <PackageVersion Include="WireMock.Net" Version="2.19.0" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">

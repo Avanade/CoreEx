@@ -30,7 +30,7 @@ This is a best-effort retry safety net, not an exactly-once or business-transact
 
 See [IdempotencyFunctions](../../tests/CoreEx.Azure.Functions.TestApp/IdempotencyFunctions.cs), [component/invocation tests](../../tests/CoreEx.Azure.Functions.Test.Unit/FunctionsHttpIdempotencyTests.cs) and the [real Core Tools runtime proofs](../../tests/aspire/CoreEx.Azure.Functions.Test.Aspire/FunctionsRuntimeTests.cs). The runtime overlap test deliberately holds the first operation open before submitting its duplicate; it proves same-worker behavior, not cross-instance locking.
 
-For UnitTestEx 6.0.0 invocation tests of this helper, assign a readable, seekable response buffer before invoking the function and use `.Run(...).SnapshotHttpResponse(request.HttpContext.Response)` to assert the already-rendered status, headers and body. The snapshot preserves stream ownership and position and does not re-execute the function or its result. Reserve `ToHttpResponseMessageAssertor(request)` for deferred results that still need execution.
+For UnitTestEx 6.1.0 invocation tests of this helper, assign a readable, seekable response buffer before invoking the function and use `.Run(...).SnapshotHttpResponse(request.HttpContext.Response)` to assert the already-rendered status, headers and body. The snapshot preserves stream ownership and position and does not re-execute the function or its result. Reserve `ToHttpResponseMessageAssertor(request)` for deferred results that still need execution.
 
 ## Service Bus: subscribed and native JSON
 
