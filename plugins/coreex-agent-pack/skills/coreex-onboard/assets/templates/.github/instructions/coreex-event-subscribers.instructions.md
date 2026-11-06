@@ -1,0 +1,255 @@
+---
+applyTo: "**/Subscribe/**/*.cs"
+description: "Event subscriber conventions: SubscribedBase, SubscribedBase<T>, ValueValidator, ErrorHandler, subject naming, and Subscribe host Program.cs composition"
+tags: ["subscribers", "messaging", "service-bus", "event-handling", "integration", "subscribe-host"]
+---
+
+# Event Subscriber Conventions
+
+## NuGet / Project References
+
+| Package | Key types provided |
+|---|---|
+| `CoreEx.Events` | `SubscribedBase`, `SubscribedBase<TValue>`, `[Subscribe(...)]`, `EventSubscriberArgs`, `ErrorHandler`, `ErrorHandling`, `EventData`, `.Key` |
+| `CoreEx.Azure.Messaging.ServiceBus` | `ServiceBusSessionReceiverOptions`, `.AzureServiceBusReceiving()`, `.WithSessionReceiver()`, `.WithSubscribedSubscriber()`, `.WithHostedService()` |
+| `CoreEx` | `[ScopedService]`, `.ThrowIfNull()`, `.Required()`, `Result`, `Result.Success`, `IValidator<T>` |
+
+## Subscriber Structure
+
+Each subscriber is a small, focused class that:
+
+1. Opts in to one or more message subjects via `[Subscribe("subject")]` attributes.
+2. Extends `SubscribedBase` (untyped) or `SubscribedBase<TValue>` (typed payload with optional validation).
+3. Delegates immediately to an Application-layer service or adapter — no business logic in the subscriber.
+4. Returns `Result` or `Result<T>` so that error handling and dead-lettering decisions can be expressed declaratively.
+
+All subscribers are decorated with `[ScopedService]` for automatic DI discovery. Dependencies are injected via primary constructor and guarded with `.ThrowIfNull()`.
+
+### Untyped subscriber — `SubscribedBase`
+
+Use when the relevant data is carried in the message key rather than a typed payload. Extract the key with `.Required()`, which throws a `ValidationException` if the key is absent:
+
+```csharp
+[ScopedService, Subscribe("contoso.products.product.deleted")]
+public class ProductDeleteSubscriber(IProductSyncAdapter adapter) : SubscribedBase
+{
+    private readonly IProductSyncAdapter _adapter = adapter.ThrowIfNull();
+
+    protected override Task<Result> OnReceiveAsync(
+        EventData @event, EventSubscriberArgs args, CancellationToken cancellationToken = default)
+        => _adapter.DeleteAsync(@event.Key.Required(), cancellationToken);
+}
+```
+
+For custom exception handling (e.g. converting a specific `NotFoundException` to a silent completion rather than dead-lettering), set `ErrorHandler` in the constructor — see [Error Handling](#error-handling) below.
+
+### Typed subscriber — `SubscribedBase<TValue>`
+
+Use when the message carries a typed payload that should be deserialized and optionally validated before `OnReceiveAsync` is called. Wire a `ValueValidator` to validate the deserialized value:
+
+```csharp
+[ScopedService]
+[Subscribe("contoso.products.product.created.v1")]
+[Subscribe("contoso.products.product.updated.v1")]
+public class ProductModifySubscriber(IProductSyncAdapter adapter) : SubscribedBase<Product>
+{
+    private readonly IProductSyncAdapter _adapter = adapter.ThrowIfNull();
+
+    public override IValidator<Product>? ValueValidator => ProductValidator.Default;
+
+    protected override Task<Result> OnReceiveAsync(
+        Product value, EventData @event, EventSubscriberArgs args, CancellationToken cancellationToken = default)
+        => _adapter.ModifyAsync(value, cancellationToken);
+}
+```
+
+Multiple `[Subscribe]` attributes on a single class handle multiple subjects with the same logic — no duplication required.
+
+## Subject Naming
+
+Use dot-separated lowercase subject strings:
+
+```
+{solution}.{domain}.{entity}.{action}[.v{n}]
+```
+
+The version suffix `[.v{n}]` is driven by whether the message carries a **payload** (a CloudEvent data element), not by whether it is an integration event or a command message:
+
+- **With payload** → include a version suffix. The payload has a schema that can evolve; consumers need to know which version to deserialise: `contoso.products.product.created.v1`
+- **Without payload (key-only)** → no version suffix. There is no data schema to version: `contoso.products.reservation.confirm`
+
+Command messages follow the same rule — a key-only command carries no version; a command that includes a payload does.
+
+Examples:
+- `contoso.products.product.created.v1` — has payload → versioned
+- `contoso.products.product.updated.v1` — has payload → versioned
+- `contoso.products.product.deleted` — key-only (no payload) → no version
+- `contoso.products.reservation.confirm` — key-only (no payload) → no version
+- `contoso.products.reservation.cancel` — key-only (no payload) → no version
+
+> **Note:** CoreEx supports integration events only — domain events (aggregate-internal) are not provided out of the box.
+
+### Publishing
+
+This same subject convention governs publishing. The `EventFormatter` in `CoreEx.Events` derives the subject automatically from the entity type and action when `EventData.CreateEventWith(value, action)` is called. Publishing is an **application service concern** — the service adds events to the unit of work inside `_unitOfWork.TransactionAsync(...)`, and they are committed atomically with the database write:
+
+```csharp
+_unitOfWork.Events.Add(EventData.CreateEventWith(product, EventAction.Created));
+```
+
+The **outbox** is purely a transactional relay mechanism — it durably captures the events inside the same database transaction, then an Outbox Relay host forwards them to the broker asynchronously. The application service is unaware of the broker; it only adds events to the unit of work.
+
+## Error Handling
+
+Define a static `ErrorHandler` to control how specific exceptions are treated — for example, converting a known `NotFoundException` to an informational completion rather than dead-lettering:
+
+```csharp
+internal static readonly ErrorHandler DefaultErrorHandler = new ErrorHandler()
+    .Add<NotFoundException>(ex => ex.ErrorCode == "pending-reservation-not-found"
+        ? ErrorHandling.CompleteAsInformation   // consume silently; log as informational
+        : null);                                // null = fall through to default handling (retry / dead-letter)
+```
+
+Assign it in the constructor: `ErrorHandler = DefaultErrorHandler;`
+
+Share the same `ErrorHandler` instance across related subscribers (e.g., both Confirm and Cancel subscribers can reference the same static instance).
+
+## Accessing Event Data
+
+```csharp
+var key = @event.Key.Required();    // Returns the key, or throws ValidationException if null/default
+```
+
+In typed subscribers (`SubscribedBase<TValue>`), the deserialized value is passed directly as the first parameter to `OnReceiveAsync` — no manual deserialization needed. That is the preferred approach whenever a payload is expected.
+
+For the rare case where an untyped subscriber (`SubscribedBase`) needs to deserialize the payload, use the protected `DeserializeValue<T>` helper inherited from the base class:
+
+```csharp
+var result = DeserializeValue<MyPayload>(@event, args, valueIsRequired: true);
+if (result.IsFailure) return result.AsResult();
+var value = result.Value;
+```
+
+## Program.cs Composition
+
+The Subscribe host `Program.cs` follows a predictable CoreEx shape. Key sections in order:
+
+```csharp
+// 1. Execution context and dynamic service discovery
+builder.Services
+    .AddExecutionContext()
+    .AddReferenceDataOrchestrator()   // non-generic — binds the IReferenceDataProvider from DI at runtime
+    .AddMvcWebApi()
+    .AddHttpWebApi()
+    .AddHostedServiceManager();
+
+builder.Services.AddDynamicServicesUsing(typeof(Program).Assembly, typeof(MyApp.Application.AssemblyMarker).Assembly, typeof(MyApp.Infrastructure.AssemblyMarker).Assembly);
+
+// 2. Caching — L1 memory cache + L2 Redis + FusionCache hybrid + idempotency provider
+builder.Services.AddMemoryCache();
+builder.AddRedisDistributedCache("redis");
+builder.Services.AddFusionCache()
+    .WithRegisteredMemoryCache()
+    .WithRegisteredDistributedCache()
+    .WithBackplane(sp => new RedisBackplane(new RedisBackplaneOptions { Configuration = ... }))
+    .WithSystemTextJsonSerializer(JsonDefaults.SerializerOptions);
+builder.Services
+    .AddFusionHybridCache()
+    .AddDefaultCacheKeyProvider()
+    .AddHybridCacheIdempotencyProvider();
+
+// 3. Infrastructure — database, EF, outbox publisher (for transactional writes inside subscribers)
+// SQL Server variant:
+builder.AddSqlServerClient("SqlServer");
+builder.Services
+    .AddSqlServerDatabase()
+    .AddSqlServerUnitOfWork()
+    .AddSqlServerOutboxPublisher()              // outbox publisher becomes the default IEventPublisher
+    .AddDbContext<MyDbContext>()
+    .AddEfDb<MyEfDb>();
+
+// PostgreSQL variant (use instead):
+// builder.AddAzureNpgsqlDataSource("Postgres");
+// builder.Services
+//     .AddPostgresDatabase()
+//     .AddPostgresUnitOfWork()
+//     .AddEventFormatter()
+//     .AddPostgresOutboxPublisher()
+//     .AddDbContext<MyDbContext>()
+//     .AddEfDb<MyEfDb>();
+
+// 4. Azure Service Bus publisher — direct publish capability (not the default IEventPublisher)
+builder.AddAzureServiceBusClient("ServiceBus");
+builder.Services.AddAzureServiceBusPublisher((_, c) =>
+{
+    c.SessionIdStrategy = ServiceBusSessionStrategy.UsePartitionKeyConvertedToAnId;
+}, addAsDefaultIEventPublisher: false);  // false because outbox publisher is already the default
+
+// 5. Event formatter + subscriber manager
+builder.Services
+    .AddEventFormatter()
+    .AddSubscribedManager((_, c) => c.AddSubscribersUsing<MySubscriber>());
+
+// 6. Azure Service Bus receiver wiring
+builder.Services.AzureServiceBusReceiving()
+    .WithSessionReceiver(_ =>
+    {
+        var o = ServiceBusSessionReceiverOptions.CreateForTopicSubscription();
+        o.SessionProcessorOptions.MaxConcurrentSessions = 4;
+        return o;
+    })
+    .WithSubscribedSubscriber()    // routes received messages through the SubscribedManager
+    .WithHostedService()           // runs the receiver as a BackgroundService
+    .Build();
+
+// 7. External API clients (if needed — for domains with inter-domain HTTP calls)
+builder.AddTypedHttpClient<ProductsHttpClient>("ProductsApi");
+
+// 8. Health checks, OpenTelemetry
+builder.Services.PostConfigureAllHealthChecks();
+builder.Services.AddControllers();
+builder.Services.AddOpenApiDocument(s =>
+{
+    s.Title = builder.Environment.ApplicationName;
+    s.AddCoreExConfiguration();
+});
+
+builder.WithCoreExTelemetry()
+    .WithCoreExServiceBusTelemetry()
+    .WithCoreExSqlServerTelemetry()  // or .WithCoreExPostgresTelemetry() for PostgreSQL
+    .UseOtlpExporter();
+
+// 9. Build and middleware pipeline
+var app = builder.Build();
+
+app.UseCoreExExceptionHandler();
+app.UseHttpsRedirection();
+app.UseAuthorization();
+app.UseExecutionContext();
+app.MapControllers();
+
+app.UseOpenApi();
+app.UseSwaggerUi();
+app.MapHealthChecks();
+app.MapHostedServices();   // exposes pause/resume management endpoints per partition
+
+app.Run();
+```
+
+`AddSubscribersUsing<T>()` scans the assembly containing `T` and auto-registers every `[Subscribe]`-decorated class — adding a new subscriber requires only creating the class, no `Program.cs` edits needed.
+
+`MapHostedServices()` exposes runtime management endpoints to **pause and resume** the receiver per partition without restarting the process.
+
+## Do Not
+
+- Do not embed business logic in subscriber classes — delegate immediately to an Application-layer service or adapter.
+- Do not use MediatR or in-process event dispatchers — subscribers react to integration events from the broker only.
+- Do not manually register subscriber classes in DI — `AddSubscribersUsing<T>()` discovers them automatically via `[ScopedService]`.
+- Do not omit `AddEventFormatter()` from `Program.cs` — it is required for message parsing and deserialization.
+- Do not set `addAsDefaultIEventPublisher: true` for the Service Bus publisher when the outbox publisher is the intended default `IEventPublisher`.
+
+## Further Reading
+
+- [Hosts Layer Guide — Subscribe Host](https://github.com/Avanade/CoreEx/blob/main/samples/docs/hosts-layer.md) — Subscribe host architecture, Program.cs shape, and subscriber patterns.
+- [Pattern Catalog](https://github.com/Avanade/CoreEx/blob/main/samples/docs/patterns.md) — Subscribe, Publish, Transactional Outbox, and Event-Driven Replication pattern entries.
+- [CoreEx.Azure.Messaging.ServiceBus README](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.Azure.Messaging.ServiceBus/README.md) — `SubscribedBase`, `ErrorHandler`, and Service Bus receiver configuration.
