@@ -7,6 +7,7 @@ public partial class E2ETest : WithAspireTester<Projects.Contoso_Aspire>
     private readonly string _customersApi = "customers-api";
     private string _serviceBusConnectionString = string.Empty;
     private string _productsConnectionString = string.Empty;
+    private string _shoppingConnectionString = string.Empty;
 
     protected override async Task OnBeforeStartAsync(DistributedApplication app)
     {
@@ -14,6 +15,8 @@ public partial class E2ETest : WithAspireTester<Projects.Contoso_Aspire>
             ?? throw new InvalidOperationException("The ServiceBus resource has no connection string.");
         _productsConnectionString = await AspireTesterBase.GetConnectionStringAsync(app, "Postgres").ConfigureAwait(false)
             ?? throw new InvalidOperationException("The Postgres resource has no connection string.");
+        _shoppingConnectionString = await AspireTesterBase.GetConnectionStringAsync(app, "SqlServer").ConfigureAwait(false)
+            ?? throw new InvalidOperationException("The SqlServer resource has no connection string.");
 
         // Migrate the Products, Shopping and Customers databases and seed each with test data.
         await app.MigratePostgresDataAsync<Contoso.Products.Test.Common.TestData>("Postgres", ["mutate-data.seed.yaml"], Contoso.Products.Database.Program.ConfigureMigrationArgs);
@@ -144,7 +147,9 @@ public partial class E2ETest : WithAspireTester<Projects.Contoso_Aspire>
         basket.ShippingAddress.Should().NotBeNull();
         basket.ShippingAddress.Street1.Should().Be("123 Main St");
 
-        Test.Checkpoint("Add the new Product to the Basket; should have sync'd by now.");
+        Test.Checkpoint("Wait for the new active Product to replicate to Shopping before adding it to the Basket.");
+
+        await WaitForShoppingProductAsync(product.Id!).ConfigureAwait(false);
 
         basket = Test.Http<Basket>(_shoppingApi)
             .Run(HttpMethod.Post, $"/api/baskets/{basket.Id}/items", new BasketItemAddRequest { ProductId = product.Id, Quantity = 1m }, r => r.WithIdempotencyKey())
@@ -198,6 +203,29 @@ public partial class E2ETest : WithAspireTester<Projects.Contoso_Aspire>
 
             Test.Delay(1000, $"Waiting for the mail-send request; iteration {attempt}.");
         }
+    }
+
+    private async Task WaitForShoppingProductAsync(string productId, CancellationToken cancellationToken = default)
+    {
+        await using var connection = new Microsoft.Data.SqlClient.SqlConnection(_shoppingConnectionString);
+        await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
+        await using var command = connection.CreateCommand();
+        command.CommandText = "SELECT [IsInactive] FROM [Shopping].[Product] WHERE [ProductId] = @productId";
+        command.Parameters.Add("@productId", System.Data.SqlDbType.NVarChar, 50).Value = productId;
+
+        const int maxAttempts = 60;
+        object? isInactive = null;
+        for (var attempt = 1; attempt <= maxAttempts; attempt++)
+        {
+            isInactive = await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
+            if (isInactive is false)
+                return;
+
+            if (attempt < maxAttempts)
+                await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken).ConfigureAwait(false);
+        }
+
+        Assert.Fail($"Product replication timed out after {maxAttempts} polls: ProductId='{productId}', IsInactive='{isInactive?.ToString() ?? "missing"}'. Expected path: Products outbox -> Products Relay -> contoso topic/shopping subscription -> Shopping Subscribe -> Shopping.Product.");
     }
 
     private static async Task<bool> SendReceivedAsync(WireMock.Client.IWireMockAdminApi api, string email)
