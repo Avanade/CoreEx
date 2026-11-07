@@ -135,21 +135,23 @@ public class NativeMessageConversionTests
         IEventFormatter formatter = new EventFormatter
         {
             TenantIdAttributeName = "customtenant",
+            AuthIdAttributeName = "userid",
             ReplyToAttributeName = "customreplyto",
             CorrelationIdAttributeName = "customcorrelation"
         };
         var value = EventData.CreateNativeWith(new { Value = 1 }).WithKey("key");
         value.TenantId = "tenant";
+        value.UserId = "internal-user";
         value.ReplyTo = "replies";
         value.CorrelationId = "correlation";
         value.SetAttribute("partner", "value");
 
         var message = formatter.ConvertToCloudEvent(formatter.Format(value)).EncodeToJsonElement().DecodeToCloudEvent()
-            .ToServiceBusMessage(CloudNative.CloudEvents.ContentMode.Structured, true, formatter);
+            .ToServiceBusMessage(CloudNative.CloudEvents.ContentMode.Structured, true);
 
         message.ReplyTo.Should().Be("replies");
         message.CorrelationId.Should().Be("correlation");
-        message.ApplicationProperties.Keys.Should().Contain("partner").And.NotContain("customtenant");
+        message.ApplicationProperties.Keys.Should().Contain("partner").And.NotContain("customtenant").And.NotContain("userid");
         message.ApplicationProperties.Keys.Should().NotContain("customreplyto").And.NotContain("customcorrelation");
     }
 
@@ -202,6 +204,55 @@ public class NativeMessageConversionTests
 
         var explicitlyTypedEmpty = BinaryData.FromString("", "application/octet-stream").DecodeToCloudEvent(CloudNative.CloudEvents.ContentMode.Binary);
         ((BinaryData)explicitlyTypedEmpty.Data!).ToArray().Should().BeEmpty();
+
+        foreach (var contentType in new[] { "application/json", "application/json; charset=utf-8" })
+        {
+            var jsonMessage = ServiceBusModelFactory.ServiceBusReceivedMessage(
+                body: BinaryData.Empty,
+                messageId: "id",
+                subject: "deleted",
+                contentType: contentType,
+                properties: new Dictionary<string, object> { ["ce_specversion"] = "1.0", ["ce_source"] = "urn:test" });
+            var explicitlyTypedJsonEmpty = jsonMessage.ToCloudEvent(CloudNative.CloudEvents.ContentMode.Binary);
+            explicitlyTypedJsonEmpty.Data.Should().BeNull();
+            explicitlyTypedJsonEmpty.EncodeToJsonElement().TryGetProperty("data", out _).Should().BeFalse();
+        }
+    }
+
+    [Test]
+    public void BinaryWithoutContentType_PreservesOpaqueBytesWhenStructured()
+    {
+        byte[] body = [0xff, 0x00, 0x7f];
+        var message = ServiceBusModelFactory.ServiceBusReceivedMessage(
+            body: BinaryData.FromBytes(body),
+            messageId: "id",
+            subject: "test",
+            properties: new Dictionary<string, object> { ["ce_specversion"] = "1.0", ["ce_source"] = "urn:test" });
+        var decoded = message.ToCloudEvent(CloudNative.CloudEvents.ContentMode.Binary);
+        var structured = decoded.EncodeToJsonElement();
+        structured.GetProperty("data_base64").GetString().Should().Be(Convert.ToBase64String(body));
+        ((byte[])structured.DecodeToCloudEvent().Data!).Should().Equal(body);
+    }
+
+    [Test]
+    public void BinaryFalseNativeMarker_RestoresBooleanType()
+    {
+        var message = ServiceBusModelFactory.ServiceBusReceivedMessage(
+            body: BinaryData.FromString("42"),
+            messageId: "id",
+            subject: "test",
+            contentType: "application/json",
+            properties: new Dictionary<string, object>
+            {
+                ["ce_specversion"] = "1.0",
+                ["ce_source"] = "urn:test",
+                ["ce_coreexisdatanative"] = "false"
+            });
+
+        var cloudEvent = message.ToCloudEvent(CloudNative.CloudEvents.ContentMode.Binary);
+
+        cloudEvent[NativeMessageEnvelopeCodec.NativeAttributeName].Should().Be(false);
+        NativeMessageEnvelopeCodec.GetRepresentation(cloudEvent).Should().Be(MessageRepresentation.CloudEvent);
     }
 
     [TestCase("unknown")]

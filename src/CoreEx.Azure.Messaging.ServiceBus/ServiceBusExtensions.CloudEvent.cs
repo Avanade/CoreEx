@@ -205,10 +205,9 @@ public static partial class ServiceBusExtensions
         if (contentMode == ContentMode.Binary && message.IsCloudEvent())
         {
             // Manually populate CloudEvent properties from ApplicationProperties for Binary mode.
-            var version = message.ApplicationProperties[CloudEventSpecVersionPropertyName] as string
-                ?? throw new InvalidOperationException("CloudEvent specversion must be a string.");
+            var version = message.ApplicationProperties[CloudEventSpecVersionPropertyName] as string ?? throw new InvalidOperationException("CloudEvent specversion must be a string.");
             var spec = CloudEventsSpecVersion.FromVersionId(version) ?? throw new NotSupportedException($"CloudEvent version '{version}' is not supported.");
-            ce = new CloudEvent(spec) { Data = ce.Data, DataContentType = ce.DataContentType };
+            ce = new CloudEvent(spec, [CloudEventAttribute.CreateExtension(NativeMessageEnvelopeCodec.NativeAttributeName, CloudEventAttributeType.Boolean)]) { Data = ce.Data, DataContentType = ce.DataContentType };
 
             foreach (var ap in message.ApplicationProperties)
             {

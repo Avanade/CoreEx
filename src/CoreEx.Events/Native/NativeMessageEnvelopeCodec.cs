@@ -33,6 +33,11 @@ public static class NativeMessageEnvelopeCodec
     internal static bool IsReserved(string name) => name.StartsWith("coreex", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
+    /// Determines whether an extension name is a standard CoreEx-mapped attribute name.
+    /// </summary>
+    internal static bool IsDefaultMappedAttributeName(string name) => DefaultMappedAttributeNames.Contains(name, StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
     /// Gets and validates the message representation.
     /// </summary>
     public static MessageRepresentation GetRepresentation(CloudEvent cloudEvent)
@@ -115,7 +120,6 @@ public static class NativeMessageEnvelopeCodec
         if (CloudEventsSpecVersion.Default.AllAttributes.Any(x => x.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
             return true;
 
-        return DefaultMappedAttributeNames.Contains(name, StringComparer.OrdinalIgnoreCase)
-            || (isMappedAttributeName?.Invoke(name) ?? false);
+        return IsDefaultMappedAttributeName(name) || (isMappedAttributeName?.Invoke(name) ?? false);
     }
 }

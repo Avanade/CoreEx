@@ -53,10 +53,12 @@ public static partial class EventsExtensions
             return RestoreJsonNull(formatter.DecodeStructuredModeMessage(binaryData, contentType, NativeMessageEnvelopeCodec.ExtensionAttributes), binaryData);
 
         var cex = new CloudEvent() { DataContentType = binaryData.MediaType };
-        if (formatter.IsJsonContentType(contentType))
-            cex.Data = binaryData;
-        else if (binaryData.ToMemory().IsEmpty && string.IsNullOrEmpty(binaryData.MediaType))
+        if (binaryData.IsEmpty && (contentType is null || formatter.IsJsonContentType(contentType)))
             cex.Data = null;
+        else if (contentType is null)
+            cex.Data = binaryData.ToArray();
+        else if (formatter.IsJsonContentType(contentType))
+            cex.Data = binaryData;
         else
             formatter.DecodeBinaryModeEventData(binaryData, cex);
 

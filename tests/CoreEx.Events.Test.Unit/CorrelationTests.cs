@@ -56,10 +56,20 @@ public class CorrelationTests
         value.CorrelationId = "corr";
         value.CausationId = "cause";
         var envelope = formatter.ConvertToCloudEvent(formatter.Format(value)).EncodeToJsonElement().DecodeToCloudEvent();
-        envelope["workflow"].Should().Be("corr");
-        envelope["trigger"].Should().Be("cause");
-        envelope["correlationid"].Should().BeNull();
-        envelope["causationid"].Should().BeNull();
+        if (native)
+        {
+            envelope["correlationid"].Should().Be("corr");
+            envelope["causationid"].Should().Be("cause");
+            envelope["workflow"].Should().BeNull();
+            envelope["trigger"].Should().BeNull();
+        }
+        else
+        {
+            envelope["workflow"].Should().Be("corr");
+            envelope["trigger"].Should().Be("cause");
+            envelope["correlationid"].Should().BeNull();
+            envelope["causationid"].Should().BeNull();
+        }
         var restored = formatter.ConvertFromCloudEvent(envelope);
         restored.CorrelationId.Should().Be("corr");
         restored.CausationId.Should().Be("cause");

@@ -138,7 +138,7 @@ public class EventFormatter : IEventFormatter
     /// <para>Defaults to excluding <c>$..etag</c>: an optimistic-concurrency token has no meaning to a downstream event consumer, and is not reliably assignable in the first place for events raised
     /// transactionally via an outbox against a NoSQL store (there is no single, post-commit <c>ETag</c> to capture at the point the event is written to the outbox). Set to <see langword="null"/> or an
     /// empty list to opt out and retain the previous behavior of leaving <see cref="EventData.Data"/> untouched.</para>
-    /// <para>Only applied to CloudEvent representation where <see cref="EventData.Data"/> is present and its <see cref="BinaryData.MediaType"/> is <see cref="MediaTypeNames.Application.Json"/>; native messages and other content types are left as-is.</para>
+    /// <para>Only applied to non-opaque CloudEvent representation where <see cref="EventData.Data"/> is present and its <see cref="BinaryData.MediaType"/> is <see cref="MediaTypeNames.Application.Json"/>; native messages, opaque payloads and other content types are left as-is.</para>
     /// <para>Because <c>etag</c> is excluded by this default, <c>CoreEx.UnitTesting</c>'s <c>EventExpectationsConfig.DefaultDataPathsToIgnore</c> does <b>not</b> need to (and does not) ignore it -
     /// there is nothing left in a captured event's <see cref="EventData.Data"/> to ignore. If this default is opted out of (see above), and <c>etag</c> can therefore reappear in published event data,
     /// add an equivalent ignore path to <c>EventExpectationsConfig.PathsToIgnore</c> so comparisons are unaffected.</para></remarks>
@@ -197,7 +197,7 @@ public class EventFormatter : IEventFormatter
                 @event.Title = "coreex.native";
         }
 
-        if (@event.DataRepresentation != MessageRepresentation.Native && @event.Data is not null && DataExcludePaths is { Count: > 0 } && string.Equals(@event.Data.MediaType, MediaTypeNames.Application.Json, StringComparison.OrdinalIgnoreCase))
+        if (@event.DataRepresentation != MessageRepresentation.Native && !@event.IsDataOpaque && @event.Data is not null && DataExcludePaths is { Count: > 0 } && string.Equals(@event.Data.MediaType, MediaTypeNames.Application.Json, StringComparison.OrdinalIgnoreCase))
             @event.Data = FilterData(@event.Data, DataExcludePaths);
 
         return @event;
@@ -264,9 +264,10 @@ public class EventFormatter : IEventFormatter
         @event.ThrowIfNull();
         InitializeNameArray();
         if (@event.Attributes.Keys.Any(NativeMessageEnvelopeCodec.IsReserved)
-            || (@event.DataRepresentation == MessageRepresentation.Native && @event.Attributes.Keys.Any(x => !x.StartsWith('_') && _nameArray.Contains(x, StringComparer.OrdinalIgnoreCase))))
+            || (@event.DataRepresentation == MessageRepresentation.Native && @event.Attributes.Keys.Any(x => !x.StartsWith('_') && (_nameArray.Contains(x, StringComparer.OrdinalIgnoreCase) || NativeMessageEnvelopeCodec.IsDefaultMappedAttributeName(x)))))
             throw new InvalidOperationException("Native custom Attributes cannot override framework-owned metadata.");
 
+        var isNative = @event.DataRepresentation == MessageRepresentation.Native;
         var ce = NativeMessageEnvelopeCodec.CreateCloudEvent();
         ce.Id = @event.ThrowIfNull().Id;
         ce.Type = @event.Title;
@@ -275,19 +276,22 @@ public class EventFormatter : IEventFormatter
         ce.Time = @event.Timestamp;
 
         NativeMessageEnvelopeCodec.Write(@event, ce);
-        ce.SetExtensionAttribute(TenantIdAttributeName, @event.TenantId);
+        ce.SetExtensionAttribute(GetAttributeName(isNative, TenantIdAttributeName, "tenantid"), @event.TenantId);
 
         var pk = @event.PartitionKey ?? @event.Key;
         if (pk is not null)
             ce.SetPartitionKey(pk);
 
-        ce.SetExtensionAttribute(ReplyToAttributeName, @event.ReplyTo);
-        ce.SetExtensionAttribute(CorrelationIdAttributeName, @event.CorrelationId);
-        ce.SetExtensionAttribute(CausationIdAttributeName, @event.CausationId);
-        ce.SetExtensionAttribute(AuthTypeAttributeName, ConvertFromAuthenticationType(@event.UserType));
-        ce.SetExtensionAttribute(AuthIdAttributeName, @event.UserId);
+        ce.SetExtensionAttribute(GetAttributeName(isNative, ReplyToAttributeName, "replyto"), @event.ReplyTo);
+        ce.SetExtensionAttribute(GetAttributeName(isNative, CorrelationIdAttributeName, "correlationid"), @event.CorrelationId);
+        ce.SetExtensionAttribute(GetAttributeName(isNative, CausationIdAttributeName, "causationid"), @event.CausationId);
+        ce.SetExtensionAttribute(GetAttributeName(isNative, AuthTypeAttributeName, "authtype"), ConvertFromAuthenticationType(@event.UserType));
+        ce.SetExtensionAttribute(GetAttributeName(isNative, AuthIdAttributeName, "authid"), @event.UserId);
 
-        AddTracing(ce, @event.TraceParent, @event.TraceState, @event.TraceBaggage);
+        AddTracing(ce, @event.TraceParent, @event.TraceState, @event.TraceBaggage,
+            GetAttributeName(isNative, TraceParentAttributeName, "traceparent"),
+            GetAttributeName(isNative, TraceStateAttributeName, "tracestate"),
+            GetAttributeName(isNative, TraceBaggageAttributeName, "baggage"));
 
         foreach (var kvp in @event.Attributes.Where(x => !x.Key.StartsWith('_')).OrderBy(x => x.Key, StringComparer.Ordinal))
         {
@@ -296,7 +300,7 @@ public class EventFormatter : IEventFormatter
 
         if (@event.Data is not null)
         {
-            ce.SetExtensionAttribute(DataSchemaVersionAttributeName, @event.DataSchemaVersion?.ToString());
+            ce.SetExtensionAttribute(GetAttributeName(isNative, DataSchemaVersionAttributeName, "dataschemaversion"), @event.DataSchemaVersion?.ToString());
             ce.DataSchema = @event.DataSchema;
             ce.DataContentType = @event.Data.MediaType;
             ce.Data = @event.IsDataOpaque ? @event.Data.ToArray() : @event.Data;
@@ -309,6 +313,7 @@ public class EventFormatter : IEventFormatter
     /// <remarks>The <see cref="CloudEvent.Data"/> must be of type <see cref="BinaryData"/> or <see cref="byte"/> array otherwise a <see cref="NotSupportedException"/> will be thrown.</remarks>
     public virtual EventData ConvertFromCloudEvent(CloudEvent cloudEvent)
     {
+        var isNative = NativeMessageEnvelopeCodec.GetRepresentation(cloudEvent) == MessageRepresentation.Native;
         var @event = new EventData
         {
             Id = cloudEvent.ThrowIfNull().Id ?? string.Empty,
@@ -317,10 +322,10 @@ public class EventFormatter : IEventFormatter
             Key = cloudEvent.Subject,
             PartitionKey = cloudEvent.GetPartitionKey()
         };
-        if (cloudEvent.TryGetExtensionAttribute(CorrelationIdAttributeName, out string? correlationId))
+        if (cloudEvent.TryGetExtensionAttribute(GetAttributeName(isNative, CorrelationIdAttributeName, "correlationid"), out string? correlationId))
             @event.CorrelationId = correlationId;
 
-        if (cloudEvent.TryGetExtensionAttribute(CausationIdAttributeName, out string? causationId))
+        if (cloudEvent.TryGetExtensionAttribute(GetAttributeName(isNative, CausationIdAttributeName, "causationid"), out string? causationId))
             @event.CausationId = causationId;
 
         if (cloudEvent.Data is BinaryData ed)
@@ -333,28 +338,28 @@ public class EventFormatter : IEventFormatter
         else if (cloudEvent.Data is not null)
             throw new NotSupportedException($"The {nameof(CloudEvent)}.{nameof(CloudEvent.Data)} type must be {nameof(BinaryData)} or {nameof(Byte)}[]; not '{cloudEvent.Data.GetType().FullName}'.");
 
-        if (cloudEvent.TryGetExtensionAttribute(DataSchemaVersionAttributeName, out string? val))
+        if (cloudEvent.TryGetExtensionAttribute(GetAttributeName(isNative, DataSchemaVersionAttributeName, "dataschemaversion"), out string? val))
             @event.DataSchemaVersion = Version.TryParse(val, out var ver) ? ver : null;
 
-        if (cloudEvent.TryGetExtensionAttribute(TenantIdAttributeName, out val))
+        if (cloudEvent.TryGetExtensionAttribute(GetAttributeName(isNative, TenantIdAttributeName, "tenantid"), out val))
             @event.TenantId = val;
 
-        if (cloudEvent.TryGetExtensionAttribute(ReplyToAttributeName, out val))
+        if (cloudEvent.TryGetExtensionAttribute(GetAttributeName(isNative, ReplyToAttributeName, "replyto"), out val))
             @event.ReplyTo = val;
 
-        if (cloudEvent.TryGetExtensionAttribute(AuthTypeAttributeName, out val))
+        if (cloudEvent.TryGetExtensionAttribute(GetAttributeName(isNative, AuthTypeAttributeName, "authtype"), out val))
             @event.UserType = ConvertToAuthenticationType(val);
 
-        if (cloudEvent.TryGetExtensionAttribute(AuthIdAttributeName, out val))
+        if (cloudEvent.TryGetExtensionAttribute(GetAttributeName(isNative, AuthIdAttributeName, "authid"), out val))
             @event.UserId = val;
 
-        if (cloudEvent.TryGetExtensionAttribute(TraceParentAttributeName, out val))
+        if (cloudEvent.TryGetExtensionAttribute(GetAttributeName(isNative, TraceParentAttributeName, "traceparent"), out val))
             @event.TraceParent = val;
 
-        if (cloudEvent.TryGetExtensionAttribute(TraceStateAttributeName, out val))
+        if (cloudEvent.TryGetExtensionAttribute(GetAttributeName(isNative, TraceStateAttributeName, "tracestate"), out val))
             @event.TraceState = val;
 
-        if (cloudEvent.TryGetExtensionAttribute(TraceBaggageAttributeName, out val) && !string.IsNullOrEmpty(val))
+        if (cloudEvent.TryGetExtensionAttribute(GetAttributeName(isNative, TraceBaggageAttributeName, "baggage"), out val) && !string.IsNullOrEmpty(val))
             @event.TraceBaggage = EventBaggage.Parse(val);
 
         if (cloudEvent.Source is not null)
@@ -364,7 +369,7 @@ public class EventFormatter : IEventFormatter
             @event.Title = cloudEvent.Type;
 
         InitializeNameArray();
-        if (NativeMessageEnvelopeCodec.GetRepresentation(cloudEvent) == MessageRepresentation.Native)
+        if (isNative)
         {
             foreach (var kvp in NativeMessageEnvelopeCodec.ReadAttributes(cloudEvent, IsMappedAttributeName))
                 @event.SetAttribute(kvp.Key, kvp.Value);
@@ -378,6 +383,11 @@ public class EventFormatter : IEventFormatter
         NativeMessageEnvelopeCodec.Restore(cloudEvent, @event);
         return @event;
     }
+
+    /// <summary>
+    /// Gets the attribute name.
+    /// </summary>
+    private static string GetAttributeName(bool isNative, string configuredName, string standardName) => isNative ? standardName : configuredName;
 
     /// <summary>
     /// Applies the specified <paramref name="casing"/> to the <paramref name="value"/> using <see cref="CultureInfo.InvariantCulture"/>.
@@ -424,9 +434,22 @@ public class EventFormatter : IEventFormatter
 
     /// <inheritdoc/>
     public void AddTracing(CloudEvent @event, string? traceParent = null, string? traceState = null, IEnumerable<KeyValuePair<string, string?>>? traceBaggage = null)
+        => AddTracing(@event, traceParent, traceState, traceBaggage, TraceParentAttributeName, TraceStateAttributeName, TraceBaggageAttributeName);
+
+    /// <summary>
+    /// Adds trace attributes using the specified CloudEvents attribute names.
+    /// </summary>
+    /// <param name="event">The CloudEvent.</param>
+    /// <param name="traceParent">The trace parent.</param>
+    /// <param name="traceState">The trace state.</param>
+    /// <param name="traceBaggage">The trace baggage.</param>
+    /// <param name="traceParentAttributeName">The trace parent attribute name.</param>
+    /// <param name="traceStateAttributeName">The trace state attribute name.</param>
+    /// <param name="traceBaggageAttributeName">The trace baggage attribute name.</param>
+    private void AddTracing(CloudEvent @event, string? traceParent, string? traceState, IEnumerable<KeyValuePair<string, string?>>? traceBaggage, string traceParentAttributeName, string traceStateAttributeName, string traceBaggageAttributeName)
     {
         @event.ThrowIfNull();
-        if (@event.TryGetExtensionAttribute(TraceParentAttributeName, out string _))
+        if (@event.TryGetExtensionAttribute(traceParentAttributeName, out string _))
             return;
 
         if (string.IsNullOrEmpty(traceParent) && Activity.Current is not null)
@@ -459,9 +482,9 @@ public class EventFormatter : IEventFormatter
             }
         }
 
-        @event.SetExtensionAttribute(TraceParentAttributeName, traceParent);
-        @event.SetExtensionAttribute(TraceStateAttributeName, traceState);
-        @event.SetExtensionAttribute(TraceBaggageAttributeName, formattedBaggage);
+        @event.SetExtensionAttribute(traceParentAttributeName, traceParent);
+        @event.SetExtensionAttribute(traceStateAttributeName, traceState);
+        @event.SetExtensionAttribute(traceBaggageAttributeName, formattedBaggage);
     }
 
     /// <summary>

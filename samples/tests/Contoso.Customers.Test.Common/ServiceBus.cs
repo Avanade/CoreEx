@@ -54,8 +54,9 @@ public static class ServiceBus
                             }
                             else
                             {
-                                var expectedKey = expected.SingleOrDefault(key => key.Type == type);
-                                subject = expectedKey.Subject ?? throw new InvalidOperationException($"Unexpected native message type '{type}'.");
+                                subject = message.ApplicationProperties.TryGetValue("Key", out var messageKey) && messageKey is string value
+                                    ? value
+                                    : throw new InvalidOperationException($"Native message '{type}' has no string Key property.");
                             }
                             var key = (subject, type);
                             messages.TryAdd(key, message);

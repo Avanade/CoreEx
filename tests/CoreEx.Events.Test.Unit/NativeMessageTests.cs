@@ -252,6 +252,38 @@ public class NativeMessageTests
     }
 
     [Test]
+    public void NativeMetadata_UsesCanonicalNamesAcrossFormatterConfigurations()
+    {
+        var producerFormatter = new EventFormatter
+        {
+            TenantIdAttributeName = "customtenant",
+            AuthTypeAttributeName = "authentication",
+            AuthIdAttributeName = "userid",
+            ReplyToAttributeName = "customreply",
+            CorrelationIdAttributeName = "customcorrelation",
+            CausationIdAttributeName = "customcausation"
+        };
+        var value = EventData.CreateNativeWith(new { Value = 1 }).WithKey("key");
+        value.TenantId = "tenant";
+        value.UserType = CoreEx.Security.AuthenticationType.AccountUser;
+        value.UserId = "internal-user";
+        value.ReplyTo = "replies";
+        value.CorrelationId = "correlation";
+        value.CausationId = "causation";
+
+        var stored = producerFormatter.ConvertToCloudEvent(producerFormatter.Format(value)).EncodeToJsonElement();
+        var restored = new EventFormatter().ConvertFromCloudEvent(stored.DecodeToCloudEvent());
+
+        restored.TenantId.Should().Be("tenant");
+        restored.UserType.Should().Be(CoreEx.Security.AuthenticationType.AccountUser);
+        restored.UserId.Should().Be("internal-user");
+        restored.ReplyTo.Should().Be("replies");
+        restored.CorrelationId.Should().Be("correlation");
+        restored.CausationId.Should().Be("causation");
+        NativeMessageEnvelopeCodec.ReadAttributes(stored.DecodeToCloudEvent()).Should().BeEmpty();
+    }
+
+    [Test]
     public void CustomFormatterCannotLoseNativeRepresentation()
     {
         var publisher = new NoOpEventPublisher(formatter: new LosingFormatter());
