@@ -28,6 +28,12 @@ The package extends [UnitTestEx](https://github.com/Avanade/UnitTestEx) — the 
 - 📝 **Validation shortcuts**: `AssertSuccess` and `AssertErrors` extension methods execute a `CoreEx.Validation.IValidator<T>` and assert the outcome inline, using AwesomeAssertions for readable failure messages.
 - 🔄 **FusionCache test reset**: `ClearFusionCacheAsync` clears the registered `IFusionCache` between test runs to prevent state bleed in cached reference-data or other cache-backed scenarios.
 
+## Native message expectations
+
+Use `ExpectEvents(e => e.AssertNativeMessage(destination, expectedEventData))`, or the provider-specific outbox/Service Bus expectation overload, to compare a native message's internal envelope, payload and durable options. The expected `EventData` must have native representation. Opaque bytes compare through their Base64 storage form; normal JSON compares as JSON. Native payloads retain ETags unless explicitly removed, unlike the default CE formatter policy. The existing ignored metadata/data paths still apply.
+
+`ToServiceBusReceivedMessage` honors declarative native mapping but does not execute `ServiceBusPublisher.ConfigureMessage` or publisher session assignment. For final broker headers, byte identity, callback behavior and session policy, assert actual received messages in relay/transport tests.
+
 ## Key types
 | Type | Description |
 |------|-------------|

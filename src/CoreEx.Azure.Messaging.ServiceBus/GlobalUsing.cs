@@ -6,6 +6,7 @@ global using CoreEx.Abstractions;
 global using CoreEx.Azure.Messaging.ServiceBus.Abstractions;
 global using CoreEx.Azure.Messaging.ServiceBus;
 global using CoreEx.Data;
+global using CoreEx.Events.Native;
 global using CoreEx.Events.Publishing;
 global using CoreEx.Events.Subscribing.Exceptions;
 global using CoreEx.Events.Subscribing;

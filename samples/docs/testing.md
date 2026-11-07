@@ -1,5 +1,7 @@
 # Testing
 
+The Products (PostgreSQL), Shopping (SQL Server) and Customers (Cosmos DB) relay suites also prove native JSON and opaque byte delivery through the real outbox and Service Bus emulator. They check durable metadata, stable IDs, session mapping, mixed CloudEvent/native delivery and rollback absence. These transport proofs complement `AssertNativeMessage` envelope expectations; captured events alone do not prove the final broker body or send-time callback behavior.
+
 The sample test suite is organised around a clear principle: **each test project tests exactly one deployable host in isolation**. This mirrors the production topology — each host is an independently deployable process — and keeps test concerns sharply separated. The isolation boundary also determines what is real and what is mocked within each project.
 
 ---

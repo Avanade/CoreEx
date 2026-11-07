@@ -27,6 +27,12 @@ Resolve these decisions from the request, Feature Configuration, and existing co
 
 ---
 
+## Publishing Representation
+
+When adding publication, keep the default CloudEvent representation unless the requested external contract requires payload-only native output. For native output, follow [Native Message Publishing](/.github/instructions/coreex-application-services.instructions.md#native-message-publishing): choose JSON versus exact bytes explicitly, retain event/command intent and existing transaction boundaries, and use shared Attributes rather than introducing transport options. Resolve this from the request; do not add a representation interview to ordinary CRUD work.
+
+Before opting into native, check the receiver contract: would binary CloudEvents satisfy the payload-only body requirement while preserving `SubscribedManager`/`[Subscribe]` dispatch? Prefer that over native when CE metadata is accepted. Record the concrete reason native is required and confirm a native-compatible receiver; if either is unresolved, clarify with the user before implementation. This selection check applies only when considering native, not to every publication.
+
 ## Path A — Exception-Based Service
 
 Use when the project uses exceptions for flow control (standard, no `Result<T>` method signatures).

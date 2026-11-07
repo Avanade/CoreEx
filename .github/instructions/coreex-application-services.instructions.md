@@ -323,6 +323,14 @@ public async Task DeleteAsync(string id, CancellationToken cancellationToken = d
 }
 ```
 
+## Native Message Publishing
+
+CloudEvent is the default wire representation. When an external contract explicitly requires a payload-only body, use `EventData.CreateNativeWith(value)` for JSON, `CreateNativeWithData(BinaryData)` for exact bytes, or `.AsNative()` on an existing event/command. Representation is independent of `MessageType`: preserve command intent and normal destination routing. Native messages use the same publisher and transactional outbox; changing representation does not change atomicity or justify publishing outside the transaction.
+
+Prefer CloudEvents for CoreEx-to-CoreEx messaging: both structured and binary modes support `SubscribedManager`/`[Subscribe]` dispatch. If only the JSON envelope is unwanted, binary CloudEvents already send the payload as the body while retaining CE metadata in broker properties. Native is for contracts that cannot or must not carry CE metadata, not a shortcut to a payload-only body; it bypasses normal CloudEvent dispatch and requires a native-compatible consumer. Before selecting native, verify the receiver contract and why binary CloudEvents are unsuitable; ask the user only when that requirement is unresolved. Do not change the existing content mode merely because binary is supported.
+
+Use existing `Attributes`/`SetAttribute("revision", "1")` for custom native string headers; underscore-prefixed and null entries are omitted. Do not invent a separate header dictionary or CLR scalar-type preservation. Native payloads bypass automatic formatter filtering, including ETag removal. See [native publishing](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.Events/README.md#native-publishing).
+
 ## Result&lt;T&gt; Pipeline Style
 
 Using `Result<T>` chains is a developer choice — it is not restricted to DDD aggregate services. It can be applied to any service method where explicit, composable failure propagation is preferred over exceptions. Compose with `Result.GoAsync`, `.ThenAs`, `.ThenAsAsync`. The unit of work is still `TransactionAsync`:

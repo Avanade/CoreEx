@@ -285,6 +285,22 @@ public sealed class EventExpectationsConfig
     }
 
     /// <summary>
+    /// Adds an expectation for a native message, including its durable representation, payload and options.
+    /// </summary>
+    /// <param name="destination">The expected destination.</param>
+    /// <param name="message">The expected native message.</param>
+    /// <param name="pathsToIgnore">Additional envelope JSON paths to ignore.</param>
+    /// <returns>The configuration for fluent chaining.</returns>
+    /// <remarks>Opaque payloads are compared byte-exactly via data_base64. JSON payloads use the existing JSON comparison policy.</remarks>
+    public EventExpectationsConfig AssertNativeMessage(string destination, EventData message, params IEnumerable<string> pathsToIgnore)
+    {
+        if (message.ThrowIfNull().DataRepresentation != CoreEx.Events.MessageRepresentation.Native)
+            throw new ArgumentException("The expected message must use native representation.", nameof(message));
+
+        return AssertEventData(destination, message, pathsToIgnore);
+    }
+
+    /// <summary>
     /// Adds an expectation assertion that an event was published matching the primary metadata (where specified) only.
     /// </summary>
     /// <param name="destination">The expected destination (i.e. topic) name.</param>

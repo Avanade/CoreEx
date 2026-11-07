@@ -40,6 +40,12 @@ public sealed class ServiceBusPublisher(ServiceBusClient serviceBusClient, IDest
     public bool IncludeCloudEventAttributes { get; set; } = true;
 
     /// <summary>
+    /// Gets or sets optional send-time customization for both CloudEvent and native messages.
+    /// </summary>
+    /// <remarks>Receives destination, internal envelope (read-only by convention), and final message after session mapping. Runs once per message per publish attempt before any sends, not per send retry or batch candidate. Register in the final publisher host, including relays. Keep deterministic and side-effect-free; overriding payload, identity, or session metadata can defeat normal guarantees.</remarks>
+    public Action<string, CloudEvent, ServiceBusMessage>? ConfigureMessage { get; set; }
+
+    /// <summary>
     /// Gets or sets the <see cref="ServiceBusMessage.SessionId"/> strategy to use when sending messages; defaults to <see cref="ServiceBusSessionStrategy.None"/>.
     /// </summary>
     public ServiceBusSessionStrategy SessionIdStrategy { get; set; } = ServiceBusSessionStrategy.None;
@@ -90,9 +96,16 @@ public sealed class ServiceBusPublisher(ServiceBusClient serviceBusClient, IDest
     /// <inheritdoc/>
     protected async override Task OnPublishAsync(DestinationEvent[] events, CancellationToken cancellationToken = default)
     {
-        var groups = events
-            .GroupBy(e => e.Destination ?? string.Empty, StringComparer.Ordinal)
-            .ToDictionary(g => g.Key, g => new Queue<DestinationEvent>(g), StringComparer.Ordinal);
+        var groups = new Dictionary<string, Queue<ServiceBusMessage>>(StringComparer.Ordinal);
+        foreach (var item in events)
+        {
+            var message = SetSessionId(item.Event.ToServiceBusMessage(ContentMode, IncludeCloudEventAttributes), item.Destination);
+            ConfigureMessage?.Invoke(item.Destination, item.Event, message);
+            if (!groups.TryGetValue(item.Destination, out var queue))
+                groups.Add(item.Destination, queue = new Queue<ServiceBusMessage>());
+
+            queue.Enqueue(message);
+        }
 
         if (Logger?.IsEnabled(LogLevel.Debug) ?? false)
             Logger.LogDebug("Preparing to send {EventCount} event(s) to {DestinationCount} destination(s).", events.Length, groups.Count);
@@ -114,7 +127,7 @@ public sealed class ServiceBusPublisher(ServiceBusClient serviceBusClient, IDest
     /// <summary>
     /// Send using safe-batching.
     /// </summary>
-    private async Task SendBatchAsync(int totalEventCount, string destination, Queue<DestinationEvent> events, CancellationToken cancellationToken)
+    private async Task SendBatchAsync(int totalEventCount, string destination, Queue<ServiceBusMessage> events, CancellationToken cancellationToken)
     {
         var eventsSent = 0;
 
@@ -127,12 +140,12 @@ public sealed class ServiceBusPublisher(ServiceBusClient serviceBusClient, IDest
             using var batch = await sender.CreateMessageBatchAsync(cancellationToken).ConfigureAwait(false);
 
             // Add first message to the batch.
-            if (batch.TryAddMessage(SetSessionId(events.Peek().Event.ToServiceBusMessage(ContentMode, IncludeCloudEventAttributes), destination)))
+            if (batch.TryAddMessage(events.Peek()))
             {
                 events.Dequeue();
 
                 // Keep adding messages until we run out of messages or batch is full.
-                while (events.Count > 0 && batch.TryAddMessage(SetSessionId(events.Peek().Event.ToServiceBusMessage(ContentMode, IncludeCloudEventAttributes), destination)))
+                while (events.Count > 0 && batch.TryAddMessage(events.Peek()))
                 {
                     events.Dequeue();
                 }
@@ -141,8 +154,8 @@ public sealed class ServiceBusPublisher(ServiceBusClient serviceBusClient, IDest
             {
                 if (Logger?.IsEnabled(LogLevel.Error) ?? false)
                 {
-                    var ce = events.Peek().Event;
-                    Logger.LogError("A single event (Id={MessageId}, Type='{MessageType}') is too large to fit in the Azure Service Bus message batch for destination '{Destination}'; {EventsSent} of the {EventsCount} event(s) have already been successfully sent.", ce.Id, ce.Type, destination, eventsSent, totalEventCount);
+                    var message = events.Peek();
+                    Logger.LogError("A single event (Id={MessageId}, Type='{MessageType}') is too large to fit in the Azure Service Bus message batch for destination '{Destination}'; {EventsSent} of the {EventsCount} event(s) have already been successfully sent.", message.MessageId, message.Subject, destination, eventsSent, totalEventCount);
                 }
 
                 throw new InvalidOperationException("A single event is too large to fit in the Azure Service Bus message batch.");

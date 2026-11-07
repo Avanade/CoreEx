@@ -112,4 +112,26 @@ public class EventExpecationsConfigTests
             })
             .AssertSuccess());
     }
+
+    [Test]
+    public void AssertNativeMessage_PreservesPayloadAndOptions()
+    {
+        var test = CreateTest();
+        EventData CreateMessage()
+        {
+            var message = EventData.CreateNativeWith(new { ETag = "external-contract" }).WithTitle("native.test").WithPartitionKey();
+            message.CorrelationId = "corr";
+            message.SetAttribute("count", "1");
+            return message;
+        }
+
+        test.ExpectEvents(EntryPoint.EventsServiceKey, cfg => cfg.AssertNativeMessage("dest", CreateMessage()))
+            .Run(() =>
+            {
+                using var scope = test.Services.CreateScope();
+                var publisher = scope.ServiceProvider.GetRequiredKeyedService<IEventPublisher>(EntryPoint.EventsServiceKey);
+                publisher.Add("dest", CreateMessage());
+                publisher.PublishAsync().GetAwaiter().GetResult();
+            }).AssertSuccess();
+    }
 }

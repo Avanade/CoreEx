@@ -51,6 +51,12 @@ public class EventFormatter : IEventFormatter
     public bool CaptureBaggage { get; set; }
 
     /// <summary>
+    /// Gets or sets whether native output includes the formatted <see cref="EventData.Title"/> as its subject.
+    /// </summary>
+    /// <remarks>Defaults to true. The resolved subject is persisted in the internal envelope; reconstructed messages retain that decision independently of the relay's formatter settings.</remarks>
+    public bool IncludeNativeSubject { get; set; } = true;
+
+    /// <summary>
     /// Gets or sets the <see cref="CloudEvent"/> extension attribute name for the <see cref="EventData.TenantId"/>.
     /// </summary>
     public string TenantIdAttributeName { get; set => field = SetAndInitializeNameArray(value); } = "tenantid";
@@ -74,6 +80,16 @@ public class EventFormatter : IEventFormatter
     /// Gets or sets the <see cref="CloudEvent"/> extension attribute name for the <see cref="EventData.ReplyTo"/>.
     /// </summary>
     public string ReplyToAttributeName { get; set => field = SetAndInitializeNameArray(value); } = "replyto";
+
+    /// <summary>
+    /// Gets or sets the CloudEvent extension attribute name for <see cref="EventData.CorrelationId"/>.
+    /// </summary>
+    public string CorrelationIdAttributeName { get; set => field = SetAndInitializeNameArray(value); } = "correlationid";
+
+    /// <summary>
+    /// Gets or sets the CloudEvent extension attribute name for <see cref="EventData.CausationId"/>.
+    /// </summary>
+    public string CausationIdAttributeName { get; set => field = SetAndInitializeNameArray(value); } = "causationid";
 
     /// <summary>
     /// Gets or sets the casing to apply to the <see cref="EventData.Title"/>.
@@ -128,7 +144,7 @@ public class EventFormatter : IEventFormatter
     /// <para>Defaults to excluding <c>$..etag</c>: an optimistic-concurrency token has no meaning to a downstream event consumer, and is not reliably assignable in the first place for events raised
     /// transactionally via an outbox against a NoSQL store (there is no single, post-commit <c>ETag</c> to capture at the point the event is written to the outbox). Set to <see langword="null"/> or an
     /// empty list to opt out and retain the previous behavior of leaving <see cref="EventData.Data"/> untouched.</para>
-    /// <para>Only applied where <see cref="EventData.Data"/> is present and its <see cref="BinaryData.MediaType"/> is <see cref="MediaTypeNames.Application.Json"/>; other content types are left as-is.</para>
+    /// <para>Only applied to CloudEvent representation where <see cref="EventData.Data"/> is present and its <see cref="BinaryData.MediaType"/> is <see cref="MediaTypeNames.Application.Json"/>; native messages and other content types are left as-is.</para>
     /// <para>Because <c>etag</c> is excluded by this default, <c>CoreEx.UnitTesting</c>'s <c>EventExpectationsConfig.DefaultDataPathsToIgnore</c> does <b>not</b> need to (and does not) ignore it -
     /// there is nothing left in a captured event's <see cref="EventData.Data"/> to ignore. If this default is opted out of (see above), and <c>etag</c> can therefore reappear in published event data,
     /// add an equivalent ignore path to <c>EventExpectationsConfig.PathsToIgnore</c> so comparisons are unaffected.</para></remarks>
@@ -139,6 +155,9 @@ public class EventFormatter : IEventFormatter
     /// <code>[{EventFormatter.TitlePrefix}.]{EventData.DomainName}.{EventData.Entity}.{EventData.Action}[.v{EventData.DataSchemaVersion.Major}]</code></remarks>
     public virtual EventData Format(EventData @event)
     {
+        if (!Enum.IsDefined(@event.DataRepresentation))
+            throw new NotSupportedException("The message representation is not supported.");
+
         string[] tpa = TitlePrefix is null ? [] : [TitlePrefix];
 
         if (@event.Title is null)
@@ -177,7 +196,14 @@ public class EventFormatter : IEventFormatter
         if (@event.PartitionKey is null && PartitionKeyIsRequired)
             throw new InvalidOperationException($"A {nameof(EventData)}.{nameof(EventData.PartitionKey)} PartitionKey is required.");
 
-        if (@event.Data is not null && DataExcludePaths is { Count: > 0 } && string.Equals(@event.Data.MediaType, MediaTypeNames.Application.Json, StringComparison.OrdinalIgnoreCase))
+        if (@event.DataRepresentation == MessageRepresentation.Native)
+        {
+            @event.Source ??= new Uri("urn:coreex:native");
+            if (string.IsNullOrWhiteSpace(@event.Title))
+                @event.Title = "coreex.native";
+        }
+
+        if (@event.DataRepresentation != MessageRepresentation.Native && @event.Data is not null && DataExcludePaths is { Count: > 0 } && string.Equals(@event.Data.MediaType, MediaTypeNames.Application.Json, StringComparison.OrdinalIgnoreCase))
             @event.Data = FilterData(@event.Data, DataExcludePaths);
 
         return @event;
@@ -241,6 +267,11 @@ public class EventFormatter : IEventFormatter
     /// <inheritdoc/>
     public virtual CloudEvent ConvertToCloudEvent(EventData @event)
     {
+        @event.ThrowIfNull();
+        InitializeNameArray();
+        if (@event.DataRepresentation == MessageRepresentation.Native && @event.Attributes.Keys.Any(x => !x.StartsWith('_') && _nameArray.Contains(x, StringComparer.OrdinalIgnoreCase)))
+            throw new InvalidOperationException("Native custom Attributes cannot override framework-owned metadata.");
+
         var ce = new CloudEvent
         {
             Id = @event.ThrowIfNull().Id,
@@ -250,6 +281,7 @@ public class EventFormatter : IEventFormatter
             Time = @event.Timestamp
         };
 
+        NativeMessageEnvelopeCodec.Write(@event, ce, IncludeNativeSubject);
         ce.SetExtensionAttribute(TenantIdAttributeName, @event.TenantId);
 
         var pk = @event.PartitionKey ?? @event.Key;
@@ -257,6 +289,8 @@ public class EventFormatter : IEventFormatter
             ce.SetPartitionKey(pk);
 
         ce.SetExtensionAttribute(ReplyToAttributeName, @event.ReplyTo);
+        ce.SetExtensionAttribute(CorrelationIdAttributeName, @event.CorrelationId);
+        ce.SetExtensionAttribute(CausationIdAttributeName, @event.CausationId);
         ce.SetExtensionAttribute(AuthTypeAttributeName, ConvertFromAuthenticationType(@event.UserType));
         ce.SetExtensionAttribute(AuthIdAttributeName, @event.UserId);
 
@@ -271,7 +305,7 @@ public class EventFormatter : IEventFormatter
         {
             ce.SetExtensionAttribute(DataSchemaVersionAttributeName, @event.DataSchemaVersion?.ToString());
             ce.DataSchema = @event.DataSchema;
-            ce.DataContentType = @event.Data?.MediaType;
+            ce.DataContentType = @event.Data.MediaType;
             ce.Data = @event.Data;
         }
 
@@ -290,9 +324,14 @@ public class EventFormatter : IEventFormatter
             Key = cloudEvent.Subject,
             PartitionKey = cloudEvent.GetPartitionKey()
         };
+        if (cloudEvent.TryGetExtensionAttribute(CorrelationIdAttributeName, out string? correlationId))
+            @event.CorrelationId = correlationId;
+
+        if (cloudEvent.TryGetExtensionAttribute(CausationIdAttributeName, out string? causationId))
+            @event.CausationId = causationId;
 
         if (cloudEvent.Data is not null)
-            @event.Data = cloudEvent.Data is BinaryData ed ? ed : throw new NotSupportedException($"The {nameof(CloudEvent)}.{nameof(CloudEvent.Data)} type must be {nameof(BinaryData)}; not '{cloudEvent.Data.GetType().FullName}'.");
+            @event.Data = cloudEvent.Data is BinaryData ed ? ed.WithMediaType(cloudEvent.DataContentType) : throw new NotSupportedException($"The {nameof(CloudEvent)}.{nameof(CloudEvent.Data)} type must be {nameof(BinaryData)}; not '{cloudEvent.Data.GetType().FullName}'.");
 
         if (cloudEvent.TryGetExtensionAttribute(DataSchemaVersionAttributeName, out string? val))
             @event.DataSchemaVersion = Version.TryParse(val, out var ver) ? ver : null;
@@ -325,11 +364,18 @@ public class EventFormatter : IEventFormatter
             @event.Title = cloudEvent.Type;
 
         InitializeNameArray();
-        foreach (var kvp in cloudEvent.GetPopulatedAttributes().Where(x => !_nameArray.Contains(x.Key.Name, StringComparer.OrdinalIgnoreCase)))
+        if (NativeMessageEnvelopeCodec.GetRepresentation(cloudEvent) == MessageRepresentation.Native)
         {
-            @event.SetAttribute(kvp.Key.Name, kvp.Value);
+            foreach (var kvp in NativeMessageEnvelopeCodec.ReadAttributes(cloudEvent))
+                @event.SetAttribute(kvp.Key, kvp.Value);
+        }
+        else
+        {
+            foreach (var kvp in cloudEvent.GetPopulatedAttributes().Where(x => !_nameArray.Contains(x.Key.Name, StringComparer.OrdinalIgnoreCase) && !NativeMessageEnvelopeCodec.IsReserved(x.Key.Name)))
+                @event.SetAttribute(kvp.Key.Name, kvp.Value);
         }
 
+        NativeMessageEnvelopeCodec.Restore(cloudEvent, @event);
         return @event;
     }
 
@@ -364,7 +410,7 @@ public class EventFormatter : IEventFormatter
             return;
 
         _initializeNameArray = false;
-        _nameArray = [.. CloudEventsSpecVersion.Default.AllAttributes.Select(x => x.Name), Partitioning.PartitionKeyAttribute.Name, TraceParentAttributeName, TraceStateAttributeName, TraceBaggageAttributeName, TenantIdAttributeName, DataSchemaVersionAttributeName, AuthTypeAttributeName, AuthIdAttributeName, ReplyToAttributeName];
+        _nameArray = [.. CloudEventsSpecVersion.Default.AllAttributes.Select(x => x.Name), Partitioning.PartitionKeyAttribute.Name, TraceParentAttributeName, TraceStateAttributeName, TraceBaggageAttributeName, TenantIdAttributeName, DataSchemaVersionAttributeName, AuthTypeAttributeName, AuthIdAttributeName, ReplyToAttributeName, CorrelationIdAttributeName, CausationIdAttributeName];
     }
 
     /// <inheritdoc/>
