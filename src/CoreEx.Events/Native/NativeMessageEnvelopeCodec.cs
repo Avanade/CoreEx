@@ -60,15 +60,7 @@ public static class NativeMessageEnvelopeCodec
     /// <summary>
     /// Reads eligible caller-defined extensions as canonical string-valued native headers.
     /// </summary>
-    public static IReadOnlyDictionary<string, string> ReadAttributes(CloudEvent cloudEvent) => ReadAttributes(cloudEvent, null);
-
-    /// <summary>
-    /// Reads eligible caller-defined extensions as canonical string-valued native headers, excluding formatter-mapped attributes.
-    /// </summary>
-    /// <param name="cloudEvent">The native <see cref="CloudEvent"/>.</param>
-    /// <param name="isMappedAttributeName">The formatter's extension-name classification function.</param>
-    /// <returns>The eligible native header values.</returns>
-    internal static IReadOnlyDictionary<string, string> ReadAttributes(CloudEvent cloudEvent, Func<string, bool>? isMappedAttributeName)
+    public static IReadOnlyDictionary<string, string> ReadAttributes(CloudEvent cloudEvent)
     {
         cloudEvent.ThrowIfNull();
         if (GetRepresentation(cloudEvent) != MessageRepresentation.Native)
@@ -78,7 +70,7 @@ public static class NativeMessageEnvelopeCodec
         foreach (var attribute in cloudEvent.GetPopulatedAttributes())
         {
             var name = attribute.Key.Name;
-            if (!attribute.Key.IsExtension || IsReserved(name) || IsFrameworkAttribute(name, isMappedAttributeName) || name.StartsWith('_') || name.StartsWith("ce_", StringComparison.OrdinalIgnoreCase))
+            if (!attribute.Key.IsExtension || IsReserved(name) || IsFrameworkAttribute(name) || name.StartsWith('_') || name.StartsWith("ce_", StringComparison.OrdinalIgnoreCase))
                 continue;
 
             if (cloudEvent[name] is object value)
@@ -115,11 +107,11 @@ public static class NativeMessageEnvelopeCodec
     /// <summary>
     /// Determines whether an extension is owned by CloudEvents or mapped by CoreEx.
     /// </summary>
-    private static bool IsFrameworkAttribute(string name, Func<string, bool>? isMappedAttributeName)
+    private static bool IsFrameworkAttribute(string name)
     {
         if (CloudEventsSpecVersion.Default.AllAttributes.Any(x => x.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
             return true;
 
-        return IsDefaultMappedAttributeName(name) || (isMappedAttributeName?.Invoke(name) ?? false);
+        return IsDefaultMappedAttributeName(name);
     }
 }

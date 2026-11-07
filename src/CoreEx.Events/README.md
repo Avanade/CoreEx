@@ -46,7 +46,7 @@ var opaque = EventData.CreateNativeWithData(BinaryData.FromString("{ \"x\": 1 }\
     .WithKey(orderId);
 ```
 
-`CreateNative()` creates a payload-free native event. `CreateNativeWith<T>` and `WithValue` serialize CLR values as JSON; a string becomes a JSON string, not a pre-serialized document. JSON guarantees content equivalence, not whitespace/byte identity. `CreateNativeWithData` and `WithData` copy opaque bytes and preserve them exactly. `WithValue` resets opaque intent. Native messages bypass automatic `EventFormatter.DataExcludePaths` filtering, including default ETag removal; explicit call-site exclusions still apply. Use the payload methods rather than assigning `Data` when replacing the payload kind.
+`CreateNative()` creates a payload-free native event. `CreateNativeWith<T>` and `WithValue` serialize CLR values as JSON; a string becomes a JSON string, not a pre-serialized document. JSON guarantees content equivalence, not whitespace/byte identity. `CreateNativeWithData` and `WithData` copy opaque bytes and preserve them exactly; queueing then retains the owned byte memory without another payload-sized copy until encoding or transport requires one. `WithValue` resets opaque intent. Native messages bypass automatic `EventFormatter.DataExcludePaths` filtering, including default ETag removal; explicit call-site exclusions still apply. Use the payload methods rather than assigning `Data` when replacing the payload kind.
 
 Native Service Bus Subject comes from the formatted `EventData.Title`, carried by CloudEvent `type`; there is no duplicate native Subject field or omission option. ReplyTo and CorrelationId remain on `EventData` and are stored as ordinary CloudEvent extensions.
 

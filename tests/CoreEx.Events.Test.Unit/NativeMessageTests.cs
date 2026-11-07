@@ -205,7 +205,12 @@ public class NativeMessageTests
         bytes[1] = 9;
         value.SetAttribute("revision", "2");
         var queued = publisher.GetEvents().Single().Event;
-        queued.Data.Should().BeOfType<byte[]>().Which.Should().Equal(1, 2, 3);
+        var queuedBytes = queued.Data.Should().BeOfType<ReadOnlyMemory<byte>>().Subject;
+        queuedBytes.ToArray().Should().Equal(1, 2, 3);
+        System.Runtime.InteropServices.MemoryMarshal.TryGetArray(value.Data!.ToMemory(), out var sourceBuffer).Should().BeTrue();
+        System.Runtime.InteropServices.MemoryMarshal.TryGetArray(queuedBytes, out var queuedBuffer).Should().BeTrue();
+        queuedBuffer.Array.Should().BeSameAs(sourceBuffer.Array);
+        queuedBuffer.Offset.Should().Be(sourceBuffer.Offset);
         NativeMessageEnvelopeCodec.ReadAttributes(queued)["revision"].Should().Be("1");
     }
 
@@ -281,6 +286,36 @@ public class NativeMessageTests
         restored.CorrelationId.Should().Be("correlation");
         restored.CausationId.Should().Be("causation");
         NativeMessageEnvelopeCodec.ReadAttributes(stored.DecodeToCloudEvent()).Should().BeEmpty();
+    }
+
+    [Test]
+    public async Task NativePublish_UsesCanonicalTracingAndPreservesCustomAttributesAcrossFormatterAliases()
+    {
+        var formatter = new EventFormatter
+        {
+            TenantIdAttributeName = "tenantalias",
+            TraceParentAttributeName = "tp",
+            TraceStateAttributeName = "ts",
+            TraceBaggageAttributeName = "tb"
+        };
+        var publisher = new NoOpEventPublisher(formatter: formatter);
+        publisher.Add(EventData.CreateNativeWith(new { Value = 1 }).WithKey("key").SetAttribute("partner", "abc"));
+        using var activity = new Activity("publish").SetIdFormat(ActivityIdFormat.W3C).Start();
+
+        await publisher.PublishAsync().ConfigureAwait(false);
+
+        var envelope = publisher.GetEvents().Single().Event;
+        envelope["traceparent"].Should().Be(activity!.Id);
+        envelope["tracestate"].Should().BeNull();
+        envelope["baggage"].Should().BeNull();
+        envelope["tp"].Should().BeNull();
+        envelope["ts"].Should().BeNull();
+        envelope["tb"].Should().BeNull();
+
+        var relayFormatter = new EventFormatter { TenantIdAttributeName = "partner" };
+        var reconstructed = relayFormatter.ConvertFromCloudEvent(envelope);
+        reconstructed.Attributes.Should().ContainKey("partner").WhoseValue.Should().Be("abc");
+        reconstructed.TenantId.Should().BeNull();
     }
 
     [Test]

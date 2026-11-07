@@ -153,7 +153,7 @@ jobs:
         restore-keys: nuget-${{ runner.os }}-
 
     - name: Build samples
-      run: dotnet build CoreEx.Samples.Build.slnf --configuration Release
+      run: dotnet build CoreEx.Samples.Build.slnf --configuration Release -m:1
 
     - name: CodeGen tool (samples/src/Contoso.Products.CodeGen)
       working-directory: samples/src/Contoso.Products.CodeGen
@@ -254,7 +254,7 @@ jobs:
         restore-keys: nuget-${{ runner.os }}-
 
     - name: Build samples E2E
-      run: dotnet build CoreEx.Samples.Build.slnf --configuration Release
+      run: dotnet build CoreEx.Samples.Build.slnf --configuration Release -m:1
 
     # Products, Shopping, and Customers are provisioned by the Aspire fixture before startup.
     - name: Database tool (samples/src/Contoso.Orders.Database)

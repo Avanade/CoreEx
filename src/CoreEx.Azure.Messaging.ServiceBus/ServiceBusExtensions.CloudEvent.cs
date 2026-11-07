@@ -90,7 +90,8 @@ public static partial class ServiceBusExtensions
                 null => BinaryData.Empty,
                 BinaryData data => data,
                 byte[] bytes => BinaryData.FromBytes(bytes, cloudEvent.DataContentType),
-                _ => throw new NotSupportedException("Native payloads must be BinaryData.")
+                ReadOnlyMemory<byte> bytes => BinaryData.FromBytes(bytes, cloudEvent.DataContentType),
+                _ => throw new NotSupportedException("Native payloads must be binary data.")
             };
 
             var native = new ServiceBusMessage(body)

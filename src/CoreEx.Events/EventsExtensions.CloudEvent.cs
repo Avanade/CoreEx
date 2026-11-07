@@ -163,6 +163,11 @@ public static partial class EventsExtensions
                 writer.WritePropertyName(DataBase64PropertyName);
                 writer.WriteBase64StringValue(bytes);
             }
+            else if (cloudEvent.Data is ReadOnlyMemory<byte> opaqueData)
+            {
+                writer.WritePropertyName(DataBase64PropertyName);
+                writer.WriteBase64StringValue(opaqueData.Span);
+            }
             else
                 base.EncodeStructuredModeData(cloudEvent, writer);
         }
@@ -175,6 +180,8 @@ public static partial class EventsExtensions
                 return bd.ToArray();
             else if (cloudEvent.Data is byte[] bytes)
                 return bytes;
+            else if (cloudEvent.Data is ReadOnlyMemory<byte> opaqueData)
+                return opaqueData;
             else
                 return base.EncodeBinaryModeEventData(cloudEvent);
         }

@@ -303,14 +303,17 @@ public class EventFormatter : IEventFormatter
             ce.SetExtensionAttribute(GetAttributeName(isNative, DataSchemaVersionAttributeName, "dataschemaversion"), @event.DataSchemaVersion?.ToString());
             ce.DataSchema = @event.DataSchema;
             ce.DataContentType = @event.Data.MediaType;
-            ce.Data = @event.IsDataOpaque ? @event.Data.ToArray() : @event.Data;
+            if (@event.IsDataOpaque)
+                ce.Data = @event.Data.ToMemory();
+            else
+                ce.Data = @event.Data;
         }
 
         return ce;
     }
 
     /// <inheritdoc/>
-    /// <remarks>The <see cref="CloudEvent.Data"/> must be of type <see cref="BinaryData"/> or <see cref="byte"/> array otherwise a <see cref="NotSupportedException"/> will be thrown.</remarks>
+    /// <remarks>The <see cref="CloudEvent.Data"/> must be of type <see cref="BinaryData"/>, <see cref="ReadOnlyMemory{T}"/> or <see cref="byte"/> array otherwise a <see cref="NotSupportedException"/> will be thrown.</remarks>
     public virtual EventData ConvertFromCloudEvent(CloudEvent cloudEvent)
     {
         var isNative = NativeMessageEnvelopeCodec.GetRepresentation(cloudEvent) == MessageRepresentation.Native;
@@ -330,13 +333,18 @@ public class EventFormatter : IEventFormatter
 
         if (cloudEvent.Data is BinaryData ed)
             @event.Data = ed.WithMediaType(cloudEvent.DataContentType);
+        else if (cloudEvent.Data is ReadOnlyMemory<byte> opaqueData)
+        {
+            @event.Data = BinaryData.FromBytes(opaqueData, cloudEvent.DataContentType);
+            @event.IsDataOpaque = true;
+        }
         else if (cloudEvent.Data is byte[] bytes)
         {
             @event.Data = BinaryData.FromBytes(bytes, cloudEvent.DataContentType);
             @event.IsDataOpaque = true;
         }
         else if (cloudEvent.Data is not null)
-            throw new NotSupportedException($"The {nameof(CloudEvent)}.{nameof(CloudEvent.Data)} type must be {nameof(BinaryData)} or {nameof(Byte)}[]; not '{cloudEvent.Data.GetType().FullName}'.");
+            throw new NotSupportedException($"The {nameof(CloudEvent)}.{nameof(CloudEvent.Data)} type must be {nameof(BinaryData)}, {nameof(ReadOnlyMemory<byte>)} or {nameof(Byte)}[]; not '{cloudEvent.Data.GetType().FullName}'.");
 
         if (cloudEvent.TryGetExtensionAttribute(GetAttributeName(isNative, DataSchemaVersionAttributeName, "dataschemaversion"), out string? val))
             @event.DataSchemaVersion = Version.TryParse(val, out var ver) ? ver : null;
@@ -371,7 +379,7 @@ public class EventFormatter : IEventFormatter
         InitializeNameArray();
         if (isNative)
         {
-            foreach (var kvp in NativeMessageEnvelopeCodec.ReadAttributes(cloudEvent, IsMappedAttributeName))
+            foreach (var kvp in NativeMessageEnvelopeCodec.ReadAttributes(cloudEvent))
                 @event.SetAttribute(kvp.Key, kvp.Value);
         }
         else
@@ -423,18 +431,15 @@ public class EventFormatter : IEventFormatter
         _nameArray = [.. CloudEventsSpecVersion.Default.AllAttributes.Select(x => x.Name), Partitioning.PartitionKeyAttribute.Name, TraceParentAttributeName, TraceStateAttributeName, TraceBaggageAttributeName, TenantIdAttributeName, DataSchemaVersionAttributeName, AuthTypeAttributeName, AuthIdAttributeName, ReplyToAttributeName, CorrelationIdAttributeName, CausationIdAttributeName];
     }
 
-    /// <summary>
-    /// Determines whether the specified extension name is mapped to a framework-owned event property.
-    /// </summary>
-    internal bool IsMappedAttributeName(string name)
-    {
-        InitializeNameArray();
-        return _nameArray.Contains(name, StringComparer.OrdinalIgnoreCase);
-    }
-
     /// <inheritdoc/>
     public void AddTracing(CloudEvent @event, string? traceParent = null, string? traceState = null, IEnumerable<KeyValuePair<string, string?>>? traceBaggage = null)
-        => AddTracing(@event, traceParent, traceState, traceBaggage, TraceParentAttributeName, TraceStateAttributeName, TraceBaggageAttributeName);
+    {
+        var isNative = NativeMessageEnvelopeCodec.GetRepresentation(@event) == MessageRepresentation.Native;
+        AddTracing(@event, traceParent, traceState, traceBaggage,
+            GetAttributeName(isNative, TraceParentAttributeName, "traceparent"),
+            GetAttributeName(isNative, TraceStateAttributeName, "tracestate"),
+            GetAttributeName(isNative, TraceBaggageAttributeName, "baggage"));
+    }
 
     /// <summary>
     /// Adds trace attributes using the specified CloudEvents attribute names.
