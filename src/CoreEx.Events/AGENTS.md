@@ -33,6 +33,12 @@ _unitOfWork.Events.Add(
 
 `EventAction` provides the standard past-tense action values: `Created`, `Updated`, `Deleted`, `Activated`, `Deactivated`, `Cancelled`, `CheckedOut`, and more.
 
+## Native Wire Representation
+
+Use `EventData.CreateNativeWith(value).WithKey(key)` for ordinary JSON, `CreateNativeWithData(BinaryData)` for exact bytes, or `.AsNative()` on an existing event/command to preserve its routing intent. `CreateNative()` has no payload. Representation is `DataRepresentation`, not another `MessageType`. Native messages bypass automatic payload redaction; explicit exclusions still apply. `WithValue` resets opaque intent. Keep the existing partition-key policy and enqueue through `IUnitOfWork.Events` inside its transaction when using an outbox.
+
+Native Subject uses formatted Title by default; set `EventFormatter.IncludeNativeSubject = false` to omit it. The resolved Subject is persisted and retained on reconstruction, independent of relay formatter settings. There is no separate options object. Use existing publishable `Attributes` for canonical string native headers, without a second dictionary or CLR type preservation. `ReplyTo`, `CorrelationId` and `CausationId` are on `EventData`; correlation and causation map to CE extensions using the formatter's configurable `CorrelationIdAttributeName`/`CausationIdAttributeName`, following other mapped properties with generic extension helpers and no dedicated accessor API. Neither is inferred from tracing. Keep standard `correlationid` for automatic Service Bus broker mapping. Native publishing instructions are `[JsonIgnore]`; persist through CloudEvent conversion, not ordinary EventData JSON. `MessageRepresentation` stays in the root namespace; `NativeMessageEnvelopeCodec` is in `.Native`. Do not use reserved CE/control/tracing property names or write the internal `datarepresentation`/`coreexnative` extensions yourself. `Add(EventData)` snapshots payload and native metadata; custom formatters must preserve it. Upgrade all final publishers/relays before enabling native writes and drain native backlog before rolling back. See [native protocol and payload guarantees](./README.md#native-publishing).
+
 ## IEventPublisher Registration
 
 `IEventPublisher` is registered by the database outbox publisher in API/application hosts and by Azure Service Bus in relay hosts.

@@ -48,6 +48,12 @@ Use a stable business key with `UsePartitionKeyAsIs` when per-entity ordering is
 
 ---
 
+## Native Publishing Configuration
+
+Native output uses the existing publisher/outbox registrations. `EventFormatter.IncludeNativeSubject` defaults true and uses formatted `EventData.Title`; false omits the native Subject. The resolved Subject is persisted, so relay formatter settings must not reinterpret it.
+
+Use `ServiceBusPublisher.ConfigureMessage` only for final transport customization, such as typed broker application properties or exceptional Subject overrides. With an outbox, configure the actual sending publisher in the Relay, not only the producing API; the callback is not persisted. It runs once per prepared message per publish attempt, not again for batch overflow/send retries, but whole-operation retry/redelivery can rerun it. Upgrade every final publisher/relay before enabling native writes; drain native backlog before rollback. See [native output and customization](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.Azure.Messaging.ServiceBus/README.md#native-output-and-send-time-customization).
+
 ## Host Creation Boundaries
 
 Api, Subscribe, and Relay hosts are optional additions to the base `coreex` solution. Create a missing host only within the user's authorized scope; use `coreex-scaffold` for unresolved scope decisions.

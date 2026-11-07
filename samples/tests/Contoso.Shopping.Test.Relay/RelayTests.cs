@@ -75,4 +75,69 @@ public class RelayTests : WithApiTester<Contoso.Shopping.Relay.Program>
             }).AssertSuccess();
         });
     }
+
+    [Test]
+    public void Outbox_Relay_NativeJsonAndOpaque_WithRollback()
+    {
+        Test.ScopedType<ExecutionContext>(test => test.Run(async _ =>
+        {
+            var publisher = ActivatorUtilities.GetServiceOrCreateInstance<SqlServerOutboxPublisher>(test.Services);
+            var database = test.Services.GetRequiredService<CoreEx.Database.SqlServer.SqlServerDatabase>();
+            var unitOfWork = new CoreEx.Database.SqlServer.SqlServerUnitOfWork(database, publisher);
+            var key = Guid.NewGuid().ToString();
+            var rolledBack = EventData.CreateNativeWith(new { ETag = "rolled-back" }).WithKey(key);
+            var rollbackUnitOfWork = new CoreEx.Database.SqlServer.SqlServerUnitOfWork(database);
+            Func<Task> rollback = () => rollbackUnitOfWork.TransactionAsync(async ct =>
+            {
+                publisher.Add("contoso", rolledBack);
+                await publisher.PublishAsync(ct).ConfigureAwait(false);
+                throw new InvalidOperationException("Rollback native outbox.");
+            });
+            await rollback.Should().ThrowAsync<InvalidOperationException>().WithMessage("Rollback native outbox.");
+            publisher.Reset();
+
+            var json = EventData.CreateNativeWith(new { ETag = "keep" }).WithKey(key).WithTitle("native.json");
+            json.CorrelationId = "corr";
+            json.CausationId = "cause";
+            json.SetAttribute("count", "1");
+            json.SetAttribute("amount", "1.5");
+            json.SetAttribute("ratio", "1.5");
+            json.SetAttribute("enabled", "true");
+            json.SetAttribute("code", "external");
+            json.SetAttribute("revision", "2");
+            json.ReplyTo = "partner-replies";
+            var opaque = EventData.CreateNativeWithData(BinaryData.FromString("{ \"etag\": \"exact\" }\n", "application/json")).WithKey(key).WithTitle("native.opaque");
+            var cloudEvent = EventData.CreateEventWith(new { Value = 1 }, "created").WithKey(key);
+            await unitOfWork.TransactionAsync(ct =>
+            {
+                publisher.Add("contoso", json, opaque, cloudEvent);
+                return Task.CompletedTask;
+            }).ConfigureAwait(false);
+
+            var received = new List<Azure.Messaging.ServiceBus.ServiceBusReceivedMessage>();
+            for (var i = 0; i < 30 && received.Count < 3; i++)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
+                received.AddRange(await Test.GetAndClearAzureServiceBusAsync(ServiceBusSessionReceiverOptions.CreateForTopicSubscription("contoso", "shopping")).ConfigureAwait(false));
+            }
+
+            received.Should().HaveCount(3).And.NotContain(x => x.MessageId == rolledBack.Id);
+            var jsonMessage = received.Single(x => x.MessageId == json.Id);
+            jsonMessage.IsCloudEvent().Should().BeFalse();
+            jsonMessage.Body.ToString().Should().Contain("\"etag\":\"keep\"");
+            jsonMessage.ApplicationProperties["count"].Should().Be("1");
+            jsonMessage.CorrelationId.Should().Be("corr");
+            jsonMessage.ReplyTo.Should().Be("partner-replies");
+            foreach (var property in json.Attributes)
+            {
+                jsonMessage.ApplicationProperties[property.Key].Should().Be(property.Value);
+                jsonMessage.ApplicationProperties[property.Key].Should().BeOfType<string>();
+            }
+
+            jsonMessage.Subject.Should().Be("native.json");
+            jsonMessage.SessionId.Should().Be(CoreEx.Data.PartitionKey.GetPartitionIdAsString(key));
+            received.Single(x => x.MessageId == opaque.Id).Body.ToArray().Should().Equal(opaque.Data!.ToArray());
+            received.Single(x => x.MessageId == cloudEvent.Id).IsCloudEvent().Should().BeTrue();
+        }).AssertSuccess());
+    }
 }

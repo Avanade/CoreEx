@@ -6,7 +6,7 @@
 
 `CoreEx.Events` is the messaging backbone of the CoreEx framework. It defines the contracts and base implementations used by every host that sends or receives integration events — whether those are Azure Service Bus messages, outbox-relayed events, or any other transport.
 
-**Publishing** follows a two-phase pattern: application code buffers `EventData` (or `CloudEvent`) objects into a lightweight in-process queue, then a single `PublishAsync()` call drains the queue to the underlying transport atomically. An `IDestinationProvider` resolves topic/queue names from event metadata, and `IEventFormatter` converts between `EventData` and the CloudNative CloudEvents specification, attaching trace parent/state automatically; ambient baggage capture requires explicit opt-in.
+**Publishing** follows a two-phase pattern: application code buffers `EventData` (or `CloudEvent`) objects into a lightweight in-process queue, then `PublishAsync()` sends them to the underlying transport or persists them in an outbox. Only an enlisted transactional outbox provides database atomicity; direct transport publishing can partially succeed. An `IDestinationProvider` resolves topic/queue names from event metadata, and `IEventFormatter` converts between `EventData` and the CloudNative CloudEvents specification, attaching trace parent/state automatically; ambient baggage capture requires explicit opt-in.
 
 **Subscribing** is built around `EventSubscriberBase`, which receives a `CloudEvent` from the host transport, converts it back to `EventData` via `IEventFormatter`, and dispatches to the matching `SubscribedBase` handler registered with a `SubscribedManager`. Every error path — transient retries, dead-letter, silent completion, catastrophic failure — is expressed as a configurable `ErrorHandling` enum value, keeping subscriber code free of try/catch scaffolding.
 
@@ -23,6 +23,62 @@ Typed payload cleanup is available through `EventSubscriberBase.AutoCleanValue` 
 - 🛡️ **Configurable error handling**: `ErrorHandling` enum values (`CompleteAsSilent`, `Retry`, `DeadLetter`, `Catastrophic`, and more) are mapped per exception type via a fluent `ErrorHandler` configurator — no boilerplate try/catch in subscriber code.
 - 📊 **OpenTelemetry metrics**: `EventSubscriberMetrics` exposes a `messages.received` counter via `System.Diagnostics.Metrics`; `EventPublisherInvoker` and `SubscribedInvoker` wrap operations in activity spans.
 - 🧩 **`MessageType` discrimination**: Distinguishes `Event`, `Command`, and `ReplyTo` semantics for destination-name generation.
+
+## Native publishing
+
+`MessageType` describes intent (event, command, reply); `MessageRepresentation` describes the external envelope (`CloudEvent`, the default, or `Native`). They are independent. Native messages use the same `IEventPublisher`, destination resolution, partition requirements, outboxes and relays. The final Service Bus publisher emits only the payload, not a CloudEvent.
+
+```csharp
+var message = EventData.CreateNativeWith(new { OrderId = orderId, ETag = "external-token" })
+    .WithKey(orderId)
+    .WithTitle("partner.order.created");
+message.CorrelationId = orderId;
+message.SetAttribute("revision", "1");
+// Inside the existing unit-of-work transaction:
+unitOfWork.Events.Add("partner-orders", message);
+
+// Keep command routing; change only the wire representation.
+var command = EventData.CreateCommandWith("products", request, "reserve").AsNative().WithKey(orderId);
+unitOfWork.Events.Add(command);
+
+// Preserve these exact bytes, even though their media type is JSON.
+var opaque = EventData.CreateNativeWithData(BinaryData.FromString("{ \"x\": 1 }\n", "application/json"))
+    .WithKey(orderId);
+```
+
+`CreateNative()` creates a payload-free native event. `CreateNativeWith<T>` and `WithValue` serialize CLR values as JSON; a string becomes a JSON string, not a pre-serialized document. JSON guarantees content equivalence, not whitespace/byte identity. `CreateNativeWithData` and `WithData` copy opaque bytes and preserve them exactly. `WithValue` resets opaque intent. Native messages bypass automatic `EventFormatter.DataExcludePaths` filtering, including default ETag removal; explicit call-site exclusions still apply. Use the payload methods rather than assigning `Data` when replacing the payload kind.
+
+Native Subject defaults to the formatted `EventData.Title`. Set `EventFormatter.IncludeNativeSubject = false` to omit it; supply a different Title for a different Subject, using the existing title formatting conventions. The resolved Subject (including omission) is persisted, so relays and reconstructed messages retain the producer's decision rather than applying a new policy. There is no separate per-message options object or competing Subject override. ReplyTo and CorrelationId remain on `EventData`.
+
+Use the existing `Attributes` collection (`SetAttribute`) for custom metadata in either representation. Native output maps caller-declared publishable attributes to unprefixed Service Bus application properties as canonical strings, not CLR-type-preserving values. Existing CloudEvent extension constraints apply: ordinary custom values are strings, not arbitrary objects/numeric primitives. Underscore-prefixed entries and null values are omitted. Framework control, standard CE, tracing and mapped metadata names are reserved for native custom attributes; framework-added tenant/auth/source/schema metadata is not exported indiscriminately.
+
+The internal native record preserves only the names of caller-supplied publishable attributes; their values stay in ordinary CE extensions. There is no second public dictionary or custom scalar type-tagging protocol. Receivers interpret strings according to their contract. If a broker filter or external protocol requires a numeric/typed property, set it in the final publisher's `ConfigureMessage` callback (on the relay for outbox delivery); receiver parsing cannot change broker-side filtering.
+
+`DataRepresentation` and `IsDataOpaque` are publishing instructions marked `[JsonIgnore]`, like `MessageType`. Resolved Subject state is internal. Ordinary `EventData` JSON is not a durable message format. Use formatter conversion and the CloudEvent encode/decode helpers for persistence; that explicit boundary preserves native instructions and attributes. `MessageRepresentation` remains in `CoreEx.Events` because it describes both wire representations.
+
+### Correlation and causation
+
+`EventData.CorrelationId` groups messages in a business workflow; `CausationId` identifies the immediately triggering message (normally its Id). Both are optional and are never inferred from trace IDs or ambient context. They map to CloudEvent string extensions `correlationid` and `causationid` for both representations, independently of native metadata. Configure their names using `EventFormatter.CorrelationIdAttributeName` and `CausationIdAttributeName`, just like other mapped properties. Direct CloudEvents use the existing generic `SetExtensionAttribute`/`TryGetExtensionAttribute` helpers; there is no dedicated accessor API or special validation policy.
+
+Service Bus broker mapping recognizes the standard `correlationid` name, just as tracing recognizes standard trace names. Keep the default for automatic broker CorrelationId mapping; a custom alias remains CE metadata and requires explicit `ConfigureMessage` mapping when broker CorrelationId is needed.
+
+These names align with the upstream [Correlation extension document](https://github.com/cloudevents/spec/blob/main/cloudevents/extensions/correlation.md), not mandatory CloudEvents 1.0 core attributes. Correlation is mapped to Service Bus's broker CorrelationId for both representations, including when optional CE attributes are excluded. Causation stays CE metadata; explicitly export it using the final publisher's `ConfigureMessage` callback if a native external protocol requires it. Neither value changes tracing, routing or message identity.
+
+`Add(EventData)` captures destination, payload bytes, resolved Subject and native metadata; subsequent mutation of the original object/dictionary does not update the queued message. Custom formatters must preserve representation and durable metadata or enqueueing fails. Advanced callers supplying `CloudEvent`/`DestinationEvent` directly retain their existing object-ownership contract and must not mutate queued envelopes; the final transport still validates native metadata.
+
+### Internal storage contract and rollout
+
+Native messages retain an internal CloudEvent for queue/outbox compatibility. CoreEx owns fixed scalar extensions: `datarepresentation=native` and `coreexnative`, a JSON string containing metadata version `1`, intent, opaque flag, resolved Subject, reply destination and the caller attribute-name list. Correlation and causation live only in their shared CE extensions, not this record. Do not populate control extensions through `EventData.Attributes`. Missing representation or `cloudevent` means ordinary CE output; unknown representations/versions and inconsistent metadata fail explicitly. `CoreEx.Events.Native.NativeMessageEnvelopeCodec` encodes/reads this protocol; applications should normally use the public factories and formatter configuration instead.
+
+Ordinary JSON is stored in CE `data`; opaque data uses `data_base64`, decoded before sending. Complete media types, including parameters, survive reconstruction. JSON objects, arrays, scalars and explicit JSON `null` are retained; `WithValue(null)` means absent data instead. Absent and zero-length bodies both become empty Service Bus bodies. The formatter uses configured title/source conventions; standalone native messages use `urn:coreex:native` when no source is configured and `coreex.native` if the resulting title is blank. The normal partition-key requirement is unchanged.
+
+**Upgrade every relay/final publisher before enabling native writes.** Older versions ignore the marker and can publish the internal CloudEvent externally. Do not roll back while native messages remain queued; drain or quarantine the backlog first. No outbox schema migration is needed. Native delivery does not change atomicity, at-least-once delivery, deduplication or session policies.
+
+### CloudEvent payload compatibility changes
+
+Structured decoding now retains JSON token bytes and complete content types, decodes non-JSON text without adding JSON quotes, and restores Base64 as `BinaryData`. Non-JSON `BinaryData` encodes using `data_base64`; JSON `BinaryData` uses validated `data`, including `+json` media types and content-type parameters. Explicit JSON `null` no longer collapses to absent data. `ConvertFromCloudEvent` still requires normalized `BinaryData`; normalize external envelopes with the decode helpers rather than supplying arbitrary CLR payloads. Binary encoding validates required CE attributes, just like structured encoding.
+
+Structured inference recognizes `application/cloudevents+json` (case-insensitive, parameters allowed), not arbitrary media types sharing the `application/cloudevents` prefix. See [Service Bus compatibility changes](../CoreEx.Azure.Messaging.ServiceBus/README.md#cloudevent-binding-compatibility-changes) for required metadata, version and timestamp behavior.
 
 ## Baggage policy and 4.4 migration
 
@@ -47,6 +103,7 @@ Outbox relay batch activities continue to link originating traces without import
 
 | Namespace | Description | Documentation |
 |-----------|-------------|---------------|
+| **`CoreEx.Events.Native`** | Durable native-message protocol codec; representation remains independent of event/command intent. | [Native publishing](#native-publishing) |
 | **`CoreEx.Events.Publishing`** | Two-phase queue-then-publish pipeline: `IEventQueue`, `IEventPublisher`, `EventPublisherBase`, `IDestinationProvider`, `DestinationEvent`, `NoOpEventPublisher`. | [📖 README](./Publishing/README.md) |
 | **`CoreEx.Events.Subscribing`** | Subscriber dispatch and error handling: `EventSubscriberBase`, `SubscribedManager`, `SubscribedBase`, `ErrorHandler`, `ErrorHandling`, subscriber exceptions. | [📖 README](./Subscribing/README.md) |
 

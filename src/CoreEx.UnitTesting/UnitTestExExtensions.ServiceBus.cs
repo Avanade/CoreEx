@@ -146,7 +146,7 @@ public static partial class UnitTestExExtensions
     /// <param name="contentMode">The <see cref="ContentMode"/> to use; defaults to <see cref="ContentMode.Structured"/>.</param>
     /// <param name="includeAttributes">Indicates whether to include all <see cref="CloudEvent.GetPopulatedAttributes"/> as <see cref="Asb.ServiceBusMessage.ApplicationProperties"/>; defaults to <see langword="true"/>.</param>
     /// <returns>The <see cref="Asb.ServiceBusReceivedMessage"/>.</returns>
-    /// <remarks>The <see cref="Asb.ServiceBusReceivedMessage.Subject"/> is set to the <see cref="CloudEvent.Type"/>. This converts the <see cref="CloudEvent"/> to an interim <see cref="Asb.ServiceBusMessage"/> before creating the <see cref="Asb.ServiceBusReceivedMessage"/>.</remarks>
+    /// <remarks>Uses the standard publishing conversion, including native payload and subject policies when requested by the internal envelope. This does not run publisher callbacks or destination-specific session mapping.</remarks>
     public static Asb.ServiceBusReceivedMessage ToServiceBusReceivedMessage(this CloudEvent cloudEvent, ContentMode contentMode = ContentMode.Structured, bool includeAttributes = true)
         => cloudEvent.ToServiceBusMessage(contentMode, includeAttributes).ToServiceBusReceivedMessage();
 

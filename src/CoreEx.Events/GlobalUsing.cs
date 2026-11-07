@@ -4,6 +4,7 @@ global using CloudNative.CloudEvents;
 global using CoreEx.Abstractions;
 global using CoreEx.Data;
 global using CoreEx.Entities;
+global using CoreEx.Events.Native;
 global using CoreEx.Events.Publishing;
 global using CoreEx.Events.Subscribing.Exceptions;
 global using CoreEx.Events.Subscribing;

@@ -122,6 +122,18 @@ public sealed partial class EventData : IIdentifier<string>, ITenantId, IPartiti
     public string? ReplyTo { get; set; }
 
     /// <summary>
+    /// Gets or sets the business workflow identifier shared by related messages.
+    /// </summary>
+    /// <remarks>Optional. Not inferred from tracing or ambient execution context.</remarks>
+    public string? CorrelationId { get; set; }
+
+    /// <summary>
+    /// Gets or sets the identifier of the message that directly caused this message.
+    /// </summary>
+    /// <remarks>Optional. Normally the triggering message's Id.</remarks>
+    public string? CausationId { get; set; }
+
+    /// <summary>
     /// Gets or sets the title; being the fully qualified (segmented) value used for routing, observability, policy enforcement, etc.
     /// </summary>
     /// <remarks>This is typically set/formatted when the event is being published.</remarks>
@@ -137,9 +149,32 @@ public sealed partial class EventData : IIdentifier<string>, ITenantId, IPartiti
     /// Gets or sets the <see cref="Events.MessageType"/>.
     /// </summary>
     /// <remarks>This is set by either the <see cref="CreateEvent(string, string?)"/> or <see cref="CreateCommandWith{T}(string, T, string)"/> to distinguish which was used; otherwise, defaults to <see cref="MessageType.Event"/>.
-    /// <para>This property has no <see cref="CloudEvent"/> equivalence and is not converted by default.</para></remarks>
+    /// <para>This property has no standard <see cref="CloudEvent"/> equivalence and is not converted for ordinary CloudEvents. Native envelopes preserve it in CoreEx-owned metadata.</para></remarks>
     [JsonIgnore]
     public MessageType MessageType { get; set; }
+
+    /// <summary>
+    /// Gets or sets the external representation independently of <see cref="MessageType"/>.
+    /// </summary>
+    [JsonIgnore]
+    public MessageRepresentation DataRepresentation { get; set; }
+
+    /// <summary>
+    /// Gets or sets the resolved native subject restored from durable metadata.
+    /// </summary>
+    internal string? NativeSubject { get; set; }
+
+    /// <summary>
+    /// Gets or sets whether the native subject has already been resolved.
+    /// </summary>
+    internal bool NativeSubjectIsResolved { get; set; }
+
+    /// <summary>
+    /// Gets or sets whether payload bytes must be preserved exactly rather than interpreted as JSON.
+    /// </summary>
+    /// <remarks>Set by <see cref="WithData"/>; reset by WithValue.</remarks>
+    [JsonIgnore]
+    public bool IsDataOpaque { get; set; }
 
     /// <summary>
     /// Gets the additional attributes.

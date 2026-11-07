@@ -47,6 +47,8 @@ Resolve recorded decisions first, then ask only unresolved behavioral or design 
 
 The **contract of the command is owned by the target domain**. If the target is in this solution, read its Contracts/Subscribe project for the agreed subject and payload; if external, agree the subject/payload with its owner and record it.
 
+If native output is requested or proposed, validate that selection against the receiver contract before proceeding: binary CloudEvents already provide a payload-only body and retain `SubscribedManager`/`[Subscribe]` dispatch. Prefer CloudEvents when the target accepts CE metadata. Use native only for a concrete incompatible contract with a native-compatible consumer; clarify unresolved requirements with the user rather than assuming “no envelope” means “no CloudEvents.”
+
 ---
 
 ## Phase 3 — L1 Sequence
@@ -68,6 +70,8 @@ Outbox vs direct:
 | **Direct** | `[FromKeyedServices("AzureServiceBus")] IEventPublisher` | Compensation after a failure where the transaction has already rolled back; publish, then `PublishAsync(CancellationToken.None)` so cancellation of the request doesn't abandon the undo. |
 
 Never call `ServiceBusSender`/`HttpClient` directly from a service.
+
+For an explicitly native external contract, create the command normally and apply `.AsNative()`; do not replace command intent with a new raw/native message type. The target queue and transactional path stay unchanged. Choose JSON versus opaque bytes deliberately and use shared string Attributes for custom headers. Follow [native publishing](/.github/instructions/coreex-application-services.instructions.md#native-message-publishing) and [final-host customization](/.github/instructions/coreex-host-setup.instructions.md#native-publishing-configuration).
 
 ### Step 2 — Call site (`coreex-app-service`)
 

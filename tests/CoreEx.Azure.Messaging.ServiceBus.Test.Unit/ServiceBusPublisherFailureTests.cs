@@ -205,6 +205,93 @@ public class ServiceBusPublisherFailureTests
         return publisher;
     }
 
+    [Test]
+    public async Task Callback_RunsOncePerMessageAcrossBatchOverflowAndSendRetries()
+    {
+        var sender = new StubSender((attempt, _) => attempt == 1 ? new ServiceBusException("Retry.", ServiceBusFailureReason.ServiceTimeout) : null) { BatchCapacity = 1 };
+        var publisher = CreatePublisher(sender);
+        publisher.Add("unit-test", EventData.CreateNativeWith(new { Value = 1 }).WithKey("native-key"));
+        var calls = 0;
+        publisher.ConfigureMessage = (destination, envelope, message) =>
+        {
+            destination.Should().Be("unit-test");
+            message.MessageId.Should().Be(envelope.Id);
+            message.ApplicationProperties.Add("callback", ++calls);
+        };
+        await publisher.PublishAsync();
+        calls.Should().Be(2);
+        sender.SendAttempts.Should().Be(3);
+    }
+
+    [Test]
+    public async Task Callback_SeesAssignedSessions_AndBatchingSeesModifiedMessage()
+    {
+        var sender = new StubSender((_, _) => null);
+        var publisher = CreatePublisher(sender);
+        publisher.SessionIdStrategy = ServiceBusSessionStrategy.UsePartitionKeyAsIs;
+        publisher.Reset();
+        publisher.Add("unit-test", EventData.CreateNativeWith(new { Value = 1 }).WithKey("key"));
+        publisher.ConfigureMessage = (_, _, message) =>
+        {
+            message.SessionId.Should().Be("key");
+            message.Body = BinaryData.FromString("changed");
+        };
+        await publisher.PublishAsync();
+        sender.LastAddedMessage!.Body.ToString().Should().Be("changed");
+    }
+
+    [Test]
+    public async Task Callback_IsNotRepeatedWhenModifiedMessageIsOversize()
+    {
+        var sender = new StubSender((_, _) => null) { BatchCapacity = 0 };
+        var publisher = CreatePublisher(sender);
+        var calls = 0;
+        publisher.ConfigureMessage = (_, _, message) =>
+        {
+            calls++;
+            message.Body = BinaryData.FromString("oversize");
+        };
+        Func<Task> publish = () => publisher.PublishAsync();
+        await publish.Should().ThrowAsync<InvalidOperationException>().WithMessage("*too large*");
+        calls.Should().Be(1);
+        sender.LastAddedMessage!.Body.ToString().Should().Be("oversize");
+        sender.SendAttempts.Should().Be(0);
+    }
+
+    [Test]
+    public async Task DirectDestinationEnvelope_UnknownRepresentationFailsBeforeAnySend()
+    {
+        var sender = new StubSender((_, _) => null);
+        var publisher = CreatePublisher(sender);
+        var envelope = new CloudNative.CloudEvents.CloudEvent { Id = "bad", Type = "test", Source = new Uri("urn:test") };
+        envelope["datarepresentation"] = "future";
+        publisher.Add(new CoreEx.Events.Publishing.DestinationEvent("unit-test", envelope));
+        Func<Task> publish = () => publisher.PublishAsync();
+        await publish.Should().ThrowAsync<NotSupportedException>();
+        sender.SendAttempts.Should().Be(0);
+    }
+
+    [Test]
+    public async Task CallbackFailure_PreparesAllBeforeSending_AndWholeRetryReinvokes()
+    {
+        var sender = new StubSender((_, _) => null);
+        var publisher = CreatePublisher(sender);
+        AddEvent(publisher, "second");
+        var calls = 0;
+        publisher.ConfigureMessage = (_, _, _) =>
+        {
+            if (++calls == 2)
+                throw new InvalidOperationException("Callback failed.");
+        };
+        Func<Task> publish = () => publisher.PublishAsync();
+        await publish.Should().ThrowAsync<InvalidOperationException>().WithMessage("Callback failed.");
+        sender.SendAttempts.Should().Be(0);
+        publisher.HasBeenPublished.Should().BeFalse();
+        await publisher.PublishAsync();
+        calls.Should().Be(4);
+        sender.SendAttempts.Should().Be(1);
+    }
+
     private static void AddEvent(ServiceBusPublisher publisher, string id)
         => publisher.Add("unit-test", new CloudNative.CloudEvents.CloudEvent { Id = id, Type = "unit.test", Source = new Uri("urn:test") });
 
@@ -221,13 +308,19 @@ public class ServiceBusPublisherFailureTests
 
         public int BatchCapacity { get; init; } = int.MaxValue;
 
+        public ServiceBusMessage? LastAddedMessage { get; private set; }
+
         public override ValueTask<ServiceBusMessageBatch> CreateMessageBatchAsync(CancellationToken cancellationToken = default)
         {
             if (BatchException is not null)
                 throw BatchException;
 
             List<ServiceBusMessage> messages = [];
-            return ValueTask.FromResult(ServiceBusModelFactory.ServiceBusMessageBatch(0, messages, tryAddCallback: _ => messages.Count < BatchCapacity));
+            return ValueTask.FromResult(ServiceBusModelFactory.ServiceBusMessageBatch(0, messages, tryAddCallback: message =>
+            {
+                LastAddedMessage = message;
+                return messages.Count < BatchCapacity;
+            }));
         }
 
         public override Task SendMessagesAsync(ServiceBusMessageBatch messageBatch, CancellationToken cancellationToken = default)

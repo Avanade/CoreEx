@@ -46,6 +46,8 @@ public class OrderServiceTest : UnitTestBase
 
 ## Event / Outbox Expectations
 
+For native output, use `e.AssertNativeMessage(destination, expectedEventData)` within the existing `ExpectEvents` or provider-specific expectation callback. The expected message must use `DataRepresentation = Native` (normally a native factory or `.AsNative()`). This compares the persisted envelope, payload and durable options without hand-decoding control metadata. Native ETags remain unless explicitly excluded. Conversion helpers do not run publisher callbacks/session policy; verify final broker bytes/headers in transport or relay tests. See [native expectations](./README.md#native-message-expectations).
+
 Use the database-specific expectation method that matches your domain's persistence provider. Do not mix SQL Server and PostgreSQL helpers.
 
 ```csharp

@@ -135,6 +135,7 @@ public partial class EventData
     public EventData WithValue<T>(T? value, IEnumerable<string>? excludePaths, JsonSerializerOptions? jsonSerializerOptions = null)
     {
         // Where entity and related has not yet been specified see if it can be inferred from the value type.
+        IsDataOpaque = false;
         Schema.TryGetMetadata<T>(out var metadata);
         Entity ??= metadata.Name;
         DataSchema ??= metadata.SchemaUri is null ? null : new Uri(metadata.SchemaUri, UriKind.RelativeOrAbsolute);
@@ -190,4 +191,22 @@ public partial class EventData
     /// </list>
     /// </remarks>
     public EventData WithValue<T>(T? value = default, params IEnumerable<string> excludePaths) => WithValue(value, excludePaths, null);
+
+    /// <summary>
+    /// Selects native output without changing message intent or routing metadata.
+    /// </summary>
+    /// <returns>This message for fluent configuration.</returns>
+    public EventData AsNative() => this.Adjust(x => x.DataRepresentation = MessageRepresentation.Native);
+
+    /// <summary>
+    /// Sets an opaque, byte-exact payload, retaining its content type.
+    /// </summary>
+    /// <param name="data">The payload to copy.</param>
+    /// <returns>This message for fluent configuration.</returns>
+    public EventData WithData(BinaryData data)
+    {
+        Data = BinaryData.FromBytes(data.ThrowIfNull().ToArray(), data.MediaType);
+        IsDataOpaque = true;
+        return this;
+    }
 }

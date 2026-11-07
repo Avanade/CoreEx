@@ -176,6 +176,31 @@ public partial class EventData
 
     #endregion
 
+    #region CreateNative
+
+    /// <summary>
+    /// Creates a native message using the default event routing intent.
+    /// </summary>
+    /// <returns>The new native message.</returns>
+    public static EventData CreateNative() => new EventData().AsNative();
+
+    /// <summary>
+    /// Creates a native message by serializing the value as JSON.
+    /// </summary>
+    /// <typeparam name="T">The payload type.</typeparam>
+    /// <param name="value">The value; null means absent data.</param>
+    /// <returns>The new native message.</returns>
+    public static EventData CreateNativeWith<T>(T? value) => CreateNative().WithValue(value);
+
+    /// <summary>
+    /// Creates a native message containing the exact supplied payload bytes.
+    /// </summary>
+    /// <param name="data">The opaque payload and its media type.</param>
+    /// <returns>The new native message.</returns>
+    public static EventData CreateNativeWithData(BinaryData data) => CreateNative().WithData(data);
+
+    #endregion
+
     #region ToObjectFromJson
 
     /// <summary>
