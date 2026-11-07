@@ -2,6 +2,8 @@ namespace CoreEx.Azure.Messaging.ServiceBus;
 
 public static partial class ServiceBusExtensions
 {
+    private static readonly IEventFormatter DefaultNativeEventFormatter = new EventFormatter();
+
     /// <summary>
     /// Gets the <see cref="CloudEvent"/> attribute prefix.
     /// </summary>
@@ -41,48 +43,81 @@ public static partial class ServiceBusExtensions
     /// Gets the <see cref="ServiceBusMessage"/> trace state property name: '<c>tracestate</c>'.
     /// </summary>
     public const string MessageTraceStatePropertyName = "tracestate";
-    
+
     /// <summary>
     /// Gets the <see cref="ServiceBusMessage"/> trace baggage property name: '<c>baggage</c>'.
     /// </summary>
     public const string MessageTraceBaggagePropertyName = "baggage";
 
     /// <summary>
+    /// Gets the <see cref="ServiceBusMessage.ApplicationProperties"/> key used to carry <see cref="EventData.Key"/>.
+    /// </summary>
+    public const string MessageKeyPropertyName = "Key";
+
+    /// <summary>
     /// Converts a <see cref="CloudEvent"/> to a <see cref="ServiceBusMessage"/>.
     /// </summary>
     /// <param name="cloudEvent">The <see cref="CloudEvent"/>.</param>
-    /// <param name="contentMode">The <see cref="ContentMode"/> to use; defaults to <see cref="ContentMode.Structured"/>.</param>
+    /// <param name="contentMode">The <see cref="ContentMode"/> to use for standard CloudEvents; defaults to <see cref="ContentMode.Structured"/>. Ignored for native messages, whose payload is sent directly.</param>
     /// <param name="includeAttributes">Indicates whether to include all <see cref="CloudEvent.GetPopulatedAttributes"/> as <see cref="ServiceBusMessage.ApplicationProperties"/>; defaults to <see langword="true"/>.</param>
     /// <returns>The <see cref="ServiceBusMessage"/>.</returns>
     /// <remarks>The <see cref="ServiceBusMessage.Subject"/> is set to the <see cref="CloudEvent.Type"/>.</remarks>
     public static ServiceBusMessage ToServiceBusMessage(this CloudEvent cloudEvent, ContentMode contentMode = ContentMode.Structured, bool includeAttributes = true)
+        => ToServiceBusMessage(cloudEvent, contentMode, includeAttributes, null);
+
+    /// <summary>
+    /// Converts a <see cref="CloudEvent"/> to a <see cref="ServiceBusMessage"/> using the specified <see cref="IEventFormatter"/> for native metadata mapping.
+    /// </summary>
+    /// <param name="cloudEvent">The <see cref="CloudEvent"/>.</param>
+    /// <param name="contentMode">The <see cref="ContentMode"/> to use for standard CloudEvents. Ignored for native messages, whose payload is sent directly.</param>
+    /// <param name="includeAttributes">Indicates whether to include all <see cref="CloudEvent.GetPopulatedAttributes"/> as <see cref="ServiceBusMessage.ApplicationProperties"/>.</param>
+    /// <param name="formatter">The optional formatter used to map native CloudEvent metadata to <see cref="EventData"/>.</param>
+    /// <returns>The <see cref="ServiceBusMessage"/>.</returns>
+    /// <remarks>The <see cref="ServiceBusMessage.Subject"/> is set to the <see cref="CloudEvent.Type"/>.</remarks>
+    public static ServiceBusMessage ToServiceBusMessage(this CloudEvent cloudEvent, ContentMode contentMode, bool includeAttributes, IEventFormatter? formatter)
     {
         cloudEvent.ThrowIfNull().Validate();
-        cloudEvent.TryGetExtensionAttribute("correlationid", out string? correlationId);
-        if (NativeMessageEnvelopeCodec.GetRepresentation(cloudEvent) == MessageRepresentation.Native)
+
+        // Determine whether the CloudEvent is a native event (i.e. has been created by a native publisher) or a standard CloudEvent.
+        var representation = NativeMessageEnvelopeCodec.GetRepresentation(cloudEvent);
+        if (representation == MessageRepresentation.Native)
         {
+            var nativeEvent = (formatter ?? DefaultNativeEventFormatter).ConvertFromCloudEvent(cloudEvent);
+            var correlationId = nativeEvent.CorrelationId;
+            var replyTo = nativeEvent.ReplyTo;
             var body = cloudEvent.Data switch
             {
                 null => BinaryData.Empty,
                 BinaryData data => data,
+                byte[] bytes => BinaryData.FromBytes(bytes, cloudEvent.DataContentType),
                 _ => throw new NotSupportedException("Native payloads must be BinaryData.")
             };
+
             var native = new ServiceBusMessage(body)
             {
                 ContentType = cloudEvent.DataContentType,
-                Subject = NativeMessageEnvelopeCodec.ReadSubject(cloudEvent),
+                Subject = cloudEvent.Type,
                 MessageId = cloudEvent.Id,
                 PartitionKey = cloudEvent.GetPartitionKey(),
                 CorrelationId = correlationId,
-                ReplyTo = NativeMessageEnvelopeCodec.ReadReplyTo(cloudEvent)
+                ReplyTo = replyTo
             };
-            foreach (var property in NativeMessageEnvelopeCodec.ReadAttributes(cloudEvent))
-                native.ApplicationProperties.Add(property.Key, property.Value);
+
+            if (nativeEvent.Key is not null)
+                native.ApplicationProperties.Add(MessageKeyPropertyName, nativeEvent.Key);
+
+            foreach (var property in nativeEvent.Attributes)
+            {
+                if (!property.Key.Equals(MessageKeyPropertyName, StringComparison.OrdinalIgnoreCase) && property.Value is string value)
+                    native.ApplicationProperties.Add(property.Key, value);
+            }
 
             CopyTracing(cloudEvent, native);
             return native;
         }
 
+        // Standard CloudEvent.
+        cloudEvent.TryGetExtensionAttribute("correlationid", out string? cloudEventCorrelationId);
         var bd = cloudEvent.ThrowIfNull().EncodeToBinaryData(contentMode);
 
         var msg = new ServiceBusMessage(bd)
@@ -90,9 +125,12 @@ public static partial class ServiceBusExtensions
             ContentType = bd.MediaType,
             Subject = cloudEvent.Type,
             MessageId = cloudEvent.Id,
-            CorrelationId = correlationId,
+            CorrelationId = cloudEventCorrelationId,
             PartitionKey = cloudEvent.GetPartitionKey()
         };
+
+        if (cloudEvent.Subject is not null)
+            msg.ApplicationProperties.Add(MessageKeyPropertyName, cloudEvent.Subject);
 
         // The spec version must always be included (regardless of includeAttributes) so a Binary-mode message remains identifiable/reconstructable as a CloudEvent on receive (see IsCloudEvent/ToCloudEvent).
         msg.ApplicationProperties.TryAdd(CloudEventSpecVersionPropertyName, cloudEvent.SpecVersion.VersionId);
@@ -102,8 +140,8 @@ public static partial class ServiceBusExtensions
         if (cloudEvent.Time is not null)
             msg.ApplicationProperties.TryAdd(CloudEventPrefix + "time", cloudEvent.Time.Value.ToString("O"));
 
-        if (correlationId is not null)
-            msg.ApplicationProperties.TryAdd(CloudEventPrefix + "correlationid", correlationId);
+        if (cloudEventCorrelationId is not null)
+            msg.ApplicationProperties.TryAdd(CloudEventPrefix + "correlationid", cloudEventCorrelationId);
 
         // Single pass: the bulk ce_-prefixed attributes are gated by includeAttributes, but trace context is always propagated regardless.
         foreach (var attr in cloudEvent.GetPopulatedAttributes())
@@ -198,6 +236,9 @@ public static partial class ServiceBusExtensions
 
             ce.Id = message.MessageId;
             ce.Type = message.Subject;
+            if (ce.Subject is null && message.ApplicationProperties.TryGetValue(MessageKeyPropertyName, out var key) && key is string keyValue)
+                ce.Subject = keyValue;
+
             if (!ce.TryGetExtensionAttribute<string>("correlationid", out _))
                 ce.SetExtensionAttribute("correlationid", message.CorrelationId);
 

@@ -93,7 +93,7 @@ public sealed partial class EventData : IIdentifier<string>, ITenantId, IPartiti
     /// <summary>
     /// Gets or sets the event data.
     /// </summary>
-    /// <remarks>This is set automatically by the <see cref="WithValue{T}(T, IEnumerable{string})"/>.</remarks>
+    /// <remarks>This is set automatically by <see cref="WithValue{T}(T, IEnumerable{string})"/>. Assigning <see cref="BinaryData"/> directly does not copy its backing bytes; do not mutate those bytes after adding this event to a publisher queue. Use <see cref="WithData(BinaryData)"/> when the source buffer may be reused or changed.</remarks>
     public BinaryData? Data { get; set; }
 
     /// <summary>
@@ -149,7 +149,7 @@ public sealed partial class EventData : IIdentifier<string>, ITenantId, IPartiti
     /// Gets or sets the <see cref="Events.MessageType"/>.
     /// </summary>
     /// <remarks>This is set by either the <see cref="CreateEvent(string, string?)"/> or <see cref="CreateCommandWith{T}(string, T, string)"/> to distinguish which was used; otherwise, defaults to <see cref="MessageType.Event"/>.
-    /// <para>This property has no standard <see cref="CloudEvent"/> equivalence and is not converted for ordinary CloudEvents. Native envelopes preserve it in CoreEx-owned metadata.</para></remarks>
+    /// <para>This property has no standard <see cref="CloudEvent"/> equivalence and is not persisted in the CloudEvent envelope.</para></remarks>
     [JsonIgnore]
     public MessageType MessageType { get; set; }
 
@@ -158,16 +158,6 @@ public sealed partial class EventData : IIdentifier<string>, ITenantId, IPartiti
     /// </summary>
     [JsonIgnore]
     public MessageRepresentation DataRepresentation { get; set; }
-
-    /// <summary>
-    /// Gets or sets the resolved native subject restored from durable metadata.
-    /// </summary>
-    internal string? NativeSubject { get; set; }
-
-    /// <summary>
-    /// Gets or sets whether the native subject has already been resolved.
-    /// </summary>
-    internal bool NativeSubjectIsResolved { get; set; }
 
     /// <summary>
     /// Gets or sets whether payload bytes must be preserved exactly rather than interpreted as JSON.

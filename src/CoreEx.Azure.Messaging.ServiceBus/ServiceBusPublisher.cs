@@ -30,13 +30,13 @@ public sealed class ServiceBusPublisher(ServiceBusClient serviceBusClient, IDest
     /// <summary>
     /// Gets or sets the <see cref="CloudNative.CloudEvents.ContentMode"/> to use when sending a <see cref="CloudEvent"/> as a <see cref="ServiceBusMessage"/>; defaults to <see cref="ContentMode.Structured"/>.
     /// </summary>
-    /// <remarks>See also <see cref="ServiceBusExtensions.ToServiceBusMessage"/>.</remarks>
+    /// <remarks>See also <see cref="ServiceBusExtensions.ToServiceBusMessage(CloudEvent, ContentMode, bool)"/>.</remarks>
     public ContentMode ContentMode { get; set; } = ContentMode.Structured;
 
     /// <summary>
     /// Indicates whether to include all <see cref="CloudEvent.GetPopulatedAttributes"/> as <see cref="ServiceBusMessage.ApplicationProperties"/>; defaults to <see langword="true"/>.
     /// </summary>
-    /// <remarks>See also <see cref="ServiceBusExtensions.ToServiceBusMessage"/>.</remarks>
+    /// <remarks>See also <see cref="ServiceBusExtensions.ToServiceBusMessage(CloudEvent, ContentMode, bool)"/>.</remarks>
     public bool IncludeCloudEventAttributes { get; set; } = true;
 
     /// <summary>
@@ -99,7 +99,7 @@ public sealed class ServiceBusPublisher(ServiceBusClient serviceBusClient, IDest
         var groups = new Dictionary<string, Queue<ServiceBusMessage>>(StringComparer.Ordinal);
         foreach (var item in events)
         {
-            var message = SetSessionId(item.Event.ToServiceBusMessage(ContentMode, IncludeCloudEventAttributes), item.Destination);
+            var message = SetSessionId(item.Event.ToServiceBusMessage(ContentMode, IncludeCloudEventAttributes, Formatter), item.Destination);
             ConfigureMessage?.Invoke(item.Destination, item.Event, message);
             if (!groups.TryGetValue(item.Destination, out var queue))
                 groups.Add(item.Destination, queue = new Queue<ServiceBusMessage>());

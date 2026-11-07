@@ -16,7 +16,7 @@ public class NativeMessageTests
         restored.DataRepresentation.Should().Be(MessageRepresentation.Native);
         restored.Data!.MediaType.Should().Be(contentType);
         restored.Data.ToString().Should().Be(value.Data.ToString());
-        restored.Attributes.Keys.Should().NotContain(NativeMessageEnvelopeCodec.RepresentationAttributeName);
+        restored.Attributes.Keys.Should().NotContain(NativeMessageEnvelopeCodec.NativeAttributeName);
     }
 
     [TestCase("application/json", "{ \"x\": 1 }")]
@@ -30,14 +30,16 @@ public class NativeMessageTests
         var envelope = formatter.ConvertToCloudEvent(formatter.Format(value));
         var stored = envelope.EncodeToJsonElement();
         stored.TryGetProperty("data_base64", out _).Should().BeTrue();
-        var restored = formatter.ConvertFromCloudEvent(stored.DecodeToCloudEvent());
+        var storedEnvelope = stored.DecodeToCloudEvent();
+        storedEnvelope.Data.Should().BeOfType<byte[]>();
+        var restored = formatter.ConvertFromCloudEvent(storedEnvelope);
         restored.Data!.ToArray().Should().Equal(value.Data!.ToArray());
         restored.Data.MediaType.Should().Be(contentType);
         restored.IsDataOpaque.Should().BeTrue();
     }
 
     [Test]
-    public void IntentAndAttributes_SurvivePersistenceAndReconstruction()
+    public void NativeMarker_DoesNotPersistMessageType()
     {
         var value = EventData.CreateCommandWith("products", new { Sku = "sku" }, "reserve").AsNative().WithKey("key");
         value.ReplyTo = "replies";
@@ -46,13 +48,29 @@ public class NativeMessageTests
         value.SetAttribute("s", "hello");
         value.SetAttribute("revision", "1");
         var formatter = new EventFormatter();
-        var restored = formatter.ConvertFromCloudEvent(formatter.ConvertToCloudEvent(formatter.Format(value)).EncodeToJsonElement().DecodeToCloudEvent());
-        restored.MessageType.Should().Be(MessageType.Command);
+        var stored = formatter.ConvertToCloudEvent(formatter.Format(value)).EncodeToJsonElement();
+        stored.GetProperty(NativeMessageEnvelopeCodec.NativeAttributeName).GetBoolean().Should().BeTrue();
+        stored.EnumerateObject().Select(x => x.Name).Where(x => x.StartsWith("coreex", StringComparison.Ordinal)).Should().ContainSingle()
+            .Which.Should().Be(NativeMessageEnvelopeCodec.NativeAttributeName);
+        var restored = formatter.ConvertFromCloudEvent(stored.DecodeToCloudEvent());
+        restored.MessageType.Should().Be(MessageType.Event);
         restored.ReplyTo.Should().Be("replies");
         restored.Attributes.Should().BeEquivalentTo(value.Attributes);
         var republished = formatter.ConvertToCloudEvent(restored);
-        NativeMessageEnvelopeCodec.ReadSubject(republished).Should().Be("external");
+        republished.Type.Should().Be("external");
         NativeMessageEnvelopeCodec.ReadAttributes(republished).Should().BeEquivalentTo(value.Attributes);
+    }
+
+    [Test]
+    public void NativeMarker_DoesNotRequireMessageType()
+    {
+        var envelope = new CloudEvent([CloudEventAttribute.CreateExtension(NativeMessageEnvelopeCodec.NativeAttributeName, CloudEventAttributeType.Boolean)]) { Id = "id", Type = "test", Source = new Uri("urn:test") };
+        envelope[NativeMessageEnvelopeCodec.NativeAttributeName] = true;
+
+        var restored = new EventFormatter().ConvertFromCloudEvent(envelope);
+
+        restored.DataRepresentation.Should().Be(MessageRepresentation.Native);
+        restored.MessageType.Should().Be(MessageType.Event);
     }
 
     [Test]
@@ -65,7 +83,7 @@ public class NativeMessageTests
         value.SetAttribute("revision", "1");
         var json = System.Text.Json.JsonSerializer.Serialize(value);
         var restored = System.Text.Json.JsonSerializer.Deserialize<EventData>(json)!;
-        json.Should().NotContain("DataRepresentation").And.NotContain("IsDataOpaque").And.NotContain("NativeSubject");
+        json.Should().NotContain("DataRepresentation").And.NotContain("IsDataOpaque");
         restored.DataRepresentation.Should().Be(MessageRepresentation.CloudEvent);
         restored.IsDataOpaque.Should().BeFalse();
         restored.CorrelationId.Should().Be("corr");
@@ -84,7 +102,7 @@ public class NativeMessageTests
         }
     }
 
-    [TestCase("datarepresentation")]
+    [TestCase("coreexisdatanative")]
     [TestCase("CoreExNative")]
     public void Attributes_CannotOverrideControlMetadata(string name)
     {
@@ -139,10 +157,8 @@ public class NativeMessageTests
         ((BinaryData)restored.Data).MediaType.Should().Be("text/plain; charset=utf-8");
     }
 
-    [TestCase("ce_source")]
     [TestCase("traceparent")]
-    [TestCase("DATAREPRESENTATION")]
-    [TestCase("")]
+    [TestCase("coreexfuture")]
     public void ReservedProperties_AreRejected(string name)
     {
         var value = EventData.CreateNativeWith(new { });
@@ -152,15 +168,12 @@ public class NativeMessageTests
     }
 
     [Test]
-    public void UnknownRepresentationAndVersion_AreRejected()
+    public void MalformedNativeMarker_IsRejected()
     {
-        var envelope = new CloudEvent();
-        envelope[NativeMessageEnvelopeCodec.RepresentationAttributeName] = "unknown";
-        Action read = () => NativeMessageEnvelopeCodec.ReadSubject(envelope);
-        read.Should().Throw<NotSupportedException>();
-        envelope[NativeMessageEnvelopeCodec.RepresentationAttributeName] = "native";
-        envelope[NativeMessageEnvelopeCodec.MetadataAttributeName] = """{"version":2}""";
-        read.Should().Throw<NotSupportedException>();
+        var envelope = new CloudEvent([CloudEventAttribute.CreateExtension(NativeMessageEnvelopeCodec.NativeAttributeName, CloudEventAttributeType.String)]);
+        envelope[NativeMessageEnvelopeCodec.NativeAttributeName] = "native";
+        Action read = () => NativeMessageEnvelopeCodec.GetRepresentation(envelope);
+        read.Should().Throw<InvalidOperationException>();
     }
 
     [Test]
@@ -175,24 +188,24 @@ public class NativeMessageTests
         value.Data = BinaryData.FromString("{}");
         var queued = publisher.GetEvents().Single();
         queued.Destination.Should().Be("events-products");
-        NativeMessageEnvelopeCodec.ReadSubject(queued.Event).Should().Be("first");
+        queued.Event.Type.Should().Be("first");
         ((BinaryData)queued.Event.Data!).ToString().Should().Contain("keep");
     }
 
     [Test]
-    public void Queue_SnapshotsCallerOwnedMemoryAndPropertyDictionary()
+    public void WithData_SnapshotsCallerOwnedMemory_AndQueueSnapshotsProperties()
     {
         byte[] bytes = [1, 2, 3];
         var value = EventData.CreateNative().WithKey("key");
-        value.Data = BinaryData.FromBytes(bytes, "application/octet-stream");
-        value.IsDataOpaque = true;
+        value.WithData(BinaryData.FromBytes(bytes, "application/octet-stream"));
         value.SetAttribute("revision", "1");
+        bytes[0] = 9;
         var publisher = new NoOpEventPublisher();
         publisher.Add("external", value);
-        bytes[0] = 9;
+        bytes[1] = 9;
         value.SetAttribute("revision", "2");
         var queued = publisher.GetEvents().Single().Event;
-        ((BinaryData)queued.Data!).ToArray().Should().Equal(1, 2, 3);
+        queued.Data.Should().BeOfType<byte[]>().Which.Should().Equal(1, 2, 3);
         NativeMessageEnvelopeCodec.ReadAttributes(queued)["revision"].Should().Be("1");
     }
 
@@ -209,49 +222,25 @@ public class NativeMessageTests
     }
 
     [Test]
-    public void InvalidNativeMetadata_DoesNotFallBackToCloudEvents()
+    public void NativeMarker_IsTheOnlyRequiredProtocolMetadata()
     {
-        var envelope = new CloudEvent();
-        envelope["datarepresentation"] = "native";
-        Action read = () => NativeMessageEnvelopeCodec.ReadSubject(envelope);
-        read.Should().Throw<InvalidOperationException>();
-        envelope["coreexnative"] = """{"version":1,"intent":0}""";
-        read.Should().Throw<KeyNotFoundException>();
-        envelope["datarepresentation"] = "cloudevent";
-        read.Should().Throw<InvalidOperationException>();
+        var envelope = new CloudEvent([CloudEventAttribute.CreateExtension(NativeMessageEnvelopeCodec.NativeAttributeName, CloudEventAttributeType.Boolean)]);
+        envelope[NativeMessageEnvelopeCodec.NativeAttributeName] = true;
+        NativeMessageEnvelopeCodec.GetRepresentation(envelope).Should().Be(MessageRepresentation.Native);
+        envelope[NativeMessageEnvelopeCodec.NativeAttributeName] = false;
+        NativeMessageEnvelopeCodec.GetRepresentation(envelope).Should().Be(MessageRepresentation.CloudEvent);
     }
 
     [Test]
-    public void Reconstruction_DoesNotPromoteUnlistedExtensionsToNativeHeaders()
+    public void Reconstruction_ForwardsEligibleCustomExtensions()
     {
         var formatter = new EventFormatter();
         var value = EventData.CreateNative().WithKey("key").SetAttribute("partner", "abc");
         var envelope = formatter.ConvertToCloudEvent(formatter.Format(value));
-        envelope["frameworkextra"] = "internal";
+        envelope["frameworkextra"] = "external";
         var restored = formatter.ConvertFromCloudEvent(envelope.EncodeToJsonElement().DecodeToCloudEvent());
-        restored.Attributes.Keys.Should().BeEquivalentTo("partner");
-        NativeMessageEnvelopeCodec.ReadAttributes(formatter.ConvertToCloudEvent(restored)).Keys.Should().BeEquivalentTo("partner");
-    }
-
-    [TestCase("missing")]
-    [TestCase("duplicate")]
-    [TestCase("reserved")]
-    public void InvalidNativeAttributeLists_AreRejected(string scenario)
-    {
-        var formatter = new EventFormatter();
-        var envelope = formatter.ConvertToCloudEvent(formatter.Format(EventData.CreateNative().WithKey("key").SetAttribute("partner", "abc")));
-        var metadata = (string)envelope[NativeMessageEnvelopeCodec.MetadataAttributeName]!;
-        envelope[NativeMessageEnvelopeCodec.MetadataAttributeName] = metadata.Replace("[\"partner\"]", scenario switch
-        {
-            "missing" => "[\"missing\"]",
-            "duplicate" => "[\"partner\",\"partner\"]",
-            _ => "[\"tenantid\"]"
-        });
-        Action read = () => NativeMessageEnvelopeCodec.ReadAttributes(envelope);
-        if (scenario == "duplicate")
-            read.Should().Throw<ArgumentException>();
-        else
-            read.Should().Throw<InvalidOperationException>();
+        restored.Attributes.Keys.Should().BeEquivalentTo("partner", "frameworkextra");
+        NativeMessageEnvelopeCodec.ReadAttributes(envelope).Keys.Should().BeEquivalentTo("partner", "frameworkextra");
     }
 
     [Test]

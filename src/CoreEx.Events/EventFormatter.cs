@@ -51,12 +51,6 @@ public class EventFormatter : IEventFormatter
     public bool CaptureBaggage { get; set; }
 
     /// <summary>
-    /// Gets or sets whether native output includes the formatted <see cref="EventData.Title"/> as its subject.
-    /// </summary>
-    /// <remarks>Defaults to true. The resolved subject is persisted in the internal envelope; reconstructed messages retain that decision independently of the relay's formatter settings.</remarks>
-    public bool IncludeNativeSubject { get; set; } = true;
-
-    /// <summary>
     /// Gets or sets the <see cref="CloudEvent"/> extension attribute name for the <see cref="EventData.TenantId"/>.
     /// </summary>
     public string TenantIdAttributeName { get; set => field = SetAndInitializeNameArray(value); } = "tenantid";
@@ -269,19 +263,18 @@ public class EventFormatter : IEventFormatter
     {
         @event.ThrowIfNull();
         InitializeNameArray();
-        if (@event.DataRepresentation == MessageRepresentation.Native && @event.Attributes.Keys.Any(x => !x.StartsWith('_') && _nameArray.Contains(x, StringComparer.OrdinalIgnoreCase)))
+        if (@event.Attributes.Keys.Any(NativeMessageEnvelopeCodec.IsReserved)
+            || (@event.DataRepresentation == MessageRepresentation.Native && @event.Attributes.Keys.Any(x => !x.StartsWith('_') && _nameArray.Contains(x, StringComparer.OrdinalIgnoreCase))))
             throw new InvalidOperationException("Native custom Attributes cannot override framework-owned metadata.");
 
-        var ce = new CloudEvent
-        {
-            Id = @event.ThrowIfNull().Id,
-            Type = @event.Title,
-            Source = @event.Source,
-            Subject = @event.Key,
-            Time = @event.Timestamp
-        };
+        var ce = NativeMessageEnvelopeCodec.CreateCloudEvent();
+        ce.Id = @event.ThrowIfNull().Id;
+        ce.Type = @event.Title;
+        ce.Source = @event.Source;
+        ce.Subject = @event.Key;
+        ce.Time = @event.Timestamp;
 
-        NativeMessageEnvelopeCodec.Write(@event, ce, IncludeNativeSubject);
+        NativeMessageEnvelopeCodec.Write(@event, ce);
         ce.SetExtensionAttribute(TenantIdAttributeName, @event.TenantId);
 
         var pk = @event.PartitionKey ?? @event.Key;
@@ -306,14 +299,14 @@ public class EventFormatter : IEventFormatter
             ce.SetExtensionAttribute(DataSchemaVersionAttributeName, @event.DataSchemaVersion?.ToString());
             ce.DataSchema = @event.DataSchema;
             ce.DataContentType = @event.Data.MediaType;
-            ce.Data = @event.Data;
+            ce.Data = @event.IsDataOpaque ? @event.Data.ToArray() : @event.Data;
         }
 
         return ce;
     }
 
     /// <inheritdoc/>
-    /// <remarks>The <see cref="CloudEvent.Data"/> must be of type <see cref="BinaryData"/> otherwise a <see cref="NotSupportedException"/> will be thrown.</remarks>
+    /// <remarks>The <see cref="CloudEvent.Data"/> must be of type <see cref="BinaryData"/> or <see cref="byte"/> array otherwise a <see cref="NotSupportedException"/> will be thrown.</remarks>
     public virtual EventData ConvertFromCloudEvent(CloudEvent cloudEvent)
     {
         var @event = new EventData
@@ -330,8 +323,15 @@ public class EventFormatter : IEventFormatter
         if (cloudEvent.TryGetExtensionAttribute(CausationIdAttributeName, out string? causationId))
             @event.CausationId = causationId;
 
-        if (cloudEvent.Data is not null)
-            @event.Data = cloudEvent.Data is BinaryData ed ? ed.WithMediaType(cloudEvent.DataContentType) : throw new NotSupportedException($"The {nameof(CloudEvent)}.{nameof(CloudEvent.Data)} type must be {nameof(BinaryData)}; not '{cloudEvent.Data.GetType().FullName}'.");
+        if (cloudEvent.Data is BinaryData ed)
+            @event.Data = ed.WithMediaType(cloudEvent.DataContentType);
+        else if (cloudEvent.Data is byte[] bytes)
+        {
+            @event.Data = BinaryData.FromBytes(bytes, cloudEvent.DataContentType);
+            @event.IsDataOpaque = true;
+        }
+        else if (cloudEvent.Data is not null)
+            throw new NotSupportedException($"The {nameof(CloudEvent)}.{nameof(CloudEvent.Data)} type must be {nameof(BinaryData)} or {nameof(Byte)}[]; not '{cloudEvent.Data.GetType().FullName}'.");
 
         if (cloudEvent.TryGetExtensionAttribute(DataSchemaVersionAttributeName, out string? val))
             @event.DataSchemaVersion = Version.TryParse(val, out var ver) ? ver : null;
@@ -366,7 +366,7 @@ public class EventFormatter : IEventFormatter
         InitializeNameArray();
         if (NativeMessageEnvelopeCodec.GetRepresentation(cloudEvent) == MessageRepresentation.Native)
         {
-            foreach (var kvp in NativeMessageEnvelopeCodec.ReadAttributes(cloudEvent))
+            foreach (var kvp in NativeMessageEnvelopeCodec.ReadAttributes(cloudEvent, IsMappedAttributeName))
                 @event.SetAttribute(kvp.Key, kvp.Value);
         }
         else
@@ -411,6 +411,15 @@ public class EventFormatter : IEventFormatter
 
         _initializeNameArray = false;
         _nameArray = [.. CloudEventsSpecVersion.Default.AllAttributes.Select(x => x.Name), Partitioning.PartitionKeyAttribute.Name, TraceParentAttributeName, TraceStateAttributeName, TraceBaggageAttributeName, TenantIdAttributeName, DataSchemaVersionAttributeName, AuthTypeAttributeName, AuthIdAttributeName, ReplyToAttributeName, CorrelationIdAttributeName, CausationIdAttributeName];
+    }
+
+    /// <summary>
+    /// Determines whether the specified extension name is mapped to a framework-owned event property.
+    /// </summary>
+    internal bool IsMappedAttributeName(string name)
+    {
+        InitializeNameArray();
+        return _nameArray.Contains(name, StringComparer.OrdinalIgnoreCase);
     }
 
     /// <inheritdoc/>

@@ -237,8 +237,8 @@ public class RelayTests : WithApiTester<Contoso.Customers.Relay.Program>
             {
                 message.ApplicationProperties.Keys.Should().NotContain(k => k.StartsWith("ce_", StringComparison.OrdinalIgnoreCase));
                 message.ContentType.Should().Be("application/json");
-                if (NativeMessageEnvelopeCodec.IsOpaque(envelope))
-                    message.Body.ToArray().Should().Equal(((BinaryData)envelope.Data!).ToArray());
+                if (envelope.Data is byte[] bytes)
+                    message.Body.ToArray().Should().Equal(bytes);
                 else
                 {
                     message.Body.ToString().Should().Contain("\"etag\":\"keep\"");
@@ -248,7 +248,7 @@ public class RelayTests : WithApiTester<Contoso.Customers.Relay.Program>
                     foreach (var property in NativeMessageEnvelopeCodec.ReadAttributes(envelope))
                     {
                         message.ApplicationProperties[property.Key].Should().Be(property.Value);
-                        message.ApplicationProperties[property.Key].GetType().Should().Be(property.Value.GetType());
+                        message.ApplicationProperties[property.Key].Should().BeOfType<string>();
                     }
                 }
             }
@@ -274,6 +274,7 @@ public class RelayTests : WithApiTester<Contoso.Customers.Relay.Program>
             await publisher.PublishAsync(ct).ConfigureAwait(false);
             throw new InvalidOperationException("Rollback native outbox.");
         });
+
         await mutate.Should().ThrowAsync<InvalidOperationException>().WithMessage("Rollback native outbox.");
         using var business = await db.GetContainer("customers").ReadItemStreamAsync(id, PartitionKey.None).ConfigureAwait(false);
         business.StatusCode.Should().Be(HttpStatusCode.NotFound);

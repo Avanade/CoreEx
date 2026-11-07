@@ -62,6 +62,7 @@ public class RelayTests : WithApiTester<Contoso.Products.Relay.Program>
                 await publisher.PublishAsync(ct).ConfigureAwait(false);
                 throw new InvalidOperationException("Rollback native outbox.");
             });
+
             await rollback.Should().ThrowAsync<InvalidOperationException>().WithMessage("Rollback native outbox.");
             publisher.Reset();
 

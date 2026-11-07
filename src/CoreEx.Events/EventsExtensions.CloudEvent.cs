@@ -50,11 +50,13 @@ public static partial class EventsExtensions
         var contentType = string.IsNullOrEmpty(binaryData.MediaType) ? null : new ContentType(binaryData.MediaType);
 
         if (contentMode == ContentMode.Structured)
-            return RestoreJsonNull(formatter.DecodeStructuredModeMessage(binaryData, contentType, null), binaryData);
+            return RestoreJsonNull(formatter.DecodeStructuredModeMessage(binaryData, contentType, NativeMessageEnvelopeCodec.ExtensionAttributes), binaryData);
 
         var cex = new CloudEvent() { DataContentType = binaryData.MediaType };
         if (formatter.IsJsonContentType(contentType))
             cex.Data = binaryData;
+        else if (binaryData.ToMemory().IsEmpty && string.IsNullOrEmpty(binaryData.MediaType))
+            cex.Data = null;
         else
             formatter.DecodeBinaryModeEventData(binaryData, cex);
 
@@ -91,7 +93,7 @@ public static partial class EventsExtensions
         }
 
         stream.Position = 0;
-        return RestoreJsonNull(formatter.DecodeStructuredModeMessage(stream, new ContentType(MediaTypeNames.Application.Json), null), BinaryData.FromString(jsonElement.GetRawText()));
+        return RestoreJsonNull(formatter.DecodeStructuredModeMessage(stream, new ContentType(MediaTypeNames.Application.Json), NativeMessageEnvelopeCodec.ExtensionAttributes), jsonElement);
     }
 
     /// <summary>
@@ -103,7 +105,18 @@ public static partial class EventsExtensions
             return cloudEvent;
 
         using var document = JsonDocument.Parse(body.ToMemory());
-        if (document.RootElement.TryGetProperty("data", out var data) && data.ValueKind == JsonValueKind.Null)
+        return RestoreJsonNull(cloudEvent, document.RootElement);
+    }
+
+    /// <summary>
+    /// Restores an explicit JSON null token after structured decoding where the upstream formatter treats it as absent data.
+    /// </summary>
+    private static CloudEvent RestoreJsonNull(CloudEvent cloudEvent, JsonElement root)
+    {
+        if (cloudEvent.Data is not null)
+            return cloudEvent;
+
+        if (root.TryGetProperty("data", out var data) && data.ValueKind == JsonValueKind.Null)
         {
             var contentType = cloudEvent.DataContentType ?? MediaTypeNames.Application.Json;
             var mediaType = new ContentType(contentType).MediaType;
@@ -132,7 +145,7 @@ public static partial class EventsExtensions
         {
             if (cloudEvent.Data is BinaryData bd)
             {
-                if (!NativeMessageEnvelopeCodec.IsOpaque(cloudEvent) && (string.IsNullOrEmpty(cloudEvent.DataContentType) || IsJsonMediaType(new ContentType(cloudEvent.DataContentType).MediaType)))
+                if (string.IsNullOrEmpty(cloudEvent.DataContentType) || IsJsonMediaType(new ContentType(cloudEvent.DataContentType).MediaType))
                 {
                     writer.WritePropertyName(DataPropertyName);
                     writer.WriteRawValue(bd, false);
@@ -142,6 +155,11 @@ public static partial class EventsExtensions
                     writer.WritePropertyName(DataBase64PropertyName);
                     writer.WriteBase64StringValue(bd.ToMemory().Span);
                 }
+            }
+            else if (cloudEvent.Data is byte[] bytes)
+            {
+                writer.WritePropertyName(DataBase64PropertyName);
+                writer.WriteBase64StringValue(bytes);
             }
             else
                 base.EncodeStructuredModeData(cloudEvent, writer);
@@ -153,6 +171,8 @@ public static partial class EventsExtensions
             cloudEvent.ThrowIfNull().Validate();
             if (cloudEvent.Data is BinaryData bd)
                 return bd.ToArray();
+            else if (cloudEvent.Data is byte[] bytes)
+                return bytes;
             else
                 return base.EncodeBinaryModeEventData(cloudEvent);
         }
@@ -168,7 +188,7 @@ public static partial class EventsExtensions
         /// <inheritdoc/>
         protected override void DecodeStructuredModeDataBase64Property(JsonElement dataBase64Element, CloudEvent cloudEvent)
         {
-            cloudEvent.Data = BinaryData.FromBytes(dataBase64Element.GetBytesFromBase64(), cloudEvent.DataContentType);
+            cloudEvent.Data = dataBase64Element.GetBytesFromBase64();
         }
 
         /// <inheritdoc/>

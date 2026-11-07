@@ -17,7 +17,7 @@ public class CorrelationTests
         envelope["correlationid"].Should().Be("workflow");
         envelope["causationid"].Should().Be("trigger");
         if (native)
-            ((string)envelope[NativeMessageEnvelopeCodec.MetadataAttributeName]!).Should().NotContain("correlation");
+            envelope[NativeMessageEnvelopeCodec.NativeAttributeName].Should().Be(true);
 
         var restored = formatter.ConvertFromCloudEvent(envelope);
         restored.CorrelationId.Should().Be("workflow");

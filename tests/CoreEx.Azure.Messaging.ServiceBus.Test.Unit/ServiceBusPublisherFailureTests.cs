@@ -218,6 +218,7 @@ public class ServiceBusPublisherFailureTests
             message.MessageId.Should().Be(envelope.Id);
             message.ApplicationProperties.Add("callback", ++calls);
         };
+
         await publisher.PublishAsync();
         calls.Should().Be(2);
         sender.SendAttempts.Should().Be(3);
@@ -236,6 +237,7 @@ public class ServiceBusPublisherFailureTests
             message.SessionId.Should().Be("key");
             message.Body = BinaryData.FromString("changed");
         };
+
         await publisher.PublishAsync();
         sender.LastAddedMessage!.Body.ToString().Should().Be("changed");
     }
@@ -251,6 +253,7 @@ public class ServiceBusPublisherFailureTests
             calls++;
             message.Body = BinaryData.FromString("oversize");
         };
+
         Func<Task> publish = () => publisher.PublishAsync();
         await publish.Should().ThrowAsync<InvalidOperationException>().WithMessage("*too large*");
         calls.Should().Be(1);
@@ -263,11 +266,11 @@ public class ServiceBusPublisherFailureTests
     {
         var sender = new StubSender((_, _) => null);
         var publisher = CreatePublisher(sender);
-        var envelope = new CloudNative.CloudEvents.CloudEvent { Id = "bad", Type = "test", Source = new Uri("urn:test") };
-        envelope["datarepresentation"] = "future";
+        var envelope = new CloudNative.CloudEvents.CloudEvent([CloudNative.CloudEvents.CloudEventAttribute.CreateExtension(NativeMessageEnvelopeCodec.NativeAttributeName, CloudNative.CloudEvents.CloudEventAttributeType.String)]) { Id = "bad", Type = "test", Source = new Uri("urn:test") };
+        envelope[NativeMessageEnvelopeCodec.NativeAttributeName] = "future";
         publisher.Add(new CoreEx.Events.Publishing.DestinationEvent("unit-test", envelope));
         Func<Task> publish = () => publisher.PublishAsync();
-        await publish.Should().ThrowAsync<NotSupportedException>();
+        await publish.Should().ThrowAsync<InvalidOperationException>();
         sender.SendAttempts.Should().Be(0);
     }
 
@@ -283,6 +286,7 @@ public class ServiceBusPublisherFailureTests
             if (++calls == 2)
                 throw new InvalidOperationException("Callback failed.");
         };
+
         Func<Task> publish = () => publisher.PublishAsync();
         await publish.Should().ThrowAsync<InvalidOperationException>().WithMessage("Callback failed.");
         sender.SendAttempts.Should().Be(0);

@@ -90,16 +90,14 @@ public abstract class EventPublisherBase(IDestinationProvider? destinationProvid
     {
         var requested = value.DataRepresentation;
         var formatted = Formatter.Format(value);
-        var expected = new CloudEvent();
-        NativeMessageEnvelopeCodec.Write(formatted, expected, Formatter is not EventFormatter formatter || formatter.IncludeNativeSubject);
+        var expected = NativeMessageEnvelopeCodec.CreateCloudEvent();
+
+        NativeMessageEnvelopeCodec.Write(formatted, expected);
         var prepared = Formatter.ConvertToCloudEvent(formatted);
 
         if (NativeMessageEnvelopeCodec.GetRepresentation(prepared) != requested
-            || (requested == MessageRepresentation.Native && !Equals(expected[NativeMessageEnvelopeCodec.MetadataAttributeName], prepared[NativeMessageEnvelopeCodec.MetadataAttributeName])))
+            || (requested == MessageRepresentation.Native && !Equals(expected[NativeMessageEnvelopeCodec.NativeAttributeName], prepared[NativeMessageEnvelopeCodec.NativeAttributeName])))
             throw new InvalidOperationException("The event formatter did not preserve the requested native representation and metadata.");
-
-        if (prepared.Data is BinaryData data)
-            prepared.Data = BinaryData.FromBytes(data.ToArray(), data.MediaType);
 
         return prepared;
     }
