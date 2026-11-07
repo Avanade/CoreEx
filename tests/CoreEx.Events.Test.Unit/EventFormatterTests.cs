@@ -340,6 +340,19 @@ public class EventFormatterTests
     }
 
     [Test]
+    public void Format_DataExcludePaths_DoesNotFilterOpaqueJson()
+    {
+        var original = BinaryData.FromString("{ \"etag\": \"token\" }\n", System.Net.Mime.MediaTypeNames.Application.Json);
+        var ef = new EventFormatter { DataExcludePaths = ["$..etag"], PartitionKeyIsRequired = false };
+        var ed = new EventData { DomainName = "dom", Entity = "ent", Action = "act" }.WithData(original);
+
+        var result = ef.Format(ed);
+
+        result.Data!.ToArray().Should().Equal(original.ToArray());
+        result.IsDataOpaque.Should().BeTrue();
+    }
+
+    [Test]
     public void Convert_CloudEvent_DataNotBinary_Throws()
     {
         var ef = new EventFormatter();

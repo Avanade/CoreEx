@@ -149,7 +149,7 @@ public class RelayTests : WithApiTester<Contoso.Customers.Relay.Program>
         }
     }
 
-    private async Task<PublishedEvents> PublishAsync(string containerId, string? partitionKey = null)
+    private async Task<PublishedEvents> PublishAsync(string containerId, string? partitionKey = null, bool native = false)
     {
         var db = new CustomersCosmosDb(_client, "contoso");
         var publisher = new CosmosDbEventPublisher(db);
@@ -157,6 +157,22 @@ public class RelayTests : WithApiTester<Contoso.Customers.Relay.Program>
         var id = Runtime.NewId();
         var type = containerId == "customers" ? "customer" : "customertype";
         CloudEvent[] events = [CreateEvent("created"), CreateEvent("updated")];
+        if (native)
+        {
+            var formatter = new EventFormatter { SourceBaseUri = new Uri("https://contoso/customers") };
+            var json = EventData.CreateNativeWith(new { ETag = "keep" }).WithKey(id).WithTitle($"contoso.customers.{type}.native");
+            json.CorrelationId = "corr";
+            json.CausationId = "cause";
+            json.SetAttribute("count", "1");
+            json.SetAttribute("amount", "1.5");
+            json.SetAttribute("ratio", "1.5");
+            json.SetAttribute("enabled", "true");
+            json.SetAttribute("code", "external");
+            json.SetAttribute("revision", "2");
+            json.ReplyTo = "partner-replies";
+            var opaque = EventData.CreateNativeWithData(BinaryData.FromString("{ \"etag\": \"exact\" }\n", "application/json")).WithKey(id).WithTitle($"contoso.customers.{type}.opaque");
+            events = [events[0], formatter.ConvertToCloudEvent(formatter.Format(json)), formatter.ConvertToCloudEvent(formatter.Format(opaque))];
+        }
 
         CloudEvent CreateEvent(string action)
         {
@@ -183,9 +199,7 @@ public class RelayTests : WithApiTester<Contoso.Customers.Relay.Program>
                 await container.CreateAsync(model, ct).ConfigureAwait(false);
             }
             else
-            {
                 await db.CustomerTypes.CreateAsync(new Infrastructure.Persistence.CustomerType { Id = id, Code = id, Text = "Relay test", TypeDiscriminator = "CustomerType" }, ct).ConfigureAwait(false);
-            }
 
             publisher.Add("contoso", events);
         }).ConfigureAwait(false);
@@ -197,6 +211,80 @@ public class RelayTests : WithApiTester<Contoso.Customers.Relay.Program>
         var matching = documents.Where(d => d.Event.GetProperty("subject").GetString() == id).ToArray();
         matching.Should().HaveCount(events.Length);
         return new PublishedEvents(containerId, id, partitionKey, events, matching);
+    }
+
+    [Test]
+    public async Task Outbox_Relay_NativeJsonAndOpaque()
+    {
+        await SetPausedAsync(true).ConfigureAwait(false);
+        PublishedEvents events;
+        try
+        {
+            events = await PublishAsync("customers", native: true).ConfigureAwait(false);
+        }
+        finally
+        {
+            await SetPausedAsync(false).ConfigureAwait(false);
+        }
+
+        var received = await Broker.ReceiveEventsAsync(Test.Services.GetRequiredService<ServiceBusClient>(), events.Events.Select(EventKey).ToArray()).ConfigureAwait(false);
+        foreach (var envelope in events.Events)
+        {
+            var message = received[EventKey(envelope)];
+            message.MessageId.Should().Be(envelope.Id);
+            message.SessionId.Should().Be(CoreEx.Data.PartitionKey.GetPartitionIdAsString(events.BusinessId));
+            if (NativeMessageEnvelopeCodec.GetRepresentation(envelope) == MessageRepresentation.Native)
+            {
+                message.ApplicationProperties.Keys.Should().NotContain(k => k.StartsWith("ce_", StringComparison.OrdinalIgnoreCase));
+                message.ContentType.Should().Be("application/json");
+                if (envelope.Data is ReadOnlyMemory<byte> opaqueBytes)
+                    message.Body.ToArray().Should().Equal(opaqueBytes.ToArray());
+                else if (envelope.Data is byte[] bytes)
+                    message.Body.ToArray().Should().Equal(bytes);
+                else
+                {
+                    message.Body.ToString().Should().Contain("\"etag\":\"keep\"");
+                    message.CorrelationId.Should().Be("corr");
+                    message.ReplyTo.Should().Be("partner-replies");
+                    message.ApplicationProperties["count"].Should().Be("1");
+                    foreach (var property in NativeMessageEnvelopeCodec.ReadAttributes(envelope))
+                    {
+                        message.ApplicationProperties[property.Key].Should().Be(property.Value);
+                        message.ApplicationProperties[property.Key].Should().BeOfType<string>();
+                    }
+                }
+            }
+            else
+                ObjectComparer.AssertJson(envelope.EncodeToJsonElement().ToString(), message.Body.ToString());
+        }
+
+        await AssertDocumentsAsync(events, deleted: true).ConfigureAwait(false);
+    }
+
+    [Test]
+    public async Task NativeOutbox_FailedTransaction_DiscardsBusinessMutationAndMessage()
+    {
+        var db = new CustomersCosmosDb(_client, "contoso");
+        var publisher = new CosmosDbEventPublisher(db);
+        var unitOfWork = new CosmosDbUnitOfWork(db);
+        var id = Runtime.NewId();
+        Func<Task> mutate = () => unitOfWork.TransactionAsync(async ct =>
+        {
+            var container = db.Container<Infrastructure.Persistence.Customer>("customers", o => o.WithPartitionKey(m => m.PartitionKey));
+            await container.CreateAsync(new Infrastructure.Persistence.Customer { Id = id, FirstName = "Rollback", LastName = "Native", Email = "rollback@example.com" }, ct).ConfigureAwait(false);
+            publisher.Add("contoso", EventData.CreateNativeWith(new { Id = id }).WithKey(id));
+            await publisher.PublishAsync(ct).ConfigureAwait(false);
+            throw new InvalidOperationException("Rollback native outbox.");
+        });
+
+        await mutate.Should().ThrowAsync<InvalidOperationException>().WithMessage("Rollback native outbox.");
+        using var business = await db.GetContainer("customers").ReadItemStreamAsync(id, PartitionKey.None).ConfigureAwait(false);
+        business.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        var documents = new List<CosmosDbOutboxEvent>();
+        using var iterator = db.GetContainer("customers").GetItemLinqQueryable<CosmosDbOutboxEvent>().Where(e => e.Id.StartsWith(CosmosDbOutboxEvent.OutboxKeyPrefix)).ToFeedIterator();
+        while (iterator.HasMoreResults)
+            documents.AddRange(await iterator.ReadNextAsync().ConfigureAwait(false));
+        documents.Should().NotContain(d => d.Event.GetProperty("subject").GetString() == id);
     }
 
     private async Task AssertDocumentsAsync(PublishedEvents events, bool deleted)

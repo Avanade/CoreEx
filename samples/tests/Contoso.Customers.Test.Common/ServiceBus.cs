@@ -44,9 +44,20 @@ public static class ServiceBus
 
                         foreach (var message in batch)
                         {
-                            using var json = JsonDocument.Parse(message.Body);
-                            var subject = json.RootElement.GetProperty("subject").GetString() ?? throw new InvalidOperationException("A relayed event has no subject.");
-                            var type = json.RootElement.GetProperty("type").GetString() ?? throw new InvalidOperationException("A relayed event has no type.");
+                            var type = message.Subject ?? throw new InvalidOperationException("A relayed message has no type.");
+                            string subject;
+                            if (message.ApplicationProperties.ContainsKey("ce_specversion"))
+                            {
+                                using var json = JsonDocument.Parse(message.Body);
+                                subject = json.RootElement.GetProperty("subject").GetString() ?? throw new InvalidOperationException("A relayed event has no subject.");
+                                type = json.RootElement.GetProperty("type").GetString() ?? throw new InvalidOperationException("A relayed event has no type.");
+                            }
+                            else
+                            {
+                                subject = message.ApplicationProperties.TryGetValue("Key", out var messageKey) && messageKey is string value
+                                    ? value
+                                    : throw new InvalidOperationException($"Native message '{type}' has no string Key property.");
+                            }
                             var key = (subject, type);
                             messages.TryAdd(key, message);
 

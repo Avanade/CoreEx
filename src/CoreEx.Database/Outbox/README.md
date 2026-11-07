@@ -18,6 +18,8 @@ Events without a partition key are assigned a stable sentinel before the relatio
 
 ## Key capabilities
 
+Native messages use the same stored CloudEvent JSON and transaction as ordinary CloudEvents; no migration is required. The `coreexisdatanative` marker and standard CloudEvent payload representation survive relay decoding, and the final publisher emits payload-only output. Queue them through the existing `IUnitOfWork.Events`; do not manually publish inside an outbox-owned unit of work. Upgrade every final publisher/relay before native writes, and drain native backlog before rolling back. See [native storage contract](../../CoreEx.Events/README.md#internal-storage-contract-and-rollout).
+
 - ⚛️ **Atomic write**: `DatabaseOutboxPublisherBase.PublishAsync` inserts serialized events into the outbox table within the calling `IUnitOfWork` transaction — no two-phase commit required.
 - ⏱️ **Timer-driven relay**: `DatabaseOutboxRelayHostedServiceBase` inherits `TimerHostedServiceBase`'s configurable `Interval`, `FirstInterval`, error back-off, and pause/resume behavior.
 - 📦 **Batch publishing**: The relay reads a configurable `MaxDequeueSize` of pending rows per poll, publishes them as a batch to `IEventPublisher`, then marks all as sent in a single update.

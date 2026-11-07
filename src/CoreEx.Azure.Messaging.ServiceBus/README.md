@@ -39,6 +39,39 @@ Prefer a stable business/aggregate key with `UsePartitionKeyAsIs` when ordering 
 
 Resiliency is provided out-of-the-box: `ServiceBusReceiverResiliency` supplies factory methods for a receiver-level circuit breaker and a per-message retry pipeline (via Polly), both of which are applied by default in `ServiceBusReceiverOptionsBase`. Both factories are now thin wrappers over `CoreEx.Hosting`'s generic `CircuitBreakerResiliency<TOwner>`/`RetryResiliency<TOwner>` (promoted there so `CoreEx.Cosmos`'s Change Feed Processor-based outbox relay shares the exact same self-pause/self-resume behaviour) - this package supplies only the Service-Bus-specific pause-reason/dead-letter-exclusion/retry-classification wiring.
 
+## Native output and send-time customization
+
+**Prefer CloudEvents for CoreEx consumers.** Structured and binary CloudEvents both support `ServiceBusSubscribedSubscriber`/`SubscribedManager` and `[Subscribe]` dispatch. Binary mode already sends the payload alone in the body, with CE metadata in broker properties; an unwanted JSON envelope is not by itself a reason to choose native. Choose native when the receiver contract cannot or must not carry CE metadata, and verify that the consumer supports native delivery rather than normal CloudEvent dispatch. This does not change the default structured content mode.
+
+Use the [CoreEx.Events native factories](../CoreEx.Events/README.md#native-publishing) with the existing publisher. Native output ignores CloudEvent `ContentMode`/`IncludeCloudEventAttributes`: the body contains payload bytes only, ContentType is the original complete media type, MessageId is the stable internal event ID, and PartitionKey follows existing mapping. Subject comes from formatted `EventData.Title` (`CloudEvent.Type`), not `EventData.Key`; use `ConfigureMessage` for exceptional Subject overrides. When `EventData.Key` is set, both native and CloudEvent Service Bus messages include it as the `Key` application property, independent of `PartitionKey` and `IncludeCloudEventAttributes`; the name is reserved and a native custom extension named `key` is not forwarded. The producer's type and reply destination survive storage as ordinary CloudEvent fields/extensions, not duplicate native metadata. CorrelationId, ReplyTo and eligible custom extensions are durable. Native custom headers use their attribute names without `ce_`, with canonical string values; underscore-prefixed/null entries are omitted. Standard CloudEvent attributes, tracing, mapped CoreEx fields, and the reserved `coreex` extension namespace are not exported as custom properties. Use `ConfigureMessage` for explicitly typed broker properties. Only standard unprefixed tracing is copied automatically; tenant, authentication, source and schema attributes are not leaked as native application properties.
+
+`ServiceBusPublisher.ConfigureMessage` is an optional synchronous callback for both representations:
+
+```csharp
+builder.Services.AddAzureServiceBusPublisher((_, publisher) =>
+{
+    publisher.ConfigureMessage = (destination, envelope, message) =>
+    {
+        if (destination == "partner-orders")
+            message.TimeToLive = TimeSpan.FromHours(2);
+    };
+});
+```
+
+Register it on the **actual final publisher**, including relay hosts for outbox delivery; callbacks are not serialized into the outbox and cannot depend on the originating API's ambient context. The callback receives the resolved destination, internal CloudEvent (read-only by convention) and constructed SDK message, after standard conversion and destination session assignment, before batching. It can override broker fields, including TTL/scheduling/session behavior, but the caller owns consequences of changing IDs, sessions, CE metadata or bodies.
+
+All messages are prepared before any sends. A callback/conversion failure therefore sends nothing in that invocation. SDK batch checks see callback-modified messages; callbacks do not rerun on batch overflow or send-pipeline retries. They **do** run again on a whole `PublishAsync` retry or relay redelivery: keep them deterministic and side-effect-free, not globally exactly-once. A later oversize or send failure can still follow earlier successful batches.
+
+`ToServiceBusMessage` shares declarative native/CE mapping, but does not apply publisher session policies or callbacks. Native JSON receive remains `ServiceBusSubscriberBase<TValue>`; raw bytes require an application-owned receiver. CE subscribers do not implicitly promote arbitrary native JSON into a CloudEvent.
+
+## CloudEvent binding compatibility changes
+
+`EventData.CorrelationId` is shared by CE and native output and maps to the broker CorrelationId using the standard `correlationid` CE extension. Binary receive prefers this extension when present, otherwise falls back to broker CorrelationId; structured receive retains body authority. Standard CloudEvents honor configurable correlation/causation attribute names; native internal envelopes use canonical names so relay formatter configuration cannot expose mapped metadata as custom headers. Direct CE access uses the existing generic extension helpers, without dedicated accessors or a separate empty-string validation policy. `CausationId` maps to the optional `causationid` CE extension; use `ConfigureMessage` to explicitly export a corresponding native application property if the external protocol needs it. Standard correlation and the `Key` application property are preserved under attribute exclusion; causation remains optional CE metadata.
+
+Binary output always includes `ce_specversion` and `ce_source`, with ID/type in broker MessageId/Subject and content type in ContentType. The `Key` application property carries CloudEvent `subject` when present, including when `IncludeCloudEventAttributes = false`; explicit event occurrence time is retained as `ce_time` under that setting as well. Other optional CE attributes (including schema, partition and custom extensions) are omitted when attributes are excluded. Standard unprefixed tracing is always mirrored. With attributes enabled, CE application-property values use canonical string formatting (including URI/time values) rather than SDK-specific CLR objects.
+
+Structured detection now uses `application/cloudevents+json` without requiring a duplicated `ce_specversion`. The structured body is authoritative over conflicting broker/application properties. Binary receive requires a string specversion supported by the pinned CloudEvents SDK (`1.0`; legacy `0.3` is unsupported) and valid required ID/type/source; broker ID, Subject and ContentType win over duplicated `ce_id`, `ce_type` and `ce_datacontenttype`. Unsupported versions and incomplete binary envelopes fail instead of producing plausible-looking events. Broker EnqueuedTime is no longer fabricated as event occurrence time: absent time remains absent. These are intentional compatibility corrections, not native-only changes.
+
 ## Publishing failure semantics
 
 The default `ServiceBusPublisher.SendResiliency` retries only failures classified by `ServiceBusErrorClassifier.IsTransient`. After those retries are exhausted, the publication boundary translates a classifier-confirmed `ServiceBusException` into the generic CoreEx `TransientException`, retaining the final broker exception and its stack trace as `InnerException` and enabling error logging. Transient failures during batch creation use the same translation, but batch creation is not covered by `SendResiliency`. Permanent broker failures, unrelated exceptions, and caller cancellation remain unchanged.

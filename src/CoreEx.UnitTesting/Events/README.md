@@ -10,6 +10,8 @@
 
 ## Key capabilities
 
+`AssertNativeMessage(destination, expectedEventData)` uses the existing internal-CloudEvent comparison pipeline for native representation, payload and durable options. It rejects a non-native expected message. Opaque payloads compare their Base64 storage value; JSON payloads compare as JSON. Native messages bypass automatic ETag stripping, so ETags remain in comparisons unless deliberately excluded. Transport callbacks and final session/broker fields require transport/real-relay assertions, not envelope-only expectations.
+
 - 🔧 **Non-invasive event capture**: `EventPublisherDecorator` wraps the real publisher transparently — all actual publish operations proceed to the underlying outbox or Service Bus publisher while a copy is stored in `TestSharedState` for later assertion.
 - 💬 **Sequenced or unordered event assertions**: `EventExpectationsConfig` supports asserting events in the declared order or as an unordered set; each assertion compares the full `CloudEvent` JSON representation.
 - 📝 **Flexible expected-event sources**: `EventExpectationAssertor` accepts an expected `CloudEvent` from an embedded JSON resource, from an `EventData` factory delegate, or from a fully custom `Action<AssertArgs, DestinationEvent>` comparator.

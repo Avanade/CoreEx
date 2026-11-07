@@ -1,5 +1,6 @@
 global using CloudNative.CloudEvents.Extensions;
 global using CloudNative.CloudEvents;
+global using CoreEx.Events.Native;
 global using CoreEx.Events.Publishing;
 global using CoreEx.Events.Subscribing;
 global using CoreEx.Results;

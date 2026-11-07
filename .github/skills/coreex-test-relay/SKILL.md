@@ -92,6 +92,8 @@ For **Cosmos** relay tests, publish via `CosmosDbEventPublisher` inside `CosmosD
 
 ## Validation
 
+When changing native publication, verify the final broker message after a real outbox/relay round-trip, not just its internal CloudEvent: payload-only JSON or exact opaque bytes, persisted Subject inclusion/omission, string custom headers, private/control metadata exclusion, CorrelationId/ReplyTo, and existing session/destination routing. Cover rollback and mixed native/CloudEvent batches where those paths change; do not duplicate established coverage for unrelated domain work. Configure broker-specific callbacks on the final sending host. See [native publishing configuration](/.github/instructions/coreex-host-setup.instructions.md#native-publishing-configuration) and the [Products relay example](https://github.com/Avanade/CoreEx/blob/main/samples/tests/Contoso.Products.Test.Relay/RelayTests.cs).
+
 Run the relevant Relay tests against the configured infrastructure; apply [Execution Evidence](/.github/instructions/coreex-tests.instructions.md#execution-evidence) when reporting results or blocked execution.
 
 ## Troubleshooting — Service Bus Emulator "Entity Not Found"

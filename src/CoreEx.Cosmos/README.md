@@ -16,6 +16,8 @@ This package provides the core CRUD + query access layer, a `TransactionalBatch`
 
 ## Key capabilities
 
+Native messages share the same internal CloudEvent storage and `TransactionalBatch` as CE messages; no new container or schema is needed. Business mutations and outbox messages must still share a container and logical partition. Use the existing unit-of-work event queue; the final relay publisher removes the internal envelope for native output. Upgrade every final publisher/relay before enabling native writes and drain native backlog before rollback. See [native payload and rollout contract](../CoreEx.Events/README.md#native-publishing).
+
 - 🔗 **Cosmos DB bridge**: `CosmosDb` wraps a DI-resolved `CosmosClient` (typically registered via Aspire's `builder.AddAzureCosmosClient("Cosmos")`) and caches both raw SDK `Container` instances (per container id) and `CosmosDbContainer<TModel>` instances (per `(containerId, TModel)` pair - not container id alone, since a container may legitimately host more than one type-discriminated model).
 - 📖 **Typed CRUD**: `CosmosDbContainer<TModel>` provides `GetAsync`, `CreateAsync`, `UpdateAsync`, `DeleteAsync`, `UpsertAsync` with automatic ETag/concurrency validation (native Cosmos DB `If-Match`), tenant isolation, and logical-delete handling.
 - 🔁 **Mapped CRUD**: `CosmosDbMappedContainer<TValue, TModel, TMapper>` layers an `IBiDirectionMapper<TValue, TModel>` over `CosmosDbContainer<TModel>`, mapping between the domain entity type and the Cosmos DB document model type transparently for all CRUD operations.

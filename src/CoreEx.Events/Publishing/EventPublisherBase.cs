@@ -64,7 +64,7 @@ public abstract class EventPublisherBase(IDestinationProvider? destinationProvid
             foreach (var @event in events)
             {
                 if (@event is not null)
-                    _queue.AddLast(new DestinationEvent(DestinationProvider.CreateFrom(@event), Formatter.ConvertToCloudEvent(Formatter.Format(@event))));
+                    _queue.AddLast(new DestinationEvent(DestinationProvider.CreateFrom(@event), PrepareEvent(@event)));
             }
         });
     }
@@ -78,9 +78,28 @@ public abstract class EventPublisherBase(IDestinationProvider? destinationProvid
             foreach (var @event in events)
             {
                 if (@event is not null)
-                    _queue.AddLast(new DestinationEvent(destination, Formatter.ConvertToCloudEvent(Formatter.Format(@event))));
+                    _queue.AddLast(new DestinationEvent(destination, PrepareEvent(@event)));
             }
         });
+    }
+
+    /// <summary>
+    /// Prepares an envelope and rejects formatters that lose requested native representation or metadata.
+    /// </summary>
+    private CloudEvent PrepareEvent(EventData value)
+    {
+        var requested = value.DataRepresentation;
+        var formatted = Formatter.Format(value);
+        var expected = NativeMessageEnvelopeCodec.CreateCloudEvent();
+
+        NativeMessageEnvelopeCodec.Write(formatted, expected);
+        var prepared = Formatter.ConvertToCloudEvent(formatted);
+
+        if (NativeMessageEnvelopeCodec.GetRepresentation(prepared) != requested
+            || (requested == MessageRepresentation.Native && !Equals(expected[NativeMessageEnvelopeCodec.NativeAttributeName], prepared[NativeMessageEnvelopeCodec.NativeAttributeName])))
+            throw new InvalidOperationException("The event formatter did not preserve the requested native representation and metadata.");
+
+        return prepared;
     }
 
     /// <inheritdoc/>
