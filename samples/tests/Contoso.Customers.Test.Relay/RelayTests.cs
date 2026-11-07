@@ -237,7 +237,9 @@ public class RelayTests : WithApiTester<Contoso.Customers.Relay.Program>
             {
                 message.ApplicationProperties.Keys.Should().NotContain(k => k.StartsWith("ce_", StringComparison.OrdinalIgnoreCase));
                 message.ContentType.Should().Be("application/json");
-                if (envelope.Data is byte[] bytes)
+                if (envelope.Data is ReadOnlyMemory<byte> opaqueBytes)
+                    message.Body.ToArray().Should().Equal(opaqueBytes.ToArray());
+                else if (envelope.Data is byte[] bytes)
                     message.Body.ToArray().Should().Equal(bytes);
                 else
                 {
