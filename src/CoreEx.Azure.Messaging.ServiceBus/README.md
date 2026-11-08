@@ -39,6 +39,14 @@ Prefer a stable business/aggregate key with `UsePartitionKeyAsIs` when ordering 
 
 Resiliency is provided out-of-the-box: `ServiceBusReceiverResiliency` supplies factory methods for a receiver-level circuit breaker and a per-message retry pipeline (via Polly), both of which are applied by default in `ServiceBusReceiverOptionsBase`. Both factories are now thin wrappers over `CoreEx.Hosting`'s generic `CircuitBreakerResiliency<TOwner>`/`RetryResiliency<TOwner>` (promoted there so `CoreEx.Cosmos`'s Change Feed Processor-based outbox relay shares the exact same self-pause/self-resume behaviour) - this package supplies only the Service-Bus-specific pause-reason/dead-letter-exclusion/retry-classification wiring.
 
+## Received correlation
+
+Native subscribers import broker `CorrelationId`; CloudEvent subscribers import the formatter-resolved envelope `CorrelationId`, including custom extension names. Envelope absence is authoritative and is not refilled from broker or receiver context. Valid received values become `ExecutionContext.CorrelationId` before payload validation, inbox/business processing and subscriber invoker spans, so subsequent new events and CoreEx HTTP calls propagate the workflow. Caller context is restored when the receive boundary ends, including failures and nested receives.
+
+Received correlation which fails the shared 1-256-character visible ASCII token rules is not a poison-message decision: log a warning without the raw value, clear ambient correlation and continue normal payload processing. The received envelope remains unchanged. Existing payload validation, error classification, settlement, retry and tenant/authentication policies remain in charge.
+
+Receive tracing retains existing `messaging.message.conversation_id` transport metadata and adds `correlation.id` for the effective workflow. Top-level receive activities retain processed correlation for export; nested receives restore the caller's attribute. Trace IDs, links and baggage policy are unchanged. Correlation is not a session key, metric label or authenticated identity. See [shared correlation semantics](../CoreEx/README.md#workflow-correlation).
+
 ## Native output and send-time customization
 
 **Prefer CloudEvents for CoreEx consumers.** Structured and binary CloudEvents both support `ServiceBusSubscribedSubscriber`/`SubscribedManager` and `[Subscribe]` dispatch. Binary mode already sends the payload alone in the body, with CE metadata in broker properties; an unwanted JSON envelope is not by itself a reason to choose native. Choose native when the receiver contract cannot or must not carry CE metadata, and verify that the consumer supports native delivery rather than normal CloudEvent dispatch. This does not change the default structured content mode.

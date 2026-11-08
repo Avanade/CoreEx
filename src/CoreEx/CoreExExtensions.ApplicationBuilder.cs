@@ -31,7 +31,7 @@ public static class CoreExExtensions
     }
 
     /// <summary>
-    /// Adds an opinionated named <see cref="HttpClient"/> with idempotency key handler, service discovery, and standard resilience handlers.
+    /// Adds an opinionated named <see cref="HttpClient"/> with correlation and idempotency handlers, service discovery, and standard resilience handlers.
     /// </summary>
     /// <param name="builder">The <see cref="IHostApplicationBuilder"/>.</param>
     /// <param name="name">The name of the <see cref="HttpClient"/>.</param>
@@ -41,6 +41,7 @@ public static class CoreExExtensions
     /// <remarks>The <paramref name="name"/> also represents the configuration section name for the <see cref="HttpClient"/>; as a minimum define the <see cref="HttpClient.BaseAddress"/>.
     /// <para>The handlers are added, in order specified, as follows:
     /// <list type="bullet">
+    /// <item><description><see cref="CorrelationIdHandler"/> - Propagates current workflow correlation, respecting request-level override or suppression.</description></item>
     /// <item><description><see cref="IdempotencyKeyHandler"/> - Adds an idempotency key to outgoing HTTP requests.</description></item>
     /// <item><description><see href="https://learn.microsoft.com/dotnet/core/extensions/service-discovery">Service discovery</see> - Resolves the <see cref="HttpClient.BaseAddress"/> host as a logical service name (e.g. <c>https://products-api</c>) against a <c>Services:{name}:{scheme}</c> configuration section (or, on supporting platforms, a native resolver) before falling back unchanged to a literal address if no matching entry is found - see <see href="https://www.nuget.org/packages/Microsoft.Extensions.ServiceDiscovery">Microsoft.Extensions.ServiceDiscovery</see>. This makes an Aspire-orchestrated <c>BaseAddress</c> (populated via the AppHost's <c>WithReference</c>) and a literal production URL both work unchanged through the same code path - no Aspire AppHost is required at runtime for the latter.</description></item>
     /// <item><description><see href="https://learn.microsoft.com/en-us/dotnet/core/resilience/http-resilience">Standard resilience handlers</see> - Adds standard resilience policies as enabled by <see href="https://www.nuget.org/packages/Microsoft.Extensions.Http.Resilience">Microsoft.Extensions.Http.Resilience</see>.</description></item>
@@ -70,7 +71,7 @@ public static class CoreExExtensions
         => builder.AddNamedHttpClient(name, configureClient, name, configureIdempotency);
 
     /// <summary>
-    /// Adds an opinionated named <see cref="HttpClient"/> using a separate configuration section, with idempotency key handling, service discovery, and standard resilience.
+    /// Adds an opinionated named <see cref="HttpClient"/> using a separate configuration section, with correlation and idempotency handling, service discovery, and standard resilience.
     /// </summary>
     /// <param name="builder">The <see cref="IHostApplicationBuilder"/>.</param>
     /// <param name="name">The name registered with <see cref="IHttpClientFactory"/>.</param>
@@ -98,6 +99,7 @@ public static class CoreExExtensions
                 throw new ArgumentException($"Unable to find '{nameof(HttpClient.BaseAddress)}' configuration for '{configurationSectionName}'.");
         });
 
+        cb.AddCorrelationIdHandler();
         cb.AddIdempotencyKeyHandler((sp, handler) => configureIdempotency?.Invoke(sp, handler));
         cb.AddServiceDiscovery();
 
@@ -110,7 +112,7 @@ public static class CoreExExtensions
     }
 
     /// <summary>
-    /// Adds an opinionated named <see cref="HttpClient"/> with idempotency key handler, service discovery, and standard resilience handlers.
+    /// Adds an opinionated named <see cref="HttpClient"/> with correlation and idempotency handlers, service discovery, and standard resilience handlers.
     /// </summary>
     /// <param name="builder">The <see cref="IHostApplicationBuilder"/>.</param>
     /// <param name="name">The name of the <see cref="HttpClient"/>.</param>
@@ -121,7 +123,7 @@ public static class CoreExExtensions
         => builder.AddNamedHttpClient(name, configureClient, configureIdempotency);
 
     /// <summary>
-    /// Adds an opinionated <i>typed</i> <see cref="HttpClient"/> with idempotency key handler, service discovery, and standard resilience handlers.
+    /// Adds an opinionated <i>typed</i> <see cref="HttpClient"/> with correlation and idempotency handlers, service discovery, and standard resilience handlers.
     /// </summary>
     /// <typeparam name="TClient">The typed client.</typeparam>
     /// <param name="builder">The <see cref="IHostApplicationBuilder"/>.</param>
@@ -132,6 +134,7 @@ public static class CoreExExtensions
     /// <remarks>The <paramref name="name"/> also represents the configuration section name for the <see cref="HttpClient"/>; as a minimum define the <see cref="HttpClient.BaseAddress"/>.
     /// <para>The handlers are added, in order specified, as follows:
     /// <list type="bullet">
+    /// <item><description><see cref="CorrelationIdHandler"/> - Propagates current workflow correlation, respecting request-level override or suppression.</description></item>
     /// <item><description><see cref="IdempotencyKeyHandler"/> - Adds an idempotency key to outgoing HTTP requests.</description></item>
     /// <item><description><see href="https://learn.microsoft.com/dotnet/core/extensions/service-discovery">Service discovery</see> - Resolves the <see cref="HttpClient.BaseAddress"/> host as a logical service name (e.g. <c>https://products-api</c>) against a <c>Services:{name}:{scheme}</c> configuration section (or, on supporting platforms, a native resolver) before falling back unchanged to a literal address if no matching entry is found - see <see href="https://www.nuget.org/packages/Microsoft.Extensions.ServiceDiscovery">Microsoft.Extensions.ServiceDiscovery</see>. This makes an Aspire-orchestrated <c>BaseAddress</c> (populated via the AppHost's <c>WithReference</c>) and a literal production URL both work unchanged through the same code path - no Aspire AppHost is required at runtime for the latter.</description></item>
     /// <item><description><see href="https://learn.microsoft.com/en-us/dotnet/core/resilience/http-resilience">Standard resilience handlers</see> - Adds standard resilience policies as enabled by <see href="https://www.nuget.org/packages/Microsoft.Extensions.Http.Resilience">Microsoft.Extensions.Http.Resilience</see>.</description></item>
@@ -162,7 +165,7 @@ public static class CoreExExtensions
         => builder.AddNamedHttpClient(name, configureClient, configureIdempotency).AddTypedClient<TClient>();
 
     /// <summary>
-    /// Adds an opinionated <i>typed</i> <see cref="HttpClient"/> with idempotency key handler and standard resilience handlers.
+    /// Adds an opinionated <i>typed</i> <see cref="HttpClient"/> with correlation and idempotency handlers, service discovery, and standard resilience handlers.
     /// </summary>
     /// <typeparam name="TClient">The typed client.</typeparam>
     /// <typeparam name="TImplementation">The the typed client implementation.</typeparam>
@@ -174,6 +177,7 @@ public static class CoreExExtensions
     /// <remarks>The <paramref name="name"/> also represents the configuration section name for the <see cref="HttpClient"/>; as a minimum define the <see cref="HttpClient.BaseAddress"/>.
     /// <para>The handlers are added, in order specified, as follows:
     /// <list type="bullet">
+    /// <item><description><see cref="CorrelationIdHandler"/> - Propagates current workflow correlation, respecting request-level override or suppression.</description></item>
     /// <item><description><see cref="IdempotencyKeyHandler"/> - Adds an idempotency key to outgoing HTTP requests.</description></item>
     /// <item><description><see href="https://learn.microsoft.com/dotnet/core/extensions/service-discovery">Service discovery</see> - Resolves the <see cref="HttpClient.BaseAddress"/> host as a logical service name (e.g. <c>https://products-api</c>) against a <c>Services:{name}:{scheme}</c> configuration section (or, on supporting platforms, a native resolver) before falling back unchanged to a literal address if no matching entry is found - see <see href="https://www.nuget.org/packages/Microsoft.Extensions.ServiceDiscovery">Microsoft.Extensions.ServiceDiscovery</see>. This makes an Aspire-orchestrated <c>BaseAddress</c> (populated via the AppHost's <c>WithReference</c>) and a literal production URL both work unchanged through the same code path - no Aspire AppHost is required at runtime for the latter.</description></item>
     /// <item><description><see href="https://learn.microsoft.com/en-us/dotnet/core/resilience/http-resilience">Standard resilience handlers</see> - Adds standard resilience policies as enabled by <see href="https://www.nuget.org/packages/Microsoft.Extensions.Http.Resilience">Microsoft.Extensions.Http.Resilience</see>.</description></item>

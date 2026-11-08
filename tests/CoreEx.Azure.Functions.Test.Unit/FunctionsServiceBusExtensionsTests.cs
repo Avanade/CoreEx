@@ -4,6 +4,37 @@ namespace CoreEx.Azure.Functions.Test.Unit;
 public class FunctionsServiceBusExtensionsTests
 {
     [TestCase(null)]
+    [TestCase("received")]
+    [TestCase("invalid metadata")]
+    public async Task RawCallback_CapturesCorrelationAndRestoresAfterSettlement(string? supplied)
+    {
+        using var ec = new CoreEx.ExecutionContext { CorrelationId = "parent" };
+        CoreEx.ExecutionContext.Reset();
+        CoreEx.ExecutionContext.SetCurrent(ec);
+        using var activity = new System.Diagnostics.Activity("receive").Start();
+        var actions = new RecordingServiceBusMessageActions();
+        var logger = new WarningLogger();
+        try
+        {
+            await actions.FunctionReceiveAsync(ServiceBusModelFactory.ServiceBusReceivedMessage(correlationId: supplied), "queue", _ =>
+            {
+                ec.CorrelationId.Should().Be(CoreEx.Diagnostics.Correlation.IsValid(supplied) ? supplied : null);
+                new EventData().CorrelationId.Should().Be(ec.CorrelationId);
+                return Result.SuccessTask;
+            }, new FunctionsServiceBusReceiveArgs { Logger = logger });
+            actions.Settlements.Should().Equal("complete");
+            ec.CorrelationId.Should().Be("parent");
+            logger.Warnings.Should().HaveCount(CoreEx.Diagnostics.Correlation.IsValid(supplied) ? 0 : 1);
+            if (supplied == "invalid metadata")
+                logger.Warnings.Single().Should().NotContain(supplied);
+        }
+        finally
+        {
+            CoreEx.ExecutionContext.Reset();
+        }
+    }
+
+    [TestCase(null)]
     [TestCase(false)]
     [TestCase(true)]
     public async Task NativeCallback_EnrichesHostActivityBeforeHandler(bool? propagateBaggage)
@@ -92,5 +123,18 @@ public class FunctionsServiceBusExtensionsTests
         actions.Settlements.Should().Equal("dead-letter");
         actions.DeadLetterReason.Should().Be("Rejected.");
         actions.DeadLetterDescription.Should().BeNull();
+    }
+
+    private sealed class WarningLogger : ILogger
+    {
+        public List<string> Warnings { get; } = [];
+
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+        public bool IsEnabled(LogLevel logLevel) => logLevel == LogLevel.Warning;
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+        {
+            if (logLevel == LogLevel.Warning)
+                Warnings.Add(formatter(state, exception));
+        }
     }
 }

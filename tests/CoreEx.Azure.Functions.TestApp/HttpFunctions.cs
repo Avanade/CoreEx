@@ -52,6 +52,9 @@ public sealed class HttpFunctions(WebApi webApi, InvocationService service)
     public Task<IActionResult> Messages([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "messages")] HttpRequest request, CancellationToken cancellationToken)
         => _webApi.GetAsync(request, (_, _) =>
         {
+            if (request.Query.TryGetValue("correlation", out var correlation))
+                CoreEx.ExecutionContext.Current.CorrelationId = correlation == "clear" ? null : correlation.ToString();
+
             CoreEx.ExecutionContext.Current.AddInfoMessage("Processed.");
             return Task.FromResult("done");
         }, cancellationToken: cancellationToken);

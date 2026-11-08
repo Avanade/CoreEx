@@ -24,6 +24,10 @@ This is a **background worker host** with no messaging provider configured. It s
 
 Read `.github/docs/coreex/hosts-layer.md` for the full host-layer guide.
 
+## Workflow Correlation
+
+`UseExecutionContext()` runs before exception handling, HTTPS redirection and authorization for optional HTTP `X-Correlation-Id` capture and response echo. Console formatter scopes are enabled in `appsettings.json`, and OpenTelemetry logging is configured to include scopes. Service Bus processing imports authoritative message correlation inside its receive boundary; absence clears correlation, and invalid legacy metadata warns/clears without rejecting otherwise processable messages. Newly created events snapshot the processing context. Do not use correlation for authentication, session routing or metric labels.
+
 ---
 
 <!-- #if implement-servicebus -->

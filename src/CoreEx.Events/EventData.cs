@@ -17,10 +17,16 @@ public sealed partial class EventData : IIdentifier<string>, ITenantId, IPartiti
         if (ExecutionContext.TryGetCurrent(out var ec))
         {
             TenantId = ec.TenantId;
+            CorrelationId = ec.CorrelationId;
             UserType = ec.User.Type;
             UserId = ec.User.Id;
         }
     }
+
+    /// <summary>Reconstructs JSON metadata without inheriting absent correlation from the receiving execution.</summary>
+    /// <param name="correlationId">The persisted correlation identifier, including absence.</param>
+    [JsonConstructor]
+    public EventData(string? correlationId) : this() => CorrelationId = correlationId;
 
     /// <summary>
     /// Gets or sets the unique event identifier.
@@ -124,7 +130,7 @@ public sealed partial class EventData : IIdentifier<string>, ITenantId, IPartiti
     /// <summary>
     /// Gets or sets the business workflow identifier shared by related messages.
     /// </summary>
-    /// <remarks>Optional. Not inferred from tracing or ambient execution context.</remarks>
+    /// <remarks>Snapshots <see cref="ExecutionContext.CorrelationId"/> when created. Explicit replacement or null is authoritative; not inferred from tracing or filled at publication.</remarks>
     public string? CorrelationId { get; set; }
 
     /// <summary>

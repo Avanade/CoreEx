@@ -77,6 +77,8 @@ public Task<IActionResult> GetAllAsync() =>
 
 ## Middleware Registration Order
 
+`UseExecutionContext()` captures/validates `X-Correlation-Id` before its configuration callback and echoes the final `ExecutionContext.CorrelationId` through `OnStarting`; null means no header. Malformed HTTP correlation returns safe 400 before endpoint work, without requiring WebApi usage. Idempotency defaults exclude correlation from fingerprints/cache; explicit header configuration is honored. The execution boundary overrides cached correlation during replay, including legacy entries. Place execution outside exception handling for error-response and framework exception-log coverage; exception rendering has no correlation-specific responsibilities. Earlier short-circuits are outside coverage. Browser callers need CORS request allowance and response-header exposure. See [HTTP correlation](./README.md#http-correlation).
+
 Order matters — follow this sequence in `Program.cs`:
 
 ```csharp

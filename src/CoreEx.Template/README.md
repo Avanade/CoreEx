@@ -670,6 +670,10 @@ dotnet new coreex-aspire -n Avanade.Erp.Sales.Aspire --has-api true --has-relay 
 
 ---
 
+## Default Workflow Correlation
+
+The API, Relay and Subscribe templates place `UseExecutionContext()` before exception handling, HTTPS redirection and authorization so optional `X-Correlation-Id` capture and response echo cover errors and early exits. The Functions template already enables `UseCoreExExecutionContext()`; HTTP correlation becomes active when the ASP.NET-integrated HTTP capability is added. Console formatter scopes are enabled in all four host templates, and OpenTelemetry logging options include scopes without adding an exporter to the empty Functions host. Missing correlation stays null; no identifier is generated. CoreEx named/typed clients propagate correlation, events snapshot it at creation, and message receive processing imports stored correlation. The custom span attribute is `correlation.id`; batch publishing spans omit it. Browser CORS allowance/exposure remains an explicit application decision.
+
 ## Template 8 -- `coreex-functions` (Empty Functions host)
 
 Scaffolds one independently deployable Azure Functions isolated-worker app and its corresponding test project into an existing CoreEx solution. The host initializes CoreEx execution context and references the shared Application/Infrastructure libraries, but deliberately contains no functions, health endpoint, cache, database, broker connection or telemetry exporter. It does not automatically scan/register application services: add those registrations with their dependencies when a capability needs them, so unused services cannot prevent the empty host from starting. The test project references the host and includes UnitTestEx Functions, CoreEx test helpers, NUnit and AwesomeAssertions, without invented test cases. Trigger-specific registrations and meaningful tests belong with the first real capability.

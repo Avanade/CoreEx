@@ -17,7 +17,17 @@ public static class CoreExExtensions
         builder.ThrowIfNull();
 
         return builder
-            .WithTracing(t => t.AddHttpClientInstrumentation().WithCoreExSources())
+            .WithTracing(t => t.AddHttpClientInstrumentation(options =>
+            {
+                var enrich = options.EnrichWithHttpRequestMessage;
+                options.EnrichWithHttpRequestMessage = (activity, request) =>
+                {
+                    enrich?.Invoke(activity, request);
+                    var identifiers = request.Headers.TryGetValues(HttpNames.CorrelationIdHeaderName, out var values) ? values.ToArray() : [];
+                    var value = identifiers.Length == 1 ? identifiers[0] : null;
+                    activity.SetTag(Correlation.ActivityTagName, Correlation.IsValid(value) ? value : null);
+                };
+            }).WithCoreExSources())
             .WithMetrics(m => m.AddHttpClientInstrumentation().AddRuntimeInstrumentation().AddMeter("Polly"));
     }
 

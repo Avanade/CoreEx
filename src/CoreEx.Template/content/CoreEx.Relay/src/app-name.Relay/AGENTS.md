@@ -15,6 +15,10 @@ The relay is a **background worker host** -- it runs one or more `IHostedService
 
 Read `.github/docs/coreex/hosts-layer.md` for the full host-layer guide and the outbox relay pattern.
 
+## Workflow Correlation
+
+`UseExecutionContext()` runs before exception handling, HTTPS redirection and authorization for correlation coverage on HTTP management/health responses. Console formatter scopes are enabled in `appsettings.json`, and OpenTelemetry logging is configured to include scopes. Outbox forwarding preserves stored message correlation, including absence; never replace it with relay context metadata. Batch publishing spans omit `correlation.id` because a batch need not represent one workflow.
+
 ---
 
 ## How the Outbox Relay Works

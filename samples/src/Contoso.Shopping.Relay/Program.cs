@@ -13,6 +13,7 @@ public class Program
 
         // Add CoreEx host settings.
         builder.AddHostSettings();
+        builder.Services.Configure<OpenTelemetry.Logs.OpenTelemetryLoggerOptions>(o => o.IncludeScopes = true);
 
         // Add CoreEx services.
         builder.Services
@@ -56,12 +57,11 @@ public class Program
         var app = builder.Build();
 
         // Configure the pipeline/middleware (order is important).
+        app.UseExecutionContext();
         app.UseCoreExExceptionHandler();
         app.UseHttpsRedirection();
         // app.UseAuthentication();   // TODO: register an authentication scheme (builder.Services.AddAuthentication(...)) then uncomment.
         // app.UseAuthorization();    // TODO: register authorization services (builder.Services.AddAuthorization(...)) then uncomment.
-        app.UseExecutionContext();
-
         app.MapHealthChecks();   // Secure by default: detailed endpoints are disabled unless explicitly enabled (HealthCheckOptions.AreDetailedEndpointsEnabled) and secured (detailedGroupConfigure, e.g. g => g.RequireAuthorization()); basic live/startup/ready checks stay anonymous for orchestrator probes.
         app.MapHostedServices(/* groupConfigure: g => g.RequireAuthorization() */);         // Pause/resume management endpoints are admin-only and must be secured.
 

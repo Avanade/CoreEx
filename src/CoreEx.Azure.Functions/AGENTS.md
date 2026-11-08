@@ -8,6 +8,8 @@ Azure Functions isolated-worker integration for CoreEx execution context, existi
 
 ## Invocation context
 
+Correlation is automatically captured for the existing `HttpRequest`/`IActionResult` integration before the invocation callback, returned through deferred `OnStarting`, and reflected in worker-side logging scopes and `correlation.id`. Null remains absent; malformed HTTP headers return safe 400 before the function. Native `HttpRequestData`/`HttpResponseData` and Functions host-process logs are outside coverage. Service Bus subscribers/raw callbacks import message correlation; invalid metadata warns, clears ambient correlation and still processes. Raw callbacks without host logging services supply `FunctionsServiceBusReceiveArgs.Logger`. Idempotency replay must echo the current correlation, never the cached original. See [workflow correlation](./README.md#workflow-correlation).
+
 Register `AddExecutionContext()` and call `UseCoreExExecutionContext()` on the worker builder. For HTTP, call `ConfigureFunctionsWebApplication()` first. The middleware initializes/clears ambient invocation state, supports custom context factories and adds HTTP informational headers before rendering.
 
 The optional `UseCoreExExecutionContext((context, executionContext, cancellationToken) => ...)` callback is singleton-owned: resolve scoped dependencies via `context.InstanceServices`, not captured root services. Request headers, baggage, message identifiers and function keys do not authenticate a tenant/user automatically.

@@ -6,6 +6,14 @@ namespace CoreEx.Azure.Functions.TestApp;
 public static class ServiceBusTraceProbe
 {
     private static readonly ConcurrentDictionary<string, Observation> _observations = new();
+    private static readonly ConcurrentDictionary<string, Snapshot> _processing = new();
+
+    /// <summary>Captures correlation inside an explicitly observed business receive boundary.</summary>
+    public static void RecordProcessing(string messageId)
+    {
+        if (_processing.Count < 64)
+            _processing.TryAdd(messageId, Capture());
+    }
 
     /// <summary>
     /// Records a bounded observation for an explicitly marked test message.
@@ -13,7 +21,10 @@ public static class ServiceBusTraceProbe
     public static void Record(string messageId, Snapshot before, Snapshot after)
     {
         if (_observations.Count < 64)
-            _observations.TryAdd(messageId, new Observation(before, after));
+        {
+            _processing.TryRemove(messageId, out var processing);
+            _observations.TryAdd(messageId, new Observation(before, after, processing));
+        }
     }
 
     /// <summary>
@@ -38,7 +49,8 @@ public static class ServiceBusTraceProbe
             links.AddRange(activity.Links.Select(link => $"{link.Context.TraceId}/{link.Context.SpanId}"));
         }
 
-        return new Snapshot(current?.Id, contexts.ToArray(), parents.ToArray(), links.ToArray(), current?.GetBaggageItem("region"));
+        return new Snapshot(current?.Id, contexts.ToArray(), parents.ToArray(), links.ToArray(), current?.GetBaggageItem("region"),
+            CoreEx.ExecutionContext.TryGetCurrent(out var ec) ? ec.CorrelationId : null, current?.GetTagItem(CoreEx.Diagnostics.Correlation.ActivityTagName) as string, new EventData().CorrelationId);
     }
 
     /// <summary>
@@ -46,7 +58,8 @@ public static class ServiceBusTraceProbe
     /// </summary>
     /// <param name="Before">The host-supplied context.</param>
     /// <param name="After">The enriched context.</param>
-    public sealed record Observation(Snapshot Before, Snapshot After);
+    /// <param name="Processing">The context inside the business receive boundary.</param>
+    public sealed record Observation(Snapshot Before, Snapshot After, Snapshot? Processing);
 
     /// <summary>
     /// Describes the available ancestry and links without exporting message data.
@@ -56,5 +69,8 @@ public static class ServiceBusTraceProbe
     /// <param name="Parents">Parent references.</param>
     /// <param name="Links">Producer links.</param>
     /// <param name="Region">The test baggage value.</param>
-    public sealed record Snapshot(string? Id, string[] Contexts, string[] Parents, string[] Links, string? Region);
+    /// <param name="CorrelationId">The ambient workflow correlation.</param>
+    /// <param name="ActivityCorrelationId">The common tracing attribute.</param>
+    /// <param name="EventCorrelationId">The default correlation on a newly created event.</param>
+    public sealed record Snapshot(string? Id, string[] Contexts, string[] Parents, string[] Links, string? Region, string? CorrelationId, string? ActivityCorrelationId, string? EventCorrelationId);
 }

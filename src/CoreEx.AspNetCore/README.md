@@ -154,6 +154,16 @@ Despite its historical name, `ConvertUnhandledExceptionsToProblemDetails` contro
 
 **Boundary:** this hook does not guarantee a protocol-specific envelope for every failure. MVC model binding and automatic validation, authentication/authorization, middleware, and failures during result execution can occur outside WebApi. `UseCoreExExceptionHandler()` resolves the unkeyed `Http.WebApi`, preserving its normal ProblemDetails fallback and avoiding duplicate logging; a keyed registration does not replace it. Replacing the unkeyed instance intentionally changes that middleware's representation too. Configure any wider protocol policy in the consuming host, and declare matching success/error OpenAPI metadata separately.
 
+## HTTP correlation
+
+`UseExecutionContext()` captures `X-Correlation-Id` before its custom configuration callback and opens the execution's logging scope. A supplied header must contain one 1-256-character visible ASCII token without whitespace or commas; empty, repeated, comma-combined, control/non-ASCII and oversized values produce safe HTTP 400 before application execution, including endpoints which do not use WebApi. Absence preserves deliberately factory-configured correlation and otherwise leaves it null. The callback and application may replace or clear it.
+
+The effective context value is sent on successful and error responses using `Response.OnStarting`, including streamed/deferred rendering; null omits/removes the feature-owned header. Correlation cannot be changed after response headers have committed. Idempotency defaults omit correlation from fingerprints and cached response headers; explicitly configured header lists are honored. The execution boundary overrides any cached correlation header, including legacy entries, before committing the response: a retry echoes its current correlation without re-executing the business operation. Explicitly including correlation in fingerprinting makes different correlation values different requests. WebApi and exception handling remain result/error renderers, not correlation owners.
+
+Middleware coverage is explicit. Place the execution boundary before every endpoint/short-circuit whose correlation you need; requests rejected before it do not participate. Put `UseExecutionContext()` outside `UseCoreExExceptionHandler()` so error rendering and framework exception logging remain inside its scope. Exception handling does not establish correlation scopes or repair response headers; coverage outside the execution boundary is not guaranteed. Review authorization/other early middleware coverage. Logs emitted before capture cannot be enriched retroactively.
+
+For browser clients, allow `X-Correlation-Id` in your CORS request policy and expose it in response headers, for example `.WithHeaders("Content-Type", "X-Correlation-Id").WithExposedHeaders("X-Correlation-Id")`, alongside your existing required headers. No CORS policy is enabled automatically. See [shared logging and tracing semantics](../CoreEx/README.md#workflow-correlation) and [Functions integration](../CoreEx.Azure.Functions/README.md#workflow-correlation).
+
 ## Related Namespaces
 
 - **[`CoreEx`](../CoreEx/README.md)** - Semantic exceptions, `ExecutionContext`, `Result<T>`, and `PagingArgs` are the domain primitives translated by this package into HTTP responses.

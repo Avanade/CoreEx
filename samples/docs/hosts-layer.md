@@ -33,6 +33,10 @@ To consolidate, register the Relay's and/or Subscribe's `Program.cs` wiring dire
 
 ## API host
 
+### Workflow correlation at host boundaries
+
+The existing `UseExecutionContext()` and `UseCoreExExecutionContext()` boundaries capture optional `X-Correlation-Id`, return the final context value and open structured worker/request logging scopes. CoreEx named/typed clients propagate it; newly created events snapshot it; Service Bus consumers restore authoritative message correlation during processing. Null stays absent, malformed HTTP headers return 400, and malformed received message correlation warns/clears without rejecting the payload. Sample API/Relay/Subscribe hosts enable console formatter and OpenTelemetry logging scopes by default, with the execution boundary before exception handling, HTTPS redirection and authorization for error-response and early-exit coverage. Exception rendering does not repair correlation outside that boundary. Browser CORS header allowance/exposure remains an explicit application decision. Idempotency defaults omit correlation from fingerprints/cache, explicit header lists are honored, and the execution boundary applies current correlation on replay. See [shared correlation semantics](../../src/CoreEx/README.md#workflow-correlation) and [HTTP coverage](../../src/CoreEx.AspNetCore/README.md#http-correlation).
+
 The API host exposes the domain's capabilities as HTTP endpoints. Controllers delegate immediately to Application-layer services via the CoreEx `WebApi` helper — they contain no business logic.
 
 **Example projects**
@@ -137,7 +141,7 @@ way as any other CoreEx invoker.
 5. `PostConfigureAllHealthChecks()` — adds standard health-check tags.
 6. OpenAPI — NSwag document with `AddCoreExConfiguration()`.
 7. OpenTelemetry — `WithCoreExTelemetry()`, provider-specific extensions (e.g. `WithCoreExPostgresTelemetry()`), and `WithCoreExGraphQLTelemetry()` where the GraphQL-lite bridge is mapped.
-8. Middleware pipeline — `UseCoreExExceptionHandler()` → `UseExecutionContext()` → `UseIdempotencyKey()` → `MapControllers()` → health checks.
+8. Middleware pipeline — `UseExecutionContext()` → `UseCoreExExceptionHandler()` → HTTPS redirection/authorization → `UseIdempotencyKey()` → `MapControllers()` → health checks. Console formatter and OpenTelemetry logging scopes are enabled by default.
 
 ```csharp
 // samples/src/Contoso.Products.Api/Program.cs  (abridged)
@@ -151,8 +155,8 @@ builder.Services.AddDynamicServicesUsing<ReferenceDataService, ReferenceDataRepo
 
 // ...database, caching, outbox...
 
-app.UseCoreExExceptionHandler();
 app.UseExecutionContext();
+app.UseCoreExExceptionHandler();
 app.UseIdempotencyKey();
 app.MapControllers();
 app.MapHealthChecks();

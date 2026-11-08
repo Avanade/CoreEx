@@ -2,6 +2,7 @@ global using CoreEx.Abstractions;
 global using CoreEx.Caching;
 global using CoreEx.Data;
 global using CoreEx.DependencyInjection;
+global using CoreEx.Diagnostics;
 global using CoreEx.Entities.Abstractions;
 global using CoreEx.Entities.Extended;
 global using CoreEx.Entities;

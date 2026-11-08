@@ -39,6 +39,8 @@ For existing `IValidationResult` values, use `result.ThrowOnError(ex => ex.Error
 
 ## ExecutionContext
 
+`ExecutionContext.CorrelationId` is nullable workflow metadata, never generated or derived from tracing. Values are case-preserved 1-256-character visible ASCII tokens without whitespace or commas; invalid assignment throws and preserves prior state. `CreateCopy()` copies it; `RunScopedAsync()` remains explicit-only propagation. CoreEx named/typed clients propagate it through `CorrelationIdHandler`; other factory clients use `AddCorrelationIdHandler()`. `WithCorrelationId(value)` on the request or builder overrides it; null explicitly suppresses it. Execution-owned `CoreEx.Diagnostics.Correlation.BeginScope(logger)` reads the current context at log emission; enable console/OpenTelemetry scopes, and provide an adapter for third-party snapshotting providers. `correlation.id` is a CoreEx-defined custom span attribute, not an OpenTelemetry semantic convention, trace identity or baggage, and must not become a metric label. See [workflow correlation](./README.md#workflow-correlation).
+
 `ExecutionContext` is `AsyncLocal`-scoped and carries user identity, tenant ID, timestamp, and operation type for the lifetime of a request. Access it via DI injection, or use the static accessors when outside the DI graph.
 
 ```csharp

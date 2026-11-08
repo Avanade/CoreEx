@@ -104,4 +104,7 @@ public static class HttpNames
     /// Gets the Idempotency Key <see cref="HttpRequestMessage.Headers"/> name.
     /// </summary>
     public const string IdempotencyKeyHeaderName = "Idempotency-Key";
+
+    /// <summary>Gets the optional workflow correlation request and response header name.</summary>
+    public const string CorrelationIdHeaderName = "X-Correlation-Id";
 }

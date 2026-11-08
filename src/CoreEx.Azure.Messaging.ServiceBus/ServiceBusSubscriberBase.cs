@@ -29,15 +29,18 @@ public abstract class ServiceBusSubscriberBase(IEventFormatter formatter, ILogge
     /// <param name="message">The <see cref="ServiceBusReceivedMessage"/>.</param>
     /// <param name="args">The optional <see cref="EventSubscriberArgs"/>.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-    public Task<Result> ReceiveAsync(ServiceBusReceivedMessage message, EventSubscriberArgs? args = null, CancellationToken cancellationToken = default)
+    public async Task<Result> ReceiveAsync(ServiceBusReceivedMessage message, EventSubscriberArgs? args = null, CancellationToken cancellationToken = default)
     {
         args ??= new EventSubscriberArgs();
         args.Owner ??= this;
         args.Message = message.ThrowIfNull();
 
+        using var correlationScope = Correlation.BeginScope(Logger);
         message.EnrichReceiveActivity(PropagateBaggage);
 
-        return EventSubscriberMetrics.ReceiveMessageAsync(args, async () =>
+        using var receiveScope = message.IsCloudEvent() ? null : Correlation.BeginReceive(message.CorrelationId, Logger);
+
+        return await EventSubscriberMetrics.ReceiveMessageAsync(args, async () =>
         {
             // Pre-process.
             var br = await OnBeforeReceiveAsync(message, args, cancellationToken).ConfigureAwait(false);
@@ -45,7 +48,7 @@ public abstract class ServiceBusSubscriberBase(IEventFormatter formatter, ILogge
                 return br;
 
             return await OnReceiveMessageAsync(message, args, cancellationToken).ConfigureAwait(false);
-        });
+        }).ConfigureAwait(false);
     }
 
     /// <summary>

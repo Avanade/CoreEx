@@ -20,7 +20,7 @@ public static class FunctionsServiceBusExtensions
         EventSubscriberArgs? args = null, CancellationToken cancellationToken = default)
     {
         subscriber.ThrowIfNull();
-        return actions.FunctionReceiveAsync(message, entityPath, ct => subscriber.ReceiveAsync(message, args, ct), cancellationToken: cancellationToken);
+        return actions.FunctionReceiveAsync(message, entityPath, ct => subscriber.ReceiveAsync(message, args, ct), new FunctionsServiceBusReceiveArgs { SubscriberOwnsCorrelation = true }, cancellationToken);
     }
 
     /// <summary>
@@ -42,6 +42,20 @@ public static class FunctionsServiceBusExtensions
         cancellationToken.ThrowIfCancellationRequested();
         message.EnrichReceiveActivity(args?.PropagateBaggage == true);
 
+        ExecutionContext.TryGetCurrent(out var ec);
+        var logger = args?.Logger ?? ec?.ServiceProvider?.GetService<Microsoft.Extensions.Logging.ILoggerFactory>()?.CreateLogger(nameof(FunctionsServiceBusExtensions));
+        using var correlationScope = args?.SubscriberOwnsCorrelation == true ? null : Correlation.BeginScope(logger);
+        if (args?.SubscriberOwnsCorrelation != true && logger is null && !Correlation.IsValid(message.CorrelationId))
+            throw new InvalidOperationException("Raw Functions message processing requires ILoggerFactory or FunctionsServiceBusReceiveArgs.Logger to report invalid correlation metadata.");
+
+        using var receiveScope = args?.SubscriberOwnsCorrelation == true ? null
+            : Correlation.BeginReceive(message.CorrelationId, logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance);
+        await ReceiveAndSettleAsync(adapter, receiveAsync, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>Preserves existing receive classification and explicit settlement.</summary>
+    private static async Task ReceiveAndSettleAsync(FunctionsServiceBusMessageActions adapter, Func<CancellationToken, Task<Result>> receiveAsync, CancellationToken cancellationToken)
+    {
         Result result;
         try
         {

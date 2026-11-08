@@ -20,6 +20,19 @@ public partial class ExecutionContext : IDisposable, IReadOnlyTenantId
     /// <inheritdoc/>
     public string? TenantId { get; set; }
 
+    /// <summary>Gets or sets the optional workflow correlation identifier.</summary>
+    /// <remarks>Null means absent. Values must be 1-256 visible ASCII characters without whitespace or commas. Assignment enriches only this context's active execution span; trace identity is unchanged.</remarks>
+    public string? CorrelationId
+    {
+        get;
+        set
+        {
+            field = Correlation.Validate(value);
+            if (TryGetCurrent(out var current) && ReferenceEquals(current, this))
+                Activity.Current?.SetTag(Correlation.ActivityTagName, value);
+        }
+    }
+
     /// <summary>
     /// Gets or sets the timestamp (<see cref="TimeProvider.GetUtcNow"/>) for the <see cref="ExecutionContext"/> lifetime; i.e (to enable consistent execution-related timestamping).
     /// </summary>
@@ -102,6 +115,7 @@ public partial class ExecutionContext : IDisposable, IReadOnlyTenantId
         ec.ServiceProvider = ServiceProvider;
         ec.User = User;
         ec.TenantId = TenantId;
+        ec.CorrelationId = CorrelationId;
         ec.UICulture = UICulture;
         ec.OperationType = OperationType;
         ec.IncludeRelatedText = IncludeRelatedText;

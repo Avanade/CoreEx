@@ -184,6 +184,9 @@ public abstract class EventPublisherBase(IDestinationProvider? destinationProvid
             await Invoker.InvokeAsync(this, async (tracer, cancellationToken) =>
             {
                 var events = _queue.ToArray();
+                // A publishing batch does not represent a single workflow; remove the invoker's ambient correlation.
+                tracer.Activity?.SetTag(Correlation.ActivityTagName, null);
+
                 foreach (var de in events)
                     Formatter.AddTracing(de.Event);
 

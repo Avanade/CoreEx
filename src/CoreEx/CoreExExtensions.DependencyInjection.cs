@@ -275,4 +275,9 @@ public static partial class CoreExExtensions
         // Does not use 'AddHostedService' as this does not allow multiple instances to be registered with the same type; see https://github.com/dotnet/runtime/issues/38751.
         return services.AddSingleton<IHostedService>(sp => sp.GetRequiredKeyedService<HostedServiceBase>(serviceKey));
     }
+
+    /// <summary>Adds optional per-request correlation propagation to an HTTP client.</summary>
+    /// <param name="builder">The HTTP client builder.</param>
+    /// <returns>The builder.</returns>
+    public static IHttpClientBuilder AddCorrelationIdHandler(this IHttpClientBuilder builder) => builder.ThrowIfNull().AddHttpMessageHandler(() => new CorrelationIdHandler());
 }

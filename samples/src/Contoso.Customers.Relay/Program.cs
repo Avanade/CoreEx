@@ -14,6 +14,7 @@ public class Program
         var startTime = TimeProvider.System.GetUtcNow().UtcDateTime;
         var builder = WebApplication.CreateBuilder(args);
         builder.AddHostSettings();
+        builder.Services.Configure<OpenTelemetry.Logs.OpenTelemetryLoggerOptions>(o => o.IncludeScopes = true);
 
         builder.Services
             .AddPrecisionTimeProvider()
@@ -55,9 +56,9 @@ public class Program
         builder.WithCoreExTelemetry().WithCoreExCosmosDbTelemetry().WithCoreExServiceBusTelemetry().UseOtlpExporter();
 
         var app = builder.Build();
+        app.UseExecutionContext();
         app.UseCoreExExceptionHandler();
         app.UseHttpsRedirection();
-        app.UseExecutionContext();
         app.MapHealthChecks();
         app.MapHostedServices(/* groupConfigure: g => g.RequireAuthorization() */);
         app.Run();

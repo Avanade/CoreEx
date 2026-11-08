@@ -82,8 +82,14 @@ public readonly struct InvokerTracer : IDisposable
                     if (parent.HasValue && parent.Value.Activity is not null)
                         Activity.SetParentId(parent.Value.Activity!.TraceId, parent.Value.Activity.SpanId, parent.Value.Activity.ActivityTraceFlags);
 
-                    if (ExecutionContext.TryGetCurrent(out var ec) && ec.TenantId is not null)
-                        Activity.SetTag(InvokerTenantName, ec.TenantId);
+                    if (ExecutionContext.TryGetCurrent(out var ec))
+                    {
+                        if (ec.TenantId is not null)
+                            Activity.SetTag(InvokerTenantName, ec.TenantId);
+
+                        if (ec.CorrelationId is not null)
+                            Activity.SetTag(Correlation.ActivityTagName, ec.CorrelationId);
+                    }
 
                     Invoker.OnActivityStart(this);
                     Activity.Start();

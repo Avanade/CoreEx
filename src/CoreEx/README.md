@@ -58,6 +58,18 @@ See the [Extended Exceptions](#extended-exceptions) section below for the full l
 
 `Result.ThrowOnError()`, `Result<T>.ThrowOnError()` and failed result value access throw the original exception, preserving its instance, type and existing stack trace. Repeated result boundaries do not introduce `AggregateException` wrappers; explicitly aggregated errors remain aggregated. From 4.4, callers that previously caught an automatically added wrapper must catch the underlying exception instead.
 
+## Workflow correlation
+
+`ExecutionContext.CorrelationId` is optional workflow metadata, independent of trace IDs, message IDs and causation. Null means absent; CoreEx never generates a fallback. A non-null value must contain 1-256 visible ASCII characters without whitespace or commas. Casing is preserved, and invalid programmatic assignments throw `ArgumentException` without changing the previous value. `CreateCopy()` copies it; `RunScopedAsync()` retains explicit-only metadata propagation.
+
+CoreEx named/typed HTTP client registrations add `CorrelationIdHandler` automatically. Other factory clients opt in with `services.AddHttpClient("name").AddCorrelationIdHandler()`. The pooled handler reads ambient context at send time on all HTTP methods; it never captures a scoped context or mutates `DefaultRequestHeaders`. A valid explicit request header wins. Both `HttpRequestMessage.WithCorrelationId(value)` and `HttpRequestBuilder.WithCorrelationId(value)` override it; passing null explicitly suppresses propagation for that request. An invalid explicit outgoing header fails before sending. Downstream response headers do not change the caller's context.
+
+Execution boundaries open a structured scope containing `CorrelationId`. `CoreEx.Diagnostics.Correlation.BeginScope(logger)` is available for independently owned background executions. Enable scopes on Microsoft console logging and OpenTelemetry (`IncludeScopes = true`); both read correlation at log emission, so later assignment, replacement and clearing are reflected. Third-party providers which snapshot scopes need their own log-time enrichment adapter. A null child context does not inherit the parent's correlation scope value. No logging provider or exporter is installed automatically.
+
+Invoker spans and existing HTTP/Functions host activities use the CoreEx-defined custom attribute `correlation.id`, not an OpenTelemetry semantic convention; HTTP-client instrumentation in `WithCoreExTelemetry()` uses the actual outgoing header, including override/suppression. Context assignment updates only the current activity when assigning the current ambient context. Future spans use the new value; completed spans and ancestor activities are not rewritten. Correlation never changes trace identity, parentage, baggage, tracestate, span names or metric labels. It is high-cardinality, untrusted metadata: keep secrets and personal data out of it and do not treat it as authentication, deduplication or a uniqueness guarantee.
+
+See [HTTP capture and responses](../CoreEx.AspNetCore/README.md#http-correlation), [event defaults](../CoreEx.Events/README.md#correlation-and-causation), and [message receive policy](../CoreEx.Azure.Messaging.ServiceBus/README.md#received-correlation).
+
 ## Nested scoped execution
 
 Use `ExecutionContext.RunScopedAsync` for independently scoped units within an existing request, invocation, or file coordinator. It creates an async DI scope, resolves `ExecutionContext` through the registered factory, invokes optional context configuration before the operation resolves business services, and awaits the operation and scope disposal. Both value-returning and non-value-returning overloads are available. Results return unchanged; faults and cancellation propagate.

@@ -23,10 +23,24 @@ public sealed class FunctionsExecutionContextMiddleware(Func<FunctionContext, Ex
 
         try
         {
+            using var correlationScope = Correlation.BeginScope(context.InstanceServices.GetService<Microsoft.Extensions.Logging.ILoggerFactory>()?.CreateLogger<FunctionsExecutionContextMiddleware>());
+            var activity = System.Diagnostics.Activity.Current;
+            var httpContext = context.GetHttpContext();
+            if (httpContext is not null)
+            {
+                HttpCorrelation.RegisterResponse(httpContext, ec);
+                if (!HttpCorrelation.TryCapture(httpContext, ec))
+                {
+                    await HttpCorrelation.WriteInvalidHeaderAsync(httpContext, context.CancellationToken).ConfigureAwait(false);
+                    context.GetInvocationResult().Value = new EmptyResult();
+                    return;
+                }
+            }
+
             if (_configure is not null)
                 await _configure(context, ec, context.CancellationToken).ConfigureAwait(false);
 
-            var httpContext = context.GetHttpContext();
+            activity?.SetTag(Correlation.ActivityTagName, ec.CorrelationId);
             if (httpContext is not null)
             {
                 // IActionResult rendering can occur after the function returns; add headers immediately before the response starts.
@@ -37,7 +51,15 @@ public sealed class FunctionsExecutionContextMiddleware(Func<FunctionContext, Ex
                 });
             }
 
-            await next(context).ConfigureAwait(false);
+            try
+            {
+                await next(context).ConfigureAwait(false);
+            }
+            finally
+            {
+                if (httpContext is not null)
+                    activity?.SetTag(Correlation.ActivityTagName, ec.CorrelationId);
+            }
         }
         finally
         {

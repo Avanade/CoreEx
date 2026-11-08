@@ -36,6 +36,8 @@ Structured JSON CE detection does not need duplicated application properties. Bi
 
 ## Receive Payload Cleanup
 
+Receive correlation is independent of payload cleanup: native subscribers use broker `CorrelationId`; CloudEvent processing uses authoritative formatter-resolved envelope metadata, including absence. Import before validation/inbox/business processing; restore caller context afterwards. Invalid legacy correlation logs a warning without the raw value, clears context correlation and continues processing under the existing settlement policy. Keep transport `messaging.message.conversation_id` alongside common `correlation.id`; do not change tracing links, baggage, session routing or metric dimensions. See [received correlation](./README.md#received-correlation).
+
 `AutoCleanValue` defaults false, unlike default-on WebApi request cleanup: events are generally expected to be canonical already, so consumer cleanup is typically redundant and can reinterpret producer-owned data. Enable deliberately for noncanonical feeds or commands that own normalization. Native `ServiceBusSubscriberBase<TValue>` uses the inherited bool; dispatched `SubscribedBase<TValue>` handlers have a nullable per-handler/message-type override (null inherits owner, true enables, false disables). Set it in the handler constructor; separate handlers sharing a payload CLR type may differ. Cleanup precedes required checks, validation and handling, uses `CleanArgs.Default` without object collapse, and does not change serialized data, envelope keys or transport metadata. Cleanup failures use normal error handling, not malformed-data handling. See [cleanup policy](./README.md#optional-payload-cleanup).
 
 ## Subscribe Host Wiring

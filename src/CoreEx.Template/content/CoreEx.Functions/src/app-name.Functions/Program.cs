@@ -13,6 +13,7 @@ public class Program
     {
         var builder = FunctionsApplication.CreateBuilder(args);
         builder.AddHostSettings();
+        builder.Services.Configure<OpenTelemetry.Logs.OpenTelemetryLoggerOptions>(o => o.IncludeScopes = true);
         builder.Services.AddExecutionContext();
         builder.UseCoreExExecutionContext();
         builder.Build().Run();
