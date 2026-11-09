@@ -63,6 +63,29 @@ public class CorrelationReceiveTests
         logger.Warnings.Should().Be(0);
     }
 
+    [TestCase(false)]
+    [TestCase(true)]
+    public async Task NativeReceive_MalformedContentTypeDoesNotInvokeCloudEventDetection(bool correlationEnabled)
+    {
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> { ["CoreEx:Correlation:Enabled"] = correlationEnabled.ToString() }).Build();
+        using var services = new ServiceCollection().AddSingleton<IConfiguration>(configuration).BuildServiceProvider();
+        using var ec = new CoreEx.ExecutionContext { CorrelationId = "parent", ServiceProvider = services };
+        CoreEx.ExecutionContext.SetCurrent(ec);
+        var called = false;
+        var subscriber = new NativeSubscriber(new WarningLogger(), value =>
+        {
+            called = true;
+            value.Should().Be("value");
+            ec.CorrelationId.Should().Be(correlationEnabled ? "broker" : "parent");
+            return Task.CompletedTask;
+        });
+        var message = ServiceBusModelFactory.ServiceBusReceivedMessage(body: BinaryData.FromString("\"value\""), contentType: "not-a-mime-type", correlationId: "broker");
+
+        (await subscriber.ReceiveAsync(message)).IsSuccess.Should().BeTrue();
+        called.Should().BeTrue();
+        ec.CorrelationId.Should().Be("parent");
+    }
+
     [Test]
     public async Task TypedSubscriber_UsesTransportCorrelationForBinaryCloudEvent()
     {

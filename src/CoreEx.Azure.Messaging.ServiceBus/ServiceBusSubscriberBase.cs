@@ -43,7 +43,7 @@ public abstract class ServiceBusSubscriberBase(IEventFormatter formatter, ILogge
 
         message.EnrichReceiveActivity(PropagateBaggage);
 
-        using var receiveScope = message.IsCloudEvent() && UsesCloudEventCorrelation ? null : Correlation.BeginReceive(message.CorrelationId, Logger);
+        using var receiveScope = UsesCloudEventCorrelation && message.IsCloudEvent() ? null : Correlation.BeginReceive(message.CorrelationId, Logger);
 
         return await EventSubscriberMetrics.ReceiveMessageAsync(args, async () =>
         {
