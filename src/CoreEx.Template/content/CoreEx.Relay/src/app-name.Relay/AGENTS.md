@@ -17,7 +17,7 @@ Read `.github/docs/coreex/hosts-layer.md` for the full host-layer guide and the 
 
 ## Workflow Correlation
 
-`UseExecutionContext()` runs before exception handling, HTTPS redirection and authorization for correlation coverage on HTTP management/health responses. Console formatter scopes are enabled in `appsettings.json`, and OpenTelemetry logging is configured to include scopes. Outbox forwarding preserves stored message correlation, including absence; never replace it with relay context metadata. Batch publishing spans omit `correlation.id` because a batch need not represent one workflow.
+`UseCoreExExceptionHandler()` runs before `UseExecutionContext()` so configuration failures receive standard error conversion. Execution precedes HTTPS redirection and authorization for correlation coverage on HTTP management/health responses, including handled errors. Framework exception logs are outside the execution's correlation scope. Console formatter scopes are enabled in `appsettings.json`, and OpenTelemetry logging is configured to include scopes. Outbox forwarding preserves stored message correlation, including absence; never replace it with relay context metadata. Batch publishing spans omit `correlation.id` because a batch need not represent one workflow.
 
 ---
 

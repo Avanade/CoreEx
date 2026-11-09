@@ -23,10 +23,10 @@ public sealed class FunctionsExecutionContextMiddleware(Func<FunctionContext, Ex
 
         try
         {
-            using var correlationScope = Correlation.BeginScope(context.InstanceServices.GetService<Microsoft.Extensions.Logging.ILoggerFactory>()?.CreateLogger<FunctionsExecutionContextMiddleware>());
             var activity = System.Diagnostics.Activity.Current;
             var httpContext = context.GetHttpContext();
-            if (httpContext is not null)
+            var correlationEnabled = Correlation.IsEnabled(context.InstanceServices.GetService<Microsoft.Extensions.Configuration.IConfiguration>());
+            if (httpContext is not null && correlationEnabled)
             {
                 HttpCorrelation.RegisterResponse(httpContext, ec);
                 if (!HttpCorrelation.TryCapture(httpContext, ec))
@@ -40,7 +40,10 @@ public sealed class FunctionsExecutionContextMiddleware(Func<FunctionContext, Ex
             if (_configure is not null)
                 await _configure(context, ec, context.CancellationToken).ConfigureAwait(false);
 
-            activity?.SetTag(Correlation.ActivityTagName, ec.CorrelationId);
+            if (correlationEnabled)
+                activity?.SetTag(Correlation.ActivityTagName, ec.CorrelationId);
+
+            using var correlationScope = correlationEnabled ? Correlation.BeginScope(context.InstanceServices.GetService<Microsoft.Extensions.Logging.ILoggerFactory>()?.CreateLogger<FunctionsExecutionContextMiddleware>()) : null;
             if (httpContext is not null)
             {
                 // IActionResult rendering can occur after the function returns; add headers immediately before the response starts.
@@ -57,7 +60,7 @@ public sealed class FunctionsExecutionContextMiddleware(Func<FunctionContext, Ex
             }
             finally
             {
-                if (httpContext is not null)
+                if (httpContext is not null && correlationEnabled)
                     activity?.SetTag(Correlation.ActivityTagName, ec.CorrelationId);
             }
         }

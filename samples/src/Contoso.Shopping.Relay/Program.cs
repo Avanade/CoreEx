@@ -57,8 +57,8 @@ public class Program
         var app = builder.Build();
 
         // Configure the pipeline/middleware (order is important).
-        app.UseExecutionContext();
         app.UseCoreExExceptionHandler();
+        app.UseExecutionContext();
         app.UseHttpsRedirection();
         // app.UseAuthentication();   // TODO: register an authentication scheme (builder.Services.AddAuthentication(...)) then uncomment.
         // app.UseAuthorization();    // TODO: register authorization services (builder.Services.AddAuthorization(...)) then uncomment.

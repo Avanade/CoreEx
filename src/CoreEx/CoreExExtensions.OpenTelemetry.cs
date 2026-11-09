@@ -16,18 +16,23 @@ public static class CoreExExtensions
     {
         builder.ThrowIfNull();
 
-        return builder
-            .WithTracing(t => t.AddHttpClientInstrumentation(options =>
+        builder.Services.AddOptions<OpenTelemetry.Instrumentation.Http.HttpClientTraceInstrumentationOptions>().Configure<IServiceProvider>((options, services) =>
+        {
+            var enrich = options.EnrichWithHttpRequestMessage;
+            options.EnrichWithHttpRequestMessage = (activity, request) =>
             {
-                var enrich = options.EnrichWithHttpRequestMessage;
-                options.EnrichWithHttpRequestMessage = (activity, request) =>
-                {
-                    enrich?.Invoke(activity, request);
-                    var identifiers = request.Headers.TryGetValues(HttpNames.CorrelationIdHeaderName, out var values) ? values.ToArray() : [];
-                    var value = identifiers.Length == 1 ? identifiers[0] : null;
-                    activity.SetTag(Correlation.ActivityTagName, Correlation.IsValid(value) ? value : null);
-                };
-            }).WithCoreExSources())
+                enrich?.Invoke(activity, request);
+                if (!Correlation.IsEnabled(services.GetService<IConfiguration>()))
+                    return;
+
+                var identifiers = request.Headers.TryGetValues(HttpNames.CorrelationIdHeaderName, out var values) ? values.ToArray() : [];
+                var value = identifiers.Length == 1 ? identifiers[0] : null;
+                activity.SetTag(Correlation.ActivityTagName, Correlation.IsValid(value) ? value : null);
+            };
+        });
+
+        return builder
+            .WithTracing(t => t.AddHttpClientInstrumentation().WithCoreExSources())
             .WithMetrics(m => m.AddHttpClientInstrumentation().AddRuntimeInstrumentation().AddMeter("Polly"));
     }
 

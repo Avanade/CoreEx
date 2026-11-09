@@ -24,6 +24,12 @@ public abstract class ServiceBusSubscriberBase(IEventFormatter formatter, ILogge
     public ContentMode? ContentMode { get; set; }
 
     /// <summary>
+    /// Indicates whether correlation is sourced from the CloudEvent envelope when a message has a CloudEvent representation.
+    /// </summary>
+    /// <remarks>Defaults to true for subscribers that convert and process the CloudEvent envelope. Typed JSON subscribers process the broker message directly and therefore use its transport correlation instead.</remarks>
+    protected virtual bool UsesCloudEventCorrelation => true;
+
+    /// <summary>
     /// Receives a <see cref="ServiceBusReceivedMessage"/>.
     /// </summary>
     /// <param name="message">The <see cref="ServiceBusReceivedMessage"/>.</param>
@@ -35,10 +41,9 @@ public abstract class ServiceBusSubscriberBase(IEventFormatter formatter, ILogge
         args.Owner ??= this;
         args.Message = message.ThrowIfNull();
 
-        using var correlationScope = Correlation.BeginScope(Logger);
         message.EnrichReceiveActivity(PropagateBaggage);
 
-        using var receiveScope = message.IsCloudEvent() ? null : Correlation.BeginReceive(message.CorrelationId, Logger);
+        using var receiveScope = message.IsCloudEvent() && UsesCloudEventCorrelation ? null : Correlation.BeginReceive(message.CorrelationId, Logger);
 
         return await EventSubscriberMetrics.ReceiveMessageAsync(args, async () =>
         {

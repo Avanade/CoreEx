@@ -28,25 +28,32 @@ public class ExecutionContextMiddleware(RequestDelegate next, Func<HttpContext, 
         var ec = context.ThrowIfNull().RequestServices.GetRequiredService<ExecutionContext>();
         ec.ServiceProvider ??= context.RequestServices;
 
-        using var correlationScope = Correlation.BeginScope(context.RequestServices.GetService<ILoggerFactory>()?.CreateLogger<ExecutionContextMiddleware>());
-        HttpCorrelation.RegisterResponse(context, ec);
+        var correlationEnabled = Correlation.IsEnabled(context.RequestServices.GetService<IConfiguration>());
         var activity = Activity.Current;
-        if (!HttpCorrelation.TryCapture(context, ec))
+        if (correlationEnabled)
         {
-            await HttpCorrelation.WriteInvalidHeaderAsync(context, context.RequestAborted).ConfigureAwait(false);
-            return;
+            HttpCorrelation.RegisterResponse(context, ec);
+            if (!HttpCorrelation.TryCapture(context, ec))
+            {
+                await HttpCorrelation.WriteInvalidHeaderAsync(context, context.RequestAborted).ConfigureAwait(false);
+                return;
+            }
         }
 
         try
         {
             await _configure(context, ec).ConfigureAwait(false);
-            activity?.SetTag(Correlation.ActivityTagName, ec.CorrelationId);
+            if (correlationEnabled)
+                activity?.SetTag(Correlation.ActivityTagName, ec.CorrelationId);
+
+            using var correlationScope = correlationEnabled ? Correlation.BeginScope(context.RequestServices.GetService<ILoggerFactory>()?.CreateLogger<ExecutionContextMiddleware>()) : null;
             await _next(context).ConfigureAwait(false);
             AddMessagesHeader(context, ec);
         }
         finally
         {
-            activity?.SetTag(Correlation.ActivityTagName, ec.CorrelationId);
+            if (correlationEnabled)
+                activity?.SetTag(Correlation.ActivityTagName, ec.CorrelationId);
         }
     }
 

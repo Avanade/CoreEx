@@ -4,6 +4,8 @@ global using CoreEx.Events.Native;
 global using CoreEx.Events.Publishing;
 global using CoreEx.Events.Subscribing;
 global using CoreEx.Results;
+global using Microsoft.Extensions.Configuration;
+global using Microsoft.Extensions.DependencyInjection;
 global using Microsoft.Extensions.Logging.Abstractions;
 global using Microsoft.Extensions.Logging;
 global using System.Diagnostics;

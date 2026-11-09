@@ -64,6 +64,30 @@ public class CorrelationHostTests
     }
 
     [Test]
+    public async Task DisabledCorrelation_LeavesIncomingAndResponseHeadersToApplication()
+    {
+        var builder = WebApplication.CreateBuilder();
+        builder.Configuration["CoreEx:Correlation:Enabled"] = "false";
+        builder.WebHost.UseTestServer();
+        builder.Services.AddExecutionContext((_, ec) => ec.CorrelationId = "explicit");
+        await using var app = builder.Build();
+        app.UseExecutionContext();
+        app.Run(context =>
+        {
+            CoreEx.ExecutionContext.Current.CorrelationId.Should().Be("explicit");
+            context.Response.Headers[CoreEx.Http.HttpNames.CorrelationIdHeaderName] = "application";
+            return context.Response.WriteAsync("ok");
+        });
+        await app.StartAsync();
+        using var client = app.GetTestClient();
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/");
+        request.Headers.TryAddWithoutValidation(CoreEx.Http.HttpNames.CorrelationIdHeaderName, "invalid value");
+        using var response = await client.SendAsync(request);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        ReadCorrelation(response).Should().Be("application");
+    }
+
+    [Test]
     public async Task ServerSpan_UsesEffectiveCorrelationWithoutRewritingTraceIdentity()
     {
         var stopped = new TaskCompletionSource<System.Diagnostics.Activity>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -119,16 +143,28 @@ public class CorrelationHostTests
         response.Should().StartWith("HTTP/1.1 400").And.NotContain("wrong");
     }
 
-    [Test]
-    public async Task ExceptionInsideExecutionBoundary_ReturnsCorrelation()
+    [TestCase(false)]
+    [TestCase(true)]
+    public async Task ExceptionHandler_HandlesEndpointAndConfigurationFailuresWithCorrelation(bool failDuringConfiguration)
     {
         var builder = WebApplication.CreateBuilder();
         builder.WebHost.UseTestServer();
         builder.Services.AddExecutionContext().AddHttpWebApi();
         await using var app = builder.Build();
-        app.UseExecutionContext();
         app.UseCoreExExceptionHandler();
-        app.Run(_ => throw new InvalidOperationException("Private diagnostics."));
+        app.UseExecutionContext(async (_, ec) =>
+        {
+            ec.CorrelationId.Should().Be("failure");
+            await Task.Yield();
+            if (failDuringConfiguration)
+                throw new InvalidOperationException("Private diagnostics.");
+        });
+        var endpointCalled = false;
+        app.Run(_ =>
+        {
+            endpointCalled = true;
+            throw new InvalidOperationException("Private diagnostics.");
+        });
         await app.StartAsync();
         using var client = app.GetTestClient();
         using var request = new HttpRequestMessage(HttpMethod.Get, "/");
@@ -136,7 +172,9 @@ public class CorrelationHostTests
         using var response = await client.SendAsync(request);
         response.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
         ReadCorrelation(response).Should().Be("failure");
+        response.Content.Headers.ContentType?.MediaType.Should().Be("application/problem+json");
         (await response.Content.ReadAsStringAsync()).Should().NotContain("Private diagnostics.");
+        endpointCalled.Should().Be(!failDuringConfiguration);
     }
 
     [Test]

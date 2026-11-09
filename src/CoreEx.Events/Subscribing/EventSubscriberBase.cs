@@ -108,7 +108,6 @@ public abstract class EventSubscriberBase(IEventFormatter formatter, ILogger<Eve
     /// <para>This will also link the underlying <see cref="Activity.Current"/> to the originating <see cref="EventData.TraceParent"/> and <see cref="EventData.TraceState"/> where applicable.</para></remarks>
     protected async Task<Result> ReceiveAsync(EventData @event, EventSubscriberArgs? args = null, CancellationToken cancellationToken = default)
     {
-        using var correlationScope = Correlation.BeginScope(Logger);
         using var receiveScope = Correlation.BeginReceive(@event.CorrelationId, Logger);
         return await ReceiveEventAsync(@event, args, cancellationToken).ConfigureAwait(false);
     }

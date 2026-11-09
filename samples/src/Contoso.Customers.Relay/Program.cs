@@ -56,8 +56,8 @@ public class Program
         builder.WithCoreExTelemetry().WithCoreExCosmosDbTelemetry().WithCoreExServiceBusTelemetry().UseOtlpExporter();
 
         var app = builder.Build();
-        app.UseExecutionContext();
         app.UseCoreExExceptionHandler();
+        app.UseExecutionContext();
         app.UseHttpsRedirection();
         app.MapHealthChecks();
         app.MapHostedServices(/* groupConfigure: g => g.RequireAuthorization() */);

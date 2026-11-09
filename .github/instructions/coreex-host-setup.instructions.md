@@ -27,7 +27,9 @@ The host is a **composition root only** — no business logic. Api, Subscribe an
 
 ## Workflow Correlation
 
-`UseExecutionContext()` owns optional `X-Correlation-Id` capture before its configuration callback, safe 400 rejection for malformed headers, and final response echo through `OnStarting`; WebApi is not the capture owner. Null remains absent. CoreEx named/typed clients propagate it automatically; request/builder `WithCorrelationId(null)` explicitly suppresses an outgoing header. Enable console/OpenTelemetry scopes for dynamic `CorrelationId` logging. Earlier middleware short-circuits are outside coverage; place execution outside exception handling for error-response and framework exception-log coverage. Exception rendering has no correlation-specific responsibilities. Browser callers need CORS header allowance and response exposure. Idempotency defaults omit correlation from fingerprints/cache, while explicit header lists are honored; the execution boundary applies current correlation on replay. Keep the CoreEx-defined custom attribute `correlation.id` independent of trace identity, baggage, authentication and metric dimensions; it is not an OpenTelemetry semantic convention.
+`UseExecutionContext()` owns optional `X-Correlation-Id` capture before its configuration callback, safe 400 rejection for malformed headers, and final response echo through `OnStarting`; WebApi is not the capture owner. Null remains absent. CoreEx named/typed clients propagate it automatically; request/builder `WithCorrelationId(null)` explicitly suppresses an outgoing header. Enable console/OpenTelemetry scopes for an immutable `CorrelationId` snapshot taken after configuration. Place `UseCoreExExceptionHandler()` before `UseExecutionContext()` so configuration failures also receive standard error conversion; the registered `OnStarting` callback still echoes correlation when the exception handler renders a response. Framework exception logs are outside the execution's correlation scope, and earlier middleware short-circuits are outside capture coverage. Exception rendering has no correlation-specific responsibilities. Browser callers need CORS header allowance and response exposure. Idempotency defaults omit correlation from fingerprints/cache, while explicit header lists are honored; the execution boundary applies current correlation on replay. Keep the CoreEx-defined custom attribute `correlation.id` independent of trace identity, baggage, authentication and metric dimensions; it is not an OpenTelemetry semantic convention.
+
+Set `CoreEx:Correlation:Enabled` to `false` before startup to disable automatic correlation across hosts, HTTP clients and message processing. Explicit application values and persisted message metadata remain intact; existing transport telemetry is unaffected. See [workflow correlation](/.github/docs/coreex/agents/CoreEx.md#workflow-correlation).
 
 ## Service Bus Session Routing
 
@@ -210,8 +212,8 @@ builder.Services.AddOpenApiDocument(s => { s.Title = builder.Environment.Applica
 builder.WithCoreExTelemetry().WithCoreExSqlServerTelemetry().UseOtlpExporter();   // or .WithCoreExPostgresTelemetry() / .WithCoreExCosmosDbTelemetry() for the chosen provider
 
 var app = builder.Build();
-app.UseExecutionContext();
 app.UseCoreExExceptionHandler();
+app.UseExecutionContext();
 app.UseHttpsRedirection();
 // app.UseAuthentication();   // TODO: register an authentication scheme (builder.Services.AddAuthentication(...)) then uncomment.
 app.UseAuthorization();
@@ -348,8 +350,8 @@ builder.WithCoreExTelemetry()
     .UseOtlpExporter();
 
 var app = builder.Build();
-app.UseExecutionContext();
 app.UseCoreExExceptionHandler();
+app.UseExecutionContext();
 app.UseHttpsRedirection();
 // app.UseAuthentication();   // TODO: register an authentication scheme (builder.Services.AddAuthentication(...)) then uncomment.
 app.UseAuthorization();
@@ -429,8 +431,8 @@ builder.Services.PostConfigureAllHealthChecks();
 builder.WithCoreExTelemetry().WithCoreExSqlServerTelemetry().WithCoreExServiceBusTelemetry().UseOtlpExporter();   // or .WithCoreExPostgresTelemetry() / .WithCoreExCosmosDbTelemetry() for the chosen provider
 
 var app = builder.Build();
-app.UseExecutionContext();
 app.UseCoreExExceptionHandler();
+app.UseExecutionContext();
 app.UseHttpsRedirection();
 // app.UseAuthentication();   // TODO: register an authentication scheme (builder.Services.AddAuthentication(...)) then uncomment.
 // app.UseAuthorization();    // TODO: register authorization services (builder.Services.AddAuthorization(...)) then uncomment.

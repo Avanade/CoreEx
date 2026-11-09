@@ -17,7 +17,8 @@ public sealed partial class EventData : IIdentifier<string>, ITenantId, IPartiti
         if (ExecutionContext.TryGetCurrent(out var ec))
         {
             TenantId = ec.TenantId;
-            CorrelationId = ec.CorrelationId;
+            if (Correlation.IsEnabled())
+                CorrelationId = ec.CorrelationId;
             UserType = ec.User.Type;
             UserId = ec.User.Id;
         }

@@ -30,6 +30,27 @@ public class CorrelationEventTests
 
     [TestCase(false)]
     [TestCase(true)]
+    public void DisabledCorrelation_PreservesExplicitEventMetadata(bool native)
+    {
+        var configuration = new Microsoft.Extensions.Configuration.ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?> { ["CoreEx:Correlation:Enabled"] = "false" }).Build();
+        using var services = new Microsoft.Extensions.DependencyInjection.ServiceCollection()
+            .AddSingleton<Microsoft.Extensions.Configuration.IConfiguration>(configuration).BuildServiceProvider();
+        using var ec = new CoreEx.ExecutionContext { CorrelationId = "ambient", ServiceProvider = services };
+        CoreEx.ExecutionContext.SetCurrent(ec);
+        var @event = EventData.CreateEvent("Order", "Created");
+        @event.CorrelationId.Should().BeNull();
+        @event.CorrelationId = "explicit";
+        if (native)
+            @event.AsNative();
+
+        var formatter = new EventFormatter();
+        var restored = formatter.ConvertFromCloudEvent(formatter.ConvertToCloudEvent(@event));
+        restored.CorrelationId.Should().Be("explicit");
+    }
+
+    [TestCase(false)]
+    [TestCase(true)]
     public void EnvelopeReconstruction_NeverInheritsAmbientAbsence(bool native)
     {
         using var ec = new CoreEx.ExecutionContext { CorrelationId = "receiver" };
@@ -63,10 +84,12 @@ public class CorrelationEventTests
     [TestCase("override", "override", true)]
     public async Task PublisherSpan_OmitsCorrelationWithoutChangingOrDecodingMessages(string? first, string? second, bool native)
     {
+        var activities = new List<Activity>();
         using var listener = new ActivityListener
         {
             ShouldListenTo = source => source.Name.Contains("EventPublisher", StringComparison.Ordinal),
-            Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllData
+            Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllData,
+            ActivityStopped = activities.Add
         };
         ActivitySource.AddActivityListener(listener);
         using var ec = new CoreEx.ExecutionContext { CorrelationId = "ambient" };
@@ -83,6 +106,8 @@ public class CorrelationEventTests
         await publisher.PublishAsync();
         publisher.GetEvents().Select(e => e.Event[native ? "correlationid" : formatter.CorrelationIdAttributeName] as string).Should().Equal(first, second);
         ec.CorrelationId.Should().Be("changed");
+        activities.Should().HaveCount(2);
+        activities.Should().OnlyContain(activity => activity.GetTagItem(CoreEx.Diagnostics.Correlation.ActivityTagName) == null);
     }
 
     private sealed class NoDecodingFormatter : EventFormatter
@@ -96,7 +121,12 @@ public class CorrelationEventTests
         {
             Activity.Current.Should().NotBeNull();
             Activity.Current!.GetTagItem(CoreEx.Diagnostics.Correlation.ActivityTagName).Should().BeNull();
-            return Task.CompletedTask;
+            return Invoker.InvokeAsync(this, (tracer, _) =>
+            {
+                tracer.Activity.Should().NotBeNull();
+                tracer.Activity!.GetTagItem(CoreEx.Diagnostics.Correlation.ActivityTagName).Should().BeNull();
+                return Task.CompletedTask;
+            }, cancellationToken);
         }
     }
 }

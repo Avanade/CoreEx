@@ -32,6 +32,60 @@ public class CorrelationReceiveTests
         logger.Text.Should().NotContain(supplied is "bad value" or "bad,metadata" ? supplied : "secret");
     }
 
+    [TestCase(false)]
+    [TestCase(true)]
+    public async Task DisabledCorrelation_DoesNotImportTransportOrEnvelope(bool cloudEvent)
+    {
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> { ["CoreEx:Correlation:Enabled"] = "false" }).Build();
+        using var services = new ServiceCollection().AddSingleton<IConfiguration>(configuration).BuildServiceProvider();
+        using var ec = new CoreEx.ExecutionContext { CorrelationId = "ambient", ServiceProvider = services };
+        CoreEx.ExecutionContext.SetCurrent(ec);
+        using var activity = new Activity("receive").Start();
+        var logger = new WarningLogger();
+        var formatter = new EventFormatter();
+        var original = new EventData { Id = "message", Title = "Domain.Order.Created", Source = new Uri("urn:test"), CorrelationId = "invalid metadata" };
+        var transport = formatter.ConvertToCloudEvent(original).ToServiceBusMessage();
+        var message = cloudEvent
+            ? ServiceBusModelFactory.ServiceBusReceivedMessage(body: transport.Body, contentType: transport.ContentType, properties: transport.ApplicationProperties, correlationId: "broker")
+            : ServiceBusModelFactory.ServiceBusReceivedMessage(body: BinaryData.FromString("\"value\""), correlationId: "invalid metadata");
+        Task Check()
+        {
+            ec.CorrelationId.Should().Be("ambient");
+            activity.GetTagItem(CoreEx.Diagnostics.Correlation.ActivityTagName).Should().BeNull();
+            return Task.CompletedTask;
+        }
+
+        ServiceBusSubscriberBase subscriber = cloudEvent
+            ? new EnvelopeSubscriber(formatter, logger, async ed => { ed.CorrelationId.Should().Be("invalid metadata"); await Check(); return Result.Success; })
+            : new NativeSubscriber(logger, _ => Check());
+        (await subscriber.ReceiveAsync(message)).IsSuccess.Should().BeTrue();
+        ec.CorrelationId.Should().Be("ambient");
+        logger.Warnings.Should().Be(0);
+    }
+
+    [Test]
+    public async Task TypedSubscriber_UsesTransportCorrelationForBinaryCloudEvent()
+    {
+        using var ec = new CoreEx.ExecutionContext { CorrelationId = "parent" };
+        CoreEx.ExecutionContext.SetCurrent(ec);
+        using var activity = new Activity("receive").Start();
+        var subscriber = new NativeSubscriber(new WarningLogger(), _ =>
+        {
+            ec.CorrelationId.Should().Be("broker-correlation");
+            activity.GetTagItem(CoreEx.Diagnostics.Correlation.ActivityTagName).Should().Be("broker-correlation");
+            return Task.CompletedTask;
+        });
+        var message = ServiceBusModelFactory.ServiceBusReceivedMessage(
+            body: BinaryData.FromString("\"value\""),
+            contentType: "application/json",
+            correlationId: "broker-correlation",
+            properties: new Dictionary<string, object> { [ServiceBusExtensions.CloudEventSpecVersionPropertyName] = "1.0" });
+
+        message.IsCloudEvent().Should().BeTrue();
+        (await subscriber.ReceiveAsync(message)).IsSuccess.Should().BeTrue();
+        ec.CorrelationId.Should().Be("parent");
+    }
+
     [TestCase(null)]
     [TestCase("envelope")]
     [TestCase("invalid metadata")]

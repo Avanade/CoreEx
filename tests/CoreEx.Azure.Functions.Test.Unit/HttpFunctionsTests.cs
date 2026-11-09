@@ -22,6 +22,22 @@ public class HttpFunctionsTests
         CoreEx.ExecutionContext.HasCurrent.Should().BeFalse();
     }
 
+    [Test]
+    public async Task DisabledCorrelation_IgnoresInvalidHeaderAndDoesNotOverrideResponse()
+    {
+        using var test = FunctionTester.Create<HttpFunctions>(additionalConfiguration: new Dictionary<string, string?> { ["CoreEx:Correlation:Enabled"] = "false" });
+        var request = test.CreateHttpRequest(HttpMethod.Get, "messages");
+        var responseFeature = new DeferredResponseFeature();
+        responseFeature.Headers[CoreEx.Http.HttpNames.CorrelationIdHeaderName] = "application";
+        request.HttpContext.Features.Set<Microsoft.AspNetCore.Http.Features.IHttpResponseFeature>(responseFeature);
+        request.Headers[CoreEx.Http.HttpNames.CorrelationIdHeaderName] = "invalid value";
+        test.HttpTrigger<HttpFunctions>().WithNoRouteCheck().Run(f => f.Messages(request, CancellationToken.None)).ToHttpResponseMessageAssertor(request).AssertOK();
+        await responseFeature.CommitAsync();
+        request.HttpContext.Response.Headers[CoreEx.Http.HttpNames.CorrelationIdHeaderName].ToString().Should().Be("application");
+        request.HttpContext.Response.Headers[CoreEx.Http.HttpNames.InfoMessagesHeaderName].ToString().Should().Contain("Processed.");
+        CoreEx.ExecutionContext.HasCurrent.Should().BeFalse();
+    }
+
     [TestCase("bad value")]
     [TestCase("")]
     [TestCase("duplicate")]

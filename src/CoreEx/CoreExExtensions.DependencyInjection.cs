@@ -279,5 +279,5 @@ public static partial class CoreExExtensions
     /// <summary>Adds optional per-request correlation propagation to an HTTP client.</summary>
     /// <param name="builder">The HTTP client builder.</param>
     /// <returns>The builder.</returns>
-    public static IHttpClientBuilder AddCorrelationIdHandler(this IHttpClientBuilder builder) => builder.ThrowIfNull().AddHttpMessageHandler(() => new CorrelationIdHandler());
+    public static IHttpClientBuilder AddCorrelationIdHandler(this IHttpClientBuilder builder) => builder.ThrowIfNull().AddHttpMessageHandler(sp => new CorrelationIdHandler(sp.GetService<IConfiguration>()));
 }

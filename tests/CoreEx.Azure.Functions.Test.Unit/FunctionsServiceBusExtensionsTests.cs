@@ -34,6 +34,32 @@ public class FunctionsServiceBusExtensionsTests
         }
     }
 
+    [Test]
+    public async Task DisabledCorrelation_RawCallbackIgnoresInvalidMetadataWithoutLogger()
+    {
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> { ["CoreEx:Correlation:Enabled"] = "false" }).Build();
+        using var services = new ServiceCollection().AddSingleton<IConfiguration>(configuration).BuildServiceProvider();
+        using var ec = new CoreEx.ExecutionContext { CorrelationId = "ambient", ServiceProvider = services };
+        CoreEx.ExecutionContext.Reset();
+        CoreEx.ExecutionContext.SetCurrent(ec);
+        using var activity = new System.Diagnostics.Activity("receive").Start();
+        var actions = new RecordingServiceBusMessageActions();
+        try
+        {
+            await actions.FunctionReceiveAsync(ServiceBusModelFactory.ServiceBusReceivedMessage(correlationId: "invalid value"), "queue", _ =>
+            {
+                ec.CorrelationId.Should().Be("ambient");
+                activity.GetTagItem(CoreEx.Diagnostics.Correlation.ActivityTagName).Should().BeNull();
+                return Result.SuccessTask;
+            });
+            actions.Settlements.Should().Equal("complete");
+        }
+        finally
+        {
+            CoreEx.ExecutionContext.Reset();
+        }
+    }
+
     [TestCase(null)]
     [TestCase(false)]
     [TestCase(true)]

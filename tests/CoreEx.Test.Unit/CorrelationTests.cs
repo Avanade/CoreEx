@@ -40,6 +40,53 @@ public class CorrelationTests
     }
 
     [Test]
+    public async Task DisabledCorrelation_DoesNotEnrichReceiveOrPropagateAutomatically()
+    {
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> { ["CoreEx:Correlation:Enabled"] = "false" }).Build();
+        using var services = new ServiceCollection().AddSingleton<IConfiguration>(configuration).AddLogging().AddExecutionContext().BuildServiceProvider();
+        using var scope = services.CreateScope();
+        var ec = scope.ServiceProvider.GetRequiredService<ExecutionContext>();
+        ec.CorrelationId = "explicit";
+        using var activity = new Activity("receive").Start();
+        activity.SetTag(CoreEx.Diagnostics.Correlation.ActivityTagName, "existing");
+        var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("test");
+        CoreEx.Diagnostics.Correlation.IsEnabled().Should().BeFalse();
+        CoreEx.Diagnostics.Correlation.BeginScope(logger).Should().BeNull();
+        using (CoreEx.Diagnostics.Correlation.BeginReceive("invalid value", logger))
+        {
+            ec.CorrelationId.Should().Be("explicit");
+            activity.GetTagItem(CoreEx.Diagnostics.Correlation.ActivityTagName).Should().Be("existing");
+        }
+
+        var terminal = new RecordingHandler();
+        using var client = new HttpClient(new CorrelationIdHandler(configuration) { InnerHandler = terminal });
+        using var absent = await client.GetAsync("https://example.test/");
+        using var explicitRequest = new HttpRequestMessage(HttpMethod.Get, "https://example.test/");
+        explicitRequest.Headers.TryAddWithoutValidation(HttpNames.CorrelationIdHeaderName, "invalid value");
+        using var explicitResponse = await client.SendAsync(explicitRequest);
+        terminal.Values.Should().Equal(null, "invalid value");
+        ec.CorrelationId.Should().Be("explicit");
+    }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public async Task DisabledFactoryClients_PreserveExplicitHeadersWithoutAmbientContext(bool typed)
+    {
+        var builder = Host.CreateApplicationBuilder();
+        builder.Configuration["CoreEx:Correlation:Enabled"] = "false";
+        builder.Configuration["factory:BaseAddress"] = "https://example.test/";
+        var terminal = new RecordingHandler();
+        var registration = typed ? builder.AddTypedHttpClient<CorrelationHttpClient>("factory") : builder.AddNamedHttpClient("factory");
+        registration.ConfigurePrimaryHttpMessageHandler(() => terminal);
+        using var host = builder.Build();
+        using var client = typed ? host.Services.GetRequiredService<CorrelationHttpClient>().Client : host.Services.GetRequiredService<IHttpClientFactory>().CreateClient("factory");
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/");
+        request.Headers.TryAddWithoutValidation(HttpNames.CorrelationIdHeaderName, "invalid value");
+        using var response = await client.SendAsync(request);
+        terminal.Values.Should().Equal("invalid value");
+    }
+
+    [Test]
     public void Validation_AcceptsExactlyTheAllowedCharacters()
     {
         for (var c = 0; c <= char.MaxValue; c++)
@@ -47,17 +94,17 @@ public class CorrelationTests
     }
 
     [Test]
-    public void Assignment_OnlyTagsCurrentContextWithoutChangingTrace()
+    public void AssignmentDoesNotMutateSharedActivity()
     {
         using var activity = new Activity("host").SetIdFormat(ActivityIdFormat.W3C).Start();
         var id = activity.Id;
         using var ec = new ExecutionContext();
         ExecutionContext.SetCurrent(ec);
         ec.CorrelationId = "first";
-        activity.GetTagItem(CoreEx.Diagnostics.Correlation.ActivityTagName).Should().Be("first");
+        activity.GetTagItem(CoreEx.Diagnostics.Correlation.ActivityTagName).Should().BeNull();
         using var unrelated = new ExecutionContext { CorrelationId = "unrelated" };
         using var copy = ec.CreateCopy();
-        activity.GetTagItem(CoreEx.Diagnostics.Correlation.ActivityTagName).Should().Be("first");
+        activity.GetTagItem(CoreEx.Diagnostics.Correlation.ActivityTagName).Should().BeNull();
         ec.CorrelationId = null;
         activity.GetTagItem(CoreEx.Diagnostics.Correlation.ActivityTagName).Should().BeNull();
         activity.Id.Should().Be(id);
@@ -65,19 +112,81 @@ public class CorrelationTests
     }
 
     [Test]
-    public async Task ScopedChild_DoesNotInheritCorrelationAndRestoresParent()
+    public async Task ScopedChild_DoesNotInheritCorrelationOrMutateCallerActivity()
     {
         using var services = new ServiceCollection().AddExecutionContext().BuildServiceProvider();
         using var ec = new ExecutionContext { CorrelationId = "parent" };
         ExecutionContext.SetCurrent(ec);
+        using var activity = new Activity("host").SetIdFormat(ActivityIdFormat.W3C).Start();
+        activity.SetTag(CoreEx.Diagnostics.Correlation.ActivityTagName, "parent");
         await ExecutionContext.RunScopedAsync(services, async (child, ct) =>
         {
             child.CorrelationId.Should().BeNull();
             await Task.Yield();
             child.CorrelationId = "child";
+            activity.GetTagItem(CoreEx.Diagnostics.Correlation.ActivityTagName).Should().Be("parent");
         });
         ExecutionContext.Current.Should().BeSameAs(ec);
         ec.CorrelationId.Should().Be("parent");
+        activity.GetTagItem(CoreEx.Diagnostics.Correlation.ActivityTagName).Should().Be("parent");
+    }
+
+    [Test]
+    public async Task ScopedChild_FailureDoesNotMutateCallerActivity()
+    {
+        using var services = new ServiceCollection().AddExecutionContext().BuildServiceProvider();
+        using var ec = new ExecutionContext { CorrelationId = "parent" };
+        ExecutionContext.SetCurrent(ec);
+        using var activity = new Activity("host").SetIdFormat(ActivityIdFormat.W3C).Start();
+        activity.SetTag(CoreEx.Diagnostics.Correlation.ActivityTagName, "parent");
+
+        Func<Task> run = () => ExecutionContext.RunScopedAsync(services, (child, ct) =>
+        {
+            child.CorrelationId = "child";
+            throw new InvalidOperationException("child failed");
+        });
+
+        await run.Should().ThrowAsync<InvalidOperationException>();
+        ExecutionContext.Current.Should().BeSameAs(ec);
+        ec.CorrelationId.Should().Be("parent");
+        activity.GetTagItem(CoreEx.Diagnostics.Correlation.ActivityTagName).Should().Be("parent");
+    }
+
+    [Test]
+    public async Task ConcurrentScopedChildren_DoNotOverwriteCallerActivityCorrelation()
+    {
+        using var provider = new ServiceCollection().AddExecutionContext().BuildServiceProvider();
+        using var ec = new ExecutionContext { CorrelationId = "parent" };
+        ExecutionContext.SetCurrent(ec);
+        using var activity = new Activity("host").SetIdFormat(ActivityIdFormat.W3C).Start();
+        activity.SetTag(CoreEx.Diagnostics.Correlation.ActivityTagName, "parent");
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var started = 0;
+
+        try
+        {
+            var tasks = Enumerable.Range(0, 2).Select(index => ExecutionContext.RunScopedAsync(provider, async (child, ct) =>
+            {
+                child.CorrelationId = $"child-{index}";
+                if (Interlocked.Increment(ref started) == 2)
+                    entered.SetResult();
+
+                await release.Task.ConfigureAwait(false);
+                activity.GetTagItem(CoreEx.Diagnostics.Correlation.ActivityTagName).Should().Be("parent");
+            })).ToArray();
+
+            await entered.Task.WaitAsync(TimeSpan.FromSeconds(10)).ConfigureAwait(false);
+            activity.GetTagItem(CoreEx.Diagnostics.Correlation.ActivityTagName).Should().Be("parent");
+            release.SetResult();
+            await Task.WhenAll(tasks).ConfigureAwait(false);
+            activity.GetTagItem(CoreEx.Diagnostics.Correlation.ActivityTagName).Should().Be("parent");
+        }
+        finally
+        {
+            release.TrySetResult();
+            ExecutionContext.Reset();
+        }
     }
 
     [Test]
@@ -109,7 +218,7 @@ public class CorrelationTests
     }
 
     [Test]
-    public void OpenTelemetryScopes_ReadValuesAtEmissionIncludingClear()
+    public void OpenTelemetryScopes_BufferedScopesRetainExecutionSnapshotAndRefreshOnNextScope()
     {
         var processor = new CorrelationLogProcessor();
         using var factory = LoggerFactory.Create(builder => builder.AddOpenTelemetry(options =>
@@ -120,29 +229,36 @@ public class CorrelationTests
         var logger = factory.CreateLogger("test");
         using var ec = new ExecutionContext();
         ExecutionContext.SetCurrent(ec);
-        using (CoreEx.Diagnostics.Correlation.BeginScope(logger))
+        using (CoreEx.Diagnostics.Correlation.BeginReceive("first", logger))
         {
-            ec.CorrelationId = "first";
             logger.LogInformation("First.");
-            ec.CorrelationId = "second";
-            logger.LogInformation("Second.");
-            ec.CorrelationId = null;
-            logger.LogInformation("Cleared.");
+            ec.CorrelationId = "changed";
+            logger.LogInformation("Still first.");
         }
-        processor.Values.Should().Equal("first", "second", null);
+
+        using (CoreEx.Diagnostics.Correlation.BeginReceive("second", logger))
+            logger.LogInformation("Second.");
+
+        using (CoreEx.Diagnostics.Correlation.BeginReceive(null, logger))
+            logger.LogInformation("Cleared.");
+
+        processor.Values.Should().Equal("first", "first", "second", null);
+        ec.CorrelationId.Should().BeNull();
     }
 
     [Test]
     public async Task NestedLoggingScopes_ReadIndependentChildAndRestoredParentAtEmission()
     {
         var processor = new CorrelationLogProcessor();
-        using var factory = LoggerFactory.Create(builder => builder.AddOpenTelemetry(options =>
-        {
-            options.IncludeScopes = true;
-            options.AddProcessor(processor);
-        }));
-        using var services = new ServiceCollection().AddExecutionContext().AddSingleton(factory).BuildServiceProvider();
-        var logger = factory.CreateLogger("test");
+        using var services = new ServiceCollection()
+            .AddLogging(builder => builder.AddOpenTelemetry(options =>
+            {
+                options.IncludeScopes = true;
+                options.AddProcessor(processor);
+            }))
+            .AddExecutionContext()
+            .BuildServiceProvider();
+        var logger = services.GetRequiredService<ILoggerFactory>().CreateLogger("test");
         using var ec = new ExecutionContext { CorrelationId = "parent" };
         ExecutionContext.SetCurrent(ec);
         using (CoreEx.Diagnostics.Correlation.BeginScope(logger))
@@ -151,13 +267,16 @@ public class CorrelationTests
             await ExecutionContext.RunScopedAsync(services, (child, ct) =>
             {
                 logger.LogInformation("Empty child.");
-                child.CorrelationId = "child";
-                logger.LogInformation("Correlated child.");
                 return Task.CompletedTask;
             });
+            await ExecutionContext.RunScopedAsync(services, (child, ct) =>
+            {
+                logger.LogInformation("Correlated child.");
+                return Task.CompletedTask;
+            }, (_, child) => child.CorrelationId = "child");
             logger.LogInformation("Restored parent.");
         }
-        processor.Values.Should().Equal("parent", null, null, "child", "child", "parent");
+        processor.Values.Should().Equal("parent", null, "child", "parent");
     }
 
     [TestCase(false)]
@@ -199,15 +318,21 @@ public class CorrelationTests
                 var logger = factory.CreateLogger("test");
                 using var ec = new ExecutionContext();
                 ExecutionContext.SetCurrent(ec);
+                ec.CorrelationId = "first";
                 using (CoreEx.Diagnostics.Correlation.BeginScope(logger))
                 {
-                    ec.CorrelationId = "first";
                     logger.LogInformation("First.");
-                    ec.CorrelationId = "second";
-                    logger.LogInformation("Second.");
-                    ec.CorrelationId = null;
-                    logger.LogInformation("Cleared.");
+                    ec.CorrelationId = "changed";
+                    logger.LogInformation("Still first.");
                 }
+
+                ec.CorrelationId = "second";
+                using (CoreEx.Diagnostics.Correlation.BeginScope(logger))
+                    logger.LogInformation("Second.");
+
+                ec.CorrelationId = null;
+                using (CoreEx.Diagnostics.Correlation.BeginScope(logger))
+                    logger.LogInformation("Cleared.");
             }
             output.ToString().Should().Contain("\"CorrelationId\":\"first\"").And.Contain("\"CorrelationId\":\"second\"").And.Contain("\"CorrelationId\":null");
         }
@@ -217,8 +342,9 @@ public class CorrelationTests
         }
     }
 
-    [Test]
-    public async Task InvokerSpans_InheritCurrentCorrelationWithoutChangingParentage()
+    [TestCase(true)]
+    [TestCase(false)]
+    public async Task InvokerSpans_InheritCurrentCorrelationWithoutChangingParentage(bool enabled)
     {
         using var listener = new ActivityListener
         {
@@ -226,25 +352,28 @@ public class CorrelationTests
             Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllData
         };
         ActivitySource.AddActivityListener(listener);
-        using var ec = new ExecutionContext { CorrelationId = "workflow" };
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> { ["CoreEx:Correlation:Enabled"] = enabled.ToString() }).Build();
+        using var services = new ServiceCollection().AddSingleton<IConfiguration>(configuration).BuildServiceProvider();
+        using var ec = new ExecutionContext { CorrelationId = "workflow", ServiceProvider = services };
         ExecutionContext.SetCurrent(ec);
         using var host = new Activity("host").SetIdFormat(ActivityIdFormat.W3C).Start();
         var invoker = new CorrelationInvoker();
         await invoker.InvokeAsync(new object(), async tracer =>
         {
             tracer.Activity.Should().NotBeNull();
-            tracer.Activity!.GetTagItem(CoreEx.Diagnostics.Correlation.ActivityTagName).Should().Be("workflow");
+            tracer.Activity!.GetTagItem(CoreEx.Diagnostics.Correlation.ActivityTagName).Should().Be(enabled ? "workflow" : null);
             tracer.Activity.TraceId.Should().Be(host.TraceId);
             tracer.Activity.ParentSpanId.Should().Be(host.SpanId);
             ec.CorrelationId = null;
-            tracer.Activity.GetTagItem(CoreEx.Diagnostics.Correlation.ActivityTagName).Should().BeNull();
+            tracer.Activity.GetTagItem(CoreEx.Diagnostics.Correlation.ActivityTagName).Should().Be(enabled ? "workflow" : null);
             await Task.Yield();
         });
         host.GetTagItem(CoreEx.Diagnostics.Correlation.ActivityTagName).Should().BeNull();
     }
 
-    [Test]
-    public async Task RealHttpClientSpans_UseActualHeaderAndPreserveConsumerEnrichment()
+    [TestCase(true)]
+    [TestCase(false)]
+    public async Task RealHttpClientSpans_UseActualHeaderAndPreserveConsumerEnrichment(bool enabled)
     {
         var listener = new System.Net.Sockets.TcpListener(IPAddress.Loopback, 0);
         listener.Start();
@@ -254,6 +383,8 @@ public class CorrelationTests
             var serve = ServeAsync(listener, 3);
             var processor = new ActivityProcessor();
             var services = new ServiceCollection();
+            var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> { ["CoreEx:Correlation:Enabled"] = enabled.ToString() }).Build();
+            services.AddSingleton<IConfiguration>(configuration);
             services.AddOpenTelemetry().WithCoreExTelemetry().WithTracing(builder => builder.AddProcessor(processor));
             services.Configure<OpenTelemetry.Instrumentation.Http.HttpClientTraceInstrumentationOptions>(options =>
             {
@@ -266,7 +397,7 @@ public class CorrelationTests
             });
             using var provider = services.BuildServiceProvider();
             provider.GetRequiredService<TracerProvider>();
-            using var client = new HttpClient(new CorrelationIdHandler { InnerHandler = new SocketsHttpHandler() });
+            using var client = new HttpClient(new CorrelationIdHandler(configuration) { InnerHandler = new SocketsHttpHandler() });
             using var ec = new ExecutionContext { CorrelationId = "ambient" };
             ExecutionContext.SetCurrent(ec);
             foreach (var correlation in new string?[] { "ambient", "override", null })
@@ -279,7 +410,7 @@ public class CorrelationTests
                 response.EnsureSuccessStatusCode();
             }
             await serve;
-            processor.Values.Should().Equal("ambient", "override", null);
+            processor.Values.Should().Equal(enabled ? "ambient" : null, enabled ? "override" : null, null);
             processor.ConsumerTags.Should().OnlyContain(value => value == true);
         }
         finally
@@ -344,16 +475,38 @@ public class CorrelationTests
 
     private sealed class CorrelationLogProcessor : OpenTelemetry.BaseProcessor<LogRecord>
     {
-        public List<string?> Values { get; } = [];
+        private readonly List<List<object?>> _scopes = [];
 
-        public override void OnEnd(LogRecord data) => data.ForEachScope((scope, values) =>
+        public List<string?> Values => [.. _scopes.Select(GetCorrelationId)];
+
+        public override void OnEnd(LogRecord data)
         {
-            foreach (var item in scope)
+            var scopes = new List<object?>();
+            data.ForEachScope((scope, state) => state.Add(scope.Scope), scopes);
+            _scopes.Add(scopes);
+        }
+
+        private static string? GetCorrelationId(IEnumerable<object?> scopes)
+        {
+            var value = default(string?);
+            var found = false;
+            foreach (var scope in scopes.OfType<IEnumerable<KeyValuePair<string, object?>>>())
             {
-                if (item.Key == "CorrelationId")
-                    values.Add(item.Value as string);
+                foreach (var item in scope)
+                {
+                    if (item.Key == "CorrelationId")
+                    {
+                        value = item.Value as string;
+                        found = true;
+                    }
+                }
             }
-        }, Values);
+
+            if (!found)
+                throw new InvalidOperationException("The log record did not capture a CorrelationId scope.");
+
+            return value;
+        }
     }
 
     private sealed class RecordingHandler : HttpMessageHandler

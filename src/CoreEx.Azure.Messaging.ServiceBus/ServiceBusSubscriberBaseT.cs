@@ -8,6 +8,9 @@ namespace CoreEx.Azure.Messaging.ServiceBus;
 /// <remarks>No CloudEvent conversion or subject dispatch occurs. Settlement remains the receiving host's responsibility.</remarks>
 public abstract class ServiceBusSubscriberBase<TValue>(ILogger<ServiceBusSubscriberBase> logger) : ServiceBusSubscriberBase(logger)
 {
+    /// <inheritdoc/>
+    protected sealed override bool UsesCloudEventCorrelation => false;
+
     /// <summary>
     /// Indicates whether the deserialized value is required.
     /// </summary>

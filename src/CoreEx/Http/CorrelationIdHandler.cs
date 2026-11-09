@@ -1,8 +1,9 @@
 namespace CoreEx.Http;
 
 /// <summary>Propagates optional ambient correlation on each outgoing HTTP request.</summary>
-/// <remarks>Explicit request headers win. Factory-pooled handlers never capture a scoped execution context.</remarks>
-public sealed class CorrelationIdHandler : DelegatingHandler
+/// <param name="configuration">The optional host configuration; otherwise, the current execution's configuration is used.</param>
+/// <remarks>Explicit request headers win. Factory-pooled handlers never capture a scoped execution context. Automatic handling is skipped when <c>CoreEx:Correlation:Enabled</c> is false.</remarks>
+public sealed class CorrelationIdHandler(IConfiguration? configuration = null) : DelegatingHandler
 {
     /// <summary>Gets the option which suppresses correlation for a single request.</summary>
     public static HttpRequestOptionsKey<bool> SuppressCorrelationId { get; } = new("CoreEx.SuppressCorrelationId");
@@ -10,6 +11,9 @@ public sealed class CorrelationIdHandler : DelegatingHandler
     /// <inheritdoc/>
     protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
+        if (!Correlation.IsEnabled(configuration))
+            return base.SendAsync(request, cancellationToken);
+
         if (request.Options.TryGetValue(SuppressCorrelationId, out var suppress) && suppress)
             request.Headers.Remove(HttpNames.CorrelationIdHeaderName);
         else if (request.Headers.TryGetValues(HttpNames.CorrelationIdHeaderName, out var values))

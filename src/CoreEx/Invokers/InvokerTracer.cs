@@ -87,7 +87,7 @@ public readonly struct InvokerTracer : IDisposable
                         if (ec.TenantId is not null)
                             Activity.SetTag(InvokerTenantName, ec.TenantId);
 
-                        if (ec.CorrelationId is not null)
+                        if (ec.CorrelationId is not null && Correlation.IsEnabled(invoker.Configuration))
                             Activity.SetTag(Correlation.ActivityTagName, ec.CorrelationId);
                     }
 

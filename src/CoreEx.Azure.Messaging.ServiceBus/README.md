@@ -47,6 +47,8 @@ Received correlation which fails the shared 1-256-character visible ASCII token 
 
 Receive tracing retains existing `messaging.message.conversation_id` transport metadata and adds `correlation.id` for the effective workflow. Top-level receive activities retain processed correlation for export; nested receives restore the caller's attribute. Trace IDs, links and baggage policy are unchanged. Correlation is not a session key, metric label or authenticated identity. See [shared correlation semantics](../CoreEx/README.md#workflow-correlation).
 
+`CoreEx:Correlation:Enabled=false` disables automatic receive import, validation, scopes and `correlation.id` enrichment; it does not strip stored/broker metadata or the existing `messaging.message.conversation_id` transport tag. Receive helpers resolve the setting from the ambient execution context and default to enabled when no configuration is available.
+
 ## Native output and send-time customization
 
 **Prefer CloudEvents for CoreEx consumers.** Structured and binary CloudEvents both support `ServiceBusSubscribedSubscriber`/`SubscribedManager` and `[Subscribe]` dispatch. Binary mode already sends the payload alone in the body, with CE metadata in broker properties; an unwanted JSON envelope is not by itself a reason to choose native. Choose native when the receiver contract cannot or must not carry CE metadata, and verify that the consumer supports native delivery rather than normal CloudEvent dispatch. This does not change the default structured content mode.

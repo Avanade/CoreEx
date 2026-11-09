@@ -68,8 +68,8 @@ public class Program
 
         var app = builder.Build();
 
-        app.UseExecutionContext();
         app.UseCoreExExceptionHandler();
+        app.UseExecutionContext();
         app.UseHttpsRedirection();
         app.UseAuthorization();
         app.UseIdempotencyKey();

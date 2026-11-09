@@ -44,12 +44,10 @@ public static class FunctionsServiceBusExtensions
 
         ExecutionContext.TryGetCurrent(out var ec);
         var logger = args?.Logger ?? ec?.ServiceProvider?.GetService<Microsoft.Extensions.Logging.ILoggerFactory>()?.CreateLogger(nameof(FunctionsServiceBusExtensions));
-        using var correlationScope = args?.SubscriberOwnsCorrelation == true ? null : Correlation.BeginScope(logger);
-        if (args?.SubscriberOwnsCorrelation != true && logger is null && !Correlation.IsValid(message.CorrelationId))
+        if (args?.SubscriberOwnsCorrelation != true && Correlation.IsEnabled() && logger is null && !Correlation.IsValid(message.CorrelationId))
             throw new InvalidOperationException("Raw Functions message processing requires ILoggerFactory or FunctionsServiceBusReceiveArgs.Logger to report invalid correlation metadata.");
 
-        using var receiveScope = args?.SubscriberOwnsCorrelation == true ? null
-            : Correlation.BeginReceive(message.CorrelationId, logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance);
+        using var receiveScope = args?.SubscriberOwnsCorrelation == true ? null : Correlation.BeginReceive(message.CorrelationId, logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance);
         await ReceiveAndSettleAsync(adapter, receiveAsync, cancellationToken).ConfigureAwait(false);
     }
 

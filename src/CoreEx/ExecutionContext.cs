@@ -21,16 +21,11 @@ public partial class ExecutionContext : IDisposable, IReadOnlyTenantId
     public string? TenantId { get; set; }
 
     /// <summary>Gets or sets the optional workflow correlation identifier.</summary>
-    /// <remarks>Null means absent. Values must be 1-256 visible ASCII characters without whitespace or commas. Assignment enriches only this context's active execution span; trace identity is unchanged.</remarks>
+    /// <remarks>Null means absent. Values must be 1-256 visible ASCII characters without whitespace or commas. Host and invoker instrumentation adds the value to the corresponding activity; changing this property does not mutate an activity shared with another execution.</remarks>
     public string? CorrelationId
     {
         get;
-        set
-        {
-            field = Correlation.Validate(value);
-            if (TryGetCurrent(out var current) && ReferenceEquals(current, this))
-                Activity.Current?.SetTag(Correlation.ActivityTagName, value);
-        }
+        set => field = Correlation.Validate(value);
     }
 
     /// <summary>
