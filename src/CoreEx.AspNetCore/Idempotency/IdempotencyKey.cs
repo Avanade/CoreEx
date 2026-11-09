@@ -83,13 +83,11 @@ public sealed partial class IdempotencyKey
 
         context.Response.StatusCode = StatusCode ?? 200;
 
-        // Overwrite by key rather than clearing first, so headers already set by earlier middleware for *this* request (CORS, security headers, a fresh correlation id, etc.) survive; the cached
+        // Overwrite by key rather than clearing first, so headers already set by earlier middleware for *this* request (CORS, security headers, etc.) survive; the cached
         // headers still win for their own keys, replaying the original response faithfully.
         if (Headers is not null)
-        {
             foreach (var header in Headers)
                 context.Response.Headers[header.Key] = header.Value;
-        }
 
         await context.Response.Body.WriteAsync(Body).ConfigureAwait(false);
     }

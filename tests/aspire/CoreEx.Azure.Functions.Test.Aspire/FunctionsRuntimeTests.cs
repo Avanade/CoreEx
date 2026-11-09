@@ -59,6 +59,38 @@ public class FunctionsRuntimeTests : WithAspireTester<Projects.CoreEx_Azure_Func
         (await ReadIdempotencyCountAsync(id)).Should().Be(1);
     }
 
+    [Test]
+    public async Task Correlation_ActualDeferredRenderingErrorsAndReplay()
+    {
+        foreach (var (path, input, expected, status) in new (string, string?, string?, HttpStatusCode)[]
+        {
+            ("/api/messages", null, null, HttpStatusCode.OK),
+            ("/api/messages", "Workflow-AbC", "Workflow-AbC", HttpStatusCode.OK),
+            ("/api/messages?correlation=late", "initial", "late", HttpStatusCode.OK),
+            ("/api/messages?correlation=clear", "initial", null, HttpStatusCode.OK),
+            ("/api/failure/known", "failure", "failure", HttpStatusCode.NotFound),
+            ("/api/messages", "invalid value", null, HttpStatusCode.BadRequest)
+        })
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Get, path);
+            if (input is not null)
+                request.Headers.TryAddWithoutValidation("X-Correlation-Id", input);
+
+            using var response = await _client.SendAsync(request);
+            response.StatusCode.Should().Be(status);
+            (response.Headers.TryGetValues("X-Correlation-Id", out var values) ? values.Single() : null).Should().Be(expected);
+        }
+
+        var id = Runtime.NewGuid().ToString("N");
+        foreach (var correlation in new string?[] { "A", "B", null })
+        {
+            using var response = await SendIdempotentAsync(id, "example", id, correlationId: correlation);
+            response.StatusCode.Should().Be(HttpStatusCode.Created);
+            (response.Headers.TryGetValues("X-Correlation-Id", out var values) ? values.Single() : null).Should().Be(correlation);
+        }
+        (await ReadIdempotencyCountAsync(id)).Should().Be(1);
+    }
+
     [TestCase(null)]
     [TestCase("bad")]
     public async Task Idempotency_RequiredKeyFailsBeforeApplicationExecution(string? key)
@@ -145,7 +177,7 @@ public class FunctionsRuntimeTests : WithAspireTester<Projects.CoreEx_Azure_Func
         }
     }
 
-    private async Task<HttpResponseMessage> SendIdempotentAsync(string id, string name, string? key, bool required = false)
+    private async Task<HttpResponseMessage> SendIdempotentAsync(string id, string name, string? key, bool required = false, string? correlationId = null)
     {
         using var request = new HttpRequestMessage(HttpMethod.Post, $"/api/{(required ? "idempotency-required" : "idempotency")}/{id}")
         {
@@ -153,6 +185,9 @@ public class FunctionsRuntimeTests : WithAspireTester<Projects.CoreEx_Azure_Func
         };
         if (key is not null)
             request.Headers.Add("Idempotency-Key", key);
+
+        if (correlationId is not null)
+            request.Headers.Add("X-Correlation-Id", correlationId);
 
         return await _client.SendAsync(request);
     }
@@ -240,7 +275,7 @@ public class FunctionsRuntimeTests : WithAspireTester<Projects.CoreEx_Azure_Func
         const string connection = "Endpoint=sb://localhost:5682;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;";
         await using var client = new ServiceBusClient(connection);
         await using var sender = client.CreateSender("coreex-native-functions");
-        var message = new ServiceBusMessage(BinaryData.FromString("{\"outcome\":\"success\"}")) { MessageId = Runtime.NewGuid().ToString(), ContentType = "application/json" };
+        var message = new ServiceBusMessage(BinaryData.FromString("{\"outcome\":\"success\"}")) { MessageId = Runtime.NewGuid().ToString(), ContentType = "application/json", CorrelationId = "Runtime-Workflow" };
         message.ApplicationProperties["test-tracing"] = true;
         message.ApplicationProperties["baggage"] = "region=west%20coast";
         message.ApplicationProperties["tracestate"] = "vendor=value";
@@ -267,6 +302,11 @@ public class FunctionsRuntimeTests : WithAspireTester<Projects.CoreEx_Azure_Func
             using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
             var before = document.RootElement.GetProperty("before");
             var after = document.RootElement.GetProperty("after");
+            var processing = document.RootElement.GetProperty("processing");
+            processing.GetProperty("correlationId").GetString().Should().Be("Runtime-Workflow");
+            processing.GetProperty("eventCorrelationId").GetString().Should().Be("Runtime-Workflow");
+            processing.GetProperty("activityCorrelationId").GetString().Should().Be("Runtime-Workflow");
+            after.GetProperty("activityCorrelationId").GetString().Should().Be("Runtime-Workflow");
             before.GetProperty("id").GetString().Should().NotBeNullOrEmpty();
             after.GetProperty("id").GetString().Should().Be(before.GetProperty("id").GetString());
             after.GetProperty("region").GetString().Should().Be("west coast");

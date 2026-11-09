@@ -32,9 +32,9 @@ public class HybridCacheIdempotencyProvider(IHybridCache cache) : IIdempotencyPr
     /// <summary>
     /// Gets the list of HTTP response headers to exclude when caching a response for later replay.
     /// </summary>
-    /// <remarks>Defaults to <c>Set-Cookie</c> as it is generally computed/scoped for the original caller; caching and replaying it verbatim to a different caller on a subsequent cache hit would leak the
-    /// original caller's cookie value.</remarks>
-    public List<string> HttpResponseHeadersToExcludeFromCache { get; } = [HeaderNames.SetCookie];
+    /// <remarks>Defaults to <c>Set-Cookie</c> to prevent replaying the original caller's cookie, and <c>X-Correlation-Id</c> because correlation belongs to the current request.
+    /// The execution middleware applies the current correlation before committing the response, even when cached headers include an earlier value.</remarks>
+    public List<string> HttpResponseHeadersToExcludeFromCache { get; } = [HeaderNames.SetCookie, HttpNames.CorrelationIdHeaderName];
 
     /// <summary>
     /// Gets or sets the <see cref="HybridCacheEntryOptions"/> to use when storing idempotency key entries.

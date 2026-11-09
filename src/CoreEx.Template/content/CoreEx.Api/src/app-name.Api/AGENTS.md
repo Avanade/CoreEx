@@ -16,6 +16,10 @@ This project is a **thin host** -- it wires up DI, configures the pipeline, and 
 
 Read `.github/docs/coreex/hosts-layer.md` for the full host-layer guide.
 
+## Workflow Correlation
+
+`UseCoreExExceptionHandler()` runs before `UseExecutionContext()` so configuration failures receive standard error conversion. Execution precedes HTTPS redirection and authorization so optional `X-Correlation-Id` is captured and echoed on covered responses, including handled errors and early exits. Framework exception logs are outside the execution's correlation scope. Missing correlation stays null; malformed headers return 400. Console formatter scopes are enabled in `appsettings.json`, and OpenTelemetry logging is configured to include scopes. CoreEx named/typed HTTP clients propagate correlation automatically; newly created events snapshot it. Keep this middleware ordering when extending the host. Configure browser CORS allowance/exposure only when required; no CORS policy is enabled automatically.
+
 ---
 
 ## Adding a Controller

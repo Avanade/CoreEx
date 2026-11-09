@@ -30,5 +30,10 @@ public sealed class NativeMessageSubscriber : ServiceBusSubscriberBase<NativeMes
 
     /// <inheritdoc/>
     protected override Task<Result> OnReceiveAsync(NativeMessageRequest value, ServiceBusReceivedMessage message, EventSubscriberArgs args, CancellationToken cancellationToken = default)
-        => _service.ProcessAsync(value.Outcome.Required(), cancellationToken);
+    {
+        if (message.ApplicationProperties.TryGetValue("test-tracing", out var observe) && observe is true)
+            ServiceBusTraceProbe.RecordProcessing(message.MessageId);
+
+        return _service.ProcessAsync(value.Outcome.Required(), cancellationToken);
+    }
 }

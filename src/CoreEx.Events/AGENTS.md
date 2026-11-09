@@ -4,6 +4,8 @@ Provides the CoreEx event publishing and subscribing infrastructure: `EventData`
 
 ## Publishing — Two-Phase Pattern
 
+New `EventData`/create factories snapshot `ExecutionContext.CorrelationId`; property assignment or `WithCorrelationId(null)` can deliberately clear it. Never add formatter/publisher/relay fallback logic. Incoming JSON/CloudEvent/native envelopes preserve their own correlation, including absence. Subscriber handling imports authoritative envelope correlation; invalid legacy metadata is warned about, context is cleared, and payload processing continues. Batch publishing spans omit correlation, including the invoker's ambient tag; stored message correlation is unchanged. Causation and trace identity remain independent. See [correlation and causation](./README.md#correlation-and-causation).
+
 Buffer events on `IUnitOfWork.Events` (the `IEventQueue`) inside `TransactionAsync`, then let the outbox publisher commit them with the database transaction. Do not call `PublishAsync()` directly from application code when using the outbox pattern.
 
 Use `EventData.CreateEventWith` to construct a single event and `EventData.CreateEventsWith` for multiple events. Pass an `EventAction` enum value (or a plain string) as the action.

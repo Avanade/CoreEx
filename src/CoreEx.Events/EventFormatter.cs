@@ -323,8 +323,10 @@ public class EventFormatter : IEventFormatter
             Timestamp = cloudEvent.Time ?? DateTimeOffset.MinValue,
             DataSchema = cloudEvent.DataSchema,
             Key = cloudEvent.Subject,
+            CorrelationId = null,
             PartitionKey = cloudEvent.GetPartitionKey()
         };
+
         if (cloudEvent.TryGetExtensionAttribute(GetAttributeName(isNative, CorrelationIdAttributeName, "correlationid"), out string? correlationId))
             @event.CorrelationId = correlationId;
 

@@ -184,6 +184,7 @@ public abstract class EventPublisherBase(IDestinationProvider? destinationProvid
             await Invoker.InvokeAsync(this, async (tracer, cancellationToken) =>
             {
                 var events = _queue.ToArray();
+
                 foreach (var de in events)
                     Formatter.AddTracing(de.Event);
 

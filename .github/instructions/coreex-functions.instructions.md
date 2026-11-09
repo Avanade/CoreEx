@@ -44,6 +44,10 @@ HTTP integration precedes CoreEx middleware; omit HTTP/MVC calls for non-HTTP-on
 
 ## HTTP and settlement boundaries
 
+`UseCoreExExecutionContext()` captures/validates `X-Correlation-Id` before the invocation callback on the existing `HttpRequest`/`IActionResult` path, returns the final value during deferred rendering, and owns worker-side logging scope/tracing enrichment. Missing correlation stays null unless explicitly factory-configured; malformed HTTP headers return safe 400 before invoking the function. Native `HttpRequestData`/`HttpResponseData` and Functions host-process logs are outside this adapter's coverage. Idempotency replay echoes the current correlation rather than a cached original. Service Bus subscribers/raw callbacks import authoritative message correlation; invalid metadata warns, clears context correlation and continues processing without changing settlement policy. Raw callbacks without ambient host logging supply `FunctionsServiceBusReceiveArgs.Logger`. Do not add correlation baggage or metric labels.
+
+Set `CoreEx:Correlation:Enabled` to `false` before startup to disable automatic workflow correlation; explicit application values and persisted message metadata remain intact, as does existing Service Bus transport telemetry.
+
 Use native `HttpRequest`/`IActionResult` with MVC `WebApi`. For idempotency use the explicit deferred `FunctionWithIdempotencyAsync` helper and configured provider/cache, not `[IdempotencyKey]` alone. Return its `EmptyResult` directly after eager rendering. Redis L2 alone does not establish cross-instance exclusion; never claim exactly-once.
 
 For `FunctionReceiveAsync`, the trigger must disable auto-completion and share its entity expression with the metric label:

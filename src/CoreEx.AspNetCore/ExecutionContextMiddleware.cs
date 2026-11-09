@@ -28,10 +28,33 @@ public class ExecutionContextMiddleware(RequestDelegate next, Func<HttpContext, 
         var ec = context.ThrowIfNull().RequestServices.GetRequiredService<ExecutionContext>();
         ec.ServiceProvider ??= context.RequestServices;
 
-        await _configure(context, ec).ConfigureAwait(false);
-        await _next(context).ConfigureAwait(false);
+        var correlationEnabled = Correlation.IsEnabled(context.RequestServices.GetService<IConfiguration>());
+        var activity = Activity.Current;
+        if (correlationEnabled)
+        {
+            HttpCorrelation.RegisterResponse(context, ec);
+            if (!HttpCorrelation.TryCapture(context, ec))
+            {
+                await HttpCorrelation.WriteInvalidHeaderAsync(context, context.RequestAborted).ConfigureAwait(false);
+                return;
+            }
+        }
 
-        AddMessagesHeader(context, ec);
+        try
+        {
+            await _configure(context, ec).ConfigureAwait(false);
+            if (correlationEnabled)
+                activity?.SetTag(Correlation.ActivityTagName, ec.CorrelationId);
+
+            using var correlationScope = correlationEnabled ? Correlation.BeginScope(context.RequestServices.GetService<ILoggerFactory>()?.CreateLogger<ExecutionContextMiddleware>()) : null;
+            await _next(context).ConfigureAwait(false);
+            AddMessagesHeader(context, ec);
+        }
+        finally
+        {
+            if (correlationEnabled)
+                activity?.SetTag(Correlation.ActivityTagName, ec.CorrelationId);
+        }
     }
 
     /// <summary>

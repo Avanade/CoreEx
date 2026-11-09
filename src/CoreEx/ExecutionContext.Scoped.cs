@@ -18,6 +18,7 @@ public partial class ExecutionContext
 
         var parent = _asyncLocal.Value;
         ExecutionContext? context = null;
+
         // Detach before resolution: AddExecutionContext resets and disposes any ambient instance.
         _asyncLocal.Value = null;
 
@@ -27,6 +28,8 @@ public partial class ExecutionContext
             context = scope.ServiceProvider.GetRequiredService<ExecutionContext>();
             _asyncLocal.Value = context;
             configure?.Invoke(parent, context);
+            using var correlationScope = Correlation.BeginScope(scope.ServiceProvider.GetService<ILoggerFactory>()?.CreateLogger<ExecutionContext>());
+
             cancellationToken.ThrowIfCancellationRequested();
             return await action(context, cancellationToken).ConfigureAwait(false);
         }

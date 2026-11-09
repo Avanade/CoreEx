@@ -12,4 +12,11 @@ public class EventPublisherInvoker : InvokerBase<EventPublisherBase>
     /// Gets the default <see cref="EventPublisherInvoker"/> instance.
     /// </summary>
     public static EventPublisherInvoker Default => ExecutionContext.GetService<EventPublisherInvoker>() ?? (_default ??= new EventPublisherInvoker());
+
+    /// <inheritdoc/>
+    protected override void OnActivityStart(InvokerTracer tracer)
+    {
+        base.OnActivityStart(tracer);
+        tracer.Activity?.SetTag(Correlation.ActivityTagName, null);
+    }
 }

@@ -24,12 +24,18 @@ public abstract class ServiceBusSubscriberBase(IEventFormatter formatter, ILogge
     public ContentMode? ContentMode { get; set; }
 
     /// <summary>
+    /// Indicates whether correlation is sourced from the CloudEvent envelope when a message has a CloudEvent representation.
+    /// </summary>
+    /// <remarks>Defaults to true for subscribers that convert and process the CloudEvent envelope. Typed JSON subscribers process the broker message directly and therefore use its transport correlation instead.</remarks>
+    protected virtual bool UsesCloudEventCorrelation => true;
+
+    /// <summary>
     /// Receives a <see cref="ServiceBusReceivedMessage"/>.
     /// </summary>
     /// <param name="message">The <see cref="ServiceBusReceivedMessage"/>.</param>
     /// <param name="args">The optional <see cref="EventSubscriberArgs"/>.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-    public Task<Result> ReceiveAsync(ServiceBusReceivedMessage message, EventSubscriberArgs? args = null, CancellationToken cancellationToken = default)
+    public async Task<Result> ReceiveAsync(ServiceBusReceivedMessage message, EventSubscriberArgs? args = null, CancellationToken cancellationToken = default)
     {
         args ??= new EventSubscriberArgs();
         args.Owner ??= this;
@@ -37,7 +43,9 @@ public abstract class ServiceBusSubscriberBase(IEventFormatter formatter, ILogge
 
         message.EnrichReceiveActivity(PropagateBaggage);
 
-        return EventSubscriberMetrics.ReceiveMessageAsync(args, async () =>
+        using var receiveScope = UsesCloudEventCorrelation && message.IsCloudEvent() ? null : Correlation.BeginReceive(message.CorrelationId, Logger);
+
+        return await EventSubscriberMetrics.ReceiveMessageAsync(args, async () =>
         {
             // Pre-process.
             var br = await OnBeforeReceiveAsync(message, args, cancellationToken).ConfigureAwait(false);
@@ -45,7 +53,7 @@ public abstract class ServiceBusSubscriberBase(IEventFormatter formatter, ILogge
                 return br;
 
             return await OnReceiveMessageAsync(message, args, cancellationToken).ConfigureAwait(false);
-        });
+        }).ConfigureAwait(false);
     }
 
     /// <summary>

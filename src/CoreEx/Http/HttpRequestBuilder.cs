@@ -209,6 +209,11 @@ public sealed class HttpRequestBuilder(HttpClient client, HttpMethod method, str
     /// <returns>The <see cref="HttpRequestBuilder"/> instance to support fluent chaining.</returns>
     public HttpRequestBuilder WithoutFields(params IEnumerable<string> fields) => Configure(r => r.WithoutFields(fields));
 
+    /// <summary>Overrides correlation, or suppresses ambient propagation when null.</summary>
+    /// <param name="correlationId">The valid identifier or null to suppress.</param>
+    /// <returns>The builder.</returns>
+    public HttpRequestBuilder WithCorrelationId(string? correlationId) => Configure(r => r.WithCorrelationId(correlationId));
+
     /// <summary>
     /// Configures a <see cref="Result"/> to return when the response status matches the specified <paramref name="statusCode"/>.
     /// </summary>

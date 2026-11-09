@@ -40,6 +40,8 @@ Functions owns triggers, listener lifecycle, binding conversion, retries and sca
 
 `appsettings.json` configures the worker, not the Functions host's listeners. Binding settings must be available to the Functions host through app settings or `local.settings.json`. Local settings are ignored by Git and never published; keep a credential-free example or document required setting names when adding a real dependency. No storage emulator is assumed by the empty scaffold.
 
-Choose telemetry/exporters and health probes when there is an operational requirement; the scaffold does not configure them. A custom health function is optional, not proof that non-HTTP listeners or dependencies are healthy.
+Choose telemetry providers/exporters and health probes when there is an operational requirement; the scaffold does not install them. A custom health function is optional, not proof that non-HTTP listeners or dependencies are healthy.
+
+`UseCoreExExecutionContext()` enables invocation correlation by default. Console formatter scopes are enabled in `appsettings.json`, and any subsequently registered OpenTelemetry logging provider is configured to include scopes; no exporter is installed. For the ASP.NET-integrated HTTP capability described above, the middleware captures optional `X-Correlation-Id` and echoes the final value during deferred rendering. Missing correlation stays null; malformed HTTP headers return 400. Native `HttpRequestData`/`HttpResponseData` and Functions host-process logs remain outside this adapter's coverage.
 
 Build the host and test project by path after scaffolding. If using a solution file, add them to its `hosts` and `tests` folders respectively. Add meaningful UnitTestEx invocation tests with the first real function. Invocation tests do not prove binding conversion, broker delivery or deployed authorization; use Core Tools/Aspire runtime tests where those boundaries matter.

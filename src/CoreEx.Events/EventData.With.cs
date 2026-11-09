@@ -91,6 +91,11 @@ public partial class EventData
         return this;
     }
 
+    /// <summary>Overrides or clears correlation independently of the ambient execution.</summary>
+    /// <param name="correlationId">The workflow identifier or null.</param>
+    /// <returns>The event for fluent chaining.</returns>
+    public EventData WithCorrelationId(string? correlationId) => this.Adjust(x => x.CorrelationId = correlationId);
+
     /// <summary>
     /// Sets the <paramref name="schema"/> <see cref="Uri"/> to be included.
     /// </summary>

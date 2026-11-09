@@ -22,6 +22,7 @@ public class Program
 
         // Add CoreEx host settings.
         builder.AddHostSettings();
+        builder.Services.Configure<OpenTelemetry.Logs.OpenTelemetryLoggerOptions>(o => o.IncludeScopes = true);
 
         // Add authorization services - required for UseAuthorization() below; unlike the Api/Subscribe hosts, Relay has no AddControllers() to register this transitively.
         builder.Services.AddAuthorization();
@@ -104,11 +105,10 @@ public class Program
 
         // Configure the pipeline/middleware (order is important).
         app.UseCoreExExceptionHandler();
+        app.UseExecutionContext();
         app.UseHttpsRedirection();
         // app.UseAuthentication();   // TODO: register an authentication scheme (builder.Services.AddAuthentication(...)) then uncomment.
         app.UseAuthorization();
-        app.UseExecutionContext();
-
         app.MapHealthChecks();   // Secure by default: detailed endpoints are disabled unless explicitly enabled (HealthCheckOptions.AreDetailedEndpointsEnabled) and secured (detailedGroupConfigure, e.g. g => g.RequireAuthorization()); basic live/startup/ready checks stay anonymous for orchestrator probes.
         app.MapHostedServices(/* groupConfigure: g => g.RequireAuthorization() */);         // Pause/resume management endpoints are admin-only and must be secured.
 

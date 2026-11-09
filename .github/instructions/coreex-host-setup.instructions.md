@@ -25,6 +25,12 @@ The host is a **composition root only** — no business logic. Api, Subscribe an
 
 > **Further Reading**: [Hosts Layer Guide](/.github/docs/coreex/hosts-layer.md) · [Layer Dependencies](/.github/docs/coreex/layers.md) · [Pattern Catalog](/.github/docs/coreex/patterns.md) (docs-sync cache; after `/coreex-docs-sync`). Source: [samples/docs/hosts-layer.md](https://github.com/Avanade/CoreEx/blob/main/samples/docs/hosts-layer.md) · [samples/docs/layers.md](https://github.com/Avanade/CoreEx/blob/main/samples/docs/layers.md) · [samples/docs/patterns.md](https://github.com/Avanade/CoreEx/blob/main/samples/docs/patterns.md).
 
+## Workflow Correlation
+
+`UseExecutionContext()` owns optional `X-Correlation-Id` capture before its configuration callback, safe 400 rejection for malformed headers, and final response echo through `OnStarting`; WebApi is not the capture owner. Null remains absent. CoreEx named/typed clients propagate it automatically; request/builder `WithCorrelationId(null)` explicitly suppresses an outgoing header. Enable console/OpenTelemetry scopes for an immutable `CorrelationId` snapshot taken after configuration. Place `UseCoreExExceptionHandler()` before `UseExecutionContext()` so configuration failures also receive standard error conversion; the registered `OnStarting` callback still echoes correlation when the exception handler renders a response. Framework exception logs are outside the execution's correlation scope, and earlier middleware short-circuits are outside capture coverage. Exception rendering has no correlation-specific responsibilities. Browser callers need CORS header allowance and response exposure. Idempotency defaults omit correlation from fingerprints/cache, while explicit header lists are honored; the execution boundary applies current correlation on replay. Keep the CoreEx-defined custom attribute `correlation.id` independent of trace identity, baggage, authentication and metric dimensions; it is not an OpenTelemetry semantic convention.
+
+Set `CoreEx:Correlation:Enabled` to `false` before startup to disable automatic correlation across hosts, HTTP clients and message processing. Explicit application values and persisted message metadata remain intact; existing transport telemetry is unaffected. See [workflow correlation](/.github/docs/coreex/agents/CoreEx.md#workflow-correlation).
+
 ## Service Bus Session Routing
 
 `CoreEx:Host:ServiceBus:SessionIdPartitionSize` is a publisher-wide default, not a Service Bus physical partition count. When a publisher sends to multiple destinations with different ordering/concurrency profiles, override its strategy or bucket count by the exact resolved destination:
@@ -207,10 +213,10 @@ builder.WithCoreExTelemetry().WithCoreExSqlServerTelemetry().UseOtlpExporter(); 
 
 var app = builder.Build();
 app.UseCoreExExceptionHandler();
+app.UseExecutionContext();
 app.UseHttpsRedirection();
 // app.UseAuthentication();   // TODO: register an authentication scheme (builder.Services.AddAuthentication(...)) then uncomment.
 app.UseAuthorization();
-app.UseExecutionContext();
 app.UseIdempotencyKey();       // After UseExecutionContext.
 app.MapControllers();
 app.UseOpenApi();
@@ -345,10 +351,10 @@ builder.WithCoreExTelemetry()
 
 var app = builder.Build();
 app.UseCoreExExceptionHandler();
+app.UseExecutionContext();
 app.UseHttpsRedirection();
 // app.UseAuthentication();   // TODO: register an authentication scheme (builder.Services.AddAuthentication(...)) then uncomment.
 app.UseAuthorization();
-app.UseExecutionContext();
 app.MapControllers();
 app.UseOpenApi();
 app.UseSwaggerUi();
@@ -426,10 +432,10 @@ builder.WithCoreExTelemetry().WithCoreExSqlServerTelemetry().WithCoreExServiceBu
 
 var app = builder.Build();
 app.UseCoreExExceptionHandler();
+app.UseExecutionContext();
 app.UseHttpsRedirection();
 // app.UseAuthentication();   // TODO: register an authentication scheme (builder.Services.AddAuthentication(...)) then uncomment.
 // app.UseAuthorization();    // TODO: register authorization services (builder.Services.AddAuthorization(...)) then uncomment.
-app.UseExecutionContext();
 app.MapHealthChecks(new HealthCheckOptions { AreDetailedEndpointsEnabled = true } /*, detailedGroupConfigure: g => g.RequireAuthorization() */);
 app.MapHostedServices(/* groupConfigure: g => g.RequireAuthorization() */);
 app.Run();

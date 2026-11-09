@@ -18,6 +18,18 @@ HTTP functions use the existing `CoreEx.AspNetCore.Mvc.WebApi` with `HttpRequest
 
 See the real [test application](../../tests/CoreEx.Azure.Functions.TestApp/Program.cs) and [invocation tests](../../tests/CoreEx.Azure.Functions.Test.Unit/HttpFunctionsTests.cs). The host has no test-framework dependencies and does not duplicate a Contoso domain.
 
+### Workflow correlation
+
+`UseCoreExExecutionContext()` captures `X-Correlation-Id` for the existing ASP.NET-integrated `HttpRequest`/`IActionResult` path before the invocation configuration callback. It uses the [shared HTTP rules](../CoreEx.AspNetCore/README.md#http-correlation), returns safe 400 before invoking the function for malformed headers, and registers the final response value before deferred rendering commits headers. No header means null unless deliberately configured by the context factory; callbacks/application code may replace or clear it. Native `HttpRequestData`/`HttpResponseData` is not supported by this adapter.
+
+The invocation owns a structured correlation scope and enriches the existing worker activity without replacing it. Context reset always runs, while response callbacks retain the invocation's context reference for later rendering. Enable console/OpenTelemetry logging scopes; the guarantee covers worker-side logs inside CoreEx boundaries, not Functions host-process logs or logs emitted before capture.
+
+Set `CoreEx:Correlation:Enabled` to `false` to turn off automatic correlation capture, echo, receive enrichment, logging scopes and `correlation.id` activity tags. Explicit values and stored message metadata remain intact; existing Service Bus transport telemetry is unchanged. See [shared correlation semantics](../CoreEx/README.md#workflow-correlation).
+
+Subscriber-based Service Bus processing inherits the [shared receive policy](../CoreEx.Azure.Messaging.ServiceBus/README.md#received-correlation). Raw `ServiceBusMessageActions.FunctionReceiveAsync` callbacks also import broker correlation and hold the receive scope through settlement. Malformed metadata is warned about, cleared and processed normally; raw callbacks obtain logging from the ambient `ILoggerFactory`, or accept `FunctionsServiceBusReceiveArgs.Logger`. Supply a logger when invoking raw bridges without host services; CoreEx will not silently discard an invalid-metadata warning. Neither bridge automatically sets causation or authenticates identity.
+
+Idempotency defaults omit correlation from fingerprints and cached headers; explicit header configuration is honored. The invocation's response callback overrides cached correlation, including pre-upgrade values, so replay echoes the current request's correlation. Explicitly including correlation in fingerprinting makes different correlation values different requests.
+
 ### HTTP idempotency
 
 Use the explicit `webApi.FunctionWithIdempotencyAsync(request, ct => webApi.PostAsync(..., cancellationToken: ct), isRequired: true, cancellationToken: cancellationToken)` helper around an existing WebApi operation. Register `IIdempotencyProvider` as usual, for example `AddHybridCacheIdempotencyProvider()` together with `AddFusionCache()`, `AddDefaultCacheKeyProvider()` and `AddFusionHybridCache()`. The Functions package does not choose a cache or register a provider automatically. Pass the configured WebApi instance, including a keyed/custom instance when applicable; pre-processing errors use its `CreateErrorResult` classification, logging and representation policy.

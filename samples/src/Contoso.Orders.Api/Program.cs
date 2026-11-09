@@ -16,6 +16,7 @@ public class Program
         var builder = WebApplication.CreateBuilder(args);
 
         builder.AddHostSettings();
+        builder.Services.Configure<OpenTelemetry.Logs.OpenTelemetryLoggerOptions>(o => o.IncludeScopes = true);
 
         builder.Services
             .AddExecutionContext()
@@ -68,9 +69,9 @@ public class Program
         var app = builder.Build();
 
         app.UseCoreExExceptionHandler();
+        app.UseExecutionContext();
         app.UseHttpsRedirection();
         app.UseAuthorization();
-        app.UseExecutionContext();
         app.UseIdempotencyKey();
         app.MapControllers();
 

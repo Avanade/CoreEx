@@ -110,6 +110,10 @@ using var response = await client.SendAsync(HttpMethod.Get, "api/products",
 await response.ThrowOnErrorAsync(cancellationToken).ConfigureAwait(false);
 ```
 
+### Workflow correlation
+
+CoreEx named/typed client registrations automatically add `CorrelationIdHandler` before idempotency, service discovery and resilience. Plain factory registrations opt in with `.AddCorrelationIdHandler()`. The handler reads `ExecutionContext.CorrelationId` per send, including GET, without changing pooled-handler scope or `DefaultRequestHeaders`; retries preserve the request's captured value. Explicit valid headers win, and `HttpRequestMessage.WithCorrelationId(value)` / `HttpRequestBuilder.WithCorrelationId(value)` replace them. Null explicitly suppresses propagation for that request. Invalid explicit headers fail before transport, and response headers never update caller context. The shared header name is `HttpNames.CorrelationIdHeaderName` (`X-Correlation-Id`). See [token, logging and tracing semantics](../README.md#workflow-correlation).
+
 ## Reading response content
 
 `HttpResponseMessage` provides extensions for reading typed JSON or raw string content:
