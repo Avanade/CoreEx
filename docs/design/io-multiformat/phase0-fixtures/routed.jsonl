@@ -1,0 +1,4 @@
+{"type":"header","batchId":"B123"}
+{"type":"order","id":"A","quantity":2}
+{"type":"order","id":"B","quantity":3}
+{"type":"trailer","orderCount":2,"quantityTotal":5}
