@@ -22,16 +22,17 @@ public partial class InventoryProcessor : CsvFileProcessor<InventoryAdjustment>
     public InventoryProcessor(IServiceProvider serviceProvider) : base(
         InventoryAdjustmentMapping.Create,
         validator: new InventoryAdjustmentValidator(),
+        processingOptions: new FileProcessingOptions
+        {
+            MaxInputBytes = 1048576L, MaxUnits = 100000L, MaxDiagnostics = 1000L
+        },
         options: new CsvFileOptions
         {
             Delimiter = ","[0], Quote = "\""[0], Comment = null,
-            Encoding = new UTF8Encoding(false, true), MaxInputBytes = 1048576L, MaxGroupRecords = 10000L
+            Encoding = new UTF8Encoding(false, true), MaxGroupRecords = 10000L
         },
         serviceProvider: serviceProvider,
-        handlerFactory: scoped => scoped.GetRequiredService<InventoryHandler>()) => Services = serviceProvider;
-
-    /// <summary>Gets the invocation-scoped provider for handwritten reporting and trusted-context hooks.</summary>
-    protected IServiceProvider Services { get; }
+        handlerFactory: scoped => scoped.GetRequiredService<InventoryHandler>()) { }
 
     /// <summary>Creates correctly identified invocation-local context; source and attempt identity belong to the caller.</summary>
     public static InventoryContext CreateContext(string sourceId, string attemptId, string? sourceRevision = null, FileProcessingMode mode = FileProcessingMode.ValidateThenExecute, FileErrorMode errorMode = FileErrorMode.CollectErrors)

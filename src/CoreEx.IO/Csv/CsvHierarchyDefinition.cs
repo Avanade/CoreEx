@@ -1,6 +1,6 @@
 namespace CoreEx.IO.Csv;
 
-/// <summary>Declares one business-root hierarchy and optional first/last envelopes with exact discriminator routing.</summary>
+/// <summary>Declares one business-root hierarchy and optional file-level metadata with exact discriminator routing.</summary>
 /// <typeparam name="TGroup">The projected business unit.</typeparam>
 public sealed class CsvHierarchyDefinition<TGroup> where TGroup : class
 {
@@ -9,10 +9,9 @@ public sealed class CsvHierarchyDefinition<TGroup> where TGroup : class
     /// <param name="routes">Typed routes, each used exactly once in the declared structure.</param>
     /// <param name="root">The business-root record and ordered descendants.</param>
     /// <param name="project">Projects one accepted root subtree into a typed business unit.</param>
-    /// <param name="header">Optional first-record envelope with One or Optional cardinality and no children.</param>
-    /// <param name="trailer">Optional last-record envelope with One or Optional cardinality and no children.</param>
+    /// <param name="metadata">Optional unique file-level metadata declarations.</param>
     public CsvHierarchyDefinition(int discriminatorIndex, IEnumerable<CsvRecordRoute> routes, CsvHierarchyNode root, Func<CsvAggregateNode, TGroup> project,
-        CsvHierarchyNode? header = null, CsvHierarchyNode? trailer = null)
+        IEnumerable<CsvMetadataDefinition>? metadata = null)
     {
         DiscriminatorIndex = discriminatorIndex.ThrowIfLessThanZero();
         routes.ThrowIfNull();
@@ -33,6 +32,7 @@ public sealed class CsvHierarchyDefinition<TGroup> where TGroup : class
 
         var byKey = list.ToDictionary(x => x.Key, StringComparer.Ordinal);
         var used = new HashSet<string>(StringComparer.Ordinal);
+
         void Check(CsvHierarchyNode node)
         {
             if (!byKey.ContainsKey(node.Key) || !used.Add(node.Key))
@@ -43,20 +43,29 @@ public sealed class CsvHierarchyDefinition<TGroup> where TGroup : class
         }
 
         Check(root);
-        foreach (var envelope in new[] { header, trailer }.OfType<CsvHierarchyNode>())
-        {
-            if (envelope.Children.Count != 0 || envelope.Cardinality is not (CsvRecordCardinality.One or CsvRecordCardinality.Optional))
-                throw new ArgumentException("File envelopes require One or Optional cardinality and no children.", nameof(header));
+        var metadataList = (metadata ?? []).Select(x => x.Validate()).ToArray();
+        var metadataNames = new HashSet<string>(StringComparer.Ordinal);
+        var metadataKeys = new HashSet<string>(StringComparer.Ordinal);
+        var firstCount = 0;
+        var lastCount = 0;
 
-            Check(envelope);
+        foreach (var item in metadataList)
+        {
+            if (!metadataNames.Add(item.Name) || !metadataKeys.Add(item.RecordKey) || !byKey.ContainsKey(item.RecordKey))
+                throw new ArgumentException("Metadata names and route keys must be unique, and every metadata route must exist.", nameof(metadata));
+
+            firstCount += item.Position == CsvRecordPosition.First ? 1 : 0;
+            lastCount += item.Position == CsvRecordPosition.Last ? 1 : 0;
         }
 
-        if (used.Count != list.Length)
+        if (firstCount > 1 || lastCount > 1)
+            throw new ArgumentException("Only one metadata route may be restricted to First and one to Last.", nameof(metadata));
+
+        if (metadataKeys.Any(used.Contains) || used.Count + metadataKeys.Count != list.Length)
             throw new ArgumentException("Every configured route must belong to the hierarchy.", nameof(routes));
 
         Routes = Array.AsReadOnly(list);
-        Header = header;
-        Trailer = trailer;
+        Metadata = Array.AsReadOnly(metadataList);
     }
 
     /// <summary>Gets the discriminator index.</summary>
@@ -68,11 +77,8 @@ public sealed class CsvHierarchyDefinition<TGroup> where TGroup : class
     /// <summary>Gets the business-root structure.</summary>
     public CsvHierarchyNode Root { get; }
 
-    /// <summary>Gets the optional first envelope.</summary>
-    public CsvHierarchyNode? Header { get; }
-
-    /// <summary>Gets the optional last envelope.</summary>
-    public CsvHierarchyNode? Trailer { get; }
+    /// <summary>Gets the declared file-level metadata routes.</summary>
+    public IReadOnlyList<CsvMetadataDefinition> Metadata { get; }
 
     /// <summary>Gets the typed group projection.</summary>
     internal Func<CsvAggregateNode, TGroup> Project { get; }

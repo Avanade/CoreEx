@@ -7,27 +7,34 @@ The `Property` object supports a number of properties that control the generated
 
 Category | Description
 -|-
-[`Primary`](#Primary) | Wire property identity.
-[`Mapping`](#Mapping) | CSV selector and conversion.
+[`Primary`](#Primary) | Source field and generated property identity.
+[`Csv`](#Csv) | CSV selector and conversion.
+[`Mapping`](#Mapping) | Typed value conversion.
 [`Validation`](#Validation) | Pure typed validation.
 
 The properties with a bold name are those that are more typically used (considered more important).
 
 ## Primary
-Wire property identity.
+Source field and generated property identity.
 
 Property | Description
 -|-
-**`name`** | C# property name. [Mandatory]
+**`name`** | Source field name. [Mandatory]<br/>&dagger; Exact CSV column name, or logical label for positional fields.
+`property` | Generated C# property override.<br/>&dagger; Defaults to DbEx-style PascalCase derivation from name.
 `type` | Logical type. Valid options are: `String`, `Integer`, `Int64`, `Decimal`, `Double`, `Boolean`, `Guid`, `DateOnly`, `DateTime`.<br/>&dagger; Defaults to String. All wire properties are nullable; requiredness is separate.
 
-## Mapping
+## Csv
 CSV selector and conversion.
 
 Property | Description
 -|-
-`index` | Zero-based CSV index.<br/>&dagger; Required for routed files. Specify exactly one of index or column.
-`column` | CSV column name.<br/>&dagger; Flat files only; specify exactly one of column or index.
+`csv` | CSV property settings. The corresponding [`CsvProperty`](CsvProperty.md) object.
+
+## Mapping
+Typed value conversion.
+
+Property | Description
+-|-
 `format` | Exact invariant date format.<br/>&dagger; Required for DateOnly/DateTime; not applicable to other types.
 
 ## Validation

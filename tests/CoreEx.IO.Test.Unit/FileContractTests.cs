@@ -148,11 +148,14 @@ public class FileContractTests
     public void Progress_DistinguishesRecordsUnitsAndFileErrorsBeyondInt32()
     {
         var count = (long)int.MaxValue + 10;
-        var progress = new FileProcessingProgress(long.MaxValue, count, 1, count - 2, count - 2, count - 3, 5, count, count);
+        var progress = new FileProcessingProgress(bytesRead: long.MaxValue, recordsRead: count, invalidRecords: 1, unitsRead: count, invalidUnits: 1,
+            unitsValidated: count - 2, unitsAttempted: count - 2, unitsExecuted: count - 3, errorCount: 5, warningCount: count, informationCount: count);
         progress.BytesRead.Should().Be(long.MaxValue);
         progress.RecordsRead.Should().Be(count);
         progress.InvalidRecords.Should().Be(1);
         progress.UnitsValidated.Should().Be(count - 2);
+        progress.UnitsRead.Should().Be(count);
+        progress.InvalidUnits.Should().Be(1);
         progress.UnitsAttempted.Should().Be(count - 2);
         progress.UnitsExecuted.Should().Be(count - 3);
         progress.ErrorCount.Should().Be(5);
@@ -173,29 +176,41 @@ public class FileContractTests
     [TestCase(6)]
     [TestCase(7)]
     [TestCase(8)]
+    [TestCase(9)]
+    [TestCase(10)]
     public void Progress_RejectsEveryNegativeCounter(int counter)
     {
-        var counts = new long[9];
+        var counts = new long[11];
         counts[counter] = -1;
-        Action action = () => new FileProcessingProgress(counts[0], counts[1], counts[2], counts[3], counts[4], counts[5], counts[6], counts[7], counts[8]);
-        var parameters = new[] { "bytesRead", "recordsRead", "invalidRecords", "unitsValidated", "unitsAttempted", "unitsExecuted", "errorCount", "warningCount", "informationCount" };
+        Action action = () => new FileProcessingProgress(bytesRead: counts[0], recordsRead: counts[1], invalidRecords: counts[2], unitsRead: counts[3], invalidUnits: counts[4],
+            unitsValidated: counts[5], unitsAttempted: counts[6], unitsExecuted: counts[7], errorCount: counts[8], warningCount: counts[9], informationCount: counts[10]);
+        var parameters = new[] { "bytesRead", "recordsRead", "invalidRecords", "unitsRead", "invalidUnits", "unitsValidated", "unitsAttempted", "unitsExecuted", "errorCount", "warningCount", "informationCount" };
         action.Should().Throw<ArgumentOutOfRangeException>().Which.ParamName.Should().Be(parameters[counter]);
+    }
+
+    [Test]
+    public void Progress_DefaultUnitCountUsesSourceRecordCount()
+    {
+        new FileProcessingProgress(recordsRead: 3).UnitsRead.Should().Be(3);
+        new FileProcessingProgress(recordsRead: 3, unitsRead: 0).UnitsRead.Should().Be(0);
     }
 
     [Test]
     public void Progress_RejectsContradictoryCounts()
     {
         Action tooManyInvalid = () => new FileProcessingProgress(recordsRead: 1, invalidRecords: 2, errorCount: 1);
-        Action tooManyValidated = () => new FileProcessingProgress(recordsRead: 1, invalidRecords: 1, unitsValidated: 1, errorCount: 1);
+        Action tooManyValidated = () => new FileProcessingProgress(recordsRead: 1, unitsRead: 1, invalidUnits: 1, unitsValidated: 1, errorCount: 1);
         Action tooManyAttempted = () => new FileProcessingProgress(recordsRead: 1, unitsValidated: 1, unitsAttempted: 2);
         Action tooManyExecuted = () => new FileProcessingProgress(recordsRead: 1, unitsValidated: 1, unitsExecuted: 1);
         Action invalidWithoutErrors = () => new FileProcessingProgress(recordsRead: 1, invalidRecords: 1);
+        Action invalidUnitWithoutErrors = () => new FileProcessingProgress(unitsRead: 1, invalidUnits: 1);
 
         tooManyInvalid.Should().Throw<ArgumentException>();
         tooManyValidated.Should().Throw<ArgumentException>();
         tooManyAttempted.Should().Throw<ArgumentException>();
         tooManyExecuted.Should().Throw<ArgumentException>();
         invalidWithoutErrors.Should().Throw<ArgumentException>();
+        invalidUnitWithoutErrors.Should().Throw<ArgumentException>();
     }
 
     private static FileProcessingIdentity CreateIdentity() => new("customer", "1", "store/customer.csv", "attempt-1", "revision-1");

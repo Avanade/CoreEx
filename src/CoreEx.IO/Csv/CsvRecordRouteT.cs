@@ -44,8 +44,7 @@ public sealed class CsvRecordRoute<TRecord> : CsvRecordRoute where TRecord : cla
             foreach (var message in validation.Messages)
             {
                 hasErrors |= message.Type == MessageType.Error;
-                await reportAsync(new(FileDiagnosticCategory.Validation, "csv.validation", message.Text ?? LText.Empty, message.Type,
-                    new(line, propertyPath: message.Property), Key), cancellationToken).ConfigureAwait(false);
+                await reportAsync(new(FileDiagnosticCategory.Validation, "csv.validation", message.Text ?? LText.Empty, message.Type, new(line, propertyPath: message.Property), Key), cancellationToken).ConfigureAwait(false);
             }
         }
 

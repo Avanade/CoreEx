@@ -14,16 +14,14 @@ public partial class {{Name}}Context : {{#if IsHierarchical}}CsvHierarchyContext
     /// <summary>Initializes identity and invocation policy without sharing mutable pass state.</summary>
     public {{Name}}Context(FileProcessingIdentity identity, FileProcessingMode mode = FileProcessingMode.{{Mode}},
         FileErrorMode errorMode = FileErrorMode.{{ErrorMode}}) : base(identity, mode, errorMode) { }
-{{#if Structure.Header}}
+{{#each Metadata}}
 
-    /// <summary>Gets the accepted typed first envelope, when available.</summary>
-    public {{Structure.Header.RecordConfig.TypeName}}? Header => GetHeader<{{Structure.Header.RecordConfig.TypeName}}>();
-{{/if}}
-{{#if Structure.Trailer}}
+    /// <summary>Gets the encountered typed metadata value, or null until it has been validated.</summary>
+    public {{RecordConfig.TypeName}}? Get{{Record}}Metadata() => GetMetadata<{{RecordConfig.TypeName}}>({{{NameLiteral}}});
 
-    /// <summary>Gets the accepted typed last envelope, when available.</summary>
-    public {{Structure.Trailer.RecordConfig.TypeName}}? Trailer => GetTrailer<{{Structure.Trailer.RecordConfig.TypeName}}>();
-{{/if}}
+    /// <summary>Gets a fresh typed value from the immutable accepted-file metadata snapshot.</summary>
+    public {{RecordConfig.TypeName}}? GetAccepted{{Record}}Metadata() => GetAcceptedMetadata<{{RecordConfig.TypeName}}>({{{NameLiteral}}});
+{{/each}}
 }
 
 #nullable restore

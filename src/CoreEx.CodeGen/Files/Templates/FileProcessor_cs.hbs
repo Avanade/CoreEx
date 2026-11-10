@@ -26,16 +26,17 @@ public partial class {{Name}}Processor : {{#if IsHierarchical}}CsvHierarchyFileP
         {{Records.0.TypeName}}Mapping.Create,
         validator: new {{Records.0.TypeName}}Validator(),
 {{/if}}
+        processingOptions: new FileProcessingOptions
+        {
+            MaxInputBytes = {{Limits.MaxInputBytes}}L, MaxUnits = {{Limits.MaxUnits}}L, MaxDiagnostics = {{Limits.MaxDiagnostics}}L
+        },
         options: new CsvFileOptions
         {
-            Delimiter = {{{DelimiterExpression}}}, Quote = {{{QuoteExpression}}}, Comment = {{{CommentExpression}}},
-            Encoding = {{{EncodingExpression}}}, MaxInputBytes = {{MaxInputBytes}}L, MaxGroupRecords = {{MaxGroupRecords}}L
+            Delimiter = {{{Csv.DelimiterExpression}}}, Quote = {{{Csv.QuoteExpression}}}, Comment = {{{Csv.CommentExpression}}},
+            Encoding = {{{Csv.EncodingExpression}}}, MaxGroupRecords = {{Csv.MaxGroupRecords}}L
         },
         serviceProvider: serviceProvider,
-        handlerFactory: scoped => scoped.GetRequiredService<{{Name}}Handler>()) => Services = serviceProvider;
-
-    /// <summary>Gets the invocation-scoped provider for handwritten reporting and trusted-context hooks.</summary>
-    protected IServiceProvider Services { get; }
+        handlerFactory: scoped => scoped.GetRequiredService<{{Name}}Handler>()) { }
 
     /// <summary>Creates correctly identified invocation-local context; source and attempt identity belong to the caller.</summary>
     public static {{Name}}Context CreateContext(string sourceId, string attemptId, string? sourceRevision = null, FileProcessingMode mode = FileProcessingMode.{{Mode}}, FileErrorMode errorMode = FileErrorMode.{{ErrorMode}})
@@ -57,17 +58,21 @@ public partial class {{Name}}Processor : {{#if IsHierarchical}}CsvHierarchyFileP
 
     /// <summary>Creates isolated route mappings and ordered structure for each pass.</summary>
     private static CsvHierarchyDefinition<{{UnitType}}> CreateDefinition() => new(
-        {{DiscriminatorIndex}},
+        {{Csv.DiscriminatorIndex}},
         new CsvRecordRoute[]
         {
 {{#each Records}}
             new CsvRecordRoute<{{TypeName}}>({{{KeyLiteral}}}, {{{MatchLiteral}}}, {{TypeName}}Mapping.Create, new {{TypeName}}Validator(), {{{ErrorModeExpression}}}),
 {{/each}}
         },
-        {{{Structure.RootNode.DefinitionExpression}}},
-        node => {{{Structure.RootNode.ProjectionExpression}}},
-        {{#if Structure.Header}}{{{Structure.Header.DefinitionExpression}}}{{else}}null{{/if}},
-        {{#if Structure.Trailer}}{{{Structure.Trailer.DefinitionExpression}}}{{else}}null{{/if}});
+        {{{Csv.Structure.RootNode.DefinitionExpression}}},
+        node => {{{Csv.Structure.RootNode.ProjectionExpression}}},
+        new CsvMetadataDefinition[]
+        {
+{{#each Metadata}}
+            new({{{NameLiteral}}}, {{{RecordLiteral}}}, {{RequiredLiteral}}, CsvRecordPosition.{{Csv.Position}}),
+{{/each}}
+        });
 {{#each Groups}}
 
     /// <summary>Projects accepted descendants without retaining the framework aggregate node.</summary>
@@ -85,12 +90,18 @@ public partial class {{Name}}Processor : {{#if IsHierarchical}}CsvHierarchyFileP
 
     /// <summary>Creates isolated typed routes and file-level occurrence rules for each pass.</summary>
     private static CsvRoutedDefinition<{{UnitType}}> CreateDefinition() => new(
-        {{DiscriminatorIndex}},
+        {{Csv.DiscriminatorIndex}},
         new CsvRoutedRecord<{{UnitType}}>[]
         {
 {{#each Records}}
             new CsvRoutedRecord<{{TypeName}}, {{Root.UnitType}}>({{{KeyLiteral}}}, {{{MatchLiteral}}}, {{TypeName}}Mapping.Create, row => row,
-                validator: new {{TypeName}}Validator(), cardinality: CsvRecordCardinality.{{Cardinality}}, position: CsvRecordPosition.{{Position}}, errorMode: {{{ErrorModeExpression}}}),
+                validator: new {{TypeName}}Validator(), cardinality: CsvRecordCardinality.{{Csv.Cardinality}}, position: CsvRecordPosition.{{Csv.Position}}, errorMode: {{{ErrorModeExpression}}}),
+{{/each}}
+        },
+        new CsvMetadataDefinition[]
+        {
+{{#each Metadata}}
+            new({{{NameLiteral}}}, {{{RecordLiteral}}}, {{RequiredLiteral}}, CsvRecordPosition.{{Csv.Position}}),
 {{/each}}
         });
 {{/if}}

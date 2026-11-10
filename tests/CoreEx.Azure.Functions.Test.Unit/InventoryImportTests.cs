@@ -32,7 +32,7 @@ public class InventoryImportTests
         await using var provider = CreateProvider(transport, service);
         await using var scope = provider.CreateAsyncScope();
         var summary = await RunAsync(scope.ServiceProvider, $"CommandId,Sku,Quantity\n{commandId},{sku},{quantity}\n");
-        summary.Outcome.Should().Be(FileProcessingOutcome.Rejected);
+        summary.Outcome.Should().Be(FileProcessingOutcome.ContentFailed);
         summary.Progress.UnitsAttempted.Should().Be(0);
         service.Calls.Should().Be(0);
         transport.Finalized.Should().BeTrue();

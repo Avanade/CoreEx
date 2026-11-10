@@ -11,6 +11,6 @@ public partial class InventoryHandler : FileUnitHandler<InventoryAdjustment>
     public InventoryHandler(IInventoryImportService service) => _service = service;
 
     /// <inheritdoc/>
-    protected override Task<Result> OnExecuteAsync(InventoryAdjustment unit, FileProcessingContext context, CancellationToken cancellationToken)
-        => _service.ApplyAsync(unit, context.Identity, cancellationToken);
+    protected override Task<Result> OnExecuteAsync(FileUnitArgs<InventoryAdjustment> args, CancellationToken cancellationToken)
+        => _service.ApplyAsync(args.Unit, args.Context.Identity, cancellationToken);
 }

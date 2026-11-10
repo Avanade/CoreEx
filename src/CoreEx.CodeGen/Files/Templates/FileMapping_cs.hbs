@@ -12,15 +12,15 @@ namespace {{Root.RuntimeNamespace}};
 public static class {{TypeName}}Mapping
 {
     /// <summary>Creates a typed CSV mapping.</summary>
-    public static CsvFileMapping<{{TypeName}}> Create() => new CsvFileMapping<{{TypeName}}>{{#if Root.IsExactHeaderPolicy}}({{{Root.HeaderPolicyExpression}}}){{else}}(){{/if}}
+    public static CsvFileMapping<{{TypeName}}> Create() => new CsvFileMapping<{{TypeName}}>{{#if Root.Csv.IsExactHeaderPolicy}}({{{Root.Csv.HeaderPolicyExpression}}}){{else}}(){{/if}}
 {{#each Properties}}
-        .MapProperty({{{SelectorLiteral}}}, x => x.{{Name}}, {{{Converter}}}, {{{IndexExpression}}}){{#if @last}};{{/if}}
+        .MapProperty({{{SelectorLiteral}}}, x => x.{{PropertyName}}, {{{Converter}}}, {{{IndexExpression}}}){{#if @last}};{{/if}}
 {{/each}}
 {{#each Properties}}
 {{#if IsDateTime}}
 
     /// <summary>Converts an optional exact invariant date without exception control flow.</summary>
-    private static bool Convert{{Name}}(ReadOnlySpan<char> text, out DateTime? value)
+    private static bool Convert{{PropertyName}}(ReadOnlySpan<char> text, out DateTime? value)
     {
         value = null;
         if (text.IsWhiteSpace())

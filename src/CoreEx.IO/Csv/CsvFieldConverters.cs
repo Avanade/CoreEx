@@ -17,7 +17,7 @@ public static class CsvFieldConverters
     public static CsvFieldConverter<DateOnly?> DateOnly(string format)
     {
         format.ThrowIfNullOrWhiteSpace();
-        return (ReadOnlySpan<char> text, out DateOnly? value) =>
+        return (text, out value) =>
         {
             if (text.IsWhiteSpace())
             {

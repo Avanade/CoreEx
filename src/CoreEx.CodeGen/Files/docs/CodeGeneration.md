@@ -8,11 +8,12 @@ The `CodeGeneration` object supports a number of properties that control the gen
 Category | Description
 -|-
 [`Primary`](#Primary) | Definition identity.
-[`Format`](#Format) | CSV dialect and explicit encoding.
+[`Format`](#Format) | Input format.
 [`Processing`](#Processing) | Default invocation policy and operating budgets.
+[`Limits`](#Limits) | Format-neutral processing budgets.
+[`Csv`](#Csv) | CSV parser, routing, and assembly settings.
 [`Paths`](#Paths) | Destination project and subfolder.
 [`Namespaces`](#Namespaces) | Explicit generated namespace.
-[`Structure`](#Structure) | Routing and hierarchy.
 [`Collections`](#Collections) | Typed wire records.
 
 The properties with a bold name are those that are more typically used (considered more important).
@@ -26,25 +27,34 @@ Property | Description
 **`version`** | Definition revision. [Mandatory]<br/>&dagger; Not a package/source version, layout selector, or business deduplication key.
 
 ## Format
-CSV dialect and explicit encoding.
+Input format.
 
 Property | Description
 -|-
-`delimiter` | Delimiter.<br/>&dagger; One character; defaults to comma.
-`quote` | Quote.<br/>&dagger; One character; defaults to double quote.
-`comment` | Comment marker.<br/>&dagger; One character at record start; omitted by default.
-`encoding` | Explicit encoding. Valid options are: `Utf8`, `Utf16LE`, `Utf16BE`, `Utf32LE`, `Utf32BE`.<br/>&dagger; Defaults to Utf8. Strict runtime decoding; no BOM-based encoding switching.
-`headerPolicy` | Named header policy. Valid options are: `AllowAdditionalColumns`, `Exact`.<br/>&dagger; Flat named-column mappings only; defaults to AllowAdditionalColumns. Exact requires every mapped property to use a named column selector, rejects extra header columns, and requires every data record to have exactly the header's field count.
+`format` | Input format. Valid options are: `Csv`.<br/>&dagger; Defaults to Csv. Other formats are introduced in later phases.
 
 ## Processing
 Default invocation policy and operating budgets.
 
 Property | Description
 -|-
-`mode` | Default processing mode. Valid options are: `ValidateOnly`, `ValidateAndReport`, `ValidateThenExecute`.<br/>&dagger; Defaults to ValidateOnly. ValidateAndReport awaits the generated processor's overridden `OnValidatedUnitAsync` for units that pass all unit-level validation, without business execution; ValidateThenExecute executes only after whole-file acceptance.
+`metadata` | The corresponding [`Metadata`](Metadata.md) collection.
+`mode` | Default processing mode. Valid options are: `ValidateOnly`, `ValidateThenExecute`, `ValidateAndExecute`.<br/>&dagger; Defaults to ValidateOnly. Valid-unit reporting is an optional processor hook in every mode; ValidateAndExecute validates and executes each unit in one pass.
 `errorMode` | Default content policy. Valid options are: `FailFast`, `CollectErrors`.<br/>&dagger; Defaults to FailFast.
-`maxInputBytes` | Positive input-byte budget.<br/>&dagger; Defaults to 67108864 (64 MiB).
-`maxGroupRecords` | Positive records-per-root budget.<br/>&dagger; Defaults to 10000, including the root.
+
+## Limits
+Format-neutral processing budgets.
+
+Property | Description
+-|-
+`limits` | Format-neutral processing budgets. The corresponding [`Limits`](Limits.md) object.
+
+## Csv
+CSV parser, routing, and assembly settings.
+
+Property | Description
+-|-
+`csv` | CSV parser, routing, and assembly settings. The corresponding [`Csv`](Csv.md) object.
 
 ## Paths
 Destination project and subfolder.
@@ -60,14 +70,6 @@ Explicit generated namespace.
 Property | Description
 -|-
 `runtimeNamespace` | Generated namespace.<br/>&dagger; Defaults to project directory name plus runtimePath segments. Explicit override avoids assumptions about MSBuild RootNamespace.
-
-## Structure
-Routing and hierarchy.
-
-Property | Description
--|-
-`discriminatorIndex` | Zero-based discriminator index.<br/>&dagger; Selects unordered routing without structure; required with structure; omitted for flat input.
-`structure` | Business-root hierarchy. The corresponding [`Structure`](Structure.md) object.<br/>&dagger; Omit for unordered routed records (with discriminatorIndex) or one flat record (without discriminatorIndex).
 
 ## Collections
 Typed wire records.

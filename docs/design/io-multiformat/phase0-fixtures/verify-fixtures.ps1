@@ -37,7 +37,7 @@ foreach ($scenario in $manifest.scenarios) {
     Check (($scenario.invalidUnits + $scenario.unitsValidated) -le $scenario.unitsRead) "Unit invariant: $($scenario.id)"
     Check ($scenario.unitsAttempted -le $scenario.unitsValidated) "Attempt invariant: $($scenario.id)"
     Check ($scenario.unitsExecuted -le $scenario.unitsAttempted) "Execution invariant: $($scenario.id)"
-    if ($scenario.outcome -eq 'Rejected') {
+    if ($scenario.outcome -eq 'ContentFailed') {
         Check ($scenario.opens -eq 1 -and $scenario.unitsAttempted -eq 0) "Rejected execution: $($scenario.id)"
     }
 
@@ -162,9 +162,9 @@ foreach ($scenario in $execution.scenarios) {
     Check ($scenario.unitsAttempted -le $scenario.unitsValidated -and $scenario.unitsExecuted -le $scenario.unitsAttempted) "Execution invariants: $($scenario.id)"
     Check (($scenario.invalidUnits + $scenario.unitsValidated) -le $scenario.unitsRead) "Unit invariants: $($scenario.id)"
     if ($scenario.mode -eq 'ValidateAndExecute') { Check ($scenario.opens -eq 1) "Unexpected replay: $($scenario.id)" }
-    if ($scenario.outcome -eq 'ExecutedWithErrors') { Check ($scenario.errorCount -gt 0) "Missing content errors: $($scenario.id)" }
+    if ($scenario.outcome -eq 'ContentFailed') { Check ($scenario.errorCount -gt 0) "Missing content errors: $($scenario.id)" }
     if ($scenario.outcome -eq 'ExecutionFailed') { Check (($scenario.unitsAttempted - $scenario.unitsExecuted) -eq 1 -and $scenario.preserveOriginalResult) "Business failure contract: $($scenario.id)" }
-    if ($scenario.outcome -eq 'Executed') { Check $scenario.acceptedMetadataAtCompletion "Missing accepted completion view: $($scenario.id)" }
+    if ($scenario.outcome -eq 'Succeeded') { Check $scenario.acceptedMetadataAtCompletion "Missing accepted completion view: $($scenario.id)" }
 }
 $routed = @([IO.File]::ReadAllLines((Join-Path $root 'routed.jsonl')) | ForEach-Object { ConvertFrom-Json -InputObject $_ -AsHashtable -DateKind String })
 Check (($routed.type -join '|') -ceq 'header|order|order|trailer') 'Routed fixture order differs.'

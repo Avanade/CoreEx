@@ -1,6 +1,6 @@
 namespace CoreEx.IO;
 
-/// <summary>Describes validation, reporting, rejection, or an explicit business execution failure without diagnostic history.</summary>
+/// <summary>Describes the mode-independent result of processing without retaining diagnostic history.</summary>
 public sealed class FileProcessingSummary
 {
     /// <summary>Initializes an outcome snapshot and rejects contradictory success/failure states.</summary>
@@ -16,41 +16,37 @@ public sealed class FileProcessingSummary
         if (!Enum.IsDefined(outcome))
             throw new ArgumentOutOfRangeException(nameof(outcome));
 
-        var requiresAcceptedValidation = outcome is FileProcessingOutcome.Validated or FileProcessingOutcome.Executed or FileProcessingOutcome.ExecutionFailed or FileProcessingOutcome.Reported;
-        var reportOutcome = outcome is FileProcessingOutcome.Reported or FileProcessingOutcome.ReportedWithErrors;
-        if (requiresAcceptedValidation && (!validationCompleted || progress.ErrorCount != 0 || progress.InvalidRecords != 0))
-            throw new ArgumentException("Acceptance requires completed validation with no content errors.", nameof(outcome));
+        var executionMode = context.Mode is FileProcessingMode.ValidateThenExecute or FileProcessingMode.ValidateAndExecute;
+        var singlePassExecution = context.Mode == FileProcessingMode.ValidateAndExecute;
+        var executionFailure = outcome == FileProcessingOutcome.ExecutionFailed;
 
-        if (outcome == FileProcessingOutcome.Rejected && (progress.ErrorCount == 0 || progress.UnitsAttempted != 0))
-            throw new ArgumentException("Rejection requires a content error and zero execution.", nameof(outcome));
+        if (outcome == FileProcessingOutcome.Succeeded
+            && (!validationCompleted || progress.ErrorCount != 0 || progress.InvalidRecords != 0 || progress.InvalidUnits != 0 || progress.UnitsValidated != progress.UnitsRead))
+            throw new ArgumentException("Success requires completed validation with no content errors.", nameof(outcome));
 
-        if (outcome == FileProcessingOutcome.ReportedWithErrors && (progress.ErrorCount == 0 || progress.UnitsAttempted != 0))
-            throw new ArgumentException("A report with errors requires content errors and zero execution.", nameof(outcome));
+        if (outcome == FileProcessingOutcome.ContentFailed && (progress.ErrorCount == 0 || executionResult.IsFailure))
+            throw new ArgumentException("Content failure requires a content error and cannot carry a failed execution Result.", nameof(outcome));
 
-        if ((outcome == FileProcessingOutcome.Validated && context.Mode != FileProcessingMode.ValidateOnly)
-            || (reportOutcome && context.Mode != FileProcessingMode.ValidateAndReport)
-            || (outcome == FileProcessingOutcome.Rejected && context.Mode == FileProcessingMode.ValidateAndReport)
-            || (outcome is FileProcessingOutcome.Executed or FileProcessingOutcome.ExecutionFailed && context.Mode != FileProcessingMode.ValidateThenExecute))
-            throw new ArgumentException("The outcome must match the requested processing mode.", nameof(outcome));
+        if (outcome == FileProcessingOutcome.ContentFailed && !singlePassExecution && progress.UnitsAttempted != 0)
+            throw new ArgumentException("Content failure cannot include execution in validation-only or two-pass mode.", nameof(progress));
 
-        if (outcome is FileProcessingOutcome.Validated or FileProcessingOutcome.Reported or FileProcessingOutcome.ReportedWithErrors or FileProcessingOutcome.Rejected
-            && progress.UnitsAttempted != 0)
+        if (outcome == FileProcessingOutcome.ExecutionFailed && (!executionMode || !executionResult.IsFailure))
+            throw new ArgumentException("Execution failure requires an execution mode and a failed execution Result.", nameof(outcome));
+
+        if (executionFailure && progress.UnitsAttempted - progress.UnitsExecuted != 1)
+            throw new ArgumentException("Execution must stop at the first failed unit.", nameof(progress));
+
+        if (executionFailure && !singlePassExecution && (!validationCompleted || progress.ErrorCount != 0 || progress.InvalidRecords != 0 || progress.InvalidUnits != 0))
+            throw new ArgumentException("Two-pass execution failure requires completed, error-free validation.", nameof(outcome));
+
+        if (!executionMode && progress.UnitsAttempted != 0)
             throw new ArgumentException("Only execution modes can attempt business units.", nameof(progress));
 
-        if (outcome == FileProcessingOutcome.Reported && progress.UnitsReported != progress.UnitsValidated)
-            throw new ArgumentException("Successful reporting must complete every validated-unit hook.", nameof(progress));
-
-        if (!reportOutcome && progress.UnitsReported != 0)
-            throw new ArgumentException("Only report outcomes can include reported units.", nameof(progress));
-
-        if (outcome == FileProcessingOutcome.Executed && progress.UnitsExecuted != progress.UnitsValidated)
+        if (outcome == FileProcessingOutcome.Succeeded && executionMode && progress.UnitsExecuted != progress.UnitsValidated)
             throw new ArgumentException("Successful execution must complete every accepted unit.", nameof(progress));
 
-        if ((outcome == FileProcessingOutcome.ExecutionFailed) != executionResult.IsFailure)
+        if (executionFailure != executionResult.IsFailure)
             throw new ArgumentException("Only execution failure carries a failed execution Result.", nameof(executionResult));
-
-        if (outcome == FileProcessingOutcome.ExecutionFailed && progress.UnitsAttempted - progress.UnitsExecuted != 1)
-            throw new ArgumentException("Execution must stop at the first failed unit.", nameof(progress));
 
         Identity = context.Identity;
         Mode = context.Mode;
@@ -75,8 +71,8 @@ public sealed class FileProcessingSummary
     /// <summary>Gets whether validation completed through EOF and its applicable checks.</summary>
     public bool ValidationCompleted { get; }
 
-    /// <summary>Gets whether the requested processing mode completed successfully.</summary>
-    public bool IsSuccess => Outcome is FileProcessingOutcome.Validated or FileProcessingOutcome.Executed or FileProcessingOutcome.Reported;
+    /// <summary>Gets whether processing completed without content or business execution errors.</summary>
+    public bool IsSuccess => Outcome == FileProcessingOutcome.Succeeded;
 
     /// <summary>Gets the original execution Result; failure is available without throwing or losing progress.</summary>
     public Result ExecutionResult { get; }

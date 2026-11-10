@@ -5,7 +5,7 @@
     "recordsRead": 2,
     "unitsValidated": 2,
     "unitsExecuted": 2,
-    "outcome": "Executed",
+    "outcome": "Succeeded",
     "diagnosticLines": [],
     "requirement": "Quoted delimiters and embedded newlines; zero is a valid required integer."
   },
@@ -15,7 +15,7 @@
     "recordsRead": 2,
     "unitsValidated": 1,
     "unitsExecuted": 0,
-    "outcome": "Rejected",
+    "outcome": "ContentFailed",
     "diagnosticLines": [3],
     "requirement": "A late flat-row mapping failure prevents every execution call."
   },
@@ -25,7 +25,7 @@
     "recordsRead": 7,
     "unitsValidated": 2,
     "unitsExecuted": 2,
-    "outcome": "Executed",
+    "outcome": "Succeeded",
     "diagnosticLines": [],
     "requirement": "Header, two ordered roots with children, trailer, and EOF reconciliation."
   },
@@ -35,7 +35,7 @@
     "recordsRead": 7,
     "unitsValidated": 2,
     "unitsExecuted": 0,
-    "outcome": "Rejected",
+    "outcome": "ContentFailed",
     "diagnosticLines": [7],
     "requirement": "A late trailer total mismatch prevents execution of previously validated groups."
   },
@@ -45,7 +45,7 @@
     "recordsRead": 6,
     "unitsValidated": 1,
     "unitsExecuted": 0,
-    "outcome": "Rejected",
+    "outcome": "ContentFailed",
     "diagnosticLines": [2, 5],
     "requirement": "CollectErrors reports an orphan and an unknown discriminator with physical anchors."
   }

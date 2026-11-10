@@ -16,7 +16,7 @@ public class CsvHierarchyFileProcessorTests
             var context = Context(FileProcessingMode.ValidateThenExecute);
             var summary = await processor.ProcessAsync(input.OpenAsync, context).ConfigureAwait(false);
 
-            summary.Outcome.Should().Be(FileProcessingOutcome.Executed);
+            summary.Outcome.Should().Be(FileProcessingOutcome.Succeeded);
             summary.Progress.RecordsRead.Should().Be(7);
             summary.Progress.InvalidRecords.Should().Be(0);
             summary.Progress.UnitsValidated.Should().Be(2);
@@ -29,7 +29,9 @@ public class CsvHierarchyFileProcessorTests
             environment.Executed[0].Context.Should().NotBeSameAs(context);
             environment.Executed[0].Context.Identity.Should().BeSameAs(context.Identity);
             environment.Executed.Select(x => x.Context.Total).Should().Equal(0, 0);
-            environment.Executed[0].Context.GetHeader<Wire>().Should().NotBeSameAs(context.GetHeader<Wire>());
+            environment.Executed[0].Context.GetMetadata<Wire>("Header").Should().NotBeSameAs(context.GetMetadata<Wire>("Header"));
+            context.GetAcceptedMetadata<Wire>("Header")?.Name.Should().Be("batch-1");
+            environment.Executed[0].Context.GetAcceptedMetadata<Wire>("Header")?.Name.Should().Be("batch-1");
             environment.Executed[0].HeaderCount.Should().Be(1);
             environment.Executed.Select(x => x.RootCount).Should().Equal(1, 2);
             environment.Handlers.Should().HaveCount(4).And.OnlyContain(x => x.Disposed);
@@ -45,6 +47,26 @@ public class CsvHierarchyFileProcessorTests
         }
     }
 
+    [Test]
+    public async Task AcceptedMetadata_IsIsolatedFromPassLocalValuesAndEveryTypedRead()
+    {
+        var context = Context(FileProcessingMode.ValidateOnly);
+        var processor = new Processor();
+
+        var summary = await processor.ProcessAsync(new Input(Fixture("orders-valid.csv")).OpenAsync, context).ConfigureAwait(false);
+
+        summary.IsSuccess.Should().BeTrue();
+        var first = context.GetAcceptedMetadata<Wire>("Header") ?? throw new InvalidOperationException("Accepted header is missing.");
+        first.Name = "changed copy";
+        var wire = context.GetMetadata<Wire>("Header") ?? throw new InvalidOperationException("Pass-local header is missing.");
+        wire.Name = "changed wire";
+        var second = context.GetAcceptedMetadata<Wire>("Header");
+        second.Should().NotBeSameAs(first);
+        second?.Name.Should().Be("batch-1");
+        var accepted = context.AcceptedMetadata ?? throw new InvalidOperationException("Accepted snapshot is missing.");
+        accepted["Header"].GetProperty("Name").GetString().Should().Be("batch-1");
+    }
+
     [TestCase("orders-invalid-structure.csv", 2, 0)]
     [TestCase("orders-invalid-trailer.csv", 0, 2)]
     public async Task InvalidFixture_PreventsAllWrites(string fixture, int invalid, int validated)
@@ -54,7 +76,7 @@ public class CsvHierarchyFileProcessorTests
         var input = new Input(Fixture(fixture));
         var summary = await processor.ProcessAsync(input.OpenAsync, Context(FileProcessingMode.ValidateThenExecute)).ConfigureAwait(false);
 
-        summary.Outcome.Should().Be(FileProcessingOutcome.Rejected);
+        summary.Outcome.Should().Be(FileProcessingOutcome.ContentFailed);
         summary.ValidationCompleted.Should().BeTrue();
         summary.Progress.InvalidRecords.Should().Be(invalid);
         summary.Progress.UnitsValidated.Should().Be(validated);
@@ -71,7 +93,7 @@ public class CsvHierarchyFileProcessorTests
     {
         var processor = new Processor();
         var summary = await processor.ProcessAsync(new Input(csv).OpenAsync, Context()).ConfigureAwait(false);
-        summary.Outcome.Should().Be(FileProcessingOutcome.Rejected);
+        summary.Outcome.Should().Be(FileProcessingOutcome.ContentFailed);
         summary.Progress.InvalidRecords.Should().Be(1);
         var diagnostic = processor.Diagnostics.Single(x => x.Code == code);
         diagnostic.RecordType.Should().BeNull();
@@ -102,24 +124,24 @@ public class CsvHierarchyFileProcessorTests
         context.GetRecordCount("header").Should().Be(1);
         context.GetRecordCount("lines").Should().Be(1);
         context.GetRecordCount("trailer").Should().Be(1);
-        context.HeaderAvailable.Should().BeFalse();
-        context.TrailerAvailable.Should().BeFalse();
+        context.GetMetadata<Wire>("Header").Should().BeNull();
+        context.GetMetadata<Wire>("Trailer").Should().BeNull();
         context.HasValidationErrors.Should().BeTrue();
         processor.Diagnostics.Where(x => x.Code == "csv.field.invalid").Should().HaveCount(3);
-        processor.Diagnostics.Should().NotContain(x => x.Code == "csv.structure.required");
+        processor.Diagnostics.Should().NotContain(x => x.Code == "csv.structure.required" || x.Code == "csv.metadata.required");
         processor.Diagnostics.Select(x => x.Message.ToString()).Should().OnlyContain(x => !x.Contains("private-value"));
     }
 
-    [TestCase("H,first\nH,second\nO,o\nL,p,1\nT,1,1\n", "csv.structure.duplicate", 2)]
-    [TestCase("O,o\nH,late\nL,p,1\nT,1,1\n", "csv.structure.header-position", 2)]
-    [TestCase("H,h\nO,o\nL,p,1\nT,1,1\nT,1,1\n", "csv.structure.after-trailer", 5)]
-    [TestCase("H,h\nO,o\nL,p,1\nT,1,1\nO,late\n", "csv.structure.after-trailer", 5)]
+    [TestCase("H,first\nH,second\nO,o\nL,p,1\nT,1,1\n", "csv.metadata.duplicate", 2)]
+    [TestCase("O,o\nH,late\nL,p,1\nT,1,1\n", "csv.metadata.first-position", 2)]
+    [TestCase("H,h\nO,o\nL,p,1\nT,1,1\nT,1,1\n", "csv.metadata.duplicate", 5)]
+    [TestCase("H,h\nO,o\nL,p,1\nT,1,1\nO,late\n", "csv.metadata.after-last", 5)]
     [TestCase("H,h\nL,p,1\nT,0,0\n", "csv.structure.orphan", 2)]
     public async Task EnvelopeAndParentRules_HavePhysicalLocations(string csv, string code, int line)
     {
         var processor = new Processor();
         var summary = await processor.ProcessAsync(new Input(csv).OpenAsync, Context()).ConfigureAwait(false);
-        summary.Outcome.Should().Be(FileProcessingOutcome.Rejected);
+        summary.Outcome.Should().Be(FileProcessingOutcome.ContentFailed);
         processor.Diagnostics.Should().Contain(x => x.Code == code && x.Location != null && x.Location.LineNumber == line);
     }
 
@@ -129,8 +151,8 @@ public class CsvHierarchyFileProcessorTests
         var processor = new Processor();
         var context = Context();
         await processor.ProcessAsync(new Input("H,first\nH,second\nO,o\nL,p,1\nT,1,1\nT,1,2\n").OpenAsync, context).ConfigureAwait(false);
-        context.GetHeader<Wire>()?.Name.Should().Be("first");
-        context.GetTrailer<Wire>()?.Total.Should().Be(1);
+        context.GetMetadata<Wire>("Header")?.Name.Should().Be("first");
+        context.GetMetadata<Wire>("Trailer")?.Total.Should().Be(1);
         context.GetRecordCount("header").Should().Be(2);
         context.GetRecordCount("trailer").Should().Be(2);
     }
@@ -143,10 +165,11 @@ public class CsvHierarchyFileProcessorTests
         var processor = new Processor(options: new() { Comment = '#' });
         var context = Context();
         var summary = await processor.ProcessAsync(new Input(csv).OpenAsync, context).ConfigureAwait(false);
-        summary.Outcome.Should().Be(FileProcessingOutcome.Rejected);
+        summary.Outcome.Should().Be(FileProcessingOutcome.ContentFailed);
         summary.Progress.InvalidRecords.Should().Be(0);
         context.EndOfFileLineNumber.Should().Be(eof);
-        processor.Diagnostics.Where(x => x.Code == "csv.structure.required").Should().OnlyContain(x => x.Location != null && x.Location.LineNumber == eof);
+        processor.Diagnostics.Where(x => x.Code == "csv.structure.required" || x.Code == "csv.metadata.required")
+            .Should().OnlyContain(x => x.Location != null && x.Location.LineNumber == eof);
     }
 
     [Test]
@@ -172,7 +195,7 @@ public class CsvHierarchyFileProcessorTests
         });
         var processor = new Processor(definition: () => definition);
         var summary = await processor.ProcessAsync(new Input("#comment\nO,root\nB,first\nL,\"two\nlines\"\nB,second\nL,last\nE,end\n").OpenAsync, Context()).ConfigureAwait(false);
-        summary.Outcome.Should().Be(FileProcessingOutcome.Validated);
+        summary.Outcome.Should().Be(FileProcessingOutcome.Succeeded);
         projected.Should().NotBeNull();
         var node = projected.ThrowIfNull();
         node.GetChildren("branch", x => x.GetRecord<Wire>().Name).Should().Equal("first", "second");
@@ -210,7 +233,7 @@ public class CsvHierarchyFileProcessorTests
             new("root", CsvRecordCardinality.One, [new("a", CsvRecordCardinality.One), new("b", CsvRecordCardinality.Many), new("c", CsvRecordCardinality.One)]), Project);
         var processor = new Processor(definition: () => definition);
         var summary = await processor.ProcessAsync(new Input("O,one\nC,c\nB,b\nA,a\n").OpenAsync, Context()).ConfigureAwait(false);
-        summary.Outcome.Should().Be(FileProcessingOutcome.Rejected);
+        summary.Outcome.Should().Be(FileProcessingOutcome.ContentFailed);
         processor.Diagnostics.Count(x => x.Code == "csv.structure.required" && x.RecordType == "a").Should().Be(1);
         processor.Diagnostics.Count(x => x.Code == "csv.structure.child-order").Should().Be(2);
         summary.Progress.InvalidRecords.Should().Be(2);
@@ -225,7 +248,7 @@ public class CsvHierarchyFileProcessorTests
             var processor = new Processor(lineMode: routeMode);
             var summary = await processor.ProcessAsync(new Input(csv).OpenAsync, Context(errors: fileMode)).ConfigureAwait(false);
             summary.ValidationCompleted.Should().Be(completed);
-            summary.Outcome.Should().Be(FileProcessingOutcome.Rejected);
+            summary.Outcome.Should().Be(FileProcessingOutcome.ContentFailed);
             processor.Events.Contains("eof").Should().Be(completed);
         }
     }
@@ -273,14 +296,15 @@ public class CsvHierarchyFileProcessorTests
     public async Task OptionalEnvelopes_CanBeAbsentAndTypedAccessFailsExplicitlyWhenIncorrect()
     {
         var processor = new CsvHierarchyFileProcessor<Group>(() => new(0, [Route("root", "O"), Route("header", "H"), Route("trailer", "T")],
-            new("root", CsvRecordCardinality.One), Project, new("header", CsvRecordCardinality.Optional), new("trailer", CsvRecordCardinality.Optional)));
+            new("root", CsvRecordCardinality.One), Project,
+            [new("Header", "header", false, CsvRecordPosition.First), new("Trailer", "trailer", false, CsvRecordPosition.Last)]));
         var missing = Context();
         (await processor.ProcessAsync(new Input("O,o\n").OpenAsync, missing).ConfigureAwait(false)).IsSuccess.Should().BeTrue();
-        missing.GetHeader<Wire>().Should().BeNull();
-        missing.GetTrailer<Wire>().Should().BeNull();
+        missing.GetMetadata<Wire>("Header").Should().BeNull();
+        missing.GetMetadata<Wire>("Trailer").Should().BeNull();
         var present = Context();
         (await processor.ProcessAsync(new Input("H,h\nO,o\nT,t\n").OpenAsync, present).ConfigureAwait(false)).IsSuccess.Should().BeTrue();
-        Action wrong = () => present.GetHeader<Group>();
+        Action wrong = () => present.GetMetadata<Group>("Header");
         wrong.Should().Throw<InvalidOperationException>();
         Action unknown = () => present.GetRecordCount("unknown");
         unknown.Should().Throw<ArgumentException>();
@@ -324,11 +348,12 @@ public class CsvHierarchyFileProcessorTests
         var processor = new CsvHierarchyFileProcessor<Group>(() => Orders(), serviceProvider: provider, handlerFactory: _ => new SimpleHandler(contexts));
         var validation = new CsvHierarchyContext(new("orders", "1", "orders.csv", "attempt"), FileProcessingMode.ValidateThenExecute, FileErrorMode.CollectErrors);
         var summary = await processor.ProcessAsync(new Input("H,h\nO,o\nL,p,1\nT,1,1\n").OpenAsync, validation).ConfigureAwait(false);
-        summary.Outcome.Should().Be(FileProcessingOutcome.Executed);
+        summary.Outcome.Should().Be(FileProcessingOutcome.Succeeded);
         contexts.Should().HaveCount(2);
         contexts[0].Should().BeSameAs(validation);
         contexts[1].Should().NotBeSameAs(validation);
-        contexts[1].GetHeader<Wire>().Should().NotBeSameAs(validation.GetHeader<Wire>());
+        contexts[1].GetMetadata<Wire>("Header").Should().NotBeSameAs(validation.GetMetadata<Wire>("Header"));
+        contexts[1].GetAcceptedMetadata<Wire>("Header")?.Name.Should().Be("h");
     }
 
     [TestCase("")]
@@ -495,13 +520,13 @@ public class CsvHierarchyFileProcessorTests
         }).Append(provider.GetRequiredService<CsvFileProcessor<Wire>>().ProcessAsync(new Input("any,flat\n").OpenAsync,
             new(new("flat", "1", "flat.csv", "attempt"), FileProcessingMode.ValidateThenExecute)));
         var summaries = await Task.WhenAll(tasks).ConfigureAwait(false);
-        summaries.Should().HaveCount(25).And.OnlyContain(x => x.Outcome == FileProcessingOutcome.Executed && x.Progress.UnitsExecuted == 1);
+        summaries.Should().HaveCount(25).And.OnlyContain(x => x.Outcome == FileProcessingOutcome.Succeeded && x.Progress.UnitsExecuted == 1);
     }
 
     [Test]
     public async Task LargeInvalidHierarchy_DoesNotThrowPerContentFailure()
     {
-        var processor = new CsvHierarchyFileProcessor<Group>(() => Orders(), new() { MaxGroupRecords = 10_001 });
+        var processor = new CsvHierarchyFileProcessor<Group>(() => Orders(), processingOptions: new() { MaxDiagnostics = 10_000 }, options: new() { MaxGroupRecords = 10_001 });
         var count = 0;
         void Observe(object? sender, FirstChanceExceptionEventArgs args) => Interlocked.Increment(ref count);
         AppDomain.CurrentDomain.FirstChanceException += Observe;
@@ -525,12 +550,13 @@ public class CsvHierarchyFileProcessorTests
         Action duplicateMatch = () => new CsvHierarchyDefinition<Group>(0, [Route("root", "O"), Route("lines", "O")], new("root", CsvRecordCardinality.One), Project);
         Action unused = () => new CsvHierarchyDefinition<Group>(0, [Route("root", "O"), Route("lines", "L")], new("root", CsvRecordCardinality.One), Project);
         Action repeated = () => new CsvHierarchyDefinition<Group>(0, [Route("root", "O")], new("root", CsvRecordCardinality.One, [new("root")]), Project);
-        Action envelope = () => new CsvHierarchyDefinition<Group>(0, [Route("root", "O"), Route("header", "H")], new("root"), Project, new("header"));
+        Action overlap = () => new CsvHierarchyDefinition<Group>(0, [Route("root", "O"), Route("header", "H")], new("root"), Project,
+            [new("Header", "root")]);
         duplicateKey.Should().Throw<ArgumentException>();
         duplicateMatch.Should().Throw<ArgumentException>();
         unused.Should().Throw<ArgumentException>();
         repeated.Should().Throw<ArgumentException>();
-        envelope.Should().Throw<ArgumentException>();
+        overlap.Should().Throw<ArgumentException>();
     }
 
     private static string Fixture(string name) => File.ReadAllText(Path.Combine(TestContext.CurrentContext.TestDirectory, "Fixtures", name));
@@ -547,7 +573,7 @@ public class CsvHierarchyFileProcessorTests
              new CsvRecordRoute<Wire>("trailer", "T", () => new CsvFileMapping<Wire>()
                 .MapProperty("Quantity", x => x.Quantity, CsvFieldConverters.Nullable<int>(), 1).MapProperty("Total", x => x.Total, CsvFieldConverters.Nullable<int>(), 2))],
             new("root", CsvRecordCardinality.OneOrMore, [new("lines", CsvRecordCardinality.OneOrMore)]), Project,
-            new("header", CsvRecordCardinality.One), new("trailer", CsvRecordCardinality.One));
+            [new("Header", "header", true, CsvRecordPosition.First), new("Trailer", "trailer", true, CsvRecordPosition.Last)]);
 
     public sealed class Wire
     {
@@ -576,35 +602,35 @@ public class CsvHierarchyFileProcessorTests
 
     private sealed class SimpleHandler(List<CsvHierarchyContext> contexts) : FileUnitHandler<Group>
     {
-        protected override Task OnValidateAsync(Group unit, FileProcessingContext context, Func<FileDiagnostic, CancellationToken, Task> reportDiagnosticAsync, CancellationToken cancellationToken)
+        protected override Task OnValidateAsync(FileUnitValidationArgs<Group> args, CancellationToken cancellationToken)
         {
-            contexts.Add((CsvHierarchyContext)context);
+            contexts.Add((CsvHierarchyContext)args.Context);
             return Task.CompletedTask;
         }
-        protected override Task<Result> OnExecuteAsync(Group unit, FileProcessingContext context, CancellationToken cancellationToken)
+        protected override Task<Result> OnExecuteAsync(FileUnitArgs<Group> args, CancellationToken cancellationToken)
         {
-            contexts.Add((CsvHierarchyContext)context);
+            contexts.Add((CsvHierarchyContext)args.Context);
             return Task.FromResult(Result.Success);
         }
     }
 
     private sealed class NamedGroupHandler(string expected, ExecutionContext ambient) : FileUnitHandler<Group>
     {
-        protected override async Task OnValidateAsync(Group unit, FileProcessingContext context, Func<FileDiagnostic, CancellationToken, Task> reportDiagnosticAsync, CancellationToken cancellationToken)
+        protected override async Task OnValidateAsync(FileUnitValidationArgs<Group> args, CancellationToken cancellationToken)
         {
             ambient.TenantId = expected;
             await Task.Yield();
             ExecutionContext.Current.Should().BeSameAs(ambient);
-            unit.Root.Name.Should().Be(expected);
+            args.Unit.Root.Name.Should().Be(expected);
             ambient.TenantId.Should().Be(expected);
         }
-        protected override async Task<Result> OnExecuteAsync(Group unit, FileProcessingContext context, CancellationToken cancellationToken)
+        protected override async Task<Result> OnExecuteAsync(FileUnitArgs<Group> args, CancellationToken cancellationToken)
         {
             ambient.TenantId.Should().BeNull();
             ambient.TenantId = expected;
             await Task.Yield();
             ExecutionContext.Current.Should().BeSameAs(ambient);
-            unit.Root.Name.Should().Be(expected);
+            args.Unit.Root.Name.Should().Be(expected);
             ambient.TenantId.Should().Be(expected);
             return Result.Success;
         }
@@ -612,9 +638,9 @@ public class CsvHierarchyFileProcessorTests
 
     private sealed class FlatHandler : FileUnitHandler<Wire>
     {
-        protected override Task<Result> OnExecuteAsync(Wire unit, FileProcessingContext context, CancellationToken cancellationToken)
+        protected override Task<Result> OnExecuteAsync(FileUnitArgs<Wire> args, CancellationToken cancellationToken)
         {
-            unit.Name.Should().Be("flat");
+            args.Unit.Name.Should().Be("flat");
             return Task.FromResult(Result.Success);
         }
     }
@@ -622,8 +648,8 @@ public class CsvHierarchyFileProcessorTests
     private sealed class Processor : CsvHierarchyFileProcessor<Group>
     {
         public Processor(Environment? environment = null, Func<CsvHierarchyDefinition<Group>>? definition = null, FileErrorMode? lineMode = null,
-            WireValidator? wireValidator = null, CsvFileOptions? options = null)
-            : base(definition ?? (() => Orders(lineMode, wireValidator)), options ?? new() { Comment = '#' }, serviceProvider: environment?.Provider,
+            WireValidator? wireValidator = null, CsvFileOptions? options = null, FileProcessingOptions? processingOptions = null)
+            : base(definition ?? (() => Orders(lineMode, wireValidator)), processingOptions, options ?? new() { Comment = '#' }, serviceProvider: environment?.Provider,
                 handlerFactory: environment is null ? null : sp => sp.GetRequiredService<Handler>()) { }
         public List<FileDiagnostic> Diagnostics { get; } = [];
         public List<string> Events { get; } = [];
@@ -631,31 +657,32 @@ public class CsvHierarchyFileProcessorTests
         public Func<FileDiagnostic, CancellationToken, Task>? Diagnostic { get; init; }
         protected override FileProcessingContext OnCreateExecutionContext(FileProcessingContext validationContext)
             => new ContextState(validationContext.Identity, validationContext.Mode, validationContext.ErrorMode);
-        protected override void OnConfigureUnitContext(FileProcessingContext fileContext, Group unit, ExecutionContext? parent, ExecutionContext unitContext)
-            => unitContext.TenantId = "trusted";
-        protected override async Task OnDiagnosticAsync(FileProcessingContext context, FileDiagnostic diagnostic, CancellationToken cancellationToken)
+        protected override void OnConfigureUnitContext(FileUnitContextArgs<Group> args)
+            => args.UnitContext.TenantId = "trusted";
+        protected override async Task OnDiagnosticAsync(FileDiagnosticArgs args, CancellationToken cancellationToken)
         {
-            Diagnostics.Add(diagnostic);
+            Diagnostics.Add(args.Diagnostic);
             if (Diagnostic is not null)
-                await Diagnostic(diagnostic, cancellationToken).ConfigureAwait(false);
+                await Diagnostic(args.Diagnostic, cancellationToken).ConfigureAwait(false);
         }
-        protected override async Task OnValidateFileAsync(FileProcessingContext context, Func<FileDiagnostic, CancellationToken, Task> reportDiagnosticAsync, CancellationToken cancellationToken)
+        protected override async Task OnValidateFileAsync(FileValidationArgs args, CancellationToken cancellationToken)
         {
             Observe("eof");
-            var hierarchy = (CsvHierarchyContext)context;
-            var trailer = hierarchy.GetTrailer<Wire>();
+            var hierarchy = (CsvHierarchyContext)args.Context;
+            var trailer = hierarchy.GetMetadata<Wire>("Trailer");
+            var trailerLine = hierarchy.GetMetadataLineNumber("Trailer");
             if (trailer is not null && !hierarchy.HasValidationErrors && trailer.Quantity != hierarchy.GetRecordCount("root"))
-                await reportDiagnosticAsync(new(FileDiagnosticCategory.Reconciliation, "trailer.count", "The root total does not match.", location: new(hierarchy.TrailerLineNumber)), cancellationToken).ConfigureAwait(false);
+                await args.ReportDiagnosticAsync(new(FileDiagnosticCategory.Reconciliation, "trailer.count", "The root total does not match.", location: new(trailerLine)), cancellationToken).ConfigureAwait(false);
 
             if (hierarchy is ContextState state && state.Total != 0 && trailer is not null && !hierarchy.HasValidationErrors && trailer.Total != state.Total)
-                await reportDiagnosticAsync(new(FileDiagnosticCategory.Reconciliation, "trailer.total", "The quantity total does not match.", location: new(hierarchy.TrailerLineNumber)), cancellationToken).ConfigureAwait(false);
+                await args.ReportDiagnosticAsync(new(FileDiagnosticCategory.Reconciliation, "trailer.total", "The quantity total does not match.", location: new(trailerLine)), cancellationToken).ConfigureAwait(false);
         }
-        protected override Task OnRejectedAsync(FileProcessingContext context, FileProcessingSummary summary, CancellationToken cancellationToken)
+        protected override Task OnContentFailedAsync(FileSummaryArgs args, CancellationToken cancellationToken)
         {
             Observe("rejected");
             return Task.CompletedTask;
         }
-        protected override Task OnCompletedAsync(FileProcessingContext context, FileProcessingSummary summary, CancellationToken cancellationToken)
+        protected override Task OnCompletedAsync(FileSummaryArgs args, CancellationToken cancellationToken)
         {
             Observe("completed");
             return Task.CompletedTask;
@@ -693,20 +720,20 @@ public class CsvHierarchyFileProcessorTests
         }
         public ExecutionContext Ambient { get; }
         public bool Disposed { get; private set; }
-        protected override async Task OnValidateAsync(Group unit, FileProcessingContext context, Func<FileDiagnostic, CancellationToken, Task> reportDiagnosticAsync, CancellationToken cancellationToken)
+        protected override async Task OnValidateAsync(FileUnitValidationArgs<Group> args, CancellationToken cancellationToken)
         {
             ExecutionContext.Current.Should().BeSameAs(Ambient);
-            var state = (ContextState)context;
-            state.Total += unit.Lines.Sum(x => x.Quantity ?? 0);
-            _environment.Validated.Add((unit, state));
+            var state = (ContextState)args.Context;
+            state.Total += args.Unit.Lines.Sum(x => x.Quantity ?? 0);
+            _environment.Validated.Add((args.Unit, state));
             if (_environment.GroupError)
-                await reportDiagnosticAsync(new(FileDiagnosticCategory.Validation, "group.rule", "The group rule failed."), cancellationToken).ConfigureAwait(false);
+                await args.ReportDiagnosticAsync(new(FileDiagnosticCategory.Validation, "group.rule", "The group rule failed."), cancellationToken).ConfigureAwait(false);
         }
-        protected override Task<Result> OnExecuteAsync(Group unit, FileProcessingContext context, CancellationToken cancellationToken)
+        protected override Task<Result> OnExecuteAsync(FileUnitArgs<Group> args, CancellationToken cancellationToken)
         {
             ExecutionContext.Current.Should().BeSameAs(Ambient);
-            var state = (ContextState)context;
-            _environment.Executed.Add((unit, state, state.GetRecordCount("header"), state.GetRecordCount("root")));
+            var state = (ContextState)args.Context;
+            _environment.Executed.Add((args.Unit, state, state.GetRecordCount("header"), state.GetRecordCount("root")));
             return Task.FromResult(_environment.Fail ? _environment.Failure : Result.Success);
         }
         public async ValueTask DisposeAsync()

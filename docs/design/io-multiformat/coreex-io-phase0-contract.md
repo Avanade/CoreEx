@@ -6,7 +6,7 @@ Phase 0 specifies the implementation contract, representative source files, exac
 
 The implementation order is shared foundation, JSONL, JSON, release consolidation, and XML. XML has a shape/behavior target here, not an implementation commitment ahead of JSON. Preserve processing guarantees rather than accidental CSV coupling. Fix a newly exposed constraint at its owner instead of compensating in every consumer.
 
-**User-confirmed decisions:** ValidateThenExecute receives bounded immutable accepted metadata from the beginning of replay. ValidateAndExecute validates and executes units in one pass, with diagnostics and explicit partial-execution outcomes. CSV/JSONL metadata routing is opt-in; JSONL routing ships with its initial capability. Metadata declarations are shared across formats. YAML defaults minimize boilerplate, including XML field kind Attribute and empty namespace.
+**User-confirmed decisions:** ValidateThenExecute receives bounded immutable accepted metadata from the beginning of replay. ValidateAndExecute validates and executes units in one pass, with diagnostics and explicit partial-execution outcomes. Valid-unit reporting is an optional awaited hook in all modes, not a processing mode. The modes are ValidateOnly, ValidateThenExecute, and ValidateAndExecute; outcomes are Succeeded, ContentFailed, and ExecutionFailed, independent of mode. MaxDiagnostics limits emitted diagnostic events, not application-owned reporting callbacks. CSV/JSONL metadata routing is opt-in; JSONL routing ships with its initial capability. Metadata declarations are shared across formats. YAML defaults minimize boilerplate, including XML field kind Attribute and empty namespace.
 
 ## 1. Terminology and accounting
 
@@ -27,15 +27,15 @@ Increment RecordsRead and UnitsRead when their boundaries are recognized, even i
 
 InvalidRecords counts each source record with a localized parsing/mapping/field/structural error once. InvalidUnits counts each candidate that fails mapping, structure, pure validation, or scoped validation once. A CSV group-level error can invalidate a unit without attributing failure to a particular row. A nested JSON field error invalidates its selected source object and its owning unit once, regardless of diagnostic count. File/envelope/EOF errors do not retroactively invalidate otherwise valid units.
 
-Shared invariants are nonnegative counters, InvalidRecords <= RecordsRead, InvalidUnits <= UnitsRead, UnitsValidated + InvalidUnits <= UnitsRead, UnitsAttempted <= UnitsValidated, UnitsExecuted <= UnitsAttempted, and UnitsReported <= UnitsValidated. Do not tie validated units to valid source-record counts; these are different domains. A successful completed file requires UnitsValidated = UnitsRead and no invalid units/records/errors. A completed rejected CSV file can include orphan records outside every unit. A terminal document error inside an already recognized unit marks that unit/record invalid; an error between units does not.
+Shared invariants are nonnegative counters, InvalidRecords <= RecordsRead, InvalidUnits <= UnitsRead, UnitsValidated + InvalidUnits <= UnitsRead, UnitsAttempted <= UnitsValidated, and UnitsExecuted <= UnitsAttempted. Do not tie validated units to valid source-record counts; these are different domains. A successful completed file requires UnitsValidated = UnitsRead and no invalid units/records/errors. A completed content-failed CSV file can include orphan records outside every unit. A terminal document error inside an already recognized unit marks that unit/record invalid; an error between units does not.
 
 Counters describe validation only except for attempted/executed/report-hook counts. Replay does not increment source/unit-read counters. Recognized metadata and route occurrence counts remain separate typed-context information. BytesRead counts source bytes actually read, including parser read-ahead; do not pretend it is the byte position of the current unit.
 
 ## 2. Lifecycle contract
 
-Retain `ProcessAsync(Func<CancellationToken, Task<Stream>>, FileProcessingContext, CancellationToken)`, stream ownership, original execution Result preservation, and awaited reporting hooks. Support four processing modes: ValidateOnly (default), ValidateAndReport, ValidateThenExecute, and ValidateAndExecute. Only ValidateThenExecute opens replay and requires identical immutable bytes on both opens. Single-pass modes open once; retry-safe source identity remains caller-owned. A version label, count equality, or content hash computed too late cannot make already executed writes safe against a mutable source.
+Retain `ProcessAsync(Func<CancellationToken, Task<Stream>>, FileProcessingContext, CancellationToken)`, stream ownership, original execution Result preservation, and awaited reporting hooks. Support three processing modes: ValidateOnly (default), ValidateThenExecute, and ValidateAndExecute. The optional `OnValidatedUnitAsync` observation/reporting hook runs for every individually valid unit regardless of mode. Only ValidateThenExecute opens replay and requires identical immutable bytes on both opens. Single-pass modes open once; retry-safe source identity remains caller-owned. A version label, count equality, or content hash computed too late cannot make already executed writes safe against a mutable source.
 
-Validation proceeds as syntax/framing, unit mapping/structural checks, pure nested validation, fresh scoped custom validation, and optional reporting. Mapping/structure failure suppresses downstream validators for that unit; pure validation failure suppresses scoped validation. A valid report hook increments UnitsReported only after it returns. Custom validation remains read-only. Report-only can emit earlier valid units and later return ReportedWithErrors.
+Validation proceeds as syntax/framing, unit mapping/structural checks, pure nested validation, fresh scoped custom validation, and optional unit observation/reporting. Mapping/structure failure suppresses downstream validators for that unit; pure validation failure suppresses scoped validation. The optional hook is awaited before the next unit is read; it is application-owned side effect, not a diagnostic and has no separate progress counter. Custom validation remains read-only. A later content error may return ContentFailed after earlier valid units were reported.
 
 At EOF, finish metadata checks and perform file reconciliation. If any errors exist, never open replay; ValidateAndExecute may already have written valid units and must preserve that fact. In FailFast mode stop at the first content error and mark validation incomplete when checks remain; in CollectErrors mode reach EOF when syntax and budgets permit. Reconciliation may emit file errors even after every unit passed.
 
@@ -45,19 +45,19 @@ An accepted empty repeated stream invokes zero unit hooks. To preserve the exist
 
 ### Single-pass ValidateAndExecute
 
-Parse/assemble a complete bounded unit, map it, apply pure and scoped validation, then execute it in a separate fresh scope before processing the next unit. CSV hierarchy waits until the root group closes. Do not run execution in the validation scope or call the report-only valid-unit hook to perform writes.
+Parse/assemble a complete bounded unit, map it, apply pure and scoped validation, then execute it in a separate fresh scope before processing the next unit. CSV hierarchy waits until the root group closes. Do not run execution in the validation scope or use the valid-unit observation/reporting hook to perform business writes.
 
 Emit and await normal content diagnostics in this mode too. Invalid units never execute. FailFast stops on the first content error; CollectErrors skips invalid units and continues only where framing/parser state is trustworthy. EOF metadata/reconciliation still runs when traversal completes. Later errors never erase prior execution counts or trigger automatic rollback.
 
 AcceptedMetadata is unavailable during single-pass execution; only encountered validated pass-local metadata is available. If a handler requires a trailer or complete accepted-file metadata, select ValidateThenExecute. After successful EOF reconciliation, every mode exposes the frozen snapshot to successful completion, including an explicit empty accepted view when no metadata is declared; never expose it retroactively to earlier unit hooks.
 
-Add ExecutedWithErrors as an explicitly unsuccessful outcome for ValidateAndExecute content failures, including incomplete parsing with prior successful writes or zero writes. It requires content errors, preserves all partial progress, and carries no failed business Result. Retain Rejected for zero-execution validation/two-pass rejection; do not overload it with partially committed work. Executed is successful only after error-free completed traversal/reconciliation and all validated units executed.
+Return ContentFailed for content failures in any mode, including incomplete parsing with prior successful reports or single-pass writes. It requires content errors, preserves all partial progress, and carries no failed business Result. Return Succeeded only after error-free completed traversal/reconciliation and, when execution was requested, every validated unit executed. Do not make outcome names encode whether a report or execution action occurred.
 
 Both execution modes use ExecutionFailed when a handler returns a failed Result. Add an awaited protected OnExecutionFailedAsync hook receiving context, FileUnitInfo, and the original Result before returning the final summary. Stop on the first returned business failure regardless of errorMode; preserve any earlier content diagnostics and the identical failed Result. ValidationCompleted reflects whether EOF validation actually finished, not whether a unit executed. ExecutionFailed therefore permits incomplete validation and preceding content errors in the single-pass mode, while the two-pass mode still requires completed error-free acceptance.
 
-Replace OnRejectedAsync with OnContentFailedAsync(context, summary, cancellationToken), an awaited finalizer for Rejected, ReportedWithErrors, and ExecutedWithErrors. The neutral name deliberately avoids implying zero writes. OnCompletedAsync is successful finalization only. Business failure uses OnExecutionFailedAsync, not OnContentFailedAsync. Operational exceptions/cancellation propagate without either content/business-failure finalizer; reporting-hook faults propagate rather than replacing an operational failure with a content outcome.
+Replace OnRejectedAsync with OnContentFailedAsync(FileSummaryArgs args, CancellationToken cancellationToken), the awaited finalizer for ContentFailed regardless of partial reporting or execution. The neutral name deliberately avoids implying zero writes. OnCompletedAsync is successful finalization only. Business failure uses OnExecutionFailedAsync, not OnContentFailedAsync. Operational exceptions/cancellation propagate without either content/business-failure finalizer; reporting-hook faults propagate rather than replacing an operational failure with a content outcome.
 
-UnitsReported remains the successful report-only valid-unit hook count, not the number of errors reported. Error diagnostics continue through OnDiagnosticAsync in every mode; business failures travel through the original Result hook without being recast as malformed input.
+MaxDiagnostics is an independent work/safety budget over emitted diagnostic events (errors, warnings, and information). Attempt N+1 emits one terminal `file.limit.diagnostics` diagnostic, stops further processing, and marks validation incomplete; the sentinel does not consume the budget recursively. This cap does not limit valid-unit report callbacks. Error diagnostics continue through OnDiagnosticAsync in every mode; business failures travel through the original Result hook without being recast as malformed input.
 
 ## 3. Shared runtime and public API direction
 
@@ -74,12 +74,14 @@ Extend `FileUnitInfo` with required Ordinal, record/root type, source location, 
 Thread FileUnitInfo through validation, execution, trusted scope configuration, and reporting consistently. The intended handler override signatures are:
 
 ```csharp
-protected override Task OnValidateAsync(TUnit unit, FileUnitInfo info, FileProcessingContext context, Func<FileDiagnostic, CancellationToken, Task> reportDiagnosticAsync, CancellationToken cancellationToken);
+protected override Task OnValidateAsync(FileUnitValidationArgs<TUnit> args, CancellationToken cancellationToken);
 
-protected override Task<Result> OnExecuteAsync(TUnit unit, FileUnitInfo info, FileProcessingContext context, CancellationToken cancellationToken);
+protected override Task<Result> OnExecuteAsync(FileUnitArgs<TUnit> args, CancellationToken cancellationToken);
 ```
 
-Use the same argument ordering for reporting and context-configuration hooks: unit, info, context, followed by remaining hook-specific arguments and cancellation last. Update generated routed dispatch and handwritten handlers together. Add optional unit ordinal to FileDiagnostic so a diagnostic sink can correlate a malformed unit without access to a model.
+Use focused argument objects for multi-parameter extension hooks, with get-only properties and framework-controlled construction; cancellation stays separate and last. FileValidationArgs carries Context and the awaited ReportDiagnosticAsync sink; FileDiagnosticArgs carries Context and Diagnostic; FileSummaryArgs carries Context and Summary for completion/content failure; FileExecutionFailedArgs carries Context, Info, and the original Result. FileUnitArgs<TUnit> carries Unit, Info, and Context for execution/observation; FileUnitValidationArgs<TUnit> adds the diagnostic sink for validation; FileUnitContextArgs<TUnit> carries Unit, Info, Context, Parent, and UnitContext for trusted scope configuration. Referenced units and pass-local contexts remain mutable. Generated unordered dispatch narrows the same unit via As<TRecord>(), preserving provenance/context/sink; custom context members are accessed by casting Context. Keep the simple OnCreateExecutionContext(FileProcessingContext) hook unwrapped. Update generated routed dispatch and handwritten handlers together. Add optional unit ordinal to FileDiagnostic so a diagnostic sink can correlate a malformed unit without access to a model.
+
+FileProcessor<TUnit> owns protected Services, exposing the provider supplied at construction. Its lifetime follows registration, not an automatic invocation or unit scope; resolve business dependencies through the fresh scoped handler factory. DI remains optional for pure validation, but accessing Services without a supplied provider throws InvalidOperationException. Generated processors do not duplicate or shadow this property.
 
 Introduce neutral `CoreEx.IO` tracing and `file.*` lifecycle metrics/tags. Retain `csv.*` codes for CSV syntax/mapping/structure checks; use `json.*`, `jsonl.*`, and later `xml.*` for format content checks. Shared lifecycle, limits, and typed validation use `file.*`. Telemetry names changing is an intentional migration, not an indefinite double-emission policy.
 
@@ -87,9 +89,11 @@ Introduce neutral `CoreEx.IO` tracing and `file.*` lifecycle metrics/tags. Retai
 
 Generated context exposes typed pass-local metadata access plus a distinct read-only AcceptedMetadata view. A handler can distinguish unavailable from optional/missing metadata without testing incidental default values. The shared runtime carries the view without knowing generated metadata types; a generated context supplies typed access.
 
-AcceptedMetadata is absent during unit validation, report-only callbacks, and ValidateAndExecute unit execution. Build it only after successful EOF reconciliation and expose it to accepted completion and ValidateThenExecute replay. Only replay execution handlers receive the complete accepted view independent of source order. The ordinary pass-local metadata view starts empty on replay and is reconstructed as encountered.
+AcceptedMetadata is absent during unit validation and valid-unit callbacks, and during ValidateAndExecute unit execution. Build it only after successful EOF reconciliation and expose it to accepted completion and ValidateThenExecute replay. Only replay execution handlers receive the complete accepted view independent of source order. The ordinary pass-local metadata view starts empty on replay and is reconstructed as encountered.
 
-Only explicitly declared metadata fields are eligible. Generate immutable metadata DTOs with recursively immutable members/collections; do not call a mutable record with init-only collection references immutable. Freeze a bounded copy, without services, authentication, counters, tracked entities, accumulated diagnostics, or arbitrary context fields. Repeated units cannot become metadata through a selector. The snapshot is source data, not a business idempotency key.
+Only explicitly declared metadata fields are eligible. The accepted snapshot must be deeply immutable, not merely a mutable record with init-only collection references. Freeze a bounded copy, without services, authentication, counters, tracked entities, accumulated diagnostics, or arbitrary context fields. Repeated units cannot become metadata through a selector. The snapshot is source data, not a business idempotency key.
+
+Phase 1 baseline: the immutable accepted view uses `IReadOnlyDictionary<string, JsonElement>` for every source format rather than a separate immutable metadata DTO hierarchy. Wire models remain mutable; default `System.Text.Json` serialization freezes their values, and typed accessors deserialize a fresh copy on every read. Metadata types must round-trip with those defaults and their serializer attributes. This isolates accepted values without another public abstraction; callers should reuse a local typed copy when reading it repeatedly.
 
 Metadata mapping is performed as encountered, with declared field validation before it can be accepted. Reconciliation consumes the final metadata. Checks needing late metadata belong in EOF reconciliation and maintain bounded aggregate state; no per-unit I/O validation dependent on unseen metadata is promised. No hidden third pass or retained order list.
 
@@ -286,7 +290,7 @@ maxGroupRecords: 10000
 records:
 - name: Row
   properties:
-  - { name: Date, column: EffectiveDate, type: DateOnly, format: yyyyMMdd }
+  - { name: EffectiveDate, property: Date, type: DateOnly, format: yyyyMMdd }
 ```
 
 After, keeping the surrounding identity/path fields unchanged:
@@ -333,7 +337,7 @@ The reconciliation codes in the fixtures belong to the example's handwritten rec
 | Setting | Initial default and exact scope |
 |---|---|
 | limits.maxInputBytes | 64 MiB per pass, including BOM, ignored sections, metadata, and separators. Existing default preserved. At most one extra probe byte can prove overflow. |
-| limits.maxUnitBytes | 1 MiB raw selected JSON/object bytes, or JSONL bytes excluding LF/CRLF. Bound before materializing; larger units require deliberate configuration. For CSV this bounds the input span of one row/root group including intervening content and separators. |
+| limits.maxUnitBytes | 1 MiB raw selected JSON/object bytes, or JSONL bytes excluding LF/CRLF. Bound before materializing; larger units require deliberate configuration. CSV is excluded in Phase 1: CsvHelper 34 exposes UTF-8 parser offsets/raw records rather than original byte spans for UTF-16/32 input, and raw records omit line breaks. The approved adjustment is to retain CSV maxInputBytes and maxGroupRecords without claiming a per-unit source-byte bound. Reintroduce CSV maxUnitBytes only with a byte-preserving bounded framing implementation and regression proof. |
 | limits.maxMetadataBytes | 64 KiB aggregate selected source metadata bytes. Also cap total decoded string characters and total metadata value nodes independently at this numeric bound during freeze, preventing arbitrary expansion or caller-added state. This is a linear content bound, not an exact heap ceiling. |
 | limits.maxUnits | 100,000 candidate units per file; observing candidate N+1 emits a terminal file.limit.units error before unit allocation/handler entry. |
 | limits.maxDiagnostics | 1,000 ordinary diagnostics. An attempted N+1 emits exactly one terminal file.limit.diagnostics error instead of that ordinary diagnostic, then stops. The terminal limit diagnostic does not recursively consume the budget. |
@@ -368,27 +372,27 @@ The accepted feed has Order A with BillingAddress B1, ShippingAddress S1, two li
 
 CSV uses H/O/B/S/L/G/T routes and fixed sibling order. Header H and trailer T carry batch identity/totals; flat address/tag/line records assemble the same conceptual roots. The document formats use natural nesting. No CSV transport model change is implied by conceptual equivalence.
 
-The enveloped JSON deliberately puts Batch after orders. All unit validation/report callbacks observe no Batch; accepted execution handlers see Batch.Id = B123 from their first call. The root-array JSON/JSONL omit file metadata and use the same Order type/rules, so they have equivalent units without claiming metadata parity.
+The enveloped JSON deliberately puts Batch after orders. All unit validation and valid-unit observation/report callbacks observe no Batch; accepted execution handlers see Batch.Id = B123 from their first call. The root-array JSON/JSONL omit file metadata and use the same Order type/rules, so they have equivalent units without claiming metadata parity.
 
 | Scenario | Records / invalid records | Units read / invalid / validated | Errors | Validation completed | ValidateThenExecute result |
 |---|---|---|---|---|---|
-| valid.csv | 13 / 0 | 2 / 0 / 2 | 0 | true | Executed, attempted 2, executed 2, opens 2. |
+| valid.csv | 13 / 0 | 2 / 0 / 2 | 0 | true | Succeeded, attempted 2, executed 2, opens 2. |
 | valid.jsonl | 2 / 0 | 2 / 0 / 2 | 0 | true | Same. |
 | valid-array.json | 2 / 0 | 2 / 0 / 2 | 0 | true | Same. |
 | valid-envelope.json | 2 / 0 | 2 / 0 / 2 | 0 | true | Same, with complete accepted Batch metadata. |
 | valid.xml, future | 2 / 0 | 2 / 0 / 2 | 0 | true | Same once XML is implemented. |
-| invalid-child.jsonl, CollectErrors | 2 / 1 | 2 / 1 / 1 | 1 | true | Rejected, attempted/executed 0, opens 1; valid second unit is still validated. |
-| malformed-line.jsonl, CollectErrors | 3 / 1 | 3 / 1 / 2 | 1 | true | Rejected, attempted/executed 0, opens 1. |
-| late-total.json | 2 / 0 | 2 / 0 / 2 | 1 | true | Rejected at reconciliation; no replay. |
-| trailing-garbage.json | 2 / 0 | 2 / 0 / 2 | 1 | false | Rejected on trailing syntax; no replay. |
-| missing-child.jsonl | 1 / 1 | 1 / 1 / 0 | 1 | true | Rejected; Lines cardinality error only. |
-| empty-array.json with OneOrMore | 0 / 0 | 0 / 0 / 0 | 1 | true | Rejected at EOF cardinality; no invented invalid record/unit. |
-| empty-array.json with Many | 0 / 0 | 0 / 0 / 0 | 0 | true | Executed with zero calls and two opens. |
+| invalid-child.jsonl, CollectErrors | 2 / 1 | 2 / 1 / 1 | 1 | true | ContentFailed, attempted/executed 0, opens 1; valid second unit is still validated. |
+| malformed-line.jsonl, CollectErrors | 3 / 1 | 3 / 1 / 2 | 1 | true | ContentFailed, attempted/executed 0, opens 1. |
+| late-total.json | 2 / 0 | 2 / 0 / 2 | 1 | true | ContentFailed at reconciliation; no replay. |
+| trailing-garbage.json | 2 / 0 | 2 / 0 / 2 | 1 | false | ContentFailed on trailing syntax; no replay. |
+| missing-child.jsonl | 1 / 1 | 1 / 1 / 0 | 1 | true | ContentFailed; Lines cardinality error only. |
+| empty-array.json with OneOrMore | 0 / 0 | 0 / 0 / 0 | 1 | true | ContentFailed at EOF cardinality; no invented invalid record/unit. |
+| empty-array.json with Many | 0 / 0 | 0 / 0 / 0 | 0 | true | Succeeded with zero calls and two opens. |
 | Zero-byte JSONL input with Many | 0 / 0 | 0 / 0 / 0 | 0 | true | Same accepted empty repeated stream. |
-| Zero-byte JSON input with any valid document selection | 0 / 0 | 0 / 0 / 0 | 1 | false | Rejected as invalid/missing JSON document, not an empty array. |
-| single-object.json | 1 / 0 | 1 / 0 / 1 | 0 | true | Executed, one unit, two opens. |
+| Zero-byte JSON input with any valid document selection | 0 / 0 | 0 / 0 / 0 | 1 | false | ContentFailed as invalid/missing JSON document, not an empty array. |
+| single-object.json | 1 / 0 | 1 / 0 / 1 | 0 | true | Succeeded, one unit, two opens. |
 
-With ValidateOnly, accepted cases return Validated, open once, and invoke no report/execution hooks. With ValidateAndReport, valid cases return Reported and report UnitsValidated times; rejected cases return ReportedWithErrors, report only individually valid units, and never replay. Specifically late-total reports two units before EOF rejection. FailFast invalid-child stops after the first unit: RecordsRead = UnitsRead = InvalidRecords = InvalidUnits = 1, UnitsValidated = 0, errors = 1, ValidationCompleted = false.
+ValidateOnly accepts valid cases as Succeeded with one open and no business execution; the optional valid-unit hook runs for individually valid units in this and every other mode. Content errors return ContentFailed, preserve any prior report callbacks, and never replay. Specifically late-total can report two units before EOF rejection. FailFast invalid-child stops after the first unit: RecordsRead = UnitsRead = InvalidRecords = InvalidUnits = 1, UnitsValidated = 0, errors = 1, ValidationCompleted = false.
 
 Baseline validation has no warning diagnostics. For invalid-child, expect `file.validation`, ordinal 1, model path `Lines[0].Quantity`, source path `/Lines/0/Quantity`, physical line 1. For missing-child, expect `file.structure.cardinality`, ordinal 1, model path `Lines`, source path `/Lines`. For malformed-line, expect `jsonl.record.invalid`, ordinal/line 2, without field values or guessed property path.
 
@@ -429,10 +433,10 @@ This is not a commitment to retain out-of-support targets indefinitely; reposito
 | Shared processor base | Move lifecycle/scoped hooks into FileProcessor<TUnit>; retain only useful CSV-specific intermediate code. |
 | Processor construction/options | Split common limits from dialect options; migrate all generated constructor calls and direct runtime callers. |
 | Progress constructors | Add UnitsRead/InvalidUnits and update summary consistency rules, tests, and hand-created snapshots. |
-| Unit hooks | Add FileUnitInfo to validation/execution/context configuration and align report hook order; regenerate typed routed dispatch and manually migrate handwritten partials. |
+| Unit hooks | Include FileUnitInfo in focused argument objects for validation/execution/context configuration/reporting; regenerate typed routed dispatch and manually migrate handwritten partials. |
 | Locations/diagnostics | Separate source/model paths; add ordinal correlation; no fabricated CSV lines for document errors. |
 | Contexts | Move HasValidationErrors to common context if shared logic needs it; CSV route counts stay format-specific. Migrate header/trailer access into shared typed metadata and read-only accepted metadata. |
-| Modes/outcomes | Add single-pass ValidateAndExecute, unsuccessful ExecutedWithErrors with partial execution, original-Result execution-failure reporting, and mode-aware summary invariants/finalization. |
+| Modes/outcomes | Add single-pass ValidateAndExecute, mode-independent Succeeded/ContentFailed/ExecutionFailed outcomes, original-Result execution-failure reporting, and summary invariants/finalization. |
 | Content finalization | Rename OnRejectedAsync to OnContentFailedAsync; migrate handwritten overrides explicitly, with summary progress retained and no forwarding compatibility trap. |
 | YAML | Group format-specific settings; move old flat CSV spellings with explicit diagnostics; use source-first property name plus optional property override with fixed DbEx-style PascalCase derivation and no casing options; default absent definition format to Csv only. |
 | Generated document output | Natural nested DTOs/validators/mappings, not CSV Group wrappers; Address can be referenced twice. |
@@ -459,7 +463,7 @@ The final review challenged modes, counters, metadata timing, naming, configurat
 - A missing unitPath target, explicit null, or wrong container kind is a file structure error even with Many cardinality. Only a present empty selected array is a valid zero-unit collection. No success-shaped interpretation of a broken envelope.
 - A declared metadata object, when present, must be an object; optional means absent allowed, not arbitrary scalar/null accepted. Defaults and presence rules must distinguish missing, invalid, and validated metadata. Never expose mutable partially mapped metadata to handlers.
 - file.structure.cardinality deliberately spans unit and file checks. A diagnostic with a unit ordinal is unit-scoped; absence denotes file/envelope scope. Document this discriminator for all diagnostic codes rather than expecting consumers to infer scope from physical lines.
-- A failed business Result takes outcome precedence over earlier single-pass content errors: return ExecutionFailed, preserve diagnostics/counters and original Result, and call only the execution-failure finalizer. ExecutedWithErrors means content failure without a returned business failure. Exceptions still propagate with partial progress.
+- A failed business Result takes outcome precedence over earlier single-pass content errors: return ExecutionFailed, preserve diagnostics/counters and original Result, and call only the execution-failure finalizer. ContentFailed means content failure without a returned business failure. Exceptions still propagate with partial progress.
 - AcceptedMetadata availability at successful completion is mandatory in every mode. A content-failed or operationally interrupted attempt has no accepted-file view, even when individual metadata objects validated earlier.
 - Count maxUnits candidate N+1 in UnitsRead and the relevant source record count before issuing its limit diagnostic, but allocate/map/validate/execute no unit for it. It remains unvalidated rather than being invented as a mapped-invalid unit. Ordinals/counters are deterministic at the boundary.
 - A CSV per-unit byte budget must use actual parser record spans, not underlying stream read counters distorted by parser read-ahead. Ensure CsvHelper exposes sufficient raw span/position information in a focused Phase 1 spike. If it does not, enforce the budget in bounded parser input/framing before allocation or explicitly redesign the CSV-specific byte contract; never claim an unenforced bound based on total read deltas. Existing maxGroupRecords remains an independent assembly bound.

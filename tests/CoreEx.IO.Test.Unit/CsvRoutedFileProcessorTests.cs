@@ -17,7 +17,7 @@ public class CsvRoutedFileProcessorTests
             var context = Context(mode);
             var summary = await processor.ProcessAsync(input.OpenAsync, context).ConfigureAwait(false);
 
-            summary.Outcome.Should().Be(mode == FileProcessingMode.ValidateOnly ? FileProcessingOutcome.Validated : FileProcessingOutcome.Executed);
+            summary.Outcome.Should().Be(FileProcessingOutcome.Succeeded);
             summary.Progress.RecordsRead.Should().Be(5);
             summary.Progress.UnitsValidated.Should().Be(5);
             summary.Progress.UnitsExecuted.Should().Be(executions);
@@ -57,7 +57,7 @@ public class CsvRoutedFileProcessorTests
         var processor = new Processor(environment);
         var input = new Input(text);
         var summary = await processor.ProcessAsync(input.OpenAsync, Context(FileProcessingMode.ValidateThenExecute)).ConfigureAwait(false);
-        summary.Outcome.Should().Be(FileProcessingOutcome.Rejected);
+        summary.Outcome.Should().Be(FileProcessingOutcome.ContentFailed);
         summary.ValidationCompleted.Should().BeTrue();
         summary.Progress.InvalidRecords.Should().Be(invalid);
         input.Streams.Should().ContainSingle();
@@ -108,7 +108,7 @@ public class CsvRoutedFileProcessorTests
     {
         var processor = new Processor(definition: () => Definition(alphaCardinality: CsvRecordCardinality.One), reconcile: false);
         var summary = await processor.ProcessAsync(new Input(text).OpenAsync, Context()).ConfigureAwait(false);
-        summary.Outcome.Should().Be(FileProcessingOutcome.Rejected);
+        summary.Outcome.Should().Be(FileProcessingOutcome.ContentFailed);
         processor.Diagnostics.Should().Contain(x => x.Code == code && x.RecordType == owner && x.Location != null && x.Location.LineNumber == line);
     }
 
@@ -126,6 +126,66 @@ public class CsvRoutedFileProcessorTests
         var rejected = new Processor(definition: Definition, reconcile: false);
         await rejected.ProcessAsync(new Input("A,one\nH,late\nT,0\nA,after\n").OpenAsync, Context()).ConfigureAwait(false);
         rejected.Diagnostics.Select(x => x.Code).Should().Contain("csv.structure.first-position").And.Contain("csv.structure.after-last");
+    }
+
+    [Test]
+    public async Task MetadataRoutes_AreCountedButNeverValidatedOrExecutedAsBusinessUnits()
+    {
+        await using var environment = new Environment();
+        var processor = new Processor(environment, () => new(0,
+        [
+            new CsvRoutedRecord<Alpha, Unit>("header", "H", AlphaMapping, x => x, new AlphaValidator()),
+            AlphaRoute(),
+            new CsvRoutedRecord<Beta, Unit>("trailer", "T", BetaMapping, x => x)
+        ],
+        [
+            new("Header", "header", true, CsvRecordPosition.First),
+            new("Trailer", "trailer", true, CsvRecordPosition.Last)
+        ]), reconcile: false, processingOptions: new() { MaxUnits = 1 });
+        var context = Context(FileProcessingMode.ValidateThenExecute);
+        var input = new Input("H,batch\nA,one\nT,1\n");
+
+        var summary = await processor.ProcessAsync(input.OpenAsync, context).ConfigureAwait(false);
+
+        summary.Outcome.Should().Be(FileProcessingOutcome.Succeeded);
+        summary.Progress.RecordsRead.Should().Be(3);
+        summary.Progress.UnitsRead.Should().Be(1);
+        summary.Progress.UnitsValidated.Should().Be(1);
+        summary.Progress.UnitsExecuted.Should().Be(1);
+        environment.Validated.Should().ContainSingle().Which.Unit.Should().BeOfType<Alpha>().Which.Text.Should().Be("one");
+        environment.Executed.Should().ContainSingle().Which.Unit.Should().BeOfType<Alpha>().Which.Text.Should().Be("one");
+        context.GetRecordCount("header").Should().Be(1);
+        context.GetRecordCount("alpha").Should().Be(1);
+        context.GetRecordCount("trailer").Should().Be(1);
+        context.GetMetadataLineNumber("Header").Should().Be(1);
+        context.GetMetadataLineNumber("Trailer").Should().Be(3);
+        context.GetAcceptedMetadata<Alpha>("Header")?.Text.Should().Be("batch");
+        context.GetAcceptedMetadata<Beta>("Trailer")?.Number.Should().Be(1);
+        environment.Executed[0].Context.GetAcceptedMetadata<Alpha>("Header")?.Text.Should().Be("batch");
+        input.Streams.Should().HaveCount(2);
+    }
+
+    [TestCase("A,one\n", "csv.metadata.required")]
+    [TestCase("H,batch\nH,again\nA,one\n", "csv.metadata.duplicate")]
+    [TestCase("A,one\nH,late\n", "csv.metadata.first-position")]
+    [TestCase("H,batch\nA,one\nT,1\nA,late\n", "csv.metadata.after-last")]
+    public async Task MetadataRules_RejectInvalidOccurrencesAndPositions(string text, string expectedCode)
+    {
+        var processor = new Processor(definition: () => new(0,
+        [
+            new CsvRoutedRecord<Alpha, Unit>("header", "H", AlphaMapping, x => x, new AlphaValidator()),
+            AlphaRoute(),
+            new CsvRoutedRecord<Beta, Unit>("trailer", "T", BetaMapping, x => x)
+        ],
+        [
+            new("Header", "header", true, CsvRecordPosition.First),
+            new("Trailer", "trailer", true, CsvRecordPosition.Last)
+        ]), reconcile: false);
+
+        var summary = await processor.ProcessAsync(new Input(text).OpenAsync, Context()).ConfigureAwait(false);
+
+        summary.Outcome.Should().Be(FileProcessingOutcome.ContentFailed);
+        processor.Diagnostics.Should().Contain(x => x.Code == expectedCode);
     }
 
     [TestCase("", "csv.discriminator.missing")]
@@ -256,12 +316,12 @@ public class CsvRoutedFileProcessorTests
     {
         await using var environment = new Environment();
         var input = new Input("A," + new string('x', 500) + "\n");
-        var processor = new Processor(environment, () => new(0, [AlphaRoute()]), new() { MaxInputBytes = 32 }, false);
+        var processor = new Processor(environment, () => new(0, [AlphaRoute()]), reconcile: false, processingOptions: new() { MaxInputBytes = 32 });
         var summary = await processor.ProcessAsync(input.OpenAsync, Context(FileProcessingMode.ValidateThenExecute)).ConfigureAwait(false);
         summary.ValidationCompleted.Should().BeFalse();
         summary.Progress.BytesRead.Should().Be(33);
         summary.Progress.InvalidRecords.Should().Be(0);
-        processor.Diagnostics.Should().ContainSingle().Which.Code.Should().Be("csv.limit.input-bytes");
+        processor.Diagnostics.Should().ContainSingle().Which.Code.Should().Be("file.limit.input-bytes");
         input.Streams.Should().ContainSingle();
         environment.Executed.Should().BeEmpty();
         processor.Events.Should().Equal("rejected");
@@ -324,7 +384,7 @@ public class CsvRoutedFileProcessorTests
     {
         var count = 0;
         void Observe(object? sender, FirstChanceExceptionEventArgs args) => Interlocked.Increment(ref count);
-        var processor = new CsvRoutedFileProcessor<Unit>(() => new(0, [AlphaRoute(), BetaRoute()]));
+        var processor = new CsvRoutedFileProcessor<Unit>(() => new(0, [AlphaRoute(), BetaRoute()]), processingOptions: new() { MaxDiagnostics = 10_000 });
         var input = new Input(string.Concat(Enumerable.Repeat("A,\nB,bad\nX,unknown\n", 3000)));
         AppDomain.CurrentDomain.FirstChanceException += Observe;
         FileProcessingSummary summary;
@@ -388,11 +448,15 @@ public class CsvRoutedFileProcessorTests
         Action positions = () => new CsvRoutedDefinition<Unit>(0,
             [new CsvRoutedRecord<Alpha, Unit>("first", "H", AlphaMapping, x => x, cardinality: CsvRecordCardinality.One, position: CsvRecordPosition.First),
              new CsvRoutedRecord<Alpha, Unit>("other", "O", AlphaMapping, x => x, cardinality: CsvRecordCardinality.Optional, position: CsvRecordPosition.First)]);
+        Action metadataRouteSettings = () => new CsvRoutedDefinition<Unit>(0,
+            [new CsvRoutedRecord<Alpha, Unit>("header", "H", AlphaMapping, x => x, cardinality: CsvRecordCardinality.One, position: CsvRecordPosition.First)],
+            [new("Header", "header", false, CsvRecordPosition.First)]);
         Action manyBoundary = () => new CsvRoutedRecord<Alpha, Unit>("header", "H", AlphaMapping, x => x, position: CsvRecordPosition.First);
         empty.Should().Throw<ArgumentException>();
         keys.Should().Throw<ArgumentException>();
         matches.Should().Throw<ArgumentException>();
         positions.Should().Throw<ArgumentException>();
+        metadataRouteSettings.Should().Throw<ArgumentException>();
         manyBoundary.Should().Throw<ArgumentException>();
     }
 
@@ -440,8 +504,8 @@ public class CsvRoutedFileProcessorTests
     private sealed class Processor : CsvRoutedFileProcessor<Unit>
     {
         private readonly bool _reconcile;
-        public Processor(Environment? environment = null, Func<CsvRoutedDefinition<Unit>>? definition = null, CsvFileOptions? options = null, bool reconcile = true)
-            : base(definition ?? (() => Definition()), options ?? new() { Comment = '#' }, serviceProvider: environment?.Provider,
+        public Processor(Environment? environment = null, Func<CsvRoutedDefinition<Unit>>? definition = null, CsvFileOptions? options = null, bool reconcile = true, FileProcessingOptions? processingOptions = null)
+            : base(definition ?? (() => Definition()), processingOptions, options ?? new() { Comment = '#' }, serviceProvider: environment?.Provider,
                 handlerFactory: environment is null ? null : sp => sp.GetRequiredService<Handler>()) => _reconcile = reconcile;
         public List<FileDiagnostic> Diagnostics { get; } = [];
         public List<string> Events { get; } = [];
@@ -449,33 +513,33 @@ public class CsvRoutedFileProcessorTests
         public Func<FileDiagnostic, CancellationToken, Task>? Diagnostic { get; init; }
         protected override FileProcessingContext OnCreateExecutionContext(FileProcessingContext validationContext)
             => new ContextState(validationContext.Identity, validationContext.Mode, validationContext.ErrorMode);
-        protected override void OnConfigureUnitContext(FileProcessingContext fileContext, Unit unit, ExecutionContext? parent, ExecutionContext unitContext)
+        protected override void OnConfigureUnitContext(FileUnitContextArgs<Unit> args)
         {
-            unitContext.TenantId = "trusted";
-            if (fileContext is ContextState state)
+            args.UnitContext.TenantId = "trusted";
+            if (args.Context is ContextState state)
                 state.HasBoundaries = _reconcile;
         }
-        protected override async Task OnDiagnosticAsync(FileProcessingContext context, FileDiagnostic diagnostic, CancellationToken cancellationToken)
+        protected override async Task OnDiagnosticAsync(FileDiagnosticArgs args, CancellationToken cancellationToken)
         {
             Ambient.Add(ExecutionContext.Current);
-            Diagnostics.Add(diagnostic);
+            Diagnostics.Add(args.Diagnostic);
             if (Diagnostic is not null)
-                await Diagnostic(diagnostic, cancellationToken).ConfigureAwait(false);
+                await Diagnostic(args.Diagnostic, cancellationToken).ConfigureAwait(false);
         }
-        protected override async Task OnValidateFileAsync(FileProcessingContext context, Func<FileDiagnostic, CancellationToken, Task> reportDiagnosticAsync, CancellationToken cancellationToken)
+        protected override async Task OnValidateFileAsync(FileValidationArgs args, CancellationToken cancellationToken)
         {
             Events.Add("eof");
             Ambient.Add(ExecutionContext.Current);
-            if (_reconcile && context is ContextState state && !state.HasValidationErrors && state.Total != state.Trailer)
-                await reportDiagnosticAsync(new(FileDiagnosticCategory.Validation, "file.total", "The declared total does not match."), cancellationToken).ConfigureAwait(false);
+            if (_reconcile && args.Context is ContextState state && !state.HasValidationErrors && state.Total != state.Trailer)
+                await args.ReportDiagnosticAsync(new(FileDiagnosticCategory.Validation, "file.total", "The declared total does not match."), cancellationToken).ConfigureAwait(false);
         }
-        protected override Task OnRejectedAsync(FileProcessingContext context, FileProcessingSummary summary, CancellationToken cancellationToken)
+        protected override Task OnContentFailedAsync(FileSummaryArgs args, CancellationToken cancellationToken)
         {
             Events.Add("rejected");
             Ambient.Add(ExecutionContext.Current);
             return Task.CompletedTask;
         }
-        protected override Task OnCompletedAsync(FileProcessingContext context, FileProcessingSummary summary, CancellationToken cancellationToken)
+        protected override Task OnCompletedAsync(FileSummaryArgs args, CancellationToken cancellationToken)
         {
             Events.Add("completed");
             Ambient.Add(ExecutionContext.Current);
@@ -514,14 +578,14 @@ public class CsvRoutedFileProcessorTests
         }
         public ExecutionContext Ambient { get; }
         public bool Disposed { get; private set; }
-        protected override async Task OnValidateAsync(Unit unit, FileProcessingContext context, Func<FileDiagnostic, CancellationToken, Task> reportDiagnosticAsync, CancellationToken cancellationToken)
+        protected override async Task OnValidateAsync(FileUnitValidationArgs<Unit> args, CancellationToken cancellationToken)
         {
-            var state = (ContextState)context;
-            _environment.Validated.Add((unit, state, Count(unit, state)));
+            var state = (ContextState)args.Context;
+            _environment.Validated.Add((args.Unit, state, Count(args.Unit, state)));
             if (_environment.Reject)
-                await reportDiagnosticAsync(new(FileDiagnosticCategory.Validation, "business.rule", "The record is not accepted."), cancellationToken).ConfigureAwait(false);
+                await args.ReportDiagnosticAsync(new(FileDiagnosticCategory.Validation, "business.rule", "The record is not accepted."), cancellationToken).ConfigureAwait(false);
 
-            if (unit is Beta { Number: { } number })
+            if (args.Unit is Beta { Number: { } number })
             {
                 if (state.HasBoundaries && state.GetRecordCount("trailer") > 0)
                     state.Trailer = number;
@@ -529,10 +593,10 @@ public class CsvRoutedFileProcessorTests
                     state.Total += number;
             }
         }
-        protected override Task<Result> OnExecuteAsync(Unit unit, FileProcessingContext context, CancellationToken cancellationToken)
+        protected override Task<Result> OnExecuteAsync(FileUnitArgs<Unit> args, CancellationToken cancellationToken)
         {
-            var state = (ContextState)context;
-            _environment.Executed.Add((unit, state, Count(unit, state)));
+            var state = (ContextState)args.Context;
+            _environment.Executed.Add((args.Unit, state, Count(args.Unit, state)));
             return Task.FromResult(_environment.Fail ? _environment.Failure : Result.Success);
         }
         private static long Count(Unit unit, ContextState context) => unit switch
@@ -546,14 +610,14 @@ public class CsvRoutedFileProcessorTests
     }
     private sealed class ConcurrentHandler(ExecutionContext ambient) : FileUnitHandler<Unit>
     {
-        protected override async Task OnValidateAsync(Unit unit, FileProcessingContext context, Func<FileDiagnostic, CancellationToken, Task> reportDiagnosticAsync, CancellationToken cancellationToken)
+        protected override async Task OnValidateAsync(FileUnitValidationArgs<Unit> args, CancellationToken cancellationToken)
         {
-            ambient.TenantId = unit is Alpha ? "a" : "b";
+            ambient.TenantId = args.Unit is Alpha ? "a" : "b";
             await Task.Yield();
             ExecutionContext.Current.Should().BeSameAs(ambient);
-            ambient.TenantId.Should().Be(unit is Alpha ? "a" : "b");
+            ambient.TenantId.Should().Be(args.Unit is Alpha ? "a" : "b");
         }
-        protected override async Task<Result> OnExecuteAsync(Unit unit, FileProcessingContext context, CancellationToken cancellationToken)
+        protected override async Task<Result> OnExecuteAsync(FileUnitArgs<Unit> args, CancellationToken cancellationToken)
         {
             ambient.TenantId.Should().BeNull();
             await Task.Yield();

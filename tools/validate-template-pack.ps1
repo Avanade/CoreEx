@@ -1503,17 +1503,16 @@ name: Smoke
 version: "fixture-v1"
 runtimeProjectPath: ../../src/Example.Files.Functions
 mode: ValidateOnly
-encoding: Utf8
+csv:
+  encoding: Utf8
 records:
   - name: Row
     properties:
       - name: Code
         type: String
-        column: Code
         required: true
       - name: Count
         type: Integer
-        column: Count
         min: 1
 '@ + "`n")
     Add-Content (Join-Path $TestDir "tests/Example.Files.Test.Functions/GlobalUsing.cs") @'
@@ -1529,8 +1528,8 @@ namespace Example.Files.Test.Functions;
 [TestFixture]
 public sealed class FileTests
 {
-    [TestCase("Code,Count\nok,1\n", FileProcessingOutcome.Validated)]
-    [TestCase("Code,Count\nok,0\n", FileProcessingOutcome.Rejected)]
+    [TestCase("Code,Count\nok,1\n", FileProcessingOutcome.Succeeded)]
+    [TestCase("Code,Count\nok,0\n", FileProcessingOutcome.ContentFailed)]
     public async Task ProcessesGeneratedDefinition(string csv, FileProcessingOutcome expected)
     {
         var services = new ServiceCollection();

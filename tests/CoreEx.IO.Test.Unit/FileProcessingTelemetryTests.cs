@@ -2,7 +2,7 @@ namespace CoreEx.IO.Test.Unit;
 
 [TestFixture]
 [NonParallelizable]
-public class CsvTelemetryTests
+public class FileProcessingTelemetryTests
 {
     [Test]
     public async Task AttemptsProduceBoundedMetricsAndTracePartialProgressWithoutSourceIdentity()
@@ -10,7 +10,7 @@ public class CsvTelemetryTests
         var activities = new List<System.Diagnostics.Activity>();
         using var tracing = new System.Diagnostics.ActivityListener
         {
-            ShouldListenTo = source => source.Name == CsvProcessingTelemetry.MeterName,
+            ShouldListenTo = source => source.Name == FileProcessingTelemetry.MeterName,
             Sample = (ref System.Diagnostics.ActivityCreationOptions<System.Diagnostics.ActivityContext> _) => System.Diagnostics.ActivitySamplingResult.AllData,
             ActivityStopped = activities.Add
         };
@@ -19,14 +19,14 @@ public class CsvTelemetryTests
         using var metrics = new System.Diagnostics.Metrics.MeterListener();
         metrics.InstrumentPublished = (instrument, listener) =>
         {
-            if (instrument.Meter.Name == CsvProcessingTelemetry.MeterName && instrument.Name == "csv.files.processed")
+            if (instrument.Meter.Name == FileProcessingTelemetry.MeterName && instrument.Name == "file.files.processed")
                 listener.EnableMeasurementEvents(instrument);
         };
         metrics.SetMeasurementEventCallback<long>((_, value, tags, _) =>
         {
             value.Should().Be(1);
             tags.Length.Should().Be(1);
-            tags[0].Key.Should().Be("csv.outcome");
+            tags[0].Key.Should().Be("file.outcome");
             outcomes.Add((string)tags[0].Value!);
         });
         metrics.Start();
@@ -35,7 +35,7 @@ public class CsvTelemetryTests
         FileProcessingContext Context() => new(new("Telemetry", "1", "private-source", "private-attempt"));
         Task<Stream> Open(string input) => Task.FromResult<Stream>(new MemoryStream(Encoding.UTF8.GetBytes(input)));
         (await processor.ProcessAsync(_ => Open("1\n"), Context())).IsSuccess.Should().BeTrue();
-        (await processor.ProcessAsync(_ => Open("invalid\n"), Context())).Outcome.Should().Be(FileProcessingOutcome.Rejected);
+        (await processor.ProcessAsync(_ => Open("invalid\n"), Context())).Outcome.Should().Be(FileProcessingOutcome.ContentFailed);
         var failure = new IOException("source failed");
         var faultContext = Context();
         var fault = () => processor.ProcessAsync(_ => Task.FromException<Stream>(failure), faultContext);
@@ -49,14 +49,14 @@ public class CsvTelemetryTests
         await reportingFault.Should().ThrowAsync<IOException>();
         reportingContext.Progress.UnitsValidated.Should().Be(1);
 
-        outcomes.Should().Equal("validated", "rejected", "faulted", "cancelled", "faulted");
+        outcomes.Should().Equal("succeeded", "content-failed", "faulted", "cancelled", "faulted");
         activities.Should().HaveCount(5);
-        activities.Select(x => x.GetTagItem("csv.outcome")).Should().Equal("validated", "rejected", "faulted", "cancelled", "faulted");
-        activities[0].GetTagItem("csv.records_read").Should().Be(1L);
-        activities[1].GetTagItem("csv.error_count").Should().Be(1L);
+        activities.Select(x => x.GetTagItem("file.outcome")).Should().Equal("succeeded", "content-failed", "faulted", "cancelled", "faulted");
+        activities[0].GetTagItem("file.records_read").Should().Be(1L);
+        activities[1].GetTagItem("file.error_count").Should().Be(1L);
         foreach (var activity in activities)
         {
-            activity.GetTagItem("csv.definition").Should().Be("Telemetry");
+            activity.GetTagItem("file.definition").Should().Be("Telemetry");
             activity.TagObjects.Select(x => x.Value).Should().NotContain("private-source").And.NotContain("private-attempt");
         }
     }
@@ -73,14 +73,14 @@ public class CsvTelemetryTests
         act.Should().Throw<ArgumentException>();
     }
 
-    [TestCase(false, "executed")]
+    [TestCase(false, "succeeded")]
     [TestCase(true, "execution-failed")]
     public async Task ExecutionOutcomesRetainCountsAndOriginalFailure(bool fail, string outcome)
     {
         var activities = new List<System.Diagnostics.Activity>();
         using var tracing = new System.Diagnostics.ActivityListener
         {
-            ShouldListenTo = source => source.Name == CsvProcessingTelemetry.MeterName,
+            ShouldListenTo = source => source.Name == FileProcessingTelemetry.MeterName,
             Sample = (ref System.Diagnostics.ActivityCreationOptions<System.Diagnostics.ActivityContext> _) => System.Diagnostics.ActivitySamplingResult.AllData,
             ActivityStopped = activities.Add
         };
@@ -99,9 +99,9 @@ public class CsvTelemetryTests
             summary.ExecutionResult.Error.Should().BeSameAs(failure.Error);
 
         activities.Should().ContainSingle();
-        activities[0].GetTagItem("csv.outcome").Should().Be(outcome);
-        activities[0].GetTagItem("csv.units_attempted").Should().Be(1L);
-        activities[0].GetTagItem("csv.units_executed").Should().Be(fail ? 0L : 1L);
+        activities[0].GetTagItem("file.outcome").Should().Be(outcome);
+        activities[0].GetTagItem("file.units_attempted").Should().Be(1L);
+        activities[0].GetTagItem("file.units_executed").Should().Be(fail ? 0L : 1L);
     }
 
     [Test]
@@ -112,7 +112,7 @@ public class CsvTelemetryTests
         var processor = new CsvFileProcessor<Row>(() => new CsvFileMapping<Row>().MapProperty("Value", x => x.Value, CsvFieldConverters.Nullable<int>(), 0), serviceProvider: provider);
         var context = new FileProcessingContext(new("Telemetry", "1", "private-source", "private-attempt"));
         await processor.ProcessAsync(_ => Task.FromResult<Stream>(new MemoryStream(Encoding.UTF8.GetBytes("private-invalid-value\n"))), context);
-        logs.Entries.Should().Contain(x => x.Level == LogLevel.Warning && x.Message.Contains("rejected") && x.Message.Contains("records: 1"));
+        logs.Entries.Should().Contain(x => x.Level == LogLevel.Warning && x.Message.Contains("content-failed") && x.Message.Contains("records: 1"));
         logs.Entries.Should().NotContain(x => x.Message.Contains("private-source") || x.Message.Contains("private-attempt") || x.Message.Contains("private-invalid-value"));
     }
 
@@ -134,12 +134,12 @@ public class CsvTelemetryTests
 
     private sealed class Handler(Result result) : FileUnitHandler<Row>
     {
-        protected override Task<Result> OnExecuteAsync(Row unit, FileProcessingContext context, CancellationToken cancellationToken) => Task.FromResult(result);
+        protected override Task<Result> OnExecuteAsync(FileUnitArgs<Row> args, CancellationToken cancellationToken) => Task.FromResult(result);
     }
 
     private sealed class ReportingFaultProcessor() : CsvFileProcessor<Row>(() => new CsvFileMapping<Row>().MapProperty("Value", x => x.Value, CsvFieldConverters.Nullable<int>(), 0))
     {
-        protected override Task OnCompletedAsync(FileProcessingContext context, FileProcessingSummary summary, CancellationToken cancellationToken)
+        protected override Task OnCompletedAsync(FileSummaryArgs args, CancellationToken cancellationToken)
             => Task.FromException(new IOException("Report persistence failed."));
     }
 

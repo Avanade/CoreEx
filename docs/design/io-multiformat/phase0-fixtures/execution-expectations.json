@@ -5,46 +5,46 @@
       "id": "single-pass-valid",
       "file": "valid.jsonl", "mode": "ValidateAndExecute", "errorMode": "CollectErrors",
       "recordsRead": 2, "invalidRecords": 0, "unitsRead": 2, "invalidUnits": 0, "unitsValidated": 2,
-      "unitsAttempted": 2, "unitsExecuted": 2, "unitsReported": 0,
-      "errorCount": 0, "validationCompleted": true, "outcome": "Executed", "opens": 1,
+      "unitsAttempted": 2, "unitsExecuted": 2,
+      "errorCount": 0, "validationCompleted": true, "outcome": "Succeeded", "opens": 1,
       "acceptedMetadataAtCompletion": true
     },
     {
       "id": "single-pass-invalid-collect",
       "file": "invalid-child.jsonl", "mode": "ValidateAndExecute", "errorMode": "CollectErrors",
       "recordsRead": 2, "invalidRecords": 1, "unitsRead": 2, "invalidUnits": 1, "unitsValidated": 1,
-      "unitsAttempted": 1, "unitsExecuted": 1, "unitsReported": 0,
-      "errorCount": 1, "validationCompleted": true, "outcome": "ExecutedWithErrors", "opens": 1,
+      "unitsAttempted": 1, "unitsExecuted": 1,
+      "errorCount": 1, "validationCompleted": true, "outcome": "ContentFailed", "opens": 1,
       "diagnosticCodes": ["file.validation"], "executedOrdinals": [2]
     },
     {
       "id": "single-pass-invalid-fast",
       "file": "invalid-child.jsonl", "mode": "ValidateAndExecute", "errorMode": "FailFast",
       "recordsRead": 1, "invalidRecords": 1, "unitsRead": 1, "invalidUnits": 1, "unitsValidated": 0,
-      "unitsAttempted": 0, "unitsExecuted": 0, "unitsReported": 0,
-      "errorCount": 1, "validationCompleted": false, "outcome": "ExecutedWithErrors", "opens": 1
+      "unitsAttempted": 0, "unitsExecuted": 0,
+      "errorCount": 1, "validationCompleted": false, "outcome": "ContentFailed", "opens": 1
     },
     {
       "id": "single-pass-late-total",
       "file": "late-total.json", "mode": "ValidateAndExecute", "errorMode": "CollectErrors",
       "recordsRead": 2, "invalidRecords": 0, "unitsRead": 2, "invalidUnits": 0, "unitsValidated": 2,
-      "unitsAttempted": 2, "unitsExecuted": 2, "unitsReported": 0,
-      "errorCount": 1, "validationCompleted": true, "outcome": "ExecutedWithErrors", "opens": 1,
+      "unitsAttempted": 2, "unitsExecuted": 2,
+      "errorCount": 1, "validationCompleted": true, "outcome": "ContentFailed", "opens": 1,
       "diagnosticCodes": ["file.reconciliation.count"]
     },
     {
       "id": "single-pass-trailing-syntax",
       "file": "trailing-garbage.json", "mode": "ValidateAndExecute", "errorMode": "CollectErrors",
       "recordsRead": 2, "invalidRecords": 0, "unitsRead": 2, "invalidUnits": 0, "unitsValidated": 2,
-      "unitsAttempted": 2, "unitsExecuted": 2, "unitsReported": 0,
-      "errorCount": 1, "validationCompleted": false, "outcome": "ExecutedWithErrors", "opens": 1
+      "unitsAttempted": 2, "unitsExecuted": 2,
+      "errorCount": 1, "validationCompleted": false, "outcome": "ContentFailed", "opens": 1
     },
     {
       "id": "single-pass-business-failure",
       "file": "valid.jsonl", "mode": "ValidateAndExecute", "errorMode": "CollectErrors",
       "failExecutionOrdinal": 2,
       "recordsRead": 2, "invalidRecords": 0, "unitsRead": 2, "invalidUnits": 0, "unitsValidated": 2,
-      "unitsAttempted": 2, "unitsExecuted": 1, "unitsReported": 0,
+      "unitsAttempted": 2, "unitsExecuted": 1,
       "errorCount": 0, "validationCompleted": false, "outcome": "ExecutionFailed", "opens": 1,
       "executionFailureHookCount": 1, "preserveOriginalResult": true
     },
@@ -52,16 +52,16 @@
       "id": "routed-two-pass",
       "file": "routed.jsonl", "mode": "ValidateThenExecute", "errorMode": "CollectErrors",
       "recordsRead": 4, "invalidRecords": 0, "unitsRead": 2, "invalidUnits": 0, "unitsValidated": 2,
-      "unitsAttempted": 2, "unitsExecuted": 2, "unitsReported": 0,
-      "errorCount": 0, "validationCompleted": true, "outcome": "Executed", "opens": 2,
+      "unitsAttempted": 2, "unitsExecuted": 2,
+      "errorCount": 0, "validationCompleted": true, "outcome": "Succeeded", "opens": 2,
       "acceptedMetadataAtExecution": true, "acceptedMetadataAtCompletion": true
     },
     {
       "id": "routed-single-pass",
       "file": "routed.jsonl", "mode": "ValidateAndExecute", "errorMode": "CollectErrors",
       "recordsRead": 4, "invalidRecords": 0, "unitsRead": 2, "invalidUnits": 0, "unitsValidated": 2,
-      "unitsAttempted": 2, "unitsExecuted": 2, "unitsReported": 0,
-      "errorCount": 0, "validationCompleted": true, "outcome": "Executed", "opens": 1,
+      "unitsAttempted": 2, "unitsExecuted": 2,
+      "errorCount": 0, "validationCompleted": true, "outcome": "Succeeded", "opens": 1,
       "headerAvailableAtExecution": true, "trailerAvailableAtExecution": false,
       "acceptedMetadataAtExecution": false, "acceptedMetadataAtCompletion": true
     }

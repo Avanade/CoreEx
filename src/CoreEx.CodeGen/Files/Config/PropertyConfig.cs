@@ -2,30 +2,34 @@ namespace CoreEx.CodeGen.Files.Config;
 
 /// <summary>Declares a nullable wire property, its CSV selector, conversion, and pure validation.</summary>
 [CodeGenClass("Property", Title = "File record property.")]
-[CodeGenCategory("Primary", Title = "Wire property identity.")]
-[CodeGenCategory("Mapping", Title = "CSV selector and conversion.")]
+[CodeGenCategory("Primary", Title = "Source field and generated property identity.")]
+[CodeGenCategory("Csv", Title = "CSV selector and conversion.")]
+[CodeGenCategory("Mapping", Title = "Typed value conversion.")]
 [CodeGenCategory("Validation", Title = "Pure typed validation.")]
 public class PropertyConfig : ConfigBase<CodeGenConfig, RecordConfig>
 {
-    /// <summary>Gets or sets the generated property name.</summary>
+    /// <summary>Gets or sets the exact source field name.</summary>
     [JsonPropertyName("name")]
-    [CodeGenProperty("Primary", Title = "C# property name.", IsMandatory = true)]
+    [CodeGenProperty("Primary", Title = "Source field name.", IsMandatory = true, Description = "Exact CSV column name, or logical label for positional fields.")]
     public string? Name { get; set; }
+
+    /// <summary>Gets or sets the exact generated C# property name override.</summary>
+    [JsonPropertyName("property")]
+    [CodeGenProperty("Primary", Title = "Generated C# property override.", Description = "Defaults to DbEx-style PascalCase derivation from name.")]
+    public string? Property { get; set; }
+
+    /// <summary>Gets the resolved generated C# property name.</summary>
+    public string PropertyName { get; private set; } = null!;
 
     /// <summary>Gets or sets the supported logical type.</summary>
     [JsonPropertyName("type")]
     [CodeGenProperty("Primary", Title = "Logical type.", Options = ["String", "Integer", "Int64", "Decimal", "Double", "Boolean", "Guid", "DateOnly", "DateTime"], Description = "Defaults to String. All wire properties are nullable; requiredness is separate.")]
     public string? Type { get; set; }
 
-    /// <summary>Gets or sets the positional field index.</summary>
-    [JsonPropertyName("index")]
-    [CodeGenProperty("Mapping", Title = "Zero-based CSV index.", Description = "Required for routed files. Specify exactly one of index or column.")]
-    public int? Index { get; set; }
-
-    /// <summary>Gets or sets the column-name selector.</summary>
-    [JsonPropertyName("column")]
-    [CodeGenProperty("Mapping", Title = "CSV column name.", Description = "Flat files only; specify exactly one of column or index.")]
-    public string? Column { get; set; }
+    /// <summary>Gets or sets CSV-specific positional selection.</summary>
+    [JsonPropertyName("csv")]
+    [CodeGenProperty("Csv", Title = "CSV property settings.")]
+    public CsvPropertyConfig? Csv { get; set; }
 
     /// <summary>Gets or sets an exact invariant date format.</summary>
     [JsonPropertyName("format")]
@@ -108,7 +112,7 @@ public class PropertyConfig : ConfigBase<CodeGenConfig, RecordConfig>
             if (MinLength.HasValue) yield return $"MinimumLength({MinLength.Value})";
             if (MaxLength == 0) yield return "CompareValues(new string[] { \"\" })";
             else if (MaxLength.HasValue) yield return $"MaximumLength({MaxLength.Value})";
-            if (Regex is not null) yield return $"Matches({Name}Regex())";
+            if (Regex is not null) yield return $"Matches({PropertyName}Regex())";
             if (Email == true) yield return "Email()";
             if (HasMin && HasMax) yield return $"InclusiveBetween({ScalarLiteral(ParseScalar(Min, nameof(Min)))}, {ScalarLiteral(ParseScalar(Max, nameof(Max)))})";
             else if (HasMin) yield return $"GreaterThanOrEqualTo({ScalarLiteral(ParseScalar(Min, nameof(Min)))})";
@@ -170,17 +174,17 @@ public class PropertyConfig : ConfigBase<CodeGenConfig, RecordConfig>
     };
 
     /// <summary>Gets a safe mapping selector literal.</summary>
-    public string SelectorLiteral => OnRamp.Utility.CSharpSource.StringLiteral(Column ?? Name!);
+    public string SelectorLiteral => OnRamp.Utility.CSharpSource.StringLiteral(Name!);
 
     /// <summary>Gets the positional selector expression.</summary>
-    public string IndexExpression => Index?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "null";
+    public string IndexExpression => Csv?.Index?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "null";
 
     /// <summary>Gets the non-throwing converter expression.</summary>
     public string Converter => Type switch
     {
         "String" => "CsvFieldConverters.String",
         "DateOnly" => $"CsvFieldConverters.DateOnly({OnRamp.Utility.CSharpSource.StringLiteral(Format!)})",
-        "DateTime" => $"Convert{Name}",
+        "DateTime" => $"Convert{PropertyName}",
         _ => $"CsvFieldConverters.Nullable<{DotNetType.TrimEnd('?')}>()"
     };
 
@@ -194,14 +198,15 @@ public class PropertyConfig : ConfigBase<CodeGenConfig, RecordConfig>
     protected override async Task PrepareAsync()
     {
         RejectUnknownProperties();
-        Name = ConfigValidation.Identifier(this, nameof(Name), Name);
+        Name = RequireText(nameof(Name), Name);
+        PropertyName = Property is null ? DerivePropertyName(Name) : ConfigValidation.Identifier(this, nameof(Property), Property);
+        PropertyName = ConfigValidation.Identifier(this, nameof(Property), PropertyName);
         Type = DefaultWhereNull(Type, () => "String");
         Required = DefaultWhereNull(Required, () => false);
-        if (Index.HasValue == (Column is not null) || Index < 0)
-            throw new CodeGenException(this, nameof(Index), "Specify exactly one nonnegative index or nonblank column.");
-
-        if (Column is not null)
-            RequireText(nameof(Column), Column);
+        if (Csv is not null)
+            await Csv.PrepareAsync(Root!, this).ConfigureAwait(false);
+        else if (Root!.IsRouted)
+            throw new CodeGenException(this, nameof(Csv), "Routed CSV properties require a positional csv.index.");
 
         if (Type != "String" && (MinLength.HasValue || MaxLength.HasValue || Regex is not null || Email.HasValue))
             throw new CodeGenException(this, nameof(MinLength), "Length, regex and email rules require String.");
@@ -261,5 +266,12 @@ public class PropertyConfig : ConfigBase<CodeGenConfig, RecordConfig>
 
         if (ReferenceData is not null)
             await ReferenceData.PrepareAsync(Root!, this).ConfigureAwait(false);
+    }
+
+    /// <summary>Derives a public property identifier from underscore- and hyphen-separated source names.</summary>
+    private static string DerivePropertyName(string sourceName)
+    {
+        var parts = sourceName.Split(['_', '-'], StringSplitOptions.RemoveEmptyEntries);
+        return string.Concat(parts.Select(x => char.ToUpperInvariant(x[0]) + x[1..]));
     }
 }

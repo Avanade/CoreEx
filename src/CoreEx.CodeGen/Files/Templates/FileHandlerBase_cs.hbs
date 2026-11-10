@@ -9,45 +9,45 @@
 namespace {{RuntimeNamespace}};
 
 /// <summary>Dispatches unordered record validation and execution to typed, definition-specific extension points.</summary>
-/// <remarks>Override the typed methods in the handwritten handler. Every physical record, including First/Last records, is its own scoped business unit.</remarks>
+/// <remarks>Override the typed methods in the handwritten handler. Every non-metadata mapped record, including executable First/Last records, is its own scoped business unit.</remarks>
 public abstract partial class {{Name}}HandlerBase : FileUnitHandler<{{UnitType}}>
 {
     /// <inheritdoc/>
-    protected sealed override Task OnValidateAsync({{UnitType}} unit, FileProcessingContext context, Func<FileDiagnostic, CancellationToken, Task> reportDiagnosticAsync, CancellationToken cancellationToken)
+    protected sealed override Task OnValidateAsync(FileUnitValidationArgs<{{UnitType}}> args, CancellationToken cancellationToken)
     {
-        if (context is not {{Name}}Context typedContext)
-            throw new ArgumentException("Context type does not match this generated definition.", nameof(context));
+        if (args.Context is not {{Name}}Context)
+            throw new ArgumentException("Context type does not match this generated definition.", nameof(args));
 
-        return unit switch
+        return args.Unit switch
         {
 {{#each Records}}
-            {{TypeName}} row => OnValidate{{Name}}Async(row, typedContext, reportDiagnosticAsync, cancellationToken),
+            {{TypeName}} => OnValidate{{Name}}Async(args.As<{{TypeName}}>(), cancellationToken),
 {{/each}}
-            _ => throw new ArgumentException("Record type does not match this generated definition.", nameof(unit))
+            _ => throw new ArgumentException("Record type does not match this generated definition.", nameof(args))
         };
     }
 
     /// <inheritdoc/>
-    protected sealed override Task<Result> OnExecuteAsync({{UnitType}} unit, FileProcessingContext context, CancellationToken cancellationToken)
+    protected sealed override Task<Result> OnExecuteAsync(FileUnitArgs<{{UnitType}}> args, CancellationToken cancellationToken)
     {
-        if (context is not {{Name}}Context typedContext)
-            throw new ArgumentException("Context type does not match this generated definition.", nameof(context));
+        if (args.Context is not {{Name}}Context)
+            throw new ArgumentException("Context type does not match this generated definition.", nameof(args));
 
-        return unit switch
+        return args.Unit switch
         {
 {{#each Records}}
-            {{TypeName}} row => OnExecute{{Name}}Async(row, typedContext, cancellationToken),
+            {{TypeName}} => OnExecute{{Name}}Async(args.As<{{TypeName}}>(), cancellationToken),
 {{/each}}
-            _ => throw new ArgumentException("Record type does not match this generated definition.", nameof(unit))
+            _ => throw new ArgumentException("Record type does not match this generated definition.", nameof(args))
         };
     }
 {{#each Records}}
 
     /// <summary>Validates one typed {{Name}} unit without business mutations; the default adds no rules.</summary>
-    protected virtual Task OnValidate{{Name}}Async({{TypeName}} unit, {{Root.Name}}Context context, Func<FileDiagnostic, CancellationToken, Task> reportDiagnosticAsync, CancellationToken cancellationToken) => Task.CompletedTask;
+    protected virtual Task OnValidate{{Name}}Async(FileUnitValidationArgs<{{TypeName}}> args, CancellationToken cancellationToken) => Task.CompletedTask;
 
-    /// <summary>Executes one typed {{Name}} unit after whole-file acceptance; override to return the application's Result.</summary>
-    protected virtual Task<Result> OnExecute{{Name}}Async({{TypeName}} unit, {{Root.Name}}Context context, CancellationToken cancellationToken)
+    /// <summary>Executes one typed {{Name}} unit according to the invocation mode; override to return the application's Result.</summary>
+    protected virtual Task<Result> OnExecute{{Name}}Async(FileUnitArgs<{{TypeName}}> args, CancellationToken cancellationToken)
         => throw new NotSupportedException("Execution requires a handler overriding OnExecute{{Name}}Async.");
 {{/each}}
 }

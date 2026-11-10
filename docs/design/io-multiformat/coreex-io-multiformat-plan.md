@@ -4,9 +4,13 @@
 
 The final contract review replaces JSON shape with kind (Array default, expected kind at unitPath), makes accepted metadata at successful completion mandatory, and renames the content-failure finalizer to OnContentFailedAsync so partial writes cannot hide behind a rejection name. It also specifies missing/null selection, diagnostic scope, failure precedence, limit-boundary counters, and the CSV parser-span spike required to substantiate per-unit byte limits. The detailed edge contracts are in Phase 0 section 12.
 
+The Phase 1 CsvHelper 34 byte-span spike found that CsvReader.ByteOffset and RawRecord describe UTF-8 parser positions, not original byte positions for configured UTF-16/32 input; RawRecord also excludes record line breaks. A UTF-16LE probe with an eight-byte source reported the second record at offset 3 rather than source offset 6. The approved Phase 1 adjustment drops the per-unit source-byte budget for CSV while retaining the whole-input byte budget and independent maxGroupRecords bound; do not substitute UTF-8 parser lengths or stream-read deltas.
+
 Phase 0 is specified in the companion `coreex-io-phase0-contract.md`, with literal representative inputs, an expectation manifest, and a reproducible fixture inspector under `phase0-fixtures`. It defines the grouped YAML shape, nested type/occurrence model, API migration inventory, source-record versus business-unit accounting, resource budgets, conversion policies, and Phase 1 handoff. Runtime behavior is not implemented by these artifacts.
 
-The user selected a bounded immutable accepted-metadata view available from the beginning of ValidateThenExecute replay, including metadata occurring after units in the source. ValidateAndExecute is a separate opt-in single-pass mode, with encountered metadata only, explicit partial-execution outcomes, and failure reporting. Metadata is shared across formats; opt-in JSONL discriminator routing ships with JSONL. The scalar contract includes DateTimeOffset rather than imposing an offset-handling workaround on JSON integrations.
+The user selected a bounded immutable accepted-metadata view available from the beginning of ValidateThenExecute replay, including metadata occurring after units in the source. ValidateAndExecute is a separate opt-in single-pass mode, with encountered metadata only, explicit partial-execution outcomes, and failure reporting. Valid-unit reporting is an optional awaited hook independent of processing mode; the three modes are ValidateOnly, ValidateThenExecute, and ValidateAndExecute. Outcomes describe results rather than actions: Succeeded, ContentFailed, and ExecutionFailed. MaxDiagnostics limits emitted diagnostic events, not unit reporting. Metadata is shared across formats; opt-in JSONL discriminator routing ships with JSONL. The scalar contract includes DateTimeOffset rather than imposing an offset-handling workaround on JSON integrations.
+
+The Phase 1 API tightening keeps reader internals private and the core lifecycle non-extensible, uses focused framework-constructed argument objects for multi-parameter extension hooks with cancellation separate and last, and publishes one immutable progress snapshot to both original and replay contexts at execution boundaries. FileProcessor<TUnit> owns protected Services for the construction-time provider; generated processors no longer duplicate it, and unit dependencies still use fresh handler scopes. Accepted metadata deliberately uses System.Text.Json snapshots and fresh typed copies rather than a second immutable model hierarchy. Processing modes, outcomes, and application-owned retry/idempotency boundaries are unchanged.
 
 Required primitives currently provide no concrete reason to raise a package's target-framework floor. Retain the package-level decision gate: use net10.0 when a material implementation benefit justifies it, rather than degrading functionality or adding parallel compatibility implementations. This does not commit the repository to retaining out-of-support targets.
 
@@ -79,9 +83,9 @@ Caller-owned immutable stream factory
   -> reconstruction and fresh scoped business execution
 ```
 
-The diagram describes ValidateThenExecute. ValidateOnly and ValidateAndReport stop after their one validation pass. ValidateAndExecute instead executes each fully assembled, mapped, and validated unit immediately in a separate fresh scope, then continues reading the same stream. A later content/EOF error can leave earlier units committed; this mode does not promise whole-file acceptance before writes or require a replayable source.
+The diagram describes ValidateThenExecute. ValidateOnly stops after its validation pass. ValidateAndExecute instead executes each fully assembled, mapped, and validated unit immediately in a separate fresh scope, then continues reading the same stream. The optional valid-unit observation/reporting hook is available in all modes. A later content/EOF error can leave earlier units committed; this mode does not promise whole-file acceptance before writes or require a replayable source.
 
-All modes emit awaited content diagnostics. Single-pass FailFast stops on content failure; CollectErrors skips invalid units and continues only where recovery is trustworthy. A failed business Result always stops execution and reaches an explicit awaited execution-failure hook with original Result/unit provenance. Operational faults and cancellation propagate, not as content diagnostics. Add unsuccessful ExecutedWithErrors for single-pass content failures with accurate executed counts; make summary/finalization rules mode-aware instead of forcing partial writes into zero-write Rejected semantics.
+All modes emit awaited content diagnostics. Single-pass FailFast stops on content failure; CollectErrors skips invalid units and continues only where recovery is trustworthy. A failed business Result always stops execution and reaches an explicit awaited execution-failure hook with original Result/unit provenance. Operational faults and cancellation propagate, not as content diagnostics. Return ContentFailed for content failures regardless of partial reporting or execution, and ExecutionFailed only when a handler returns a failed Result; preserve accurate partial counts without encoding processing actions in outcome names.
 
 Retain FileProcessor and the File naming family: finite file content is the processing boundary, while streams are the transport. This is not a continuous StreamProcessor.
 
@@ -173,7 +177,7 @@ JSON/XML select metadata by path; calling it Header/Trailer does not impose docu
 
 Support explicitly declared, bounded metadata before and after the repeated unit collection. Metadata is not another business unit unless the definition says so. Typical uses are batch identity, declared counts, totals, and partner/version markers.
 
-JSON member order must not become an accidental validity rule. Metadata encountered after units is available only after it has been read. Earlier report-only callbacks cannot rely on it. If custom unit validation requires metadata that occurs later, reject that processing definition/order requirement explicitly or require the producer to supply the necessary data earlier; do not introduce hidden buffering of all units or a surprise third pass.
+JSON member order must not become an accidental validity rule. Metadata encountered after units is available only after it has been read. Earlier valid-unit callbacks cannot rely on it. If custom unit validation requires metadata that occurs later, reject that processing definition/order requirement explicitly or require the producer to supply the necessary data earlier; do not introduce hidden buffering of all units or a surprise third pass.
 
 Maintain fresh pass-local metadata and reconciliation accumulators. After complete validation and EOF reconciliation, freeze only explicitly declared, bounded metadata into a dedicated immutable accepted-file view. Make that complete view available from the beginning of ValidateThenExecute replay, including metadata occurring after units in the source; ordinary pass-local metadata is still reconstructed in source order. ValidateAndExecute handlers see only encountered metadata, never a premature accepted-file snapshot. Do not copy mutable validation contexts or arbitrary accumulated state into replay. This explicit accepted-metadata contract was selected by the user during Phase 0.
 
@@ -238,7 +242,7 @@ Move lifecycle/scoping/replay/accounting into the shared coordinator. Add Valida
 
 Make necessary public API breaks together instead of sprinkling compatibility shims through later phases. Update generated CSV code, current consumers/examples, runtime and generation guides, and migration notes in the same change.
 
-**Exit gate:** existing CSV behavior fixtures remain equivalent except documented migrations/admission changes; all four processing modes, partial-write error outcomes, scoped lifetime/context behavior, faults, cancellation, EOF failure, limits, and replay invariants pass through the shared implementation.
+**Exit gate:** existing CSV behavior fixtures remain equivalent except documented migrations/admission changes; all three processing modes, mode-independent outcomes, optional unit reporting, scoped lifetime/context behavior, faults, cancellation, EOF failure, limits, and replay invariants pass through the shared implementation.
 
 ### Phase 2 - JSONL vertical slice and nested CodeGen
 
@@ -260,7 +264,7 @@ Pay particular attention to partial stream reads, tokens split across buffers, h
 
 Review the public API/configuration with both CSV and JSON implementations in place. Remove provisional abstractions that do not earn their keep. Finalize migration guidance, package descriptions, schemas, docs, AI workflow guidance, and the release notes.
 
-Test generated artifacts by compiling/running them, not only comparing template text. Update the CoreEx.Template AI/docs bundle and its validation scenarios where guidance or packaged schema/docs change. Include examples demonstrating report-only's possible late file rejection and application-owned deduplication.
+Test generated artifacts by compiling/running them, not only comparing template text. Update the CoreEx.Template AI/docs bundle and its validation scenarios where guidance or packaged schema/docs change. Include examples demonstrating a valid-unit callback preceding late file failure and application-owned deduplication.
 
 **Exit gate:** supported frameworks build and relevant runtime/CodeGen tests pass; generated artifacts compile; the shipped guidance reflects all formats; memory/work-bound measurements support the documented claims.
 
@@ -280,7 +284,7 @@ Expand `tests/CoreEx.IO.Test.Unit` and `tests/CoreEx.CodeGen.Test.Unit`. Retain 
 
 Use non-seekable streams with tiny/irregular read chunks to exercise streaming correctness; immutable two-open factories to prove replay; deliberately changing factories to exercise detectable invariant failures without pretending the framework can prove source immutability; and faults/cancellation in reads, diagnostics, reports, validation, and execution.
 
-Assert exact counters, emitted diagnostic codes/paths, scope/context isolation, report-only outcomes, zero execution on ValidateThenExecute rejection, explicit partial execution on ValidateAndExecute content failure, and stop-on-execution-failure reporting. Test limits at the boundary, one beyond, and across split buffers. No full diagnostic history should be required by tests or runtime.
+Assert exact counters, emitted diagnostic codes/paths, scope/context isolation, optional callback behavior, zero execution on ValidateThenExecute content failure, explicit partial execution on ValidateAndExecute content failure, and stop-on-execution-failure reporting. Test limits at the boundary, one beyond, and across split buffers. No full diagnostic history should be required by tests or runtime.
 
 Measure large-file working-set/allocation trends with fixed unit size and increasing unit count, and with increasing unit size up to the configured bound. Capture results without flaky absolute-memory assertions in ordinary unit tests.
 
