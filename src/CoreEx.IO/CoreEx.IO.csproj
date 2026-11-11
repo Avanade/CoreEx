@@ -11,6 +11,6 @@
     <ProjectReference Include="..\CoreEx\CoreEx.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <None Update="Csv\README.md;Json\README.md;JsonLines\README.md;MIGRATION.md" Pack="true" PackagePath="%(Identity)" />
+    <None Include="Csv\README.md;Json\README.md;JsonLines\README.md;MIGRATION.md" Pack="true" PackagePath="%(Identity)" />
   </ItemGroup>
 </Project>
