@@ -1,7 +1,7 @@
 namespace CoreEx.Azure.Functions.Test.Unit;
 
 [TestFixture]
-public class InventoryImportTests
+public partial class InventoryImportTests
 {
     [Test]
     public async Task GeneratedHandler_PreservesOriginalFailureTrustedTenantAndStopsFollowingUnits()
@@ -32,8 +32,29 @@ public class InventoryImportTests
         await using var provider = CreateProvider(transport, service);
         await using var scope = provider.CreateAsyncScope();
         var summary = await RunAsync(scope.ServiceProvider, $"CommandId,Sku,Quantity\n{commandId},{sku},{quantity}\n");
-        summary.Outcome.Should().Be(FileProcessingOutcome.Rejected);
+        summary.Outcome.Should().Be(FileProcessingOutcome.ContentFailed);
         summary.Progress.UnitsAttempted.Should().Be(0);
+        service.Calls.Should().Be(0);
+        transport.Finalized.Should().BeTrue();
+    }
+
+    [Test]
+    public async Task Report_LateContentFailurePreservesValidationCountsAndOmitsZeroExecutionCounts()
+    {
+        var service = new RecordingService();
+        var transport = new RecordingReportTransport();
+        await using var provider = CreateProvider(transport, service);
+        await using var scope = provider.CreateAsyncScope();
+
+        var summary = await RunAsync(scope.ServiceProvider, "CommandId,Sku,Quantity\none,A,2\ntwo,A,private-invalid-value\n");
+
+        summary.Outcome.Should().Be(FileProcessingOutcome.ContentFailed);
+        using var report = JsonDocument.Parse(transport.Blocks.Last());
+        var progress = report.RootElement.GetProperty("progress");
+        progress.GetProperty("recordsRead").GetInt64().Should().Be(2);
+        progress.GetProperty("unitsValidated").GetInt64().Should().Be(1);
+        progress.TryGetProperty("unitsAttempted", out _).Should().BeFalse();
+        progress.TryGetProperty("unitsExecuted", out _).Should().BeFalse();
         service.Calls.Should().Be(0);
         transport.Finalized.Should().BeTrue();
     }
@@ -150,11 +171,13 @@ public class InventoryImportTests
     {
         public int Calls { get; private set; }
         public List<string?> Tenants { get; } = [];
+        public List<int?> Quantities { get; } = [];
 
         public Task<Result> ApplyAsync(InventoryAdjustment adjustment, FileProcessingIdentity identity, CancellationToken cancellationToken = default)
         {
             Calls++;
             Tenants.Add(CoreEx.ExecutionContext.Current.TenantId);
+            Quantities.Add(adjustment.Quantity);
             return Task.FromResult(failure is null ? Result.Success : new Result(failure));
         }
     }

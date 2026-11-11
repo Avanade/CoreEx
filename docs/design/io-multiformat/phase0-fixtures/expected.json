@@ -1,0 +1,171 @@
+{
+  "contract": "coreex-io-phase0-contract.md",
+  "status": "Specification expectations, not implemented-parser test results.",
+  "scenarioBaseline": {
+    "mode": "ValidateThenExecute",
+    "errorMode": "CollectErrors",
+    "unitCardinality": "OneOrMore",
+    "warnings": 0,
+    "information": 0
+  },
+  "canonical": {
+    "orderIds": ["A", "B"],
+    "orderCount": 2,
+    "lineCount": 3,
+    "quantityTotal": 6,
+    "batch": {"Id": "B123", "ExpectedOrders": 2, "ExpectedQuantity": 6},
+    "firstOffsetMinutes": 600,
+    "firstTags": ["priority", "web"],
+    "secondTags": [],
+    "billingCodes": ["B1", "B2"],
+    "shippingCodes": ["S1", "S2"]
+  },
+  "scenarios": [
+    {
+      "id": "csv-valid",
+      "file": "valid.csv",
+      "format": "Csv",
+      "physicalLines": 13,
+      "recordsRead": 13, "invalidRecords": 0, "unitsRead": 2, "invalidUnits": 0, "unitsValidated": 2,
+      "errorCount": 0, "validationCompleted": true, "outcome": "Succeeded",
+      "unitsAttempted": 2, "unitsExecuted": 2, "opens": 2,
+      "acceptedBatch": "B123", "diagnostics": []
+    },
+    {
+      "id": "jsonl-valid",
+      "file": "valid.jsonl",
+      "format": "Jsonl",
+      "physicalLines": 2,
+      "recordsRead": 2, "invalidRecords": 0, "unitsRead": 2, "invalidUnits": 0, "unitsValidated": 2,
+      "errorCount": 0, "validationCompleted": true, "outcome": "Succeeded",
+      "unitsAttempted": 2, "unitsExecuted": 2, "opens": 2, "diagnostics": []
+    },
+    {
+      "id": "json-array-valid",
+      "file": "valid-array.json",
+      "format": "Json", "kind": "Array", "unitPath": "",
+      "physicalLines": 4,
+      "recordsRead": 2, "invalidRecords": 0, "unitsRead": 2, "invalidUnits": 0, "unitsValidated": 2,
+      "errorCount": 0, "validationCompleted": true, "outcome": "Succeeded",
+      "unitsAttempted": 2, "unitsExecuted": 2, "opens": 2, "diagnostics": []
+    },
+    {
+      "id": "json-envelope-valid",
+      "file": "valid-envelope.json",
+      "format": "Json", "kind": "Array", "unitPath": "/orders",
+      "physicalLines": 7,
+      "recordsRead": 2, "invalidRecords": 0, "unitsRead": 2, "invalidUnits": 0, "unitsValidated": 2,
+      "errorCount": 0, "validationCompleted": true, "outcome": "Succeeded",
+      "unitsAttempted": 2, "unitsExecuted": 2, "opens": 2,
+      "acceptedBatch": "B123", "passMetadataAvailableAtUnitValidation": [false, false],
+      "acceptedMetadataAvailableAtUnitExecution": [true, true], "diagnostics": []
+    },
+    {
+      "id": "xml-valid-future",
+      "file": "valid.xml",
+      "format": "Xml", "future": true,
+      "physicalLines": 22,
+      "recordsRead": 2, "invalidRecords": 0, "unitsRead": 2, "invalidUnits": 0, "unitsValidated": 2,
+      "errorCount": 0, "validationCompleted": true, "outcome": "Succeeded",
+      "unitsAttempted": 2, "unitsExecuted": 2, "opens": 2,
+      "acceptedBatch": "B123", "diagnostics": []
+    },
+    {
+      "id": "jsonl-invalid-child-collect",
+      "file": "invalid-child.jsonl",
+      "format": "Jsonl", "physicalLines": 2,
+      "recordsRead": 2, "invalidRecords": 1, "unitsRead": 2, "invalidUnits": 1, "unitsValidated": 1,
+      "errorCount": 1, "validationCompleted": true, "outcome": "ContentFailed",
+      "unitsAttempted": 0, "unitsExecuted": 0, "opens": 1,
+      "diagnostics": [
+        {"code": "file.validation", "ordinal": 1, "lineNumber": 1, "propertyPath": "Lines[0].Quantity", "sourcePath": "/Lines/0/Quantity"}
+      ]
+    },
+    {
+      "id": "jsonl-malformed-line-collect",
+      "file": "malformed-line.jsonl",
+      "format": "Jsonl", "physicalLines": 3,
+      "recordsRead": 3, "invalidRecords": 1, "unitsRead": 3, "invalidUnits": 1, "unitsValidated": 2,
+      "errorCount": 1, "validationCompleted": true, "outcome": "ContentFailed",
+      "unitsAttempted": 0, "unitsExecuted": 0, "opens": 1,
+      "diagnostics": [
+        {"code": "jsonl.record.invalid", "ordinal": 2, "lineNumber": 2}
+      ]
+    },
+    {
+      "id": "json-late-total",
+      "file": "late-total.json",
+      "format": "Json", "kind": "Array", "unitPath": "/orders",
+      "physicalLines": 7,
+      "recordsRead": 2, "invalidRecords": 0, "unitsRead": 2, "invalidUnits": 0, "unitsValidated": 2,
+      "errorCount": 1, "validationCompleted": true, "outcome": "ContentFailed",
+      "unitsAttempted": 0, "unitsExecuted": 0, "opens": 1,
+      "diagnostics": [
+        {"code": "file.reconciliation.count", "sourcePath": "/batch/ExpectedOrders"}
+      ]
+    },
+    {
+      "id": "json-trailing-garbage",
+      "file": "trailing-garbage.json",
+      "format": "Json", "kind": "Array", "unitPath": "",
+      "physicalLines": 5,
+      "recordsRead": 2, "invalidRecords": 0, "unitsRead": 2, "invalidUnits": 0, "unitsValidated": 2,
+      "errorCount": 1, "validationCompleted": false, "outcome": "ContentFailed",
+      "unitsAttempted": 0, "unitsExecuted": 0, "opens": 1,
+      "diagnostics": [
+        {"code": "json.syntax.invalid", "lineNumber": 5}
+      ]
+    },
+    {
+      "id": "jsonl-missing-child",
+      "file": "missing-child.jsonl",
+      "format": "Jsonl", "physicalLines": 1,
+      "recordsRead": 1, "invalidRecords": 1, "unitsRead": 1, "invalidUnits": 1, "unitsValidated": 0,
+      "errorCount": 1, "validationCompleted": true, "outcome": "ContentFailed",
+      "unitsAttempted": 0, "unitsExecuted": 0, "opens": 1,
+      "diagnostics": [
+        {"code": "file.structure.cardinality", "ordinal": 1, "lineNumber": 1, "propertyPath": "Lines", "sourcePath": "/Lines"}
+      ]
+    },
+    {
+      "id": "json-empty-array-required",
+      "file": "empty-array.json",
+      "format": "Json", "kind": "Array", "unitPath": "", "physicalLines": 1,
+      "recordsRead": 0, "invalidRecords": 0, "unitsRead": 0, "invalidUnits": 0, "unitsValidated": 0,
+      "errorCount": 1, "validationCompleted": true, "outcome": "ContentFailed",
+      "unitsAttempted": 0, "unitsExecuted": 0, "opens": 1,
+      "diagnostics": [{"code": "file.structure.cardinality", "sourcePath": ""}]
+    },
+    {
+      "id": "json-empty-array-optional",
+      "file": "empty-array.json",
+      "format": "Json", "kind": "Array", "unitPath": "", "unitCardinality": "Many", "physicalLines": 1,
+      "recordsRead": 0, "invalidRecords": 0, "unitsRead": 0, "invalidUnits": 0, "unitsValidated": 0,
+      "errorCount": 0, "validationCompleted": true, "outcome": "Succeeded",
+      "unitsAttempted": 0, "unitsExecuted": 0, "opens": 2, "diagnostics": []
+    },
+    {
+      "id": "jsonl-zero-bytes",
+      "inputText": "", "format": "Jsonl", "unitCardinality": "Many",
+      "recordsRead": 0, "invalidRecords": 0, "unitsRead": 0, "invalidUnits": 0, "unitsValidated": 0,
+      "errorCount": 0, "validationCompleted": true, "outcome": "Succeeded",
+      "unitsAttempted": 0, "unitsExecuted": 0, "opens": 2, "diagnostics": []
+    },
+    {
+      "id": "json-zero-bytes",
+      "inputText": "", "format": "Json", "kind": "Array", "unitPath": "",
+      "recordsRead": 0, "invalidRecords": 0, "unitsRead": 0, "invalidUnits": 0, "unitsValidated": 0,
+      "errorCount": 1, "validationCompleted": false, "outcome": "ContentFailed",
+      "unitsAttempted": 0, "unitsExecuted": 0, "opens": 1,
+      "diagnostics": [{"code": "json.syntax.invalid"}]
+    },
+    {
+      "id": "json-single-object",
+      "file": "single-object.json",
+      "format": "Json", "kind": "Object", "unitPath": "", "unitCardinality": "One", "physicalLines": 1,
+      "recordsRead": 1, "invalidRecords": 0, "unitsRead": 1, "invalidUnits": 0, "unitsValidated": 1,
+      "errorCount": 0, "validationCompleted": true, "outcome": "Succeeded",
+      "unitsAttempted": 1, "unitsExecuted": 1, "opens": 2, "diagnostics": []
+    }
+  ]
+}

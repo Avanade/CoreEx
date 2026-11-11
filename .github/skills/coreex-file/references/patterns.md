@@ -1,10 +1,12 @@
-# Generation-first CSV Blob integration
+# Generation-first file integrations
 
 ## Generated and handwritten ownership
 
 Keep the file contract in the CodeGen console's checked-in `*-file.yaml`. File CodeGen generates the nullable wire model, mapping, validator, context, processor, and create-only handler; handwritten code should add application behavior and host adapters, not duplicate generated types.
 
-The framework's [InventoryImports example](https://github.com/Avanade/CoreEx/tree/main/tests/CoreEx.Azure.Functions.TestApp/InventoryImports) uses `tests/CoreEx.Azure.Functions.TestApp.CodeGen/inventory-file.yaml` (`name: Inventory`, record `Adjustment`) to generate `InventoryAdjustment`, `InventoryAdjustmentMapping`, `InventoryAdjustmentValidator`, `InventoryContext`, `InventoryProcessor`, and `InventoryHandler` under `InventoryImports/Files`. Its handwritten processor partial uses generated protected `Services` for invocation-scoped options and reporting hooks without adding a conflicting constructor. Keep per-unit business dependencies in the generated handler's fresh child scope.
+The framework's [InventoryImports example](https://github.com/Avanade/CoreEx/tree/main/tests/CoreEx.Azure.Functions.TestApp/InventoryImports) uses `tests/CoreEx.Azure.Functions.TestApp.CodeGen/inventory-file.yaml` (`name: Inventory`, record `Adjustment`) to generate `InventoryAdjustment`, `InventoryAdjustmentMapping`, `InventoryAdjustmentValidator`, `InventoryContext`, `InventoryProcessor`, and `InventoryHandler` under `InventoryImports/Files`. Its handwritten processor partial uses inherited protected `Services` for coordinator options/reporting, not as the fresh unit provider. Keep per-unit business dependencies in the generated handler's fresh child scope.
+
+The external [JSONL definition example](https://github.com/Avanade/CoreEx/blob/main/tests/CoreEx.CodeGen.Test.Unit/orders-jsonl-file.yaml) generates reusable Address occurrences, order-line/scalar collections, DateTimeOffset conversion, and the same scoped application boundary. Its [integration test](https://github.com/Avanade/CoreEx/blob/main/tests/CoreEx.IO.Test.Unit/GeneratedJsonLinesIntegrationTests.cs) pins replay to immutable bytes and uses an in-memory receipt double to illustrate retry ownership; it does not prove durable deduplication. [Routed JSONL](https://github.com/Avanade/CoreEx/blob/main/tests/CoreEx.CodeGen.Test.Unit/routed-jsonl-file.yaml) adds explicit metadata matches and First/Last checks without making metadata executable. These framework examples are illustrative, not files assumed to exist in a consumer project.
 
 ## Blob revisions, reports, and transactions
 

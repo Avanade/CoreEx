@@ -35,14 +35,14 @@ public partial class BlobRuntimeTests
         await SeedInventoryAsync(sku);
         var blob = await UploadInventoryAsync($"CommandId,Sku,Quantity\none,{sku},2\ntwo,{sku},3\n");
         var first = await SubmitInventoryAsync(blob);
-        first.Summary.GetProperty("outcome").GetString().Should().Be("Executed");
+        first.Summary.GetProperty("outcome").GetString().Should().Be("Succeeded");
         first.Summary.GetProperty("progress").GetProperty("unitsExecuted").GetInt64().Should().Be(2);
         (await InventoryQuantityAsync(sku)).Should().Be(5);
         (await InventoryOutboxCountAsync(sku)).Should().Be(2);
 
         var duplicate = await SubmitInventoryAsync(blob, [first.Blob.Name]);
         duplicate.Blob.Name.Should().NotBe(first.Blob.Name);
-        duplicate.Summary.GetProperty("outcome").GetString().Should().Be("Executed");
+        duplicate.Summary.GetProperty("outcome").GetString().Should().Be("Succeeded");
         (await InventoryQuantityAsync(sku)).Should().Be(5);
         (await InventoryOutboxCountAsync(sku)).Should().Be(2);
         var identity = JsonSerializer.Deserialize<FileProcessingIdentity>(first.Summary.GetProperty("identity"), JsonDefaults.SerializerOptions)
@@ -68,10 +68,8 @@ public partial class BlobRuntimeTests
         await SeedInventoryAsync(sku);
         var blob = await UploadInventoryAsync($"CommandId,Sku,Quantity\none,{sku},2\ntwo,{sku},private-invalid-value\n");
         var report = await SubmitInventoryAsync(blob);
-        report.Summary.GetProperty("outcome").GetString().Should().Be("Rejected");
-        var progress = JsonSerializer.Deserialize<FileProcessingProgress>(report.Summary.GetProperty("progress"), JsonDefaults.SerializerOptions)
-            ?? throw new InvalidDataException("The report progress is missing.");
-        progress.UnitsAttempted.Should().Be(0);
+        report.Summary.GetProperty("outcome").GetString().Should().Be("ContentFailed");
+        report.Summary.GetProperty("progress").TryGetProperty("unitsAttempted", out _).Should().BeFalse("zero-valued counters are omitted from reports");
         (await InventoryQuantityAsync(sku)).Should().Be(0);
         (await InventoryOutboxCountAsync(sku)).Should().Be(0);
         var content = (await report.Blob.DownloadContentAsync()).Value.Content.ToString();
@@ -95,7 +93,7 @@ public partial class BlobRuntimeTests
         await SeedInventoryAsync(missingSku);
         var priorReports = await InventoryReportNamesAsync();
         var repaired = await SubmitInventoryAsync(blob, priorReports);
-        repaired.Summary.GetProperty("outcome").GetString().Should().Be("Executed");
+        repaired.Summary.GetProperty("outcome").GetString().Should().Be("Succeeded");
         (await InventoryQuantityAsync(firstSku)).Should().Be(6);
         (await InventoryQuantityAsync(missingSku)).Should().Be(3);
         (await InventoryOutboxCountAsync(firstSku)).Should().Be(2);
@@ -147,7 +145,7 @@ public partial class BlobRuntimeTests
         }
 
         var recovered = await SubmitInventoryAsync(blob ?? throw new InvalidOperationException("The input was not uploaded."), await InventoryReportNamesAsync());
-        recovered.Summary.GetProperty("outcome").GetString().Should().Be("Executed");
+        recovered.Summary.GetProperty("outcome").GetString().Should().Be("Succeeded");
         (await InventoryQuantityAsync(sku)).Should().Be(2);
     }
 
@@ -208,7 +206,7 @@ public partial class BlobRuntimeTests
         }
 
         var retry = await SubmitInventoryAsync(blob);
-        retry.Summary.GetProperty("outcome").GetString().Should().Be("Executed");
+        retry.Summary.GetProperty("outcome").GetString().Should().Be("Succeeded");
         (await InventoryQuantityAsync(firstSku)).Should().Be(2);
         (await InventoryQuantityAsync(secondSku)).Should().Be(3);
         (await InventoryOutboxCountAsync(firstSku)).Should().Be(1);
@@ -222,19 +220,19 @@ public partial class BlobRuntimeTests
         return blob;
     }
 
-    private async Task NotifyInventoryAsync(BlobClient blob)
+    private async Task NotifyInventoryAsync(BlobClient blob, string functionName = "ImportInventoryFile")
     {
         var properties = (await blob.GetPropertiesAsync()).Value;
-        var notification = EventGridExtensionMethods.CreateBlobCreatedEvent(_inventoryInputs.Name, blob.Name, blob.Uri,
+        var notification = EventGridExtensionMethods.CreateBlobCreatedEvent(blob.BlobContainerName, blob.Name, blob.Uri,
             properties.ETag.ToString(), properties.ContentType, properties.ContentLength);
-        using var response = await Test.FunctionsWebhook("functions").PostBlobCreatedAsync("Host.Functions.ImportInventoryFile", notification);
+        using var response = await Test.FunctionsWebhook("functions").PostBlobCreatedAsync("Host.Functions." + functionName, notification);
         response.IsSuccessStatusCode.Should().BeTrue("the webhook returned {0}: {1}", response.StatusCode, await response.Content.ReadAsStringAsync());
     }
 
-    private async Task<(BlobClient Blob, JsonElement Summary)> SubmitInventoryAsync(BlobClient blob, IReadOnlyCollection<string>? previous = null)
+    private async Task<(BlobClient Blob, JsonElement Summary)> SubmitInventoryAsync(BlobClient blob, IReadOnlyCollection<string>? previous = null, string functionName = "ImportInventoryFile")
     {
         var revision = (await blob.GetPropertiesAsync()).Value.ETag.ToString();
-        await NotifyInventoryAsync(blob);
+        await NotifyInventoryAsync(blob, functionName);
         var result = await Test.EventuallyAsync(async token =>
         {
             await foreach (var item in _inventoryReports.GetBlobsAsync(BlobTraits.Metadata, cancellationToken: token))

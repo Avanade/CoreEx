@@ -9,7 +9,8 @@ public sealed class FileLocation
     /// <param name="fieldIndex">The zero-based field index, when applicable.</param>
     /// <param name="fieldName">The declared field name, not its input value.</param>
     /// <param name="propertyPath">The logical property, JSON, or XML path, when available.</param>
-    public FileLocation(long? lineNumber = null, int? linePosition = null, int? fieldIndex = null, string? fieldName = null, string? propertyPath = null)
+    /// <param name="sourcePath">The format-native source path, when available.</param>
+    public FileLocation(long? lineNumber = null, int? linePosition = null, int? fieldIndex = null, string? fieldName = null, string? propertyPath = null, string? sourcePath = null)
     {
         if (lineNumber.HasValue)
             lineNumber.Value.ThrowIfLessThanOrEqualToZero(paramName: nameof(lineNumber));
@@ -29,11 +30,15 @@ public sealed class FileLocation
         if (propertyPath is not null)
             propertyPath.ThrowIfNullOrWhiteSpace();
 
+        if (sourcePath is not null && sourcePath.Length > 0 && string.IsNullOrWhiteSpace(sourcePath))
+            throw new ArgumentException("A source path cannot contain only whitespace.", nameof(sourcePath));
+
         LineNumber = lineNumber;
         LinePosition = linePosition;
         FieldIndex = fieldIndex;
         FieldName = fieldName;
         PropertyPath = propertyPath;
+        SourcePath = sourcePath;
     }
 
     /// <summary>Gets the one-based physical starting line, or null when unavailable.</summary>
@@ -50,4 +55,7 @@ public sealed class FileLocation
 
     /// <summary>Gets the opaque logical path; it does not imply a physical location.</summary>
     public string? PropertyPath { get; }
+
+    /// <summary>Gets the opaque format-native source path; an empty path identifies a document root.</summary>
+    public string? SourcePath { get; }
 }

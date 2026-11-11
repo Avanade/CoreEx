@@ -4,7 +4,7 @@
 
 ## Overview
 
-`CoreEx.CodeGen` is a console-executable tooling package used **during development**, not at runtime. Its default RefData command reads `ref-data.yaml` (described by [`schema/coreex-refdata.json`](../../schema/coreex-refdata.json)) and produces the complete reference-data layer across Contracts, Api, Application, and Infrastructure. The explicit File command reads top-level `*-file.yaml` definitions and generates host-neutral CoreEx.IO CSV processors into a configured runtime project; see [File generation](./Files/README.md).
+`CoreEx.CodeGen` is a console-executable tooling package used **during development**, not at runtime. Its default RefData command reads `ref-data.yaml` (described by [`schema/coreex-refdata.json`](../../schema/coreex-refdata.json)) and produces the complete reference-data layer across Contracts, Api, Application, and Infrastructure. The explicit File command reads top-level `*-file.yaml` definitions and generates host-neutral CoreEx.IO CSV, JSON document, and nested JSONL processors into a configured runtime project; see [File generation](./Files/README.md).
 
 Generation is orchestrated by [OnRamp](https://github.com/Avanade/OnRamp), which loads `ref-data-script.yaml` (embedded in the package) to discover the ordered sequence of generation steps. Each step binds a generator class to a Handlebars template and an output path; OnRamp resolves the template, evaluates it against the typed configuration model, and writes the result. Templates reside in `RefData/Templates/` and are also embedded so the package is entirely self-contained.
 
@@ -189,7 +189,7 @@ How the hook behaves:
 | Type | Description |
 |------|-------------|
 | **[`CodeGenConsole`](./CodeGenConsole.cs)** | Entry point for the code-generation tool; wraps `OnRamp.Console.CodeGenConsole`, loads `ref-data.yaml` and `ref-data-script.yaml`, and exposes the `RefData` and `Count` commands. |
-| **[`CommandType`](./CommandType.cs)** | Explicit `RefData` (default), `File` (typed CSV integrations), or `Count` (file and line statistics) dispatch. |
+| **[`CommandType`](./CommandType.cs)** | Explicit `RefData` (default), `File` (typed CSV/nested JSONL integrations), or `Count` (file and line statistics) dispatch. |
 | **[`CodeGenConfig`](./RefData/Config/CodeGenConfig.cs)** | Root configuration model for reference-data generation; maps directly to the top-level YAML and resolves all project directory paths, namespace defaults, and entity collection preparation. |
 | **[`EntityConfig`](./RefData/Config/EntityConfig.cs)** | Per-entity configuration: name, plural, text, `idType`, `collectionSortOrder`, route, repository mode, model name, mapper name, `excludeMapper`, and the property collection. |
 | **[`PropertyConfig`](./RefData/Config/PropertyConfig.cs)** | Per-property configuration: name, type (with `^`-prefix for reference-data and `?`-suffix for nullable), text, data model property name, and exclude flags for contract and mapping generation. |

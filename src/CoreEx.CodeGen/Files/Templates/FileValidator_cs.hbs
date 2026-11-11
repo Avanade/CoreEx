@@ -16,7 +16,7 @@ public partial class {{TypeName}}Validator : Validator<{{TypeName}}>
     {
 {{#each Properties}}
 {{#if HasValidation}}
-        Property(x => x.{{Name}}).WithText({{{SelectorLiteral}}}){{#each RuleExpressions}}.{{{this}}}{{/each}};
+        Property(x => x.{{PropertyName}}).WithText({{{SelectorLiteral}}}){{#each RuleExpressions}}.{{{this}}}{{/each}};
 {{/if}}
 {{/each}}
         OnInitialization();
@@ -27,9 +27,9 @@ public partial class {{TypeName}}Validator : Validator<{{TypeName}}>
 {{#each Properties}}
 {{#if RegexLiteral}}
 
-    /// <summary>Gets the cached timeout-bounded regular expression for {{Name}}.</summary>
+    /// <summary>Gets the cached timeout-bounded regular expression for {{PropertyName}}.</summary>
     [GeneratedRegex({{{RegexLiteral}}}, RegexOptions.None, matchTimeoutMilliseconds: 1000)]
-    private static partial Regex {{Name}}Regex();
+    private static partial Regex {{PropertyName}}Regex();
 {{/if}}
 {{/each}}
 }

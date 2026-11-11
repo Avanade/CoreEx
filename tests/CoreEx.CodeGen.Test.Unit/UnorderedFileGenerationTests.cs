@@ -67,32 +67,37 @@ public class UnorderedFileGenerationTests
         version: r1
         runtimeProjectPath: Runtime
         runtimeNamespace: Consumer.{{name}}
-        discriminatorIndex: 0
+        csv:
+          discriminatorIndex: 0
         mode: ValidateThenExecute
         errorMode: CollectErrors
         records:
         - name: Header
-          match: H
-          cardinality: One
-          position: First
+          csv: { match: H, cardinality: One, position: First }
           properties:
-          - { name: Batch, index: 1, required: true }
+          - { name: Batch, csv: { index: 1 }, required: true }
         - name: Alpha
-          match: A
+          csv: { match: A }
           properties:
-          - { name: Text, index: 1, required: true }
+          - { name: Text, csv: { index: 1 }, required: true }
         - name: Beta
-          match: B
-          cardinality: OneOrMore
+          csv: { match: B, cardinality: OneOrMore }
           properties:
-          - { name: Number, type: Integer, index: 1, required: true }
+          - { name: Number, type: Integer, csv: { index: 1 }, required: true }
         - name: Trailer
-          match: T
-          cardinality: One
-          position: Last
+          csv: { match: T, cardinality: One, position: Last }
           properties:
-          - { name: Total, type: Integer, index: 1, required: true }
+          - { name: Total, type: Integer, csv: { index: 1 }, required: true }
         """;
+
+    [Test]
+    public async Task RemovedRecordErrorPolicyIsRejectedBeforeWriting()
+    {
+        Write("mixed-file.yaml", Definition().Replace("- name: Alpha", "- name: Alpha\n  errorMode: CollectErrors", StringComparison.Ordinal));
+        Func<Task> generate = () => FileGenerationBatch.GenerateAsync(Args());
+        await generate.Should().ThrowAsync<CodeGenException>();
+        Directory.Exists(Path.Combine(_runtime, "Files")).Should().BeFalse();
+    }
 
     [Test]
     public async Task ValidateAndSimulationProduceNoFiles()
@@ -103,8 +108,8 @@ public class UnorderedFileGenerationTests
         config.IsUnordered.Should().BeTrue();
         config.IsHierarchical.Should().BeFalse();
         config.UnitType.Should().Be("MixedRecord");
-        config.Records![1].Cardinality.Should().Be("Many");
-        config.Records[1].Position.Should().Be("Any");
+        config.Records![1].Csv!.Cardinality.Should().Be("Many");
+        config.Records[1].Csv!.Position.Should().Be("Any");
         await FileGenerationBatch.GenerateAsync(Args(simulation: true));
         Directory.Exists(Path.Combine(_runtime, "Files")).Should().BeFalse();
     }
@@ -119,12 +124,12 @@ public class UnorderedFileGenerationTests
         System.IO.File.ReadAllText(Path.Combine(output, "MixedContext.g.cs")).Should().Contain("class MixedContext : CsvRoutedContext");
         System.IO.File.ReadAllText(Path.Combine(output, "MixedProcessor.g.cs")).Should()
             .Contain("CsvRoutedFileProcessor<MixedRecord>")
-            .And.Contain("CsvRecordCardinality.OneOrMore")
-            .And.Contain("CsvRecordPosition.First")
-            .And.Contain("CsvRecordPosition.Last");
+            .And.Contain("FileCardinality.OneOrMore")
+            .And.Contain("FileRecordPosition.First")
+            .And.Contain("FileRecordPosition.Last");
         var dispatch = System.IO.File.ReadAllText(Path.Combine(output, "MixedHandlerBase.g.cs"));
-        dispatch.Should().Contain("MixedAlpha row => OnExecuteAlphaAsync(row, typedContext, cancellationToken)")
-            .And.Contain("MixedBeta row => OnValidateBetaAsync(row, typedContext, reportDiagnosticAsync, cancellationToken)")
+        dispatch.Should().Contain("MixedAlpha => OnExecuteAlphaAsync(args.As<MixedAlpha>(), cancellationToken)")
+            .And.Contain("MixedBeta => OnValidateBetaAsync(args.As<MixedBeta>(), cancellationToken)")
             .And.NotContain("(MixedAlpha)").And.NotContain("(MixedBeta)");
         var starter = Path.Combine(output, "MixedHandler.cs");
         System.IO.File.AppendAllText(starter, "\n// Preserved application implementation.\n");
@@ -135,16 +140,16 @@ public class UnorderedFileGenerationTests
 
     [TestCase("discriminatorIndex: 0", "discriminatorIndex: -1")]
     [TestCase("discriminatorIndex: 0", "")]
-    [TestCase("match: A", "match: H")]
-    [TestCase("match: A", "match: ' '")]
-    [TestCase("index: 1", "index: 0")]
-    [TestCase("index: 1", "column: Value")]
+    [TestCase("csv: { match: A }", "csv: { match: H }")]
+    [TestCase("csv: { match: A }", "csv: { match: ' ' }")]
+    [TestCase("csv: { index: 1 }", "csv: { index: 0 }")]
+    [TestCase("csv: { index: 1 }", "csv: { column: Value }")]
     [TestCase("position: First", "position: Middle")]
-    [TestCase("cardinality: One\n  position: First", "cardinality: Many\n  position: First")]
-    [TestCase("cardinality: One\n  position: Last", "cardinality: Optional\n  position: First")]
+    [TestCase("cardinality: One, position: First", "cardinality: Many, position: First")]
+    [TestCase("cardinality: One, position: Last", "cardinality: Optional, position: First")]
     [TestCase("name: Alpha", "name: Record")]
     [TestCase("name: Alpha", "name: HandlerBase")]
-    [TestCase("name: Alpha", "name: ALPHA\n  cardinality: Unknown")]
+    [TestCase("csv: { match: B, cardinality: OneOrMore }", "csv: { match: B, cardinality: Unknown }")]
     public async Task InvalidUnorderedDefinitions_FailBeforeAnyWrites(string original, string replacement)
     {
         Write("mixed-file.yaml", Definition().Replace("\r\n", "\n").Replace(original, replacement));
@@ -167,6 +172,38 @@ public class UnorderedFileGenerationTests
     }
 
     [Test]
+    public async Task GeneratedMetadataRoutes_CompileWithUnorderedProcessor()
+    {
+        Write("metadata-file.yaml", """
+            name: Metadata
+            version: r1
+            runtimeProjectPath: Runtime
+            runtimeNamespace: Consumer.Metadata
+            csv:
+              discriminatorIndex: 0
+            metadata:
+            - { name: Header, record: Header, required: true, csv: { position: First } }
+            records:
+            - name: Header
+              csv: { match: H }
+              properties:
+              - { name: Batch, csv: { index: 1 }, required: true }
+            - name: Order
+              csv: { match: O }
+              properties:
+              - { name: Id, type: Integer, csv: { index: 1 }, required: true }
+            """);
+
+        await FileGenerationBatch.GenerateAsync(Args());
+        System.IO.File.WriteAllText(Path.Combine(_runtime, "Program.cs"), "Console.WriteLine(\"Generated metadata definition compiled.\");");
+
+        var output = await RunDotNetAsync("build", Path.Combine(_runtime, "Runtime.csproj"), "-v:q",
+            "-p:CoreExLocalTargetFramework=net" + Environment.Version.Major + ".0");
+
+        output.Should().Contain("Build succeeded.");
+    }
+
+    [Test]
     public async Task FlatDefinitions_RejectRouteCardinality()
     {
         Write("flat-file.yaml", """
@@ -175,9 +212,9 @@ public class UnorderedFileGenerationTests
             runtimeProjectPath: Runtime
             records:
             - name: Row
-              cardinality: One
+              csv: { cardinality: One }
               properties:
-              - { name: Text, index: 0 }
+              - { name: Text, csv: { index: 0 } }
             """);
         var action = () => FileGenerationBatch.GenerateAsync(Args());
         await action.Should().ThrowAsync<CodeGenException>();
@@ -196,29 +233,30 @@ public class UnorderedFileGenerationTests
             records:
             - name: Row
               properties:
-              - { name: Text, index: 0 }
+              - { name: Text, csv: { index: 0 } }
             """);
         Write("nested-file.yaml", """
             name: Nested
             version: r1
             runtimeProjectPath: Runtime
             runtimeNamespace: Consumer.Nested
-            discriminatorIndex: 0
-            structure:
-              root:
-                record: Root
-                cardinality: One
-                children:
-                - { record: Child, cardinality: Many }
+            csv:
+              discriminatorIndex: 0
+              structure:
+                root:
+                  record: Root
+                  cardinality: One
+                  children:
+                  - { record: Child, cardinality: Many }
             records:
             - name: Root
-              match: R
+              csv: { match: R }
               properties:
-              - { name: Text, index: 1 }
+              - { name: Text, csv: { index: 1 } }
             - name: Child
-              match: C
+              csv: { match: C }
               properties:
-              - { name: Text, index: 1 }
+              - { name: Text, csv: { index: 1 } }
             """);
         await FileGenerationBatch.GenerateAsync(Args());
         System.IO.File.WriteAllText(Path.Combine(_runtime, "MixedContext.cs"), """
@@ -233,10 +271,10 @@ public class UnorderedFileGenerationTests
             namespace Consumer.Mixed;
             public partial class MixedProcessor
             {
-                protected override Task OnValidateFileAsync(FileProcessingContext context, Func<FileDiagnostic, CancellationToken, Task> reportDiagnosticAsync, CancellationToken cancellationToken)
+                protected override Task OnValidateFileAsync(FileValidationArgs args, CancellationToken cancellationToken)
                 {
-                    if (context is MixedContext typed && !typed.HasValidationErrors && typed.Sum != typed.Declared)
-                        return reportDiagnosticAsync(new(FileDiagnosticCategory.Validation, "file.total", "Total does not match."), cancellationToken);
+                    if (args.Context is MixedContext typed && !typed.HasValidationErrors && typed.Sum != typed.Declared)
+                        return args.ReportDiagnosticAsync(new(FileDiagnosticCategory.Validation, "file.total", "Total does not match."), cancellationToken);
 
                     return Task.CompletedTask;
                 }
@@ -265,19 +303,19 @@ public class UnorderedFileGenerationTests
                     _recorder = recorder;
                     recorder.Scopes.Add(ambient);
                 }
-                protected override Task OnValidateHeaderAsync(MixedHeader unit, MixedContext context, Func<FileDiagnostic, CancellationToken, Task> reportDiagnosticAsync, CancellationToken cancellationToken)
-                    => Validate(unit, cancellationToken);
-                protected override Task OnValidateAlphaAsync(MixedAlpha unit, MixedContext context, Func<FileDiagnostic, CancellationToken, Task> reportDiagnosticAsync, CancellationToken cancellationToken)
-                    => Validate(unit, cancellationToken);
-                protected override Task OnValidateBetaAsync(MixedBeta unit, MixedContext context, Func<FileDiagnostic, CancellationToken, Task> reportDiagnosticAsync, CancellationToken cancellationToken)
+                protected override Task OnValidateHeaderAsync(FileUnitValidationArgs<MixedHeader> args, CancellationToken cancellationToken)
+                    => Validate(args.Unit, cancellationToken);
+                protected override Task OnValidateAlphaAsync(FileUnitValidationArgs<MixedAlpha> args, CancellationToken cancellationToken)
+                    => Validate(args.Unit, cancellationToken);
+                protected override Task OnValidateBetaAsync(FileUnitValidationArgs<MixedBeta> args, CancellationToken cancellationToken)
                 {
-                    context.Sum += unit.Number ?? 0;
-                    return Validate(unit, cancellationToken);
+                    ((MixedContext)args.Context).Sum += args.Unit.Number ?? 0;
+                    return Validate(args.Unit, cancellationToken);
                 }
-                protected override Task OnValidateTrailerAsync(MixedTrailer unit, MixedContext context, Func<FileDiagnostic, CancellationToken, Task> reportDiagnosticAsync, CancellationToken cancellationToken)
+                protected override Task OnValidateTrailerAsync(FileUnitValidationArgs<MixedTrailer> args, CancellationToken cancellationToken)
                 {
-                    context.Declared = unit.Total;
-                    return Validate(unit, cancellationToken);
+                    ((MixedContext)args.Context).Declared = args.Unit.Total;
+                    return Validate(args.Unit, cancellationToken);
                 }
                 private Task Validate(MixedRecord unit, CancellationToken cancellationToken)
                 {
@@ -285,10 +323,10 @@ public class UnorderedFileGenerationTests
                     _recorder.Validated.Add(unit);
                     return Task.CompletedTask;
                 }
-                protected override Task<Result> OnExecuteHeaderAsync(MixedHeader unit, MixedContext context, CancellationToken cancellationToken) => Execute(unit, context, cancellationToken);
-                protected override Task<Result> OnExecuteAlphaAsync(MixedAlpha unit, MixedContext context, CancellationToken cancellationToken) => Execute(unit, context, cancellationToken);
-                protected override Task<Result> OnExecuteBetaAsync(MixedBeta unit, MixedContext context, CancellationToken cancellationToken) => Execute(unit, context, cancellationToken);
-                protected override Task<Result> OnExecuteTrailerAsync(MixedTrailer unit, MixedContext context, CancellationToken cancellationToken) => Execute(unit, context, cancellationToken);
+                protected override Task<Result> OnExecuteHeaderAsync(FileUnitArgs<MixedHeader> args, CancellationToken cancellationToken) => Execute(args.Unit, ((MixedContext)args.Context), cancellationToken);
+                protected override Task<Result> OnExecuteAlphaAsync(FileUnitArgs<MixedAlpha> args, CancellationToken cancellationToken) => Execute(args.Unit, ((MixedContext)args.Context), cancellationToken);
+                protected override Task<Result> OnExecuteBetaAsync(FileUnitArgs<MixedBeta> args, CancellationToken cancellationToken) => Execute(args.Unit, ((MixedContext)args.Context), cancellationToken);
+                protected override Task<Result> OnExecuteTrailerAsync(FileUnitArgs<MixedTrailer> args, CancellationToken cancellationToken) => Execute(args.Unit, ((MixedContext)args.Context), cancellationToken);
                 private Task<Result> Execute(MixedRecord unit, MixedContext context, CancellationToken cancellationToken)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
@@ -314,7 +352,7 @@ public class UnorderedFileGenerationTests
             var context = Consumer.Mixed.MixedProcessor.CreateContext("source", "attempt", "revision");
             var opens = 0;
             var summary = await mixed.ProcessAsync(_ => { opens++; return Open(text); }, context);
-            if (summary.Outcome != FileProcessingOutcome.Executed || opens != 2 || summary.Progress.UnitsExecuted != 5) throw new Exception("Each routed row must execute once after acceptance.");
+            if (summary.Outcome != FileProcessingOutcome.Succeeded || opens != 2 || summary.Progress.UnitsExecuted != 5) throw new Exception("Each routed row must execute once after acceptance.");
             if (context.GetRecordCount("Beta") != 2 || recorder.Validated.Count != 5 || recorder.Executed.Count != 5) throw new Exception("Typed records were not counted/dispatched.");
             if (recorder.Executed[1] is not Consumer.Mixed.MixedBeta { Number: 2 } || recorder.Executed[2] is not Consumer.Mixed.MixedAlpha { Text: "one" }) throw new Exception("Heterogeneous row types were lost.");
             if (ReferenceEquals(recorder.Validated[0], recorder.Executed[0])) throw new Exception("Replay reused validation records.");
@@ -333,7 +371,7 @@ public class UnorderedFileGenerationTests
             {
                 opens = 0;
                 var rejected = await mixed.ProcessAsync(_ => { opens++; return Open(invalid); }, Consumer.Mixed.MixedProcessor.CreateContext("source", "attempt"));
-                if (rejected.Outcome != FileProcessingOutcome.Rejected || opens != 1 || recorder.Executed.Count != before) throw new Exception("Invalid file performed writes.");
+                if (rejected.Outcome != FileProcessingOutcome.ContentFailed || opens != 1 || recorder.Executed.Count != before) throw new Exception("Invalid file performed writes.");
             }
             recorder.FailBeta = true;
             var failed = await mixed.ProcessAsync(_ => Open(text), Consumer.Mixed.MixedProcessor.CreateContext("source", "attempt"));

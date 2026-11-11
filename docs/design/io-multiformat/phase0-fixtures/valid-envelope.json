@@ -1,0 +1,7 @@
+{
+  "orders": [
+    {"Id":"A","EffectiveDate":"2026-11-09","SubmittedAt":"2026-11-09T10:00:00+10:00","BillingAddress":{"Code":"B1"},"ShippingAddress":{"Code":"S1"},"Lines":[{"Sku":"X","Quantity":2},{"Sku":"Y","Quantity":1}],"Tags":["priority","web"]},
+    {"Id":"B","EffectiveDate":"2026-11-10","SubmittedAt":"2026-11-10T01:30:00Z","BillingAddress":{"Code":"B2"},"ShippingAddress":{"Code":"S2"},"Lines":[{"Sku":"Z","Quantity":3}],"Tags":[]}
+  ],
+  "batch": {"Id":"B123","ExpectedOrders":2,"ExpectedQuantity":6}
+}

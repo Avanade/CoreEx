@@ -1,0 +1,8 @@
+{
+  "Header": { "BatchId": "batch-one" },
+  "Adjustments": [
+    { "CommandId": "one", "Sku": "DEMO", "Lines": [{ "Bin": "east", "Quantity": 1 }, { "Bin": "west", "Quantity": 1 }] },
+    { "CommandId": "two", "Sku": "DEMO", "Lines": [{ "Bin": "east", "Quantity": 3 }] }
+  ],
+  "Trailer": { "AdjustmentCount": 2, "QuantityTotal": 5 }
+}

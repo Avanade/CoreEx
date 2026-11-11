@@ -1,27 +1,28 @@
 ---
 name: coreex-file
-description: "Create or modify a CoreEx.IO CSV ingestion definition, generated processor, scoped handler, streamed reports, or immutable local/Blob adapter. Use for flat, unordered multi-record or hierarchical file processing; not general HTTP APIs or reference-data generation."
+description: "Create or modify a CoreEx.IO CSV, JSON document, or nested JSONL ingestion definition, generated processor, scoped handler, streamed reports, or immutable local/Blob adapter. Supports CSV flat/routed/hierarchical input, JSON document array/root-object selection, and JSONL object units with optional metadata routing; not XML readers, HTTP APIs or reference-data generation."
 argument-hint: "[file definition or ingestion capability]"
-tags: ["files", "csv", "codegen", "io"]
+tags: ["files", "csv", "jsonl", "codegen", "io"]
 ---
 
 # CoreEx File Processing
 
-Build host-neutral typed CSV integrations generation-first with File CodeGen and explicit application-owned execution.
+Build host-neutral typed CSV, JSON document, and nested JSONL integrations generation-first with File CodeGen and explicit application-owned execution.
 
 ## When to Use
 
 - Create/change a `*-file.yaml` definition, wire mapping, validation or routed hierarchy.
+- Stream a JSON document with literal JSON Pointer unit and metadata selectors.
 - Add scoped business execution, reconciliation, or streamed reporting.
 - Connect an immutable stream factory to a local/Blob ingestion adapter.
-- Generate a CSV contract/processor for a native Azure Functions Blob-triggered import.
+- Generate a CSV/JSON/JSONL contract/processor for a native Azure Functions Blob-triggered import.
 
 ## When Not to Use
 
 - Reference-data entity generation: use `coreex-refdata`.
 - Empty Functions hosts: use `coreex-scaffold`; native trigger composition/testing: use `coreex-functions`.
 - Functions trigger, storage binding, or runtime topology: use `coreex-functions` alongside this skill.
-- Other file formats: the initial runtime is CSV-first, not a universal parser.
+- XML readers: not implemented.
 
 ## Quick Reference
 
@@ -46,4 +47,5 @@ For the step-by-step workflow, see [references/workflow.md](references/workflow.
 - [Generator guide cache](/.github/docs/coreex/agents/CoreEx.CodeGen.md).
 - [File YAML schema](/.github/docs/coreex/schema/coreex-files.json).
 - [Configuration reference](/.github/docs/coreex/files/CodeGeneration.md).
+- [CSV upgrade guidance](/.github/docs/coreex/files/MIGRATION.md).
 - [coreex-functions](../coreex-functions/SKILL.md) — native Blob trigger, SDK storage, and Functions runtime tests.

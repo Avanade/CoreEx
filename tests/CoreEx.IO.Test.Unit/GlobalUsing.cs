@@ -1,7 +1,12 @@
 global using AwesomeAssertions;
+global using CoreEx.DependencyInjection;
 global using CoreEx.Entities;
 global using CoreEx.IO;
 global using CoreEx.IO.Csv;
+global using CoreEx.IO.Json;
+global using CoreEx.IO.JsonLines;
+global using CoreEx.IO.Test.Unit.Files.OrdersJsonl;
+global using CoreEx.IO.Test.Unit.Files.RoutedJsonl;
 global using CoreEx.Localization;
 global using CoreEx.Results;
 global using CoreEx.Validation;

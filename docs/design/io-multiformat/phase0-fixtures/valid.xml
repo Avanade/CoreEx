@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Batch xmlns="urn:coreex:phase0">
+  <Orders>
+    <Order Id="A">
+      <EffectiveDate>2026-11-09</EffectiveDate>
+      <SubmittedAt>2026-11-09T10:00:00+10:00</SubmittedAt>
+      <BillingAddress><Code>B1</Code></BillingAddress>
+      <ShippingAddress><Code>S1</Code></ShippingAddress>
+      <Lines><Line><Sku>X</Sku><Quantity>2</Quantity></Line><Line><Sku>Y</Sku><Quantity>1</Quantity></Line></Lines>
+      <Tags><Tag>priority</Tag><Tag>web</Tag></Tags>
+    </Order>
+    <Order Id="B">
+      <EffectiveDate>2026-11-10</EffectiveDate>
+      <SubmittedAt>2026-11-10T01:30:00Z</SubmittedAt>
+      <BillingAddress><Code>B2</Code></BillingAddress>
+      <ShippingAddress><Code>S2</Code></ShippingAddress>
+      <Lines><Line><Sku>Z</Sku><Quantity>3</Quantity></Line></Lines>
+      <Tags />
+    </Order>
+  </Orders>
+  <Metadata Id="B123" ExpectedOrders="2" ExpectedQuantity="6" />
+</Batch>

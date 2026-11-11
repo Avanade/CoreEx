@@ -11,29 +11,18 @@ namespace {{Root.RuntimeNamespace}};
 /// <summary>Creates fresh CoreEx mapping state for each input pass.</summary>
 public static class {{TypeName}}Mapping
 {
-    /// <summary>Creates a typed CSV mapping.</summary>
-    public static CsvFileMapping<{{TypeName}}> Create() => new CsvFileMapping<{{TypeName}}>{{#if Root.IsExactHeaderPolicy}}({{{Root.HeaderPolicyExpression}}}){{else}}(){{/if}}
+    /// <summary>Creates a typed source mapping.</summary>
+{{#if Root.IsJson}}
+    public static JsonUnitMapping<{{TypeName}}> Create() => new JsonUnitMapping<{{TypeName}}>()
 {{#each Properties}}
-        .MapProperty({{{SelectorLiteral}}}, x => x.{{Name}}, {{{Converter}}}, {{{IndexExpression}}}){{#if @last}};{{/if}}
+        .{{{JsonMappingExpression}}}{{#if @last}};{{/if}}
 {{/each}}
+{{else}}
+    public static CsvFileMapping<{{TypeName}}> Create() => new CsvFileMapping<{{TypeName}}>{{#if Root.Csv.IsExactHeaderPolicy}}({{{Root.Csv.HeaderPolicyExpression}}}){{else}}(){{/if}}
 {{#each Properties}}
-{{#if IsDateTime}}
-
-    /// <summary>Converts an optional exact invariant date without exception control flow.</summary>
-    private static bool Convert{{Name}}(ReadOnlySpan<char> text, out DateTime? value)
-    {
-        value = null;
-        if (text.IsWhiteSpace())
-            return true;
-
-        if (!DateTime.TryParseExact(text, {{{FormatLiteral}}}, CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsed))
-            return false;
-
-        value = parsed;
-        return true;
-    }
+        .MapProperty({{{SelectorLiteral}}}, x => x.{{PropertyName}}, {{{Converter}}}, {{{IndexExpression}}}){{#if @last}};{{/if}}
+{{/each}}
 {{/if}}
-{{/each}}
 }
 
 #nullable restore

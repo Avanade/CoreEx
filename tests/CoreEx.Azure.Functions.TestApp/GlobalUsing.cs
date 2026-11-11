@@ -14,6 +14,8 @@ global using CoreEx.Events.Subscribing.Exceptions;
 global using CoreEx.Events.Subscribing;
 global using CoreEx.Events;
 global using CoreEx.IO.Csv;
+global using CoreEx.IO.Json;
+global using CoreEx.IO.JsonLines;
 global using CoreEx.IO;
 global using CoreEx.Json;
 global using CoreEx.Results;

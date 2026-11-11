@@ -13,6 +13,9 @@
     <PackageReference Include="DbEx.Postgres" />
     <PackageReference Include="DbEx.SqlServer" />
     <PackageReference Include="AwesomeAssertions" />
+    <!-- Pin patched dependencies brought in by UnitTestEx.Aspire. -->
+    <PackageReference Include="Aspire.Hosting.Testing" />
+    <PackageReference Include="Microsoft.AspNetCore.WebUtilities" />
     <!-- Keep the transitive Aspire dependency above the vulnerable MessagePack versions. -->
     <PackageReference Include="MessagePack" />
     <PackageReference Include="UnitTestEx" />

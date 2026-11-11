@@ -12,32 +12,34 @@ public abstract class FileProcessor
     public abstract Task<FileProcessingSummary> ProcessAsync(Func<CancellationToken, Task<Stream>> openReadAsync, FileProcessingContext context, CancellationToken cancellationToken = default);
 
     /// <summary>Validates file-wide reconciliation at EOF; emit errors without writes or retained diagnostic history.</summary>
-    /// <param name="context">The validation-pass context containing reconciliation state.</param>
-    /// <param name="reportDiagnosticAsync">The awaited diagnostic sink enforcing counting, continuation policy, and file-level context.</param>
+    /// <param name="args">The validation-pass context and awaited diagnostic sink.</param>
     /// <param name="cancellationToken">The processing cancellation token.</param>
     /// <returns>The asynchronous validation operation.</returns>
-    protected virtual Task OnValidateFileAsync(FileProcessingContext context, Func<FileDiagnostic, CancellationToken, Task> reportDiagnosticAsync, CancellationToken cancellationToken) => Task.CompletedTask;
+    protected virtual Task OnValidateFileAsync(FileValidationArgs args, CancellationToken cancellationToken) => Task.CompletedTask;
 
     /// <summary>Observes one diagnostic in input order under the file-level context; failures propagate.</summary>
-    /// <param name="context">The file invocation context, not a unit's scoped execution context.</param>
-    /// <param name="diagnostic">The structured diagnostic without raw input values by default.</param>
+    /// <param name="args">The file invocation context and emitted diagnostic.</param>
     /// <param name="cancellationToken">The processing cancellation token.</param>
     /// <returns>The asynchronous reporting operation, awaited for backpressure.</returns>
     /// <remarks>The default performs no reporting; summary counts must still record diagnostics.</remarks>
-    protected virtual Task OnDiagnosticAsync(FileProcessingContext context, FileDiagnostic diagnostic, CancellationToken cancellationToken) => Task.CompletedTask;
+    protected virtual Task OnDiagnosticAsync(FileDiagnosticArgs args, CancellationToken cancellationToken) => Task.CompletedTask;
 
-    /// <summary>Finalizes content rejection or report-with-errors, including incomplete validation, under the file-level context.</summary>
-    /// <param name="context">The file invocation context.</param>
-    /// <param name="summary">The unsuccessful content summary with zero business execution.</param>
+    /// <summary>Finalizes content failure, including incomplete validation or partial single-pass execution.</summary>
+    /// <param name="args">The file invocation context and unsuccessful content summary.</param>
     /// <param name="cancellationToken">The processing cancellation token.</param>
     /// <returns>The asynchronous finalization operation; failures propagate.</returns>
-    /// <remarks>Never invoked for execution failure, operational faults, or cancellation.</remarks>
-    protected virtual Task OnRejectedAsync(FileProcessingContext context, FileProcessingSummary summary, CancellationToken cancellationToken) => Task.CompletedTask;
+    /// <remarks>Never invoked for business execution failure, operational faults, or cancellation.</remarks>
+    protected virtual Task OnContentFailedAsync(FileSummaryArgs args, CancellationToken cancellationToken) => Task.CompletedTask;
+
+    /// <summary>Observes the first business execution failure before the unsuccessful summary is returned.</summary>
+    /// <param name="args">The file invocation context, failed unit provenance, and original business result.</param>
+    /// <param name="cancellationToken">The processing cancellation token.</param>
+    /// <returns>The asynchronous failure-reporting operation; failures propagate.</returns>
+    protected virtual Task OnExecutionFailedAsync(FileExecutionFailedArgs args, CancellationToken cancellationToken) => Task.CompletedTask;
 
     /// <summary>Finalizes successful validation, reporting, or execution under the file-level context.</summary>
-    /// <param name="context">The file invocation context.</param>
-    /// <param name="summary">The successfully validated or executed summary.</param>
+    /// <param name="args">The file invocation context and successful summary.</param>
     /// <param name="cancellationToken">The processing cancellation token.</param>
     /// <returns>The asynchronous finalization operation; failures propagate without invoking another terminal hook.</returns>
-    protected virtual Task OnCompletedAsync(FileProcessingContext context, FileProcessingSummary summary, CancellationToken cancellationToken) => Task.CompletedTask;
+    protected virtual Task OnCompletedAsync(FileSummaryArgs args, CancellationToken cancellationToken) => Task.CompletedTask;
 }

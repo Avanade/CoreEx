@@ -270,12 +270,25 @@
       <_AiDocFile Include="$(_RepoRoot)src/CoreEx.EntityFrameworkCore/AGENTS.md" DestSubPath=".github/docs/coreex/agents/CoreEx.EntityFrameworkCore.md" />
       <_AiDocFile Include="$(_RepoRoot)src/CoreEx.Events/AGENTS.md" DestSubPath=".github/docs/coreex/agents/CoreEx.Events.md" />
       <_AiDocFile Include="$(_RepoRoot)src/CoreEx.IO/AGENTS.md" DestSubPath=".github/docs/coreex/agents/CoreEx.IO.md" />
+      <_AiDocFile Include="$(_RepoRoot)src/CoreEx.IO/MIGRATION.md" DestSubPath=".github/docs/coreex/files/MIGRATION.md" />
       <_AiDocFile Include="$(_RepoRoot)src/CoreEx.CodeGen/Files/docs/CodeGeneration.md" DestSubPath=".github/docs/coreex/files/CodeGeneration.md" />
+      <_AiDocFile Include="$(_RepoRoot)src/CoreEx.CodeGen/Files/docs/Collection.md" DestSubPath=".github/docs/coreex/files/Collection.md" />
+      <_AiDocFile Include="$(_RepoRoot)src/CoreEx.CodeGen/Files/docs/Csv.md" DestSubPath=".github/docs/coreex/files/Csv.md" />
+      <_AiDocFile Include="$(_RepoRoot)src/CoreEx.CodeGen/Files/docs/CsvMetadata.md" DestSubPath=".github/docs/coreex/files/CsvMetadata.md" />
+      <_AiDocFile Include="$(_RepoRoot)src/CoreEx.CodeGen/Files/docs/CsvProperty.md" DestSubPath=".github/docs/coreex/files/CsvProperty.md" />
+      <_AiDocFile Include="$(_RepoRoot)src/CoreEx.CodeGen/Files/docs/CsvRecord.md" DestSubPath=".github/docs/coreex/files/CsvRecord.md" />
+      <_AiDocFile Include="$(_RepoRoot)src/CoreEx.CodeGen/Files/docs/Json.md" DestSubPath=".github/docs/coreex/files/Json.md" />
+      <_AiDocFile Include="$(_RepoRoot)src/CoreEx.CodeGen/Files/docs/JsonDocumentMetadata.md" DestSubPath=".github/docs/coreex/files/JsonDocumentMetadata.md" />
+      <_AiDocFile Include="$(_RepoRoot)src/CoreEx.CodeGen/Files/docs/Jsonl.md" DestSubPath=".github/docs/coreex/files/Jsonl.md" />
+      <_AiDocFile Include="$(_RepoRoot)src/CoreEx.CodeGen/Files/docs/JsonlMetadata.md" DestSubPath=".github/docs/coreex/files/JsonlMetadata.md" />
+      <_AiDocFile Include="$(_RepoRoot)src/CoreEx.CodeGen/Files/docs/JsonlRecord.md" DestSubPath=".github/docs/coreex/files/JsonlRecord.md" />
+      <_AiDocFile Include="$(_RepoRoot)src/CoreEx.CodeGen/Files/docs/Metadata.md" DestSubPath=".github/docs/coreex/files/Metadata.md" />
       <_AiDocFile Include="$(_RepoRoot)src/CoreEx.CodeGen/Files/docs/Node.md" DestSubPath=".github/docs/coreex/files/Node.md" />
       <_AiDocFile Include="$(_RepoRoot)src/CoreEx.CodeGen/Files/docs/Property.md" DestSubPath=".github/docs/coreex/files/Property.md" />
       <_AiDocFile Include="$(_RepoRoot)src/CoreEx.CodeGen/Files/docs/Record.md" DestSubPath=".github/docs/coreex/files/Record.md" />
       <_AiDocFile Include="$(_RepoRoot)src/CoreEx.CodeGen/Files/docs/ReferenceData.md" DestSubPath=".github/docs/coreex/files/ReferenceData.md" />
       <_AiDocFile Include="$(_RepoRoot)src/CoreEx.CodeGen/Files/docs/Structure.md" DestSubPath=".github/docs/coreex/files/Structure.md" />
+      <_AiDocFile Include="$(_RepoRoot)src/CoreEx.CodeGen/Files/docs/Unit.md" DestSubPath=".github/docs/coreex/files/Unit.md" />
       <_AiDocFile Include="$(_RepoRoot)src/CoreEx.CodeGen/Files/README.md" DestSubPath=".github/docs/coreex/files/README.md" />
       <_AiDocFile Include="$(_RepoRoot)schema/coreex-files.json" DestSubPath=".github/docs/coreex/schema/coreex-files.json" />
       <_AiDocFile Include="$(_RepoRoot)src/CoreEx.RefData/AGENTS.md" DestSubPath=".github/docs/coreex/agents/CoreEx.RefData.md" />

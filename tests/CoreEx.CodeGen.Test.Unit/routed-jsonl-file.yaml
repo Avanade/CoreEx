@@ -1,0 +1,27 @@
+# yaml-language-server: $schema=../../schema/coreex-files.json
+name: RoutedJsonl
+version: '1'
+format: Jsonl
+runtimeProjectPath: ../CoreEx.IO.Test.Unit
+runtimeNamespace: CoreEx.IO.Test.Unit.Files.RoutedJsonl
+errorMode: CollectErrors
+jsonl: { discriminator: type }
+unit: { record: Order, cardinality: OneOrMore }
+metadata:
+- { name: Header, record: Header, required: true, jsonl: { position: First } }
+- { name: Trailer, record: Trailer, required: true, jsonl: { position: Last } }
+records:
+- name: Header
+  jsonl: { match: header }
+  properties:
+  - { name: batchId, required: true }
+- name: Order
+  jsonl: { match: order }
+  properties:
+  - { name: id, required: true }
+  - { name: quantity, type: Integer, required: true }
+- name: Trailer
+  jsonl: { match: trailer }
+  properties:
+  - { name: orderCount, type: Integer, required: true }
+  - { name: quantityTotal, type: Integer, required: true }

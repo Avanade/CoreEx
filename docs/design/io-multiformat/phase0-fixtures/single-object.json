@@ -1,0 +1,1 @@
+{"Id":"A","EffectiveDate":"2026-11-09","SubmittedAt":"2026-11-09T10:00:00+10:00","BillingAddress":{"Code":"B1"},"ShippingAddress":{"Code":"S1"},"Lines":[{"Sku":"X","Quantity":2},{"Sku":"Y","Quantity":1}],"Tags":["priority","web"]}

@@ -3,22 +3,55 @@ namespace CoreEx.IO.Test.Unit;
 [TestFixture]
 public class FileProcessingSummaryTests
 {
-    [TestCase(FileProcessingMode.ValidateOnly, FileProcessingOutcome.Validated)]
-    [TestCase(FileProcessingMode.ValidateAndReport, FileProcessingOutcome.Reported)]
-    [TestCase(FileProcessingMode.ValidateThenExecute, FileProcessingOutcome.Executed)]
-    public void SuccessfulSummary_AllowsEmptyInputAndWarningOnlyInput(FileProcessingMode mode, FileProcessingOutcome outcome)
+    [Test]
+    public void SuccessfulValidationSummary_AllowsEmptyInputAndWarnings()
     {
-        var context = CreateContext(mode);
+        var context = CreateContext(FileProcessingMode.ValidateOnly);
         var progress = new FileProcessingProgress(warningCount: 2, informationCount: 3);
-        var summary = new FileProcessingSummary(context, outcome, progress, true);
+        var summary = new FileProcessingSummary(context, FileProcessingOutcome.Succeeded, progress, true);
 
         summary.IsSuccess.Should().BeTrue();
         summary.ValidationCompleted.Should().BeTrue();
         summary.ExecutionResult.IsSuccess.Should().BeTrue();
         summary.Identity.Should().BeSameAs(context.Identity);
-        summary.Mode.Should().Be(mode);
-        summary.Outcome.Should().Be(outcome);
+        summary.Mode.Should().Be(FileProcessingMode.ValidateOnly);
+        summary.Outcome.Should().Be(FileProcessingOutcome.Succeeded);
         summary.Progress.Should().BeSameAs(progress);
+    }
+
+    [Test]
+    public void SuccessfulExecutionSummary_RequiresEveryAcceptedUnitToSucceed()
+    {
+        var context = CreateContext(FileProcessingMode.ValidateThenExecute);
+        var incomplete = new FileProcessingProgress(recordsRead: 3, unitsValidated: 3, unitsAttempted: 2, unitsExecuted: 2);
+        Action action = () => new FileProcessingSummary(context, FileProcessingOutcome.Succeeded, incomplete, true);
+        action.Should().Throw<ArgumentException>();
+
+        var complete = new FileProcessingProgress(recordsRead: 3, unitsValidated: 3, unitsAttempted: 3, unitsExecuted: 3);
+        new FileProcessingSummary(context, FileProcessingOutcome.Succeeded, complete, true).IsSuccess.Should().BeTrue();
+    }
+
+    [TestCase(true)]
+    [TestCase(false)]
+    public void ContentFailureSummary_PreservesFullOrIncompleteValidation(bool completed)
+    {
+        var progress = new FileProcessingProgress(recordsRead: 10, unitsValidated: 9, errorCount: 1);
+        var summary = new FileProcessingSummary(CreateContext(FileProcessingMode.ValidateThenExecute), FileProcessingOutcome.ContentFailed, progress, completed);
+        summary.IsSuccess.Should().BeFalse();
+        summary.ValidationCompleted.Should().Be(completed);
+        summary.Progress.InvalidRecords.Should().Be(0);
+        summary.Progress.UnitsAttempted.Should().Be(0);
+        summary.ExecutionResult.IsSuccess.Should().BeTrue();
+    }
+
+    [Test]
+    public void ContentFailureAfterSinglePassExecution_PreservesEarlierWrites()
+    {
+        var progress = new FileProcessingProgress(recordsRead: 3, invalidRecords: 1, unitsRead: 3, unitsValidated: 2, unitsAttempted: 2, unitsExecuted: 2, errorCount: 1);
+        var summary = new FileProcessingSummary(CreateContext(FileProcessingMode.ValidateAndExecute), FileProcessingOutcome.ContentFailed, progress, true);
+        summary.IsSuccess.Should().BeFalse();
+        summary.Progress.UnitsExecuted.Should().Be(2);
+        summary.ExecutionResult.IsSuccess.Should().BeTrue();
     }
 
     [Test]
@@ -40,129 +73,39 @@ public class FileProcessingSummaryTests
         summary.Progress.ErrorCount.Should().Be(0);
     }
 
-    [TestCase(true)]
-    [TestCase(false)]
-    public void RejectedSummary_DistinguishesFullFromIncompleteValidation(bool completed)
+    [Test]
+    public void SinglePassExecutionFailureMayFollowContentDiagnostics()
     {
-        var progress = new FileProcessingProgress(recordsRead: 10, unitsValidated: 9, errorCount: 1);
-        var summary = new FileProcessingSummary(CreateContext(FileProcessingMode.ValidateThenExecute), FileProcessingOutcome.Rejected, progress, completed);
-        summary.IsSuccess.Should().BeFalse();
-        summary.ValidationCompleted.Should().Be(completed);
-        summary.Progress.InvalidRecords.Should().Be(0);
-        summary.Progress.UnitsAttempted.Should().Be(0);
-        summary.ExecutionResult.IsSuccess.Should().BeTrue();
-    }
-
-    [TestCase(FileProcessingOutcome.Validated)]
-    [TestCase(FileProcessingOutcome.Reported)]
-    [TestCase(FileProcessingOutcome.Executed)]
-    [TestCase(FileProcessingOutcome.ExecutionFailed)]
-    public void AcceptedSummary_RequiresCompletedErrorFreeValidation(FileProcessingOutcome outcome)
-    {
-        var context = CreateContext(outcome switch
-        {
-            FileProcessingOutcome.Validated => FileProcessingMode.ValidateOnly,
-            FileProcessingOutcome.Reported => FileProcessingMode.ValidateAndReport,
-            _ => FileProcessingMode.ValidateThenExecute
-        });
-        var result = outcome == FileProcessingOutcome.ExecutionFailed ? Result.Fail(new BusinessException("Failed.")) : Result.Success;
-        var attempted = outcome is FileProcessingOutcome.Validated or FileProcessingOutcome.Reported ? 0 : 1;
-        var executed = outcome == FileProcessingOutcome.Executed ? 1 : 0;
-        var reported = outcome == FileProcessingOutcome.Reported ? 1 : 0;
-        var progress = new FileProcessingProgress(recordsRead: 1, unitsValidated: 1, unitsAttempted: attempted, unitsExecuted: executed, unitsReported: reported);
-        var errors = new FileProcessingProgress(recordsRead: 1, unitsValidated: 1, unitsAttempted: attempted, unitsExecuted: executed, errorCount: 1, unitsReported: reported);
-
-        Action incomplete = () => new FileProcessingSummary(context, outcome, progress, false, result);
-        Action invalid = () => new FileProcessingSummary(context, outcome, errors, true, result);
-        incomplete.Should().Throw<ArgumentException>();
-        invalid.Should().Throw<ArgumentException>();
+        var failure = Result.Fail(new BusinessException("Failed."));
+        var progress = new FileProcessingProgress(recordsRead: 3, invalidRecords: 1, unitsRead: 3, unitsValidated: 1, unitsAttempted: 1, errorCount: 1);
+        var summary = new FileProcessingSummary(CreateContext(FileProcessingMode.ValidateAndExecute), FileProcessingOutcome.ExecutionFailed, progress, false, failure);
+        summary.Outcome.Should().Be(FileProcessingOutcome.ExecutionFailed);
+        summary.ExecutionResult.Should().Be(failure);
     }
 
     [Test]
-    public void ReportWithErrorsAllowsCompletedOrIncompleteValidationAndIsNeverSuccess()
+    public void Summary_RejectsContradictoryOutcomesAndMissingData()
     {
-        var context = CreateContext(FileProcessingMode.ValidateAndReport);
-        var complete = new FileProcessingSummary(context, FileProcessingOutcome.ReportedWithErrors,
-            new(recordsRead: 3, invalidRecords: 1, unitsValidated: 2, unitsReported: 1, errorCount: 1), true);
-        var incomplete = new FileProcessingSummary(context, FileProcessingOutcome.ReportedWithErrors,
-            new(recordsRead: 2, invalidRecords: 1, unitsValidated: 1, unitsReported: 1, errorCount: 1), false);
-
-        complete.IsSuccess.Should().BeFalse();
-        complete.Progress.UnitsReported.Should().Be(1);
-        incomplete.ValidationCompleted.Should().BeFalse();
-        incomplete.IsSuccess.Should().BeFalse();
-    }
-
-    [TestCase(FileProcessingMode.ValidateThenExecute, FileProcessingOutcome.Validated)]
-    [TestCase(FileProcessingMode.ValidateOnly, FileProcessingOutcome.Reported)]
-    [TestCase(FileProcessingMode.ValidateThenExecute, FileProcessingOutcome.ReportedWithErrors)]
-    [TestCase(FileProcessingMode.ValidateOnly, FileProcessingOutcome.Executed)]
-    [TestCase(FileProcessingMode.ValidateOnly, FileProcessingOutcome.ExecutionFailed)]
-    public void Summary_RejectsOutcomeForWrongMode(FileProcessingMode mode, FileProcessingOutcome outcome)
-    {
-        Action action = () => new FileProcessingSummary(CreateContext(mode), outcome, new(), true);
-        action.Should().Throw<ArgumentException>();
-    }
-
-    [Test]
-    public void ReportedSummaryRequiresEveryValidUnitReportToComplete()
-    {
-        var context = CreateContext(FileProcessingMode.ValidateAndReport);
-        var incomplete = new FileProcessingProgress(recordsRead: 2, unitsValidated: 2, unitsReported: 1);
-        Action action = () => new FileProcessingSummary(context, FileProcessingOutcome.Reported, incomplete, true);
-        action.Should().Throw<ArgumentException>();
-    }
-
-    [Test]
-    public void Summary_RejectsImpossibleRejectionOrValidationExecution()
-    {
-        var context = CreateContext(FileProcessingMode.ValidateOnly);
+        var validationContext = CreateContext(FileProcessingMode.ValidateOnly);
         var attempted = new FileProcessingProgress(recordsRead: 1, unitsValidated: 1, unitsAttempted: 1);
-        var rejectedAfterAttempt = new FileProcessingProgress(recordsRead: 1, unitsValidated: 1, unitsAttempted: 1, errorCount: 1);
-        Action noError = () => new FileProcessingSummary(context, FileProcessingOutcome.Rejected, new(), true);
-        Action rejected = () => new FileProcessingSummary(context, FileProcessingOutcome.Rejected, rejectedAfterAttempt, true);
-        Action validated = () => new FileProcessingSummary(context, FileProcessingOutcome.Validated, attempted, true);
+        var failedProgress = new FileProcessingProgress(recordsRead: 1, unitsValidated: 1, errorCount: 1);
+        var failure = Result.Fail(new BusinessException("Failed."));
+
+        Action noError = () => new FileProcessingSummary(validationContext, FileProcessingOutcome.ContentFailed, new(), true);
+        Action validationExecution = () => new FileProcessingSummary(validationContext, FileProcessingOutcome.Succeeded, attempted, true);
+        Action contentWithExecutionFailure = () => new FileProcessingSummary(validationContext, FileProcessingOutcome.ContentFailed, failedProgress, true, failure);
+        Action executionInValidationMode = () => new FileProcessingSummary(validationContext, FileProcessingOutcome.ExecutionFailed,
+            new(unitsRead: 1, unitsValidated: 1, unitsAttempted: 1), false, failure);
+        Action failureOnSuccess = () => new FileProcessingSummary(validationContext, FileProcessingOutcome.Succeeded, new(), true, failure);
+        Action noContext = () => new FileProcessingSummary(null!, FileProcessingOutcome.Succeeded, new(), true);
+        Action noProgress = () => new FileProcessingSummary(validationContext, FileProcessingOutcome.Succeeded, null!, true);
+        Action invalidOutcome = () => new FileProcessingSummary(validationContext, (FileProcessingOutcome)100, new(), true);
 
         noError.Should().Throw<ArgumentException>();
-        rejected.Should().Throw<ArgumentException>();
-        validated.Should().Throw<ArgumentException>();
-    }
-
-    [Test]
-    public void ExecutedSummary_RequiresEveryAcceptedUnitToSucceed()
-    {
-        var context = CreateContext(FileProcessingMode.ValidateThenExecute);
-        var incomplete = new FileProcessingProgress(recordsRead: 3, unitsValidated: 3, unitsAttempted: 2, unitsExecuted: 2);
-        Action action = () => new FileProcessingSummary(context, FileProcessingOutcome.Executed, incomplete, true);
-        action.Should().Throw<ArgumentException>();
-
-        var complete = new FileProcessingProgress(recordsRead: 3, unitsValidated: 3, unitsAttempted: 3, unitsExecuted: 3);
-        new FileProcessingSummary(context, FileProcessingOutcome.Executed, complete, true).IsSuccess.Should().BeTrue();
-    }
-
-    [Test]
-    public void FailedSummary_RequiresOriginalFailureAndExactlyOneUnsuccessfulAttempt()
-    {
-        var context = CreateContext(FileProcessingMode.ValidateThenExecute);
-        var failure = Result.Fail(new BusinessException("Failed."));
-        var progress = new FileProcessingProgress(recordsRead: 2, unitsValidated: 2, unitsAttempted: 1);
-        Action noFailure = () => new FileProcessingSummary(context, FileProcessingOutcome.ExecutionFailed, progress, true);
-        Action noAttempt = () => new FileProcessingSummary(context, FileProcessingOutcome.ExecutionFailed, new(), true, failure);
-        Action multipleFailures = () => new FileProcessingSummary(context, FileProcessingOutcome.ExecutionFailed, new(recordsRead: 2, unitsValidated: 2, unitsAttempted: 2), true, failure);
-        Action failureOnSuccess = () => new FileProcessingSummary(context, FileProcessingOutcome.Executed, new(), true, failure);
-
-        noFailure.Should().Throw<ArgumentException>();
-        noAttempt.Should().Throw<ArgumentException>();
-        multipleFailures.Should().Throw<ArgumentException>();
+        validationExecution.Should().Throw<ArgumentException>();
+        contentWithExecutionFailure.Should().Throw<ArgumentException>();
+        executionInValidationMode.Should().Throw<ArgumentException>();
         failureOnSuccess.Should().Throw<ArgumentException>();
-    }
-
-    [Test]
-    public void Summary_RejectsMissingContextProgressAndInvalidOutcome()
-    {
-        Action noContext = () => new FileProcessingSummary(null!, FileProcessingOutcome.Validated, new(), true);
-        Action noProgress = () => new FileProcessingSummary(CreateContext(FileProcessingMode.ValidateOnly), FileProcessingOutcome.Validated, null!, true);
-        Action invalidOutcome = () => new FileProcessingSummary(CreateContext(FileProcessingMode.ValidateOnly), (FileProcessingOutcome)100, new(), true);
         noContext.Should().Throw<ArgumentNullException>();
         noProgress.Should().Throw<ArgumentNullException>();
         invalidOutcome.Should().Throw<ArgumentOutOfRangeException>();
