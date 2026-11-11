@@ -1,6 +1,6 @@
 namespace CoreEx.CodeGen.Files.Config;
 
-/// <summary>Defines shared JSON mapping and syntax settings; document readers are not yet supported.</summary>
+/// <summary>Defines shared JSON mapping and syntax settings.</summary>
 [CodeGenClass("Json", Title = "Shared JSON mapping settings.")]
 [CodeGenCategory("Primary", Title = "Member handling and parser depth.")]
 public class JsonConfig : ConfigBase<CodeGenConfig, CodeGenConfig>

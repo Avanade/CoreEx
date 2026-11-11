@@ -1,0 +1,34 @@
+# yaml-language-server: $schema=../../schema/coreex-files.json
+name: InventoryJsonlBatch
+version: '1'
+format: Jsonl
+runtimeProjectPath: ../CoreEx.Azure.Functions.TestApp
+runtimePath: InventoryImports/JsonlBatchFiles
+runtimeNamespace: CoreEx.Azure.Functions.TestApp.InventoryImports
+mode: ValidateThenExecute
+errorMode: CollectErrors
+jsonl: { discriminator: type }
+unit: { record: Adjustment, cardinality: OneOrMore }
+metadata:
+- { name: Header, record: Header, required: true, jsonl: { position: First } }
+- { name: Trailer, record: Trailer, required: true, jsonl: { position: Last } }
+records:
+- name: Header
+  jsonl: { match: header }
+  properties:
+  - { name: BatchId, mandatory: true, maxLength: 100 }
+- name: Adjustment
+  jsonl: { match: adjustment }
+  properties:
+  - { name: CommandId, mandatory: true, maxLength: 100 }
+  - { name: Sku, mandatory: true, maxLength: 100 }
+  - { name: Lines, collection: { record: Line, cardinality: OneOrMore } }
+- name: Line
+  properties:
+  - { name: Bin, mandatory: true, maxLength: 100 }
+  - { name: Quantity, type: Integer, required: true, min: 1 }
+- name: Trailer
+  jsonl: { match: trailer }
+  properties:
+  - { name: AdjustmentCount, type: Integer, required: true, min: 1 }
+  - { name: QuantityTotal, type: Int64, required: true, min: 1 }

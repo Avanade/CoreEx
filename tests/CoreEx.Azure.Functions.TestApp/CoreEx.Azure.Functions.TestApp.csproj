@@ -21,6 +21,7 @@
     <ProjectReference Include="..\..\src\CoreEx.Database.SqlServer\CoreEx.Database.SqlServer.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="InventoryImports\example*" />
     <None Update="host.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

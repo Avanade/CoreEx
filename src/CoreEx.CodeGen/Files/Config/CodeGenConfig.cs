@@ -1,12 +1,12 @@
 namespace CoreEx.CodeGen.Files.Config;
 
-/// <summary>Defines one host-neutral CSV or nested JSONL integration.</summary>
+/// <summary>Defines one host-neutral CSV, JSON document, or JSONL integration.</summary>
 [CodeGenClass("CodeGeneration", Title = "File processing code-generation.")]
 [CodeGenCategory("Primary", Title = "Definition identity.")]
 [CodeGenCategory("Format", Title = "Input format.")]
 [CodeGenCategory("Processing", Title = "Default invocation policy.")]
 [CodeGenCategory("Csv", Title = "CSV parser, routing, and assembly settings.")]
-[CodeGenCategory("Json", Title = "JSON mapping and JSONL framing.")]
+[CodeGenCategory("Json", Title = "JSON mapping, document selection, and JSONL framing.")]
 [CodeGenCategory("Paths", Title = "Destination project and subfolder.")]
 [CodeGenCategory("Namespaces", Title = "Explicit generated namespace.")]
 [CodeGenCategory("Collections", Title = "Typed wire records.")]
@@ -44,7 +44,7 @@ public class CodeGenConfig : ConfigRootBase<CodeGenConfig>
 
     /// <summary>Gets or sets the selected input format; omitted values use CSV during migration.</summary>
     [JsonPropertyName("format")]
-    [CodeGenProperty("Format", Title = "Input format.", Options = ["Csv", "Jsonl"], Description = "Defaults to Csv. JSON document and XML readers are not yet supported.")]
+    [CodeGenProperty("Format", Title = "Input format.", Options = ["Csv", "Json", "Jsonl"], Description = "Defaults to Csv. XML is not supported.")]
     public string? Format { get; set; }
 
     /// <summary>Gets or sets CSV-specific parsing and assembly settings.</summary>
@@ -54,7 +54,7 @@ public class CodeGenConfig : ConfigRootBase<CodeGenConfig>
 
     /// <summary>Gets or sets shared JSON mapping settings.</summary>
     [JsonPropertyName("json")]
-    [CodeGenProperty("Json", Title = "Shared JSON mapping settings.", Description = "JSONL only in this release; kind/unitPath/document selection are not supported.")]
+    [CodeGenProperty("Json", Title = "Shared JSON mapping settings.", Description = "Shared JSON token conversion, unknown-member policy, and parser depth.")]
     public JsonConfig? Json { get; set; }
 
     /// <summary>Gets or sets JSONL framing/routing settings.</summary>
@@ -62,13 +62,19 @@ public class CodeGenConfig : ConfigRootBase<CodeGenConfig>
     [CodeGenProperty("Json", Title = "JSONL framing and routing.")]
     public JsonLinesConfig? Jsonl { get; set; }
 
-    /// <summary>Gets or sets the JSONL business record selection.</summary>
+    /// <summary>Gets or sets JSON document or JSONL business record selection.</summary>
     [JsonPropertyName("unit")]
     [CodeGenProperty("Json", Title = "Business object selection.")]
     public UnitConfig? Unit { get; set; }
 
     /// <summary>Gets whether nested JSONL generation is selected.</summary>
     public bool IsJsonl => Format == "Jsonl";
+
+    /// <summary>Gets whether streamed JSON document input is selected.</summary>
+    public bool IsJsonDocument => Format == "Json";
+
+    /// <summary>Gets whether either JSON input format is selected.</summary>
+    public bool IsJson => IsJsonl || IsJsonDocument;
 
     /// <summary>Gets or sets file-level metadata declarations.</summary>
     [JsonPropertyName("metadata")]
@@ -106,7 +112,7 @@ public class CodeGenConfig : ConfigRootBase<CodeGenConfig>
     public bool IsRouted => IsHierarchical || IsUnordered;
 
     /// <summary>Gets the business-unit type.</summary>
-    public string UnitType => IsJsonl ? Unit!.RecordConfig.TypeName : IsUnordered ? Name + "Record" : Csv?.Structure?.RootNode?.TypeName ?? Records![0].TypeName;
+    public string UnitType => IsJson ? Unit!.RecordConfig.TypeName : IsUnordered ? Name + "Record" : Csv?.Structure?.RootNode?.TypeName ?? Records![0].TypeName;
 
     /// <summary>Gets assembled positions, excluding leaves.</summary>
     public IEnumerable<NodeConfig> Groups => Csv?.Structure?.Nodes.Where(x => x.HasChildren) ?? [];
@@ -145,10 +151,11 @@ public class CodeGenConfig : ConfigRootBase<CodeGenConfig>
         RuntimeNamespace = DefaultWhereNull(RuntimeNamespace, () => RuntimeDirectory.Name + "." + string.Join('.', Path.GetRelativePath(RuntimeDirectory.FullName, OutputDirectory.FullName).Split(Path.DirectorySeparatorChar)));
         RuntimeNamespace = ConfigValidation.Namespace(this, nameof(RuntimeNamespace), RuntimeNamespace);
         Format = DefaultWhereNull(Format, () => "Csv");
-        if (Format is not ("Csv" or "Jsonl"))
-            throw new CodeGenException(this, nameof(Format), "Only Csv and Jsonl are currently supported.");
+        if (Format is not ("Csv" or "Json" or "Jsonl"))
+            throw new CodeGenException(this, nameof(Format), "Only Csv, Json, and Jsonl are currently supported.");
 
-        if (IsJsonl ? Csv is not null : Json is not null || Jsonl is not null || Unit is not null)
+        if (IsJson && Csv is not null || !IsJson && (Json is not null || Jsonl is not null || Unit is not null)
+            || IsJsonDocument && Jsonl is not null)
             throw new CodeGenException(this, nameof(Format), "Format-specific blocks do not apply to the selected format.");
 
         Mode = DefaultWhereNull(Mode, () => "ValidateOnly");
@@ -159,9 +166,9 @@ public class CodeGenConfig : ConfigRootBase<CodeGenConfig>
         if (ErrorMode is not ("FailFast" or "CollectErrors"))
             throw new CodeGenException(this, nameof(ErrorMode), "The content policy must be FailFast or CollectErrors.");
 
-        if (IsJsonl)
+        if (IsJson)
         {
-            await PrepareJsonLinesAsync().ConfigureAwait(false);
+            await PrepareJsonAsync().ConfigureAwait(false);
             ValidateTypeNames();
             return;
         }
@@ -244,13 +251,17 @@ public class CodeGenConfig : ConfigRootBase<CodeGenConfig>
     }
 
     /// <summary>Resolves reusable nested types separately from their independently named occurrences.</summary>
-    private async Task PrepareJsonLinesAsync()
+    private async Task PrepareJsonAsync()
     {
         Json ??= new();
-        Jsonl ??= new();
+        if (IsJsonl)
+            Jsonl ??= new();
+
         Unit ??= new();
         await Json.PrepareAsync(this, this).ConfigureAwait(false);
-        await Jsonl.PrepareAsync(this, this).ConfigureAwait(false);
+        if (IsJsonl)
+            await Jsonl!.PrepareAsync(this, this).ConfigureAwait(false);
+
         await Unit.PrepareAsync(this, this).ConfigureAwait(false);
         if (Records is null || Records.Count == 0 || Records.Any(x => x is null))
             throw new CodeGenException(this, nameof(Records), "At least one non-null record is required.");
@@ -295,13 +306,32 @@ public class CodeGenConfig : ConfigRootBase<CodeGenConfig>
         if (Unit.Record is null || !records.ContainsKey(Unit.Record) || Metadata.Any(x => x.Record == Unit.Record))
             throw new CodeGenException(this, nameof(Unit), "Specify a declared non-metadata unit.record; inference requires one eligible business record.");
 
+        if (IsJsonDocument)
+        {
+            if (Metadata.Select(x => x.Name).Distinct(StringComparer.Ordinal).Count() != Metadata.Count
+                || Metadata.Select(x => x.Record).Distinct(StringComparer.Ordinal).Count() != Metadata.Count
+                || Metadata.Any(x => !records.ContainsKey(x.Record!)))
+                throw new CodeGenException(this, nameof(Metadata), "Metadata names/records must be unique and declared.");
+
+            var unitSegments = ParsePointer(Unit.UnitPath ?? string.Empty);
+            foreach (var metadata in Metadata)
+            {
+                var metadataSegments = ParsePointer(metadata.Json!.Path!);
+                if (Overlaps(unitSegments, metadataSegments) || Metadata.Any(other => !ReferenceEquals(other, metadata)
+                    && Overlaps(metadataSegments, ParsePointer(other.Json!.Path!))))
+                    throw new CodeGenException(metadata, nameof(Metadata), "Unit and metadata JSON Pointers must be disjoint and non-overlapping.");
+            }
+
+            return;
+        }
+
         if (Metadata.Select(x => x.Name).Distinct(StringComparer.Ordinal).Count() != Metadata.Count
             || Metadata.Select(x => x.Record).Distinct(StringComparer.Ordinal).Count() != Metadata.Count || Metadata.Any(x => !records.ContainsKey(x.Record!))
             || Metadata.Count(x => x.Jsonl?.Position == "First") > 1 || Metadata.Count(x => x.Jsonl?.Position == "Last") > 1)
             throw new CodeGenException(this, nameof(Metadata), "Metadata names/records must be unique and declared, with at most one First and Last.");
 
         var routes = Metadata.Select(x => x.RecordConfig).Prepend(Unit.RecordConfig).ToArray();
-        if (Jsonl.Discriminator is null)
+        if (Jsonl!.Discriminator is null)
         {
             if (Metadata.Count != 0 || Records.Any(x => x.Jsonl is not null))
                 throw new CodeGenException(this, nameof(Jsonl), "Metadata and matches require explicit jsonl.discriminator.");
@@ -309,5 +339,46 @@ public class CodeGenConfig : ConfigRootBase<CodeGenConfig>
         else if (routes.Any(x => x.Jsonl is null) || routes.Select(x => x.Jsonl!.Match).Distinct(StringComparer.Ordinal).Count() != routes.Length
             || Records.Except(routes).Any(x => x.Jsonl is not null))
             throw new CodeGenException(this, nameof(Jsonl), "Use exact unique matches on the business/metadata roots only; nested types are not routes.");
+    }
+
+    /// <summary>Parses and decodes one literal RFC 6901 selector.</summary>
+    private string[] ParsePointer(string pointer)
+    {
+        if (pointer.Length == 0)
+            return [];
+
+        if (pointer[0] != '/')
+            throw new CodeGenException(this, nameof(Unit), "A JSON Pointer must be empty or begin with '/'.");
+
+        var segments = pointer[1..].Split('/');
+        for (var index = 0; index < segments.Length; index++)
+        {
+            var value = new System.Text.StringBuilder(segments[index].Length);
+            for (var position = 0; position < segments[index].Length; position++)
+            {
+                var character = segments[index][position];
+                if (character != '~')
+                    value.Append(character);
+                else if (++position < segments[index].Length && segments[index][position] is '0' or '1')
+                    value.Append(segments[index][position] == '0' ? '~' : '/');
+                else
+                    throw new CodeGenException(this, nameof(Unit), "A JSON Pointer contains an invalid escape.");
+            }
+
+            segments[index] = value.ToString();
+        }
+
+        return segments;
+    }
+
+    /// <summary>Checks whether either decoded selector is equal to or nested within the other.</summary>
+    private static bool Overlaps(IReadOnlyList<string> left, IReadOnlyList<string> right)
+    {
+        var length = Math.Min(left.Count, right.Count);
+        for (var index = 0; index < length; index++)
+            if (!string.Equals(left[index], right[index], StringComparison.Ordinal))
+                return false;
+
+        return true;
     }
 }

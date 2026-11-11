@@ -4,7 +4,7 @@
 
 ## Overview
 
-`CoreEx.CodeGen` is a console-executable tooling package used **during development**, not at runtime. Its default RefData command reads `ref-data.yaml` (described by [`schema/coreex-refdata.json`](../../schema/coreex-refdata.json)) and produces the complete reference-data layer across Contracts, Api, Application, and Infrastructure. The explicit File command reads top-level `*-file.yaml` definitions and generates host-neutral CoreEx.IO CSV and nested JSONL processors into a configured runtime project; see [File generation](./Files/README.md).
+`CoreEx.CodeGen` is a console-executable tooling package used **during development**, not at runtime. Its default RefData command reads `ref-data.yaml` (described by [`schema/coreex-refdata.json`](../../schema/coreex-refdata.json)) and produces the complete reference-data layer across Contracts, Api, Application, and Infrastructure. The explicit File command reads top-level `*-file.yaml` definitions and generates host-neutral CoreEx.IO CSV, JSON document, and nested JSONL processors into a configured runtime project; see [File generation](./Files/README.md).
 
 Generation is orchestrated by [OnRamp](https://github.com/Avanade/OnRamp), which loads `ref-data-script.yaml` (embedded in the package) to discover the ordered sequence of generation steps. Each step binds a generator class to a Handlebars template and an output path; OnRamp resolves the template, evaluates it against the typed configuration model, and writes the result. Templates reside in `RefData/Templates/` and are also embedded so the package is entirely self-contained.
 

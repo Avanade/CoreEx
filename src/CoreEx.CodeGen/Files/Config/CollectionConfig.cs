@@ -22,7 +22,7 @@ public class CollectionConfig : ConfigBase<CodeGenConfig, PropertyConfig>
 
     /// <summary>Gets or sets the numeric maximum element count.</summary>
     [JsonPropertyName("maxItems")]
-    [CodeGenProperty("Primary", Title = "Optional maximum elements.", Description = "No maximum by default. An explicit positive count is a business constraint checked before element mapping.")]
+    [CodeGenProperty("Primary", Title = "Optional maximum elements.", Description = "No maximum by default. An explicit positive count is checked by the generated validator after deserialization.")]
     public int? MaxItems { get; set; }
 
     /// <inheritdoc/>

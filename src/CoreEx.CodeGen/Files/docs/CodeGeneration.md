@@ -11,7 +11,7 @@ Category | Description
 [`Format`](#Format) | Input format.
 [`Processing`](#Processing) | Default invocation policy.
 [`Csv`](#Csv) | CSV parser, routing, and assembly settings.
-[`Json`](#Json) | JSON mapping and JSONL framing.
+[`Json`](#Json) | JSON mapping, document selection, and JSONL framing.
 [`Paths`](#Paths) | Destination project and subfolder.
 [`Namespaces`](#Namespaces) | Explicit generated namespace.
 [`Collections`](#Collections) | Typed wire records.
@@ -31,7 +31,7 @@ Input format.
 
 Property | Description
 -|-
-`format` | Input format. Valid options are: `Csv`, `Jsonl`.<br/>&dagger; Defaults to Csv. JSON document and XML readers are not yet supported.
+`format` | Input format. Valid options are: `Csv`, `Json`, `Jsonl`.<br/>&dagger; Defaults to Csv. XML is not supported.
 
 ## Processing
 Default invocation policy.
@@ -50,11 +50,11 @@ Property | Description
 `csv` | CSV parser, routing, and assembly settings. The corresponding [`Csv`](Csv.md) object.
 
 ## Json
-JSON mapping and JSONL framing.
+JSON mapping, document selection, and JSONL framing.
 
 Property | Description
 -|-
-`json` | Shared JSON mapping settings. The corresponding [`Json`](Json.md) object.<br/>&dagger; JSONL only in this release; kind/unitPath/document selection are not supported.
+`json` | Shared JSON mapping settings. The corresponding [`Json`](Json.md) object.<br/>&dagger; Shared JSON token conversion, unknown-member policy, and parser depth.
 `jsonl` | JSONL framing and routing. The corresponding [`Jsonl`](Jsonl.md) object.
 `unit` | Business object selection. The corresponding [`Unit`](Unit.md) object.
 

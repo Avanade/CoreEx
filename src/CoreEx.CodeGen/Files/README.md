@@ -1,6 +1,6 @@
 # File generation
 
-The `File` command generates host-neutral CoreEx.IO CSV and nested JSONL integrations from top-level `*-file.yaml` definitions alongside a consumer CodeGen project's `Program.cs`. It does not generate a transport trigger or require a Functions project. Runtime artifacts live together in an existing project referencing CoreEx.IO and CoreEx.Validation; CodeGen itself has no runtime dependency on CoreEx.IO. JSON document readers/selectors and XML are not implemented.
+The `File` command generates host-neutral CoreEx.IO CSV, JSON document, and nested JSONL integrations from top-level `*-file.yaml` definitions alongside a consumer CodeGen project's `Program.cs`. It does not generate a transport trigger or require a Functions project. Runtime artifacts live together in an existing project referencing CoreEx.IO and CoreEx.Validation; CodeGen itself has no runtime dependency on CoreEx.IO. XML is not implemented.
 
 ```powershell
 Set-Location <CodeGen-project-directory>
@@ -25,6 +25,8 @@ dotnet run -- file --validate
 dotnet run -- file
 dotnet run -- file --expect-no-changes
 ```
+
+The same console now contains [six matched Functions examples](../../../tests/CoreEx.Azure.Functions.TestApp/InventoryImports/README.md#example-matrix): simple independent units and complex parent/child units with header/trailer metadata for CSV, JSON, and JSONL. Each definition owns a separate sibling runtime output folder. The complex examples add generated child/metadata validation and handwritten EOF count/quantity reconciliation before replay; their checked-in payloads are exercised by invocation tests and the existing Aspire runtime harness.
 
 `dotnet run --project <CodeGen-project>` selects the project to build/run but does not change the process working directory used for top-level `*-file.yaml` discovery. The definition generates `InventoryAdjustment`, `InventoryAdjustmentMapping`, `InventoryAdjustmentValidator`, `InventoryContext`, `InventoryProcessor`, and `InventoryHandler` under `InventoryImports/Files`; wire types, mapping, and validation are not handwritten.
 
@@ -105,6 +107,36 @@ Set-Location tests\CoreEx.CodeGen.Test.Unit
 dotnet run --project ..\CoreEx.Azure.Functions.TestApp.CodeGen -- file orders-jsonl-file.yaml routed-jsonl-file.yaml
 dotnet run --project ..\CoreEx.Azure.Functions.TestApp.CodeGen -- file orders-jsonl-file.yaml routed-jsonl-file.yaml --expect-no-changes
 ```
+
+## JSON document definition
+
+Use `format: Json` for one complete JSON document. The unit record selects the natural wire type; `kind`, `unitPath`, and `cardinality` describe the selected document value. `kind` defaults to Array, `unitPath` defaults to the root pointer, and cardinality defaults to Many for arrays or One for a root object.
+
+```yaml
+name: Orders
+version: '1'
+format: Json
+runtimeProjectPath: ../Contoso.Integration
+unit: { record: Order, kind: Array, unitPath: /orders, cardinality: OneOrMore }
+metadata:
+- { name: Batch, record: Batch, required: true, json: { path: /batch } }
+records:
+- name: Order
+  properties:
+  - { name: order_id, property: Id, required: true }
+  - { name: lines, collection: { record: Line, cardinality: OneOrMore } }
+- name: Line
+  properties:
+  - { name: sku, required: true }
+  - { name: quantity, type: Integer, required: true, min: 1 }
+- name: Batch
+  properties:
+  - { name: batch_id, property: BatchId, required: true }
+```
+
+`unit.kind: Object` selects only the document root and requires cardinality One; do not set a nonempty `unitPath`. For arrays, a missing selector, explicit null, or wrong JSON kind is a structure error even with Many, while a present empty array is valid when cardinality allows zero. JSON Pointer selectors traverse literal object members only, use RFC 6901 escaping, and must not overlap each other or the unit selector. Metadata selectors are optional by default, but a present value must be an object; requiredness is checked at EOF.
+
+`json` has the same `unknownMemberPolicy` and `maxDepth` settings as JSONL. The document reader frames each selected object's original bytes for `JsonSerializer.DeserializeAsync<T>` without capturing the object or building a per-object DOM; JSONL uses the serializer over its existing per-line DOM. Generated mappings configure native serializer contracts and standard scalar converters, not a custom deserialization engine. The first deserialization error invalidates a unit, while CollectErrors can continue to subsequent units. Collection cardinality/`maxItems` and null reference-type item rules are generated CoreEx validator rules applied after deserialization, producing `file.validation`; they are not allocation limits. Memory includes the current typed graph, metadata, duplicate-name sets, reader/serializer buffers, and any property-specific scalar-collection format buffering. Duplicate decoded property names are rejected throughout the input, including skipped sections. Parser errors stop traversal; unlike JSONL there is no record boundary for recovery. Use the same `record`, nested collection, scalar, and validation rules described for JSONL, but omit `jsonl` framing/discriminator settings.
 
 ## Flat CSV definition
 
@@ -252,7 +284,7 @@ Wire records (`OrdersOrder`, `OrdersLine`) are separate types/files. A non-leaf 
 
 Generated code assumes the runtime project's `GlobalUsing.cs` imports `CoreEx`, `CoreEx.DependencyInjection`, `CoreEx.IO`, `CoreEx.IO.Csv`, `CoreEx.Results`, `CoreEx.Validation`, `Microsoft.Extensions.DependencyInjection`, `System.Globalization`, `System.Text`, and `System.Text.RegularExpressions`, alongside the standard System/collections/IO/threading/task imports normally provided by implicit usings. Templates emit ordinary type names and extension calls, not per-file imports. Explicitly configured reference-data type names remain qualified to avoid ambiguity between consumer types.
 
-JSONL consumers additionally import `CoreEx.IO.Json` and `CoreEx.IO.JsonLines`. No JSON document reader or transport package is required.
+JSON consumers import `CoreEx.IO.Json`; JSONL consumers additionally import `CoreEx.IO.JsonLines`. Neither format requires a transport package.
 
 `name` drives the integration identity, type prefix, default `Files/<Name>` output folder, and namespace suffix. `runtimeProjectPath` accepts absolute paths or paths relative to the CodeGen project, including ordinary names not starting with a dot. `runtimePath` must stay inside that project. The default namespace uses the project directory name plus subfolder segments; specify `runtimeNamespace` when MSBuild uses another root namespace. Literal project XML is not treated as evaluated MSBuild.
 

@@ -1,27 +1,28 @@
 ---
 name: coreex-file
-description: "Create or modify a CoreEx.IO CSV or nested JSONL ingestion definition, generated processor, scoped handler, streamed reports, or immutable local/Blob adapter. Supports CSV flat/routed/hierarchical input and JSONL object units with optional metadata routing; not JSON document/XML readers, HTTP APIs or reference-data generation."
+description: "Create or modify a CoreEx.IO CSV, JSON document, or nested JSONL ingestion definition, generated processor, scoped handler, streamed reports, or immutable local/Blob adapter. Supports CSV flat/routed/hierarchical input, JSON document array/root-object selection, and JSONL object units with optional metadata routing; not XML readers, HTTP APIs or reference-data generation."
 argument-hint: "[file definition or ingestion capability]"
 tags: ["files", "csv", "jsonl", "codegen", "io"]
 ---
 
 # CoreEx File Processing
 
-Build host-neutral typed CSV and nested JSONL integrations generation-first with File CodeGen and explicit application-owned execution.
+Build host-neutral typed CSV, JSON document, and nested JSONL integrations generation-first with File CodeGen and explicit application-owned execution.
 
 ## When to Use
 
 - Create/change a `*-file.yaml` definition, wire mapping, validation or routed hierarchy.
+- Stream a JSON document with literal JSON Pointer unit and metadata selectors.
 - Add scoped business execution, reconciliation, or streamed reporting.
 - Connect an immutable stream factory to a local/Blob ingestion adapter.
-- Generate a CSV/JSONL contract/processor for a native Azure Functions Blob-triggered import.
+- Generate a CSV/JSON/JSONL contract/processor for a native Azure Functions Blob-triggered import.
 
 ## When Not to Use
 
 - Reference-data entity generation: use `coreex-refdata`.
 - Empty Functions hosts: use `coreex-scaffold`; native trigger composition/testing: use `coreex-functions`.
 - Functions trigger, storage binding, or runtime topology: use `coreex-functions` alongside this skill.
-- JSON document or XML readers: not implemented; JSONL support does not imply document streaming.
+- XML readers: not implemented.
 
 ## Quick Reference
 

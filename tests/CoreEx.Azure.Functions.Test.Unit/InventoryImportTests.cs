@@ -1,7 +1,7 @@
 namespace CoreEx.Azure.Functions.Test.Unit;
 
 [TestFixture]
-public class InventoryImportTests
+public partial class InventoryImportTests
 {
     [Test]
     public async Task GeneratedHandler_PreservesOriginalFailureTrustedTenantAndStopsFollowingUnits()
@@ -150,11 +150,13 @@ public class InventoryImportTests
     {
         public int Calls { get; private set; }
         public List<string?> Tenants { get; } = [];
+        public List<int?> Quantities { get; } = [];
 
         public Task<Result> ApplyAsync(InventoryAdjustment adjustment, FileProcessingIdentity identity, CancellationToken cancellationToken = default)
         {
             Calls++;
             Tenants.Add(CoreEx.ExecutionContext.Current.TenantId);
+            Quantities.Add(adjustment.Quantity);
             return Task.FromResult(failure is null ? Result.Success : new Result(failure));
         }
     }

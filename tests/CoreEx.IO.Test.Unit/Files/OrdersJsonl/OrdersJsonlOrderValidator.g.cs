@@ -19,7 +19,8 @@ public partial class OrdersJsonlOrderValidator : Validator<OrdersJsonlOrder>
         Property(x => x.SubmittedAt).WithText("SubmittedAt").NotNull();
         Property(x => x.BillingAddress).WithText("BillingAddress").NotNull().Entity(v => v.WithValidator(new OrdersJsonlAddressValidator()));
         Property(x => x.ShippingAddress).WithText("ShippingAddress").NotNull().Entity(v => v.WithValidator(new OrdersJsonlAddressValidator()));
-        Property(x => x.Lines).WithText("Lines").Collection(v => v.WithItemValidator(new OrdersJsonlLineValidator()));
+        Property(x => x.Lines).WithText("Lines").NotNull().Collection(minCount: 1, maxCount: 1000, with: v => v.WithItemValidator(new OrdersJsonlLineValidator()));
+        Property(x => x.Tags).WithText("Tags").Collection(minCount: 0, maxCount: 100);
         OnInitialization();
     }
 

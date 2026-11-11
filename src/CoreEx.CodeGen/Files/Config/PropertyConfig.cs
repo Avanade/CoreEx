@@ -118,7 +118,7 @@ public class PropertyConfig : ConfigBase<CodeGenConfig, RecordConfig>
         get
         {
             if (Mandatory == true) yield return "Mandatory()";
-            else if (Required == true) yield return "NotNull()";
+            else if (Required == true || Collection?.Cardinality is "One" or "OneOrMore") yield return "NotNull()";
             if (MinLength.HasValue) yield return $"MinimumLength({MinLength.Value})";
             if (MaxLength == 0) yield return "CompareValues(new string[] { \"\" })";
             else if (MaxLength.HasValue) yield return $"MaximumLength({MaxLength.Value})";
@@ -131,7 +131,13 @@ public class PropertyConfig : ConfigBase<CodeGenConfig, RecordConfig>
             if (Options is not null) yield return $"CompareValues(new {DotNetType.TrimEnd('?')}[] {{ {string.Join(", ", Options.Select(x => ScalarLiteral(ParseScalar(x, nameof(Options)))))} }})";
             if (ReferenceData is not null) yield return $"ReferenceData(r => r.With<global::{ReferenceData.Type}>(){(ReferenceData.AllowInactive == true ? ".AllowInactive()" : string.Empty)})";
             if (Record is not null) yield return $"Entity(v => v.WithValidator(new {Root!.Name}{Record}Validator()))";
-            if (Collection?.Record is not null) yield return $"Collection(v => v.WithItemValidator(new {Root!.Name}{Collection.Record}Validator()))";
+            if (Collection is not null)
+            {
+                var minimum = Collection.Cardinality is "One" or "OneOrMore" ? 1 : 0;
+                var maximum = Collection.Cardinality is "One" or "Optional" ? Math.Min(Collection.MaxItems ?? 1, 1) : Collection.MaxItems;
+                var with = Collection.Record is null ? string.Empty : $", with: v => v.WithItemValidator(new {Root!.Name}{Collection.Record}Validator())";
+                yield return $"Collection(minCount: {minimum}, maxCount: {maximum?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "null"}{with})";
+            }
         }
     }
 
@@ -160,10 +166,10 @@ public class PropertyConfig : ConfigBase<CodeGenConfig, RecordConfig>
             "DateOnly" when text is not null && (Format is null
                 ? DateOnly.TryParse(text, culture, System.Globalization.DateTimeStyles.None, out var n)
                 : DateOnly.TryParseExact(text, Format, culture, System.Globalization.DateTimeStyles.None, out n)) => n,
-            "DateTime" when text is not null && (!Root!.IsJsonl || !HasOffset(text)) && (Format is null
+            "DateTime" when text is not null && (!Root!.IsJson || !HasOffset(text)) && (Format is null
                 ? DateTime.TryParse(text, culture, System.Globalization.DateTimeStyles.None, out var n)
                 : DateTime.TryParseExact(text, Format, culture, System.Globalization.DateTimeStyles.None, out n))
-                && (!Root.IsJsonl || n.Kind == DateTimeKind.Unspecified) => n,
+                && (!Root.IsJson || n.Kind == DateTimeKind.Unspecified) => n,
             "DateTimeOffset" when text is not null && HasOffset(text) && (Format is null
                 ? DateTimeOffset.TryParse(text, culture, System.Globalization.DateTimeStyles.None, out var n)
                 : DateTimeOffset.TryParseExact(text, Format, culture, System.Globalization.DateTimeStyles.AssumeUniversal, out n)) => n,
@@ -211,8 +217,8 @@ public class PropertyConfig : ConfigBase<CodeGenConfig, RecordConfig>
             if (Record is not null) return $"MapObject({args}, {Root!.Name}{Record}Mapping.Create())";
             if (Collection is not null)
                 return Collection.Record is not null
-                    ? $"MapObjects({args}, {Root!.Name}{Collection.Record}Mapping.Create(), FileCardinality.{Collection.Cardinality}, {Collection.MaxItems?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "null"})"
-                    : $"MapValues<{ElementType}>({args}, {converter}, FileCardinality.{Collection.Cardinality}, {Collection.MaxItems?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "null"})";
+                    ? $"MapObjects({args}, {Root!.Name}{Collection.Record}Mapping.Create())"
+                    : $"MapValues<{ElementType}>({args}, {converter})";
 
             return Type == "String" ? $"MapString({args})" : $"MapValue<{ScalarDotNetType(Type!)}>({args}, {converter})";
         }
@@ -247,8 +253,8 @@ public class PropertyConfig : ConfigBase<CodeGenConfig, RecordConfig>
         if ((Type is not null ? 1 : 0) + (Record is not null ? 1 : 0) + (Collection is not null ? 1 : 0) > 1)
             throw new CodeGenException(this, nameof(Type), "Use exactly one of type, record, or collection.");
 
-        if (Root!.IsJsonl ? Csv is not null : Record is not null || Collection is not null)
-            throw new CodeGenException(this, nameof(Csv), "Nested records/collections are JSONL only; CSV selectors are inapplicable to JSONL.");
+        if (Root!.IsJson ? Csv is not null : Record is not null || Collection is not null)
+            throw new CodeGenException(this, nameof(Csv), "Nested records/collections are supported only by JSON formats; CSV selectors are inapplicable to JSON.");
 
         if (Collection is not null)
             await Collection.PrepareAsync(Root!, this).ConfigureAwait(false);
@@ -349,7 +355,7 @@ public class PropertyConfig : ConfigBase<CodeGenConfig, RecordConfig>
             {
                 "DateOnly" => !DateOnly.TryParseExact(text, Format, culture, System.Globalization.DateTimeStyles.None, out _),
                 "DateTimeOffset" => !HasOffset(text) || !DateTimeOffset.TryParseExact(text, Format, culture, System.Globalization.DateTimeStyles.AssumeUniversal, out var parsed) || parsed.Offset != date.Offset,
-                _ => Root!.IsJsonl && HasOffset(text) || !DateTime.TryParseExact(text, Format, culture, System.Globalization.DateTimeStyles.None, out _)
+                _ => Root!.IsJson && HasOffset(text) || !DateTime.TryParseExact(text, Format, culture, System.Globalization.DateTimeStyles.None, out _)
             })
                 throw new FormatException("The date format cannot round-trip its required offset semantics.");
         }

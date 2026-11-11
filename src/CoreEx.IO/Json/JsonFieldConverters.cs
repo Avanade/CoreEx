@@ -1,126 +1,88 @@
 namespace CoreEx.IO.Json;
 
-/// <summary>Provides strict native-token conversions without string or floating-point coercion.</summary>
+/// <summary>Provides System.Text.Json scalar converters and ingestion-specific date and finite-number policies.</summary>
 public static class JsonFieldConverters
 {
-    /// <summary>Converts a string, preserving empty and whitespace-only content.</summary>
-    /// <param name="element">The JSON token to convert.</param>
-    /// <param name="value">The decoded string, or an empty string when conversion fails.</param>
-    /// <returns>Whether the token is a JSON string.</returns>
-    public static bool String(JsonElement element, out string value)
-    {
-        value = string.Empty;
-        if (element.ValueKind != JsonValueKind.String)
-            return false;
+    /// <summary>Gets the standard string converter, preserving empty and whitespace-only content.</summary>
+    public static JsonConverter<string> String => Default<string>();
 
-        try
+    /// <summary>Gets the standard strict 32-bit integer converter.</summary>
+    public static JsonConverter<int> Integer => Default<int>();
+
+    /// <summary>Gets the standard strict 64-bit integer converter.</summary>
+    public static JsonConverter<long> Int64 => Default<long>();
+
+    /// <summary>Gets the standard decimal converter without intermediate floating-point conversion.</summary>
+    public static JsonConverter<decimal> Decimal => Default<decimal>();
+
+    /// <summary>Gets a number converter that rejects non-finite doubles.</summary>
+    public static JsonConverter<double> Double { get; } = new FiniteDoubleConverter();
+
+    /// <summary>Gets the standard Boolean converter.</summary>
+    public static JsonConverter<bool> Boolean => Default<bool>();
+
+    /// <summary>Gets the standard Guid converter.</summary>
+    public static JsonConverter<Guid> Guid => Default<Guid>();
+
+    /// <summary>Creates an invariant date converter with an optional exact format.</summary>
+    /// <param name="format">The exact format, or null for standard invariant parsing.</param>
+    /// <returns>The System.Text.Json converter.</returns>
+    public static JsonConverter<DateOnly> DateOnly(string? format = null) => new DateConverter<DateOnly>(CsvFieldConverters.DateOnly(format), false, format);
+
+    /// <summary>Creates an invariant offset-free date-time converter with an optional exact format.</summary>
+    /// <param name="format">The exact format, or null for standard invariant parsing.</param>
+    /// <returns>The System.Text.Json converter.</returns>
+    public static JsonConverter<DateTime> DateTime(string? format = null) => new DateConverter<DateTime>(CsvFieldConverters.DateTime(format), true, format);
+
+    /// <summary>Creates an invariant date-time converter requiring and preserving an explicit offset.</summary>
+    /// <param name="format">The exact format, or null for standard invariant parsing.</param>
+    /// <returns>The System.Text.Json converter.</returns>
+    public static JsonConverter<DateTimeOffset> DateTimeOffset(string? format = null) => new DateConverter<DateTimeOffset>(CsvFieldConverters.DateTimeOffset(format), false, format);
+
+    /// <summary>Gets a built-in scalar converter without replacing the serializer's object or collection readers.</summary>
+    internal static JsonConverter<TValue> Default<TValue>() => (JsonConverter<TValue>)JsonSerializerOptions.Default.GetConverter(typeof(TValue));
+
+    /// <summary>Applies an existing invariant date policy through the standard scalar-converter extension point.</summary>
+    private sealed class DateConverter<TValue>(CsvFieldConverter<TValue?> convert, bool rejectOffset, string? format) : JsonConverter<TValue> where TValue : struct
+    {
+        private readonly bool _rejectOffset = rejectOffset;
+        private readonly string? _format = format;
+
+        /// <inheritdoc/>
+        public override TValue Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
-            value = element.GetString() ?? throw new InvalidOperationException("A string token cannot contain null.");
-            return true;
+            if (reader.TokenType != JsonTokenType.String)
+                throw new JsonException("A date must be a JSON string.");
+
+            var text = reader.GetString();
+            if (text is null || !convert(text, out var value) || value is null
+                || _rejectOffset && (FileDateTime.HasOffset(text) || value is System.DateTime { Kind: not DateTimeKind.Unspecified }))
+                throw new JsonException("The date does not match the declared format or offset policy.");
+
+            return value.Value;
         }
-        catch (InvalidOperationException)
+
+        /// <inheritdoc/>
+        public override void Write(Utf8JsonWriter writer, TValue value, JsonSerializerOptions options) => JsonSerializer.Serialize(writer, value);
+
+        /// <inheritdoc/>
+        public override bool Equals(object? obj) => obj is DateConverter<TValue> other && _format == other._format && _rejectOffset == other._rejectOffset;
+
+        /// <inheritdoc/>
+        public override int GetHashCode() => HashCode.Combine(_format, _rejectOffset);
+    }
+
+    /// <summary>Retains the finite-number contract without replacing standard numeric parsing.</summary>
+    private sealed class FiniteDoubleConverter : JsonConverter<double>
+    {
+        /// <inheritdoc/>
+        public override double Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
-            return false;
+            var value = reader.GetDouble();
+            return double.IsFinite(value) ? value : throw new JsonException("A finite number is required.");
         }
+
+        /// <inheritdoc/>
+        public override void Write(Utf8JsonWriter writer, double value, JsonSerializerOptions options) => writer.WriteNumberValue(value);
     }
-
-    /// <summary>Converts an exact 32-bit integer number token.</summary>
-    /// <param name="element">The JSON token to convert.</param>
-    /// <param name="value">The converted integer, or its default value when conversion fails.</param>
-    /// <returns>Whether the token is a JSON number representable as a 32-bit integer.</returns>
-    public static bool Integer(JsonElement element, out int value)
-    {
-        value = default;
-        return element.ValueKind == JsonValueKind.Number && element.TryGetInt32(out value);
-    }
-
-    /// <summary>Converts an exact 64-bit integer number token.</summary>
-    /// <param name="element">The JSON token to convert.</param>
-    /// <param name="value">The converted integer, or its default value when conversion fails.</param>
-    /// <returns>Whether the token is a JSON number representable as a 64-bit integer.</returns>
-    public static bool Int64(JsonElement element, out long value)
-    {
-        value = default;
-        return element.ValueKind == JsonValueKind.Number && element.TryGetInt64(out value);
-    }
-
-    /// <summary>Converts a decimal number without an intermediate Double.</summary>
-    /// <param name="element">The JSON token to convert.</param>
-    /// <param name="value">The converted decimal, or its default value when conversion fails.</param>
-    /// <returns>Whether the token is a JSON number representable as a decimal.</returns>
-    public static bool Decimal(JsonElement element, out decimal value)
-    {
-        value = default;
-        return element.ValueKind == JsonValueKind.Number && element.TryGetDecimal(out value);
-    }
-
-    /// <summary>Converts a finite double number token.</summary>
-    /// <param name="element">The JSON token to convert.</param>
-    /// <param name="value">The converted finite double, or its default value when conversion fails.</param>
-    /// <returns>Whether the token is a finite JSON number representable as a double.</returns>
-    public static bool Double(JsonElement element, out double value)
-    {
-        value = default;
-        return element.ValueKind == JsonValueKind.Number && element.TryGetDouble(out value) && double.IsFinite(value);
-    }
-
-    /// <summary>Converts a Boolean token, not a string or number.</summary>
-    /// <param name="element">The JSON token to convert.</param>
-    /// <param name="value">The converted Boolean value.</param>
-    /// <returns>Whether the token is a JSON Boolean.</returns>
-    public static bool Boolean(JsonElement element, out bool value)
-    {
-        value = element.ValueKind == JsonValueKind.True;
-        return element.ValueKind is JsonValueKind.True or JsonValueKind.False;
-    }
-
-    /// <summary>Converts a Guid string.</summary>
-    /// <param name="element">The JSON token to convert.</param>
-    /// <param name="value">The parsed identifier, or its default value when conversion fails.</param>
-    /// <returns>Whether the token is a string containing a valid identifier.</returns>
-    public static bool Guid(JsonElement element, out Guid value)
-    {
-        value = default;
-        return String(element, out var text) && System.Guid.TryParse(text, out value);
-    }
-
-    /// <summary>Creates an invariant DateOnly converter with an optional exact format.</summary>
-    /// <param name="format">The exact format, or null to use standard invariant parsing.</param>
-    /// <returns>A converter for JSON string tokens containing a valid date.</returns>
-    public static JsonValueConverter<DateOnly> DateOnly(string? format = null) => (element, out value) =>
-    {
-        value = default;
-        return String(element, out var text) && (format is null
-            ? System.DateOnly.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.None, out value)
-            : System.DateOnly.TryParseExact(text, format, CultureInfo.InvariantCulture, DateTimeStyles.None, out value));
-    };
-
-    /// <summary>Creates an invariant offset-free DateTime converter with an optional exact format.</summary>
-    /// <param name="format">The exact format, or null to use standard invariant parsing.</param>
-    /// <returns>A converter for JSON string tokens without an offset.</returns>
-    public static JsonValueConverter<DateTime> DateTime(string? format = null) => (element, out value) =>
-    {
-        value = default;
-        if (!String(element, out var text) || FileDateTime.HasOffset(text))
-            return false;
-
-        return (format is null
-            ? System.DateTime.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.None, out value)
-            : System.DateTime.TryParseExact(text, format, CultureInfo.InvariantCulture, DateTimeStyles.None, out value))
-            && value.Kind == DateTimeKind.Unspecified;
-    };
-
-    /// <summary>Creates an invariant DateTimeOffset converter preserving a required Z or numeric offset.</summary>
-    /// <param name="format">The exact format, or null to use standard invariant parsing.</param>
-    /// <returns>A converter for JSON string tokens matching the format and containing an explicit offset.</returns>
-    public static JsonValueConverter<DateTimeOffset> DateTimeOffset(string? format = null) => (element, out value) =>
-    {
-        value = default;
-        if (!String(element, out var text) || !FileDateTime.HasOffset(text))
-            return false;
-
-        return format is null
-            ? System.DateTimeOffset.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.None, out value)
-            : System.DateTimeOffset.TryParseExact(text, format, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out value);
-    };
 }

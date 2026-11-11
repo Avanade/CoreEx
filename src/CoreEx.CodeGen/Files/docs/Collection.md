@@ -10,4 +10,4 @@ Property | Description
 `record` | Element record.<br/>&dagger; Exactly one of record/type is required.
 `type` | Scalar element type. Valid options are: `String`, `Integer`, `Int64`, `Decimal`, `Double`, `Boolean`, `Guid`, `DateOnly`, `DateTime`, `DateTimeOffset`.<br/>&dagger; Exactly one of record/type is required. Null elements are rejected.
 `cardinality` | Per-parent cardinality. Valid options are: `Many`, `One`, `Optional`, `OneOrMore`.<br/>&dagger; Defaults to Many; missing/null counts as zero.
-`maxItems` | Optional maximum elements.<br/>&dagger; No maximum by default. An explicit positive count is a business constraint checked before element mapping.
+`maxItems` | Optional maximum elements.<br/>&dagger; No maximum by default. An explicit positive count is checked by the generated validator after deserialization.

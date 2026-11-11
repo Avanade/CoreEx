@@ -3,7 +3,7 @@ namespace CoreEx.IO.Test.Unit;
 [TestFixture]
 public partial class JsonLinesFileProcessorTests
 {
-    private static string Fixture(string name)
+    internal static string Fixture(string name)
     {
         var root = new DirectoryInfo(AppContext.BaseDirectory);
         while (root is not null && !System.IO.File.Exists(Path.Combine(root.FullName, "CoreEx.slnx")))
@@ -58,7 +58,7 @@ public partial class JsonLinesFileProcessorTests
 
     [TestCase("invalid-child.jsonl", "file.validation", 2, 1, 1)]
     [TestCase("malformed-line.jsonl", "jsonl.record.invalid", 3, 1, 2)]
-    [TestCase("missing-child.jsonl", "file.structure.cardinality", 1, 1, 0)]
+    [TestCase("missing-child.jsonl", "file.validation", 1, 1, 0)]
     public async Task RejectionNeverReplaysAndCountersMatchContract(string file, string code, int records, int invalid, int valid)
     {
         await using var services = Provider();
@@ -149,9 +149,9 @@ public partial class JsonLinesFileProcessorTests
     [TestCase("\"BillingAddress\":{\"Code\":\"B1\"}", "\"BillingAddress\":{}", "BillingAddress.Code", "/BillingAddress/Code", "file.validation")]
     [TestCase("\"BillingAddress\":{\"Code\":\"B1\"}", "\"BillingAddress\":null", "BillingAddress", "/BillingAddress", "file.validation")]
     [TestCase("\"ShippingAddress\":{\"Code\":\"S1\"}", "\"ShippingAddress\":{\"Code\":false}", "ShippingAddress.Code", "/ShippingAddress/Code", "json.field.type")]
-    [TestCase("\"Tags\":[\"priority\",\"web\"]", "\"Tags\":[null]", "Tags[0]", "/Tags/0", "json.field.type")]
-    [TestCase("\"Lines\":[{\"Sku\":\"X\",\"Quantity\":2},{\"Sku\":\"Y\",\"Quantity\":1}]", "\"Lines\":[]", "Lines", "/Lines", "file.structure.cardinality")]
-    [TestCase("\"Lines\":[{\"Sku\":\"X\",\"Quantity\":2},{\"Sku\":\"Y\",\"Quantity\":1}]", "\"Lines\":null", "Lines", "/Lines", "file.structure.cardinality")]
+    [TestCase("\"Tags\":[\"priority\",\"web\"]", "\"Tags\":[null]", "Tags", "/Tags", "file.validation")]
+    [TestCase("\"Lines\":[{\"Sku\":\"X\",\"Quantity\":2},{\"Sku\":\"Y\",\"Quantity\":1}]", "\"Lines\":[]", "Lines", "/Lines", "file.validation")]
+    [TestCase("\"Lines\":[{\"Sku\":\"X\",\"Quantity\":2},{\"Sku\":\"Y\",\"Quantity\":1}]", "\"Lines\":null", "Lines", "/Lines", "file.validation")]
     public async Task NestedOccurrencesRetainDistinctPaths(string before, string after, string property, string source, string code)
     {
         var processor = new Probe();

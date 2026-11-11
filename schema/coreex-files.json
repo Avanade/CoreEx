@@ -33,9 +33,10 @@
         "format": {
           "type": "string",
           "title": "Input format.",
-          "description": "Defaults to Csv. JSON document and XML readers are not yet supported.",
+          "description": "Defaults to Csv. XML is not supported.",
           "enum": [
             "Csv",
+            "Json",
             "Jsonl"
           ]
         },
@@ -49,7 +50,7 @@
         },
         "json": {
           "title": "Shared JSON mapping settings.",
-          "description": "JSONL only in this release; kind/unitPath/document selection are not supported.",
+          "description": "Shared JSON token conversion, unknown-member policy, and parser depth.",
           "allOf": [
             {
               "$ref": "#/definitions/Json"
@@ -271,7 +272,7 @@
     },
     "Unit": {
       "type": "object",
-      "title": "Business object selection.",
+      "title": "Business unit selection.",
       "properties": {
         "record": {
           "type": "string",
@@ -288,6 +289,20 @@
             "Optional",
             "OneOrMore"
           ]
+        },
+        "kind": {
+          "type": "string",
+          "title": "JSON document value kind.",
+          "description": "Defaults to Array; applies only to JSON documents.",
+          "enum": [
+            "Array",
+            "Object"
+          ]
+        },
+        "unitPath": {
+          "type": "string",
+          "title": "JSON document unit path.",
+          "description": "Defaults to the root pointer; applies only to JSON documents."
         }
       }
     },
@@ -321,6 +336,14 @@
           "allOf": [
             {
               "$ref": "#/definitions/JsonlMetadata"
+            }
+          ]
+        },
+        "json": {
+          "title": "JSON document metadata selection.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/JsonDocumentMetadata"
             }
           ]
         }
@@ -361,6 +384,19 @@
           ]
         }
       }
+    },
+    "JsonDocumentMetadata": {
+      "type": "object",
+      "title": "JSON document metadata selector.",
+      "properties": {
+        "path": {
+          "type": "string",
+          "title": "JSON Pointer."
+        }
+      },
+      "required": [
+        "path"
+      ]
     },
     "Record": {
       "type": "object",
@@ -632,7 +668,7 @@
         "maxItems": {
           "type": "integer",
           "title": "Optional maximum elements.",
-          "description": "No maximum by default. An explicit positive count is a business constraint checked before element mapping."
+          "description": "No maximum by default. An explicit positive count is checked by the generated validator after deserialization."
         }
       }
     },

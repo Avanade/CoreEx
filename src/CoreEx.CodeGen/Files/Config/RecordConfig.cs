@@ -41,7 +41,7 @@ public class RecordConfig : ConfigBase<CodeGenConfig, CodeGenConfig>
     protected override async Task PrepareAsync()
     {
         RejectUnknownProperties();
-        if (Root!.IsJsonl ? Csv is not null : Jsonl is not null)
+        if (Root!.IsJson ? Csv is not null || !Root.IsJsonl && Jsonl is not null : Jsonl is not null)
             throw new CodeGenException(this, nameof(Csv), "Record routing settings do not apply to this format.");
 
         Name = ConfigValidation.Identifier(this, nameof(Name), Name);
@@ -56,7 +56,7 @@ public class RecordConfig : ConfigBase<CodeGenConfig, CodeGenConfig>
 
         Properties = await PrepareCollectionAsync(Properties).ConfigureAwait(false);
         var names = new HashSet<string>(StringComparer.Ordinal);
-        var sourceNames = new HashSet<string>(Root!.IsJsonl ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase);
+        var sourceNames = new HashSet<string>(Root!.IsJson ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase);
         var indices = new HashSet<int>();
         foreach (var property in Properties)
         {

@@ -81,8 +81,11 @@ public class JsonLinesFileProcessor<TUnit> : FileProcessor<TUnit> where TUnit : 
             if (_options.Discriminator is { } discriminatorName && document?.RootElement.ValueKind == JsonValueKind.Object && code != "jsonl.record.invalid")
             {
                 if (document.RootElement.TryGetProperty(discriminatorName, out var discriminator)
-                    && CoreEx.IO.Json.JsonFieldConverters.String(discriminator, out var value))
-                    match = value;
+                    && discriminator.ValueKind == JsonValueKind.String)
+                {
+                    try { match = discriminator.GetString(); }
+                    catch (InvalidOperationException) { code = "jsonl.discriminator.invalid"; }
+                }
             }
 
             if (match is not null)
@@ -180,13 +183,13 @@ public class JsonLinesFileProcessor<TUnit> : FileProcessor<TUnit> where TUnit : 
             if (metadata is not null)
             {
                 var value = await metadata.MapAsync(root, mappingContext, _options.Discriminator, !replay, cancellationToken).ConfigureAwait(false);
-                if (!invalid)
+                if (value is not null && !invalid)
                     context.SetMetadata(metadata.Name, value);
             }
             else
             {
-                var unit = (TUnit)await mapping.MapAsync(root, mappingContext, string.Empty, string.Empty, _options.Discriminator, cancellationToken).ConfigureAwait(false);
-                if (!invalid)
+                var unit = (TUnit?)await mapping.MapAsync(root, mappingContext, string.Empty, string.Empty, _options.Discriminator, cancellationToken).ConfigureAwait(false);
+                if (unit is not null && !invalid)
                 {
                     var info = new FileUnitInfo(ordinal, new(frame.Line, sourcePath: string.Empty), recordType, frame.Offset)
                     {

@@ -29,6 +29,14 @@ public sealed class InventoryImportReport(BlobServiceClient storage, InventoryIm
         await blob.AppendBlockAsync(content, cancellationToken: cancellationToken).ConfigureAwait(false);
     }
 
+    /// <summary>Writes a diagnostic consistently across the generated format processors.</summary>
+    public Task WriteDiagnosticAsync(FileDiagnosticArgs args, CancellationToken cancellationToken = default)
+        => WriteAsync(new
+        {
+            kind = "diagnostic", args.Context.Identity, args.Diagnostic.Code, args.Diagnostic.Category,
+            message = args.Diagnostic.Message.ToString(), args.Diagnostic.Location
+        }, cancellationToken);
+
     /// <summary>Writes the summary before making the explicit outcome visible to report consumers.</summary>
     public async Task FinishAsync(FileProcessingSummary summary, CancellationToken cancellationToken = default)
     {

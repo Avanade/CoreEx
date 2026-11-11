@@ -492,14 +492,17 @@ public partial class FileGenerationTests
 
         (string Page, string[] Properties)[] expected =
         [
-            ("CodeGeneration", ["format", "csv", "metadata", "mode", "errorMode"]),
+            ("CodeGeneration", ["format", "csv", "json", "jsonl", "unit", "metadata", "mode", "errorMode"]),
             ("Csv", ["delimiter", "encoding", "discriminatorIndex", "structure"]),
             ("CsvMetadata", ["position"]),
             ("CsvProperty", ["index"]),
             ("CsvRecord", ["match", "cardinality", "position"]),
-            ("Metadata", ["name", "record", "required", "csv"]),
+            ("Json", ["unknownMemberPolicy", "maxDepth"]),
+            ("JsonDocumentMetadata", ["path"]),
+            ("Metadata", ["name", "record", "required", "csv", "jsonl", "json"]),
             ("Property", ["name", "property", "csv", "format"]),
-            ("Record", ["name", "csv", "properties"])
+            ("Record", ["name", "csv", "properties"]),
+            ("Unit", ["record", "cardinality", "kind", "unitPath"])
         ];
         foreach (var (page, properties) in expected)
         {

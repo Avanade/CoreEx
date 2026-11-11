@@ -1,25 +1,29 @@
 namespace CoreEx.IO.Json;
 
-/// <summary>Provides internal dispatch for declared nested occurrences and metadata.</summary>
+/// <summary>Configures serializer contracts and resolves declared model/source paths.</summary>
 internal interface IJsonUnitMapping
 {
-    /// <summary>Maps an object and its declared descendants.</summary>
-    /// <param name="element">The JSON object to map.</param>
-    /// <param name="context">The pass-local mapping and diagnostic context.</param>
-    /// <param name="propertyPath">The current model path.</param>
-    /// <param name="sourcePath">The current JSON Pointer.</param>
-    /// <param name="structuralMember">A structural member excluded from ordinary unknown-member checks.</param>
-    /// <param name="cancellationToken">The processing cancellation token.</param>
-    /// <returns>The mapped wire object.</returns>
-    Task<object> MapAsync(JsonElement element, JsonMappingContext context, string propertyPath, string sourcePath, string? structuralMember, CancellationToken cancellationToken);
+    /// <summary>Deserializes a selected object using the standard asynchronous serializer.</summary>
+    Task<object?> DeserializeAsync(JsonDocumentCursor cursor, JsonMappingContext context, string sourcePath, CancellationToken cancellationToken);
+
+    /// <summary>Deserializes a previously parsed JSONL object using the standard serializer.</summary>
+    Task<object?> MapAsync(JsonElement element, JsonMappingContext context, string propertyPath, string sourcePath, string? structuralMember, CancellationToken cancellationToken);
+
+    /// <summary>Registers this type and its nested serializer contracts.</summary>
+    void RegisterContracts(Dictionary<Type, IJsonUnitMapping> contracts, HashSet<IJsonUnitMapping> visited);
+
+    /// <summary>Applies declared source names and scalar converters to a serializer contract.</summary>
+    void Configure(JsonTypeInfo typeInfo, string? structuralMember);
+
+    /// <summary>Gets whether another mapping declares the same property names and types.</summary>
+    bool HasSameShape(IJsonUnitMapping other);
+
+    /// <summary>Resolves a serializer exception path without exposing undeclared input member names.</summary>
+    (string Property, string Source, bool Unknown) ResolveErrorPath(string path);
 
     /// <summary>Resolves a validator's model path to a declared source path.</summary>
-    /// <param name="propertyPath">The validator's model path.</param>
-    /// <returns>The corresponding JSON Pointer.</returns>
     string ResolveSourcePath(string propertyPath);
 
     /// <summary>Restores CLR property segments when a validator emits its serializer-oriented names.</summary>
-    /// <param name="propertyPath">The validator's model or serializer path.</param>
-    /// <returns>The path using CLR property names.</returns>
     string ResolvePropertyPath(string propertyPath);
 }

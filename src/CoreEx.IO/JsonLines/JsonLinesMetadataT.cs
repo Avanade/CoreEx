@@ -20,9 +20,12 @@ public sealed class JsonLinesMetadata<TMetadata> : JsonLinesMetadata where TMeta
         => (_mapping, _validator) = (mapping.ThrowIfNull(), validator);
 
     /// <inheritdoc/>
-    internal override async Task<object> MapAsync(JsonElement element, CoreEx.IO.Json.JsonMappingContext context, string? discriminator, bool validate, CancellationToken cancellationToken)
+    internal override async Task<object?> MapAsync(JsonElement element, CoreEx.IO.Json.JsonMappingContext context, string? discriminator, bool validate, CancellationToken cancellationToken)
     {
-        var value = (TMetadata)await _mapping.MapAsync(element, context, string.Empty, string.Empty, discriminator, cancellationToken).ConfigureAwait(false);
+        var value = (TMetadata?)await _mapping.MapAsync(element, context, string.Empty, string.Empty, discriminator, cancellationToken).ConfigureAwait(false);
+        if (value is null)
+            return null;
+
         if (validate && !context.Invalid && !context.Stopped && _validator is not null)
         {
             var validation = await _validator.ValidateAsync(value, cancellationToken).ConfigureAwait(false);

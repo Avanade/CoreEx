@@ -18,8 +18,8 @@ public static class OrdersJsonlOrderMapping
         .MapValue<DateTimeOffset>("SubmittedAt", x => x.SubmittedAt, JsonFieldConverters.DateTimeOffset(null))
         .MapObject("BillingAddress", x => x.BillingAddress, OrdersJsonlAddressMapping.Create())
         .MapObject("ShippingAddress", x => x.ShippingAddress, OrdersJsonlAddressMapping.Create())
-        .MapObjects("Lines", x => x.Lines, OrdersJsonlLineMapping.Create(), FileCardinality.OneOrMore, 1000)
-        .MapValues<string>("Tags", x => x.Tags, JsonFieldConverters.String, FileCardinality.Many, 100);
+        .MapObjects("Lines", x => x.Lines, OrdersJsonlLineMapping.Create())
+        .MapValues<string>("Tags", x => x.Tags, JsonFieldConverters.String);
 }
 
 #nullable restore

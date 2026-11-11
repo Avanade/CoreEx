@@ -43,5 +43,5 @@ public abstract class JsonLinesMetadata
     /// <param name="validate">Whether the metadata validator should run.</param>
     /// <param name="cancellationToken">The processing cancellation token.</param>
     /// <returns>The mapped metadata wire object.</returns>
-    internal abstract Task<object> MapAsync(JsonElement element, CoreEx.IO.Json.JsonMappingContext context, string? discriminator, bool validate, CancellationToken cancellationToken);
+    internal abstract Task<object?> MapAsync(JsonElement element, CoreEx.IO.Json.JsonMappingContext context, string? discriminator, bool validate, CancellationToken cancellationToken);
 }

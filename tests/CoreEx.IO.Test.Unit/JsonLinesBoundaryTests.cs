@@ -30,7 +30,7 @@ public partial class JsonLinesFileProcessorTests
             summary.IsSuccess.Should().Be(count == 100);
             if (count > 100)
             {
-                processor.Diagnostics.Single().Code.Should().Be("file.structure.cardinality");
+                processor.Diagnostics.Single().Code.Should().Be("file.validation");
                 processor.Diagnostics.Single().Location?.SourcePath.Should().Be("/Tags");
                 AssertCounts(summary, 1, 1, 1, 1, 0, 0);
             }
@@ -47,7 +47,7 @@ public partial class JsonLinesFileProcessorTests
     public void StandardDateTimeOffsetRequiresExplicitOffsetAndRetainsIt(string text, bool valid)
     {
         using var document = JsonDocument.Parse(JsonSerializer.Serialize(text));
-        JsonFieldConverters.DateTimeOffset()(document.RootElement, out var value).Should().Be(valid);
+        TryConvert(JsonFieldConverters.DateTimeOffset(), document.RootElement, out var value).Should().Be(valid);
         if (valid)
             value.Offset.Should().Be(DateTimeOffset.Parse(text, CultureInfo.InvariantCulture).Offset);
     }
@@ -62,7 +62,7 @@ public partial class JsonLinesFileProcessorTests
     public void StandardJsonDateTimeRejectsOffsets(string text, bool valid)
     {
         using var document = JsonDocument.Parse(JsonSerializer.Serialize(text));
-        JsonFieldConverters.DateTime()(document.RootElement, out var value).Should().Be(valid);
+        TryConvert(JsonFieldConverters.DateTime(), document.RootElement, out var value).Should().Be(valid);
         if (valid)
             value.Kind.Should().Be(DateTimeKind.Unspecified);
     }
@@ -72,13 +72,13 @@ public partial class JsonLinesFileProcessorTests
     {
         using var document = JsonDocument.Parse("""["20260315","2026-03-15","202603151030","2026-03-15T10:30","202603151030+10:00","2026-03-15T10:30+10:00","15 March 2026"]""");
         var values = document.RootElement;
-        JsonFieldConverters.DateOnly("yyyyMMdd")(values[0], out _).Should().BeTrue();
-        JsonFieldConverters.DateOnly("yyyyMMdd")(values[1], out _).Should().BeFalse();
-        JsonFieldConverters.DateOnly()(values[6], out _).Should().BeTrue();
-        JsonFieldConverters.DateTime("yyyyMMddHHmm")(values[2], out _).Should().BeTrue();
-        JsonFieldConverters.DateTime("yyyyMMddHHmm")(values[3], out _).Should().BeFalse();
-        JsonFieldConverters.DateTimeOffset("yyyyMMddHHmmzzz")(values[4], out _).Should().BeTrue();
-        JsonFieldConverters.DateTimeOffset("yyyyMMddHHmmzzz")(values[5], out _).Should().BeFalse();
+        TryConvert(JsonFieldConverters.DateOnly("yyyyMMdd"), values[0], out _).Should().BeTrue();
+        TryConvert(JsonFieldConverters.DateOnly("yyyyMMdd"), values[1], out _).Should().BeFalse();
+        TryConvert(JsonFieldConverters.DateOnly(), values[6], out _).Should().BeTrue();
+        TryConvert(JsonFieldConverters.DateTime("yyyyMMddHHmm"), values[2], out _).Should().BeTrue();
+        TryConvert(JsonFieldConverters.DateTime("yyyyMMddHHmm"), values[3], out _).Should().BeFalse();
+        TryConvert(JsonFieldConverters.DateTimeOffset("yyyyMMddHHmmzzz"), values[4], out _).Should().BeTrue();
+        TryConvert(JsonFieldConverters.DateTimeOffset("yyyyMMddHHmmzzz"), values[5], out _).Should().BeFalse();
         CsvFieldConverters.DateOnly("yyyyMMdd")("20260315", out _).Should().BeTrue();
         CsvFieldConverters.DateOnly("yyyyMMdd")("2026-03-15", out _).Should().BeFalse();
         CsvFieldConverters.DateOnly()("15 March 2026", out _).Should().BeTrue();
@@ -112,16 +112,16 @@ public partial class JsonLinesFileProcessorTests
     {
         using var document = JsonDocument.Parse("""[9223372036854775807,79228162514264337593543950335,1e400,true,"true",1,"1"]""");
         var values = document.RootElement;
-        JsonFieldConverters.Int64(values[0], out var integer).Should().BeTrue();
+        TryConvert(JsonFieldConverters.Int64, values[0], out var integer).Should().BeTrue();
         integer.Should().Be(long.MaxValue);
-        JsonFieldConverters.Decimal(values[1], out var dec).Should().BeTrue();
+        TryConvert(JsonFieldConverters.Decimal, values[1], out var dec).Should().BeTrue();
         dec.Should().Be(decimal.MaxValue);
-        JsonFieldConverters.Double(values[2], out _).Should().BeFalse();
-        JsonFieldConverters.Boolean(values[3], out var boolean).Should().BeTrue();
+        TryConvert(JsonFieldConverters.Double, values[2], out _).Should().BeFalse();
+        TryConvert(JsonFieldConverters.Boolean, values[3], out var boolean).Should().BeTrue();
         boolean.Should().BeTrue();
-        JsonFieldConverters.Boolean(values[4], out _).Should().BeFalse();
-        JsonFieldConverters.Boolean(values[5], out _).Should().BeFalse();
-        JsonFieldConverters.Int64(values[6], out _).Should().BeFalse();
+        TryConvert(JsonFieldConverters.Boolean, values[4], out _).Should().BeFalse();
+        TryConvert(JsonFieldConverters.Boolean, values[5], out _).Should().BeFalse();
+        TryConvert(JsonFieldConverters.Int64, values[6], out _).Should().BeFalse();
     }
 
     [TestCase(null)]
@@ -238,5 +238,19 @@ public partial class JsonLinesFileProcessorTests
         convert("2026-03-15T10:30:00", out _).Should().BeFalse();
         convert(" ", out value).Should().BeTrue();
         value.Should().BeNull();
+    }
+
+    private static bool TryConvert<TValue>(System.Text.Json.Serialization.JsonConverter<TValue> converter, JsonElement element, out TValue value) where TValue : struct
+    {
+        try
+        {
+            value = element.Deserialize<TValue>(new JsonSerializerOptions { Converters = { converter } });
+            return true;
+        }
+        catch (JsonException)
+        {
+            value = default;
+            return false;
+        }
     }
 }

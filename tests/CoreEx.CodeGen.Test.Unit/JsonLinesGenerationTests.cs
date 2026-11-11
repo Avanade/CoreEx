@@ -62,6 +62,21 @@ public partial class FileGenerationTests
               - { name: Instant, type: DateTimeOffset, required: true, options: ['15 March 2026 10:30 +10:00'] }
               - { name: Exact, type: DateOnly, format: yyyyMMdd, required: true }
             """);
+        Write("collections-file.yaml", """
+            name: Collections
+            version: '1'
+            format: Json
+            runtimeProjectPath: Runtime
+            runtimeNamespace: CoreEx.IO.Test.Unit.Files.Collections
+            unit: { record: Row, kind: Object }
+            records:
+            - name: Row
+              properties:
+              - { name: One, collection: { type: String, cardinality: One, maxItems: 2 } }
+              - { name: Optional, collection: { type: String, cardinality: Optional, maxItems: 2 } }
+              - { name: Many, collection: { type: String, maxItems: 2 } }
+              - { name: AtLeastOne, collection: { type: String, cardinality: OneOrMore } }
+            """);
         System.IO.File.AppendAllText(Path.Combine(_runtime, "GlobalUsing.cs"), """
 
             global using CoreEx.IO.Json;
@@ -161,13 +176,35 @@ public partial class FileGenerationTests
                     CoreEx.IO.Test.Unit.Files.DatesCsv.DatesCsvProcessor.CreateContext("immutable/source", "attempt", "revision"));
                 if (csvSummary.IsSuccess != exact) throw new Exception("Generated CSV standard/exact date conversion failed.");
             }
+            var collections = services.GetRequiredService<CoreEx.IO.Test.Unit.Files.Collections.CollectionsProcessor>();
+            foreach (var (input, valid) in new (string, bool)[]
+            {
+                ("{\"One\":[\"x\"],\"AtLeastOne\":[\"x\"]}", true),
+                ("{\"One\":[\"x\"],\"Optional\":[],\"Many\":[],\"AtLeastOne\":[\"x\"]}", true),
+                ("{\"AtLeastOne\":[\"x\"]}", false),
+                ("{\"One\":null,\"AtLeastOne\":[\"x\"]}", false),
+                ("{\"One\":[],\"AtLeastOne\":[\"x\"]}", false),
+                ("{\"One\":[\"x\",\"y\"],\"AtLeastOne\":[\"x\"]}", false),
+                ("{\"One\":[\"x\"],\"Optional\":[\"x\",\"y\"],\"AtLeastOne\":[\"x\"]}", false),
+                ("{\"One\":[\"x\"],\"Many\":[\"x\",\"y\",\"z\"],\"AtLeastOne\":[\"x\"]}", false),
+                ("{\"One\":[\"x\"],\"Many\":[null],\"AtLeastOne\":[\"x\"]}", false),
+                ("{\"One\":[\"x\"]}", false),
+                ("{\"One\":[\"x\"],\"AtLeastOne\":null}", false),
+                ("{\"One\":[\"x\"],\"AtLeastOne\":[]}", false)
+            })
+            {
+                var result = await collections.ProcessAsync(_ => Task.FromResult<Stream>(new MemoryStream(System.Text.Encoding.UTF8.GetBytes(input))),
+                    CoreEx.IO.Test.Unit.Files.Collections.CollectionsProcessor.CreateContext("immutable/source", "attempt", "revision"));
+                if (result.IsSuccess != valid || !valid && result.Progress.UnitsValidated != 0)
+                    throw new Exception("Generated collection validation failed: " + input);
+            }
             Console.WriteLine("Generated JSONL consumers passed.");
             """);
         (await RunDotNetAsync("run", "--project", Path.Combine(_runtime, "Runtime.csproj"), "-v:q", "-p:CoreExLocalTargetFramework=net10.0"))
             .Should().Contain("Generated JSONL consumers passed.");
     }
 
-    [TestCase("format: Jsonl", "format: Json")]
+    [TestCase("format: Jsonl", "format: Json\nunit: { record: Order, kind: Object, unitPath: /orders }")]
     [TestCase("format: Jsonl", "format: Xml")]
     [TestCase("format: Jsonl", "format: Jsonl\ncsv: { delimiter: '|' }")]
     [TestCase("format: Jsonl", "format: Jsonl\njson: { kind: Array }")]
@@ -203,6 +240,125 @@ public partial class FileGenerationTests
         })
         {
             Write("bad-file.yaml", definition);
+            Func<Task> generate = () => FileGenerationBatch.GenerateAsync(Args());
+            await generate.Should().ThrowAsync<CodeGenException>();
+            Directory.Exists(Path.Combine(_runtime, "Files")).Should().BeFalse();
+        }
+    }
+
+    [Test]
+    public async Task JsonDocumentConsumersCompileAndRunRootArrayEnvelopeAndRootObjectInputs()
+    {
+        const string definition = """
+            name: ArrayImport
+            version: '1'
+            format: Json
+            runtimeProjectPath: Runtime
+            runtimeNamespace: Consumer.ArrayImport
+            unit: { record: Order, unitPath: /orders, cardinality: OneOrMore }
+            records:
+            - name: Order
+              properties:
+              - { name: Id, required: true }
+              - { name: Address, record: Address, required: true }
+            - name: Address
+              properties:
+              - { name: Code, required: true }
+            """;
+        Write("array-file.yaml", definition);
+        Write("envelope-file.yaml", """
+            name: EnvelopeImport
+            version: '1'
+            format: Json
+            runtimeProjectPath: Runtime
+            runtimeNamespace: Consumer.EnvelopeImport
+            unit: { record: Order, unitPath: /orders, cardinality: OneOrMore }
+            metadata:
+            - { name: Batch, record: Batch, required: true, json: { path: /batch } }
+            records:
+            - name: Order
+              properties:
+              - { name: Id, required: true }
+              - { name: Address, record: Address, required: true }
+            - name: Address
+              properties:
+              - { name: Code, required: true }
+            - name: Batch
+              properties:
+              - { name: BatchId, required: true }
+            """);
+        Write("object-file.yaml", """
+            name: ObjectImport
+            version: '1'
+            format: Json
+            runtimeProjectPath: Runtime
+            runtimeNamespace: Consumer.ObjectImport
+            unit: { record: Order, kind: Object }
+            records:
+            - name: Order
+              properties:
+              - { name: Id, required: true }
+              - { name: Address, record: Address, required: true }
+            - name: Address
+              properties:
+              - { name: Code, required: true }
+            """);
+        System.IO.File.AppendAllText(Path.Combine(_runtime, "GlobalUsing.cs"), "\nglobal using CoreEx.IO.Json;\n");
+        await FileGenerationBatch.GenerateAsync(Args());
+        System.IO.File.WriteAllText(Path.Combine(_runtime, "Program.cs"), """
+            using Consumer.ArrayImport;
+            using Consumer.EnvelopeImport;
+            using Consumer.ObjectImport;
+            await using var services = new ServiceCollection().AddExecutionContext()
+                .AddDynamicServicesUsing<ArrayImportProcessor, EnvelopeImportProcessor, ObjectImportProcessor>().BuildServiceProvider();
+            static Func<CancellationToken, Task<Stream>> Source(string text) => _ =>
+                Task.FromResult<Stream>(new MemoryStream(System.Text.Encoding.UTF8.GetBytes(text)));
+            var array = services.GetRequiredService<ArrayImportProcessor>();
+            var result = await array.ProcessAsync(Source("{\"orders\":[{\"Id\":\"A\",\"Address\":{\"Code\":\"X\"}}]}"),
+                ArrayImportProcessor.CreateContext("array", "attempt"));
+            if (!result.IsSuccess || result.Progress.UnitsValidated != 1) throw new Exception("Root-array consumer failed.");
+            var envelope = services.GetRequiredService<EnvelopeImportProcessor>();
+            var envelopeContext = EnvelopeImportProcessor.CreateContext("envelope", "attempt");
+            result = await envelope.ProcessAsync(Source("{\"orders\":[{\"Id\":\"B\",\"Address\":{\"Code\":\"Y\"}}],\"batch\":{\"BatchId\":\"batch-1\"}}"), envelopeContext);
+            if (!result.IsSuccess || envelopeContext.GetAcceptedBatchMetadata()?.BatchId != "batch-1")
+                throw new Exception("Envelope metadata consumer failed.");
+            var single = services.GetRequiredService<ObjectImportProcessor>();
+            result = await single.ProcessAsync(Source("{\"Id\":\"C\",\"Address\":{\"Code\":\"Z\"}}"),
+                ObjectImportProcessor.CreateContext("object", "attempt"));
+            if (!result.IsSuccess || result.Progress.UnitsValidated != 1) throw new Exception("Root-object consumer failed.");
+            Console.WriteLine("Generated JSON document consumers passed.");
+            """);
+        (await RunDotNetAsync("run", "--project", Path.Combine(_runtime, "Runtime.csproj"), "-v:q", "-p:CoreExLocalTargetFramework=net10.0"))
+            .Should().Contain("Generated JSON document consumers passed.");
+    }
+
+    [Test]
+    public async Task JsonDocumentSelectorsRejectInvalidPointersAndOverlapsBeforeWrites()
+    {
+        var source = """
+            name: Documents
+            version: '1'
+            format: Json
+            runtimeProjectPath: Runtime
+            unit: { record: Order, unitPath: /orders }
+            metadata:
+            - { name: Batch, record: Batch, required: true, json: { path: /batch } }
+            records:
+            - name: Order
+              properties:
+              - { name: Id }
+            - name: Batch
+              properties:
+              - { name: Id }
+            """;
+        foreach (var invalid in new[]
+        {
+            source.Replace("/orders", "/orders~2", StringComparison.Ordinal),
+            source.Replace("/batch", "/orders/0", StringComparison.Ordinal),
+            source.Replace("unit: { record: Order, unitPath: /orders }", "unit: { record: Order, kind: Object, unitPath: /orders }", StringComparison.Ordinal)
+        })
+        {
+            Write("bad-file.yaml", invalid);
             Func<Task> generate = () => FileGenerationBatch.GenerateAsync(Args());
             await generate.Should().ThrowAsync<CodeGenException>();
             Directory.Exists(Path.Combine(_runtime, "Files")).Should().BeFalse();

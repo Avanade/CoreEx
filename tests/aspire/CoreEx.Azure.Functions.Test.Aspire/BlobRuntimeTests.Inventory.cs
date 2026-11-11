@@ -222,19 +222,19 @@ public partial class BlobRuntimeTests
         return blob;
     }
 
-    private async Task NotifyInventoryAsync(BlobClient blob)
+    private async Task NotifyInventoryAsync(BlobClient blob, string functionName = "ImportInventoryFile")
     {
         var properties = (await blob.GetPropertiesAsync()).Value;
-        var notification = EventGridExtensionMethods.CreateBlobCreatedEvent(_inventoryInputs.Name, blob.Name, blob.Uri,
+        var notification = EventGridExtensionMethods.CreateBlobCreatedEvent(blob.BlobContainerName, blob.Name, blob.Uri,
             properties.ETag.ToString(), properties.ContentType, properties.ContentLength);
-        using var response = await Test.FunctionsWebhook("functions").PostBlobCreatedAsync("Host.Functions.ImportInventoryFile", notification);
+        using var response = await Test.FunctionsWebhook("functions").PostBlobCreatedAsync("Host.Functions." + functionName, notification);
         response.IsSuccessStatusCode.Should().BeTrue("the webhook returned {0}: {1}", response.StatusCode, await response.Content.ReadAsStringAsync());
     }
 
-    private async Task<(BlobClient Blob, JsonElement Summary)> SubmitInventoryAsync(BlobClient blob, IReadOnlyCollection<string>? previous = null)
+    private async Task<(BlobClient Blob, JsonElement Summary)> SubmitInventoryAsync(BlobClient blob, IReadOnlyCollection<string>? previous = null, string functionName = "ImportInventoryFile")
     {
         var revision = (await blob.GetPropertiesAsync()).Value.ETag.ToString();
-        await NotifyInventoryAsync(blob);
+        await NotifyInventoryAsync(blob, functionName);
         var result = await Test.EventuallyAsync(async token =>
         {
             await foreach (var item in _inventoryReports.GetBlobsAsync(BlobTraits.Metadata, cancellationToken: token))

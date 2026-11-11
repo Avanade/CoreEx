@@ -1,216 +1,251 @@
 namespace CoreEx.IO.Json;
 
-/// <summary>Maps JSON direct members to a natural nullable wire graph in declaration order.</summary>
+/// <summary>Configures System.Text.Json source names and scalar converters for a nullable wire graph.</summary>
 /// <typeparam name="TRecord">The wire object type.</typeparam>
 public sealed class JsonUnitMapping<TRecord> : IJsonUnitMapping where TRecord : class, new()
 {
     private readonly List<Field> _fields = [];
+    private readonly Dictionary<(int Depth, JsonUnknownMemberPolicy Unknown, string? Structural), JsonSerializerOptions> _options = [];
 
-    /// <summary>Maps a nullable value-type scalar; absent/null tokens leave the property null.</summary>
-    /// <typeparam name="TValue">The converted scalar type.</typeparam>
+    /// <summary>Configures a nullable scalar using a standard System.Text.Json converter.</summary>
+    /// <typeparam name="TValue">The scalar type.</typeparam>
     /// <param name="name">The exact source member name.</param>
-    /// <param name="property">A direct writable property on the wire object.</param>
-    /// <param name="converter">The strict JSON token converter.</param>
-    /// <returns>This mapping for fluent configuration.</returns>
-    public JsonUnitMapping<TRecord> MapValue<TValue>(string name, Expression<Func<TRecord, TValue?>> property, JsonValueConverter<TValue> converter) where TValue : struct
-    {
-        converter.ThrowIfNull();
-        var setter = CreateSetter(property);
-        return Add(name, property, async (record, element, context, model, source, cancellationToken) =>
-        {
-            if (element.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined)
-                setter(record, null);
-            else if (converter(element, out var value))
-                setter(record, value);
-            else
-                await context.FailAsync("json.field.type", model, source, cancellationToken).ConfigureAwait(false);
-        });
-    }
+    /// <param name="property">The writable wire property.</param>
+    /// <param name="converter">The scalar converter.</param>
+    /// <returns>This contract configuration.</returns>
+    public JsonUnitMapping<TRecord> MapValue<TValue>(string name, Expression<Func<TRecord, TValue?>> property, JsonConverter<TValue> converter) where TValue : struct
+        => Add(name, property, ReferenceEquals(converter.ThrowIfNull(), JsonFieldConverters.Default<TValue>()) ? null : new NullableConverter<TValue>(converter));
 
-    /// <summary>Maps text without blank-to-null normalization.</summary>
+    /// <summary>Configures a string property without blank-to-null normalization.</summary>
     /// <param name="name">The exact source member name.</param>
-    /// <param name="property">A direct writable string property on the wire object.</param>
-    /// <returns>This mapping for fluent configuration.</returns>
-    public JsonUnitMapping<TRecord> MapString(string name, Expression<Func<TRecord, string?>> property)
-    {
-        var setter = CreateSetter(property);
-        return Add(name, property, async (record, element, context, model, source, cancellationToken) =>
-        {
-            if (element.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined)
-                setter(record, null);
-            else if (JsonFieldConverters.String(element, out var value))
-                setter(record, value);
-            else
-                await context.FailAsync("json.field.type", model, source, cancellationToken).ConfigureAwait(false);
-        });
-    }
+    /// <param name="property">The writable wire property.</param>
+    /// <returns>This contract configuration.</returns>
+    public JsonUnitMapping<TRecord> MapString(string name, Expression<Func<TRecord, string?>> property) => Add(name, property);
 
-    /// <summary>Maps an optional object occurrence; requiredness is enforced by its pure validator.</summary>
-    /// <typeparam name="TChild">The nested wire object type.</typeparam>
+    /// <summary>Configures a nested object using its standard serializer contract.</summary>
+    /// <typeparam name="TChild">The nested wire type.</typeparam>
     /// <param name="name">The exact source member name.</param>
-    /// <param name="property">A direct writable nested-object property on the wire object.</param>
-    /// <param name="mapping">The nested object's field mapping.</param>
-    /// <returns>This mapping for fluent configuration.</returns>
+    /// <param name="property">The writable wire property.</param>
+    /// <param name="mapping">The nested serializer contract configuration.</param>
+    /// <returns>This contract configuration.</returns>
     public JsonUnitMapping<TRecord> MapObject<TChild>(string name, Expression<Func<TRecord, TChild?>> property, JsonUnitMapping<TChild> mapping) where TChild : class, new()
-    {
-        mapping.ThrowIfNull();
-        var setter = CreateSetter(property);
-        return Add(name, property, async (record, element, context, model, source, cancellationToken) =>
-        {
-            if (element.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined)
-                setter(record, null);
-            else if (element.ValueKind != JsonValueKind.Object)
-                await context.FailAsync("json.field.type", model, source, cancellationToken).ConfigureAwait(false);
-            else
-                setter(record, (TChild)await ((IJsonUnitMapping)mapping).MapAsync(element, context, model, source, null, cancellationToken).ConfigureAwait(false));
-        }, mapping);
-    }
+        => Add(name, property, child: mapping.ThrowIfNull());
 
-    /// <summary>Maps a collection of non-null object elements.</summary>
-    /// <typeparam name="TChild">The nested wire object type.</typeparam>
+    /// <summary>Configures an object collection; count and item rules belong in the wire validator.</summary>
+    /// <typeparam name="TChild">The collection element type.</typeparam>
     /// <param name="name">The exact source member name.</param>
-    /// <param name="property">A direct writable collection property on the wire object.</param>
-    /// <param name="mapping">The nested object's field mapping.</param>
-    /// <param name="cardinality">The required number of collection elements.</param>
-    /// <param name="maxItems">An optional business constraint on the number of elements.</param>
-    /// <returns>This mapping for fluent configuration.</returns>
-    public JsonUnitMapping<TRecord> MapObjects<TChild>(string name, Expression<Func<TRecord, List<TChild>?>> property, JsonUnitMapping<TChild> mapping,
-        FileCardinality cardinality = FileCardinality.Many, int? maxItems = null) where TChild : class, new()
-        => AddCollection(name, property, async (element, context, model, source, cancellationToken) =>
-        {
-            if (element.ValueKind != JsonValueKind.Object)
-            {
-                await context.FailAsync("json.field.type", model, source, cancellationToken).ConfigureAwait(false);
-                return null;
-            }
+    /// <param name="property">The writable wire property.</param>
+    /// <param name="mapping">The element serializer contract configuration.</param>
+    /// <returns>This contract configuration.</returns>
+    public JsonUnitMapping<TRecord> MapObjects<TChild>(string name, Expression<Func<TRecord, List<TChild>?>> property, JsonUnitMapping<TChild> mapping) where TChild : class, new()
+        => Add(name, property, child: mapping.ThrowIfNull());
 
-            return (TChild)await ((IJsonUnitMapping)mapping).MapAsync(element, context, model, source, null, cancellationToken).ConfigureAwait(false);
-        }, cardinality, maxItems, mapping.ThrowIfNull());
-
-    /// <summary>Maps a collection of non-null scalar elements using strict token conversion.</summary>
-    /// <typeparam name="TValue">The converted scalar element type.</typeparam>
+    /// <summary>Configures a scalar collection using standard serializer collection handling.</summary>
+    /// <typeparam name="TValue">The collection element type.</typeparam>
     /// <param name="name">The exact source member name.</param>
-    /// <param name="property">A direct writable collection property on the wire object.</param>
-    /// <param name="converter">The strict JSON token converter for each element.</param>
-    /// <param name="cardinality">The required number of collection elements.</param>
-    /// <param name="maxItems">An optional business constraint on the number of elements.</param>
-    /// <returns>This mapping for fluent configuration.</returns>
-    public JsonUnitMapping<TRecord> MapValues<TValue>(string name, Expression<Func<TRecord, List<TValue>?>> property, JsonValueConverter<TValue> converter,
-        FileCardinality cardinality = FileCardinality.Many, int? maxItems = null)
-    {
-        converter.ThrowIfNull();
-        return AddCollection(name, property, async (element, context, model, source, cancellationToken) =>
-        {
-            if (element.ValueKind is not (JsonValueKind.Null or JsonValueKind.Undefined) && converter(element, out var value))
-                return value;
+    /// <param name="property">The writable wire property.</param>
+    /// <param name="converter">The element scalar converter.</param>
+    /// <returns>This contract configuration.</returns>
+    public JsonUnitMapping<TRecord> MapValues<TValue>(string name, Expression<Func<TRecord, List<TValue>?>> property, JsonConverter<TValue> converter)
+        => Add(name, property, ReferenceEquals(converter.ThrowIfNull(), JsonFieldConverters.Default<TValue>()) ? null : new ScalarCollectionConverter<TValue>(converter));
 
-            await context.FailAsync("json.field.type", model, source, cancellationToken).ConfigureAwait(false);
-            return default;
-        }, cardinality, maxItems, null);
-    }
-
-    /// <summary>Checks collection shape/count before allocating or mapping its elements.</summary>
-    private JsonUnitMapping<TRecord> AddCollection<TValue>(string name, Expression<Func<TRecord, List<TValue>?>> property,
-        Func<JsonElement, JsonMappingContext, string, string, CancellationToken, Task<TValue?>> map, FileCardinality cardinality, int? maxItems, IJsonUnitMapping? child)
-    {
-        if (maxItems <= 0)
-            throw new ArgumentOutOfRangeException(nameof(maxItems));
-        if (!Enum.IsDefined(cardinality))
-            throw new ArgumentOutOfRangeException(nameof(cardinality));
-
-        var setter = CreateSetter(property);
-        return Add(name, property, async (record, element, context, model, source, cancellationToken) =>
-        {
-            var absent = element.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined;
-            if (!absent && element.ValueKind != JsonValueKind.Array)
-            {
-                await context.FailAsync("json.field.type", model, source, cancellationToken).ConfigureAwait(false);
-                return;
-            }
-
-            var count = absent ? 0 : element.GetArrayLength();
-            if (count > maxItems || !JsonMappingContext.Allows(cardinality, count))
-            {
-                await context.FailAsync("file.structure.cardinality", model, source, cancellationToken).ConfigureAwait(false);
-                return;
-            }
-
-            if (absent)
-            {
-                setter(record, null);
-                return;
-            }
-
-            var values = new List<TValue>(count);
-            var index = 0;
-            foreach (var item in element.EnumerateArray())
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                if (context.Stopped)
-                    break;
-
-                var value = await map(item, context, model + "[" + index + "]", source + "/" + index, cancellationToken).ConfigureAwait(false);
-                if (value is not null)
-                    values.Add(value);
-
-                index++;
-            }
-
-            setter(record, values);
-        }, child);
-    }
-
-    /// <summary>Adds one unique direct-member occurrence and compiled setter.</summary>
-    private JsonUnitMapping<TRecord> Add<TValue>(string name, Expression<Func<TRecord, TValue>> property,
-        Func<TRecord, JsonElement, JsonMappingContext, string, string, CancellationToken, Task> map, IJsonUnitMapping? child = null)
+    /// <summary>Records property metadata, leaving object creation and member assignment to System.Text.Json.</summary>
+    private JsonUnitMapping<TRecord> Add<TValue>(string name, Expression<Func<TRecord, TValue>> property, JsonConverter? converter = null, IJsonUnitMapping? child = null)
     {
         name.ThrowIfNull();
-        var member = (property.Body as MemberExpression)?.Member as System.Reflection.PropertyInfo
-            ?? throw new ArgumentException("Select a writable direct property.", nameof(property));
+        property.ThrowIfNull();
+        if (property.Body is not MemberExpression { Expression: ParameterExpression, Member: System.Reflection.PropertyInfo { CanWrite: true } member })
+            throw new ArgumentException("Select a writable direct property.", nameof(property));
+
         if (_fields.Any(x => x.Name == name || x.Property == member.Name))
             throw new ArgumentException("Source members and destination properties must be unique.", nameof(name));
 
-        var metadata = CoreEx.Metadata.RuntimeMetadata.GetForExpression(property);
-        _fields.Add(new(name, member.Name, metadata.GetJsonName(), map, child));
+        var target = Expression.Parameter(typeof(TRecord));
+        var clear = Expression.Lambda<Action<TRecord>>(Expression.Assign(Expression.Property(target, member), Expression.Default(typeof(TValue))), target).Compile();
+        _fields.Add(new(name, member.Name, CoreEx.Metadata.RuntimeMetadata.GetForExpression(property).GetJsonName(), converter, child, clear));
+        _options.Clear();
         return this;
     }
 
-    /// <summary>Compiles a direct writable property assignment without reflection during processing.</summary>
-    private static Action<TRecord, TValue> CreateSetter<TValue>(Expression<Func<TRecord, TValue>> property)
+    /// <inheritdoc/>
+    void IJsonUnitMapping.RegisterContracts(Dictionary<Type, IJsonUnitMapping> contracts, HashSet<IJsonUnitMapping> visited)
     {
-        property.ThrowIfNull();
-        if (property.Body is not MemberExpression { Expression: ParameterExpression, Member: System.Reflection.PropertyInfo { CanWrite: true } })
-            throw new ArgumentException("Select a writable direct property.", nameof(property));
+        if (!visited.Add(this))
+            return;
 
-        var value = Expression.Parameter(typeof(TValue));
-        return Expression.Lambda<Action<TRecord, TValue>>(Expression.Assign(property.Body, value), property.Parameters[0], value).Compile();
+        if (contracts.TryGetValue(typeof(TRecord), out var existing))
+        {
+            if (!((IJsonUnitMapping)this).HasSameShape(existing))
+                throw new InvalidOperationException("Each wire CLR type must have one consistent serializer contract within a definition.");
+        }
+        else
+            contracts.Add(typeof(TRecord), this);
+
+        foreach (var field in _fields)
+            field.Child?.RegisterContracts(contracts, visited);
     }
 
     /// <inheritdoc/>
-    async Task<object> IJsonUnitMapping.MapAsync(JsonElement element, JsonMappingContext context, string propertyPath, string sourcePath, string? structuralMember, CancellationToken cancellationToken)
+    bool IJsonUnitMapping.HasSameShape(IJsonUnitMapping other)
+        => other is JsonUnitMapping<TRecord> mapping && _fields.Select(x => (x.Name, x.Property, x.Converter)).SequenceEqual(mapping._fields.Select(x => (x.Name, x.Property, x.Converter)));
+
+    /// <inheritdoc/>
+    void IJsonUnitMapping.Configure(JsonTypeInfo typeInfo, string? structuralMember)
     {
-        var record = new TRecord();
-        if (context.Options.UnknownMemberPolicy == JsonUnknownMemberPolicy.Reject)
-            foreach (var member in element.EnumerateObject())
-            {
-                if (context.Stopped)
-                    return record;
+        if (typeInfo.Kind != JsonTypeInfoKind.Object)
+            throw new InvalidOperationException("A file wire type must use the standard System.Text.Json object contract.");
 
-                if (member.Name != structuralMember && !_fields.Any(x => x.Name == member.Name))
-                    await context.FailAsync("json.member.unexpected", propertyPath, sourcePath, cancellationToken).ConfigureAwait(false);
-            }
-
+        var properties = typeInfo.Properties.ToArray();
+        typeInfo.Properties.Clear();
         foreach (var field in _fields)
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            if (context.Stopped)
-                break;
-
-            element.TryGetProperty(field.Name, out var value);
-            await field.Map(record, value, context, JsonMappingContext.Property(propertyPath, field.Property), JsonMappingContext.Source(sourcePath, field.Name), cancellationToken).ConfigureAwait(false);
+            var property = properties.Single(x => (x.AttributeProvider as System.Reflection.PropertyInfo)?.Name == field.Property);
+            property.Name = field.Name;
+            property.CustomConverter = field.Converter;
+            property.NumberHandling = JsonNumberHandling.Strict;
+            typeInfo.Properties.Add(property);
         }
 
-        return record;
+        if (structuralMember is not null && !_fields.Any(x => x.Name == structuralMember))
+        {
+            var discriminator = typeInfo.CreateJsonPropertyInfo(typeof(JsonElement), structuralMember);
+            discriminator.Set = (_, _) => { };
+            typeInfo.Properties.Add(discriminator);
+        }
+
+        var callback = typeInfo.OnDeserializing;
+        typeInfo.OnDeserializing = value =>
+        {
+            foreach (var field in _fields)
+                field.Clear((TRecord)value);
+
+            callback?.Invoke(value);
+        };
+    }
+
+    /// <summary>Creates and caches the standard serializer options for this pass configuration.</summary>
+    private JsonSerializerOptions GetOptions(JsonFileOptions options, string? structuralMember = null)
+    {
+        var key = (options.MaxDepth, options.UnknownMemberPolicy, structuralMember);
+        if (_options.TryGetValue(key, out var existing))
+            return existing;
+
+        var contracts = new Dictionary<Type, IJsonUnitMapping>();
+        ((IJsonUnitMapping)this).RegisterContracts(contracts, []);
+        var resolver = new DefaultJsonTypeInfoResolver();
+        resolver.Modifiers.Add(typeInfo =>
+        {
+            if (contracts.TryGetValue(typeInfo.Type, out var contract))
+                contract.Configure(typeInfo, typeInfo.Type == typeof(TRecord) ? structuralMember : null);
+        });
+        var serializerOptions = new JsonSerializerOptions
+        {
+            MaxDepth = options.MaxDepth,
+            TypeInfoResolver = resolver,
+            UnmappedMemberHandling = options.UnknownMemberPolicy == JsonUnknownMemberPolicy.Reject ? JsonUnmappedMemberHandling.Disallow : JsonUnmappedMemberHandling.Skip
+        };
+        _options.Add(key, serializerOptions);
+        return serializerOptions;
+    }
+
+    /// <inheritdoc/>
+    async Task<object?> IJsonUnitMapping.DeserializeAsync(JsonDocumentCursor cursor, JsonMappingContext context, string sourcePath, CancellationToken cancellationToken)
+    {
+        using var source = new JsonSelectedObjectStream(cursor);
+        TRecord? value = null;
+        JsonException? error = null;
+        try
+        {
+            value = await JsonSerializer.DeserializeAsync<TRecord>(source, GetOptions(context.Options), cancellationToken).ConfigureAwait(false);
+        }
+        catch (JsonException exception) when (!ReferenceEquals(exception, source.ReadFailure))
+        {
+            error = exception;
+        }
+
+        await source.DrainAsync(cancellationToken).ConfigureAwait(false);
+        if (cursor.Failed || cursor.InvalidValue || context.Stopped)
+            return null;
+
+        if (error is not null)
+            await ReportAsync(error, context, string.Empty, sourcePath, cancellationToken).ConfigureAwait(false);
+
+        return value;
+    }
+
+    /// <inheritdoc/>
+    async Task<object?> IJsonUnitMapping.MapAsync(JsonElement element, JsonMappingContext context, string propertyPath, string sourcePath, string? structuralMember, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        TRecord? value = null;
+        JsonException? error = null;
+        try
+        {
+            value = element.Deserialize<TRecord>(GetOptions(context.Options, structuralMember));
+        }
+        catch (JsonException exception)
+        {
+            error = exception;
+        }
+
+        if (error is not null)
+            await ReportAsync(error, context, propertyPath, sourcePath, cancellationToken).ConfigureAwait(false);
+
+        return value;
+    }
+
+    /// <summary>Reports only the serializer's first conversion error without including raw messages or unknown keys.</summary>
+    private Task ReportAsync(JsonException error, JsonMappingContext context, string propertyPath, string sourcePath, CancellationToken cancellationToken)
+    {
+        var path = error.Path ?? "$";
+        if (error.InnerException is JsonException { Path: { } innerPath })
+            path += innerPath.StartsWith('$') ? innerPath[1..] : innerPath;
+
+        var location = ((IJsonUnitMapping)this).ResolveErrorPath(path);
+        return context.FailAsync(location.Unknown ? "json.member.unexpected" : "json.field.type",
+            JsonMappingContext.Property(propertyPath, location.Property), JsonPointer.Combine(sourcePath, location.Source), cancellationToken);
+    }
+
+    /// <inheritdoc/>
+    (string Property, string Source, bool Unknown) IJsonUnitMapping.ResolveErrorPath(string path)
+    {
+        if (path.Length == 0 || path == "$")
+            return (string.Empty, string.Empty, false);
+
+        var rest = path.StartsWith('$') ? path[1..] : path;
+        foreach (var field in _fields.OrderByDescending(x => x.Name.Length))
+        {
+            var member = rest.StartsWith("." + field.Name, StringComparison.Ordinal) ? "." + field.Name : "['" + field.Name + "']";
+            if (!rest.StartsWith(member, StringComparison.Ordinal) || rest.Length > member.Length && rest[member.Length] is not ('.' or '['))
+                continue;
+
+            rest = rest[member.Length..];
+            var property = field.Property;
+            var source = JsonMappingContext.Source(string.Empty, field.Name);
+            if (rest.StartsWith('['))
+            {
+                var close = rest.IndexOf(']');
+                if (close > 0 && int.TryParse(rest.AsSpan(1, close - 1), NumberStyles.None, CultureInfo.InvariantCulture, out _))
+                {
+                    property += rest[..(close + 1)];
+                    source += "/" + rest[1..close];
+                    rest = rest[(close + 1)..];
+                }
+            }
+
+            if (rest.Length == 0)
+                return (property, source, false);
+
+            if (field.Child is not null)
+            {
+                var child = field.Child.ResolveErrorPath(rest);
+                return (child.Property.Length == 0 ? property : property + "." + child.Property, source + child.Source, child.Unknown);
+            }
+
+            return (property, source, false);
+        }
+
+        return (string.Empty, string.Empty, true);
     }
 
     /// <inheritdoc/>
@@ -245,7 +280,61 @@ public sealed class JsonUnitMapping<TRecord> : IJsonUnitMapping where TRecord : 
             : source ? string.Empty : rest);
     }
 
-    /// <summary>Describes one reusable type's independently named occurrence.</summary>
-    private sealed record Field(string Name, string Property, string JsonName,
-        Func<TRecord, JsonElement, JsonMappingContext, string, string, CancellationToken, Task> Map, IJsonUnitMapping? Child);
+    /// <summary>Holds declared serializer metadata without a token-to-object mapping delegate.</summary>
+    private sealed record Field(string Name, string Property, string JsonName, JsonConverter? Converter, IJsonUnitMapping? Child, Action<TRecord> Clear);
+
+    /// <summary>Adapts a scalar converter to the nullable wire-property type.</summary>
+    private sealed class NullableConverter<TValue>(JsonConverter<TValue> converter) : JsonConverter<TValue?> where TValue : struct
+    {
+        private readonly JsonConverter<TValue> _converter = converter;
+
+        /// <inheritdoc/>
+        public override TValue? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+            => reader.TokenType == JsonTokenType.Null ? null : _converter.Read(ref reader, typeof(TValue), options);
+
+        /// <inheritdoc/>
+        public override void Write(Utf8JsonWriter writer, TValue? value, JsonSerializerOptions options)
+        {
+            if (value is { } scalar)
+                _converter.Write(writer, scalar, options);
+            else
+                writer.WriteNullValue();
+        }
+
+        /// <inheritdoc/>
+        public override bool Equals(object? obj) => obj is NullableConverter<TValue> other && _converter.Equals(other._converter);
+
+        /// <inheritdoc/>
+        public override int GetHashCode() => _converter.GetHashCode();
+    }
+
+    /// <summary>Delegates collection reading to System.Text.Json with a property-specific scalar format.</summary>
+    private sealed class ScalarCollectionConverter<TValue>(JsonConverter<TValue> converter) : JsonConverter<List<TValue>>
+    {
+        private readonly JsonConverter<TValue> _converter = converter;
+        private readonly JsonSerializerOptions _scalarOptions = new() { Converters = { converter } };
+
+        /// <inheritdoc/>
+        public override List<TValue>? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            try
+            {
+                return JsonSerializer.Deserialize<List<TValue>>(ref reader, _scalarOptions);
+            }
+            catch (JsonException exception)
+            {
+                throw new JsonException("The collection contains a value that does not match the declared contract.", exception);
+            }
+        }
+
+        /// <inheritdoc/>
+        public override void Write(Utf8JsonWriter writer, List<TValue> value, JsonSerializerOptions options)
+            => JsonSerializer.Serialize(writer, value, _scalarOptions);
+
+        /// <inheritdoc/>
+        public override bool Equals(object? obj) => obj is ScalarCollectionConverter<TValue> other && _converter.Equals(other._converter);
+
+        /// <inheritdoc/>
+        public override int GetHashCode() => _converter.GetHashCode();
+    }
 }

@@ -12,7 +12,7 @@ namespace {{Root.RuntimeNamespace}};
 public static class {{TypeName}}Mapping
 {
     /// <summary>Creates a typed source mapping.</summary>
-{{#if Root.IsJsonl}}
+{{#if Root.IsJson}}
     public static JsonUnitMapping<{{TypeName}}> Create() => new JsonUnitMapping<{{TypeName}}>()
 {{#each Properties}}
         .{{{JsonMappingExpression}}}{{#if @last}};{{/if}}

@@ -30,6 +30,11 @@ public class MetadataConfig : ConfigBase<CodeGenConfig, CodeGenConfig>
     [CodeGenProperty("Primary", Title = "JSONL metadata placement.")]
     public JsonLinesMetadataConfig? Jsonl { get; set; }
 
+    /// <summary>Gets or sets JSON document metadata selection.</summary>
+    [JsonPropertyName("json")]
+    [CodeGenProperty("Primary", Title = "JSON document metadata selection.")]
+    public JsonDocumentMetadataConfig? Json { get; set; }
+
     /// <summary>Gets the matching record config.</summary>
     public RecordConfig RecordConfig => Root!.Records!.Single(x => x.Name == Record);
 
@@ -49,13 +54,18 @@ public class MetadataConfig : ConfigBase<CodeGenConfig, CodeGenConfig>
         Name = RequireText(nameof(Name), Name);
         Record = RequireText(nameof(Record), Record);
         Required = DefaultWhereNull(Required, () => false);
-        if (Root!.IsJsonl ? Csv is not null : Jsonl is not null)
+        if (Root!.IsJsonl ? Csv is not null || Json is not null : Root.IsJsonDocument ? Csv is not null || Jsonl is not null : Jsonl is not null || Json is not null)
             throw new CodeGenException(this, nameof(Csv), "Metadata settings do not apply to this format.");
 
         if (Root.IsJsonl)
         {
             Jsonl ??= new();
             await Jsonl.PrepareAsync(Root, this).ConfigureAwait(false);
+        }
+        else if (Root.IsJsonDocument)
+        {
+            Json ??= new();
+            await Json.PrepareAsync(Root, this).ConfigureAwait(false);
         }
         else
         {

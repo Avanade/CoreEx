@@ -10,7 +10,7 @@ namespace {{RuntimeNamespace}};
 
 /// <summary>Coordinates this definition's whole-file validation and optional scoped replay.</summary>
 [ScopedService]
-public partial class {{Name}}Processor : {{#if IsJsonl}}JsonLinesFileProcessor{{else}}{{#if IsHierarchical}}CsvHierarchyFileProcessor{{else}}{{#if IsUnordered}}CsvRoutedFileProcessor{{else}}CsvFileProcessor{{/if}}{{/if}}{{/if}}<{{UnitType}}>
+public partial class {{Name}}Processor : {{#if IsJsonl}}JsonLinesFileProcessor{{else}}{{#if IsJsonDocument}}JsonFileProcessor{{else}}{{#if IsHierarchical}}CsvHierarchyFileProcessor{{else}}{{#if IsUnordered}}CsvRoutedFileProcessor{{else}}CsvFileProcessor{{/if}}{{/if}}{{/if}}{{/if}}<{{UnitType}}>
 {
     /// <summary>Gets the immutable definition name.</summary>
     public const string DefinitionName = {{{NameLiteral}}};
@@ -21,6 +21,7 @@ public partial class {{Name}}Processor : {{#if IsJsonl}}JsonLinesFileProcessor{{
     /// <summary>Initializes the definition-specific processor and scoped handler resolution.</summary>
     /// <param name="serviceProvider">The provider from which independent unit scopes are created.</param>
     public {{Name}}Processor(IServiceProvider serviceProvider) : base(
+{{#if IsJson}}
 {{#if IsJsonl}}
         CreateDefinition,
         validator: new {{UnitType}}Validator(),
@@ -33,6 +34,15 @@ public partial class {{Name}}Processor : {{#if IsJsonl}}JsonLinesFileProcessor{{
                 MaxDepth = {{Json.MaxDepth}}
             }
         },
+{{else}}
+        CreateDefinition,
+        options: new JsonFileOptions
+        {
+            UnknownMemberPolicy = JsonUnknownMemberPolicy.{{Json.UnknownMemberPolicy}},
+            MaxDepth = {{Json.MaxDepth}}
+        },
+        validator: new {{UnitType}}Validator(),
+{{/if}}
 {{else}}
 {{#if IsRouted}}
         CreateDefinition,
@@ -81,6 +91,20 @@ public partial class {{Name}}Processor : {{#if IsJsonl}}JsonLinesFileProcessor{{
 {{#each Metadata}}
             new JsonLinesMetadata<{{RecordConfig.TypeName}}>({{{NameLiteral}}}, {{{RecordLiteral}}}, {{{RecordConfig.MatchLiteral}}}, {{RecordConfig.TypeName}}Mapping.Create(),
                 new {{RecordConfig.TypeName}}Validator(), {{RequiredLiteral}}, FileRecordPosition.{{Jsonl.Position}}),
+{{/each}}
+        });
+{{/if}}
+{{#if IsJsonDocument}}
+
+    /// <summary>Creates fresh natural-object mappings and literal JSON Pointer selectors for each pass.</summary>
+    private static JsonFileDefinition<{{UnitType}}> CreateDefinition() => new(
+        {{{Unit.RecordConfig.KeyLiteral}}}, {{UnitType}}Mapping.Create(), JsonDocumentKind.{{Unit.KindLiteral}},
+        {{{Unit.UnitPathLiteral}}}, FileCardinality.{{Unit.Cardinality}},
+        new JsonFileMetadata[]
+        {
+{{#each Metadata}}
+            new JsonFileMetadata<{{RecordConfig.TypeName}}>({{{NameLiteral}}}, {{{RecordLiteral}}}, {{{Json.PathLiteral}}},
+                {{RecordConfig.TypeName}}Mapping.Create(), new {{RecordConfig.TypeName}}Validator(), {{RequiredLiteral}}),
 {{/each}}
         });
 {{/if}}
