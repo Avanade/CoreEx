@@ -65,16 +65,16 @@ public class CsvRoutedFileProcessorTests
         processor.Events.Should().Equal("eof", "rejected");
     }
 
-    [TestCase(CsvRecordCardinality.Many, "", true)]
-    [TestCase(CsvRecordCardinality.Many, "A,one\nA,two\n", true)]
-    [TestCase(CsvRecordCardinality.One, "", false)]
-    [TestCase(CsvRecordCardinality.One, "A,one\n", true)]
-    [TestCase(CsvRecordCardinality.One, "A,one\nA,two\n", false)]
-    [TestCase(CsvRecordCardinality.Optional, "", true)]
-    [TestCase(CsvRecordCardinality.Optional, "A,one\nA,two\n", false)]
-    [TestCase(CsvRecordCardinality.OneOrMore, "", false)]
-    [TestCase(CsvRecordCardinality.OneOrMore, "A,one\nA,two\n", true)]
-    public async Task Cardinality_IsPerFile(CsvRecordCardinality cardinality, string text, bool success)
+    [TestCase(FileCardinality.Many, "", true)]
+    [TestCase(FileCardinality.Many, "A,one\nA,two\n", true)]
+    [TestCase(FileCardinality.One, "", false)]
+    [TestCase(FileCardinality.One, "A,one\n", true)]
+    [TestCase(FileCardinality.One, "A,one\nA,two\n", false)]
+    [TestCase(FileCardinality.Optional, "", true)]
+    [TestCase(FileCardinality.Optional, "A,one\nA,two\n", false)]
+    [TestCase(FileCardinality.OneOrMore, "", false)]
+    [TestCase(FileCardinality.OneOrMore, "A,one\nA,two\n", true)]
+    public async Task Cardinality_IsPerFile(FileCardinality cardinality, string text, bool success)
     {
         var processor = new Processor(definition: () => new(0, [AlphaRoute(cardinality: cardinality)]), reconcile: false);
         var summary = await processor.ProcessAsync(new Input(text).OpenAsync, Context()).ConfigureAwait(false);
@@ -87,7 +87,7 @@ public class CsvRoutedFileProcessorTests
     public async Task InvalidRecognizedRecords_CountForRequiredOccurrence(string text, string code, string key)
     {
         var processor = new Processor(definition: () => new(0,
-            [key == "alpha" ? AlphaRoute(cardinality: CsvRecordCardinality.One) : BetaRoute(cardinality: CsvRecordCardinality.One)]), reconcile: false);
+            [key == "alpha" ? AlphaRoute(cardinality: FileCardinality.One) : BetaRoute(cardinality: FileCardinality.One)]), reconcile: false);
         var context = Context();
         var summary = await processor.ProcessAsync(new Input(text).OpenAsync, context).ConfigureAwait(false);
         summary.Progress.InvalidRecords.Should().Be(1);
@@ -106,7 +106,7 @@ public class CsvRoutedFileProcessorTests
     [TestCase("H,h\nA,a\nA,b\nT,1\n", "csv.structure.duplicate", "alpha", 3)]
     public async Task PositionRules_HaveOwnerAndPhysicalLocations(string text, string code, string owner, int line)
     {
-        var processor = new Processor(definition: () => Definition(alphaCardinality: CsvRecordCardinality.One), reconcile: false);
+        var processor = new Processor(definition: () => Definition(alphaCardinality: FileCardinality.One), reconcile: false);
         var summary = await processor.ProcessAsync(new Input(text).OpenAsync, Context()).ConfigureAwait(false);
         summary.Outcome.Should().Be(FileProcessingOutcome.ContentFailed);
         processor.Diagnostics.Should().Contain(x => x.Code == code && x.RecordType == owner && x.Location != null && x.Location.LineNumber == line);
@@ -117,9 +117,9 @@ public class CsvRoutedFileProcessorTests
     {
         CsvRoutedDefinition<Unit> Definition() => new(0,
         [
-            new CsvRoutedRecord<Alpha, Unit>("first", "H", AlphaMapping, x => x, cardinality: CsvRecordCardinality.Optional, position: CsvRecordPosition.First),
+            new CsvRoutedRecord<Alpha, Unit>("first", "H", AlphaMapping, x => x, cardinality: FileCardinality.Optional, position: FileRecordPosition.First),
             AlphaRoute(),
-            new CsvRoutedRecord<Beta, Unit>("last", "T", BetaMapping, x => x, cardinality: CsvRecordCardinality.Optional, position: CsvRecordPosition.Last)
+            new CsvRoutedRecord<Beta, Unit>("last", "T", BetaMapping, x => x, cardinality: FileCardinality.Optional, position: FileRecordPosition.Last)
         ]);
         var accepted = new Processor(definition: Definition, reconcile: false);
         (await accepted.ProcessAsync(new Input("A,one\n").OpenAsync, Context()).ConfigureAwait(false)).IsSuccess.Should().BeTrue();
@@ -139,9 +139,9 @@ public class CsvRoutedFileProcessorTests
             new CsvRoutedRecord<Beta, Unit>("trailer", "T", BetaMapping, x => x)
         ],
         [
-            new("Header", "header", true, CsvRecordPosition.First),
-            new("Trailer", "trailer", true, CsvRecordPosition.Last)
-        ]), reconcile: false, processingOptions: new() { MaxUnits = 1 });
+            new("Header", "header", true, FileRecordPosition.First),
+            new("Trailer", "trailer", true, FileRecordPosition.Last)
+        ]), reconcile: false);
         var context = Context(FileProcessingMode.ValidateThenExecute);
         var input = new Input("H,batch\nA,one\nT,1\n");
 
@@ -178,8 +178,8 @@ public class CsvRoutedFileProcessorTests
             new CsvRoutedRecord<Beta, Unit>("trailer", "T", BetaMapping, x => x)
         ],
         [
-            new("Header", "header", true, CsvRecordPosition.First),
-            new("Trailer", "trailer", true, CsvRecordPosition.Last)
+            new("Header", "header", true, FileRecordPosition.First),
+            new("Trailer", "trailer", true, FileRecordPosition.Last)
         ]), reconcile: false);
 
         var summary = await processor.ProcessAsync(new Input(text).OpenAsync, Context()).ConfigureAwait(false);
@@ -224,7 +224,7 @@ public class CsvRoutedFileProcessorTests
     [Test]
     public async Task MissingOccurrences_UseEofAnchorWithoutInventingInvalidRecords()
     {
-        var processor = new Processor(definition: () => new(0, [AlphaRoute(cardinality: CsvRecordCardinality.One), BetaRoute(cardinality: CsvRecordCardinality.One)]), reconcile: false);
+        var processor = new Processor(definition: () => new(0, [AlphaRoute(cardinality: FileCardinality.One), BetaRoute(cardinality: FileCardinality.One)]), reconcile: false);
         var context = Context();
         var summary = await processor.ProcessAsync(new Input("#comment\n\n").OpenAsync, context).ConfigureAwait(false);
         summary.Progress.InvalidRecords.Should().Be(0);
@@ -232,48 +232,52 @@ public class CsvRoutedFileProcessorTests
         context.EndOfFileLineNumber.Should().Be(1);
     }
 
-    [TestCase(FileErrorMode.FailFast, FileErrorMode.CollectErrors, 3, true)]
-    [TestCase(FileErrorMode.CollectErrors, FileErrorMode.FailFast, 1, false)]
-    public async Task RoutePolicy_OverridesFilePolicyForMappingAndValidation(FileErrorMode fileMode, FileErrorMode routeMode, int read, bool complete)
+    [TestCase(FileErrorMode.CollectErrors, 3, true)]
+    [TestCase(FileErrorMode.FailFast, 1, false)]
+    public async Task FilePolicy_AppliesToMappingAndValidation(FileErrorMode fileMode, int read, bool complete)
     {
-        var processor = new Processor(definition: () => new(0, [AlphaRoute(errorMode: routeMode), BetaRoute(errorMode: routeMode)]), reconcile: false);
+        var processor = new Processor(definition: () => new(0, [AlphaRoute(), BetaRoute()]), reconcile: false);
         var summary = await processor.ProcessAsync(new Input("B,bad\nA,\nB,1\n").OpenAsync, Context(errors: fileMode)).ConfigureAwait(false);
         summary.Progress.RecordsRead.Should().Be(read);
         summary.ValidationCompleted.Should().Be(complete);
         processor.Events.Should().Equal(complete ? ["eof", "rejected"] : ["rejected"]);
     }
 
-    [Test]
-    public async Task PositionRule_UsesBoundaryOwnerPolicyNotCurrentRecordPolicy()
+    [TestCase(FileErrorMode.FailFast, 2, false)]
+    [TestCase(FileErrorMode.CollectErrors, 3, true)]
+    public async Task PositionRule_UsesFilePolicy(FileErrorMode fileMode, int records, bool complete)
     {
         var processor = new Processor(definition: () => new(0,
         [
-            new CsvRoutedRecord<Beta, Unit>("trailer", "T", BetaMapping, x => x, cardinality: CsvRecordCardinality.Optional,
-                position: CsvRecordPosition.Last, errorMode: FileErrorMode.FailFast),
-            AlphaRoute(errorMode: FileErrorMode.CollectErrors)
+            new CsvRoutedRecord<Beta, Unit>("trailer", "T", BetaMapping, x => x, cardinality: FileCardinality.Optional,
+                position: FileRecordPosition.Last),
+            AlphaRoute()
         ]), reconcile: false);
-        var summary = await processor.ProcessAsync(new Input("T,0\nA,one\nA,two\n").OpenAsync, Context()).ConfigureAwait(false);
-        summary.Progress.RecordsRead.Should().Be(2);
-        summary.ValidationCompleted.Should().BeFalse();
+        var summary = await processor.ProcessAsync(new Input("T,0\nA,one\nA,two\n").OpenAsync, Context(errors: fileMode)).ConfigureAwait(false);
+        summary.Progress.RecordsRead.Should().Be(records);
+        summary.ValidationCompleted.Should().Be(complete);
+        processor.Diagnostics.Select(x => x.RecordType).Should().OnlyContain(x => x == "trailer");
     }
 
-    [Test]
-    public async Task MissingRule_UsesMissingRoutePolicyAtEof()
+    [TestCase(FileErrorMode.FailFast, 1, false)]
+    [TestCase(FileErrorMode.CollectErrors, 2, true)]
+    public async Task MissingRule_UsesFilePolicyAtEof(FileErrorMode fileMode, int errors, bool complete)
     {
         var processor = new Processor(definition: () => new(0,
-            [AlphaRoute(cardinality: CsvRecordCardinality.One, errorMode: FileErrorMode.FailFast), BetaRoute(cardinality: CsvRecordCardinality.One)]), reconcile: false);
-        var summary = await processor.ProcessAsync(new Input("").OpenAsync, Context()).ConfigureAwait(false);
-        summary.ValidationCompleted.Should().BeFalse();
-        processor.Diagnostics.Should().ContainSingle().Which.RecordType.Should().Be("alpha");
-        processor.Events.Should().Equal("rejected");
+            [AlphaRoute(cardinality: FileCardinality.One), BetaRoute(cardinality: FileCardinality.One)]), reconcile: false);
+        var summary = await processor.ProcessAsync(new Input("").OpenAsync, Context(errors: fileMode)).ConfigureAwait(false);
+        summary.ValidationCompleted.Should().Be(complete);
+        processor.Diagnostics.Should().HaveCount(errors);
+        processor.Diagnostics[0].RecordType.Should().Be("alpha");
+        processor.Events.Should().Equal(complete ? ["eof", "rejected"] : ["rejected"]);
     }
 
     [Test]
-    public async Task CustomValidation_UsesRoutePolicyAndScopedDiagnosticLocation()
+    public async Task CustomValidation_UsesFilePolicyAndScopedDiagnosticLocation()
     {
         await using var environment = new Environment { Reject = true };
-        var processor = new Processor(environment, () => new(0, [AlphaRoute(errorMode: FileErrorMode.FailFast)]), reconcile: false);
-        var summary = await processor.ProcessAsync(new Input("\nA,one\nA,two\n").OpenAsync, Context()).ConfigureAwait(false);
+        var processor = new Processor(environment, () => new(0, [AlphaRoute()]), reconcile: false);
+        var summary = await processor.ProcessAsync(new Input("\nA,one\nA,two\n").OpenAsync, Context(errors: FileErrorMode.FailFast)).ConfigureAwait(false);
         summary.Progress.RecordsRead.Should().Be(1);
         summary.Progress.InvalidRecords.Should().Be(1);
         summary.Progress.UnitsValidated.Should().Be(0);
@@ -309,22 +313,6 @@ public class CsvRoutedFileProcessorTests
         await action.Should().ThrowAsync<InvalidDataException>().ConfigureAwait(false);
         processor.Diagnostics.Should().BeEmpty();
         processor.Events.Should().Equal("eof");
-    }
-
-    [Test]
-    public async Task ByteLimit_IsTerminalAndPreventsReplay()
-    {
-        await using var environment = new Environment();
-        var input = new Input("A," + new string('x', 500) + "\n");
-        var processor = new Processor(environment, () => new(0, [AlphaRoute()]), reconcile: false, processingOptions: new() { MaxInputBytes = 32 });
-        var summary = await processor.ProcessAsync(input.OpenAsync, Context(FileProcessingMode.ValidateThenExecute)).ConfigureAwait(false);
-        summary.ValidationCompleted.Should().BeFalse();
-        summary.Progress.BytesRead.Should().Be(33);
-        summary.Progress.InvalidRecords.Should().Be(0);
-        processor.Diagnostics.Should().ContainSingle().Which.Code.Should().Be("file.limit.input-bytes");
-        input.Streams.Should().ContainSingle();
-        environment.Executed.Should().BeEmpty();
-        processor.Events.Should().Equal("rejected");
     }
 
     [Test]
@@ -384,7 +372,7 @@ public class CsvRoutedFileProcessorTests
     {
         var count = 0;
         void Observe(object? sender, FirstChanceExceptionEventArgs args) => Interlocked.Increment(ref count);
-        var processor = new CsvRoutedFileProcessor<Unit>(() => new(0, [AlphaRoute(), BetaRoute()]), processingOptions: new() { MaxDiagnostics = 10_000 });
+        var processor = new CsvRoutedFileProcessor<Unit>(() => new(0, [AlphaRoute(), BetaRoute()]));
         var input = new Input(string.Concat(Enumerable.Repeat("A,\nB,bad\nX,unknown\n", 3000)));
         AppDomain.CurrentDomain.FirstChanceException += Observe;
         FileProcessingSummary summary;
@@ -446,12 +434,12 @@ public class CsvRoutedFileProcessorTests
         Action keys = () => new CsvRoutedDefinition<Unit>(0, [AlphaRoute(), new CsvRoutedRecord<Beta, Unit>("ALPHA", "B", BetaMapping, x => x)]);
         Action matches = () => new CsvRoutedDefinition<Unit>(0, [AlphaRoute(), new CsvRoutedRecord<Beta, Unit>("beta", "A", BetaMapping, x => x)]);
         Action positions = () => new CsvRoutedDefinition<Unit>(0,
-            [new CsvRoutedRecord<Alpha, Unit>("first", "H", AlphaMapping, x => x, cardinality: CsvRecordCardinality.One, position: CsvRecordPosition.First),
-             new CsvRoutedRecord<Alpha, Unit>("other", "O", AlphaMapping, x => x, cardinality: CsvRecordCardinality.Optional, position: CsvRecordPosition.First)]);
+            [new CsvRoutedRecord<Alpha, Unit>("first", "H", AlphaMapping, x => x, cardinality: FileCardinality.One, position: FileRecordPosition.First),
+             new CsvRoutedRecord<Alpha, Unit>("other", "O", AlphaMapping, x => x, cardinality: FileCardinality.Optional, position: FileRecordPosition.First)]);
         Action metadataRouteSettings = () => new CsvRoutedDefinition<Unit>(0,
-            [new CsvRoutedRecord<Alpha, Unit>("header", "H", AlphaMapping, x => x, cardinality: CsvRecordCardinality.One, position: CsvRecordPosition.First)],
-            [new("Header", "header", false, CsvRecordPosition.First)]);
-        Action manyBoundary = () => new CsvRoutedRecord<Alpha, Unit>("header", "H", AlphaMapping, x => x, position: CsvRecordPosition.First);
+            [new CsvRoutedRecord<Alpha, Unit>("header", "H", AlphaMapping, x => x, cardinality: FileCardinality.One, position: FileRecordPosition.First)],
+            [new("Header", "header", false, FileRecordPosition.First)]);
+        Action manyBoundary = () => new CsvRoutedRecord<Alpha, Unit>("header", "H", AlphaMapping, x => x, position: FileRecordPosition.First);
         empty.Should().Throw<ArgumentException>();
         keys.Should().Throw<ArgumentException>();
         matches.Should().Throw<ArgumentException>();
@@ -464,16 +452,16 @@ public class CsvRoutedFileProcessorTests
         => new(new("mixed", "1", "mixed.csv", "attempt", "revision"), mode, errors);
     private static CsvFileMapping<Alpha> AlphaMapping() => new CsvFileMapping<Alpha>().MapProperty("Text", x => x.Text, CsvFieldConverters.String, 1);
     private static CsvFileMapping<Beta> BetaMapping() => new CsvFileMapping<Beta>().MapProperty("Number", x => x.Number, CsvFieldConverters.Nullable<int>(), 1);
-    private static CsvRoutedRecord<Unit> AlphaRoute(CsvRecordCardinality cardinality = CsvRecordCardinality.Many, FileErrorMode? errorMode = null)
-        => new CsvRoutedRecord<Alpha, Unit>("alpha", "A", AlphaMapping, x => x, new AlphaValidator(), cardinality, errorMode: errorMode);
-    private static CsvRoutedRecord<Unit> BetaRoute(CsvRecordCardinality cardinality = CsvRecordCardinality.Many, FileErrorMode? errorMode = null)
-        => new CsvRoutedRecord<Beta, Unit>("beta", "B", BetaMapping, x => x, cardinality: cardinality, errorMode: errorMode);
-    private static CsvRoutedDefinition<Unit> Definition(CsvRecordCardinality alphaCardinality = CsvRecordCardinality.Many) => new(0,
+    private static CsvRoutedRecord<Unit> AlphaRoute(FileCardinality cardinality = FileCardinality.Many)
+        => new CsvRoutedRecord<Alpha, Unit>("alpha", "A", AlphaMapping, x => x, new AlphaValidator(), cardinality);
+    private static CsvRoutedRecord<Unit> BetaRoute(FileCardinality cardinality = FileCardinality.Many)
+        => new CsvRoutedRecord<Beta, Unit>("beta", "B", BetaMapping, x => x, cardinality: cardinality);
+    private static CsvRoutedDefinition<Unit> Definition(FileCardinality alphaCardinality = FileCardinality.Many) => new(0,
     [
-        new CsvRoutedRecord<Alpha, Unit>("header", "H", AlphaMapping, x => x, cardinality: CsvRecordCardinality.One, position: CsvRecordPosition.First),
+        new CsvRoutedRecord<Alpha, Unit>("header", "H", AlphaMapping, x => x, cardinality: FileCardinality.One, position: FileRecordPosition.First),
         AlphaRoute(alphaCardinality),
         BetaRoute(),
-        new CsvRoutedRecord<Beta, Unit>("trailer", "T", BetaMapping, x => x, cardinality: CsvRecordCardinality.One, position: CsvRecordPosition.Last)
+        new CsvRoutedRecord<Beta, Unit>("trailer", "T", BetaMapping, x => x, cardinality: FileCardinality.One, position: FileRecordPosition.Last)
     ]);
 
     public abstract class Unit;
@@ -504,8 +492,8 @@ public class CsvRoutedFileProcessorTests
     private sealed class Processor : CsvRoutedFileProcessor<Unit>
     {
         private readonly bool _reconcile;
-        public Processor(Environment? environment = null, Func<CsvRoutedDefinition<Unit>>? definition = null, CsvFileOptions? options = null, bool reconcile = true, FileProcessingOptions? processingOptions = null)
-            : base(definition ?? (() => Definition()), processingOptions, options ?? new() { Comment = '#' }, serviceProvider: environment?.Provider,
+        public Processor(Environment? environment = null, Func<CsvRoutedDefinition<Unit>>? definition = null, CsvFileOptions? options = null, bool reconcile = true)
+            : base(definition ?? (() => Definition()), options ?? new() { Comment = '#' }, serviceProvider: environment?.Provider,
                 handlerFactory: environment is null ? null : sp => sp.GetRequiredService<Handler>()) => _reconcile = reconcile;
         public List<FileDiagnostic> Diagnostics { get; } = [];
         public List<string> Events { get; } = [];

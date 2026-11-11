@@ -4,13 +4,12 @@ namespace CoreEx.IO.Csv;
 /// <typeparam name="TGroup">The projected business unit, distinct from physical descendant records.</typeparam>
 /// <remarks>Each invocation requires a fresh CsvHierarchyContext. Only the current root subtree and declared metadata are retained. The immutable input revision remains the caller's responsibility.</remarks>
 /// <param name="definitionFactory">Creates the definition and fresh route mappings for each pass.</param>
-/// <param name="processingOptions">Format-neutral processing budgets.</param>
 /// <param name="options">CSV syntax and decoding.</param>
 /// <param name="validator">Optional pure projected-group validation.</param>
 /// <param name="serviceProvider">The provider from which group scopes are created.</param>
 /// <param name="handlerFactory">Resolves one scoped group handler for validation or execution.</param>
-public class CsvHierarchyFileProcessor<TGroup>(Func<CsvHierarchyDefinition<TGroup>> definitionFactory, FileProcessingOptions? processingOptions = null, CsvFileOptions? options = null, IValidator<TGroup>? validator = null,
-    IServiceProvider? serviceProvider = null, Func<IServiceProvider, FileUnitHandler<TGroup>>? handlerFactory = null) : CsvFileProcessorBase<TGroup>(processingOptions, options, validator, serviceProvider, handlerFactory) where TGroup : class
+public class CsvHierarchyFileProcessor<TGroup>(Func<CsvHierarchyDefinition<TGroup>> definitionFactory, CsvFileOptions? options = null, IValidator<TGroup>? validator = null,
+    IServiceProvider? serviceProvider = null, Func<IServiceProvider, FileUnitHandler<TGroup>>? handlerFactory = null) : CsvFileProcessorBase<TGroup>(options, validator, serviceProvider, handlerFactory) where TGroup : class
 {
     private readonly Func<CsvHierarchyDefinition<TGroup>> _definitionFactory = definitionFactory.ThrowIfNull();
 
@@ -31,7 +30,7 @@ public class CsvHierarchyFileProcessor<TGroup>(Func<CsvHierarchyDefinition<TGrou
             if (parsed.IsTerminal)
             {
                 if (replay)
-                    throw new InvalidDataException("Replay violated the accepted input bounds or encoding.");
+                    throw new InvalidDataException("Replay violated the accepted encoding.");
 
                 await state.ReportAsync(parsed.Diagnostic.ThrowIfNull(), cancellationToken).ConfigureAwait(false);
                 return false;
@@ -59,7 +58,6 @@ public class CsvHierarchyFileProcessor<TGroup>(Func<CsvHierarchyDefinition<TGrou
         private readonly ProcessingState _state;
         private readonly bool _execute;
         private readonly bool _replay;
-        private readonly Dictionary<string, CsvRecordRoute> _routes;
         private readonly Dictionary<string, CsvRecordRoute> _matches;
         private readonly Dictionary<string, CsvMetadataDefinition> _metadataByKey;
         private readonly Dictionary<string, Func<CsvReader, (object? Value, IReadOnlyList<FileDiagnostic> Diagnostics)>> _mappings;
@@ -68,24 +66,25 @@ public class CsvHierarchyFileProcessor<TGroup>(Func<CsvHierarchyDefinition<TGrou
         private bool _lastMetadataSeen;
         private bool _stop;
         private bool _recordInvalid;
-        private long _groupRecords;
 
         /// <summary>Initializes isolated mapping and recognized-count state.</summary>
+        /// <param name="processor">The processor owning the shared lifecycle.</param>
+        /// <param name="definition">The immutable hierarchy definition.</param>
+        /// <param name="context">The pass-local context and error policy.</param>
+        /// <param name="state">The shared processing state.</param>
+        /// <param name="execute">Whether this pass executes accepted groups.</param>
+        /// <param name="replay">Whether this pass replays an accepted validation pass.</param>
         public Session(CsvHierarchyFileProcessor<TGroup> processor, CsvHierarchyDefinition<TGroup> definition, CsvHierarchyContext context, ProcessingState state, bool execute, bool replay)
         {
             (_processor, _definition, _context, _state, _execute, _replay) = (processor, definition, context, state, execute, replay);
-            _routes = definition.Routes.ToDictionary(x => x.Key, StringComparer.Ordinal);
             _matches = definition.Routes.ToDictionary(x => x.Match, StringComparer.Ordinal);
             _metadataByKey = definition.Metadata.ToDictionary(x => x.RecordKey, StringComparer.Ordinal);
             _mappings = definition.Routes.ToDictionary(x => x.Key, x => x.CreateMapping(), StringComparer.Ordinal);
-            context.Initialize(_routes.Keys);
+            context.Initialize(definition.Routes.Select(x => x.Key));
         }
 
-        /// <summary>Gets the effective policy of the record or rule owner.</summary>
-        private FileErrorMode Mode(string? key) => key is null ? _context.ErrorMode : _routes[key].ErrorMode ?? _context.ErrorMode;
-
-        /// <summary>Reports a localized current failure and applies its rule owner's continuation policy.</summary>
-        private async Task ReportAsync(FileDiagnostic diagnostic, string? policyKey, bool physical, CancellationToken cancellationToken)
+        /// <summary>Reports a localized current failure and applies the invocation's continuation policy.</summary>
+        private async Task ReportAsync(FileDiagnostic diagnostic, bool physical, CancellationToken cancellationToken)
         {
             if (_replay)
                 throw new InvalidDataException("An accepted hierarchy could not be reconstructed on replay.");
@@ -99,13 +98,11 @@ public class CsvHierarchyFileProcessor<TGroup>(Func<CsvHierarchyDefinition<TGrou
                     _state.InvalidRecords = checked(_state.InvalidRecords + 1);
                 }
 
-                if (Mode(policyKey) == FileErrorMode.FailFast)
+                if (_context.ErrorMode == FileErrorMode.FailFast)
                     _stop = true;
             }
 
             await _state.ReportAsync(diagnostic, cancellationToken).ConfigureAwait(false);
-            if (_state.LimitExceeded)
-                _stop = true;
         }
 
         /// <summary>Marks active ancestors invalid without counting an additional physical failure.</summary>
@@ -119,7 +116,7 @@ public class CsvHierarchyFileProcessor<TGroup>(Func<CsvHierarchyDefinition<TGrou
         private async Task FailAsync(string code, string message, string key, long line, bool physical, CancellationToken cancellationToken)
         {
             Invalidate();
-            await ReportAsync(new(FileDiagnosticCategory.Structure, code, message, location: new(line), recordType: key), key, physical, cancellationToken).ConfigureAwait(false);
+            await ReportAsync(new(FileDiagnosticCategory.Structure, code, message, location: new(line), recordType: key), physical, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>Processes the previous group's boundary before mapping the new record.</summary>
@@ -159,39 +156,19 @@ public class CsvHierarchyFileProcessor<TGroup>(Func<CsvHierarchyDefinition<TGrou
             if (route is not null)
                 _context.Count(route.Key);
 
-            if (key == root.Key || _stack.Count > 0)
-            {
-                _groupRecords = key == root.Key ? 1 : checked(_groupRecords + 1);
-                if (_groupRecords > _processor.MaxGroupRecords)
-                {
-                    await ReportAsync(new(FileDiagnosticCategory.Limit, "csv.limit.group-records", "The root group exceeds its configured record limit.",
-                        location: new(line), recordType: root.Key), root.Key, false, cancellationToken).ConfigureAwait(false);
-
-                    return false;
-                }
-            }
-
-            if (!_replay && key == root.Key && _state.UnitsRead > _processor.MaxUnits)
-            {
-                await ReportAsync(new(FileDiagnosticCategory.Limit, "file.limit.units", "The file exceeds its configured unit limit.",
-                    location: new(line), recordType: root.Key, unitOrdinal: _state.UnitsRead), root.Key, false, cancellationToken).ConfigureAwait(false);
-
-                return false;
-            }
-
-            if (_lastMetadataSeen && metadata?.Position != CsvRecordPosition.Last)
-                await FailAsync("csv.metadata.after-last", "A record cannot follow metadata restricted to the last position.", _definition.Metadata.Single(x => x.Position == CsvRecordPosition.Last).RecordKey, line, true, cancellationToken).ConfigureAwait(false);
+            if (_lastMetadataSeen && metadata?.Position != FileRecordPosition.Last)
+                await FailAsync("csv.metadata.after-last", "A record cannot follow metadata restricted to the last position.", _definition.Metadata.Single(x => x.Position == FileRecordPosition.Last).RecordKey, line, true, cancellationToken).ConfigureAwait(false);
 
             Frame? current = null;
             if (metadata is not null)
             {
-                if (metadata.Position == CsvRecordPosition.First && _hasRecords)
+                if (metadata.Position == FileRecordPosition.First && _hasRecords)
                     await FailAsync("csv.metadata.first-position", "Metadata restricted to the first position must precede all other records.", metadata.RecordKey, line, true, cancellationToken).ConfigureAwait(false);
 
                 if (_context.GetRecordCount(metadata.RecordKey) > 1)
                     await FailAsync("csv.metadata.duplicate", "Metadata may occur only once.", metadata.RecordKey, line, true, cancellationToken).ConfigureAwait(false);
 
-                if (metadata.Position == CsvRecordPosition.Last)
+                if (metadata.Position == FileRecordPosition.Last)
                     _lastMetadataSeen = true;
             }
             else if (key == root.Key)
@@ -243,14 +220,14 @@ public class CsvHierarchyFileProcessor<TGroup>(Func<CsvHierarchyDefinition<TGrou
                 var missing = string.IsNullOrWhiteSpace(discriminator);
                 await ReportAsync(new(FileDiagnosticCategory.Structure, missing ? "csv.discriminator.missing" : "csv.discriminator.unknown",
                     missing ? "The record discriminator is missing." : "The record discriminator is not recognized.",
-                    location: new(line, fieldIndex: _definition.DiscriminatorIndex)), null, true, cancellationToken).ConfigureAwait(false);
+                    location: new(line, fieldIndex: _definition.DiscriminatorIndex)), true, cancellationToken).ConfigureAwait(false);
             }
 
             if (parsed.Diagnostic is not null)
             {
                 Invalidate();
                 await ReportAsync(new(parsed.Diagnostic.Category, parsed.Diagnostic.Code, parsed.Diagnostic.Message, parsed.Diagnostic.Severity,
-                    parsed.Diagnostic.Location, key), key, true, cancellationToken).ConfigureAwait(false);
+                    parsed.Diagnostic.Location, key), true, cancellationToken).ConfigureAwait(false);
             }
             else if (route is not null)
             {
@@ -258,7 +235,7 @@ public class CsvHierarchyFileProcessor<TGroup>(Func<CsvHierarchyDefinition<TGrou
                 foreach (var diagnostic in mapped.Diagnostics)
                 {
                     Invalidate();
-                    await ReportAsync(new(diagnostic.Category, diagnostic.Code, diagnostic.Message, diagnostic.Severity, diagnostic.Location, key), key, true, cancellationToken).ConfigureAwait(false);
+                    await ReportAsync(new(diagnostic.Category, diagnostic.Code, diagnostic.Message, diagnostic.Severity, diagnostic.Location, key), true, cancellationToken).ConfigureAwait(false);
                 }
 
                 if (mapped.Value is not null)
@@ -269,7 +246,7 @@ public class CsvHierarchyFileProcessor<TGroup>(Func<CsvHierarchyDefinition<TGrou
                             if (diagnostic.IsError)
                                 Invalidate();
 
-                            await ReportAsync(diagnostic, key, true, ct).ConfigureAwait(false);
+                            await ReportAsync(diagnostic, true, ct).ConfigureAwait(false);
                         }, cancellationToken).ConfigureAwait(false);
 
                     if (!_recordInvalid)
@@ -319,7 +296,7 @@ public class CsvHierarchyFileProcessor<TGroup>(Func<CsvHierarchyDefinition<TGrou
                             var info = new FileUnitInfo(_replay ? _state.Attempted + 1 : _state.UnitsRead, new(frame.Line), frame.Definition.Key);
                             if (!_replay && !await _processor.ValidateUnitAsync(group, _context, _state, info, false, cancellationToken).ConfigureAwait(false))
                             {
-                                if (Mode(frame.Definition.Key) == FileErrorMode.FailFast)
+                                if (_context.ErrorMode == FileErrorMode.FailFast)
                                     return false;
 
                                 continue;
@@ -333,7 +310,7 @@ public class CsvHierarchyFileProcessor<TGroup>(Func<CsvHierarchyDefinition<TGrou
                             var valid = await _processor.ValidateUnitAsync(group, _context, _state, new(_state.UnitsRead, new(frame.Line), frame.Definition.Key), false, cancellationToken).ConfigureAwait(false);
 
                             _context.HasValidationErrors |= !valid;
-                            if (!valid && Mode(frame.Definition.Key) == FileErrorMode.FailFast)
+                            if (!valid && _context.ErrorMode == FileErrorMode.FailFast)
                                 _stop = true;
                         }
                     }
@@ -376,10 +353,10 @@ public class CsvHierarchyFileProcessor<TGroup>(Func<CsvHierarchyDefinition<TGrou
         }
 
         /// <summary>Gets whether at least one recognized occurrence is required.</summary>
-        private static bool IsRequired(CsvHierarchyNode node) => node.Cardinality is CsvRecordCardinality.One or CsvRecordCardinality.OneOrMore;
+        private static bool IsRequired(CsvHierarchyNode node) => node.Cardinality is FileCardinality.One or FileCardinality.OneOrMore;
 
         /// <summary>Gets whether at most one recognized occurrence is allowed.</summary>
-        private static bool IsSingle(CsvHierarchyNode node) => node.Cardinality is CsvRecordCardinality.One or CsvRecordCardinality.Optional;
+        private static bool IsSingle(CsvHierarchyNode node) => node.Cardinality is FileCardinality.One or FileCardinality.Optional;
 
         /// <summary>Holds only one open subtree's wire record, children, and structural counters.</summary>
         private sealed class Frame(CsvHierarchyNode definition, long line)

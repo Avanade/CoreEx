@@ -399,7 +399,7 @@ public class CsvFileProcessorTests
     public async Task TenThousandInvalidRecords_StreamOrderedDiagnosticsWithoutRetainingThemInFrameworkState()
     {
         var count = 0;
-        var processor = new Processor(processingOptions: new() { MaxDiagnostics = 10_000 }) { RetainDiagnostics = false, DiagnosticCallback = (diagnostic, _) =>
+        var processor = new Processor() { RetainDiagnostics = false, DiagnosticCallback = (diagnostic, _) =>
         {
             count++;
             diagnostic.Location?.LineNumber.Should().Be(count + 1);
@@ -414,24 +414,6 @@ public class CsvFileProcessorTests
         summary.Progress.InvalidRecords.Should().Be(10_000);
         summary.Progress.RecordsRead.Should().Be(10_000);
         summary.ValidationCompleted.Should().BeTrue();
-    }
-
-    [Test]
-    public async Task DiagnosticLimit_EmitsOneTerminalSentinelAndStopsReading()
-    {
-        var processor = new Processor(processingOptions: new() { MaxDiagnostics = 1 });
-        var input = new Input("Id,Name,Quantity\n1,A,invalid\n2,B,invalid\n3,C,1\n");
-
-        var summary = await processor.ProcessAsync(input.OpenAsync, Context(FileProcessingMode.ValidateOnly, FileErrorMode.CollectErrors)).ConfigureAwait(false);
-
-        summary.Outcome.Should().Be(FileProcessingOutcome.ContentFailed);
-        summary.ValidationCompleted.Should().BeFalse();
-        summary.Progress.RecordsRead.Should().Be(2);
-        summary.Progress.InvalidRecords.Should().Be(2);
-        summary.Progress.ErrorCount.Should().Be(2);
-        processor.Diagnostics.Select(x => x.Code).Should().Equal("csv.field.invalid", "file.limit.diagnostics");
-        processor.Diagnostics.Last().Category.Should().Be(FileDiagnosticCategory.Limit);
-        input.Streams.Should().ContainSingle().Which.AsyncDisposed.Should().BeTrue();
     }
 
     [TestCase("\n")]
@@ -493,7 +475,7 @@ public class CsvFileProcessorTests
         var exceptions = 0;
         void Observe(object? sender, FirstChanceExceptionEventArgs args) => Interlocked.Increment(ref exceptions);
 
-        var processor = new Processor(processingOptions: new() { MaxDiagnostics = 10_000 }) { RetainDiagnostics = false };
+        var processor = new Processor() { RetainDiagnostics = false };
         var input = new Input("Id,Name,Quantity\n" + string.Concat(Enumerable.Repeat(malformed ? "1,Al\"ice,2\n" : "1,A,invalid\n", 10_000)));
         AppDomain.CurrentDomain.FirstChanceException += Observe;
         FileProcessingSummary summary;
@@ -801,8 +783,8 @@ public class CsvFileProcessorTests
 
     private sealed class Processor : CsvFileProcessor<Record>
     {
-        public Processor(Environment? environment = null, bool positional = false, CsvFileOptions? options = null, IValidator<Record>? validator = null, Func<CsvFileMapping<Record>>? mappingFactory = null, FileProcessingOptions? processingOptions = null)
-            : base(mappingFactory ?? (() => Mapping(positional)), processingOptions, options, validator, environment?.Provider, environment is null ? null : sp => sp.GetRequiredService<Handler>()) { }
+        public Processor(Environment? environment = null, bool positional = false, CsvFileOptions? options = null, IValidator<Record>? validator = null, Func<CsvFileMapping<Record>>? mappingFactory = null)
+            : base(mappingFactory ?? (() => Mapping(positional)), options, validator, environment?.Provider, environment is null ? null : sp => sp.GetRequiredService<Handler>()) { }
 
         public List<FileDiagnostic> Diagnostics { get; } = [];
         public List<(Record Record, FileUnitInfo Info)> Reported { get; } = [];

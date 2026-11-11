@@ -11,3 +11,4 @@ Property | Description
 **`record`** | Wire record. [Mandatory]
 `required` | Required metadata.<br/>&dagger; Defaults to false; duplicate occurrences are always errors.
 `csv` | CSV metadata routing. The corresponding [`CsvMetadata`](CsvMetadata.md) object.
+`jsonl` | JSONL metadata placement. The corresponding [`JsonlMetadata`](JsonlMetadata.md) object.

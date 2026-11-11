@@ -12,7 +12,7 @@ public abstract class FileUnitHandler<TUnit> where TUnit : class
     /// <param name="reportDiagnosticAsync">The awaited diagnostic sink; the coordinator applies locations, counts, and continuation policy.</param>
     /// <param name="cancellationToken">The processing cancellation token.</param>
     /// <returns>The asynchronous validation operation; operational faults propagate.</returns>
-    public Task ValidateAsync(TUnit unit, FileUnitInfo info, FileProcessingContext context, Func<FileDiagnostic, CancellationToken, Task> reportDiagnosticAsync, CancellationToken cancellationToken = default)
+    internal Task ValidateAsync(TUnit unit, FileUnitInfo info, FileProcessingContext context, Func<FileDiagnostic, CancellationToken, Task> reportDiagnosticAsync, CancellationToken cancellationToken = default)
     {
         unit.ThrowIfNull();
         info.ThrowIfNull();
@@ -28,7 +28,7 @@ public abstract class FileUnitHandler<TUnit> where TUnit : class
     /// <param name="context">The pass-local context; single-pass execution shares validation state, while replay uses fresh state.</param>
     /// <param name="cancellationToken">The processing cancellation token.</param>
     /// <returns>The application's Result, preserved without throw/catch conversion. Failure stops subsequent units without rollback.</returns>
-    public Task<Result> ExecuteAsync(TUnit unit, FileUnitInfo info, FileProcessingContext context, CancellationToken cancellationToken = default)
+    internal Task<Result> ExecuteAsync(TUnit unit, FileUnitInfo info, FileProcessingContext context, CancellationToken cancellationToken = default)
     {
         unit.ThrowIfNull();
         info.ThrowIfNull();

@@ -9,7 +9,7 @@
 namespace {{RuntimeNamespace}};
 
 /// <summary>Provides pass-local integration reconciliation state.</summary>
-public partial class {{Name}}Context : {{#if IsHierarchical}}CsvHierarchyContext{{else}}{{#if IsUnordered}}CsvRoutedContext{{else}}FileProcessingContext{{/if}}{{/if}}
+public partial class {{Name}}Context : {{#if IsJsonl}}JsonLinesContext{{else}}{{#if IsHierarchical}}CsvHierarchyContext{{else}}{{#if IsUnordered}}CsvRoutedContext{{else}}FileProcessingContext{{/if}}{{/if}}{{/if}}
 {
     /// <summary>Initializes identity and invocation policy without sharing mutable pass state.</summary>
     public {{Name}}Context(FileProcessingIdentity identity, FileProcessingMode mode = FileProcessingMode.{{Mode}},

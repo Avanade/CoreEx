@@ -33,17 +33,10 @@
         "format": {
           "type": "string",
           "title": "Input format.",
-          "description": "Defaults to Csv. Other formats are introduced in later phases.",
+          "description": "Defaults to Csv. JSON document and XML readers are not yet supported.",
           "enum": [
-            "Csv"
-          ]
-        },
-        "limits": {
-          "title": "Format-neutral processing budgets.",
-          "allOf": [
-            {
-              "$ref": "#/definitions/Limits"
-            }
+            "Csv",
+            "Jsonl"
           ]
         },
         "csv": {
@@ -51,6 +44,31 @@
           "allOf": [
             {
               "$ref": "#/definitions/Csv"
+            }
+          ]
+        },
+        "json": {
+          "title": "Shared JSON mapping settings.",
+          "description": "JSONL only in this release; kind/unitPath/document selection are not supported.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Json"
+            }
+          ]
+        },
+        "jsonl": {
+          "title": "JSONL framing and routing.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Jsonl"
+            }
+          ]
+        },
+        "unit": {
+          "title": "Business object selection.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Unit"
             }
           ]
         },
@@ -103,27 +121,6 @@
         "records"
       ]
     },
-    "Limits": {
-      "type": "object",
-      "title": "Shared file-processing limits.",
-      "properties": {
-        "maxInputBytes": {
-          "type": "integer",
-          "title": "Positive input-byte budget.",
-          "description": "Defaults to 67108864 (64 MiB)."
-        },
-        "maxUnits": {
-          "type": "integer",
-          "title": "Positive business-unit budget.",
-          "description": "Defaults to 100000."
-        },
-        "maxDiagnostics": {
-          "type": "integer",
-          "title": "Positive diagnostic budget.",
-          "description": "Defaults to 1000; one terminal limit diagnostic may follow."
-        }
-      }
-    },
     "Csv": {
       "type": "object",
       "title": "CSV parser and assembly settings.",
@@ -168,11 +165,6 @@
           "type": "integer",
           "title": "Zero-based discriminator index.",
           "description": "Selects unordered routing without structure; required with structure; omitted for flat input."
-        },
-        "maxGroupRecords": {
-          "type": "integer",
-          "title": "Positive records-per-root budget.",
-          "description": "Defaults to 10000, including the root."
         },
         "structure": {
           "title": "Business-root hierarchy.",
@@ -237,6 +229,68 @@
         "record"
       ]
     },
+    "Json": {
+      "type": "object",
+      "title": "Shared JSON mapping settings.",
+      "properties": {
+        "unknownMemberPolicy": {
+          "type": "string",
+          "title": "Unknown member policy.",
+          "description": "Defaults to Reject; applies recursively to units and declared metadata.",
+          "enum": [
+            "Reject",
+            "Ignore"
+          ]
+        },
+        "maxDepth": {
+          "type": "integer",
+          "title": "Positive nesting limit.",
+          "description": "Defaults to 64; includes ignored objects and arrays."
+        }
+      }
+    },
+    "Jsonl": {
+      "type": "object",
+      "title": "JSONL framing and routing.",
+      "properties": {
+        "discriminator": {
+          "type": "string",
+          "title": "Direct string discriminator.",
+          "description": "Omit for ordinary object units. Required for metadata routing; no implicit type-member convention."
+        },
+        "blankLinePolicy": {
+          "type": "string",
+          "title": "Blank-line policy.",
+          "description": "Defaults to Reject. Skip excludes blank lines from records/units but not bytes/physical lines.",
+          "enum": [
+            "Reject",
+            "Skip"
+          ]
+        }
+      }
+    },
+    "Unit": {
+      "type": "object",
+      "title": "Business object selection.",
+      "properties": {
+        "record": {
+          "type": "string",
+          "title": "Business root record.",
+          "description": "Inferred only when exactly one non-metadata, non-child record is eligible."
+        },
+        "cardinality": {
+          "type": "string",
+          "title": "File unit cardinality.",
+          "description": "Defaults to Many.",
+          "enum": [
+            "Many",
+            "One",
+            "Optional",
+            "OneOrMore"
+          ]
+        }
+      }
+    },
     "Metadata": {
       "type": "object",
       "title": "File metadata.",
@@ -259,6 +313,14 @@
           "allOf": [
             {
               "$ref": "#/definitions/CsvMetadata"
+            }
+          ]
+        },
+        "jsonl": {
+          "title": "JSONL metadata placement.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/JsonlMetadata"
             }
           ]
         }
@@ -284,6 +346,22 @@
         }
       }
     },
+    "JsonlMetadata": {
+      "type": "object",
+      "title": "JSONL metadata placement.",
+      "properties": {
+        "position": {
+          "type": "string",
+          "title": "Metadata position.",
+          "description": "Defaults to Any; malformed/unroutable non-skipped lines participate.",
+          "enum": [
+            "Any",
+            "First",
+            "Last"
+          ]
+        }
+      }
+    },
     "Record": {
       "type": "object",
       "title": "File record.",
@@ -292,19 +370,19 @@
           "type": "string",
           "title": "Logical record name."
         },
-        "errorMode": {
-          "type": "string",
-          "title": "Route error policy.",
-          "enum": [
-            "FailFast",
-            "CollectErrors"
-          ]
-        },
         "csv": {
           "title": "CSV routing settings.",
           "allOf": [
             {
               "$ref": "#/definitions/CsvRecord"
+            }
+          ]
+        },
+        "jsonl": {
+          "title": "JSONL root discriminator match.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/JsonlRecord"
             }
           ]
         },
@@ -357,6 +435,19 @@
         }
       }
     },
+    "JsonlRecord": {
+      "type": "object",
+      "title": "JSONL record route.",
+      "properties": {
+        "match": {
+          "type": "string",
+          "title": "Exact discriminator match."
+        }
+      },
+      "required": [
+        "match"
+      ]
+    },
     "Property": {
       "type": "object",
       "title": "File record property.",
@@ -364,7 +455,7 @@
         "name": {
           "type": "string",
           "title": "Source field name.",
-          "description": "Exact CSV column name, or logical label for positional fields."
+          "description": "Exact JSON direct member or CSV column name; logical label for positional CSV fields."
         },
         "property": {
           "type": "string",
@@ -374,7 +465,7 @@
         "type": {
           "type": "string",
           "title": "Logical type.",
-          "description": "Defaults to String. All wire properties are nullable; requiredness is separate.",
+          "description": "Defaults to String only without record/collection. Native JSON token types are required; all wire properties are nullable.",
           "enum": [
             "String",
             "Integer",
@@ -384,7 +475,22 @@
             "Boolean",
             "Guid",
             "DateOnly",
-            "DateTime"
+            "DateTime",
+            "DateTimeOffset"
+          ]
+        },
+        "record": {
+          "type": "string",
+          "title": "Nested object record.",
+          "description": "JSONL only; mutually exclusive with type/collection. Required rejects missing/null; present objects always validate."
+        },
+        "collection": {
+          "title": "Nested collection occurrence.",
+          "description": "JSONL only; mutually exclusive with type/record. Null elements are not supported.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Collection"
+            }
           ]
         },
         "csv": {
@@ -398,7 +504,7 @@
         "format": {
           "type": "string",
           "title": "Exact invariant date format.",
-          "description": "Required for DateOnly/DateTime; not applicable to other types."
+          "description": "Optional for CSV and JSON dates; when omitted, uses standard invariant parsing. DateTimeOffset always requires an explicit Z or numeric offset; JSON DateTime rejects offsets. Also applies to scalar collection elements and date bounds/options."
         },
         "required": {
           "type": "boolean",
@@ -485,6 +591,50 @@
       "required": [
         "name"
       ]
+    },
+    "Collection": {
+      "type": "object",
+      "title": "Nested collection occurrence.",
+      "properties": {
+        "record": {
+          "type": "string",
+          "title": "Element record.",
+          "description": "Exactly one of record/type is required."
+        },
+        "type": {
+          "type": "string",
+          "title": "Scalar element type.",
+          "description": "Exactly one of record/type is required. Null elements are rejected.",
+          "enum": [
+            "String",
+            "Integer",
+            "Int64",
+            "Decimal",
+            "Double",
+            "Boolean",
+            "Guid",
+            "DateOnly",
+            "DateTime",
+            "DateTimeOffset"
+          ]
+        },
+        "cardinality": {
+          "type": "string",
+          "title": "Per-parent cardinality.",
+          "description": "Defaults to Many; missing/null counts as zero.",
+          "enum": [
+            "Many",
+            "One",
+            "Optional",
+            "OneOrMore"
+          ]
+        },
+        "maxItems": {
+          "type": "integer",
+          "title": "Optional maximum elements.",
+          "description": "No maximum by default. An explicit positive count is a business constraint checked before element mapping."
+        }
+      }
     },
     "CsvProperty": {
       "type": "object",

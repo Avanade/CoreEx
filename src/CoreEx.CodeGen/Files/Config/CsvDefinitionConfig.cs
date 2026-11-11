@@ -36,11 +36,6 @@ public class CsvDefinitionConfig : ConfigBase<CodeGenConfig, CodeGenConfig>
     [CodeGenProperty("Routing", Title = "Zero-based discriminator index.", Description = "Selects unordered routing without structure; required with structure; omitted for flat input.")]
     public int? DiscriminatorIndex { get; set; }
 
-    /// <summary>Gets or sets the per-root record budget.</summary>
-    [JsonPropertyName("maxGroupRecords")]
-    [CodeGenProperty("Routing", Title = "Positive records-per-root budget.", Description = "Defaults to 10000, including the root.")]
-    public long? MaxGroupRecords { get; set; }
-
     /// <summary>Gets or sets the optional business-root hierarchy.</summary>
     [JsonPropertyName("structure")]
     [CodeGenProperty("Routing", Title = "Business-root hierarchy.", Description = "Omit for unordered routed records (with discriminatorIndex) or one flat record (without discriminatorIndex).")]
@@ -80,10 +75,6 @@ public class CsvDefinitionConfig : ConfigBase<CodeGenConfig, CodeGenConfig>
         Encoding = DefaultWhereNull(Encoding, () => "Utf8");
         Delimiter = DefaultWhereNull(Delimiter, () => ",");
         Quote = DefaultWhereNull(Quote, () => "\"");
-        MaxGroupRecords = DefaultWhereNull(MaxGroupRecords, () => 10_000);
-        if (MaxGroupRecords <= 0)
-            throw new CodeGenException(this, nameof(MaxGroupRecords), "The group-record limit must be positive.");
-
         if (new[] { Delimiter, Quote, Comment }.OfType<string>().Any(x => x.Length != 1 || x[0] is '\r' or '\n' or '\0' || char.IsSurrogate(x[0]))
             || Delimiter == Quote || Comment is not null && (Comment == Delimiter || Comment == Quote))
             throw new CodeGenException(this, nameof(Delimiter), "Dialect markers must be distinct single non-newline, non-null characters.");

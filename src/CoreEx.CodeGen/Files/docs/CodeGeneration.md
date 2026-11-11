@@ -9,9 +9,9 @@ Category | Description
 -|-
 [`Primary`](#Primary) | Definition identity.
 [`Format`](#Format) | Input format.
-[`Processing`](#Processing) | Default invocation policy and operating budgets.
-[`Limits`](#Limits) | Format-neutral processing budgets.
+[`Processing`](#Processing) | Default invocation policy.
 [`Csv`](#Csv) | CSV parser, routing, and assembly settings.
+[`Json`](#Json) | JSON mapping and JSONL framing.
 [`Paths`](#Paths) | Destination project and subfolder.
 [`Namespaces`](#Namespaces) | Explicit generated namespace.
 [`Collections`](#Collections) | Typed wire records.
@@ -31,10 +31,10 @@ Input format.
 
 Property | Description
 -|-
-`format` | Input format. Valid options are: `Csv`.<br/>&dagger; Defaults to Csv. Other formats are introduced in later phases.
+`format` | Input format. Valid options are: `Csv`, `Jsonl`.<br/>&dagger; Defaults to Csv. JSON document and XML readers are not yet supported.
 
 ## Processing
-Default invocation policy and operating budgets.
+Default invocation policy.
 
 Property | Description
 -|-
@@ -42,19 +42,21 @@ Property | Description
 `mode` | Default processing mode. Valid options are: `ValidateOnly`, `ValidateThenExecute`, `ValidateAndExecute`.<br/>&dagger; Defaults to ValidateOnly. Valid-unit reporting is an optional processor hook in every mode; ValidateAndExecute validates and executes each unit in one pass.
 `errorMode` | Default content policy. Valid options are: `FailFast`, `CollectErrors`.<br/>&dagger; Defaults to FailFast.
 
-## Limits
-Format-neutral processing budgets.
-
-Property | Description
--|-
-`limits` | Format-neutral processing budgets. The corresponding [`Limits`](Limits.md) object.
-
 ## Csv
 CSV parser, routing, and assembly settings.
 
 Property | Description
 -|-
 `csv` | CSV parser, routing, and assembly settings. The corresponding [`Csv`](Csv.md) object.
+
+## Json
+JSON mapping and JSONL framing.
+
+Property | Description
+-|-
+`json` | Shared JSON mapping settings. The corresponding [`Json`](Json.md) object.<br/>&dagger; JSONL only in this release; kind/unitPath/document selection are not supported.
+`jsonl` | JSONL framing and routing. The corresponding [`Jsonl`](Jsonl.md) object.
+`unit` | Business object selection. The corresponding [`Unit`](Unit.md) object.
 
 ## Paths
 Destination project and subfolder.

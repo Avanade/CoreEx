@@ -17,9 +17,8 @@ public sealed class CsvRoutedRecord<TRecord, TUnit> : CsvRoutedRecord<TUnit> whe
     /// <param name="validator">Optional wire-record validation; skipped on replay.</param>
     /// <param name="cardinality">The file-level recognized occurrences.</param>
     /// <param name="position">The optional First or Last boundary restriction.</param>
-    /// <param name="errorMode">The optional continuation override.</param>
     public CsvRoutedRecord(string key, string match, Func<CsvFileMapping<TRecord>> mappingFactory, Func<TRecord, TUnit> project, IValidator<TRecord>? validator = null,
-        CsvRecordCardinality cardinality = CsvRecordCardinality.Many, CsvRecordPosition position = CsvRecordPosition.Any, FileErrorMode? errorMode = null) : base(key, match, cardinality, position, errorMode)
+        FileCardinality cardinality = FileCardinality.Many, FileRecordPosition position = FileRecordPosition.Any) : base(key, match, cardinality, position)
         => (_mappingFactory, _project, _validator) = (mappingFactory.ThrowIfNull(), project.ThrowIfNull(), validator);
 
     /// <inheritdoc/>

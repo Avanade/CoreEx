@@ -91,6 +91,15 @@ public class UnorderedFileGenerationTests
         """;
 
     [Test]
+    public async Task RemovedRecordErrorPolicyIsRejectedBeforeWriting()
+    {
+        Write("mixed-file.yaml", Definition().Replace("- name: Alpha", "- name: Alpha\n  errorMode: CollectErrors", StringComparison.Ordinal));
+        Func<Task> generate = () => FileGenerationBatch.GenerateAsync(Args());
+        await generate.Should().ThrowAsync<CodeGenException>();
+        Directory.Exists(Path.Combine(_runtime, "Files")).Should().BeFalse();
+    }
+
+    [Test]
     public async Task ValidateAndSimulationProduceNoFiles()
     {
         Write("mixed-file.yaml", Definition());
@@ -115,9 +124,9 @@ public class UnorderedFileGenerationTests
         System.IO.File.ReadAllText(Path.Combine(output, "MixedContext.g.cs")).Should().Contain("class MixedContext : CsvRoutedContext");
         System.IO.File.ReadAllText(Path.Combine(output, "MixedProcessor.g.cs")).Should()
             .Contain("CsvRoutedFileProcessor<MixedRecord>")
-            .And.Contain("CsvRecordCardinality.OneOrMore")
-            .And.Contain("CsvRecordPosition.First")
-            .And.Contain("CsvRecordPosition.Last");
+            .And.Contain("FileCardinality.OneOrMore")
+            .And.Contain("FileRecordPosition.First")
+            .And.Contain("FileRecordPosition.Last");
         var dispatch = System.IO.File.ReadAllText(Path.Combine(output, "MixedHandlerBase.g.cs"));
         dispatch.Should().Contain("MixedAlpha => OnExecuteAlphaAsync(args.As<MixedAlpha>(), cancellationToken)")
             .And.Contain("MixedBeta => OnValidateBetaAsync(args.As<MixedBeta>(), cancellationToken)")

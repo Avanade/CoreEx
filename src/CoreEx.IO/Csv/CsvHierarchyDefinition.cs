@@ -54,8 +54,8 @@ public sealed class CsvHierarchyDefinition<TGroup> where TGroup : class
             if (!metadataNames.Add(item.Name) || !metadataKeys.Add(item.RecordKey) || !byKey.ContainsKey(item.RecordKey))
                 throw new ArgumentException("Metadata names and route keys must be unique, and every metadata route must exist.", nameof(metadata));
 
-            firstCount += item.Position == CsvRecordPosition.First ? 1 : 0;
-            lastCount += item.Position == CsvRecordPosition.Last ? 1 : 0;
+            firstCount += item.Position == FileRecordPosition.First ? 1 : 0;
+            lastCount += item.Position == FileRecordPosition.Last ? 1 : 0;
         }
 
         if (firstCount > 1 || lastCount > 1)

@@ -3,10 +3,11 @@ namespace CoreEx.CodeGen.Files.Config;
 /// <summary>Applies the File generator's ASCII-only C# identifier and namespace policy.</summary>
 internal static partial class ConfigValidation
 {
-    private static readonly HashSet<string> _generatedTypeReservations = new(("ArgumentException Array CancellationToken CultureInfo DateOnly DateTime DateTimeKind DateTimeStyles Func Guid " +
+    private static readonly HashSet<string> _generatedTypeReservations = new(("ArgumentException Array CancellationToken CultureInfo DateOnly DateTime DateTimeOffset DateTimeKind DateTimeStyles Func Guid List TimeSpan " +
+        "FileCardinality FileRecordPosition JsonUnitMapping JsonFieldConverters JsonFileOptions JsonUnknownMemberPolicy JsonLinesContext JsonLinesFileProcessor JsonLinesDefinition JsonLinesMetadata JsonLinesFileOptions JsonLinesBlankLinePolicy " +
         "IReadOnlyList IServiceProvider NotSupportedException ReadOnlySpan Regex RegexOptions GeneratedRegex GeneratedRegexAttribute Result ScopedService ScopedServiceAttribute Stream Task Validator " +
         "CsvAggregateNode CsvFieldConverters CsvFileMapping CsvFileOptions CsvFileProcessor CsvHeaderPolicy CsvHierarchyContext CsvHierarchyDefinition CsvHierarchyFileProcessor CsvHierarchyNode " +
-        "CsvRecordCardinality CsvRecordPosition CsvRecordRoute CsvRoutedContext CsvRoutedDefinition CsvRoutedFileProcessor CsvRoutedRecord " +
+        "CsvRecordRoute CsvRoutedContext CsvRoutedDefinition CsvRoutedFileProcessor CsvRoutedRecord " +
         "FileDiagnostic FileErrorMode FileProcessingContext FileProcessingIdentity FileProcessingMode FileProcessingSummary FileUnitArgs FileUnitHandler FileUnitInfo FileUnitValidationArgs").Split(' '), StringComparer.Ordinal);
 
     private static readonly HashSet<string> _keywords = new(("abstract as base bool break byte case catch char checked class const continue decimal default delegate do double else enum event " +

@@ -19,9 +19,11 @@ Source field and generated property identity.
 
 Property | Description
 -|-
-**`name`** | Source field name. [Mandatory]<br/>&dagger; Exact CSV column name, or logical label for positional fields.
+**`name`** | Source field name. [Mandatory]<br/>&dagger; Exact JSON direct member or CSV column name; logical label for positional CSV fields.
 `property` | Generated C# property override.<br/>&dagger; Defaults to DbEx-style PascalCase derivation from name.
-`type` | Logical type. Valid options are: `String`, `Integer`, `Int64`, `Decimal`, `Double`, `Boolean`, `Guid`, `DateOnly`, `DateTime`.<br/>&dagger; Defaults to String. All wire properties are nullable; requiredness is separate.
+`type` | Logical type. Valid options are: `String`, `Integer`, `Int64`, `Decimal`, `Double`, `Boolean`, `Guid`, `DateOnly`, `DateTime`, `DateTimeOffset`.<br/>&dagger; Defaults to String only without record/collection. Native JSON token types are required; all wire properties are nullable.
+`record` | Nested object record.<br/>&dagger; JSONL only; mutually exclusive with type/collection. Required rejects missing/null; present objects always validate.
+`collection` | Nested collection occurrence. The corresponding [`Collection`](Collection.md) object.<br/>&dagger; JSONL only; mutually exclusive with type/record. Null elements are not supported.
 
 ## Csv
 CSV selector and conversion.
@@ -35,7 +37,7 @@ Typed value conversion.
 
 Property | Description
 -|-
-`format` | Exact invariant date format.<br/>&dagger; Required for DateOnly/DateTime; not applicable to other types.
+`format` | Exact invariant date format.<br/>&dagger; Optional for CSV and JSON dates; when omitted, uses standard invariant parsing. DateTimeOffset always requires an explicit Z or numeric offset; JSON DateTime rejects offsets. Also applies to scalar collection elements and date bounds/options.
 
 ## Validation
 Pure typed validation.

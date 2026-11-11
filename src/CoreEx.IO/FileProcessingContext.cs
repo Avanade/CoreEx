@@ -57,16 +57,24 @@ public class FileProcessingContext
             ? value.Deserialize<TMetadata>() ?? throw new InvalidOperationException("The accepted metadata value could not be deserialized.") : null;
 
     /// <summary>Stores an encountered validated metadata value in this pass-local context.</summary>
+    /// <param name="name">The configured logical metadata name.</param>
+    /// <param name="value">The validated metadata object for this pass.</param>
     internal void SetMetadata(string name, object value) => _metadata[name.ThrowIfNullOrWhiteSpace()] = value.ThrowIfNull();
 
     /// <summary>Freezes pass-local metadata into a deeply immutable JSON value snapshot.</summary>
     internal void FreezeAcceptedMetadata()
     {
-        var snapshot = _metadata.ToDictionary(x => x.Key, x => JsonSerializer.SerializeToElement(x.Value).Clone(), StringComparer.Ordinal);
+        var snapshot = new Dictionary<string, JsonElement>(StringComparer.Ordinal);
+        foreach (var (name, value) in _metadata)
+        {
+            snapshot.Add(name, JsonSerializer.SerializeToElement(value));
+        }
+
         AcceptedMetadata = new System.Collections.ObjectModel.ReadOnlyDictionary<string, JsonElement>(snapshot);
     }
 
     /// <summary>Copies an already frozen snapshot into a fresh execution context.</summary>
+    /// <param name="metadata">The immutable metadata values to clone, or null when none were accepted.</param>
     internal void SetAcceptedMetadata(IReadOnlyDictionary<string, JsonElement>? metadata)
         => AcceptedMetadata = metadata is null ? null : new System.Collections.ObjectModel.ReadOnlyDictionary<string, JsonElement>(
             metadata.ToDictionary(x => x.Key, x => x.Value.Clone(), StringComparer.Ordinal));

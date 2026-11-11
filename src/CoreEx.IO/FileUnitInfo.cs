@@ -8,7 +8,7 @@ public sealed class FileUnitInfo
     /// <param name="location">The physical or logical location of the unit.</param>
     /// <param name="recordType">The logical input record or root type.</param>
     /// <param name="sourceByteOffset">The zero-based source byte offset when the reader can report it accurately.</param>
-    public FileUnitInfo(long ordinal, FileLocation location, string? recordType = null, long? sourceByteOffset = null)
+    internal FileUnitInfo(long ordinal, FileLocation location, string? recordType = null, long? sourceByteOffset = null)
     {
         ordinal.ThrowIfLessThanOrEqualToZero();
         Location = location.ThrowIfNull();
@@ -34,4 +34,7 @@ public sealed class FileUnitInfo
 
     /// <summary>Gets the zero-based source byte offset, when accurately available.</summary>
     public long? SourceByteOffset { get; }
+
+    /// <summary>Gets the built-in mapper's resolver for pure-validation model paths.</summary>
+    internal Func<string?, FileLocation>? ValidationLocation { get; init; }
 }

@@ -1,12 +1,12 @@
 namespace CoreEx.CodeGen.Files.Config;
 
-/// <summary>Defines one host-neutral flat, unordered routed, or hierarchical CSV integration.</summary>
+/// <summary>Defines one host-neutral CSV or nested JSONL integration.</summary>
 [CodeGenClass("CodeGeneration", Title = "File processing code-generation.")]
 [CodeGenCategory("Primary", Title = "Definition identity.")]
 [CodeGenCategory("Format", Title = "Input format.")]
-[CodeGenCategory("Processing", Title = "Default invocation policy and operating budgets.")]
-[CodeGenCategory("Limits", Title = "Format-neutral processing budgets.")]
+[CodeGenCategory("Processing", Title = "Default invocation policy.")]
 [CodeGenCategory("Csv", Title = "CSV parser, routing, and assembly settings.")]
+[CodeGenCategory("Json", Title = "JSON mapping and JSONL framing.")]
 [CodeGenCategory("Paths", Title = "Destination project and subfolder.")]
 [CodeGenCategory("Namespaces", Title = "Explicit generated namespace.")]
 [CodeGenCategory("Collections", Title = "Typed wire records.")]
@@ -44,18 +44,31 @@ public class CodeGenConfig : ConfigRootBase<CodeGenConfig>
 
     /// <summary>Gets or sets the selected input format; omitted values use CSV during migration.</summary>
     [JsonPropertyName("format")]
-    [CodeGenProperty("Format", Title = "Input format.", Options = ["Csv"], Description = "Defaults to Csv. Other formats are introduced in later phases.")]
+    [CodeGenProperty("Format", Title = "Input format.", Options = ["Csv", "Jsonl"], Description = "Defaults to Csv. JSON document and XML readers are not yet supported.")]
     public string? Format { get; set; }
-
-    /// <summary>Gets or sets shared operating budgets.</summary>
-    [JsonPropertyName("limits")]
-    [CodeGenProperty("Limits", Title = "Format-neutral processing budgets.")]
-    public LimitsConfig? Limits { get; set; }
 
     /// <summary>Gets or sets CSV-specific parsing and assembly settings.</summary>
     [JsonPropertyName("csv")]
     [CodeGenProperty("Csv", Title = "CSV parser, routing, and assembly settings.")]
     public CsvDefinitionConfig? Csv { get; set; }
+
+    /// <summary>Gets or sets shared JSON mapping settings.</summary>
+    [JsonPropertyName("json")]
+    [CodeGenProperty("Json", Title = "Shared JSON mapping settings.", Description = "JSONL only in this release; kind/unitPath/document selection are not supported.")]
+    public JsonConfig? Json { get; set; }
+
+    /// <summary>Gets or sets JSONL framing/routing settings.</summary>
+    [JsonPropertyName("jsonl")]
+    [CodeGenProperty("Json", Title = "JSONL framing and routing.")]
+    public JsonLinesConfig? Jsonl { get; set; }
+
+    /// <summary>Gets or sets the JSONL business record selection.</summary>
+    [JsonPropertyName("unit")]
+    [CodeGenProperty("Json", Title = "Business object selection.")]
+    public UnitConfig? Unit { get; set; }
+
+    /// <summary>Gets whether nested JSONL generation is selected.</summary>
+    public bool IsJsonl => Format == "Jsonl";
 
     /// <summary>Gets or sets file-level metadata declarations.</summary>
     [JsonPropertyName("metadata")]
@@ -93,7 +106,7 @@ public class CodeGenConfig : ConfigRootBase<CodeGenConfig>
     public bool IsRouted => IsHierarchical || IsUnordered;
 
     /// <summary>Gets the business-unit type.</summary>
-    public string UnitType => IsUnordered ? Name + "Record" : Csv?.Structure?.RootNode?.TypeName ?? Records![0].TypeName;
+    public string UnitType => IsJsonl ? Unit!.RecordConfig.TypeName : IsUnordered ? Name + "Record" : Csv?.Structure?.RootNode?.TypeName ?? Records![0].TypeName;
 
     /// <summary>Gets assembled positions, excluding leaves.</summary>
     public IEnumerable<NodeConfig> Groups => Csv?.Structure?.Nodes.Where(x => x.HasChildren) ?? [];
@@ -132,8 +145,11 @@ public class CodeGenConfig : ConfigRootBase<CodeGenConfig>
         RuntimeNamespace = DefaultWhereNull(RuntimeNamespace, () => RuntimeDirectory.Name + "." + string.Join('.', Path.GetRelativePath(RuntimeDirectory.FullName, OutputDirectory.FullName).Split(Path.DirectorySeparatorChar)));
         RuntimeNamespace = ConfigValidation.Namespace(this, nameof(RuntimeNamespace), RuntimeNamespace);
         Format = DefaultWhereNull(Format, () => "Csv");
-        if (Format != "Csv")
-            throw new CodeGenException(this, nameof(Format), "Only Csv is supported in this phase.");
+        if (Format is not ("Csv" or "Jsonl"))
+            throw new CodeGenException(this, nameof(Format), "Only Csv and Jsonl are currently supported.");
+
+        if (IsJsonl ? Csv is not null : Json is not null || Jsonl is not null || Unit is not null)
+            throw new CodeGenException(this, nameof(Format), "Format-specific blocks do not apply to the selected format.");
 
         Mode = DefaultWhereNull(Mode, () => "ValidateOnly");
         ErrorMode = DefaultWhereNull(ErrorMode, () => "FailFast");
@@ -143,8 +159,13 @@ public class CodeGenConfig : ConfigRootBase<CodeGenConfig>
         if (ErrorMode is not ("FailFast" or "CollectErrors"))
             throw new CodeGenException(this, nameof(ErrorMode), "The content policy must be FailFast or CollectErrors.");
 
-        Limits ??= new();
-        await Limits.PrepareAsync(this, this).ConfigureAwait(false);
+        if (IsJsonl)
+        {
+            await PrepareJsonLinesAsync().ConfigureAwait(false);
+            ValidateTypeNames();
+            return;
+        }
+
         Csv ??= new();
         await Csv.PrepareAsync(this, this).ConfigureAwait(false);
         if (Metadata?.Any(x => x is null) == true)
@@ -177,7 +198,7 @@ public class CodeGenConfig : ConfigRootBase<CodeGenConfig>
 
         if (!IsRouted)
         {
-            if (Records.Count != 1 || Metadata.Count > 0 || Csv.DiscriminatorIndex.HasValue || Records.Any(x => x.Csv?.Match is not null || x.ErrorMode is not null))
+            if (Records.Count != 1 || Metadata.Count > 0 || Csv.DiscriminatorIndex.HasValue || Records.Any(x => x.Csv?.Match is not null))
                 throw new CodeGenException(this, nameof(Csv), "Flat input requires one record and no routing settings.");
 
             if (Csv.HeaderPolicy == "Exact" && Records[0].Properties!.Any(x => x.Csv?.Index.HasValue == true))
@@ -209,10 +230,84 @@ public class CodeGenConfig : ConfigRootBase<CodeGenConfig>
             }
         }
 
+        ValidateTypeNames();
+    }
+
+    /// <summary>Checks all generated names after format-specific preparation.</summary>
+    private void ValidateTypeNames()
+    {
         if (TypeNames.Distinct(StringComparer.OrdinalIgnoreCase).Count() != TypeNames.Count())
             throw new CodeGenException(this, nameof(Records), "Generated type/file names collide.");
 
         foreach (var typeName in TypeNames)
             ConfigValidation.GeneratedTypeName(this, nameof(Records), typeName);
+    }
+
+    /// <summary>Resolves reusable nested types separately from their independently named occurrences.</summary>
+    private async Task PrepareJsonLinesAsync()
+    {
+        Json ??= new();
+        Jsonl ??= new();
+        Unit ??= new();
+        await Json.PrepareAsync(this, this).ConfigureAwait(false);
+        await Jsonl.PrepareAsync(this, this).ConfigureAwait(false);
+        await Unit.PrepareAsync(this, this).ConfigureAwait(false);
+        if (Records is null || Records.Count == 0 || Records.Any(x => x is null))
+            throw new CodeGenException(this, nameof(Records), "At least one non-null record is required.");
+
+        if (Metadata?.Any(x => x is null) == true)
+            throw new CodeGenException(this, nameof(Metadata), "Null metadata declarations are not supported.");
+
+        Metadata = await PrepareCollectionAsync(Metadata).ConfigureAwait(false);
+        Records = await PrepareCollectionAsync(Records).ConfigureAwait(false);
+        if (Records.Select(x => x.Name).Distinct(StringComparer.OrdinalIgnoreCase).Count() != Records.Count)
+            throw new CodeGenException(this, nameof(Records), "Record names must be unique ignoring case.");
+
+        var records = Records.ToDictionary(x => x.Name!, StringComparer.Ordinal);
+        var visiting = new HashSet<string>(StringComparer.Ordinal);
+        var visited = new HashSet<string>(StringComparer.Ordinal);
+        void Visit(RecordConfig record)
+        {
+            if (!visiting.Add(record.Name!))
+                throw new CodeGenException(record, nameof(Records), "Cyclic nested record references are not supported.");
+
+            foreach (var name in record.Properties!.Select(x => x.Record ?? x.Collection?.Record).Where(x => x is not null))
+            {
+                if (!records.TryGetValue(name!, out var child))
+                    throw new CodeGenException(record, nameof(Records), "Nested references must name a declared record.");
+
+                if (!visited.Contains(name!))
+                    Visit(child);
+            }
+
+            visiting.Remove(record.Name!);
+            visited.Add(record.Name!);
+        }
+
+        foreach (var record in Records)
+            Visit(record);
+
+        var nested = Records.SelectMany(x => x.Properties!).Select(x => x.Record ?? x.Collection?.Record).Where(x => x is not null).ToHashSet(StringComparer.Ordinal);
+        var eligible = Records.Where(x => !nested.Contains(x.Name) && !Metadata.Any(m => m.Record == x.Name)).ToArray();
+        if (Unit.Record is null && eligible.Length == 1)
+            Unit.Record = eligible[0].Name;
+
+        if (Unit.Record is null || !records.ContainsKey(Unit.Record) || Metadata.Any(x => x.Record == Unit.Record))
+            throw new CodeGenException(this, nameof(Unit), "Specify a declared non-metadata unit.record; inference requires one eligible business record.");
+
+        if (Metadata.Select(x => x.Name).Distinct(StringComparer.Ordinal).Count() != Metadata.Count
+            || Metadata.Select(x => x.Record).Distinct(StringComparer.Ordinal).Count() != Metadata.Count || Metadata.Any(x => !records.ContainsKey(x.Record!))
+            || Metadata.Count(x => x.Jsonl?.Position == "First") > 1 || Metadata.Count(x => x.Jsonl?.Position == "Last") > 1)
+            throw new CodeGenException(this, nameof(Metadata), "Metadata names/records must be unique and declared, with at most one First and Last.");
+
+        var routes = Metadata.Select(x => x.RecordConfig).Prepend(Unit.RecordConfig).ToArray();
+        if (Jsonl.Discriminator is null)
+        {
+            if (Metadata.Count != 0 || Records.Any(x => x.Jsonl is not null))
+                throw new CodeGenException(this, nameof(Jsonl), "Metadata and matches require explicit jsonl.discriminator.");
+        }
+        else if (routes.Any(x => x.Jsonl is null) || routes.Select(x => x.Jsonl!.Match).Distinct(StringComparer.Ordinal).Count() != routes.Length
+            || Records.Except(routes).Any(x => x.Jsonl is not null))
+            throw new CodeGenException(this, nameof(Jsonl), "Use exact unique matches on the business/metadata roots only; nested types are not routes.");
     }
 }

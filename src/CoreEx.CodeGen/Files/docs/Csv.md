@@ -29,5 +29,4 @@ CSV routing and hierarchy.
 Property | Description
 -|-
 `discriminatorIndex` | Zero-based discriminator index.<br/>&dagger; Selects unordered routing without structure; required with structure; omitted for flat input.
-`maxGroupRecords` | Positive records-per-root budget.<br/>&dagger; Defaults to 10000, including the root.
 `structure` | Business-root hierarchy. The corresponding [`Structure`](Structure.md) object.<br/>&dagger; Omit for unordered routed records (with discriminatorIndex) or one flat record (without discriminatorIndex).

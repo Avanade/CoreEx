@@ -1,12 +1,20 @@
 # CoreEx.IO multi-format: Phase 0 contract
 
+## User-directed simplification (supersedes the original quota design)
+
+The consumer owns source admission, overall input size, concurrency, timeouts, and report-output policy for both CSV and JSONL. CoreEx.IO imposes no file/line/token/metadata byte quota, unit/diagnostic count quota, CSV group-record quota, or default collection maximum. JSON retains the built-in parser's configurable MaxDepth (64 by default), business cardinality, and optional explicitly declared positive collection maxItems. A large JSONL line/CSV hierarchy can consume substantial memory; the framework is an application integration helper, not a bulk-data platform. This applies to future document/XML proposals too: do not restore quota knobs without a new concrete requirement. Existing CSV parser-span findings remain provenance evidence, not a reason to implement a byte-preserving CSV tokenizer.
+
+The subsequent approved simplification uses ordinary System.Text.Json metadata snapshots, removes exhaustive JSONL UTF-8/ignored-string validation, uses one invocation-level content-error policy for every format, and consolidates CSV/JSON cardinality into FileCardinality. Dates use standard invariant .NET parsing without a format; an explicit format is exact with no fallback, including bounds/options and scalar collections. DateTimeOffset still requires/preserves an explicit offset; JSON DateTime still rejects offsets. Metadata DTOs use serializer attributes to exclude transient properties. Shared lifecycle, source paths, scopes, business cardinality, and replay guarantees remain.
+
 ## Status and scope
 
-Phase 0 specifies the implementation contract, representative source files, exact observable scenarios, migration inventory, and framework decision. No runtime, generator, package, or checked-in consumer implementation is changed by this phase. The YAML and C# below describe the intended next version; the current File command does not yet accept the new syntax.
+Phase 0 specifies the approved implementation contract, representative source files, exact observable scenarios, migration inventory, and framework decision. Phase 1 implemented the shared lifecycle/CSV migration; Phase 2 now implements nested JSONL, opt-in metadata routing, and File CodeGen/compiled consumers. CSV and Jsonl are accepted formats; JSON document/XML syntax below remains a future contract, not implemented capability. The original expected.json matrix still includes future-format scenarios; passing CSV/JSONL tests does not claim document/XML support.
+
+Phase 2 implementation notes: JSONL frames actual consumed UTF-8 bytes separately from read-ahead accounting. It uses a single JsonDocument parse per line, with built-in AllowDuplicateProperties = false on .NET 10+ and a small duplicate-name walk on older targets. It does not exhaustively decode ignored string values or perform a separate UTF-8 validation pass. Consumed malformed strings produce localized conversion errors; malformed ignored content can remain unexamined. All formats snapshot declared metadata objects with default System.Text.Json serialization, including serializable handwritten properties; metadata validators do not rerun on replay. The default System.Text.Json round-trip requirement still applies to accepted typed reads. No new dependency or target-framework floor change was needed.
 
 The implementation order is shared foundation, JSONL, JSON, release consolidation, and XML. XML has a shape/behavior target here, not an implementation commitment ahead of JSON. Preserve processing guarantees rather than accidental CSV coupling. Fix a newly exposed constraint at its owner instead of compensating in every consumer.
 
-**User-confirmed decisions:** ValidateThenExecute receives bounded immutable accepted metadata from the beginning of replay. ValidateAndExecute validates and executes units in one pass, with diagnostics and explicit partial-execution outcomes. Valid-unit reporting is an optional awaited hook in all modes, not a processing mode. The modes are ValidateOnly, ValidateThenExecute, and ValidateAndExecute; outcomes are Succeeded, ContentFailed, and ExecutionFailed, independent of mode. MaxDiagnostics limits emitted diagnostic events, not application-owned reporting callbacks. CSV/JSONL metadata routing is opt-in; JSONL routing ships with its initial capability. Metadata declarations are shared across formats. YAML defaults minimize boilerplate, including XML field kind Attribute and empty namespace.
+**User-confirmed decisions:** ValidateThenExecute receives immutable accepted metadata from the beginning of replay. ValidateAndExecute validates and executes units in one pass, with diagnostics and explicit partial-execution outcomes. Valid-unit reporting is an optional awaited hook in all modes, not a processing mode. The modes are ValidateOnly, ValidateThenExecute, and ValidateAndExecute; outcomes are Succeeded, ContentFailed, and ExecutionFailed, independent of mode. CSV/JSONL metadata routing is opt-in; JSONL routing ships with its initial capability. Metadata declarations are shared across formats. YAML defaults minimize boilerplate, including XML field kind Attribute and empty namespace.
 
 ## 1. Terminology and accounting
 
@@ -23,7 +31,7 @@ The implementation order is shared foundation, JSONL, JSON, release consolidatio
 
 Keep `RecordsRead` and `InvalidRecords`, correcting their physical-record documentation to source-record semantics. Add `UnitsRead` and `InvalidUnits` so rejected groups are not confused with bad CSV rows. Do not remove useful CSV counters just to achieve a superficially uniform model.
 
-Increment RecordsRead and UnitsRead when their boundaries are recognized, even if the bounded candidate later fails. A CSV hierarchy root increments UnitsRead; its descendants increment RecordsRead, not UnitsRead. Unknown/orphan CSV records increment RecordsRead and possibly InvalidRecords without inventing a unit.
+Increment RecordsRead and UnitsRead when their boundaries are recognized, even if the candidate later fails. A CSV hierarchy root increments UnitsRead; its descendants increment RecordsRead, not UnitsRead. Unknown/orphan CSV records increment RecordsRead and possibly InvalidRecords without inventing a unit.
 
 InvalidRecords counts each source record with a localized parsing/mapping/field/structural error once. InvalidUnits counts each candidate that fails mapping, structure, pure validation, or scoped validation once. A CSV group-level error can invalidate a unit without attributing failure to a particular row. A nested JSON field error invalidates its selected source object and its owning unit once, regardless of diagnostic count. File/envelope/EOF errors do not retroactively invalidate otherwise valid units.
 
@@ -37,7 +45,7 @@ Retain `ProcessAsync(Func<CancellationToken, Task<Stream>>, FileProcessingContex
 
 Validation proceeds as syntax/framing, unit mapping/structural checks, pure nested validation, fresh scoped custom validation, and optional unit observation/reporting. Mapping/structure failure suppresses downstream validators for that unit; pure validation failure suppresses scoped validation. The optional hook is awaited before the next unit is read; it is application-owned side effect, not a diagnostic and has no separate progress counter. Custom validation remains read-only. A later content error may return ContentFailed after earlier valid units were reported.
 
-At EOF, finish metadata checks and perform file reconciliation. If any errors exist, never open replay; ValidateAndExecute may already have written valid units and must preserve that fact. In FailFast mode stop at the first content error and mark validation incomplete when checks remain; in CollectErrors mode reach EOF when syntax and budgets permit. Reconciliation may emit file errors even after every unit passed.
+At EOF, finish metadata checks and perform file reconciliation. If any errors exist, never open replay; ValidateAndExecute may already have written valid units and must preserve that fact. In FailFast mode stop at the first content error and mark validation incomplete when checks remain; in CollectErrors mode reach EOF when syntax permits. Reconciliation may emit file errors even after every unit passed.
 
 For ValidateThenExecute, freeze the accepted-metadata snapshot after acceptance, create a fresh context/mappings/reader, reopen immutable input, reconstruct each unit, and execute in a fresh scope. Do not rerun pure/scoped validators. Stop at the first failed business Result; earlier successful units are not rolled back. Operational faults and cancellation propagate, preserve partial progress, and do not call rejection/completion hooks.
 
@@ -57,13 +65,13 @@ Both execution modes use ExecutionFailed when a handler returns a failed Result.
 
 Replace OnRejectedAsync with OnContentFailedAsync(FileSummaryArgs args, CancellationToken cancellationToken), the awaited finalizer for ContentFailed regardless of partial reporting or execution. The neutral name deliberately avoids implying zero writes. OnCompletedAsync is successful finalization only. Business failure uses OnExecutionFailedAsync, not OnContentFailedAsync. Operational exceptions/cancellation propagate without either content/business-failure finalizer; reporting-hook faults propagate rather than replacing an operational failure with a content outcome.
 
-MaxDiagnostics is an independent work/safety budget over emitted diagnostic events (errors, warnings, and information). Attempt N+1 emits one terminal `file.limit.diagnostics` diagnostic, stops further processing, and marks validation incomplete; the sentinel does not consume the budget recursively. This cap does not limit valid-unit report callbacks. Error diagnostics continue through OnDiagnosticAsync in every mode; business failures travel through the original Result hook without being recast as malformed input.
+Diagnostic events stream through OnDiagnosticAsync in every mode, without a framework count cap or retained history. Business failures travel through the original Result hook without being recast as malformed input. Consumer code owns reporting policy.
 
 ## 3. Shared runtime and public API direction
 
 Extract `FileProcessor<TUnit> : FileProcessor` as the owner of lifecycle, scopes, progress, reporting, and replay. Existing CSV processors derive from it; new JsonLinesFileProcessor<TUnit>, JsonFileProcessor<TUnit>, and later XmlFileProcessor<TUnit> use the same implementation. Names are the Phase 1 implementation target, not a demand to duplicate existing code under a new name.
 
-Separate `FileProcessingOptions` and common limits from `CsvFileOptions`, `JsonFileOptions`, `JsonLinesFileOptions`, and later `XmlFileOptions`. CSV dialect/header/ordered-assembly settings remain CSV-specific. JSONL composes JSON mapping options plus optional line routing rather than inheriting document-envelope path options that make no sense for lines.
+Remove `FileProcessingOptions` rather than keeping an empty options shell. `CsvFileOptions`, `JsonFileOptions`, `JsonLinesFileOptions`, and later `XmlFileOptions` own only their format policies. CSV dialect/header/ordered-assembly settings remain CSV-specific. JSONL composes JSON mapping options plus optional line routing rather than inheriting document-envelope path options that make no sense for lines.
 
 Keep built-in readers and their mutable pass/accounting machinery internal. This release does not promise a public third-party parser plug-in SPI. Public customization is generated or direct runtime mappings, derived built-in processors with protected hooks, validators, and scoped handlers. Another reader can be added later without exposing ProcessingState or making CSV's private-protected parser method the universal API.
 
@@ -91,7 +99,7 @@ Generated context exposes typed pass-local metadata access plus a distinct read-
 
 AcceptedMetadata is absent during unit validation and valid-unit callbacks, and during ValidateAndExecute unit execution. Build it only after successful EOF reconciliation and expose it to accepted completion and ValidateThenExecute replay. Only replay execution handlers receive the complete accepted view independent of source order. The ordinary pass-local metadata view starts empty on replay and is reconstructed as encountered.
 
-Only explicitly declared metadata fields are eligible. The accepted snapshot must be deeply immutable, not merely a mutable record with init-only collection references. Freeze a bounded copy, without services, authentication, counters, tracked entities, accumulated diagnostics, or arbitrary context fields. Repeated units cannot become metadata through a selector. The snapshot is source data, not a business idempotency key.
+Only explicitly declared metadata objects are eligible. Snapshot their serializable properties using default System.Text.Json behavior, including handwritten DTO properties; use JsonIgnore for transient properties. The accepted snapshot must be deeply immutable, not merely a mutable record with init-only collection references. Keep services, authentication, counters, tracked entities, accumulated diagnostics, and arbitrary context state outside metadata DTOs. Repeated units cannot become metadata through a selector. The snapshot is source data, not a business idempotency key.
 
 Phase 1 baseline: the immutable accepted view uses `IReadOnlyDictionary<string, JsonElement>` for every source format rather than a separate immutable metadata DTO hierarchy. Wire models remain mutable; default `System.Text.Json` serialization freezes their values, and typed accessors deserialize a fresh copy on every read. Metadata types must round-trip with those defaults and their serializer attributes. This isolates accepted values without another public abstraction; callers should reuse a local typed copy when reading it repeatedly.
 
@@ -99,7 +107,7 @@ Metadata mapping is performed as encountered, with declared field validation bef
 
 ## 5. YAML contract
 
-Use lower-camel-case configuration keys, with format-specific objects (`csv`, `json`, `jsonl`, later `xml`) at the owner that needs them. Keep common singular concepts unprefixed: a property's date `format`, `required`, `type`, and validation rules remain direct property settings. Common budgets belong under `limits`. No `csvDelimiter`/`jsonUnitPath` families.
+Use lower-camel-case configuration keys, with format-specific objects (`csv`, `json`, `jsonl`, later `xml`) at the owner that needs them. Keep common singular concepts unprefixed: a property's date `format`, `required`, `type`, and validation rules remain direct property settings. There is no `limits` block. No `csvDelimiter`/`jsonUnitPath` families.
 
 `format` selects Csv, Jsonl, Json, or later Xml. An omitted definition-level format continues to mean Csv during the initial migration. Blocks never infer the format. Reject unknown keys, inapplicable blocks, unsupported selectors, and old/new duplicate settings before writing any generated files.
 
@@ -107,7 +115,7 @@ Use lower-camel-case configuration keys, with format-specific objects (`csv`, `j
 
 Every optional setting has one documented, schema-aligned default; examples show only deviations unless explaining a full configuration. Do not invent defaults for identity/version, runtime output project, an ambiguous record reference, a discriminator field, or a required source selector. Infer a unit record only when exactly one eligible business record exists; otherwise require unit.record.
 
-Defaults include mode ValidateOnly, errorMode FailFast, absent metadata = none, required false, scalar type String, repeated unit/collection cardinality Many, JSON kind Array and unitPath empty (root), JSON member matching exact, XML field kind Attribute and namespace empty. Single-object JSON defaults its unit cardinality to One; explicit incompatible cardinality fails. Keep the existing documented CSV dialect/header defaults and the positive limits listed below.
+Defaults include mode ValidateOnly, errorMode FailFast, absent metadata = none, required false, scalar type String, repeated unit/collection cardinality Many, JSON kind Array and unitPath empty (root), JSON member matching exact, XML field kind Attribute and namespace empty. Single-object JSON defaults its unit cardinality to One; explicit incompatible cardinality fails. Keep the existing documented CSV dialect/header defaults and consumer-owned source admission.
 
 JSON kind means the expected JsonValueKind of the value selected by unitPath, not necessarily the document root. Permit Array and Object only; the two modes have the selection restrictions below. XML field kind separately means Attribute or Element; use distinct configuration types/enums, not a universal Kind enum. Reject the old shape spelling rather than introducing aliases.
 
@@ -176,7 +184,7 @@ records:
 
 The discriminator is a declared direct JSON string member, matched exactly with unique explicit record matches. It is structural input, excluded from unexpected-member checks and generated DTOs unless explicitly mapped. Missing/unknown/non-string discriminators are recoverable line structure errors under CollectErrors. Route metadata without discriminator configuration is invalid. No automatic type-property guessing, cross-line parent/child reconstruction, or multiple heterogeneous business unit types in this initial routed JSONL capability.
 
-JSONL metadata lines count in RecordsRead and metadata occurrence counts, not UnitsRead/ordinals; order lines remain independent candidate units. Unroutable/malformed lines increment invalid source records but do not invent business units in routed mode. Simple nonrouted JSONL retains one candidate unit per non-skipped line. JSONL metadata position defaults Any; First/Last/required/duplicate semantics match CSV. Matching and unit selection occur before typed validation; metadata limits apply to all selected metadata lines.
+JSONL metadata lines count in RecordsRead and metadata occurrence counts, not UnitsRead/ordinals; order lines remain independent candidate units. Unroutable/malformed lines increment invalid source records but do not invent business units in routed mode. Simple nonrouted JSONL retains one candidate unit per non-skipped line. JSONL metadata position defaults Any; First/Last/required/duplicate semantics match CSV. Matching and unit selection occur before typed validation.
 
 ### Document definitions
 
@@ -187,12 +195,6 @@ format: Json
 runtimeProjectPath: ../Contoso.Integration
 mode: ValidateThenExecute
 errorMode: CollectErrors
-limits:
-  maxInputBytes: 67108864
-  maxUnitBytes: 1048576
-  maxMetadataBytes: 65536
-  maxUnits: 100000
-  maxDiagnostics: 1000
 json:
   kind: Array
   unitPath: /orders
@@ -264,7 +266,7 @@ Use exactly one of scalar `type`, object `record`, or `collection` on a property
 
 `required: true` rejects null/absence while allowing 0/false for scalars. `mandatory` preserves the existing reject-default behavior for scalars and is invalid for object/collection definitions. Optional object absence/null is allowed; present objects always validate their declared fields. Collection cardinality governs absent/null as zero items and enforces count; `required: true` additionally distinguishes absent/null from a present empty collection. Elements are non-null by default; null elements are mapping errors. Nullability overrides for collection elements are deferred.
 
-Many = zero or more, One = exactly one, Optional = zero or one, OneOrMore = one or more. `maxItems` is an additional numeric bound. Metadata entries reference object record types and use required to govern absence; explicit null is rejected for required metadata. Unknown members inside units and declared metadata objects are rejected by default. Undeclared envelope sections are ignored by default but syntax/depth/token/input bounds still apply; repeating or overlapping selected paths is rejected, never interpreted as an implicit join.
+Many = zero or more, One = exactly one, Optional = zero or one, OneOrMore = one or more. `maxItems` is an additional numeric bound. Metadata entries reference object record types and use required to govern absence; explicit null is rejected for required metadata. Unknown members inside units and declared metadata objects are rejected by default. Undeclared envelope sections are ignored by default but syntax/duplicate/parser-depth checks still apply; repeating or overlapping selected paths is rejected, never interpreted as an implicit join.
 
 Mode-specific configuration:
 
@@ -276,7 +278,7 @@ Mode-specific configuration:
 | JSONL | `format: Jsonl`, unit naming the per-line business object type, json holding shared member-mapping settings, and optional jsonl framing/routing settings. JSON document kind/unitPath are inapplicable; shared metadata is supported with explicit discriminator routing. |
 | XML later | Explicit repeated-element/root selection under `xml`, namespace URI mapping, and element/attribute property selectors; finalized after JSON rather than inventing a full XML schema now. |
 
-Array index/wildcard/filter/recursive-descent selector traversal is unsupported. Unit-relative mappings name a direct member; represent nested paths with reusable nested records, not arbitrary leaf queries. Metadata selectors are disjoint from unit paths and from each other; array traversal is prohibited. JSON duplicate object member names are errors even in skipped sections, with bounded duplicate-name tracking.
+Array index/wildcard/filter/recursive-descent selector traversal is unsupported. Unit-relative mappings name a direct member; represent nested paths with reusable nested records, not arbitrary leaf queries. Metadata selectors are disjoint from unit paths and from each other; array traversal is prohibited. JSON duplicate object member names are errors even in skipped sections, with duplicate-name checks.
 
 ### CSV migration
 
@@ -285,8 +287,6 @@ Before:
 ```yaml
 delimiter: '|'
 encoding: Utf8
-maxInputBytes: 67108864
-maxGroupRecords: 10000
 records:
 - name: Row
   properties:
@@ -297,12 +297,9 @@ After, keeping the surrounding identity/path fields unchanged:
 
 ```yaml
 format: Csv
-limits:
-  maxInputBytes: 67108864
 csv:
   delimiter: '|'
   encoding: Utf8
-  maxGroupRecords: 10000
 records:
 - name: Row
   properties:
@@ -312,7 +309,7 @@ records:
     format: yyyyMMdd
 ```
 
-Move delimiter, quote, comment, encoding, headerPolicy, discriminatorIndex, and business-root structure under definition-level csv; move record route match, executable position, and unordered cardinality under record-level csv. Migrate old structure.header/trailer into shared metadata entries, keeping route matches on their record types and explicit metadata First/Last positions. Keep shared record errorMode on the record. Migrate a named CSV property's old column into its new name and preserve its old generated name with property when necessary; remove column. Move positional index under property-level csv, retaining the source label and using property when derivation would otherwise change an existing generated identifier. Structure nodes remain CSV business occurrences with their existing cardinality/order semantics. Do not convert CSV assembled groups into document DTOs in this phase.
+Move delimiter, quote, comment, encoding, headerPolicy, discriminatorIndex, and business-root structure under definition-level csv; move record route match, executable position, and unordered cardinality under record-level csv. Migrate old structure.header/trailer into shared metadata entries, keeping route matches on their record types and explicit metadata First/Last positions. Remove record-level errorMode; the invocation's policy applies uniformly. Replace CsvRecordCardinality with shared FileCardinality. Migrate a named CSV property's old column into its new name and preserve its old generated name with property when necessary; remove column. Move positional index under property-level csv, retaining the source label and using property when derivation would otherwise change an existing generated identifier. Structure nodes remain CSV business occurrences with their existing cardinality/order semantics. Do not convert CSV assembled groups into document DTOs in this phase.
 
 No automatic flat/grouped dual spelling: provide precise migration diagnostics and a documented mechanical rewrite. Generated output is regenerated, not edited. Handwritten handler and processor partial signatures are migrated explicitly.
 
@@ -324,43 +321,23 @@ Preserve empty and whitespace strings. Missing/null scalar values map to null un
 
 Include DateTimeOffset as a logical scalar in the runtime and File generator, including bounds/options validation and CSV conversion support. JSON integrations commonly carry offsets; deferring it would create an avoidable limitation. Preserve the represented offset; do not silently convert to local machine time.
 
-Default document DateOnly is exact `yyyy-MM-dd`. Default DateTimeOffset is invariant ISO 8601 with T, required seconds, optional fractional seconds up to seven digits, and mandatory Z or numeric offset. Default DateTime is the equivalent offset-free local/unspecified representation and rejects offset-bearing strings; use DateTimeOffset for instants. Exact format overrides remain supported and must retain the type's offset semantics. Existing CSV DateOnly/DateTime exact-format requirements remain; CSV DateTimeOffset also requires an explicit format.
+CSV and JSON DateOnly, DateTime, and DateTimeOffset use standard invariant .NET parsing when format is omitted. An explicit format uses exact parsing without fallback; the same policy applies to date bounds/options and scalar collection elements. DateTimeOffset requires/preserves a trailing Z or numeric offset rather than assuming machine-local time. JSON DateTime rejects offset-bearing values and remains unspecified; use DateTimeOffset for instants. No custom default ISO grammar, required seconds, or fractional-digit policy is imposed beyond the chosen .NET parser.
 
-Map and validate in deterministic declared-property order after structural/duplicate scanning, with collection elements in input order. For an invalid conversion emit its mapping error without a second required error for the same property. Pure validation runs only after successful unit mapping; CollectErrors can still report all independent mapping errors in that bounded unit.
+Map and validate in deterministic declared-property order after structural/duplicate scanning, with collection elements in input order. For an invalid conversion emit its mapping error without a second required error for the same property. Pure validation runs only after successful unit mapping; CollectErrors can still report all independent mapping errors in that unit.
 
-Shared codes include `file.validation`, `file.structure.cardinality`, `file.metadata.required`, `file.reconciliation.count`, `file.reconciliation.quantity`, and `file.limit.*`. Format codes include `json.syntax.invalid`, `json.field.type`, `json.member.duplicate`, `json.member.unexpected`, `json.unit.type`, `jsonl.record.invalid`, and `jsonl.line.blank`. Existing CSV mapping codes remain except shared validation/limits that deliberately migrate to file.*. Missing metadata may be diagnosed at EOF with a logical path but no fabricated line.
+Shared codes include `file.validation`, `file.structure.cardinality`, `file.metadata.required`, `file.reconciliation.count`, and `file.reconciliation.quantity`. Format codes include `json.syntax.invalid` (future document reader), `json.field.type`, `json.member.unexpected`, `json.unit.type`, `jsonl.record.invalid`, and `jsonl.line.blank`. JSONL syntax, duplicate-member and depth failures use the same invalid-line diagnostic. Existing CSV mapping codes remain except shared validation that deliberately migrates to file.*. Missing metadata may be diagnosed at EOF with a logical path but no fabricated line.
 
 The reconciliation codes in the fixtures belong to the example's handwritten reconciliation hook, not built-in order/count knowledge in CoreEx.IO.
 
-## 7. Budgets and recovery
+## 7. Input ownership, framing, and recovery
 
-| Setting | Initial default and exact scope |
-|---|---|
-| limits.maxInputBytes | 64 MiB per pass, including BOM, ignored sections, metadata, and separators. Existing default preserved. At most one extra probe byte can prove overflow. |
-| limits.maxUnitBytes | 1 MiB raw selected JSON/object bytes, or JSONL bytes excluding LF/CRLF. Bound before materializing; larger units require deliberate configuration. CSV is excluded in Phase 1: CsvHelper 34 exposes UTF-8 parser offsets/raw records rather than original byte spans for UTF-16/32 input, and raw records omit line breaks. The approved adjustment is to retain CSV maxInputBytes and maxGroupRecords without claiming a per-unit source-byte bound. Reintroduce CSV maxUnitBytes only with a byte-preserving bounded framing implementation and regression proof. |
-| limits.maxMetadataBytes | 64 KiB aggregate selected source metadata bytes. Also cap total decoded string characters and total metadata value nodes independently at this numeric bound during freeze, preventing arbitrary expansion or caller-added state. This is a linear content bound, not an exact heap ceiling. |
-| limits.maxUnits | 100,000 candidate units per file; observing candidate N+1 emits a terminal file.limit.units error before unit allocation/handler entry. |
-| limits.maxDiagnostics | 1,000 ordinary diagnostics. An attempted N+1 emits exactly one terminal file.limit.diagnostics error instead of that ordinary diagnostic, then stops. The terminal limit diagnostic does not recursively consume the budget. |
-| json.maxDepth | 64 object/array nesting levels across the whole input, including ignored sections. |
-| json.maxTokenBytes | 64 KiB per encoded JSON token, including names and quotes. Also bounds token buffering outside units; no indefinitely growing Utf8JsonReader buffer. |
-| json.maxObjectMembers | 1,024 properties per object, including skipped objects. Bounds duplicate-name tracking together with depth/token limits. |
-| collection.maxItems | 10,000 when omitted; explicit smaller bounds such as Lines = 1,000 and Tags = 100 in fixtures. Counts all elements before mapping, not just valid ones. |
-| csv.maxGroupRecords | 10,000 parser records per root, preserving the existing CSV bound and counting invalid/unknown descendants. |
-| jsonl.blankLinePolicy | Reject; optional explicit Skip mode excludes blank lines from RecordsRead/UnitsRead but not byte limits or physical line numbering. |
+The consumer owns source admission, overall input size, concurrency, timeouts, and report-output policy for both CSV and JSONL. CoreEx.IO imposes no file/line/token/metadata byte quota, unit/diagnostic count quota, CSV group-record quota, or default collection maximum. JSON retains the built-in parser's configurable MaxDepth (64 by default), business cardinality, and optional explicitly declared positive collection maxItems. A large JSONL line/CSV hierarchy can consume substantial memory; the framework is an application integration helper, not a bulk-data platform.
 
-The new unit/diagnostic/unit-count budgets are intentional admission behavior changes for CSV too; document them and allow explicit positive increases. Do not claim every old accepted CSV file remains accepted under tighter defaults.
+JSONL accepts LF/CRLF and a final nonempty unterminated line, without a phantom record after a final separator. Input is parsed as UTF-8 without encoding autodetection. A UTF-8 BOM produces terminal jsonl.encoding.bom; other encoding signatures fail ordinary JSON parsing. Well-framed syntax/depth and consumed-string conversion errors recover under CollectErrors. Malformed UTF-8 or escaped surrogates in consumed strings produce localized conversion errors; ignored string values are not exhaustively decoded. Blank lines reject by default; explicit Skip excludes them from record/unit counts but not physical lines or bytes read. JSON document/XML encoding choices remain future requirements.
 
-The defaults are conservative admission/work budgets, not capacity claims. The 1 MiB unit allowance permits typical order payloads without letting a whole 64 MiB input become one allocation; 64 KiB metadata/token limits distinguish batch context and scalar values from business payloads. The member/depth limits allow ordinary hand-authored DTO graphs while bounding duplicate tracking/traversal, and the unit/diagnostic limits cap work on very small records or extremely noisy inputs. These are engineering starting points, not measured production thresholds. Tune them using Phase 2/3 measurements before release; any revision changes the definition's documented acceptance policy. Literal boundary tests must use the final selected values.
+Each JSONL line is parsed once using JsonDocument, with configured json.maxDepth (64 by default). Decoded duplicate members and invalid escaped strings reject even in ignored content. Syntax and nesting-depth errors can recover at the next line under CollectErrors; no handcrafted resource-error precedence remains. Mapping/validation and explicit collection cardinality/maxItems errors are recoverable unit failures. Malformed future document syntax must stop when traversal cannot reliably resume.
 
-JSONL accepts LF/CRLF and a final nonempty line without a newline. A final separator does not create an extra empty line. Strict UTF-8 is required; reject all BOMs for JSONL. JSON permits an initial UTF-8 BOM, strips it before tokenization, counts its bytes, and rejects other encodings/BOMs. Invalid UTF-8 is terminal in both formats.
-
-Validate UTF-8 in ignored strings/sections too; do not assume that skipping tokens validates every byte merely because mapped GetString calls are strict. Preserve decoder state across partial reads and include invalid bytes inside skipped content in the required tests.
-
-Well-framed malformed JSONL can continue at the next line in CollectErrors; report `jsonl.record.invalid`, mark one invalid source record/unit, and skip its mapping/validation. Blank rejected lines count as invalid records/units too. Multi-line objects generate independent bad-line diagnostics; they are not silently joined.
-
-Malformed document syntax terminates incomplete validation. Wrong-shaped but syntactically valid selected array elements are recoverable unit errors. File/line/unit/token/depth/diagnostic/member-count limit exhaustion is terminal incomplete validation. A declared collection maxItems violation is a recoverable structural invalid-unit error when the outer unit remains within all resource budgets.
-
-XML's later settings must supply equivalent input/unit/depth/work bounds, prohibit DTD/external resources, and honor a declared encoding policy. Do not reuse JSON's UTF-8-only rule or silently ignore XML namespaces.
+No limits YAML block or FileProcessingOptions remains. No default collection maxItems is supplied. Optional positive maxItems is a business constraint counting all source elements before mapping. Source/callback faults and cancellation propagate, preserve partial progress, and do not invent a content-limit diagnostic or finalizer.
 
 ## 8. Representative fixtures and exact expectations
 
@@ -402,15 +379,13 @@ CSV fixture declaration: discriminator index 0; Header H exactly once first, Tra
 
 Additional mandatory derived scenarios:
 
-- Duplicate Id on an object: one `json.member.duplicate` error, invalid owner once; reject before any last-wins assignment.
+- Duplicate Id on an object: one `jsonl.record.invalid` error, invalid owner once; reject before any last-wins assignment.
 - Quantity supplied as `"2"`: `json.field.type`, no duplicate required diagnostic. Quantity 0: a `file.validation` min error. Missing/null Quantity: a single required validation error. False/0 remain valid for required Boolean/Integer fields without other constraints.
 - Missing Lines, Lines null, and Lines []: each is one cardinality error under OneOrMore; present empty Tags succeeds under Many. Tags [null] is an element mapping error.
 - BillingAddress missing: one required validation error. BillingAddress {}: required Code error. Address type reused at both properties retains distinct source/property paths.
 - Unknown field: reject by default; an explicit Ignore policy skips it without echoing its name/value. Unknown envelope sections remain syntax/resource-checked.
 - Source-name derivation: order_id and order-id each derive OrderId; customerRef derives CustomerRef. Verify exact acronym behavior against the selected shared conversion helper. Source selectors remain literal. An explicit property resolves collisions; invalid names, empty normalization results, leading digits, and inherited-member conflicts fail configuration before writes.
 - Late metadata missing: one `file.metadata.required` file error, no count reconciliation cascade. ExpectedOrders mismatch and ExpectedQuantity mismatch emit their respective example reconciliation code only when prerequisites mapped/validated.
-- Malformed closing syntax, duplicate envelope unit selector, resource limit reached, and invalid UTF-8: terminal incomplete rejection and no replay, including after earlier valid report hooks.
-- Unit N+1 at maxUnits, one byte beyond maxInputBytes/maxUnitBytes/maxTokenBytes, maxDepth+1, maxObjectMembers+1, maxItems+1, and the diagnostic-budget sentinel: exact limits and counter/ordinal anchors, not approximate large-file tests.
 - Returned execution failure on the second valid unit: ExecutionFailed, UnitsAttempted = 2, UnitsExecuted = 1, UnitsValidated = 2; retain the identical business error object.
 - Source/callback faults and cancellation: throw, expose partial progress, and call neither terminal content hook. No extra unit scopes after failure.
 
@@ -431,7 +406,7 @@ This is not a commitment to retain out-of-support targets indefinitely; reposito
 | Surface | Required change |
 |---|---|
 | Shared processor base | Move lifecycle/scoped hooks into FileProcessor<TUnit>; retain only useful CSV-specific intermediate code. |
-| Processor construction/options | Split common limits from dialect options; migrate all generated constructor calls and direct runtime callers. |
+| Processor construction/options | Remove common quotas and keep format options focused; migrate all generated constructor calls and direct runtime callers. |
 | Progress constructors | Add UnitsRead/InvalidUnits and update summary consistency rules, tests, and hand-created snapshots. |
 | Unit hooks | Include FileUnitInfo in focused argument objects for validation/execution/context configuration/reporting; regenerate typed routed dispatch and manually migrate handwritten partials. |
 | Locations/diagnostics | Separate source/model paths; add ordinal correlation; no fabricated CSV lines for document errors. |
@@ -440,9 +415,9 @@ This is not a commitment to retain out-of-support targets indefinitely; reposito
 | Content finalization | Rename OnRejectedAsync to OnContentFailedAsync; migrate handwritten overrides explicitly, with summary progress retained and no forwarding compatibility trap. |
 | YAML | Group format-specific settings; move old flat CSV spellings with explicit diagnostics; use source-first property name plus optional property override with fixed DbEx-style PascalCase derivation and no casing options; default absent definition format to Csv only. |
 | Generated document output | Natural nested DTOs/validators/mappings, not CSV Group wrappers; Address can be referenced twice. |
-| Scalar catalog | Add DateTimeOffset with exact CSV format and document invariant defaults; migrate schema/docs/options/bounds handling together. |
-| Diagnostics/telemetry | Neutral lifecycle/validation/limit names are documented changes; preserve CSV-owned syntax/mapping names. |
-| Acceptance budgets | New maxUnitBytes/maxUnits/maxDiagnostics apply to CSV too; defaults are deliberate behavior changes, configurable upward. |
+| Scalar catalog | Add DateTimeOffset with optional exact formats and standard invariant parsing otherwise; migrate schema/docs/options/bounds handling together. |
+| Diagnostics/telemetry | Neutral lifecycle/validation names are documented changes; preserve CSV-owned syntax/mapping names. |
+| Input ownership | Remove generic admission/work quotas from CSV and JSONL; admission belongs to consumers. |
 | Samples/tests | Update existing generation/IO tests and Functions InventoryImports integration; do not hand-edit generated files. |
 | Shipped guidance | Update runtime/generator guides, generated schema/config docs, instructions/skill examples, AI bundle copies, and template validation expectations via their owners. |
 
@@ -465,11 +440,9 @@ The final review challenged modes, counters, metadata timing, naming, configurat
 - file.structure.cardinality deliberately spans unit and file checks. A diagnostic with a unit ordinal is unit-scoped; absence denotes file/envelope scope. Document this discriminator for all diagnostic codes rather than expecting consumers to infer scope from physical lines.
 - A failed business Result takes outcome precedence over earlier single-pass content errors: return ExecutionFailed, preserve diagnostics/counters and original Result, and call only the execution-failure finalizer. ContentFailed means content failure without a returned business failure. Exceptions still propagate with partial progress.
 - AcceptedMetadata availability at successful completion is mandatory in every mode. A content-failed or operationally interrupted attempt has no accepted-file view, even when individual metadata objects validated earlier.
-- Count maxUnits candidate N+1 in UnitsRead and the relevant source record count before issuing its limit diagnostic, but allocate/map/validate/execute no unit for it. It remains unvalidated rather than being invented as a mapped-invalid unit. Ordinals/counters are deterministic at the boundary.
-- A CSV per-unit byte budget must use actual parser record spans, not underlying stream read counters distorted by parser read-ahead. Ensure CsvHelper exposes sufficient raw span/position information in a focused Phase 1 spike. If it does not, enforce the budget in bounded parser input/framing before allocation or explicitly redesign the CSV-specific byte contract; never claim an unenforced bound based on total read deltas. Existing maxGroupRecords remains an independent assembly bound.
+- CSV has no per-unit byte quota. Accurate original spans are not available across CsvHelper encodings; do not infer them from read-ahead counters.
 - Cancellation during business execution can occur after an application commit; an exception is not evidence that no side effects happened. Report hooks can also fail after writes. Retry safety still requires durable receipts/idempotency and attempt-isolated reports.
 - JSONL discriminator settings reserve one declared direct member. Reject duplicate routing members before choosing a route, regardless of optional DTO mapping. Position checks include malformed/unrecognized non-skipped lines, not merely valid business units, so a bad trailing line cannot disappear from Last semantics.
-- Content limits apply to skipped data too. Duplicate tracking is bounded by depth/member/token limits; bound incremental whitespace handling and buffer growth as well. A valid JSON parser plus unbounded buffer growth is not a bounded ingestion implementation.
 - XML's chosen default remains unnamespaced Attribute. The namespaced element fixture intentionally requires explicit Element/namespace selection and is not compatible with omitted XML field settings. Phase 5 should evaluate explicit definition-/record-level namespace defaults to reduce repetition without silently changing that base default or making unqualified attributes inherit an element namespace.
 - The fixture manifest's scenarioBaseline denotes explicit fixture settings, not engine defaults. Preserve this distinction and mechanically check kind/unitPath spellings and values during fixture inspection.
 
@@ -479,4 +452,4 @@ No claim of a complete parser/API proof is made by this design review. The CSV b
 
 Repository evidence: `src\CoreEx.IO\FileProcessor.cs`, `FileUnitHandler.cs`, `FileUnitInfo.cs`, `FileLocation.cs`, `FileProcessingProgress.cs`, `FileProcessingSummary.cs`, `FileProcessingContext.cs`, `Csv\CsvFileProcessorBase.cs`, `Csv\CsvHierarchyDefinition.cs`, `Csv\CsvHierarchyFileProcessor.cs`, `Csv\CsvRoutedFileProcessor.cs`, `Csv\CsvReadStream.cs`, `Csv\CsvFileOptions.cs`, and `Csv\CsvFieldConverters.cs`; `src\CoreEx.CodeGen\Files\Config\CodeGenConfig.cs`, `RecordConfig.cs`, `PropertyConfig.cs`, `NodeConfig.cs`, and `Files\Templates`; `tests\CoreEx.IO.Test.Unit\FileProcessingSummaryTests.cs`, `FileBaselineFixtureTests.cs`, and `tests\CoreEx.CodeGen.Test.Unit\FileGenerationTests.cs`; root/src build props, Directory.Packages.props, and affected csproj references.
 
-Platform reference: [Utf8JsonReader streaming and buffer requirements](https://learn.microsoft.com/en-us/dotnet/standard/serialization/system-text-json/use-utf8jsonreader). In particular, tokens can span reads and incremental parsing needs bounded token/duplicate tracking even outside selected units.
+Platform reference: [Utf8JsonReader streaming and buffer requirements](https://learn.microsoft.com/en-us/dotnet/standard/serialization/system-text-json/use-utf8jsonreader). In particular, tokens can span reads and incremental parsing needs correct token/duplicate tracking even outside selected units; input admission is consumer-owned.

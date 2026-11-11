@@ -1,14 +1,22 @@
 # CoreEx.IO multi-format integration plan
 
-## Phase 0 outcome
+## User-directed simplification (supersedes the original quota design)
 
-The final contract review replaces JSON shape with kind (Array default, expected kind at unitPath), makes accepted metadata at successful completion mandatory, and renames the content-failure finalizer to OnContentFailedAsync so partial writes cannot hide behind a rejection name. It also specifies missing/null selection, diagnostic scope, failure precedence, limit-boundary counters, and the CSV parser-span spike required to substantiate per-unit byte limits. The detailed edge contracts are in Phase 0 section 12.
+The consumer owns source admission, overall input size, concurrency, timeouts, and report-output policy for both CSV and JSONL. CoreEx.IO imposes no file/line/token/metadata byte quota, unit/diagnostic count quota, CSV group-record quota, or default collection maximum. JSON retains the built-in parser's configurable MaxDepth (64 by default), business cardinality, and optional explicitly declared positive collection maxItems. A large JSONL line/CSV hierarchy can consume substantial memory; the framework is an application integration helper, not a bulk-data platform. This applies to future document/XML proposals too: do not restore quota knobs without a new concrete requirement. Existing CSV parser-span findings remain provenance evidence, not a reason to implement a byte-preserving CSV tokenizer.
 
-The Phase 1 CsvHelper 34 byte-span spike found that CsvReader.ByteOffset and RawRecord describe UTF-8 parser positions, not original byte positions for configured UTF-16/32 input; RawRecord also excludes record line breaks. A UTF-16LE probe with an eight-byte source reported the second record at offset 3 rather than source offset 6. The approved Phase 1 adjustment drops the per-unit source-byte budget for CSV while retaining the whole-input byte budget and independent maxGroupRecords bound; do not substitute UTF-8 parser lengths or stream-read deltas.
+The subsequent approved simplification uses ordinary System.Text.Json metadata snapshots, one invocation-level error policy, shared FileCardinality, and shared FileRecordPosition for business-route/metadata boundaries without changing format-specific participating-record rules. JSONL no longer performs a UTF-8 prepass or decodes ignored string values exhaustively. Dates use standard invariant parsing without format, or exact parsing without fallback when supplied; bounds/options and scalar collections follow the same rule. DateTimeOffset still requires/preserves an explicit offset, and JSON DateTime rejects offsets. Transient metadata DTO properties require JsonIgnore rather than a second serialization policy.
 
-Phase 0 is specified in the companion `coreex-io-phase0-contract.md`, with literal representative inputs, an expectation manifest, and a reproducible fixture inspector under `phase0-fixtures`. It defines the grouped YAML shape, nested type/occurrence model, API migration inventory, source-record versus business-unit accounting, resource budgets, conversion policies, and Phase 1 handoff. Runtime behavior is not implemented by these artifacts.
+The public-surface review keeps consumer configuration, typed mapping builders, supported hooks, telemetry subscription names, and invoker customization public. Untyped JSON mapping dispatch is an internal interface rather than a public implementation-only base class. Readers remain internal, result/progress/provenance construction is internal, and framework-only base constructors are private protected. The signed CoreEx.IO.Test.Unit assembly receives InternalsVisibleTo access; generated consumers must still compile without friend access.
 
-The user selected a bounded immutable accepted-metadata view available from the beginning of ValidateThenExecute replay, including metadata occurring after units in the source. ValidateAndExecute is a separate opt-in single-pass mode, with encountered metadata only, explicit partial-execution outcomes, and failure reporting. Valid-unit reporting is an optional awaited hook independent of processing mode; the three modes are ValidateOnly, ValidateThenExecute, and ValidateAndExecute. Outcomes describe results rather than actions: Succeeded, ContentFailed, and ExecutionFailed. MaxDiagnostics limits emitted diagnostic events, not unit reporting. Metadata is shared across formats; opt-in JSONL discriminator routing ships with JSONL. The scalar contract includes DateTimeOffset rather than imposing an offset-handling workaround on JSON integrations.
+## Phase 0 outcome (historical decisions updated below)
+
+The final contract review replaces JSON shape with kind (Array default, expected kind at unitPath), makes accepted metadata at successful completion mandatory, and renames the content-failure finalizer to OnContentFailedAsync so partial writes cannot hide behind a rejection name. It also specifies missing/null selection, diagnostic scope, failure precedence, exact byte accounting, and the CSV parser-span spike required to substantiate per-unit byte limits. The detailed edge contracts are in Phase 0 section 12.
+
+The Phase 1 CsvHelper 34 byte-span spike found that CsvReader.ByteOffset and RawRecord describe UTF-8 parser positions, not original byte positions for configured UTF-16/32 input; RawRecord also excludes record line breaks. A UTF-16LE probe with an eight-byte source reported the second record at offset 3 rather than source offset 6. The approved Phase 1 adjustment drops the per-unit source-byte budget for CSV and the later user-directed simplification removes all generic resource quotas; do not substitute UTF-8 parser lengths or stream-read deltas.
+
+Phase 0 is specified in the companion `coreex-io-phase0-contract.md`, with literal representative inputs, an expectation manifest, and a reproducible fixture inspector under `phase0-fixtures`. It defines the grouped YAML shape, nested type/occurrence model, API migration inventory, source-record versus business-unit accounting, consumer-owned admission, conversion policies, and Phase 1 handoff. Runtime behavior is not implemented by these artifacts.
+
+The user selected a immutable accepted-metadata view available from the beginning of ValidateThenExecute replay, including metadata occurring after units in the source. ValidateAndExecute is a separate opt-in single-pass mode, with encountered metadata only, explicit partial-execution outcomes, and failure reporting. Valid-unit reporting is an optional awaited hook independent of processing mode; the three modes are ValidateOnly, ValidateThenExecute, and ValidateAndExecute. Outcomes describe results rather than actions: Succeeded, ContentFailed, and ExecutionFailed. Metadata is shared across formats; opt-in JSONL discriminator routing ships with JSONL. The scalar contract includes DateTimeOffset rather than imposing an offset-handling workaround on JSON integrations.
 
 The Phase 1 API tightening keeps reader internals private and the core lifecycle non-extensible, uses focused framework-constructed argument objects for multi-parameter extension hooks with cancellation separate and last, and publishes one immutable progress snapshot to both original and replay contexts at execution boundaries. FileProcessor<TUnit> owns protected Services for the construction-time provider; generated processors no longer duplicate it, and unit dependencies still use fresh handler scopes. Accepted metadata deliberately uses System.Text.Json snapshots and fresh typed copies rather than a second immutable model hierarchy. Processing modes, outcomes, and application-owned retry/idempotency boundaries are unchanged.
 
@@ -20,14 +28,14 @@ Extend CoreEx.IO and the existing CoreEx.CodeGen File command to support JSONL a
 
 Prefer a small, well-explained breaking change now over carrying CSV-shaped APIs into every future format. Preserve the existing processing guarantees, not every incidental type name or generated YAML shape. Any break must remove a concrete constraint, have a migration example, and be recorded before implementation; this is not permission for unrelated cleanup.
 
-The product remains a host-neutral integration/workflow component: identify bounded typed business units, validate/report, and optionally execute accepted units using whole-file acceptance plus replay or explicit single-pass unit acceptance. It is not a lakehouse, ETL designer, schema-inference engine, general document query engine, or Microsoft Fabric replacement.
+The product remains a host-neutral integration/workflow component: identify typed business units, validate/report, and optionally execute accepted units using whole-file acceptance plus replay or explicit single-pass unit acceptance. It is not a lakehouse, ETL designer, schema-inference engine, general document query engine, or Microsoft Fabric replacement.
 
 ## Goals and non-goals
 
 ### Goals
 
 - Reuse whole-file acceptance, immutable replay, scoped validation/execution, reporting, cancellation, reconciliation, and application-owned idempotency across formats.
-- Support repeated, bounded business units containing nested objects and collections.
+- Support repeated, typed business units containing nested objects and collections.
 - Keep CodeGen generation-first: definitions own wire types, mappings, validators, contexts, processors, and create-only handler starters.
 - Produce actionable diagnostics without retaining a whole document or file-wide error history.
 - Make supported shapes, conversion semantics, error recovery, and operating limits explicit.
@@ -50,8 +58,8 @@ These are observed implementation constraints, not hypothetical architectural ob
 |---|---|---|
 | `FileProcessor` exposes a format-neutral invocation and reporting contract. | It does not own the common lifecycle. | Retain the contract and place reusable orchestration in a generic shared implementation. |
 | `CsvFileProcessorBase<TUnit>` owns lifecycle, scopes, validation, replay, counters, and CSV reading. | New formats must duplicate lifecycle or depend on CSV options/state. Its `private protected` extension points are also assembly-restricted. | Separate orchestration from format reading/assembly. Design the smallest supported extension boundary; do not make all mutable internals public. |
-| `CsvReadStream` implements byte limits and strict BOM/encoding checks. | Useful stream mechanics are coupled to CSV codes and encoding policy. | Extract bounded input mechanics; keep decoding/BOM decisions with each format reader. |
-| `CsvFileOptions` combines dialect, input bytes, and per-group record limits. | A document unit is not a CSV root group or a count of physical rows. | Separate common input/processing budgets from format options and format-specific assembly limits. Accept constructor/options changes where they remove this coupling. |
+| `CsvReadStream` only counts bytes. | Admission belongs to consumers. | Delegate matching preamble handling to StreamReader, retain configured strict decoding without BOM autodetection, and remove custom BOM classification. |
+| `CsvFileOptions` owns parser dialect. | Generic admission policies do not belong to it. | Remove old quotas rather than relocating their knobs. |
 | `FileProcessingProgress` describes physical records and constrains validated-unit counts against valid record counts. | JSON/XML have no universal physical-record concept; descendant diagnostics must not invent invalid top-level records. | Define records as format-declared source records and units as handler boundaries. Specify counting per format, adjust API/documentation/invariants where necessary, and never inflate counters just to satisfy an old assertion. |
 | `CsvHierarchyDefinition` requires each route to appear exactly once; `NodeConfig` resolves nodes by record name. | The same document type may legitimately occur at several paths, such as billing/shipping addresses. | Separate reusable wire-type definitions from mapping occurrences. Give occurrences independent source selectors and cardinalities. Leave CSV routing rules CSV-specific. |
 | CSV hierarchy nodes require ordered contiguous children and generated group wrappers. | JSON object-member order is not meaningful; document nesting already supplies ownership. | Map document objects directly to typed object graphs. Do not reuse the CSV hierarchy assembler or require `Record`/`Group` wrappers for JSON/XML. |
@@ -64,7 +72,7 @@ These are observed implementation constraints, not hypothetical architectural ob
 
 Keep ordinary CSV parsing, routing, header behavior, hierarchy semantics, validation, and execution outcomes unchanged unless a separately documented correction is necessary. A breaking API/configuration migration is acceptable; a silent behavioral change is not.
 
-Do not pre-emptively rename every CSV type or rewrite its generated group model. Keep CSV-only abstractions where they accurately describe CSV. Promote shared concepts, such as cardinality, only when they genuinely have identical semantics. Phase 0 identifies new unit-size/unit-count/diagnostic budgets as intentional CSV admission changes; document these defaults rather than promising every previously accepted input remains accepted.
+Do not pre-emptively rename every CSV type or rewrite its generated group model. Keep CSV-only abstractions where they accurately describe CSV. Promote shared concepts, such as cardinality, only when they genuinely have identical semantics. The user-directed simplification supersedes the original quota proposal: CSV and JSONL admission is consumer-owned.
 
 Prefer retaining existing YAML definitions through an absent `format` meaning CSV if that is straightforward. If a clean configuration structure requires changes, ship a before/after migration rather than a permanent maze of aliases. Regenerate owned output; never overwrite handwritten handlers or extension partials.
 
@@ -120,7 +128,7 @@ Group genuinely format-specific settings under `csv`, `json`, `jsonl`, or `xml` 
 
 Keep singular, unambiguous concepts directly on their owner. In particular, a date property's `format` remains `format`, not `dateFormat`, `jsonFormat`, or `json: { format: ... }`. A definition-level `format: Json` and a property-level `format: yyyyMMdd` have different, clear scopes and need no artificial disambiguation.
 
-Common identity, processing policy, limits, type shape, cardinality, and validation rules remain format-neutral. A format-specific object holds parser/framing settings at definition level and source-selection settings at mapping-occurrence/property level. Do not move a shared rule into several format blocks merely because each parser uses it. Every optional YAML property has a documented schema-aligned default; specify only deviations, without guessing required identity or ambiguous selectors. XML field defaults are Attribute and empty namespace; element/namespaced mappings explicitly override those defaults.
+Common identity, processing policy, type shape, cardinality, and validation rules remain format-neutral. A format-specific object holds parser/framing settings at definition level and source-selection settings at mapping-occurrence/property level. Do not move a shared rule into several format blocks merely because each parser uses it. Every optional YAML property has a documented schema-aligned default; specify only deviations, without guessing required identity or ambiguous selectors. XML field defaults are Attribute and empty namespace; element/namespaced mappings explicitly override those defaults.
 
 Configuration direction, incorporating the Phase 0 source-first naming decision:
 
@@ -162,7 +170,7 @@ Group existing CSV dialect settings under `csv` as part of the planned configura
 - Default JSON to case-sensitive property matching, native token types, no comments/trailing commas, and rejection of duplicate member names. Numeric strings and other coercions require explicit configuration.
 - Preserve document string content by default. String trimming, blank-to-null conversion, date patterns, and other normalization are explicit choices.
 - Reuse the current scalar catalog and add DateTimeOffset across runtime, generation, and validation as specified in Phase 0. Give document dates documented invariant defaults and allow exact-format overrides; preserve offsets rather than silently losing them.
-- Provide explicit unknown-member policies. Recommend strict rejection for declared unit contracts, with an opt-in ignore policy for evolving partner feeds. Envelope sections may be ignored only under a declared policy and must still be syntactically consumed and budgeted.
+- Provide explicit unknown-member policies. Recommend strict rejection for declared unit contracts, with an opt-in ignore policy for evolving partner feeds. Envelope sections may be ignored only under a declared policy and must still be syntactically consumed and depth-checked.
 - Map known fields with structured conversion diagnostics rather than aborting mapping on the first serializer exception. Reuse typed serializers only where their behavior meets the mapping contract.
 - Nested validator messages identify the complete source/unit path, including collection indices. A failing child rejects the owning unit; do not independently execute its valid siblings.
 - Keep trusted execution identity separate from input metadata. Existing reference-data initialization and application-layer rechecking requirements remain.
@@ -175,36 +183,21 @@ JSONL discriminator routing is part of Phase 2: a declared direct member identif
 
 JSON/XML select metadata by path; calling it Header/Trailer does not impose document order. XML default scalar selection is an unnamespaced attribute; examples using elements must explicitly select Element and the appropriate namespace.
 
-Support explicitly declared, bounded metadata before and after the repeated unit collection. Metadata is not another business unit unless the definition says so. Typical uses are batch identity, declared counts, totals, and partner/version markers.
+Support explicitly declared metadata before and after the repeated unit collection. Metadata is not another business unit unless the definition says so. Typical uses are batch identity, declared counts, totals, and partner/version markers.
 
 JSON member order must not become an accidental validity rule. Metadata encountered after units is available only after it has been read. Earlier valid-unit callbacks cannot rely on it. If custom unit validation requires metadata that occurs later, reject that processing definition/order requirement explicitly or require the producer to supply the necessary data earlier; do not introduce hidden buffering of all units or a surprise third pass.
 
-Maintain fresh pass-local metadata and reconciliation accumulators. After complete validation and EOF reconciliation, freeze only explicitly declared, bounded metadata into a dedicated immutable accepted-file view. Make that complete view available from the beginning of ValidateThenExecute replay, including metadata occurring after units in the source; ordinary pass-local metadata is still reconstructed in source order. ValidateAndExecute handlers see only encountered metadata, never a premature accepted-file snapshot. Do not copy mutable validation contexts or arbitrary accumulated state into replay. This explicit accepted-metadata contract was selected by the user during Phase 0.
+Maintain fresh pass-local metadata and reconciliation accumulators. After complete validation and EOF reconciliation, freeze only explicitly declared metadata into a dedicated immutable accepted-file view. Make that complete view available from the beginning of ValidateThenExecute replay, including metadata occurring after units in the source; ordinary pass-local metadata is still reconstructed in source order. ValidateAndExecute handlers see only encountered metadata, never a premature accepted-file snapshot. Do not copy mutable validation contexts or arbitrary accumulated state into replay. This explicit accepted-metadata contract was selected by the user during Phase 0.
 
 Consume and validate the entire envelope, including trailing content, duplicate selected members, and closing syntax. A valid selected array followed by garbage is not an accepted file.
 
-## Limits, recovery, and diagnostics
+## Input ownership, recovery, and diagnostics
 
-| Concern | Planned behavior |
-|---|---|
-| Input size | Positive maximum source bytes per pass, including ignored sections and envelopes. |
-| Unit size | Maximum unit bytes enforced before or during buffering, not after subtree allocation. |
-| JSONL framing | Bounded line length; accept LF/CRLF and a final line without a newline. Reject blank lines by default; any lenient mode is explicit. No physical multi-line objects. |
-| Depth and cardinality | Explicit nesting depth, child-count, and per-unit work bounds. Parser defaults alone are not the complete resource policy. |
-| Oversized units | Terminal incomplete validation initially; no promise to scan unbounded content looking for a recovery point. |
-| JSONL content errors | Continue at the next trusted line boundary under CollectErrors when framing and budgets permit. |
-| JSON/XML syntax errors | Terminal incomplete validation when reliable traversal cannot resume. Do not guess the next object/element boundary. |
-| Mapping/validation errors | Collect within a bounded, well-formed unit and continue to later units under CollectErrors. |
-| Replay | Reconstruct the same unit sequence under the same budgets; invariant failures propagate, never masquerade as ordinary successful execution. |
-| Coordinates | Logical path plus unit ordinal; physical line/column or byte offsets only where accurately known. Convert parser zero-based coordinates deliberately. |
-| Sensitive content | Stable codes and declared paths without raw input values or parser exception text leaking payloads by default. |
-| Operational faults | Cancellation, source I/O, missing dependencies, and callback failures propagate; do not classify them as malformed content. |
+The consumer owns source admission, overall input size, concurrency, timeouts, and report-output policy for both CSV and JSONL. CoreEx.IO imposes no file/line/token/metadata byte quota, unit/diagnostic count quota, CSV group-record quota, or default collection maximum. JSON retains the built-in parser's configurable MaxDepth (64 by default), business cardinality, and optional explicitly declared positive collection maxItems. A large JSONL line/CSV hierarchy can consume substantial memory; the framework is an application integration helper, not a bulk-data platform.
 
-JSON/JSONL initially use strict UTF-8. Define the BOM policy explicitly: reject it for strict JSONL; permit or reject a matching UTF-8 BOM for JSON according to a documented option, never infer another encoding. CSV retains its explicit encoding contract.
+JSONL accepts LF/CRLF and a final nonempty unterminated line. Blank lines reject unless explicitly skipped. Syntax, built-in MaxDepth, and consumed-string conversion failures recover at the next line under CollectErrors; a UTF-8 BOM is terminal. Duplicate decoded names are checked in ignored objects, but ignored string values are not exhaustively decoded or UTF-8-validated. Mapping and business cardinality errors are recoverable unit errors. Future document/XML readers must not guess recovery after losing structural traversal.
 
-XML should use a separate, documented encoding contract that honors permitted XML declarations/BOMs while rejecting contradictions and invalid bytes. Disable DTD processing and external resolvers; impose depth and document/unit budgets. Match namespace URI plus local name, support attributes and `xsi:nil` explicitly, and defer mixed-content mapping. XML element ordering is enforced only when declared, unlike CSV's required contiguous record ordering.
-
-Limits are input/work safeguards, not precise managed-heap ceilings. Prove bounded behavior using adversarial fixtures and measured allocation trends; do not advertise a fixed memory ceiling based only on input bytes.
+Replay reconstructs the accepted unit sequence without repeating validation. Invariant failures, cancellation, source I/O, missing dependencies and callback failures propagate. Diagnostics expose stable codes, declared model/source paths and accurate coordinates, not raw payload values. Future XML must prohibit DTD/external resources and preserve its own explicit encoding contract.
 
 ## Dependencies and packaging
 
@@ -230,7 +223,7 @@ A framework-driven package split is justified only if it preserves a useful, coh
 
 ### Phase 0 - Settle the contract with representative fixtures
 
-Write the API/configuration sketch and migration inventory before changing runtime behavior. Define terminology for source records, nested occurrences, business units, metadata, counters, paths, and recovery. Finalize the supported scalar/presence policies, grouped format-specific YAML settings, and small default budgets with explicit rationale. Evaluate the required runtime/package APIs and choose the affected packages' framework floors before committing to compatibility work.
+Write the API/configuration sketch and migration inventory before changing runtime behavior. Define terminology for source records, nested occurrences, business units, metadata, counters, paths, and recovery. Finalize the supported scalar/presence policies, grouped format-specific YAML settings, and consumer-owned admission boundary. Evaluate the required runtime/package APIs and choose the affected packages' framework floors before committing to compatibility work.
 
 Use a representative order feed in CSV, JSONL, root-array JSON, enveloped JSON, and a future XML equivalent. Include nested addresses reused at different paths, line collections, scalar collections, metadata after units, invalid child values, and empty input cases.
 
@@ -238,23 +231,31 @@ Use a representative order feed in CSV, JSONL, root-array JSON, enveloped JSON, 
 
 ### Phase 1 - Extract the shared runtime using CSV
 
-Move lifecycle/scoping/replay/accounting into the shared coordinator. Add ValidateAndExecute with diagnostics, partial-execution outcomes, and business-failure reporting. Extract bounded input mechanics and make option ownership explicit. Establish unit provenance and format-neutral instrumentation. Unify metadata declarations and migrate CSV header/trailer configuration while preserving explicit executable route behavior.
+Move lifecycle/scoping/replay/accounting into the shared coordinator. Add ValidateAndExecute with diagnostics, partial-execution outcomes, and business-failure reporting. Keep input admission consumer-owned and make option ownership explicit. Establish unit provenance and format-neutral instrumentation. Unify metadata declarations and migrate CSV header/trailer configuration while preserving explicit executable route behavior.
 
 Make necessary public API breaks together instead of sprinkling compatibility shims through later phases. Update generated CSV code, current consumers/examples, runtime and generation guides, and migration notes in the same change.
 
-**Exit gate:** existing CSV behavior fixtures remain equivalent except documented migrations/admission changes; all three processing modes, mode-independent outcomes, optional unit reporting, scoped lifetime/context behavior, faults, cancellation, EOF failure, limits, and replay invariants pass through the shared implementation.
+**Exit gate:** existing CSV behavior fixtures remain equivalent except documented migrations/admission changes; all three processing modes, mode-independent outcomes, optional unit reporting, scoped lifetime/context behavior, faults, cancellation, EOF failure, parser depth, business bounds, and replay invariants pass through the shared implementation.
 
 ### Phase 2 - JSONL vertical slice and nested CodeGen
 
-Implement bounded UTF-8 line framing and object-unit parsing, including opt-in discriminator-based metadata routing in the first JSONL delivery. Introduce the shared JSON unit mapper, nested model/occurrence definitions, validators, processor generation, and handler starters. Deliver runtime APIs and File CodeGen together, not a runtime feature consumers must hand-wire for months.
+Implement UTF-8 line framing and object-unit parsing, including opt-in discriminator-based metadata routing in the first JSONL delivery. Introduce the shared JSON unit mapper, nested model/occurrence definitions, validators, processor generation, and handler starters. Deliver runtime APIs and File CodeGen together, not a runtime feature consumers must hand-wire for months.
 
-Prove recoverable bad-line behavior, nested diagnostics/cardinality, strict token conversion, duplicate detection, bounded lines/units, and deterministic replay. Include a realistic integration example using application-owned execution and immutable source identity.
+Prove recoverable bad-line behavior, nested diagnostics/cardinality, strict token conversion, duplicate detection, accurate source offsets, and deterministic replay. Include a realistic integration example using application-owned execution and immutable source identity.
 
-**Exit gate:** a generated JSONL integration supports all four modes, plain and metadata-routed input, valid lines after recoverable errors, zero execution on ValidateThenExecute rejection, and accurately reported partial execution for ValidateAndExecute.
+**Exit gate:** a generated JSONL integration supports all three modes, plain and metadata-routed input, valid lines after recoverable errors, zero execution on ValidateThenExecute rejection, and accurately reported partial execution for ValidateAndExecute.
+
+**Implementation checkpoint:** UTF-8 JSONL and reusable nested mapping now run through FileProcessor<TUnit>; the reader SPI remains internal. Actual consumed source offsets, strict native scalars/DateTimeOffset, nested occurrences/cardinality, duplicate checks including ignored content, source/model paths, mode-specific metadata snapshots, scoped execution, and replay are implemented. File CodeGen accepts source-first Jsonl definitions with grouped options and emits nested models/mappings/validators/contexts/processors plus create-only handler starters. JSON document and XML readers are not implemented.
+
+The checked-in OrdersJsonl and RoutedJsonl definitions generate executable IO test consumers, and the CodeGen suite generates/builds/runs independent consumers in all three modes. The application-owned OrdersJsonl handler forwards the original Result and immutable source identity; retry receipts are demonstrated by an in-memory application double, not claimed as durable exactly-once behavior. Runtime tests cover tiny/irregular non-seekable chunks, malformed lines followed by valid units, consumed-string decoding failures versus ignored content, exact source-byte accounting, standard/exact dates, parser depth and explicit collection boundaries, scopes, cancellation/fault propagation, and deterministic replay. Incremental generated-source tests characterize cumulative allocations without materializing or retaining the whole file; they do not assert absolute memory/time thresholds.
+
+Before quota/parser simplification, a local net10 Debug characterization of the generated nested Order mapping plus pure nested validation processed 1,000 repeated units (231,000 source bytes) with about 40.4 MB cumulative managed allocations in 144 ms, and 100,000 units (23,100,000 source bytes) with about 3.99 GB cumulative allocations in 4.15 s. The source repeats one encoded line on demand and the observation hook retains only a counter. These are one-run cumulative allocation trends, not peak/live heap measurements, performance guarantees, or evidence that arbitrary concurrent uploads are cheap. Validation/model/DOM overhead is substantial; constrain admission/concurrency and revisit tuning before release.
+
+The schema and configuration reference are generated through CoreEx.Tooling.Console, and runtime/generation/AI guidance distinguishes implemented CSV/JSONL from future JSON/XML. Template-pack validation is explicitly deferred for this phase; net10.0 Debug is the inner-loop validation target. Package target frameworks remain unchanged.
 
 ### Phase 3 - JSON document streaming
 
-Reuse JSONL's JSON unit mapping and nested generation. Add root-array, explicitly selected envelope-array, and single-object modes. Add bounded envelope metadata and EOF reconciliation. Ensure skipped sections are still syntax-checked, depth-limited, and input-budgeted.
+Reuse JSONL's JSON unit mapping and nested generation. Add root-array, explicitly selected envelope-array, and single-object modes. Add bounded envelope metadata and EOF reconciliation. Ensure skipped sections are still syntax-checked, depth-limited, with admission owned by the consumer.
 
 Pay particular attention to partial stream reads, tokens split across buffers, huge tokens/subtrees, late envelope errors, duplicate selected properties, member ordering, malformed closing syntax, and cancellation between reads.
 
@@ -284,9 +285,9 @@ Expand `tests/CoreEx.IO.Test.Unit` and `tests/CoreEx.CodeGen.Test.Unit`. Retain 
 
 Use non-seekable streams with tiny/irregular read chunks to exercise streaming correctness; immutable two-open factories to prove replay; deliberately changing factories to exercise detectable invariant failures without pretending the framework can prove source immutability; and faults/cancellation in reads, diagnostics, reports, validation, and execution.
 
-Assert exact counters, emitted diagnostic codes/paths, scope/context isolation, optional callback behavior, zero execution on ValidateThenExecute content failure, explicit partial execution on ValidateAndExecute content failure, and stop-on-execution-failure reporting. Test limits at the boundary, one beyond, and across split buffers. No full diagnostic history should be required by tests or runtime.
+Assert exact counters, emitted diagnostic codes/paths, scope/context isolation, optional callback behavior, zero execution on ValidateThenExecute content failure, explicit partial execution on ValidateAndExecute content failure, and stop-on-execution-failure reporting. Test built-in nesting depth and explicit business count bounds at the boundary and one beyond; prove former generic quotas no longer reject input. No full diagnostic history should be required by tests or runtime.
 
-Measure large-file working-set/allocation trends with fixed unit size and increasing unit count, and with increasing unit size up to the configured bound. Capture results without flaky absolute-memory assertions in ordinary unit tests.
+Measure large-file working-set/allocation trends with fixed unit size and increasing unit count, and with increasing unit size under the consumer's admission policy. Capture results without flaky absolute-memory assertions in ordinary unit tests.
 
 Compile generated output for each supported shape, test regeneration/unchanged-output checks and handwritten file preservation, and validate configuration/schema agreement, including format-block applicability and unprefixed date `format`. Use the repository's net10.0 Debug inner loop; run framework-sensitive API/dependency checks against each affected package's deliberately selected targets. Update the release matrix and consumer compatibility checks if a package floor changes rather than retaining obsolete targets merely to keep the old matrix green.
 
@@ -308,7 +309,7 @@ Keep an extension seam capable of a future fixed-width reader, but do not implem
 
 ## Decisions to preserve throughout implementation
 
-1. A business unit is explicit and bounded; nesting supplies ownership, not transactional or execution semantics.
+1. A business unit is explicit; nesting supplies ownership, not transactional or execution semantics.
 2. Share orchestration and applicable validation concepts; keep framing, mapping, recovery, and encoding truthful to each format.
 3. Break an awkward newly released API when that removes a real constraint; document the migration instead of preserving permanent accidental complexity.
 4. No new third-party parser dependency without a demonstrated gap in the built-in libraries.

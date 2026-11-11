@@ -31,7 +31,7 @@ public class NodeConfig : ConfigBase<CodeGenConfig, ConfigBase>
     public string TypeName => HasChildren ? Root!.Name + Record + "Group" : RecordConfig.TypeName;
 
     /// <summary>Gets the emitted hierarchy expression.</summary>
-    public string DefinitionExpression => $"new CsvHierarchyNode({OnRamp.Utility.CSharpSource.StringLiteral(Record!)}, CsvRecordCardinality.{Cardinality}" +
+    public string DefinitionExpression => $"new CsvHierarchyNode({OnRamp.Utility.CSharpSource.StringLiteral(Record!)}, FileCardinality.{Cardinality}" +
         string.Concat((Children ?? []).Select(x => ", " + x.DefinitionExpression)) + ")";
 
     /// <summary>Gets the projection expression for this node.</summary>

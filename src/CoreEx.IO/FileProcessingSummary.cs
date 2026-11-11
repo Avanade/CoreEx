@@ -9,7 +9,7 @@ public sealed class FileProcessingSummary
     /// <param name="progress">The final validation and execution counts.</param>
     /// <param name="validationCompleted">Whether validation reached EOF and completed its applicable checks, rather than stopping early.</param>
     /// <param name="executionResult">The original failed execution Result for ExecutionFailed; success otherwise.</param>
-    public FileProcessingSummary(FileProcessingContext context, FileProcessingOutcome outcome, FileProcessingProgress progress, bool validationCompleted, Result executionResult = default)
+    internal FileProcessingSummary(FileProcessingContext context, FileProcessingOutcome outcome, FileProcessingProgress progress, bool validationCompleted, Result executionResult = default)
     {
         context.ThrowIfNull();
         progress.ThrowIfNull();

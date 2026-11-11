@@ -9,7 +9,7 @@ Category | Description
 -|-
 [`Primary`](#Primary) | Record identity.
 [`Csv`](#Csv) | CSV routing.
-[`Structure`](#Structure) | Route continuation policy.
+[`Jsonl`](#Jsonl) | JSONL routing.
 [`Collections`](#Collections) | Mapped properties.
 
 The properties with a bold name are those that are more typically used (considered more important).
@@ -28,12 +28,12 @@ Property | Description
 -|-
 `csv` | CSV routing settings. The corresponding [`CsvRecord`](CsvRecord.md) object.
 
-## Structure
-Route continuation policy.
+## Jsonl
+JSONL routing.
 
 Property | Description
 -|-
-`errorMode` | Route error policy. Valid options are: `FailFast`, `CollectErrors`.
+`jsonl` | JSONL root discriminator match. The corresponding [`JsonlRecord`](JsonlRecord.md) object.
 
 ## Collections
 Mapped properties.

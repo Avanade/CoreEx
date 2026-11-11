@@ -104,7 +104,7 @@ public class CsvHierarchyFileProcessorTests
     [Test]
     public async Task MissingDiscriminatorIndex_IsContentFailure()
     {
-        var definition = new CsvHierarchyDefinition<Group>(2, [Route("root", "O")], new("root", CsvRecordCardinality.One), Project);
+        var definition = new CsvHierarchyDefinition<Group>(2, [Route("root", "O")], new("root", FileCardinality.One), Project);
         var processor = new Processor(definition: () => definition);
         var summary = await processor.ProcessAsync(new Input("O,one\n").OpenAsync, Context()).ConfigureAwait(false);
         summary.Progress.InvalidRecords.Should().Be(1);
@@ -186,8 +186,8 @@ public class CsvHierarchyFileProcessorTests
     public async Task ArbitraryDepth_ProjectsOrderedSubtreesAndPhysicalProvenance()
     {
         CsvAggregateNode? projected = null;
-        var root = new CsvHierarchyNode("root", CsvRecordCardinality.OneOrMore,
-            [new("branch", CsvRecordCardinality.OneOrMore, [new("leaf", CsvRecordCardinality.OneOrMore)]), new("end", CsvRecordCardinality.Optional)]);
+        var root = new CsvHierarchyNode("root", FileCardinality.OneOrMore,
+            [new("branch", FileCardinality.OneOrMore, [new("leaf", FileCardinality.OneOrMore)]), new("end", FileCardinality.Optional)]);
         var definition = new CsvHierarchyDefinition<Group>(0, [Route("root", "O"), Route("branch", "B"), Route("leaf", "L"), Route("end", "E")], root, node =>
         {
             projected = node;
@@ -207,19 +207,19 @@ public class CsvHierarchyFileProcessorTests
         type.Should().Throw<InvalidOperationException>();
     }
 
-    [TestCase(CsvRecordCardinality.Many, "", true)]
-    [TestCase(CsvRecordCardinality.Many, "L,one\nL,two\n", true)]
-    [TestCase(CsvRecordCardinality.One, "", false)]
-    [TestCase(CsvRecordCardinality.One, "L,one\n", true)]
-    [TestCase(CsvRecordCardinality.One, "L,one\nL,two\n", false)]
-    [TestCase(CsvRecordCardinality.Optional, "", true)]
-    [TestCase(CsvRecordCardinality.Optional, "L,one\nL,two\n", false)]
-    [TestCase(CsvRecordCardinality.OneOrMore, "", false)]
-    [TestCase(CsvRecordCardinality.OneOrMore, "L,one\nL,two\n", true)]
-    public async Task ChildCardinality_IsPerParent(CsvRecordCardinality cardinality, string lines, bool accepted)
+    [TestCase(FileCardinality.Many, "", true)]
+    [TestCase(FileCardinality.Many, "L,one\nL,two\n", true)]
+    [TestCase(FileCardinality.One, "", false)]
+    [TestCase(FileCardinality.One, "L,one\n", true)]
+    [TestCase(FileCardinality.One, "L,one\nL,two\n", false)]
+    [TestCase(FileCardinality.Optional, "", true)]
+    [TestCase(FileCardinality.Optional, "L,one\nL,two\n", false)]
+    [TestCase(FileCardinality.OneOrMore, "", false)]
+    [TestCase(FileCardinality.OneOrMore, "L,one\nL,two\n", true)]
+    public async Task ChildCardinality_IsPerParent(FileCardinality cardinality, string lines, bool accepted)
     {
         var definition = new CsvHierarchyDefinition<Group>(0, [Route("root", "O"), Route("lines", "L")],
-            new("root", CsvRecordCardinality.OneOrMore, [new("lines", cardinality)]), Project);
+            new("root", FileCardinality.OneOrMore, [new("lines", cardinality)]), Project);
         var processor = new Processor(definition: () => definition);
         var summary = await processor.ProcessAsync(new Input($"O,first\n{lines}O,second\n{lines}").OpenAsync, Context()).ConfigureAwait(false);
         summary.IsSuccess.Should().Be(accepted);
@@ -230,7 +230,7 @@ public class CsvHierarchyFileProcessorTests
     public async Task SiblingOrder_CannotReopenEarlierSubtreesAndMissingRequirementsAreReportedOnce()
     {
         var definition = new CsvHierarchyDefinition<Group>(0, [Route("root", "O"), Route("a", "A"), Route("b", "B"), Route("c", "C")],
-            new("root", CsvRecordCardinality.One, [new("a", CsvRecordCardinality.One), new("b", CsvRecordCardinality.Many), new("c", CsvRecordCardinality.One)]), Project);
+            new("root", FileCardinality.One, [new("a", FileCardinality.One), new("b", FileCardinality.Many), new("c", FileCardinality.One)]), Project);
         var processor = new Processor(definition: () => definition);
         var summary = await processor.ProcessAsync(new Input("O,one\nC,c\nB,b\nA,a\n").OpenAsync, Context()).ConfigureAwait(false);
         summary.Outcome.Should().Be(FileProcessingOutcome.ContentFailed);
@@ -239,13 +239,13 @@ public class CsvHierarchyFileProcessorTests
         summary.Progress.InvalidRecords.Should().Be(2);
     }
 
-    [TestCase(FileErrorMode.FailFast, FileErrorMode.CollectErrors, true)]
-    [TestCase(FileErrorMode.CollectErrors, FileErrorMode.FailFast, false)]
-    public async Task RoutePolicy_OverridesFilePolicyForMappingAndMissingChildren(FileErrorMode fileMode, FileErrorMode routeMode, bool completed)
+    [TestCase(FileErrorMode.FailFast, false)]
+    [TestCase(FileErrorMode.CollectErrors, true)]
+    public async Task FilePolicy_AppliesToMappingAndMissingChildren(FileErrorMode fileMode, bool completed)
     {
         foreach (var csv in new[] { "H,h\nO,o\nL,p,bad\nT,1,0\n", "H,h\nO,o\nT,1,0\n" })
         {
-            var processor = new Processor(lineMode: routeMode);
+            var processor = new Processor();
             var summary = await processor.ProcessAsync(new Input(csv).OpenAsync, Context(errors: fileMode)).ConfigureAwait(false);
             summary.ValidationCompleted.Should().Be(completed);
             summary.Outcome.Should().Be(FileProcessingOutcome.ContentFailed);
@@ -278,14 +278,14 @@ public class CsvHierarchyFileProcessorTests
         environment.Handlers.Should().ContainSingle().Which.Disposed.Should().BeTrue();
     }
 
-    [TestCase(CsvRecordCardinality.Many, "", true)]
-    [TestCase(CsvRecordCardinality.Optional, "", true)]
-    [TestCase(CsvRecordCardinality.Optional, "O,one\nO,two\n", false)]
-    [TestCase(CsvRecordCardinality.One, "", false)]
-    [TestCase(CsvRecordCardinality.One, "O,one\n", true)]
-    [TestCase(CsvRecordCardinality.OneOrMore, "", false)]
-    [TestCase(CsvRecordCardinality.OneOrMore, "O,one\nO,two\n", true)]
-    public async Task RootCardinality_IsFileWide(CsvRecordCardinality cardinality, string csv, bool success)
+    [TestCase(FileCardinality.Many, "", true)]
+    [TestCase(FileCardinality.Optional, "", true)]
+    [TestCase(FileCardinality.Optional, "O,one\nO,two\n", false)]
+    [TestCase(FileCardinality.One, "", false)]
+    [TestCase(FileCardinality.One, "O,one\n", true)]
+    [TestCase(FileCardinality.OneOrMore, "", false)]
+    [TestCase(FileCardinality.OneOrMore, "O,one\nO,two\n", true)]
+    public async Task RootCardinality_IsFileWide(FileCardinality cardinality, string csv, bool success)
     {
         var processor = new CsvHierarchyFileProcessor<Group>(() => new(0, [Route("root", "O")], new("root", cardinality), Project));
         var summary = await processor.ProcessAsync(new Input(csv).OpenAsync, Context()).ConfigureAwait(false);
@@ -296,8 +296,8 @@ public class CsvHierarchyFileProcessorTests
     public async Task OptionalEnvelopes_CanBeAbsentAndTypedAccessFailsExplicitlyWhenIncorrect()
     {
         var processor = new CsvHierarchyFileProcessor<Group>(() => new(0, [Route("root", "O"), Route("header", "H"), Route("trailer", "T")],
-            new("root", CsvRecordCardinality.One), Project,
-            [new("Header", "header", false, CsvRecordPosition.First), new("Trailer", "trailer", false, CsvRecordPosition.Last)]));
+            new("root", FileCardinality.One), Project,
+            [new("Header", "header", false, FileRecordPosition.First), new("Trailer", "trailer", false, FileRecordPosition.Last)]));
         var missing = Context();
         (await processor.ProcessAsync(new Input("O,o\n").OpenAsync, missing).ConfigureAwait(false)).IsSuccess.Should().BeTrue();
         missing.GetMetadata<Wire>("Header").Should().BeNull();
@@ -325,17 +325,17 @@ public class CsvHierarchyFileProcessorTests
 
     [TestCase(FileErrorMode.FailFast, false)]
     [TestCase(FileErrorMode.CollectErrors, true)]
-    public async Task RootPolicy_AppliesToGroupFailuresAndMissingRoot(FileErrorMode rootMode, bool complete)
+    public async Task FilePolicy_AppliesToGroupFailuresAndMissingRoot(FileErrorMode fileMode, bool complete)
     {
         await using var environment = new Environment { GroupError = true };
         var definition = new CsvHierarchyDefinition<Group>(0,
-            [new CsvRecordRoute<Wire>("root", "O", WireMapping, errorMode: rootMode)], new("root", CsvRecordCardinality.OneOrMore), Project);
+            [new CsvRecordRoute<Wire>("root", "O", WireMapping)], new("root", FileCardinality.OneOrMore), Project);
         var processor = new Processor(environment, () => definition);
-        var summary = await processor.ProcessAsync(new Input("O,one\nO,two\n").OpenAsync, Context()).ConfigureAwait(false);
+        var summary = await processor.ProcessAsync(new Input("O,one\nO,two\n").OpenAsync, Context(errors: fileMode)).ConfigureAwait(false);
         summary.ValidationCompleted.Should().Be(complete);
         summary.Progress.InvalidRecords.Should().Be(0);
         summary.Progress.ErrorCount.Should().Be(complete ? 2 : 1);
-        var empty = await processor.ProcessAsync(new Input("").OpenAsync, Context()).ConfigureAwait(false);
+        var empty = await processor.ProcessAsync(new Input("").OpenAsync, Context(errors: fileMode)).ConfigureAwait(false);
         empty.ValidationCompleted.Should().Be(complete);
         empty.Progress.InvalidRecords.Should().Be(0);
     }
@@ -361,7 +361,7 @@ public class CsvHierarchyFileProcessorTests
     public async Task ReplayCountDrift_FaultsInsteadOfReportingSuccess(string replay)
     {
         await using var provider = new ServiceCollection().AddExecutionContext().BuildServiceProvider();
-        var processor = new CsvHierarchyFileProcessor<Group>(() => new(0, [Route("root", "O")], new("root", CsvRecordCardinality.Many), Project),
+        var processor = new CsvHierarchyFileProcessor<Group>(() => new(0, [Route("root", "O")], new("root", FileCardinality.Many), Project),
             serviceProvider: provider, handlerFactory: _ => new SimpleHandler([]));
         var opens = 0;
         Task<Stream> OpenAsync(CancellationToken cancellationToken) => Task.FromResult<Stream>(new MemoryStream(Encoding.UTF8.GetBytes(++opens == 1 ? "O,one\n" : replay)));
@@ -373,7 +373,7 @@ public class CsvHierarchyFileProcessorTests
     public async Task CompletedGroups_AreNotRetainedByFileState()
     {
         var references = new List<WeakReference>();
-        var processor = new CsvHierarchyFileProcessor<Group>(() => new(0, [Route("root", "O")], new("root", CsvRecordCardinality.Many), node =>
+        var processor = new CsvHierarchyFileProcessor<Group>(() => new(0, [Route("root", "O")], new("root", FileCardinality.Many), node =>
         {
             var group = Project(node);
             references.Add(new WeakReference(group));
@@ -422,7 +422,7 @@ public class CsvHierarchyFileProcessorTests
     public async Task ProjectionFault_PropagatesAndDisposesInput()
     {
         var fault = new IOException("Application callback failed.");
-        var definition = new CsvHierarchyDefinition<Group>(0, [Route("root", "O")], new("root", CsvRecordCardinality.One), _ => throw fault);
+        var definition = new CsvHierarchyDefinition<Group>(0, [Route("root", "O")], new("root", FileCardinality.One), _ => throw fault);
         var processor = new Processor(definition: () => definition);
         var input = new Input("O,one\n");
         Func<Task> action = () => processor.ProcessAsync(input.OpenAsync, Context());
@@ -487,7 +487,7 @@ public class CsvHierarchyFileProcessorTests
         input.Streams.Should().ContainSingle();
 
         var route = new CsvRecordRoute<Wire>("root", "O", () => new CsvFileMapping<Wire>().MapProperty("Name", x => x.Name, CsvFieldConverters.String));
-        var named = new Processor(definition: () => new(0, [route], new("root", CsvRecordCardinality.One), Project));
+        var named = new Processor(definition: () => new(0, [route], new("root", FileCardinality.One), Project));
         Func<Task> invalid = () => named.ProcessAsync(input.OpenAsync, Context());
         await invalid.Should().ThrowAsync<InvalidOperationException>().ConfigureAwait(false);
         input.Streams.Should().ContainSingle();
@@ -505,7 +505,7 @@ public class CsvHierarchyFileProcessorTests
             var match = key == "a" ? "A" : "B";
             services.AddKeyedScoped<FileUnitHandler<Group>>(key, (sp, _) => new NamedGroupHandler(name, sp.GetRequiredService<ExecutionContext>()));
             services.AddKeyedSingleton<CsvHierarchyFileProcessor<Group>>(key, (sp, _) => new(() => new(0, [Route("root", match)],
-                new("root", CsvRecordCardinality.One), Project), serviceProvider: sp, handlerFactory: scoped => scoped.GetRequiredKeyedService<FileUnitHandler<Group>>(key)));
+                new("root", FileCardinality.One), Project), serviceProvider: sp, handlerFactory: scoped => scoped.GetRequiredKeyedService<FileUnitHandler<Group>>(key)));
         }
 
         services.AddScoped<FlatHandler>();
@@ -526,7 +526,7 @@ public class CsvHierarchyFileProcessorTests
     [Test]
     public async Task LargeInvalidHierarchy_DoesNotThrowPerContentFailure()
     {
-        var processor = new CsvHierarchyFileProcessor<Group>(() => Orders(), processingOptions: new() { MaxDiagnostics = 10_000 }, options: new() { MaxGroupRecords = 10_001 });
+        var processor = new CsvHierarchyFileProcessor<Group>(() => Orders());
         var count = 0;
         void Observe(object? sender, FirstChanceExceptionEventArgs args) => Interlocked.Increment(ref count);
         AppDomain.CurrentDomain.FirstChanceException += Observe;
@@ -546,10 +546,10 @@ public class CsvHierarchyFileProcessorTests
     [Test]
     public void Definition_RejectsAmbiguousUnusedAndRepeatedKeys()
     {
-        Action duplicateKey = () => new CsvHierarchyDefinition<Group>(0, [Route("root", "O"), Route("ROOT", "L")], new("root", CsvRecordCardinality.One), Project);
-        Action duplicateMatch = () => new CsvHierarchyDefinition<Group>(0, [Route("root", "O"), Route("lines", "O")], new("root", CsvRecordCardinality.One), Project);
-        Action unused = () => new CsvHierarchyDefinition<Group>(0, [Route("root", "O"), Route("lines", "L")], new("root", CsvRecordCardinality.One), Project);
-        Action repeated = () => new CsvHierarchyDefinition<Group>(0, [Route("root", "O")], new("root", CsvRecordCardinality.One, [new("root")]), Project);
+        Action duplicateKey = () => new CsvHierarchyDefinition<Group>(0, [Route("root", "O"), Route("ROOT", "L")], new("root", FileCardinality.One), Project);
+        Action duplicateMatch = () => new CsvHierarchyDefinition<Group>(0, [Route("root", "O"), Route("lines", "O")], new("root", FileCardinality.One), Project);
+        Action unused = () => new CsvHierarchyDefinition<Group>(0, [Route("root", "O"), Route("lines", "L")], new("root", FileCardinality.One), Project);
+        Action repeated = () => new CsvHierarchyDefinition<Group>(0, [Route("root", "O")], new("root", FileCardinality.One, [new("root")]), Project);
         Action overlap = () => new CsvHierarchyDefinition<Group>(0, [Route("root", "O"), Route("header", "H")], new("root"), Project,
             [new("Header", "root")]);
         duplicateKey.Should().Throw<ArgumentException>();
@@ -565,15 +565,15 @@ public class CsvHierarchyFileProcessorTests
     private static CsvFileMapping<Wire> WireMapping() => new CsvFileMapping<Wire>().MapProperty("Name", x => x.Name, CsvFieldConverters.String, 1);
     private static CsvRecordRoute Route(string key, string match) => new CsvRecordRoute<Wire>(key, match, WireMapping);
     private static Group Project(CsvAggregateNode node) => new(node.GetRecord<Wire>(), node.GetChildren("lines", x => x.GetRecord<Wire>()));
-    private static CsvHierarchyDefinition<Group> Orders(FileErrorMode? lineMode = null, WireValidator? validator = null)
+    private static CsvHierarchyDefinition<Group> Orders(WireValidator? validator = null)
         => new(0,
             [new CsvRecordRoute<Wire>("header", "H", WireMapping, new WireValidator()),
              Route("root", "O"),
-             new CsvRecordRoute<Wire>("lines", "L", () => WireMapping().MapProperty("Quantity", x => x.Quantity, CsvFieldConverters.Nullable<int>(), 2), validator, lineMode),
+             new CsvRecordRoute<Wire>("lines", "L", () => WireMapping().MapProperty("Quantity", x => x.Quantity, CsvFieldConverters.Nullable<int>(), 2), validator),
              new CsvRecordRoute<Wire>("trailer", "T", () => new CsvFileMapping<Wire>()
                 .MapProperty("Quantity", x => x.Quantity, CsvFieldConverters.Nullable<int>(), 1).MapProperty("Total", x => x.Total, CsvFieldConverters.Nullable<int>(), 2))],
-            new("root", CsvRecordCardinality.OneOrMore, [new("lines", CsvRecordCardinality.OneOrMore)]), Project,
-            [new("Header", "header", true, CsvRecordPosition.First), new("Trailer", "trailer", true, CsvRecordPosition.Last)]);
+            new("root", FileCardinality.OneOrMore, [new("lines", FileCardinality.OneOrMore)]), Project,
+            [new("Header", "header", true, FileRecordPosition.First), new("Trailer", "trailer", true, FileRecordPosition.Last)]);
 
     public sealed class Wire
     {
@@ -647,9 +647,9 @@ public class CsvHierarchyFileProcessorTests
 
     private sealed class Processor : CsvHierarchyFileProcessor<Group>
     {
-        public Processor(Environment? environment = null, Func<CsvHierarchyDefinition<Group>>? definition = null, FileErrorMode? lineMode = null,
-            WireValidator? wireValidator = null, CsvFileOptions? options = null, FileProcessingOptions? processingOptions = null)
-            : base(definition ?? (() => Orders(lineMode, wireValidator)), processingOptions, options ?? new() { Comment = '#' }, serviceProvider: environment?.Provider,
+        public Processor(Environment? environment = null, Func<CsvHierarchyDefinition<Group>>? definition = null,
+            WireValidator? wireValidator = null, CsvFileOptions? options = null)
+            : base(definition ?? (() => Orders(wireValidator)), options ?? new() { Comment = '#' }, serviceProvider: environment?.Provider,
                 handlerFactory: environment is null ? null : sp => sp.GetRequiredService<Handler>()) { }
         public List<FileDiagnostic> Diagnostics { get; } = [];
         public List<string> Events { get; } = [];

@@ -12,8 +12,7 @@ public sealed class CsvRecordRoute<TRecord> : CsvRecordRoute where TRecord : cla
     /// <param name="match">The exact discriminator.</param>
     /// <param name="mappingFactory">Creates a fresh positional mapping per pass.</param>
     /// <param name="validator">Optional pure field validation; no dependency-backed business services.</param>
-    /// <param name="errorMode">The optional continuation override.</param>
-    public CsvRecordRoute(string key, string match, Func<CsvFileMapping<TRecord>> mappingFactory, IValidator<TRecord>? validator = null, FileErrorMode? errorMode = null) : base(key, match, errorMode)
+    public CsvRecordRoute(string key, string match, Func<CsvFileMapping<TRecord>> mappingFactory, IValidator<TRecord>? validator = null) : base(key, match)
         => (_mappingFactory, _validator) = (mappingFactory.ThrowIfNull(), validator);
 
     /// <inheritdoc/>

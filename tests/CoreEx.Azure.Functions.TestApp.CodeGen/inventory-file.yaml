@@ -6,8 +6,6 @@ runtimePath: InventoryImports/Files
 runtimeNamespace: CoreEx.Azure.Functions.TestApp.InventoryImports
 mode: ValidateThenExecute
 errorMode: CollectErrors
-limits:
-  maxInputBytes: 1048576
 records:
 - name: Adjustment
   properties:

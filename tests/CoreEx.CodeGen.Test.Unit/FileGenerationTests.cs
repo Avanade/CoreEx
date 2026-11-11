@@ -1,7 +1,7 @@
 namespace CoreEx.CodeGen.Test.Unit;
 
 [TestFixture]
-public class FileGenerationTests
+public partial class FileGenerationTests
 {
     private string _directory = null!;
     private string _runtime = null!;
@@ -192,7 +192,7 @@ public class FileGenerationTests
         metadataContext.Should().Contain("GetHeaderMetadata()").And.Contain("GetAcceptedHeaderMetadata()")
             .And.Contain("GetTrailerMetadata()").And.Contain("GetAcceptedTrailerMetadata()");
         var hierarchyProcessor = System.IO.File.ReadAllText(Path.Combine(_runtime, "Files", "Nested", "NestedProcessor.g.cs"));
-        hierarchyProcessor.Should().Contain("new CsvMetadataDefinition[]").And.Contain("CsvRecordPosition.First").And.Contain("CsvRecordPosition.Last");
+        hierarchyProcessor.Should().Contain("new CsvMetadataDefinition[]").And.Contain("FileRecordPosition.First").And.Contain("FileRecordPosition.Last");
     }
 
     [Test]
@@ -226,8 +226,8 @@ public class FileGenerationTests
 
         var processor = System.IO.File.ReadAllText(Path.Combine(_runtime, "Files", "Unordered", "UnorderedProcessor.g.cs"));
         processor.Should().Contain("new CsvMetadataDefinition[]")
-            .And.Contain("new(\"Header\", \"Header\", true, CsvRecordPosition.First)")
-            .And.Contain("cardinality: CsvRecordCardinality.Many, position: CsvRecordPosition.Any");
+            .And.Contain("new(\"Header\", \"Header\", true, FileRecordPosition.First)")
+            .And.Contain("cardinality: FileCardinality.Many, position: FileRecordPosition.Any");
         var context = System.IO.File.ReadAllText(Path.Combine(_runtime, "Files", "Unordered", "UnorderedContext.g.cs"));
         context.Should().Contain("GetHeaderMetadata()").And.Contain("GetAcceptedHeaderMetadata()");
     }
@@ -445,6 +445,7 @@ public class FileGenerationTests
     [TestCase("File", "ProcessingContext")]
     [TestCase("File", "UnitArgs")]
     [TestCase("File", "UnitValidationArgs")]
+    [TestCase("File", "RecordPosition")]
     [TestCase("Generated", "RegexAttribute")]
     public async Task ReservedGeneratedTypeNamesAreRejectedBeforeBatchWrites(string definition, string record)
     {
@@ -459,13 +460,13 @@ public class FileGenerationTests
     }
 
     [Test]
-    public async Task ConversionHelperContainingTypeCollisionIsRejectedBeforeBatchWrites()
+    public async Task DateConversionUsesRuntimeConvertersWithoutGeneratedHelperCollisions()
     {
         Write("a-file.yaml", Flat());
         Write("z-file.yaml", Flat("Convert").Replace("name: Timestamp", "name: RowMapping"));
-        var act = () => FileGenerationBatch.GenerateAsync(Args());
-        await act.Should().ThrowAsync<CodeGenException>().WithMessage("*ConvertRowMapping*containing mapping type*");
-        Directory.Exists(Path.Combine(_runtime, "Files")).Should().BeFalse();
+        await FileGenerationBatch.GenerateAsync(Args());
+        var mapping = System.IO.File.ReadAllText(Path.Combine(_runtime, "Files", "Convert", "ConvertRowMapping.g.cs"));
+        mapping.Should().Contain("CsvFieldConverters.DateTime(\"yyyyMMdd\")").And.NotContain("private static bool Convert");
     }
 
     [TestCase("cardinality: OneOrMore", "cardinality: Invalid")]
@@ -491,15 +492,14 @@ public class FileGenerationTests
 
         (string Page, string[] Properties)[] expected =
         [
-            ("CodeGeneration", ["format", "csv", "limits", "metadata", "mode"]),
-            ("Csv", ["delimiter", "encoding", "discriminatorIndex", "maxGroupRecords", "structure"]),
+            ("CodeGeneration", ["format", "csv", "metadata", "mode", "errorMode"]),
+            ("Csv", ["delimiter", "encoding", "discriminatorIndex", "structure"]),
             ("CsvMetadata", ["position"]),
             ("CsvProperty", ["index"]),
             ("CsvRecord", ["match", "cardinality", "position"]),
-            ("Limits", ["maxInputBytes", "maxUnits", "maxDiagnostics"]),
             ("Metadata", ["name", "record", "required", "csv"]),
             ("Property", ["name", "property", "csv", "format"]),
-            ("Record", ["name", "csv", "errorMode", "properties"])
+            ("Record", ["name", "csv", "properties"])
         ];
         foreach (var (page, properties) in expected)
         {
@@ -516,25 +516,7 @@ public class FileGenerationTests
         }
 
         System.IO.File.ReadAllText(Path.Combine(directory, "CodeGeneration.md")).Should().NotContain("## Structure");
-    }
-
-    [Test]
-    public async Task LongBudgetsUseOnRampInferenceWithoutExplicitMetadata()
-    {
-        Write("flat-file.yaml", Flat() + "\nlimits: { maxInputBytes: 4294967296 }\ncsv: { maxGroupRecords: 2147483648 }\n");
-        var statistics = await FileGenerationBatch.GenerateAsync(Args(), validateOnly: true);
-        var config = (Files.Config.CodeGenConfig)statistics.RootConfig!;
-        config.Limits!.MaxInputBytes.Should().Be(4_294_967_296L);
-        config.Csv!.MaxGroupRecords.Should().Be(2_147_483_648L);
-        var schemaPath = Path.Combine(_directory, "files-schema.json");
-        OnRamp.Utility.JsonSchemaGenerator.Generate<Files.Config.CodeGenConfig>(schemaPath, "File configuration");
-        using var schema = System.Text.Json.JsonDocument.Parse(System.IO.File.ReadAllText(schemaPath));
-        var definitions = schema.RootElement.GetProperty("definitions");
-        var properties = definitions.GetProperty("CodeGeneration").GetProperty("properties");
-        properties.GetProperty("limits").GetProperty("allOf")[0].GetProperty("$ref").GetString().Should().Be("#/definitions/Limits");
-        properties.GetProperty("csv").GetProperty("allOf")[0].GetProperty("$ref").GetString().Should().Be("#/definitions/Csv");
-        definitions.GetProperty("Limits").GetProperty("properties").GetProperty("maxInputBytes").GetProperty("type").GetString().Should().Be("integer");
-        definitions.GetProperty("Csv").GetProperty("properties").GetProperty("maxGroupRecords").GetProperty("type").GetString().Should().Be("integer");
+        System.IO.File.ReadAllText(Path.Combine(directory, "Record.md")).Should().NotContain("`errorMode`");
     }
 
     [Test]
@@ -561,7 +543,7 @@ public class FileGenerationTests
     public async Task GeneratedFlatAndTwoNestedHierarchiesCompileAndRunTogether()
     {
         Write("flat-file.yaml", Flat().Replace("name: Code, required: true", "name: 'Supplier code', property: Code, referenceData: { type: Consumer.Country }, required: true")
-            .Replace("version: '2026-01'", "version: 'rev\"\\\u96ea'\nlimits: { maxDiagnostics: 10000 }")
+            .Replace("version: '2026-01'", "version: 'rev\"\\\u96ea'")
             + "\n  - { name: Alternate, referenceData: { type: Consumer.Country, allowInactive: true } }\n");
         Write("orders-file.yaml", Hierarchy("Orders"));
         Write("returns-file.yaml", Hierarchy("Returns"));

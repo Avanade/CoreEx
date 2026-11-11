@@ -1,6 +1,6 @@
 namespace CoreEx.CodeGen.Files.Config;
 
-/// <summary>Declares a nullable wire property, its CSV selector, conversion, and pure validation.</summary>
+/// <summary>Declares a scalar or nested wire occurrence, source member, and pure validation.</summary>
 [CodeGenClass("Property", Title = "File record property.")]
 [CodeGenCategory("Primary", Title = "Source field and generated property identity.")]
 [CodeGenCategory("Csv", Title = "CSV selector and conversion.")]
@@ -10,7 +10,7 @@ public class PropertyConfig : ConfigBase<CodeGenConfig, RecordConfig>
 {
     /// <summary>Gets or sets the exact source field name.</summary>
     [JsonPropertyName("name")]
-    [CodeGenProperty("Primary", Title = "Source field name.", IsMandatory = true, Description = "Exact CSV column name, or logical label for positional fields.")]
+    [CodeGenProperty("Primary", Title = "Source field name.", IsMandatory = true, Description = "Exact JSON direct member or CSV column name; logical label for positional CSV fields.")]
     public string? Name { get; set; }
 
     /// <summary>Gets or sets the exact generated C# property name override.</summary>
@@ -23,8 +23,18 @@ public class PropertyConfig : ConfigBase<CodeGenConfig, RecordConfig>
 
     /// <summary>Gets or sets the supported logical type.</summary>
     [JsonPropertyName("type")]
-    [CodeGenProperty("Primary", Title = "Logical type.", Options = ["String", "Integer", "Int64", "Decimal", "Double", "Boolean", "Guid", "DateOnly", "DateTime"], Description = "Defaults to String. All wire properties are nullable; requiredness is separate.")]
+    [CodeGenProperty("Primary", Title = "Logical type.", Options = ["String", "Integer", "Int64", "Decimal", "Double", "Boolean", "Guid", "DateOnly", "DateTime", "DateTimeOffset"], Description = "Defaults to String only without record/collection. Native JSON token types are required; all wire properties are nullable.")]
     public string? Type { get; set; }
+
+    /// <summary>Gets or sets the nested object record reference.</summary>
+    [JsonPropertyName("record")]
+    [CodeGenProperty("Primary", Title = "Nested object record.", Description = "JSONL only; mutually exclusive with type/collection. Required rejects missing/null; present objects always validate.")]
+    public string? Record { get; set; }
+
+    /// <summary>Gets or sets the nested collection occurrence.</summary>
+    [JsonPropertyName("collection")]
+    [CodeGenProperty("Primary", Title = "Nested collection occurrence.", Description = "JSONL only; mutually exclusive with type/record. Null elements are not supported.")]
+    public CollectionConfig? Collection { get; set; }
 
     /// <summary>Gets or sets CSV-specific positional selection.</summary>
     [JsonPropertyName("csv")]
@@ -33,7 +43,7 @@ public class PropertyConfig : ConfigBase<CodeGenConfig, RecordConfig>
 
     /// <summary>Gets or sets an exact invariant date format.</summary>
     [JsonPropertyName("format")]
-    [CodeGenProperty("Mapping", Title = "Exact invariant date format.", Description = "Required for DateOnly/DateTime; not applicable to other types.")]
+    [CodeGenProperty("Mapping", Title = "Exact invariant date format.", Description = "Optional for CSV and JSON dates; when omitted, uses standard invariant parsing. DateTimeOffset always requires an explicit Z or numeric offset; JSON DateTime rejects offsets. Also applies to scalar collection elements and date bounds/options.")]
     public string? Format { get; set; }
 
     /// <summary>Gets or sets whether null is rejected, preserving valid zero/false values.</summary>
@@ -120,6 +130,8 @@ public class PropertyConfig : ConfigBase<CodeGenConfig, RecordConfig>
             if (Precision.HasValue || Scale.HasValue) yield return $"Decimal({Precision?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "null"}, {Scale?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "null"})";
             if (Options is not null) yield return $"CompareValues(new {DotNetType.TrimEnd('?')}[] {{ {string.Join(", ", Options.Select(x => ScalarLiteral(ParseScalar(x, nameof(Options)))))} }})";
             if (ReferenceData is not null) yield return $"ReferenceData(r => r.With<global::{ReferenceData.Type}>(){(ReferenceData.AllowInactive == true ? ".AllowInactive()" : string.Empty)})";
+            if (Record is not null) yield return $"Entity(v => v.WithValidator(new {Root!.Name}{Record}Validator()))";
+            if (Collection?.Record is not null) yield return $"Collection(v => v.WithItemValidator(new {Root!.Name}{Collection.Record}Validator()))";
         }
     }
 
@@ -145,8 +157,16 @@ public class PropertyConfig : ConfigBase<CodeGenConfig, RecordConfig>
             "Double" when text is not null && double.TryParse(text, System.Globalization.NumberStyles.Float, culture, out var n) && double.IsFinite(n) => n,
             "Boolean" when value.ValueKind is JsonValueKind.True or JsonValueKind.False => value.GetBoolean(),
             "Guid" when text is not null && Guid.TryParse(text, out var n) => n,
-            "DateOnly" when text is not null && DateOnly.TryParseExact(text, Format, culture, System.Globalization.DateTimeStyles.None, out var n) => n,
-            "DateTime" when text is not null && DateTime.TryParseExact(text, Format, culture, System.Globalization.DateTimeStyles.None, out var n) => n,
+            "DateOnly" when text is not null && (Format is null
+                ? DateOnly.TryParse(text, culture, System.Globalization.DateTimeStyles.None, out var n)
+                : DateOnly.TryParseExact(text, Format, culture, System.Globalization.DateTimeStyles.None, out n)) => n,
+            "DateTime" when text is not null && (!Root!.IsJsonl || !HasOffset(text)) && (Format is null
+                ? DateTime.TryParse(text, culture, System.Globalization.DateTimeStyles.None, out var n)
+                : DateTime.TryParseExact(text, Format, culture, System.Globalization.DateTimeStyles.None, out n))
+                && (!Root.IsJsonl || n.Kind == DateTimeKind.Unspecified) => n,
+            "DateTimeOffset" when text is not null && HasOffset(text) && (Format is null
+                ? DateTimeOffset.TryParse(text, culture, System.Globalization.DateTimeStyles.None, out var n)
+                : DateTimeOffset.TryParseExact(text, Format, culture, System.Globalization.DateTimeStyles.AssumeUniversal, out n)) => n,
             _ => throw new CodeGenException(this, property, $"Expected a non-null {Type} scalar matching the property's type and format.")
         };
     }
@@ -163,15 +183,40 @@ public class PropertyConfig : ConfigBase<CodeGenConfig, RecordConfig>
         Guid n => $"new Guid({OnRamp.Utility.CSharpSource.StringLiteral(n.ToString("D"))})",
         DateOnly n => FormattableString.Invariant($"new DateOnly({n.Year}, {n.Month}, {n.Day})"),
         DateTime n => FormattableString.Invariant($"new DateTime({n.Ticks}L, DateTimeKind.{n.Kind})"),
+        DateTimeOffset n => FormattableString.Invariant($"new DateTimeOffset({n.Ticks}L, new TimeSpan({n.Offset.Ticks}L))"),
         _ => throw new InvalidOperationException("Unsupported validation scalar.")
     };
 
     /// <summary>Gets the nullable C# type.</summary>
-    public string DotNetType => Type switch
+    public string DotNetType => Record is not null ? Root!.Name + Record + "?" : Collection is not null ? $"List<{ElementType}>?" : ScalarDotNetType(Type!) + "?";
+
+    /// <summary>Gets a collection's non-null element type.</summary>
+    public string ElementType => Collection!.Record is not null ? Root!.Name + Collection.Record : ScalarDotNetType(Collection.Type!);
+
+    /// <summary>Resolves the logical scalar to its exact C# type.</summary>
+    private static string ScalarDotNetType(string type) => type switch
     {
-        "String" => "string?", "Integer" => "int?", "Int64" => "long?", "Decimal" => "decimal?", "Double" => "double?", "Boolean" => "bool?",
-        "Guid" => "Guid?", "DateOnly" => "DateOnly?", "DateTime" => "DateTime?", _ => throw new InvalidOperationException("Unprepared property type.")
+        "String" => "string", "Integer" => "int", "Int64" => "long", "Decimal" => "decimal", "Double" => "double", "Boolean" => "bool",
+        "Guid" => "Guid", "DateOnly" => "DateOnly", "DateTime" => "DateTime", "DateTimeOffset" => "DateTimeOffset", _ => throw new InvalidOperationException("Unprepared property type.")
     };
+
+    /// <summary>Gets the complete JSON mapping occurrence call.</summary>
+    public string JsonMappingExpression
+    {
+        get
+        {
+            var args = $"{SelectorLiteral}, x => x.{PropertyName}";
+            var scalar = Collection?.Type ?? Type;
+            var converter = $"JsonFieldConverters.{scalar}" + (scalar is "DateOnly" or "DateTime" or "DateTimeOffset" ? $"({(Format is null ? "null" : FormatLiteral)})" : string.Empty);
+            if (Record is not null) return $"MapObject({args}, {Root!.Name}{Record}Mapping.Create())";
+            if (Collection is not null)
+                return Collection.Record is not null
+                    ? $"MapObjects({args}, {Root!.Name}{Collection.Record}Mapping.Create(), FileCardinality.{Collection.Cardinality}, {Collection.MaxItems?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "null"})"
+                    : $"MapValues<{ElementType}>({args}, {converter}, FileCardinality.{Collection.Cardinality}, {Collection.MaxItems?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "null"})";
+
+            return Type == "String" ? $"MapString({args})" : $"MapValue<{ScalarDotNetType(Type!)}>({args}, {converter})";
+        }
+    }
 
     /// <summary>Gets a safe mapping selector literal.</summary>
     public string SelectorLiteral => OnRamp.Utility.CSharpSource.StringLiteral(Name!);
@@ -183,16 +228,14 @@ public class PropertyConfig : ConfigBase<CodeGenConfig, RecordConfig>
     public string Converter => Type switch
     {
         "String" => "CsvFieldConverters.String",
-        "DateOnly" => $"CsvFieldConverters.DateOnly({OnRamp.Utility.CSharpSource.StringLiteral(Format!)})",
-        "DateTime" => $"Convert{PropertyName}",
+        "DateOnly" => $"CsvFieldConverters.DateOnly({FormatLiteral})",
+        "DateTime" => $"CsvFieldConverters.DateTime({FormatLiteral})",
+        "DateTimeOffset" => $"CsvFieldConverters.DateTimeOffset({FormatLiteral})",
         _ => $"CsvFieldConverters.Nullable<{DotNetType.TrimEnd('?')}>()"
     };
 
-    /// <summary>Gets whether an exact DateTime converter must be emitted.</summary>
-    public bool IsDateTime => Type == "DateTime";
-
     /// <summary>Gets a safe date-format literal.</summary>
-    public string FormatLiteral => OnRamp.Utility.CSharpSource.StringLiteral(Format ?? string.Empty);
+    public string FormatLiteral => Format is null ? "null" : OnRamp.Utility.CSharpSource.StringLiteral(Format);
 
     /// <inheritdoc/>
     protected override async Task PrepareAsync()
@@ -201,7 +244,36 @@ public class PropertyConfig : ConfigBase<CodeGenConfig, RecordConfig>
         Name = RequireText(nameof(Name), Name);
         PropertyName = Property is null ? DerivePropertyName(Name) : ConfigValidation.Identifier(this, nameof(Property), Property);
         PropertyName = ConfigValidation.Identifier(this, nameof(Property), PropertyName);
+        if ((Type is not null ? 1 : 0) + (Record is not null ? 1 : 0) + (Collection is not null ? 1 : 0) > 1)
+            throw new CodeGenException(this, nameof(Type), "Use exactly one of type, record, or collection.");
+
+        if (Root!.IsJsonl ? Csv is not null : Record is not null || Collection is not null)
+            throw new CodeGenException(this, nameof(Csv), "Nested records/collections are JSONL only; CSV selectors are inapplicable to JSONL.");
+
+        if (Collection is not null)
+            await Collection.PrepareAsync(Root!, this).ConfigureAwait(false);
+
+        if (Record is not null || Collection is not null)
+        {
+            if (Mandatory.HasValue || MinLength.HasValue || MaxLength.HasValue || Regex is not null || Email.HasValue || HasMin || HasMax || Precision.HasValue || Scale.HasValue || Options is not null || ReferenceData is not null)
+                throw new CodeGenException(this, nameof(Record), "Nested occurrences support required and collection bounds, not scalar validation rules.");
+
+            if (Record is not null)
+                ConfigValidation.Identifier(this, nameof(Record), Record);
+
+            if (Format is not null && Collection?.Type is not ("DateOnly" or "DateTime" or "DateTimeOffset"))
+                throw new CodeGenException(this, nameof(Format), "Only date scalars support format.");
+
+            if (Collection?.Type is "DateOnly" or "DateTime" or "DateTimeOffset")
+                ValidateDateFormat(Collection.Type);
+
+            return;
+        }
+
         Type = DefaultWhereNull(Type, () => "String");
+        if (Type is not ("String" or "Integer" or "Int64" or "Decimal" or "Double" or "Boolean" or "Guid" or "DateOnly" or "DateTime" or "DateTimeOffset"))
+            throw new CodeGenException(this, nameof(Type), "Unsupported scalar type.");
+
         Required = DefaultWhereNull(Required, () => false);
         if (Csv is not null)
             await Csv.PrepareAsync(Root!, this).ConfigureAwait(false);
@@ -226,21 +298,8 @@ public class PropertyConfig : ConfigBase<CodeGenConfig, RecordConfig>
         if (Precision is < 1 or > 29 || Scale is < 0 or > 28 || Scale > Precision)
             throw new CodeGenException(this, nameof(Precision), "Require precision 1..29, scale 0..28 and scale <= precision.");
 
-        if (Type is "DateOnly" or "DateTime")
-        {
-            RequireText(nameof(Format), Format);
-            try
-            {
-                var date = new DateTime(2024, 6, 15, 13, 14, 15);
-                var text = date.ToString(Format, System.Globalization.CultureInfo.InvariantCulture);
-                if (!DateTime.TryParseExact(text, Format, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out _))
-                    throw new FormatException("The date format cannot round-trip.");
-            }
-            catch (FormatException ex)
-            {
-                throw new CodeGenException(this, nameof(Format), ex.Message);
-            }
-        }
+        if (Type is "DateOnly" or "DateTime" or "DateTimeOffset")
+            ValidateDateFormat(Type);
         else if (Format is not null)
             throw new CodeGenException(this, nameof(Format), "Only date properties support format.");
 
@@ -267,6 +326,41 @@ public class PropertyConfig : ConfigBase<CodeGenConfig, RecordConfig>
         if (ReferenceData is not null)
             await ReferenceData.PrepareAsync(Root!, this).ConfigureAwait(false);
     }
+
+    /// <summary>Checks scalar and scalar-collection date formats without weakening offset semantics.</summary>
+    private void ValidateDateFormat(string type)
+    {
+        if (Format is null)
+            return;
+
+        RequireText(nameof(Format), Format);
+
+        try
+        {
+            var date = new DateTimeOffset(2024, 6, 15, 13, 14, 15, TimeSpan.FromHours(10));
+            var culture = System.Globalization.CultureInfo.InvariantCulture;
+            var text = type switch
+            {
+                "DateOnly" => DateOnly.FromDateTime(date.DateTime).ToString(Format, culture),
+                "DateTimeOffset" => date.ToString(Format, culture),
+                _ => date.DateTime.ToString(Format, culture)
+            };
+            if (type switch
+            {
+                "DateOnly" => !DateOnly.TryParseExact(text, Format, culture, System.Globalization.DateTimeStyles.None, out _),
+                "DateTimeOffset" => !HasOffset(text) || !DateTimeOffset.TryParseExact(text, Format, culture, System.Globalization.DateTimeStyles.AssumeUniversal, out var parsed) || parsed.Offset != date.Offset,
+                _ => Root!.IsJsonl && HasOffset(text) || !DateTime.TryParseExact(text, Format, culture, System.Globalization.DateTimeStyles.None, out _)
+            })
+                throw new FormatException("The date format cannot round-trip its required offset semantics.");
+        }
+        catch (FormatException ex)
+        {
+            throw new CodeGenException(this, nameof(Format), ex.Message);
+        }
+    }
+
+    /// <summary>Requires an explicit source offset rather than assuming a local time zone.</summary>
+    private static bool HasOffset(string text) => System.Text.RegularExpressions.Regex.IsMatch(text.TrimEnd(), @"(?:[zZ]|[+-]\d{2}:\d{2})$", RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));
 
     /// <summary>Derives a public property identifier from underscore- and hyphen-separated source names.</summary>
     private static string DerivePropertyName(string sourceName)

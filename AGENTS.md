@@ -38,8 +38,8 @@ reference data, validation, and data access — into a consistent, composable ba
 | `CoreEx.Data` | OData-esque dynamic querying (`QueryArgs`/`PagingArgs`/`QueryArgsConfig`), `ItemsResult<T>` |
 | `CoreEx.Data.GraphQL` | Transport-agnostic GraphQL-lite bridge (`IGraphQLEngine`) over `CoreEx.Data` querying + `JsonFilter` field projection; hosted via `CoreEx.AspNetCore`'s `MapCoreExGraphQLLite` |
 | `CoreEx.UnitTesting` | Fluent test toolkit: event assertions, outbox assertions, JSON seed data |
-| `CoreEx.CodeGen` | Dev-time reference-data and CSV file-integration code generation from YAML |
-| `CoreEx.IO` | Host-neutral CSV validation, streamed diagnostics, immutable replay and scoped execution |
+| `CoreEx.CodeGen` | Dev-time reference-data and CSV/nested JSONL integration generation from YAML |
+| `CoreEx.IO` | Host-neutral CSV/nested JSONL validation, streamed diagnostics, immutable replay and scoped execution |
 
 **Architecture overview**: layered services (Contracts → Application → Infrastructure) with
 composition-root hosts (Api, Relay, Subscribe). See [samples/docs/layers.md](./samples/docs/layers.md)

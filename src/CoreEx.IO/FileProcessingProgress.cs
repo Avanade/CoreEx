@@ -15,7 +15,7 @@ public sealed class FileProcessingProgress
     /// <param name="errorCount">The error diagnostics emitted during validation.</param>
     /// <param name="warningCount">The warning diagnostics emitted during validation.</param>
     /// <param name="informationCount">The informational diagnostics emitted during validation.</param>
-    public FileProcessingProgress(long bytesRead = 0, long recordsRead = 0, long invalidRecords = 0, long? unitsRead = null, long invalidUnits = 0,
+    internal FileProcessingProgress(long bytesRead = 0, long recordsRead = 0, long invalidRecords = 0, long? unitsRead = null, long invalidUnits = 0,
         long unitsValidated = 0, long unitsAttempted = 0, long unitsExecuted = 0, long errorCount = 0, long warningCount = 0, long informationCount = 0)
     {
         bytesRead.ThrowIfLessThanZero();

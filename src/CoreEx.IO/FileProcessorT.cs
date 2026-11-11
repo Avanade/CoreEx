@@ -4,27 +4,20 @@ namespace CoreEx.IO;
 /// <typeparam name="TUnit">The flat record or assembled business unit.</typeparam>
 public abstract class FileProcessor<TUnit> : FileProcessor where TUnit : class
 {
-    private readonly FileProcessingOptions _processingOptions;
     private readonly IValidator<TUnit>? _validator;
     private readonly IServiceProvider? _serviceProvider;
     private readonly Func<IServiceProvider, FileUnitHandler<TUnit>>? _handlerFactory;
     private readonly FileProcessorInvoker _invoker;
 
-    /// <summary>Initializes common processing budgets, validation, and scoped business handlers.</summary>
-    /// <param name="processingOptions">Format-neutral processing budgets.</param>
+    /// <summary>Initializes validation and scoped business handlers.</summary>
     /// <param name="validator">A pure unit validator; dependency-backed validation belongs in the scoped handler.</param>
     /// <param name="serviceProvider">The provider from which unit scopes are created.</param>
     /// <param name="handlerFactory">Resolves the unit handler after trusted context configuration.</param>
-    protected FileProcessor(FileProcessingOptions? processingOptions, IValidator<TUnit>? validator, IServiceProvider? serviceProvider, Func<IServiceProvider, FileUnitHandler<TUnit>>? handlerFactory)
+    private protected FileProcessor(IValidator<TUnit>? validator, IServiceProvider? serviceProvider, Func<IServiceProvider, FileUnitHandler<TUnit>>? handlerFactory)
     {
-        processingOptions ??= new FileProcessingOptions();
-        processingOptions.MaxInputBytes.ThrowIfLessThanOrEqualToZero();
-        processingOptions.MaxUnits.ThrowIfLessThanOrEqualToZero();
-        processingOptions.MaxDiagnostics.ThrowIfLessThanOrEqualToZero();
         if (handlerFactory is not null)
             serviceProvider.ThrowIfNull();
 
-        _processingOptions = processingOptions;
         _validator = validator;
         _serviceProvider = serviceProvider;
         _handlerFactory = handlerFactory;
@@ -60,6 +53,9 @@ public abstract class FileProcessor<TUnit> : FileProcessor where TUnit : class
         if (validationCompleted)
             await OnValidateFileAsync(new(context, state.ReportAsync), cancellationToken).ConfigureAwait(false);
 
+        if (validationCompleted && state.Errors == 0 && !state.ExecutionResult.IsFailure)
+            context.FreezeAcceptedMetadata();
+
         cancellationToken.ThrowIfCancellationRequested();
         if (state.Errors > 0 && !state.ExecutionResult.IsFailure)
         {
@@ -70,7 +66,6 @@ public abstract class FileProcessor<TUnit> : FileProcessor where TUnit : class
 
         if (context.Mode == FileProcessingMode.ValidateOnly)
         {
-            context.FreezeAcceptedMetadata();
             var validated = new FileProcessingSummary(context, FileProcessingOutcome.Succeeded, state.Snapshot(), true);
             await OnCompletedAsync(new(context, validated), cancellationToken).ConfigureAwait(false);
             return validated;
@@ -78,7 +73,6 @@ public abstract class FileProcessor<TUnit> : FileProcessor where TUnit : class
 
         if (context.Mode == FileProcessingMode.ValidateThenExecute)
         {
-            context.FreezeAcceptedMetadata();
             var executionContext = OnCreateExecutionContext(context).ThrowIfNull();
             if (ReferenceEquals(executionContext, context) || !ReferenceEquals(executionContext.Identity, context.Identity)
                 || executionContext.Mode != context.Mode || executionContext.ErrorMode != context.ErrorMode)
@@ -95,9 +89,6 @@ public abstract class FileProcessor<TUnit> : FileProcessor where TUnit : class
         var summary = new FileProcessingSummary(context, outcome, state.Snapshot(), validationCompleted, state.ExecutionResult);
         if (summary.IsSuccess)
         {
-            if (context.Mode == FileProcessingMode.ValidateAndExecute)
-                context.FreezeAcceptedMetadata();
-
             await OnCompletedAsync(new(context, summary), cancellationToken).ConfigureAwait(false);
         }
 
@@ -120,16 +111,23 @@ public abstract class FileProcessor<TUnit> : FileProcessor where TUnit : class
     protected virtual Task OnValidatedUnitAsync(FileUnitArgs<TUnit> args, CancellationToken cancellationToken)
         => Task.CompletedTask;
 
-    /// <summary>Gets the maximum source bytes per pass.</summary>
-    private protected long MaxInputBytes => _processingOptions.MaxInputBytes;
-
-    /// <summary>Gets the maximum candidate business units per file.</summary>
-    private protected long MaxUnits => _processingOptions.MaxUnits;
-
     /// <summary>Reads or reconstructs one pass with format-specific parsing and assembly.</summary>
+    /// <param name="openReadAsync">Opens a fresh source stream for the pass.</param>
+    /// <param name="context">The pass-local processing context.</param>
+    /// <param name="state">The shared file-processing counters and diagnostic callback.</param>
+    /// <param name="execute">Whether validated units should execute during this pass.</param>
+    /// <param name="cancellationToken">The processing cancellation token.</param>
+    /// <returns>Whether the pass completed successfully.</returns>
     private protected abstract Task<bool> ReadPassAsync(Func<CancellationToken, Task<Stream>> openReadAsync, FileProcessingContext context, ProcessingState state, bool execute, CancellationToken cancellationToken);
 
     /// <summary>Validates one mapped unit and records its provenance and accounting.</summary>
+    /// <param name="unit">The mapped business unit.</param>
+    /// <param name="context">The pass-local processing context.</param>
+    /// <param name="state">The shared file-processing counters and diagnostic callback.</param>
+    /// <param name="info">The unit's provenance and location information.</param>
+    /// <param name="physicalRecord">Whether the unit corresponds to one physical source record.</param>
+    /// <param name="cancellationToken">The processing cancellation token.</param>
+    /// <returns>Whether the unit passed validation.</returns>
     private protected async Task<bool> ValidateUnitAsync(TUnit unit, FileProcessingContext context, ProcessingState state, FileUnitInfo info, bool physicalRecord, CancellationToken cancellationToken)
     {
         var invalid = false;
@@ -152,18 +150,20 @@ public abstract class FileProcessor<TUnit> : FileProcessor where TUnit : class
             var validation = await _validator.ValidateAsync(unit, cancellationToken).ConfigureAwait(false);
             if (validation.Messages is not null)
                 foreach (var message in validation.Messages)
-                    await ReportAsync(new(FileDiagnosticCategory.Validation, "file.validation", message.Text ?? LText.Empty, message.Type, new(info.Location.LineNumber, propertyPath: message.Property), info.RecordType), cancellationToken).ConfigureAwait(false);
+                {
+                    await ReportAsync(new(FileDiagnosticCategory.Validation, "file.validation", message.Text ?? LText.Empty, message.Type,
+                        info.ValidationLocation?.Invoke(message.Property) ?? new(info.Location.LineNumber, propertyPath: message.Property), info.RecordType), cancellationToken).ConfigureAwait(false);
+                }
 
             if (validation.HasErrors && !invalid)
                 throw new InvalidOperationException("The validator reported errors without error messages.");
         }
 
-        if (!invalid && !state.LimitExceeded && _handlerFactory is not null)
+        if (!invalid && _handlerFactory is not null)
             await ExecutionContext.RunScopedAsync(_serviceProvider.ThrowIfNull(), (unitContext, ct) =>
                 _handlerFactory(unitContext.ServiceProvider.ThrowIfNull()).ThrowIfNull().ValidateAsync(unit, info, context, ReportAsync, ct),
                 (parent, unitContext) => OnConfigureUnitContext(new(unit, info, context, parent, unitContext)), cancellationToken).ConfigureAwait(false);
 
-        invalid |= state.LimitExceeded;
         if (invalid)
             state.InvalidUnits = checked(state.InvalidUnits + 1);
         else
@@ -177,6 +177,12 @@ public abstract class FileProcessor<TUnit> : FileProcessor where TUnit : class
     }
 
     /// <summary>Executes one complete unit in a fresh scope and preserves the original application Result.</summary>
+    /// <param name="unit">The validated business unit to execute.</param>
+    /// <param name="context">The pass-local processing context.</param>
+    /// <param name="state">The shared file-processing counters and diagnostic callback.</param>
+    /// <param name="info">The unit's provenance and location information.</param>
+    /// <param name="cancellationToken">The processing cancellation token.</param>
+    /// <returns>Whether execution succeeded.</returns>
     private protected async Task<bool> ExecuteUnitAsync(TUnit unit, FileProcessingContext context, ProcessingState state, FileUnitInfo info, CancellationToken cancellationToken)
     {
         if (state.Attempted >= state.Validated)
@@ -200,6 +206,8 @@ public abstract class FileProcessor<TUnit> : FileProcessor where TUnit : class
     }
 
     /// <summary>Contains invocation-local counters and callback context, never diagnostic history.</summary>
+    /// <param name="processor">The processor owning configuration and diagnostic policy.</param>
+    /// <param name="context">The invocation's caller-visible processing context.</param>
     private protected sealed class ProcessingState(FileProcessor<TUnit> processor, FileProcessingContext context)
     {
         private readonly System.Threading.ExecutionContext _callbackContext = System.Threading.ExecutionContext.Capture()
@@ -244,11 +252,6 @@ public abstract class FileProcessor<TUnit> : FileProcessor where TUnit : class
         /// <summary>Gets or sets the failed unit's provenance.</summary>
         public FileUnitInfo? FailedInfo { get; set; }
 
-        /// <summary>Gets whether a terminal shared diagnostic budget was reached.</summary>
-        public bool LimitExceeded { get; private set; }
-
-        private long _diagnostics;
-
         /// <summary>Creates an immutable progress snapshot.</summary>
         public FileProcessingProgress Snapshot() => new(bytesRead: Bytes, recordsRead: Records, invalidRecords: InvalidRecords, unitsRead: UnitsRead, invalidUnits: InvalidUnits,
             unitsValidated: Validated, unitsAttempted: Attempted, unitsExecuted: Executed, errorCount: Errors, warningCount: Warnings, informationCount: Information);
@@ -258,21 +261,13 @@ public abstract class FileProcessor<TUnit> : FileProcessor where TUnit : class
         public FileProcessingProgress Update() => context.Progress = Snapshot();
 
         /// <summary>Counts and awaits one diagnostic under the original file ambient context.</summary>
+        /// <param name="diagnostic">The diagnostic to publish.</param>
+        /// <param name="cancellationToken">The processing cancellation token.</param>
+        /// <returns>The asynchronous diagnostic callback operation.</returns>
         public Task ReportAsync(FileDiagnostic diagnostic, CancellationToken cancellationToken)
         {
             diagnostic.ThrowIfNull();
             cancellationToken.ThrowIfCancellationRequested();
-            if (LimitExceeded)
-                return Task.CompletedTask;
-
-            if (_diagnostics >= processor._processingOptions.MaxDiagnostics && diagnostic.Category != FileDiagnosticCategory.Limit)
-            {
-                diagnostic = new(FileDiagnosticCategory.Limit, "file.limit.diagnostics", "The file exceeds its configured diagnostic limit.", location: diagnostic.Location, recordType: diagnostic.RecordType, unitOrdinal: diagnostic.UnitOrdinal);
-                LimitExceeded = true;
-            }
-            else if (diagnostic.Category != FileDiagnosticCategory.Limit)
-                _diagnostics = checked(_diagnostics + 1);
-
             switch (diagnostic.Severity)
             {
                 case MessageType.Error: Errors = checked(Errors + 1); break;
