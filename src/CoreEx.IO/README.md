@@ -1,17 +1,17 @@
 # CoreEx.IO
 
-Host-neutral CSV, JSON document, and nested JSONL validation/execution with shared lifecycle contracts, safe scoped execution, strict encodings, [File CodeGen](../CoreEx.CodeGen/Files/README.md), and the [generation-first Functions inventory example](../../tests/CoreEx.Azure.Functions.TestApp/InventoryImports/README.md). XML is not implemented.
+Host-neutral CSV, JSON document, and nested JSONL validation/execution with shared lifecycle contracts, safe scoped execution, strict encodings, [File CodeGen](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.CodeGen/Files/README.md), and the [generation-first Functions inventory example](https://github.com/Avanade/CoreEx/blob/main/tests/CoreEx.Azure.Functions.TestApp/InventoryImports/README.md). XML is not implemented.
 
-Targets .NET 8, 9, and 10; this extension does not raise the package framework floor. See the [4.3-to-4.4 migration guide](./MIGRATION.md) before upgrading existing CSV integrations: processing modes/outcomes, hook signatures, metadata, YAML, and telemetry include breaking changes.
+Targets .NET 8, 9, and 10; this extension does not raise the package framework floor. See the [4.3-to-4.4 migration guide](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.IO/MIGRATION.md) before upgrading existing CSV integrations: processing modes/outcomes, hook signatures, metadata, YAML, and telemetry include breaking changes.
 
 ## Namespaces
 
 | Namespace | Guide |
 |---|---|
 | `CoreEx.IO` | This guide: shared lifecycle, handlers, diagnostics, metadata, input ownership, and telemetry. |
-| [`CoreEx.IO.Csv`](./Csv/README.md) | Flat rows, unordered discriminator routes, ordered hierarchies, mapping, and strict encoding. |
-| [`CoreEx.IO.Json`](./Json/README.md) | Streaming JSON documents, JSON Pointer selection, shared serializer contracts, and scalar converters. |
-| [`CoreEx.IO.JsonLines`](./JsonLines/README.md) | JSONL framing, nested object units, discriminator routes, and metadata. |
+| [`CoreEx.IO.Csv`](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.IO/Csv/README.md) | Flat rows, unordered discriminator routes, ordered hierarchies, mapping, and strict encoding. |
+| [`CoreEx.IO.Json`](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.IO/Json/README.md) | Streaming JSON documents, JSON Pointer selection, shared serializer contracts, and scalar converters. |
+| [`CoreEx.IO.JsonLines`](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.IO/JsonLines/README.md) | JSONL framing, nested object units, discriminator routes, and metadata. |
 
 Shared contracts and the lifecycle coordinator (`FileProcessor<TUnit>`) live in `CoreEx.IO`. Every format processor uses this lifecycle while retaining format-specific parsing and mapping. The package does not impose CSV line/header assumptions on its shared contracts and exposes no universal parser/plugin abstraction.
 
@@ -62,7 +62,7 @@ Pass-local metadata is available only after encounter. Immutable accepted metada
 
 ## Executable integration example
 
-The [generation-first inventory examples](../../tests/CoreEx.Azure.Functions.TestApp/InventoryImports/README.md#example-matrix) include simple and complex native Functions for CSV, JSON, and JSONL. Each format demonstrates independent rows/objects and parent/child units with header/trailer metadata and EOF reconciliation, generated from checked-in definitions in `tests/CoreEx.Azure.Functions.TestApp.CodeGen`. The handlers call the same inventory application operation while keeping `CoreEx.IO` host-neutral. The native Functions adapter uses the Azure Blob SDK and ETag-pinned input reads; report output is a durable Append Blob.
+The [generation-first inventory examples](https://github.com/Avanade/CoreEx/blob/main/tests/CoreEx.Azure.Functions.TestApp/InventoryImports/README.md#example-matrix) include simple and complex native Functions for CSV, JSON, and JSONL. Each format demonstrates independent rows/objects and parent/child units with header/trailer metadata and EOF reconciliation, generated from checked-in definitions in `tests/CoreEx.Azure.Functions.TestApp.CodeGen`. The handlers call the same inventory application operation while keeping `CoreEx.IO` host-neutral. The native Functions adapter uses the Azure Blob SDK and ETag-pinned input reads; report output is a durable Append Blob.
 
 The application uses a supported SQL Server unit of work to commit inventory changes, durable receipts, and an outbox write atomically. Earlier units may commit before a later unit fails, and outbox persistence does not prove broker publication or exactly-once delivery. The Aspire runtime path uploads a real blob to Azurite, then simulates the Event Grid notification through the Functions webhook; it exercises the actual Functions binding, Blob SDK I/O, SQL Server work, and report writes. Azurite does not emit Event Grid events, so the local proof does not establish Azure subscription provisioning, authentication, or delivery.
 

@@ -10,7 +10,4 @@
     <PackageReference Include="System.Text.Json" VersionOverride="9.0.21" Condition="'$(TargetFramework)' == 'net8.0'" />
     <ProjectReference Include="..\CoreEx\CoreEx.csproj" />
   </ItemGroup>
-  <ItemGroup>
-    <None Include="Csv\README.md;Json\README.md;JsonLines\README.md;MIGRATION.md" Pack="true" PackagePath="%(Identity)" />
-  </ItemGroup>
 </Project>

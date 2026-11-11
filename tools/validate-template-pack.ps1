@@ -1835,7 +1835,7 @@ try {
     if ($ioPackages.Count -ne 1) { throw "Expected one freshly packed CoreEx.IO package in $localFeedPath." }
     $ioArchive = [System.IO.Compression.ZipFile]::OpenRead($ioPackages[0].FullName)
     try {
-        foreach ($entry in @("README.md", "MIGRATION.md", "Csv/README.md", "Json/README.md", "JsonLines/README.md")) {
+        foreach ($entry in @("README.md", "AGENTS.md")) {
             if ($null -eq $ioArchive.GetEntry($entry)) { throw "CoreEx.IO package is missing $entry." }
         }
         $frameworks = if ($isCI) { @("net8.0", "net9.0", "net10.0") } else { @("net10.0") }
@@ -1844,7 +1844,7 @@ try {
         }
     }
     finally { $ioArchive.Dispose() }
-    Write-Pass "CoreEx.IO package includes namespace/migration guides and the expected framework assemblies"
+    Write-Pass "CoreEx.IO package includes standard root guides and the expected framework assemblies"
 
     # Some CoreEx package versions depend on a paired prerelease of a third-party package (e.g. UnitTestEx.Aspire)
     # that may not be published on NuGet.org yet, only in a developer's own private local NuGet source. Adding
