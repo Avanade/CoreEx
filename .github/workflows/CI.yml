@@ -81,7 +81,7 @@ jobs:
 
     - name: Verify checked-in Functions File CodeGen
       working-directory: tests/CoreEx.Azure.Functions.TestApp.CodeGen
-      run: dotnet run --no-build --configuration Release -- file inventory-file.yaml --expect-no-changes
+      run: dotnet run --no-build --configuration Release -- file --expect-no-changes
 
     - name: Test core (parallel)
       run: dotnet test CoreEx.Core.Test.Parallel.slnf --no-build --configuration Release --logger trx --collect "XPlat Code Coverage" --results-directory coverage/core

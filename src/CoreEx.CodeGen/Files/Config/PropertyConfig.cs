@@ -28,12 +28,12 @@ public class PropertyConfig : ConfigBase<CodeGenConfig, RecordConfig>
 
     /// <summary>Gets or sets the nested object record reference.</summary>
     [JsonPropertyName("record")]
-    [CodeGenProperty("Primary", Title = "Nested object record.", Description = "JSONL only; mutually exclusive with type/collection. Required rejects missing/null; present objects always validate.")]
+    [CodeGenProperty("Primary", Title = "Nested object record.", Description = "JSON and JSONL only; mutually exclusive with type/collection. Required rejects missing/null; present objects always validate.")]
     public string? Record { get; set; }
 
     /// <summary>Gets or sets the nested collection occurrence.</summary>
     [JsonPropertyName("collection")]
-    [CodeGenProperty("Primary", Title = "Nested collection occurrence.", Description = "JSONL only; mutually exclusive with type/record. Null elements are not supported.")]
+    [CodeGenProperty("Primary", Title = "Nested collection occurrence.", Description = "JSON and JSONL only; mutually exclusive with type/record. Null elements are not supported.")]
     public CollectionConfig? Collection { get; set; }
 
     /// <summary>Gets or sets CSV-specific positional selection.</summary>

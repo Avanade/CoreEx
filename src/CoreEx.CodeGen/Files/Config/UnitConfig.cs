@@ -12,7 +12,7 @@ public class UnitConfig : ConfigBase<CodeGenConfig, CodeGenConfig>
 
     /// <summary>Gets or sets candidate units per file.</summary>
     [JsonPropertyName("cardinality")]
-    [CodeGenProperty("Primary", Title = "File unit cardinality.", Options = ["Many", "One", "Optional", "OneOrMore"], Description = "Defaults to Many.")]
+    [CodeGenProperty("Primary", Title = "File unit cardinality.", Options = ["Many", "One", "Optional", "OneOrMore"], Description = "Defaults to One for root Object input; otherwise Many.")]
     public string? Cardinality { get; set; }
 
     /// <summary>Gets or sets the selected JSON document value kind.</summary>

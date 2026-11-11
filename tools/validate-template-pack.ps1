@@ -152,7 +152,16 @@ $testScenarios = @(
                 ".claude/commands/coreex-file.md"
                 ".github/docs/coreex/agents/CoreEx.IO.md"
                 ".github/docs/coreex/files/README.md"
+                ".github/docs/coreex/files/MIGRATION.md"
                 ".github/docs/coreex/files/CodeGeneration.md"
+                ".github/docs/coreex/files/Json.md"
+                ".github/docs/coreex/files/JsonDocumentMetadata.md"
+                ".github/docs/coreex/files/Jsonl.md"
+                ".github/docs/coreex/files/JsonlMetadata.md"
+                ".github/docs/coreex/files/JsonlRecord.md"
+                ".github/docs/coreex/files/Collection.md"
+                ".github/docs/coreex/files/Metadata.md"
+                ".github/docs/coreex/files/Unit.md"
                 ".github/docs/coreex/schema/coreex-files.json"
                 ".github/instructions/coreex-functions.instructions.md"
                 ".github/skills/coreex-functions/SKILL.md"
@@ -213,6 +222,12 @@ $testScenarios = @(
                 ".github/instructions/coreex-files.instructions.md"            = 'applyTo: "**/*-file.yaml;**/Files/**/*.cs;!**/Files/**/*.g.cs"'
                 ".github/docs/coreex/agents/CoreEx.IO.md"                       = "CsvRoutedFileProcessor"
                 ".github/docs/coreex/files/CodeGeneration.md"                  = "runtimeProjectPath"
+                ".github/docs/coreex/files/Metadata.md"                        = "(JsonDocumentMetadata.md)"
+                ".github/docs/coreex/files/JsonDocumentMetadata.md"            = '`path`'
+                ".github/docs/coreex/files/Property.md"                        = "JSON and JSONL only"
+                ".github/docs/coreex/files/Unit.md"                            = "Defaults to One for root Object input"
+                ".github/docs/coreex/files/MIGRATION.md"                       = "CoreEx.IO 4.3 to 4.4 migration"
+                ".github/skills/coreex-file/SKILL.md"                          = "/.github/docs/coreex/files/MIGRATION.md"
                 ".github/docs/coreex/schema/coreex-files.json"                 = '"discriminatorIndex"'
                 ".github/skills/coreex-scaffold/SKILL.md"                      = "coreex-solution"
                 ".github/skills/coreex-scaffold/references/workflow.md"        = "preserve it exactly"
@@ -241,6 +256,10 @@ $testScenarios = @(
                 ".github/prompts/coreex-file.prompt.md"
                 ".claude/commands/coreex-file.md"
                 ".github/docs/coreex/agents/CoreEx.IO.md"
+                ".github/docs/coreex/files/MIGRATION.md"
+                ".github/docs/coreex/files/JsonDocumentMetadata.md"
+                ".github/docs/coreex/files/Metadata.md"
+                ".github/docs/coreex/files/Unit.md"
                 ".github/docs/coreex/schema/coreex-files.json"
                 ".github/instructions/coreex.instructions.md"
                 ".github/instructions/coreex-validators.instructions.md"
@@ -274,6 +293,8 @@ $testScenarios = @(
                 ".github/instructions/coreex-functions.instructions.md"      = 'applyTo: "backend/**/*.Functions/**/*.cs,backend/**/*.Test.Functions/**/*.cs"'
                 ".github/instructions/coreex-tooling.instructions.md"        = ';!backend/**/*.Database/Schema/**/*.g.*"'
                 ".github/instructions/coreex-files.instructions.md"          = 'applyTo: "backend/**/*-file.yaml;backend/**/Files/**/*.cs;!backend/**/Files/**/*.g.cs"'
+                ".github/docs/coreex/files/Metadata.md"                       = "(JsonDocumentMetadata.md)"
+                ".github/docs/coreex/files/MIGRATION.md"                      = "CoreEx.IO 4.3 to 4.4 migration"
             }
         }
         Build      = $false
@@ -1246,6 +1267,35 @@ public class ProductFunctionsTests
         AfterBuild = { param($testDir); Assert-PackagePolicy (Join-Path $testDir "tools/Example.Files.CodeGen/Example.Files.CodeGen.csproj") $true }
     },
     @{
+        Name = "coreex-codegen-json-files"
+        Steps = @(
+            @{ Template = "coreex-functions"; Name = "Example.Files.Functions"; Parameters = @{ "shared-core" = "false" } }
+            @{ Template = "coreex-codegen"; Name = "Example.Files.CodeGen"; Parameters = @{} }
+        )
+        TestPath = "test-codegen-json"
+        Prepare = { param($testDir); Add-FileConsumer $testDir -Format Json }
+        BeforeBuild = { param($testDir); Invoke-FileConsumerGeneration $testDir }
+        Build = $true
+        BuildTargets = @("tools/Example.Files.CodeGen/Example.Files.CodeGen.csproj", "tests/Example.Files.Test.Functions/Example.Files.Test.Functions.csproj")
+        TestTargets = @("tests/Example.Files.Test.Functions/Example.Files.Test.Functions.csproj")
+        VerifyBuild = @{ FilesPresent = @("src/Example.Files.Functions/Files/Smoke/SmokeProcessor.g.cs", "src/Example.Files.Functions/Files/Smoke/SmokeLineValidator.g.cs") }
+    },
+    @{
+        Name = "coreex-codegen-jsonl-files"
+        Steps = @(
+            @{ Template = "coreex-solution"; Name = "Example.Files"; Parameters = @{} }
+            @{ Template = "coreex-functions"; Name = "Example.Files.Functions"; Parameters = @{ "shared-core" = "false"; "test-common-project" = "..\Example.Files.Test.Common\Example.Files.Test.Common.csproj" } }
+            @{ Template = "coreex-codegen"; Name = "Example.Files.CodeGen"; Parameters = @{} }
+        )
+        TestPath = "test-codegen-jsonl"
+        Prepare = { param($testDir); Add-FileConsumer $testDir -Format Jsonl }
+        BeforeBuild = { param($testDir); Invoke-FileConsumerGeneration $testDir }
+        Build = $true
+        BuildTargets = @("tools/Example.Files.CodeGen/Example.Files.CodeGen.csproj", "tests/Example.Files.Test.Functions/Example.Files.Test.Functions.csproj")
+        TestTargets = @("tests/Example.Files.Test.Functions/Example.Files.Test.Functions.csproj")
+        VerifyBuild = @{ FilesPresent = @("src/Example.Files.Functions/Files/Smoke/SmokeProcessor.g.cs", "src/Example.Files.Functions/Files/Smoke/SmokeLineValidator.g.cs") }
+    },
+    @{
         Name = "coreex-codegen-explicit-cpm-opt-out"
         Steps = @(
             @{ Template = "coreex-solution"; Name = "Example.Files"; Parameters = @{ "test-common" = "false" } }
@@ -1474,7 +1524,7 @@ public sealed class CommonTests
 }
 
 function Add-FileConsumer {
-    param([string]$TestDir)
+    param([string]$TestDir, [ValidateSet("Csv", "Json", "Jsonl")][string]$Format = "Csv")
     $hostDir = Join-Path $TestDir "src/Example.Files.Functions"
     $hostProject = Join-Path $hostDir "Example.Files.Functions.csproj"
     [xml]$project = Get-Content $hostProject -Raw
@@ -1493,12 +1543,14 @@ global using CoreEx;
 global using CoreEx.DependencyInjection;
 global using CoreEx.IO;
 global using CoreEx.IO.Csv;
+global using CoreEx.IO.Json;
+global using CoreEx.IO.JsonLines;
 global using CoreEx.Validation;
 global using System.Globalization;
 global using System.Text;
 global using System.Text.RegularExpressions;
 '@
-    [System.IO.File]::WriteAllText((Join-Path $TestDir "tools/Example.Files.CodeGen/smoke-file.yaml"), @'
+    $definition = @'
 name: Smoke
 version: "fixture-v1"
 runtimeProjectPath: ../../src/Example.Files.Functions
@@ -1514,7 +1566,69 @@ records:
       - name: Count
         type: Integer
         min: 1
-'@ + "`n")
+'@
+    $inputCases = @'
+    [TestCase("Code,Count\nok,1\n", FileProcessingOutcome.Succeeded)]
+    [TestCase("Code,Count\nok,0\n", FileProcessingOutcome.ContentFailed)]
+'@
+    if ($Format -ne "Csv") {
+        $selection = if ($Format -eq "Json") {
+            @'
+unit: { record: Row, unitPath: /rows, cardinality: OneOrMore }
+metadata:
+- { name: Batch, record: Header, required: true, json: { path: /header } }
+- { name: Totals, record: Trailer, required: true, json: { path: /trailer } }
+'@
+        } else {
+            @'
+jsonl: { discriminator: type }
+unit: { record: Row, cardinality: OneOrMore }
+metadata:
+- { name: Batch, record: Header, required: true, jsonl: { position: First } }
+- { name: Totals, record: Trailer, required: true, jsonl: { position: Last } }
+'@
+        }
+        $definition = @'
+name: Smoke
+version: "fixture-v1"
+runtimeProjectPath: ../../src/Example.Files.Functions
+mode: ValidateOnly
+format: __FORMAT__
+__SELECTION__
+records:
+- name: Row
+  properties:
+  - { name: Code, required: true }
+  - { name: Lines, collection: { record: Line, cardinality: OneOrMore } }
+- name: Line
+  properties:
+  - { name: Count, type: Integer, required: true, min: 1 }
+- name: Header
+  properties:
+  - { name: BatchId, required: true }
+- name: Trailer
+  properties:
+  - { name: Count, type: Integer, required: true }
+'@
+        if ($Format -eq "Jsonl") {
+            $definition = $definition.Replace("- name: Row", "- name: Row`n  jsonl: { match: row }").
+                Replace("- name: Header", "- name: Header`n  jsonl: { match: header }").
+                Replace("- name: Trailer", "- name: Trailer`n  jsonl: { match: trailer }")
+            $inputCases = @'
+    [TestCase("{\"type\":\"header\",\"BatchId\":\"batch\"}\n{\"type\":\"row\",\"Code\":\"ok\",\"Lines\":[{\"Count\":1}]}\n{\"type\":\"trailer\",\"Count\":1}\n", FileProcessingOutcome.Succeeded)]
+    [TestCase("{\"type\":\"header\",\"BatchId\":\"batch\"}\n{\"type\":\"row\",\"Code\":\"ok\",\"Lines\":[{\"Count\":0}]}\n{\"type\":\"trailer\",\"Count\":1}\n", FileProcessingOutcome.ContentFailed)]
+    [TestCase("{\"type\":\"header\",\"BatchId\":\"batch\"}\n{\"type\":\"row\",\"Code\":\"ok\",\"Lines\":[{\"Count\":1}]}\n", FileProcessingOutcome.ContentFailed)]
+'@
+        } else {
+            $inputCases = @'
+    [TestCase("{\"header\":{\"BatchId\":\"batch\"},\"rows\":[{\"Code\":\"ok\",\"Lines\":[{\"Count\":1}]}],\"trailer\":{\"Count\":1}}", FileProcessingOutcome.Succeeded)]
+    [TestCase("{\"header\":{\"BatchId\":\"batch\"},\"rows\":[{\"Code\":\"ok\",\"Lines\":[{\"Count\":0}]}],\"trailer\":{\"Count\":1}}", FileProcessingOutcome.ContentFailed)]
+    [TestCase("{\"header\":{\"BatchId\":\"batch\"},\"rows\":[{\"Code\":\"ok\",\"Lines\":[{\"Count\":1}]}]}", FileProcessingOutcome.ContentFailed)]
+'@
+        }
+        $definition = $definition.Replace("__FORMAT__", $Format).Replace("__SELECTION__", $selection)
+    }
+    [System.IO.File]::WriteAllText((Join-Path $TestDir "tools/Example.Files.CodeGen/smoke-file.yaml"), $definition + "`n")
     Add-Content (Join-Path $TestDir "tests/Example.Files.Test.Functions/GlobalUsing.cs") @'
 global using CoreEx;
 global using CoreEx.IO;
@@ -1528,21 +1642,20 @@ namespace Example.Files.Test.Functions;
 [TestFixture]
 public sealed class FileTests
 {
-    [TestCase("Code,Count\nok,1\n", FileProcessingOutcome.Succeeded)]
-    [TestCase("Code,Count\nok,0\n", FileProcessingOutcome.ContentFailed)]
-    public async Task ProcessesGeneratedDefinition(string csv, FileProcessingOutcome expected)
+__INPUT_CASES__
+    public async Task ProcessesGeneratedDefinition(string input, FileProcessingOutcome expected)
     {
         var services = new ServiceCollection();
         services.AddExecutionContext();
         services.AddScoped<SmokeHandler>();
         using var provider = services.BuildServiceProvider();
         var processor = new SmokeProcessor(provider);
-        var result = await processor.ProcessAsync(_ => Task.FromResult<Stream>(new MemoryStream(Encoding.UTF8.GetBytes(csv))), SmokeProcessor.CreateContext("fixture", "attempt"));
+        var result = await processor.ProcessAsync(_ => Task.FromResult<Stream>(new MemoryStream(Encoding.UTF8.GetBytes(input))), SmokeProcessor.CreateContext("fixture", "attempt"));
         Assert.That(result.Outcome, Is.EqualTo(expected));
         Assert.That(result.Progress.UnitsAttempted, Is.Zero);
     }
 }
-'@ + "`n")
+'@.Replace("__INPUT_CASES__", $inputCases) + "`n")
 }
 
 function Invoke-FileConsumerGeneration {
@@ -1717,6 +1830,21 @@ try {
         if ($packExit -ne 0) { throw "Failed to pack $($proj.Directory.Name) (exit $packExit)" }
     }
     Write-Pass "Local feed populated: $localFeedPath"
+
+    $ioPackages = @(Get-ChildItem -Path $localFeedPath -Filter "CoreEx.IO.*.nupkg")
+    if ($ioPackages.Count -ne 1) { throw "Expected one freshly packed CoreEx.IO package in $localFeedPath." }
+    $ioArchive = [System.IO.Compression.ZipFile]::OpenRead($ioPackages[0].FullName)
+    try {
+        foreach ($entry in @("README.md", "MIGRATION.md", "Csv/README.md", "Json/README.md", "JsonLines/README.md")) {
+            if ($null -eq $ioArchive.GetEntry($entry)) { throw "CoreEx.IO package is missing $entry." }
+        }
+        $frameworks = if ($isCI) { @("net8.0", "net9.0", "net10.0") } else { @("net10.0") }
+        foreach ($framework in $frameworks) {
+            if ($null -eq $ioArchive.GetEntry("lib/$framework/CoreEx.IO.dll")) { throw "CoreEx.IO package is missing the $framework assembly." }
+        }
+    }
+    finally { $ioArchive.Dispose() }
+    Write-Pass "CoreEx.IO package includes namespace/migration guides and the expected framework assemblies"
 
     # Some CoreEx package versions depend on a paired prerelease of a third-party package (e.g. UnitTestEx.Aspire)
     # that may not be published on NuGet.org yet, only in a developer's own private local NuGet source. Adding

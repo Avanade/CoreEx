@@ -282,7 +282,7 @@
         "cardinality": {
           "type": "string",
           "title": "File unit cardinality.",
-          "description": "Defaults to Many.",
+          "description": "Defaults to One for root Object input; otherwise Many.",
           "enum": [
             "Many",
             "One",
@@ -518,11 +518,11 @@
         "record": {
           "type": "string",
           "title": "Nested object record.",
-          "description": "JSONL only; mutually exclusive with type/collection. Required rejects missing/null; present objects always validate."
+          "description": "JSON and JSONL only; mutually exclusive with type/collection. Required rejects missing/null; present objects always validate."
         },
         "collection": {
           "title": "Nested collection occurrence.",
-          "description": "JSONL only; mutually exclusive with type/record. Null elements are not supported.",
+          "description": "JSON and JSONL only; mutually exclusive with type/record. Null elements are not supported.",
           "allOf": [
             {
               "$ref": "#/definitions/Collection"

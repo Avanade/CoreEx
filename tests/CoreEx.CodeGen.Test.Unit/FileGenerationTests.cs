@@ -446,6 +446,12 @@ public partial class FileGenerationTests
     [TestCase("File", "UnitArgs")]
     [TestCase("File", "UnitValidationArgs")]
     [TestCase("File", "RecordPosition")]
+    [TestCase("Json", "DocumentKind")]
+    [TestCase("Json", "FileContext")]
+    [TestCase("Json", "FileProcessor")]
+    [TestCase("Json", "FileDefinition")]
+    [TestCase("Json", "FileMetadata")]
+    [TestCase("Csv", "MetadataDefinition")]
     [TestCase("Generated", "RegexAttribute")]
     public async Task ReservedGeneratedTypeNamesAreRejectedBeforeBatchWrites(string definition, string record)
     {

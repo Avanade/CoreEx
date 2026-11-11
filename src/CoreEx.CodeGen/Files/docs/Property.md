@@ -22,8 +22,8 @@ Property | Description
 **`name`** | Source field name. [Mandatory]<br/>&dagger; Exact JSON direct member or CSV column name; logical label for positional CSV fields.
 `property` | Generated C# property override.<br/>&dagger; Defaults to DbEx-style PascalCase derivation from name.
 `type` | Logical type. Valid options are: `String`, `Integer`, `Int64`, `Decimal`, `Double`, `Boolean`, `Guid`, `DateOnly`, `DateTime`, `DateTimeOffset`.<br/>&dagger; Defaults to String only without record/collection. Native JSON token types are required; all wire properties are nullable.
-`record` | Nested object record.<br/>&dagger; JSONL only; mutually exclusive with type/collection. Required rejects missing/null; present objects always validate.
-`collection` | Nested collection occurrence. The corresponding [`Collection`](Collection.md) object.<br/>&dagger; JSONL only; mutually exclusive with type/record. Null elements are not supported.
+`record` | Nested object record.<br/>&dagger; JSON and JSONL only; mutually exclusive with type/collection. Required rejects missing/null; present objects always validate.
+`collection` | Nested collection occurrence. The corresponding [`Collection`](Collection.md) object.<br/>&dagger; JSON and JSONL only; mutually exclusive with type/record. Null elements are not supported.
 
 ## Csv
 CSV selector and conversion.

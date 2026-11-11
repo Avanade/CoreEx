@@ -2,6 +2,8 @@
 
 The `File` command generates host-neutral CoreEx.IO CSV, JSON document, and nested JSONL integrations from top-level `*-file.yaml` definitions alongside a consumer CodeGen project's `Program.cs`. It does not generate a transport trigger or require a Functions project. Runtime artifacts live together in an existing project referencing CoreEx.IO and CoreEx.Validation; CodeGen itself has no runtime dependency on CoreEx.IO. XML is not implemented.
 
+Existing CSV consumers must follow the [4.3-to-4.4 migration guide](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.IO/MIGRATION.md) before regenerating. The release-matched AI bundle also includes it at `/.github/docs/coreex/files/MIGRATION.md`.
+
 ```powershell
 Set-Location <CodeGen-project-directory>
 dotnet run -- file
@@ -17,7 +19,7 @@ Final generated type names must not shadow runtime dependencies referenced by th
 
 ## Generation-first Functions example
 
-The framework's [InventoryImports example](../../../tests/CoreEx.Azure.Functions.TestApp/InventoryImports/README.md) keeps `name: Inventory`, `version: '1'`, and its single `Adjustment` record in `tests/CoreEx.Azure.Functions.TestApp.CodeGen/inventory-file.yaml`. From the repository root, first change into the CodeGen project, then validate and generate:
+The framework's [InventoryImports example](https://github.com/Avanade/CoreEx/blob/main/tests/CoreEx.Azure.Functions.TestApp/InventoryImports/README.md) keeps `name: Inventory`, `version: '1'`, and its single `Adjustment` record in `tests/CoreEx.Azure.Functions.TestApp.CodeGen/inventory-file.yaml`. From the repository root, first change into the CodeGen project, then validate and generate:
 
 ```powershell
 Set-Location tests\CoreEx.Azure.Functions.TestApp.CodeGen
@@ -26,7 +28,7 @@ dotnet run -- file
 dotnet run -- file --expect-no-changes
 ```
 
-The same console now contains [six matched Functions examples](../../../tests/CoreEx.Azure.Functions.TestApp/InventoryImports/README.md#example-matrix): simple independent units and complex parent/child units with header/trailer metadata for CSV, JSON, and JSONL. Each definition owns a separate sibling runtime output folder. The complex examples add generated child/metadata validation and handwritten EOF count/quantity reconciliation before replay; their checked-in payloads are exercised by invocation tests and the existing Aspire runtime harness.
+The same console now contains [six matched Functions examples](https://github.com/Avanade/CoreEx/blob/main/tests/CoreEx.Azure.Functions.TestApp/InventoryImports/README.md#example-matrix): simple independent units and complex parent/child units with header/trailer metadata for CSV, JSON, and JSONL. Each definition owns a separate sibling runtime output folder. The complex examples add generated child/metadata validation and handwritten EOF count/quantity reconciliation before replay; their checked-in payloads are exercised by invocation tests and the existing Aspire runtime harness.
 
 `dotnet run --project <CodeGen-project>` selects the project to build/run but does not change the process working directory used for top-level `*-file.yaml` discovery. The definition generates `InventoryAdjustment`, `InventoryAdjustmentMapping`, `InventoryAdjustmentValidator`, `InventoryContext`, `InventoryProcessor`, and `InventoryHandler` under `InventoryImports/Files`; wire types, mapping, and validation are not handwritten.
 
@@ -67,7 +69,7 @@ records:
 
 Grouped `json` options are `unknownMemberPolicy` (Reject by default, optional Ignore) and `maxDepth` (64). Ignored content still undergoes syntax, duplicate, and parser-depth checks, but string values are decoded only when consumed. `jsonl.blankLinePolicy` defaults to Reject; explicit Skip excludes blanks from record/unit counts but not physical line numbering/byte accounting. Input is parsed as UTF-8, with LF/CRLF or a final nonempty unterminated line. A UTF-8 BOM is terminal; syntax/depth and consumed-string conversion errors can recover under CollectErrors. Malformed ignored string content can remain unexamined; there is no exhaustive UTF-8 validation pass.
 
-The consumer owns source admission, overall input size, concurrency, timeouts, and report-output policy for both CSV and JSONL. CoreEx.IO imposes no file/line/token/metadata byte quota, unit/diagnostic count quota, CSV group-record quota, or default collection maximum. JSON retains the built-in parser's configurable `json.maxDepth` (64 by default), business cardinality, and optional explicitly declared positive collection `collection.maxItems`. A large JSONL line/CSV hierarchy can consume substantial memory; the framework is an application integration helper, not a bulk-data platform.
+The consumer owns source admission, overall input size, concurrency, timeouts, and report-output policy for CSV, JSON, and JSONL. CoreEx.IO imposes no file/line/token/metadata byte quota, unit/diagnostic count quota, CSV group-record quota, or default collection maximum. JSON retains the built-in parser's configurable `json.maxDepth` (64 by default), business cardinality, and optional explicitly declared positive collection `collection.maxItems`. A large JSON unit, JSONL line, or CSV hierarchy can consume substantial memory; the framework is an application integration helper, not a bulk-data platform.
 
 Native scalar tokens are strict; numeric strings, fractional integers, overflow, and nonfinite doubles reject. Empty/whitespace JSON strings are preserved. Dates use standard invariant .NET parsing without `format`, or exact parsing with no fallback when `format` is supplied. JSON DateTime rejects offsets; DateTimeOffset requires/preserves Z or a numeric offset. The same rules apply to scalar collections and date bounds/options. Mapping failure suppresses downstream validators, preventing conversion/requiredness cascades. Diagnostics separate CLR `Lines[0].Quantity` from escaped source pointers such as `/lines/0/quantity`, retaining the JSONL physical line.
 
@@ -100,7 +102,7 @@ Matches are exact, unique, and explicit on business/metadata roots only. The dis
 
 Generated typed context accessors expose encountered validated metadata and separate immutable accepted snapshots. The accepted view is unavailable during unit validation/reporting and single-pass execution; it is available from the first two-pass execution and at successful completion. Typed accepted reads return fresh copies. Default System.Text.Json serialization snapshots each declared metadata object, including serializable handwritten properties; mark transient properties `[JsonIgnore]` and keep reconciliation state on the context. Trailer-dependent totals belong in EOF reconciliation, not per-unit validation.
 
-Checked-in [plain](../../../tests/CoreEx.CodeGen.Test.Unit/orders-jsonl-file.yaml) and [routed](../../../tests/CoreEx.CodeGen.Test.Unit/routed-jsonl-file.yaml) definitions generate the IO test consumers. Their runtime/compiled-generation tests exercise all three modes. The handwritten OrdersJsonl handler delegates to an application interface; its immutable-source/retry example uses an in-memory receipt double, not a durable exactly-once claim. Generate from the CodeGen test directory using the existing console:
+Checked-in [plain](https://github.com/Avanade/CoreEx/blob/main/tests/CoreEx.CodeGen.Test.Unit/orders-jsonl-file.yaml) and [routed](https://github.com/Avanade/CoreEx/blob/main/tests/CoreEx.CodeGen.Test.Unit/routed-jsonl-file.yaml) definitions generate the IO test consumers. Their runtime/compiled-generation tests exercise all three modes. The handwritten OrdersJsonl handler delegates to an application interface; its immutable-source/retry example uses an in-memory receipt double, not a durable exactly-once claim. Generate from the CodeGen test directory using the existing console:
 
 ```powershell
 Set-Location tests\CoreEx.CodeGen.Test.Unit

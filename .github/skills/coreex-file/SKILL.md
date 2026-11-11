@@ -47,4 +47,5 @@ For the step-by-step workflow, see [references/workflow.md](references/workflow.
 - [Generator guide cache](/.github/docs/coreex/agents/CoreEx.CodeGen.md).
 - [File YAML schema](/.github/docs/coreex/schema/coreex-files.json).
 - [Configuration reference](/.github/docs/coreex/files/CodeGeneration.md).
+- [CSV upgrade guidance](/.github/docs/coreex/files/MIGRATION.md).
 - [coreex-functions](../coreex-functions/SKILL.md) — native Blob trigger, SDK storage, and Functions runtime tests.

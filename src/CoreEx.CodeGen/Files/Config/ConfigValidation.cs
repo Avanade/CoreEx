@@ -4,9 +4,10 @@ namespace CoreEx.CodeGen.Files.Config;
 internal static partial class ConfigValidation
 {
     private static readonly HashSet<string> _generatedTypeReservations = new(("ArgumentException Array CancellationToken CultureInfo DateOnly DateTime DateTimeOffset DateTimeKind DateTimeStyles Func Guid List TimeSpan " +
-        "FileCardinality FileRecordPosition JsonUnitMapping JsonFieldConverters JsonFileOptions JsonUnknownMemberPolicy JsonLinesContext JsonLinesFileProcessor JsonLinesDefinition JsonLinesMetadata JsonLinesFileOptions JsonLinesBlankLinePolicy " +
+        "FileCardinality FileRecordPosition JsonUnitMapping JsonFieldConverters JsonFileOptions JsonUnknownMemberPolicy JsonDocumentKind JsonFileContext JsonFileProcessor JsonFileDefinition JsonFileMetadata " +
+        "JsonLinesContext JsonLinesFileProcessor JsonLinesDefinition JsonLinesMetadata JsonLinesFileOptions JsonLinesBlankLinePolicy " +
         "IReadOnlyList IServiceProvider NotSupportedException ReadOnlySpan Regex RegexOptions GeneratedRegex GeneratedRegexAttribute Result ScopedService ScopedServiceAttribute Stream Task Validator " +
-        "CsvAggregateNode CsvFieldConverters CsvFileMapping CsvFileOptions CsvFileProcessor CsvHeaderPolicy CsvHierarchyContext CsvHierarchyDefinition CsvHierarchyFileProcessor CsvHierarchyNode " +
+        "CsvAggregateNode CsvFieldConverters CsvFileMapping CsvFileOptions CsvFileProcessor CsvHeaderPolicy CsvHierarchyContext CsvHierarchyDefinition CsvHierarchyFileProcessor CsvHierarchyNode CsvMetadataDefinition " +
         "CsvRecordRoute CsvRoutedContext CsvRoutedDefinition CsvRoutedFileProcessor CsvRoutedRecord " +
         "FileDiagnostic FileErrorMode FileProcessingContext FileProcessingIdentity FileProcessingMode FileProcessingSummary FileUnitArgs FileUnitHandler FileUnitInfo FileUnitValidationArgs").Split(' '), StringComparer.Ordinal);
 

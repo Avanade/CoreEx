@@ -41,6 +41,8 @@ The document reader uses `Utf8JsonReader` incrementally across arbitrary non-see
 
 Memory still includes the current typed unit, metadata, duplicate-name sets for open objects, reader/serializer buffers, and incomplete tokens with their prefixes. A root-object unit or an unbounded mapped collection can therefore still be large. Collection bounds are business validation after deserialization, not allocation limits. Property-specific scalar-collection converters delegate to the standard serializer with their scalar format and can require buffering that collection inside System.Text.Json. Source admission and invocation concurrency remain [host-owned](../README.md#input-ownership); this is not a bulk-data platform or an absolute memory cap.
 
+The .NET 8 package explicitly depends on System.Text.Json 9 to avoid System.Text.Json 8 buffering entire ignored containers during asynchronous deserialization. This retains the .NET 8 runtime target and standard serializer behavior without introducing a custom deserializer.
+
 ## Related documentation
 
 - [CoreEx.IO](../README.md): shared lifecycle, handlers, metadata, reporting, and telemetry.
