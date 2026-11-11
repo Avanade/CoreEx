@@ -39,6 +39,27 @@ public partial class InventoryImportTests
     }
 
     [Test]
+    public async Task Report_LateContentFailurePreservesValidationCountsAndOmitsZeroExecutionCounts()
+    {
+        var service = new RecordingService();
+        var transport = new RecordingReportTransport();
+        await using var provider = CreateProvider(transport, service);
+        await using var scope = provider.CreateAsyncScope();
+
+        var summary = await RunAsync(scope.ServiceProvider, "CommandId,Sku,Quantity\none,A,2\ntwo,A,private-invalid-value\n");
+
+        summary.Outcome.Should().Be(FileProcessingOutcome.ContentFailed);
+        using var report = JsonDocument.Parse(transport.Blocks.Last());
+        var progress = report.RootElement.GetProperty("progress");
+        progress.GetProperty("recordsRead").GetInt64().Should().Be(2);
+        progress.GetProperty("unitsValidated").GetInt64().Should().Be(1);
+        progress.TryGetProperty("unitsAttempted", out _).Should().BeFalse();
+        progress.TryGetProperty("unitsExecuted", out _).Should().BeFalse();
+        service.Calls.Should().Be(0);
+        transport.Finalized.Should().BeTrue();
+    }
+
+    [Test]
     public async Task BlobAdapter_PinsBothReadsPropagatesCancellationAndRemovesCredentialsFromIdentity()
     {
         var service = new RecordingService();

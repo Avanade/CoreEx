@@ -7,6 +7,7 @@
   <!-- Common packages. -->
   <ItemGroup>
     <PackageVersion Include="Aspire.Azure.Messaging.ServiceBus" Version="13.6.1" />
+    <PackageVersion Include="Aspire.Hosting.Testing" Version="13.6.5" />
     <PackageVersion Include="Aspire.Microsoft.Azure.Cosmos" Version="13.6.1" />
     <PackageVersion Include="Aspire.Microsoft.Data.SqlClient" Version="13.6.1" />
     <PackageVersion Include="Aspire.Azure.Npgsql" Version="13.6.1" />
@@ -18,6 +19,7 @@
     <PackageVersion Include="MessagePack" Version="2.5.307" />
     <PackageVersion Include="ModelContextProtocol.AspNetCore" Version="2.2.0" />
     <PackageVersion Include="ModelContextProtocol" Version="2.2.0" />
+    <PackageVersion Include="Microsoft.AspNetCore.WebUtilities" Version="2.3.14" />
     <PackageVersion Include="Microsoft.Azure.Cosmos" Version="3.63.2" />
     <PackageVersion Include="Microsoft.Azure.Functions.Worker" Version="2.52.0" />
     <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.Http.AspNetCore" Version="2.1.1" />

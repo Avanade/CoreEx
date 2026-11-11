@@ -69,7 +69,7 @@ public partial class BlobRuntimeTests
         var blob = await UploadInventoryAsync($"CommandId,Sku,Quantity\none,{sku},2\ntwo,{sku},private-invalid-value\n");
         var report = await SubmitInventoryAsync(blob);
         report.Summary.GetProperty("outcome").GetString().Should().Be("ContentFailed");
-        report.Summary.GetProperty("progress").GetProperty("unitsAttempted").GetInt64().Should().Be(0);
+        report.Summary.GetProperty("progress").TryGetProperty("unitsAttempted", out _).Should().BeFalse("zero-valued counters are omitted from reports");
         (await InventoryQuantityAsync(sku)).Should().Be(0);
         (await InventoryOutboxCountAsync(sku)).Should().Be(0);
         var content = (await report.Blob.DownloadContentAsync()).Value.Content.ToString();

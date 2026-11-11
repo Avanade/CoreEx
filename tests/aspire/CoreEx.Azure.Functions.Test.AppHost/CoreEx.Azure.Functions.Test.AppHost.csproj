@@ -1,4 +1,4 @@
-<Project Sdk="Aspire.AppHost.Sdk/13.6.1">
+<Project Sdk="Aspire.AppHost.Sdk/13.6.5">
   <PropertyGroup>
     <TargetFrameworks />
     <TargetFramework>net10.0</TargetFramework>
@@ -9,6 +9,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="UnitTestEx.Aspire" />
+    <PackageReference Include="Microsoft.AspNetCore.WebUtilities" />
     <PackageReference Include="MessagePack" />
     <ProjectReference Include="..\..\CoreEx.Azure.Functions.TestApp\CoreEx.Azure.Functions.TestApp.csproj" IsAspireProjectResource="false" />
   </ItemGroup>
