@@ -1476,9 +1476,9 @@ function Add-SolutionProjects {
     param([string]$TestDir, [string]$SolutionName, [string[]]$HostPrefixes)
     $solution = Join-Path $TestDir "$SolutionName.slnx"
     foreach ($prefix in $HostPrefixes) {
-        & dotnet sln $solution add (Join-Path $TestDir "src/$prefix.Functions") --solution-folder hosts
+        & dotnet sln $solution add (Join-Path $TestDir "src/$prefix.Functions") --solution-folder hosts --include-references false
         if ($LASTEXITCODE -ne 0) { throw "Failed to register $prefix.Functions." }
-        & dotnet sln $solution add (Join-Path $TestDir "tests/$prefix.Test.Functions") --solution-folder tests
+        & dotnet sln $solution add (Join-Path $TestDir "tests/$prefix.Test.Functions") --solution-folder tests --include-references false
         if ($LASTEXITCODE -ne 0) { throw "Failed to register $prefix.Test.Functions." }
     }
 }
