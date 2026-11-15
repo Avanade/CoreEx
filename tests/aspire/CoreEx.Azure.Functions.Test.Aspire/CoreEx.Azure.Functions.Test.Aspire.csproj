@@ -15,7 +15,7 @@
     <PackageReference Include="NUnit3TestAdapter" />
     <PackageReference Include="UnitTestEx.Aspire" />
     <PackageReference Include="UnitTestEx.Azure.Functions" />
-    <PackageReference Include="UnitTestEx.NUnit" />
+    <PackageReference Include="UnitTestEx" />
     <ProjectReference Include="..\CoreEx.Azure.Functions.Test.AppHost\CoreEx.Azure.Functions.Test.AppHost.csproj" />
     <ProjectReference Include="..\..\CoreEx.Azure.Functions.TestApp\CoreEx.Azure.Functions.TestApp.csproj" />
   </ItemGroup>

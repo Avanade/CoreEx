@@ -130,14 +130,14 @@ The [Pattern Catalog](./samples/docs/patterns.md) is the best entry point: it in
 
 ## Build and Package Status
 
-**Contributor SDK:** Install the stable .NET SDK specified in [`global.json`](./global.json) (10.0.402, with servicing patches in the same feature band allowed). Local builds, CI and [`nuget-publish.ps1`](./nuget-publish.ps1) use this SDK; preview SDKs installed alongside it are not selected. Run `dotnet --version` from the repository root to confirm. Publishing defaults to all supported target frameworks in Release; use `.\nuget-publish.ps1 -Tfm 10 -configuration Debug` for reduced local packages (see [local build guidance](./CONTRIBUTING.md#local-builds-and-visual-studio) for feed isolation and independent project targets). Update the SDK baseline in `global.json` when adopting a newer feature band; CI installs that baseline automatically.
+**Contributor SDK:** Install the .NET 11 SDK to build and publish all supported target frameworks. There is no repository SDK pin; run `dotnet --version` from the repository root to check the selected SDK. Publishing defaults to all supported target frameworks in Release; use `.\nuget-publish.ps1 -Tfm 10 -configuration Debug` for reduced local packages (see [local build guidance](./CONTRIBUTING.md#local-builds-and-visual-studio) for feed isolation and independent project targets).
 
 The build status is [![CI](https://github.com/Avanade/CoreEx/actions/workflows/CI.yml/badge.svg)](https://github.com/Avanade/CoreEx/actions/workflows/CI.yml) with the NuGet package status as follows, including links to the underlying source code and documentation:
 
 Project/Package | Description | Source
 -|-|-
 `CoreEx`<br/><sub>&nbsp;</sub><br/>[![NuGet version](https://img.shields.io/nuget/vpre/CoreEx)](https://www.nuget.org/packages/CoreEx/absoluteLatest) | The foundational `CoreEx` package providing the core runtime primitives, patterns, and abstractions used across all other CoreEx libraries and consuming services. | [Link](./src/CoreEx)
-`CoreEx.IO` | Stream-factory CSV and nested JSONL processing, typed validation/metadata, streamed diagnostics, shared acceptance/replay and scoped Result-returning execution. | [Link](./src/CoreEx.IO)
+`CoreEx.IO`<br/><sub>&nbsp;</sub><br/>[![NuGet version](https://img.shields.io/nuget/vpre/CoreEx.IO)](https://www.nuget.org/packages/CoreEx.IO/absoluteLatest) | Stream-factory CSV and nested JSONL processing, typed validation/metadata, streamed diagnostics, shared acceptance/replay and scoped Result-returning execution. | [Link](./src/CoreEx.IO)
 `CoreEx.AspNetCore`<br/><sub>&nbsp;</sub><br/>[![NuGet version](https://img.shields.io/nuget/vpre/CoreEx.AspNetCore)](https://www.nuget.org/packages/CoreEx.AspNetCore/absoluteLatest) | Provides the ASP.NET Core integration layer for CoreEx: the `WebApi` execution helper (MVC and Minimal API variants), middleware for `ExecutionContext` scoping and exception-to-ProblemDetails translation, idempotency key handling, health check configuration, and OpenAPI/NSwag extensions. | [Link](./src/CoreEx.AspNetCore)
 `CoreEx.AspNetCore.NSwag`<br/><sub>&nbsp;</sub><br/>[![NuGet version](https://img.shields.io/nuget/vpre/CoreEx.AspNetCore.NSwag)](https://www.nuget.org/packages/CoreEx.AspNetCore.NSwag/absoluteLatest) | Provides the NSwag `IOperationProcessor` integration that reads CoreEx MVC attributes (`[Paging]`, `[Query]`, `[Accepts]`, `[IdempotencyKey]`, `[ProducesNotFoundProblem]`) and injects the corresponding parameters, request bodies, and response entries into the generated OpenAPI specification. | [Link](./src/CoreEx.AspNetCore.NSwag)
 `CoreEx.Azure.Messaging.ServiceBus`<br/><sub>&nbsp;</sub><br/>[![NuGet version](https://img.shields.io/nuget/vpre/CoreEx.Azure.Messaging.ServiceBus)](https://www.nuget.org/packages/CoreEx.Azure.Messaging.ServiceBus/absoluteLatest) | Provides Azure Service Bus integration for CoreEx: a `ServiceBusPublisher` implementing `IEventPublisher`, subscriber bases wired to `EventSubscriberBase`, and receiver hosts with built-in resiliency, metrics, and session support. | [Link](./src/CoreEx.Azure.Messaging.ServiceBus)
@@ -163,7 +163,7 @@ The included [change log](CHANGELOG.md) details all key changes per published ve
 
 ## Getting Started
 
-**Requirements**: CoreEx targets .NET 8, 9, and 10 (`net8.0`, `net9.0`, `net10.0`). Infrastructure dependencies — SQL Server or PostgreSQL, Azure Service Bus, Redis — are opt-in per package; take only what the packages you use require.
+**Requirements**: CoreEx targets .NET 8, 9, 10, and 11 (`net8.0`, `net9.0`, `net10.0`, `net11.0`). Infrastructure dependencies — SQL Server or PostgreSQL, Azure Service Bus, Redis — are opt-in per package; take only what the packages you use require.
 
 → **[Getting Started Guide](./docs/getting-started.md)** — install the template pack, scaffold a new solution, start local infrastructure, add API/Relay/Subscribe hosts, and run your first build.
 

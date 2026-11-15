@@ -21,7 +21,7 @@ tags: ["functions", "azure", "hosting", "testing"]
 | `Microsoft.Azure.Functions.Worker.Sdk` | Function discovery/build metadata; host project only. |
 | `CoreEx.AspNetCore` | MVC `WebApi`, `AddMvcWebApi`; no ASP.NET middleware/endpoint pipeline on the worker. |
 | `Microsoft.Azure.Functions.Worker.Extensions.Storage.Blobs`, `Microsoft.Azure.Functions.Worker.Extensions.Timer` | Add only for needed native bindings (`BlobTrigger`, `TimerTrigger`). |
-| `UnitTestEx.Azure.Functions`, `UnitTestEx.NUnit`, `CoreEx.UnitTesting` | `FunctionTester`, `HttpTrigger<T>`, `Trigger<T>`, CoreEx assertions; NUnit/AwesomeAssertions in test project only. |
+| `UnitTestEx.Azure.Functions`, `UnitTestEx`, `CoreEx.UnitTesting` | `FunctionTester`, `HttpTrigger<T>`, `Trigger<T>`, CoreEx assertions; NUnit/AwesomeAssertions in test project only. UnitTestEx detects NUnit without a separate framework adapter package. |
 
 ## Composition and capability ownership
 

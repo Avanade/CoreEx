@@ -70,7 +70,7 @@ For schema-defined CSV, use File CodeGen rather than hand-authoring wire models,
 
 ## Testing and discovery
 
-Use UnitTestEx 6 `FunctionTester.Create<TFunction>()` against the real host; `HttpTrigger<T>()` / `Trigger<T>()` run worker composition and middleware. Deferred results use `ToHttpResponseMessageAssertor(request)`. Eager idempotency output uses `SnapshotHttpResponse(response)` with a caller-owned readable/seekable response buffer; it preserves stream ownership/position and does not execute the result again.
+Use UnitTestEx 7 `FunctionTester.Create<TFunction>()` against the real host; `HttpTrigger<T>()` / `Trigger<T>()` run worker composition and middleware. Deferred results use `ToHttpResponseMessageAssertor(request)`. Eager idempotency output uses `SnapshotHttpResponse(response)` with a caller-owned readable/seekable response buffer; it preserves stream ownership/position and does not execute the result again.
 
 Test exact outcomes, error/cancellation propagation and settlement actions/counts. Invocation tests do not prove bindings, broker redelivery, authorization or cloud provisioning. Core Tools/Aspire runtime tests exercise those boundaries locally; simulated Azurite Event Grid notifications do not prove Azure subscriptions or authentication.
 

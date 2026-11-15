@@ -11,6 +11,6 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="NUnit" />
-    <PackageReference Include="UnitTestEx.NUnit" />
+    <PackageReference Include="UnitTestEx" />
   </ItemGroup>
 </Project>

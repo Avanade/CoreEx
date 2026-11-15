@@ -5,7 +5,7 @@
 ### 1) Test Stack and Commands
 
 - Primary test framework: NUnit 4.3.2.
-- Assertion/mocking tools: AwesomeAssertions, UnitTestEx.NUnit, UnitTestEx.Aspire (Aspire E2E), WireMock.Net (Aspire MockHost), coverlet.collector, and sample-specific mock helpers such as MockHttpClientFactory described in samples/README.md.
+- Assertion/mocking tools: AwesomeAssertions, UnitTestEx, UnitTestEx.Aspire (Aspire E2E), WireMock.Net (Aspire MockHost), coverlet.collector, and sample-specific mock helpers such as MockHttpClientFactory described in samples/README.md.
 - Commands:
 
 ```bash

@@ -2,7 +2,7 @@
 
 Host-neutral CSV, JSON document, and nested JSONL validation/execution with shared lifecycle contracts, safe scoped execution, strict encodings, [File CodeGen](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.CodeGen/Files/README.md), and the [generation-first Functions inventory example](https://github.com/Avanade/CoreEx/blob/main/tests/CoreEx.Azure.Functions.TestApp/InventoryImports/README.md). XML is not implemented.
 
-Targets .NET 8, 9, and 10; this extension does not raise the package framework floor. See the [4.3-to-4.4 migration guide](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.IO/MIGRATION.md) before upgrading existing CSV integrations: processing modes/outcomes, hook signatures, metadata, YAML, and telemetry include breaking changes.
+Targets .NET 8, 9, 10, and 11; this extension does not raise the package framework floor. See the [4.3-to-4.4 migration guide](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.IO/MIGRATION.md) before upgrading existing CSV integrations: processing modes/outcomes, hook signatures, metadata, YAML, and telemetry include breaking changes.
 
 ## Namespaces
 

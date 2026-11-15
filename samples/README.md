@@ -122,7 +122,7 @@ See [Layers](docs/layers.md) for the full layer-by-layer breakdown of each proje
 
 ## Prerequisites
 
-- .NET SDK targeting `net8.0`, `net9.0`, and `net10.0` (a current .NET 10 SDK is sufficient).
+- .NET 11 SDK for the full `net8.0`, `net9.0`, `net10.0`, and `net11.0` build; install the corresponding runtimes to run each target.
 - A container runtime (Docker or Podman).
 - Aspire CLI:
 

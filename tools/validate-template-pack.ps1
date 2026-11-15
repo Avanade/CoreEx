@@ -96,12 +96,14 @@ $testScenarios = @(
             FileContains = @{
                 "Example.Integration.slnx" = 'tests\Example.Integration.Test.Common\Example.Integration.Test.Common.csproj'
                 "Directory.Packages.props" = 'Include="CoreEx.CodeGen"'
+                "tests/Example.Integration.Test.Common/Example.Integration.Test.Common.csproj" = 'Include="UnitTestEx"'
                 ".gitignore" = "local.settings.json"
                 "AGENTS.md" = "Baseline only"
             }
             FileNotContains = @{
                 "Directory.Build.props" = "<!--#"
                 "Directory.Packages.props" = "<!--#"
+                "tests/Example.Integration.Test.Common/Example.Integration.Test.Common.csproj" = "UnitTestEx.NUnit"
                 "tests/Example.Integration.Test.Common/GlobalUsing.cs" = "Azure"
             }
         }
@@ -1058,13 +1060,14 @@ public class ProductFunctionsTests
             )
             FileContains = @{
                 "src/Example.Integration.Catalog.Functions/Example.Integration.Catalog.Functions.csproj" = "ManagePackageVersionsCentrally"
-                "tests/Example.Integration.Catalog.Test.Functions/Example.Integration.Catalog.Test.Functions.csproj" = 'Include="UnitTestEx.Azure.Functions" Version="6.1.0"'
+                "tests/Example.Integration.Catalog.Test.Functions/Example.Integration.Catalog.Test.Functions.csproj" = 'Include="UnitTestEx.Azure.Functions" Version="7.0.0"'
                 "src/Example.Integration.Catalog.Functions/AGENTS.md" = "standalone Azure Functions"
             }
             FileNotContains = @{
                 "src/Example.Integration.Catalog.Functions/Example.Integration.Catalog.Functions.csproj" = "ProjectReference"
                 "src/Example.Integration.Catalog.Functions/AGENTS.md" = "AssemblyMarker"
                 "tests/Example.Integration.Catalog.Test.Functions/Example.Integration.Catalog.Test.Functions.csproj" = "coreex-version"
+                "tests/Example.Integration.Catalog.Test.Functions/GlobalUsing.cs" = "UnitTestEx.NUnit"
             }
         }
         AfterBuild = {
@@ -1838,7 +1841,7 @@ try {
         foreach ($entry in @("README.md", "AGENTS.md")) {
             if ($null -eq $ioArchive.GetEntry($entry)) { throw "CoreEx.IO package is missing $entry." }
         }
-        $frameworks = if ($isCI) { @("net8.0", "net9.0", "net10.0") } else { @("net10.0") }
+        $frameworks = if ($isCI) { @("net8.0", "net9.0", "net10.0", "net11.0") } else { @("net10.0") }
         foreach ($framework in $frameworks) {
             if ($null -eq $ioArchive.GetEntry("lib/$framework/CoreEx.IO.dll")) { throw "CoreEx.IO package is missing the $framework assembly." }
         }

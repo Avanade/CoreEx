@@ -10,7 +10,8 @@ on:
       - 'gen/**'
       - 'servicebus/**'
       - 'Directory.Packages.props'
-      - 'global.json'
+      - 'Directory.Build.props'
+      - 'nuget-publish.ps1'
       - 'docker-compose.yml'
       - '*.slnf'
       - '*.slnx'
@@ -25,7 +26,8 @@ on:
       - 'gen/**'
       - 'servicebus/**'
       - 'Directory.Packages.props'
-      - 'global.json'
+      - 'Directory.Build.props'
+      - 'nuget-publish.ps1'
       - 'docker-compose.yml'
       - '*.slnf'
       - '*.slnx'
@@ -53,10 +55,11 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        global-json-file: global.json
         dotnet-version: |
           8.x
           9.x
+          10.x
+          11.x
 
     - name: Cache NuGet packages
       uses: actions/cache@v4
@@ -105,7 +108,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        framework: [net8.0, net9.0, net10.0]
+        framework: [net8.0, net9.0, net10.0, net11.0]
 
     steps:
     - uses: actions/checkout@v4
@@ -116,10 +119,11 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        global-json-file: global.json
         dotnet-version: |
           8.x
           9.x
+          10.x
+          11.x
 
     - name: Cache NuGet packages
       uses: actions/cache@v4
@@ -178,7 +182,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        framework: [net8.0, net9.0, net10.0]
+        framework: [net8.0, net9.0, net10.0, net11.0]
 
     steps:
     - uses: actions/checkout@v4
@@ -189,10 +193,11 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        global-json-file: global.json
         dotnet-version: |
           8.x
           9.x
+          10.x
+          11.x
 
     - name: Cache NuGet packages
       uses: actions/cache@v4
@@ -290,10 +295,11 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        global-json-file: global.json
         dotnet-version: |
           8.x
           9.x
+          10.x
+          11.x
 
     - name: Cache NuGet packages
       uses: actions/cache@v4
@@ -371,7 +377,9 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        global-json-file: global.json
+        dotnet-version: |
+          10.x
+          11.x
 
     - name: Restore .NET tools
       run: dotnet tool restore
@@ -426,10 +434,11 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        global-json-file: global.json
         dotnet-version: |
           8.x
           9.x
+          10.x
+          11.x
 
     - name: Setup Node
       uses: actions/setup-node@v4
@@ -470,10 +479,11 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        global-json-file: global.json
         dotnet-version: |
           8.x
           9.x
+          10.x
+          11.x
 
     - name: Cache NuGet packages
       uses: actions/cache@v4

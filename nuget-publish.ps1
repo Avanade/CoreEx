@@ -3,7 +3,7 @@
     Generates nuget pacakges and publishes if server values are provided
 
     .DESCRIPTION
-    Packs all supported target frameworks by default, regardless of CoreExLocalTargetFramework.
+    Packs net8.0, net9.0, net10.0 and net11.0 by default, regardless of CoreExLocalTargetFramework.
     Use -Tfm to build and pack only one supported framework for local testing.
     Independently targeted projects, including the source generator and template pack, retain their own frameworks.
     Builds before packing, overriding GeneratePackageOnBuild so existing binaries are not reused without a build.
@@ -15,7 +15,7 @@
     Local folder to publish the built nuget pacakges to
 
     .PARAMETER Tfm
-    Optional framework major version or TFM, for example 10, 10.0, or net10.0.
+    Optional framework major version or TFM, for example 11, 11.0, or net11.0.
     Must match a supported framework in Directory.Build.props.
     Reduced packages keep the same ID/version; use a separate local feed, not a release feed.
 
@@ -54,8 +54,8 @@
     Build selected pacakges and push to remote server.
 
     .Example
-    C:\PS> .\nuget-publish.ps1 -Tfm 10 -configuration Debug -PublishFolder "$env:USERPROFILE\nuget-publish-net10"
-    Build and pack net10.0 locally, retaining independent project targets.
+    C:\PS> .\nuget-publish.ps1 -Tfm 11 -configuration Debug -PublishFolder "$env:USERPROFILE\nuget-publish-net11"
+    Build and pack net11.0 locally, retaining independent project targets.
 #>
 param(
     [string]$PublishFolder = "$($env:USERPROFILE)\nuget-publish",
@@ -95,7 +95,7 @@ param(
 $frameworkDescription = 'all target frameworks'
 if ($PSBoundParameters.ContainsKey('Tfm')) {
     if ($Tfm -notmatch '^(?:net)?(?<major>[1-9][0-9]*)(?:\.0)?$') {
-        throw "Invalid Tfm '$Tfm'. Use a major version or TFM, for example -Tfm 10 or -Tfm net10.0."
+        throw "Invalid Tfm '$Tfm'. Use a major version or TFM, for example -Tfm 11 or -Tfm net11.0."
     }
 
     $Tfm = "net$($Matches['major']).0"

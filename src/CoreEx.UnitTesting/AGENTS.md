@@ -10,6 +10,8 @@ The single test-support package for the entire CoreEx ecosystem. One `<PackageRe
 
 No additional CoreEx test packages are needed — this package covers everything.
 
+UnitTestEx 7 detects NUnit, MSTest or xUnit at runtime; retain the chosen framework and runner packages but do not add a separate UnitTestEx framework adapter. `WithGenericTester<TEntryPoint>`, `WithApiTester<TEntryPoint>` and `WithAspireTester<TAppHost>` are in the `UnitTestEx` namespace. The lower-level `UnitTestBase` is in `UnitTestEx.Abstractions` and does not provide a `Test` property.
+
 ## Aspire External Infrastructure
 
 Use `builder.AddExternalConnectionString("Postgres")` / `"SqlServer"` / `"redis"` / `"ServiceBus"` to expose
@@ -25,7 +27,7 @@ excluded from Aspire 13.5.4's Graph/Table views.
 
 ```csharp
 [TestFixture]
-public class OrderServiceTest : UnitTestBase
+public class OrderServiceTest : WithGenericTester<EntryPoint>
 {
     [OneTimeSetUp]
     public async Task OneTimeSetUp()
@@ -112,7 +114,7 @@ Assert.Throws<AssertionException>(() => Test.Http<Order>()
 ```csharp
 // Subscribe host
 [TestFixture]
-public class OrderSubscriberTest : UnitTestBase
+public class OrderSubscriberTest : WithApiTester<Program>
 {
     [Test]
     public void Receive_OrderCreated()
