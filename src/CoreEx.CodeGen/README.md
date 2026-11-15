@@ -8,7 +8,7 @@
 
 Generation is orchestrated by [OnRamp](https://github.com/Avanade/OnRamp), which loads `ref-data-script.yaml` (embedded in the package) to discover the ordered sequence of generation steps. Each step binds a generator class to a Handlebars template and an output path; OnRamp resolves the template, evaluates it against the typed configuration model, and writes the result. Templates reside in `RefData/Templates/` and are also embedded so the package is entirely self-contained.
 
-The package exposes `CodeGenConsole`, a thin wrapper around `OnRamp.Console.CodeGenConsole`, as its entry point. A consuming project needs only a single `Program.cs` line to wire up the generator. A secondary `Count` command is available to report generated vs. hand-authored file and line counts across the solution directories.
+The package exposes `CodeGenConsole`, a thin wrapper around `OnRamp.Console.CodeGenConsole`, as its entry point. A consuming project needs only a single `Program.cs` line to wire up the generator. The `Count` command reports generated vs. hand-authored file and line counts, and `Clean` deletes files matching `**.g.**` across the solution directories.
 
 ## Motivation
 
@@ -26,6 +26,7 @@ The package exposes `CodeGenConsole`, a thin wrapper around `OnRamp.Console.Code
 - 🗺️ **EF Core mapper generation**: the `MapperGenerator` emits a typed mapper per entity, with per-property mapping directives derived from the `PropertyConfig`; entities can opt out via `excludeMapper: true`.
 - ✏️ **Opt-in mutation**: per-entity `mutability` (`None` / `CreateUpdate` / `CreateUpdateDelete`) additionally generates a service, service interface, per-entity controller and repository write operations — see [Readonly vs Mutation](#readonly-vs-mutation).
 - 📊 **Code-count reporting**: the `Count` command walks the solution output directories and reports total vs. generated file and line counts per directory, helping track the proportion of the codebase that is generated.
+- 🧹 **Generated-file cleanup**: the `Clean` command deletes files matching `**.g.**` in the same solution directory tree; `--simulation` reports candidates without deleting them.
 
 ## Usage
 
@@ -62,6 +63,14 @@ To report code counts instead of generating:
 ```
 dotnet run -- count
 ```
+
+To delete generated files (`--simulation` previews the deletions without changing files):
+```
+dotnet run -- clean
+dotnet run -- clean --simulation
+```
+
+For File generation, `--validate` loads and validates the selected definitions and batch ownership without rendering or writing generated artifacts. Inherited `--simulation` proceeds through the generation pipeline but suppresses file writes; use it to inspect generated output behavior rather than only checking the configuration.
 
 ## Schema
 
@@ -188,8 +197,8 @@ How the hook behaves:
 
 | Type | Description |
 |------|-------------|
-| **[`CodeGenConsole`](./CodeGenConsole.cs)** | Entry point for the code-generation tool; wraps `OnRamp.Console.CodeGenConsole`, loads `ref-data.yaml` and `ref-data-script.yaml`, and exposes the `RefData` and `Count` commands. |
-| **[`CommandType`](./CommandType.cs)** | Explicit `RefData` (default), `File` (typed CSV/nested JSONL integrations), or `Count` (file and line statistics) dispatch. |
+| **[`CodeGenConsole`](./CodeGenConsole.cs)** | Entry point for the code-generation tool; wraps `OnRamp.Console.CodeGenConsole`, loads `ref-data.yaml` and `ref-data-script.yaml`, and exposes the `RefData`, `File`, `Count`, and `Clean` commands. |
+| **[`CommandType`](./CommandType.cs)** | Explicit `RefData` (default), `File` (typed CSV/nested JSONL integrations), `Count` (file and line statistics), or `Clean` (generated-file deletion) dispatch. |
 | **[`CodeGenConfig`](./RefData/Config/CodeGenConfig.cs)** | Root configuration model for reference-data generation; maps directly to the top-level YAML and resolves all project directory paths, namespace defaults, and entity collection preparation. |
 | **[`EntityConfig`](./RefData/Config/EntityConfig.cs)** | Per-entity configuration: name, plural, text, `idType`, `collectionSortOrder`, route, repository mode, model name, mapper name, `excludeMapper`, and the property collection. |
 | **[`PropertyConfig`](./RefData/Config/PropertyConfig.cs)** | Per-property configuration: name, type (with `^`-prefix for reference-data and `?`-suffix for nullable), text, data model property name, and exclude flags for contract and mapping generation. |
@@ -200,6 +209,7 @@ How the hook behaves:
 | **[`ContractGenerator`](./RefData/Generators/ContractGenerator.cs)** | `CodeGeneratorBase` implementation that iterates all `EntityConfig` entries to produce one contract file per entity. |
 | **[`MapperGenerator`](./RefData/Generators/MapperGenerator.cs)** | `CodeGeneratorBase` implementation that iterates `EntityConfig` entries where `excludeMapper` is not `true`, producing one mapper file per entity. |
 | **[`CodeGenCounter`](./Counting/CodeGenCounter.cs)** | Walks the solution output directories and counts total vs. generated files and lines; drives the `Count` command output. |
+| **[`CodeGenCleaner`](./Cleaning/CodeGenCleaner.cs)** | Deletes files matching `**.g.**` from the same solution directory tree, or previews the deletion with `--simulation`. |
 | **[`DirectoryCountStatistics`](./Counting/DirectoryCountStatistics.cs)** | Aggregates file and line counts (total and generated) for a single directory and its children; renders a formatted hierarchy table to the logger. |
 
 ## Namespaces

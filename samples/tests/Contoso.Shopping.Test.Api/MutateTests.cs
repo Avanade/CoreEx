@@ -26,7 +26,7 @@ public partial class MutateTests : WithApiTester<Contoso.Shopping.Api.Program>
 
         // Mock the HTTP clients; the Customers domain is external, so is always mocked (the ids align with the Customers 'read-data.seed.yaml' golden values).
         var mcf = MockHttpClientFactory.Create();
-        _mockHttpReserveRequest = mcf.CreateClient("ProductsApi").Request(HttpMethod.Post, "api/inventory/reserve");
+        _mockHttpReserveRequest = mcf.CreateClient("ProductsApi").WithHttpMessageHandlers().Request(HttpMethod.Post, "api/inventory/reserve");
 
         var customers = mcf.CreateClient("CustomersApi");
         _mockHttpCustomerWithAddress = customers.Request(HttpMethod.Get, $"api/customers/{CustomerWithAddressId}");

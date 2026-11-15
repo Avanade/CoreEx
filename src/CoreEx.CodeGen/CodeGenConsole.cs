@@ -4,7 +4,7 @@ namespace CoreEx.CodeGen;
 /// <b>CoreEx</b>-specific code-generation console.
 /// </summary>
 /// <remarks>This is the main entry point for code generation and is responsible for processing the configuration and invoking the appropriate code generators.
-/// <para>Commands are <b>RefData</b> (default, <c>ref-data.yaml</c>), <b>File</b> (selected <c>*-file.yaml</c> definitions), and <b>Count</b>.</para></remarks>
+/// <para>Commands are <b>RefData</b> (default, <c>ref-data.yaml</c>), <b>File</b> (selected <c>*-file.yaml</c> definitions), <b>Count</b>, and <b>Clean</b>.</para></remarks>
 public class CodeGenConsole : OnRamp.Console.CodeGenConsole
 {
     private CommandArgument<CommandType>? _cmdArg;
@@ -70,13 +70,22 @@ public class CodeGenConsole : OnRamp.Console.CodeGenConsole
 
                 var generator = await CodeGenerator.CreateAsync(Args).ConfigureAwait(false);
                 return new CodeGenStatistics { RootConfig = (IRootConfig)await generator.LoadConfigAsync().ConfigureAwait(false) };
+
             case CommandType.Count:
                 if (_validate?.HasValue() == true)
                     throw new CodeGenException("--validate is not supported by Count.");
 
                 return await new Counting.CodeGenCounter(Args).CountAsync().ConfigureAwait(false);
+
+            case CommandType.Clean:
+                if (_validate?.HasValue() == true)
+                    throw new CodeGenException("--validate is not supported by Clean.");
+
+                return await new Cleaning.CodeGenCleaner(Args).CleanAsync().ConfigureAwait(false);
+
             case CommandType.File:
                 return await Files.FileGenerationBatch.GenerateAsync(Args, _files?.Values.OfType<string>(), _validate?.HasValue() == true).ConfigureAwait(false);
+
             default:
                 throw new CodeGenException($"Unsupported code-generation command '{cmd}'.");
         }

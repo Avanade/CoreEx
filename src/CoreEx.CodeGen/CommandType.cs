@@ -16,6 +16,11 @@ public enum CommandType
     Count,
 
     /// <summary>
+    /// Deletes generated files from the solution directories.
+    /// </summary>
+    Clean,
+
+    /// <summary>
     /// Generates typed CSV processing from selected top-level *-file.yaml definitions.
     /// </summary>
     File
