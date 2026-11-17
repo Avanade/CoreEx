@@ -2,6 +2,8 @@
 
 This non-packable net10.0 host demonstrates native HTTP, HTTP idempotency, Service Bus, Blob, and Timer integration for framework tests. It is not a Contoso business domain. Read the [Functions package guide](../../src/CoreEx.Azure.Functions/README.md) and scoped Functions/test instructions before modifying it.
 
+[CatalogForwarding](CatalogForwarding/README.md) is the database-free forwarding counterpart to the inventory examples. It pins CSV replay, streams a JSONL report and sends binary commands without an application outbox.
+
 ## Inventory file capability
 
 [InventoryImports](InventoryImports/README.md#example-matrix) contains six generation-first examples: independent units and complex parent/child units with header/trailer metadata for each of CSV, JSON, and JSONL. The six checked-in `inventory*-file.yaml` definitions live in `tests/CoreEx.Azure.Functions.TestApp.CodeGen`; each owns a separate output folder under `InventoryImports`. File CodeGen generates the wire models, mappings, validators, contexts, processors, and create-only handlers. Keep application execution in handlers and trusted context/report/EOF hooks in handwritten processor partials. The generated processor's protected `Services` property exposes its construction-time provider for coordinator dependencies; unit business services resolve through the handler's fresh child scope.

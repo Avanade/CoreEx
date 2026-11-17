@@ -56,6 +56,38 @@ public class CircuitBreakerResiliencyTests
     }
 
     [Test]
+    public async Task Create_FailingRecoveryProbes_BackOffUpToConfiguredCap()
+    {
+        var owner = new TestOwner();
+        using var resumed = new SemaphoreSlim(0);
+        var pipeline = CircuitBreakerResiliency<TestOwner>.Create("Test owner", o => o.Logger, (o, pause, ct) => o.PauseAsync(pause), (_, _) =>
+        {
+            resumed.Release();
+            return Task.CompletedTask;
+        }, minimumThroughput: 2, breakDuration: TimeSpan.FromMilliseconds(20), maxBreakDuration: TimeSpan.FromMilliseconds(60));
+
+        var ctx = CreateContext(owner);
+        try
+        {
+            var failure = Result.Fail(new InvalidOperationException("boom"));
+            await pipeline.ExecuteAsync(_ => ValueTask.FromResult(failure), ctx);
+            foreach (var expectedPause in new[] { 120, 140, 160, 160 })
+            {
+                await pipeline.ExecuteAsync(_ => ValueTask.FromResult(failure), ctx);
+                (await resumed.WaitAsync(TimeSpan.FromSeconds(5))).Should().BeTrue("the breaker should schedule recovery after opening");
+                owner.PauseDurations[^1].Should().Be(TimeSpan.FromMilliseconds(expectedPause));
+            }
+
+            owner.PauseDurations.Should().HaveCount(4);
+            (await pipeline.ExecuteAsync(_ => ValueTask.FromResult(Result.Success), ctx)).IsSuccess.Should().BeTrue();
+        }
+        finally
+        {
+            ResilienceContextPool.Shared.Return(ctx);
+        }
+    }
+
+    [Test]
     public async Task Create_ShouldHandleExcludesError_NeverTrips()
     {
         var owner = new TestOwner();

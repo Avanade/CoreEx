@@ -28,6 +28,30 @@ public class IdentifierGeneratorTests
     public void TearDown() => ExecutionContext.Reset();
 
     [Test]
+    public void FromParts_ReturnsStableDigest()
+        => IdentifierGenerator.FromParts("catalog:v1", "caf\u00e9", null, "").Should().Be("d24834256c93ad3b3a752b5fb1c79be4ea13177e9f89f7787172f9aed776a258");
+
+    [Test]
+    public void FromParts_DistinguishesBoundariesOrderAndNull()
+    {
+        IdentifierGenerator.FromParts("ab", "c").Should().NotBe(IdentifierGenerator.FromParts("a", "bc"));
+        IdentifierGenerator.FromParts("ab", "c").Should().NotBe(IdentifierGenerator.FromParts("c", "ab"));
+        IdentifierGenerator.FromParts("source", null).Should().NotBe(IdentifierGenerator.FromParts("source", ""));
+    }
+
+    [Test]
+    public void FromParts_RejectsMissingOrMalformedParts()
+    {
+        Action nullParts = () => IdentifierGenerator.FromParts(null!); // Intentionally pass a null array, not a null part.
+        Action emptyParts = () => IdentifierGenerator.FromParts();
+        Action invalidUtf16 = () => IdentifierGenerator.FromParts("\ud800");
+
+        nullParts.Should().Throw<ArgumentNullException>().WithParameterName("parts");
+        emptyParts.Should().ThrowExactly<ArgumentException>().WithParameterName("parts");
+        invalidUtf16.Should().Throw<EncoderFallbackException>();
+    }
+
+    [Test]
     public void GenerateGuid_ReturnsNonEmptyGuid()
         => new IdentifierGenerator().GenerateGuid().Should().NotBe(Guid.Empty);
 

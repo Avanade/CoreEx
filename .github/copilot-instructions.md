@@ -108,8 +108,8 @@ Connection strings for each service in development are in each host's `appsettin
   1. guard/normalize inputs;
   2. validate with CoreEx validators;
   3. load current state where needed;
-  4. wrap mutations **and** event publication together inside `_unitOfWork.TransactionAsync(...)` — both the database write and the outbox event are committed atomically or not at all;
-  5. add `EventData` to `_unitOfWork.Events` inside that same transactional scope.
+  4. when a local mutation and its event require atomicity, write both inside `_unitOfWork.TransactionAsync(...)`;
+  5. add `EventData` to `_unitOfWork.Events` inside that same transactional scope. A database-free forwarding flow instead awaits the configured direct publisher and tolerates duplicates.
 - Use exception-based flows for straightforward CRUD-style services.
 - Use `Result<T>` pipelines for aggregate-oriented flows and multi-step orchestration, especially in Shopping.
 

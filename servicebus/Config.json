@@ -84,6 +84,17 @@
         ],
         "Queues": [
           {
+            "Name": "unit-test-circuit-breaker",
+            "Properties": {
+              "DefaultMessageTimeToLive": "PT1H",
+              "LockDuration": "PT1M",
+              "MaxDeliveryCount": 1,
+              "DeadLetteringOnMessageExpiration": false,
+              "RequiresDuplicateDetection": false,
+              "RequiresSession": false
+            }
+          },
+          {
             "Name": "contoso-products",
             "Properties": {
               "DefaultMessageTimeToLive": "PT1H",

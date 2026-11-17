@@ -1,0 +1,13 @@
+# yaml-language-server: $schema=../../schema/coreex-files.json
+name: CatalogForwarding
+version: '1'
+runtimeProjectPath: ../CoreEx.Azure.Functions.TestApp
+runtimePath: CatalogForwarding/Files
+runtimeNamespace: CoreEx.Azure.Functions.TestApp.CatalogForwarding
+mode: ValidateThenExecute
+errorMode: CollectErrors
+records:
+- name: Item
+  properties:
+  - { name: Sku, mandatory: true, maxLength: 100 }
+  - { name: UnitPrice, type: Decimal, required: true, min: 0 }

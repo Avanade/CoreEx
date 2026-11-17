@@ -44,6 +44,24 @@ public class BlobTestHelpersTests
         source.ETag.Should().Be(new ETag("\"revision\""));
     }
 
+    [TestCase(false)]
+    [TestCase(true)]
+    public async Task FromResource_LoadsEmbeddedBytesAndPreservesSourceIdentity(bool useMarker)
+    {
+        var uri = new Uri("https://storage.test/imports/catalog.csv");
+        var etag = new ETag("\"resource-revision\"");
+        var client = useMarker
+            ? StubBlobClient.FromResource<BlobTestHelpersTests>("catalog-valid.csv", uri, etag)
+            : StubBlobClient.FromResource("catalog-valid.csv", uri, etag);
+        var source = await CoreEx.Azure.Storage.Blobs.BlobReadSource.CreateAsync(client);
+
+        await using var stream = await source.OpenReadAsync();
+        using var reader = new StreamReader(stream);
+        (await reader.ReadToEndAsync()).Should().Be("supplier,sku\nACME,100\n");
+        source.SourceUri.Should().Be(uri);
+        source.ETag.Should().Be(etag);
+    }
+
     [Test]
     public async Task Reports_CaptureOpaqueContentAndMetadataAcrossClientInstances()
     {

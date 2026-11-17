@@ -183,7 +183,7 @@ Use one row per item, an exact column-name header, `yyyy-MM-dd` dates, and invar
 
 Use the kebab-case headers as each property's `name` in `catalog-file.yaml`, without a `property` override. File CodeGen automatically derives PascalCase C# properties: `supplier-code` becomes `SupplierCode`, `supplier-sku` becomes `SupplierSku`, `unit-price` becomes `UnitPrice`, and `effective-date` becomes `EffectiveDate`. The CSV headers remain unchanged; the internal command and backend DTO use their own C# property names.
 
-The internal `CatalogItemUpsert` command should carry the seven business fields and a stable command ID derived from the credential-free source identity, selected Blob revision, and row ordinal. Use an unambiguous canonical encoding and a bounded hash for the ID; don't put a SAS token or a transient invocation ID in it. The ID is for correlation and duplicate detection, not a guarantee of broker deduplication.
+The internal `CatalogItemUpsert` command should carry the seven business fields and a stable command ID. Use `CoreEx.Entities.IdentifierGenerator.FromParts` with the versioned command type, credential-free source identity, selected Blob revision, and invariantly formatted row ordinal. Keep the order and meaning of these parts stable across deployments; don't include a SAS token or a transient invocation ID. The ID is for correlation and duplicate detection, not a guarantee of broker deduplication.
 
 Ask your assistant:
 
@@ -192,7 +192,7 @@ Plan and wait for approval, then use coreex-file to add catalog-file.yaml and a 
 
 The exact headers are supplier-code, supplier-sku, description, unit, currency, unit-price and effective-date. All fields are required; price is an invariant decimal >= 0, date is yyyy-MM-dd, and currency must be exactly USD, AUD, NZD or GBP. Reject duplicate supplier/SKU/effective-date keys. Validate the entire file before processing any rows and collect diagnostics.
 
-Map accepted rows to an internal CatalogItemUpsert command with those seven fields and a stable bounded ID derived from credential-free Blob identity, revision and row ordinal. Use the selected solution's layering. For now, capture commands through a test double; do not add triggers or real publishing yet.
+Map accepted rows to an internal CatalogItemUpsert command with those seven fields. Use IdentifierGenerator.FromParts with the versioned command type, credential-free Blob identity, revision and invariantly formatted row ordinal. Use the selected solution's layering. For now, capture commands through a test double; do not add triggers or real publishing yet.
 
 Test valid data, late invalid rows, unsupported currencies, duplicates and mapping. Document the duplicate-key tracking memory cost and required input-size limits.
 ```
@@ -213,6 +213,8 @@ Running `dotnet run --project ...` from the solution root does not change the di
 
 ## 5. Receive the Blob and publish commands
 
+For executable reference code, see [CatalogForwarding](../tests/CoreEx.Azure.Functions.TestApp/CatalogForwarding/README.md) at the repository revision matching your CoreEx version. It uses the existing Functions test host and covers worker client configuration, second-publish failure, the binary wire contract, and local Blob-to-queue delivery separately.
+
 The Blob Function is a thin native trigger. Select the current Blob revision when processing begins, and pin **both** validation and replay reads to the selected ETag. If the Blob changes between reads, fail operationally rather than process different bytes. This policy processes the revision current at invocation time; it does not guarantee processing a historical revision associated with an older notification. Use Blob versions or snapshots and a revision-aware source contract when every historical revision matters.
 
 Reference `CoreEx.Azure.Storage.Blobs` in the Functions host and add its namespace to `GlobalUsing.cs`. Use `BlobReadSource.CreateAsync` once and pass `source.OpenReadAsync` to the file processor; `source.SourceUri.AbsoluteUri` is credential-free and `source.ETag.ToString()` identifies the selected revision. For reports, wrap a `BlobJsonlReport` named from definition/version/source/revision/attempt in `BlobJsonlFileReportAdapter` and pass it to `FileProcessingReporter.RunAsync`. Customize record projections if needed; do not write the same report through processor hooks as well. The helpers supply conditional reads, create-only output, compact JSONL and explicit terminal metadata; they do not provision containers, choose admission limits, or make publishing transactional. Report failures propagate; an ambiguous write faults the instance instead of being blindly appended again.
@@ -221,7 +223,7 @@ Create a fresh report attempt ID for every processing attempt, including retries
 
 Keep JSONL for this walkthrough's mixed lifecycle records: completed lines remain readable after failure, although the final line may be incomplete. A streamed JSON array/object is not a complete JSON document until its closing syntax is written; plain JSON is better suited to a finished summary. If suppliers also need a flat rejection export, `BlobCsvReport` supports explicit columns such as `row-number,supplier-code,supplier-sku,field,error-code,message`, invariant scalar formatting and standard CSV quoting. Its constructor requires a `CsvFormulaHandling` choice; quoting alone does not prevent spreadsheet formulas. StartAsync writes one header and CompleteAsync(outcome) updates metadata without inserting a summary row. That business-facing CSV is optional, not another required capability in this walkthrough.
 
-Use `ValidateThenExecute`: all rows and EOF reconciliation must pass before publishing starts. Stream diagnostics to a durable, attempt-specific Blob report; don't retain an unbounded error history. A content-failed report is a handled rejection, not a successful import. A `Succeeded` import report means all row commands were published, not that the backend applied them; verify downstream processing separately. Let storage, reporting, broker, and cancellation failures propagate so the host can apply its retry policy.
+Use `ValidateThenExecute`: all rows and EOF reconciliation must pass before publishing starts. `ContentFailed` is a handled rejection with no sends. If the reporter returns `ExecutionFailed`, propagate the failed result after it has written the terminal outcome. A `Succeeded` report means all sends returned successfully, not that the backend applied the commands. Let storage, reporting, broker, and cancellation failures propagate; report I/O failure or cancellation can leave no terminal record.
 
 Use CloudEvents 1.0 **binary mode** for the queue command: the body is the `CatalogItemUpsert` JSON and the CloudEvent metadata is carried separately in Service Bus properties. Binary describes the envelope layout, not a binary encoding of the JSON. This remains a command addressed to one queue, not a broadcast domain event.
 
@@ -232,6 +234,8 @@ Use CloudEvents 1.0 **binary mode** for the queue command: the body is the `Cata
 | CloudEvent `type` | `northstar.catalog.item.upsert.v1`. |
 | CloudEvent `datacontenttype` / Service Bus `ContentType` | `application/json`. |
 | CloudEvent `data` / Service Bus body | The `CatalogItemUpsert` command, without a structured CloudEvent JSON wrapper. |
+
+CoreEx reconstructs the binary CloudEvent ID and type from `MessageId` and `Subject`; do not override them independently. Supply a deterministic event key or partition key for the default CoreEx formatter, even on this non-session queue. Test that the JSON includes a valid `unitPrice: 0`, since CoreEx's default serializer omits default values unless the contract opts out.
 
 Implement the application publishing abstraction using the configured `IEventPublisher` backed by CoreEx `ServiceBusPublisher`, or an intentional custom implementation/decorator. Register the no-outbox broker publisher with `AddAzureServiceBusPublisher` and explicitly select `ContentMode.Binary`; the stock publisher defaults to structured mode. Add the command to `catalog-item-upserts` and await `PublishAsync(cancellationToken)` from each fresh unit-handler scope. Adding alone does not send, and a publisher cannot simply be reused after publication without reset. Do not capture one publisher for the whole file, manually convert a CloudEvent and call `ServiceBusSender`, or substitute an output binding. Direct publishing means bypassing the outbox, not CoreEx. Preserve supported overrides/custom registrations; use `ConfigureMessage` for broker-specific customization where needed. Keep transport concerns behind the publishing abstraction, not in the command contract.
 

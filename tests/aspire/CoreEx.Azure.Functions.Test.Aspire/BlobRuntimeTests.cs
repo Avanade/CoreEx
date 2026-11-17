@@ -17,7 +17,7 @@ public partial class BlobRuntimeTests : WithAspireTester<Projects.CoreEx_Azure_F
             Test.EnableHostDiagnostics();
             await Test.WaitForResourceAsync("functions", TimeSpan.FromMinutes(4));
             await Test.WaitForFunctionsAsync("functions",
-                ["ImportBlob", "ImportInventoryFile", "ImportInventoryJson", "ImportInventoryJsonl", "ImportInventoryCsvBatch", "ImportInventoryJsonBatch", "ImportInventoryJsonlBatch"], TimeSpan.FromSeconds(90));
+                ["ImportBlob", "ImportCatalog", "ImportInventoryFile", "ImportInventoryJson", "ImportInventoryJsonl", "ImportInventoryCsvBatch", "ImportInventoryJsonBatch", "ImportInventoryJsonlBatch"], TimeSpan.FromSeconds(90));
             var storage = new BlobServiceClient("UseDevelopmentStorage=true");
             _inputs = storage.GetBlobContainerClient("imports");
             _reports = storage.GetBlobContainerClient("import-results");

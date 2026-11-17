@@ -33,7 +33,7 @@ var configuration = new DirectoryInfo(AppContext.BaseDirectory).Parent?.Name ?? 
 var functionDirectory = Path.Combine(builder.AppHostDirectory, "bin", configuration, "net10.0", "functions");
 var arguments = new[] { "start", "--no-build", "--port", "7099", "--functions", "ReadContext", "ReadTraceObservation", "Create", "Failure", "Messages", "ProcessMessage", "ProcessNativeMessage", "ImportBlob", "ImportInventoryFile",
     "ImportInventoryJson", "ImportInventoryJsonl", "ImportInventoryCsvBatch", "ImportInventoryJsonBatch", "ImportInventoryJsonlBatch",
-    "CreateIdempotent", "CreateIdempotentRequired", "ReadIdempotencyCount", "ReleaseIdempotencyOperation" };
+    "ImportCatalog", "CreateIdempotent", "CreateIdempotentRequired", "ReadIdempotencyCount", "ReleaseIdempotencyOperation" };
 var functions = OperatingSystem.IsWindows()
     ? builder.AddExecutable("functions", "cmd.exe", functionDirectory, ["/c", "func", .. arguments])
     : builder.AddExecutable("functions", "func", functionDirectory, arguments);
@@ -48,6 +48,7 @@ functions
     .WithEnvironment("ImportStorage", "UseDevelopmentStorage=true")
     .WithEnvironment("InventoryImportDatabase", $"Server=tcp:127.0.0.1,14335;Database=CoreExInventory;User Id=sa;Password={sqlPassword};TrustServerCertificate=True;Connect Timeout=10")
     .WithEnvironment("InventoryImportReports", "inventory-results")
+    .WithEnvironment("CatalogImportReports", "catalog-import-results")
     .WithEnvironment("InventoryImportTenant", "runtime-tenant")
     .WithEnvironment("ServiceBus", serviceBusConnection)
     .WaitFor(serviceBus)

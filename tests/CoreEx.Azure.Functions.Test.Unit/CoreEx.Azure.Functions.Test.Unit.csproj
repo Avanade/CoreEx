@@ -15,6 +15,10 @@
     <PackageReference Include="NUnit3TestAdapter" />
     <PackageReference Include="UnitTestEx.Azure.Functions" />
     <PackageReference Include="UnitTestEx" />
+    <ProjectReference Include="..\..\src\CoreEx.UnitTesting\CoreEx.UnitTesting.csproj" />
     <ProjectReference Include="..\CoreEx.Azure.Functions.TestApp\CoreEx.Azure.Functions.TestApp.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Fixtures\catalog-*.csv" />
   </ItemGroup>
 </Project>

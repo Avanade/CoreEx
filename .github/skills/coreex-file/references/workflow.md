@@ -48,4 +48,15 @@ Trust standard parser, converter, validator, scope and Blob helper behavior. Do 
 
 Where runtime evidence is required, retain a small real-infrastructure proof for the chosen topology. For an Event Grid-source Function against Azurite, upload input and post a storage-shaped notification through the Functions webhook. This simulates notification delivery, not Azure subscription provisioning, authentication or cloud delivery; the binding, Blob SDK and configured application persistence remain real. Do not add a database/outbox solely to reproduce a framework example.
 
+See the [catalog forwarding example](https://github.com/Avanade/CoreEx/tree/main/tests/CoreEx.Azure.Functions.TestApp/CatalogForwarding) for a generated two-pass CSV import, JSONL attempt/diagnostic/completion projections, and per-unit direct publishing. Use `Azure.Storage.Blobs.Specialized` when naming `AppendBlobClient`. Apply the outcome policy **after** `FileProcessingReporter.RunAsync` so a returned execution failure is reported before it fails the invocation.
+
+| Processing result | Invocation and report |
+|---|---|
+| `Succeeded` | Finish normally. Report successful publish returns, not backend applications. |
+| `ContentFailed` | Handle the rejection and finish normally with no sends in `ValidateThenExecute`. |
+| Returned `ExecutionFailed` | Reporter writes the terminal outcome; then propagate the failed result to the host. |
+| Thrown operational exception | Propagate; the reporter attempts a `Faulted` completion if reporting is still usable. Cancellation or report I/O failure can leave no terminal record. |
+
+Each retry gets a distinct attempt report; earlier commands may be sent again with the same command IDs.
+
 Regenerate schemas/docs through tooling when changing framework config types. Keep packaged AI guides, schema references and template asset assertions aligned. Renaming/removing a definition does not authorize deleting arbitrary output directories.

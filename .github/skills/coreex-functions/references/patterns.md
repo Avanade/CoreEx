@@ -111,11 +111,11 @@ Assertions must cover observable effects/delegation, not just `AssertSuccess`. F
 
 ## Testing published commands and Blob imports
 
-Use the real host entry point, existing publisher expectations and SDK-level Blob fixtures from `CoreEx.UnitTesting.Blobs` for component tests. In this illustrative fragment, `Program`, `ImportFunctions` and the input fields are application-owned:
+Use the real host entry point, existing publisher expectations and SDK-level Blob fixtures from `CoreEx.UnitTesting.Blobs` for component tests. In this illustrative fragment, `ImportFunctions` is defined in the host assembly and `TestData` is a marker in the fixture assembly:
 
 ```csharp
-using var test = FunctionTester.Create<Program>();
-var source = new StubBlobClient(new BinaryData("sku,quantity\nSKU-1,2\n"));
+using var test = FunctionTester.Create<ImportFunctions>();
+var source = StubBlobClient.FromResource<TestData>("catalog-valid.csv");
 var reports = new RecordingBlobContainerClient();
 test.ConfigureServices(services =>
 {
@@ -128,7 +128,9 @@ test.Trigger<ImportFunctions>()
     .AssertSuccess();
 ```
 
-The default decorator passes through to the configured publisher. The explicit bypass above avoids a broker and does not prove custom publisher hooks or final wire conversion. Assert command payload/destination through the event expectations and application report records through `reports.Blobs`; these fixtures buffer small test data and do not simulate Azure conditional operations. For failure injection, `test.OnEventPublish(ServiceBusPublisher.DefaultServiceKey, action)` runs before each publish; a closure can throw on the second attempt to exercise partial-publication policy. Create a fresh tester per independent test, since successful captures accumulate across unit scopes.
+Import `UnitTestEx.Expectations` in `GlobalUsing.cs`. Register `OnEventPublish` on the owning `FunctionTester`, before `Trigger<T>().Run(...)`, using the same key as the decorated publisher. The hook runs before the inner publish in both pass-through and bypass mode. The [catalog forwarding invocation test](https://github.com/Avanade/CoreEx/blob/main/tests/CoreEx.Azure.Functions.Test.Unit/CatalogForwardingTests.cs) shows the second call throwing, one captured command across row scopes, and a failed invocation with a terminal report. Use `ExpectNoAzureServiceBusEvents()` for no sends; use one aggregate `events.Assert(...)` for count and payload together. `AssertCount` and `AssertCustom` cannot be combined on one expectation. Use a fresh tester per independent invocation. A pre-send injection proves the second send never started; a real thrown send may have been accepted by the broker.
+
+For fixed binary CloudEvent contracts, set the exact source, type and stable ID on `EventData`, use `ContentMode.Binary`, and supply a key or partition key if the CoreEx formatter requires one (its default, independent of broker sessions). CoreEx maps CloudEvent ID/type to Service Bus `MessageId`/`Subject` and reads them back from those fields. Do not override them independently with `ConfigureMessage` when using the CoreEx binary receiver. In a conversion test copy body, content type, `MessageId`, `Subject` and application properties into the received message; assert the actual JSON, including required default values such as `unitPrice: 0`. Preserve those values on the contract rather than changing global serializer defaults.
 
 Prefer a small scenario set: valid mapping and success report; late invalid input/custom duplicate-key rejection with no commands; stable command IDs and fresh report identity on retry; and representative publication/report failures in handwritten orchestration. Do not repeat parser, CloudEvent header, ETag/append-position or settlement permutations already covered by CoreEx. For realistic multi-line file inputs, use embedded resources loaded with `UnitTestEx.Resource.GetStream`, then expose immutable bytes through a fresh `MemoryStream` per processor open. Small illustrative inputs may remain inline; avoid chained replacements on a shared file fixture. Retain a small Azurite/Core Tools test for actual storage/binding/broker behavior.
 
@@ -145,6 +147,8 @@ builder.AddAzureBlobServiceClient("ImportStorage", settings =>
 ```
 
 Derive report containers from the registered `BlobServiceClient`. This does not configure native bindings or require an AppHost; managed-identity deployments should use the integration's service URI/credential settings instead of inventing a connection string. The input client below remains binding-owned.
+
+For composition-only coverage, share the registration method with `Program`, add in-memory settings to a Functions builder **before** calling it, build without starting, and resolve the real SDK client to check its endpoint. Assert both fallback and explicit named-setting precedence. UnitTestEx.Azure.Functions 7.0.0 applies `additionalConfiguration` during `HostBuilding`; Aspire reads settings earlier, when `AddAzureBlobServiceClient` is called. Replacing the client in an invocation test does not verify that configuration.
 
 ```csharp
 [Function(nameof(ImportBlob))]
