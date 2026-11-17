@@ -52,7 +52,7 @@ If a guide is not cached locally, fetch from GitHub:
 - [CoreEx.AspNetCore.NSwag](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.AspNetCore.NSwag/AGENTS.md) — NSwag/OpenAPI integration.
 - [CoreEx.Azure.Functions](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.Azure.Functions/AGENTS.md) — isolated-worker invocation context, MVC WebApi/idempotency, Service Bus settlement and native binding boundaries.
 - [CoreEx.Azure.Messaging.ServiceBus](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.Azure.Messaging.ServiceBus/AGENTS.md) — Service Bus publisher, subscribers, error handling.
-- [CoreEx.Azure.Storage.Blobs](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.Azure.Storage.Blobs/AGENTS.md) — revision-pinned input and streamed JSONL/CSV attempt reports; CSV has explicit columns/formula handling, JSONL suits mixed lifecycle records. Host-neutral, no Functions or CoreEx.IO dependency.
+- [CoreEx.Azure.Storage.Blobs](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.Azure.Storage.Blobs/AGENTS.md) — revision-pinned input and streamed JSONL/CSV attempt reports; CSV has explicit columns/formula handling, JSONL suits mixed lifecycle records. Host-neutral, references CoreEx.IO but not Functions.
 - [CoreEx.Caching.FusionCache](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.Caching.FusionCache/AGENTS.md) — `IHybridCache`, Redis backplane, idempotency provider.
 - [CoreEx.Cosmos](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.Cosmos/AGENTS.md) — `CosmosDb`, `CosmosDbContainer<TModel>`, transactional-batch outbox, Change Feed relay, provisioning.
 - [CoreEx.CodeGen](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.CodeGen/AGENTS.md) — `CodeGenConsole`, `ref-data.yaml`, generated-file ownership.

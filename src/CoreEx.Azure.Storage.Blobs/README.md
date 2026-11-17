@@ -1,6 +1,6 @@
 # CoreEx.Azure.Storage.Blobs
 
-Host-neutral Azure Blob input and report helpers. The package references `CoreEx` and the `Aspire.Azure.Storage.Blobs` client integration (which supplies the Azure SDK), not Azure Functions or `CoreEx.IO`. Use the registered SDK clients for other storage operations.
+Host-neutral Azure Blob input and report helpers. The package references `CoreEx.IO` and the `Aspire.Azure.Storage.Blobs` client integration (which supplies the Azure SDK), not Azure Functions. `CoreEx.IO` itself remains independent of Azure. Use the registered SDK clients for other storage operations.
 
 ## Host client registration
 
@@ -66,7 +66,26 @@ Declare ordered, nonempty, ordinally distinct column names explicitly; the const
 
 `CsvFormulaHandling` is a required constructor choice, not a silent default. `Reject` throws before appending a formula-like row; `PrefixApostrophe` deliberately changes such values by adding an apostrophe before CSV quoting; `Preserve` accepts spreadsheet interpretation risks and leaves them unchanged. The policy also applies to headers. Detection covers leading tab/CR/LF, and `=`, `+`, `-` or `@` after leading whitespace, including formatted negative numbers. Ordinary quoting does not prevent spreadsheet formulas. This conservative policy is not a universal spreadsheet-safety guarantee; choose it for your consumer and trust boundary.
 
-Completion updates outcome metadata only: it never inserts an out-of-schema summary row. Keep counts or heterogeneous operational details in a separate JSONL report if needed. Formatting/schema failures fault the instance without appending a partial row; a failed header append leaves an incomplete attempt. Storage/cancellation failures and ambiguous acknowledgements follow the same rules as JSONL. CSV adds no schema inference, configurable dialect, automatic worksheet formatting, extra infrastructure or CoreEx.IO dependency.
+Completion updates outcome metadata only: it never inserts an out-of-schema summary row. Keep counts or heterogeneous operational details in a separate JSONL report if needed. Formatting/schema failures fault the instance without appending a partial row; a failed header append leaves an incomplete attempt. Storage/cancellation failures and ambiguous acknowledgements follow the same rules as JSONL. CSV adds no schema inference, configurable dialect, automatic worksheet formatting or extra infrastructure.
+
+## File-processing reports
+
+Use the optional `BlobJsonlFileReportAdapter` and `BlobCsvFileReportAdapter` adapters to connect the standalone report writers to `FileProcessingReporter`:
+
+```csharp
+var source = await BlobReadSource.CreateAsync(blob, cancellationToken);
+var context = CatalogProcessor.CreateContext(source.SourceUri.AbsoluteUri, attemptId, source.ETag.ToString());
+var identity = context.Identity;
+var name = BlobJsonlReport.CreateName(identity.DefinitionName, identity.DefinitionVersion, identity.SourceId, identity.SourceRevision, identity.AttemptId);
+var report = new BlobJsonlFileReportAdapter(new BlobJsonlReport(reports.GetAppendBlobClient(name)));
+var summary = await FileProcessingReporter.RunAsync(processor, source.OpenReadAsync, context, report, cancellationToken);
+```
+
+The JSONL adapter writes an attempt record, one record per diagnostic, and a terminal outcome/progress record. Supply projections for application-specific records. Defaults omit exception messages but include diagnostic messages and locations, which application-defined diagnostics may populate with sensitive data; review projections and diagnostics against your data policy.
+
+For a fixed-column rejection report, wrap `BlobCsvReport` in `BlobCsvFileReportAdapter` and supply a diagnostic-to-cells projection. Define the columns and select `CsvFormulaHandling` explicitly. CSV writes a header and diagnostic rows; its terminal outcome is metadata, not an out-of-schema summary row. Use `CompositeFileProcessingReport` to write both formats sequentially; they are not atomic and partial reports may remain if either fails. Existing diagnostic hooks still run before the report; do not write the same report through both paths.
+
+Report callbacks are awaited. Cancellation or an unsuccessful report write can leave the report unfinished; never retry the same faulted report. An `OperationCanceledException`, a canceled invocation token or a diagnostic-report failure prevents fault finalization; other processing faults attempt a `Faulted` outcome. If finalization and processing both fail, the original exceptions are preserved in an `AggregateException`, including cancellation during finalization. `ContentFailed` and `ExecutionFailed` outcomes are returned unchanged after successful finalization; inspect the outcome and decide application handling explicitly. Blob writes and business side effects are not transactional, and prior units may already have executed.
 
 ## Boundaries
 

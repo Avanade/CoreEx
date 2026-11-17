@@ -4,6 +4,133 @@ namespace CoreEx.IO.Test.Unit;
 public class CsvFileProcessorTests
 {
     [Test]
+    public async Task Reporter_CompletesSuccessfulValidation()
+    {
+        var report = new TestReport();
+        var input = new Input("Id,Name,Quantity\n1,A,1\n");
+        var summary = await FileProcessingReporter.RunAsync(new Processor(), input.OpenAsync, Context(FileProcessingMode.ValidateOnly), report);
+        summary.Outcome.Should().Be(FileProcessingOutcome.Succeeded);
+        report.Events.Should().Equal("start", "complete");
+        report.Completion!.Outcome.Should().Be("Succeeded");
+        report.Completion.Summary.Should().BeSameAs(summary);
+    }
+
+    [Test]
+    public async Task Reporter_StreamsAfterExistingHookAndCompletesContentFailure()
+    {
+        var processor = new Processor();
+        var report = new TestReport { Diagnostic = _ => processor.Diagnostics.Should().ContainSingle() };
+        var input = new Input("Id,Name,Quantity\n1,A,invalid\n");
+        var summary = await FileProcessingReporter.RunAsync(processor, input.OpenAsync, Context(FileProcessingMode.ValidateOnly), report);
+
+        summary.Outcome.Should().Be(FileProcessingOutcome.ContentFailed);
+        report.Events.Should().Equal("start", "diagnostic", "complete");
+        report.Completion!.Summary.Should().BeSameAs(summary);
+        report.Completion.Outcome.Should().Be("ContentFailed");
+    }
+
+    [Test]
+    public async Task Reporter_ReturnsExecutionFailureAndPreservesItWhenCompletionFails()
+    {
+        await using var environment = new Environment { FailAt = 1 };
+        var processor = new Processor(environment);
+        var input = new Input("Id,Name,Quantity\n1,A,1\n");
+        var report = new TestReport();
+        var result = await FileProcessingReporter.RunAsync(processor, input.OpenAsync, Context(), report);
+        result.ExecutionResult.Error.Should().BeSameAs(environment.Failure.Error);
+        report.Completion!.Error.Should().BeSameAs(environment.Failure.Error);
+
+        await using var secondEnvironment = new Environment { FailAt = 1 };
+        var reportingFailure = new IOException("Completion failed.");
+        var failingReport = new TestReport { CompletionFailure = reportingFailure };
+        Func<Task> run = () => FileProcessingReporter.RunAsync(new Processor(secondEnvironment), input.OpenAsync, Context(), failingReport);
+        var aggregate = (await run.Should().ThrowAsync<AggregateException>()).Which;
+        aggregate.InnerExceptions.Should().Contain(secondEnvironment.Failure.Error).And.Contain(reportingFailure);
+    }
+
+    [Test]
+    public async Task Reporter_PreservesOperationalAndCompletionFailures()
+    {
+        var processingFailure = new IOException("Processing failed.");
+        var reportingFailure = new IOException("Completion failed.");
+        var report = new TestReport { CompletionFailure = reportingFailure };
+        Func<CancellationToken, Task<Stream>> open = _ => Task.FromException<Stream>(processingFailure);
+        Func<Task> run = () => FileProcessingReporter.RunAsync(new Processor(), open, Context(FileProcessingMode.ValidateOnly), report);
+
+        var aggregate = (await run.Should().ThrowAsync<AggregateException>()).Which;
+        aggregate.InnerExceptions.Should().Equal(processingFailure, reportingFailure);
+        report.Completion!.Outcome.Should().Be("Faulted");
+        report.Completion.Error.Should().BeSameAs(processingFailure);
+    }
+
+    [Test]
+    public async Task Reporter_FinalizesOperationalFaultAndPropagatesOriginalException()
+    {
+        var processingFailure = new IOException("Processing failed.");
+        var report = new TestReport();
+        Func<CancellationToken, Task<Stream>> open = _ => Task.FromException<Stream>(processingFailure);
+        Func<Task> run = () => FileProcessingReporter.RunAsync(new Processor(), open, Context(FileProcessingMode.ValidateOnly), report);
+        (await run.Should().ThrowAsync<IOException>()).Which.Should().BeSameAs(processingFailure);
+        report.Events.Should().Equal("start", "complete");
+        report.Completion!.Error.Should().BeSameAs(processingFailure);
+        report.Completion.Outcome.Should().Be("Faulted");
+    }
+
+    [Test]
+    public async Task Reporter_DoesNotFinalizeAfterDiagnosticFailureOrCancellation()
+    {
+        var failure = new IOException("Diagnostic write failed.");
+        var report = new TestReport { DiagnosticFailure = failure };
+        var input = new Input("Id,Name,Quantity\n1,A,invalid\n");
+        Func<Task> run = () => FileProcessingReporter.RunAsync(new Processor(), input.OpenAsync, Context(FileProcessingMode.ValidateOnly), report);
+        (await run.Should().ThrowAsync<IOException>()).Which.Should().BeSameAs(failure);
+        report.Events.Should().Equal("start", "diagnostic");
+
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        var cancelled = new TestReport();
+        Func<Task> cancelledRun = () => FileProcessingReporter.RunAsync(new Processor(), input.OpenAsync, Context(FileProcessingMode.ValidateOnly), cancelled, cancellation.Token);
+        await cancelledRun.Should().ThrowAsync<OperationCanceledException>();
+        cancelled.Events.Should().NotContain("complete");
+
+        var interrupted = new TestReport();
+        Func<CancellationToken, Task<Stream>> interruptedOpen = _ => Task.FromException<Stream>(new OperationCanceledException());
+        Func<Task> interruptedRun = () => FileProcessingReporter.RunAsync(new Processor(), interruptedOpen, Context(FileProcessingMode.ValidateOnly), interrupted);
+        await interruptedRun.Should().ThrowAsync<OperationCanceledException>();
+        interrupted.Events.Should().Equal("start");
+    }
+
+    [Test]
+    public async Task Reporter_CompositeStopsAtFirstFailureAndRejectsConcurrentContext()
+    {
+        var failure = new IOException("Second report failed.");
+        var first = new TestReport();
+        var second = new TestReport { DiagnosticFailure = failure };
+        var input = new Input("Id,Name,Quantity\n1,A,invalid\n");
+        Func<Task> run = () => FileProcessingReporter.RunAsync(new Processor(), input.OpenAsync, Context(FileProcessingMode.ValidateOnly), new CompositeFileProcessingReport(first, second));
+        (await run.Should().ThrowAsync<IOException>()).Which.Should().BeSameAs(failure);
+        first.Events.Should().Equal("start", "diagnostic");
+        second.Events.Should().Equal("start", "diagnostic");
+
+        var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var blocking = new TestReport { Start = async () => { entered.SetResult(); await gate.Task; } };
+        var context = Context(FileProcessingMode.ValidateOnly);
+        var pending = FileProcessingReporter.RunAsync(new Processor(), input.OpenAsync, context, blocking);
+        await entered.Task;
+        try
+        {
+            Func<Task> overlap = () => FileProcessingReporter.RunAsync(new Processor(), input.OpenAsync, context, new TestReport());
+            await overlap.Should().ThrowAsync<InvalidOperationException>();
+        }
+        finally
+        {
+            gate.SetResult();
+            await pending;
+        }
+    }
+
+    [Test]
     public async Task SinglePassExecution_PreservesSuccessfulWritesWhenLaterUnitFailsValidation()
     {
         await using var environment = new Environment { InvalidAt = 2 };
@@ -778,6 +905,42 @@ public class CsvFileProcessorTests
         {
             Property(x => x.Name).Mandatory();
             Property(x => x.Quantity).NotNull();
+        }
+    }
+
+    private sealed class TestReport : IFileProcessingReport
+    {
+        public List<string> Events { get; } = [];
+        public FileReportCompletion? Completion { get; private set; }
+        public Func<Task>? Start { get; init; }
+        public Action<FileDiagnosticArgs>? Diagnostic { get; init; }
+        public Exception? DiagnosticFailure { get; init; }
+        public Exception? CompletionFailure { get; init; }
+
+        public async Task StartAsync(FileProcessingContext context, CancellationToken cancellationToken = default)
+        {
+            Events.Add("start");
+            cancellationToken.ThrowIfCancellationRequested();
+            if (Start is not null)
+                await Start();
+        }
+
+        public Task WriteDiagnosticAsync(FileDiagnosticArgs args, CancellationToken cancellationToken = default)
+        {
+            Events.Add("diagnostic");
+            Diagnostic?.Invoke(args);
+            if (DiagnosticFailure is not null)
+                throw DiagnosticFailure;
+            return Task.CompletedTask;
+        }
+
+        public Task CompleteAsync(FileReportCompletion completion, CancellationToken cancellationToken = default)
+        {
+            Events.Add("complete");
+            Completion = completion;
+            if (CompletionFailure is not null)
+                throw CompletionFailure;
+            return Task.CompletedTask;
         }
     }
 

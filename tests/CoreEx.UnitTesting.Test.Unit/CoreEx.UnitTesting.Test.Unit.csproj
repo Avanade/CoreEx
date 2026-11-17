@@ -23,6 +23,7 @@
     <ProjectReference Include="..\..\src\CoreEx.UnitTesting\CoreEx.UnitTesting.csproj" />
     <ProjectReference Include="..\..\src\CoreEx\CoreEx.csproj" />
     <ProjectReference Include="..\..\src\CoreEx.Events\CoreEx.Events.csproj" />
+    <ProjectReference Include="..\..\src\CoreEx.Azure.Storage.Blobs\CoreEx.Azure.Storage.Blobs.csproj" />
     <ProjectReference Include="..\..\src\CoreEx.Validation\CoreEx.Validation.csproj" />
     <ProjectReference Include="..\CoreEx.AspNetCore.Test.Api\CoreEx.AspNetCore.Test.Api.csproj" />
   </ItemGroup>

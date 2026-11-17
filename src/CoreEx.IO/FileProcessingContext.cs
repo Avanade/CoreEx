@@ -5,6 +5,7 @@ namespace CoreEx.IO;
 public class FileProcessingContext
 {
     private readonly Dictionary<string, object> _metadata = new(StringComparer.Ordinal);
+    internal Func<FileDiagnosticArgs, CancellationToken, Task>? DiagnosticObserver;
 
     /// <summary>Initializes a file context with explicit identity and processing policy.</summary>
     /// <param name="identity">The immutable definition/source/attempt identity.</param>

@@ -277,8 +277,16 @@ public abstract class FileProcessor<TUnit> : FileProcessor where TUnit : class
 
             Update();
             Task? task = null;
-            System.Threading.ExecutionContext.Run(_callbackContext, _ => task = processor.OnDiagnosticAsync(new(context, diagnostic), cancellationToken), null);
+            System.Threading.ExecutionContext.Run(_callbackContext, _ => task = ObserveAsync(new(context, diagnostic), cancellationToken), null);
             return task ?? throw new InvalidOperationException("The diagnostic hook returned a null task.");
+        }
+
+        /// <summary>Awaits the existing processor hook before the optional invocation report.</summary>
+        private async Task ObserveAsync(FileDiagnosticArgs args, CancellationToken cancellationToken)
+        {
+            await processor.OnDiagnosticAsync(args, cancellationToken).ConfigureAwait(false);
+            if (context.DiagnosticObserver is { } observer)
+                await observer(args, cancellationToken).ConfigureAwait(false);
         }
     }
 }

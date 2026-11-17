@@ -3,6 +3,32 @@ namespace CoreEx.UnitTesting.Test.Unit;
 public class BlobTestHelpersTests
 {
     [Test]
+    public async Task FileReportingBridge_StreamsBothFormatsAndCompletesMetadata()
+    {
+        var container = new RecordingBlobContainerClient();
+        var jsonl = new BlobJsonlFileReportAdapter(new CoreEx.Azure.Storage.Blobs.BlobJsonlReport(container.GetAppendBlobClient("report.jsonl")));
+        var csv = new BlobCsvFileReportAdapter(
+            new CoreEx.Azure.Storage.Blobs.BlobCsvReport(container.GetAppendBlobClient("report.csv"), ["Code"], CoreEx.Azure.Storage.Blobs.CsvFormulaHandling.Reject),
+            args => [args.Diagnostic.Code]);
+        var processor = new CsvFileProcessor<ReportRecord>(() => new CsvFileMapping<ReportRecord>().MapProperty("Number", x => x.Number, CsvFieldConverters.Nullable<int>()));
+        var context = new FileProcessingContext(new("catalog", "1", "source", "attempt", "revision"), FileProcessingMode.ValidateOnly, FileErrorMode.CollectErrors);
+        Task<Stream> Open(CancellationToken _) => Task.FromResult<Stream>(new MemoryStream(Encoding.UTF8.GetBytes("Number\ninvalid\n")));
+
+        var result = await FileProcessingReporter.RunAsync(processor, Open, context, new CompositeFileProcessingReport(jsonl, csv));
+
+        result.Outcome.Should().Be(FileProcessingOutcome.ContentFailed);
+        container.Blobs["report.jsonl"].Content.ToString().Should().Contain("\"kind\":\"attempt\"").And.Contain("\"kind\":\"diagnostic\"").And.Contain("\"kind\":\"outcome\"");
+        container.Blobs["report.jsonl"].Metadata["outcome"].Should().Be("ContentFailed");
+        container.Blobs["report.csv"].Content.ToString().Should().Be("Code\r\ncsv.field.invalid\r\n");
+        container.Blobs["report.csv"].Metadata["outcome"].Should().Be("ContentFailed");
+    }
+
+    private sealed class ReportRecord
+    {
+        public int? Number { get; set; }
+    }
+
+    [Test]
     public async Task InputFixture_CopiesBytesAndOpensIndependentReplayStreams()
     {
         var bytes = Encoding.UTF8.GetBytes("supplier,sku\nACME,100\n");
