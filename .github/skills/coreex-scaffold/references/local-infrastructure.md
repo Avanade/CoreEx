@@ -33,7 +33,7 @@ For an existing stack, merge the `azurite` service and `azurite-data` volume bel
 name: integration-local
 services:
   azurite:
-    image: mcr.microsoft.com/azure-storage/azurite:3.35.0
+    image: mcr.microsoft.com/azure-storage/azurite:3.37.0
     command: azurite --location /data --blobHost 0.0.0.0 --queueHost 0.0.0.0 --tableHost 0.0.0.0
     ports:
       - "10000:10000"

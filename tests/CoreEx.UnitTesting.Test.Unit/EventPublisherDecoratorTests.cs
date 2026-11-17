@@ -15,7 +15,7 @@ public class EventPublisherDecoratorTests
         {
             using var scope = test.Services.CreateScope();
             var publisher = scope.ServiceProvider.GetRequiredKeyedService<IEventPublisher>("capture");
-            publisher.Add("commands", EventData.CreateEvent("item", "created"));
+            publisher.Add("commands", EventData.CreateEvent("item", "created").WithPartitionKey("item"));
             await publisher.PublishAsync();
         }
 
@@ -38,11 +38,11 @@ public class EventPublisherDecoratorTests
 
         using var first = test.Services.CreateScope();
         var publisher = first.ServiceProvider.GetRequiredKeyedService<IEventPublisher>(EntryPoint.EventsServiceKey);
-        publisher.Add("commands", EventData.CreateEvent("item", "created"));
+        publisher.Add("commands", EventData.CreateEvent("item", "created").WithPartitionKey("item"));
         await publisher.PublishAsync();
         using var second = test.Services.CreateScope();
         publisher = second.ServiceProvider.GetRequiredKeyedService<IEventPublisher>(EntryPoint.EventsServiceKey);
-        publisher.Add("commands", EventData.CreateEvent("item", "created"));
+        publisher.Add("commands", EventData.CreateEvent("item", "created").WithPartitionKey("item"));
         Func<Task> publish = () => publisher.PublishAsync();
         (await publish.Should().ThrowAsync<IOException>()).Which.Should().BeSameAs(failure);
         Captured(test, EntryPoint.EventsServiceKey).Should().HaveCount(1);
@@ -56,8 +56,8 @@ public class EventPublisherDecoratorTests
         using var second = test.Services.CreateScope();
         var publisher = first.ServiceProvider.GetRequiredKeyedService<IEventPublisher>(EntryPoint.EventsServiceKey);
         var other = second.ServiceProvider.GetRequiredKeyedService<IEventPublisher>(EntryPoint.EventsServiceKey);
-        publisher.Add("commands", EventData.CreateEvent("first", "created"));
-        other.Add("commands", EventData.CreateEvent("second", "created"));
+        publisher.Add("commands", EventData.CreateEvent("first", "created").WithPartitionKey("first"));
+        other.Add("commands", EventData.CreateEvent("second", "created").WithPartitionKey("second"));
         await publisher.PublishAsync();
         await other.PublishAsync();
         var retained = Captured(test, EntryPoint.EventsServiceKey)[1];
@@ -75,7 +75,7 @@ public class EventPublisherDecoratorTests
             .UseExpectedEventPublisher("capture", bypassPassThrough: true));
         using var scope = test.Services.CreateScope();
         var publisher = scope.ServiceProvider.GetRequiredKeyedService<IEventPublisher>("capture");
-        publisher.Add("commands", EventData.CreateEvent("item", "created"));
+        publisher.Add("commands", EventData.CreateEvent("item", "created").WithPartitionKey("item"));
         await publisher.PublishAsync();
         sent.Should().BeEmpty();
         Captured(test, "capture").Should().ContainSingle();

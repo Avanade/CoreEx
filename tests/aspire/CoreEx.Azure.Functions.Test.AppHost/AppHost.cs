@@ -5,7 +5,8 @@ if (!builder.ExecutionContext.IsRunMode)
 const string sqlPassword = "CoreEx_Emulator!2026";
 const string serviceBusConnection = "Endpoint=sb://localhost:5682;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;";
 
-var storage = builder.AddContainer("functions-storage", "mcr.microsoft.com/azure-storage/azurite", "3.35.0")
+// Azurite 3.37.0 supports the Storage SDK's 2026-06-06 API version.
+var storage = builder.AddContainer("functions-storage", "mcr.microsoft.com/azure-storage/azurite", "3.37.0")
     .WithArgs("azurite", "-l", "/data", "--blobHost", "0.0.0.0", "--queueHost", "0.0.0.0", "--tableHost", "0.0.0.0")
     .WithEndpoint(port: 10000, targetPort: 10000, scheme: "http", name: "blob", isProxied: false)
     .WithEndpoint(port: 10001, targetPort: 10001, scheme: "http", name: "queue", isProxied: false)

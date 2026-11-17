@@ -33,6 +33,8 @@ For `*.Test.Functions`, use [`coreex-functions`](/.github/skills/coreex-function
 | `NUnit` | `[TestFixture]`, `[Test]`, `[OneTimeSetUp]` |
 | `AwesomeAssertions` | `.Should()`, `.Be()`, `.HaveCount()` |
 
+Use `AwesomeAssertions` for ordinary value, collection and object assertions (`actual.Should().Be(expected)`); do not use NUnit `Assert` equivalents such as `Assert.AreEqual` or `Assert.That` for these checks. NUnit control-flow helpers such as `Assert.Fail` and `Assert.Ignore` remain appropriate where needed.
+
 ## Project Types
 
 `*.Test.Common` is a non-packable test-support class library, not a discoverable test suite. `coreex-solution` creates/registers it by default (`--test-common false` opts out); consuming test projects require an explicit ProjectReference. It holds authored helpers/resources and the TestData assembly marker, not automatic database/broker setup. Full domain scaffolds retain their provider-specific common fixtures. Resolve the actual common path independently of deployment names; runtime hosts and CodeGen do not reference it.
@@ -86,7 +88,7 @@ The goal is a single source of truth per behaviour: unit tests guard the rules a
 
 For publishing assertions, use `services.UseExpectedAzureServiceBusPublisher()` (or the configured publisher's `UseExpectedEventPublisher(serviceKey)`) with event expectations, rather than handwritten recording senders. The decorator delegates to the original publisher by default; `bypassPassThrough: true` deliberately selects a no-op inner publisher for isolated tests. It captures successful publications across child scopes, not final broker bytes or partially accepted failed batches. `tester.OnEventPublish(serviceKey, action)` injects failures for non-HTTP/Functions tests; HTTP request testers retain their request-specific overload. Use a fresh tester per isolated test; captures accumulate for its shared-state lifetime.
 
-For file-processing tests, use immutable fixture bytes and a fresh-stream factory. For Blob-boundary component tests, use `CoreEx.UnitTesting.Blobs.StubBlobClient` and `RecordingBlobContainerClient`; assert application diagnostics/outcomes rather than rebuilding Azure's HTTP protocol. Keep report contents application-owned. These buffered test doubles do not prove Azure conditional writes, retries or delivery; retain a small Azurite/Core Tools integration proof for those boundaries when required. Do not mock owned databases/outboxes to replace persistence evidence.
+For representative multi-line CSV/JSON/JSONL inputs, prefer checked-in embedded resource fixtures loaded with `UnitTestEx.Resource.GetStream`; copy to immutable bytes and return a fresh stream for each processor pass. Keep tiny, self-contained edge cases inline. Avoid synthesizing realistic files with chained `string.Replace` calls: use a separate focused fixture or an explicit builder, and make any intentional text substitution unambiguous. For Blob-boundary component tests, use `CoreEx.UnitTesting.Blobs.StubBlobClient` and `RecordingBlobContainerClient`; assert application diagnostics/outcomes rather than rebuilding Azure's HTTP protocol. Keep report contents application-owned. These buffered test doubles do not prove Azure conditional writes, retries or delivery; retain a small Azurite/Core Tools integration proof for those boundaries when required. Do not mock owned databases/outboxes to replace persistence evidence.
 
 ---
 
