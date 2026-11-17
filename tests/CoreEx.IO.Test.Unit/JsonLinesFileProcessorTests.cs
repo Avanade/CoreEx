@@ -4,13 +4,7 @@ namespace CoreEx.IO.Test.Unit;
 public partial class JsonLinesFileProcessorTests
 {
     internal static string Fixture(string name)
-    {
-        var root = new DirectoryInfo(AppContext.BaseDirectory);
-        while (root is not null && !System.IO.File.Exists(Path.Combine(root.FullName, "CoreEx.slnx")))
-            root = root.Parent;
-
-        return System.IO.File.ReadAllText(Path.Combine(root?.FullName ?? throw new DirectoryNotFoundException(), "docs", "design", "io-multiformat", "phase0-fixtures", name));
-    }
+        => System.IO.File.ReadAllText(Path.Combine(TestContext.CurrentContext.TestDirectory, "Fixtures", name));
 
     private static FileProcessingContext Context(FileProcessingMode mode = FileProcessingMode.ValidateOnly, FileErrorMode errors = FileErrorMode.CollectErrors)
         => new(new("orders", "1", "immutable/orders.jsonl", "attempt", "revision-1"), mode, errors);

@@ -127,7 +127,7 @@ public partial class FileGenerationTests
                 }
             }
             """);
-        var fixtures = Path.Combine(_repository, "docs", "design", "io-multiformat", "phase0-fixtures");
+        var fixtures = Path.Combine(_repository, "tests", "CoreEx.IO.Test.Unit", "Fixtures");
         System.IO.File.Copy(Path.Combine(fixtures, "valid.jsonl"), Path.Combine(_runtime, "valid.jsonl"));
         System.IO.File.Copy(Path.Combine(fixtures, "routed.jsonl"), Path.Combine(_runtime, "routed.jsonl"));
         System.IO.File.WriteAllText(Path.Combine(_runtime, "Program.cs"), $$"""

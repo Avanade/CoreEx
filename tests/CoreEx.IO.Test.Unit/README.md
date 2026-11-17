@@ -4,6 +4,8 @@ The test suite covers format-neutral processing contracts, flat CSV processing, 
 
 ## Portable fixtures
 
+JSONL inputs live in `Fixtures` alongside the CSV baseline data and are copied to the test output directory. CodeGen's generated-consumer integration test reuses the same JSONL inputs from this project; neither suite depends on design documentation.
+
 `Fixtures/baseline.json` records required `ValidateThenExecute` outcomes under `CollectErrors`, using UTF-8 without a BOM and LF endings. Flat files have a column-name header and typed fields `Id` (integer), `Name` (string), and `Quantity` (integer; `NotNull`, not `Mandatory`, so zero is valid). Their CSV header is not a data record.
 
 Hierarchical fixtures are positional and have exact, case-sensitive discriminator values: `H` is a single required header, `O` a root order, `L` a required contiguous child of an order, and `T` a single required final trailer. Each order requires at least one line. The trailer carries root count and sum of line quantities. Header/trailer records count as physical records, not execution units. The orphan and unknown record in `orders-invalid-structure.csv` are diagnostic failures, not contributors to accepted order totals.
