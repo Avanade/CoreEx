@@ -44,7 +44,15 @@ See [IdempotencyFunctions](../../tests/CoreEx.Azure.Functions.TestApp/Idempotenc
 
 For UnitTestEx 7 invocation tests of this helper, assign a readable, seekable response buffer before invoking the function and use `.Run(...).SnapshotHttpResponse(request.HttpContext.Response)` to assert the already-rendered status, headers and body. The snapshot preserves stream ownership and position and does not re-execute the function or its result. Reserve `ToHttpResponseMessageAssertor(request)` for deferred results that still need execution.
 
+## Service Bus publishing
+
+Use the configured `IEventPublisher` backed by `ServiceBusPublisher` or the transactional outbox by default, just as in other CoreEx hosts. With no outbox, `AddAzureServiceBusPublisher` can register the default publisher; add the command/event and await `PublishAsync(cancellationToken)`. Direct publishing bypasses the outbox, not CoreEx. Do not format a CloudEvent and call `ServiceBusSender` or use an output binding as an equivalent substitute. Native Functions triggers describe listener ownership, not a preference for raw SDK sending. CloudEvents remain the default representation; native payloads use the same publishing pipeline with explicit opt-in.
+
+Preserve configured custom implementations/decorators and supported subscriber overrides; use publisher configuration and `ConfigureMessage` for transport customization before replacing behavior. Raw SDK sending or custom receive callbacks require a concrete documented requirement. For per-row file forwarding, inject the publisher in each generated handler's fresh unit scope and await that unit's send; a publisher retains its queue and is single-use until reset, so do not capture one for the whole file or reset a concurrently shared publisher. See the [Service Bus guide](../CoreEx.Azure.Messaging.ServiceBus/README.md) and [no-outbox example](../../.github/skills/coreex-functions/references/patterns.md#direct-service-bus-publishing-no-outbox).
+
 ## Service Bus: dispatched, typed and callback processing
+
+Default to the configured typed/dispatched subscriber overload of `FunctionReceiveAsync`, including custom implementations and supported overrides. The callback overload is an escape hatch for a concrete processing requirement, not the default for simple or native-payload messages.
 
 Set `AutoCompleteMessages = false` on every trigger that uses this bridge. Both paths use `FunctionReceiveAsync`: the `ServiceBusSubscriberBase` overload (including `ServiceBusSubscribedSubscriber`) delegates to an existing CoreEx subscriber and then settles the result. The `ServiceBusMessageActions` overload accepts a result-producing callback instead: it does not deserialize messages, require CloudEvents, inspect subjects, or dispatch to registered subscribers.
 

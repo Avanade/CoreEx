@@ -1,5 +1,5 @@
 ---
-applyTo: "**/Subscribe/**/*.cs"
+applyTo: "**/Subscribe/**/*.cs,**/*.Subscribe/**/*.cs"
 description: "Event subscriber conventions: SubscribedBase, SubscribedBase<T>, ValueValidator, ErrorHandler, subject naming, and Subscribe host Program.cs composition"
 tags: ["subscribers", "messaging", "service-bus", "event-handling", "integration", "subscribe-host"]
 ---
@@ -27,6 +27,8 @@ tags: ["subscribers", "messaging", "service-bus", "event-handling", "integration
 | `CoreEx` | `[ScopedService]`, `.ThrowIfNull()`, `.Required()`, `Result`, `Result.Success`, `IValidator<T>` |
 
 ## Subscriber Structure
+
+CoreEx subscriber processing is the default, not an optional optimization for complex workloads. Preserve configured custom subscribers, decorators and supported overrides; a handwritten SDK receive pipeline or callback needs a concrete documented requirement. Native payloads still use the CoreEx pipeline with explicit representation opt-in. Functions retains its native trigger and delegates to `subscriber.FunctionReceiveAsync`, without a competing CoreEx listener.
 
 For an entity with one payload type, use `ServiceBusSubscriberBase<TValue>` without `SubscribedManager` or `[Subscribe]` dispatch. The inherited `DataRepresentation` defaults to `MessageRepresentation.CloudEvent`; `ContentMode` selects binary/structured handling, and `args.CloudEvent` exposes envelope metadata for application-specific checks. Native JSON requires explicit `DataRepresentation = MessageRepresentation.Native`. Both representations retain typed validation and error classification. Register through the existing `.WithSubscriber<TSubscriber>()` builder; for native Functions triggers, use the [Functions guidance](/.github/instructions/coreex-functions.instructions.md) instead of adding a CoreEx receiver.
 

@@ -16,9 +16,10 @@ Use `.github/skills/coreex-command-publish-e2e/SKILL.md` and its referenced work
 
 Operational contract:
 - Read the solution-root `AGENTS.md` **Feature Configuration** first (`messaging-provider`, `outbox-enabled`, `data-provider` — `SqlServer` / `Postgres` / `Cosmos` / `None`, `rop-enabled`).
+- Use the configured `IEventPublisher` backed by CoreEx `ServiceBusPublisher` or outbox, preserving custom implementations/decorators and supported overrides. Direct means bypassing the outbox, not raw SDK sending; a no-outbox flow awaits `PublishAsync(cancellationToken)` and needs no fabricated database or relay.
 - Verify every publishing host uses `AddNamedDestinationProvider()` — `AddFixedDestinationProvider` would send commands to the shared topic.
-- Invoke `coreex-adapter`, `coreex-app-service`, add the `{Destination}-{target}` queue to Test.Common `ServiceBus`, then `coreex-test-api`, `coreex-test-relay` and `coreex-aspire`.
+- Invoke `coreex-adapter`, `coreex-app-service`, add the `{Destination}-{target}` queue to Test.Common `ServiceBus`, then use the actual host's test skill, `coreex-test-relay` only for an outbox flow, and `coreex-aspire` where applicable.
 - If any prompt text conflicts with the skill, the skill wins.
 
 Outcome:
-- The command is built in an adapter, emitted inside the unit of work, routed to the target domain queue, and covered by API, Relay and (where applicable) Aspire tests.
+- The command is built in an adapter, added inside the unit of work when outbox-backed or published directly through CoreEx otherwise, routed to the target domain queue, and covered by the applicable host, Relay (outbox only) and Aspire tests.

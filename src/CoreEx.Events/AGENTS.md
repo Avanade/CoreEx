@@ -43,7 +43,7 @@ Native Service Bus Subject comes from formatted Title via CloudEvent `type`; the
 
 ## IEventPublisher Registration
 
-`IEventPublisher` is registered by the database outbox publisher in API/application hosts and by Azure Service Bus in relay hosts.
+`IEventPublisher` is registered by the database outbox publisher in outbox-backed application hosts and by Azure Service Bus in relay or no-outbox hosts, including Functions. Preserve configured custom implementations/decorators. Direct publishing still uses the CoreEx pipeline: add the command/event, then await `PublishAsync(cancellationToken)`; adding alone does not send. Raw SDK sending is not the default substitute for an outbox-free flow. Publishers retain queued messages and are single-use until reset; per-unit file forwarding should use each fresh handler scope, not an unbounded shared publisher.
 
 ```csharp
 // API host — outbox is the publisher; Service Bus is wired separately with addAsDefaultIEventPublisher: false

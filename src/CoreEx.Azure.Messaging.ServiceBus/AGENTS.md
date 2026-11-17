@@ -4,6 +4,8 @@ Provides Azure Service Bus publishing and subscriber hosting for the CoreEx even
 
 ## Publishing
 
+Use the configured `IEventPublisher` pipeline in every host/layer, including Functions and Infrastructure adapters. The default broker implementation is `ServiceBusPublisher`; preserve custom registered implementations/decorators and supported subscriber overrides. Configure formatter, destinations, content mode and `ConfigureMessage` before replacing behavior; the stock publisher is sealed. Direct publishing bypasses the outbox, not CoreEx. Raw `ServiceBusSender.SendMessageAsync`/`SendMessagesAsync`, output bindings or handwritten receive pipelines require a concrete documented requirement. Formatting with `ToServiceBusMessage` alone does not apply publisher session policies, callbacks or send handling.
+
 Register the publisher in `Program.cs`. When the outbox pattern is used (recommended), Service Bus is **not** the default `IEventPublisher` — the outbox publisher is. Pass `addAsDefaultIEventPublisher: false`.
 
 ```csharp
@@ -19,6 +21,8 @@ builder.Services.AddAzureServiceBusPublisher((_, c) =>
     c.SessionIdStrategy = ServiceBusSessionStrategy.UsePartitionKeyConvertedToAnId;
 });
 ```
+
+For a no-outbox app, including a standalone Function App, `AddAzureServiceBusPublisher` can register the default `IEventPublisher`. Add the command/event with `publisher.Add(destination, data)`, then await `publisher.PublishAsync(cancellationToken)`; adding alone does not send. No database or relay is required. Publishers retain their queued events and are single-use until `Reset()`; for per-row file forwarding, use the generated handler's fresh scope per unit rather than retaining one invocation-wide publisher or resetting a concurrently shared instance. Propagate ambiguous failures and retain stable IDs; neither direct publishing nor reset makes sends atomic or exactly-once.
 
 `SessionIdPartitionSize` can be configured independently with `CoreEx:Host:ServiceBus:SessionIdPartitionSize` (default: `PartitionKey.DefaultPartitionSize`). Exact destination names can override `SessionIdStrategy` and/or `SessionIdPartitionSize` under `CoreEx:Host:ServiceBus:Destinations:{destination}`. Prefer stable entity keys and tune bounded bucketing only where the ordering/concurrency profile warrants it. Do not reuse the relational outbox setting: direct Service Bus publishing can bypass the outbox, and the two sizes control separate ordering and concurrency boundaries.
 
@@ -81,6 +85,8 @@ builder.Services.AzureServiceBusReceiving()
 Keyed subscribers are resolved in tests via `GetRequiredKeyedService<ServiceBusSubscribedSubscriber>("subscriber-events")`.
 
 ## Subscriber Classes
+
+Default to `ServiceBusSubscriberBase<TValue>` for one payload shape or `ServiceBusSubscribedSubscriber` for subject/source dispatch, preserving configured custom implementations and supported overrides. In Functions, retain the native trigger and call `subscriber.FunctionReceiveAsync`; do not register a competing receiver. A raw callback/SDK receive pipeline needs a concrete documented requirement, not simply a native payload or simple workload. The dispatched examples below apply only when dispatch is selected.
 
 Subscribers are decorated with `[Subscribe("subject")]` and extend `SubscribedBase` (untyped) or `SubscribedBase<TValue>` (typed payload). Register with `[ScopedService]`.
 

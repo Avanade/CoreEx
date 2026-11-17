@@ -80,6 +80,7 @@ Connection strings for each service in development are in each host's `appsettin
 
 ### CoreEx-First Patterns
 - Prefer CoreEx primitives before introducing external libraries that overlap with framework capabilities.
+- For Service Bus in any host/layer, publish through `IEventPublisher` backed by `ServiceBusPublisher` or the configured outbox; receive through the CoreEx typed/dispatched subscriber pipeline. Preserve configured custom implementations, decorators and supported overrides. Direct publishing bypasses the outbox, not CoreEx; raw SDK sending/output bindings or handwritten receive pipelines require a concrete documented reason. Functions owns its native trigger and delegates to `subscriber.FunctionReceiveAsync`, never a competing listener. CloudEvents remain the default; native payloads do not require a separate pipeline.
 - Prefer CoreEx exception types (`NotFoundException`, `ValidationException`, `BusinessException`, `ConcurrencyException`, etc.) and CoreEx `Result`/`Result<T>` flows over custom error wrappers.
 - Do not introduce AutoMapper in any repository unless the repository maintainer explicitly requests it. Repositories and services use explicit mapping helpers/classes.
 

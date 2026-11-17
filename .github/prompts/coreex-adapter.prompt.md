@@ -16,6 +16,7 @@ Your job is to create or modify a CoreEx adapter following the project's establi
 Read and follow `.github/skills/coreex-adapter/references/workflow.md` exactly. Do not skip steps or invent patterns not shown there.
 
 Reminder of key conventions:
+- Messaging adapters use the configured `IEventPublisher` backed by CoreEx `ServiceBusPublisher` or outbox, including custom implementations/decorators and supported overrides. Direct publishing bypasses the outbox, not CoreEx; raw SDK sending needs a concrete documented requirement.
 - Sub-folder per external system is **always required**: `Application/Adapters/{ExternalSystem}/`, `Infrastructure/Adapters/{ExternalSystem}/`, `Infrastructure/Clients/{ExternalSystem}/`
 - All methods return `Result` or `Result<T>` — never plain values at the adapter boundary
 - `[ScopedService<IXxxAdapter>]` on every implementation

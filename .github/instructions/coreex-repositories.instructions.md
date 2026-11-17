@@ -1,5 +1,5 @@
 ---
-applyTo: "**/Infrastructure/**/*.cs"
+applyTo: "**/Infrastructure/**/*.cs,**/*.Infrastructure/**/*.cs"
 description: "Repository and infrastructure conventions: EFCore/Cosmos, mapping, typed HTTP clients, adapter implementations, and data-access patterns"
 tags: ["repositories", "infrastructure", "data-access", "efcore", "cosmos", "mapping", "adapters"]
 ---
@@ -26,6 +26,7 @@ tags: ["repositories", "infrastructure", "data-access", "efcore", "cosmos", "map
 | `CoreEx` | `[ScopedService<T>]`, `.ThrowIfNull()`, `ItemsResult<T>`, `Result<T>`, `.GoAsync()`, `.ThenAs()`, `.ThenAsAsync()`, `HttpRequestBuilder`, `client.Send(...)`, `client.Post(...).WithJson(...)`, `builder.AddNamedHttpClient(...)`, `builder.AddTypedHttpClient<T>(...)` |
 | `CoreEx.Validation` | `Validator<T>`, `Validator.Create<T>()`, `.HasProperty(...)`, `.Mandatory()`, `.Email()` for inline response-contract rules |
 | `CoreEx.Events` | `EventData` |
+| `CoreEx.Azure.Messaging.ServiceBus` | `ServiceBusPublisher` behind `IEventPublisher`, `AddAzureServiceBusPublisher`, `ConfigureMessage` for final transport customization |
 | `CoreEx.Data` | `IUnitOfWork`, `DataResult<T>`, `QueryArgsConfig<TSelf>`, `QueryFilterOperator`, `.Where(parsed)`, `.OrderBy(parsed)` |
 | `CoreEx.Database` | `IDatabase`, `SqlStatement`, `DatabaseCommand` for custom relational SQL |
 | `CoreEx.Cosmos` | `CosmosDb`, `CosmosDbContainer<TModel>`, `CosmosDbMappedContainer<TValue,TModel,TMapper>`, `CosmosDbArgs`, `CosmosDbQuery<TModel>`, `.GetAsync()`, `.CreateAsync()`, `.UpdateAsync()`, `.DeleteAsync()`, `.Query()`, `.ToMappedItemsResultAsync()` |
@@ -34,6 +35,10 @@ tags: ["repositories", "infrastructure", "data-access", "efcore", "cosmos", "map
 | `CoreEx.Database.Postgres` | PostgreSQL outbox publisher, ADO.NET helpers |
 
 > **Polyglot data**: Use `CoreEx.Database.Postgres` + `Npgsql.EntityFrameworkCore.PostgreSQL` for PostgreSQL domains. Use `CoreEx.Database.SqlServer` + `Microsoft.EntityFrameworkCore.SqlServer` for SQL Server domains. Use `CoreEx.Cosmos` for Cosmos domains — no EF Core `DbContext`, no `EfDb`, and no `dbex.yaml`; repositories work through typed `CosmosDb` containers instead. Layers above Infrastructure are database-agnostic.
+
+## Service Bus adapters
+
+Publish commands/events through the configured `IEventPublisher`, backed by `ServiceBusPublisher` or the transactional outbox. This applies to adapters and typed messaging clients as well as application services: formatting a CloudEvent and calling `ServiceBusSender.SendMessageAsync`/`SendMessagesAsync` is not an equivalent implementation. Direct publishing bypasses the outbox, not CoreEx; add the command/event and await `PublishAsync(cancellationToken)` for a direct send. Preserve custom registrations/decorators and supported overrides; use publisher configuration/`ConfigureMessage` before replacing transport behavior. Raw SDK sending needs a concrete documented requirement. For scoped per-row publishing and no-outbox registration, see the [Functions publishing pattern](/.github/skills/coreex-functions/references/patterns.md#direct-service-bus-publishing-no-outbox).
 
 ## Structure
 

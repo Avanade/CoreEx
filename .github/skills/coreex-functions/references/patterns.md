@@ -48,6 +48,31 @@ return await webApi.FunctionWithIdempotencyAsync(request,
 
 The configured provider/cache must already be registered. The helper eagerly renders and returns `EmptyResult`; never separately execute the returned result to recover a body for tests. Replay is a best-effort retry safeguard, not exactly-once execution.
 
+## Direct Service Bus publishing (no outbox)
+
+Use the configured `IEventPublisher`, not a raw `ServiceBusSender`. This no-outbox registration assumes the host has its normal settings/execution context and a `ServiceBusClient` registered through `builder.AddAzureServiceBusClient("ServiceBus")`:
+
+```csharp
+builder.Services.AddEventFormatter();
+builder.Services.AddAzureServiceBusPublisher((_, publisher) =>
+{
+    publisher.ContentMode = ContentMode.Binary;
+});
+```
+
+In the scoped application adapter or standalone handler, `publisher` is the injected `IEventPublisher` and `command` is the application-created `EventData` with its agreed stable ID/source/type/payload:
+
+```csharp
+publisher.Add("item-upserts", command);
+await publisher.PublishAsync(cancellationToken).ConfigureAwait(false);
+```
+
+The explicit destination is suitable for a single agreed queue; retain an existing destination provider when routing is already configured. Adding alone does not send. This sends through `ServiceBusPublisher` with its configured conversion, session policy, customization and send handling; converting with `ToServiceBusMessage` and calling the SDK directly is not equivalent. Binary mode is illustrative; CloudEvents remain the default representation and the publisher's default content mode is structured.
+
+With an outbox default, keep `addAsDefaultIEventPublisher: false` on broker registration and inject the configured keyed `IEventPublisher` only for deliberate direct sends. Without an outbox, normal direct publishing uses the caller's cancellation token; compensation-specific cancellation choices are not universal defaults.
+
+Publishers retain their queued messages and cannot be reused after publication without `Reset()`. For generated file processing, resolve the adapter/publisher in each fresh unit-handler scope, publish one unit and dispose that scope. Do not retain an invocation-wide publisher for all rows, reset one concurrently, or silently retry ambiguous sends. Reuse custom registered implementations/decorators and supported subscriber overrides; configure `ConfigureMessage` for broker-specific customization before replacing the pipeline. Raw SDK sends/output bindings require a concrete documented requirement.
+
 ## Explicit subscriber settlement
 
 ```csharp
@@ -59,6 +84,8 @@ public Task ImportMessage([ServiceBusTrigger(QueueName, Connection = "ServiceBus
 ```
 
 Here `subscriber` is an injected `ServiceBusSubscribedSubscriber` or a typed `ServiceBusSubscriberBase<T>` implementation. For a topic, share topic/subscription constants and pass the matching `topic/Subscriptions/subscription` expression to the bridge. Do not pass an unrelated label or add a competing receiver.
+
+This subscriber-based path is the default even for a simple or native-payload workload. Preserve custom subscriber overrides/registrations. Use the callback bridge only for a concrete documented processing requirement the typed/dispatched pipeline cannot meet; it does not supply subscriber deserialization, validation or classification automatically.
 
 ## Invocation tests
 

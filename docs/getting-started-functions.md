@@ -2,7 +2,7 @@
 
 This guide builds a file-driven integration using Azure Functions, CoreEx.IO, CoreEx.Azure.Storage.Blobs, Azure Service Bus, and a mocked HTTP backend. It complements the [microservice getting-started guide](./getting-started.md): there is no API host, domain database, or outbox relay in this walkthrough.
 
-The recommended path uses the CoreEx AI skills to scaffold and implement the solution. Review each plan before approving implementation; the templates create an empty host, not the finished integration. The prompts and examples below describe the behavior to build and verify, not code that already exists in your new solution.
+The recommended path uses the CoreEx AI skills to scaffold and implement the solution. Review each plan before approving implementation; the templates create an empty host, not the finished integration. Paste the prompts in order into your assistant while working in the new solution. They rely on the installed CoreEx AI assets and the solution built so far, not access to this guide; no document attachment is required.
 
 ## What we're building
 
@@ -186,13 +186,13 @@ The internal `CatalogItemUpsert` command should carry the seven business fields 
 Ask your assistant:
 
 ```text
-Plan and wait for approval, then use coreex-file to add a checked-in catalog-file.yaml and generated CSV processor for the Northstar supplier price book in the guide.
+Plan and wait for approval, then use coreex-file to add catalog-file.yaml and a generated CSV processor in the Functions project for a supplier price book.
 
-Generate into the Functions runtime project, using an exact column header, ValidateThenExecute and CollectErrors. Use the source names supplier-code, supplier-sku, description, unit, currency, unit-price and effective-date in the YAML; omit property overrides to use the automatic PascalCase C# naming. Validate the required fields, nonnegative decimal price, currency restricted by YAML options to USD, AUD, NZD or GBP, and yyyy-MM-dd date. Reject duplicate SupplierCode/SupplierSku/EffectiveDate keys at EOF. The per-invocation duplicate-key set is application-owned; explicitly document that it grows with the number of distinct rows and that the caller owns input-size and concurrency limits.
+The exact headers are supplier-code, supplier-sku, description, unit, currency, unit-price and effective-date. All fields are required; price is an invariant decimal >= 0, date is yyyy-MM-dd, and currency must be exactly USD, AUD, NZD or GBP. Reject duplicate supplier/SKU/effective-date keys. Validate the entire file before processing any rows and collect diagnostics.
 
-Generate the wire types, mapping, validators, processor, context and create-only handler. Do not hand-edit generated files. The scoped handler maps an accepted row into an internal CatalogItemUpsert command and delegates publication through an application abstraction, or a capability-local abstraction for standalone. Derive a stable bounded command ID from credential-free source identity, selected Blob revision and row ordinal, not the invocation ID. Propagate cancellation and failures. Add focused tests for valid data, a late invalid row, an unsupported currency, duplicate keys and mapping.
+Map accepted rows to an internal CatalogItemUpsert command with those seven fields and a stable bounded ID derived from credential-free Blob identity, revision and row ordinal. Use the selected solution's layering. For now, capture commands through a test double; do not add triggers or real publishing yet.
 
-Stop at the command-publishing abstraction and use a test double to capture commands in tests. Do not implement or register the Service Bus publisher or any native triggers yet; step 5 adds the real publisher and Blob trigger.
+Test valid data, late invalid rows, unsupported currencies, duplicates and mapping. Document the duplicate-key tracking memory cost and required input-size limits.
 ```
 
 The duplicate-key check is a deliberate simplicity tradeoff: it retains one key per row for the duration of validation. For large feeds, use an application-owned bounded or durable strategy and decide admission limits explicitly. CoreEx.IO does not impose file-size or diagnostic-count quotas.
@@ -231,18 +231,18 @@ Use CloudEvents 1.0 **binary mode** for the queue command: the body is the `Cata
 | CloudEvent `datacontenttype` / Service Bus `ContentType` | `application/json`. |
 | CloudEvent `data` / Service Bus body | The `CatalogItemUpsert` command, without a structured CloudEvent JSON wrapper. |
 
-Use CoreEx's existing CloudEvent-to-Service-Bus mapping rather than hand-building transport properties. Explicitly select `ContentMode.Binary`; `ServiceBusPublisher` defaults to structured mode. Keep CloudEvents and transport concerns behind the publishing abstraction, not in the command contract.
+Implement the application publishing abstraction using the configured `IEventPublisher` backed by CoreEx `ServiceBusPublisher`, or an intentional custom implementation/decorator. Register the no-outbox broker publisher with `AddAzureServiceBusPublisher` and explicitly select `ContentMode.Binary`; the stock publisher defaults to structured mode. Add the command to `catalog-item-upserts` and await `PublishAsync(cancellationToken)` from each fresh unit-handler scope. Adding alone does not send, and a publisher cannot simply be reused after publication without reset. Do not capture one publisher for the whole file, manually convert a CloudEvent and call `ServiceBusSender`, or substitute an output binding. Direct publishing means bypassing the outbox, not CoreEx. Preserve supported overrides/custom registrations; use `ConfigureMessage` for broker-specific customization where needed. Keep transport concerns behind the publishing abstraction, not in the command contract.
 
 ```text
-Plan and wait for approval, then use coreex-functions and coreex-file to connect the catalog processor to a native Blob-triggered Function for the catalog-imports container.
+Plan and wait for approval, then use coreex-functions and coreex-file to connect the existing catalog processor to an Event Grid-based Blob-triggered Function, not a polling trigger.
 
-Reuse CoreEx.Azure.Storage.Blobs in the Functions host: select once with BlobReadSource.CreateAsync, use SourceUri.AbsoluteUri and ETag.ToString() for source/revision identity, and pass source.OpenReadAsync to the processor. Create a fresh report attempt ID for every processing attempt, including retries, while keeping command IDs stable for the same source/revision/row. Wrap BlobJsonlReport in a thin file-specific report adapter using CreateName, StartAsync, awaited WriteAsync diagnostics and CompleteAsync for the terminal summary/outcome in a separate reports container. Do not duplicate its SDK mechanics, create snapshots/containers during invocation, or retry ambiguous report appends. Content failure must produce no queue sends; operational failures and failed publication must propagate. Succeeded describes completed command publication, not downstream backend completion.
+When a file arrives in catalog-imports, validate the whole file, write diagnostics and a terminal outcome to an attempt-specific JSONL Blob report, and publish one CatalogItemUpsert command per accepted row to the catalog-item-upserts Service Bus queue. Invalid files must publish nothing.
 
-Use the infrastructure and local settings prepared in step 3: ImportStorage for Blob access, CatalogImportReports for the report container, and ServiceBus for the publisher. Do not create another emulator stack or provision resources during invocation.
+Reuse the existing local infrastructure and settings: ImportStorage for Blob access, CatalogImportReports for the report container, and ServiceBus for publishing. Pin validation and replay to the same Blob revision. Retries need fresh reports but stable command IDs; operational failures must propagate.
 
-Implement a Service Bus queue publisher behind the command-publishing abstraction. Publish one CloudEvents 1.0 binary-mode message per accepted row to catalog-item-upserts and await each send. Use the existing CoreEx mapping with ContentMode.Binary (not the default structured mode), source urn:northstar:supplier:catalog, type northstar.catalog.item.upsert.v1, and datacontenttype application/json. Set the stable command ID as both CloudEvent id and Service Bus MessageId; the body is the CatalogItemUpsert JSON without a structured CloudEvent wrapper. Do not hand-build CloudEvent transport properties or describe the queue send as transactional with Blob processing.
+Use binary CloudEvents with source urn:northstar:supplier:catalog, type northstar.catalog.item.upsert.v1, JSON command data and the stable command ID as both envelope ID and message ID.
 
-Add invocation and component tests for ETag-pinned replay, invalid-file rejection, reports, cancellation and send failures, including a failure after an earlier send. Assert the binary wire contract, stable identity and successful reconstruction using CoreEx's receiver conversion.
+Add focused tests for invalid files, replay, reporting and failures partway through publication. Report success means commands were published, not applied by the backend.
 ```
 
 Whole-file acceptance is **not** an atomic multi-message send. If publishing fails after one or more sends, retrying the Blob may send those commands again. A stable `MessageId` alone does not ensure broker deduplication; its behavior depends on queue configuration and its duplicate-detection window. Downstream operations must tolerate redelivery.
@@ -268,15 +268,15 @@ Content-Type: application/json
 The mock defines this particular key and `PUT` as create-or-replace; do not assume every OData service supports upsert or uses this URL or payload. Escape OData string literals and URI components correctly. Repeating the same request has the same final state in this mock. The command's description, unit, price, and currency map to different backend field names and a nested `Price` object; don't leak the backend DTO into the internal command.
 
 ```text
-Plan and wait for approval, then use coreex-functions and coreex-adapter to implement the queue consumer and mocked catalog backend described in the guide.
+Plan and wait for approval, then use coreex-functions and coreex-adapter to consume CatalogItemUpsert commands from the catalog-item-upserts Service Bus queue and call a configurable mock HTTP backend.
 
-Use a native Service Bus trigger on catalog-item-upserts delegating to a ServiceBusSubscriberBase<CatalogItemUpsert> implementation through subscriber.FunctionReceiveAsync. Keep its default DataRepresentation of MessageRepresentation.CloudEvent and explicitly set ContentMode.Binary. Use the inherited ValueValidator and error-classification pipeline, without SubscribedManager, [Subscribe] dispatch or a competing receiver. The typed subscriber decodes the envelope and deserializes its data; validate source urn:northstar:supplier:catalog, type northstar.catalog.item.upsert.v1 and datacontenttype application/json through args.CloudEvent, and require the envelope id to match the command's stable ID before calling the application service. Do not bypass envelope validation by deserializing only the message body.
+Validate the existing publisher's binary CloudEvent contract, including metadata and matching envelope/command identity. Follow the selected solution's layering for processing and the backend adapter.
 
-Delegate processing to an application service and an infrastructure adapter/typed HTTP client, or capability-local equivalents in the standalone shape. Map CatalogItemUpsert to the documented OData-style keyed PUT and safely escape key values. Configure the backend base URL; do not call HttpClient directly from the trigger or application service.
+The mock accepts create-or-replace PUTs at /odata/CatalogItems(SupplierCode='ACME',SupplierSku='AC-100',EffectiveDate=2026-11-01). Build and safely escape that key from each command. Keep SupplierCode, SupplierSku and EffectiveDate in the JSON body; map Description to Name, Unit to UnitOfMeasure, and UnitPrice/Currency to Price.Amount/Price.CurrencyCode.
 
-Choose and document an explicit invalid-message, permanent-backend-failure and transient-failure policy using InvalidDataHandling for malformed envelopes/payloads and ErrorHandler for validation/application failures. Retry transient errors such as 408, 429 and 5xx; treat authentication/configuration failures as operational failures, not invalid customer messages. Disable auto-completion for the CoreEx FunctionReceiveAsync bridge, configure classification deliberately, and test exact settlement. Do not start a competing receiver.
+Provide a local mock that records requests and retains replacement state. Repeated identical commands must leave the same state. Retry HTTP 408, 429 and 5xx; keep authentication/configuration errors operational. Propose explicit dead-letter and retry policies for invalid messages and permanent backend failures.
 
-Provide a local mock that records requests and implements the documented create-or-replace behavior. Test mapping and escaping, repeated delivery, a transient failure followed by retry, invalid messages (including missing/wrong CloudEvent metadata and mismatched command identity) and the chosen settlement behavior. Do not claim real OData conformance or exactly-once processing.
+Test mapping, escaping, envelope validation, repeated delivery, transient failures and message settlement. Do not claim full OData conformance or exactly-once processing.
 ```
 
 This replacement operation makes identical redeliveries harmless in the mock, but it does not resolve conflicting updates with the same key: Service Bus consumers can process them out of order. A real backend needs an explicit ordering/version or concurrency policy and an idempotency contract covering ambiguous HTTP outcomes. The integration must not report delivery as successful merely because a message was published.
@@ -286,9 +286,13 @@ This replacement operation makes identical redeliveries harmless in the mock, bu
 Ask your assistant to prepare the local topology and a reproducible runtime test:
 
 ```text
-Plan and wait for approval, then configure a local end-to-end test of the Northstar flow using the Compose-managed Azurite and Service Bus emulator prepared in step 3, Functions Core Tools and the mock backend. Verify the input/report containers exist. Use the shared Test.Common ServiceBus queue definition and reset only the isolated test entities after broker readiness and before starting Functions listeners; keep Config.json entity arrays empty. Require stopped manual hosts and no concurrent producers/consumers when using the walkthrough's fixed queue. Keep Compose as the infrastructure owner; any Aspire orchestration must reference these services, not launch duplicates. Explicitly configure test administration, Functions host bindings and the publisher against the intended broker; keep local credentials out of source control. Leave the separately opted-in InfrastructureSetupTests disabled in ordinary test runs.
+Plan and wait for approval, then add a reproducible local end-to-end test using the existing Compose-managed Azurite and Service Bus emulator, Functions Core Tools and the mock backend.
 
-Upload the guide's two-row CSV, trigger the real Blob binding, and wait for two keyed PUTs at the mock. Assert the Succeeded publication report and independently verify the exact mapped backend payloads, with bounded timeouts. Also exercise a late invalid row and assert a content-failed report and no sends; exercise a transient backend failure and redelivery. Include a repeated delivery case that leaves the same backend state. Run the generated-consumer build, focused tests and runtime test, and report any infrastructure or delivery boundary that could not be exercised.
+Reuse the guarded queue setup with manual hosts stopped and no concurrent producers or consumers. Verify container and broker readiness before starting listeners; do not launch duplicate infrastructure or reset queues during ordinary tests.
+
+Create and upload a valid two-row supplier CSV, then simulate its storage event through the Functions webhook because Azurite does not emit Event Grid events. Exercise the real Blob and queue triggers, assert a Succeeded publication report, and independently verify two correctly mapped PUTs and the mock's final state using bounded timeouts.
+
+Also test a late invalid row with no sends, a transient backend failure with redelivery, and repeated delivery leaving unchanged backend state. Build and run the focused tests; report any runtime delivery boundary that could not be exercised.
 ```
 
 For a manual run, prepare the queue with the filtered setup fixture from step 3 while Functions is stopped, then start the mock backend with its documented command and configure its base URL. In a separate terminal, build and start the Functions host:
@@ -305,7 +309,7 @@ Once the listeners are ready, upload the example from the solution root in anoth
 az storage blob upload --container-name catalog-imports --name catalog.csv --file .\data\catalog.csv --connection-string "UseDevelopmentStorage=true"
 ```
 
-The empty emulator configuration does not create the queue: the local setup fixture or isolated runtime-test setup must do that before listeners start. Azurite does not emit Event Grid events. If using an Event Grid-backed Blob trigger locally, upload the Blob **and** simulate the storage-shaped event through the Functions webhook, as in the [inventory runtime example](../tests/CoreEx.Azure.Functions.TestApp/InventoryImports/README.md). Alternatively, deliberately configure and test a supported polling trigger. A simulated webhook proves neither Azure Event Grid provisioning nor cloud event delivery.
+The empty emulator configuration does not create the queue: the local setup fixture or isolated runtime-test setup must do that before listeners start. Azurite does not emit Event Grid events. To exercise the Event Grid-based Blob trigger locally, upload the Blob **and** simulate the storage-shaped event through the Functions webhook, as in the [inventory runtime example](../tests/CoreEx.Azure.Functions.TestApp/InventoryImports/README.md). A simulated webhook proves neither Azure Event Grid provisioning nor cloud event delivery.
 
 At minimum, check:
 

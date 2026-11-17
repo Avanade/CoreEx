@@ -214,6 +214,9 @@ $testScenarios = @(
             )
             FileContains = @{
                 ".github/instructions/coreex.instructions.md"                   = 'applyTo: "**"'
+                ".github/instructions/coreex-repositories.instructions.md"      = 'applyTo: "**/Infrastructure/**/*.cs,**/*.Infrastructure/**/*.cs"'
+                ".github/instructions/coreex-application-services.instructions.md" = 'applyTo: "**/Application/**/*.cs,**/*.Application/**/*.cs"'
+                ".github/instructions/coreex-event-subscribers.instructions.md" = 'applyTo: "**/Subscribe/**/*.cs,**/*.Subscribe/**/*.cs"'
                 ".github/instructions/coreex-api-controllers.instructions.md"   = "Paging is tolerant"
                 ".github/instructions/coreex-validators.instructions.md"        = "applyTo:"
                 ".github/docs/coreex/manifest.txt"                             = "coreex-version:"
@@ -294,6 +297,9 @@ $testScenarios = @(
             )
             FileContains = @{
                 ".github/instructions/coreex.instructions.md"                 = 'applyTo: "backend/'
+                ".github/instructions/coreex-repositories.instructions.md"    = 'applyTo: "backend/**/Infrastructure/**/*.cs,backend/**/*.Infrastructure/**/*.cs"'
+                ".github/instructions/coreex-application-services.instructions.md" = 'applyTo: "backend/**/Application/**/*.cs,backend/**/*.Application/**/*.cs"'
+                ".github/instructions/coreex-event-subscribers.instructions.md" = 'applyTo: "backend/**/Subscribe/**/*.cs,backend/**/*.Subscribe/**/*.cs"'
                 ".github/instructions/coreex-validators.instructions.md"      = 'applyTo: "backend/'
                 ".github/instructions/coreex-api-controllers.instructions.md" = 'applyTo: "backend/'
                 ".github/docs/coreex/manifest.txt"                            = "coreex-version:"

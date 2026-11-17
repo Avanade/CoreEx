@@ -1,5 +1,5 @@
 ---
-applyTo: "**/Application/**/*.cs"
+applyTo: "**/Application/**/*.cs,**/*.Application/**/*.cs"
 description: "Application service conventions: ScopedService registration, dependency injection, validation, unit of work, CQRS, policies, adapters, and Result<T> pipelines"
 tags: ["services", "application-layer", "dependency-injection", "validation", "unit-of-work", "cqrs", "policies", "adapters"]
 ---
@@ -324,6 +324,8 @@ public async Task DeleteAsync(string id, CancellationToken cancellationToken = d
 ```
 
 ## Native Message Publishing
+
+Use the configured `IEventPublisher`/unit-of-work event queue or an application adapter backed by it, not raw SDK sends. With no outbox, direct publishing still uses CoreEx `ServiceBusPublisher` or the configured custom implementation and awaits `PublishAsync(cancellationToken)`; do not introduce a database/outbox merely to publish. Preserve custom registrations, decorators and supported overrides. See the [Service Bus guide](/.github/docs/coreex/agents/CoreEx.Azure.Messaging.ServiceBus.md#publishing).
 
 CloudEvent is the default wire representation. When an external contract explicitly requires a payload-only body, use `EventData.CreateNativeWith(value)` for JSON, `CreateNativeWithData(BinaryData)` for exact bytes, or `.AsNative()` on an existing event/command. Representation is independent of `MessageType`: preserve command intent and normal destination routing. Native messages use the same publisher and transactional outbox; changing representation does not change atomicity or justify publishing outside the transaction.
 

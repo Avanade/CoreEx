@@ -131,6 +131,7 @@ Every project has a single `GlobalUsing.cs` at its root where all namespace impo
 
 ### Always Prefer CoreEx Primitives
 
+- **Service Bus is CoreEx-first in every layer and host, including Functions.** Publish through `IEventPublisher` backed by `ServiceBusPublisher` or the configured transactional outbox; receive through `ServiceBusSubscriberBase<T>` for one payload or `ServiceBusSubscribedSubscriber` for subject/source dispatch. Reuse configured custom implementations, decorators and supported overrides rather than replacing them with defaults. Direct publishing means bypassing the outbox, not bypassing CoreEx. Do not generate raw `ServiceBusSender.SendMessageAsync`/`SendMessagesAsync`, output bindings or handwritten receive pipelines as substitutes unless a concrete requirement justifies the deviation; document that reason. Functions keeps its native trigger and calls `subscriber.FunctionReceiveAsync`, without a competing CoreEx listener. CloudEvents remain the default representation; native payloads use the same publishing/subscriber pipeline with explicit opt-in.
 - Use CoreEx exception types — `NotFoundException`, `ValidationException`, `BusinessException`, `ConcurrencyException`, `AuthenticationException`, `AuthorizationException`. These auto-map to correct HTTP status codes via `UseCoreExExceptionHandler()`.
 - Use `Result<T>` pipelines for multi-step orchestration, aggregate-oriented flows, and subscriber handlers.
 - Use exception-based flow for simpler CRUD-oriented services where pipeline composition adds no value.

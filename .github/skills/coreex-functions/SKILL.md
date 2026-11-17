@@ -39,12 +39,15 @@ Adds a real capability and its tests to an existing Azure Functions isolated-wor
 |---|---|
 | HTTP | `ConfigureFunctionsWebApplication()` before CoreEx middleware; `AddMvc()` + `AddMvcWebApi()`; native `HttpRequest` / `IActionResult` with MVC `WebApi`. |
 | HTTP idempotency | Explicit `webApi.FunctionWithIdempotencyAsync(...)` around a deferred WebApi operation; configured provider/cache required. |
-| Service Bus | Native trigger; use CoreEx subscribed/typed subscriber or callback bridge only when needed; `AutoCompleteMessages = false` for `FunctionReceiveAsync`. |
+| Service Bus publishing | Configured `IEventPublisher` backed by `ServiceBusPublisher` or outbox; `Add` then await `PublishAsync`. Direct means no outbox, not raw SDK sending. |
+| Service Bus receiving | Native trigger delegating to a CoreEx typed/dispatched subscriber through `subscriber.FunctionReceiveAsync`; `AutoCompleteMessages = false`. |
 | Blob | Native binding/SDK; choose source, revision handling, output identity and failure policy explicitly. For CSV, delegate parsing and generated types to `coreex-file`. |
 | Timer | Native `TimerTrigger`, schedule app setting and cancellation; choose retry/overlap semantics for the workload. |
 | Invocation testing | `FunctionTester.Create<TFunction>()`, `HttpTrigger<T>()` or `Trigger<T>()`; test real worker composition without claiming runtime delivery. |
 
 Use business-capability folders, not mandatory per-trigger folders. One class per file is normal; related HTTP methods can share a class. Trigger methods stay thin; shared application services or standalone local handlers own processing. Do not generate sample functions, health endpoints or infrastructure the user did not request.
+
+Preserve configured custom publisher/subscriber implementations, decorators and supported overrides. CloudEvents are the default, with explicit native opt-in on the same pipeline. Raw SDK sends, output bindings or a custom receive callback need a concrete documented requirement, not merely a simple workload; native trigger ownership does not imply bypassing CoreEx messaging.
 
 For the authoritative interview, implementation and validation procedure, read [references/workflow.md](references/workflow.md). Consult [references/patterns.md](references/patterns.md) for verified startup, HTTP, settlement and test shapes.
 

@@ -16,6 +16,10 @@ Stream attempt-isolated reports using `BlobJsonlReport`, leaving diagnostic/summ
 
 For a flat supplier-facing rejection/reconciliation export, use `BlobCsvReport` with explicit columns and required `CsvFormulaHandling`. StartAsync writes one header, WriteAsync accepts ordered invariantly formatted scalar cells with matching width, and CompleteAsync(outcome) updates metadata without a summary row. Standard CSV quoting is not spreadsheet formula protection: choose Reject, PrefixApostrophe or Preserve explicitly, including the treatment of negative numbers. Keep JSONL for heterogeneous operational records; CSV input does not require CSV reporting.
 
+## Publishing accepted units
+
+For file-to-Service-Bus output without a database/outbox, use the configured `IEventPublisher` backed by `ServiceBusPublisher` or a custom registered implementation in each fresh unit-handler scope, add that unit's command and await `PublishAsync(cancellationToken)`. Do not retain an invocation-wide row queue or format/send through a raw `ServiceBusSender`. Direct means bypassing the outbox, not CoreEx; stable command identity and duplicate-tolerant consumers are still required. Preserve configured publisher/subscriber overrides and use the [Functions publishing pattern](../../coreex-functions/references/patterns.md#direct-service-bus-publishing-no-outbox). A raw SDK exception needs a concrete documented requirement.
+
 ## Aspire verification boundary
 
 The existing Functions Aspire AppHost orchestrates Azurite, SQL Server, and Functions Core Tools. Its CSV scenario uploads the real input to Azurite, creates an Event Grid-shaped notification with `EventGridExtensionMethods.CreateBlobCreatedEvent`, and posts it through `Test.FunctionsWebhook(...).PostBlobCreatedAsync(...)`. That call simulates notification delivery only because Azurite does not emit Event Grid events; the Functions binding, Blob SDK operations, SQL Server transaction, and Blob report writes are real in the harness.

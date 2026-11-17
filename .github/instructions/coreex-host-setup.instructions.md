@@ -31,6 +31,10 @@ The host is a **composition root only** — no business logic. Api, Subscribe an
 
 Set `CoreEx:Correlation:Enabled` to `false` before startup to disable automatic correlation across hosts, HTTP clients and message processing. Explicit application values and persisted message metadata remain intact; existing transport telemetry is unaffected. See [workflow correlation](/.github/docs/coreex/agents/CoreEx.md#workflow-correlation).
 
+## Service Bus pipeline selection
+
+Across Api, Relay, Subscribe and Functions hosts, register/reuse `IEventPublisher` backed by `ServiceBusPublisher` or the intended outbox, and typed/dispatched CoreEx subscribers. Preserve custom implementations, decorators and supported overrides. With no outbox, the broker publisher may be the default; with an outbox default, pass `addAsDefaultIEventPublisher: false` and select the keyed broker publisher for deliberate direct sends. Direct-to-broker does not mean raw SDK sending. Configure content mode, destinations and `ConfigureMessage` on the actual sending publisher; use raw SDK sends/output bindings or custom callbacks only for a concrete documented requirement. Native Functions triggers still delegate to the subscriber bridge and must not start another listener.
+
 ## Service Bus Session Routing
 
 `CoreEx:Host:ServiceBus:SessionIdPartitionSize` is a publisher-wide default, not a Service Bus physical partition count. When a publisher sends to multiple destinations with different ordering/concurrency profiles, override its strategy or bucket count by the exact resolved destination:

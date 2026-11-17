@@ -44,12 +44,14 @@ For creation/modification workflow, use [coreex-file](/.github/skills/coreex-fil
 - Source identity is credential-free, attempt is separate from source revision, and neither is authenticated from CSV fields. Durable per-unit deduplication and mutation commit atomically in application persistence.
 - For Blob input/reports, reuse `BlobReadSource.CreateAsync` and `source.OpenReadAsync`, plus `BlobJsonlReport` for create-only JSONL output, rather than duplicating SDK mechanics. Use `source.SourceUri.AbsoluteUri` and `source.ETag.ToString()` in the caller-owned identity. Version/snapshot selection, admission, diagnostic shapes and attempt IDs remain caller-owned; ETag pinning is not historical retention. Complete reports explicitly, propagate faults and do not retry an ambiguous append on the same instance.
 - Use `BlobCsvReport` for flat business-facing rows with explicit columns and required `CsvFormulaHandling`; JSONL remains preferable for mixed lifecycle records. CSV StartAsync writes one header, rows must match its width, and CompleteAsync(outcome) writes metadata only, never an out-of-schema summary. Quoting does not prevent spreadsheet formulas; choose Reject, PrefixApostrophe or Preserve explicitly, accounting for negative numbers and consumer interpretation.
-- For native Functions Blob imports, keep transport in the Functions host, pin both processor passes to the selected revision, and write reports to durable Blob storage. Use the supported application unit of work to commit the business mutation, receipt, and outbox atomically.
+- For native Functions Blob imports, keep transport in the Functions host, pin both processor passes to the selected revision, and write reports to durable Blob storage. When durable atomic local effects are required, use the supported application unit of work to commit the business mutation, receipt, and outbox together; a no-outbox forwarding flow instead needs stable identity and duplicate-tolerant downstream processing, not a fabricated database.
+- For per-unit Service Bus output, use the configured `IEventPublisher` backed by `ServiceBusPublisher` or outbox, including custom implementations and supported overrides. A direct publisher belongs in each fresh unit-handler scope; add and await publication without retaining the whole file. See the [publishing pattern](/.github/skills/coreex-functions/references/patterns.md#direct-service-bus-publishing-no-outbox).
 
 ## Do Not
 
 - Do not hand-author generated wire models, mappings, or validators when the File CodeGen definition owns them.
 - Do not add transport SDKs or report-storage policies to CoreEx.IO; keep native Blob triggers thin and choose revision pinning, report isolation, and retry behavior at the host.
+- Do not substitute raw `ServiceBusSender` calls for the configured CoreEx publishing pipeline without a concrete documented requirement. Direct publishing means bypassing the outbox, not CoreEx.
 - Do not equate whole-file acceptance, report overwrite, or a transactional outbox write with exactly-once delivery.
 
 ## Further Reading

@@ -51,15 +51,17 @@ If the developer means an event, stop and use `coreex-app-service` — nothing o
 
 For full step-by-step guidance see [`references/workflow.md`](references/workflow.md).
 
+Both direct and outbox paths use the configured `IEventPublisher`; direct means no outbox, not raw SDK sending. Preserve custom publisher implementations/decorators and supported overrides. No-outbox apps need neither a database nor a relay merely to publish; add and await `PublishAsync(cancellationToken)` through CoreEx `ServiceBusPublisher` or the configured replacement. Raw SDK sends need a concrete documented requirement.
+
 ## L1 Sequence
 
 | Step | Skill | Condition |
 |---|---|---|
 | 1 | [`coreex-adapter`](../coreex-adapter/SKILL.md) | Always — the adapter interface + implementation that builds the `EventData` command; the wire DTO for a payload lives in `Infrastructure/Clients/{Target}/` |
-| 2 | [`coreex-app-service`](../coreex-app-service/SKILL.md) | Always — the call site inside `_unitOfWork.TransactionAsync(...)` (or the compensation path) |
+| 2 | [`coreex-app-service`](../coreex-app-service/SKILL.md) | Application call site — inside the transaction for outbox, awaited direct publishing without one, or an explicit compensation path |
 | 3 | *(inline — Service Bus topology)* | Always — add the queue to Test.Common `ServiceBus.GetQueues()` |
-| 4 | [`coreex-test-api`](../coreex-test-api/SKILL.md) | Always — assert the outbox row: destination queue, subject, key/value |
-| 5 | [`coreex-test-relay`](../coreex-test-relay/SKILL.md) | Always — prove the relay delivers the command to the queue |
+| 4 | [`coreex-test-api`](../coreex-test-api/SKILL.md) | API call site — assert outbox or direct publisher as selected; Functions uses its capability's invocation/component tests |
+| 5 | [`coreex-test-relay`](../coreex-test-relay/SKILL.md) | Outbox only — prove the relay delivers the command to the queue |
 | 6 | [`coreex-aspire`](../coreex-aspire/SKILL.md) | When an `aspire/` folder exists — topology, consumer wiring, E2E |
 
 ## Key References

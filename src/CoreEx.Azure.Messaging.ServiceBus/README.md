@@ -8,6 +8,10 @@
 
 **Publishing** is handled by `ServiceBusPublisher`, which inherits `EventPublisherBase` and implements `OnPublishAsync` using the SDK's safe-batch send API. Each `DestinationEvent` is converted from a `CloudEvent` to a `ServiceBusMessage` (structured or binary content mode), with CloudEvents attributes optionally written to message application properties. Session-ID assignment is controlled by the `ServiceBusSessionStrategy` enum.
 
+Use this pipeline by default in every host and layer, including Functions and Infrastructure adapters: inject the configured `IEventPublisher`, add commands/events and await `PublishAsync(cancellationToken)` for direct sends, or let the configured outbox/unit of work publish transactionally. Direct-to-broker means bypassing the outbox, not CoreEx. With no outbox, `AddAzureServiceBusPublisher` can register the default publisher; no database or relay is required. A publisher retains queued messages and is single-use until reset; generated file handlers should resolve it in each fresh unit scope rather than retain an entire file or reset a shared publisher concurrently.
+
+Preserve custom publisher implementations/decorators and supported subscriber overrides. Prefer configuration and `ConfigureMessage` for customization; the stock `ServiceBusPublisher` is sealed. Raw `ServiceBusSender` sends/output bindings or handwritten receive pipelines require a concrete documented requirement, not merely a simple workload or native payload. `ToServiceBusMessage` supplies wire conversion, not the full publishing pipeline. For Functions, native triggers still delegate to typed/dispatched subscribers through `subscriber.FunctionReceiveAsync`, without starting another listener.
+
 When `UsePartitionKeyConvertedToAnId` is selected, `CoreEx:Host:ServiceBus:SessionIdPartitionSize` controls the publisher-wide session bucket count (default `4`). Destination-specific settings can override the strategy and/or bucket count when destinations have different ordering or throughput needs:
 
 ```json

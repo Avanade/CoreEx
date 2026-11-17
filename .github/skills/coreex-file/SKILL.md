@@ -36,6 +36,8 @@ dotnet run -- file --expect-no-changes
 
 Start with a checked-in top-level `*-file.yaml`; generate wire types, mappings, validators, contexts, processors, and a create-only handler rather than hand-authoring those artifacts. Run commands with the CodeGen console as the current working directory: `dotnet run --project <path>` selects the project to run but does not change the working directory used for definition discovery. Runtime artifacts belong in an existing project referencing CoreEx.IO and CoreEx.Validation; CodeGen is design-time only. Models are nullable wire values, and unimplemented execution fails explicitly.
 
+For Service Bus output, use the configured CoreEx `IEventPublisher`/`ServiceBusPublisher` or outbox, preserving custom implementations and supported overrides. Direct publishing bypasses the outbox, not CoreEx; inject the publisher in each fresh unit-handler scope and await publication instead of collecting the whole file or using raw SDK sends. See [publishing accepted units](references/patterns.md#publishing-accepted-units).
+
 Reuse the existing console, or use `coreex-scaffold` to add the explicitly requested `coreex-codegen` tool. File generation requires neither reference data nor a database; do not create business layers to acquire tooling. YAML selects the runtime output project, not a tool-to-host ProjectReference.
 
 For the step-by-step workflow, see [references/workflow.md](references/workflow.md); for host/storage boundaries, see [references/patterns.md](references/patterns.md).
