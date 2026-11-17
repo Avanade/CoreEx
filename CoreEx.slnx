@@ -156,6 +156,7 @@
     <Project Path="src/CoreEx.AspNetCore/CoreEx.AspNetCore.csproj" />
     <Project Path="src/CoreEx.Azure.Functions/CoreEx.Azure.Functions.csproj" />
     <Project Path="src/CoreEx.Azure.Messaging.ServiceBus/CoreEx.Azure.Messaging.ServiceBus.csproj" />
+    <Project Path="src/CoreEx.Azure.Storage.Blobs/CoreEx.Azure.Storage.Blobs.csproj" />
     <Project Path="src/CoreEx.Caching.FusionCache/CoreEx.Caching.FusionCache.csproj" />
     <Project Path="src/CoreEx.CodeGen/CoreEx.CodeGen.csproj" />
     <Project Path="src/CoreEx.Cosmos/CoreEx.Cosmos.csproj" />
@@ -182,6 +183,7 @@
     <Project Path="tests/CoreEx.Azure.Functions.TestApp.CodeGen/CoreEx.Azure.Functions.TestApp.CodeGen.csproj" />
     <Project Path="tests/CoreEx.Azure.Functions.TestApp/CoreEx.Azure.Functions.TestApp.csproj" />
     <Project Path="tests/CoreEx.Azure.Messaging.ServiceBus.Test.Unit/CoreEx.Azure.Messaging.ServiceBus.Test.Unit.csproj" />
+    <Project Path="tests/CoreEx.Azure.Storage.Blobs.Test.Unit/CoreEx.Azure.Storage.Blobs.Test.Unit.csproj" />
     <Project Path="tests/CoreEx.Caching.Redis.Test.Unit/CoreEx.Caching.Redis.Test.Unit.csproj" />
     <Project Path="tests/CoreEx.CodeGen.Test.Unit/CoreEx.CodeGen.Test.Unit.csproj" />
     <Project Path="tests/CoreEx.Cosmos.Test.Unit/CoreEx.Cosmos.Test.Unit.csproj" />

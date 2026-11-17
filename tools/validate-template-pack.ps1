@@ -170,11 +170,13 @@ $testScenarios = @(
                 ".github/skills/coreex-functions/references/workflow.md"
                 ".github/skills/coreex-functions/references/patterns.md"
                 ".github/docs/coreex/agents/CoreEx.Azure.Functions.md"
+                ".github/docs/coreex/agents/CoreEx.Azure.Storage.Blobs.md"
                 ".claude/commands/coreex-functions.md"
                 ".github/agents/coreex-expert.agent.md"
                 ".github/skills/coreex-bootstrap/SKILL.md"
                 ".github/skills/coreex-docs-sync/SKILL.md"
                 ".github/skills/coreex-scaffold/SKILL.md"
+                ".github/skills/coreex-scaffold/references/local-infrastructure.md"
                 ".github/skills/coreex-aspire/SKILL.md"
                 ".github/skills/coreex-command-publish-e2e/SKILL.md"
                 ".github/skills/coreex-command-subscribe-e2e/SKILL.md"
@@ -221,6 +223,7 @@ $testScenarios = @(
                 ".github/instructions/coreex-functions.instructions.md"        = 'applyTo: "**/*.Functions/**/*.cs,**/*.Test.Functions/**/*.cs"'
                 ".github/skills/coreex-functions/references/patterns.md"        = "SnapshotHttpResponse"
                 ".github/docs/coreex/agents/CoreEx.Azure.Functions.md"          = "AutoCompleteMessages = false"
+                ".github/docs/coreex/agents/CoreEx.Azure.Storage.Blobs.md"      = "BlobReadSource.CreateAsync"
                 ".github/instructions/coreex-files.instructions.md"            = 'applyTo: "**/*-file.yaml;**/Files/**/*.cs;!**/Files/**/*.g.cs"'
                 ".github/docs/coreex/agents/CoreEx.IO.md"                       = "CsvRoutedFileProcessor"
                 ".github/docs/coreex/files/CodeGeneration.md"                  = "runtimeProjectPath"
@@ -233,6 +236,7 @@ $testScenarios = @(
                 ".github/docs/coreex/schema/coreex-files.json"                 = '"discriminatorIndex"'
                 ".github/skills/coreex-scaffold/SKILL.md"                      = "coreex-solution"
                 ".github/skills/coreex-scaffold/references/workflow.md"        = "preserve it exactly"
+                ".github/skills/coreex-scaffold/references/local-infrastructure.md" = "CoreExInfrastructureSetup"
                 ".github/skills/coreex-file/references/workflow.md"            = "coreex-codegen"
                 ".github/docs/coreex/agents/CoreEx.CodeGen.md"                 = "return await"
             }
@@ -267,6 +271,7 @@ $testScenarios = @(
                 ".github/instructions/coreex-validators.instructions.md"
                 ".github/skills/coreex-docs-sync/SKILL.md"
                 ".github/skills/coreex-scaffold/SKILL.md"
+                ".github/skills/coreex-scaffold/references/local-infrastructure.md"
                 ".github/skills/coreex-aspire/SKILL.md"
                 ".github/skills/coreex-command-publish-e2e/SKILL.md"
                 ".github/skills/coreex-command-subscribe-e2e/SKILL.md"
@@ -277,6 +282,7 @@ $testScenarios = @(
                 ".github/skills/coreex-functions/references/workflow.md"
                 ".github/skills/coreex-functions/references/patterns.md"
                 ".github/docs/coreex/agents/CoreEx.Azure.Functions.md"
+                ".github/docs/coreex/agents/CoreEx.Azure.Storage.Blobs.md"
                 ".claude/commands/coreex-functions.md"
                 ".github/docs/coreex/manifest.txt"
                 ".github/coreex-ai-workflows.md"
@@ -292,6 +298,7 @@ $testScenarios = @(
                 ".github/instructions/coreex-api-controllers.instructions.md" = 'applyTo: "backend/'
                 ".github/docs/coreex/manifest.txt"                            = "coreex-version:"
                 ".github/skills/coreex-api/SKILL.md"                           = "Resolve context before coding"
+                ".github/skills/coreex-scaffold/references/local-infrastructure.md" = "CoreExInfrastructureSetup"
                 ".github/instructions/coreex-functions.instructions.md"      = 'applyTo: "backend/**/*.Functions/**/*.cs,backend/**/*.Test.Functions/**/*.cs"'
                 ".github/instructions/coreex-tooling.instructions.md"        = ';!backend/**/*.Database/Schema/**/*.g.*"'
                 ".github/instructions/coreex-files.instructions.md"          = 'applyTo: "backend/**/*-file.yaml;backend/**/Files/**/*.cs;!backend/**/Files/**/*.g.cs"'

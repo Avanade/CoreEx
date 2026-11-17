@@ -2,6 +2,8 @@
 
 The single test-support package for the entire CoreEx ecosystem. One `<PackageReference>` covers events, outbox, Service Bus, caching, validation, HTTP, and all assertion helpers.
 
+For local Service Bus emulator setup, use `UnitTestExExtensions.ResetLocalAzureServiceBusAsync` with the consumer's C# entity options. It validates `UseDevelopmentEmulator=true`, a namespace-level loopback endpoint and shared-key authentication, waits for management readiness, then resets only the supplied entities. This operation deletes/recreates entities and discards messages; it does not decide whether a broker is isolated or provide NUnit/environment opt-in. The caller must enforce both before invoking it. Keep consumer topology in Test.Common and do not duplicate connection validation/readiness polling there.
+
 ## Project Reference
 
 ```xml

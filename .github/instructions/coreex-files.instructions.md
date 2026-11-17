@@ -18,6 +18,7 @@ tags: ["files", "csv", "jsonl", "codegen", "io"]
 |---|---|
 | `CoreEx.IO` | Shared host-neutral lifecycle, CSV/JSON document/nested JSONL mapping and readers, scoped unit execution, diagnostics and reconciliation. |
 | `CoreEx.CodeGen` | Design-time `file` command that generates runtime artifacts from `*-file.yaml`; never add it as a runtime dependency. |
+| `CoreEx.Azure.Storage.Blobs` | Optional host/storage adapter dependency: `BlobReadSource` revision-pinned stream factory and `BlobJsonlReport`/`BlobCsvReport` streamed attempt reports. No Azure dependency is added to CoreEx.IO. |
 
 For creation/modification workflow, use [coreex-file](/.github/skills/coreex-file/SKILL.md). Runtime reference: [CoreEx.IO](/.github/docs/coreex/agents/CoreEx.IO.md).
 
@@ -41,6 +42,8 @@ For creation/modification workflow, use [coreex-file](/.github/skills/coreex-fil
 - Use awaited individual diagnostics and reporting hooks, never retained file-wide error collections. Content errors return `ContentFailed`; operational faults/cancellation propagate.
 - Consumer code owns source admission, input size, concurrency, timeouts, and report policy for every format. Do not add generic resource-quota knobs. Retain the built-in parser's maxDepth and business cardinality/optional explicit maxItems. CSV uses strict configured decoding; JSONL validates strings only when consumed and JSON documents validate the streamed syntax and property names. No invalid-byte replacement, BOM-driven encoding switching, or guessed line numbers from property paths.
 - Source identity is credential-free, attempt is separate from source revision, and neither is authenticated from CSV fields. Durable per-unit deduplication and mutation commit atomically in application persistence.
+- For Blob input/reports, reuse `BlobReadSource.CreateAsync` and `source.OpenReadAsync`, plus `BlobJsonlReport` for create-only JSONL output, rather than duplicating SDK mechanics. Use `source.SourceUri.AbsoluteUri` and `source.ETag.ToString()` in the caller-owned identity. Version/snapshot selection, admission, diagnostic shapes and attempt IDs remain caller-owned; ETag pinning is not historical retention. Complete reports explicitly, propagate faults and do not retry an ambiguous append on the same instance.
+- Use `BlobCsvReport` for flat business-facing rows with explicit columns and required `CsvFormulaHandling`; JSONL remains preferable for mixed lifecycle records. CSV StartAsync writes one header, rows must match its width, and CompleteAsync(outcome) writes metadata only, never an out-of-schema summary. Quoting does not prevent spreadsheet formulas; choose Reject, PrefixApostrophe or Preserve explicitly, accounting for negative numbers and consumer interpretation.
 - For native Functions Blob imports, keep transport in the Functions host, pin both processor passes to the selected revision, and write reports to durable Blob storage. Use the supported application unit of work to commit the business mutation, receipt, and outbox atomically.
 
 ## Do Not

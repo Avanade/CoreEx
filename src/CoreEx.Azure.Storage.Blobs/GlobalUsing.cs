@@ -1,0 +1,10 @@
+global using Azure;
+global using Azure.Storage.Blobs;
+global using Azure.Storage.Blobs.Models;
+global using Azure.Storage.Blobs.Specialized;
+global using CoreEx;
+global using CoreEx.Json;
+global using System.Globalization;
+global using System.Security.Cryptography;
+global using System.Text;
+global using System.Text.Json;

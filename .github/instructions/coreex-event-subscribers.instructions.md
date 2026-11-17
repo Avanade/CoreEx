@@ -28,7 +28,9 @@ tags: ["subscribers", "messaging", "service-bus", "event-handling", "integration
 
 ## Subscriber Structure
 
-Each subscriber is a small, focused class that:
+For an entity with one payload type, use `ServiceBusSubscriberBase<TValue>` without `SubscribedManager` or `[Subscribe]` dispatch. The inherited `DataRepresentation` defaults to `MessageRepresentation.CloudEvent`; `ContentMode` selects binary/structured handling, and `args.CloudEvent` exposes envelope metadata for application-specific checks. Native JSON requires explicit `DataRepresentation = MessageRepresentation.Native`. Both representations retain typed validation and error classification. Register through the existing `.WithSubscriber<TSubscriber>()` builder; for native Functions triggers, use the [Functions guidance](/.github/instructions/coreex-functions.instructions.md) instead of adding a CoreEx receiver.
+
+For subject/source-dispatched handling, each subscriber is a small, focused class that:
 
 1. Opts in to one or more message subjects via `[Subscribe("subject")]` attributes.
 2. Extends `SubscribedBase` (untyped) or `SubscribedBase<TValue>` (typed payload with optional validation).

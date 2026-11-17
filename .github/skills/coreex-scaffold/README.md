@@ -17,6 +17,7 @@ Guides a developer through selecting the right `CoreEx.Template` scaffolding sha
 - You want an interactive workflow instead of manually composing the template commands.
 - You need an empty Functions host/test pair, sharing existing libraries or standalone via `--shared-core false`; add real triggers/tests afterward with `/coreex-functions`.
 - You need solution/build/package conventions and lightweight Test.Common without business layers, or an independent CodeGen tool without database/reference-data setup.
+- You need local Functions emulators and safely opted-in queue setup before implementing capabilities; use the [local infrastructure recipe](references/local-infrastructure.md).
 
 ## How to invoke
 
@@ -50,6 +51,7 @@ Standalone greenfield normally uses `coreex-solution` (Test.Common included unle
 ## Interview behavior
 
 - Resolve recorded decisions before asking; ask only unresolved behavioral/design questions, one at a time, using the available interaction mechanism.
+- Preserve the layered template's `Test.Unit` and `Test.Common` when adding `Test.Functions`; these have different responsibilities, not competing names for the same project. Defer runtime harnesses until a real capability needs them.
 - Follow the [Interactive Interview Rules](./SKILL.md#interactive-interview-rules) for approval and unavailable-user handling, and the [Host-Addition Checklist](./SKILL.md#host-addition-checklist) for validation and deferred solution registration.
 
 ## Reference

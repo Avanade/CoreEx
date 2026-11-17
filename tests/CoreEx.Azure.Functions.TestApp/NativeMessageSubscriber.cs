@@ -16,6 +16,7 @@ public sealed class NativeMessageSubscriber : ServiceBusSubscriberBase<NativeMes
     public NativeMessageSubscriber(MessageService service, ILogger<ServiceBusSubscriberBase> logger) : base(logger)
     {
         _service = service.ThrowIfNull();
+        DataRepresentation = MessageRepresentation.Native;
         PropagateBaggage = true;
         InvalidDataHandling = ErrorHandling.DeadLetter;
         ErrorHandler = new ErrorHandler()

@@ -72,6 +72,7 @@ param(
         "src\CoreEx.AspNetCore.NSwag",
         "src\CoreEx.Azure.Functions",
         "src\CoreEx.Azure.Messaging.ServiceBus",
+        "src\CoreEx.Azure.Storage.Blobs",
         "src\CoreEx.Caching.FusionCache",
         "src\CoreEx.CodeGen",
         "src\CoreEx.Cosmos",

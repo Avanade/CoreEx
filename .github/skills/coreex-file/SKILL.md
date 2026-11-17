@@ -44,6 +44,7 @@ For the step-by-step workflow, see [references/workflow.md](references/workflow.
 
 - [File invariants](/.github/instructions/coreex-files.instructions.md).
 - [Runtime guide cache](/.github/docs/coreex/agents/CoreEx.IO.md).
+- [Blob integration guide cache](/.github/docs/coreex/agents/CoreEx.Azure.Storage.Blobs.md) — revision-pinned sources and streamed attempt reports.
 - [Generator guide cache](/.github/docs/coreex/agents/CoreEx.CodeGen.md).
 - [File YAML schema](/.github/docs/coreex/schema/coreex-files.json).
 - [Configuration reference](/.github/docs/coreex/files/CodeGeneration.md).

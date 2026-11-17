@@ -30,6 +30,7 @@ reference data, validation, and data access — into a consistent, composable ba
 | `CoreEx.Events` | `EventData` ↔ CloudEvents, two-phase publish pipeline, structured subscriber dispatch |
 | `CoreEx.Azure.Messaging.ServiceBus` | Azure Service Bus publisher + subscriber bases, outbox relay |
 | `CoreEx.Azure.Functions` | Isolated-worker invocation context, MVC WebApi/idempotency and native Service Bus settlement; native HTTP/Blob/Timer bindings |
+| `CoreEx.Azure.Storage.Blobs` | Host-neutral revision-pinned Blob input and create-only streamed JSONL/CSV attempt reports |
 | `CoreEx.Database` / `.SqlServer` / `.Postgres` | ADO.NET abstraction, outbox relay infrastructure |
 | `CoreEx.EntityFrameworkCore` | EF Core integration, typed CRUD, `ValueConverter` bridges |
 | `CoreEx.RefData` | Typed reference data with hybrid-cache-backed orchestrator |

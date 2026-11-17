@@ -41,7 +41,7 @@ Existing policies apply: required/invalid key 400, overlapping duplicate 409, di
 
 Both `subscriber.FunctionReceiveAsync(message, actions, entityPath, ..., cancellationToken)` and `actions.FunctionReceiveAsync(message, entityPath, handler, ..., cancellationToken)` require `AutoCompleteMessages = false`.
 
-Use `ServiceBusSubscribedSubscriber` for CloudEvents dispatch; use `ServiceBusSubscriberBase<T>` for uniform JSON with validation/error classification, without CloudEvents/subject routing. A native callback owns parsing, logging and classification. Choose poison policy explicitly: default validation/business handling can complete as error rather than dead-letter. Set typed subscriber `InvalidDataHandling` and `ErrorHandler` to the intended dispositions.
+Use `ServiceBusSubscribedSubscriber` when CloudEvents need subject/source dispatch. For a uniform payload, use `ServiceBusSubscriberBase<T>` with validation/error classification and no dispatcher. Both subscriber bases default to `MessageRepresentation.CloudEvent` through the inherited `DataRepresentation` property; binary/structured handling uses `ContentMode`, and `args.CloudEvent` exposes the decoded envelope. Explicitly select `DataRepresentation = MessageRepresentation.Native` for direct native JSON; existing native typed subscribers need this opt-in when upgrading. A callback owns parsing, logging and classification. Choose poison policy explicitly: default invalid-envelope/payload and validation/business handling can complete as error rather than dead-letter. Set typed subscriber `InvalidDataHandling` and `ErrorHandler` to the intended dispositions.
 
 | Outcome | Bridge behavior |
 |---|---|
@@ -61,6 +61,8 @@ Prefer a Subscribe host when receiver-level backpressure, circuit-breaker pause/
 ## Native Blob / Timer and reliability
 
 Use native binding extensions and SDK types. No CoreEx Blob base class, synthetic CloudEvents wrapper or competing timer scheduler is required. Configure binding/entity/schedule connections as Functions host settings; worker `appsettings.json` alone is not sufficient.
+
+For replayable file input and streamed reports, explicitly reference the optional host-neutral `CoreEx.Azure.Storage.Blobs` package. `BlobReadSource.CreateAsync` captures the revision and credential-free URI; pass `source.OpenReadAsync` to CoreEx.IO. Use `BlobJsonlReport` for create-only JSONL output with explicit completion and keep file-specific diagnostic/summary shapes in a thin adapter. Failed/ambiguous writes propagate and fault the report instance; a new attempt is required, not blind append retries. Native triggers, container provisioning, admission/retention and business idempotency stay outside this package.
 
 Separate explicit content rejection from operational failure. Preserve cancellation and let failed I/O propagate. A BlobClient sees the current object, not necessarily an event's historical revision; use conditional ETag reads or versions/snapshots when needed. Deterministic outputs aid replay but do not make Blob-to-Service-Bus sends transactional. Output bindings are not an outbox.
 

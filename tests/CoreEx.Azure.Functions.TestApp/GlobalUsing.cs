@@ -8,6 +8,7 @@ global using CoreEx.Azure.Functions;
 global using CoreEx.Azure.Functions.TestApp;
 global using CoreEx.Azure.Functions.TestApp.InventoryImports;
 global using CoreEx.Azure.Messaging.ServiceBus;
+global using CoreEx.Azure.Storage.Blobs;
 global using CoreEx.Database;
 global using CoreEx.Database.SqlServer;
 global using CoreEx.DependencyInjection;

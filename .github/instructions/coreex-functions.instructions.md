@@ -18,6 +18,7 @@ tags: ["functions", "azure", "hosting", "testing"]
 | Package | Key types/capabilities |
 |---|---|
 | `CoreEx.Azure.Functions` | `UseCoreExExecutionContext`, `FunctionWithIdempotencyAsync`, `FunctionReceiveAsync`, `FunctionsServiceBusReceiveArgs`; brings HTTP/Service Bus integration dependencies transitively. |
+| `CoreEx.Azure.Storage.Blobs` | Optional host-neutral `BlobReadSource` and `BlobJsonlReport`/`BlobCsvReport` for revision-pinned replay and streamed attempt reports; reference explicitly when required. |
 | `Microsoft.Azure.Functions.Worker.Sdk` | Function discovery/build metadata; host project only. |
 | `CoreEx.AspNetCore` | MVC `WebApi`, `AddMvcWebApi`; no ASP.NET middleware/endpoint pipeline on the worker. |
 | `Microsoft.Azure.Functions.Worker.Extensions.Storage.Blobs`, `Microsoft.Azure.Functions.Worker.Extensions.Timer` | Add only for needed native bindings (`BlobTrigger`, `TimerTrigger`). |
@@ -60,11 +61,13 @@ public Task Process([ServiceBusTrigger(QueueName, Connection = "ServiceBus", Aut
     => subscriber.FunctionReceiveAsync(message, actions, QueueName, cancellationToken: cancellationToken);
 ```
 
-Choose CloudEvents dispatch, typed uniform JSON subscriber or native processing deliberately. Choose poison policy explicitly: default subscriber validation/business handling can complete as error, not dead-letter. Retry abandons once; unclassified/catastrophic failures and invocation cancellation propagate without bridge settlement. No second settlement after failure, in-invocation retry loop, receiver pause/resume or receiver circuit breaker is installed.
+Choose CloudEvents dispatch only when subject/source routing is needed. A single payload type uses `ServiceBusSubscriberBase<T>` without dispatch; `DataRepresentation` on the non-generic base defaults to `MessageRepresentation.CloudEvent` for both bases. `ContentMode` controls binary/structured decoding; `args.CloudEvent` exposes metadata for application-specific contract checks. Native JSON requires explicit `DataRepresentation = MessageRepresentation.Native`, including when upgrading existing typed native subscribers. CloudEvent mode never falls back to native. Choose poison policy explicitly: default malformed-envelope/payload and validation/business handling can complete as error, not dead-letter. Retry abandons once; unclassified/catastrophic failures and invocation cancellation propagate without bridge settlement. No second settlement after failure, in-invocation retry loop, receiver pause/resume or receiver circuit breaker is installed.
 
 Blob/Timer bindings remain native. Distinguish content rejection from operational failure; preserve cancellation. A current `BlobClient` is not an immutable event revision. Blob-to-broker sends are not atomic with invocation completion; stable identity/duplicate tolerance is required where retries matter.
 
 For schema-defined CSV Blob imports, use File CodeGen for wire types, mappings, validators, contexts, and processors, then keep the native trigger as a thin adapter. Pin both reads to the selected source revision; persist reports to durable storage and commit business effects, deduplication receipts, and outbox writes in the application's transaction.
+
+Reuse `CoreEx.Azure.Storage.Blobs` instead of duplicating Blob mechanics: select once with `BlobReadSource.CreateAsync`, use its credential-free `SourceUri` and captured `ETag` in the identity, and pass `source.OpenReadAsync` to the processor. `BlobJsonlReport` provides create-only, attempt-isolated streaming with explicit completion; keep diagnostic/summary shapes in the host adapter. It creates no containers/snapshots and provides no business deduplication. Failed/ambiguous writes propagate and fault the report instance; start a distinct attempt, not a blind append retry. See the [Blob guide](/.github/docs/coreex/agents/CoreEx.Azure.Storage.Blobs.md).
 
 ## Configuration and tests
 

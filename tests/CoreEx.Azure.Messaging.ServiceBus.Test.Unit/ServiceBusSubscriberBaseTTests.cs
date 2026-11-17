@@ -3,6 +3,146 @@ namespace CoreEx.Azure.Messaging.ServiceBus.Test.Unit;
 [TestFixture]
 public class ServiceBusSubscriberBaseTTests
 {
+    [TestCase(CloudNative.CloudEvents.ContentMode.Binary)]
+    [TestCase(CloudNative.CloudEvents.ContentMode.Structured)]
+    public async Task DefaultRepresentation_ProcessesCloudEventWithoutFormatterRegistration(CloudNative.CloudEvents.ContentMode mode)
+    {
+        var subscriber = new LoggerOnlySubscriber(NullLogger<ServiceBusSubscriberBase>.Instance);
+        var args = new EventSubscriberArgs();
+
+        (await subscriber.ReceiveAsync(CloudMessage("{\"name\":\"example\"}", mode), args)).IsSuccess.Should().BeTrue();
+        args.CloudEvent.Should().NotBeNull();
+    }
+
+    [TestCase(CloudNative.CloudEvents.ContentMode.Binary)]
+    [TestCase(CloudNative.CloudEvents.ContentMode.Structured)]
+    public async Task CloudEvent_DeserializesAndValidatesWithoutDispatch(CloudNative.CloudEvents.ContentMode mode)
+    {
+        var validated = false;
+        var subscriber = new NativeSubscriber
+        {
+            DataRepresentation = MessageRepresentation.CloudEvent,
+            AutoCleanValue = true,
+            Validator = Validator.Create<Payload>().AdditionalAsync((context, _) =>
+            {
+                context.Value.Name.Should().Be("example");
+                validated = true;
+                return Task.CompletedTask;
+            })
+        };
+        var message = CloudMessage("{\"name\":\"example \",\"number\":42}", mode);
+        var args = new EventSubscriberArgs();
+        using var cancellation = new CancellationTokenSource();
+
+        (await subscriber.ReceiveAsync(message, args, cancellation.Token)).IsSuccess.Should().BeTrue();
+
+        validated.Should().BeTrue();
+        subscriber.Value.Should().Be(new Payload("example", 42));
+        subscriber.Message.Should().BeSameAs(message);
+        subscriber.Args.Should().BeSameAs(args);
+        subscriber.Token.Should().Be(cancellation.Token);
+        args.CloudEvent.Should().NotBeNull();
+        args.CloudEvent!.Id.Should().Be("cloud-id");
+        args.UsesSubscribedManager.Should().BeFalse();
+    }
+
+    [TestCase("missing-envelope")]
+    [TestCase("malformed-structured")]
+    [TestCase("unsupported-version")]
+    [TestCase("missing-source")]
+    [TestCase("malformed-content-type")]
+    public async Task CloudEvent_InvalidEnvelopeUsesInvalidDataPolicyWithoutNativeFallback(string scenario)
+    {
+        var message = scenario switch
+        {
+            "malformed-structured" => ServiceBusModelFactory.ServiceBusReceivedMessage(body: BinaryData.FromString("{"), contentType: "application/cloudevents+json"),
+            "malformed-content-type" => ServiceBusModelFactory.ServiceBusReceivedMessage(body: BinaryData.FromString("{}"), contentType: "not-a-mime-type"),
+            "missing-envelope" => Message("{}"),
+            _ => CloudMessage("{}", CloudNative.CloudEvents.ContentMode.Binary)
+        };
+        if (scenario is "unsupported-version" or "missing-source")
+        {
+            var properties = message.ApplicationProperties.ToDictionary(x => x.Key, x => x.Value);
+            if (scenario == "unsupported-version")
+                properties[ServiceBusExtensions.CloudEventSpecVersionPropertyName] = "99.0";
+            else
+                properties.Remove(ServiceBusExtensions.CloudEventSourcePropertyName);
+
+            message = ServiceBusModelFactory.ServiceBusReceivedMessage(body: message.Body, messageId: message.MessageId, subject: message.Subject, contentType: message.ContentType, properties: properties);
+        }
+
+        var subscriber = new NativeSubscriber { DataRepresentation = MessageRepresentation.CloudEvent, InvalidDataHandling = ErrorHandling.DeadLetter };
+        var args = new EventSubscriberArgs();
+
+        var result = await subscriber.ReceiveAsync(message, args);
+
+        result.Error.Should().BeOfType<EventSubscriberDeadLetterException>();
+        args.ResultingErrorHandling.Should().Be(ErrorHandling.DeadLetter);
+        subscriber.Calls.Should().Be(0);
+    }
+
+    [Test]
+    public async Task CloudEvent_ValidationAndApplicationFailuresUseErrorHandler()
+    {
+        var subscriber = new NativeSubscriber
+        {
+            DataRepresentation = MessageRepresentation.CloudEvent,
+            InvalidDataHandling = ErrorHandling.CompleteAsSilent,
+            Validator = Validator.Create<Payload>().HasProperty(x => x.Name, p => p.Mandatory())
+        };
+        subscriber.ErrorHandler.Add<ValidationException>(ErrorHandling.DeadLetter).Add<TimeoutException>(ErrorHandling.Retry);
+
+        var invalid = await subscriber.ReceiveAsync(CloudMessage("{}", CloudNative.CloudEvents.ContentMode.Binary));
+        invalid.Error.Should().BeOfType<EventSubscriberDeadLetterException>();
+        subscriber.Calls.Should().Be(0);
+
+        subscriber.Handler = _ => Task.FromException<Result>(new TimeoutException("Retry."));
+        var failed = await subscriber.ReceiveAsync(CloudMessage("{\"name\":\"valid\"}", CloudNative.CloudEvents.ContentMode.Binary));
+        failed.Error.Should().BeOfType<EventSubscriberRetryException>();
+        subscriber.Calls.Should().Be(1);
+    }
+
+    [TestCase("null")]
+    [TestCase("[]")]
+    public async Task CloudEvent_InvalidPayloadUsesInvalidDataPolicy(string body)
+    {
+        var subscriber = new NativeSubscriber { DataRepresentation = MessageRepresentation.CloudEvent, InvalidDataHandling = ErrorHandling.DeadLetter };
+
+        (await subscriber.ReceiveAsync(CloudMessage(body, CloudNative.CloudEvents.ContentMode.Binary))).Error.Should().BeOfType<EventSubscriberDeadLetterException>();
+        subscriber.Calls.Should().Be(0);
+    }
+
+    [Test]
+    public async Task CloudEvent_OptionalNullIsDeliveredToNullableHandler()
+    {
+        var subscriber = new OptionalSubscriber { DataRepresentation = MessageRepresentation.CloudEvent };
+
+        (await subscriber.ReceiveAsync(CloudMessage("null", CloudNative.CloudEvents.ContentMode.Binary))).IsSuccess.Should().BeTrue();
+        subscriber.Calls.Should().Be(1);
+        subscriber.Value.Should().BeNull();
+    }
+
+    [Test]
+    public async Task CloudEvent_CancellationAfterValidationDoesNotCallHandler()
+    {
+        using var cancellation = new CancellationTokenSource();
+        var subscriber = new NativeSubscriber { DataRepresentation = MessageRepresentation.CloudEvent, Validator = new CancellingValidator(cancellation) };
+
+        var result = await subscriber.ReceiveAsync(CloudMessage("{}", CloudNative.CloudEvents.ContentMode.Binary), cancellationToken: cancellation.Token);
+
+        result.Error.Should().BeOfType<OperationCanceledException>();
+        subscriber.Calls.Should().Be(0);
+    }
+
+    [Test]
+    public async Task UntypedCloudEvent_MalformedEnvelopeUsesInvalidDataPolicy()
+    {
+        var subscriber = new EnvelopeSubscriber { InvalidDataHandling = ErrorHandling.DeadLetter };
+        var result = await subscriber.ReceiveAsync(Message("{}"));
+
+        result.Error.Should().BeOfType<EventSubscriberDeadLetterException>();
+    }
+
     [Test]
     public async Task NativeJson_EnrichesTransportTracingBeforeHandler()
     {
@@ -235,6 +375,7 @@ public class ServiceBusSubscriberBaseTTests
         await using var provider = services.BuildServiceProvider();
         provider.GetService<IEventFormatter>().Should().BeNull();
         var subscriber = provider.GetRequiredService<LoggerOnlySubscriber>();
+        subscriber.DataRepresentation = MessageRepresentation.Native;
         (await subscriber.ReceiveAsync(Message("{}"))).IsSuccess.Should().BeTrue();
     }
 
@@ -313,8 +454,10 @@ public class ServiceBusSubscriberBaseTTests
         subscriber.Calls.Should().Be(0);
     }
 
-    private sealed class StringSubscriber() : ServiceBusSubscriberBase<string?>(NullLogger<ServiceBusSubscriberBase>.Instance)
+    private sealed class StringSubscriber : ServiceBusSubscriberBase<string?>
     {
+        public StringSubscriber() : base(NullLogger<ServiceBusSubscriberBase>.Instance) => DataRepresentation = MessageRepresentation.Native;
+
         public bool Required { get; set; }
 
         public override bool ValueIsRequired => Required;
@@ -336,24 +479,41 @@ public class ServiceBusSubscriberBaseTTests
         public FailingCleanPayload Clean(CoreEx.Entities.CleanArgs args) => throw new InvalidOperationException("Cleanup failed.");
     }
 
-    private sealed class FailingCleanSubscriber() : ServiceBusSubscriberBase<FailingCleanPayload>(NullLogger<ServiceBusSubscriberBase>.Instance)
+    private sealed class FailingCleanSubscriber : ServiceBusSubscriberBase<FailingCleanPayload>
     {
+        public FailingCleanSubscriber() : base(NullLogger<ServiceBusSubscriberBase>.Instance) => DataRepresentation = MessageRepresentation.Native;
+
         protected override Task<Result> OnReceiveAsync(FailingCleanPayload value, ServiceBusReceivedMessage message, EventSubscriberArgs args, CancellationToken cancellationToken)
             => throw new InvalidOperationException("Handler must not run.");
     }
 
-    private sealed class LoggerOnlySubscriber(ILogger<ServiceBusSubscriberBase> logger) : ServiceBusSubscriberBase<Payload>(logger)
+    private sealed class LoggerOnlySubscriber : ServiceBusSubscriberBase<Payload>
     {
+        public LoggerOnlySubscriber(ILogger<ServiceBusSubscriberBase> logger) : base(logger) { }
+
         protected override Task<Result> OnReceiveAsync(Payload value, ServiceBusReceivedMessage message, EventSubscriberArgs args, CancellationToken cancellationToken = default) => Result.SuccessTask;
     }
 
     private static ServiceBusReceivedMessage Message(string body)
         => ServiceBusModelFactory.ServiceBusReceivedMessage(body: BinaryData.FromString(body), messageId: "native-id", subject: "not-a-cloudevent", contentType: "application/json");
 
+    private static ServiceBusReceivedMessage CloudMessage(string body, CloudNative.CloudEvents.ContentMode mode)
+    {
+        var @event = new EventData { Id = "cloud-id", Title = "test.payload.v1", Source = new Uri("urn:test:payload"), Data = BinaryData.FromString(body, "application/json") };
+        return ServiceBusMessageTests.ConvertToReceivedMessage(new EventFormatter().ConvertToCloudEvent(@event).ToServiceBusMessage(mode));
+    }
+
+    private sealed class EnvelopeSubscriber() : ServiceBusSubscriberBase(new EventFormatter(), NullLogger<ServiceBusSubscriberBase>.Instance)
+    {
+        protected override Task<Result> OnReceiveAsync(EventData @event, EventSubscriberArgs args, CancellationToken cancellationToken) => throw new InvalidOperationException("Handler must not run.");
+    }
+
     public sealed record Payload(string? Name, int Number);
 
-    private sealed class NativeSubscriber() : ServiceBusSubscriberBase<Payload>(NullLogger<ServiceBusSubscriberBase>.Instance)
+    private sealed class NativeSubscriber : ServiceBusSubscriberBase<Payload>
     {
+        public NativeSubscriber() : base(NullLogger<ServiceBusSubscriberBase>.Instance) => DataRepresentation = MessageRepresentation.Native;
+
         public Payload? Value { get; private set; }
         public ServiceBusReceivedMessage? Message { get; private set; }
         public EventSubscriberArgs? Args { get; private set; }
@@ -378,8 +538,10 @@ public class ServiceBusSubscriberBaseTTests
         }
     }
 
-    private sealed class OptionalSubscriber() : ServiceBusSubscriberBase<Payload?>(NullLogger<ServiceBusSubscriberBase>.Instance)
+    private sealed class OptionalSubscriber : ServiceBusSubscriberBase<Payload?>
     {
+        public OptionalSubscriber() : base(NullLogger<ServiceBusSubscriberBase>.Instance) => DataRepresentation = MessageRepresentation.Native;
+
         public override bool ValueIsRequired => false;
         public Payload? Value { get; private set; }
         public int Calls { get; private set; }
@@ -402,8 +564,10 @@ public class ServiceBusSubscriberBaseTTests
         }
     }
 
-    private sealed class ScalarSubscriber() : ServiceBusSubscriberBase<int>(NullLogger<ServiceBusSubscriberBase>.Instance)
+    private sealed class ScalarSubscriber : ServiceBusSubscriberBase<int>
     {
+        public ScalarSubscriber() : base(NullLogger<ServiceBusSubscriberBase>.Instance) => DataRepresentation = MessageRepresentation.Native;
+
         public bool Required { get; set; } = true;
         public override bool ValueIsRequired => Required;
         public int Value { get; private set; }

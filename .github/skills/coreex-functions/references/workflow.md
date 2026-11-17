@@ -17,6 +17,8 @@ If the host is missing, route explicit host-creation work through `coreex-scaffo
 
 Inspect existing dependencies and nearby patterns first. The Functions package currently brings HTTP/Service Bus dependencies transitively; only add explicit packages when required by the project's direct-dependency policy or a missing binding. Follow effective CPM in both shared/standalone modes, with inline versions only when disabled. Preserve explicit opt-outs and existing compatible pins. Reuse the actual Test.Common reference for shared fixtures/resources; it is test-only and not a database/broker scaffold.
 
+Reuse local dependencies and test-owned topology prepared through the [scaffold local infrastructure recipe](../../coreex-scaffold/references/local-infrastructure.md). If local setup is in scope and missing, apply that recipe instead of creating another emulator stack. Defer runtime host harnesses until this capability needs runtime evidence; a standalone queue-setup fixture does not require one.
+
 ## 2. Resolve the actual behavior
 
 Ask one short question at a time, only for decisions not established by the request or code. Do not mechanically ask every question below.
@@ -24,7 +26,7 @@ Ask one short question at a time, only for decisions not established by the requ
 | Trigger | Unresolved decisions that affect implementation |
 |---|---|
 | HTTP | Verb/route, input/output shape, function authorization and application identity/tenant policy, idempotency need, existing application operation versus new processing. Function keys are not user identity. |
-| Service Bus | Queue or topic/subscription, setting names, session/batch needs, uniform native JSON versus CloudEvents dispatch, invalid-data/business/transient dispositions, duplicate handling. |
+| Service Bus | Queue or topic/subscription, setting names, session/batch needs, uniform typed handling versus dispatch, CloudEvent (default) versus explicit native representation, invalid-data/business/transient dispositions, duplicate handling. |
 | Blob | Container/path/connection, Event Grid versus polling source, payload limits/format, current blob versus exact historical revision, output/side effects, content rejection versus operational retry. |
 | Timer | Schedule/timezone/deployment settings, missed runs, replay/overlap tolerance, retry policy and cancellation behavior. |
 
@@ -54,7 +56,7 @@ Do not install ASP.NET routing, `MapControllers`, NSwag middleware, `UseCoreExEx
 
 ### Service Bus
 
-Choose native binding processing for simple workloads; add the CoreEx bridge when classified subscriber handling/settlement is useful. CloudEvents use `ServiceBusSubscribedSubscriber` with `SubscribedManager`/event formatter and application subscribers. Uniform JSON can use `ServiceBusSubscriberBase<T>` with its validator and explicit error policy, without CloudEvents/subject dispatch. A callback bridge owns its own parsing, classification and logging.
+Choose native binding processing for simple workloads; add the CoreEx bridge when classified subscriber handling/settlement is useful. Use `ServiceBusSubscribedSubscriber` with `SubscribedManager` when CloudEvents need subject/source dispatch. A uniform payload uses `ServiceBusSubscriberBase<T>` with its validator and explicit error policy, without a dispatcher. `DataRepresentation` lives on the non-generic base and defaults to `MessageRepresentation.CloudEvent` for both bases; `ContentMode` controls binary/structured decoding, and `args.CloudEvent` exposes metadata for contract checks. Explicitly set `DataRepresentation = MessageRepresentation.Native` for native JSON, including existing native typed subscribers when upgrading. Missing/malformed CloudEvent envelopes never fall back to native processing. A callback bridge owns its own parsing, classification and logging.
 
 For either bridge overload, disable auto-completion, pass the same queue or topic/subscription expression used by the trigger and thread cancellation. `%SettingName%` paths resolve via ambient worker configuration for metric labels; listener settings must also exist in the Functions host. Choose malformed/validation/business policies explicitly: CoreEx defaults can complete invalid work as error rather than dead-lettering it.
 
@@ -64,7 +66,7 @@ Success completes, classified retry abandons once, dead-letter settles once; unc
 
 Use native `BlobTrigger`/SDK binding and only the required storage extension/client registrations. With Event Grid source, plan subscription provisioning separately; local Azurite notification tests do not prove Azure Event Grid delivery/authentication.
 
-For schema-defined CSV, use `coreex-file` to generate the wire model, mapping, validator, context, processor and create-only handler from `*-file.yaml`; keep the Functions trigger thin and use the Azure Storage SDK for input/report operations. A durable per-unit receipt, business mutation and outbox write belong in one supported application transaction; report persistence is separate and cannot make trigger delivery exactly-once.
+For schema-defined CSV, use `coreex-file` to generate the wire model, mapping, validator, context, processor and create-only handler from `*-file.yaml`; keep the Functions trigger thin. Add `CoreEx.Azure.Storage.Blobs` explicitly for reusable input/report mechanics: `BlobReadSource.CreateAsync` selects the revision, its `OpenReadAsync` pins every pass, and its credential-free `SourceUri`/`ETag` feed caller-owned identity. Use `BlobJsonlReport` for create-only streamed attempt records with explicit completion; diagnostic shapes remain in the host adapter. Provision containers separately and propagate failed/ambiguous writes without blind retries. A durable per-unit receipt, business mutation and outbox write belong in one supported application transaction; report persistence is separate and cannot make trigger delivery exactly-once.
 
 Bound payload processing. Separate logged content rejection from operational failure; do not swallow read/write failures as success. A `BlobClient` targets the current blob, not an immutable event revision. Use ETag-conditional reads or versions/snapshots as needed and deterministic output identity for replay. Provision output containers outside handler execution. Storage extension retries/poison queues are not Service Bus settlement policies.
 
@@ -83,6 +85,8 @@ Update the host's `AGENTS.md` with capability names, shared/local processing, bi
 ## 5. Add and execute meaningful tests
 
 Mirror capability folders in the generated host test project. Use `FunctionTester.Create<TFunction>()` against the real host entry point so startup/DI and worker middleware execute. Use NUnit/AwesomeAssertions and existing CoreEx test helpers; no fabricated empty-success fixture.
+
+Preserve the layered solution's `Test.Unit` for isolated shared-library validators, mappings and logic; do not duplicate that coverage in `Test.Functions`. Host-local file types and standalone components can stay in `Test.Functions` without creating another test project or adding a host reference to `Test.Unit`.
 
 For HTTP, assert exact status/body/important headers and representative validation/error/cancellation behavior. `ToHttpResponseMessageAssertor(request)` renders deferred results; use `SnapshotHttpResponse(request.HttpContext.Response)` with a readable/seekable buffer for idempotency's already-written response. Prove replay skips the operation if adding idempotency.
 

@@ -141,6 +141,50 @@ public class CorrelationReceiveTests
     }
 
     [Test]
+    public async Task TypedCloudEvent_UsesConfiguredFormatterAndRestoresCorrelation()
+    {
+        using var ec = new CoreEx.ExecutionContext { CorrelationId = "parent" };
+        CoreEx.ExecutionContext.SetCurrent(ec);
+        var formatter = new EventFormatter { CorrelationIdAttributeName = "customcorrelation" };
+        var original = new EventData
+        {
+            Id = "message",
+            Title = "test.payload.v1",
+            Source = new Uri("urn:test"),
+            CorrelationId = "envelope",
+            Data = BinaryData.FromString("\"value\"", "application/json")
+        };
+        var outgoing = formatter.ConvertToCloudEvent(original).ToServiceBusMessage(CloudNative.CloudEvents.ContentMode.Binary);
+        var message = ServiceBusModelFactory.ServiceBusReceivedMessage(body: outgoing.Body, messageId: outgoing.MessageId,
+            subject: outgoing.Subject, contentType: outgoing.ContentType, properties: outgoing.ApplicationProperties, correlationId: "broker");
+        var subscriber = new NativeSubscriber(new WarningLogger(), value =>
+        {
+            value.Should().Be("value");
+            ec.CorrelationId.Should().Be("envelope");
+            return Task.CompletedTask;
+        }, formatter) { DataRepresentation = MessageRepresentation.CloudEvent };
+
+        (await subscriber.ReceiveAsync(message)).IsSuccess.Should().BeTrue();
+        ec.CorrelationId.Should().Be("parent");
+    }
+
+    [Test]
+    public async Task TypedCloudEvent_TenantMismatchPreventsHandling()
+    {
+        using var ec = new CoreEx.ExecutionContext { TenantId = "consumer" };
+        CoreEx.ExecutionContext.SetCurrent(ec);
+        var formatter = new EventFormatter();
+        var original = new EventData { Id = "message", Title = "test.payload.v1", Source = new Uri("urn:test"), TenantId = "producer", Data = BinaryData.FromString("\"value\"", "application/json") };
+        var message = ServiceBusMessageTests.ConvertToReceivedMessage(formatter.ConvertToCloudEvent(original).ToServiceBusMessage());
+        var subscriber = new NativeSubscriber(new WarningLogger(), _ => throw new InvalidOperationException("Handler must not run."), formatter)
+        {
+            DataRepresentation = MessageRepresentation.CloudEvent
+        };
+
+        (await subscriber.ReceiveAsync(message)).Error.Should().BeOfType<EventSubscriberCatastrophicException>();
+    }
+
+    [Test]
     public async Task SequentialReceives_RefreshSameActivityIncludingAbsence()
     {
         using var ec = new CoreEx.ExecutionContext { CorrelationId = "parent" };
@@ -209,11 +253,19 @@ public class CorrelationReceiveTests
         ec.CorrelationId.Should().Be("parent");
     }
 
-    private sealed class NativeSubscriber(ILogger<ServiceBusSubscriberBase> logger, Func<string, Task> handler) : ServiceBusSubscriberBase<string>(logger)
+    private sealed class NativeSubscriber : ServiceBusSubscriberBase<string>
     {
+        private readonly Func<string, Task> _handler;
+
+        public NativeSubscriber(ILogger<ServiceBusSubscriberBase> logger, Func<string, Task> handler, IEventFormatter? formatter = null) : base(formatter ?? new EventFormatter(), logger)
+        {
+            _handler = handler;
+            DataRepresentation = MessageRepresentation.Native;
+        }
+
         protected override async Task<Result> OnReceiveAsync(string value, ServiceBusReceivedMessage message, EventSubscriberArgs args, CancellationToken cancellationToken = default)
         {
-            await handler(value);
+            await _handler(value);
             return Result.Success;
         }
     }

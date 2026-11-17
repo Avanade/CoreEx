@@ -24,6 +24,7 @@ The package extends [UnitTestEx](https://github.com/Avanade/UnitTestEx) — the 
 - ✅ **Fluent value expectations**: `UnitTestExExpectations` static class extends `IValueExpectations<TValue, TSelf>` and `IExpectations<TSelf>` with `ExpectIdentifier`, `ExpectETag`, `ExpectChangeLogCreated`, `ExpectChangeLogUpdated`, and `IgnorePaths` to assert domain-entity lifecycle concerns.
 - 💬 **Event-capture and assertion**: `UseExpectedEventPublisher` replaces the real publisher with `EventPublisherDecorator` at test-host setup time; `ExpectEvents`/`ExpectNoEvents` plus publisher-specific overloads (`ExpectSqlServerOutboxEvents`, `ExpectPostgresOutboxEvents`, `ExpectAzureServiceBusEvents`) declare and then verify published events as `CloudEvent` JSON comparisons.
 - ⚡ **Publisher-specific outbox helpers**: dedicated `ExpectSqlServerOutboxEvents`, `ExpectNoSqlServerOutboxEvents`, `ExpectPostgresOutboxEvents`, `ExpectNoPostgresOutboxEvents`, `ExpectAzureServiceBusEvents`, and `ExpectNoAzureServiceBusEvents` extension methods target each outbox/publisher by its registered service key.
+- 🔄 **Service Bus emulator setup**: `ResetLocalAzureServiceBusAsync` validates an explicit development-emulator loopback connection, waits for management readiness, then resets the caller-specified entities. It is destructive and does not replace the caller's fixture opt-in or broker-isolation responsibility.
 - 🔧 **Broad extension surface**: `UnitTestExExtensions` adds `Scoped`/`ExecutionContext` scoping helpers, `CreateCloudEventFrom` event builders, `AssertProblemDetails` HTTP response assertions, `ClearFusionCacheAsync` cache reset, and validator-level `AssertSuccess`/`AssertErrors` shortcuts directly on `TesterBase` and `IValidator<T>`.
 - 📝 **Validation shortcuts**: `AssertSuccess` and `AssertErrors` extension methods execute a `CoreEx.Validation.IValidator<T>` and assert the outcome inline, using AwesomeAssertions for readable failure messages.
 - 🔄 **FusionCache test reset**: `ClearFusionCacheAsync` clears the registered `IFusionCache` between test runs to prevent state bleed in cached reference-data or other cache-backed scenarios.
@@ -33,6 +34,22 @@ The package extends [UnitTestEx](https://github.com/Avanade/UnitTestEx) — the 
 Use `ExpectEvents(e => e.AssertNativeMessage(destination, expectedEventData))`, or the provider-specific outbox/Service Bus expectation overload, to compare a native message's internal envelope, payload and durable options. The expected `EventData` must have native representation. Opaque bytes compare through their Base64 storage form; normal JSON compares as JSON. Native payloads retain ETags unless explicitly removed, unlike the default CE formatter policy. The existing ignored metadata/data paths still apply.
 
 `ToServiceBusReceivedMessage` honors declarative native mapping but does not execute `ServiceBusPublisher.ConfigureMessage` or publisher session assignment. For final broker headers, byte identity, callback behavior and session policy, assert actual received messages in relay/transport tests.
+
+### Local Service Bus emulator setup
+
+Use the local reset helper only for an isolated Azure Service Bus emulator. It requires `UseDevelopmentEmulator=true`, a namespace-level shared-key connection and a `localhost`/loopback endpoint; it waits for the management health endpoint before resetting. The default management port is `5300` and the default readiness timeout is one minute:
+
+```csharp
+var connectionString = configuration.GetConnectionString("ServiceBus")
+    ?? throw new InvalidOperationException("The ServiceBus connection string is required.");
+await UnitTestExExtensions.ResetLocalAzureServiceBusAsync(
+    connectionString,
+    ServiceBus.GetQueues(),
+    ServiceBus.GetTopicsAndSubscriptions(),
+    cancellationToken: cancellationToken).ConfigureAwait(false);
+```
+
+The method deletes and recreates only the supplied entities, discarding their messages. Manual setup fixtures must independently require deliberate test selection and an environment-variable opt-in before calling it, and must ensure listeners, producers, consumers and competing setup runs are stopped. Use the existing `ResetAzureServiceBusAsync` methods for other Azure Service Bus environments; those methods do not apply the emulator-only connection guard/readiness polling.
 
 ## Key types
 | Type | Description |

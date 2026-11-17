@@ -230,33 +230,172 @@ public static partial class UnitTestExExtensions
     /// <param name="adminConnectionString">The Azure Service Bus administration connection string.</param>
     /// <param name="queues">The queues to reset.</param>
     /// <param name="topicsAndSubscriptions">The topics and their subscriptions to reset.</param>
-    public static async Task ResetAzureServiceBusAsync(string adminConnectionString, CreateQueueOptions[]? queues = null, (CreateTopicOptions Topic, CreateSubscriptionOptions[] Subscriptions)[]? topicsAndSubscriptions = null)
+    public static Task ResetAzureServiceBusAsync(string adminConnectionString, CreateQueueOptions[]? queues = null, (CreateTopicOptions Topic, CreateSubscriptionOptions[] Subscriptions)[]? topicsAndSubscriptions = null)
+        => ResetAzureServiceBusAsync(adminConnectionString, queues, topicsAndSubscriptions, CancellationToken.None);
+
+    /// <summary>
+    /// Resets local Azure Service Bus emulator entities after validating the namespace-level loopback connection and waiting for management readiness.
+    /// </summary>
+    /// <param name="connectionString">The Azure Service Bus emulator connection string.</param>
+    /// <param name="queues">The queues to reset.</param>
+    /// <param name="topicsAndSubscriptions">The topics and their subscriptions to reset.</param>
+    /// <param name="adminPort">The emulator management port.</param>
+    /// <param name="readinessTimeout">The maximum time to wait for emulator management readiness; defaults to one minute.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+    /// <remarks>This is destructive: the specified entities are deleted and recreated, discarding their messages. The caller must ensure the emulator is isolated and no listeners, producers, consumers or competing setup runs are active. This helper does not provide an NUnit/environment-variable opt-in; callers must gate manual setup before calling it.</remarks>
+    public static async Task ResetLocalAzureServiceBusAsync(string connectionString, CreateQueueOptions[]? queues = null,
+        (CreateTopicOptions Topic, CreateSubscriptionOptions[] Subscriptions)[]? topicsAndSubscriptions = null, int adminPort = 5300, TimeSpan? readinessTimeout = null, CancellationToken cancellationToken = default)
+    {
+        var endpoint = ValidateLocalAzureServiceBusConnectionString(connectionString);
+        if (adminPort is < 1 or > 65535)
+            throw new ArgumentOutOfRangeException(nameof(adminPort), "The management port must be between 1 and 65535.");
+
+        var timeout = readinessTimeout ?? TimeSpan.FromMinutes(1);
+        if (timeout <= TimeSpan.Zero)
+            throw new ArgumentOutOfRangeException(nameof(readinessTimeout), "The readiness timeout must be greater than zero.");
+
+        var health = new UriBuilder(endpoint) { Scheme = Uri.UriSchemeHttp, Port = adminPort, Path = "/health", Query = "", Fragment = "" }.Uri;
+        await WaitForLocalAzureServiceBusEmulatorAsync(health, timeout, cancellationToken).ConfigureAwait(false);
+
+        var adminConnectionString = CreateAzureServiceBusAdminConnectionString(connectionString, adminPort);
+        await ResetAzureServiceBusAsync(adminConnectionString, queues, topicsAndSubscriptions, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Resets local Azure Service Bus emulator entities using the named connection string from configuration.
+    /// </summary>
+    /// <param name="configuration">The configuration containing the connection string.</param>
+    /// <param name="queues">The queues to reset.</param>
+    /// <param name="topicsAndSubscriptions">The topics and their subscriptions to reset.</param>
+    /// <param name="connectionName">The connection-string name; defaults to <c>"ServiceBus"</c>.</param>
+    /// <param name="adminPort">The emulator management port.</param>
+    /// <param name="readinessTimeout">The maximum time to wait for emulator management readiness; defaults to one minute.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+    /// <returns>A task that represents the asynchronous reset operation.</returns>
+    /// <remarks>This operation is destructive. The string overload documents its safety requirements.</remarks>
+    public static Task ResetLocalAzureServiceBusAsync(IConfiguration configuration, CreateQueueOptions[]? queues = null,
+        (CreateTopicOptions Topic, CreateSubscriptionOptions[] Subscriptions)[]? topicsAndSubscriptions = null, string connectionName = "ServiceBus", int adminPort = 5300, TimeSpan? readinessTimeout = null, CancellationToken cancellationToken = default)
+    {
+        var name = connectionName.ThrowIfNullOrEmpty();
+        var connectionString = configuration.ThrowIfNull().GetConnectionString(name) ?? throw new InvalidOperationException($"The '{name}' Azure Service Bus connection string was not found in configuration.");
+        return ResetLocalAzureServiceBusAsync(connectionString, queues, topicsAndSubscriptions, adminPort, readinessTimeout, cancellationToken);
+    }
+
+    /// <summary>
+    /// Validates a local Azure Service Bus emulator connection string and returns its namespace endpoint.
+    /// </summary>
+    private static Uri ValidateLocalAzureServiceBusConnectionString(string connectionString)
+    {
+        if (string.IsNullOrWhiteSpace(connectionString))
+            throw new InvalidOperationException("A local Azure Service Bus emulator connection string is required.");
+
+        var options = new DbConnectionStringBuilder();
+        try
+        {
+            options.ConnectionString = connectionString;
+        }
+        catch (Exception ex) when (ex is FormatException or ArgumentException)
+        {
+            throw new InvalidOperationException("The Azure Service Bus connection string is malformed.");
+        }
+
+        string? GetValue(string key) => options.TryGetValue(key, out var value) ? value?.ToString() : null;
+
+        if (!Uri.TryCreate(GetValue("Endpoint"), UriKind.Absolute, out var endpoint)
+            || !string.Equals(endpoint.Scheme, "sb", StringComparison.OrdinalIgnoreCase)
+            || !string.IsNullOrEmpty(endpoint.UserInfo)
+            || endpoint.AbsolutePath != "/"
+            || !string.IsNullOrEmpty(endpoint.Query)
+            || !string.IsNullOrEmpty(endpoint.Fragment))
+            throw new InvalidOperationException("The Azure Service Bus connection must use a namespace-level sb:// endpoint without user info, path, query or fragment.");
+
+        if (!bool.TryParse(GetValue("UseDevelopmentEmulator"), out var useDevelopmentEmulator) || !useDevelopmentEmulator)
+            throw new InvalidOperationException("Local Service Bus setup requires UseDevelopmentEmulator=true.");
+
+        var isLoopback = string.Equals(endpoint.DnsSafeHost, "localhost", StringComparison.OrdinalIgnoreCase) || IPAddress.TryParse(endpoint.DnsSafeHost, out var address) && IPAddress.IsLoopback(address);
+        if (!isLoopback)
+            throw new InvalidOperationException("Local Service Bus setup requires a localhost or loopback IP endpoint.");
+
+        if (!string.IsNullOrEmpty(GetValue("EntityPath"))
+            || string.IsNullOrWhiteSpace(GetValue("SharedAccessKeyName"))
+            || string.IsNullOrWhiteSpace(GetValue("SharedAccessKey")))
+            throw new InvalidOperationException("Local Service Bus setup requires a namespace-level shared access key connection without EntityPath.");
+
+        return endpoint;
+    }
+
+    /// <summary>
+    /// Waits until the local Azure Service Bus emulator reports healthy.
+    /// </summary>
+    private static async Task WaitForLocalAzureServiceBusEmulatorAsync(Uri health, TimeSpan timeout, CancellationToken cancellationToken)
+    {
+        using var timeoutSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeoutSource.CancelAfter(timeout);
+        using var handler = new HttpClientHandler { AllowAutoRedirect = false, UseProxy = false };
+        using var client = new HttpClient(handler) { Timeout = Timeout.InfiniteTimeSpan };
+        Exception? lastFailure = null;
+
+        try
+        {
+            while (true)
+            {
+                try
+                {
+                    using var response = await client.GetAsync(health, timeoutSource.Token).ConfigureAwait(false);
+                    if (response.IsSuccessStatusCode)
+                        return;
+
+                    lastFailure = new HttpRequestException($"Service Bus emulator management health returned HTTP {(int)response.StatusCode}.");
+                }
+                catch (HttpRequestException ex)
+                {
+                    lastFailure = ex;
+                }
+
+                await Task.Delay(TimeSpan.FromSeconds(1), timeoutSource.Token).ConfigureAwait(false);
+            }
+        }
+        catch (OperationCanceledException ex) when (!cancellationToken.IsCancellationRequested && timeoutSource.IsCancellationRequested)
+        {
+            throw new TimeoutException($"Service Bus emulator management did not become ready at '{health}' within {timeout}. Start the emulator and check its logs.", lastFailure ?? ex);
+        }
+    }
+
+    /// <summary>
+    /// Resets the Azure Service Bus queues and topics/subscriptions to an initial state by deleting and recreating them.
+    /// </summary>
+    /// <param name="adminConnectionString">The Azure Service Bus administration connection string.</param>
+    /// <param name="queues">The queues to reset.</param>
+    /// <param name="topicsAndSubscriptions">The topics and their subscriptions to reset.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+    /// <returns>A task that represents the asynchronous reset operation.</returns>
+    public static async Task ResetAzureServiceBusAsync(string adminConnectionString, CreateQueueOptions[]? queues, (CreateTopicOptions Topic, CreateSubscriptionOptions[] Subscriptions)[]? topicsAndSubscriptions, CancellationToken cancellationToken)
     {
         var admin = new ServiceBusAdministrationClient(adminConnectionString);
 
         // Recreate each queue fresh - deleting first (if present) so the outcome is identical regardless of prior state.
         foreach (var queue in queues ?? [])
         {
-            if (await admin.QueueExistsAsync(queue.Name).ConfigureAwait(false))
-                await admin.DeleteQueueAsync(queue.Name).ConfigureAwait(false);
+            if (await admin.QueueExistsAsync(queue.Name, cancellationToken).ConfigureAwait(false))
+                await admin.DeleteQueueAsync(queue.Name, cancellationToken).ConfigureAwait(false);
 
-            await admin.CreateQueueAsync(queue).ConfigureAwait(false);
+            await admin.CreateQueueAsync(queue, cancellationToken).ConfigureAwait(false);
         }
 
         // Recreate each topic (and its subscriptions) fresh - deleting the topic first (if present), which also removes any stale subscriptions.
         foreach (var (topic, subscriptions) in topicsAndSubscriptions ?? [])
         {
-            if (await admin.TopicExistsAsync(topic.Name).ConfigureAwait(false))
-                await admin.DeleteTopicAsync(topic.Name).ConfigureAwait(false);
+            if (await admin.TopicExistsAsync(topic.Name, cancellationToken).ConfigureAwait(false))
+                await admin.DeleteTopicAsync(topic.Name, cancellationToken).ConfigureAwait(false);
 
-            await admin.CreateTopicAsync(topic).ConfigureAwait(false);
+            await admin.CreateTopicAsync(topic, cancellationToken).ConfigureAwait(false);
 
             foreach (var subscription in subscriptions)
             {
                 if (subscription.TopicName != topic.Name)
                     throw new InvalidOperationException($"The subscription '{subscription.SubscriptionName}' TopicName '{subscription.TopicName}' does not match the corresponding topic '{topic.Name}'.");
 
-                await admin.CreateSubscriptionAsync(subscription).ConfigureAwait(false);
+                await admin.CreateSubscriptionAsync(subscription, cancellationToken).ConfigureAwait(false);
             }
         }
     }
