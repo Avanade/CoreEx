@@ -7,19 +7,16 @@
   <!-- Common packages. -->
   <ItemGroup>
     <PackageVersion Include="Aspire.Azure.Messaging.ServiceBus" Version="13.6.1" />
-    <PackageVersion Include="Aspire.Hosting.Testing" Version="13.6.5" />
+    <PackageVersion Include="Aspire.Azure.Npgsql" Version="13.6.1" />
+    <PackageVersion Include="Aspire.Azure.Storage.Blobs" Version="13.6.1" />
     <PackageVersion Include="Aspire.Microsoft.Azure.Cosmos" Version="13.6.1" />
     <PackageVersion Include="Aspire.Microsoft.Data.SqlClient" Version="13.6.1" />
-    <PackageVersion Include="Aspire.Azure.Npgsql" Version="13.6.1" />
     <PackageVersion Include="Aspire.StackExchange.Redis.DistributedCaching" Version="13.6.1" />
-    <PackageVersion Include="Azure.Storage.Queues" Version="12.21.0" />
-    <PackageVersion Include="Azure.Storage.Blobs" Version="12.23.0" />
     <PackageVersion Include="CloudNative.CloudEvents.SystemTextJson" Version="2.9.0" />
     <PackageVersion Include="CommunityToolkit.Aspire.OllamaSharp" Version="13.6.0" />
     <PackageVersion Include="CsvHelper" Version="34.0.0" />
+    <PackageVersion Include="GraphQL-Parser" Version="9.5.1" />
     <PackageVersion Include="MessagePack" Version="2.5.307" />
-    <PackageVersion Include="ModelContextProtocol.AspNetCore" Version="2.2.0" />
-    <PackageVersion Include="ModelContextProtocol" Version="2.2.0" />
     <PackageVersion Include="Microsoft.AspNetCore.WebUtilities" Version="2.3.14" />
     <PackageVersion Include="Microsoft.Azure.Cosmos" Version="3.63.2" />
     <PackageVersion Include="Microsoft.Azure.Functions.Worker" Version="2.52.0" />
@@ -29,11 +26,13 @@
     <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.Timer" Version="4.3.1" />
     <PackageVersion Include="Microsoft.Azure.Functions.Worker.OpenTelemetry" Version="1.2.0" />
     <PackageVersion Include="Microsoft.Azure.Functions.Worker.Sdk" Version="2.1.0" />
+    <PackageVersion Include="Microsoft.Data.SqlClient" Version="7.1.1" />
     <PackageVersion Include="Microsoft.DurableTask.Abstractions" Version="1.26.0" />
     <PackageVersion Include="Microsoft.DurableTask.Client.AzureManaged" Version="1.26.0" />
     <PackageVersion Include="Microsoft.DurableTask.Worker.AzureManaged" Version="1.26.0" />
-    <PackageVersion Include="Microsoft.Data.SqlClient" Version="7.1.1" />
     <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="10.11.0" />
+    <PackageVersion Include="ModelContextProtocol" Version="2.2.0" />
+    <PackageVersion Include="ModelContextProtocol.AspNetCore" Version="2.2.0" />
     <PackageVersion Include="NSwag.AspNetCore" Version="14.7.1" />
     <PackageVersion Include="OpenTelemetry.Api" Version="1.19.1" />
     <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.19.1" />
@@ -42,7 +41,6 @@
     <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.19.0" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.19.0" />
     <PackageVersion Include="Scalar.AspNetCore" Version="2.18.0" />
-    <PackageVersion Include="GraphQL-Parser" Version="9.5.1" />
     <PackageVersion Include="System.Linq.Dynamic.Core" Version="1.7.4" />
     <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="10.0.13" Condition="'$(TargetFramework)' != 'net11.0'" />
     <PackageVersion Include="YamlDotNet" Version="18.1.0" />
@@ -54,9 +52,11 @@
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="8.0.32" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="8.0.32" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="8.0.32" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.32" />
     <PackageVersion Include="Microsoft.Extensions.Caching.Memory" Version="8.0.1" />
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="8.0.32" />
     <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="8.10.0" />
+    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.4" />
     <PackageVersion Include="System.Memory.Data" Version="8.0.1" />
     <PackageVersion Include="System.Text.Json" Version="8.0.6" />
   </ItemGroup>
@@ -64,9 +64,11 @@
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="9.0.21" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="9.0.21" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="9.0.21" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.21" />
     <PackageVersion Include="Microsoft.Extensions.Caching.Memory" Version="9.0.21" />
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="9.0.21" />
     <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="9.10.0" />
+    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.4" />
     <PackageVersion Include="System.Memory.Data" Version="9.0.21" />
     <PackageVersion Include="System.Text.Json" Version="9.0.21" />
   </ItemGroup>
@@ -74,10 +76,12 @@
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.13" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.13" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.13" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.13" />
     <PackageVersion Include="Microsoft.Extensions.Caching.Memory" Version="10.0.13" />
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="10.0.13" />
     <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="10.11.0" />
     <PackageVersion Include="Microsoft.OpenApi" Version="2.12.2" />
+    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
     <PackageVersion Include="System.Memory.Data" Version="10.0.13" />
     <PackageVersion Include="System.Text.Json" Version="10.0.13" />
   </ItemGroup>
@@ -86,16 +90,20 @@
     <!-- Npgsql's EF Core 11 provider is not yet available as a stable release. -->
     <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.13" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.13" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.13" />
     <PackageVersion Include="Microsoft.Extensions.Caching.Memory" Version="11.0.0" />
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="11.0.0" />
     <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="11.0.0" />
+    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
     <PackageVersion Include="System.Memory.Data" Version="11.0.0" />
     <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="11.0.0" />
     <PackageVersion Include="System.Text.Json" Version="11.0.0" />
   </ItemGroup>
   <!-- Tool/Test packages. -->
   <ItemGroup>
+    <PackageVersion Include="Aspire.Hosting.Testing" Version="13.6.5" />
     <PackageVersion Include="AwesomeAssertions" Version="9.6.0" />
+    <PackageVersion Include="Azure.Storage.Queues" Version="12.21.0" />
     <PackageVersion Include="coverlet.collector" Version="10.1.0" />
     <PackageVersion Include="DbEx.Postgres" Version="3.4.0" />
     <PackageVersion Include="DbEx.SqlServer" Version="3.4.0" />
@@ -103,7 +111,6 @@
     <PackageVersion Include="NUnit" Version="4.6.1" />
     <PackageVersion Include="NUnit.Analyzers" Version="4.15.0" />
     <PackageVersion Include="NUnit3TestAdapter" Version="5.2.0" />
-    <PackageVersion Include="OnRamp" Version="2.4.0" />
     <PackageVersion Include="Spectre.Console" Version="0.57.2" />
     <PackageVersion Include="UnitTestEx" Version="7.0.0" />
     <PackageVersion Include="UnitTestEx.Aspire" Version="7.0.0" />
@@ -111,42 +118,35 @@
     <PackageVersion Include="WireMock.Net" Version="2.19.0" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.32" />
     <PackageVersion Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="8.0.0" />
     <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="8.0.1" />
     <PackageVersion Include="Microsoft.Extensions.Http" Version="8.0.1" />
     <PackageVersion Include="Microsoft.Extensions.Logging.Console" Version="8.0.1" />
-    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.4" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' == 'net9.0'">
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.21" />
     <PackageVersion Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="9.0.21" />
     <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="9.0.21" />
     <PackageVersion Include="Microsoft.Extensions.Http" Version="9.0.21" />
     <PackageVersion Include="Microsoft.Extensions.Logging.Console" Version="9.0.21" />
-    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.4" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.13" />
     <PackageVersion Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.13" />
     <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="10.0.13" />
     <PackageVersion Include="Microsoft.Extensions.Http" Version="10.0.13" />
     <PackageVersion Include="Microsoft.Extensions.Logging.Console" Version="10.0.13" />
-    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' == 'net11.0'">
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.13" />
     <PackageVersion Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="11.0.0" />
     <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="11.0.0" />
     <PackageVersion Include="Microsoft.Extensions.Http" Version="11.0.0" />
     <PackageVersion Include="Microsoft.Extensions.Logging.Console" Version="11.0.0" />
-    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
   </ItemGroup>
   <!-- Generator packages. -->
   <ItemGroup>
     <PackageVersion Include="Handlebars.Net" Version="2.4.3" />
-    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.9.0" />
     <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="5.9.0" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.9.0" />
+    <PackageVersion Include="OnRamp" Version="2.4.0" />
     <PackageVersion Include="Pluralize.NET" Version="1.0.2" />
     <PackageVersion Include="StrongNamer" Version="0.2.5" />
   </ItemGroup>

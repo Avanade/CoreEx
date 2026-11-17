@@ -128,6 +128,8 @@ Keep `local.settings.json` ignored/unpublished, preserving existing settings. Su
 
 The test administration connection and native Functions `ServiceBus` binding must target the same intended broker. Bindings read Functions host settings, not just worker `appsettings.json`; setting an environment variable in one terminal does not configure Core Tools in another. If ports change, update published ports, clients and administration settings together.
 
+When capabilities are implemented, prefer Aspire client integrations for worker-owned infrastructure clients: `AddAzureBlobServiceClient` for storage, `AddAzureServiceBusClient` for messaging, and the matching database/cache integrations. They need no AppHost and do not change Compose ownership. Explicitly map the binding's named storage/broker settings to those client registrations; Aspire's usual `ConnectionStrings:{name}` resolution is distinct from native Functions binding settings. See [host client registration](/.github/instructions/coreex-host-setup.instructions.md#infrastructure-client-registration).
+
 ## Completion boundary
 
 For infrastructure-only work, provide the files, guarded setup fixture, connection documentation and commands; build the affected projects unless explicitly excluded. Start emulators or execute the destructive fixture only when authorized. Defer native trigger implementations, runtime host harnesses and mock backends to their capability steps. State what is prepared versus actually running/provisioned.

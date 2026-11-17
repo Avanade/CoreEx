@@ -31,6 +31,8 @@ One `*.Functions` project is one deployable Function App; several may reuse shar
 
 Package management follows effective CPM independently of shared-core, with inline fallback only when disabled. New standalone solutions use `coreex-solution` for root/Test.Common scaffolding. Test.Common references belong only in consuming test projects and require explicit wiring; its lightweight baseline configures no database/broker. Missing baseline/tool creation is a `coreex-scaffold` responsibility, not a reason to regenerate an existing host.
 
+Prefer Aspire client integrations for host-owned Blob, Service Bus, database and cache clients, as described in [client registration](/.github/instructions/coreex-host-setup.instructions.md#infrastructure-client-registration). In particular, use `Aspire.Azure.Storage.Blobs` / `AddAzureBlobServiceClient` and derive report containers from that registered service client, rather than hand-constructing a second client. These integrations require no AppHost and do not replace native trigger bindings. Explicitly map the binding's named connection setting to the worker client's configuration; neither configures the other automatically.
+
 ```csharp
 var builder = FunctionsApplication.CreateBuilder(args);
 builder.ConfigureFunctionsWebApplication();
@@ -81,6 +83,8 @@ Reuse `CoreEx.Azure.Storage.Blobs` instead of duplicating Blob mechanics: select
 Bindings use Functions host app settings/local settings, not worker-only `appsettings.json`. `host.json` affects sibling functions too. Keep secrets out of source, local settings unpublished and configuration names documented. Function keys do not establish application identity/tenant trust.
 
 Use the real host via `FunctionTester.Create<TFunction>()`. Deferred HTTP results use `ToHttpResponseMessageAssertor(request)`; eager idempotency results use `SnapshotHttpResponse(response)` with a caller-owned readable/seekable buffer. Assert behavior, cancellation/failure and exact settlement where relevant. Invocation tests do not prove binding conversion, broker delivery, function-key authorization or cloud provisioning; use Core Tools/Aspire runtime proofs for those boundaries. With Azurite Event Grid-source Blob triggers, upload the input and post a storage-shaped event through the Functions webhook: this simulates only notification delivery because Azurite does not emit Event Grid events. Do not claim Azure Event Grid provisioning, authentication, or delivery from that local test.
+
+Use the existing publisher decorator/expectations and Blob test helpers from `CoreEx.UnitTesting`, not custom recording Service Bus senders or HTTP-level storage emulators. Cover application policy and representative wiring; do not reproduce the framework's parser, CloudEvent conversion or settlement test matrices. See the [testing policy](/.github/instructions/coreex-tests.instructions.md#test-responsibility--what-goes-where-do-not-duplicate) and [component-test pattern](/.github/skills/coreex-functions/references/patterns.md#testing-published-commands-and-blob-imports).
 
 ## Do Not
 

@@ -111,6 +111,8 @@ Do not run `/coreex-docs-sync` silently — always offer and wait for confirmati
 ## Operating rules
 
 - Always inspect current code before recommending changes.
+- Prefer Aspire client integrations for host-owned storage, messaging, database and cache clients; these require no AppHost. Keep CoreEx behavior above them, preserve intentional custom registrations, and explicitly align Functions binding and worker client settings. See [client registration](/.github/instructions/coreex-host-setup.instructions.md#infrastructure-client-registration).
+- For consumer tests, prioritize application rules, mappings, configuration and failure policy with representative wiring/runtime evidence. Reuse CoreEx.UnitTesting publisher expectations and Blob fixtures; do not export exhaustive framework capability matrices or protocol simulators into consumer repositories.
 - Give sample-backed guidance where possible; cite the specific doc or file that supports the recommendation.
 - Favor smallest safe change and preserve existing structure.
 - For specialized WebApi representations or Accept requirements, consult the [controller representation guidance](/.github/instructions/coreex-api-controllers.instructions.md#specialized-json-representations) and CoreEx.AspNetCore package guide. Distinguish JSON labeling (`DefaultJsonMediaType`/`WithContentType`) from immediate opt-in validation (`WithAccept`) and actual negotiation; do not recommend negotiation machinery where the guard suffices, or WebApi where negotiated formats/serializers are required.

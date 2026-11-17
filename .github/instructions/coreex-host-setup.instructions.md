@@ -31,6 +31,21 @@ The host is a **composition root only** — no business logic. Api, Subscribe an
 
 Set `CoreEx:Correlation:Enabled` to `false` before startup to disable automatic correlation across hosts, HTTP clients and message processing. Explicit application values and persisted message metadata remain intact; existing transport telemetry is unaffected. See [workflow correlation](/.github/docs/coreex/agents/CoreEx.md#workflow-correlation).
 
+## Infrastructure client registration
+
+Prefer the matching Aspire **client integration** for underlying infrastructure clients in every host, including Functions. These packages add supported configuration, DI, telemetry, resilience and health integration without requiring an Aspire AppHost or changing Compose ownership. Capabilities vary by integration; do not assume every package supplies every feature or installs a health endpoint. Keep CoreEx repositories, publishers/subscribers, caching and Blob helpers above those clients; do not replace their behavior with raw SDK calls.
+
+| Capability | Preferred client integration / host registration |
+|---|---|
+| Blob Storage | `Aspire.Azure.Storage.Blobs` / `builder.AddAzureBlobServiceClient("ImportStorage")`; derive container clients from the registered `BlobServiceClient`. |
+| Service Bus | `Aspire.Azure.Messaging.ServiceBus` / `builder.AddAzureServiceBusClient("ServiceBus")`. |
+| SQL Server | `Aspire.Microsoft.Data.SqlClient` / `builder.AddSqlServerClient("SqlServer")`, then CoreEx database/UoW registration. |
+| PostgreSQL | `Aspire.Azure.Npgsql` / `builder.AddAzureNpgsqlDataSource("Postgres")`, then CoreEx database/UoW registration. |
+| Cosmos DB | `Aspire.Microsoft.Azure.Cosmos` / `builder.AddAzureCosmosClient("Cosmos")`, then CoreEx Cosmos registration and its health check where required. |
+| Redis cache | `Aspire.StackExchange.Redis.DistributedCaching` / `builder.AddRedisDistributedCache("redis")`, retaining CoreEx/FusionCache policy above it. |
+
+Reuse compatible installed versions and existing named/keyed registrations; verify which CoreEx package already brings the client integration transitively. Resolve host configuration explicitly: Aspire commonly uses `ConnectionStrings:{name}`, while native Functions bindings use their own named app settings. Map both to the same intended resource; a matching name alone does not connect the configuration systems. Preserve intentional custom clients/options, and use direct SDK construction only for a documented requirement, native trigger-supplied clients or test doubles. Do not add `Aspire.Hosting.*` to runtime hosts merely for client registration.
+
 ## Service Bus pipeline selection
 
 Across Api, Relay, Subscribe and Functions hosts, register/reuse `IEventPublisher` backed by `ServiceBusPublisher` or the intended outbox, and typed/dispatched CoreEx subscribers. Preserve custom implementations, decorators and supported overrides. With no outbox, the broker publisher may be the default; with an outbox default, pass `addAsDefaultIEventPublisher: false` and select the keyed broker publisher for deliberate direct sends. Direct-to-broker does not mean raw SDK sending. Configure content mode, destinations and `ConfigureMessage` on the actual sending publisher; use raw SDK sends/output bindings or custom callbacks only for a concrete documented requirement. Native Functions triggers still delegate to the subscriber bridge and must not start another listener.

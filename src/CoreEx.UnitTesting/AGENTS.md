@@ -50,6 +50,10 @@ public class OrderServiceTest : WithGenericTester<EntryPoint>
 
 ## Event / Outbox Expectations
 
+`UseExpectedEventPublisher(serviceKey)` and `UseExpectedAzureServiceBusPublisher()` wrap the registered publisher; publication still passes through by default and requires its real infrastructure. For isolated tests, explicitly use `bypassPassThrough: true` to substitute a no-op inner publisher. Successful publications accumulate across child scopes sharing the same tester/request; failed publishes are not captured as successful and rollback removes only that decorator's captures. Use a fresh tester per isolated test. Event expectations observe envelopes/payloads, not the final Service Bus wire representation.
+
+For Functions/non-HTTP tests, register the decorator through `tester.ConfigureServices(services => services.UseExpectedAzureServiceBusPublisher(bypassPassThrough: true))`. Use `tester.OnEventPublish(serviceKey, action)` on the owning tester to count attempts or inject an exception before a selected publish. The existing HTTP request-tester overload remains request-specific. Neither bypass mode nor an injected failure proves broker acceptance/delivery.
+
 For native output, use `e.AssertNativeMessage(destination, expectedEventData)` within the existing `ExpectEvents` or provider-specific expectation callback. The expected message must use `DataRepresentation = Native` (normally a native factory or `.AsNative()`). This compares the persisted envelope, payload and durable options without hand-decoding control metadata. Native ETags remain unless explicitly excluded. Conversion helpers do not run publisher callbacks/session policy; verify final broker bytes/headers in transport or relay tests. See [native expectations](./README.md#native-message-expectations).
 
 Use the database-specific expectation method that matches your domain's persistence provider. Do not mix SQL Server and PostgreSQL helpers.
@@ -99,6 +103,14 @@ await ProductValidator.Default.AssertErrorsAsync(
     new Product { Sku = "" },
     ("Sku", "Sku is required."));
 ```
+
+## File and Blob Component Tests
+
+Pure processor tests need immutable fixture bytes and a fresh-stream factory, not a storage emulator. For Blob-boundary tests, use `CoreEx.UnitTesting.Blobs.StubBlobClient` (copied fixture bytes, fixed URI/revision, fresh streaming reads) and `RecordingBlobContainerClient` (create-only report names, opaque appended bytes and metadata). Its `Blobs` dictionary exposes `RecordedBlob` instances with `Content`, `Blocks`, `ContentType` and `Metadata`. Input hooks `BeforeGetProperties`/`BeforeRead` and report hooks `BeforeCreate`/`BeforeAppend`/`BeforeSetMetadata` can count calls or throw; report hooks receive the Blob name.
+
+These are buffered SDK-level test doubles, not an Azure emulator, file framework or proof of conditional storage operations. They do not model ETag/append-position enforcement, SDK retries, concurrent writers or trigger delivery. Use bounded fixtures and a small Azurite/Core Tools proof when real storage/delivery semantics matter. Keep JSONL/CSV business record shapes and assertions in the consuming test.
+
+Test application rules, mappings and failure decisions. Trust built-in CoreEx, Azure SDK and .NET capabilities; use representative composition checks rather than exhaustive parser/formatter/storage matrices.
 
 ## Testing That an Expectation Fails
 
@@ -153,7 +165,7 @@ Test.ScopedType<OrderService>()
 
 - Do not add separate per-feature test packages (e.g. `CoreEx.UnitTesting.Events`) — they do not exist; all test helpers are in this package.
 - Do not use `ExpectSqlServerOutboxEvents` for a PostgreSQL domain or vice versa.
-- Do not call `PublishAsync()` in tests — the `EventPublisherDecorator` (registered by `UseExpectedEventPublisher`) captures events automatically.
+- Do not manually publish events merely to satisfy expectations — application code must perform the publication. Direct publisher tests can call `PublishAsync`; the decorator captures only after the inner publisher succeeds.
 - Do not forget `await Test.ClearFusionCacheAsync()` in `[OneTimeSetUp]` for tests involving cached reference data.
 - Do not use FluentAssertions — the CoreEx test framework uses AwesomeAssertions (`AwesomeAssertions` NuGet package).
 - Do not wrap an `Expect*`/`Assert*` check in `Action act = () => ...; act.Should().Throw<Exception>();` to test that it fails — UnitTestEx's `Implementor.AssertFail` marks the NUnit test as failed the moment it fires, regardless of whether your code later catches the resulting exception. Use NUnit's `Assert.Throws<AssertionException>(...)` instead (see "Testing That an Expectation Fails" above).

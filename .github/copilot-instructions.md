@@ -129,6 +129,8 @@ Connection strings for each service in development are in each host's `appsettin
 - Policies return `Result` or `Result<T>` and compose naturally into `Result<T>` service pipelines via `.GoAsync()` / `.ThenAsAsync()`.
 
 ### Host Composition
+Prefer Aspire client integrations for host-owned infrastructure clients, including Blob (`Aspire.Azure.Storage.Blobs` / `AddAzureBlobServiceClient`), Service Bus, databases and Redis. Retain CoreEx behavior above the registered clients and preserve intentional custom registrations. Client integrations need no AppHost; Functions binding settings still require explicit alignment with worker client configuration. See `coreex-host-setup.instructions.md`.
+
 - `Program.cs` files follow a predictable CoreEx host shape:
   - `builder.AddHostSettings();`
   - `AddExecutionContext()`
@@ -154,6 +156,8 @@ Connection strings for each service in development are in each host's `appsettin
 - Both domains use `CoreEx.Caching.FusionCache` (hybrid in-process + Redis backplane cache) for reference data and idempotency. Register via `AddFusionCache()` / `AddFusionHybridCache()` in `Program.cs`; clear via `Test.ClearFusionCacheAsync()` in test `[OneTimeSetUp]`.
 
 ### Testing
+Consumer tests should cover application-owned rules, mappings, configuration and failure policies, with representative integration checks of framework wiring. Do not export the framework's exhaustive capability matrices or transport simulators into consumer solutions; use existing CoreEx.UnitTesting publisher expectations and Blob test fixtures. Framework changes in this repository still require focused regression tests of the behavior being changed.
+
 - Framework: UnitTestEx + NUnit + AwesomeAssertions (the `AwesomeAssertions` NuGet package — not FluentAssertions).
 - Sample: `WithGenericTester<EntryPoint>` (unit) or `WithApiTester<Program>` (API/Subscribe/Relay).
 - Integration tests: per-class named seed files `Data\read-data.seed.yaml` / `Data\mutate-data.seed.yaml` (Products), or a single `Data\data.yaml` (Orders/Shopping), in Test.Common + `Resources\` JSON expectations.

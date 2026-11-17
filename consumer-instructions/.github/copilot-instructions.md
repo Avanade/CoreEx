@@ -62,6 +62,8 @@ Standalone repositories normally start with `coreex-solution`: root solution/bui
 
 ## Universal Rules
 
+Prefer Aspire client integrations to register underlying Blob Storage, Service Bus, database and cache clients in host composition roots, including Functions; keep CoreEx behavior above those clients. This requires no AppHost. Preserve custom registrations and explicitly align client configuration with native binding settings. See the [host registration table](/.github/instructions/coreex-host-setup.instructions.md#infrastructure-client-registration).
+
 ### Do Not Fabricate Blockers — Verify, Then Ask
 
 When something appears blocked, broken, or "not generated yet", do **not** invent a root cause and an elaborate workaround. Take the one authoritative action that establishes the truth, then proceed:
@@ -122,6 +124,8 @@ Never create a new project or add a project to the solution (e.g. an `*.Api`, `*
 Verify **before** the project is in the solution: build and test a new or edited project **by its `.csproj` path** — `dotnet build <project>.csproj`, `dotnet test <testproject>.csproj` — which also builds its referenced projects (compilation does not require solution membership). Do **not** rely on a solution-wide build to verify a project not yet added to the `.slnx` — it would silently skip it. Add it to the solution as the final step, then a `dotnet build <Solution>.slnx` confirms the wiring.
 
 ### Validator Unit Tests
+
+Test application-owned rules, mappings, configuration and failure decisions. Trust standard CoreEx, Azure SDK and .NET behavior; prove wiring with representative integration checks, not exhaustive framework permutations. Reuse CoreEx.UnitTesting publisher expectations and Blob fixtures instead of copying framework transport simulators. See `coreex-tests.instructions.md`.
 
 Maintain the matching `{Validator}Tests` in `*.Test.Unit/Validators/` alongside changed rules, covering error and success cases. Apply the scope and execution rules in `coreex-tests.instructions.md`; if the user explicitly excludes or defers tests, report the coverage gap.
 

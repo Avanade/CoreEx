@@ -1,6 +1,22 @@
 # CoreEx.Azure.Storage.Blobs
 
-Host-neutral Azure Blob input and report helpers. The package references `CoreEx` and `Azure.Storage.Blobs`, not Azure Functions or `CoreEx.IO`. Keep using the Azure SDK directly for other storage operations.
+Host-neutral Azure Blob input and report helpers. The package references `CoreEx` and the `Aspire.Azure.Storage.Blobs` client integration (which supplies the Azure SDK), not Azure Functions or `CoreEx.IO`. Use the registered SDK clients for other storage operations.
+
+## Host client registration
+
+Prefer `builder.AddAzureBlobServiceClient("ImportStorage")` in the host composition root and derive container clients from its registered `BlobServiceClient`, preserving the integration's configuration, telemetry and health options. This is a client integration, not an AppHost requirement or storage provisioner. CoreEx helpers accept caller-owned SDK clients and add no host startup behavior themselves.
+
+Aspire's named connection configuration is separate from native Functions binding app settings. For a Functions app that already uses an `ImportStorage` binding connection, explicitly map that setting into the client registration's settings or provide the equivalent named connection string. Keep the native trigger-supplied input `BlobClient`; use the registered service client for report containers. Preserve existing custom clients/options and avoid constructing parallel raw clients that bypass host configuration.
+
+```csharp
+builder.AddAzureBlobServiceClient("ImportStorage", settings =>
+{
+    if (settings.ConnectionString is null && settings.ServiceUri is null)
+        settings.ConnectionString = builder.Configuration["ImportStorage"];
+});
+```
+
+This fallback preserves an already configured connection or service URI; use deployment-appropriate service URI/credential configuration for managed identity instead of adding a connection string where none is intended.
 
 ## Revision-pinned input
 

@@ -235,7 +235,7 @@ public partial class BlobRuntimeTests
         await NotifyInventoryAsync(blob, functionName);
         var result = await Test.EventuallyAsync(async token =>
         {
-            await foreach (var item in _inventoryReports.GetBlobsAsync(BlobTraits.Metadata, cancellationToken: token))
+            await foreach (var item in _inventoryReports.GetBlobsAsync(new GetBlobsOptions { Traits = BlobTraits.Metadata }, cancellationToken: token))
             {
                 if (previous?.Contains(item.Name) is true || !item.Metadata.TryGetValue("outcome", out var outcome) || outcome == "InProgress")
                     continue;
@@ -264,7 +264,7 @@ public partial class BlobRuntimeTests
     private async Task AssertUnfinishedInventoryReportsAsync(BlobClient input)
     {
         var count = 0;
-        await foreach (var item in _inventoryReports.GetBlobsAsync(BlobTraits.Metadata))
+        await foreach (var item in _inventoryReports.GetBlobsAsync(new GetBlobsOptions { Traits = BlobTraits.Metadata }))
         {
             var content = (await _inventoryReports.GetBlobClient(item.Name).DownloadContentAsync()).Value.Content.ToString();
             using var first = JsonDocument.Parse(content.Split('\n', StringSplitOptions.RemoveEmptyEntries)[0]);

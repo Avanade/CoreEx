@@ -19,8 +19,11 @@ builder.Services.AddInventoryImport(sp =>
         configuration["InventoryImportTenant"] ?? throw new InvalidOperationException("InventoryImportTenant must be configured."));
 });
 builder.Services.AddDynamicServicesUsing<InvocationService>();
-builder.Services.AddSingleton(sp => new BlobServiceClient(sp.GetRequiredService<IConfiguration>()["ImportStorage"]
-    ?? throw new InvalidOperationException("ImportStorage must be configured for Blob processing.")));
+builder.AddAzureBlobServiceClient("ImportStorage", settings =>
+{
+    if (settings.ConnectionString is null && settings.ServiceUri is null)
+        settings.ConnectionString = builder.Configuration["ImportStorage"];
+});
 builder.Services.AddEventFormatter();
 builder.Services.AddSubscribedManager((_, manager) => manager.AddSubscribersUsing<MessageSubscriber>());
 builder.Services.AddScoped<ServiceBusSubscribedSubscriber>();

@@ -31,6 +31,8 @@ builder.Build().Run();
 
 Host settings must be configured; imports belong in `GlobalUsing.cs`. Register application/local handlers and their dependencies only when required. An empty host does not need MVC, health functions or speculative dependency wiring.
 
+Prefer Aspire client integrations for worker-owned Blob, Service Bus, database and cache clients; they require no AppHost and retain CoreEx behavior above the client. Explicitly align their named configuration with the separate Functions binding app settings. Native trigger-supplied clients and intentional custom registrations remain valid.
+
 `webApi.FunctionWithIdempotencyAsync(request, ct => webApi.PostAsync(..., cancellationToken: ct), isRequired: true, cancellationToken: cancellationToken)` wraps a deferred operation with the supplied WebApi instance and an explicitly registered `IIdempotencyProvider`. Configure its cache as usual; nothing selects a cache automatically.
 
 The helper renders inside the capture boundary and returns `EmptyResult`; return it directly. Worker middleware around `next(context)` or `[IdempotencyKey]` alone does not capture the later ASP.NET proxy rendering. Do not use this helper for streaming, extra HTTP output bindings or already-started responses.
@@ -78,6 +80,8 @@ For schema-defined CSV, use File CodeGen rather than hand-authoring wire models,
 
 Use UnitTestEx 7 `FunctionTester.Create<TFunction>()` against the real host; `HttpTrigger<T>()` / `Trigger<T>()` run worker composition and middleware. Deferred results use `ToHttpResponseMessageAssertor(request)`. Eager idempotency output uses `SnapshotHttpResponse(response)` with a caller-owned readable/seekable response buffer; it preserves stream ownership/position and does not execute the result again.
 
-Test exact outcomes, error/cancellation propagation and settlement actions/counts. Invocation tests do not prove bindings, broker redelivery, authorization or cloud provisioning. Core Tools/Aspire runtime tests exercise those boundaries locally; simulated Azurite Event Grid notifications do not prove Azure subscriptions or authentication.
+Consumer tests should assert application rules, mappings, outcomes and selected failure/settlement policies, not every CoreEx parser, transport or SDK permutation. Reuse publisher expectations (pass-through by default; explicit bypass avoids the broker), non-HTTP `OnEventPublish` hooks, and `CoreEx.UnitTesting.Blobs` fixtures rather than recreating protocol simulators. Pure file processors can use immutable bytes and fresh streams. Framework behavior changes still require focused regression tests here.
+
+Invocation tests do not prove bindings, broker redelivery, authorization or cloud provisioning. Retain representative Core Tools/Aspire runtime evidence for those local boundaries; simulated Azurite Event Grid notifications do not prove Azure subscriptions or authentication.
 
 For creation/modification use `/coreex-functions`; for the empty host use `/coreex-scaffold`. Scoped Functions instructions and the skill ship in the same version-pinned AI bundle as this guide.

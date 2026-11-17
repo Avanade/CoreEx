@@ -109,7 +109,42 @@ test.Trigger<ImportFunctions>()
 
 Assertions must cover observable effects/delegation, not just `AssertSuccess`. For failures use `.AssertException<TException>()`; settlement tests can supply a recording `ServiceBusMessageActions` implementation. A direct invocation does not run binding conversion or enforce authorization.
 
+## Testing published commands and Blob imports
+
+Use the real host entry point, existing publisher expectations and SDK-level Blob fixtures from `CoreEx.UnitTesting.Blobs` for component tests. In this illustrative fragment, `Program`, `ImportFunctions` and the input fields are application-owned:
+
+```csharp
+using var test = FunctionTester.Create<Program>();
+var source = new StubBlobClient(new BinaryData("sku,quantity\nSKU-1,2\n"));
+var reports = new RecordingBlobContainerClient();
+test.ConfigureServices(services =>
+{
+    services.AddSingleton<BlobContainerClient>(reports);
+    services.UseExpectedAzureServiceBusPublisher(bypassPassThrough: true);
+});
+test.Trigger<ImportFunctions>()
+    .ExpectAzureServiceBusEvents(events => events.AssertCount(1))
+    .Run(f => f.ImportBlob(source, CancellationToken.None))
+    .AssertSuccess();
+```
+
+The default decorator passes through to the configured publisher. The explicit bypass above avoids a broker and does not prove custom publisher hooks or final wire conversion. Assert command payload/destination through the event expectations and application report records through `reports.Blobs`; these fixtures buffer small test data and do not simulate Azure conditional operations. For failure injection, `test.OnEventPublish(ServiceBusPublisher.DefaultServiceKey, action)` runs before each publish; a closure can throw on the second attempt to exercise partial-publication policy. Create a fresh tester per independent test, since successful captures accumulate across unit scopes.
+
+Prefer a small scenario set: valid mapping and success report; late invalid input/custom duplicate-key rejection with no commands; stable command IDs and fresh report identity on retry; and representative publication/report failures in handwritten orchestration. Do not repeat parser, CloudEvent header, ETag/append-position or settlement permutations already covered by CoreEx. Pure processor tests can use a fresh `MemoryStream` over immutable fixture bytes without any Blob fixture. Retain a small Azurite/Core Tools test for actual storage/binding/broker behavior.
+
 ## Native Blob and Timer
+
+Use the Aspire Blob client integration for worker-owned storage, not a second hand-constructed service client. A Functions app can explicitly fall back to its existing binding connection setting while preserving a configured named connection:
+
+```csharp
+builder.AddAzureBlobServiceClient("ImportStorage", settings =>
+{
+    if (settings.ConnectionString is null && settings.ServiceUri is null)
+        settings.ConnectionString = builder.Configuration["ImportStorage"];
+});
+```
+
+Derive report containers from the registered `BlobServiceClient`. This does not configure native bindings or require an AppHost; managed-identity deployments should use the integration's service URI/credential settings instead of inventing a connection string. The input client below remains binding-owned.
 
 ```csharp
 [Function(nameof(ImportBlob))]

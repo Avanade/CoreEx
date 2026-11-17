@@ -6,6 +6,6 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\CoreEx\CoreEx.csproj" />
-    <PackageReference Include="Azure.Storage.Blobs" />
+    <PackageReference Include="Aspire.Azure.Storage.Blobs" />
   </ItemGroup>
 </Project>

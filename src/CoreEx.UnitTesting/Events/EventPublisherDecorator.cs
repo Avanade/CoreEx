@@ -19,6 +19,7 @@ public class EventPublisherDecorator(string key, TestSharedState testSharedState
     private readonly TestSharedState _sharedState = testSharedState.ThrowIfNull();
     private readonly IEventPublisher _innerEventPublisher = innerEventPublisher.ThrowIfNull();
     private readonly ILogger<EventPublisherDecorator>? _logger = logger;
+    private readonly HashSet<DestinationEvent> _capturedEvents = new(ReferenceEqualityComparer.Instance);
 
     /// <summary>
     /// Gets the key used to reference the published events in the shared state.
@@ -71,7 +72,14 @@ public class EventPublisherDecorator(string key, TestSharedState testSharedState
     public async Task RollbackAsync(CancellationToken cancellationToken = default)
     {
         var requestId = _sharedState.GetHttpRequestId();
-        _sharedState.RequestStateData(requestId).TryRemove(Key, out _);
+        lock (_capturedEvents)
+        {
+            if (_capturedEvents.Count > 0)
+            {
+                _sharedState.RequestStateData(requestId).AddOrUpdate(Key, Array.Empty<DestinationEvent>(), (_, existing) => GetCapturedEvents(existing).Where(e => !_capturedEvents.Contains(e)).ToArray());
+                _capturedEvents.Clear();
+            }
+        }
 
         await _innerEventPublisher.RollbackAsync(cancellationToken).ConfigureAwait(false);
     }
@@ -99,7 +107,15 @@ public class EventPublisherDecorator(string key, TestSharedState testSharedState
         // Publish the events using the underlying publisher.
         await _innerEventPublisher.PublishAsync(cancellationToken).ConfigureAwait(false);
 
-        // Forward the published events appending to the shared state.
-        _sharedState.RequestStateData(requestId).AddOrUpdate(Key, events, (_, __) => events);
+        // Give each capture its own identity so rollback removes only this decorator's publications.
+        var captured = events.Select(e => new DestinationEvent(e.Destination, e.Event)).ToArray();
+        lock (_capturedEvents)
+        {
+            _sharedState.RequestStateData(requestId).AddOrUpdate(Key, captured, (_, existing) => GetCapturedEvents(existing).Concat(captured).ToArray());
+            _capturedEvents.UnionWith(captured);
+        }
     }
+
+    /// <summary>Reads the captured batch without silently replacing unexpected shared state.</summary>
+    private static DestinationEvent[] GetCapturedEvents(object? value) => value as DestinationEvent[] ?? throw new InvalidOperationException("The captured publisher state must contain destination events.");
 }

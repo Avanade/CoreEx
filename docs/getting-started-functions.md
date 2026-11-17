@@ -163,6 +163,8 @@ In `src\Northstar.Supplier.Catalog.Functions\local.settings.json`, preserve exis
 
 `AzureWebJobsStorage` is Functions host storage; `ImportStorage` is the named connection for the Blob trigger and the input/report SDK clients; `ServiceBus` is the connection for both the queue trigger and publisher. `CatalogImportReports` is an application setting that the report adapter implemented in step 5 must consume. Use `Connection = "ImportStorage"` and `Connection = "ServiceBus"` on the respective native bindings, with queue name `catalog-item-upserts`.
 
+Worker-owned clients should use the Aspire client integrations: `AddAzureBlobServiceClient` for report storage and `AddAzureServiceBusClient` for messaging. Derive the report container from the registered `BlobServiceClient`. These registrations do not require an AppHost; explicitly map the native binding settings above into client settings, because Aspire's default named connection-string lookup is separate. The native Blob trigger still supplies its input client.
+
 These settings assume Core Tools runs on the host machine. `UseDevelopmentStorage=true` and `localhost` do not point to sibling containers from a container-hosted Function; that topology needs explicit storage endpoints and container-addressable broker settings.
 
 Bindings read Functions host settings, not just worker `appsettings.json`. Separately configure the mock backend's actual base URL using the typed HTTP client's configuration convention when implementing step 6. Keep `local.settings.json` ignored and unpublished; use deployment app settings and managed identity where supported in Azure. Do not start the Functions host until its capabilities and mock backend are implemented.

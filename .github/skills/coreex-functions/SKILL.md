@@ -41,7 +41,7 @@ Adds a real capability and its tests to an existing Azure Functions isolated-wor
 | HTTP idempotency | Explicit `webApi.FunctionWithIdempotencyAsync(...)` around a deferred WebApi operation; configured provider/cache required. |
 | Service Bus publishing | Configured `IEventPublisher` backed by `ServiceBusPublisher` or outbox; `Add` then await `PublishAsync`. Direct means no outbox, not raw SDK sending. |
 | Service Bus receiving | Native trigger delegating to a CoreEx typed/dispatched subscriber through `subscriber.FunctionReceiveAsync`; `AutoCompleteMessages = false`. |
-| Blob | Native binding/SDK; choose source, revision handling, output identity and failure policy explicitly. For CSV, delegate parsing and generated types to `coreex-file`. |
+| Blob | Native binding; Aspire-registered worker clients. Choose source, revision handling, output identity and failure policy explicitly. For CSV, use `coreex-file`. |
 | Timer | Native `TimerTrigger`, schedule app setting and cancellation; choose retry/overlap semantics for the workload. |
 | Invocation testing | `FunctionTester.Create<TFunction>()`, `HttpTrigger<T>()` or `Trigger<T>()`; test real worker composition without claiming runtime delivery. |
 
