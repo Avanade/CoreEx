@@ -87,6 +87,16 @@ Here `subscriber` is an injected `ServiceBusSubscribedSubscriber` or a typed `Se
 
 This subscriber-based path is the default even for a simple or native-payload workload. Preserve custom subscriber overrides/registrations. Use the callback bridge only for a concrete documented processing requirement the typed/dispatched pipeline cannot meet; it does not supply subscriber deserialization, validation or classification automatically.
 
+### Single-contract subscriber
+
+For one known command or event, make that contract the `T` in `ServiceBusSubscriberBase<T>` and override `ValueValidator` with the CoreEx validator. Put payload rules, including checks across fields, in that validator and reuse it if one already exists. The trigger delegates; CoreEx decodes the envelope, deserializes and validates the payload, then calls the typed handler. Do not add a dispatcher, deserialize a `JsonElement` again, or repeat the payload rules in the handler.
+
+For a fixed binary CloudEvent contract, select `ContentMode.Binary`. In the handler check only application requirements, such as expected source/type and a payload ID matching `args.CloudEvent.Id`. CoreEx already takes the decoded ID and type from `MessageId` and `Subject`; comparing those pairs again does not validate anything new.
+
+For a dead-letter policy, set `InvalidDataHandling` for decoding failures and configure `ErrorHandler` separately for validation failures and known permanent message-specific rejections. Map known transient failures to `Retry` and let auth, configuration and unexpected failures bubble with `ErrorHandling.None`. `Catastrophic` is a deliberate escalation that can pause a CoreEx-owned receiver under its configured policy; in a Function it does not stop the process or pause the listener.
+
+See the [typed Functions subscriber](https://github.com/Avanade/CoreEx/blob/main/tests/CoreEx.Azure.Functions.TestApp/NativeMessageSubscriber.cs) for the validator and handler shape (it explicitly uses native JSON to exercise that representation), and the [typed CloudEvent tests](https://github.com/Avanade/CoreEx/blob/main/tests/CoreEx.Azure.Messaging.ServiceBus.Test.Unit/ServiceBusSubscriberBaseTTests.cs) for the same pattern with binary and structured envelopes. These framework examples are not generated into consumer projects.
+
 ## Invocation tests
 
 ```csharp
@@ -127,6 +137,8 @@ test.Trigger<ImportFunctions>()
     .Run(f => f.ImportBlob(source, CancellationToken.None))
     .AssertSuccess();
 ```
+
+If the function constructor uses `[FromKeyedServices]`, register the function type with `services.AddScoped<ImportFunctions>()` in `ConfigureServices` and use the same keyed registration for the test dependency. UnitTestEx 7.0.0's fallback constructor activation looks up dependencies by type alone; explicitly registering the function delegates activation to DI, which honors the key.
 
 Import `UnitTestEx.Expectations` in `GlobalUsing.cs`. Register `OnEventPublish` on the owning `FunctionTester`, before `Trigger<T>().Run(...)`, using the same key as the decorated publisher. The hook runs before the inner publish in both pass-through and bypass mode. The [catalog forwarding invocation test](https://github.com/Avanade/CoreEx/blob/main/tests/CoreEx.Azure.Functions.Test.Unit/CatalogForwardingTests.cs) shows the second call throwing, one captured command across row scopes, and a failed invocation with a terminal report. Use `ExpectNoAzureServiceBusEvents()` for no sends; use one aggregate `events.Assert(...)` for count and payload together. `AssertCount` and `AssertCustom` cannot be combined on one expectation. Use a fresh tester per independent invocation. A pre-send injection proves the second send never started; a real thrown send may have been accepted by the broker.
 

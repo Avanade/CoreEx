@@ -16,7 +16,8 @@ public sealed class CatalogForwardingFunction(CatalogForwardingProcessor process
         var revision = Convert.ToHexString(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(new { identity.SourceId, identity.SourceRevision })));
         var reportName = $"{identity.DefinitionName}/{identity.DefinitionVersion}/{revision}/{identity.AttemptId}.jsonl";
         AppendBlobClient reportBlob = reports.GetAppendBlobClient(reportName);
-        var report = new BlobJsonlFileReportAdapter(new BlobJsonlReport(reportBlob),
+        var reportOptions = new JsonSerializerOptions(JsonDefaults.SerializerOptions) { DefaultIgnoreCondition = JsonIgnoreCondition.Never };
+        var report = new BlobJsonlFileReportAdapter(new BlobJsonlReport(reportBlob, reportOptions),
             attempt: ctx => new { kind = "attempt", ctx.Identity },
             diagnostic: args => new { kind = "diagnostic", args.Diagnostic.Code, args.Diagnostic.Location },
             completion: result => new { kind = "outcome", outcome = result.Outcome, sendsReturned = result.Progress.UnitsExecuted });

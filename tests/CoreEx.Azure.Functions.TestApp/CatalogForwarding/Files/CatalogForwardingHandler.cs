@@ -2,7 +2,7 @@ namespace CoreEx.Azure.Functions.TestApp.CatalogForwarding;
 
 /// <summary>Forwards one validated row using a publisher from the row's scope.</summary>
 [ScopedService]
-public partial class CatalogForwardingHandler(IEventPublisher publisher) : FileUnitHandler<CatalogForwardingItem>
+public partial class CatalogForwardingHandler([FromKeyedServices(ServiceBusPublisher.DefaultServiceKey)] IEventPublisher publisher) : FileUnitHandler<CatalogForwardingItem>
 {
     /// <inheritdoc/>
     protected override async Task<Result> OnExecuteAsync(FileUnitArgs<CatalogForwardingItem> args, CancellationToken cancellationToken)

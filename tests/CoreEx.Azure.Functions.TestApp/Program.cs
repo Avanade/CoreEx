@@ -29,7 +29,7 @@ builder.AddAzureServiceBusClient("ServiceBus", settings =>
     if (settings.ConnectionString is null && settings.FullyQualifiedNamespace is null)
         settings.ConnectionString = builder.Configuration["ServiceBus"];
 });
-builder.Services.AddAzureServiceBusPublisher((_, publisher) => publisher.ContentMode = ContentMode.Binary);
+builder.Services.AddAzureServiceBusPublisher((_, publisher) => publisher.ContentMode = ContentMode.Binary, addAsDefaultIEventPublisher: false);
 builder.Services.AddEventFormatter();
 builder.Services.AddSubscribedManager((_, manager) => manager.AddSubscribersUsing<MessageSubscriber>());
 builder.Services.AddScoped<ServiceBusSubscribedSubscriber>();

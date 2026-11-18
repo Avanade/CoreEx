@@ -372,8 +372,10 @@ public class ServiceBusReceiverTests : WithGenericTester<EntryPoint>
             await logger.Paused.Task.WaitAsync(TimeSpan.FromSeconds(15), deadline.Token);
 
             // The test queue allows one delivery per poison message, leaving the healthy message as the recovery probe.
-            publisher.Add(queue, EventData.CreateEventWith(new Subscribers.Product { Id = 1, Sku = "SKU-RECOVERY" }, "Created"));
-            await publisher.PublishAsync(deadline.Token);
+            await using var recoveryScope = test.Services.CreateAsyncScope();
+            var recoveryPublisher = recoveryScope.ServiceProvider.GetRequiredKeyedService<IEventPublisher>(ServiceBusPublisher.DefaultServiceKey);
+            recoveryPublisher.Add(queue, EventData.CreateEventWith(new Subscribers.Product { Id = 1, Sku = "SKU-RECOVERY" }, "Created"));
+            await recoveryPublisher.PublishAsync(deadline.Token);
             await processed.Task.WaitAsync(TimeSpan.FromSeconds(15), deadline.Token);
         }
         finally

@@ -276,11 +276,11 @@ The mock defines this particular key and `PUT` as create-or-replace; do not assu
 ```text
 Plan and wait for approval, then use coreex-functions and coreex-adapter to consume CatalogItemUpsert commands from the catalog-item-upserts Service Bus queue and call a configurable mock HTTP backend.
 
-Validate the existing publisher's binary CloudEvent contract, including metadata and matching envelope/command identity. Follow the selected solution's layering for processing and the backend adapter.
+The queue carries one command shape. Re-validate the key properties to enforce the payload rules before calling the backend. Follow the selected solution's layering for processing and the backend adapter.
 
 The mock accepts create-or-replace PUTs at /odata/CatalogItems(SupplierCode='ACME',SupplierSku='AC-100',EffectiveDate=2026-11-01). Build and safely escape that key from each command. Keep SupplierCode, SupplierSku and EffectiveDate in the JSON body; map Description to Name, Unit to UnitOfMeasure, and UnitPrice/Currency to Price.Amount/Price.CurrencyCode.
 
-Provide a local mock that records requests and retains replacement state. Repeated identical commands must leave the same state. Retry HTTP 408, 429 and 5xx; keep authentication/configuration errors operational. Propose explicit dead-letter and retry policies for invalid messages and permanent backend failures.
+Provide a local mock that records requests and retains replacement state. Repeated identical commands must leave the same state. Retry HTTP 408, 429 and 5xx. Dead-letter invalid commands and known permanent rejections of that command. Let authentication, configuration and unexpected failures fail the invocation rather than treating them as bad messages.
 
 Test mapping, escaping, envelope validation, repeated delivery, transient failures and message settlement. Do not claim full OData conformance or exactly-once processing.
 ```

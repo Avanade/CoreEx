@@ -118,6 +118,8 @@ public class CatalogForwardingTests
         var test = FunctionTester.Create<CatalogForwardingFunction>();
         test.ConfigureServices(services =>
         {
+            // UnitTestEx's fallback activation does not honor FromKeyedServices.
+            services.AddScoped<CatalogForwardingFunction>();
             services.AddKeyedSingleton<BlobContainerClient>(CatalogForwardingFunction.ReportContainerKey, reports);
             services.UseExpectedAzureServiceBusPublisher(bypassPassThrough: true);
         });

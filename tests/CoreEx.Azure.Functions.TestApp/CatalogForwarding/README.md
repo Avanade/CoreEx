@@ -4,6 +4,8 @@ This is the executable Section 5 example. Use the repository revision that match
 
 [`catalog-forwarding-file.yaml`](../../CoreEx.Azure.Functions.TestApp.CodeGen/catalog-forwarding-file.yaml) generates the CSV processor. [`CatalogForwardingFunction`](CatalogForwardingFunction.cs) selects the current Blob revision, pins both reads, and writes attempt, diagnostic and completion records. [`CatalogForwardingHandler`](Files/CatalogForwardingHandler.cs) publishes one binary command per validated row. Each invocation has a fresh report, but the command ID is stable for the same source revision and row. The capability does not write a database or use an outbox.
 
+The handler uses the keyed Service Bus publisher so direct catalog sends do not replace the shared test host's default SQL outbox publisher for inventory.
+
 [`CatalogForwardingTests`](../../CoreEx.Azure.Functions.Test.Unit/CatalogForwardingTests.cs) checks real client configuration without network calls, late rejection, second-publish failure and binary conversion. [`BlobRuntimeTests.CatalogForwarding`](../../aspire/CoreEx.Azure.Functions.Test.Aspire/BlobRuntimeTests.CatalogForwarding.cs) uses the existing Core Tools/Aspire harness to upload a Blob, post a simulated Event Grid notification, receive a real emulator message and read the terminal report. It does not prove cloud Event Grid delivery or a backend application.
 
 From the repository root:

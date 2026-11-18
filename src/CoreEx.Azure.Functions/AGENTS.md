@@ -54,7 +54,8 @@ Use `ServiceBusSubscribedSubscriber` when CloudEvents need subject/source dispat
 | Success / classified complete | Complete once. |
 | Retry | Abandon once, no processing retry loop. |
 | DeadLetter | Dead-letter once with bounded metadata. |
-| Unclassified / catastrophic failure | Propagate original error, no bridge settlement. Catastrophic does not pause the listener. |
+| Unclassified (`ErrorHandling.None`) | Fail the invocation without bridge settlement; subscriber classification preserves the original error as the inner exception. Use for unexpected or operational failures. |
+| `Catastrophic` | Fail the invocation without bridge settlement; does not stop the worker or pause the Functions listener. Reserve for deliberate escalation, not as the fallback for non-retryable errors. |
 | Invocation cancellation | Propagate, no bridge settlement. |
 | Settlement failure | Propagate, no second settlement attempt. |
 
