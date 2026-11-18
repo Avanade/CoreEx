@@ -167,7 +167,7 @@ Worker-owned clients should use the Aspire client integrations: `AddAzureBlobSer
 
 These settings assume Core Tools runs on the host machine. `UseDevelopmentStorage=true` and `localhost` do not point to sibling containers from a container-hosted Function; that topology needs explicit storage endpoints and container-addressable broker settings.
 
-Bindings read Functions host settings, not just worker `appsettings.json`. Separately configure the mock backend's actual base URL using the typed HTTP client's configuration convention when implementing step 6. Keep `local.settings.json` ignored and unpublished; use deployment app settings and managed identity where supported in Azure. Do not start the Functions host until its capabilities and mock backend are implemented.
+Bindings read Functions host settings, not just worker `appsettings.json`. Configure the backend base URL separately through the typed client's configuration. Step 6 tests the call in-process; step 7 supplies a reachable URL for the local runtime test. Keep `local.settings.json` ignored and unpublished; use deployment app settings and managed identity where supported in Azure.
 
 ## 4. Define the supplier file and internal command
 
@@ -280,7 +280,7 @@ The queue carries one command shape. Re-validate the key properties to enforce t
 
 The mock accepts create-or-replace PUTs at /odata/CatalogItems(SupplierCode='ACME',SupplierSku='AC-100',EffectiveDate=2026-11-01). Build and safely escape that key from each command. Keep SupplierCode, SupplierSku and EffectiveDate in the JSON body; map Description to Name, Unit to UnitOfMeasure, and UnitPrice/Currency to Price.Amount/Price.CurrencyCode.
 
-Provide a local mock that records requests and retains replacement state. Repeated identical commands must leave the same state. Retry HTTP 408, 429 and 5xx. Dead-letter invalid commands and known permanent rejections of that command. Let authentication, configuration and unexpected failures fail the invocation rather than treating them as bad messages.
+Repeated identical commands must target the same key with the same replacement data. Retry HTTP 408, 429 and 5xx. Dead-letter invalid commands and known permanent rejections of that command. Let authentication, configuration and unexpected failures fail the invocation rather than treating them as bad messages.
 
 Test mapping, escaping, envelope validation, repeated delivery, transient failures and message settlement. Do not claim full OData conformance or exactly-once processing.
 ```
@@ -289,19 +289,19 @@ This replacement operation makes identical redeliveries harmless in the mock, bu
 
 ## 7. Run locally and prove the flow
 
-Ask your assistant to prepare the local topology and a reproducible runtime test:
+Ask your assistant to prepare the local topology and a reproducible runtime test. The [Functions testing pattern](../.github/skills/coreex-functions/references/patterns.md#testing-outbound-http) distinguishes an in-process mock from a test-owned HTTP endpoint:
 
 ```text
-Plan and wait for approval, then add a reproducible local end-to-end test using the existing Compose-managed Azurite and Service Bus emulator, Functions Core Tools and the mock backend.
+Plan and wait for approval, then add a reproducible local end-to-end test using the existing Compose-managed Azurite and Service Bus emulator, Functions Core Tools and a simulated downstream HTTP endpoint.
 
 Reuse the guarded queue setup with manual hosts stopped and no concurrent producers or consumers. Verify container and broker readiness before starting listeners; do not launch duplicate infrastructure or reset queues during ordinary tests.
 
-Create and upload a valid two-row supplier CSV, then simulate its storage event through the Functions webhook because Azurite does not emit Event Grid events. Exercise the real Blob and queue triggers, assert a Succeeded publication report, and independently verify two correctly mapped PUTs and the mock's final state using bounded timeouts.
+Create and upload a valid two-row supplier CSV, then simulate its storage event through the Functions webhook because Azurite does not emit Event Grid events. Exercise the real Blob and queue triggers, assert a Succeeded publication report, and independently verify two correctly mapped PUTs at the downstream endpoint using bounded timeouts.
 
-Also test a late invalid row with no sends, a transient backend failure with redelivery, and repeated delivery leaving unchanged backend state. Build and run the focused tests; report any runtime delivery boundary that could not be exercised.
+Also test a late invalid row with no sends, a transient backend failure with redelivery, and repeated delivery sending the same key and replacement data. Build and run the focused tests; report any runtime delivery boundary that could not be exercised.
 ```
 
-For a manual run, prepare the queue with the filtered setup fixture from step 3 while Functions is stopped, then start the mock backend with its documented command and configure its base URL. In a separate terminal, build and start the Functions host:
+For an optional manual run, prepare the queue with the filtered setup fixture from step 3 while Functions is stopped. If you have a separately running test endpoint, configure its base URL; otherwise use the automated runtime test, which manages its own endpoint. In a separate terminal, build and start the Functions host:
 
 ```powershell
 dotnet build Northstar.Supplier.Catalog.slnx
@@ -320,9 +320,9 @@ The empty emulator configuration does not create the queue: the local setup fixt
 At minimum, check:
 
 1. The generated consumer compiles, and generation is unchanged on a second run.
-2. The valid file yields two messages and a `Succeeded` publication report; independently verify two correctly mapped mock requests and the resulting backend state.
+2. The valid file yields two messages and a `Succeeded` publication report; independently verify two correctly mapped requests at the simulated backend.
 3. A late invalid row or duplicate business key produces a content-failed report and **zero** messages.
-4. A send failure after a prior send and a transient backend failure are visible and retryable; repeated delivery does not change the mock's final state.
+4. A send failure after a prior send and a transient backend failure are visible and retryable; repeated delivery sends the same replacement request.
 5. Real local Blob and broker delivery have been exercised separately from in-process invocation tests. Record any unverified boundary rather than treating a mock-only test as end-to-end.
 
 ## Production decisions

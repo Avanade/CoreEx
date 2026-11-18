@@ -19,11 +19,21 @@ public abstract class ServiceBusSubscriberBase(IEventFormatter formatter, ILogge
     /// <summary>
     /// Gets or sets the expected message representation; defaults to <see cref="MessageRepresentation.CloudEvent"/>.
     /// </summary>
-    /// <remarks>CloudEvent mode requires an envelope and never falls back to native JSON. Native processing requires a typed subscriber or an override of <see cref="OnReceiveMessageAsync"/>.</remarks>
+    /// <remarks>CloudEvent mode requires an envelope, uses formatter-resolved correlation, and never falls back to native JSON. Native mode uses the broker correlation identifier and requires a typed subscriber or an override of <see cref="OnReceiveMessageAsync"/>.</remarks>
+    /// <exception cref="InvalidOperationException">Native mode was selected on a subscriber that declares <see cref="SubscribeAttribute"/>.</exception>
     public MessageRepresentation DataRepresentation
     {
         get;
-        set => field = Enum.IsDefined(value) ? value : throw new ArgumentOutOfRangeException(nameof(value), "The message representation is not supported.");
+        set
+        {
+            if (!Enum.IsDefined(value))
+                throw new ArgumentOutOfRangeException(nameof(value), "The message representation is not supported.");
+
+            if (value == MessageRepresentation.Native && HasSubscriptions)
+                throw new InvalidOperationException("A Service Bus subscriber declaring [Subscribe] requires CloudEvent processing.");
+
+            field = value;
+        }
     } = MessageRepresentation.CloudEvent;
 
     /// <summary>
@@ -32,12 +42,6 @@ public abstract class ServiceBusSubscriberBase(IEventFormatter formatter, ILogge
     /// <remarks>Where <see langword="null"/> (the default), then the <see cref="CloudNative.CloudEvents.ContentMode"/> will be inferred from the <see cref="ServiceBusReceivedMessage.ContentType"/> (see <see cref="EventsExtensions.InferContentMode"/>);
     /// this offers the greatest flexibility and is the recommended value.</remarks>
     public ContentMode? ContentMode { get; set; }
-
-    /// <summary>
-    /// Indicates whether correlation is sourced from the CloudEvent envelope when a message has a CloudEvent representation.
-    /// </summary>
-    /// <remarks>Defaults to true for subscribers that convert and process the CloudEvent envelope. Typed subscribers configured for native JSON use transport correlation instead.</remarks>
-    protected virtual bool UsesCloudEventCorrelation => DataRepresentation == MessageRepresentation.CloudEvent;
 
     /// <summary>
     /// Receives a <see cref="ServiceBusReceivedMessage"/>.
@@ -53,7 +57,7 @@ public abstract class ServiceBusSubscriberBase(IEventFormatter formatter, ILogge
 
         message.EnrichReceiveActivity(PropagateBaggage);
 
-        using var receiveScope = UsesCloudEventCorrelation ? null : Correlation.BeginReceive(message.CorrelationId, Logger);
+        using var receiveScope = DataRepresentation == MessageRepresentation.Native ? Correlation.BeginReceive(message.CorrelationId, Logger) : null;
 
         return await EventSubscriberMetrics.ReceiveMessageAsync(args, async () =>
         {
@@ -73,7 +77,7 @@ public abstract class ServiceBusSubscriberBase(IEventFormatter formatter, ILogge
     /// <param name="args">The subscriber arguments.</param>
     /// <param name="cancellationToken">The receive cancellation token.</param>
     /// <returns>The processing result.</returns>
-    /// <remarks>Native message subscribers override this hook to bypass CloudEvent conversion.</remarks>
+    /// <remarks>Passes the decoded CloudEvent to the shared receive path, which checks declared subscriptions before formatter conversion. Overrides should use that path to retain the check.</remarks>
     protected virtual Task<Result> OnReceiveMessageAsync(ServiceBusReceivedMessage message, EventSubscriberArgs args, CancellationToken cancellationToken = default)
         => ReceiveWrapperAsync(args, async () =>
         {

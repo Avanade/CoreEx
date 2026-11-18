@@ -96,6 +96,8 @@ Mirror capability folders in the generated host test project. Use `FunctionTeste
 
 Preserve the layered solution's `Test.Unit` for isolated shared-library validators, mappings and logic; do not duplicate that coverage in `Test.Functions`. Host-local file types and standalone components can stay in `Test.Functions` without creating another test project or adding a host reference to `Test.Unit`.
 
+When a function calls another system over HTTP, follow [testing outbound HTTP](patterns.md#testing-outbound-http). Test the typed client's wire contract and response mapping separately from the invocation's business outcome and settlement. Both use the same in-process UnitTestEx mock as API tests. Introduce a network stub only for a separately running host; reuse the existing .NET runtime-test setup rather than adding a new service or runtime.
+
 For HTTP, assert exact status/body/important headers and representative validation/error/cancellation behavior. `ToHttpResponseMessageAssertor(request)` renders deferred results; use `SnapshotHttpResponse(request.HttpContext.Response)` with a readable/seekable buffer for idempotency's already-written response. Prove replay skips the operation if adding idempotency.
 
 For Service Bus, cover the application's selected success/retry/poison policies and verify trigger auto-completion configuration. Assert exact settlement for representative cases or custom behavior, not every standard bridge permutation. For Blob/Timer, prove input/token delegation, the application's effect/rejection policy and bubbling operational failure; add a representative replay/revision case when required by the workload.

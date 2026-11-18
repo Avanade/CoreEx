@@ -72,6 +72,8 @@ public Task Process([ServiceBusTrigger(QueueName, Connection = "ServiceBus", Aut
 
 Default receiving to the configured CoreEx subscriber through `subscriber.FunctionReceiveAsync`; preserve its custom implementation/overrides. For one known payload shape, use `ServiceBusSubscriberBase<T>` with the actual command/event contract and `ValueValidator`, not `JsonElement` plus manual parsing. Use CloudEvents dispatch only when subject/source routing is needed. CloudEvent is the default representation; `ContentMode` controls binary/structured decoding and `args.CloudEvent` exposes decoded metadata for application-specific checks. Native JSON requires explicit `DataRepresentation = MessageRepresentation.Native`; CloudEvent mode never falls back to native.
 
+When a direct subscriber expects a fixed CloudEvent type/source, declare `[Subscribe(type, source)]` on the concrete class instead of checking those fields by hand. Unmatched envelopes default to `UnmatchedCloudEventHandling = ErrorHandling.DeadLetter`; native JSON does not support these rules.
+
 Choose poison policy explicitly: default malformed-envelope/payload and validation/business handling can complete as error, not dead-letter. `Retry` abandons once. Use `ErrorHandling.None` for operational or unexpected failures that should bubble up. Reserve `Catastrophic` for deliberate host-level escalation, not as the fallback for a non-retryable error. Both fail the Functions invocation without bridge settlement; neither stops the worker nor pauses its listener. The bridge adds no in-invocation retry loop, second settlement attempt or receiver circuit breaker.
 
 Blob/Timer bindings remain native. Distinguish content rejection from operational failure; preserve cancellation. A current `BlobClient` is not an immutable event revision. Blob-to-broker sends are not atomic with invocation completion; stable identity/duplicate tolerance is required where retries matter.
@@ -88,11 +90,14 @@ Use the real host via `FunctionTester.Create<TFunction>()`. Deferred HTTP result
 
 Use the existing publisher decorator/expectations and Blob test helpers from `CoreEx.UnitTesting`, not custom recording Service Bus senders or HTTP-level storage emulators. Cover application policy and representative wiring; do not reproduce the framework's parser, CloudEvent conversion or settlement test matrices. See the [testing policy](/.github/instructions/coreex-tests.instructions.md#test-responsibility--what-goes-where-do-not-duplicate) and [component-test pattern](/.github/skills/coreex-functions/references/patterns.md#testing-published-commands-and-blob-imports).
 
+Mock outbound HTTP the same way as in API tests: use UnitTestEx `MockHttpClientFactory` and `ReplaceHttpClientFactory` in both typed-client unit tests and in-process Functions invocation tests, regardless of trigger type. For a separately running host, use a reachable WireMock.Net stub instead. See [testing outbound HTTP](/.github/skills/coreex-functions/references/patterns.md#testing-outbound-http).
+
 ## Do Not
 
 - Do not add `MapControllers`, ASP.NET exception/idempotency middleware, NSwag middleware or `MapHealthChecks` to the worker. Add an HTTP health function only for an explicit operational requirement.
 - Do not start a competing CoreEx receiver/scheduler beside native triggers or treat output bindings as a transactional outbox.
 - Do not generate demo functions, mandatory shared libraries, speculative cache/database registrations or test-only observation endpoints in consumer hosts.
+- Do not write a custom HTTP handler or mock service when the standard test double meets the need. A request to mock a backend does not imply a separately runnable service.
 - Do not import namespace `using` directives into source files; use `GlobalUsing.cs` per universal conventions.
 
 ## Further Reading

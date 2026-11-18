@@ -9,7 +9,7 @@ public static partial class UnitTestExExtensions
     /// <param name="serviceKey">The registered publisher key.</param>
     /// <param name="action">The action, which can count attempts or throw to simulate a publication failure.</param>
     /// <returns>The owning tester.</returns>
-    /// <remarks>Use the HTTP tester overload for request-specific hooks. The action remains active until replaced or the owning tester is disposed.</remarks>
+    /// <remarks>For Functions, create the trigger tester first, then register the action on the owning tester before running the trigger. Creating a trigger tester resets shared state, including existing hooks. Use the HTTP tester overload for request-specific hooks.</remarks>
     public static TesterBase OnEventPublish(this TesterBase tester, string serviceKey, Action action)
     {
         tester.ThrowIfNull().SharedState.RequestStateData(null)[$"_{nameof(EventPublisherDecorator)}_{serviceKey.ThrowIfNullOrEmpty()}"] = action.ThrowIfNull();

@@ -126,6 +126,8 @@ All Service Bus subscribers enrich the host-owned activity from fixed transport 
 
 Choose `InvalidDataHandling` for malformed/null bodies separately from `ErrorHandler` mappings for validation/application failures. Defaults remain `CompleteAsError`, not dead-lettering. `ValueIsRequired` defaults to true; when overriding false, use nullable `TValue` for optional reference payloads. `JsonSerializerOptions` controls body deserialization; native payload tenant/authentication policy is application-owned.
 
+On a direct subscriber, optional `[Subscribe(title, source)]` rules match the decoded CloudEvent `type` and `source` before payload processing, with no `SubscribedManager`. Any matching rule admits the message; no rules means no restriction. Unmatched events default to `UnmatchedCloudEventHandling = ErrorHandling.DeadLetter`, separate from `InvalidDataHandling`. Do not declare `[Subscribe]` on a native-message subscriber.
+
 Use `ErrorHandler` on a subscriber to map specific exceptions to dead-letter, silent completion, or retry — no try/catch in subscriber code.
 
 ```csharp

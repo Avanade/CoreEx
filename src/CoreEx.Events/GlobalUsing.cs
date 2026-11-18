@@ -32,7 +32,6 @@ global using System.Diagnostics;
 global using System.Globalization;
 global using System.Net.Mime;
 global using System.Reflection;
-global using System.Runtime.CompilerServices;
 global using System.Text.Json.Nodes;
 global using System.Text.Json.Serialization;
 global using System.Text.Json;

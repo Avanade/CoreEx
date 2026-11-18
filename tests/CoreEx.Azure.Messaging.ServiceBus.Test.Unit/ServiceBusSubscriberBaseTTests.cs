@@ -81,6 +81,47 @@ public class ServiceBusSubscriberBaseTTests
         subscriber.Calls.Should().Be(0);
     }
 
+    [TestCase(CloudNative.CloudEvents.ContentMode.Binary, "TEST.PAYLOAD.V1", "urn:test:payload", true)]
+    [TestCase(CloudNative.CloudEvents.ContentMode.Structured, "test.payload.v2", "urn:test:other", true)]
+    [TestCase(CloudNative.CloudEvents.ContentMode.Binary, "test.payload.v1", "urn:test:other", false)]
+    [TestCase(CloudNative.CloudEvents.ContentMode.Structured, "test.payload.v3", "urn:test:payload", false)]
+    public async Task CloudEvent_SubscribeRequiresOneMatchingTypeAndSourcePair(CloudNative.CloudEvents.ContentMode mode, string title, string source, bool accepted)
+    {
+        var subscriber = new FilteredSubscriber { InvalidDataHandling = ErrorHandling.CompleteAsSilent };
+        var args = new EventSubscriberArgs();
+
+        var result = await subscriber.ReceiveAsync(CloudMessage(accepted ? "{}" : "[]", mode, title, source), args);
+
+        subscriber.Calls.Should().Be(accepted ? 1 : 0);
+        result.IsSuccess.Should().Be(accepted);
+        if (!accepted)
+        {
+            result.Error.Should().BeOfType<EventSubscriberDeadLetterException>().Which.Message.Should().Contain("did not match any [Subscribe] rule");
+            args.ResultingErrorHandling.Should().Be(ErrorHandling.DeadLetter);
+        }
+    }
+
+    [Test]
+    public async Task CloudEvent_UnmatchedPolicyIsSeparateFromInvalidDataPolicy()
+    {
+        var subscriber = new FilteredSubscriber { UnmatchedCloudEventHandling = ErrorHandling.CompleteAsSilent, InvalidDataHandling = ErrorHandling.DeadLetter };
+        var malformed = await subscriber.ReceiveAsync(Message("{}"));
+        var unmatched = await subscriber.ReceiveAsync(CloudMessage("{}", CloudNative.CloudEvents.ContentMode.Binary, "test.unmatched.v1"));
+
+        malformed.Error.Should().BeOfType<EventSubscriberDeadLetterException>();
+        unmatched.Error.Should().BeOfType<EventSubscriberHandledException>().Which.ErrorHandling.Should().Be(ErrorHandling.CompleteAsSilent);
+        subscriber.Calls.Should().Be(0);
+    }
+
+    [Test]
+    public void NativeJson_RejectsSubscribeConfiguration()
+    {
+        var subscriber = new FilteredSubscriber();
+        Action configure = () => subscriber.DataRepresentation = MessageRepresentation.Native;
+
+        configure.Should().Throw<InvalidOperationException>().WithMessage("*[Subscribe]*requires CloudEvent*");
+    }
+
     [Test]
     public async Task CloudEvent_ValidationAndApplicationFailuresUseErrorHandler()
     {
@@ -497,10 +538,23 @@ public class ServiceBusSubscriberBaseTTests
     private static ServiceBusReceivedMessage Message(string body)
         => ServiceBusModelFactory.ServiceBusReceivedMessage(body: BinaryData.FromString(body), messageId: "native-id", subject: "not-a-cloudevent", contentType: "application/json");
 
-    private static ServiceBusReceivedMessage CloudMessage(string body, CloudNative.CloudEvents.ContentMode mode)
+    private static ServiceBusReceivedMessage CloudMessage(string body, CloudNative.CloudEvents.ContentMode mode, string title = "test.payload.v1", string source = "urn:test:payload")
     {
-        var @event = new EventData { Id = "cloud-id", Title = "test.payload.v1", Source = new Uri("urn:test:payload"), Data = BinaryData.FromString(body, "application/json") };
+        var @event = new EventData { Id = "cloud-id", Title = title, Source = new Uri(source), Data = BinaryData.FromString(body, "application/json") };
         return ServiceBusMessageTests.ConvertToReceivedMessage(new EventFormatter().ConvertToCloudEvent(@event).ToServiceBusMessage(mode));
+    }
+
+    [Subscribe("test.payload.v1", "urn:test:payload")]
+    [Subscribe("test.*.v2", "urn:test:other")]
+    private sealed class FilteredSubscriber() : ServiceBusSubscriberBase<Payload>(NullLogger<ServiceBusSubscriberBase>.Instance)
+    {
+        public int Calls { get; private set; }
+
+        protected override Task<Result> OnReceiveAsync(Payload value, ServiceBusReceivedMessage message, EventSubscriberArgs args, CancellationToken cancellationToken)
+        {
+            Calls++;
+            return Result.SuccessTask;
+        }
     }
 
     private sealed class EnvelopeSubscriber() : ServiceBusSubscriberBase(new EventFormatter(), NullLogger<ServiceBusSubscriberBase>.Instance)

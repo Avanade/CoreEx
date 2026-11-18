@@ -77,7 +77,7 @@ These are deliberately buffered, sequential component-test helpers for small fix
 
 Register `services.UseExpectedAzureServiceBusPublisher()` (or `UseExpectedEventPublisher(serviceKey)`) to observe the real publisher. Choose `bypassPassThrough: true` explicitly for isolated tests without its infrastructure. Successful publications accumulate across child scopes in the same tester/request; rollback removes only the calling decorator's captures. A failed publication is not recorded as successful, even if a real broker may have accepted part of its batch.
 
-On a Functions/non-HTTP owning tester, `tester.OnEventPublish(serviceKey, action)` can count attempts or throw before a selected publish. HTTP request testers retain their request-specific overload. Use a fresh tester per independent test. Assert commands through `ExpectAzureServiceBusEvents`/`ExpectEvents`; reserve final wire/custom transport assertions for a small transport/runtime test.
+On a Functions/non-HTTP owning tester, `tester.OnEventPublish(serviceKey, action)` can count attempts or throw before a selected publish. In Functions tests, create the trigger tester before registering the hook: trigger creation resets shared state. HTTP request testers retain their request-specific overload. Use a fresh tester per independent test. Assert commands through `ExpectAzureServiceBusEvents`/`ExpectEvents`; reserve final wire/custom transport assertions for a small transport/runtime test.
 
 ## Key types
 

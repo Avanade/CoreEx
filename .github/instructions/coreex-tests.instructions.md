@@ -53,6 +53,8 @@ Manual local broker-reset fixtures are destructive tooling, not ordinary invocat
 
 **Rule**: intra-domain dependencies (database, cache, outbox) are real; inter-domain HTTP calls and direct broker publishes are always mocked.
 
+For outbound HTTP, choose the double by process boundary, not by host type. Typed-client unit tests and in-process host tests use UnitTestEx `MockHttpClientFactory` with `ReplaceHttpClientFactory`; separately running hosts need a reachable stub. See [testing outbound HTTP](/.github/skills/coreex-functions/references/patterns.md#testing-outbound-http) and the [Aspire MockHost conventions](/.github/instructions/coreex-aspire.instructions.md).
+
 ## Execution Evidence
 
 Maintain relevant tests alongside behavior changes without a separate permission round. Respect an explicit tests-excluded or deferred scope and report the resulting coverage gap; do not expand into unrelated test suites.

@@ -1,7 +1,7 @@
 namespace CoreEx.Events.Subscribing;
 
 /// <summary>
-/// Defines the pattern matching used by the <see cref="SubscribedManager"/> to uniquely identify the <see cref="SubscribedBase"/> by matching against both the <see cref="EventData.Title"/> and <see cref="EventData.Source"/>.
+/// Defines a subscription pattern for both the <see cref="EventData.Title"/> and <see cref="EventData.Source"/>, used by <see cref="SubscribedManager"/> for dispatch and by <see cref="EventSubscriberBase"/> for CloudEvent acceptance.
 /// </summary>
 /// <param name="title">The <see cref="EventData.Title"/> glob-like matching pattern that will represent the underlying <see cref="Title"/> <see cref="Regex"/>.</param>
 /// <param name="source">The <see cref="EventData.Source"/> glob-like matching pattern that will represent the underlying <see cref="Source"/> <see cref="Regex"/>.</param>

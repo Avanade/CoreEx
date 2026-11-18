@@ -3,13 +3,14 @@ namespace CoreEx.Azure.Functions.Test.Unit;
 [TestFixture]
 public class FunctionsServiceBusExtensionsTests
 {
-    [TestCase(CloudNative.CloudEvents.ContentMode.Binary, true)]
-    [TestCase(CloudNative.CloudEvents.ContentMode.Structured, true)]
-    [TestCase(CloudNative.CloudEvents.ContentMode.Binary, false)]
-    public async Task TypedCloudEventSubscriber_UsesBridgeSettlement(CloudNative.CloudEvents.ContentMode mode, bool validEnvelope)
+    [TestCase(CloudNative.CloudEvents.ContentMode.Binary, true, true)]
+    [TestCase(CloudNative.CloudEvents.ContentMode.Structured, true, true)]
+    [TestCase(CloudNative.CloudEvents.ContentMode.Binary, false, false)]
+    [TestCase(CloudNative.CloudEvents.ContentMode.Binary, true, false)]
+    public async Task TypedCloudEventSubscriber_UsesBridgeSettlement(CloudNative.CloudEvents.ContentMode mode, bool validEnvelope, bool matches)
     {
         var subscriber = new UniformSubscriber { InvalidDataHandling = CoreEx.Events.Subscribing.ErrorHandling.DeadLetter };
-        var @event = new EventData { Id = "command-id", Title = "test.command.v1", Source = new Uri("urn:test:producer"), Data = BinaryData.FromString("\"value\"", "application/json") };
+        var @event = new EventData { Id = "command-id", Title = matches ? "test.command.v1" : "test.command.v2", Source = new Uri("urn:test:producer"), Data = BinaryData.FromString("\"value\"", "application/json") };
         var outgoing = new EventFormatter().ConvertToCloudEvent(@event).ToServiceBusMessage(mode);
         var message = validEnvelope
             ? ServiceBusModelFactory.ServiceBusReceivedMessage(body: outgoing.Body, messageId: outgoing.MessageId, subject: outgoing.Subject, contentType: outgoing.ContentType, properties: outgoing.ApplicationProperties)
@@ -18,9 +19,11 @@ public class FunctionsServiceBusExtensionsTests
 
         await subscriber.FunctionReceiveAsync(message, actions, "queue");
 
-        actions.Settlements.Should().Equal(validEnvelope ? "complete" : "dead-letter");
+        actions.Settlements.Should().Equal(matches ? "complete" : "dead-letter");
         actions.Message.Should().BeSameAs(message);
-        subscriber.Calls.Should().Be(validEnvelope ? 1 : 0);
+        subscriber.Calls.Should().Be(matches ? 1 : 0);
+        if (validEnvelope && !matches)
+            actions.DeadLetterReason.Should().Contain("did not match any [Subscribe] rule");
     }
 
     [TestCase(null)]
@@ -171,6 +174,7 @@ public class FunctionsServiceBusExtensionsTests
         actions.DeadLetterDescription.Should().BeNull();
     }
 
+    [CoreEx.Events.Subscribing.Subscribe("test.command.v1", "urn:test:producer")]
     private sealed class UniformSubscriber() : ServiceBusSubscriberBase<string>(NullLogger<ServiceBusSubscriberBase>.Instance)
     {
         public int Calls { get; private set; }

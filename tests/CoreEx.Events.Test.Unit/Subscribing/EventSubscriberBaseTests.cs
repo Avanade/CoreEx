@@ -8,6 +8,24 @@ namespace CoreEx.Events.Test.Unit.Subscribing;
 [TestFixture]
 public class EventSubscriberBaseTests
 {
+    [TestCase("urn:test:expected", true)]
+    [TestCase("urn:test:other", false)]
+    public async Task ReceiveCloudEvent_EnforcesSubscriptionWithoutTransport(string source, bool matches)
+    {
+        var calls = 0;
+        var subscriber = new FilteredEventSubscriber(() => calls++);
+        var cloudEvent = new CloudEvent { Id = "event-id", Type = "test.event.v1", Source = new Uri(source) };
+        var args = new EventSubscriberArgs();
+
+        var result = await subscriber.InvokeReceiveAsync(cloudEvent, args);
+
+        args.CloudEvent.Should().BeSameAs(cloudEvent);
+        result.IsSuccess.Should().Be(matches);
+        calls.Should().Be(matches ? 1 : 0);
+        if (!matches)
+            result.Error.Should().BeOfType<EventSubscriberDeadLetterException>();
+    }
+
     [Test]
     public async Task ReceiveAsync_CancellationMatchingOwnToken_BubblesUnclassified()
     {
@@ -90,6 +108,18 @@ public class EventSubscriberBaseTests
     {
         yield return new TestCaseData(new ValidationException("invalid")).SetName("ValidationException");
         yield return new TestCaseData(new BusinessException("business")).SetName("BusinessException");
+    }
+
+    [Subscribe("test.event.v1", "urn:test:expected")]
+    private sealed class FilteredEventSubscriber(Action onReceive) : EventSubscriberBase(new EventFormatter(), NullLogger<EventSubscriberBase>.Instance)
+    {
+        public Task<Result> InvokeReceiveAsync(CloudEvent cloudEvent, EventSubscriberArgs args) => ReceiveAsync(cloudEvent, args);
+
+        protected override Task<Result> OnReceiveAsync(EventData @event, EventSubscriberArgs args, CancellationToken cancellationToken)
+        {
+            onReceive();
+            return Result.SuccessTask;
+        }
     }
 
     private sealed class TestEventSubscriber(Action<CancellationToken> onReceive) : EventSubscriberBase(new EventFormatter(), NullLogger<EventSubscriberBase>.Instance)

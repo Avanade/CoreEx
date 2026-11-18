@@ -27,6 +27,7 @@ public class CatalogForwardingTests
     {
         var reports = new RecordingBlobContainerClient();
         using var test = CreateTester(reports);
+        var trigger = test.Trigger<CatalogForwardingFunction>();
         var attempts = 0;
         test.OnEventPublish(ServiceBusPublisher.DefaultServiceKey, () =>
         {
@@ -34,7 +35,7 @@ public class CatalogForwardingTests
                 throw new IOException("Injected before the second send.");
         });
 
-        test.Trigger<CatalogForwardingFunction>()
+        trigger
             .ExpectAzureServiceBusEvents(events => events.Assert(captured =>
             {
                 var command = captured.Should().ContainSingle().Which;
