@@ -201,21 +201,21 @@ public class ServiceBusReceiverTests : WithGenericTester<EntryPoint>
     [Test]
     public void ReceiveAsync_OwnTokenCancellation_DoesNotLogAsUnhandled() => Test.ScopedType<ExecutionContext>(async test =>
     {
-        // An isolated subscription excludes poison messages abandoned by the circuit-breaker test.
+        // A dedicated queue prevents the long-running message from also reaching other topic subscriptions.
         var configuration = test.Services.GetRequiredService<IConfiguration>();
         var connectionString = configuration.GetConnectionString("ServiceBus") ?? configuration["Aspire:Azure:Messaging:ServiceBus:ConnectionString"]
             ?? throw new InvalidOperationException("The Service Bus connection string is missing.");
         var admin = new global::Azure.Messaging.ServiceBus.Administration.ServiceBusAdministrationClient(UnitTestExExtensions.CreateAzureServiceBusAdminConnectionString(connectionString));
-        var subscription = $"cancellation-{Guid.NewGuid():N}";
-        await admin.CreateSubscriptionAsync("unit-test", subscription).ConfigureAwait(false);
+        var queue = $"cancellation-{Guid.NewGuid():N}";
+        await admin.CreateQueueAsync(queue).ConfigureAwait(false);
         try
         {
             var processing = Subscribers.ProductSubscriber.Id200Processing = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             var sp = (ServiceBusPublisher)test.Services.GetRequiredKeyedService<IEventPublisher>(ServiceBusPublisher.DefaultServiceKey);
-            sp.Add(EventData.CreateEventWith(new Subscribers.Product { Id = 200, Sku = "SKU-200" }, "Created"));
+            sp.Add(queue, EventData.CreateEventWith(new Subscribers.Product { Id = 200, Sku = "SKU-200" }, "Created"));
             await sp.PublishAsync().ConfigureAwait(false);
 
-            var o = ServiceBusReceiverOptions.CreateForTopicSubscription("unit-test", subscription);
+            var o = ServiceBusReceiverOptions.CreateForQueue(queue);
             var sbr = ActivatorUtilities.CreateInstance<ServiceBusReceiver<ServiceBusSubscribedSubscriber>>(Test.Services, o);
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
 
@@ -241,7 +241,7 @@ public class ServiceBusReceiverTests : WithGenericTester<EntryPoint>
         finally
         {
             Subscribers.ProductSubscriber.Id200Processing = null;
-            await admin.DeleteSubscriptionAsync("unit-test", subscription).ConfigureAwait(false);
+            await admin.DeleteQueueAsync(queue).ConfigureAwait(false);
         }
     });
 

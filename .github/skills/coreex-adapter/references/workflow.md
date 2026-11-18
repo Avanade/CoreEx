@@ -136,6 +136,8 @@ return await response.WithValidator(_validator)
 
 ### Response-contract validation
 
+For a known downstream business rejection, reuse `BusinessException` with a stable domain-idiomatic code, for example `new BusinessException("The backend rejected the item.").WithErrorCode("item-rejected")`. Only map outcomes that the remote contract identifies as that rejection; an arbitrary non-success HTTP status is not sufficient. Preserve unrelated transport, authentication, configuration and unexpected failures. Do not introduce an exception subclass just to carry that message or select subscriber settlement; the subscriber can classify the existing exception by `ErrorCode`.
+
 Choose rules for fields the consuming operation actually requires; the example assumes an email is needed.
 Do not blindly reuse request/create/update validators, require every DTO property, or compare response
 identifiers with request identifiers by default. Validate identifiers only when explicitly required.

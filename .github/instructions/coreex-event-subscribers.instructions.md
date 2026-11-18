@@ -134,6 +134,17 @@ internal static readonly ErrorHandler DefaultErrorHandler = new ErrorHandler()
 
 Assign it in the constructor: `ErrorHandler = DefaultErrorHandler;`
 
+Classify a known business outcome by its stable error code rather than introducing a scenario-specific exception subclass or comparing messages:
+
+```csharp
+internal static readonly ErrorHandler RejectionErrorHandler = new ErrorHandler()
+    .Add<BusinessException>(ex => ex.ErrorCode == "item-rejected"
+        ? ErrorHandling.DeadLetter
+        : null);
+```
+
+Only the identified rejection receives this override; `null` retains the configured fallback for other failures. Do not translate authentication, configuration or arbitrary HTTP failures into business rejections merely to dead-letter them.
+
 Share the same `ErrorHandler` instance across related subscribers (e.g., both Confirm and Cancel subscribers can reference the same static instance).
 
 ## Accessing Event Data
