@@ -1,0 +1,27 @@
+# yaml-language-server: $schema=../../schema/coreex-files.json
+name: OrdersJsonl
+version: '1'
+format: Jsonl
+runtimeProjectPath: ../CoreEx.IO.Test.Unit
+runtimeNamespace: CoreEx.IO.Test.Unit.Files.OrdersJsonl
+errorMode: CollectErrors
+unit: { record: Order, cardinality: OneOrMore }
+records:
+- name: Order
+  properties:
+  - { name: Id, required: true }
+  - { name: EffectiveDate, type: DateOnly, required: true }
+  - { name: SubmittedAt, type: DateTimeOffset, required: true }
+  - { name: BillingAddress, record: Address, required: true }
+  - { name: ShippingAddress, record: Address, required: true }
+  - name: Lines
+    collection: { record: Line, cardinality: OneOrMore, maxItems: 1000 }
+  - name: Tags
+    collection: { type: String, maxItems: 100 }
+- name: Address
+  properties:
+  - { name: Code, required: true }
+- name: Line
+  properties:
+  - { name: Sku, required: true }
+  - { name: Quantity, type: Integer, required: true, min: 1 }

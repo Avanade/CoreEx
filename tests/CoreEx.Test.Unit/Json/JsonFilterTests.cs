@@ -670,6 +670,25 @@ public class JsonFilterTests
         matched!.GetValue<bool>().Should().BeTrue();
     }
 
+    [TestCase("$.products.$^category")]
+    [TestCase("$.products['$^category']")]
+    [TestCase("$.products[\"$^category\"]")]
+    public void GetMatched_SpecialPropertyWithEquivalentNotation(string path)
+    {
+        var node = JsonNode.Parse("""{"products":{"$^category":[{"code":"ABC"}],"other":[]}}""")!;
+        var matched = JsonFilter.GetMatched(node, path);
+        matched.Should().NotBeNull();
+        matched!.ToJsonString().Should().Be("""[{"code":"ABC"}]""");
+    }
+
+    [Test]
+    public void TryJsonFilter_Include_SpecialPropertyInsideArray()
+    {
+        const string value = """{"groups":[{"$^Colour":[{"code":"R"}],"other":true}]}""";
+        JsonFilter.TryJsonFilter(value, ["groups.$^Colour"], out string json).Should().BeTrue();
+        ObjectComparer.AssertJson("""{"groups":[{"$^Colour":[{"code":"R"}]}]}""", json);
+    }
+
     [Test]
     public void TryJsonFilter_Exclude_RecursiveDescent_AnyDepth()
     {

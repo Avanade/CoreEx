@@ -3,6 +3,13 @@ namespace CoreEx.Events;
 public partial class EventData
 {
     /// <summary>
+    /// Sets the <paramref name="id"/> as the <see cref="Id"/>.
+    /// </summary>
+    /// <param name="id">The identifier.</param>
+    /// <returns>The <see cref="EventData"/> to support fluent-style method-chaining.</returns>
+    public EventData WithId(string id) => this.Adjust(x => x.Id = id.ThrowIfNullOrEmpty());
+
+    /// <summary>
     /// Sets the <paramref name="entity"/> as the <see cref="Entity"/>.
     /// </summary>
     /// <param name="entity">The entity name.</param>

@@ -18,16 +18,20 @@ tags: ["functions", "azure", "hosting", "testing"]
 | Package | Key types/capabilities |
 |---|---|
 | `CoreEx.Azure.Functions` | `UseCoreExExecutionContext`, `FunctionWithIdempotencyAsync`, `FunctionReceiveAsync`, `FunctionsServiceBusReceiveArgs`; brings HTTP/Service Bus integration dependencies transitively. |
+| `CoreEx.Azure.Messaging.ServiceBus` / `CoreEx.Events` | `ServiceBusPublisher`, `AddAzureServiceBusPublisher`, `IEventPublisher`, `EventData`, `ServiceBusSubscriberBase<T>`, `ServiceBusSubscribedSubscriber`; standard send/receive pipeline, including native payloads. |
+| `CoreEx.Azure.Storage.Blobs` | Optional host-neutral `BlobReadSource` and `BlobJsonlReport`/`BlobCsvReport` for revision-pinned replay and streamed attempt reports; reference explicitly when required. |
 | `Microsoft.Azure.Functions.Worker.Sdk` | Function discovery/build metadata; host project only. |
 | `CoreEx.AspNetCore` | MVC `WebApi`, `AddMvcWebApi`; no ASP.NET middleware/endpoint pipeline on the worker. |
 | `Microsoft.Azure.Functions.Worker.Extensions.Storage.Blobs`, `Microsoft.Azure.Functions.Worker.Extensions.Timer` | Add only for needed native bindings (`BlobTrigger`, `TimerTrigger`). |
-| `UnitTestEx.Azure.Functions`, `UnitTestEx.NUnit`, `CoreEx.UnitTesting` | `FunctionTester`, `HttpTrigger<T>`, `Trigger<T>`, CoreEx assertions; NUnit/AwesomeAssertions in test project only. |
+| `UnitTestEx.Azure.Functions`, `UnitTestEx`, `CoreEx.UnitTesting` | `FunctionTester`, `HttpTrigger<T>`, `Trigger<T>`, CoreEx assertions; NUnit/AwesomeAssertions in test project only. UnitTestEx detects NUnit without a separate framework adapter package. |
 
 ## Composition and capability ownership
 
 One `*.Functions` project is one deployable Function App; several may reuse shared layers. Standalone apps (`--shared-core false`) delegate to focused local handlers instead of mandatory Application/Infrastructure projects. Group by capability, normally one class per file; related HTTP methods may share a class. Keep bindings/transport types local and business logic outside trigger methods. Never register every shared service before its dependencies exist.
 
 Package management follows effective CPM independently of shared-core, with inline fallback only when disabled. New standalone solutions use `coreex-solution` for root/Test.Common scaffolding. Test.Common references belong only in consuming test projects and require explicit wiring; its lightweight baseline configures no database/broker. Missing baseline/tool creation is a `coreex-scaffold` responsibility, not a reason to regenerate an existing host.
+
+Prefer Aspire client integrations for host-owned Blob, Service Bus, database and cache clients, as described in [client registration](/.github/instructions/coreex-host-setup.instructions.md#infrastructure-client-registration). In particular, use `Aspire.Azure.Storage.Blobs` / `AddAzureBlobServiceClient` and derive report containers from that registered service client, rather than hand-constructing a second client. These integrations require no AppHost and do not replace native trigger bindings. Explicitly map the binding's named connection setting to the worker client's configuration; neither configures the other automatically.
 
 ```csharp
 var builder = FunctionsApplication.CreateBuilder(args);
@@ -41,6 +45,12 @@ builder.Build().Run();
 ```
 
 HTTP integration precedes CoreEx middleware; omit HTTP/MVC calls for non-HTTP-only apps. WebApi is the HTTP exception boundary, not the entire worker. Resolve invocation-scoped dependencies inside the middleware callback from `FunctionContext.InstanceServices`; do not capture them in singleton middleware.
+
+## Service Bus publishing and customization
+
+Publish through the configured `IEventPublisher`, normally backed by `ServiceBusPublisher` registered with `AddAzureServiceBusPublisher`. A no-outbox app can make it the default; when an outbox is the intended default, retain that registration and select the keyed broker publisher only for deliberate direct sends. Add the `EventData` command/event and await `PublishAsync(cancellationToken)`; adding alone does not send. Direct publishing bypasses the outbox, not CoreEx. For per-row file publishing, resolve the scoped publisher in each fresh unit-handler scope; do not retain all rows on an invocation-wide publisher or reuse it after publication without its explicit lifecycle handling. See the [publishing pattern](/.github/skills/coreex-functions/references/patterns.md#direct-service-bus-publishing-no-outbox).
+
+Reuse registered custom implementations, decorators and supported publisher/subscriber overrides. Use configuration and `ServiceBusPublisher.ConfigureMessage` for transport customization before considering a replacement; the stock publisher is sealed. Raw `ServiceBusSender` sends, output bindings or custom receive callbacks require a concrete documented requirement that the standard pipeline does not meet, not just a simple workload. Native triggers describe delivery ownership, not a preference for raw SDK processing. CloudEvents remain the default; binary mode is configured on the publisher, and native payloads still use the same pipeline.
 
 ## HTTP and settlement boundaries
 
@@ -60,23 +70,34 @@ public Task Process([ServiceBusTrigger(QueueName, Connection = "ServiceBus", Aut
     => subscriber.FunctionReceiveAsync(message, actions, QueueName, cancellationToken: cancellationToken);
 ```
 
-Choose CloudEvents dispatch, typed uniform JSON subscriber or native processing deliberately. Choose poison policy explicitly: default subscriber validation/business handling can complete as error, not dead-letter. Retry abandons once; unclassified/catastrophic failures and invocation cancellation propagate without bridge settlement. No second settlement after failure, in-invocation retry loop, receiver pause/resume or receiver circuit breaker is installed.
+Default receiving to the configured CoreEx subscriber through `subscriber.FunctionReceiveAsync`; preserve its custom implementation/overrides. For one known payload shape, use `ServiceBusSubscriberBase<T>` with the actual command/event contract and `ValueValidator`, not `JsonElement` plus manual parsing. Use CloudEvents dispatch only when subject/source routing is needed. CloudEvent is the default representation; `ContentMode` controls binary/structured decoding and `args.CloudEvent` exposes decoded metadata for application-specific checks. Native JSON requires explicit `DataRepresentation = MessageRepresentation.Native`; CloudEvent mode never falls back to native.
+
+When a direct subscriber expects a fixed CloudEvent type/source, declare `[Subscribe(type, source)]` on the concrete class instead of checking those fields by hand. Unmatched envelopes default to `UnmatchedCloudEventHandling = ErrorHandling.DeadLetter`; native JSON does not support these rules.
+
+Choose poison policy explicitly: default malformed-envelope/payload and validation/business handling can complete as error, not dead-letter. `Retry` abandons once. Use `ErrorHandling.None` for operational or unexpected failures that should bubble up. Reserve `Catastrophic` for deliberate host-level escalation, not as the fallback for a non-retryable error. Both fail the Functions invocation without bridge settlement; neither stops the worker nor pauses its listener. The bridge adds no in-invocation retry loop, second settlement attempt or receiver circuit breaker.
 
 Blob/Timer bindings remain native. Distinguish content rejection from operational failure; preserve cancellation. A current `BlobClient` is not an immutable event revision. Blob-to-broker sends are not atomic with invocation completion; stable identity/duplicate tolerance is required where retries matter.
 
-For schema-defined CSV Blob imports, use File CodeGen for wire types, mappings, validators, contexts, and processors, then keep the native trigger as a thin adapter. Pin both reads to the selected source revision; persist reports to durable storage and commit business effects, deduplication receipts, and outbox writes in the application's transaction.
+For schema-defined CSV Blob imports, use File CodeGen and keep the native trigger thin. Pin both reads and persist attempt reports to durable storage. When atomic local persistence is required, commit the mutation, deduplication receipt, and outbox entry together. A database-free forwarding host instead awaits the configured direct publisher in each unit scope and tolerates duplicate delivery.
+
+Reuse `CoreEx.Azure.Storage.Blobs` instead of duplicating Blob mechanics: select once with `BlobReadSource.CreateAsync`, use its credential-free `SourceUri` and captured `ETag` in the identity, and pass `source.OpenReadAsync` to the processor. `BlobJsonlReport` provides create-only, attempt-isolated streaming with explicit completion; keep diagnostic/summary shapes in the host adapter. It creates no containers/snapshots and provides no business deduplication. Failed/ambiguous writes propagate and fault the report instance; start a distinct attempt, not a blind append retry. See the [Blob guide](/.github/docs/coreex/agents/CoreEx.Azure.Storage.Blobs.md).
 
 ## Configuration and tests
 
 Bindings use Functions host app settings/local settings, not worker-only `appsettings.json`. `host.json` affects sibling functions too. Keep secrets out of source, local settings unpublished and configuration names documented. Function keys do not establish application identity/tenant trust.
 
-Use the real host via `FunctionTester.Create<TFunction>()`. Deferred HTTP results use `ToHttpResponseMessageAssertor(request)`; eager idempotency results use `SnapshotHttpResponse(response)` with a caller-owned readable/seekable buffer. Assert behavior, cancellation/failure and exact settlement where relevant. Invocation tests do not prove binding conversion, broker delivery, function-key authorization or cloud provisioning; use Core Tools/Aspire runtime proofs for those boundaries. With Azurite Event Grid-source Blob triggers, upload the input and post a storage-shaped event through the Functions webhook: this simulates only notification delivery because Azurite does not emit Event Grid events. Do not claim Azure Event Grid provisioning, authentication, or delivery from that local test.
+Use the real host via `FunctionTester.Create<TFunction>()`. Deferred HTTP results use `ToHttpResponseMessageAssertor(request)`; eager idempotency results use `SnapshotHttpResponse(response)` with a caller-owned readable/seekable buffer. Use AwesomeAssertions for ordinary value assertions; reserve NUnit `Assert` for control-flow helpers such as `Assert.Fail` or `Assert.Ignore`. Assert behavior, cancellation/failure and exact settlement where relevant. Invocation tests do not prove binding conversion, broker delivery, function-key authorization or cloud provisioning; use Core Tools/Aspire runtime proofs for those boundaries. With Azurite Event Grid-source Blob triggers, upload the input and post a storage-shaped event through the Functions webhook: this simulates only notification delivery because Azurite does not emit Event Grid events. Do not claim Azure Event Grid provisioning, authentication, or delivery from that local test.
+
+Use the existing publisher decorator/expectations and Blob test helpers from `CoreEx.UnitTesting`, not custom recording Service Bus senders or HTTP-level storage emulators. Cover application policy and representative wiring; do not reproduce the framework's parser, CloudEvent conversion or settlement test matrices. See the [testing policy](/.github/instructions/coreex-tests.instructions.md#test-responsibility--what-goes-where-do-not-duplicate) and [component-test pattern](/.github/skills/coreex-functions/references/patterns.md#testing-published-commands-and-blob-imports).
+
+Mock outbound HTTP the same way as in API tests: use UnitTestEx `MockHttpClientFactory` and `ReplaceHttpClientFactory` in both typed-client unit tests and in-process Functions invocation tests, regardless of trigger type. For a separately running host, use a reachable WireMock.Net stub instead. See [testing outbound HTTP](/.github/skills/coreex-functions/references/patterns.md#testing-outbound-http).
 
 ## Do Not
 
 - Do not add `MapControllers`, ASP.NET exception/idempotency middleware, NSwag middleware or `MapHealthChecks` to the worker. Add an HTTP health function only for an explicit operational requirement.
 - Do not start a competing CoreEx receiver/scheduler beside native triggers or treat output bindings as a transactional outbox.
 - Do not generate demo functions, mandatory shared libraries, speculative cache/database registrations or test-only observation endpoints in consumer hosts.
+- Do not write a custom HTTP handler or mock service when the standard test double meets the need. A request to mock a backend does not imply a separately runnable service.
 - Do not import namespace `using` directives into source files; use `GlobalUsing.cs` per universal conventions.
 
 ## Further Reading

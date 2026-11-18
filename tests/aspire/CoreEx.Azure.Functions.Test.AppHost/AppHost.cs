@@ -5,7 +5,8 @@ if (!builder.ExecutionContext.IsRunMode)
 const string sqlPassword = "CoreEx_Emulator!2026";
 const string serviceBusConnection = "Endpoint=sb://localhost:5682;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;";
 
-var storage = builder.AddContainer("functions-storage", "mcr.microsoft.com/azure-storage/azurite", "3.35.0")
+// Azurite 3.37.0 supports the Storage SDK's 2026-06-06 API version.
+var storage = builder.AddContainer("functions-storage", "mcr.microsoft.com/azure-storage/azurite", "3.37.0")
     .WithArgs("azurite", "-l", "/data", "--blobHost", "0.0.0.0", "--queueHost", "0.0.0.0", "--tableHost", "0.0.0.0")
     .WithEndpoint(port: 10000, targetPort: 10000, scheme: "http", name: "blob", isProxied: false)
     .WithEndpoint(port: 10001, targetPort: 10001, scheme: "http", name: "queue", isProxied: false)
@@ -31,7 +32,8 @@ var serviceBus = builder.AddContainer("functions-servicebus", "mcr.microsoft.com
 var configuration = new DirectoryInfo(AppContext.BaseDirectory).Parent?.Name ?? throw new InvalidOperationException("Could not determine the AppHost build configuration.");
 var functionDirectory = Path.Combine(builder.AppHostDirectory, "bin", configuration, "net10.0", "functions");
 var arguments = new[] { "start", "--no-build", "--port", "7099", "--functions", "ReadContext", "ReadTraceObservation", "Create", "Failure", "Messages", "ProcessMessage", "ProcessNativeMessage", "ImportBlob", "ImportInventoryFile",
-    "CreateIdempotent", "CreateIdempotentRequired", "ReadIdempotencyCount", "ReleaseIdempotencyOperation" };
+    "ImportInventoryJson", "ImportInventoryJsonl", "ImportInventoryCsvBatch", "ImportInventoryJsonBatch", "ImportInventoryJsonlBatch",
+    "ImportCatalog", "CreateIdempotent", "CreateIdempotentRequired", "ReadIdempotencyCount", "ReleaseIdempotencyOperation" };
 var functions = OperatingSystem.IsWindows()
     ? builder.AddExecutable("functions", "cmd.exe", functionDirectory, ["/c", "func", .. arguments])
     : builder.AddExecutable("functions", "func", functionDirectory, arguments);
@@ -46,6 +48,7 @@ functions
     .WithEnvironment("ImportStorage", "UseDevelopmentStorage=true")
     .WithEnvironment("InventoryImportDatabase", $"Server=tcp:127.0.0.1,14335;Database=CoreExInventory;User Id=sa;Password={sqlPassword};TrustServerCertificate=True;Connect Timeout=10")
     .WithEnvironment("InventoryImportReports", "inventory-results")
+    .WithEnvironment("CatalogImportReports", "catalog-import-results")
     .WithEnvironment("InventoryImportTenant", "runtime-tenant")
     .WithEnvironment("ServiceBus", serviceBusConnection)
     .WaitFor(serviceBus)

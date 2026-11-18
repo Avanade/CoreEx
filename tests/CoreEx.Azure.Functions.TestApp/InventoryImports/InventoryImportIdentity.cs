@@ -15,7 +15,7 @@ public static class InventoryImportIdentity
 
     /// <summary>Gets an isolated attempt report name including definition, full source, revision, and attempt.</summary>
     public static string ReportName(FileProcessingIdentity identity)
-        => Hash([identity.DefinitionName, identity.DefinitionVersion, identity.SourceId, identity.SourceRevision, identity.AttemptId]) + ".jsonl";
+        => BlobJsonlReport.CreateName(identity.DefinitionName, identity.DefinitionVersion, identity.SourceId, identity.SourceRevision, identity.AttemptId);
 
     /// <summary>Hashes an unambiguously framed sequence, rather than concatenating potentially ambiguous identifiers.</summary>
     private static string Hash(string?[] values) => Convert.ToHexString(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(values))).ToLowerInvariant();

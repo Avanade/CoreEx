@@ -16,8 +16,5 @@ public enum FileDiagnosticCategory
     Validation,
 
     /// <summary>File-wide counts, totals, or other reconciliation rules failed.</summary>
-    Reconciliation,
-
-    /// <summary>The input exceeded a configured processing limit.</summary>
-    Limit
+    Reconciliation
 }

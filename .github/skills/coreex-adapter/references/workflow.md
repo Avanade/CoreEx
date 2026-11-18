@@ -136,6 +136,8 @@ return await response.WithValidator(_validator)
 
 ### Response-contract validation
 
+For a known downstream business rejection, reuse `BusinessException` with a stable domain-idiomatic code, for example `new BusinessException("The backend rejected the item.").WithErrorCode("item-rejected")`. Only map outcomes that the remote contract identifies as that rejection; an arbitrary non-success HTTP status is not sufficient. Preserve unrelated transport, authentication, configuration and unexpected failures. Do not introduce an exception subclass just to carry that message or select subscriber settlement; the subscriber can classify the existing exception by `ErrorCode`.
+
 Choose rules for fields the consuming operation actually requires; the example assumes an email is needed.
 Do not blindly reuse request/create/update validators, require every DTO property, or compare response
 identifiers with request identifiers by default. Validate identifiers only when explicitly required.
@@ -318,7 +320,7 @@ public class ProductSyncAdapter({Domain}EfDb ef) : IProductSyncAdapter
 - For Cosmos-backed local stores, replace the `EfDb` calls in the examples with the equivalent mapped-container operations on your typed `*CosmosDb` accessor.
 - Never call `HttpClient` directly in the adapter — always delegate to the typed client class.
 - Use `CancellationToken.None` (not the request `ct`) for **compensation paths** (e.g., rolling back a reservation after a checkout failure) — the request token may already be cancelled and must not abort the compensation.
-- Event publication inside a `TransactionAsync` uses the transactional `IEventPublisher` (Outbox). Bypass-Outbox paths use the Service Bus publisher directly and call `PublishAsync()` explicitly.
+- Event publication inside a `TransactionAsync` uses the transactional `IEventPublisher` (Outbox). Bypass-outbox paths use the configured CoreEx broker `IEventPublisher` and await `PublishAsync(cancellationToken)` explicitly; they do not call `ServiceBusSender`.
 
 ---
 
@@ -480,6 +482,7 @@ public class {External}HttpClientTests : WithGenericTester<EntryPoint>
 
 ## Guardrails
 
+- **Messaging uses the CoreEx pipeline in adapters too** — inject the configured `IEventPublisher` backed by `ServiceBusPublisher` or outbox. A direct no-outbox operation adds its command/event and awaits `PublishAsync(cancellationToken)`; it does not format and send via `ServiceBusSender`. Preserve custom registrations/decorators and supported overrides; configure transport hooks before replacing behavior, and document concrete requirements for raw SDK exceptions. See the [scoped no-outbox publishing pattern](../../coreex-functions/references/patterns.md#direct-service-bus-publishing-no-outbox) for per-unit publisher lifetime.
 - **Sub-folder is always required** — never put adapter or client files directly in `Adapters/` or `Clients/` without a domain sub-folder
 - **Interface surface is domain-idiomatic** — method names and parameter types use your domain's language, not the remote API's
 - **No `HttpClient` in adapter methods** — the adapter delegates to the typed client; the typed client owns the HTTP concern

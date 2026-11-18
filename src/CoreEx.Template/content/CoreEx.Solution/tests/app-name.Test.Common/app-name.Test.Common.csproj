@@ -5,7 +5,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="NUnit" />
-    <PackageReference Include="UnitTestEx.NUnit" />
+    <PackageReference Include="UnitTestEx" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Data\**\*" />

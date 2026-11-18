@@ -7,7 +7,7 @@
 | Area | Value | Evidence |
 |------|-------|----------|
 | Primary language | C# | src/Directory.Build.props; CoreEx.sln |
-| Runtime + version | Reusable libraries target net8.0, net9.0, and net10.0; sample hosts use net10.0; generator targets netstandard2.0 | src/Directory.Build.props; samples/Directory.Build.props; samples/aspire/Contoso.Aspire/Contoso.Aspire.csproj; gen/CoreEx.Generator/CoreEx.Generator.csproj |
+| Runtime + version | Reusable libraries target net8.0, net9.0, net10.0, and net11.0; Aspire hosts use net10.0; generator targets netstandard2.0 | src/Directory.Build.props; samples/Directory.Build.props; samples/aspire/Contoso.Aspire/Contoso.Aspire.csproj; gen/CoreEx.Generator/CoreEx.Generator.csproj |
 | Package manager | NuGet with Central Package Management | Directory.Packages.props |
 | Module/build system | MSBuild project/solution build with SDK-style .csproj files | CoreEx.sln; src/CoreEx/CoreEx.csproj |
 
@@ -29,8 +29,8 @@
 | YamlDotNet | 16.3.0 | YAML parsing and serialization | Directory.Packages.props |
 | CloudNative.CloudEvents.SystemTextJson | 2.8.0 | CloudEvent interoperability | Directory.Packages.props |
 | Microsoft.DurableTask.* | 1.17.1 | Order workflow sample orchestration and worker runtime | Directory.Packages.props; samples/src/Contoso.Order.Workflow.Worker/Program.cs; samples/src/Contoso.Order.Workflow.Workflow/Contoso.Order.Workflow.Workflow.csproj |
-| DbEx.SqlServer | 3.0.0-preview-3 | Database migration/data console utilities in samples/tests | Directory.Packages.props; samples/src/Contoso.Products.Database/Program.cs |
-| UnitTestEx.Aspire + WireMock.Net | 5.12.0 / 2.18.0 | Aspire end-to-end testing (`WithAspireTester`) and the HTTP-stubbing `MockHost` | Directory.Packages.props; samples/aspire/Contoso.Test.Aspire/Contoso.Test.Aspire.csproj; samples/aspire/Contoso.Aspire.MockHost/Contoso.Aspire.MockHost.csproj |
+| DbEx.SqlServer + DbEx.Postgres | 3.4.0 | Database migration/data console utilities in samples/tests | Directory.Packages.props; samples/src/Contoso.Products.Database/Program.cs |
+| UnitTestEx.Aspire + WireMock.Net | 7.0.0 / 2.19.0 | Aspire end-to-end testing (`WithAspireTester`) and the HTTP-stubbing `MockHost` | Directory.Packages.props; samples/aspire/Contoso.Test.Aspire/Contoso.Test.Aspire.csproj; samples/aspire/Contoso.Aspire.MockHost/Contoso.Aspire.MockHost.csproj |
 
 ### 3) Development Toolchain
 
@@ -39,7 +39,7 @@
 | NUnit | Test framework | Directory.Packages.props; tests/CoreEx.Test.Unit/CoreEx.Test.Unit.csproj |
 | AwesomeAssertions | Assertions | Directory.Packages.props; tests/CoreEx.Test.Unit/CoreEx.Test.Unit.csproj |
 | coverlet.collector | Test coverage collection | Directory.Packages.props; tests/CoreEx.Test.Unit/CoreEx.Test.Unit.csproj |
-| UnitTestEx / UnitTestEx.NUnit | API and integration-style test helpers | Directory.Packages.props; samples/tests/Contoso.Products.Test.Api/Contoso.Products.Test.Api.csproj |
+| UnitTestEx | API and integration-style test helpers; NUnit is detected automatically | Directory.Packages.props; samples/tests/Contoso.Products.Test.Api/Contoso.Products.Test.Api.csproj |
 | CoreEx.Generator | Roslyn analyzer/source generator packaged as an analyzer | gen/CoreEx.Generator/CoreEx.Generator.csproj; tests/CoreEx.Test.Unit/CoreEx.Test.Unit.csproj |
 | .editorconfig | Formatting baseline | .editorconfig |
 

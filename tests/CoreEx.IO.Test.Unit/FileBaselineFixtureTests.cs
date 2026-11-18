@@ -22,7 +22,7 @@ public class FileBaselineFixtureTests
             item.GetProperty("recordsRead").GetInt64().Should().BePositive();
             item.GetProperty("requirement").GetString().Should().NotBeNullOrWhiteSpace();
             var outcome = Enum.Parse<FileProcessingOutcome>(item.GetProperty("outcome").GetString()!);
-            var rejected = outcome == FileProcessingOutcome.Rejected;
+            var rejected = outcome == FileProcessingOutcome.ContentFailed;
             item.GetProperty("unitsExecuted").GetInt64().Should().Be(rejected ? 0 : item.GetProperty("unitsValidated").GetInt64());
 
             var anchors = item.GetProperty("diagnosticLines").EnumerateArray().Select(x => x.GetInt32()).ToArray();

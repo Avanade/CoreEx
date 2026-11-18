@@ -48,6 +48,31 @@ return await webApi.FunctionWithIdempotencyAsync(request,
 
 The configured provider/cache must already be registered. The helper eagerly renders and returns `EmptyResult`; never separately execute the returned result to recover a body for tests. Replay is a best-effort retry safeguard, not exactly-once execution.
 
+## Direct Service Bus publishing (no outbox)
+
+Use the configured `IEventPublisher`, not a raw `ServiceBusSender`. This no-outbox registration assumes the host has its normal settings/execution context and a `ServiceBusClient` registered through `builder.AddAzureServiceBusClient("ServiceBus")`:
+
+```csharp
+builder.Services.AddEventFormatter();
+builder.Services.AddAzureServiceBusPublisher((_, publisher) =>
+{
+    publisher.ContentMode = ContentMode.Binary;
+});
+```
+
+In the scoped application adapter or standalone handler, `publisher` is the injected `IEventPublisher` and `command` is the application-created `EventData` with its agreed stable ID/source/type/payload:
+
+```csharp
+publisher.Add("item-upserts", command);
+await publisher.PublishAsync(cancellationToken).ConfigureAwait(false);
+```
+
+The explicit destination is suitable for a single agreed queue; retain an existing destination provider when routing is already configured. Adding alone does not send. This sends through `ServiceBusPublisher` with its configured conversion, session policy, customization and send handling; converting with `ToServiceBusMessage` and calling the SDK directly is not equivalent. Binary mode is illustrative; CloudEvents remain the default representation and the publisher's default content mode is structured.
+
+With an outbox default, keep `addAsDefaultIEventPublisher: false` on broker registration and inject the configured keyed `IEventPublisher` only for deliberate direct sends. Without an outbox, normal direct publishing uses the caller's cancellation token; compensation-specific cancellation choices are not universal defaults.
+
+Publishers retain their queued messages and cannot be reused after publication without `Reset()`. For generated file processing, resolve the adapter/publisher in each fresh unit-handler scope, publish one unit and dispose that scope. Do not retain an invocation-wide publisher for all rows, reset one concurrently, or silently retry ambiguous sends. Reuse custom registered implementations/decorators and supported subscriber overrides; configure `ConfigureMessage` for broker-specific customization before replacing the pipeline. Raw SDK sends/output bindings require a concrete documented requirement.
+
 ## Explicit subscriber settlement
 
 ```csharp
@@ -59,6 +84,18 @@ public Task ImportMessage([ServiceBusTrigger(QueueName, Connection = "ServiceBus
 ```
 
 Here `subscriber` is an injected `ServiceBusSubscribedSubscriber` or a typed `ServiceBusSubscriberBase<T>` implementation. For a topic, share topic/subscription constants and pass the matching `topic/Subscriptions/subscription` expression to the bridge. Do not pass an unrelated label or add a competing receiver.
+
+This subscriber-based path is the default even for a simple or native-payload workload. Preserve custom subscriber overrides/registrations. Use the callback bridge only for a concrete documented processing requirement the typed/dispatched pipeline cannot meet; it does not supply subscriber deserialization, validation or classification automatically.
+
+### Single-contract subscriber
+
+For one known command or event, make that contract the `T` in `ServiceBusSubscriberBase<T>` and override `ValueValidator` with the CoreEx validator. Put payload rules, including checks across fields, in that validator and reuse it if one already exists. The trigger delegates; CoreEx decodes the envelope, deserializes and validates the payload, then calls the typed handler. Do not add a dispatcher, deserialize a `JsonElement` again, or repeat the payload rules in the handler.
+
+For a fixed binary CloudEvent contract, select `ContentMode.Binary`. Declare `[Subscribe("partner.item.upsert.v1", "urn:partner:catalog")]` on the concrete subscriber when the contract specifies an expected type and source. CoreEx checks the decoded envelope before payload processing; no dispatcher or manual type/source comparisons are needed. Any one rule must match both fields. Keep application-specific cross-envelope checks (for example, matching a payload ID to `args.CloudEvent.Id`) separate. CoreEx already takes the decoded ID and type from `MessageId` and `Subject`; comparing those pairs again does not validate anything new.
+
+Unmatched CloudEvents default to dead-letter via `UnmatchedCloudEventHandling`. Set `InvalidDataHandling` separately for decoding failures and configure `ErrorHandler` for validation failures and known permanent message-specific rejections. Map known transient failures to `Retry` and let auth, configuration and unexpected failures bubble with `ErrorHandling.None`. `Catastrophic` is a deliberate escalation that can pause a CoreEx-owned receiver under its configured policy; in a Function it does not stop the process or pause the listener.
+
+See the [typed Functions subscriber](https://github.com/Avanade/CoreEx/blob/main/tests/CoreEx.Azure.Functions.TestApp/NativeMessageSubscriber.cs) for the validator and handler shape (it explicitly uses native JSON to exercise that representation), and the [typed CloudEvent tests](https://github.com/Avanade/CoreEx/blob/main/tests/CoreEx.Azure.Messaging.ServiceBus.Test.Unit/ServiceBusSubscriberBaseTTests.cs) for the same pattern with binary and structured envelopes. These framework examples are not generated into consumer projects.
 
 ## Invocation tests
 
@@ -82,7 +119,74 @@ test.Trigger<ImportFunctions>()
 
 Assertions must cover observable effects/delegation, not just `AssertSuccess`. For failures use `.AssertException<TException>()`; settlement tests can supply a recording `ServiceBusMessageActions` implementation. A direct invocation does not run binding conversion or enforce authorization.
 
+## Testing outbound HTTP
+
+| Test boundary | Default double | What to verify |
+|---|---|---|
+| Typed-client unit test | Use `MockHttpClientFactory` and `Test.ReplaceHttpClientFactory`, as in the [adapter workflow](../../coreex-adapter/references/workflow.md). | Exact method, URI/escaping, JSON and response handling. |
+| In-process Functions invocation | Use the same mock factory on the owning `FunctionTester`; keep the real subscriber, application services and typed client. | Whether the invocation makes the call, plus its outcome or settlement for representative responses. Do not repeat the client's wire-contract matrix. |
+| Separate host (Core Tools or Aspire) | Point the real client's configured base address at a WireMock.Net listener. Reuse an existing Aspire MockHost when present; otherwise let the runtime fixture start and dispose a loopback listener on an available port. | Actual outbound requests, real trigger delivery and representative redelivery. Script responses and inspect the request journal with bounded waits. No Aspire retrofit or standalone mock project is needed for a fixture-owned listener. |
+
+For example, configure the outbound mock before resolving services or invoking the trigger. `PartnerApi` is the name used by the typed-client registration, not the function or trigger name:
+
+```csharp
+using var test = FunctionTester.Create<ImportFunctions>();
+var factory = MockHttpClientFactory.Create();
+var put = factory.CreateClient("PartnerApi").Request(HttpMethod.Put, "items/123");
+put.WithAnyBody().Respond.With(HttpStatusCode.NoContent);
+test.ReplaceHttpClientFactory(factory);
+
+test.Trigger<ImportFunctions>()
+    .Run(f => f.ImportBlob(source, CancellationToken.None))
+    .AssertSuccess();
+
+put.Verify();
+```
+
+In the typed-client test, match the expected JSON rather than using `WithAnyBody()`. In invocation cases that must not send, explicitly verify zero calls. Factory replacement does not exercise the production HTTP handler pipeline; use a targeted runtime test when that pipeline is itself under test. For a separate host, reuse the [MockHost wiring and request verification guidance](/.github/instructions/coreex-aspire.instructions.md). Verify what the application sends on repeat delivery; a stub's own replacement logic is not evidence that the real backend is idempotent.
+
+## Testing published commands and Blob imports
+
+Use the real host entry point, existing publisher expectations and SDK-level Blob fixtures from `CoreEx.UnitTesting.Blobs` for component tests. In this illustrative fragment, `ImportFunctions` is defined in the host assembly and `TestData` is a marker in the fixture assembly:
+
+```csharp
+using var test = FunctionTester.Create<ImportFunctions>();
+var source = StubBlobClient.FromResource<TestData>("catalog-valid.csv");
+var reports = new RecordingBlobContainerClient();
+test.ConfigureServices(services =>
+{
+    services.AddSingleton<BlobContainerClient>(reports);
+    services.UseExpectedAzureServiceBusPublisher(bypassPassThrough: true);
+});
+test.Trigger<ImportFunctions>()
+    .ExpectAzureServiceBusEvents(events => events.AssertCount(1))
+    .Run(f => f.ImportBlob(source, CancellationToken.None))
+    .AssertSuccess();
+```
+
+If the function constructor uses `[FromKeyedServices]`, register the function type with `services.AddScoped<ImportFunctions>()` in `ConfigureServices` and use the same keyed registration for the test dependency. UnitTestEx 7.0.0's fallback constructor activation looks up dependencies by type alone; explicitly registering the function delegates activation to DI, which honors the key.
+
+Import `UnitTestEx.Expectations` in `GlobalUsing.cs`. Create the trigger tester first (`var trigger = test.Trigger<TFunction>()`), then register `test.OnEventPublish(serviceKey, action)` on the owning `FunctionTester` and run the saved trigger. Creating the trigger tester resets shared state, so registering the hook earlier discards it. Use the same key as the decorated publisher. The hook runs before the inner publish in both pass-through and bypass mode. The [catalog forwarding invocation test](https://github.com/Avanade/CoreEx/blob/main/tests/CoreEx.Azure.Functions.Test.Unit/CatalogForwardingTests.cs) shows the second call throwing, one captured command across row scopes, and a failed invocation with a terminal report. Use `ExpectNoAzureServiceBusEvents()` for no sends; use one aggregate `events.Assert(...)` for count and payload together. `AssertCount` and `AssertCustom` cannot be combined on one expectation. Use a fresh tester per independent invocation. A pre-send injection proves the second send never started; a real thrown send may have been accepted by the broker.
+
+For fixed binary CloudEvent contracts, set the exact source, type and stable ID on `EventData`, use `ContentMode.Binary`, and supply a key or partition key if the CoreEx formatter requires one (its default, independent of broker sessions). CoreEx maps CloudEvent ID/type to Service Bus `MessageId`/`Subject` and reads them back from those fields. Do not override them independently with `ConfigureMessage` when using the CoreEx binary receiver. In a conversion test copy body, content type, `MessageId`, `Subject` and application properties into the received message; assert the actual JSON, including required default values such as `unitPrice: 0`. Preserve those values on the contract rather than changing global serializer defaults.
+
+Prefer a small scenario set: valid mapping and success report; late invalid input/custom duplicate-key rejection with no commands; stable command IDs and fresh report identity on retry; and representative publication/report failures in handwritten orchestration. Do not repeat parser, CloudEvent header, ETag/append-position or settlement permutations already covered by CoreEx. For realistic multi-line file inputs, use embedded resources loaded with `UnitTestEx.Resource.GetStream`, then expose immutable bytes through a fresh `MemoryStream` per processor open. Small illustrative inputs may remain inline; avoid chained replacements on a shared file fixture. Retain a small Azurite/Core Tools test for actual storage/binding/broker behavior.
+
 ## Native Blob and Timer
+
+Use the Aspire Blob client integration for worker-owned storage, not a second hand-constructed service client. A Functions app can explicitly fall back to its existing binding connection setting while preserving a configured named connection:
+
+```csharp
+builder.AddAzureBlobServiceClient("ImportStorage", settings =>
+{
+    if (settings.ConnectionString is null && settings.ServiceUri is null)
+        settings.ConnectionString = builder.Configuration["ImportStorage"];
+});
+```
+
+Derive report containers from the registered `BlobServiceClient`. This does not configure native bindings or require an AppHost; managed-identity deployments should use the integration's service URI/credential settings instead of inventing a connection string. The input client below remains binding-owned.
+
+For composition-only coverage, share the registration method with `Program`, add in-memory settings to a Functions builder **before** calling it, build without starting, and resolve the real SDK client to check its endpoint. Assert both fallback and explicit named-setting precedence. UnitTestEx.Azure.Functions 7.0.0 applies `additionalConfiguration` during `HostBuilding`; Aspire reads settings earlier, when `AddAzureBlobServiceClient` is called. Replacing the client in an invocation test does not verify that configuration.
 
 ```csharp
 [Function(nameof(ImportBlob))]

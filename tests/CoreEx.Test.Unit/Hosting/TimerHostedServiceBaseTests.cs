@@ -88,6 +88,24 @@ public class TimerHostedServiceBaseTests
     }
 
     [Test]
+    public async Task OnStartAsync_BackgroundLoopDoesNotDependOnCallerPublishingReturnedStatus()
+    {
+        using var sp = CreateServiceProvider();
+        using var svc = new TestTimerService(sp, NullLogger.Instance) { Interval = TimeSpan.FromMilliseconds(20), FirstInterval = TimeSpan.FromMilliseconds(1) };
+
+        // Hold back the outer StartAsync status publication to reproduce the background loop winning the startup race.
+        await svc.StartTimerAsync();
+        try
+        {
+            await WaitUntilAsync(() => svc.ExecuteCount > 0, TimeSpan.FromSeconds(5));
+        }
+        finally
+        {
+            await svc.StopAsync(CancellationToken.None);
+        }
+    }
+
+    [Test]
     public async Task UnhandledException_WithPauseOnUnhandledException_PausesService()
     {
         using var sp = CreateServiceProvider();
@@ -235,6 +253,13 @@ public class TimerHostedServiceBaseTests
         public int ExecuteCount => _executeCount;
 
         public bool ThrowOnExecute { get; set; }
+
+        public async Task StartTimerAsync()
+        {
+            await base.OnInitializeAsync(CancellationToken.None);
+            Status = ServiceStatus.Starting;
+            await base.OnStartAsync(CancellationToken.None);
+        }
 
         protected override Task<bool> OnExecuteAsync(ExecutionContext executionContext, CancellationToken cancellationToken)
         {

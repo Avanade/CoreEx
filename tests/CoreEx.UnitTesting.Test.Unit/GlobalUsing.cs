@@ -1,0 +1,16 @@
+global using Azure;
+global using Azure.Core;
+global using Azure.Storage.Blobs;
+global using Azure.Storage.Blobs.Models;
+global using Azure.Storage.Blobs.Specialized;
+global using CoreEx.Azure.Storage.Blobs;
+global using CoreEx.Events.Publishing;
+global using CoreEx.IO;
+global using CoreEx.IO.Csv;
+global using CoreEx.UnitTesting.Blobs;
+global using CoreEx.UnitTesting.Events;
+global using EventData = CoreEx.Events.EventData;
+global using Microsoft.Extensions.DependencyInjection;
+global using System.Text;
+global using UnitTestEx.Abstractions;
+global using UnitTestEx.Generic;

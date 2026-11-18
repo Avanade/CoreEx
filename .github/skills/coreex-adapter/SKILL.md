@@ -41,6 +41,7 @@ Guides you through adding or modifying an adapter — the boundary that isolates
 
 - **Always use a sub-folder** per external domain: `Application/Adapters/{ExternalDomain}/`, `Infrastructure/Adapters/{ExternalDomain}/`, `Infrastructure/Clients/{ExternalDomain}/`
 - Interface surface must be **domain-idiomatic** — never a mirror of the remote API's shape
+- Messaging adapters use the configured `IEventPublisher` backed by `ServiceBusPublisher` or outbox, not `ServiceBusSender` plus manual formatting. Direct means bypassing the outbox, not CoreEx. Preserve custom implementations/decorators and supported overrides; raw SDK sending needs a concrete documented requirement. Without an outbox, add and await `PublishAsync(cancellationToken)` in the operation's scope.
 - Adapter methods model expected success and business outcomes with `Result` or `Result<T>`; transport, cancellation, deserialization, and unexpected validation exceptions can still escape
 - `[ScopedService<IXxxAdapter>]` on the implementation — auto-discovered via `AddDynamicServicesUsing<T>()`
 - Typed HTTP client registered via `builder.AddTypedHttpClient<XxxHttpClient>("ServiceName")` in `Program.cs` — auto-configures `BaseAddress`, `IdempotencyKeyHandler`, service discovery, and standard resilience handlers

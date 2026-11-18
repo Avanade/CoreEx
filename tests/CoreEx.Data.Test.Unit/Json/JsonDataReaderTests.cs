@@ -111,6 +111,21 @@ public class JsonDataReaderTests
     }
 
     [Test]
+    public void ParseYaml_ReferenceDataPath_InsideArray()
+    {
+        var jdr = JsonDataReader.ParseYaml("""
+            references:
+              - $^widget:
+                - ABC: A widget
+            """, JsonDataReaderOptions.CreateForReferenceData(JsonPropertyNamingConvention.CamelCase));
+        var widgets = jdr.Deserialize<List<Widget>>("references.$^widget");
+
+        widgets.Should().NotBeNull().And.HaveCount(1);
+        widgets![0].Code.Should().Be("ABC");
+        widgets[0].Text.Should().Be("A widget");
+    }
+
+    [Test]
     public void ParseYaml_LeadingZeroNumber_StaysString()
     {
         // The custom YamlNodeTypeResolver must keep a leading-zero value as a string - "007" is not a valid JSON number, and real fixtures rely on this (e.g. SKUs, codes with leading zeros).

@@ -4,6 +4,8 @@ Provides Azure Service Bus publishing and subscriber hosting for the CoreEx even
 
 ## Publishing
 
+Use the configured `IEventPublisher` pipeline in every host/layer, including Functions and Infrastructure adapters. The default broker implementation is `ServiceBusPublisher`; preserve custom registered implementations/decorators and supported subscriber overrides. Configure formatter, destinations, content mode and `ConfigureMessage` before replacing behavior; the stock publisher is sealed. Direct publishing bypasses the outbox, not CoreEx. Raw `ServiceBusSender.SendMessageAsync`/`SendMessagesAsync`, output bindings or handwritten receive pipelines require a concrete documented requirement. Formatting with `ToServiceBusMessage` alone does not apply publisher session policies, callbacks or send handling.
+
 Register the publisher in `Program.cs`. When the outbox pattern is used (recommended), Service Bus is **not** the default `IEventPublisher` — the outbox publisher is. Pass `addAsDefaultIEventPublisher: false`.
 
 ```csharp
@@ -19,6 +21,8 @@ builder.Services.AddAzureServiceBusPublisher((_, c) =>
     c.SessionIdStrategy = ServiceBusSessionStrategy.UsePartitionKeyConvertedToAnId;
 });
 ```
+
+For a no-outbox app, including a standalone Function App, `AddAzureServiceBusPublisher` can register the default `IEventPublisher`. Add the command/event with `publisher.Add(destination, data)`, then await `publisher.PublishAsync(cancellationToken)`; adding alone does not send. No database or relay is required. Publishers retain their queued events and are single-use until `Reset()`; for per-row file forwarding, use the generated handler's fresh scope per unit rather than retaining one invocation-wide publisher or resetting a concurrently shared instance. Propagate ambiguous failures and retain stable IDs; neither direct publishing nor reset makes sends atomic or exactly-once.
 
 `SessionIdPartitionSize` can be configured independently with `CoreEx:Host:ServiceBus:SessionIdPartitionSize` (default: `PartitionKey.DefaultPartitionSize`). Exact destination names can override `SessionIdStrategy` and/or `SessionIdPartitionSize` under `CoreEx:Host:ServiceBus:Destinations:{destination}`. Prefer stable entity keys and tune bounded bucketing only where the ordering/concurrency profile warrants it. Do not reuse the relational outbox setting: direct Service Bus publishing can bypass the outbox, and the two sizes control separate ordering and concurrency boundaries.
 
@@ -82,6 +86,8 @@ Keyed subscribers are resolved in tests via `GetRequiredKeyedService<ServiceBusS
 
 ## Subscriber Classes
 
+Default to `ServiceBusSubscriberBase<TValue>` for one payload shape or `ServiceBusSubscribedSubscriber` for subject/source dispatch, preserving configured custom implementations and supported overrides. In Functions, retain the native trigger and call `subscriber.FunctionReceiveAsync`; do not register a competing receiver. A raw callback/SDK receive pipeline needs a concrete documented requirement, not simply a native payload or simple workload. The dispatched examples below apply only when dispatch is selected.
+
 Subscribers are decorated with `[Subscribe("subject")]` and extend `SubscribedBase` (untyped) or `SubscribedBase<TValue>` (typed payload). Register with `[ScopedService]`.
 
 ```csharp
@@ -112,11 +118,15 @@ public class OrderUpdatedSubscriber(IOrderService service) : SubscribedBase<Orde
 
 ## Error Handling
 
-For uniform native JSON, derive from `ServiceBusSubscriberBase<TValue>` rather than `SubscribedBase<TValue>`. Override `ValueValidator` and the typed `OnReceiveAsync(TValue value, ServiceBusReceivedMessage message, EventSubscriberArgs args, CancellationToken cancellationToken)`; no `[Subscribe]` attributes or manager are needed. Register through `.WithSubscriber<MySubscriber>()`, or inject into a Function and use `FunctionReceiveAsync`. The base bypasses CloudEvents entirely and preserves the original message metadata. Its constructor takes the logger only; the unused inherited formatter dependency is satisfied internally.
+For a uniform payload type, derive from `ServiceBusSubscriberBase<TValue>` rather than adding dispatch through `SubscribedBase<TValue>`. Override `ValueValidator` and the typed `OnReceiveAsync(TValue value, ServiceBusReceivedMessage message, EventSubscriberArgs args, CancellationToken cancellationToken)`; no `[Subscribe]` attributes or manager are needed. Register through `.WithSubscriber<MySubscriber>()`, or inject into a Function and use `FunctionReceiveAsync`. `DataRepresentation` lives on the non-generic base alongside `ContentMode` and defaults to `MessageRepresentation.CloudEvent` everywhere. CloudEvent mode uses the existing formatter/correlation/tenant pipeline and exposes the envelope through `args.CloudEvent`, preserving the original SDK message. Use the formatter-taking constructor for custom mappings, or the logger-only constructor for the default formatter. Explicitly set `DataRepresentation = MessageRepresentation.Native` for native JSON, including when upgrading existing native typed subscribers. Native mode bypasses CloudEvent processing; CloudEvent mode never falls back to native. Malformed envelope decoding uses `InvalidDataHandling` inside the classification boundary; configure application-specific envelope checks and validation/application error mappings deliberately.
+
+The logger-only constructor reuses a shared default formatter to avoid per-subscriber allocation. Do not mutate it through `Formatter`; supply a configured `IEventFormatter` using the formatter-taking constructor when customization is needed.
 
 All Service Bus subscribers enrich the host-owned activity from fixed transport properties `traceparent`/`tracestate`, falling back to Azure's `Diagnostic-Id`, independently of formatter-configured CloudEvent attribute names. Producer contexts already represented by local ancestry or links are not linked again. Malformed tracing metadata is ignored without changing settlement. Set `PropagateBaggage = true` only for trusted producers to import bounded W3C baggage; the default is false and existing baggage keys are preserved. Message/correlation/session IDs are diagnostic tags, not metric dimensions or authenticated identity.
 
 Choose `InvalidDataHandling` for malformed/null bodies separately from `ErrorHandler` mappings for validation/application failures. Defaults remain `CompleteAsError`, not dead-lettering. `ValueIsRequired` defaults to true; when overriding false, use nullable `TValue` for optional reference payloads. `JsonSerializerOptions` controls body deserialization; native payload tenant/authentication policy is application-owned.
+
+On a direct subscriber, optional `[Subscribe(title, source)]` rules match the decoded CloudEvent `type` and `source` before payload processing, with no `SubscribedManager`. Any matching rule admits the message; no rules means no restriction. Unmatched events default to `UnmatchedCloudEventHandling = ErrorHandling.DeadLetter`, separate from `InvalidDataHandling`. Do not declare `[Subscribe]` on a native-message subscriber.
 
 Use `ErrorHandler` on a subscriber to map specific exceptions to dead-letter, silent completion, or retry — no try/catch in subscriber code.
 

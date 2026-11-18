@@ -10,6 +10,10 @@
 
 Full workflow for adding or modifying a subscriber in a CoreEx Subscribe host.
 
+Reuse the configured CoreEx subscriber pipeline, including custom implementations/decorators and supported overrides, by default. Simple workloads and native payloads are not reasons to substitute a handwritten SDK receiver or callback; deviations require a concrete documented requirement.
+
+First distinguish a uniform-payload entity from subject/source dispatch. For one payload type, use `ServiceBusSubscriberBase<TValue>` with the existing `.WithSubscriber<TSubscriber>()` builder and no manager or `[Subscribe]` attributes. CloudEvents are the default through the inherited `DataRepresentation`; `ContentMode` selects binary/structured handling, and `args.CloudEvent` exposes metadata for contract checks. Select `MessageRepresentation.Native` explicitly for native JSON, including existing native typed subscribers when upgrading. Keep `ValueValidator`, `InvalidDataHandling` and `ErrorHandler` deliberate in either mode. The dispatched workflow below applies when subject/source routing is actually needed; do not introduce dispatch solely to consume a CloudEvent. Native Functions triggers use [coreex-functions](../../coreex-functions/SKILL.md), not a competing CoreEx receiver.
+
 ---
 
 ## Phase 1 — Clarify Before Writing

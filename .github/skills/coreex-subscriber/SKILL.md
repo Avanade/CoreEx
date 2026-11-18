@@ -50,13 +50,14 @@ There are three distinct subscriber scenarios — determine which applies before
 
 ## Quick Reference
 
+- **CoreEx subscribers are the default.** Use `ServiceBusSubscriberBase<TValue>` for one payload shape or `ServiceBusSubscribedSubscriber` with `SubscribedBase` handlers for subject/source dispatch. Preserve configured custom implementations and supported overrides. Raw receive pipelines/callbacks need a concrete documented requirement; native payloads do not require bypassing CoreEx. The dispatched-class rules below apply only when dispatch is selected.
 - **Choose settlement explicitly.** CoreEx defaults `ValidationException`/`BusinessException` to `CompleteAsError` (log, then complete/acknowledge the broker message), not retry or dead-letter. Invalid payloads also default to `CompleteAsError`. Confirm the intended disposition for business/validation failures and invalid payloads; do not silently rely on these defaults.
 - **Untyped subscriber** (`SubscribedBase`) — message carries data in the key only; extract with `@event.Key.Required()`
 - **Typed subscriber** (`SubscribedBase<TValue>`) — message carries a serialised payload; set `ValueValidator` to validate before `OnReceiveAsync`
 - Payload cleanup defaults off because events are generally canonical already, making it typically redundant (unlike WebApi request cleanup). `AutoCleanValue` on `SubscribedBase` is a nullable per-handler/message-type override: null inherits the owner's bool, true enables, false disables. Set it in the constructor only where the boundary owns normalization; see the [workflow](references/workflow.md#payload-cleanup-policy).
 - Do not use `[JsonRequired]` on subscriber payload contracts; use `ValueValidator` for required fields, with nullable properties when omission must be distinguished from a supplied default
-- `[ScopedService]` + one or more `[Subscribe("subject")]` attributes on every subscriber class
-- No `Program.cs` edit needed — `AddSubscribersUsing<T>()` discovers all `[Subscribe]`-decorated classes automatically
+- Dispatched handlers: `[ScopedService]` + one or more `[Subscribe("subject")]` attributes; typed uniform-payload subscribers need no dispatch attributes
+- Existing dispatch registration needs no `Program.cs` edit — `AddSubscribersUsing<T>()` discovers `[Subscribe]` handlers; uniform-payload subscribers use `.WithSubscriber<TSubscriber>()`
 - Subject format: `{solution}.{domain}.{entity}.{action}[.v{n}]` — include `.v{n}` only when the message carries a payload
 - `EventData.CreateCommand(...)` for commands; `EventData.CreateEvent(...)` / `new EventData().WithTitle(...)` for events
 - `ErrorHandler` for explicit completion/retry/dead-letter control — share the same static instance across related subscribers

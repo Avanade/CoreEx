@@ -4,6 +4,18 @@ namespace UnitTestEx;
 
 public static partial class UnitTestExExtensions
 {
+    /// <summary>Configures an action before each publication for non-HTTP tests, including Functions invocations.</summary>
+    /// <param name="tester">The owning tester.</param>
+    /// <param name="serviceKey">The registered publisher key.</param>
+    /// <param name="action">The action, which can count attempts or throw to simulate a publication failure.</param>
+    /// <returns>The owning tester.</returns>
+    /// <remarks>For Functions, create the trigger tester first, then register the action on the owning tester before running the trigger. Creating a trigger tester resets shared state, including existing hooks. Use the HTTP tester overload for request-specific hooks.</remarks>
+    public static TesterBase OnEventPublish(this TesterBase tester, string serviceKey, Action action)
+    {
+        tester.ThrowIfNull().SharedState.RequestStateData(null)[$"_{nameof(EventPublisherDecorator)}_{serviceKey.ThrowIfNullOrEmpty()}"] = action.ThrowIfNull();
+        return tester;
+    }
+
     /// <summary>
     /// Replaces the registered <see cref="IEventPublisher"/> with a decorator (<see cref="EventPublisherDecorator"/>) that also captures the published events for expectation assertions.
     /// </summary>

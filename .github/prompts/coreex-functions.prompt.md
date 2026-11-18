@@ -12,4 +12,6 @@ description: "Add or modify a CoreEx Azure Functions capability and its UnitTest
 
 Read `.github/skills/coreex-functions/SKILL.md` and follow its authoritative workflow. Resolve the existing host and shared-core/standalone shape before asking only unresolved behavioral questions. Do not scaffold another host or invent trigger/retry abstractions.
 
+For Service Bus, use the configured CoreEx publisher/subscriber pipeline by default, preserving custom implementations and supported overrides; native trigger ownership and direct/no-outbox publishing do not mean raw SDK processing.
+
 ${input}

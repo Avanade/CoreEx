@@ -18,7 +18,7 @@ Every error outcome in the pipeline — transient retry, dead-letter, silent com
 
 When enabled, typed payloads are cleaned once per deserialization with the same `RuntimeMetadata.Clean(value, CleanArgs.Default)` operation as WebApi, before required-value checks, `ValueValidator` and the receive handler. A whitespace-only scalar string can therefore become null and fail `ValueIsRequired`. Root/nested objects are not collapsed to default; normal scalar cleanup, exclusions and read-only rules still apply. The original serialized data, envelope metadata, keys and key-only handlers are not modified. Cleanup exceptions use normal receive error handling, not the malformed/missing-data policy. Deserialization is repeated on a redelivery or processing retry; this is not a once-per-message lifetime guarantee.
 
-Native JSON `ServiceBusSubscriberBase<TValue>` uses the inherited non-nullable `AutoCleanValue` switch with the same default and ordering. The original SDK message body and transport metadata remain unchanged. No broker retry or settlement policy is changed by opting in.
+`ServiceBusSubscriberBase<TValue>` uses the inherited non-nullable `AutoCleanValue` switch with the same default and ordering for both CloudEvent and explicitly selected native JSON representation. The original SDK message body and transport metadata remain unchanged. No broker retry or settlement policy is changed by opting in.
 
 ## Key capabilities
 

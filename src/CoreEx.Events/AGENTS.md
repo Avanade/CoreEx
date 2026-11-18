@@ -43,7 +43,7 @@ Native Service Bus Subject comes from formatted Title via CloudEvent `type`; the
 
 ## IEventPublisher Registration
 
-`IEventPublisher` is registered by the database outbox publisher in API/application hosts and by Azure Service Bus in relay hosts.
+`IEventPublisher` is registered by the database outbox publisher in outbox-backed application hosts and by Azure Service Bus in relay or no-outbox hosts, including Functions. Preserve configured custom implementations/decorators. Direct publishing still uses the CoreEx pipeline: add the command/event, then await `PublishAsync(cancellationToken)`; adding alone does not send. Raw SDK sending is not the default substitute for an outbox-free flow. Publishers retain queued messages and are single-use until reset; per-unit file forwarding should use each fresh handler scope, not an unbounded shared publisher.
 
 ```csharp
 // API host — outbox is the publisher; Service Bus is wired separately with addAsDefaultIEventPublisher: false
@@ -66,6 +66,8 @@ From 4.4, ambient baggage capture and incoming baggage propagation are separate 
 ## Subscribers
 
 Subscriber dispatch is handled by `SubscribedManager`. Subscriber classes are marked `[Subscribe("subject")]` and discovered automatically by `AddSubscribersUsing<T>()`.
+
+Separately, direct subscribers deriving from `EventSubscriberBase` can declare `[Subscribe(type, source)]` to check a decoded CloudEvent before formatter conversion. Any one rule must match both fields; no rules means no restriction. The base caches rules per concrete type and classifies a mismatch using `UnmatchedCloudEventHandling` (default `DeadLetter`). Transports own decoding and settlement.
 
 Payload cleanup is opt-in: `EventSubscriberBase.AutoCleanValue` defaults false because published events are generally canonical already, making receive cleanup typically redundant (unlike default-on WebApi request cleanup). `SubscribedBase.AutoCleanValue` is a per-handler/message-type nullable override: null inherits the owner, true enables and false disables. Assign it in the handler constructor, not by modifying a global payload-type registration. All subjects on that handler share the setting; separate handlers can differ even with the same payload CLR type. Enabled cleanup uses `CleanArgs.Default` after deserialization and before required checks/validation/handling, without collapsing root/nested objects or altering serialized envelopes, keys or metadata. Cleanup errors follow normal receive error handling. See [cleanup policy](./Subscribing/README.md#optional-payload-cleanup).
 

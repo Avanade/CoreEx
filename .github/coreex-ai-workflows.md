@@ -104,7 +104,7 @@ Seventeen skills add or modify a single CoreEx capability on an existing solutio
 | [`coreex-api`](./skills/coreex-api/) | API controller / endpoint |
 | [`coreex-graphql`](./skills/coreex-graphql/) | GraphQL-lite query bridge (`CoreEx.Data.GraphQL`) on an API host |
 | [`coreex-functions`](./skills/coreex-functions/) | Native HTTP/Service Bus/Blob/Timer capabilities and UnitTestEx tests; shared-core or standalone Functions hosts |
-| [`coreex-file`](./skills/coreex-file/) | Flat, unordered or hierarchical CSV definition, generated processor, scoped handler and immutable source adapter |
+| [`coreex-file`](./skills/coreex-file/) | CSV flat/routed/hierarchical or nested JSONL definition, generated processor, scoped handler and immutable source adapter |
 | [`coreex-subscriber`](./skills/coreex-subscriber/) | Event or command subscriber |
 | [`coreex-test-api`](./skills/coreex-test-api/) | API tests |
 | [`coreex-test-subscribe`](./skills/coreex-test-subscribe/) | Subscriber tests |

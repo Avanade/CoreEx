@@ -72,7 +72,7 @@ We understand there is more work to be performed in generating a higher level of
 
 ### Continuous integration
 
-The [CI workflow](.github/workflows/CI.yml) runs core validation, sample tests for each of .NET 8/9/10, sample Aspire E2E tests, Functions runtime proofs, and template validation as independent jobs on GitHub-hosted runners. Each infrastructure-dependent job owns its own Docker containers, networks, volumes, and test data; sample integration projects remain sequential within each framework job because they reset shared infrastructure. Sample E2E starts and seeds its own infrastructure rather than depending on prior sample tests.
+The [CI workflow](.github/workflows/CI.yml) runs core validation, sample tests for each of .NET 8/9/10/11, sample Aspire E2E tests, Functions runtime proofs, and template validation as independent jobs on GitHub-hosted runners. Each infrastructure-dependent job owns its own Docker containers, networks, volumes, and test data; sample integration projects remain sequential within each framework job because they reset shared infrastructure. Sample E2E starts and seeds its own infrastructure rather than depending on prior sample tests.
 
 Core and sample jobs upload uniquely named test results and raw coverage artifacts. A separate job merges coverage, and the final `build` status requires every validation job and coverage aggregation to succeed; failed, cancelled, or unexpectedly skipped jobs cannot produce a successful gate. Re-run the failing job when investigating an isolated failure rather than repeating every suite. Asynchronous E2E effects must use bounded polling with diagnostic timeout failures, not fixed sleeps or assumptions that replication has finished.
 

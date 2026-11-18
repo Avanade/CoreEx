@@ -137,6 +137,13 @@ public abstract class TimerHostedServiceBase : HostedServiceBase
         _backgroundCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         await OnStartingAsync(_backgroundCts.Token).ConfigureAwait(false);
 
+        // Publish the runnable state before launching; an early tick while Starting would otherwise wait indefinitely for a signal.
+        lock (SyncLock)
+        {
+            if (Status == ServiceStatus.Starting)
+                Status = ServiceStatus.Sleeping;
+        }
+
         // Start the background loop.
         _backgroundTask = Task.Run(async () =>
         {

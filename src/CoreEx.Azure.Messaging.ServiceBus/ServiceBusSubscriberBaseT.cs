@@ -1,15 +1,24 @@
 namespace CoreEx.Azure.Messaging.ServiceBus;
 
 /// <summary>
-/// Receives native JSON messages with automatic deserialization, optional validation and standardized error handling.
+/// Receives a uniform payload from native JSON or CloudEvent messages with automatic deserialization, optional validation and standardized error handling.
 /// </summary>
 /// <typeparam name="TValue">The message body type.</typeparam>
-/// <param name="logger">The subscriber logger.</param>
-/// <remarks>No CloudEvent conversion or subject dispatch occurs. Settlement remains the receiving host's responsibility.</remarks>
-public abstract class ServiceBusSubscriberBase<TValue>(ILogger<ServiceBusSubscriberBase> logger) : ServiceBusSubscriberBase(logger)
+/// <remarks>Defaults to CloudEvent processing. Native JSON requires <see cref="ServiceBusSubscriberBase.DataRepresentation"/> to be explicitly set to <see cref="MessageRepresentation.Native"/>. No subject dispatch occurs. Settlement remains the receiving host's responsibility.</remarks>
+public abstract class ServiceBusSubscriberBase<TValue> : ServiceBusSubscriberBase
 {
-    /// <inheritdoc/>
-    protected sealed override bool UsesCloudEventCorrelation => false;
+    /// <summary>
+    /// Initializes a subscriber using the default event formatter without requiring formatter registration.
+    /// </summary>
+    /// <param name="logger">The subscriber logger.</param>
+    protected ServiceBusSubscriberBase(ILogger<ServiceBusSubscriberBase> logger) : base(logger) { }
+
+    /// <summary>
+    /// Initializes a subscriber using the specified event formatter.
+    /// </summary>
+    /// <param name="formatter">The event formatter used for CloudEvent processing.</param>
+    /// <param name="logger">The subscriber logger.</param>
+    protected ServiceBusSubscriberBase(IEventFormatter formatter, ILogger<ServiceBusSubscriberBase> logger) : base(formatter, logger) { }
 
     /// <summary>
     /// Indicates whether the deserialized value is required.
@@ -25,28 +34,38 @@ public abstract class ServiceBusSubscriberBase<TValue>(ILogger<ServiceBusSubscri
 
     /// <inheritdoc/>
     protected sealed override Task<Result> OnReceiveMessageAsync(ServiceBusReceivedMessage message, EventSubscriberArgs args, CancellationToken cancellationToken = default)
-        => ReceiveWrapperAsync(args, async () =>
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            var result = DeserializeValue(message);
-            if (result.IsFailure)
-                return result.AsResult();
-
-            var validator = ValueValidator;
-            if (validator is not null)
+        => DataRepresentation == MessageRepresentation.CloudEvent
+            ? base.OnReceiveMessageAsync(message, args, cancellationToken)
+            : ReceiveWrapperAsync(args, async () =>
             {
-                var validation = await validator.ValidateAsync(result.Value, cancellationToken).ConfigureAwait(false);
-                if (validation.HasErrors)
-                    return validation.ToResult();
-            }
-
-            cancellationToken.ThrowIfCancellationRequested();
-            return await OnReceiveAsync(result.Value, message, args, cancellationToken).ConfigureAwait(false);
-        }, cancellationToken);
+                cancellationToken.ThrowIfCancellationRequested();
+                return await ReceiveValueAsync(DeserializeValue(message), message, args, cancellationToken).ConfigureAwait(false);
+            }, cancellationToken);
 
     /// <inheritdoc/>
     protected sealed override Task<Result> OnReceiveAsync(EventData @event, EventSubscriberArgs args, CancellationToken cancellationToken)
-        => throw new NotSupportedException("Native JSON subscribers receive ServiceBusReceivedMessage, not EventData.");
+        => ReceiveValueAsync(DeserializeValue<TValue>(@event, ValueIsRequired), args.Message, args, cancellationToken);
+
+    /// <summary>
+    /// Validates the deserialized payload and invokes the typed handler for either representation.
+    /// </summary>
+    private async Task<Result> ReceiveValueAsync(Result<TValue> result, ServiceBusReceivedMessage message, EventSubscriberArgs args, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (result.IsFailure)
+            return result.AsResult();
+
+        var validator = ValueValidator;
+        if (validator is not null)
+        {
+            var validation = await validator.ValidateAsync(result.Value, cancellationToken).ConfigureAwait(false);
+            if (validation.HasErrors)
+                return validation.ToResult();
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+        return await OnReceiveAsync(result.Value, message, args, cancellationToken).ConfigureAwait(false);
+    }
 
     /// <summary>
     /// Processes the deserialized and validated message body.
@@ -56,6 +75,7 @@ public abstract class ServiceBusSubscriberBase<TValue>(ILogger<ServiceBusSubscri
     /// <param name="args">The subscriber arguments.</param>
     /// <param name="cancellationToken">The receive cancellation token.</param>
     /// <returns>The processing result.</returns>
+    /// <remarks>In CloudEvent mode, <see cref="EventSubscriberArgs.CloudEvent"/> contains the decoded envelope. The original transport message is preserved in both modes.</remarks>
     protected abstract Task<Result> OnReceiveAsync(TValue value, ServiceBusReceivedMessage message, EventSubscriberArgs args, CancellationToken cancellationToken = default);
 
     /// <summary>

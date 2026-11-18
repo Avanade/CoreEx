@@ -67,15 +67,16 @@ Outbox vs direct:
 | Path | Inject | Use |
 |---|---|---|
 | **Outbox** (default) | `IEventPublisher` | The command is part of the unit of work: committed with the DB write or not at all. |
-| **Direct** | `[FromKeyedServices("AzureServiceBus")] IEventPublisher` | Compensation after a failure where the transaction has already rolled back; publish, then `PublishAsync(CancellationToken.None)` so cancellation of the request doesn't abandon the undo. |
+| **Direct, no outbox** | Default `IEventPublisher` backed by `ServiceBusPublisher` or the configured custom publisher | Add the command, then await `PublishAsync(cancellationToken)`. No database/unit of work is required just to send. |
+| **Direct alongside an outbox** | `[FromKeyedServices("AzureServiceBus")] IEventPublisher` (or the configured broker key) | Explicitly bypass the outbox, for example compensation after rollback. Only a deliberate compensation policy uses `CancellationToken.None`; normal direct sends use the operation token. |
 
-Never call `ServiceBusSender`/`HttpClient` directly from a service.
+Direct means bypassing the outbox, not CoreEx. This applies to adapters and messaging clients too, not only services: do not format a CloudEvent and call `ServiceBusSender` as a substitute for `ServiceBusPublisher`. Preserve custom publisher implementations/decorators and supported overrides; use configuration/`ConfigureMessage` before replacing behavior. Raw SDK sending requires a concrete documented requirement. Never call `HttpClient` directly from a service.
 
 For an explicitly native external contract, create the command normally and apply `.AsNative()`; do not replace command intent with a new raw/native message type. The target queue and transactional path stay unchanged. Choose JSON versus opaque bytes deliberately and use shared string Attributes for custom headers. Follow [native publishing](/.github/instructions/coreex-application-services.instructions.md#native-message-publishing) and [final-host customization](/.github/instructions/coreex-host-setup.instructions.md#native-publishing-configuration).
 
 ### Step 2 — Call site (`coreex-app-service`)
 
-Invoke [`coreex-app-service`](../coreex-app-service/SKILL.md). Call the adapter **inside** `_unitOfWork.TransactionAsync(...)` alongside the mutation, so the outbox row and the data commit atomically. Do not publish the command before the transaction, nor after it (loses atomicity). The compensating path sits in the failure branch, outside the (rolled-back) transaction.
+Invoke [`coreex-app-service`](../coreex-app-service/SKILL.md). When using an outbox, call the adapter **inside** `_unitOfWork.TransactionAsync(...)` alongside the mutation, so the outbox row and the data commit atomically. Do not publish the command before the transaction, nor after it (loses atomicity). The compensating path sits in the failure branch, outside the (rolled-back) transaction. Without an outbox, call the direct-publishing adapter from the application operation or scoped file handler and await publication; do not fabricate a unit of work. For per-row Functions publishing, use the [fresh-scope pattern](../../coreex-functions/references/patterns.md#direct-service-bus-publishing-no-outbox).
 
 ### Step 3 — Service Bus topology (inline)
 

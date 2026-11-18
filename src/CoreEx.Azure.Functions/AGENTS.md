@@ -31,6 +31,8 @@ builder.Build().Run();
 
 Host settings must be configured; imports belong in `GlobalUsing.cs`. Register application/local handlers and their dependencies only when required. An empty host does not need MVC, health functions or speculative dependency wiring.
 
+Prefer Aspire client integrations for worker-owned Blob, Service Bus, database and cache clients; they require no AppHost and retain CoreEx behavior above the client. Explicitly align their named configuration with the separate Functions binding app settings. Native trigger-supplied clients and intentional custom registrations remain valid.
+
 `webApi.FunctionWithIdempotencyAsync(request, ct => webApi.PostAsync(..., cancellationToken: ct), isRequired: true, cancellationToken: cancellationToken)` wraps a deferred operation with the supplied WebApi instance and an explicitly registered `IIdempotencyProvider`. Configure its cache as usual; nothing selects a cache automatically.
 
 The helper renders inside the capture boundary and returns `EmptyResult`; return it directly. Worker middleware around `next(context)` or `[IdempotencyKey]` alone does not capture the later ASP.NET proxy rendering. Do not use this helper for streaming, extra HTTP output bindings or already-started responses.
@@ -39,16 +41,21 @@ Existing policies apply: required/invalid key 400, overlapping duplicate 409, di
 
 ## Service Bus
 
+CoreEx messaging is the default even for simple Functions workloads. Publish through the configured `IEventPublisher` backed by `ServiceBusPublisher` or outbox; direct means bypassing the outbox, not CoreEx. With no outbox, register the broker publisher as default, add each command/event and await `PublishAsync(cancellationToken)`. For generated file forwarding, resolve the publisher in each fresh unit-handler scope; it retains queued messages and is single-use until reset, so do not capture one for the entire file. See the [Service Bus guide](../CoreEx.Azure.Messaging.ServiceBus/README.md).
+
+Preserve configured custom publisher/subscriber implementations, decorators and supported overrides; configuration and `ConfigureMessage` are valid customization points, not reasons to recreate the pipeline. Default receiving to the typed/dispatched subscriber overload below. Raw SDK sends/output bindings or custom callbacks need a concrete documented requirement. Native trigger ownership and explicit native representation do not imply bypassing CoreEx messaging.
+
 Both `subscriber.FunctionReceiveAsync(message, actions, entityPath, ..., cancellationToken)` and `actions.FunctionReceiveAsync(message, entityPath, handler, ..., cancellationToken)` require `AutoCompleteMessages = false`.
 
-Use `ServiceBusSubscribedSubscriber` for CloudEvents dispatch; use `ServiceBusSubscriberBase<T>` for uniform JSON with validation/error classification, without CloudEvents/subject routing. A native callback owns parsing, logging and classification. Choose poison policy explicitly: default validation/business handling can complete as error rather than dead-letter. Set typed subscriber `InvalidDataHandling` and `ErrorHandler` to the intended dispositions.
+Use `ServiceBusSubscribedSubscriber` when CloudEvents need subject/source dispatch. For a uniform payload, use `ServiceBusSubscriberBase<T>` with validation/error classification and no dispatcher. Both subscriber bases default to `MessageRepresentation.CloudEvent` through the inherited `DataRepresentation` property; binary/structured handling uses `ContentMode`, and `args.CloudEvent` exposes the decoded envelope. Explicitly select `DataRepresentation = MessageRepresentation.Native` for direct native JSON; existing native typed subscribers need this opt-in when upgrading. A callback owns parsing, logging and classification. Choose poison policy explicitly: default invalid-envelope/payload and validation/business handling can complete as error rather than dead-letter. Set typed subscriber `InvalidDataHandling` and `ErrorHandler` to the intended dispositions.
 
 | Outcome | Bridge behavior |
 |---|---|
 | Success / classified complete | Complete once. |
 | Retry | Abandon once, no processing retry loop. |
 | DeadLetter | Dead-letter once with bounded metadata. |
-| Unclassified / catastrophic failure | Propagate original error, no bridge settlement. Catastrophic does not pause the listener. |
+| Unclassified (`ErrorHandling.None`) | Fail the invocation without bridge settlement; subscriber classification preserves the original error as the inner exception. Use for unexpected or operational failures. |
+| `Catastrophic` | Fail the invocation without bridge settlement; does not stop the worker or pause the Functions listener. Reserve for deliberate escalation, not as the fallback for non-retryable errors. |
 | Invocation cancellation | Propagate, no bridge settlement. |
 | Settlement failure | Propagate, no second settlement attempt. |
 
@@ -62,6 +69,8 @@ Prefer a Subscribe host when receiver-level backpressure, circuit-breaker pause/
 
 Use native binding extensions and SDK types. No CoreEx Blob base class, synthetic CloudEvents wrapper or competing timer scheduler is required. Configure binding/entity/schedule connections as Functions host settings; worker `appsettings.json` alone is not sufficient.
 
+For replayable file input and streamed reports, explicitly reference the optional host-neutral `CoreEx.Azure.Storage.Blobs` package. `BlobReadSource.CreateAsync` captures the revision and credential-free URI; pass `source.OpenReadAsync` to CoreEx.IO. Use `BlobJsonlReport` for create-only JSONL output with explicit completion and keep file-specific diagnostic/summary shapes in a thin adapter. Failed/ambiguous writes propagate and fault the report instance; a new attempt is required, not blind append retries. Native triggers, container provisioning, admission/retention and business idempotency stay outside this package.
+
 Separate explicit content rejection from operational failure. Preserve cancellation and let failed I/O propagate. A BlobClient sees the current object, not necessarily an event's historical revision; use conditional ETag reads or versions/snapshots when needed. Deterministic outputs aid replay but do not make Blob-to-Service-Bus sends transactional. Output bindings are not an outbox.
 
 Blob poison queues, Timer retry behavior, Event Grid retries and Service Bus broker delivery limits are different mechanisms. Do not promise uniform retries or exactly-once. Provision output containers/subscriptions separately.
@@ -70,8 +79,10 @@ For schema-defined CSV, use File CodeGen rather than hand-authoring wire models,
 
 ## Testing and discovery
 
-Use UnitTestEx 6 `FunctionTester.Create<TFunction>()` against the real host; `HttpTrigger<T>()` / `Trigger<T>()` run worker composition and middleware. Deferred results use `ToHttpResponseMessageAssertor(request)`. Eager idempotency output uses `SnapshotHttpResponse(response)` with a caller-owned readable/seekable response buffer; it preserves stream ownership/position and does not execute the result again.
+Use UnitTestEx 7 `FunctionTester.Create<TFunction>()` against the real host; `HttpTrigger<T>()` / `Trigger<T>()` run worker composition and middleware. Deferred results use `ToHttpResponseMessageAssertor(request)`. Eager idempotency output uses `SnapshotHttpResponse(response)` with a caller-owned readable/seekable response buffer; it preserves stream ownership/position and does not execute the result again.
 
-Test exact outcomes, error/cancellation propagation and settlement actions/counts. Invocation tests do not prove bindings, broker redelivery, authorization or cloud provisioning. Core Tools/Aspire runtime tests exercise those boundaries locally; simulated Azurite Event Grid notifications do not prove Azure subscriptions or authentication.
+Consumer tests should assert application rules, mappings, outcomes and selected failure/settlement policies, not every CoreEx parser, transport or SDK permutation. Reuse publisher expectations (pass-through by default; explicit bypass avoids the broker), non-HTTP `OnEventPublish` hooks, and `CoreEx.UnitTesting.Blobs` fixtures rather than recreating protocol simulators. Pure file processors can use immutable bytes and fresh streams. Framework behavior changes still require focused regression tests here.
+
+Invocation tests do not prove bindings, broker redelivery, authorization or cloud provisioning. Retain representative Core Tools/Aspire runtime evidence for those local boundaries; simulated Azurite Event Grid notifications do not prove Azure subscriptions or authentication.
 
 For creation/modification use `/coreex-functions`; for the empty host use `/coreex-scaffold`. Scoped Functions instructions and the skill ship in the same version-pinned AI bundle as this guide.

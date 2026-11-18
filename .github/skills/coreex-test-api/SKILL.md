@@ -15,9 +15,7 @@ tags: ["testing", "integration-tests", "api", "unittestex", "coreex"]
 
 # CoreEx: API Integration Test
 
-Guides you through writing or extending `*.Test.Api` integration tests — the real host, real DB, real
-cache, real outbox, over `WithApiTester<{Solution}.Api.Program>`. This is the canonical integration-test
-setup shared with Subscribe host tests (`coreex-test-subscribe` links back here for the common parts).
+Guides you through writing or extending `*.Test.Api` integration tests — the real host, real DB, real cache, real outbox, over `WithApiTester<{Solution}.Api.Program>`. UnitTestEx 7 detects NUnit without a separate framework adapter package. This is the canonical integration-test setup shared with Subscribe host tests (`coreex-test-subscribe` links back here for the common parts).
 
 ## When to Use
 

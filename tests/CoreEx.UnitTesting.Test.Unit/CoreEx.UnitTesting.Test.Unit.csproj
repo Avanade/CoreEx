@@ -10,19 +10,24 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Fixtures\catalog-valid.csv" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="coverlet.collector" />
     <PackageReference Include="AwesomeAssertions" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="NUnit" />
     <PackageReference Include="NUnit.Analyzers" />
     <PackageReference Include="NUnit3TestAdapter" />
-    <PackageReference Include="UnitTestEx.NUnit" />
+    <PackageReference Include="UnitTestEx" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\CoreEx.UnitTesting\CoreEx.UnitTesting.csproj" />
     <ProjectReference Include="..\..\src\CoreEx\CoreEx.csproj" />
     <ProjectReference Include="..\..\src\CoreEx.Events\CoreEx.Events.csproj" />
+    <ProjectReference Include="..\..\src\CoreEx.Azure.Storage.Blobs\CoreEx.Azure.Storage.Blobs.csproj" />
     <ProjectReference Include="..\..\src\CoreEx.Validation\CoreEx.Validation.csproj" />
     <ProjectReference Include="..\CoreEx.AspNetCore.Test.Api\CoreEx.AspNetCore.Test.Api.csproj" />
   </ItemGroup>

@@ -5,6 +5,8 @@
     <LangVersion>preview</LangVersion>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
+    <SignAssembly>true</SignAssembly>
+    <AssemblyOriginatorKeyFile>../../strong-name-key.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="coverlet.collector" />
@@ -13,7 +15,7 @@
     <PackageReference Include="NUnit" />
     <PackageReference Include="NUnit.Analyzers" />
     <PackageReference Include="NUnit3TestAdapter" />
-    <PackageReference Include="UnitTestEx.NUnit" />
+    <PackageReference Include="UnitTestEx" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\CoreEx.IO\CoreEx.IO.csproj" />

@@ -715,6 +715,8 @@ Both modes follow effective MSBuild package policy: central versions when `Manag
 
 `--test-common-project` wires an explicitly selected common library into the test project only. `/coreex-scaffold` discovers it and supplies the relative path for newly generated tests; existing test projects use `dotnet add <test-project> reference <common-project>`. Creating Test.Common or registering it in `.slnx` does not add a ProjectReference automatically.
 
+When the SDK supports `--include-references`, pass `--include-references false` when registering projects whose dependencies are already in the solution. .NET 11 otherwise recursively adds references and may collide with the existing Test.Common project.
+
 `local.settings.json` contains only `FUNCTIONS_WORKER_RUNTIME=dotnet-isolated`, is ignored by Git and is never published. Add required binding settings and storage configuration when choosing actual triggers; no emulator or secret is assumed. The worker's `appsettings.json` is not a replacement for Functions host/listener app settings.
 
 ### Examples
@@ -726,10 +728,10 @@ dotnet new coreex-functions -n Avanade.Erp.Sales.Functions
 # A second independently deployable app sharing those same layers.
 dotnet new coreex-functions -n Avanade.Erp.Sales.Imports.Functions --solution-name Avanade.Erp.Sales
 
-dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Functions --solution-folder hosts
-dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Imports.Functions --solution-folder hosts
-dotnet sln Avanade.Erp.Sales.slnx add tests/Avanade.Erp.Sales.Test.Functions --solution-folder tests
-dotnet sln Avanade.Erp.Sales.slnx add tests/Avanade.Erp.Sales.Imports.Test.Functions --solution-folder tests
+dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Functions --solution-folder hosts --include-references false
+dotnet sln Avanade.Erp.Sales.slnx add src/Avanade.Erp.Sales.Imports.Functions --solution-folder hosts --include-references false
+dotnet sln Avanade.Erp.Sales.slnx add tests/Avanade.Erp.Sales.Test.Functions --solution-folder tests --include-references false
+dotnet sln Avanade.Erp.Sales.slnx add tests/Avanade.Erp.Sales.Imports.Test.Functions --solution-folder tests --include-references false
 dotnet build tests/Avanade.Erp.Sales.Test.Functions
 dotnet build tests/Avanade.Erp.Sales.Imports.Test.Functions
 ```
@@ -739,8 +741,8 @@ Standalone integration with a repository/test baseline (no full `coreex` scaffol
 ```sh
 dotnet new coreex-solution -n Avanade.Integration
 dotnet new coreex-functions -n Avanade.Integration.Imports.Functions --shared-core false --test-common-project "..\Avanade.Integration.Test.Common\Avanade.Integration.Test.Common.csproj"
-dotnet sln Avanade.Integration.slnx add src/Avanade.Integration.Imports.Functions --solution-folder hosts
-dotnet sln Avanade.Integration.slnx add tests/Avanade.Integration.Imports.Test.Functions --solution-folder tests
+dotnet sln Avanade.Integration.slnx add src/Avanade.Integration.Imports.Functions --solution-folder hosts --include-references false
+dotnet sln Avanade.Integration.slnx add tests/Avanade.Integration.Imports.Test.Functions --solution-folder tests --include-references false
 dotnet build tests/Avanade.Integration.Imports.Test.Functions
 # Add real functions and their tests before running the test project.
 ```

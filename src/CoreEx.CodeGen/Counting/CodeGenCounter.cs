@@ -15,8 +15,7 @@ internal class CodeGenCounter(CodeGeneratorArgs args)
         if (!args.OutputDirectory.Exists)
             throw new DirectoryNotFoundException($"The specified output directory '{args.OutputDirectory.FullName}' does not exist.");
 
-        var countDir = args.OutputDirectory.Parent ?? args.OutputDirectory;
-        countDir = countDir.Parent ?? countDir;
+        var countDir = CodeGenDirectoryWalker.GetSolutionDirectory(args.OutputDirectory);
 
         args.Logger.LogInformation("{Content}", $"Counting: {countDir.FullName}");
         args.Logger.LogInformation("{Content}", $"Include: {string.Join(", ", _countExtensions)}");
@@ -41,13 +40,8 @@ internal class CodeGenCounter(CodeGeneratorArgs args)
     /// </summary>
     private static void CountDirectoryAndItsChildren(DirectoryCountStatistics dcs)
     {
-        foreach (var di in dcs.Directory.EnumerateDirectories())
-        {
-            if (di.Name.Equals("obj", StringComparison.InvariantCultureIgnoreCase) || di.Name.Equals("bin", StringComparison.InvariantCultureIgnoreCase) || di.Name.StartsWith('.'))
-                continue;
-
+        foreach (var di in CodeGenDirectoryWalker.EnumerateIncludedDirectories(dcs.Directory))
             CountDirectoryAndItsChildren(dcs.AddChildDirectory(di));
-        }
 
         foreach (var fi in dcs.Directory.EnumerateFiles())
         {

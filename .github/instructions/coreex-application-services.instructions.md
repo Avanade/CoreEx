@@ -1,5 +1,5 @@
 ---
-applyTo: "**/Application/**/*.cs"
+applyTo: "**/Application/**/*.cs,**/*.Application/**/*.cs"
 description: "Application service conventions: ScopedService registration, dependency injection, validation, unit of work, CQRS, policies, adapters, and Result<T> pipelines"
 tags: ["services", "application-layer", "dependency-injection", "validation", "unit-of-work", "cqrs", "policies", "adapters"]
 ---
@@ -277,7 +277,7 @@ return await _unitOfWork.TransactionAsync(async ct =>
 }, cancellationToken).ConfigureAwait(false);
 ```
 
-**When eventing is enabled, every mutating operation must publish its event inside the transaction.** `Create`, `Update`, and `Delete` each add their event (`EventAction.Created` / `Updated` / `Deleted`) via `_unitOfWork.Events.Add(...)` within the `TransactionAsync` scope — a transaction that writes but adds no event is a bug. (Eventing is enabled when the solution was scaffolded with it, or whenever the domain publishes domain events; if a domain is genuinely event-free, omit it.)
+**When a local mutation and its event must commit atomically, record the event in the transactional outbox.** An event-producing `Create`, `Update`, or `Delete` adds its event via `_unitOfWork.Events.Add(...)` within the same `TransactionAsync` scope as the write. A forwarding-only operation with no local mutation can await the configured direct `IEventPublisher` and must tolerate duplicates; it does not need a database or unit of work.
 
 ```csharp
 // ❌ Wrong — writes inside the transaction but never adds the event
@@ -325,7 +325,9 @@ public async Task DeleteAsync(string id, CancellationToken cancellationToken = d
 
 ## Native Message Publishing
 
-CloudEvent is the default wire representation. When an external contract explicitly requires a payload-only body, use `EventData.CreateNativeWith(value)` for JSON, `CreateNativeWithData(BinaryData)` for exact bytes, or `.AsNative()` on an existing event/command. Representation is independent of `MessageType`: preserve command intent and normal destination routing. Native messages use the same publisher and transactional outbox; changing representation does not change atomicity or justify publishing outside the transaction.
+Use the configured `IEventPublisher`/unit-of-work event queue or an application adapter backed by it, not raw SDK sends. With no outbox, direct publishing still uses CoreEx `ServiceBusPublisher` or the configured custom implementation and awaits `PublishAsync(cancellationToken)`; do not introduce a database/outbox merely to publish. Preserve custom registrations, decorators and supported overrides. See the [Service Bus guide](/.github/docs/coreex/agents/CoreEx.Azure.Messaging.ServiceBus.md#publishing).
+
+CloudEvent is the default wire representation. When an external contract explicitly requires a payload-only body, use `EventData.CreateNativeWith(value)` for JSON, `CreateNativeWithData(BinaryData)` for exact bytes, or `.AsNative()` on an existing event/command. Representation is independent of `MessageType`: preserve command intent and normal destination routing. Native messages use the same publishing pipeline; changing the representation does not change whether the workload requires a transactional outbox.
 
 Prefer CloudEvents for CoreEx-to-CoreEx messaging: both structured and binary modes support `SubscribedManager`/`[Subscribe]` dispatch. If only the JSON envelope is unwanted, binary CloudEvents already send the payload as the body while retaining CE metadata in broker properties. Native is for contracts that cannot or must not carry CE metadata, not a shortcut to a payload-only body; it bypasses normal CloudEvent dispatch and requires a native-compatible consumer. Before selecting native, verify the receiver contract and why binary CloudEvents are unsuitable; ask the user only when that requirement is unresolved. Do not change the existing content mode merely because binary is supported.
 
@@ -591,7 +593,7 @@ Always call `.ConfigureAwait(false)` on every `await` inside service and reposit
 
 ## Do Not
 
-- Do not publish events outside of `_unitOfWork.TransactionAsync(...)` — events must be committed atomically with the database write.
+- Do not send directly to the broker when an event must commit atomically with a database write. Record it in the outbox inside `_unitOfWork.TransactionAsync(...)`.
 - Do not put **query/collection or read-model** operations in `XxxService`, nor mutating operations in `XxxReadService` — queries belong in `XxxReadService`. (A primary by-id `GetAsync` legitimately appears on **both**: the write service uses it to support its own mutations, e.g. the PATCH pre-get.)
 - Do not split the repository to mirror the CQRS services — both share one `IXxxRepository` per data source; add another repository only for a genuinely different data source.
 - Do not call `HttpClient` directly from services — always go through an adapter interface.

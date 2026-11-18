@@ -21,7 +21,6 @@ public class QueryFilterParserTests
     [TestCase("age le 100", "Age <= @0", 100)]
     [TestCase("age gt 100", "Age > @0", 100)]
     [TestCase("age ge 100", "Age >= @0", 100)]
-    [TestCase("salary gt 1036.42", "Salary > @0", 1036.42)]
     [TestCase("isold eq true", "IsOld == true")]
     [TestCase("IsOld ne false", "IsOld != false")]
     [TestCase("ISOLD ne null", "IsOld != null")]
@@ -65,6 +64,9 @@ public class QueryFilterParserTests
     [TestCase("terminated eq null", "TerminatedDate == null")]
     [TestCase("terminated ne null", "TerminatedDate != null")]
     public void Parse_Success(string? filter, string? expected, params object[] expectedArgs) => TestUtility.AssertFilterSuccess(filter, expected, expectedArgs);
+
+    [Test]
+    public void Parse_Decimal_Success() => TestUtility.AssertFilterSuccess("salary gt 1036.42", "Salary > @0", 1036.42m);
 
     [Test]
     public void Parse_Dates_Success()

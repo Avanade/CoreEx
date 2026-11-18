@@ -19,21 +19,25 @@ public partial class InventoryProcessor : CsvFileProcessor<InventoryAdjustment>
     public const string DefinitionVersion = "1";
 
     /// <summary>Initializes the definition-specific processor and scoped handler resolution.</summary>
+    /// <param name="serviceProvider">The provider from which independent unit scopes are created.</param>
     public InventoryProcessor(IServiceProvider serviceProvider) : base(
         InventoryAdjustmentMapping.Create,
         validator: new InventoryAdjustmentValidator(),
         options: new CsvFileOptions
         {
             Delimiter = ","[0], Quote = "\""[0], Comment = null,
-            Encoding = new UTF8Encoding(false, true), MaxInputBytes = 1048576L, MaxGroupRecords = 10000L
+            Encoding = new UTF8Encoding(false, true)
         },
         serviceProvider: serviceProvider,
-        handlerFactory: scoped => scoped.GetRequiredService<InventoryHandler>()) => Services = serviceProvider;
-
-    /// <summary>Gets the invocation-scoped provider for handwritten reporting and trusted-context hooks.</summary>
-    protected IServiceProvider Services { get; }
+        handlerFactory: scoped => scoped.GetRequiredService<InventoryHandler>()) { }
 
     /// <summary>Creates correctly identified invocation-local context; source and attempt identity belong to the caller.</summary>
+    /// <param name="sourceId">The credential-free source identity.</param>
+    /// <param name="attemptId">The processing attempt identity.</param>
+    /// <param name="sourceRevision">The immutable source revision, when available.</param>
+    /// <param name="mode">The requested processing mode.</param>
+    /// <param name="errorMode">The content-error continuation policy.</param>
+    /// <returns>A fresh invocation-local context.</returns>
     public static InventoryContext CreateContext(string sourceId, string attemptId, string? sourceRevision = null, FileProcessingMode mode = FileProcessingMode.ValidateThenExecute, FileErrorMode errorMode = FileErrorMode.CollectErrors)
         => new(new FileProcessingIdentity(DefinitionName, DefinitionVersion, sourceId, attemptId, sourceRevision), mode, errorMode);
 

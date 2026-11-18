@@ -37,7 +37,7 @@ solution; the rule applies to consumer solutions where these assets are installe
 - **Build**: `dotnet build CoreEx.sln`
 - **Test**: `dotnet test CoreEx.sln` or target specific projects.
 - **Single test**: `dotnet test <proj> --filter "FullyQualifiedName~<name>"`
-- **Local target framework (inner loop)**: projects multi-target `net8.0;net9.0;net10.0`. Locally, develop, build, and test on `net10.0` Debug only — set the user environment variable `CoreExLocalTargetFramework=net10.0` (honoured by the root `Directory.Build.props` policy imported by `src`, `samples`, and `tests`; ignored when `CI=true` and by `dotnet pack`). The policy does not force Debug or change single-target projects. Keep framework defaults in props, not late targets or duplicate project declarations, so SDK initialization and Visual Studio framework discovery agree. Restart Visual Studio after changing the environment variable. Do **not** use `dotnet build -f net10.0` on the solution: it fails with `NETSDK1005` on non-net10 projects such as `CoreEx.Generator` (netstandard2.0). Avoid local Release builds unless specifically required. CI builds and tests all target frameworks in Release; run a full multi-target build locally (`-p:CoreExLocalTargetFramework=`) only when changing `#if NET…` code, framework-conditional package versions in `Directory.Packages.props`, or framework-sensitive APIs. For direct `msbuild -t:Pack` or Visual Studio Pack, explicitly clear `CoreExLocalTargetFramework`; unlike `dotnet pack`, those entry points do not supply the CLI's `_IsPacking` global property. `nuget-publish.ps1` already clears the switch.
+- **Local target framework (inner loop)**: projects multi-target `net8.0;net9.0;net10.0;net11.0`. Locally, develop, build, and test on `net10.0` Debug only — set the user environment variable `CoreExLocalTargetFramework=net10.0` (honoured by the root `Directory.Build.props` policy imported by `src`, `samples`, and `tests`; ignored when `CI=true` and by `dotnet pack`). The policy does not force Debug or change single-target projects. Keep framework defaults in props, not late targets or duplicate project declarations, so SDK initialization and Visual Studio framework discovery agree. Restart Visual Studio after changing the environment variable. Do **not** use `dotnet build -f net10.0` on the solution: it fails with `NETSDK1005` on non-net10 projects such as `CoreEx.Generator` (netstandard2.0). Avoid local Release builds unless specifically required. CI builds and tests all target frameworks in Release; run a full multi-target build locally (`-p:CoreExLocalTargetFramework=`) only when changing `#if NET…` code, framework-conditional package versions in `Directory.Packages.props`, or framework-sensitive APIs. For direct `msbuild -t:Pack` or Visual Studio Pack, explicitly clear `CoreExLocalTargetFramework`; unlike `dotnet pack`, those entry points do not supply the CLI's `_IsPacking` global property. `nuget-publish.ps1` already clears the switch.
 - **Reclaiming disk**: run [`tools/clean-build-outputs.ps1`](../tools/clean-build-outputs.ps1) (`-WhatIf` to preview) to remove all `bin`/`obj` `Debug`/`Release` outputs.
 - **Samples**: docker-compose infrastructure + dotnet run for Database projects + Aspire AppHost.
 - **`CoreEx.Template` changes**: `dotnet build`/`dotnet test` do **not** exercise `src/CoreEx.Template/content/**` — that's raw `dotnet new` template content, not compiled C#. Any change under `src/CoreEx.Template/content/` (a host's `Program.cs`/`GlobalUsing.cs`/`.csproj`, a `template.json` symbol, etc.) must be validated by actually scaffolding it: run [`tools/validate-template-pack.ps1`](../tools/validate-template-pack.ps1), which packs the template, installs it, scaffolds every parameter combination it knows about into temp directories, and `dotnet build`s the ones flagged `Build = $true`. It also runs in CI (`.github/workflows/CI.yml`). If you add a new template, host, or parameter combination, add a matching scenario to the script's `$testScenarios` array — parameter-conditional bugs (an unconditional `global using`/`ProjectReference` that should have been gated behind a symbol like `has-data-provider` or `implement-servicebus`) only surface when the generated code is actually compiled, which most existing host-template scenarios don't yet do since they scaffold in isolation without their `coreex` solution siblings.
@@ -80,6 +80,7 @@ Connection strings for each service in development are in each host's `appsettin
 
 ### CoreEx-First Patterns
 - Prefer CoreEx primitives before introducing external libraries that overlap with framework capabilities.
+- For Service Bus in any host/layer, publish through `IEventPublisher` backed by `ServiceBusPublisher` or the configured outbox; receive through the CoreEx typed/dispatched subscriber pipeline. Preserve configured custom implementations, decorators and supported overrides. Direct publishing bypasses the outbox, not CoreEx; raw SDK sending/output bindings or handwritten receive pipelines require a concrete documented reason. Functions owns its native trigger and delegates to `subscriber.FunctionReceiveAsync`, never a competing listener. CloudEvents remain the default; native payloads do not require a separate pipeline.
 - Prefer CoreEx exception types (`NotFoundException`, `ValidationException`, `BusinessException`, `ConcurrencyException`, etc.) and CoreEx `Result`/`Result<T>` flows over custom error wrappers.
 - Do not introduce AutoMapper in any repository unless the repository maintainer explicitly requests it. Repositories and services use explicit mapping helpers/classes.
 
@@ -107,8 +108,8 @@ Connection strings for each service in development are in each host's `appsettin
   1. guard/normalize inputs;
   2. validate with CoreEx validators;
   3. load current state where needed;
-  4. wrap mutations **and** event publication together inside `_unitOfWork.TransactionAsync(...)` — both the database write and the outbox event are committed atomically or not at all;
-  5. add `EventData` to `_unitOfWork.Events` inside that same transactional scope.
+  4. when a local mutation and its event require atomicity, write both inside `_unitOfWork.TransactionAsync(...)`;
+  5. add `EventData` to `_unitOfWork.Events` inside that same transactional scope. A database-free forwarding flow instead awaits the configured direct publisher and tolerates duplicates.
 - Use exception-based flows for straightforward CRUD-style services.
 - Use `Result<T>` pipelines for aggregate-oriented flows and multi-step orchestration, especially in Shopping.
 
@@ -128,6 +129,8 @@ Connection strings for each service in development are in each host's `appsettin
 - Policies return `Result` or `Result<T>` and compose naturally into `Result<T>` service pipelines via `.GoAsync()` / `.ThenAsAsync()`.
 
 ### Host Composition
+Prefer Aspire client integrations for host-owned infrastructure clients, including Blob (`Aspire.Azure.Storage.Blobs` / `AddAzureBlobServiceClient`), Service Bus, databases and Redis. Retain CoreEx behavior above the registered clients and preserve intentional custom registrations. Client integrations need no AppHost; Functions binding settings still require explicit alignment with worker client configuration. See `coreex-host-setup.instructions.md`.
+
 - `Program.cs` files follow a predictable CoreEx host shape:
   - `builder.AddHostSettings();`
   - `AddExecutionContext()`
@@ -153,6 +156,8 @@ Connection strings for each service in development are in each host's `appsettin
 - Both domains use `CoreEx.Caching.FusionCache` (hybrid in-process + Redis backplane cache) for reference data and idempotency. Register via `AddFusionCache()` / `AddFusionHybridCache()` in `Program.cs`; clear via `Test.ClearFusionCacheAsync()` in test `[OneTimeSetUp]`.
 
 ### Testing
+Consumer tests should cover application-owned rules, mappings, configuration and failure policies, with representative integration checks of framework wiring. Do not export the framework's exhaustive capability matrices or transport simulators into consumer solutions; use existing CoreEx.UnitTesting publisher expectations and Blob test fixtures. Framework changes in this repository still require focused regression tests of the behavior being changed.
+
 - Framework: UnitTestEx + NUnit + AwesomeAssertions (the `AwesomeAssertions` NuGet package — not FluentAssertions).
 - Sample: `WithGenericTester<EntryPoint>` (unit) or `WithApiTester<Program>` (API/Subscribe/Relay).
 - Integration tests: per-class named seed files `Data\read-data.seed.yaml` / `Data\mutate-data.seed.yaml` (Products), or a single `Data\data.yaml` (Orders/Shopping), in Test.Common + `Resources\` JSON expectations.

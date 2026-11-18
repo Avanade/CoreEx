@@ -18,6 +18,10 @@ Use the full deployment name ending `.Functions`; pass `--solution-name` only fo
 
 The output is deliberately empty: no health endpoint, demo trigger, service scan or test fixture. Stop at shape validation unless capability implementation is authorized; then route to `coreex-functions` for native HTTP/Service Bus/Blob/Timer wiring and meaningful tests. Existing Functions hosts are modified, never re-scaffolded.
 
+For a new layered Functions solution, generate the shared libraries with `coreex` using the resolved provider/features, then add the Functions host/test pair. Preserve and register the generated `Test.Unit` and `Test.Common` alongside `Test.Functions`; the requested host is not an exhaustive list of supporting projects. Use `Test.Unit` for isolated shared-library logic and `Test.Functions` for host invocation/composition and host-local components. A standalone solution does not need a new `Test.Unit` merely for symmetry. Retain existing tests unless their removal is explicitly requested.
+
+When local dependencies are requested, follow the [local infrastructure recipe](local-infrastructure.md). Queue topology and an opted-in setup fixture can be added before any capability exists; do not generate runtime host harnesses, listeners or placeholder runtime tests during that setup step. Reuse the topology when the first real capability later needs runtime proof.
+
 ## Standalone baseline and existing-project retrofit
 
 A populated standalone Functions repository can legitimately lack the full `coreex` scaffold. Do not create business layers just to obtain root files or Test.Common. Distinguish template generation from migration: `dotnet new coreex-solution` does not rewrite existing projects or centralize their inline versions.
@@ -54,6 +58,7 @@ Use `coreex-file` for actual definitions and runtime wiring. Run `dotnet run -- 
 - Use simple English, not template parameter names.
 - Prefer small fixed choices before freeform text.
 - Resolve recorded decisions and reuse what the workspace already proves before asking anything.
+- Carry requirements supplied to `coreex-bootstrap` through to this skill. Apply the documented test-project and local-setup defaults in the plan without another decision round; only unresolved behavior, conflicts or changed scope need questions.
 - If the user seems unsure, give a recommended default and explain it in one sentence.
 - Before running any real command, restate the derived inputs in a compact summary.
 - Finish with executable validation, not just generated files.
@@ -406,6 +411,7 @@ For local development there are two validation modes:
 
 - A missing local dependency is a deferred setup item, not necessarily a scaffolding failure; report the affected suites as unverified, not passed.
 - If the user wants runnable local validation and local dependency files are missing, materialize them first from bundled templates or repo-standard equivalents, for example `.github/skills/coreex-scaffold/assets/docker-compose.local.yml` and `.github/skills/coreex-scaffold/assets/servicebus-config.template.json`. These are a static, options-agnostic fallback for use when it is unsafe to re-run the root scaffold — see `.github/skills/coreex-scaffold/assets/README.md` for why they exist and how they relate to the scaffold's own generated `docker-compose.yml`/`servicebus/Config.json`.
+- For Functions Blob/Service Bus local setup, prefer the focused [local infrastructure recipe](local-infrastructure.md) over copying the full fallback stack. Keep test-owned entities in C# rather than adding them to emulator JSON.
 - If the generated shape includes SQL Server, Postgres, the Cosmos emulator, Redis, or Service Bus and the repo lacks a root `docker-compose.yml`, create one before trying to run broader tests.
 - If Service Bus emulator wiring is needed and the repo lacks `servicebus/Config.json`, create it before starting the dependency stack.
 - For `tools/[solution].Database`, run from that directory. In relational domains this ensures `dbex.yaml` is discovered correctly; in Cosmos domains it keeps the provisioning console aligned with its embedded `Data/*` resources. Prefer `dotnet run -- All` for first-run local setup and `dotnet run -- CodeGen` or `dotnet run -- Database` for narrower relational follow-up work.

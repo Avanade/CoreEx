@@ -15,10 +15,10 @@ public class ServiceBusReceiverTests : WithGenericTester<EntryPoint>
     [SetUp]
     public Task SetUpAsync() => ReceiveAllMessages();
 
-    private async Task ReceiveAllMessages()
+    private async Task ReceiveAllMessages(string? queue = null)
     {
         var c = Test.Services.GetRequiredService<ServiceBusClient>();
-        await using var receiver = c.CreateReceiver("unit-test", "default");
+        await using var receiver = queue is null ? c.CreateReceiver("unit-test", "default") : c.CreateReceiver(queue);
 
         for (var i = 0; i < 2; i++)
         {
@@ -201,21 +201,21 @@ public class ServiceBusReceiverTests : WithGenericTester<EntryPoint>
     [Test]
     public void ReceiveAsync_OwnTokenCancellation_DoesNotLogAsUnhandled() => Test.ScopedType<ExecutionContext>(async test =>
     {
-        // An isolated subscription excludes poison messages abandoned by the circuit-breaker test.
+        // A dedicated queue prevents the long-running message from also reaching other topic subscriptions.
         var configuration = test.Services.GetRequiredService<IConfiguration>();
         var connectionString = configuration.GetConnectionString("ServiceBus") ?? configuration["Aspire:Azure:Messaging:ServiceBus:ConnectionString"]
             ?? throw new InvalidOperationException("The Service Bus connection string is missing.");
         var admin = new global::Azure.Messaging.ServiceBus.Administration.ServiceBusAdministrationClient(UnitTestExExtensions.CreateAzureServiceBusAdminConnectionString(connectionString));
-        var subscription = $"cancellation-{Guid.NewGuid():N}";
-        await admin.CreateSubscriptionAsync("unit-test", subscription).ConfigureAwait(false);
+        var queue = $"cancellation-{Guid.NewGuid():N}";
+        await admin.CreateQueueAsync(queue).ConfigureAwait(false);
         try
         {
             var processing = Subscribers.ProductSubscriber.Id200Processing = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             var sp = (ServiceBusPublisher)test.Services.GetRequiredKeyedService<IEventPublisher>(ServiceBusPublisher.DefaultServiceKey);
-            sp.Add(EventData.CreateEventWith(new Subscribers.Product { Id = 200, Sku = "SKU-200" }, "Created"));
+            sp.Add(queue, EventData.CreateEventWith(new Subscribers.Product { Id = 200, Sku = "SKU-200" }, "Created"));
             await sp.PublishAsync().ConfigureAwait(false);
 
-            var o = ServiceBusReceiverOptions.CreateForTopicSubscription("unit-test", subscription);
+            var o = ServiceBusReceiverOptions.CreateForQueue(queue);
             var sbr = ActivatorUtilities.CreateInstance<ServiceBusReceiver<ServiceBusSubscribedSubscriber>>(Test.Services, o);
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
 
@@ -241,7 +241,7 @@ public class ServiceBusReceiverTests : WithGenericTester<EntryPoint>
         finally
         {
             Subscribers.ProductSubscriber.Id200Processing = null;
-            await admin.DeleteSubscriptionAsync("unit-test", subscription).ConfigureAwait(false);
+            await admin.DeleteQueueAsync(queue).ConfigureAwait(false);
         }
     });
 
@@ -340,70 +340,63 @@ public class ServiceBusReceiverTests : WithGenericTester<EntryPoint>
     });
 
     [Test]
-    public void ReceiveAsync_CircuitBreaker()
+    public void ReceiveAsync_CircuitBreaker() => Test.ScopedType<ExecutionContext>(async test =>
     {
-        for (int i = 0; i < 2; i++)
-        {
-            // If successful, break out of the loop; otherwise, retry once.
-            if (ReceiveAsync_CircuitBreaker_Internal())
-                break; 
+        const string queue = "unit-test-circuit-breaker";
+        await ReceiveAllMessages(queue);
 
-            if (i > 0)
-               Assert.Fail("The circuit breaker did not trip as expected. This has been attempted twice.");
+        var publisher = test.Services.GetRequiredKeyedService<IEventPublisher>(ServiceBusPublisher.DefaultServiceKey);
+        publisher.Add(queue,
+            EventData.CreateEventWith(new Subscribers.Product { Id = 109, Sku = "SKU-109.1" }, "Created"),
+            EventData.CreateEventWith(new Subscribers.Product { Id = 109, Sku = "SKU-109.2" }, "Created"));
+        await publisher.PublishAsync();
+
+        var options = ServiceBusReceiverOptions.CreateForQueue(queue);
+        options.ReceiverResiliency = ServiceBusReceiverResiliency.CreateReceiverCircuitBreakerResiliency(minimumThroughput: 2, breakDuration: TimeSpan.FromMilliseconds(333));
+        options.PauseReceiverOnCatastrophicError = false; // Only the circuit breaker may pause this receiver.
+        options.PerUnhandledErrorDelayDuration = TimeSpan.Zero;
+
+        var logger = new CircuitBreakerReceiverLogger();
+        await using var receiver = ActivatorUtilities.CreateInstance<ServiceBusReceiver<ServiceBusSubscribedSubscriber>>(Test.Services, options, logger);
+        var processed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        receiver.MessageProcessed += (_, args) =>
+        {
+            if (args.Result.IsSuccess)
+                processed.TrySetResult();
+        };
+
+        using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+        await receiver.StartAsync(deadline.Token);
+        try
+        {
+            await logger.Paused.Task.WaitAsync(TimeSpan.FromSeconds(15), deadline.Token);
+
+            // The test queue allows one delivery per poison message, leaving the healthy message as the recovery probe.
+            await using var recoveryScope = test.Services.CreateAsyncScope();
+            var recoveryPublisher = recoveryScope.ServiceProvider.GetRequiredKeyedService<IEventPublisher>(ServiceBusPublisher.DefaultServiceKey);
+            recoveryPublisher.Add(queue, EventData.CreateEventWith(new Subscribers.Product { Id = 1, Sku = "SKU-RECOVERY" }, "Created"));
+            await recoveryPublisher.PublishAsync(deadline.Token);
+            await processed.Task.WaitAsync(TimeSpan.FromSeconds(15), deadline.Token);
         }
-    }
-
-    private bool ReceiveAsync_CircuitBreaker_Internal()
-    {
-        bool circuitBreakerTripped = false;
-
-        Test.ScopedType<ExecutionContext>(async test =>
+        finally
         {
-            await ReceiveAllMessages();
+            await receiver.StopAsync();
+        }
+    });
 
-            // Publish a message.
-            var sp = (ServiceBusPublisher)test.Services.GetRequiredKeyedService<IEventPublisher>(ServiceBusPublisher.DefaultServiceKey);
-            sp.Add(EventData.CreateEventWith(new Subscribers.Product { Id = 109, Sku = "SKU-109" }, "Created"));
-            sp.Add(EventData.CreateEventWith(new Subscribers.Product { Id = 109, Sku = "SKU-109.1" }, "Created"));
-            sp.Add(EventData.CreateEventWith(new Subscribers.Product { Id = 109, Sku = "SKU-109.2" }, "Created"));
-            await sp.PublishAsync();
+    private sealed class CircuitBreakerReceiverLogger : ILogger<ServiceBusReceiver<ServiceBusSubscribedSubscriber>>
+    {
+        public TaskCompletionSource Paused { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            // Create using the root services (not scoped).
-            var o = ServiceBusReceiverOptions.CreateForTopicSubscription("unit-test", "default");
-            o.ReceiverResiliency = ServiceBusReceiverResiliency.CreateReceiverCircuitBreakerResiliency(5, TimeSpan.FromSeconds(1), TimeSpan.FromMilliseconds(333));
-            o.PerUnhandledErrorDelayDuration = TimeSpan.FromMilliseconds(100);
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
 
-            var sbr = ActivatorUtilities.CreateInstance<ServiceBusReceiver<ServiceBusSubscribedSubscriber>>(Test.Services, o);
+        public bool IsEnabled(LogLevel logLevel) => true;
 
-            var count = 0;
-            sbr.MessageProcessed += (sender, e) => count++;
-
-            var cts = new CancellationTokenSource();
-            cts.CancelAfter(30000); // Ensure test doesn't run indefinitely.
-
-            var assertor = Test.Run(async () =>
-            {
-                try
-                {
-                    await sbr.StartAsync(cts.Token).ConfigureAwait(false);
-                    await Task.Delay(Timeout.Infinite, cts.Token); // Wait for the message to be processed or timeout; then stop and dispose.
-                }
-                finally
-                {
-                    await sbr.StopAsync().ConfigureAwait(false);
-                    await sbr.DisposeAsync().ConfigureAwait(false);
-
-                    if (Test.Logger.IsEnabled(LogLevel.Information))
-                        Test.Logger.LogInformation("MESSAGE PROCESSED COUNT: {Count}.", count);
-                }
-            }).AssertException<TaskCanceledException>();
-
-            circuitBreakerTripped = assertor.LogMessages.Any(x => x?.Contains("Service bus receiver circuit breaker has been tripped for 333ms due to unhandled errors; will be paused.") == true)
-                && assertor.LogMessages.Any(x => x?.Contains("Service bus receiver circuit breaker has been tripped for 666ms due to unhandled errors; will be paused.") == true)
-                && assertor.LogMessages.Any(x => x?.Contains("Service bus receiver circuit breaker has been tripped for 1332ms due to unhandled errors; will be paused.") == true)
-                && assertor.LogMessages.Any(x => x?.Contains("Service bus receiver circuit breaker is attempting to recover in a limited state; has been resumed.") == true);
-        });
-
-        return circuitBreakerTripped;
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+        {
+            if (logLevel == LogLevel.Debug && state is IReadOnlyList<KeyValuePair<string, object?>> properties
+                && properties.Any(x => x.Key == "Status" && x.Value is ServiceStatus.Paused))
+                Paused.TrySetResult();
+        }
     }
 }

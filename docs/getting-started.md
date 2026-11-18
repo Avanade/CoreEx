@@ -240,11 +240,11 @@ This invokes the [`coreex-api-e2e`](https://github.com/Avanade/CoreEx/blob/main/
 
 ```bash
 dotnet new coreex-api -n Avanade.Hr.People.Api --data-provider Postgres --refdata-enabled true --outbox-enabled true
-dotnet sln Avanade.Hr.People.slnx add src/Avanade.Hr.People.Api --solution-folder hosts
-dotnet sln Avanade.Hr.People.slnx add tests/Avanade.Hr.People.Test.Api --solution-folder tests
+dotnet sln Avanade.Hr.People.slnx add src/Avanade.Hr.People.Api --solution-folder hosts --include-references false
+dotnet sln Avanade.Hr.People.slnx add tests/Avanade.Hr.People.Test.Api --solution-folder tests --include-references false
 ```
 
-The template creates the API host under `src/` and its tests under `tests/`. The `dotnet sln` commands add the host to the `/hosts/` solution folder and the tests to `/tests/`; these virtual folders do not change the filesystem paths. After scaffolding, implement the domain entity, validation, and tests by hand following the [Pattern Catalog](https://github.com/Avanade/CoreEx/blob/main/samples/docs/patterns.md) and [Contoso samples](https://github.com/Avanade/CoreEx/tree/main/samples).
+The template creates the API host under `src/` and its tests under `tests/`. The `dotnet sln` commands add the host to the `/hosts/` solution folder and the tests to `/tests/`; these virtual folders do not change the filesystem paths. On SDKs that support `--include-references`, setting it to `false` avoids re-adding already registered dependencies; omit it on older SDKs that do not support it. After scaffolding, implement the domain entity, validation, and tests by hand following the [Pattern Catalog](https://github.com/Avanade/CoreEx/blob/main/samples/docs/patterns.md) and [Contoso samples](https://github.com/Avanade/CoreEx/tree/main/samples).
 
 ---
 
@@ -264,8 +264,8 @@ Add the Outbox Relay host to the solution. Run the included relay integration te
 
 ```bash
 dotnet new coreex-relay -n Avanade.Hr.People.Relay --data-provider Postgres --messaging-provider ServiceBus
-dotnet sln Avanade.Hr.People.slnx add src/Avanade.Hr.People.Relay --solution-folder hosts
-dotnet sln Avanade.Hr.People.slnx add tests/Avanade.Hr.People.Test.Relay --solution-folder tests
+dotnet sln Avanade.Hr.People.slnx add src/Avanade.Hr.People.Relay --solution-folder hosts --include-references false
+dotnet sln Avanade.Hr.People.slnx add tests/Avanade.Hr.People.Test.Relay --solution-folder tests --include-references false
 ```
 
 This adds `src/Avanade.Hr.People.Relay/` and `tests/Avanade.Hr.People.Test.Relay/`.
@@ -288,8 +288,8 @@ Add the Subscribe host to the solution. Run the included integration tests and c
 
 ```bash
 dotnet new coreex-subscribe -n Avanade.Hr.People.Subscribe --data-provider Postgres --messaging-provider ServiceBus --refdata-enabled true
-dotnet sln Avanade.Hr.People.slnx add src/Avanade.Hr.People.Subscribe --solution-folder hosts
-dotnet sln Avanade.Hr.People.slnx add tests/Avanade.Hr.People.Test.Subscribe --solution-folder tests
+dotnet sln Avanade.Hr.People.slnx add src/Avanade.Hr.People.Subscribe --solution-folder hosts --include-references false
+dotnet sln Avanade.Hr.People.slnx add tests/Avanade.Hr.People.Test.Subscribe --solution-folder tests --include-references false
 ```
 
 This adds `src/Avanade.Hr.People.Subscribe/` and `tests/Avanade.Hr.People.Test.Subscribe/`.

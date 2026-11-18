@@ -19,8 +19,17 @@ builder.Services.AddInventoryImport(sp =>
         configuration["InventoryImportTenant"] ?? throw new InvalidOperationException("InventoryImportTenant must be configured."));
 });
 builder.Services.AddDynamicServicesUsing<InvocationService>();
-builder.Services.AddSingleton(sp => new BlobServiceClient(sp.GetRequiredService<IConfiguration>()["ImportStorage"]
-    ?? throw new InvalidOperationException("ImportStorage must be configured for Blob processing.")));
+builder.AddImportStorageClient();
+builder.Services.AddKeyedSingleton<BlobContainerClient>(CatalogForwardingFunction.ReportContainerKey, (sp, _) =>
+    sp.GetRequiredService<BlobServiceClient>().GetBlobContainerClient(
+        sp.GetRequiredService<IConfiguration>()[CatalogForwardingFunction.ReportContainerKey]
+        ?? throw new InvalidOperationException("CatalogImportReports must be configured.")));
+builder.AddAzureServiceBusClient("ServiceBus", settings =>
+{
+    if (settings.ConnectionString is null && settings.FullyQualifiedNamespace is null)
+        settings.ConnectionString = builder.Configuration["ServiceBus"];
+});
+builder.Services.AddAzureServiceBusPublisher((_, publisher) => publisher.ContentMode = ContentMode.Binary, addAsDefaultIEventPublisher: false);
 builder.Services.AddEventFormatter();
 builder.Services.AddSubscribedManager((_, manager) => manager.AddSubscribersUsing<MessageSubscriber>());
 builder.Services.AddScoped<ServiceBusSubscribedSubscriber>();

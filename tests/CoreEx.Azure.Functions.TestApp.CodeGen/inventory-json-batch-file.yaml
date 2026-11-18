@@ -1,0 +1,30 @@
+# yaml-language-server: $schema=../../schema/coreex-files.json
+name: InventoryJsonBatch
+version: '1'
+format: Json
+runtimeProjectPath: ../CoreEx.Azure.Functions.TestApp
+runtimePath: InventoryImports/JsonBatchFiles
+runtimeNamespace: CoreEx.Azure.Functions.TestApp.InventoryImports
+mode: ValidateThenExecute
+errorMode: CollectErrors
+unit: { record: Adjustment, unitPath: /Adjustments, cardinality: OneOrMore }
+metadata:
+- { name: Header, record: Header, required: true, json: { path: /Header } }
+- { name: Trailer, record: Trailer, required: true, json: { path: /Trailer } }
+records:
+- name: Header
+  properties:
+  - { name: BatchId, mandatory: true, maxLength: 100 }
+- name: Adjustment
+  properties:
+  - { name: CommandId, mandatory: true, maxLength: 100 }
+  - { name: Sku, mandatory: true, maxLength: 100 }
+  - { name: Lines, collection: { record: Line, cardinality: OneOrMore } }
+- name: Line
+  properties:
+  - { name: Bin, mandatory: true, maxLength: 100 }
+  - { name: Quantity, type: Integer, required: true, min: 1 }
+- name: Trailer
+  properties:
+  - { name: AdjustmentCount, type: Integer, required: true, min: 1 }
+  - { name: QuantityTotal, type: Int64, required: true, min: 1 }

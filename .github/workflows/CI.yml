@@ -10,7 +10,8 @@ on:
       - 'gen/**'
       - 'servicebus/**'
       - 'Directory.Packages.props'
-      - 'global.json'
+      - 'Directory.Build.props'
+      - 'nuget-publish.ps1'
       - 'docker-compose.yml'
       - '*.slnf'
       - '*.slnx'
@@ -25,7 +26,8 @@ on:
       - 'gen/**'
       - 'servicebus/**'
       - 'Directory.Packages.props'
-      - 'global.json'
+      - 'Directory.Build.props'
+      - 'nuget-publish.ps1'
       - 'docker-compose.yml'
       - '*.slnf'
       - '*.slnx'
@@ -42,24 +44,22 @@ permissions:
   contents: read
 
 jobs:
-  core:
-    name: Core
+  core-unit:
+    name: Core unit
     runs-on: ubuntu-latest
     timeout-minutes: 60
 
     steps:
     - uses: actions/checkout@v4
 
-    - name: Start containers
-      run: docker compose up -d db-sql-server db-postgres redis-cache servicebus-emulator cosmos-emulator
-
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        global-json-file: global.json
         dotnet-version: |
           8.x
           9.x
+          10.x
+          11.x
 
     - name: Cache NuGet packages
       uses: actions/cache@v4
@@ -71,38 +71,91 @@ jobs:
     - name: Restore .NET tools
       run: dotnet tool restore
 
-    - name: Restore (all)
-      run: dotnet restore CoreEx.slnx --verbosity minimal
-
-    # --- Core ---
+    - name: Restore core
+      run: dotnet restore CoreEx.Core.slnf --verbosity minimal
 
     - name: Build core
       run: dotnet build CoreEx.Core.slnf --no-restore --configuration Release
 
     - name: Verify checked-in Functions File CodeGen
       working-directory: tests/CoreEx.Azure.Functions.TestApp.CodeGen
-      run: dotnet run --no-build --configuration Release -- file inventory-file.yaml --expect-no-changes
+      run: dotnet run --no-build --configuration Release -- file --expect-no-changes
 
-    - name: Test core (parallel)
-      run: dotnet test CoreEx.Core.Test.Parallel.slnf --no-build --configuration Release --logger trx --collect "XPlat Code Coverage" --results-directory coverage/core
+    - name: Test core unit
+      run: dotnet test CoreEx.Core.Test.Parallel.slnf --no-build --configuration Release --logger trx --collect "XPlat Code Coverage" --results-directory coverage/core-unit
 
-    - name: Test core (sequential)
-      run: dotnet test CoreEx.Core.Test.Sequential.slnf --no-build --configuration Release --logger trx --collect "XPlat Code Coverage" --results-directory coverage/core -m:1 -p:TestTfmsInParallel=false -p:BuildInParallel=false
-
-    - name: Upload core test results
+    - name: Upload core unit test results
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: core-test-results
-        path: "coverage/core/**/*.trx"
+        name: core-unit-test-results
+        path: "coverage/core-unit/**/*.trx"
         retention-days: 30
 
-    - name: Upload core coverage
+    - name: Upload core unit coverage
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: coverage-core
-        path: "coverage/core/**/coverage.cobertura.xml"
+        name: coverage-core-unit
+        path: "coverage/core-unit/**/coverage.cobertura.xml"
+        if-no-files-found: error
+        retention-days: 7
+
+  core-infrastructure:
+    name: Core infrastructure (${{ matrix.framework }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        framework: [net8.0, net9.0, net10.0, net11.0]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Start containers
+      run: docker compose up -d db-sql-server db-postgres redis-cache servicebus-emulator cosmos-emulator
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: |
+          8.x
+          9.x
+          10.x
+          11.x
+
+    - name: Cache NuGet packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.nuget/packages
+        key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', '**/Directory.Packages.props') }}
+        restore-keys: nuget-${{ runner.os }}-
+
+    # Narrow multi-target dependencies without overriding the generator's netstandard2.0 target.
+    - name: Restore core infrastructure
+      run: dotnet restore CoreEx.Core.Test.Sequential.slnf -p:CoreExTargetFrameworks=${{ matrix.framework }} --verbosity minimal
+
+    - name: Build core infrastructure
+      run: dotnet build CoreEx.Core.Test.Sequential.slnf --no-restore --configuration Release -p:CoreExTargetFrameworks=${{ matrix.framework }}
+
+    - name: Test core infrastructure
+      run: dotnet test CoreEx.Core.Test.Sequential.slnf --no-build --framework ${{ matrix.framework }} --configuration Release -p:CoreExTargetFrameworks=${{ matrix.framework }} --logger trx --collect "XPlat Code Coverage" --results-directory coverage/core-infrastructure-${{ matrix.framework }} -m:1 -p:TestTfmsInParallel=false -p:BuildInParallel=false
+
+    - name: Upload core infrastructure test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: core-infrastructure-test-results-${{ matrix.framework }}
+        path: "coverage/core-infrastructure-${{ matrix.framework }}/**/*.trx"
+        retention-days: 30
+
+    - name: Upload core infrastructure coverage
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-core-infrastructure-${{ matrix.framework }}
+        path: "coverage/core-infrastructure-${{ matrix.framework }}/**/coverage.cobertura.xml"
         if-no-files-found: error
         retention-days: 7
 
@@ -114,7 +167,7 @@ jobs:
       if: failure()
       uses: actions/upload-artifact@v4
       with:
-        name: container-logs-core
+        name: container-logs-core-infrastructure-${{ matrix.framework }}
         path: container-logs.txt
         retention-days: 30
 
@@ -129,7 +182,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        framework: [net8.0, net9.0, net10.0]
+        framework: [net8.0, net9.0, net10.0, net11.0]
 
     steps:
     - uses: actions/checkout@v4
@@ -140,10 +193,11 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        global-json-file: global.json
         dotnet-version: |
           8.x
           9.x
+          10.x
+          11.x
 
     - name: Cache NuGet packages
       uses: actions/cache@v4
@@ -241,10 +295,11 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        global-json-file: global.json
         dotnet-version: |
           8.x
           9.x
+          10.x
+          11.x
 
     - name: Cache NuGet packages
       uses: actions/cache@v4
@@ -313,7 +368,7 @@ jobs:
     name: Coverage
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    needs: [core, samples]
+    needs: [core-unit, core-infrastructure, samples]
     if: ${{ always() && !cancelled() }}
 
     steps:
@@ -322,7 +377,9 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        global-json-file: global.json
+        dotnet-version: |
+          10.x
+          11.x
 
     - name: Restore .NET tools
       run: dotnet tool restore
@@ -353,7 +410,7 @@ jobs:
     name: build
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    needs: [core, samples, samples-e2e, functions-runtime, template-validation, coverage]
+    needs: [core-unit, core-infrastructure, samples, samples-e2e, functions-runtime, template-validation, coverage]
     if: ${{ always() }}
     steps:
     - name: Require every CI job to succeed
@@ -377,10 +434,11 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        global-json-file: global.json
         dotnet-version: |
           8.x
           9.x
+          10.x
+          11.x
 
     - name: Setup Node
       uses: actions/setup-node@v4
@@ -421,10 +479,11 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        global-json-file: global.json
         dotnet-version: |
           8.x
           9.x
+          10.x
+          11.x
 
     - name: Cache NuGet packages
       uses: actions/cache@v4

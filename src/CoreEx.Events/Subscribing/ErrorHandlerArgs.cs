@@ -34,4 +34,9 @@ public sealed class ErrorHandlerArgs
     /// Gets the optional <see cref="ErrorHandling"/> override (bypassing <see cref="ErrorHandler"/> configuration).
     /// </summary>
     public ErrorHandling? ErrorHandlingOverride { get; init; }
+
+    /// <summary>
+    /// Gets the optional host-facing dead-letter reason to use instead of the default message.
+    /// </summary>
+    internal string? DeadLetterReason { get; init; }
 }

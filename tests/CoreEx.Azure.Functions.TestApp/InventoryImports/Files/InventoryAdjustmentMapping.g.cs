@@ -11,7 +11,7 @@ namespace CoreEx.Azure.Functions.TestApp.InventoryImports;
 /// <summary>Creates fresh CoreEx mapping state for each input pass.</summary>
 public static class InventoryAdjustmentMapping
 {
-    /// <summary>Creates a typed CSV mapping.</summary>
+    /// <summary>Creates a typed source mapping.</summary>
     public static CsvFileMapping<InventoryAdjustment> Create() => new CsvFileMapping<InventoryAdjustment>()
         .MapProperty("CommandId", x => x.CommandId, CsvFieldConverters.String, null)
         .MapProperty("Sku", x => x.Sku, CsvFieldConverters.String, null)

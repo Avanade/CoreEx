@@ -62,6 +62,8 @@ Standalone repositories normally start with `coreex-solution`: root solution/bui
 
 ## Universal Rules
 
+Prefer Aspire client integrations to register underlying Blob Storage, Service Bus, database and cache clients in host composition roots, including Functions; keep CoreEx behavior above those clients. This requires no AppHost. Preserve custom registrations and explicitly align client configuration with native binding settings. See the [host registration table](/.github/instructions/coreex-host-setup.instructions.md#infrastructure-client-registration).
+
 ### Do Not Fabricate Blockers — Verify, Then Ask
 
 When something appears blocked, broken, or "not generated yet", do **not** invent a root cause and an elaborate workaround. Take the one authoritative action that establishes the truth, then proceed:
@@ -123,6 +125,8 @@ Verify **before** the project is in the solution: build and test a new or edited
 
 ### Validator Unit Tests
 
+Test application-owned rules, mappings, configuration and failure decisions. Trust standard CoreEx, Azure SDK and .NET behavior; prove wiring with representative integration checks, not exhaustive framework permutations. Reuse CoreEx.UnitTesting publisher expectations and Blob fixtures instead of copying framework transport simulators. See `coreex-tests.instructions.md`.
+
 Maintain the matching `{Validator}Tests` in `*.Test.Unit/Validators/` alongside changed rules, covering error and success cases. Apply the scope and execution rules in `coreex-tests.instructions.md`; if the user explicitly excludes or defers tests, report the coverage gap.
 
 ### Using Statements
@@ -131,6 +135,7 @@ Every project has a single `GlobalUsing.cs` at its root where all namespace impo
 
 ### Always Prefer CoreEx Primitives
 
+- **Service Bus is CoreEx-first in every layer and host, including Functions.** Publish through `IEventPublisher` backed by `ServiceBusPublisher` or the configured transactional outbox; receive through `ServiceBusSubscriberBase<T>` for one payload or `ServiceBusSubscribedSubscriber` for subject/source dispatch. Reuse configured custom implementations, decorators and supported overrides rather than replacing them with defaults. Direct publishing means bypassing the outbox, not bypassing CoreEx. Do not generate raw `ServiceBusSender.SendMessageAsync`/`SendMessagesAsync`, output bindings or handwritten receive pipelines as substitutes unless a concrete requirement justifies the deviation; document that reason. Functions keeps its native trigger and calls `subscriber.FunctionReceiveAsync`, without a competing CoreEx listener. CloudEvents remain the default representation; native payloads use the same publishing/subscriber pipeline with explicit opt-in.
 - Use CoreEx exception types — `NotFoundException`, `ValidationException`, `BusinessException`, `ConcurrencyException`, `AuthenticationException`, `AuthorizationException`. These auto-map to correct HTTP status codes via `UseCoreExExceptionHandler()`.
 - Use `Result<T>` pipelines for multi-step orchestration, aggregate-oriented flows, and subscriber handlers.
 - Use exception-based flow for simpler CRUD-oriented services where pipeline composition adds no value.

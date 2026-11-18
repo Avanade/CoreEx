@@ -7,6 +7,8 @@ namespace CoreEx.Events.Subscribing;
 /// <param name="logger">The <see cref="ILogger{EventSubscriberBase}"/>.</param>
 public abstract class EventSubscriberBase(IEventFormatter formatter, ILogger<EventSubscriberBase> logger)
 {
+    private static readonly ConcurrentDictionary<Type, SubscribeAttribute[]> _subscriptions = new();
+
     /// <summary>
     /// Gets the <see cref="IEventFormatter"/>.
     /// </summary>
@@ -51,6 +53,18 @@ public abstract class EventSubscriberBase(IEventFormatter formatter, ILogger<Eve
     public ErrorHandling InvalidDataHandling { get; set; } = ErrorHandling.CompleteAsError;
 
     /// <summary>
+    /// Gets or sets the handling for a decoded CloudEvent that does not match any <see cref="SubscribeAttribute"/> on the concrete subscriber.
+    /// </summary>
+    /// <remarks>Defaults to <see cref="ErrorHandling.DeadLetter"/>. With no attributes, no match is required. Malformed envelopes are handled separately by the transport.</remarks>
+    public ErrorHandling UnmatchedCloudEventHandling { get; set; } = ErrorHandling.DeadLetter;
+
+    /// <summary>Indicates whether the concrete subscriber declares any CloudEvent subscription rules.</summary>
+    protected bool HasSubscriptions => Subscriptions.Length != 0;
+
+    /// <summary>Gets the cached match rules declared on the concrete subscriber.</summary>
+    private SubscribeAttribute[] Subscriptions => _subscriptions.GetOrAdd(GetType(), static type => [.. type.GetCustomAttributes<SubscribeAttribute>(inherit: false)]);
+
+    /// <summary>
     /// Gets or sets the optional <see cref="JsonSerializerOptions"/>.
     /// </summary>
     /// <remarks>This is used by <see cref="DeserializeValue{TValue}(EventData, bool, ErrorHandling?, JsonSerializerOptions?)"/>.</remarks>
@@ -70,7 +84,7 @@ public abstract class EventSubscriberBase(IEventFormatter formatter, ILogger<Eve
     /// <param name="args">The optional <see cref="EventSubscriberArgs"/>.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
     /// <returns>The <see cref="Result"/>.</returns>
-    /// <remarks>This will <see cref="IEventFormatter.ConvertFromCloudEvent(CloudEvent)"/> the <paramref name="cloudEvent"/> into an <see cref="EventData"/> and invoke the <see cref="ReceiveAsync(EventData, EventSubscriberArgs?, CancellationToken)"/>
+    /// <remarks>Checks any declared <see cref="SubscribeAttribute"/> rules before converting the <paramref name="cloudEvent"/> into <see cref="EventData"/> and invoking <see cref="ReceiveAsync(EventData, EventSubscriberArgs?, CancellationToken)"/>.
     /// <para>Additionally, this method will specifically emit both the related tracing tags and the <see cref="EventSubscriberMetrics.MessagesReceived"/> for observability.</para></remarks>
     protected async Task<Result> ReceiveAsync(CloudEvent cloudEvent, EventSubscriberArgs? args = null, CancellationToken cancellationToken = default)
     {
@@ -93,8 +107,29 @@ public abstract class EventSubscriberBase(IEventFormatter formatter, ILogger<Eve
         if (Logger.IsEnabled(LogLevel.Debug))
             Logger.LogDebug("Received CloudEvent with Id='{CloudEventId}', Source='{CloudEventSource}', Type='{CloudEventType}', Subject='{CloudEventSubject}'.", cloudEvent.Id, cloudEvent.Source, cloudEvent.Type, cloudEvent.Subject);
 
-        // Convert to an EventData and process.
-        return await ReceiveWrapperAsync(args, async () => await ReceiveAsync(Formatter.ConvertFromCloudEvent(cloudEvent), args, cancellationToken).ConfigureAwait(false), cancellationToken).ConfigureAwait(false);
+        return await ReceiveWrapperAsync(args, () =>
+        {
+            if (!MatchesSubscription(cloudEvent))
+            {
+                const string reason = "The CloudEvent type and source did not match any [Subscribe] rule on the subscriber.";
+                return Task.FromResult(ClassifyReceiveFailure(args, new InvalidDataException(reason), UnmatchedCloudEventHandling, reason));
+            }
+
+            return ReceiveAsync(Formatter.ConvertFromCloudEvent(cloudEvent), args, cancellationToken);
+        }, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>Checks whether the decoded CloudEvent is accepted by the subscriber.</summary>
+    private bool MatchesSubscription(CloudEvent cloudEvent)
+    {
+        var subscriptions = Subscriptions;
+        foreach (var subscription in subscriptions)
+        {
+            if (subscription.IsMatch(cloudEvent.Type, cloudEvent.Source))
+                return true;
+        }
+
+        return subscriptions.Length == 0;
     }
 
     /// <summary>
@@ -172,12 +207,23 @@ public abstract class EventSubscriberBase(IEventFormatter formatter, ILogger<Eve
 
         // Apply standardized error/exception handling where applicable.
         if (result.Error is EventSubscriberReceiveException rex) // Expected with self declared error handling.
-            return ErrorHandler.Handle(new ErrorHandlerArgs { SubscriberArgs = args, SourceType = GetType(), ErrorHandlingOverride = rex.ErrorHandling, Exception = rex }, defaultErrorHandling: UnhandledErrorHandling);
+            return ClassifyReceiveFailure(args, rex, rex.ErrorHandling);
         else if (result.Error is not IEventSubscriberException && !result.Error.IsCanceledBy(cancellationToken)) // Ignore IEventSubscriberException's; and only ignore a cancellation that is attributable to *this* receive's own cancellationToken (e.g. host shutdown) as that is intended to bubble up - any other (unrelated) cancellation is classified as normal.
             return ErrorHandler.Handle(new ErrorHandlerArgs { SubscriberArgs = args, SourceType = GetType(), Exception = result.Error }, defaultErrorHandling: UnhandledErrorHandling);
 
         return result;
     }
+
+    /// <summary>Classifies a known receive failure using its explicit disposition and an optional safe broker-facing reason.</summary>
+    private Result ClassifyReceiveFailure(EventSubscriberArgs args, Exception exception, ErrorHandling errorHandling, string? deadLetterReason = null)
+        => ErrorHandler.Handle(new ErrorHandlerArgs
+        {
+            SubscriberArgs = args,
+            SourceType = GetType(),
+            Exception = exception,
+            ErrorHandlingOverride = errorHandling,
+            DeadLetterReason = deadLetterReason
+        }, defaultErrorHandling: UnhandledErrorHandling);
 
     /// <summary>
     /// Creates an invalid-data result for a transport-specific payload failure.

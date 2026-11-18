@@ -11,7 +11,7 @@
     <PackageReference Include="NUnit.Analyzers" />
     <PackageReference Include="NUnit3TestAdapter" />
     <PackageReference Include="UnitTestEx.Aspire" />
-    <PackageReference Include="UnitTestEx.NUnit" />
+    <PackageReference Include="UnitTestEx" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\app-name.Aspire\app-name.Aspire.csproj" />

@@ -7,7 +7,7 @@ public sealed class CsvHierarchyNode
     /// <param name="key">The matching logical route key.</param>
     /// <param name="cardinality">Occurrences within the containing file or parent.</param>
     /// <param name="children">Children in declared order; each subtree must remain contiguous.</param>
-    public CsvHierarchyNode(string key, CsvRecordCardinality cardinality = CsvRecordCardinality.Many, params CsvHierarchyNode[] children)
+    public CsvHierarchyNode(string key, FileCardinality cardinality = FileCardinality.Many, params CsvHierarchyNode[] children)
     {
         Key = key.ThrowIfNullOrWhiteSpace();
         if (!Enum.IsDefined(cardinality))
@@ -25,7 +25,7 @@ public sealed class CsvHierarchyNode
     public string Key { get; }
 
     /// <summary>Gets the permitted occurrence count.</summary>
-    public CsvRecordCardinality Cardinality { get; }
+    public FileCardinality Cardinality { get; }
 
     /// <summary>Gets children in declared contiguous order.</summary>
     public IReadOnlyList<CsvHierarchyNode> Children { get; }

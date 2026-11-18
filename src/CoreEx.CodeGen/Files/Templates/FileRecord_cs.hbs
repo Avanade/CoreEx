@@ -13,7 +13,7 @@ public partial class {{TypeName}}{{#if Root.IsUnordered}} : {{Root.UnitType}}{{/
 {
 {{#each Properties}}
     /// <summary>Gets or sets the mapped input value.</summary>
-    public {{{DotNetType}}} {{Name}} { get; set; }
+    public {{{DotNetType}}} {{PropertyName}} { get; set; }
 
 {{/each}}
 }

@@ -8,5 +8,3 @@ The `Structure` object supports a number of properties that control the generate
 Property | Description
 -|-
 **`root`** | Business root. The corresponding [`Node`](Node.md) object. [Mandatory]
-`header` | First envelope. The corresponding [`Node`](Node.md) object.<br/>&dagger; One or Optional, without children.
-`trailer` | Final envelope. The corresponding [`Node`](Node.md) object.<br/>&dagger; One or Optional, without children.

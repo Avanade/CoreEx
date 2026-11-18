@@ -10,7 +10,8 @@ public sealed class FileDiagnostic
     /// <param name="severity">The CoreEx severity; only errors reject input.</param>
     /// <param name="location">The optional physical/logical location.</param>
     /// <param name="recordType">The configured logical record type, when known.</param>
-    public FileDiagnostic(FileDiagnosticCategory category, string code, LText message, MessageType severity = MessageType.Error, FileLocation? location = null, string? recordType = null)
+    /// <param name="unitOrdinal">The optional one-based candidate-unit ordinal.</param>
+    public FileDiagnostic(FileDiagnosticCategory category, string code, LText message, MessageType severity = MessageType.Error, FileLocation? location = null, string? recordType = null, long? unitOrdinal = null)
     {
         if (!Enum.IsDefined(category))
             throw new ArgumentOutOfRangeException(nameof(category));
@@ -18,19 +19,22 @@ public sealed class FileDiagnostic
         if (!Enum.IsDefined(severity))
             throw new ArgumentOutOfRangeException(nameof(severity));
 
-        code.ThrowIfNullOrWhiteSpace();
         if (string.IsNullOrWhiteSpace(message.KeyAndOrText) && string.IsNullOrWhiteSpace(message.FallbackText))
             throw new ArgumentException("A diagnostic requires a localization key or nonblank text.", nameof(message));
 
         if (recordType is not null)
             recordType.ThrowIfNullOrWhiteSpace();
 
+        if (unitOrdinal.HasValue)
+            unitOrdinal.Value.ThrowIfLessThanOrEqualToZero();
+
         Category = category;
-        Code = code;
+        Code = code.ThrowIfNullOrWhiteSpace();
         Message = message;
         Severity = severity;
         Location = location;
         RecordType = recordType;
+        UnitOrdinal = unitOrdinal;
     }
 
     /// <summary>Gets the diagnostic category.</summary>
@@ -53,4 +57,7 @@ public sealed class FileDiagnostic
 
     /// <summary>Gets the logical record type, or null when routing was not possible.</summary>
     public string? RecordType { get; }
+
+    /// <summary>Gets the one-based candidate-unit ordinal, when the diagnostic is unit-scoped.</summary>
+    public long? UnitOrdinal { get; }
 }

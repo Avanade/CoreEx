@@ -1,0 +1,4 @@
+{"type":"header","BatchId":"batch-one"}
+{"type":"adjustment","CommandId":"one","Sku":"DEMO","Lines":[{"Bin":"east","Quantity":1},{"Bin":"west","Quantity":1}]}
+{"type":"adjustment","CommandId":"two","Sku":"DEMO","Lines":[{"Bin":"east","Quantity":3}]}
+{"type":"trailer","AdjustmentCount":2,"QuantityTotal":5}

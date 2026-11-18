@@ -1,7 +1,7 @@
 namespace CoreEx.CodeGen.Test.Unit;
 
 [TestFixture]
-public class FileGenerationTests
+public partial class FileGenerationTests
 {
     private string _directory = null!;
     private string _runtime = null!;
@@ -76,10 +76,10 @@ public class FileGenerationTests
         records:
         - name: Row
           properties:
-          - { name: Code, column: Code, required: true, maxLength: 10 }
-          - { name: Count, type: Integer, column: Count, required: true }
-          - { name: Date, type: DateOnly, column: Date, format: yyyyMMdd }
-          - { name: Timestamp, type: DateTime, column: Timestamp, format: yyyyMMdd }
+          - { name: Code, required: true, maxLength: 10 }
+          - { name: Count, type: Integer, required: true }
+          - { name: Date, type: DateOnly, format: yyyyMMdd }
+          - { name: Timestamp, type: DateTime, format: yyyyMMdd }
         """;
 
     private static string Hierarchy(string name) => $$"""
@@ -87,39 +87,61 @@ public class FileGenerationTests
         version: r1
         runtimeProjectPath: Runtime
         runtimeNamespace: Consumer.{{name}}
-        discriminatorIndex: 0
-        structure:
-          header: { record: Header, cardinality: One }
-          root:
-            record: Order
-            cardinality: OneOrMore
-            children:
-            - record: Line
+        csv:
+          discriminatorIndex: 0
+          structure:
+            root:
+              record: Order
               cardinality: OneOrMore
               children:
-              - { record: Detail, cardinality: Optional }
-          trailer: { record: Trailer, cardinality: One }
+              - record: Line
+                cardinality: OneOrMore
+                children:
+                - { record: Detail, cardinality: Optional }
+        metadata:
+        - { name: Header, record: Header, required: true, csv: { position: First } }
+        - { name: Trailer, record: Trailer, required: true, csv: { position: Last } }
         records:
         - name: Header
-          match: H
+          csv: { match: H }
           properties:
-          - { name: Batch, index: 1, required: true }
+          - { name: Batch, csv: { index: 1 }, required: true }
         - name: Order
-          match: O
+          csv: { match: O }
           properties:
-          - { name: Id, type: Integer, index: 1, required: true }
+          - { name: Id, type: Integer, csv: { index: 1 }, required: true }
         - name: Line
-          match: L
+          csv: { match: L }
           properties:
-          - { name: Sku, index: 1, required: true }
+          - { name: Sku, csv: { index: 1 }, required: true }
         - name: Detail
-          match: D
+          csv: { match: D }
           properties:
-          - { name: Text, index: 1 }
+          - { name: Text, csv: { index: 1 } }
         - name: Trailer
-          match: T
+          csv: { match: T }
           properties:
-          - { name: Count, type: Integer, index: 1 }
+          - { name: Count, type: Integer, csv: { index: 1 } }
+        """;
+
+    private static string Unordered(string name) => $$"""
+        name: {{name}}
+        version: r1
+        runtimeProjectPath: Runtime
+        runtimeNamespace: Consumer.{{name}}
+        csv:
+          discriminatorIndex: 0
+        metadata:
+        - { name: Header, record: Header, required: true, csv: { position: First } }
+        records:
+        - name: Header
+          csv: { match: H }
+          properties:
+          - { name: batch_id, required: true, csv: { index: 1 } }
+        - name: Order
+          csv: { match: O }
+          properties:
+          - { name: id, type: Integer, required: true, csv: { index: 1 } }
         """;
 
     [Test]
@@ -156,7 +178,9 @@ public class FileGenerationTests
         System.IO.File.ReadAllText(Path.Combine(_runtime, "Files", "Flat", "FlatProcessor.g.cs")).Should()
             .Contain("public override Task<FileProcessingSummary> ProcessAsync(Func<CancellationToken, Task<Stream>> openReadAsync, FileProcessingContext context, CancellationToken cancellationToken = default)")
             .And.Contain("if (context.ThrowIfNull() is not FlatContext")
-            .And.NotContain("context.ThrowIfNull();");
+            .And.NotContain("context.ThrowIfNull();")
+            .And.NotContain("IServiceProvider Services")
+            .And.NotContain("Services =");
         Directory.GetFiles(Path.Combine(_runtime, "Files"), "*ServiceCollectionExtensions.g.cs", SearchOption.AllDirectories).Should().BeEmpty();
         System.IO.File.ReadAllText(Path.Combine(_runtime, "Files", "Flat", "FlatProcessor.g.cs")).Should().Contain("[ScopedService]");
         System.IO.File.ReadAllText(Path.Combine(_runtime, "Files", "Flat", "FlatHandler.cs")).Should().Contain("[ScopedService]");
@@ -164,28 +188,116 @@ public class FileGenerationTests
         validator.Should().Contain("Property(x => x.Code).WithText(\"Code\").NotNull().MaximumLength(10);")
             .And.NotContain("Property(x => x.Date)")
             .And.NotContain("Property(x => x.Timestamp)");
+        var metadataContext = System.IO.File.ReadAllText(Path.Combine(_runtime, "Files", "Nested", "NestedContext.g.cs"));
+        metadataContext.Should().Contain("GetHeaderMetadata()").And.Contain("GetAcceptedHeaderMetadata()")
+            .And.Contain("GetTrailerMetadata()").And.Contain("GetAcceptedTrailerMetadata()");
+        var hierarchyProcessor = System.IO.File.ReadAllText(Path.Combine(_runtime, "Files", "Nested", "NestedProcessor.g.cs"));
+        hierarchyProcessor.Should().Contain("new CsvMetadataDefinition[]").And.Contain("FileRecordPosition.First").And.Contain("FileRecordPosition.Last");
     }
 
     [Test]
-    public async Task FlatDefinitionGeneratesExactHeaderAndReportMode()
+    public async Task FlatDefinitionGeneratesExactHeaderAndConfiguredMode()
     {
-        var definition = Flat().Replace("errorMode: CollectErrors", "errorMode: CollectErrors\nheaderPolicy: Exact\nmode: ValidateAndReport", StringComparison.Ordinal);
-        Write("report-file.yaml", definition);
+        var definition = Flat().Replace("errorMode: CollectErrors", "errorMode: CollectErrors\ncsv: { headerPolicy: Exact }\nmode: ValidateThenExecute", StringComparison.Ordinal);
+        Write("configured-mode-file.yaml", definition);
         await FileGenerationBatch.GenerateAsync(Args());
 
         System.IO.File.ReadAllText(Path.Combine(_runtime, "Files", "Flat", "FlatRowMapping.g.cs")).Should()
             .Contain("new CsvFileMapping<FlatRow>(CsvHeaderPolicy.Exact)");
         System.IO.File.ReadAllText(Path.Combine(_runtime, "Files", "Flat", "FlatProcessor.g.cs")).Should()
-            .Contain("FileProcessingMode mode = FileProcessingMode.ValidateAndReport");
+            .Contain("FileProcessingMode mode = FileProcessingMode.ValidateThenExecute");
     }
 
     [Test]
     public async Task NamedValidationLabelsUseSourceColumnWithoutChangingPropertyIdentity()
     {
-        Write("flat-file.yaml", Flat().Replace("column: Code", "column: 'Supplier code'"));
+        Write("flat-file.yaml", Flat().Replace("name: Code,", "name: 'Supplier code', property: Code,"));
         await FileGenerationBatch.GenerateAsync(Args());
         var validator = System.IO.File.ReadAllText(Path.Combine(_runtime, "Files", "Flat", "FlatRowValidator.g.cs"));
         validator.Should().Contain("Property(x => x.Code).WithText(\"Supplier code\").NotNull().MaximumLength(10)");
+    }
+
+    [Test]
+    public async Task UnorderedDefinitionGeneratesDeclaredMetadataRoutes()
+    {
+        Write("unordered-file.yaml", Unordered("Unordered"));
+
+        await FileGenerationBatch.GenerateAsync(Args());
+
+        var processor = System.IO.File.ReadAllText(Path.Combine(_runtime, "Files", "Unordered", "UnorderedProcessor.g.cs"));
+        processor.Should().Contain("new CsvMetadataDefinition[]")
+            .And.Contain("new(\"Header\", \"Header\", true, FileRecordPosition.First)")
+            .And.Contain("cardinality: FileCardinality.Many, position: FileRecordPosition.Any");
+        var context = System.IO.File.ReadAllText(Path.Combine(_runtime, "Files", "Unordered", "UnorderedContext.g.cs"));
+        context.Should().Contain("GetHeaderMetadata()").And.Contain("GetAcceptedHeaderMetadata()");
+    }
+
+    [Test]
+    public async Task SourceNamesDerivePropertiesWithoutChangingSelectors()
+    {
+        Write("names-file.yaml", """
+            name: Names
+            version: r1
+            runtimeProjectPath: Runtime
+            records:
+            - name: Row
+              properties:
+              - { name: order_id }
+              - { name: effective-date, type: DateOnly, format: yyyyMMdd }
+              - { name: customer_ref, property: CustomerReference }
+            """);
+
+        await FileGenerationBatch.GenerateAsync(Args());
+
+        var record = System.IO.File.ReadAllText(Path.Combine(_runtime, "Files", "Names", "NamesRow.g.cs"));
+        record.Should().Contain("string? OrderId").And.Contain("DateOnly? EffectiveDate").And.Contain("string? CustomerReference");
+        var mapping = System.IO.File.ReadAllText(Path.Combine(_runtime, "Files", "Names", "NamesRowMapping.g.cs"));
+        mapping.Should().Contain(".MapProperty(\"order_id\", x => x.OrderId")
+            .And.Contain(".MapProperty(\"effective-date\", x => x.EffectiveDate")
+            .And.Contain(".MapProperty(\"customer_ref\", x => x.CustomerReference");
+    }
+
+    [Test]
+    public async Task LegacyColumnAndStructureEnvelopeKeysAreRejected()
+    {
+        var legacyColumn = Flat().Replace("{ name: Code,", "{ name: Code, column: Code,", StringComparison.Ordinal);
+        Write("legacy-file.yaml", legacyColumn);
+        var action = () => FileGenerationBatch.GenerateAsync(Args());
+        await action.Should().ThrowAsync<CodeGenException>().WithMessage("*column*Unknown property*");
+        Directory.Exists(Path.Combine(_runtime, "Files")).Should().BeFalse();
+
+        Write("legacy-file.yaml", Hierarchy("Legacy").Replace("  structure:\n    root:", "  structure:\n    header: { record: Header }\n    root:", StringComparison.Ordinal));
+        var structureAction = () => FileGenerationBatch.GenerateAsync(Args());
+        await structureAction.Should().ThrowAsync<CodeGenException>().WithMessage("*header*Unknown property*");
+        Directory.Exists(Path.Combine(_runtime, "Files")).Should().BeFalse();
+    }
+
+    [Test]
+    public async Task ValidateAndExecuteIsAcceptedAsTheSinglePassMode()
+    {
+        Write("single-pass-file.yaml", Flat().Replace("runtimeNamespace:", "mode: ValidateAndExecute\nruntimeNamespace:", StringComparison.Ordinal));
+        await FileGenerationBatch.GenerateAsync(Args());
+        System.IO.File.ReadAllText(Path.Combine(_runtime, "Files", "Flat", "FlatProcessor.g.cs"))
+            .Should().Contain("FileProcessingMode mode = FileProcessingMode.ValidateAndExecute");
+    }
+
+    [Test]
+    public async Task NormalizedSourceNameCollisionsRequireExplicitPropertyOverride()
+    {
+        Write("names-file.yaml", """
+            name: Names
+            version: r1
+            runtimeProjectPath: Runtime
+            records:
+            - name: Row
+              properties:
+              - { name: order_id }
+              - { name: order-id }
+            """);
+
+        var act = () => FileGenerationBatch.GenerateAsync(Args());
+        await act.Should().ThrowAsync<CodeGenException>().WithMessage("*Duplicate generated property*set property to a distinct valid identifier*");
+        Directory.Exists(Path.Combine(_runtime, "Files")).Should().BeFalse();
     }
 
     [TestCase("delimiter")]
@@ -310,13 +422,14 @@ public class FileGenerationTests
     [TestCase("runtimeNamespace: Consumer.Flat", "runtimeNamespace: Invalid.class")]
     [TestCase("runtimeNamespace: Consumer.Flat", "runtimeNamespace: Consumer.Flat\nruntimePath: ../outside")]
     [TestCase("name: Count", "name: Code")]
-    [TestCase("column: Count", "column: code")]
-    [TestCase("column: Count", "column: Code")]
+    [TestCase("name: Count", "name: Code")]
+    [TestCase("name: Count, type: Integer, required: true", "name: Count, type: Integer, required: true, column: Count")]
     [TestCase("errorMode: CollectErrors", "errorMode: Typo")]
     [TestCase("runtimeNamespace: Consumer.Flat", "runtimeNamespace: Consumer.Flat\nmode: Typo")]
-    [TestCase("runtimeNamespace: Consumer.Flat", "runtimeNamespace: Consumer.Flat\nencoding: Typo")]
+    [TestCase("runtimeNamespace: Consumer.Flat", "runtimeNamespace: Consumer.Flat\ncsv: { encoding: Typo }")]
     [TestCase("type: Integer", "type: Integer, referenceData: { type: Consumer.Country }")]
-    [TestCase("name: Code, column", "name: Code, referenceData: { type: 'Bad<T>' }, column")]
+    [TestCase("name: Code, required: true, maxLength: 10", "name: Code, required: true, maxLength: 10, column: Code")]
+    [TestCase("name: Code, required: true, maxLength: 10", "name: Code, referenceData: { type: 'Bad<T>' }, required: true, maxLength: 10")]
     public async Task InvalidConfigurationIsRejected(string original, string replacement)
     {
         Write("flat-file.yaml", Flat().Replace(original, replacement));
@@ -330,6 +443,15 @@ public class FileGenerationTests
     [TestCase("ReadOnly", "Span")]
     [TestCase("Csv", "FileOptions")]
     [TestCase("File", "ProcessingContext")]
+    [TestCase("File", "UnitArgs")]
+    [TestCase("File", "UnitValidationArgs")]
+    [TestCase("File", "RecordPosition")]
+    [TestCase("Json", "DocumentKind")]
+    [TestCase("Json", "FileContext")]
+    [TestCase("Json", "FileProcessor")]
+    [TestCase("Json", "FileDefinition")]
+    [TestCase("Json", "FileMetadata")]
+    [TestCase("Csv", "MetadataDefinition")]
     [TestCase("Generated", "RegexAttribute")]
     public async Task ReservedGeneratedTypeNamesAreRejectedBeforeBatchWrites(string definition, string record)
     {
@@ -344,13 +466,13 @@ public class FileGenerationTests
     }
 
     [Test]
-    public async Task ConversionHelperContainingTypeCollisionIsRejectedBeforeBatchWrites()
+    public async Task DateConversionUsesRuntimeConvertersWithoutGeneratedHelperCollisions()
     {
         Write("a-file.yaml", Flat());
         Write("z-file.yaml", Flat("Convert").Replace("name: Timestamp", "name: RowMapping"));
-        var act = () => FileGenerationBatch.GenerateAsync(Args());
-        await act.Should().ThrowAsync<CodeGenException>().WithMessage("*ConvertRowMapping*containing mapping type*");
-        Directory.Exists(Path.Combine(_runtime, "Files")).Should().BeFalse();
+        await FileGenerationBatch.GenerateAsync(Args());
+        var mapping = System.IO.File.ReadAllText(Path.Combine(_runtime, "Files", "Convert", "ConvertRowMapping.g.cs"));
+        mapping.Should().Contain("CsvFieldConverters.DateTime(\"yyyyMMdd\")").And.NotContain("private static bool Convert");
     }
 
     [TestCase("cardinality: OneOrMore", "cardinality: Invalid")]
@@ -358,7 +480,7 @@ public class FileGenerationTests
     [TestCase("discriminatorIndex: 0", "discriminatorIndex: 1")]
     [TestCase("record: Detail", "record: Missing")]
     [TestCase("record: Detail", "record: Order")]
-    [TestCase("record: Header, cardinality: One", "record: Header, cardinality: Many")]
+    [TestCase("name: Header, record: Header, required: true", "name: Header, record: Header, required: true, unsupported: true")]
     public async Task InvalidHierarchyIsRejectedBeforeWrites(string original, string replacement)
     {
         Write("orders-file.yaml", Hierarchy("Orders").Replace(original, replacement));
@@ -368,19 +490,42 @@ public class FileGenerationTests
     }
 
     [Test]
-    public async Task LongBudgetsUseOnRampInferenceWithoutExplicitMetadata()
+    public void ConfigurationReference_IncludesGroupedSettingsAndConversionPolicies()
     {
-        Write("flat-file.yaml", Flat() + "\nmaxInputBytes: 4294967296\nmaxGroupRecords: 2147483648\n");
-        var statistics = await FileGenerationBatch.GenerateAsync(Args(), validateOnly: true);
-        var config = (Files.Config.CodeGenConfig)statistics.RootConfig!;
-        config.MaxInputBytes.Should().Be(4_294_967_296L);
-        config.MaxGroupRecords.Should().Be(2_147_483_648L);
-        var schemaPath = Path.Combine(_directory, "files-schema.json");
-        OnRamp.Utility.JsonSchemaGenerator.Generate<Files.Config.CodeGenConfig>(schemaPath, "File configuration");
-        using var schema = System.Text.Json.JsonDocument.Parse(System.IO.File.ReadAllText(schemaPath));
-        var properties = schema.RootElement.GetProperty("definitions").GetProperty("CodeGeneration").GetProperty("properties");
-        properties.GetProperty("maxInputBytes").GetProperty("type").GetString().Should().Be("integer");
-        properties.GetProperty("maxGroupRecords").GetProperty("type").GetString().Should().Be("integer");
+        var directory = Path.Combine(_directory, "docs");
+        Directory.CreateDirectory(directory);
+        OnRamp.Utility.MarkdownDocumentationGenerator.Generate<Files.Config.CodeGenConfig>(null, directory);
+
+        (string Page, string[] Properties)[] expected =
+        [
+            ("CodeGeneration", ["format", "csv", "json", "jsonl", "unit", "metadata", "mode", "errorMode"]),
+            ("Csv", ["delimiter", "encoding", "discriminatorIndex", "structure"]),
+            ("CsvMetadata", ["position"]),
+            ("CsvProperty", ["index"]),
+            ("CsvRecord", ["match", "cardinality", "position"]),
+            ("Json", ["unknownMemberPolicy", "maxDepth"]),
+            ("JsonDocumentMetadata", ["path"]),
+            ("Metadata", ["name", "record", "required", "csv", "jsonl", "json"]),
+            ("Property", ["name", "property", "csv", "format"]),
+            ("Record", ["name", "csv", "properties"]),
+            ("Unit", ["record", "cardinality", "kind", "unitPath"])
+        ];
+        foreach (var (page, properties) in expected)
+        {
+            var content = System.IO.File.ReadAllText(Path.Combine(directory, page + ".md"));
+            foreach (var property in properties)
+                content.Should().Contain("`" + property + "`", $"{page} must document {property}");
+        }
+
+        foreach (var file in Directory.GetFiles(directory, "*.md"))
+        {
+            var checkedIn = Path.Combine(_repository, "src", "CoreEx.CodeGen", "Files", "docs", Path.GetFileName(file));
+            System.IO.File.ReadAllText(checkedIn).Replace("\r\n", "\n").TrimEnd()
+                .Should().Be(System.IO.File.ReadAllText(file).Replace("\r\n", "\n").TrimEnd(), "checked-in reference pages must match generated output");
+        }
+
+        System.IO.File.ReadAllText(Path.Combine(directory, "CodeGeneration.md")).Should().NotContain("## Structure");
+        System.IO.File.ReadAllText(Path.Combine(directory, "Record.md")).Should().NotContain("`errorMode`");
     }
 
     [Test]
@@ -397,7 +542,7 @@ public class FileGenerationTests
     [TestCase("type: Integer, min: '1'")]
     public async Task InvalidValidationRulesPreventWrites(string rules)
     {
-        Write("rules-file.yaml", Flat().Replace("column: Code, required: true, maxLength: 10", "column: Code, " + rules));
+        Write("rules-file.yaml", Flat().Replace("name: Code, required: true, maxLength: 10", "name: Code, " + rules));
         var act = () => FileGenerationBatch.GenerateAsync(Args());
         await act.Should().ThrowAsync<CodeGenException>();
         Directory.Exists(Path.Combine(_runtime, "Files")).Should().BeFalse();
@@ -406,10 +551,9 @@ public class FileGenerationTests
     [Test]
     public async Task GeneratedFlatAndTwoNestedHierarchiesCompileAndRunTogether()
     {
-        Write("flat-file.yaml", Flat().Replace("column: Code, required: true", "column: Code, referenceData: { type: Consumer.Country }, required: true")
-            .Replace("column: Code,", "column: 'Supplier code',")
+        Write("flat-file.yaml", Flat().Replace("name: Code, required: true", "name: 'Supplier code', property: Code, referenceData: { type: Consumer.Country }, required: true")
             .Replace("version: '2026-01'", "version: 'rev\"\\\u96ea'")
-            + "\n  - { name: Alternate, column: Alternate, referenceData: { type: Consumer.Country, allowInactive: true } }\n");
+            + "\n  - { name: Alternate, referenceData: { type: Consumer.Country, allowInactive: true } }\n");
         Write("orders-file.yaml", Hierarchy("Orders"));
         Write("returns-file.yaml", Hierarchy("Returns"));
         Write("rules-file.yaml", """
@@ -420,17 +564,17 @@ public class FileGenerationTests
             records:
             - name: Row
               properties:
-              - { name: Text, index: 0, required: true, minLength: 2, maxLength: 4, regex: '^[A-Z]+$', min: AA, max: ZZ, options: [AB, CD] }
-              - { name: Mail, index: 1, email: true }
-              - { name: Amount, index: 2, type: Decimal, precision: 5, scale: 2, min: 0, max: 999.99, options: [12.34] }
-              - { name: Large, index: 3, type: Int64, min: 2147483648, max: 9223372036854775807, options: [4294967296] }
-              - { name: Ratio, index: 4, type: Double, min: -1.5, max: 1.5, options: [0.5] }
-              - { name: Day, index: 5, type: DateOnly, format: yyyyMMdd, min: '20260101', max: '20261231', options: ['20260615'] }
-              - { name: Timestamp, index: 6, type: DateTime, format: yyyyMMddHHmmssfffffff, min: '202601010000000000000', options: ['202606151314151234567'] }
-              - { name: Flag, index: 7, type: Boolean, mandatory: true, options: [true] }
-              - { name: Id, index: 8, type: Guid, options: ['01234567-89ab-cdef-0123-456789abcdef'] }
-              - { name: Empty, index: 9, maxLength: 0, regex: '' }
-              - { name: Number, index: 10, type: Integer, max: 10, options: [0, 10] }
+              - { name: Text, csv: { index: 0 }, required: true, minLength: 2, maxLength: 4, regex: '^[A-Z]+$', min: AA, max: ZZ, options: [AB, CD] }
+              - { name: Mail, csv: { index: 1 }, email: true }
+              - { name: Amount, csv: { index: 2 }, type: Decimal, precision: 5, scale: 2, min: 0, max: 999.99, options: [12.34] }
+              - { name: Large, csv: { index: 3 }, type: Int64, min: 2147483648, max: 9223372036854775807, options: [4294967296] }
+              - { name: Ratio, csv: { index: 4 }, type: Double, min: -1.5, max: 1.5, options: [0.5] }
+              - { name: Day, csv: { index: 5 }, type: DateOnly, format: yyyyMMdd, min: '20260101', max: '20261231', options: ['20260615'] }
+              - { name: Timestamp, csv: { index: 6 }, type: DateTime, format: yyyyMMddHHmmssfffffff, min: '202601010000000000000', options: ['202606151314151234567'] }
+              - { name: Flag, csv: { index: 7 }, type: Boolean, mandatory: true, options: [true] }
+              - { name: Id, csv: { index: 8 }, type: Guid, options: ['01234567-89ab-cdef-0123-456789abcdef'] }
+              - { name: Empty, csv: { index: 9 }, maxLength: 0, regex: '' }
+              - { name: Number, csv: { index: 10 }, type: Integer, max: 10, options: [0, 10] }
             """);
         await FileGenerationBatch.GenerateAsync(Args());
         System.IO.File.WriteAllText(Path.Combine(_runtime, "Country.cs"), """
@@ -459,10 +603,10 @@ public class FileGenerationTests
             public partial class FlatProcessor
             {
                 public int Diagnostics { get; private set; }
-                protected override Task OnDiagnosticAsync(CoreEx.IO.FileProcessingContext context, CoreEx.IO.FileDiagnostic diagnostic, CancellationToken cancellationToken)
+                protected override Task OnDiagnosticAsync(CoreEx.IO.FileDiagnosticArgs args, CancellationToken cancellationToken)
                 {
-                    if (diagnostic.Location?.PropertyPath != "code") throw new Exception($"Unexpected diagnostic {diagnostic.Code} at {diagnostic.Location?.PropertyPath}: {diagnostic.Message}");
-                    if (diagnostic.Message.ToString()?.Contains("Supplier code") != true) throw new Exception("Validation did not retain the source-column label.");
+                    if (args.Diagnostic.Location?.PropertyPath != "code") throw new Exception($"Unexpected diagnostic {args.Diagnostic.Code} at {args.Diagnostic.Location?.PropertyPath}: {args.Diagnostic.Message}");
+                    if (args.Diagnostic.Message.ToString()?.Contains("Supplier code") != true) throw new Exception("Validation did not retain the source-column label.");
                     Diagnostics++;
                     return Task.CompletedTask;
                 }
@@ -489,11 +633,11 @@ public class FileGenerationTests
             const string columns = "Supplier code,Count,Date,Timestamp,Alternate\n";
             if (Consumer.Flat.FlatProcessor.DefinitionVersion != "rev\"\\\u96ea") throw new Exception("Definition revision literal did not round-trip.");
             var flatResult = await flat.ProcessAsync(_ => Open(columns + "a,0,20260615,20260615,D\nA,0,,,\n"), Consumer.Flat.FlatProcessor.CreateContext("source", "attempt"));
-            if (flatResult.Outcome != CoreEx.IO.FileProcessingOutcome.Validated) throw new Exception("Flat validation failed.");
+            if (flatResult.Outcome != CoreEx.IO.FileProcessingOutcome.Succeeded) throw new Exception("Flat validation failed.");
             foreach (var code in new[] { "Z", "D", "" })
             {
                 var invalidCode = await flat.ProcessAsync(_ => Open(columns + code + ",0,,,\n"), Consumer.Flat.FlatProcessor.CreateContext("source", "attempt"));
-                if (invalidCode.Outcome != CoreEx.IO.FileProcessingOutcome.Rejected) throw new Exception("Invalid reference code accepted.");
+                if (invalidCode.Outcome != CoreEx.IO.FileProcessingOutcome.ContentFailed) throw new Exception("Invalid reference code accepted.");
             }
             if (flat.Diagnostics != 3) throw new Exception("Reference-data diagnostics must be individual and retain property paths.");
             var exceptions = 0;

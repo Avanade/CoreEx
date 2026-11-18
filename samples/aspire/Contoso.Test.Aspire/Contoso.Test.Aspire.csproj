@@ -21,7 +21,7 @@
     <PackageReference Include="NUnit3TestAdapter" />
     <PackageReference Include="ModelContextProtocol" />
     <PackageReference Include="UnitTestEx.Aspire" />
-    <PackageReference Include="UnitTestEx.NUnit" />
+    <PackageReference Include="UnitTestEx" />
   </ItemGroup>
 
   <ItemGroup>

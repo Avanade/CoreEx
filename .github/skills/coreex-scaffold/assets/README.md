@@ -8,6 +8,8 @@
 
 # coreex-scaffold assets
 
+For a minimal Functions Blob/Service Bus setup, use the [local infrastructure recipe](../references/local-infrastructure.md) instead of copying this full stack. It includes Azurite, which these fallback assets do not supply, and keeps test-owned broker entities in C#.
+
 Static local-dev infrastructure fallbacks bundled with this skill: `docker-compose.local.yml` and
 `servicebus-config.template.json`.
 

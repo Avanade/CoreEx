@@ -1,23 +1,14 @@
 namespace CoreEx.IO;
 
-/// <summary>Identifies a returned processing outcome; operational faults and cancellation propagate instead.</summary>
+/// <summary>Identifies whether processing succeeded, found invalid content, or encountered a returned business execution failure.</summary>
 public enum FileProcessingOutcome
 {
-    /// <summary>Validation completed successfully and execution was not requested.</summary>
-    Validated,
+    /// <summary>Validation and all requested processing completed without content or business execution errors.</summary>
+    Succeeded,
 
-    /// <summary>Validation and all requested business execution completed successfully.</summary>
-    Executed,
-
-    /// <summary>Content was rejected, with no business execution performed.</summary>
-    Rejected,
+    /// <summary>Content validation failed; progress may include reports or writes completed before the failure.</summary>
+    ContentFailed,
 
     /// <summary>A business execution returned a failed Result; earlier units may have committed.</summary>
-    ExecutionFailed,
-
-    /// <summary>Validation completed successfully and every validated unit was reported.</summary>
-    Reported,
-
-    /// <summary>Validation found content errors after reporting zero or more valid units; no business execution occurred.</summary>
-    ReportedWithErrors
+    ExecutionFailed
 }

@@ -77,10 +77,10 @@
     <PackageVersion Include="CoreEx.UnitTesting" Version="coreex-version" />
     <PackageVersion Include="coverlet.collector" Version="10.1.0" />
     <!--#if implement-postgres-->
-    <PackageVersion Include="DbEx.Postgres" Version="3.3.1" />
+    <PackageVersion Include="DbEx.Postgres" Version="3.4.0" />
     <!--#endif-->
     <!--#if implement-sqlserver-->
-    <PackageVersion Include="DbEx.SqlServer" Version="3.3.1" />
+    <PackageVersion Include="DbEx.SqlServer" Version="3.4.0" />
     <!--#endif-->
     <!--#if implement-sqlserver-->
     <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.13" />
@@ -92,9 +92,9 @@
     <!--#if implement-postgres-->
     <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
     <!--#endif-->
-    <PackageVersion Include="UnitTestEx.Aspire" Version="6.1.0" />
-    <PackageVersion Include="UnitTestEx.Azure.Functions" Version="6.1.0" />
-    <PackageVersion Include="UnitTestEx.NUnit" Version="6.1.0" />
+    <PackageVersion Include="UnitTestEx" Version="7.0.0" />
+    <PackageVersion Include="UnitTestEx.Aspire" Version="7.0.0" />
+    <PackageVersion Include="UnitTestEx.Azure.Functions" Version="7.0.0" />
     <PackageVersion Include="WireMock.Net" Version="2.19.0" />
   </ItemGroup>
 </Project>

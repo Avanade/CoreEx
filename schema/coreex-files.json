@@ -30,6 +30,102 @@
           "title": "Generated namespace.",
           "description": "Defaults to project directory name plus runtimePath segments. Explicit override avoids assumptions about MSBuild RootNamespace."
         },
+        "format": {
+          "type": "string",
+          "title": "Input format.",
+          "description": "Defaults to Csv. XML is not supported.",
+          "enum": [
+            "Csv",
+            "Json",
+            "Jsonl"
+          ]
+        },
+        "csv": {
+          "title": "CSV parser, routing, and assembly settings.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Csv"
+            }
+          ]
+        },
+        "json": {
+          "title": "Shared JSON mapping settings.",
+          "description": "Shared JSON token conversion, unknown-member policy, and parser depth.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Json"
+            }
+          ]
+        },
+        "jsonl": {
+          "title": "JSONL framing and routing.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Jsonl"
+            }
+          ]
+        },
+        "unit": {
+          "title": "Business object selection.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Unit"
+            }
+          ]
+        },
+        "metadata": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "default": [],
+          "title": "File metadata declarations.",
+          "items": {
+            "$ref": "#/definitions/Metadata"
+          }
+        },
+        "mode": {
+          "type": "string",
+          "title": "Default processing mode.",
+          "description": "Defaults to ValidateOnly. Valid-unit reporting is an optional processor hook in every mode; ValidateAndExecute validates and executes each unit in one pass.",
+          "enum": [
+            "ValidateOnly",
+            "ValidateThenExecute",
+            "ValidateAndExecute"
+          ]
+        },
+        "errorMode": {
+          "type": "string",
+          "title": "Default content policy.",
+          "description": "Defaults to FailFast.",
+          "enum": [
+            "FailFast",
+            "CollectErrors"
+          ]
+        },
+        "records": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "default": [],
+          "title": "Wire record definitions.",
+          "items": {
+            "$ref": "#/definitions/Record"
+          }
+        }
+      },
+      "required": [
+        "name",
+        "version",
+        "runtimeProjectPath",
+        "records"
+      ]
+    },
+    "Csv": {
+      "type": "object",
+      "title": "CSV parser and assembly settings.",
+      "properties": {
         "delimiter": {
           "type": "string",
           "title": "Delimiter.",
@@ -66,35 +162,6 @@
             "Exact"
           ]
         },
-        "mode": {
-          "type": "string",
-          "title": "Default processing mode.",
-          "description": "Defaults to ValidateOnly. ValidateAndReport invokes the handwritten valid-unit report hook without executing business units.",
-          "enum": [
-            "ValidateOnly",
-            "ValidateAndReport",
-            "ValidateThenExecute"
-          ]
-        },
-        "errorMode": {
-          "type": "string",
-          "title": "Default content policy.",
-          "description": "Defaults to FailFast.",
-          "enum": [
-            "FailFast",
-            "CollectErrors"
-          ]
-        },
-        "maxInputBytes": {
-          "type": "integer",
-          "title": "Positive input-byte budget.",
-          "description": "Defaults to 67108864 (64 MiB)."
-        },
-        "maxGroupRecords": {
-          "type": "integer",
-          "title": "Positive records-per-root budget.",
-          "description": "Defaults to 10000, including the root."
-        },
         "discriminatorIndex": {
           "type": "integer",
           "title": "Zero-based discriminator index.",
@@ -108,25 +175,8 @@
               "$ref": "#/definitions/Structure"
             }
           ]
-        },
-        "records": {
-          "type": [
-            "array",
-            "null"
-          ],
-          "default": [],
-          "title": "Wire record definitions.",
-          "items": {
-            "$ref": "#/definitions/Record"
-          }
         }
-      },
-      "required": [
-        "name",
-        "version",
-        "runtimeProjectPath",
-        "records"
-      ]
+      }
     },
     "Structure": {
       "type": "object",
@@ -134,24 +184,6 @@
       "properties": {
         "root": {
           "title": "Business root.",
-          "allOf": [
-            {
-              "$ref": "#/definitions/Node"
-            }
-          ]
-        },
-        "header": {
-          "title": "First envelope.",
-          "description": "One or Optional, without children.",
-          "allOf": [
-            {
-              "$ref": "#/definitions/Node"
-            }
-          ]
-        },
-        "trailer": {
-          "title": "Final envelope.",
-          "description": "One or Optional, without children.",
           "allOf": [
             {
               "$ref": "#/definitions/Node"
@@ -198,6 +230,174 @@
         "record"
       ]
     },
+    "Json": {
+      "type": "object",
+      "title": "Shared JSON mapping settings.",
+      "properties": {
+        "unknownMemberPolicy": {
+          "type": "string",
+          "title": "Unknown member policy.",
+          "description": "Defaults to Reject; applies recursively to units and declared metadata.",
+          "enum": [
+            "Reject",
+            "Ignore"
+          ]
+        },
+        "maxDepth": {
+          "type": "integer",
+          "title": "Positive nesting limit.",
+          "description": "Defaults to 64; includes ignored objects and arrays."
+        }
+      }
+    },
+    "Jsonl": {
+      "type": "object",
+      "title": "JSONL framing and routing.",
+      "properties": {
+        "discriminator": {
+          "type": "string",
+          "title": "Direct string discriminator.",
+          "description": "Omit for ordinary object units. Required for metadata routing; no implicit type-member convention."
+        },
+        "blankLinePolicy": {
+          "type": "string",
+          "title": "Blank-line policy.",
+          "description": "Defaults to Reject. Skip excludes blank lines from records/units but not bytes/physical lines.",
+          "enum": [
+            "Reject",
+            "Skip"
+          ]
+        }
+      }
+    },
+    "Unit": {
+      "type": "object",
+      "title": "Business unit selection.",
+      "properties": {
+        "record": {
+          "type": "string",
+          "title": "Business root record.",
+          "description": "Inferred only when exactly one non-metadata, non-child record is eligible."
+        },
+        "cardinality": {
+          "type": "string",
+          "title": "File unit cardinality.",
+          "description": "Defaults to One for root Object input; otherwise Many.",
+          "enum": [
+            "Many",
+            "One",
+            "Optional",
+            "OneOrMore"
+          ]
+        },
+        "kind": {
+          "type": "string",
+          "title": "JSON document value kind.",
+          "description": "Defaults to Array; applies only to JSON documents.",
+          "enum": [
+            "Array",
+            "Object"
+          ]
+        },
+        "unitPath": {
+          "type": "string",
+          "title": "JSON document unit path.",
+          "description": "Defaults to the root pointer; applies only to JSON documents."
+        }
+      }
+    },
+    "Metadata": {
+      "type": "object",
+      "title": "File metadata.",
+      "properties": {
+        "name": {
+          "type": "string",
+          "title": "Logical metadata name."
+        },
+        "record": {
+          "type": "string",
+          "title": "Wire record."
+        },
+        "required": {
+          "type": "boolean",
+          "title": "Required metadata.",
+          "description": "Defaults to false; duplicate occurrences are always errors."
+        },
+        "csv": {
+          "title": "CSV metadata routing.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/CsvMetadata"
+            }
+          ]
+        },
+        "jsonl": {
+          "title": "JSONL metadata placement.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/JsonlMetadata"
+            }
+          ]
+        },
+        "json": {
+          "title": "JSON document metadata selection.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/JsonDocumentMetadata"
+            }
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "record"
+      ]
+    },
+    "CsvMetadata": {
+      "type": "object",
+      "title": "CSV metadata settings.",
+      "properties": {
+        "position": {
+          "type": "string",
+          "title": "Metadata position.",
+          "description": "Defaults to Any; blank/comment records and the column-name header do not count.",
+          "enum": [
+            "Any",
+            "First",
+            "Last"
+          ]
+        }
+      }
+    },
+    "JsonlMetadata": {
+      "type": "object",
+      "title": "JSONL metadata placement.",
+      "properties": {
+        "position": {
+          "type": "string",
+          "title": "Metadata position.",
+          "description": "Defaults to Any; malformed/unroutable non-skipped lines participate.",
+          "enum": [
+            "Any",
+            "First",
+            "Last"
+          ]
+        }
+      }
+    },
+    "JsonDocumentMetadata": {
+      "type": "object",
+      "title": "JSON document metadata selector.",
+      "properties": {
+        "path": {
+          "type": "string",
+          "title": "JSON Pointer."
+        }
+      },
+      "required": [
+        "path"
+      ]
+    },
     "Record": {
       "type": "object",
       "title": "File record.",
@@ -206,38 +406,20 @@
           "type": "string",
           "title": "Logical record name."
         },
-        "match": {
-          "type": "string",
-          "title": "Exact discriminator.",
-          "description": "Required for routed files; forbidden for flat files."
-        },
-        "errorMode": {
-          "type": "string",
-          "title": "Route error policy.",
-          "enum": [
-            "FailFast",
-            "CollectErrors"
+        "csv": {
+          "title": "CSV routing settings.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/CsvRecord"
+            }
           ]
         },
-        "cardinality": {
-          "type": "string",
-          "title": "File cardinality.",
-          "description": "Unordered routed files only; defaults to Many. Counts include recognized invalid records. Hierarchical cardinality belongs on structure nodes.",
-          "enum": [
-            "Many",
-            "One",
-            "Optional",
-            "OneOrMore"
-          ]
-        },
-        "position": {
-          "type": "string",
-          "title": "File position.",
-          "description": "Unordered routed files only; defaults to Any. First/Last require One or Optional cardinality. Hierarchical boundaries belong in structure.",
-          "enum": [
-            "Any",
-            "First",
-            "Last"
+        "jsonl": {
+          "title": "JSONL root discriminator match.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/JsonlRecord"
+            }
           ]
         },
         "properties": {
@@ -257,18 +439,69 @@
         "properties"
       ]
     },
+    "CsvRecord": {
+      "type": "object",
+      "title": "CSV record routing.",
+      "properties": {
+        "match": {
+          "type": "string",
+          "title": "Exact discriminator.",
+          "description": "Required for routed files; forbidden for flat files."
+        },
+        "cardinality": {
+          "type": "string",
+          "title": "File cardinality.",
+          "description": "Unordered routed files only; defaults to Many. Counts include recognized invalid records. Hierarchical cardinality belongs on structure nodes.",
+          "enum": [
+            "Many",
+            "One",
+            "Optional",
+            "OneOrMore"
+          ]
+        },
+        "position": {
+          "type": "string",
+          "title": "File position.",
+          "description": "Unordered routed files only; defaults to Any. First/Last require One or Optional cardinality.",
+          "enum": [
+            "Any",
+            "First",
+            "Last"
+          ]
+        }
+      }
+    },
+    "JsonlRecord": {
+      "type": "object",
+      "title": "JSONL record route.",
+      "properties": {
+        "match": {
+          "type": "string",
+          "title": "Exact discriminator match."
+        }
+      },
+      "required": [
+        "match"
+      ]
+    },
     "Property": {
       "type": "object",
       "title": "File record property.",
       "properties": {
         "name": {
           "type": "string",
-          "title": "C# property name."
+          "title": "Source field name.",
+          "description": "Exact JSON direct member or CSV column name; logical label for positional CSV fields."
+        },
+        "property": {
+          "type": "string",
+          "title": "Generated C# property override.",
+          "description": "Defaults to DbEx-style PascalCase derivation from name."
         },
         "type": {
           "type": "string",
           "title": "Logical type.",
-          "description": "Defaults to String. All wire properties are nullable; requiredness is separate.",
+          "description": "Defaults to String only without record/collection. Native JSON token types are required; all wire properties are nullable.",
           "enum": [
             "String",
             "Integer",
@@ -278,23 +511,36 @@
             "Boolean",
             "Guid",
             "DateOnly",
-            "DateTime"
+            "DateTime",
+            "DateTimeOffset"
           ]
         },
-        "index": {
-          "type": "integer",
-          "title": "Zero-based CSV index.",
-          "description": "Required for routed files. Specify exactly one of index or column."
-        },
-        "column": {
+        "record": {
           "type": "string",
-          "title": "CSV column name.",
-          "description": "Flat files only; specify exactly one of column or index."
+          "title": "Nested object record.",
+          "description": "JSON and JSONL only; mutually exclusive with type/collection. Required rejects missing/null; present objects always validate."
+        },
+        "collection": {
+          "title": "Nested collection occurrence.",
+          "description": "JSON and JSONL only; mutually exclusive with type/record. Null elements are not supported.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Collection"
+            }
+          ]
+        },
+        "csv": {
+          "title": "CSV property settings.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/CsvProperty"
+            }
+          ]
         },
         "format": {
           "type": "string",
           "title": "Exact invariant date format.",
-          "description": "Required for DateOnly/DateTime; not applicable to other types."
+          "description": "Optional for CSV and JSON dates; when omitted, uses standard invariant parsing. DateTimeOffset always requires an explicit Z or numeric offset; JSON DateTime rejects offsets. Also applies to scalar collection elements and date bounds/options."
         },
         "required": {
           "type": "boolean",
@@ -381,6 +627,61 @@
       "required": [
         "name"
       ]
+    },
+    "Collection": {
+      "type": "object",
+      "title": "Nested collection occurrence.",
+      "properties": {
+        "record": {
+          "type": "string",
+          "title": "Element record.",
+          "description": "Exactly one of record/type is required."
+        },
+        "type": {
+          "type": "string",
+          "title": "Scalar element type.",
+          "description": "Exactly one of record/type is required. Null elements are rejected.",
+          "enum": [
+            "String",
+            "Integer",
+            "Int64",
+            "Decimal",
+            "Double",
+            "Boolean",
+            "Guid",
+            "DateOnly",
+            "DateTime",
+            "DateTimeOffset"
+          ]
+        },
+        "cardinality": {
+          "type": "string",
+          "title": "Per-parent cardinality.",
+          "description": "Defaults to Many; missing/null counts as zero.",
+          "enum": [
+            "Many",
+            "One",
+            "Optional",
+            "OneOrMore"
+          ]
+        },
+        "maxItems": {
+          "type": "integer",
+          "title": "Optional maximum elements.",
+          "description": "No maximum by default. An explicit positive count is checked by the generated validator after deserialization."
+        }
+      }
+    },
+    "CsvProperty": {
+      "type": "object",
+      "title": "CSV property selector.",
+      "properties": {
+        "index": {
+          "type": "integer",
+          "title": "Zero-based CSV index.",
+          "description": "Required for routed files; flat files may use a named source field instead."
+        }
+      }
     },
     "ReferenceData": {
       "type": "object",

@@ -6,7 +6,7 @@ namespace CoreEx.Json;
 /// <remarks>The JSON path matching is exact (other than specified <see cref="StringComparison"/>) in that the path matches with no indexing or fully indexed; i.e. no mixing is supported. For example, a JSON path of
 /// '<c>$.projects[0].technologies[1]</c>' will only match based on a filter of either '<c>$.projects[0].technologies[1]</c>' (fully indexed) or '<c>$.projects.technologies</c>' (no indexing); not on
 /// '<c>$.projects.technologies[1]</c>' (mixed). Property names that contain special characters such as dots may be specified using bracket notation, e.g. <c>$.entries['stackExchange.Redis']</c> or
-/// <c>$.entries["stackExchange.Redis"]</c>. Note that the '<c>$.</c>' JSON path prefix for the filter is optional.
+/// <c>$.entries["stackExchange.Redis"]</c>. Names without path delimiters may use either dot or bracket notation. Note that the '<c>$.</c>' JSON path prefix for the filter is optional.
 /// <para>A path prefixed with a recursive descent marker, '<c>..</c>' or '<c>$..</c>' (e.g. <c>$..Foo</c> or <c>$..Foo.Bar</c>), matches the remainder of the path at <b>any</b> depth within the JSON hierarchy,
 /// for both <see cref="JsonFilterOption.Include"/> and <see cref="JsonFilterOption.Exclude"/>. For example, <c>$..Password</c> matches a property named <c>Password</c> irrespective of where it appears in the
 /// document. Only this leading (global) form of recursive descent is supported; a scoped, mid-path form (e.g. <c>$.Root..Foo</c>, matching <c>Foo</c> at any depth but only underneath <c>Root</c>) is not currently
@@ -203,7 +203,7 @@ public static partial class JsonFilter
             if (tail.Length == 0)
                 throw new ArgumentException($"The recursive descent path '{path}' must specify a property to match at any depth.", nameof(paths));
 
-            var suffix = NormalizeDoubleQuoteBrackets(tail.StartsWith('[') ? tail : $".{tail}");
+            var suffix = NormalizePropertyPaths(tail.StartsWith('[') ? tail : $".{tail}");
             if (!recursiveSuffixes.Contains(suffix, StringComparer.FromComparison(comparison)))
                 recursiveSuffixes.Add(suffix);
         }
@@ -253,7 +253,7 @@ public static partial class JsonFilter
         // Add each 'specified' path.
         foreach (var path in paths)
         {
-            var normalized = NormalizeDoubleQuoteBrackets(prependRootPath ? PrependRootPath(path) : path);
+            var normalized = NormalizePropertyPaths(prependRootPath ? PrependRootPath(path) : path);
             dict.TryAdd(normalized, true);
         }
 
@@ -302,7 +302,7 @@ public static partial class JsonFilter
     /// </summary>
     private static bool FilterInclude(JsonNode json, JsonFilterArgs args)
     {
-        var path = json.GetPath();
+        var path = NormalizePropertyPaths(json.GetPath());
         if (args.Paths.TryGetValue(path, out var isSpecifiedPath))
         {
             if (isSpecifiedPath)
@@ -555,7 +555,7 @@ public static partial class JsonFilter
     }
 
     /// <summary>
-    /// Parses a normalized, root-prefixed JSON <paramref name="path"/> (see <see cref="PrependRootPath"/>/<see cref="NormalizeDoubleQuoteBrackets"/>) into its individual <see cref="PathSegment"/>s.
+    /// Parses a normalized, root-prefixed JSON <paramref name="path"/> (see <see cref="PrependRootPath"/>/<see cref="NormalizePropertyPaths"/>) into its individual <see cref="PathSegment"/>s.
     /// </summary>
     private static PathSegment[] ParseSegments(string path)
     {
@@ -667,14 +667,14 @@ public static partial class JsonFilter
 
                 if (tail is null)
                 {
-                    matcher._plainPatterns.Add(ParseSegments(NormalizeDoubleQuoteBrackets(PrependRootPath(path))));
+                    matcher._plainPatterns.Add(ParseSegments(NormalizePropertyPaths(PrependRootPath(path))));
                     continue;
                 }
 
                 if (tail.Length == 0)
                     throw new ArgumentException($"The recursive descent path '{path}' must specify a property to match at any depth.", nameof(excludePaths));
 
-                var normalizedTail = NormalizeDoubleQuoteBrackets(tail.StartsWith('[') ? tail : $".{tail}");
+                var normalizedTail = NormalizePropertyPaths(tail.StartsWith('[') ? tail : $".{tail}");
                 matcher._recursivePatterns.Add(ParseSegments($"{JsonRootPath}{normalizedTail}"));
             }
 
@@ -829,19 +829,29 @@ public static partial class JsonFilter
     }
 
     /// <summary>
-    /// Normalizes double-quote bracket-notation property segments to single-quote form so that user-supplied filter paths
-    /// match the single-quote output of <see cref="JsonNode.GetPath"/>. For example, <c>$.a["b.c"]</c> becomes <c>$.a['b.c']</c>.
+    /// Normalizes equivalent bracket- and dot-notation property paths across <see cref="JsonNode.GetPath"/> implementations.
     /// </summary>
-    private static string NormalizeDoubleQuoteBrackets(string path) =>
-        path.Contains("[\"", StringComparison.Ordinal)
-            ? DoubleQuoteBracketsRegex().Replace(path, static m => $"['{m.Groups[1].Value}']")
+    private static string NormalizePropertyPaths(string path)
+    {
+        if (path.Contains("[\"", StringComparison.Ordinal))
+            path = DoubleQuoteBracketsRegex().Replace(path, static m => $"['{m.Groups[1].Value}']");
+
+        return path.Contains("['", StringComparison.Ordinal)
+            ? SimpleBracketPropertiesRegex().Replace(path, static m => $".{m.Groups[1].Value}")
             : path;
+    }
 
     /// <summary>
-    /// Provides the generated <see cref="Regex"/> for <see cref="NormalizeDoubleQuoteBrackets"/>.
+    /// Provides the generated <see cref="Regex"/> for double-quoted bracket properties.
     /// </summary>
     [GeneratedRegex(@"\[""([^""]*)""\]", RegexOptions.Compiled)]
     private static partial Regex DoubleQuoteBracketsRegex();
+
+    /// <summary>
+    /// Provides the generated <see cref="Regex"/> for bracket properties that are unambiguous in dot notation.
+    /// </summary>
+    [GeneratedRegex("""\['([^.\[\]'"\\]+)'\]""", RegexOptions.Compiled)]
+    private static partial Regex SimpleBracketPropertiesRegex();
 
     /// <summary>
     /// Represents the internal arguments for the JSON filter state.

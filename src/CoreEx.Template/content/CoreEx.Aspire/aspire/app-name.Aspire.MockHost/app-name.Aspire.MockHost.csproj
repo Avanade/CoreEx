@@ -22,7 +22,9 @@
   <ItemGroup>
     <PackageReference Include="WireMock.Net" />
     <PackageReference Include="UnitTestEx.Aspire" />
-    <!-- Override the vulnerable transitive Aspire dependency independently of the consumer's central versions. -->
+    <!-- Override vulnerable transitive dependencies independently of the consumer's central versions. -->
+    <PackageReference Include="Aspire.Hosting.Testing" VersionOverride="13.6.5" />
+    <PackageReference Include="Microsoft.AspNetCore.WebUtilities" VersionOverride="2.3.14" />
     <PackageReference Include="MessagePack" VersionOverride="2.5.307" />
   </ItemGroup>
 

@@ -23,6 +23,7 @@ Guides a repository through the right CoreEx setup path by interviewing the user
 - Deciding whether the first cut should create just the API host or also include the outbox relay and/or subscriber hosts.
 - Adding missing `Api`, `Relay`, `Subscribe` or `Functions` hosts, including standalone Functions integration apps without shared libraries.
 - Adding a repository/Test.Common baseline without business layers, or an independent CodeGen console without a database/reference-data scaffold.
+- Preparing local Functions dependencies and test-owned broker topology without adding application capabilities.
 - Adding an Aspire AppHost so a solution's hosts can be run and debugged together locally, with a dashboard.
 - Converting plain-English project needs into either the matching `dotnet new coreex*` commands or the safest retrofit path.
 
@@ -44,6 +45,8 @@ Guides a repository through the right CoreEx setup path by interviewing the user
 
 For step-by-step guidance, see [references/workflow.md](references/workflow.md).
 
+For local Functions infrastructure, read [references/local-infrastructure.md](references/local-infrastructure.md): Compose/Azurite, test-owned Service Bus topology, guarded queue setup and host connection settings. Apply it when local setup is requested, not automatically during empty scaffolding.
+
 ## Interactive Interview Rules
 
 - Resolve recorded decisions and inspect the existing solution before asking.
@@ -53,6 +56,7 @@ For step-by-step guidance, see [references/workflow.md](references/workflow.md).
 - Prefer either/or or small-choice questions before any extra freeform follow-up.
 - For conventional solution templates, if the user gives a partial or non-canonical name, stop and help them reach `[Company].[Product].[Domain]` before any template command. Functions has the deployment-name exception below; do not impose a new domain/root scaffold on standalone apps.
 - If the workspace already proves a choice, restate it in the implementation plan instead of asking again.
+- Apply documented implementation defaults in the plan instead of turning them into user questions: preserve standard test projects, use the local setup recipe's safety guards and defer runtime harnesses until a capability needs them. Ask only when requirements conflict or change scope.
 - Present one compact implementation plan once requirements are resolved. Wait for explicit approval unless the user's request already authorizes implementation; approval remains valid unless scope changes.
 - An unavailable user or approval tool is not approval. If explicit approval is required, use the available interaction mechanism; if none is available, present the plan once and stop pending approval. Do not retry the same question or invent consent.
 - Before any real `dotnet new` command, restate the derived inputs in one compact summary. Ask again only if an unresolved ambiguity materially changes the scaffold.
@@ -99,6 +103,7 @@ Set outbox to `true` only when the user chose owned persistence and reliable pub
 Before this skill runs, the repository must already be in one of these states:
 - A bootstrap-only shell created by `coreex-bootstrap`; or
 - An existing CoreEx solution that is missing hosts, root/shared-test conventions or independent CodeGen tooling.
+- An existing Functions solution that needs local dependency files or deliberately selected infrastructure setup tooling.
 
 **Standalone baseline:** use `coreex-solution` for a new Functions/integration repository: root solution/build/package conventions and lightweight Test.Common by default (`--test-common false` opts out), without Application/Infrastructure/Contracts or a database. Raw `coreex-functions --shared-core false` remains supported without a baseline and uses inline versions only when CPM is not enabled. For existing repositories, follow the [safe baseline retrofit](references/workflow.md#standalone-baseline-and-existing-project-retrofit); do not overwrite root policy.
 
@@ -143,6 +148,8 @@ dotnet new coreex-functions -n Sales.Imports.Functions --shared-core false --tes
 ```
 
 Functions emits `src/<full-host-name>/` and `tests/<host-name-with-Test.Functions>/`. Register both under `hosts`/`tests` and build by solution or project path. Discover the actual Test.Common project and supply its path relative to the generated test project using `--test-common-project`; omission generates no common reference, and a supplied missing path fails the build. Existing test projects use the SDK reference command instead. Package management follows effective CPM independently of `shared-core`; merge missing central entries deliberately, never add them or change existing pins silently. Record actual deployments/features in root/host guidance. Multiple hosts may share libraries but must not reference one another. Use [`coreex-functions`](../coreex-functions/SKILL.md) for real capabilities and tests.
+
+**Test defaults:** a new layered Functions solution uses `coreex` for its shared libraries, retaining the generated `Test.Unit` and `Test.Common`; `coreex-functions` adds `Test.Functions`, not a replacement for `Test.Unit`. Keep isolated application validators/mappers/logic in `Test.Unit`, and invocation/composition coverage in `Test.Functions`. Standalone uses its generated `Test.Functions` and optional shared test support; do not invent a separate `Test.Unit` project merely to match the layered shape. Host-local file types can be tested in `Test.Functions`; do not add a Functions host reference to `Test.Unit` just to move those tests.
 
 Do not pass data-provider/outbox/refdata flags to this template or automatically scan all shared services. Capability setup owns those dependencies. `coreex-aspire` does not generate Functions references; wire a requested Functions runtime into an existing AppHost using the project's verified Functions integration rather than its Api/Relay/Subscribe flags.
 

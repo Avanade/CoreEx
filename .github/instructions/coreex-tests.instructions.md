@@ -21,21 +21,27 @@ tags: ["testing", "unit-tests", "integration-tests", "test-helpers", "nunit"]
 > invariants that must hold on **any** test edit (project types, base classes, isolation, assertion helpers); the
 > skills drive the step-by-step creation procedure.
 
-For `*.Test.Functions`, use [`coreex-functions`](/.github/skills/coreex-functions/SKILL.md) and its [Functions instructions](/.github/instructions/coreex-functions.instructions.md), not the ASP.NET ApiTester examples below. Use UnitTestEx 6 `FunctionTester.Create<TFunction>()` with `HttpTrigger<T>()` / `Trigger<T>()`. Invocation tests exercise worker composition/middleware, not binding delivery, deployed authorization or broker redelivery; runtime proofs use Core Tools/Aspire. For an Event Grid-source Blob trigger against Azurite, upload the input and post a storage-shaped event through the Functions webhook; `EventGridExtensionMethods.CreateBlobCreatedEvent` builds only the simulated notification because Azurite does not emit Event Grid events. The local proof does not establish Azure subscription provisioning, authentication, or delivery.
+For `*.Test.Functions`, use [`coreex-functions`](/.github/skills/coreex-functions/SKILL.md) and its [Functions instructions](/.github/instructions/coreex-functions.instructions.md), not the ASP.NET ApiTester examples below. Use UnitTestEx 7 `FunctionTester.Create<TFunction>()` with `HttpTrigger<T>()` / `Trigger<T>()`. Invocation tests exercise worker composition/middleware, not binding delivery, deployed authorization or broker redelivery; runtime proofs use Core Tools/Aspire. For an Event Grid-source Blob trigger against Azurite, upload the input and post a storage-shaped event through the Functions webhook; `EventGridExtensionMethods.CreateBlobCreatedEvent` builds only the simulated notification because Azurite does not emit Event Grid events. The local proof does not establish Azure subscription provisioning, authentication, or delivery.
 
 ## NuGet / Project References
 
 | Package | Key types provided |
 |---|---|
-| `CoreEx.UnitTesting` | Base testers and common helpers: `WithApiTester<T>`, `WithGenericTester<T>`, `Test.Http()`, `Test.Http<T>()`, `Test.Scoped()`, `Test.ScopedType<T>()`, `Test.ClearFusionCacheAsync()`, `Test.ReplaceHttpClientFactory()`; database helpers: `Test.MigrateSqlServerDataAsync<T>()`, `Test.UseExpectedSqlServerOutboxPublisher()`, `.ExpectSqlServerOutboxEvents()`, `.ExpectNoSqlServerOutboxEvents()`, `Test.MigratePostgresDataAsync<T>()`, `Test.UseExpectedPostgresOutboxPublisher()`, `.ExpectPostgresOutboxEvents()`, `.ExpectNoPostgresOutboxEvents()`, `Test.MigrateCosmosDataAsync<T>()`, `Test.UseExpectedCosmosDbOutboxPublisher()`, `.ExpectCosmosDbOutboxEvents()`, `.ExpectNoCosmosDbOutboxEvents()`; messaging helpers: `Test.UseExpectedAzureServiceBusPublisher()`, `Test.GetAndClearAzureServiceBusAsync()`; ASP.NET Core assertions: `.ExpectIdentifier()`, `.ExpectETag()`, `.ExpectChangeLogCreated()`, `.ExpectJsonFromResource()`, `.AssertCreated()`, `.AssertOK()`, `.AssertBadRequest()`, `.AssertErrors()`, `.AssertJsonFromResource()`, `.AssertLocationHeader()` |
-| `UnitTestEx` | `MockHttpClientFactory`, `MockHttpClientRequest`, `.WithJsonResourceBody()`, `.WithAnyBody()`, `.Respond.With()`, `.Respond.WithJsonResource()`, `.Verify()` |
-| `UnitTestEx.Azure.Functions` / `UnitTestEx.NUnit` | `FunctionTester.Create<TFunction>()`, `HttpTrigger<T>()`, `Trigger<T>()`, `ToHttpResponseMessageAssertor(request)` for deferred results, `SnapshotHttpResponse(response)` for eagerly rendered idempotency output with a readable/seekable buffer. |
+| `CoreEx.UnitTesting` | Common helpers: `Test.ClearFusionCacheAsync()`, `Test.ReplaceHttpClientFactory()`; database helpers: `Test.MigrateSqlServerDataAsync<T>()`, `Test.UseExpectedSqlServerOutboxPublisher()`, `.ExpectSqlServerOutboxEvents()`, `.ExpectNoSqlServerOutboxEvents()`, `Test.MigratePostgresDataAsync<T>()`, `Test.UseExpectedPostgresOutboxPublisher()`, `.ExpectPostgresOutboxEvents()`, `.ExpectNoPostgresOutboxEvents()`, `Test.MigrateCosmosDataAsync<T>()`, `Test.UseExpectedCosmosDbOutboxPublisher()`, `.ExpectCosmosDbOutboxEvents()`, `.ExpectNoCosmosDbOutboxEvents()`; messaging helpers: `Test.UseExpectedAzureServiceBusPublisher()`, `Test.GetAndClearAzureServiceBusAsync()`, `UnitTestExExtensions.ResetLocalAzureServiceBusAsync()`; ASP.NET Core assertions: `.ExpectIdentifier()`, `.ExpectETag()`, `.ExpectChangeLogCreated()`, `.ExpectJsonFromResource()`, `.AssertCreated()`, `.AssertOK()`, `.AssertBadRequest()`, `.AssertErrors()`, `.AssertJsonFromResource()`, `.AssertLocationHeader()` |
+| `UnitTestEx` | Base testers `WithApiTester<T>` and `WithGenericTester<T>`, `Test.Http()`, `Test.Http<T>()`, `Test.Scoped()`, `Test.ScopedType<T>()`, `MockHttpClientFactory`, `MockHttpClientRequest`, `.WithJsonResourceBody()`, `.WithAnyBody()`, `.Respond.With()`, `.Respond.WithJsonResource()`, `.Verify()`; detects NUnit automatically without a separate adapter package. |
+| `UnitTestEx.Azure.Functions` | `FunctionTester.Create<TFunction>()`, `HttpTrigger<T>()`, `Trigger<T>()`, `ToHttpResponseMessageAssertor(request)` for deferred results, `SnapshotHttpResponse(response)` for eagerly rendered idempotency output with a readable/seekable buffer. |
 | `NUnit` | `[TestFixture]`, `[Test]`, `[OneTimeSetUp]` |
 | `AwesomeAssertions` | `.Should()`, `.Be()`, `.HaveCount()` |
+
+Use `AwesomeAssertions` for ordinary value, collection and object assertions (`actual.Should().Be(expected)`); do not use NUnit `Assert` equivalents such as `Assert.AreEqual` or `Assert.That` for these checks. NUnit control-flow helpers such as `Assert.Fail` and `Assert.Ignore` remain appropriate where needed.
 
 ## Project Types
 
 `*.Test.Common` is a non-packable test-support class library, not a discoverable test suite. `coreex-solution` creates/registers it by default (`--test-common false` opts out); consuming test projects require an explicit ProjectReference. It holds authored helpers/resources and the TestData assembly marker, not automatic database/broker setup. Full domain scaffolds retain their provider-specific common fixtures. Resolve the actual common path independently of deployment names; runtime hosts and CodeGen do not reference it.
+
+Adding `Test.Functions` to a layered solution does not replace its generated `Test.Unit`: retain both, with isolated shared-library logic in `Test.Unit` and invocation/composition or host-local component coverage in `Test.Functions`. Standalone solutions can keep their capability-local tests in `Test.Functions` without another project. Do not reference the Functions host from `Test.Unit` merely to relocate host-local tests.
+
+Manual local broker-reset fixtures are destructive tooling, not ordinary invocation tests: require both NUnit `[Explicit]` selection and an environment-variable opt-in before broker access, then use `UnitTestExExtensions.ResetLocalAzureServiceBusAsync` for emulator validation/readiness/reset. Keep entity definitions in Test.Common; do not duplicate the helper's connection-string checks or health polling. Automated runtime fixtures use the same helper with their own isolated lifecycle before listeners. See the [scaffold local infrastructure recipe](/.github/skills/coreex-scaffold/references/local-infrastructure.md) for setup mechanics; add runtime harnesses only when a real capability requires them.
 
 | Project suffix | Base class | Scope |
 |---|---|---|
@@ -46,6 +52,8 @@ For `*.Test.Functions`, use [`coreex-functions`](/.github/skills/coreex-function
 | `*.Test.Functions` | `FunctionTester.Create<TFunction>()` (no mandatory fixture base) | Worker invocation/component tests; Core Tools/Aspire for runtime binding/delivery proofs. |
 
 **Rule**: intra-domain dependencies (database, cache, outbox) are real; inter-domain HTTP calls and direct broker publishes are always mocked.
+
+For outbound HTTP, choose the double by process boundary, not by host type. Typed-client unit tests and in-process host tests use UnitTestEx `MockHttpClientFactory` with `ReplaceHttpClientFactory`; separately running hosts need a reachable stub. See [testing outbound HTTP](/.github/skills/coreex-functions/references/patterns.md#testing-outbound-http) and the [Aspire MockHost conventions](/.github/instructions/coreex-aspire.instructions.md).
 
 ## Execution Evidence
 
@@ -59,24 +67,30 @@ Avoid overlapping `dotnet test` commands that build shared project references in
 
 ## Test Responsibility — what goes where (do not duplicate)
 
+Test application-owned rules, mappings, configuration and failure decisions, not every permutation of CoreEx, Azure SDK or .NET behavior. Trust standard framework capabilities; use representative integration checks to prove the application wires them correctly. Expand coverage for custom extensions, regressions or explicit interoperability requirements. The framework repository itself owns exhaustive tests of its framework implementations; do not copy those matrices or their transport simulators into consumer projects.
+
 For conventional API solutions, Test.Api and Test.Unit have **distinct, non-overlapping jobs** below. For Functions solutions, put the equivalent host-boundary/intra-domain assertions in Test.Functions, keep pure component coverage separate and use runtime tests only for boundaries invocation cannot prove. Decide where a behaviour belongs by what it needs to exercise, and assert it in **one** place only.
 
 | Concern | Where | Why |
 |---|---|---|
 | **Service orchestration & repository logic** — CRUD round-trips, identifier assignment on create, persistence + mapping, query/filter behaviour, **soft-delete filtering**, eventing (outbox subject/destination), concurrency (ETag/`If-Match`), idempotency, error→HTTP mapping (404/409/412/428) | **`*.Test.Api`** (intra-domain integration) | These are *integration* behaviours — they only have meaning over the real DB/cache/outbox and the real host pipeline. Mocking them would test the mock, not the system. |
-| **Isolated component logic** — **validators**, pure mappers, calculations, value-conversion helpers, and other logic with no infrastructure dependency | **`*.Test.Unit`** | Fast, exhaustive, no DB. The natural home for enumerating every rule/branch of a validator or a pure function. |
+| **Isolated component logic** — **validators**, pure mappers, calculations, value-conversion helpers, and other logic with no infrastructure dependency | **`*.Test.Unit`** | Fast, focused, no DB. Cover application-owned branches and representative configured rules, not permutations of built-in validators. |
 
 **Do not repeat the same assertion in both projects.** Concretely:
 
 - **Private inline response validators** are covered through `*.Test.Unit/Clients/{ExternalDomain}/{External}HttpClientTests.cs`, using mocked HTTP responses. Assert missing/invalid consumed fields produce `HttpRequestException` with exact inner validation messages, and valid minimal responses succeed; do not expose private rules or create standalone validator tests. For cached adapters, prove an invalid 2xx payload is not cached by replacing it with a valid one and retrying.
 
-- **Validator rules** are proven **exhaustively in unit tests** (every mandatory/range/format/cross-field rule). In the API tests, do **not** re-enumerate them — assert **one** representative `AssertBadRequest()` + `AssertErrors(...)` case to confirm the validator is *wired into the pipeline*, then move on. **But `AssertErrors` is an exact match — not a subset.** It fails unless the listed errors are **exactly** the set the input produces (none missing, none extra). So "one representative case" means **craft the input to produce exactly the errors you assert** — e.g. send a value valid in every respect *except* the one rule under test — rather than posting an empty object (which fires *all* mandatory errors) and listing only some. (See the validators guidance — "Unit Tests".)
+- **Validator rules** belong in unit tests: cover custom/conditional branches and representative success/error cases for the application's configuration, not every built-in rule permutation. In the API tests, do **not** re-enumerate them — assert **one** representative `AssertBadRequest()` + `AssertErrors(...)` case to confirm the validator is *wired into the pipeline*, then move on. **But `AssertErrors` is an exact match — not a subset.** It fails unless the listed errors are **exactly** the set the input produces (none missing, none extra). So "one representative case" means **craft the input to produce exactly the errors you assert** — e.g. send a value valid in every respect *except* the one rule under test — rather than posting an empty object (which fires *all* mandatory errors) and listing only some. (See the validators guidance — "Unit Tests".)
 - **Service/repository behaviour** is proven in the **API tests** over the real database. Do **not** re-create it in unit tests with a mocked repository/UoW — that would assert the mock's configured behaviour, not the real persistence/mapping/eventing. The narrow mutation-publication boundary exception below does not replace that coverage.
 - When a behaviour *could* sit in either, prefer the layer that exercises it **without mocking the thing under test**: validator → unit; anything touching the DB, cache, outbox, or HTTP pipeline → API.
 
 **Mutation-publication boundary exception:** When real persistence cannot reliably force a successful no-op after a successful read, a narrowly scoped unit test may supply `DataResult` with `WasMutated == false`, true, and a failed Result to the real service. Verify success/no mutation event, success/expected event, and unchanged failure/no event, including when the aggregate had changes. Assert the write and event decision run inside the transaction delegate. This proves the service interprets the supplied outcome, not real persistence, rollback, deferred writes, or concurrency. Retain sequential delete-idempotency coverage, but do not treat it as covering the read/delete gap.
 
 The goal is a single source of truth per behaviour: unit tests guard the rules and pure logic; API tests guard the wired-up, persisted, evented system.
+
+For publishing assertions, use `services.UseExpectedAzureServiceBusPublisher()` (or the configured publisher's `UseExpectedEventPublisher(serviceKey)`) with event expectations, rather than handwritten recording senders. The decorator delegates to the original publisher by default; `bypassPassThrough: true` deliberately selects a no-op inner publisher for isolated tests. It captures successful publications across child scopes, not final broker bytes or partially accepted failed batches. `tester.OnEventPublish(serviceKey, action)` injects failures for non-HTTP/Functions tests; HTTP request testers retain their request-specific overload. Use a fresh tester per isolated test; captures accumulate for its shared-state lifetime.
+
+For representative multi-line CSV/JSON/JSONL inputs, prefer checked-in embedded resource fixtures loaded with `UnitTestEx.Resource.GetStream`; copy to immutable bytes and return a fresh stream for each processor pass. Keep tiny, self-contained edge cases inline. Avoid synthesizing realistic files with chained `string.Replace` calls: use a separate focused fixture or an explicit builder, and make any intentional text substitution unambiguous. For Blob-boundary component tests, use `CoreEx.UnitTesting.Blobs.StubBlobClient` and `RecordingBlobContainerClient`; assert application diagnostics/outcomes rather than rebuilding Azure's HTTP protocol. Keep report contents application-owned. These buffered test doubles do not prove Azure conditional writes, retries or delivery; retain a small Azurite/Core Tools integration proof for those boundaries when required. Do not mock owned databases/outboxes to replace persistence evidence.
 
 ---
 
@@ -937,7 +951,7 @@ Test.Http()
 
 ## NUnit Attributes
 
-Use `[Test]` on individual test methods. `[TestFixture]` is inherited when using `WithApiTester` or `WithGenericTester`. Do not use `[TestCase]` for integration tests — use separate named methods for clarity.
+Use `[Test]` on individual test methods. UnitTestEx 7's framework-neutral base classes do not declare `[TestFixture]`; NUnit discovers suitable classes from their test methods, or use `[TestFixture]` explicitly when needed. Do not use `[TestCase]` for integration tests — use separate named methods for clarity.
 
 ## Naming Tests
 

@@ -260,6 +260,10 @@ private readonly IUnitOfWork _unitOfWork;
 private readonly ILogger<ProductService> _logger;
 ```
 
+## Exceptions and Error Identification
+
+Reuse CoreEx semantic exceptions and their metadata by default. Identify specific business outcomes with a stable `ErrorCode` (for example, `new BusinessException("The backend rejected the item.").WithErrorCode("item-rejected")`), not message-text matching or a new exception subclass. Introduce a custom exception type only for a genuine contract or capability that existing types and metadata cannot adequately express; a fixed message, scenario name or settlement policy alone does not justify one. Preserve transport, authentication, configuration and unexpected failures rather than relabelling them as business rejections.
+
 ## Logging
 
 Check whether the requested level is enabled before every logger call. Keep the log call inside the check so disabled logging avoids argument evaluation and formatting work:

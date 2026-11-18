@@ -11,4 +11,7 @@ global using System.Diagnostics.Metrics;
 global using System.Globalization;
 global using System.Linq.Expressions;
 global using System.Text;
+global using System.Text.Json;
+global using System.Text.Json.Serialization;
+global using System.Text.Json.Serialization.Metadata;
 global using ExecutionContext = CoreEx.ExecutionContext;

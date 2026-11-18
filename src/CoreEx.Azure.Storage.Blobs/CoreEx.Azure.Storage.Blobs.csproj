@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Title>CoreEx Azure Blob Storage integration.</Title>
+    <Description>Host-neutral revision-pinned Blob input and streamed attempt-isolated JSONL and CSV reports.</Description>
+    <PackageTags>coreex azure storage blobs files streaming jsonl csv</PackageTags>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\CoreEx\CoreEx.csproj" />
+    <ProjectReference Include="..\CoreEx.IO\CoreEx.IO.csproj" />
+    <PackageReference Include="Aspire.Azure.Storage.Blobs" />
+  </ItemGroup>
+</Project>

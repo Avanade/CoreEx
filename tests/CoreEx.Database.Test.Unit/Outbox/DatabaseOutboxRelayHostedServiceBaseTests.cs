@@ -8,7 +8,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using System.Diagnostics;
 
 namespace CoreEx.Database.Test.Unit.Outbox;
 
@@ -16,18 +15,6 @@ namespace CoreEx.Database.Test.Unit.Outbox;
 public class DatabaseOutboxRelayHostedServiceBaseTests
 {
     private static SqlServerDatabase CreateDatabase() => new((SqlConnection)SqlClientFactory.Instance.CreateConnection());
-
-    private static async Task WaitUntilAsync(Func<bool> condition, TimeSpan timeout)
-    {
-        var sw = Stopwatch.StartNew();
-        while (!condition())
-        {
-            if (sw.Elapsed > timeout)
-                throw new TimeoutException("Condition was not met within the timeout.");
-
-            await Task.Delay(10);
-        }
-    }
 
     [Test]
     public async Task DefaultSettings_DoNotThrowOnStart()
@@ -124,6 +111,7 @@ public class DatabaseOutboxRelayHostedServiceBaseTests
     public async Task Relay_CircuitBreaker_TripsOnSustainedFailure_ThenSelfRecovers()
     {
         var state = new TestRelayState();
+        var logger = new RelayTransitionLogger(state);
         var sc = new ServiceCollection();
 
         // Explicit single-partition config here for deterministic per-partition test timing - not needed to avoid the (now-fixed) incompatible-defaults bug, see DefaultSettings_DoNotThrowOnStart.
@@ -138,7 +126,7 @@ public class DatabaseOutboxRelayHostedServiceBaseTests
         sc.AddExecutionContext();
         using var sp = sc.BuildServiceProvider();
 
-        var svc = new TestOutboxRelayHostedService(sp, NullLogger.Instance)
+        var svc = new TestOutboxRelayHostedService(sp, logger)
         {
             Interval = TimeSpan.FromMilliseconds(30),
             FirstInterval = TimeSpan.FromMilliseconds(5),
@@ -148,19 +136,39 @@ public class DatabaseOutboxRelayHostedServiceBaseTests
         await svc.StartAsync(CancellationToken.None);
         try
         {
-            // Every partition attempt fails, so the breaker should trip well within a couple of ticks - pausing the hosted service without any manual ResumeAsync() call.
-            await WaitUntilAsync(() => svc.Status == ServiceStatus.Paused, TimeSpan.FromSeconds(10));
-            svc.Status.Should().Be(ServiceStatus.Paused);
-
-            // Remove the failure condition; the breaker's own timer should resume the service automatically, and the next tick should succeed.
-            state.ThrowAlways = false;
-
-            await WaitUntilAsync(() => svc.Status != ServiceStatus.Paused && svc.Status != ServiceStatus.Pausing, TimeSpan.FromSeconds(5));
-            svc.Status.Should().NotBe(ServiceStatus.Paused);
+            await logger.Paused.Task.WaitAsync(TimeSpan.FromSeconds(10));
+            await logger.Recovered.Task.WaitAsync(TimeSpan.FromSeconds(10));
         }
         finally
         {
             await svc.StopAsync(CancellationToken.None);
+        }
+    }
+
+    private sealed class RelayTransitionLogger(TestRelayState relay) : ILogger
+    {
+        public TaskCompletionSource Paused { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public TaskCompletionSource Recovered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+
+        public bool IsEnabled(LogLevel logLevel) => logLevel is LogLevel.Information or LogLevel.Warning;
+
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+        {
+            if (!IsEnabled(logLevel) || state is not IReadOnlyList<KeyValuePair<string, object?>> properties)
+                return;
+
+            var template = properties.FirstOrDefault(x => x.Key == "{OriginalFormat}").Value as string;
+            if (template is "{ServiceName} paused." or "{ServiceName} execution completed. Paused with no scheduled continuation.")
+            {
+                // Clear the fault before the circuit breaker's automatic recovery probe.
+                relay.ThrowAlways = false;
+                Paused.TrySetResult();
+            }
+            else if (template == "{OwnerName} circuit breaker has fully recovered; is running.")
+                Recovered.TrySetResult();
         }
     }
 

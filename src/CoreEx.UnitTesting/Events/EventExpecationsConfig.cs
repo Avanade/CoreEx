@@ -14,7 +14,7 @@ public sealed class EventExpectationsConfig
     /// <summary>
     /// Gets or sets the default <see cref="CloudEvent"/> metadata paths to ignore for comparisons.
     /// </summary>
-    public static List<string> DefaultMetadataPathsToIgnore { get; set => field = value.ThrowIfNull(); } = ["id", "time", "subject", "partitionkey", "authtype", "authid", "traceparent", "tracestate", "baggage"];
+    public static List<string> DefaultMetadataPathsToIgnore { get; set => field = value.ThrowIfNull(); } = ["id", "time", "subject", "partitionkey", "authtype", "authid", "traceparent", "tracestate", "baggage", "correlationid", "causationid"];
 
     /// <summary>
     /// Gets or sets the default <see cref="CloudEvent"/> data paths to ignore for comparisons.

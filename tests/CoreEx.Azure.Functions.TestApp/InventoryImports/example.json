@@ -1,0 +1,4 @@
+[
+  { "CommandId": "one", "Sku": "DEMO", "Quantity": 2 },
+  { "CommandId": "two", "Sku": "DEMO", "Quantity": 3 }
+]

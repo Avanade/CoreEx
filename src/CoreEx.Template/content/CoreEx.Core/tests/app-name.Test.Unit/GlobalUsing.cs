@@ -15,7 +15,6 @@ global using Microsoft.Extensions.Hosting;
 global using Moq;
 global using NUnit.Framework;
 global using UnitTestEx;
-global using UnitTestEx.NUnit;
 // #if refdata-enabled
 global using app-name.Application;
 global using app-name.Application.Repositories;

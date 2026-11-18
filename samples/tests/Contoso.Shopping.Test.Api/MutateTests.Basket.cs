@@ -1,3 +1,5 @@
+using CoreEx.Http;
+
 namespace Contoso.Shopping.Test.Api;
 
 public partial class MutateTests
@@ -13,7 +15,7 @@ public partial class MutateTests
             .ExpectETag()
             .ExpectJsonFromResource("Basket_Create.res.json", _pathsToIgnore)
             .ExpectSqlServerOutboxEvents(e => e.AssertWithValue("contoso", "contoso.shopping.basket.created.v1"))
-            .Run(HttpMethod.Post, $"/api/customers/{CustomerWithAddressId}/baskets")
+            .Run(HttpMethod.Post, $"/api/customers/{CustomerWithAddressId}/baskets", requestModifier: r => r.WithCorrelationId(Guid.NewGuid().ToString()))
             .AssertCreated()
             .AssertLocationHeader(b => new Uri($"/api/baskets/{b!.Id}", UriKind.Relative))
             .Value!;
@@ -219,7 +221,7 @@ public partial class MutateTests
             .ExpectChangeLogUpdated()
             .ExpectSqlServerOutboxEvents(e => e.AssertWithValue("contoso", "contoso.shopping.basket.checkedout.v1")
                                                .AssertMetadata("contoso-products", "contoso.products.reservation.confirm", v.Id))
-            .Run(HttpMethod.Post, $"/api/baskets/{v.Id}/checkout")
+            .Run(HttpMethod.Post, $"/api/baskets/{v.Id}/checkout", requestModifier: r => r.WithCorrelationId(Guid.NewGuid().ToString()))
             .AssertOK()
             .Value!;
 

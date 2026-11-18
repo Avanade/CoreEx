@@ -18,7 +18,7 @@ public sealed class CsvFileMapping<TRecord> where TRecord : class, new()
     }
 
     /// <summary>Gets whether at least one named selector requires a column-name header.</summary>
-    public bool RequiresHeader => _columns.Any(x => !x.Index.HasValue);
+    internal bool RequiresHeader => _columns.Any(x => !x.Index.HasValue);
 
     /// <summary>Gets the policy applied to a named header.</summary>
     public CsvHeaderPolicy HeaderPolicy { get; }

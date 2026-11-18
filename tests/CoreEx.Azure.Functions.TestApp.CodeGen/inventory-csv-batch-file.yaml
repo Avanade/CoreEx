@@ -1,0 +1,39 @@
+# yaml-language-server: $schema=../../schema/coreex-files.json
+name: InventoryCsvBatch
+version: '1'
+runtimeProjectPath: ../CoreEx.Azure.Functions.TestApp
+runtimePath: InventoryImports/CsvBatchFiles
+runtimeNamespace: CoreEx.Azure.Functions.TestApp.InventoryImports
+mode: ValidateThenExecute
+errorMode: CollectErrors
+csv:
+  discriminatorIndex: 0
+  structure:
+    root:
+      record: Adjustment
+      cardinality: OneOrMore
+      children:
+      - { record: Line, cardinality: OneOrMore }
+metadata:
+- { name: Header, record: Header, required: true, csv: { position: First } }
+- { name: Trailer, record: Trailer, required: true, csv: { position: Last } }
+records:
+- name: Header
+  csv: { match: H }
+  properties:
+  - { name: BatchId, csv: { index: 1 }, mandatory: true, maxLength: 100 }
+- name: Adjustment
+  csv: { match: A }
+  properties:
+  - { name: CommandId, csv: { index: 1 }, mandatory: true, maxLength: 100 }
+  - { name: Sku, csv: { index: 2 }, mandatory: true, maxLength: 100 }
+- name: Line
+  csv: { match: L }
+  properties:
+  - { name: Bin, csv: { index: 1 }, mandatory: true, maxLength: 100 }
+  - { name: Quantity, csv: { index: 2 }, type: Integer, required: true, min: 1 }
+- name: Trailer
+  csv: { match: T }
+  properties:
+  - { name: AdjustmentCount, csv: { index: 1 }, type: Integer, required: true, min: 1 }
+  - { name: QuantityTotal, csv: { index: 2 }, type: Int64, required: true, min: 1 }

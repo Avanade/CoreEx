@@ -1,5 +1,5 @@
 ---
-applyTo: "**/Subscribe/**/*.cs"
+applyTo: "**/Subscribe/**/*.cs,**/*.Subscribe/**/*.cs"
 description: "Event subscriber conventions: SubscribedBase, SubscribedBase<T>, ValueValidator, ErrorHandler, subject naming, and Subscribe host Program.cs composition"
 tags: ["subscribers", "messaging", "service-bus", "event-handling", "integration", "subscribe-host"]
 ---
@@ -28,7 +28,11 @@ tags: ["subscribers", "messaging", "service-bus", "event-handling", "integration
 
 ## Subscriber Structure
 
-Each subscriber is a small, focused class that:
+CoreEx subscriber processing is the default, not an optional optimization for complex workloads. Preserve configured custom subscribers, decorators and supported overrides; a handwritten SDK receive pipeline or callback needs a concrete documented requirement. Native payloads still use the CoreEx pipeline with explicit representation opt-in. Functions retains its native trigger and delegates to `subscriber.FunctionReceiveAsync`, without a competing CoreEx listener.
+
+For an entity with one payload type, use `ServiceBusSubscriberBase<TValue>` without `SubscribedManager`. Optional `[Subscribe(type, source)]` rules on the concrete class check CloudEvent type/source without dispatch; `UnmatchedCloudEventHandling` defaults to dead-letter. The inherited `DataRepresentation` defaults to `MessageRepresentation.CloudEvent`; `ContentMode` selects binary/structured handling, and `args.CloudEvent` exposes envelope metadata for application-specific checks. Native JSON requires explicit `DataRepresentation = MessageRepresentation.Native` and no `[Subscribe]` rules. Both representations retain typed validation and error classification. Register through the existing `.WithSubscriber<TSubscriber>()` builder; for native Functions triggers, use the [Functions guidance](/.github/instructions/coreex-functions.instructions.md) instead of adding a CoreEx receiver.
+
+For subject/source-dispatched handling, each subscriber is a small, focused class that:
 
 1. Opts in to one or more message subjects via `[Subscribe("subject")]` attributes.
 2. Extends `SubscribedBase` (untyped) or `SubscribedBase<TValue>` (typed payload with optional validation).
@@ -129,6 +133,17 @@ internal static readonly ErrorHandler DefaultErrorHandler = new ErrorHandler()
 ```
 
 Assign it in the constructor: `ErrorHandler = DefaultErrorHandler;`
+
+Classify a known business outcome by its stable error code rather than introducing a scenario-specific exception subclass or comparing messages:
+
+```csharp
+internal static readonly ErrorHandler RejectionErrorHandler = new ErrorHandler()
+    .Add<BusinessException>(ex => ex.ErrorCode == "item-rejected"
+        ? ErrorHandling.DeadLetter
+        : null);
+```
+
+Only the identified rejection receives this override; `null` retains the configured fallback for other failures. Do not translate authentication, configuration or arbitrary HTTP failures into business rejections merely to dead-letter them.
 
 Share the same `ErrorHandler` instance across related subscribers (e.g., both Confirm and Cancel subscribers can reference the same static instance).
 

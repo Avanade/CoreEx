@@ -104,7 +104,7 @@ public sealed class ErrorHandler
 
             case ErrorHandling.DeadLetter:
                 args.Logger.LogDebug(args.Exception, _logFormat, logArgs);
-                return new EventSubscriberDeadLetterException(null, args.Exception);
+                return new EventSubscriberDeadLetterException(args.DeadLetterReason, args.Exception);
 
             case ErrorHandling.Catastrophic:
                 args.Logger.LogCritical(args.Exception, _logFormat, logArgs);

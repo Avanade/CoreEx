@@ -35,7 +35,7 @@ Initialises a blank CoreEx repository by generating root guidance files and imme
 
 2. **Generate root guidance files.** Write the three files below, substituting `{{project-name}}` with the confirmed project name.
 
-3. **Chain to `/coreex-scaffold`.** Immediately invoke the scaffold skill to interview the solution shape and run the right `dotnet new coreex*` commands.
+3. **Chain to `/coreex-scaffold`.** Immediately invoke the scaffold skill, carrying forward the user's supplied requirements and decisions. Interview only unresolved choices, then run the right `dotnet new coreex*` commands; do not restart an already answered interview.
 
 Standalone Functions uses `coreex-solution` for repository conventions and Test.Common by default, then `coreex-functions --shared-core false` with the actual common reference. The full `coreex` domain scaffold is not a prerequisite. CodeGen is an optional independent add-on, not an automatic database/ref-data dependency.
 

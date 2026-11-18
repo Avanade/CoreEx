@@ -10,7 +10,7 @@ namespace {{RuntimeNamespace}};
 
 /// <summary>Coordinates this definition's whole-file validation and optional scoped replay.</summary>
 [ScopedService]
-public partial class {{Name}}Processor : {{#if IsHierarchical}}CsvHierarchyFileProcessor{{else}}{{#if IsUnordered}}CsvRoutedFileProcessor{{else}}CsvFileProcessor{{/if}}{{/if}}<{{UnitType}}>
+public partial class {{Name}}Processor : {{#if IsJsonl}}JsonLinesFileProcessor{{else}}{{#if IsJsonDocument}}JsonFileProcessor{{else}}{{#if IsHierarchical}}CsvHierarchyFileProcessor{{else}}{{#if IsUnordered}}CsvRoutedFileProcessor{{else}}CsvFileProcessor{{/if}}{{/if}}{{/if}}{{/if}}<{{UnitType}}>
 {
     /// <summary>Gets the immutable definition name.</summary>
     public const string DefinitionName = {{{NameLiteral}}};
@@ -19,7 +19,31 @@ public partial class {{Name}}Processor : {{#if IsHierarchical}}CsvHierarchyFileP
     public const string DefinitionVersion = {{{VersionLiteral}}};
 
     /// <summary>Initializes the definition-specific processor and scoped handler resolution.</summary>
+    /// <param name="serviceProvider">The provider from which independent unit scopes are created.</param>
     public {{Name}}Processor(IServiceProvider serviceProvider) : base(
+{{#if IsJson}}
+{{#if IsJsonl}}
+        CreateDefinition,
+        validator: new {{UnitType}}Validator(),
+        options: new JsonLinesFileOptions
+        {
+            Discriminator = {{{Jsonl.DiscriminatorLiteral}}}, BlankLinePolicy = JsonLinesBlankLinePolicy.{{Jsonl.BlankLinePolicy}},
+            Json = new JsonFileOptions
+            {
+                UnknownMemberPolicy = JsonUnknownMemberPolicy.{{Json.UnknownMemberPolicy}},
+                MaxDepth = {{Json.MaxDepth}}
+            }
+        },
+{{else}}
+        CreateDefinition,
+        options: new JsonFileOptions
+        {
+            UnknownMemberPolicy = JsonUnknownMemberPolicy.{{Json.UnknownMemberPolicy}},
+            MaxDepth = {{Json.MaxDepth}}
+        },
+        validator: new {{UnitType}}Validator(),
+{{/if}}
+{{else}}
 {{#if IsRouted}}
         CreateDefinition,
 {{else}}
@@ -28,16 +52,20 @@ public partial class {{Name}}Processor : {{#if IsHierarchical}}CsvHierarchyFileP
 {{/if}}
         options: new CsvFileOptions
         {
-            Delimiter = {{{DelimiterExpression}}}, Quote = {{{QuoteExpression}}}, Comment = {{{CommentExpression}}},
-            Encoding = {{{EncodingExpression}}}, MaxInputBytes = {{MaxInputBytes}}L, MaxGroupRecords = {{MaxGroupRecords}}L
+            Delimiter = {{{Csv.DelimiterExpression}}}, Quote = {{{Csv.QuoteExpression}}}, Comment = {{{Csv.CommentExpression}}},
+            Encoding = {{{Csv.EncodingExpression}}}
         },
+{{/if}}
         serviceProvider: serviceProvider,
-        handlerFactory: scoped => scoped.GetRequiredService<{{Name}}Handler>()) => Services = serviceProvider;
-
-    /// <summary>Gets the invocation-scoped provider for handwritten reporting and trusted-context hooks.</summary>
-    protected IServiceProvider Services { get; }
+        handlerFactory: scoped => scoped.GetRequiredService<{{Name}}Handler>()) { }
 
     /// <summary>Creates correctly identified invocation-local context; source and attempt identity belong to the caller.</summary>
+    /// <param name="sourceId">The credential-free source identity.</param>
+    /// <param name="attemptId">The processing attempt identity.</param>
+    /// <param name="sourceRevision">The immutable source revision, when available.</param>
+    /// <param name="mode">The requested processing mode.</param>
+    /// <param name="errorMode">The content-error continuation policy.</param>
+    /// <returns>A fresh invocation-local context.</returns>
     public static {{Name}}Context CreateContext(string sourceId, string attemptId, string? sourceRevision = null, FileProcessingMode mode = FileProcessingMode.{{Mode}}, FileErrorMode errorMode = FileErrorMode.{{ErrorMode}})
         => new(new FileProcessingIdentity(DefinitionName, DefinitionVersion, sourceId, attemptId, sourceRevision), mode, errorMode);
 
@@ -53,21 +81,52 @@ public partial class {{Name}}Processor : {{#if IsHierarchical}}CsvHierarchyFileP
     /// <inheritdoc/>
     protected override FileProcessingContext OnCreateExecutionContext(FileProcessingContext validationContext)
         => new {{Name}}Context(validationContext.Identity, validationContext.Mode, validationContext.ErrorMode);
+{{#if IsJsonl}}
+
+    /// <summary>Creates fresh natural-object mappings and explicit metadata routes for each pass.</summary>
+    private static JsonLinesDefinition<{{UnitType}}> CreateDefinition() => new(
+        {{{Unit.RecordConfig.KeyLiteral}}}, {{UnitType}}Mapping.Create(), FileCardinality.{{Unit.Cardinality}}, {{{Unit.RecordConfig.MatchLiteral}}},
+        new JsonLinesMetadata[]
+        {
+{{#each Metadata}}
+            new JsonLinesMetadata<{{RecordConfig.TypeName}}>({{{NameLiteral}}}, {{{RecordLiteral}}}, {{{RecordConfig.MatchLiteral}}}, {{RecordConfig.TypeName}}Mapping.Create(),
+                new {{RecordConfig.TypeName}}Validator(), {{RequiredLiteral}}, FileRecordPosition.{{Jsonl.Position}}),
+{{/each}}
+        });
+{{/if}}
+{{#if IsJsonDocument}}
+
+    /// <summary>Creates fresh natural-object mappings and literal JSON Pointer selectors for each pass.</summary>
+    private static JsonFileDefinition<{{UnitType}}> CreateDefinition() => new(
+        {{{Unit.RecordConfig.KeyLiteral}}}, {{UnitType}}Mapping.Create(), JsonDocumentKind.{{Unit.KindLiteral}},
+        {{{Unit.UnitPathLiteral}}}, FileCardinality.{{Unit.Cardinality}},
+        new JsonFileMetadata[]
+        {
+{{#each Metadata}}
+            new JsonFileMetadata<{{RecordConfig.TypeName}}>({{{NameLiteral}}}, {{{RecordLiteral}}}, {{{Json.PathLiteral}}},
+                {{RecordConfig.TypeName}}Mapping.Create(), new {{RecordConfig.TypeName}}Validator(), {{RequiredLiteral}}),
+{{/each}}
+        });
+{{/if}}
 {{#if IsHierarchical}}
 
     /// <summary>Creates isolated route mappings and ordered structure for each pass.</summary>
     private static CsvHierarchyDefinition<{{UnitType}}> CreateDefinition() => new(
-        {{DiscriminatorIndex}},
+        {{Csv.DiscriminatorIndex}},
         new CsvRecordRoute[]
         {
 {{#each Records}}
-            new CsvRecordRoute<{{TypeName}}>({{{KeyLiteral}}}, {{{MatchLiteral}}}, {{TypeName}}Mapping.Create, new {{TypeName}}Validator(), {{{ErrorModeExpression}}}),
+            new CsvRecordRoute<{{TypeName}}>({{{KeyLiteral}}}, {{{MatchLiteral}}}, {{TypeName}}Mapping.Create, new {{TypeName}}Validator()),
 {{/each}}
         },
-        {{{Structure.RootNode.DefinitionExpression}}},
-        node => {{{Structure.RootNode.ProjectionExpression}}},
-        {{#if Structure.Header}}{{{Structure.Header.DefinitionExpression}}}{{else}}null{{/if}},
-        {{#if Structure.Trailer}}{{{Structure.Trailer.DefinitionExpression}}}{{else}}null{{/if}});
+        {{{Csv.Structure.RootNode.DefinitionExpression}}},
+        node => {{{Csv.Structure.RootNode.ProjectionExpression}}},
+        new CsvMetadataDefinition[]
+        {
+{{#each Metadata}}
+            new({{{NameLiteral}}}, {{{RecordLiteral}}}, {{RequiredLiteral}}, FileRecordPosition.{{Csv.Position}}),
+{{/each}}
+        });
 {{#each Groups}}
 
     /// <summary>Projects accepted descendants without retaining the framework aggregate node.</summary>
@@ -85,12 +144,18 @@ public partial class {{Name}}Processor : {{#if IsHierarchical}}CsvHierarchyFileP
 
     /// <summary>Creates isolated typed routes and file-level occurrence rules for each pass.</summary>
     private static CsvRoutedDefinition<{{UnitType}}> CreateDefinition() => new(
-        {{DiscriminatorIndex}},
+        {{Csv.DiscriminatorIndex}},
         new CsvRoutedRecord<{{UnitType}}>[]
         {
 {{#each Records}}
             new CsvRoutedRecord<{{TypeName}}, {{Root.UnitType}}>({{{KeyLiteral}}}, {{{MatchLiteral}}}, {{TypeName}}Mapping.Create, row => row,
-                validator: new {{TypeName}}Validator(), cardinality: CsvRecordCardinality.{{Cardinality}}, position: CsvRecordPosition.{{Position}}, errorMode: {{{ErrorModeExpression}}}),
+                validator: new {{TypeName}}Validator(), cardinality: FileCardinality.{{Csv.Cardinality}}, position: FileRecordPosition.{{Csv.Position}}),
+{{/each}}
+        },
+        new CsvMetadataDefinition[]
+        {
+{{#each Metadata}}
+            new({{{NameLiteral}}}, {{{RecordLiteral}}}, {{RequiredLiteral}}, FileRecordPosition.{{Csv.Position}}),
 {{/each}}
         });
 {{/if}}

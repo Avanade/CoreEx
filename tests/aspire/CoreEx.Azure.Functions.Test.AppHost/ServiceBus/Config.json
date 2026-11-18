@@ -21,6 +21,15 @@
               "DefaultMessageTimeToLive": "PT1H",
               "RequiresSession": false
             }
+          },
+          {
+            "Name": "catalog-item-upserts",
+            "Properties": {
+              "LockDuration": "PT10S",
+              "MaxDeliveryCount": 3,
+              "DefaultMessageTimeToLive": "PT1H",
+              "RequiresSession": false
+            }
           }
         ]
       }

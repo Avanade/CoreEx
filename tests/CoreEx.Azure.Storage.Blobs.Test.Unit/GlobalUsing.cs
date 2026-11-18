@@ -1,0 +1,13 @@
+global using AwesomeAssertions;
+global using Azure;
+global using Azure.Core;
+global using Azure.Core.Pipeline;
+global using Azure.Storage.Blobs;
+global using Azure.Storage.Blobs.Models;
+global using Azure.Storage.Blobs.Specialized;
+global using CoreEx.Azure.Storage.Blobs;
+global using NUnit.Framework;
+global using System.Diagnostics.CodeAnalysis;
+global using System.Globalization;
+global using System.Text;
+global using System.Text.Json;
