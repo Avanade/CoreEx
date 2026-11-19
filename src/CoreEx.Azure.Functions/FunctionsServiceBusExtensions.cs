@@ -16,39 +16,68 @@ public static class FunctionsServiceBusExtensions
     /// <param name="args">The optional subscriber arguments.</param>
     /// <param name="cancellationToken">The invocation cancellation token.</param>
     /// <returns>The receive and settlement task.</returns>
-    /// <remarks>Unclassified and catastrophic failures are rethrown without settlement. Invocation cancellation is never classified or settled. Settlement failures propagate without a second settlement attempt.</remarks>
+    /// <remarks>Unclassified and catastrophic failures are rethrown without settlement. Invocation cancellation is never classified or settled. Settlement failures propagate without a second settlement attempt. Participating
+    /// <see cref="EventSubscriberBase.Behaviors"/> are notified once, after the settlement decision, via <see cref="EventSubscriberBase.NotifyDispositionAsync"/>.</remarks>
     public static async Task FunctionReceiveAsync(this ServiceBusSubscriberBase subscriber, ServiceBusReceivedMessage message, ServiceBusMessageActions actions, string entityPath,
         EventSubscriberArgs? args = null, CancellationToken cancellationToken = default)
     {
         subscriber.ThrowIfNull();
         message.ThrowIfNull();
-        var adapter = new FunctionsServiceBusMessageActions(message, actions, entityPath);
-        cancellationToken.ThrowIfCancellationRequested();
+        var recorder = new ServiceBusSettlementRecorder(new FunctionsServiceBusMessageActions(message, actions, entityPath));
 
-        Result result;
+        cancellationToken.ThrowIfCancellationRequested();
+        args ??= new EventSubscriberArgs();
+
+        Exception? error = null;
+        var cancelled = false;
         try
         {
-            result = await subscriber.ReceiveAsync(message, args, cancellationToken).ConfigureAwait(false);
+            Result result;
+            try
+            {
+                result = await subscriber.ReceiveAsync(message, args, cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                result = Result.Fail(ex);
+            }
+
+            if (cancellationToken.IsCancellationRequested)
+            {
+                cancelled = true;
+                cancellationToken.ThrowIfCancellationRequested();
+            }
+
+            if (result.IsSuccess)
+            {
+                await recorder.CompleteMessageAsync(cancellationToken).ConfigureAwait(false);
+                return;
+            }
+
+            error = result.Error;
+            if (!result.Error.IsCanceledBy(cancellationToken))
+            {
+                var settlement = await ServiceBusReceiverBase.MessageErrorActionAsync(result.Error, recorder, cancellationToken).ConfigureAwait(false);
+                if (settlement.IsSuccess)
+                    return;
+            }
+
+            result.ThrowOnError();
         }
         catch (Exception ex)
         {
-            result = Result.Fail(ex);
-        }
+            // Record the failure for the disposition; the exception itself is rethrown unchanged.
+            if (recorder.SettlementError is null && ex.IsCanceledBy(cancellationToken))
+                cancelled = true;
+            else
+                error ??= recorder.SettlementError is null ? ex : null;
 
-        cancellationToken.ThrowIfCancellationRequested();
-        if (result.IsSuccess)
+            throw;
+        }
+        finally
         {
-            await adapter.CompleteMessageAsync(cancellationToken).ConfigureAwait(false);
-            return;
+            // Notify the participating behaviors once per delivery, after the settlement decision has been applied; failures are logged and suppressed by the subscriber.
+            await subscriber.NotifyDispositionAsync(args, recorder.CreateDisposition(cancelled ? null : error, cancelled), cancellationToken).ConfigureAwait(false);
         }
-
-        if (!result.Error.IsCanceledBy(cancellationToken))
-        {
-            var settlement = await ServiceBusReceiverBase.MessageErrorActionAsync(result.Error, adapter, cancellationToken).ConfigureAwait(false);
-            if (settlement.IsSuccess)
-                return;
-        }
-
-        result.ThrowOnError();
     }
 }

@@ -55,19 +55,24 @@ public abstract class ServiceBusSubscriberBase(IEventFormatter formatter, ILogge
         args.Owner ??= this;
         args.Message = message.ThrowIfNull();
 
-        message.EnrichReceiveActivity(PropagateBaggage);
-
-        using var receiveScope = DataRepresentation == MessageRepresentation.Native ? Correlation.BeginReceive(message.CorrelationId, Logger) : null;
-
-        return await EventSubscriberMetrics.ReceiveMessageAsync(args, async () =>
+        return await InvokeReceiveAttemptAsync(args, async c =>
         {
-            // Pre-process.
-            var br = await OnBeforeReceiveAsync(message, args, cancellationToken).ConfigureAwait(false);
-            if (br.IsFailure)
-                return br;
+            message.EnrichReceiveActivity(PropagateBaggage);
 
-            return await OnReceiveMessageAsync(message, args, cancellationToken).ConfigureAwait(false);
-        }).ConfigureAwait(false);
+            using var receiveScope = DataRepresentation == MessageRepresentation.Native ? Correlation.BeginReceive(message.CorrelationId, Logger) : null;
+
+            return await EventSubscriberMetrics.ReceiveMessageAsync(args, async () =>
+            {
+                // Pre-process.
+                var br = await OnBeforeReceiveAsync(message, args, c).ConfigureAwait(false);
+                if (br.IsFailure)
+                    return br;
+
+                return DataRepresentation == MessageRepresentation.Native
+                    ? await InvokeBehaviorsAsync(args, null, true, ct => OnReceiveMessageAsync(message, args, ct), c).ConfigureAwait(false)
+                    : await OnReceiveMessageAsync(message, args, c).ConfigureAwait(false);
+            }).ConfigureAwait(false);
+        }, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>

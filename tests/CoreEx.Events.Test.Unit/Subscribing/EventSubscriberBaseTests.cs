@@ -27,6 +27,22 @@ public class EventSubscriberBaseTests
     }
 
     [Test]
+    public async Task ReceiveCloudEvent_CountsAttemptsBeforeSubscriptionMatch()
+    {
+        var calls = 0;
+        var subscriber = new FilteredEventSubscriber(() => calls++) { UnmatchedCloudEventHandling = ErrorHandling.Retry };
+        var cloudEvent = new CloudEvent { Id = "event-id", Type = "test.event.v1", Source = new Uri("urn:test:other") };
+        var args = new EventSubscriberArgs();
+
+        (await subscriber.InvokeReceiveAsync(cloudEvent, args)).Error.Should().BeOfType<EventSubscriberRetryException>();
+        args.AttemptCount.Should().Be(0);
+        (await subscriber.InvokeReceiveAsync(cloudEvent, args)).Error.Should().BeOfType<EventSubscriberRetryException>();
+
+        args.AttemptCount.Should().Be(1);
+        calls.Should().Be(0);
+    }
+
+    [Test]
     public async Task ReceiveAsync_CancellationMatchingOwnToken_BubblesUnclassified()
     {
         // Regression: a cancellation attributable to *this* receive's own cancellationToken (e.g. host/pump shutdown) must bubble up unclassified (the original exception preserved as-is), not be wrapped by ErrorHandler.
@@ -89,6 +105,31 @@ public class EventSubscriberBaseTests
 
         result.IsFailure.Should().BeTrue();
         result.Error.Should().BeOfType<EventSubscriberUnhandledException>();
+    }
+
+    [Test]
+    public async Task ReceiveAsync_SuccessfulRetryClearsPreviousAttemptError()
+    {
+        var calls = 0;
+        var transient = new InvalidOperationException("Transient.");
+        var subscriber = new TestEventSubscriber(_ =>
+        {
+            if (calls++ == 0)
+                throw transient;
+        });
+        subscriber.ErrorHandler.Add<InvalidOperationException>(ErrorHandling.Retry);
+        var args = new EventSubscriberArgs();
+
+        (await subscriber.InvokeReceiveAsync(new EventData(), args, CancellationToken.None)).Error.Should().BeOfType<EventSubscriberRetryException>();
+        args.ResultingException.Should().BeSameAs(transient);
+        args.ResultingErrorHandling.Should().Be(ErrorHandling.Retry);
+
+        var succeeded = await subscriber.InvokeReceiveAsync(new EventData(), args, CancellationToken.None);
+
+        succeeded.IsSuccess.Should().BeTrue();
+        args.AttemptCount.Should().Be(1);
+        args.ResultingException.Should().BeNull();
+        args.ResultingErrorHandling.Should().BeNull();
     }
 
     [TestCaseSource(nameof(ExtendedErrorCases))]

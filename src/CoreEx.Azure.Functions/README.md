@@ -52,7 +52,7 @@ Preserve configured custom implementations/decorators and supported subscriber o
 
 ## Service Bus: dispatched and typed processing
 
-Use the configured typed/dispatched subscriber with `FunctionReceiveAsync`, including custom implementations and supported overrides; native payloads use a `ServiceBusSubscriberBase<TValue>` with `MessageRepresentation.Native`. The former callback overload was removed in v4.4.
+Use the configured typed/dispatched subscriber with `FunctionReceiveAsync`, including custom implementations and supported overrides; native payloads use a `ServiceBusSubscriberBase<TValue>` with `MessageRepresentation.Native`. The former callback overload was removed in v4.4. Subscriber [behaviors](../CoreEx.Events/README.md#subscriber-behaviors) wrap each attempt and receive one disposition callback after the bridge applies settlement (`Completed`, `Abandoned`, `DeadLettered`, `NotSettled` when the failure is rethrown to the Functions host, or `SettlementFailed`).
 
 Set `AutoCompleteMessages = false` on every trigger that uses this bridge. `FunctionReceiveAsync` extends `ServiceBusSubscriberBase` (including `ServiceBusSubscribedSubscriber`): it delegates to an existing CoreEx subscriber and then settles the result.
 

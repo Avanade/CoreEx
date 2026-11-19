@@ -246,6 +246,15 @@ public interface ISubscriberBehavior
 - **`SubscriberOutcome`** classifies processing, distinct from broker settlement: `Handled`, `Skipped(reason)` (inbox duplicate, filtered), `Failed(exception, ErrorHandling)`. Today `ErrorHandler.Handle` returns failure even for `CompleteAsSilent`; the outcome keeps the resulting `ErrorHandling` so behaviors can tell "business failure, message completed" from "transient, will retry". Behaviors must never infer success from settlement success.
 - **`OnDispositionAsync`** is invoked by the host adapter *after* retry determination and settlement decision (`ServiceBusReceiverBase<T>`, and `FunctionsServiceBusExtensions.FunctionReceiveAsync` for Functions), carrying `Completed`, `Abandoned` (will retry), `DeadLettered`, or `Catastrophic`. This is where "retries exhausted" becomes visible. Broker-autonomous dead-lettering (TTL/max delivery without invocation) never reaches application code; operation expiry covers it.
 
+**As implemented (P1).** The shape above was simplified; see the [CoreEx.Events README](../../src/CoreEx.Events/README.md#subscriber-behaviors) for the authoritative contract.
+
+- `InvokeAsync(EventSubscriberArgs, SubscriberBehaviorDelegate, CancellationToken)` returns CoreEx `Result`; there is no separate context or `SubscriberOutcome` type. `EventSubscriberArgs` carries `Event` (null for native), `IsNative`, `Subscriber` (matched dispatched handler), `CloudEvent`, `AttemptCount` and `Properties`. The subscriber result is already classified through `ErrorHandler`, so behaviors read the `ErrorHandling` from the returned `EventSubscriber*Exception`. Short-circuits use `SubscriberBehaviorResult.Skip/Retry/DeadLetter`.
+- Registration is per subscriber only (`EventSubscriberBase.Behaviors`, instance or `Add<T>()` resolved from the delivery's `ExecutionContext.ServiceProvider` and reused across retries); there is no host-wide DI registration or predicate. The pipeline runs per delivery attempt, so `MessageResiliency` retries re-enter it when they reach subscriber processing. `AttemptCount` starts at zero and increments before each in-process retry, including preprocessing failures, with or without behaviors; it is not the broker delivery count.
+- A behavior exception (or a second `next` call) is classified `ErrorHandling.None`, never the subscriber's `UnhandledErrorHandling`.
+- `SubscriberDisposition.Settlement` reports the settlement actually applied: `Completed`, `Abandoned`, `DeadLettered`, `NotSettled` (host cancellation, or a Functions failure rethrown to the host) or `SettlementFailed` (with `AttemptedSettlement`, `SettlementError`, `IsLockLost`). Catastrophic is a `Classification`, not a settlement; the Service Bus receiver abandons and reports `ReceiverPaused`. Callbacks run once per delivery, in reverse order, for participating behaviors only; failures are logged and never change settlement.
+- Inbox (step 4) does not exist yet; a later phase implements it as a behavior.
+- The Functions callback overload (`actions.FunctionReceiveAsync(message, entityPath, callback)` and `FunctionsServiceBusReceiveArgs`) was removed so every Functions receive path flows through `EventSubscriberBase`.
+
 ### 5.2 Operation metadata (which messages participate, and their work id)
 
 - **Explicit per-message metadata** — CoreEx-defined CloudEvent extension context attributes:
@@ -384,8 +393,8 @@ Consequences of the default, accepted by design:
 
 ## 10. Open questions
 
-1. `ISubscriberBehavior` naming and whether `OnDispositionAsync` lives on the same interface or a separate `ISubscriberDispositionObserver`.
-2. Behavior registration filter: all subscribers in the host vs per subscriber/handler type (proposed: DI registration with an optional predicate).
+1. ~~`ISubscriberBehavior` naming and whether `OnDispositionAsync` lives on the same interface or a separate `ISubscriberDispositionObserver`.~~ Resolved: D15.
+2. ~~Behavior registration filter: all subscribers in the host vs per subscriber/handler type (proposed: DI registration with an optional predicate).~~ Resolved: D16.
 3. Lease duration/renewal defaults relative to Service Bus lock duration (proposed: lease ≈ 2× lock renewal interval, renewed by heartbeat).
 4. Generic `/result` OpenAPI typing (§3.3): per-type `oneOf` vs untyped vs dropping `/result` in favour of `resultLocation` only.
 5. Default `StartTimeout` value (proposed 15 minutes for all hosts; outbox hosts raise it if relay lag can exceed it). No auto-detection of outbox publishers.
@@ -410,3 +419,7 @@ Consequences of the default, accepted by design:
 | D12 | API naming | Prefer action `WebApi.PublishAsync(...)` with `WebApiPublishOptions<TRequest[,TMessage]>`; alternatives and rationale in §3.1. |
 | D13 | Tracking mode | `Operation` options default to absent: publish-only, no tracking, no operation metadata. Explicit `Operation` configuration opts into async request-reply ceremony. |
 | D14 | Pre-validation | Optional `IValidator<TRequest>` on publish options; validate before state creation or publish in both modes. |
+| D15 | Disposition callback | Single `ISubscriberBehavior` with a default no-op `OnDispositionAsync`; no separate observer interface. Only behaviors that participated in the delivery are notified (§5.1 as implemented). |
+| D16 | Behavior registration | Per-subscriber `EventSubscriberBase.Behaviors` only; no host-wide DI registration or predicate filtering. |
+| D17 | Behavior failure | A throwing behavior is classified `ErrorHandling.None` regardless of subscriber policy; disposition callback failures are logged and never alter settlement. |
+| D18 | Functions callback overload | Removed (breaking, v4.4); all Functions Service Bus receives go through a CoreEx subscriber. |

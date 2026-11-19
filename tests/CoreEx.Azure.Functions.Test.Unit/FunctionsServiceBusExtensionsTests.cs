@@ -116,31 +116,60 @@ public class FunctionsServiceBusExtensionsTests
     }
 
     [Test]
+    public async Task UnclassifiedFailure_WithBehaviorIsClassifiedAsUnhandledAndNotSettled()
+    {
+        var actions = new RecordingServiceBusMessageActions();
+        var error = new InvalidOperationException("Original failure.");
+        var behavior = new DispositionBehavior();
+        var subscriber = new NativeSubscriber((_, _) => Task.FromException<Result>(error));
+        subscriber.Behaviors.Add(behavior);
+
+        Func<Task> run = () => subscriber.FunctionReceiveAsync(ServiceBusModelFactory.ServiceBusReceivedMessage(), actions, "queue");
+        var assertion = await run.Should().ThrowAsync<EventSubscriberUnhandledException>();
+        assertion.Which.InnerException.Should().BeSameAs(error);
+        actions.Settlements.Should().BeEmpty();
+        behavior.Dispositions.Should().ContainSingle().Which.Should().BeEquivalentTo(new { Settlement = SubscriberSettlement.NotSettled, Classification = (ErrorHandling?)ErrorHandling.None, Error = assertion.Which });
+    }
+
+    [Test]
     public async Task CancellationDuringHandler_DoesNotCompleteSuccessfulResult()
     {
         var actions = new RecordingServiceBusMessageActions();
         using var cancellation = new CancellationTokenSource();
+        var behavior = new DispositionBehavior();
         var subscriber = new NativeSubscriber((_, _) =>
         {
             cancellation.Cancel();
             return Result.SuccessTask;
         });
+        subscriber.Behaviors.Add(behavior);
 
         Func<Task> run = () => subscriber.FunctionReceiveAsync(ServiceBusModelFactory.ServiceBusReceivedMessage(), actions, "queue", cancellationToken: cancellation.Token);
         await run.Should().ThrowAsync<OperationCanceledException>();
         actions.Settlements.Should().BeEmpty();
+        behavior.Dispositions.Should().ContainSingle().Which.Should().BeEquivalentTo(new { Settlement = SubscriberSettlement.NotSettled, IsCancelled = true, Classification = (ErrorHandling?)null, Error = (Exception?)null });
     }
 
     [Test]
     public async Task Retry_RecordsBoundedReasonAndNoSecondAttemptOnFailure()
     {
-        var actions = new RecordingServiceBusMessageActions { Failure = new InvalidOperationException("Abandon failed.") };
+        var failure = new InvalidOperationException("Abandon failed.");
+        var actions = new RecordingServiceBusMessageActions { Failure = failure };
+        var behavior = new DispositionBehavior();
         var subscriber = new NativeSubscriber((_, _) => Task.FromResult(Result.Fail(new EventSubscriberRetryException(new string('x', 600)))));
+        subscriber.Behaviors.Add(behavior);
 
         Func<Task> run = () => subscriber.FunctionReceiveAsync(ServiceBusModelFactory.ServiceBusReceivedMessage(), actions, "queue");
         await run.Should().ThrowAsync<InvalidOperationException>();
         actions.Settlements.Should().Equal("abandon");
         actions.Properties!["AbandonReason"].Should().Be(new string('x', 512));
+        behavior.Dispositions.Should().ContainSingle().Which.Should().BeEquivalentTo(new
+        {
+            Settlement = SubscriberSettlement.SettlementFailed,
+            AttemptedSettlement = (SubscriberSettlement?)SubscriberSettlement.Abandoned,
+            Classification = (ErrorHandling?)ErrorHandling.Retry,
+            SettlementError = failure
+        });
     }
 
     [Test]
@@ -152,6 +181,70 @@ public class FunctionsServiceBusExtensionsTests
         actions.Settlements.Should().Equal("dead-letter");
         actions.DeadLetterReason.Should().Be("Rejected.");
         actions.DeadLetterDescription.Should().BeNull();
+    }
+
+    [TestCase(null, "complete", SubscriberSettlement.Completed, null)]
+    [TestCase(ErrorHandling.CompleteAsWarning, "complete", SubscriberSettlement.Completed, ErrorHandling.CompleteAsWarning)]
+    [TestCase(ErrorHandling.Retry, "abandon", SubscriberSettlement.Abandoned, ErrorHandling.Retry)]
+    [TestCase(ErrorHandling.DeadLetter, "dead-letter", SubscriberSettlement.DeadLettered, ErrorHandling.DeadLetter)]
+    public async Task Disposition_ReflectsAppliedSettlementOnce(ErrorHandling? handling, string expected, SubscriberSettlement settlement, ErrorHandling? classification)
+    {
+        var actions = new RecordingServiceBusMessageActions();
+        var behavior = new DispositionBehavior();
+        var subscriber = new NativeSubscriber((_, _) => handling is null ? Result.SuccessTask : Task.FromResult<Result>(SubscriberBehaviorResultFor(handling.Value)));
+        subscriber.Behaviors.Add(behavior);
+
+        await subscriber.FunctionReceiveAsync(ServiceBusModelFactory.ServiceBusReceivedMessage(), actions, "queue");
+
+        actions.Settlements.Should().Equal(expected);
+        behavior.Invocations.Should().Be(1);
+        behavior.Dispositions.Should().ContainSingle().Which.Should().BeEquivalentTo(new { Settlement = settlement, Classification = classification, SettlementError = (Exception?)null, IsCancelled = false });
+        behavior.Args.Should().ContainSingle().Which.IsNative.Should().BeTrue();
+    }
+
+    [Test]
+    public async Task Disposition_CatastrophicIsNotSettledAndRethrown()
+    {
+        var actions = new RecordingServiceBusMessageActions();
+        var behavior = new DispositionBehavior();
+        var subscriber = new NativeSubscriber((_, _) => Task.FromResult<Result>(new CatastrophicTestException()));
+        subscriber.Behaviors.Add(behavior);
+
+        Func<Task> run = () => subscriber.FunctionReceiveAsync(ServiceBusModelFactory.ServiceBusReceivedMessage(), actions, "queue");
+        await run.Should().ThrowAsync<CatastrophicTestException>();
+        actions.Settlements.Should().BeEmpty();
+        behavior.Dispositions.Should().ContainSingle().Which.Should().BeEquivalentTo(new { Settlement = SubscriberSettlement.NotSettled, Classification = (ErrorHandling?)ErrorHandling.Catastrophic });
+    }
+
+    [Test]
+    public async Task Disposition_CallbackFailureDoesNotChangeSettlement()
+    {
+        var actions = new RecordingServiceBusMessageActions();
+        var behavior = new DispositionBehavior { ThrowOnDisposition = true };
+        var subscriber = new NativeSubscriber((_, _) => Result.SuccessTask);
+        subscriber.Behaviors.Add(behavior);
+
+        await subscriber.FunctionReceiveAsync(ServiceBusModelFactory.ServiceBusReceivedMessage(), actions, "queue");
+
+        actions.Settlements.Should().Equal("complete");
+        behavior.Dispositions.Should().ContainSingle();
+    }
+
+    private static Exception SubscriberBehaviorResultFor(ErrorHandling handling) => handling switch
+    {
+        ErrorHandling.Retry => new EventSubscriberRetryException("Retry."),
+        ErrorHandling.DeadLetter => new EventSubscriberDeadLetterException("Rejected."),
+        _ => new CompleteTestException(handling)
+    };
+
+    private sealed class CompleteTestException(ErrorHandling handling) : Exception("Complete."), IEventSubscriberException
+    {
+        public ErrorHandling ErrorHandling => handling;
+    }
+
+    private sealed class CatastrophicTestException() : Exception("Catastrophic."), IEventSubscriberException
+    {
+        public ErrorHandling ErrorHandling => ErrorHandling.Catastrophic;
     }
 
     private sealed class NativeSubscriber : ServiceBusSubscriberBase
@@ -167,6 +260,30 @@ public class FunctionsServiceBusExtensionsTests
         protected override Task<Result> OnReceiveMessageAsync(ServiceBusReceivedMessage message, EventSubscriberArgs args, CancellationToken cancellationToken = default) => _receive(message, cancellationToken);
 
         protected override Task<Result> OnReceiveAsync(EventData @event, EventSubscriberArgs args, CancellationToken cancellationToken) => throw new NotSupportedException();
+    }
+
+    private sealed class DispositionBehavior : ISubscriberBehavior
+    {
+        public int Invocations { get; private set; }
+
+        public bool ThrowOnDisposition { get; init; }
+
+        public List<SubscriberDisposition> Dispositions { get; } = [];
+
+        public List<EventSubscriberArgs> Args { get; } = [];
+
+        public Task<Result> InvokeAsync(EventSubscriberArgs args, SubscriberBehaviorDelegate next, CancellationToken cancellationToken)
+        {
+            Invocations++;
+            return next(cancellationToken);
+        }
+
+        public Task OnDispositionAsync(EventSubscriberArgs args, SubscriberDisposition disposition, CancellationToken cancellationToken)
+        {
+            Args.Add(args);
+            Dispositions.Add(disposition);
+            return ThrowOnDisposition ? throw new InvalidOperationException("Callback failed.") : Task.CompletedTask;
+        }
     }
 
     [CoreEx.Events.Subscribing.Subscribe("test.command.v1", "urn:test:producer")]
