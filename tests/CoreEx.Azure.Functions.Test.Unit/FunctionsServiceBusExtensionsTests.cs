@@ -29,7 +29,7 @@ public class FunctionsServiceBusExtensionsTests
     [TestCase(null)]
     [TestCase("received")]
     [TestCase("invalid metadata")]
-    public async Task RawCallback_CapturesCorrelationAndRestoresAfterSettlement(string? supplied)
+    public async Task NativeSubscriber_CapturesCorrelationAndRestoresAfterSettlement(string? supplied)
     {
         using var ec = new CoreEx.ExecutionContext { CorrelationId = "parent" };
         CoreEx.ExecutionContext.Reset();
@@ -39,12 +39,14 @@ public class FunctionsServiceBusExtensionsTests
         var logger = new WarningLogger();
         try
         {
-            await actions.FunctionReceiveAsync(ServiceBusModelFactory.ServiceBusReceivedMessage(correlationId: supplied), "queue", _ =>
+            var subscriber = new NativeSubscriber((_, _) =>
             {
                 ec.CorrelationId.Should().Be(CoreEx.Diagnostics.Correlation.IsValid(supplied) ? supplied : null);
                 new EventData().CorrelationId.Should().Be(ec.CorrelationId);
                 return Result.SuccessTask;
-            }, new FunctionsServiceBusReceiveArgs { Logger = logger });
+            }, logger);
+
+            await subscriber.FunctionReceiveAsync(ServiceBusModelFactory.ServiceBusReceivedMessage(correlationId: supplied), actions, "queue");
             actions.Settlements.Should().Equal("complete");
             ec.CorrelationId.Should().Be("parent");
             logger.Warnings.Should().HaveCount(CoreEx.Diagnostics.Correlation.IsValid(supplied) ? 0 : 1);
@@ -57,36 +59,9 @@ public class FunctionsServiceBusExtensionsTests
         }
     }
 
-    [Test]
-    public async Task DisabledCorrelation_RawCallbackIgnoresInvalidMetadataWithoutLogger()
-    {
-        var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> { ["CoreEx:Correlation:Enabled"] = "false" }).Build();
-        using var services = new ServiceCollection().AddSingleton<IConfiguration>(configuration).BuildServiceProvider();
-        using var ec = new CoreEx.ExecutionContext { CorrelationId = "ambient", ServiceProvider = services };
-        CoreEx.ExecutionContext.Reset();
-        CoreEx.ExecutionContext.SetCurrent(ec);
-        using var activity = new System.Diagnostics.Activity("receive").Start();
-        var actions = new RecordingServiceBusMessageActions();
-        try
-        {
-            await actions.FunctionReceiveAsync(ServiceBusModelFactory.ServiceBusReceivedMessage(correlationId: "invalid value"), "queue", _ =>
-            {
-                ec.CorrelationId.Should().Be("ambient");
-                activity.GetTagItem(CoreEx.Diagnostics.Correlation.ActivityTagName).Should().BeNull();
-                return Result.SuccessTask;
-            });
-            actions.Settlements.Should().Equal("complete");
-        }
-        finally
-        {
-            CoreEx.ExecutionContext.Reset();
-        }
-    }
-
-    [TestCase(null)]
     [TestCase(false)]
     [TestCase(true)]
-    public async Task NativeCallback_EnrichesHostActivityBeforeHandler(bool? propagateBaggage)
+    public async Task NativeSubscriber_EnrichesHostActivityBeforeHandler(bool propagateBaggage)
     {
         using var activity = new System.Diagnostics.Activity("function").Start();
         var message = ServiceBusModelFactory.ServiceBusReceivedMessage(properties: new Dictionary<string, object>
@@ -95,18 +70,17 @@ public class FunctionsServiceBusExtensionsTests
             ["baggage"] = "region=west"
         });
         var actions = new RecordingServiceBusMessageActions();
-        await actions.FunctionReceiveAsync(message, "queue", _ =>
+        var subscriber = new NativeSubscriber((_, _) =>
         {
             System.Diagnostics.Activity.Current.Should().BeSameAs(activity);
             activity.Links.Should().ContainSingle();
-            activity.GetBaggageItem("region").Should().Be(propagateBaggage == true ? "west" : null);
+            activity.GetBaggageItem("region").Should().Be(propagateBaggage ? "west" : null);
             return Result.SuccessTask;
-        }, args: propagateBaggage.HasValue ? new FunctionsServiceBusReceiveArgs { PropagateBaggage = propagateBaggage.Value } : null);
+        }) { PropagateBaggage = propagateBaggage };
+
+        await subscriber.FunctionReceiveAsync(message, actions, "queue");
         actions.Settlements.Should().Equal("complete");
     }
-
-    [Test]
-    public void ReceiveArgs_DisableBaggageByDefault() => new FunctionsServiceBusReceiveArgs().PropagateBaggage.Should().BeFalse();
 
     [Test]
     public async Task NativePayload_DoesNotRequireCloudEventsAndFlowsToken()
@@ -114,12 +88,14 @@ public class FunctionsServiceBusExtensionsTests
         var message = ServiceBusModelFactory.ServiceBusReceivedMessage(body: BinaryData.FromString("native payload"));
         var actions = new RecordingServiceBusMessageActions();
         using var cancellation = new CancellationTokenSource();
-        await actions.FunctionReceiveAsync(message, "native-queue", ct =>
+        var subscriber = new NativeSubscriber((m, ct) =>
         {
             ct.Should().Be(cancellation.Token);
-            message.Body.ToString().Should().Be("native payload");
+            m.Body.ToString().Should().Be("native payload");
             return Result.SuccessTask;
-        }, cancellationToken: cancellation.Token);
+        });
+
+        await subscriber.FunctionReceiveAsync(message, actions, "native-queue", cancellationToken: cancellation.Token);
 
         actions.Settlements.Should().Equal("complete");
         actions.Token.Should().Be(cancellation.Token);
@@ -129,10 +105,11 @@ public class FunctionsServiceBusExtensionsTests
     [TestCase(true)]
     public async Task UnclassifiedFailure_PreservesOriginalException(bool throws)
     {
-        var message = ServiceBusModelFactory.ServiceBusReceivedMessage();
         var actions = new RecordingServiceBusMessageActions();
         var error = new InvalidOperationException("Original failure.");
-        Func<Task> run = () => actions.FunctionReceiveAsync(message, "queue", _ => throws ? Task.FromException<Result>(error) : Task.FromResult(Result.Fail(error)));
+        var subscriber = new NativeSubscriber((_, _) => throws ? Task.FromException<Result>(error) : Task.FromResult(Result.Fail(error)));
+
+        Func<Task> run = () => subscriber.FunctionReceiveAsync(ServiceBusModelFactory.ServiceBusReceivedMessage(), actions, "queue");
         var assertion = await run.Should().ThrowAsync<InvalidOperationException>();
         assertion.Which.Should().BeSameAs(error);
         actions.Settlements.Should().BeEmpty();
@@ -143,11 +120,13 @@ public class FunctionsServiceBusExtensionsTests
     {
         var actions = new RecordingServiceBusMessageActions();
         using var cancellation = new CancellationTokenSource();
-        Func<Task> run = () => actions.FunctionReceiveAsync(ServiceBusModelFactory.ServiceBusReceivedMessage(), "queue", _ =>
+        var subscriber = new NativeSubscriber((_, _) =>
         {
             cancellation.Cancel();
             return Result.SuccessTask;
-        }, cancellationToken: cancellation.Token);
+        });
+
+        Func<Task> run = () => subscriber.FunctionReceiveAsync(ServiceBusModelFactory.ServiceBusReceivedMessage(), actions, "queue", cancellationToken: cancellation.Token);
         await run.Should().ThrowAsync<OperationCanceledException>();
         actions.Settlements.Should().BeEmpty();
     }
@@ -156,8 +135,9 @@ public class FunctionsServiceBusExtensionsTests
     public async Task Retry_RecordsBoundedReasonAndNoSecondAttemptOnFailure()
     {
         var actions = new RecordingServiceBusMessageActions { Failure = new InvalidOperationException("Abandon failed.") };
-        Func<Task> run = () => actions.FunctionReceiveAsync(ServiceBusModelFactory.ServiceBusReceivedMessage(), "queue",
-            _ => Task.FromResult(Result.Fail(new EventSubscriberRetryException(new string('x', 600)))));
+        var subscriber = new NativeSubscriber((_, _) => Task.FromResult(Result.Fail(new EventSubscriberRetryException(new string('x', 600)))));
+
+        Func<Task> run = () => subscriber.FunctionReceiveAsync(ServiceBusModelFactory.ServiceBusReceivedMessage(), actions, "queue");
         await run.Should().ThrowAsync<InvalidOperationException>();
         actions.Settlements.Should().Equal("abandon");
         actions.Properties!["AbandonReason"].Should().Be(new string('x', 512));
@@ -167,11 +147,26 @@ public class FunctionsServiceBusExtensionsTests
     public async Task DeadLetter_DoesNotPersistStackTrace()
     {
         var actions = new RecordingServiceBusMessageActions();
-        await actions.FunctionReceiveAsync(ServiceBusModelFactory.ServiceBusReceivedMessage(), "queue",
-            _ => Task.FromResult(Result.Fail(new EventSubscriberDeadLetterException("Rejected.", new InvalidOperationException("Private diagnostic.")))));
+        var subscriber = new NativeSubscriber((_, _) => Task.FromResult(Result.Fail(new EventSubscriberDeadLetterException("Rejected.", new InvalidOperationException("Private diagnostic.")))));
+        await subscriber.FunctionReceiveAsync(ServiceBusModelFactory.ServiceBusReceivedMessage(), actions, "queue");
         actions.Settlements.Should().Equal("dead-letter");
         actions.DeadLetterReason.Should().Be("Rejected.");
         actions.DeadLetterDescription.Should().BeNull();
+    }
+
+    private sealed class NativeSubscriber : ServiceBusSubscriberBase
+    {
+        private readonly Func<ServiceBusReceivedMessage, CancellationToken, Task<Result>> _receive;
+
+        public NativeSubscriber(Func<ServiceBusReceivedMessage, CancellationToken, Task<Result>> receive, ILogger<ServiceBusSubscriberBase>? logger = null) : base(logger ?? NullLogger<ServiceBusSubscriberBase>.Instance)
+        {
+            _receive = receive;
+            DataRepresentation = MessageRepresentation.Native;
+        }
+
+        protected override Task<Result> OnReceiveMessageAsync(ServiceBusReceivedMessage message, EventSubscriberArgs args, CancellationToken cancellationToken = default) => _receive(message, cancellationToken);
+
+        protected override Task<Result> OnReceiveAsync(EventData @event, EventSubscriberArgs args, CancellationToken cancellationToken) => throw new NotSupportedException();
     }
 
     [CoreEx.Events.Subscribing.Subscribe("test.command.v1", "urn:test:producer")]
@@ -188,7 +183,7 @@ public class FunctionsServiceBusExtensionsTests
         }
     }
 
-    private sealed class WarningLogger : ILogger
+    private sealed class WarningLogger : ILogger<ServiceBusSubscriberBase>
     {
         public List<string> Warnings { get; } = [];
 

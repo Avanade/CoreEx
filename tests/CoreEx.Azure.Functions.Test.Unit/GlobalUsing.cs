@@ -13,6 +13,7 @@ global using CoreEx.Azure.Functions.TestApp.CatalogForwarding;
 global using CoreEx.Azure.Functions.TestApp.InventoryImports;
 global using CoreEx.Azure.Messaging.ServiceBus;
 global using CoreEx.Events;
+global using CoreEx.Events.Subscribing;
 global using CoreEx.Events.Subscribing.Exceptions;
 global using CoreEx.IO;
 global using CoreEx.Json;

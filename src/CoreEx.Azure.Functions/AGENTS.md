@@ -8,7 +8,7 @@ Azure Functions isolated-worker integration for CoreEx execution context, existi
 
 ## Invocation context
 
-Correlation is automatically captured for the existing `HttpRequest`/`IActionResult` integration before the invocation callback, returned through deferred `OnStarting`, and reflected in worker-side logging scopes and `correlation.id`. Null remains absent; malformed HTTP headers return safe 400 before the function. Native `HttpRequestData`/`HttpResponseData` and Functions host-process logs are outside coverage. Service Bus subscribers/raw callbacks import message correlation; invalid metadata warns, clears ambient correlation and still processes. Raw callbacks without host logging services supply `FunctionsServiceBusReceiveArgs.Logger`. Idempotency replay must echo the current correlation, never the cached original. See [workflow correlation](./README.md#workflow-correlation).
+Correlation is automatically captured for the existing `HttpRequest`/`IActionResult` integration before the invocation callback, returned through deferred `OnStarting`, and reflected in worker-side logging scopes and `correlation.id`. Null remains absent; malformed HTTP headers return safe 400 before the function. Native `HttpRequestData`/`HttpResponseData` and Functions host-process logs are outside coverage. Service Bus subscribers import message correlation; invalid metadata warns, clears ambient correlation and still processes. Idempotency replay must echo the current correlation, never the cached original. See [workflow correlation](./README.md#workflow-correlation).
 
 Register `AddExecutionContext()` and call `UseCoreExExecutionContext()` on the worker builder. For HTTP, call `ConfigureFunctionsWebApplication()` first. The middleware initializes/clears ambient invocation state, supports custom context factories and adds HTTP informational headers before rendering.
 
@@ -45,9 +45,9 @@ CoreEx messaging is the default even for simple Functions workloads. Publish thr
 
 Preserve configured custom publisher/subscriber implementations, decorators and supported overrides; configuration and `ConfigureMessage` are valid customization points, not reasons to recreate the pipeline. Default receiving to the typed/dispatched subscriber overload below. Raw SDK sends/output bindings or custom callbacks need a concrete documented requirement. Native trigger ownership and explicit native representation do not imply bypassing CoreEx messaging.
 
-Both `subscriber.FunctionReceiveAsync(message, actions, entityPath, ..., cancellationToken)` and `actions.FunctionReceiveAsync(message, entityPath, handler, ..., cancellationToken)` require `AutoCompleteMessages = false`.
+`subscriber.FunctionReceiveAsync(message, actions, entityPath, ..., cancellationToken)` requires `AutoCompleteMessages = false`; the former `actions.FunctionReceiveAsync(..., handler, ...)` callback overload was removed in v4.4.
 
-Use `ServiceBusSubscribedSubscriber` when CloudEvents need subject/source dispatch. For a uniform payload, use `ServiceBusSubscriberBase<T>` with validation/error classification and no dispatcher. Both subscriber bases default to `MessageRepresentation.CloudEvent` through the inherited `DataRepresentation` property; binary/structured handling uses `ContentMode`, and `args.CloudEvent` exposes the decoded envelope. Explicitly select `DataRepresentation = MessageRepresentation.Native` for direct native JSON; existing native typed subscribers need this opt-in when upgrading. A callback owns parsing, logging and classification. Choose poison policy explicitly: default invalid-envelope/payload and validation/business handling can complete as error rather than dead-letter. Set typed subscriber `InvalidDataHandling` and `ErrorHandler` to the intended dispositions.
+Use `ServiceBusSubscribedSubscriber` when CloudEvents need subject/source dispatch. For a uniform payload, use `ServiceBusSubscriberBase<T>` with validation/error classification and no dispatcher. Both subscriber bases default to `MessageRepresentation.CloudEvent` through the inherited `DataRepresentation` property; binary/structured handling uses `ContentMode`, and `args.CloudEvent` exposes the decoded envelope. Explicitly select `DataRepresentation = MessageRepresentation.Native` for direct native JSON; existing native typed subscribers need this opt-in when upgrading. Choose poison policy explicitly: default invalid-envelope/payload and validation/business handling can complete as error rather than dead-letter. Set typed subscriber `InvalidDataHandling` and `ErrorHandler` to the intended dispositions.
 
 | Outcome | Bridge behavior |
 |---|---|
@@ -61,7 +61,7 @@ Use `ServiceBusSubscribedSubscriber` when CloudEvents need subject/source dispat
 
 Share trigger entity constants/expressions with `entityPath`, including topic/subscription paths. Expressions like `%Topic%/Subscriptions/%Subscription%` resolve from ambient worker `IConfiguration` for metrics; missing/malformed settings fail before processing. This label does not select the listener or settle a different entity. The Functions host must receive consistent binding settings too.
 
-Receive enrichment uses the existing activity/producer links without replacing the worker span. Baggage is bounded and opt-in (`PropagateBaggage` on the subscriber or `FunctionsServiceBusReceiveArgs` for callbacks), not authentication. Choose telemetry sampler/exporter separately; CoreEx does not install one.
+Receive enrichment uses the existing activity/producer links without replacing the worker span. Baggage is bounded and opt-in (`PropagateBaggage` on the subscriber), not authentication. Choose telemetry sampler/exporter separately; CoreEx does not install one.
 
 Prefer a Subscribe host when receiver-level backpressure, circuit-breaker pause/resume or its full receiver resilience policy is required. Native single-message non-session delivery is proven; sessions/batches need requirements-specific verification.
 
