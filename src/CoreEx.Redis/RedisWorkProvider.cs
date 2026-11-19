@@ -1,97 +1,110 @@
 namespace CoreEx.Redis;
 
 /// <summary>
-/// Provides a Redis-backed <see cref="IWorkProvider"/> with atomic create and optimistic-concurrency (compare-and-set) update semantics.
+/// Provides a Redis-backed <see cref="IWorkProvider"/> with atomic create and optimistic-concurrency updates.
 /// </summary>
-/// <remarks>Each work record is a single Redis hash (state, incarnation, version and optional data) written only via embedded Lua scripts so that the state and data are always updated atomically. All operations target the primary
-/// with a bounded acknowledgement wait. Redis must be configured so that these keys are not evicted (for example <c>maxmemory-policy noeviction</c>); asynchronous replication means a failover may lose a recent write.</remarks>
+/// <remarks>Each work record is a Redis hash containing serialized state, incarnation, and version. All writes use embedded Lua scripts and target the primary. Redis replicates asynchronously, so failover can lose recently acknowledged writes; this provider does not attempt to narrow that window.</remarks>
 public sealed class RedisWorkProvider : IWorkProvider
 {
     private static readonly string _create = LoadScript("WorkCreate.lua");
+    private static readonly string _get = LoadScript("WorkGet.lua");
     private static readonly string _update = LoadScript("WorkUpdate.lua");
     private static readonly string _delete = LoadScript("WorkDelete.lua");
+    private static readonly DateTimeOffset _unixEpoch = DateTimeOffset.UnixEpoch;
     private readonly IConnectionMultiplexer _connection;
     private readonly JsonSerializerOptions _jsonSerializerOptions;
-    private readonly string _keyPrefix;
-    private readonly TimeSpan _operationTimeout;
-    private readonly int? _maxDataSize;
+    private readonly RedisWorkProviderOptions _options;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="RedisWorkProvider"/> class.
     /// </summary>
-    /// <param name="connection">The host-owned <see cref="IConnectionMultiplexer"/>.</param>
-    /// <param name="jsonSerializerOptions">The optional <see cref="JsonSerializerOptions"/>; defaults to <see cref="JsonDefaults.SerializerOptions"/>.</param>
-    /// <param name="keyPrefix">The key prefix enabling separation within a shared Redis; defaults to <c>CoreEx:work:v1:</c>.</param>
-    /// <param name="operationTimeout">The maximum duration to wait for each Redis operation; defaults to five seconds.</param>
-    /// <param name="maxDataSize">The maximum result data size in bytes. Defaults to 512 KiB; use <see langword="null"/> for no configured limit.</param>
-    public RedisWorkProvider(IConnectionMultiplexer connection, JsonSerializerOptions? jsonSerializerOptions = null, string? keyPrefix = null, TimeSpan? operationTimeout = null, int? maxDataSize = 512 * 1024)
+    /// <param name="connection">The host-owned Redis connection.</param>
+    /// <param name="options">The provider options.</param>
+    /// <param name="jsonSerializerOptions">The optional JSON serializer options.</param>
+    public RedisWorkProvider(IConnectionMultiplexer connection, RedisWorkProviderOptions? options = null, JsonSerializerOptions? jsonSerializerOptions = null)
     {
         _connection = connection.ThrowIfNull();
+        _options = options ?? new RedisWorkProviderOptions();
+        _options.Validate();
         _jsonSerializerOptions = jsonSerializerOptions ?? JsonDefaults.SerializerOptions;
-        _keyPrefix = keyPrefix ?? "CoreEx:work:v1:";
-        _operationTimeout = operationTimeout ?? TimeSpan.FromSeconds(5);
-        if (_operationTimeout <= TimeSpan.Zero)
-            throw new ArgumentOutOfRangeException(nameof(operationTimeout));
-
-        if (maxDataSize is <= 0)
-            throw new ArgumentOutOfRangeException(nameof(maxDataSize));
-
-        _maxDataSize = maxDataSize;
     }
 
-    /// <summary>
-    /// Loads an embedded Lua script from the <c>Scripts</c> folder.
-    /// </summary>
+    /// <summary>Loads an embedded Redis script.</summary>
     private static string LoadScript(string name)
     {
         using var reader = new StreamReader(Resource.GetStream<RedisWorkProvider>($"Scripts.{name}"));
         return reader.ReadToEnd();
     }
 
-    /// <summary>
-    /// Gets the bounded-length physical key for the work identifier.
-    /// </summary>
-    private RedisKey Key(string id) => $"{_keyPrefix}{Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(id.ThrowIfNullOrEmpty(nameof(id)))))}";
+    /// <summary>Creates the Redis key for a work identifier.</summary>
+    private RedisKey Key(string id) => $"{_options.KeyPrefix}{Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(id.ThrowIfNullOrEmpty(nameof(id)))))}";
 
-    /// <summary>
-    /// Converts the <paramref name="timeToLive"/> to positive whole milliseconds.
-    /// </summary>
-    private static long Milliseconds(TimeSpan timeToLive) => timeToLive > TimeSpan.Zero ? Math.Max(1, (long)Math.Ceiling(timeToLive.TotalMilliseconds)) : throw new ArgumentOutOfRangeException(nameof(timeToLive), "The time-to-live must be greater than zero.");
+    /// <summary>Converts a positive time-to-live to Redis milliseconds.</summary>
+    private static long Milliseconds(TimeSpan timeToLive)
+        => timeToLive > TimeSpan.Zero ? Math.Max(1, (long)Math.Ceiling(timeToLive.TotalMilliseconds)) : throw new ArgumentOutOfRangeException(nameof(timeToLive), "The time-to-live must be greater than zero.");
 
-    /// <summary>
-    /// Executes one primary-side operation with a bounded acknowledgement wait.
-    /// </summary>
-    private async Task<T> ExecuteAsync<T>(Func<IDatabase, Task<T>> operation, CancellationToken cancellationToken)
+    /// <summary>Executes a bounded Redis operation and identifies ambiguous write timeouts.</summary>
+    private async Task<T> ExecuteAsync<T>(Func<IDatabase, Task<T>> operation, CancellationToken cancellationToken, bool isWrite = false, string? id = null, string? operationName = null)
     {
         cancellationToken.ThrowIfCancellationRequested();
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        cts.CancelAfter(_operationTimeout);
-        return await operation(_connection.GetDatabase()).WaitAsync(cts.Token).ConfigureAwait(false);
+        cts.CancelAfter(_options.OperationTimeout);
+        try
+        {
+            return await operation(_connection.GetDatabase()).WaitAsync(cts.Token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException exception) when (!cancellationToken.IsCancellationRequested && cts.IsCancellationRequested)
+        {
+            if (isWrite)
+                throw new WorkOutcomeUnknownException(id ?? string.Empty, operationName ?? "write", exception);
+
+            throw new TimeoutException("The Redis work-provider read exceeded its operation timeout.", exception);
+        }
+        catch (RedisTimeoutException exception)
+        {
+            if (isWrite)
+                throw new WorkOutcomeUnknownException(id ?? string.Empty, operationName ?? "write", exception);
+
+            throw new TimeoutException("The Redis work-provider read exceeded its operation timeout.", exception);
+        }
     }
 
+    /// <summary>Executes a bounded write whose timeout is reported as an unknown outcome.</summary>
+    private Task<RedisResult> ExecuteWriteAsync(string id, string operationName, Func<IDatabase, Task<RedisResult>> operation, CancellationToken cancellationToken)
+        => ExecuteAsync(operation, cancellationToken, isWrite: true, id, operationName);
+
     /// <inheritdoc/>
-    public async Task<WorkState?> GetAsync(string id, CancellationToken cancellationToken)
+    public async Task<WorkSnapshot> GetAsync(string id, CancellationToken cancellationToken)
     {
         var key = Key(id);
-        var values = await ExecuteAsync(db => db.HashGetAsync(key, ["s", "i", "v"], CommandFlags.DemandMaster), cancellationToken).ConfigureAwait(false);
-        if (values[0].IsNull && values[1].IsNull && values[2].IsNull)
-            return null;
+        var useLocalClock = _options.TimeProvider is not null;
+        RedisValue[] args = [useLocalClock ? 1 : 0];
+        var values = (RedisResult[]?)await ExecuteAsync(
+            db => db.ScriptEvaluateAsync(_get, [key], args, CommandFlags.DemandMaster),
+            cancellationToken).ConfigureAwait(false) ?? throw new InvalidDataException("Redis returned no work snapshot.");
 
+        var now = useLocalClock
+            ? _options.TimeProvider!.GetUtcNow()
+            : _unixEpoch.AddSeconds((long)values[3]).AddTicks((long)values[4] * 10);
+        if (values[0].IsNull && values[1].IsNull && values[2].IsNull)
+            return new WorkSnapshot(null, now);
         if (values[0].IsNull || values[1].IsNull || values[2].IsNull)
             throw new InvalidDataException("The persisted work record is missing its state, incarnation, or version.");
 
-        var state = JsonSerializer.Deserialize<WorkState>((byte[])values[0]!, _jsonSerializerOptions) ?? throw new InvalidOperationException("The persisted work state could not be deserialized.");
-        state.ETag = $"{values[1]}:{values[2]}";
-        return state;
+        var state = JsonSerializer.Deserialize<WorkState>((byte[])values[0]!, _jsonSerializerOptions)
+            ?? throw new InvalidOperationException("The persisted work state could not be deserialized.");
+        state.ETag = $"{(string?)values[1]}:{(long)values[2]}";
+        return new WorkSnapshot(state, now);
     }
 
     /// <inheritdoc/>
     public async Task<bool> CreateAsync(WorkState state, TimeSpan timeToLive, CancellationToken cancellationToken)
     {
-        var key = Key(state.ThrowIfNull().Id!);
+        var id = state.ThrowIfNull().Id.ThrowIfNullOrEmpty(nameof(state.Id));
+        var key = Key(id);
         var incarnation = Guid.NewGuid().ToString("N");
         RedisValue[] args = [JsonSerializer.SerializeToUtf8Bytes(state, _jsonSerializerOptions), Milliseconds(timeToLive), incarnation];
-        if ((int)await ExecuteAsync(db => db.ScriptEvaluateAsync(_create, [key], args, CommandFlags.DemandMaster), cancellationToken).ConfigureAwait(false) != 1)
+        if ((int)await ExecuteWriteAsync(id, "create", db => db.ScriptEvaluateAsync(_create, [key], args, CommandFlags.DemandMaster), cancellationToken).ConfigureAwait(false) != 1)
             return false;
 
         state.ETag = $"{incarnation}:1";
@@ -99,35 +112,29 @@ public sealed class RedisWorkProvider : IWorkProvider
     }
 
     /// <inheritdoc/>
-    public async Task<bool> UpdateAsync(WorkState state, BinaryData? data, TimeSpan timeToLive, CancellationToken cancellationToken)
+    public async Task<bool> UpdateAsync(WorkState state, TimeSpan timeToLive, CancellationToken cancellationToken)
     {
-        var key = Key(state.ThrowIfNull().Id!);
-        if (data is not null && _maxDataSize.HasValue && data.ToMemory().Length > _maxDataSize.Value)
-            throw new ArgumentException($"The work result data size of {data.ToMemory().Length} bytes exceeds the maximum of {_maxDataSize.Value} bytes.", nameof(data));
-
+        var id = state.ThrowIfNull().Id.ThrowIfNullOrEmpty(nameof(state.Id));
+        var key = Key(id);
         var expectedETag = state.ETag ?? string.Empty;
-        RedisValue[] args = [expectedETag, JsonSerializer.SerializeToUtf8Bytes(state, _jsonSerializerOptions), Milliseconds(timeToLive), data is null ? "keep" : "set", data?.ToArray() ?? []];
-        var version = (long)await ExecuteAsync(db => db.ScriptEvaluateAsync(_update, [key], args, CommandFlags.DemandMaster), cancellationToken).ConfigureAwait(false);
+        RedisValue[] args = [expectedETag, JsonSerializer.SerializeToUtf8Bytes(state, _jsonSerializerOptions), Milliseconds(timeToLive)];
+        var version = (long)await ExecuteWriteAsync(id, "update", db => db.ScriptEvaluateAsync(_update, [key], args, CommandFlags.DemandMaster), cancellationToken).ConfigureAwait(false);
         if (version <= 0)
             return false;
 
-        state.ETag = $"{expectedETag[..expectedETag.LastIndexOf(':')]}:{version.ToString(CultureInfo.InvariantCulture)}";
+        var separator = expectedETag.LastIndexOf(':');
+        if (separator <= 0)
+            throw new InvalidDataException("The work ETag is invalid.");
+        state.ETag = $"{expectedETag[..separator]}:{version.ToString(CultureInfo.InvariantCulture)}";
         return true;
     }
 
     /// <inheritdoc/>
     public async Task<bool> DeleteAsync(WorkState state, CancellationToken cancellationToken)
     {
-        var key = Key(state.ThrowIfNull().Id!);
-        RedisValue[] args = [state.ETag ?? string.Empty];
-        return (int)await ExecuteAsync(db => db.ScriptEvaluateAsync(_delete, [key], args, CommandFlags.DemandMaster), cancellationToken).ConfigureAwait(false) == 1;
-    }
-
-    /// <inheritdoc/>
-    public async Task<BinaryData?> GetDataAsync(string id, CancellationToken cancellationToken)
-    {
+        var id = state.ThrowIfNull().Id.ThrowIfNullOrEmpty(nameof(state.Id));
         var key = Key(id);
-        var value = await ExecuteAsync(db => db.HashGetAsync(key, "d", CommandFlags.DemandMaster), cancellationToken).ConfigureAwait(false);
-        return value.IsNull ? null : new BinaryData((byte[])value!);
+        RedisValue[] args = [state.ETag ?? string.Empty];
+        return (int)await ExecuteWriteAsync(id, "delete", db => db.ScriptEvaluateAsync(_delete, [key], args, CommandFlags.DemandMaster), cancellationToken).ConfigureAwait(false) == 1;
     }
 }

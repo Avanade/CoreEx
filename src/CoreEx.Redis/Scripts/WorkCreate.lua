@@ -1,5 +1,5 @@
 -- Atomically creates a work record only where it does not already exist (insert-if-absent).
--- Record hash fields: s = serialized work state (JSON); i = incarnation; v = version; d = optional result data.
+-- Record hash fields: s = serialized work state (JSON); i = incarnation; v = version.
 -- KEYS[1]: work record key.
 -- ARGV[1]: serialized work state; ARGV[2]: time-to-live (ms); ARGV[3]: unique incarnation.
 -- Returns 1 when created; 0 when the record already exists.

@@ -44,7 +44,7 @@ Redis defaults to a 1 MiB serialized response limit. Store a non-empty response 
 
 ## Work state
 
-`services.AddRedisWorkProvider()` registers a singleton `RedisWorkProvider` as `IWorkProvider` (plus a scoped `WorkOrchestrator`) over the same host-owned multiplexer. Create is insert-if-absent and every transition is an ETag compare-and-set, so check `Result` failures: `ConflictException` means the transition was not permitted (for example already started or finished). Result data defaults to a 512 KiB limit.
+`services.AddRedisWorkProvider(options => ...)` registers a singleton `RedisWorkProvider` as `IWorkProvider` (plus a scoped `WorkOrchestrator`) over the host-owned multiplexer. Create is insert-if-absent and state transitions are ETag compare-and-set; `WorkTransitionResult.Outcome` explicitly distinguishes lease-held/lost, expired, already-finished, and applied transitions. `WorkSnapshot` includes Redis server time by default. Configure `RedisWorkProviderOptions.TimeProvider` only for deterministic tests or when production hosts share a controlled clock. Result payloads are not stored; use domain persistence and `WorkState.ResourceLocation`.
 
 ## Do Not
 

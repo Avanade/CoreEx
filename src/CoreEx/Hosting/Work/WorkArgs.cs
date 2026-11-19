@@ -47,6 +47,11 @@ public record class WorkArgs : IReadOnlyIdentifier<string>
     public TimeSpan? Expiry { get; set; }
 
     /// <summary>
+    /// Gets or sets the maximum time a created work item may wait before starting.
+    /// </summary>
+    public TimeSpan? StartTimeout { get; set; }
+
+    /// <summary>
     /// Gets or sets the trace parent (defaults to see <see cref="System.Diagnostics.Activity.Id"/>).
     /// </summary>
     public string? TraceParent { get; set; }
@@ -59,6 +64,6 @@ public record class WorkArgs : IReadOnlyIdentifier<string>
     /// <summary>
     /// Gets or sets the owning <see cref="AuthenticationUser"/>.
     /// </summary>
-    /// <remarks>This provides a basic authorization-style opportunity by verifying <i>only</i> the initiating user has ongoing access.</remarks>
+    /// <remarks>Defaults to the current execution user, or <see cref="AuthenticationUser.EnvironmentUser"/> without an execution context. An unauthenticated user creates unowned work.</remarks>
     public AuthenticationUser? User { get; set; }
 }

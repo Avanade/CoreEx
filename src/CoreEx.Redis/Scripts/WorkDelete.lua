@@ -1,5 +1,5 @@
 -- Deletes a work record only where the caller's version (ETag) matches; an absent record is considered deleted.
--- Record hash fields: s = serialized work state (JSON); i = incarnation; v = version; d = optional result data.
+-- Record hash fields: s = serialized work state (JSON); i = incarnation; v = version.
 -- KEYS[1]: work record key.
 -- ARGV[1]: expected ETag (incarnation:version).
 -- Returns 1 when deleted or absent; 0 when the version does not match.

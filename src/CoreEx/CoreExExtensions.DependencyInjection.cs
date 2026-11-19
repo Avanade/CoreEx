@@ -196,11 +196,12 @@ public static partial class CoreExExtensions
     /// Adds a process-local <see cref="CoreEx.Hosting.Work.InMemoryWorkProvider"/> as the singleton <see cref="CoreEx.Hosting.Work.IWorkProvider"/> and a scoped <see cref="CoreEx.Hosting.Work.WorkOrchestrator"/>.
     /// </summary>
     /// <param name="services">The <see cref="IServiceCollection"/>.</param>
+    /// <param name="timeProvider">The optional clock used by the in-memory provider.</param>
     /// <returns>The <see cref="IServiceCollection"/> for fluent-style method-chaining.</returns>
     /// <remarks>The state is only shared within the current process; use a durable shared provider where multiple instances must observe the same work.</remarks>
-    public static IServiceCollection AddInMemoryWorkProvider(this IServiceCollection services)
+    public static IServiceCollection AddInMemoryWorkProvider(this IServiceCollection services, TimeProvider? timeProvider = null)
     {
-        services.ThrowIfNull().TryAddSingleton<CoreEx.Hosting.Work.IWorkProvider>(_ => new CoreEx.Hosting.Work.InMemoryWorkProvider());
+        services.ThrowIfNull().TryAddSingleton<CoreEx.Hosting.Work.IWorkProvider>(_ => new CoreEx.Hosting.Work.InMemoryWorkProvider(timeProvider: timeProvider));
         services.TryAddScoped(sp => new CoreEx.Hosting.Work.WorkOrchestrator(sp.GetRequiredService<CoreEx.Hosting.Work.IWorkProvider>()));
         return services;
     }
