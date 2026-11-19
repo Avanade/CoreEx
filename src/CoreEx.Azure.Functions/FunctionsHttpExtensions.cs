@@ -32,7 +32,8 @@ public static class FunctionsHttpExtensions
             await provider.OnInvokeAsync(new IdempotencyKeyAttribute(isRequired), request.HttpContext, async context =>
             {
                 invoked = true;
-                var operationToken = context.RequestAborted;
+                using var operationCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, context.RequestAborted);
+                var operationToken = operationCancellation.Token;
                 operationToken.ThrowIfCancellationRequested();
                 var result = await function(operationToken).ConfigureAwait(false);
                 operationToken.ThrowIfCancellationRequested();

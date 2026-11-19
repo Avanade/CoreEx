@@ -193,6 +193,19 @@ public static partial class CoreExExtensions
     }
 
     /// <summary>
+    /// Adds a process-local <see cref="CoreEx.Hosting.Work.InMemoryWorkProvider"/> as the singleton <see cref="CoreEx.Hosting.Work.IWorkProvider"/> and a scoped <see cref="CoreEx.Hosting.Work.WorkOrchestrator"/>.
+    /// </summary>
+    /// <param name="services">The <see cref="IServiceCollection"/>.</param>
+    /// <returns>The <see cref="IServiceCollection"/> for fluent-style method-chaining.</returns>
+    /// <remarks>The state is only shared within the current process; use a durable shared provider where multiple instances must observe the same work.</remarks>
+    public static IServiceCollection AddInMemoryWorkProvider(this IServiceCollection services)
+    {
+        services.ThrowIfNull().TryAddSingleton<CoreEx.Hosting.Work.IWorkProvider>(_ => new CoreEx.Hosting.Work.InMemoryWorkProvider());
+        services.TryAddScoped(sp => new CoreEx.Hosting.Work.WorkOrchestrator(sp.GetRequiredService<CoreEx.Hosting.Work.IWorkProvider>()));
+        return services;
+    }
+
+    /// <summary>
     /// Registers a post-configuration for all health checks to further configure and add the <see cref="HealthCheckTags.Startup"/> and <see cref="HealthCheckTags.Ready"/> tags where not currently defined.
     /// </summary>
     /// <param name="services">The <see cref="IServiceCollection"/>.</param>

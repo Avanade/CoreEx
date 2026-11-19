@@ -3,7 +3,7 @@ namespace CoreEx.Hosting.Work;
 /// <summary>
 /// Represents the status and result of a long-running <see cref="WorkOrchestrator"/>-tracked work instance.
 /// </summary>
-public class WorkState : IIdentifier<string?>
+public class WorkState : IIdentifier<string?>, IETag
 {
     /// <inheritdoc/>
     /// <remarks>The identifier must be globally unique across all work types.</remarks>
@@ -72,4 +72,8 @@ public class WorkState : IIdentifier<string?>
     /// Gets or sets the <see cref="WorkStatus.Failed"/> or <see cref="WorkStatus.Expired"/> reason.
     /// </summary>
     public string? Reason { get; set; }
+
+    /// <inheritdoc/>
+    /// <remarks>Maintained by the <see cref="IWorkProvider"/> to enable optimistic concurrency; any persisted value is ignored.</remarks>
+    public string? ETag { get; set; }
 }

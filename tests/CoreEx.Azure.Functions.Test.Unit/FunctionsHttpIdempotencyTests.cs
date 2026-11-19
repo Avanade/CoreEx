@@ -107,6 +107,36 @@ public class FunctionsHttpIdempotencyTests
         retries.Should().Be(0);
     }
 
+    [TestCase(false, false)]
+    [TestCase(false, true)]
+    [TestCase(true, false)]
+    [TestCase(true, true)]
+    public async Task CancellationAfterApplicationEntry_ReachesOperationAndPreventsRendering(bool withKey, bool cancelInvocation)
+    {
+        using var services = CreateServices();
+        using var invocationCancellation = new CancellationTokenSource();
+        using var requestCancellation = new CancellationTokenSource();
+        var request = CreateRequest(services);
+        request.HttpContext.RequestAborted = requestCancellation.Token;
+        if (!withKey)
+            request.Headers.Remove("Idempotency-Key");
+
+        var called = false;
+        var result = new FailingResult(new AssertionException("A canceled operation must not render."));
+        Func<Task> execute = () => new WebApi().FunctionWithIdempotencyAsync(request, operationToken =>
+        {
+            called = true;
+            (cancelInvocation ? invocationCancellation : requestCancellation).Cancel();
+            operationToken.IsCancellationRequested.Should().BeTrue();
+            return Task.FromResult<IActionResult>(result);
+        }, cancellationToken: invocationCancellation.Token);
+
+        await execute.Should().ThrowAsync<OperationCanceledException>();
+        called.Should().BeTrue();
+        result.Executions.Should().Be(0);
+        request.HttpContext.RequestAborted.Should().Be(requestCancellation.Token);
+    }
+
     [Test]
     public async Task PreProcessingFailure_UsesSuppliedWebApiRenderer()
     {

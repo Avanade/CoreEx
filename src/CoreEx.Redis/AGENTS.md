@@ -1,6 +1,6 @@
 # CoreEx.Redis — AI Usage Guide
 
-Provides Redis implementations of CoreEx's synchronization lease and idempotency-store contracts. The package references CoreEx and StackExchange.Redis; HTTP integration belongs to `CoreEx.AspNetCore`.
+Provides Redis implementations of CoreEx's synchronization lease, idempotency-store and work-state (`IWorkProvider`) contracts. The package references CoreEx and StackExchange.Redis; HTTP integration belongs to `CoreEx.AspNetCore`.
 
 ## Registration
 
@@ -42,9 +42,14 @@ Completed HTTP responses, including rendered errors, replay. An exception, cance
 
 Redis defaults to a 1 MiB serialized response limit. Store a non-empty response for replay, or `null` for a completed/no-replay outcome. HTTP applies its response-body limit as well as the store limit.
 
+## Work state
+
+`services.AddRedisWorkProvider()` registers a singleton `RedisWorkProvider` as `IWorkProvider` (plus a scoped `WorkOrchestrator`) over the same host-owned multiplexer. Create is insert-if-absent and every transition is an ETag compare-and-set, so check `Result` failures: `ConflictException` means the transition was not permitted (for example already started or finished). Result data defaults to a 512 KiB limit.
+
 ## Do Not
 
 - Do not use in-memory coordination as a Redis outage fallback or across replicas.
+- Do not store work state in `IHybridCache` or another evictable cache; use an `IWorkProvider` with atomic create and compare-and-set.
 - Do not treat Redis leases or retained outcomes as fencing or exactly-once business execution; failover, eviction, deletion and expiry can lose coordination data.
 - Do not bypass an indeterminate outcome with a new key or infer that an error proves no side effects occurred.
 - Do not run old HybridCache and new Redis replicas concurrently for the same protected operations; their claims and receipts are not shared.

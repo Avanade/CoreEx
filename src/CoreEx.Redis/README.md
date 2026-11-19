@@ -1,16 +1,17 @@
 # CoreEx.Redis
 
-> Provides Redis-backed synchronization leases and idempotency storage for CoreEx.
+> Provides Redis-backed synchronization leases, idempotency storage and work-state tracking for CoreEx.
 
 ## Overview
 
-`CoreEx.Redis` implements the host-neutral `ISynchronizer` and `IIdempotencyStore` contracts with atomic Redis operations. It depends on CoreEx and StackExchange.Redis, not ASP.NET Core, FusionCache, or `IHybridCache`. CoreEx also provides an explicit in-memory implementation for single-process use.
+`CoreEx.Redis` implements the host-neutral `ISynchronizer`, `IIdempotencyStore` and `IWorkProvider` contracts with atomic Redis operations. It depends on CoreEx and StackExchange.Redis, not ASP.NET Core, FusionCache, or `IHybridCache`. CoreEx also provides an explicit in-memory implementation for single-process use.
 
 ## Key capabilities
 
 - **Renewable leases**: coordinate work using owner-checked acquisition, renewal and release, with a cancellation token that signals ownership loss.
 - **Idempotency outcomes**: atomically claim a request, replay a retained response, or report an in-progress, conflicting, unavailable or indeterminate outcome.
 - **Scoped keys**: qualify logical keys using the registered `ICacheKeyProvider`, including its domain and tenant policy.
+- **Work state**: `RedisWorkProvider` persists `WorkOrchestrator` state with insert-if-absent create and ETag compare-and-set transitions.
 - **Configurable bounds**: set lease and retention durations and the maximum serialized response payload.
 
 ## Registration
@@ -63,6 +64,16 @@ HTTP idempotency uses one authoritative claim/outcome record. Completed response
 
 The default HTTP header parser accepts quoted Structured Field strings and supported legacy bare keys; `StrictHeaderValidation = true` accepts only quoted strings. Establish the intended tenant/domain execution context before acquiring coordination; domain-wide work must not inherit a request tenant. Run authentication and authorization before replay. See the [HTTP idempotency guide](../CoreEx.AspNetCore/Idempotency/README.md) for request identity and response handling.
 
+## Work state
+
+`AddRedisWorkProvider()` registers a singleton `RedisWorkProvider` as the `IWorkProvider` and a scoped `WorkOrchestrator` over the host-owned multiplexer; `AddInMemoryWorkProvider()` is the process-local alternative.
+
+```csharp
+builder.Services.AddRedisWorkProvider();
+```
+
+Each work item is one hash (state JSON, version and optional result data) keyed by a SHA-256 of its identifier under `CoreEx:work:v1:`. Create is insert-if-absent and each update/delete compares the version (the `WorkState.ETag`), so concurrent create/start have a single winner, finished work is never overwritten, and completion with result data is atomic. Unfinished records live for the remaining expiry plus `WorkOrchestrator.RetentionTimeSpan`; finished records for the retention. Result data defaults to a 512 KiB limit (`maxDataSize`). Work identifiers are global; they are not tenant-qualified by `ICacheKeyProvider`.
+
 ## Guarantees and limits
 
 Redis provides atomic decisions against the participating authoritative primary, not exactly-once business execution. Asynchronous failover, restoring an older snapshot, eviction, manual deletion, or retention expiry can erase claims or receipts and permit re-execution. Use persistence and a no-eviction policy for coordination data where operationally appropriate, bound Redis operation timeouts, and do not silently fall back to in-memory state.
@@ -80,7 +91,8 @@ The Redis key namespace is versioned and old HybridCache entries are not importe
 | Type | Description |
 |------|-------------|
 | **[`RedisCoordination`](./RedisCoordination.cs)** | Redis-backed implementation of `ISynchronizer` and `IIdempotencyStore`. |
-| **[`CoreExRedisExtensions`](./CoreExRedisExtensions.cs)** | Registers Redis coordination using the host-owned multiplexer. |
+| **[`RedisWorkProvider`](./RedisWorkProvider.cs)** | Redis-backed `IWorkProvider` with atomic create and compare-and-set transitions. |
+| **[`CoreExRedisExtensions`](./CoreExRedisExtensions.cs)** | Registers Redis coordination and the work provider using the host-owned multiplexer. |
 | **[`CoordinationOptions`](../CoreEx/Coordination/CoordinationOptions.cs)** | Lease, renewal, backend timeout and idempotency retention settings. |
 | **[`ISynchronizer`](../CoreEx/Coordination/ISynchronizer.cs)** | Reusable acquisition service for owned synchronization leases. |
 | **[`ISynchronizationLease`](../CoreEx/Coordination/ISynchronizationLease.cs)** | Owned acquisition with an ownership-loss token and async disposal. |
@@ -89,6 +101,7 @@ The Redis key namespace is versioned and old HybridCache entries are not importe
 ## Related namespaces
 
 - **[`CoreEx`](../CoreEx/README.md)** - Defines the coordination and idempotency contracts and the in-memory implementation.
+- **[`CoreEx.Hosting`](../CoreEx/Hosting/README.md)** - Defines `WorkOrchestrator` and `IWorkProvider`.
 - **[`CoreEx.AspNetCore.Idempotency`](../CoreEx.AspNetCore/Idempotency/README.md)** - Provides HTTP idempotency integration.
 - **[`CoreEx.Caching.FusionCache`](../CoreEx.Caching.FusionCache/README.md)** - Provides ordinary hybrid caching, independently of coordination.
 
