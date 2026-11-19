@@ -72,7 +72,7 @@ The default HTTP header parser accepts quoted Structured Field strings and suppo
 builder.Services.AddRedisWorkProvider();
 ```
 
-Each work item is one hash (state JSON, version and optional result data) keyed by a SHA-256 of its identifier under `CoreEx:work:v1:`. Create is insert-if-absent and each update/delete compares the version (the `WorkState.ETag`), so concurrent create/start have a single winner, finished work is never overwritten, and completion with result data is atomic. Unfinished records live for the remaining expiry plus `WorkOrchestrator.RetentionTimeSpan`; finished records for the retention. Result data defaults to a 512 KiB limit (`maxDataSize`). Work identifiers are global; they are not tenant-qualified by `ICacheKeyProvider`.
+Each work item is one hash (state JSON, incarnation, version and optional result data) keyed by a SHA-256 of its identifier under `CoreEx:work:v1:`. Create is insert-if-absent and each update/delete compares the incarnation and version (`WorkState.ETag`), so stale snapshots cannot change a recreated record. Concurrent create/start have a single winner, finished work is never overwritten, and completion with result data is atomic. Unfinished records live for the remaining expiry plus `WorkOrchestrator.RetentionTimeSpan`; finished records for the retention. Result data defaults to a 512 KiB limit (`maxDataSize`). Work identifiers are global; they are not tenant-qualified by `ICacheKeyProvider`.
 
 ## Guarantees and limits
 

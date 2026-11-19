@@ -3,7 +3,7 @@ namespace CoreEx.Redis;
 /// <summary>
 /// Provides a Redis-backed <see cref="IWorkProvider"/> with atomic create and optimistic-concurrency (compare-and-set) update semantics.
 /// </summary>
-/// <remarks>Each work record is a single Redis hash (state, version and optional data) written only via embedded Lua scripts so that the state and data are always updated atomically. All operations target the primary
+/// <remarks>Each work record is a single Redis hash (state, incarnation, version and optional data) written only via embedded Lua scripts so that the state and data are always updated atomically. All operations target the primary
 /// with a bounded acknowledgement wait. Redis must be configured so that these keys are not evicted (for example <c>maxmemory-policy noeviction</c>); asynchronous replication means a failover may lose a recent write.</remarks>
 public sealed class RedisWorkProvider : IWorkProvider
 {
@@ -73,12 +73,15 @@ public sealed class RedisWorkProvider : IWorkProvider
     public async Task<WorkState?> GetAsync(string id, CancellationToken cancellationToken)
     {
         var key = Key(id);
-        var values = await ExecuteAsync(db => db.HashGetAsync(key, ["s", "v"], CommandFlags.DemandMaster), cancellationToken).ConfigureAwait(false);
-        if (values[0].IsNull || values[1].IsNull)
+        var values = await ExecuteAsync(db => db.HashGetAsync(key, ["s", "i", "v"], CommandFlags.DemandMaster), cancellationToken).ConfigureAwait(false);
+        if (values[0].IsNull && values[1].IsNull && values[2].IsNull)
             return null;
 
+        if (values[0].IsNull || values[1].IsNull || values[2].IsNull)
+            throw new InvalidDataException("The persisted work record is missing its state, incarnation, or version.");
+
         var state = JsonSerializer.Deserialize<WorkState>((byte[])values[0]!, _jsonSerializerOptions) ?? throw new InvalidOperationException("The persisted work state could not be deserialized.");
-        state.ETag = values[1].ToString();
+        state.ETag = $"{values[1]}:{values[2]}";
         return state;
     }
 
@@ -86,11 +89,12 @@ public sealed class RedisWorkProvider : IWorkProvider
     public async Task<bool> CreateAsync(WorkState state, TimeSpan timeToLive, CancellationToken cancellationToken)
     {
         var key = Key(state.ThrowIfNull().Id!);
-        RedisValue[] args = [JsonSerializer.SerializeToUtf8Bytes(state, _jsonSerializerOptions), Milliseconds(timeToLive)];
+        var incarnation = Guid.NewGuid().ToString("N");
+        RedisValue[] args = [JsonSerializer.SerializeToUtf8Bytes(state, _jsonSerializerOptions), Milliseconds(timeToLive), incarnation];
         if ((int)await ExecuteAsync(db => db.ScriptEvaluateAsync(_create, [key], args, CommandFlags.DemandMaster), cancellationToken).ConfigureAwait(false) != 1)
             return false;
 
-        state.ETag = "1";
+        state.ETag = $"{incarnation}:1";
         return true;
     }
 
@@ -101,12 +105,13 @@ public sealed class RedisWorkProvider : IWorkProvider
         if (data is not null && _maxDataSize.HasValue && data.ToMemory().Length > _maxDataSize.Value)
             throw new ArgumentException($"The work result data size of {data.ToMemory().Length} bytes exceeds the maximum of {_maxDataSize.Value} bytes.", nameof(data));
 
-        RedisValue[] args = [state.ETag ?? string.Empty, JsonSerializer.SerializeToUtf8Bytes(state, _jsonSerializerOptions), Milliseconds(timeToLive), data is null ? "keep" : "set", data?.ToArray() ?? []];
+        var expectedETag = state.ETag ?? string.Empty;
+        RedisValue[] args = [expectedETag, JsonSerializer.SerializeToUtf8Bytes(state, _jsonSerializerOptions), Milliseconds(timeToLive), data is null ? "keep" : "set", data?.ToArray() ?? []];
         var version = (long)await ExecuteAsync(db => db.ScriptEvaluateAsync(_update, [key], args, CommandFlags.DemandMaster), cancellationToken).ConfigureAwait(false);
         if (version <= 0)
             return false;
 
-        state.ETag = version.ToString(CultureInfo.InvariantCulture);
+        state.ETag = $"{expectedETag[..expectedETag.LastIndexOf(':')]}:{version.ToString(CultureInfo.InvariantCulture)}";
         return true;
     }
 

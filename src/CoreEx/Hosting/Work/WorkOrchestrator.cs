@@ -68,7 +68,7 @@ public class WorkOrchestrator(IWorkProvider provider, JsonSerializerOptions? jso
     /// <param name="id">The work identifier.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
     /// <returns>The <see cref="WorkState"/> where found; otherwise, <see langword="null"/>.</returns>
-    /// <remarks>Will automatically (and atomically) set the <see cref="WorkState.Status"/> to <see cref="WorkStatus.Expired"/> when the work is <i>not</i> <see cref="WorkStatus.Finished"/> and has expired (see <see cref="WorkState.Expiry"/>).</remarks>
+    /// <remarks>Will automatically (and atomically) set the <see cref="WorkState.Status"/> to <see cref="WorkStatus.Expired"/> when the work is <i>not</i> <see cref="WorkStatus.Finished"/> and has expired (see <see cref="WorkState.ExpiryOn"/>).</remarks>
     public Task<WorkState?> GetAsync(string id, CancellationToken cancellationToken = default) => _invoker.InvokeAsync(this, async (_, cancellationToken) =>
     {
         var result = await TransitionAsync(id, (_, _) => false, null, cancellationToken).ConfigureAwait(false);
@@ -99,8 +99,8 @@ public class WorkOrchestrator(IWorkProvider provider, JsonSerializerOptions? jso
             Id = args.Id,
             TypeName = args.TypeName.ThrowIfNullOrEmpty(),
             Status = WorkStatus.Created,
-            Created = now,
-            Expiry = now.Add(args.Expiry ?? ExpiryTimeSpan),
+            CreatedOn = now,
+            ExpiryOn = now.Add(args.Expiry ?? ExpiryTimeSpan),
             User = args.User ?? (ExecutionContext.TryGetCurrent(out var ec) ? ec.User : null),
             TraceParent = traceParent,
             TraceState = traceState
@@ -129,7 +129,7 @@ public class WorkOrchestrator(IWorkProvider provider, JsonSerializerOptions? jso
             return Result.ConflictError($"Work '{id}' cannot be started due to current status of '{ws.Status}'.");
 
         ws.Status = WorkStatus.Started;
-        ws.Started = now;
+        ws.StartedOn = now;
         return true;
     }, null, cancellationToken), cancellationToken);
 
@@ -153,7 +153,7 @@ public class WorkOrchestrator(IWorkProvider provider, JsonSerializerOptions? jso
                 return Result.ConflictError($"Work '{id}' cannot be set to indeterminate due to current status of '{ws.Status}'.");
 
             ws.Status = WorkStatus.Indeterminate;
-            ws.Indeterminate = now;
+            ws.IndeterminateOn = now;
             ws.Reason = reason;
             return true;
         }, null, cancellationToken), cancellationToken);
@@ -187,7 +187,7 @@ public class WorkOrchestrator(IWorkProvider provider, JsonSerializerOptions? jso
             return Result.ConflictError($"Work '{id}' cannot be completed due to current status of '{ws.Status}'.");
 
         ws.Status = WorkStatus.Completed;
-        ws.Finished = now;
+        ws.FinishedOn = now;
         ws.Reason = null;
         return true;
     }, data, cancellationToken), cancellationToken);
@@ -212,7 +212,7 @@ public class WorkOrchestrator(IWorkProvider provider, JsonSerializerOptions? jso
                 return Result.ConflictError($"Work '{id}' cannot be failed due to current status of '{ws.Status}'.");
 
             ws.Status = WorkStatus.Failed;
-            ws.Finished = now;
+            ws.FinishedOn = now;
             ws.Reason = reason;
             return true;
         }, null, cancellationToken), cancellationToken);
@@ -265,7 +265,7 @@ public class WorkOrchestrator(IWorkProvider provider, JsonSerializerOptions? jso
                 return false;
 
             ws.Status = status;
-            ws.Finished = now;
+            ws.FinishedOn = now;
             ws.Reason = reason;
             return true;
         }, null, cancellationToken), cancellationToken);
@@ -373,10 +373,10 @@ public class WorkOrchestrator(IWorkProvider provider, JsonSerializerOptions? jso
 
             var now = Runtime.UtcNow;
             var expired = false;
-            if (!IsFinished(ws.Status) && now >= ws.Expiry)
+            if (!IsFinished(ws.Status) && now >= ws.ExpiryOn)
             {
                 ws.Status = WorkStatus.Expired;
-                ws.Finished = now;
+                ws.FinishedOn = now;
                 ws.Reason = ExpiredReason;
                 expired = true;
             }
@@ -403,7 +403,7 @@ public class WorkOrchestrator(IWorkProvider provider, JsonSerializerOptions? jso
     /// <summary>
     /// Gets the record time-to-live: the remaining expiry plus retention whilst executing; otherwise, the retention.
     /// </summary>
-    private TimeSpan GetTimeToLive(WorkState ws, DateTimeOffset now) => IsFinished(ws.Status) || ws.Expiry <= now ? RetentionTimeSpan : ws.Expiry - now + RetentionTimeSpan;
+    private TimeSpan GetTimeToLive(WorkState ws, DateTimeOffset now) => IsFinished(ws.Status) || ws.ExpiryOn <= now ? RetentionTimeSpan : ws.ExpiryOn - now + RetentionTimeSpan;
 
     /// <summary>
     /// Indicates whether the <paramref name="owner"/> and <paramref name="current"/> users represent the same identity (type and identifier; otherwise, user name).
@@ -420,7 +420,7 @@ public class WorkOrchestrator(IWorkProvider provider, JsonSerializerOptions? jso
     /// <param name="id">The work identifier.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
     /// <returns>The <see cref="WorkState"/> where found; otherwise, <see langword="null"/>.</returns>
-    /// <remarks>Will automatically set the <see cref="WorkState.Status"/> to <see cref="WorkStatus.Expired"/> when the work is <i>not</i> <see cref="WorkStatus.Finished"/> and has expired (see <see cref="WorkState.Expiry"/>).
+    /// <remarks>Will automatically set the <see cref="WorkState.Status"/> to <see cref="WorkStatus.Expired"/> when the work is <i>not</i> <see cref="WorkStatus.Finished"/> and has expired (see <see cref="WorkState.ExpiryOn"/>).
     /// <para>Additionally, the <paramref name="typeName"/> must equal the <see cref="WorkState.TypeName"/>; and, if <see cref="CheckUser"/> is <see langword="true"/> then the <see cref="WorkState.User"/> must represent the same identity
     /// (<see cref="AuthenticationUser.Type"/> and <see cref="AuthenticationUser.Id"/>; otherwise, <see cref="AuthenticationUser.UserName"/>) as the <see cref="ExecutionContext.User"/> ensuring that the initiating user can only interact
     /// with their <see cref="WorkState"/>. Where the aforementioned does not equal then a <see langword="null"/> will be returned. Where there is no current <see cref="ExecutionContext.User"/> (i.e. a system or background

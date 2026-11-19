@@ -81,4 +81,38 @@ public class RedisWorkProviderTests
         await Task.Delay(400);
         (await p.GetAsync(id, default)).Should().BeNull();
     }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public async Task RecreatedRecord_RejectsPreviousIncarnation(bool expire)
+    {
+        var first = new CoreEx.Redis.RedisWorkProvider(_first);
+        var second = new CoreEx.Redis.RedisWorkProvider(_second);
+        var id = Guid.NewGuid().ToString();
+        var ttl = TimeSpan.FromMinutes(1);
+        var original = new WorkState { Id = id, TypeName = "T" };
+        (await first.CreateAsync(original, ttl, default)).Should().BeTrue();
+        (await first.UpdateAsync(original, null, expire ? TimeSpan.FromSeconds(1) : ttl, default)).Should().BeTrue();
+        var stale = (await second.GetAsync(id, default))!;
+
+        if (expire)
+        {
+            for (var attempt = 0; attempt < 50 && await first.GetAsync(id, default) is not null; attempt++)
+                await Task.Delay(100);
+
+            (await first.GetAsync(id, default)).Should().BeNull();
+        }
+        else
+            (await first.DeleteAsync(original, default)).Should().BeTrue();
+
+        var replacement = new WorkState { Id = id, TypeName = "T" };
+        (await second.CreateAsync(replacement, ttl, default)).Should().BeTrue();
+        (await second.UpdateAsync(replacement, BinaryData.FromString("replacement"), ttl, default)).Should().BeTrue();
+        replacement.ETag.Should().NotBe(stale.ETag);
+        (await first.UpdateAsync(stale, BinaryData.FromString("stale"), ttl, default)).Should().BeFalse();
+        (await first.DeleteAsync(stale, default)).Should().BeFalse();
+        (await first.GetAsync(id, default))!.ETag.Should().Be(replacement.ETag);
+        (await first.GetDataAsync(id, default))!.ToString().Should().Be("replacement");
+        (await second.DeleteAsync(replacement, default)).Should().BeTrue();
+    }
 }

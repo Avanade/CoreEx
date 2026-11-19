@@ -45,28 +45,33 @@ public class WorkState : IIdentifier<string?>, IETag
     /// <summary>
     /// Gets or sets the <see cref="WorkStatus.Created"/> <see cref="DateTimeOffset"/>.
     /// </summary>
-    public DateTimeOffset Created { get; set; }
+    [JsonPropertyName("created")]
+    public DateTimeOffset CreatedOn { get; set; }
 
     /// <summary>
     /// Gets or sets the <see cref="WorkOrchestrator"/> expiry <see cref="DateTimeOffset"/>.
     /// </summary>
     /// <remarks>Where the work has not <see cref="WorkStatus.Finished"/> by the expiry it will be automatically <see cref="WorkStatus.Expired"/>.</remarks>
-    public DateTimeOffset Expiry { get; set; }
+    [JsonPropertyName("expiry")]
+    public DateTimeOffset ExpiryOn { get; set; }
 
     /// <summary>
     /// Gets or sets the <see cref="WorkStatus.Started"/> <see cref="DateTimeOffset"/>.
     /// </summary>
-    public DateTimeOffset? Started { get; set; }
+    [JsonPropertyName("started")]
+    public DateTimeOffset? StartedOn { get; set; }
 
     /// <summary>
     /// Gets or sets the <see cref="WorkStatus.Indeterminate"/> <see cref="DateTimeOffset"/>.
     /// </summary>
-    public DateTimeOffset? Indeterminate { get; set; }
+    [JsonPropertyName("indeterminate")]
+    public DateTimeOffset? IndeterminateOn { get; set; }
 
     /// <summary>
     /// Gets or sets the <see cref="WorkStatus.Finished"/> <see cref="DateTimeOffset"/>.
     /// </summary>
-    public DateTimeOffset? Finished { get; set; }
+    [JsonPropertyName("finished")]
+    public DateTimeOffset? FinishedOn { get; set; }
 
     /// <summary>
     /// Gets or sets the <see cref="WorkStatus.Failed"/> or <see cref="WorkStatus.Expired"/> reason.

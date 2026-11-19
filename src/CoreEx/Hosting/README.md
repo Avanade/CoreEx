@@ -34,7 +34,7 @@ The hosted service base classes (`TimerHostedServiceBase`, `SynchronizedTimerHos
 | **[`HostedServiceManager`](./HostedServiceManager.cs)** | Manages registration of multiple hosted services and provides aggregated status and health-check access. |
 | **[`HostSettings`](./HostSettings.cs)** | Standardized host configuration: `SolutionName`, `DomainName`, `EnvironmentName`, `Source` URI. Created via `HostSettings.Create(IConfiguration, ...)`. |
 | **[`WorkOrchestrator`](./Work/WorkOrchestrator.cs)** | Tracks the lifecycle of long-running work items: create, start, mark indeterminate/complete/failed/canceled, with automatic expiry and retention. |
-| **[`WorkState`](./Work/WorkState.cs)** | Persisted record for a single work item: `Id`, `TypeName`, `Key`, `WorkStatus`, `Result`, `Reason`, trace parent/state, and timestamps. |
+| **[`WorkState`](./Work/WorkState.cs)** | Persisted record for a single work item: `Id`, `TypeName`, `Key`, `Status`, `User`, `Reason`, trace context, `CreatedOn`, `ExpiryOn`, `StartedOn`, `IndeterminateOn`, `FinishedOn`, and `ETag`. Result data is stored separately by `IWorkProvider`. |
 | **[`InMemoryWorkProvider`](./Work/InMemoryWorkProvider.cs)** | Process-local `IWorkProvider` with atomic create and ETag compare-and-set update semantics. |
 | [`ISynchronizer`](../Coordination/ISynchronizer.cs) | Acquires an owned lease for a logical coordination key; provider scope and failure guarantees vary. |
 | [`ISynchronizationLease`](../Coordination/ISynchronizationLease.cs) | Owned, renewable coordination lease returned by `ISynchronizer`; disposal releases it, and lease loss cannot stop uncooperative work. |

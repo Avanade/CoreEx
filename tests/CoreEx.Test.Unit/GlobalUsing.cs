@@ -4,6 +4,7 @@ global using CoreEx.Entities;
 global using CoreEx.Hosting;
 global using CoreEx.Http;
 global using CoreEx.Invokers;
+global using CoreEx.Json;
 global using CoreEx.Localization;
 global using CoreEx.Metadata;
 global using CoreEx.Results.Abstractions;

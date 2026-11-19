@@ -50,4 +50,31 @@ public class InMemoryWorkProviderTests
         (await p.GetAsync("abc", default)).Should().BeNull();
         (await p.CreateAsync(new WorkState { Id = "abc", TypeName = "T" }, TimeSpan.FromMinutes(1), default)).Should().BeTrue();
     }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public async Task RecreatedRecord_RejectsPreviousIncarnation(bool expire)
+    {
+        var time = new TestTimeProvider();
+        var provider = new InMemoryWorkProvider(timeProvider: time);
+        var original = new WorkState { Id = "abc", TypeName = "T" };
+        var ttl = TimeSpan.FromMinutes(1);
+        (await provider.CreateAsync(original, ttl, default)).Should().BeTrue();
+        (await provider.UpdateAsync(original, null, ttl, default)).Should().BeTrue();
+        var stale = (await provider.GetAsync("abc", default))!;
+
+        if (expire)
+            time.Now = time.Now.AddMinutes(2);
+        else
+            (await provider.DeleteAsync(original, default)).Should().BeTrue();
+
+        var replacement = new WorkState { Id = "abc", TypeName = "T" };
+        (await provider.CreateAsync(replacement, ttl, default)).Should().BeTrue();
+        (await provider.UpdateAsync(replacement, BinaryData.FromString("replacement"), ttl, default)).Should().BeTrue();
+        replacement.ETag.Should().NotBe(stale.ETag);
+        (await provider.UpdateAsync(stale, BinaryData.FromString("stale"), ttl, default)).Should().BeFalse();
+        (await provider.DeleteAsync(stale, default)).Should().BeFalse();
+        (await provider.GetAsync("abc", default))!.ETag.Should().Be(replacement.ETag);
+        (await provider.GetDataAsync("abc", default))!.ToString().Should().Be("replacement");
+    }
 }

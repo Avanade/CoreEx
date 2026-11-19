@@ -40,8 +40,9 @@ public sealed class InMemoryWorkProvider(JsonSerializerOptions? jsonSerializerOp
             if (TryGet(id, out _))
                 return Task.FromResult(false);
 
-            _entries[id] = new Entry { State = json, Version = 1, Expires = expires };
-            state.ETag = "1";
+            var entry = new Entry { State = json, Incarnation = Guid.NewGuid().ToString("N"), Version = 1, Expires = expires };
+            _entries[id] = entry;
+            state.ETag = ETag(entry);
             return Task.FromResult(true);
         }
     }
@@ -66,7 +67,7 @@ public sealed class InMemoryWorkProvider(JsonSerializerOptions? jsonSerializerOp
             if (bytes is not null)
                 entry.Data = bytes;
 
-            state.ETag = entry.Version.ToString(CultureInfo.InvariantCulture);
+            state.ETag = ETag(entry);
             return Task.FromResult(true);
         }
     }
@@ -120,7 +121,12 @@ public sealed class InMemoryWorkProvider(JsonSerializerOptions? jsonSerializerOp
     /// <summary>
     /// Indicates whether the <paramref name="etag"/> matches the <paramref name="entry"/> version.
     /// </summary>
-    private static bool IsMatch(Entry entry, string? etag) => etag is not null && etag == entry.Version.ToString(CultureInfo.InvariantCulture);
+    private static bool IsMatch(Entry entry, string? etag) => etag is not null && etag == ETag(entry);
+
+    /// <summary>
+    /// Combines the record incarnation with its current version.
+    /// </summary>
+    private static string ETag(Entry entry) => $"{entry.Incarnation}:{entry.Version.ToString(CultureInfo.InvariantCulture)}";
 
     /// <summary>
     /// Calculates the absolute expiry from the <paramref name="timeToLive"/>.
@@ -138,7 +144,7 @@ public sealed class InMemoryWorkProvider(JsonSerializerOptions? jsonSerializerOp
     private WorkState Deserialize(Entry entry)
     {
         var state = JsonSerializer.Deserialize<WorkState>(entry.State, _jsonSerializerOptions) ?? throw new InvalidOperationException("The persisted work state could not be deserialized.");
-        state.ETag = entry.Version.ToString(CultureInfo.InvariantCulture);
+        state.ETag = ETag(entry);
         return state;
     }
 
@@ -149,6 +155,9 @@ public sealed class InMemoryWorkProvider(JsonSerializerOptions? jsonSerializerOp
     {
         /// <summary>Gets or sets the serialized state.</summary>
         public required byte[] State { get; set; }
+
+        /// <summary>Gets the unique record incarnation.</summary>
+        public required string Incarnation { get; init; }
 
         /// <summary>Gets or sets the version.</summary>
         public long Version { get; set; }

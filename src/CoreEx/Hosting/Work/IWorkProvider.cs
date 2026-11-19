@@ -7,6 +7,7 @@ namespace CoreEx.Hosting.Work;
 /// <list type="bullet">
 /// <item><see cref="CreateAsync"/> is an atomic insert-if-absent; exactly one concurrent caller for the same identifier succeeds.</item>
 /// <item><see cref="UpdateAsync"/> and <see cref="DeleteAsync"/> only succeed where the <see cref="WorkState.ETag"/> matches the currently persisted version; the state and any supplied data are written atomically.</item>
+/// <item>A recreated record has a distinct <see cref="WorkState.ETag"/> from every version of its previous incarnation.</item>
 /// <item><see cref="GetAsync"/> returns an independent copy (mutating it has no effect until updated) with the <see cref="WorkState.ETag"/> set.</item>
 /// <item>Records are retained for at least the requested time-to-live; a cache that may evict entries early is <b>not</b> a suitable store.</item>
 /// </list>
