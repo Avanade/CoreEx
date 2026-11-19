@@ -46,7 +46,7 @@ return await webApi.FunctionWithIdempotencyAsync(request,
     isRequired: true, cancellationToken: cancellationToken).ConfigureAwait(false);
 ```
 
-The configured provider/cache must already be registered. The helper eagerly renders and returns `EmptyResult`; never separately execute the returned result to recover a body for tests. Replay is a best-effort retry safeguard, not exactly-once execution.
+The configured provider and store must already be registered. Use Redis-backed coordination for multi-process apps and `AddInMemoryCoordination()` only for tests or deliberately single-instance hosts. The helper eagerly renders and returns `EmptyResult`; never separately execute the returned result to recover a body for tests. Completed responses replay, but an outcome that becomes unknown after application entry remains indeterminate; neither backend guarantees exactly-once business execution.
 
 ## Direct Service Bus publishing (no outbox)
 

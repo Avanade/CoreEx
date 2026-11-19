@@ -18,7 +18,7 @@ For HTTP adapters with a pre-processing exception boundary, `webApi.CreateErrorR
 - 📄 **RFC 7807 ProblemDetails**: All `IExtendedException` types (`ValidationException`, `NotFoundException`, `ConcurrencyException`, etc.) are translated to typed `ProblemDetails` responses with appropriate HTTP status codes and optional field-level `errors` extension.
 - 🔁 **JSON Merge Patch (PATCH)**: `WebApi.PatchAsync` reads the request body as a merge-patch document, deserializes the current entity via a provided function, applies the patch, and re-validates before saving.
 - ⚙️ **ExecutionContext middleware**: `ExecutionContextMiddleware` resolves the DI-scoped `ExecutionContext` per request, wires `ServiceProvider`, and propagates info/warning messages to response headers on completion.
-- 🛡️ **Idempotency key middleware**: `IdempotencyKeyMiddleware` + `[IdempotencyKey]` attribute intercepts `POST` operations, checks a pluggable `IIdempotencyProvider` for a prior response, and either replays the cached result or executes and caches the new one.
+- 🛡️ **Idempotency key middleware**: `IdempotencyKeyMiddleware` + `[IdempotencyKey]` attribute intercepts `POST` operations and uses a pluggable `IIdempotencyProvider` backed by an explicit `IIdempotencyStore`.
 - ♥ **Health check endpoints**: `HealthCheckOptions` configures `/health/live`, `/health/startup`, `/health/ready`, and `/health/detail` endpoints with tag-based filtering, JSON detail output, and per-endpoint enable/disable.
 - 🏷️ **MVC attributes**: `[PagingAttribute]`, `[QueryAttribute]`, `[AcceptsAttribute]`, `[ProducesNotFoundProblem]`, and `[IdempotencyKey]` enrich OpenAPI/NSwag output without cluttering action signatures.
 - 🔍 **OpenAPI extensions**: `OpenApiOptions` and `AspNetCoreExtensions` wire NSwag operation processors that read CoreEx MVC attributes and add paging/query parameters, idempotency-key headers, and standard error response types to the generated spec.
@@ -33,7 +33,7 @@ For HTTP adapters with a pre-processing exception boundary, `webApi.CreateErrorR
 | **[`ExecutionContextMiddleware`](./ExecutionContextMiddleware.cs)** | Per-request `ExecutionContext` scoping, optional custom configuration, and info/warning message response header propagation. |
 | **[`ExceptionHandlingMiddleware`](./ExceptionHandlingMiddleware.cs)** | `UseExceptionHandler` callback that converts unhandled exceptions to `ProblemDetails` using the ambient `WebApi` instance. |
 | **[`IdempotencyKeyMiddleware`](./Idempotency/IdempotencyKeyMiddleware.cs)** | Middleware that checks `[IdempotencyKey]`-marked endpoints and delegates to `IIdempotencyProvider` for replay/cache. |
-| **[`HybridCacheIdempotencyProvider`](./Idempotency/HybridCacheIdempotencyProvider.cs)** | `IIdempotencyProvider` backed by `IHybridCache`; stores serialized responses keyed by `Idempotency-Key` with configurable expiry. |
+| [`IIdempotencyProvider`](./Idempotency/IIdempotencyProvider.cs) | HTTP idempotency integration boundary; register with `AddIdempotencyProvider()` and provide a separate coordination store. |
 | **[`HealthCheckOptions`](./HealthChecks/HealthCheckOptions.cs)** | Configures live/startup/ready/detail health check endpoint paths, tag filters, and JSON detail writer; registered via `MapCoreExHealthChecks()`. |
 | **[`WebApiOptions`](./WebApiOptions.cs)** | Per-request options controlling response status code, `ETag`, location header, paging, and alternate status code behavior. |
 | **[`OpenApiOptions`](./OpenApiOptions.cs)** | NSwag/OpenAPI document-processor and operation-processor registration for CoreEx paging, query, accepts, and idempotency attributes. |
@@ -46,7 +46,7 @@ For HTTP adapters with a pre-processing exception boundary, `webApi.CreateErrorR
 | [**`Abstractions`**](./Abstractions/README.md) | Abstract `WebApi<TResult>` base, `WebApiInvoker<TResult>`, `WebApiResult<TResult>`, `WebApiPagingResult`, and request/response option interfaces. |
 | [**`HealthChecks`**](./HealthChecks/README.md) | `HealthCheckOptions` and endpoint registration extensions for live/startup/ready/detail health probes. |
 | [**`Http`**](./Http/README.md) | Minimal API `WebApi` (`IResult`-returning) and its `WebApiInvoker`. |
-| [**`Idempotency`**](./Idempotency/README.md) | `IIdempotencyProvider`, `IdempotencyKeyMiddleware`, `HybridCacheIdempotencyProvider`, and `IdempotencyStatus`. |
+| [**`Idempotency`**](./Idempotency/README.md) | `IIdempotencyProvider`, `IdempotencyKeyMiddleware`, and explicit store registration and outcome policy. |
 | [**`Mvc`**](./Mvc/README.md) | MVC `WebApi` (`IActionResult`-returning), MVC attributes (`[PagingAttribute]`, `[QueryAttribute]`, `[IdempotencyKey]`, `[Accepts]`, `[ProducesNotFoundProblem]`), and `WebApiInvoker`. |
 
 ## Specialized JSON representations

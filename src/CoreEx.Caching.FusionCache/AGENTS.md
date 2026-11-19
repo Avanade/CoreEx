@@ -20,8 +20,7 @@ builder.Services.AddFusionCache()
 
 builder.Services
     .AddFusionHybridCache()           // registers FusionHybridCache as IHybridCache
-    .AddDefaultCacheKeyProvider()     // registers ICacheKeyProvider
-    .AddHybridCacheIdempotencyProvider(); // registers IIdempotencyProvider backed by IHybridCache
+    .AddDefaultCacheKeyProvider();    // registers ICacheKeyProvider
 ```
 
 ## Usage in Application Code
@@ -52,4 +51,5 @@ For a `Result<T>`-returning factory (e.g. a real-time adapter call) use `GetOrCr
 - [CoreEx](../CoreEx/README.md) — defines `IHybridCache` and `HybridCacheEntryOptions`.
 - [FusionCache](https://github.com/ZiggyCreatures/FusionCache) — underlying caching library.
 - [Hosts layer](../../samples/docs/hosts-layer.md) — `AddFusionCache()` / `AddFusionHybridCache()` registration in real API and subscriber hosts.
-- [Infrastructure layer](../../samples/docs/infrastructure-layer.md) — Redis backplane configuration and idempotency provider wiring.
+- [Infrastructure layer](../../samples/docs/infrastructure-layer.md) — Redis backplane configuration.
+- [CoreEx.Redis](../CoreEx.Redis/README.md) — distributed synchronization and idempotency storage, separate from ordinary caching.

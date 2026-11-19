@@ -188,8 +188,10 @@ builder.Services.AddFusionCache()
     .WithSystemTextJsonSerializer(JsonDefaults.SerializerOptions);
 builder.Services
     .AddFusionHybridCache()
-    .AddDefaultCacheKeyProvider()
-    .AddHybridCacheIdempotencyProvider();
+    .AddDefaultCacheKeyProvider();
+builder.Services
+    .AddRedisCoordination()
+    .AddIdempotencyProvider();
 
 // 3. Infrastructure — database, relational EF or Cosmos, and (only when outbox-enabled) the default outbox publisher for transactional writes inside subscribers.
 // SQL Server variant:

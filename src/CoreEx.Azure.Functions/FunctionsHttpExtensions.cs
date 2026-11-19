@@ -32,11 +32,12 @@ public static class FunctionsHttpExtensions
             await provider.OnInvokeAsync(new IdempotencyKeyAttribute(isRequired), request.HttpContext, async context =>
             {
                 invoked = true;
-                cancellationToken.ThrowIfCancellationRequested();
-                var result = await function(cancellationToken).ConfigureAwait(false);
-                cancellationToken.ThrowIfCancellationRequested();
+                var operationToken = context.RequestAborted;
+                operationToken.ThrowIfCancellationRequested();
+                var result = await function(operationToken).ConfigureAwait(false);
+                operationToken.ThrowIfCancellationRequested();
                 await result.ExecuteResultAsync(new ActionContext(context, context.GetRouteData(), new ActionDescriptor())).ConfigureAwait(false);
-            }).ConfigureAwait(false);
+            }, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex) when (!invoked && !request.HttpContext.Response.HasStarted)
         {

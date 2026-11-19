@@ -1,11 +1,3 @@
-using CoreEx.Hosting;
-using CoreEx.Hosting.Synchronization;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
-using System.Diagnostics;
-
 namespace CoreEx.Test.Unit.Hosting;
 
 [TestFixture]
@@ -33,7 +25,7 @@ public class SynchronizedTimerHostedServiceBaseTests
     }
 
     [Test]
-    public async Task SynchronizedExecuteAsync_IsInvoked_WhenEnterSucceeds()
+    public async Task SynchronizedExecuteAsync_IsInvoked_WhenLeaseIsAcquired()
     {
         var synchronizer = new TestSynchronizer { ShouldEnterSucceed = true };
         using var sp = CreateServiceProvider(synchronizer);
@@ -53,7 +45,7 @@ public class SynchronizedTimerHostedServiceBaseTests
     }
 
     [Test]
-    public async Task SynchronizedExecuteAsync_NotInvoked_WhenEnterFails()
+    public async Task SynchronizedExecuteAsync_NotInvoked_OnLeaseContention()
     {
         var synchronizer = new TestSynchronizer { ShouldEnterSucceed = false };
         using var sp = CreateServiceProvider(synchronizer);
@@ -74,7 +66,7 @@ public class SynchronizedTimerHostedServiceBaseTests
     }
 
     [Test]
-    public async Task ExitAsync_IsCalled_EvenWhenSynchronizedExecuteThrows()
+    public async Task LeaseIsDisposed_EvenWhenSynchronizedExecuteThrows()
     {
         var synchronizer = new TestSynchronizer { ShouldEnterSucceed = true };
         using var sp = CreateServiceProvider(synchronizer);
@@ -118,7 +110,7 @@ public class SynchronizedTimerHostedServiceBaseTests
     }
 
     [Test]
-    public async Task SynchronizerName_WhenSet_IsPassedToEnterAndExit()
+    public async Task SynchronizerName_WhenSet_IsCapturedByLease()
     {
         var synchronizer = new TestSynchronizer { ShouldEnterSucceed = true };
         using var sp = CreateServiceProvider(synchronizer);
@@ -143,7 +135,7 @@ public class SynchronizedTimerHostedServiceBaseTests
     }
 
     [Test]
-    public async Task EnterAndExit_UseSelfTypeAsLockType()
+    public async Task LeaseKey_UsesSelfType()
     {
         var synchronizer = new TestSynchronizer { ShouldEnterSucceed = true };
         using var sp = CreateServiceProvider(synchronizer);
@@ -162,12 +154,39 @@ public class SynchronizedTimerHostedServiceBaseTests
         }
     }
 
+    [Test]
+    public async Task OwnershipLoss_CancelsProtectedExecution_AndDisposesLease()
+    {
+        using var loss = new CancellationTokenSource();
+        var synchronizer = new TestSynchronizer { ShouldEnterSucceed = true, OwnershipToken = loss.Token };
+        using var sp = CreateServiceProvider(synchronizer);
+        var svc = new TestSynchronizedTimerService(sp, NullLogger.Instance)
+        {
+            Interval = TimeSpan.FromMilliseconds(20),
+            FirstInterval = TimeSpan.FromMilliseconds(5),
+            WaitForCancellation = true
+        };
+        await svc.StartAsync(CancellationToken.None);
+        try
+        {
+            await WaitUntilAsync(() => svc.ExecuteCount > 0, TimeSpan.FromSeconds(5));
+            loss.Cancel();
+            await WaitUntilAsync(() => svc.CancellationObserved && synchronizer.ExitCount > 0, TimeSpan.FromSeconds(5));
+        }
+        finally
+        {
+            await svc.StopAsync(CancellationToken.None);
+        }
+    }
+
     private class TestSynchronizer : ISynchronizer
     {
         private int _enterCount;
         private int _exitCount;
 
         public bool ShouldEnterSucceed { get; set; }
+
+        public CancellationToken OwnershipToken { get; set; }
 
         public int EnterCount => _enterCount;
 
@@ -181,34 +200,45 @@ public class SynchronizedTimerHostedServiceBaseTests
 
         public Type? LastExitType { get; private set; }
 
-        public Task<bool> EnterAsync<T>(string? name = null, CancellationToken cancellationToken = default)
+        public Task<ISynchronizationLease?> TryAcquireAsync(string key, CancellationToken cancellationToken = default)
         {
-            LastEnterName = name;
-            LastEnterType = typeof(T);
+            var components = System.Text.Json.JsonSerializer.Deserialize<string?[]>(key)!;
+            LastEnterName = components[1];
+            LastEnterType = typeof(TestSynchronizedTimerService).Assembly.GetType(components[0] ?? throw new InvalidOperationException("Missing lease type."));
             Interlocked.Increment(ref _enterCount);
-            return Task.FromResult(ShouldEnterSucceed);
+            return Task.FromResult<ISynchronizationLease?>(ShouldEnterSucceed ? new TestLease(this) : null);
         }
 
-        public Task ExitAsync<T>(string? name = null, CancellationToken cancellationToken = default)
+        public ValueTask ExitAsync()
         {
             // Set the values before incrementing the count, as tests poll the count and then read the values.
-            LastExitName = name;
-            LastExitType = typeof(T);
+            LastExitName = LastEnterName;
+            LastExitType = LastEnterType;
             Interlocked.Increment(ref _exitCount);
-            return Task.CompletedTask;
+            return ValueTask.CompletedTask;
         }
 
-        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+        private sealed class TestLease(TestSynchronizer owner) : ISynchronizationLease
+        {
+            public CancellationToken OwnershipLost => owner.OwnershipToken;
+
+            public ValueTask DisposeAsync() => owner.ExitAsync();
+        }
     }
 
     private class TestSynchronizedTimerService(IServiceProvider serviceProvider, ILogger logger)
         : SynchronizedTimerHostedServiceBase<TestSynchronizer, TestSynchronizedTimerService>(serviceProvider, logger)
     {
         private int _executeCount;
+        private int _cancellationObserved;
 
         public int ExecuteCount => _executeCount;
 
         public bool ThrowOnExecute { get; set; }
+
+        public bool WaitForCancellation { get; set; }
+
+        public bool CancellationObserved => Volatile.Read(ref _cancellationObserved) != 0;
 
         public string? SynchronizerNameOverride
         {
@@ -216,14 +246,27 @@ public class SynchronizedTimerHostedServiceBaseTests
             set => SynchronizerName = value;
         }
 
-        protected override Task<bool> SynchronizedExecuteAsync(ExecutionContext executionContext, CancellationToken cancellationToken)
+        protected override async Task<bool> SynchronizedExecuteAsync(ExecutionContext executionContext, CancellationToken cancellationToken)
         {
             Interlocked.Increment(ref _executeCount);
 
             if (ThrowOnExecute)
                 throw new InvalidOperationException("Test failure.");
 
-            return Task.FromResult(false);
+            if (WaitForCancellation)
+            {
+                try
+                {
+                    await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+                }
+                catch (OperationCanceledException)
+                {
+                    Interlocked.Exchange(ref _cancellationObserved, 1);
+                    throw;
+                }
+            }
+
+            return false;
         }
     }
 }

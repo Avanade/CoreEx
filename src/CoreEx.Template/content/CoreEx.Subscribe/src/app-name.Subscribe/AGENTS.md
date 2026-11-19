@@ -69,7 +69,7 @@ When this host publishes to multiple session-enabled destinations, set any desti
 
 ## Caching
 
-The subscriber wires FusionCache with both in-memory (L1) and Redis distributed (L2) backing -- consistent with the API host -- so reference data and idempotency checks are shared across instances.
+The subscriber wires FusionCache with both in-memory (L1) and Redis distributed (L2) backing for ordinary cache and reference-data use. Redis coordination is separate: `AddRedisCoordination()` stores synchronization and idempotency state across instances, while `AddIdempotencyProvider()` supplies the HTTP integration. Preserve the configured `ICacheKeyProvider` for domain/tenant scope.
 
 ---
 
@@ -106,6 +106,7 @@ The subscriber wires FusionCache with both in-memory (L1) and Redis distributed 
 <!-- #endif -->
 | `CoreEx.Events` | `SubscribedBase`, `SubscribedBase<TValue>`, `[Subscribe]` |
 | `CoreEx.Caching.FusionCache` | FusionCache `IHybridCache` integration |
+| `CoreEx.Redis` | Redis-backed synchronization and idempotency storage |
 <!-- #if implement-sqlserver -->
 | `CoreEx.Database.SqlServer` | SQL Server outbox for outbound events |
 <!-- #endif -->
@@ -134,6 +135,7 @@ The subscriber wires FusionCache with both in-memory (L1) and Redis distributed 
 <!-- #endif -->
 - `.github/docs/coreex/agents/CoreEx.Events.md` -- event type system and subscriber contracts
 - `.github/docs/coreex/agents/CoreEx.Caching.FusionCache.md` -- caching
+- `.github/docs/coreex/agents/CoreEx.Redis.md` -- coordination and idempotency guarantees
 <!-- #if refdata-enabled -->
 - `.github/docs/coreex/agents/CoreEx.RefData.md` -- reference data patterns
 <!-- #endif -->

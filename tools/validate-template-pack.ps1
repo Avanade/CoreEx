@@ -171,6 +171,7 @@ $testScenarios = @(
                 ".github/skills/coreex-functions/references/patterns.md"
                 ".github/docs/coreex/agents/CoreEx.Azure.Functions.md"
                 ".github/docs/coreex/agents/CoreEx.Azure.Storage.Blobs.md"
+                ".github/docs/coreex/agents/CoreEx.Redis.md"
                 ".claude/commands/coreex-functions.md"
                 ".github/agents/coreex-expert.agent.md"
                 ".github/skills/coreex-bootstrap/SKILL.md"
@@ -227,6 +228,7 @@ $testScenarios = @(
                 ".github/skills/coreex-functions/references/patterns.md"        = "SnapshotHttpResponse"
                 ".github/docs/coreex/agents/CoreEx.Azure.Functions.md"          = "AutoCompleteMessages = false"
                 ".github/docs/coreex/agents/CoreEx.Azure.Storage.Blobs.md"      = "BlobReadSource.CreateAsync"
+                ".github/docs/coreex/agents/CoreEx.Redis.md"                    = "AddRedisCoordination"
                 ".github/instructions/coreex-files.instructions.md"            = 'applyTo: "**/*-file.yaml;**/Files/**/*.cs;!**/Files/**/*.g.cs"'
                 ".github/docs/coreex/agents/CoreEx.IO.md"                       = "CsvRoutedFileProcessor"
                 ".github/docs/coreex/files/CodeGeneration.md"                  = "runtimeProjectPath"
@@ -286,6 +288,7 @@ $testScenarios = @(
                 ".github/skills/coreex-functions/references/patterns.md"
                 ".github/docs/coreex/agents/CoreEx.Azure.Functions.md"
                 ".github/docs/coreex/agents/CoreEx.Azure.Storage.Blobs.md"
+                ".github/docs/coreex/agents/CoreEx.Redis.md"
                 ".claude/commands/coreex-functions.md"
                 ".github/docs/coreex/manifest.txt"
                 ".github/coreex-ai-workflows.md"
@@ -627,6 +630,17 @@ $testScenarios = @(
             @{ Template = "coreex-api"; Name = "App.Api"; Parameters = @{ "data-provider" = "None"; "refdata-enabled" = "false"; "outbox-enabled" = "false" } }
         )
         TestPath   = "test-api-none-regression"
+        Verify     = @{
+            FileContains = @{
+                "Directory.Packages.props" = 'Include="CoreEx.Redis"'
+                "src/App.Api/App.Api.csproj" = 'Include="CoreEx.Redis"'
+                "src/App.Api/Program.cs" = "AddRedisCoordination()"
+            }
+            FileNotContains = @{
+                "src/App.Api/App.Api.csproj" = '<PackageReference Include="Aspire.StackExchange.Redis" />'
+                "src/App.Api/Program.cs" = "AddRedisClient(`"redis`")"
+            }
+        }
         Build      = $true
         BuildTarget = "src/App.Api/App.Api.csproj"
     },
@@ -640,6 +654,17 @@ $testScenarios = @(
             @{ Template = "coreex-subscribe"; Name = "App.Subscribe"; Parameters = @{ "data-provider" = "None"; "messaging-provider" = "None"; "refdata-enabled" = "false" } }
         )
         TestPath   = "test-subscribe-none-regression"
+        Verify     = @{
+            FileContains = @{
+                "Directory.Packages.props" = 'Include="CoreEx.Redis"'
+                "src/App.Subscribe/App.Subscribe.csproj" = 'Include="CoreEx.Redis"'
+                "src/App.Subscribe/Program.cs" = "AddRedisCoordination()"
+            }
+            FileNotContains = @{
+                "src/App.Subscribe/App.Subscribe.csproj" = '<PackageReference Include="Aspire.StackExchange.Redis" />'
+                "src/App.Subscribe/Program.cs" = "AddRedisClient(`"redis`")"
+            }
+        }
         Build      = $true
         BuildTarget = "src/App.Subscribe/App.Subscribe.csproj"
     },

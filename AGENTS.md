@@ -35,6 +35,7 @@ reference data, validation, and data access — into a consistent, composable ba
 | `CoreEx.EntityFrameworkCore` | EF Core integration, typed CRUD, `ValueConverter` bridges |
 | `CoreEx.RefData` | Typed reference data with hybrid-cache-backed orchestrator |
 | `CoreEx.Caching.FusionCache` | `IHybridCache` backed by ZiggyCreatures FusionCache (L1/L2 + Redis backplane) |
+| `CoreEx.Redis` | Renewable Redis synchronization leases and retained idempotency outcomes; separate from ordinary FusionCache caching |
 | `CoreEx.Cosmos` | Typed Azure Cosmos DB access: `CosmosDbContainer<TModel>`/`CosmosDbMappedContainer<TValue,TModel,TMapper>` for CRUD + query with ETag/multi-tenancy/logical-delete support, a `TransactionalBatch`-based transactional outbox, and a Change Feed Processor-based outbox relay |
 | `CoreEx.Data` | OData-esque dynamic querying (`QueryArgs`/`PagingArgs`/`QueryArgsConfig`), `ItemsResult<T>` |
 | `CoreEx.Data.GraphQL` | Transport-agnostic GraphQL-lite bridge (`IGraphQLEngine`) over `CoreEx.Data` querying + `JsonFilter` field projection; hosted via `CoreEx.AspNetCore`'s `MapCoreExGraphQLLite` |

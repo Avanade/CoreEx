@@ -23,19 +23,35 @@ public abstract class SynchronizedTimerHostedServiceBase<TSynchronizer, TSelf>(I
     {
         var synchronizer = ExecutionContext.GetRequiredService<TSynchronizer>();
 
-        // Attempt to enter the synchronizer; if not successful, simply exit.
-        var entered = await synchronizer.EnterAsync<TSelf>(SynchronizerName, cancellationToken).ConfigureAwait(false);
-        if (!entered)
+        var lease = await synchronizer.TryAcquireAsync<TSelf>(SynchronizerName, cancellationToken).ConfigureAwait(false);
+        if (lease is null)
             return false;
 
-        // Execute within the synchronizer; and exit once complete (regardless of outcome).
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, lease.OwnershipLost);
+        Exception? failure = null;
         try
         {
-            return await SynchronizedExecuteAsync(executionContext, cancellationToken).ConfigureAwait(false);
+            linked.Token.ThrowIfCancellationRequested();
+            var result = await SynchronizedExecuteAsync(executionContext, linked.Token).ConfigureAwait(false);
+
+            lease.OwnershipLost.ThrowIfCancellationRequested();
+            return result;
+        }
+        catch (Exception ex)
+        {
+            failure = ex;
+            throw;
         }
         finally
         {
-            await synchronizer.ExitAsync<TSelf>(SynchronizerName, cancellationToken).ConfigureAwait(false);
+            try
+            {
+                await lease.DisposeAsync().ConfigureAwait(false);
+            }
+            catch (Exception ex) when (failure is not null)
+            {
+                Logger.LogError(ex, "Synchronization cleanup failed after protected execution failed.");
+            }
         }
     }
 

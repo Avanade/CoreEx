@@ -5,6 +5,7 @@
     <ProjectReference Include="..\..\..\src\CoreEx.AspNetCore.NSwag\CoreEx.AspNetCore.NSwag.csproj" />
     <ProjectReference Include="..\..\..\src\CoreEx.AspNetCore\CoreEx.AspNetCore.csproj" />
     <ProjectReference Include="..\..\..\src\CoreEx.Caching.FusionCache\CoreEx.Caching.FusionCache.csproj" />
+    <ProjectReference Include="..\..\..\src\CoreEx.Redis\CoreEx.Redis.csproj" />
     <ProjectReference Include="..\Contoso.Orders.Application\Contoso.Orders.Application.csproj" />
     <ProjectReference Include="..\Contoso.Orders.Contracts\Contoso.Orders.Contracts.csproj" />
     <ProjectReference Include="..\Contoso.Orders.Infrastructure\Contoso.Orders.Infrastructure.csproj" />

@@ -58,7 +58,7 @@ public class FunctionsHttpIdempotencyTests
 
     [TestCase(false)]
     [TestCase(true)]
-    public async Task ApplicationOrRendererFailure_PropagatesOnceAndAllowsRetry(bool rendering)
+    public async Task ApplicationOrRendererFailure_PropagatesAndBlocksAutomaticRetry(bool rendering)
     {
         using var services = CreateServices();
         var webApi = new WebApi { ConvertUnhandledExceptionsToProblemDetails = true };
@@ -72,12 +72,18 @@ public class FunctionsHttpIdempotencyTests
         result.Executions.Should().Be(rendering ? 1 : 0);
 
         var retry = CreateRequest(services);
-        await webApi.FunctionWithIdempotencyAsync(retry, _ => Task.FromResult<IActionResult>(new ContentResult { Content = "retry" }));
-        ReadBody(retry).Should().Be("retry");
+        var retries = 0;
+        var retryResult = await webApi.FunctionWithIdempotencyAsync(retry, _ =>
+        {
+            retries++;
+            return Task.FromResult<IActionResult>(new ContentResult { Content = "unsafe retry" });
+        });
+        retryResult.Should().BeOfType<ObjectResult>().Which.StatusCode.Should().Be(StatusCodes.Status409Conflict);
+        retries.Should().Be(0);
     }
 
     [Test]
-    public async Task CancellationDuringApplication_PropagatesAndAllowsRetry()
+    public async Task CancellationDuringApplication_PropagatesAndBlocksAutomaticRetry()
     {
         using var services = CreateServices();
         using var cancellation = new CancellationTokenSource();
@@ -91,8 +97,14 @@ public class FunctionsHttpIdempotencyTests
         (await execute.Should().ThrowAsync<OperationCanceledException>()).Which.Should().BeSameAs(error);
 
         var retry = CreateRequest(services);
-        await webApi.FunctionWithIdempotencyAsync(retry, _ => Task.FromResult<IActionResult>(new ContentResult { Content = "retry" }));
-        ReadBody(retry).Should().Be("retry");
+        var retries = 0;
+        var retryResult = await webApi.FunctionWithIdempotencyAsync(retry, _ =>
+        {
+            retries++;
+            return Task.FromResult<IActionResult>(new ContentResult { Content = "unsafe retry" });
+        });
+        retryResult.Should().BeOfType<ObjectResult>().Which.StatusCode.Should().Be(StatusCodes.Status409Conflict);
+        retries.Should().Be(0);
     }
 
     [Test]
@@ -133,8 +145,8 @@ public class FunctionsHttpIdempotencyTests
         services.AddLogging();
         services.AddSingleton<IConfiguration>(new ConfigurationBuilder().Build());
         services.AddMvc();
-        services.AddSingleton<CoreEx.Caching.IHybridCache>(new CoreEx.Caching.MemoryOnlyHybridCache());
-        services.AddHybridCacheIdempotencyProvider();
+        services.AddInMemoryCoordination();
+        services.AddIdempotencyProvider();
         return services.BuildServiceProvider();
     }
 

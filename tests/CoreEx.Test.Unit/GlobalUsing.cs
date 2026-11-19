@@ -1,5 +1,7 @@
+global using CoreEx.Coordination;
 global using CoreEx.Data;
 global using CoreEx.Entities;
+global using CoreEx.Hosting;
 global using CoreEx.Http;
 global using CoreEx.Invokers;
 global using CoreEx.Localization;
@@ -9,6 +11,7 @@ global using CoreEx.Results;
 global using Microsoft.Extensions.Configuration;
 global using Microsoft.Extensions.DependencyInjection;
 global using Microsoft.Extensions.Hosting;
+global using Microsoft.Extensions.Logging.Abstractions;
 global using Microsoft.Extensions.Logging;
 global using OpenTelemetry.Logs;
 global using OpenTelemetry.Trace;

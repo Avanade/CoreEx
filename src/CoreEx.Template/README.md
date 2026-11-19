@@ -58,7 +58,7 @@ dotnet new uninstall CoreEx.Template
 - `.github/agents/coreex-expert.agent.md` -- `/coreex-expert`: architecture guidance
 - `.claude/commands/coreex-expert.md` -- `/coreex-expert` for Claude Code
 - `.claude/commands/` -- 25 commands: one per CoreEx skill plus expert guidance; `/coreex-docs-sync` refreshes the entire version-pinned bundle after a package version bump
-- `.github/docs/coreex/` -- 12 architecture/setup docs, 20 package guides, File configuration references/schema, and `manifest.txt` recording the installed `coreex-version`
+- `.github/docs/coreex/` -- 12 architecture/setup docs, 21 package guides, File configuration references/schema, and `manifest.txt` recording the installed `coreex-version`
 
 The generic `acquire-codebase-knowledge` and `aspire` skills are framework-repository-only and are not emitted by `coreex-ai`. See the [full workflow inventory](../../.github/coreex-ai-workflows.md).
 
@@ -161,7 +161,7 @@ This template emits nothing but `.github/` and `.claude/` artefacts: no `AGENTS.
   docs/coreex/
     manifest.txt                  # Installed coreex-version
     *.md                          # 12 architecture/setup docs
-    agents/*.md                   # 20 package guides
+    agents/*.md                   # 21 package guides
     files/*.md                    # File CodeGen configuration references and usage
     schema/coreex-files.json       # Release-matched File YAML schema
 .claude/

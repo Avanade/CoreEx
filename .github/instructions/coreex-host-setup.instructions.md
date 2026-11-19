@@ -42,9 +42,10 @@ Prefer the matching Aspire **client integration** for underlying infrastructure 
 | SQL Server | `Aspire.Microsoft.Data.SqlClient` / `builder.AddSqlServerClient("SqlServer")`, then CoreEx database/UoW registration. |
 | PostgreSQL | `Aspire.Azure.Npgsql` / `builder.AddAzureNpgsqlDataSource("Postgres")`, then CoreEx database/UoW registration. |
 | Cosmos DB | `Aspire.Microsoft.Azure.Cosmos` / `builder.AddAzureCosmosClient("Cosmos")`, then CoreEx Cosmos registration and its health check where required. |
-| Redis cache | `Aspire.StackExchange.Redis.DistributedCaching` / `builder.AddRedisDistributedCache("redis")`, retaining CoreEx/FusionCache policy above it. |
+| Redis distributed cache and coordination | `Aspire.StackExchange.Redis.DistributedCaching` / `builder.AddRedisDistributedCache("redis")`; this also registers the host-owned `IConnectionMultiplexer` consumed by `CoreEx.Redis`. |
+| Redis coordination only | `Aspire.StackExchange.Redis` / `builder.AddRedisClient("redis")`, only when `AddRedisDistributedCache` is not already registering the same resource. |
 
-Reuse compatible installed versions and existing named/keyed registrations; verify which CoreEx package already brings the client integration transitively. Resolve host configuration explicitly: Aspire commonly uses `ConnectionStrings:{name}`, while native Functions bindings use their own named app settings. Map both to the same intended resource; a matching name alone does not connect the configuration systems. Preserve intentional custom clients/options, and use direct SDK construction only for a documented requirement, native trigger-supplied clients or test doubles. Do not add `Aspire.Hosting.*` to runtime hosts merely for client registration.
+Reuse compatible installed versions and existing named/keyed registrations; verify which CoreEx package already brings the client integration transitively. `AddRedisDistributedCache("redis")` already registers `AddRedisClient("redis")` and its `IConnectionMultiplexer`; do not call both integrations for the same resource. Resolve host configuration explicitly: Aspire commonly uses `ConnectionStrings:{name}`, while native Functions bindings use their own named app settings. Map both to the same intended resource; a matching name alone does not connect the configuration systems. Preserve intentional custom clients/options, and use direct SDK construction only for a documented requirement, native trigger-supplied clients or test doubles. Do not add `Aspire.Hosting.*` to runtime hosts merely for client registration.
 
 For startup-time Aspire client settings, exercise the same registration method with configuration populated **before** registration; resolve the real SDK client and assert its endpoint without starting the host or making a request. See the [Functions configuration pattern](/.github/skills/coreex-functions/references/patterns.md#native-blob-and-timer).
 
@@ -116,7 +117,9 @@ Generated hosts are complete and compile-safe, with no post-CodeGen uncomment or
 | `CoreEx` | `AddHostSettings()`, `AddNamedHttpClient()`, `AddTypedHttpClient<T>()`, `AddPrecisionTimeProvider()` |
 | `CoreEx.AspNetCore` | `AddMvcWebApi()`, `AddHttpWebApi()`, `AddExecutionContext()`, `UseCoreExExceptionHandler()`, `UseExecutionContext()`, `UseIdempotencyKey()`, `MapHealthChecks()` |
 | `CoreEx.AspNetCore.NSwag` | `AddOpenApiDocument()`, `AddCoreExConfiguration()`, `UseOpenApi()`, `UseSwaggerUi()` |
-| `CoreEx.Caching.FusionCache` | `AddFusionCache()`, `AddFusionHybridCache()`, `AddDefaultCacheKeyProvider()`, `AddHybridCacheIdempotencyProvider()` |
+| `CoreEx.Caching.FusionCache` | `AddFusionCache()`, `AddFusionHybridCache()`, `AddDefaultCacheKeyProvider()` for ordinary caching |
+| `CoreEx.Redis` | `AddRedisCoordination()` for Redis-backed synchronization and idempotency storage |
+| `CoreEx.AspNetCore` | `AddIdempotencyProvider()`, `UseIdempotencyKey()` for the HTTP integration |
 | `CoreEx.Database.SqlServer` | `AddSqlServerDatabase()`, `AddSqlServerUnitOfWork()`, `AddSqlServerOutboxPublisher()` (only when outbox-enabled), `AddSqlServerClient("SqlServer")` |
 | `CoreEx.Database.Postgres` | `AddPostgresDatabase()`, `AddPostgresUnitOfWork()`, `AddPostgresOutboxPublisher()` (only when outbox-enabled), `AddAzureNpgsqlDataSource("Postgres")` |
 | `CoreEx.Cosmos` | `AddAzureCosmosClient("Cosmos", ...)`, `AddCosmosDb<TCosmosDb>("{db-id}")`, `AddCosmosDbUnitOfWork()`, `AddCosmosDbEventPublisher()` (only when outbox-enabled), `AddCosmosDbHealthCheck()` |
@@ -125,6 +128,7 @@ Generated hosts are complete and compile-safe, with no post-CodeGen uncomment or
 | `CoreEx.RefData` | `AddReferenceDataOrchestrator<T>()` |
 | `CoreEx.Data.GraphQL` | `AddCoreExGraphQLLite((o, sp) => o.AddQuery(...).AddGet(...))`, `MapCoreExGraphQLLite("/query")` — additive, opt-in GraphQL-lite bridge over existing `QueryArgsConfig`-driven `QueryAsync`/`GetAsync` methods; add only when explicitly asked |
 | `Aspire.StackExchange.Redis.DistributedCaching` | `AddRedisDistributedCache("redis")` |
+| `Aspire.StackExchange.Redis` | `AddRedisClient("redis")` for coordination-only hosts that do not already call `AddRedisDistributedCache("redis")` |
 | `FusionCache.Backplane.StackExchangeRedis` | `RedisBackplane`, `RedisBackplaneOptions` |
 | `OpenTelemetry.*` | `WithCoreExTelemetry()`, `WithCoreExSqlServerTelemetry()` / `WithCoreExPostgresTelemetry()` / `WithCoreExCosmosDbTelemetry()`, `UseOtlpExporter()` |
 
@@ -134,7 +138,9 @@ Generated hosts are complete and compile-safe, with no post-CodeGen uncomment or
 |---|---|
 | `CoreEx` | `AddNamedHttpClient()`, `AddTypedHttpClient<T>()` (when calling external APIs directly from subscribers or adapters) |
 | `CoreEx.AspNetCore` | `AddMvcWebApi()`, `AddHttpWebApi()`, `AddExecutionContext()`, `AddHostedServiceManager()`, `UseCoreExExceptionHandler()`, `UseExecutionContext()`, `MapHealthChecks()`, `MapHostedServices()` |
-| `CoreEx.Caching.FusionCache` | `AddFusionCache()`, `AddFusionHybridCache()`, `AddDefaultCacheKeyProvider()`, `AddHybridCacheIdempotencyProvider()` |
+| `CoreEx.Caching.FusionCache` | `AddFusionCache()`, `AddFusionHybridCache()`, `AddDefaultCacheKeyProvider()` for ordinary caching |
+| `CoreEx.Redis` | `AddRedisCoordination()` for Redis-backed synchronization and idempotency storage |
+| `CoreEx.AspNetCore` | `AddIdempotencyProvider()`, `UseIdempotencyKey()` for the HTTP integration |
 | `CoreEx.Events` | `AddEventFormatter()`, `AddSubscribedManager()` |
 | `CoreEx.Database.SqlServer` | `AddSqlServerDatabase()`, `AddSqlServerUnitOfWork()`, `AddSqlServerOutboxPublisher()` (only when outbox-enabled), `AddSqlServerClient("SqlServer")` |
 | `CoreEx.Database.Postgres` | `AddPostgresDatabase()`, `AddPostgresUnitOfWork()`, `AddPostgresOutboxPublisher()` (only when outbox-enabled), `AddAzureNpgsqlDataSource("Postgres")` |
@@ -143,6 +149,7 @@ Generated hosts are complete and compile-safe, with no post-CodeGen uncomment or
 | `CoreEx.RefData` | `AddReferenceDataOrchestrator<T>()` |
 | `CoreEx.Azure.Messaging.ServiceBus` | `AddAzureServiceBusClient("ServiceBus")`, `AddAzureServiceBusPublisher(..., addAsDefaultIEventPublisher: false)`, `AzureServiceBusReceiving()`, `WithCoreExServiceBusTelemetry()` |
 | `Aspire.StackExchange.Redis.DistributedCaching` | `AddRedisDistributedCache("redis")` |
+| `Aspire.StackExchange.Redis` | `AddRedisClient("redis")` only for coordination-only hosts without `AddRedisDistributedCache("redis")` |
 | `FusionCache.Backplane.StackExchangeRedis` | `RedisBackplane`, `RedisBackplaneOptions` |
 | `OpenTelemetry.*` | `WithCoreExTelemetry()`, `WithCoreExServiceBusTelemetry()`, `WithCoreExSqlServerTelemetry()` / `WithCoreExPostgresTelemetry()`, `UseOtlpExporter()` |
 
@@ -186,7 +193,8 @@ builder.Services.AddFusionCache()
 builder.Services
     .AddFusionHybridCache()
     .AddDefaultCacheKeyProvider()
-    .AddHybridCacheIdempotencyProvider();
+    .AddRedisCoordination()
+    .AddIdempotencyProvider();
 
 // Database, relational EF or Cosmos, and (only when outbox-enabled) the default outbox publisher.
 // SQL Server variant:
@@ -251,7 +259,7 @@ Key points:
 - **Cross-host consequence:** API and Subscribe both scan the shared Infrastructure assembly. A new `[ScopedService]` adapter is registered in both hosts even if only a subscriber calls it; its constructor dependencies, including typed HTTP clients, must therefore be registered in the API host too. If API startup fails after adding an adapter, check the API's `AddTypedHttpClient<TClient>(...)` registrations or move the adapter into an assembly not scanned by that host.
 - Prefer the **non-generic `AddReferenceDataOrchestrator()`** (binds `IReferenceDataProvider` from DI at runtime) over `AddReferenceDataOrchestrator<ReferenceDataProvider>()` — the non-generic form needs no generated type, so it compiles from scaffold time. It also auto-registers `ReferenceDataQuery.Default`, enabling `ReferenceDataOrchestrator.QueryAsync<TRef>(QueryArgs?, PagingArgs?, CancellationToken)` on all ref-data endpoints out of the box.
 - `AddReferenceDataOrchestrator()` and `AddDynamicServicesUsing(...)` are shared with Subscribe hosts — both API and Subscribe hosts are full application-layer consumers.
-- FusionCache (L1/L2) and `AddHybridCacheIdempotencyProvider()` are shared with Subscribe hosts — both need caching for reference data and idempotency for safe duplicate handling.
+- FusionCache remains for ordinary L1/L2 and reference-data caching. Idempotency storage is separate and uses `CoreEx.Redis` in multi-instance hosts; `AddInMemoryCoordination()` is only for tests or deliberately single-instance hosts.
 - `AddEventFormatter()` is required wherever events are published or parsed.
 - `AddSqlServerOutboxPublisher()` / `AddPostgresOutboxPublisher()` / `AddCosmosDbEventPublisher()` take no domain-type generic parameter. Register them only when `outbox-enabled` is true; otherwise keep the host on its direct-publisher-only path.
 - `UseIdempotencyKey()` must come **after** `UseExecutionContext()`.
@@ -301,7 +309,8 @@ builder.Services.AddFusionCache()
 builder.Services
     .AddFusionHybridCache()
     .AddDefaultCacheKeyProvider()
-    .AddHybridCacheIdempotencyProvider();
+    .AddRedisCoordination()
+    .AddIdempotencyProvider();
 
 // Domain database + outbox publisher.
 // SQL Server variant:
@@ -386,7 +395,7 @@ app.Run();
 
 Key points:
 - Subscribe hosts **do** include `AddReferenceDataOrchestrator()` and `AddDynamicServicesUsing(...)` — subscribers call application services that need reference data for validation and business logic. The Subscribe host passes **three** assemblies to `AddDynamicServicesUsing`: its own (`typeof(Program).Assembly`, for the subscriber types) plus the Application and Infrastructure `AssemblyMarker` assemblies.
-- Subscribe hosts **do** include FusionCache (L1/L2) and `AddHybridCacheIdempotencyProvider()` — caching is required for reference data; idempotency is required to safely handle duplicate message delivery.
+- Subscribe hosts **do** include FusionCache for reference data and ordinary caching. Redis coordination is separate and backs idempotency in multi-instance deployments; `InMemoryCoordination` is only suitable for an intentionally single-instance host.
 - Subscribe hosts **do** include domain persistence — relational hosts use EF Core; Cosmos hosts use `CosmosDb` — and, when `outbox-enabled` is true, the provider-specific outbox publisher as the default `IEventPublisher`.
 - `AddHostedServiceManager()` must be registered before `AzureServiceBusReceiving()`.
 - `AddSubscribersUsing<T>()` scans the assembly of `T` and auto-registers all `[Subscribe]`-decorated classes — no manual registration per subscriber.

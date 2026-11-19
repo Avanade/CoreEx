@@ -34,7 +34,8 @@ public class Program
         builder.Services
             .AddFusionHybridCache()                      // Adds the CoreEx.Caching.IHybridCache for FusionCache.
             .AddDefaultCacheKeyProvider()                // Adds the default CoreEx.Caching.ICacheKeyProvider.
-            .AddHybridCacheIdempotencyProvider();        // Adds the CoreEx.Caching.Idempotency.IIdempotencyProvider.
+            .AddRedisCoordination()                      // Adds Redis-backed synchronization and idempotency storage.
+            .AddIdempotencyProvider();                   // Adds the ASP.NET Core idempotency integration.
 
         // Add the Cosmos DB client (Aspire) - in Development, configured to accept the local emulator's self-signed certificate and use Gateway mode, matching CosmosTestBase's own approach.
         builder.AddAzureCosmosClient("Cosmos", configureClientOptions: o =>

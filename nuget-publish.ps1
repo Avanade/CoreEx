@@ -86,6 +86,7 @@ param(
         "src\CoreEx.Events",
         "src\CoreEx.IO",
         "src\CoreEx.RefData",
+        "src\CoreEx.Redis",
         "src\CoreEx.Template",
         "src\CoreEx.Validation",
         "src\CoreEx.UnitTesting"),

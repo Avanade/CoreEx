@@ -8,7 +8,7 @@ builder.Services.AddMvcWebApi((_, webApi) => webApi.ConvertUnhandledExceptionsTo
 builder.Services.AddFusionCache();
 builder.Services.AddDefaultCacheKeyProvider();
 builder.Services.AddFusionHybridCache();
-builder.Services.AddHybridCacheIdempotencyProvider();
+builder.Services.AddInMemoryCoordination().AddIdempotencyProvider();
 builder.Services.AddSingleton<IdempotencyOperationService>();
 builder.Services.AddInventoryImport(sp =>
 {

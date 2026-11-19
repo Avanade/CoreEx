@@ -34,7 +34,7 @@
 
 - **[`CoreEx`](../README.md)** - `ExecutionContext` and `HostSettings` (via `IHostSettings`) supply the tenant ID and domain name used for key namespacing.
 - **[`CoreEx.Caching.FusionCache`](../../CoreEx.Caching.FusionCache/README.md)** - Production hybrid cache implementation wrapping ZiggyCreatures FusionCache; backs the `IHybridCache` contract with L1+L2 support.
-- **[`CoreEx.Hosting`](../Hosting/README.md)** - `HybridCacheSynchronizer` (in Hosting.Synchronization) uses `IHybridCache` for distributed lock coordination.
+- **[`CoreEx.Hosting`](../Hosting/README.md)** - `HybridCacheWorkProvider` uses `IHybridCache` for work-state storage. Synchronization is provided independently by `InMemoryCoordination` or `CoreEx.Redis`.
 - **[`CoreEx.RefData`](../RefData/README.md)** - `ReferenceDataOrchestrator` and `IReferenceDataCache` use `IHybridCache` to cache loaded reference data collections.
 
 ## Additional Resources

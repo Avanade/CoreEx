@@ -34,7 +34,7 @@ public class EntryPoint
         builder.Services.AddFusionHybridCache();        // Adds the scoped CoreEx.Caching.IHybridCache for FusionCache.
         builder.Services.AddDefaultCacheKeyProvider();  // Adds the default CoreEx.Caching.ICacheKeyProvider.
 
-        // Add the HybridCacheSynchronizer to test also.
-        builder.Services.AddHybridCacheSynchronizer();
+        // Add Redis-backed coordination for synchronization tests.
+        builder.Services.AddRedisCoordination();
     }
 }

@@ -1,0 +1,12 @@
+global using CoreEx.Abstractions;
+global using CoreEx.Caching;
+global using CoreEx.Coordination;
+global using CoreEx.Idempotency;
+global using CoreEx;
+global using Microsoft.Extensions.DependencyInjection.Extensions;
+global using Microsoft.Extensions.DependencyInjection;
+global using Microsoft.Extensions.Logging;
+global using StackExchange.Redis;
+global using System.Diagnostics;
+global using System.Security.Cryptography;
+global using System.Text;

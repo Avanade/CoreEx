@@ -530,18 +530,18 @@ Prevents lost-update anomalies in concurrent scenarios.
 
 **Pattern:** Automatic deduplication of POST operations.
 
-Clients send a unique `Idempotency-Key` header; CoreEx ensures the operation runs exactly once:
+Clients send a unique `Idempotency-Key` header. CoreEx can replay a completed response for an accepted duplicate key, but it does not guarantee exactly-once business execution:
 
 ```http
 POST /api/baskets/123/checkout
-Idempotency-Key: client-request-id-abc123
+Idempotency-Key: "client-request-id-abc123"
 
 201 Created / 200 OK
 ```
 
-If the same key is resubmitted, CoreEx returns the cached response without re-executing.
+Configure an explicit idempotency store. Multi-instance hosts use `CoreEx.Redis` coordination; `InMemoryCoordination` is only for tests or intentionally single-instance applications. Completed application errors are replayed too. If execution throws, is cancelled, or cannot record its terminal response after application entry, the outcome may be indeterminate and automatic re-execution is blocked; reconcile only after confirming the original work cannot still commit. Redis failover to stale data, data loss, eviction, deletion, or retention expiry may erase claims and permit re-execution. See the [CoreEx.Redis guide](../src/CoreEx.Redis/README.md) for registration, key scoping, rollout and operational limits.
 
-**Why it matters:** Safe retries in unreliable networks; critical for payment systems, order placement, etc.
+**Why it matters:** Stable keys help clients recover from unreliable networks, while explicit indeterminate outcomes avoid treating an error response as proof that no side effects occurred.
 
 ### Health Check Endpoints
 
@@ -1138,7 +1138,7 @@ This example assumes the samples' **full outboxing and messaging setup**:
 
 2. CoreEx Middleware:
    - Extract ExecutionContext (tenant, user, culture)
-   - Check Idempotency-Key (cached response if duplicate)
+   - Check Idempotency-Key (replay a completed result or reject an in-progress/indeterminate attempt)
    - Route to controller
 
 3. ProductController:

@@ -38,7 +38,7 @@ Adds a real capability and its tests to an existing Azure Functions isolated-wor
 | Capability | Composition |
 |---|---|
 | HTTP | `ConfigureFunctionsWebApplication()` before CoreEx middleware; `AddMvc()` + `AddMvcWebApi()`; native `HttpRequest` / `IActionResult` with MVC `WebApi`. |
-| HTTP idempotency | Explicit `webApi.FunctionWithIdempotencyAsync(...)` around a deferred WebApi operation; configured provider/cache required. |
+| HTTP idempotency | Explicit `webApi.FunctionWithIdempotencyAsync(...)` around a deferred WebApi operation; register an idempotency provider, using `AddInMemoryCoordination()` only for intentionally single-instance hosts. |
 | Service Bus publishing | Configured `IEventPublisher` backed by `ServiceBusPublisher` or outbox; `Add` then await `PublishAsync`. Direct means no outbox, not raw SDK sending. |
 | Service Bus receiving | Native trigger delegating to a CoreEx typed/dispatched subscriber through `subscriber.FunctionReceiveAsync`; `AutoCompleteMessages = false`. |
 | Blob | Native binding; Aspire-registered worker clients. Choose source, revision handling, output identity and failure policy explicitly. For CSV, use `coreex-file`. |

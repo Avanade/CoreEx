@@ -153,7 +153,7 @@ Prefer Aspire client integrations for host-owned infrastructure clients, includi
 - Transactional outbox + Azure Service Bus are first-class messaging patterns across all domains.
 - **Products** uses PostgreSQL; **Shopping** uses SQL Server. Do not assume SQL Server when working on Products.
 - Shopping: synchronous HTTP inventory reservation + transactional outbox + async event publishing. Preserve this split.
-- Both domains use `CoreEx.Caching.FusionCache` (hybrid in-process + Redis backplane cache) for reference data and idempotency. Register via `AddFusionCache()` / `AddFusionHybridCache()` in `Program.cs`; clear via `Test.ClearFusionCacheAsync()` in test `[OneTimeSetUp]`.
+- Both domains use `CoreEx.Caching.FusionCache` (hybrid in-process + Redis backplane cache) for reference data and ordinary caching. Redis-backed coordination and HTTP idempotency use `CoreEx.Redis`, separately from FusionCache; clear ordinary cache state via `Test.ClearFusionCacheAsync()` in test `[OneTimeSetUp]`.
 
 ### Testing
 Consumer tests should cover application-owned rules, mappings, configuration and failure policies, with representative integration checks of framework wiring. Do not export the framework's exhaustive capability matrices or transport simulators into consumer solutions; use existing CoreEx.UnitTesting publisher expectations and Blob test fixtures. Framework changes in this repository still require focused regression tests of the behavior being changed.

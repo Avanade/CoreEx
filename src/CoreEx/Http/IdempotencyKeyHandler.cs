@@ -35,7 +35,7 @@ public sealed class IdempotencyKeyHandler : DelegatingHandler
         {
             // Respect existing idempotency key value.
             if (!request.Headers.Contains(HeaderName))
-                request.Headers.Add(HeaderName, KeyGenerator());
+                request.Headers.Add(HeaderName, IdempotencyKeyHeader.Format(KeyGenerator()));
         }
 
         // Continue processing; send it baby!
