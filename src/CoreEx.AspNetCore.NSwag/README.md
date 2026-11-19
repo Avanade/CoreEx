@@ -15,7 +15,9 @@
 - 📋 **Paging parameters**: Reads `[PagingAttribute]` and adds `$skip`, `$take`, and optionally `$count` query-string parameters with descriptions controlled by `OpenApiOptions.PagingSkipText`, `PagingTakeText`, etc.
 - 🔍 **Query parameters**: Reads `[QueryAttribute]` and adds `$filter`, `$orderby` and/or `$search` query-string parameters when `SupportsFilter` / `SupportsOrderBy` / `SupportsSearch` are set.
 - 📦 **Request body content types**: Reads `[AcceptsAttribute]` and populates the operation `RequestBody` with the declared content type(s) and NSwag-inferred JSON schema for the body type.
-- 🔑 **Idempotency-key header**: Reads `[IdempotencyKeyAttribute]` and adds an `Idempotency-Key` header parameter to the operation.
+- 🔑 **Idempotency-key header**: Reads `[IdempotencyKeyAttribute]` and adds an `Idempotency-Key` header parameter to the operation. Send one quoted RFC 9651 Structured Field string, for example `Idempotency-Key: "order-12345678"`; the documented 8-128 character length applies to the decoded logical key, not its quotes or escapes. Parameters are not accepted.
+
+The server's default relaxed mode also accepts the documented legacy bare-key syntax for compatibility; standards-only deployments enable `StrictHeaderValidation` on the HTTP idempotency provider. OpenAPI describes the standard quoted wire format and does not imply that authorization may be skipped on replay.
 - ✅ **Non-nullable properties**: Walks the request/response types of each operation and marks any property decorated with `CoreEx.Entities.NonNullableAttribute` as `nullable: false` in the schema, regardless of whether it is declared nullable in code (e.g. `string?`, `int?`).
 - 📝 **Optional patch properties**: Unwraps `Optional<T>` to its inner schema, keeps the property out of the required list, and derives nullability from the inner type.
 - 🚫 **Not-found response**: Reads `[ProducesNotFoundProblemAttribute]` and adds a `404 application/problem+json` response entry.

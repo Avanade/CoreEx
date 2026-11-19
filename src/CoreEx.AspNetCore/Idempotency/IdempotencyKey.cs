@@ -8,43 +8,61 @@ public sealed partial class IdempotencyKey
     /// <summary>
     /// Creates a new instance of the <see cref="IdempotencyKey"/> class.
     /// </summary>
-    public static async Task<IdempotencyKey> CreateFromHttpRequestAsync(HttpContext context, IEnumerable<string> headersToIncludeInFingerprint)
+    public static async Task<IdempotencyKey> CreateFromHttpRequestAsync(HttpContext context, IEnumerable<string> headersToIncludeInFingerprint, CancellationToken cancellationToken = default)
     {
-        // Fingerprint the request: method, path (no query string) and canonical headers.
+        context.ThrowIfNull();
+        headersToIncludeInFingerprint.ThrowIfNull();
+
         using var ih = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
-        ih.AppendData(new BinaryData(context.Request.Method.ToUpperInvariant()));
-        ih.AppendData(new BinaryData(context.Request.Path.ToString().ToLowerInvariant()));
+        AppendFingerprintField(ih, "CoreEx.AspNetCore.Idempotency.Request:v1");
+        AppendFingerprintField(ih, context.Request.Method);
+        AppendFingerprintField(ih, context.Request.PathBase.ToString() + context.Request.Path.ToString());
+        AppendFingerprintField(ih, context.Request.QueryString.Value ?? string.Empty);
 
-        foreach (var header in headersToIncludeInFingerprint)
+        foreach (var header in headersToIncludeInFingerprint.Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(header => header, StringComparer.OrdinalIgnoreCase))
         {
-            if (context.Request.Headers.TryGetValue(header, out var values))
+            AppendFingerprintField(ih, header.ToLowerInvariant());
+            if (!context.Request.Headers.TryGetValue(header, out var values))
             {
-                ih.AppendData(new BinaryData(header));
-
-                foreach (var value in values)
-                {
-                    var val = value?.Trim();
-                    if (!string.IsNullOrEmpty(val))
-                        ih.AppendData(new BinaryData(val));
-                }
+                AppendFingerprintField(ih, "absent");
+                continue;
             }
+
+            AppendFingerprintField(ih, "present");
+            AppendFingerprintField(ih, values.Count.ToString(CultureInfo.InvariantCulture));
+            foreach (var value in values)
+                AppendFingerprintField(ih, value?.Trim() ?? string.Empty);
         }
 
-        // Read and include the request body, hashing directly in fixed-size chunks rather than copying the whole body into a second, unbounded, always-in-memory buffer
-        // (EnableBuffering already provides the safe, disk-spilling copy needed for downstream re-reads).
+        var originalPosition = context.Request.Body.CanSeek ? context.Request.Body.Position : 0;
         context.Request.EnableBuffering();
-
         var buffer = new byte[81920];
-        int bytesRead;
-        while ((bytesRead = await context.Request.Body.ReadAsync(buffer.AsMemory(), context.RequestAborted).ConfigureAwait(false)) > 0)
-            ih.AppendData(buffer, 0, bytesRead);
+        try
+        {
+            int bytesRead;
+            while ((bytesRead = await context.Request.Body.ReadAsync(buffer.AsMemory(), cancellationToken).ConfigureAwait(false)) > 0)
+                ih.AppendData(buffer, 0, bytesRead);
+        }
+        finally
+        {
+            if (context.Request.Body.CanSeek)
+                context.Request.Body.Position = originalPosition;
+        }
 
-        // Rewind stream position for downstream consumption.
-        context.Request.Body.Position = 0;
-
-        // Create and return the cached response with the computed request fingerprint.
         var hash = ih.GetCurrentHash();
         return new IdempotencyKey { Fingerprint = Convert.ToBase64String(hash) };
+    }
+
+    /// <summary>
+    /// Appends a length-framed UTF-8 field to the fingerprint hash.
+    /// </summary>
+    private static void AppendFingerprintField(IncrementalHash hash, string value)
+    {
+        var bytes = Encoding.UTF8.GetBytes(value);
+        Span<byte> length = stackalloc byte[sizeof(int)];
+        System.Buffers.Binary.BinaryPrimitives.WriteInt32BigEndian(length, bytes.Length);
+        hash.AppendData(length);
+        hash.AppendData(bytes);
     }
 
     /// <summary>

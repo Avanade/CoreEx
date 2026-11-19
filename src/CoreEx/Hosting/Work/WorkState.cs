@@ -3,7 +3,7 @@ namespace CoreEx.Hosting.Work;
 /// <summary>
 /// Represents the status and result of a long-running <see cref="WorkOrchestrator"/>-tracked work instance.
 /// </summary>
-public class WorkState : IIdentifier<string?>
+public class WorkState : IIdentifier<string?>, IETag
 {
     /// <inheritdoc/>
     /// <remarks>The identifier must be globally unique across all work types.</remarks>
@@ -45,31 +45,40 @@ public class WorkState : IIdentifier<string?>
     /// <summary>
     /// Gets or sets the <see cref="WorkStatus.Created"/> <see cref="DateTimeOffset"/>.
     /// </summary>
-    public DateTimeOffset Created { get; set; }
+    [JsonPropertyName("created")]
+    public DateTimeOffset CreatedOn { get; set; }
 
     /// <summary>
     /// Gets or sets the <see cref="WorkOrchestrator"/> expiry <see cref="DateTimeOffset"/>.
     /// </summary>
     /// <remarks>Where the work has not <see cref="WorkStatus.Finished"/> by the expiry it will be automatically <see cref="WorkStatus.Expired"/>.</remarks>
-    public DateTimeOffset Expiry { get; set; }
+    [JsonPropertyName("expiry")]
+    public DateTimeOffset ExpiryOn { get; set; }
 
     /// <summary>
     /// Gets or sets the <see cref="WorkStatus.Started"/> <see cref="DateTimeOffset"/>.
     /// </summary>
-    public DateTimeOffset? Started { get; set; }
+    [JsonPropertyName("started")]
+    public DateTimeOffset? StartedOn { get; set; }
 
     /// <summary>
     /// Gets or sets the <see cref="WorkStatus.Indeterminate"/> <see cref="DateTimeOffset"/>.
     /// </summary>
-    public DateTimeOffset? Indeterminate { get; set; }
+    [JsonPropertyName("indeterminate")]
+    public DateTimeOffset? IndeterminateOn { get; set; }
 
     /// <summary>
     /// Gets or sets the <see cref="WorkStatus.Finished"/> <see cref="DateTimeOffset"/>.
     /// </summary>
-    public DateTimeOffset? Finished { get; set; }
+    [JsonPropertyName("finished")]
+    public DateTimeOffset? FinishedOn { get; set; }
 
     /// <summary>
     /// Gets or sets the <see cref="WorkStatus.Failed"/> or <see cref="WorkStatus.Expired"/> reason.
     /// </summary>
     public string? Reason { get; set; }
+
+    /// <inheritdoc/>
+    /// <remarks>Maintained by the <see cref="IWorkProvider"/> to enable optimistic concurrency; any persisted value is ignored.</remarks>
+    public string? ETag { get; set; }
 }

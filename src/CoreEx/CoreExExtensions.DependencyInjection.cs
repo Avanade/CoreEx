@@ -175,24 +175,33 @@ public static partial class CoreExExtensions
     });
 
     /// <summary>
-    /// Adds a <b>scoped</b> <see cref="HybridCacheSynchronizer"/> service.
+    /// Adds explicitly in-memory coordination with singleton backing state per root service provider and scoped key qualification.
     /// </summary>
     /// <param name="services">The <see cref="IServiceCollection"/>.</param>
-    /// <param name="configure">The action to configure the <see cref="HybridCacheSynchronizer"/> instance.</param>
-    /// <param name="addAsISynchronizer">Indicates whether to also register as the <see cref="ISynchronizer"/> service.</param>
+    /// <param name="options">The optional ownership options.</param>
     /// <returns>The <see cref="IServiceCollection"/> for fluent-style method-chaining.</returns>
-    public static IServiceCollection AddHybridCacheSynchronizer(this IServiceCollection services, Action<IServiceProvider, HybridCacheSynchronizer>? configure = null, bool addAsISynchronizer = true)
+    public static IServiceCollection AddInMemoryCoordination(this IServiceCollection services, CoreEx.Coordination.CoordinationOptions? options = null)
     {
-        services.ThrowIfNull().AddScoped(sp =>
-        {
-            var synchronizer = ActivatorUtilities.CreateInstance<HybridCacheSynchronizer>(sp);
-            configure?.Invoke(sp, synchronizer);
-            return synchronizer;
-        });
+        options ??= new();
+        options.Validate();
+        services.ThrowIfNull().TryAddScoped<ICacheKeyProvider, DefaultCacheKeyProvider>();
+        services.TryAddSingleton<CoreEx.Coordination.InMemoryCoordinationState>();
+        services.AddScoped(sp => new CoreEx.Coordination.InMemoryCoordination(sp.GetRequiredService<CoreEx.Coordination.InMemoryCoordinationState>(), sp.GetRequiredService<ICacheKeyProvider>(), sp.GetRequiredService<ILogger<CoreEx.Coordination.InMemoryCoordination>>(), options));
+        services.AddScoped<ISynchronizer>(sp => sp.GetRequiredService<CoreEx.Coordination.InMemoryCoordination>());
+        services.AddScoped<CoreEx.Idempotency.IIdempotencyStore>(sp => sp.GetRequiredService<CoreEx.Coordination.InMemoryCoordination>());
+        return services;
+    }
 
-        if (addAsISynchronizer)
-            services.AddScoped<ISynchronizer, HybridCacheSynchronizer>(sp => sp.GetRequiredService<HybridCacheSynchronizer>());
-
+    /// <summary>
+    /// Adds a process-local <see cref="CoreEx.Hosting.Work.InMemoryWorkProvider"/> as the singleton <see cref="CoreEx.Hosting.Work.IWorkProvider"/> and a scoped <see cref="CoreEx.Hosting.Work.WorkOrchestrator"/>.
+    /// </summary>
+    /// <param name="services">The <see cref="IServiceCollection"/>.</param>
+    /// <returns>The <see cref="IServiceCollection"/> for fluent-style method-chaining.</returns>
+    /// <remarks>The state is only shared within the current process; use a durable shared provider where multiple instances must observe the same work.</remarks>
+    public static IServiceCollection AddInMemoryWorkProvider(this IServiceCollection services)
+    {
+        services.ThrowIfNull().TryAddSingleton<CoreEx.Hosting.Work.IWorkProvider>(_ => new CoreEx.Hosting.Work.InMemoryWorkProvider());
+        services.TryAddScoped(sp => new CoreEx.Hosting.Work.WorkOrchestrator(sp.GetRequiredService<CoreEx.Hosting.Work.IWorkProvider>()));
         return services;
     }
 

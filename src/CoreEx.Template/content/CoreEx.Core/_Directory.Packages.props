@@ -15,6 +15,7 @@
     <PackageVersion Include="CoreEx.Azure.Messaging.ServiceBus" Version="coreex-version" />
     <!--#endif-->
     <PackageVersion Include="CoreEx.Caching.FusionCache" Version="coreex-version" />
+    <PackageVersion Include="CoreEx.Redis" Version="coreex-version" />
     <PackageVersion Include="CoreEx.CodeGen" Version="coreex-version" />
     <PackageVersion Include="CoreEx.Data" Version="coreex-version" />
     <PackageVersion Include="CoreEx.Data.GraphQL" Version="coreex-version" />

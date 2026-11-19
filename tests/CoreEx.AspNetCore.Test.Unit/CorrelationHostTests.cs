@@ -201,34 +201,22 @@ public class CorrelationHostTests
         ReadCorrelation(supplied).Should().Be("callback");
     }
 
-    [TestCase(false, false)]
-    [TestCase(true, false)]
-    [TestCase(false, true)]
-    public async Task Idempotency_ExecutionBoundaryOwnsCurrentAndLegacyReplayCorrelation(bool cacheCorrelation, bool legacy)
+    [TestCase(false)]
+    [TestCase(true)]
+    public async Task Idempotency_ExecutionBoundaryOwnsCurrentCorrelation(bool cacheCorrelation)
     {
-        var cache = new CoreEx.Caching.MemoryOnlyHybridCache();
-        var provider = new Idempotency.HybridCacheIdempotencyProvider(cache);
+        using var services = CreateIdempotencyServices();
+        await using var scope = services.CreateAsyncScope();
+        var provider = new Idempotency.IdempotencyProvider(scope.ServiceProvider.GetRequiredService<CoreEx.Idempotency.IIdempotencyStore>());
         if (cacheCorrelation)
             provider.HttpResponseHeadersToExcludeFromCache.Remove(CoreEx.Http.HttpNames.CorrelationIdHeaderName);
-
-        if (legacy)
-        {
-            var original = new DefaultHttpContext();
-            original.Request.Method = "POST";
-            original.Request.Path = "/";
-            var cached = await Idempotency.IdempotencyKey.CreateFromHttpRequestAsync(original, provider.HttpRequestHeadersToIncludeInFingerprint);
-            cached.Status = Idempotency.IdempotencyStatus.CompletedAndReplayable;
-            cached.Body = BinaryData.FromString("once");
-            cached.Headers = new Dictionary<string, string?[]> { ["x-correlation-id"] = ["original"] };
-            await cache.SetByKeyAsync("Idempotency:correlation-key", cached);
-        }
 
         var builder = WebApplication.CreateBuilder();
         builder.WebHost.UseTestServer();
         builder.Services.AddExecutionContext();
         await using var app = builder.Build();
         app.UseExecutionContext();
-        app.Use((context, next) => provider.OnInvokeAsync(new Mvc.IdempotencyKeyAttribute(), context, _ => next()));
+        app.Use((context, next) => provider.OnInvokeAsync(new Mvc.IdempotencyKeyAttribute(), context, next, context.RequestAborted));
         var calls = 0;
         app.Run(async context =>
         {
@@ -250,7 +238,7 @@ public class CorrelationHostTests
             ReadCorrelation(response).Should().Be(correlation);
             (await response.Content.ReadAsStringAsync()).Should().Be("once");
         }
-        calls.Should().Be(legacy ? 0 : 1);
+        calls.Should().Be(1);
     }
 
     [Test]
@@ -282,7 +270,9 @@ public class CorrelationHostTests
     [TestCase(true)]
     public async Task Idempotency_ResponseCacheHonorsConfiguredExclusions(bool cacheCorrelation)
     {
-        var provider = new Idempotency.HybridCacheIdempotencyProvider(new CoreEx.Caching.MemoryOnlyHybridCache());
+        using var services = CreateIdempotencyServices();
+        await using var scope = services.CreateAsyncScope();
+        var provider = new Idempotency.IdempotencyProvider(scope.ServiceProvider.GetRequiredService<CoreEx.Idempotency.IIdempotencyStore>());
         if (cacheCorrelation)
             provider.HttpResponseHeadersToExcludeFromCache.Remove(CoreEx.Http.HttpNames.CorrelationIdHeaderName);
 
@@ -297,7 +287,7 @@ public class CorrelationHostTests
                 i.Should().Be(0);
                 ctx.Response.Headers[CoreEx.Http.HttpNames.CorrelationIdHeaderName] = "original";
                 return ctx.Response.WriteAsync("once");
-            });
+            }, context.RequestAborted);
             if (i == 1)
                 context.Response.Headers.ContainsKey(CoreEx.Http.HttpNames.CorrelationIdHeaderName).Should().Be(cacheCorrelation);
         }
@@ -305,4 +295,12 @@ public class CorrelationHostTests
 
     private static string? ReadCorrelation(HttpResponseMessage response)
         => response.Headers.TryGetValues(CoreEx.Http.HttpNames.CorrelationIdHeaderName, out var values) ? values.Single() : null;
+
+    private static ServiceProvider CreateIdempotencyServices()
+    {
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddInMemoryCoordination();
+        return services.BuildServiceProvider();
+    }
 }

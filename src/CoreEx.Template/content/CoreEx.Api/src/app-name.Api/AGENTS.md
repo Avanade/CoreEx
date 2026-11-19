@@ -47,9 +47,11 @@ Consult `.github/docs/coreex/agents/CoreEx.AspNetCore.NSwag.md` for NSwag custom
 The host wires FusionCache with both in-memory (L1) and Redis distributed (L2) backing. The CoreEx `IHybridCache` abstraction is registered as `AddFusionHybridCache()`.
 
 - Use `IHybridCache` in Application services -- never take direct `IMemoryCache` or `IDistributedCache` dependencies
-- Idempotency support is provided via `AddHybridCacheIdempotencyProvider()`
+- HTTP idempotency uses `AddRedisCoordination()` with `AddIdempotencyProvider()`; it is separate from FusionCache and ordinary cache behavior
+- Keep `AddDefaultCacheKeyProvider()` or an existing custom `ICacheKeyProvider` so coordination retains the intended domain/tenant scope
 
 Consult `.github/docs/coreex/agents/CoreEx.Caching.FusionCache.md` for caching patterns.
+Consult `.github/docs/coreex/agents/CoreEx.Redis.md` for coordination guarantees, migration, and Redis operations.
 
 ---
 
@@ -86,6 +88,7 @@ Consult `.github/docs/coreex/agents/CoreEx.Caching.FusionCache.md` for caching p
 | `CoreEx.AspNetCore` | Web API base types, middleware, `WebApiPublisher` |
 | `CoreEx.AspNetCore.NSwag` | NSwag OpenAPI integration |
 | `CoreEx.Caching.FusionCache` | FusionCache `IHybridCache` integration |
+| `CoreEx.Redis` | Redis-backed synchronization and idempotency storage |
 <!-- #if implement-sqlserver -->
 | `CoreEx.Database.SqlServer` | SQL Server database access |
 <!-- #endif -->

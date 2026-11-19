@@ -25,6 +25,8 @@
     <ProjectReference Include="..\..\src\CoreEx.RefData\CoreEx.RefData.csproj" />
     <ProjectReference Include="..\..\src\CoreEx\CoreEx.csproj" />
     <ProjectReference Include="..\..\src\CoreEx.Caching.FusionCache\CoreEx.Caching.FusionCache.csproj" />
+    <ProjectReference Include="..\..\src\CoreEx.Redis\CoreEx.Redis.csproj" />
+    <ProjectReference Include="..\CoreEx.Redis.Test.Worker\CoreEx.Redis.Test.Worker.csproj" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
   <ItemGroup>

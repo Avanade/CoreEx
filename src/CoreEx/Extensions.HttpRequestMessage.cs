@@ -91,7 +91,7 @@ public static partial class Extensions
     /// <remarks>Where no <paramref name="idempotencyKey"/> is specified, a new <see cref="Guid"/> is generated and used.</remarks>
     public static HttpRequestMessage WithIdempotencyKey(this HttpRequestMessage request, string? idempotencyKey = null)
     {
-        request.ThrowIfNull().Headers.Add(HttpNames.IdempotencyKeyHeaderName, idempotencyKey ?? Guid.NewGuid().ToString());
+        request.ThrowIfNull().Headers.Add(HttpNames.IdempotencyKeyHeaderName, Http.IdempotencyKeyHeader.Format(idempotencyKey ?? Guid.NewGuid().ToString()));
         return request;
     }
 

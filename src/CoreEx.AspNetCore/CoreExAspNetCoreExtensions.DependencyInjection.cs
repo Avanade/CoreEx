@@ -35,17 +35,17 @@ public static partial class CoreExAspNetCoreExtensions
 
 
     /// <summary>
-    /// Adds a <b>scoped</b> <see cref="HybridCacheIdempotencyProvider"/> service as the <see cref="IIdempotencyProvider"/>.
+    /// Adds a <b>scoped</b> <see cref="IdempotencyProvider"/> service as the <see cref="IIdempotencyProvider"/>.
     /// </summary>
     /// <param name="services">The <see cref="IServiceCollection"/>.</param>
-    /// <param name="configure">The action to configure the <see cref="HybridCacheIdempotencyProvider"/> instance.</param>
+    /// <param name="configure">The action to configure the <see cref="IdempotencyProvider"/> instance.</param>
     /// <returns>The <see cref="IServiceCollection"/> for fluent-style method-chaining.</returns>
     /// <remarks>Will also try to add the <b>scoped</b> <see cref="IdempotencyKeyMiddleware"/>.</remarks>
-    public static IServiceCollection AddHybridCacheIdempotencyProvider(this IServiceCollection services, Action<IServiceProvider, HybridCacheIdempotencyProvider>? configure = null)
+    public static IServiceCollection AddIdempotencyProvider(this IServiceCollection services, Action<IServiceProvider, IdempotencyProvider>? configure = null)
     {
         services.ThrowIfNull().AddScoped<IIdempotencyProvider>(sp =>
         {
-            var provider = new HybridCacheIdempotencyProvider(sp.GetRequiredService<IHybridCache>());
+            var provider = new IdempotencyProvider(sp.GetRequiredService<CoreEx.Idempotency.IIdempotencyStore>(), sp.GetService<ILogger<IdempotencyProvider>>());
             configure?.Invoke(sp, provider);
             return provider;
         });

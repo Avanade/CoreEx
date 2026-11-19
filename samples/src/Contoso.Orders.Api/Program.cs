@@ -40,7 +40,8 @@ public class Program
         builder.Services
             .AddFusionHybridCache()
             .AddDefaultCacheKeyProvider()
-            .AddHybridCacheIdempotencyProvider();
+            .AddRedisCoordination()
+            .AddIdempotencyProvider();
 
         builder.AddSqlServerClient("SqlServer");
         builder.Services

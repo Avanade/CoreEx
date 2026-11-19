@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Title>CoreEx Redis coordination.</Title>
+    <Description>Owner-checked Redis synchronization and retained idempotency outcomes.</Description>
+    <PackageTags>coreex redis synchronization leases idempotency</PackageTags>
+  </PropertyGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Scripts\**\*.lua" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="StackExchange.Redis" />
+    <ProjectReference Include="..\CoreEx\CoreEx.csproj" />
+  </ItemGroup>
+</Project>

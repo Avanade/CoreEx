@@ -43,7 +43,7 @@ public record class WorkArgs : IReadOnlyIdentifier<string>
     /// <summary>
     /// Gets or sets the expiry <see cref="TimeSpan"/>.
     /// </summary>
-    /// <remarks>The <see cref="WorkState.Expiry"/> will default to the <see cref="WorkOrchestrator.ExpiryTimeSpan"/> where not specified.</remarks>
+    /// <remarks>The <see cref="WorkState.ExpiryOn"/> will default to the <see cref="WorkOrchestrator.ExpiryTimeSpan"/> where not specified.</remarks>
     public TimeSpan? Expiry { get; set; }
 
     /// <summary>

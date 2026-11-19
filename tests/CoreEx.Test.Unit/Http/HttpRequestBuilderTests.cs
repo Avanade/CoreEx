@@ -428,7 +428,7 @@ public class HttpRequestBuilderTests
 
         captured.Should().NotBeNull();
         captured!.Headers.IfMatch.Should().ContainSingle().Which.Tag.Should().Be("\"abc\"");
-        captured.Headers.GetValues(HttpNames.IdempotencyKeyHeaderName).Should().ContainSingle().Which.Should().Be("idemp-123");
+        captured.Headers.GetValues(HttpNames.IdempotencyKeyHeaderName).Should().ContainSingle().Which.Should().Be("\"idemp-123\"");
         captured.Content.Should().BeNull(); // MergePatchJsonContentType applies to Content if present, but here content is not set yet
         var query = captured.RequestUri!.Query;
         query.Should().Contain("$filter=name%20eq%20%27test%27");
@@ -441,6 +441,27 @@ public class HttpRequestBuilderTests
         query.Should().Contain("$take=20");
         query.Should().Contain("$count=true");
         query.Should().Contain("$search=red%20bike");
+    }
+
+    [Test]
+    public async Task IdempotencyKeyHandler_QuotesGeneratedKeysAndPreservesExplicitHeaders()
+    {
+        string? actualHeader = null;
+        var inner = new InspectHandler((request, _) =>
+        {
+            actualHeader = request.Headers.GetValues(HttpNames.IdempotencyKeyHeaderName).Single();
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK));
+        });
+        var idempotency = new IdempotencyKeyHandler { KeyGenerator = () => "generated-key-123", InnerHandler = inner };
+        using var client = new HttpClient(idempotency);
+
+        using var generated = await client.PostAsync("https://example.com/api", content: null);
+        actualHeader.Should().Be("\"generated-key-123\"");
+
+        using var explicitRequest = new HttpRequestMessage(HttpMethod.Post, "https://example.com/api");
+        explicitRequest.Headers.TryAddWithoutValidation(HttpNames.IdempotencyKeyHeaderName, "caller supplied raw value").Should().BeTrue();
+        using var explicitResponse = await client.SendAsync(explicitRequest);
+        actualHeader.Should().Be("caller supplied raw value");
     }
 
     [Test]

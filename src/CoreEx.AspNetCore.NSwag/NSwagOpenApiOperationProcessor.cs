@@ -114,7 +114,7 @@ internal sealed class NSwagOpenApiOperationProcessor(OpenApiOptions options) : I
             OriginalName = nameof(IdempotencyKey),
             Description = Options.IdempotencyKeyText,
             Kind = OpenApiParameterKind.Header,
-            Schema = new JsonSchema { Type = JsonObjectType.String, MinLength = 8, MaxLength = 128, IsNullableRaw = !idempotencyKey.IsRequired }
+            Schema = new JsonSchema { Type = JsonObjectType.String, IsNullableRaw = !idempotencyKey.IsRequired }
         });
     }
 

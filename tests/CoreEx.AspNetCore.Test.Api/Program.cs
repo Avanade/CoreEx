@@ -35,7 +35,8 @@ public class Program
         builder.Services
             .AddMemoryCache()
             .AddMemoryOnlyHybridCache()
-            .AddHybridCacheIdempotencyProvider();
+            .AddInMemoryCoordination()
+            .AddIdempotencyProvider();
 
         // Add a health check so the health check endpoints have at least one registration to report/configure.
         builder.Services.AddHealthChecks().AddCheck("test-check", () => HealthCheckResult.Healthy(), tags: [nameof(HealthCheckTags.Live), nameof(HealthCheckTags.Startup), nameof(HealthCheckTags.Ready)]);

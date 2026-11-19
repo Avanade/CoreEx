@@ -28,7 +28,7 @@ This folder contains the AI artefacts that give GitHub Copilot and Claude Code a
 - Claude Code: `@coreex-expert`
 - Copilot Chat: switch to **Agent** mode and select **CoreEx Expert**
 
-The agent uses a local doc cache installed by `dotnet new coreex-ai` and refreshed by `/coreex-docs-sync` to avoid live GitHub fetches on every question. It covers all 20 CoreEx package guides, distinguishing packages referenced by the project from ones it could adopt. See the [agent README](./agents/README.md) for the resolution flowchart, cache structure, and adoption guide.
+The agent uses a local doc cache installed by `dotnet new coreex-ai` and refreshed by `/coreex-docs-sync` to avoid live GitHub fetches on every question. It covers all 21 CoreEx package guides, distinguishing packages referenced by the project from ones it could adopt. See the [agent README](./agents/README.md) for the resolution flowchart, cache structure, and adoption guide.
 
 ## Instructions
 

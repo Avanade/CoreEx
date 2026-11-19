@@ -18,6 +18,6 @@ public sealed class IdempotencyKeyMiddleware(IIdempotencyProvider provider) : IM
         if (idempotencyAttribute is null)
             await next(context).ConfigureAwait(false);
         else
-            await _provider.ThrowIfNull().OnInvokeAsync(idempotencyAttribute, context, next).ConfigureAwait(false);
+            await _provider.ThrowIfNull().OnInvokeAsync(idempotencyAttribute, context, next, context.RequestAborted).ConfigureAwait(false);
     }
 }

@@ -12,5 +12,6 @@ public interface IIdempotencyProvider
     /// <param name="attribute">The <see cref="IdempotencyKeyAttribute"/>.</param>
     /// <param name="context">The <see cref="HttpContext"/>.</param>
     /// <param name="next">The next <see cref="RequestDelegate"/>.</param>
-    Task OnInvokeAsync(IdempotencyKeyAttribute attribute, HttpContext context, RequestDelegate next);
+    /// <param name="cancellationToken">The host or invocation cancellation token.</param>
+    Task OnInvokeAsync(IdempotencyKeyAttribute attribute, HttpContext context, RequestDelegate next, CancellationToken cancellationToken = default);
 }

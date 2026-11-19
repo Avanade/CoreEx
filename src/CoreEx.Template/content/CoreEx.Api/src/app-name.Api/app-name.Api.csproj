@@ -9,6 +9,7 @@
     <PackageReference Include="CoreEx.AspNetCore" />
     <PackageReference Include="CoreEx.AspNetCore.NSwag" />
     <PackageReference Include="CoreEx.Caching.FusionCache" />
+    <PackageReference Include="CoreEx.Redis" />
     <!--#if implement-sqlserver-->
     <PackageReference Include="CoreEx.Database.SqlServer" />
     <PackageReference Include="Aspire.Microsoft.Data.SqlClient" />

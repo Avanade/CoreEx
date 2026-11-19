@@ -237,15 +237,14 @@ public class OtherApiTests : WithApiTester<Api.Program>
     {
         var ik = Guid.NewGuid().ToString();
 
-        // First request, should cache.
+        // First request executes and commits a replayable response.
         Test.Http()
             .Run(HttpMethod.Post, "/api/other/idempotency-mvc/1", hrm => hrm.WithIdempotencyKey(ik))
             .AssertCreated()
             .AssertJson("{\"id\":1,\"name\":\"Bob\"}");
 
-        // Second request, same Idempotency-Key and same request, should replay.
+        // Second request with the same logical key and request replays the committed response.
         Test.Http()
-            .ExpectLogContains($"Idempotent request with key '{ik}' has resulted in the response being replayed from the cache.")
             .Run(HttpMethod.Post, "/api/other/idempotency-mvc/1", hrm => hrm.WithIdempotencyKey(ik))
             .AssertCreated()
             .AssertJson("{\"id\":1,\"name\":\"Bob\"}");
@@ -256,17 +255,6 @@ public class OtherApiTests : WithApiTester<Api.Program>
             .Assert(HttpStatusCode.UnprocessableEntity)
             .Value!.Title.Should().Be("The 'Idempotency-Key' header has already been used for a different request.");
 
-        // Verify the cache contents.
-        Test.ScopedType<IHybridCache>(async test =>
-        {
-            var data = await test.Service.GetOrCreateByKeyAsync<IdempotencyKey>("Idempotency:" + ik, _ => throw new InvalidOperationException("Must not be empty!"));
-            data.Should().NotBeNull();
-            data.Status.Should().Be(IdempotencyStatus.CompletedAndReplayable);
-            data.StatusCode.Should().Be((int)HttpStatusCode.Created);
-            data.Headers.Should().ContainKey("Content-Type").WhoseValue.Should().Contain("application/json");
-            data.Body.Should().NotBeNull();
-            data.Body.ToString().Should().NotBeNull().And.Be("{\"id\":1,\"name\":\"Bob\"}");
-        });
     }
 
     [Test]
@@ -282,38 +270,25 @@ public class OtherApiTests : WithApiTester<Api.Program>
     public void Idempotency_Mvc_KeyInvalid_Failure()
     {
         Test.Http<ProblemDetails>()
-            .Run(HttpMethod.Post, "/api/other/idempotency-mvc/1", hrm => hrm.WithIdempotencyKey("inv@lid_key!"))
+            .Run(HttpMethod.Post, "/api/other/idempotency-mvc/1", hrm => hrm.Headers.TryAddWithoutValidation(CoreEx.Http.HttpNames.IdempotencyKeyHeaderName, "inv@lid_key!"))
             .AssertBadRequest()
             .Value!.Title.Should().Be("The 'Idempotency-Key' header is invalid.");
     }
 
     [Test]
-    public void Idempotency_Mvc_NotFound_EmptyCache()
+    public void Idempotency_Mvc_NotFound_IsACompletedReplayableResponse()
     {
         var ik = Guid.NewGuid().ToString();
 
-        // First request, should cache/remove due to error.
+        // A normally rendered application 404 is recorded as a completed outcome.
         Test.Http<ProblemDetails>()
             .Run(HttpMethod.Post, "/api/other/idempotency-mvc/88", hrm => hrm.WithIdempotencyKey(ik))
             .AssertNotFound();
 
-        // Second request, should cache/remove due to error.
+        // The duplicate request receives the same terminal status without a new attempt.
         Test.Http<ProblemDetails>()
             .Run(HttpMethod.Post, "/api/other/idempotency-mvc/88", hrm => hrm.WithIdempotencyKey(ik))
             .AssertNotFound();
-
-        // Verify that the cache does not contain the idempotency key.
-        Test.ScopedType<IHybridCache>(async test =>
-        {
-            var exists = true;
-            var entry = await test.Service.GetOrCreateByKeyAsync(ik, _ =>
-            {
-                exists = false;
-                return Task.FromResult(new object());
-            });
-
-            exists.Should().BeFalse();
-        });
     }
 
     [Test]
@@ -338,15 +313,14 @@ public class OtherApiTests : WithApiTester<Api.Program>
     {
         var ik = Guid.NewGuid().ToString();
 
-        // First request, should cache.
+        // First request executes and commits a replayable response.
         Test.Http()
             .Run(HttpMethod.Post, "/api/idempotency-key/test/1", hrm => hrm.WithIdempotencyKey(ik))
             .AssertCreated()
             .AssertJson("{\"id\":1,\"name\":\"Jen\"}");
 
-        // Second request, same Idempotency-Key and same request, should replay.
+        // Second request with the same logical key and request replays the committed response.
         Test.Http()
-            .ExpectLogContains($"Idempotent request with key '{ik}' has resulted in the response being replayed from the cache.")
             .Run(HttpMethod.Post, "/api/idempotency-key/test/1", hrm => hrm.WithIdempotencyKey(ik))
             .AssertCreated()
             .AssertJson("{\"id\":1,\"name\":\"Jen\"}");
@@ -357,16 +331,5 @@ public class OtherApiTests : WithApiTester<Api.Program>
             .Assert(HttpStatusCode.UnprocessableEntity)
             .Value!.Title.Should().Be("The 'Idempotency-Key' header has already been used for a different request.");
 
-        // Verify the cache contents.
-        Test.ScopedType<IHybridCache>(async test =>
-        {
-            var data = await test.Service.GetOrCreateByKeyAsync<IdempotencyKey>("Idempotency:" + ik, _ => throw new InvalidOperationException("Must not be empty!"));
-            data.Should().NotBeNull();
-            data.Status.Should().Be(IdempotencyStatus.CompletedAndReplayable);
-            data.StatusCode.Should().Be((int)HttpStatusCode.Created);
-            data.Headers.Should().ContainKey("Content-Type").WhoseValue.Should().Contain("application/json");
-            data.Body.Should().NotBeNull();
-            data.Body.ToString().Should().NotBeNull().And.Be("{\"id\":1,\"name\":\"Jen\"}");
-        });
     }
 }

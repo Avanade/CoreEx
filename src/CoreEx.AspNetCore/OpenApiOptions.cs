@@ -58,7 +58,7 @@ public class OpenApiOptions
     /// <summary>
     /// Gets or sets the <see cref="HttpNames.IdempotencyKeyHeaderName"/> descriptive text.
     /// </summary>
-    public string IdempotencyKeyText { get; set; } = "The idempotency key to use for the request (must be between 8 and 128 characters in length and consist of only letters, numbers, hyphens and underscores).";
+    public string IdempotencyKeyText { get; set; } = "One RFC 9651 Structured Field string containing the logical idempotency key, for example \"order-12345678\". Decoded keys are limited to 8-128 visible ASCII characters. The server may also accept the legacy bare-key form unless strict header validation is enabled.";
 
     /// <summary>
     /// Gets or sets the <see cref="HttpNames.WarningMessagesHeaderName"/> descriptive text.

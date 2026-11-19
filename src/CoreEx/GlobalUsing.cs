@@ -1,5 +1,6 @@
 global using CoreEx.Abstractions;
 global using CoreEx.Caching;
+global using CoreEx.Coordination;
 global using CoreEx.Data;
 global using CoreEx.DependencyInjection;
 global using CoreEx.Diagnostics;
@@ -8,7 +9,6 @@ global using CoreEx.Entities.Extended;
 global using CoreEx.Entities;
 global using CoreEx.Globalization;
 global using CoreEx.HealthChecks;
-global using CoreEx.Hosting.Synchronization;
 global using CoreEx.Hosting;
 global using CoreEx.Http.Abstractions;
 global using CoreEx.Http;

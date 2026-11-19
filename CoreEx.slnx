@@ -158,6 +158,7 @@
     <Project Path="src/CoreEx.Azure.Messaging.ServiceBus/CoreEx.Azure.Messaging.ServiceBus.csproj" />
     <Project Path="src/CoreEx.Azure.Storage.Blobs/CoreEx.Azure.Storage.Blobs.csproj" />
     <Project Path="src/CoreEx.Caching.FusionCache/CoreEx.Caching.FusionCache.csproj" />
+    <Project Path="src/CoreEx.Redis/CoreEx.Redis.csproj" />
     <Project Path="src/CoreEx.CodeGen/CoreEx.CodeGen.csproj" />
     <Project Path="src/CoreEx.Cosmos/CoreEx.Cosmos.csproj" />
     <Project Path="src/CoreEx.Data.GraphQL/CoreEx.Data.GraphQL.csproj" />
@@ -185,6 +186,7 @@
     <Project Path="tests/CoreEx.Azure.Messaging.ServiceBus.Test.Unit/CoreEx.Azure.Messaging.ServiceBus.Test.Unit.csproj" />
     <Project Path="tests/CoreEx.Azure.Storage.Blobs.Test.Unit/CoreEx.Azure.Storage.Blobs.Test.Unit.csproj" />
     <Project Path="tests/CoreEx.Caching.Redis.Test.Unit/CoreEx.Caching.Redis.Test.Unit.csproj" />
+    <Project Path="tests/CoreEx.Redis.Test.Worker/CoreEx.Redis.Test.Worker.csproj" />
     <Project Path="tests/CoreEx.CodeGen.Test.Unit/CoreEx.CodeGen.Test.Unit.csproj" />
     <Project Path="tests/CoreEx.Cosmos.Test.Unit/CoreEx.Cosmos.Test.Unit.csproj" />
     <Project Path="tests/CoreEx.Data.GraphQL.Test.Unit/CoreEx.Data.GraphQL.Test.Unit.csproj" />

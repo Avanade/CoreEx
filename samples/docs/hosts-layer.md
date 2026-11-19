@@ -74,6 +74,8 @@ Responsibilities that are deliberately offloaded to the `WebApi` helper include:
 - Deserializing the request body and binding route/query parameters.
 - Mapping CoreEx exception types (`NotFoundException`, `ValidationException`, `BusinessException`, etc.) to the appropriate HTTP problem-detail responses.
 - Enforcing idempotency via the `[IdempotencyKey]` attribute and the `UseIdempotencyKey()` middleware.
+
+The HTTP integration is registered with `AddIdempotencyProvider()` and an explicit coordination store. Multi-instance API and Subscribe hosts use `CoreEx.Redis` through `AddRedisCoordination()`; the Aspire `AddRedisDistributedCache("redis")` integration already supplies the host-owned multiplexer, so a separate `AddRedisClient("redis")` registration is only needed when the host does not register distributed caching. FusionCache remains responsible for ordinary/reference-data caching. Idempotency replays completed responses, including rendered errors, while outcomes that become unknown after application entry remain indeterminate and are not automatically retried; neither Redis nor in-memory coordination guarantees exactly-once business effects.
 - Generating `Location` headers on POST responses via `WithLocationUri`.
 - Supporting `HTTP PATCH` with `application/merge-patch+json` semantics.
 

@@ -100,6 +100,8 @@ builder.Services
     .AddHttpWebApi();     // registers Http.WebApi for Minimal API
 ```
 
+HTTP idempotency is registered separately from storage: use `AddIdempotencyProvider()` with `AddRedisCoordination()` for multi-instance hosts, or `AddInMemoryCoordination()` only for a deliberately single-instance host. See the [idempotency guide](./Idempotency/README.md) and [CoreEx.Redis guide](../CoreEx.Redis/README.md).
+
 ## Specialized JSON and Error Representations
 
 For opt-in Accept validation, call `options.WithAccept()` after any `WithContentType(...)` override and before service execution, like the immediate `WithIfMatchRequired()` guard. It checks the override or owning WebApi default, accepts missing headers and standard wildcards, honors media parameters and quality exclusions, and returns 406 when incompatible (400 when malformed). Vendor `+json` and ordinary JSON are distinct. It adds `Vary: Accept`, does not select representations or change error rendering, and must be repeated if the content type changes afterward. Do not apply it to explicit results as though it inspected their representation. No call means no enforcement; use native ASP.NET Core for negotiated formats.

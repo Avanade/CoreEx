@@ -8,6 +8,7 @@
     <PackageReference Include="CoreEx.AspNetCore" />
     <PackageReference Include="CoreEx.AspNetCore.NSwag" />
     <PackageReference Include="CoreEx.Caching.FusionCache" />
+    <PackageReference Include="CoreEx.Redis" />
     <!--#if implement-servicebus-->
     <PackageReference Include="CoreEx.Azure.Messaging.ServiceBus" />
     <PackageReference Include="Aspire.Azure.Messaging.ServiceBus" />

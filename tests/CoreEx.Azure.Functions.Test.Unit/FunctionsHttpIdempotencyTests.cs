@@ -58,7 +58,7 @@ public class FunctionsHttpIdempotencyTests
 
     [TestCase(false)]
     [TestCase(true)]
-    public async Task ApplicationOrRendererFailure_PropagatesOnceAndAllowsRetry(bool rendering)
+    public async Task ApplicationOrRendererFailure_PropagatesAndBlocksAutomaticRetry(bool rendering)
     {
         using var services = CreateServices();
         var webApi = new WebApi { ConvertUnhandledExceptionsToProblemDetails = true };
@@ -72,12 +72,18 @@ public class FunctionsHttpIdempotencyTests
         result.Executions.Should().Be(rendering ? 1 : 0);
 
         var retry = CreateRequest(services);
-        await webApi.FunctionWithIdempotencyAsync(retry, _ => Task.FromResult<IActionResult>(new ContentResult { Content = "retry" }));
-        ReadBody(retry).Should().Be("retry");
+        var retries = 0;
+        var retryResult = await webApi.FunctionWithIdempotencyAsync(retry, _ =>
+        {
+            retries++;
+            return Task.FromResult<IActionResult>(new ContentResult { Content = "unsafe retry" });
+        });
+        retryResult.Should().BeOfType<ObjectResult>().Which.StatusCode.Should().Be(StatusCodes.Status409Conflict);
+        retries.Should().Be(0);
     }
 
     [Test]
-    public async Task CancellationDuringApplication_PropagatesAndAllowsRetry()
+    public async Task CancellationDuringApplication_PropagatesAndBlocksAutomaticRetry()
     {
         using var services = CreateServices();
         using var cancellation = new CancellationTokenSource();
@@ -91,8 +97,44 @@ public class FunctionsHttpIdempotencyTests
         (await execute.Should().ThrowAsync<OperationCanceledException>()).Which.Should().BeSameAs(error);
 
         var retry = CreateRequest(services);
-        await webApi.FunctionWithIdempotencyAsync(retry, _ => Task.FromResult<IActionResult>(new ContentResult { Content = "retry" }));
-        ReadBody(retry).Should().Be("retry");
+        var retries = 0;
+        var retryResult = await webApi.FunctionWithIdempotencyAsync(retry, _ =>
+        {
+            retries++;
+            return Task.FromResult<IActionResult>(new ContentResult { Content = "unsafe retry" });
+        });
+        retryResult.Should().BeOfType<ObjectResult>().Which.StatusCode.Should().Be(StatusCodes.Status409Conflict);
+        retries.Should().Be(0);
+    }
+
+    [TestCase(false, false)]
+    [TestCase(false, true)]
+    [TestCase(true, false)]
+    [TestCase(true, true)]
+    public async Task CancellationAfterApplicationEntry_ReachesOperationAndPreventsRendering(bool withKey, bool cancelInvocation)
+    {
+        using var services = CreateServices();
+        using var invocationCancellation = new CancellationTokenSource();
+        using var requestCancellation = new CancellationTokenSource();
+        var request = CreateRequest(services);
+        request.HttpContext.RequestAborted = requestCancellation.Token;
+        if (!withKey)
+            request.Headers.Remove("Idempotency-Key");
+
+        var called = false;
+        var result = new FailingResult(new AssertionException("A canceled operation must not render."));
+        Func<Task> execute = () => new WebApi().FunctionWithIdempotencyAsync(request, operationToken =>
+        {
+            called = true;
+            (cancelInvocation ? invocationCancellation : requestCancellation).Cancel();
+            operationToken.IsCancellationRequested.Should().BeTrue();
+            return Task.FromResult<IActionResult>(result);
+        }, cancellationToken: invocationCancellation.Token);
+
+        await execute.Should().ThrowAsync<OperationCanceledException>();
+        called.Should().BeTrue();
+        result.Executions.Should().Be(0);
+        request.HttpContext.RequestAborted.Should().Be(requestCancellation.Token);
     }
 
     [Test]
@@ -133,8 +175,8 @@ public class FunctionsHttpIdempotencyTests
         services.AddLogging();
         services.AddSingleton<IConfiguration>(new ConfigurationBuilder().Build());
         services.AddMvc();
-        services.AddSingleton<CoreEx.Caching.IHybridCache>(new CoreEx.Caching.MemoryOnlyHybridCache());
-        services.AddHybridCacheIdempotencyProvider();
+        services.AddInMemoryCoordination();
+        services.AddIdempotencyProvider();
         return services.BuildServiceProvider();
     }
 

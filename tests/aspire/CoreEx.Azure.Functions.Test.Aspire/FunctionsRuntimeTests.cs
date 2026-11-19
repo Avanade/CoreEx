@@ -131,17 +131,18 @@ public class FunctionsRuntimeTests : WithAspireTester<Projects.CoreEx_Azure_Func
     }
 
     [Test]
-    public async Task Idempotency_FailedResponseAllowsRetry()
+    public async Task Idempotency_ReplaysRenderedFailureWithoutRetry()
     {
         var id = Runtime.NewGuid().ToString("N");
         using var failure = await SendIdempotentAsync(id, "fail-once", id);
         await AssertIdempotencyProblemAsync(failure, HttpStatusCode.InternalServerError);
-        (await failure.Content.ReadAsStringAsync()).Should().NotContain("Internal idempotency diagnostic.");
-        using var retry = await SendIdempotentAsync(id, "fail-once", id);
-        retry.StatusCode.Should().Be(HttpStatusCode.Created);
+        var body = await failure.Content.ReadAsStringAsync();
+        body.Should().NotContain("Internal idempotency diagnostic.");
+
         using var replay = await SendIdempotentAsync(id, "fail-once", id);
-        (await replay.Content.ReadAsStringAsync()).Should().Be(await retry.Content.ReadAsStringAsync());
-        (await ReadIdempotencyCountAsync(id)).Should().Be(2);
+        await AssertIdempotencyProblemAsync(replay, HttpStatusCode.InternalServerError);
+        (await replay.Content.ReadAsStringAsync()).Should().Be(body);
+        (await ReadIdempotencyCountAsync(id)).Should().Be(1);
     }
 
     [Test]

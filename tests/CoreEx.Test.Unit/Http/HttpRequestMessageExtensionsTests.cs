@@ -62,11 +62,20 @@ public class HttpRequestMessageExtensionsTests
     }
 
     [Test]
-    public void WithIdempotencyKey_AddsHeader()
+    public void WithIdempotencyKey_UsesStructuredFieldString()
     {
         var request = new HttpRequestMessage(HttpMethod.Post, "https://example.com/api");
-        request.WithIdempotencyKey("abc-123");
+        request.WithIdempotencyKey("abc-12345");
 
-        request.Headers.GetValues(CoreEx.Http.HttpNames.IdempotencyKeyHeaderName).Should().ContainSingle().Which.Should().Be("abc-123");
+        request.Headers.GetValues(CoreEx.Http.HttpNames.IdempotencyKeyHeaderName).Should().ContainSingle().Which.Should().Be("\"abc-12345\"");
+    }
+
+    [Test]
+    public void WithIdempotencyKey_EscapesStructuredFieldStringCharacters()
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, "https://example.com/api");
+        request.WithIdempotencyKey("quote\"and\\slash");
+
+        request.Headers.GetValues(CoreEx.Http.HttpNames.IdempotencyKeyHeaderName).Should().ContainSingle().Which.Should().Be("\"quote\\\"and\\\\slash\"");
     }
 }
