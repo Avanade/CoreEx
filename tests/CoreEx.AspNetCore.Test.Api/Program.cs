@@ -34,6 +34,7 @@ public class Program
         // Add in-memory based idempotency provider.
         builder.Services
             .AddMemoryCache()
+            .AddDefaultCacheKeyProvider()
             .AddMemoryOnlyHybridCache()
             .AddInMemoryCoordination()
             .AddIdempotencyProvider();

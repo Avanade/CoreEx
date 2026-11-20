@@ -45,7 +45,7 @@ public static partial class CoreExAspNetCoreExtensions
     {
         services.ThrowIfNull().AddScoped<IIdempotencyProvider>(sp =>
         {
-            var provider = new IdempotencyProvider(sp.GetRequiredService<CoreEx.Idempotency.IIdempotencyStore>(), sp.GetService<ILogger<IdempotencyProvider>>());
+            var provider = new IdempotencyProvider(sp.GetRequiredService<CoreEx.Idempotency.IIdempotencyStore>(), sp.GetService<ILogger<IdempotencyProvider>>(), sp.GetService<IHostSettings>(), sp.GetService<ExecutionContext>());
             configure?.Invoke(sp, provider);
             return provider;
         });

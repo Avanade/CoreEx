@@ -6,6 +6,8 @@ public class InMemoryCoordinationTests
     private static Microsoft.Extensions.DependencyInjection.ServiceProvider Services()
         => new Microsoft.Extensions.DependencyInjection.ServiceCollection().AddLogging().AddInMemoryCoordination().BuildServiceProvider();
 
+    private static OperationKey Key(string id) => OperationKey.ForDomain("tests", "coordination", id);
+
     [Test]
     public async Task IndependentScopes_OnlyOneOwner_ThenReleaseAllowsReentry()
     {
@@ -14,10 +16,10 @@ public class InMemoryCoordinationTests
         await using var second = services.CreateAsyncScope();
         var a = first.ServiceProvider.GetRequiredService<ISynchronizer>();
         var b = second.ServiceProvider.GetRequiredService<ISynchronizer>();
-        var attempts = await Task.WhenAll(a.TryAcquireAsync("one"), b.TryAcquireAsync("one"));
+        var attempts = await Task.WhenAll(a.TryAcquireAsync(Key("one")), b.TryAcquireAsync(Key("one")));
         attempts.Count(x => x is not null).Should().Be(1);
         await attempts.Single(x => x is not null)!.DisposeAsync();
-        await using var reacquired = await b.TryAcquireAsync("one");
+        await using var reacquired = await b.TryAcquireAsync(Key("one"));
         reacquired.Should().NotBeNull();
     }
 
@@ -26,14 +28,14 @@ public class InMemoryCoordinationTests
     {
         await using var services = Services();
         var store = services.GetRequiredService<CoreEx.Idempotency.IIdempotencyStore>();
-        var first = await store.TryBeginAsync("one", "request");
-        (await store.TryBeginAsync("one", "request")).Outcome.Should().Be(CoreEx.Idempotency.IdempotencyOutcome.InProgress);
-        (await store.TryResolveAsync("one", first.Revision!, null, true)).Should().BeFalse();
+        var first = await store.TryBeginAsync(Key("one"), "request");
+        (await store.TryBeginAsync(Key("one"), "request")).Outcome.Should().Be(CoreEx.Idempotency.IdempotencyOutcome.InProgress);
+        (await store.TryResolveAsync(Key("one"), first.Revision!, null, true)).Should().BeFalse();
         await first.Attempt!.DisposeAsync();
-        (await store.TryBeginAsync("one", "request")).Outcome.Should().Be(CoreEx.Idempotency.IdempotencyOutcome.Indeterminate);
-        (await store.TryResolveAsync("one", "wrong", null, true)).Should().BeFalse();
-        (await store.TryResolveAsync("one", first.Revision!, null, true)).Should().BeTrue();
-        var retry = await store.TryBeginAsync("one", "request");
+        (await store.TryBeginAsync(Key("one"), "request")).Outcome.Should().Be(CoreEx.Idempotency.IdempotencyOutcome.Indeterminate);
+        (await store.TryResolveAsync(Key("one"), "wrong", null, true)).Should().BeFalse();
+        (await store.TryResolveAsync(Key("one"), first.Revision!, null, true)).Should().BeTrue();
+        var retry = await store.TryBeginAsync(Key("one"), "request");
         retry.Outcome.Should().Be(CoreEx.Idempotency.IdempotencyOutcome.Acquired);
         await retry.Attempt!.DisposeAsync();
     }
@@ -43,29 +45,60 @@ public class InMemoryCoordinationTests
     {
         await using var services = Services();
         var store = services.GetRequiredService<CoreEx.Idempotency.IIdempotencyStore>();
-        var first = await store.TryBeginAsync("one", "request");
+        var first = await store.TryBeginAsync(Key("one"), "request");
         await first.Attempt!.CompleteAsync(new BinaryData("response"));
         await first.Attempt.DisposeAsync();
-        var replay = await store.TryBeginAsync("one", "request");
+        var replay = await store.TryBeginAsync(Key("one"), "request");
         replay.Outcome.Should().Be(CoreEx.Idempotency.IdempotencyOutcome.Completed);
         replay.Response!.ToString().Should().Be("response");
-        (await store.TryBeginAsync("one", "changed")).Outcome.Should().Be(CoreEx.Idempotency.IdempotencyOutcome.DifferentRequest);
+        (await store.TryBeginAsync(Key("one"), "changed")).Outcome.Should().Be(CoreEx.Idempotency.IdempotencyOutcome.DifferentRequest);
     }
 
     [Test]
-    public async Task KeyProviderIsCapturedOnce_AndLaterContextChangeDoesNotRedirectRelease()
+    public async Task ExplicitKeys_SeparateDomainsTenantsAndPurposes_WithoutAmbientQualification()
     {
         var qualifier = new ChangingQualifier();
         await using var services = new Microsoft.Extensions.DependencyInjection.ServiceCollection().AddLogging()
             .AddSingleton<CoreEx.Caching.ICacheKeyProvider>(qualifier).AddInMemoryCoordination().BuildServiceProvider();
         var synchronizer = services.GetRequiredService<ISynchronizer>();
-        var lease = await synchronizer.TryAcquireAsync("one");
+        var store = services.GetRequiredService<CoreEx.Idempotency.IIdempotencyStore>();
+        var key = OperationKey.ForTenant("orders", "tenant-a", "import", "same");
+
+        await using var lease = await synchronizer.TryAcquireAsync(key);
         qualifier.Prefix = "tenant-b";
-        await lease!.DisposeAsync();
-        qualifier.Prefix = "tenant-a";
-        await using var next = await synchronizer.TryAcquireAsync("one");
-        next.Should().NotBeNull();
-        qualifier.Calls.Should().Be(2);
+        (await synchronizer.TryAcquireAsync(key)).Should().BeNull();
+        await using var otherTenant = await synchronizer.TryAcquireAsync(OperationKey.ForTenant("orders", "tenant-b", "import", "same"));
+        await using var otherDomain = await synchronizer.TryAcquireAsync(OperationKey.ForTenant("products", "tenant-a", "import", "same"));
+        await using var domainWide = await synchronizer.TryAcquireAsync(OperationKey.ForDomain("orders", "import", "same"));
+        otherTenant.Should().NotBeNull();
+        otherDomain.Should().NotBeNull();
+        domainWide.Should().NotBeNull();
+
+        var attempt = await store.TryBeginAsync(key, "request");
+        attempt.Outcome.Should().Be(CoreEx.Idempotency.IdempotencyOutcome.Acquired);
+        await attempt.Attempt!.DisposeAsync();
+        qualifier.Calls.Should().Be(0);
+    }
+
+    [Test]
+    public async Task ExplicitIdempotencyResolution_UsesTheSameCompleteIdentity()
+    {
+        await using var services = Services();
+        var store = services.GetRequiredService<CoreEx.Idempotency.IIdempotencyStore>();
+        var key = OperationKey.ForTenant("orders", "tenant-a", "import", "same");
+        var otherTenant = OperationKey.ForTenant("orders", "tenant-b", "import", "same");
+        var first = await store.TryBeginAsync(key, "request");
+        await first.Attempt!.DisposeAsync();
+
+        (await store.TryResolveAsync(otherTenant, first.Revision!, null, true)).Should().BeFalse();
+        (await store.TryBeginAsync(key, "request")).Outcome.Should().Be(CoreEx.Idempotency.IdempotencyOutcome.Indeterminate);
+        (await store.TryResolveAsync(key, first.Revision!, null, true)).Should().BeTrue();
+        var retry = await store.TryBeginAsync(key, "request");
+        retry.Outcome.Should().Be(CoreEx.Idempotency.IdempotencyOutcome.Acquired);
+        await retry.Attempt!.CompleteAsync(new BinaryData("response"));
+        await retry.Attempt.DisposeAsync();
+        (await store.TryBeginAsync(key, "request")).Response!.ToString().Should().Be("response");
+        (await store.TryBeginAsync(key, "changed")).Outcome.Should().Be(CoreEx.Idempotency.IdempotencyOutcome.DifferentRequest);
     }
 
     [Test]
@@ -73,13 +106,13 @@ public class InMemoryCoordinationTests
     {
         await using var services = Services();
         var store = services.GetRequiredService<CoreEx.Idempotency.IIdempotencyStore>();
-        var begun = await store.TryBeginAsync("opaque", "request");
+        var begun = await store.TryBeginAsync(Key("opaque"), "request");
         await using var attempt = begun.Attempt!;
         await attempt.CompleteAsync(new BinaryData(new byte[] { 0x80 }));
         await attempt.CompleteAsync(new BinaryData(new byte[] { 0x80 }));
         Func<Task> changed = () => attempt.CompleteAsync(new BinaryData(new byte[] { 0x81 }));
         await changed.Should().ThrowAsync<InvalidOperationException>();
-        (await store.TryBeginAsync("opaque", "request")).Response!.ToArray().Should().Equal(0x80);
+        (await store.TryBeginAsync(Key("opaque"), "request")).Response!.ToArray().Should().Equal(0x80);
     }
 
     private sealed class ChangingQualifier : CoreEx.Caching.ICacheKeyProvider

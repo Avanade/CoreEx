@@ -8,7 +8,7 @@ namespace Microsoft.Extensions.DependencyInjection;
 public static class CoreExRedisExtensions
 {
     /// <summary>
-    /// Adds scoped Redis providers over the host-owned connection and existing key qualifier.
+    /// Adds scoped Redis providers over the host-owned connection.
     /// </summary>
     /// <param name="services">The service collection.</param>
     /// <param name="options">The optional ownership options.</param>
@@ -21,8 +21,7 @@ public static class CoreExRedisExtensions
         if (maxIdempotencyPayloadSize is <= 0)
             throw new ArgumentOutOfRangeException(nameof(maxIdempotencyPayloadSize));
 
-        services.TryAddScoped<ICacheKeyProvider, DefaultCacheKeyProvider>();
-        services.AddScoped(sp => new CoreEx.Redis.RedisCoordination(sp.GetRequiredService<IConnectionMultiplexer>(), sp.GetRequiredService<ICacheKeyProvider>(), sp.GetRequiredService<ILogger<CoreEx.Redis.RedisCoordination>>(), options, maxIdempotencyPayloadSize));
+        services.AddScoped(sp => new CoreEx.Redis.RedisCoordination(sp.GetRequiredService<IConnectionMultiplexer>(), sp.GetRequiredService<ILogger<CoreEx.Redis.RedisCoordination>>(), options, maxIdempotencyPayloadSize));
         services.AddScoped<ISynchronizer>(sp => sp.GetRequiredService<CoreEx.Redis.RedisCoordination>());
         services.AddScoped<IIdempotencyStore>(sp => sp.GetRequiredService<CoreEx.Redis.RedisCoordination>());
         return services;

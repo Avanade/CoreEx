@@ -45,29 +45,30 @@ public class WorkOrchestrator(IWorkProvider provider, WorkOrchestratorOptions? o
     }
 
     /// <summary>
-    /// Gets the latest state for a work identifier, applying automatic expiry when necessary.
+    /// Gets the latest state for an operation identity, applying automatic expiry when necessary.
     /// </summary>
-    /// <param name="id">The work identifier.</param>
+    /// <param name="operationKey">The complete operation identity.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The state where found; otherwise, <see langword="null"/>.</returns>
-    /// <remarks>This method does not check the owner and is intended for trusted system and worker code. Use <see cref="GetWithTypeAsync(string, string, CancellationToken)"/> for caller-facing access.</remarks>
-    public Task<WorkState?> GetAsync(string id, CancellationToken cancellationToken = default)
-        => _invoker.InvokeAsync(this, async (_, ct) => (await TransitionAsync(id, (_, _) => null, ct).ConfigureAwait(false)).State, cancellationToken);
+    /// <remarks>This method does not check the owner and is intended for trusted system and worker code. Use <see cref="GetWithTypeAsync(string, OperationKey, CancellationToken)"/> for caller-facing access.</remarks>
+    public Task<WorkState?> GetAsync(OperationKey operationKey, CancellationToken cancellationToken = default)
+        => _invoker.InvokeAsync(this, async (_, ct) => (await TransitionAsync(operationKey, (_, _) => null, ct).ConfigureAwait(false)).State, cancellationToken);
 
     /// <summary>
     /// Atomically creates a work item in the <see cref="WorkStatus.Created"/> state.
     /// </summary>
     /// <param name="args">The work creation arguments.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>The new state, or a conflict when the identifier is already in use.</returns>
+    /// <returns>The new state, or a conflict when the operation identity is already in use.</returns>
     /// <remarks>The owner defaults to the current execution user, or <see cref="AuthenticationUser.EnvironmentUser"/> without an execution context. An unauthenticated owner creates unowned work.</remarks>
     public Task<Result<WorkState>> CreateAsync(WorkArgs args, CancellationToken cancellationToken = default)
         => _invoker.InvokeAsync<Result<WorkState>>(this, async (_, ct) =>
         {
             args.ThrowIfNull();
-            var read = await Provider.GetAsync(args.Id, ct).ConfigureAwait(false);
+            var read = await Provider.GetAsync(args.OperationKey, ct).ConfigureAwait(false);
+            ValidateStateIdentity(read.State, args.OperationKey);
             if (read.State is not null)
-                return Result.ConflictError($"Work '{args.Id}' already exists.");
+                return Result.ConflictError($"Work '{args.OperationKey.InstanceId}' already exists.");
 
             var expiry = args.Expiry ?? ExpiryTimeSpan;
             if (expiry <= TimeSpan.Zero)
@@ -91,6 +92,10 @@ public class WorkOrchestrator(IWorkProvider provider, WorkOrchestratorOptions? o
 
             var state = new WorkState
             {
+                Scope = args.OperationKey.Scope,
+                DomainName = args.OperationKey.DomainName,
+                TenantId = args.OperationKey.TenantId,
+                OperationName = args.OperationKey.OperationName,
                 Id = args.Id,
                 TypeName = args.TypeName.ThrowIfNullOrEmpty(),
                 Status = WorkStatus.Created,
@@ -110,27 +115,28 @@ public class WorkOrchestrator(IWorkProvider provider, WorkOrchestratorOptions? o
             }
             catch (WorkOutcomeUnknownException)
             {
-                var latest = await Provider.GetAsync(args.Id, ct).ConfigureAwait(false);
+                var latest = await Provider.GetAsync(args.OperationKey, ct).ConfigureAwait(false);
+                ValidateStateIdentity(latest.State, args.OperationKey);
                 if (latest.State?.Revision == state.Revision)
                     return latest.State;
 
                 throw;
             }
 
-            return Result.ConflictError($"Work '{args.Id}' already exists.");
+            return Result.ConflictError($"Work '{args.OperationKey.InstanceId}' already exists.");
         }, cancellationToken);
 
     /// <summary>
     /// Starts a created work item or takes over an expired worker lease.
     /// </summary>
-    /// <param name="id">The work identifier.</param>
+    /// <param name="operationKey">The complete operation identity.</param>
     /// <param name="leaseOwner">The opaque lease owner token.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The explicit transition outcome and, when applied, the worker lease.</returns>
-    public Task<WorkTransitionResult> StartAsync(string id, string leaseOwner, CancellationToken cancellationToken = default)
+    public Task<WorkTransitionResult> StartAsync(OperationKey operationKey, string leaseOwner, CancellationToken cancellationToken = default)
     {
         leaseOwner.ThrowIfNullOrEmpty(nameof(leaseOwner));
-        return _invoker.InvokeAsync(this, (_, ct) => TransitionAsync(id, (state, now) =>
+        return _invoker.InvokeAsync(this, (_, ct) => TransitionAsync(operationKey, (state, now) =>
         {
             if (IsFinished(state.Status))
                 return new(WorkTransitionOutcome.AlreadyFinished, false);
@@ -174,7 +180,7 @@ public class WorkOrchestrator(IWorkProvider provider, WorkOrchestratorOptions? o
     public Task<WorkTransitionResult> RenewLeaseAsync(WorkLease lease, CancellationToken cancellationToken = default)
     {
         lease.ThrowIfNull();
-        return _invoker.InvokeAsync(this, (_, ct) => TransitionAsync(lease.WorkId, (state, now) =>
+        return _invoker.InvokeAsync(this, (_, ct) => TransitionAsync(lease.WorkKey, (state, now) =>
         {
             if (IsFinished(state.Status))
                 return new(WorkTransitionOutcome.AlreadyFinished, false);
@@ -199,7 +205,7 @@ public class WorkOrchestrator(IWorkProvider provider, WorkOrchestratorOptions? o
     public Task<WorkTransitionResult> ReleaseLeaseAsync(WorkLease lease, CancellationToken cancellationToken = default)
     {
         lease.ThrowIfNull();
-        return _invoker.InvokeAsync(this, (_, ct) => TransitionAsync(lease.WorkId, (state, now) =>
+        return _invoker.InvokeAsync(this, (_, ct) => TransitionAsync(lease.WorkKey, (state, now) =>
         {
             if (IsFinished(state.Status))
                 return new(WorkTransitionOutcome.AlreadyFinished, false);
@@ -229,7 +235,7 @@ public class WorkOrchestrator(IWorkProvider provider, WorkOrchestratorOptions? o
         if (progress.PercentComplete is < 0 or > 100)
             throw new ArgumentOutOfRangeException(nameof(progress), "Progress percentage must be between 0 and 100.");
 
-        return _invoker.InvokeAsync(this, (_, ct) => TransitionAsync(lease.WorkId, (state, now) =>
+        return _invoker.InvokeAsync(this, (_, ct) => TransitionAsync(lease.WorkKey, (state, now) =>
         {
             if (IsFinished(state.Status))
                 return new(WorkTransitionOutcome.AlreadyFinished, false);
@@ -256,7 +262,7 @@ public class WorkOrchestrator(IWorkProvider provider, WorkOrchestratorOptions? o
     {
         lease.ThrowIfNull();
         ValidateResourceLocation(resourceLocation);
-        return _invoker.InvokeAsync(this, (_, ct) => TransitionAsync(lease.WorkId, (state, now) =>
+        return _invoker.InvokeAsync(this, (_, ct) => TransitionAsync(lease.WorkKey, (state, now) =>
         {
             if (IsFinished(state.Status))
                 return new(WorkTransitionOutcome.AlreadyFinished, false);
@@ -284,7 +290,7 @@ public class WorkOrchestrator(IWorkProvider provider, WorkOrchestratorOptions? o
     {
         lease.ThrowIfNull();
         ValidateError(error);
-        return _invoker.InvokeAsync(this, (_, ct) => TransitionAsync(lease.WorkId, (state, now) =>
+        return _invoker.InvokeAsync(this, (_, ct) => TransitionAsync(lease.WorkKey, (state, now) =>
         {
             if (IsFinished(state.Status))
                 return new(WorkTransitionOutcome.AlreadyFinished, false);
@@ -303,14 +309,14 @@ public class WorkOrchestrator(IWorkProvider provider, WorkOrchestratorOptions? o
     /// <summary>
     /// Fails work when no live lease owns it, such as a disposition-driven failure.
     /// </summary>
-    /// <param name="id">The work identifier.</param>
+    /// <param name="operationKey">The complete operation identity.</param>
     /// <param name="error">The safe failure details.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The transition outcome.</returns>
-    public Task<WorkTransitionResult> FailUnownedAsync(string id, WorkError error, CancellationToken cancellationToken = default)
+    public Task<WorkTransitionResult> FailUnownedAsync(OperationKey operationKey, WorkError error, CancellationToken cancellationToken = default)
     {
         ValidateError(error);
-        return _invoker.InvokeAsync(this, (_, ct) => TransitionAsync(id, (state, now) =>
+        return _invoker.InvokeAsync(this, (_, ct) => TransitionAsync(operationKey, (state, now) =>
         {
             if (IsFinished(state.Status))
                 return new(WorkTransitionOutcome.AlreadyFinished, false);
@@ -329,11 +335,11 @@ public class WorkOrchestrator(IWorkProvider provider, WorkOrchestratorOptions? o
     /// <summary>
     /// Fences work that was created but never started.
     /// </summary>
-    /// <param name="id">The work identifier.</param>
+    /// <param name="operationKey">The complete operation identity.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The transition outcome.</returns>
-    public Task<WorkTransitionResult> FenceAsync(string id, CancellationToken cancellationToken = default)
-        => _invoker.InvokeAsync(this, (_, ct) => TransitionAsync(id, (state, now) =>
+    public Task<WorkTransitionResult> FenceAsync(OperationKey operationKey, CancellationToken cancellationToken = default)
+        => _invoker.InvokeAsync(this, (_, ct) => TransitionAsync(operationKey, (state, now) =>
         {
             if (IsFinished(state.Status))
                 return new(WorkTransitionOutcome.AlreadyFinished, false);
@@ -348,12 +354,12 @@ public class WorkOrchestrator(IWorkProvider provider, WorkOrchestratorOptions? o
     /// <summary>
     /// Requests cancellation of a work item.
     /// </summary>
-    /// <param name="id">The work identifier.</param>
+    /// <param name="operationKey">The complete operation identity.</param>
     /// <param name="message">The optional user-safe cancellation message.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The transition outcome.</returns>
-    public Task<WorkTransitionResult> CancelAsync(string id, string? message = null, CancellationToken cancellationToken = default)
-        => _invoker.InvokeAsync(this, (_, ct) => TransitionAsync(id, (state, now) =>
+    public Task<WorkTransitionResult> CancelAsync(OperationKey operationKey, string? message = null, CancellationToken cancellationToken = default)
+        => _invoker.InvokeAsync(this, (_, ct) => TransitionAsync(operationKey, (state, now) =>
         {
             if (IsFinished(state.Status))
                 return new(WorkTransitionOutcome.AlreadyFinished, false);
@@ -385,7 +391,7 @@ public class WorkOrchestrator(IWorkProvider provider, WorkOrchestratorOptions? o
     public Task<WorkTransitionResult> AcknowledgeCancelAsync(WorkLease lease, CancellationToken cancellationToken = default)
     {
         lease.ThrowIfNull();
-        return _invoker.InvokeAsync(this, (_, ct) => TransitionAsync(lease.WorkId, (state, now) =>
+        return _invoker.InvokeAsync(this, (_, ct) => TransitionAsync(lease.WorkKey, (state, now) =>
         {
             if (IsFinished(state.Status))
                 return new(WorkTransitionOutcome.AlreadyFinished, false);
@@ -407,38 +413,38 @@ public class WorkOrchestrator(IWorkProvider provider, WorkOrchestratorOptions? o
     /// <summary>
     /// Deletes a finished work item.
     /// </summary>
-    /// <param name="id">The work identifier.</param>
+    /// <param name="operationKey">The complete operation identity.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>Success when deleted or already absent; otherwise, an error.</returns>
-    public Task<Result> DeleteAsync(string id, CancellationToken cancellationToken = default)
+    public Task<Result> DeleteAsync(OperationKey operationKey, CancellationToken cancellationToken = default)
         => _invoker.InvokeAsync<Result>(this, async (_, ct) =>
         {
             for (var attempt = 0; attempt < MaxConcurrencyAttempts; attempt++)
             {
-                var state = await GetAsync(id, ct).ConfigureAwait(false);
+                var state = await GetAsync(operationKey, ct).ConfigureAwait(false);
                 if (state is null)
                     return Result.Success;
 
                 if (!IsFinished(state.Status))
-                    return Result.ConflictError($"Work '{id}' cannot be deleted while its status is '{state.Status}'.");
+                    return Result.ConflictError($"Work '{operationKey.InstanceId}' cannot be deleted while its status is '{state.Status}'.");
 
                 if (await Provider.DeleteAsync(state, ct).ConfigureAwait(false))
                     return Result.Success;
             }
 
-            return Result.ConcurrencyError($"Work '{id}' could not be deleted due to concurrent updates.");
+            return Result.ConcurrencyError($"Work '{operationKey.InstanceId}' could not be deleted due to concurrent updates.");
         }, cancellationToken);
 
     /// <summary>
     /// Gets the state when both its type and owner match the current caller.
     /// </summary>
     /// <param name="typeName">The expected operation type.</param>
-    /// <param name="id">The work identifier.</param>
+    /// <param name="operationKey">The complete operation identity.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The state only when type and owner checks pass; otherwise, <see langword="null"/>.</returns>
-    public async Task<WorkState?> GetWithTypeAsync(string typeName, string id, CancellationToken cancellationToken = default)
+    public async Task<WorkState?> GetWithTypeAsync(string typeName, OperationKey operationKey, CancellationToken cancellationToken = default)
     {
-        var state = await GetAsync(id, cancellationToken).ConfigureAwait(false);
+        var state = await GetAsync(operationKey, cancellationToken).ConfigureAwait(false);
         if (state is null || state.TypeName != typeName)
             return null;
 
@@ -455,21 +461,22 @@ public class WorkOrchestrator(IWorkProvider provider, WorkOrchestratorOptions? o
     /// Gets the state when its type and owner match the current caller.
     /// </summary>
     /// <typeparam name="T">The type used to derive the operation type name.</typeparam>
-    /// <param name="id">The work identifier.</param>
+    /// <param name="operationKey">The complete operation identity.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The state only when type and owner checks pass; otherwise, <see langword="null"/>.</returns>
-    public Task<WorkState?> GetWithTypeAsync<T>(string id, CancellationToken cancellationToken = default) => GetWithTypeAsync(WorkArgs.GetTypeName<T>(), id, cancellationToken);
+    public Task<WorkState?> GetWithTypeAsync<T>(OperationKey operationKey, CancellationToken cancellationToken = default) => GetWithTypeAsync(WorkArgs.GetTypeName<T>(), operationKey, cancellationToken);
 
     /// <summary>Applies a transition to the latest state with automatic expiry and optimistic-concurrency retries.</summary>
-    private async Task<WorkTransitionResult> TransitionAsync(string id, Func<WorkState, DateTimeOffset, TransitionDecision?> apply, CancellationToken cancellationToken)
+    private async Task<WorkTransitionResult> TransitionAsync(OperationKey operationKey, Func<WorkState, DateTimeOffset, TransitionDecision?> apply, CancellationToken cancellationToken)
     {
-        id.ThrowIfNullOrEmpty(nameof(id));
+        operationKey.ThrowIfNull(nameof(operationKey));
         _options.Validate();
 
         for (var attempt = 0; attempt < MaxConcurrencyAttempts; attempt++)
         {
-            var read = await Provider.GetAsync(id, cancellationToken).ConfigureAwait(false);
+            var read = await Provider.GetAsync(operationKey, cancellationToken).ConfigureAwait(false);
             var state = read.State;
+            ValidateStateIdentity(state, operationKey);
             if (state is null)
                 return CreateResult(WorkTransitionOutcome.NotFound, null);
 
@@ -508,11 +515,12 @@ public class WorkOrchestrator(IWorkProvider provider, WorkOrchestratorOptions? o
             if (saved is null)
                 continue;
 
-            var lease = decision.IssueLease ? new WorkLease(saved.Id!, saved.LeaseOwner!, saved.Attempt, saved.LeaseExpiresOn!.Value) : null;
+            var lease = decision.IssueLease ? new WorkLease(saved.OperationKey, saved.LeaseOwner!, saved.Attempt, saved.LeaseExpiresOn!.Value) : null;
             return CreateResult(decision.Outcome, saved, lease, decision.IsTakeover);
         }
 
-        var latest = await Provider.GetAsync(id, cancellationToken).ConfigureAwait(false);
+        var latest = await Provider.GetAsync(operationKey, cancellationToken).ConfigureAwait(false);
+        ValidateStateIdentity(latest.State, operationKey);
         return CreateResult(WorkTransitionOutcome.ConcurrencyExhausted, latest.State);
     }
 
@@ -535,7 +543,8 @@ public class WorkOrchestrator(IWorkProvider provider, WorkOrchestratorOptions? o
         }
         catch (WorkOutcomeUnknownException)
         {
-            var current = await Provider.GetAsync(state.Id!, cancellationToken).ConfigureAwait(false);
+            var current = await Provider.GetAsync(state.OperationKey, cancellationToken).ConfigureAwait(false);
+            ValidateStateIdentity(current.State, state.OperationKey);
             if (current.State?.Revision == revision)
                 return current.State;
 
@@ -577,6 +586,13 @@ public class WorkOrchestrator(IWorkProvider provider, WorkOrchestratorOptions? o
 
     /// <summary>Indicates whether the status represents work in progress.</summary>
     private static bool IsInProgress(WorkStatus status) => (WorkStatus.InProgress & status) != 0;
+
+    /// <summary>Validates that a provider returned the requested complete identity.</summary>
+    private static void ValidateStateIdentity(WorkState? state, OperationKey operationKey)
+    {
+        if (state is not null && (state.OperationKey != operationKey || state.Id != operationKey.InstanceId))
+            throw new InvalidDataException("The work provider returned a state with an identity that does not match the requested operation key.");
+    }
 
     /// <summary>Indicates whether the lease owner and epoch match the current state.</summary>
     private static bool Owns(WorkState state, WorkLease lease) => state.Attempt == lease.Epoch && string.Equals(state.LeaseOwner, lease.Owner, StringComparison.Ordinal);

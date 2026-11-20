@@ -21,13 +21,15 @@ public class RedisCoordinationTests
         _second.Dispose();
     }
 
-    private static CoreEx.Redis.RedisCoordination Provider(StackExchange.Redis.IConnectionMultiplexer connection, CoreEx.Coordination.CoordinationOptions? options = null, CoreEx.Caching.ICacheKeyProvider? keyProvider = null)
-        => new(connection, keyProvider ?? new CoreEx.Caching.DefaultCacheKeyProvider(), Microsoft.Extensions.Logging.Abstractions.NullLogger<CoreEx.Redis.RedisCoordination>.Instance, options ?? new());
+    private static CoreEx.Redis.RedisCoordination Provider(StackExchange.Redis.IConnectionMultiplexer connection, CoreEx.Coordination.CoordinationOptions? options = null)
+        => new(connection, Microsoft.Extensions.Logging.Abstractions.NullLogger<CoreEx.Redis.RedisCoordination>.Instance, options ?? new());
+
+    private static CoreEx.OperationKey Key(string id) => CoreEx.OperationKey.ForDomain("redis-tests", "coordination", id);
 
     [Test]
     public async Task IndependentClients_ConcurrentAcquisitionHasOneOwner_AndReleaseAllowsReentry()
     {
-        var key = Guid.NewGuid().ToString();
+        var key = Key(Guid.NewGuid().ToString());
         var a = Provider(_first);
         var b = Provider(_second);
         var leases = await Task.WhenAll(a.TryAcquireAsync(key), b.TryAcquireAsync(key));
@@ -40,7 +42,7 @@ public class RedisCoordinationTests
     [Test]
     public async Task IndependentClients_IdempotencyIsAtomic_AndCompletedErrorsAreOpaqueReplayData()
     {
-        var key = Guid.NewGuid().ToString();
+        var key = Key(Guid.NewGuid().ToString());
         var a = Provider(_first);
         var b = Provider(_second);
         var results = await Task.WhenAll(a.TryBeginAsync(key, "same"), b.TryBeginAsync(key, "same"));
@@ -57,7 +59,7 @@ public class RedisCoordinationTests
     [Test]
     public async Task UnknownOutcome_RequiresRevisionCheckedReconciliation_NotAutomaticTakeover()
     {
-        var key = Guid.NewGuid().ToString();
+        var key = Key(Guid.NewGuid().ToString());
         var a = Provider(_first);
         var b = Provider(_second);
         var result = await a.TryBeginAsync(key, "same");
@@ -77,7 +79,7 @@ public class RedisCoordinationTests
     [Test]
     public async Task IndeterminateOutcome_CanBeReconciledToTerminalResponse_OnlyOnce()
     {
-        var key = Guid.NewGuid().ToString();
+        var key = Key(Guid.NewGuid().ToString());
         var a = Provider(_first);
         var b = Provider(_second);
         var result = await a.TryBeginAsync(key, "same");
@@ -88,7 +90,7 @@ public class RedisCoordinationTests
         replay.Outcome.Should().Be(CoreEx.Idempotency.IdempotencyOutcome.Completed);
         replay.Response!.ToString().Should().Be("reconciled");
 
-        var other = Guid.NewGuid().ToString();
+        var other = Key(Guid.NewGuid().ToString());
         var unavailable = await a.TryBeginAsync(other, "same");
         await unavailable.Attempt!.DisposeAsync();
         (await b.TryResolveAsync(other, unavailable.Revision!, null)).Should().BeTrue();
@@ -98,7 +100,7 @@ public class RedisCoordinationTests
     [Test]
     public async Task EmptyReplayableResponse_IsRejected_ByProviderAndScripts()
     {
-        var key = Guid.NewGuid().ToString();
+        var key = Key(Guid.NewGuid().ToString());
         var provider = Provider(_first);
         var begun = await provider.TryBeginAsync(key, "same");
         Func<Task> complete = () => begun.Attempt!.CompleteAsync(BinaryData.Empty);
@@ -126,7 +128,7 @@ public class RedisCoordinationTests
     public async Task RenewalKeepsLeaseValid_AndCompletionStopsHeartbeatWithoutExpiringResponse()
     {
         var options = new CoreEx.Coordination.CoordinationOptions { LeaseDuration = TimeSpan.FromMilliseconds(600), RenewalInterval = TimeSpan.FromMilliseconds(100), OperationTimeout = TimeSpan.FromMilliseconds(200), Retention = TimeSpan.FromSeconds(4) };
-        var key = Guid.NewGuid().ToString();
+        var key = Key(Guid.NewGuid().ToString());
         var a = Provider(_first, options);
         var b = Provider(_second, options);
         await using var lease = await a.TryAcquireAsync(key);
@@ -154,53 +156,205 @@ public class RedisCoordinationTests
         (await cacheOptions.ConnectionMultiplexerFactory!()).Should().BeSameAs(connection);
         host.Services.GetServices<StackExchange.Redis.IConnectionMultiplexer>().Should().ContainSingle();
         await using var scope = host.Services.CreateAsyncScope();
-        await using var lease = await scope.ServiceProvider.GetRequiredService<CoreEx.Coordination.ISynchronizer>().TryAcquireAsync(Guid.NewGuid().ToString());
+        await using var lease = await scope.ServiceProvider.GetRequiredService<CoreEx.Coordination.ISynchronizer>().TryAcquireAsync(Key(Guid.NewGuid().ToString()));
         lease.Should().NotBeNull();
     }
 
     [Test]
-    public async Task CustomKeyProvider_IsRespectedAndCapturedAcrossTenantChanges()
+    public async Task RedisKeys_ExposeEscapedIdentitySegments_ForBothCoordinationPurposes()
     {
-        var key = Guid.NewGuid().ToString();
-        var qualifier = new ChangingQualifier();
-        var a = Provider(_first, keyProvider: qualifier);
-        var b = Provider(_second, keyProvider: new ChangingQualifier());
-        var original = await a.TryAcquireAsync(key);
-        (await b.TryAcquireAsync(key)).Should().BeNull();
-        qualifier.Prefix = "tenant-b";
-        await using var isolated = await a.TryAcquireAsync(key);
-        isolated.Should().NotBeNull();
-        await original!.DisposeAsync();
-        await using var next = await b.TryAcquireAsync(key);
-        next.Should().NotBeNull();
-        qualifier.Calls.Should().Be(2);
+        var id = $"batch:42/{Guid.NewGuid():N}";
+        var key = CoreEx.OperationKey.ForTenant("orders:eu", "tenant/a*", "import[all]", id);
+        var provider = Provider(_first);
+        var suffix = $"domain:orders%3Aeu:scope:tenant:tenant:tenant%2Fa%2A:operation:import%5Ball%5D:instance:batch%3A42%2F{id[(id.LastIndexOf('/') + 1)..]}";
+        var leaseKey = $"CoreEx:coordination:v2:lease:{suffix}";
+        var attemptKey = $"CoreEx:coordination:v2:idempotency:{suffix}";
+        await using var lease = await provider.TryAcquireAsync(key);
+        var other = CoreEx.OperationKey.ForTenant("orders", "eu:tenant/a*", "import[all]", id);
+        await using var otherLease = await provider.TryAcquireAsync(other);
+        var domainWide = CoreEx.OperationKey.ForDomain("orders:eu", "import[all]", id);
+        await using var domainLease = await provider.TryAcquireAsync(domainWide);
+        var attempt = await provider.TryBeginAsync(key, "request");
+        try
+        {
+            lease.Should().NotBeNull();
+            otherLease.Should().NotBeNull();
+            domainLease.Should().NotBeNull();
+            (await _first.GetDatabase().KeyExistsAsync(leaseKey)).Should().BeTrue();
+            (await _first.GetDatabase().KeyExistsAsync(attemptKey)).Should().BeTrue();
+            var domainKey = $"CoreEx:coordination:v2:lease:domain:orders%3Aeu:scope:domain:tenant:-:operation:import%5Ball%5D:instance:batch%3A42%2F{id[(id.LastIndexOf('/') + 1)..]}";
+            (await _first.GetDatabase().KeyExistsAsync(domainKey)).Should().BeTrue();
+            var matches = new List<string>();
+            await foreach (var redisKey in _first.GetServer(_first.GetEndPoints()[0]).KeysAsync(pattern: $"CoreEx:coordination:v2:*:{suffix}"))
+                matches.Add(redisKey.ToString());
+
+            matches.Should().Contain(leaseKey).And.Contain(attemptKey);
+        }
+        finally
+        {
+            await attempt.Attempt!.DisposeAsync();
+            await _first.GetDatabase().KeyDeleteAsync(attemptKey);
+        }
     }
 
     [Test]
-    public async Task DefaultKeyProvider_IsolatesDomainsAndTenants_OnTheSameRedis()
+    public async Task RedisKeys_RejectMalformedUnicode_WithoutAliasingValidValues()
     {
-        var key = Guid.NewGuid().ToString();
-        var settings = Moq.Mock.Of<CoreEx.Hosting.IHostSettings>(x => x.DomainName == "domain-a");
-        var otherSettings = Moq.Mock.Of<CoreEx.Hosting.IHostSettings>(x => x.DomainName == "domain-b");
-        var context = new CoreEx.ExecutionContext { TenantId = "tenant-a" };
-        var a = Provider(_first, keyProvider: new CoreEx.Caching.DefaultCacheKeyProvider(settings, context));
-        var matching = Provider(_second, keyProvider: new CoreEx.Caching.DefaultCacheKeyProvider(settings, new CoreEx.ExecutionContext { TenantId = "tenant-a" }));
-        var otherTenant = Provider(_second, keyProvider: new CoreEx.Caching.DefaultCacheKeyProvider(settings, new CoreEx.ExecutionContext { TenantId = "tenant-b" }));
-        var otherDomain = Provider(_second, keyProvider: new CoreEx.Caching.DefaultCacheKeyProvider(otherSettings, context));
+        var id = Guid.NewGuid().ToString("N");
+        var provider = Provider(_first);
+        var replacement = CoreEx.OperationKey.ForTenant("orders\uFFFD", "tenant", "import", id);
+        var supplementary = CoreEx.OperationKey.ForTenant("orders\uD83D\uDE80", "tenant", "import", id);
+        await using var replacementLease = await provider.TryAcquireAsync(replacement);
+        await using var supplementaryLease = await provider.TryAcquireAsync(supplementary);
+        replacementLease.Should().NotBeNull();
+        supplementaryLease.Should().NotBeNull();
+
+        var invalid = new[]
+        {
+            CoreEx.OperationKey.ForTenant("orders\uD800", "tenant", "import", id),
+            CoreEx.OperationKey.ForTenant("orders", "tenant\uD801", "import", id),
+            CoreEx.OperationKey.ForTenant("orders", "tenant", "import\uDC00", id),
+            CoreEx.OperationKey.ForTenant("orders", "tenant", "import", id + "\uD800")
+        };
+        foreach (var key in invalid)
+        {
+            Func<Task> acquire = () => provider.TryAcquireAsync(key);
+            await acquire.Should().ThrowAsync<ArgumentException>();
+            Func<Task> begin = () => provider.TryBeginAsync(key, "request");
+            await begin.Should().ThrowAsync<ArgumentException>();
+        }
+    }
+
+    [Test]
+    public async Task HttpIdempotency_WithRedis_ReplaysAndSeparatesTenantsWithoutExposingCallerOrHeader()
+    {
+        var id = Guid.NewGuid().ToString("N");
+        var settings = new CoreEx.Hosting.HostSettings { SolutionName = "Tests", DomainName = "orders", EnvironmentName = "Test" };
+        var firstContext = new CoreEx.ExecutionContext { TenantId = "tenant-a" };
+        var secondContext = new CoreEx.ExecutionContext { TenantId = "tenant-a" };
+        var first = new CoreEx.AspNetCore.Idempotency.IdempotencyProvider(Provider(_first), hostSettings: settings, executionContext: firstContext)
+        {
+            Scope = CoreEx.OperationKeyScope.Tenant,
+            CallerIdentityProvider = _ => "caller-a"
+        };
+        var second = new CoreEx.AspNetCore.Idempotency.IdempotencyProvider(Provider(_second), hostSettings: settings, executionContext: secondContext)
+        {
+            Scope = CoreEx.OperationKeyScope.Tenant,
+            CallerIdentityProvider = _ => "caller-a"
+        };
+        var attribute = new CoreEx.AspNetCore.Mvc.IdempotencyKeyAttribute();
+        var original = HttpContext(id, "same");
+        var operationA = first.CreateOperationKey(original, id);
+        secondContext.TenantId = "tenant-b";
+        var operationB = second.CreateOperationKey(original, id);
+        secondContext.TenantId = "tenant-a";
+        var calls = 0;
+
+        async Task Execute(Microsoft.AspNetCore.Http.HttpContext context)
+        {
+            calls++;
+            await context.Response.Body.WriteAsync(Encoding.UTF8.GetBytes($"response-{calls}"));
+        }
+
+        try
+        {
+            await first.OnInvokeAsync(attribute, original, Execute);
+            var replay = HttpContext(id, "same");
+            await second.OnInvokeAsync(attribute, replay, Execute);
+            Encoding.UTF8.GetString(((MemoryStream)replay.Response.Body).ToArray()).Should().Be("response-1");
+            calls.Should().Be(1);
+
+            var changed = HttpContext(id, "changed");
+            Func<Task> conflict = () => second.OnInvokeAsync(attribute, changed, Execute);
+            await conflict.Should().ThrowAsync<CoreEx.ConflictException>();
+            calls.Should().Be(1);
+
+            secondContext.TenantId = "tenant-b";
+            var otherTenant = HttpContext(id, "same");
+            await second.OnInvokeAsync(attribute, otherTenant, Execute);
+            Encoding.UTF8.GetString(((MemoryStream)otherTenant.Response.Body).ToArray()).Should().Be("response-2");
+            var physical = PhysicalKey("idempotency", operationA);
+            physical.Should().Contain(":domain:orders:scope:tenant:tenant:tenant-a:operation:http-idempotency:instance:")
+                .And.NotContain(id).And.NotContain("caller-a");
+            (await _first.GetDatabase().KeyExistsAsync(physical)).Should().BeTrue();
+            (await _first.GetDatabase().KeyExistsAsync(PhysicalKey("idempotency", operationB))).Should().BeTrue();
+        }
+        finally
+        {
+            await _first.GetDatabase().KeyDeleteAsync(PhysicalKey("idempotency", operationA));
+            await _first.GetDatabase().KeyDeleteAsync(PhysicalKey("idempotency", operationB));
+        }
+    }
+
+    private static Microsoft.AspNetCore.Http.DefaultHttpContext HttpContext(string idempotencyKey, string body)
+    {
+        var context = new Microsoft.AspNetCore.Http.DefaultHttpContext();
+        context.Request.Method = "POST";
+        context.Request.Path = "/orders";
+        context.Request.Headers["Idempotency-Key"] = idempotencyKey;
+        context.Request.Body = new MemoryStream(Encoding.UTF8.GetBytes(body));
+        context.Request.ContentLength = context.Request.Body.Length;
+        context.Response.Body = new MemoryStream();
+        return context;
+    }
+
+    [Test]
+    public async Task ExplicitKeys_IgnoreAmbientQualifiers_AndIsolateDomainTenantScopeAndPurpose()
+    {
+        var id = Guid.NewGuid().ToString();
+        var key = CoreEx.OperationKey.ForTenant("orders", "tenant-a", "import", id);
+        var qualifier = new ChangingQualifier();
+        await using var services = new ServiceCollection().AddLogging().AddSingleton<StackExchange.Redis.IConnectionMultiplexer>(_first)
+            .AddSingleton<CoreEx.Caching.ICacheKeyProvider>(qualifier).AddRedisCoordination().BuildServiceProvider();
+        await using var scope = services.CreateAsyncScope();
+        var a = scope.ServiceProvider.GetRequiredService<CoreEx.Coordination.ISynchronizer>();
+        var store = scope.ServiceProvider.GetRequiredService<CoreEx.Idempotency.IIdempotencyStore>();
+        var b = Provider(_second);
+
         await using var first = await a.TryAcquireAsync(key);
-        (await matching.TryAcquireAsync(key)).Should().BeNull();
-        await using var tenant = await otherTenant.TryAcquireAsync(key);
-        await using var domain = await otherDomain.TryAcquireAsync(key);
+        qualifier.Prefix = "different-ambient-tenant";
+        (await b.TryAcquireAsync(CoreEx.OperationKey.ForTenant("orders", "tenant-a", "import", id))).Should().BeNull();
+        await using var tenant = await b.TryAcquireAsync(CoreEx.OperationKey.ForTenant("orders", "tenant-b", "import", id));
+        await using var domain = await b.TryAcquireAsync(CoreEx.OperationKey.ForTenant("products", "tenant-a", "import", id));
+        await using var domainWide = await b.TryAcquireAsync(CoreEx.OperationKey.ForDomain("orders", "import", id));
         tenant.Should().NotBeNull();
         domain.Should().NotBeNull();
-        context.TenantId = "changed-after-acquisition";
+        domainWide.Should().NotBeNull();
+
+        var attempt = await store.TryBeginAsync(key, "request");
+        attempt.Outcome.Should().Be(CoreEx.Idempotency.IdempotencyOutcome.Acquired);
+        await attempt.Attempt!.DisposeAsync();
+        qualifier.Calls.Should().Be(0);
+    }
+
+    [Test]
+    public async Task ExplicitIdempotencyKeys_ReplayAndReconcileOnlyTheMatchingIdentity()
+    {
+        var id = Guid.NewGuid().ToString();
+        var key = CoreEx.OperationKey.ForTenant("orders", "tenant-a", "import", id);
+        var otherTenant = CoreEx.OperationKey.ForTenant("orders", "tenant-b", "import", id);
+        var a = Provider(_first);
+        var b = Provider(_second);
+        var results = await Task.WhenAll(a.TryBeginAsync(key, "same"), b.TryBeginAsync(key, "same"));
+        results.Count(x => x.Outcome == CoreEx.Idempotency.IdempotencyOutcome.Acquired).Should().Be(1);
+        var owner = results.Single(x => x.Attempt is not null);
+        await owner.Attempt!.DisposeAsync();
+
+        (await b.TryResolveAsync(otherTenant, owner.Revision!, null, true)).Should().BeFalse();
+        (await b.TryBeginAsync(key, "same")).Outcome.Should().Be(CoreEx.Idempotency.IdempotencyOutcome.Indeterminate);
+        (await b.TryResolveAsync(key, owner.Revision!, null, true)).Should().BeTrue();
+        var retry = await a.TryBeginAsync(key, "same");
+        await retry.Attempt!.CompleteAsync(new BinaryData("response"));
+        await retry.Attempt.DisposeAsync();
+        (await b.TryBeginAsync(key, "same")).Response!.ToString().Should().Be("response");
+        (await b.TryBeginAsync(key, "different")).Outcome.Should().Be(CoreEx.Idempotency.IdempotencyOutcome.DifferentRequest);
     }
 
     [Test]
     public async Task PreCancelledAcquisition_DoesNotCreateLeaseOrProcessingRecord()
     {
         var provider = Provider(_first);
-        var key = Guid.NewGuid().ToString();
+        var key = Key(Guid.NewGuid().ToString());
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
         Func<Task> lease = () => provider.TryAcquireAsync(key, cancellation.Token);
@@ -217,7 +371,7 @@ public class RedisCoordinationTests
     [Test]
     public async Task StaleLeaseDisposal_CannotDeleteSuccessor()
     {
-        var key = Guid.NewGuid().ToString();
+        var key = Key(Guid.NewGuid().ToString());
         var provider = Provider(_first);
         var original = await provider.TryAcquireAsync(key);
         var physical = PhysicalKey("lease", key);
@@ -230,7 +384,7 @@ public class RedisCoordinationTests
     [Test]
     public async Task ExpiredAttempt_CannotCompleteOrAffectReconciledSuccessor()
     {
-        var key = Guid.NewGuid().ToString();
+        var key = Key(Guid.NewGuid().ToString());
         var a = Provider(_first);
         var b = Provider(_second);
         var original = await a.TryBeginAsync(key, "same");
@@ -249,7 +403,7 @@ public class RedisCoordinationTests
     public async Task DuplicateReads_DoNotExtendTerminalRetention()
     {
         var options = new CoreEx.Coordination.CoordinationOptions { LeaseDuration = TimeSpan.FromMilliseconds(700), RenewalInterval = TimeSpan.FromMilliseconds(150), OperationTimeout = TimeSpan.FromMilliseconds(200), Retention = TimeSpan.FromSeconds(1) };
-        var key = Guid.NewGuid().ToString();
+        var key = Key(Guid.NewGuid().ToString());
         var provider = Provider(_first, options);
         var original = await provider.TryBeginAsync(key, "same");
         await original.Attempt!.CompleteAsync(null);
@@ -268,19 +422,19 @@ public class RedisCoordinationTests
         using var connection = await StackExchange.Redis.ConnectionMultiplexer.ConnectAsync(Environment.GetEnvironmentVariable("COREEX_REDIS_TEST_CONNECTION") ?? "localhost:6379");
         var provider = Provider(connection);
         await connection.CloseAsync();
-        Func<Task> acquire = () => provider.TryAcquireAsync(Guid.NewGuid().ToString());
-        Func<Task> begin = () => provider.TryBeginAsync(Guid.NewGuid().ToString(), "same");
+        Func<Task> acquire = () => provider.TryAcquireAsync(Key(Guid.NewGuid().ToString()));
+        Func<Task> begin = () => provider.TryBeginAsync(Key(Guid.NewGuid().ToString()), "same");
         await acquire.Should().ThrowAsync<Exception>();
         await begin.Should().ThrowAsync<Exception>();
     }
 
-    private static string PhysicalKey(string purpose, string key)
-        => "CoreEx:coordination:v1:" + purpose + ":" + Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(key)));
+    private static string PhysicalKey(string purpose, CoreEx.OperationKey key)
+        => $"CoreEx:coordination:v2:{purpose}:domain:{Uri.EscapeDataString(key.DomainName)}:scope:{(key.Scope == CoreEx.OperationKeyScope.Tenant ? "tenant" : "domain")}:tenant:{(key.TenantId is null ? "-" : Uri.EscapeDataString(key.TenantId))}:operation:{Uri.EscapeDataString(key.OperationName)}:instance:{Uri.EscapeDataString(key.InstanceId)}";
 
     [Test]
     public async Task SeparateProcesses_ExcludeConcurrentOwner_AndCrashPermitsLeaseRecovery()
     {
-        var key = Guid.NewGuid().ToString();
+        var key = Key(Guid.NewGuid().ToString());
         using var owner = StartWorker("lease", key);
         try
         {
@@ -300,9 +454,28 @@ public class RedisCoordinationTests
     }
 
     [Test]
+    public async Task SeparateProcesses_UseTheSameExplicitOperationIdentity()
+    {
+        var key = CoreEx.OperationKey.ForTenant("orders", "tenant-a", "import", Guid.NewGuid().ToString());
+        using var owner = StartWorker("lease", key);
+        try
+        {
+            (await owner.StandardOutput.ReadLineAsync().WaitAsync(TimeSpan.FromSeconds(15))).Should().Be("acquired");
+            (await Provider(_second).TryAcquireAsync(key)).Should().BeNull();
+            await using var otherTenant = await Provider(_second).TryAcquireAsync(CoreEx.OperationKey.ForTenant("orders", "tenant-b", "import", key.InstanceId));
+            otherTenant.Should().NotBeNull();
+        }
+        finally { StopWorker(owner); }
+
+        await Task.Delay(1300);
+        await using var recovered = await Provider(_second).TryAcquireAsync(key);
+        recovered.Should().NotBeNull();
+    }
+
+    [Test]
     public async Task SeparateProcessCrash_LeavesIdempotencyIndeterminateInsteadOfTakingOver()
     {
-        var key = Guid.NewGuid().ToString();
+        var key = Key(Guid.NewGuid().ToString());
         using var owner = StartWorker("attempt", key);
         try
         {
@@ -317,7 +490,7 @@ public class RedisCoordinationTests
         (await provider.TryResolveAsync(key, result.Revision!, null, true)).Should().BeTrue();
     }
 
-    private static Process StartWorker(string operation, string key)
+    private static Process StartWorker(string operation, CoreEx.OperationKey key)
     {
         var configuration = new DirectoryInfo(TestContext.CurrentContext.TestDirectory).Parent!.Name;
         var framework = new DirectoryInfo(TestContext.CurrentContext.TestDirectory).Name;
@@ -325,7 +498,7 @@ public class RedisCoordinationTests
         var start = new ProcessStartInfo("dotnet") { RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false };
         start.ArgumentList.Add(worker);
         start.ArgumentList.Add(operation);
-        start.ArgumentList.Add(key);
+        start.ArgumentList.Add(System.Text.Json.JsonSerializer.Serialize(key));
         return Process.Start(start) ?? throw new InvalidOperationException("Could not start the Redis test worker.");
     }
 

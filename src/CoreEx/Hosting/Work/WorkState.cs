@@ -5,8 +5,36 @@ namespace CoreEx.Hosting.Work;
 /// </summary>
 public class WorkState : IIdentifier<string?>, IETag
 {
-    /// <inheritdoc/>
-    /// <remarks>The identifier must be globally unique across all work types.</remarks>
+    /// <summary>
+    /// Gets or sets whether this work is scoped to a tenant or its domain.
+    /// </summary>
+    public required OperationKeyScope Scope { get; init; }
+
+    /// <summary>
+    /// Gets or sets the stable domain name for this work.
+    /// </summary>
+    public required string DomainName { get; init; }
+
+    /// <summary>
+    /// Gets or sets the tenant identifier for tenant-scoped work; otherwise, <see langword="null"/>.
+    /// </summary>
+    public string? TenantId { get; init; }
+
+    /// <summary>
+    /// Gets or sets the stable application-defined operation name.
+    /// </summary>
+    public required string OperationName { get; init; }
+
+    /// <summary>
+    /// Gets the complete operation identity reconstructed from this work state's identity fields.
+    /// </summary>
+    /// <remarks>This computed value is not serialized; providers create storage keys from the state fields.</remarks>
+    [JsonIgnore]
+    public OperationKey OperationKey => new(Scope, DomainName, TenantId, OperationName, Id.ThrowIfNullOrWhiteSpace(nameof(Id)));
+
+    /// <summary>
+    /// Gets or sets the operation instance identifier.
+    /// </summary>
     public string? Id { get; set; }
 
     /// <summary>

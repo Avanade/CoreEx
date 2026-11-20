@@ -175,7 +175,7 @@ public static partial class CoreExExtensions
     });
 
     /// <summary>
-    /// Adds explicitly in-memory coordination with singleton backing state per root service provider and scoped key qualification.
+    /// Adds explicitly in-memory coordination with singleton backing state per root service provider.
     /// </summary>
     /// <param name="services">The <see cref="IServiceCollection"/>.</param>
     /// <param name="options">The optional ownership options.</param>
@@ -184,9 +184,9 @@ public static partial class CoreExExtensions
     {
         options ??= new();
         options.Validate();
-        services.ThrowIfNull().TryAddScoped<ICacheKeyProvider, DefaultCacheKeyProvider>();
+        services.ThrowIfNull();
         services.TryAddSingleton<CoreEx.Coordination.InMemoryCoordinationState>();
-        services.AddScoped(sp => new CoreEx.Coordination.InMemoryCoordination(sp.GetRequiredService<CoreEx.Coordination.InMemoryCoordinationState>(), sp.GetRequiredService<ICacheKeyProvider>(), sp.GetRequiredService<ILogger<CoreEx.Coordination.InMemoryCoordination>>(), options));
+        services.AddScoped(sp => new CoreEx.Coordination.InMemoryCoordination(sp.GetRequiredService<CoreEx.Coordination.InMemoryCoordinationState>(), sp.GetRequiredService<ILogger<CoreEx.Coordination.InMemoryCoordination>>(), options));
         services.AddScoped<ISynchronizer>(sp => sp.GetRequiredService<CoreEx.Coordination.InMemoryCoordination>());
         services.AddScoped<CoreEx.Idempotency.IIdempotencyStore>(sp => sp.GetRequiredService<CoreEx.Coordination.InMemoryCoordination>());
         return services;

@@ -182,7 +182,7 @@ builder.Services
 
 builder.Services.AddDynamicServicesUsing(typeof(Program).Assembly, typeof(MyApp.Application.AssemblyMarker).Assembly, typeof(MyApp.Infrastructure.AssemblyMarker).Assembly);
 
-// 2. Caching — L1 memory cache + L2 Redis + FusionCache hybrid + idempotency provider
+// 2. Ordinary caching with FusionCache, plus separate Redis coordination and HTTP idempotency.
 builder.Services.AddMemoryCache();
 builder.AddRedisDistributedCache("redis");
 builder.Services.AddFusionCache()

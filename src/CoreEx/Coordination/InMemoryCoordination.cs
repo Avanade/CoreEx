@@ -5,10 +5,9 @@ namespace CoreEx.Coordination;
 /// </summary>
 /// <remarks>No Redis connection is used. Normal registration shares one backing state per root service provider; independently built service providers do not coordinate, even within the same .NET process.</remarks>
 /// <param name="state">The singleton backing state.</param>
-/// <param name="keyProvider">The scoped namespace provider.</param>
 /// <param name="logger">The logger.</param>
 /// <param name="options">The ownership options.</param>
-public sealed class InMemoryCoordination(InMemoryCoordinationState state, ICacheKeyProvider keyProvider, ILogger<InMemoryCoordination> logger, CoordinationOptions options) : ISynchronizer, CoreEx.Idempotency.IIdempotencyStore
+public sealed class InMemoryCoordination(InMemoryCoordinationState state, ILogger<InMemoryCoordination> logger, CoordinationOptions options) : ISynchronizer, CoreEx.Idempotency.IIdempotencyStore
 {
     /// <summary>
     /// Gets the clock independently of request-frozen application time.
@@ -16,9 +15,9 @@ public sealed class InMemoryCoordination(InMemoryCoordinationState state, ICache
     private static DateTimeOffset Now => TimeProvider.System.GetUtcNow();
 
     /// <summary>
-    /// Qualifies one purpose-specific logical key exactly once.
+    /// Namespaces an explicit identity without ambient qualification.
     /// </summary>
-    private string Key(string purpose, string key) => purpose + ":" + keyProvider.GetFullyQualifiedCacheKey(key.ThrowIfNullOrEmpty());
+    private static (string Purpose, OperationKey Key) Key(string purpose, OperationKey key) => (purpose, key.ThrowIfNull());
 
     /// <summary>
     /// Removes expired records before accessing the shared store.
@@ -30,7 +29,7 @@ public sealed class InMemoryCoordination(InMemoryCoordinationState state, ICache
     }
 
     /// <inheritdoc/>
-    public async Task<ISynchronizationLease?> TryAcquireAsync(string key, CancellationToken cancellationToken = default)
+    public async Task<ISynchronizationLease?> TryAcquireAsync(OperationKey key, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
         options.Validate();
@@ -58,7 +57,7 @@ public sealed class InMemoryCoordination(InMemoryCoordinationState state, ICache
     }
 
     /// <inheritdoc/>
-    public async Task<CoreEx.Idempotency.IdempotencyBeginResult> TryBeginAsync(string key, string fingerprint, CancellationToken cancellationToken = default)
+    public async Task<CoreEx.Idempotency.IdempotencyBeginResult> TryBeginAsync(OperationKey key, string fingerprint, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
         options.Validate();
@@ -94,7 +93,7 @@ public sealed class InMemoryCoordination(InMemoryCoordinationState state, ICache
     /// <summary>
     /// Renews an owned, unexpired processing record.
     /// </summary>
-    private Task<bool> Renew(string key, string owner, bool retained, CancellationToken cancellationToken)
+    private Task<bool> Renew((string Purpose, OperationKey Key) key, string owner, bool retained, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         lock (state.SyncRoot)
@@ -111,7 +110,7 @@ public sealed class InMemoryCoordination(InMemoryCoordinationState state, ICache
     /// <summary>
     /// Releases a synchronization lease or retains uncertain idempotency work.
     /// </summary>
-    private Task RetainOrRelease(string key, string owner, bool retained, CancellationToken cancellationToken)
+    private Task RetainOrRelease((string Purpose, OperationKey Key) key, string owner, bool retained, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         lock (state.SyncRoot)
@@ -131,7 +130,7 @@ public sealed class InMemoryCoordination(InMemoryCoordinationState state, ICache
     /// <summary>
     /// Commits an owned terminal response without overwriting another attempt.
     /// </summary>
-    private Task<bool> Complete(string key, string owner, BinaryData? response, CancellationToken cancellationToken)
+    private Task<bool> Complete((string Purpose, OperationKey Key) key, string owner, BinaryData? response, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         lock (state.SyncRoot)
@@ -153,7 +152,7 @@ public sealed class InMemoryCoordination(InMemoryCoordinationState state, ICache
     }
 
     /// <inheritdoc/>
-    public Task<bool> TryResolveAsync(string key, string revision, BinaryData? response, bool allowRetry = false, CancellationToken cancellationToken = default)
+    public Task<bool> TryResolveAsync(OperationKey key, string revision, BinaryData? response, bool allowRetry = false, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
         options.Validate();

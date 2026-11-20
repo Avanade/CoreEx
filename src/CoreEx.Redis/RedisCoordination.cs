@@ -4,12 +4,11 @@ namespace CoreEx.Redis;
 /// Coordinates bounded leases and retained idempotency outcomes directly on the Redis primary.
 /// </summary>
 /// <param name="connection">The host-owned connection.</param>
-/// <param name="keyProvider">The scoped namespace provider.</param>
 /// <param name="logger">The logger.</param>
 /// <param name="options">The ownership options.</param>
 /// <param name="maxPayloadSize">The maximum serialized idempotency response payload size, or <see langword="null"/> when unlimited.</param>
 /// <remarks>Redis failover, eviction or loss of persisted data can erase ownership. This is not resource fencing or exactly-once business execution.</remarks>
-public sealed class RedisCoordination(IConnectionMultiplexer connection, ICacheKeyProvider keyProvider, ILogger<RedisCoordination> logger, CoordinationOptions options, int? maxPayloadSize = 1024 * 1024) : ISynchronizer, IIdempotencyStore
+public sealed class RedisCoordination(IConnectionMultiplexer connection, ILogger<RedisCoordination> logger, CoordinationOptions options, int? maxPayloadSize = 1024 * 1024) : ISynchronizer, IIdempotencyStore
 {
     private static readonly string _begin = LoadScript("IdempotencyBegin.lua");
     private static readonly string _transition = LoadScript("IdempotencyTransition.lua");
@@ -31,10 +30,9 @@ public sealed class RedisCoordination(IConnectionMultiplexer connection, ICacheK
     }
 
     /// <summary>
-    /// Qualifies exactly once and captures a purpose-separated physical key.
+    /// Namespaces an explicit identity without ambient qualification.
     /// </summary>
-    private RedisKey Key(string purpose, string key)
-        => $"CoreEx:coordination:v1:{purpose}:{Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(keyProvider.GetFullyQualifiedCacheKey(key.ThrowIfNullOrEmpty()))))}";
+    private static RedisKey Key(string purpose, OperationKey key) => RedisOperationKey.Create($"CoreEx:coordination:v2:{purpose}:", key);
 
     /// <summary>
     /// Executes one primary-side operation with a bounded acknowledgement wait.
@@ -48,7 +46,7 @@ public sealed class RedisCoordination(IConnectionMultiplexer connection, ICacheK
     }
 
     /// <inheritdoc/>
-    public async Task<ISynchronizationLease?> TryAcquireAsync(string key, CancellationToken cancellationToken = default)
+    public async Task<ISynchronizationLease?> TryAcquireAsync(OperationKey key, CancellationToken cancellationToken = default)
     {
         options.Validate();
         cancellationToken.ThrowIfCancellationRequested();
@@ -75,7 +73,7 @@ public sealed class RedisCoordination(IConnectionMultiplexer connection, ICacheK
     }
 
     /// <inheritdoc/>
-    public async Task<IdempotencyBeginResult> TryBeginAsync(string key, string fingerprint, CancellationToken cancellationToken = default)
+    public async Task<IdempotencyBeginResult> TryBeginAsync(OperationKey key, string fingerprint, CancellationToken cancellationToken = default)
     {
         options.Validate();
         cancellationToken.ThrowIfCancellationRequested();
@@ -113,7 +111,7 @@ public sealed class RedisCoordination(IConnectionMultiplexer connection, ICacheK
     }
 
     /// <inheritdoc/>
-    public async Task<bool> TryResolveAsync(string key, string revision, BinaryData? response, bool allowRetry = false, CancellationToken cancellationToken = default)
+    public async Task<bool> TryResolveAsync(OperationKey key, string revision, BinaryData? response, bool allowRetry = false, CancellationToken cancellationToken = default)
     {
         options.Validate();
         if (!allowRetry)

@@ -5,6 +5,14 @@ namespace CoreEx.Test.Unit.Hosting.Work;
 [TestFixture]
 public class InMemoryWorkProviderTests
 {
+    private static OperationKey Key(string id) => OperationKey.ForDomain("CoreEx.Test.Unit", "T", id);
+
+    private static WorkState State(string id)
+    {
+        var key = Key(id);
+        return new() { Scope = key.Scope, DomainName = key.DomainName, TenantId = key.TenantId, OperationName = key.OperationName, Id = id, TypeName = "T" };
+    }
+
     /// <summary>Provides a controllable clock for provider tests.</summary>
     private sealed class TestTimeProvider : TimeProvider
     {
@@ -20,13 +28,14 @@ public class InMemoryWorkProviderTests
     {
         var time = new TestTimeProvider();
         var provider = new InMemoryWorkProvider(timeProvider: time);
-        var absent = await provider.GetAsync("absent", default);
+        var absent = await provider.GetAsync(Key("absent"), default);
         absent.State.Should().BeNull();
         absent.Now.Should().Be(time.Now);
 
-        var state = new WorkState { Id = "abc", TypeName = "T", Status = WorkStatus.Created };
+        var state = State("abc");
+        state.Status = WorkStatus.Created;
         (await provider.CreateAsync(state, TimeSpan.FromMinutes(1), default)).Should().BeTrue();
-        var present = await provider.GetAsync("abc", default);
+        var present = await provider.GetAsync(Key("abc"), default);
         present.State!.ETag.Should().Be(state.ETag);
         present.Now.Should().Be(time.Now);
     }
@@ -35,12 +44,13 @@ public class InMemoryWorkProviderTests
     public async Task Update_And_Delete_Use_ETag()
     {
         var provider = new InMemoryWorkProvider();
-        var state = new WorkState { Id = "abc", TypeName = "T", Status = WorkStatus.Created };
+        var state = State("abc");
+        state.Status = WorkStatus.Created;
         (await provider.CreateAsync(state, TimeSpan.FromMinutes(1), default)).Should().BeTrue();
-        (await provider.CreateAsync(new WorkState { Id = "abc", TypeName = "T" }, TimeSpan.FromMinutes(1), default)).Should().BeFalse();
+        (await provider.CreateAsync(State("abc"), TimeSpan.FromMinutes(1), default)).Should().BeFalse();
 
-        var first = (await provider.GetAsync("abc", default)).State!;
-        var stale = (await provider.GetAsync("abc", default)).State!;
+        var first = (await provider.GetAsync(Key("abc"), default)).State!;
+        var stale = (await provider.GetAsync(Key("abc"), default)).State!;
         first.Status = WorkStatus.Started;
         (await provider.UpdateAsync(first, TimeSpan.FromMinutes(1), default)).Should().BeTrue();
         first.ETag.Should().NotBe(stale.ETag);
@@ -51,10 +61,10 @@ public class InMemoryWorkProviderTests
 
         first.Status = WorkStatus.Completed;
         (await provider.UpdateAsync(first, TimeSpan.FromMinutes(1), default)).Should().BeTrue();
-        (await provider.GetAsync("abc", default)).State!.Status.Should().Be(WorkStatus.Completed);
+        (await provider.GetAsync(Key("abc"), default)).State!.Status.Should().Be(WorkStatus.Completed);
 
         (await provider.DeleteAsync(first, default)).Should().BeTrue();
-        (await provider.GetAsync("abc", default)).State.Should().BeNull();
+        (await provider.GetAsync(Key("abc"), default)).State.Should().BeNull();
         (await provider.DeleteAsync(first, default)).Should().BeTrue();
     }
 
@@ -63,10 +73,10 @@ public class InMemoryWorkProviderTests
     {
         var time = new TestTimeProvider();
         var provider = new InMemoryWorkProvider(timeProvider: time);
-        (await provider.CreateAsync(new WorkState { Id = "abc", TypeName = "T" }, TimeSpan.FromMinutes(1), default)).Should().BeTrue();
+        (await provider.CreateAsync(State("abc"), TimeSpan.FromMinutes(1), default)).Should().BeTrue();
         time.Now = time.Now.AddMinutes(2);
-        (await provider.GetAsync("abc", default)).State.Should().BeNull();
-        (await provider.CreateAsync(new WorkState { Id = "abc", TypeName = "T" }, TimeSpan.FromMinutes(1), default)).Should().BeTrue();
+        (await provider.GetAsync(Key("abc"), default)).State.Should().BeNull();
+        (await provider.CreateAsync(State("abc"), TimeSpan.FromMinutes(1), default)).Should().BeTrue();
     }
 
     [TestCase(false)]
@@ -75,23 +85,49 @@ public class InMemoryWorkProviderTests
     {
         var time = new TestTimeProvider();
         var provider = new InMemoryWorkProvider(timeProvider: time);
-        var original = new WorkState { Id = "abc", TypeName = "T" };
+        var original = State("abc");
         var ttl = TimeSpan.FromMinutes(1);
         (await provider.CreateAsync(original, ttl, default)).Should().BeTrue();
         (await provider.UpdateAsync(original, ttl, default)).Should().BeTrue();
-        var stale = (await provider.GetAsync("abc", default)).State!;
+        var stale = (await provider.GetAsync(Key("abc"), default)).State!;
 
         if (expire)
             time.Now = time.Now.AddMinutes(2);
         else
             (await provider.DeleteAsync(original, default)).Should().BeTrue();
 
-        var replacement = new WorkState { Id = "abc", TypeName = "T" };
+        var replacement = State("abc");
         (await provider.CreateAsync(replacement, ttl, default)).Should().BeTrue();
         (await provider.UpdateAsync(replacement, ttl, default)).Should().BeTrue();
         replacement.ETag.Should().NotBe(stale.ETag);
         (await provider.UpdateAsync(stale, ttl, default)).Should().BeFalse();
         (await provider.DeleteAsync(stale, default)).Should().BeFalse();
-        (await provider.GetAsync("abc", default)).State!.ETag.Should().Be(replacement.ETag);
+        (await provider.GetAsync(Key("abc"), default)).State!.ETag.Should().Be(replacement.ETag);
     }
+
+    [Test]
+    public async Task Same_InstanceId_Is_Isolated_By_Tenant_And_Explicit_Domain_Scope()
+    {
+        var provider = new InMemoryWorkProvider();
+        var tenantA = OperationKey.ForTenant("orders", "tenant-a", "import", "same-id");
+        var tenantB = OperationKey.ForTenant("orders", "tenant-b", "import", "same-id");
+        var domainWide = OperationKey.ForDomain("orders", "import", "same-id");
+
+        foreach (var key in new[] { tenantA, tenantB, domainWide })
+            (await provider.CreateAsync(State(key), TimeSpan.FromMinutes(1), default)).Should().BeTrue();
+
+        (await provider.GetAsync(tenantA, default)).State!.OperationKey.TenantId.Should().Be("tenant-a");
+        (await provider.GetAsync(tenantB, default)).State!.OperationKey.TenantId.Should().Be("tenant-b");
+        (await provider.GetAsync(domainWide, default)).State!.OperationKey.Scope.Should().Be(OperationKeyScope.DomainWide);
+    }
+
+    private static WorkState State(OperationKey key) => new()
+    {
+        Scope = key.Scope,
+        DomainName = key.DomainName,
+        TenantId = key.TenantId,
+        OperationName = key.OperationName,
+        Id = key.InstanceId,
+        TypeName = "T"
+    };
 }

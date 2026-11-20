@@ -34,7 +34,7 @@ public class PartitionKey
     /// <param name="partitionSize">The partition size (i.e the number of possible partitions).</param>
     /// <param name="ignoreCase">Indicates whether to ignore case.</param>
     /// <returns>The resulting partition identifier/number.</returns>
-    /// <remarks>The <paramref name="partitionKey"/> <b>must</b> be a universal, deterministic, and culture-independent <see cref="string"/>; where in doubt use <see cref="CompositeKey.ToString"/> which will enable.</remarks>
+    /// <remarks>The <paramref name="partitionKey"/> <b>must</b> be a universal, deterministic, and culture-independent <see cref="string"/>; where in doubt use <see cref="CompositeKey.ToString()"/> which will enable.</remarks>
     public static int GetPartitionId(string partitionKey, int partitionSize = DefaultPartitionSize, bool ignoreCase = true)
     {
         partitionKey = partitionKey.ThrowIfNull().Trim().ThrowIfNullOrEmpty().ThrowWhen(pk => pk.Length > 256, nameof(partitionKey));
@@ -74,7 +74,7 @@ public class PartitionKey
     /// <param name="partitionSize">The partition size (i.e the number of possible partitions).</param>
     /// <param name="ignoreCase">Indicates whether to ignore case.</param>
     /// <returns>The resulting partition identifier/number.</returns>
-    /// <remarks>The <paramref name="partitionKey"/> <b>must</b> be a universal, deterministic, and culture-independent <see cref="string"/>; where in doubt use <see cref="CompositeKey.ToString"/> which will enable.</remarks>
+    /// <remarks>The <paramref name="partitionKey"/> <b>must</b> be a universal, deterministic, and culture-independent <see cref="string"/>; where in doubt use <see cref="CompositeKey.ToString()"/> which will enable.</remarks>
     public static string GetPartitionIdAsString(string partitionKey, int partitionSize = DefaultPartitionSize, bool ignoreCase = true)
     {
         var id = GetPartitionId(partitionKey, partitionSize, ignoreCase);

@@ -10,7 +10,7 @@ public sealed class InMemoryWorkProvider(JsonSerializerOptions? jsonSerializerOp
 {
     private readonly JsonSerializerOptions _jsonSerializerOptions = jsonSerializerOptions ?? JsonDefaults.SerializerOptions;
     private readonly TimeProvider _timeProvider = timeProvider ?? TimeProvider.System;
-    private readonly Dictionary<string, Entry> _entries = [];
+    private readonly Dictionary<OperationKey, Entry> _entries = [];
 #if NET8_0
     private readonly object _lock = new();
 #else
@@ -18,13 +18,19 @@ public sealed class InMemoryWorkProvider(JsonSerializerOptions? jsonSerializerOp
 #endif
 
     /// <inheritdoc/>
-    public Task<WorkSnapshot> GetAsync(string id, CancellationToken cancellationToken)
+    public Task<WorkSnapshot> GetAsync(OperationKey operationKey, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         lock (_lock)
         {
             var now = _timeProvider.GetUtcNow();
-            return Task.FromResult(new WorkSnapshot(TryGet(id.ThrowIfNullOrEmpty(), now, out var entry) ? Deserialize(entry) : null, now));
+            operationKey.ThrowIfNull();
+            if (!TryGet(operationKey, now, out var entry))
+                return Task.FromResult(new WorkSnapshot(null, now));
+
+            var state = Deserialize(entry);
+            ValidateStateIdentity(state, operationKey);
+            return Task.FromResult(new WorkSnapshot(state, now));
         }
     }
 
@@ -32,17 +38,17 @@ public sealed class InMemoryWorkProvider(JsonSerializerOptions? jsonSerializerOp
     public Task<bool> CreateAsync(WorkState state, TimeSpan timeToLive, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var id = state.ThrowIfNull().Id.ThrowIfNullOrEmpty(nameof(state.Id));
+        var operationKey = GetOperationKey(state);
         var json = Serialize(state);
         var expires = Expires(timeToLive);
 
         lock (_lock)
         {
-            if (TryGet(id, _timeProvider.GetUtcNow(), out _))
+            if (TryGet(operationKey, _timeProvider.GetUtcNow(), out _))
                 return Task.FromResult(false);
 
             var entry = new Entry { State = json, Incarnation = Guid.NewGuid().ToString("N"), Version = 1, Expires = expires };
-            _entries[id] = entry;
+            _entries[operationKey] = entry;
             state.ETag = ETag(entry);
             return Task.FromResult(true);
         }
@@ -52,13 +58,13 @@ public sealed class InMemoryWorkProvider(JsonSerializerOptions? jsonSerializerOp
     public Task<bool> UpdateAsync(WorkState state, TimeSpan timeToLive, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var id = state.ThrowIfNull().Id.ThrowIfNullOrEmpty(nameof(state.Id));
+        var operationKey = GetOperationKey(state);
         var json = Serialize(state);
         var expires = Expires(timeToLive);
 
         lock (_lock)
         {
-            if (!TryGet(id, _timeProvider.GetUtcNow(), out var entry) || !IsMatch(entry, state.ETag))
+            if (!TryGet(operationKey, _timeProvider.GetUtcNow(), out var entry) || !IsMatch(entry, state.ETag))
                 return Task.FromResult(false);
 
             entry.State = json;
@@ -73,32 +79,53 @@ public sealed class InMemoryWorkProvider(JsonSerializerOptions? jsonSerializerOp
     public Task<bool> DeleteAsync(WorkState state, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var id = state.ThrowIfNull().Id.ThrowIfNullOrEmpty(nameof(state.Id));
+        var operationKey = GetOperationKey(state);
 
         lock (_lock)
         {
-            if (!TryGet(id, _timeProvider.GetUtcNow(), out var entry))
+            if (!TryGet(operationKey, _timeProvider.GetUtcNow(), out var entry))
                 return Task.FromResult(true);
 
             if (!IsMatch(entry, state.ETag))
                 return Task.FromResult(false);
 
-            _entries.Remove(id);
+            _entries.Remove(operationKey);
             return Task.FromResult(true);
         }
     }
 
     /// <summary>
+    /// Gets and validates the complete identity for the <paramref name="state"/>.
+    /// </summary>
+    private static OperationKey GetOperationKey(WorkState state)
+    {
+        state.ThrowIfNull();
+        var operationKey = state.OperationKey.ThrowIfNull(nameof(state.OperationKey));
+        ValidateStateIdentity(state, operationKey);
+
+        return operationKey;
+    }
+
+    /// <summary>
+    /// Validates that a state stores the requested complete identity.
+    /// </summary>
+    private static void ValidateStateIdentity(WorkState state, OperationKey operationKey)
+    {
+        if (state.OperationKey != operationKey || state.Id != operationKey.InstanceId)
+            throw new InvalidOperationException("The work state identity must match its operation key.");
+    }
+
+    /// <summary>
     /// Gets the unexpired entry, removing it where expired; must be called within the lock.
     /// </summary>
-    private bool TryGet(string id, DateTimeOffset now, [NotNullWhen(true)] out Entry? entry)
+    private bool TryGet(OperationKey operationKey, DateTimeOffset now, [NotNullWhen(true)] out Entry? entry)
     {
-        if (_entries.TryGetValue(id, out entry))
+        if (_entries.TryGetValue(operationKey, out entry))
         {
             if (entry.Expires > now)
                 return true;
 
-            _entries.Remove(id);
+            _entries.Remove(operationKey);
             entry = null;
         }
 

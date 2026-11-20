@@ -43,7 +43,7 @@ test triggers behavior: a simulated message receipt instead of an HTTP call.
 
 ## Quick Reference
 
-- **Base class**: `WithApiTester<{Domain}.Subscribe.Program>` — same DB/cache/outbox `[OneTimeSetUp]` shape as API tests (migrate + seed via named-file overload → `ClearFusionCacheAsync()` → provider-specific `UseExpected{Postgres|SqlServer|CosmosDb}OutboxPublisher()`); Subscribe hosts **do** have FusionCache (reference data, idempotency)
+- **Base class**: `WithApiTester<{Domain}.Subscribe.Program>` — same DB/cache/outbox `[OneTimeSetUp]` shape as API tests (migrate + seed via named-file overload → `ClearFusionCacheAsync()` → provider-specific `UseExpected{Postgres|SqlServer|CosmosDb}OutboxPublisher()`); Subscribe hosts **do** have FusionCache for reference data and ordinary caching, separate from idempotency coordination
 - **Simulate receipt**: build an `EventData` → `Test.CreateCloudEventFrom(ed)` → `.ToServiceBusReceivedMessage()` → resolve `ServiceBusSubscribedSubscriber` from DI → `.ReceiveAsync(sbm)`
 - **Key matters**: event subscribers resolve the key `"subscriber-events"`; **command** subscribers (dedicated queue receiver) resolve `"subscriber-commands"` — see `coreex-command-subscribe-e2e`. Resolving the wrong key throws or hits the wrong receiver
 - **One partial file per subscriber scenario** — `SubscriberTests.{Scenario}.cs`
