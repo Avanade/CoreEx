@@ -138,7 +138,7 @@ public class CosmosDbModelOptions<TModel> where TModel : class, IEntityKey, new(
     /// </summary>
     /// <param name="key">The <see cref="CompositeKey"/>.</param>
     /// <returns>The physical Cosmos DB document <c>id</c>.</returns>
-    /// <remarks>Defaults to <see cref="CompositeKey.ToString"/>.</remarks>
+    /// <remarks>Defaults to <see cref="CompositeKey.ToString()"/>.</remarks>
     public string FormatIdentifier(CompositeKey key) => _formatIdentifier(key);
 
     /// <summary>

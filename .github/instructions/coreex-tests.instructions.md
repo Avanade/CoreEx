@@ -872,7 +872,7 @@ Add as many `[Test]` methods as needed for meaningful coverage — confirm both 
 
 ## Subscribe Host Tests
 
-Subscribe test classes extend `WithApiTester<Program>` over the subscriber host. The `[OneTimeSetUp]` migrates/seeds the domain DB and clears FusionCache, just like an API test. Subscribe hosts **do** have FusionCache — they are full application-layer consumers that need caching for reference data and idempotency.
+Subscribe test classes extend `WithApiTester<Program>` over the subscriber host. The `[OneTimeSetUp]` migrates/seeds the domain DB and clears FusionCache, just like an API test. Subscribe hosts **do** have FusionCache for reference data and ordinary caching; idempotency uses separate coordination storage.
 
 ```csharp
 public class ProductModifySubscriberTests : WithApiTester<YourDomain.Subscribe.Program>

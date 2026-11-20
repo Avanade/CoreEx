@@ -24,6 +24,8 @@ The namespace also includes supporting utilities: `Cleaner` for normalizing stri
 - 📝 **Partial-update values**: `Optional<T>` distinguishes an omitted request property from a supplied `null` or default value; use it on explicit patch DTOs, not persisted contracts.
 - 🔧 **Identifier generation**: `IdentifierGenerator` and `IIdentifierGenerator` provide DI-replaceable new `Guid`/`string` identifier creation (using `Guid.CreateVersion7()` on .NET 9+).
 
+`CompositeKey.ToString()` retains the existing comma-separated representation through `StandardStringFormatter` for compatibility; that format is not collision-resistant. Use `ToString(formatter)` to select a formatter per call, or `CollisionResistantStringFormatter` for typed, length-prefixed output. Its compact type tags are part of the formatted identity: `n` null, `s` string, `c` char, `b` bool, `i8`/`u8` through `i64`/`u64` integers, `ni`/`nu` native integers, `f32`/`f64` floating point, `dec` decimal, `g` GUID, `dt` DateTime, `dto` DateTimeOffset, `ts` TimeSpan, `d` DateOnly, `t` TimeOnly, `bin` byte array, and `e` enum. Unsupported object types throw instead of relying on arbitrary `ToString()` behavior.
+
 ## Key types
 
 | Type | Description |

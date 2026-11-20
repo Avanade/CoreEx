@@ -16,35 +16,46 @@ public record class WorkArgs : IReadOnlyIdentifier<string>
     /// Creates the <see cref="WorkArgs"/> using the <typeparamref name="T"/> <see cref="Type.FullName"/> as the <see cref="TypeName"/>.
     /// </summary>
     /// <typeparam name="T">The <see cref="Type"/> to infer the <see cref="WorkState.TypeName"/> enabling state separation.</typeparam>
-    /// <param name="id">The work identifier.</param>
+    /// <param name="operationKey">The explicit operation identity.</param>
     /// <returns>The newly instantiated <see cref="WorkArgs"/>.</returns>
-    public static WorkArgs Create<T>(string? id = null) => new(GetTypeName<T>(), id);
+    public static WorkArgs Create<T>(OperationKey operationKey) => new(GetTypeName<T>(), operationKey);
 
     /// <summary>
     /// Initializes a new instance of the <see cref="WorkArgs"/> class.
     /// </summary>
     /// <param name="typeName">The type name.</param>
-    /// <param name="id">The identifier.</param>
-    public WorkArgs(string typeName, string? id = null)
+    /// <param name="operationKey">The explicit operation identity.</param>
+    public WorkArgs(string typeName, OperationKey operationKey)
     {
         TypeName = typeName.ThrowIfNullOrEmpty();
-        Id = id.ThrowIfEmpty() ?? Runtime.NewId();
+        OperationKey = operationKey.ThrowIfNull();
     }
 
     /// <summary>
     /// Gets or sets the <see cref="WorkOrchestrator"/> type name.
     /// </summary>
-    /// <remarks>Enables separation between one or more <see cref="WorkState"/> types; see <see cref="WorkOrchestrator.GetAsync(string, CancellationToken)"/> to minimize cross-type access challenges.</remarks>
+    /// <remarks>Enables separation between one or more <see cref="WorkState"/> types; caller-facing access also checks the operation type with <see cref="WorkOrchestrator.GetWithTypeAsync(string, OperationKey, CancellationToken)"/>.</remarks>
     public string TypeName { get; }
 
+    /// <summary>
+    /// Gets the explicit operation identity.
+    /// </summary>
+    public OperationKey OperationKey { get; }
+
     /// <inheritdoc/>
-    public string Id { get; }
+    /// <remarks>The instance identifier is not globally unique; use <see cref="OperationKey"/> for lookup.</remarks>
+    public string Id => OperationKey.InstanceId;
 
     /// <summary>
     /// Gets or sets the expiry <see cref="TimeSpan"/>.
     /// </summary>
     /// <remarks>The <see cref="WorkState.ExpiryOn"/> will default to the <see cref="WorkOrchestrator.ExpiryTimeSpan"/> where not specified.</remarks>
     public TimeSpan? Expiry { get; set; }
+
+    /// <summary>
+    /// Gets or sets the maximum time a created work item may wait before starting.
+    /// </summary>
+    public TimeSpan? StartTimeout { get; set; }
 
     /// <summary>
     /// Gets or sets the trace parent (defaults to see <see cref="System.Diagnostics.Activity.Id"/>).
@@ -59,6 +70,6 @@ public record class WorkArgs : IReadOnlyIdentifier<string>
     /// <summary>
     /// Gets or sets the owning <see cref="AuthenticationUser"/>.
     /// </summary>
-    /// <remarks>This provides a basic authorization-style opportunity by verifying <i>only</i> the initiating user has ongoing access.</remarks>
+    /// <remarks>Defaults to the current execution user, or <see cref="AuthenticationUser.EnvironmentUser"/> without an execution context. An unauthenticated user creates unowned work.</remarks>
     public AuthenticationUser? User { get; set; }
 }

@@ -175,18 +175,132 @@ public readonly partial struct CompositeKey() : IEquatable<CompositeKey>
     /// Gets the string representation of the <see cref="CompositeKey"/>.
     /// </summary>
     /// <returns>The string representation.</returns>
-    /// <remarks>Uses the configured <see cref="ToStringFormatter"/>.</remarks>
-    public override string? ToString() => ToStringFormatter(this);
+    /// <remarks>Uses the configured <see cref="ToStringFormatter"/>. Use <see cref="ToString(Func{CompositeKey, string})"/> to supply a formatter for one invocation.</remarks>
+    public override string? ToString() => ToString(ToStringFormatter);
 
     /// <summary>
-    /// Gets or sets the <see cref="ToString"/> formatter function.
+    /// Gets the string representation of the <see cref="CompositeKey"/> using the specified formatter.
     /// </summary>
-    /// <remarks>The default implementation will format each argument (from the <see cref="Args"/>) to be universal, deterministic, and culture-independent.</remarks>
+    /// <param name="formatter">The formatter to use for this invocation.</param>
+    /// <returns>The formatted string representation.</returns>
+    public string ToString(Func<CompositeKey, string> formatter) => formatter.ThrowIfNull()(this);
+
+    /// <summary>
+    /// Gets or sets the <see cref="ToString()"/> formatter function.
+    /// </summary>
+    /// <remarks>The initial formatter is <see cref="StandardStringFormatter"/>. Use <see cref="CollisionResistantStringFormatter"/> for unambiguous output across composite arguments.</remarks>
     public static Func<CompositeKey, string> ToStringFormatter
     {
         get;
         set => field = value.ThrowIfNull();
-    } = ck => string.Join(',', ck.Args.Select(ArgumentToString));
+    } = StandardStringFormatter;
+
+    /// <summary>
+    /// Formats the arguments using a simple comma-separated representation.
+    /// </summary>
+    /// <param name="key">The composite key.</param>
+    /// <returns>The comma-separated representation.</returns>
+    /// <remarks>This format is deterministic and culture-independent, but arguments containing commas or equal text from different types can collide.</remarks>
+    public static string StandardStringFormatter(CompositeKey key) => string.Join(',', key.Args.Select(ArgumentToString));
+
+    /// <summary>
+    /// Formats the arguments using separated type tags and length-prefixed values.
+    /// </summary>
+    /// <param name="key">The composite key.</param>
+    /// <returns>An unambiguous, deterministic representation of the supported argument values.</returns>
+    /// <remarks>Strings and byte arrays are encoded as hexadecimal data. Unsupported object types throw <see cref="NotSupportedException"/> rather than relying on arbitrary <see cref="object.ToString"/> implementations.</remarks>
+    public static string CollisionResistantStringFormatter(CompositeKey key)
+    {
+        var args = key.Args;
+        if (args.IsDefault)
+            args = [];
+
+        var builder = new StringBuilder();
+        builder.Append(args.Length.ToString(CultureInfo.InvariantCulture)).Append(':');
+        foreach (var arg in args)
+        {
+            var (type, value) = FormatCollisionResistantArgument(arg);
+            AppendLengthPrefixed(builder, type);
+            AppendLengthPrefixed(builder, value);
+        }
+
+        return builder.ToString();
+    }
+
+    /// <summary>
+    /// Appends a string with its length so adjacent values can be parsed without delimiters.
+    /// </summary>
+    private static void AppendLengthPrefixed(StringBuilder builder, string value) => builder.Append(value.Length.ToString(CultureInfo.InvariantCulture)).Append(':').Append(value);
+
+    /// <summary>
+    /// Gets the type tag and invariant value representation for a supported argument.
+    /// </summary>
+    private static (string Type, string Value) FormatCollisionResistantArgument(object? arg)
+    {
+        if (arg is null)
+            return ("n", string.Empty);
+
+        if (arg is Enum enumValue)
+            return FormatEnum(enumValue);
+
+        return arg switch
+        {
+            string value => ("s", EncodeString(value)),
+            char value => ("c", ((int)value).ToString("X4", CultureInfo.InvariantCulture)),
+            bool value => ("b", value ? "1" : "0"),
+            sbyte value => ("i8", value.ToString(CultureInfo.InvariantCulture)),
+            byte value => ("u8", value.ToString(CultureInfo.InvariantCulture)),
+            short value => ("i16", value.ToString(CultureInfo.InvariantCulture)),
+            ushort value => ("u16", value.ToString(CultureInfo.InvariantCulture)),
+            int value => ("i32", value.ToString(CultureInfo.InvariantCulture)),
+            uint value => ("u32", value.ToString(CultureInfo.InvariantCulture)),
+            long value => ("i64", value.ToString(CultureInfo.InvariantCulture)),
+            ulong value => ("u64", value.ToString(CultureInfo.InvariantCulture)),
+            nint value => ("ni", value.ToString(CultureInfo.InvariantCulture)),
+            nuint value => ("nu", value.ToString(CultureInfo.InvariantCulture)),
+            float value => ("f32", value == 0 ? "0" : value.ToString("R", CultureInfo.InvariantCulture)),
+            double value => ("f64", value == 0 ? "0" : value.ToString("R", CultureInfo.InvariantCulture)),
+            decimal value => ("dec", value.ToString("G29", CultureInfo.InvariantCulture)),
+            Guid value => ("g", value.ToString("N")),
+            DateTime value => ("dt", value.Ticks.ToString(CultureInfo.InvariantCulture)),
+            DateTimeOffset value => ("dto", value.UtcDateTime.Ticks.ToString(CultureInfo.InvariantCulture)),
+            TimeSpan value => ("ts", value.Ticks.ToString(CultureInfo.InvariantCulture)),
+            DateOnly value => ("d", value.DayNumber.ToString(CultureInfo.InvariantCulture)),
+            TimeOnly value => ("t", value.Ticks.ToString(CultureInfo.InvariantCulture)),
+            byte[] value => ("bin", Convert.ToHexString(value)),
+            _ => throw new NotSupportedException($"The type '{arg.GetType()}' is not supported by the collision-resistant composite-key formatter.")
+        };
+    }
+
+    /// <summary>
+    /// Formats an enum with its stable type identity and underlying numeric value.
+    /// </summary>
+    private static (string Type, string Value) FormatEnum(Enum value)
+    {
+        var enumType = value.GetType();
+        var typeName = new StringBuilder();
+        AppendLengthPrefixed(typeName, EncodeString(enumType.Assembly.GetName().Name ?? string.Empty));
+        AppendLengthPrefixed(typeName, EncodeString(enumType.FullName ?? enumType.Name));
+        var underlyingType = Enum.GetUnderlyingType(enumType);
+        AppendLengthPrefixed(typeName, Type.GetTypeCode(underlyingType).ToString());
+
+        var underlyingValue = Convert.ChangeType(value, underlyingType, CultureInfo.InvariantCulture);
+        var numericValue = Convert.ToString(underlyingValue, CultureInfo.InvariantCulture)
+            ?? throw new InvalidOperationException("The enum value could not be formatted.");
+        return ($"e:{typeName}", numericValue);
+    }
+
+    /// <summary>
+    /// Encodes the UTF-16 code units of a string as hexadecimal data.
+    /// </summary>
+    private static string EncodeString(string value)
+    {
+        var builder = new StringBuilder(value.Length * 4);
+        foreach (var character in value)
+            builder.Append(((int)character).ToString("X4", CultureInfo.InvariantCulture));
+
+        return builder.ToString();
+    }
 
     /// <summary>
     /// Converts an argument into a universal, deterministic, and culture-independent <see cref="string"/>.

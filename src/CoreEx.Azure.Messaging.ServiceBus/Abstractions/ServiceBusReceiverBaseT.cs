@@ -36,80 +36,109 @@ public abstract class ServiceBusReceiverBase<TSubscriber>(ServiceBusClient clien
             // Set the resilience property within the context for access during processing.
             ctx.Properties.Set(ServiceBusReceiverResiliency.ResiliencePropertyKey, this);
 
-            // Execute the receive with resiliency.
+            // Execute the receive with resiliency; the arguments are per delivery and reused across the resiliency attempts.
             var esa = new EventSubscriberArgs();
-            var result = await Options.MessageResiliency.ExecuteAsync<Result, (TSubscriber Subscriber, ServiceBusReceivedMessage Message, EventSubscriberArgs Args, ServiceBusReceiverBase Owner)>(async static (ctx, state) =>
-            {
-                // Invoke the subscriber's receive to process the message.
-                Result result;
-                try
-                {
-                    result = await state.Subscriber.ReceiveAsync(state.Message, state.Args, ctx.CancellationToken).ConfigureAwait(false);
-                }
-                catch (Exception ex)
-                {
-                    // Capture any exception as a Result for standardized handling.
-                    result = Result.Fail(ex);
-                }
+            var recorder = new ServiceBusSettlementRecorder(actions);
+            Exception? error = null;
+            var cancelled = false;
+            var paused = false;
 
-                // A cancellation attributable to this receive's own token (e.g. shutdown) must bubble up unclassified; it must not be converted (and logged) as per the configured UnhandledErrorHandling (e.g. DeadLetter).
-                if (result.IsFailure && result.Error.IsCanceledBy(ctx.CancellationToken))
+            try
+            {
+                var result = await Options.MessageResiliency.ExecuteAsync<Result, (TSubscriber Subscriber, ServiceBusReceivedMessage Message, EventSubscriberArgs Args, ServiceBusReceiverBase Owner)>(async static (ctx, state) =>
+                {
+                    // Invoke the subscriber's receive to process the message.
+                    Result result;
+                    try
+                    {
+                        result = await state.Subscriber.ReceiveAsync(state.Message, state.Args, ctx.CancellationToken).ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        // Capture any exception as a Result for standardized handling.
+                        result = Result.Fail(ex);
+                    }
+
+                    // A cancellation attributable to this receive's own token (e.g. shutdown) must bubble up unclassified; it must not be converted (and logged) as per the configured UnhandledErrorHandling (e.g. DeadLetter).
+                    if (result.IsFailure && result.Error.IsCanceledBy(ctx.CancellationToken))
+                        return result;
+
+                    // Determine where unhandled what the final error handling will be; otherwise, success.
+                    return MessageUnhandledErrorDetermination(result, state.Owner.Options, state.Owner.Logger);
+                }, ctx, (subscriber, message, esa, this)).ConfigureAwait(false);
+
+                // On success complete the message and exit.
+                if (result.IsSuccess)
+                {
+                    await recorder.CompleteMessageAsync(cancellationToken).ConfigureAwait(false);
                     return result;
+                }
 
-                // Determine where unhandled what the final error handling will be; otherwise, success.
-                return MessageUnhandledErrorDetermination(result, state.Owner.Options, state.Owner.Logger);
-            }, ctx, (subscriber, message, esa, this));
-
-            // On success complete the message and exit.
-            if (result.IsSuccess)
-            {
-                await actions.CompleteMessageAsync(cancellationToken).ConfigureAwait(false);
-                return result;
-            }
-
-            // A cancellation attributable to *this* receive's own cancellationToken (e.g. a host/processor shutdown) is intended to bubble up unclassified (see CoreEx.Events.Subscribing.EventSubscriberBase);
-            // do not log it as an unhandled error nor attempt any message action using the very token that just got cancelled (which the Azure SDK would likely reject immediately) - simply let the message be
-            // left for natural redelivery once its lock expires.
-            if (result.Error.IsCanceledBy(cancellationToken))
-                return result;
-
-            // Handle the error accordingly; a) retry error conversion, b) invoke message action, then c) pause where critical.
-            return await result
-                .OnFailure(r => MessageRetryErrorDetermination(r, Options, Logger))
-                .OnFailureAsync(r => MessageErrorActionAsync(r.Error!, actions, cancellationToken))
-                .OnFailureAsync(async r =>
+                // A cancellation attributable to *this* receive's own cancellationToken (e.g. a host/processor shutdown) is intended to bubble up unclassified (see CoreEx.Events.Subscribing.EventSubscriberBase);
+                // do not log it as an unhandled error nor attempt any message action using the very token that just got cancelled (which the Azure SDK would likely reject immediately) - simply let the message be
+                // left for natural redelivery once its lock expires.
+                if (result.Error.IsCanceledBy(cancellationToken))
                 {
-                    if (r.Error is IEventSubscriberException esex && esex.ErrorHandling == ErrorHandling.Catastrophic && Options.PauseReceiverOnCatastrophicError)
+                    cancelled = true;
+                    return result;
+                }
+
+                // Handle the error accordingly; a) retry error conversion, b) invoke message action, then c) pause where critical.
+                var determined = MessageRetryErrorDetermination(result, Options, Logger);
+                error = determined.Error;
+
+                return await determined
+                    .OnFailureAsync(r => MessageErrorActionAsync(r.Error!, recorder, cancellationToken))
+                    .OnFailureAsync(async r =>
                     {
-                        if (Logger.IsEnabled(LogLevel.Critical))
-                            Logger.LogCritical(r.Error, "A Catastrophic error has occurred within the service bus receiver for subscriber '{SubscriberTypeName}'. Abandoning the message and pausing the receiver.", typeof(TSubscriber).Name);
-
-                        await actions.AbandonMessageAsync(r.Error, cancellationToken: cancellationToken).ConfigureAwait(false);
-
-                        // Do not await the pause as we want to allow the message to be abandoned and the error logged without delay.
-                        _ = Task.Run(async () =>
+                        if (r.Error is IEventSubscriberException esex && esex.ErrorHandling == ErrorHandling.Catastrophic && Options.PauseReceiverOnCatastrophicError)
                         {
-                            try
-                            {
-                                await PauseAsync("A Catastrophic error occurred within the service bus receiver.", default).ConfigureAwait(false);
-                            }
-                            catch (Exception ex)
-                            {
-                                // This pause is the receiver's own protective mechanism for a Catastrophic error; a failure here must not be silently lost as an unobserved task exception.
-                                if (Logger.IsEnabled(LogLevel.Error))
-                                    Logger.LogError(ex, "Service bus receiver pause following a Catastrophic error failed; the receiver may not have been paused as expected.");
-                            }
-                        });
-                    }
-                    else
-                    {
-                        // Basically unhandled, and we don't really have any other course of action other than to abandon the message and log the error.
-                        if (Logger.IsEnabled(LogLevel.Error))
-                            Logger.LogError(r.Error, "An unhandled error has occurred within the service bus receiver for subscriber '{SubscriberTypeName}'. Abandoning the message.", typeof(TSubscriber).Name);
+                            if (Logger.IsEnabled(LogLevel.Critical))
+                                Logger.LogCritical(r.Error, "A Catastrophic error has occurred within the service bus receiver for subscriber '{SubscriberTypeName}'. Abandoning the message and pausing the receiver.", typeof(TSubscriber).Name);
 
-                        await actions.AbandonMessageAsync(r.Error, cancellationToken: cancellationToken).ConfigureAwait(false);
-                    }
-                }).ConfigureAwait(false);
+                            await recorder.AbandonMessageAsync(r.Error, cancellationToken: cancellationToken).ConfigureAwait(false);
+                            paused = true;
+
+                            // Do not await the pause as we want to allow the message to be abandoned and the error logged without delay.
+                            _ = Task.Run(async () =>
+                            {
+                                try
+                                {
+                                    await PauseAsync("A Catastrophic error occurred within the service bus receiver.", default).ConfigureAwait(false);
+                                }
+                                catch (Exception ex)
+                                {
+                                    // This pause is the receiver's own protective mechanism for a Catastrophic error; a failure here must not be silently lost as an unobserved task exception.
+                                    if (Logger.IsEnabled(LogLevel.Error))
+                                        Logger.LogError(ex, "Service bus receiver pause following a Catastrophic error failed; the receiver may not have been paused as expected.");
+                                }
+                            });
+                        }
+                        else
+                        {
+                            // Basically unhandled, and we don't really have any other course of action other than to abandon the message and log the error.
+                            if (Logger.IsEnabled(LogLevel.Error))
+                                Logger.LogError(r.Error, "An unhandled error has occurred within the service bus receiver for subscriber '{SubscriberTypeName}'. Abandoning the message.", typeof(TSubscriber).Name);
+
+                            await recorder.AbandonMessageAsync(r.Error, cancellationToken: cancellationToken).ConfigureAwait(false);
+                        }
+                    }).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                // Record the failure for the disposition; the exception itself is rethrown unchanged.
+                if (recorder.SettlementError is null && ex.IsCanceledBy(cancellationToken))
+                    cancelled = true;
+                else
+                    error ??= recorder.SettlementError is null ? ex : null;
+
+                throw;
+            }
+            finally
+            {
+                // Notify the participating behaviors once per delivery, after the settlement decision has been applied; failures are logged and suppressed by the subscriber.
+                await subscriber.NotifyDispositionAsync(esa, recorder.CreateDisposition(error, cancelled, paused), cancellationToken).ConfigureAwait(false);
+            }
         }
         finally
         {

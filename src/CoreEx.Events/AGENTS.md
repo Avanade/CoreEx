@@ -73,6 +73,8 @@ Payload cleanup is opt-in: `EventSubscriberBase.AutoCleanValue` defaults false b
 
 See [CoreEx.Azure.Messaging.ServiceBus](../CoreEx.Azure.Messaging.ServiceBus/README.md) for the full subscriber wiring example.
 
+Cross-cutting per-delivery logic belongs in `EventSubscriberBase.Behaviors` (`ISubscriberBehavior`), configured in the owning subscriber's constructor — not in each `SubscribedBase` handler. Behaviors wrap every attempt (including `MessageResiliency` retries) for direct, matched dispatched and native messages; `OnDispositionAsync` runs once after the transport applies settlement. A behavior throwing is classified `ErrorHandling.None`; callback failures never change settlement. See [subscriber behaviors](./README.md#subscriber-behaviors).
+
 ## DestinationProvider
 
 An `IDestinationProvider` derives the topic/queue name for each published message. Register exactly one; the built-ins cover the common cases:

@@ -1,448 +1,624 @@
 namespace CoreEx.Hosting.Work;
 
 /// <summary>
-/// Represents the long-running work (see <see cref="WorkState"/>) tracking orchestrator.
+/// Orchestrates durable, optimistic-concurrency work-state transitions.
 /// </summary>
-/// <param name="provider">The <see cref="IWorkProvider"/>.</param>
-/// <param name="jsonSerializerOptions">The optional <see cref="JsonSerializerOptions"/>.</param>
-/// <remarks>Each state transition is applied as an optimistic-concurrency (compare-and-set) loop against the <see cref="IWorkProvider"/>: the current state is read, auto-expiry is applied, the transition is validated, and the
-/// update only succeeds where no other writer has changed the state in the interim. As such, concurrent transitions are linearized; for example, exactly one concurrent <see cref="StartAsync"/> succeeds, and a stale
-/// transition can never overwrite a <see cref="WorkStatus.Finished"/> state. Invalid transitions return a <see cref="Result.ConflictError"/>; exhausted retries return a <see cref="Result.ConcurrencyError"/>.</remarks>
-public class WorkOrchestrator(IWorkProvider provider, JsonSerializerOptions? jsonSerializerOptions = null)
+/// <param name="provider">The underlying work provider.</param>
+/// <param name="options">The optional work configuration.</param>
+/// <remarks>Each state transition is applied with provider ETag compare-and-set. A lease identifies the current worker epoch, but does not prevent an expired worker from continuing to execute; handlers requiring side-effect fencing must enforce the lease epoch in their own store.</remarks>
+public class WorkOrchestrator(IWorkProvider provider, WorkOrchestratorOptions? options = null)
 {
-    private const int MaxAttempts = 10;
-    private const string ExpiredReason = "The work has not finished within the expiry timeframe and is assumed to have expired.";
+    private const int MaxConcurrencyAttempts = 10;
+    private const string ExpiredMessage = "The work did not finish before its expiry deadline.";
     private readonly WorkOrchestratorInvoker _invoker = WorkOrchestratorInvoker.Default;
-    private TimeSpan? _expiryTimeSpan;
-    private TimeSpan? _retentionTimeSpan;
+    private readonly WorkOrchestratorOptions _options = options ?? new WorkOrchestratorOptions();
 
     /// <summary>
-    /// Gets the default <see cref="ExpiryTimeSpan"/>.
-    /// </summary>
-    internal static TimeSpan DefaultExpiryTimeSpan => Internal.GetConfigurationValue<TimeSpan>("CoreEx:Hosting:Work:Expiry", TimeSpan.FromDays(1));
-
-    /// <summary>
-    /// Gets the default <see cref="RetentionTimeSpan"/>.
-    /// </summary>
-    internal static TimeSpan DefaultRetentionTimeSpan => Internal.GetConfigurationValue<TimeSpan>("CoreEx:Hosting:Work:Retention", TimeSpan.FromDays(1));
-
-    /// <summary>
-    /// Gets the <see cref="IWorkProvider"/>.
+    /// Gets the underlying provider.
     /// </summary>
     public IWorkProvider Provider { get; } = provider.ThrowIfNull(nameof(provider));
 
     /// <summary>
-    /// Gets the <see cref="JsonSerializerOptions"/>.
+    /// Gets or sets the maximum time work may remain unfinished.
     /// </summary>
-    /// <remarks>Defaults to <see cref="JsonDefaults.SerializerOptions"/>.</remarks>
-    public JsonSerializerOptions JsonSerializerOptions { get; } = jsonSerializerOptions ?? JsonDefaults.SerializerOptions;
-
-    /// <summary>
-    /// Gets or sets the work expiry <see cref="TimeSpan"/>; being the maximum duration that work may remain unfinished before it is automatically <see cref="WorkStatus.Expired"/>.
-    /// </summary>
-    /// <remarks>Defaults to configuration setting '<c>CoreEx:Hosting:Work:Expiry</c>'; otherwise, one (1) day.</remarks>
     public TimeSpan ExpiryTimeSpan
     {
-        get => _expiryTimeSpan ??= DefaultExpiryTimeSpan;
-        set => _expiryTimeSpan = value;
+        get => _options.Expiry;
+        set
+        {
+            _options.Expiry = value;
+            _options.Validate();
+        }
     }
 
     /// <summary>
-    /// Gets or sets the retention <see cref="TimeSpan"/>; being the minimum duration that the work is retained after it has finished (or would have expired).
+    /// Gets or sets the minimum duration finished work is retained.
     /// </summary>
-    /// <remarks>Defaults to configuration setting '<c>CoreEx:Hosting:Work:Retention</c>'; otherwise, one (1) day. The record time-to-live is the remaining expiry plus the retention whilst executing, and the retention once finished.</remarks>
     public TimeSpan RetentionTimeSpan
     {
-        get => _retentionTimeSpan ??= DefaultRetentionTimeSpan;
-        set => _retentionTimeSpan = value > TimeSpan.Zero ? value : throw new ArgumentOutOfRangeException(nameof(value), "The retention must be greater than zero.");
-    }
-
-    /// <summary>
-    /// Indicates whether to check the <see cref="WorkState.User"/> where not <see langword="null"/> where performing a <see cref="GetWithTypeAsync(string, string, CancellationToken)"/> or <see cref="GetWithTypeAsync{T}(string, CancellationToken)"/>.
-    /// </summary>
-    public bool CheckUser { get; set; } = true;
-
-    /// <summary>
-    /// Gets the <see cref="WorkState"/> for the specified <paramref name="id"/>.
-    /// </summary>
-    /// <param name="id">The work identifier.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-    /// <returns>The <see cref="WorkState"/> where found; otherwise, <see langword="null"/>.</returns>
-    /// <remarks>Will automatically (and atomically) set the <see cref="WorkState.Status"/> to <see cref="WorkStatus.Expired"/> when the work is <i>not</i> <see cref="WorkStatus.Finished"/> and has expired (see <see cref="WorkState.ExpiryOn"/>).</remarks>
-    public Task<WorkState?> GetAsync(string id, CancellationToken cancellationToken = default) => _invoker.InvokeAsync(this, async (_, cancellationToken) =>
-    {
-        var result = await TransitionAsync(id, (_, _) => false, null, cancellationToken).ConfigureAwait(false);
-        return result.IsFailureOfType<NotFoundException>() ? null : result.Value;
-    }, cancellationToken);
-
-    /// <summary>
-    /// Atomically creates and persists a <b>new</b> <see cref="WorkState"/> with a <see cref="WorkStatus.Created"/> status.
-    /// </summary>
-    /// <param name="args">The <see cref="WorkArgs"/>.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-    /// <returns>The <see cref="WorkState"/>.</returns>
-    /// <remarks>A <see cref="Result.ConflictError"/> is returned where the <see cref="WorkArgs.Id"/> already exists.</remarks>
-    public Task<Result<WorkState>> CreateAsync(WorkArgs args, CancellationToken cancellationToken = default) => _invoker.InvokeAsync<Result<WorkState>>(this, async (_, cancellationToken) =>
-    {
-        args.ThrowIfNull();
-        var now = Runtime.UtcNow;
-        var traceParent = args.TraceParent;
-        var traceState = args.TraceState;
-        if (string.IsNullOrEmpty(traceParent) && Activity.Current is not null)
+        get => _options.Retention;
+        set
         {
-            traceParent = Activity.Current.Id;
-            traceState = Activity.Current.TraceStateString;
+            _options.Retention = value;
+            _options.Validate();
         }
-
-        var ws = new WorkState()
-        {
-            Id = args.Id,
-            TypeName = args.TypeName.ThrowIfNullOrEmpty(),
-            Status = WorkStatus.Created,
-            CreatedOn = now,
-            ExpiryOn = now.Add(args.Expiry ?? ExpiryTimeSpan),
-            User = args.User ?? (ExecutionContext.TryGetCurrent(out var ec) ? ec.User : null),
-            TraceParent = traceParent,
-            TraceState = traceState
-        };
-
-        if (await Provider.CreateAsync(ws, GetTimeToLive(ws, now), cancellationToken).ConfigureAwait(false))
-            return ws;
-
-        return Result.ConflictError($"Work '{args.Id}' already exists.");
-    }, cancellationToken);
-
-    /// <summary>
-    /// Atomically starts (claims) a previously <see cref="WorkStatus.Created"/> <see cref="WorkState"/>.
-    /// </summary>
-    /// <param name="id">The work identifier.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-    /// <returns>The updated <see cref="WorkState"/>.</returns>
-    /// <remarks>A <see cref="Result.NotFoundError"/> may be returned. A <see cref="Result.ConflictError"/> is returned where already started; i.e. exactly one concurrent caller can start the work. Starting work that has already
-    /// <see cref="WorkStatus.Finished"/> will not update the <see cref="WorkStatus"/>; the caller should verify the returned <see cref="WorkState.Status"/>.</remarks>
-    public Task<Result<WorkState>> StartAsync(string id, CancellationToken cancellationToken = default) => _invoker.InvokeAsync(this, (_, cancellationToken) => TransitionAsync(id, (ws, now) =>
-    {
-        if (IsFinished(ws.Status))
-            return false;
-
-        if (ws.Status != WorkStatus.Created)
-            return Result.ConflictError($"Work '{id}' cannot be started due to current status of '{ws.Status}'.");
-
-        ws.Status = WorkStatus.Started;
-        ws.StartedOn = now;
-        return true;
-    }, null, cancellationToken), cancellationToken);
-
-    /// <summary>
-    /// Sets a previously <see cref="WorkStatus.Started"/> <see cref="WorkState"/> to <see cref="WorkStatus.Indeterminate"/>.
-    /// </summary>
-    /// <param name="id">The work identifier.</param>
-    /// <param name="reason">The indeterminate reason.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-    /// <returns>The updated <see cref="WorkState"/>.</returns>
-    /// <remarks>A <see cref="Result.NotFoundError"/> or <see cref="Result.ConflictError"/> (not in progress) may be returned. Setting work to indeterminate that has already <see cref="WorkStatus.Finished"/> will not update the <see cref="WorkStatus"/>.</remarks>
-    public Task<Result<WorkState>> IndeterminateAsync(string id, string reason, CancellationToken cancellationToken = default)
-    {
-        reason.ThrowIfNullOrEmpty(nameof(reason));
-        return _invoker.InvokeAsync(this, (_, cancellationToken) => TransitionAsync(id, (ws, now) =>
-        {
-            if (IsFinished(ws.Status))
-                return false;
-
-            if (!WorkStatus.InProgress.HasFlag(ws.Status))
-                return Result.ConflictError($"Work '{id}' cannot be set to indeterminate due to current status of '{ws.Status}'.");
-
-            ws.Status = WorkStatus.Indeterminate;
-            ws.IndeterminateOn = now;
-            ws.Reason = reason;
-            return true;
-        }, null, cancellationToken), cancellationToken);
     }
 
     /// <summary>
-    /// Completes a previously <see cref="WorkStatus.Started"/> <see cref="WorkState"/>.
+    /// Gets the latest state for an operation identity, applying automatic expiry when necessary.
     /// </summary>
-    /// <param name="id">The work identifier.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-    /// <returns>The updated <see cref="WorkState"/>.</returns>
-    /// <remarks>A <see cref="Result.NotFoundError"/> or <see cref="Result.ConflictError"/> (not in progress) may be returned. Completing work that has already <see cref="WorkStatus.Finished"/> will not update the <see cref="WorkStatus"/>;
-    /// the caller should verify the returned <see cref="WorkState.Status"/>.</remarks>
-    public Task<Result<WorkState>> CompleteAsync(string id, CancellationToken cancellationToken = default) => CompleteAsync(id, null, cancellationToken);
+    /// <param name="operationKey">The complete operation identity.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The state where found; otherwise, <see langword="null"/>.</returns>
+    /// <remarks>This method does not check the owner and is intended for trusted system and worker code. Use <see cref="GetWithTypeAsync(string, OperationKey, CancellationToken)"/> for caller-facing access.</remarks>
+    public Task<WorkState?> GetAsync(OperationKey operationKey, CancellationToken cancellationToken = default)
+        => _invoker.InvokeAsync(this, async (_, ct) => (await TransitionAsync(operationKey, (_, _) => null, ct).ConfigureAwait(false)).State, cancellationToken);
 
     /// <summary>
-    /// Completes a previously <see cref="WorkStatus.Started"/> <see cref="WorkState"/> whilst atomically setting the result <paramref name="data"/>.
+    /// Atomically creates a work item in the <see cref="WorkStatus.Created"/> state.
     /// </summary>
-    /// <param name="id">The work identifier.</param>
-    /// <param name="data">The result data; <see langword="null"/> leaves any existing data unchanged.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-    /// <returns>The updated <see cref="WorkState"/>.</returns>
-    /// <remarks>A <see cref="Result.NotFoundError"/> or <see cref="Result.ConflictError"/> (not in progress) may be returned. Completing work that has already <see cref="WorkStatus.Finished"/> will not update the <see cref="WorkStatus"/>
-    /// or data; the caller should verify the returned <see cref="WorkState.Status"/>.</remarks>
-    public Task<Result<WorkState>> CompleteAsync(string id, BinaryData? data, CancellationToken cancellationToken = default) => _invoker.InvokeAsync(this, (_, cancellationToken) => TransitionAsync(id, (ws, now) =>
-    {
-        if (IsFinished(ws.Status))
-            return false;
-
-        if (!WorkStatus.InProgress.HasFlag(ws.Status))
-            return Result.ConflictError($"Work '{id}' cannot be completed due to current status of '{ws.Status}'.");
-
-        ws.Status = WorkStatus.Completed;
-        ws.FinishedOn = now;
-        ws.Reason = null;
-        return true;
-    }, data, cancellationToken), cancellationToken);
-
-    /// <summary>
-    /// Fails a previously <see cref="WorkStatus.Started"/> <see cref="WorkState"/>.
-    /// </summary>
-    /// <param name="id">The work identifier.</param>
-    /// <param name="reason">The failure reason.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-    /// <returns>The updated <see cref="WorkState"/>.</returns>
-    /// <remarks>A <see cref="Result.NotFoundError"/> or <see cref="Result.ConflictError"/> (not in progress) may be returned. Failing work that has already <see cref="WorkStatus.Finished"/> will not update the <see cref="WorkStatus"/>.</remarks>
-    public Task<Result<WorkState>> FailAsync(string id, string reason, CancellationToken cancellationToken = default)
-    {
-        reason.ThrowIfNullOrEmpty(nameof(reason));
-        return _invoker.InvokeAsync(this, (_, cancellationToken) => TransitionAsync(id, (ws, now) =>
+    /// <param name="args">The work creation arguments.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The new state, or a conflict when the operation identity is already in use.</returns>
+    /// <remarks>The owner defaults to the current execution user, or <see cref="AuthenticationUser.EnvironmentUser"/> without an execution context. An unauthenticated owner creates unowned work.</remarks>
+    public Task<Result<WorkState>> CreateAsync(WorkArgs args, CancellationToken cancellationToken = default)
+        => _invoker.InvokeAsync<Result<WorkState>>(this, async (_, ct) =>
         {
-            if (IsFinished(ws.Status))
-                return false;
+            args.ThrowIfNull();
+            var read = await Provider.GetAsync(args.OperationKey, ct).ConfigureAwait(false);
+            ValidateStateIdentity(read.State, args.OperationKey);
+            if (read.State is not null)
+                return Result.ConflictError($"Work '{args.OperationKey.InstanceId}' already exists.");
 
-            if (!WorkStatus.InProgress.HasFlag(ws.Status))
-                return Result.ConflictError($"Work '{id}' cannot be failed due to current status of '{ws.Status}'.");
+            var expiry = args.Expiry ?? ExpiryTimeSpan;
+            if (expiry <= TimeSpan.Zero)
+                throw new ArgumentOutOfRangeException(nameof(args.Expiry), "The work expiry must be greater than zero.");
 
-            ws.Status = WorkStatus.Failed;
-            ws.FinishedOn = now;
-            ws.Reason = reason;
-            return true;
-        }, null, cancellationToken), cancellationToken);
-    }
+            var startTimeout = args.StartTimeout ?? _options.StartTimeout;
+            if (startTimeout is { } timeout && (timeout <= TimeSpan.Zero || timeout > expiry))
+                throw new ArgumentOutOfRangeException(nameof(args.StartTimeout), "The start timeout must be greater than zero and no greater than the work expiry.");
 
-    /// <summary>
-    /// Fails a previously <see cref="WorkStatus.Started"/> <see cref="WorkState"/> due to an unhandled <paramref name="exception"/>.
-    /// </summary>
-    /// <param name="id">The work identifier.</param>
-    /// <param name="exception">The unhandled <see cref="Exception"/>.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-    /// <returns>The updated <see cref="WorkState"/>.</returns>
-    /// <remarks>The <see cref="WorkState.Reason"/> is intentionally generic as it is visible to the initiating user; the <paramref name="exception"/> details are not persisted and should be logged by the caller.
-    /// <para>A <see cref="Result.NotFoundError"/> or <see cref="Result.ConflictError"/> (not in progress) may be returned. Failing work that has already <see cref="WorkStatus.Finished"/> will not update the <see cref="WorkStatus"/>.</para></remarks>
-    public Task<Result<WorkState>> FailAsync(string id, Exception exception, CancellationToken cancellationToken = default)
-    {
-        exception.ThrowIfNull(nameof(exception));
-        return FailAsync(id, "Work failed due to an unexpected error.", cancellationToken);
-    }
-
-    /// <summary>
-    /// Expires an executing <see cref="WorkState"/>.
-    /// </summary>
-    /// <param name="id">The work identifier.</param>
-    /// <param name="reason">The expiry reason.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-    /// <returns>The updated <see cref="WorkState"/>.</returns>
-    /// <remarks>A <see cref="Result.NotFoundError"/> may be returned. Expiring work that has already <see cref="WorkStatus.Finished"/> will not update the <see cref="WorkStatus"/>.</remarks>
-    public Task<Result<WorkState>> ExpireAsync(string id, string reason, CancellationToken cancellationToken = default) => TerminateAsync(id, WorkStatus.Expired, reason, cancellationToken);
-
-    /// <summary>
-    /// Cancels an executing <see cref="WorkState"/>.
-    /// </summary>
-    /// <param name="id">The work identifier.</param>
-    /// <param name="reason">The cancellation reason.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-    /// <returns>The updated <see cref="WorkState"/>.</returns>
-    /// <remarks>A <see cref="Result.NotFoundError"/> may be returned. Cancelling work that has already <see cref="WorkStatus.Finished"/> will not update the <see cref="WorkStatus"/>.</remarks>
-    public Task<Result<WorkState>> CancelAsync(string id, string reason, CancellationToken cancellationToken = default) => TerminateAsync(id, WorkStatus.Canceled, reason, cancellationToken);
-
-    /// <summary>
-    /// Terminates an executing <see cref="WorkState"/> with the specified <paramref name="status"/>.
-    /// </summary>
-    private Task<Result<WorkState>> TerminateAsync(string id, WorkStatus status, string reason, CancellationToken cancellationToken)
-    {
-        reason.ThrowIfNullOrEmpty(nameof(reason));
-        return _invoker.InvokeAsync(this, (_, cancellationToken) => TransitionAsync(id, (ws, now) =>
-        {
-            if (IsFinished(ws.Status))
-                return false;
-
-            ws.Status = status;
-            ws.FinishedOn = now;
-            ws.Reason = reason;
-            return true;
-        }, null, cancellationToken), cancellationToken);
-    }
-
-    /// <summary>
-    /// Deletes a <see cref="WorkState"/> (and its result data).
-    /// </summary>
-    /// <param name="id">The work identifier.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-    /// <remarks>A <see cref="Result.ConflictError"/> will be returned where attempting to delete work that is not <see cref="WorkStatus.Finished"/>. Deleting work that does not exist is considered successful.</remarks>
-    public Task<Result> DeleteAsync(string id, CancellationToken cancellationToken = default) => _invoker.InvokeAsync<Result>(this, async (_, cancellationToken) =>
-    {
-        for (var attempt = 0; attempt < MaxAttempts; attempt++)
-        {
-            var result = await TransitionAsync(id, (_, _) => false, null, cancellationToken).ConfigureAwait(false);
-            if (result.IsFailureOfType<NotFoundException>())
-                return Result.Success;
-
-            if (result.IsFailure)
-                return result.Error;
-
-            var ws = result.Value;
-            if (!IsFinished(ws.Status))
-                return Result.ConflictError($"Work '{id}' can not be deleted due to current status of '{ws.Status}'; must be considered 'Finished'.");
-
-            if (await Provider.DeleteAsync(ws, cancellationToken).ConfigureAwait(false))
-                return Result.Success;
-        }
-
-        return Result.ConcurrencyError($"Work '{id}' could not be deleted due to concurrent updates.");
-    }, cancellationToken);
-
-    /// <summary>
-    /// Gets the result data as <see cref="BinaryData"/> and then JSON deserializes to the specified <typeparamref name="TValue"/>.
-    /// </summary>
-    /// <typeparam name="TValue">The value <see cref="Type"/>.</typeparam>
-    /// <param name="id">The work identifier.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-    /// <returns>The deserialized value where found; otherwise, <see langword="default"/>.</returns>
-    public async Task<TValue?> GetDataValueAsync<TValue>(string id, CancellationToken cancellationToken = default)
-    {
-        var data = await GetDataAsync(id, cancellationToken).ConfigureAwait(false);
-        if (data is null)
-            return default;
-
-        return JsonSerializer.Deserialize<TValue>(data, JsonSerializerOptions);
-    }
-
-    /// <summary>
-    /// Gets the result data as a <see cref="BinaryData"/>.
-    /// </summary>
-    /// <param name="id">The work identifier.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-    /// <returns>The <see cref="BinaryData"/> where found; otherwise, <see langword="null"/>.</returns>
-    public Task<BinaryData?> GetDataAsync(string id, CancellationToken cancellationToken = default)
-        => _invoker.InvokeAsync(this, (_, cancellationToken) => Provider.GetDataAsync(id.ThrowIfNullOrEmpty(nameof(id)), cancellationToken), cancellationToken);
-
-    /// <summary>
-    /// Sets the result data as the specified <paramref name="value"/> serialized as JSON.
-    /// </summary>
-    /// <typeparam name="TValue">The <paramref name="value"/> <see cref="Type"/>.</typeparam>
-    /// <param name="id">The work identifier.</param>
-    /// <param name="value">The value to JSON serialize as the result data.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-    /// <returns>The <see cref="Result"/>.</returns>
-    /// <remarks>A <see cref="Result.NotFoundError"/> or <see cref="Result.ConflictError"/> (already finished) may be returned.</remarks>
-    public Task<Result> SetDataValueAsync<TValue>(string id, TValue value, CancellationToken cancellationToken = default)
-        => SetDataAsync(id, BinaryData.FromObjectAsJson(value, JsonSerializerOptions), cancellationToken);
-
-    /// <summary>
-    /// Atomically sets the result data as the specified <see cref="BinaryData"/> whilst the work is executing (not <see cref="WorkStatus.Finished"/>).
-    /// </summary>
-    /// <param name="id">The work identifier.</param>
-    /// <param name="data">The <see cref="BinaryData"/>.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-    /// <returns>The <see cref="Result"/>.</returns>
-    /// <remarks>A <see cref="Result.NotFoundError"/> or <see cref="Result.ConflictError"/> (already finished) may be returned. Use <see cref="CompleteAsync(string, BinaryData?, CancellationToken)"/> to set the data and complete atomically.</remarks>
-    public Task<Result> SetDataAsync(string id, BinaryData data, CancellationToken cancellationToken = default)
-    {
-        data.ThrowIfNull(nameof(data));
-        return _invoker.InvokeAsync<Result>(this, async (_, cancellationToken) =>
-        {
-            var result = await TransitionAsync(id, (ws, _) => IsFinished(ws.Status) ? Result.ConflictError($"Work '{id}' data cannot be set due to current status of '{ws.Status}'.") : true, data, cancellationToken).ConfigureAwait(false);
-            return result.IsSuccess ? Result.Success : result.Error;
-        }, cancellationToken);
-    }
-
-    /// <summary>
-    /// Performs the optimistic-concurrency transition loop: read, auto-expire, apply and conditionally update.
-    /// </summary>
-    /// <param name="id">The work identifier.</param>
-    /// <param name="apply">The transition; returns <see langword="true"/> where the state was changed, <see langword="false"/> for no change, or a failure.</param>
-    /// <param name="data">The optional result data to persist where changed.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-    /// <returns>The resulting <see cref="WorkState"/>.</returns>
-    private async Task<Result<WorkState>> TransitionAsync(string id, Func<WorkState, DateTimeOffset, Result<bool>> apply, BinaryData? data, CancellationToken cancellationToken)
-    {
-        id.ThrowIfNullOrEmpty(nameof(id));
-        for (var attempt = 0; attempt < MaxAttempts; attempt++)
-        {
-            var ws = await Provider.GetAsync(id, cancellationToken).ConfigureAwait(false);
-            if (ws is null)
-                return Result.NotFoundError($"Work '{id}' was not found.");
-
-            var now = Runtime.UtcNow;
-            var expired = false;
-            if (!IsFinished(ws.Status) && now >= ws.ExpiryOn)
+            var traceParent = args.TraceParent;
+            var traceState = args.TraceState;
+            if (string.IsNullOrEmpty(traceParent) && Activity.Current is not null)
             {
-                ws.Status = WorkStatus.Expired;
-                ws.FinishedOn = now;
-                ws.Reason = ExpiredReason;
-                expired = true;
+                traceParent = Activity.Current.Id;
+                traceState = Activity.Current.TraceStateString;
             }
 
-            var applied = apply(ws, now);
-            if (applied.IsFailure)
-                return applied.Error;
+            var user = args.User ?? (ExecutionContext.TryGetCurrent(out var ec) ? ec.User : AuthenticationUser.EnvironmentUser);
+            if (user?.Type == AuthenticationType.Unauthenticated)
+                user = null;
 
-            if (!expired && !applied.Value)
-                return ws;
+            var state = new WorkState
+            {
+                Scope = args.OperationKey.Scope,
+                DomainName = args.OperationKey.DomainName,
+                TenantId = args.OperationKey.TenantId,
+                OperationName = args.OperationKey.OperationName,
+                Id = args.Id,
+                TypeName = args.TypeName.ThrowIfNullOrEmpty(),
+                Status = WorkStatus.Created,
+                CreatedOn = read.Now,
+                ExpiryOn = read.Now.Add(expiry),
+                StartBy = startTimeout.HasValue ? read.Now.Add(startTimeout.Value) : null,
+                User = user,
+                TraceParent = traceParent,
+                TraceState = traceState,
+                Revision = Guid.NewGuid().ToString("N")
+            };
 
-            if (await Provider.UpdateAsync(ws, applied.Value ? data : null, GetTimeToLive(ws, now), cancellationToken).ConfigureAwait(false))
-                return ws;
-        }
+            try
+            {
+                if (await Provider.CreateAsync(state, GetTimeToLive(state, read.Now), ct).ConfigureAwait(false))
+                    return state;
+            }
+            catch (WorkOutcomeUnknownException)
+            {
+                var latest = await Provider.GetAsync(args.OperationKey, ct).ConfigureAwait(false);
+                ValidateStateIdentity(latest.State, args.OperationKey);
+                if (latest.State?.Revision == state.Revision)
+                    return latest.State;
 
-        return Result.ConcurrencyError($"Work '{id}' could not be updated due to concurrent updates.");
+                throw;
+            }
+
+            return Result.ConflictError($"Work '{args.OperationKey.InstanceId}' already exists.");
+        }, cancellationToken);
+
+    /// <summary>
+    /// Starts a created work item or takes over an expired worker lease.
+    /// </summary>
+    /// <param name="operationKey">The complete operation identity.</param>
+    /// <param name="leaseOwner">The opaque lease owner token.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The explicit transition outcome and, when applied, the worker lease.</returns>
+    public Task<WorkTransitionResult> StartAsync(OperationKey operationKey, string leaseOwner, CancellationToken cancellationToken = default)
+    {
+        leaseOwner.ThrowIfNullOrEmpty(nameof(leaseOwner));
+        return _invoker.InvokeAsync(this, (_, ct) => TransitionAsync(operationKey, (state, now) =>
+        {
+            if (IsFinished(state.Status))
+                return new(WorkTransitionOutcome.AlreadyFinished, false);
+
+            if (state.Status == WorkStatus.Created)
+            {
+                state.Status = WorkStatus.Started;
+                state.StartedOn = now;
+                state.Attempt = 1;
+            }
+            else if (IsInProgress(state.Status))
+            {
+                if (state.LeaseExpiresOn is { } expires && expires > now)
+                    return new(WorkTransitionOutcome.LeaseHeld, false);
+
+                if (_options.MaxExecutionAttempts is { } maxAttempts && state.Attempt >= maxAttempts)
+                {
+                    Finish(state, WorkStatus.Failed, now, new WorkError(WorkErrorCodes.MaxAttempts, "The maximum number of execution attempts was reached."));
+                    return new(WorkTransitionOutcome.Conflict);
+                }
+
+                state.Status = WorkStatus.Indeterminate;
+                state.IndeterminateOn = now;
+                state.Attempt++;
+            }
+            else
+                return new(WorkTransitionOutcome.Conflict, false);
+
+            state.LeaseOwner = leaseOwner;
+            state.LeaseExpiresOn = LeaseExpiry(now, state.ExpiryOn);
+            return new(WorkTransitionOutcome.Applied, true, IssueLease: true, IsTakeover: state.Attempt > 1);
+        }, ct), cancellationToken);
     }
 
     /// <summary>
-    /// Indicates whether the <paramref name="status"/> is <see cref="WorkStatus.Finished"/>.
+    /// Renews a worker lease if its owner and epoch are still current.
     /// </summary>
+    /// <param name="lease">The lease to renew.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The transition outcome and renewed lease.</returns>
+    public Task<WorkTransitionResult> RenewLeaseAsync(WorkLease lease, CancellationToken cancellationToken = default)
+    {
+        lease.ThrowIfNull();
+        return _invoker.InvokeAsync(this, (_, ct) => TransitionAsync(lease.WorkKey, (state, now) =>
+        {
+            if (IsFinished(state.Status))
+                return new(WorkTransitionOutcome.AlreadyFinished, false);
+
+            if (!IsInProgress(state.Status))
+                return new(WorkTransitionOutcome.Conflict, false);
+
+            if (!Owns(state, lease))
+                return new(WorkTransitionOutcome.LeaseLost, false);
+
+            state.LeaseExpiresOn = LeaseExpiry(now, state.ExpiryOn);
+            return new(WorkTransitionOutcome.Applied, true, IssueLease: true);
+        }, ct), cancellationToken);
+    }
+
+    /// <summary>
+    /// Releases a worker lease without changing the operation status.
+    /// </summary>
+    /// <param name="lease">The lease to release.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The transition outcome.</returns>
+    public Task<WorkTransitionResult> ReleaseLeaseAsync(WorkLease lease, CancellationToken cancellationToken = default)
+    {
+        lease.ThrowIfNull();
+        return _invoker.InvokeAsync(this, (_, ct) => TransitionAsync(lease.WorkKey, (state, now) =>
+        {
+            if (IsFinished(state.Status))
+                return new(WorkTransitionOutcome.AlreadyFinished, false);
+
+            if (!IsInProgress(state.Status))
+                return new(WorkTransitionOutcome.Conflict, false);
+
+            if (!Owns(state, lease))
+                return new(WorkTransitionOutcome.LeaseLost, false);
+
+            state.LeaseExpiresOn = now;
+            return new(WorkTransitionOutcome.Applied);
+        }, ct), cancellationToken);
+    }
+
+    /// <summary>
+    /// Persists progress for the current lease.
+    /// </summary>
+    /// <param name="lease">The current lease.</param>
+    /// <param name="progress">The progress value.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The transition outcome.</returns>
+    public Task<WorkTransitionResult> ReportProgressAsync(WorkLease lease, WorkProgress progress, CancellationToken cancellationToken = default)
+    {
+        lease.ThrowIfNull();
+        progress.ThrowIfNull();
+        if (progress.PercentComplete is < 0 or > 100)
+            throw new ArgumentOutOfRangeException(nameof(progress), "Progress percentage must be between 0 and 100.");
+
+        return _invoker.InvokeAsync(this, (_, ct) => TransitionAsync(lease.WorkKey, (state, now) =>
+        {
+            if (IsFinished(state.Status))
+                return new(WorkTransitionOutcome.AlreadyFinished, false);
+
+            if (!IsInProgress(state.Status))
+                return new(WorkTransitionOutcome.Conflict, false);
+
+            if (!Owns(state, lease))
+                return new(WorkTransitionOutcome.LeaseLost, false);
+
+            state.Progress = progress with { LastUpdated = now };
+            return new(WorkTransitionOutcome.Applied);
+        }, ct), cancellationToken);
+    }
+
+    /// <summary>
+    /// Completes work owned by the supplied current lease.
+    /// </summary>
+    /// <param name="lease">The current lease.</param>
+    /// <param name="resourceLocation">The app-relative URI of the resource produced by the work.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The transition outcome.</returns>
+    public Task<WorkTransitionResult> CompleteAsync(WorkLease lease, string? resourceLocation = null, CancellationToken cancellationToken = default)
+    {
+        lease.ThrowIfNull();
+        ValidateResourceLocation(resourceLocation);
+        return _invoker.InvokeAsync(this, (_, ct) => TransitionAsync(lease.WorkKey, (state, now) =>
+        {
+            if (IsFinished(state.Status))
+                return new(WorkTransitionOutcome.AlreadyFinished, false);
+
+            if (!IsInProgress(state.Status))
+                return new(WorkTransitionOutcome.Conflict, false);
+
+            if (!Owns(state, lease))
+                return new(WorkTransitionOutcome.LeaseLost, false);
+
+            Finish(state, WorkStatus.Completed, now);
+            state.ResourceLocation = resourceLocation;
+            return new(WorkTransitionOutcome.Applied);
+        }, ct), cancellationToken);
+    }
+
+    /// <summary>
+    /// Fails work owned by the supplied current lease.
+    /// </summary>
+    /// <param name="lease">The current lease.</param>
+    /// <param name="error">The safe failure details.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The transition outcome.</returns>
+    public Task<WorkTransitionResult> FailAsync(WorkLease lease, WorkError error, CancellationToken cancellationToken = default)
+    {
+        lease.ThrowIfNull();
+        ValidateError(error);
+        return _invoker.InvokeAsync(this, (_, ct) => TransitionAsync(lease.WorkKey, (state, now) =>
+        {
+            if (IsFinished(state.Status))
+                return new(WorkTransitionOutcome.AlreadyFinished, false);
+
+            if (!IsInProgress(state.Status))
+                return new(WorkTransitionOutcome.Conflict, false);
+
+            if (!Owns(state, lease))
+                return new(WorkTransitionOutcome.LeaseLost, false);
+
+            Finish(state, WorkStatus.Failed, now, error);
+            return new(WorkTransitionOutcome.Applied);
+        }, ct), cancellationToken);
+    }
+
+    /// <summary>
+    /// Fails work when no live lease owns it, such as a disposition-driven failure.
+    /// </summary>
+    /// <param name="operationKey">The complete operation identity.</param>
+    /// <param name="error">The safe failure details.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The transition outcome.</returns>
+    public Task<WorkTransitionResult> FailUnownedAsync(OperationKey operationKey, WorkError error, CancellationToken cancellationToken = default)
+    {
+        ValidateError(error);
+        return _invoker.InvokeAsync(this, (_, ct) => TransitionAsync(operationKey, (state, now) =>
+        {
+            if (IsFinished(state.Status))
+                return new(WorkTransitionOutcome.AlreadyFinished, false);
+
+            if (IsInProgress(state.Status) && state.LeaseExpiresOn is { } expires && expires > now)
+                return new(WorkTransitionOutcome.LeaseHeld, false);
+
+            if (state.Status != WorkStatus.Created && !IsInProgress(state.Status))
+                return new(WorkTransitionOutcome.Conflict, false);
+
+            Finish(state, WorkStatus.Failed, now, error);
+            return new(WorkTransitionOutcome.Applied);
+        }, ct), cancellationToken);
+    }
+
+    /// <summary>
+    /// Fences work that was created but never started.
+    /// </summary>
+    /// <param name="operationKey">The complete operation identity.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The transition outcome.</returns>
+    public Task<WorkTransitionResult> FenceAsync(OperationKey operationKey, CancellationToken cancellationToken = default)
+        => _invoker.InvokeAsync(this, (_, ct) => TransitionAsync(operationKey, (state, now) =>
+        {
+            if (IsFinished(state.Status))
+                return new(WorkTransitionOutcome.AlreadyFinished, false);
+
+            if (state.Status != WorkStatus.Created)
+                return new(WorkTransitionOutcome.Conflict, false);
+
+            Finish(state, WorkStatus.Failed, now, new WorkError(WorkErrorCodes.NotStarted, "The work was not started before its deadline."));
+            return new(WorkTransitionOutcome.Applied);
+        }, ct), cancellationToken);
+
+    /// <summary>
+    /// Requests cancellation of a work item.
+    /// </summary>
+    /// <param name="operationKey">The complete operation identity.</param>
+    /// <param name="message">The optional user-safe cancellation message.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The transition outcome.</returns>
+    public Task<WorkTransitionResult> CancelAsync(OperationKey operationKey, string? message = null, CancellationToken cancellationToken = default)
+        => _invoker.InvokeAsync(this, (_, ct) => TransitionAsync(operationKey, (state, now) =>
+        {
+            if (IsFinished(state.Status))
+                return new(WorkTransitionOutcome.AlreadyFinished, false);
+
+            var error = new WorkError(WorkErrorCodes.Canceled, message ?? "The work was canceled.");
+            if (state.Status == WorkStatus.Created)
+            {
+                Finish(state, WorkStatus.Canceled, now, error);
+                return new(WorkTransitionOutcome.Applied);
+            }
+
+            if (!IsInProgress(state.Status))
+                return new(WorkTransitionOutcome.Conflict, false);
+
+            if (state.CancelRequested)
+                return new(WorkTransitionOutcome.Applied, false);
+
+            state.CancelRequested = true;
+            state.Error = error;
+            return new(WorkTransitionOutcome.Applied);
+        }, ct), cancellationToken);
+
+    /// <summary>
+    /// Acknowledges a cancellation request for the current worker lease.
+    /// </summary>
+    /// <param name="lease">The current lease.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The transition outcome.</returns>
+    public Task<WorkTransitionResult> AcknowledgeCancelAsync(WorkLease lease, CancellationToken cancellationToken = default)
+    {
+        lease.ThrowIfNull();
+        return _invoker.InvokeAsync(this, (_, ct) => TransitionAsync(lease.WorkKey, (state, now) =>
+        {
+            if (IsFinished(state.Status))
+                return new(WorkTransitionOutcome.AlreadyFinished, false);
+
+            if (!IsInProgress(state.Status))
+                return new(WorkTransitionOutcome.Conflict, false);
+
+            if (!Owns(state, lease))
+                return new(WorkTransitionOutcome.LeaseLost, false);
+
+            if (!state.CancelRequested)
+                return new(WorkTransitionOutcome.Conflict, false);
+
+            Finish(state, WorkStatus.Canceled, now, state.Error ?? new WorkError(WorkErrorCodes.Canceled, "The work was canceled."));
+            return new(WorkTransitionOutcome.Applied);
+        }, ct), cancellationToken);
+    }
+
+    /// <summary>
+    /// Deletes a finished work item.
+    /// </summary>
+    /// <param name="operationKey">The complete operation identity.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>Success when deleted or already absent; otherwise, an error.</returns>
+    public Task<Result> DeleteAsync(OperationKey operationKey, CancellationToken cancellationToken = default)
+        => _invoker.InvokeAsync<Result>(this, async (_, ct) =>
+        {
+            for (var attempt = 0; attempt < MaxConcurrencyAttempts; attempt++)
+            {
+                var state = await GetAsync(operationKey, ct).ConfigureAwait(false);
+                if (state is null)
+                    return Result.Success;
+
+                if (!IsFinished(state.Status))
+                    return Result.ConflictError($"Work '{operationKey.InstanceId}' cannot be deleted while its status is '{state.Status}'.");
+
+                if (await Provider.DeleteAsync(state, ct).ConfigureAwait(false))
+                    return Result.Success;
+            }
+
+            return Result.ConcurrencyError($"Work '{operationKey.InstanceId}' could not be deleted due to concurrent updates.");
+        }, cancellationToken);
+
+    /// <summary>
+    /// Gets the state when both its type and owner match the current caller.
+    /// </summary>
+    /// <param name="typeName">The expected operation type.</param>
+    /// <param name="operationKey">The complete operation identity.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The state only when type and owner checks pass; otherwise, <see langword="null"/>.</returns>
+    public async Task<WorkState?> GetWithTypeAsync(string typeName, OperationKey operationKey, CancellationToken cancellationToken = default)
+    {
+        var state = await GetAsync(operationKey, cancellationToken).ConfigureAwait(false);
+        if (state is null || state.TypeName != typeName)
+            return null;
+
+        if (state.User is null)
+            return state;
+
+        if (!ExecutionContext.TryGetCurrent(out var ec) || ec.User is null || ec.User.Type == AuthenticationType.Unauthenticated)
+            return null;
+
+        return IsSameUser(state.User, ec.User) ? state : null;
+    }
+
+    /// <summary>
+    /// Gets the state when its type and owner match the current caller.
+    /// </summary>
+    /// <typeparam name="T">The type used to derive the operation type name.</typeparam>
+    /// <param name="operationKey">The complete operation identity.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The state only when type and owner checks pass; otherwise, <see langword="null"/>.</returns>
+    public Task<WorkState?> GetWithTypeAsync<T>(OperationKey operationKey, CancellationToken cancellationToken = default) => GetWithTypeAsync(WorkArgs.GetTypeName<T>(), operationKey, cancellationToken);
+
+    /// <summary>Applies a transition to the latest state with automatic expiry and optimistic-concurrency retries.</summary>
+    private async Task<WorkTransitionResult> TransitionAsync(OperationKey operationKey, Func<WorkState, DateTimeOffset, TransitionDecision?> apply, CancellationToken cancellationToken)
+    {
+        operationKey.ThrowIfNull(nameof(operationKey));
+        _options.Validate();
+
+        for (var attempt = 0; attempt < MaxConcurrencyAttempts; attempt++)
+        {
+            var read = await Provider.GetAsync(operationKey, cancellationToken).ConfigureAwait(false);
+            var state = read.State;
+            ValidateStateIdentity(state, operationKey);
+            if (state is null)
+                return CreateResult(WorkTransitionOutcome.NotFound, null);
+
+            var now = read.Now;
+            if (!IsFinished(state.Status) && now >= state.ExpiryOn)
+            {
+                Finish(state, WorkStatus.Expired, now, new WorkError(state.StartedOn.HasValue ? WorkErrorCodes.OutcomeUnknown : WorkErrorCodes.NotStarted, ExpiredMessage));
+                var expired = await SaveAsync(state, now, "expire", cancellationToken).ConfigureAwait(false);
+                if (expired is not null)
+                    return CreateResult(WorkTransitionOutcome.Expired, expired);
+
+                continue;
+            }
+
+            if (state.Status == WorkStatus.Created && state.StartBy is { } startBy && now >= startBy)
+            {
+                Finish(state, WorkStatus.Expired, now, new WorkError(WorkErrorCodes.NotStarted, "The work was not started before its start deadline."));
+                var expired = await SaveAsync(state, now, "expire", cancellationToken).ConfigureAwait(false);
+                if (expired is not null)
+                    return CreateResult(WorkTransitionOutcome.Expired, expired);
+
+                continue;
+            }
+
+            var decision = apply(state, now);
+            if (decision is null)
+                return CreateResult(WorkTransitionOutcome.Applied, state);
+
+            if (!decision.Write)
+                return CreateResult(decision.Outcome, state);
+
+            if (decision.Outcome != WorkTransitionOutcome.Applied && decision.Outcome != WorkTransitionOutcome.Conflict)
+                return CreateResult(decision.Outcome, state);
+
+            var saved = await SaveAsync(state, now, decision.Outcome.ToString(), cancellationToken).ConfigureAwait(false);
+            if (saved is null)
+                continue;
+
+            var lease = decision.IssueLease ? new WorkLease(saved.OperationKey, saved.LeaseOwner!, saved.Attempt, saved.LeaseExpiresOn!.Value) : null;
+            return CreateResult(decision.Outcome, saved, lease, decision.IsTakeover);
+        }
+
+        var latest = await Provider.GetAsync(operationKey, cancellationToken).ConfigureAwait(false);
+        ValidateStateIdentity(latest.State, operationKey);
+        return CreateResult(WorkTransitionOutcome.ConcurrencyExhausted, latest.State);
+    }
+
+    /// <summary>Creates a transition result and records its outcome on the current activity.</summary>
+    private static WorkTransitionResult CreateResult(WorkTransitionOutcome outcome, WorkState? state, WorkLease? lease = null, bool isTakeover = false)
+    {
+        Activity.Current?.SetTag("work.outcome", outcome.ToString());
+        return new WorkTransitionResult(outcome, state, lease, isTakeover);
+    }
+
+    /// <summary>Saves a new revision and resolves a timed-out update only when that revision is observed.</summary>
+    private async Task<WorkState?> SaveAsync(WorkState state, DateTimeOffset now, string operation, CancellationToken cancellationToken)
+    {
+        var revision = Guid.NewGuid().ToString("N");
+        state.Revision = revision;
+
+        try
+        {
+            return await Provider.UpdateAsync(state, GetTimeToLive(state, now), cancellationToken).ConfigureAwait(false) ? state : null;
+        }
+        catch (WorkOutcomeUnknownException)
+        {
+            var current = await Provider.GetAsync(state.OperationKey, cancellationToken).ConfigureAwait(false);
+            ValidateStateIdentity(current.State, state.OperationKey);
+            if (current.State?.Revision == revision)
+                return current.State;
+
+            throw;
+        }
+    }
+
+    /// <summary>Calculates the record retention from its status and the provider time.</summary>
+    private TimeSpan GetTimeToLive(WorkState state, DateTimeOffset now)
+    {
+        if (IsFinished(state.Status))
+        {
+            var untilStartBy = state.StartBy is { } startBy ? startBy - now : TimeSpan.Zero;
+            return Max(_options.Retention, untilStartBy + _options.Retention);
+        }
+
+        var expiry = state.LeaseExpiresOn is { } leaseExpiry && leaseExpiry > state.ExpiryOn ? leaseExpiry : state.ExpiryOn;
+        return Max(TimeSpan.FromMilliseconds(1), expiry - now + _options.Retention);
+    }
+
+    /// <summary>Calculates a lease deadline capped at the work expiry.</summary>
+    private DateTimeOffset LeaseExpiry(DateTimeOffset now, DateTimeOffset expiry) => now.Add(_options.LeaseDuration) < expiry ? now.Add(_options.LeaseDuration) : expiry;
+
+    /// <summary>Returns the greater of two durations.</summary>
+    private static TimeSpan Max(TimeSpan first, TimeSpan second) => first >= second ? first : second;
+
+    /// <summary>Marks a work item finished and clears its lease.</summary>
+    private static void Finish(WorkState state, WorkStatus status, DateTimeOffset now, WorkError? error = null)
+    {
+        state.Status = status;
+        state.FinishedOn = now;
+        state.Error = error;
+        state.LeaseOwner = null;
+        state.LeaseExpiresOn = null;
+    }
+
+    /// <summary>Indicates whether the status is terminal.</summary>
     private static bool IsFinished(WorkStatus status) => WorkStatus.Finished.HasFlag(status);
 
-    /// <summary>
-    /// Gets the record time-to-live: the remaining expiry plus retention whilst executing; otherwise, the retention.
-    /// </summary>
-    private TimeSpan GetTimeToLive(WorkState ws, DateTimeOffset now) => IsFinished(ws.Status) || ws.ExpiryOn <= now ? RetentionTimeSpan : ws.ExpiryOn - now + RetentionTimeSpan;
+    /// <summary>Indicates whether the status represents work in progress.</summary>
+    private static bool IsInProgress(WorkStatus status) => (WorkStatus.InProgress & status) != 0;
 
-    /// <summary>
-    /// Indicates whether the <paramref name="owner"/> and <paramref name="current"/> users represent the same identity (type and identifier; otherwise, user name).
-    /// </summary>
+    /// <summary>Validates that a provider returned the requested complete identity.</summary>
+    private static void ValidateStateIdentity(WorkState? state, OperationKey operationKey)
+    {
+        if (state is not null && (state.OperationKey != operationKey || state.Id != operationKey.InstanceId))
+            throw new InvalidDataException("The work provider returned a state with an identity that does not match the requested operation key.");
+    }
+
+    /// <summary>Indicates whether the lease owner and epoch match the current state.</summary>
+    private static bool Owns(WorkState state, WorkLease lease) => state.Attempt == lease.Epoch && string.Equals(state.LeaseOwner, lease.Owner, StringComparison.Ordinal);
+
+    /// <summary>Compares authentication type and identity for the work owner and current user.</summary>
     private static bool IsSameUser(AuthenticationUser owner, AuthenticationUser current)
         => owner.Type == current.Type && (owner.Id is not null || current.Id is not null ? string.Equals(owner.Id, current.Id, StringComparison.Ordinal) : string.Equals(owner.UserName, current.UserName, StringComparison.Ordinal));
 
-    #region WithType
-
-    /// <summary>
-    /// Gets the <see cref="WorkState"/> for the specified <paramref name="typeName"/> and <paramref name="id"/>.
-    /// </summary>
-    /// <param name="typeName">The <see cref="WorkState.TypeName"/>.</param>
-    /// <param name="id">The work identifier.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-    /// <returns>The <see cref="WorkState"/> where found; otherwise, <see langword="null"/>.</returns>
-    /// <remarks>Will automatically set the <see cref="WorkState.Status"/> to <see cref="WorkStatus.Expired"/> when the work is <i>not</i> <see cref="WorkStatus.Finished"/> and has expired (see <see cref="WorkState.ExpiryOn"/>).
-    /// <para>Additionally, the <paramref name="typeName"/> must equal the <see cref="WorkState.TypeName"/>; and, if <see cref="CheckUser"/> is <see langword="true"/> then the <see cref="WorkState.User"/> must represent the same identity
-    /// (<see cref="AuthenticationUser.Type"/> and <see cref="AuthenticationUser.Id"/>; otherwise, <see cref="AuthenticationUser.UserName"/>) as the <see cref="ExecutionContext.User"/> ensuring that the initiating user can only interact
-    /// with their <see cref="WorkState"/>. Where the aforementioned does not equal then a <see langword="null"/> will be returned. Where there is no current <see cref="ExecutionContext.User"/> (i.e. a system or background
-    /// context) the user check is not performed.</para></remarks>
-    public async Task<WorkState?> GetWithTypeAsync(string typeName, string id, CancellationToken cancellationToken = default)
+    /// <summary>Validates that the work error has a code and message.</summary>
+    private static void ValidateError(WorkError error)
     {
-        var ws = await GetAsync(id, cancellationToken).ConfigureAwait(false);
-        if (ws is null || ws.TypeName != typeName)
-            return null;
-
-        return CheckUser && ws.User is not null && ExecutionContext.TryGetCurrent(out var ec) && ec.User is not null && !IsSameUser(ws.User, ec.User) ? null : ws;
+        error.ThrowIfNull();
+        error.Code.ThrowIfNullOrEmpty(nameof(error.Code));
+        error.Message.ThrowIfNullOrEmpty(nameof(error.Message));
     }
 
-    /// <summary>
-    /// Gets the <see cref="WorkState"/> for the specified <paramref name="id"/>.
-    /// </summary>
-    /// <typeparam name="T">The <see cref="Type"/> to infer the <see cref="WorkState.TypeName"/> enabling state separation.</typeparam>
-    /// <param name="id">The work identifier.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-    /// <returns>The <see cref="WorkState"/> where found; otherwise, <see langword="null"/>.</returns>
-    /// <remarks>See <see cref="GetWithTypeAsync(string, string, CancellationToken)"/> for the type and user checks performed.</remarks>
-    public Task<WorkState?> GetWithTypeAsync<T>(string id, CancellationToken cancellationToken = default) => GetWithTypeAsync(WorkArgs.GetTypeName<T>(), id, cancellationToken);
+    /// <summary>Validates an optional app-relative resource URI.</summary>
+    private static void ValidateResourceLocation(string? value)
+    {
+        if (value is null)
+            return;
 
-    #endregion
+        if (value.Length > 2048 || value.Length == 0 || value[0] != '/' || (value.Length > 1 && value[1] == '/') || value.Contains('\\') || value.Any(char.IsControl) || !Uri.TryCreate(value, UriKind.Relative, out var uri) || uri.IsAbsoluteUri)
+            throw new ArgumentException("The resource location must be an app-relative URI beginning with a single slash.", nameof(value));
+    }
+
+    /// <summary>Describes a transition outcome and whether it must be persisted or issue a lease.</summary>
+    private sealed record TransitionDecision(WorkTransitionOutcome Outcome, bool Write = true, bool IssueLease = false, bool IsTakeover = false);
 }

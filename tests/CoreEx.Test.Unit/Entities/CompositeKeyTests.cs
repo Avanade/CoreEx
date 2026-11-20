@@ -12,6 +12,7 @@ public class CompositeKeyTests
         key.Args.Should().BeEquivalentTo(new object?[] { 1, "abc", null });
     }
 
+
     [Test]
     public void Constructor_Empty()
     {
@@ -97,9 +98,53 @@ public class CompositeKeyTests
     {
         var k1 = new CompositeKey(123456, "abc", new DateTimeOffset(2025, 04, 13, 17, 02, 53, TimeSpan.FromHours(8)), null, -10034.3456m, true);
         k1.ToString().Should().Be("123456,abc,2025-04-13T09:02:53.0000000+00:00,,-10034.3456,true");
+        CompositeKey.StandardStringFormatter(k1).Should().Be(k1.ToString());
 
         var k2 = CompositeKey.Create(123456, "abc");
         k2.ToString().Should().Be("123456,abc");
+    }
+
+    [Test]
+    public void ToString_Uses_PerCall_Formatter()
+    {
+        var key = CompositeKey.Create("order,1", 2);
+
+        key.ToString(value => JsonSerializer.Serialize(value.Args)).Should().Be("[\"order,1\",2]");
+        key.ToString().Should().Be("order,1,2");
+    }
+
+    [Test]
+    public void ToString_StandardAndCollisionResistantFormatters_ReturnExpectedStrings()
+    {
+        var key = CompositeKey.Create("order,1", 2, (string?)null, string.Empty);
+
+        key.ToString(CompositeKey.StandardStringFormatter).Should().Be("order,1,2,,");
+        key.ToString(CompositeKey.CollisionResistantStringFormatter).Should().Be("4:1:s28:006F0072006400650072002C00313:i321:21:n0:1:s0:");
+        CompositeKey.Create(new DateTimeOffset(2025, 1, 1, 0, 0, 0, TimeSpan.Zero))
+            .ToString(CompositeKey.CollisionResistantStringFormatter).Should().Be("1:3:dto18:638712864000000000");
+    }
+
+    [Test]
+    public void CollisionResistantStringFormatter_EncodesBoundariesAndTypes()
+    {
+        var format = CompositeKey.CollisionResistantStringFormatter;
+
+        format(CompositeKey.Create("a,b", "c")).Should().NotBe(format(CompositeKey.Create("a", "b,c")));
+        format(CompositeKey.Create(1)).Should().NotBe(format(CompositeKey.Create("1")));
+        format(CompositeKey.Create<object?>(null)).Should().NotBe(format(CompositeKey.Create(string.Empty)));
+        format(CompositeKey.Create(1, 2)).Should().NotBe(format(CompositeKey.Create(1, 2, 3)));
+        format(CompositeKey.Create(1.0m)).Should().Be(format(CompositeKey.Create(1.00m)));
+        format(CompositeKey.Create(DayOfWeek.Monday)).Should().NotBe(format(CompositeKey.Create(1)));
+    }
+
+    [Test]
+    public void CollisionResistantStringFormatter_RejectsUnsupportedTypes()
+    {
+        var format = CompositeKey.CollisionResistantStringFormatter;
+
+        Action formatUnsupported = () => format(CompositeKey.Create(new object()));
+
+        formatUnsupported.Should().Throw<NotSupportedException>();
     }
 
     [Test]

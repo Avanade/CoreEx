@@ -18,12 +18,20 @@ public abstract class SynchronizedTimerHostedServiceBase<TSynchronizer, TSelf>(I
     /// </summary>
     protected string? SynchronizerName { get; set; }
 
+    /// <summary>
+    /// Gets or sets the explicit operation key for the synchronization lease.
+    /// </summary>
+    /// <remarks>When set, this takes precedence over <see cref="SynchronizerName"/>. Otherwise a domain-wide key is created from host settings and the service type and name. Supply the same stable key on every participating replica and invocation.</remarks>
+    protected OperationKey? SynchronizerKey { get; set; }
+
     /// <inheritdoc/>
     protected sealed override async Task<bool> OnExecuteAsync(ExecutionContext executionContext, CancellationToken cancellationToken)
     {
         var synchronizer = ExecutionContext.GetRequiredService<TSynchronizer>();
 
-        var lease = await synchronizer.TryAcquireAsync<TSelf>(SynchronizerName, cancellationToken).ConfigureAwait(false);
+        var lease = SynchronizerKey is { } key
+            ? await synchronizer.TryAcquireAsync(key, cancellationToken).ConfigureAwait(false)
+            : await synchronizer.TryAcquireAsync<TSelf>(ExecutionContext.GetRequiredService<IHostSettings>().DomainName, SynchronizerName, cancellationToken).ConfigureAwait(false);
         if (lease is null)
             return false;
 

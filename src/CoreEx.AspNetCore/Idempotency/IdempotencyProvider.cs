@@ -5,13 +5,19 @@ namespace CoreEx.AspNetCore.Idempotency;
 /// </summary>
 /// <param name="store">The atomic idempotency store.</param>
 /// <param name="logger">The optional logger.</param>
-public sealed class IdempotencyProvider(CoreEx.Idempotency.IIdempotencyStore store, ILogger<IdempotencyProvider>? logger = null) : IIdempotencyProvider
+/// <param name="hostSettings">The host settings used by the default operation-key factory.</param>
+/// <param name="executionContext">The execution context used by the default operation-key factory.</param>
+public sealed class IdempotencyProvider(CoreEx.Idempotency.IIdempotencyStore store, ILogger<IdempotencyProvider>? logger = null, IHostSettings? hostSettings = null, ExecutionContext? executionContext = null) : IIdempotencyProvider
 {
     private const int _defaultMaxCachedResponseBodySize = 512 * 1024;
     private const int _defaultMaxResponseBodySize = 10 * 1024 * 1024;
+    private const string _operationName = "http-idempotency";
 
+    private static readonly UTF8Encoding _strictUtf8 = new(false, true);
     private readonly CoreEx.Idempotency.IIdempotencyStore _store = store.ThrowIfNull();
     private readonly ILogger<IdempotencyProvider>? _logger = logger;
+    private readonly IHostSettings? _hostSettings = hostSettings;
+    private readonly ExecutionContext? _executionContext = executionContext;
 
     /// <summary>
     /// Gets or sets the maximum response body size retained for replay.
@@ -46,8 +52,20 @@ public sealed class IdempotencyProvider(CoreEx.Idempotency.IIdempotencyStore sto
     /// <summary>
     /// Gets or sets the optional stable caller identity provider used to scope HTTP idempotency keys.
     /// </summary>
-    /// <remarks>By default, an authenticated HTTP principal's name-identifier or subject claim is used when present. The returned identity is hashed before it is included in the store key. Domain and tenant qualification remains the store's responsibility through <see cref="ICacheKeyProvider"/>.</remarks>
+    /// <remarks>By default, an authenticated HTTP principal's name-identifier or subject claim is used when present. The returned identity must contain valid Unicode and is hashed before it is included in the operation key.</remarks>
     public Func<HttpContext, string?>? CallerIdentityProvider { get; set; }
+
+    /// <summary>
+    /// Gets or sets the scope used by the default HTTP operation-key factory.
+    /// </summary>
+    /// <remarks>When unset and no tenant is present, the default is domain-wide. A present tenant requires an explicit scope; tenant scope requires a non-empty tenant identifier and never falls back to domain-wide. An <see cref="OperationKeyFactory"/> overrides this setting.</remarks>
+    public OperationKeyScope? Scope { get; set; }
+
+    /// <summary>
+    /// Gets or sets an optional factory for HTTP operation keys.
+    /// </summary>
+    /// <remarks>The factory receives the request context and a stable opaque instance identifier incorporating the caller and decoded HTTP key. It must use that identifier unchanged. When unset, the default uses host settings and <see cref="Scope"/>.</remarks>
+    public Func<HttpContext, string, OperationKey>? OperationKeyFactory { get; set; }
 
     /// <summary>
     /// Gets or sets whether incoming keys must use the standard quoted Structured Field string representation.
@@ -89,13 +107,13 @@ public sealed class IdempotencyProvider(CoreEx.Idempotency.IIdempotencyStore sto
         }
 
         var fingerprint = await IdempotencyKey.CreateFromHttpRequestAsync(context, HttpRequestHeadersToIncludeInFingerprint, requestToken).ConfigureAwait(false);
-        var callerIdentity = CallerIdentityProvider is null ? GetAuthenticatedCaller(context) : CallerIdentityProvider(context);
-        var storeKey = CreateStoreKey(key, callerIdentity);
+        var operationKey = CreateOperationKey(context, key);
         CoreEx.Idempotency.IdempotencyBeginResult begin;
 
         try
         {
-            begin = await _store.TryBeginAsync(storeKey, fingerprint.Fingerprint ?? throw new InvalidOperationException("The request fingerprint was not created."), requestToken).ConfigureAwait(false);
+            var requestFingerprint = fingerprint.Fingerprint ?? throw new InvalidOperationException("The request fingerprint was not created.");
+            begin = await _store.TryBeginAsync(operationKey, requestFingerprint, requestToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (requestToken.IsCancellationRequested)
         {
@@ -138,6 +156,48 @@ public sealed class IdempotencyProvider(CoreEx.Idempotency.IIdempotencyStore sto
             default:
                 throw new InvalidOperationException($"The idempotency store returned an unsupported outcome '{begin.Outcome}'.");
         }
+    }
+
+    /// <summary>
+    /// Constructs the explicitly scoped identity for a decoded HTTP idempotency key and the current caller.
+    /// </summary>
+    /// <param name="context">The request context.</param>
+    /// <param name="idempotencyKey">The decoded logical key, not its quoted HTTP header representation.</param>
+    /// <returns>The operation key that can be retained for later reconciliation.</returns>
+    /// <remarks>The same caller identity and scope inputs must be available to reproduce the key.</remarks>
+    public OperationKey CreateOperationKey(HttpContext context, string idempotencyKey)
+    {
+        context.ThrowIfNull();
+        idempotencyKey.ThrowIfNullOrWhiteSpace();
+        var callerIdentity = CallerIdentityProvider is null ? GetAuthenticatedCaller(context) : CallerIdentityProvider(context);
+        var instanceId = CreateStoreKey(idempotencyKey, callerIdentity);
+        if (OperationKeyFactory is { } factory)
+            return CreateOperationKey(context, instanceId, factory);
+
+        var domain = _hostSettings?.DomainName ?? throw new InvalidOperationException("HTTP idempotency requires host settings or an operation-key factory.");
+        var tenantId = _executionContext?.TenantId;
+        if (Scope is null && tenantId is not null)
+            throw new InvalidOperationException("HTTP idempotency scope must be configured when a tenant is present.");
+
+        return Scope switch
+        {
+            null or OperationKeyScope.DomainWide => OperationKey.ForDomain(domain, _operationName, instanceId),
+            OperationKeyScope.Tenant when !string.IsNullOrWhiteSpace(tenantId) => OperationKey.ForTenant(domain, tenantId, _operationName, instanceId),
+            OperationKeyScope.Tenant => throw new InvalidOperationException("Tenant-scoped HTTP idempotency requires a tenant identifier."),
+            _ => throw new ArgumentOutOfRangeException(nameof(Scope))
+        };
+    }
+
+    /// <summary>
+    /// Ensures a configured factory preserves the caller-scoped instance identifier.
+    /// </summary>
+    private static OperationKey CreateOperationKey(HttpContext context, string instanceId, Func<HttpContext, string, OperationKey> factory)
+    {
+        var key = factory(context, instanceId) ?? throw new InvalidOperationException("The operation-key factory returned null.");
+        if (!string.Equals(key.InstanceId, instanceId, StringComparison.Ordinal))
+            throw new InvalidOperationException("The operation-key factory must preserve the supplied instance identifier.");
+
+        return key;
     }
 
     /// <summary>
@@ -334,11 +394,27 @@ public sealed class IdempotencyProvider(CoreEx.Idempotency.IIdempotencyStore sto
     /// </summary>
     private static void AppendField(IncrementalHash hash, string value)
     {
-        var bytes = Encoding.UTF8.GetBytes(value);
+        var bytes = _strictUtf8.GetBytes(EnsureValidIdentityText(value));
         Span<byte> length = stackalloc byte[sizeof(int)];
         System.Buffers.Binary.BinaryPrimitives.WriteInt32BigEndian(length, bytes.Length);
         hash.AppendData(length);
         hash.AppendData(bytes);
+    }
+
+    /// <summary>
+    /// Rejects malformed Unicode instead of allowing distinct identity inputs to be replaced with the same character.
+    /// </summary>
+    private static string EnsureValidIdentityText(string value)
+    {
+        try
+        {
+            _strictUtf8.GetByteCount(value);
+            return value;
+        }
+        catch (EncoderFallbackException exception)
+        {
+            throw new ArgumentException("HTTP idempotency identity values must contain valid Unicode.", nameof(value), exception);
+        }
     }
 
     /// <summary>
@@ -350,7 +426,7 @@ public sealed class IdempotencyProvider(CoreEx.Idempotency.IIdempotencyStore sto
             return null;
 
         var claim = context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier) ?? context.User.FindFirst("sub");
-        return claim is null ? null : JsonSerializer.Serialize(new[] { claim.Type, claim.Issuer, claim.Value });
+        return claim is null ? null : JsonSerializer.Serialize(new[] { EnsureValidIdentityText(claim.Type), EnsureValidIdentityText(claim.Issuer), EnsureValidIdentityText(claim.Value) });
     }
 
     /// <summary>
