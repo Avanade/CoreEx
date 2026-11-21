@@ -37,7 +37,7 @@ public class OperationKeyTests
     public void Scope_Requires_Tenant_Only_For_Tenant_Operations()
     {
         Action missingTenant = () => _ = new OperationKey(OperationKeyScope.Tenant, "orders", null, "import", "instance");
-        Action unexpectedTenant = () => _ = new OperationKey(OperationKeyScope.DomainWide, "orders", "tenant-a", "import", "instance");
+        Action unexpectedTenant = () => _ = new OperationKey(OperationKeyScope.Domain, "orders", "tenant-a", "import", "instance");
 
         missingTenant.Should().Throw<ArgumentException>();
         unexpectedTenant.Should().Throw<ArgumentException>();

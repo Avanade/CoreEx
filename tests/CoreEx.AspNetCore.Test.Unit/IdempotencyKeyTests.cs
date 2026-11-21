@@ -94,6 +94,61 @@ public class IdempotencyKeyTests
     }
 
     [Test]
+    public async Task OnInvokeAsync_ExplicitReleaseAllowsSameKeyToReexecuteAfterCapturedResponse()
+    {
+        using var services = CreateServices();
+        using var scope = services.CreateScope();
+        var provider = scope.ServiceProvider.GetRequiredService<IIdempotencyProvider>();
+        var first = CreateRequest("retry-release-1234");
+        var calls = 0;
+
+        await provider.OnInvokeAsync(new IdempotencyKeyAttribute(), first.HttpContext, context =>
+        {
+            calls++;
+            var feature = context.Features.Get<IIdempotencyAttemptFeature>();
+            feature.Should().NotBeNull();
+            (feature ?? throw new InvalidOperationException("The idempotency attempt feature was not installed.")).ReleaseForRetry();
+            context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+            return context.Response.WriteAsync("safe to retry");
+        });
+
+        first.HttpContext.Response.StatusCode.Should().Be(StatusCodes.Status503ServiceUnavailable);
+        first.HttpContext.Features.Get<IIdempotencyAttemptFeature>().Should().BeNull();
+        var retry = CreateRequest("retry-release-1234");
+        await provider.OnInvokeAsync(new IdempotencyKeyAttribute(), retry.HttpContext, context =>
+        {
+            calls++;
+            return context.Response.WriteAsync("retried");
+        });
+
+        calls.Should().Be(2);
+        ReadBody(retry).Should().Be("retried");
+    }
+
+    [Test]
+    public async Task OnInvokeAsync_OrdinaryServiceUnavailableResponseRetainsAttempt()
+    {
+        using var services = CreateServices();
+        using var scope = services.CreateScope();
+        var provider = scope.ServiceProvider.GetRequiredService<IIdempotencyProvider>();
+        var first = CreateRequest("ordinary-503-key");
+        var calls = 0;
+
+        await provider.OnInvokeAsync(new IdempotencyKeyAttribute(), first.HttpContext, context =>
+        {
+            calls++;
+            context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+            return context.Response.WriteAsync("outcome is not known");
+        });
+
+        var replay = CreateRequest("ordinary-503-key");
+        await provider.OnInvokeAsync(new IdempotencyKeyAttribute(), replay.HttpContext, _ => throw new InvalidOperationException("The response should be replayed."));
+
+        calls.Should().Be(1);
+        ReadBody(replay).Should().Be("outcome is not known");
+    }
+
+    [Test]
     public async Task OnInvokeAsync_RejectsReusedKeyWithChangedRequest()
     {
         using var services = CreateServices();
@@ -173,7 +228,7 @@ public class IdempotencyKeyTests
 
         var key = provider.CreateOperationKey(request.HttpContext, "visible-key-123456");
         key.DomainName.Should().Be("orders");
-        key.Scope.Should().Be(OperationKeyScope.DomainWide);
+        key.Scope.Should().Be(OperationKeyScope.Domain);
         key.OperationName.Should().Be("http-idempotency");
         key.InstanceId.Should().NotContain("visible-key").And.NotContain("private-caller");
         executionContext.TenantId = "tenant-a";
@@ -257,7 +312,7 @@ public class IdempotencyKeyTests
         using var services = CreateServices();
         var provider = (IdempotencyProvider)services.GetRequiredService<IIdempotencyProvider>();
         var executionContext = services.GetRequiredService<CoreEx.ExecutionContext>();
-        provider.Scope = OperationKeyScope.DomainWide;
+        provider.Scope = OperationKeyScope.Domain;
         var first = CreateRequest("domain-wide-12345");
         executionContext.TenantId = "tenant-a";
         await provider.OnInvokeAsync(new IdempotencyKeyAttribute(), first.HttpContext, context => context.Response.WriteAsync("once"));
@@ -266,7 +321,7 @@ public class IdempotencyKeyTests
         executionContext.TenantId = "tenant-b";
         await provider.OnInvokeAsync(new IdempotencyKeyAttribute(), replay.HttpContext, _ => throw new InvalidOperationException("Domain-wide work must replay."));
         ReadBody(replay).Should().Be("once");
-        provider.CreateOperationKey(replay.HttpContext, "domain-wide-12345").Scope.Should().Be(OperationKeyScope.DomainWide);
+        provider.CreateOperationKey(replay.HttpContext, "domain-wide-12345").Scope.Should().Be(OperationKeyScope.Domain);
     }
 
     [Test]

@@ -55,6 +55,20 @@ public class WorkOrchestrator(IWorkProvider provider, WorkOrchestratorOptions? o
         => _invoker.InvokeAsync(this, async (_, ct) => (await TransitionAsync(operationKey, (_, _) => null, ct).ConfigureAwait(false)).State, cancellationToken);
 
     /// <summary>
+    /// Gets the latest state for an operation identity and the provider time observed during the read, applying automatic expiry when necessary.
+    /// </summary>
+    /// <param name="operationKey">The complete operation identity.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The state where found and the provider time observed during the read.</returns>
+    /// <remarks>This method does not check the owner and is intended for trusted system and worker code. Use <see cref="GetWithTypeAsync(string, OperationKey, CancellationToken)"/> for caller-facing access.</remarks>
+    public Task<WorkSnapshot> GetSnapshotAsync(OperationKey operationKey, CancellationToken cancellationToken = default)
+        => _invoker.InvokeAsync(this, async (_, ct) =>
+        {
+            var result = await TransitionAsync(operationKey, (_, _) => null, ct).ConfigureAwait(false);
+            return new WorkSnapshot(result.State, result.ObservedOn);
+        }, cancellationToken);
+
+    /// <summary>
     /// Atomically creates a work item in the <see cref="WorkStatus.Created"/> state.
     /// </summary>
     /// <param name="args">The work creation arguments.</param>
@@ -100,6 +114,7 @@ public class WorkOrchestrator(IWorkProvider provider, WorkOrchestratorOptions? o
                 TypeName = args.TypeName.ThrowIfNullOrEmpty(),
                 Status = WorkStatus.Created,
                 CreatedOn = read.Now,
+                UpdatedOn = read.Now,
                 ExpiryOn = read.Now.Add(expiry),
                 StartBy = startTimeout.HasValue ? read.Now.Add(startTimeout.Value) : null,
                 User = user,
@@ -339,7 +354,19 @@ public class WorkOrchestrator(IWorkProvider provider, WorkOrchestratorOptions? o
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The transition outcome.</returns>
     public Task<WorkTransitionResult> FenceAsync(OperationKey operationKey, CancellationToken cancellationToken = default)
-        => _invoker.InvokeAsync(this, (_, ct) => TransitionAsync(operationKey, (state, now) =>
+        => FenceAsync(operationKey, new WorkError(WorkErrorCodes.NotStarted, "The work was not started before its deadline."), cancellationToken);
+
+    /// <summary>
+    /// Fences work that was created but never started using the specified safe error.
+    /// </summary>
+    /// <param name="operationKey">The complete operation identity.</param>
+    /// <param name="error">The safe failure details.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The transition outcome.</returns>
+    public Task<WorkTransitionResult> FenceAsync(OperationKey operationKey, WorkError error, CancellationToken cancellationToken = default)
+    {
+        ValidateError(error);
+        return _invoker.InvokeAsync(this, (_, ct) => TransitionAsync(operationKey, (state, now) =>
         {
             if (IsFinished(state.Status))
                 return new(WorkTransitionOutcome.AlreadyFinished, false);
@@ -347,9 +374,10 @@ public class WorkOrchestrator(IWorkProvider provider, WorkOrchestratorOptions? o
             if (state.Status != WorkStatus.Created)
                 return new(WorkTransitionOutcome.Conflict, false);
 
-            Finish(state, WorkStatus.Failed, now, new WorkError(WorkErrorCodes.NotStarted, "The work was not started before its deadline."));
+            Finish(state, WorkStatus.Failed, now, error);
             return new(WorkTransitionOutcome.Applied);
         }, ct), cancellationToken);
+    }
 
     /// <summary>
     /// Requests cancellation of a work item.
@@ -454,7 +482,7 @@ public class WorkOrchestrator(IWorkProvider provider, WorkOrchestratorOptions? o
         if (!ExecutionContext.TryGetCurrent(out var ec) || ec.User is null || ec.User.Type == AuthenticationType.Unauthenticated)
             return null;
 
-        return IsSameUser(state.User, ec.User) ? state : null;
+        return state.User.Equals(ec.User) ? state : null;
     }
 
     /// <summary>
@@ -477,16 +505,17 @@ public class WorkOrchestrator(IWorkProvider provider, WorkOrchestratorOptions? o
             var read = await Provider.GetAsync(operationKey, cancellationToken).ConfigureAwait(false);
             var state = read.State;
             ValidateStateIdentity(state, operationKey);
-            if (state is null)
-                return CreateResult(WorkTransitionOutcome.NotFound, null);
-
             var now = read.Now;
+            if (state is null)
+                return CreateResult(WorkTransitionOutcome.NotFound, null, observedOn: now);
+
             if (!IsFinished(state.Status) && now >= state.ExpiryOn)
             {
                 Finish(state, WorkStatus.Expired, now, new WorkError(state.StartedOn.HasValue ? WorkErrorCodes.OutcomeUnknown : WorkErrorCodes.NotStarted, ExpiredMessage));
+                state.UpdatedOn = now;
                 var expired = await SaveAsync(state, now, "expire", cancellationToken).ConfigureAwait(false);
                 if (expired is not null)
-                    return CreateResult(WorkTransitionOutcome.Expired, expired);
+                    return CreateResult(WorkTransitionOutcome.Expired, expired, observedOn: now);
 
                 continue;
             }
@@ -494,41 +523,43 @@ public class WorkOrchestrator(IWorkProvider provider, WorkOrchestratorOptions? o
             if (state.Status == WorkStatus.Created && state.StartBy is { } startBy && now >= startBy)
             {
                 Finish(state, WorkStatus.Expired, now, new WorkError(WorkErrorCodes.NotStarted, "The work was not started before its start deadline."));
+                state.UpdatedOn = now;
                 var expired = await SaveAsync(state, now, "expire", cancellationToken).ConfigureAwait(false);
                 if (expired is not null)
-                    return CreateResult(WorkTransitionOutcome.Expired, expired);
+                    return CreateResult(WorkTransitionOutcome.Expired, expired, observedOn: now);
 
                 continue;
             }
 
             var decision = apply(state, now);
             if (decision is null)
-                return CreateResult(WorkTransitionOutcome.Applied, state);
+                return CreateResult(WorkTransitionOutcome.Applied, state, observedOn: now);
 
             if (!decision.Write)
-                return CreateResult(decision.Outcome, state);
+                return CreateResult(decision.Outcome, state, observedOn: now);
 
             if (decision.Outcome != WorkTransitionOutcome.Applied && decision.Outcome != WorkTransitionOutcome.Conflict)
-                return CreateResult(decision.Outcome, state);
+                return CreateResult(decision.Outcome, state, observedOn: now);
 
+            state.UpdatedOn = now;
             var saved = await SaveAsync(state, now, decision.Outcome.ToString(), cancellationToken).ConfigureAwait(false);
             if (saved is null)
                 continue;
 
             var lease = decision.IssueLease ? new WorkLease(saved.OperationKey, saved.LeaseOwner!, saved.Attempt, saved.LeaseExpiresOn!.Value) : null;
-            return CreateResult(decision.Outcome, saved, lease, decision.IsTakeover);
+            return CreateResult(decision.Outcome, saved, lease, decision.IsTakeover, now);
         }
 
         var latest = await Provider.GetAsync(operationKey, cancellationToken).ConfigureAwait(false);
         ValidateStateIdentity(latest.State, operationKey);
-        return CreateResult(WorkTransitionOutcome.ConcurrencyExhausted, latest.State);
+        return CreateResult(WorkTransitionOutcome.ConcurrencyExhausted, latest.State, observedOn: latest.Now);
     }
 
     /// <summary>Creates a transition result and records its outcome on the current activity.</summary>
-    private static WorkTransitionResult CreateResult(WorkTransitionOutcome outcome, WorkState? state, WorkLease? lease = null, bool isTakeover = false)
+    private static WorkTransitionResult CreateResult(WorkTransitionOutcome outcome, WorkState? state, WorkLease? lease = null, bool isTakeover = false, DateTimeOffset observedOn = default)
     {
         Activity.Current?.SetTag("work.outcome", outcome.ToString());
-        return new WorkTransitionResult(outcome, state, lease, isTakeover);
+        return new WorkTransitionResult(outcome, state, lease, isTakeover) { ObservedOn = observedOn };
     }
 
     /// <summary>Saves a new revision and resolves a timed-out update only when that revision is observed.</summary>
@@ -596,10 +627,6 @@ public class WorkOrchestrator(IWorkProvider provider, WorkOrchestratorOptions? o
 
     /// <summary>Indicates whether the lease owner and epoch match the current state.</summary>
     private static bool Owns(WorkState state, WorkLease lease) => state.Attempt == lease.Epoch && string.Equals(state.LeaseOwner, lease.Owner, StringComparison.Ordinal);
-
-    /// <summary>Compares authentication type and identity for the work owner and current user.</summary>
-    private static bool IsSameUser(AuthenticationUser owner, AuthenticationUser current)
-        => owner.Type == current.Type && (owner.Id is not null || current.Id is not null ? string.Equals(owner.Id, current.Id, StringComparison.Ordinal) : string.Equals(owner.UserName, current.UserName, StringComparison.Ordinal));
 
     /// <summary>Validates that the work error has a code and message.</summary>
     private static void ValidateError(WorkError error)

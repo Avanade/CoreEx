@@ -15,6 +15,11 @@ public sealed record WorkTransitionResult(WorkTransitionOutcome Outcome, WorkSta
     public bool IsApplied => Outcome == WorkTransitionOutcome.Applied;
 
     /// <summary>
+    /// Gets the provider time observed while reading the state for this transition.
+    /// </summary>
+    public DateTimeOffset ObservedOn { get; init; }
+
+    /// <summary>
     /// Converts the transition to a <see cref="Result{T}"/> for result-oriented pipelines.
     /// </summary>
     /// <returns>The state where the transition was applied; otherwise, a matching error result.</returns>

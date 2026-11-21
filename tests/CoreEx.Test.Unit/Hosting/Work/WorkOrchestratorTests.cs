@@ -103,16 +103,19 @@ public class WorkOrchestratorTests
         created.CreatedOn.Should().Be(_now);
         created.User.Should().Be(_user);
         created.TraceParent.Should().Be(activity.Id);
+        created.UpdatedOn.Should().Be(_now);
 
         var started = await orchestrator.StartAsync(Key("Test-Work", "abc"), "worker-a");
         started.Outcome.Should().Be(WorkTransitionOutcome.Applied);
         started.Lease.Should().NotBeNull();
         started.State!.StartedOn.Should().Be(_now);
+        started.State.UpdatedOn.Should().Be(_now);
 
         clock.Now = _now.AddMinutes(2);
         var progress = await orchestrator.ReportProgressAsync(started.Lease!, new WorkProgress(40, "Working", default));
         progress.Outcome.Should().Be(WorkTransitionOutcome.Applied);
         progress.State!.Progress.Should().Be(new WorkProgress(40, "Working", clock.Now));
+        progress.State.UpdatedOn.Should().Be(clock.Now);
 
         var completed = await orchestrator.CompleteAsync(started.Lease!, "/products/123?v=2");
         completed.Outcome.Should().Be(WorkTransitionOutcome.Applied);
@@ -120,6 +123,21 @@ public class WorkOrchestratorTests
         completed.State.FinishedOn.Should().Be(clock.Now);
         completed.State.ResourceLocation.Should().Be("/products/123?v=2");
         completed.State.Error.Should().BeNull();
+        completed.State.UpdatedOn.Should().Be(clock.Now);
+    }
+
+    [Test]
+    public async Task WorkState_UpdatedOn_SerializesAsUpdated_AndRoundTrips()
+    {
+        var orchestrator = Create(new ManualTimeProvider(_now));
+        var created = (await orchestrator.CreateAsync(Args("T", "json"))).Value;
+        var json = System.Text.Json.JsonSerializer.Serialize(created);
+
+        using var document = System.Text.Json.JsonDocument.Parse(json);
+        document.RootElement.GetProperty("updated").GetDateTimeOffset().Should().Be(_now);
+        document.RootElement.TryGetProperty("UpdatedOn", out _).Should().BeFalse();
+        var roundTripped = System.Text.Json.JsonSerializer.Deserialize<WorkState>(json) ?? throw new InvalidOperationException("Work state deserialization returned null.");
+        roundTripped.UpdatedOn.Should().Be(_now);
     }
 
     [Test]
@@ -218,6 +236,28 @@ public class WorkOrchestratorTests
     }
 
     [Test]
+    public async Task DispatchFence_UsesSafeError_AndOnlyFencesCreatedWork()
+    {
+        var clock = new ManualTimeProvider(_now);
+        var orchestrator = Create(clock);
+        var args = Args("T", "dispatch-failure");
+        args.StartTimeout = TimeSpan.FromMinutes(15);
+        var created = (await orchestrator.CreateAsync(args)).Value;
+
+        var fenced = await orchestrator.FenceAsync(created.OperationKey, new WorkError("dispatch-failed", "The operation message could not be dispatched.", true));
+
+        fenced.Outcome.Should().Be(WorkTransitionOutcome.Applied);
+        fenced.State!.Status.Should().Be(WorkStatus.Failed);
+        fenced.State.Error!.Code.Should().Be("dispatch-failed");
+        fenced.State.UpdatedOn.Should().Be(_now);
+
+        var startedKey = Key("T", "started");
+        (await orchestrator.CreateAsync(Args("T", "started"))).IsSuccess.Should().BeTrue();
+        (await orchestrator.StartAsync(startedKey, "worker")).Outcome.Should().Be(WorkTransitionOutcome.Applied);
+        (await orchestrator.FenceAsync(startedKey, new WorkError("dispatch-failed", "safe", true))).Outcome.Should().Be(WorkTransitionOutcome.Conflict);
+    }
+
+    [Test]
     public async Task Fence_And_Start_Are_Mutually_Exclusive()
     {
         for (var attempt = 0; attempt < 20; attempt++)
@@ -289,6 +329,11 @@ public class WorkOrchestratorTests
     {
         var orchestrator = Create(new ManualTimeProvider(_now));
         (await orchestrator.CreateAsync(Args("T", "owned"))).IsSuccess.Should().BeTrue();
+        (await orchestrator.GetWithTypeAsync("T", Key("T", "owned"))).Should().NotBeNull();
+
+        ExecutionContext.Current.User = _user with { UserName = "another-name" };
+        (await orchestrator.GetWithTypeAsync("T", Key("T", "owned"))).Should().BeNull();
+        ExecutionContext.Current.User = _user with { };
         (await orchestrator.GetWithTypeAsync("T", Key("T", "owned"))).Should().NotBeNull();
 
         ExecutionContext.Current.User = new AuthenticationUser { Type = AuthenticationType.AccountUser, UserName = "alice", Id = "456" };

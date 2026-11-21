@@ -1,4 +1,4 @@
-namespace CoreEx;
+namespace CoreEx.Operations;
 
 /// <summary>
 /// Identifies an operation using an explicit domain, scope, operation name and instance identifier.
@@ -64,7 +64,7 @@ public sealed record OperationKey
     /// <param name="instanceId">The identifier for this operation instance; a new identifier is generated when omitted.</param>
     /// <returns>The operation key.</returns>
     public static OperationKey ForDomain(string domainName, string operationName, string? instanceId = null)
-        => new(OperationKeyScope.DomainWide, domainName, null, operationName, instanceId ?? Runtime.NewId());
+        => new(OperationKeyScope.Domain, domainName, null, operationName, instanceId ?? Runtime.NewId());
 
     /// <summary>
     /// Creates a domain-wide operation key with a composite instance identifier.

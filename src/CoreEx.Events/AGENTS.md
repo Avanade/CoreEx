@@ -33,7 +33,7 @@ _unitOfWork.Events.Add(
     EventData.CreateEventWith(contract, "checkedout"));
 ```
 
-`EventAction` provides the standard past-tense action values: `Created`, `Updated`, `Deleted`, `Activated`, `Deactivated`, `Cancelled`, `CheckedOut`, and more.
+`EventAction` provides the standard past-tense action values: `Created`, `Updated`, `Deleted`, `Activated`, `Deactivated`, `Cancelled`, `CheckedOut`, and more. `Publish` is the imperative command action used by default for Web API published commands.
 
 ## Native Wire Representation
 

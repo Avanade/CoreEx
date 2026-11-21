@@ -21,11 +21,13 @@ Configure tenant scope and establish a trusted tenant in the request's CoreEx ex
 builder.Services.AddIdempotencyProvider((_, provider) => provider.Scope = OperationKeyScope.Tenant);
 ```
 
-Tenant scope rejects missing or empty tenant IDs. With `Scope` unset, requests without a tenant are domain-wide, but a present tenant requires an explicit scope. Set `OperationKeyScope.DomainWide` to intentionally share outcomes across tenants. An optional `OperationKeyFactory` can choose another domain, operation name or scope; it must preserve the supplied instance ID, which incorporates the decoded HTTP key and caller identity. Keep the operation name stable across endpoints if a reused key with a different request should continue to conflict.
+Tenant scope rejects missing or empty tenant IDs. With `Scope` unset, requests without a tenant are domain-wide, but a present tenant requires an explicit scope. Set `OperationKeyScope.Domain` to intentionally share outcomes across tenants. An optional `OperationKeyFactory` can choose another domain, operation name or scope; it must preserve the supplied instance ID, which incorporates the decoded HTTP key and caller identity. Keep the operation name stable across endpoints if a reused key with a different request should continue to conflict.
 
 ## Outcome policy
 
 Completed responses, including normally rendered application errors, are replayed. A thrown exception, cancellation, or rendering failure after application execution begins may have an unknown business outcome; that attempt is retained as indeterminate and is not automatically executed again. Do not generate a new key to bypass an indeterminate outcome. Reconcile only after verifying that the original work can no longer commit.
+
+The HTTP provider also exposes an endpoint-scoped `IIdempotencyAttemptFeature` for a narrowly proven safe retry. `WebApi.PublishAsync` requests release only when operation-state creation fails before dispatch or when the Created-only dispatch fence is acknowledged as applied. The response is captured before the owner-checked store transition; unsupported stores, lost ownership, or ambiguous release acknowledgements fail conservatively and do not imply that retry is safe. Ordinary 503 responses and publish-only failures do not release an attempt.
 
 CoreEx HTTP clients emit a quoted Structured Field string value. `StrictHeaderValidation` defaults to `false`, accepting standard quoted strings and supported legacy bare keys; set it to `true` to accept only standard quoted strings. Key identity is not a substitute for authorization, which must run before replay.
 

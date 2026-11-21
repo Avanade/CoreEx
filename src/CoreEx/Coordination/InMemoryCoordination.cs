@@ -80,7 +80,7 @@ public sealed class InMemoryCoordination(InMemoryCoordinationState state, ILogge
             state.Entries.Add(physical, new() { Owner = owner, Fingerprint = fingerprint, State = CoreEx.Idempotency.IdempotencyOutcome.InProgress, Deadline = Now + options.LeaseDuration, Expiry = Now + options.LeaseDuration + options.Retention });
         }
 
-        var attempt = new CoreEx.Idempotency.IdempotencyAttempt(options, started, ct => Renew(physical, owner, true, ct), ct => RetainOrRelease(physical, owner, true, ct), (response, ct) => Complete(physical, owner, response, ct), logger);
+        var attempt = new CoreEx.Idempotency.IdempotencyAttempt(options, started, ct => Renew(physical, owner, true, ct), ct => RetainOrRelease(physical, owner, true, ct), (response, ct) => Complete(physical, owner, response, ct), ct => ReleaseForRetry(physical, owner, ct), logger);
         if (attempt.OwnershipLost.IsCancellationRequested)
         {
             await attempt.DisposeAsync().ConfigureAwait(false);
@@ -147,6 +147,22 @@ public sealed class InMemoryCoordination(InMemoryCoordinationState state, ILogge
             entry.Response = response is null ? null : new BinaryData(response.ToArray());
             entry.State = response is null ? CoreEx.Idempotency.IdempotencyOutcome.ResponseUnavailable : CoreEx.Idempotency.IdempotencyOutcome.Completed;
             entry.Expiry = Now + options.Retention;
+            return Task.FromResult(true);
+        }
+    }
+
+    /// <summary>
+    /// Deletes the same active owner attempt before its lease expires.
+    /// </summary>
+    private Task<bool> ReleaseForRetry((string Purpose, OperationKey Key) key, string owner, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        lock (state.SyncRoot)
+        {
+            if (!state.Entries.TryGetValue(key, out var entry) || entry.Owner != owner || entry.State != CoreEx.Idempotency.IdempotencyOutcome.InProgress || entry.Deadline <= Now)
+                return Task.FromResult(false);
+
+            state.Entries.Remove(key);
             return Task.FromResult(true);
         }
     }

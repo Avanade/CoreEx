@@ -181,7 +181,7 @@ public sealed class IdempotencyProvider(CoreEx.Idempotency.IIdempotencyStore sto
 
         return Scope switch
         {
-            null or OperationKeyScope.DomainWide => OperationKey.ForDomain(domain, _operationName, instanceId),
+            null or OperationKeyScope.Domain => OperationKey.ForDomain(domain, _operationName, instanceId),
             OperationKeyScope.Tenant when !string.IsNullOrWhiteSpace(tenantId) => OperationKey.ForTenant(domain, tenantId, _operationName, instanceId),
             OperationKeyScope.Tenant => throw new InvalidOperationException("Tenant-scoped HTTP idempotency requires a tenant identifier."),
             _ => throw new ArgumentOutOfRangeException(nameof(Scope))
@@ -257,11 +257,14 @@ public sealed class IdempotencyProvider(CoreEx.Idempotency.IIdempotencyStore sto
         var originalBody = context.Response.Body;
         var originalBodyFeature = context.Features.Get<Microsoft.AspNetCore.Http.Features.IHttpResponseBodyFeature>() ?? throw new InvalidOperationException("The HTTP response body feature is unavailable.");
         var originalRequestAborted = context.RequestAborted;
+        var originalAttemptFeature = context.Features.Get<IIdempotencyAttemptFeature>();
+        var attemptFeature = new IdempotencyAttemptFeature();
 
         await using var buffer = new Microsoft.AspNetCore.WebUtilities.FileBufferingWriteStream(Math.Min(MaxCachedResponseBodySize, MaxResponseBodySize), MaxResponseBodySize, TempFileDirectoryAccessor ?? System.IO.Path.GetTempPath);
         await using var captureFeature = new CapturingResponseBodyFeature(buffer);
 
         context.Features.Set<Microsoft.AspNetCore.Http.Features.IHttpResponseBodyFeature>(captureFeature);
+        context.Features.Set<IIdempotencyAttemptFeature>(attemptFeature);
         context.RequestAborted = operationToken;
 
         try
@@ -284,9 +287,18 @@ public sealed class IdempotencyProvider(CoreEx.Idempotency.IIdempotencyStore sto
             if (response is not null && _store.MaxPayloadSize is int maxPayloadSize && response.ToMemory().Length > maxPayloadSize)
                 response = null;
 
+            var releasedForRetry = attemptFeature.IsReleaseRequested;
             try
             {
-                await attempt.CompleteAsync(response, operationToken).ConfigureAwait(false);
+                if (releasedForRetry)
+                {
+                    if (attempt is not CoreEx.Idempotency.IIdempotencyAttemptRelease releasable)
+                        throw new InvalidOperationException("The configured idempotency attempt does not support safe retry release.");
+
+                    await releasable.ReleaseForRetryAsync(operationToken).ConfigureAwait(false);
+                }
+                else
+                    await attempt.CompleteAsync(response, operationToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (operationToken.IsCancellationRequested)
             {
@@ -297,7 +309,9 @@ public sealed class IdempotencyProvider(CoreEx.Idempotency.IIdempotencyStore sto
                 throw IdempotencyKey.CreateStoreUnavailableException(ex);
             }
 
-            if (response is null)
+            if (releasedForRetry)
+                Activity.Current?.SetTag("idempotency.result", "released-for-retry");
+            else if (response is null)
             {
                 Activity.Current?.SetTag("idempotency.result", "completed-response-unavailable");
                 _logger?.LogWarning("The completed idempotent response of {ResponseBodySize} bytes could not be retained for replay (body limit {MaxCachedResponseBodySize} bytes; store payload limit {MaxPayloadSize} bytes, if configured).", buffer.Length, MaxCachedResponseBodySize, _store.MaxPayloadSize);
@@ -322,6 +336,7 @@ public sealed class IdempotencyProvider(CoreEx.Idempotency.IIdempotencyStore sto
         finally
         {
             context.Features.Set(originalBodyFeature);
+            context.Features.Set(originalAttemptFeature);
             context.RequestAborted = originalRequestAborted;
         }
     }

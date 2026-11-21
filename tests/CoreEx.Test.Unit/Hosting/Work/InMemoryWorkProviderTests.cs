@@ -118,7 +118,7 @@ public class InMemoryWorkProviderTests
 
         (await provider.GetAsync(tenantA, default)).State!.OperationKey.TenantId.Should().Be("tenant-a");
         (await provider.GetAsync(tenantB, default)).State!.OperationKey.TenantId.Should().Be("tenant-b");
-        (await provider.GetAsync(domainWide, default)).State!.OperationKey.Scope.Should().Be(OperationKeyScope.DomainWide);
+        (await provider.GetAsync(domainWide, default)).State!.OperationKey.Scope.Should().Be(OperationKeyScope.Domain);
     }
 
     private static WorkState State(OperationKey key) => new()

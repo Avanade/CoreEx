@@ -149,5 +149,10 @@ public enum EventAction
     /// <summary>
     /// A <c>failed</c> event action.
     /// </summary>
-    Failed
+    Failed,
+
+    /// <summary>
+    /// A <c>publish</c> command action.
+    /// </summary>
+    Publish
 }

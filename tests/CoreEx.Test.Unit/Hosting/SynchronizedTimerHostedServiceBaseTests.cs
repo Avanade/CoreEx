@@ -104,7 +104,7 @@ public class SynchronizedTimerHostedServiceBaseTests
             await WaitUntilAsync(() => synchronizer.EnterCount > 0, TimeSpan.FromSeconds(5));
             synchronizer.LastOperationKey!.InstanceId.Should().Be("default");
             synchronizer.LastOperationKey.DomainName.Should().Be("orders");
-            synchronizer.LastOperationKey.Scope.Should().Be(OperationKeyScope.DomainWide);
+            synchronizer.LastOperationKey.Scope.Should().Be(OperationKeyScope.Domain);
         }
         finally
         {

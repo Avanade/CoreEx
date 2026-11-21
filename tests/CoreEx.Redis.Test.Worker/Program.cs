@@ -2,7 +2,7 @@ var connectionString = Environment.GetEnvironmentVariable("COREEX_REDIS_TEST_CON
 using var connection = await ConnectionMultiplexer.ConnectAsync(connectionString);
 var options = new CoordinationOptions { LeaseDuration = TimeSpan.FromMilliseconds(900), RenewalInterval = TimeSpan.FromMilliseconds(200), OperationTimeout = TimeSpan.FromMilliseconds(300), Retention = TimeSpan.FromSeconds(10) };
 var provider = new RedisCoordination(connection, NullLogger<RedisCoordination>.Instance, options);
-var key = System.Text.Json.JsonSerializer.Deserialize<CoreEx.OperationKey>(args[1]) ?? throw new InvalidOperationException("Missing operation key.");
+var key = System.Text.Json.JsonSerializer.Deserialize<CoreEx.Operations.OperationKey>(args[1]) ?? throw new InvalidOperationException("Missing operation key.");
 await using ISynchronizationLease? ownership = args[0] switch
 {
     "lease" => await provider.TryAcquireAsync(key),

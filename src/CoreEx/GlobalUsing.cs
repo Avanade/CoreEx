@@ -17,6 +17,7 @@ global using CoreEx.Json;
 global using CoreEx.Localization;
 global using CoreEx.Mapping.Converters.Abstractions;
 global using CoreEx.Metadata;
+global using CoreEx.Operations;
 global using CoreEx.RefData.Abstractions;
 global using CoreEx.Results.Abstractions;
 global using CoreEx.Results;

@@ -55,6 +55,23 @@ public class InMemoryCoordinationTests
     }
 
     [Test]
+    public async Task ExplicitReleaseAllowsOnlyTheOwnedAttemptToRetry()
+    {
+        await using var services = Services();
+        var store = services.GetRequiredService<CoreEx.Idempotency.IIdempotencyStore>();
+        var first = await store.TryBeginAsync(Key("release"), "request");
+        var attempt = first.Attempt.Should().BeOfType<CoreEx.Idempotency.IdempotencyAttempt>().Subject;
+
+        await attempt.ReleaseForRetryAsync();
+        var retry = await store.TryBeginAsync(Key("release"), "request");
+
+        retry.Outcome.Should().Be(CoreEx.Idempotency.IdempotencyOutcome.Acquired);
+        await retry.Attempt!.CompleteAsync(new BinaryData("response"));
+        (await store.TryBeginAsync(Key("release"), "request")).Outcome.Should().Be(CoreEx.Idempotency.IdempotencyOutcome.Completed);
+        await attempt.DisposeAsync();
+    }
+
+    [Test]
     public async Task ExplicitKeys_SeparateDomainsTenantsAndPurposes_WithoutAmbientQualification()
     {
         var qualifier = new ChangingQualifier();

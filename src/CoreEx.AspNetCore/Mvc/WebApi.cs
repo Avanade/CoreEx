@@ -39,7 +39,7 @@ public class WebApi(JsonSerializerOptions? jsonSerializerOptions = null, ILogger
     /// Success media types do not apply. This override does not enable <see cref="WebApiBase.ConvertUnhandledExceptionsToProblemDetails"/>.</remarks>
     protected virtual IActionResult CreateResultForException(HttpContext httpContext, Exception exception, IExtendedException? extendedException)
     {
-        var pdf = httpContext.RequestServices.GetRequiredService<ProblemDetailsFactory>();
+        var pdf = GetServiceProvider(httpContext.Request).GetRequiredService<ProblemDetailsFactory>();
         if (extendedException is ValidationException vex && vex.Messages is not null && vex.Messages.Count > 0)
         {
             var msd = new ModelStateDictionary();
@@ -68,7 +68,7 @@ public class WebApi(JsonSerializerOptions? jsonSerializerOptions = null, ILogger
             return new ObjectResult(pd) { StatusCode = (int)extendedException.StatusCode };
         }
 
-        var config = httpContext.RequestServices.GetRequiredService<IConfiguration>();
+        var config = GetServiceProvider(httpContext.Request).GetRequiredService<IConfiguration>();
         var include = Internal.GetConfigurationValue(IncludeExceptionInProblemDetailsName, false, config);
         pd = include
             ? pdf.CreateProblemDetails(httpContext, (int)HttpStatusCode.InternalServerError, title: exception.Message, detail: exception.ToString())

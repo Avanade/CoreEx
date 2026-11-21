@@ -17,6 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\CoreEx.Events\CoreEx.Events.csproj" />
     <ProjectReference Include="..\CoreEx\CoreEx.csproj" />
   </ItemGroup>
 </Project>

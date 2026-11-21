@@ -77,6 +77,13 @@ public class WorkState : IIdentifier<string?>, IETag
     public DateTimeOffset CreatedOn { get; set; }
 
     /// <summary>
+    /// Gets or sets the provider timestamp of the most recent persisted state change.
+    /// </summary>
+    /// <remarks>May be absent on states written before this property was introduced.</remarks>
+    [JsonPropertyName("updated")]
+    public DateTimeOffset? UpdatedOn { get; set; }
+
+    /// <summary>
     /// Gets or sets the <see cref="WorkOrchestrator"/> expiry <see cref="DateTimeOffset"/>.
     /// </summary>
     /// <remarks>Where the work has not <see cref="WorkStatus.Finished"/> by the expiry it will be automatically <see cref="WorkStatus.Expired"/>.</remarks>

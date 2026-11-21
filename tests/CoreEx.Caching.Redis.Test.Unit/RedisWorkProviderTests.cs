@@ -9,13 +9,13 @@ public class RedisWorkProviderTests
     private StackExchange.Redis.ConnectionMultiplexer _first = null!;
     private StackExchange.Redis.ConnectionMultiplexer _second = null!;
 
-    private static OperationKey Key(string id) => OperationKey.ForDomain("CoreEx.Caching.Redis.Test.Unit", "T", id);
+    private static CoreEx.Operations.OperationKey Key(string id) => CoreEx.Operations.OperationKey.ForDomain("CoreEx.Caching.Redis.Test.Unit", "T", id);
 
     private static WorkArgs Args(string id) => new("T", Key(id));
 
     private static WorkState State(string id) => State(Key(id));
 
-    private static WorkState State(OperationKey key) => new()
+    private static WorkState State(CoreEx.Operations.OperationKey key) => new()
     {
         Scope = key.Scope,
         DomainName = key.DomainName,
@@ -74,9 +74,9 @@ public class RedisWorkProviderTests
     {
         var provider = new CoreEx.Redis.RedisWorkProvider(_first);
         var id = Guid.NewGuid().ToString();
-        var tenantA = OperationKey.ForTenant("orders", "tenant-a", "import", id);
-        var tenantB = OperationKey.ForTenant("orders", "tenant-b", "import", id);
-        var domainWide = OperationKey.ForDomain("orders", "import", id);
+        var tenantA = CoreEx.Operations.OperationKey.ForTenant("orders", "tenant-a", "import", id);
+        var tenantB = CoreEx.Operations.OperationKey.ForTenant("orders", "tenant-b", "import", id);
+        var domainWide = CoreEx.Operations.OperationKey.ForDomain("orders", "import", id);
         var ttl = TimeSpan.FromMinutes(1);
 
         foreach (var key in new[] { tenantA, tenantB, domainWide })
@@ -84,7 +84,7 @@ public class RedisWorkProviderTests
 
         (await provider.GetAsync(tenantA, default)).State!.OperationKey.TenantId.Should().Be("tenant-a");
         (await provider.GetAsync(tenantB, default)).State!.OperationKey.TenantId.Should().Be("tenant-b");
-        (await provider.GetAsync(domainWide, default)).State!.OperationKey.Scope.Should().Be(OperationKeyScope.DomainWide);
+        (await provider.GetAsync(domainWide, default)).State!.OperationKey.Scope.Should().Be(CoreEx.Operations.OperationKeyScope.Domain);
 
         foreach (var key in new[] { tenantA, tenantB, domainWide })
             (await provider.DeleteAsync((await provider.GetAsync(key, default)).State!, default)).Should().BeTrue();
@@ -94,7 +94,7 @@ public class RedisWorkProviderTests
     public async Task RedisKey_UsesReadableEscapedSegments_WithCustomPrefix()
     {
         var id = $"job/42:{Guid.NewGuid():N}";
-        var key = OperationKey.ForTenant("orders:eu", "acme/*", "import[all]", id);
+        var key = CoreEx.Operations.OperationKey.ForTenant("orders:eu", "acme/*", "import[all]", id);
         var provider = new CoreEx.Redis.RedisWorkProvider(_first, new CoreEx.Redis.RedisWorkProviderOptions { KeyPrefix = "custom:work" });
         var state = State(key);
         var physical = $"custom:work:domain:orders%3Aeu:scope:tenant:tenant:acme%2F%2A:operation:import%5Ball%5D:instance:job%2F42%3A{id[(id.LastIndexOf(':') + 1)..]}";
@@ -122,7 +122,7 @@ public class RedisWorkProviderTests
     public async Task RedisKey_RejectsMalformedUnicodeInWorkIdentity()
     {
         var provider = new CoreEx.Redis.RedisWorkProvider(_first);
-        var invalid = OperationKey.ForDomain("orders", "import", "task\uD800");
+        var invalid = CoreEx.Operations.OperationKey.ForDomain("orders", "import", "task\uD800");
         Func<Task> read = () => provider.GetAsync(invalid, default);
         (await read.Should().ThrowAsync<ArgumentException>()).WithParameterName("InstanceId");
     }

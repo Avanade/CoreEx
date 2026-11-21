@@ -62,7 +62,7 @@ public abstract class PersonApi_MutateTestsBase : WithApiTester<Api.Program>
                 GenderSid = "M",
             }, "etag")
             .AssertETagHeader()
-            .AssertLocationHeader(p => new Uri($"{Route}/{p!.Id}", UriKind.Relative))
+            .AssertLocationHeader(p => new Uri($"/{Route.TrimStart('/')}/{p!.Id}", UriKind.Relative))
             .Value;
 
         // Verify the entity was created.

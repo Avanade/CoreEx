@@ -90,7 +90,8 @@ public sealed class RedisCoordination(IConnectionMultiplexer connection, ILogger
         var attempt = new IdempotencyAttempt(options, started,
             ct => TransitionAsync(physical, owner, "renew", null, ct),
             async ct => { await TransitionAsync(physical, owner, "retain", null, ct).ConfigureAwait(false); },
-            (response, ct) => TransitionAsync(physical, owner, "complete", response, ct), logger);
+            (response, ct) => TransitionAsync(physical, owner, "complete", response, ct),
+            ct => TransitionAsync(physical, owner, "release", null, ct), logger);
 
         if (attempt.OwnershipLost.IsCancellationRequested)
         {

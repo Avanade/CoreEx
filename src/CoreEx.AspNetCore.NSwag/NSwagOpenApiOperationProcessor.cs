@@ -20,6 +20,8 @@ internal sealed class NSwagOpenApiOperationProcessor(OpenApiOptions options) : I
             HandleQueryAttribute(ctx);
             HandlePagingAttribute(ctx);
             HandleIdempotencyKeyAttribute(ctx);
+            HandlePublishTrackingAttribute(ctx);
+            HandleOperationsMetadata(ctx);
             HandleProducesNotFoundProblemAttribute(ctx);
             HandleResponseProblemDetails(ctx);
             HandleNonNullableAttribute(ctx);
@@ -116,6 +118,78 @@ internal sealed class NSwagOpenApiOperationProcessor(OpenApiOptions options) : I
             Kind = OpenApiParameterKind.Header,
             Schema = new JsonSchema { Type = JsonObjectType.String, IsNullableRaw = !idempotencyKey.IsRequired }
         });
+    }
+
+    /// <summary>
+    /// Handles the <see cref="PublishTrackingAttribute"/>.
+    /// </summary>
+    private void HandlePublishTrackingAttribute(AspNetCoreOperationProcessorContext context)
+    {
+        if (!context.ApiDescription.ActionDescriptor.EndpointMetadata.Any(x => x is PublishTrackingAttribute))
+            return;
+
+        var operation = context.OperationDescription.Operation;
+        operation.Responses.Remove(((int)HttpStatusCode.OK).ToString());
+        operation.Responses.Remove(((int)HttpStatusCode.Created).ToString());
+        var acceptedCode = ((int)HttpStatusCode.Accepted).ToString();
+        if (!operation.Responses.TryGetValue(acceptedCode, out var response))
+        {
+            response = new OpenApiResponse { Description = "The message was accepted for asynchronous processing." };
+            operation.Responses.Add(acceptedCode, response);
+        }
+
+        response.Content.TryAdd(MediaTypeNames.Application.Json, new OpenApiMediaType { Schema = GetOrGenerateSchemaForType(context, typeof(OperationStatus)) });
+        response.Headers.TryAdd("Location", new OpenApiHeader { Schema = new JsonSchema { Type = JsonObjectType.String, Format = "uri-reference" }, Description = "The operation status resource." });
+        response.Headers.TryAdd("Operation-Location", new OpenApiHeader { Schema = new JsonSchema { Type = JsonObjectType.String, Format = "uri-reference" }, Description = "The operation status resource." });
+        response.Headers.TryAdd("Retry-After", new OpenApiHeader { Schema = new JsonSchema { Type = JsonObjectType.Integer }, Description = "The suggested delay before polling the operation." });
+        response.Links.TryAdd("getOperation", new OpenApiLink
+        {
+            OperationId = "CoreExOperationStatus",
+            Parameters = { ["id"] = "$response.body#/id" }
+        });
+        operation.ExtensionData ??= new Dictionary<string, object?>();
+        operation.ExtensionData.TryAdd("x-ms-long-running-operation", true);
+        operation.ExtensionData.TryAdd("x-ms-long-running-operation-options", new Dictionary<string, object> { ["final-state-via"] = "operation-location" });
+
+        if (Options.WarnWhenPublishMissingIdempotencyKey
+            && context.ApiDescription.ActionDescriptor.EndpointMetadata.All(x => x is not IdempotencyKeyAttribute))
+            System.Diagnostics.Trace.TraceWarning("Tracked publishing endpoint '{0}' has no IdempotencyKeyAttribute.", context.ApiDescription.ActionDescriptor.DisplayName);
+    }
+
+    /// <summary>
+    /// Adds headers to the generic operations resource responses.
+    /// </summary>
+    private static void HandleOperationsMetadata(AspNetCoreOperationProcessorContext context)
+    {
+        var metadata = context.ApiDescription.ActionDescriptor.EndpointMetadata.OfType<OperationsEndpointMetadata>().FirstOrDefault();
+        if (metadata is null)
+            return;
+
+        var responses = context.OperationDescription.Operation.Responses;
+        switch (metadata.Kind)
+        {
+            case OperationsEndpointKind.Status:
+                foreach (var response in responses)
+                {
+                    if (response.Key is "200" or "304")
+                        response.Value.Headers.TryAdd("ETag", new OpenApiHeader { Schema = new JsonSchema { Type = JsonObjectType.String }, Description = "The operation-status representation validator." });
+
+                    if (response.Key == ((int)HttpStatusCode.OK).ToString())
+                    {
+                        response.Value.Headers.TryAdd("Retry-After", new OpenApiHeader { Schema = new JsonSchema { Type = JsonObjectType.Integer }, Description = "The suggested delay before polling the operation." });
+                        response.Value.Headers.TryAdd("Location", new OpenApiHeader { Schema = new JsonSchema { Type = JsonObjectType.String, Format = "uri-reference" }, Description = "The result resource, when one exists." });
+                    }
+                }
+                break;
+            case OperationsEndpointKind.Cancel:
+                if (responses.TryGetValue(((int)HttpStatusCode.Accepted).ToString(), out var accepted))
+                {
+                    accepted.Headers.TryAdd("Location", new OpenApiHeader { Schema = new JsonSchema { Type = JsonObjectType.String, Format = "uri-reference" }, Description = "The operation status resource." });
+                    accepted.Headers.TryAdd("Operation-Location", new OpenApiHeader { Schema = new JsonSchema { Type = JsonObjectType.String, Format = "uri-reference" }, Description = "The operation status resource." });
+                    accepted.Headers.TryAdd("Retry-After", new OpenApiHeader { Schema = new JsonSchema { Type = JsonObjectType.Integer }, Description = "The suggested delay before polling the operation." });
+                }
+                break;
+        }
     }
 
     /// <summary>

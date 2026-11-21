@@ -1,6 +1,8 @@
 # CoreEx v4 — Web API Publishing and Async Operations Design
 
-Status: draft for review (rev 4). Successor to v3 `WebApiPublisher` + `WorkStateOrchestrator`. The proposed public entry point is `WebApi.PublishAsync`; section 11 records decisions and section 10 lists remaining questions.
+Status: implementation baseline for P2 (Web API publishing and operation resources); successor to v3 `WebApiPublisher` + `WorkStateOrchestrator`. P0/P1 and P2 are implemented; later phases remain proposals. The following implementation notes record verified differences and deferred behavior.
+
+**P2 implementation notes.** `WebApi.PublishAsync` supports request-body and pre-deserialized inputs, optional validation, identity or explicit request-to-message mapping, publish-only default, and opt-in tracking. `MapCoreExOperations` maps owner-checked status, result, and cancel routes; scope defaults to domain-wide and explicit tenant scope uses `ExecutionContext.TenantId`. The host is responsible for establishing the execution user and tenant. The HTTP response uses `CoreEx.AspNetCore.Operations.OperationStatus` and its safe `OperationError` projection; persisted engine failures remain `CoreEx.Hosting.Work.WorkError`, and `WorkState` is never exposed. Tracked publish metadata (`[PublishTracking]` or `.WithPublishTracking()`) both enables runtime tracking and documents the endpoint; `WebApiPublishOperationOptions` only tunes start timeout and expiry. Without a routed endpoint, a non-null `WebApiPublishOperationOptions` explicitly enables tracking for direct `WebApi.PublishAsync` calls. Untracked publishing uses standard 202 response metadata. P2 does not implement `Prefer: wait`, long polling, `OperationSubscriberBehavior`, `IOperationContext`, or a worker that consumes `operationid`/`operationstartby`; until that later phase lands, tracked status is not a worker-side execution guarantee. Cosmos's current outbox requires an active unit of work and is not a generic publish-only publisher.
 
 ## 1. Principles
 
@@ -34,11 +36,12 @@ Conclusion: independent provider. A DB-backed `IWorkProvider` remains possible a
 |---|---|---|
 | `WorkOrchestrator` / `IWorkProvider` / `WorkState` | `CoreEx` (exists) | Engine: CAS lifecycle, expiry, TTL. Amendments in §8. |
 | `RedisWorkProvider` | `CoreEx.Redis` (exists) | Shared state across the domain's API and Subscribe hosts. |
-| `OperationStatus` (+ `OperationError`) | `CoreEx` | Public wire contract, used only when tracking is enabled. |
-| `WebApiPublishOptions<TRequest[,TMessage]>` | `CoreEx.AspNetCore` | Optional `IValidator<TRequest>`, optional request-to-message mapper, optional `OperationPublishOptions`. |
+| `OperationStatus` (+ `OperationError`) | `CoreEx.AspNetCore` (`CoreEx.AspNetCore.Operations`) | Public HTTP response contract; persisted engine errors use `CoreEx.Hosting.Work.WorkError`. |
+| `WebApiPublishOptions<TRequest[,TMessage]>` | `CoreEx.AspNetCore` | Optional `IValidator<TRequest>`, optional request-to-message mapper, optional `WebApiPublishOperationOptions`. |
 | `WebApi.PublishAsync(...)` (MVC + Minimal) | `CoreEx.AspNetCore` | Validate and publish; publish-only by default, optionally create a tracked operation. |
 | `MapCoreExOperations(...)` | `CoreEx.AspNetCore` | Domain host's generic status/result/cancel endpoints; relevant only to tracked mode. |
-| `OperationOptions` | `CoreEx` (shared by API + Subscribe) | Route prefix, start timeout, retry-after policy, max wait, per-type authorization, missing-state policy. |
+| `OperationsOptions` / `OperationTypeOptions<TMessage>` | `CoreEx.AspNetCore` (API host) | Route prefix, key scope, tenant accessor, per-type authorization, result/error projection, cancellation and retry-after policy. |
+| `WebApiPublishOperationOptions` | `CoreEx.AspNetCore` (publish endpoint) | Start timeout and operation expiry. Worker-specific options remain deferred. |
 | `ISubscriberBehavior` + pipeline on `EventSubscriberBase` | `CoreEx.Events` | **Generic** around-processing extension point (not operations-specific). §5. |
 | `OperationSubscriberBehavior` + `IOperationContext` | `CoreEx.Events` | First consumer of the behavior pipeline: worker-side lifecycle. |
 | CloudEvent extensions `operationid`, `operationstartby` | `CoreEx.Events` | Explicit per-message operation metadata in tracked mode. CoreEx-defined, not a CloudEvents standard (§5.2). |
@@ -51,7 +54,7 @@ Follows the Azure/Microsoft REST API guidelines long-running-operation shape and
 
 - Each domain's API host maps `MapCoreExOperations()` at a configurable prefix (default `/operations`) relative to that host. Behind a gateway the domain prefix is the gateway's job (e.g. `/shopping/operations/{id}`).
 - Tracking keys are namespaced by `IHostSettings.DomainName` (e.g. `work:{domain}:{id}`), so domains can share a Redis instance without collision. The domain's Subscribe host uses the same namespace.
-- `Location`/`Operation-Location` are generated from the request's effective base (honouring `UseForwardedHeaders`) or an explicit `OperationOptions.BaseAddress`, so gateway-relative links resolve correctly.
+- `Location`/`Operation-Location` are relative to the request origin by default and include `PathBase`. `WebApiBase` applies the same shared link policy to ordinary resource locations and paging links; set `UseAbsolutePaths` to use the request's effective base (honouring `UseForwardedHeaders`) or `BaseAddress` to supply an explicit external base.
 - A client polls the domain it called. Cross-domain observation is out of scope (see open question on completion events).
 
 ### 3.1 Naming
@@ -64,7 +67,7 @@ Follows the Azure/Microsoft REST API guidelines long-running-operation shape and
 | `WebApi.AcceptAsync(...)` | Describes the HTTP status/contract rather than the core action. |
 | `WebApi.EnqueueAsync(...)` | Too transport-specific; the configured publisher may use a topic or outbox. |
 
-`WebApiPublishOptions<TRequest[,TMessage]>` is the proposed options name, matching CoreEx's request-options naming while making the publish operation explicit.
+`WebApiPublishOptions` holds shared publishing configuration. `WebApiPublishOptions<TRequest>` adds request validation and message creation; `WebApiPublishOptions<TRequest,TMessage>` adds explicit CoreEx mapping. These configuration objects are separate from request-bound `WebApiOptions`, which is supplied to custom preparation callbacks.
 
 ### 3.2 Publish — default is untracked fire-and-forget
 
@@ -77,25 +80,27 @@ await webApi.PublishAsync(request, new WebApiPublishOptions<SubmitOrder>
 });
 ```
 
-This path optionally validates, then awaits publishing the incoming message as an event through the configured `IEventPublisher`. It creates **no** work state, adds **no** `operationid` metadata, and does not promise a status/result/cancel resource. It returns `202 Accepted` after the configured publisher/outbox confirms acceptance. A publish/commit failure remains an HTTP error; this is not `Task.Run` or detached in-process work. The outbox choice remains the host's configured publishing concern.
+This path optionally validates, then awaits publishing the incoming message through the configured `IEventPublisher`. By default the message is a self-addressed **command** with the `publish` action; `WebApiPublishOptions` can instead select an event (default action `published`), override the action or domain, or supply an explicit message factory. It creates **no** work state, adds **no** `operationid` metadata, and does not promise a status/result/cancel resource. It returns `202 Accepted` after the configured publisher/outbox confirms acceptance. A publish/commit failure remains an HTTP error; this is not `Task.Run` or detached in-process work. The outbox choice remains the host's configured publishing concern.
 
 A different wire message may be produced via `WebApiPublishOptions<TRequest,TMessage>` and an explicit mapper; absent a mapper, the request itself is published as the message. Publishing as a command versus an event is selected by the message/destination configuration, not by whether tracking is enabled.
+
+For custom preparation without automatic request-body parsing, `PublishAsync<TMessage>` accepts `Func<WebApiOptions,CancellationToken,Task<EventData>>` and non-generic `WebApiPublishOptions`. `PublishWithResultAsync<TMessage>` accepts the corresponding `Task<Result<EventData>>` callback. The callback owns any parsing and validation and returns an `EventData` without publishing it; `options.CreateDefaultMessage(payload)` applies the configured defaults and can be further customized, while an explicitly constructed `EventData` is not overwritten by those defaults. Returned failures use the existing WebApi error policy before publisher resolution or operation creation. Both overloads use the same framework-owned dispatch, operation metadata, fencing and acceptance path. Explicit `TMessage` must match the payload type used for tracking registration; it cannot be inferred or verified from the serialized message. These callbacks do not apply validators or factories from generic publishing options.
 
 ### 3.3 Tracked operation — explicit opt-in
 
 ```csharp
-await webApi.PublishAsync(request, new WebApiPublishOptions<SubmitOrder>
+[HttpPost, PublishTracking]
+public Task<IActionResult> Submit(CancellationToken cancellationToken = default) => webApi.PublishAsync(Request, new WebApiPublishOptions<SubmitOrder>
 {
-    Validator = validator,
-    Operation = new OperationPublishOptions { /* tracking configuration */ }
-});
+    Validator = validator
+}, cancellationToken: cancellationToken);
 ```
 
-When `Operation` is supplied, validation still happens first; then operation state is created before publishing. The message carries `operationid` and `operationstartby`, and the response includes `OperationStatus` and `Location`/`Operation-Location` as described below. The same optional short wait observes this tracked execution; `Prefer: wait=N` does **not** itself turn tracking on. Configuring `Prefer: wait` on an endpoint without tracking is ignored or rejected explicitly (TBD), never silently creates an operation.
+When an endpoint has `[PublishTracking]` or `.WithPublishTracking()`, validation still happens first; then operation state is created before publishing. The message carries `operationid` and `operationstartby`, and the response includes `OperationStatus` and `Location`/`Operation-Location` as described below. `WebApiPublishOperationOptions` optionally tunes `StartTimeout` and `Expiry`; it does not enable tracking for a routed endpoint. For direct `WebApi.PublishAsync` calls that have no routed endpoint, a non-null `WebApiPublishOperationOptions` explicitly enables tracking. `Prefer: wait=N` does **not** itself turn tracking on; P2 ignores the preference and never creates an operation for a publish-only endpoint.
 
 - Validator type: `IValidator<TRequest>?`, using CoreEx's async validation path. If validation fails, return the existing CoreEx validation response (`400` by default), with no state created and no message published. The worker must still enforce business rules because they can change between acceptance and execution.
-- Idempotency remains an endpoint decision expressed through `[IdempotencyKey]` / `[IdempotencyKey(true)]`; it is independent of tracking and validation. Templates/skills add it to publish endpoints by default; `WarnWhenNotIdempotent` can flag missing annotations.
-- For tracked endpoints, `Prefer: wait=N` (capped by `OperationOptions.MaxWait`) only observes the already-dispatched operation. Terminal within the window → `200`/`201` + result (or `resultLocation`) and `Preference-Applied`; otherwise `202`. Client disconnect stops waiting, never the work.
+- Idempotency remains an endpoint decision expressed through `[IdempotencyKey]`; it is independent of tracking and validation. Templates/skills are expected to add it to publish endpoints by default. `OpenApiOptions.WarnWhenPublishMissingIdempotencyKey` optionally emits a trace warning for tracked publishing endpoints during OpenAPI generation; there is no startup/runtime enforcement.
+- **Deferred:** P2 does not implement `Prefer: wait=N`, `OperationOptions.MaxWait`, `Preference-Applied`, or a final `200`/`201` response. P2 always returns `202` after successful or potentially accepted tracked publication.
 
 ### 3.4 Status — `GET /operations/{opId}`
 
@@ -104,7 +109,7 @@ When `Operation` is supplied, validation still happens first; then operation sta
 - `404` for unknown, wrong type, or not owned (no enumeration oracle).
 - `ETag`; `If-None-Match` → `304`.
 - `Retry-After` while non-terminal; adaptive with age (1s → 2s → 5s → 15s cap), overridable per type.
-- Optional long-poll: `Prefer: wait=N` blocks until the ETag changes or N elapses.
+- **Deferred:** optional long-poll (`Prefer: wait=N`) is not part of P2.
 - Terminal success sets `resultLocation` and `Location`. No automatic redirect; `303` is opt-in.
 
 ### 3.5 Result — `GET /operations/{opId}/result`
@@ -113,38 +118,38 @@ When `Operation` is supplied, validation still happens first; then operation sta
 - `409` problem details when not terminal or terminal-but-not-succeeded.
 - `404` unknown/not owned.
 - When the result is a domain resource, only `resultLocation` is stored and this endpoint is not used.
-- Open: a single generic `/result` returns heterogeneous types, so its OpenAPI schema is weak (`oneOf` per registered type or untyped). Typed results are best described on the publish endpoint's `200`/`201` (wait path) and on the domain resource behind `resultLocation`.
+- Open: a single generic `/result` returns heterogeneous types, so its OpenAPI schema is weak (`oneOf` per registered type or untyped). P2 leaves the result response untyped; typed results are described by the application-owned result reader or the domain resource behind `resultLocation`.
 
 ### 3.6 Cancel — `POST /operations/{opId}:cancel`
 
 - `202` + status when the cancellation *request* is recorded (cooperative).
 - `409` when already terminal; `405` when cancellation is disabled for the type.
-- The status becomes `canceled` only when it is safe: immediately if still `notStarted` (CAS `Created → Canceled`, so a late message is skipped); if `running`, `cancelRequested` is set and the handler decides whether to honour it. Business compensation for partially-done work is the handler's responsibility.
+- The status becomes `canceled` only when it is safe: immediately if still `not-started` (CAS `Created → Canceled`, so a late message is skipped); if `running`, `cancelRequested` is set and the handler decides whether to honour it. Business compensation for partially-done work is the handler's responsibility.
 
 ### 3.7 `OperationStatus`
 
 ```json
 {
   "id": "…",
-  "status": "notStarted | running | succeeded | failed | canceled",
-  "createdAt": "…",
-  "lastUpdatedAt": "…",
-  "expiresAt": "…",
+  "status": "not-started | running | succeeded | failed | canceled",
+  "createdOn": "…",
+  "updatedOn": "…",
+  "expiryOn": "…",
   "cancelRequested": false,
   "percentComplete": 40,
   "message": "Processed 400 of 1000 lines",
-  "error": { "type": "…", "title": "…", "status": 422, "detail": "…", "code": "…" },
-  "resultLocation": "/operations/{opId}/result"
+  "error": { "code": "execution-failed", "title": "The operation failed." },
+  "resultLocation": "/products/123"
 }
 ```
 
-Mapping from `WorkStatus`: `Created → notStarted`; `Started`/`Indeterminate → running` (`Indeterminate` adds a non-fatal `message`); `Completed → succeeded`; `Failed`/`Expired → failed`; `Canceled → canceled`.
+Mapping from `WorkStatus`: `Created → not-started`; `Started`/`Indeterminate → running` (`Indeterminate` adds a non-fatal `message`); `Completed → succeeded`; `Failed`/`Expired → failed`; `Canceled → canceled`.
 
 **Unknown outcome.** An operation that started but never reported back before `Expiry` may or may not have had its business effect. It is reported as `status: failed` with `error.code = "outcome-unknown"`, not as a new status value. Rationale: the guideline status set is what generic pollers (Azure SDK-style, hand-written loops) treat as terminal; an unknown sixth value would make them spin or crash. The error code makes the ambiguity explicit for clients that care. Never-started expiry uses `error.code = "not-started"` (definitely did not run).
 
 ### 3.8 API description (OpenAPI + AsyncAPI)
 
-- **OpenAPI** describes the HTTP surface. Each tracked publish endpoint declares every status code with its own schema/headers: `202` → `OperationStatus` + `Location`/`Operation-Location`/`Retry-After`; `200`/`201` → final result (only when `Prefer: wait` is enabled); `400`/`409`/`503` → `ProblemDetails`. A `links` entry on `202` points at `getOperation`. Status/result/cancel are documented once by `MapCoreExOperations`. Untracked publish endpoints document `202` and their validation/publish errors; they have no operation links.
+- **P2 OpenAPI** documents tracked publish as `202` + `OperationStatus`, `Location`, `Operation-Location`, `Retry-After`, a `getOperation` link, and long-running-operation extensions. Untracked publication is bodyless `202` without polling metadata. `MapCoreExOperations` documents status/result/cancel once; generic result JSON is intentionally untyped. `[PublishTracking]` and `.WithPublishTracking()` are the shared runtime/OpenAPI switch. Final `200`/`201` responses and wait/long-poll behavior are deferred.
 - **Generator hints**: `x-ms-long-running-operation: true` + `x-ms-long-running-operation-options.final-state-via: operation-location` for AutoRest/Azure SDK-style generators (NSwag/Kiota just see a normal `202`). MVC: `[ProducesResponseType]` per status (proposed `[AcceptedOperation<TResult>]` convenience); Minimal API: `Results<Accepted<OperationStatus>, Ok<T>, ProblemHttpResult>`.
 - **AsyncAPI** describes the broker side only: the command consumed by the worker, including the `operationid`/`operationstartby` extensions. It does not describe the HTTP polling contract.
 
@@ -180,14 +185,14 @@ sequenceDiagram
                 else fence lost (worker already Started/terminal)
                     W-->>C: 202 + current OperationStatus
                 else fence write failed (store unavailable)
-                    W-->>C: 202 + OperationStatus(notStarted); start deadline reconciles
+                    W-->>C: 202 + OperationStatus(not-started); start deadline reconciles
                 end
             end
         end
     end
 ```
 
-- The tracked initiating message is normally a **command** (one logical handler, competing consumers), routed by `NamedDestinationProvider` to `{Destination}-{domain}`. Self-addressed when the domain processes its own operation. The default untracked path publishes the request as an event unless the caller explicitly configures a command destination.
+- The tracked initiating message is normally a **command** (one logical handler, competing consumers), routed by `NamedDestinationProvider` to `{Destination}-{domain}`. Self-addressed when the domain processes its own operation. The default (untracked and tracked) path publishes the request as a self-addressed command unless the caller configures an event, a target domain or an explicit message factory.
 - Operation id: random (`Runtime.NewId()`), **not** derived from the idempotency key, CloudEvent id, correlation id, or trace id.
 - **Tracked publish is "state + dispatch" only.** Business mutations belong in the worker. Writes in the publish transaction could commit on an ambiguous outbox commit while the fence marks the operation Failed and the worker skips the message.
 
@@ -211,10 +216,10 @@ A publisher exception does not prove the message was not sent (send timeout afte
 | Publish succeeded | `202` + status | Replays the `202`. |
 | Publish threw, fence won | `503` problem details + `Retry-After` | **Re-executes** (attempt released; creates a new operation). Safe because the failed operation is fenced. |
 | Publish threw, fence lost | `202` + current status | Replays the `202`. |
-| Publish threw, fence write failed | `202` + `notStarted` | Replays the `202`; polling resolves to `running` or `failed`/`not-started`. |
+| Publish threw, fence write failed | `202` + `not-started` | Replays the `202`; polling resolves to `running` or `failed`/`not-started`. |
 | State create failed (before publish) | `503` problem details | Re-executes (attempt released); nothing was dispatched. |
 
-Releasing an attempt requires a small idempotency amendment (§8.11): today the store's `TryResolveAsync(allowRetry: true)` only applies to indeterminate/abandoned attempts, and the owned attempt is not reachable from the handler.
+P2 adds a separate idempotency-attempt release capability. The HTTP provider exposes it only during endpoint execution and honors it after response capture, using an owner/state/deadline-checked transition. `PublishAsync` requests release after a confirmed pre-dispatch failure or an acknowledged Created-only fence. Unsupported stores, lost ownership, and ambiguous release acknowledgements do not establish retry safety; ordinary service errors do not release an attempt.
 
 ## 5. Worker side — subscriber behaviors
 
@@ -294,7 +299,7 @@ public interface ISubscriberBehavior
 8. During the run the behavior renews the lease (heartbeat updates `LastUpdated`), throttles `ReportProgressAsync`, and links `IOperationContext.CancellationToken` to the cancel request.
 9. Outcome mapping (all CAS, conditioned on the current `LeaseId` so a superseded worker cannot finish someone else's run):
    - `Handled` → `CompleteAsync(result | resultLocation)`.
-   - `Failed` with a completing `ErrorHandling` (business/validation) → `FailAsync(OperationError)` (sanitised).
+   - `Failed` with a completing `ErrorHandling` (business/validation) → `FailAsync(WorkError)`; the HTTP layer maps persisted errors to a sanitized `OperationError`.
    - `Failed` transient/retry → state untouched; lease released early so the next delivery can take over.
    - `Skipped` → state untouched, except inbox duplicate of a `Started` op whose result is unknown → leave for expiry/`outcome-unknown`.
    - Cancel honoured → `Canceled`.
@@ -330,7 +335,7 @@ Consequences of the default, accepted by design:
 
 - **Cancellation and fencing can be lost.** If a fenced or cancelled record disappears, a late delivery runs the handler anyway. In particular, an accept that returned `503` after an ambiguous publish can still execute.
 - **Duplicates.** If the record disappears after a handler ran, a redelivery runs it again; if the store is unreachable, the live-lease check cannot defer a redelivery, so two handlers can overlap. Handlers must be idempotent anyway; this widens the window.
-- **Status lies.** An untracked run cannot record progress or completion; mid-run renew/complete writes that fail are logged and the handler continues (it is not abandoned). Status may show `404`, a stale `notStarted`/`running`, or later `failed/not-started`/`outcome-unknown` for work that actually succeeded. Clients must treat these as unknown, not as proof of non-execution, and must not automatically resubmit. Retrying with a new idempotency key can dispatch duplicate work; retrying the same key only replays the original response if the separate idempotency record survived.
+- **Status lies.** An untracked run cannot record progress or completion; mid-run renew/complete writes that fail are logged and the handler continues (it is not abandoned). Status may show `404`, a stale `not-started`/`running`, or later `failed/not-started`/`outcome-unknown` for work that actually succeeded. Clients must treat these as unknown, not as proof of non-execution, and must not automatically resubmit. Retrying with a new idempotency key can dispatch duplicate work; retrying the same key only replays the original response if the separate idempotency record survived.
 - If business-level deduplication is required, the handler must use a stable command/business idempotency identity and persist its deduplication atomically with the business effect where possible. The operation id alone cannot recover lost tracking or prove whether a side effect committed.
 - Operational guidance: keep the work keyspace non-evictable (Redis `maxmemory-policy noeviction` or a dedicated instance/database) to make loss rare, but nothing above depends on it.
 
@@ -343,7 +348,7 @@ Consequences of the default, accepted by design:
 | Publish threw, never sent | `503`; state Failed | Nothing dispatched |
 | Publish threw, actually delivered, fence won | `503`; state Failed | Late message skipped; handler never runs |
 | Publish threw, worker started first | `202`; `running` | Work runs; client told the truth |
-| Publish threw, fence write failed | `202` `notStarted` → `running` or `failed/not-started` | Exactly one of first start or deadline expiry wins |
+| Publish threw, fence write failed | `202` `not-started` → `running` or `failed/not-started` | Exactly one of first start or deadline expiry wins |
 | Message first delivered after `StartBy` | `failed/not-started` | Worker skips without needing the store |
 | 202 lost in transit | Same-key retry replays the 202 | Single dispatch |
 | Peek-lock lost while handler runs; message redelivered | `running` | Live lease → redelivery deferred, no concurrent run |
@@ -353,7 +358,7 @@ Consequences of the default, accepted by design:
 | Tracking state lost before first start | `404` | Handler runs untracked (default); a lost fence/cancel is not honoured. Fail-closed opt-in skips |
 | Tracking state lost after handler start | `404`; outcome unknown | Handler continues; a redelivery may rerun it. Do not automatically resubmit based on `404` |
 | Store unavailable at delivery | Stale status, later `outcome-unknown`/`not-started` | Handler runs untracked (default); overlap with a live worker possible. Fail-closed opt-in retries |
-| Cancel while `notStarted` | `canceled` | Late message skipped |
+| Cancel while `not-started` | `canceled` | Late message skipped |
 | Cancel races Complete | First terminal CAS wins | Unaffected |
 | Never finishes | `failed/outcome-unknown` at `Expiry` | Late Complete ignored; effect may exist |
 
@@ -363,7 +368,7 @@ Consequences of the default, accepted by design:
 - Per-type authorization on `MapCoreExOperations`, checked before disclosure.
 - Ids random and opaque.
 - `operationid` on a message is not authority: type/domain/tenant binding is verified against stored state (§5.2).
-- Failure details are sanitised `OperationError`s; exception messages never stored.
+- Persisted failure details use `WorkError`; the HTTP layer maps them to sanitized `OperationError`s and does not expose raw exception messages.
 
 ## 8. Required engine amendments
 
@@ -384,12 +389,12 @@ Consequences of the default, accepted by design:
 
 ## 9. Phasing
 
-1. Engine amendments (§8) + `OperationStatus` contract + race tests (start vs fence, start vs deadline, lease takeover).
-2. `ISubscriberBehavior` pipeline on `EventSubscriberBase` + `SubscriberOutcome` + `OnDispositionAsync` in Service Bus receiver and Functions adapter. Valuable on its own (metrics, auditing, tenancy).
-3. `WebApi.PublishAsync` publish-only default + optional validator + `MapCoreExOperations`; then idempotency release feature and OpenAPI metadata for tracked endpoints.
-4. `OperationSubscriberBehavior` + `IOperationContext` + metadata helpers.
-5. `Prefer: wait` + long-poll + change notification.
-6. Contoso sample endpoint, docs, AI skills/instructions, Aspire E2E.
+1. **P0 complete:** engine amendments (§8), `OperationStatus`, and lifecycle/fence race tests.
+2. **P1 complete:** `ISubscriberBehavior` pipeline on `EventSubscriberBase` with disposition callbacks in the Service Bus receiver and Functions adapter.
+3. **P2 complete:** `WebApi.PublishAsync` publish-only default + optional validator + `MapCoreExOperations`; owner-checked idempotency release and tracked/untracked OpenAPI metadata.
+4. **Deferred:** `OperationSubscriberBehavior` + `IOperationContext` + worker-side operation metadata handling.
+5. **Deferred:** `Prefer: wait` + long-poll + change notification.
+6. **Deferred:** Contoso sample endpoint, AI skills/instructions, Aspire E2E.
 
 ## 10. Open questions
 
@@ -398,7 +403,7 @@ Consequences of the default, accepted by design:
 3. Lease duration/renewal defaults relative to Service Bus lock duration (proposed: lease ≈ 2× lock renewal interval, renewed by heartbeat).
 4. Generic `/result` OpenAPI typing (§3.3): per-type `oneOf` vs untyped vs dropping `/result` in favour of `resultLocation` only.
 5. Default `StartTimeout` value (proposed 15 minutes for all hosts; outbox hosts raise it if relay lag can exceed it). No auto-detection of outbox publishers.
-6. `Prefer: wait` on an endpoint configured for publish-only: reject with a clear error or ignore the preference (proposed: reject, since waiting for an untracked result is meaningless).
+6. `Prefer: wait` on an endpoint configured for publish-only: P2 currently ignores the preference and never creates tracking; a later phase may choose explicit rejection.
 7. `WorkOutcomeUnknownException` classification at the API boundary: decide whether it should become CoreEx `TransientException` (enabling WebApi 503/`Retry-After`) or remain an explicit unknown-outcome exception with boundary-specific handling. At the subscriber it is treated as store-unavailable (run untracked by default; transient only under fail-closed, §5.5). Any retry must re-read operation state; a missing tracking record does not prove that the handler did not run, and retry safety still depends on business-level idempotency.
 
 ## 11. Decisions
@@ -410,7 +415,7 @@ Consequences of the default, accepted by design:
 | D3 | Missing state or store unavailable at the worker | Proceed untracked by default (warning + metric); fail-closed per-subscriber opt-in. Accepted work completing beats tracking accuracy (§5.5). |
 | D4 | Completion event for cross-domain consumers | Deferred. Domain events published by the worker's own business logic are the cross-domain signal. |
 | D5 | Batch/collection accept | Deferred. |
-| D6 | Idempotency | Developer marks the endpoint `[IdempotencyKey]`; not forced; templates/skills default it on; startup warning when absent. |
+| D6 | Idempotency | Developer marks the endpoint `[IdempotencyKey]`; not forced; templates/skills default it on. P2 offers an optional OpenAPI-generation trace warning when the metadata is absent; it does not enforce idempotency. |
 | D7 | Start deadline | Single `StartTimeout` (default 15 min), not tied to broker TTL; CloudEvents `expirytime` not reused. |
 | D8 | Unknown outcome | `failed` + `error.code = "outcome-unknown"`; no new status value. |
 | D9 | Fence-won retry | Same key re-executes (attempt released, §8.11); no forced new key. |

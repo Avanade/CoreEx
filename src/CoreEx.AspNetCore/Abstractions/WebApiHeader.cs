@@ -42,7 +42,7 @@ internal readonly struct WebApiHeader
             headers.ETag = new EntityTagHeaderValue(Entities.ETag.FormatETag(ETag), true);
 
         if (Location is not null)
-            headers.Location = Location;
+            headers.Location = webApi.GetLocationUri(httpResponse.HttpContext.Request, Location);
 
         if (RetryAfter.HasValue)
             httpResponse.Headers.Append(HeaderNames.RetryAfter, new System.Net.Http.Headers.RetryConditionHeaderValue(RetryAfter.Value).ToString());
@@ -72,9 +72,7 @@ internal readonly struct WebApiHeader
     private void ApplyPagingPrevAndNextLinks(WebApiBase webApi, HttpResponse httpResponse)
     {
         // Get the orginating URI without query string.
-        var url = webApi.UseAbsolutePaths
-            ? UriHelper.BuildAbsolute(httpResponse.HttpContext.Request.Scheme, httpResponse.HttpContext.Request.Host, httpResponse.HttpContext.Request.PathBase, httpResponse.HttpContext.Request.Path)
-            : UriHelper.BuildRelative(httpResponse.HttpContext.Request.PathBase, httpResponse.HttpContext.Request.Path);
+        var url = webApi.GetLocationUri(httpResponse.HttpContext.Request, new Uri(httpResponse.HttpContext.Request.Path.ToUriComponent(), UriKind.Relative));
 
         QueryString qs;
         PagingArgs? pa = PagingResult?.GetPreviousPage();

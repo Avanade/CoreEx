@@ -8,6 +8,36 @@ namespace Microsoft.Extensions.DependencyInjection;
 public static partial class CoreExAspNetCoreExtensions
 {
     /// <summary>
+    /// Registers the generic operations resource configuration.
+    /// </summary>
+    /// <param name="services">The service collection.</param>
+    /// <param name="configure">The optional operations configuration.</param>
+    /// <returns>The service collection.</returns>
+    public static IServiceCollection AddCoreExOperations(this IServiceCollection services, Action<OperationsOptions>? configure = null)
+    {
+        services.ThrowIfNull();
+        var options = services.AddOptions<OperationsOptions>();
+        if (configure is not null)
+            options.Configure(configure);
+
+        return services;
+    }
+
+    /// <summary>
+    /// Registers a message type that can be tracked and queried through the generic operations resource.
+    /// </summary>
+    /// <typeparam name="TMessage">The message type.</typeparam>
+    /// <param name="services">The service collection.</param>
+    /// <param name="configure">The type-specific configuration.</param>
+    /// <returns>The service collection.</returns>
+    public static IServiceCollection AddCoreExOperation<TMessage>(this IServiceCollection services, Action<OperationTypeOptions<TMessage>>? configure = null)
+    {
+        services.ThrowIfNull();
+        services.AddOptions<OperationsOptions>().Configure(options => options.AddOperation(configure));
+        return services;
+    }
+
+    /// <summary>
     /// Adds a scoped service to instantiate a new <see cref="CoreEx.AspNetCore.Mvc.WebApi"/> instance.
     /// </summary>
     /// <param name="services">The <see cref="IServiceCollection"/>.</param>

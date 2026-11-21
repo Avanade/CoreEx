@@ -7,6 +7,7 @@ global using CoreEx.Invokers;
 global using CoreEx.Json;
 global using CoreEx.Localization;
 global using CoreEx.Metadata;
+global using CoreEx.Operations;
 global using CoreEx.Results.Abstractions;
 global using CoreEx.Results;
 global using Microsoft.Extensions.Configuration;

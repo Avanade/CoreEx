@@ -3,6 +3,7 @@ global using CloudNative.CloudEvents;
 global using CoreEx.Events.Native;
 global using CoreEx.Events.Publishing;
 global using CoreEx.Events.Subscribing;
+global using CoreEx.Operations;
 global using CoreEx.Results;
 global using Microsoft.Extensions.Configuration;
 global using Microsoft.Extensions.DependencyInjection;

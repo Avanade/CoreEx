@@ -16,6 +16,7 @@ The namespace also provides a set of small, targeted MVC attributes. These carry
 - ✅ **Accepts attribute**: `[AcceptsAttribute<T>]` declares the request body `Content-Type` and schema type for NSwag, replacing the need for `[Consumes]` with schema inference.
 - 🚫 **Not-found response attribute**: `[ProducesNotFoundProblem]` adds a `404 application/problem+json` response entry to the NSwag spec for operations that can return `NotFoundException`.
 - 🔑 **Idempotency key attribute**: `[IdempotencyKey]` marks a `POST` action as idempotent; `IdempotencyKeyMiddleware` reads this from endpoint metadata; NSwag adds the `Idempotency-Key` header parameter to the spec.
+- 📬 **Publish tracking**: `[PublishTracking]` enables runtime tracking and documents tracked acceptance with the operation status resource; untracked acceptance uses standard `[ProducesResponseType(StatusCodes.Status202Accepted)]`.
 - 🔧 **DI registration**: `AddMvcWebApi(services, configure?)` registers `Mvc.WebApi` as a scoped service.
 
 ## Key types
@@ -29,6 +30,7 @@ The namespace also provides a set of small, targeted MVC attributes. These carry
 | **[`AcceptsAttribute`](./AcceptsAttribute.cs)** | Declares the request body content type; generic `AcceptsAttribute<T>` adds schema type inference for NSwag. |
 | **[`ProducesNotFoundProblemAttribute`](./ProducesNotFoundProblemAttribute.cs)** | Adds `404 application/problem+json` to the NSwag operation response list. |
 | **[`IdempotencyKeyAttribute`](./IdempotencyKeyAttribute.cs)** | Marks a POST action as idempotent; read by `IdempotencyKeyMiddleware` and NSwag processor to add `Idempotency-Key` header. |
+| **[`PublishTrackingAttribute`](./PublishTrackingAttribute.cs)** | Enables tracked publishing for the endpoint and declares its OpenAPI metadata. |
 
 ## Related Namespaces
 

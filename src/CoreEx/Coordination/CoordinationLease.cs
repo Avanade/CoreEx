@@ -112,7 +112,21 @@ public sealed class CoordinationLease : ISynchronizationLease
     /// </summary>
     /// <param name="complete">The owner-checked terminal mutation.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    public async Task CompleteAsync(Func<CancellationToken, Task<bool>> complete, CancellationToken cancellationToken)
+    public Task CompleteAsync(Func<CancellationToken, Task<bool>> complete, CancellationToken cancellationToken)
+        => TransitionAsync(complete, "The idempotency attempt no longer owns processing; its outcome requires reconciliation.", cancellationToken);
+
+    /// <summary>
+    /// Serializes an owner-checked release with renewal and stops the heartbeat once acknowledged.
+    /// </summary>
+    /// <param name="release">The owner-checked release mutation.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    public Task ReleaseForRetryAsync(Func<CancellationToken, Task<bool>> release, CancellationToken cancellationToken)
+        => TransitionAsync(release, "The idempotency attempt could not be released because ownership was lost.", cancellationToken);
+
+    /// <summary>
+    /// Serializes an owned terminal transition against lease renewal.
+    /// </summary>
+    private async Task TransitionAsync(Func<CancellationToken, Task<bool>> transition, string failureMessage, CancellationToken cancellationToken)
     {
         await _transition.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
@@ -121,8 +135,8 @@ public sealed class CoordinationLease : ISynchronizationLease
             using var operation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _lost.Token);
             operation.CancelAfter(_options.OperationTimeout);
 
-            if (!await complete(operation.Token).WaitAsync(operation.Token).ConfigureAwait(false))
-                throw new InvalidOperationException("The idempotency attempt no longer owns processing; its outcome requires reconciliation.");
+            if (!await transition(operation.Token).WaitAsync(operation.Token).ConfigureAwait(false))
+                throw new InvalidOperationException(failureMessage);
 
             _stop.Cancel();
             _lost.CancelAfter(Timeout.InfiniteTimeSpan);

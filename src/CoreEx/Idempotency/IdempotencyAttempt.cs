@@ -8,11 +8,13 @@ namespace CoreEx.Idempotency;
 /// <param name="renew">The conditional renewal.</param>
 /// <param name="retain">The conditional indeterminate transition on disposal.</param>
 /// <param name="complete">The conditional terminal transition.</param>
+/// <param name="releaseForRetry">The conditional owner-checked release.</param>
 /// <param name="logger">The logger.</param>
-public sealed class IdempotencyAttempt(CoreEx.Coordination.CoordinationOptions options, long started, Func<CancellationToken, Task<bool>> renew, Func<CancellationToken, Task> retain, Func<BinaryData?, CancellationToken, Task<bool>> complete, ILogger logger) : IIdempotencyAttempt
+public sealed class IdempotencyAttempt(CoreEx.Coordination.CoordinationOptions options, long started, Func<CancellationToken, Task<bool>> renew, Func<CancellationToken, Task> retain, Func<BinaryData?, CancellationToken, Task<bool>> complete, Func<CancellationToken, Task<bool>> releaseForRetry, ILogger logger) : IIdempotencyAttempt, IIdempotencyAttemptRelease
 {
     private readonly CoreEx.Coordination.CoordinationLease _lease = new(options, started, renew, retain, logger);
     private readonly Func<BinaryData?, CancellationToken, Task<bool>> _complete = complete;
+    private readonly Func<CancellationToken, Task<bool>> _releaseForRetry = releaseForRetry;
 
     /// <inheritdoc/>
     public CancellationToken OwnershipLost => _lease.OwnershipLost;
@@ -23,6 +25,10 @@ public sealed class IdempotencyAttempt(CoreEx.Coordination.CoordinationOptions o
         ThrowIfEmptyResponse(response);
         return _lease.CompleteAsync(ct => _complete(response, ct), cancellationToken);
     }
+
+    /// <inheritdoc/>
+    public Task ReleaseForRetryAsync(CancellationToken cancellationToken = default)
+        => _lease.ReleaseForRetryAsync(_releaseForRetry, cancellationToken);
 
     /// <summary>
     /// Rejects an empty replayable response; a non-replayable outcome must be committed as <see langword="null"/>.
