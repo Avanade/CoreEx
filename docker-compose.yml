@@ -73,10 +73,14 @@ services:
   # The health probe defaults to 8080 which clashes with dts-emulator, so it is moved to 8083 (/ready).
   # Host networking is used because rootless Podman on Windows (WSL) does not forward the TLS gateway port
   # correctly via published ports (the TLS handshake is aborted); it also works as-is with Docker on Linux (CI).
+  # The 2026-11-20 vnext-latest hotfix returns 500 instead of 409 for duplicate item IDs (Azure/azure-cosmos-db-emulator-docker#391); pin the last passing multi-arch image until fixed.
+  # That image runs `tdnf distro-sync` at startup, which upgrades Postgres underneath the running server and causes E58P01 failures (Azure/azure-cosmos-db-emulator-docker#390); blocking the package host makes the update fail fast.
   cosmos-emulator:
-    image: mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:vnext-latest
+    image: mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator@sha256:db53613dae19d0a3d5ad50688d14aa6e957af082dafea56b52e1bd3a6b3f1406
     command: ["--protocol", "https", "--health-port", "8083"]
     network_mode: host
+    extra_hosts:
+      - "packages.microsoft.com:127.0.0.1"
 
 volumes:
   ollama-models:

@@ -1,23 +1,85 @@
 namespace CoreEx.AspNetCore.Publishing;
 
 /// <summary>
-/// Configures validation, request mapping, message creation and optional operation tracking for Web API publishing.
+/// Configures validation, request mapping and message creation for a typed Web API request.
 /// </summary>
 /// <typeparam name="TRequest">The HTTP request type.</typeparam>
 /// <typeparam name="TMessage">The published message payload type.</typeparam>
-public sealed class WebApiPublishOptions<TRequest, TMessage> : WebApiPublishOptions<TRequest> where TRequest : class where TMessage : class
+public sealed class WebApiPublishOptions<TRequest, TMessage> : WebApiPublishOptionsBase<WebApiPublishOptions<TRequest, TMessage>> where TRequest : class where TMessage : class
 {
-    /// <inheritdoc/>
+    private TRequest? _value;
+    private bool _hasValue;
+    private Func<TMessage, EventData>? _messageFactory;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="WebApiPublishOptions{TRequest, TMessage}"/> class.
+    /// </summary>
+    /// <param name="mapper">The request-to-message mapper.</param>
+    internal WebApiPublishOptions(Mapping.IMapper<TRequest, TMessage> mapper) => Mapper = mapper;
+
+    /// <summary>
+    /// Gets the optional validator.
+    /// </summary>
+    public IValidator<TRequest>? Validator { get; private set; }
+
+    /// <summary>
+    /// Gets the request-to-message mapper.
+    /// </summary>
+    public Mapping.IMapper<TRequest, TMessage> Mapper { get; }
+
+    /// <summary>
+    /// Gets the published message payload type.
+    /// </summary>
     internal override Type PublishedType => typeof(TMessage);
 
     /// <summary>
-    /// Gets or sets the required explicit request-to-message mapper.
+    /// Sets the request value to publish without parsing the HTTP request body.
     /// </summary>
-    /// <remarks>Use <see cref="Mapping.Mapper.Create{TSource, TDestination}(Func{TSource, TDestination})"/> for an inline mapping.</remarks>
-    public Mapping.IMapper<TRequest, TMessage>? Mapper { get; set; }
+    /// <param name="value">The request value.</param>
+    /// <returns>The current options.</returns>
+    public WebApiPublishOptions<TRequest, TMessage> WithValue(TRequest? value)
+    {
+        _value = value;
+        _hasValue = true;
+        return this;
+    }
 
     /// <summary>
-    /// Gets or sets the optional message factory for the mapped message; by default the mapped message is published as configured by <see cref="WebApiPublishOptions.MessageType"/>, <see cref="WebApiPublishOptions.Action"/> and <see cref="WebApiPublishOptions.DomainName"/>.
+    /// Sets the request validator.
     /// </summary>
-    public Func<TMessage, EventData>? MessageFactory { get; set; }
+    /// <param name="validator">The validator.</param>
+    /// <returns>The current options.</returns>
+    public WebApiPublishOptions<TRequest, TMessage> WithValidator(IValidator<TRequest> validator)
+    {
+        Validator = validator.ThrowIfNull();
+        return this;
+    }
+
+    /// <summary>
+    /// Sets the event factory for the mapped value.
+    /// </summary>
+    /// <param name="messageFactory">The function that creates the event envelope.</param>
+    /// <returns>The current options.</returns>
+    public WebApiPublishOptions<TRequest, TMessage> WithEventFactory(Func<TMessage, EventData> messageFactory)
+    {
+        _messageFactory = messageFactory.ThrowIfNull();
+        return this;
+    }
+
+    /// <inheritdoc/>
+    internal override Task<Result<EventData>> PrepareAsync<TResult>(WebApi<TResult> webApi, WebApiOptions requestOptions, CancellationToken cancellationToken)
+        => _hasValue
+            ? webApi.PreparePublishValueAsync(requestOptions, _value, Validator, CreateMessage, cancellationToken)
+            : webApi.PreparePublishRequestAsync(requestOptions, Validator, CreateMessage, cancellationToken);
+
+    /// <summary>
+    /// Maps the request and creates an event envelope using the configured factory or default settings.
+    /// </summary>
+    /// <param name="value">The request value.</param>
+    /// <returns>The event envelope.</returns>
+    private EventData CreateMessage(TRequest value)
+    {
+        var message = Mapper.Map(value);
+        return _messageFactory?.Invoke(message) ?? CreateDefaultMessage(message);
+    }
 }

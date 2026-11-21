@@ -48,7 +48,7 @@ public class OtherController(WebApi webApi) : ControllerBase
     [IdempotencyKey]
     [ProducesResponseType(StatusCodes.Status202Accepted)]
     public Task<IActionResult> PublishTracked(CancellationToken cancellationToken = default)
-        => webApi.PublishAsync(Request, new CoreEx.AspNetCore.Publishing.WebApiPublishOptions<Person>(), cancellationToken: cancellationToken);
+        => webApi.PublishAsync(Request, CoreEx.AspNetCore.Publishing.WebApiPublishOptions.Create<Person>(), cancellationToken: cancellationToken);
 
     [HttpPost("idempotency-mvc/{id}")]
     [IdempotencyKey]

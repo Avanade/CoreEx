@@ -4,9 +4,8 @@ namespace CoreEx.AspNetCore.Test.Unit;
 [TestFixture(typeof(CoreEx.AspNetCore.Http.WebApi), typeof(IResult))]
 public class WebApiPublishTests<TWebApi, TResult> : WithApiTester<Api.Program> where TWebApi : WebApi<TResult>
 {
-    [TestCase(false)]
-    [TestCase(true)]
-    public void Callback_PublishesWithoutReadingBody(bool resultStyle)
+    [Test]
+    public void Callback_PublishesWithoutReadingBody()
     {
         ConfigurePublisher();
         using var cancellation = new CancellationTokenSource();
@@ -16,16 +15,17 @@ public class WebApiPublishTests<TWebApi, TResult> : WithApiTester<Api.Program> w
         using var body = new System.IO.MemoryStream(Encoding.UTF8.GetBytes("not JSON"));
         request.Body = body;
         request.ContentLength = body.Length;
-        var options = new CoreEx.AspNetCore.Publishing.WebApiPublishOptions { Action = "submit", DomainName = "sales", Destination = "commands" };
-
         Task<CoreEx.Events.EventData> PrepareAsync(WebApiOptions ro, CancellationToken ct)
         {
             ro.Request.Should().BeSameAs(request);
             ro.OperationType.Should().Be(OperationType.Create);
             ct.Should().Be(cancellation.Token);
             var value = new Api.Entities.Person { Id = (string?)ro.Request.RouteValues["id"], FirstName = "Bob" };
-            return Task.FromResult(options.CreateDefaultMessage(value).WithKey("custom-key"));
+            return Task.FromResult(CoreEx.Events.EventData.CreateCommandWith("sales", value, "submit").WithKey("custom-key"));
         }
+
+        var options = CoreEx.AspNetCore.Publishing.WebApiPublishOptions.CreateWithEventFactory<Api.Entities.Person>(async (ro, ct) => Result.Ok(await PrepareAsync(ro, ct)))
+            .WithDestination("commands");
 
         Test.Type<TWebApi>()
             .ExpectEvents("EventPublisher", cfg => cfg.AssertCustom("commands", (_, _, actual) =>
@@ -36,24 +36,48 @@ public class WebApiPublishTests<TWebApi, TResult> : WithApiTester<Api.Program> w
                 using var payload = JsonDocument.Parse(actual.Event.Data.Should().BeOfType<BinaryData>().Which.ToMemory());
                 payload.RootElement.GetProperty("id").GetString().Should().Be("123");
             }))
-            .Run(w => resultStyle
-                ? w.PublishWithResultAsync<Api.Entities.Person>(request, async (ro, ct) => Result.Ok(await PrepareAsync(ro, ct)), options, cancellation.Token)
-                : w.PublishAsync<Api.Entities.Person>(request, PrepareAsync, options, cancellation.Token))
+            .Run(w => w.PublishAsync(request, options, cancellation.Token))
             .ToHttpResponseMessageAssertor(request).Assert(HttpStatusCode.Accepted).GetContent().Should().BeNullOrEmpty();
 
         body.Position.Should().Be(0);
     }
 
-    [TestCase(false)]
-    [TestCase(true)]
-    public void Callback_PreservesExplicitEventInsteadOfApplyingDefaults(bool resultStyle)
+    [Test]
+    public void Callback_PublishesPayloadUsingDefaultEnvelopeAndEventTransform()
     {
         ConfigurePublisher();
         var request = Test.CreateHttpRequest(HttpMethod.Post);
-        var options = new CoreEx.AspNetCore.Publishing.WebApiPublishOptions { Action = "submit", DomainName = "sales" };
+        var options = CoreEx.AspNetCore.Publishing.WebApiPublishOptions.CreateWithValueFactory<Api.Entities.Person>((_, _) => Task.FromResult(Result.Ok(new Api.Entities.Person { Id = "123" })))
+            .WithDestination("events")
+            .WithEvent(message =>
+            {
+                message.MessageType.Should().Be(CoreEx.Events.MessageType.Command);
+                message.Action.Should().Be("Publish");
+                message.MessageType = CoreEx.Events.MessageType.Event;
+                return message.WithAction("created").WithDomain("sales").WithKey("custom-key");
+            });
+
+        Test.Type<TWebApi>()
+            .ExpectEvents("EventPublisher", cfg => cfg.AssertCustom("events", (_, _, actual) =>
+            {
+                actual.Event.Type.Should().Be("sales.person.created.v1");
+                actual.Event.Subject.Should().Be("custom-key");
+                using var payload = JsonDocument.Parse(actual.Event.Data.Should().BeOfType<BinaryData>().Which.ToMemory());
+                payload.RootElement.GetProperty("id").GetString().Should().Be("123");
+            }))
+            .Run(w => w.PublishAsync(request, options))
+            .ToHttpResponseMessageAssertor(request).Assert(HttpStatusCode.Accepted);
+    }
+
+    [Test]
+    public void Callback_PreservesExplicitEventInsteadOfApplyingDefaults()
+    {
+        ConfigurePublisher();
+        var request = Test.CreateHttpRequest(HttpMethod.Post);
         var message = CoreEx.Events.EventData.CreateEventWith(new Api.Entities.Person { Id = "123" }, CoreEx.Events.EventAction.Created)
             .WithDomain("warehouse")
             .WithKey("event-key");
+        var options = CoreEx.AspNetCore.Publishing.WebApiPublishOptions.CreateWithEventFactory<Api.Entities.Person>((_, _) => Task.FromResult(Result.Ok(message)));
 
         Test.Type<TWebApi>()
             .ExpectEvents("EventPublisher", cfg => cfg.AssertCustom("default", (_, _, actual) =>
@@ -63,9 +87,7 @@ public class WebApiPublishTests<TWebApi, TResult> : WithApiTester<Api.Program> w
                 using var payload = JsonDocument.Parse(actual.Event.Data.Should().BeOfType<BinaryData>().Which.ToMemory());
                 payload.RootElement.GetProperty("id").GetString().Should().Be("123");
             }))
-            .Run(w => resultStyle
-                ? w.PublishWithResultAsync<Api.Entities.Person>(request, (_, _) => Task.FromResult(Result.Ok(message)), options)
-                : w.PublishAsync<Api.Entities.Person>(request, (_, _) => Task.FromResult(message), options))
+            .Run(w => w.PublishAsync(request, options))
             .ToHttpResponseMessageAssertor(request).Assert(HttpStatusCode.Accepted);
     }
 
@@ -75,16 +97,14 @@ public class WebApiPublishTests<TWebApi, TResult> : WithApiTester<Api.Program> w
     {
         var request = Test.CreateHttpRequest(HttpMethod.Post);
         var exception = ValidationException.Create("name", "Name is required.");
-        var options = new CoreEx.AspNetCore.Publishing.WebApiPublishOptions
-        {
-            Operation = new CoreEx.AspNetCore.Publishing.WebApiPublishOperationOptions(),
-            PublisherProvider = _ => throw new InvalidOperationException("The publisher must not be resolved after preparation fails.")
-        };
+        var options = CoreEx.AspNetCore.Publishing.WebApiPublishOptions.CreateWithEventFactory<Api.Entities.Person>((_, _) => returned
+                ? Task.FromResult(Result<CoreEx.Events.EventData>.Fail(exception))
+                : throw exception)
+            .WithOperationOptions(new CoreEx.AspNetCore.Publishing.WebApiPublishOperationOptions())
+            .WithPublisher(_ => throw new InvalidOperationException("The publisher must not be resolved after preparation fails."));
 
         Test.Type<TWebApi>()
-            .Run(w => returned
-                ? w.PublishWithResultAsync<Api.Entities.Person>(request, (_, _) => Task.FromResult(Result<CoreEx.Events.EventData>.Fail(exception)), options)
-                : w.PublishAsync<Api.Entities.Person>(request, (_, _) => throw exception, options))
+            .Run(w => w.PublishAsync(request, options))
             .ToHttpResponseMessageAssertor(request).Assert(HttpStatusCode.BadRequest);
     }
 
@@ -95,27 +115,24 @@ public class WebApiPublishTests<TWebApi, TResult> : WithApiTester<Api.Program> w
         using var cancellation = new CancellationTokenSource();
         var exception = new OperationCanceledException(cancellation.Token);
         var request = Test.CreateHttpRequest(HttpMethod.Post);
-        var options = new CoreEx.AspNetCore.Publishing.WebApiPublishOptions
-        {
-            PublisherProvider = _ => throw new InvalidOperationException("The publisher must not be resolved after preparation is canceled.")
-        };
+        var options = CoreEx.AspNetCore.Publishing.WebApiPublishOptions.CreateWithEventFactory<Api.Entities.Person>((_, _) => returned
+                ? Task.FromResult(Result<CoreEx.Events.EventData>.Fail(exception))
+                : throw exception)
+            .WithPublisher(_ => throw new InvalidOperationException("The publisher must not be resolved after preparation is canceled."));
 
         Test.Type<TWebApi>()
             .Run(w =>
             {
                 w.ConvertUnhandledExceptionsToProblemDetails = true;
-                return returned
-                    ? w.PublishWithResultAsync<Api.Entities.Person>(request, (_, _) => Task.FromResult(Result<CoreEx.Events.EventData>.Fail(exception)), options, cancellation.Token)
-                    : w.PublishAsync<Api.Entities.Person>(request, (_, _) => throw exception, options, cancellation.Token);
+                return w.PublishAsync(request, options, cancellation.Token);
             })
             .AssertException<OperationCanceledException>();
     }
 
-    [TestCase(false, 0)]
-    [TestCase(true, 0)]
-    [TestCase(false, 1)]
-    [TestCase(false, 2)]
-    public async Task Callback_TrackedPublishingRetainsMessageTypeAndOperationMetadata(bool resultStyle, int locationMode)
+    [TestCase(0)]
+    [TestCase(1)]
+    [TestCase(2)]
+    public async Task Callback_TrackedPublishingRetainsMessageTypeAndOperationMetadata(int locationMode)
     {
         ConfigurePublisher();
         var provider = new CoreEx.Hosting.Work.InMemoryWorkProvider();
@@ -126,7 +143,9 @@ public class WebApiPublishTests<TWebApi, TResult> : WithApiTester<Api.Program> w
         request.Host = new HostString("internal.example");
         request.PathBase = "/gateway";
         var settings = Test.Services.GetRequiredService<CoreEx.Hosting.IHostSettings>();
-        var options = new CoreEx.AspNetCore.Publishing.WebApiPublishOptions { Operation = new CoreEx.AspNetCore.Publishing.WebApiPublishOperationOptions() };
+        var message = new CoreEx.Events.EventData { MessageType = CoreEx.Events.MessageType.Command }.WithValue(new Api.Entities.Person { Id = "123" }).WithKey("tracked-key");
+        var options = CoreEx.AspNetCore.Publishing.WebApiPublishOptions.CreateWithEventFactory<Api.Entities.Person>((_, _) => Task.FromResult(Result.Ok(message)))
+            .WithOperationOptions(new CoreEx.AspNetCore.Publishing.WebApiPublishOperationOptions());
         OperationKey? key = null;
         DateTimeOffset? startBy = null;
 
@@ -145,9 +164,7 @@ public class WebApiPublishTests<TWebApi, TResult> : WithApiTester<Api.Program> w
             {
                 w.UseAbsolutePaths = locationMode == 1;
                 w.BaseAddress = locationMode == 2 ? new Uri("https://public.example/gateway/") : null;
-                return resultStyle
-                    ? w.PublishWithResultAsync<Api.Entities.Person>(request, (_, _) => Task.FromResult(Result.Ok(options.CreateDefaultMessage(new Api.Entities.Person { Id = "123" }).WithKey("tracked-key"))), options)
-                    : w.PublishAsync<Api.Entities.Person>(request, (_, _) => Task.FromResult(options.CreateDefaultMessage(new Api.Entities.Person { Id = "123" }).WithKey("tracked-key")), options);
+                return w.PublishAsync(request, options);
             })
             .ToHttpResponseMessageAssertor(request).Assert(HttpStatusCode.Accepted);
 
@@ -178,7 +195,7 @@ public class WebApiPublishTests<TWebApi, TResult> : WithApiTester<Api.Program> w
         CoreEx.ExecutionContext.Current.User = new CoreEx.Security.AuthenticationUser { Type = CoreEx.Security.AuthenticationType.AccountUser, UserName = "bob" };
         var request = Test.CreateHttpRequest(HttpMethod.Post);
         request.HttpContext.SetEndpoint(new Endpoint(_ => Task.CompletedTask, new EndpointMetadataCollection(new PublishTrackingAttribute()), "tracked"));
-        var options = new CoreEx.AspNetCore.Publishing.WebApiPublishOptions();
+        var options = CoreEx.AspNetCore.Publishing.WebApiPublishOptions.Create(new Api.Entities.Person { Id = "123" });
 
         var response = Test.Type<TWebApi>()
             .ExpectEvents("EventPublisher", cfg => cfg.AssertCustom("default", (_, _, actual) =>
@@ -186,8 +203,7 @@ public class WebApiPublishTests<TWebApi, TResult> : WithApiTester<Api.Program> w
                 actual.Event["operationid"].Should().BeOfType<string>();
                 actual.Event["operationstartby"].Should().BeOfType<string>();
             }))
-            .Run(w => w.PublishAsync<Api.Entities.Person>(request, (_, _) =>
-                Task.FromResult(options.CreateDefaultMessage(new Api.Entities.Person { Id = "123" })), options))
+            .Run(w => w.PublishAsync(request, options))
             .ToHttpResponseMessageAssertor(request)
             .Assert(HttpStatusCode.Accepted);
 
@@ -204,11 +220,11 @@ public class WebApiPublishTests<TWebApi, TResult> : WithApiTester<Api.Program> w
         ConfigurePublisher();
         var request = Test.CreateHttpRequest(HttpMethod.Post);
         request.HttpContext.SetEndpoint(new Endpoint(_ => Task.CompletedTask, new EndpointMetadataCollection(), "untracked"));
-        var options = new CoreEx.AspNetCore.Publishing.WebApiPublishOptions { Operation = new CoreEx.AspNetCore.Publishing.WebApiPublishOperationOptions() };
+        var options = CoreEx.AspNetCore.Publishing.WebApiPublishOptions.CreateWithEventFactory<Api.Entities.Person>((_, _) => Task.FromResult(Result.Ok(CoreEx.Events.EventData.CreateCommandWith("sales", new Api.Entities.Person { Id = "123" }, "submit"))))
+            .WithOperationOptions(new CoreEx.AspNetCore.Publishing.WebApiPublishOperationOptions());
 
         Test.Type<TWebApi>()
-            .Run(w => w.PublishAsync<Api.Entities.Person>(request, (_, _) =>
-                Task.FromResult(options.CreateDefaultMessage(new Api.Entities.Person { Id = "123" })), options))
+            .Run(w => w.PublishAsync(request, options))
             .AssertException<InvalidOperationException>();
     }
 

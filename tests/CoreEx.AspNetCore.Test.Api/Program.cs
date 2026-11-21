@@ -86,17 +86,21 @@ public class Program
 
         app.MapPost("api/other/minimal-publish-tracked",
             (HttpRequest request, WebApi webApi, CancellationToken cancellationToken)
-                => webApi.PublishAsync(request, new WebApiPublishOptions<Person>(), cancellationToken))
+                => webApi.PublishAsync(request, WebApiPublishOptions.Create<Person>(), cancellationToken))
             .WithPublishTracking();
 
         app.MapPost("api/other/minimal-publish-command",
             (HttpRequest request, WebApi webApi, CancellationToken cancellationToken)
-                => webApi.PublishAsync(request, new WebApiPublishOptions<Person>(), cancellationToken))
+                => webApi.PublishAsync(request, WebApiPublishOptions.Create<Person>(), cancellationToken))
             .Produces(StatusCodes.Status202Accepted);
 
         app.MapPost("api/other/minimal-publish-event",
             (HttpRequest request, WebApi webApi, CancellationToken cancellationToken)
-                => webApi.PublishAsync(request, new WebApiPublishOptions<Person> { MessageType = CoreEx.Events.MessageType.Event, DomainName = "sales" }, cancellationToken))
+                => webApi.PublishAsync(request, WebApiPublishOptions.Create<Person>().WithEvent(e =>
+                {
+                    e.MessageType = CoreEx.Events.MessageType.Event;
+                    return e.WithDomain("sales").WithAction(CoreEx.Events.EventAction.Published);
+                }), cancellationToken))
             .Produces(StatusCodes.Status202Accepted);
 
         app.MapGet("api/persons",

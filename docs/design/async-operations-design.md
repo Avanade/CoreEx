@@ -67,33 +67,27 @@ Follows the Azure/Microsoft REST API guidelines long-running-operation shape and
 | `WebApi.AcceptAsync(...)` | Describes the HTTP status/contract rather than the core action. |
 | `WebApi.EnqueueAsync(...)` | Too transport-specific; the configured publisher may use a topic or outbox. |
 
-`WebApiPublishOptions` holds shared publishing configuration. `WebApiPublishOptions<TRequest>` adds request validation and message creation; `WebApiPublishOptions<TRequest,TMessage>` adds explicit CoreEx mapping. These configuration objects are separate from request-bound `WebApiOptions`, which is supplied to custom preparation callbacks.
+`WebApi.PublishAsync(request, options)` accepts a single `WebApiPublishOptionsBase`, created via the `WebApiPublishOptions` factories: `Create<TRequest>()` (parse the request body), `Create<TRequest>(value)` (publish an already-deserialized value), `CreateMapped<TRequest,TMessage>(mapper)` (explicit CoreEx mapping), `CreateWithValueFactory<TMessage>(...)` (bodyless custom preparation returning a payload), and `CreateWithEventFactory<TMessage>(...)` (bodyless custom preparation returning a complete event). The two custom preparation modes are distinct factory methods, so the selected mode is fixed at creation. Shared fluent configuration covers the destination, publisher resolution, event transformation (`WithEvent`) and operation options; typed options add validation and payload-aware event factories. These configuration objects are separate from request-bound `WebApiOptions`, which is supplied to custom preparation callbacks.
 
 ### 3.2 Publish — default is untracked fire-and-forget
 
-Illustrative endpoint API (names/signatures remain proposals):
+Illustrative endpoint API:
 
 ```csharp
-await webApi.PublishAsync(request, new WebApiPublishOptions<SubmitOrder>
-{
-    Validator = validator
-});
+await webApi.PublishAsync(request, WebApiPublishOptions.Create<SubmitOrder>().WithValidator(validator));
 ```
 
-This path optionally validates, then awaits publishing the incoming message through the configured `IEventPublisher`. By default the message is a self-addressed **command** with the `publish` action; `WebApiPublishOptions` can instead select an event (default action `published`), override the action or domain, or supply an explicit message factory. It creates **no** work state, adds **no** `operationid` metadata, and does not promise a status/result/cancel resource. It returns `202 Accepted` after the configured publisher/outbox confirms acceptance. A publish/commit failure remains an HTTP error; this is not `Task.Run` or detached in-process work. The outbox choice remains the host's configured publishing concern.
+This path optionally validates, then awaits publishing the incoming message through the configured `IEventPublisher`. By default the message is a self-addressed **command** with the `publish` action; `.WithEvent(...)` can instead change the message type (for example, to an event with the `published` action), domain, action or any other envelope property, and typed options can supply an explicit message factory. It creates **no** work state, adds **no** `operationid` metadata, and does not promise a status/result/cancel resource. It returns `202 Accepted` after the configured publisher/outbox confirms acceptance. A publish/commit failure remains an HTTP error; this is not `Task.Run` or detached in-process work. The outbox choice remains the host's configured publishing concern.
 
-A different wire message may be produced via `WebApiPublishOptions<TRequest,TMessage>` and an explicit mapper; absent a mapper, the request itself is published as the message. Publishing as a command versus an event is selected by the message/destination configuration, not by whether tracking is enabled.
+A different wire message may be produced via `WebApiPublishOptions.CreateMapped<TRequest,TMessage>(mapper)`; absent a mapper, the request itself is published as the message. Publishing as a command versus an event is selected by the message/destination configuration, not by whether tracking is enabled.
 
-For custom preparation without automatic request-body parsing, `PublishAsync<TMessage>` accepts `Func<WebApiOptions,CancellationToken,Task<EventData>>` and non-generic `WebApiPublishOptions`. `PublishWithResultAsync<TMessage>` accepts the corresponding `Task<Result<EventData>>` callback. The callback owns any parsing and validation and returns an `EventData` without publishing it; `options.CreateDefaultMessage(payload)` applies the configured defaults and can be further customized, while an explicitly constructed `EventData` is not overwritten by those defaults. Returned failures use the existing WebApi error policy before publisher resolution or operation creation. Both overloads use the same framework-owned dispatch, operation metadata, fencing and acceptance path. Explicit `TMessage` must match the payload type used for tracking registration; it cannot be inferred or verified from the serialized message. These callbacks do not apply validators or factories from generic publishing options.
+For custom preparation without automatic request-body parsing, `CreateWithValueFactory<TMessage>(...)` returns a payload wrapped in the default message, while `CreateWithEventFactory<TMessage>(...)` returns a caller-owned `EventData` that receives no framework defaults. Both return a `Result`; failures may be returned or thrown. The callback owns any parsing and validation and must not publish. Returned failures use the existing WebApi error policy before publisher resolution or operation creation. All variants use the same framework-owned dispatch, operation metadata, fencing and acceptance path. Explicit `TMessage` must match the payload type used for tracking registration; it cannot be inferred or verified from the serialized message.
 
 ### 3.3 Tracked operation — explicit opt-in
 
 ```csharp
 [HttpPost, PublishTracking]
-public Task<IActionResult> Submit(CancellationToken cancellationToken = default) => webApi.PublishAsync(Request, new WebApiPublishOptions<SubmitOrder>
-{
-    Validator = validator
-}, cancellationToken: cancellationToken);
+public Task<IActionResult> Submit(CancellationToken cancellationToken = default) => webApi.PublishAsync(Request, WebApiPublishOptions.Create<SubmitOrder>().WithValidator(validator), cancellationToken);
 ```
 
 When an endpoint has `[PublishTracking]` or `.WithPublishTracking()`, validation still happens first; then operation state is created before publishing. The message carries `operationid` and `operationstartby`, and the response includes `OperationStatus` and `Location`/`Operation-Location` as described below. `WebApiPublishOperationOptions` optionally tunes `StartTimeout` and `Expiry`; it does not enable tracking for a routed endpoint. For direct `WebApi.PublishAsync` calls that have no routed endpoint, a non-null `WebApiPublishOperationOptions` explicitly enables tracking. `Prefer: wait=N` does **not** itself turn tracking on; P2 ignores the preference and never creates an operation for a publish-only endpoint.

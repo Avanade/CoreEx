@@ -289,24 +289,23 @@ public class OtherApiTests : WithApiTester<Api.Program>
         request.Body = stream;
         request.ContentLength = body.Length;
         Person? published = null;
-        var options = new CoreEx.AspNetCore.Publishing.WebApiPublishOptions<Person, Person>
-        {
-            Mapper = CoreEx.Mapping.Mapper.Create<Person, Person>(source => new Person { Id = source.Id, FirstName = $"Mapped {source.FirstName}" }),
-            MessageFactory = message =>
-            {
-                published = message;
-                return CoreEx.Events.EventData.CreateEventWith(message, CoreEx.Events.EventAction.Published).WithSource(new Uri("urn:coreex:test"));
-            },
-            PublisherProvider = services =>
+        var options = CoreEx.AspNetCore.Publishing.WebApiPublishOptions.CreateMapped<Person, Person>(
+                CoreEx.Mapping.Mapper.Create<Person, Person>(source =>
+                {
+                    var mapped = new Person { Id = source.Id, FirstName = $"Mapped {source.FirstName}" };
+                    published = mapped;
+                    return mapped;
+                }))
+            .WithEventFactory(person => CoreEx.Events.EventData.CreateEventWith(person, CoreEx.Events.EventAction.Published).WithSource(new Uri("urn:coreex:test")))
+            .WithPublisher(services =>
             {
                 services.Should().BeSameAs(expectedServices);
                 return services.GetRequiredKeyedService<CoreEx.Events.Publishing.IEventPublisher>("EventPublisher");
-            }
-        };
+            });
 
         var result = readBody
             ? await webApi.PublishAsync(request, options)
-            : await webApi.PublishAsync(request, value, options);
+            : await webApi.PublishAsync(request, options.WithValue(value));
 
         result.Should().BeOfType<StatusCodeResult>().Which.StatusCode.Should().Be(202);
         published.Should().BeOfType<Person>().Which.FirstName.Should().Be("Mapped Bob");
