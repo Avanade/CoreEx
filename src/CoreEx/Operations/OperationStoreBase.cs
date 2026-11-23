@@ -166,6 +166,18 @@ public abstract class OperationStoreBase(ILogger logger, IHostSettings settings,
     }
 
     /// <summary>
+    /// Computes the fixed-length identity hash for an operation, suitable for use as a persisted key by any store.
+    /// </summary>
+    /// <param name="domainName">The domain name.</param>
+    /// <param name="tenantId">The optional tenant identifier; <see langword="null"/> is distinct from any non-null value.</param>
+    /// <param name="operationName">The operation name.</param>
+    /// <param name="instanceId">The canonical instance identifier.</param>
+    /// <returns>The <see cref="CompositeKey.CanonicalHashLength"/>-byte hash.</returns>
+    /// <remarks>The <see cref="CompositeKey.ToCanonicalHash()"/> of the components in that order; identity is exact and ordinal, including case and trailing spaces, regardless of database collation. Stores should still verify the located identity ordinally to guard against a hash collision.</remarks>
+    /// <exception cref="ArgumentException">A component contains an unpaired surrogate.</exception>
+    protected static byte[] ComputeKeyHash(string domainName, string? tenantId, string operationName, string instanceId) => CompositeKey.Create(domainName.ThrowIfNull(), tenantId, operationName.ThrowIfNull(), instanceId.ThrowIfNull()).ToCanonicalHash();
+
+    /// <summary>
     /// Gets the validated host domain name.
     /// </summary>
     private string DomainName => Settings.DomainName.ThrowIfNullOrWhiteSpace(nameof(IHostSettings.DomainName));

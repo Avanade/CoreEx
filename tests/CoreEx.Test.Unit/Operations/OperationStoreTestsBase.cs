@@ -25,6 +25,9 @@ public abstract class OperationStoreTestsBase
     /// <summary>Creates the store under test.</summary>
     protected abstract OperationStoreBase CreateStore(OperationStoreOptions options);
 
+    /// <summary>Gets a store sharing the <paramref name="store"/> state for use by a concurrent caller; relational providers return a new scope as a single connection cannot be used concurrently.</summary>
+    protected virtual OperationStoreBase CreateConcurrentStore(OperationStoreBase store) => store;
+
     /// <summary>Gets the log entries captured by loggers from <see cref="CreateLogger{T}"/> during the current test.</summary>
     protected List<(LogLevel Level, string Message)> LogEntries { get; } = [];
 
@@ -213,7 +216,7 @@ public abstract class OperationStoreTestsBase
         var store = CreateStore(SuiteOptions());
         var key = NewKey();
 
-        var results = await Task.WhenAll(Enumerable.Range(0, 8).Select(_ => Task.Run(() => store.CreateAsync(OperationName, key))));
+        var results = await Task.WhenAll(Enumerable.Range(0, 8).Select(_ => Task.Run(() => CreateConcurrentStore(store).CreateAsync(OperationName, key))));
 
         results.Count(x => x.Created).Should().Be(1);
         results.Select(x => x.State.OperationId).Distinct().Should().ContainSingle();
@@ -250,7 +253,7 @@ public abstract class OperationStoreTestsBase
         var store = CreateStore(SuiteOptions());
         var created = await store.CreateAsync(OperationName, NewKey());
 
-        var results = await Task.WhenAll(Enumerable.Range(0, 8).Select(i => Task.Run(() => store.ClaimAsync(created.State.OperationId, $"worker-{i}", ClaimDuration))));
+        var results = await Task.WhenAll(Enumerable.Range(0, 8).Select(i => Task.Run(() => CreateConcurrentStore(store).ClaimAsync(created.State.OperationId, $"worker-{i}", ClaimDuration))));
 
         results.Count(x => x.Outcome == OperationClaimOutcome.Claimed).Should().Be(1);
         results.Count(x => x.Outcome == OperationClaimOutcome.Busy).Should().Be(7);

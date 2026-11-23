@@ -1,2 +1,13 @@
+global using CoreEx.Data;
+global using CoreEx.Database.SqlServer.Operations;
+global using CoreEx.Entities;
+global using CoreEx.Hosting;
+global using CoreEx.Operations;
+global using CoreEx.Test.Unit.Operations;
+global using DbEx.SqlServer.Console;
+global using Microsoft.Data.SqlClient;
 global using Microsoft.EntityFrameworkCore.Storage;
+global using Microsoft.Extensions.Configuration;
+global using Microsoft.Extensions.DependencyInjection;
+global using Microsoft.Extensions.Logging;
 global using System.Data;

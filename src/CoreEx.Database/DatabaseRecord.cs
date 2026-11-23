@@ -76,6 +76,24 @@ public class DatabaseRecord(IDatabase database, DbDataReader dataReader)
     }
 
     /// <summary>
+    /// Gets the named <see cref="DateTime"/> column value using an explicit <see cref="DateTimeTransform"/>.
+    /// </summary>
+    /// <param name="columnName">The column name.</param>
+    /// <param name="dateTimeTransform">The <see cref="DateTimeTransform"/> to apply, overriding the <see cref="IDatabase.DateTimeTransform"/>.</param>
+    /// <returns>The transformed value; <see langword="null"/> where the column is <see cref="DBNull"/>.</returns>
+    /// <remarks>Use where the column semantics are fixed regardless of database configuration; for example, a UTC instant.</remarks>
+    public DateTime? GetDateTime(string columnName, DateTimeTransform dateTimeTransform) => GetDateTime(DataReader.GetOrdinal(columnName.ThrowIfNull()), dateTimeTransform);
+
+    /// <summary>
+    /// Gets the specified <see cref="DateTime"/> column value using an explicit <see cref="DateTimeTransform"/>.
+    /// </summary>
+    /// <param name="ordinal">The ordinal index.</param>
+    /// <param name="dateTimeTransform">The <see cref="DateTimeTransform"/> to apply, overriding the <see cref="IDatabase.DateTimeTransform"/>.</param>
+    /// <returns>The transformed value; <see langword="null"/> where the column is <see cref="DBNull"/>.</returns>
+    /// <remarks>Use where the column semantics are fixed regardless of database configuration; for example, a UTC instant.</remarks>
+    public DateTime? GetDateTime(int ordinal, DateTimeTransform dateTimeTransform) => DataReader.IsDBNull(ordinal) ? null : Cleaner.Clean(DataReader.GetDateTime(ordinal), dateTimeTransform);
+
+    /// <summary>
     /// Tries to get the specified column value.
     /// </summary>
     /// <typeparam name="T">The value <see cref="Type"/>.</typeparam>
@@ -153,7 +171,17 @@ public class DatabaseRecord(IDatabase database, DbDataReader dataReader)
     public string? GetRowVersion(string? columnName = null)
     {
         var i = DataReader.GetOrdinal(!string.IsNullOrEmpty(columnName) ? columnName : Database.NamedColumns.RowVersionName);
-        var v = DataReader.GetValue(i);
+        return GetRowVersion(i);
+    }
+
+    /// <summary>
+    /// Gets the row version value at the specified ordinal.
+    /// </summary>
+    /// <param name="ordinal">The ordinal index.</param>
+    /// <returns>The row version value, or <see langword="null"/> when no value is available.</returns>
+    public string? GetRowVersion(int ordinal)
+    {
+        var v = DataReader.GetValue(ordinal);
         return Database.RowVersionConverter.ConvertToSource(v);
     }
 

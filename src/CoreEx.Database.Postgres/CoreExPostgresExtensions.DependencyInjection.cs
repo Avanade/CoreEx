@@ -122,4 +122,36 @@ public static partial class CoreExPostgresExtensions
             return relay;
         });
     }
+
+    /// <summary>
+    /// Adds a <b>scoped</b> <see cref="PostgresOperationStore"/> service for the <see cref="PostgresDatabase"/>, also registered as the <see cref="IOperationStore"/>.
+    /// </summary>
+    /// <param name="services">The <see cref="IServiceCollection"/>.</param>
+    /// <param name="configure">An optional action to configure the <see cref="PostgresOperationStore"/> instance.</param>
+    /// <param name="schema">The optional schema passed to the store constructor; use this when the default domain name is not a valid schema identifier.</param>
+    /// <returns>The <see cref="IServiceCollection"/> for fluent-style method-chaining.</returns>
+    public static IServiceCollection AddPostgresOperationStore(this IServiceCollection services, Action<IServiceProvider, PostgresOperationStore>? configure = null, string? schema = null)
+        => services.AddPostgresOperationStore<PostgresOperationStore, PostgresDatabase>(configure, schema);
+
+    /// <summary>
+    /// Adds a <b>scoped</b> <typeparamref name="TStore"/> service for the <typeparamref name="TDatabase"/>, also registered as the <see cref="IOperationStore"/>.
+    /// </summary>
+    /// <typeparam name="TStore">The <see cref="PostgresOperationStore"/> <see cref="Type"/>.</typeparam>
+    /// <typeparam name="TDatabase">The <see cref="PostgresDatabase"/> <see cref="Type"/>.</typeparam>
+    /// <param name="services">The <see cref="IServiceCollection"/>.</param>
+    /// <param name="configure">An optional action to configure the <typeparamref name="TStore"/> instance.</param>
+    /// <param name="schema">The optional schema passed to a matching <typeparamref name="TStore"/> constructor.</param>
+    /// <returns>The <see cref="IServiceCollection"/> for fluent-style method-chaining.</returns>
+    public static IServiceCollection AddPostgresOperationStore<TStore, TDatabase>(this IServiceCollection services, Action<IServiceProvider, TStore>? configure = null, string? schema = null) where TStore : PostgresOperationStore where TDatabase : PostgresDatabase
+    {
+        services.ThrowIfNull().AddScoped<TStore>(sp =>
+        {
+            var db = sp.GetRequiredService<TDatabase>();
+            var store = schema is null ? ActivatorUtilities.CreateInstance<TStore>(sp, db) : ActivatorUtilities.CreateInstance<TStore>(sp, db, schema);
+            configure?.Invoke(sp, store);
+            return store;
+        });
+
+        return services.AddScoped<IOperationStore>(sp => sp.GetRequiredService<TStore>());
+    }
 }

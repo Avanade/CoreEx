@@ -29,7 +29,7 @@
 | YamlDotNet | 16.3.0 | YAML parsing and serialization | Directory.Packages.props |
 | CloudNative.CloudEvents.SystemTextJson | 2.8.0 | CloudEvent interoperability | Directory.Packages.props |
 | Microsoft.DurableTask.* | 1.17.1 | Order workflow sample orchestration and worker runtime | Directory.Packages.props; samples/src/Contoso.Order.Workflow.Worker/Program.cs; samples/src/Contoso.Order.Workflow.Workflow/Contoso.Order.Workflow.Workflow.csproj |
-| DbEx.SqlServer + DbEx.Postgres | 3.4.0 | Database migration/data console utilities in samples/tests | Directory.Packages.props; samples/src/Contoso.Products.Database/Program.cs |
+| DbEx.SqlServer + DbEx.Postgres | 3.5.0 | Database migration/data console utilities in samples/tests | Directory.Packages.props; samples/src/Contoso.Products.Database/Program.cs |
 | UnitTestEx.Aspire + WireMock.Net | 7.0.0 / 2.19.0 | Aspire end-to-end testing (`WithAspireTester`) and the HTTP-stubbing `MockHost` | Directory.Packages.props; samples/aspire/Contoso.Test.Aspire/Contoso.Test.Aspire.csproj; samples/aspire/Contoso.Aspire.MockHost/Contoso.Aspire.MockHost.csproj |
 
 ### 3) Development Toolchain

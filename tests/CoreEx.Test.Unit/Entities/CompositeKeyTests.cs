@@ -312,4 +312,67 @@ public class CompositeKeyTests
         default(CompositeKey).Should().Be(new CompositeKey());
         default(CompositeKey).GetHashCode().Should().Be(new CompositeKey().GetHashCode());
     }
+
+    [Test]
+    public void ToCanonicalHash_Matches_Persisted_Format()
+    {
+        var key = CompositeKey.Create("D", null, 12);
+        key.ToCanonicalHash().Should().HaveCount(CompositeKey.CanonicalHashLength).And.Equal(System.Security.Cryptography.SHA256.HashData([1, 1, 0, 0, 0, 1, (byte)'D', 0, 1, 0, 0, 0, 2, (byte)'1', (byte)'2']));
+        key.ToCanonicalHashString().Should().Be(Convert.ToHexString(key.ToCanonicalHash()).ToLowerInvariant());
+    }
+
+    [Test]
+    public void ToCanonicalHash_Supports_Truncation()
+    {
+        var fullHash = CompositeKey.Create("D", null, 12).ToCanonicalHash();
+
+        CompositeKey.Create("D", null, 12).ToCanonicalHash(16).Should().Equal(fullHash[..16]);
+        CompositeKey.Create("D", null, 12).ToCanonicalHash(24).Should().Equal(fullHash[..24]);
+        CompositeKey.Create("D", null, 12).ToCanonicalHash(CompositeKey.CanonicalHashLength).Should().Equal(fullHash);
+        FluentActions.Invoking(() => CompositeKey.Create("D").ToCanonicalHash(15)).Should().Throw<ArgumentOutOfRangeException>();
+        FluentActions.Invoking(() => CompositeKey.Create("D").ToCanonicalHash(33)).Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Test]
+    public void ToCanonicalHashString_Supports_Encodings()
+    {
+        var key = CompositeKey.Create("Shopping", null, "Checkout", "ORD-1001");
+
+        key.ToCanonicalHashString(CompositeKeyHashEncoding.Hex)
+            .Should().Be("39c805aa094f07aaf5b376d70fbb1fcc20367943bcee3433399be7d85188d536");
+        key.ToCanonicalHashString(CompositeKeyHashEncoding.Base64Url)
+            .Should().Be("OcgFqglPB6r1s3bXD7sfzCA2eUO87jQzOZvn2FGI1TY");
+        key.ToCanonicalHashString(CompositeKeyHashEncoding.Base58)
+            .Should().Be("4tZ95nivAGa2kU8dveMc2AGqaDiEoQkitNQCZRvu56Vj");
+        key.ToCanonicalHashString(CompositeKeyHashEncoding.Base58, 16)
+            .Should().Be("88qRrS4mDMFz5nkWSpB571");
+        key.ToCanonicalHashString(CompositeKeyHashEncoding.Hex, 16)
+            .Should().Be("39c805aa094f07aaf5b376d70fbb1fcc");
+        FluentActions.Invoking(() => key.ToCanonicalHashString((CompositeKeyHashEncoding)99)).Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [TestCase(null, "")]           // Null differs from empty.
+    [TestCase("a~b", "a")]         // Delimiter is unambiguous.
+    [TestCase("a", "A")]           // Case is exact.
+    [TestCase("a", "a ")]          // Trailing spaces are exact.
+    public void ToCanonicalHash_Distinguishes_Single_Components(string? a, string? b) => CompositeKey.Create(a).ToCanonicalHash().Should().NotEqual(CompositeKey.Create(b).ToCanonicalHash());
+
+    [Test]
+    public void ToCanonicalHash_Distinguishes_Boundaries()
+    {
+        CompositeKey.Create("ab", "c").ToCanonicalHash().Should().NotEqual(CompositeKey.Create("a", "bc").ToCanonicalHash());
+        CompositeKey.Create("a~b", "c").ToCanonicalHash().Should().NotEqual(CompositeKey.Create("a", "b~c").ToCanonicalHash());
+        CompositeKey.Create("a", null).ToCanonicalHash().Should().NotEqual(CompositeKey.Create(null, "a").ToCanonicalHash());
+    }
+
+    [Test]
+    public void ToCanonicalHash_Is_Type_Independent() => CompositeKey.Create(123).ToCanonicalHash().Should().Equal(CompositeKey.Create("123").ToCanonicalHash());
+
+    [Test]
+    public void ToCanonicalHash_Rejects_Invalid_Keys()
+    {
+        FluentActions.Invoking(() => new CompositeKey().ToCanonicalHash()).Should().Throw<ArgumentException>();
+        FluentActions.Invoking(() => CompositeKey.Create("a\uD800").ToCanonicalHash()).Should().Throw<ArgumentException>();
+        FluentActions.Invoking(() => CompositeKey.Create(new object()).ToCanonicalHash()).Should().Throw<NotSupportedException>();
+    }
 }

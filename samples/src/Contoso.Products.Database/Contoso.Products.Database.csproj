@@ -17,6 +17,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\src\CoreEx.Database\CoreEx.Database.csproj" />
+    <ProjectReference Include="..\..\..\src\CoreEx.Database.Postgres\CoreEx.Database.Postgres.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -48,6 +48,12 @@ Poison-message/dead-letter handling is still **not implemented** - a permanently
 
 **Detecting a stuck partition:** `postgres.outbox.enqueue` continuing to climb while `postgres.outbox.relay.publish` stays flat for the same partition is the signal. `postgres.outbox.relay.oldest_lag`/`newest_lag` are recorded on both a successful and a failed publish attempt, so they keep climbing (rather than going silent) for as long as a batch keeps failing - alert on a sustained rise in `postgres.outbox.relay.oldest_lag`, not just on `postgres.outbox.relay.publish.failed`, since a low failure count can still mean one partition has been stuck for a long time.
 
+## Operations store
+
+`PostgresOperationStore` is the relational `IOperationStore` over a single purpose-built operations table, using embedded parameterized SQL with no stored functions. Register it with `services.AddPostgresOperationStore()` after `AddPostgresDatabase()`; the registered `NpgsqlDataSource` supplies independent connections. The store defaults to `snake_case(DomainName)` and `operation`; use `AddPostgresOperationStore(schema: "sales")` for a different or otherwise unsuitable default schema. Register the provider assembly with DbEx 3.5.0 via `args.AddAssembly<PostgresDatabase>().AddAssembly<Program>()`, importing `CoreEx.Database.Postgres`, then export with `dotnet run -- script operations <Schema> <Table>`. Construct the migration console directly rather than pre-registering `Program` through `Create<Program>()`; DbEx ignores duplicates and probes in reverse registration order. DbEx defaults the schema from `dbex.yaml`, or to the literal `Schema` if absent, and the table to `operation`. Use simple identifiers: substitution does not escape delimiters. Review and check in the export, then rebuild the Database project so `Migrate` can apply its embedded snapshot. Create and complete join the ambient transaction; claim, renew, release, cancel and cleanup use an independent connection. Fences observe database time after locking the row; the ETag is the system `xmin` column. See [async-operations design §13.8](../../docs/design/async-operations-design.md#138-phase-2-implementation-notes).
+
+`xmin` is transaction-scoped and transaction IDs can wrap around, so the ETag is not guaranteed to change on every mutation or recreation. Use `OperationId` to distinguish incarnations and the claim fields for execution fencing.
+
 ## OpenTelemetry
 
 ```csharp

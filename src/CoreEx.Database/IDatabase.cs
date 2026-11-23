@@ -123,6 +123,14 @@ public interface IDatabase
     DbParameter CreateParameter();
 
     /// <summary>
+    /// Quotes (delimits) the <paramref name="identifier"/>, such as a schema, table or column name, for safe inclusion in SQL text.
+    /// </summary>
+    /// <param name="identifier">The unquoted identifier.</param>
+    /// <returns>The quoted identifier.</returns>
+    /// <remarks>Defaults to the ANSI SQL double-quote delimiter, escaping any embedded double quote by doubling it. Providers with a different delimiter override.</remarks>
+    string QuoteIdentifier(string identifier) => $"\"{identifier.ThrowIfNullOrEmpty().Replace("\"", "\"\"", StringComparison.Ordinal)}\"";
+
+    /// <summary>
     /// Gets the next (monotonic counter) save-point name used for nested transactions.
     /// </summary>
     /// <returns>The save-point name.</returns>

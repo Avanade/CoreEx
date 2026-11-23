@@ -142,6 +142,9 @@ public abstract class Database<TConnection, TCommand, TDatabaseArgs, TDatabaseCo
     public abstract DbParameter CreateParameter();
 
     /// <inheritdoc/>
+    public virtual string QuoteIdentifier(string identifier) => $"\"{identifier.ThrowIfNullOrEmpty().Replace("\"", "\"\"", StringComparison.Ordinal)}\"";
+
+    /// <inheritdoc/>
     public Exception? HandleDbException(DbException dbex) => OnDbException(dbex);
 
     /// <summary>

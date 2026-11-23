@@ -9,9 +9,11 @@
     <PackageReference Include="CoreEx.Database" />
     <!--#endif-->
     <!--#if implement-sqlserver-->
+    <PackageReference Include="CoreEx.Database.SqlServer" />
     <PackageReference Include="DbEx.SqlServer" />
     <!--#endif-->
     <!--#if implement-postgres-->
+    <PackageReference Include="CoreEx.Database.Postgres" />
     <PackageReference Include="DbEx.Postgres" />
     <!--#endif-->
   </ItemGroup>

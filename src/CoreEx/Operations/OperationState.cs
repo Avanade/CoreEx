@@ -119,9 +119,9 @@ public sealed record OperationState
     public DateTimeOffset? PurgeAfter { get; init; }
 
     /// <summary>
-    /// Gets the opaque store concurrency token that changes on every persisted mutation and on recreation.
+    /// Gets the opaque store concurrency token.
     /// </summary>
-    /// <remarks>This is not an HTTP representation ETag.</remarks>
+    /// <remarks>Token mutation and uniqueness guarantees depend on the provider. This is not an HTTP representation ETag; use <see cref="OperationId"/> to distinguish operation incarnations and claim fields for fencing.</remarks>
     public required string ETag { get; init; }
 
     /// <summary>

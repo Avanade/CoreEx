@@ -15,6 +15,7 @@ The outbox sub-namespace provides ready-to-use `PostgresOutboxPublisher`, `Postg
 - 🗃️ **PostgresDatabase**: Concrete `IDatabase` for `NpgsqlConnection` (constructed from `NpgsqlDataSource`); maps PostgreSQL `SqlState` strings to CoreEx semantic exceptions; configurable `DuplicateErrorNumbers`; `RowVersion` encoded via `EncodedStringToUInt32Converter`.
 - 🔢 **Error-code convention**: `SQLSTATE` values 56001–56007 and 56010 map to `ValidationException`, `BusinessException`, `AuthorizationException`, `ConcurrencyException`, `NotFoundException`, `ConflictException`, `DuplicateException`, and `DataConsistencyException` respectively — identical to the SQL Server convention.
 - 🔁 **PostgresUnitOfWork**: `IDatabaseUnitOfWork` implementation wrapping `TransactionAsync` with `PostgresUnitOfWorkInvoker`; optionally accepts an `IEventPublisher` outbox for transactional event enqueuing.
+- 📝 **Operations store**: `PostgresOperationStore` stores operation lifecycle state in one purpose-built table and supports transaction-aware acceptance and completion.
 - 📤 **Outbox relay**: `PostgresOutboxPublisher` (writes to outbox table), `PostgresOutboxRelay` (polls and publishes), and `PostgresOutboxRelayHostedService` (timer-driven hosted service) — all PostgreSQL-specific subclasses of the base `CoreEx.Database.Outbox` types.
 - 📊 **Outbox metrics**: `PostgresMetrics` exposes .NET `Meter` instruments: `postgres.outbox.enqueue` (counter), `postgres.outbox.relay.publish` and `postgres.outbox.relay.publish.failed` (counters), `postgres.outbox.relay.oldest_lag` and `postgres.outbox.relay.newest_lag` (histograms in ms) — names harmonized with `SqlServerMetrics`/`CosmosMetrics`.
 - 📡 **OpenTelemetry**: `CoreExPostgresExtensions.WithCoreExPostgresTelemetry` wires `PostgresInvoker` activity sources and the outbox meter into the OTEL tracer and meter providers.
@@ -26,6 +27,7 @@ The outbox sub-namespace provides ready-to-use `PostgresOutboxPublisher`, `Postg
 |------|-------------|
 | **[`PostgresDatabase`](./PostgresDatabase.cs)** | Concrete `IDatabase` for `NpgsqlConnection`; `SqlState` string to exception mapping; `RowVersion` → `EncodedStringToUInt32Converter`; accepts `NpgsqlDataSource` for connection-pool management. |
 | **[`PostgresUnitOfWork`](./PostgresUnitOfWork.cs)** | `IDatabaseUnitOfWork` implementation; wraps `TransactionAsync` with `PostgresUnitOfWorkInvoker`; optional transactional outbox via `IEventPublisher Outbox`. |
+| **[`PostgresOperationStore`](./Operations/PostgresOperationStore.cs)** | Relational operation lifecycle store with database-time claims and `xmin` ETags. |
 | **[`PostgresCommand`](./PostgresCommand.cs)** | `DatabaseCommand` subclass for `NpgsqlCommand`; adds Postgres-specific parameter handling. |
 | **[`PostgresDatabaseArgs`](./PostgresDatabaseArgs.cs)** | `DatabaseArgs` subclass with PostgreSQL-specific defaults. |
 | **[`PostgresDatabaseColumns`](./Extended/PostgresDatabaseColumns.cs)** | `DatabaseColumns` subclass with PostgreSQL-specific convention column name defaults (e.g. snake_case names). |
@@ -36,6 +38,14 @@ The outbox sub-namespace provides ready-to-use `PostgresOutboxPublisher`, `Postg
 | [`PostgresExtensions`](./PostgresExtensions.cs) | `IDatabase` / `DatabaseCommand` extensions specific to PostgreSQL: `Param` helpers for `NpgsqlDbType`-typed parameters. |
 | [`PostgresInvoker`](./Extended/PostgresInvoker.cs) | `DatabaseInvoker` subclass for PostgreSQL; the `Default` singleton used by `PostgresDatabase`. |
 | [`PostgresUnitOfWorkInvoker`](./Extended/PostgresUnitOfWorkInvoker.cs) | `InvokerBase<PostgresUnitOfWork>` wrapping `TransactionAsync` with OpenTelemetry spans and begin/commit/rollback log entries. |
+
+## Operations migration
+
+With DbEx 3.5.0 or later, reference this package in the Database project, import `CoreEx.Database.Postgres`, and register `args.AddAssembly<SqlStatement>().AddAssembly<PostgresDatabase>().AddAssembly<Program>()` in `ConfigureMigrationArgs`. Construct `PostgresMigrationConsole` directly rather than using `Create<Program>()`, which registers the application too early: DbEx probes in reverse registration order and ignores duplicate registrations. The CoreEx Database scaffold already follows this pattern. From that project, run `dotnet run -- script operations` to export the migration, or specify both names with `dotnet run -- script operations sales operation` (alternatively, use `-p Param1=sales -p Param2=operation`).
+
+The schema defaults to top-level `schema` in `dbex.yaml`, or the literal `Schema` if absent; the table defaults to `operation`. Match both to the configured store, for example `services.AddPostgresOperationStore(schema: "sales")`. Use simple identifiers: template substitution does not escape SQL delimiters. Export does not execute SQL or overwrite an existing migration; retry a same-second filename collision. Review and check in the generated snapshot, include `Migrations/` as embedded resources, and rebuild before `dotnet run -- migrate`.
+
+The operation ETag uses PostgreSQL `xmin`, a transaction ID: writes in one transaction can share it and transaction IDs can wrap around, so it is not guaranteed to change on every mutation or recreation. Use `OperationId` to distinguish incarnations and the claim fields for execution fencing.
 
 ## Related Namespaces
 

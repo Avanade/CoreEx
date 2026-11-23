@@ -16,4 +16,8 @@
     <ProjectReference Include="..\CoreEx.Data\CoreEx.Data.csproj" />
     <ProjectReference Include="..\CoreEx.Database\CoreEx.Database.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\**\*" />
+  </ItemGroup>
 </Project>

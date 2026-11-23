@@ -52,6 +52,10 @@ public partial class SqlServerDatabase(SqlConnection connection, JsonSerializerO
     public override DbParameter CreateParameter() => new SqlParameter();
 
     /// <inheritdoc/>
+    /// <remarks>Uses the SQL Server bracket delimiter, escaping any embedded closing bracket by doubling it.</remarks>
+    public override string QuoteIdentifier(string identifier) => $"[{identifier.ThrowIfNullOrEmpty().Replace("]", "]]", StringComparison.Ordinal)}]";
+
+    /// <inheritdoc/>
     protected override Exception? OnDbException(DbException dbex)
     {
         if (dbex is SqlException sex)
