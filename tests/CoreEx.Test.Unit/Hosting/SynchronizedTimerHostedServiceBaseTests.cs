@@ -102,9 +102,7 @@ public class SynchronizedTimerHostedServiceBaseTests
         try
         {
             await WaitUntilAsync(() => synchronizer.EnterCount > 0, TimeSpan.FromSeconds(5));
-            synchronizer.LastOperationKey!.InstanceId.Should().Be("default");
-            synchronizer.LastOperationKey.DomainName.Should().Be("orders");
-            synchronizer.LastOperationKey.Scope.Should().Be(OperationKeyScope.Domain);
+            synchronizer.LastInstanceId.Should().Be("default");
         }
         finally
         {
@@ -128,8 +126,8 @@ public class SynchronizedTimerHostedServiceBaseTests
         try
         {
             await WaitUntilAsync(() => synchronizer.ExitCount > 0, TimeSpan.FromSeconds(5));
-            synchronizer.LastOperationKey!.InstanceId.Should().Be("name:custom-name");
-            synchronizer.LastExitKey.Should().Be(synchronizer.LastOperationKey);
+            synchronizer.LastInstanceId.Should().Be("name:custom-name");
+            synchronizer.LastExitInstanceId.Should().Be(synchronizer.LastInstanceId);
         }
         finally
         {
@@ -148,35 +146,8 @@ public class SynchronizedTimerHostedServiceBaseTests
         try
         {
             await WaitUntilAsync(() => synchronizer.ExitCount > 0, TimeSpan.FromSeconds(5));
-            synchronizer.LastOperationKey!.OperationName.Should().Be(typeof(TestSynchronizedTimerService).FullName);
-            synchronizer.LastExitKey.Should().Be(synchronizer.LastOperationKey);
-        }
-        finally
-        {
-            await svc.StopAsync(CancellationToken.None);
-        }
-    }
-
-    [Test]
-    public async Task ExplicitSynchronizerKey_IsUsedInsteadOfDefaultTypeAndName()
-    {
-        var synchronizer = new TestSynchronizer { ShouldEnterSucceed = true };
-        using var sp = CreateServiceProvider(synchronizer);
-        var key = OperationKey.ForTenant("orders", "tenant-a", "scheduled-import", "singleton");
-        var svc = new TestSynchronizedTimerService(sp, NullLogger.Instance)
-        {
-            Interval = TimeSpan.FromMilliseconds(20),
-            FirstInterval = TimeSpan.FromMilliseconds(5),
-            SynchronizerNameOverride = "ignored",
-            SynchronizerKeyOverride = key
-        };
-
-        await svc.StartAsync(CancellationToken.None);
-        try
-        {
-            await WaitUntilAsync(() => synchronizer.ExitCount > 0, TimeSpan.FromSeconds(5));
-            synchronizer.LastOperationKey.Should().Be(key);
-            synchronizer.LastExitKey.Should().Be(key);
+            synchronizer.LastOperationName.Should().Be(typeof(TestSynchronizedTimerService).FullName);
+            synchronizer.LastExitInstanceId.Should().Be(synchronizer.LastInstanceId);
         }
         finally
         {
@@ -222,13 +193,16 @@ public class SynchronizedTimerHostedServiceBaseTests
 
         public int ExitCount => _exitCount;
 
-        public OperationKey? LastOperationKey { get; private set; }
+        public string? LastOperationName { get; private set; }
 
-        public OperationKey? LastExitKey { get; private set; }
+        public string? LastInstanceId { get; private set; }
 
-        public Task<ISynchronizationLease?> TryAcquireAsync(OperationKey key, CancellationToken cancellationToken = default)
+        public string? LastExitInstanceId { get; private set; }
+
+        public Task<ISynchronizationLease?> TryAcquireAsync(string name, CompositeKey key, CancellationToken cancellationToken = default)
         {
-            LastOperationKey = key;
+            LastOperationName = name;
+            LastInstanceId = key.ToCanonicalString();
             Interlocked.Increment(ref _enterCount);
             return Task.FromResult<ISynchronizationLease?>(ShouldEnterSucceed ? new TestLease(this) : null);
         }
@@ -236,7 +210,7 @@ public class SynchronizedTimerHostedServiceBaseTests
         public ValueTask ExitAsync()
         {
             // Set the values before incrementing the count, as tests poll the count and then read the values.
-            LastExitKey = LastOperationKey;
+            LastExitInstanceId = LastInstanceId;
             Interlocked.Increment(ref _exitCount);
             return ValueTask.CompletedTask;
         }
@@ -267,12 +241,6 @@ public class SynchronizedTimerHostedServiceBaseTests
         {
             get => SynchronizerName;
             set => SynchronizerName = value;
-        }
-
-        public OperationKey? SynchronizerKeyOverride
-        {
-            get => SynchronizerKey;
-            set => SynchronizerKey = value;
         }
 
         protected override async Task<bool> SynchronizedExecuteAsync(ExecutionContext executionContext, CancellationToken cancellationToken)

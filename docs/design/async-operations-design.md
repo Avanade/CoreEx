@@ -186,7 +186,7 @@ sequenceDiagram
     end
 ```
 
-- The tracked initiating message is normally a **command** (one logical handler, competing consumers), routed by `NamedDestinationProvider` to `{Destination}-{domain}`. Self-addressed when the domain processes its own operation. The default (untracked and tracked) path publishes the request as a self-addressed command unless the caller configures an event, a target domain or an explicit message factory.
+- The tracked initiating message **must** be exactly one self-addressed **command** (one logical handler, competing consumers), routed by `NamedDestinationProvider` to `{Destination}-{domain}`. The operation state, status endpoint and processing belong to the accepting domain; another domain has no record of the operation, so a tracked message must not be an event (topic fan-out) or a command to another domain. Before creating state, tracked publishing rejects (`InvalidOperationException`) an explicit destination override, an event, a command whose `DomainName` differs (ordinal) from `IHostSettings.DomainName`, a `TenantId` that differs from the ambient tenant, or a message already carrying `operationid`; a null `DomainName` is set to the owning domain. The host must configure the publisher and any destination provider to route tracked commands to its own domain; custom publishers or providers may route differently. These rules apply **only** to tracked publishing: untracked (fire-and-forget) publishing may use destination overrides and emit any event or command to any domain, for example as a proxy broadcasting an event. The handler may publish ordinary downstream messages, but they do not inherit operation tracking and operation completion does not imply their consumers have finished; tracking fan-out/join is workflow orchestration (DTS/Durable Functions), not this feature.
 - Operation id: random (`Runtime.NewId()`), **not** derived from the idempotency key, CloudEvent id, correlation id, or trace id.
 - **Tracked publish is "state + dispatch" only.** Business mutations belong in the worker. Writes in the publish transaction could commit on an ambiguous outbox commit while the fence marks the operation Failed and the worker skips the message.
 
@@ -259,7 +259,7 @@ public interface ISubscriberBehavior
 - **Explicit per-message metadata** — CoreEx-defined CloudEvent extension context attributes:
   - `operationid` (String): the random operation id. Opaque.
   - `operationstartby` (Timestamp): first-start deadline.
-- Set by `PublishAsync` via `EventData` extension helpers (e.g. `WithOperation(id, startBy)` / `TryGetOperation(...)`) using `EventData.Attributes`; `EventFormatter` already round-trips unknown attributes as CloudEvent extensions, so no business DTO changes.
+- Set by tracked `PublishAsync` through `EventData.OperationId`, `OperationName`, and `OperationStartBy`, which are typed properties backed by `EventData.Attributes`; `EventFormatter` round-trips them as CloudEvent extensions without business DTO changes. Tracked-message boundary validation and mapping from `WorkState` remain owned by the WebApi acceptance path.
 - **Not** reused:
   - `id` (CloudEvent): identifies a message instance (`source`+`id`); duplicates may share it, republishing may not. Wrong lifecycle.
   - `correlationid`/`causationid` (CloudEvents correlation extension): logical-flow grouping, shared by many messages and many handlers.
@@ -422,3 +422,221 @@ Consequences of the default, accepted by design:
 | D16 | Behavior registration | Per-subscriber `EventSubscriberBase.Behaviors` only; no host-wide DI registration or predicate filtering. |
 | D17 | Behavior failure | A throwing behavior is classified `ErrorHandling.None` regardless of subscriber policy; disposition callback failures are logged and never alter settlement. |
 | D18 | Functions callback overload | Removed (breaking, v4.4); all Functions Service Bus receives go through a CoreEx subscriber. |
+
+## 12. Review: work-tracking approach and Durable Task Scheduler (proposal, not a decision)
+
+Status: review appendix (21 Nov). Nothing in this section changes D1–D18 or the implemented P0–P2 baseline. It records an honest assessment of the tracking approach and a suggested direction for later phases. **Superseded in part by §13:** tracked operation state is proposed for the domain database; Redis remains for general coordination and bounded HTTP idempotency. §12.2's best-effort Redis positioning for work tracking and the DTS-as-status-store idea are not the current recommendation.
+
+### 12.1 Assessment
+
+The HTTP contract (§3) follows established practice and should stay: `202 Accepted` plus an operation status resource, as in the Azure Async Request-Reply pattern, the Microsoft REST API Guidelines long-running operations, ARM `Azure-AsyncOperation`, and Google AIP-151. Publish-only as the default (D13) is also right.
+
+The tracking engine is the part that reinvents existing technology. Fencing, execution leases, first-start deadlines, cancel-request flags, missing-state policy and unknown-outcome classification (§4–§6, §8) are the core of a durable workflow engine. Built on Redis, they cannot be fully reliable:
+
+1. **Redis is not a durable source of truth.** Eviction, failover or TTL expiry can lose a record, after which the outcome is unknown. Every guarantee then carries a caveat (§5.5).
+2. **Fencing protects only systems that check the token.** A fencing token stops a stale worker only where the target store checks it. Business writes go to the domain database, which never sees the Redis token. The fence therefore protects the tracking record, not business effects. Business idempotency or an inbox provides the real duplicate protection.
+3. **Most operations already have a better status source.** When the work creates or changes a business resource, that resource's own state (`pending`, `accepted`, `rejected`) is more accurate than a separate tracking record. Many production APIs simply return `202` with `Location` pointing at the resource.
+
+| Approach | Examples | Relevance |
+|---|---|---|
+| Status resource over messaging | Azure Async Request-Reply; this design's P2 | Fine as a best-effort view. |
+| Business resource as status | Typical order or payment APIs | Simplest; no extra store. |
+| Durable workflow engine | Durable Task Scheduler (DTS), Durable Functions, Temporal, Dapr Workflow | Owns identity, status, retries, timers, cancellation and results durably. |
+| Message-bus state machines | MassTransit/NServiceBus sagas, Wolverine | Same problem, solved inside the bus. |
+
+### 12.2 Suggested direction
+
+1. **Keep** `WebApi.PublishAsync`, the publish-only default, validation, `MapCoreExOperations` and the `OperationStatus` contract.
+2. **Reposition `IWorkProvider` tracking as best effort.** It is an observability view with version-checked (CAS) status updates so a stale worker cannot overwrite a newer status. Document that it does not provide correctness. Principle 4 already moves in this direction.
+3. **Do not build** execution leases (§8.12) or an enforced first-start fence (§4.1, §8.7) in later phases unless a concrete requirement survives review. Duplicate protection remains the business handler's responsibility (inbox and/or idempotent writes).
+4. **Introduce a status-source seam** so the operations resource is not tied to `IWorkProvider`:
+
+```csharp
+public interface IOperationStatusSource
+{
+    Task<OperationStatus?> GetAsync(string operationId, CancellationToken cancellationToken);
+    Task<OperationCancelResult> RequestCancelAsync(string operationId, CancellationToken cancellationToken);
+    Task<OperationResultReference?> GetResultAsync(string operationId, CancellationToken cancellationToken);
+}
+```
+
+Candidate implementations: `WorkProviderOperationStatusSource` (current Redis behaviour), a resource-backed source where the application maps its own entity state, and `DurableTaskOperationStatusSource` (§12.3). Owner and tenant authorization stays in `MapCoreExOperations`, above the source. The names are illustrative.
+
+### 12.3 Durable Task Scheduler as the status source
+
+CoreEx has no DTS integration today; `samples\src\Contoso.Order.Workflow.*` is an unfinished sample. This section therefore proposes a **new optional package** (for example `CoreEx.DurableTask`) built on `Microsoft.DurableTask.Client`/`Worker`. It would not be a dependency of `CoreEx.AspNetCore`.
+
+**Identity.** The operation ID is the orchestration instance ID. It must be unguessable and scoped, for example `{domain}:{random}`. When the endpoint uses `[IdempotencyKey]`, derive the instance ID from `HMAC(secret, scope + idempotency key)` so a retried request schedules, or finds, the same instance. What the backend does when the instance ID already exists (reject, ignore or reuse) depends on DTS and the SDK version, and **must be verified in a spike** before relying on it.
+
+**Start.** Call `DurableTaskClient.ScheduleNewOrchestrationInstanceAsync(name, input, new StartOrchestrationOptions(instanceId))`, then return `202` with `Operation-Location`. Store the owner and tenant in the orchestration input envelope (or tags, if supported) for the operations resource to check. DTS performs no CoreEx authorization.
+
+**Status mapping** (`GetInstanceAsync(instanceId, getInputsAndOutputs: false)` → `OrchestrationMetadata`):
+
+| `OrchestrationRuntimeStatus` | `OperationStatus.Status` | Notes |
+|---|---|---|
+| `Pending` | `not-started` | |
+| `Running`, `ContinuedAsNew` | `running` | Progress from `SetCustomStatus` → `PercentComplete`/`Message`. |
+| `Suspended` | `running` | `Message` indicates suspended; no new public status value. |
+| `Completed` | `succeeded` or `failed` | A business rejection should be a typed output mapped to `failed` with a safe `OperationError`, not an orchestration failure. |
+| `Failed` | `failed` | Map `FailureDetails` to a sanitized `OperationError`; never expose stack traces. |
+| `Terminated` | `canceled` | Includes administrative termination; distinguish it with an error code. |
+| Not found | `404` | Purged, expired or never existed. Same unknown-outcome rule as §5.5. |
+
+`CreatedOn`/`UpdatedOn` map from `CreatedAt`/`LastUpdatedAt`; `ExpiryOn` from the configured purge/retention policy.
+
+**Result.** For small results, use `ReadOutputAs<T>()` with `getInputsAndOutputs: true`. For anything else, return `ResultLocation` pointing at the business resource. DTS payloads have size limits, so the orchestration should pass references, not large data.
+
+**Cancel.** Prefer cooperative cancellation: `RaiseEventAsync(instanceId, "cancel")`, which the orchestrator observes via `WaitForExternalEvent`, sets `CancelRequested`, and compensates if needed. `TerminateInstanceAsync` is the hard fallback. It does not stop an activity already executing and runs no compensation.
+
+**`Prefer: wait`.** Use `WaitForInstanceCompletionAsync` with a linked cancellation token bounded by the configured maximum wait. This is the RFC 7240 behaviour from §3 without a custom change-notification mechanism (§8.6).
+
+**Retention.** Use `PurgeInstanceAsync` or the scheduler's retention policy; `ExpiryOn` reflects it.
+
+### 12.4 DTS as the processing engine instead of publishing to Service Bus
+
+Yes, for some workloads. In this mode the endpoint schedules an orchestration instead of publishing a message, and activities call existing CoreEx application services. This removes the separate tracking store, fence, lease and start deadline: DTS owns them durably.
+
+| Concern | Tracked Service Bus command + relational operation store (§13) | Schedule a DTS orchestration |
+|---|---|---|
+| Status, retries, cancellation and result | Relational operation state with bounded retention; delivery retries remain broker-managed | Built in and durable; supports durable timers and orchestration history |
+| Accept-path atomicity | Operation state + outbox event in one domain-database transaction | Scheduling is a separate call. Replay safety for a deterministic instance ID must be verified. |
+| Duplicate business effects | Delivery is at-least-once; transactional completion fences local writes, while external effects still need idempotency | Activities are at-least-once; external effects still need idempotency |
+| Multi-step flows (validate, reserve, charge, compensate) | One command handler; not a workflow engine | Natural orchestration code |
+| Fan-out to multiple consumers | Tracked commands are single-handler and self-addressed; untracked events support fan-out | Not a pub/sub bus; publish domain events from an activity |
+| Cross-domain decoupling | Strong: untracked messages use CloudEvents (AsyncAPI); tracked commands stay in-domain | Weaker: caller and worker share a task hub and orchestration contract; keep it inside one domain |
+| Programming-model constraints | No durable timers or workflow history; operation tracking is for bounded work, not scheduled waits | Deterministic orchestrator code; versioning of in-flight instances |
+| Infrastructure and portability | Service Bus and the domain's relational database | Additional managed service; production backend is Azure DTS (verify alternatives); emulator exists for local development |
+
+**Recommendation.** Use both, chosen per operation, and do not hide them behind one abstraction:
+
+- **Fire-and-forget, events and cross-domain commands** → `WebApi.PublishAsync` to Service Bus (P2 as implemented, untracked by default).
+- **Tracked, single-command, in-domain work** → use the relational operation store for acceptance, bounded processing, retries and pollable status/result. Its inactivity timeout is a delivery/recovery window, not a work-duration deadline; work should finish promptly when dependencies are available.
+- **Work that needs durable waits or timers, multi-step orchestration, fan-out/join, human or external-event waits, compensation, or replayable execution history** → schedule a DTS or Durable Functions workflow and expose its status. Do not stretch operation inactivity expiry into a scheduling mechanism.
+
+Cross-domain effects from an orchestration are still published as domain events through `IEventPublisher` (outbox where atomicity with business data is required) from an activity. Starting an orchestration from a Service Bus subscriber is possible (a cross-domain command arrives, then the owning domain orchestrates), but an HTTP endpoint inside the same domain should schedule directly rather than add a bus hop. The operation store's default 24-hour inactivity timeout allows for a substantial delivery/recovery outage; it does not mean work is expected to wait or run for 24 hours.
+
+### 12.5 Questions for the user before any further phase
+
+1. Should deferred worker-side tracking (`OperationSubscriberBehavior`, fence, leases) be descoped in favour of best-effort status plus a DTS option?
+2. Is a DTS dependency (Azure-managed production backend) acceptable as an optional CoreEx package?
+3. Should the API surface be `WebApi.ScheduleAsync(...)` (DTS) alongside `WebApi.PublishAsync(...)`, or a single entry point with a pluggable dispatcher? Separate methods are recommended: their semantics differ.
+4. Spike first: verify DTS duplicate-instance-ID behaviour, payload limits, purge/retention and emulator parity before committing to the design.
+
+## 13. Proposal: relational work state (Redis retained for coordination and HTTP idempotency)
+
+Status: proposal (21 Nov), not yet an implementation; revised 22 Nov with the decisions below. The working direction is to make the domain's relational database the source of truth for tracked operation state, while retaining Redis for general synchronization leases and bounded HTTP idempotency. Redis-backed work state is not the target architecture. This deliberately revisits the "independent provider" stance of §1.2/§2: co-locating operation state with business data permits the transactional guarantees below when the same transaction is actually used.
+
+**Decisions (22 Nov).** Operations, HTTP idempotency (`CoreEx.Idempotency`) and coordination (`CoreEx.Coordination`) are three independent capabilities; none references another, and work can be created without an HTTP endpoint. Operation state uses one purpose-built operations table, not a generic `StateStore`, and holds no idempotency or lease records. Create-or-get on the complete operation identity, committed with the outbox event, is the sole acceptance de-duplication guarantee. Endpoints derive the operation name and `CompositeKey`; they may use the `Idempotency-Key` value as an input, but that is endpoint code, not a library coupling. Ordinary `[IdempotencyKey]` response replay remains optional and is never the correctness guarantee for tracked work. Existing outbox stored routines remain unchanged; only new operation-store SQL uses embedded parameterized statements. Cosmos is deferred until the relational proof is complete. Text below that conflicts with these decisions has been revised; §13.7 records what remains open.
+
+### 13.1 Why the database changes the answer
+
+The weaknesses in §12.1 all stem from the tracking store being separate from the business store. Put the operation row in the domain database and the same transaction can cover it:
+
+| Concern | Redis (separate store) | Domain database (same store) |
+|---|---|---|
+| Accept: create state + publish | Dual write; publish error = unknown delivery; fence + start deadline needed (§4.1) | Operation state + outbox event in **one transaction**. Broker publishing happens later in the relay. A definite rollback is not accepted; a lost commit acknowledgement is unknown. A retry deriving the same operation name and key resolves to the existing operation while it is retained (§13.4). |
+| Completion vs business effect | Separate writes; status can disagree with reality | Business write + operation completion + domain events can commit in **one transaction**. This covers those local writes, not external effects or earlier commits. |
+| Fencing concurrent redeliveries | Token not checked by business store (§12.1.2) | A conditional completion update is in the business transaction; a lost comparison must cause that transaction to roll back. This fences the writes in that transaction only. |
+| Cancellation | Request flag; race with completion is ambiguous | Conditional updates can arbitrate cancellation and completion in the database. A cancellation request is not an acknowledgement, and it cannot undo external effects or prior commits. |
+| Durability / eviction | Eviction, failover loss, TTL | Normal database durability and explicit retention/purge; this is still a bounded guarantee. |
+| Work-state store | Redis | No additional service where the domain already has a suitable database and outbox. |
+
+Limits that remain, stated honestly:
+
+- Only effects inside the **same database transaction** are covered. Calls to other domains (HTTP adapters, e.g. Shopping's inventory reservation) are outside it; those still need business idempotency or compensation.
+- Delivery is still at-least-once. A redelivery that finds retained terminal state can be skipped, but concurrent deliveries may both start before either completes. A local completion fence does not prevent duplicate external calls.
+- A long-running handler may claim work in a short independent transaction and need a renewable lease for recovery. Takeover and completion must check the current owner/attempt and expiry atomically; a timestamp alone is not a fence. Progress, heartbeat and cancellation can change the row version, so completion must account for those changes rather than blindly reuse an old ETag.
+
+### 13.2 Operations table (relational)
+
+Use one purpose-built, framework-owned operations table per domain database (provider-specific naming and schema are configurable). It stores only operation state: no idempotency receipts, no general `Lease` records and no other record kinds. A generic JSON `StateStore` was considered and rejected (YAGNI): a future feature with a real requirement gets its own purpose-built table. Existing outbox tables remain separate. `ISynchronizer` remains Redis-backed; the operation's execution claim belongs to the operation row and its transaction rules.
+
+| Column | Purpose |
+|---|---|
+| `KeyHash` | Primary key: versioned, length-framed SHA-256 of the complete operation identity (domain, tenant presence and value, operation name, instance ID), preserving exact ordinal identity including case and trailing spaces independently of database collation. The encoder is introduced with the relational provider (Phase 2) and must not be lossy: strings containing unpaired surrogates must be rejected or encoded losslessly, because UTF-8 replacement maps distinct strings to the same bytes. |
+| `OperationId` | Unique GUID for this incarnation; a new value on recreation after purge, fencing stale messages and links. |
+| Scope columns | Domain, tenant, operation name and instance ID, stored for authorization, diagnostics and queries; identity is enforced by `KeyHash`. |
+| `Status` | Indexed lifecycle status used by atomic transitions and active/purge queries: `Accepted`, `Running` (claimed), `Retrying` (claim released after a retryable error, awaiting redelivery), `Succeeded`, `Failed`, `Cancelled`, `Expired` (abandoned: no activity before `AbandonAfter`, e.g. after broker dead-lettering or a lost message). A stalled run is `Running` with an expired claim, determined by database time. |
+| Initiator | Stable initiating principal used by default status/result authorization. |
+| Claim columns | Attempt, claim owner and claim expiry for the renewable execution claim. |
+| Cancellation | Cooperative cancel-request flag/timestamp. |
+| Progress, error, result link | Safe projections only; result payloads stay with the application, which exposes them via a reader or resource link. The error pair holds the most recent safe error: the retryable error recorded on release (retained while a later attempt runs) or the terminal error on `Failed`; success or cancellation clears it, and expiry retains it. |
+| `Data` | Opaque application JSON; not queried by the store. |
+| `CreatedOn`, `UpdatedOn`, `CompletedOn`, `PurgeAfter` | Database-observed UTC timestamps; `PurgeAfter` is the earliest eligible purge time for terminal operations. |
+| `AbandonAfter` | Inactivity deadline for unfinished operations: now + `InactivityTimeout` on create and release, claim expiry + `InactivityTimeout` on claim and renew (so a held claim is never expired); cleared when finished. `InactivityTimeout` defaults to 24 hours and must exceed the broker's full redelivery window. It is a delivery/recovery window, not a work-duration or scheduling deadline; use DTS or Durable Functions for durable waits, timers or long-running orchestration. |
+| Concurrency token | Opaque ETag that changes on every mutation and on recreation. |
+
+`KeyHash` is the only identity key; raw keys and secrets are never placed in key columns. Database comparisons must not inherit a case-insensitive collation for identity. SQL Server can use `rowversion`. PostgreSQL uses a freshly generated UUID per write; a per-row counter that resets after deletion can repeat an old ETag, and `xmin` is not a durable substitute.
+
+**Composite instance identity.** The instance ID is `CompositeKey.ToCanonicalString()` (the validated form of the default `ToString()`; typed and configurable formatters were removed): component values are invariant-formatted without CLR type tags and joined with a fixed `~` without escaping; the result is one-way and replay-stable (a canonical string used as a single-component key is unchanged). The tilde is URI-unreserved, avoiding percent-encoding when keys are used in URLs, and is absent from built-in scalar formats. Thus `123` and `"123"` are the same component, and case and trailing spaces remain distinct. Empty keys, null components, NUL, unpaired surrogates and `~` within a multi-component key are rejected. A single-component key's canonical form equals its string value, so a stored instance ID round-trips through `CompositeKey.Create(instanceId)`. Canonical output is not secret and is not itself the full operation `KeyHash`; the relational provider must still frame and hash the complete identity.
+
+**Identity resolution (implemented).** `OperationKey` and `OperationKeyScope` were removed. Operations, work, coordination and HTTP idempotency take an operation name and a `CompositeKey`; the store or orchestrator qualifies them with `IHostSettings.DomainName` and the ambient `ExecutionContext.TenantId`. A present tenant is an explicit isolation boundary (tenant-scoped); otherwise the identity is domain-wide, and there is no tenant-present domain-wide mode. Processing hosts must establish the same ambient tenant as the accepting host; the published message conveys the operation domain and tenant through the standard `EventData.DomainName` and `EventData.TenantId` (`tenantid`), not duplicate operation attributes; only `operationid`, `operationname` and `operationstartby` are added.
+
+Index unfinished operations by `AbandonAfter` and terminal operations by `PurgeAfter` only. Never purge active work; unfinished work is first expired, then purged after retention. Use database-observed UTC time (SQL Server `SYSUTCDATETIME()`, PostgreSQL `clock_timestamp()`) for claim and expiry decisions, not `Runtime.UtcNow`, which can be frozen for an execution context.
+
+**Schema provisioning.** CoreEx owns the provider-specific operations schema scripts as named embedded resources in its database-provider packages. The generic DbEx `Script` command exports a timestamped migration into the consuming application's `*.Database/Migrations`; the application reviews and checks in that export, then applies it through DbEx `Migrate` or another migration runner. Once applied, the exported migration is immutable; package upgrades add a new export rather than replacing it. DbEx remains functionality-agnostic: it provides generic resource discovery, export and migration execution, not CoreEx feature-specific DDL. Extend its generic `Script` command so available named resources from configured assemblies are discoverable in `--help`, with the schema defaulting from `dbex.yaml`, the table name defaulting to the feature's convention, and both values explicitly overridable. The current help lists fixed built-in script types only, so generic embedded-resource discovery and listing are a DbEx enhancement.
+
+All new operation-store runtime operations, including execution claims and cleanup, use parameterized SQL statements embedded in the provider assembly and loaded with `SqlStatement.FromResource<T>()`; there are no new stored procedures or stored functions. Execute through the appropriate `IDatabase`, with values passed as parameters and any configurable schema identifier validated and correctly quoted. This follows the existing `ProductSearchIndex` embedded-statement pattern. The existing SQL Server and PostgreSQL outboxes keep their own stored procedure/function; replacing them or migrating their provisioning is out of scope.
+
+### 13.3 Components
+
+| Component | Package | Responsibility |
+|---|---|---|
+| Relational `IOperationStore` (SQL Server, PostgreSQL) | Provider-neutral base in `CoreEx.Database`; implementations and embedded runtime/schema SQL in `CoreEx.Database.SqlServer` and `CoreEx.Database.Postgres` | Purpose-built operation lifecycle (create-or-get, claim/renew/release, fenced completion, cancellation, purge) over the operations table, with transaction-aware access for acceptance and completion. Provider-owned schema resources are exported as checked-in application migrations through DbEx's generic `Script` command. Replaces the `IWorkProvider`/`WorkState` path once proven. |
+| Redis `ISynchronizer` and `IIdempotencyStore` | `CoreEx.Redis` (retained) | General renewable coordination leases and bounded HTTP idempotency response replay. Independent of operations. |
+| Operation cleanup | Provider packages | Batched `CleanupAsync` pass: first expires unfinished operations past `AbandonAfter` (logging a warning per operation, so expiry is alertable), then purges terminal operations past `PurgeAfter`. Never purges active work. |
+| `CosmosDbWorkProvider` | `CoreEx.Cosmos` | Deferred until after the relational proof; may not be supported (§13.6). |
+
+There are distinct **storage and transaction roles**. Acceptance and atomic completion must join the exact connection and transaction used by the business unit of work and outbox. Execution claims/heartbeats use short independent relational operations and must not enlist in a long-lived business transaction. General coordination leases remain the responsibility of `ISynchronizer` (Redis); HTTP middleware idempotency remains the responsibility of `IIdempotencyStore` (Redis). Neither participates in operation acceptance or completion.
+
+The intended tracked flow is:
+
+1. **Accept:** in one database transaction, create-or-get the operation by its identity and, only when newly created, enqueue the command through the same-database outbox. Commit before returning `202`; an existing operation returns `202` for its `OperationId` with no second message. The relay later publishes to Service Bus.
+2. **Claim:** if needed, claim or renew the operation in a separate short transaction, with an owner/attempt token and an atomic expiry check.
+3. **Complete:** in the business transaction, verify ownership and cancellation, write business data, enqueue domain events, and conditionally transition the operation to its terminal state. If the transition loses its comparison, abort the transaction; a zero-row update must never be treated as success.
+4. **Retry:** on a retryable (transient) error, roll back the business transaction, then release the claim with a safe error, moving the operation to `Retrying`, and let the broker redeliver; the next claim increments `Attempt`. A permanent error completes as `Failed` and the message is settled without retry. Broker max-delivery dead-lettering (or a lost message or crashed worker) leaves an operation `Retrying`, `Accepted` or stalled `Running`; cleanup marks it `Expired` once `AbandonAfter` passes. As with Temporal's and Step Functions' timed-out status, expiry is a distinct terminal outcome rather than `Failed`, and it does not prove that no business effect committed. A later redelivery or dead-letter resubmission finds the operation finished and must be settled without executing. Optionally, the worker can detect the final delivery attempt and complete as `Failed` (`RetriesExhausted`) immediately instead of waiting for expiry (Phase 3).
+
+The `EventSubscriberBase` behavior seam remains a candidate for coordination, but it does not automatically make a handler's own unit of work, connection, nested transactions or external calls participate. Verify those boundaries before selecting an integration; application services may need to own the transactional completion explicitly.
+
+Consequences for earlier sections when tracked mode uses a database provider:
+
+- The accept-path fence, `operationstartby` and `StartTimeout` (§4.1, §8.7–8.9, D7) are not needed to atomically create state and enqueue in a single transaction. Operational deadlines may still be useful.
+- Execution leases (§8.12) may still be needed for long-running work and takeover; they are not a substitute for checking ownership in the committing transaction or for business idempotency.
+- Missing operation state is fail-closed: the worker does not execute the message. Missing state can still mean expiry or lost tracking after earlier execution; it does not prove that business effects did not occur.
+- CoreEx recommends an outbox enlisted in the same database transaction for tracked acceptance. A direct publisher reintroduces the dual write; CoreEx does not enforce the recommendation, and an application that chooses a different configuration owns that risk. No equivalent atomicity guarantee is claimed for that configuration.
+
+### 13.4 Idempotency
+
+HTTP idempotency and operation acceptance are separate. Redis-backed `[IdempotencyKey]` support provides **basic, bounded HTTP idempotency**: it suppresses duplicate requests and replays retained responses, but eviction, failover, data loss and retention expiry can lose that guarantee, and its receipt cannot commit atomically with a relational transaction or outbox. It is therefore never the correctness guarantee for tracked work.
+
+Recommendation, by endpoint kind:
+
+1. **Tracked publish endpoints:** the endpoint derives a deterministic operation name and `CompositeKey` (a business identity is preferred; the `Idempotency-Key` value may be used as an input in endpoint code). Create-or-get on that key, committed with the outbox event, prevents duplicate operations and duplicate messages for retries of the same key. There is no separate idempotency record, fingerprint comparison or Redis claim for the same request. `[IdempotencyKey]` may additionally be applied for ordinary response replay; it is optional and independent.
+2. **Untracked publish endpoints:** unchanged. Ordinary Redis-backed HTTP idempotency can provide bounded response replay, but it does not make the receipt atomic with the outbox write. The relay and subscribers can still deliver or execute more than once.
+3. **Ordinary mutating endpoints (`POST` create etc.):** unchanged; keep the existing `IIdempotencyProvider`/`IIdempotencyStore` integration backed by Redis for bounded replay.
+
+After an unknown commit outcome, a client retry that derives the same operation name and key reconciles to the existing operation while it is retained; this is a property of the operation key, not of HTTP idempotency. After terminal retention expires, the same key creates a new operation (new `OperationId`); a missing operation is not proof that earlier effects did not happen.
+
+### 13.5 Redis remains for coordination and ordinary HTTP idempotency
+
+Redis is **not** being removed from CoreEx or reduced to a FusionCache dependency:
+
+- `ISynchronizer` (`RedisCoordination`) remains the provider for general distributed leases, such as synchronized timers and singleton coordination. Lease loss is cooperative unless the protected resource checks an appropriate fencing token. This is distinct from any operation-execution claim needed by tracked work, which belongs to the relational work-state design.
+- `IIdempotencyStore` (`RedisCoordination`) remains available for bounded HTTP idempotency and response replay, with the durability and retention limits above. It plays no part in tracked acceptance, which relies on operation create-or-get (§13.4).
+- FusionCache's Redis backplane/L2 remains caching, independently of these state and coordination uses.
+
+The relational-first refactor should remove `RedisWorkProvider` as the tracked-work implementation after the relational provider is proven end to end; it should **not** delete `CoreEx.Redis`, `RedisCoordination`, or their registration from hosts that still need distributed leases or ordinary HTTP idempotency.
+
+### 13.6 Cosmos
+
+The single relational table does not translate to a single generic Cosmos container with the same transaction guarantees. `TransactionalBatch` is restricted to **one container and one logical partition**. Operation, business and outbox documents can be atomic only when all participating documents are deliberately placed there; a separate state container cannot join that transaction. The current Cosmos outbox also requires an active unit of work bound by an enlisted mutation and a `/partitionKey` container path.
+
+If the business partition is not known at acceptance, atomic completion with that business record is not available without a different design. Similarly, an operation identity cannot be made unique across arbitrary partitions by a single partition-local batch. Either require an appropriate partition and scope, or explicitly design a weaker multi-write flow; do not present the latter as equivalent. General synchronization leases remain separate from this deferred Cosmos work-state question and continue to use the configured `ISynchronizer`.
+
+### 13.7 Questions for the user
+
+Resolved (22 Nov): HTTP idempotency does not integrate with acceptance (former Q3; §13.4); SQL Server and PostgreSQL ship first and there is no `IStateStore` (former Q4; §13.2–13.3); existing outbox routines are not replaced (former Q6); Cosmos is deferred until after the relational proof (former Q5).
+
+Resolved (23 Nov): use a same-database transactional outbox as the recommended tracked-acceptance configuration, without enforcing it in the API; only work found in the operation store may execute, while `NotFound` and finished work are settled without invoking the handler; broker message TTL is an optional expiry hint where supported and never the correctness mechanism; relational store implementations belong in the provider packages, with a provider-neutral base in `CoreEx.Database`; CoreEx owns provider-specific schema resources, exported as checked-in application migrations through DbEx's generic `Script` command. DbEx should remain feature-agnostic, but its Script command needs generic named-resource discovery and `--help` listing, with schema/table defaults and explicit overrides.
+
+No user decisions are currently open in this section; implementation details and relational proof outcomes remain for Phase 2.

@@ -3,6 +3,7 @@ global using CoreEx.Data;
 global using CoreEx.Entities;
 global using CoreEx.Hosting;
 global using CoreEx.Http;
+global using CoreEx.Idempotency;
 global using CoreEx.Invokers;
 global using CoreEx.Json;
 global using CoreEx.Localization;

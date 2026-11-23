@@ -11,7 +11,7 @@ public class CosmosDbModelOptions<TModel> where TModel : class, IEntityKey, new(
 
     private readonly List<(Func<IQueryable<TModel>, IQueryable<TModel>> Filter, Func<TModel, OperationType, Result>? NonQueryResult, bool AllowFilterBypass)> _filters = [];
     private Func<TModel, CompositeKey> _getKey = m => m.EntityKey;
-    private Func<CompositeKey, string> _formatIdentifier = key => key.ToString() ?? string.Empty;
+    private Func<CompositeKey, string> _formatIdentifier = key => key.ToCanonicalString() ?? string.Empty;
     private Func<TModel, string?>? _getPartitionKey;
     private string? _fixedPartitionKey;
     private Func<TModel, int?>? _getTimeToLive;
@@ -138,7 +138,7 @@ public class CosmosDbModelOptions<TModel> where TModel : class, IEntityKey, new(
     /// </summary>
     /// <param name="key">The <see cref="CompositeKey"/>.</param>
     /// <returns>The physical Cosmos DB document <c>id</c>.</returns>
-    /// <remarks>Defaults to <see cref="CompositeKey.ToString()"/>.</remarks>
+    /// <remarks>Defaults to <see cref="CompositeKey.ToCanonicalString()"/>.</remarks>
     public string FormatIdentifier(CompositeKey key) => _formatIdentifier(key);
 
     /// <summary>

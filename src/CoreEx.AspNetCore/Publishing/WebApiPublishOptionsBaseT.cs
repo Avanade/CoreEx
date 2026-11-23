@@ -11,6 +11,7 @@ public abstract class WebApiPublishOptionsBase<TSelf> : WebApiPublishOptionsBase
     /// </summary>
     /// <param name="destination">The destination, or <see langword="null"/> to use the publisher default.</param>
     /// <returns>The current options.</returns>
+    /// <remarks>Destination overrides are supported only for untracked publishing; tracked commands use the configured publisher's default routing.</remarks>
     public TSelf WithDestination(string? destination)
     {
         Destination = destination;

@@ -37,14 +37,14 @@ public sealed class RedisWorkProvider : IWorkProvider
     }
 
     /// <summary>Creates the Redis key for the complete operation identity.</summary>
-    private RedisKey Key(OperationKey operationKey) => RedisOperationKey.Create(_options.KeyPrefix, operationKey);
+    private RedisKey Key(string domainName, string? tenantId, string operationName, string id) => RedisKeyFormatter.Create(_options.KeyPrefix, domainName, tenantId, operationName, id);
 
     /// <summary>Converts a positive time-to-live to Redis milliseconds.</summary>
     private static long Milliseconds(TimeSpan timeToLive)
         => timeToLive > TimeSpan.Zero ? Math.Max(1, (long)Math.Ceiling(timeToLive.TotalMilliseconds)) : throw new ArgumentOutOfRangeException(nameof(timeToLive), "The time-to-live must be greater than zero.");
 
     /// <summary>Executes a bounded Redis operation and identifies ambiguous write timeouts.</summary>
-    private async Task<T> ExecuteAsync<T>(Func<IDatabase, Task<T>> operation, CancellationToken cancellationToken, bool isWrite = false, OperationKey? operationKey = null, string? operationName = null)
+    private async Task<T> ExecuteAsync<T>(Func<IDatabase, Task<T>> operation, CancellationToken cancellationToken, bool isWrite = false, WorkState? state = null, string? operationName = null)
     {
         cancellationToken.ThrowIfCancellationRequested();
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -56,27 +56,28 @@ public sealed class RedisWorkProvider : IWorkProvider
         catch (OperationCanceledException exception) when (!cancellationToken.IsCancellationRequested && cts.IsCancellationRequested)
         {
             if (isWrite)
-                throw new WorkOutcomeUnknownException(operationKey ?? throw new InvalidOperationException("The work identity was not provided for an ambiguous write."), operationName ?? "write", exception);
+                throw new WorkOutcomeUnknownException(state ?? throw new InvalidOperationException("The work identity was not provided for an ambiguous write."), operationName ?? "write", exception);
 
             throw new TimeoutException("The Redis work-provider read exceeded its operation timeout.", exception);
         }
         catch (RedisTimeoutException exception)
         {
             if (isWrite)
-                throw new WorkOutcomeUnknownException(operationKey ?? throw new InvalidOperationException("The work identity was not provided for an ambiguous write."), operationName ?? "write", exception);
+                throw new WorkOutcomeUnknownException(state ?? throw new InvalidOperationException("The work identity was not provided for an ambiguous write."), operationName ?? "write", exception);
 
             throw new TimeoutException("The Redis work-provider read exceeded its operation timeout.", exception);
         }
     }
 
     /// <summary>Executes a bounded write whose timeout is reported as an unknown outcome.</summary>
-    private Task<RedisResult> ExecuteWriteAsync(OperationKey operationKey, string operationName, Func<IDatabase, Task<RedisResult>> operation, CancellationToken cancellationToken)
-        => ExecuteAsync(operation, cancellationToken, isWrite: true, operationKey, operationName);
+    private Task<RedisResult> ExecuteWriteAsync(WorkState state, string operationName, Func<IDatabase, Task<RedisResult>> operation, CancellationToken cancellationToken)
+        => ExecuteAsync(operation, cancellationToken, isWrite: true, state, operationName);
 
     /// <inheritdoc/>
-    public async Task<WorkSnapshot> GetAsync(OperationKey operationKey, CancellationToken cancellationToken)
+    public async Task<WorkSnapshot> GetAsync(string domainName, string? tenantId, string operationName, string id, CancellationToken cancellationToken)
     {
-        var key = Key(operationKey);
+        tenantId = string.IsNullOrEmpty(tenantId) ? null : tenantId;
+        var key = Key(domainName, tenantId, operationName, id);
         var useLocalClock = _options.TimeProvider is not null;
         RedisValue[] args = [useLocalClock ? 1 : 0];
         var values = (RedisResult[]?)await ExecuteAsync(
@@ -93,7 +94,7 @@ public sealed class RedisWorkProvider : IWorkProvider
 
         var state = JsonSerializer.Deserialize<WorkState>((byte[])values[0]!, _jsonSerializerOptions)
             ?? throw new InvalidOperationException("The persisted work state could not be deserialized.");
-        if (state.OperationKey != operationKey || state.Id != operationKey.InstanceId)
+        if (!string.Equals(state.DomainName, domainName, StringComparison.Ordinal) || !string.Equals(state.TenantId, tenantId, StringComparison.Ordinal) || !string.Equals(state.OperationName, operationName, StringComparison.Ordinal) || !string.Equals(state.Id, id, StringComparison.Ordinal))
             throw new InvalidDataException("The persisted work state identity does not match its Redis key.");
         state.ETag = $"{(string?)values[1]}:{(long)values[2]}";
         return new WorkSnapshot(state, now);
@@ -102,11 +103,10 @@ public sealed class RedisWorkProvider : IWorkProvider
     /// <inheritdoc/>
     public async Task<bool> CreateAsync(WorkState state, TimeSpan timeToLive, CancellationToken cancellationToken)
     {
-        var operationKey = GetOperationKey(state);
-        var key = Key(operationKey);
+        var key = GetKey(state);
         var incarnation = Guid.NewGuid().ToString("N");
         RedisValue[] args = [JsonSerializer.SerializeToUtf8Bytes(state, _jsonSerializerOptions), Milliseconds(timeToLive), incarnation];
-        if ((int)await ExecuteWriteAsync(operationKey, "create", db => db.ScriptEvaluateAsync(_create, [key], args, CommandFlags.DemandMaster), cancellationToken).ConfigureAwait(false) != 1)
+        if ((int)await ExecuteWriteAsync(state, "create", db => db.ScriptEvaluateAsync(_create, [key], args, CommandFlags.DemandMaster), cancellationToken).ConfigureAwait(false) != 1)
             return false;
 
         state.ETag = $"{incarnation}:1";
@@ -116,11 +116,10 @@ public sealed class RedisWorkProvider : IWorkProvider
     /// <inheritdoc/>
     public async Task<bool> UpdateAsync(WorkState state, TimeSpan timeToLive, CancellationToken cancellationToken)
     {
-        var operationKey = GetOperationKey(state);
-        var key = Key(operationKey);
+        var key = GetKey(state);
         var expectedETag = state.ETag ?? string.Empty;
         RedisValue[] args = [expectedETag, JsonSerializer.SerializeToUtf8Bytes(state, _jsonSerializerOptions), Milliseconds(timeToLive)];
-        var version = (long)await ExecuteWriteAsync(operationKey, "update", db => db.ScriptEvaluateAsync(_update, [key], args, CommandFlags.DemandMaster), cancellationToken).ConfigureAwait(false);
+        var version = (long)await ExecuteWriteAsync(state, "update", db => db.ScriptEvaluateAsync(_update, [key], args, CommandFlags.DemandMaster), cancellationToken).ConfigureAwait(false);
         if (version <= 0)
             return false;
 
@@ -134,20 +133,11 @@ public sealed class RedisWorkProvider : IWorkProvider
     /// <inheritdoc/>
     public async Task<bool> DeleteAsync(WorkState state, CancellationToken cancellationToken)
     {
-        var operationKey = GetOperationKey(state);
-        var key = Key(operationKey);
+        var key = GetKey(state);
         RedisValue[] args = [state.ETag ?? string.Empty];
-        return (int)await ExecuteWriteAsync(operationKey, "delete", db => db.ScriptEvaluateAsync(_delete, [key], args, CommandFlags.DemandMaster), cancellationToken).ConfigureAwait(false) == 1;
+        return (int)await ExecuteWriteAsync(state, "delete", db => db.ScriptEvaluateAsync(_delete, [key], args, CommandFlags.DemandMaster), cancellationToken).ConfigureAwait(false) == 1;
     }
 
-    /// <summary>Gets and validates the complete identity for the <paramref name="state"/>.</summary>
-    private static OperationKey GetOperationKey(WorkState state)
-    {
-        state.ThrowIfNull();
-        var operationKey = state.OperationKey.ThrowIfNull(nameof(state.OperationKey));
-        if (state.OperationKey != operationKey || state.Id != operationKey.InstanceId)
-            throw new InvalidOperationException("The work state identity must match its operation key.");
-
-        return operationKey;
-    }
+    /// <summary>Gets the Redis key for the complete identity of the <paramref name="state"/>.</summary>
+    private RedisKey GetKey(WorkState state) => Key(state.ThrowIfNull().DomainName, state.TenantId, state.OperationName, state.Id.ThrowIfNullOrWhiteSpace(nameof(state.Id)));
 }

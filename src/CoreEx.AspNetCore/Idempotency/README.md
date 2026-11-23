@@ -13,15 +13,7 @@ builder.Services
     .AddIdempotencyProvider();
 ```
 
-FusionCache and `IHybridCache` remain for ordinary caching and are not the idempotency store. HTTP idempotency requires an `OperationKey` and does not use `ICacheKeyProvider`. The default identity uses `IHostSettings.DomainName`; register host settings and, for tenant-scoped requests, a scoped `ExecutionContext`.
-
-Configure tenant scope and establish a trusted tenant in the request's CoreEx execution context:
-
-```csharp
-builder.Services.AddIdempotencyProvider((_, provider) => provider.Scope = OperationKeyScope.Tenant);
-```
-
-Tenant scope rejects missing or empty tenant IDs. With `Scope` unset, requests without a tenant are domain-wide, but a present tenant requires an explicit scope. Set `OperationKeyScope.Domain` to intentionally share outcomes across tenants. An optional `OperationKeyFactory` can choose another domain, operation name or scope; it must preserve the supplied instance ID, which incorporates the decoded HTTP key and caller identity. Keep the operation name stable across endpoints if a reused key with a different request should continue to conflict.
+FusionCache and `IHybridCache` remain for ordinary caching and are not the idempotency store. HTTP idempotency does not use `ICacheKeyProvider`. Every request uses the operation name `IdempotencyProvider.OperationName` (`http-idempotency`) and a key that incorporates the decoded HTTP key and caller identity; the store qualifies it with `IHostSettings.DomainName` and, when present, the ambient `ExecutionContext.TenantId`. A tenant is an explicit isolation boundary: establish a trusted tenant in the request's CoreEx execution context so outcomes are tenant-scoped; without a tenant they are domain-wide. Register host settings and a scoped `ExecutionContext`.
 
 ## Outcome policy
 
@@ -39,7 +31,7 @@ The standards baseline is [draft-ietf-httpapi-idempotency-key-header-08](https:/
 
 The instance identifier hashes the idempotency key and, when available, the authenticated caller's issuer and subject to avoid placing them directly in provider keys. This is not a secret or an authorization credential. Configure `CallerIdentityProvider` when authentication uses another stable identity or when an application needs different caller boundaries. Caller identities and decoded keys must contain valid Unicode; malformed inputs are rejected rather than conflated. Anonymous callers and authenticated callers without a supported subject claim have no inferred caller component. Run authentication and authorization before the idempotency boundary, including in Functions.
 
-`IdempotencyProvider.CreateOperationKey(context, decodedKey)` reconstructs the explicit identity for reconciliation when the same caller and scope inputs are available; retain the identity and attempt revision if those inputs may not be recoverable later. A custom store must implement the `OperationKey` contract without re-qualifying it from ambient context.
+`IdempotencyProvider.CreateKey(context, decodedKey)` reconstructs the store key from the decoded key and caller identity. Reconciliation must use the same host domain and ambient tenant; retain the key and attempt revision if those inputs may not be recoverable later. A custom store must qualify the name and key by host domain and ambient tenant.
 
 The fingerprint covers method, case-preserving path, raw query string, selected canonical headers and body. Different query order can conservatively conflict. `HttpRequestHeadersToIncludeInFingerprint` defaults to Content-Type; include any additional request headers that change the operation's meaning. Correlation is excluded by default. A reused key with a changed fingerprint conflicts instead of creating another record.
 

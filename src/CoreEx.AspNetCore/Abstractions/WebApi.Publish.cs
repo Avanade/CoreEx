@@ -82,6 +82,9 @@ public abstract partial class WebApi<TResult>
             throw new InvalidOperationException("Operation publishing options can only be used on an endpoint marked with PublishTrackingAttribute.");
 
         var trackingOptions = endpoint is null ? options.Operation : isTrackingEndpoint ? options.Operation ?? new WebApiPublishOperationOptions() : null;
+        if (trackingOptions is not null && options.Destination is not null)
+            throw new InvalidOperationException("A tracked operation cannot override the publisher destination.");
+
         var services = GetServiceProvider(request);
         var publisher = options.PublisherProvider is null ? services.GetRequiredService<IEventPublisher>() : options.PublisherProvider(services) ?? throw new InvalidOperationException("The configured publisher resolver must return a publisher.");
         if (publisher.HasBeenPublished || !publisher.IsEmpty)
@@ -105,21 +108,19 @@ public abstract partial class WebApi<TResult>
         var operationOptions = services.GetRequiredService<IOptions<OperationsOptions>>().Value;
         operationOptions.Validate();
 
-        var hostSettings = services.GetRequiredService<IHostSettings>();
         var typeName = publishedType.FullName ?? publishedType.Name;
 
         if (!operationOptions.Types.ContainsKey(typeName))
             throw new InvalidOperationException($"Tracked publishing requires operation type '{typeName}' to be registered with AddCoreExOperation.");
 
         var executionContext = ExecutionContext;
+        EnsureOperationMessage(message, services.GetRequiredService<CoreEx.Hosting.IHostSettings>().DomainName, executionContext.TenantId);
         if (executionContext.User.Type == AuthenticationType.Unauthenticated)
             return new WebApiResult<TResult>(request.HttpContext.Response) { Exception = new AuthenticationException() };
 
         var owner = executionContext.User;
         var id = Runtime.NewId();
-        var operationKey = Microsoft.AspNetCore.Builder.CoreExAspNetCoreExtensions.CreateOperationKey(operationOptions, hostSettings, executionContext, id);
-        if (operationKey is null)
-            throw new InvalidOperationException("Tracked publishing could not resolve the operation scope or tenant.");
+        var operationKey = CompositeKey.Create(id);
 
         var work = services.GetRequiredService<WorkOrchestrator>();
         var startTimeout = trackingOptions.StartTimeout;
@@ -130,7 +131,7 @@ public abstract partial class WebApi<TResult>
         WorkState created;
         try
         {
-            var createdResult = await work.CreateAsync(new WorkArgs(typeName, operationKey)
+            var createdResult = await work.CreateAsync(new WorkArgs(typeName, operationOptions.OperationName, operationKey)
             {
                 StartTimeout = startTimeout,
                 Expiry = trackingOptions.Expiry,
@@ -150,7 +151,11 @@ public abstract partial class WebApi<TResult>
             return ServiceUnavailable(request.HttpContext.Response);
         }
 
-        message.WithOperation(operationKey, created.StartBy ?? throw new InvalidDataException("A tracked operation has no first-start deadline."));
+        message.DomainName = created.DomainName;
+        message.TenantId = NormalizeTenantId(created.TenantId);
+        message.OperationId = created.Id.ThrowIfNullOrWhiteSpace(nameof(created.Id));
+        message.OperationName = created.OperationName;
+        message.OperationStartBy = created.StartBy ?? throw new InvalidDataException("A tracked operation has no first-start deadline.");
 
         try
         {
@@ -166,7 +171,7 @@ public abstract partial class WebApi<TResult>
             {
                 try
                 {
-                    fence = await work.FenceAsync(operationKey, new WorkError("dispatch-failed", "The operation message could not be dispatched.", true), reconciliation.Token).ConfigureAwait(false);
+                    fence = await work.FenceAsync(operationOptions.OperationName, operationKey, new WorkError("dispatch-failed", "The operation message could not be dispatched.", true), reconciliation.Token).ConfigureAwait(false);
                 }
                 catch (Exception fenceException)
                 {
@@ -233,4 +238,30 @@ public abstract partial class WebApi<TResult>
     /// Requests release of an owned idempotency attempt when the HTTP feature is present.
     /// </summary>
     private static void ReleaseIdempotencyAttempt(HttpContext context) => context.Features.Get<IIdempotencyAttemptFeature>()?.ReleaseForRetry();
+
+    /// <summary>
+    /// Validates that a message can initiate tracked work in the current domain and tenant.
+    /// </summary>
+    private static void EnsureOperationMessage(EventData eventData, string domainName, string? tenantId)
+    {
+        eventData.ThrowIfNull();
+        domainName.ThrowIfNullOrWhiteSpace();
+
+        if (eventData.MessageType != CoreEx.Events.MessageType.Command)
+            throw new InvalidOperationException($"A tracked operation must be initiated by a '{nameof(CoreEx.Events.MessageType.Command)}' message; '{eventData.MessageType}' is only supported for untracked publishing.");
+
+        if (eventData.DomainName is not null && !string.Equals(eventData.DomainName, domainName, StringComparison.Ordinal))
+            throw new InvalidOperationException($"A tracked operation command must be addressed to the owning domain '{domainName}'; it targets '{eventData.DomainName}'.");
+
+        if (!string.Equals(NormalizeTenantId(eventData.TenantId), NormalizeTenantId(tenantId), StringComparison.Ordinal))
+            throw new InvalidOperationException("A tracked operation command tenant must match the operation tenant.");
+
+        if (eventData.Attributes.ContainsKey("operationid"))
+            throw new InvalidOperationException("The message is already associated with an operation; a tracked operation is initiated by exactly one command.");
+    }
+
+    /// <summary>
+    /// Normalizes an empty tenant to <see langword="null"/> (domain-wide).
+    /// </summary>
+    private static string? NormalizeTenantId(string? tenantId) => string.IsNullOrEmpty(tenantId) ? null : tenantId;
 }

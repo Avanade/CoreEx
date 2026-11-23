@@ -4,7 +4,6 @@ namespace CoreEx.Entities;
 /// Represents an immutable composite key.
 /// </summary>
 /// <remarks>May contain zero or more <see cref="Args"/> that represent the composite key.
-/// <para><b>NOTE:</b> For performance-critical scenarios with 1-4 arguments, use the generic <see cref="Create{T}(T)"/> overloads to avoid boxing of value types.</para>
 /// <para>The <see cref="CompositeKey"/> is largely intended for .NET code use only, as such there is no specific JSON serialization support enabled by design. The following code snippet demonstrates intended usage.</para>
 /// <code>
 /// public class SalesOrderItem
@@ -23,8 +22,6 @@ namespace CoreEx.Entities;
 public readonly partial struct CompositeKey() : IEquatable<CompositeKey>
 {
     private readonly ImmutableArray<object?> _args = [];
-    private readonly object? _fastPath = null;
-    private readonly byte _count = 0;
 
     /// <summary>
     /// Creates a new <see cref="CompositeKey"/> from the argument values.
@@ -34,25 +31,26 @@ public readonly partial struct CompositeKey() : IEquatable<CompositeKey>
     public static CompositeKey Create(params IEnumerable<object?> args) => new(args);
 
     /// <summary>
-    /// Creates a new <see cref="CompositeKey"/> from a single argument value without boxing (performance optimized).
+    /// Creates a new <see cref="CompositeKey"/> from a single argument value.
     /// </summary>
     /// <typeparam name="T">The argument <see cref="Type"/>.</typeparam>
     /// <param name="arg">The argument value for the key.</param>
     /// <returns>The <see cref="CompositeKey"/>.</returns>
-    public static CompositeKey Create<T>(T arg) => new(ValueTuple.Create(arg), 1);
+    /// <remarks>A <see langword="null"/> <paramref name="arg"/> creates a key with one null value.</remarks>
+    public static CompositeKey Create<T>(T arg) => new(ImmutableArray.Create<object?>(arg));
 
     /// <summary>
-    /// Creates a new <see cref="CompositeKey"/> from two argument values without boxing (performance optimized).
+    /// Creates a new <see cref="CompositeKey"/> from two argument values.
     /// </summary>
     /// <typeparam name="T1">The first argument <see cref="Type"/>.</typeparam>
     /// <typeparam name="T2">The second argument <see cref="Type"/>.</typeparam>
     /// <param name="arg1">The first argument value.</param>
     /// <param name="arg2">The second argument value.</param>
     /// <returns>The <see cref="CompositeKey"/>.</returns>
-    public static CompositeKey Create<T1, T2>(T1 arg1, T2 arg2) => new((arg1, arg2), 2);
+    public static CompositeKey Create<T1, T2>(T1 arg1, T2 arg2) => new(ImmutableArray.Create<object?>(arg1, arg2));
 
     /// <summary>
-    /// Creates a new <see cref="CompositeKey"/> from three argument values without boxing (performance optimized).
+    /// Creates a new <see cref="CompositeKey"/> from three argument values.
     /// </summary>
     /// <typeparam name="T1">The first argument <see cref="Type"/>.</typeparam>
     /// <typeparam name="T2">The second argument <see cref="Type"/>.</typeparam>
@@ -61,10 +59,10 @@ public readonly partial struct CompositeKey() : IEquatable<CompositeKey>
     /// <param name="arg2">The second argument value.</param>
     /// <param name="arg3">The third argument value.</param>
     /// <returns>The <see cref="CompositeKey"/>.</returns>
-    public static CompositeKey Create<T1, T2, T3>(T1 arg1, T2 arg2, T3 arg3) => new((arg1, arg2, arg3), 3);
+    public static CompositeKey Create<T1, T2, T3>(T1 arg1, T2 arg2, T3 arg3) => new(ImmutableArray.Create<object?>(arg1, arg2, arg3));
 
     /// <summary>
-    /// Creates a new <see cref="CompositeKey"/> from four argument values without boxing (performance optimized).
+    /// Creates a new <see cref="CompositeKey"/> from four argument values.
     /// </summary>
     /// <typeparam name="T1">The first argument <see cref="Type"/>.</typeparam>
     /// <typeparam name="T2">The second argument <see cref="Type"/>.</typeparam>
@@ -75,7 +73,7 @@ public readonly partial struct CompositeKey() : IEquatable<CompositeKey>
     /// <param name="arg3">The third argument value.</param>
     /// <param name="arg4">The fourth argument value.</param>
     /// <returns>The <see cref="CompositeKey"/>.</returns>
-    public static CompositeKey Create<T1, T2, T3, T4>(T1 arg1, T2 arg2, T3 arg3, T4 arg4) => new((arg1, arg2, arg3, arg4), 4);
+    public static CompositeKey Create<T1, T2, T3, T4>(T1 arg1, T2 arg2, T3 arg3, T4 arg4) => new(ImmutableArray.Create<object?>(arg1, arg2, arg3, arg4));
 
     /// <summary>
     /// Initializes a new <see cref="CompositeKey"/> from the argument values.
@@ -84,55 +82,16 @@ public readonly partial struct CompositeKey() : IEquatable<CompositeKey>
     public CompositeKey(params IEnumerable<object?>? args) : this() => _args = args is null ? [null] : [.. args];
 
     /// <summary>
-    /// Initializes a new <see cref="CompositeKey"/> using fast path storage (no boxing).
+    /// Initializes a new <see cref="CompositeKey"/> from an already immutable argument array.
     /// </summary>
-    private CompositeKey(object? fastPath, byte count) : this([])
-    {
-        _fastPath = fastPath;
-        _count = count;
-        _args = default;
-    }
+    private CompositeKey(ImmutableArray<object?> args) : this() => _args = args;
 
     /// <summary>
     /// Gets the argument values for the key.
     /// </summary>
-    /// <remarks>The <see cref="Args"/> are immutable. When using fast path storage, this property materializes the arguments from the tuple.</remarks>
+    /// <remarks>The <see cref="Args"/> are immutable; a <see langword="default"/> key has no arguments.</remarks>
     [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    public ImmutableArray<object?> Args => _count == 0 ? _args : MaterializeArgs();
-
-    /// <summary>
-    /// Gets whether this key uses fast path storage (no boxing).
-    /// </summary>
-    internal bool IsFastPath => _count > 0;
-
-    /// <summary>
-    /// Gets the fast path storage object (tuple).
-    /// </summary>
-    internal object? FastPath => _fastPath;
-
-    /// <summary>
-    /// Gets the count of arguments in fast path storage.
-    /// </summary>
-    internal byte FastPathCount => _count;
-
-    /// <summary>
-    /// Materializes the arguments from fast path storage into an immutable array.
-    /// </summary>
-    private ImmutableArray<object?> MaterializeArgs()
-    {
-        if (_fastPath is not ITuple tuple)
-            return [];
-
-        return _count switch
-        {
-            1 => [tuple[0]],
-            2 => [tuple[0], tuple[1]],
-            3 => [tuple[0], tuple[1], tuple[2]],
-            4 => [tuple[0], tuple[1], tuple[2], tuple[3]],
-            _ => []
-        };
-    }
-
+    public ImmutableArray<object?> Args => _args.IsDefault ? [] : _args;
     /// <summary>
     /// Determines whether the current <see cref="CompositeKey"/> is equal to another <see cref="CompositeKey"/>.
     /// </summary>
@@ -172,160 +131,124 @@ public readonly partial struct CompositeKey() : IEquatable<CompositeKey>
     public static bool operator !=(CompositeKey left, CompositeKey right) => !(left == right);
 
     /// <summary>
-    /// Gets the string representation of the <see cref="CompositeKey"/>.
+    /// Gets the fixed delimiter between components. The tilde is URI-unreserved, so canonical keys can be used in URLs without percent-encoding the separator; it is also absent from the invariant formats used by the built-in scalar types.
+    /// </summary>
+    public const char Delimiter = '~';
+
+    /// <summary>
+    /// Gets the readable, value-based string representation of the <see cref="CompositeKey"/>.
     /// </summary>
     /// <returns>The string representation.</returns>
-    /// <remarks>Uses the configured <see cref="ToStringFormatter"/>. Use <see cref="ToString(Func{CompositeKey, string})"/> to supply a formatter for one invocation.</remarks>
-    public override string? ToString() => ToString(ToStringFormatter);
+    /// <remarks>Produces the same text as <see cref="ToCanonicalString"/> but never throws: an empty key is an empty string, a <see langword="null"/> component is empty, and an unsupported type uses its invariant <see cref="Convert.ToString(object?, IFormatProvider?)"/> text. Use <see cref="ToCanonicalString"/> wherever the result is used as an identity.</remarks>
+    public override string ToString() => Format(strict: false);
 
     /// <summary>
-    /// Gets the string representation of the <see cref="CompositeKey"/> using the specified formatter.
+    /// Gets the readable, value-based string representation validated for use as an identity.
     /// </summary>
-    /// <param name="formatter">The formatter to use for this invocation.</param>
-    /// <returns>The formatted string representation.</returns>
-    public string ToString(Func<CompositeKey, string> formatter) => formatter.ThrowIfNull()(this);
+    /// <returns>The canonical representation.</returns>
+    /// <remarks>Values are invariant-formatted without escaping and joined with <see cref="Delimiter"/>; a single-component key is its value text. The result is one-way (it is never parsed) and replay-stable: a canonical string used as a single-component key produces the same canonical string. Type is not part of identity: values with the same invariant text are equivalent. It does not change <see cref="Equals(CompositeKey)"/>. This is not a serialization or a secret. See the CoreEx.Entities README for supported types and normalization.</remarks>
+    /// <exception cref="ArgumentException">The key has no components; has a null component; has a component containing a NUL character or an unpaired surrogate; or has multiple components and one contains <see cref="Delimiter"/>.</exception>
+    /// <exception cref="NotSupportedException">An argument has an unsupported type.</exception>
+    public string ToCanonicalString() => Format(strict: true);
 
     /// <summary>
-    /// Gets or sets the <see cref="ToString()"/> formatter function.
+    /// Formats the arguments, optionally validating them for use as an identity.
     /// </summary>
-    /// <remarks>The initial formatter is <see cref="StandardStringFormatter"/>. Use <see cref="CollisionResistantStringFormatter"/> for unambiguous output across composite arguments.</remarks>
-    public static Func<CompositeKey, string> ToStringFormatter
+    private string Format(bool strict)
     {
-        get;
-        set => field = value.ThrowIfNull();
-    } = StandardStringFormatter;
+        var args = Args;
+        if (args.IsDefaultOrEmpty)
+            return strict ? throw new ArgumentException("A canonical composite key requires at least one component.", "key") : string.Empty;
 
-    /// <summary>
-    /// Formats the arguments using a simple comma-separated representation.
-    /// </summary>
-    /// <param name="key">The composite key.</param>
-    /// <returns>The comma-separated representation.</returns>
-    /// <remarks>This format is deterministic and culture-independent, but arguments containing commas or equal text from different types can collide.</remarks>
-    public static string StandardStringFormatter(CompositeKey key) => string.Join(',', key.Args.Select(ArgumentToString));
-
-    /// <summary>
-    /// Formats the arguments using separated type tags and length-prefixed values.
-    /// </summary>
-    /// <param name="key">The composite key.</param>
-    /// <returns>An unambiguous, deterministic representation of the supported argument values.</returns>
-    /// <remarks>Strings and byte arrays are encoded as hexadecimal data. Unsupported object types throw <see cref="NotSupportedException"/> rather than relying on arbitrary <see cref="object.ToString"/> implementations.</remarks>
-    public static string CollisionResistantStringFormatter(CompositeKey key)
-    {
-        var args = key.Args;
-        if (args.IsDefault)
-            args = [];
+        if (!strict && args.Length == 1)
+            return ArgumentToString(args[0], strict);
 
         var builder = new StringBuilder();
-        builder.Append(args.Length.ToString(CultureInfo.InvariantCulture)).Append(':');
-        foreach (var arg in args)
+        for (var i = 0; i < args.Length; i++)
         {
-            var (type, value) = FormatCollisionResistantArgument(arg);
-            AppendLengthPrefixed(builder, type);
-            AppendLengthPrefixed(builder, value);
+            if (i > 0)
+                builder.Append(Delimiter);
+
+            var arg = args[i];
+            if (strict && arg is null)
+                throw new ArgumentException($"A canonical composite key component must not be null (index {i}).", "key");
+
+            var value = ArgumentToString(arg, strict);
+            if (strict)
+                ValidateCanonicalComponent(value, i, args.Length > 1);
+
+            builder.Append(value);
         }
 
         return builder.ToString();
     }
 
     /// <summary>
-    /// Appends a string with its length so adjacent values can be parsed without delimiters.
+    /// Rejects component text that cannot be reliably persisted or that would make a multi-component key ambiguous.
     /// </summary>
-    private static void AppendLengthPrefixed(StringBuilder builder, string value) => builder.Append(value.Length.ToString(CultureInfo.InvariantCulture)).Append(':').Append(value);
+    private static void ValidateCanonicalComponent(string value, int index, bool isMultiComponent)
+    {
+        for (var i = 0; i < value.Length; i++)
+        {
+            var c = value[i];
+            if (c == '\0')
+                throw new ArgumentException($"A canonical composite key component must not contain a NUL character (index {index}).", "key");
+
+            if (c == Delimiter && isMultiComponent)
+                throw new ArgumentException($"A component of a multi-component canonical composite key must not contain '{Delimiter}' (index {index}).", "key");
+
+            if (char.IsHighSurrogate(c) && i + 1 < value.Length && char.IsLowSurrogate(value[i + 1]))
+                i++;
+            else if (char.IsSurrogate(c))
+                throw new ArgumentException($"A canonical composite key component must not contain an unpaired surrogate (index {index}).", "key");
+        }
+    }
 
     /// <summary>
-    /// Gets the type tag and invariant value representation for a supported argument.
+    /// Converts an argument to invariant value text; unsupported types throw when <paramref name="strict"/>.
     /// </summary>
-    private static (string Type, string Value) FormatCollisionResistantArgument(object? arg)
+    private static string ArgumentToString(object? arg, bool strict)
     {
         if (arg is null)
-            return ("n", string.Empty);
+            return string.Empty;
 
         if (arg is Enum enumValue)
-            return FormatEnum(enumValue);
+        {
+            var underlying = Convert.ChangeType(enumValue, Enum.GetUnderlyingType(enumValue.GetType()), CultureInfo.InvariantCulture);
+            return Convert.ToString(underlying, CultureInfo.InvariantCulture) ?? throw new InvalidOperationException("The enum value could not be formatted.");
+        }
 
         return arg switch
         {
-            string value => ("s", EncodeString(value)),
-            char value => ("c", ((int)value).ToString("X4", CultureInfo.InvariantCulture)),
-            bool value => ("b", value ? "1" : "0"),
-            sbyte value => ("i8", value.ToString(CultureInfo.InvariantCulture)),
-            byte value => ("u8", value.ToString(CultureInfo.InvariantCulture)),
-            short value => ("i16", value.ToString(CultureInfo.InvariantCulture)),
-            ushort value => ("u16", value.ToString(CultureInfo.InvariantCulture)),
-            int value => ("i32", value.ToString(CultureInfo.InvariantCulture)),
-            uint value => ("u32", value.ToString(CultureInfo.InvariantCulture)),
-            long value => ("i64", value.ToString(CultureInfo.InvariantCulture)),
-            ulong value => ("u64", value.ToString(CultureInfo.InvariantCulture)),
-            nint value => ("ni", value.ToString(CultureInfo.InvariantCulture)),
-            nuint value => ("nu", value.ToString(CultureInfo.InvariantCulture)),
-            float value => ("f32", value == 0 ? "0" : value.ToString("R", CultureInfo.InvariantCulture)),
-            double value => ("f64", value == 0 ? "0" : value.ToString("R", CultureInfo.InvariantCulture)),
-            decimal value => ("dec", value.ToString("G29", CultureInfo.InvariantCulture)),
-            Guid value => ("g", value.ToString("N")),
-            DateTime value => ("dt", value.Ticks.ToString(CultureInfo.InvariantCulture)),
-            DateTimeOffset value => ("dto", value.UtcDateTime.Ticks.ToString(CultureInfo.InvariantCulture)),
-            TimeSpan value => ("ts", value.Ticks.ToString(CultureInfo.InvariantCulture)),
-            DateOnly value => ("d", value.DayNumber.ToString(CultureInfo.InvariantCulture)),
-            TimeOnly value => ("t", value.Ticks.ToString(CultureInfo.InvariantCulture)),
-            byte[] value => ("bin", Convert.ToHexString(value)),
-            _ => throw new NotSupportedException($"The type '{arg.GetType()}' is not supported by the collision-resistant composite-key formatter.")
-        };
-    }
-
-    /// <summary>
-    /// Formats an enum with its stable type identity and underlying numeric value.
-    /// </summary>
-    private static (string Type, string Value) FormatEnum(Enum value)
-    {
-        var enumType = value.GetType();
-        var typeName = new StringBuilder();
-        AppendLengthPrefixed(typeName, EncodeString(enumType.Assembly.GetName().Name ?? string.Empty));
-        AppendLengthPrefixed(typeName, EncodeString(enumType.FullName ?? enumType.Name));
-        var underlyingType = Enum.GetUnderlyingType(enumType);
-        AppendLengthPrefixed(typeName, Type.GetTypeCode(underlyingType).ToString());
-
-        var underlyingValue = Convert.ChangeType(value, underlyingType, CultureInfo.InvariantCulture);
-        var numericValue = Convert.ToString(underlyingValue, CultureInfo.InvariantCulture)
-            ?? throw new InvalidOperationException("The enum value could not be formatted.");
-        return ($"e:{typeName}", numericValue);
-    }
-
-    /// <summary>
-    /// Encodes the UTF-16 code units of a string as hexadecimal data.
-    /// </summary>
-    private static string EncodeString(string value)
-    {
-        var builder = new StringBuilder(value.Length * 4);
-        foreach (var character in value)
-            builder.Append(((int)character).ToString("X4", CultureInfo.InvariantCulture));
-
-        return builder.ToString();
-    }
-
-    /// <summary>
-    /// Converts an argument into a universal, deterministic, and culture-independent <see cref="string"/>.
-    /// </summary>
-    private static string? ArgumentToString(object? arg)
-    {
-        if (arg is null)
-            return null;
-
-        return arg switch
-        {
-            string s => s,
-            Guid g => g.ToString("D"),
-            DateTimeOffset dto => dto.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture),
-            DateTime dt => dt.ToString("o", CultureInfo.InvariantCulture),
-            float f => f.ToString("R", CultureInfo.InvariantCulture),
-            double d => d.ToString("R", CultureInfo.InvariantCulture),
-            decimal m => m.ToString("G", CultureInfo.InvariantCulture),
-            bool b => b ? "true" : "false",
-            byte[] bytes => Convert.ToBase64String(bytes),
-            TimeSpan ts => ts.ToString("c", CultureInfo.InvariantCulture),
-            DateOnly d => d.ToString("O", CultureInfo.InvariantCulture),
-            TimeOnly t => t.ToString("O", CultureInfo.InvariantCulture),
-            char c => c.ToString(),
-            _ => Convert.ToString(arg, CultureInfo.InvariantCulture),
+            string value => value,
+            char value => value.ToString(),
+            bool value => value ? "true" : "false",
+            sbyte value => value.ToString(CultureInfo.InvariantCulture),
+            byte value => value.ToString(CultureInfo.InvariantCulture),
+            short value => value.ToString(CultureInfo.InvariantCulture),
+            ushort value => value.ToString(CultureInfo.InvariantCulture),
+            int value => value.ToString(CultureInfo.InvariantCulture),
+            uint value => value.ToString(CultureInfo.InvariantCulture),
+            long value => value.ToString(CultureInfo.InvariantCulture),
+            ulong value => value.ToString(CultureInfo.InvariantCulture),
+            nint value => value.ToString(CultureInfo.InvariantCulture),
+            nuint value => value.ToString(CultureInfo.InvariantCulture),
+            Int128 value => value.ToString(CultureInfo.InvariantCulture),
+            UInt128 value => value.ToString(CultureInfo.InvariantCulture),
+            System.Numerics.BigInteger value => value.ToString(CultureInfo.InvariantCulture),
+            Half value => value == (Half)0 ? "0" : value.ToString("R", CultureInfo.InvariantCulture),
+            float value => value == 0 ? "0" : value.ToString("R", CultureInfo.InvariantCulture),
+            double value => value == 0 ? "0" : value.ToString("R", CultureInfo.InvariantCulture),
+            decimal value => value.ToString("G29", CultureInfo.InvariantCulture),
+            Guid value => value.ToString("D"),
+            DateTime value => value.ToString("yyyy-MM-dd'T'HH:mm:ss.fffffff", CultureInfo.InvariantCulture),
+            DateTimeOffset value => value.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture),
+            TimeSpan value => value.ToString("c", CultureInfo.InvariantCulture),
+            DateOnly value => value.ToString("O", CultureInfo.InvariantCulture),
+            TimeOnly value => value.ToString("O", CultureInfo.InvariantCulture),
+            byte[] value => Convert.ToBase64String(value),
+            _ when strict => throw new NotSupportedException($"The type '{arg.GetType()}' is not supported by the canonical composite-key formatter."),
+            _ => Convert.ToString(arg, CultureInfo.InvariantCulture) ?? string.Empty
         };
     }
 }

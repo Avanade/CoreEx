@@ -20,27 +20,28 @@ public class NativeMessageTests
     }
 
     [Test]
-    public void OperationMetadata_RoundTripsCompleteIdentityAndOmitsAbsentTenant()
+    public void OperationMetadata_UsesStandardDomainAndTenant()
     {
         var startBy = new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.FromHours(2));
-        var key = OperationKey.ForTenant("orders", "tenant-a", "webapi-operations", "operation-1");
         var formatter = new EventFormatter { SourceBaseUri = new Uri("urn:test") };
-        var value = EventData.CreateEventWith(new { Value = 1 }, "created").WithKey("partition").WithOperation(key, startBy);
+        var value = new EventData { MessageType = MessageType.Command, TenantId = "tenant-a", DomainName = "orders" }
+            .WithValue(new { Value = 1 }).WithAction("submit").WithKey("partition");
+        value.OperationId = "operation-1";
+        value.OperationName = "webapi-operations";
+        value.OperationStartBy = startBy;
 
+        value.DomainName.Should().Be("orders");
         var stored = formatter.ConvertToCloudEvent(formatter.Format(value)).EncodeToJsonElement();
-        stored.GetProperty("operationid").GetString().Should().Be(key.InstanceId);
-        stored.GetProperty("operationdomain").GetString().Should().Be(key.DomainName);
-        stored.GetProperty("operationscope").GetString().Should().Be("tenant");
-        stored.GetProperty("operationname").GetString().Should().Be(key.OperationName);
-        stored.GetProperty("operationtenantid").GetString().Should().Be(key.TenantId);
+        stored.GetProperty("operationid").GetString().Should().Be(value.OperationId);
+        stored.GetProperty("operationname").GetString().Should().Be(value.OperationName);
         stored.GetProperty("operationstartby").GetString().Should().Be(startBy.ToUniversalTime().ToString("O", System.Globalization.CultureInfo.InvariantCulture));
+        stored.GetProperty("tenantid").GetString().Should().Be(value.TenantId);
 
-        var domainKey = OperationKey.ForDomain("orders", "webapi-operations", "operation-2");
-        var domainMessage = EventData.CreateEventWith(new { Value = 2 }, "created").WithKey("partition").WithOperation(domainKey, startBy);
-        var domainStored = formatter.ConvertToCloudEvent(formatter.Format(domainMessage)).EncodeToJsonElement();
-        domainStored.TryGetProperty("operationtenantid", out _).Should().BeFalse();
+        var restored = formatter.ConvertFromCloudEvent(stored.DecodeToCloudEvent());
+        restored.OperationId.Should().Be(value.OperationId);
+        restored.OperationName.Should().Be(value.OperationName);
+        restored.OperationStartBy.Should().Be(value.OperationStartBy);
     }
-
     [TestCase("application/json", "{ \"x\": 1 }")]
     [TestCase("application/octet-stream", "\0\u00ff\n")]
     [TestCase("text/plain; charset=utf-8", "hello \"world\"")]

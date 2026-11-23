@@ -69,7 +69,7 @@ When this host publishes to multiple session-enabled destinations, set any desti
 
 ## Caching
 
-The subscriber wires FusionCache with both in-memory (L1) and Redis distributed (L2) backing for ordinary cache and reference-data use. Redis coordination is separate: `AddRedisCoordination()` stores synchronization and idempotency state across instances using explicit `OperationKey` identities, while `AddIdempotencyProvider()` supplies the HTTP integration. Preserve the configured `ICacheKeyProvider` for ordinary caching.
+The subscriber wires FusionCache with both in-memory (L1) and Redis distributed (L2) backing for ordinary cache and reference-data use. Redis coordination is separate: `AddRedisCoordination()` stores synchronization and idempotency state across instances using name-and-key identities qualified by host domain and ambient tenant, while `AddIdempotencyProvider()` supplies the HTTP integration. Preserve the configured `ICacheKeyProvider` for ordinary caching.
 
 ---
 

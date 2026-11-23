@@ -169,7 +169,7 @@ Generated hosts are complete and compile-safe, with no post-CodeGen uncomment or
 
 The API host is the primary HTTP composition root. It exposes controllers, OpenAPI docs, reference-data endpoints, and idempotency support.
 
-For tenant-aware HTTP idempotency, establish a trusted tenant in the scoped `ExecutionContext` and configure `IdempotencyProvider.Scope` to `OperationKeyScope.Tenant`; choose `DomainWide` only when outcomes should be shared across tenants.
+For tenant-aware HTTP idempotency, establish a trusted tenant in the scoped `ExecutionContext`; keys are automatically qualified by host domain and ambient tenant, and are domain-wide only when no tenant is present.
 
 ```csharp
 var builder = WebApplication.CreateBuilder(args);

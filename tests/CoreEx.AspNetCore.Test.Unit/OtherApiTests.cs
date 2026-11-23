@@ -209,7 +209,7 @@ public class OtherApiTests : WithApiTester<Api.Program>
         var owner = new CoreEx.Security.AuthenticationUser { Type = CoreEx.Security.AuthenticationType.AccountUser, UserName = "owner" };
         using var test = CreatePublishTester(services =>
         {
-            services.AddSingleton(new CoreEx.Hosting.Work.WorkOrchestrator(provider));
+            services.AddSingleton(sp => new CoreEx.Hosting.Work.WorkOrchestrator(provider, sp.GetRequiredService<CoreEx.Hosting.IHostSettings>()));
             services.AddExecutionContext((_, ec) => ec.User = owner);
         });
 
@@ -221,8 +221,9 @@ public class OtherApiTests : WithApiTester<Api.Program>
             {
                 actual.Event.Type.Should().Be("coreex.test.person.publish.v1");
                 publishedId = actual.Event["operationid"].Should().BeOfType<string>().Subject;
-                actual.Event["operationdomain"].Should().Be(domain);
-                actual.Event["operationscope"].Should().Be("domain");
+                actual.Event["operationdomain"].Should().BeNull();
+                actual.Event["operationscope"].Should().BeNull();
+                actual.Event["operationtenantid"].Should().BeNull();
                 actual.Event["operationname"].Should().Be("webapi-operations");
                 publishedStartBy = DateTimeOffset.Parse(actual.Event["operationstartby"].Should().BeOfType<string>().Subject, System.Globalization.CultureInfo.InvariantCulture);
                 using var payload = JsonDocument.Parse(actual.Event.Data.Should().BeOfType<BinaryData>().Which.ToMemory());
@@ -241,8 +242,7 @@ public class OtherApiTests : WithApiTester<Api.Program>
         response.Response.Headers.Location.ThrowIfNull().ToString().Should().Be(location);
         response.Response.Headers.GetValues("Operation-Location").Should().ContainSingle().Which.Should().Be(location);
 
-        var key = OperationKey.ForDomain(domain, "webapi-operations", id);
-        var state = (await provider.GetAsync(key, CancellationToken.None)).State.ThrowIfNull();
+        var state = (await provider.GetAsync(domain, null, "webapi-operations", id, CancellationToken.None)).State.ThrowIfNull();
         state.TypeName.Should().Be(typeof(Person).FullName);
         state.Status.Should().Be(CoreEx.Hosting.Work.WorkStatus.Created);
         state.User.Should().Be(owner);

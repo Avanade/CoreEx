@@ -17,7 +17,7 @@ public sealed class InMemoryCoordinationState
     /// <summary>
     /// Gets the entries dictionary.
     /// </summary>
-    internal readonly Dictionary<(string Purpose, OperationKey Key), Entry> Entries = [];
+    internal readonly Dictionary<(string Purpose, CompositeKey Key), Entry> Entries = [];
 
     /// <summary>
     /// Represents one retained ownership record.

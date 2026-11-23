@@ -15,7 +15,7 @@ The namespace also includes supporting utilities: `Cleaner` for normalizing stri
 - 🆔 **Identity contracts**: `IIdentifier<T>` / `IReadOnlyIdentifier<T>` provide a typed identifier property used uniformly across API, application, and infrastructure layers.
 - 🏷️ **ETag / optimistic concurrency**: `IETag` / `IReadOnlyETag` carry the entity tag string used for HTTP and data-layer concurrency checking; `ETag` static utility handles comparison and conflict detection.
 - 📋 **Audit change log**: `IChangeLog` / `IChangeLogEx` track `CreatedBy`, `CreatedDate`, `UpdatedBy`, `UpdatedDate`; `ChangeLog` record implements the full audit trail populated from the ambient `ExecutionContext`.
-- 🔑 **Composite keys**: `CompositeKey` is an immutable, allocation-efficient struct supporting 1–4 typed arguments without boxing, used as a key type across data-layer filtering and repository operations.
+- 🔑 **Composite keys**: `CompositeKey` is an immutable struct of zero or more arguments (value types are boxed once on creation; equality and hashing do not allocate), used as a key type across data-layer filtering and repository operations.
 - 📨 **Message items**: `MessageItem` and `MessageItemCollection` carry structured field-level messages (Error, Warning, Info) from validation and service operations back to the consumer.
 - 🧹 **Cleaning and normalization**: `Cleaner` applies configurable `StringTrim`, `StringTransform` (null/empty), `StringCase` (upper/lower/title), and `DateTimeTransform` (UTC/local) policies across entity properties before save.
 - 📐 **Feature detection**: `FeatureSupport` and extension methods allow infrastructure code to detect which interfaces an entity implements and act accordingly (e.g. auto-populate ETags or change logs).
@@ -23,8 +23,6 @@ The namespace also includes supporting utilities: `Cleaner` for normalizing stri
 - ✅ **Non-nullable intent**: `[NonNullable]` marks a property as mandatory/non-null for OpenAPI tooling even though it is declared nullable (`string?`, `int?`) in code for DTO flexibility.
 - 📝 **Partial-update values**: `Optional<T>` distinguishes an omitted request property from a supplied `null` or default value; use it on explicit patch DTOs, not persisted contracts.
 - 🔧 **Identifier generation**: `IdentifierGenerator` and `IIdentifierGenerator` provide DI-replaceable new `Guid`/`string` identifier creation (using `Guid.CreateVersion7()` on .NET 9+).
-
-`CompositeKey.ToString()` retains the existing comma-separated representation through `StandardStringFormatter` for compatibility; that format is not collision-resistant. Use `ToString(formatter)` to select a formatter per call, or `CollisionResistantStringFormatter` for typed, length-prefixed output. Its compact type tags are part of the formatted identity: `n` null, `s` string, `c` char, `b` bool, `i8`/`u8` through `i64`/`u64` integers, `ni`/`nu` native integers, `f32`/`f64` floating point, `dec` decimal, `g` GUID, `dt` DateTime, `dto` DateTimeOffset, `ts` TimeSpan, `d` DateOnly, `t` TimeOnly, `bin` byte array, and `e` enum. Unsupported object types throw instead of relying on arbitrary `ToString()` behavior.
 
 ## Key types
 
@@ -55,6 +53,14 @@ The namespace also includes supporting utilities: `Cleaner` for normalizing stri
 | [`IIdentifierGenerator`](./Extended/IIdentifierGenerator.cs) | DI-replaceable interface for generating new typed identifiers (`Guid`, `string`). |
 | [`ICopyFrom`](./Extended/ICopyFrom.cs) | Interface enabling an entity to copy its state from another instance of itself. |
 | [`IDefault`](./Extended/IDefault.cs) | Interface enabling an entity to determine whether it is in its default (unset) state. |
+
+## Composite key canonicalization
+
+`CompositeKey.ToString()` and `ToCanonicalString()` produce the same fixed, readable, value-based text. `ToString()` never throws (an empty key is an empty string, a null component is empty, and unsupported types use invariant `Convert.ToString`), so it is safe for display and logging. Use `ToCanonicalString()` wherever the result is an identity: it validates the key and throws rather than producing an ambiguous or lossy value. There is no configurable formatter.
+
+The canonical text is one-way: CoreEx never parses it back into values. For example, integer `123` and string `"123"` are equivalent; case, whitespace and empty components are preserved. Supported values are strings, characters, booleans, numeric types (including `Half`, `Int128`, `UInt128` and `BigInteger`), enums, GUIDs, date/time values and byte arrays; other types throw. Numbers use invariant formatting, equivalent decimal scales and signed floating-point zeros are normalized, enums use their underlying number, GUIDs use lowercase `D` format, `DateTime` ignores `Kind`, and `DateTimeOffset` is normalized to UTC. Byte arrays use Base64. The output is not encrypted or secret. Canonical formatting does not change `CompositeKey.Equals`: typed equality may differ from canonical equality (for example, `1` and `"1"` are not equal). Byte arrays compare and hash by content, but remain mutable: do not modify an array after it is used as a key.
+
+Values are emitted without escaping and joined with the fixed `CompositeKey.Delimiter` (`~`). The tilde is URI-unreserved, so it does not need percent-encoding when a key is used in a URL, and it does not appear in the invariant formats of the built-in scalar types. A single component is just its value, so `CompositeKey.Create(guid).ToCanonicalString()` is the GUID text and `CompositeKey.Create("order-1", 2)` is `order-1~2`. The format is replay-stable: a canonical string used as a single-component key produces the same canonical string. Consequently a single component may contain `~`, but a component of a multi-component key may not, so distinct multi-component keys cannot collide. `ToCanonicalString()` throws `ArgumentException` for an empty key, a null component, a NUL character or an unpaired surrogate. Treat this representation as persisted data: changing its format or normalization requires a migration strategy.
 
 ## Object cleaning
 

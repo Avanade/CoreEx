@@ -5,23 +5,26 @@ namespace CoreEx.Hosting.Work;
 /// </summary>
 /// <remarks>The <see cref="WorkOrchestrator"/> contains all orchestration logic, including transition validation, and relies on the provider for atomicity only. Implementations must guarantee that:
 /// <list type="bullet">
-/// <item><see cref="CreateAsync"/> is an atomic insert-if-absent; exactly one concurrent caller for the same <see cref="WorkState.OperationKey"/> succeeds.</item>
+/// <item><see cref="CreateAsync"/> is an atomic insert-if-absent; exactly one concurrent caller for the same identity (<see cref="WorkState.DomainName"/>, <see cref="WorkState.TenantId"/>, <see cref="WorkState.OperationName"/> and <see cref="WorkState.Id"/>) succeeds.</item>
 /// <item><see cref="UpdateAsync"/> and <see cref="DeleteAsync"/> only succeed where the <see cref="WorkState.ETag"/> matches the currently persisted version.</item>
 /// <item>A recreated record has a distinct <see cref="WorkState.ETag"/> from every version of its previous incarnation.</item>
-/// <item><see cref="GetAsync"/> returns an independent copy with the requested <see cref="WorkState.OperationKey"/> and its <see cref="WorkState.ETag"/> set, and the time observed atomically with the read.</item>
-/// <item>A state write uses the immutable identity fields on <see cref="WorkState"/> as its complete logical key; its <see cref="WorkState.Id"/> is only the instance identifier.</item>
+/// <item><see cref="GetAsync"/> returns an independent copy with the requested identity and its <see cref="WorkState.ETag"/> set, and the time observed atomically with the read.</item>
+/// <item>A state write uses the identity fields on <see cref="WorkState"/> as its complete logical key; these fields must remain unchanged after creation. Its <see cref="WorkState.Id"/> is only the instance identifier. Identity comparison is ordinal (case-sensitive).</item>
 /// <item>Records are retained for at least the requested time-to-live; a cache that may evict entries early is <b>not</b> a suitable store.</item>
 /// </list>
 /// </remarks>
 public interface IWorkProvider
 {
     /// <summary>
-    /// Gets (reads) an independent copy of the <see cref="WorkState"/> using the specified <paramref name="operationKey"/>.
+    /// Gets (reads) an independent copy of the <see cref="WorkState"/> using the specified complete identity.
     /// </summary>
-    /// <param name="operationKey">The complete operation identity.</param>
+    /// <param name="domainName">The stable domain name.</param>
+    /// <param name="tenantId">The tenant identifier for tenant-scoped work; otherwise, <see langword="null"/> or empty.</param>
+    /// <param name="operationName">The stable application-defined operation name.</param>
+    /// <param name="id">The operation instance identifier.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
     /// <returns>A <see cref="WorkSnapshot"/> containing provider time and the state where found.</returns>
-    Task<WorkSnapshot> GetAsync(OperationKey operationKey, CancellationToken cancellationToken);
+    Task<WorkSnapshot> GetAsync(string domainName, string? tenantId, string operationName, string id, CancellationToken cancellationToken);
 
     /// <summary>
     /// Atomically creates the <paramref name="state"/> where it does not already exist.

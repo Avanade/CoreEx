@@ -13,15 +13,9 @@ public sealed class OperationsOptions
     public string RoutePrefix { get; set; } = "/operations";
 
     /// <summary>
-    /// Gets or sets the stable operation name used in the explicit <see cref="OperationKey"/>.
+    /// Gets or sets the stable operation name that, with the operation identifier, forms the work identity; qualified by the host domain name and the ambient <see cref="ExecutionContext.TenantId"/> (where present).
     /// </summary>
     public string OperationName { get; set; } = "webapi-operations";
-
-    /// <summary>
-    /// Gets or sets the scope shared by the generic operations resource; defaults to domain-wide.
-    /// </summary>
-    public OperationKeyScope Scope { get; set; } = OperationKeyScope.Domain;
-
 
     /// <summary>
     /// Adds an operation type to the registry.
@@ -55,7 +49,5 @@ public sealed class OperationsOptions
         if (string.IsNullOrWhiteSpace(OperationName))
             throw new InvalidOperationException("The operations resource name is required.");
 
-        if (!Enum.IsDefined(Scope))
-            throw new InvalidOperationException("A valid operation scope is required.");
     }
 }

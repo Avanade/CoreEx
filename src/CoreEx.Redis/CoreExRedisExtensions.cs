@@ -21,7 +21,7 @@ public static class CoreExRedisExtensions
         if (maxIdempotencyPayloadSize is <= 0)
             throw new ArgumentOutOfRangeException(nameof(maxIdempotencyPayloadSize));
 
-        services.AddScoped(sp => new CoreEx.Redis.RedisCoordination(sp.GetRequiredService<IConnectionMultiplexer>(), sp.GetRequiredService<ILogger<CoreEx.Redis.RedisCoordination>>(), options, maxIdempotencyPayloadSize));
+        services.AddScoped(sp => new CoreEx.Redis.RedisCoordination(sp.GetRequiredService<IConnectionMultiplexer>(), sp.GetRequiredService<IHostSettings>(), sp.GetRequiredService<ILogger<CoreEx.Redis.RedisCoordination>>(), options, maxIdempotencyPayloadSize));
         services.AddScoped<ISynchronizer>(sp => sp.GetRequiredService<CoreEx.Redis.RedisCoordination>());
         services.AddScoped<IIdempotencyStore>(sp => sp.GetRequiredService<CoreEx.Redis.RedisCoordination>());
         return services;
@@ -48,7 +48,7 @@ public static class CoreExRedisExtensions
             if (options.OperationTimeout > TimeSpan.FromTicks(workOptions.LeaseDuration.Ticks / 3))
                 throw new InvalidOperationException("The Redis operation timeout multiplied by three must not exceed the work lease duration.");
 
-            return new CoreEx.Hosting.Work.WorkOrchestrator(sp.GetRequiredService<CoreEx.Hosting.Work.IWorkProvider>(), workOptions);
+            return new CoreEx.Hosting.Work.WorkOrchestrator(sp.GetRequiredService<CoreEx.Hosting.Work.IWorkProvider>(), sp.GetRequiredService<IHostSettings>(), workOptions);
         });
 
         return services;

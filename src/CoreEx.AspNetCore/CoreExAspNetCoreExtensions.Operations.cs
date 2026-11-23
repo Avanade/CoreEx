@@ -119,7 +119,7 @@ public static partial class CoreExAspNetCoreExtensions
             WorkTransitionResult result;
             try
             {
-                result = await loaded.Services.GetRequiredService<WorkOrchestrator>().CancelAsync(loaded.State.OperationKey, cancellationToken: ct).ConfigureAwait(false);
+                result = await loaded.Services.GetRequiredService<WorkOrchestrator>().CancelAsync(loaded.State.OperationName, CompositeKey.Create(loaded.State.Id), cancellationToken: ct).ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested)
             {
@@ -158,16 +158,14 @@ public static partial class CoreExAspNetCoreExtensions
         var ec = webApi.ExecutionContext;
         var services = webApi.GetServiceProvider(request);
         var options = services.GetRequiredService<IOptions<OperationsOptions>>().Value;
-        var settings = services.GetRequiredService<IHostSettings>();
-        var key = CreateOperationKey(options, settings, ec, id);
-        if (key is null)
+        if (string.IsNullOrWhiteSpace(id))
             return null;
 
         WorkState? state;
         DateTimeOffset observedOn;
         try
         {
-            var snapshot = await services.GetRequiredService<WorkOrchestrator>().GetSnapshotAsync(key, cancellationToken).ConfigureAwait(false);
+            var snapshot = await services.GetRequiredService<WorkOrchestrator>().GetSnapshotAsync(options.OperationName, CompositeKey.Create(id), cancellationToken).ConfigureAwait(false);
             state = snapshot.State;
             observedOn = snapshot.Now;
         }
@@ -209,7 +207,7 @@ public static partial class CoreExAspNetCoreExtensions
 
         return new OperationStatus
         {
-            Id = state.Id ?? state.OperationKey.InstanceId,
+            Id = state.Id!,
             Status = state.Status switch
             {
                 WorkStatus.Created => "not-started",
@@ -242,23 +240,6 @@ public static partial class CoreExAspNetCoreExtensions
         WorkErrorCodes.ExecutionFailed => new("execution-failed", "The operation failed."),
         _ => new("operation-failed", "The operation failed.")
     };
-
-    /// <summary>
-    /// Creates an explicitly scoped operation key from trusted host configuration and the <see cref="ExecutionContext.TenantId"/>.
-    /// </summary>
-    internal static OperationKey? CreateOperationKey(OperationsOptions options, IHostSettings settings, ExecutionContext executionContext, string instanceId)
-    {
-        if (string.IsNullOrWhiteSpace(instanceId))
-            return null;
-
-        var tenantId = options.Scope == OperationKeyScope.Tenant ? executionContext.TenantId : null;
-        return options.Scope switch
-        {
-            OperationKeyScope.Domain => OperationKey.ForDomain(settings.DomainName, options.OperationName, instanceId),
-            OperationKeyScope.Tenant when !string.IsNullOrWhiteSpace(tenantId) => OperationKey.ForTenant(settings.DomainName, tenantId, options.OperationName, instanceId),
-            _ => null
-        };
-    }
 
     /// <summary>
     /// Builds the application-relative path for an operation resource.

@@ -1,6 +1,8 @@
 global using CoreEx.Abstractions;
 global using CoreEx.Caching;
 global using CoreEx.Coordination;
+global using CoreEx.Entities;
+global using CoreEx.Hosting;
 global using CoreEx.Hosting.Work;
 global using CoreEx.Idempotency;
 global using CoreEx.Json;

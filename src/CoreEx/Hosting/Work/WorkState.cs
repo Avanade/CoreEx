@@ -6,11 +6,6 @@ namespace CoreEx.Hosting.Work;
 public class WorkState : IIdentifier<string?>, IETag
 {
     /// <summary>
-    /// Gets or sets whether this work is scoped to a tenant or its domain.
-    /// </summary>
-    public required OperationKeyScope Scope { get; init; }
-
-    /// <summary>
     /// Gets or sets the stable domain name for this work.
     /// </summary>
     public required string DomainName { get; init; }
@@ -18,7 +13,8 @@ public class WorkState : IIdentifier<string?>, IETag
     /// <summary>
     /// Gets or sets the tenant identifier for tenant-scoped work; otherwise, <see langword="null"/>.
     /// </summary>
-    public string? TenantId { get; init; }
+    /// <remarks>An empty value is treated as <see langword="null"/>.</remarks>
+    public string? TenantId { get; init => field = string.IsNullOrEmpty(value) ? null : value; }
 
     /// <summary>
     /// Gets or sets the stable application-defined operation name.
@@ -26,15 +22,9 @@ public class WorkState : IIdentifier<string?>, IETag
     public required string OperationName { get; init; }
 
     /// <summary>
-    /// Gets the complete operation identity reconstructed from this work state's identity fields.
-    /// </summary>
-    /// <remarks>This computed value is not serialized; providers create storage keys from the state fields.</remarks>
-    [JsonIgnore]
-    public OperationKey OperationKey => new(Scope, DomainName, TenantId, OperationName, Id.ThrowIfNullOrWhiteSpace(nameof(Id)));
-
-    /// <summary>
     /// Gets or sets the operation instance identifier.
     /// </summary>
+    /// <remarks>Only unique within the domain, tenant and operation name; it must not change after creation.</remarks>
     public string? Id { get; set; }
 
     /// <summary>

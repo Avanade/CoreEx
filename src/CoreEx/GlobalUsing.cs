@@ -12,6 +12,7 @@ global using CoreEx.HealthChecks;
 global using CoreEx.Hosting;
 global using CoreEx.Http.Abstractions;
 global using CoreEx.Http;
+global using CoreEx.Idempotency;
 global using CoreEx.Invokers;
 global using CoreEx.Json;
 global using CoreEx.Localization;

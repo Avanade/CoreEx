@@ -4,17 +4,22 @@ namespace CoreEx.Redis;
 /// Coordinates bounded leases and retained idempotency outcomes directly on the Redis primary.
 /// </summary>
 /// <param name="connection">The host-owned connection.</param>
+/// <param name="settings">The host settings that provide the <see cref="IHostSettings.DomainName"/> used to qualify keys.</param>
 /// <param name="logger">The logger.</param>
 /// <param name="options">The ownership options.</param>
 /// <param name="maxPayloadSize">The maximum serialized idempotency response payload size, or <see langword="null"/> when unlimited.</param>
 /// <remarks>Redis failover, eviction or loss of persisted data can erase ownership. This is not resource fencing or exactly-once business execution.</remarks>
-public sealed class RedisCoordination(IConnectionMultiplexer connection, ILogger<RedisCoordination> logger, CoordinationOptions options, int? maxPayloadSize = 1024 * 1024) : ISynchronizer, IIdempotencyStore
+public sealed class RedisCoordination(IConnectionMultiplexer connection, IHostSettings settings, ILogger<RedisCoordination> logger, CoordinationOptions options, int? maxPayloadSize = 1024 * 1024) : ISynchronizer, IIdempotencyStore
 {
+    private const string LeasePurpose = "lease";
+    private const string IdempotencyPurpose = "idempotency";
+
     private static readonly string _begin = LoadScript("IdempotencyBegin.lua");
     private static readonly string _transition = LoadScript("IdempotencyTransition.lua");
     private static readonly string _resolve = LoadScript("IdempotencyResolve.lua");
     private static readonly string _renewLease = LoadScript("LeaseRenew.lua");
     private static readonly string _releaseLease = LoadScript("LeaseRelease.lua");
+    private readonly IHostSettings _settings = settings.ThrowIfNull();
     private readonly int? _maxPayloadSize = maxPayloadSize is <= 0 ? throw new ArgumentOutOfRangeException(nameof(maxPayloadSize)) : maxPayloadSize;
 
     /// <inheritdoc/>
@@ -30,9 +35,9 @@ public sealed class RedisCoordination(IConnectionMultiplexer connection, ILogger
     }
 
     /// <summary>
-    /// Namespaces an explicit identity without ambient qualification.
+    /// Namespaces the identity qualified by the host domain and ambient tenant.
     /// </summary>
-    private static RedisKey Key(string purpose, OperationKey key) => RedisOperationKey.Create($"CoreEx:coordination:v2:{purpose}:", key);
+    private RedisKey Key(string purpose, string name, CompositeKey key) => RedisKeyFormatter.Create($"CoreEx:coordination:v1:{purpose}:", _settings.DomainName, RedisKeyFormatter.GetTenantId(), name, key.ToCanonicalString().ThrowIfNullOrWhiteSpace(nameof(key)));
 
     /// <summary>
     /// Executes one primary-side operation with a bounded acknowledgement wait.
@@ -46,11 +51,11 @@ public sealed class RedisCoordination(IConnectionMultiplexer connection, ILogger
     }
 
     /// <inheritdoc/>
-    public async Task<ISynchronizationLease?> TryAcquireAsync(OperationKey key, CancellationToken cancellationToken = default)
+    public async Task<ISynchronizationLease?> TryAcquireAsync(string name, CompositeKey key, CancellationToken cancellationToken = default)
     {
         options.Validate();
         cancellationToken.ThrowIfCancellationRequested();
-        var physical = Key("lease", key);
+        var physical = Key(LeasePurpose, name, key);
         var owner = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
         var started = Stopwatch.GetTimestamp();
         using var operation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -73,11 +78,11 @@ public sealed class RedisCoordination(IConnectionMultiplexer connection, ILogger
     }
 
     /// <inheritdoc/>
-    public async Task<IdempotencyBeginResult> TryBeginAsync(OperationKey key, string fingerprint, CancellationToken cancellationToken = default)
+    public async Task<IdempotencyBeginResult> TryBeginAsync(string name, CompositeKey key, string fingerprint, CancellationToken cancellationToken = default)
     {
         options.Validate();
         cancellationToken.ThrowIfCancellationRequested();
-        var physical = Key("idempotency", key);
+        var physical = Key(IdempotencyPurpose, name, key);
         var owner = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
         var started = Stopwatch.GetTimestamp();
         var result = (RedisResult[]?)await ExecuteAsync(_begin, physical, [owner, fingerprint.ThrowIfNullOrEmpty(), (long)options.LeaseDuration.TotalMilliseconds, (long)options.Retention.TotalMilliseconds], cancellationToken).ConfigureAwait(false) ?? throw new InvalidOperationException("Redis returned no idempotency decision.");
@@ -112,7 +117,7 @@ public sealed class RedisCoordination(IConnectionMultiplexer connection, ILogger
     }
 
     /// <inheritdoc/>
-    public async Task<bool> TryResolveAsync(OperationKey key, string revision, BinaryData? response, bool allowRetry = false, CancellationToken cancellationToken = default)
+    public async Task<bool> TryResolveAsync(string name, CompositeKey key, string revision, BinaryData? response, bool allowRetry = false, CancellationToken cancellationToken = default)
     {
         options.Validate();
         if (!allowRetry)
@@ -121,7 +126,7 @@ public sealed class RedisCoordination(IConnectionMultiplexer connection, ILogger
             ValidateResponseSize(response);
         }
 
-        return (int)await ExecuteAsync(_resolve, Key("idempotency", key), [revision.ThrowIfNullOrEmpty(), allowRetry ? "retry" : response is null ? "U" : "C", response?.ToArray() ?? [], (long)options.Retention.TotalMilliseconds], cancellationToken).ConfigureAwait(false) == 1;
+        return (int)await ExecuteAsync(_resolve, Key(IdempotencyPurpose, name, key), [revision.ThrowIfNullOrEmpty(), allowRetry ? "retry" : response is null ? "U" : "C", response?.ToArray() ?? [], (long)options.Retention.TotalMilliseconds], cancellationToken).ConfigureAwait(false) == 1;
     }
 
     /// <summary>

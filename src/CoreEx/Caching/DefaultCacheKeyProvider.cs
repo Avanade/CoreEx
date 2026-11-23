@@ -19,8 +19,8 @@ public sealed class DefaultCacheKeyProvider(IHostSettings? hostSettings = null, 
         : _executionContext?.TenantId is null ? $"{_hostSettings.DomainName}:{key}" : $"{_hostSettings.DomainName}:{_executionContext.TenantId}:{key}";
 
     /// <inheritdoc/>
-    /// <remarks>This implementation uses the <see cref="IEntityKey"/> <see cref="Type"/> <see cref="MemberInfo.Name"/> of <typeparamref name="T"/> as a prefix, then a '<c>:</c>', followed by the <see cref="CompositeKey.ToString()"/>. For example, 
+    /// <remarks>This implementation uses the <see cref="IEntityKey"/> <see cref="Type"/> <see cref="MemberInfo.Name"/> of <typeparamref name="T"/> as a prefix, then a '<c>:</c>', followed by the <see cref="CompositeKey.ToCanonicalString()"/>. For example,
     /// the '<c>CoreEx.Testing.Product</c>' class with a key or 'Abc' would result in '<c>Product:Abc</c>'.
     /// </remarks>
-    public string GetEntityCacheKey<T>(CompositeKey key) where T : IEntityKey => $"{typeof(T).Name}:{key.ToString() ?? string.Empty}";
+    public string GetEntityCacheKey<T>(CompositeKey key) where T : IEntityKey => $"{typeof(T).Name}:{key.ToCanonicalString() ?? string.Empty}";
 }
