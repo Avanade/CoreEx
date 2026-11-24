@@ -233,38 +233,38 @@ ref-data:
 
 | Package | Use case |
 |---|---|
-| `DbEx.SqlServer` + `DbEx.SqlServer.Console` | SQL Server domains |
-| `DbEx.Postgres` + `DbEx.Postgres.Console` | PostgreSQL domains |
+| `DbEx.SqlServer` | SQL Server domains; `SqlServerMigrationConsole` |
+| `DbEx.Postgres` | PostgreSQL domains; `PostgresMigrationConsole` |
 | `CoreEx.Database` | `SqlStatement` type — add its assembly to the migration runner for extended schema scripts |
+| `CoreEx.Database.SqlServer` / `CoreEx.Database.Postgres` | Provider-specific operation script resources |
 
 > **Polyglot**: Use `PostgresMigrationConsole` with `.pgsql` scripts and PostgreSQL functions for PostgreSQL domains. Use `SqlServerMigrationConsole` with `.sql` scripts and stored procedures for SQL Server domains. Choose the correct package per domain.
 
 ### `Program.cs` pattern
 
-This is the generated baseline (the `Main` is provider-specific; `ConfigureMigrationArgs` is a plain block-bodied method — note **no** `=>` before the `{`):
+The generated baseline has these common calls (PostgreSQL example; for SQL Server use `SqlServerMigrationConsole`, `SqlServerDatabase`, and the `CoreEx.Database.SqlServer` / `DbEx.SqlServer.Console` namespaces):
 
 ```csharp
-// PostgreSQL domain example
-public static Task<int> Main(string[] args) => PostgresMigrationConsole
-    .Create<Program>("Server=127.0.0.1;Database=mydb;Username=postgres;Password=...")
-    .Configure(c => ConfigureMigrationArgs(c.Args))
-    .RunAsync(args);
+using CoreEx.Database;
+using CoreEx.Database.Postgres;
+using DbEx.Migration;
+using DbEx.Postgres.Console;
 
-// SQL Server domain example
-public static Task<int> Main(string[] args) => SqlServerMigrationConsole
-    .Create<Program>("Data Source=127.0.0.1,1433;Initial Catalog=MyDb;User id=sa;Password=...")
+public static Task<int> Main(string[] args) => new PostgresMigrationConsole("Server=127.0.0.1;Database=mydb;Username=postgres;Password=...")
     .Configure(c => ConfigureMigrationArgs(c.Args))
     .RunAsync(args);
 
 public static MigrationArgs ConfigureMigrationArgs(MigrationArgs args)
 {
-    args.AddAssembly<SqlStatement>().AddAssembly<Program>();   // SqlStatement = CoreEx EF code-gen templates; Program = this project's embedded Migrations/Schema/Data. Both REQUIRED — do not remove (see below).
+    args.AddAssembly<SqlStatement>().AddAssembly<PostgresDatabase>().AddAssembly<Program>();
     args.DataResetFilterPredicate = ts => ts.Schema == "{domain-schema}";   // Only reset data for this domain's schema.
     return args;
 }
 ```
 
-**Both `AddAssembly` calls are required — never drop `AddAssembly<Program>()`.** `AddAssembly<SqlStatement>()` brings in the CoreEx EF code-generation templates used by the `CodeGen` command; `AddAssembly<Program>()` registers **this** Database project's assembly, which carries the embedded `Migrations/`, `Schema/`, and `Data/` resources. It is tempting to omit `AddAssembly<Program>()` because `Create<Program>(...)` registers that assembly automatically — but that only applies when migration runs via **`Main`** (the console path). The **API integration tests call `ConfigureMigrationArgs` directly** (e.g. `MigrateXxxDataAsync<TestData>(…, DbMigration.ConfigureMigrationArgs)`) **without** the `Create<Program>` console setup, so the embedded migrations/data are found **only** because `AddAssembly<Program>()` is inside `ConfigureMigrationArgs`. Removing it leaves the tests unable to locate any migration scripts or seed data. All sample domains (SQL Server and PostgreSQL) include both calls.
+**Keep all three registrations in `ConfigureMigrationArgs`, with `Program` last.** `SqlStatement` supplies the CoreEx EF code-generation templates; the provider's `PostgresDatabase` or `SqlServerDatabase` assembly supplies `script operations` to DbEx 3.5.0; `Program` supplies the application's embedded `Migrations/`, `Schema/`, and `Data/` resources. API integration tests call `ConfigureMigrationArgs` directly (e.g. `MigrateXxxDataAsync<TestData>(…, DbMigration.ConfigureMigrationArgs)`), so registering the application only in `Main` leaves those tests without migrations or seed data.
+
+Construct the migration console directly, not with `Create<Program>()`: DbEx probes in reverse registration order and ignores duplicate registrations, so pre-registering `Program` prevents the later call from giving application resources precedence. Use database types as provider assembly markers, not operation-store types. Existing projects need the matching provider package and registration.
 
 **Optional additions** (only when the domain needs them — not in the baseline):
 - `.DataParserArgs.RefDataColumnDefault("<Column>", _ => <value>)` — default a **domain-specific** ref-data seed column when the YAML omits it (e.g. `Scale` for a `UnitOfMeasure`). Add one per such column; omit entirely if not needed. (Do **not** do this for `SortOrder` — it is auto-assigned, see below.)
@@ -282,7 +282,7 @@ Run with `dotnet run -- <command>`. Default (no arguments) runs `All`.
 | `Schema` | Drops and re-creates idempotent schema objects from `Schema/` on every run (stored procs, functions) |
 | `Data` | Applies YAML/JSON seed data with INSERT or MERGE semantics |
 | `Reset` | Deletes all data from the database (scoped by `DataResetFilterPredicate`) |
-| `Script` | Scaffolds a new migration script, correctly named `yyyyMMdd-HHmmss-<kebab-name>` (current UTC date+time, lower-cased). Subcommands: `schema`, `create`, `alter`, `refdata`, `outbox`. Prefer this over hand-creating script files |
+| `Script` | Exports a timestamped migration; `--help` discovers registered templates, including `operations` when the CoreEx provider assembly is registered. Export does not execute or overwrite SQL |
 | `Drop` | Drops the database |
 | `Inspect` | Read-only; reports existence and current column schema (type, nullability, default, PK, identity, computed, unique, and whether it is reference data) for one or more tables in a schema, as markdown. Safe to run freely |
 
@@ -454,7 +454,10 @@ dotnet run -- script create <schema> <table>    # new table
 dotnet run -- script alter  <schema> <table>    # alter an existing table
 dotnet run -- script refdata <schema> <table>   # new reference-data table
 dotnet run -- script outbox <schema> <name>     # transactional outbox table(s)
+dotnet run -- script operations <schema> <table> # operations table (provider assembly registered)
 ```
+
+`script operations` defaults its schema from top-level `dbex.yaml` `schema`, falling back to the literal `Schema`, and its table to `Operation` (SQL Server) or `operation` (PostgreSQL). Explicit arguments or `-p Param1=... -p Param2=...` override defaults. Use simple identifiers; template substitution does not escape SQL delimiters. Review and check in the snapshot, then rebuild the Database project so `Migrate` can read it as an embedded resource.
 
 **Naming convention** (what `Script` produces, and what any hand-named file must match): `yyyyMMdd-HHmmss-<kebab-description>.{sql|pgsql}`.
 - The leading segment is the **current UTC date *and* time** (`yyyyMMdd-HHmmss`) at the moment of creation — **not** a placeholder date (e.g. `20250101`) and **not** a per-day incrementing index (e.g. `000001`). The time component provides natural ordering and uniqueness without tracking indices.

@@ -100,7 +100,7 @@ builder.Services
     .AddHttpWebApi();     // registers Http.WebApi for Minimal API
 ```
 
-HTTP idempotency is registered separately from storage: use `AddIdempotencyProvider()` with `AddRedisCoordination()` for multi-instance hosts, or `AddInMemoryCoordination()` only for a deliberately single-instance host. See the [idempotency guide](./Idempotency/README.md) and [CoreEx.Redis guide](../CoreEx.Redis/README.md).
+HTTP idempotency is registered separately from storage: use `AddIdempotencyProvider()` with `AddRedisCoordination()` for multi-instance hosts, or `AddInMemoryCoordination()` only for a deliberately single-instance host. It uses a caller-scoped key that the store qualifies by host domain and ambient `ExecutionContext.TenantId`; establish a trusted tenant before the idempotency boundary when requests are tenant-scoped. See the [idempotency guide](./Idempotency/README.md) and [CoreEx.Redis guide](../CoreEx.Redis/README.md).
 
 ## Specialized JSON and Error Representations
 

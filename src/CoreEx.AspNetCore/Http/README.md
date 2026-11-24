@@ -15,6 +15,7 @@ It is registered via `services.AddHttpWebApi()` and injected into Minimal API en
 - ⚡ **Minimal API integration**: Returns `IResult` types compatible with `Results<T>` and `TypedResults`, enabling full Minimal API support with OpenAPI inference.
 - 📄 **ProblemDetails responses**: `CreateResult` maps every `IExtendedException` (and unhandled exception when `ConvertUnhandledExceptionsToProblemDetails` is set) to a `TypedResults.Problem(ProblemDetails)` result.
 - 🔗 **Shared execution pipeline**: All verb logic (deserialization, ETag, paging, `Result<T>` unwrapping) is inherited from `WebApi<IResult>` — no duplication with the MVC variant.
+- 📬 **Message publishing**: `Http.WebApi.PublishAsync` shares the MVC publish-only default and opt-in tracked-operation flow; use `.WithPublishTracking()` to enable tracking and describe the route in OpenAPI, or `.Produces(StatusCodes.Status202Accepted)` for an untracked route.
 - 🔧 **DI registration**: `AddHttpWebApi(services, configure?)` registers `Http.WebApi` as a scoped service with optional startup configuration action.
 
 ## Key types

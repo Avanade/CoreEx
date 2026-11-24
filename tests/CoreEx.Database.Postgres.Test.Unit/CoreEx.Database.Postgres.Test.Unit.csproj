@@ -10,6 +10,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\CoreEx.AspNetCore\CoreEx.AspNetCore.csproj" />
     <PackageReference Include="coverlet.collector" />
     <PackageReference Include="DbEx.Postgres" />
     <PackageReference Include="AwesomeAssertions" />
@@ -31,6 +32,16 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="..\CoreEx.Test.Unit\Operations\OperationScriptMigrationTestsBase.cs" Link="Operations\OperationScriptMigrationTestsBase.cs" />
+    <Compile Include="..\CoreEx.Test.Unit\Operations\OperationScriptTestHelper.cs" Link="Operations\OperationScriptTestHelper.cs" />
+    <Compile Include="..\CoreEx.Test.Unit\Operations\OperationScriptTestsBase.cs" Link="Operations\OperationScriptTestsBase.cs" />
+    <Compile Include="..\CoreEx.Test.Unit\Operations\OperationStoreTestsBase.cs" Link="Operations\OperationStoreTestsBase.cs" />
+    <Compile Include="..\CoreEx.Database.Test.Shared\HttpOperationOutboxTestsBase.cs" Link="Operations\HttpOperationOutboxTestsBase.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\samples\src\Contoso.Products.Database\Migrations\20260101-000301-create-products-outbox-tables.pgsql" Link="Proof\OutboxTables.pgsql" />
+    <EmbeddedResource Include="..\..\samples\src\Contoso.Products.Database\Schema\Functions\fn_outbox_enqueue.g.pgsql" Link="Proof\OutboxEnqueue.pgsql" />
     <EmbeddedResource Include="Schema\**\*" />
     <EmbeddedResource Include="Migrations\**\*" />
     <EmbeddedResource Include="Data\**\*" />

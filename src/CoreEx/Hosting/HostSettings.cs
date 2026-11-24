@@ -8,6 +8,12 @@ public class HostSettings : IHostSettings
     private Uri? _source;
 
     /// <summary>
+    /// Gets the current host settings.
+    /// </summary>
+    /// <remarks>Retrieves the host settings from the current execution context; will throw an exception where not available.</remarks>
+    public static IHostSettings Current => ExecutionContext.GetRequiredService<IHostSettings>();
+
+    /// <summary>
     /// Creates a new <see cref="HostSettings"/> using the <paramref name="configuration"/> to realize the <see cref="SolutionName"/> and <see cref="DomainName"/> properties where not specifically provided.
     /// </summary>
     /// <param name="configuration">The <see cref="IConfiguration"/>.</param>

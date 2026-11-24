@@ -96,6 +96,34 @@ Enable ambient capture separately with `AddEventFormatter(formatter => formatter
 
 Outbox relay batch activities continue to link originating traces without importing any event's baggage, avoiding cross-event leakage. Formatter-configured trace attribute names are honored by envelope conversion; Service Bus transport mirroring and relay extraction still recognize standard trace names, so use the defaults for end-to-end transport/relay tracing.
 
+## Subscriber behaviors
+
+`EventSubscriberBase.Behaviors` is an ordered, per-subscriber pipeline of `ISubscriberBehavior` implementations wrapping subscriber processing on each delivery attempt that reaches it. Configure it in the owning subscriber's constructor (`Behaviors.Add(new MyBehavior())`, or `Behaviors.Add<MyBehavior>()` to resolve a scoped instance from the current `ExecutionContext.ServiceProvider`). Resolved instances are reused across in-process retries of the same delivery. It applies to direct subscribers, `ServiceBusSubscribedSubscriber` (after `SubscribedManager` matches, so `args.Subscriber` identifies the matched `SubscribedBase`) and native messages (`args.IsNative` is true and `args.Event` is null). Dispatched messages that match no subscriber never enter the pipeline.
+
+```csharp
+public sealed class DuplicateGuardBehavior(IMyStore store) : ISubscriberBehavior
+{
+    public async Task<Result> InvokeAsync(EventSubscriberArgs args, SubscriberBehaviorDelegate next, CancellationToken cancellationToken)
+    {
+        if (await store.ExistsAsync(args.Event?.Id, cancellationToken).ConfigureAwait(false))
+            return SubscriberBehaviorResult.Skip("Duplicate.");
+
+        return await next(cancellationToken).ConfigureAwait(false);
+    }
+
+    public Task OnDispositionAsync(EventSubscriberArgs args, SubscriberDisposition disposition, CancellationToken cancellationToken)
+        => disposition.Settlement == SubscriberSettlement.Completed ? store.MarkAsync(args.Event?.Id, cancellationToken) : Task.CompletedTask;
+}
+```
+
+- **Ordering:** the first added behavior is outermost. `next` may be invoked at most once; the subscriber's result is already classified by its `ErrorHandler` when a behavior observes it.
+- **Short-circuit:** return `SubscriberBehaviorResult.Skip` (complete, default silent), `Retry` or `DeadLetter` without calling `next`.
+- **Attempts:** `AttemptCount` starts at zero and increments before each in-process retry using the same per-delivery args, whether or not behaviors are configured and even when preprocessing fails. `ResultingException` and `ResultingErrorHandling` are cleared at the start of each attempt, so a successful retry does not expose a prior attempt's failure. Nested receives do not increment the count. Use fresh args for each broker delivery; the count is not the broker's delivery count.
+- **Failures:** a behavior exception, a second `next` call or an unresolvable `Add<T>()` registration is classified as `ErrorHandling.None` regardless of the subscriber's policies. When behaviors are configured, unclassified subscriber failures surface as `EventSubscriberUnhandledException`; without behaviors, failure classification is unchanged.
+- **Disposition:** the transport calls `NotifyDispositionAsync` once per delivery after settlement is actually applied — not per retry — invoking `OnDispositionAsync` in reverse order for behaviors that participated. `SubscriberDisposition` reports `Settlement` (`Completed`, `Abandoned`, `DeadLettered`, `NotSettled` or `SettlementFailed`), `AttemptedSettlement`, `Classification`, `Error`, `SettlementError`, `IsLockLost`, `IsCancelled` and `ReceiverPaused`. Callback failures are logged and never change settlement. Callbacks are best-effort: a process crash between settlement and notification skips them.
+
+Behaviors are not a durable tracking or exactly-once mechanism; store-backed deduplication or tracking must tolerate redelivery and its own store failures.
+
 ## Key types
 
 | Type | Description |

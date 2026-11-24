@@ -63,7 +63,7 @@ public class WebApi(JsonSerializerOptions? jsonSerializerOptions = null, ILogger
         if (extendedException is not null)
             return AspHttp.Results.Problem(statusCode: (int)extendedException.StatusCode, title: extendedException.Message, detail: extendedException.Detail, extensions: extensions);
 
-        var config = httpContext.RequestServices.GetRequiredService<IConfiguration>();
+        var config = GetServiceProvider(httpContext.Request).GetRequiredService<IConfiguration>();
         var include = Internal.GetConfigurationValue(IncludeExceptionInProblemDetailsName, false, config);
         return include
             ? AspHttp.Results.Problem(statusCode: (int)HttpStatusCode.InternalServerError, title: exception.Message, detail: exception.ToString(), extensions: extensions)

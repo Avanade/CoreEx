@@ -58,7 +58,7 @@ public partial class EventData
     /// </summary>
     /// <param name="key">The key.</param>
     /// <returns>The <see cref="EventData"/> to support fluent-style method-chaining.</returns>
-    public EventData WithKey(CompositeKey key) => WithKey(key.ToString().ThrowIfNull());
+    public EventData WithKey(CompositeKey key) => WithKey(key.ToCanonicalString().ThrowIfNull());
 
     /// <summary>
     /// Sets the <paramref name="partitionKey"/> as the <see cref="PartitionKey"/>.
@@ -155,7 +155,7 @@ public partial class EventData
 
         // Infer from value where possible.
         if (Key is null && value is IEntityKey key)
-            Key = key.EntityKey.ToString();
+            Key = key.EntityKey.ToCanonicalString();
         
         if (TenantId is null && value is IReadOnlyTenantId tenantId)
             TenantId = tenantId.TenantId;

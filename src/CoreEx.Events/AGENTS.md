@@ -33,7 +33,7 @@ _unitOfWork.Events.Add(
     EventData.CreateEventWith(contract, "checkedout"));
 ```
 
-`EventAction` provides the standard past-tense action values: `Created`, `Updated`, `Deleted`, `Activated`, `Deactivated`, `Cancelled`, `CheckedOut`, and more.
+`EventAction` provides the standard past-tense action values: `Created`, `Updated`, `Deleted`, `Activated`, `Deactivated`, `Cancelled`, `CheckedOut`, and more. `Publish` is the imperative command action used by default for Web API published commands.
 
 ## Native Wire Representation
 
@@ -72,6 +72,8 @@ Separately, direct subscribers deriving from `EventSubscriberBase` can declare `
 Payload cleanup is opt-in: `EventSubscriberBase.AutoCleanValue` defaults false because published events are generally canonical already, making receive cleanup typically redundant (unlike default-on WebApi request cleanup). `SubscribedBase.AutoCleanValue` is a per-handler/message-type nullable override: null inherits the owner, true enables and false disables. Assign it in the handler constructor, not by modifying a global payload-type registration. All subjects on that handler share the setting; separate handlers can differ even with the same payload CLR type. Enabled cleanup uses `CleanArgs.Default` after deserialization and before required checks/validation/handling, without collapsing root/nested objects or altering serialized envelopes, keys or metadata. Cleanup errors follow normal receive error handling. See [cleanup policy](./Subscribing/README.md#optional-payload-cleanup).
 
 See [CoreEx.Azure.Messaging.ServiceBus](../CoreEx.Azure.Messaging.ServiceBus/README.md) for the full subscriber wiring example.
+
+Cross-cutting per-delivery logic belongs in `EventSubscriberBase.Behaviors` (`ISubscriberBehavior`), configured in the owning subscriber's constructor — not in each `SubscribedBase` handler. Behaviors wrap every attempt (including `MessageResiliency` retries) for direct, matched dispatched and native messages; `OnDispositionAsync` runs once after the transport applies settlement. A behavior throwing is classified `ErrorHandling.None`; callback failures never change settlement. See [subscriber behaviors](./README.md#subscriber-behaviors).
 
 ## DestinationProvider
 

@@ -1,6 +1,6 @@
 -- Applies an owner-checked transition to an idempotency record (see IdempotencyBegin.lua for the hash fields).
 -- KEYS[1]: idempotency record key.
--- ARGV[1]: owner token; ARGV[2]: operation (renew, retain or complete); ARGV[3]: lease duration (ms); ARGV[4]: retention (ms); ARGV[5]: terminal state (C or U); ARGV[6]: response bytes (non-empty for C, empty for U).
+-- ARGV[1]: owner token; ARGV[2]: operation (renew, retain, complete or release); ARGV[3]: lease duration (ms); ARGV[4]: retention (ms); ARGV[5]: terminal state (C or U); ARGV[6]: response bytes (non-empty for C, empty for U).
 -- Returns 1 when applied (or already applied identically; for retain, when the owner matched); otherwise 0.
 -- Arguments are validated before any write: Redis does not roll back a script that errors midway, and PEXPIRE <= 0 deletes the key.
 local function posint(v)
@@ -17,7 +17,7 @@ elseif op == 'complete' then
   if ARGV[5] ~= 'C' and ARGV[5] ~= 'U' then return redis.error_reply('Invalid terminal state') end
   if ARGV[5] == 'C' and ARGV[6] == '' then return redis.error_reply('C needs response') end
   if ARGV[5] == 'U' and ARGV[6] ~= '' then return redis.error_reply('U takes no response') end
-elseif op ~= 'retain' then
+elseif op ~= 'retain' and op ~= 'release' then
   return redis.error_reply('Unknown transition')
 end
 local o, s, d = unpack(redis.call('HMGET', KEYS[1], 'o', 's', 'd'))
@@ -39,6 +39,9 @@ if s ~= 'P' or tonumber(d) <= now then return 0 end
 if op == 'renew' then
   redis.call('HSET', KEYS[1], 'd', now + lease)
   redis.call('PEXPIRE', KEYS[1], lease + retention)
+elseif op == 'release' then
+  redis.call('DEL', KEYS[1])
+  return 1
 else
   -- Retention restarts at completion, so long-running work does not consume the promised replay window.
   redis.call('HSET', KEYS[1], 's', ARGV[5], 'r', ARGV[6])

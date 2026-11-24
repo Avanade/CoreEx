@@ -1,12 +1,30 @@
 namespace CoreEx.Hosting.Work;
 
 /// <summary>
-/// Represents the status and result of a long-running <see cref="WorkOrchestrator"/>-tracked work instance.
+/// Represents the status and metadata of a long-running <see cref="WorkOrchestrator"/>-tracked work instance.
 /// </summary>
 public class WorkState : IIdentifier<string?>, IETag
 {
-    /// <inheritdoc/>
-    /// <remarks>The identifier must be globally unique across all work types.</remarks>
+    /// <summary>
+    /// Gets or sets the stable domain name for this work.
+    /// </summary>
+    public required string DomainName { get; init; }
+
+    /// <summary>
+    /// Gets or sets the tenant identifier for tenant-scoped work; otherwise, <see langword="null"/>.
+    /// </summary>
+    /// <remarks>An empty value is treated as <see langword="null"/>.</remarks>
+    public string? TenantId { get; init => field = string.IsNullOrEmpty(value) ? null : value; }
+
+    /// <summary>
+    /// Gets or sets the stable application-defined operation name.
+    /// </summary>
+    public required string OperationName { get; init; }
+
+    /// <summary>
+    /// Gets or sets the operation instance identifier.
+    /// </summary>
+    /// <remarks>Only unique within the domain, tenant and operation name; it must not change after creation.</remarks>
     public string? Id { get; set; }
 
     /// <summary>
@@ -49,11 +67,24 @@ public class WorkState : IIdentifier<string?>, IETag
     public DateTimeOffset CreatedOn { get; set; }
 
     /// <summary>
+    /// Gets or sets the provider timestamp of the most recent persisted state change.
+    /// </summary>
+    /// <remarks>May be absent on states written before this property was introduced.</remarks>
+    [JsonPropertyName("updated")]
+    public DateTimeOffset? UpdatedOn { get; set; }
+
+    /// <summary>
     /// Gets or sets the <see cref="WorkOrchestrator"/> expiry <see cref="DateTimeOffset"/>.
     /// </summary>
     /// <remarks>Where the work has not <see cref="WorkStatus.Finished"/> by the expiry it will be automatically <see cref="WorkStatus.Expired"/>.</remarks>
     [JsonPropertyName("expiry")]
     public DateTimeOffset ExpiryOn { get; set; }
+
+    /// <summary>
+    /// Gets or sets the latest time a created work item may start.
+    /// </summary>
+    [JsonPropertyName("startBy")]
+    public DateTimeOffset? StartBy { get; set; }
 
     /// <summary>
     /// Gets or sets the <see cref="WorkStatus.Started"/> <see cref="DateTimeOffset"/>.
@@ -74,9 +105,47 @@ public class WorkState : IIdentifier<string?>, IETag
     public DateTimeOffset? FinishedOn { get; set; }
 
     /// <summary>
-    /// Gets or sets the <see cref="WorkStatus.Failed"/> or <see cref="WorkStatus.Expired"/> reason.
+    /// Gets or sets the current worker lease owner token.
     /// </summary>
-    public string? Reason { get; set; }
+    [JsonPropertyName("leaseOwner")]
+    public string? LeaseOwner { get; set; }
+
+    /// <summary>
+    /// Gets or sets the current worker lease expiry.
+    /// </summary>
+    [JsonPropertyName("leaseExpires")]
+    public DateTimeOffset? LeaseExpiresOn { get; set; }
+
+    /// <summary>
+    /// Gets or sets the current lease epoch.
+    /// </summary>
+    public int Attempt { get; set; }
+
+    /// <summary>
+    /// Gets or sets whether cancellation was requested while the work was in progress.
+    /// </summary>
+    public bool CancelRequested { get; set; }
+
+    /// <summary>
+    /// Gets or sets the user-safe work error.
+    /// </summary>
+    public WorkError? Error { get; set; }
+
+    /// <summary>
+    /// Gets or sets the latest progress report.
+    /// </summary>
+    public WorkProgress? Progress { get; set; }
+
+    /// <summary>
+    /// Gets or sets the app-relative URI of the domain resource produced by this work.
+    /// </summary>
+    public string? ResourceLocation { get; set; }
+
+    /// <summary>
+    /// Gets or sets the revision used to resolve ambiguous writes.
+    /// </summary>
+    [JsonPropertyName("rev")]
+    public string? Revision { get; set; }
 
     /// <inheritdoc/>
     /// <remarks>Maintained by the <see cref="IWorkProvider"/> to enable optimistic concurrency; any persisted value is ignored.</remarks>

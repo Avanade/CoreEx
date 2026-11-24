@@ -1,0 +1,47 @@
+{{! COMMAND: script operations <Schema> <Table> }}
+{{! HELP: Creates a SQL Server migration for the CoreEx operations table. }}
+{{! FILENAME:create-[lower (lookup Parameters 'Param1')]-[lower (lookup Parameters 'Param2')]-table }}
+{{! PARAM:Param1=Schema }}
+{{! PARAM:Param2=Operation }}
+-- Create the CoreEx operations table; generated from the CoreEx.Database.SqlServer ScriptOperations template. Review and check in as an immutable migration.
+
+IF SCHEMA_ID(N'{{lookup Parameters 'Param1'}}') IS NULL
+  EXEC(N'CREATE SCHEMA [{{lookup Parameters 'Param1'}}]');
+
+CREATE TABLE [{{lookup Parameters 'Param1'}}].[{{lookup Parameters 'Param2'}}] (
+  [KeyHash] BINARY(32) NOT NULL,
+  [OperationId] UNIQUEIDENTIFIER NOT NULL,
+  [DomainName] NVARCHAR(MAX) NOT NULL,
+  [TenantId] NVARCHAR(MAX) NULL,
+  [OperationName] NVARCHAR(MAX) NOT NULL,
+  [InstanceId] NVARCHAR(MAX) NOT NULL,
+  [Status] TINYINT NOT NULL,
+  [InitiatedBy] NVARCHAR(256) NULL,
+  [Attempt] INT NOT NULL CONSTRAINT [DF_{{lookup Parameters 'Param2'}}_Attempt] DEFAULT (0),
+  [ClaimOwner] NVARCHAR(128) NULL,
+  [ClaimExpiresOn] DATETIME2(7) NULL,
+  [CancelRequestedOn] DATETIME2(7) NULL,
+  [Progress] NVARCHAR(1000) NULL,
+  [ErrorCode] NVARCHAR(100) NULL,
+  [ErrorMessage] NVARCHAR(1000) NULL,
+  [ResultLocation] NVARCHAR(2000) NULL,
+  [Data] NVARCHAR(MAX) NULL,
+  [CreatedOn] DATETIME2(7) NOT NULL,
+  [UpdatedOn] DATETIME2(7) NOT NULL,
+  [StartedOn] DATETIME2(7) NULL,
+  [CompletedOn] DATETIME2(7) NULL,
+  [AbandonAfter] DATETIME2(7) NULL,
+  [PurgeAfter] DATETIME2(7) NULL,
+  [InactivityMs] BIGINT NOT NULL,
+  [RetentionMs] BIGINT NOT NULL,
+  [RowVersion] ROWVERSION NOT NULL,
+  CONSTRAINT [PK_{{lookup Parameters 'Param2'}}] PRIMARY KEY CLUSTERED ([KeyHash]),
+  CONSTRAINT [UQ_{{lookup Parameters 'Param2'}}_OperationId] UNIQUE ([OperationId]),
+  CONSTRAINT [CK_{{lookup Parameters 'Param2'}}_Status] CHECK ([Status] BETWEEN 1 AND 7),
+  CONSTRAINT [CK_{{lookup Parameters 'Param2'}}_Attempt] CHECK ([Attempt] >= 0),
+  CONSTRAINT [CK_{{lookup Parameters 'Param2'}}_Durations] CHECK ([InactivityMs] > 0 AND [RetentionMs] > 0)
+);
+
+CREATE INDEX [IX_{{lookup Parameters 'Param2'}}_AbandonAfter] ON [{{lookup Parameters 'Param1'}}].[{{lookup Parameters 'Param2'}}] ([AbandonAfter]) WHERE [Status] IN (1, 2, 3);
+
+CREATE INDEX [IX_{{lookup Parameters 'Param2'}}_PurgeAfter] ON [{{lookup Parameters 'Param1'}}].[{{lookup Parameters 'Param2'}}] ([PurgeAfter]) WHERE [Status] IN (4, 5, 6, 7);

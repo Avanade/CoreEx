@@ -56,6 +56,37 @@ public class FunctionsHttpIdempotencyTests
         calls.Should().Be(1);
     }
 
+    [Test]
+    public async Task AmbientTenant_ReplaysWithinTenant_AndSeparatesTenants()
+    {
+        CoreEx.ExecutionContext.Reset();
+        CoreEx.ExecutionContext.SetCurrent(new CoreEx.ExecutionContext());
+        using var services = CreateServices();
+        var webApi = new WebApi();
+        var calls = 0;
+
+        async Task<HttpRequest> Invoke(string tenant)
+        {
+            CoreEx.ExecutionContext.Current.TenantId = tenant;
+            var request = CreateRequest(services);
+            await webApi.FunctionWithIdempotencyAsync(request, _ =>
+                Task.FromResult<IActionResult>(new ContentResult { Content = (++calls).ToString(), StatusCode = 200 }));
+            return request;
+        }
+
+        try
+        {
+            ReadBody(await Invoke("tenant-a")).Should().Be("1");
+            ReadBody(await Invoke("tenant-a")).Should().Be("1");
+            ReadBody(await Invoke("tenant-b")).Should().Be("2");
+            calls.Should().Be(2);
+        }
+        finally
+        {
+            CoreEx.ExecutionContext.Reset();
+        }
+    }
+
     [TestCase(false)]
     [TestCase(true)]
     public async Task ApplicationOrRendererFailure_PropagatesAndBlocksAutomaticRetry(bool rendering)
@@ -173,6 +204,7 @@ public class FunctionsHttpIdempotencyTests
     {
         var services = new ServiceCollection();
         services.AddLogging();
+        services.AddSingleton<CoreEx.Hosting.IHostSettings>(new CoreEx.Hosting.HostSettings { SolutionName = "Tests", DomainName = "functions", EnvironmentName = "Test" });
         services.AddSingleton<IConfiguration>(new ConfigurationBuilder().Build());
         services.AddMvc();
         services.AddInMemoryCoordination();

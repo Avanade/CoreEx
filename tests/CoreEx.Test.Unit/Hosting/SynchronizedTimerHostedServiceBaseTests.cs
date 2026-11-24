@@ -7,6 +7,7 @@ public class SynchronizedTimerHostedServiceBaseTests
     {
         var sc = new ServiceCollection();
         sc.AddSingleton(configuration ?? new ConfigurationBuilder().Build());
+        sc.AddSingleton<IHostSettings>(new HostSettings { SolutionName = "Tests", DomainName = "orders", EnvironmentName = "Test" });
         sc.AddExecutionContext();
         sc.AddSingleton(synchronizer);
         return sc.BuildServiceProvider();
@@ -101,7 +102,7 @@ public class SynchronizedTimerHostedServiceBaseTests
         try
         {
             await WaitUntilAsync(() => synchronizer.EnterCount > 0, TimeSpan.FromSeconds(5));
-            synchronizer.LastEnterName.Should().BeNull();
+            synchronizer.LastInstanceId.Should().Be("default");
         }
         finally
         {
@@ -125,8 +126,8 @@ public class SynchronizedTimerHostedServiceBaseTests
         try
         {
             await WaitUntilAsync(() => synchronizer.ExitCount > 0, TimeSpan.FromSeconds(5));
-            synchronizer.LastEnterName.Should().Be("custom-name");
-            synchronizer.LastExitName.Should().Be("custom-name");
+            synchronizer.LastInstanceId.Should().Be("name:custom-name");
+            synchronizer.LastExitInstanceId.Should().Be(synchronizer.LastInstanceId);
         }
         finally
         {
@@ -145,8 +146,8 @@ public class SynchronizedTimerHostedServiceBaseTests
         try
         {
             await WaitUntilAsync(() => synchronizer.ExitCount > 0, TimeSpan.FromSeconds(5));
-            synchronizer.LastEnterType.Should().Be(typeof(TestSynchronizedTimerService));
-            synchronizer.LastExitType.Should().Be(typeof(TestSynchronizedTimerService));
+            synchronizer.LastOperationName.Should().Be(typeof(TestSynchronizedTimerService).FullName);
+            synchronizer.LastExitInstanceId.Should().Be(synchronizer.LastInstanceId);
         }
         finally
         {
@@ -192,19 +193,16 @@ public class SynchronizedTimerHostedServiceBaseTests
 
         public int ExitCount => _exitCount;
 
-        public string? LastEnterName { get; private set; }
+        public string? LastOperationName { get; private set; }
 
-        public string? LastExitName { get; private set; }
+        public string? LastInstanceId { get; private set; }
 
-        public Type? LastEnterType { get; private set; }
+        public string? LastExitInstanceId { get; private set; }
 
-        public Type? LastExitType { get; private set; }
-
-        public Task<ISynchronizationLease?> TryAcquireAsync(string key, CancellationToken cancellationToken = default)
+        public Task<ISynchronizationLease?> TryAcquireAsync(string name, CompositeKey key, CancellationToken cancellationToken = default)
         {
-            var components = System.Text.Json.JsonSerializer.Deserialize<string?[]>(key)!;
-            LastEnterName = components[1];
-            LastEnterType = typeof(TestSynchronizedTimerService).Assembly.GetType(components[0] ?? throw new InvalidOperationException("Missing lease type."));
+            LastOperationName = name;
+            LastInstanceId = key.ToCanonicalString();
             Interlocked.Increment(ref _enterCount);
             return Task.FromResult<ISynchronizationLease?>(ShouldEnterSucceed ? new TestLease(this) : null);
         }
@@ -212,8 +210,7 @@ public class SynchronizedTimerHostedServiceBaseTests
         public ValueTask ExitAsync()
         {
             // Set the values before incrementing the count, as tests poll the count and then read the values.
-            LastExitName = LastEnterName;
-            LastExitType = LastEnterType;
+            LastExitInstanceId = LastInstanceId;
             Interlocked.Increment(ref _exitCount);
             return ValueTask.CompletedTask;
         }

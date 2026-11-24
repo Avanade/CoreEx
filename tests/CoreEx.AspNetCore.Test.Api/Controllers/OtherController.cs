@@ -38,6 +38,18 @@ public class OtherController(WebApi webApi) : ControllerBase
     [HttpPost("unhandledextendedexception")]
     public IActionResult UnhandledExtendedException() => throw new DuplicateException("Oh my, we have one of those already!");
 
+    [HttpPost("publish-untracked")]
+    [ProducesResponseType(StatusCodes.Status202Accepted)]
+    public IActionResult PublishUntracked() => Accepted();
+
+    [HttpPost("publish-tracked")]
+    [Accepts<Person>]
+    [PublishTracking]
+    [IdempotencyKey]
+    [ProducesResponseType(StatusCodes.Status202Accepted)]
+    public Task<IActionResult> PublishTracked(CancellationToken cancellationToken = default)
+        => webApi.PublishAsync(Request, CoreEx.AspNetCore.Publishing.WebApiPublishOptions.Create<Person>(), cancellationToken: cancellationToken);
+
     [HttpPost("idempotency-mvc/{id}")]
     [IdempotencyKey]
     public async Task<IActionResult> IdempotencyWebApiSuccess(int id) => await webApi.PostAsync<object>(Request, (ro, _) =>

@@ -5,11 +5,18 @@ namespace CoreEx.AspNetCore.Idempotency;
 /// </summary>
 /// <param name="store">The atomic idempotency store.</param>
 /// <param name="logger">The optional logger.</param>
+/// <remarks>The store qualifies each key with the host domain name and, where present, the ambient <see cref="ExecutionContext.TenantId"/>.</remarks>
 public sealed class IdempotencyProvider(CoreEx.Idempotency.IIdempotencyStore store, ILogger<IdempotencyProvider>? logger = null) : IIdempotencyProvider
 {
     private const int _defaultMaxCachedResponseBodySize = 512 * 1024;
     private const int _defaultMaxResponseBodySize = 10 * 1024 * 1024;
 
+    /// <summary>
+    /// Gets the operation name used to namespace HTTP idempotency keys within the <see cref="CoreEx.Idempotency.IIdempotencyStore"/>.
+    /// </summary>
+    public const string OperationName = "http-idempotency";
+
+    private static readonly UTF8Encoding _strictUtf8 = new(false, true);
     private readonly CoreEx.Idempotency.IIdempotencyStore _store = store.ThrowIfNull();
     private readonly ILogger<IdempotencyProvider>? _logger = logger;
 
@@ -46,7 +53,7 @@ public sealed class IdempotencyProvider(CoreEx.Idempotency.IIdempotencyStore sto
     /// <summary>
     /// Gets or sets the optional stable caller identity provider used to scope HTTP idempotency keys.
     /// </summary>
-    /// <remarks>By default, an authenticated HTTP principal's name-identifier or subject claim is used when present. The returned identity is hashed before it is included in the store key. Domain and tenant qualification remains the store's responsibility through <see cref="ICacheKeyProvider"/>.</remarks>
+    /// <remarks>By default, an authenticated HTTP principal's name-identifier or subject claim is used when present. The returned identity must contain valid Unicode and is hashed before it is included in the key.</remarks>
     public Func<HttpContext, string?>? CallerIdentityProvider { get; set; }
 
     /// <summary>
@@ -89,13 +96,13 @@ public sealed class IdempotencyProvider(CoreEx.Idempotency.IIdempotencyStore sto
         }
 
         var fingerprint = await IdempotencyKey.CreateFromHttpRequestAsync(context, HttpRequestHeadersToIncludeInFingerprint, requestToken).ConfigureAwait(false);
-        var callerIdentity = CallerIdentityProvider is null ? GetAuthenticatedCaller(context) : CallerIdentityProvider(context);
-        var storeKey = CreateStoreKey(key, callerIdentity);
+        var storeKey = CreateKey(context, key);
         CoreEx.Idempotency.IdempotencyBeginResult begin;
 
         try
         {
-            begin = await _store.TryBeginAsync(storeKey, fingerprint.Fingerprint ?? throw new InvalidOperationException("The request fingerprint was not created."), requestToken).ConfigureAwait(false);
+            var requestFingerprint = fingerprint.Fingerprint ?? throw new InvalidOperationException("The request fingerprint was not created.");
+            begin = await _store.TryBeginAsync(OperationName, storeKey, requestFingerprint, requestToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (requestToken.IsCancellationRequested)
         {
@@ -138,6 +145,21 @@ public sealed class IdempotencyProvider(CoreEx.Idempotency.IIdempotencyStore sto
             default:
                 throw new InvalidOperationException($"The idempotency store returned an unsupported outcome '{begin.Outcome}'.");
         }
+    }
+
+    /// <summary>
+    /// Constructs the caller-scoped store key for a decoded HTTP idempotency key.
+    /// </summary>
+    /// <param name="context">The request context.</param>
+    /// <param name="idempotencyKey">The decoded logical key, not its quoted HTTP header representation.</param>
+    /// <returns>The <see cref="CompositeKey"/> that, with <see cref="OperationName"/>, can be retained for later reconciliation.</returns>
+    /// <remarks>The same caller identity, and the same ambient tenant when reconciling with the store, must be available to reproduce the key.</remarks>
+    public CompositeKey CreateKey(HttpContext context, string idempotencyKey)
+    {
+        context.ThrowIfNull();
+        idempotencyKey.ThrowIfNullOrWhiteSpace();
+        var callerIdentity = CallerIdentityProvider is null ? GetAuthenticatedCaller(context) : CallerIdentityProvider(context);
+        return CompositeKey.Create(CreateStoreKey(idempotencyKey, callerIdentity));
     }
 
     /// <summary>
@@ -197,11 +219,14 @@ public sealed class IdempotencyProvider(CoreEx.Idempotency.IIdempotencyStore sto
         var originalBody = context.Response.Body;
         var originalBodyFeature = context.Features.Get<Microsoft.AspNetCore.Http.Features.IHttpResponseBodyFeature>() ?? throw new InvalidOperationException("The HTTP response body feature is unavailable.");
         var originalRequestAborted = context.RequestAborted;
+        var originalAttemptFeature = context.Features.Get<IIdempotencyAttemptFeature>();
+        var attemptFeature = new IdempotencyAttemptFeature();
 
         await using var buffer = new Microsoft.AspNetCore.WebUtilities.FileBufferingWriteStream(Math.Min(MaxCachedResponseBodySize, MaxResponseBodySize), MaxResponseBodySize, TempFileDirectoryAccessor ?? System.IO.Path.GetTempPath);
         await using var captureFeature = new CapturingResponseBodyFeature(buffer);
 
         context.Features.Set<Microsoft.AspNetCore.Http.Features.IHttpResponseBodyFeature>(captureFeature);
+        context.Features.Set<IIdempotencyAttemptFeature>(attemptFeature);
         context.RequestAborted = operationToken;
 
         try
@@ -224,9 +249,18 @@ public sealed class IdempotencyProvider(CoreEx.Idempotency.IIdempotencyStore sto
             if (response is not null && _store.MaxPayloadSize is int maxPayloadSize && response.ToMemory().Length > maxPayloadSize)
                 response = null;
 
+            var releasedForRetry = attemptFeature.IsReleaseRequested;
             try
             {
-                await attempt.CompleteAsync(response, operationToken).ConfigureAwait(false);
+                if (releasedForRetry)
+                {
+                    if (attempt is not CoreEx.Idempotency.IIdempotencyAttemptRelease releasable)
+                        throw new InvalidOperationException("The configured idempotency attempt does not support safe retry release.");
+
+                    await releasable.ReleaseForRetryAsync(operationToken).ConfigureAwait(false);
+                }
+                else
+                    await attempt.CompleteAsync(response, operationToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (operationToken.IsCancellationRequested)
             {
@@ -237,7 +271,9 @@ public sealed class IdempotencyProvider(CoreEx.Idempotency.IIdempotencyStore sto
                 throw IdempotencyKey.CreateStoreUnavailableException(ex);
             }
 
-            if (response is null)
+            if (releasedForRetry)
+                Activity.Current?.SetTag("idempotency.result", "released-for-retry");
+            else if (response is null)
             {
                 Activity.Current?.SetTag("idempotency.result", "completed-response-unavailable");
                 _logger?.LogWarning("The completed idempotent response of {ResponseBodySize} bytes could not be retained for replay (body limit {MaxCachedResponseBodySize} bytes; store payload limit {MaxPayloadSize} bytes, if configured).", buffer.Length, MaxCachedResponseBodySize, _store.MaxPayloadSize);
@@ -262,6 +298,7 @@ public sealed class IdempotencyProvider(CoreEx.Idempotency.IIdempotencyStore sto
         finally
         {
             context.Features.Set(originalBodyFeature);
+            context.Features.Set(originalAttemptFeature);
             context.RequestAborted = originalRequestAborted;
         }
     }
@@ -334,11 +371,27 @@ public sealed class IdempotencyProvider(CoreEx.Idempotency.IIdempotencyStore sto
     /// </summary>
     private static void AppendField(IncrementalHash hash, string value)
     {
-        var bytes = Encoding.UTF8.GetBytes(value);
+        var bytes = _strictUtf8.GetBytes(EnsureValidIdentityText(value));
         Span<byte> length = stackalloc byte[sizeof(int)];
         System.Buffers.Binary.BinaryPrimitives.WriteInt32BigEndian(length, bytes.Length);
         hash.AppendData(length);
         hash.AppendData(bytes);
+    }
+
+    /// <summary>
+    /// Rejects malformed Unicode instead of allowing distinct identity inputs to be replaced with the same character.
+    /// </summary>
+    private static string EnsureValidIdentityText(string value)
+    {
+        try
+        {
+            _strictUtf8.GetByteCount(value);
+            return value;
+        }
+        catch (EncoderFallbackException exception)
+        {
+            throw new ArgumentException("HTTP idempotency identity values must contain valid Unicode.", nameof(value), exception);
+        }
     }
 
     /// <summary>
@@ -350,7 +403,7 @@ public sealed class IdempotencyProvider(CoreEx.Idempotency.IIdempotencyStore sto
             return null;
 
         var claim = context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier) ?? context.User.FindFirst("sub");
-        return claim is null ? null : JsonSerializer.Serialize(new[] { claim.Type, claim.Issuer, claim.Value });
+        return claim is null ? null : JsonSerializer.Serialize(new[] { EnsureValidIdentityText(claim.Type), EnsureValidIdentityText(claim.Issuer), EnsureValidIdentityText(claim.Value) });
     }
 
     /// <summary>

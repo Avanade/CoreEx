@@ -175,7 +175,7 @@ public static partial class CoreExExtensions
     });
 
     /// <summary>
-    /// Adds explicitly in-memory coordination with singleton backing state per root service provider and scoped key qualification.
+    /// Adds explicitly in-memory coordination with singleton backing state per root service provider.
     /// </summary>
     /// <param name="services">The <see cref="IServiceCollection"/>.</param>
     /// <param name="options">The optional ownership options.</param>
@@ -184,9 +184,9 @@ public static partial class CoreExExtensions
     {
         options ??= new();
         options.Validate();
-        services.ThrowIfNull().TryAddScoped<ICacheKeyProvider, DefaultCacheKeyProvider>();
+        services.ThrowIfNull();
         services.TryAddSingleton<CoreEx.Coordination.InMemoryCoordinationState>();
-        services.AddScoped(sp => new CoreEx.Coordination.InMemoryCoordination(sp.GetRequiredService<CoreEx.Coordination.InMemoryCoordinationState>(), sp.GetRequiredService<ICacheKeyProvider>(), sp.GetRequiredService<ILogger<CoreEx.Coordination.InMemoryCoordination>>(), options));
+        services.AddScoped(sp => new CoreEx.Coordination.InMemoryCoordination(sp.GetRequiredService<CoreEx.Coordination.InMemoryCoordinationState>(), sp.GetRequiredService<IHostSettings>(), sp.GetRequiredService<ILogger<CoreEx.Coordination.InMemoryCoordination>>(), options));
         services.AddScoped<ISynchronizer>(sp => sp.GetRequiredService<CoreEx.Coordination.InMemoryCoordination>());
         services.AddScoped<CoreEx.Idempotency.IIdempotencyStore>(sp => sp.GetRequiredService<CoreEx.Coordination.InMemoryCoordination>());
         return services;
@@ -196,12 +196,13 @@ public static partial class CoreExExtensions
     /// Adds a process-local <see cref="CoreEx.Hosting.Work.InMemoryWorkProvider"/> as the singleton <see cref="CoreEx.Hosting.Work.IWorkProvider"/> and a scoped <see cref="CoreEx.Hosting.Work.WorkOrchestrator"/>.
     /// </summary>
     /// <param name="services">The <see cref="IServiceCollection"/>.</param>
+    /// <param name="timeProvider">The optional clock used by the in-memory provider.</param>
     /// <returns>The <see cref="IServiceCollection"/> for fluent-style method-chaining.</returns>
     /// <remarks>The state is only shared within the current process; use a durable shared provider where multiple instances must observe the same work.</remarks>
-    public static IServiceCollection AddInMemoryWorkProvider(this IServiceCollection services)
+    public static IServiceCollection AddInMemoryWorkProvider(this IServiceCollection services, TimeProvider? timeProvider = null)
     {
-        services.ThrowIfNull().TryAddSingleton<CoreEx.Hosting.Work.IWorkProvider>(_ => new CoreEx.Hosting.Work.InMemoryWorkProvider());
-        services.TryAddScoped(sp => new CoreEx.Hosting.Work.WorkOrchestrator(sp.GetRequiredService<CoreEx.Hosting.Work.IWorkProvider>()));
+        services.ThrowIfNull().TryAddSingleton<CoreEx.Hosting.Work.IWorkProvider>(_ => new CoreEx.Hosting.Work.InMemoryWorkProvider(timeProvider: timeProvider));
+        services.TryAddScoped(sp => new CoreEx.Hosting.Work.WorkOrchestrator(sp.GetRequiredService<CoreEx.Hosting.Work.IWorkProvider>(), sp.GetRequiredService<IHostSettings>()));
         return services;
     }
 

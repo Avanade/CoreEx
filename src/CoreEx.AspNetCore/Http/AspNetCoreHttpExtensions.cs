@@ -69,4 +69,11 @@ public static partial class AspNetCoreHttpExtensions
     /// <param name="isRequired">Indicates whether an <see cref="HttpNames.IdempotencyKeyHeaderName"/> is required for the request.</param>
     /// <returns>The <see cref="RouteHandlerBuilder"/> to support fluent-style method-chaining.</returns>
     public static RouteHandlerBuilder WithIdempotencyKey(this RouteHandlerBuilder builder, bool isRequired = false) => builder.ThrowIfNull().WithMetadata(new IdempotencyKeyAttribute(isRequired));
+
+    /// <summary>
+    /// Adds metadata to the <see cref="RouteHandlerBuilder"/> that enables tracked publishing and describes it in OpenAPI.
+    /// </summary>
+    /// <param name="builder">The <see cref="RouteHandlerBuilder"/>.</param>
+    /// <returns>The <see cref="RouteHandlerBuilder"/> to support fluent-style method-chaining.</returns>
+    public static RouteHandlerBuilder WithPublishTracking(this RouteHandlerBuilder builder) => builder.ThrowIfNull().WithMetadata(new PublishTrackingAttribute());
 }

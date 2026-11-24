@@ -77,11 +77,8 @@ public class FunctionsServiceBusEntityPathTests
         {
             var actions = new RecordingServiceBusMessageActions();
             var invoked = false;
-            Func<Task> receive = () => actions.FunctionReceiveAsync(ServiceBusModelFactory.ServiceBusReceivedMessage(), path, _ =>
-            {
-                invoked = true;
-                return Result.SuccessTask;
-            });
+            var subscriber = new InvokedSubscriber(() => invoked = true);
+            Func<Task> receive = () => subscriber.FunctionReceiveAsync(ServiceBusModelFactory.ServiceBusReceivedMessage(), actions, path);
             var error = Assert.ThrowsAsync(errorType, async () => await receive());
             if (errorType == typeof(InvalidOperationException))
                 error!.Message.Should().Contain("'Queue'");
@@ -95,5 +92,24 @@ public class FunctionsServiceBusEntityPathTests
             if (previous is not null)
                 CoreEx.ExecutionContext.SetCurrent(previous);
         }
+    }
+
+    private sealed class InvokedSubscriber : ServiceBusSubscriberBase
+    {
+        private readonly Action _invoked;
+
+        public InvokedSubscriber(Action invoked) : base(NullLogger<ServiceBusSubscriberBase>.Instance)
+        {
+            _invoked = invoked;
+            DataRepresentation = MessageRepresentation.Native;
+        }
+
+        protected override Task<Result> OnReceiveMessageAsync(ServiceBusReceivedMessage message, EventSubscriberArgs args, CancellationToken cancellationToken = default)
+        {
+            _invoked();
+            return Result.SuccessTask;
+        }
+
+        protected override Task<Result> OnReceiveAsync(EventData @event, EventSubscriberArgs args, CancellationToken cancellationToken) => throw new NotSupportedException();
     }
 }

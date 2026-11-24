@@ -3,6 +3,8 @@ global using CoreEx.AspNetCore;
 global using CoreEx.AspNetCore.Idempotency;
 global using CoreEx.AspNetCore.Mvc;
 global using CoreEx.AspNetCore.NSwag;
+global using CoreEx.AspNetCore.Operations;
+global using CoreEx.AspNetCore.Publishing;
 global using CoreEx.Data;
 global using CoreEx.Entities;
 global using CoreEx.Http;

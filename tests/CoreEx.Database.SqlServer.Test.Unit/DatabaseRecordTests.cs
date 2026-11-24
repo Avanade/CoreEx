@@ -72,6 +72,31 @@ public class DatabaseRecordTests : DatabaseTestBase
     });
 
     [Test]
+    public void GetDateTime_With_Explicit_DateTimeTransform_Overrides_Database() => Test.ScopedType<SqlServerDatabase>(test =>
+    {
+        test.Run(async db =>
+        {
+            db.DateTimeTransform = DateTimeTransform.DateOnly;
+            await db.Statement("SELECT CAST('2024-05-06T07:08:09' AS DATETIME2) AS [Value], CAST(NULL AS DATETIME2) AS [Missing]").SelectAsync(r =>
+            {
+                r.GetValue<DateTime>(0).Should().Be(new DateTime(2024, 5, 6));
+                var utc = r.GetDateTime(0, DateTimeTransform.DateTimeUtc);
+                utc.Should().Be(new DateTime(2024, 5, 6, 7, 8, 9));
+                utc!.Value.Kind.Should().Be(DateTimeKind.Utc);
+                r.GetDateTime("Missing", DateTimeTransform.DateTimeUtc).Should().BeNull();
+                return false;
+            }).ConfigureAwait(false);
+        }).AssertSuccess();
+    });
+
+    [Test]
+    public void QuoteIdentifier_Escapes_Delimiters()
+    {
+        using var db = new SqlServerDatabase(new SqlConnection());
+        db.QuoteIdentifier("a]b c").Should().Be("[a]]b c]");
+    }
+
+    [Test]
     public void GetValueFromJson_DeserializesJsonColumn() => Test.ScopedType<SqlServerDatabase>(test =>
     {
         test.Run(async db =>

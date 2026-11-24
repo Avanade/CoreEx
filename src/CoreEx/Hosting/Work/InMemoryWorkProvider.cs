@@ -4,13 +4,13 @@ namespace CoreEx.Hosting.Work;
 /// Provides a process-local <see cref="IWorkProvider"/> with atomic create and optimistic-concurrency update semantics.
 /// </summary>
 /// <param name="jsonSerializerOptions">The optional <see cref="JsonSerializerOptions"/>; defaults to <see cref="JsonDefaults.SerializerOptions"/>.</param>
-/// <param name="timeProvider">The optional <see cref="TimeProvider"/> used for record expiry; defaults to <see cref="TimeProvider.System"/>.</param>
+/// <param name="timeProvider">The optional <see cref="TimeProvider"/> used for store time and record expiry; defaults to <see cref="TimeProvider.System"/>.</param>
 /// <remarks>The state is <b>only</b> shared within the current process (register as a singleton); this is intended for development, testing and single-instance hosts. Use a durable shared provider (for example Redis) where multiple instances must observe the same work.</remarks>
 public sealed class InMemoryWorkProvider(JsonSerializerOptions? jsonSerializerOptions = null, TimeProvider? timeProvider = null) : IWorkProvider
 {
     private readonly JsonSerializerOptions _jsonSerializerOptions = jsonSerializerOptions ?? JsonDefaults.SerializerOptions;
     private readonly TimeProvider _timeProvider = timeProvider ?? TimeProvider.System;
-    private readonly Dictionary<string, Entry> _entries = [];
+    private readonly Dictionary<CompositeKey, Entry> _entries = [];
 #if NET8_0
     private readonly object _lock = new();
 #else
@@ -18,12 +18,20 @@ public sealed class InMemoryWorkProvider(JsonSerializerOptions? jsonSerializerOp
 #endif
 
     /// <inheritdoc/>
-    public Task<WorkState?> GetAsync(string id, CancellationToken cancellationToken)
+    public Task<WorkSnapshot> GetAsync(string domainName, string? tenantId, string operationName, string id, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
+        tenantId = string.IsNullOrEmpty(tenantId) ? null : tenantId;
+        var identity = CompositeKey.Create(domainName.ThrowIfNullOrWhiteSpace(), tenantId, operationName.ThrowIfNullOrWhiteSpace(), id.ThrowIfNullOrWhiteSpace());
         lock (_lock)
         {
-            return Task.FromResult(TryGet(id.ThrowIfNullOrEmpty(), out var entry) ? Deserialize(entry) : null);
+            var now = _timeProvider.GetUtcNow();
+            if (!TryGet(identity, now, out var entry))
+                return Task.FromResult(new WorkSnapshot(null, now));
+
+            var state = Deserialize(entry);
+            ValidateStateIdentity(state, identity);
+            return Task.FromResult(new WorkSnapshot(state, now));
         }
     }
 
@@ -31,42 +39,38 @@ public sealed class InMemoryWorkProvider(JsonSerializerOptions? jsonSerializerOp
     public Task<bool> CreateAsync(WorkState state, TimeSpan timeToLive, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var id = state.ThrowIfNull().Id.ThrowIfNullOrEmpty(nameof(state.Id));
+        var identity = GetIdentity(state);
         var json = Serialize(state);
         var expires = Expires(timeToLive);
 
         lock (_lock)
         {
-            if (TryGet(id, out _))
+            if (TryGet(identity, _timeProvider.GetUtcNow(), out _))
                 return Task.FromResult(false);
 
             var entry = new Entry { State = json, Incarnation = Guid.NewGuid().ToString("N"), Version = 1, Expires = expires };
-            _entries[id] = entry;
+            _entries[identity] = entry;
             state.ETag = ETag(entry);
             return Task.FromResult(true);
         }
     }
 
     /// <inheritdoc/>
-    public Task<bool> UpdateAsync(WorkState state, BinaryData? data, TimeSpan timeToLive, CancellationToken cancellationToken)
+    public Task<bool> UpdateAsync(WorkState state, TimeSpan timeToLive, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var id = state.ThrowIfNull().Id.ThrowIfNullOrEmpty(nameof(state.Id));
+        var identity = GetIdentity(state);
         var json = Serialize(state);
         var expires = Expires(timeToLive);
-        var bytes = data?.ToArray();
 
         lock (_lock)
         {
-            if (!TryGet(id, out var entry) || !IsMatch(entry, state.ETag))
+            if (!TryGet(identity, _timeProvider.GetUtcNow(), out var entry) || !IsMatch(entry, state.ETag))
                 return Task.FromResult(false);
 
             entry.State = json;
             entry.Version++;
             entry.Expires = expires;
-            if (bytes is not null)
-                entry.Data = bytes;
-
             state.ETag = ETag(entry);
             return Task.FromResult(true);
         }
@@ -76,42 +80,50 @@ public sealed class InMemoryWorkProvider(JsonSerializerOptions? jsonSerializerOp
     public Task<bool> DeleteAsync(WorkState state, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var id = state.ThrowIfNull().Id.ThrowIfNullOrEmpty(nameof(state.Id));
+        var identity = GetIdentity(state);
 
         lock (_lock)
         {
-            if (!TryGet(id, out var entry))
+            if (!TryGet(identity, _timeProvider.GetUtcNow(), out var entry))
                 return Task.FromResult(true);
 
             if (!IsMatch(entry, state.ETag))
                 return Task.FromResult(false);
 
-            _entries.Remove(id);
+            _entries.Remove(identity);
             return Task.FromResult(true);
         }
     }
 
-    /// <inheritdoc/>
-    public Task<BinaryData?> GetDataAsync(string id, CancellationToken cancellationToken)
+    /// <summary>
+    /// Gets and validates the complete identity for the <paramref name="state"/>.
+    /// </summary>
+    private static CompositeKey GetIdentity(WorkState state)
     {
-        cancellationToken.ThrowIfCancellationRequested();
-        lock (_lock)
-        {
-            return Task.FromResult(TryGet(id.ThrowIfNullOrEmpty(), out var entry) && entry.Data is not null ? new BinaryData(entry.Data.ToArray()) : null);
-        }
+        state.ThrowIfNull();
+        return CompositeKey.Create(state.DomainName.ThrowIfNullOrWhiteSpace(nameof(state.DomainName)), state.TenantId, state.OperationName.ThrowIfNullOrWhiteSpace(nameof(state.OperationName)), state.Id.ThrowIfNullOrWhiteSpace(nameof(state.Id)));
+    }
+
+    /// <summary>
+    /// Validates that a state stores the requested complete identity.
+    /// </summary>
+    private static void ValidateStateIdentity(WorkState state, CompositeKey identity)
+    {
+        if (GetIdentity(state) != identity)
+            throw new InvalidOperationException("The work state identity must match the requested identity.");
     }
 
     /// <summary>
     /// Gets the unexpired entry, removing it where expired; must be called within the lock.
     /// </summary>
-    private bool TryGet(string id, [NotNullWhen(true)] out Entry? entry)
+    private bool TryGet(CompositeKey identity, DateTimeOffset now, [NotNullWhen(true)] out Entry? entry)
     {
-        if (_entries.TryGetValue(id, out entry))
+        if (_entries.TryGetValue(identity, out entry))
         {
-            if (entry.Expires > _timeProvider.GetUtcNow())
+            if (entry.Expires > now)
                 return true;
 
-            _entries.Remove(id);
+            _entries.Remove(identity);
             entry = null;
         }
 
@@ -161,9 +173,6 @@ public sealed class InMemoryWorkProvider(JsonSerializerOptions? jsonSerializerOp
 
         /// <summary>Gets or sets the version.</summary>
         public long Version { get; set; }
-
-        /// <summary>Gets or sets the result data.</summary>
-        public byte[]? Data { get; set; }
 
         /// <summary>Gets or sets the record expiry.</summary>
         public DateTimeOffset Expires { get; set; }

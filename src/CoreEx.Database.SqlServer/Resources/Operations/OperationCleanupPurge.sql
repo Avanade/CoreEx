@@ -1,0 +1,7 @@
+SET NOCOUNT ON;
+DECLARE @now DATETIME2(7) = SYSUTCDATETIME();
+
+DELETE TOP (@MaxCount) FROM {{Table}} WITH (READPAST)
+WHERE [Status] IN (4, 5, 6, 7) AND [PurgeAfter] <= @now;
+
+SELECT @@ROWCOUNT;

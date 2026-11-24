@@ -7,11 +7,12 @@ namespace CoreEx.Coordination;
 public interface ISynchronizer
 {
     /// <summary>
-    /// Attempts to acquire a lease for the logical key.
+    /// Attempts to acquire a lease for the named, keyed operation.
     /// </summary>
-    /// <param name="key">The logical key, qualified by the registered key provider.</param>
+    /// <param name="name">The stable application-defined operation name.</param>
+    /// <param name="key">The operation instance key; its canonical string must not be empty or whitespace.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-    /// <returns>An owned lease that the caller must dispose, normally with <c>await using</c>, or null for contention. Backend failures propagate.</returns>
-    /// <remarks>The synchronizer is a reusable acquisition service. Each returned lease owns its own renewal and release lifetime; disposing the service is not a substitute for disposing the lease.</remarks>
-    Task<ISynchronizationLease?> TryAcquireAsync(string key, CancellationToken cancellationToken = default);
+    /// <returns>An owned lease that the caller must dispose, or null for contention.</returns>
+    /// <remarks>The provider qualifies the identity with the host <see cref="IHostSettings.DomainName"/> and, where present, the ambient <see cref="ExecutionContext.TenantId"/>; without a tenant the lease is domain-wide. Backend failures propagate. The synchronizer is a reusable acquisition service; each returned lease owns its own renewal and release lifetime.</remarks>
+    Task<ISynchronizationLease?> TryAcquireAsync(string name, CompositeKey key, CancellationToken cancellationToken = default);
 }

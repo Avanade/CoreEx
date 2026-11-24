@@ -102,6 +102,8 @@ Migration scripts live under `Migrations/` as embedded resources and follow a ti
 
 Scripts are **immutable once applied** — subsequent schema changes require new scripts (e.g. `ALTER TABLE`). DbEx tracks applied scripts in a journal table, so only new scripts are run. Scripts can include moustache-style parameter substitution (`{{Company}}`) resolved from `MigrationArgs.Parameters`.
 
+The relational Database projects register their CoreEx provider assemblies with DbEx, so `dotnet run -- --help` discovers `script operations`. This optional command exports an application-owned operations migration; it does not enable tracked HTTP processing. The schema defaults to `dbex.yaml`'s top-level `schema`, or the literal `Schema` when absent; explicitly pass the store's schema and table where needed. Use simple identifiers because substitution does not escape SQL delimiters. Review and check in the export, then rebuild so `Migrate` can discover it as an embedded resource.
+
 ### Schema — idempotent objects
 
 Objects under `Schema/` (stored procedures, functions, user-defined table types) are dropped and re-created on every `Schema` run. This makes them safely idempotent and avoids the immutability constraint of migration scripts. The transactional outbox stored procedures / functions (e.g. `spOutboxEnqueue`, `fn_outbox_batch_claim`) are generated here and carry a `.g.sql` / `.g.pgsql` suffix.

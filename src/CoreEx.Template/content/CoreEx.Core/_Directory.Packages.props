@@ -78,10 +78,10 @@
     <PackageVersion Include="CoreEx.UnitTesting" Version="coreex-version" />
     <PackageVersion Include="coverlet.collector" Version="10.1.0" />
     <!--#if implement-postgres-->
-    <PackageVersion Include="DbEx.Postgres" Version="3.4.0" />
+    <PackageVersion Include="DbEx.Postgres" Version="3.5.0" />
     <!--#endif-->
     <!--#if implement-sqlserver-->
-    <PackageVersion Include="DbEx.SqlServer" Version="3.4.0" />
+    <PackageVersion Include="DbEx.SqlServer" Version="3.5.0" />
     <!--#endif-->
     <!--#if implement-sqlserver-->
     <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.13" />

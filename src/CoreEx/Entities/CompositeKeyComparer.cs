@@ -38,41 +38,19 @@ public class CompositeKeyComparer : IEqualityComparer<CompositeKey>
     /// <returns><see langword="true"/> if the values are equal; otherwise, <see langword="false"/>.</returns>
     public bool Equals(CompositeKey x, CompositeKey y)
     {
-        // Fast path optimization: compare tuples directly without boxing
-        if (x.IsFastPath && y.IsFastPath)
-        {
-            if (x.FastPathCount != y.FastPathCount)
-                return false;
-
-            if (x.FastPath is not ITuple tupleX || y.FastPath is not ITuple tupleY)
-                return false;
-
-            for (int i = 0; i < x.FastPathCount; i++)
-            {
-                if (!GetArgValue(tupleX[i]).Equals(GetArgValue(tupleY[i])))
-                    return false;
-            }
-
-            return true;
-        }
-
-        // Fallback to Args comparison (materializes if needed)
-        if (x.Args == null && y.Args == null)
-            return true;
-        else if (x.Args == null || y.Args == null)
-            return false;
-        else if (x.Args!.Length != y.Args!.Length)
+        var xArgs = x.Args;
+        var yArgs = y.Args;
+        if (xArgs.Length != yArgs.Length)
             return false;
 
-        for (int i = 0; i < x.Args.Length; i++)
+        for (int i = 0; i < xArgs.Length; i++)
         {
-            if (!GetArgValue(x.Args[i]).Equals(GetArgValue(y.Args[i])))
+            if (!ArgEquals(xArgs[i], yArgs[i]))
                 return false;
         }
 
         return true;
     }
-
     /// <summary>
     /// Returns a hash code for the specified value.
     /// </summary>
@@ -96,39 +74,34 @@ public class CompositeKeyComparer : IEqualityComparer<CompositeKey>
     /// <returns>A hash code for the <see cref="CompositeKey"/>.</returns>
     public int GetHashCode(CompositeKey key)
     {
-        // Fast path optimization: compute hash without boxing
-        if (key.IsFastPath)
-        {
-            if (key.FastPath is not ITuple tuple)
-                return 0;
-
-            return key.FastPathCount switch
-            {
-                0 => 0,
-                1 => GetArgValue(tuple[0]).GetHashCode(),
-                2 => HashCode.Combine(GetArgValue(tuple[0]), GetArgValue(tuple[1])),
-                3 => HashCode.Combine(GetArgValue(tuple[0]), GetArgValue(tuple[1]), GetArgValue(tuple[2])),
-                4 => HashCode.Combine(GetArgValue(tuple[0]), GetArgValue(tuple[1]), GetArgValue(tuple[2]), GetArgValue(tuple[3])),
-                _ => 0
-            };
-        }
-
-        // Fallback to Args (materializes if needed)
-        if (key.Args.Length == 0)
+        var args = key.Args;
+        if (args.Length == 0)
             return 0;
 
-        if (key.Args.Length == 1)
-            return GetArgValue(key.Args[0]).GetHashCode();
+        if (args.Length == 1)
+            return ArgHash(args[0]);
 
         var hashCode = new HashCode();
-        for (int i = 0; i < key.Args.Length; i++)
-            hashCode.Add(GetArgValue(key.Args[i]));
+        for (int i = 0; i < args.Length; i++)
+            hashCode.Add(ArgHash(args[i]));
 
         return hashCode.ToHashCode();
     }
+    /// <summary>
+    /// Determines whether the arguments are equal; a <see cref="byte"/> array is compared by content.
+    /// </summary>
+    private static bool ArgEquals(object? x, object? y) => x is byte[] bx && y is byte[] by ? bx.AsSpan().SequenceEqual(by) : (x ?? _nothing).Equals(y ?? _nothing);
 
     /// <summary>
-    /// Gets the argument value or nothing.
+    /// Gets the argument hash code; a <see cref="byte"/> array is hashed by content.
     /// </summary>
-    private static object GetArgValue(object? arg) => arg ?? _nothing;
+    private static int ArgHash(object? arg)
+    {
+        if (arg is not byte[] bytes)
+            return (arg ?? _nothing).GetHashCode();
+
+        var hashCode = new HashCode();
+        hashCode.AddBytes(bytes);
+        return hashCode.ToHashCode();
+    }
 }

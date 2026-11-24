@@ -8,7 +8,7 @@ public class NativeMessageTests
     {
         var value = EventData.CreateNativeWith(new { ETag = "keep", Nested = new[] { 1, 2 } }).WithKey("key");
         value.Data = value.Data!.WithMediaType(contentType);
-        var formatter = new EventFormatter();
+        var formatter = new EventFormatter { SourceBaseUri = new Uri("urn:test") };
         var envelope = formatter.ConvertToCloudEvent(formatter.Format(value));
         var stored = envelope.EncodeToJsonElement();
         stored.GetProperty("data").GetProperty("etag").GetString().Should().Be("keep");
@@ -19,6 +19,29 @@ public class NativeMessageTests
         restored.Attributes.Keys.Should().NotContain(NativeMessageEnvelopeCodec.NativeAttributeName);
     }
 
+    [Test]
+    public void OperationMetadata_UsesStandardDomainAndTenant()
+    {
+        var startBy = new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.FromHours(2));
+        var formatter = new EventFormatter { SourceBaseUri = new Uri("urn:test") };
+        var value = new EventData { MessageType = MessageType.Command, TenantId = "tenant-a", DomainName = "orders" }
+            .WithValue(new { Value = 1 }).WithAction("submit").WithKey("partition");
+        value.OperationId = "operation-1";
+        value.OperationName = "webapi-operations";
+        value.OperationStartBy = startBy;
+
+        value.DomainName.Should().Be("orders");
+        var stored = formatter.ConvertToCloudEvent(formatter.Format(value)).EncodeToJsonElement();
+        stored.GetProperty("operationid").GetString().Should().Be(value.OperationId);
+        stored.GetProperty("operationname").GetString().Should().Be(value.OperationName);
+        stored.GetProperty("operationstartby").GetString().Should().Be(startBy.ToUniversalTime().ToString("O", System.Globalization.CultureInfo.InvariantCulture));
+        stored.GetProperty("tenantid").GetString().Should().Be(value.TenantId);
+
+        var restored = formatter.ConvertFromCloudEvent(stored.DecodeToCloudEvent());
+        restored.OperationId.Should().Be(value.OperationId);
+        restored.OperationName.Should().Be(value.OperationName);
+        restored.OperationStartBy.Should().Be(value.OperationStartBy);
+    }
     [TestCase("application/json", "{ \"x\": 1 }")]
     [TestCase("application/octet-stream", "\0\u00ff\n")]
     [TestCase("text/plain; charset=utf-8", "hello \"world\"")]

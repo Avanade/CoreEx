@@ -131,6 +131,225 @@ public class OtherApiTests : WithApiTester<Api.Program>
     }
 
     [Test]
+    public void Swagger_JSON_PublishMetadata_DistinguishesTrackedAndUntrackedEndpoints()
+    {
+        var json = Test.Http()
+            .Run(HttpMethod.Get, "/swagger/v1/swagger.json")
+            .Assert(HttpStatusCode.OK)
+            .GetContent();
+
+        using var doc = JsonDocument.Parse(json!);
+        var paths = doc.RootElement.GetProperty("paths");
+        var tracked = paths.GetProperty("/api/other/publish-tracked").GetProperty("post");
+        var trackedResponse = tracked.GetProperty("responses").GetProperty("202");
+
+        trackedResponse.GetProperty("content").GetProperty("application/json").GetProperty("schema").GetProperty("$ref").GetString()
+            .Should().EndWith("/OperationStatus");
+        var statusProperties = doc.RootElement.GetProperty("components").GetProperty("schemas").GetProperty("OperationStatus").GetProperty("properties");
+        statusProperties.EnumerateObject().Select(x => x.Name).Should().Contain(["createdOn", "updatedOn", "expiryOn"]);
+        statusProperties.EnumerateObject().Select(x => x.Name).Should().NotContain(["createdAt", "lastUpdatedAt", "expiresAt"]);
+        trackedResponse.GetProperty("headers").EnumerateObject().Select(x => x.Name)
+            .Should().Contain(["Location", "Operation-Location", "Retry-After"]);
+        trackedResponse.GetProperty("links").GetProperty("getOperation").GetProperty("operationId").GetString()
+            .Should().Be("CoreExOperationStatus");
+        tracked.GetProperty("x-ms-long-running-operation").GetBoolean().Should().BeTrue();
+        tracked.GetProperty("x-ms-long-running-operation-options").GetProperty("final-state-via").GetString()
+            .Should().Be("operation-location");
+        tracked.GetProperty("responses").TryGetProperty("200", out _).Should().BeFalse();
+
+        var minimalTracked = paths.GetProperty("/api/other/minimal-publish-tracked").GetProperty("post");
+        minimalTracked.GetProperty("responses").GetProperty("202").GetProperty("content").GetProperty("application/json")
+            .GetProperty("schema").GetProperty("$ref").GetString().Should().EndWith("/OperationStatus");
+        minimalTracked.GetProperty("x-ms-long-running-operation").GetBoolean().Should().BeTrue();
+
+        var untracked = paths.GetProperty("/api/other/publish-untracked").GetProperty("post");
+        var untrackedResponse = untracked.GetProperty("responses").GetProperty("202");
+        untrackedResponse.TryGetProperty("content", out _).Should().BeFalse();
+        untrackedResponse.TryGetProperty("links", out _).Should().BeFalse();
+        untracked.TryGetProperty("x-ms-long-running-operation", out _).Should().BeFalse();
+        untracked.GetProperty("responses").TryGetProperty("200", out _).Should().BeFalse();
+
+        var minimalUntracked = paths.GetProperty("/api/other/minimal-publish-command").GetProperty("post");
+        minimalUntracked.GetProperty("responses").GetProperty("202").TryGetProperty("content", out _).Should().BeFalse();
+        minimalUntracked.TryGetProperty("x-ms-long-running-operation", out _).Should().BeFalse();
+        minimalUntracked.GetProperty("responses").TryGetProperty("200", out _).Should().BeFalse();
+
+        var statusOperation = paths.GetProperty("/operations/{id}").GetProperty("get");
+        statusOperation.GetProperty("tags").EnumerateArray().Select(x => x.GetString()).Should().Contain("Operations");
+        var status = statusOperation.GetProperty("responses");
+        status.GetProperty("200").GetProperty("headers").TryGetProperty("ETag", out _).Should().BeTrue();
+        status.GetProperty("304").GetProperty("headers").TryGetProperty("ETag", out _).Should().BeTrue();
+        var cancel = paths.GetProperty("/operations/{id}:cancel").GetProperty("post").GetProperty("responses").GetProperty("202").GetProperty("headers");
+        cancel.EnumerateObject().Select(x => x.Name).Should().Contain(["Location", "Operation-Location", "Retry-After"]);
+    }
+
+    [Test]
+    public void Publish_Default_PublishesSelfAddressedCommandWithPublishAction()
+    {
+        using var test = CreatePublishTester();
+        var response = test.Http()
+            .ExpectEvents("EventPublisher", cfg => cfg.AssertCustom("default", (_, _, actual) =>
+            {
+                actual.Event.Type.Should().Be("coreex.test.person.publish.v1");
+                actual.Event["operationid"].Should().BeNull();
+            }))
+            .Run(HttpMethod.Post, "/api/other/minimal-publish-command", new Person { Id = "1", FirstName = "Bob" })
+            .AssertAccepted();
+
+        response.GetContent().Should().BeNullOrEmpty();
+        response.Response.Headers.Location.Should().BeNull();
+        response.Response.Headers.Contains("Operation-Location").Should().BeFalse();
+    }
+
+    [TestCase("/api/other/publish-tracked")]
+    [TestCase("/api/other/minimal-publish-tracked")]
+    public async Task Publish_TrackedEndpoint_CreatesAndPublishesOperation(string path)
+    {
+        var owner = new CoreEx.Security.AuthenticationUser { Type = CoreEx.Security.AuthenticationType.AccountUser, UserName = "owner" };
+        using var test = CreatePublishTester(services =>
+        {
+            services.AddSingleton<IOperationStore, InMemoryOperationStore>();
+            services.AddExecutionContext((_, ec) => ec.User = owner);
+        });
+
+        string? publishedId = null;
+        var response = test.Http()
+            .ExpectEvents("EventPublisher", cfg => cfg.AssertCustom("default", (_, _, actual) =>
+            {
+                actual.Event.Type.Should().Be("coreex.test.person.publish.v1");
+                publishedId = actual.Event["operationid"].Should().BeOfType<string>().Subject;
+                actual.Event["operationdomain"].Should().BeNull();
+                actual.Event["operationscope"].Should().BeNull();
+                actual.Event["operationtenantid"].Should().BeNull();
+                actual.Event["operationname"].Should().Be("person-submit");
+                actual.Event["operationstartby"].Should().BeNull();
+                using var payload = JsonDocument.Parse(actual.Event.Data.Should().BeOfType<BinaryData>().Which.ToMemory());
+                payload.RootElement.GetProperty("id").GetString().Should().Be("1");
+                payload.RootElement.GetProperty("firstName").GetString().Should().Be("Bob");
+            }))
+            .Run(HttpMethod.Post, path, new Person { Id = "1", FirstName = "Bob" })
+            .AssertAccepted();
+
+        using var status = JsonDocument.Parse(response.GetContent().ThrowIfNull());
+        var id = status.RootElement.GetProperty("id").GetString().ThrowIfNull();
+        id.Should().NotBeNullOrWhiteSpace();
+        publishedId.Should().Be(id);
+        status.RootElement.GetProperty("status").GetString().Should().Be("accepted");
+        var location = $"/operations/{id}";
+        response.Response.Headers.Location.ThrowIfNull().ToString().Should().Be(location);
+        response.Response.Headers.GetValues("Operation-Location").Should().ContainSingle().Which.Should().Be(location);
+
+        var state = (await test.Services.GetRequiredService<IOperationStore>().GetByIdAsync(Guid.Parse(id))).ThrowIfNull();
+        state.OperationName.Should().Be("person-submit");
+        state.Status.Should().Be(CoreEx.Operations.OperationStatus.Accepted);
+        state.InitiatedBy.Should().Be(owner.UserName);
+
+        var poll = test.Http().Run(HttpMethod.Get, location).AssertOK();
+        using var polledStatus = JsonDocument.Parse(poll.GetContent().ThrowIfNull());
+        polledStatus.RootElement.GetProperty("id").GetString().Should().Be(id);
+        polledStatus.RootElement.GetProperty("status").GetString().Should().Be("accepted");
+    }
+
+    [Test]
+    public void Publish_Event_PublishesToSharedDestinationWithPublishedAction()
+    {
+        using var test = CreatePublishTester();
+        test.Http()
+            .ExpectEvents("EventPublisher", cfg => cfg.AssertCustom("default", (_, _, actual) => actual.Event.Type.Should().Be("coreex.sales.person.published.v1")))
+            .Run(HttpMethod.Post, "/api/other/minimal-publish-event", new Person { Id = "1", FirstName = "Bob" })
+            .AssertAccepted();
+    }
+
+    [TestCase(false, false)]
+    [TestCase(false, true)]
+    [TestCase(true, false)]
+    [TestCase(true, true)]
+    public async Task Publish_CoreExMapper_ResolvesPublisherFromSelectedServices(bool readBody, bool useExecutionContextServices)
+    {
+        using var test = CreatePublishTester();
+        using var scope = test.Services.CreateScope();
+        using var executionScope = test.Services.CreateScope();
+        var expectedServices = useExecutionContextServices ? executionScope.ServiceProvider : scope.ServiceProvider;
+        var executionContext = new CoreEx.ExecutionContext
+        {
+            ServiceProvider = useExecutionContextServices ? executionScope.ServiceProvider : null
+        };
+        var webApi = new WebApi(executionContext: executionContext);
+        var context = new DefaultHttpContext { RequestServices = scope.ServiceProvider };
+        var value = new Person { Id = "1", FirstName = "Bob" };
+        var request = context.Request;
+        request.Method = HttpMethods.Post;
+        request.ContentType = "application/json";
+        var body = JsonSerializer.SerializeToUtf8Bytes(value);
+        using var stream = new System.IO.MemoryStream(body);
+        request.Body = stream;
+        request.ContentLength = body.Length;
+        Person? published = null;
+        var options = CoreEx.AspNetCore.Publishing.WebApiPublishOptions.CreateMapped<Person, Person>(
+                CoreEx.Mapping.Mapper.Create<Person, Person>(source =>
+                {
+                    var mapped = new Person { Id = source.Id, FirstName = $"Mapped {source.FirstName}" };
+                    published = mapped;
+                    return mapped;
+                }))
+            .WithEventFactory(person => CoreEx.Events.EventData.CreateEventWith(person, CoreEx.Events.EventAction.Published).WithSource(new Uri("urn:coreex:test")))
+            .WithPublisher(services =>
+            {
+                services.Should().BeSameAs(expectedServices);
+                return services.GetRequiredKeyedService<CoreEx.Events.Publishing.IEventPublisher>("EventPublisher");
+            });
+
+        var result = readBody
+            ? await webApi.PublishAsync(request, options)
+            : await webApi.PublishAsync(request, options.WithValue(value));
+
+        result.Should().BeOfType<StatusCodeResult>().Which.StatusCode.Should().Be(202);
+        published.Should().BeOfType<Person>().Which.FirstName.Should().Be("Mapped Bob");
+        published.Should().NotBeSameAs(value);
+        expectedServices.GetRequiredKeyedService<CoreEx.Events.Publishing.IEventPublisher>("EventPublisher").HasBeenPublished.Should().BeTrue();
+    }
+
+    /// <summary>
+    /// Creates an isolated tester that captures publications without broker infrastructure.
+    /// </summary>
+    private static UnitTestEx.AspNetCore.ApiTester<Api.Program> CreatePublishTester(Action<IServiceCollection>? configure = null)
+    {
+        var test = ApiTester.Create<Api.Program>();
+        test.ConfigureServices(services =>
+        {
+            services
+                .AddEventPublisher("EventPublisher", sp => ActivatorUtilities.CreateInstance<CoreEx.Events.Publishing.NoOpEventPublisher>(sp))
+                .UseExpectedEventPublisher();
+
+            configure?.Invoke(services);
+        });
+        return test;
+    }
+
+    [Test]
+    public void OperationStatus_DatesSerializeWithOnSuffix()
+    {
+        var timestamp = new DateTimeOffset(2026, 1, 2, 3, 4, 5, TimeSpan.Zero);
+        var status = new CoreEx.AspNetCore.Operations.OperationStatus
+        {
+            Id = "123",
+            Status = "not-started",
+            CreatedOn = timestamp,
+            UpdatedOn = timestamp.AddMinutes(1),
+            ExpiryOn = timestamp.AddHours(1)
+        };
+        var json = JsonSerializer.Serialize(status, CoreEx.Json.JsonDefaults.SerializerOptions);
+
+        using var document = JsonDocument.Parse(json);
+        document.RootElement.GetProperty("createdOn").GetDateTimeOffset().Should().Be(status.CreatedOn);
+        document.RootElement.GetProperty("updatedOn").GetDateTimeOffset().Should().Be(status.UpdatedOn);
+        document.RootElement.GetProperty("expiryOn").GetDateTimeOffset().Should().Be(status.ExpiryOn);
+        document.RootElement.TryGetProperty("createdAt", out _).Should().BeFalse();
+        document.RootElement.TryGetProperty("lastUpdatedAt", out _).Should().BeFalse();
+        document.RootElement.TryGetProperty("expiresAt", out _).Should().BeFalse();
+    }
+
+    [Test]
     public void Swagger_JSON_NonNullableAttribute_NotNullable()
     {
         // Properties marked [NonNullable] are non-nullable in the spec even though declared nullable (string? / DateOnly?); unmarked ones remain nullable.

@@ -24,6 +24,7 @@ public abstract class SynchronizedTimerHostedServiceBase<TSynchronizer, TSelf>(I
         var synchronizer = ExecutionContext.GetRequiredService<TSynchronizer>();
 
         var lease = await synchronizer.TryAcquireAsync<TSelf>(SynchronizerName, cancellationToken).ConfigureAwait(false);
+
         if (lease is null)
             return false;
 

@@ -5,22 +5,26 @@ namespace CoreEx.Hosting.Work;
 /// </summary>
 /// <remarks>The <see cref="WorkOrchestrator"/> contains all orchestration logic, including transition validation, and relies on the provider for atomicity only. Implementations must guarantee that:
 /// <list type="bullet">
-/// <item><see cref="CreateAsync"/> is an atomic insert-if-absent; exactly one concurrent caller for the same identifier succeeds.</item>
-/// <item><see cref="UpdateAsync"/> and <see cref="DeleteAsync"/> only succeed where the <see cref="WorkState.ETag"/> matches the currently persisted version; the state and any supplied data are written atomically.</item>
+/// <item><see cref="CreateAsync"/> is an atomic insert-if-absent; exactly one concurrent caller for the same identity (<see cref="WorkState.DomainName"/>, <see cref="WorkState.TenantId"/>, <see cref="WorkState.OperationName"/> and <see cref="WorkState.Id"/>) succeeds.</item>
+/// <item><see cref="UpdateAsync"/> and <see cref="DeleteAsync"/> only succeed where the <see cref="WorkState.ETag"/> matches the currently persisted version.</item>
 /// <item>A recreated record has a distinct <see cref="WorkState.ETag"/> from every version of its previous incarnation.</item>
-/// <item><see cref="GetAsync"/> returns an independent copy (mutating it has no effect until updated) with the <see cref="WorkState.ETag"/> set.</item>
+/// <item><see cref="GetAsync"/> returns an independent copy with the requested identity and its <see cref="WorkState.ETag"/> set, and the time observed atomically with the read.</item>
+/// <item>A state write uses the identity fields on <see cref="WorkState"/> as its complete logical key; these fields must remain unchanged after creation. Its <see cref="WorkState.Id"/> is only the instance identifier. Identity comparison is ordinal (case-sensitive).</item>
 /// <item>Records are retained for at least the requested time-to-live; a cache that may evict entries early is <b>not</b> a suitable store.</item>
 /// </list>
-/// <para>The result data enables simple (smallish) persistence; large data should be persisted independently with the result data here representing a link to a file/blob for example.</para></remarks>
+/// </remarks>
 public interface IWorkProvider
 {
     /// <summary>
-    /// Gets (reads) an independent copy of the <see cref="WorkState"/> using the specified <paramref name="id"/>.
+    /// Gets (reads) an independent copy of the <see cref="WorkState"/> using the specified complete identity.
     /// </summary>
-    /// <param name="id">The <see cref="WorkState.Id"/>.</param>
+    /// <param name="domainName">The stable domain name.</param>
+    /// <param name="tenantId">The tenant identifier for tenant-scoped work; otherwise, <see langword="null"/> or empty.</param>
+    /// <param name="operationName">The stable application-defined operation name.</param>
+    /// <param name="id">The operation instance identifier.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-    /// <returns>The <see cref="WorkState"/> (with the <see cref="WorkState.ETag"/> set) where found; otherwise, <see langword="null"/>.</returns>
-    Task<WorkState?> GetAsync(string id, CancellationToken cancellationToken);
+    /// <returns>A <see cref="WorkSnapshot"/> containing provider time and the state where found.</returns>
+    Task<WorkSnapshot> GetAsync(string domainName, string? tenantId, string operationName, string id, CancellationToken cancellationToken);
 
     /// <summary>
     /// Atomically creates the <paramref name="state"/> where it does not already exist.
@@ -32,28 +36,20 @@ public interface IWorkProvider
     Task<bool> CreateAsync(WorkState state, TimeSpan timeToLive, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Atomically replaces the <paramref name="state"/> (and optionally the <paramref name="data"/>) where the <see cref="WorkState.ETag"/> matches the persisted version.
+    /// Atomically replaces the <paramref name="state"/> where the <see cref="WorkState.ETag"/> matches the persisted version.
     /// </summary>
     /// <param name="state">The <see cref="WorkState"/>; the <see cref="WorkState.ETag"/> is updated where successful.</param>
-    /// <param name="data">The result data to persist; <see langword="null"/> leaves any existing data unchanged.</param>
     /// <param name="timeToLive">The minimum time-to-live for the persisted record.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
     /// <returns><see langword="true"/> where updated; otherwise, <see langword="false"/> where not found or the <see cref="WorkState.ETag"/> does not match.</returns>
-    Task<bool> UpdateAsync(WorkState state, BinaryData? data, TimeSpan timeToLive, CancellationToken cancellationToken);
+    Task<bool> UpdateAsync(WorkState state, TimeSpan timeToLive, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Deletes the <paramref name="state"/> (and data) where the <see cref="WorkState.ETag"/> matches the persisted version.
+    /// Deletes the <paramref name="state"/> where the <see cref="WorkState.ETag"/> matches the persisted version.
     /// </summary>
     /// <param name="state">The <see cref="WorkState"/>.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
     /// <returns><see langword="true"/> where deleted or no longer exists; otherwise, <see langword="false"/> where the <see cref="WorkState.ETag"/> does not match.</returns>
     Task<bool> DeleteAsync(WorkState state, CancellationToken cancellationToken);
 
-    /// <summary>
-    /// Gets the result data using the specified <paramref name="id"/>.
-    /// </summary>
-    /// <param name="id">The <see cref="WorkState.Id"/>.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
-    /// <returns>The <see cref="BinaryData"/> where found; otherwise, <see langword="null"/>.</returns>
-    Task<BinaryData?> GetDataAsync(string id, CancellationToken cancellationToken);
 }

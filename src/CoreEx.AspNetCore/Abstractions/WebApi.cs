@@ -72,8 +72,8 @@ public abstract partial class WebApi<TResult>(WebApiInvoker<TResult> invoker, Js
             System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(result.Exception).Throw();
 
         var response = CreateResult(result);
-        if (addMessages && ExecutionContext.TryGetCurrent(out var ec))
-            ExecutionContextMiddleware.AddMessagesHeader(request.HttpContext, ec);
+        if (addMessages)
+            ExecutionContextMiddleware.AddMessagesHeader(request.HttpContext, ExecutionContext);
 
         return response;
     }, cancellationToken, memberName).ConfigureAwait(false);
@@ -140,10 +140,10 @@ public abstract partial class WebApi<TResult>(WebApiInvoker<TResult> invoker, Js
             ? Entities.ETag.Generate(json, options.Request.QueryString.ToString())
             : value is IReadOnlyETag vetag && vetag.ETag is not null ? vetag.ETag : ETag.Generate(json);
 
-        // Where the request is a GET or HEAD and the ETag matches then return a 304 Not Modified. options.ETag was already parsed (quote-bookends stripped) from the If-None-Match header by
-        // WebApiOptionsBase's constructor, but getag (above) has not been - for a provider whose native ETag is itself already quote-wrapped (e.g. Cosmos DB's raw "_etag" system property),
-        // comparing the two unnormalized would never match, even for a genuinely unmodified resource. The response's own ETag header (below) is left as getag, unnormalized, unaffected by this.
-        if (options.ETag is not null && (HttpMethods.IsGet(options.Request.Method) || HttpMethods.IsHead(options.Request.Method)) && options.ETag == Entities.ETag.ParseETag(getag))
+        // Where the request is a GET or HEAD and any If-None-Match entity tag (or the wildcard) matches then return a 304 Not Modified. Both sides are normalized (quote-bookends and weak prefix
+        // stripped) before comparison - for a provider whose native ETag is itself already quote-wrapped (e.g. Cosmos DB's raw "_etag" system property), comparing unnormalized values would never
+        // match, even for a genuinely unmodified resource. The response's own ETag header (below) is left as getag, unnormalized, unaffected by this.
+        if (options.IsIfNoneMatch(getag))
             return new WebApiResult<TResult>(options.Request.HttpContext.Response)
             {
                 StatusCode = HttpStatusCode.NotModified,

@@ -207,7 +207,7 @@ public class CorrelationHostTests
     {
         using var services = CreateIdempotencyServices();
         await using var scope = services.CreateAsyncScope();
-        var provider = new Idempotency.IdempotencyProvider(scope.ServiceProvider.GetRequiredService<CoreEx.Idempotency.IIdempotencyStore>());
+        var provider = (Idempotency.IdempotencyProvider)scope.ServiceProvider.GetRequiredService<Idempotency.IIdempotencyProvider>();
         if (cacheCorrelation)
             provider.HttpResponseHeadersToExcludeFromCache.Remove(CoreEx.Http.HttpNames.CorrelationIdHeaderName);
 
@@ -272,7 +272,7 @@ public class CorrelationHostTests
     {
         using var services = CreateIdempotencyServices();
         await using var scope = services.CreateAsyncScope();
-        var provider = new Idempotency.IdempotencyProvider(scope.ServiceProvider.GetRequiredService<CoreEx.Idempotency.IIdempotencyStore>());
+        var provider = (Idempotency.IdempotencyProvider)scope.ServiceProvider.GetRequiredService<Idempotency.IIdempotencyProvider>();
         if (cacheCorrelation)
             provider.HttpResponseHeadersToExcludeFromCache.Remove(CoreEx.Http.HttpNames.CorrelationIdHeaderName);
 
@@ -300,7 +300,9 @@ public class CorrelationHostTests
     {
         var services = new ServiceCollection();
         services.AddLogging();
+        services.AddSingleton<CoreEx.Hosting.IHostSettings>(new CoreEx.Hosting.HostSettings { SolutionName = "Tests", DomainName = "orders", EnvironmentName = "Test" });
         services.AddInMemoryCoordination();
+        services.AddIdempotencyProvider();
         return services.BuildServiceProvider();
     }
 }

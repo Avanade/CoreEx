@@ -16,6 +16,7 @@ The outbox sub-namespace provides ready-to-use `SqlServerOutboxPublisher`, `SqlS
 - 🔢 **Error-code convention**: SQL user error numbers 56001–56007 and 56010 map to `ValidationException`, `BusinessException`, `AuthorizationException`, `ConcurrencyException`, `NotFoundException`, `ConflictException`, `DuplicateException`, and `DataConsistencyException` respectively.
 - 👤 **Session context**: `SetSqlSessionContextAsync(ExecutionContext?)` invokes `[dbo].[spSetSessionContext]` (configurable) to stamp `Username`, `Timestamp`, `TenantId`, and `UserId` into the SQL Server session context for row-level security and audit triggers.
 - 🔁 **SqlServerUnitOfWork**: `IDatabaseUnitOfWork` implementation wrapping `TransactionAsync` with `SqlServerUnitOfWorkInvoker`; optionally accepts an `IEventPublisher` outbox for transactional event enqueuing.
+- 📝 **Operations store**: `SqlServerOperationStore` stores operation lifecycle state in one purpose-built table and supports transaction-aware acceptance and completion.
 - 📤 **Outbox relay**: `SqlServerOutboxPublisher` (writes to outbox table), `SqlServerOutboxRelay` (polls and publishes), and `SqlServerOutboxRelayHostedService` (timer-driven hosted service) — all SQL Server-specific subclasses of the base `CoreEx.Database.Outbox` types.
 - 📊 **Outbox metrics**: `SqlServerMetrics` exposes .NET `Meter` instruments: `sqlserver.outbox.enqueue` (counter), `sqlserver.outbox.relay.publish` and `sqlserver.outbox.relay.publish.failed` (counters), `sqlserver.outbox.relay.oldest_lag` and `sqlserver.outbox.relay.newest_lag` (histograms in ms) — names harmonized with `PostgresMetrics`/`CosmosMetrics`.
 - 📡 **OpenTelemetry**: `CoreExSqlServerExtensions.AddCoreExSqlServerOpenTelemetry` wires `SqlServerInvoker` activity sources and the outbox meter into the OTEL tracer and meter providers.
@@ -27,6 +28,7 @@ The outbox sub-namespace provides ready-to-use `SqlServerOutboxPublisher`, `SqlS
 |------|-------------|
 | **[`SqlServerDatabase`](./SqlServerDatabase.cs)** | Concrete `IDatabase` for `SqlConnection`; error-number to exception mapping; `RowVersion` → `StringBase64Converter`; `SetSqlSessionContextAsync`. |
 | **[`SqlServerUnitOfWork`](./SqlServerUnitOfWork.cs)** | `IDatabaseUnitOfWork` implementation; wraps `TransactionAsync` with `SqlServerUnitOfWorkInvoker`; optional transactional outbox via `IEventPublisher Outbox`. |
+| **[`SqlServerOperationStore`](./Operations/SqlServerOperationStore.cs)** | Relational operation lifecycle store with database-time claims and ETags from the `RowVersion` column. |
 | **[`SqlServerCommand`](./SqlServerCommand.cs)** | `DatabaseCommand` subclass for `SqlCommand`; adds SQL Server-specific parameter handling and `CommandTimeout` support. |
 | **[`SqlServerDatabaseArgs`](./SqlServerDatabaseArgs.cs)** | `DatabaseArgs` subclass with SQL Server-specific defaults (e.g. `CommandTimeout`). |
 | **[`SqlServerDatabaseColumns`](./Extended/SqlServerDatabaseColumns.cs)** | `DatabaseColumns` subclass adding `SessionContextUsernameName`, `SessionContextTimestampName`, `SessionContextTenantIdName`, `SessionContextUserIdName` constants for session-context parameters. |
@@ -37,6 +39,12 @@ The outbox sub-namespace provides ready-to-use `SqlServerOutboxPublisher`, `SqlS
 | [`SqlServerExtensions`](./SqlServerExtensions.cs) | `IDatabase` / `DatabaseCommand` extensions specific to SQL Server: `Param` helpers for `SqlDbType`-typed parameters and TVP (table-valued parameter) support. |
 | [`SqlServerInvoker`](./Extended/SqlServerInvoker.cs) | `DatabaseInvoker` subclass for SQL Server; the `Default` singleton used by `SqlServerDatabase`. |
 | [`SqlServerUnitOfWorkInvoker`](./Extended/SqlServerUnitOfWorkInvoker.cs) | `InvokerBase<SqlServerUnitOfWork>` wrapping `TransactionAsync` with OpenTelemetry spans and begin/commit/rollback log entries. |
+
+## Operations migration
+
+With DbEx 3.5.0 or later, reference this package in the Database project, import `CoreEx.Database.SqlServer`, and register `args.AddAssembly<SqlStatement>().AddAssembly<SqlServerDatabase>().AddAssembly<Program>()` in `ConfigureMigrationArgs`. Construct `SqlServerMigrationConsole` directly rather than using `Create<Program>()`, which registers the application too early: DbEx probes in reverse registration order and ignores duplicate registrations. The CoreEx Database scaffold already follows this pattern. From that project, run `dotnet run -- script operations` to export the migration, or specify both names with `dotnet run -- script operations Sales Operation` (alternatively, use `-p Param1=Sales -p Param2=Operation`).
+
+The schema defaults to top-level `schema` in `dbex.yaml`, or the literal `Schema` if absent; the table defaults to `Operation`. Match both to the configured store, for example `services.AddSqlServerOperationStore(schema: "Sales")`. Use simple identifiers: template substitution does not escape SQL delimiters. Export does not execute SQL or overwrite an existing migration; retry a same-second filename collision. Review and check in the generated snapshot, include `Migrations/` as embedded resources, and rebuild before `dotnet run -- migrate`.
 
 ## Related Namespaces
 

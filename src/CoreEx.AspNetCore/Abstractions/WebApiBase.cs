@@ -5,9 +5,10 @@ namespace CoreEx.AspNetCore.Abstractions;
 /// </summary>
 /// <param name="jsonSerializerOptions">The optional <see cref="JsonSerializerOptions"/>.</param>
 /// <param name="logger">The optional <see cref="ILogger"/> for the <see cref="WebApiBase"/>.</param>
-/// <param name="executionContext">The optional <see cref="CoreEx.ExecutionContext"/>.</param>
+/// <param name="executionContext">The optional <see cref="CoreEx.ExecutionContext"/>; where <see langword="null"/> the <see cref="CoreEx.ExecutionContext.Current"/> is used at runtime.</param>
 public abstract class WebApiBase(JsonSerializerOptions? jsonSerializerOptions = null, ILogger? logger = null, ExecutionContext? executionContext = null)
 {
+    private readonly ExecutionContext? _executionContext = executionContext;
     private JsonMergePatch? _jsonMergePatch;
 
     /// <summary>
@@ -38,7 +39,15 @@ public abstract class WebApiBase(JsonSerializerOptions? jsonSerializerOptions = 
     /// <summary>
     /// Gets the <see cref="CoreEx.ExecutionContext"/>.
     /// </summary>
-    public ExecutionContext? ExecutionContext { get; } = executionContext;
+    /// <remarks>Uses the constructor-supplied instance; otherwise, falls back to the <see cref="CoreEx.ExecutionContext.Current"/>.</remarks>
+    public ExecutionContext ExecutionContext => _executionContext ?? ExecutionContext.Current;
+
+    /// <summary>
+    /// Gets the <see cref="IServiceProvider"/> for the current request.
+    /// </summary>
+    /// <param name="request">The <see cref="HttpRequest"/>.</param>
+    /// <returns>The <see cref="CoreEx.ExecutionContext.ServiceProvider"/>; otherwise, as a last resort, the <see cref="HttpContext.RequestServices"/>.</returns>
+    internal IServiceProvider GetServiceProvider(HttpRequest request) => ExecutionContext.ServiceProvider ?? request.ThrowIfNull().HttpContext.RequestServices;
 
     /// <summary>
     /// Gets the <see cref="JsonSerializerOptions"/>.
@@ -89,10 +98,55 @@ public abstract class WebApiBase(JsonSerializerOptions? jsonSerializerOptions = 
     public JsonMergePatch JsonMergePatch { get => _jsonMergePatch ??= new JsonMergePatch(new JsonMergePatchOptions(JsonSerializerOptions)); set => _jsonMergePatch = value; }
 
     /// <summary>
-    /// Indicates whether to use absolute paths versus relative in the likes of response headers, etc.
+    /// Gets or sets whether to generate absolute URLs from the current request origin for relative response links.
     /// </summary>
-    /// <remarks>Defaults to <see langword="false"/> indicates the use of <i>relative</i> paths.</remarks>
+    /// <remarks>Defaults to <see langword="false"/>; when false, generated links are relative to the request origin. <see cref="BaseAddress"/> takes precedence.</remarks>
     public bool UseAbsolutePaths { get; set; } = false;
+
+    /// <summary>
+    /// Gets or sets the validated absolute HTTP(S) base address for externally visible links.
+    /// </summary>
+    /// <remarks>Relative response links are resolved against this address, including its path, instead of the current request origin and <c>PathBase</c>.</remarks>
+    public Uri? BaseAddress
+    {
+        get;
+        set
+        {
+            if (value is not null && (!value.IsAbsoluteUri || value.Scheme is not ("http" or "https") || !string.IsNullOrEmpty(value.Query) || !string.IsNullOrEmpty(value.Fragment)))
+                throw new ArgumentException("The WebApi base address must be an absolute HTTP or HTTPS URI without a query or fragment.", nameof(value));
+
+            if (value is null)
+                field = null;
+            else
+            {
+                var builder = new UriBuilder(value) { Path = value.AbsolutePath.TrimEnd('/') + "/" };
+                field = builder.Uri;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Resolves a response link using this <see cref="WebApiBase"/> configuration.
+    /// </summary>
+    /// <param name="request">The originating <see cref="HttpRequest"/>.</param>
+    /// <param name="location">The location to resolve; absolute URIs are returned unchanged.</param>
+    /// <returns>The resolved absolute or origin-relative <see cref="Uri"/>.</returns>
+    public Uri GetLocationUri(HttpRequest request, Uri location)
+    {
+        request.ThrowIfNull();
+        location.ThrowIfNull();
+        if (location.IsAbsoluteUri)
+            return location;
+
+        if (BaseAddress is { } baseAddress)
+            return new Uri(baseAddress, location.OriginalString.TrimStart('/'));
+
+        var path = request.PathBase.ToUriComponent().TrimEnd('/') + "/" + location.OriginalString.TrimStart('/');
+        if (UseAbsolutePaths)
+            return new Uri(UriHelper.BuildAbsolute(request.Scheme, request.Host).TrimEnd('/') + path, UriKind.Absolute);
+
+        return new Uri(path, UriKind.Relative);
+    }
 
     /// <summary>
     /// Classifies and logs an exception and applies its transport headers before representation-specific rendering.
@@ -108,13 +162,13 @@ public abstract class WebApiBase(JsonSerializerOptions? jsonSerializerOptions = 
                     System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(exception).Throw();
 
                 extendedException = null;
-                var logger = Logger ?? response.HttpContext.RequestServices.GetRequiredService<ILogger<TWebApi>>();
+                var logger = Logger ?? GetServiceProvider(response.HttpContext.Request).GetRequiredService<ILogger<TWebApi>>();
                 if (logger.IsEnabled(LogLevel.Error))
                     logger.LogError(exception, "{Error}", exception.Message);
             }
             else
             {
-                var logger = Logger ?? response.HttpContext.RequestServices.GetRequiredService<ILogger<TWebApi>>();
+                var logger = Logger ?? GetServiceProvider(response.HttpContext.Request).GetRequiredService<ILogger<TWebApi>>();
                 if (extendedException.ShouldBeLogged && logger.IsEnabled(LogLevel.Error))
                     logger.LogError(exception, "{Error}", extendedException.Message);
             }

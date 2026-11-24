@@ -1,6 +1,6 @@
 # CoreEx.AspNetCore.NSwag
 
-> Provides the NSwag `IOperationProcessor` integration that reads CoreEx MVC attributes (`[Paging]`, `[Query]`, `[Accepts]`, `[IdempotencyKey]`, `[ProducesNotFoundProblem]`) and injects the corresponding parameters, request bodies, and response entries into the generated OpenAPI specification.
+> Provides the NSwag `IOperationProcessor` integration that reads CoreEx MVC and Minimal API metadata (`[Paging]`, `[Query]`, `[Accepts]`, `[IdempotencyKey]`, `[PublishTracking]`, `[ProducesNotFoundProblem]`) and injects the corresponding parameters, request bodies, and response entries into the generated OpenAPI specification.
 
 ## Overview
 
@@ -18,6 +18,8 @@
 - 🔑 **Idempotency-key header**: Reads `[IdempotencyKeyAttribute]` and adds an `Idempotency-Key` header parameter to the operation. Send one quoted RFC 9651 Structured Field string, for example `Idempotency-Key: "order-12345678"`; the documented 8-128 character length applies to the decoded logical key, not its quotes or escapes. Parameters are not accepted.
 
 The server's default relaxed mode also accepts the documented legacy bare-key syntax for compatibility; standards-only deployments enable `StrictHeaderValidation` on the HTTP idempotency provider. OpenAPI describes the standard quoted wire format and does not imply that authorization may be skipped on replay.
+- 📬 **Publishing**: `[PublishTracking]` on MVC actions, and `.WithPublishTracking()` on Minimal API routes, explicitly describe tracked acceptance: `202 OperationStatus`, `Location`, `Operation-Location`, `Retry-After`, a `getOperation` link, and `x-ms-long-running-operation` metadata, replacing any default 200/201 response. Untracked publishing uses standard 202 response metadata (bodyless, no polling metadata). `OpenApiOptions.WarnWhenPublishMissingIdempotencyKey` opts into a trace warning for tracked endpoints; it never enables idempotency automatically.
+- 🔄 **Operations resource**: `MapCoreExOperations` metadata adds status polling headers and leaves generic result JSON untyped. The mapped status, result and cancel routes are documented once, including their conditional, empty and problem responses.
 - ✅ **Non-nullable properties**: Walks the request/response types of each operation and marks any property decorated with `CoreEx.Entities.NonNullableAttribute` as `nullable: false` in the schema, regardless of whether it is declared nullable in code (e.g. `string?`, `int?`).
 - 📝 **Optional patch properties**: Unwraps `Optional<T>` to its inner schema, keeps the property out of the required list, and derives nullability from the inner type.
 - 🚫 **Not-found response**: Reads `[ProducesNotFoundProblemAttribute]` and adds a `404 application/problem+json` response entry.

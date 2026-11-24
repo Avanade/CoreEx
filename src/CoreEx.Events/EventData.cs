@@ -19,6 +19,7 @@ public sealed partial class EventData : IIdentifier<string>, ITenantId, IPartiti
             TenantId = ec.TenantId;
             if (Correlation.IsEnabled())
                 CorrelationId = ec.CorrelationId;
+
             UserType = ec.User.Type;
             UserId = ec.User.Id;
         }
@@ -169,46 +170,7 @@ public sealed partial class EventData : IIdentifier<string>, ITenantId, IPartiti
     /// <summary>
     /// Gets or sets whether payload bytes must be preserved exactly rather than interpreted as JSON.
     /// </summary>
-    /// <remarks>Set by <see cref="WithData"/>; reset by WithValue.</remarks>
+    /// <remarks>Set by <see cref="WithData"/>; reset by <see cref="WithValue{T}(T, IEnumerable{string})"/>.</remarks>
     [JsonIgnore]
     public bool IsDataOpaque { get; set; }
-
-    /// <summary>
-    /// Gets the additional attributes.
-    /// </summary>
-    /// <remarks>Any attribute key with an underscore ('<c>_</c>') prefix denotes that it is <i>not</i> intended to be published unless explicitly implemented.</remarks>
-    [JsonIgnore]
-    public ConcurrentDictionary<string, object?> Attributes { get; } = new(StringComparer.OrdinalIgnoreCase);
-
-    /// <summary>
-    /// Adds or updates the attribute using the specified <paramref name="key"/> and <paramref name="value"/>.
-    /// </summary>
-    /// <typeparam name="T">The <paramref name="value"/> <see cref="Type"/>.</typeparam>
-    /// <param name="key">The attribute key.</param>
-    /// <param name="value">The attribute value.</param>
-    /// <returns>The <see cref="EventData"/> to support fluent-style method chaining.</returns>
-    public EventData SetAttribute<T>(string key, T value)
-    {
-        Attributes.AddOrUpdate(key.ThrowIfNullOrEmpty(), _ => value, (_, __) => value);
-        return this;
-    }
-
-    /// <summary>
-    /// Tries to get the attribute using the specified <paramref name="key"/>.
-    /// </summary>
-    /// <typeparam name="T">The <paramref name="value"/> <see cref="Type"/>.</typeparam>
-    /// <param name="key">The attribute key.</param>
-    /// <param name="value">The attribute value.</param>
-    /// <returns><see langword="true"/> indicates found; otherwise, <see langword="false"/>.</returns>
-    public bool TryGetAttribute<T>(string key, out T? value)
-    {
-        if (Attributes.TryGetValue(key, out var av))
-        {
-            value = (T?)av;
-            return true;
-        }
-
-        value = default;
-        return false;
-    }
 }

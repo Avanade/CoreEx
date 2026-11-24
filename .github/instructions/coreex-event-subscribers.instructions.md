@@ -147,6 +147,10 @@ Only the identified rejection receives this override; `null` retains the configu
 
 Share the same `ErrorHandler` instance across related subscribers (e.g., both Confirm and Cancel subscribers can reference the same static instance).
 
+## Subscriber Behaviors
+
+For cross-cutting per-delivery concerns (deduplication guards, auditing, settlement observation), add an `ISubscriberBehavior` to `Behaviors` in the owning subscriber's constructor (the `ServiceBusSubscribedSubscriber`/`ServiceBusSubscriberBase<TValue>` subclass), not inside individual `SubscribedBase` handlers. Use `Behaviors.Add<T>()` for scoped dependencies. Short-circuit with `SubscriberBehaviorResult.Skip`/`Retry`/`DeadLetter`; call `next` at most once. Use `OnDispositionAsync` only to observe the final settlement — it runs once per delivery and cannot change settlement. Do not rely on behaviors for exactly-once processing. See the [CoreEx.Events guide](/.github/docs/coreex/agents/CoreEx.Events.md) (docs-sync cache; source: [CoreEx.Events README](https://github.com/Avanade/CoreEx/blob/main/src/CoreEx.Events/README.md#subscriber-behaviors)).
+
 ## Accessing Event Data
 
 ```csharp
@@ -178,7 +182,7 @@ builder.Services
 
 builder.Services.AddDynamicServicesUsing(typeof(Program).Assembly, typeof(MyApp.Application.AssemblyMarker).Assembly, typeof(MyApp.Infrastructure.AssemblyMarker).Assembly);
 
-// 2. Caching — L1 memory cache + L2 Redis + FusionCache hybrid + idempotency provider
+// 2. Ordinary caching with FusionCache, plus separate Redis coordination and HTTP idempotency.
 builder.Services.AddMemoryCache();
 builder.AddRedisDistributedCache("redis");
 builder.Services.AddFusionCache()

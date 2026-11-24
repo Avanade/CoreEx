@@ -346,6 +346,8 @@ $testScenarios = @(
             )
             FileContains = @{
                 "src/App.Infrastructure/App.Infrastructure.csproj" = "CoreEx.Database.Postgres"
+                "tools/App.Database/App.Database.csproj" = 'Include="CoreEx.Database.Postgres"'
+                "tools/App.Database/Program.cs" = "AddAssembly<SqlStatement>().AddAssembly<PostgresDatabase>().AddAssembly<Program>()"
                 "tests/Directory.Build.props" = "IDE1006"
             }
         }
@@ -373,6 +375,8 @@ $testScenarios = @(
             )
             FileContains = @{
                 "src/App.Infrastructure/App.Infrastructure.csproj" = "CoreEx.Database.SqlServer"
+                "tools/App.Database/App.Database.csproj" = 'Include="CoreEx.Database.SqlServer"'
+                "tools/App.Database/Program.cs" = "AddAssembly<SqlStatement>().AddAssembly<SqlServerDatabase>().AddAssembly<Program>()"
             }
         }
         Build      = $true

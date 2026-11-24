@@ -13,6 +13,7 @@ global using CoreEx.Events;
 global using CoreEx.Hosting;
 global using CoreEx.Invokers;
 global using CoreEx.Json;
+global using CoreEx.Operations;
 global using CoreEx.Results;
 global using CoreEx.Schemas;
 global using CoreEx.Security;

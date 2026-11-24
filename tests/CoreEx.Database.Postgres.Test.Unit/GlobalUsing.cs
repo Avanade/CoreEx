@@ -1,6 +1,16 @@
+global using CoreEx.Data;
+global using CoreEx.Database.Postgres.Operations;
 global using CoreEx.Database.Postgres.Test.Unit.Repository;
+global using CoreEx.Entities;
 global using CoreEx.EntityFrameworkCore;
+global using CoreEx.Hosting;
+global using CoreEx.Operations;
+global using CoreEx.Test.Unit.Operations;
+global using DbEx.Postgres.Console;
 global using Microsoft.EntityFrameworkCore;
 global using Microsoft.EntityFrameworkCore.Storage;
+global using Microsoft.Extensions.Configuration;
+global using Microsoft.Extensions.DependencyInjection;
+global using Microsoft.Extensions.Logging;
 global using Npgsql;
 global using System.Data;

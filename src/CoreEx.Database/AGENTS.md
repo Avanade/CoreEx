@@ -77,6 +77,12 @@ Writers and relays share `CoreEx:Host:Outbox:PartitionSize`. Preserve the effect
 
 Service Bus session mapping is a separate boundary. Coordinate destination policies across all producers, including direct broker publishers; drain affected broker work and in-flight handlers before switching mappings where ordering matters.
 
+## Operations store base
+
+`DatabaseOperationStoreBase<TDatabase>` (`CoreEx.Database.Operations`) is the provider-neutral relational `IOperationStore`; its primary key is `OperationStoreBase.ComputeKeyHash`, the `CompositeKey.ToCanonicalHash` of the complete identity. Identifiers are delimited via `IDatabase.QuoteIdentifier` (ANSI double quotes by default; SQL Server overrides with brackets), rows are read through `DatabaseRecord`, and the ETag uses the provider `RowVersionConverter`. Providers supply the column names, embedded statements and the operation database (`CreateOperationDatabase`/`OperationDatabaseFactory`) used for independent operations. Mutations join an existing `IDatabase.CurrentTransaction` or create and own an explicit `DbTransaction` in the provider-neutral base. Claims, renewals, releases, cancellation and cleanup use a separate connection; do not override them to share the business transaction.
+
+Transaction participation is managed in C# using explicit `DbTransaction` via `IDatabase.UseTransaction` or `IUnitOfWork.TransactionAsync`; SQL resources do not begin, commit or roll back transactions. Mutations without an existing transaction create one in the base, while mutations with an existing transaction join it. Independent operations use a separate connection and transaction without the business transaction. Do not introduce `System.Transactions` or `TransactionScope`; ambient enlistment management and distributed transactions are not supported.
+
 ## Do Not
 
 - Do not write raw `DbCommand` or `SqlCommand` code — use `DatabaseCommand`.

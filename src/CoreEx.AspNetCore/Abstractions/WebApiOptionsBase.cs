@@ -19,6 +19,7 @@ public class WebApiOptionsBase
     private List<string>? _excludeFields;
     private bool? _isIncludeRelatedText;
     private bool? _isIncludeInactive;
+    private readonly EntityTagHeaderValue[]? _ifNoneMatch;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="WebApiOptions"/> class.
@@ -34,7 +35,11 @@ public class WebApiOptionsBase
         var rth = httpRequest.GetTypedHeaders();
 
         if (HttpMethods.IsGet(httpRequest.Method) || HttpMethods.IsHead(httpRequest.Method))
-            etag = rth.IfNoneMatch.FirstOrDefault()?.Tag;
+        {
+            var ifNoneMatch = rth.IfNoneMatch;
+            _ifNoneMatch = ifNoneMatch.Count == 0 ? null : [.. ifNoneMatch];
+            etag = ifNoneMatch.FirstOrDefault()?.Tag;
+        }
         else if (HttpMethods.IsPut(httpRequest.Method) || HttpMethods.IsPatch(httpRequest.Method) || HttpMethods.IsPost(httpRequest.Method) || HttpMethods.IsDelete(httpRequest.Method))
             etag = rth.IfMatch.FirstOrDefault()?.Tag;
         else
@@ -72,6 +77,7 @@ public class WebApiOptionsBase
         _excludeFields = options._excludeFields;
         _isIncludeRelatedText = options._isIncludeRelatedText;
         _isIncludeInactive = options._isIncludeInactive;
+        _ifNoneMatch = options._ifNoneMatch;
     }
 
     /// <summary>
@@ -109,8 +115,31 @@ public class WebApiOptionsBase
     /// Gets the entity tag that was passed; a) <c>If-None-Match</c> header where <see cref="HttpMethod.Get"/> or <see cref="HttpMethod.Head"/>, b) <c>If-Match</c> header where <see cref="HttpMethod.Put"/>,
     /// <see cref="HttpMethod.Patch"/>, <see cref="HttpMethod.Post"/> or <see cref="HttpMethod.Delete"/>, or c) otherwise, <see langword="null"/>.
     /// </summary>
-    /// <remarks>Represents the underlying raw value; i.e. is stripped of any <c>W/"xxxx"</c> formatting.</remarks>
+    /// <remarks>Represents the underlying raw value; i.e. is stripped of any <c>W/"xxxx"</c> formatting. Where multiple <c>If-None-Match</c> entity tags are specified, only the first is represented;
+    /// see <see cref="IsIfNoneMatch(string?)"/> for the complete comparison.</remarks>
     public string? ETag { get; }
+
+    /// <summary>
+    /// Determines whether the <c>If-None-Match</c> header matches the specified <paramref name="etag"/>.
+    /// </summary>
+    /// <param name="etag">The current entity tag; either formatted or unformatted.</param>
+    /// <returns><see langword="true"/> where the request is a <see cref="HttpMethods.Get"/> or <see cref="HttpMethods.Head"/> and any listed entity tag, or the <c>*</c> wildcard, matches; otherwise,
+    /// <see langword="false"/>.</returns>
+    /// <remarks>Uses the weak comparison function required for <c>If-None-Match</c>; i.e. any <c>W/</c> prefix is ignored.</remarks>
+    public bool IsIfNoneMatch(string? etag)
+    {
+        if (etag is null || _ifNoneMatch is null)
+            return false;
+
+        var value = Entities.ETag.ParseETag(etag);
+        foreach (var candidate in _ifNoneMatch)
+        {
+            if (candidate.Equals(EntityTagHeaderValue.Any) || Entities.ETag.ParseETag(candidate.Tag.Value) == value)
+                return true;
+        }
+
+        return false;
+    }
 
     /// <summary>
     /// Gets the <see cref="HttpStatusCode"/>.

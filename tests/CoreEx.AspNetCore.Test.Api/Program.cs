@@ -1,5 +1,6 @@
 using CoreEx.AspNetCore.Http;
 using CoreEx.AspNetCore.NSwag;
+using CoreEx.AspNetCore.Publishing;
 using CoreEx.AspNetCore.Test.Api.Entities;
 using CoreEx.AspNetCore.Test.Api.Services;
 using CoreEx.HealthChecks;
@@ -34,15 +35,20 @@ public class Program
         // Add in-memory based idempotency provider.
         builder.Services
             .AddMemoryCache()
+            .AddDefaultCacheKeyProvider()
             .AddMemoryOnlyHybridCache()
             .AddInMemoryCoordination()
             .AddIdempotencyProvider();
+
+        builder.Services.AddCoreExOperations()
+            .AddCoreExOperation<Person>("person-submit");
 
         // Add a health check so the health check endpoints have at least one registration to report/configure.
         builder.Services.AddHealthChecks().AddCheck("test-check", () => HealthCheckResult.Healthy(), tags: [nameof(HealthCheckTags.Live), nameof(HealthCheckTags.Startup), nameof(HealthCheckTags.Ready)]);
 
         // Add the ASP.NET Core services.
         builder.Services.AddControllers();
+        builder.Services.AddEndpointsApiExplorer();
 
         // Add the OpenAPI services.
         builder.Services.AddOpenApiDocument(s =>
@@ -77,6 +83,25 @@ public class Program
             (HttpRequest request, WebApi webApi, PersonService2 service, string id)
                 => webApi.GetWithResultAsync(request, (ro, _) => service.GetAsync(id)))
             .Produces<Person>().ProducesNotFoundProblem();
+
+        app.MapPost("api/other/minimal-publish-tracked",
+            (HttpRequest request, WebApi webApi, CancellationToken cancellationToken)
+                => webApi.PublishAsync(request, WebApiPublishOptions.Create<Person>(), cancellationToken))
+            .WithPublishTracking();
+
+        app.MapPost("api/other/minimal-publish-command",
+            (HttpRequest request, WebApi webApi, CancellationToken cancellationToken)
+                => webApi.PublishAsync(request, WebApiPublishOptions.Create<Person>(), cancellationToken))
+            .Produces(StatusCodes.Status202Accepted);
+
+        app.MapPost("api/other/minimal-publish-event",
+            (HttpRequest request, WebApi webApi, CancellationToken cancellationToken)
+                => webApi.PublishAsync(request, WebApiPublishOptions.Create<Person>().WithEvent(e =>
+                {
+                    e.MessageType = CoreEx.Events.MessageType.Event;
+                    return e.WithDomain("sales").WithAction(CoreEx.Events.EventAction.Published);
+                }), cancellationToken))
+            .Produces(StatusCodes.Status202Accepted);
 
         app.MapGet("api/persons",
             (HttpRequest request, WebApi webApi, PersonService2 service)
@@ -118,6 +143,8 @@ public class Program
             (HttpRequest request, WebApi webApi, int id)
                 => webApi.PostAsync<object>(request, (_, _) => Task.FromResult<object>(new { Id = id, Name = "Jen" })))
             .WithIdempotencyKey(isRequired: true);
+
+        app.MapCoreExOperations(group => group.WithTags("Operations"));
 
         // Run the application.
         app.Run();

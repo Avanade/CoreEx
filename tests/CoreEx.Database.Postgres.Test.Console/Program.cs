@@ -1,3 +1,4 @@
+using CoreEx.Database.Postgres;
 using DbEx.Migration;
 using DbEx.Postgres.Console;
 
@@ -13,8 +14,7 @@ public class Program
     /// </summary>
     /// <param name="args">The startup arguments.</param>
     /// <returns>The status code whereby zero indicates success.</returns>
-    public static Task<int> Main(string[] args) => PostgresMigrationConsole
-        .Create<Program>("Server=127.0.0.1;Database=coreex_test;Username=postgres;Password=yourStrong#!Password;Pooling=false")
+    public static Task<int> Main(string[] args) => new PostgresMigrationConsole("Server=127.0.0.1;Database=coreex_test;Username=postgres;Password=yourStrong#!Password;Pooling=false")
         .Configure(c => ConfigureMigrationArgs(c.Args))
         .RunAsync(args);
 
@@ -23,5 +23,5 @@ public class Program
     /// </summary>
     /// <param name="args">The <see cref="MigrationArgs"/>.</param>
     /// <returns>The <see cref="MigrationArgs"/>.</returns>
-    public static MigrationArgs ConfigureMigrationArgs(MigrationArgs args) => args.AddAssembly<Program>().IncludeExtendedSchemaScripts();
+    public static MigrationArgs ConfigureMigrationArgs(MigrationArgs args) => args.AddAssembly<PostgresDatabase>().AddAssembly<Program>().IncludeExtendedSchemaScripts();
 }

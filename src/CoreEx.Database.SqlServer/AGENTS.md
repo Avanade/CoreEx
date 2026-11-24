@@ -57,6 +57,10 @@ Poison-message/dead-letter handling is still **not implemented** - a permanently
 
 **Detecting a stuck partition:** `sqlserver.outbox.enqueue` continuing to climb while `sqlserver.outbox.relay.publish` stays flat for the same partition is the signal. `sqlserver.outbox.relay.oldest_lag`/`newest_lag` are recorded on both a successful and a failed publish attempt, so they keep climbing (rather than going silent) for as long as a batch keeps failing - alert on a sustained rise in `sqlserver.outbox.relay.oldest_lag`, not just on `sqlserver.outbox.relay.publish.failed`, since a low failure count can still mean one partition has been stuck for a long time.
 
+## Operations store
+
+`SqlServerOperationStore` is the relational `IOperationStore` over a single purpose-built operations table, using embedded parameterized SQL with no stored routines. Register it with `services.AddSqlServerOperationStore()` after `AddSqlServerDatabase()`. The store defaults to `DomainName` and `Operation`; use `AddSqlServerOperationStore(schema: "Sales")` for a different or otherwise unsuitable default schema. Register the provider assembly with DbEx 3.5.0 via `args.AddAssembly<SqlServerDatabase>().AddAssembly<Program>()`, importing `CoreEx.Database.SqlServer`, then export with `dotnet run -- script operations <Schema> <Table>`. Construct the migration console directly rather than pre-registering `Program` through `Create<Program>()`; DbEx ignores duplicates and probes in reverse registration order. DbEx defaults the schema from `dbex.yaml`, or to the literal `Schema` if absent, and the table to `Operation`. Use simple identifiers: substitution does not escape delimiters. Review and check in the export, then rebuild the Database project so `Migrate` can apply its embedded snapshot. Create and complete join the ambient transaction; claim, renew, release, cancel and cleanup use an independent cloned connection. Fences observe database time after locking the row; the `RowVersion` column supplies the ETag. See [async-operations design §13.8](../../docs/design/async-operations-design.md#138-phase-2-implementation-notes).
+
 ## OpenTelemetry
 
 ```csharp

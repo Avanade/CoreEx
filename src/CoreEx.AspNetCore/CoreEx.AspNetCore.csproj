@@ -6,6 +6,7 @@
   </PropertyGroup>
   
   <ItemGroup>
+    <ProjectReference Include="..\CoreEx.Data\CoreEx.Data.csproj" />
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
     <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" />
@@ -17,6 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\CoreEx.Events\CoreEx.Events.csproj" />
     <ProjectReference Include="..\CoreEx\CoreEx.csproj" />
   </ItemGroup>
 </Project>

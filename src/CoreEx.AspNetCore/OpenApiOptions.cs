@@ -88,6 +88,11 @@ public class OpenApiOptions
     public bool IncludePagingResponseHeaders { get; set; } = true;
 
     /// <summary>
+    /// Indicates whether OpenAPI generation should emit a trace warning for tracked publishing endpoints (see <see cref="Mvc.PublishTrackingAttribute"/>) without an idempotency-key attribute.
+    /// </summary>
+    public bool WarnWhenPublishMissingIdempotencyKey { get; set; }
+
+    /// <summary>
     /// Indicates whether the <see cref="Microsoft.AspNetCore.Mvc.ProblemDetails"/> should be included in the <i>OpenAPI</i> generated operation response specification for each <see cref="HttpStatusCode"/> specified within the <see cref="ProblemDetailsHttpStatusCodes"/>.
     /// </summary>
     public bool IncludeProblemDetailsHttpStatusCodes { get; set; } = true;

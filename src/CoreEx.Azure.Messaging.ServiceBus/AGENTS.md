@@ -86,7 +86,7 @@ Keyed subscribers are resolved in tests via `GetRequiredKeyedService<ServiceBusS
 
 ## Subscriber Classes
 
-Default to `ServiceBusSubscriberBase<TValue>` for one payload shape or `ServiceBusSubscribedSubscriber` for subject/source dispatch, preserving configured custom implementations and supported overrides. In Functions, retain the native trigger and call `subscriber.FunctionReceiveAsync`; do not register a competing receiver. A raw callback/SDK receive pipeline needs a concrete documented requirement, not simply a native payload or simple workload. The dispatched examples below apply only when dispatch is selected.
+Default to `ServiceBusSubscriberBase<TValue>` for one payload shape or `ServiceBusSubscribedSubscriber` for subject/source dispatch, preserving configured custom implementations and supported overrides. In Functions, retain the native trigger and call `subscriber.FunctionReceiveAsync`; do not register a competing receiver. A raw SDK receive pipeline needs a concrete documented requirement, not simply a native payload or simple workload. The dispatched examples below apply only when dispatch is selected.
 
 Subscribers are decorated with `[Subscribe("subject")]` and extend `SubscribedBase` (untyped) or `SubscribedBase<TValue>` (typed payload). Register with `[ScopedService]`.
 

@@ -48,7 +48,7 @@ The host wires FusionCache with both in-memory (L1) and Redis distributed (L2) b
 
 - Use `IHybridCache` in Application services -- never take direct `IMemoryCache` or `IDistributedCache` dependencies
 - HTTP idempotency uses `AddRedisCoordination()` with `AddIdempotencyProvider()`; it is separate from FusionCache and ordinary cache behavior
-- Keep `AddDefaultCacheKeyProvider()` or an existing custom `ICacheKeyProvider` so coordination retains the intended domain/tenant scope
+- Keep `AddDefaultCacheKeyProvider()` or an existing custom `ICacheKeyProvider` for ordinary caching; coordination uses name-and-key identities qualified by host domain and ambient tenant
 
 Consult `.github/docs/coreex/agents/CoreEx.Caching.FusionCache.md` for caching patterns.
 Consult `.github/docs/coreex/agents/CoreEx.Redis.md` for coordination guarantees, migration, and Redis operations.

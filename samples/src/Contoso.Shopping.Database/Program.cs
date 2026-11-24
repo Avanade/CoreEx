@@ -1,4 +1,5 @@
 using CoreEx.Database;
+using CoreEx.Database.SqlServer;
 using DbEx.Migration;
 using DbEx.SqlServer.Console;
 
@@ -14,8 +15,7 @@ public class Program
     /// </summary>
     /// <param name="args">The startup arguments.</param>
     /// <returns>The status code whereby zero indicates success.</returns>
-    public static Task<int> Main(string[] args) => SqlServerMigrationConsole
-        .Create<Program>("Data Source=127.0.0.1,1433;Initial Catalog=Contoso;User id=sa;Password=yourStrong(!)Password;TrustServerCertificate=true")
+    public static Task<int> Main(string[] args) => new SqlServerMigrationConsole("Data Source=127.0.0.1,1433;Initial Catalog=Contoso;User id=sa;Password=yourStrong(!)Password;TrustServerCertificate=true")
         .Configure(c => ConfigureMigrationArgs(c.Args))
         .RunAsync(args);
 
@@ -26,7 +26,7 @@ public class Program
     /// <returns>The <see cref="MigrationArgs"/>.</returns>
     public static MigrationArgs ConfigureMigrationArgs(MigrationArgs args)
     {
-        args.AddAssembly<SqlStatement>().AddAssembly<Program>()
+        args.AddAssembly<SqlStatement>().AddAssembly<SqlServerDatabase>().AddAssembly<Program>()
             .IncludeExtendedSchemaScripts()
             .DataParserArgs
                 .RefDataColumnDefault("SortOrder", _ => 0)

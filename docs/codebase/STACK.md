@@ -21,7 +21,7 @@
 | NSwag.AspNetCore | 14.6.2 | OpenAPI generation for sample APIs | Directory.Packages.props; samples/src/Contoso.Products.Api/Program.cs |
 | OpenTelemetry | 1.15.1-1.15.3 | Tracing and OTLP export across APIs, relays, subscribers, and workflow worker | Directory.Packages.props; samples/src/Contoso.Products.Api/Program.cs; samples/src/Contoso.Products.Relay/Program.cs; samples/src/Contoso.Order.Workflow.Worker/Program.cs |
 | Azure Service Bus Aspire integration | 13.1.1 | Messaging publisher/subscriber wiring | Directory.Packages.props; src/CoreEx.Azure.Messaging.ServiceBus/CoreEx.Azure.Messaging.ServiceBus.csproj; samples/src/Contoso.Products.Subscribe/Program.cs |
-| FusionCache + Redis backplane | 2.5.0 | Hybrid cache and idempotency/caching support | Directory.Packages.props; src/CoreEx.Caching.FusionCache/CoreEx.Caching.FusionCache.csproj; samples/src/Contoso.Shopping.Api/Program.cs |
+| FusionCache + Redis backplane | 2.5.0 | Hybrid cache for ordinary caching and reference data | Directory.Packages.props; src/CoreEx.Caching.FusionCache/CoreEx.Caching.FusionCache.csproj; samples/src/Contoso.Shopping.Api/Program.cs |
 | Microsoft.Extensions.Http.Resilience | 8.10.0 / 9.10.0 / 10.3.0 | Resilience policies for HTTP clients | Directory.Packages.props |
 | Scalar.AspNetCore | 2.12.47 | API reference documentation and interactive API explorer | Directory.Packages.props |
 | Spectre.Console | 0.49.1 | Rich terminal output for console tooling | Directory.Packages.props |
@@ -29,7 +29,7 @@
 | YamlDotNet | 16.3.0 | YAML parsing and serialization | Directory.Packages.props |
 | CloudNative.CloudEvents.SystemTextJson | 2.8.0 | CloudEvent interoperability | Directory.Packages.props |
 | Microsoft.DurableTask.* | 1.17.1 | Order workflow sample orchestration and worker runtime | Directory.Packages.props; samples/src/Contoso.Order.Workflow.Worker/Program.cs; samples/src/Contoso.Order.Workflow.Workflow/Contoso.Order.Workflow.Workflow.csproj |
-| DbEx.SqlServer + DbEx.Postgres | 3.4.0 | Database migration/data console utilities in samples/tests | Directory.Packages.props; samples/src/Contoso.Products.Database/Program.cs |
+| DbEx.SqlServer + DbEx.Postgres | 3.5.0 | Database migration/data console utilities in samples/tests | Directory.Packages.props; samples/src/Contoso.Products.Database/Program.cs |
 | UnitTestEx.Aspire + WireMock.Net | 7.0.0 / 2.19.0 | Aspire end-to-end testing (`WithAspireTester`) and the HTTP-stubbing `MockHost` | Directory.Packages.props; samples/aspire/Contoso.Test.Aspire/Contoso.Test.Aspire.csproj; samples/aspire/Contoso.Aspire.MockHost/Contoso.Aspire.MockHost.csproj |
 
 ### 3) Development Toolchain

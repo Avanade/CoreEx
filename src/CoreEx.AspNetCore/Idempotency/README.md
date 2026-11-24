@@ -9,18 +9,19 @@
 ```csharp
 builder.AddRedisDistributedCache("redis");
 builder.Services
-    .AddDefaultCacheKeyProvider()
     .AddRedisCoordination()
     .AddIdempotencyProvider();
 ```
 
-FusionCache and `IHybridCache` remain for ordinary caching and are not the idempotency store. Preserve an existing custom `ICacheKeyProvider`; it supplies the domain/tenant scope used by coordination.
+FusionCache and `IHybridCache` remain for ordinary caching and are not the idempotency store. HTTP idempotency does not use `ICacheKeyProvider`. Every request uses the operation name `IdempotencyProvider.OperationName` (`http-idempotency`) and a key that incorporates the decoded HTTP key and caller identity; the store qualifies it with `IHostSettings.DomainName` and, when present, the ambient `ExecutionContext.TenantId`. A tenant is an explicit isolation boundary: establish a trusted tenant in the request's CoreEx execution context so outcomes are tenant-scoped; without a tenant they are domain-wide. Register host settings and a scoped `ExecutionContext`.
 
 ## Outcome policy
 
 Completed responses, including normally rendered application errors, are replayed. A thrown exception, cancellation, or rendering failure after application execution begins may have an unknown business outcome; that attempt is retained as indeterminate and is not automatically executed again. Do not generate a new key to bypass an indeterminate outcome. Reconcile only after verifying that the original work can no longer commit.
 
-CoreEx HTTP clients emit a quoted Structured Field string value. `StrictHeaderValidation` defaults to `false`, accepting standard quoted strings and supported legacy bare keys; set it to `true` to accept only standard quoted strings. The accepted logical key is scoped through `ICacheKeyProvider`; key identity is not a substitute for authorization, which must run before replay.
+The HTTP provider also exposes an endpoint-scoped `IIdempotencyAttemptFeature` for a narrowly proven safe retry. `WebApi.PublishAsync` requests release only when operation-state creation fails before dispatch or when the Created-only dispatch fence is acknowledged as applied. The response is captured before the owner-checked store transition; unsupported stores, lost ownership, or ambiguous release acknowledgements fail conservatively and do not imply that retry is safe. Ordinary 503 responses and publish-only failures do not release an attempt.
+
+CoreEx HTTP clients emit a quoted Structured Field string value. `StrictHeaderValidation` defaults to `false`, accepting standard quoted strings and supported legacy bare keys; set it to `true` to accept only standard quoted strings. Key identity is not a substitute for authorization, which must run before replay.
 
 Idempotency is not exactly-once business execution. Redis failover to stale data, data restoration, eviction, manual deletion, or retention expiry can erase claims or receipts and permit re-execution. A process-local store does not coordinate across processes.
 
@@ -28,7 +29,9 @@ Idempotency is not exactly-once business execution. Redis failover to stale data
 
 The standards baseline is [draft-ietf-httpapi-idempotency-key-header-08](https://www.ietf.org/archive/id/draft-ietf-httpapi-idempotency-key-header-08.html), an Internet-Draft rather than a published Idempotency-Key RFC. Quoted keys use its Structured Field string representation; CoreEx requires 8-128 decoded printable ASCII characters and rejects parameters. Relaxed mode additionally accepts bare keys of 8-128 ASCII letters, digits, hyphens or underscores. Equivalent bare and quoted values identify the same operation. Duplicate/list headers and malformed quoted values are rejected in both modes. Replaying completed application errors is CoreEx's explicit policy, not a claim that draft-08 requires replay of every HTTP failure.
 
-The record key incorporates the idempotency key and, when available, the authenticated caller's issuer and subject, before the store applies `ICacheKeyProvider` domain/tenant qualification. Configure `CallerIdentityProvider` when authentication uses another stable identity or when an application needs different caller boundaries. Anonymous callers and authenticated callers without a supported subject claim have no inferred caller component. Run authentication and authorization before the idempotency boundary, including in Functions.
+The instance identifier hashes the idempotency key and, when available, the authenticated caller's issuer and subject to avoid placing them directly in provider keys. This is not a secret or an authorization credential. Configure `CallerIdentityProvider` when authentication uses another stable identity or when an application needs different caller boundaries. Caller identities and decoded keys must contain valid Unicode; malformed inputs are rejected rather than conflated. Anonymous callers and authenticated callers without a supported subject claim have no inferred caller component. Run authentication and authorization before the idempotency boundary, including in Functions.
+
+`IdempotencyProvider.CreateKey(context, decodedKey)` reconstructs the store key from the decoded key and caller identity. Reconciliation must use the same host domain and ambient tenant; retain the key and attempt revision if those inputs may not be recoverable later. A custom store must qualify the name and key by host domain and ambient tenant.
 
 The fingerprint covers method, case-preserving path, raw query string, selected canonical headers and body. Different query order can conservatively conflict. `HttpRequestHeadersToIncludeInFingerprint` defaults to Content-Type; include any additional request headers that change the operation's meaning. Correlation is excluded by default. A reused key with a changed fingerprint conflicts instead of creating another record.
 
@@ -47,6 +50,8 @@ Set `DocumentationUri` on `IdempotencyProvider` to advertise the resource's poli
 ## Retention and response buffering
 
 `CoordinationOptions` defaults to a 60-second processing lease, 20-second renewal interval, five-second backend timeout and eight-hour terminal retention. Processing records survive lease expiry by the retention window; duplicate reads do not refresh that window. Completion starts terminal retention from completion time. Retention expiry ends replay/exclusion guarantees. Reconciliation through `IIdempotencyStore.TryResolveAsync` requires the expected revision and external confirmation that the original work can no longer commit; an active attempt cannot be reopened.
+
+The new operation-key namespace does not see existing legacy claims, completed responses or indeterminate outcomes. Coordinate any switch across replicas and account for in-flight work, retained receipts and the retry window; otherwise an old request can execute again. No automatic migration or fallback is performed.
 
 `MaxCachedResponseBodySize` defaults to 512 KB and limits the response body eligible for replay. `IIdempotencyStore.MaxPayloadSize` independently limits the serialized response snapshot, including its headers and base64-encoded body; it is `null` when the store advertises no ceiling. If either replay limit is exceeded, CoreEx commits a terminal/no-replay marker and returns the completed response to the original caller. `MaxResponseBodySize` is a separate hard capture ceiling, defaulting to 10 MB; keep it above the replay-body limit when larger responses should still complete. Capturing uses memory up to the smaller of the replay-body and capture limits, and spills larger responses to a temporary file up to the capture ceiling. Configure `TempFileDirectoryAccessor` and host storage quotas when needed. Capture failures retain an uncertain outcome and do not expose partial response bytes. Streaming/deferred responses that bypass capture or disable buffering are unsupported. Cookies and correlation headers are excluded from replay by default; original-response cookies remain intact.
 

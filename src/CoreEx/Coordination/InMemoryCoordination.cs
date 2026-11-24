@@ -5,10 +5,10 @@ namespace CoreEx.Coordination;
 /// </summary>
 /// <remarks>No Redis connection is used. Normal registration shares one backing state per root service provider; independently built service providers do not coordinate, even within the same .NET process.</remarks>
 /// <param name="state">The singleton backing state.</param>
-/// <param name="keyProvider">The scoped namespace provider.</param>
+/// <param name="settings">The <see cref="IHostSettings"/> providing the domain name.</param>
 /// <param name="logger">The logger.</param>
 /// <param name="options">The ownership options.</param>
-public sealed class InMemoryCoordination(InMemoryCoordinationState state, ICacheKeyProvider keyProvider, ILogger<InMemoryCoordination> logger, CoordinationOptions options) : ISynchronizer, CoreEx.Idempotency.IIdempotencyStore
+public sealed class InMemoryCoordination(InMemoryCoordinationState state, IHostSettings settings, ILogger<InMemoryCoordination> logger, CoordinationOptions options) : ISynchronizer, CoreEx.Idempotency.IIdempotencyStore
 {
     /// <summary>
     /// Gets the clock independently of request-frozen application time.
@@ -16,9 +16,13 @@ public sealed class InMemoryCoordination(InMemoryCoordinationState state, ICache
     private static DateTimeOffset Now => TimeProvider.System.GetUtcNow();
 
     /// <summary>
-    /// Qualifies one purpose-specific logical key exactly once.
+    /// Namespaces the identity qualified by the host domain and ambient tenant.
     /// </summary>
-    private string Key(string purpose, string key) => purpose + ":" + keyProvider.GetFullyQualifiedCacheKey(key.ThrowIfNullOrEmpty());
+    private (string Purpose, CompositeKey Key) Key(string purpose, string name, CompositeKey key)
+    {
+        var tenantId = ExecutionContext.TryGetCurrent(out var ec) && !string.IsNullOrEmpty(ec.TenantId) ? ec.TenantId : null;
+        return (purpose, CompositeKey.Create(settings.ThrowIfNull().DomainName.ThrowIfNullOrWhiteSpace(nameof(IHostSettings.DomainName)), tenantId, name.ThrowIfNullOrWhiteSpace(), key.ToCanonicalString().ThrowIfNullOrWhiteSpace(nameof(key))));
+    }
 
     /// <summary>
     /// Removes expired records before accessing the shared store.
@@ -30,11 +34,11 @@ public sealed class InMemoryCoordination(InMemoryCoordinationState state, ICache
     }
 
     /// <inheritdoc/>
-    public async Task<ISynchronizationLease?> TryAcquireAsync(string key, CancellationToken cancellationToken = default)
+    public async Task<ISynchronizationLease?> TryAcquireAsync(string name, CompositeKey key, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
         options.Validate();
-        var physical = Key("lease", key);
+        var physical = Key("lease", name, key);
         var started = Stopwatch.GetTimestamp();
         var owner = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
 
@@ -58,12 +62,12 @@ public sealed class InMemoryCoordination(InMemoryCoordinationState state, ICache
     }
 
     /// <inheritdoc/>
-    public async Task<CoreEx.Idempotency.IdempotencyBeginResult> TryBeginAsync(string key, string fingerprint, CancellationToken cancellationToken = default)
+    public async Task<CoreEx.Idempotency.IdempotencyBeginResult> TryBeginAsync(string name, CompositeKey key, string fingerprint, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
         options.Validate();
         fingerprint.ThrowIfNullOrEmpty();
-        var physical = Key("idempotency", key);
+        var physical = Key("idempotency", name, key);
         var started = Stopwatch.GetTimestamp();
         var owner = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
 
@@ -81,7 +85,7 @@ public sealed class InMemoryCoordination(InMemoryCoordinationState state, ICache
             state.Entries.Add(physical, new() { Owner = owner, Fingerprint = fingerprint, State = CoreEx.Idempotency.IdempotencyOutcome.InProgress, Deadline = Now + options.LeaseDuration, Expiry = Now + options.LeaseDuration + options.Retention });
         }
 
-        var attempt = new CoreEx.Idempotency.IdempotencyAttempt(options, started, ct => Renew(physical, owner, true, ct), ct => RetainOrRelease(physical, owner, true, ct), (response, ct) => Complete(physical, owner, response, ct), logger);
+        var attempt = new CoreEx.Idempotency.IdempotencyAttempt(options, started, ct => Renew(physical, owner, true, ct), ct => RetainOrRelease(physical, owner, true, ct), (response, ct) => Complete(physical, owner, response, ct), ct => ReleaseForRetry(physical, owner, ct), logger);
         if (attempt.OwnershipLost.IsCancellationRequested)
         {
             await attempt.DisposeAsync().ConfigureAwait(false);
@@ -94,7 +98,7 @@ public sealed class InMemoryCoordination(InMemoryCoordinationState state, ICache
     /// <summary>
     /// Renews an owned, unexpired processing record.
     /// </summary>
-    private Task<bool> Renew(string key, string owner, bool retained, CancellationToken cancellationToken)
+    private Task<bool> Renew((string Purpose, CompositeKey Key) key, string owner, bool retained, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         lock (state.SyncRoot)
@@ -111,7 +115,7 @@ public sealed class InMemoryCoordination(InMemoryCoordinationState state, ICache
     /// <summary>
     /// Releases a synchronization lease or retains uncertain idempotency work.
     /// </summary>
-    private Task RetainOrRelease(string key, string owner, bool retained, CancellationToken cancellationToken)
+    private Task RetainOrRelease((string Purpose, CompositeKey Key) key, string owner, bool retained, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         lock (state.SyncRoot)
@@ -131,7 +135,7 @@ public sealed class InMemoryCoordination(InMemoryCoordinationState state, ICache
     /// <summary>
     /// Commits an owned terminal response without overwriting another attempt.
     /// </summary>
-    private Task<bool> Complete(string key, string owner, BinaryData? response, CancellationToken cancellationToken)
+    private Task<bool> Complete((string Purpose, CompositeKey Key) key, string owner, BinaryData? response, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         lock (state.SyncRoot)
@@ -152,8 +156,24 @@ public sealed class InMemoryCoordination(InMemoryCoordinationState state, ICache
         }
     }
 
+    /// <summary>
+    /// Deletes the same active owner attempt before its lease expires.
+    /// </summary>
+    private Task<bool> ReleaseForRetry((string Purpose, CompositeKey Key) key, string owner, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        lock (state.SyncRoot)
+        {
+            if (!state.Entries.TryGetValue(key, out var entry) || entry.Owner != owner || entry.State != CoreEx.Idempotency.IdempotencyOutcome.InProgress || entry.Deadline <= Now)
+                return Task.FromResult(false);
+
+            state.Entries.Remove(key);
+            return Task.FromResult(true);
+        }
+    }
+
     /// <inheritdoc/>
-    public Task<bool> TryResolveAsync(string key, string revision, BinaryData? response, bool allowRetry = false, CancellationToken cancellationToken = default)
+    public Task<bool> TryResolveAsync(string name, CompositeKey key, string revision, BinaryData? response, bool allowRetry = false, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
         options.Validate();
@@ -161,7 +181,7 @@ public sealed class InMemoryCoordination(InMemoryCoordinationState state, ICache
         if (!allowRetry)
             CoreEx.Idempotency.IdempotencyAttempt.ThrowIfEmptyResponse(response);
 
-        var physical = Key("idempotency", key);
+        var physical = Key("idempotency", name, key);
         lock (state.SyncRoot)
         {
             Prune();
