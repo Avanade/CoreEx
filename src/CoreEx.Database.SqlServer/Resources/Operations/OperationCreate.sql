@@ -6,8 +6,8 @@ BEGIN
   DECLARE @now DATETIME2(7) = SYSUTCDATETIME();
   DECLARE @abandonAfter DATETIME2(7) = DATEADD(MILLISECOND, CAST(@InactivityMs % 86400000 AS INT), DATEADD(DAY, CAST(@InactivityMs / 86400000 AS INT), @now));
 
-  INSERT INTO {{Table}} ([KeyHash], [OperationId], [DomainName], [TenantId], [OperationName], [InstanceId], [Status], [InitiatorId], [Attempt], [Data], [CreatedOn], [UpdatedOn], [AbandonAfter])
-  VALUES (@KeyHash, @OperationId, @DomainName, @TenantId, @OperationName, @InstanceId, 1, @InitiatorId, 0, @Data, @now, @now, @abandonAfter);
+  INSERT INTO {{Table}} ([KeyHash], [OperationId], [DomainName], [TenantId], [OperationName], [InstanceId], [Status], [InitiatedBy], [Attempt], [Data], [CreatedOn], [UpdatedOn], [AbandonAfter], [InactivityMs], [RetentionMs])
+  VALUES (@KeyHash, @OperationId, @DomainName, @TenantId, @OperationName, @InstanceId, 1, @InitiatedBy, 0, @Data, @now, @now, @abandonAfter, @InactivityMs, @RetentionMs);
   SET @created = 1;
 END;
 

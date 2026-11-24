@@ -7,6 +7,7 @@ public sealed class WebApiPublishCustomOptions : WebApiPublishOptionsBase<WebApi
 {
     private readonly Type _publishedType;
     private readonly Func<WebApiOptions, CancellationToken, Task<Result<EventData>>> _prepare;
+    private Func<WebApiOptions, CompositeKey>? _operationKeyFactory;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="WebApiPublishCustomOptions"/> class.
@@ -24,6 +25,21 @@ public sealed class WebApiPublishCustomOptions : WebApiPublishOptionsBase<WebApi
     /// </summary>
     internal override Type PublishedType => _publishedType;
 
+    /// <summary>
+    /// Derives a repeatable submission key from the current Web API request.
+    /// </summary>
+    /// <param name="keyFactory">The request-aware submission-key selector.</param>
+    /// <returns>The current options.</returns>
+    public WebApiPublishCustomOptions WithOperationKey(Func<WebApiOptions, CompositeKey> keyFactory)
+    {
+        _operationKeyFactory = keyFactory.ThrowIfNull();
+        return this;
+    }
+
     /// <inheritdoc/>
-    internal override Task<Result<EventData>> PrepareAsync<TResult>(WebApi<TResult> webApi, WebApiOptions requestOptions, CancellationToken cancellationToken) => _prepare(requestOptions, cancellationToken);
+    internal override async Task<Result<WebApiPreparedPublish>> PrepareAsync<TResult>(WebApi<TResult> webApi, WebApiOptions requestOptions, CancellationToken cancellationToken)
+    {
+        var result = await _prepare(requestOptions, cancellationToken).ConfigureAwait(false);
+        return result.IsFailure ? result.AsResult<EventData, WebApiPreparedPublish>() : Result.Ok(new WebApiPreparedPublish(result.Value, _operationKeyFactory?.Invoke(requestOptions)));
+    }
 }

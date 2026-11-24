@@ -41,7 +41,7 @@ public sealed class InMemoryOperationStore(ILogger<InMemoryOperationStore> logge
     }
 
     /// <inheritdoc/>
-    protected override Task<OperationCreateResult> OnCreateAsync(string domainName, string? tenantId, string operationName, string instanceId, string? initiatorId, string? data, CancellationToken cancellationToken)
+    protected override Task<OperationCreateResult> OnCreateAsync(string domainName, string? tenantId, string operationName, string instanceId, string? initiatedBy, string? data, TimeSpan inactivityTimeout, TimeSpan terminalRetention, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var key = CompositeKey.Create(domainName, tenantId, operationName, instanceId);
@@ -59,11 +59,13 @@ public sealed class InMemoryOperationStore(ILogger<InMemoryOperationStore> logge
                 InstanceId = instanceId,
                 OperationId = Guid.NewGuid(),
                 Status = OperationStatus.Accepted,
-                InitiatorId = initiatorId,
+                InitiatedBy = initiatedBy,
+                InactivityTimeout = inactivityTimeout,
+                TerminalRetention = terminalRetention,
                 Data = data,
                 CreatedOn = now,
                 UpdatedOn = now,
-                AbandonAfter = now.Add(Options.InactivityTimeout),
+                AbandonAfter = now.Add(inactivityTimeout),
                 ETag = NewETag()
             };
 
@@ -95,7 +97,7 @@ public sealed class InMemoryOperationStore(ILogger<InMemoryOperationStore> logge
                 Attempt = state.Attempt + 1,
                 ClaimOwner = owner,
                 ClaimExpiresOn = now.Add(duration),
-                AbandonAfter = now.Add(duration).Add(Options.InactivityTimeout),
+                AbandonAfter = now.Add(duration).Add(state.InactivityTimeout),
                 StartedOn = state.StartedOn ?? now,
                 UpdatedOn = now,
                 ETag = NewETag()
@@ -115,7 +117,7 @@ public sealed class InMemoryOperationStore(ILogger<InMemoryOperationStore> logge
             if (!TryGetHeld(claim, now, out var state))
                 return Task.FromResult<OperationClaim?>(null);
 
-            state = Save(state with { ClaimExpiresOn = now.Add(duration), AbandonAfter = now.Add(duration).Add(Options.InactivityTimeout), Progress = progress ?? state.Progress, UpdatedOn = now, ETag = NewETag() });
+            state = Save(state with { ClaimExpiresOn = now.Add(duration), AbandonAfter = now.Add(duration).Add(state.InactivityTimeout), Progress = progress ?? state.Progress, UpdatedOn = now, ETag = NewETag() });
             return Task.FromResult<OperationClaim?>(state.ToClaim());
         }
     }
@@ -137,7 +139,7 @@ public sealed class InMemoryOperationStore(ILogger<InMemoryOperationStore> logge
                 ErrorMessage = errorMessage,
                 ClaimOwner = null,
                 ClaimExpiresOn = null,
-                AbandonAfter = now.Add(Options.InactivityTimeout),
+                AbandonAfter = now.Add(state.InactivityTimeout),
                 UpdatedOn = now,
                 ETag = NewETag()
             });
@@ -165,7 +167,7 @@ public sealed class InMemoryOperationStore(ILogger<InMemoryOperationStore> logge
                 ClaimExpiresOn = null,
                 AbandonAfter = null,
                 CompletedOn = now,
-                PurgeAfter = now.Add(Options.TerminalRetention),
+                PurgeAfter = now.Add(state.TerminalRetention),
                 UpdatedOn = now,
                 ETag = NewETag()
             }));
@@ -192,7 +194,7 @@ public sealed class InMemoryOperationStore(ILogger<InMemoryOperationStore> logge
                     CancelRequestedOn = now,
                     AbandonAfter = null,
                     CompletedOn = now,
-                    PurgeAfter = now.Add(Options.TerminalRetention),
+                    PurgeAfter = now.Add(state.TerminalRetention),
                     UpdatedOn = now,
                     ETag = NewETag()
                 });
@@ -223,7 +225,7 @@ public sealed class InMemoryOperationStore(ILogger<InMemoryOperationStore> logge
                     ClaimExpiresOn = null,
                     AbandonAfter = null,
                     CompletedOn = now,
-                    PurgeAfter = now.Add(Options.TerminalRetention),
+                    PurgeAfter = now.Add(state.TerminalRetention),
                     UpdatedOn = now,
                     ETag = NewETag()
                 });

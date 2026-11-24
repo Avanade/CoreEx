@@ -11,7 +11,7 @@ public sealed record OperationStatus
     public required string Id { get; init; }
 
     /// <summary>
-    /// Gets the stable public status value: <c>not-started</c>, <c>running</c>, <c>succeeded</c>, <c>failed</c>, or <c>canceled</c>.
+    /// Gets the public lifecycle value: <c>accepted</c>, <c>running</c>, <c>retrying</c>, <c>succeeded</c>, <c>failed</c>, <c>canceled</c>, or <c>expired</c>.
     /// </summary>
     public required string Status { get; init; }
 
@@ -26,9 +26,10 @@ public sealed record OperationStatus
     public DateTimeOffset UpdatedOn { get; init; }
 
     /// <summary>
-    /// Gets the logical operation expiry time.
+    /// Gets the current inactivity deadline for unfinished work; otherwise, <see langword="null"/>.
     /// </summary>
-    public DateTimeOffset ExpiryOn { get; init; }
+    /// <remarks>This is not a fixed processing deadline or the terminal retention/purge time.</remarks>
+    public DateTimeOffset? ExpiryOn { get; init; }
 
     /// <summary>
     /// Gets whether cooperative cancellation has been requested.
@@ -36,17 +37,17 @@ public sealed record OperationStatus
     public bool CancelRequested { get; init; }
 
     /// <summary>
-    /// Gets the latest reported completion percentage.
+    /// Gets the latest reported completion percentage; currently <see langword="null"/> for operation-store-backed work.
     /// </summary>
     public int? PercentComplete { get; init; }
 
     /// <summary>
-    /// Gets the latest progress or indeterminate message.
+    /// Gets the latest user-safe progress message.
     /// </summary>
     public string? Message { get; init; }
 
     /// <summary>
-    /// Gets the safe public error, when the operation failed or was canceled.
+    /// Gets a safe public error, when applicable.
     /// </summary>
     public OperationError? Error { get; init; }
 

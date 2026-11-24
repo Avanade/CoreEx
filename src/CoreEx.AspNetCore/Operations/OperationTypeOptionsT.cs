@@ -14,20 +14,20 @@ public sealed class OperationTypeOptions<TMessage>
     /// <summary>
     /// Gets or sets the optional type-specific authorization callback; invoked with the current <see cref="ExecutionContext"/> after the owner check succeeds.
     /// </summary>
-    public Func<ExecutionContext, WorkState, CancellationToken, Task<bool>>? AuthorizeAsync { get; set; }
+    public Func<ExecutionContext, OperationState, CancellationToken, Task<bool>>? AuthorizeAsync { get; set; }
 
     /// <summary>
     /// Gets or sets the optional result reader for successful operations; invoked with the current <see cref="ExecutionContext"/>.
     /// </summary>
-    public Func<ExecutionContext, WorkState, CancellationToken, Task<object?>>? ReadResultAsync { get; set; }
+    public Func<ExecutionContext, OperationState, CancellationToken, Task<object?>>? ReadResultAsync { get; set; }
 
     /// <summary>
     /// Gets or sets the optional safe error mapper.
     /// </summary>
-    public Func<WorkError, OperationError>? MapError { get; set; }
+    public Func<OperationState, OperationError>? MapError { get; set; }
 
     /// <summary>
     /// Gets or sets the optional type-specific retry-delay policy for non-terminal status responses.
     /// </summary>
-    public Func<WorkState, TimeSpan>? RetryAfter { get; set; }
+    public Func<OperationState, TimeSpan>? RetryAfter { get; set; }
 }

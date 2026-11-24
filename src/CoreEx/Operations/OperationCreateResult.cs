@@ -1,7 +1,7 @@
 namespace CoreEx.Operations;
 
 /// <summary>
-/// Represents the result of an <see cref="IOperationStore.CreateAsync"/>.
+/// Represents the result of an <see cref="IOperationStore.CreateAsync(string, CompositeKey, string?, string?, CancellationToken)"/>.
 /// </summary>
 /// <param name="Created">Indicates whether a new operation was created; otherwise, an operation with the same identity already exists.</param>
 /// <param name="State">The created or existing <see cref="OperationState"/>.</param>

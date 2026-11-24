@@ -15,7 +15,6 @@ global using CoreEx.Entities;
 global using CoreEx.Events.Publishing;
 global using CoreEx.Events;
 global using CoreEx.HealthChecks;
-global using CoreEx.Hosting.Work;
 global using CoreEx.Hosting;
 global using CoreEx.Http;
 global using CoreEx.Invokers;

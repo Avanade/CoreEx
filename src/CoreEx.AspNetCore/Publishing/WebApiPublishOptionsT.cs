@@ -9,6 +9,7 @@ public sealed class WebApiPublishOptions<TRequest> : WebApiPublishOptionsBase<We
     private TRequest? _value;
     private bool _hasValue;
     private Func<TRequest, EventData>? _messageFactory;
+    private Func<WebApiOptions, TRequest, CompositeKey>? _operationKeyFactory;
 
     /// <summary>
     /// Gets the optional validator.
@@ -54,13 +55,24 @@ public sealed class WebApiPublishOptions<TRequest> : WebApiPublishOptionsBase<We
         return this;
     }
 
+    /// <summary>
+    /// Derives a repeatable submission key from the current Web API request and validated input, without requiring an existing business entity.
+    /// </summary>
+    /// <param name="keyFactory">The request-aware submission-key selector.</param>
+    /// <returns>The current options.</returns>
+    public WebApiPublishOptions<TRequest> WithOperationKey(Func<WebApiOptions, TRequest, CompositeKey> keyFactory)
+    {
+        _operationKeyFactory = keyFactory.ThrowIfNull();
+        return this;
+    }
+
     /// <inheritdoc/>
-    internal override async Task<Result<EventData>> PrepareAsync<TResult>(WebApi<TResult> webApi, WebApiOptions requestOptions, CancellationToken cancellationToken)
+    internal override async Task<Result<WebApiPreparedPublish>> PrepareAsync<TResult>(WebApi<TResult> webApi, WebApiOptions requestOptions, CancellationToken cancellationToken)
     {
         if (_hasValue)
-            return await webApi.PreparePublishValueAsync(requestOptions, _value, Validator, CreateMessage, cancellationToken).ConfigureAwait(false);
+            return await webApi.PreparePublishValueAsync(requestOptions, _value, Validator, CreateMessage, _operationKeyFactory, cancellationToken).ConfigureAwait(false);
 
-        return await webApi.PreparePublishRequestAsync<TRequest>(requestOptions, Validator, CreateMessage, cancellationToken).ConfigureAwait(false);
+        return await webApi.PreparePublishRequestAsync<TRequest>(requestOptions, Validator, CreateMessage, _operationKeyFactory, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>

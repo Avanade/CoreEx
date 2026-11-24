@@ -3,7 +3,7 @@ namespace CoreEx.Database.SqlServer.Test.Unit;
 [TestFixture, NonParallelizable]
 public class SqlServerOperationStoreTests : OperationStoreTestsBase
 {
-    private const string Schema = "Ops";
+    private string Schema { get; } = $"OpsTest_{Guid.NewGuid():N}";
     private readonly List<SqlServerDatabase> _databases = [];
     private readonly string _businessTable = $"OperationProof_{Guid.NewGuid():N}";
     private bool _businessTableCreated;
@@ -19,7 +19,6 @@ public class SqlServerOperationStoreTests : OperationStoreTestsBase
         csb.InitialCatalog = "master";
         await ExecuteAsync(csb.ConnectionString, $"IF DB_ID(N'{dbName}') IS NULL CREATE DATABASE [{dbName}]");
 
-        await ExecuteAsync(_connectionString, $"DROP TABLE IF EXISTS [{Schema}].[{SqlServerOperationStore.DefaultTableName}]");
         var script = await OperationScriptTestHelper.ExportAsync(typeof(CoreEx.Database.SqlServer.Test.Console.Program), OperationScriptTestHelper.SqlServerOfflineConnection, Schema, SqlServerOperationStore.DefaultTableName);
         await ExecuteAsync(_connectionString, script);
         await ExecuteAsync(_connectionString, $"CREATE TABLE [{Schema}].[{_businessTable}] ([Id] UNIQUEIDENTIFIER NOT NULL PRIMARY KEY)");
@@ -30,7 +29,7 @@ public class SqlServerOperationStoreTests : OperationStoreTestsBase
     public async Task OneTimeTearDown()
     {
         if (_businessTableCreated)
-            await ExecuteAsync(_connectionString, $"DROP TABLE [{Schema}].[{_businessTable}]");
+            await ExecuteAsync(_connectionString, $"DROP TABLE [{Schema}].[{_businessTable}]; DROP TABLE IF EXISTS [{Schema}].[OperationAlt]; DROP TABLE [{Schema}].[{SqlServerOperationStore.DefaultTableName}]; DROP SCHEMA [{Schema}];");
     }
 
     [TearDown]

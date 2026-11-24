@@ -5,11 +5,11 @@ namespace CoreEx.Operations;
 /// An operation name and <see cref="CompositeKey"/>, qualified by the host <see cref="IHostSettings.DomainName"/> and the ambient <see cref="ExecutionContext.TenantId"/> (where present), identify logical work; an <see cref="OperationState.OperationId"/> identifies one persisted incarnation of that work.
 /// Use <see cref="GetByKeyAsync"/> to find work by application identity and <see cref="GetByIdAsync"/> for the handle returned to callers (for example, in a 202 status location) and carried in worker messages.
 /// </summary>
-/// <remarks>The store is independent of HTTP idempotency and coordination: work may be started by an API, subscriber, timer or any other process. <see cref="CreateAsync"/> is itself idempotent on that identity, so a caller retrying acceptance (for example, after an unknown commit outcome) receives the existing operation rather than a duplicate.
+/// <remarks>The store is independent of HTTP idempotency and coordination: work may be started by an API, subscriber, timer or any other process. <see cref="CreateAsync(string, CompositeKey, string?, string?, CancellationToken)"/> is itself idempotent on that identity, so a caller retrying acceptance (for example, after an unknown commit outcome) receives the existing operation rather than a duplicate.
 /// Recreating work under the same key after purge assigns a new operation identifier, so stale handles and deliveries cannot target the replacement. Neither lookup grants authorization; callers must enforce domain, tenant and initiator access.
 /// Every command is a single atomic conditional write; there is no general read-modify-write update. For relational stores:
 /// <list type="bullet">
-/// <item><see cref="CreateAsync"/> and <see cref="CompleteAsync"/> execute on the ambient database connection and transaction, so they commit or roll back with the business unit of work and its transactional outbox.</item>
+/// <item><see cref="CreateAsync(string, CompositeKey, string?, string?, CancellationToken)"/> and <see cref="CompleteAsync"/> execute on the ambient database connection and transaction, so they commit or roll back with the business unit of work and its transactional outbox.</item>
 /// <item><see cref="ClaimAsync"/>, <see cref="RenewAsync"/> and <see cref="ReleaseAsync"/> must execute in short independent scopes, never inside a long-running business transaction.</item>
 /// <item>Claim expiry, completion fencing and purge eligibility are evaluated using database time.</item>
 /// </list>
@@ -38,11 +38,23 @@ public interface IOperationStore
     /// </summary>
     /// <param name="operationName">The stable application-defined operation name.</param>
     /// <param name="key">The operation instance key; its canonical string must not be empty or whitespace. Qualified by the host domain name and ambient tenant, and compared ordinally (including case and trailing spaces) using <see cref="CompositeKey.ToCanonicalString"/>.</param>
-    /// <param name="initiatorId">The stable identifier of the initiating principal.</param>
+    /// <param name="initiatedBy">The initiating <see cref="AuthenticationUser.UserName"/>, following the <see cref="ChangeLog.CreatedBy"/> convention. Callers must establish a trusted username before using it for ownership authorization.</param>
     /// <param name="data">The optional opaque JSON extension data.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
     /// <returns>The <see cref="OperationCreateResult"/>; an existing operation (including a finished one not yet purged) is returned rather than replaced.</returns>
-    Task<OperationCreateResult> CreateAsync(string operationName, CompositeKey key, string? initiatorId = null, string? data = null, CancellationToken cancellationToken = default);
+    Task<OperationCreateResult> CreateAsync(string operationName, CompositeKey key, string? initiatedBy = null, string? data = null, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Atomically creates or gets an operation with optional lifetime overrides.
+    /// </summary>
+    /// <param name="operationName">The stable application-defined operation name.</param>
+    /// <param name="key">The operation instance key.</param>
+    /// <param name="initiatedBy">The trusted initiating username.</param>
+    /// <param name="data">The optional opaque extension data.</param>
+    /// <param name="options">The optional lifetime overrides; retained for this incarnation and ignored for an existing operation.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
+    /// <returns>The created or existing operation.</returns>
+    Task<OperationCreateResult> CreateAsync(string operationName, CompositeKey key, string? initiatedBy, string? data, OperationCreateOptions options, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Atomically claims an <see cref="OperationStatus.Accepted"/> or <see cref="OperationStatus.Retrying"/> operation, or takes over a <see cref="OperationStatus.Running"/> operation whose claim has expired.
@@ -98,6 +110,6 @@ public interface IOperationStore
     /// <param name="maxCount">The maximum number of records to expire, and separately to delete, in this pass.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
     /// <returns>The <see cref="OperationCleanupResult"/>.</returns>
-    /// <remarks>An expired operation is retained (and reportable) for <see cref="OperationStoreOptions.TerminalRetention"/> before it is purged; a redelivery that arrives afterwards observes <see cref="OperationClaimOutcome.Finished"/> and must not execute. Operations with a held claim are never expired, and active operations are never purged. Once purged, the same identity may be created again with a new operation identifier.</remarks>
+    /// <remarks>An expired operation is retained (and reportable) for its <see cref="OperationState.TerminalRetention"/> before it is purged; a redelivery that arrives afterwards observes <see cref="OperationClaimOutcome.Finished"/> and must not execute. Operations with a held claim are never expired, and active operations are never purged. Once purged, the same identity may be created again with a new operation identifier.</remarks>
     Task<OperationCleanupResult> CleanupAsync(int maxCount, CancellationToken cancellationToken = default);
 }

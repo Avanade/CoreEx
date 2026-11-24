@@ -6,9 +6,9 @@ namespace CoreEx.Operations;
 public static class OperationLimits
 {
     /// <summary>
-    /// Gets the maximum initiator identifier length.
+    /// Gets the maximum initiating username length.
     /// </summary>
-    public const int MaxInitiatorIdLength = 256;
+    public const int MaxInitiatedByLength = 256;
 
     /// <summary>
     /// Gets the maximum claim owner token length.

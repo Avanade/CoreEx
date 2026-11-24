@@ -24,8 +24,8 @@ public abstract partial class WebApi<TResult>
             if (result.IsFailure)
                 return new WebApiResult<TResult>(request.HttpContext.Response) { Exception = result.Error };
 
-            var message = options.ApplyEventTransform(result.Value);
-            return await PublishEventAsync(request, options, message, options.PublishedType, ct).ConfigureAwait(false);
+            var message = options.ApplyEventTransform(result.Value.Message);
+            return await PublishEventAsync(request, options, message, result.Value.Key, ct).ConfigureAwait(false);
         }, cancellationToken, nameof(PublishAsync)).ConfigureAwait(false);
     }
 
@@ -36,15 +36,16 @@ public abstract partial class WebApi<TResult>
     /// <param name="requestOptions">The options for the current request.</param>
     /// <param name="validator">The optional request validator.</param>
     /// <param name="createMessage">The function that creates the event envelope.</param>
+    /// <param name="keyFactory">The optional request-aware validated-input submission-key selector.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The prepared message or a failure.</returns>
-    internal async Task<Result<EventData>> PreparePublishRequestAsync<TRequest>(WebApiOptions requestOptions, IValidator<TRequest>? validator, Func<TRequest, EventData> createMessage, CancellationToken cancellationToken)
+    internal async Task<Result<WebApiPreparedPublish>> PreparePublishRequestAsync<TRequest>(WebApiOptions requestOptions, IValidator<TRequest>? validator, Func<TRequest, EventData> createMessage, Func<WebApiOptions, TRequest, CompositeKey>? keyFactory, CancellationToken cancellationToken)
     {
         var parsed = await GetRequestValueAsync<TRequest>(requestOptions.Request, cancellationToken).ConfigureAwait(false);
         if (parsed.IsFailure)
-            return Result<EventData>.Fail(parsed.Error);
+            return parsed.AsResult<TRequest?, WebApiPreparedPublish>();
 
-        return await PreparePublishValueAsync(requestOptions, parsed.Value, validator, createMessage, cancellationToken).ConfigureAwait(false);
+        return await PreparePublishValueAsync(requestOptions, parsed.Value, validator, createMessage, keyFactory, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -55,25 +56,27 @@ public abstract partial class WebApi<TResult>
     /// <param name="value">The request value.</param>
     /// <param name="validator">The optional request validator.</param>
     /// <param name="createMessage">The function that creates the event envelope.</param>
+    /// <param name="keyFactory">The optional request-aware validated-input submission-key selector.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The prepared message or a failure.</returns>
-    internal async Task<Result<EventData>> PreparePublishValueAsync<TRequest>(WebApiOptions requestOptions, TRequest? value, IValidator<TRequest>? validator, Func<TRequest, EventData> createMessage, CancellationToken cancellationToken)
+    internal async Task<Result<WebApiPreparedPublish>> PreparePublishValueAsync<TRequest>(WebApiOptions requestOptions, TRequest? value, IValidator<TRequest>? validator, Func<TRequest, EventData> createMessage, Func<WebApiOptions, TRequest, CompositeKey>? keyFactory, CancellationToken cancellationToken)
     {
         var typedOptions = new WebApiRequestOptions<TRequest>(requestOptions.Request, value) { WebApi = this }.WithOperationType(OperationType.Create).WithStatusCode(HttpStatusCode.Accepted);
         if (typedOptions.IsInError(out var invalid))
-            return Result<EventData>.Fail(invalid.Error);
+            return Result<WebApiPreparedPublish>.Fail(invalid.Error);
 
         var requestValue = typedOptions.Value;
         if (validator is not null)
             (await validator.ValidateAsync(requestValue, cancellationToken).ConfigureAwait(false)).ThrowOnError();
 
-        return Result<EventData>.Ok(createMessage(requestValue));
+        var key = keyFactory?.Invoke(requestOptions, requestValue);
+        return Result.Ok(new WebApiPreparedPublish(createMessage(requestValue), key));
     }
 
     /// <summary>
     /// Resolves the configured publisher and dispatches one message through the shared tracking and acceptance path.
     /// </summary>
-    private async Task<WebApiResult<TResult>> PublishEventAsync(HttpRequest request, WebApiPublishOptionsBase options, EventData message, Type publishedType, CancellationToken cancellationToken)
+    private async Task<WebApiResult<TResult>> PublishEventAsync(HttpRequest request, WebApiPublishOptionsBase options, EventData message, CompositeKey? preparedKey, CancellationToken cancellationToken)
     {
         message.ThrowIfNull();
         var endpoint = request.HttpContext.GetEndpoint();
@@ -86,113 +89,102 @@ public abstract partial class WebApi<TResult>
             throw new InvalidOperationException("A tracked operation cannot override the publisher destination.");
 
         var services = GetServiceProvider(request);
-        var publisher = options.PublisherProvider is null ? services.GetRequiredService<IEventPublisher>() : options.PublisherProvider(services) ?? throw new InvalidOperationException("The configured publisher resolver must return a publisher.");
-        if (publisher.HasBeenPublished || !publisher.IsEmpty)
-            throw new InvalidOperationException("WebApi publishing requires an unused publisher with an empty queue.");
-
         if (trackingOptions is null)
         {
+            var publisher = ResolvePublisher(services, options);
             await PublishMessageAsync(publisher, options.Destination, message, cancellationToken).ConfigureAwait(false);
             return new WebApiResult<TResult>(request.HttpContext.Response) { StatusCode = HttpStatusCode.Accepted };
         }
 
-        return await PublishTrackedAsync(request, options, trackingOptions, publisher, message, publishedType, cancellationToken).ConfigureAwait(false);
+        return await PublishTrackedAsync(request, options, trackingOptions, message, preparedKey, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
-    /// Creates operation state before dispatch and fences ambiguous publication failures.
+    /// Creates or finds an operation and enqueues its initiating command only when newly created.
     /// </summary>
-    private async Task<WebApiResult<TResult>> PublishTrackedAsync(HttpRequest request, WebApiPublishOptionsBase publishOptions, WebApiPublishOperationOptions trackingOptions, IEventPublisher publisher, EventData message, Type publishedType, CancellationToken cancellationToken)
+    private async Task<WebApiResult<TResult>> PublishTrackedAsync(HttpRequest request, WebApiPublishOptionsBase publishOptions, WebApiPublishOperationOptions trackingOptions, EventData message, CompositeKey? preparedKey, CancellationToken cancellationToken)
     {
         var services = GetServiceProvider(request);
         var operationOptions = services.GetRequiredService<IOptions<OperationsOptions>>().Value;
         operationOptions.Validate();
-
-        var typeName = publishedType.FullName ?? publishedType.Name;
-
-        if (!operationOptions.Types.ContainsKey(typeName))
-            throw new InvalidOperationException($"Tracked publishing requires operation type '{typeName}' to be registered with AddCoreExOperation.");
-
+        var definition = operationOptions.Resolve(publishOptions.PublishedType, trackingOptions.OperationName);
         var executionContext = ExecutionContext;
-        EnsureOperationMessage(message, services.GetRequiredService<CoreEx.Hosting.IHostSettings>().DomainName, executionContext.TenantId);
-        if (executionContext.User.Type == AuthenticationType.Unauthenticated)
+        EnsureOperationMessage(message, services.GetRequiredService<IHostSettings>().DomainName, executionContext.TenantId);
+        if (!OperationsOptions.HasOwner(executionContext))
             return new WebApiResult<TResult>(request.HttpContext.Response) { Exception = new AuthenticationException() };
 
-        var owner = executionContext.User;
-        var id = Runtime.NewId();
-        var operationKey = CompositeKey.Create(id);
+        // Fresh submissions must not deduplicate when a host substitutes its request identifier generator.
+        var operationKey = trackingOptions.Key ?? preparedKey ?? CompositeKey.Create(Guid.NewGuid());
+        operationKey.ToCanonicalString().ThrowIfNullOrWhiteSpace(nameof(trackingOptions.Key));
+        var store = services.GetRequiredService<IOperationStore>();
+        var unitOfWork = services.GetService<IUnitOfWork>();
+        IEventPublisher? directPublisher = null;
 
-        var work = services.GetRequiredService<WorkOrchestrator>();
-        var startTimeout = trackingOptions.StartTimeout;
-        var expiry = trackingOptions.Expiry ?? work.ExpiryTimeSpan;
-        if (startTimeout <= TimeSpan.Zero || startTimeout > expiry)
-            throw new ArgumentOutOfRangeException(nameof(publishOptions), "The start timeout must be greater than zero and no greater than the operation expiry.");
-
-        WorkState created;
-        try
+        // Only acceptance and enqueueing belong in this transaction.
+        async Task<OperationCreateResult> AcceptAsync(CancellationToken cancellationToken)
         {
-            var createdResult = await work.CreateAsync(new WorkArgs(typeName, operationOptions.OperationName, operationKey)
+            var accepted = await store.CreateAsync(definition.OperationName, operationKey, executionContext.User.UserName, null,
+                new OperationCreateOptions { InactivityTimeout = trackingOptions.InactivityTimeout, TerminalRetention = trackingOptions.TerminalRetention }, cancellationToken).ConfigureAwait(false);
+            if (!await OperationsOptions.IsAuthorizedAsync(services, executionContext, accepted.State, definition, cancellationToken).ConfigureAwait(false))
+                throw new NotFoundException();
+
+            if (!accepted.Created)
+                return accepted;
+
+            message.DomainName = accepted.State.DomainName;
+            message.TenantId = accepted.State.TenantId;
+            message.OperationId = accepted.State.OperationId.ToString("D");
+            message.OperationName = accepted.State.OperationName;
+            message.OperationStartBy = null;
+
+            if (unitOfWork?.AreEventsSupported == true)
             {
-                StartTimeout = startTimeout,
-                Expiry = trackingOptions.Expiry,
-                User = owner
-            }, cancellationToken).ConfigureAwait(false);
-            created = createdResult.ThrowOnError().Value;
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            throw;
-        }
-        catch (Exception exception)
-        {
-            Activity.Current?.SetTag("operation.create", "unavailable");
-            services.GetRequiredService<ILoggerFactory>().CreateLogger("CoreEx.Operations").LogError(exception, "Creating operation tracking state failed before message dispatch.");
-            ReleaseIdempotencyAttempt(request.HttpContext);
-            return ServiceUnavailable(request.HttpContext.Response);
-        }
-
-        message.DomainName = created.DomainName;
-        message.TenantId = NormalizeTenantId(created.TenantId);
-        message.OperationId = created.Id.ThrowIfNullOrWhiteSpace(nameof(created.Id));
-        message.OperationName = created.OperationName;
-        message.OperationStartBy = created.StartBy ?? throw new InvalidDataException("A tracked operation has no first-start deadline.");
-
-        try
-        {
-            await PublishMessageAsync(publisher, publishOptions.Destination, message, cancellationToken).ConfigureAwait(false);
-        }
-        catch (Exception exception)
-        {
-            Activity.Current?.SetTag("operation.publish", "outcome-unknown");
-            services.GetRequiredService<ILoggerFactory>().CreateLogger("CoreEx.Operations").LogWarning(exception, "Message publication failed after tracked operation creation; delivery outcome is unknown.");
-
-            WorkTransitionResult? fence = null;
-            using (var reconciliation = new CancellationTokenSource(TimeSpan.FromSeconds(5)))
-            {
-                try
+                if (publishOptions.PublisherProvider is null)
+                    EnqueueOperation(unitOfWork.Events, message);
+                else
                 {
-                    fence = await work.FenceAsync(operationOptions.OperationName, operationKey, new WorkError("dispatch-failed", "The operation message could not be dispatched.", true), reconciliation.Token).ConfigureAwait(false);
-                }
-                catch (Exception fenceException)
-                {
-                    services.GetRequiredService<ILoggerFactory>().CreateLogger("CoreEx.Operations").LogWarning(fenceException, "The operation dispatch fence could not be resolved.");
+                    var publisher = ResolvePublisher(services, publishOptions);
+                    if (ReferenceEquals(publisher, unitOfWork.Events))
+                        EnqueueOperation(publisher, message);
+                    else
+                        directPublisher = publisher;
                 }
             }
 
-            if (fence?.Outcome == WorkTransitionOutcome.Applied)
-            {
-                ReleaseIdempotencyAttempt(request.HttpContext);
-                return ServiceUnavailable(request.HttpContext.Response);
-            }
-
-            var observed = fence?.State;
-            if (observed is not null && observed.Status != WorkStatus.Created)
-                return AcceptedOperation(request, operationOptions, observed, operationOptions.Types[typeName]);
-
-            return AcceptedOperation(request, operationOptions, created, operationOptions.Types[typeName]);
+            return accepted;
         }
 
-        return AcceptedOperation(request, operationOptions, created, operationOptions.Types[typeName]);
+        var result = unitOfWork is null
+            ? await AcceptAsync(cancellationToken).ConfigureAwait(false)
+            : await unitOfWork.TransactionAsync(AcceptAsync, cancellationToken).ConfigureAwait(false);
+
+        if (result.Created && (unitOfWork is null || !unitOfWork.AreEventsSupported || directPublisher is not null))
+            await PublishMessageAsync(directPublisher ?? ResolvePublisher(services, publishOptions), null, message, cancellationToken).ConfigureAwait(false);
+
+        return AcceptedOperation(request, operationOptions, result.State, definition);
+    }
+
+    /// <summary>
+    /// Resolves an explicitly selected or default publisher without bypassing its decorators.
+    /// </summary>
+    private static IEventPublisher ResolvePublisher(IServiceProvider services, WebApiPublishOptionsBase options)
+    {
+        var publisher = options.PublisherProvider is null ? services.GetRequiredService<IEventPublisher>() : options.PublisherProvider(services) ?? throw new InvalidOperationException("The configured publisher resolver must return a publisher.");
+        if (publisher.HasBeenPublished || !publisher.IsEmpty)
+            throw new InvalidOperationException("WebApi publishing requires an unused publisher with an empty queue.");
+
+        return publisher;
+    }
+
+    /// <summary>
+    /// Adds the command to the unit-of-work-owned queue, whose flush and rollback belong to that unit of work.
+    /// </summary>
+    private static void EnqueueOperation(IEventQueue queue, EventData message)
+    {
+        if (!queue.IsEmpty || queue is IEventPublisher { HasBeenPublished: true })
+            throw new InvalidOperationException("Tracked acceptance requires an unused unit-of-work event queue.");
+
+        queue.Add(message);
     }
 
     /// <summary>
@@ -211,13 +203,13 @@ public abstract partial class WebApi<TResult>
     /// <summary>
     /// Creates the tracked acceptance response and its polling headers.
     /// </summary>
-    private WebApiResult<TResult> AcceptedOperation(HttpRequest request, OperationsOptions options, WorkState state, OperationTypeDefinition definition)
+    private WebApiResult<TResult> AcceptedOperation(HttpRequest request, OperationsOptions options, OperationState state, OperationTypeDefinition definition)
     {
         var status = Microsoft.AspNetCore.Builder.CoreExAspNetCoreExtensions.ToStatus(this, request, state, definition);
         var location = Microsoft.AspNetCore.Builder.CoreExAspNetCoreExtensions.GetOperationPath(options, status.Id);
         var operationLocation = GetLocationUri(request, location);
         var headers = new HeaderDictionary { ["Operation-Location"] = operationLocation.ToString() };
-        if (!WorkStatus.Finished.HasFlag(state.Status))
+        if (!state.IsFinished)
             headers[HeaderNames.RetryAfter] = "1";
 
         return new WebApiResult<TResult>(request.HttpContext.Response)
@@ -228,16 +220,6 @@ public abstract partial class WebApi<TResult>
             Headers = new WebApiHeader { Location = location, Headers = headers }
         };
     }
-
-    /// <summary>
-    /// Creates a transient error response when tracked publication cannot safely proceed.
-    /// </summary>
-    private static WebApiResult<TResult> ServiceUnavailable(HttpResponse response) => new(response) { Exception = new TransientException(new LText("CoreEx.AspNetCore.Operations.Unavailable", "Operation publishing is temporarily unavailable.")) };
-
-    /// <summary>
-    /// Requests release of an owned idempotency attempt when the HTTP feature is present.
-    /// </summary>
-    private static void ReleaseIdempotencyAttempt(HttpContext context) => context.Features.Get<IIdempotencyAttemptFeature>()?.ReleaseForRetry();
 
     /// <summary>
     /// Validates that a message can initiate tracked work in the current domain and tenant.
@@ -256,7 +238,7 @@ public abstract partial class WebApi<TResult>
         if (!string.Equals(NormalizeTenantId(eventData.TenantId), NormalizeTenantId(tenantId), StringComparison.Ordinal))
             throw new InvalidOperationException("A tracked operation command tenant must match the operation tenant.");
 
-        if (eventData.Attributes.ContainsKey("operationid"))
+        if (eventData.Attributes.ContainsKey("operationid") || eventData.Attributes.ContainsKey("operationname") || eventData.Attributes.ContainsKey("operationstartby"))
             throw new InvalidOperationException("The message is already associated with an operation; a tracked operation is initiated by exactly one command.");
     }
 

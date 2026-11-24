@@ -45,7 +45,7 @@ public class InMemoryOperationStoreTests : OperationStoreTestsBase
 
         await FluentActions.Awaiting(() => store.GetByIdAsync(Guid.Empty)).Should().ThrowAsync<ArgumentException>();
         await FluentActions.Awaiting(() => store.GetByKeyAsync(null!, key)).Should().ThrowAsync<ArgumentNullException>();
-        await FluentActions.Awaiting(() => store.CreateAsync(OperationName, key, new string('x', OperationLimits.MaxInitiatorIdLength + 1))).Should().ThrowAsync<ArgumentException>().WithParameterName("initiatorId");
+        await FluentActions.Awaiting(() => store.CreateAsync(OperationName, key, new string('x', OperationLimits.MaxInitiatedByLength + 1))).Should().ThrowAsync<ArgumentException>().WithParameterName("initiatedBy");
         await FluentActions.Awaiting(() => store.ClaimAsync(Guid.NewGuid(), " ", ClaimDuration)).Should().ThrowAsync<ArgumentException>();
         await FluentActions.Awaiting(() => store.ClaimAsync(Guid.NewGuid(), new string('x', OperationLimits.MaxClaimOwnerLength + 1), ClaimDuration)).Should().ThrowAsync<ArgumentException>().WithParameterName("owner");
         await FluentActions.Awaiting(() => store.ClaimAsync(Guid.NewGuid(), "worker-a", TimeSpan.Zero)).Should().ThrowAsync<ArgumentOutOfRangeException>().WithParameterName("duration");

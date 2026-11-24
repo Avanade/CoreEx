@@ -16,7 +16,7 @@ CREATE TABLE [{{lookup Parameters 'Param1'}}].[{{lookup Parameters 'Param2'}}] (
   [OperationName] NVARCHAR(MAX) NOT NULL,
   [InstanceId] NVARCHAR(MAX) NOT NULL,
   [Status] TINYINT NOT NULL,
-  [InitiatorId] NVARCHAR(256) NULL,
+  [InitiatedBy] NVARCHAR(256) NULL,
   [Attempt] INT NOT NULL CONSTRAINT [DF_{{lookup Parameters 'Param2'}}_Attempt] DEFAULT (0),
   [ClaimOwner] NVARCHAR(128) NULL,
   [ClaimExpiresOn] DATETIME2(7) NULL,
@@ -32,11 +32,14 @@ CREATE TABLE [{{lookup Parameters 'Param1'}}].[{{lookup Parameters 'Param2'}}] (
   [CompletedOn] DATETIME2(7) NULL,
   [AbandonAfter] DATETIME2(7) NULL,
   [PurgeAfter] DATETIME2(7) NULL,
+  [InactivityMs] BIGINT NOT NULL,
+  [RetentionMs] BIGINT NOT NULL,
   [RowVersion] ROWVERSION NOT NULL,
   CONSTRAINT [PK_{{lookup Parameters 'Param2'}}] PRIMARY KEY CLUSTERED ([KeyHash]),
   CONSTRAINT [UQ_{{lookup Parameters 'Param2'}}_OperationId] UNIQUE ([OperationId]),
   CONSTRAINT [CK_{{lookup Parameters 'Param2'}}_Status] CHECK ([Status] BETWEEN 1 AND 7),
-  CONSTRAINT [CK_{{lookup Parameters 'Param2'}}_Attempt] CHECK ([Attempt] >= 0)
+  CONSTRAINT [CK_{{lookup Parameters 'Param2'}}_Attempt] CHECK ([Attempt] >= 0),
+  CONSTRAINT [CK_{{lookup Parameters 'Param2'}}_Durations] CHECK ([InactivityMs] > 0 AND [RetentionMs] > 0)
 );
 
 CREATE INDEX [IX_{{lookup Parameters 'Param2'}}_AbandonAfter] ON [{{lookup Parameters 'Param1'}}].[{{lookup Parameters 'Param2'}}] ([AbandonAfter]) WHERE [Status] IN (1, 2, 3);

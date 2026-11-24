@@ -23,7 +23,7 @@ public abstract class WebApiPublishOptionsBase
     public Func<IServiceProvider, IEventPublisher>? PublisherProvider { get; private protected set; }
 
     /// <summary>
-    /// Gets the optional operation timing configuration.
+    /// Gets the optional operation identity and lifetime configuration.
     /// </summary>
     public WebApiPublishOperationOptions? Operation { get; private protected set; }
 
@@ -40,7 +40,7 @@ public abstract class WebApiPublishOptionsBase
     /// <param name="requestOptions">The options for the current request.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The prepared message or a failure.</returns>
-    internal abstract Task<Result<EventData>> PrepareAsync<TResult>(WebApi<TResult> webApi, WebApiOptions requestOptions, CancellationToken cancellationToken);
+    internal abstract Task<Result<WebApiPreparedPublish>> PrepareAsync<TResult>(WebApi<TResult> webApi, WebApiOptions requestOptions, CancellationToken cancellationToken);
 
     /// <summary>
     /// Creates the default self-addressed <see cref="CoreEx.Events.MessageType.Command"/> message, with the <see cref="EventAction.Publish"/> action, for the specified payload.

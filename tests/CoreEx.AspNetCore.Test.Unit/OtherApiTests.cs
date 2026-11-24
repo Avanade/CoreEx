@@ -205,17 +205,14 @@ public class OtherApiTests : WithApiTester<Api.Program>
     [TestCase("/api/other/minimal-publish-tracked")]
     public async Task Publish_TrackedEndpoint_CreatesAndPublishesOperation(string path)
     {
-        var provider = new CoreEx.Hosting.Work.InMemoryWorkProvider();
         var owner = new CoreEx.Security.AuthenticationUser { Type = CoreEx.Security.AuthenticationType.AccountUser, UserName = "owner" };
         using var test = CreatePublishTester(services =>
         {
-            services.AddSingleton(sp => new CoreEx.Hosting.Work.WorkOrchestrator(provider, sp.GetRequiredService<CoreEx.Hosting.IHostSettings>()));
+            services.AddSingleton<IOperationStore, InMemoryOperationStore>();
             services.AddExecutionContext((_, ec) => ec.User = owner);
         });
 
-        var domain = test.Services.GetRequiredService<CoreEx.Hosting.IHostSettings>().DomainName;
         string? publishedId = null;
-        DateTimeOffset? publishedStartBy = null;
         var response = test.Http()
             .ExpectEvents("EventPublisher", cfg => cfg.AssertCustom("default", (_, _, actual) =>
             {
@@ -224,8 +221,8 @@ public class OtherApiTests : WithApiTester<Api.Program>
                 actual.Event["operationdomain"].Should().BeNull();
                 actual.Event["operationscope"].Should().BeNull();
                 actual.Event["operationtenantid"].Should().BeNull();
-                actual.Event["operationname"].Should().Be("webapi-operations");
-                publishedStartBy = DateTimeOffset.Parse(actual.Event["operationstartby"].Should().BeOfType<string>().Subject, System.Globalization.CultureInfo.InvariantCulture);
+                actual.Event["operationname"].Should().Be("person-submit");
+                actual.Event["operationstartby"].Should().BeNull();
                 using var payload = JsonDocument.Parse(actual.Event.Data.Should().BeOfType<BinaryData>().Which.ToMemory());
                 payload.RootElement.GetProperty("id").GetString().Should().Be("1");
                 payload.RootElement.GetProperty("firstName").GetString().Should().Be("Bob");
@@ -237,21 +234,20 @@ public class OtherApiTests : WithApiTester<Api.Program>
         var id = status.RootElement.GetProperty("id").GetString().ThrowIfNull();
         id.Should().NotBeNullOrWhiteSpace();
         publishedId.Should().Be(id);
-        status.RootElement.GetProperty("status").GetString().Should().Be("not-started");
+        status.RootElement.GetProperty("status").GetString().Should().Be("accepted");
         var location = $"/operations/{id}";
         response.Response.Headers.Location.ThrowIfNull().ToString().Should().Be(location);
         response.Response.Headers.GetValues("Operation-Location").Should().ContainSingle().Which.Should().Be(location);
 
-        var state = (await provider.GetAsync(domain, null, "webapi-operations", id, CancellationToken.None)).State.ThrowIfNull();
-        state.TypeName.Should().Be(typeof(Person).FullName);
-        state.Status.Should().Be(CoreEx.Hosting.Work.WorkStatus.Created);
-        state.User.Should().Be(owner);
-        state.StartBy.Should().Be(publishedStartBy);
+        var state = (await test.Services.GetRequiredService<IOperationStore>().GetByIdAsync(Guid.Parse(id))).ThrowIfNull();
+        state.OperationName.Should().Be("person-submit");
+        state.Status.Should().Be(CoreEx.Operations.OperationStatus.Accepted);
+        state.InitiatedBy.Should().Be(owner.UserName);
 
         var poll = test.Http().Run(HttpMethod.Get, location).AssertOK();
         using var polledStatus = JsonDocument.Parse(poll.GetContent().ThrowIfNull());
         polledStatus.RootElement.GetProperty("id").GetString().Should().Be(id);
-        polledStatus.RootElement.GetProperty("status").GetString().Should().Be("not-started");
+        polledStatus.RootElement.GetProperty("status").GetString().Should().Be("accepted");
     }
 
     [Test]

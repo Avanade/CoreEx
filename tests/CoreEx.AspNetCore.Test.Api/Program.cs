@@ -41,7 +41,7 @@ public class Program
             .AddIdempotencyProvider();
 
         builder.Services.AddCoreExOperations()
-            .AddCoreExOperation<Person>();
+            .AddCoreExOperation<Person>("person-submit");
 
         // Add a health check so the health check endpoints have at least one registration to report/configure.
         builder.Services.AddHealthChecks().AddCheck("test-check", () => HealthCheckResult.Healthy(), tags: [nameof(HealthCheckTags.Live), nameof(HealthCheckTags.Startup), nameof(HealthCheckTags.Ready)]);

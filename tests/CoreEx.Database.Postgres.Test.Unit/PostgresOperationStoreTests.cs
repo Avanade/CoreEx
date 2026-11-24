@@ -3,7 +3,7 @@ namespace CoreEx.Database.Postgres.Test.Unit;
 [TestFixture, NonParallelizable]
 public class PostgresOperationStoreTests : OperationStoreTestsBase
 {
-    private const string Schema = "ops";
+    private string Schema { get; } = $"ops_test_{Guid.NewGuid():N}";
     private readonly List<PostgresDatabase> _databases = [];
     private readonly string _businessTable = $"operation_proof_{Guid.NewGuid():N}";
     private bool _businessTableCreated;
@@ -28,7 +28,6 @@ public class PostgresOperationStoreTests : OperationStoreTestsBase
 
         _dataSource = NpgsqlDataSource.Create(_connectionString);
 
-        await ExecuteAsync(_connectionString, $"DROP TABLE IF EXISTS \"{Schema}\".\"{PostgresOperationStore.DefaultTableName}\"");
         var script = await OperationScriptTestHelper.ExportAsync(typeof(CoreEx.Database.Postgres.Test.Console.Program), OperationScriptTestHelper.PostgresOfflineConnection, Schema, PostgresOperationStore.DefaultTableName);
         await ExecuteAsync(_connectionString, script);
         await ExecuteAsync(_connectionString, $"CREATE TABLE \"{Schema}\".\"{_businessTable}\" (id uuid PRIMARY KEY)");
@@ -41,7 +40,7 @@ public class PostgresOperationStoreTests : OperationStoreTestsBase
         try
         {
             if (_businessTableCreated)
-                await ExecuteAsync(_connectionString, $"DROP TABLE \"{Schema}\".\"{_businessTable}\"");
+                await ExecuteAsync(_connectionString, $"DROP SCHEMA \"{Schema}\" CASCADE");
         }
         finally
         {
@@ -193,7 +192,7 @@ public class PostgresOperationStoreTests : OperationStoreTestsBase
             await using var blocker = new NpgsqlConnection(_connectionString);
             await blocker.OpenAsync();
             await using var transaction = await blocker.BeginTransactionAsync();
-            await using (var command = new NpgsqlCommand($"INSERT INTO \"{Schema}\".\"{tableName}\" (key_hash, operation_id, domain_name, tenant_id, operation_name, instance_id, status, created_on, updated_on) VALUES (@hash, @id, @domain, @tenant, @name, @instance, 1, statement_timestamp(), statement_timestamp())", blocker, transaction))
+            await using (var command = new NpgsqlCommand($"INSERT INTO \"{Schema}\".\"{tableName}\" (key_hash, operation_id, domain_name, tenant_id, operation_name, instance_id, status, created_on, updated_on, inactivity_ms, retention_ms) VALUES (@hash, @id, @domain, @tenant, @name, @instance, 1, statement_timestamp(), statement_timestamp(), 1000, 1000)", blocker, transaction))
             {
                 command.Parameters.AddWithValue("@hash", hash);
                 command.Parameters.AddWithValue("@id", Guid.NewGuid());

@@ -32,8 +32,28 @@ public abstract class OperationStoreBase(ILogger logger, IHostSettings settings,
         => OnGetByKeyAsync(DomainName, TenantId, operationName.ThrowIfNullOrWhiteSpace(), key.ToCanonicalString().ThrowIfNullOrWhiteSpace(nameof(key)), cancellationToken);
 
     /// <inheritdoc/>
-    public Task<OperationCreateResult> CreateAsync(string operationName, CompositeKey key, string? initiatorId = null, string? data = null, CancellationToken cancellationToken = default)
-        => OnCreateAsync(DomainName, TenantId, operationName.ThrowIfNullOrWhiteSpace(), key.ToCanonicalString().ThrowIfNullOrWhiteSpace(nameof(key)), Bounded(initiatorId, OperationLimits.MaxInitiatorIdLength), data, cancellationToken);
+    public Task<OperationCreateResult> CreateAsync(string operationName, CompositeKey key, string? initiatedBy = null, string? data = null, CancellationToken cancellationToken = default)
+        => CreateAsync(operationName, key, initiatedBy, data, new OperationCreateOptions(), cancellationToken);
+
+    /// <inheritdoc/>
+    public Task<OperationCreateResult> CreateAsync(string operationName, CompositeKey key, string? initiatedBy, string? data, OperationCreateOptions options, CancellationToken cancellationToken = default)
+    {
+        options.ThrowIfNull();
+        var inactivity = RoundDuration(options.InactivityTimeout ?? Options.InactivityTimeout, nameof(options.InactivityTimeout));
+        var retention = RoundDuration(options.TerminalRetention ?? Options.TerminalRetention, nameof(options.TerminalRetention));
+        return OnCreateAsync(DomainName, TenantId, operationName.ThrowIfNullOrWhiteSpace(), key.ToCanonicalString().ThrowIfNullOrWhiteSpace(nameof(key)), Bounded(initiatedBy, OperationLimits.MaxInitiatedByLength), data, inactivity, retention, cancellationToken);
+    }
+
+    /// <summary>
+    /// Validates and rounds a persisted lifetime up to whole milliseconds.
+    /// </summary>
+    private static TimeSpan RoundDuration(TimeSpan value, string name)
+    {
+        if (value <= TimeSpan.Zero || value.Ticks > TimeSpan.MaxValue.Ticks - (TimeSpan.TicksPerMillisecond - 1))
+            throw new ArgumentOutOfRangeException(name, "The duration must be positive and representable in whole milliseconds.");
+
+        return TimeSpan.FromTicks(((value.Ticks + TimeSpan.TicksPerMillisecond - 1) / TimeSpan.TicksPerMillisecond) * TimeSpan.TicksPerMillisecond);
+    }
 
     /// <inheritdoc/>
     public Task<OperationClaimResult> ClaimAsync(Guid operationId, string owner, TimeSpan duration, CancellationToken cancellationToken = default)
@@ -84,17 +104,19 @@ public abstract class OperationStoreBase(ILogger logger, IHostSettings settings,
     protected abstract Task<OperationState?> OnGetByKeyAsync(string domainName, string? tenantId, string operationName, string instanceId, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Performs the validated <see cref="CreateAsync"/>.
+    /// Performs the validated <see cref="CreateAsync(string, CompositeKey, string?, string?, OperationCreateOptions, CancellationToken)"/>.
     /// </summary>
     /// <param name="domainName">The domain name.</param>
     /// <param name="tenantId">The tenant identifier; <see langword="null"/> where not tenant-scoped.</param>
     /// <param name="operationName">The operation name.</param>
     /// <param name="instanceId">The canonical instance identifier; compared ordinally, including case and trailing spaces.</param>
-    /// <param name="initiatorId">The initiator identifier.</param>
+    /// <param name="initiatedBy">The initiator identifier.</param>
     /// <param name="data">The opaque JSON extension data.</param>
+    /// <param name="inactivityTimeout">The effective inactivity timeout.</param>
+    /// <param name="terminalRetention">The effective terminal retention.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/>.</param>
     /// <returns>The <see cref="OperationCreateResult"/>.</returns>
-    protected abstract Task<OperationCreateResult> OnCreateAsync(string domainName, string? tenantId, string operationName, string instanceId, string? initiatorId, string? data, CancellationToken cancellationToken);
+    protected abstract Task<OperationCreateResult> OnCreateAsync(string domainName, string? tenantId, string operationName, string instanceId, string? initiatedBy, string? data, TimeSpan inactivityTimeout, TimeSpan terminalRetention, CancellationToken cancellationToken);
 
     /// <summary>
     /// Performs the validated <see cref="ClaimAsync"/>.

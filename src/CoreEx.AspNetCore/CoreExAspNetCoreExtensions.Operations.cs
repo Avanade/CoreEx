@@ -64,11 +64,11 @@ public static partial class CoreExAspNetCoreExtensions
 
             var response = request.HttpContext.Response;
             SetPrivateCache(response);
-            if (!IsTerminal(loaded.State.Status))
+            if (!loaded.State.IsFinished)
                 SetRetryAfter(response, GetRetryAfter(loaded));
 
-            if (loaded.State.Status == WorkStatus.Completed && loaded.State.ResourceLocation is not null)
-                response.Headers.Location = webApi.GetLocationUri(request, new Uri(loaded.State.ResourceLocation, UriKind.RelativeOrAbsolute)).ToString();
+            if (loaded.State.Status == CoreEx.Operations.OperationStatus.Succeeded && loaded.State.ResultLocation is not null)
+                response.Headers.Location = webApi.GetLocationUri(request, new Uri(loaded.State.ResultLocation, UriKind.RelativeOrAbsolute)).ToString();
 
             return ToStatus(webApi, request, loaded.State, loaded.Definition);
         }, cancellationToken: cancellationToken);
@@ -85,10 +85,10 @@ public static partial class CoreExAspNetCoreExtensions
                 return Result.NotFoundError();
 
             SetPrivateCache(request.HttpContext.Response);
-            if (loaded.State.Status != WorkStatus.Completed)
+            if (loaded.State.Status != CoreEx.Operations.OperationStatus.Succeeded)
                 return Result.ConflictError("The operation has not succeeded.");
 
-            if (loaded.State.ResourceLocation is not null || loaded.Definition.ReadResultAsync is null)
+            if (loaded.State.ResultLocation is not null || loaded.Definition.ReadResultAsync is null)
                 return Result<object?>.Ok(null);
 
             return Result.Ok(await loaded.Definition.ReadResultAsync(webApi.ExecutionContext, loaded.State, ct).ConfigureAwait(false));
@@ -113,13 +113,13 @@ public static partial class CoreExAspNetCoreExtensions
                 return Result.Ok(AspHttp.Results.StatusCode(StatusCodes.Status405MethodNotAllowed));
             }
 
-            if (IsTerminal(loaded.State.Status))
+            if (loaded.State.IsFinished)
                 return Result.ConflictError("The operation is already terminal.");
 
-            WorkTransitionResult result;
+            OperationState? state;
             try
             {
-                result = await loaded.Services.GetRequiredService<WorkOrchestrator>().CancelAsync(loaded.State.OperationName, CompositeKey.Create(loaded.State.Id), cancellationToken: ct).ConfigureAwait(false);
+                state = await loaded.Services.GetRequiredService<IOperationStore>().RequestCancelAsync(loaded.State.OperationId, ct).ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested)
             {
@@ -130,21 +130,18 @@ public static partial class CoreExAspNetCoreExtensions
                 throw TrackingUnavailable(loaded.Services, exception, "Requesting operation cancellation failed.");
             }
 
-            if (result.Outcome == WorkTransitionOutcome.NotFound)
+            if (state is null || !await OperationsOptions.IsAuthorizedAsync(loaded.Services, webApi.ExecutionContext, state, loaded.Definition, ct).ConfigureAwait(false))
                 return Result.NotFoundError();
 
-            if (result.Outcome is WorkTransitionOutcome.AlreadyFinished or WorkTransitionOutcome.Expired or WorkTransitionOutcome.Conflict or WorkTransitionOutcome.ConcurrencyExhausted)
-                return Result.ConflictError("The operation is already terminal or changed concurrently.");
+            if (state.IsFinished && state.Status != CoreEx.Operations.OperationStatus.Cancelled)
+                return Result.ConflictError("The operation finished before cancellation could be requested.");
 
-            if (result.State is null)
-                return Result.TransientError(TrackingUnavailableMessage);
-
-            var status = ToStatus(webApi, request, result.State, loaded.Definition);
+            var status = ToStatus(webApi, request, state, loaded.Definition);
             var operationUri = webApi.GetLocationUri(request, GetOperationPath(loaded.Options, status.Id)).ToString();
             response.Headers.Location = operationUri;
             response.Headers["Operation-Location"] = operationUri;
-            if (!IsTerminal(result.State.Status))
-                SetRetryAfter(response, GetRetryAfter(loaded with { State = result.State, ObservedOn = result.ObservedOn }));
+            if (!state.IsFinished)
+                SetRetryAfter(response, GetRetryAfter(loaded with { State = state }));
 
             return Result.Ok(status);
         }, HttpStatusCode.Accepted, cancellationToken: cancellationToken);
@@ -158,16 +155,13 @@ public static partial class CoreExAspNetCoreExtensions
         var ec = webApi.ExecutionContext;
         var services = webApi.GetServiceProvider(request);
         var options = services.GetRequiredService<IOptions<OperationsOptions>>().Value;
-        if (string.IsNullOrWhiteSpace(id))
+        if (!Guid.TryParse(id, out var operationId) || operationId == Guid.Empty || !OperationsOptions.HasOwner(ec))
             return null;
 
-        WorkState? state;
-        DateTimeOffset observedOn;
+        OperationState? state;
         try
         {
-            var snapshot = await services.GetRequiredService<WorkOrchestrator>().GetSnapshotAsync(options.OperationName, CompositeKey.Create(id), cancellationToken).ConfigureAwait(false);
-            state = snapshot.State;
-            observedOn = snapshot.Now;
+            state = await services.GetRequiredService<IOperationStore>().GetByIdAsync(operationId, cancellationToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -178,67 +172,58 @@ public static partial class CoreExAspNetCoreExtensions
             throw TrackingUnavailable(services, exception, "Reading operation tracking state failed.");
         }
 
-        if (state is null || !options.Types.TryGetValue(state.TypeName ?? string.Empty, out var definition))
+        if (state is null || !options.Types.TryGetValue(state.OperationName, out var definition))
             return null;
 
-        if (ec.User.Type == AuthenticationType.Unauthenticated || state.User is null || !state.User.Equals(ec.User))
+        if (!await OperationsOptions.IsAuthorizedAsync(services, ec, state, definition, cancellationToken).ConfigureAwait(false))
             return null;
 
-        if (definition.AuthorizeAsync is not null && !await definition.AuthorizeAsync(ec, state, cancellationToken).ConfigureAwait(false))
-            return null;
-
-        return new LoadedOperation(services, options, state, definition, observedOn);
+        return new LoadedOperation(services, options, state, definition);
     }
 
     /// <summary>
-    /// Maps internal work state to the public operation status.
+    /// Maps internal operation state to the public status without exposing ownership, claims or opaque data.
     /// </summary>
     /// <param name="webApi">The configured WebApi instance used to resolve resource links.</param>
     /// <param name="request">The originating <see cref="HttpRequest"/> used to resolve resource links.</param>
     /// <param name="state">The internal work state.</param>
     /// <param name="definition">The operation type configuration.</param>
     /// <returns>The public status representation.</returns>
-    internal static OperationStatus ToStatus(WebApiBase webApi, HttpRequest request, WorkState state, OperationTypeDefinition definition)
+    internal static OperationStatus ToStatus(WebApiBase webApi, HttpRequest request, OperationState state, OperationTypeDefinition definition)
     {
-        var error = state.Error is not null && state.Status is (WorkStatus.Failed or WorkStatus.Expired or WorkStatus.Canceled) ? definition.MapError?.Invoke(state.Error) ?? MapError(state.Error) : null;
-        var message = state.Progress?.Message;
-        if (state.Status == WorkStatus.Indeterminate && string.IsNullOrWhiteSpace(message))
-            message = "The previous execution outcome is unknown; processing may be retried.";
-
         return new OperationStatus
         {
-            Id = state.Id!,
+            Id = state.OperationId.ToString("D"),
             Status = state.Status switch
             {
-                WorkStatus.Created => "not-started",
-                WorkStatus.Started or WorkStatus.Indeterminate => "running",
-                WorkStatus.Completed => "succeeded",
-                WorkStatus.Failed or WorkStatus.Expired => "failed",
-                WorkStatus.Canceled => "canceled",
-                _ => "failed"
+                CoreEx.Operations.OperationStatus.Accepted => "accepted",
+                CoreEx.Operations.OperationStatus.Running => "running",
+                CoreEx.Operations.OperationStatus.Retrying => "retrying",
+                CoreEx.Operations.OperationStatus.Succeeded => "succeeded",
+                CoreEx.Operations.OperationStatus.Failed => "failed",
+                CoreEx.Operations.OperationStatus.Cancelled => "canceled",
+                CoreEx.Operations.OperationStatus.Expired => "expired",
+                _ => throw new InvalidOperationException($"Unexpected persisted operation status '{state.Status}'.")
             },
             CreatedOn = state.CreatedOn,
-            UpdatedOn = state.UpdatedOn ?? state.Progress?.LastUpdated ?? state.FinishedOn ?? state.StartedOn ?? state.CreatedOn,
-            ExpiryOn = state.ExpiryOn,
-            CancelRequested = state.CancelRequested,
-            PercentComplete = state.Progress?.PercentComplete,
-            Message = message,
-            Error = error,
-            ResultLocation = state.ResourceLocation is null ? null : webApi.GetLocationUri(request, new Uri(state.ResourceLocation, UriKind.RelativeOrAbsolute)).ToString()
+            UpdatedOn = state.UpdatedOn,
+            ExpiryOn = state.AbandonAfter,
+            CancelRequested = state.CancelRequestedOn is not null,
+            Message = state.Progress,
+            Error = definition.MapError?.Invoke(state) ?? MapError(state),
+            ResultLocation = state.ResultLocation is null ? null : webApi.GetLocationUri(request, new Uri(state.ResultLocation, UriKind.RelativeOrAbsolute)).ToString()
         };
     }
 
     /// <summary>
-    /// Maps known work errors to safe public error descriptions.
+    /// Supplies safe public errors without exposing persisted diagnostic text.
     /// </summary>
-    private static OperationError MapError(WorkError error) => error.Code switch
+    private static OperationError? MapError(OperationState state) => state.Status switch
     {
-        WorkErrorCodes.NotStarted => new("not-started", "The operation did not start before its deadline."),
-        WorkErrorCodes.OutcomeUnknown => new("outcome-unknown", "The operation ended without a known outcome."),
-        WorkErrorCodes.Canceled => new("canceled", "The operation was canceled."),
-        WorkErrorCodes.MaxAttempts => new("max-attempts", "The operation reached its execution-attempt limit."),
-        WorkErrorCodes.ExecutionFailed => new("execution-failed", "The operation failed."),
-        _ => new("operation-failed", "The operation failed.")
+        CoreEx.Operations.OperationStatus.Expired => new("operation-expired", "The operation expired without a confirmed outcome."),
+        CoreEx.Operations.OperationStatus.Failed => new("operation-failed", "The operation failed."),
+        CoreEx.Operations.OperationStatus.Retrying => new("operation-retrying", "The operation is awaiting another processing attempt."),
+        _ => null
     };
 
     /// <summary>
@@ -257,7 +242,7 @@ public static partial class CoreExAspNetCoreExtensions
     /// <summary>
     /// Calculates the default polling delay from the age of an operation.
     /// </summary>
-    internal static TimeSpan RetryAfter(WorkState state, DateTimeOffset now)
+    internal static TimeSpan RetryAfter(OperationState state, DateTimeOffset now)
     {
         var age = now - state.CreatedOn;
         return age < TimeSpan.FromSeconds(10) ? TimeSpan.FromSeconds(1)
@@ -271,17 +256,12 @@ public static partial class CoreExAspNetCoreExtensions
     /// </summary>
     private static TimeSpan GetRetryAfter(LoadedOperation loaded)
     {
-        var retryAfter = loaded.Definition.RetryAfter?.Invoke(loaded.State) ?? RetryAfter(loaded.State, loaded.ObservedOn);
+        var retryAfter = loaded.Definition.RetryAfter?.Invoke(loaded.State) ?? RetryAfter(loaded.State, (loaded.Services.GetService<TimeProvider>() ?? TimeProvider.System).GetUtcNow());
         if (retryAfter <= TimeSpan.Zero)
             throw new InvalidOperationException("The operation retry delay must be greater than zero.");
 
         return retryAfter;
     }
-
-    /// <summary>
-    /// Determines whether the work status is terminal.
-    /// </summary>
-    private static bool IsTerminal(WorkStatus status) => WorkStatus.Finished.HasFlag(status);
 
     /// <summary>
     /// Prevents shared caching of private operation responses.
@@ -291,7 +271,7 @@ public static partial class CoreExAspNetCoreExtensions
     /// <summary>
     /// Carries authorized state and its operation type configuration.
     /// </summary>
-    private sealed record LoadedOperation(IServiceProvider Services, OperationsOptions Options, WorkState State, OperationTypeDefinition Definition, DateTimeOffset ObservedOn);
+    private sealed record LoadedOperation(IServiceProvider Services, OperationsOptions Options, OperationState State, OperationTypeDefinition Definition);
 
     /// <summary>
     /// The public message used where the operation tracking store is unavailable.
@@ -303,7 +283,10 @@ public static partial class CoreExAspNetCoreExtensions
     /// </summary>
     private static TransientException TrackingUnavailable(IServiceProvider services, Exception exception, string logMessage)
     {
-        services.GetRequiredService<ILoggerFactory>().CreateLogger("CoreEx.Operations").LogError(exception, "{Message}", logMessage);
+        var logger = services.GetRequiredService<ILoggerFactory>().CreateLogger("CoreEx.Operations");
+        if (logger.IsEnabled(LogLevel.Error))
+            logger.LogError(exception, "{Message}", logMessage);
+
         return new TransientException(TrackingUnavailableMessage, exception);
     }
 

@@ -15,7 +15,7 @@ CREATE TABLE "{{lookup Parameters 'Param1'}}"."{{lookup Parameters 'Param2'}}" (
   "operation_name" TEXT NOT NULL,
   "instance_id" TEXT NOT NULL,
   "status" SMALLINT NOT NULL,
-  "initiator_id" VARCHAR(256) NULL,
+  "initiated_by" VARCHAR(256) NULL,
   "attempt" INTEGER NOT NULL DEFAULT 0,
   "claim_owner" VARCHAR(128) NULL,
   "claim_expires_on" TIMESTAMPTZ NULL,
@@ -31,11 +31,14 @@ CREATE TABLE "{{lookup Parameters 'Param1'}}"."{{lookup Parameters 'Param2'}}" (
   "completed_on" TIMESTAMPTZ NULL,
   "abandon_after" TIMESTAMPTZ NULL,
   "purge_after" TIMESTAMPTZ NULL,
+  "inactivity_ms" BIGINT NOT NULL,
+  "retention_ms" BIGINT NOT NULL,
   CONSTRAINT "pk_{{lookup Parameters 'Param2'}}" PRIMARY KEY ("key_hash"),
   CONSTRAINT "uq_{{lookup Parameters 'Param2'}}_operation_id" UNIQUE ("operation_id"),
   CONSTRAINT "ck_{{lookup Parameters 'Param2'}}_key_hash" CHECK (octet_length("key_hash") = 32),
   CONSTRAINT "ck_{{lookup Parameters 'Param2'}}_status" CHECK ("status" BETWEEN 1 AND 7),
-  CONSTRAINT "ck_{{lookup Parameters 'Param2'}}_attempt" CHECK ("attempt" >= 0)
+  CONSTRAINT "ck_{{lookup Parameters 'Param2'}}_attempt" CHECK ("attempt" >= 0),
+  CONSTRAINT "ck_{{lookup Parameters 'Param2'}}_durations" CHECK ("inactivity_ms" > 0 AND "retention_ms" > 0)
 );
 
 CREATE INDEX "ix_{{lookup Parameters 'Param2'}}_abandon_after" ON "{{lookup Parameters 'Param1'}}"."{{lookup Parameters 'Param2'}}" ("abandon_after") WHERE "status" IN (1, 2, 3);

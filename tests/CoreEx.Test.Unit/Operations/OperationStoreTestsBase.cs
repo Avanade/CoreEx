@@ -116,7 +116,7 @@ public abstract class OperationStoreTestsBase
         state.InstanceId.Should().Be(key.ToCanonicalString());
         state.OperationId.Should().NotBeEmpty();
         state.Status.Should().Be(OperationStatus.Accepted);
-        state.InitiatorId.Should().Be("user-1");
+        state.InitiatedBy.Should().Be("user-1");
         state.Data.Should().Be("{\"a\":1}");
         state.Attempt.Should().Be(0);
         state.ClaimOwner.Should().BeNull();
@@ -143,6 +143,79 @@ public abstract class OperationStoreTestsBase
 
         second.Created.Should().BeFalse();
         second.State.Should().Be(first.State);
+    }
+
+    [Test]
+    public async Task LifetimeOverrides_AreCapturedAndAppliedAcrossTransitions()
+    {
+        var defaults = SuiteOptions();
+        var store = CreateStore(defaults);
+        var key = NewKey();
+        var inactivity = TimeSpan.FromSeconds(8);
+        var retention = TimeSpan.FromSeconds(9);
+        var options = new OperationCreateOptions { InactivityTimeout = inactivity, TerminalRetention = retention };
+        var created = await store.CreateAsync(OperationName, key, "owner", null, options);
+        created.State.InactivityTimeout.Should().Be(inactivity);
+        created.State.TerminalRetention.Should().Be(retention);
+        (created.State.AbandonAfter - created.State.CreatedOn).Should().Be(inactivity);
+
+        defaults.InactivityTimeout = TimeSpan.FromHours(2);
+        defaults.TerminalRetention = TimeSpan.FromHours(3);
+        var other = CreateConcurrentStore(store);
+        var duplicate = await other.CreateAsync(OperationName, key, "owner", null, new OperationCreateOptions { InactivityTimeout = TimeSpan.FromSeconds(1), TerminalRetention = TimeSpan.FromSeconds(1) });
+        duplicate.Created.Should().BeFalse();
+        duplicate.State.InactivityTimeout.Should().Be(inactivity);
+        duplicate.State.TerminalRetention.Should().Be(retention);
+
+        var claimResult = await other.ClaimAsync(created.State.OperationId, "worker", ClaimDuration);
+        var claim = claimResult.Claim.ThrowIfNull();
+        (claimResult.State!.AbandonAfter - claimResult.State.ClaimExpiresOn).Should().Be(inactivity);
+        claim = (await other.RenewAsync(claim, ClaimDuration)).ThrowIfNull();
+        var renewed = (await other.GetByIdAsync(created.State.OperationId)).ThrowIfNull();
+        (renewed.AbandonAfter - renewed.ClaimExpiresOn).Should().Be(inactivity);
+        (await other.ReleaseAsync(claim)).Should().BeTrue();
+        var released = (await other.GetByIdAsync(created.State.OperationId)).ThrowIfNull();
+        (released.AbandonAfter - released.UpdatedOn).Should().Be(inactivity);
+        claim = (await other.ClaimAsync(created.State.OperationId, "worker", ClaimDuration)).Claim.ThrowIfNull();
+        var complete = (await other.CompleteAsync(claim, OperationCompletion.Succeeded())).ThrowIfNull();
+        (complete.PurgeAfter - complete.CompletedOn).Should().Be(retention);
+
+        var cancelled = await store.CreateAsync(OperationName, NewKey(), "owner", null, options);
+        var cancelResult = (await other.RequestCancelAsync(cancelled.State.OperationId)).ThrowIfNull();
+        (cancelResult.PurgeAfter - cancelResult.CompletedOn).Should().Be(retention);
+    }
+
+    [Test]
+    public async Task LifetimeOverrides_CleanupUsesEachOperationsRetention()
+    {
+        var store = CreateStore(SuiteOptions());
+        var first = await store.CreateAsync(OperationName, NewKey(), null, null, new OperationCreateOptions { InactivityTimeout = TimeSpan.FromMilliseconds(100), TerminalRetention = TimeSpan.FromSeconds(8) });
+        var second = await store.CreateAsync(OperationName, NewKey(), null, null, new OperationCreateOptions { InactivityTimeout = TimeSpan.FromMilliseconds(100), TerminalRetention = TimeSpan.FromSeconds(9) });
+        await AdvanceAsync(TimeSpan.FromMilliseconds(300));
+        var other = CreateConcurrentStore(store);
+        await CleanupAllAsync(other);
+        var expiredFirst = (await other.GetByIdAsync(first.State.OperationId)).ThrowIfNull();
+        var expiredSecond = (await other.GetByIdAsync(second.State.OperationId)).ThrowIfNull();
+        expiredFirst.Status.Should().Be(OperationStatus.Expired);
+        expiredSecond.Status.Should().Be(OperationStatus.Expired);
+        (expiredFirst.PurgeAfter - expiredFirst.CompletedOn).Should().Be(TimeSpan.FromSeconds(8));
+        (expiredSecond.PurgeAfter - expiredSecond.CompletedOn).Should().Be(TimeSpan.FromSeconds(9));
+    }
+
+    [Test]
+    public async Task LifetimeOverrides_ValidateAndRoundUpToMilliseconds()
+    {
+        var store = CreateStore(SuiteOptions());
+        await FluentActions.Awaiting(() => store.CreateAsync(OperationName, NewKey(), null, null, new OperationCreateOptions { InactivityTimeout = TimeSpan.Zero }))
+            .Should().ThrowAsync<ArgumentOutOfRangeException>().WithParameterName("InactivityTimeout");
+        await FluentActions.Awaiting(() => store.CreateAsync(OperationName, NewKey(), null, null, new OperationCreateOptions { TerminalRetention = TimeSpan.MaxValue }))
+            .Should().ThrowAsync<ArgumentOutOfRangeException>().WithParameterName("TerminalRetention");
+        var created = await store.CreateAsync(OperationName, NewKey(), null, null, new OperationCreateOptions { InactivityTimeout = TimeSpan.FromTicks(1), TerminalRetention = TimeSpan.FromTicks(10001) });
+        created.State.InactivityTimeout.Should().Be(TimeSpan.FromMilliseconds(1));
+        created.State.TerminalRetention.Should().Be(TimeSpan.FromMilliseconds(2));
+        var partial = await store.CreateAsync(OperationName, NewKey(), null, null, new OperationCreateOptions { InactivityTimeout = TimeSpan.FromSeconds(4) });
+        partial.State.InactivityTimeout.Should().Be(TimeSpan.FromSeconds(4));
+        partial.State.TerminalRetention.Should().Be(SuiteOptions().TerminalRetention);
     }
 
     [Test]

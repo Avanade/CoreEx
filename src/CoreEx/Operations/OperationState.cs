@@ -37,9 +37,19 @@ public sealed record OperationState
     public required OperationStatus Status { get; init; }
 
     /// <summary>
-    /// Gets the stable identifier of the initiating principal used for default authorization.
+    /// Gets the initiating <see cref="AuthenticationUser.UserName"/>, following the <see cref="ChangeLog.CreatedBy"/> convention and used for ownership authorization.
     /// </summary>
-    public string? InitiatorId { get; init; }
+    public string? InitiatedBy { get; init; }
+
+    /// <summary>
+    /// Gets the effective inactivity timeout captured when this operation was created.
+    /// </summary>
+    public required TimeSpan InactivityTimeout { get; init; }
+
+    /// <summary>
+    /// Gets the effective terminal retention captured when this operation was created.
+    /// </summary>
+    public required TimeSpan TerminalRetention { get; init; }
 
     /// <summary>
     /// Gets the execution attempt (fencing token); incremented by every successful claim.
@@ -110,7 +120,7 @@ public sealed record OperationState
     /// <summary>
     /// Gets the store time after which an unfinished operation with no further activity is abandoned and expired by cleanup; <see langword="null"/> once finished.
     /// </summary>
-    /// <remarks>Set from <see cref="OperationStoreOptions.InactivityTimeout"/> on create and release, and from the claim expiry plus that timeout on claim and renew, so a held claim never expires.</remarks>
+    /// <remarks>Set from <see cref="InactivityTimeout"/> on create and release, and from the claim expiry plus that timeout on claim and renew, so a held claim never expires.</remarks>
     public DateTimeOffset? AbandonAfter { get; init; }
 
     /// <summary>

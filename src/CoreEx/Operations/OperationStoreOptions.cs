@@ -23,7 +23,7 @@ public sealed class OperationStoreOptions
     /// <summary>
     /// Gets or sets how long an unfinished operation may go without activity (create, claim expiry, renewal or release) before cleanup expires it as abandoned; defaults to 24 hours.
     /// </summary>
-    /// <remarks>This is a delivery and recovery inactivity window, not a work-duration or scheduling deadline. It must exceed the broker's complete redelivery window (maximum delivery count multiplied by lock duration plus any retry back-off), otherwise work that is still legitimately queued is expired. The value is applied when the operation is written, so changing it affects only subsequent writes.</remarks>
+    /// <remarks>This is a delivery and recovery inactivity window, not a work-duration or scheduling deadline. It must exceed the broker's complete redelivery window (maximum delivery count multiplied by lock duration plus any retry back-off), otherwise work that is still legitimately queued is expired. The effective value is captured when an operation is created.</remarks>
     public TimeSpan InactivityTimeout
     {
         get;
@@ -33,6 +33,7 @@ public sealed class OperationStoreOptions
     /// <summary>
     /// Gets or sets how long a finished operation is retained before it may be purged; defaults to 24 hours.
     /// </summary>
+    /// <remarks>The effective value is captured when an operation is created.</remarks>
     public TimeSpan TerminalRetention
     {
         get;

@@ -24,8 +24,8 @@ public class SqlServerOperationStore(SqlServerDatabase database, ILogger<SqlServ
 
     private static readonly string[] _columns =
     [
-        "OperationId", "DomainName", "TenantId", "OperationName", "InstanceId", "Status", "InitiatorId", "Attempt", "ClaimOwner", "ClaimExpiresOn", "CancelRequestedOn", "Progress",
-        "ErrorCode", "ErrorMessage", "ResultLocation", "Data", "CreatedOn", "UpdatedOn", "StartedOn", "CompletedOn", "AbandonAfter", "PurgeAfter", "RowVersion"
+        "OperationId", "DomainName", "TenantId", "OperationName", "InstanceId", "Status", "InitiatedBy", "Attempt", "ClaimOwner", "ClaimExpiresOn", "CancelRequestedOn", "Progress",
+        "ErrorCode", "ErrorMessage", "ResultLocation", "Data", "CreatedOn", "UpdatedOn", "StartedOn", "CompletedOn", "AbandonAfter", "PurgeAfter", "InactivityMs", "RetentionMs", "RowVersion"
     ];
 
     /// <inheritdoc/>

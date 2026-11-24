@@ -10,6 +10,7 @@ public sealed class WebApiPublishOptions<TRequest, TMessage> : WebApiPublishOpti
     private TRequest? _value;
     private bool _hasValue;
     private Func<TMessage, EventData>? _messageFactory;
+    private Func<WebApiOptions, TRequest, CompositeKey>? _operationKeyFactory;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="WebApiPublishOptions{TRequest, TMessage}"/> class.
@@ -67,10 +68,21 @@ public sealed class WebApiPublishOptions<TRequest, TMessage> : WebApiPublishOpti
     }
 
     /// <inheritdoc/>
-    internal override Task<Result<EventData>> PrepareAsync<TResult>(WebApi<TResult> webApi, WebApiOptions requestOptions, CancellationToken cancellationToken)
+    internal override Task<Result<WebApiPreparedPublish>> PrepareAsync<TResult>(WebApi<TResult> webApi, WebApiOptions requestOptions, CancellationToken cancellationToken)
         => _hasValue
-            ? webApi.PreparePublishValueAsync(requestOptions, _value, Validator, CreateMessage, cancellationToken)
-            : webApi.PreparePublishRequestAsync(requestOptions, Validator, CreateMessage, cancellationToken);
+            ? webApi.PreparePublishValueAsync(requestOptions, _value, Validator, CreateMessage, _operationKeyFactory, cancellationToken)
+            : webApi.PreparePublishRequestAsync(requestOptions, Validator, CreateMessage, _operationKeyFactory, cancellationToken);
+
+    /// <summary>
+    /// Derives a repeatable submission key from the current Web API request and validated input before mapping it to the message.
+    /// </summary>
+    /// <param name="keyFactory">The request-aware submission-key selector.</param>
+    /// <returns>The current options.</returns>
+    public WebApiPublishOptions<TRequest, TMessage> WithOperationKey(Func<WebApiOptions, TRequest, CompositeKey> keyFactory)
+    {
+        _operationKeyFactory = keyFactory.ThrowIfNull();
+        return this;
+    }
 
     /// <summary>
     /// Maps the request and creates an event envelope using the configured factory or default settings.

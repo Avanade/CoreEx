@@ -42,9 +42,9 @@ public abstract class WebApiPublishOptionsBase<TSelf> : WebApiPublishOptionsBase
     }
 
     /// <summary>
-    /// Sets the optional operation timing configuration.
+    /// Sets the optional operation identity and lifetime configuration.
     /// </summary>
-    /// <param name="operationOptions">The operation timing configuration, or <see langword="null"/> to clear it.</param>
+    /// <param name="operationOptions">The operation configuration, or <see langword="null"/> to clear it.</param>
     /// <returns>The current options.</returns>
     public TSelf WithOperationOptions(WebApiPublishOperationOptions? operationOptions)
     {

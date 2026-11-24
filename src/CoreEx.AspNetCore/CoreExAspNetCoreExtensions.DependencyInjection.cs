@@ -28,12 +28,13 @@ public static partial class CoreExAspNetCoreExtensions
     /// </summary>
     /// <typeparam name="TMessage">The message type.</typeparam>
     /// <param name="services">The service collection.</param>
+    /// <param name="operationName">The stable application-owned operation name.</param>
     /// <param name="configure">The type-specific configuration.</param>
     /// <returns>The service collection.</returns>
-    public static IServiceCollection AddCoreExOperation<TMessage>(this IServiceCollection services, Action<OperationTypeOptions<TMessage>>? configure = null)
+    public static IServiceCollection AddCoreExOperation<TMessage>(this IServiceCollection services, string operationName, Action<OperationTypeOptions<TMessage>>? configure = null)
     {
         services.ThrowIfNull();
-        services.AddOptions<OperationsOptions>().Configure(options => options.AddOperation(configure));
+        services.AddOptions<OperationsOptions>().Configure(options => options.AddOperation(operationName, configure));
         return services;
     }
 

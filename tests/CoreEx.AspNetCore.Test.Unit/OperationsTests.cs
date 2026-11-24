@@ -1,193 +1,216 @@
 namespace CoreEx.AspNetCore.Test.Unit;
 
 [TestFixture]
-public class OperationsTests : WithApiTester<Api.Program>
+public class OperationsTests
 {
-    private const string OperationName = "webapi-operations";
+    private static readonly CoreEx.Security.AuthenticationUser _owner = new() { Type = CoreEx.Security.AuthenticationType.AccountUser, UserName = "owner", Id = "not-the-username" };
 
-    private static readonly CoreEx.Security.AuthenticationUser _owner = new() { Type = CoreEx.Security.AuthenticationType.AccountUser, UserName = "owner" };
-
-    /// <summary>
-    /// Provides a fixed UTC time for work-store clock tests.
-    /// </summary>
     private sealed class FixedTimeProvider(DateTimeOffset now) : TimeProvider
     {
         public override DateTimeOffset GetUtcNow() => now;
     }
 
     [Test]
-    public async Task Status_RetryAfterUsesWorkProviderTime()
+    public void Status_RetryAfterUsesLiveTimeRatherThanFrozenExecutionTimestamp()
     {
-        using var test = ApiTester.Create<Api.Program>();
-        var now = new DateTimeOffset(2025, 1, 1, 0, 0, 0, TimeSpan.Zero);
-        var provider = new CoreEx.Hosting.Work.InMemoryWorkProvider(timeProvider: new FixedTimeProvider(now));
-        test.ConfigureServices(services =>
-        {
-            services.AddSingleton(sp => new CoreEx.Hosting.Work.WorkOrchestrator(provider, sp.GetRequiredService<CoreEx.Hosting.IHostSettings>()));
-            services.AddExecutionContext((_, ec) => ec.User = _owner);
-        });
-        var work = test.Services.GetRequiredService<CoreEx.Hosting.Work.WorkOrchestrator>();
-        var key = CoreEx.Entities.CompositeKey.Create("retry-after-clock");
-        (await work.CreateAsync(CoreEx.Hosting.Work.WorkArgs.Create<Api.Entities.Person>(OperationName, key) with { User = _owner })).IsSuccess.Should().BeTrue();
-
-        var response = test.Http().Run(HttpMethod.Get, "/operations/retry-after-clock").Assert(HttpStatusCode.OK);
-        response.Response.Headers.RetryAfter.ThrowIfNull().ToString().Should().Be("1");
+        var store = new OperationSnapshotStore();
+        using var test = CreateTester(store);
+        test.ConfigureServices(services => services.AddSingleton<TimeProvider>(new FixedTimeProvider(store.State.CreatedOn.AddMinutes(2))));
+        var response = test.Http().Run(HttpMethod.Get, Location(store)).Assert(HttpStatusCode.OK);
+        response.Response.Headers.RetryAfter.ThrowIfNull().ToString().Should().Be("15");
     }
 
     [TestCase(0)]
     [TestCase(1)]
     [TestCase(2)]
-    public async Task Status_UsesExecutionUserAndConditionalHeaders(int locationMode)
+    public void Status_UsesRepresentationETagsAndConfiguredLinks(int locationMode)
     {
-        using var test = ApiTester.Create<Api.Program>();
-        var provider = new CoreEx.Hosting.Work.InMemoryWorkProvider();
-        test.ConfigureServices(services =>
+        var store = new OperationSnapshotStore();
+        using var test = CreateTester(store);
+        test.ConfigureServices(services => services.AddHttpWebApi((_, webApi) =>
         {
-            services.AddSingleton(sp => new CoreEx.Hosting.Work.WorkOrchestrator(provider, sp.GetRequiredService<CoreEx.Hosting.IHostSettings>()));
-            services.AddExecutionContext((_, ec) => ec.User = _owner);
-            services.AddHttpWebApi((_, webApi) =>
-            {
-                webApi.UseAbsolutePaths = locationMode == 1;
-                webApi.BaseAddress = locationMode == 2 ? new Uri("https://public.example/gateway/") : null;
-            });
-        });
-        var work = test.Services.GetRequiredService<CoreEx.Hosting.Work.WorkOrchestrator>();
-        var key = CoreEx.Entities.CompositeKey.Create("status-test");
-        (await work.CreateAsync(CoreEx.Hosting.Work.WorkArgs.Create<Api.Entities.Person>(OperationName, key) with { User = _owner })).IsSuccess.Should().BeTrue();
-
-        var response = test.Http().Run(HttpMethod.Get, "/operations/status-test").Assert(HttpStatusCode.OK);
-        using var status = JsonDocument.Parse(response.GetContent()!);
-        status.RootElement.GetProperty("status").GetString().Should().Be("not-started");
+            webApi.UseAbsolutePaths = locationMode == 1;
+            webApi.BaseAddress = locationMode == 2 ? new Uri("https://public.example/gateway/") : null;
+        }));
+        var response = test.Http().Run(HttpMethod.Get, Location(store)).Assert(HttpStatusCode.OK);
         var etag = response.Response.Headers.ETag.ThrowIfNull().ToString();
+        test.Http().Run(HttpMethod.Get, Location(store), r => r.Headers.TryAddWithoutValidation("If-None-Match", $"\"other\", W/{etag}")).Assert(HttpStatusCode.NotModified);
+        test.Http().Run(HttpMethod.Get, Location(store), r => r.Headers.TryAddWithoutValidation("If-None-Match", "*")).Assert(HttpStatusCode.NotModified);
 
-        test.Http().Run(HttpMethod.Get, "/operations/status-test", r => { r.Headers.TryAddWithoutValidation("If-None-Match", $"\"other\", W/{etag}"); })
-            .Assert(HttpStatusCode.NotModified);
-        test.Http().Run(HttpMethod.Get, "/operations/status-test", r => { r.Headers.TryAddWithoutValidation("If-None-Match", "*"); })
-            .Assert(HttpStatusCode.NotModified);
-        test.Http().Run(HttpMethod.Get, "/operations/status-test", r => { r.Headers.TryAddWithoutValidation("If-None-Match", "\"other\""); })
-            .Assert(HttpStatusCode.OK);
-
-        var started = await work.StartAsync(OperationName, key, "worker");
-        (await work.CompleteAsync(started.Lease.ThrowIfNull(), "/products/123?v=2#details")).Outcome.Should().Be(CoreEx.Hosting.Work.WorkTransitionOutcome.Applied);
-        var completed = test.Http().Run(HttpMethod.Get, "/operations/status-test").Assert(HttpStatusCode.OK);
+        // xmin can remain unchanged across mutations and operation incarnations.
+        store.State = store.State with { Status = CoreEx.Operations.OperationStatus.Succeeded, ResultLocation = "/products/123?v=2#details", AbandonAfter = null };
+        var completed = test.Http().Run(HttpMethod.Get, Location(store), r => r.Headers.TryAddWithoutValidation("If-None-Match", etag)).Assert(HttpStatusCode.OK);
         var expectedLocation = locationMode switch
         {
             1 => "http://localhost/products/123?v=2#details",
             2 => "https://public.example/gateway/products/123?v=2#details",
             _ => "/products/123?v=2#details"
         };
-        completed.Response.Headers.Location.Should().NotBeNull().And.Subject.ToString().Should().Be(expectedLocation);
-        using var completedStatus = JsonDocument.Parse(completed.GetContent()!);
-        completedStatus.RootElement.GetProperty("resultLocation").GetString().Should().Be(expectedLocation);
+        completed.Response.Headers.Location.ThrowIfNull().ToString().Should().Be(expectedLocation);
+        using var status = JsonDocument.Parse(completed.GetContent()!);
+        status.RootElement.GetProperty("resultLocation").GetString().Should().Be(expectedLocation);
+        test.Http().Run(HttpMethod.Get, $"{Location(store)}/result").Assert(HttpStatusCode.NoContent);
 
-        var other = CoreEx.Entities.CompositeKey.Create("other-owner");
-        (await work.CreateAsync(CoreEx.Hosting.Work.WorkArgs.Create<Api.Entities.Person>(OperationName, other) with { User = _owner with { UserName = "other" } })).IsSuccess.Should().BeTrue();
-        test.Http().Run(HttpMethod.Get, "/operations/other-owner").Assert(HttpStatusCode.NotFound);
-        test.Http().Run(HttpMethod.Get, "/operations/unknown").Assert(HttpStatusCode.NotFound);
+        var completedEtag = completed.Response.Headers.ETag.ThrowIfNull().ToString();
+        var oldLocation = Location(store);
+        store.State = store.State with { OperationId = Guid.NewGuid() };
+        test.Http().Run(HttpMethod.Get, Location(store), r => r.Headers.TryAddWithoutValidation("If-None-Match", completedEtag)).Assert(HttpStatusCode.OK);
+        test.Http().Run(HttpMethod.Get, oldLocation).Assert(HttpStatusCode.NotFound);
     }
 
-    [TestCase("tenant-a", HttpStatusCode.OK)]
-    [TestCase("tenant-b", HttpStatusCode.NotFound)]
-    [TestCase(null, HttpStatusCode.NotFound)]
-    public async Task TenantScope_UsesExecutionContextTenant(string? tenant, HttpStatusCode expected)
+    [TestCase(CoreEx.Operations.OperationStatus.Accepted, "accepted")]
+    [TestCase(CoreEx.Operations.OperationStatus.Running, "running")]
+    [TestCase(CoreEx.Operations.OperationStatus.Retrying, "retrying")]
+    [TestCase(CoreEx.Operations.OperationStatus.Succeeded, "succeeded")]
+    [TestCase(CoreEx.Operations.OperationStatus.Failed, "failed")]
+    [TestCase(CoreEx.Operations.OperationStatus.Cancelled, "canceled")]
+    [TestCase(CoreEx.Operations.OperationStatus.Expired, "expired")]
+    public void Status_ProjectsLifecycleWithoutPrivateState(CoreEx.Operations.OperationStatus lifecycle, string expected)
     {
-        using var test = ApiTester.Create<Api.Program>();
-        var provider = new CoreEx.Hosting.Work.InMemoryWorkProvider();
-        test.ConfigureServices(services =>
-        {
-            services.AddSingleton(sp => new CoreEx.Hosting.Work.WorkOrchestrator(provider, sp.GetRequiredService<CoreEx.Hosting.IHostSettings>()));
-            services.AddExecutionContext((_, ec) => { ec.User = _owner; ec.TenantId = tenant; });
-        });
-        var work = test.Services.GetRequiredService<CoreEx.Hosting.Work.WorkOrchestrator>();
-        var key = CoreEx.Entities.CompositeKey.Create("tenant-test");
-        CoreEx.ExecutionContext.Reset();
-        CoreEx.ExecutionContext.SetCurrent(new CoreEx.ExecutionContext { TenantId = "tenant-a" });
-        try
-        {
-            (await work.CreateAsync(CoreEx.Hosting.Work.WorkArgs.Create<Api.Entities.Person>(OperationName, key) with { User = _owner })).IsSuccess.Should().BeTrue();
-        }
-        finally
-        {
-            CoreEx.ExecutionContext.Reset();
-        }
+        var store = new OperationSnapshotStore();
+        store.State = store.State with { Status = lifecycle, ErrorCode = "private-code", ErrorMessage = "private-diagnostics" };
+        using var test = CreateTester(store);
+        var response = test.Http().Run(HttpMethod.Get, Location(store)).Assert(HttpStatusCode.OK);
+        using var json = JsonDocument.Parse(response.GetContent()!);
+        json.RootElement.GetProperty("status").GetString().Should().Be(expected);
+        foreach (var name in new[] { "instanceId", "data", "initiatedBy", "inactivityTimeout", "terminalRetention", "attempt", "claimOwner", "claimExpiresOn", "etag" })
+            json.RootElement.TryGetProperty(name, out _).Should().BeFalse();
 
-        test.Http().Run(HttpMethod.Get, "/operations/tenant-test").Assert(expected);
+        response.GetContent().Should().NotContain("private-diagnostics").And.NotContain("private-code");
+        response.Response.Headers.CacheControl.ThrowIfNull().ToString().Should().Be("no-store, private");
+        (response.Response.Headers.RetryAfter is null).Should().Be(store.State.IsFinished);
     }
 
-    /// <summary>
-    /// Provides an operation type with a result reader.
-    /// </summary>
-    private sealed class ResultMessage;
+    [TestCase("owner", "Test", null, HttpStatusCode.OK)]
+    [TestCase("Owner", "Test", null, HttpStatusCode.NotFound)]
+    [TestCase("", "Test", null, HttpStatusCode.NotFound)]
+    [TestCase(null, "Test", null, HttpStatusCode.NotFound)]
+    [TestCase("owner", "elsewhere", null, HttpStatusCode.NotFound)]
+    [TestCase("owner", "Test", "tenant-a", HttpStatusCode.NotFound)]
+    public void Ownership_IsOrdinalUsernameAndScopeBeforePolicy(string? initiatedBy, string domain, string? tenant, HttpStatusCode expected)
+    {
+        var store = new OperationSnapshotStore();
+        store.State = store.State with { InitiatedBy = initiatedBy, DomainName = domain, TenantId = tenant };
+        using var test = CreateTester(store);
+        var authorized = 0;
+        test.ConfigureServices(services => services.Configure<CoreEx.AspNetCore.Operations.OperationsOptions>(options =>
+            options.AddOperation<ResultMessage>("policy-operation", o => o.AuthorizeAsync = (_, _, _) => { authorized++; return Task.FromResult(true); })));
+        store.State = store.State with { OperationName = "policy-operation" };
 
-    /// <summary>
-    /// Provides an operation type with cancellation disabled.
-    /// </summary>
-    private sealed class NoCancelMessage;
+        test.Http().Run(HttpMethod.Get, Location(store), r => r.Headers.TryAddWithoutValidation("If-None-Match", "\"nonmatching\"")).Assert(expected);
+        test.Http().Run(HttpMethod.Get, $"{Location(store)}/result").Assert(expected == HttpStatusCode.OK ? HttpStatusCode.Conflict : expected);
+        if (expected == HttpStatusCode.NotFound)
+            test.Http().Run(HttpMethod.Post, $"{Location(store)}:cancel").Assert(expected);
+
+        authorized.Should().Be(expected == HttpStatusCode.OK ? 2 : 0);
+    }
+
+    [TestCase(CoreEx.Security.AuthenticationType.Unknown, "owner")]
+    [TestCase(CoreEx.Security.AuthenticationType.Unauthenticated, "owner")]
+    [TestCase(CoreEx.Security.AuthenticationType.AccountUser, " ")]
+    public void Ownership_RejectsMissingAuthenticatedUsername(CoreEx.Security.AuthenticationType type, string username)
+    {
+        var store = new OperationSnapshotStore();
+        using var test = CreateTester(store, _owner with { Type = type, UserName = username });
+        test.Http().Run(HttpMethod.Get, Location(store), r => r.Headers.TryAddWithoutValidation("If-None-Match", "*")).Assert(HttpStatusCode.NotFound);
+        test.Http().Run(HttpMethod.Post, $"{Location(store)}:cancel").Assert(HttpStatusCode.NotFound);
+    }
 
     [Test]
-    public async Task Result_RequiresSuccessAndReturnsValueOrNoContent()
+    public void Ownership_DoesNotTreatDefaultEnvironmentUserAsAuthenticatedHttpCaller()
     {
-        using var test = ApiTester.Create<Api.Program>();
-        var provider = new CoreEx.Hosting.Work.InMemoryWorkProvider();
-        test.ConfigureServices(services =>
-        {
-            services.AddSingleton(sp => new CoreEx.Hosting.Work.WorkOrchestrator(provider, sp.GetRequiredService<CoreEx.Hosting.IHostSettings>()));
-            services.AddExecutionContext((_, ec) => ec.User = _owner);
-            services.Configure<CoreEx.AspNetCore.Operations.OperationsOptions>(options => options.AddOperation<ResultMessage>(o => o.ReadResultAsync = (_, state, _) => Task.FromResult<object?>(new { state.Id, Value = 42 })));
-        });
-        var work = test.Services.GetRequiredService<CoreEx.Hosting.Work.WorkOrchestrator>();
+        var store = new OperationSnapshotStore();
+        store.State = store.State with { InitiatedBy = CoreEx.Security.AuthenticationUser.EnvironmentUser.UserName };
+        using var test = CreateTester(store, CoreEx.Security.AuthenticationUser.EnvironmentUser);
+        test.Http().Run(HttpMethod.Get, Location(store)).Assert(HttpStatusCode.NotFound);
+    }
 
-        var key = CoreEx.Entities.CompositeKey.Create("result-none");
-        (await work.CreateAsync(CoreEx.Hosting.Work.WorkArgs.Create<Api.Entities.Person>(OperationName, key) with { User = _owner })).IsSuccess.Should().BeTrue();
-        test.Http().Run(HttpMethod.Get, "/operations/result-none/result").Assert(HttpStatusCode.Conflict);
-        var started = await work.StartAsync(OperationName, key, "worker");
-        (await work.CompleteAsync(started.Lease.ThrowIfNull())).Outcome.Should().Be(CoreEx.Hosting.Work.WorkTransitionOutcome.Applied);
-        test.Http().Run(HttpMethod.Get, "/operations/result-none/result").Assert(HttpStatusCode.NoContent);
-
-        key = CoreEx.Entities.CompositeKey.Create("result-value");
-        (await work.CreateAsync(CoreEx.Hosting.Work.WorkArgs.Create<ResultMessage>(OperationName, key) with { User = _owner })).IsSuccess.Should().BeTrue();
-        started = await work.StartAsync(OperationName, key, "worker");
-        (await work.CompleteAsync(started.Lease.ThrowIfNull())).Outcome.Should().Be(CoreEx.Hosting.Work.WorkTransitionOutcome.Applied);
-        var response = test.Http().Run(HttpMethod.Get, "/operations/result-value/result").Assert(HttpStatusCode.OK);
+    [Test]
+    public void Result_RequiresSuccessAndUsesApplicationReader()
+    {
+        var store = new OperationSnapshotStore();
+        using var test = CreateTester(store);
+        test.ConfigureServices(services => services.Configure<CoreEx.AspNetCore.Operations.OperationsOptions>(options =>
+            options.AddOperation<ResultMessage>("result-operation", o => o.ReadResultAsync = (_, state, _) => Task.FromResult<object?>(new { state.OperationId, Value = 42 }))));
+        test.Http().Run(HttpMethod.Get, $"{Location(store)}/result").Assert(HttpStatusCode.Conflict);
+        store.State = store.State with { Status = CoreEx.Operations.OperationStatus.Succeeded };
+        test.Http().Run(HttpMethod.Get, $"{Location(store)}/result").Assert(HttpStatusCode.NoContent);
+        store.State = store.State with { OperationName = "result-operation" };
+        var response = test.Http().Run(HttpMethod.Get, $"{Location(store)}/result").Assert(HttpStatusCode.OK);
         using var json = JsonDocument.Parse(response.GetContent()!);
         json.RootElement.GetProperty("value").GetInt32().Should().Be(42);
         response.Response.Headers.CacheControl.ThrowIfNull().ToString().Should().Be("no-store, private");
+    }
 
-        test.Http().Run(HttpMethod.Get, "/operations/unknown/result").Assert(HttpStatusCode.NotFound);
+    [TestCase(CoreEx.Operations.OperationStatus.Accepted)]
+    [TestCase(CoreEx.Operations.OperationStatus.Retrying)]
+    [TestCase(CoreEx.Operations.OperationStatus.Running)]
+    public async Task Cancel_UsesActualCooperativeStoreTransition(CoreEx.Operations.OperationStatus lifecycle)
+    {
+        using var test = ApiTester.Create<Api.Program>();
+        test.ConfigureServices(services =>
+        {
+            services.AddSingleton<IOperationStore, InMemoryOperationStore>();
+            services.AddExecutionContext((_, ec) => ec.User = _owner);
+        });
+        var store = test.Services.GetRequiredService<IOperationStore>();
+        var created = await store.CreateAsync("person-submit", CoreEx.Entities.CompositeKey.Create("cancel"), _owner.UserName);
+        if (lifecycle != CoreEx.Operations.OperationStatus.Accepted)
+        {
+            var claim = (await store.ClaimAsync(created.State.OperationId, "worker", TimeSpan.FromMinutes(1))).Claim.ThrowIfNull();
+            if (lifecycle == CoreEx.Operations.OperationStatus.Retrying)
+                (await store.ReleaseAsync(claim)).Should().BeTrue();
+        }
+
+        var location = $"/operations/{created.State.OperationId:D}";
+        var response = test.Http().Run(HttpMethod.Post, $"{location}:cancel").Assert(HttpStatusCode.Accepted);
+        response.Response.Headers.Location.ThrowIfNull().ToString().Should().Be(location);
+        var actual = (await store.GetByIdAsync(created.State.OperationId)).ThrowIfNull();
+        actual.Status.Should().Be(lifecycle == CoreEx.Operations.OperationStatus.Running ? CoreEx.Operations.OperationStatus.Running : CoreEx.Operations.OperationStatus.Cancelled);
+        actual.CancelRequestedOn.Should().NotBeNull();
+    }
+
+    [TestCase(CoreEx.Operations.OperationStatus.Succeeded)]
+    [TestCase(CoreEx.Operations.OperationStatus.Failed)]
+    [TestCase(CoreEx.Operations.OperationStatus.Expired)]
+    public void Cancel_CompletionRaceDoesNotReportAcceptedCancellation(CoreEx.Operations.OperationStatus finished)
+    {
+        var store = new OperationSnapshotStore { OnCancel = state => state with { Status = finished } };
+        using var test = CreateTester(store);
+        test.Http().Run(HttpMethod.Post, $"{Location(store)}:cancel").Assert(HttpStatusCode.Conflict);
     }
 
     [Test]
-    public async Task Cancel_AcceptsConflictsAndRejectsWhenDisabled()
+    public void Cancel_RejectsTerminalDisabledAndUnknownOperations()
     {
-        using var test = ApiTester.Create<Api.Program>();
-        var provider = new CoreEx.Hosting.Work.InMemoryWorkProvider();
+        var store = new OperationSnapshotStore();
+        using var test = CreateTester(store);
+        test.ConfigureServices(services => services.Configure<CoreEx.AspNetCore.Operations.OperationsOptions>(options =>
+            options.AddOperation<ResultMessage>("no-cancel", o => o.CancellationEnabled = false)));
+        store.State = store.State with { Status = CoreEx.Operations.OperationStatus.Cancelled };
+        test.Http().Run(HttpMethod.Post, $"{Location(store)}:cancel").Assert(HttpStatusCode.Conflict);
+        store.State = store.State with { Status = CoreEx.Operations.OperationStatus.Accepted, OperationName = "no-cancel" };
+        var rejected = test.Http().Run(HttpMethod.Post, $"{Location(store)}:cancel").Assert(HttpStatusCode.MethodNotAllowed);
+        rejected.Response.Content.Headers.Allow.Should().Contain("GET");
+        foreach (var id in new[] { "unknown", Guid.Empty.ToString("D"), Guid.NewGuid().ToString("D") })
+        {
+            test.Http().Run(HttpMethod.Get, $"/operations/{id}").Assert(HttpStatusCode.NotFound);
+            test.Http().Run(HttpMethod.Post, $"/operations/{id}:cancel").Assert(HttpStatusCode.NotFound);
+        }
+    }
+
+    private sealed class ResultMessage;
+
+    private static string Location(OperationSnapshotStore store) => $"/operations/{store.State.OperationId:D}";
+
+    private static UnitTestEx.AspNetCore.ApiTester<Api.Program> CreateTester(OperationSnapshotStore store, CoreEx.Security.AuthenticationUser? user = null)
+    {
+        var test = ApiTester.Create<Api.Program>();
         test.ConfigureServices(services =>
         {
-            services.AddSingleton(sp => new CoreEx.Hosting.Work.WorkOrchestrator(provider, sp.GetRequiredService<CoreEx.Hosting.IHostSettings>()));
-            services.AddExecutionContext((_, ec) => ec.User = _owner);
-            services.Configure<CoreEx.AspNetCore.Operations.OperationsOptions>(options => options.AddOperation<NoCancelMessage>(o => o.CancellationEnabled = false));
+            services.AddSingleton<IOperationStore>(store);
+            services.AddExecutionContext((_, ec) => ec.User = user ?? _owner);
         });
-        var work = test.Services.GetRequiredService<CoreEx.Hosting.Work.WorkOrchestrator>();
-
-        var key = CoreEx.Entities.CompositeKey.Create("cancel-test");
-        (await work.CreateAsync(CoreEx.Hosting.Work.WorkArgs.Create<Api.Entities.Person>(OperationName, key) with { User = _owner })).IsSuccess.Should().BeTrue();
-        _ = await work.StartAsync(OperationName, key, "worker");
-        var response = test.Http().Run(HttpMethod.Post, "/operations/cancel-test:cancel").Assert(HttpStatusCode.Accepted);
-        response.Response.Headers.Location.ThrowIfNull().ToString().Should().Be("/operations/cancel-test");
-        using var json = JsonDocument.Parse(response.GetContent()!);
-        json.RootElement.GetProperty("cancelRequested").GetBoolean().Should().BeTrue();
-
-        var done = CoreEx.Entities.CompositeKey.Create("cancel-done");
-        (await work.CreateAsync(CoreEx.Hosting.Work.WorkArgs.Create<Api.Entities.Person>(OperationName, done) with { User = _owner })).IsSuccess.Should().BeTrue();
-        var started = await work.StartAsync(OperationName, done, "worker");
-        (await work.CompleteAsync(started.Lease.ThrowIfNull())).Outcome.Should().Be(CoreEx.Hosting.Work.WorkTransitionOutcome.Applied);
-        test.Http().Run(HttpMethod.Post, "/operations/cancel-done:cancel").Assert(HttpStatusCode.Conflict);
-
-        var disabled = CoreEx.Entities.CompositeKey.Create("cancel-disabled");
-        (await work.CreateAsync(CoreEx.Hosting.Work.WorkArgs.Create<NoCancelMessage>(OperationName, disabled) with { User = _owner })).IsSuccess.Should().BeTrue();
-        var rejected = test.Http().Run(HttpMethod.Post, "/operations/cancel-disabled:cancel").Assert(HttpStatusCode.MethodNotAllowed);
-        rejected.Response.Content.Headers.Allow.Should().Contain("GET");
-
-        test.Http().Run(HttpMethod.Post, "/operations/unknown:cancel").Assert(HttpStatusCode.NotFound);
+        return test;
     }
 }

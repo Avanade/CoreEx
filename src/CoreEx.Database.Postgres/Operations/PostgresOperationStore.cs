@@ -26,8 +26,8 @@ public class PostgresOperationStore(PostgresDatabase database, NpgsqlDataSource 
 
     private static readonly string[] _columns =
     [
-        "operation_id", "domain_name", "tenant_id", "operation_name", "instance_id", "status", "initiator_id", "attempt", "claim_owner", "claim_expires_on", "cancel_requested_on", "progress",
-        "error_code", "error_message", "result_location", "data", "created_on", "updated_on", "started_on", "completed_on", "abandon_after", "purge_after", "xmin"
+        "operation_id", "domain_name", "tenant_id", "operation_name", "instance_id", "status", "initiated_by", "attempt", "claim_owner", "claim_expires_on", "cancel_requested_on", "progress",
+        "error_code", "error_message", "result_location", "data", "created_on", "updated_on", "started_on", "completed_on", "abandon_after", "purge_after", "inactivity_ms", "retention_ms", "xmin"
     ];
 
     private readonly NpgsqlDataSource _dataSource = dataSource.ThrowIfNull();

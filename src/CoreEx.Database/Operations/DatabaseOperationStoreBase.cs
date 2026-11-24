@@ -18,7 +18,7 @@ public abstract partial class DatabaseOperationStoreBase<TDatabase>(TDatabase da
     /// <summary>
     /// Gets the expected number of state columns, in order, returned by every state-returning statement.
     /// </summary>
-    public const int StateColumnCount = 23;
+    public const int StateColumnCount = 25;
 
     private static readonly ConcurrentDictionary<(Type, string), string> _resourceCache = new();
     private readonly ConcurrentDictionary<string, SqlStatement> _statements = new();
@@ -67,7 +67,7 @@ public abstract partial class DatabaseOperationStoreBase<TDatabase>(TDatabase da
     /// <summary>
     /// Gets the unquoted column names, in the required <see cref="StateColumnCount"/> state order.
     /// </summary>
-    /// <remarks>The order is: operation identifier, domain name, tenant identifier, operation name, instance identifier, status, initiator identifier, attempt, claim owner, claim expiry, cancellation requested, progress, error code, error message, result location, data, created, updated, started, completed, abandon after, purge after and ETag.</remarks>
+    /// <remarks>The order is: operation identifier, domain name, tenant identifier, operation name, instance identifier, status, initiator identifier, attempt, claim owner, claim expiry, cancellation requested, progress, error code, error message, result location, data, created, updated, started, completed, abandon after, purge after, inactivity milliseconds, retention milliseconds and ETag.</remarks>
     protected abstract IReadOnlyList<string> StateColumnNames { get; }
 
     /// <summary>
@@ -107,7 +107,7 @@ public abstract partial class DatabaseOperationStoreBase<TDatabase>(TDatabase da
     }
 
     /// <inheritdoc/>
-    protected override Task<OperationCreateResult> OnCreateAsync(string domainName, string? tenantId, string operationName, string instanceId, string? initiatorId, string? data, CancellationToken cancellationToken)
+    protected override Task<OperationCreateResult> OnCreateAsync(string domainName, string? tenantId, string operationName, string instanceId, string? initiatedBy, string? data, TimeSpan inactivityTimeout, TimeSpan terminalRetention, CancellationToken cancellationToken)
         => ExecuteInTransactionAsync(Database, async () =>
         {
             var hash = ComputeKeyHash(domainName, tenantId, operationName, instanceId);
@@ -120,9 +120,10 @@ public abstract partial class DatabaseOperationStoreBase<TDatabase>(TDatabase da
                 p.AddParameter("TenantId", tenantId, DbType.String);
                 p.AddParameter("OperationName", operationName, DbType.String);
                 p.AddParameter("InstanceId", instanceId, DbType.String);
-                p.AddParameter("InitiatorId", initiatorId, DbType.String);
+                p.AddParameter("InitiatedBy", initiatedBy, DbType.String);
                 p.AddParameter("Data", data, DbType.String);
-                p.AddParameter("InactivityMs", ToMilliseconds(Options.InactivityTimeout), DbType.Int64);
+                p.AddParameter("InactivityMs", ToMilliseconds(inactivityTimeout), DbType.Int64);
+                p.AddParameter("RetentionMs", ToMilliseconds(terminalRetention), DbType.Int64);
             }, true, cancellationToken).ConfigureAwait(false);
 
             if (rows.Count > 0)
@@ -143,7 +144,6 @@ public abstract partial class DatabaseOperationStoreBase<TDatabase>(TDatabase da
             p.AddParameter("OperationId", operationId, DbType.Guid);
             p.AddParameter("Owner", owner, DbType.String);
             p.AddParameter("DurationMs", ToMilliseconds(duration), DbType.Int64);
-            p.AddParameter("InactivityMs", ToMilliseconds(Options.InactivityTimeout), DbType.Int64);
         }, true, cancellationToken).ConfigureAwait(false);
 
         if (rows.Count == 0)
@@ -166,7 +166,6 @@ public abstract partial class DatabaseOperationStoreBase<TDatabase>(TDatabase da
         {
             AddHeldParameters(p, claim);
             p.AddParameter("DurationMs", ToMilliseconds(duration), DbType.Int64);
-            p.AddParameter("InactivityMs", ToMilliseconds(Options.InactivityTimeout), DbType.Int64);
             p.AddParameter("Progress", progress, DbType.String);
         }, false, cancellationToken).ConfigureAwait(false);
 
@@ -181,7 +180,6 @@ public abstract partial class DatabaseOperationStoreBase<TDatabase>(TDatabase da
             AddHeldParameters(p, claim);
             p.AddParameter("ErrorCode", errorCode, DbType.String);
             p.AddParameter("ErrorMessage", errorMessage, DbType.String);
-            p.AddParameter("InactivityMs", ToMilliseconds(Options.InactivityTimeout), DbType.Int64);
         }).ScalarAsync<int>(cancellationToken).ConfigureAwait(false);
 
         return count > 0;
@@ -198,7 +196,6 @@ public abstract partial class DatabaseOperationStoreBase<TDatabase>(TDatabase da
                 p.AddParameter("ResultLocation", completion.ResultLocation, DbType.String);
                 p.AddParameter("ErrorCode", completion.ErrorCode, DbType.String);
                 p.AddParameter("ErrorMessage", completion.ErrorMessage, DbType.String);
-                p.AddParameter("RetentionMs", ToMilliseconds(Options.TerminalRetention), DbType.Int64);
             }, false, cancellationToken).ConfigureAwait(false);
 
             return rows.Count == 0 ? null : rows[0].State;
@@ -210,7 +207,6 @@ public abstract partial class DatabaseOperationStoreBase<TDatabase>(TDatabase da
         var rows = await SelectAsync(db, "Cancel", p =>
         {
             p.AddParameter("OperationId", operationId, DbType.Guid);
-            p.AddParameter("RetentionMs", ToMilliseconds(Options.TerminalRetention), DbType.Int64);
         }, false, cancellationToken).ConfigureAwait(false);
 
         return rows.Count == 0 ? null : rows[0].State;
@@ -222,7 +218,6 @@ public abstract partial class DatabaseOperationStoreBase<TDatabase>(TDatabase da
         var expired = await WithOperationDatabaseAsync(db => SelectAsync(db, "CleanupExpire", p =>
         {
             p.AddParameter("MaxCount", maxCount, DbType.Int32);
-            p.AddParameter("RetentionMs", ToMilliseconds(Options.TerminalRetention), DbType.Int64);
         }, true, cancellationToken)).ConfigureAwait(false);
 
         foreach (var (state, previousStatus) in expired)
@@ -259,7 +254,7 @@ public abstract partial class DatabaseOperationStoreBase<TDatabase>(TDatabase da
     /// <summary>
     /// Converts the <paramref name="duration"/> to whole milliseconds, rounding up.
     /// </summary>
-    private static long ToMilliseconds(TimeSpan duration) => (long)Math.Ceiling(duration.TotalMilliseconds);
+    private static long ToMilliseconds(TimeSpan duration) => duration.Ticks / TimeSpan.TicksPerMillisecond + (duration.Ticks % TimeSpan.TicksPerMillisecond == 0 ? 0 : 1);
 
     /// <summary>
     /// Adds the parameters that identify a held claim.
@@ -375,7 +370,7 @@ public abstract partial class DatabaseOperationStoreBase<TDatabase>(TDatabase da
         OperationName = r.GetValue<string>(3),
         InstanceId = r.GetValue<string>(4),
         Status = (OperationStatus)Convert.ToInt32(r.GetValue(5), CultureInfo.InvariantCulture),
-        InitiatorId = r.GetValue<string?>(6),
+        InitiatedBy = r.GetValue<string?>(6),
         Attempt = Convert.ToInt32(r.GetValue(7), CultureInfo.InvariantCulture),
         ClaimOwner = r.GetValue<string?>(8),
         ClaimExpiresOn = GetUtc(r, 9),
@@ -391,7 +386,9 @@ public abstract partial class DatabaseOperationStoreBase<TDatabase>(TDatabase da
         CompletedOn = GetUtc(r, 19),
         AbandonAfter = GetUtc(r, 20),
         PurgeAfter = GetUtc(r, 21),
-        ETag = r.GetRowVersion(22) ?? throw new InvalidOperationException("The operation ETag must not be null.")
+        InactivityTimeout = TimeSpan.FromTicks(checked(r.GetValue<long>(22) * TimeSpan.TicksPerMillisecond)),
+        TerminalRetention = TimeSpan.FromTicks(checked(r.GetValue<long>(23) * TimeSpan.TicksPerMillisecond)),
+        ETag = r.GetRowVersion(24) ?? throw new InvalidOperationException("The operation ETag must not be null.")
     };
 
     /// <summary>

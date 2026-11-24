@@ -14,7 +14,7 @@ u AS (
     claim_expires_on = CASE WHEN o.status = 2 THEN o.claim_expires_on END,
     abandon_after = CASE WHEN o.status = 2 THEN o.abandon_after END,
     completed_on = CASE WHEN o.status = 2 THEN o.completed_on ELSE o.observed_at END,
-    purge_after = CASE WHEN o.status = 2 THEN o.purge_after ELSE o.observed_at + (@RetentionMs * interval '1 millisecond') END,
+    purge_after = CASE WHEN o.status = 2 THEN o.purge_after ELSE o.observed_at + (t.retention_ms * interval '1 millisecond') END,
     cancel_requested_on = o.observed_at,
     updated_on = o.observed_at
   FROM observed AS o
